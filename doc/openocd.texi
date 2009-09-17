@@ -1055,7 +1055,19 @@ access uses the CPU or to prevent conflicting CPU access.
 Before your @code{reset-init} handler has set up
 the PLLs and clocking, you may need to use
 a low JTAG clock rate; then you'd increase it later.
-(The rule of thumb for ARM-based processors is 1/8 the CPU clock.)
+For most ARM-based processors the fastest JTAG clock@footnote{A FAQ
+@uref{http://www.arm.com/support/faqdev/4170.html} gives details.}
+is one sixth of the CPU clock; or one eighth for ARM11 cores.
+Consult chip documentation to determine the peak JTAG clock rate,
+which might be less than that.
+
+@quotation Warning
+On most ARMs, JTAG clock detection is coupled to the core clock, so
+software using a @option{wait for interrupt} operation blocks JTAG access.
+Adaptive clocking provides a partial workaround, but a more complete
+solution just avoids using that instruction with JTAG debuggers.
+@end quotation
+
 If the board supports adaptive clocking, use the @command{jtag_rclk}
 command, in case your board is used with JTAG adapter which
 also supports it.  Otherwise use @command{jtag_khz}.
@@ -1785,9 +1797,10 @@ JTAG interfaces usually support a limited number of
 speeds.  The speed actually used won't be faster
 than the speed specified.
 
-As a rule of thumb, if you specify a clock rate make
-sure the JTAG clock is no more than @math{1/6th CPU-Clock}.
-This is especially true for synthesized cores (ARMxxx-S).
+Chip data sheets generally include a top JTAG clock rate.
+The actual rate is often a function of a CPU core clock,
+and is normally less than that peak rate.
+For example, most ARM cores accept at most one sixth of the CPU clock.
 
 Speed 0 (khz) selects RTCK method.
 @xref{FAQ RTCK}.
@@ -1799,6 +1812,7 @@ support it, an error is returned when you try to use RTCK.
 @end deffn
 
 @defun jtag_rclk fallback_speed_kHz
+@cindex adaptive clocking
 @cindex RTCK
 This Tcl proc (defined in @file{startup.tcl}) attempts to enable RTCK/RCLK.
 If that fails (maybe the interface, board, or target doesn't
@@ -4321,6 +4335,31 @@ Otherwise these behave the same:  wait up to @var{ms} milliseconds,
 or 5 seconds if there is no parameter, for the target to halt
 (and enter debug mode).
 Using 0 as the @var{ms} parameter prevents OpenOCD from waiting.
+
+@quotation Warning
+On ARM cores, software using the @emph{wait for interrupt} operation
+often blocks the JTAG access needed by a @command{halt} command.
+This is because that operation also puts the core into a low
+power mode by gating the core clock;
+but the core clock is needed to detect JTAG clock transitions.
+
+One partial workaround uses adaptive clocking:  when the core is
+interrupted the operation completes, then JTAG clocks are accepted
+at least until the interrupt handler completes.
+However, this workaround is often unusable since the processor, board,
+and JTAG adapter must all support adaptive JTAG clocking.
+Also, it can't work until an interrupt is issued.
+
+A more complete workaround is to not use that operation while you
+work with a JTAG debugger.
+Tasking environments generaly have idle loops where the body is the
+@emph{wait for interrupt} operation.
+(On older cores, it is a coprocessor action;
+newer cores have a @option{wfi} instruction.)
+Such loops can just remove that operation, at the cost of higher
+power consumption (because the CPU is needlessly clocked).
+@end quotation
+
 @end deffn
 
 @deffn Command resume [address]
@@ -5984,9 +6023,10 @@ Often this is a perfectly acceptable solution.
 
 In most simple terms: Often the JTAG clock must be 1/10 to 1/12 of
 the target clock speed. But what that ``magic division'' is varies
-depending on the chips on your board. @b{ARM rule of thumb} Most ARM
-based systems require an 8:1 division. @b{Xilinx rule of thumb} is
-1/12 the clock speed.
+depending on the chips on your board.
+@b{ARM rule of thumb} Most ARM based systems require an 6:1 division;
+ARM11 cores use an 8:1 division.
+@b{Xilinx rule of thumb} is 1/12 the clock speed.
 
 Note: Many FTDI2232C based JTAG dongles are limited to 6MHz.
 
@@ -5999,11 +6039,18 @@ have a special debug mode in your application that does a ``high power
 sleep''. If you are careful - 98% of your problems can be debugged
 this way.
 
+Note that on ARM you may need to avoid using the @emph{wait for interrupt}
+operation in your idle loops even if you don't otherwise change the CPU
+clock rate.
+That operation gates the CPU clock, and thus the JTAG clock; which
+prevents JTAG access.  One consequence is not being able to @command{halt}
+cores which are executing that @emph{wait for interrupt} operation.
+
 To set the JTAG frequency use the command:
 
 @example
-        # Example: 1.234MHz
-        jtag_khz 1234
+# Example: 1.234MHz
+jtag_khz 1234
 @end example
 
 
