@@ -2828,6 +2828,9 @@ void FreeScriptInternalRep(Jim_Interp *interp, Jim_Obj *objPtr)
     int i;
     struct ScriptObj *script = (void*) objPtr->internalRep.ptr;
 
+    if (!script)
+	    return;
+
     script->inUse--;
     if (script->inUse != 0) return;
     for (i = 0; i < script->len; i++) {
