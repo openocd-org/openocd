@@ -503,7 +503,7 @@ static void zylinjtag_startNetwork(void)
 
 	Jim_CreateCommand(httpstate.jim_interp, "log", zylinjtag_Jim_Command_log,
 			NULL, NULL);
-	Jim_CreateCommand(httpstate.jim_interp, "reboot",
+	Jim_CreateCommand(httpstate.jim_interp, "zy1000_reboot",
 			zylinjtag_Jim_Command_reboot, NULL, NULL);
 	Jim_CreateCommand(httpstate.jim_interp, "threads",
 			zylinjtag_Jim_Command_threads, NULL, NULL);
