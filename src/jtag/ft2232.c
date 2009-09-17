@@ -766,33 +766,45 @@ static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
  */
 static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 {
-	int			tms_bits = 0;
-	int			state_ndx;
-	tap_state_t	walker = tap_get_state();
+	int state_count = 0;
 
 	assert((unsigned) num_states <= 32u);		/* tms_bits only holds 32 bits */
 
 	/* this loop verifies that the path is legal and logs each state in the path */
-	for (state_ndx = 0; state_ndx < num_states;  ++state_ndx)
+	while (num_states)
 	{
-		tap_state_t	desired_next_state = path[state_ndx];
+		unsigned char  tms_byte = 0;       /* zero this on each MPSSE batch */
 
-		if (tap_state_transition(walker, false) == desired_next_state)
-			;	/* bit within tms_bits at index state_ndx is already zero */
-		else if (tap_state_transition(walker, true) == desired_next_state)
-			tms_bits |= (1 << state_ndx);
-		else
+		int bit_count = 0;
+
+		int num_states_batch = num_states > 7 ? 7 : num_states;
+
+		/* command "Clock Data to TMS/CS Pin (no Read)" */
+		buffer_write(0x4b);
+
+		/* number of states remaining */
+		buffer_write(num_states_batch - 1);
+
+		while (num_states_batch--)
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
-					tap_state_name(walker), tap_state_name(desired_next_state));
-			exit(-1);
+		  if (tap_state_transition(tap_get_state(), false) == path[state_count])
+				buf_set_u32(&tms_byte, bit_count++, 1, 0x0);
+		  else if (tap_state_transition(tap_get_state(), true) == path[state_count])
+				buf_set_u32(&tms_byte, bit_count++, 1, 0x1);
+			else
+			{
+				LOG_ERROR( "BUG: %s -> %s isn't a valid TAP transition", tap_state_name(
+								 tap_get_state() ), tap_state_name(path[state_count]) );
+				exit(-1);
+			}
+
+		  tap_set_state(path[state_count]);
+			state_count++;
+			num_states--;
 		}
 
-		walker = desired_next_state;
-	}
-
-	clock_tms(0x4b,  tms_bits, num_states, 0);
-
+		buffer_write(tms_byte);
+	}	
 	tap_set_end_state(tap_get_state());
 }
 
