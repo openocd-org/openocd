@@ -309,8 +309,9 @@ int nand_init(struct command_context_s *cmd_ctx)
 						 "identify NAND flash device <num>");
 		register_command(cmd_ctx, nand_cmd, "check_bad_blocks", handle_nand_check_bad_blocks_command, COMMAND_EXEC,
 						 "check NAND flash device <num> for bad blocks [<offset> <length>]");
-		register_command(cmd_ctx, nand_cmd, "erase", handle_nand_erase_command, COMMAND_EXEC,
-						 "erase blocks on NAND flash device <num> <offset> <length>");
+		register_command(cmd_ctx, nand_cmd, "erase",
+				handle_nand_erase_command, COMMAND_EXEC,
+				"erase blocks on NAND flash device <num> [<offset> <length>]");
 		register_command(cmd_ctx, nand_cmd, "dump", handle_nand_dump_command, COMMAND_EXEC,
 						 "dump from NAND flash device <num> <filename> "
 						 "<offset> <length> [oob_raw | oob_only]");
@@ -637,7 +638,7 @@ int nand_probe(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-int nand_erase(struct nand_device_s *device, int first_block, int last_block)
+static int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 {
 	int i;
 	uint32_t page;
@@ -712,8 +713,11 @@ int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 
 		if (status & 0x1)
 		{
-			LOG_ERROR("erase operation didn't pass, status: 0x%2.2x", status);
-			return ERROR_NAND_OPERATION_FAILED;
+			LOG_ERROR("didn't erase %sblock %d; status: 0x%2.2x",
+					(device->blocks[i].is_bad == 1)
+						? "bad " : "",
+					i, status);
+			/* continue; other blocks might still be erasable */
 		}
 
 		device->blocks[i].is_erased = 1;
@@ -1075,8 +1079,12 @@ int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	for (p = nand_devices, i = 0; p; p = p->next, i++)
 	{
 		if (p->device)
-			command_print(cmd_ctx, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
-				i, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
+			command_print(cmd_ctx, "#%i: %s (%s) "
+				"pagesize: %i, buswidth: %i,\n\t"
+				"blocksize: %i, blocks: %i",
+				i, p->device->name, p->manufacturer->name,
+				p->page_size, p->bus_width,
+				p->erase_size, p->num_blocks);
 		else
 			command_print(cmd_ctx, "#%i: not probed", i);
 	}
@@ -1197,7 +1205,7 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 	nand_device_t *p;
 	int retval;
 
-	if (argc != 3)
+	if (argc != 1 && argc != 3)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -1210,27 +1218,37 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 		unsigned long offset;
 		unsigned long length;
 
-		offset = strtoul(args[1], &cp, 0);
-		if (*cp || offset == ULONG_MAX || offset % p->erase_size)
-		{
-			return ERROR_INVALID_ARGUMENTS;
-		}
-		offset /= p->erase_size;
+		/* erase specified part of the chip; or else everything */
+		if (argc == 3) {
+			unsigned long size = p->erase_size * p->num_blocks;
 
-		length = strtoul(args[2], &cp, 0);
-		if (*cp || length == ULONG_MAX || length % p->erase_size)
-		{
-			return ERROR_INVALID_ARGUMENTS;
-		}
-		length -= 1;
-		length /= p->erase_size;
+			offset = strtoul(args[1], &cp, 0);
+			if (*cp || (offset == ULONG_MAX)
+					|| (offset % p->erase_size) != 0
+					|| offset >= size)
+				return ERROR_INVALID_ARGUMENTS;
 
-		retval = nand_erase(p, offset, offset + length);
+			length = strtoul(args[2], &cp, 0);
+			if (*cp || (length == ULONG_MAX)
+					|| (length == 0)
+					|| (length % p->erase_size) != 0
+					|| (length + offset) > size)
+				return ERROR_INVALID_ARGUMENTS;
+
+			offset /= p->erase_size;
+			length /= p->erase_size;
+		} else {
+			offset = 0;
+			length = p->num_blocks;
+		}
+
+		retval = nand_erase(p, offset, offset + length - 1);
 		if (retval == ERROR_OK)
 		{
-			command_print(cmd_ctx, "successfully erased blocks "
-					"%lu to %lu on NAND flash device '%s'",
-					offset, offset + length, p->device->name);
+			command_print(cmd_ctx, "erased blocks %lu to %lu "
+					"on NAND flash device #%s '%s'",
+					offset, offset + length,
+					args[0], p->device->name);
 		}
 		else if (retval == ERROR_NAND_OPERATION_FAILED)
 		{

@@ -3898,9 +3898,17 @@ for more information.
 @end deffn
 
 @deffn Command {nand list}
-Prints a one-line summary of each device declared
+Prints a summary of each device declared
 using @command{nand device}, numbered from zero.
 Note that un-probed devices show no details.
+@example
+> nand list
+#0: NAND 1GiB 3,3V 8-bit (Micron) pagesize: 2048, buswidth: 8,
+        blocksize: 131072, blocks: 8192
+#1: NAND 1GiB 3,3V 8-bit (Micron) pagesize: 2048, buswidth: 8,
+        blocksize: 131072, blocks: 8192
+>
+@end example
 @end deffn
 
 @deffn Command {nand probe} num
@@ -3950,13 +3958,15 @@ spare areas associated with each data page.
 @end itemize
 @end deffn
 
-@deffn Command {nand erase} num offset length
+@deffn Command {nand erase} num [offset length]
 @cindex NAND erasing
 @cindex NAND programming
 Erases blocks on the specified NAND device, starting at the
 specified @var{offset} and continuing for @var{length} bytes.
 Both of those values must be exact multiples of the device's
 block size, and the region they specify must fit entirely in the chip.
+If those parameters are not specified,
+the whole NAND chip will be erased.
 The @var{num} parameter is the value shown by @command{nand list}.
 
 @b{NOTE:} This command will try to erase bad blocks, when told
@@ -4079,7 +4089,8 @@ This driver handles the NAND controllers found on DaVinci family
 chips from Texas Instruments.
 It takes three extra parameters:
 address of the NAND chip;
-hardware ECC mode to use (hwecc1, hwecc4, hwecc4_infix);
+hardware ECC mode to use (@option{hwecc1},
+@option{hwecc4}, @option{hwecc4_infix});
 address of the AEMIF controller on this processor.
 @example
 nand device davinci dm355.arm 0x02000000 hwecc4 0x01e10000
