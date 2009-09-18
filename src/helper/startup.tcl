@@ -157,6 +157,7 @@ proc ocd_process_reset { MODE } {
 }
 
 proc ocd_process_reset_inner { MODE } {
+	set targets [target names]
 
 	# If this target must be halted...
 	set halt -1
@@ -175,26 +176,38 @@ proc ocd_process_reset_inner { MODE } {
 
 	# Target event handlers *might* change which TAPs are enabled
 	# or disabled, so we fire all of them.  But don't issue any
-	# of the "arp_*" commands, which may issue JTAG transactions,
+	# target "arp_*" commands, which may issue JTAG transactions,
 	# unless we know the underlying TAP is active.
+	#
+	# NOTE:  ARP == "Advanced Reset Process" ... "advanced" is
+	# relative to a previous restrictive scheme
 
-	foreach t [ target names ] {
+	foreach t $targets {
 		# New event script.
 		$t invoke-event reset-start
 	}
 
-	# Init the tap controller.
+	# Use TRST or TMS/TCK operations to reset all the tap controllers.
+	# TAP reset events get reported; they might enable some taps.
+	#
+	# REVISIT arp_init-reset pulses SRST (if it can) with TRST active;
+	# but SRST events aren't reported (unlike "jtag arp_reset", below)
 	jtag arp_init-reset
 
 	# Examine all targets on enabled taps.
-	foreach t [ target names ] {
+	foreach t $targets {
 		if {[jtag tapisenabled [$t cget -chain-position]]} {
 			$t arp_examine
 		}
 	}
 
-	# Let the C code know we are asserting reset.
-	foreach t [ target names ] {
+	# Assert SRST, and report the pre/post events.
+	#
+	# REVISIT this presumes a single-target config, since SRST
+	# applies to the whole device-under-test.  When two targets
+	# both need special setup before SRST, it's only done for
+	# the first one...
+	foreach t $targets {
 		$t invoke-event reset-assert-pre
 		# C code needs to know if we expect to 'halt'
 		if {[jtag tapisenabled [$t cget -chain-position]]} {
@@ -203,8 +216,8 @@ proc ocd_process_reset_inner { MODE } {
 		$t invoke-event reset-assert-post
 	}
 
-	# Now de-assert reset.
-	foreach t [ target names ] {
+	# Now de-assert SRST, and report the pre/post events.
+	foreach t $targets {
 		$t invoke-event reset-deassert-pre
 		# Again, de-assert code needs to know..
 		if {[jtag tapisenabled [$t cget -chain-position]]} {
@@ -213,9 +226,11 @@ proc ocd_process_reset_inner { MODE } {
 		$t invoke-event reset-deassert-post
 	}
 
-	# Pass 1 - Now try to halt.
+	# Pass 1 - Now wait for any halt (requested as part of reset
+	# assert/deassert) to happen.  Ideally it takes effect without
+	# first executing any instructions.
 	if { $halt } {
-		foreach t [target names] {
+		foreach t $targets {
 			if {[jtag tapisenabled [$t cget -chain-position]] == 0} {
 				continue
 			}
@@ -239,7 +254,7 @@ proc ocd_process_reset_inner { MODE } {
 
 	#Pass 2 - if needed "init"
 	if { 0 == [string compare init $MODE] } {
-		foreach t [target names] {
+		foreach t $targets {
 			if {[jtag tapisenabled [$t cget -chain-position]] == 0} {
 				continue
 			}
@@ -252,7 +267,7 @@ proc ocd_process_reset_inner { MODE } {
 		}
 	}
 
-	foreach t [ target names ] {
+	foreach t $targets {
 		$t invoke-event reset-end
 	}
 }
