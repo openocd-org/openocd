@@ -657,9 +657,6 @@ int interface_jtag_add_tlr()
 
 
 
-extern int jtag_nsrst_delay;
-extern int jtag_ntrst_delay;
-
 int interface_jtag_add_reset(int req_trst, int req_srst)
 {
 	zy1000_reset(req_trst, req_srst);
