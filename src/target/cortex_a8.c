@@ -120,34 +120,27 @@ target_type_t cortexa8_target =
  */
 int cortex_a8_init_debug_access(target_t *target)
 {
-#if 0
-# Unlocking the debug registers for modification
-mww 0x54011FB0 0xC5ACCE55 4
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-# Clear Sticky Power Down status Bit to enable access to
-# the registers in the Core Power Domain
-mdw 0x54011314
-# Check that it is cleared
-mdw 0x54011314
-# Now we can read Core Debug Registers at offset 0x080
-mdw 0x54011080 4
-# We can also read RAM.
-mdw 0x80000000 32
+	int retval;
+	uint32_t dummy;
 
-mdw 0x5401d030
-mdw 0x54011FB8
+	LOG_DEBUG(" ");
 
-# Set DBGEN line for hardware debug (OMAP35xx)
-mww 0x5401d030 0x00002000
-
-#Check AUTHSTATUS
-mdw 0x54011FB8
-
-# Instr enable
-mww 0x54011088 0x2000
-mdw 0x54011080 4
-#endif
-	return ERROR_OK;
+	/* Unlocking the debug registers for modification */
+	/* The debugport might be uninitialised so try twice */
+	retval = mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_LOCKACCESS, 0xC5ACCE55);
+	if (retval != ERROR_OK)
+		mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_LOCKACCESS, 0xC5ACCE55);
+	/* Clear Sticky Power Down status Bit in PRSR to enable access to
+	   the registers in the Core Power Domain */
+	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
+	/* Enabling of instruction execution in debug mode is done in debug_entry code */ 
+	
+	return retval;
 }
 
 int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
@@ -1441,6 +1434,9 @@ int cortex_a8_examine(struct target_s *target)
 	LOG_DEBUG("Configured %i hw breakpoint pairs and %i hw watchpoint pairs",
 			cortex_a8->brp_num , cortex_a8->wrp_num);
 
+	/* Configure core debug access */
+	cortex_a8_init_debug_access(target);
+	
 	target->type->examined = 1;
 
 	return retval;
@@ -1559,6 +1555,17 @@ static int cortex_a8_handle_cache_info_command(struct command_context_s *cmd_ctx
 }
 
 
+static int cortex_a8_handle_dbginit_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+
+	cortex_a8_init_debug_access(target);
+
+	return ERROR_OK;
+}
+
+
 int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *cortex_a8_cmd;
@@ -1574,6 +1581,10 @@ int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, cortex_a8_cmd, "cache_info",
 			cortex_a8_handle_cache_info_command, COMMAND_EXEC,
 			"display information about target caches");
+
+	register_command(cmd_ctx, cortex_a8_cmd, "dbginit",
+			cortex_a8_handle_dbginit_command, COMMAND_EXEC,
+			"Initialize core debug");
 
 	return retval;
 }
