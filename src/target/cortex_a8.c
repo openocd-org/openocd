@@ -332,6 +332,21 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int r
 	return retval;
 }
 
+/* Write to memory mapped registers directly with no cache or mmu handling */
+int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t address, uint32_t value)
+{
+	int retval;
+
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
+
+	retval = mem_ap_write_atomic_u32(swjdp, address, value);
+
+	return retval;
+}
+
 /*
  * Cortex-A8 Run control
  */
@@ -1022,10 +1037,10 @@ int cortex_a8_set_breakpoint(struct target_s *target,
 		brp_list[brp_i].used = 1;
 		brp_list[brp_i].value = (breakpoint->address & 0xFFFFFFFC);
 		brp_list[brp_i].control = control;
-		target_write_u32(target, armv7a->debug_base
+		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].value);
-		target_write_u32(target, armv7a->debug_base
+		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
 		LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
@@ -1088,10 +1103,10 @@ int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		brp_list[brp_i].used = 0;
 		brp_list[brp_i].value = 0;
 		brp_list[brp_i].control = 0;
-		target_write_u32(target, armv7a->debug_base
+		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
-		target_write_u32(target, armv7a->debug_base
+		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].value);
 	}
