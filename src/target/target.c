@@ -4028,7 +4028,8 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		break;
 	case TS_CMD_RESET:
 		if (goi.argc != 2) {
-			Jim_WrongNumArgs(interp, 2, argv, "t | f|assert | deassert BOOL");
+			Jim_WrongNumArgs(interp, 2, argv,
+					"([tT]|[fF]|assert|deassert) BOOL");
 			return JIM_ERR;
 		}
 		e = Jim_GetOpt_Nvp(&goi, nvp_assert, &n);

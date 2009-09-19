@@ -446,7 +446,7 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
 	assert(state != TAP_RESET);
-	
+
 	jtag_prelude(state);
 
 	int retval;
@@ -458,7 +458,7 @@ void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
 	assert(state != TAP_RESET);
-	
+
 	jtag_prelude(state);
 
 	int retval;
@@ -471,7 +471,6 @@ void jtag_add_dr_out(jtag_tap_t* tap,
 		tap_state_t end_state)
 {
 	assert(end_state != TAP_RESET);
-	
 	assert(end_state != TAP_INVALID);
 
 	cmd_queue_cur_state = end_state;
@@ -486,9 +485,9 @@ void jtag_add_tlr(void)
 	jtag_prelude(TAP_RESET);
 	jtag_set_error(interface_jtag_add_tlr());
 
-	jtag_notify_reset();
-
+	/* NOTE: order here matches TRST path in jtag_add_reset() */
 	jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+	jtag_notify_reset();
 }
 
 void jtag_add_pathmove(int num_states, const tap_state_t *path)
@@ -684,21 +683,19 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	} else if (jtag_trst != new_trst) {
 		jtag_trst = new_trst;
 		if (jtag_trst) {
-			/* we just asserted nTRST, so we're now in TAP_RESET;
-			 * inform possible listeners about this
-			 *
-			 * REVISIT asserting TRST is less significant than
-			 * being in TAP_RESET ... both entries (TRST, TLR)
-			 * should trigger a callback.
-			 */
 			LOG_DEBUG("TRST line asserted");
 			tap_set_state(TAP_RESET);
-			jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		} else {
 			LOG_DEBUG("TRST line released");
 			if (jtag_ntrst_delay)
 				jtag_add_sleep(jtag_ntrst_delay * 1000);
 
+			/* We just asserted nTRST, so we're now in TAP_RESET.
+			 * Inform possible listeners about this, now that
+			 * JTAG instructions and data can be shifted.  This
+			 * sequence must match jtag_add_tlr().
+			 */
+			jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 			jtag_notify_reset();
 		}
 	}
@@ -823,7 +820,8 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	jtag_tap_t *tap = priv;
 
-	LOG_DEBUG("-");
+	LOG_DEBUG("TAP %s event %s", tap->dotted_name,
+			jtag_event_strings[event]);
 
 	if (event == JTAG_TRST_ASSERTED)
 	{
