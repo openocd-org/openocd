@@ -250,12 +250,16 @@ and has a built in relay to power cycle targets remotely.
 
 @section Choosing a Dongle
 
-There are three things you should keep in mind when choosing a dongle. 
+There are several things you should keep in mind when choosing a dongle.
 
 @enumerate 
-@item @b{Voltage} What voltage is your target? 1.8, 2.8, 3.3, or 5V? Does your dongle support it?
-@item @b{Connection} Printer Ports - Does your computer have one?
-@item @b{Connection} Is that long printer bit-bang cable practical? 
+@item @b{Voltage} What voltage is your target - 1.8, 2.8, 3.3, or 5V?
+Does your dongle support it?  You might need a level converter.
+@item @b{Pinout} What pinout does your target board use?
+Does your dongle support it?  You may be able to use jumper
+wires, or an "octopus" connector, to convert pinouts.
+@item @b{Connection} Does your computer have the USB, printer, or
+Ethernet port needed?
 @item @b{RTCK} Do you require RTCK? Also known as ``adaptive clocking'' 
 @end enumerate
 
@@ -355,6 +359,10 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 The two well known ``JTAG Parallel Ports'' cables are the Xilnx DLC5
 and the MacGraigor Wiggler. There are many clones and variations of
 these on the market.
+
+Note that parallel ports are becoming much less common, so if you
+have the choice you should probably avoid these adapters in favor
+of USB-based ones.
 
 @itemize @bullet
 
