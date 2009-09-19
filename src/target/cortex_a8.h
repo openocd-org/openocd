@@ -53,6 +53,7 @@ extern char* cortex_a8_state_strings[];
 #define CPUDBG_BVR_BASE	0x100
 #define CPUDBG_BCR_BASE	0x140
 #define CPUDBG_WVR_BASE	0x180
+#define CPUDBG_WCR_BASE	0x1C0
 
 #define CPUDBG_OSLAR	0x300
 #define CPUDBG_OSLSR	0x304
