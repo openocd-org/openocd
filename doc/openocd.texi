@@ -486,16 +486,28 @@ bash$ openocd --help
 --pipe       | -p       use pipes when talking to gdb
 @end verbatim
 
-By default OpenOCD reads the file configuration file ``openocd.cfg''
+By default OpenOCD reads the file configuration file @file{openocd.cfg}
 in the current directory.  To specify a different (or multiple)
 configuration file, you can use the ``-f'' option. For example:
 
 @example
-  openocd -f config1.cfg -f config2.cfg -f config3.cfg
+openocd -f config1.cfg -f config2.cfg -f config3.cfg
 @end example
 
-Once started, OpenOCD runs as a daemon, waiting for connections from
-clients (Telnet, GDB, Other).
+OpenOCD starts by processing the configuration commands provided
+on the command line or in @file{openocd.cfg}.
+@xref{Configuration Stage}.
+At the end of the configuration stage it verifies the JTAG scan
+chain defined using those commands; your configuration should
+ensure that this always succeeds.
+Normally, OpenOCD then starts running as a daemon.
+Alternatively, commands may be used to terminate the configuration
+stage early, perform work (such as updating some flash memory),
+and then shut down without acting as a daemon.
+
+Once OpenOCD starts running as a daemon, it waits for connections from
+clients (Telnet, GDB, Other) and processes the commands issued through
+those channels.
 
 If you are having problems, you can enable internal debug messages via
 the ``-d'' option.
@@ -1061,8 +1073,16 @@ access uses the CPU or to prevent conflicting CPU access.
 @subsection JTAG Clock Rate
 
 Before your @code{reset-init} handler has set up
-the PLLs and clocking, you may need to use
-a low JTAG clock rate; then you'd increase it later.
+the PLLs and clocking, you may need to run with
+a low JTAG clock rate.
+@xref{JTAG Speed}.
+Then you'd increase that rate after your handler has
+made it possible to use the faster JTAG clock.
+When the initial low speed is board-specific, for example
+because it depends on a board-specific oscillator speed, then
+you should probably set it up in the board config file;
+if it's target-specific, it belongs in the target config file.
+
 For most ARM-based processors the fastest JTAG clock@footnote{A FAQ
 @uref{http://www.arm.com/support/faqdev/4170.html} gives details.}
 is one sixth of the CPU clock; or one eighth for ARM11 cores.
@@ -1252,6 +1272,24 @@ after the target's TAP has been reset, providing a
 @code{reset-deassert-post} event handler that writes a chip
 register to report that JTAG debugging is being done.
 
+JTAG clocking constraints often change during reset, and in
+some cases target config files (rather than board config files)
+are the right places to handle some of those issues.
+For example, immediately after reset most chips run using a
+slower clock than they will use later.
+That means that after reset (and potentially, as OpenOCD
+first starts up) they must use a slower JTAG clock rate
+than they will use later.
+@xref{JTAG Speed}.
+
+@quotation Important
+When you are debugging code that runs right after chip
+reset, getting these issues right is critical.
+In particular, if you see intermittent failures when
+OpenOCD verifies the scan chain after reset,
+look at how you are setting up JTAG clocking.
+@end quotation
+
 @subsection ARM Core Specific Hacks
 
 If the chip has a DCC, enable it. If the chip is an ARM9 with some
@@ -1298,6 +1336,7 @@ The commands here are commonly found in the openocd.cfg file and are
 used to specify what TCP/IP ports are used, and how GDB should be
 supported.
 
+@anchor{Configuration Stage}
 @section Configuration Stage
 @cindex configuration stage
 @cindex config command
@@ -1317,6 +1356,18 @@ The server must leave the configuration stage before it
 may access or activate TAPs.
 After it leaves this stage, configuration commands may no
 longer be issued.
+
+The first thing OpenOCD does after leaving the configuration
+stage is to verify that it can talk to the scan chain
+(list of TAPs) which has been configured.
+It will warn if it doesn't find TAPs it expects to find,
+or finds TAPs that aren't supposed to be there.
+You should see no errors at this point.
+If you see errors, resolve them by correcting the
+commands you used to configure the server.
+Common errors include using an initial JTAG speed that's too
+fast, and not providing the right IDCODE values for the TAPs
+on the scan chain.
 
 @deffn {Config Command} init
 This command terminates the configuration stage and
@@ -1787,9 +1838,28 @@ Both the "slow" and "fast" clock rates are functions of the
 oscillators used, the chip, the board design, and sometimes
 power management software that may be active.
 
-The speed used during reset can be adjusted using pre_reset
-and post_reset event handlers.
+The speed used during reset, and the scan chain verification which
+follows reset, can be adjusted using a @code{reset-start}
+target event handler.
+It can then be reconfigured to a faster speed by a
+@code{reset-init} target event handler after it reprograms those
+CPU clocks, or manually (if something else, such as a boot loader,
+sets up those clocks).
 @xref{Target Events}.
+When the initial low JTAG speed is a chip characteristic, perhaps
+because of a required oscillator speed, provide such a handler
+in the target config file.
+When that speed is a function of a board-specific characteristic
+such as which speed oscillator is used, it belongs in the board
+config file instead.
+In both cases it's safest to also set the initial JTAG clock rate
+to that same slow speed, so that OpenOCD never starts up using a
+clock speed that's faster than the scan chain can support.
+
+@example
+jtag_rclk 3000
+$_TARGET.cpu configure -event reset-start @{ jtag_rclk 3000 @}
+@end example
 
 If your system supports adaptive clocking (RTCK), configuring
 JTAG to use that is probably the most robust approach.
@@ -2892,20 +2962,16 @@ The following target events are defined:
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
 after SRST and/or TRST were activated and deactivated,
-but before reset is asserted on the tap.
+but before SRST alone is re-asserted on the tap.
 @item @b{reset-assert-post}
 @* Issued as part of @command{reset} processing
-when reset is asserted on the tap.
+when SRST is asserted on the tap.
 @item @b{reset-deassert-pre}
 @* Issued as part of @command{reset} processing
-when reset is about to be released on the tap.
-
-For some chips, this may be a good place to make sure
-the JTAG clock is slow enough to work before the PLL
-has been set up to allow faster JTAG speeds.
+when SRST is about to be released on the tap.
 @item @b{reset-deassert-post}
 @* Issued as part of @command{reset} processing
-when reset has been released on the tap.
+when SRST has been released on the tap.
 @item @b{reset-end}
 @* Issued as the final step in @command{reset} processing.
 @ignore
@@ -2921,9 +2987,14 @@ This event fires after @emph{reset-deassert-post}.
 This is where you would configure PLLs and clocking, set up DRAM so
 you can download programs that don't fit in on-chip SRAM, set up pin
 multiplexing, and so on.
+(You may be able to switch to a fast JTAG clock rate here, after
+the target clocks are fully set up.)
 @item @b{reset-start}
 @* Issued as part of @command{reset} processing
 before either SRST or TRST are activated.
+
+This is the most robust place to switch to a low JTAG clock rate, if
+SRST disables PLLs needed to use a fast clock.
 @ignore
 @item @b{reset-wait-pos}
 @* Currently not used
