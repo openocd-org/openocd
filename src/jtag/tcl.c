@@ -373,13 +373,17 @@ static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 					Jim_GetString(jteap->body, NULL));
 			if (Jim_EvalObj(interp, jteap->body) != JIM_OK) {
 				Jim_PrintErrorMessage(interp);
-			} else {
+			} else switch (e) {
+			case JTAG_TAP_EVENT_ENABLE:
+			case JTAG_TAP_EVENT_DISABLE:
 				/* NOTE:  we currently assume the handlers
 				 * can't fail.  That presumes later code
 				 * will be verifying the scan chains ...
 				 */
-				if (e == JTAG_TAP_EVENT_ENABLE)
-					tap->enabled = true;
+				tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
+				break;
+			default:
+				break;
 			}
 		}
 
