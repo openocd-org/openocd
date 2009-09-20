@@ -3409,14 +3409,9 @@ void target_all_handle_event(enum target_event e)
 void target_handle_event(target_t *target, enum target_event e)
 {
 	target_event_action_t *teap;
-	int done;
 
-	teap = target->event_action;
-
-	done = 0;
-	while (teap) {
+	for (teap = target->event_action; teap != NULL; teap = teap->next) {
 		if (teap->event == e) {
-			done = 1;
 			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s",
 					   target->target_number,
 					   target->cmd_name,
@@ -3429,12 +3424,6 @@ void target_handle_event(target_t *target, enum target_event e)
 				Jim_PrintErrorMessage(interp);
 			}
 		}
-		teap = teap->next;
-	}
-	if (!done) {
-		LOG_DEBUG("event: %d %s - no action",
-				   e,
-				   Jim_Nvp_value2name_simple(nvp_target_event, e)->name);
 	}
 }
 

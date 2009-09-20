@@ -60,9 +60,9 @@ static int jtag_error = ERROR_OK;
 
 static const char *jtag_event_strings[] =
 {
-	[JTAG_TRST_ASSERTED] = "JTAG controller reset (TLR or TRST)",
+	[JTAG_TRST_ASSERTED] = "TAP reset",
 	[JTAG_TAP_EVENT_ENABLE] = "TAP enabled",
-	[JTAG_TAP_EVENT_POST_RESET] = "post reset",
+	[JTAG_TAP_EVENT_POST_RESET] = "TAP post reset",
 	[JTAG_TAP_EVENT_DISABLE] = "TAP disabled",
 };
 
@@ -820,9 +820,6 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	jtag_tap_t *tap = priv;
 
-	LOG_DEBUG("TAP %s event %s", tap->dotted_name,
-			jtag_event_strings[event]);
-
 	if (event == JTAG_TRST_ASSERTED)
 	{
 		tap->enabled = !tap->disabled_after_reset;
@@ -943,15 +940,10 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
 	{
 		if (tap->idcode == tap->expected_ids[ii])
-			break;
+			return true;
 	}
 
 	/* If none of the expected ids matched, log an error */
-	if (ii != tap->expected_ids_cnt)
-	{
-		LOG_DEBUG("JTAG Tap/device matched");
-		return true;
-	}
 	jtag_examine_chain_display(LOG_LVL_ERROR, "got",
 			tap->dotted_name, tap->idcode);
 	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
@@ -994,7 +986,8 @@ static int jtag_examine_chain(void)
 		if ((idcode & 1) == 0)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */
-			LOG_WARNING("Tap/Device does not have IDCODE");
+			LOG_WARNING("TAP %s does not have IDCODE",
+					tap->dotted_name);
 			idcode = 0;
 			tap->hasidcode = false;
 
@@ -1017,15 +1010,11 @@ static int jtag_examine_chain(void)
 			}
 
 			jtag_examine_chain_display(LOG_LVL_INFO, "tap/device found",
-					tap ? tap->dotted_name : "(not-named)",
-					idcode);
+					tap->dotted_name, idcode);
 
 			bit_count += 32;
 		}
 		device_count++;
-		if (!tap)
-			continue;
-
 		tap->idcode = idcode;
 
 		// ensure the TAP ID does matches what was expected

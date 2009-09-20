@@ -358,14 +358,9 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 {
 	jtag_tap_event_action_t * jteap;
-	int done;
 
-	jteap = tap->event_action;
-
-	done = 0;
-	while (jteap) {
+	for (jteap = tap->event_action; jteap != NULL; jteap = jteap->next) {
 		if (jteap->event == e) {
-			done = 1;
 			LOG_DEBUG("JTAG tap: %s event: %d (%s) action: %s\n",
 					tap->dotted_name,
 					e,
@@ -386,14 +381,6 @@ static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 				break;
 			}
 		}
-
-		jteap = jteap->next;
-	}
-
-	if (!done) {
-		LOG_DEBUG("event %d %s - no action",
-				e,
-				Jim_Nvp_value2name_simple(nvp_jtag_tap_event, e)->name);
 	}
 }
 
