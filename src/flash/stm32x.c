@@ -410,7 +410,7 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 
 	if ((first && (first % stm32x_info->ppage_size)) || ((last + 1) && (last + 1) % stm32x_info->ppage_size))
 	{
-		LOG_WARNING("sector start/end incorrect - stm32 has %dK sector protection", stm32x_info->ppage_size);
+		LOG_WARNING("Error: start and end sectors must be on a %d sector boundary", stm32x_info->ppage_size);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
