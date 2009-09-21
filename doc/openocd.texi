@@ -2343,12 +2343,69 @@ ID code could appear (for example, multiple versions).
 @end itemize
 @end deffn
 
+@section Other TAP commands
+
 @c @deffn Command {jtag arp_init-reset}
-@c ... more or less "init" ?
+@c ... more or less "toggle TRST ... and SRST too, what the heck"
+
+@deffn Command {jtag cget} dotted.name @option{-event} name
+@deffnx Command {jtag configure} dotted.name @option{-event} name string
+At this writing this TAP attribute
+mechanism is used only for event handling.
+(It is not a direct analogue of the @code{cget}/@code{configure}
+mechanism for debugger targets.)
+See the next section for information about the available events.
+
+The @code{configure} subcommand assigns an event handler,
+a TCL string which is evaluated when the event is triggered.
+The @code{cget} subcommand returns that handler.
+@end deffn
+
+@anchor{TAP Events}
+@section TAP Events
+@cindex events
+@cindex TAP events
+
+OpenOCD includes two event mechanisms.
+The one presented here applies to all JTAG TAPs.
+The other applies to debugger targets,
+which are associated with certain TAPs.
+
+The TAP events currently defined are:
+
+@itemize @bullet
+@item @b{post-reset}
+@* The TAP has just completed a JTAG reset.
+For the first such handler called, the tap is still
+in the JTAG @sc{reset} state.
+Because the scan chain has not yet been verified, handlers for these events
+@emph{should not issue commands which scan the JTAG IR or DR registers}
+of any particular target.
+@b{NOTE:} As this is written (September 2009), nothing prevents such access.
+@item @b{tap-disable}
+@* The TAP needs to be disabled.  This handler should
+implement @command{jtag tapdisable}
+by issuing the relevant JTAG commands.
+@item @b{tap-enable}
+@* The TAP needs to be enabled.  This handler should
+implement @command{jtag tapenable}
+by issuing the relevant JTAG commands.
+@end itemize
+
+If you need some action after each JTAG reset, which isn't actually
+specific to any TAP (since you can't yet trust the scan chain's
+contents to be accurate), you might:
+
+@example
+jtag configure CHIP.jrc -event post-reset @{
+  echo "Reset done"
+  ... non-scan jtag operations to be done after reset
+@}
+@end example
+
 
 @anchor{Enabling and Disabling TAPs}
 @section Enabling and Disabling TAPs
-@cindex TAP events
 @cindex JTAG Route Controller
 @cindex jrc
 
@@ -2380,20 +2437,9 @@ does include a kind of JTAG router functionality.
 
 @c (a) currently the event handlers don't seem to be able to
 @c     fail in a way that could lead to no-change-of-state.
-@c (b) eventually non-event configuration should be possible,
-@c     in which case some this documentation must move.
 
-@deffn Command {jtag cget} dotted.name @option{-event} name
-@deffnx Command {jtag configure} dotted.name @option{-event} name string
-At this writing this mechanism is used only for event handling.
-Three events are available. Two events relate to TAP enabling
-and disabling, one to post reset handling.
-
-The @code{configure} subcommand assigns an event handler,
-a TCL string which is evaluated when the event is triggered.
-The @code{cget} subcommand returns that handler.
-The three possible values for an event @var{name} are @option{tap-disable}, @option{tap-enable} and @option{post-reset}.
-
+In OpenOCD, tap enabling/disabling is invoked by the Tcl commands
+shown below, and is implemented using TAP event handlers.
 So for example, when defining a TAP for a CPU connected to
 a JTAG router, you should define TAP event handlers using
 code that looks something like this:
@@ -2409,30 +2455,29 @@ jtag configure CHIP.cpu -event tap-disable @{
 @}
 @end example
 
-If you need some post reset action, you can do:
-
-@example
-jtag configure CHIP.cpu -event post-reset @{
-  echo "Reset done"
-  ... jtag operations to be done after reset
-@}
-@end example
-@end deffn
-
 @deffn Command {jtag tapdisable} dotted.name
-@deffnx Command {jtag tapenable} dotted.name
-@deffnx Command {jtag tapisenabled} dotted.name
-These three commands all return the string "1" if the tap
+If necessary, disables the tap
+by sending it a @option{tap-disable} event.
+Returns the string "1" if the tap
 specified by @var{dotted.name} is enabled,
 and "0" if it is disbabled.
-The @command{tapenable} variant first enables the tap
+@end deffn
+
+@deffn Command {jtag tapenable} dotted.name
+If necessary, enables the tap
 by sending it a @option{tap-enable} event.
-The @command{tapdisable} variant first disables the tap
-by sending it a @option{tap-disable} event.
+Returns the string "1" if the tap
+specified by @var{dotted.name} is enabled,
+and "0" if it is disbabled.
+@end deffn
+
+@deffn Command {jtag tapisenabled} dotted.name
+Returns the string "1" if the tap
+specified by @var{dotted.name} is enabled,
+and "0" if it is disbabled.
 
 @quotation Note
 Humans will find the @command{scan_chain} command more helpful
-than the script-oriented @command{tapisenabled}
 for querying the state of the JTAG taps.
 @end quotation
 @end deffn
@@ -2889,6 +2934,7 @@ at the specified address @var{addr}.
 
 @anchor{Target Events}
 @section Target Events
+@cindex target events
 @cindex events
 At various times, certain things can happen, or you want them to happen.
 For example:
