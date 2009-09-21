@@ -8,7 +8,7 @@ for OpenOCD contributors who are unfamiliar with the process.
 The standard method for creating patches requires developers to:
 - checkout the Subversion repository (or bring a copy up-to-date),
 - make the necessary modifications to a working copy,
-- check with 'svn status' to see which files will be modified/added, and 
+- check with 'svn status' to see which files will be modified/added, and
 - use 'svn diff' to review the changes and produce a patch.
 
 It is important to minimize the changes to only those lines that contain
@@ -67,7 +67,7 @@ patch, or you can specified specific files and directories when using
 <code>svn diff</code>.  Overlapping patches will be discussed in the
 next section.
 
-The remainder of this section provides 
+The remainder of this section provides
 
 @subsection primerpatchprops Subversion Properties
 
@@ -110,7 +110,7 @@ The following series of commands will work: @par
 svn diff foo | unix2dos | patch -R
 @endcode
 
-This is not a bug. 
+This is not a bug.
 
 @todo Does Subversion's treatment of line-endings for files marked with
 svn:eol-style=native continue to pose the problems described here, or

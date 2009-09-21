@@ -113,7 +113,7 @@ tags and incrementing the version.
 
 The OpenOCD release process must be carried out on a periodic basis, so
 the project can realize the benefits presented in answer to the question,
-@ref releasewhy.  
+@ref releasewhy.
 
 Starting with the 0.2.0 release, the OpenOCD project should produce a
 new minor release every month or two, with a major release once a year.
@@ -132,7 +132,7 @@ beginning of the development cycle through the delivery of the new
 release.  This section presents guidelines for scheduling key points
 where the community must be informed of changing conditions.
 
-If T is the time of the next release, then the following schedule 
+If T is the time of the next release, then the following schedule
 might describe some of the key milestones of the new release cycle:
 
 - T minus one month: start of new development cycle
@@ -190,7 +190,7 @@ Even with the release script, some steps require clear user intervention
 The following steps should be followed to produce each release:
 
 -# Produce final patches to the trunk (or release branch):
-  -# Finalize @c NEWS file to describe the changes in the release 
+  -# Finalize @c NEWS file to describe the changes in the release
     - This file is Used to automatically post "blurbs" about the project.
     - This material should be produced during the development cycle.
     - Add a new item for each @c NEWS-worthy contribution, when committed.
@@ -208,7 +208,7 @@ svn cp .../trunk .../branches/${RELEASE_BRANCH}
 svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
 @endverbatim
   - For bug-fix releases produced in their respective branch, a tag
-    should be created in the repository: 
+    should be created in the repository:
 @verbatim
 svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
 @endverbatim

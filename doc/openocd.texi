@@ -252,7 +252,7 @@ and has a built in relay to power cycle targets remotely.
 
 There are several things you should keep in mind when choosing a dongle.
 
-@enumerate 
+@enumerate
 @item @b{Voltage} What voltage is your target - 1.8, 2.8, 3.3, or 5V?
 Does your dongle support it?  You might need a level converter.
 @item @b{Pinout} What pinout does your target board use?
@@ -260,7 +260,7 @@ Does your dongle support it?  You may be able to use jumper
 wires, or an "octopus" connector, to convert pinouts.
 @item @b{Connection} Does your computer have the USB, printer, or
 Ethernet port needed?
-@item @b{RTCK} Do you require RTCK? Also known as ``adaptive clocking'' 
+@item @b{RTCK} Do you require RTCK? Also known as ``adaptive clocking''
 @end enumerate
 
 @section Stand alone Systems
@@ -344,7 +344,7 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 @item @b{USBprog}
 @* Link: @url{http://www.embedded-projects.net/usbprog} - which uses an Atmel MEGA32 and a UBN9604
 
-@item @b{USB - Presto} 
+@item @b{USB - Presto}
 @* Link: @url{http://tools.asix.net/prg_presto.htm}
 
 @item @b{Versaloon-Link}
@@ -2098,7 +2098,7 @@ haven't seen hardware with such a bug, and can be worked around).
 
 @option{srst_gates_jtag} indicates that asserting SRST gates the
 JTAG clock. This means that no communication can happen on JTAG
-while SRST is asserted. 
+while SRST is asserted.
 
 The optional @var{trst_type} and @var{srst_type} parameters allow the
 driver mode of each reset line to be specified.  These values only affect
@@ -4359,7 +4359,7 @@ individually overridden.
 
 The target specific "dangerous" optimisation tweaking options may come and go
 as more robust and user friendly ways are found to ensure maximum throughput
-and robustness with a minimum of configuration. 
+and robustness with a minimum of configuration.
 
 Typically the "fast enable" is specified first on the command line:
 
@@ -4919,7 +4919,7 @@ those instructions are not currently understood by OpenOCD.)
 @deffn Command {armv4_5 reg}
 Display a table of all banked core registers, fetching the current value from every
 core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
-register value. 
+register value.
 @end deffn
 
 @subsection ARM7 and ARM9 specific commands
@@ -4934,7 +4934,7 @@ and any other core-specific commands that may be available.
 @deffn Command {arm7_9 dbgrq} (@option{enable}|@option{disable})
 Control use of the EmbeddedIce DBGRQ signal to force entry into debug mode,
 instead of breakpoints.  This should be
-safe for all but ARM7TDMI--S cores (like Philips LPC). 
+safe for all but ARM7TDMI--S cores (like Philips LPC).
 This feature is enabled by default on most ARM9 cores,
 including ARM9TDMI, ARM920T, and ARM926EJ-S.
 @end deffn
@@ -4952,7 +4952,7 @@ with OpenOCD rev. 60, and requires a few bytes of working area.
 Enable or disable memory writes and reads that don't check completion of
 the operation. This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at very low
-speeds, like the 32kHz startup clock of an AT91RM9200. 
+speeds, like the 32kHz startup clock of an AT91RM9200.
 @end deffn
 
 @deffn {Debug Command} {arm7_9 write_core_reg} num mode word
@@ -5843,7 +5843,7 @@ the following OpenOCD configuration option:
 gdb_memory_map disable
 @end example
 For this to function correctly a valid flash configuration must also be set
-in OpenOCD. For faster performance you should also configure a valid 
+in OpenOCD. For faster performance you should also configure a valid
 working area.
 
 Informing GDB of the memory map of the target will enable GDB to protect any
@@ -5887,10 +5887,10 @@ of currently active target, the Tcl API proc's take this sort of state
 information as an argument to each proc.
 
 There are three main types of return values: single value, name value
-pair list and lists. 
+pair list and lists.
 
 Name value pair. The proc 'foo' below returns a name/value pair
-list. 
+list.
 
 @verbatim
 
@@ -5913,7 +5913,7 @@ Thus, to get the names of the associative array is easy:
                 puts "Name: $name, Value: $value"
      }
 @end verbatim
- 
+
 Lists returned must be relatively small. Otherwise a range
 should be passed in to the proc in question.
 
@@ -5949,7 +5949,7 @@ Real Tcl has ::tcl_platform(), and platform::identify, and many other
 variables. JimTCL, as implemented in OpenOCD creates $HostOS which
 holds one of the following values:
 
-@itemize @bullet 
+@itemize @bullet
 @item @b{winxx}    Built using Microsoft Visual Studio
 @item @b{linux}    Linux is the underlying operating sytem
 @item @b{darwin}   Darwin (mac-os) is the underlying operating sytem.
@@ -6088,7 +6088,7 @@ Imagine debugging a 500MHz ARM926 hand held battery powered device
 that ``deep sleeps'' at 32kHz between every keystroke. It can be
 painful.
 
-@b{Solution #1 - A special circuit} 
+@b{Solution #1 - A special circuit}
 
 In order to make use of this, your JTAG dongle must support the RTCK
 feature. Not all dongles support this - keep reading!
@@ -6156,7 +6156,7 @@ jtag_khz 1234
 @item @b{Win32 Pathnames} Why don't backslashes work in Windows paths?
 
 OpenOCD uses Tcl and a backslash is an escape char. Use @{ and @}
-around Windows filenames. 
+around Windows filenames.
 
 @example
 > echo \a
@@ -6199,7 +6199,7 @@ settings in your PC BIOS (ECP, EPP, and different versions of those).
 
 @item @b{Data Aborts} When debugging with OpenOCD and GDB (plain GDB, Insight, or Eclipse),
 I get lots of "Error: arm7_9_common.c:1771 arm7_9_read_memory():
-memory read caused data abort". 
+memory read caused data abort".
 
 The errors are non-fatal, and are the result of GDB trying to trace stack frames
 beyond the last valid frame. It might be possible to prevent this by setting up
@@ -6220,7 +6220,7 @@ remember to pop them off when the ISR is done.
 
 @b{Also note:} If you have a multi-threaded operating system, they
 often do not @b{in the intrest of saving memory} waste these few
-bytes. Painful... 
+bytes. Painful...
 
 
 @item @b{JTAG Reset Config} I get the following message in the OpenOCD console (or log file):
@@ -6342,7 +6342,7 @@ TODO.
 
 @node Tcl Crash Course
 @chapter Tcl Crash Course
-@cindex Tcl 
+@cindex Tcl
 
 Not everyone knows Tcl - this is not intended to be a replacement for
 learning Tcl, the intent of this chapter is to give you some idea of
@@ -6461,7 +6461,7 @@ control flow operators.
 
 Commands are executed like this:
 
-@enumerate 
+@enumerate
 @item Parse the next line into (argc) and (argv[]).
 @item Look up (argv[0]) in a table and call its function.
 @item Repeat until End Of File.
@@ -6609,7 +6609,7 @@ substituted on the orginal command line.
 @enumerate
 @item The SET command creates 2 variables, X and Y.
 @item The double [nested] EXPR command performs math
-@* The EXPR command produces numerical result as a string. 
+@* The EXPR command produces numerical result as a string.
 @* Refer to Rule #1
 @item The format command is executed, producing a single string
 @* Refer to Rule #1.
@@ -6632,7 +6632,7 @@ substituted on the orginal command line.
 #4 DANGER DANGER DANGER
    $_TARGETNAME configure -event foo "puts \"Time: [date]\""
 @end example
-@enumerate 
+@enumerate
 @item The $_TARGETNAME is an OpenOCD variable convention.
 @*@b{$_TARGETNAME} represents the last target created, the value changes
 each time a new target is created. Remember the parsing rules. When
@@ -6699,9 +6699,9 @@ foreach who @{A B C D E@}
 OpenOCD comes with a target configuration script library. These scripts can be
 used as-is or serve as a starting point.
 
-The target library is published together with the OpenOCD executable and 
+The target library is published together with the OpenOCD executable and
 the path to the target library is in the OpenOCD script search path.
-Similarly there are example scripts for configuring the JTAG interface. 
+Similarly there are example scripts for configuring the JTAG interface.
 
 The command line below uses the example parport configuration script
 that ship with OpenOCD, then configures the str710.cfg target and

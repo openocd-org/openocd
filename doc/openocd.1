@@ -8,19 +8,19 @@ boundary\-scan testing tool for ARM and MIPS systems
 .B OpenOCD
 is an on\-chip debugging, in\-system programming and boundary\-scan
 testing tool for various ARM and MIPS systems.
-.PP 
+.PP
 The debugger uses an IEEE 1149\-1 compliant JTAG TAP bus master to access
 on\-chip debug functionality available on ARM based microcontrollers or
 system-on-chip solutions. For MIPS systems the EJTAG interface is supported.
-.PP 
+.PP
 User interaction is realized through a telnet command line interface,
 a gdb (the GNU debugger) remote protocol server, and a simplified RPC
 connection that can be used to interface with OpenOCD's Jim Tcl engine.
-.PP 
+.PP
 OpenOCD supports various different types of JTAG interfaces/programmers,
 please check the \fIopenocd\fR info page for the complete list.
 .SH "OPTIONS"
-.TP 
+.TP
 .B "\-f, \-\-file <filename>"
 Use configuration file
 .BR <filename> .
@@ -29,43 +29,43 @@ In order to specify multiple config files, you can use multiple
 arguments. If this option is omitted, the config file
 .B openocd.cfg
 in the current working directory will be used.
-.TP 
+.TP
 .B "\-s, \-\-search <dirname>"
 Search for config files and scripts in the directory
 .BR <dirname> .
 If this option is omitted, OpenOCD searches for config files and scripts
 in the current directory.
-.TP 
+.TP
 .B "\-d, \-\-debug <debuglevel>"
 Set debug level. Possible values are:
-.br 
+.br
 .RB "  * " 0 " (errors)"
-.br 
+.br
 .RB "  * " 1 " (warnings)"
-.br 
+.br
 .RB "  * " 2 " (informational messages)"
-.br 
+.br
 .RB "  * " 3 " (debug messages)"
-.br 
+.br
 The default level is
 .BR 2 .
-.TP 
+.TP
 .B "\-l, \-\-log_output <filename>"
 Redirect log output to the file
 .BR <filename> .
 Per default the log output is printed on
 .BR stderr .
-.TP 
+.TP
 .B "\-c, \-\-command <cmd>"
 Run the command
 .BR <cmd> .
-.TP 
+.TP
 .B "\-p, \-\-pipe"
 Use pipes when talking to gdb.
-.TP 
+.TP
 .B "\-h, \-\-help"
 Show a help text and exit.
-.TP 
+.TP
 .B "\-v, \-\-version"
 Show version information and exit.
 .SH "BUGS"
@@ -95,6 +95,6 @@ Also, the OpenOCD wiki contains some more information and examples:
 .B http://openfacts.berlios.de/index-en.phtml?title=Open_On-Chip_Debugger
 .SH "AUTHORS"
 Please see the file AUTHORS.
-.PP 
+.PP
 This manual page was written by Uwe Hermann <uwe@hermann\-uwe.de>.
 It is licensed under the terms of the GNU GPL (version 2 or later).

@@ -7,7 +7,7 @@ FMI, etc.).
 
 The Flash module provides the following APIs:
 
-  - @subpage flashcfi 
+  - @subpage flashcfi
   - @subpage flashnand
   - @subpage flashtarget
 

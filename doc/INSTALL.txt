@@ -16,7 +16,7 @@ possible using a Cygwin host.
 Basic Installation
 ==================
 
-   OpenOCD is distributed without autotools generated files, i.e. without a 
+   OpenOCD is distributed without autotools generated files, i.e. without a
 configure script. Run ./bootstrap in the openocd directory to have all
 necessary files generated.
 
@@ -77,7 +77,7 @@ The simplest way to compile this package is:
      documentation.
 
   4. You can remove the program binaries and object files from the
-     source code directory by typing `make clean'.  
+     source code directory by typing `make clean'.
 
 Compilers and Options
 =====================

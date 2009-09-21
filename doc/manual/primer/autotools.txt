@@ -144,7 +144,7 @@ implement new checks.
 The <code>make distcheck</code> command produces an archive of the
 project deliverables (using <code>make dist</code>) and verifies its
 integrity for distribution by attemptng to use the package in the same
-manner as a user.  
+manner as a user.
 
 These checks includes the following steps:
 -# Unpack the project archive into its expected directory.

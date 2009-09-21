@@ -37,7 +37,7 @@ mailing list
 @section targetnotarmsupport Target Support
 
 target.h is relatively CPU agnostic and
-the intention is to move in the direction of less 
+the intention is to move in the direction of less
 instruction set specific.
 
 Non-CPU targets are also supported, but there isn't
@@ -56,7 +56,7 @@ OpenOCD does not today have targets that use non-JTAG.
 The actual physical layer is a relatively modest part
 of the total OpenOCD system.
 
- 
+
 @section targetnotarmppc PowerPC
 
 there exists open source implementations of powerpc

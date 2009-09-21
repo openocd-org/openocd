@@ -149,7 +149,7 @@ comments.
  * in blocks such as the one in which this example appears in the Style
  * Guide.  See the Doxygen Manual for the full list of commands.
  *
- * @param foo For a function, describe the parameters (e.g. @a foo). 
+ * @param foo For a function, describe the parameters (e.g. @a foo).
  * @returns The value(s) returned, or possible error conditions.
  */
 @endverbatim
@@ -229,7 +229,7 @@ This file contains the @ref pagename page.
 @endverbatim
 
 For an example, the Doxygen source for this Style Guide can be found in
-@c doc/manual/style.txt, alongside other parts of The Manual.  
+@c doc/manual/style.txt, alongside other parts of The Manual.
 
  */
 /** @page styletexinfo Texinfo Style Guide
@@ -344,7 +344,7 @@ Likewise, the @ref primerlatex for using this guide needs to be completed.
 This page provides some style guidelines for using Perl, a scripting
 language used by several small tools in the tree:
 
--# Ensure all Perl scripts use the proper suffix (@c .pl for scripts, and 
+-# Ensure all Perl scripts use the proper suffix (@c .pl for scripts, and
    @c .pm for modules)
 -# Pass files as script parameters or piped as input:
   - Do NOT code paths to files in the tree, as this breaks out-of-tree builds.

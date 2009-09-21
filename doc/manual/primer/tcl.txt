@@ -115,7 +115,7 @@ Exception: The arrays.
 
        set x "2 * 6"
        set foo([expr $x])  "twelve"
-       
+
 **************************************************
 ***************************************************
 === TCL TOUR ===
@@ -133,7 +133,7 @@ This means it is evaluated when the file is parsed.
 In TCL, "FOR" is a funny thing, it is not what you think it is.
 
 Syntactically - FOR is a just a command, it is not language
-construct like for(;;) in C... 
+construct like for(;;) in C...
 
 The "for" command takes 4 parameters.
    (1) The "initial command" to execute.
@@ -215,7 +215,7 @@ All memory regions must have 2 things:
  (2)  NAME( array )
       And the array must have some specific names:
           ( <idx>, THING )
-	    Where: THING is one of: 
+	    Where: THING is one of:
 		   CHIPSELECT
 		   BASE
 		   LEN
@@ -224,7 +224,7 @@ All memory regions must have 2 things:
 		   RWX - the access ability.
 		   WIDTH - the accessible width.
 
-        ie: Some regions of memory are not 'word' 
+        ie: Some regions of memory are not 'word'
 	accessible.
 
 The function "address_info" - given an address should
@@ -237,14 +237,14 @@ tell you about the address.
 MAJOR FUNCTION:
 ==
 
-proc memread32 { ADDR } 
-proc memread16 { ADDR } 
-proc memread8 { ADDR } 
+proc memread32 { ADDR }
+proc memread16 { ADDR }
+proc memread8 { ADDR }
 
 All read memory - and return the contents.
 
 [ FIXME: 7/5/2008 - I need to create "memwrite" functions]
-		 
+
 **************************************************
 ***************************************************
 === TCL TOUR ===
@@ -265,13 +265,13 @@ In a makefile or shell script you may have seen this:
      FOO_linux = "Penguins rule"
      FOO_winXP = "Broken Glass"
      FOO_mac   = "I like cat names"
-     
+
      # Pick one
      BUILD  = linux
      #BUILD = winXP
      #BUILD = mac
      FOO = ${FOO_${BUILD}}
-				
+
 The "double [set] square bracket" thing is the TCL way, nothing more.
 
 ----
@@ -290,7 +290,7 @@ Notice this IF COMMAND - (not statement) is like this:
 The "IF" command expects either 2 params, or 4 params.
 
  === Sidebar: About "commands" ===
-  
+
      Take a look at the internals of "jim.c"
      Look for the function: Jim_IfCoreCommand()
      And all those other "CoreCommands"
@@ -298,10 +298,10 @@ The "IF" command expects either 2 params, or 4 params.
      You'll notice - they all have "argc" and "argv"
 
      Yea, the entire thing is done that way.
-     
+
      IF is a command. SO is "FOR" and "WHILE" and "DO" and the
      others. That is why I keep using the phase it is a "command"
-     
+
  === END: Sidebar: About "commands" ===
 
 Parameter 1 to the IF command is expected to be an expression.
@@ -315,7 +315,7 @@ CATCH - is an error catcher.
 You give CATCH 1 or 2 parameters.
     The first 1st parameter is the "code to execute"
     The 2nd (optional) is where to put the error message.
-    
+
     CATCH returns 0 on success, 1 for failure.
     The "![catch command]" is self explaintory.
 
@@ -325,7 +325,7 @@ above, the IF command can take many parameters they just have to
 be joined by exactly the words "else" or "elseif".
 
 The 4th parameter contains:
-    
+
     "error [format STRING....]"
 
 This lets me modify the previous lower level error by tacking more
@@ -346,7 +346,7 @@ string, then using "dlopen()" and "dlsym()" to look it up - and get a
 function pointer - and calling the function pointer.
 
 In this case - I execute a dynamic command. You can do some cool
-tricks with interpretors. 
+tricks with interpretors.
 
 ----------
 
@@ -380,7 +380,7 @@ Some assumptions:
 
 The "CHIP" file has defined some variables in a proper form.
 
-ie:   AT91C_BASE_US0 - for usart0, 
+ie:   AT91C_BASE_US0 - for usart0,
       AT91C_BASE_US1 - for usart1
       ... And so on ...
 
@@ -419,9 +419,9 @@ with the generated list of commands for the entire USART.
 With that little bit of code - I now have a bunch of functions like:
 
    show_US0, show_US1, show_US2, .... etc ...
-   
+
    And show_US0_MR, show_US0_IMR ... etc...
-  
+
 And - I have this for every USART... without having to create tons of
 boiler plate yucky code.
 

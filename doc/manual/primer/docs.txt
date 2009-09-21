@@ -90,7 +90,7 @@ provide detailed documentation for each option.
 To support out-of-tree building of the documentation, the @c Doxyfile.in
 @c INPUT values will have all instances of the string @c "@srcdir@"
 replaced with the current value of the make variable
-<code>$(srcdir)</code>.  The Makefile uses a rule to convert 
+<code>$(srcdir)</code>.  The Makefile uses a rule to convert
 @c Doxyfile.in into the @c Doxyfile used by <code>make doxygen</code>.
 
 @section primerdoxyoocd OpenOCD Input Files
@@ -105,7 +105,7 @@ that can be found under the @c doc/manual directory in the project tree.
 New files containing valid Doxygen markup that are placed in or under
 that directory will be detected and included in The Manual automatically.
 
-@section primerdoxyman Doxygen Reference Manual 
+@section primerdoxyman Doxygen Reference Manual
 
 The full documentation for Doxygen can be referenced on-line at the project
 home page: http://www.doxygen.org/index.html.  In HTML versions of this

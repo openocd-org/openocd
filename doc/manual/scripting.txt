@@ -5,7 +5,7 @@
 The scripting support is intended for developers of OpenOCD.
 It is not the intention that normal OpenOCD users will
 use tcl scripting extensively, write lots of clever scripts,
-or contribute back to OpenOCD. 
+or contribute back to OpenOCD.
 
 Target scripts can contain new procedures that end users may
 tinker to their needs without really understanding tcl.
@@ -31,7 +31,7 @@ Default implementation of procedures in tcl/procedures.tcl.
     file format and structure of serialnumber. Tcl allows
     an argument to consist of e.g. a list so the structure of
     the serial number is not limited to a single string.
-  - reset handling. Precise control of how srst, trst & 
+  - reset handling. Precise control of how srst, trst &
     tms is handled.
 - replace some parts of the current command line handler.
   This is only to simplify the implementation of OpenOCD
@@ -42,7 +42,7 @@ Default implementation of procedures in tcl/procedures.tcl.
   that return machine readable output. These low level tcl
   functions constitute the tcl api. flash_banks is such
   a low level tcl proc. "flash banks" is an example of
-  a command that has human readable output. The human 
+  a command that has human readable output. The human
   readable output is expected to change inbetween versions
   of OpenOCD. The output from flash_banks may not be
   in the preferred form for the client. The client then
@@ -50,8 +50,8 @@ Default implementation of procedures in tcl/procedures.tcl.
   or b) write a small piece of tcl to output the
   flash_banks output to a more suitable form. The latter may
   be simpler.
-  
-  
+
+
 @section scriptingexternal External scripting
 
 The embedded Jim Tcl interpreter in OpenOCD is very limited

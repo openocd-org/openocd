@@ -32,14 +32,14 @@ high-level interface to OpenOCD, because they only had two choices:
 - the ablity to write a complex internal commands: native 'commands'
   inside of OpenOCD was complicated.
 
-Fundamentally, the basic problem with both of those would be solved 
+Fundamentally, the basic problem with both of those would be solved
 with a script language:
 
 -# <b>Internal</b>: simple, small, and self-contained.
 -# <b>Cross Language</b>: script friendly front-end
 -# <b>Cross Host</b>: GUI Host interface
 -# <b>Cross Debugger</b>: GUI-like interface
-  
+
 What follows hopefully shows how the plans to solve these problems
 materialized and help to explain the grand roadmap plan.
 
@@ -64,7 +64,7 @@ file, allowing OpenOCD to avoid the spider web of dependent packages.
 
 The TCL Server port was added in mid-2008.  With embedded TCL, we can
 write scripts internally to help things, or we can write "C" code  that
-interfaces well with TCL. 
+interfaces well with TCL.
 
 From there, the developers wanted to create an external front-end that
 would be @a very usable and that that @a any language could utilize,
@@ -81,7 +81,7 @@ terse, simple ASCII protocols that are emensely parsable by a script.
 Thus, the TCL server -- a 'machine' type socket interface -- was added
 with the hope was it would output simple "name-value" pair type
 data.  At the time, simple name/value pairs seemed reasonably easier to
-do at the time, though Maybe it should output JSON; 
+do at the time, though Maybe it should output JSON;
 
 See here:
 
@@ -101,11 +101,11 @@ How do we solve that problem?
 For example, Cygwin can be painful, Cygwin GUI packages want X11
 to be present, crossing the barrier between MinGW and Cygwin is
 painful, let alone getting the GUI front end to work on MacOS, and
-Linux, yuck yuck yuck. Painful. very very painful.  
+Linux, yuck yuck yuck. Painful. very very painful.
 
 What works easier and is less work is what is already present in every
 platform?  The answer: A web browser.  In other words, OpenOCD could
-serve out embedded web pages via "localhost" to your browser. 
+serve out embedded web pages via "localhost" to your browser.
 
 Long before OpenOCD had a TCL command line, Zylin AS built their ZY1000
 devince with a built-in HTTP server.  Later, they were willing to both
@@ -169,7 +169,7 @@ the Socket Approach is used.
 
 During 2008, Duane Ellis created some TCL scripts to display peripheral
 register contents. For example, look at the sam7 TCL scripts, and the
-stm32 TCL scripts.  The hope was others would create more. 
+stm32 TCL scripts.  The hope was others would create more.
 
 
 A good example of this is display/view the peripheral registers on
@@ -215,7 +215,7 @@ One reason might be, this adds one more host side requirement to make
 use of the feature.  In other words, one could write a Python/TK
 front-end, but it is only useable if you have Python/TK installed.
 Maybe this can be done via Ecllipse, but not all developers use Ecplise.
-Many devlopers use Emacs (possibly with GUD mode) or vim and will not 
+Many devlopers use Emacs (possibly with GUD mode) or vim and will not
 accept such an interface.  The next developer reading this might be
 using Insight (GDB-TK) - and somebody else - DDD..
 
