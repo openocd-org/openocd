@@ -1,4 +1,4 @@
-# MEMORY 
+# MEMORY
 #
 # All Memory regions have two components.
 #    (1) A count of regions, in the form N_NAME
@@ -62,7 +62,7 @@ proc iswithin { ADDRESS BASE LEN } {
 }
 
 proc address_info { ADDRESS } {
-    
+
     foreach WHERE { FLASH RAM MMREGS XMEM UNKNOWN } {
 	if { info exists $WHERE } {
 	    set lmt [set N_[set WHERE]]
@@ -85,7 +85,7 @@ proc memread32 {ADDR} {
     } else {
 	error "memread32: $msg"
     }
-}    
+}
 
 proc memread16 {ADDR} {
     set foo(0) 0
@@ -94,7 +94,7 @@ proc memread16 {ADDR} {
     } else {
 	error "memread16: $msg"
     }
-}    
+}
 
 proc memread8 {ADDR} {
     set foo(0) 0
@@ -103,7 +103,7 @@ proc memread8 {ADDR} {
     } else {
 	error "memread8: $msg"
     }
-}    
+}
 
 proc memwrite32 {ADDR DATA} {
     set foo(0) $DATA
@@ -112,7 +112,7 @@ proc memwrite32 {ADDR DATA} {
     } else {
 	error "memwrite32: $msg"
     }
-}    
+}
 
 proc memwrite16 {ADDR DATA} {
     set foo(0) $DATA
@@ -121,7 +121,7 @@ proc memwrite16 {ADDR DATA} {
     } else {
 	error "memwrite16: $msg"
     }
-}    
+}
 
 proc memwrite8 {ADDR DATA} {
     set foo(0) $DATA
@@ -130,4 +130,4 @@ proc memwrite8 {ADDR DATA} {
     } else {
 	error "memwrite8: $msg"
     }
-}    
+}

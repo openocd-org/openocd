@@ -85,12 +85,12 @@ proc show_AIC { } {
 	incr x
 	puts [format "%2d: %5s 0x%08x" $x $AT91C_ID($x) $aaa($x)]
 	incr x
-    } 
+    }
 
     foreach REG {
-	AIC_IVR   AIC_FVR  AIC_ISR 
+	AIC_IVR   AIC_FVR  AIC_ISR
 	AIC_IPR  AIC_IMR  AIC_CISR  AIC_IECR AIC_IDCR
-	AIC_ICCR AIC_ISCR AIC_EOICR AIC_SPU  AIC_DCR     
+	AIC_ICCR AIC_ISCR AIC_EOICR AIC_SPU  AIC_DCR
 	AIC_FFER AIC_FFDR AIC_FFSR } {
 	if [catch { show_mmr32_reg $REG } msg ] {
 	    error $msg

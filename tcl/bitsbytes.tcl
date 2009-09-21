@@ -22,7 +22,7 @@ for { set x 1  } { $x < 2048 } { set x [expr $x * 2]} {
 # Create M bytes values
 #    __1M ... to __2048K
 for { set x 1  } { $x < 2048 } { set x [expr $x * 2]} {
-    set vn [format "__%dM" $x] 
+    set vn [format "__%dM" $x]
     global $vn
     set $vn [expr (1024 * 1024 * $x)]
 }

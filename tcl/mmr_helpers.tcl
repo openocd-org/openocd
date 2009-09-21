@@ -7,7 +7,7 @@ proc proc_exists { NAME } {
 
 # Give: REGISTER name - must be a global variable.
 proc show_mmr32_reg { NAME } {
-    
+
     global $NAME
     # we want $($NAME)
     set a [set [set NAME]]
@@ -41,7 +41,7 @@ proc show_mmr32_bits { NAMES VAL } {
 	set l [string length $N]
 	if { $l > $w } { set w $l }
     }
-    
+
     for { set x 24 } { $x >= 0 } { incr x -8 } {
 	puts -nonewline "  "
 	for { set y 7 } { $y >= 0 } { incr y -1 } {

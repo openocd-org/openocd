@@ -48,7 +48,7 @@ proc show_mmr_USx_MR_helper { NAME ADDR VAL } {
 
     set x [show_normalize_bitfield $VAL 11 9]
     set s "unknown"
-    switch -exact $x { 
+    switch -exact $x {
 	0 { set s "Even" }
 	1 { set s "Odd" }
 	2 { set s "Force=0" }
@@ -62,7 +62,7 @@ proc show_mmr_USx_MR_helper { NAME ADDR VAL } {
 	}
     }
     puts [format "\tParity: %s " $s]
-    
+
     set x [expr 5 + [show_normalize_bitfield $VAL 7 6]]
     puts [format "\tDatabits: %d" $x]
 
@@ -80,7 +80,7 @@ foreach WHO { US0 US1 US2 US3 US4 US5 US6 US7 US8 US9 } {
     set n AT91C_BASE_[set WHO]
     set str ""
 
-    # Only if it exists on the chip 
+    # Only if it exists on the chip
     if [ info exists $n ] {
 	# Hence: $n - is like AT91C_BASE_USx
 	# For every sub-register
@@ -114,12 +114,12 @@ set str ""
 
 
 # For every sub-register
-foreach REG {DBGU_CR DBGU_MR DBGU_IER DBGU_IDR DBGU_IMR 
+foreach REG {DBGU_CR DBGU_MR DBGU_IER DBGU_IDR DBGU_IMR
     DBGU_CSR DBGU_RHR DBGU_THR DBGU_BRGR DBGU_CIDR DBGU_EXID DBGU_FNTR} {
 
     # Create a command for this specific register.
     proc show_$REG { } "show_mmr32_reg $REG"
-    
+
     # Add this command to the Device(as a whole) command
     set str "$str\nshow_$REG"
 }

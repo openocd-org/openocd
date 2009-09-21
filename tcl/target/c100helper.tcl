@@ -61,17 +61,17 @@ proc mmw {reg setbits clearbits} {
 
 proc showNOR {} {
     puts "This is the current NOR setup"
-    set EX_CSEN_REG	    [regs EX_CSEN_REG ]	
-    set EX_CS0_SEG_REG	    [regs EX_CS0_SEG_REG ]	
-    set EX_CS0_CFG_REG	    [regs EX_CS0_CFG_REG ]	
-    set EX_CS0_TMG1_REG	    [regs EX_CS0_TMG1_REG ]	
-    set EX_CS0_TMG2_REG	    [regs EX_CS0_TMG2_REG ]	
-    set EX_CS0_TMG3_REG	    [regs EX_CS0_TMG3_REG ]	
+    set EX_CSEN_REG	    [regs EX_CSEN_REG ]
+    set EX_CS0_SEG_REG	    [regs EX_CS0_SEG_REG ]
+    set EX_CS0_CFG_REG	    [regs EX_CS0_CFG_REG ]
+    set EX_CS0_TMG1_REG	    [regs EX_CS0_TMG1_REG ]
+    set EX_CS0_TMG2_REG	    [regs EX_CS0_TMG2_REG ]
+    set EX_CS0_TMG3_REG	    [regs EX_CS0_TMG3_REG ]
     set EX_CLOCK_DIV_REG    [regs EX_CLOCK_DIV_REG ]
-    set EX_MFSM_REG	    [regs EX_MFSM_REG ]	
-    set EX_CSFSM_REG	    [regs EX_CSFSM_REG ]	
-    set EX_WRFSM_REG	    [regs EX_WRFSM_REG ]	
-    set EX_RDFSM_REG	    [regs EX_RDFSM_REG ]	
+    set EX_MFSM_REG	    [regs EX_MFSM_REG ]
+    set EX_CSFSM_REG	    [regs EX_CSFSM_REG ]
+    set EX_WRFSM_REG	    [regs EX_WRFSM_REG ]
+    set EX_RDFSM_REG	    [regs EX_RDFSM_REG ]
 
     puts [format "EX_CSEN_REG      (0x%x): 0x%x" $EX_CSEN_REG [mrw $EX_CSEN_REG]]
     puts [format "EX_CS0_SEG_REG   (0x%x): 0x%x" $EX_CS0_SEG_REG [mrw $EX_CS0_SEG_REG]]
@@ -91,21 +91,21 @@ proc showNOR {} {
 proc showGPIO {} {
     puts "This is the current GPIO register setup"
     # GPIO outputs register
-    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]		
+    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # GPIO Output Enable register
-    set GPIO_OE_REG		    [regs GPIO_OE_REG]		
-    set GPIO_HI_INT_ENABLE_REG	    [regs GPIO_HI_INT_ENABLE_REG]	
-    set GPIO_LO_INT_ENABLE_REG	    [regs GPIO_LO_INT_ENABLE_REG]	
+    set GPIO_OE_REG		    [regs GPIO_OE_REG]
+    set GPIO_HI_INT_ENABLE_REG	    [regs GPIO_HI_INT_ENABLE_REG]
+    set GPIO_LO_INT_ENABLE_REG	    [regs GPIO_LO_INT_ENABLE_REG]
     # GPIO input register
-    set GPIO_INPUT_REG		    [regs GPIO_INPUT_REG]		
-    set APB_ACCESS_WS_REG	    [regs APB_ACCESS_WS_REG]	
-    set MUX_CONF_REG		    [regs MUX_CONF_REG]		
-    set SYSCONF_REG		    [regs SYSCONF_REG]		
-    set GPIO_ARM_ID_REG		    [regs GPIO_ARM_ID_REG]		
-    set GPIO_BOOTSTRAP_REG	    [regs GPIO_BOOTSTRAP_REG]	
-    set GPIO_LOCK_REG		    [regs GPIO_LOCK_REG]		
-    set GPIO_IOCTRL_REG		    [regs GPIO_IOCTRL_REG]		
-    set GPIO_DEVID_REG		    [regs GPIO_DEVID_REG]		
+    set GPIO_INPUT_REG		    [regs GPIO_INPUT_REG]
+    set APB_ACCESS_WS_REG	    [regs APB_ACCESS_WS_REG]
+    set MUX_CONF_REG		    [regs MUX_CONF_REG]
+    set SYSCONF_REG		    [regs SYSCONF_REG]
+    set GPIO_ARM_ID_REG		    [regs GPIO_ARM_ID_REG]
+    set GPIO_BOOTSTRAP_REG	    [regs GPIO_BOOTSTRAP_REG]
+    set GPIO_LOCK_REG		    [regs GPIO_LOCK_REG]
+    set GPIO_IOCTRL_REG		    [regs GPIO_IOCTRL_REG]
+    set GPIO_DEVID_REG		    [regs GPIO_DEVID_REG]
 
     puts [format "GPIO_OUTPUT_REG       (0x%x): 0x%x" $GPIO_OUTPUT_REG [mrw $GPIO_OUTPUT_REG]]
     puts [format "GPIO_OE_REG           (0x%x): 0x%x" $GPIO_OE_REG [mrw $GPIO_OE_REG]]
@@ -129,7 +129,7 @@ proc showAmbaClk {} {
     set CFG_REFCLKFREQ		     [config CFG_REFCLKFREQ]
     set CLKCORE_AHB_CLK_CNTRL	     [regs CLKCORE_AHB_CLK_CNTRL]
     set PLL_CLK_BYPASS	             [regs PLL_CLK_BYPASS]
-    
+
     puts [format "CLKCORE_AHB_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_AHB_CLK_CNTRL [mrw $CLKCORE_AHB_CLK_CNTRL]]
     ocd_mem2array value 32 $CLKCORE_AHB_CLK_CNTRL 1
     # see if the PLL is in bypass mode
@@ -153,13 +153,13 @@ proc showAmbaClk {} {
 # converted from u-boot/cpu/arm1136/comcerto/bsp100.c (HAL_set_amba_clk())
 # this clock is useb by all peripherals (DDR2, ethernet, ebus, etc)
 proc setupAmbaClk {} {
-    set CLKCORE_PLL_STATUS           [regs CLKCORE_PLL_STATUS]       
+    set CLKCORE_PLL_STATUS           [regs CLKCORE_PLL_STATUS]
     set CLKCORE_AHB_CLK_CNTRL	     [regs CLKCORE_AHB_CLK_CNTRL]
     set ARM_PLL_BY_CTRL	    [regs ARM_PLL_BY_CTRL]
     set ARM_AHB_BYP	    [regs ARM_AHB_BYP]
     set PLL_DISABLE	    [regs PLL_DISABLE]
-    set PLL_CLK_BYPASS	    [regs PLL_CLK_BYPASS]	
-    set AHB_PLL_BY_CTRL	    [regs AHB_PLL_BY_CTRL]	
+    set PLL_CLK_BYPASS	    [regs PLL_CLK_BYPASS]
+    set AHB_PLL_BY_CTRL	    [regs AHB_PLL_BY_CTRL]
     set DIV_BYPASS	    [regs DIV_BYPASS]
     set AHBCLK_PLL_LOCK	    [regs AHBCLK_PLL_LOCK]
     set CFG_REFCLKFREQ		 [config CFG_REFCLKFREQ]
@@ -204,7 +204,7 @@ proc showArmClk {} {
     set CFG_REFCLKFREQ		[config CFG_REFCLKFREQ]
     set CLKCORE_ARM_CLK_CNTRL	[regs CLKCORE_ARM_CLK_CNTRL]
     set PLL_CLK_BYPASS	        [regs PLL_CLK_BYPASS]
-    
+
     puts [format "CLKCORE_ARM_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_ARM_CLK_CNTRL [mrw $CLKCORE_ARM_CLK_CNTRL]]
     ocd_mem2array value 32 $CLKCORE_ARM_CLK_CNTRL 1
     # see if the PLL is in bypass mode
@@ -232,8 +232,8 @@ proc setupArmClk {} {
     set ARM_PLL_BY_CTRL	          [regs ARM_PLL_BY_CTRL]
     set ARM_AHB_BYP	          [regs ARM_AHB_BYP]
     set PLL_DISABLE	          [regs PLL_DISABLE]
-    set PLL_CLK_BYPASS	          [regs PLL_CLK_BYPASS]	
-    set AHB_PLL_BY_CTRL	          [regs AHB_PLL_BY_CTRL]	
+    set PLL_CLK_BYPASS	          [regs PLL_CLK_BYPASS]
+    set AHB_PLL_BY_CTRL	          [regs AHB_PLL_BY_CTRL]
     set DIV_BYPASS	          [regs DIV_BYPASS]
     set FCLK_PLL_LOCK	          [regs FCLK_PLL_LOCK]
     set CFG_REFCLKFREQ		[config CFG_REFCLKFREQ]
@@ -283,12 +283,12 @@ proc setupPLL {} {
 # converted from u-boot/cpu/arm1136/bsp100.c:SoC_mem_init()
 proc setupDDR2 {} {
     puts "Configuring DDR2"
-    
+
     set MEMORY_BASE_ADDR	    [regs  MEMORY_BASE_ADDR]
-    set MEMORY_MAX_ADDR	            [regs  MEMORY_MAX_ADDR]        
+    set MEMORY_MAX_ADDR	            [regs  MEMORY_MAX_ADDR]
     set MEMORY_CR 		    [regs  MEMORY_CR]
-    set BLOCK_RESET_REG		    [regs  BLOCK_RESET_REG]		
-    set DDR_RST		            [regs  DDR_RST]        
+    set BLOCK_RESET_REG		    [regs  BLOCK_RESET_REG]
+    set DDR_RST		            [regs  DDR_RST]
 
     # put DDR controller in reset (so that it is reset and correctly configured)
     # this is only necessary if DDR was previously confiured
@@ -334,7 +334,7 @@ proc setupDDR2 {} {
 
 
 proc showDDR2 {} {
- 
+
     set DENALI_CTL_00_DATA    [regs DENALI_CTL_00_DATA]
     set DENALI_CTL_01_DATA    [regs DENALI_CTL_01_DATA]
     set DENALI_CTL_02_DATA    [regs DENALI_CTL_02_DATA]
@@ -399,22 +399,22 @@ proc showDDR2 {} {
     puts [format "DENALI_CTL_19_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_19_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_20_DATA]
     puts [format "DENALI_CTL_20_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_20_DATA $tmp(1) $tmp(0)]
-    
+
 }
 
 proc initC100 {} {
-    # this follows u-boot/cpu/arm1136/start.S 
-    set GPIO_LOCK_REG		    [regs GPIO_LOCK_REG]		
-    set GPIO_IOCTRL_REG		    [regs GPIO_IOCTRL_REG]		
-    set GPIO_IOCTRL_VAL	            [regs GPIO_IOCTRL_VAL]	
+    # this follows u-boot/cpu/arm1136/start.S
+    set GPIO_LOCK_REG		    [regs GPIO_LOCK_REG]
+    set GPIO_IOCTRL_REG		    [regs GPIO_IOCTRL_REG]
+    set GPIO_IOCTRL_VAL	            [regs GPIO_IOCTRL_VAL]
     set APB_ACCESS_WS_REG           [regs APB_ACCESS_WS_REG]
     set ASA_ARAM_BASEADDR	    [regs ASA_ARAM_BASEADDR]
-    set ASA_ARAM_TC_CR_REG	    [regs ASA_ARAM_TC_CR_REG]	
+    set ASA_ARAM_TC_CR_REG	    [regs ASA_ARAM_TC_CR_REG]
     set ASA_EBUS_BASEADDR	    [regs ASA_EBUS_BASEADDR]
-    set ASA_EBUS_TC_CR_REG	    [regs ASA_EBUS_TC_CR_REG]	
+    set ASA_EBUS_TC_CR_REG	    [regs ASA_EBUS_TC_CR_REG]
     set ASA_TC_REQIDMAEN	    [regs ASA_TC_REQIDMAEN]
-    set ASA_TC_REQTDMEN	            [regs ASA_TC_REQTDMEN]        
-    set ASA_TC_REQIPSECUSBEN        [regs ASA_TC_REQIPSECUSBEN]    
+    set ASA_TC_REQTDMEN	            [regs ASA_TC_REQTDMEN]
+    set ASA_TC_REQIPSECUSBEN        [regs ASA_TC_REQIPSECUSBEN]
     set ASA_TC_REQARM0EN	    [regs ASA_TC_REQARM0EN]
     set ASA_TC_REQARM1EN	    [regs ASA_TC_REQARM1EN]
     set ASA_TC_REQMDMAEN	    [regs ASA_TC_REQMDMAEN]
@@ -428,7 +428,7 @@ proc initC100 {} {
     # set ARM into supervisor mode (SVC32)
     # disable IRQ, FIQ
     # Do I need this in JTAG mode?
-    # it really should be done as 'and ~0x1f | 0xd3 but 
+    # it really should be done as 'and ~0x1f | 0xd3 but
     # openocd does not support this yet
     reg cpsr 0xd3
     #	/*
@@ -444,12 +444,12 @@ proc initC100 {} {
     #	 * disable MMU stuff and caches
     #	 */
     #	mrc	p15, 0, r0, c1, c0, 0
-    arm11 mrc c100.cpu 15 0 1 0 0  
+    arm11 mrc c100.cpu 15 0 1 0 0
     #	bic	r0, r0, #0x00002300	@ clear bits 13, 9:8 (--V- --RS)
     #	bic	r0, r0, #0x00000087	@ clear bits 7, 2:0 (B--- -CAM)
     #	orr	r0, r0, #0x00000002	@ set bit 2 (A) Align
     #	orr	r0, r0, #0x00001000	@ set bit 12 (I) I-Cache
-    #	orr	r0, r0, #0x00400000	@ set bit 22 (U) 
+    #	orr	r0, r0, #0x00400000	@ set bit 22 (U)
     #	mcr	p15, 0, r0, c1, c0, 0
     arm11 mcr c100.cpu 15 0 1 0 0 0x401002
     # This is from bsp_init() in u-boot/boards/mindspeed/ooma-darwin/board.c
@@ -464,10 +464,10 @@ proc initC100 {} {
     mmw $ASA_EBUS_TC_CR_REG [expr $ASA_TC_REQIDMAEN | $ASA_TC_REQTDMEN | $ASA_TC_REQIPSECUSBEN | $ASA_TC_REQARM0EN | $ASA_TC_REQARM1EN | $ASA_TC_REQMDMAEN] 0x0
 
     # ARAM init
-    #	// disable pipeline mode in ARAM 
+    #	// disable pipeline mode in ARAM
     # I don't think this is documented anywhere?
     mww $INTC_ARM1_CONTROL_REG 0x1
-    # configure clocks 
+    # configure clocks
     setupPLL
     # enable cache
     # ? (u-boot does nothing here)
@@ -481,9 +481,9 @@ proc initC100 {} {
 # show current state of watchdog timer
 proc showWatchdog {} {
     set TIMER_WDT_HIGH_BOUND	[regs TIMER_WDT_HIGH_BOUND]
-    set TIMER_WDT_CONTROL	[regs TIMER_WDT_CONTROL]	
+    set TIMER_WDT_CONTROL	[regs TIMER_WDT_CONTROL]
     set TIMER_WDT_CURRENT_COUNT	[regs TIMER_WDT_CURRENT_COUNT]
-    
+
     puts [format "TIMER_WDT_HIGH_BOUND    (0x%x): 0x%x" $TIMER_WDT_HIGH_BOUND [mrw $TIMER_WDT_HIGH_BOUND]]
     puts [format "TIMER_WDT_CONTROL       (0x%x): 0x%x" $TIMER_WDT_CONTROL [mrw $TIMER_WDT_CONTROL]]
     puts [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]
@@ -495,7 +495,7 @@ proc showWatchdog {} {
 # watchdog reset effectively works as hw. reset
 proc reboot {} {
     set TIMER_WDT_HIGH_BOUND	[regs TIMER_WDT_HIGH_BOUND]
-    set TIMER_WDT_CONTROL	[regs TIMER_WDT_CONTROL]	
+    set TIMER_WDT_CONTROL	[regs TIMER_WDT_CONTROL]
     set TIMER_WDT_CURRENT_COUNT	[regs TIMER_WDT_CURRENT_COUNT]
 
     # allow the counter to count to high value  before triggering
@@ -508,10 +508,10 @@ proc reboot {} {
     mww $TIMER_WDT_CONTROL 0x1
     # wait until the reset
     puts -nonewline "Wating for watchdog to trigger..."
-    #while {[mrw $TIMER_WDT_CONTROL] == 1} { 
-    #    puts [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]	    
-    #    sleep 1 
-    #    
+    #while {[mrw $TIMER_WDT_CONTROL] == 1} {
+    #    puts [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]
+    #    sleep 1
+    #
     #}
     while {[c100.cpu curstate] != "running"} { sleep 1}
     puts "done."

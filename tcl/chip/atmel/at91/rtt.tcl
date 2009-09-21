@@ -13,7 +13,7 @@ proc show_RTTC_RTMR_helper { NAME ADDR VAL } {
     global BIT16 BIT17
     if { $rtpres == 0 } {
 	set rtpres 65536;
-    } 
+    }
     global AT91C_SLOWOSC_FREQ
     # Nasty hack, make this a float by tacking a .0 on the end
     # otherwise, jim makes the value an integer
@@ -47,7 +47,7 @@ proc show_RTTC_RTSR_helper { NAME ADDR VAL } {
 }
 
 proc show_RTTC { } {
-    
+
     show_mmr32_reg RTTC_RTMR
     show_mmr32_reg RTTC_RTAR
     show_mmr32_reg RTTC_RTVR

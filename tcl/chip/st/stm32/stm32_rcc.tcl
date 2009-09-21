@@ -16,7 +16,7 @@ proc show_RCC_CR { } {
 	error $msg
     }
 
-    show_mmr_bitfield  0  0 $val HSI      { OFF ON } 
+    show_mmr_bitfield  0  0 $val HSI      { OFF ON }
     show_mmr_bitfield  1  1 $val HSIRDY   { NOTRDY RDY  }
     show_mmr_bitfield  7  3 $val HSITRIM  { _NUMBER_ }
     show_mmr_bitfield 15  8 $val HSICAL   { _NUMBER_ }
@@ -26,8 +26,8 @@ proc show_RCC_CR { } {
     show_mmr_bitfield 19 19 $val CSSON    { OFF ON }
     show_mmr_bitfield 24 24 $val PLLON    { OFF ON }
     show_mmr_bitfield 25 25 $val PLLRDY   { NOTRDY RDY }
-}    
-	
+}
+
 proc show_RCC_CFGR { } {
     if [ catch { set val [show_mmr32_reg RCC_CFGR] } msg ] {
 	error $msg
@@ -47,12 +47,12 @@ proc show_RCC_CFGR { } {
     show_mmr_bitfield 26 24 $val  MCO    { none none none none SysClk HSI HSE PLL_div2 }
 }
 
-    
+
 proc show_RCC_CIR { } {
     if [ catch { set val [show_mmr32_reg RCC_CIR] } msg ] {
 	error $msg
     }
- 
+
 }
 
 proc show_RCC_APB2RSTR { } {
@@ -106,7 +106,7 @@ proc show_RCC_APB1RSTR { } {
     set bits(13) xxx
     set bits(12) xxx
     set bits(11) wwdg
-    set bits(10) xxx 
+    set bits(10) xxx
     set bits(9) xxx
     set bits(8) xxx
     set bits(7) xxx
@@ -118,7 +118,7 @@ proc show_RCC_APB1RSTR { } {
     set bits(1) tim3
     set bits(0) tim2
     show_mmr32_bits bits $val
-    
+
 }
 
 proc show_RCC_AHBENR   { } {
@@ -141,7 +141,7 @@ proc show_RCC_AHBENR   { } {
     set bits(18) xxx
     set bits(17) xxx
     set bits(16) xxx
-    set bits(15) xxx  
+    set bits(15) xxx
     set bits(14) xxx
     set bits(13) xxx
     set bits(12) xxx
@@ -180,7 +180,7 @@ proc show_RCC_APB2ENR  { } {
     set bits(18) xxx
     set bits(17) xxx
     set bits(16) xxx
-    set bits(15) adc3  
+    set bits(15) adc3
     set bits(14) usart1
     set bits(13) tim8
     set bits(12) spi1

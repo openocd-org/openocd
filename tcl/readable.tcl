@@ -22,4 +22,3 @@ proc isreadable { ADDRESS } {
 }
 
 proc isreadable32 { ADDRESS } {
-    

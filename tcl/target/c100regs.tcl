@@ -7,7 +7,7 @@
 # For example:
 # set EX_CS_TMG1_REG [regs EX_CS0_TMG1_REG]
 proc regs {reg} {
-    return [dict get [regsC100] $reg ]	
+    return [dict get [regsC100] $reg ]
 }
 
 proc showreg {reg} {
@@ -19,13 +19,13 @@ proc regsC100 {} {
 #/* device memory base addresses */
 #// device memory sizes
 #/* ARAM SIZE=64K */
-dict set regsC100 ARAM_SIZE		0x00010000 
+dict set regsC100 ARAM_SIZE		0x00010000
 dict set regsC100 ARAM_BASEADDR	0x0A000000
 
 #/* Hardware Interface Units */
 dict set regsC100 APB_BASEADDR	0x10000000
 #/* APB_SIZE=16M address range */
-dict set regsC100 APB_SIZE		0x01000000 
+dict set regsC100 APB_SIZE		0x01000000
 
 dict set regsC100 EXP_CS0_BASEADDR       0x20000000
 dict set regsC100 EXP_CS1_BASEADDR       0x24000000
@@ -212,7 +212,7 @@ dict set regsC100 EX_RDY_EDGE		0x00000800
 
 # GPIO outputs register
 dict set regsC100 GPIO_OUTPUT_REG		[expr [dict get $regsC100 GPIO_BASEADDR ] + 0x00]
-# GPIO Output Enable register	
+# GPIO Output Enable register
 dict set regsC100 GPIO_OE_REG		        [expr [dict get $regsC100 GPIO_BASEADDR ] + 0x04]
 dict set regsC100 GPIO_HI_INT_ENABLE_REG	[expr [dict get $regsC100 GPIO_BASEADDR ] + 0x08]
 dict set regsC100 GPIO_LO_INT_ENABLE_REG	[expr [dict get $regsC100 GPIO_BASEADDR ] + 0x0C]
@@ -285,74 +285,74 @@ dict set regsC100 UART1_MSR		[expr [dict get $regsC100 UART1_BASEADDR ] + 0x18]
 dict set regsC100 UART1_SCR		[expr [dict get $regsC100 UART1_BASEADDR ] + 0x1C]
 
 # /* default */
-dict set regsC100 LCR_CHAR_LEN_5		0x00	  
+dict set regsC100 LCR_CHAR_LEN_5		0x00
 dict set regsC100 LCR_CHAR_LEN_6		0x01
 dict set regsC100 LCR_CHAR_LEN_7		0x02
 dict set regsC100 LCR_CHAR_LEN_8		0x03
 #/* One stop bit! - default */
 dict set regsC100 LCR_ONE_STOP		0x00
-#/* Two stop bit! */	  
-dict set regsC100 LCR_TWO_STOP		0x04	  
+#/* Two stop bit! */
+dict set regsC100 LCR_TWO_STOP		0x04
 #/* Parity Enable */
-dict set regsC100 LCR_PEN			0x08	  
+dict set regsC100 LCR_PEN			0x08
 dict set regsC100 LCR_PARITY_NONE		0x00
 #/* Even Parity Select */
-dict set regsC100 LCR_EPS			0x10	  
+dict set regsC100 LCR_EPS			0x10
 #/* Enable Parity  Stuff */
-dict set regsC100 LCR_PS			0x20	  
+dict set regsC100 LCR_PS			0x20
 #/* Start Break */
-dict set regsC100 LCR_SBRK		        0x40  
+dict set regsC100 LCR_SBRK		        0x40
 #/* Parity Stuff Bit */
-dict set regsC100 LCR_PSB			0x80	  
+dict set regsC100 LCR_PSB			0x80
 #/* UART 16550 Divisor Latch Assess */
-dict set regsC100 LCR_DLAB		        0x80  
+dict set regsC100 LCR_DLAB		        0x80
 
 #/* FIFO Error Status */
-dict set regsC100 LSR_FIFOE		[expr 1 << 7]	
+dict set regsC100 LSR_FIFOE		[expr 1 << 7]
 #/* Transmitter Empty */
 dict set regsC100 LSR_TEMT		[expr 1 << 6]
 #/* Transmit Data Request */
-dict set regsC100 LSR_TDRQ		[expr 1 << 5]	
+dict set regsC100 LSR_TDRQ		[expr 1 << 5]
 #/* Break Interrupt */
-dict set regsC100 LSR_BI			[expr 1 << 4]	
+dict set regsC100 LSR_BI			[expr 1 << 4]
 #/* Framing Error */
-dict set regsC100 LSR_FE			[expr 1 << 3]	
+dict set regsC100 LSR_FE			[expr 1 << 3]
 #/* Parity Error */
-dict set regsC100 LSR_PE			[expr 1 << 2]	
+dict set regsC100 LSR_PE			[expr 1 << 2]
 #/* Overrun Error */
-dict set regsC100 LSR_OE			[expr 1 << 1]	
+dict set regsC100 LSR_OE			[expr 1 << 1]
 #/* Data Ready */
-dict set regsC100 LSR_DR			[expr 1 << 0]	
+dict set regsC100 LSR_DR			[expr 1 << 0]
 
 #/* DMA Requests Enable */
-dict set regsC100 IER_DMAE		        [expr 1 << 7]	
+dict set regsC100 IER_DMAE		        [expr 1 << 7]
 #/* UART Unit Enable */
-dict set regsC100 IER_UUE			[expr 1 << 6]	
+dict set regsC100 IER_UUE			[expr 1 << 6]
 #/* NRZ coding Enable */
-dict set regsC100 IER_NRZE		        [expr 1 << 5]	
+dict set regsC100 IER_NRZE		        [expr 1 << 5]
 #/* Receiver Time Out Interrupt Enable */
-dict set regsC100 IER_RTIOE		        [expr 1 << 4]	
+dict set regsC100 IER_RTIOE		        [expr 1 << 4]
 #/* Modem Interrupt Enable */
-dict set regsC100 IER_MIE			[expr 1 << 3]	
+dict set regsC100 IER_MIE			[expr 1 << 3]
 #/* Receiver Line Status Interrupt Enable */
-dict set regsC100 IER_RLSE		        [expr 1 << 2]	
+dict set regsC100 IER_RLSE		        [expr 1 << 2]
 #/* Transmit Data request Interrupt Enable */
-dict set regsC100 IER_TIE			[expr 1 << 1]	
+dict set regsC100 IER_TIE			[expr 1 << 1]
 #/* Receiver Data Available Interrupt Enable */
-dict set regsC100 IER_RAVIE		        [expr 1 << 0]	
+dict set regsC100 IER_RAVIE		        [expr 1 << 0]
 
 #/* FIFO Mode Enable Status */
-dict set regsC100 IIR_FIFOES1		        [expr 1 << 7]	
+dict set regsC100 IIR_FIFOES1		        [expr 1 << 7]
 #/* FIFO Mode Enable Status */
-dict set regsC100 IIR_FIFOES0		        [expr 1 << 6]	
+dict set regsC100 IIR_FIFOES0		        [expr 1 << 6]
 #/* Time Out Detected */
-dict set regsC100 IIR_TOD			[expr 1 << 3]	
+dict set regsC100 IIR_TOD			[expr 1 << 3]
 #/* Interrupt Source Encoded */
-dict set regsC100 IIR_IID2		        [expr 1 << 2]	
+dict set regsC100 IIR_IID2		        [expr 1 << 2]
 #/* Interrupt Source Encoded */
-dict set regsC100 IIR_IID1		        [expr 1 << 1]	
+dict set regsC100 IIR_IID1		        [expr 1 << 1]
 #/* Interrupt Pending (active low) */
-dict set regsC100 IIR_IP			[expr 1 << 0]	
+dict set regsC100 IIR_IP			[expr 1 << 0]
 
 #/* UART 16550 FIFO Control Register */
 dict set regsC100 FCR_FIFOEN		0x01
@@ -362,14 +362,14 @@ dict set regsC100 FCR_XMITRES		0x04
 #/* Interrupt Enable Register */
 #// UART 16550
 #// Enable Received Data Available Interrupt
-dict set regsC100 IER_RXTH		0x01	
+dict set regsC100 IER_RXTH		0x01
 #// Enable Transmitter Empty Interrupt
-dict set regsC100 IER_TXTH		0x02	
+dict set regsC100 IER_TXTH		0x02
 
 
 
 #////////////////////////////////////////////////////////////
-#// CLK  + RESET block 
+#// CLK  + RESET block
 #////////////////////////////////////////////////////////////
 
 dict set regsC100 CLKCORE_ARM_CLK_CNTRL	[expr [dict get $regsC100 CLKCORE_BASEADDR ] + 0x00]
