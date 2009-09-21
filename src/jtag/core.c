@@ -837,12 +837,17 @@ void jtag_sleep(uint32_t us)
 	alive_sleep(us/1000);
 }
 
-/// maximum number of JTAG devices expected in the chain
+/* Maximum number of enabled JTAG devices we expect in the scan chain,
+ * plus one (to detect garbage at the end).  Devices that don't support
+ * IDCODE take up fewer bits, possibly allowing a few more devices.
+ */
 #define JTAG_MAX_CHAIN_SIZE 20
 
 #define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
+
+#define END_OF_CHAIN_FLAG	0x000000ff
 
 static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcode)
 {
@@ -855,7 +860,7 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 
 	// initialize to the end of chain ID value
 	for (unsigned i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
-		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
+		buf_set_u32(idcode_buffer, i * 32, 32, END_OF_CHAIN_FLAG);
 
 	jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
 	jtag_add_tlr();
@@ -899,7 +904,12 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 
 static bool jtag_idcode_is_final(uint32_t idcode)
 {
-		return idcode == 0x000000FF || idcode == 0xFFFFFFFF;
+	/*
+	 * Some devices, such as AVR8, will output all 1's instead
+	 * of TDI input value at end of chain.  Allow those values
+	 * instead of failing.
+	 */
+	return idcode == END_OF_CHAIN_FLAG || idcode == 0xFFFFFFFF;
 }
 
 /**
@@ -907,8 +917,9 @@ static bool jtag_idcode_is_final(uint32_t idcode)
  * all as expected, but a single JTAG device requires only 64 bits to be
  * read back correctly.  This can help identify and diagnose problems
  * with the JTAG chain earlier, gives more helpful/explicit error messages.
+ * Returns TRUE iff garbage was found.
  */
-static void jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned max)
+static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned max)
 {
 	bool triggered = false;
 	for (; count < max - 31; count += 32)
@@ -921,19 +932,14 @@ static void jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 					count, (unsigned int)idcode);
 		triggered = true;
 	}
+	return triggered;
 }
 
 static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 {
-	if (0 == tap->expected_ids_cnt)
-	{
-		/// @todo Enable LOG_INFO to ask for reports about unknown TAP IDs.
-#if 0
-		LOG_INFO("Uknown JTAG TAP ID: 0x%08x", tap->idcode)
-		LOG_INFO("Please report the chip name and reported ID code to the openocd project");
-#endif
+	/* ignore expected BYPASS codes; warn otherwise */
+	if (0 == tap->expected_ids_cnt && !tap->idcode)
 		return true;
-	}
 
 	/* Loop over the expected identification codes and test for a match */
 	uint8_t ii;
@@ -944,7 +950,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 	}
 
 	/* If none of the expected ids matched, log an error */
-	jtag_examine_chain_display(LOG_LVL_ERROR, "got",
+	jtag_examine_chain_display(LOG_LVL_ERROR, "UNEXPECTED",
 			tap->dotted_name, tap->idcode);
 	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
 	{
@@ -962,10 +968,12 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 static int jtag_examine_chain(void)
 {
 	uint8_t idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
-	unsigned device_count = 0;
+	unsigned bit_count;
 
+	/* DR scan to collect BYPASS or IDCODE register contents.
+	 * Then make sure the scan data has both ones and zeroes.
+	 */
 	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
-
 	if (!jtag_examine_chain_check(idcode_buffer, JTAG_MAX_CHAIN_SIZE))
 		return ERROR_JTAG_INIT_FAILED;
 
@@ -977,7 +985,7 @@ static int jtag_examine_chain(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (unsigned bit_count = 0;
+	for (bit_count = 0;
 			tap && bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;
 			tap = jtag_tap_next_enabled(tap))
 	{
@@ -995,26 +1003,13 @@ static int jtag_examine_chain(void)
 		}
 		else
 		{
+			/* Friendly devices support IDCODE */
 			tap->hasidcode = true;
-
-			/*
-			 * End of chain (invalid manufacturer ID) some devices, such
-			 * as AVR will output all 1's instead of TDI input value at
-			 * end of chain.
-			 */
-			if (jtag_idcode_is_final(idcode))
-			{
-				jtag_examine_chain_end(idcode_buffer,
-						bit_count + 32, JTAG_MAX_CHAIN_SIZE * 32);
-				break;
-			}
-
 			jtag_examine_chain_display(LOG_LVL_INFO, "tap/device found",
 					tap->dotted_name, idcode);
 
 			bit_count += 32;
 		}
-		device_count++;
 		tap->idcode = idcode;
 
 		// ensure the TAP ID does matches what was expected
@@ -1022,14 +1017,20 @@ static int jtag_examine_chain(void)
 			return ERROR_JTAG_INIT_FAILED;
 	}
 
-	/* see if number of discovered devices matches configuration */
-	if (device_count != jtag_tap_count_enabled())
-	{
-		LOG_ERROR("number of discovered devices in JTAG chain (%i) "
-				"does not match (enabled) configuration (%i), total taps: %d",
-				device_count, jtag_tap_count_enabled(), jtag_tap_count());
-		LOG_ERROR("check the config file and ensure proper JTAG communication"
-				" (connections, speed, ...)");
+	/* Fail if too many TAPs were enabled for us to verify them all. */
+	if (tap) {
+		LOG_ERROR("Too many TAPs enabled; '%s' ignored.",
+				tap->dotted_name);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	/* After those IDCODE or BYPASS register values should be
+	 * only the data we fed into the scan chain.
+	 */
+	if (jtag_examine_chain_end(idcode_buffer, bit_count,
+			8 * sizeof(idcode_buffer))) {
+		LOG_ERROR("double-check your JTAG setup (interface, "
+				"speed, TAPs, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
