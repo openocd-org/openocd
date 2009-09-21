@@ -1241,7 +1241,7 @@ int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size,
 		address += aligned;
 		size -= aligned;
 	}
-	
+
 	/*prevent byte access when possible (avoid AHB access limitations in some cases)*/
 	if(size	>=2)
 	{

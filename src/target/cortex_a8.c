@@ -138,8 +138,8 @@ int cortex_a8_init_debug_access(target_t *target)
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
-	/* Enabling of instruction execution in debug mode is done in debug_entry code */ 
-	
+	/* Enabling of instruction execution in debug mode is done in debug_entry code */
+
 	return retval;
 }
 
@@ -1374,7 +1374,7 @@ int cortex_a8_examine(struct target_s *target)
 	uint32_t didr, ctypr, ttypr, cpuid;
 
 	LOG_DEBUG("TODO");
-	
+
 	/* Here we shall insert a proper ROM Table scan */
 	armv7a->debug_base = OMAP3530_DEBUG_BASE;
 
@@ -1451,7 +1451,7 @@ int cortex_a8_examine(struct target_s *target)
 
 	/* Configure core debug access */
 	cortex_a8_init_debug_access(target);
-	
+
 	target->type->examined = 1;
 
 	return retval;

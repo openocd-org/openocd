@@ -2,14 +2,14 @@
 ENTRY(reset_handler)
 
 /* specify the mini-ICache memory areas  */
-MEMORY 
+MEMORY
 {
 	mini_icache_0 (x)  				: ORIGIN = 0x0, LENGTH = 1024	/* first part of mini icache (sets 0-31) */
 	mini_icache_1 (x)  				: ORIGIN = 0x400, LENGTH = 1024	/* second part of mini icache (sets 0-31) */
 }
 
 /* now define the output sections  */
-SECTIONS 
+SECTIONS
 {
 	.part1 :
 	{

@@ -54,7 +54,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 	{
 		n++;
 		if (breakpoint->address == address){
-			LOG_DEBUG("Duplicate Breakpoint address: 0x%08" PRIx32 " (BP %d)", 
+			LOG_DEBUG("Duplicate Breakpoint address: 0x%08" PRIx32 " (BP %d)",
 				  address, breakpoint->unique_id );
 			return ERROR_OK;
 		}
@@ -76,10 +76,10 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				LOG_INFO("can't add %s breakpoint, resource not available (BPID=%d)", 
+				LOG_INFO("can't add %s breakpoint, resource not available (BPID=%d)",
 					 breakpoint_type_strings[(*breakpoint_p)->type],
 					 (*breakpoint_p)->unique_id );
-				
+
 				free((*breakpoint_p)->orig_instr);
 				free(*breakpoint_p);
 				*breakpoint_p = NULL;
@@ -87,7 +87,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 				break;
 			case ERROR_TARGET_NOT_HALTED:
 				LOG_INFO("can't add breakpoint while target is running (BPID: %d)",
-						 (*breakpoint_p)->unique_id );						 
+						 (*breakpoint_p)->unique_id );
 				free((*breakpoint_p)->orig_instr);
 				free(*breakpoint_p);
 				*breakpoint_p = NULL;
@@ -207,7 +207,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				LOG_INFO("can't add %s watchpoint, resource not available (WPID: %d)", 
+				LOG_INFO("can't add %s watchpoint, resource not available (WPID: %d)",
 					 watchpoint_rw_strings[(*watchpoint_p)->rw],
 					 (*watchpoint_p)->unique_id );
 				free (*watchpoint_p);
@@ -230,7 +230,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 
 	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x (WPID: %d)",
 			  watchpoint_rw_strings[(*watchpoint_p)->rw],
-			  (*watchpoint_p)->address, 
+			  (*watchpoint_p)->address,
 			  (*watchpoint_p)->length,
 			  (*watchpoint_p)->unique_id );
 

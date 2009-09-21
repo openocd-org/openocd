@@ -42,7 +42,7 @@ struct command_context_s;
  * TARGET_RESET   = 3: the target is being held in reset (only a temporary state,
  * not sure how this is used with all the recent changes)
  * TARGET_DEBUG_RUNNING = 4: the target is running, but it is executing code on
- * behalf of the debugger (e.g. algorithm for flashing) 
+ * behalf of the debugger (e.g. algorithm for flashing)
  *
  * also see: target_state_name();
  */

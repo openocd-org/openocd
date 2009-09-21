@@ -9,7 +9,7 @@ else
 MAINFILE = main.c
 endif
 
-openocd_SOURCES = $(MAINFILE) 
+openocd_SOURCES = $(MAINFILE)
 openocd_LDADD = libopenocd.la
 
 libopenocd_la_SOURCES = openocd.c
@@ -38,7 +38,7 @@ endif
 libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
 
 # the library search path.
-libopenocd_la_LDFLAGS = $(all_libraries) 
+libopenocd_la_LDFLAGS = $(all_libraries)
 
 if IS_MINGW
 MINGWLDADD = -lwsock32
@@ -97,6 +97,6 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 # assumption is: You are only rebuilding the EXE.... and everything
 # else is/was previously installed.
 #
-# use at your own risk 
+# use at your own risk
 quick: all install-binPROGRAMS
 

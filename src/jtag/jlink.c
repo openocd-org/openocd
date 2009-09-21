@@ -314,7 +314,7 @@ static int jlink_init(void)
 		LOG_ERROR("Cannot find jlink Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	/*
 	 *  The next three instructions were added after discovering a problem while using an oscilloscope.  For the V8
 	 *	SAM-ICE dongle (and likely other j-link device variants), the reset line to the target microprocessor was found to
@@ -324,7 +324,7 @@ static int jlink_init(void)
 	 *	following a new USB session.  Keeping the processor in reset during the first read collecting version information
 	 *	seems to prevent errant "J-Link command EMU_CMD_VERSION failed" issues.
 	 */
-	
+
 	LOG_INFO("J-Link initialization started / target CPU reset initiated");
 	jlink_simple_command(EMU_CMD_HW_TRST0);
 	jlink_simple_command(EMU_CMD_HW_RESET0);
@@ -881,7 +881,7 @@ static jlink_jtag_t* jlink_usb_open()
 
 	if (result->usb_handle)
 	{
-	
+
 		/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS AREA!!!!!!!!!!!
 		 * The behavior of libusb is not completely consistent across Windows, Linux, and Mac OS X platforms.  The actions taken
 		 * in the following compiler conditionals may not agree with published documentation for libusb, but were found

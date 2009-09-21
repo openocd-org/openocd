@@ -95,7 +95,7 @@ static void arm7_9_assign_wp(arm7_9_common_t *arm7_9, breakpoint_t *breakpoint)
 	{
 		LOG_ERROR("BUG: no hardware comparator available");
 	}
-	LOG_DEBUG("BPID: %d (0x%08" PRIx32 ") using hw wp: %d", 
+	LOG_DEBUG("BPID: %d (0x%08" PRIx32 ") using hw wp: %d",
 			  breakpoint->unique_id,
 			  breakpoint->address,
 			  breakpoint->set );
@@ -158,7 +158,7 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
 		return ERROR_FAIL;
 	}
-	LOG_DEBUG("SW BP using hw wp: %d", 
+	LOG_DEBUG("SW BP using hw wp: %d",
 			  arm7_9->sw_breakpoints_added );
 
 	return jtag_execute_queue();
@@ -371,7 +371,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->type == BKPT_HARD)
 	{
-		LOG_DEBUG("BPID: %d Releasing hw wp: %d", 
+		LOG_DEBUG("BPID: %d Releasing hw wp: %d",
 				  breakpoint->unique_id,
 				  breakpoint->set );
 		if (breakpoint->set == 1)

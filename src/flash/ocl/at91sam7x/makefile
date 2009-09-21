@@ -13,19 +13,19 @@ OBJDUMP = $(TRGT)objdump
 MCU  = arm7tdmi
 
 # List all default C defines here, like -D_DEBUG=1
-DDEFS = 
+DDEFS =
 
 # List all default ASM defines here, like -D_DEBUG=1
-DADEFS = 
+DADEFS =
 
 # List all default directories to look for include files here
-DINCDIR = 
+DINCDIR =
 
 # List the default directory to look for the libraries here
 DLIBDIR =
 
 # List all default libraries here
-DLIBS = 
+DLIBS =
 
 #
 # End of default section
@@ -42,10 +42,10 @@ PROJECT = at91sam7x_ocl
 LDSCRIPT= at91sam7x_ram.ld
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = 
+UDEFS =
 
 # Define ASM defines here
-UADEFS = 
+UADEFS =
 
 # List C source files here
 SRC  = main.c dcc.c samflash.c
@@ -60,7 +60,7 @@ UINCDIR =
 ULIBDIR =
 
 # List all user libraries here
-ULIBS = 
+ULIBS =
 
 # Define optimisation level here
 OPT = -O2
@@ -122,7 +122,7 @@ clean:
 	-rm -f $(ASRC:.s=.lst)
 	-rm -fR .dep
 
-# 
+#
 # Include the dependency files, should be the last of the makefile
 #
 #-include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)

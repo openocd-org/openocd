@@ -24,16 +24,16 @@ proc get_help_text {} {
 
 # Show flash in human readable form
 # This is an example of a human readable form of a low level fn
-proc flash_banks {} { 
-	set i 0 	
+proc flash_banks {} {
+	set i 0
 	set result ""
 	foreach {a} [ocd_flash_banks] {
 		if {$i > 0} {
 			set result "$result\n"
 		}
 		set result [format "$result#%d: %s at 0x%08x, size 0x%08x, buswidth %d, chipwidth %d" $i $a(name) $a(base) $a(size) $a(bus_width) $a(chip_width)]
-		set i [expr $i+1]	
-	}	
+		set i [expr $i+1]
+	}
 	return $result
 }
 
@@ -56,7 +56,7 @@ proc help {args} {
 			set n 0
 			while 1 {
 				if {$n > [string length $h]} {break}
-				
+
 				set next_a [expr $n+$w]
 				if {[string length $h]>$n+$w} {
 					set xxxx [string range $h $n [expr $n+$w]]
@@ -67,8 +67,8 @@ proc help {args} {
 						set next_a [expr $lastpos+$n+1]
 					}
 				}
-				
-				
+
+
 				puts [format "%-25s %s" $cmdname [string range $h $n [expr $next_a-1]] ]
 				set cmdname ""
 				set n [expr $next_a]
@@ -144,11 +144,11 @@ proc ocd_process_reset { MODE } {
 		set in_process_reset 0
 		return -code error "'reset' can not be invoked recursively"
 	}
-	
+
 	set in_process_reset 1
-	set success [expr [catch {ocd_process_reset_inner $MODE} result]==0] 
+	set success [expr [catch {ocd_process_reset_inner $MODE} result]==0]
 	set in_process_reset 0
-	
+
 	if {$success} {
 		return $result
 	} else {
@@ -239,13 +239,13 @@ proc ocd_process_reset_inner { MODE } {
 			# the JTAG tap reset signal might be hooked to a slow
 			# resistor/capacitor circuit - and it might take a while
 			# to charge
-			
+
 			# Catch, but ignore any errors.
 			catch { $t arp_waitstate halted 1000 }
-			
+
 			# Did we succeed?
 			set s [$t curstate]
-			
+
 			if { 0 != [string compare $s "halted" ] } {
 				return -error [format "TARGET: %s - Not halted" $t]
 			}
@@ -262,7 +262,7 @@ proc ocd_process_reset_inner { MODE } {
 			set err [catch "$t arp_waitstate halted 5000"]
 			# Did it halt?
 			if { $err == 0 } {
-				$t invoke-event reset-init		
+				$t invoke-event reset-init
 			}
 		}
 	}
@@ -294,13 +294,13 @@ add_help_text cpu "<name> - prints out target options and a comment on CPU which
 # A list of names of CPU and options required
 set ocd_cpu_list {
 	{
-		name IXP42x 
-		options {xscale -variant IXP42x} 
+		name IXP42x
+		options {xscale -variant IXP42x}
 		comment {IXP42x cpu}
 	}
 	{
-		name arm7 
-		options {arm7tdmi -variant arm7tdmi} 
+		name arm7
+		options {arm7tdmi -variant arm7tdmi}
 		comment {vanilla ARM7}
 	}
 }
@@ -312,7 +312,7 @@ proc ocd_cpu {args} {
 	global ocd_cpu_list
 	foreach a [lsort $ocd_cpu_list] {
 		if {[string length $args]==0||[string first [string toupper $name] [string toupper "$a(name)$a(options)$a(comment)"]]!=-1} {
-			lappend result $a 
+			lappend result $a
 		}
 	}
 	return $result
@@ -352,5 +352,5 @@ proc capture_catch {a} {
 	catch {
 		capture {uplevel $a}
 	} result
-	return $result 
+	return $result
 }

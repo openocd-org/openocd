@@ -524,7 +524,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		target_write_u32(target, comparator_list[bp_num].reg_address, comparator_list[bp_num].bp_value);
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x08, 0x00000000);
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 1);
-		LOG_DEBUG("bpid: %d, bp_num %i bp_value 0x%" PRIx32 "", 
+		LOG_DEBUG("bpid: %d, bp_num %i bp_value 0x%" PRIx32 "",
 				  breakpoint->unique_id,
 				  bp_num, comparator_list[bp_num].bp_value);
 	}
@@ -612,7 +612,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		comparator_list[bp_num].used = 0;
 		comparator_list[bp_num].bp_value = 0;
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 0);
-		
+
 	}
 	else
 	{
@@ -711,9 +711,9 @@ int mips_m4k_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	 * and exclude both load and store accesses from  watchpoint
 	 * condition evaluation
 	*/
-	int enable = EJTAG_DBCn_NOSB | EJTAG_DBCn_NOLB | EJTAG_DBCn_BE | 
+	int enable = EJTAG_DBCn_NOSB | EJTAG_DBCn_NOLB | EJTAG_DBCn_BE |
                 (0xff << EJTAG_DBCn_BLM_SHIFT);
-	
+
 	if (watchpoint->set)
 	{
 		LOG_WARNING("watchpoint already set");
@@ -765,7 +765,7 @@ int mips_m4k_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	target_write_u32(target, comparator_list[wp_num].reg_address + 0x18, enable);
 	target_write_u32(target, comparator_list[wp_num].reg_address + 0x20, 0);
 	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32 "", wp_num, comparator_list[wp_num].bp_value);
-	
+
 	return ERROR_OK;
 }
 
@@ -774,7 +774,7 @@ int mips_m4k_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->data_break_list;
-	
+
 	if (!watchpoint->set)
 	{
 		LOG_WARNING("watchpoint not set");
@@ -804,7 +804,7 @@ int mips_m4k_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		LOG_INFO("no hardware watchpoints available");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-		
+
 	mips32->num_data_bpoints_avail--;
 
 	mips_m4k_set_watchpoint(target, watchpoint);

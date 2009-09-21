@@ -98,7 +98,7 @@ noinst_HEADERS = \
 	avrt.h
 
 nobase_dist_pkglib_DATA =
-nobase_dist_pkglib_DATA += xscale/debug_handler.bin 
+nobase_dist_pkglib_DATA += xscale/debug_handler.bin
 nobase_dist_pkglib_DATA += ecos/at91eb40a.elf
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

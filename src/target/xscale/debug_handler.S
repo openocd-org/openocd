@@ -30,7 +30,7 @@
 1:
 	mrc p14, 0, r15, c14, c0, 0
 	bvs 1b
-	mcr p14, 0, \reg, c8, c0, 0	
+	mcr p14, 0, \reg, c8, c0, 0
 .endm
 
 @ receive word from debugger
@@ -38,7 +38,7 @@
 1:
 	mrc p14, 0, r15, c14, c0, 0
 	bpl 1b
-	mrc p14, 0, \reg, c9, c0, 0	
+	mrc p14, 0, \reg, c9, c0, 0
 .endm
 
 @ save register on debugger, small
@@ -75,7 +75,7 @@ reset_handler:
 	mrc p14, 0, r13, c10, c0
 	@ check if global enable bit (GE) is set
 	ands r13, r13, #0x80000000
-	
+
 	bne debug_handler
 
 	@ set global enable bit (GE)
@@ -111,7 +111,7 @@ debug_handler:
 	cmp r1, #MODE_USR
 
 	bne not_user_mode
-	
+
 	@ replace USR mode with SYS
 	bic r0, r0, #MODE_MASK
 	orr r0, r0, #MODE_SYS
@@ -124,7 +124,7 @@ not_user_mode:
 @ wait for command from debugger, than execute desired function
 get_command:
 	bl receive_from_debugger
-	
+
 	@ 0x0n - register access
 	cmp r0, #0x0
 	beq get_banked_registers
@@ -145,10 +145,10 @@ get_command:
 	@ 0x2n - write memory
 	cmp r0, #0x21
 	beq write_byte
-	
+
 	cmp r0, #0x22
 	beq write_half_word
-	
+
 	cmp r0, #0x24
 	beq write_word
 
@@ -172,7 +172,7 @@ get_command:
 
 	cmp r0, #0x51
 	beq invalidate_d_cache
-	
+
 	cmp r0, #0x52
 	beq invalidate_i_cache
 
@@ -185,10 +185,10 @@ get_command:
 
 	cmp r0, #0x61
 	beq read_trace_buffer
-	
+
 	cmp r0, #0x62
 	beq clean_trace_buffer
-	
+
 	@ return (back to get_command)
 	b get_command
 
@@ -221,11 +221,11 @@ resume:
 	m_receive_from_debugger lr
 
 	@ branch back to application code, restoring CPSR
-	subs pc, lr, #0	
+	subs pc, lr, #0
 
 @ get banked registers
-@ receive mode bits from host, then run into save_banked_registers to 
-	
+@ receive mode bits from host, then run into save_banked_registers to
+
 get_banked_registers:
 	bl receive_from_debugger
 
@@ -239,7 +239,7 @@ save_banked_registers:
 
 	@ keep current mode bits in r1 for later use
 	and r1, r0, #MODE_MASK
-	
+
 	@ backup banked registers
 	m_send_to_debugger r8
 	m_send_to_debugger r9
@@ -251,7 +251,7 @@ save_banked_registers:
 
 	@ if not in SYS mode (or USR, which we replaced with SYS before)
 	cmp r1, #MODE_SYS
-	
+
 	beq no_spsr_to_save
 
 	@ backup SPSR
@@ -271,8 +271,8 @@ no_spsr_to_save:
 
 
 @ set banked registers
-@ receive mode bits from host, then run into save_banked_registers to 
-	
+@ receive mode bits from host, then run into save_banked_registers to
+
 set_banked_registers:
 	bl receive_from_debugger
 
@@ -286,7 +286,7 @@ restore_banked_registers:
 
 	@ keep current mode bits in r1 for later use
 	and r1, r0, #MODE_MASK
-	
+
 	@ set banked registers
 	m_receive_from_debugger r8
 	m_receive_from_debugger r9
@@ -298,7 +298,7 @@ restore_banked_registers:
 
 	@ if not in SYS mode (or USR, which we replaced with SYS before)
 	cmp r1, #MODE_SYS
-	
+
 	beq no_spsr_to_restore
 
 	@ set SPSR
@@ -327,7 +327,7 @@ read_byte:
 
 rb_loop:
 	ldrb r0, [r2], #1
-	
+
 	@ drain write- (and fill-) buffer to work around XScale errata
 	mcr p15, 0, r8, c7, c10, 4
 
@@ -335,7 +335,7 @@ rb_loop:
 
 	subs r1, r1, #1
 	bne rb_loop
-	
+
 	@ return
 	b get_command
 
@@ -352,7 +352,7 @@ read_half_word:
 
 rh_loop:
 	ldrh r0, [r2], #2
-	
+
 	@ drain write- (and fill-) buffer to work around XScale errata
 	mcr p15, 0, r8, c7, c10, 4
 
@@ -360,7 +360,7 @@ rh_loop:
 
 	subs r1, r1, #1
 	bne rh_loop
-	
+
 	@ return
 	b get_command
 
@@ -377,7 +377,7 @@ read_word:
 
 rw_loop:
 	ldr r0, [r2], #4
-	
+
 	@ drain write- (and fill-) buffer to work around XScale errata
 	mcr p15, 0, r8, c7, c10, 4
 
@@ -385,7 +385,7 @@ rw_loop:
 
 	subs r1, r1, #1
 	bne rw_loop
-	
+
 	@ return
 	b get_command
 
@@ -409,7 +409,7 @@ wb_loop:
 
 	subs r1, r1, #1
 	bne wb_loop
-	
+
 	@ return
 	b get_command
 
@@ -433,7 +433,7 @@ wh_loop:
 
 	subs r1, r1, #1
 	bne wh_loop
-	
+
 	@ return
 	b get_command
 
@@ -457,7 +457,7 @@ ww_loop:
 
 	subs r1, r1, #1
 	bne ww_loop
-	
+
 	@ return
 	b get_command
 
@@ -466,7 +466,7 @@ ww_loop:
 clear_sa:
 	@ read DCSR
 	mrc p14, 0, r0, c10, c0
-	
+
 	@ clear SA bit
 	bic r0, r0, #0x20
 
@@ -481,7 +481,7 @@ clear_sa:
 clean_d_cache:
 	@ r0: cache clean area
 	bl receive_from_debugger
-	
+
 	mov r1, #1024
 clean_loop:
 	mcr p15, 0, r0, c7, c2, 5
@@ -568,7 +568,7 @@ read_cp_table:
 	b read_cp_reg_reply
 
 read_cp_reg_reply:
-	bl send_to_debugger	
+	bl send_to_debugger
 
 	@ return
 	b get_command
@@ -641,14 +641,14 @@ read_tb_loop:
 	@ dump checkpoint register 0
 	mrc p14, 0, r0, c12, c0, 0 @ XSCALE_CHKPT0 (0x10)
 	bl send_to_debugger
-	
+
 	@ dump checkpoint register 1
 	mrc p14, 0, r0, c13, c0, 0 @ XSCALE_CHKPT1 (0x11)
 	bl send_to_debugger
 
 	@ return
 	b get_command
-	
+
 @ ----
 
 clean_trace_buffer:
@@ -662,7 +662,7 @@ clean_tb_loop:
 
 	@ return
 	b get_command
-	
+
 @ ----
 
 
@@ -697,7 +697,7 @@ resume_w_trace:
 	mcr p14, 0, r13, c10, c0, 0 @ XSCALE_DCSR
 
 	@ branch back to application code, restoring CPSR
-	subs pc, lr, #0	
+	subs pc, lr, #0
 
 undef_handler:
 swi_handler:

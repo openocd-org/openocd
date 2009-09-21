@@ -67,7 +67,7 @@ m4_define(`m4_delay_setup',
 	A.L = m4_low_nybble(`('$1`) / 2')
 	Y = A
 )')
-	
+
 m4_define(`m4_delay_loop',
 `; delay loop (m4_eval($1) cycles)'
 `m4_ifelse(m4_eval(`('$1`) < 6'), 1,
@@ -79,7 +79,7 @@ m4_define(`m4_delay_loop',
 )')
 
 m4_dnl These are utility macros for use with delays.  Specifically, there is code below which needs some predictability in code size for relative jumps to reach.  The m4_delay macro generates an extra NOP when an even delay is needed, and the m4_delay_loop macro generates an extra NOP when an odd delay is needed.  Using this for the argument to the respective macro rounds up the argument so that the extra NOP will not be generated.  There is also logic built in to cancel the rounding when the result is small enough that a loop would not be generated.
-	
+
 m4_define(`m4_delay_loop_round_up', `m4_ifelse(m4_eval($1` < 6'), 1, $1, m4_eval(`(('$1`) + 1) / 2 * 2'))')
 m4_define(`m4_delay_round_up', `m4_ifelse(m4_eval($1` < 6'), 1, $1, m4_eval(`(('$1`) / 2 * 2) + 1'))')
 
@@ -106,7 +106,7 @@ m4_divert(`0')m4_dnl
 	A.H = 0xc	; lookup table at 0x1550 + 0xc0 = 0x1610
 
 	; branch to address in lookup table
-	Y = A 
+	Y = A
 	A = <Y>
 	BRANCH
 
@@ -203,7 +203,7 @@ entry_download:
 ;	; Ack buffer 0 in download mode
 ;	A.L = 0x1
 ;	BUFFER_MNGT = A
-;	
+;
 ;	STATUS STOP
 
 
@@ -213,7 +213,7 @@ entry_download:
 
 	A = CMP01	; bits 3..0 contain the number of bytes to shift - 1
 	A.H = 0
-	Y = A		; loop counter 
+	Y = A		; loop counter
 
 	A = CMP01
 	EXCHANGE
@@ -262,7 +262,7 @@ opcode_shift_tdi_andor_tms_bytes__loop:
 
 	A = CMP01	; bits 3..0 contain the number of bytes to shift - 1
 	A.H = 0
-	Y = A		; loop counter 
+	Y = A		; loop counter
 
 opcode_shift_tdo_bytes__loop:
 	SHIFT MPEG PIN0=>IN
@@ -303,7 +303,7 @@ opcode_shift_tdio_bytes__loop:
 
 	JP sub_shift_tdio_bits
 opcode_shift_tdio_bytes__sub_return:
-	
+
 	A = CMP10	; byte loop counter
 	CP A=>X
 	CLC
@@ -323,7 +323,7 @@ opcode_shift_tdio_bytes__sub_return:
 	A = CMP01	; bits 2..0 contain the number of bits to shift - 1
 	A.H = 0
 	BCLR 3		; set TMS=1 if bit 3 was set
-	CMP11 = A	; bit loop counter 
+	CMP11 = A	; bit loop counter
 
 	A.H = opcode_shift_tdio_bits__sub_return
 	A.L = opcode_shift_tdio_bits__sub_return
@@ -334,7 +334,7 @@ opcode_shift_tdio_bytes__sub_return:
 	DR_CARD = A
 	JP sub_shift_tdio_bits
 opcode_shift_tdio_bits__sub_return:
-	
+
 	A = X
 ;DR_MPEG = A ; return TCK low, as str912 reset halt seems to require it
 	BRANCH
@@ -365,9 +365,9 @@ m4_delay_setup(m4_delay_loop_round_up(SETUP_DELAY_CYCLES - 1))
 m4_delay_loop(m4_delay_loop_round_up(SETUP_DELAY_CYCLES - 1))
 
 	BSET 2		; TCK high
-	DR_MPEG = A 
+	DR_MPEG = A
 
-	A = DR_MPEG	; set carry bit to TDO 
+	A = DR_MPEG	; set carry bit to TDO
 	CLC
 	BCLR 0
 	JP +2
@@ -431,7 +431,7 @@ opcode_shift_tms_tdi_bit_pair__sub_return:
 	BSET 3		; bit says whether to return TDO
 	JP +2
 	ADR_BUFFER1 -= X	; subroutine returns it, so undo that
-	
+
 	A = X
 	DR_MPEG = A ; return TCK low, as str912 reset halt seems to require it
 	BRANCH
@@ -443,7 +443,7 @@ opcode_shift_tms_tdi_bit_pair__sub_return:
 
 	A = CMP01	; bits 3..0 contain the number of bits to shift - 1 (only 1-8 bits is valid... no checking, just improper operation)
 	A.H = 0
-	CMP11 = A	; bit loop counter 
+	CMP11 = A	; bit loop counter
 
 	A = DATA_BUFFER0	; get byte from input buffer
 	ADR_BUFFER0 += X
@@ -467,7 +467,7 @@ m4_delay_setup(SETUP_DELAY_CYCLES - 1)
 m4_delay_loop(SETUP_DELAY_CYCLES - 1)
 
 	BSET 2		; TCK high
-	DR_MPEG = A 
+	DR_MPEG = A
 
 m4_delay(HOLD_DELAY_CYCLES - 10)
 

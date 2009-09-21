@@ -174,12 +174,12 @@ int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2, uint32_t C
 		{
 			return retval;
 		}
-		
+
 		if (buf_get_u32(&access, 0, 1) == 1)
 		{
 			break;
 		}
-		
+
 		/* 10ms timeout */
 		if ((timeval_ms()-then)>10)
 		{

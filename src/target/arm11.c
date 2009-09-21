@@ -1066,7 +1066,7 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 			retval = arm11_simulate_step(target, &next_pc);
 			if (retval != ERROR_OK)
 				return retval;
-				
+
 			brp[0].value	= next_pc;
 			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
 		}

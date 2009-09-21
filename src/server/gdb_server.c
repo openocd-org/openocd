@@ -822,7 +822,7 @@ int gdb_connection_closed(connection_t *connection)
 	log_remove_callback(gdb_log_callback, connection);
 
 	gdb_actual_connections--;
-	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d", 
+	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d",
 		  gdb_service->target->cmd_name,
 		  target_state_name(gdb_service->target),
 		  gdb_actual_connections);
