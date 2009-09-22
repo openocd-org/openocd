@@ -559,81 +559,120 @@ static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int flash_check_sector_parameters(struct command_context_s *cmd_ctx,
+		uint32_t first, uint32_t last, uint num_sectors)
 {
-	if (argc > 2)
-	{
-		int first = strtoul(args[1], NULL, 0);
-		int last = strtoul(args[2], NULL, 0);
-		int retval;
-		flash_bank_t *p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-		duration_t duration;
-		char *duration_text;
-
-		duration_start_measure(&duration);
-
-		if (!p)
-		{
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-
-		if ((retval = flash_driver_erase(p, first, last)) == ERROR_OK)
-		{
-			if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
-			{
-				return retval;
-			}
-
-			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %li in %s",
-				first, last, strtoul(args[0], 0, 0), duration_text);
-			free(duration_text);
-		}
+	if (!(first <= last)) {
+		command_print(cmd_ctx, "ERROR: "
+				"first sector must be <= last sector");
+		return ERROR_FAIL;
 	}
-	else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (!(last <= (num_sectors - 1))) {
+		command_print(cmd_ctx, "ERROR: "
+				"last sector must be <= %d", num_sectors - 1);
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
 }
 
-static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_erase_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	if (argc > 2)
+	{
+		uint32_t bank_nr;
+		uint32_t first;
+		uint32_t last;
+		int retval;
+
+		if ((retval = parse_u32(args[0], &bank_nr)) != ERROR_OK)
+			return retval;
+
+		flash_bank_t *p = get_flash_bank_by_num(bank_nr);
+		if (!p)
+			return ERROR_OK;
+
+		if ((retval = parse_u32(args[1], &first)) != ERROR_OK)
+			return retval;
+		if (strcmp(args[2], "last") == 0)
+			last = p->num_sectors - 1;
+		else
+			if ((retval = parse_u32(args[2], &last)) != ERROR_OK)
+				return retval;
+
+		if ((retval = flash_check_sector_parameters(cmd_ctx,
+				first, last, p->num_sectors)) != ERROR_OK)
+			return retval;
+
+		duration_t duration;
+		char *duration_text;
+		duration_start_measure(&duration);
+
+		if ((retval = flash_driver_erase(p, first, last)) == ERROR_OK) {
+			if ((retval = duration_stop_measure(&duration,
+						&duration_text)) != ERROR_OK)
+				return retval;
+			command_print(cmd_ctx, "erased sectors %i through %i "
+					"on flash bank %i in %s",
+				first, last, bank_nr, duration_text);
+			free(duration_text);
+		}
+	}
+	else
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	return ERROR_OK;
+}
+
+static int handle_flash_protect_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	if (argc > 3)
 	{
-		int first = strtoul(args[1], NULL, 0);
-		int last = strtoul(args[2], NULL, 0);
-		int set;
+		uint32_t bank_nr;
+		uint32_t first;
+		uint32_t last;
 		int retval;
-		flash_bank_t *p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+		int set;
+
+		if ((retval = parse_u32(args[0], &bank_nr)) != ERROR_OK)
+			return retval;
+
+		flash_bank_t *p = get_flash_bank_by_num(bank_nr);
 		if (!p)
-		{
-			command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
 			return ERROR_OK;
-		}
+
+		if ((retval = parse_u32(args[1], &first)) != ERROR_OK)
+			return retval;
+		if (strcmp(args[2], "last") == 0)
+			last = p->num_sectors - 1;
+		else
+			if ((retval = parse_u32(args[2], &last)) != ERROR_OK)
+				return retval;
 
 		if (strcmp(args[3], "on") == 0)
 			set = 1;
 		else if (strcmp(args[3], "off") == 0)
 			set = 0;
 		else
-		{
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
+
+		if ((retval = flash_check_sector_parameters(cmd_ctx,
+				first, last, p->num_sectors)) != ERROR_OK)
+			return retval;
 
 		retval = flash_driver_protect(p, set, first, last);
-		if (retval == ERROR_OK)
-		{
-			command_print(cmd_ctx, "%s protection for sectors %i through %i on flash bank %li",
+		if (retval == ERROR_OK) {
+			command_print(cmd_ctx, "%s protection for sectors %i "
+					"through %i on flash bank %i",
 				(set) ? "set" : "cleared", first,
-				last, strtoul(args[0], 0, 0));
+				last, bank_nr);
 		}
 	}
 	else
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	}
 
 	return ERROR_OK;
 }
