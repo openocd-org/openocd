@@ -560,7 +560,7 @@ static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx,
 }
 
 static int flash_check_sector_parameters(struct command_context_s *cmd_ctx,
-		uint32_t first, uint32_t last, uint num_sectors)
+		uint32_t first, uint32_t last, uint32_t num_sectors)
 {
 	if (!(first <= last)) {
 		command_print(cmd_ctx, "ERROR: "
