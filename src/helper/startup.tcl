@@ -202,27 +202,32 @@ proc ocd_process_reset_inner { MODE } {
 	}
 
 	# Assert SRST, and report the pre/post events.
-	#
-	# REVISIT this presumes a single-target config, since SRST
-	# applies to the whole device-under-test.  When two targets
-	# both need special setup before SRST, it's only done for
-	# the first one...
+	# Note:  no target sees SRST before "pre" or after "post".
 	foreach t $targets {
 		$t invoke-event reset-assert-pre
+	}
+	foreach t $targets {
 		# C code needs to know if we expect to 'halt'
 		if {[jtag tapisenabled [$t cget -chain-position]]} {
 			$t arp_reset assert $halt
 		}
+	}
+	foreach t $targets {
 		$t invoke-event reset-assert-post
 	}
 
 	# Now de-assert SRST, and report the pre/post events.
+	# Note:  no target sees !SRST before "pre" or after "post".
 	foreach t $targets {
 		$t invoke-event reset-deassert-pre
-		# Again, de-assert code needs to know..
+	}
+	foreach t $targets {
+		# Again, de-assert code needs to know if we 'halt'
 		if {[jtag tapisenabled [$t cget -chain-position]]} {
 			$t arp_reset deassert $halt
 		}
+	}
+	foreach t $targets {
 		$t invoke-event reset-deassert-post
 	}
 
