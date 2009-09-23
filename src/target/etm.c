@@ -71,10 +71,14 @@ struct etm_reg_info {
  * Newer versions of ETM make some W/O registers R/W, and
  * provide definitions for some previously-unused bits.
  */
-static const struct etm_reg_info reg[] = {
+
+/* basic registers that are always there given the right ETM version */
+static const struct etm_reg_info etm_core[] = {
+	/* NOTE: we "know" ETM_CONFIG is listed first */
+	{ ETM_CONFIG, 32, RO, 0x10, "ETM_CONFIG", },
+
 	/* ETM Trace Registers */
 	{ ETM_CTRL, 32, RW, 0x10, "ETM_CTRL", },
-	{ ETM_CONFIG, 32, RO, 0x10, "ETM_CONFIG", },
 	{ ETM_TRIG_EVENT, 17, WO, 0x10, "ETM_TRIG_EVENT", },
 	{ ETM_ASIC_CTRL,  8, WO, 0x10, "ETM_ASIC_CTRL", },
 	{ ETM_STATUS,  3, RO, 0x11, "ETM_STATUS", },
@@ -86,16 +90,25 @@ static const struct etm_reg_info reg[] = {
 	{ ETM_TRACE_EN_EVENT, 17, WO, 0x10, "ETM_TRACE_EN_EVENT", },
 	{ ETM_TRACE_EN_CTRL1, 26, WO, 0x10, "ETM_TRACE_EN_CTRL1", },
 
-	/* FIFOFULL configuration */
-	{ ETM_FIFOFULL_REGION, 25, WO, 0x10, "ETM_FIFOFULL_REGION", },
-	{ ETM_FIFOFULL_LEVEL,  8, WO, 0x10, "ETM_FIFOFULL_LEVEL", },
-
 	/* ViewData configuration (data trace) */
 	{ ETM_VIEWDATA_EVENT, 17, WO, 0x10, "ETM_VIEWDATA_EVENT", },
 	{ ETM_VIEWDATA_CTRL1, 32, WO, 0x10, "ETM_VIEWDATA_CTRL1", },
 	{ ETM_VIEWDATA_CTRL2, 32, WO, 0x10, "ETM_VIEWDATA_CTRL2", },
 	{ ETM_VIEWDATA_CTRL3, 17, WO, 0x10, "ETM_VIEWDATA_CTRL3", },
 
+	/* REVISIT exclude VIEWDATA_CTRL2 when it's not there */
+
+	{ 0x78, 12, WO, 0x20, "ETM_SYNC_FREQ", },
+	{ 0x79, 32, RO, 0x20, "ETM_ID", },
+};
+
+static const struct etm_reg_info etm_fifofull[] = {
+	/* FIFOFULL configuration */
+	{ ETM_FIFOFULL_REGION, 25, WO, 0x10, "ETM_FIFOFULL_REGION", },
+	{ ETM_FIFOFULL_LEVEL,  8, WO, 0x10, "ETM_FIFOFULL_LEVEL", },
+};
+
+static const struct etm_reg_info etm_addr_comp[] = {
 	/* Address comparator register pairs */
 #define ADDR_COMPARATOR(i) \
 		{ ETM_ADDR_COMPARATOR_VALUE + (i), 32, WO, 0x10, \
@@ -120,7 +133,9 @@ static const struct etm_reg_info reg[] = {
 	ADDR_COMPARATOR(14),
 	ADDR_COMPARATOR(15),
 #undef ADDR_COMPARATOR
+};
 
+static const struct etm_reg_info etm_data_comp[] = {
 	/* Data Value Comparators (NOTE: odd addresses are reserved) */
 #define DATA_COMPARATOR(i) \
 		{ ETM_DATA_COMPARATOR_VALUE + 2*(i), 32, WO, 0x10, \
@@ -136,8 +151,9 @@ static const struct etm_reg_info reg[] = {
 	DATA_COMPARATOR(6),
 	DATA_COMPARATOR(7),
 #undef DATA_COMPARATOR
+};
 
-	/* Counters */
+static const struct etm_reg_info etm_counters[] = {
 #define COUNTER(i) \
 		{ ETM_COUNTER_RELOAD_VALUE + (i), 16, WO, 0x10, \
 				"ETM_COUNTER_RELOAD_VALUE" #i, }, \
@@ -152,8 +168,9 @@ static const struct etm_reg_info reg[] = {
 	COUNTER(2),
 	COUNTER(3),
 #undef COUNTER
+};
 
-	/* Sequencers */
+static const struct etm_reg_info etm_sequencer[] = {
 #define SEQ(i) \
 		{ ETM_SEQUENCER_EVENT + (i), 17, WO, 0x10, \
 				"ETM_SEQUENCER_EVENT" #i, }
@@ -166,7 +183,9 @@ static const struct etm_reg_info reg[] = {
 #undef SEQ
 	/* 0x66 reserved */
 	{ ETM_SEQUENCER_STATE,  2, RO, 0x10, "ETM_SEQUENCER_STATE", },
+};
 
+static const struct etm_reg_info etm_outputs[] = {
 #define OUT(i) \
 		{ ETM_EXTERNAL_OUTPUT + (i), 17, WO, 0x10, \
 				"ETM_EXTERNAL_OUTPUT" #i, }
@@ -176,6 +195,7 @@ static const struct etm_reg_info reg[] = {
 	OUT(2),
 	OUT(3),
 #undef OUT
+};
 
 #if 0
 	/* registers from 0x6c..0x7f were added after ETMv1.3 */
@@ -185,11 +205,7 @@ static const struct etm_reg_info reg[] = {
 	{ 0x6d, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
 	{ 0x6e, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
 	{ 0x6f, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_MASK", }
-
-	{ 0x78, 12, WO, 0x20, "ETM_SYNC_FREQ", },
-	{ 0x79, 32, RO, 0x20, "ETM_ID", },
 #endif
-};
 
 static int etm_reg_arch_type = -1;
 
@@ -224,43 +240,137 @@ static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 	return NULL;
 }
 
+static void etm_reg_add(unsigned bcd_vers, arm_jtag_t *jtag_info,
+		reg_cache_t *cache, etm_reg_t *ereg,
+		const struct etm_reg_info *r, unsigned nreg)
+{
+	reg_t *reg = cache->reg_list;
+
+	reg += cache->num_regs;
+	ereg += cache->num_regs;
+
+	/* add up to "nreg" registers from "r", if supported by this
+	 * version of the ETM, to the specified cache.
+	 */
+	for (; nreg--; r++) {
+
+		/* this ETM may be too old to have some registers */
+		if (r->bcd_vers > bcd_vers)
+			continue;
+
+		reg->name = r->name;
+		reg->size = r->size;
+		reg->value = &ereg->value;
+		reg->arch_info = ereg;
+		reg->arch_type = etm_reg_arch_type;
+		reg++;
+		cache->num_regs++;
+
+		ereg->reg_info = r;
+		ereg->jtag_info = jtag_info;
+		ereg++;
+	}
+}
+
 reg_cache_t *etm_build_reg_cache(target_t *target,
 		arm_jtag_t *jtag_info, etm_context_t *etm_ctx)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
 	etm_reg_t *arch_info = NULL;
-	int num_regs = ARRAY_SIZE(reg);
-	int i;
+	unsigned bcd_vers, config;
 
 	/* register a register arch-type for etm registers only once */
 	if (etm_reg_arch_type == -1)
-		etm_reg_arch_type = register_reg_arch_type(etm_get_reg, etm_set_reg_w_exec);
+		etm_reg_arch_type = register_reg_arch_type(etm_get_reg,
+				etm_set_reg_w_exec);
 
 	/* the actual registers are kept in two arrays */
-	reg_list = calloc(num_regs, sizeof(reg_t));
-	arch_info = calloc(num_regs, sizeof(etm_reg_t));
+	reg_list = calloc(128, sizeof(reg_t));
+	arch_info = calloc(128, sizeof(etm_reg_t));
 
 	/* fill in values for the reg cache */
 	reg_cache->name = "etm registers";
 	reg_cache->next = NULL;
 	reg_cache->reg_list = reg_list;
-	reg_cache->num_regs = num_regs;
+	reg_cache->num_regs = 0;
 
-	/* set up registers */
-	for (i = 0; i < num_regs; i++)
-	{
-		const struct etm_reg_info *r = reg + i;
+	/* add ETM_CONFIG, then parse its values to see
+	 * which other registers exist in this ETM
+	 */
+	etm_reg_add(0x10, jtag_info, reg_cache, arch_info,
+			etm_core, 1);
 
-		reg_list[i].name = r->name;
-		reg_list[i].size = r->size;
-		reg_list[i].value = &arch_info[i].value;
-		reg_list[i].arch_info = &arch_info[i];
-		reg_list[i].arch_type = etm_reg_arch_type;
+	etm_get_reg(reg_list);
+	etm_ctx->config = buf_get_u32((void *)&arch_info->value, 0, 32);
+	config = etm_ctx->config;
 
-		arch_info[i].reg_info = r;
-		arch_info[i].jtag_info = jtag_info;
+	/* figure ETM version then add base registers */
+	if (config & (1 << 31)) {
+		bcd_vers = 0x20;
+		LOG_WARNING("ETMv2+ support is incomplete");
+
+		/* REVISIT read ID register, distinguish ETMv3.3 etc;
+		 * don't presume trace start/stop support is present;
+		 * and include any context ID comparator registers.
+		 */
+	} else {
+		switch (config >> 28) {
+		case 7:
+		case 5:
+		case 3:
+			bcd_vers = 0x13;
+			break;
+		case 4:
+		case 2:
+			bcd_vers = 0x12;
+			break;
+		case 1:
+			bcd_vers = 0x11;
+			break;
+		case 0:
+			bcd_vers = 0x10;
+			break;
+		default:
+			LOG_WARNING("Bad ETMv1 protocol %d", config >> 28);
+			free(reg_cache);
+			free(reg_list);
+			free(arch_info);
+			return ERROR_OK;
+		}
 	}
+	etm_ctx->bcd_vers = bcd_vers;
+	LOG_INFO("ETM v%d.%d", bcd_vers >> 4, bcd_vers & 0xf);
+
+	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+			etm_core + 1, ARRAY_SIZE(etm_core) - 1);
+
+	/* address and data comparators; counters; outputs */
+	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+			etm_addr_comp, 4 * (0x0f & (config >> 0)));
+	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+			etm_data_comp, 2 * (0x0f & (config >> 4)));
+	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+			etm_counters, 4 * (0x07 & (config >> 13)));
+	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+			etm_outputs, (0x07 & (config >> 20)));
+
+	/* FIFOFULL presence is optional
+	 * REVISIT for ETMv1.2 and later, don't bother adding this
+	 * unless ETM_SYS_CONFIG says it's also *supported* ...
+	 */
+	if (config & (1 << 23))
+		etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+				etm_fifofull, ARRAY_SIZE(etm_fifofull));
+
+	/* sequencer is optional (for state-dependant triggering) */
+	if (config & (1 << 16))
+		etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
+				etm_sequencer, ARRAY_SIZE(etm_sequencer));
+
+	/* REVISIT could realloc and likely save half the memory
+	 * in the two chunks we allocated...
+	 */
 
 	/* the ETM might have an ETB connected */
 	if (strcmp(etm_ctx->capture_driver->name, "etb") == 0)
@@ -271,6 +381,7 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 		{
 			LOG_ERROR("etb selected as etm capture driver, but no ETB configured");
 			free(reg_cache);
+			free(reg_list);
 			free(arch_info);
 			return ERROR_OK;
 		}
@@ -1362,7 +1473,7 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 	target_t *target;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
-	reg_t *etm_config_reg;
+	etm_context_t *etm;
 	reg_t *etm_sys_config_reg;
 
 	int max_port_size;
@@ -1375,31 +1486,45 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	if (!arm7_9->etm_ctx)
+	etm = arm7_9->etm_ctx;
+	if (!etm)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_OK;
 	}
 
-	etm_config_reg = etm_reg_lookup(arm7_9->etm_ctx, ETM_CONFIG);
-	if (!etm_config_reg)
-		return ERROR_OK;
-	etm_sys_config_reg = etm_reg_lookup(arm7_9->etm_ctx, ETM_SYS_CONFIG);
+	command_print(cmd_ctx, "ETM v%d.%d",
+			etm->bcd_vers >> 4, etm->bcd_vers & 0xf);
+	command_print(cmd_ctx, "pairs of address comparators: %i",
+			(etm->config >> 0) & 0x0f);
+	command_print(cmd_ctx, "data comparators: %i",
+			(etm->config >> 4) & 0x0f);
+	command_print(cmd_ctx, "memory map decoders: %i",
+			(etm->config >> 8) & 0x1f);
+	command_print(cmd_ctx, "number of counters: %i",
+			(etm->config >> 13) & 0x07);
+	command_print(cmd_ctx, "sequencer %spresent",
+			(etm->config & (1 << 16)) ? "" : "not ");
+	command_print(cmd_ctx, "number of ext. inputs: %i",
+			(etm->config >> 17) & 0x07);
+	command_print(cmd_ctx, "number of ext. outputs: %i",
+			(etm->config >> 20) & 0x07);
+	command_print(cmd_ctx, "FIFO full %spresent",
+			(etm->config & (1 << 23)) ? "" : "not ");
+	if (etm->bcd_vers < 0x20)
+		command_print(cmd_ctx, "protocol version: %i",
+				(etm->config >> 28) & 0x07);
+	else {
+		command_print(cmd_ctx, "trace start/stop %spresent",
+				(etm->config & (1 << 26)) ? "" : "not ");
+		command_print(cmd_ctx, "number of context comparators: %i",
+				(etm->config >> 24) & 0x03);
+	}
+
+	/* SYS_CONFIG isn't present before ETMv1.2 */
+	etm_sys_config_reg = etm_reg_lookup(etm, ETM_SYS_CONFIG);
 	if (!etm_sys_config_reg)
 		return ERROR_OK;
-
-	etm_get_reg(etm_config_reg);
-	command_print(cmd_ctx, "pairs of address comparators: %i", (int)buf_get_u32(etm_config_reg->value, 0, 4));
-	command_print(cmd_ctx, "pairs of data comparators: %i", (int)buf_get_u32(etm_config_reg->value, 4, 4));
-	command_print(cmd_ctx, "memory map decoders: %i", (int)buf_get_u32(etm_config_reg->value, 8, 5));
-	command_print(cmd_ctx, "number of counters: %i", (int)buf_get_u32(etm_config_reg->value, 13, 3));
-	command_print(cmd_ctx, "sequencer %spresent",
-			(buf_get_u32(etm_config_reg->value, 16, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "number of ext. inputs: %i", (int)buf_get_u32(etm_config_reg->value, 17, 3));
-	command_print(cmd_ctx, "number of ext. outputs: %i",(int) buf_get_u32(etm_config_reg->value, 20, 3));
-	command_print(cmd_ctx, "FIFO full %spresent",
-			(buf_get_u32(etm_config_reg->value, 23, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "protocol version: %i", (int)buf_get_u32(etm_config_reg->value, 28, 3));
 
 	etm_get_reg(etm_sys_config_reg);
 

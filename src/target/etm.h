@@ -165,6 +165,8 @@ typedef struct etm_context_s
 	bool data_half;			/* port half on a 16 bit port */
 	bool pc_ok;			/* full PC has been acquired */
 	bool ptr_ok;			/* whether last_ptr is valid */
+	uint8_t bcd_vers;		/* e.g. 0x13 == ETMv1.3 */
+	uint32_t config;		/* cache of ETM_CONFIG value */
 	uint32_t current_pc;		/* current program counter */
 	uint32_t last_branch;		/* last branch address output */
 	uint32_t last_branch_reason;	/* type of last branch encountered */

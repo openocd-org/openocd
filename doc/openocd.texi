@@ -4807,6 +4807,10 @@ analyse it in conjunction with the source code.
 It's unclear how much of a common interface is shared
 with the current XScale trace support, or should be
 shared with eventual Nexus-style trace module support.
+At this writing (September 2009) only ARM7 and ARM9 support
+for ETM modules is available.  The code should be able to
+work with some newer cores; but not all of them support
+this original style of JTAG access.
 @end quotation
 
 @subsection ETM Configuration
@@ -4823,8 +4827,10 @@ or @option{demultiplexted}.
 The @var{clocking} must be @option{half} or @option{full}.
 
 @quotation Note
-You can see the ETM registers using the @command{reg} command, although
-not all of those possible registers are present in every ETM.
+You can see the ETM registers using the @command{reg} command.
+Not all possible registers are present in every ETM.
+Most of the registers are write-only, and are used to configure
+what CPU activities are traced.
 @end quotation
 @end deffn
 
@@ -4866,6 +4872,36 @@ and any buffered trace data is invalidated.
 After setting up the ETM, you can use it to collect data.
 That data can be exported to files for later analysis.
 It can also be parsed with OpenOCD, for basic sanity checking.
+
+To configure what is being traced, you will need to write
+various trace registers using @command{reg ETM_*} commands.
+For the definitions of these registers, read ARM publication
+@emph{IHI 0014, ``Embedded Trace Macrocell, Architecture Specification''}.
+Be aware that most of the relevant registers are write-only,
+and that ETM resources are limited.  There are only a handful
+of address comparators, data comparators, counters, and so on.
+
+Examples of scenarios you might arrange to trace include:
+
+@itemize
+@item Code flow within a function, @emph{excluding} subroutines
+it calls.  Use address range comparators to enable tracing
+for instruction access within that function's body.
+@item Code flow within a function, @emph{including} subroutines
+it calls.  Use the sequencer and address comparators to activate
+tracing on an ``entered function'' state, then deactivate it by
+exiting that state when the function's exit code is invoked.
+@item Code flow starting at the fifth invocation of a function,
+combining one of the above models with a counter.
+@item CPU data accesses to the registers for a particular device,
+using address range comparators and the ViewData logic.
+@item Such data accesses only during IRQ handling, combining the above
+model with sequencer triggers which on entry and exit to the IRQ handler.
+@item @emph{... more}
+@end itemize
+
+At this writing, September 2009, there are no Tcl utility
+procedures to help set up any common tracing scenarios.
 
 @deffn Command {etm analyze}
 Reads trace data into memory, if it wasn't already present.
