@@ -29,43 +29,52 @@
 
 struct image_s;
 
-/* ETM registers (V1.3 protocol) */
+/* ETM registers (JTAG protocol) */
 enum
 {
 	ETM_CTRL = 0x00,
 	ETM_CONFIG = 0x01,
 	ETM_TRIG_EVENT = 0x02,
-	ETM_MMD_CTRL = 0x03,
+	ETM_ASIC_CTRL = 0x03,
 	ETM_STATUS = 0x04,
 	ETM_SYS_CONFIG = 0x05,
 	ETM_TRACE_RESOURCE_CTRL = 0x06,
 	ETM_TRACE_EN_CTRL2 = 0x07,
 	ETM_TRACE_EN_EVENT = 0x08,
 	ETM_TRACE_EN_CTRL1 = 0x09,
+	/* optional FIFOFULL */
 	ETM_FIFOFULL_REGION = 0x0a,
 	ETM_FIFOFULL_LEVEL = 0x0b,
+	/* viewdata support */
 	ETM_VIEWDATA_EVENT = 0x0c,
 	ETM_VIEWDATA_CTRL1 = 0x0d,
-	ETM_VIEWDATA_CTRL2 = 0x0e,
+	ETM_VIEWDATA_CTRL2 = 0x0e,	/* optional */
 	ETM_VIEWDATA_CTRL3 = 0x0f,
+	/* N pairs of ADDR_{COMPARATOR,ACCESS} registers */
 	ETM_ADDR_COMPARATOR_VALUE = 0x10,
 	ETM_ADDR_ACCESS_TYPE = 0x20,
+	/* N pairs of DATA_COMPARATOR_{VALUE,MASK} registers */
 	ETM_DATA_COMPARATOR_VALUE = 0x30,
 	ETM_DATA_COMPARATOR_MASK = 0x40,
-	ETM_COUNTER_INITAL_VALUE = 0x50,
+	/* N quads of COUNTER_{RELOAD_{VALUE,EVENT},ENABLE,VALUE} registers */
+	ETM_COUNTER_RELOAD_VALUE = 0x50,
 	ETM_COUNTER_ENABLE = 0x54,
-	ETM_COUNTER_RELOAD_VALUE = 0x58,
+	ETM_COUNTER_RELOAD_EVENT = 0x58,
 	ETM_COUNTER_VALUE = 0x5c,
-	ETM_SEQUENCER_CTRL = 0x60,
+	/* 6 sequencer event transitions */
+	ETM_SEQUENCER_EVENT = 0x60,
 	ETM_SEQUENCER_STATE = 0x67,
+	/* N triggered outputs */
 	ETM_EXTERNAL_OUTPUT = 0x68,
+	/* N task contexts */
 	ETM_CONTEXTID_COMPARATOR_VALUE = 0x6c,
 	ETM_CONTEXTID_COMPARATOR_MASK = 0x6f,
 };
 
 typedef struct etm_reg_s
 {
-	int addr;
+	uint32_t value;
+	const struct etm_reg_info *reg_info;
 	arm_jtag_t *jtag_info;
 } etm_reg_t;
 

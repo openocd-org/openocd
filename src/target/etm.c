@@ -50,155 +50,145 @@
  *  ARM IHI 0014O ... Embedded Trace Macrocell, Architecture Specification
  */
 
-static int etm_reg_arch_info[] =
-{
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-	0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-	0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-	0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
-	0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-	0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
-	0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
-	0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x67,
-	0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f,
+#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
+
+enum {
+	RO,				/* read/only */
+	WO,				/* write/only */
+	RW,				/* read/write */
 };
 
-static int etm_reg_arch_size_info[] =
-{
-	32, 32, 17, 8, 3, 9, 32, 16,
-	17, 26, 25, 8, 17, 32, 32, 17,
-	32, 32, 32, 32, 32, 32, 32, 32,
-	32, 32, 32, 32, 32, 32, 32, 32,
-	7, 7, 7, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 7,
-	32, 32, 32, 32, 32, 32, 32, 32,
-	32, 32, 32, 32, 32, 32, 32, 32,
-	32, 32, 32, 32, 32, 32, 32, 32,
-	32, 32, 32, 32, 32, 32, 32, 32,
-	16, 16, 16, 16, 18, 18, 18, 18,
-	17, 17, 17, 17, 16, 16, 16, 16,
-	17, 17, 17, 17, 17, 17, 2,
-	17, 17, 17, 17, 32, 32, 32, 32
+struct etm_reg_info {
+	uint8_t		addr;
+	uint8_t		size;		/* low-N of 32 bits */
+	uint8_t		mode;		/* RO, WO, RW */
+	uint8_t		bcd_vers;	/* 1.0, 2.0, etc */
+	char		*name;
 };
 
-static char* etm_reg_list[] =
-{
-	"ETM_CTRL",
-	"ETM_CONFIG",
-	"ETM_TRIG_EVENT",
-	"ETM_MMD_CTRL",
-	"ETM_STATUS",
-	"ETM_SYS_CONFIG",
-	"ETM_TRACE_RESOURCE_CTRL",
-	"ETM_TRACE_EN_CTRL2",
-	"ETM_TRACE_EN_EVENT",
-	"ETM_TRACE_EN_CTRL1",
-	"ETM_FIFOFULL_REGION",
-	"ETM_FIFOFULL_LEVEL",
-	"ETM_VIEWDATA_EVENT",
-	"ETM_VIEWDATA_CTRL1",
-	"ETM_VIEWDATA_CTRL2",
-	"ETM_VIEWDATA_CTRL3",
-	"ETM_ADDR_COMPARATOR_VALUE1",
-	"ETM_ADDR_COMPARATOR_VALUE2",
-	"ETM_ADDR_COMPARATOR_VALUE3",
-	"ETM_ADDR_COMPARATOR_VALUE4",
-	"ETM_ADDR_COMPARATOR_VALUE5",
-	"ETM_ADDR_COMPARATOR_VALUE6",
-	"ETM_ADDR_COMPARATOR_VALUE7",
-	"ETM_ADDR_COMPARATOR_VALUE8",
-	"ETM_ADDR_COMPARATOR_VALUE9",
-	"ETM_ADDR_COMPARATOR_VALUE10",
-	"ETM_ADDR_COMPARATOR_VALUE11",
-	"ETM_ADDR_COMPARATOR_VALUE12",
-	"ETM_ADDR_COMPARATOR_VALUE13",
-	"ETM_ADDR_COMPARATOR_VALUE14",
-	"ETM_ADDR_COMPARATOR_VALUE15",
-	"ETM_ADDR_COMPARATOR_VALUE16",
-	"ETM_ADDR_ACCESS_TYPE1",
-	"ETM_ADDR_ACCESS_TYPE2",
-	"ETM_ADDR_ACCESS_TYPE3",
-	"ETM_ADDR_ACCESS_TYPE4",
-	"ETM_ADDR_ACCESS_TYPE5",
-	"ETM_ADDR_ACCESS_TYPE6",
-	"ETM_ADDR_ACCESS_TYPE7",
-	"ETM_ADDR_ACCESS_TYPE8",
-	"ETM_ADDR_ACCESS_TYPE9",
-	"ETM_ADDR_ACCESS_TYPE10",
-	"ETM_ADDR_ACCESS_TYPE11",
-	"ETM_ADDR_ACCESS_TYPE12",
-	"ETM_ADDR_ACCESS_TYPE13",
-	"ETM_ADDR_ACCESS_TYPE14",
-	"ETM_ADDR_ACCESS_TYPE15",
-	"ETM_ADDR_ACCESS_TYPE16",
-	"ETM_DATA_COMPARATOR_VALUE1",
-	"ETM_DATA_COMPARATOR_VALUE2",
-	"ETM_DATA_COMPARATOR_VALUE3",
-	"ETM_DATA_COMPARATOR_VALUE4",
-	"ETM_DATA_COMPARATOR_VALUE5",
-	"ETM_DATA_COMPARATOR_VALUE6",
-	"ETM_DATA_COMPARATOR_VALUE7",
-	"ETM_DATA_COMPARATOR_VALUE8",
-	"ETM_DATA_COMPARATOR_VALUE9",
-	"ETM_DATA_COMPARATOR_VALUE10",
-	"ETM_DATA_COMPARATOR_VALUE11",
-	"ETM_DATA_COMPARATOR_VALUE12",
-	"ETM_DATA_COMPARATOR_VALUE13",
-	"ETM_DATA_COMPARATOR_VALUE14",
-	"ETM_DATA_COMPARATOR_VALUE15",
-	"ETM_DATA_COMPARATOR_VALUE16",
-	"ETM_DATA_COMPARATOR_MASK1",
-	"ETM_DATA_COMPARATOR_MASK2",
-	"ETM_DATA_COMPARATOR_MASK3",
-	"ETM_DATA_COMPARATOR_MASK4",
-	"ETM_DATA_COMPARATOR_MASK5",
-	"ETM_DATA_COMPARATOR_MASK6",
-	"ETM_DATA_COMPARATOR_MASK7",
-	"ETM_DATA_COMPARATOR_MASK8",
-	"ETM_DATA_COMPARATOR_MASK9",
-	"ETM_DATA_COMPARATOR_MASK10",
-	"ETM_DATA_COMPARATOR_MASK11",
-	"ETM_DATA_COMPARATOR_MASK12",
-	"ETM_DATA_COMPARATOR_MASK13",
-	"ETM_DATA_COMPARATOR_MASK14",
-	"ETM_DATA_COMPARATOR_MASK15",
-	"ETM_DATA_COMPARATOR_MASK16",
-	"ETM_COUNTER_INITAL_VALUE1",
-	"ETM_COUNTER_INITAL_VALUE2",
-	"ETM_COUNTER_INITAL_VALUE3",
-	"ETM_COUNTER_INITAL_VALUE4",
-	"ETM_COUNTER_ENABLE1",
-	"ETM_COUNTER_ENABLE2",
-	"ETM_COUNTER_ENABLE3",
-	"ETM_COUNTER_ENABLE4",
-	"ETM_COUNTER_RELOAD_VALUE1",
-	"ETM_COUNTER_RELOAD_VALUE2",
-	"ETM_COUNTER_RELOAD_VALUE3",
-	"ETM_COUNTER_RELOAD_VALUE4",
-	"ETM_COUNTER_VALUE1",
-	"ETM_COUNTER_VALUE2",
-	"ETM_COUNTER_VALUE3",
-	"ETM_COUNTER_VALUE4",
-	"ETM_SEQUENCER_CTRL1",
-	"ETM_SEQUENCER_CTRL2",
-	"ETM_SEQUENCER_CTRL3",
-	"ETM_SEQUENCER_CTRL4",
-	"ETM_SEQUENCER_CTRL5",
-	"ETM_SEQUENCER_CTRL6",
-	"ETM_SEQUENCER_STATE",
-	"ETM_EXTERNAL_OUTPUT1",
-	"ETM_EXTERNAL_OUTPUT2",
-	"ETM_EXTERNAL_OUTPUT3",
-	"ETM_EXTERNAL_OUTPUT4",
-	"ETM_CONTEXTID_COMPARATOR_VALUE1",
-	"ETM_CONTEXTID_COMPARATOR_VALUE2",
-	"ETM_CONTEXTID_COMPARATOR_VALUE3",
-	"ETM_CONTEXTID_COMPARATOR_MASK"
+/*
+ * Registers 0..0x7f are JTAG-addressable using scanchain 6.
+ * Newer versions of ETM make some W/O registers R/W, and
+ * provide definitions for some previously-unused bits.
+ */
+static const struct etm_reg_info reg[] = {
+	/* ETM Trace Registers */
+	{ ETM_CTRL, 32, RW, 0x10, "ETM_CTRL", },
+	{ ETM_CONFIG, 32, RO, 0x10, "ETM_CONFIG", },
+	{ ETM_TRIG_EVENT, 17, WO, 0x10, "ETM_TRIG_EVENT", },
+	{ ETM_ASIC_CTRL,  8, WO, 0x10, "ETM_ASIC_CTRL", },
+	{ ETM_STATUS,  3, RO, 0x11, "ETM_STATUS", },
+	{ ETM_SYS_CONFIG,  9, RO, 0x12, "ETM_SYS_CONFIG", },
+
+	/* TraceEnable configuration */
+	{ ETM_TRACE_RESOURCE_CTRL, 32, WO, 0x12, "ETM_TRACE_RESOURCE_CTRL", },
+	{ ETM_TRACE_EN_CTRL2, 16, WO, 0x12, "ETM_TRACE_EN_CTRL2", },
+	{ ETM_TRACE_EN_EVENT, 17, WO, 0x10, "ETM_TRACE_EN_EVENT", },
+	{ ETM_TRACE_EN_CTRL1, 26, WO, 0x10, "ETM_TRACE_EN_CTRL1", },
+
+	/* FIFOFULL configuration */
+	{ ETM_FIFOFULL_REGION, 25, WO, 0x10, "ETM_FIFOFULL_REGION", },
+	{ ETM_FIFOFULL_LEVEL,  8, WO, 0x10, "ETM_FIFOFULL_LEVEL", },
+
+	/* ViewData configuration (data trace) */
+	{ ETM_VIEWDATA_EVENT, 17, WO, 0x10, "ETM_VIEWDATA_EVENT", },
+	{ ETM_VIEWDATA_CTRL1, 32, WO, 0x10, "ETM_VIEWDATA_CTRL1", },
+	{ ETM_VIEWDATA_CTRL2, 32, WO, 0x10, "ETM_VIEWDATA_CTRL2", },
+	{ ETM_VIEWDATA_CTRL3, 17, WO, 0x10, "ETM_VIEWDATA_CTRL3", },
+
+	/* Address comparator register pairs */
+#define ADDR_COMPARATOR(i) \
+		{ ETM_ADDR_COMPARATOR_VALUE + (i), 32, WO, 0x10, \
+				"ETM_ADDR_COMPARATOR_VALUE" #i, }, \
+		{ ETM_ADDR_ACCESS_TYPE + (i),  7, WO, 0x10, \
+				"ETM_ADDR_ACCESS_TYPE" #i, }
+	ADDR_COMPARATOR(0),
+	ADDR_COMPARATOR(1),
+	ADDR_COMPARATOR(2),
+	ADDR_COMPARATOR(3),
+	ADDR_COMPARATOR(4),
+	ADDR_COMPARATOR(5),
+	ADDR_COMPARATOR(6),
+	ADDR_COMPARATOR(7),
+
+	ADDR_COMPARATOR(8),
+	ADDR_COMPARATOR(9),
+	ADDR_COMPARATOR(10),
+	ADDR_COMPARATOR(11),
+	ADDR_COMPARATOR(12),
+	ADDR_COMPARATOR(13),
+	ADDR_COMPARATOR(14),
+	ADDR_COMPARATOR(15),
+#undef ADDR_COMPARATOR
+
+	/* Data Value Comparators (NOTE: odd addresses are reserved) */
+#define DATA_COMPARATOR(i) \
+		{ ETM_DATA_COMPARATOR_VALUE + 2*(i), 32, WO, 0x10, \
+				"ETM_DATA_COMPARATOR_VALUE" #i, }, \
+		{ ETM_DATA_COMPARATOR_MASK + 2*(i), 32, WO, 0x10, \
+				"ETM_DATA_COMPARATOR_MASK" #i, }
+	DATA_COMPARATOR(0),
+	DATA_COMPARATOR(1),
+	DATA_COMPARATOR(2),
+	DATA_COMPARATOR(3),
+	DATA_COMPARATOR(4),
+	DATA_COMPARATOR(5),
+	DATA_COMPARATOR(6),
+	DATA_COMPARATOR(7),
+#undef DATA_COMPARATOR
+
+	/* Counters */
+#define COUNTER(i) \
+		{ ETM_COUNTER_RELOAD_VALUE + (i), 16, WO, 0x10, \
+				"ETM_COUNTER_RELOAD_VALUE" #i, }, \
+		{ ETM_COUNTER_ENABLE + (i), 18, WO, 0x10, \
+				"ETM_COUNTER_ENABLE" #i, }, \
+		{ ETM_COUNTER_RELOAD_EVENT + (i), 17, WO, 0x10, \
+				"ETM_COUNTER_RELOAD_EVENT" #i, }, \
+		{ ETM_COUNTER_VALUE + (i), 16, RO, 0x10, \
+				"ETM_COUNTER_VALUE" #i, }
+	COUNTER(0),
+	COUNTER(1),
+	COUNTER(2),
+	COUNTER(3),
+#undef COUNTER
+
+	/* Sequencers */
+#define SEQ(i) \
+		{ ETM_SEQUENCER_EVENT + (i), 17, WO, 0x10, \
+				"ETM_SEQUENCER_EVENT" #i, }
+	SEQ(0),				/* 1->2 */
+	SEQ(1),				/* 2->1 */
+	SEQ(2),				/* 2->3 */
+	SEQ(3),				/* 3->1 */
+	SEQ(4),				/* 3->2 */
+	SEQ(5),				/* 1->3 */
+#undef SEQ
+	/* 0x66 reserved */
+	{ ETM_SEQUENCER_STATE,  2, RO, 0x10, "ETM_SEQUENCER_STATE", },
+
+#define OUT(i) \
+		{ ETM_EXTERNAL_OUTPUT + (i), 17, WO, 0x10, \
+				"ETM_EXTERNAL_OUTPUT" #i, }
+
+	OUT(0),
+	OUT(1),
+	OUT(2),
+	OUT(3),
+#undef OUT
+
+#if 0
+	/* registers from 0x6c..0x7f were added after ETMv1.3 */
+
+	/* Context ID Comparators */
+	{ 0x6c, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
+	{ 0x6d, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
+	{ 0x6e, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
+	{ 0x6f, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_MASK", }
+
+	{ 0x78, 12, WO, 0x20, "ETM_SYNC_FREQ", },
+	{ 0x79, 32, RO, 0x20, "ETM_ID", },
+#endif
 };
 
 static int etm_reg_arch_type = -1;
@@ -224,7 +214,7 @@ static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 	for (i = 0; i < cache->num_regs; i++) {
 		struct etm_reg_s *reg = cache->reg_list[i].arch_info;
 
-		if (reg->addr == (int) id)
+		if (reg->reg_info->addr == id)
 			return &cache->reg_list[i];
 	}
 
@@ -240,7 +230,7 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
 	etm_reg_t *arch_info = NULL;
-	int num_regs = sizeof(etm_reg_arch_info)/sizeof(int);
+	int num_regs = ARRAY_SIZE(reg);
 	int i;
 
 	/* register a register arch-type for etm registers only once */
@@ -260,13 +250,15 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 	/* set up registers */
 	for (i = 0; i < num_regs; i++)
 	{
-		reg_list[i].name = etm_reg_list[i];
-		reg_list[i].size = 32;
-		reg_list[i].value = calloc(1, 4);
+		const struct etm_reg_info *r = reg + i;
+
+		reg_list[i].name = r->name;
+		reg_list[i].size = r->size;
+		reg_list[i].value = &arch_info[i].value;
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].arch_type = etm_reg_arch_type;
-		reg_list[i].size = etm_reg_arch_size_info[i];
-		arch_info[i].addr = etm_reg_arch_info[i];
+
+		arch_info[i].reg_info = r;
 		arch_info[i].jtag_info = jtag_info;
 	}
 
@@ -278,10 +270,6 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 		if (!etb)
 		{
 			LOG_ERROR("etb selected as etm capture driver, but no ETB configured");
-			for (i = 0; i < num_regs; i++)
-			{
-				free(reg_list[i].value);
-			}
 			free(reg_cache);
 			free(arch_info);
 			return ERROR_OK;
@@ -368,10 +356,16 @@ static int etm_read_reg_w_check(reg_t *reg,
 		uint8_t* check_value, uint8_t* check_mask)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
-	uint8_t reg_addr = etm_reg->addr & 0x7f;
+	const struct etm_reg_info *r = etm_reg->reg_info;
+	uint8_t reg_addr = r->addr & 0x7f;
 	scan_field_t fields[3];
 
-	LOG_DEBUG("%i", etm_reg->addr);
+	if (etm_reg->reg_info->mode == WO) {
+		LOG_ERROR("BUG: can't read write-only register %s", r->name);
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	LOG_DEBUG("%s (%u)", r->name, reg_addr);
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
@@ -448,10 +442,16 @@ static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 static int etm_write_reg(reg_t *reg, uint32_t value)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
-	uint8_t reg_addr = etm_reg->addr & 0x7f;
+	const struct etm_reg_info *r = etm_reg->reg_info;
+	uint8_t reg_addr = r->addr & 0x7f;
 	scan_field_t fields[3];
 
-	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", etm_reg->addr, value);
+	if (etm_reg->reg_info->mode == RO) {
+		LOG_ERROR("BUG: can't write read--only register %s", r->name);
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	LOG_DEBUG("%s (%u): 0x%8.8" PRIx32 "", r->name, reg_addr, value);
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
