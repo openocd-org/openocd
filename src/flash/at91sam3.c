@@ -1609,7 +1609,7 @@ static int
 sam3_protect_check(struct flash_bank_s *bank)
 {
 	int r;
-	uint32_t v;
+	uint32_t v=0;
 	unsigned x;
 	struct sam3_bank_private *pPrivate;
 

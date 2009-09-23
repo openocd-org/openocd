@@ -3235,7 +3235,7 @@ int Jim_CreateProcedure(Jim_Interp *interp, const char *cmdName,
             Jim_InitHashTable(cmdPtr->staticVars, getJimVariablesHashTableType(),
                     interp);
             for (i = 0; i < len; i++) {
-                Jim_Obj *objPtr, *initObjPtr, *nameObjPtr;
+                Jim_Obj *objPtr=NULL, *initObjPtr=NULL, *nameObjPtr=NULL;
                 Jim_Var *varPtr;
                 int subLen;
 
@@ -7739,7 +7739,7 @@ Jim_Obj *Jim_ScanString(Jim_Interp *interp, Jim_Obj *strObjPtr,
     int scanned = 1;
     const char *str = Jim_GetString(strObjPtr, 0);
     Jim_Obj *resultList = 0;
-    Jim_Obj **resultVec;
+    Jim_Obj **resultVec =NULL;
     int resultc;
     Jim_Obj *emptyStr = 0;
     ScanFmtStringObj *fmtObj;
@@ -8823,9 +8823,9 @@ int JimCallProcedure(Jim_Interp *interp, Jim_Cmd *cmd, int argc,
     }
 
     for (i = 0; i < num_args; i++) {
-        Jim_Obj *argObjPtr;
-        Jim_Obj *nameObjPtr;
-        Jim_Obj *valueObjPtr;
+        Jim_Obj *argObjPtr=NULL;
+        Jim_Obj *nameObjPtr=NULL;
+        Jim_Obj *valueObjPtr=NULL;
 
         Jim_ListIndex(interp, cmd->argListObjPtr, i, &argObjPtr, JIM_NONE);
         if (i + 1 >= cmd->arityMin) {
@@ -8849,7 +8849,7 @@ int JimCallProcedure(Jim_Interp *interp, Jim_Cmd *cmd, int argc,
     }
     /* Set optional arguments */
     if (cmd->arityMax == -1) {
-        Jim_Obj *listObjPtr, *objPtr;
+        Jim_Obj *listObjPtr=NULL, *objPtr=NULL;
 
         i++;
         listObjPtr = Jim_NewListObj(interp, argv + i, argc-i);
@@ -9421,7 +9421,7 @@ static Jim_Obj *JimCommandsList(Jim_Interp *interp, Jim_Obj *patternObjPtr)
     Jim_HashEntry *he;
     Jim_Obj *listObjPtr = Jim_NewListObj(interp, NULL, 0);
     const char *pattern;
-    int patternLen;
+    int patternLen=0;
 
     pattern = patternObjPtr ? Jim_GetString(patternObjPtr, &patternLen) : NULL;
     htiter = Jim_GetHashTableIterator(&interp->commands);
@@ -9447,7 +9447,7 @@ static Jim_Obj *JimVariablesList(Jim_Interp *interp, Jim_Obj *patternObjPtr,
     Jim_HashEntry *he;
     Jim_Obj *listObjPtr = Jim_NewListObj(interp, NULL, 0);
     const char *pattern;
-    int patternLen;
+    int patternLen=0;
 
     pattern = patternObjPtr ? Jim_GetString(patternObjPtr, &patternLen) : NULL;
     if (mode == JIM_VARLIST_GLOBALS) {
@@ -9816,7 +9816,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
         exprLen = expr->len;
 
         if (exprLen == 1) {
-            jim_wide wideValue;
+            jim_wide wideValue=0;
 
             if (expr->opcode[0] == JIM_EXPROP_VARIABLE) {
                 varAObjPtr = expr->obj[0];
@@ -9856,7 +9856,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
             if (varAObjPtr)
                 Jim_DecrRefCount(interp, varAObjPtr);
         } else if (exprLen == 3) {
-            jim_wide wideValueA, wideValueB, cmpRes = 0;
+            jim_wide wideValueA, wideValueB=0, cmpRes = 0;
             int cmpType = expr->opcode[2];
 
             varAObjPtr = expr->obj[0];
@@ -9983,7 +9983,7 @@ static int Jim_ForCoreCommand(Jim_Interp *interp, int argc,
     {
         ScriptObj *initScript, *incrScript;
         ExprByteCode *expr;
-        jim_wide start, stop, currentVal;
+        jim_wide start, stop=0, currentVal;
         unsigned jim_wide procEpoch = interp->procEpoch;
         Jim_Obj *varNamePtr, *stopVarNamePtr = NULL, *objPtr;
         int cmpType;
@@ -11013,7 +11013,7 @@ static int Jim_ProcCoreCommand(Jim_Interp *interp, int argc,
     if (argListLen) {
         const char *str;
         int len;
-        Jim_Obj *argPtr;
+        Jim_Obj *argPtr=NULL;
 
         /* Check for 'args' and adjust arityMin and arityMax if necessary */
         Jim_ListIndex(interp, argv[2], argListLen-1, &argPtr, JIM_NONE);
@@ -11132,7 +11132,7 @@ static Jim_Obj *JimStringMap(Jim_Interp *interp, Jim_Obj *mapListObjPtr,
     value = Jim_Alloc(sizeof(Jim_Obj*)*numMaps);
     resultObjPtr = Jim_NewStringObj(interp, "", 0);
     for (i = 0; i < numMaps; i++) {
-        Jim_Obj *eleObjPtr;
+        Jim_Obj *eleObjPtr=NULL;
 
         Jim_ListIndex(interp, mapListObjPtr, i*2, &eleObjPtr, JIM_NONE);
         key[i] = Jim_GetString(eleObjPtr, &keyLen[i]);
@@ -11855,7 +11855,7 @@ static int Jim_JoinCoreCommand(Jim_Interp *interp, int argc,
     resObjPtr = Jim_NewStringObj(interp, NULL, 0);
     /* Split */
     for (i = 0; i < listLen; i++) {
-        Jim_Obj *objPtr;
+        Jim_Obj *objPtr=NULL;
 
         Jim_ListIndex(interp, argv[1], i, &objPtr, JIM_NONE);
         Jim_AppendObj(interp, resObjPtr, objPtr);
@@ -12119,7 +12119,7 @@ static int Jim_RangeCoreCommand(Jim_Interp *interp, int argc,
 static int Jim_RandCoreCommand(Jim_Interp *interp, int argc,
         Jim_Obj *const *argv)
 {
-    jim_wide min = 0, max, len, maxMul;
+    jim_wide min = 0, max =0, len, maxMul;
 
     if (argc < 1 || argc > 3) {
         Jim_WrongNumArgs(interp, 1, argv, "?min? max");
@@ -12311,7 +12311,7 @@ void Jim_PrintErrorMessage(Jim_Interp *interp)
             Jim_GetString(interp->result, NULL));
     Jim_ListLength(interp, interp->stackTrace, &len);
     for (i = len-3; i >= 0; i-= 3) {
-        Jim_Obj *objPtr;
+        Jim_Obj *objPtr=NULL;
         const char *proc, *file, *line;
 
         Jim_ListIndex(interp, interp->stackTrace, i, &objPtr, JIM_NONE);
