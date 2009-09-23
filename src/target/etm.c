@@ -28,19 +28,27 @@
 #include "arm_disassembler.h"
 
 
-/* ETM register access functionality
+/*
+ * ARM "Embedded Trace Macrocell" (ETM) support -- direct JTAG access.
  *
+ * ETM modules collect instruction and/or data trace information, compress
+ * it, and transfer it to a debugging host through either a (buffered) trace
+ * port (often a 38-pin Mictor connector) or an Embedded Trace Buffer (ETB).
+ *
+ * There are several generations of these modules.  Original versions have
+ * JTAG access through a dedicated scan chain.  Recent versions have added
+ * access via coprocessor instructions, memory addressing, and the ARM Debug
+ * Interface v5 (ADIv5); and phased out direct JTAG access.
+ *
+ * This code supports up to the ETMv1.3 architecture, as seen in ETM9 and
+ * most common ARM9 systems.  Note: "CoreSight ETM9" implements ETMv3.2,
+ * implying non-JTAG connectivity options.
+ *
+ * Relevant documentation includes:
+ *  ARM DDI 0157G ... ETM9 (r2p2) Technical Reference Manual
+ *  ARM DDI 0315B ... CoreSight ETM9 (r0p1) Technical Reference Manual
+ *  ARM IHI 0014O ... Embedded Trace Macrocell, Architecture Specification
  */
-
-#if 0
-static bitfield_desc_t etm_comms_ctrl_bitfield_desc[] =
-{
-	{"R", 1},
-	{"W", 1},
-	{"reserved", 26},
-	{"version", 4}
-};
-#endif
 
 static int etm_reg_arch_info[] =
 {
@@ -196,10 +204,38 @@ static char* etm_reg_list[] =
 static int etm_reg_arch_type = -1;
 
 static int etm_get_reg(reg_t *reg);
+static int etm_read_reg_w_check(reg_t *reg,
+		uint8_t* check_value, uint8_t* check_mask);
+static int etm_register_user_commands(struct command_context_s *cmd_ctx);
+static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf);
+static int etm_write_reg(reg_t *reg, uint32_t value);
 
-static command_t *etm_cmd = NULL;
+static command_t *etm_cmd;
 
-reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_context_t *etm_ctx)
+
+/* Look up register by ID ... most ETM instances only
+ * support a subset of the possible registers.
+ */
+static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
+{
+	reg_cache_t *cache = etm_ctx->reg_cache;
+	int i;
+
+	for (i = 0; i < cache->num_regs; i++) {
+		struct etm_reg_s *reg = cache->reg_list[i].arch_info;
+
+		if (reg->addr == (int) id)
+			return &cache->reg_list[i];
+	}
+
+	/* caller asking for nonexistent register is a bug! */
+	/* REVISIT say which of the N targets was involved */
+	LOG_ERROR("ETM: register 0x%02x not available", id);
+	return NULL;
+}
+
+reg_cache_t *etm_build_reg_cache(target_t *target,
+		arm_jtag_t *jtag_info, etm_context_t *etm_ctx)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
@@ -226,10 +262,6 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 	{
 		reg_list[i].name = etm_reg_list[i];
 		reg_list[i].size = 32;
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
-		reg_list[i].bitfield_desc = NULL;
-		reg_list[i].num_bitfields = 0;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].arch_type = etm_reg_arch_type;
@@ -264,6 +296,16 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 	return reg_cache;
 }
 
+static int etm_read_reg(reg_t *reg)
+{
+	return etm_read_reg_w_check(reg, NULL, NULL);
+}
+
+static int etm_store_reg(reg_t *reg)
+{
+	return etm_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
+}
+
 int etm_setup(target_t *target)
 {
 	int retval;
@@ -271,7 +313,11 @@ int etm_setup(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	etm_context_t *etm_ctx = arm7_9->etm_ctx;
-	reg_t *etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+	reg_t *etm_ctrl_reg;
+
+	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
+	if (!etm_ctrl_reg)
+		return ERROR_OK;
 
 	/* initialize some ETM control register settings */
 	etm_get_reg(etm_ctrl_reg);
@@ -299,7 +345,7 @@ int etm_setup(target_t *target)
 	return ERROR_OK;
 }
 
-int etm_get_reg(reg_t *reg)
+static int etm_get_reg(reg_t *reg)
 {
 	int retval;
 
@@ -318,7 +364,8 @@ int etm_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-int etm_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
+static int etm_read_reg_w_check(reg_t *reg,
+		uint8_t* check_value, uint8_t* check_mask)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
 	uint8_t reg_addr = etm_reg->addr & 0x7f;
@@ -367,12 +414,7 @@ int etm_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
 	return ERROR_OK;
 }
 
-int etm_read_reg(reg_t *reg)
-{
-	return etm_read_reg_w_check(reg, NULL, NULL);
-}
-
-int etm_set_reg(reg_t *reg, uint32_t value)
+static int etm_set_reg(reg_t *reg, uint32_t value)
 {
 	int retval;
 
@@ -389,7 +431,7 @@ int etm_set_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
+static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -403,7 +445,7 @@ int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int etm_write_reg(reg_t *reg, uint32_t value)
+static int etm_write_reg(reg_t *reg, uint32_t value)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
 	uint8_t reg_addr = etm_reg->addr & 0x7f;
@@ -441,10 +483,6 @@ int etm_write_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-int etm_store_reg(reg_t *reg)
-{
-	return etm_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
-}
 
 /* ETM trace analysis functionality
  *
@@ -462,18 +500,6 @@ static etm_capture_driver_t *etm_capture_drivers[] =
 	&oocd_trace_capture_driver,
 #endif
 	NULL
-};
-
-char *etmv1v1_branch_reason_strings[] =
-{
-	"normal PC change",
-	"tracing enabled",
-	"trace restarted after overflow",
-	"exit from debug",
-	"periodic synchronization",
-	"reserved",
-	"reserved",
-	"reserved",
 };
 
 static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
@@ -1172,7 +1198,11 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 	/* only update ETM_CTRL register if tracemode changed */
 	if (arm7_9->etm_ctx->tracemode != tracemode)
 	{
-		reg_t *etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+		reg_t *etm_ctrl_reg;
+
+		etm_ctrl_reg = etm_reg_lookup(arm7_9->etm_ctx, ETM_CTRL);
+		if (!etm_ctrl_reg)
+			return ERROR_OK;
 
 		etm_get_reg(etm_ctrl_reg);
 
@@ -1319,7 +1349,6 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	etm_ctx->last_branch_reason = 0x0;
 	etm_ctx->last_ptr = 0x0;
 	etm_ctx->ptr_ok = 0x0;
-	etm_ctx->context_id = 0x0;
 	etm_ctx->last_instruction = 0;
 
 	arm7_9->etm_ctx = etm_ctx;
@@ -1327,7 +1356,8 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	return etm_register_user_commands(cmd_ctx);
 }
 
-int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_info_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1351,8 +1381,12 @@ int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		return ERROR_OK;
 	}
 
-	etm_config_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CONFIG];
-	etm_sys_config_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_SYS_CONFIG];
+	etm_config_reg = etm_reg_lookup(arm7_9->etm_ctx, ETM_CONFIG);
+	if (!etm_config_reg)
+		return ERROR_OK;
+	etm_sys_config_reg = etm_reg_lookup(arm7_9->etm_ctx, ETM_SYS_CONFIG);
+	if (!etm_sys_config_reg)
+		return ERROR_OK;
 
 	etm_get_reg(etm_config_reg);
 	command_print(cmd_ctx, "pairs of address comparators: %i", (int)buf_get_u32(etm_config_reg->value, 0, 4));
@@ -1732,7 +1766,10 @@ static int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 	arm7_9->etm_ctx->trace_depth = 0;
 
-	etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
+	if (!etm_ctrl_reg)
+		return ERROR_OK;
+
 	etm_get_reg(etm_ctrl_reg);
 
 	/* Clear programming bit (10), set port selection bit (11) */
@@ -1768,7 +1805,10 @@ static int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd,
 		return ERROR_OK;
 	}
 
-	etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
+	if (!etm_ctrl_reg)
+		return ERROR_OK;
+
 	etm_get_reg(etm_ctrl_reg);
 
 	/* Set programming bit (10), clear port selection bit (11) */
@@ -1835,10 +1875,11 @@ int etm_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int etm_register_user_commands(struct command_context_s *cmd_ctx)
+static int etm_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
-		COMMAND_EXEC, "configure trace mode <none | data | address | all> "
+		COMMAND_EXEC, "configure/display trace mode: "
+			"<none | data | address | all> "
 			"<context_id_bits> <cycle_accurate> <branch_output>");
 
 	register_command(cmd_ctx, etm_cmd, "info", handle_etm_info_command,

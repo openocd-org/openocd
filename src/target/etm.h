@@ -139,29 +139,28 @@ typedef struct etmv1_trace_data_s
  */
 typedef struct etm_context_s
 {
-	target_t *target;				/* target this ETM is connected to */
-	reg_cache_t *reg_cache;			/* ETM register cache */
+	target_t *target;		/* target this ETM is connected to */
+	reg_cache_t *reg_cache;		/* ETM register cache */
 	etm_capture_driver_t *capture_driver;	/* driver used to access ETM data */
-	void *capture_driver_priv;		/* capture driver private data */
-	uint32_t trigger_percent;			/* percent of trace buffer to be filled after the trigger */
+	void *capture_driver_priv;	/* capture driver private data */
+	uint32_t trigger_percent;	/* how much trace buffer to fill after trigger */
 	trace_status_t capture_status;	/* current state of capture run */
 	etmv1_trace_data_t *trace_data;	/* trace data */
-	uint32_t trace_depth;				/* number of trace cycles to be analyzed, 0 if no trace data available */
-	etm_portmode_t portmode;		/* normal, multiplexed or demultiplexed */
-	etmv1_tracemode_t tracemode;	/* type of information the trace contains (data, addres, contextID, ...) */
-	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
-	struct image_s *image;					/* source for target opcodes */
-	uint32_t pipe_index;					/* current trace cycle */
-	uint32_t data_index;					/* cycle holding next data packet */
-	int data_half;					/* port half on a 16 bit port */
-	uint32_t current_pc;					/* current program counter */
-	uint32_t pc_ok;						/* full PC has been acquired */
-	uint32_t last_branch;				/* last branch address output */
-	uint32_t last_branch_reason;			/* branch reason code for the last branch encountered */
-	uint32_t last_ptr;					/* address of the last data access */
-	uint32_t ptr_ok;						/* whether last_ptr is valid */
-	uint32_t context_id;					/* context ID of the code being traced */
-	uint32_t last_instruction;			/* index of last instruction executed (to calculate cycle timings) */
+	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
+	etm_portmode_t portmode;	/* normal, multiplexed or demultiplexed */
+	etmv1_tracemode_t tracemode;	/* type of info trace contains */
+	armv4_5_state_t core_state;	/* current core state */
+	struct image_s *image;		/* source for target opcodes */
+	uint32_t pipe_index;		/* current trace cycle */
+	uint32_t data_index;		/* cycle holding next data packet */
+	bool data_half;			/* port half on a 16 bit port */
+	bool pc_ok;			/* full PC has been acquired */
+	bool ptr_ok;			/* whether last_ptr is valid */
+	uint32_t current_pc;		/* current program counter */
+	uint32_t last_branch;		/* last branch address output */
+	uint32_t last_branch_reason;	/* type of last branch encountered */
+	uint32_t last_ptr;		/* address of the last data access */
+	uint32_t last_instruction;	/* index of last executed (to calc timings) */
 } etm_context_t;
 
 /* PIPESTAT values */
@@ -190,20 +189,10 @@ typedef enum
 	BR_RSVD7   = 0x7, /* reserved */
 } etmv1_branch_reason_t;
 
-extern char *etmv1v1_branch_reason_strings[];
-
 extern reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_context_t *etm_ctx);
-extern int etm_read_reg(reg_t *reg);
-extern int etm_write_reg(reg_t *reg, uint32_t value);
-extern int etm_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask);
-extern int etm_store_reg(reg_t *reg);
-extern int etm_set_reg(reg_t *reg, uint32_t value);
-extern int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf);
 extern int etm_setup(target_t *target);
 
 int etm_register_commands(struct command_context_s *cmd_ctx);
-int etm_register_user_commands(struct command_context_s *cmd_ctx);
-extern etm_context_t* etm_create_context(etm_portmode_t portmode, char *capture_driver_name);
 
 #define ERROR_ETM_INVALID_DRIVER	(-1300)
 #define ERROR_ETM_PORTMODE_NOT_SUPPORTED	(-1301)
