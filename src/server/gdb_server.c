@@ -40,6 +40,8 @@
 #define _DEBUG_GDB_IO_
 #endif
 
+static gdb_connection_t *current_gdb_connection;
+
 static int gdb_breakpoint_override;
 static enum breakpoint_type gdb_breakpoint_override_type;
 
@@ -750,6 +752,7 @@ int gdb_new_connection(connection_t *connection)
 	gdb_connection->closed = 0;
 	gdb_connection->busy = 0;
 	gdb_connection->noack_mode = 0;
+	gdb_connection->sync = true;
 
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -766,30 +769,6 @@ int gdb_new_connection(connection_t *connection)
 
 	/* register callback to be informed about target events */
 	target_register_event_callback(gdb_target_callback_event_handler, connection);
-
-	/* a gdb session just attached, try to put the target in halt mode.
-	 *
-	 * DANGER!!!!
-	 *
-	 * If the halt fails(e.g. target needs a reset, JTAG communication not
-	 * working, etc.), then the GDB connect will succeed as
-	 * the get_gdb_reg_list() will lie and return a register list with
-	 * dummy values.
-	 *
-	 * This allows GDB monitor commands to be run from a GDB init script to
-	 * initialize the target
-	 *
-	 * Also, since the halt() is asynchronous target connect will be
-	 * instantaneous and thus avoiding annoying timeout problems during
-	 * connect.
-	 */
-	target_halt(gdb_service->target);
-	/* FIX!!!! could extended-remote work better here?
-	 *
-	 *  wait a tiny bit for halted state or we just continue. The
-	 * GDB register packet will then contain garbage
-	 */
-	target_wait_state(gdb_service->target, TARGET_HALTED, 500);
 
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
@@ -1609,7 +1588,11 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			/* We want to print all debug output to GDB connection */
 			log_add_callback(gdb_log_callback, connection);
 			target_call_timer_callbacks_now();
+			/* some commands need to know the GDB connection, make note of current
+			 * GDB connection. */
+			current_gdb_connection = gdb_connection;
 			command_run_line(cmd_ctx, cmd);
+			current_gdb_connection = NULL;
 			target_call_timer_callbacks_now();
 			log_remove_callback(gdb_log_callback, connection);
 			free(cmd);
@@ -2107,20 +2090,52 @@ int gdb_input_inner(connection_t *connection)
 				case 'c':
 				case 's':
 					{
-						if (target->state != TARGET_HALTED)
+						int retval = ERROR_OK;
+
+						gdb_connection_t *gdb_con = connection->priv;
+						log_add_callback(gdb_log_callback, connection);
+
+						bool nostep = false;
+						if (target->state == TARGET_RUNNING)
 						{
-							/* If the target isn't in the halted state, then we can't
+							LOG_WARNING("The target is already running. Halt target before stepi/continue.");
+							retval = target_halt(target);
+							if (retval == ERROR_OK)
+								retval = target_wait_state(target, TARGET_HALTED, 100);
+						} else if (target->state != TARGET_HALTED)
+						{
+							LOG_WARNING("The target is not in the halted nor running stated, stepi/continue ignored.");
+							nostep = true;
+						} else if ((packet[0] == 's') && gdb_con->sync)
+						{
+							/* Hmm..... when you issue a continue in GDB, then a "stepi" is
+							 * sent by GDB first to OpenOCD, thus defeating the check to
+							 * make only the single stepping have the sync feature...
+							 */
+							nostep = true;
+							LOG_WARNING("stepi ignored. GDB will now fetch the register state from the target.");
+						}
+						gdb_con->sync = false;
+
+						if ((retval!=ERROR_OK) || nostep)
+						{
+							/* Either the target isn't in the halted state, then we can't
 							 * step/continue. This might be early setup, etc.
+							 *
+							 * Or we want to allow GDB to pick up a fresh set of
+							 * register values without modifying the target state.
+							 *
 							 */
 							gdb_sig_halted(connection);
+
+							/* stop forwarding log packets! */
+							log_remove_callback(gdb_log_callback, connection);
 						} else
 						{
 							/* We're running/stepping, in which case we can
 							 * forward log output until the target is halted
 							 */
-							gdb_connection_t *gdb_con = connection->priv;
 							gdb_con->frontend_state = TARGET_RUNNING;
-							log_add_callback(gdb_log_callback, connection);
 							target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 							int retval = gdb_step_continue_packet(connection, target, packet, packet_size);
 							if (retval != ERROR_OK)
@@ -2251,6 +2266,25 @@ int gdb_init(void)
 			port++;
 		}
 	}
+
+	return ERROR_OK;
+}
+
+int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc != 0)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (current_gdb_connection == NULL)
+	{
+		command_print(cmd_ctx,
+				"gdb_sync command can only be run from within gdb using \"monitor gdb_sync\"");
+		return ERROR_FAIL;
+	}
+
+	current_gdb_connection->sync = true;
 
 	return ERROR_OK;
 }
@@ -2399,6 +2433,8 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 
 int gdb_register_commands(command_context_t *command_context)
 {
+	register_command(command_context, NULL, "gdb_sync", handle_gdb_sync_command,
+			COMMAND_ANY, "next stepi will return immediately allowing GDB fetch register state without affecting target state");
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
 			COMMAND_ANY, "daemon configuration command gdb_port");
 	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,

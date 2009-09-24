@@ -43,6 +43,10 @@ typedef struct gdb_connection_s
 	int closed;
 	int busy;
 	int noack_mode;
+	bool sync; 	/* set flag to true if you want the next stepi to return immediately.
+	               allowing GDB to pick up a fresh set of register values from the target
+	               without modifying the target state. */
+
 } gdb_connection_t;
 
 typedef struct gdb_service_s
