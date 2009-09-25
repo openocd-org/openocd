@@ -64,6 +64,95 @@ static char *log_strings[5] =
 
 static int count = 0;
 
+
+static struct store_log_forward * log_head = NULL;
+static int log_forward_count = 0;
+
+struct store_log_forward
+{
+	struct store_log_forward * next;
+	const char * file;
+	int line;
+	const char * function;
+	const char * string;
+};
+
+/* either forward the log to the listeners or store it for possible forwarding later */
+static void log_forward(const char *file, int line, const char *function, const char *string)
+{
+	if (log_forward_count==0)
+	{
+		log_callback_t *cb, *next;
+		cb = log_callbacks;
+		/* DANGER!!!! the log callback can remove itself!!!! */
+		while (cb)
+		{
+			next = cb->next;
+			cb->fn(cb->priv, file, line, function, string);
+			cb = next;
+		}
+	} else
+	{
+		struct store_log_forward *log = malloc(sizeof (struct store_log_forward));
+		log->file = strdup(file);
+		log->line = line;
+		log->function = strdup(function);
+		log->string = strdup(string);
+		log->next = NULL;
+		if (log_head==NULL)
+			log_head = log;
+		else
+		{
+			/* append to tail */
+			struct store_log_forward * t;
+			t = log_head;
+			while (t->next!=NULL)
+			{
+				t = t->next;
+			}
+			t->next = log;
+		}
+	}
+}
+
+void log_try(void)
+{
+	log_forward_count++;
+}
+
+void log_catch(void)
+{
+	assert(log_forward_count>0);
+	log_forward_count--;
+}
+
+void log_rethrow(void)
+{
+	log_catch();
+	if (log_forward_count==0)
+	{
+		struct store_log_forward *log;
+
+		log = log_head;
+		while (log != NULL)
+		{
+			log_forward(log->file, log->line, log->function, log->string);
+
+			struct store_log_forward *t=log;
+			log = log->next;
+
+			free((void *)t->file);
+			free((void *)t->function);
+			free((void *)t->string);
+			free(t);
+
+		}
+
+		log_head = NULL;
+	}
+}
+
+
 /* The log_puts() serves to somewhat different goals:
  *
  * - logging
@@ -131,17 +220,10 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 	/* Never forward LOG_LVL_DEBUG, too verbose and they can be found in the log if need be */
 	if (level <= LOG_LVL_INFO)
 	{
-		log_callback_t *cb, *next;
-		cb = log_callbacks;
-		/* DANGER!!!! the log callback can remove itself!!!! */
-		while (cb)
-		{
-			next = cb->next;
-			cb->fn(cb->priv, file, line, function, string);
-			cb = next;
-		}
+		log_forward(file, line, function, string);
 	}
 }
+
 
 void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {

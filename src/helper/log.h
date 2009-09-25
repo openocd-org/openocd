@@ -64,6 +64,15 @@ extern void kept_alive(void);
 extern void alive_sleep(int ms);
 extern void busy_sleep(int ms);
 
+
+/* log entries can be paused and replayed roughly according to the try/catch/rethrow
+ * concepts in C++
+ */
+void log_try(void);
+void log_catch(void);
+void log_rethrow(void);
+
+
 typedef void (*log_callback_fn)(void *priv, const char *file, int line,
 		const char *function, const char *string);
 
