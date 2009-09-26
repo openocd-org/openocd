@@ -242,13 +242,15 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
 			  pTap->chip, pTap->tapname, pTap->dotted_name, goi->argc);
 
-	/* deal with options */
-#define NTREQ_IRLEN      1
-#define NTREQ_IRCAPTURE  2
-#define NTREQ_IRMASK     4
+	/* IEEE specifies that the two LSBs of an IR scan are 01, so make
+	 * that the default.  The "-irlen" and "-irmask" options are only
+	 * needed to cope with nonstandard TAPs, or to specify more bits.
+	 */
+	pTap->ir_capture_mask = 0x03;
+	pTap->ir_capture_value = 0x01;
 
-	/* clear them as we find them */
-	reqbits = (NTREQ_IRLEN | NTREQ_IRCAPTURE | NTREQ_IRMASK);
+	/* clear flags for "required options" them as we find them */
+	reqbits = 1;
 
 	while (goi->argc) {
 		e = Jim_GetOpt_Nvp(goi, opts, &n);
@@ -308,31 +310,39 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 			switch (n->value) {
 			case NTAP_OPT_IRLEN:
 				if (w > (jim_wide) (8 * sizeof(pTap->ir_capture_value)))
-					LOG_WARNING("huge IR length %d", (int) w);
+					LOG_WARNING("%s: huge IR length %d",
+							pTap->dotted_name,
+							(int) w);
 				pTap->ir_length = w;
-				reqbits &= (~(NTREQ_IRLEN));
+				reqbits = 0;
 				break;
 			case NTAP_OPT_IRMASK:
 				if (is_bad_irval(pTap->ir_length, w)) {
-					LOG_ERROR("IR mask %x too big",
+					LOG_ERROR("%s: IR mask %x too big",
+							pTap->dotted_name,
 							(int) w);
 					free((void *)pTap->dotted_name);
 					free(pTap);
 					return ERROR_FAIL;
 				}
+				if ((w & 3) != 3)
+					LOG_WARNING("%s: nonstandard IR mask",
+							pTap->dotted_name);
 				pTap->ir_capture_mask = w;
-				reqbits &= (~(NTREQ_IRMASK));
 				break;
 			case NTAP_OPT_IRCAPTURE:
 				if (is_bad_irval(pTap->ir_length, w)) {
-					LOG_ERROR("IR capture %x too big",
+					LOG_ERROR("%s: IR capture %x too big",
+							pTap->dotted_name,
 							(int) w);
 					free((void *)pTap->dotted_name);
 					free(pTap);
 					return ERROR_FAIL;
 				}
+				if ((w & 3) != 1)
+					LOG_WARNING("%s: nonstandard IR value",
+							pTap->dotted_name);
 				pTap->ir_capture_value = w;
-				reqbits &= (~(NTREQ_IRCAPTURE));
 				break;
 			}
 		} /* switch (n->value) */

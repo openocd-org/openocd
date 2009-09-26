@@ -2309,19 +2309,9 @@ a JTAG TAP; that TAP should be named @code{sdma}.
 Every TAP requires at least the following @var{configparams}:
 
 @itemize @bullet
-@item @code{-ircapture} @var{NUMBER}
-@*The bit pattern loaded by the TAP into the JTAG shift register
-on entry to the @sc{ircapture} state, such as 0x01.
-JTAG requires the two LSBs of this value to be 01.
-The value is used to verify that instruction scans work correctly.
 @item @code{-irlen} @var{NUMBER}
 @*The length in bits of the
 instruction register, such as 4 or 5 bits.
-@item @code{-irmask} @var{NUMBER}
-@*A mask for the IR register.
-For some devices, there are bits in the IR that aren't used.
-This lets OpenOCD mask them off when doing IDCODE comparisons.
-In general, this should just be all ones for the size of the IR.
 @end itemize
 
 A TAP may also provide optional @var{configparams}:
@@ -2340,6 +2330,18 @@ found when the JTAG chain is examined.
 These codes are not required by all JTAG devices.
 @emph{Repeat the option} as many times as required if more than one
 ID code could appear (for example, multiple versions).
+@item @code{-ircapture} @var{NUMBER}
+@*The bit pattern loaded by the TAP into the JTAG shift register
+on entry to the @sc{ircapture} state, such as 0x01.
+JTAG requires the two LSBs of this value to be 01.
+By default, @code{-ircapture} and @code{-irmask} are set
+up to verify that two-bit value; but you may provide
+additional bits, if you know them.
+@item @code{-irmask} @var{NUMBER}
+@*A mask used with @code{-ircapture}
+to verify that instruction scans work correctly.
+Such scans are not used by OpenOCD except to verify that
+there seems to be no problems with JTAG scan chain operations.
 @end itemize
 @end deffn
 
