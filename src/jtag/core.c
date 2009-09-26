@@ -885,8 +885,9 @@ static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
 	 * the scan is not valid */
 	if (zero_check == 0x00 || one_check == 0xff)
 	{
-		LOG_ERROR("JTAG communication failure: check connection, "
-			"JTAG interface, target power etc.");
+		LOG_ERROR("JTAG scan chain interrogation failed: all %s",
+				(zero_check == 0x00) ? "zeroes" : "ones");
+		LOG_ERROR("Check JTAG interface, timings, target power, etc.");
 		return false;
 	}
 	return true;
@@ -1238,7 +1239,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	/* examine chain first, as this could discover the real chain layout */
 	if (jtag_examine_chain() != ERROR_OK)
 	{
-		LOG_ERROR("trying to validate configured JTAG chain anyway...");
+		LOG_ERROR("Trying to use configured scan chain anyway...");
 	}
 
 	if (jtag_validate_ircapture() != ERROR_OK)
