@@ -86,7 +86,7 @@ extern char* buf_to_str(const uint8_t *buf, int size, int radix);
 struct scan_field_s;
 extern int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 
-#define CEIL(m, n)	((m + n - 1) / n)
+#define CEIL(m, n)	(((m) + (n) - 1) / (n))
 
 /* read a uint32_t from a buffer in target memory endianness */
 static inline uint32_t fast_target_buffer_get_u32(const uint8_t *buffer, int little)

@@ -847,6 +847,9 @@ void jtag_sleep(uint32_t us)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
 
+/* A reserved manufacturer ID is used in END_OF_CHAIN_FLAG, so we
+ * know that no valid TAP will have it as an IDCODE value.
+ */
 #define END_OF_CHAIN_FLAG	0x000000ff
 
 static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcode)
@@ -964,6 +967,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 }
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
+ * This is called a "blind interrogation" of the scan chain.
  */
 static int jtag_examine_chain(void)
 {
@@ -1037,7 +1041,12 @@ static int jtag_examine_chain(void)
 	return ERROR_OK;
 }
 
-int jtag_validate_chain(void)
+/*
+ * Validate the date loaded by entry to the Capture-IR state, to help
+ * find errors related to scan chain configuration (wrong IR lengths)
+ * or communication.
+ */
+static int jtag_validate_ircapture(void)
 {
 	jtag_tap_t *tap;
 	int total_ir_length = 0;
@@ -1056,7 +1065,11 @@ int jtag_validate_chain(void)
 	}
 
 	total_ir_length += 2;
+
 	ir_test = malloc(CEIL(total_ir_length, 8));
+	if (ir_test == NULL)
+		return ERROR_FAIL;
+
 	buf_set_ones(ir_test, total_ir_length);
 
 	field.tap = NULL;
@@ -1082,24 +1095,37 @@ int jtag_validate_chain(void)
 			break;
 		}
 
+		/* Validate the two LSBs, which must be 01 per JTAG spec.
+		 * REVISIT we might be able to verify some MSBs too, using
+		 * ircapture/irmask attributes.
+		 */
 		val = buf_get_u32(ir_test, chain_pos, 2);
-		/* Only fail this check if we have IDCODE for this device */
-		if ((val != 0x1)&&(tap->hasidcode))
-		{
+		if (val != 1) {
 			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
-			LOG_ERROR("Could not validate JTAG scan chain, IR mismatch, scan returned 0x%s. tap=%s pos=%d expected 0x1 got %0x", cbuf, jtag_tap_name(tap), chain_pos, val);
-			free(cbuf);
-			free(ir_test);
-			return ERROR_JTAG_INIT_FAILED;
+
+			LOG_ERROR("%s: IR capture error; saw 0x%s not 0x..1",
+					jtag_tap_name(tap), cbuf);
+
+			/* Fail only if we have IDCODE for this device.
+			 * REVISIT -- why not fail-always?
+			 */
+			if (tap->hasidcode) {
+				free(cbuf);
+				free(ir_test);
+				return ERROR_JTAG_INIT_FAILED;
+			}
 		}
 		chain_pos += tap->ir_length;
 	}
 
+	/* verify the '11' sentinel we wrote is returned at the end */
 	val = buf_get_u32(ir_test, chain_pos, 2);
 	if (val != 0x3)
 	{
 		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
-		LOG_ERROR("Could not validate end of JTAG scan chain, IR mismatch, scan returned 0x%s. pos=%d expected 0x3 got %0x", cbuf, chain_pos, val);
+
+		LOG_ERROR("IR capture error at bit %d, saw 0x%s not 0x...3",
+				chain_pos, cbuf);
 		free(cbuf);
 		free(ir_test);
 		return ERROR_JTAG_INIT_FAILED;
@@ -1115,6 +1141,7 @@ void jtag_tap_init(jtag_tap_t *tap)
 {
 	assert(0 != tap->ir_length);
 
+	/// @todo fix, this allocates one byte per bit for all three fields!
 	tap->expected = malloc(tap->ir_length);
 	tap->expected_mask = malloc(tap->ir_length);
 	tap->cur_instr = malloc(tap->ir_length);
@@ -1132,7 +1159,8 @@ void jtag_tap_init(jtag_tap_t *tap)
 	LOG_DEBUG("Created Tap: %s @ abs position %d, "
 			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
 				tap->abs_chain_position, tap->ir_length,
-			  (unsigned int)(tap->ir_capture_value), (unsigned int)(tap->ir_capture_mask));
+				(unsigned) tap->ir_capture_value,
+				(unsigned) tap->ir_capture_mask);
 	jtag_tap_add(tap);
 }
 
@@ -1141,6 +1169,7 @@ void jtag_tap_free(jtag_tap_t *tap)
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
 	/// @todo is anything missing? no memory leaks please
+	free((void *)tap->expected);
 	free((void *)tap->expected_ids);
 	free((void *)tap->chip);
 	free((void *)tap->tapname);
@@ -1212,9 +1241,9 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 		LOG_ERROR("trying to validate configured JTAG chain anyway...");
 	}
 
-	if (jtag_validate_chain() != ERROR_OK)
+	if (jtag_validate_ircapture() != ERROR_OK)
 	{
-		LOG_WARNING("Could not validate JTAG chain, continuing anyway...");
+		LOG_WARNING("Errors during IR capture, continuing anyway...");
 	}
 
 	return ERROR_OK;
