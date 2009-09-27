@@ -60,6 +60,22 @@ The following tasks have been suggested for adding new core JTAG support:
 
 @subsection thelistjtaginterfaces JTAG Interfaces
 
+There are some known bugs to fix in JTAG adapter drivers:
+
+- For JTAG_STATEMOVE to TAP_RESET, all drivers must ignore the current
+  recorded state.  The tap_get_state() call won't necessarily return
+  the correct value, especially at server startup.  Fix is easy:  in
+  that case, always issue five clocks with TMS high.
+  - amt_jtagaccel.c
+  - arm-jtag-ew.c
+  - bitbang.c
+  - bitq.c
+  - gw16012.c
+  - jlink.c
+  - usbprog.c
+  - vsllink.c
+  - rlink/rlink.c
+
 The following tasks have been suggeted for improving OpenOCD's JTAG
 interface support:
 
@@ -69,7 +85,7 @@ interface support:
 - J-Link driver:
   - fix to work with long scan chains, such as R.Doss's svf test.
 - FT2232 (libftdi):
-  - make performance comparable to alternatives
+  - make performance comparable to alternatives (on Win32, D2XX is faster)
   - make usability comparable to alternatives
 
 The following tasks have been suggested for adding new JTAG interfaces:
