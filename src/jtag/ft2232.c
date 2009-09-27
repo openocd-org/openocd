@@ -1587,8 +1587,16 @@ static int ft2232_execute_statemove(jtag_command_t *cmd)
 	}
 	ft2232_end_state(cmd->cmd.statemove->end_state);
 
-	/* move to end state */
-	if (tap_get_state() != tap_get_end_state())
+	/* For TAP_RESET, ignore the current recorded state.  It's often
+	 * wrong at server startup, and this transation is critical whenever
+	 * it's requested.
+	 */
+	if (tap_get_end_state() == TAP_RESET) {
+		clock_tms(0x4b,  0xff, 5, 0);
+		require_send = 1;
+
+	/* shortest-path move to desired end state */
+	} else if (tap_get_state() != tap_get_end_state())
 	{
 		move_to_state(tap_get_end_state());
 		require_send = 1;
