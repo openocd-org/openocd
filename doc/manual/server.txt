@@ -111,7 +111,7 @@ Long before OpenOCD had a TCL command line, Zylin AS built their ZY1000
 devince with a built-in HTTP server.  Later, they were willing to both
 contribute and integrate most of that work into the main tree.
 
-@subsection serverdocsother Other Options Concidered
+@subsection serverdocsother Other Options Considered
 
 What if a web browser is not acceptable ie: You want to write your own
 front gadget in Eclipse, or KDevelop, or PerlTK, Ruby, or what ever
