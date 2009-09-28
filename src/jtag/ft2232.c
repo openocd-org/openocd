@@ -1,12 +1,15 @@
 /***************************************************************************
+*   Copyright (C) 2009 by Øyvind Harboe                                   *
+*	Øyvind Harboe <oyvind.harboe@zylin.com>                               *
+*                                                                         *
+*   Copyright (C) 2009 by SoftPLC Corporation.  http://softplc.com        *
+*	Dick Hollenbeck <dick@softplc.com>                                    *
+*                                                                         *
 *   Copyright (C) 2004, 2006 by Dominic Rath                              *
 *   Dominic.Rath@gmx.de                                                   *
 *                                                                         *
 *   Copyright (C) 2008 by Spencer Oliver                                  *
 *   spen@spen-soft.co.uk                                                  *
-*                                                                         *
-*   Copyright (C) 2009 by SoftPLC Corporation.  http://softplc.com        *
-*	Dick Hollenbeck <dick@softplc.com>                                    *
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
@@ -1707,6 +1710,11 @@ static int ft2232_execute_reset(jtag_command_t *cmd)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		require_send = 0;
 		first_unsent = cmd;
+	}
+
+	if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
+	{
+		tap_set_state(TAP_RESET);
 	}
 
 	layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
