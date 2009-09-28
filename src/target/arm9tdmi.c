@@ -45,13 +45,9 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* cli handling */
-int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 /* forward declarations */
-int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp);
-
-int arm9tdmi_quit(void);
+static int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp);
+static int arm9tdmi_quit(void);
 
 target_type_t arm9tdmi_target =
 {
@@ -92,7 +88,7 @@ target_type_t arm9tdmi_target =
 	.quit = arm9tdmi_quit
 };
 
-arm9tdmi_vector_t arm9tdmi_vectors[] =
+static arm9tdmi_vector_t arm9tdmi_vectors[] =
 {
 	{"reset", ARM9TDMI_RESET_VECTOR},
 	{"undef", ARM9TDMI_UNDEF_VECTOR},
@@ -368,7 +364,8 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	return ERROR_OK;
 }
 
-void arm9tdmi_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
+static void arm9tdmi_change_to_arm(target_t *target,
+		uint32_t *r0, uint32_t *pc)
 {
 	int retval = ERROR_OK;
 	/* get pointers to arch-specific information */
@@ -449,7 +446,8 @@ void arm9tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_reg
 	}
 }
 
-void arm9tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void* buffer, int size)
+static void arm9tdmi_read_core_regs_target_buffer(target_t *target,
+		uint32_t mask, void* buffer, int size)
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -490,7 +488,7 @@ void arm9tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void
 	}
 }
 
-void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
+static void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -514,7 +512,7 @@ void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, xpsr, 0);
 }
 
-void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
+static void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -550,7 +548,8 @@ void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void arm9tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
+static void arm9tdmi_write_xpsr_im8(target_t *target,
+		uint8_t xpsr_im, int rot, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -675,7 +674,7 @@ void arm9tdmi_store_byte_reg(target_t *target, int num)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 }
 
-void arm9tdmi_write_pc(target_t *target, uint32_t pc)
+static void arm9tdmi_write_pc(target_t *target, uint32_t pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -712,7 +711,7 @@ void arm9tdmi_branch_resume(target_t *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 }
 
-void arm9tdmi_branch_resume_thumb(target_t *target)
+static void arm9tdmi_branch_resume_thumb(target_t *target)
 {
 	LOG_DEBUG("-");
 
@@ -806,7 +805,7 @@ void arm9tdmi_disable_single_step(target_t *target)
 	}
 }
 
-void arm9tdmi_build_reg_cache(target_t *target)
+static void arm9tdmi_build_reg_cache(target_t *target)
 {
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	/* get pointers to arch-specific information */
@@ -861,7 +860,7 @@ int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int arm9tdmi_quit(void)
+static int arm9tdmi_quit(void)
 {
 	return ERROR_OK;
 }
@@ -931,7 +930,9 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_
 	return ERROR_OK;
 }
 
-int arm9tdmi_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm9tdmi_common_t **arm9tdmi_p)
+static int arm9tdmi_get_arch_pointers(target_t *target,
+		armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
+		arm9tdmi_common_t **arm9tdmi_p)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9;
@@ -961,7 +962,7 @@ int arm9tdmi_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, a
 	return ERROR_OK;
 }
 
-int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm9tdmi_common_t *arm9tdmi = calloc(1,sizeof(arm9tdmi_common_t));
 
@@ -971,23 +972,8 @@ int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
-{
-	int retval;
-	command_t *arm9tdmi_cmd;
-
-	retval = arm7_9_register_commands(cmd_ctx);
-	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi",
-			NULL, COMMAND_ANY,
-			"arm9tdmi specific commands");
-	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch",
-			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
-			"catch arm9 vectors ['all'|'none'|'<vec1 vec2 ...>']");
-
-	return retval;
-}
-
-int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_arm9tdmi_catch_vectors_command(
+	struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
@@ -1069,3 +1055,20 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 
 	return ERROR_OK;
 }
+
+int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
+{
+	int retval;
+	command_t *arm9tdmi_cmd;
+
+	retval = arm7_9_register_commands(cmd_ctx);
+	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi",
+			NULL, COMMAND_ANY,
+			"arm9tdmi specific commands");
+	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch",
+			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
+			"catch arm9 vectors ['all'|'none'|'<vec1 vec2 ...>']");
+
+	return retval;
+}
+
