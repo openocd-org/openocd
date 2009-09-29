@@ -1,8 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
  *   oyvind.harboe@zylin.com                                               *
- *                                                                         *
- *   Copyright (C) 2008 Free Software Foundation
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -198,6 +196,7 @@ static void append_key(struct httpd_request *r, const char *key,
 		const char *data, size_t off, size_t size)
 {
 	Jim_Obj *keyObj = Jim_NewStringObj(interp, key, -1);
+	Jim_IncrRefCount(keyObj);
 	Jim_Obj *value = NULL;
 
 	Jim_Obj *dict = Jim_GetVariableStr(interp, "httppostdata", 0);
@@ -208,16 +207,32 @@ static void append_key(struct httpd_request *r, const char *key,
 		{
 			 value = NULL;
 		}
+		else
+		{
+			Jim_IncrRefCount(value);
+		}
 	}
+
 	if (value == NULL)
+	{
 		value = Jim_NewStringObj(interp, "", -1);
+		Jim_IncrRefCount(value);
+
+	}
 
 	/* create a new object we append to and insert into this location */
 	Jim_Obj *newObj = Jim_NewStringObj(interp, "", -1);
+	Jim_IncrRefCount(newObj);
 	Jim_AppendObj(interp, newObj, value);
 	Jim_AppendString(interp, newObj, data, size);
 	/* uhh... use name here of dictionary */
-	Jim_SetDictKeysVector(interp, Jim_NewStringObj(interp, "httppostdata", -1), &keyObj, 1, newObj);
+	dict = Jim_NewStringObj(interp, "httppostdata", -1);
+	Jim_IncrRefCount(dict);
+	Jim_SetDictKeysVector(interp, dict, &keyObj, 1, newObj);
+	Jim_DecrRefCount(interp, dict);
+	Jim_DecrRefCount(interp, value);
+	Jim_DecrRefCount(interp, newObj);
+	Jim_DecrRefCount(interp, keyObj);
 }
 
 /* append data to each key */
