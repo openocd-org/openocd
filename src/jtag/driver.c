@@ -489,6 +489,11 @@ void interface_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t
 
 int interface_jtag_execute_queue(void)
 {
+	static int reentry = 0;
+
+	assert(reentry==0);
+	reentry++;
+
 	int retval = default_interface_jtag_execute_queue();
 	if (retval == ERROR_OK)
 	{
@@ -503,6 +508,8 @@ int interface_jtag_execute_queue(void)
 
 	jtag_command_queue_reset();
 	jtag_callback_queue_reset();
+
+	reentry--;
 
 	return retval;
 }
