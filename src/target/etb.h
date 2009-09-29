@@ -57,11 +57,5 @@ typedef struct etb_reg_s
 extern etm_capture_driver_t etb_capture_driver;
 
 extern reg_cache_t* etb_build_reg_cache(etb_t *etb);
-extern int etb_read_reg(reg_t *reg);
-extern int etb_write_reg(reg_t *reg, uint32_t value);
-extern int etb_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask);
-extern int etb_store_reg(reg_t *reg);
-extern int etb_set_reg(reg_t *reg, uint32_t value);
-extern int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf);
 
 #endif /* ETB_H */

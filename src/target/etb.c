@@ -96,6 +96,33 @@ static int etb_scann(etb_t *etb, uint32_t new_scan_chain)
 	return ERROR_OK;
 }
 
+static int etb_read_reg_w_check(reg_t *, uint8_t *, uint8_t *);
+static int etb_set_reg_w_exec(reg_t *, uint8_t *);
+
+static int etb_read_reg(reg_t *reg)
+{
+	return etb_read_reg_w_check(reg, NULL, NULL);
+}
+
+static int etb_get_reg(reg_t *reg)
+{
+	int retval;
+
+	if ((retval = etb_read_reg(reg)) != ERROR_OK)
+	{
+		LOG_ERROR("BUG: error scheduling etm register read");
+		return retval;
+	}
+
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		LOG_ERROR("register read failed");
+		return retval;
+	}
+
+	return ERROR_OK;
+}
+
 reg_cache_t* etb_build_reg_cache(etb_t *etb)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
@@ -138,29 +165,10 @@ reg_cache_t* etb_build_reg_cache(etb_t *etb)
 	return reg_cache;
 }
 
-static int etb_get_reg(reg_t *reg)
-{
-	int retval;
-
-	if ((retval = etb_read_reg(reg)) != ERROR_OK)
-	{
-		LOG_ERROR("BUG: error scheduling etm register read");
-		return retval;
-	}
-
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_ERROR("register read failed");
-		return retval;
-	}
-
-	return ERROR_OK;
-}
-
-
 static void etb_getbuf(jtag_callback_data_t arg)
 {
-  uint8_t *in = (uint8_t *)arg;
+	uint8_t *in = (uint8_t *)arg;
+
 	*((uint32_t *)in) = buf_get_u32(in, 0, 32);
 }
 
@@ -218,7 +226,8 @@ static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
 	return ERROR_OK;
 }
 
-int etb_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
+static int etb_read_reg_w_check(reg_t *reg,
+		uint8_t* check_value, uint8_t* check_mask)
 {
 	etb_reg_t *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
@@ -271,12 +280,9 @@ int etb_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
 	return ERROR_OK;
 }
 
-int etb_read_reg(reg_t *reg)
-{
-	return etb_read_reg_w_check(reg, NULL, NULL);
-}
+static int etb_write_reg(reg_t *, uint32_t);
 
-int etb_set_reg(reg_t *reg, uint32_t value)
+static int etb_set_reg(reg_t *reg, uint32_t value)
 {
 	int retval;
 
@@ -293,7 +299,7 @@ int etb_set_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
+static int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -307,7 +313,7 @@ int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int etb_write_reg(reg_t *reg, uint32_t value)
+static int etb_write_reg(reg_t *reg, uint32_t value)
 {
 	etb_reg_t *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
@@ -343,11 +349,6 @@ int etb_write_reg(reg_t *reg, uint32_t value)
 	free(fields[2].out_value);
 
 	return ERROR_OK;
-}
-
-int etb_store_reg(reg_t *reg)
-{
-	return etb_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
 static int etb_register_commands(struct command_context_s *cmd_ctx)
