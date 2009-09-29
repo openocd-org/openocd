@@ -61,6 +61,8 @@ static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *c
 static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_nsrst_assert_width_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_ntrst_assert_width_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -619,6 +621,10 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_ANY, "jtag_nsrst_delay <ms> - delay after deasserting srst in ms");
 	register_command(cmd_ctx, NULL, "jtag_ntrst_delay", handle_jtag_ntrst_delay_command,
 		COMMAND_ANY, "jtag_ntrst_delay <ms> - delay after deasserting trst in ms");
+	register_command(cmd_ctx, NULL, "jtag_nsrst_assert_width", handle_jtag_nsrst_assert_width_command,
+		COMMAND_ANY, "jtag_nsrst_assert_width <ms> - delay after asserting srst in ms");
+	register_command(cmd_ctx, NULL, "jtag_ntrst_assert_width", handle_jtag_ntrst_assert_width_command,
+		COMMAND_ANY, "jtag_ntrst_assert_width <ms> - delay after asserting trst in ms");
 
 	register_command(cmd_ctx, NULL, "scan_chain", handle_scan_chain_command,
 		COMMAND_EXEC, "print current scan chain configuration");
@@ -976,6 +982,40 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
 		jtag_set_ntrst_delay(delay);
 	}
 	command_print(cmd_ctx, "jtag_ntrst_delay: %u", jtag_get_ntrst_delay());
+	return ERROR_OK;
+}
+
+static int handle_jtag_nsrst_assert_width_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (argc == 1)
+	{
+		unsigned delay;
+		int retval = parse_uint(args[0], &delay);
+		if (ERROR_OK != retval)
+			return retval;
+		jtag_set_nsrst_assert_width(delay);
+	}
+	command_print(cmd_ctx, "jtag_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	return ERROR_OK;
+}
+
+static int handle_jtag_ntrst_assert_width_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (argc == 1)
+	{
+		unsigned delay;
+		int retval = parse_uint(args[0], &delay);
+		if (ERROR_OK != retval)
+			return retval;
+		jtag_set_ntrst_assert_width(delay);
+	}
+	command_print(cmd_ctx, "jtag_ntrst_assert_width: %u", jtag_get_ntrst_assert_width());
 	return ERROR_OK;
 }
 

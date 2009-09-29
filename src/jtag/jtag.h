@@ -289,6 +289,12 @@ unsigned jtag_get_nsrst_delay(void);
 void jtag_set_ntrst_delay(unsigned delay);
 unsigned jtag_get_ntrst_delay(void);
 
+void jtag_set_nsrst_assert_width(unsigned delay);
+unsigned jtag_get_nsrst_assert_width(void);
+
+void jtag_set_ntrst_assert_width(unsigned delay);
+unsigned jtag_get_ntrst_assert_width(void);
+
 /// @returns The current state of TRST.
 int jtag_get_trst(void);
 /// @returns The current state of SRST.
