@@ -34,6 +34,20 @@
 
 #define PAGE_NOT_FOUND "<html><head><title > File not found</title></head><body > File not found</body></html>"
 
+static pthread_mutex_t mutex;
+
+void openocd_sleep_prelude(void)
+{
+	pthread_mutex_unlock(&mutex);
+}
+
+void openocd_sleep_postlude(void)
+{
+	pthread_mutex_lock(&mutex);
+}
+
+
+
 int loadFile(const char *name, void **data, size_t *len);
 
 static const char *appendf(const char *prev, const char *format, ...)
@@ -184,7 +198,9 @@ static void request_completed(void *cls, struct MHD_Connection *connection,
 
 	if (r->postprocessor)
 	{
+		openocd_sleep_postlude();
 		MHD_destroy_post_processor(r->postprocessor);
+		openocd_sleep_prelude();
 	}
 
 	free(r);
@@ -257,7 +273,7 @@ static int record_arg(void *cls, enum MHD_ValueKind kind, const char *key,
 }
 
 
-int handle_request(struct MHD_Connection * connection, const char * url)
+static int handle_request(struct MHD_Connection * connection, const char * url)
 {
 	struct MHD_Response * response;
 
@@ -335,7 +351,7 @@ int handle_request(struct MHD_Connection * connection, const char * url)
 	}
 }
 
-static int ahc_echo(void * cls, struct MHD_Connection * connection,
+static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 		const char * url, const char * method, const char * version,
 		const char * upload_data, unsigned int * upload_data_size, void ** ptr)
 {
@@ -423,9 +439,23 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 	return result;
 }
 
-static struct MHD_Daemon * d;
-static pthread_mutex_t mutex;
 
+static int ahc_echo(void * cls, struct MHD_Connection * connection,
+		const char * url, const char * method, const char * version,
+		const char * upload_data, unsigned int * upload_data_size, void ** ptr)
+{
+	int result;
+
+	openocd_sleep_postlude();
+
+	result = ahc_echo_inner(cls, connection, url, method, version, upload_data, upload_data_size, ptr);
+
+	openocd_sleep_prelude();
+
+	return result;
+}
+
+static struct MHD_Daemon * d;
 
 int httpd_start(void)
 {
@@ -462,15 +492,5 @@ void httpd_stop(void)
 {
 	MHD_stop_daemon(d);
 	pthread_mutex_destroy(&mutex);
-}
-
-void openocd_sleep_prelude(void)
-{
-	pthread_mutex_unlock(&mutex);
-}
-
-void openocd_sleep_postlude(void)
-{
-	pthread_mutex_lock(&mutex);
 }
 
