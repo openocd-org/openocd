@@ -1905,19 +1905,6 @@ int arm11_handle_bool_##name(struct command_context_s *cmd_ctx, char *cmd, char 
 	return arm11_handle_bool(cmd_ctx, cmd, args, argc, &arm11_config_##name, print_name); \
 }
 
-#define RC_TOP(name, descr, more)  \
-{ \
-	command_t * new_cmd = register_command(cmd_ctx, top_cmd, name, NULL, COMMAND_ANY, descr);  \
-	command_t * top_cmd = new_cmd; \
-	more \
-}
-
-#define RC_FINAL(name, descr, handler)	\
-	register_command(cmd_ctx, top_cmd, name, handler, COMMAND_ANY, descr);
-
-#define RC_FINAL_BOOL(name, descr, var)  \
-	register_command(cmd_ctx, top_cmd, name, arm11_handle_bool_##var, COMMAND_ANY, descr);
-
 BOOL_WRAPPER(memwrite_burst,			"memory write burst mode")
 BOOL_WRAPPER(memwrite_error_fatal,		"fatal error mode for memory writes")
 BOOL_WRAPPER(memrw_no_increment,		"\"no increment\" mode for memory transfers")
@@ -2069,36 +2056,49 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 {
 	FNC_INFO;
 
-	command_t * top_cmd = NULL;
+	command_t *top_cmd, *mw_cmd;
 
-	RC_TOP("arm11",				"arm11 specific commands",
+	top_cmd = register_command(cmd_ctx, NULL, "arm11",
+			NULL, COMMAND_ANY, NULL);
 
-	RC_TOP("memwrite",				"Control memory write transfer mode",
+	/* "hardware_step" is only here to check if the default
+	 * simulate + breakpoint implementation is broken.
+	 * TEMPORARY! NOT DOCUMENTED!
+	 */
+	register_command(cmd_ctx, top_cmd, "hardware_step",
+			arm11_handle_bool_hardware_step, COMMAND_ANY,
+			"DEBUG ONLY - Hardware single stepping"
+				" (default: disabled)");
 
-		RC_FINAL_BOOL("burst",				"Enable/Disable non-standard but fast burst mode (default: enabled)",
-						memwrite_burst)
+	register_command(cmd_ctx, top_cmd, "mcr",
+			arm11_handle_mcr, COMMAND_ANY,
+			"Write Coprocessor register");
 
-		RC_FINAL_BOOL("error_fatal",			"Terminate program if transfer error was found (default: enabled)",
-						memwrite_error_fatal)
-) /* memwrite */
+	mw_cmd = register_command(cmd_ctx, top_cmd, "memwrite",
+			NULL, COMMAND_ANY, NULL);
+	register_command(cmd_ctx, mw_cmd, "burst",
+			arm11_handle_bool_memwrite_burst, COMMAND_ANY,
+			"Enable/Disable non-standard but fast burst mode"
+				" (default: enabled)");
+	register_command(cmd_ctx, mw_cmd, "error_fatal",
+			arm11_handle_bool_memwrite_error_fatal, COMMAND_ANY,
+			"Terminate program if transfer error was found"
+				" (default: enabled)");
 
-	RC_FINAL_BOOL("no_increment",			"Don't increment address on multi-read/-write (default: disabled)",
-						memrw_no_increment)
-
-RC_FINAL_BOOL("step_irq_enable",		"Enable interrupts while stepping (default: disabled)",
-					step_irq_enable)
-RC_FINAL_BOOL("hardware_step",		"hardware single stepping. By default use simulate + breakpoint. This command is only here to check if simulate + breakpoint implementation is broken.",
-					hardware_step)
-
-	RC_FINAL("vcr",					"Control (Interrupt) Vector Catch Register",
-						arm11_handle_vcr)
-
-	RC_FINAL("mrc",					"Read Coprocessor register",
-						arm11_handle_mrc)
-
-	RC_FINAL("mcr",					"Write Coprocessor register",
-						arm11_handle_mcr)
-) /* arm11 */
+	register_command(cmd_ctx, top_cmd, "mrc",
+			arm11_handle_mrc, COMMAND_ANY,
+			"Read Coprocessor register");
+	register_command(cmd_ctx, top_cmd, "no_increment",
+			arm11_handle_bool_memrw_no_increment, COMMAND_ANY,
+			"Don't increment address on multi-read/-write"
+				" (default: disabled)");
+	register_command(cmd_ctx, top_cmd, "step_irq_enable",
+			arm11_handle_bool_step_irq_enable, COMMAND_ANY,
+			"Enable interrupts while stepping"
+				" (default: disabled)");
+	register_command(cmd_ctx, top_cmd, "vcr",
+			arm11_handle_vcr, COMMAND_ANY,
+			"Control (Interrupt) Vector Catch Register");
 
 	return ERROR_OK;
 }

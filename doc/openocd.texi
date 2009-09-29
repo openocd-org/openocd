@@ -5496,8 +5496,21 @@ If @var{value} is defined, first assigns that.
 @deffn Command {arm11 step_irq_enable}  [value]
 Displays the value of the flag controlling whether
 IRQs are enabled during single stepping;
-they is disabled by default.
+they are disabled by default.
 If @var{value} is defined, first assigns that.
+@end deffn
+
+@deffn Command {arm11 vcr} [value]
+@cindex vector_catch
+Displays the value of the @emph{Vector Catch Register (VCR)},
+coprocessor 14 register 7.
+If @var{value} is defined, first assigns that.
+
+Vector Catch hardware provides dedicated breakpoints
+for certain hardware events.
+The specific bit values are core-specific (as in fact is using
+coprocessor 14 register 7 itself) but all current ARM11
+cores @emph{except the ARM1176} use the same six bits.
 @end deffn
 
 @section ARMv7 Architecture
