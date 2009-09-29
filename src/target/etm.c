@@ -68,6 +68,7 @@ struct etm_reg_info {
 
 /*
  * Registers 0..0x7f are JTAG-addressable using scanchain 6.
+ * (Or on some processors, through coprocessor operations.)
  * Newer versions of ETM make some W/O registers R/W, and
  * provide definitions for some previously-unused bits.
  */
@@ -154,7 +155,7 @@ static const struct etm_reg_info etm_data_comp[] = {
 };
 
 static const struct etm_reg_info etm_counters[] = {
-#define COUNTER(i) \
+#define ETM_COUNTER(i) \
 		{ ETM_COUNTER_RELOAD_VALUE + (i), 16, WO, 0x10, \
 				"ETM_COUNTER_RELOAD_VALUE" #i, }, \
 		{ ETM_COUNTER_ENABLE + (i), 18, WO, 0x10, \
@@ -163,38 +164,38 @@ static const struct etm_reg_info etm_counters[] = {
 				"ETM_COUNTER_RELOAD_EVENT" #i, }, \
 		{ ETM_COUNTER_VALUE + (i), 16, RO, 0x10, \
 				"ETM_COUNTER_VALUE" #i, }
-	COUNTER(0),
-	COUNTER(1),
-	COUNTER(2),
-	COUNTER(3),
-#undef COUNTER
+	ETM_COUNTER(0),
+	ETM_COUNTER(1),
+	ETM_COUNTER(2),
+	ETM_COUNTER(3),
+#undef ETM_COUNTER
 };
 
 static const struct etm_reg_info etm_sequencer[] = {
-#define SEQ(i) \
+#define ETM_SEQ(i) \
 		{ ETM_SEQUENCER_EVENT + (i), 17, WO, 0x10, \
 				"ETM_SEQUENCER_EVENT" #i, }
-	SEQ(0),				/* 1->2 */
-	SEQ(1),				/* 2->1 */
-	SEQ(2),				/* 2->3 */
-	SEQ(3),				/* 3->1 */
-	SEQ(4),				/* 3->2 */
-	SEQ(5),				/* 1->3 */
-#undef SEQ
+	ETM_SEQ(0),				/* 1->2 */
+	ETM_SEQ(1),				/* 2->1 */
+	ETM_SEQ(2),				/* 2->3 */
+	ETM_SEQ(3),				/* 3->1 */
+	ETM_SEQ(4),				/* 3->2 */
+	ETM_SEQ(5),				/* 1->3 */
+#undef ETM_SEQ
 	/* 0x66 reserved */
 	{ ETM_SEQUENCER_STATE,  2, RO, 0x10, "ETM_SEQUENCER_STATE", },
 };
 
 static const struct etm_reg_info etm_outputs[] = {
-#define OUT(i) \
+#define ETM_OUTPUT(i) \
 		{ ETM_EXTERNAL_OUTPUT + (i), 17, WO, 0x10, \
 				"ETM_EXTERNAL_OUTPUT" #i, }
 
-	OUT(0),
-	OUT(1),
-	OUT(2),
-	OUT(3),
-#undef OUT
+	ETM_OUTPUT(0),
+	ETM_OUTPUT(1),
+	ETM_OUTPUT(2),
+	ETM_OUTPUT(3),
+#undef ETM_OUTPUT
 };
 
 #if 0
