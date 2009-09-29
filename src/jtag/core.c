@@ -959,10 +959,14 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 	{
 		if (tap->idcode == tap->expected_ids[ii])
 			return true;
+
+		/* treat "-expected-id 0" as a "don't-warn" wildcard */
+		if (0 == tap->expected_ids[ii])
+			return true;
 	}
 
-	/* If none of the expected ids matched, log an error */
-	jtag_examine_chain_display(LOG_LVL_ERROR, "UNEXPECTED",
+	/* If none of the expected ids matched, warn */
+	jtag_examine_chain_display(LOG_LVL_WARNING, "UNEXPECTED",
 			tap->dotted_name, tap->idcode);
 	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
 	{
@@ -1025,7 +1029,7 @@ static int jtag_examine_chain(void)
 		}
 		tap->idcode = idcode;
 
-		// ensure the TAP ID does matches what was expected
+		/* ensure the TAP ID matches what was expected */
 		if (!jtag_examine_chain_match_tap(tap))
 			return ERROR_JTAG_INIT_FAILED;
 	}

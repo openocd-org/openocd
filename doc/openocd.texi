@@ -1253,7 +1253,7 @@ to source such a config file twice, with different
 values for @code{CHIPNAME}, so
 it adds a different TAP each time.
 
-If there are one or more nonzero @option{-expected-id} values,
+If there are nonzero @option{-expected-id} values,
 OpenOCD attempts to verify the actual tap id against those values.
 It will issue error messages if there is mismatch, which
 can help to pinpoint problems in OpenOCD configurations.
@@ -2373,11 +2373,13 @@ You may use @code{-enable} to highlight the default state
 (the TAP is linked in).
 @xref{Enabling and Disabling TAPs}.
 @item @code{-expected-id} @var{number}
-@*A non-zero value represents the expected 32-bit IDCODE
-found when the JTAG chain is examined.
+@*A non-zero @var{number} represents a 32-bit IDCODE
+which you expect to find when the scan chain is examined.
 These codes are not required by all JTAG devices.
 @emph{Repeat the option} as many times as required if more than one
 ID code could appear (for example, multiple versions).
+Specify @var{number} as zero to suppress warnings about IDCODE
+values that were found but not included in the list.
 @item @code{-ircapture} @var{NUMBER}
 @*The bit pattern loaded by the TAP into the JTAG shift register
 on entry to the @sc{ircapture} state, such as 0x01.
