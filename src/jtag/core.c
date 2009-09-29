@@ -1058,6 +1058,9 @@ static int jtag_examine_chain(void)
  * Validate the date loaded by entry to the Capture-IR state, to help
  * find errors related to scan chain configuration (wrong IR lengths)
  * or communication.
+ *
+ * Entry state can be anything.  On non-error exit, all TAPs are in
+ * bypass mode.  On error exits, the scan chain is reset.
  */
 static int jtag_validate_ircapture(void)
 {
@@ -1066,23 +1069,21 @@ static int jtag_validate_ircapture(void)
 	uint8_t *ir_test = NULL;
 	scan_field_t field;
 	int chain_pos = 0;
+	int retval;
 
-	tap = NULL;
-	total_ir_length = 0;
-	for (;;) {
-		tap = jtag_tap_next_enabled(tap);
-		if (tap == NULL) {
-			break;
-		}
-		total_ir_length += tap->ir_length;
-	}
+	for (tap = NULL, total_ir_length = 0;
+			(tap = jtag_tap_next_enabled(tap)) != NULL;
+			total_ir_length += tap->ir_length)
+		continue;
 
+	/* increase length to add 2 bit sentinel after scan */
 	total_ir_length += 2;
 
 	ir_test = malloc(CEIL(total_ir_length, 8));
 	if (ir_test == NULL)
 		return ERROR_FAIL;
 
+	/* after this scan, all TAPs will capture BYPASS instructions */
 	buf_set_ones(ir_test, total_ir_length);
 
 	field.tap = NULL;
@@ -1090,14 +1091,12 @@ static int jtag_validate_ircapture(void)
 	field.out_value = ir_test;
 	field.in_value = ir_test;
 
+	jtag_add_plain_ir_scan(1, &field, TAP_IDLE);
 
-	jtag_add_plain_ir_scan(1, &field, TAP_IRPAUSE);
-	jtag_add_tlr();
-
-	int retval;
+	LOG_DEBUG("IR capture validation scan");
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
-		return retval;
+		goto done;
 
 	tap = NULL;
 	chain_pos = 0;
@@ -1119,14 +1118,9 @@ static int jtag_validate_ircapture(void)
 			LOG_ERROR("%s: IR capture error; saw 0x%s not 0x..1",
 					jtag_tap_name(tap), cbuf);
 
-			/* Fail only if we have IDCODE for this device.
-			 * REVISIT -- why not fail-always?
-			 */
-			if (tap->hasidcode) {
-				free(cbuf);
-				free(ir_test);
-				return ERROR_JTAG_INIT_FAILED;
-			}
+			free(cbuf);
+			retval = ERROR_JTAG_INIT_FAILED;
+			goto done;
 		}
 		chain_pos += tap->ir_length;
 	}
@@ -1140,13 +1134,16 @@ static int jtag_validate_ircapture(void)
 		LOG_ERROR("IR capture error at bit %d, saw 0x%s not 0x...3",
 				chain_pos, cbuf);
 		free(cbuf);
-		free(ir_test);
-		return ERROR_JTAG_INIT_FAILED;
+		retval = ERROR_JTAG_INIT_FAILED;
 	}
 
+done:
 	free(ir_test);
-
-	return ERROR_OK;
+	if (retval != ERROR_OK) {
+		jtag_add_tlr();
+		jtag_execute_queue();
+	}
+	return retval;
 }
 
 
