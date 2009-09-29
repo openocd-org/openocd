@@ -845,6 +845,54 @@ the main bootloader code (which won't fit into that SRAM).
 Other helper scripts might be used to write production system images,
 involving considerably more than just a three stage bootloader.
 
+@section Target Software Changes
+
+Sometimes you may want to make some small changes to the software
+you're developing, to help make JTAG debugging work better.
+For example, in C or assembly language code you might
+use @code{#ifdef JTAG_DEBUG} (or its converse) around code
+handling issues like:
+
+@itemize @bullet
+
+@item @b{ARM Wait-For-Interrupt}...
+Many ARM chips synchronize the JTAG clock using the core clock.
+Low power states which stop that core clock thus prevent JTAG access.
+Idle loops in tasking environments often enter those low power states
+via the @code{WFI} instruction (or its coprocessor equivalent, before ARMv7).
+
+You may want to @emph{disable that instruction} in source code,
+or otherwise prevent using that state,
+to ensure you can get JTAG access at any time.
+For example, the OpenOCD @command{halt} command may not
+work for an idle processor otherwise.
+
+@item @b{Delay after reset}...
+Not all chips have good support for debugger access
+right after reset; many LPC2xxx chips have issues here.
+Similarly, applications that reconfigure pins used for
+JTAG access as they start will also block debugger access.
+
+To work with boards like this, @emph{enable a short delay loop}
+the first thing after reset, before "real" startup activities.
+For example, one second's delay is usually more than enough
+time for a JTAG debugger to attach, so that
+early code execution can be debugged
+or firmware can be replaced.
+
+@item @b{Debug Communications Channel (DCC)}...
+Some processors include mechanisms to send messages over JTAG.
+Many ARM cores support these, as do some cores from other vendors.
+(OpenOCD may be able to use this DCC internally, speeding up some
+operations like writing to memory.)
+
+Your application may want to deliver various debugging messages
+over JTAG, by @emph{linking with a small library of code}
+provided with OpenOCD and using the utilities there to send
+various kinds of message.
+@xref{Software Debug Messages and Tracing}.
+
+@end itemize
 
 @node Config File Guidelines
 @chapter Config File Guidelines
@@ -2462,7 +2510,7 @@ If necessary, disables the tap
 by sending it a @option{tap-disable} event.
 Returns the string "1" if the tap
 specified by @var{dotted.name} is enabled,
-and "0" if it is disbabled.
+and "0" if it is disabled.
 @end deffn
 
 @deffn Command {jtag tapenable} dotted.name
@@ -2470,13 +2518,13 @@ If necessary, enables the tap
 by sending it a @option{tap-enable} event.
 Returns the string "1" if the tap
 specified by @var{dotted.name} is enabled,
-and "0" if it is disbabled.
+and "0" if it is disabled.
 @end deffn
 
 @deffn Command {jtag tapisenabled} dotted.name
 Returns the string "1" if the tap
 specified by @var{dotted.name} is enabled,
-and "0" if it is disbabled.
+and "0" if it is disabled.
 
 @quotation Note
 Humans will find the @command{scan_chain} command more helpful
@@ -5600,7 +5648,7 @@ as used by Linux with CONFIG_DEBUG_ICEDCC;
 otherwise the libdcc format is used.
 @end deffn
 
-@deffn Command {trace history} (@option{clear}|count)
+@deffn Command {trace history} [@option{clear}|count]
 With no parameter, displays all the trace points that have triggered
 in the order they triggered.
 With the parameter @option{clear}, erases all current trace history records.
@@ -5608,7 +5656,7 @@ With a @var{count} parameter, allocates space for that many
 history records.
 @end deffn
 
-@deffn Command {trace point} (@option{clear}|identifier)
+@deffn Command {trace point} [@option{clear}|identifier]
 With no parameter, displays all trace point identifiers and how many times
 they have been triggered.
 With the parameter @option{clear}, erases all current trace point counters.
