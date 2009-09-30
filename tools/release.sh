@@ -282,9 +282,10 @@ do_version_usage() {
 usage: $0 version <command>
 Version Commands:
   tag {add|remove} <label>     Add or remove the specified tag.
-  bump {major|minor|micro|rc}  Bump the specified version number;
-                               resets less-significant numbers to zero.
-			       All but 'rc' releases drop that tag.
+  bump {major|minor|micro}     Bump the specified version number, and
+                               reset less-significant numbers to zero.
+  bump tag <label>             Add or bump a versioned tag (e.g. -rcN).
+  bump final <label>           Remove a versioned tag (e.g. -rcN).
 USAGE
 }
 
@@ -319,7 +320,7 @@ do_version_bump_tag() {
 	[ "${TAG}" ] || die "TAG argument is missing"
 	local TAGS="${PACKAGE_VERSION_TAGS}"
 	if has_version_tag "${TAG}"; then
-		local RC=$(echo ${TAGS} | perl -ne "/-${TAG}"'(\d+)/ && print $1')
+		local RC=$(do_version_tag_value "${TAG}")
 		RC=$((${RC} + 1))
 		TAGS=$(echo ${TAGS} | perl -npe "s/-${TAG}[\\d]*/-${TAG}${RC}/")
 	else
@@ -328,12 +329,17 @@ do_version_bump_tag() {
 	PACKAGE_VERSION_TAGS="${TAGS}"
 	do_version_bump_sed "${PACKAGE_VERSION_BASE}"
 }
-do_version_bump_rc() { do_version_bump_tag 'rc'; }
+do_version_bump_final() {
+	local TAG="$1"
+	[ "${TAG}" ] || die "TAG argument is missing"
+	has_version_tag "${TAG}" || die "-${TAG} tag is missing"
+	do_version_tag_remove "${TAG}$(do_version_tag_value "${TAG}")"
+}
 do_version_bump() {
 	CMD="$1"
 	shift
 	case "${CMD}" in
-	major|minor|micro|rc|tag)
+	major|minor|micro|final|tag)
 		eval "do_version_bump_${CMD}" "$@"
 		;;
 	*)
@@ -345,7 +351,10 @@ do_version_bump() {
 has_version_tag() {
 	test "${PACKAGE_VERSION/-${1}/}" != "${PACKAGE_VERSION}"
 }
-
+do_version_tag_value() {
+	local TAG="$1"
+	echo ${PACKAGE_VERSION_TAGS} | perl -ne "/-${TAG}"'(\d+)/ && print $1'
+}
 do_version_tag_add() {
 	local TAG="$1"
 	has_version_tag "${TAG}" && \
