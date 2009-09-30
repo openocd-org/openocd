@@ -75,7 +75,7 @@ do_svn() {
 	[ "${RELEASE_DRY_RUN}" ] || svn "$@"
 }
 do_svn_switch() {
-	do_svn switch "$1"
+	do_svn switch "$@"
 	package_info_load
 }
 
@@ -440,14 +440,13 @@ do_release_step_branch() {
 	do_version_commit "$(do_release_step_branch_bump micro)"
 	do_svn_switch "${SVN_URL}"
 }
-do_release_step_bump() {
-	# major and minor releases require branch version update too
-	[ "${RELEASE_TYPE}" = "micro" ] || do_release_step_branch
-	# bump the current tree version as required.
-	do_version_commit "$(do_release_step_branch_bump "${RELEASE_TYPE}")"
-
-	[ "${RELEASE_TYPE}" = "micro" ] && return
-
+do_release_step_news_msg() {
+	cat <<MSG
+Archive released NEWS file: NEWS -> NEWS-${RELEASE_VERSION}
+Create new NEWS file from relesse script template.
+MSG
+}
+do_release_step_news() {
 	# archive NEWS and create new one from template
 	do_svn move "NEWS" "NEWS-${RELEASE_VERSION}"
 
@@ -472,20 +471,28 @@ For more information about contributing test reports, bug fixes, or new
 features and device support, please read the new Developer Manual (or
 the BUGS and PATCHES files in the source archive).
 NEWS
+	do_svn add NEWS
 
-	MSG=<<MSG
-Archive released NEWS file: NEWS -> NEWS-${RELEASE_VERSION}
-Create new NEWS file from relesse script template.
-MSG
+	local MSG="$(do_release_step_news_msg)"
 	do_svn commit -m "${MSG}" NEWS NEWS-${RELEASE_VERSION}
+}
+do_release_step_bump() {
+	# major and minor releases require branch version update too
+	[ "${RELEASE_TYPE}" = "micro" ] || do_release_step_branch
+	# bump the current tree version as required.
+	do_version_commit "$(do_release_step_branch_bump "${RELEASE_TYPE}")"
+
+	[ "${RELEASE_TYPE}" = "micro" ] || do_release_step_news
 }
 do_release_step_package() {
 	local A=${PACKAGE_TAG}
 	local B=${A/https/http}
 	local PACKAGE_BUILD=${B/${USER}@/}
-	do_svn_switch "${PACKAGE_BUILD}"
+	do_svn_switch "${PACKAGE_TAG}"
+	do_svn_switch --relocate "${PACKAGE_TAG}" "${PACKAGE_BUILD}"
 	do_stage
 	do_clean
+	do_svn_switch --relocate "${PACKAGE_BUILD}" "${PACKAGE_TAG}"
 	do_svn_switch "${SVN_URL}"
 }
 
