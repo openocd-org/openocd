@@ -80,6 +80,7 @@ extern char* cortex_a8_state_strings[];
 #define DSCR_MON_DBG_MODE 		15
 #define DSCR_INSTR_COMP 		24
 #define DSCR_DTR_TX_FULL 		29
+#define DSCR_DTR_RX_FULL 		30
 
 typedef struct  cortex_a8_brp_s
 {
