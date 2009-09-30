@@ -212,19 +212,6 @@ do_build() {
 maybe_build() { [ -f "src/openocd" ] || do_build; }
 do_build_clean() { [ -f Makefile ] && make maintainer-clean >/dev/null; }
 
-maybe_rebuild() {
-	if [ -f "configure" ]; then
-		echo "Re-running autoconf..."
-		autoconf
-		echo "Re-running automake..."
-		automake
-	fi
-	if [ -f "Makefile" ]; then
-		do_configure
-		do_build
-	fi
-}
-
 do_changelog() {
 	echo "Updating working copy to HEAD..."
 	do_svn update
@@ -319,7 +306,6 @@ do_version_bump_sed() {
 		"Bump ${CMD} package version number"
 }
 do_version_bump_major() {
-	has_version_tag 'rc\d' do_version_
 	do_version_bump_sed "$((PACKAGE_MAJOR + 1)).0.0"
 }
 do_version_bump_minor() {
@@ -345,18 +331,20 @@ do_version_bump() {
 }
 
 has_version_tag() {
-	test "${PACKAGE_VERSION/-${TAG}/}" != "${PACKAGE_VERSION}"
+	test "${PACKAGE_VERSION/-${1}/}" != "${PACKAGE_VERSION}"
 }
 
 do_version_tag_add() {
 	local TAG="$1"
-	has_version_tag && die "error: tag '-${TAG}' exists in '${PACKAGE_VERSION}'"
+	has_version_tag "${TAG}" && \
+		die "error: tag '-${TAG}' exists in '${PACKAGE_VERSION}'"
 	do_version_sed "${PACKAGE_VERSION}-${TAG}" \
 		"Add '-${TAG}' version tag"
 }
 do_version_tag_remove() {
 	local TAG="$1"
-	has_version_tag || die "error: tag '-${TAG}' missing from '${PACKAGE_VERSION}'"
+	has_version_tag "${TAG}" || \
+		die "error: tag '-${TAG}' missing from '${PACKAGE_VERSION}'"
 	do_version_sed "${PACKAGE_VERSION/-${TAG}/}" \
 		"Remove '-${TAG}' version tag"
 }
@@ -389,13 +377,11 @@ do_version() {
 	case "${CMD}" in
 	tag|bump)
 		do_version_commit "$(eval "do_version_${CMD}" "$@")"
-		maybe_rebuild
 		;;
 	commit)
 		local MSG="$1"
 		[ "${MSG}" ] || die "usage: $0 version commit <message>"
 		do_version_commit "${MSG}"
-		maybe_rebuild
 		;;
 	*)
 		do_version_usage
