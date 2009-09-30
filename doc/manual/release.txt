@@ -14,35 +14,35 @@ This page provides an introduction to the OpenOCD Release Processes:
 
 @section releasewhy Why Produce Releases?
 
-The OpenOCD maintainers should produce <i>releases</i> periodically.  This
-section gives several reasons to explain the reasons for making releases
-on a regular basis.  These reasons lead to motivation for developing and
-following a set of <i>release processes</i>.  The actual processes are
-described in the remainder of the @ref releases sections.
+The OpenOCD maintainers produce <i>releases</i> periodically for many
+reasons.  This section provides the key reasons for making releases on a
+regular basis and why a set of <i>release processes</i> should be used
+to produce them.
 
-At any time, a "source archives" can be produced by running 'make dist'
-in the OpenOCD project tree.  With the 0.2.0 release, this command will
-produce openocd-\<version\>.{tar.gz,tar.bz2,zip} archives.  These files
-will be suitable for being released when produced properly.
+At any time, <i>source archives</i> can be produced by running
+<code>make dist</code> in the OpenOCD project tree.  With the 0.2.0
+release, this command will package the tree into several popular archive
+formats: <code>openocd-\<version\>.{tar.gz,tar.bz2,zip}</code>.  If
+produced properly, these files are suitable for release to the public.
 
 When released for users, these archives present several important
-advantages when contrasted to using the Subversion repository:
+advantages when contrasted to using the Subversion repository trunk:
 
--# They allow others to package and distribute the code to users.
+-# They allow others to package and distribute the code.
 -# They build easier for developers, because they contain
    a working configure script that was produced by the Release Manager.
 -# They prevent users from trying a random HEAD revision of the trunk.
 -# They free developers from answering questions about trunk breakage.
 
 Hopefully, this shows several good reasons to produce regular releases,
-but these release processes were developed with some additional design
+but the release processes were developed with some additional design
 goals in mind.  Specifically, the releases processes should have the
 following properties:
 
--# Produce successive sets of release archives cleanly and consistently.
--# Implementable as a script that automates the critical release steps.
--# Prevent human operators from producing bad releases, when possible.
--# Allow scheduling and automation of release process milestones.
+-# Produce successive sets of archives cleanly and consistently.
+-# Implementable as a script that automates the critical steps.
+-# Prevent human operators from producing broken packages, when possible.
+-# Allow scheduling and automation of building and publishing milestones.
 
 The current release processes are documented in the following sections.
 They attempt to meet these design goals, but there may improvements
@@ -59,6 +59,11 @@ For a <i>bug-fix</i> release, the micro version number will be non-zero
 number will be zero (<code>z = 0</code>).  For a <i>major releases</i>,
 the minor version will @a also be zero (<code>y = 0, z = 0</code>).
 
+@subsection releaseversiontags Version Tags
+
+After these required numeric components, the version string may contain
+one or more <i>version tags</i>, such as '-rc1' or '-in-development'.
+
 The trunk and all branches should have the tag '-in-development' in
 their version number.  This tag helps developers identify reports
 created from the Subversion repository, and it can be detected and
@@ -66,20 +71,38 @@ manipulated by the release script.  Specifically, this tag will be
 removed and re-added during the release process; it should never be
 manipulated by developers in submitted patches.
 
-@subsection releaseversionsdist Patched Versions
+The 'rc' tags indicate a "release candidate" version of the package.
+This tag will also be manipulated by the automated release process.
 
-Distributors of patched versions of OpenOCD are encouraged to extend
-the version string when producing external releases, as this helps to
-identify your particular distribution series.
+Additional tags may be used as necessary.
 
-@subsection releaseversionsdist Version Processes
+@subsection releaseversionsdist Packager Versions
+
+Distributors of patched versions of OpenOCD are encouraged to extend the
+version string with a unique version tag when producing external
+releases, as this helps to identify your particular distribution series.
+
+For example, the following command will add a 'foo1' tag to the
+configure.in script of a local copy of the source tree:
+
+@code
+tools/release.sh version bump tag foo
+@endcode
+
+This command will modify the configure.in script in your working copy
+only.  After running the @c bootstrap sequence, the tree can be patched
+and used to produce your own derived versions.  The same command can be
+used each time the derived package is released, incrementing the tag's
+version to facilitate tracking the changes you have distributed.
+
+@subsection releaseversionhow Version Processes
 
 The release process includes version number manipulations to the tree
 being released, ensuring that all numbers are incremented at the right
 time and in the proper locations of the repository.
 
-The version numbers for any branch should monotonically
-increase to the next successive integer, except when reset to zero
+The version numbers for any branch should increase monotonically
+to the next successive integer, except when reset to zero
 during major or minor releases.  The community should decide when
 major and minor milestones will be released.
 
@@ -169,7 +192,7 @@ than allowing the release cycle to be delayed while waiting for them.
 
 Despite any assurances this schedule may appear to give, the Release
 Manager cannot schedule the work that will be done on the project,
-when it will be submitted, review, and deemed suitable to be committed.
+when it will be submitted, reviewed, and deemed suitable to be committed.
 In this way, the RM cannot act as a priest in a cathedral; OpenOCD uses
 the bazaar development model.  The release schedule must adapt
 continuously in response to changes in the rate of churn.
@@ -179,7 +202,7 @@ expectation of a fairly high rate of development.  Fewer releases may be
 required if developers contribute less patches, and more releases may be
 desirable if the project continues to grow and experience high rates of
 community contribution.  During each cycle, the RM should be tracking
-the situation and gathering feedback from the community .
+the situation and gathering feedback from the community.
 
 @section releasehow Release Process: Step-by-Step
 
@@ -304,7 +327,7 @@ WARNING: This script should be used by the Release Manager ONLY.
 
 Run <code>tools/release.sh help</code> for current command support.
 
-@subsection releasescriptenv Release Script Options
+@subsection releasescriptopts Release Script Options
 
 The @c release.sh script recognizes some command-line options that
 affect its behavior:
