@@ -224,10 +224,11 @@ svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
 -# Produce the package source archives:
   -# Start with a clean working copy, used for producing releases only.
   -# Switch to release tag branch: svn switch .../${RELEASE_TAG}
-  -# produce a ChangeLog for the release (using svn2cl).
+  -# Produce a ChangeLog for the release (using svn2cl).
   -# @c bootstrap, @c configure, and @c make the package.
   -# Run <code>make distcheck</code> to produce the distribution archives.
   -# Run <code>make maintainer-clean</code> verify the repository is empty.
+  -# Create signature files using md5sum, sha1sum, etc.
 -# Publish documentation for the release:
   - Allow users to access the documentation for each of our releases.
   - Place static copies of the following files on the project website:

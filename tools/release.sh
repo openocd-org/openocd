@@ -262,7 +262,14 @@ do_stage() {
 	echo "Staging package archives:"
 	mkdir -p archives
 	for EXT in tar.gz tar.bz2 zip; do
-		mv -v "${PACKAGE_RELEASE}.${EXT}" archives/
+		local FILE="${PACKAGE_RELEASE}.${EXT}"
+		# create archive signatures
+		for HASH in md5 sha1; do
+			echo "sign: ${FILE}.${HASH}"
+			${HASH}sum "${FILE}" > "archives/${FILE}.${HASH}"
+		done
+		# save archive
+		mv -v "${FILE}" archives/
 	done
 	cp -a NEWS archives/
 	cp -a ChangeLog archives/
