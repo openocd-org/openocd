@@ -3,7 +3,7 @@
 
 # set CFG_REFCLKFREQ [configC100 CFG_REFCLKFREQ]
 proc config {label} {
-    return [dict get [configC100] $label ]	
+    return [dict get [configC100] $label ]
 }
 
 # show the value for the param. with label
@@ -15,7 +15,7 @@ proc showconfig {label} {
 # when there are more then one board config
 # use soft links to c100board-config.tcl
 # so that only the right board-config gets
-# included (just like include/configs/board-configs.h 
+# included (just like include/configs/board-configs.h
 # in u-boot.
 proc configC100 {} {
     # xtal freq. 24MHz
@@ -28,7 +28,7 @@ proc configC100 {} {
     # y = amba_clk * (w+1)*(x+1)*2/xtal_clk
     dict set configC100 y_amba [expr ([dict get $configC100 CONFIG_SYS_HZ_CLOCK] * ( ([dict get $configC100 w_amba]+1 ) * ([dict get $configC100 x_amba]+1 ) *2 ) / [dict get $configC100 CFG_REFCLKFREQ]) ]
 
-    # Arm Clk 450MHz, must be a multiple of 25 MHz 
+    # Arm Clk 450MHz, must be a multiple of 25 MHz
     dict set configC100 CFG_ARM_CLOCK      450000000
     dict set configC100 w_arm 0
     dict set configC100 x_arm 1
@@ -44,7 +44,7 @@ proc setupTelo {} {
     # setup GPIO used as control signals for C100
     setupGPIO
     # This will allow acces to lower 8MB or NOR
-    lowGPIO5 
+    lowGPIO5
     # setup NOR size,timing,etc.
     setupNOR
     # setup internals + PLL + DDR2
@@ -55,17 +55,17 @@ proc setupTelo {} {
 proc setupNOR {} {
     puts "Setting up NOR: 16MB, 16-bit wide bus, CS0"
     # this is taken from u-boot/boards/mindspeed/ooma-darwin/board.c:nor_hw_init()
-    set EX_CSEN_REG	    [regs EX_CSEN_REG ]	
-    set EX_CS0_SEG_REG	    [regs EX_CS0_SEG_REG ]	
-    set EX_CS0_CFG_REG	    [regs EX_CS0_CFG_REG ]	
-    set EX_CS0_TMG1_REG	    [regs EX_CS0_TMG1_REG ]	
-    set EX_CS0_TMG2_REG	    [regs EX_CS0_TMG2_REG ]	
-    set EX_CS0_TMG3_REG	    [regs EX_CS0_TMG3_REG ]	
+    set EX_CSEN_REG	    [regs EX_CSEN_REG ]
+    set EX_CS0_SEG_REG	    [regs EX_CS0_SEG_REG ]
+    set EX_CS0_CFG_REG	    [regs EX_CS0_CFG_REG ]
+    set EX_CS0_TMG1_REG	    [regs EX_CS0_TMG1_REG ]
+    set EX_CS0_TMG2_REG	    [regs EX_CS0_TMG2_REG ]
+    set EX_CS0_TMG3_REG	    [regs EX_CS0_TMG3_REG ]
     set EX_CLOCK_DIV_REG    [regs EX_CLOCK_DIV_REG ]
-    set EX_MFSM_REG	    [regs EX_MFSM_REG ]	
-    set EX_CSFSM_REG	    [regs EX_CSFSM_REG ]	
-    set EX_WRFSM_REG	    [regs EX_WRFSM_REG ]	
-    set EX_RDFSM_REG	    [regs EX_RDFSM_REG ]	
+    set EX_MFSM_REG	    [regs EX_MFSM_REG ]
+    set EX_CSFSM_REG	    [regs EX_CSFSM_REG ]
+    set EX_WRFSM_REG	    [regs EX_WRFSM_REG ]
+    set EX_RDFSM_REG	    [regs EX_RDFSM_REG ]
 
     # enable Expansion Bus Clock + CS0 (NOR)
     mww $EX_CSEN_REG 0x3
@@ -76,7 +76,7 @@ proc setupNOR {} {
     # set timings to NOR
     mww $EX_CS0_TMG1_REG 0x03034006
     mww $EX_CS0_TMG2_REG 0x04040002
-    #mww $EX_CS0_TMG3_REG 
+    #mww $EX_CS0_TMG3_REG
     # set EBUS clock 165/5=33MHz
     mww $EX_CLOCK_DIV_REG 0x5
     # everthing else is OK with default
@@ -86,7 +86,7 @@ proc bootNOR {} {
     set EXP_CS0_BASEADDR       [regs EXP_CS0_BASEADDR]
     set BLOCK_RESET_REG	       [regs BLOCK_RESET_REG]
     set DDR_RST		       [regs DDR_RST]
- 
+
     # put DDR controller in reset (so that it comes reset in u-boot)
     mmw $BLOCK_RESET_REG 0x0 $DDR_RST
     # setup CS0 controller for NOR
@@ -107,8 +107,8 @@ proc setupGPIO {} {
     #GPIO17 reset for DECT module.
     #GPIO29 CS_n for NAND
 
-    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]	
-    set GPIO_OE_REG		    [regs GPIO_OE_REG]	
+    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
+    set GPIO_OE_REG		    [regs GPIO_OE_REG]
 
     # set GPIO29=GPIO17=1, GPIO5=0
     mww $GPIO_OUTPUT_REG [expr 1<<29 | 1<<17]
@@ -118,14 +118,14 @@ proc setupGPIO {} {
 
 proc highGPIO5 {} {
     puts "GPIO5 high"
-    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]	
+    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # set GPIO5=1
     mmw $GPIO_OUTPUT_REG [expr 1 << 5] 0x0
 }
 
 proc lowGPIO5 {} {
     puts "GPIO5 low"
-    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]	
+    set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # set GPIO5=0
     mmw $GPIO_OUTPUT_REG 0x0 [expr 1 << 5]
 }
@@ -133,21 +133,21 @@ proc lowGPIO5 {} {
 proc boardID {id} {
     # so far built:
     # 4'b1111
-    dict set boardID 15 name "EVT1"		
+    dict set boardID 15 name "EVT1"
     dict set boardID 15 ddr2size 128M
     # dict set boardID 15 nandsize 1G
     # dict set boardID 15 norsize 16M
     # 4'b0000
-    dict set boardID 0 name "EVT2"		
+    dict set boardID 0 name "EVT2"
     dict set boardID 0 ddr2size 128M
     # 4'b0001
-    dict set boardID 1 name "EVT3"		
+    dict set boardID 1 name "EVT3"
     dict set boardID 1 ddr2size 256M
     # 4'b1110
     dict set boardID 14 name "EVT3_old"
     dict set boardID 14 ddr2size 128M
     # 4'b0010
-    dict set boardID 2 name "EVT4"		
+    dict set boardID 2 name "EVT4"
     dict set boardID 2 ddr2size 256M
 
     return $boardID
@@ -155,10 +155,10 @@ proc boardID {id} {
 
 
 # converted from u-boot/boards/mindspeed/ooma-darwin/board.c:ooma_board_detect()
-# figure out what board revision this is, uses BOOTSTRAP register to read stuffed resistors 
+# figure out what board revision this is, uses BOOTSTRAP register to read stuffed resistors
 proc ooma_board_detect {} {
     set GPIO_BOOTSTRAP_REG	[regs GPIO_BOOTSTRAP_REG]
-    
+
     # read the current value of the BOOTSRAP pins
     set tmp [mrw $GPIO_BOOTSTRAP_REG]
     puts [format "GPIO_BOOTSTRAP_REG  (0x%x): 0x%x" $GPIO_BOOTSTRAP_REG $tmp]
@@ -174,7 +174,7 @@ proc ooma_board_detect {} {
 }
 
 proc configureDDR2regs_256M {} {
-    
+
     set DENALI_CTL_00_DATA    [regs DENALI_CTL_00_DATA]
     set DENALI_CTL_01_DATA    [regs DENALI_CTL_01_DATA]
     set DENALI_CTL_02_DATA    [regs DENALI_CTL_02_DATA]
@@ -208,7 +208,7 @@ proc configureDDR2regs_256M {} {
     mw64bit $DENALI_CTL_04_DATA  0x0000010100000001
     mw64bit $DENALI_CTL_05_DATA  0x0203010300010101
     mw64bit $DENALI_CTL_06_DATA  0x060a020200020202
-    mw64bit $DENALI_CTL_07_DATA  0x0000000300000206 
+    mw64bit $DENALI_CTL_07_DATA  0x0000000300000206
     mw64bit $DENALI_CTL_08_DATA  0x6400003f3f0a0209
     mw64bit $DENALI_CTL_09_DATA  0x1a000000001a1a1a
     mw64bit $DENALI_CTL_10_DATA  0x0120202020191a18
@@ -222,15 +222,15 @@ proc configureDDR2regs_256M {} {
     mw64bit $DENALI_CTL_17_DATA  0x0000000000000000
     mw64bit $DENALI_CTL_18_DATA  0x0302000000000000
     mw64bit $DENALI_CTL_19_DATA  0x00001300c8030600
-    mw64bit $DENALI_CTL_20_DATA  0x0000000081fe00c8 
-    
+    mw64bit $DENALI_CTL_20_DATA  0x0000000081fe00c8
+
     set wr_dqs_shift 0x40
     # start DDRC
     mw64bit $DENALI_CTL_02_DATA [expr $DENALI_CTL_02_VAL | (1 << 32)]
     # wait int_status[2] (DRAM init complete)
     puts -nonewline "Waiting for DDR2 controller to init..."
     set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
-    while { [expr $tmp & 0x040000] == 0 } { 
+    while { [expr $tmp & 0x040000] == 0 } {
 	sleep 1
 	set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
     }
@@ -267,9 +267,9 @@ proc configureDDR2regs_128M {} {
     set DENALI_CTL_20_DATA    [regs DENALI_CTL_20_DATA]
 
 
-    set DENALI_CTL_02_VAL 0x0100010000010100 
+    set DENALI_CTL_02_VAL 0x0100010000010100
     set DENALI_CTL_11_VAL 0x433A42124A650A37
-    # set some default values     
+    # set some default values
     mw64bit $DENALI_CTL_00_DATA  0x0100000101010101
     mw64bit $DENALI_CTL_01_DATA  0x0100000100000101
     mw64bit $DENALI_CTL_02_DATA  $DENALI_CTL_02_VAL
@@ -298,7 +298,7 @@ proc configureDDR2regs_128M {} {
     # wait int_status[2] (DRAM init complete)
     puts -nonewline "Waiting for DDR2 controller to init..."
     set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
-    while { [expr $tmp & 0x040000] == 0 } { 
+    while { [expr $tmp & 0x040000] == 0 } {
 	sleep 1
 	set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
     }
@@ -318,18 +318,18 @@ proc setupUART0 {} {
     set GPIO_IOCTRL_REG    [regs GPIO_IOCTRL_REG]
     set GPIO_IOCTRL_VAL    [regs GPIO_IOCTRL_VAL]
     set GPIO_IOCTRL_UART0  [regs GPIO_IOCTRL_UART0]
-    set UART0_LCR	            [regs UART0_LCR]	
-    set LCR_DLAB		    [regs LCR_DLAB]	
-    set UART0_DLL		    [regs UART0_DLL]		
-    set UART0_DLH		    [regs UART0_DLH]	
-    set UART0_IIR		    [regs UART0_IIR]	
-    set UART0_IER		    [regs UART0_IER]	
-    set LCR_ONE_STOP		    [regs LCR_ONE_STOP]		
-    set LCR_CHAR_LEN_8		    [regs LCR_CHAR_LEN_8]		
+    set UART0_LCR	            [regs UART0_LCR]
+    set LCR_DLAB		    [regs LCR_DLAB]
+    set UART0_DLL		    [regs UART0_DLL]
+    set UART0_DLH		    [regs UART0_DLH]
+    set UART0_IIR		    [regs UART0_IIR]
+    set UART0_IER		    [regs UART0_IER]
+    set LCR_ONE_STOP		    [regs LCR_ONE_STOP]
+    set LCR_CHAR_LEN_8		    [regs LCR_CHAR_LEN_8]
     set FCR_XMITRES		    [regs FCR_XMITRES]
-    set FCR_RCVRRES		    [regs FCR_RCVRRES]	
-    set FCR_FIFOEN		    [regs FCR_FIFOEN]	
-    set IER_UUE			    [regs IER_UUE]		
+    set FCR_RCVRRES		    [regs FCR_RCVRRES]
+    set FCR_FIFOEN		    [regs FCR_FIFOEN]
+    set IER_UUE			    [regs IER_UUE]
 
     # unlock writing to IOCTRL register
     mww $GPIO_LOCK_REG $GPIO_IOCTRL_VAL
@@ -355,7 +355,7 @@ proc setupUART0 {} {
 
 proc putcUART0 {char} {
 
-    set UART0_LSR	    [regs UART0_LSR]	
+    set UART0_LSR	    [regs UART0_LSR]
     set UART0_THR	    [regs UART0_THR]
     set LSR_TEMT	    [regs LSR_TEMT]
 
@@ -392,7 +392,7 @@ proc trainDDR2 {} {
 proc flashUBOOT {file} {
     # this will update uboot on NOR partition
     set EXP_CS0_BASEADDR       [regs EXP_CS0_BASEADDR]
-    
+
     # setup CS0 controller for NOR
     setupNOR
     # make sure we are accessing the lower part of NOR
