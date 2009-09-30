@@ -314,15 +314,27 @@ do_version_bump_minor() {
 do_version_bump_micro() {
 	do_version_bump_sed "${PACKAGE_MAJOR_AND_MINOR}.$((PACKAGE_MICRO + 1))"
 }
-do_version_bump_rc() {
-	die "patch missing: -rc support is not implemented"
+do_version_bump_tag() {
+	local TAG="$1"
+	[ "${TAG}" ] || die "TAG argument is missing"
+	local TAGS="${PACKAGE_VERSION_TAGS}"
+	if has_version_tag "${TAG}"; then
+		local RC=$(echo ${TAGS} | perl -ne "/-${TAG}"'(\d+)/ && print $1')
+		RC=$((${RC} + 1))
+		TAGS=$(echo ${TAGS} | perl -npe "s/-${TAG}[\\d]*/-${TAG}${RC}/")
+	else
+		TAGS="-${TAG}1${PACKAGE_VERSION_TAGS}"
+	fi
+	PACKAGE_VERSION_TAGS="${TAGS}"
+	do_version_bump_sed "${PACKAGE_VERSION_BASE}"
 }
+do_version_bump_rc() { do_version_bump_tag 'rc'; }
 do_version_bump() {
 	CMD="$1"
 	shift
 	case "${CMD}" in
-	major|minor|micro|rc)
-		eval "do_version_bump_${CMD}"
+	major|minor|micro|rc|tag)
+		eval "do_version_bump_${CMD}" "$@"
 		;;
 	*)
 		do_version_usage
