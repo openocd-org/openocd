@@ -495,10 +495,17 @@ do_release_step_package() {
 	local A=${PACKAGE_TAG}
 	local B=${A/https/http}
 	local PACKAGE_BUILD=${B/${USER}@/}
+
 	do_svn_switch "${PACKAGE_TAG}"
 	do_svn_switch --relocate "${PACKAGE_TAG}" "${PACKAGE_BUILD}"
+
+	# required to force SVN to update the in-source URL keyword
+	[ "${RELEASE_DRY_RUN}" ] || rm -v -f src/openocd.c
+	do_svn revert src/openocd.c
+
 	do_stage
 	do_clean
+
 	do_svn_switch --relocate "${PACKAGE_BUILD}" "${PACKAGE_TAG}"
 	do_svn_switch "${SVN_URL}"
 }
