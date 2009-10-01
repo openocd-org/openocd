@@ -173,6 +173,26 @@ reg_t armv7a_gdb_dummy_fp_reg =
 			0, 1, 96, NULL, 0, NULL, 0
 };
 
+void armv7a_show_fault_registers(target_t *target)
+{
+	uint32_t dfsr, ifsr, dfar, ifar;
+	
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+
+	armv7a->read_cp15(target, 0, 0, 5, 0, &dfsr);
+	armv7a->read_cp15(target, 0, 1, 5, 0, &ifsr);
+	armv7a->read_cp15(target, 0, 0, 6, 0, &dfar);
+	armv7a->read_cp15(target, 0, 2, 6, 0, &ifar);
+
+	LOG_USER("Data fault registers        DFSR: %8.8" PRIx32 
+			", DFAR: %8.8" PRIx32, dfsr, dfar);
+	LOG_USER("Instruction fault registers IFSR: %8.8" PRIx32 
+			", IFAR: %8.8" PRIx32, ifsr, ifar);
+
+}
+
 int armv7a_arch_state(struct target_s *target)
 {
 	static const char *state[] =
@@ -205,6 +225,9 @@ int armv7a_arch_state(struct target_s *target)
 		 state[armv7a->armv4_5_mmu.mmu_enabled],
 		 state[armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
 		 state[armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled]);
+
+	if (armv4_5->core_mode == ARMV7A_MODE_ABT)
+		armv7a_show_fault_registers(target);
 
 	return ERROR_OK;
 }
