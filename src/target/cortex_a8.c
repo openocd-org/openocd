@@ -67,6 +67,8 @@ int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		uint32_t *value, int regnum);
 int cortex_a8_dap_write_coreregister_u32(target_t *target,
 		uint32_t value, int regnum);
+int cortex_a8_assert_reset(target_t *target);
+int cortex_a8_deassert_reset(target_t *target);
 
 target_type_t cortexa8_target =
 {
@@ -138,8 +140,13 @@ int cortex_a8_init_debug_access(target_t *target)
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
-	/* Enabling of instruction execution in debug mode is done in debug_entry code */
-
+	/* Enabling of instruction execution in debug mode is done in debug_entry code */ 
+	
+	/* Resync breakpoint registers */
+	
+	/* Since this is likley called from init or reset, update targtet state information*/
+	cortex_a8_poll(target);
+	
 	return retval;
 }
 
@@ -303,7 +310,7 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int r
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
-
+	
 	if (Rd > 16)
 		return retval;
 
@@ -1188,6 +1195,33 @@ int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoin
  * Cortex-A8 Reset fuctions
  */
 
+int cortex_a8_assert_reset(target_t *target)
+{
+
+	LOG_DEBUG(" ");
+
+	/* registers are now invalid */
+	armv4_5_invalidate_core_regs(target);
+
+	target->state = TARGET_RESET;
+	
+	return ERROR_OK;
+}
+
+int cortex_a8_deassert_reset(target_t *target)
+{
+
+	LOG_DEBUG(" ");
+
+	if (target->reset_halt)
+	{
+		int retval;
+		if ((retval = target_halt(target)) != ERROR_OK)
+			return retval;
+	}
+
+	return ERROR_OK;
+}
 
 /*
  * Cortex-A8 Memory access
@@ -1265,23 +1299,23 @@ int cortex_a8_write_memory(struct target_s *target, uint32_t address,
 			exit(-1);
 	}
 
-	/* The Cache handling will NOT work with MMU active, the wrong addresses will be invalidated */
-	/* invalidate I-Cache */
-	if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
-	{
-		/* Invalidate ICache single entry with MVA, repeat this for all cache
-		   lines in the address range, Cortex-A8 has fixed 64 byte line length */
-		/* Invalidate Cache single entry with MVA to PoU */
-		for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
-			armv7a->write_cp15(target, 0, 1, 7, 5, cacheline); /* I-Cache to PoU */
-	}
-	/* invalidate D-Cache */
-	if (armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-	{
-		/* Invalidate Cache single entry with MVA to PoC */
-		for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
-			armv7a->write_cp15(target, 0, 1, 7, 6, cacheline); /* U/D cache to PoC */
-	}
+		/* The Cache handling will NOT work with MMU active, the wrong addresses will be invalidated */
+		/* invalidate I-Cache */
+		if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
+		{
+			/* Invalidate ICache single entry with MVA, repeat this for all cache
+			   lines in the address range, Cortex-A8 has fixed 64 byte line length */
+			/* Invalidate Cache single entry with MVA to PoU */
+			for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
+				armv7a->write_cp15(target, 0, 1, 7, 5, cacheline); /* I-Cache to PoU */
+		}
+		/* invalidate D-Cache */
+		if (armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
+		{
+			/* Invalidate Cache single entry with MVA to PoC */
+			for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
+				armv7a->write_cp15(target, 0, 1, 7, 6, cacheline); /* U/D cache to PoC */
+		}
 
 	return retval;
 }
@@ -1374,7 +1408,7 @@ int cortex_a8_examine(struct target_s *target)
 	uint32_t didr, ctypr, ttypr, cpuid;
 
 	LOG_DEBUG("TODO");
-
+	
 	/* Here we shall insert a proper ROM Table scan */
 	armv7a->debug_base = OMAP3530_DEBUG_BASE;
 
@@ -1451,7 +1485,7 @@ int cortex_a8_examine(struct target_s *target)
 
 	/* Configure core debug access */
 	cortex_a8_init_debug_access(target);
-
+	
 	target->type->examined = 1;
 
 	return retval;
