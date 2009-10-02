@@ -110,13 +110,13 @@ static int etb_get_reg(reg_t *reg)
 
 	if ((retval = etb_read_reg(reg)) != ERROR_OK)
 	{
-		LOG_ERROR("BUG: error scheduling etm register read");
+		LOG_ERROR("BUG: error scheduling ETB register read");
 		return retval;
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		LOG_ERROR("register read failed");
+		LOG_ERROR("ETB register read failed");
 		return retval;
 	}
 
@@ -288,7 +288,7 @@ static int etb_set_reg(reg_t *reg, uint32_t value)
 
 	if ((retval = etb_write_reg(reg, value)) != ERROR_OK)
 	{
-		LOG_ERROR("BUG: error scheduling etm register write");
+		LOG_ERROR("BUG: error scheduling ETB register write");
 		return retval;
 	}
 
@@ -307,7 +307,7 @@ static int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		LOG_ERROR("register write failed");
+		LOG_ERROR("ETB: register write failed");
 		return retval;
 	}
 	return ERROR_OK;
@@ -378,20 +378,20 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (!target)
 	{
-		LOG_ERROR("target '%s' not defined", args[0]);
+		LOG_ERROR("ETB: target '%s' not defined", args[0]);
 		return ERROR_FAIL;
 	}
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(cmd_ctx, "ETB: current target isn't an ARM7/ARM9 target");
 		return ERROR_FAIL;
 	}
 
 	tap = jtag_tap_by_string(args[1]);
 	if (tap == NULL)
 	{
-		command_print(cmd_ctx, "Tap: %s does not exist", args[1]);
+		command_print(cmd_ctx, "ETB: TAP %s does not exist", args[1]);
 		return ERROR_FAIL;
 	}
 
@@ -409,7 +409,7 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 	}
 	else
 	{
-		LOG_ERROR("target has no ETM defined, ETB left unconfigured");
+		LOG_ERROR("ETM: target has no ETM defined, ETB left unconfigured");
 		return ERROR_FAIL;
 	}
 
@@ -436,56 +436,53 @@ static int etb_init(etm_context_t *etm_ctx)
 static trace_status_t etb_status(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
+	reg_t *control = &etb->reg_cache->reg_list[ETB_CTRL];
+	reg_t *status = &etb->reg_cache->reg_list[ETB_STATUS];
+	trace_status_t retval = 0;
+	int etb_timeout = 100;
 
 	etb->etm_ctx = etm_ctx;
 
-	/* if tracing is currently idle, return this information */
-	if (etm_ctx->capture_status == TRACE_IDLE)
-	{
-		return etm_ctx->capture_status;
-	}
-	else if (etm_ctx->capture_status & TRACE_RUNNING)
-	{
-		reg_t *etb_status_reg = &etb->reg_cache->reg_list[ETB_STATUS];
-		int etb_timeout = 100;
+	/* read control and status registers */
+	etb_read_reg(control);
+	etb_read_reg(status);
+	jtag_execute_queue();
 
-		/* trace is running, check the ETB status flags */
-		etb_get_reg(etb_status_reg);
+	/* See if it's (still) active */
+	retval = buf_get_u32(control->value, 0, 1) ? TRACE_RUNNING : TRACE_IDLE;
 
-		/* check Full bit to identify an overflow */
-		if (buf_get_u32(etb_status_reg->value, 0, 1) == 1)
-			etm_ctx->capture_status |= TRACE_OVERFLOWED;
+	/* check Full bit to identify wraparound/overflow */
+	if (buf_get_u32(status->value, 0, 1) == 1)
+		retval |= TRACE_OVERFLOWED;
 
-		/* check Triggered bit to identify trigger condition */
-		if (buf_get_u32(etb_status_reg->value, 1, 1) == 1)
-			etm_ctx->capture_status |= TRACE_TRIGGERED;
+	/* check Triggered bit to identify trigger condition */
+	if (buf_get_u32(status->value, 1, 1) == 1)
+		retval |= TRACE_TRIGGERED;
 
-		/* check AcqComp to identify trace completion */
-		if (buf_get_u32(etb_status_reg->value, 2, 1) == 1)
-		{
-			while (etb_timeout-- && (buf_get_u32(etb_status_reg->value, 3, 1) == 0))
-			{
-				/* wait for data formatter idle */
-				etb_get_reg(etb_status_reg);
-			}
+	/* check AcqComp to see if trigger counter dropped to zero */
+	if (buf_get_u32(status->value, 2, 1) == 1) {
+		/* wait for DFEmpty */
+		while (etb_timeout-- && buf_get_u32(status->value, 3, 1) == 0)
+			etb_get_reg(status);
 
-			if (etb_timeout == 0)
-			{
-				LOG_ERROR("AcqComp set but DFEmpty won't go high, ETB status: 0x%" PRIx32 "",
-					buf_get_u32(etb_status_reg->value, 0, etb_status_reg->size));
-			}
+		if (etb_timeout == 0)
+			LOG_ERROR("ETB:  DFEmpty won't go high, status 0x%02x",
+				(unsigned) buf_get_u32(status->value, 0, 4));
 
-			if (!(etm_ctx->capture_status && TRACE_TRIGGERED))
-			{
-				LOG_ERROR("trace completed, but no trigger condition detected");
-			}
+		if (!(etm_ctx->capture_status & TRACE_TRIGGERED))
+			LOG_WARNING("ETB: trace complete without triggering?");
 
-			etm_ctx->capture_status &= ~TRACE_RUNNING;
-			etm_ctx->capture_status |= TRACE_COMPLETED;
-		}
+		retval |= TRACE_COMPLETED;
 	}
 
-	return etm_ctx->capture_status;
+	/* NOTE: using a trigger is optional; and at least ETB11 has a mode
+	 * where it can ignore the trigger counter.
+	 */
+
+	/* update recorded state */
+	etm_ctx->capture_status = retval;
+
+	return retval;
 }
 
 static int etb_read_trace(etm_context_t *etm_ctx)
@@ -654,8 +651,10 @@ static int etb_start_capture(etm_context_t *etm_ctx)
 		etb_ctrl_value |= 0x2;
 	}
 
-	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_MUXED)
+	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_MUXED) {
+		LOG_ERROR("ETB: can't run in multiplexed mode");
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
+	}
 
 	trigger_count = (etb->ram_depth * etm_ctx->trigger_percent) / 100;
 

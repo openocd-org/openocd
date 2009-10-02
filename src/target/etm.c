@@ -1567,6 +1567,7 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cm
 	target_t *target;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
+	etm_context_t *etm;
 	trace_status_t trace_status;
 
 	target = get_current_target(cmd_ctx);
@@ -1582,28 +1583,56 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cm
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_OK;
 	}
+	etm = arm7_9->etm_ctx;
 
-	trace_status = arm7_9->etm_ctx->capture_driver->status(arm7_9->etm_ctx);
+	/* ETM status */
+	if (etm->bcd_vers >= 0x11) {
+		reg_t *reg;
 
+		reg = etm_reg_lookup(etm, ETM_STATUS);
+		if (!reg)
+			return ERROR_OK;
+		if (etm_get_reg(reg) == ERROR_OK) {
+			unsigned s = buf_get_u32(reg->value, 0, reg->size);
+
+			command_print(cmd_ctx, "etm: %s%s%s%s",
+				/* bit(1) == progbit */
+				(etm->bcd_vers >= 0x12)
+					? ((s & (1 << 1))
+						? "disabled" : "enabled")
+					: "?",
+				((s & (1 << 3)) && etm->bcd_vers >= 0x31)
+					? " triggered" : "",
+				((s & (1 << 2)) && etm->bcd_vers >= 0x12)
+					? " start/stop" : "",
+				((s & (1 << 0)) && etm->bcd_vers >= 0x11)
+					? " untraced-overflow" : "");
+		} /* else ignore and try showing trace port status */
+	}
+
+	/* Trace Port Driver status */
+	trace_status = etm->capture_driver->status(etm);
 	if (trace_status == TRACE_IDLE)
 	{
-		command_print(cmd_ctx, "tracing is idle");
+		command_print(cmd_ctx, "%s: idle", etm->capture_driver->name);
 	}
 	else
 	{
 		static char *completed = " completed";
 		static char *running = " is running";
-		static char *overflowed = ", trace overflowed";
-		static char *triggered = ", trace triggered";
+		static char *overflowed = ", overflowed";
+		static char *triggered = ", triggered";
 
-		command_print(cmd_ctx, "trace collection%s%s%s",
+		command_print(cmd_ctx, "%s: trace collection%s%s%s",
+			etm->capture_driver->name,
 			(trace_status & TRACE_RUNNING) ? running : completed,
 			(trace_status & TRACE_OVERFLOWED) ? overflowed : "",
 			(trace_status & TRACE_TRIGGERED) ? triggered : "");
 
-		if (arm7_9->etm_ctx->trace_depth > 0)
+		if (etm->trace_depth > 0)
 		{
-			command_print(cmd_ctx, "%i frames of trace data read", (int)(arm7_9->etm_ctx->trace_depth));
+			command_print(cmd_ctx, "%i frames of trace data read",
+					(int)(etm->trace_depth));
 		}
 	}
 
