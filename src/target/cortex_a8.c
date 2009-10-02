@@ -1332,6 +1332,8 @@ int cortex_a8_write_memory(struct target_s *target, uint32_t address,
 			exit(-1);
 	}
 
+	if (target->state == TARGET_HALTED)
+	{
 		/* The Cache handling will NOT work with MMU active, the wrong addresses will be invalidated */
 		/* invalidate I-Cache */
 		if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
@@ -1349,6 +1351,7 @@ int cortex_a8_write_memory(struct target_s *target, uint32_t address,
 			for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
 				armv7a->write_cp15(target, 0, 1, 7, 6, cacheline); /* U/D cache to PoC */
 		}
+	}
 
 	return retval;
 }
