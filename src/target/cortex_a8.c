@@ -165,8 +165,11 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
+		{
+			LOG_ERROR("Could not read DSCR register, opcode = 0x%08" PRIx32, opcode);
 			return retval;
 		}
+	}
 	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
 	mem_ap_write_u32(swjdp, armv7a->debug_base + CPUDBG_ITR, opcode);
@@ -176,8 +179,11 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
+		{
+			LOG_ERROR("Could not read DSCR register");
 			return retval;
 		}
+	}
 	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
 	return retval;
