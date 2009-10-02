@@ -83,8 +83,8 @@ target_type_t cortexa8_target =
 	.resume = cortex_a8_resume,
 	.step = cortex_a8_step,
 
-	.assert_reset = NULL,
-	.deassert_reset = NULL,
+	.assert_reset = cortex_a8_assert_reset,
+	.deassert_reset = cortex_a8_deassert_reset,
 	.soft_reset_halt = NULL,
 
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
