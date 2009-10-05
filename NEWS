@@ -5,27 +5,43 @@ other issues not mentioned here.
 
 JTAG Layer:
     FT2232H (high speed USB) support doesn't need separate configuration
+    New reset_config options for SRST gating the JTAG clock (or not)
+    TAP declaration no longer requires ircapture and mask attributes
+    New "post-reset" event handler for TAP-invariant setup code
 
 Target Layer:
     New commands for use with Cortex-M3 processors:
 	"cortex_m3 disassemble" ... Thumb2 disassembly (UAL format)
 	"cortex_m3 vector_catch" ... traps certain hardware faults
 		without tying up breakpoint resources
-    If you're willing to help debug it:  VERY EARLY Cortex-A8 support
+    If you're willing to help debug it
+	VERY EARLY Cortex-A8 and ARMv7A support
+	Updated BeagleBoard.org hardware support
     New commands for use with XScale processors: "xscale vector_table"
-    ARM11 single stepping support for i.MX31 
+    ARM11
+	single stepping support for i.MX31
+	bugfix for missing "arm11" prefix on "arm11 memwrite ..."
+    ETM support
+	Unavailable registers are not listed
 
 Flash Layer:
     The lpc2000 driver handles the new NXP LPC1700 (Cortex-M3) chips
+    New lpc2900 driver for NXP LPC2900 chips (ARM968 based)
+    New "last" flag for NOR "flash erase_sector" and "flash protect"
+    The "nand erase N" command now erases all of bank N
 
 Board, Target, and Interface Configuration Scripts:
+    Amontec JTAGkey2 support
     Cleanup and additions for the TI/Luminary Stellaris scripts
     LPC1768 target (and flash) support
 	Keil MCB1700 eval board
     Samsung s3c2450
 	Mini2440 board
+    Numeric TAP and Target identifiers now trigger warnings
 
 Documentation:
+    Capture more debugging and setup advice
+    Notes on target source code changes that may help debugging
 
 Build and Release:
 
