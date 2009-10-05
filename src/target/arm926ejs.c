@@ -277,7 +277,7 @@ int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2, uint32_t 
 	return ERROR_OK;
 }
 
-int arm926ejs_examine_debug_reason(target_t *target)
+static int arm926ejs_examine_debug_reason(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -294,7 +294,11 @@ int arm926ejs_examine_debug_reason(target_t *target)
 
 	switch (debug_reason)
 	{
-		/* case 0:  no debug entry */
+		case 0:
+			LOG_DEBUG("no *NEW* debug entry (?missed one?)");
+			/* ... since last restart or debug reset ... */
+			target->debug_reason = DBG_REASON_DBGRQ;
+			break;
 		case 1:
 			LOG_DEBUG("breakpoint from EICE unit 0");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
