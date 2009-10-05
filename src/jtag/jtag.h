@@ -192,23 +192,32 @@ extern unsigned jtag_tap_count(void);
 
 
 /*
- * There are three cases when JTAG_TRST_ASSERTED callback is invoked. The
- * event is invoked *after* TRST is asserted(or queued rather). It is illegal
- * to communicate with the JTAG interface during the callback(as there is
- * currently a queue being built).
+ * - TRST_ASSERTED triggers two sets of callbacks, after operations to
+ *   reset the scan chain -- via TMS+TCK signaling, or deasserting the
+ *   nTRST signal -- are queued:
  *
- * - TMS reset
- * - SRST pulls TRST
- * - TRST asserted
+ *    + Callbacks in C code fire first, patching internal state
+ *    + Then post-reset event scripts fire ... activating JTAG circuits
+ *      via TCK cycles, exiting SWD mode via TMS sequences, etc
  *
- * TAP activation/deactivation is currently implemented outside the core
- * using scripted code that understands the specific router type.
+ *   During those callbacks, scan chain contents have not been validated.
+ *   JTAG operations that address a specific TAP (primarily DR/IR scans)
+ *   must *not* be queued.
+ *
+ * - TAP_EVENT_SETUP is reported after TRST_ASSERTED, and after the scan
+ *   chain has been validated.  JTAG operations including scans that
+ *   target specific TAPs may be performed.
+ *
+ * - TAP_EVENT_ENABLE and TAP_EVENT_DISABLE implement TAP activation and
+ *   deactivation outside the core using scripted code that understands
+ *   the specific JTAG router type.  They might be triggered indirectly
+ *   from EVENT_SETUP operations.
  */
 enum jtag_event {
 	JTAG_TRST_ASSERTED,
+	JTAG_TAP_EVENT_SETUP,
 	JTAG_TAP_EVENT_ENABLE,
 	JTAG_TAP_EVENT_DISABLE,
-	JTAG_TAP_EVENT_POST_RESET,
 };
 
 struct jtag_tap_event_action_s
@@ -643,8 +652,8 @@ extern void jtag_execute_queue_noclear(void);
 /// @returns the number of times the scan queue has been flushed
 int jtag_get_flush_queue_count(void);
 
-/// Notify all TAP's about a TLR reset
-void jtag_notify_reset(void);
+/// Report Tcl event to all TAPs
+void jtag_notify_event(enum jtag_event);
 
 
 /* can be implemented by hw + sw */

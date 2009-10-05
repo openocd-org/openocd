@@ -41,7 +41,8 @@
 #endif
 
 static const Jim_Nvp nvp_jtag_tap_event[] = {
-	{ .value = JTAG_TAP_EVENT_POST_RESET,   .name = "post-reset" },
+	{ .value = JTAG_TRST_ASSERTED,		.name = "post-reset" },
+	{ .value = JTAG_TAP_EVENT_SETUP,	.name = "setup" },
 	{ .value = JTAG_TAP_EVENT_ENABLE,       .name = "tap-enable" },
 	{ .value = JTAG_TAP_EVENT_DISABLE,      .name = "tap-disable" },
 
@@ -373,7 +374,7 @@ static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 
 	for (jteap = tap->event_action; jteap != NULL; jteap = jteap->next) {
 		if (jteap->event == e) {
-			LOG_DEBUG("JTAG tap: %s event: %d (%s) action: %s\n",
+			LOG_DEBUG("JTAG tap: %s event: %d (%s)\n\taction: %s",
 					tap->dotted_name,
 					e,
 					Jim_Nvp_value2name_simple(nvp_jtag_tap_event, e)->name,
@@ -384,10 +385,12 @@ static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 			case JTAG_TAP_EVENT_ENABLE:
 			case JTAG_TAP_EVENT_DISABLE:
 				/* NOTE:  we currently assume the handlers
-				 * can't fail.  That presumes later code
-				 * will be verifying the scan chains ...
+				 * can't fail.  Right here is where we should
+				 * really be verifying the scan chains ...
 				 */
 				tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
+				LOG_INFO("JTAG tap: %s %s", tap->dotted_name,
+					tap->enabled ? "enabled" : "disabled");
 				break;
 			default:
 				break;
@@ -586,13 +589,12 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 }
 
 
-void jtag_notify_reset(void)
+void jtag_notify_event(enum jtag_event event)
 {
 	jtag_tap_t *tap;
+
 	for (tap = jtag_all_taps(); tap; tap = tap->next_tap)
-	{
-		jtag_tap_handle_event(tap, JTAG_TAP_EVENT_POST_RESET);
-	}
+		jtag_tap_handle_event(tap, event);
 }
 
 

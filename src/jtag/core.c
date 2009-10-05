@@ -61,8 +61,8 @@ static int jtag_error = ERROR_OK;
 static const char *jtag_event_strings[] =
 {
 	[JTAG_TRST_ASSERTED] = "TAP reset",
+	[JTAG_TAP_EVENT_SETUP] = "TAP setup",
 	[JTAG_TAP_EVENT_ENABLE] = "TAP enabled",
-	[JTAG_TAP_EVENT_POST_RESET] = "TAP post reset",
 	[JTAG_TAP_EVENT_DISABLE] = "TAP disabled",
 };
 
@@ -489,7 +489,7 @@ void jtag_add_tlr(void)
 
 	/* NOTE: order here matches TRST path in jtag_add_reset() */
 	jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-	jtag_notify_reset();
+	jtag_notify_event(JTAG_TRST_ASSERTED);
 }
 
 void jtag_add_pathmove(int num_states, const tap_state_t *path)
@@ -704,7 +704,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 			 * sequence must match jtag_add_tlr().
 			 */
 			jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			jtag_notify_reset();
+			jtag_notify_event(JTAG_TRST_ASSERTED);
 		}
 	}
 }
@@ -1232,6 +1232,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 {
 	jtag_tap_t *tap;
 	int retval;
+	bool issue_setup = true;
 
 	LOG_DEBUG("Init JTAG chain");
 
@@ -1249,12 +1250,20 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	if (jtag_examine_chain() != ERROR_OK)
 	{
 		LOG_ERROR("Trying to use configured scan chain anyway...");
+		issue_setup = false;
 	}
 
 	if (jtag_validate_ircapture() != ERROR_OK)
 	{
 		LOG_WARNING("Errors during IR capture, continuing anyway...");
+		issue_setup = false;
 	}
+
+	if (issue_setup)
+		jtag_notify_event(JTAG_TAP_EVENT_SETUP);
+	else
+		LOG_WARNING("Bypassing JTAG setup events due to errors");
+
 
 	return ERROR_OK;
 }

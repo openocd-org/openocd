@@ -2428,12 +2428,18 @@ The TAP events currently defined are:
 @itemize @bullet
 @item @b{post-reset}
 @* The TAP has just completed a JTAG reset.
-For the first such handler called, the tap is still
-in the JTAG @sc{reset} state.
+The tap may still be in the JTAG @sc{reset} state.
+Handlers for these events might perform initialization sequences
+such as issuing TCK cycles, TMS sequences to ensure
+exit from the ARM SWD mode, and more.
+
 Because the scan chain has not yet been verified, handlers for these events
 @emph{should not issue commands which scan the JTAG IR or DR registers}
 of any particular target.
 @b{NOTE:} As this is written (September 2009), nothing prevents such access.
+@item @b{setup}
+@* The scan chain has been reset and verified.
+This handler may enable TAPs as needed.
 @item @b{tap-disable}
 @* The TAP needs to be disabled.  This handler should
 implement @command{jtag tapdisable}
@@ -2450,7 +2456,7 @@ contents to be accurate), you might:
 
 @example
 jtag configure CHIP.jrc -event post-reset @{
-  echo "Reset done"
+  echo "JTAG Reset done"
   ... non-scan jtag operations to be done after reset
 @}
 @end example
@@ -2493,19 +2499,29 @@ does include a kind of JTAG router functionality.
 In OpenOCD, tap enabling/disabling is invoked by the Tcl commands
 shown below, and is implemented using TAP event handlers.
 So for example, when defining a TAP for a CPU connected to
-a JTAG router, you should define TAP event handlers using
+a JTAG router, your @file{target.cfg} file
+should define TAP event handlers using
 code that looks something like this:
 
 @example
 jtag configure CHIP.cpu -event tap-enable @{
-  echo "Enabling CPU TAP"
   ... jtag operations using CHIP.jrc
 @}
 jtag configure CHIP.cpu -event tap-disable @{
-  echo "Disabling CPU TAP"
   ... jtag operations using CHIP.jrc
 @}
 @end example
+
+Then you might want that CPU's TAP enabled almost all the time:
+
+@example
+jtag configure $CHIP.jrc -event setup "jtag tapenable $CHIP.cpu"
+@end example
+
+Note how that particular setup event handler declaration
+uses quotes to evaluate @code{$CHIP} when the event is configured.
+Using brackets @{ @} would cause it to be evaluated later,
+at runtime, when it might have a different value.
 
 @deffn Command {jtag tapdisable} dotted.name
 If necessary, disables the tap
