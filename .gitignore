@@ -1,0 +1,52 @@
+# stuff "git status" should ignore
+
+# build output
+.*
+*.o
+*.a
+*.lo
+*.la
+*.in
+startup_tcl.c
+bin2char
+doc/openocd.aux
+doc/openocd.cp
+doc/openocd.cps
+doc/openocd.fn
+doc/openocd.fns
+doc/openocd.html
+doc/openocd.info
+doc/openocd.ky
+doc/openocd.log
+doc/openocd.pdf
+doc/openocd.pg
+doc/openocd.toc
+doc/openocd.tp
+doc/openocd.vr
+doc/texinfo.tex
+doc/version.texi
+src/openocd
+
+# configure/autotools output
+aclocal.m4
+autom4te.cache
+compile
+config.*
+configure
+depcomp
+doxygen
+doxygen.log
+Doxyfile
+install-sh
+libtool
+ltmain.sh
+Makefile
+mdate-sh
+missing
+stamp-h1
+stamp-vti
+INSTALL
+NOTES
+
+# quilt support
+patches
