@@ -1068,6 +1068,7 @@ static int jtag_validate_ircapture(void)
 	int total_ir_length = 0;
 	uint8_t *ir_test = NULL;
 	scan_field_t field;
+	int val;
 	int chain_pos = 0;
 	int retval;
 
@@ -1100,7 +1101,7 @@ static int jtag_validate_ircapture(void)
 
 	tap = NULL;
 	chain_pos = 0;
-	int val;
+
 	for (;;) {
 		tap = jtag_tap_next_enabled(tap);
 		if (tap == NULL) {
@@ -1111,17 +1112,18 @@ static int jtag_validate_ircapture(void)
 		 * REVISIT we might be able to verify some MSBs too, using
 		 * ircapture/irmask attributes.
 		 */
-		val = buf_get_u32(ir_test, chain_pos, 2);
-		if (val != 1) {
-			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
+		val = buf_get_u32(ir_test, chain_pos, tap->ir_length);
+		if ((val & 0x3) != 1) {
+			LOG_ERROR("%s: IR capture error; saw 0x%0*x not 0x..1",
+					jtag_tap_name(tap),
+					(tap->ir_length + 7) / tap->ir_length,
+					val);
 
-			LOG_ERROR("%s: IR capture error; saw 0x%s not 0x..1",
-					jtag_tap_name(tap), cbuf);
-
-			free(cbuf);
 			retval = ERROR_JTAG_INIT_FAILED;
 			goto done;
 		}
+		LOG_DEBUG("%s: IR capture 0x%0*x", jtag_tap_name(tap),
+				(tap->ir_length + 7) / tap->ir_length, val);
 		chain_pos += tap->ir_length;
 	}
 
