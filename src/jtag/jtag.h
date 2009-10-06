@@ -335,8 +335,9 @@ extern int  jtag_interface_quit(void);
 extern int  jtag_init(struct command_context_s* cmd_ctx);
 
 /// reset, then initialize JTAG chain
-extern int  jtag_init_reset(struct command_context_s* cmd_ctx);
-extern int  jtag_register_commands(struct command_context_s* cmd_ctx);
+extern int jtag_init_reset(struct command_context_s* cmd_ctx);
+extern int jtag_register_commands(struct command_context_s* cmd_ctx);
+extern int jtag_init_inner(struct command_context_s *cmd_ctx);
 
 /**
  * @file

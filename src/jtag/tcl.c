@@ -410,6 +410,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	enum {
 		JTAG_CMD_INTERFACE,
+		JTAG_CMD_INIT,
 		JTAG_CMD_INIT_RESET,
 		JTAG_CMD_NEWTAP,
 		JTAG_CMD_TAPENABLE,
@@ -422,6 +423,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	const Jim_Nvp jtag_cmds[] = {
 		{ .name = "interface"     , .value = JTAG_CMD_INTERFACE },
+		{ .name = "arp_init"      , .value = JTAG_CMD_INIT },
 		{ .name = "arp_init-reset", .value = JTAG_CMD_INIT_RESET },
 		{ .name = "newtap"        , .value = JTAG_CMD_NEWTAP },
 		{ .name = "tapisenabled"     , .value = JTAG_CMD_TAPISENABLED },
@@ -454,6 +456,17 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			return JIM_ERR;
 		}
 		Jim_SetResultString(goi.interp, jtag_interface->name, -1);
+		return JIM_OK;
+	case JTAG_CMD_INIT:
+		if (goi.argc != 0) {
+			Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
+			return JIM_ERR;
+		}
+		e = jtag_init_inner(context);
+		if (e != ERROR_OK) {
+			Jim_SetResult_sprintf(goi.interp, "error: %d", e);
+			return JIM_ERR;
+		}
 		return JIM_OK;
 	case JTAG_CMD_INIT_RESET:
 		if (goi.argc != 0) {

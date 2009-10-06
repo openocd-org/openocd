@@ -1,16 +1,16 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
- *   Dominic.Rath@gmx.de                                                   *
+ *   Copyright (C) 2009 Zachary T Welch                                    *
+ *   zw@superlucidity.net                                                  *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
  *       http://softplc.com                                                *
  *   dick@softplc.com                                                      *
  *                                                                         *
- *   Copyright (C) 2009 Zachary T Welch                                    *
- *   zw@superlucidity.net                                                  *
+ *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -1230,7 +1230,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int jtag_init_inner(struct command_context_s *cmd_ctx)
+int jtag_init_inner(struct command_context_s *cmd_ctx)
 {
 	jtag_tap_t *tap;
 	int retval;
@@ -1334,11 +1334,11 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	int retval;
 	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
-	if (jtag_init_inner(cmd_ctx) == ERROR_OK)
-	{
-		return ERROR_OK;
-	}
-	return jtag_init_reset(cmd_ctx);
+
+	if (Jim_Eval_Named(interp, "jtag_init", __FILE__, __LINE__) != JIM_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 unsigned jtag_get_speed_khz(void)

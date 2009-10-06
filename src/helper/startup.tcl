@@ -359,3 +359,13 @@ proc capture_catch {a} {
 	} result
 	return $result
 }
+
+
+# Executed during "init". Can be implemented by target script 
+# tar
+proc jtag_init {} {
+	if {[catch {jtag arp_init} err]!=0} {
+		# try resetting additionally
+		jtag arp_init-reset
+	}
+}
