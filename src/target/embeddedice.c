@@ -264,7 +264,8 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			 * in some unusual bits.  Let feroceon.c validate it
 			 * and do the appropriate setup itself.
 			 */
-			if (strcmp(target_get_name(target), "feroceon") == 0)
+			if (strcmp(target_get_name(target), "feroceon") == 0 ||
+			    strcmp(target_get_name(target), "dragonite") == 0)
 				break;
 			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8" PRIx32 ")", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
