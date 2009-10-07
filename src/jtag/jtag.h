@@ -286,7 +286,7 @@ enum reset_types {
 	RESET_TRST_PULLS_SRST = 0x8,
 	RESET_TRST_OPEN_DRAIN = 0x10,
 	RESET_SRST_PUSH_PULL  = 0x20,
-	RESET_SRST_GATES_JTAG = 0x40,
+	RESET_SRST_NO_GATING  = 0x40,
 };
 
 enum reset_types jtag_get_reset_config(void);

@@ -631,7 +631,12 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_CONFIG, "(DEPRECATED) jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_ANY,
-		"[none/trst_only/srst_only/trst_and_srst] [srst_pulls_trst/trst_pulls_srst] [combined/separate] [trst_push_pull/trst_open_drain] [srst_push_pull/srst_open_drain]");
+		"reset_config "
+		"[none|trst_only|srst_only|trst_and_srst] "
+		"[srst_pulls_trst|trst_pulls_srst|combined|separate] "
+		"[srst_gates_jtag|srst_nogate] "
+		"[trst_push_pull|trst_open_drain] "
+		"[srst_push_pull|srst_open_drain]");
 	register_command(cmd_ctx, NULL, "jtag_nsrst_delay", handle_jtag_nsrst_delay_command,
 		COMMAND_ANY, "jtag_nsrst_delay <ms> - delay after deasserting srst in ms");
 	register_command(cmd_ctx, NULL, "jtag_ntrst_delay", handle_jtag_ntrst_delay_command,
@@ -851,9 +856,6 @@ static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *
 	int new_cfg = 0;
 	int mask = 0;
 
-	if (argc < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	/* Original versions cared about the order of these tokens:
 	 *   reset_config signals [combination [trst_type [srst_type]]]
 	 * They also clobbered the previous configuration even on error.
@@ -865,13 +867,21 @@ static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *
 		int tmp = 0;
 		int m;
 
-		m = RESET_SRST_GATES_JTAG;
-		tmp = 0;
+		/* gating */
+		m = RESET_SRST_NO_GATING;
 		if (strcmp(*args, "srst_gates_jtag") == 0)
-		{
-			tmp = RESET_SRST_GATES_JTAG;
-			goto next;
+			/* default: don't use JTAG while SRST asserted */;
+		else if (strcmp(*args, "srst_nogate") == 0)
+			tmp = RESET_SRST_NO_GATING;
+		else
+			m = 0;
+		if (mask & m) {
+			LOG_ERROR("extra reset_config %s spec (%s)",
+					"gating", *args);
+			return ERROR_INVALID_ARGUMENTS;
 		}
+		if (m)
+			goto next;
 
 		/* signals */
 		m = RESET_HAS_TRST | RESET_HAS_SRST;
@@ -958,10 +968,81 @@ next:
 	}
 
 	/* clear previous values of those bits, save new values */
-	enum reset_types old_cfg = jtag_get_reset_config();
-	old_cfg &= ~mask;
-	new_cfg |= old_cfg;
-	jtag_set_reset_config(new_cfg);
+	if (mask) {
+		int old_cfg = jtag_get_reset_config();
+
+		old_cfg &= ~mask;
+		new_cfg |= old_cfg;
+		jtag_set_reset_config(new_cfg);
+	} else
+		new_cfg = jtag_get_reset_config();
+
+
+	/*
+	 * Display the (now-)current reset mode
+	 */
+	char *modes[5];
+
+	/* minimal JTAG has neither SRST nor TRST (so that's the default) */
+	switch (new_cfg & (RESET_HAS_TRST | RESET_HAS_SRST)) {
+	case RESET_HAS_SRST:
+		modes[0] = "srst_only";
+		break;
+	case RESET_HAS_TRST:
+		modes[0] = "trst_only";
+		break;
+	case RESET_TRST_AND_SRST:
+		modes[0] = "trst_and_srst";
+		break;
+	default:
+		modes[0] = "none";
+		break;
+	}
+
+	/* normally SRST and TRST are decoupled; but bugs happen ... */
+	switch (new_cfg & (RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST)) {
+	case RESET_SRST_PULLS_TRST:
+		modes[1] = "srst_pulls_trst";
+		break;
+	case RESET_TRST_PULLS_SRST:
+		modes[1] = "trst_pulls_srst";
+		break;
+	case RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST:
+		modes[1] = "combined";
+		break;
+	default:
+		modes[1] = "separate";
+		break;
+	}
+
+	/* TRST-less connectors include Altera, Xilinx, and minimal JTAG */
+	if (new_cfg & RESET_HAS_TRST) {
+		if (new_cfg & RESET_TRST_OPEN_DRAIN)
+			modes[3] = " trst_open_drain";
+		else
+			modes[3] = " trst_push_pull";
+	} else
+		modes[3] = "";
+
+	/* SRST-less connectors include TI-14, Xilinx, and minimal JTAG */
+	if (new_cfg & RESET_HAS_SRST) {
+		if (new_cfg & RESET_SRST_NO_GATING)
+			modes[2] = " srst_nogate";
+		else
+			modes[2] = " srst_gates_jtag";
+
+		if (new_cfg & RESET_SRST_PUSH_PULL)
+			modes[4] = " srst_push_pull";
+		else
+			modes[4] = " srst_open_drain";
+	} else {
+		modes[2] = "";
+		modes[4] = "";
+	}
+
+	command_print(cmd_ctx, "%s %s%s%s%s",
+			modes[0], modes[1],
+			modes[2], modes[3], modes[4]);
 
 	return ERROR_OK;
 }

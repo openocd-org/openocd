@@ -2099,7 +2099,7 @@ nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
 @end deffn
 
 @deffn {Command} reset_config mode_flag ...
-This command tells OpenOCD the reset configuration
+This command displays or modifies the reset configuration
 of your combination of JTAG board and target in target
 configuration scripts.
 
@@ -2113,7 +2113,9 @@ from a particular combination of interface and board.
 with a board that only wires up SRST.)
 
 The @var{mode_flag} options can be specified in any order, but only one
-of each type -- @var{signals}, @var{combination}, @var{trst_type},
+of each type -- @var{signals}, @var{combination},
+@var{gates},
+@var{trst_type},
 and @var{srst_type} -- may be specified at a time.
 If you don't provide a new value for a given type, its previous
 value (perhaps the default) is unchanged.
@@ -2121,6 +2123,8 @@ For example, this means that you don't need to say anything at all about
 TRST just to declare that if the JTAG adapter should want to drive SRST,
 it must explicitly be driven high (@option{srst_push_pull}).
 
+@itemize
+@item
 @var{signals} can specify which of the reset signals are connected.
 For example, If the JTAG interface provides SRST, but the board doesn't
 connect that signal properly, then OpenOCD can't use it.
@@ -2128,10 +2132,11 @@ Possible values are @option{none} (the default), @option{trst_only},
 @option{srst_only} and @option{trst_and_srst}.
 
 @quotation Tip
-If your board provides SRST or TRST through the JTAG connector,
+If your board provides SRST and/or TRST through the JTAG connector,
 you must declare that or else those signals will not be used.
 @end quotation
 
+@item
 The @var{combination} is an optional value specifying broken reset
 signal implementations.
 The default behaviour if no option given is @option{separate},
@@ -2144,26 +2149,37 @@ haven't seen hardware with such a bug, and can be worked around).
 @option{combined} implies both @option{srst_pulls_trst} and
 @option{trst_pulls_srst}.
 
-@option{srst_gates_jtag} indicates that asserting SRST gates the
+@item
+The @var{gates} tokens control flags that describe some cases where
+JTAG may be unvailable during reset.
+@option{srst_gates_jtag} (default)
+indicates that asserting SRST gates the
 JTAG clock. This means that no communication can happen on JTAG
 while SRST is asserted.
+Its converse is @option{srst_nogate}, indicating that JTAG commands
+can safely be issued while SRST is active.
+@end itemize
 
 The optional @var{trst_type} and @var{srst_type} parameters allow the
 driver mode of each reset line to be specified.  These values only affect
 JTAG interfaces with support for different driver modes, like the Amontec
-JTAGkey and JTAGAccelerator.  Also, they are necessarily ignored if the
+JTAGkey and JTAG Accelerator.  Also, they are necessarily ignored if the
 relevant signal (TRST or SRST) is not connected.
 
+@itemize
+@item
 Possible @var{trst_type} driver modes for the test reset signal (TRST)
-are @option{trst_push_pull} (default) and @option{trst_open_drain}.
+are the default @option{trst_push_pull}, and @option{trst_open_drain}.
 Most boards connect this signal to a pulldown, so the JTAG TAPs
 never leave reset unless they are hooked up to a JTAG adapter.
 
+@item
 Possible @var{srst_type} driver modes for the system reset signal (SRST)
 are the default @option{srst_open_drain}, and @option{srst_push_pull}.
 Most boards connect this signal to a pullup, and allow the
 signal to be pulled low by various events including system
 powerup and pressing a reset button.
+@end itemize
 @end deffn
 
 
