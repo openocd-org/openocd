@@ -82,7 +82,6 @@ Free Documentation License''.
 * GDB and OpenOCD::                  Using GDB and OpenOCD
 * Tcl Scripting API::                Tcl Scripting API
 * Upgrading::                        Deprecated/Removed Commands
-* Target Library::                   Target Library
 * FAQ::                              Frequently Asked Questions
 * Tcl Crash Course::                 Tcl Crash Course
 * License::                          GNU Free Documentation License
@@ -910,19 +909,69 @@ including developers and integrators of OpenOCD and any user who
 needs to get a new board working smoothly.
 It provides guidelines for creating those files.
 
-You should find the following directories under @t{$(INSTALLDIR)/scripts}:
+You should find the following directories under @t{$(INSTALLDIR)/scripts},
+with files including the ones listed here.
+Use them as-is where you can; or as models for new files.
 
 @itemize @bullet
 @item @file{interface} ...
 think JTAG Dongle. Files that configure JTAG adapters go here.
+@example
+$ ls interface
+arm-jtag-ew.cfg          hitex_str9-comstick.cfg  oocdlink.cfg
+arm-usb-ocd.cfg          icebear.cfg              openocd-usb.cfg
+at91rm9200.cfg           jlink.cfg                parport.cfg
+axm0432.cfg              jtagkey2.cfg             parport_dlc5.cfg
+calao-usb-a9260-c01.cfg  jtagkey.cfg              rlink.cfg
+calao-usb-a9260-c02.cfg  jtagkey-tiny.cfg         sheevaplug.cfg
+calao-usb-a9260.cfg      luminary.cfg             signalyzer.cfg
+chameleon.cfg            luminary-icdi.cfg        stm32-stick.cfg
+cortino.cfg              luminary-lm3s811.cfg     turtelizer2.cfg
+dummy.cfg                olimex-arm-usb-ocd.cfg   usbprog.cfg
+flyswatter.cfg           olimex-jtag-tiny.cfg     vsllink.cfg
+$
+@end example
 @item @file{board} ...
 think Circuit Board, PWA, PCB, they go by many names.  Board files
-contain initialization items that are specific to a board.  For
+contain initialization items that are specific to a board.
+They reuse target configuration files, since the same
+microprocessor chips are used on many boards,
+but support for external parts varies widely.  For
 example, the SDRAM initialization sequence for the board, or the type
 of external flash and what address it uses.  Any initialization
 sequence to enable that external flash or SDRAM should be found in the
 board file. Boards may also contain multiple targets:  two CPUs; or
-a CPU and an FPGA or CPLD.
+a CPU and an FPGA.
+@example
+$ ls board
+arm_evaluator7t.cfg               keil_mcb1700.cfg
+at91rm9200-dk.cfg                 keil_mcb2140.cfg
+at91sam9g20-ek.cfg                linksys_nslu2.cfg
+atmel_at91sam7s-ek.cfg            logicpd_imx27.cfg
+atmel_at91sam9260-ek.cfg          mini2440.cfg
+atmel_sam3u_ek.cfg                olimex_LPC2378STK.cfg
+crossbow_tech_imote2.cfg          olimex_lpc_h2148.cfg
+csb337.cfg                        olimex_sam7_ex256.cfg
+csb732.cfg                        olimex_sam9_l9260.cfg
+digi_connectcore_wi-9c.cfg        olimex_stm32_h103.cfg
+dm355evm.cfg                      omap2420_h4.cfg
+dm365evm.cfg                      osk5912.cfg
+dm6446evm.cfg                     pic-p32mx.cfg
+eir.cfg                           propox_mmnet1001.cfg
+ek-lm3s1968.cfg                   pxa255_sst.cfg
+ek-lm3s3748.cfg                   sheevaplug.cfg
+ek-lm3s811.cfg                    stm3210e_eval.cfg
+ek-lm3s9b9x.cfg                   stm32f10x_128k_eval.cfg
+hammer.cfg                        str910-eval.cfg
+hitex_lpc2929.cfg                 telo.cfg
+hitex_stm32-performancestick.cfg  ti_beagleboard.cfg
+hitex_str9-comstick.cfg           topas910.cfg
+iar_str912_sk.cfg                 topasa900.cfg
+imx27ads.cfg                      unknown_at91sam9260.cfg
+imx27lnst.cfg                     x300t.cfg
+imx31pdk.cfg                      zy1000.cfg
+$
+@end example
 @item @file{target} ...
 think chip. The ``target'' directory represents the JTAG TAPs
 on a chip
@@ -930,6 +979,37 @@ which OpenOCD should control, not a board. Two common types of targets
 are ARM chips and FPGA or CPLD chips.
 When a chip has multiple TAPs (maybe it has both ARM and DSP cores),
 the target config file defines all of them.
+@example
+$ ls target
+aduc702x.cfg     imx27.cfg     pxa255.cfg
+ar71xx.cfg       imx31.cfg     pxa270.cfg
+at91eb40a.cfg    imx35.cfg     readme.txt
+at91r40008.cfg   is5114.cfg    sam7se512.cfg
+at91rm9200.cfg   ixp42x.cfg    sam7x256.cfg
+at91sam3u1c.cfg  lm3s1968.cfg  samsung_s3c2410.cfg
+at91sam3u1e.cfg  lm3s3748.cfg  samsung_s3c2440.cfg
+at91sam3u2c.cfg  lm3s6965.cfg  samsung_s3c2450.cfg
+at91sam3u2e.cfg  lm3s811.cfg   samsung_s3c4510.cfg
+at91sam3u4c.cfg  lm3s9b9x.cfg  samsung_s3c6410.cfg
+at91sam3u4e.cfg  lpc1768.cfg   sharp_lh79532.cfg
+at91sam3uXX.cfg  lpc2103.cfg   smdk6410.cfg
+at91sam7sx.cfg   lpc2124.cfg   smp8634.cfg
+at91sam9260.cfg  lpc2129.cfg   stm32.cfg
+c100.cfg         lpc2148.cfg   str710.cfg
+c100config.tcl   lpc2294.cfg   str730.cfg
+c100helper.tcl   lpc2378.cfg   str750.cfg
+c100regs.tcl     lpc2478.cfg   str912.cfg
+cs351x.cfg       lpc2900.cfg   telo.cfg
+davinci.cfg      mega128.cfg   ti_dm355.cfg
+dragonite.cfg    netx500.cfg   ti_dm365.cfg
+epc9301.cfg      omap2420.cfg  ti_dm6446.cfg
+feroceon.cfg     omap3530.cfg  tmpa900.cfg
+icepick.cfg      omap5912.cfg  tmpa910.cfg
+imx21.cfg        pic32mx.cfg   xba_revA3.cfg
+$
+@end example
+@item @emph{more} ... browse for other library files which may be useful.
+For example, there are various generic and CPU-specific utilities.
 @end itemize
 
 The @file{openocd.cfg} user config
@@ -6907,38 +6987,6 @@ for @{ set x 0  @} @{ $x < 32 @} @{ set x [expr $x + 1]@} @{
 foreach who @{A B C D E@}
    proc [format "show_uart%c" $who] @{ @} "show_UARTx $who"
 @}
-@end example
-
-@node Target Library
-@chapter Target Library
-@cindex Target Library
-
-OpenOCD comes with a target configuration script library. These scripts can be
-used as-is or serve as a starting point.
-
-The target library is published together with the OpenOCD executable and
-the path to the target library is in the OpenOCD script search path.
-Similarly there are example scripts for configuring the JTAG interface.
-
-The command line below uses the example parport configuration script
-that ship with OpenOCD, then configures the str710.cfg target and
-finally issues the init and reset commands. The communication speed
-is set to 10kHz for reset and 8MHz for post reset.
-
-@example
-openocd -f interface/parport.cfg -f target/str710.cfg \
-        -c "init" -c "reset"
-@end example
-
-To list the target scripts available:
-
-@example
-$ ls  /usr/local/lib/openocd/target
-
-arm7_fast.cfg    lm3s6965.cfg  pxa255.cfg      stm32.cfg   xba_revA3.cfg
-at91eb40a.cfg    lpc2148.cfg   pxa255_sst.cfg  str710.cfg  zy1000.cfg
-at91r40008.cfg   lpc2294.cfg   sam7s256.cfg    str912.cfg
-at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
 @end example
 
 @include fdl.texi
