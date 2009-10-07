@@ -184,36 +184,37 @@ int jtag_build_buffer(const scan_command_t *cmd, uint8_t **buffer)
 
 	bit_count = 0;
 
-#ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("%s num_fields: %i", cmd->ir_scan ? "IRSCAN" : "DRSCAN", cmd->num_fields);
-#endif
+	DEBUG_JTAG_IO("%s num_fields: %i",
+			cmd->ir_scan ? "IRSCAN" : "DRSCAN",
+			cmd->num_fields);
 
 	for (i = 0; i < cmd->num_fields; i++)
 	{
 		if (cmd->fields[i].out_value)
 		{
 #ifdef _DEBUG_JTAG_IO_
-			char* char_buf = buf_to_str(cmd->fields[i].out_value, (cmd->fields[i].num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : cmd->fields[i].num_bits, 16);
-#endif
-			buf_set_buf(cmd->fields[i].out_value, 0, *buffer, bit_count, cmd->fields[i].num_bits);
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("fields[%i].out_value[%i]: 0x%s", i, cmd->fields[i].num_bits, char_buf);
+			char *char_buf = buf_to_str(cmd->fields[i].out_value,
+				(cmd->fields[i].num_bits > DEBUG_JTAG_IOZ)
+					? DEBUG_JTAG_IOZ
+					: cmd->fields[i].num_bits, 16);
+
+			LOG_DEBUG("fields[%i].out_value[%i]: 0x%s", i,
+					cmd->fields[i].num_bits, char_buf);
 			free(char_buf);
 #endif
+			buf_set_buf(cmd->fields[i].out_value, 0, *buffer,
+					bit_count, cmd->fields[i].num_bits);
 		}
 		else
 		{
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("fields[%i].out_value[%i]: NULL", i, cmd->fields[i].num_bits);
-#endif
+			DEBUG_JTAG_IO("fields[%i].out_value[%i]: NULL",
+					i, cmd->fields[i].num_bits);
 		}
 
 		bit_count += cmd->fields[i].num_bits;
 	}
 
-#ifdef _DEBUG_JTAG_IO_
-	//LOG_DEBUG("bit_count totalling: %i",  bit_count);
-#endif
+	//DEBUG_JTAG_IO("bit_count totalling: %i",  bit_count);
 
 	return bit_count;
 }
@@ -238,8 +239,13 @@ int jtag_read_buffer(uint8_t *buffer, const scan_command_t *cmd)
 			uint8_t *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
 
 #ifdef _DEBUG_JTAG_IO_
-			char *char_buf = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
-			LOG_DEBUG("fields[%i].in_value[%i]: 0x%s", i, num_bits, char_buf);
+			char *char_buf = buf_to_str(captured,
+					(num_bits > DEBUG_JTAG_IOZ)
+						? DEBUG_JTAG_IOZ
+						: num_bits, 16);
+
+			LOG_DEBUG("fields[%i].in_value[%i]: 0x%s",
+					i, num_bits, char_buf);
 			free(char_buf);
 #endif
 

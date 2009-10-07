@@ -263,9 +263,8 @@ static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_b
 
 	assert(tms_count > 0);
 
-#if 0
-	LOG_DEBUG("mpsse cmd=%02x, tms_bits = 0x%08x, bit_count=%d", mpsse_cmd, tms_bits, tms_count);
-#endif
+	DEBUG_JTAG_IO("mpsse cmd=%02x, tms_bits = 0x%08x, bit_count=%d",
+			mpsse_cmd, tms_bits, tms_count);
 
 	for (tms_byte = tms_ndx = i = 0;   i < tms_count;   ++i, tms_bits>>=1)
 	{
@@ -773,6 +772,8 @@ static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 
 	assert((unsigned) num_states <= 32u);		/* tms_bits only holds 32 bits */
 
+	DEBUG_JTAG_IO("-");
+
 	/* this loop verifies that the path is legal and logs each state in the path */
 	while (num_states)
 	{
@@ -952,7 +953,6 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 			tms_count = 2;
 			/* Clock Data to TMS/CS Pin with Read */
 			mpsse_cmd = 0x6b;
-			/* LOG_DEBUG("added TMS scan (read)"); */
 		}
 		else
 		{
@@ -960,9 +960,9 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 			tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 			/* Clock Data to TMS/CS Pin (no Read) */
 			mpsse_cmd = 0x4b;
-			/* LOG_DEBUG("added TMS scan (no read)"); */
 		}
 
+		DEBUG_JTAG_IO("finish %s", (type == SCAN_OUT) ? "without read" : "via PAUSE");
 		clock_tms(mpsse_cmd, tms_bits, tms_count, last_bit);
 	}
 
@@ -1154,6 +1154,7 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 			/* LOG_DEBUG("added TMS scan (no read)"); */
 		}
 
+		DEBUG_JTAG_IO("finish, %s", (type == SCAN_OUT) ? "no read" : "read");
 		clock_tms(mpsse_cmd, tms_bits, tms_count, last_bit);
 	}
 
@@ -1565,10 +1566,9 @@ static int ft2232_execute_runtest(jtag_command_t *cmd)
 	}
 
 	require_send = 1;
-#ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("runtest: %i, end in %s", cmd->cmd.runtest->num_cycles, tap_state_name(tap_get_end_state()));
-#endif
-
+	DEBUG_JTAG_IO("runtest: %i, end in %s",
+			cmd->cmd.runtest->num_cycles,
+			tap_state_name(tap_get_end_state()));
 	return retval;
 }
 
@@ -1577,7 +1577,8 @@ static int ft2232_execute_statemove(jtag_command_t *cmd)
 	int	predicted_size = 0;
 	int	retval = ERROR_OK;
 
-	DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
+	DEBUG_JTAG_IO("statemove end in %s",
+			tap_state_name(cmd->cmd.statemove->end_state));
 
 	/* only send the maximum buffer size that FT2232C can handle */
 	predicted_size = 3;
@@ -1685,10 +1686,9 @@ static int ft2232_execute_scan(jtag_command_t *cmd)
 	require_send = 1;
 	if (buffer)
 		free(buffer);
-#ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("%s scan, %i bits, end in %s", (cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
+	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
+			(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
 			tap_state_name(tap_get_end_state()));
-#endif
 	return retval;
 
 }
@@ -1720,9 +1720,8 @@ static int ft2232_execute_reset(jtag_command_t *cmd)
 	layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 	require_send = 1;
 
-#ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("trst: %i, srst: %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-#endif
+	DEBUG_JTAG_IO("trst: %i, srst: %i",
+			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 	return retval;
 }
 
@@ -1737,10 +1736,9 @@ static int ft2232_execute_sleep(jtag_command_t *cmd)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 	first_unsent = cmd->next;
 	jtag_sleep(cmd->cmd.sleep->us);
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("sleep %i usec while in %s", cmd->cmd.sleep->us, tap_state_name(tap_get_state()));
-#endif
-
+	DEBUG_JTAG_IO("sleep %i usec while in %s",
+			cmd->cmd.sleep->us,
+			tap_state_name(tap_get_state()));
 	return retval;
 }
 
@@ -1754,10 +1752,9 @@ static int ft2232_execute_stableclocks(jtag_command_t *cmd)
 	 */
 	if (ft2232_stableclocks(cmd->cmd.stableclocks->num_cycles, cmd) != ERROR_OK)
 		retval = ERROR_JTAG_QUEUE_FAILED;
-#ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("clocks %i while in %s", cmd->cmd.stableclocks->num_cycles, tap_state_name(tap_get_state()));
-#endif
-
+	DEBUG_JTAG_IO("clocks %i while in %s",
+			cmd->cmd.stableclocks->num_cycles,
+			tap_state_name(tap_get_state()));
 	return retval;
 }
 

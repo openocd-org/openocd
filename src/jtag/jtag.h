@@ -28,9 +28,11 @@
 
 
 #ifdef _DEBUG_JTAG_IO_
-#define DEBUG_JTAG_IO(expr ...)		LOG_DEBUG(expr)
+#define DEBUG_JTAG_IO(expr ...) \
+	do { if (1) LOG_DEBUG(expr); } while (0)
 #else
-#define DEBUG_JTAG_IO(expr ...)
+#define DEBUG_JTAG_IO(expr ...) \
+	do { if (0) LOG_DEBUG(expr); } while (0)
 #endif
 
 #ifndef DEBUG_JTAG_IOZ
