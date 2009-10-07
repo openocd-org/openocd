@@ -1108,19 +1108,22 @@ static int jtag_validate_ircapture(void)
 			break;
 		}
 
-		/* Validate the two LSBs, which must be 01 per JTAG spec.
-		 * REVISIT we might be able to verify some MSBs too, using
-		 * ircapture/irmask attributes.
-		 */
-		val = buf_get_u32(ir_test, chain_pos, tap->ir_length);
-		if ((val & 0x3) != 1) {
-			LOG_ERROR("%s: IR capture error; saw 0x%0*x not 0x..1",
-					jtag_tap_name(tap),
-					(tap->ir_length + 7) / tap->ir_length,
-					val);
+		if (tap->hasidcode)
+		{
+			/* Validate the two LSBs, which must be 01 per JTAG spec.
+			 * REVISIT we might be able to verify some MSBs too, using
+			 * ircapture/irmask attributes.
+			 */
+			val = buf_get_u32(ir_test, chain_pos, tap->ir_length);
+			if ((val & 0x3) != 1) {
+				LOG_ERROR("%s: IR capture error; saw 0x%0*x not 0x..1",
+						jtag_tap_name(tap),
+						(tap->ir_length + 7) / tap->ir_length,
+						val);
 
-			retval = ERROR_JTAG_INIT_FAILED;
-			goto done;
+				retval = ERROR_JTAG_INIT_FAILED;
+				goto done;
+			}
 		}
 		LOG_DEBUG("%s: IR capture 0x%0*x", jtag_tap_name(tap),
 				(tap->ir_length + 7) / tap->ir_length, val);
