@@ -155,8 +155,8 @@ static char reboot_stack[2048];
 static void zylinjtag_reboot(cyg_addrword_t data)
 {
 	serialLog = true;
-	diag_printf("Rebooting in 100 ticks..\n");
-	cyg_thread_delay(100);
+	diag_printf("Rebooting in 500 ticks..\n");
+	cyg_thread_delay(500);
 	diag_printf("Unmounting /config..\n");
 	umount("/config");
 	diag_printf("Rebooting..\n");
