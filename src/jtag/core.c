@@ -68,10 +68,12 @@ static const char *jtag_event_strings[] =
 
 /*
  * JTAG adapters must initialize with TRST and SRST de-asserted
- * (they're negative logic, so that means *high*)
+ * (they're negative logic, so that means *high*).  But some
+ * hardware doesn't necessarily work that way ... so set things
+ * up so that jtag_init() always forces that state.
  */
-static int jtag_trst = 0;
-static int jtag_srst = 0;
+static int jtag_trst = -1;
+static int jtag_srst = -1;
 
 /**
  * List all TAPs that have been created.
@@ -1337,7 +1339,13 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 int jtag_init(struct command_context_s *cmd_ctx)
 {
 	int retval;
+
 	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
+		return retval;
+
+	/* guard against oddball hardware: force resets to be inactive */
+	jtag_add_reset(0, 0);
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	if (Jim_Eval_Named(interp, "jtag_init", __FILE__, __LINE__) != JIM_OK)
