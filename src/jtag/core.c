@@ -1108,22 +1108,24 @@ static int jtag_validate_ircapture(void)
 			break;
 		}
 
-		if (tap->hasidcode)
-		{
-			/* Validate the two LSBs, which must be 01 per JTAG spec.
-			 * REVISIT we might be able to verify some MSBs too, using
-			 * ircapture/irmask attributes.
-			 */
-			val = buf_get_u32(ir_test, chain_pos, tap->ir_length);
-			if ((val & 0x3) != 1) {
-				LOG_ERROR("%s: IR capture error; saw 0x%0*x not 0x..1",
-						jtag_tap_name(tap),
-						(tap->ir_length + 7) / tap->ir_length,
-						val);
+		/* Validate the two LSBs, which must be 01 per JTAG spec.
+		 *
+		 * Or ... more bits could be provided by TAP declaration.
+		 * Plus, some taps (notably in i.MX series chips) violate
+		 * this part of the JTAG spec, so their capture mask/value
+		 * attributes might disable this test.
+		 */
+		val = buf_get_u32(ir_test, chain_pos, tap->ir_length);
+		if ((val & tap->ir_capture_mask) != tap->ir_capture_value) {
+			LOG_ERROR("%s: IR capture error; saw 0x%0*x not 0x%0*x",
+					jtag_tap_name(tap),
+					(tap->ir_length + 7) / tap->ir_length,
+					val,
+					(tap->ir_length + 7) / tap->ir_length,
+					tap->ir_capture_value);
 
-				retval = ERROR_JTAG_INIT_FAILED;
-				goto done;
-			}
+			retval = ERROR_JTAG_INIT_FAILED;
+			goto done;
 		}
 		LOG_DEBUG("%s: IR capture 0x%0*x", jtag_tap_name(tap),
 				(tap->ir_length + 7) / tap->ir_length, val);
