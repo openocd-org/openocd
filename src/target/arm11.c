@@ -1433,7 +1433,8 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 
 		if (address + size * count != r0)
 		{
-			LOG_ERROR("Data transfer failed. (%d)", (int)((r0 - address) - size * count));
+			LOG_ERROR("Data transfer failed. Expected end address 0x%08x, got 0x%08x",
+					address + size * count, r0);
 
 			if (arm11_config_memwrite_burst)
 				LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
