@@ -768,12 +768,29 @@ int arm11_halt(struct target_s *target)
 
 	uint32_t dscr;
 
+	int i = 0;
 	while (1)
 	{
 		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 		if (dscr & ARM11_DSCR_CORE_HALTED)
 			break;
+
+
+		long long then = 0;
+		if (i == 1000)
+		{
+			then = timeval_ms();
+		}
+		if (i >= 1000)
+		{
+			if ((timeval_ms()-then) > 1000)
+			{
+				LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+				return ERROR_FAIL;
+			}
+		}
+		i++;
 	}
 
 	arm11_on_enter_debug_state(arm11);
@@ -865,6 +882,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 
 	CHECK_RETVAL(jtag_execute_queue());
 
+	int i = 0;
 	while (1)
 	{
 		uint32_t dscr;
@@ -875,6 +893,22 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 
 		if (dscr & ARM11_DSCR_CORE_RESTARTED)
 			break;
+
+
+		long long then = 0;
+		if (i == 1000)
+		{
+			then = timeval_ms();
+		}
+		if (i >= 1000)
+		{
+			if ((timeval_ms()-then) > 1000)
+			{
+				LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+				return ERROR_FAIL;
+			}
+		}
+		i++;
 	}
 
 	if (!debug_execution)
@@ -1088,10 +1122,8 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 
 		CHECK_RETVAL(jtag_execute_queue());
 
-		/** \todo TODO: add a timeout */
-
 		/* wait for halt */
-
+		int i = 0;
 		while (1)
 		{
 			uint32_t dscr;
@@ -1103,6 +1135,21 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 			if ((dscr & (ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED)) ==
 				(ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED))
 				break;
+
+			long long then = 0;
+			if (i == 1000)
+			{
+				then = timeval_ms();
+			}
+			if (i >= 1000)
+			{
+				if ((timeval_ms()-then) > 1000)
+				{
+					LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+					return ERROR_FAIL;
+				}
+			}
+			i++;
 		}
 
 		/* clear breakpoint */
@@ -1936,9 +1983,6 @@ const uint32_t arm11_coproc_instruction_limits[] =
 	0xFFFFFFFF,		/* value */
 };
 
-const char arm11_mrc_syntax[] = "Syntax: mrc <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2>. All parameters are numbers only.";
-const char arm11_mcr_syntax[] = "Syntax: mcr <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2> <32bit value to write>. All parameters are numbers only.";
-
 arm11_common_t * arm11_find_target(const char * arg)
 {
 	jtag_tap_t *	tap;
@@ -1966,18 +2010,16 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 {
 	if (argc != (read ? 6 : 7))
 	{
-		LOG_ERROR("Invalid number of arguments. %s", read ? arm11_mrc_syntax : arm11_mcr_syntax);
-		return -1;
+		LOG_ERROR("Invalid number of arguments.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	arm11_common_t * arm11 = arm11_find_target(args[0]);
 
 	if (!arm11)
 	{
-		LOG_ERROR("Parameter 1 is not a the JTAG chain position of an ARM11 device. %s",
-			read ? arm11_mrc_syntax : arm11_mcr_syntax);
-
-		return -1;
+		LOG_ERROR("Parameter 1 is not a the JTAG chain position of an ARM11 device.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (arm11->target->state != TARGET_HALTED)
@@ -1994,11 +2036,10 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 		if (values[i] > arm11_coproc_instruction_limits[i])
 		{
-			LOG_ERROR("Parameter %ld out of bounds (%" PRId32 " max). %s",
+			LOG_ERROR("Parameter %ld out of bounds (%" PRId32 " max).",
 				  (long)(i + 2),
-				  arm11_coproc_instruction_limits[i],
-				read ? arm11_mrc_syntax : arm11_mcr_syntax);
-			return -1;
+				  arm11_coproc_instruction_limits[i]);
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 
@@ -2072,7 +2113,7 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, top_cmd, "mcr",
 			arm11_handle_mcr, COMMAND_ANY,
-			"Write Coprocessor register");
+			"Write Coprocessor register. mcr <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2> <32bit value to write>. All parameters are numbers only.");
 
 	mw_cmd = register_command(cmd_ctx, top_cmd, "memwrite",
 			NULL, COMMAND_ANY, NULL);
@@ -2087,7 +2128,7 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, top_cmd, "mrc",
 			arm11_handle_mrc, COMMAND_ANY,
-			"Read Coprocessor register");
+			"Read Coprocessor register. mrc <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2>. All parameters are numbers only.");
 	register_command(cmd_ctx, top_cmd, "no_increment",
 			arm11_handle_bool_memrw_no_increment, COMMAND_ANY,
 			"Don't increment address on multi-read/-write"
