@@ -670,6 +670,14 @@ each supporting a different development task.
 One might re-flash the board with a specific firmware version.
 Another might set up a particular debugging or run-time environment.
 
+@quotation Important
+At this writing (October 2009) the command line method has
+problems with how it treats variables.
+For example, after @option{-c "set VAR value"}, or doing the
+same in a script, the variable @var{VAR} will have no value
+that can be tested in a later script.
+@end quotation
+
 Here we will focus on the simpler solution:  one user config
 file, including basic configuration plus any TCL procedures
 to simplify your work.

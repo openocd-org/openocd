@@ -23,6 +23,10 @@ This section provides possible things to improve with OpenOCD's TCL support.
   - provide more directory structure for boards/targets?
   - factor configurations into layers (encapsulation and re-use)
 
+- Fix handling of variables between multiple command line "-c" and "-f"
+  parameters.  Currently variables assigned through one such parameter
+  command/script are unset before the next one is invoked.
+
 - Isolate all TCL command support: 
   - Pure C CLI implementations using --disable-builtin-tcl. 
     - Allow developers to build new dongles using OpenOCD's JTAG core.
