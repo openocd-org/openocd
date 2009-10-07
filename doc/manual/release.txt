@@ -62,9 +62,9 @@ the minor version will @a also be zero (<code>y = 0, z = 0</code>).
 @subsection releaseversiontags Version Tags
 
 After these required numeric components, the version string may contain
-one or more <i>version tags</i>, such as '-rc1' or '-in-development'.
+one or more <i>version tags</i>, such as '-rc1' or '-dev'.
 
-The trunk and all branches should have the tag '-in-development' in
+The trunk and all branches should have the tag '-dev' in
 their version number.  This tag helps developers identify reports
 created from the Subversion repository, and it can be detected and
 manipulated by the release script.  Specifically, this tag will be
@@ -218,7 +218,7 @@ The following steps should be followed to produce each release:
     - This material should be produced during the development cycle.
     - Add a new item for each @c NEWS-worthy contribution, when committed.
   -# bump library version if our API changed (not yet required)
-  -# Remove -in-development tag from package version:
+  -# Remove -dev tag from package version in configure.in:
     - For major/minor releases, remove version tag from trunk, @a or
     - For bug-fix releases, remove version tag from release branch.
 -# Branch or tag the required tree in the Subversion repository:

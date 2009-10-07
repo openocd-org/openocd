@@ -49,7 +49,7 @@
 
 
 #define OPENOCD_VERSION \
-		"Open On-Chip Debugger " VERSION " (" PKGBLDDATE ") " RELSTR PKGBLDREV
+		"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
 
 static void print_version(void)
 {

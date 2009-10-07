@@ -28,10 +28,12 @@ AM_CPPFLAGS = \
 
 libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
 
+# banner output includes RELSTR appended to $VERSION from the configure script
+# guess-rev.sh returns either a repository version ID or "-snapshot"
 if RELEASE
-libopenocd_la_CPPFLAGS += -DRELSTR=\"Release\" -DPKGBLDREV=\"\"
+libopenocd_la_CPPFLAGS += -DRELSTR=\"\"
 else
-libopenocd_la_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
+libopenocd_la_CPPFLAGS += -DRELSTR=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
 endif
 
 # add default CPPFLAGS

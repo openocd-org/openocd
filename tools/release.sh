@@ -97,7 +97,7 @@ package_info_load() {
 
 	PACKAGE_VERSION="$(package_info_load_version)"
 	[ "${RELEASE_VERSION}" ] || \
-		RELEASE_VERSION=${PACKAGE_VERSION/-in-development/}
+		RELEASE_VERSION=${PACKAGE_VERSION/-dev/}
 
 	[ "${PACKAGE_NAME}" -a "${PACKAGE_VERSION}" ] || \
 		die "package information is missing from configure script"
@@ -427,7 +427,7 @@ do_commit() {
 	package_info_load
 	svn_setup_load
 
-	[ "${PACKAGE_VERSION/in-development/}" = "${PACKAGE_VERSION}" ] || \
+	[ "${PACKAGE_VERSION/dev/}" = "${PACKAGE_VERSION}" ] || \
 		die "'${PACKAGE_NAME}-${PACKAGE_VERSION}' cannot be released"
 
 	[ "${PACKAGE_VERSION%.0}" = "${PACKAGE_VERSION}" ] || \
@@ -437,7 +437,7 @@ do_commit() {
 
 
 do_release_step_prep() {
-	do_version tag remove in-development
+	do_version tag remove dev
 	# reset RELEASE_VERSION now to allow release version to be detected
 	export RELEASE_VERSION=
 }
@@ -447,7 +447,7 @@ do_release_step_branch_bump() {
 	local TYPE="$1"
 	echo "Bump ${TYPE} version and add tag:"
 	do_version_bump ${TYPE}
-	do_version_tag_add in-development
+	do_version_tag_add dev
 }
 do_release_step_branch() {
 	do_svn_switch "${PACKAGE_BRANCH}"
