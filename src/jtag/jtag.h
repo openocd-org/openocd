@@ -689,6 +689,7 @@ extern void jtag_sleep(uint32_t us);
 #define ERROR_JTAG_DEVICE_ERROR      (-107)
 #define ERROR_JTAG_STATE_INVALID     (-108)
 #define ERROR_JTAG_TRANSITION_INVALID (-109)
+#define ERROR_JTAG_INIT_SOFT_FAIL    (-110)
 
 /**
  * jtag_add_dr_out() is a version of jtag_add_dr_scan() which

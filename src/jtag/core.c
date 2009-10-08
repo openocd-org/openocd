@@ -892,7 +892,15 @@ static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
 	}
 
 	/* if there wasn't a single non-zero bit or if all bits were one,
-	 * the scan is not valid */
+	 * the scan is not valid.  We wrote a mix of both values; either
+	 *
+	 *  - There's a hardware issue (almost certainly):
+	 *     + all-zeroes can mean a target stuck in JTAG reset
+	 *     + all-ones tends to mean no target
+	 *  - The scan chain is WAY longer than we can handle, *AND* either
+	 *     + there are several hundreds of TAPs in bypass, or
+	 *     + at least a few dozen TAPs all have an all-ones IDCODE
+	 */
 	if (zero_check == 0x00 || one_check == 0xff)
 	{
 		LOG_ERROR("JTAG scan chain interrogation failed: all %s",
@@ -988,11 +996,14 @@ static int jtag_examine_chain(void)
 {
 	uint8_t idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	unsigned bit_count;
+	int retval;
 
 	/* DR scan to collect BYPASS or IDCODE register contents.
 	 * Then make sure the scan data has both ones and zeroes.
 	 */
-	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
+	retval = jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
+	if (retval != ERROR_OK)
+		return retval;
 	if (!jtag_examine_chain_check(idcode_buffer, JTAG_MAX_CHAIN_SIZE))
 		return ERROR_JTAG_INIT_FAILED;
 
@@ -1012,7 +1023,7 @@ static int jtag_examine_chain(void)
 
 		if ((idcode & 1) == 0)
 		{
-			/* LSB must not be 0, this indicates a device in bypass */
+			/* Zero for LSB indicates a device in bypass */
 			LOG_WARNING("TAP %s does not have IDCODE",
 					tap->dotted_name);
 			idcode = 0;
@@ -1024,7 +1035,8 @@ static int jtag_examine_chain(void)
 		{
 			/* Friendly devices support IDCODE */
 			tap->hasidcode = true;
-			jtag_examine_chain_display(LOG_LVL_INFO, "tap/device found",
+			jtag_examine_chain_display(LOG_LVL_INFO,
+					"tap/device found",
 					tap->dotted_name, idcode);
 
 			bit_count += 32;
@@ -1033,7 +1045,7 @@ static int jtag_examine_chain(void)
 
 		/* ensure the TAP ID matches what was expected */
 		if (!jtag_examine_chain_match_tap(tap))
-			return ERROR_JTAG_INIT_FAILED;
+			retval = ERROR_JTAG_INIT_SOFT_FAIL;
 	}
 
 	/* Fail if too many TAPs were enabled for us to verify them all. */
@@ -1049,11 +1061,14 @@ static int jtag_examine_chain(void)
 	if (jtag_examine_chain_end(idcode_buffer, bit_count,
 			8 * sizeof(idcode_buffer))) {
 		LOG_ERROR("double-check your JTAG setup (interface, "
-				"speed, TAPs, ...)");
+				"speed, missing TAPs, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	return ERROR_OK;
+	/* Return success or, for backwards compatibility if only
+	 * some IDCODE values mismatched, a soft/continuable fault.
+	 */
+	return retval;
 }
 
 /*
@@ -1255,18 +1270,37 @@ int jtag_init_inner(struct command_context_s *cmd_ctx)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
-	/* examine chain first, as this could discover the real chain layout */
-	if (jtag_examine_chain() != ERROR_OK)
-	{
+	/* Examine DR values first.  This discovers problems which will
+	 * prevent communication ... hardware issues like TDO stuck, or
+	 * configuring the wrong number of (enabled) TAPs.
+	 */
+	retval = jtag_examine_chain();
+	switch (retval) {
+	case ERROR_OK:
+		/* complete success */
+		break;
+	case ERROR_JTAG_INIT_SOFT_FAIL:
+		/* For backward compatibility reasons, try coping with
+		 * configuration errors involving only ID mismatches.
+		 * We might be able to talk to the devices.
+		 */
 		LOG_ERROR("Trying to use configured scan chain anyway...");
 		issue_setup = false;
+		break;
+	default:
+		/* some hard error; already issued diagnostics */
+		return retval;
 	}
 
-	if (jtag_validate_ircapture() != ERROR_OK)
-	{
-		LOG_WARNING("Errors during IR capture, continuing anyway...");
-		issue_setup = false;
-	}
+	/* Now look at IR values.  Problems here will prevent real
+	 * communication.  They mostly mean that the IR length is
+	 * wrong ... or that the IR capture value is wrong.  (The
+	 * latter is uncommon, but easily worked around:  provide
+	 * ircapture/irmask values during TAP setup.)
+	 */
+	retval = jtag_validate_ircapture();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (issue_setup)
 		jtag_notify_event(JTAG_TAP_EVENT_SETUP);
