@@ -177,6 +177,10 @@ a GIT repository hosted at SourceForge.  The repository URL is:
 
 @uref{git://openocd.git.sourceforge.net/gitroot/openocd/openocd}
 
+You may prefer to use a mirror and the HTTP protocol:
+
+@uref{http://repo.or.cz/r/openocd.git}
+
 With standard GIT tools, use @command{git clone} to initialize
 a local repository, and @command{git pull} to update it.
 There are also gitweb pages letting you browse the repository
@@ -184,6 +188,8 @@ with a web browser, or download arbitrary snapshots without
 needing a GIT client:
 
 @uref{http://openocd.git.sourceforge.net/git/gitweb.cgi?p=openocd/openocd}
+
+@uref{http://repo.or.cz/w/openocd.git}
 
 The @file{README} file contains the instructions for building the project
 from the repository or a snapshot.

@@ -385,6 +385,11 @@ choice from the main repository:
 
    git://openocd.git.sourceforge.net/gitroot/openocd/openocd
 
+You may prefer to use a mirror:
+
+   http://repo.or.cz/r/openocd.git
+   git://repo.or.cz/openocd.git
+
 Using the GIT command line client, you might use the following command
 to set up a local copy of the current repository (make sure there is no
 directory called "openocd" in the current directory):
@@ -399,6 +404,7 @@ There is also a gitweb interface, which you can use either to browse
 the repository or to downlad arbitrary snapshots using HTTP:
 
    http://openocd.git.sourceforge.net/git/gitweb.cgi?p=openocd/openocd
+   http://repo.or.cz/w/openocd.git
 
 Snapshots are compressed tarballs of the source tree, about 1.3 MBytes
 each at this writing.
