@@ -255,7 +255,9 @@ int openocd_main(int argc, char *argv[])
 
 	print_version();
 
-	LOG_OUTPUT("For bug reports, read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n");
+	LOG_OUTPUT("For bug reports, read\n\t"
+		"http://openocd.berlios.de/doc/doxygen/bugs.html"
+		"\n");
 
 
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);

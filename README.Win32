@@ -40,7 +40,8 @@ Take note that different Linux distributions often have different MinGW
 installation directory.  Some of them also put the library and include
 into a separate sys-root directory.
 
-If there is a new svn version of libusb-win32, you can build it as well. 
+When the libusb-win32 repository is more current than its release code,
+you could build that instead.
 
 These are the instruction from the libusb-win32 Makefile:
 
@@ -93,5 +94,5 @@ To use ftd2xx:
         --with-ftd2xx-win32-zipdir=/path/to/libftd2xx-win32 \
         ... other options ...
 
-If you are using the SVN repository, see the README file for additional
+If you are using the GIT repository, see the README file for additional
 instructions about configuring and building OpenOCD.

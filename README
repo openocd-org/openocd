@@ -74,13 +74,13 @@ A Note to OpenOCD Users
 -----------------------
 
 If you would rather be working "with" OpenOCD rather than "on" it, your
-operating system or interface supplier may provide binaries for you in a
-convenient package.
+operating system or JTAG interface supplier may provide binaries for
+you in a convenient-enough package.
 
-Such packages should be more stable than SVN trunk, where bleeding-edge
+Such packages may be more stable than git mainline, where bleeding-edge
 development takes place.  These "Packagers" produce binary releases of
-OpenOCD after the developers produces new "stable" versions of the
-source code.  Previous versions of OpenOCD cannot be used to diagnosed
+OpenOCD after the developers produces new "release" versions of the
+source code.  Previous versions of OpenOCD cannot be used to diagnose
 problems with the current release, so users are encouraged to keep in
 contact with their distribution package maintainers or interface vendors
 to ensure suitable upgrades appear regularly.
@@ -205,7 +205,7 @@ options may be available there:
 
   --enable-maintainer-mode  enable make rules and dependencies not useful
                           (and sometimes confusing) to the casual installer
-			  NOTE: This option is *required* for SVN builds!
+			  NOTE: This option is *required* for GIT builds!
 			  It should *not* be used to build a release.
 
   --enable-dummy          Enable building the dummy JTAG port driver
@@ -376,29 +376,36 @@ the following:
 Note that on Linux there is no good reason to use these FTDI binaries;
 they are no faster (on Linux) than libftdi, and cause licensing issues.
 
-=================================
-Obtaining OpenOCD From Subversion
----------------------------------
+==========================
+Obtaining OpenOCD From GIT
+==========================
 
-You can download the current SVN version with an SVN client of your
-choice from the following repositories:
+You can download the current GIT version with a GIT client of your
+choice from the main repository:
 
-   svn://svn.berlios.de/openocd/trunk
-or
-   http://svn.berlios.de/svnroot/repos/openocd/trunk
+   git://openocd.git.sourceforge.net/gitroot/openocd/openocd
 
-Using the SVN command line client, you can use the following command to
-fetch the latest version (make sure there is no (non-svn) directory
-called "openocd" in the current directory):
+Using the GIT command line client, you might use the following command
+to set up a local copy of the current repository (make sure there is no
+directory called "openocd" in the current directory):
 
-   svn checkout svn://svn.berlios.de/openocd/trunk openocd
+   git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
 
-If you prefer GIT based tools, the git-svn package works too:
+Then you can update that at your convenience using
 
-   git svn clone -s svn://svn.berlios.de/openocd
+   git pull
 
-Tips For Building From The Subversion Repository
-************************************************
+There is also a gitweb interface, which you can use either to browse
+the repository or to downlad arbitrary snapshots using HTTP:
+
+   http://openocd.git.sourceforge.net/git/gitweb.cgi?p=openocd/openocd
+
+Snapshots are compressed tarballs of the source tree, about 1.3 MBytes
+each at this writing.
+
+
+Tips For Building From a GIT Repository
+---------------------------------------
 
 Building OpenOCD from a repository requires a recent version of the GNU
 autotools (autoconf >= 2.59 and automake >= 1.9).

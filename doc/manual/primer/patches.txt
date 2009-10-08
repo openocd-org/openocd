@@ -6,10 +6,10 @@ for OpenOCD contributors who are unfamiliar with the process.
 @section primerpatchintro Introduction to Patching
 
 The standard method for creating patches requires developers to:
-- checkout the Subversion repository (or bring a copy up-to-date),
+- checkout the git repository (or bring a copy up-to-date),
 - make the necessary modifications to a working copy,
-- check with 'svn status' to see which files will be modified/added, and
-- use 'svn diff' to review the changes and produce a patch.
+- check with 'git status' to see which files will be modified/added, and
+- use 'git diff' to review the changes and produce a patch.
 
 It is important to minimize the changes to only those lines that contain
 important differences; do not allow stray whitespace changes into your
@@ -20,7 +20,7 @@ patches, and keep the focus to a single logical change.
 You can create a patch (from the root of your working copy) with a
 command like the following example: @par
 @verbatim
-svn diff > patch-name.patch
+git diff > patch-name.patch
 @endverbatim
 
 where @a patch-name should be something that is descriptive and unique.
@@ -29,8 +29,8 @@ The above command will create a patch containing all of the changes in
 the working copy; if you want to obtain a subset, simply provide the
 list of files to the command: @par
 @verbatim
-svn diff doc > <patch-name>-doc.patch
-svn diff src > <patch-name>-src.patch
+git diff doc > <patch-name>-doc.patch
+git diff src > <patch-name>-src.patch
 @endverbatim
 
 This will create two patches, each containing only those changes present
@@ -56,65 +56,20 @@ submission, sending your patch to the bit bucket on accident.
 @section primerpatchpreflight Developer Review
 
 Before sending in patches, please make sure you have updated to the
-latest version of the trunk (using <code>svn up</code>) before creating
+latest version of the trunk (using <code>git pull</code>) before creating
 your patch.  This helps to increase the chances that it will apply
 cleanly to the trunk.  However, the content matters most.
 
-When creating a patch using "<code>svn diff</code>", Subversion will
+When creating a patch using "<code>git diff</code>", git will
 produce a patch that contains all of the changes in your working copy.
 To manage multiple changes at once, you either need one working copy per
 patch, or you can specified specific files and directories when using
-<code>svn diff</code>.  Overlapping patches will be discussed in the
+<code>git diff</code>.  Overlapping patches will be discussed in the
 next section.
 
-The remainder of this section provides
-
-@subsection primerpatchprops Subversion Properties
-
-The Subversion attributes of files can be examined with commands like the
-following: @par
-@verbatim
-$ svn pl README
-Properties on 'README':
-  svn:eol-style
-$ svn pl tools/rlink_make_speed_table/rlink_make_speed_table.pl
-Properties on 'tools/rlink_make_speed_table/rlink_make_speed_table.pl':
-  svn:executable
-  svn:eol-style
-$
-@endverbatim
-
-@subsection primerpatchpropcrlf Native Line-endings
-
-Subversion checks out files marked with the attribute @c svn:eol-style
-set to @c native such that these files contain the default line ending
-style of the current host ('\\n' or '\\r\\n').  By using the proper line
-endings for different platforms, two different byte streams for the same
-file will be produced.
-
-@subsection primerpatchwincrlf Windows Patching Problems
-
-Because of the line-ending functionality, it may be correct when a fresh
-patch does not apply cleanly on the Windows platform.  This is because
-patches are created by SVN with UNIX line endings, so the context and
-changes will not appear to match the files with Windows line endings.
-
-In other words, the following command may @b not succeed because @c foo
-has its @c svn:eol-style property set to @c native: @par
-@code
-svn diff foo | patch -R
-@endcode
-
-The following series of commands will work: @par
-@code
-svn diff foo | unix2dos | patch -R
-@endcode
-
-This is not a bug.
-
-@todo Does Subversion's treatment of line-endings for files marked with
-svn:eol-style=native continue to pose the problems described here, or
-has this been magically solved?
+@todo Does git's treatment of line-endings behave sanely?
+Basically, the repository should use newlines internally,
+and convert to/from CRLF on Windows etc.
 
 @section primerpatchseries Patch Series
 
@@ -132,9 +87,8 @@ simply a matter of taste or familiarity; your mileage may vary.
 
 Packages such as @c patchutils, @c diffutils, and @c quilt are among
 those that have proved themselves invaluable for these type of tasks.
-Others take their patch management a step further, tracking the
-Subversion repository with git-svn and employing GIT conventions and
-methodologies for development.
+Others take their patch management a step further, using stkgit or
+some other framework on top of git.
 
 @subsection primerpatchseriesinterdiff Using @c interdiff
 
@@ -144,22 +98,22 @@ patches.  This command can be used to manage the creation of trivial
 patch series.  For example, the following sequence of commands will
 produce three patches: @par
 @verbatim
-$ cd openocd-head/
-$ svn up && svn st
-At revision NNNN.
+$ cd openocd/
+$ git pull
+...
 $ <<<start changes for patch #1>>>
 ...
 $ <<<finish changes for patch #1>>>
-$ svn diff > series-1.patch                         # patch #1 is easy
+$ git diff > series-1.patch                         # patch #1 is easy
 $ <<<start changes for patch #2>>>
 ...
 $ <<<finish changes for patch #2>>>
-$ svn diff > series-1+2.patch                       # create patch 1+2
+$ git diff > series-1+2.patch                       # create patch 1+2
 $ interdiff series-1{,+2}.patch > series-2.patch    #   1 ~  1+2  => #2
 $ <<<start changes for patch #3>>>
 ...
 $ <<<finish changes for patch #3>>>
-$ svn diff > series-1+2+3.patch                     # create patch 1+2+3
+$ git diff > series-1+2+3.patch                     # create patch 1+2+3
 $ interdiff series-1+2{,+3}.patch > series-3.patch  # 1+2 ~ 1+2+3 => 3
 @endverbatim
 
@@ -173,19 +127,14 @@ efficiently than can be managed by hand.  For out-of-tree work projects
 that require such patch management, @c quilt provides an indispensable
 tool for solving the problem.
 
-@subsection primerpatchseriesgit Using @c git
-
-The @c git revision control system provides a tool for tracking
-Subversion repositories.
-
 @section primerpatchsubmit Submitting Patches
 
-Write access to the OpenOCD Subversion repository is limited to
+Write access to the OpenOCD git repository is limited to
 contributors that have demonstrated the ability to produce clear,
 consistent, and frequent patches.  These individuals are responsible
 for maintaining the integrity of the repository for the community.
 
-Thus, commits to the Subversion repository must be handled by one of
+Thus, commits to the git repository must be handled by one of
 these maintainers.
 
 Patches must be sent to the OpenOCD developer mailing list:

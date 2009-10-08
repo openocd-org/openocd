@@ -22,7 +22,7 @@ that may be important.
 - If the report is for a regression:
   - Include logs for both working and broken versions.
   - Find the precise version that caused the regression by binary search.
-    For example: if testing version 550 works but 600 fail, then try 575, etc.
+    You can use "git bisect" to expedite this binary search.
 
 If possible, please develop and attach a patch that helps to expose or
 solve the reported problem.  See the PATCHES file for more information

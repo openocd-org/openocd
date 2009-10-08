@@ -170,38 +170,32 @@ documentation, as well as more conventional bug fixes and enhancements.
 The resources in this chapter are available for developers wishing to explore
 or expand the OpenOCD source code.
 
-@section OpenOCD Subversion Repository
+@section OpenOCD GIT Repository
 
-You can download the current SVN version with an SVN client of your
-choice from the following repositories:
+During the 0.3.x release cycle, OpenOCD switched from Subversion to
+a GIT repository hosted at SourceForge.  The repository URL is:
 
-   @uref{svn://svn.berlios.de/openocd/trunk}
+@uref{git://openocd.git.sourceforge.net/gitroot/openocd/openocd}
 
-or
+With standard GIT tools, use @command{git clone} to initialize
+a local repository, and @command{git pull} to update it.
+There are also gitweb pages letting you browse the repository
+with a web browser, or download arbitrary snapshots without
+needing a GIT client:
 
-   @uref{http://svn.berlios.de/svnroot/repos/openocd/trunk}
+@uref{http://openocd.git.sourceforge.net/git/gitweb.cgi?p=openocd/openocd}
 
-Using the SVN command line client, you can use the following command to
-fetch the latest version (make sure there is no (non-svn) directory
-called "openocd" in the current directory):
-
-   svn checkout svn://svn.berlios.de/openocd/trunk openocd
-
-If you prefer GIT based tools, the @command{git-svn} package works too:
-
-   git svn clone -s svn://svn.berlios.de/openocd
-
-The ``README'' file contains the instructions for building the project
-from the repository.
+The @file{README} file contains the instructions for building the project
+from the repository or a snapshot.
 
 Developers that want to contribute patches to the OpenOCD system are
-@b{strongly} encouraged to base their work off of the most recent trunk
-revision.  Patches created against older versions may require additional
+@b{strongly} encouraged to work against mainline.
+Patches created against older versions may require additional
 work from their submitter in order to be updated for newer releases.
 
 @section Doxygen Developer Manual
 
-During the development of the 0.2.0 release, the OpenOCD project began
+During the 0.2.x release cycle, the OpenOCD project began
 providing a Doxygen reference manual.  This document contains more
 technical information about the software internals, development
 processes, and similar documentation:
@@ -210,7 +204,7 @@ processes, and similar documentation:
 
 This document is a work-in-progress, but contributions would be welcome
 to fill in the gaps.  All of the source files are provided in-tree,
-listed in the Doxyfile configuration in the top of the repository trunk.
+listed in the Doxyfile configuration in the top of the source tree.
 
 @section OpenOCD Developer Mailing List
 
@@ -219,10 +213,9 @@ communication between developers:
 
 @uref{https://lists.berlios.de/mailman/listinfo/openocd-development}
 
-All drivers developers are enouraged to also subscribe to the list of
-SVN commits to keep pace with the ongoing changes:
-
-@uref{https://lists.berlios.de/mailman/listinfo/openocd-svn}
+Discuss and submit patches to this list.
+The @file{PATCHES} file contains basic information about how
+to prepare patches.
 
 
 @node JTAG Hardware Dongles

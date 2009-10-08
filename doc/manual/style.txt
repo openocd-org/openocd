@@ -49,7 +49,7 @@ OpenOCD project.
 - limit adjacent empty lines to at most two (2).
 - remove any trailing empty lines at the end of source files
 - do not "comment out" code from the tree; instead, one should either:
-  -# remove it entirely (Subversion can retrieve the old version), or
+  -# remove it entirely (git can retrieve the old version), or
   -# use an @c \#if/\#endif block.
 
 Finally, try to avoid lines of code that are longer than than 72-80 columns:
@@ -358,10 +358,8 @@ perl script.pl
 
 Maintainers must also be sure to follow additional guidelines:
 -# Ensure that Perl scripts are committed as executables:
-  - Use "<code>chmod +x script.pl</code>"
-    @a before using "<code>svn add script.pl</code>", or
-  - Use "<code>svn ps svn:executable '*' script.pl</code>"
-    @a after using "<code>svn add script.pl</code>".
+    Use "<code>chmod +x script.pl</code>"
+    @a before using "<code>git add script.pl</code>"
 
  */
 /** @page styleautotools Autotools Style Guide

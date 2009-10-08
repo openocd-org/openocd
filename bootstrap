@@ -20,6 +20,7 @@ autoheader
 automake --gnu --add-missing --copy
 )
 
-# AM_MAINTAINER_MODE requires SVN users provide --enable-maintainer-mode
+# AM_MAINTAINER_MODE requires --enable-maintainer-mode from everyone using
+# current source snapshots (working from GIT, or some source snapshot, etc)
 # otherwise the documentation will fail to build due to missing version.texi
 echo "Bootstrap complete; you can './configure --enable-maintainer-mode ....'"

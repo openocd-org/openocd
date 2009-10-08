@@ -4,7 +4,8 @@
 
 	<body>
 		<h1>OpenOCD smoketest results</h1>
-		These tests can be performed on any JTAG device as long as they are executed using the unmodified code from SVN.
+		These tests can be performed on any JTAG device as long as they are
+		executed using the unmodified code from git.
 		<p>The latest version in which the test is known to have passed is in the table below.</p>
 		<h2>Vocabulary</h2>
 		<table border="1">
@@ -282,10 +283,20 @@
 		<p></p>
 		<hr>
 		<h1>Policy on removing features from OpenOCD</h1>
-		If a feature in OpenOCD is known to be broken and nobody has submitted a fix and the feature is causing trouble for maintainence, it can be removed from OpenOCD trunk. The threshold for temporarily removing something from OpenOCD trunk is low to ease maintainence and place the burden of maintainence on those that care about a feature.
-		<p>Note that code is never deleted from OpenOCD svn, it remains in svn so if somebody sees a feature removed that they would like kept, they have but to port and fix that feature back up to main trunk. This document can be helpful in this regard in that the latest working version and the known broken version may be listed.</p>
+		If a feature in OpenOCD is known to be broken and nobody has submitted
+		a fix and the feature is causing trouble for maintainence, it can be
+		removed from OpenOCD mainline. The threshold for temporarily removing
+		something from OpenOCD mainline is low to ease maintainence and place the burden of maintainence on those that care about a feature.
+		<p>Note that code is never deleted from OpenOCD git, it remains in the
+		repository so if somebody sees a feature removed that they would like
+		kept, they have but to port and fix that feature back up to main
+		mainline. This document can be helpful in this regard in that the latest working version and the known broken version may be listed.</p>
 		<h1>Policy on adding features from OpenOCD</h1>
-		To add a feature to OpenOCD, generally it should not break any existing features and it should be functional and the code reasonably readable and useful to others in the OpenOCD community. The code does not have to be completed. Work in progress is fine for OpenOCD trunk.
+		To add a feature to OpenOCD, generally it should not break any
+		existing features and it should be functional and the code reasonably
+		readable and useful to others in the OpenOCD community. The code does
+		not have to be completed. Work in progress is fine for OpenOCD
+		mainline.
 		<p>Also new tests should be defined. Note that the code does not have to pass all the tests. In fact it can be helpful to have tests to describe facets that really should be working, but aren't done yet. </p>
 		<hr>
 		<h1>ocd4 - ARM7 debugging<a name="test_ocd4"></a></h1>
