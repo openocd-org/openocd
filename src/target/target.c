@@ -157,7 +157,7 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_OLD_gdb_program_config , .name = "old-gdb_program_config" },
 	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
 
-	{ .value = TARGET_EVENT_EARLY_HALTED, .name = "early-halted" },
+	{ .value = TARGET_EVENT_GDB_HALT, .name = "gdb-halt" },
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
 	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
 	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
@@ -821,7 +821,7 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	if (event == TARGET_EVENT_HALTED)
 	{
 		/* execute early halted first */
-		target_call_event_callbacks(target, TARGET_EVENT_EARLY_HALTED);
+		target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 	}
 
 	LOG_DEBUG("target event %i (%s)",
@@ -1658,6 +1658,15 @@ static int sense_handler(void)
 	return ERROR_OK;
 }
 
+static void target_call_event_callbacks_all(enum target_event e) {
+	target_t *target;
+	target = all_targets;
+	while (target) {
+		target_call_event_callbacks(target, e);
+		target = target->next;
+	}
+}
+
 /* process target state changes */
 int handle_target(void *priv)
 {
@@ -1676,6 +1685,7 @@ int handle_target(void *priv)
 		int did_something = 0;
 		if (runSrstAsserted)
 		{
+			target_call_event_callbacks_all(TARGET_EVENT_GDB_HALT);
 			Jim_Eval(interp, "srst_asserted");
 			did_something = 1;
 		}
@@ -1686,6 +1696,7 @@ int handle_target(void *priv)
 		}
 		if (runPowerDropout)
 		{
+			target_call_event_callbacks_all(TARGET_EVENT_GDB_HALT);
 			Jim_Eval(interp, "power_dropout");
 			did_something = 1;
 		}
@@ -1726,7 +1737,10 @@ int handle_target(void *priv)
 		{
 			/* polling may fail silently until the target has been examined */
 			if ((retval = target_poll(target)) != ERROR_OK)
+			{
+				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				return retval;
+			}
 		}
 	}
 

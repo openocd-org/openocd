@@ -163,8 +163,14 @@ enum target_event
 
 	/* allow GDB to do stuff before others handle the halted event,
 	 * this is in lieu of defining ordering of invocation of events,
-	 * which would be more complicated */
-	TARGET_EVENT_EARLY_HALTED,
+	 * which would be more complicated
+	 *
+	 * Telling GDB to halt does not mean that the target stopped running,
+	 * simply that we're dropping out of GDB's waiting for step or continue.
+	 *
+	 * This can be useful when e.g. detecting power dropout.
+	 */
+	TARGET_EVENT_GDB_HALT,
 	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
 	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
 	TARGET_EVENT_RESUME_START,
