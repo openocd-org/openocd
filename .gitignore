@@ -47,3 +47,7 @@ stamp-h1
 stamp-vti
 INSTALL
 NOTES
+
+# Eclipse stuff
+.project
+
