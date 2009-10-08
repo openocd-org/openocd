@@ -16,6 +16,8 @@ doc/openocd.fn
 doc/openocd.fns
 doc/openocd.html
 doc/openocd.info
+doc/openocd.info-1
+doc/openocd.info-2
 doc/openocd.ky
 doc/openocd.log
 doc/openocd.pdf
@@ -47,3 +49,7 @@ stamp-h1
 stamp-vti
 INSTALL
 NOTES
+
+# Eclipse stuff
+.project
+

@@ -3,11 +3,14 @@
  * Copyright 2005 Salvatore Sanfilippo <antirez@invece.org>
  * Copyright 2005 Clemens Hintze <c.hintze@gmx.net>
  * Copyright 2005 patthoyts - Pat Thoyts <patthoyts@users.sf.net>
- * Copyright 2008 oharboe - Øyvind Harboe - oyvind.harboe@zylin.com
+ * Copyright 2008,2009 oharboe - Øyvind Harboe - oyvind.harboe@zylin.com
  * Copyright 2008 Andrew Lunn <andrew@lunn.ch>
  * Copyright 2008 Duane Ellis <openocd@duaneellis.com>
  * Copyright 2008 Uwe Klein <uklein@klein-messgeraete.de>
  * Copyright 2008 Steve Bennett <steveb@workware.net.au>
+ * Copyright 2009 Nico Coesel <ncoesel@dealogic.nl>
+ * Copyright 2009 Zachary T Welch zw@superlucidity.net
+ * Copyright 2009 David Brownell
  *
  * The FreeBSD license
  *
