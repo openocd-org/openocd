@@ -137,6 +137,32 @@ int jtag_error_clear(void)
 	return temp;
 }
 
+/************/
+
+static bool jtag_poll = 1;
+
+bool is_jtag_poll_safe(void)
+{
+	/* Polling can be disabled explicitly with set_enabled(false).
+	 * It is also implicitly disabled while TRST is active and
+	 * while SRST is gating the JTAG clock.
+	 */
+	if (!jtag_poll || jtag_trst != 0)
+		return false;
+	return jtag_srst == 0 || (jtag_reset_config & RESET_SRST_NO_GATING);
+}
+
+bool jtag_poll_get_enabled(void)
+{
+	return jtag_poll;
+}
+
+void jtag_poll_set_enabled(bool value)
+{
+	jtag_poll = value;
+}
+
+/************/
 
 jtag_tap_t *jtag_all_taps(void)
 {

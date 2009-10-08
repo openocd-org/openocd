@@ -737,4 +737,21 @@ int jtag_get_error(void);
  */
 int jtag_error_clear(void);
 
+/**
+ * Return true if it's safe for a background polling task to access the
+ * JTAG scan chain.  Polling may be explicitly disallowed, and is also
+ * unsafe while nTRST is active or the JTAG clock is gated off.,
+ */
+bool is_jtag_poll_safe(void);
+
+/**
+ * Return flag reporting whether JTAG polling is disallowed.
+ */
+bool jtag_poll_get_enabled(void);
+
+/**
+ * Assign flag reporting whether JTAG polling is disallowed.
+ */
+void jtag_poll_set_enabled(bool value);
+
 #endif /* JTAG_H */

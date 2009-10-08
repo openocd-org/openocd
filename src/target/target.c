@@ -269,8 +269,6 @@ static int new_target_number(void)
 	return x + 1;
 }
 
-static int target_continuous_poll = 1;
-
 /* read a uint32_t from a buffer in target memory endianness */
 uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer)
 {
@@ -436,13 +434,14 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	 * more predictable, i.e. dr/irscan & pathmove in events will
 	 * not have JTAG operations injected into the middle of a sequence.
 	 */
-	int save_poll = target_continuous_poll;
-	target_continuous_poll = 0;
+	bool save_poll = jtag_poll_get_enabled();
+
+	jtag_poll_set_enabled(false);
 
 	sprintf(buf, "ocd_process_reset %s", n->name);
 	retval = Jim_Eval(interp, buf);
 
-	target_continuous_poll = save_poll;
+	jtag_poll_set_enabled(save_poll);
 
 	if (retval != JIM_OK) {
 		Jim_PrintErrorMessage(interp);
@@ -1726,7 +1725,7 @@ int handle_target(void *priv)
 	 * Skip targets that are currently disabled.
 	 */
 	for (target_t *target = all_targets;
-			target_continuous_poll && target;
+			is_jtag_poll_safe() && target;
 			target = target->next)
 	{
 		if (!target->tap->enabled)
@@ -1886,7 +1885,7 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if (argc == 0)
 	{
 		command_print(cmd_ctx, "background polling: %s",
-				target_continuous_poll ?  "on" : "off");
+				jtag_poll_get_enabled() ? "on" : "off");
 		command_print(cmd_ctx, "TAP: %s (%s)",
 				target->tap->dotted_name,
 				target->tap->enabled ? "enabled" : "disabled");
@@ -1902,11 +1901,11 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	{
 		if (strcmp(args[0], "on") == 0)
 		{
-			target_continuous_poll = 1;
+			jtag_poll_set_enabled(true);
 		}
 		else if (strcmp(args[0], "off") == 0)
 		{
-			target_continuous_poll = 0;
+			jtag_poll_set_enabled(false);
 		}
 		else
 		{
