@@ -452,7 +452,9 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	}
 #endif
 
-	arm11_run_instr_data_prepare(arm11);
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* save r0 - r14 */
 
@@ -473,7 +475,9 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	if (R(DSCR) & ARM11_DSCR_RDTR_FULL)
 	{
 		/* MRC p14,0,R0,c0,c5,0 (move rDTR -> r0 (-> wDTR -> local var)) */
-		arm11_run_instr_data_from_core_via_r0(arm11, 0xEE100E15, &R(RDTR));
+		retval = arm11_run_instr_data_from_core_via_r0(arm11, 0xEE100E15, &R(RDTR));
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else
 	{
@@ -483,7 +487,9 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	/* save CPSR */
 
 	/* MRS r0,CPSR (move CPSR -> r0 (-> wDTR -> local var)) */
-	arm11_run_instr_data_from_core_via_r0(arm11, 0xE10F0000, &R(CPSR));
+	retval = arm11_run_instr_data_from_core_via_r0(arm11, 0xE10F0000, &R(CPSR));
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* save PC */
 
@@ -516,11 +522,15 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 		/* Write 0 (reset value) to Control register 0 to disable MMU/Cache etc. */
 
 		/* MCR p15,0,R0,c1,c0,0 */
-		arm11_run_instr_data_to_core_via_r0(arm11, 0xee010f10, 0);
+		retval = arm11_run_instr_data_to_core_via_r0(arm11, 0xee010f10, 0);
+		if (retval != ERROR_OK)
+			return retval;
 
 	}
 
-	arm11_run_instr_data_finish(arm11);
+	retval = arm11_run_instr_data_finish(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	arm11_dump_reg_changes(arm11);
 
@@ -565,8 +575,11 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
 int arm11_leave_debug_state(arm11_common_t * arm11)
 {
 	FNC_INFO;
+	int retval;
 
-	arm11_run_instr_data_prepare(arm11);
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/** \todo TODO: handle other mode registers */
 
@@ -583,7 +596,9 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 		//	LOG_DEBUG("RESTORE R" ZU " %08x", i, R(RX + i));
 	}
 
-	arm11_run_instr_data_finish(arm11);
+	retval = arm11_run_instr_data_finish(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* spec says clear wDTR and rDTR; we assume they are clear as
 	   otherwise our programming would be sloppy */
@@ -598,32 +613,44 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 		}
 	}
 
-	arm11_run_instr_data_prepare(arm11);
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* restore original wDTR */
 
 	if ((R(DSCR) & ARM11_DSCR_WDTR_FULL) || arm11->reg_list[ARM11_RC_WDTR].dirty)
 	{
 		/* MCR p14,0,R0,c0,c5,0 */
-		arm11_run_instr_data_to_core_via_r0(arm11, 0xee000e15, R(WDTR));
+		retval = arm11_run_instr_data_to_core_via_r0(arm11, 0xee000e15, R(WDTR));
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	/* restore CPSR */
 
 	/* MSR CPSR,R0*/
-	arm11_run_instr_data_to_core_via_r0(arm11, 0xe129f000, R(CPSR));
+	retval = arm11_run_instr_data_to_core_via_r0(arm11, 0xe129f000, R(CPSR));
+	if (retval != ERROR_OK)
+		return retval;
+
 
 	/* restore PC */
 
 	/* MOV PC,R0 */
-	arm11_run_instr_data_to_core_via_r0(arm11, 0xe1a0f000, R(PC));
+	retval = arm11_run_instr_data_to_core_via_r0(arm11, 0xe1a0f000, R(PC));
+	if (retval != ERROR_OK)
+		return retval;
+
 
 	/* restore R0 */
 
 	/* MRC p14,0,r0,c0,c5,0 */
 	arm11_run_instr_data_to_core1(arm11, 0xee100e15, R(R0));
 
-	arm11_run_instr_data_finish(arm11);
+	retval = arm11_run_instr_data_finish(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* restore DSCR */
 
@@ -1260,6 +1287,7 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	/** \todo TODO: check if buffer cast to uint32_t* and uint16_t* might cause alignment problems */
+	int retval;
 
 	FNC_INFO;
 
@@ -1273,10 +1301,14 @@ int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, 
 
 	arm11_common_t * arm11 = target->arch_info;
 
-	arm11_run_instr_data_prepare(arm11);
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* MRC p14,0,r0,c0,c5,0 */
-	arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
+	retval = arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
+	if (retval != ERROR_OK)
+		return retval;
 
 	switch (size)
 	{
@@ -1335,13 +1367,12 @@ int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, 
 		}
 	}
 
-	arm11_run_instr_data_finish(arm11);
-
-	return ERROR_OK;
+	return arm11_run_instr_data_finish(arm11);
 }
 
 int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	int retval;
 	FNC_INFO;
 
 	if (target->state != TARGET_HALTED)
@@ -1357,7 +1388,9 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 	arm11_run_instr_data_prepare(arm11);
 
 	/* MRC p14,0,r0,c0,c5,0 */
-	arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
+	retval = arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
+	if (retval != ERROR_OK)
+		return retval;
 
 	switch (size)
 	{
@@ -1368,12 +1401,16 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 			for (size_t i = 0; i < count; i++)
 			{
 				/* MRC p14,0,r1,c0,c5,0 */
-				arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
+				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
+				if (retval != ERROR_OK)
+					return retval;
 
 				/* strb    r1, [r0], #1 */
 				/* strb    r1, [r0] */
-				arm11_run_instr_no_data1(arm11,
+				retval = arm11_run_instr_no_data1(arm11,
 					!arm11_config_memrw_no_increment ? 0xe4c01001 : 0xe5c01000);
+				if (retval != ERROR_OK)
+					return retval;
 			}
 
 			break;
@@ -1389,12 +1426,16 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 				memcpy(&value, buffer + i * sizeof(uint16_t), sizeof(uint16_t));
 
 				/* MRC p14,0,r1,c0,c5,0 */
-				arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
+				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
+				if (retval != ERROR_OK)
+					return retval;
 
 				/* strh    r1, [r0], #2 */
 				/* strh    r1, [r0] */
-				arm11_run_instr_no_data1(arm11,
+				retval = arm11_run_instr_no_data1(arm11,
 					!arm11_config_memrw_no_increment ? 0xe0c010b2 : 0xe1c010b0);
+				if (retval != ERROR_OK)
+					return retval;
 			}
 
 			break;
@@ -1410,27 +1451,32 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 		{
 			/* STC p14,c5,[R0],#4 */
 			/* STC p14,c5,[R0]*/
-			arm11_run_instr_data_to_core(arm11, instr, words, count);
+			retval = arm11_run_instr_data_to_core(arm11, instr, words, count);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 		else
 		{
 			/* STC p14,c5,[R0],#4 */
 			/* STC p14,c5,[R0]*/
-			arm11_run_instr_data_to_core_noack(arm11, instr, words, count);
+			retval = arm11_run_instr_data_to_core_noack(arm11, instr, words, count);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 
 		break;
 	}
 	}
 
-#if 1
 	/* r0 verification */
 	if (!arm11_config_memrw_no_increment)
 	{
 		uint32_t r0;
 
 		/* MCR p14,0,R0,c0,c5,0 */
-		arm11_run_instr_data_from_core(arm11, 0xEE000E15, &r0, 1);
+		retval = arm11_run_instr_data_from_core(arm11, 0xEE000E15, &r0, 1);
+		if (retval != ERROR_OK)
+			return retval;
 
 		if (address + size * count != r0)
 		{
@@ -1444,11 +1490,8 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 				return ERROR_FAIL;
 		}
 	}
-#endif
 
-	arm11_run_instr_data_finish(arm11);
-
-	return ERROR_OK;
+	return arm11_run_instr_data_finish(arm11);
 }
 
 
@@ -2010,6 +2053,8 @@ arm11_common_t * arm11_find_target(const char * arg)
 
 int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool read)
 {
+	int retval;
+
 	if (argc != (read ? 6 : 7))
 	{
 		LOG_ERROR("Invalid number of arguments.");
@@ -2055,12 +2100,16 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	if (read)
 		instr |= 0x00100000;
 
-	arm11_run_instr_data_prepare(arm11);
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (read)
 	{
 		uint32_t result;
-		arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
+		retval = arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
+		if (retval != ERROR_OK)
+			return retval;
 
 		LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08" PRIx32 " (%" PRId32 ")",
 			 (int)(values[0]),
@@ -2071,7 +2120,9 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	}
 	else
 	{
-		arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
+		retval = arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
+		if (retval != ERROR_OK)
+			return retval;
 
 		LOG_INFO("MRC p%d, %d, R0 (#0x%08" PRIx32 "), c%d, c%d, %d",
 			 (int)(values[0]), (int)(values[1]),
@@ -2079,10 +2130,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 			 (int)(values[2]), (int)(values[3]), (int)(values[4]));
 	}
 
-	arm11_run_instr_data_finish(arm11);
-
-
-	return ERROR_OK;
+	return arm11_run_instr_data_finish(arm11);
 }
 
 int arm11_handle_mrc(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

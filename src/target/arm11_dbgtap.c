@@ -161,7 +161,7 @@ static void arm11_in_handler_SCAN_N(uint8_t *in_value)
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
 
-void arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t state)
+int arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t state)
 {
 	JTAG_DEBUG("SCREG <= 0x%02x", chain);
 
@@ -177,6 +177,8 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t s
 	jtag_execute_queue_noclear();
 
 	arm11_in_handler_SCAN_N(tmp);
+
+	return jtag_execute_queue();
 }
 
 /** Write an instruction into the ITR register
@@ -220,7 +222,10 @@ void arm11_add_debug_INST(arm11_common_t * arm11, uint32_t inst, uint8_t * flag,
  */
 int arm11_read_DSCR(arm11_common_t * arm11, uint32_t *value)
 {
-	arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
+	int retval;
+	retval = arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
+	if (retval != ERROR_OK)
+		return retval;
 
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
@@ -254,7 +259,10 @@ int arm11_read_DSCR(arm11_common_t * arm11, uint32_t *value)
  */
 int arm11_write_DSCR(arm11_common_t * arm11, uint32_t dscr)
 {
-	arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
+	int retval;
+	retval = arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
+	if (retval != ERROR_OK)
+		return retval;
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
@@ -331,9 +339,9 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(uint32_t dscr)
  * \param arm11		Target state variable.
  *
  */
-void arm11_run_instr_data_prepare(arm11_common_t * arm11)
+int arm11_run_instr_data_prepare(arm11_common_t * arm11)
 {
-	arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
+	return arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 }
 
 /** Cleanup after ITR/DTR operations
@@ -350,9 +358,9 @@ void arm11_run_instr_data_prepare(arm11_common_t * arm11)
  * \param arm11		Target state variable.
  *
  */
-void arm11_run_instr_data_finish(arm11_common_t * arm11)
+int arm11_run_instr_data_finish(arm11_common_t * arm11)
 {
-	arm11_add_debug_SCAN_N(arm11, 0x00, ARM11_TAP_DEFAULT);
+	return arm11_add_debug_SCAN_N(arm11, 0x00, ARM11_TAP_DEFAULT);
 }
 
 
@@ -757,12 +765,19 @@ int arm11_run_instr_data_from_core_via_r0(arm11_common_t * arm11, uint32_t opcod
  * \param data		Data word that will be written to r0 before \p opcode is executed
  *
  */
-void arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, uint32_t opcode, uint32_t data)
+int arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, uint32_t opcode, uint32_t data)
 {
+	int retval;
 	/* MRC p14,0,r0,c0,c5,0 */
-	arm11_run_instr_data_to_core1(arm11, 0xEE100E15, data);
+	retval = arm11_run_instr_data_to_core1(arm11, 0xEE100E15, data);
+	if (retval != ERROR_OK)
+		return retval;
 
-	arm11_run_instr_no_data1(arm11, opcode);
+	retval = arm11_run_instr_no_data1(arm11, opcode);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
 }
 
 /** Apply reads and writes to scan chain 7
@@ -776,7 +791,11 @@ void arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, uint32_t opcode
  */
 int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count)
 {
-	arm11_add_debug_SCAN_N(arm11, 0x07, ARM11_TAP_DEFAULT);
+	int retval;
+
+	retval = arm11_add_debug_SCAN_N(arm11, 0x07, ARM11_TAP_DEFAULT);
+	if (retval != ERROR_OK)
+		return retval;
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
