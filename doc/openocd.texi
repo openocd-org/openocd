@@ -1563,6 +1563,17 @@ read/write memory on your target, @command{init} must occur before
 the memory read/write commands.  This includes @command{nand probe}.
 @end deffn
 
+@deffn {Overridable Procedure} jtag_init
+This is invoked at server startup to verify that it can talk
+to the scan chain (list of TAPs) which has been configured.
+
+The default implementation first tries @command{jtag arp_init},
+which uses only a lightweight JTAG reset before examining the
+scan chain.
+If that fails, it tries again, using a harder reset
+from the overridable procedure @command{init_reset}.
+@end deffn
+
 @anchor{TCP/IP Ports}
 @section TCP/IP Ports
 @cindex TCP port
@@ -2192,8 +2203,9 @@ issues (not limited to errata).
 For example, certain JTAG commands might need to be issued while
 the system as a whole is in a reset state (SRST active)
 but the JTAG scan chain is usable (TRST inactive).
-(@xref{JTAG Commands}, where the @command{jtag_reset}
-command is presented.)
+Many systems treat combined assertion of SRST and TRST as a
+trigger for a harder reset than SRST alone.
+Such custom reset handling is discussed later in this chapter.
 @end itemize
 
 There can also be other issues.
@@ -2260,7 +2272,7 @@ Possible values are @option{none} (the default), @option{trst_only},
 
 @quotation Tip
 If your board provides SRST and/or TRST through the JTAG connector,
-you must declare that or else those signals will not be used.
+you must declare that so those signals can be used.
 @end quotation
 
 @item
@@ -2307,6 +2319,81 @@ Most boards connect this signal to a pullup, and allow the
 signal to be pulled low by various events including system
 powerup and pressing a reset button.
 @end itemize
+@end deffn
+
+@section Custom Reset Handling
+
+OpenOCD has several ways to help support the various reset
+mechanisms provided by chip and board vendors.
+The commands shown in the previous section give standard parameters.
+There are also @emph{event handlers} associated with TAPs or Targets.
+Those handlers are Tcl procedures you can provide, which are invoked
+at particular points in the reset sequence.
+
+After configuring those mechanisms, you might still
+find your board doesn't start up or reset correctly.
+For example, maybe it needs a slightly different sequence
+of SRST and/or TRST manipulations, because of quirks that
+the @command{reset_config} mechanism doesn't address;
+or asserting both might trigger a stronger reset, which
+needs special attention.
+
+Experiment with lower level operations, such as @command{jtag_reset}
+and the @command{jtag arp_*} operations shown here,
+to find a sequence of operations that works.
+@xref{JTAG Commands}.
+When you find a working sequence, it can be used to override
+@command{jtag_init}, which fires during OpenOCD startup
+(@pxref{Configuration Stage});
+or @command{init_reset}, which fires during reset processing.
+
+You might also want to provide some project-specific reset
+schemes.  For example, on a multi-target board the standard
+@command{reset} command would reset all targets, but you
+may need the ability to reset only one target at time and
+thus want to avoid using the board-wide SRST signal.
+
+@deffn {Overridable Procedure} init_reset mode
+This is invoked near the beginning of the @command{reset} command,
+usually to provide as much of a cold (power-up) reset as practical.
+By default it is also invoked from @command{jtag_init} if
+the scan chain does not respond to pure JTAG operations.
+The @var{mode} parameter is the parameter given to the
+low level reset command (@option{halt},
+@option{init}, or @option{run}), @option{setup},
+or potentially some other value.
+
+The default implementation just invokes @command{jtag arp_init-reset}.
+Replacements will normally build on low level JTAG
+operations such as @command{jtag_reset}.
+Operations here must not address individual TAPs
+(or their associated targets)
+until the JTAG scan chain has first been verified to work.
+
+Implementations must have verified the JTAG scan chain before
+they return.
+This is done by calling @command{jtag arp_init}
+(or @command{jtag arp_init-reset}).
+@end deffn
+
+@deffn Command {jtag arp_init}
+This validates the scan chain using just the four
+standard JTAG signals (TMS, TCK, TDI, TDO).
+It starts by issuing a JTAG-only reset.
+Then it performs checks to verify that the scan chain configuration
+matches the TAPs it can observe.
+Those checks include checking IDCODE values for each active TAP,
+and verifying the length of their instruction registers using
+TAP @code{-ircapture} and @code{-irmask} values.
+If these tests all pass, TAP @code{setup} events are
+issued to all TAPs with handlers for that event.
+@end deffn
+
+@deffn Command {jtag arp_init-reset}
+This uses TRST and SRST to try resetting
+everything on the JTAG scan chain
+(and anything else connected to SRST).
+It then invokes the logic of @command{jtag arp_init}.
 @end deffn
 
 
@@ -2539,9 +2626,6 @@ there seems to be no problems with JTAG scan chain operations.
 @end deffn
 
 @section Other TAP commands
-
-@c @deffn Command {jtag arp_init-reset}
-@c ... more or less "toggle TRST ... and SRST too, what the heck"
 
 @deffn Command {jtag cget} dotted.name @option{-event} name
 @deffnx Command {jtag configure} dotted.name @option{-event} name string
@@ -3218,7 +3302,7 @@ The following target events are defined:
 @end ignore
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
-after SRST and/or TRST were activated and deactivated,
+after @command{reset_init} was triggered
 but before SRST alone is re-asserted on the tap.
 @item @b{reset-assert-post}
 @* Issued as part of @command{reset} processing
@@ -3248,10 +3332,11 @@ multiplexing, and so on.
 the target clocks are fully set up.)
 @item @b{reset-start}
 @* Issued as part of @command{reset} processing
-before either SRST or TRST are activated.
+before @command{reset_init} is called.
 
-This is the most robust place to switch to a low JTAG clock rate, if
-SRST disables PLLs needed to use a fast clock.
+This is the most robust place to use @command{jtag_rclk}
+or @command{jtag_khz} to switch to a low JTAG clock rate,
+when reset disables PLLs needed to use a fast clock.
 @ignore
 @item @b{reset-wait-pos}
 @* Currently not used
@@ -5983,6 +6068,17 @@ The @command{reset_config} command should already have been used
 to configure how the board and JTAG adapter treat these two
 signals, and to say if either signal is even present.
 @xref{Reset Configuration}.
+
+Note that TRST is specially handled.
+It actually signifies JTAG's @sc{reset} state.
+So if the board doesn't support the optional TRST signal,
+or it doesn't support it along with the specified SRST value,
+JTAG reset is triggered with TMS and TCK signals
+instead of the TRST signal.
+And no matter how that JTAG reset is triggered, once
+the scan chain enters @sc{reset} with TRST inactive,
+TAP @code{post-reset} events are delivered to all TAPs
+with handlers for that event.
 @end deffn
 
 @deffn Command {runtest} @var{num_cycles}
@@ -6015,7 +6111,7 @@ The @var{tap_state} names used by OpenOCD in the @command{drscan},
 and @command{irscan} commands are:
 
 @itemize @bullet
-@item @b{RESET} ... should act as if TRST were active
+@item @b{RESET} ... acts as if TRST were pulsed
 @item @b{RUN/IDLE} ... don't assume this always means IDLE
 @item @b{DRSELECT}
 @item @b{DRCAPTURE}
@@ -6046,7 +6142,7 @@ may not be as expected.
 @item @sc{run/idle}, @sc{drpause}, and @sc{irpause} are reasonable
 choices after @command{drscan} or @command{irscan} commands,
 since they are free of JTAG side effects.
-However, @sc{run/idle} may have side effects that appear at other
+@item @sc{run/idle} may have side effects that appear at non-JTAG
 levels, such as advancing the ARM9E-S instruction pipeline.
 Consult the documentation for the TAP(s) you are working with.
 @end itemize
