@@ -66,7 +66,6 @@ Free Documentation License''.
 * Running::                          Running OpenOCD
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
-* Translating Configuration Files::  Translating Configuration Files
 * Daemon Configuration::             Daemon Configuration
 * Interface - Dongle Configuration:: Interface - Dongle Configuration
 * Reset Configuration::              Reset Configuration
@@ -1186,7 +1185,9 @@ handlers too, if just for developer convenience.
 Because this is so very board-specific, and chip-specific, no examples
 are included here.
 Instead, look at the board config files distributed with OpenOCD.
-If you have a boot loader, its source code may also be useful.
+If you have a boot loader, its source code will help; so will
+configuration files for other JTAG tools
+(@pxref{Translating Configuration Files}).
 @end quotation
 
 Some of this code could probably be shared between different boards.
@@ -1464,17 +1465,18 @@ Examples:
 @item pxa270 - again - CS0 flash - it goes in the board file.
 @end itemize
 
-@node Translating Configuration Files
-@chapter Translating Configuration Files
+@anchor{Translating Configuration Files}
+@section Translating Configuration Files
 @cindex translation
-If you have a configuration file for another hardware debugger(Abatron,
-BDI2000, BDI3000, Lauterbach, Segger, MacRaigor, etc.), translating
+If you have a configuration file for another hardware debugger
+or toolset (Abatron, BDI2000, BDI3000, CCS,
+Lauterbach, Segger, Macraigor, etc.), translating
 it into OpenOCD syntax is often quite straightforward. The most tricky
 part of creating a configuration script is oftentimes the reset init
 sequence where e.g. PLLs, DRAM and the like is set up.
 
 One trick that you can use when translating is to write small
-Tcl proc's to translate the syntax into OpenOCD syntax. This
+Tcl procedures to translate the syntax into OpenOCD syntax. This
 can avoid manual translation errors and make it easier to
 convert other scripts later on.
 
@@ -1482,23 +1484,22 @@ Example of transforming quirky arguments to a simple search and
 replace job:
 
 @example
-# rewrite commands of the form below to arm11 mcr...
-#
 #   Lauterbach syntax(?)
 #
-#	Data.Set c15:0x042f %long 0x40000015
+#       Data.Set c15:0x042f %long 0x40000015
 #
 #   OpenOCD syntax when using procedure below.
 #
-#   setc15 0x01 0x00050078
-#
-#
+#       setc15 0x01 0x00050078
+
 proc setc15 @{regs value@} @{
-	global TARGETNAME 
+    global TARGETNAME
 
-	echo [format "set p15 0x%04x, 0x%08x" $regs $value] 
+    echo [format "set p15 0x%04x, 0x%08x" $regs $value]
 
-	arm11 mcr $TARGETNAME 15 [expr ($regs>>12)&0x7] [expr ($regs>>0)&0xf] [expr ($regs>>4)&0xf] [expr ($regs>>8)&0x7] $value 
+    arm11 mcr $TARGETNAME 15 [expr ($regs>>12)&0x7] \
+        [expr ($regs>>0)&0xf] [expr ($regs>>4)&0xf] \
+        [expr ($regs>>8)&0x7] $value
 @}
 @end example
 
@@ -2322,6 +2323,7 @@ powerup and pressing a reset button.
 @end deffn
 
 @section Custom Reset Handling
+@cindex events
 
 OpenOCD has several ways to help support the various reset
 mechanisms provided by chip and board vendors.
