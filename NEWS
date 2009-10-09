@@ -39,6 +39,7 @@ Board, Target, and Interface Configuration Scripts:
     Samsung s3c2450
 	Mini2440 board
     Numeric TAP and Target identifiers now trigger warnings
+    PXA255 partially enumerates
 
 Documentation:
     Capture more debugging and setup advice
