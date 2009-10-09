@@ -8,6 +8,7 @@ JTAG Layer:
     New reset_config options for SRST gating the JTAG clock (or not)
     TAP declaration no longer requires ircapture and mask attributes
     New "post-reset" event handler for TAP-invariant setup code
+    Overridable Tcl "init_reset" and "jtag_init" procedures
 
 Target Layer:
     New commands for use with Cortex-M3 processors:
@@ -38,6 +39,7 @@ Board, Target, and Interface Configuration Scripts:
     Samsung s3c2450
 	Mini2440 board
     Numeric TAP and Target identifiers now trigger warnings
+    PXA255 partially enumerates
 
 Documentation:
     Capture more debugging and setup advice
