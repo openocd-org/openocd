@@ -2191,7 +2191,12 @@ int gdb_input_inner(connection_t *connection)
 		{
 			if (target->state == TARGET_RUNNING)
 			{
-				target_halt(target);
+				retval = target_halt(target);
+				if (retval != ERROR_OK)
+				{
+					/* stop this debug session */
+					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
+				}
 				gdb_con->ctrl_c = 0;
 			}
 		}
