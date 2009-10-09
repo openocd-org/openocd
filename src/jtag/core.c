@@ -973,8 +973,9 @@ static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 	for (; count < max - 31; count += 32)
 	{
 		uint32_t idcode = buf_get_u32(idcodes, count, 32);
-		// do not trigger the warning if the data looks good
-		if (!triggered && jtag_idcode_is_final(idcode))
+
+		/* do not trigger the warning if the data looks good */
+		if (jtag_idcode_is_final(idcode))
 			continue;
 		LOG_WARNING("Unexpected idcode after end of chain: %d 0x%08x",
 					count, (unsigned int)idcode);
@@ -1027,6 +1028,7 @@ static int jtag_examine_chain(void)
 	/* DR scan to collect BYPASS or IDCODE register contents.
 	 * Then make sure the scan data has both ones and zeroes.
 	 */
+	LOG_DEBUG("DR scan interrogation for IDCODE/BYPASS");
 	retval = jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
 	if (retval != ERROR_OK)
 		return retval;
