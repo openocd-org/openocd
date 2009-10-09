@@ -134,6 +134,23 @@ proc ocd_gdb_restart {target_id} {
 	reset halt
 }
 
+
+# This reset logic may be overridden by board/target/... scripts as needed
+# to provide a reset that, if possible, is close to a power-up reset.
+#
+# Exit requirements include:  (a) JTAG must be working, (b) the scan
+# chain was validated with "jtag arp_init" (or equivalent), (c) nothing
+# stays in reset.  No TAP-specific scans were performed.  It's OK if
+# some targets haven't been reset yet; they may need TAP-specific scans.
+#
+# The "mode" values include:  halt, init, run (from "reset" command);
+# startup (at OpenOCD server startup, when JTAG may not yet work); and
+# potentially more (for reset types like cold, warm, etc)
+proc init_reset { mode } {
+	jtag arp_init-reset
+}
+
+
 global in_process_reset
 set in_process_reset 0
 
@@ -189,10 +206,7 @@ proc ocd_process_reset_inner { MODE } {
 
 	# Use TRST or TMS/TCK operations to reset all the tap controllers.
 	# TAP reset events get reported; they might enable some taps.
-	#
-	# REVISIT arp_init-reset pulses SRST (if it can) with TRST active;
-	# but SRST events aren't reported (unlike "jtag arp_reset", below)
-	jtag arp_init-reset
+	init_reset $MODE
 
 	# Examine all targets on enabled taps.
 	foreach t $targets {
@@ -361,11 +375,11 @@ proc capture_catch {a} {
 }
 
 
-# Executed during "init". Can be implemented by target script 
-# tar
+# Executed during "init". Can be overridden
+# by board/target/... scripts
 proc jtag_init {} {
 	if {[catch {jtag arp_init} err]!=0} {
 		# try resetting additionally
-		jtag arp_init-reset
+		init_reset startup
 	}
 }

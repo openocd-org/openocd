@@ -8,6 +8,7 @@ JTAG Layer:
     New reset_config options for SRST gating the JTAG clock (or not)
     TAP declaration no longer requires ircapture and mask attributes
     New "post-reset" event handler for TAP-invariant setup code
+    Overridable Tcl "init_reset" and "jtag_init" procedures
 
 Target Layer:
     New commands for use with Cortex-M3 processors:
