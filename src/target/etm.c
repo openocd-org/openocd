@@ -1497,29 +1497,29 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 	command_print(cmd_ctx, "ETM v%d.%d",
 			etm->bcd_vers >> 4, etm->bcd_vers & 0xf);
 	command_print(cmd_ctx, "pairs of address comparators: %i",
-			(etm->config >> 0) & 0x0f);
+			(int) (etm->config >> 0) & 0x0f);
 	command_print(cmd_ctx, "data comparators: %i",
-			(etm->config >> 4) & 0x0f);
+			(int) (etm->config >> 4) & 0x0f);
 	command_print(cmd_ctx, "memory map decoders: %i",
-			(etm->config >> 8) & 0x1f);
+			(int) (etm->config >> 8) & 0x1f);
 	command_print(cmd_ctx, "number of counters: %i",
-			(etm->config >> 13) & 0x07);
+			(int) (etm->config >> 13) & 0x07);
 	command_print(cmd_ctx, "sequencer %spresent",
-			(etm->config & (1 << 16)) ? "" : "not ");
+			(int) (etm->config & (1 << 16)) ? "" : "not ");
 	command_print(cmd_ctx, "number of ext. inputs: %i",
-			(etm->config >> 17) & 0x07);
+			(int) (etm->config >> 17) & 0x07);
 	command_print(cmd_ctx, "number of ext. outputs: %i",
-			(etm->config >> 20) & 0x07);
+			(int) (etm->config >> 20) & 0x07);
 	command_print(cmd_ctx, "FIFO full %spresent",
-			(etm->config & (1 << 23)) ? "" : "not ");
+			(int) (etm->config & (1 << 23)) ? "" : "not ");
 	if (etm->bcd_vers < 0x20)
 		command_print(cmd_ctx, "protocol version: %i",
-				(etm->config >> 28) & 0x07);
+				(int) (etm->config >> 28) & 0x07);
 	else {
 		command_print(cmd_ctx, "trace start/stop %spresent",
 				(etm->config & (1 << 26)) ? "" : "not ");
 		command_print(cmd_ctx, "number of context comparators: %i",
-				(etm->config >> 24) & 0x03);
+				(int) (etm->config >> 24) & 0x03);
 	}
 
 	/* SYS_CONFIG isn't present before ETMv1.2 */

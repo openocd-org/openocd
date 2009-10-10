@@ -444,9 +444,9 @@ static int lpc2900_write_index_page( struct flash_bank_s *bank,
                                      uint8_t (*page)[FLASH_PAGE_SIZE] )
 {
 	/* Only pages 4...7 are user writable */
-	if( (pagenum < 4) || (pagenum > 7) )
+	if ((pagenum < 4) || (pagenum > 7))
 	{
-		LOG_ERROR( "Refuse to burn index sector page %" PRIu32, pagenum );
+		LOG_ERROR("Refuse to burn index sector page %d", pagenum);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -479,7 +479,7 @@ static int lpc2900_write_index_page( struct flash_bank_s *bank,
 	                         bank->base + pagenum * FLASH_PAGE_SIZE,
 	                         4, FLASH_PAGE_SIZE / 4, (uint8_t *)page) != ERROR_OK )
 	{
-		LOG_ERROR( "Index sector write failed @ page %" PRIu32, pagenum );
+		LOG_ERROR("Index sector write failed @ page %d", pagenum);
 		target_write_u32( target, FCTR, FCTR_FS_CS | FCTR_FS_WEB );
 
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -501,10 +501,10 @@ static int lpc2900_write_index_page( struct flash_bank_s *bank,
 	/* Wait for the end of the write operation. If it's not over after one
 	 * second, something went dreadfully wrong... :-(
 	 */
-	if( lpc2900_wait_status( bank, INTSRC_END_OF_BURN, 1000 ) != ERROR_OK )
+	if (lpc2900_wait_status(bank, INTSRC_END_OF_BURN, 1000) != ERROR_OK)
 	{
-		LOG_ERROR( "Index sector write failed @ page %" PRIu32, pagenum );
-		target_write_u32( target, FCTR, FCTR_FS_CS | FCTR_FS_WEB );
+		LOG_ERROR("Index sector write failed @ page %d", pagenum);
+		target_write_u32(target, FCTR, FCTR_FS_CS | FCTR_FS_WEB);
 
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -796,7 +796,8 @@ static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ct
 	if( (image.sections[0].base_address != 0) ||
         (image.sections[0].size != ISS_CUSTOMER_SIZE) )
 	{
-		LOG_ERROR("Incorrect image file size. Expected %" PRIu32 ", got %" PRIu32,
+		LOG_ERROR("Incorrect image file size. Expected %d, "
+			"got %" PRIu32,
                    ISS_CUSTOMER_SIZE, image.sections[0].size);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1477,12 +1478,13 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
 			}
 
 			/* Skip the current sector if it is secured */
-			if( bank->sectors[start_sector].is_protected )
+			if (bank->sectors[start_sector].is_protected)
 			{
-				LOG_DEBUG( "Skip secured sector %" PRIu32, start_sector );
+				LOG_DEBUG("Skip secured sector %d",
+						start_sector);
 
 				/* Stop if this is the last sector */
-				if( start_sector == bank->num_sectors - 1 )
+				if (start_sector == bank->num_sectors - 1)
 				{
 					break;
 				}
@@ -1763,9 +1765,9 @@ static int lpc2900_probe(struct flash_bank_s *bank)
 	}
 
 	/* Show detected device */
-	LOG_INFO("Flash bank %" PRIu32
+	LOG_INFO("Flash bank %d"
 	         ": Device %s, %" PRIu32
-	         " KiB in %" PRIu32 " sectors",
+	         " KiB in %d sectors",
 	         bank->bank_number,
 	         lpc2900_info->target_name, bank->size / KiB,
 	         bank->num_sectors);
@@ -1805,7 +1807,7 @@ static int lpc2900_probe(struct flash_bank_s *bank)
 			 * that has more than 19 sectors. Politely ask for a fix then.
 			 */
 			bank->sectors[i].size = 0;
-			LOG_ERROR("Never heard about sector %" PRIu32 " (FIXME please)", i);
+			LOG_ERROR("Never heard about sector %d", i);
 		}
 
 		offset += bank->sectors[i].size;

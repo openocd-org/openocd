@@ -1167,7 +1167,7 @@ static int jtag_validate_ircapture(void)
 					(tap->ir_length + 7) / tap->ir_length,
 					val,
 					(tap->ir_length + 7) / tap->ir_length,
-					tap->ir_capture_value);
+					(unsigned) tap->ir_capture_value);
 
 			retval = ERROR_JTAG_INIT_FAILED;
 			goto done;

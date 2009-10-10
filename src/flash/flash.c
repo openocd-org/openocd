@@ -569,8 +569,8 @@ static int flash_check_sector_parameters(struct command_context_s *cmd_ctx,
 	}
 
 	if (!(last <= (num_sectors - 1))) {
-		command_print(cmd_ctx, "ERROR: "
-				"last sector must be <= %d", num_sectors - 1);
+		command_print(cmd_ctx, "ERROR: last sector must be <= %d",
+				(int) num_sectors - 1);
 		return ERROR_FAIL;
 	}
 
@@ -616,7 +616,8 @@ static int handle_flash_erase_command(struct command_context_s *cmd_ctx,
 				return retval;
 			command_print(cmd_ctx, "erased sectors %i through %i "
 					"on flash bank %i in %s",
-				first, last, bank_nr, duration_text);
+				(int) first, (int) last, (int) bank_nr,
+				duration_text);
 			free(duration_text);
 		}
 	}
@@ -667,8 +668,8 @@ static int handle_flash_protect_command(struct command_context_s *cmd_ctx,
 		if (retval == ERROR_OK) {
 			command_print(cmd_ctx, "%s protection for sectors %i "
 					"through %i on flash bank %i",
-				(set) ? "set" : "cleared", first,
-				last, bank_nr);
+				(set) ? "set" : "cleared", (int) first,
+				(int) last, (int) bank_nr);
 		}
 	}
 	else
