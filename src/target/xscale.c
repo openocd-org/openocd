@@ -705,16 +705,16 @@ static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 /* parity of the number of bits 0 if even; 1 if odd. for 32 bit words */
 static unsigned int parity (unsigned int v)
 {
-	unsigned int ov = v;
+	// unsigned int ov = v;
 	v ^= v >> 16;
 	v ^= v >> 8;
 	v ^= v >> 4;
 	v &= 0xf;
-	LOG_DEBUG("parity of 0x%x is %i", ov, (0x6996 >> v) & 1);
+	// LOG_DEBUG("parity of 0x%x is %i", ov, (0x6996 >> v) & 1);
 	return (0x6996 >> v) & 1;
 }
 
-static int xscale_load_ic(target_t *target, int mini, uint32_t va, uint32_t buffer[8])
+static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
@@ -726,16 +726,15 @@ static int xscale_load_ic(target_t *target, int mini, uint32_t va, uint32_t buff
 
 	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32 "", va);
 
+	/* LDIC into IR */
 	jtag_set_end_state(TAP_IDLE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic);
 
-	/* CMD is b010 for Main IC and b011 for Mini IC */
-	if (mini)
-		buf_set_u32(&cmd, 0, 3, 0x3);
-	else
-		buf_set_u32(&cmd, 0, 3, 0x2);
-
-	buf_set_u32(&cmd, 3, 3, 0x0);
+	/* CMD is b011 to load a cacheline into the Mini ICache.
+	 * Loading into the main ICache is deprecated, and unused.
+	 * It's followed by three zero bits, and 27 address bits.
+	 */
+	buf_set_u32(&cmd, 0, 6, 0x3);
 
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
@@ -752,6 +751,7 @@ static int xscale_load_ic(target_t *target, int mini, uint32_t va, uint32_t buff
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
+	/* rest of packet is a cacheline: 8 instructions, with parity */
 	fields[0].num_bits = 32;
 	fields[0].out_value = packet;
 
@@ -864,8 +864,8 @@ static int xscale_update_vectors(target_t *target)
 	xscale_invalidate_ic_line(target, 0x0);
 	xscale_invalidate_ic_line(target, 0xffff0000);
 
-	xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
-	xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
+	xscale_load_ic(target, 0x0, xscale->low_vectors);
+	xscale_load_ic(target, 0xffff0000, xscale->high_vectors);
 
 	return ERROR_OK;
 }
@@ -1665,15 +1665,15 @@ static int xscale_deassert_reset(target_t *target)
 			/* only load addresses other than the reset vectors */
 			if ((address % 0x400) != 0x0)
 			{
-				xscale_load_ic(target, 1, address, cache_line);
+				xscale_load_ic(target, address, cache_line);
 			}
 
 			address += buf_cnt;
 			binary_size -= buf_cnt;
 		};
 
-		xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
-		xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
+		xscale_load_ic(target, 0x0, xscale->low_vectors);
+		xscale_load_ic(target, 0xffff0000, xscale->high_vectors);
 
 		jtag_add_runtest(30, jtag_set_end_state(TAP_IDLE));
 
