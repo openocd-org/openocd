@@ -35,6 +35,26 @@
 #include "time_support.h"
 #include "image.h"
 
+
+/*
+ * Important XScale documents available as of October 2009 include:
+ *
+ *  Intel XScale® Core Developer’s Manual, January 2004
+ *		Order Number: 273473-002
+ *	This has a chapter detailing debug facilities, and punts some
+ *	details to chip-specific microarchitecture documentats.
+ *
+ *  Hot-Debug for Intel XScale® Core Debug White Paper, May 2005
+ *		Document Number: 273539-005
+ *	Less detailed than the developer's manual, but summarizes those
+ *	missing details (for most XScales) and gives LOTS of notes about
+ *	debugger/handler interaction issues.  Presents a simpler reset
+ *	and load-handler sequence than the arch doc.  (Note, OpenOCD
+ *	doesn't currently support "Hot-Debug" as defined there.)
+ *
+ * Chip-specific microarchitecture documents may also be useful.
+ */
+
 /* cli handling */
 int xscale_register_commands(struct command_context_s *cmd_ctx);
 
@@ -53,7 +73,6 @@ int xscale_restore_context(target_t *target);
 
 int xscale_assert_reset(target_t *target);
 int xscale_deassert_reset(target_t *target);
-int xscale_soft_reset_halt(struct target_s *target);
 
 int xscale_set_reg_u32(reg_t *reg, uint32_t value);
 
@@ -92,7 +111,7 @@ target_type_t xscale_target =
 
 	.assert_reset = xscale_assert_reset,
 	.deassert_reset = xscale_deassert_reset,
-	.soft_reset_halt = xscale_soft_reset_halt,
+	.soft_reset_halt = NULL,
 
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
@@ -118,7 +137,7 @@ target_type_t xscale_target =
 	.mmu = xscale_mmu
 };
 
-char* xscale_reg_list[] =
+static char *const xscale_reg_list[] =
 {
 	"XSCALE_MAINID",		/* 0 */
 	"XSCALE_CACHETYPE",
@@ -144,7 +163,7 @@ char* xscale_reg_list[] =
 	"XSCALE_TXRXCTRL",
 };
 
-xscale_reg_t xscale_reg_arch_info[] =
+static const xscale_reg_t xscale_reg_arch_info[] =
 {
 	{XSCALE_MAINID, NULL},
 	{XSCALE_CACHETYPE, NULL},
@@ -170,7 +189,7 @@ xscale_reg_t xscale_reg_arch_info[] =
 	{-1, NULL}, /* TXRXCTRL implicit access via JTAG */
 };
 
-int xscale_reg_arch_type = -1;
+static int xscale_reg_arch_type = -1;
 
 int xscale_get_reg(reg_t *reg);
 int xscale_set_reg(reg_t *reg, uint8_t *buf);
@@ -258,7 +277,6 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 
-
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
@@ -298,7 +316,7 @@ int xscale_read_dcsr(target_t *target)
 
 static void xscale_getbuf(jtag_callback_data_t arg)
 {
-  uint8_t *in = (uint8_t *)arg;
+	uint8_t *in = (uint8_t *)arg;
 	*((uint32_t *)in) = buf_get_u32(in, 0, 32);
 }
 
@@ -458,7 +476,6 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_TX].value;
 
-
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
@@ -549,7 +566,6 @@ int xscale_write_rx(target_t *target)
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
 	fields[1].in_value = NULL;
-
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -722,7 +738,6 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
 
-
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
@@ -787,22 +802,12 @@ int xscale_load_ic(target_t *target, int mini, uint32_t va, uint32_t buffer[8])
 	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
-
 	fields[0].in_value = NULL;
-
-
-
-
 
 	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
-
 	fields[1].in_value = NULL;
-
-
-
-
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
@@ -823,9 +828,7 @@ int xscale_load_ic(target_t *target, int mini, uint32_t va, uint32_t buffer[8])
 		jtag_add_dr_scan(2, fields, jtag_get_end_state());
 	}
 
-	jtag_execute_queue();
-
-	return ERROR_OK;
+	return jtag_execute_queue();
 }
 
 int xscale_invalidate_ic_line(target_t *target, uint32_t va)
@@ -849,22 +852,12 @@ int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
-
 	fields[0].in_value = NULL;
-
-
-
-
 
 	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
-
 	fields[1].in_value = NULL;
-
-
-
-
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
@@ -941,12 +934,12 @@ int xscale_arch_state(struct target_s *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
-	char *state[] =
+	static const char *state[] =
 	{
 		"disabled", "enabled"
 	};
 
-	char *arch_dbg_reason[] =
+	static const char *arch_dbg_reason[] =
 	{
 		"", "\n(processor reset)", "\n(trace buffer full)"
 	};
@@ -1040,8 +1033,8 @@ int xscale_debug_entry(target_t *target)
 
 	/* move r0 from buffer to register cache */
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, buffer[0]);
-	armv4_5->core_cache->reg_list[15].dirty = 1;
-	armv4_5->core_cache->reg_list[15].valid = 1;
+	armv4_5->core_cache->reg_list[0].dirty = 1;
+	armv4_5->core_cache->reg_list[0].valid = 1;
 	LOG_DEBUG("r0: 0x%8.8" PRIx32 "", buffer[0]);
 
 	/* move pc from buffer to register cache */
@@ -1148,7 +1141,7 @@ int xscale_debug_entry(target_t *target)
 			xscale->arch_debug_reason = XSCALE_DBG_REASON_TB_FULL;
 			pc -= 4;
 			break;
-		case 0x7: /* Reserved */
+		case 0x7: /* Reserved (may flag Hot-Debug support) */
 		default:
 			LOG_ERROR("Method of Entry is 'Reserved'");
 			exit(-1);
@@ -1745,11 +1738,6 @@ int xscale_deassert_reset(target_t *target)
 		jtag_add_reset(0, 0);
 	}
 
-	return ERROR_OK;
-}
-
-int xscale_soft_reset_halt(struct target_s *target)
-{
 	return ERROR_OK;
 }
 
