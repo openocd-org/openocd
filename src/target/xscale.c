@@ -1688,9 +1688,9 @@ int xscale_deassert_reset(target_t *target)
 				cache_line[i / 4] = le_to_h_u32(&buffer[i]);
 			}
 
-			for (; buf_cnt < 32; buf_cnt += 4)
+			for (; i < 32; i += 4)
 			{
-				cache_line[buf_cnt / 4] = 0xe1a08008;
+				cache_line[i / 4] = 0xe1a08008;
 			}
 
 			/* only load addresses other than the reset vectors */
