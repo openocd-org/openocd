@@ -698,7 +698,6 @@ int target_init(struct command_context_s *cmd_ctx)
 		{
 			target->type->virt2phys = default_virt2phys;
 		}
-		target->type->virt2phys = default_virt2phys;
 		/* a non-invasive way(in terms of patches) to add some code that
 		 * runs before the type->write/read_memory implementation
 		 */
