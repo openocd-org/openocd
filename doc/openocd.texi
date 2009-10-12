@@ -5756,13 +5756,6 @@ one bit in the encoding, effecively a fifth parameter.)
 Displays the result.
 @end deffn
 
-@deffn Command {arm11 no_increment}  [value]
-Displays the value of the flag controlling whether
-some read or write operations increment the pointer
-(the default behavior) or not (acting like a FIFO).
-If @var{value} is defined, first assigns that.
-@end deffn
-
 @deffn Command {arm11 step_irq_enable}  [value]
 Displays the value of the flag controlling whether
 IRQs are enabled during single stepping;

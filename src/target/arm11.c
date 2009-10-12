@@ -54,7 +54,6 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11);
 bool	arm11_config_memwrite_burst				= true;
 bool	arm11_config_memwrite_error_fatal		= true;
 uint32_t		arm11_vcr								= 0;
-bool	arm11_config_memrw_no_increment			= false;
 bool	arm11_config_step_irq_enable			= false;
 bool	arm11_config_hardware_step				= false;
 
@@ -1284,8 +1283,13 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 /* target memory access
  * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
  * count: number of items of <size>
+ *
+ * arm11_config_memrw_no_increment - in the future we may want to be able
+ * to read/write a range of data to a "port". a "port" is an action on
+ * read memory address for some peripheral.
  */
-int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int arm11_read_memory_inner(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
+		bool arm11_config_memrw_no_increment)
 {
 	/** \todo TODO: check if buffer cast to uint32_t* and uint16_t* might cause alignment problems */
 	int retval;
@@ -1371,7 +1375,18 @@ int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, 
 	return arm11_run_instr_data_finish(arm11);
 }
 
-int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	return arm11_read_memory_inner(target, address, size, count, buffer, false);
+}
+
+/*
+* arm11_config_memrw_no_increment - in the future we may want to be able
+* to read/write a range of data to a "port". a "port" is an action on
+* read memory address for some peripheral.
+*/
+int arm11_write_memory_inner(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
+		bool arm11_config_memrw_no_increment)
 {
 	int retval;
 	FNC_INFO;
@@ -1497,6 +1512,10 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 	return arm11_run_instr_data_finish(arm11);
 }
 
+int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	return arm11_write_memory_inner(target, address, size, count, buffer, false);
+}
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
 int arm11_bulk_write_memory(struct target_s *target, uint32_t address, uint32_t count, uint8_t *buffer)
@@ -2002,7 +2021,6 @@ int arm11_handle_bool_##name(struct command_context_s *cmd_ctx, char *cmd, char 
 
 BOOL_WRAPPER(memwrite_burst,			"memory write burst mode")
 BOOL_WRAPPER(memwrite_error_fatal,		"fatal error mode for memory writes")
-BOOL_WRAPPER(memrw_no_increment,		"\"no increment\" mode for memory transfers")
 BOOL_WRAPPER(step_irq_enable,			"IRQs while stepping")
 BOOL_WRAPPER(hardware_step,			"hardware single step")
 
@@ -2182,10 +2200,6 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, top_cmd, "mrc",
 			arm11_handle_mrc, COMMAND_ANY,
 			"Read Coprocessor register. mrc <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2>. All parameters are numbers only.");
-	register_command(cmd_ctx, top_cmd, "no_increment",
-			arm11_handle_bool_memrw_no_increment, COMMAND_ANY,
-			"Don't increment address on multi-read/-write"
-				" (default: disabled)");
 	register_command(cmd_ctx, top_cmd, "step_irq_enable",
 			arm11_handle_bool_step_irq_enable, COMMAND_ANY,
 			"Enable interrupts while stepping"
