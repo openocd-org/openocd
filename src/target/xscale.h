@@ -29,18 +29,13 @@
 
 #define	XSCALE_COMMON_MAGIC 0x58534341
 
-typedef struct xscale_jtag_s
-{
-	/* position in JTAG scan chain */
-	jtag_tap_t *tap;
-
-	/* IR length and instructions */
-	int ir_length;
-	uint32_t dbgrx;
-	uint32_t dbgtx;
-	uint32_t ldic;
-	uint32_t dcsr;
-} xscale_jtag_t;
+/* These four JTAG instructions are architecturally defined.
+ * Lengths are core-specific; originally 5 bits, later 7.
+ */
+#define XSCALE_DBGRX	0x02
+#define XSCALE_DBGTX	0x10
+#define XSCALE_LDIC	0x07
+#define XSCALE_SELDCSR	0x09
 
 enum xscale_debug_reason
 {
@@ -89,11 +84,6 @@ typedef struct xscale_common_s
 
 	/* XScale registers (CP15, DBG) */
 	reg_cache_t *reg_cache;
-
-	/* pxa250, pxa255, pxa27x, ixp42x, ... */
-	char *variant;
-
-	xscale_jtag_t jtag_info;
 
 	/* current state of the debug handler */
 	int handler_installed;

@@ -202,23 +202,23 @@ static int xscale_read_dcsr(target_t *target)
 	uint8_t field2_check_mask = 0x1;
 
 	jtag_set_end_state(TAP_DRPAUSE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
+	xscale_jtag_set_instr(target->tap, XSCALE_SELDCSR);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
 	uint8_t tmp;
 	fields[0].in_value = &tmp;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 
-	fields[2].tap = xscale->jtag_info.tap;
+	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	uint8_t tmp2;
@@ -267,12 +267,8 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 		return ERROR_INVALID_ARGUMENTS;
 
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
-
 	tap_state_t path[3];
 	scan_field_t fields[3];
-
 	uint8_t *field0 = malloc(num_words * 1);
 	uint8_t field0_check_value = 0x2;
 	uint8_t field0_check_mask = 0x6;
@@ -288,20 +284,20 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 	path[1] = TAP_DRCAPTURE;
 	path[2] = TAP_DRSHIFT;
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
 	fields[0].check_value = &field0_check_value;
 	fields[0].check_mask = &field0_check_mask;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].check_value = NULL;
 	fields[1].check_mask = NULL;
 
-	fields[2].tap = xscale->jtag_info.tap;
+	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
@@ -309,7 +305,7 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 	fields[2].check_mask = &field2_check_mask;
 
 	jtag_set_end_state(TAP_IDLE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
+	xscale_jtag_set_instr(target->tap, XSCALE_DBGTX);
 	jtag_add_runtest(1, jtag_get_end_state()); /* ensures that we're in the TAP_IDLE state as the above could be a no-op */
 
 	/* repeat until all words have been collected */
@@ -394,7 +390,7 @@ static int xscale_read_tx(target_t *target, int consume)
 
 	jtag_set_end_state(TAP_IDLE);
 
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
+	xscale_jtag_set_instr(target->tap, XSCALE_DBGTX);
 
 	path[0] = TAP_DRSELECT;
 	path[1] = TAP_DRCAPTURE;
@@ -407,17 +403,17 @@ static int xscale_read_tx(target_t *target, int consume)
 	noconsume_path[4] = TAP_DREXIT2;
 	noconsume_path[5] = TAP_DRSHIFT;
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
 	fields[0].in_value = &field0_in;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_TX].value;
 
-	fields[2].tap = xscale->jtag_info.tap;
+	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
 	uint8_t tmp;
@@ -496,19 +492,19 @@ static int xscale_write_rx(target_t *target)
 
 	jtag_set_end_state(TAP_IDLE);
 
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgrx);
+	xscale_jtag_set_instr(target->tap, XSCALE_DBGRX);
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
 	fields[0].in_value = &field0_in;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = xscale->jtag_info.tap;
+	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	uint8_t tmp;
@@ -567,18 +563,14 @@ static int xscale_write_rx(target_t *target)
 /* send count elements of size byte to the debug handler */
 static int xscale_send(target_t *target, uint8_t *buffer, int count, int size)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
 	uint32_t t[3];
 	int bits[3];
-
 	int retval;
-
 	int done_count = 0;
 
 	jtag_set_end_state(TAP_IDLE);
 
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgrx);
+	xscale_jtag_set_instr(target->tap, XSCALE_DBGRX);
 
 	bits[0]=3;
 	t[0]=0;
@@ -615,7 +607,7 @@ static int xscale_send(target_t *target, uint8_t *buffer, int count, int size)
 			LOG_ERROR("BUG: size neither 4, 2 nor 1");
 			exit(-1);
 		}
-		jtag_add_dr_out(xscale->jtag_info.tap,
+		jtag_add_dr_out(target->tap,
 				3,
 				bits,
 				t,
@@ -663,23 +655,23 @@ static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 		xscale->external_debug_break = ext_dbg_brk;
 
 	jtag_set_end_state(TAP_IDLE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
+	xscale_jtag_set_instr(target->tap, XSCALE_SELDCSR);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
 	uint8_t tmp;
 	fields[0].in_value = &tmp;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = xscale->jtag_info.tap;
+	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	uint8_t tmp2;
@@ -716,19 +708,16 @@ static unsigned int parity (unsigned int v)
 
 static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
 	uint8_t packet[4];
 	uint8_t cmd;
 	int word;
-
 	scan_field_t fields[2];
 
 	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32 "", va);
 
 	/* LDIC into IR */
 	jtag_set_end_state(TAP_IDLE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic);
+	xscale_jtag_set_instr(target->tap, XSCALE_LDIC);
 
 	/* CMD is b011 to load a cacheline into the Mini ICache.
 	 * Loading into the main ICache is deprecated, and unused.
@@ -739,12 +728,12 @@ static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
 	fields[1].in_value = NULL;
@@ -774,15 +763,12 @@ static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 
 static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
 	uint8_t packet[4];
 	uint8_t cmd;
-
 	scan_field_t fields[2];
 
 	jtag_set_end_state(TAP_IDLE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
+	xscale_jtag_set_instr(target->tap, XSCALE_LDIC);
 
 	/* CMD for invalidate IC line b000, bits [6:4] b000 */
 	buf_set_u32(&cmd, 0, 6, 0x0);
@@ -790,12 +776,12 @@ static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
-	fields[0].tap = xscale->jtag_info.tap;
+	fields[0].tap = target->tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = xscale->jtag_info.tap;
+	fields[1].tap = target->tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
 	fields[1].in_value = NULL;
@@ -1539,7 +1525,7 @@ static int xscale_assert_reset(target_t *target)
 	 * end up in T-L-R, which would reset JTAG
 	 */
 	jtag_set_end_state(TAP_IDLE);
-	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
+	xscale_jtag_set_instr(target->tap, XSCALE_SELDCSR);
 
 	/* set Hold reset, Halt mode and Trap Reset */
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
@@ -1547,7 +1533,7 @@ static int xscale_assert_reset(target_t *target)
 	xscale_write_dcsr(target, 1, 0);
 
 	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
-	xscale_jtag_set_instr(xscale->jtag_info.tap, 0x7f);
+	xscale_jtag_set_instr(target->tap, 0x7f);
 	jtag_execute_queue();
 
 	/* assert reset */
@@ -2948,6 +2934,7 @@ static void xscale_build_reg_cache(target_t *target)
 static int xscale_init_target(struct command_context_s *cmd_ctx,
 		struct target_s *target)
 {
+	xscale_build_reg_cache(target);
 	return ERROR_OK;
 }
 
@@ -2970,29 +2957,28 @@ static int xscale_init_arch_info(target_t *target,
 	xscale->arch_info = NULL;
 	xscale->common_magic = XSCALE_COMMON_MAGIC;
 
-	/* remember the variant (PXA25x, PXA27x, IXP42x, ...) */
-	xscale->variant = strdup(variant);
+	/* we don't really *need* variant info ... */
+	if (variant) {
+		int ir_length = 0;
 
-	/* prepare JTAG information for the new target */
-	xscale->jtag_info.tap = tap;
+		if (strcmp(variant, "pxa250") == 0
+				|| strcmp(variant, "pxa255") == 0
+				|| strcmp(variant, "pxa26x") == 0)
+			ir_length = 5;
+		else if (strcmp(variant, "pxa27x") == 0
+				|| strcmp(variant, "ixp42x") == 0
+				|| strcmp(variant, "ixp45x") == 0
+				|| strcmp(variant, "ixp46x") == 0)
+			ir_length = 7;
+		else
+			LOG_WARNING("%s: unrecognized variant %s",
+				tap->dotted_name, variant);
 
-	xscale->jtag_info.dbgrx = 0x02;
-	xscale->jtag_info.dbgtx = 0x10;
-	xscale->jtag_info.dcsr = 0x09;
-	xscale->jtag_info.ldic = 0x07;
-
-	if ((strcmp(xscale->variant, "pxa250") == 0) ||
-		(strcmp(xscale->variant, "pxa255") == 0) ||
-		(strcmp(xscale->variant, "pxa26x") == 0))
-	{
-		xscale->jtag_info.ir_length = 5;
-	}
-	else if ((strcmp(xscale->variant, "pxa27x") == 0) ||
-		(strcmp(xscale->variant, "ixp42x") == 0) ||
-		(strcmp(xscale->variant, "ixp45x") == 0) ||
-		(strcmp(xscale->variant, "ixp46x") == 0))
-	{
-		xscale->jtag_info.ir_length = 7;
+		if (ir_length && ir_length != tap->ir_length) {
+			LOG_WARNING("%s: IR length for %s is %d; fixing",
+				tap->dotted_name, variant, ir_length);
+			tap->ir_length = ir_length;
+		}
 	}
 
 	/* the debug handler isn't installed (and thus not running) at this time */
@@ -3066,15 +3052,16 @@ static int xscale_init_arch_info(target_t *target,
 	return ERROR_OK;
 }
 
-/* target xscale <endianess> <startup_mode> <chain_pos> <variant> */
 static int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	xscale_common_t *xscale = calloc(1,sizeof(xscale_common_t));
+	xscale_common_t *xscale;
 
-	xscale_init_arch_info(target, xscale, target->tap, target->variant);
-	xscale_build_reg_cache(target);
+	xscale = calloc(1, sizeof(*xscale));
+	if (!xscale)
+		return ERROR_FAIL;
 
-	return ERROR_OK;
+	return xscale_init_arch_info(target, xscale, target->tap,
+			target->variant);
 }
 
 static int
