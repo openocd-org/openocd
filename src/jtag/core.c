@@ -1167,7 +1167,7 @@ static int jtag_validate_ircapture(void)
 					(tap->ir_length + 7) / tap->ir_length,
 					val,
 					(tap->ir_length + 7) / tap->ir_length,
-					tap->ir_capture_value);
+					(unsigned) tap->ir_capture_value);
 
 			retval = ERROR_JTAG_INIT_FAILED;
 			goto done;
@@ -1360,22 +1360,31 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / TLR");
+	LOG_DEBUG("Initializing with hard TRST+SRST reset");
 
-	/* Reset can happen after a power cycle.
+	/*
+	 * This procedure is used by default when OpenOCD triggers a reset.
+	 * It's now done through an overridable Tcl "init_reset" wrapper.
 	 *
-	 * Ideally we would only assert TRST or run TLR before the target reset.
+	 * This started out as a more powerful "get JTAG working" reset than
+	 * jtag_init_inner(), applying TRST because some chips won't activate
+	 * JTAG without a TRST cycle (presumed to be async, though some of
+	 * those chips synchronize JTAG activation using TCK).
 	 *
-	 * However w/srst_pulls_trst, trst is asserted together with the target
-	 * reset whether we want it or not.
+	 * But some chips only activate JTAG as part of an SRST cycle; SRST
+	 * got mixed in.  So it became a hard reset routine, which got used
+	 * in more places, and which coped with JTAG reset being forced as
+	 * part of SRST (srst_pulls_trst).
 	 *
-	 * NB! Some targets have JTAG circuitry disabled until a
-	 * trst & srst has been asserted.
+	 * And even more corner cases started to surface:  TRST and/or SRST
+	 * assertion timings matter; some chips need other JTAG operations;
+	 * TRST/SRST sequences can need to be different from these, etc.
 	 *
-	 * NB! here we assume nsrst/ntrst delay are sufficient!
+	 * Systems should override that wrapper to support system-specific
+	 * requirements that this not-fully-generic code doesn't handle.
 	 *
-	 * NB! order matters!!!! srst *can* disconnect JTAG circuitry
-	 *
+	 * REVISIT once Tcl code can read the reset_config modes, this won't
+	 * need to be a C routine at all...
 	 */
 	jtag_add_reset(1, 0); /* TAP_RESET, using TMS+TCK or TRST */
 	if (jtag_reset_config & RESET_HAS_SRST)
