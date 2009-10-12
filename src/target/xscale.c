@@ -1559,15 +1559,6 @@ static int xscale_deassert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-
-	fileio_t debug_handler;
-	uint32_t address;
-	uint32_t binary_size;
-
-	uint32_t buf_cnt;
-	uint32_t i;
-	int retval;
-
 	breakpoint_t *breakpoint = target->breakpoints;
 
 	LOG_DEBUG("-");
@@ -1592,6 +1583,11 @@ static int xscale_deassert_reset(target_t *target)
 
 	if (!xscale->handler_installed)
 	{
+		uint32_t address;
+		unsigned buf_cnt;
+		const uint8_t *buffer = xscale_debug_handler;
+		int retval;
+
 		/* release SRST */
 		jtag_add_reset(0, 0);
 
@@ -1606,36 +1602,26 @@ static int xscale_deassert_reset(target_t *target)
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
 		xscale_write_dcsr(target, 1, 0);
 
-		/* Load debug handler */
-		if (fileio_open(&debug_handler, "xscale/debug_handler.bin", FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
-		{
-			return ERROR_OK;
-		}
-
-		if ((binary_size = debug_handler.size) % 4)
-		{
-			LOG_ERROR("debug_handler.bin: size not a multiple of 4");
-			exit(-1);
-		}
-
-		if (binary_size > 0x800)
-		{
-			LOG_ERROR("debug_handler.bin: larger than 2kb");
-			exit(-1);
-		}
-
-		binary_size = CEIL(binary_size, 32) * 32;
-
+		/* Load the debug handler into the mini-icache.  Since
+		 * it's using halt mode (not monitor mode), it runs in
+		 * "Special Debug State" for access to registers, memory,
+		 * coprocessors, trace data, etc.
+		 *
+		 * REVISIT:  *assumes* we've had a SRST+TRST reset so the
+		 * mini-icache contents have been invalidated.  Safest to
+		 * force that, so writing new contents is reliable...
+		 */
 		address = xscale->handler_address;
-		while (binary_size > 0)
+		for (unsigned binary_size = xscale_debug_handler_size;
+				binary_size > 0;
+				binary_size -= buf_cnt, buffer += buf_cnt)
 		{
 			uint32_t cache_line[8];
-			uint8_t buffer[32];
+			unsigned i;
 
-			if ((retval = fileio_read(&debug_handler, 32, buffer, &buf_cnt)) != ERROR_OK)
-			{
-
-			}
+			buf_cnt = binary_size;
+			if (buf_cnt > 32)
+				buf_cnt = 32;
 
 			for (i = 0; i < buf_cnt; i += 4)
 			{
@@ -1651,15 +1637,23 @@ static int xscale_deassert_reset(target_t *target)
 			/* only load addresses other than the reset vectors */
 			if ((address % 0x400) != 0x0)
 			{
-				xscale_load_ic(target, address, cache_line);
+				retval = xscale_load_ic(target, address,
+						cache_line);
+				if (retval != ERROR_OK)
+					return retval;
 			}
 
 			address += buf_cnt;
-			binary_size -= buf_cnt;
 		};
 
-		xscale_load_ic(target, 0x0, xscale->low_vectors);
-		xscale_load_ic(target, 0xffff0000, xscale->high_vectors);
+		retval = xscale_load_ic(target, 0x0,
+					xscale->low_vectors);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = xscale_load_ic(target, 0xffff0000,
+					xscale->high_vectors);
+		if (retval != ERROR_OK)
+			return retval;
 
 		jtag_add_runtest(30, jtag_set_end_state(TAP_IDLE));
 
@@ -1685,8 +1679,6 @@ static int xscale_deassert_reset(target_t *target)
 			/* resume the target */
 			xscale_resume(target, 1, 0x0, 1, 0);
 		}
-
-		fileio_close(&debug_handler);
 	}
 	else
 	{
@@ -3055,6 +3047,11 @@ static int xscale_init_arch_info(target_t *target,
 static int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	xscale_common_t *xscale;
+
+	if (xscale_debug_handler_size > 0x800) {
+		LOG_ERROR("debug_handler.bin: larger than 2kb");
+		return ERROR_FAIL;
+	}
 
 	xscale = calloc(1, sizeof(*xscale));
 	if (!xscale)

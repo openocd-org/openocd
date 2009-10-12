@@ -170,4 +170,10 @@ enum
 
 #define ERROR_XSCALE_NO_TRACE_DATA	(-1500)
 
+/* This XScale "debug handler" is loaded into the processor's
+ * mini-ICache, which is 2K of code writable only via JTAG.
+ */
+extern const uint8_t xscale_debug_handler[];
+extern const uint32_t xscale_debug_handler_size;
+
 #endif /* XSCALE_H */

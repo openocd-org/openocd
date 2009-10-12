@@ -35,6 +35,7 @@ libtarget_la_SOURCES = \
 	feroceon.c \
 	etb.c \
 	xscale.c \
+	xscale_debug.S \
 	arm_simulator.c \
 	image.c \
 	armv7m.c \
@@ -98,7 +99,6 @@ noinst_HEADERS = \
 	avrt.h
 
 nobase_dist_pkglib_DATA =
-nobase_dist_pkglib_DATA += xscale/debug_handler.bin
 nobase_dist_pkglib_DATA += ecos/at91eb40a.elf
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

@@ -16,6 +16,7 @@ AC_LANG_C
 AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
+AM_PROG_AS
 AC_PROG_RANLIB
 
 dnl disable checks for C++, Fortran and GNU Java Compiler
