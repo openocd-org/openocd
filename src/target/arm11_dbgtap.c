@@ -585,7 +585,8 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 	arm11_setup_field(arm11,  1,    NULL,			NULL,				chain5_fields + 2);
 
 	uint8_t			*Readies;
-	int bytes = sizeof(*Readies)*(count + 1);
+	int readiesNum = (count + 1);
+	int bytes = sizeof(*Readies)*readiesNum;
 	Readies = (uint8_t *) malloc(bytes);
 	if (Readies == NULL)
 	{
@@ -622,10 +623,9 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 	int retval = jtag_execute_queue();
 	if (retval == ERROR_OK)
 	{
-
 		size_t error_count = 0;
 
-		for (size_t i = 0; i < asizeof(Readies); i++)
+		for (size_t i = 0; i < readiesNum; i++)
 		{
 			if (Readies[i] != 1)
 			{
@@ -633,8 +633,8 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 			}
 		}
 
-		if (error_count)
-			LOG_ERROR("Transfer errors " ZU, error_count);
+		if (error_count > 0 )
+			LOG_ERROR(ZU " words not transferred", error_count);
 
 	}
 
