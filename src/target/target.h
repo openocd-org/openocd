@@ -148,6 +148,8 @@ typedef struct target_s
 
 	int display;						/* display async info in telnet session. Do not display
 										 * lots of halted/resumed info when stepping in debugger. */
+	bool halt_issued;					/* did we transition to halted state? */
+	long long halt_issued_time;			/* Note time when halt was issued */
 } target_t;
 
 enum target_event

@@ -378,24 +378,57 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 
 int target_poll(struct target_s *target)
 {
+	int retval;
+
 	/* We can't poll until after examine */
 	if (!target_was_examined(target))
 	{
 		/* Fail silently lest we pollute the log */
 		return ERROR_FAIL;
 	}
-	return target->type->poll(target);
+
+	retval = target->type->poll(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target->halt_issued)
+	{
+		if (target->state == TARGET_HALTED)
+		{
+			target->halt_issued = false;
+		} else
+		{
+			long long t = timeval_ms() - target->halt_issued_time;
+			if (t>1000)
+			{
+				target->halt_issued = false;
+				LOG_INFO("Halt timed out, wake up GDB.");
+				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
+			}
+		}
+	}
+
+	return ERROR_OK;
 }
 
 int target_halt(struct target_s *target)
 {
+	int retval;
 	/* We can't poll until after examine */
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
-	return target->type->halt(target);
+
+	retval = target->type->halt(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	target->halt_issued = true;
+	target->halt_issued_time = timeval_ms();
+
+	return ERROR_OK;
 }
 
 int target_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
@@ -4235,6 +4268,8 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->arch_info           = NULL;
 
 	target->display             = 1;
+
+	target->halt_issued			= false;
 
 	/* initialize trace information */
 	target->trace_info = malloc(sizeof(trace_t));

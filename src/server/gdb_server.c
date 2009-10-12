@@ -2194,10 +2194,13 @@ int gdb_input_inner(connection_t *connection)
 				retval = target_halt(target);
 				if (retval != ERROR_OK)
 				{
-					/* stop this debug session */
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				}
 				gdb_con->ctrl_c = 0;
+			} else
+			{
+				LOG_INFO("The target is not running when halt was requested, stopping GDB.");
+				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 			}
 		}
 
