@@ -1408,6 +1408,15 @@ int arm11_write_memory_inner(struct target_s *target, uint32_t address, uint32_t
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* burst writes are not used for single words as those may well be
+	 * reset init script writes.
+	 *
+	 * The other advantage is that as burst writes are default, we'll
+	 * now exercise both burst and non-burst code paths with the
+	 * default settings, increasing code coverage.
+	 */
+	bool burst = arm11_config_memwrite_burst && (count > 1);
+
 	switch (size)
 	{
 	case 1:
@@ -1463,7 +1472,7 @@ int arm11_write_memory_inner(struct target_s *target, uint32_t address, uint32_t
 		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
 		uint32_t *words = (uint32_t*)buffer;
 
-		if (!arm11_config_memwrite_burst)
+		if (!burst)
 		{
 			/* STC p14,c5,[R0],#4 */
 			/* STC p14,c5,[R0]*/
@@ -1501,7 +1510,7 @@ int arm11_write_memory_inner(struct target_s *target, uint32_t address, uint32_t
 					(unsigned) (address + size * count),
 					(unsigned) r0);
 
-			if (arm11_config_memwrite_burst)
+			if (burst)
 				LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
 
 			if (arm11_config_memwrite_error_fatal)

@@ -5737,7 +5737,11 @@ one bit in the encoding, effecively a fifth parameter.)
 
 @deffn Command {arm11 memwrite burst} [value]
 Displays the value of the memwrite burst-enable flag,
-which is enabled by default.
+which is enabled by default. Burst writes are only used
+for memory writes larger than 1 word. Single word writes
+are likely to be from reset init scripts and those writes
+are often to non-memory locations which could easily have
+many wait states, which could easily break burst writes.
 If @var{value} is defined, first assigns that.
 @end deffn
 
