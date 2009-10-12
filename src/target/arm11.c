@@ -610,6 +610,7 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 		if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 		{
 			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08" PRIx32 ")", DSCR);
+			return ERROR_FAIL;
 		}
 	}
 
