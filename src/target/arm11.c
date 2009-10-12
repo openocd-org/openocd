@@ -1401,7 +1401,9 @@ int arm11_write_memory_inner(struct target_s *target, uint32_t address, uint32_t
 
 	arm11_common_t * arm11 = target->arch_info;
 
-	arm11_run_instr_data_prepare(arm11);
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* MRC p14,0,r0,c0,c5,0 */
 	retval = arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);

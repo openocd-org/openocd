@@ -925,7 +925,10 @@ void arm11_sc7_set_vcr(arm11_common_t * arm11, uint32_t value)
  */
 int arm11_read_memory_word(arm11_common_t * arm11, uint32_t address, uint32_t * result)
 {
-	arm11_run_instr_data_prepare(arm11);
+	int retval;
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* MRC p14,0,r0,c0,c5,0 (r0 = address) */
 	CHECK_RETVAL(arm11_run_instr_data_to_core1(arm11, 0xee100e15, address));
@@ -933,9 +936,7 @@ int arm11_read_memory_word(arm11_common_t * arm11, uint32_t address, uint32_t * 
 	/* LDC p14,c5,[R0],#4 (DTR = [r0]) */
 	CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xecb05e01, result, 1));
 
-	arm11_run_instr_data_finish(arm11);
-
-	return ERROR_OK;
+	return arm11_run_instr_data_finish(arm11);
 }
 
 
