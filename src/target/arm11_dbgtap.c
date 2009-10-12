@@ -585,8 +585,8 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 	arm11_setup_field(arm11,  1,    NULL,			NULL,				chain5_fields + 2);
 
 	uint8_t			*Readies;
-	int readiesNum = (count + 1);
-	int bytes = sizeof(*Readies)*readiesNum;
+	size_t readiesNum = (count + 1);
+	size_t bytes = sizeof(*Readies)*readiesNum;
 	Readies = (uint8_t *) malloc(bytes);
 	if (Readies == NULL)
 	{
@@ -634,7 +634,7 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 		}
 
 		if (error_count > 0 )
-			LOG_ERROR(ZU " words not transferred", error_count);
+			LOG_ERROR(ZU " words out of " ZU " not transferred", error_count, readiesNum);
 
 	}
 
