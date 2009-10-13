@@ -1638,11 +1638,6 @@ GDB behaviour is not sufficient.  GDB normally uses hardware
 breakpoints if the memory map has been set up for flash regions.
 @end deffn
 
-@deffn {Config Command} gdb_detach (@option{resume}|@option{reset}|@option{halt}|@option{nothing})
-Configures what OpenOCD will do when GDB detaches from the daemon.
-Default behaviour is @option{resume}.
-@end deffn
-
 @anchor{gdb_flash_program}
 @deffn {Config Command} gdb_flash_program (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to program the flash memory when a

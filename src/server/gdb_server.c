@@ -52,17 +52,6 @@ static const char *DIGITS = "0123456789abcdef";
 static void gdb_log_callback(void *priv, const char *file, int line,
 		const char *function, const char *string);
 
-enum gdb_detach_mode
-{
-	GDB_DETACH_RESUME,
-	GDB_DETACH_RESET,
-	GDB_DETACH_HALT,
-	GDB_DETACH_NOTHING
-};
-
-/* target behaviour on gdb detach */
-enum gdb_detach_mode detach_mode = GDB_DETACH_RESUME;
-
 /* number of gdb connections, mainly to supress gdb related debugging spam
  * in helper/log.c when no gdb connections are actually active */
 int gdb_actual_connections;
@@ -1960,29 +1949,11 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 int gdb_detach(connection_t *connection, target_t *target)
 {
+	gdb_service_t *gdb_service = connection->service->priv;
 
-	switch (detach_mode)
-	{
-		case GDB_DETACH_RESUME:
-			target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
-			target_resume(target, 1, 0, 1, 0);
-			break;
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH);
 
-		case GDB_DETACH_RESET:
-			/* FIX?? make this configurable?? */
-			target_process_reset(connection->cmd_ctx, RESET_HALT);
-			break;
-
-		case GDB_DETACH_HALT:
-			target_halt(target);
-			break;
-
-		case GDB_DETACH_NOTHING:
-			break;
-	}
-
-	gdb_put_packet(connection, "OK", 2);
-	return ERROR_OK;
+	return gdb_put_packet(connection, "OK", 2);
 }
 
 static void gdb_log_callback(void *priv, const char *file, int line,
@@ -2311,37 +2282,6 @@ int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_gdb_detach_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc == 1)
-	{
-		if (strcmp(args[0], "resume") == 0)
-		{
-			detach_mode = GDB_DETACH_RESUME;
-			return ERROR_OK;
-		}
-		else if (strcmp(args[0], "reset") == 0)
-		{
-			detach_mode = GDB_DETACH_RESET;
-			return ERROR_OK;
-		}
-		else if (strcmp(args[0], "halt") == 0)
-		{
-			detach_mode = GDB_DETACH_HALT;
-			return ERROR_OK;
-		}
-		else if (strcmp(args[0], "nothing") == 0)
-		{
-			detach_mode = GDB_DETACH_NOTHING;
-			return ERROR_OK;
-		}
-		else
-			LOG_WARNING("invalid gdb_detach configuration directive: %s", args[0]);
-	}
-
-	return ERROR_COMMAND_SYNTAX_ERROR;
-}
-
 int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 1)
@@ -2445,9 +2385,6 @@ int gdb_register_commands(command_context_t *command_context)
 			COMMAND_ANY, "next stepi will return immediately allowing GDB fetch register state without affecting target state");
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
 			COMMAND_ANY, "daemon configuration command gdb_port");
-	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,
-			COMMAND_CONFIG, "resume/reset/halt/nothing - "
-			"specify behavior when GDB detaches from the target");
 	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
 			COMMAND_CONFIG, "enable or disable memory map");
 	register_command(command_context, NULL, "gdb_flash_program", handle_gdb_flash_program_command,
