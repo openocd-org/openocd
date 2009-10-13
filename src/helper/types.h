@@ -152,6 +152,7 @@ typedef uint64_t uintmax_t;
 #define INT64_MIN (-INT64_MAX - 1LL)
 #define UINT64_MAX (__CONCAT(INT64_MAX, U) * 2ULL + 1ULL)
 
+#define ULLONG_MAX 18446744073709551615
 
 /* C99, eCos is C90 compliant (with bits of C99) */
 #define isblank(c) ((c) == ' ' || (c) == '\t')
