@@ -133,12 +133,9 @@ static const struct tms_sequences old_tms_seqs[6][6] =		/*  [from_state_ndx][to_
 {
 	/* value clocked to TMS to move from one of six stable states to another.
 	 * N.B. OOCD clocks TMS from LSB first, so read these right-to-left.
-	 * N.B. These values are tightly bound to the table in tap_get_tms_path_len().
 	 * N.B. Reset only needs to be 0b11111, but in JLink an even byte of 1's is more stable.
 	 * These extra ones cause no TAP state problem, because we go into reset and stay in reset.
 	 */
-
-
 
 	/* to state: */
 	/*	RESET			IDLE			DRSHIFT			DRPAUSE			IRSHIFT			IRPAUSE 	*/		/* from state: */
@@ -168,24 +165,33 @@ static const struct tms_sequences short_tms_seqs[6][6] =		/*  [from_state_ndx][t
 
 		state specific comments:
 		------------------------
-		*->RESET		   tried the 5 bit reset and it gave me problems, 7 bits seems to
+		*->RESET	   tried the 5 bit reset and it gave me problems, 7 bits seems to
 					   work better on ARM9 with ft2232 driver.  (Dick)
 
 		RESET->DRSHIFT add 1 extra clock cycles in the RESET state before advancing.
 						needed on ARM9 with ft2232 driver.  (Dick)
+						(For a total of *THREE* extra clocks in RESET; NOP.)
 
 		RESET->IRSHIFT add 1 extra clock cycles in the RESET state before advancing.
 						needed on ARM9 with ft2232 driver.  (Dick)
+						(For a total of *TWO* extra clocks in RESET; NOP.)
+
+		RESET->*		always adds one or more clocks in the target state,
+						which should be NOPS; except shift states which (as
+						noted above) add those clocks in RESET.
+
+		The X-to-X transitions always add clocks; from *SHIFT, they go
+		via IDLE and thus *DO HAVE SIDE EFFECTS* (capture and update).
 	*/
 
 	/* to state: */
-	/*	RESET			IDLE				DRSHIFT			DRPAUSE			IRSHIFT	  		IRPAUSE */			/* from state: */
-	{	B8(1111111,7),	B8(0000000,7),	B8(0010111,7),		B8(0001010,7),	B8(0011011,7),	B8(0010110,7) },	/* RESET */
-	{	B8(1111111,7),	B8(0000000,7),	B8(001,3),			B8(0101,4),		B8(0011,4),  	B8(01011,5) },		/* IDLE */
-	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(01,2),		B8(001111,6),	B8(0101111,7) },	/* DRSHIFT */
-	{	B8(1111111,7),	B8(011,3),		B8(01,2),   		B8(0,1),		B8(001111,6),	B8(0101111,7) },	/* DRPAUSE */
-	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(010111,6), 	B8(001111,6),	B8(01,2) },			/* IRSHIFT */
-	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(010111,6),	B8(01,2),		B8(0,1) } 			/* IRPAUSE */
+	/*	RESET			IDLE			DRSHIFT			DRPAUSE			IRSHIFT			IRPAUSE */			/* from state: */
+	{	B8(1111111,7),	B8(0000000,7),	B8(0010111,7),	B8(0001010,7),	B8(0011011,7),	B8(0010110,7) },	/* RESET */
+	{	B8(1111111,7),	B8(0000000,7),	B8(001,3),		B8(0101,4),		B8(0011,4),		B8(01011,5) },		/* IDLE */
+	{	B8(1111111,7),	B8(011,3),		B8(00111,5),	B8(01,2),		B8(001111,6),	B8(0101111,7) },	/* DRSHIFT */
+	{	B8(1111111,7),	B8(011,3),		B8(01,2),		B8(0,1),		B8(001111,6),	B8(0101111,7) },	/* DRPAUSE */
+	{	B8(1111111,7),	B8(011,3),		B8(00111,5),	B8(010111,6),	B8(001111,6),	B8(01,2) },			/* IRSHIFT */
+	{	B8(1111111,7),	B8(011,3),		B8(00111,5),	B8(010111,6),	B8(01,2),		B8(0,1)}			/* IRPAUSE */
 
 };
 
