@@ -110,7 +110,7 @@ static int evaluate_pld(uint32_t opcode,
 		uint32_t address, arm_instruction_t *instruction)
 {
 	/* PLD */
-	if ((opcode & 0x0d70f0000) == 0x0550f000)
+	if ((opcode & 0x0d70f000) == 0x0550f000)
 	{
 		instruction->type = ARM_PLD;
 
