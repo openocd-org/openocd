@@ -138,11 +138,9 @@ https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
 - ARM923EJS:
   - reset run/halt/step is not robust; needs testing to map out problems.
 - ARM11 improvements (MB?)
+  - add support for asserting srst to reset the core.
   - Single stepping works, but should automatically
   use hardware stepping if available.
-  - hunt down and add timeouts to all infinite loops, e.g. arm11_run_instr_no_data would
-    lock up in infinite loop if e.g. an "mdh" command tries to read memory from invalid memory location.
-    Try mdh 0x40000000 on i.MX31 PDK
   - mdb can return garbage data if read byte operation fails for
   a memory region(16 & 32 byte access modes may be supported). Is this
   a bug in the .MX31 PDK init script? Try on i.MX31 PDK: 

@@ -98,10 +98,6 @@ typedef struct arm11_common_s
 	uint32_t		last_dscr;		/**< Last retrieved DSCR value;
 							     Use only for debug message generation		*/
 
-	bool	trst_active;
-	bool	halt_requested;					/**< Keep track if arm11_halt() calls occured
-												 during reset. Otherwise do it ASAP. */
-
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
 	/** \name Shadow registers to save processor state */

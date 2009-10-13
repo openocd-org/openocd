@@ -608,6 +608,13 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 
 		if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 		{
+			/*
+			The wDTR/rDTR two registers that are used to send/receive data to/from
+			the core in tandem with corresponding instruction codes that are
+			written into the core. The RDTR FULL/WDTR FULL flag indicates that the
+			registers hold data that was written by one side (CPU or JTAG) and not
+			read out by the other side.
+			*/
 			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08" PRIx32 ")", DSCR);
 			return ERROR_FAIL;
 		}
@@ -702,9 +709,6 @@ int arm11_poll(struct target_s *target)
 
 	arm11_common_t * arm11 = target->arch_info;
 
-	if (arm11->trst_active)
-		return ERROR_OK;
-
 	uint32_t	dscr;
 
 	CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
@@ -781,12 +785,6 @@ int arm11_halt(struct target_s *target)
 	if (target->state == TARGET_HALTED)
 	{
 		LOG_DEBUG("target was already halted");
-		return ERROR_OK;
-	}
-
-	if (arm11->trst_active)
-	{
-		arm11->halt_requested = true;
 		return ERROR_OK;
 	}
 
@@ -1199,22 +1197,16 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 	return ERROR_OK;
 }
 
-/* target reset control */
-int arm11_assert_reset(struct target_s *target)
+int arm11_assert_reset(target_t *target)
 {
 	FNC_INFO;
 
-#if 0
-	/* assert reset lines */
-	/* resets only the DBGTAP, not the ARM */
-
-	jtag_add_reset(1, 0);
-	jtag_add_sleep(5000);
-
-	arm11_common_t * arm11 = target->arch_info;
-	arm11->trst_active = true;
-#endif
-
+	/* FIX! we really should assert srst here, but
+	 * how do we reset the target into the halted state?
+	 * 
+	 * Also arm11 behaves "funny" when srst is asserted
+	 * (as of writing the rules are not understood).
+	 */
 	if (target->reset_halt)
 	{
 		CHECK_RETVAL(target_halt(target));
@@ -1223,25 +1215,8 @@ int arm11_assert_reset(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm11_deassert_reset(struct target_s *target)
+int arm11_deassert_reset(target_t *target)
 {
-	FNC_INFO;
-
-#if 0
-	LOG_DEBUG("target->state: %s",
-		target_state_name(target));
-
-
-	/* deassert reset lines */
-	jtag_add_reset(0, 0);
-
-	arm11_common_t * arm11 = target->arch_info;
-	arm11->trst_active = false;
-
-	if (arm11->halt_requested)
-		return arm11_halt(target);
-#endif
-
 	return ERROR_OK;
 }
 
@@ -1807,6 +1782,8 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
 /* talk to the target and set things up */
 int arm11_examine(struct target_s *target)
 {
+	int retval;
+
 	FNC_INFO;
 
 	arm11_common_t * arm11 = target->arch_info;
@@ -1874,7 +1851,9 @@ int arm11_examine(struct target_s *target)
 	 * as suggested by the spec.
 	 */
 
-	arm11_check_init(arm11, NULL);
+	retval = arm11_check_init(arm11, NULL);
+	if (retval != ERROR_OK)
+		return retval;
 
 	target_set_examined(target);
 
