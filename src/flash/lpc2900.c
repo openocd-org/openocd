@@ -528,7 +528,7 @@ static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time )
 	 * FPTR.TR = -------------------------------
 	 *                         512
 	 *
-	 * The result is the 
+	 * The result is the
 	 */
 
 	uint32_t tr_val = (uint32_t)((((time / 1e6) * clock) + 511.0) / 512.0);

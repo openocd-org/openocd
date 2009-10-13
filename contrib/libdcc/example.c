@@ -23,11 +23,11 @@
 #include "dcc_stdio.h"
 
 /* enable openocd debugmsg at the gdb prompt:
- * monitor target_request debugmsgs enable 
- * 
+ * monitor target_request debugmsgs enable
+ *
  * create a trace point:
  * monitor trace point 1
- * 
+ *
  * to show how often the trace point was hit:
  * monitor trace point
 */

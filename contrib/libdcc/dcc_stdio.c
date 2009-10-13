@@ -99,7 +99,7 @@ void dbg_write_u16(const unsigned short *val, long len)
 
 	while (len > 0)
 	{
-		dcc_data = val[0] 
+		dcc_data = val[0]
 			| ((len > 1) ? val[1] << 16: 0x0000);
 
 		dbg_write(dcc_data);
@@ -145,7 +145,7 @@ void dbg_write_str(const char *msg)
 			| ((len > 2) ? msg[2] << 16 : 0x00)
 			| ((len > 3) ? msg[3] << 24 : 0x00);
 		dbg_write(dcc_data);
-		
+
 		msg += 4;
 		len -= 4;
 	}

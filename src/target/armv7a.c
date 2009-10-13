@@ -176,7 +176,7 @@ reg_t armv7a_gdb_dummy_fp_reg =
 void armv7a_show_fault_registers(target_t *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
-	
+
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
@@ -186,9 +186,9 @@ void armv7a_show_fault_registers(target_t *target)
 	armv7a->read_cp15(target, 0, 0, 6, 0, &dfar);
 	armv7a->read_cp15(target, 0, 2, 6, 0, &ifar);
 
-	LOG_USER("Data fault registers        DFSR: %8.8" PRIx32 
+	LOG_USER("Data fault registers        DFSR: %8.8" PRIx32
 			", DFAR: %8.8" PRIx32, dfsr, dfar);
-	LOG_USER("Instruction fault registers IFSR: %8.8" PRIx32 
+	LOG_USER("Instruction fault registers IFSR: %8.8" PRIx32
 			", IFAR: %8.8" PRIx32, ifsr, ifar);
 
 }

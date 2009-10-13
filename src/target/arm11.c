@@ -1203,7 +1203,7 @@ int arm11_assert_reset(target_t *target)
 
 	/* FIX! we really should assert srst here, but
 	 * how do we reset the target into the halted state?
-	 * 
+	 *
 	 * Also arm11 behaves "funny" when srst is asserted
 	 * (as of writing the rules are not understood).
 	 */

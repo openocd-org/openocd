@@ -53,7 +53,7 @@ int init()
 		*t=0;
 	}
 	return flash_init((_printf *)&myprintf);
-	
+
 }
 
 
@@ -68,15 +68,15 @@ int checkFlash(void *addr, int len)
 }
 
 
-int erase(void *address, int len)	
+int erase(void *address, int len)
 {
 	int retval;
 	void *failAddress;
-	
+
 	retval=checkFlash(address, len);
 	if (retval!=0)
 		return retval;
-	
+
 	retval=init();
 	if (retval!=0)
 		return retval;
@@ -88,14 +88,14 @@ int erase(void *address, int len)
 extern char _end;
 
 // Data follows immediately after program, long word aligned.
-int program(void *buffer, void *address, int len)	
+int program(void *buffer, void *address, int len)
 {
 	int retval;
 	void *failAddress;
 	retval=checkFlash(address, len);
 	if (retval!=0)
 		return retval;
-	
+
 	retval=init();
 	if (retval!=0)
 		return retval;

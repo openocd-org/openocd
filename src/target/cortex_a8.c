@@ -140,13 +140,13 @@ int cortex_a8_init_debug_access(target_t *target)
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
-	/* Enabling of instruction execution in debug mode is done in debug_entry code */ 
-	
+	/* Enabling of instruction execution in debug mode is done in debug_entry code */
+
 	/* Resync breakpoint registers */
-	
+
 	/* Since this is likley called from init or reset, update targtet state information*/
 	cortex_a8_poll(target);
-	
+
 	return retval;
 }
 
@@ -254,7 +254,7 @@ int cortex_a8_write_cp(target_t *target, uint32_t value,
 		/* Clear DCCRX with MCR(p14, 0, Rd, c0, c5, 0), opcode  0xEE000E15 */
 		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
 	}
-	
+
 	retval = mem_ap_write_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DTRRX, value);
 	/* Move DTRRX to r0 */
@@ -331,7 +331,7 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int r
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
-	
+
 	LOG_DEBUG("register %i, value 0x%08" PRIx32, regnum, value);
 
 	/* Check that DCCRX is not full */
@@ -343,7 +343,7 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int r
 		/* Clear DCCRX with MCR(p14, 0, Rd, c0, c5, 0), opcode  0xEE000E15 */
 		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
 	}
-	
+
 	if (Rd > 16)
 		return retval;
 
@@ -1237,7 +1237,7 @@ int cortex_a8_assert_reset(target_t *target)
 	armv4_5_invalidate_core_regs(target);
 
 	target->state = TARGET_RESET;
-	
+
 	return ERROR_OK;
 }
 
@@ -1444,7 +1444,7 @@ int cortex_a8_examine(struct target_s *target)
 	uint32_t didr, ctypr, ttypr, cpuid;
 
 	LOG_DEBUG("TODO");
-	
+
 	/* Here we shall insert a proper ROM Table scan */
 	armv7a->debug_base = OMAP3530_DEBUG_BASE;
 
@@ -1521,7 +1521,7 @@ int cortex_a8_examine(struct target_s *target)
 
 	/* Configure core debug access */
 	cortex_a8_init_debug_access(target);
-	
+
 	target->type->examined = 1;
 
 	return retval;
