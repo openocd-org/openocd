@@ -590,7 +590,7 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 	Readies = (uint8_t *) malloc(bytes);
 	if (Readies == NULL)
 	{
-		LOG_ERROR("Out of memory allocating %d bytes", bytes);
+		LOG_ERROR("Out of memory allocating " ZU " bytes", bytes);
 		return ERROR_FAIL;
 	}
 
