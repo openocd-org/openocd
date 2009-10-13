@@ -243,9 +243,9 @@ int pass_condition(uint32_t cpsr, uint32_t opcode)
 			else
 				return 0;
 		case 0xd:	/* LE */
-			if ((cpsr & 0x40000000) &&
-				(((cpsr & 0x80000000) && !(cpsr & 0x10000000))
-				|| (!(cpsr & 0x80000000) && (cpsr & 0x10000000))))
+			if ((cpsr & 0x40000000) ||
+				((cpsr & 0x80000000) && !(cpsr & 0x10000000))
+				|| (!(cpsr & 0x80000000) && (cpsr & 0x10000000)))
 				return 1;
 			else
 				return 0;
