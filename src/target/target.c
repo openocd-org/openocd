@@ -3452,6 +3452,10 @@ void target_all_handle_event(enum target_event e)
 	}
 }
 
+
+/* FIX? should we propagate errors here rather than printing them
+ * and continuing?
+ */
 void target_handle_event(target_t *target, enum target_event e)
 {
 	target_event_action_t *teap;
@@ -4093,11 +4097,11 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 		/* do the assert */
 		if (n->value == NVP_ASSERT) {
-			target->type->assert_reset(target);
+			e = target->type->assert_reset(target);
 		} else {
-			target->type->deassert_reset(target);
+			e = target->type->deassert_reset(target);
 		}
-		return JIM_OK;
+		return (e == ERROR_OK) ? JIM_OK : JIM_ERR;
 	case TS_CMD_HALT:
 		if (goi.argc) {
 			Jim_WrongNumArgs(goi.interp, 0, argv, "halt [no parameters]");
@@ -4105,8 +4109,8 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 		if (!target->tap->enabled)
 			goto err_tap_disabled;
-		target->type->halt(target);
-		return JIM_OK;
+		e = target->type->halt(target);
+		return (e == ERROR_OK) ? JIM_OK : JIM_ERR;
 	case TS_CMD_WAITSTATE:
 		/* params:  <name>  statename timeoutmsecs */
 		if (goi.argc != 2) {
