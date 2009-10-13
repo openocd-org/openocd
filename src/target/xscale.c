@@ -42,7 +42,7 @@
  *  Intel XScale® Core Developer’s Manual, January 2004
  *		Order Number: 273473-002
  *	This has a chapter detailing debug facilities, and punts some
- *	details to chip-specific microarchitecture documentats.
+ *	details to chip-specific microarchitecture documents.
  *
  *  Hot-Debug for Intel XScale® Core Debug White Paper, May 2005
  *		Document Number: 273539-005
@@ -166,21 +166,15 @@ static int xscale_jtag_set_instr(jtag_tap_t *tap, uint32_t new_instr)
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
 		scan_field_t field;
+		uint8_t scratch[4];
 
+		memset(&field, 0, sizeof field);
 		field.tap = tap;
 		field.num_bits = tap->ir_length;
-		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
+		field.out_value = scratch;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
-		uint8_t tmp[4];
-		field.in_value = tmp;
-
 		jtag_add_ir_scan(1, &field, jtag_get_end_state());
-
-		/* FIX!!!! isn't this check superfluous? verify_ircapture handles this? */
-		jtag_check_value_mask(&field, tap->expected, tap->expected_mask);
-
-		free(field.out_value);
 	}
 
 	return ERROR_OK;
@@ -190,9 +184,7 @@ static int xscale_read_dcsr(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-
 	int retval;
-
 	scan_field_t fields[3];
 	uint8_t field0 = 0x0;
 	uint8_t field0_check_value = 0x2;
@@ -207,6 +199,8 @@ static int xscale_read_dcsr(target_t *target)
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
@@ -215,7 +209,6 @@ static int xscale_read_dcsr(target_t *target)
 
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
-	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 
 	fields[2].tap = target->tap;
@@ -277,30 +270,24 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 	uint8_t field2_check_mask = 0x1;
 	int words_done = 0;
 	int words_scheduled = 0;
-
 	int i;
 
 	path[0] = TAP_DRSELECT;
 	path[1] = TAP_DRCAPTURE;
 	path[2] = TAP_DRSHIFT;
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
-	fields[0].out_value = NULL;
-	fields[0].in_value = NULL;
 	fields[0].check_value = &field0_check_value;
 	fields[0].check_mask = &field0_check_mask;
 
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
-	fields[1].out_value = NULL;
-	fields[1].check_value = NULL;
-	fields[1].check_mask = NULL;
 
 	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
-	fields[2].out_value = NULL;
-	fields[2].in_value = NULL;
 	fields[2].check_value = &field2_check_value;
 	fields[2].check_mask = &field2_check_mask;
 
@@ -377,10 +364,8 @@ static int xscale_read_tx(target_t *target, int consume)
 	xscale_common_t *xscale = armv4_5->arch_info;
 	tap_state_t path[3];
 	tap_state_t noconsume_path[6];
-
 	int retval;
 	struct timeval timeout, now;
-
 	scan_field_t fields[3];
 	uint8_t field0_in = 0x0;
 	uint8_t field0_check_value = 0x2;
@@ -403,19 +388,18 @@ static int xscale_read_tx(target_t *target, int consume)
 	noconsume_path[4] = TAP_DREXIT2;
 	noconsume_path[5] = TAP_DRSHIFT;
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
-	fields[0].out_value = NULL;
 	fields[0].in_value = &field0_in;
 
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
-	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_TX].value;
 
 	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
-	fields[2].out_value = NULL;
 	uint8_t tmp;
 	fields[2].in_value = &tmp;
 
@@ -477,10 +461,8 @@ static int xscale_write_rx(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-
 	int retval;
 	struct timeval timeout, now;
-
 	scan_field_t fields[3];
 	uint8_t field0_out = 0x0;
 	uint8_t field0_in = 0x0;
@@ -494,6 +476,8 @@ static int xscale_write_rx(target_t *target)
 
 	xscale_jtag_set_instr(target->tap, XSCALE_DBGRX);
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
@@ -502,7 +486,6 @@ static int xscale_write_rx(target_t *target)
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
-	fields[1].in_value = NULL;
 
 	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
@@ -637,9 +620,7 @@ static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-
 	int retval;
-
 	scan_field_t fields[3];
 	uint8_t field0 = 0x0;
 	uint8_t field0_check_value = 0x2;
@@ -660,6 +641,8 @@ static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
@@ -669,7 +652,6 @@ static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
-	fields[1].in_value = NULL;
 
 	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
@@ -728,15 +710,15 @@ static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
-	fields[0].in_value = NULL;
 
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
-	fields[1].in_value = NULL;
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
@@ -776,15 +758,15 @@ static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
+	memset(&fields, 0, sizeof fields);
+
 	fields[0].tap = target->tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
-	fields[0].in_value = NULL;
 
 	fields[1].tap = target->tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
-	fields[1].in_value = NULL;
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
