@@ -1200,16 +1200,60 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 int arm11_assert_reset(target_t *target)
 {
 	FNC_INFO;
+	int retval;
 
-	/* FIX! we really should assert srst here, but
-	 * how do we reset the target into the halted state?
-	 *
-	 * Also arm11 behaves "funny" when srst is asserted
-	 * (as of writing the rules are not understood).
-	 */
+	arm11_common_t * arm11 = target->arch_info;
+	retval = arm11_check_init(arm11, NULL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	target->state = TARGET_UNKNOWN;
+
+	/* we would very much like to reset into the halted, state,
+	 * but resetting and halting is second best... */
 	if (target->reset_halt)
 	{
 		CHECK_RETVAL(target_halt(target));
+	}
+
+
+	/* srst is funny. We can not do *anything* else while it's asserted
+	 * and it has unkonwn side effects. Make sure no other code runs
+	 * meanwhile.
+	 *
+	 * Code below assumes srst:
+	 *
+	 * - Causes power-on-reset (but of what parts of the system?). Bug
+	 * in arm11?
+	 *
+	 * - Messes us TAP state without asserting trst.
+	 *
+	 * - There is another bug in the arm11 core. When you generate an access to
+	 * external logic (for example ddr controller via AHB bus) and that block
+	 * is not configured (perhaps it is still held in reset), that transaction
+	 * will never complete. This will hang arm11 core but it will also hang
+	 * JTAG controller. Nothing, short of srst assertion will bring it out of
+	 * this.
+	 *
+	 * Mysteries:
+	 *
+	 * - What should the PC be after an srst reset when starting in the halted
+	 * state?
+	 */
+
+	jtag_add_reset(0, 1);
+	jtag_add_reset(0, 0);
+
+	/* How long do we have to wait? */
+	jtag_add_sleep(5000);
+
+	/* un-mess up TAP state */
+	jtag_add_tlr();
+
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+	{
+		return retval;
 	}
 
 	return ERROR_OK;
