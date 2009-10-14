@@ -2221,11 +2221,23 @@ needing to cope with both architecture and board specific constraints.
 
 @section Commands for Handling Resets
 
+@deffn {Command} jtag_nsrst_assert_width milliseconds
+Minimum amount of time (in milliseconds) OpenOCD should wait
+after asserting nSRST (active-low system reset) before
+allowing it to be deasserted.
+@end deffn
+
 @deffn {Command} jtag_nsrst_delay milliseconds
 How long (in milliseconds) OpenOCD should wait after deasserting
 nSRST (active-low system reset) before starting new JTAG operations.
 When a board has a reset button connected to SRST line it will
 probably have hardware debouncing, implying you should use this.
+@end deffn
+
+@deffn {Command} jtag_ntrst_assert_width milliseconds
+Minimum amount of time (in milliseconds) OpenOCD should wait
+after asserting nTRST (active-low JTAG TAP reset) before
+allowing it to be deasserted.
 @end deffn
 
 @deffn {Command} jtag_ntrst_delay milliseconds
@@ -6075,6 +6087,15 @@ TAP @code{post-reset} events are delivered to all TAPs
 with handlers for that event.
 @end deffn
 
+@deffn Command {pathmove} start_state [next_state ...]
+Start by moving to @var{start_state}, which
+must be one of the @emph{stable} states.
+Then, in a series of single state transitions
+(conforming to the JTAG state machine) shift to
+each @var{next_state} in sequence, one per TCK cycle.
+The final state must also be stable.
+@end deffn
+
 @deffn Command {runtest} @var{num_cycles}
 Move to the @sc{run/idle} state, and execute at least
 @var{num_cycles} of the JTAG clock (TCK).
@@ -6102,23 +6123,30 @@ Default is enabled.
 @cindex TAP state names
 
 The @var{tap_state} names used by OpenOCD in the @command{drscan},
-and @command{irscan} commands are:
+@command{irscan}, and @command{pathmove} commands are the same
+as those used in SVF boundary scan documents, except that some
+versions of SVF use @sc{idle} instead of @sc{run/idle}.
 
 @itemize @bullet
-@item @b{RESET} ... acts as if TRST were pulsed
-@item @b{RUN/IDLE} ... don't assume this always means IDLE
+@item @b{RESET} ... @emph{stable} (with TMS high);
+acts as if TRST were pulsed
+@item @b{RUN/IDLE} ... @emph{stable}; don't assume this always means IDLE
 @item @b{DRSELECT}
 @item @b{DRCAPTURE}
-@item @b{DRSHIFT} ... TDI/TDO shifting through the data register
+@item @b{DRSHIFT} ... @emph{stable}; TDI/TDO shifting
+through the data register
 @item @b{DREXIT1}
-@item @b{DRPAUSE} ... data register ready for update or more shifting
+@item @b{DRPAUSE} ... @emph{stable}; data register ready
+for update or more shifting
 @item @b{DREXIT2}
 @item @b{DRUPDATE}
 @item @b{IRSELECT}
 @item @b{IRCAPTURE}
-@item @b{IRSHIFT} ... TDI/TDO shifting through the instruction register
+@item @b{IRSHIFT} ... @emph{stable}; TDI/TDO shifting
+through the instruction register
 @item @b{IREXIT1}
-@item @b{IRPAUSE} ... instruction register ready for update or more shifting
+@item @b{IRPAUSE} ... @emph{stable}; instruction register ready
+for update or more shifting
 @item @b{IREXIT2}
 @item @b{IRUPDATE}
 @end itemize

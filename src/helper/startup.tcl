@@ -291,59 +291,10 @@ proc ocd_process_reset_inner { MODE } {
 	}
 }
 
-# stubs for targets scripts that do not have production procedure
-proc production_info {} {
-	return "Imagine an explanation here..."
-}
-add_help_text production_info "Displays information on production procedure for target script. Implement this procedure in target script."
+#########
 
-proc production {firmwarefile serialnumber} {
-	puts "Imagine production procedure running successfully. Programmed $firmwarefile with serial number $serialnumber"
-}
-
-add_help_text production "<serialnumber> - Runs production procedure. Throws exception if procedure failed. Prints progress messages. Implement this procedure in the target script."
-
-proc production_test {} {
-	puts "Imagine nifty test procedure having run to completion here."
-}
-add_help_text production_test "Runs test procedure. Throws exception if procedure failed. Prints progress messages. Implement in target script."
-
-add_help_text cpu "<name> - prints out target options and a comment on CPU which matches name"
-
-# A list of names of CPU and options required
-set ocd_cpu_list {
-	{
-		name IXP42x
-		options {xscale -variant IXP42x}
-		comment {IXP42x cpu}
-	}
-	{
-		name arm7
-		options {arm7tdmi -variant arm7tdmi}
-		comment {vanilla ARM7}
-	}
-}
-
-# Invoked from Tcl code
-proc ocd_cpu {args} {
-	set name $args
-	set result ""
-	global ocd_cpu_list
-	foreach a [lsort $ocd_cpu_list] {
-		if {[string length $args]==0||[string first [string toupper $name] [string toupper "$a(name)$a(options)$a(comment)"]]!=-1} {
-			lappend result $a
-		}
-	}
-	return $result
-}
-
-proc cpu {args} {
-    #     0123456789012345678901234567890123456789012345678901234567890123456789
-	puts "CPU                 Options                                 Comment"
-	foreach a [lsort [ocd_cpu $args]] {
-		puts [format "%-20s%-40s%s" $a(name) $a(options) $a(comment)]
-	}
-}
+# REVISIT power_restore, power_dropout, srst_deasserted, srst_asserted
+# are currently neither documented nor supported except on ZY1000.
 
 proc power_restore {} {
 	puts "Sensed power restore."
@@ -365,6 +316,8 @@ add_help_text srst_deasserted "Overridable procedure run when srst deassert is d
 proc srst_asserted {} {
 	puts "Sensed nSRST asserted."
 }
+
+#########
 
 # catch any exceptions, capture output and return output
 proc capture_catch {a} {
