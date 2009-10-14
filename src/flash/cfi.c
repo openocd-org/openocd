@@ -2143,6 +2143,45 @@ static void cfi_fixup_0002_unlock_addresses(flash_bank_t *bank, void *param)
 	pri_ext->_unlock2 = unlock_addresses->unlock2;
 }
 
+
+static int cfi_query_string(struct flash_bank_s *bank, int address)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	target_t *target = bank->target;
+	int retval;
+	uint8_t command[8];
+
+	cfi_command(bank, 0x98, command);
+	if ((retval = target_write_memory(target, flash_address(bank, 0, address), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	cfi_info->qry[0] = cfi_query_u8(bank, 0, 0x10);
+	cfi_info->qry[1] = cfi_query_u8(bank, 0, 0x11);
+	cfi_info->qry[2] = cfi_query_u8(bank, 0, 0x12);
+
+	LOG_DEBUG("CFI qry returned: 0x%2.2x 0x%2.2x 0x%2.2x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2]);
+
+	if ((cfi_info->qry[0] != 'Q') || (cfi_info->qry[1] != 'R') || (cfi_info->qry[2] != 'Y'))
+	{
+		cfi_command(bank, 0xf0, command);
+		if ((retval = target_write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
+		cfi_command(bank, 0xff, command);
+		if ((retval = target_write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
+		LOG_ERROR("Could not probe bank: no QRY");
+		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	return ERROR_OK;
+}
+
 static int cfi_probe(struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -2236,6 +2275,8 @@ static int cfi_probe(struct flash_bank_s *bank)
 	 */
 	if (cfi_info->not_cfi == 0)
 	{
+		int retval;
+
 		/* enter CFI query mode
 		 * according to JEDEC Standard No. 68.01,
 		 * a single bus sequence with address = 0x55, data = 0x98 should put
@@ -2243,33 +2284,21 @@ static int cfi_probe(struct flash_bank_s *bank)
 		 *
 		 * SST flashes clearly violate this, and we will consider them incompatbile for now
 		 */
-		cfi_command(bank, 0x98, command);
-		if ((retval = target_write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command)) != ERROR_OK)
+
+		retval = cfi_query_string(bank, 0x55);
+		if (retval != ERROR_OK)
 		{
+			/*
+			 * Spansion S29WS-N CFI query fix is to try 0x555 if 0x55 fails. Should
+			 * be harmless enough:
+			 *
+			 * http://www.infradead.org/pipermail/linux-mtd/2005-September/013618.html
+			 */
+			LOG_USER("Try workaround w/0x555 instead of 0x55 to get QRY.");
+			retval = cfi_query_string(bank, 0x555);
+		}
+		if (retval != ERROR_OK)
 			return retval;
-		}
-
-		cfi_info->qry[0] = cfi_query_u8(bank, 0, 0x10);
-		cfi_info->qry[1] = cfi_query_u8(bank, 0, 0x11);
-		cfi_info->qry[2] = cfi_query_u8(bank, 0, 0x12);
-
-		LOG_DEBUG("CFI qry returned: 0x%2.2x 0x%2.2x 0x%2.2x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2]);
-
-		if ((cfi_info->qry[0] != 'Q') || (cfi_info->qry[1] != 'R') || (cfi_info->qry[2] != 'Y'))
-		{
-			cfi_command(bank, 0xf0, command);
-			if ((retval = target_write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
-			{
-				return retval;
-			}
-			cfi_command(bank, 0xff, command);
-			if ((retval = target_write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
-			{
-				return retval;
-			}
-			LOG_ERROR("Could not probe bank: no QRY");
-			return ERROR_FLASH_BANK_INVALID;
-		}
 
 		cfi_info->pri_id = cfi_query_u16(bank, 0, 0x13);
 		cfi_info->pri_addr = cfi_query_u16(bank, 0, 0x15);
