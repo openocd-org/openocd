@@ -10,6 +10,12 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/jtag \
 	-I$(top_srcdir)/src/xsvf
 
+# ideally this would be specific to xscale_debug.S ...
+libtarget_la_CCASFLAGS = \
+       -Wa,-I$(top_srcdir)/src/target \
+       $(AM_CCASFLAGS)
+
+
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la
 libtarget_la_SOURCES = \
