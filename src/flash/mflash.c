@@ -474,8 +474,8 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : 0x%0lx", sect_num,
-			(unsigned long)buff_ptr);
+		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : %p",
+				sect_num, buff_ptr);
 		ret = mg_mflash_do_read_sects(buff_ptr, sect_num, 256);
 		if (ret != ERROR_OK)
 			return ret;
@@ -485,8 +485,8 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 	}
 
 	if (residue) {
-		LOG_DEBUG("mflash: sect num : %" PRIx32 " buff : %0lx", sect_num,
-			(unsigned long)buff_ptr);
+		LOG_DEBUG("mflash: sect num : %" PRIx32 " buff : %p",
+				sect_num, buff_ptr);
 		return mg_mflash_do_read_sects(buff_ptr, sect_num, residue);
 	}
 
