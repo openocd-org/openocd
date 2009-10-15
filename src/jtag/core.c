@@ -991,8 +991,9 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 		return true;
 
 	/* Loop over the expected identification codes and test for a match */
-	uint8_t ii;
-	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
+	unsigned ii, limit = tap->expected_ids_cnt;
+
+	for (ii = 0; ii < limit; ii++)
 	{
 		if (tap->idcode == tap->expected_ids[ii])
 			return true;
@@ -1005,11 +1006,11 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 	/* If none of the expected ids matched, warn */
 	jtag_examine_chain_display(LOG_LVL_WARNING, "UNEXPECTED",
 			tap->dotted_name, tap->idcode);
-	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
+	for (ii = 0; ii < limit; ii++)
 	{
 		char msg[32];
-		snprintf(msg, sizeof(msg), "expected %hhu of %hhu",
-				ii + 1, tap->expected_ids_cnt);
+
+		snprintf(msg, sizeof(msg), "expected %u of %u", ii + 1, limit);
 		jtag_examine_chain_display(LOG_LVL_ERROR, msg,
 				tap->dotted_name, tap->expected_ids[ii]);
 	}

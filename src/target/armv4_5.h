@@ -74,7 +74,7 @@ typedef struct armv4_5_common_s
 {
 	int common_magic;
 	reg_cache_t *core_cache;
-	enum armv4_5_mode core_mode;
+	int /* armv4_5_mode */ core_mode;
 	enum armv4_5_state core_state;
 	bool is_armv4;
 	int (*full_context)(struct target_s *target);

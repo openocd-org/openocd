@@ -1656,10 +1656,10 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 //		return ERROR_FAIL;
 
 	// Save regs
-	for (size_t i = 0; i < 16; i++)
+	for (unsigned i = 0; i < 16; i++)
 	{
 		context[i] = buf_get_u32((uint8_t*)(&arm11->reg_values[i]),0,32);
-		LOG_DEBUG("Save %zi: 0x%" PRIx32 "",i,context[i]);
+		LOG_DEBUG("Save %u: 0x%" PRIx32 "", i, context[i]);
 	}
 
 	cpsr = buf_get_u32((uint8_t*)(arm11->reg_values + ARM11_RC_CPSR),0,32);
