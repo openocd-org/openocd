@@ -52,12 +52,16 @@ noinst_HEADERS = \
 	startup.tcl \
 	bin2char.c
 
-bin2char$(EXEEXT_FOR_BUILD): bin2char.c
+BIN2C = bin2char$(EXEEXT_FOR_BUILD)
+
+BUILT_SOURCES = $(BIN2C)
+
+$(BIN2C): bin2char.c
 	${CC_FOR_BUILD} ${CFLAGS_FOR_BUILD} $(srcdir)/bin2char.c -o $@
 
 # Convert .tcl to cfile
-startup_tcl.c: startup.tcl bin2char$(EXEEXT_FOR_BUILD)
-	./bin2char$(EXEEXT_FOR_BUILD) startup_tcl < $(srcdir)/startup.tcl > $@
+startup_tcl.c: startup.tcl $(BIN2C)
+	./$(BIN2C) startup_tcl < $(srcdir)/startup.tcl > $@
 
 # add startup_tcl.c to make clean list
 CLEANFILES = startup_tcl.c bin2char$(EXEEXT_FOR_BUILD)

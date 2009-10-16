@@ -69,6 +69,17 @@ static int xscale_unset_breakpoint(struct target_s *, breakpoint_t *);
 static int xscale_read_trace(target_t *);
 
 
+/* This XScale "debug handler" is loaded into the processor's
+ * mini-ICache, which is 2K of code writable only via JTAG.
+ *
+ * FIXME  the OpenOCD "bin2char" utility currently doesn't handle
+ * binary files cleanly.  It's string oriented, and terminates them
+ * with a NUL character.  Better would be to generate the constants
+ * and let other code decide names, scoping, and other housekeeping.
+ */
+static /* unsigned const char xscale_debug_handler[] = ... */
+#include "xscale_debug.h"
+
 static char *const xscale_reg_list[] =
 {
 	"XSCALE_MAINID",		/* 0 */
@@ -1594,7 +1605,7 @@ static int xscale_deassert_reset(target_t *target)
 		 * force that, so writing new contents is reliable...
 		 */
 		address = xscale->handler_address;
-		for (unsigned binary_size = xscale_debug_handler_size;
+		for (unsigned binary_size = sizeof xscale_debug_handler - 1;
 				binary_size > 0;
 				binary_size -= buf_cnt, buffer += buf_cnt)
 		{
@@ -3030,7 +3041,7 @@ static int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	xscale_common_t *xscale;
 
-	if (xscale_debug_handler_size > 0x800) {
+	if (sizeof xscale_debug_handler - 1 > 0x800) {
 		LOG_ERROR("debug_handler.bin: larger than 2kb");
 		return ERROR_FAIL;
 	}

@@ -10,11 +10,10 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/jtag \
 	-I$(top_srcdir)/src/xsvf
 
-# ideally this would be specific to xscale_debug.S ...
-libtarget_la_CCASFLAGS = \
-       -Wa,-I$(top_srcdir)/src/target \
-       $(AM_CCASFLAGS)
+BIN2C = $(top_srcdir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
 
+xscale_debug.h: $(BIN2C) xscale/debug_handler.bin
+	$(BIN2C) < xscale/debug_handler.bin xscale_debug_handler > xscale_debug.h
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la
@@ -41,7 +40,6 @@ libtarget_la_SOURCES = \
 	feroceon.c \
 	etb.c \
 	xscale.c \
-	xscale_debug.S \
 	arm_simulator.c \
 	image.c \
 	armv7m.c \
@@ -61,6 +59,9 @@ libtarget_la_SOURCES = \
 	mips32_dmaacc.c \
 	mips_ejtag.c \
 	avrt.c
+
+BUILT_SOURCES = \
+	xscale_debug.h
 
 noinst_HEADERS = \
 	target.h \
@@ -85,6 +86,7 @@ noinst_HEADERS = \
 	arm926ejs.h \
 	etb.h \
 	xscale.h \
+	xscale_debug.h \
 	arm_simulator.h \
 	image.h \
 	armv7m.h \
