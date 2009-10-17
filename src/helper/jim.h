@@ -120,7 +120,7 @@ extern "C" {
  * ---------------------------------------------------------------------------*/
 
 #ifdef HAVE_LONG_LONG_INT
-# if defined(_MSC_VER) || defined(__MSVCRT__)
+# if defined(_MSC_VER) || defined(__MSVCRT__) || defined(__MINGW32__)
 #    define JIM_WIDE_MODIFIER "I64d"
 # else
 #    define JIM_WIDE_MODIFIER "lld"

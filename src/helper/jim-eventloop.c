@@ -498,7 +498,7 @@ static int JimELAfterCommand(Jim_Interp *interp, int argc,
 	int tlen ;
 	jim_wide remain = 0;
 	const char *tok = Jim_GetString(argv[2], &tlen);
-	if (sscanf(tok,"after#%lld",&id) == 1) {
+	if (sscanf(tok,"after#%" JIM_WIDE_MODIFIER, &id) == 1) {
 		remain =  Jim_DeleteTimeHandler(interp, id);
 		if (remain > -2)  {
 			Jim_SetResult(interp, Jim_NewIntObj(interp, remain));
