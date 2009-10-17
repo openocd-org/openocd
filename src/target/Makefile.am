@@ -10,10 +10,11 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/jtag \
 	-I$(top_srcdir)/src/xsvf
 
-BIN2C = $(top_srcdir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
+BIN2C		= $(top_builddir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
+DEBUG_HANDLER	= $(top_srcdir)/src/target/xscale/debug_handler.bin
 
-xscale_debug.h: $(BIN2C) xscale/debug_handler.bin
-	$(BIN2C) < xscale/debug_handler.bin xscale_debug_handler > xscale_debug.h
+xscale_debug.h: $(BIN2C) $(DEBUG_HANDLER)
+	$(BIN2C) < $(DEBUG_HANDLER) xscale_debug_handler > xscale_debug.h
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la
