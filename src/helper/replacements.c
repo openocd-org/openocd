@@ -169,7 +169,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 	/* build an array of handles for non-sockets */
 	for (i = 0; i < max_fd; i++) {
 		if (SAFE_FD_ISSET(i, rfds) || SAFE_FD_ISSET(i, wfds) || SAFE_FD_ISSET(i, efds)) {
-			long handle = _get_osfhandle(i);
+			intptr_t handle = (intptr_t) _get_osfhandle(i);
 			handles[n_handles] = (HANDLE)handle;
 			if (handles[n_handles] == INVALID_HANDLE_VALUE) {
 				/* socket */
@@ -244,7 +244,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 					if (WAIT_OBJECT_0 == WaitForSingleObject(handles[i], 0)) {
 						if (SAFE_FD_ISSET(handle_slot_to_fd[i], rfds)) {
 							DWORD dwBytes;
-							long handle = _get_osfhandle(handle_slot_to_fd[i]);
+							intptr_t handle = (intptr_t) _get_osfhandle(handle_slot_to_fd[i]);
 
 							if (PeekNamedPipe((HANDLE)handle, NULL, 0, NULL, &dwBytes, NULL))
 							{
