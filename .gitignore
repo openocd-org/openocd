@@ -7,8 +7,13 @@
 *.lo
 *.la
 *.in
+
 startup_tcl.c
+xscale_debug.h
+
 bin2char
+bin2char.exe
+
 doc/openocd.aux
 doc/openocd.cp
 doc/openocd.cps
