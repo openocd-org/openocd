@@ -35,6 +35,14 @@
 #include "jim.h"
 #endif
 
+/* To achieve C99 printf compatibility in MinGW, gnu_printf should */
+/* be used for __attribute__((format( ... )))                      */
+#ifdef IS_MINGW
+#define PRINTF_ATTRIBUTE_FORMAT gnu_printf
+#else
+#define PRINTF_ATTRIBUTE_FORMAT printf
+#endif
+
 enum command_mode
 {
 	COMMAND_EXEC,
@@ -85,12 +93,12 @@ extern command_context_t* command_init(void);
 extern int command_done(command_context_t *context);
 
 extern void command_print(command_context_t *context, const char *format, ...)
-		__attribute__ ((format (printf, 2, 3)));
+		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 extern void command_print_sameline(command_context_t *context, const char *format, ...)
-		__attribute__ ((format (printf, 2, 3)));
+		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 extern int command_run_line(command_context_t *context, char *line);
 extern int command_run_linef(command_context_t *context, const char *format, ...)
-		__attribute__ ((format (printf, 2, 3)));
+		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 extern void command_output_text(command_context_t *context, const char *data);
 
 extern void process_jim_events(void);

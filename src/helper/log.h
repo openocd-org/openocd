@@ -28,6 +28,14 @@
 
 #include "command.h"
 
+/* To achieve C99 printf compatibility in MinGW, gnu_printf should */
+/* be used for __attribute__((format( ... )))                      */
+#ifdef IS_MINGW
+#define PRINTF_ATTRIBUTE_FORMAT gnu_printf
+#else
+#define PRINTF_ATTRIBUTE_FORMAT printf
+#endif
+
 /* logging priorities
  * LOG_LVL_SILENT - turn off all output. In lieu of try + catch this can be used as a
  *                  feeble ersatz.
@@ -52,10 +60,10 @@ enum log_levels
 
 extern void log_printf(enum log_levels level, const char *file, int line,
 	const char *function, const char *format, ...)
-__attribute__ ((format (printf, 5, 6)));
+__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 extern void log_printf_lf(enum log_levels level, const char *file, int line,
 	const char *function, const char *format, ...)
-__attribute__ ((format (printf, 5, 6)));
+__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
 extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);

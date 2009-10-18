@@ -33,8 +33,9 @@
 	type * variable = calloc(1, sizeof(type) * items)
 
 /* For MinGW use 'I' prefix to print size_t (instead of 'z') */
+/* Except if __USE_MINGW_ANSI_STDIO is defined with MinGW    */
 
-#ifndef __MSVCRT__
+#if (!defined(__MSVCRT__) || defined(__USE_MINGW_ANSI_STDIO))
 #define ZU		"%zu"
 #else
 #define ZU		"%Iu"
