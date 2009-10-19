@@ -1573,6 +1573,11 @@ which uses only a lightweight JTAG reset before examining the
 scan chain.
 If that fails, it tries again, using a harder reset
 from the overridable procedure @command{init_reset}.
+
+Implementations must have verified the JTAG scan chain before
+they return.
+This is done by calling @command{jtag arp_init}
+(or @command{jtag arp_init-reset}).
 @end deffn
 
 @anchor{TCP/IP Ports}
