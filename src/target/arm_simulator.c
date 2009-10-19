@@ -358,7 +358,7 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 
 		if (dry_run_pc)
 		{
-			*dry_run_pc = target;
+			*dry_run_pc = target & ~1;
 			return ERROR_OK;
 		}
 		else
