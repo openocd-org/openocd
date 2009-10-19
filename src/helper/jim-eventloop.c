@@ -52,8 +52,7 @@
 #define __JIM_EVENTLOOP_CORE__
 #ifdef __ECOS
 #include <pkgconf/jimtcl.h>
-#endif
-#ifdef __ECOS
+#include <sys/time.h>
 #include <cyg/jimtcl/jim.h>
 #include <cyg/jimtcl/jim-eventloop.h>
 #else

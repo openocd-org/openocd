@@ -53,6 +53,9 @@
 #include <pkgconf/jimtcl.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+typedef CYG_ADDRWORD intptr_t;
+
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
