@@ -23,15 +23,15 @@
 #include "embeddedice.h"
 #include "minidriver.h"
 #include "interface.h"
+#include "zy1000_version.h"
 
 #include <cyg/hal/hal_io.h>             // low level i/o
 #include <cyg/hal/hal_diag.h>
 
-
-#define ZYLIN_VERSION "1.55"
+#define ZYLIN_VERSION GIT_ZY1000_VERSION
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
-#define ZYLIN_OPENOCD "$Revision$"
+#define ZYLIN_OPENOCD GIT_OPENOCD_VERSION
 #define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
 
 /* low level command set
@@ -270,10 +270,7 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 		const char *str = Jim_GetString(argv[1], NULL);
 		if (strcmp("openocd", str) == 0)
 		{
-			int revision;
-			revision = atol(ZYLIN_OPENOCD + strlen("XRevision: "));
-			sprintf(buff, "%d", revision);
-			version_str = buff;
+			version_str = ZYLIN_OPENOCD;
 		}
 		else if (strcmp("zy1000", str) == 0)
 		{
