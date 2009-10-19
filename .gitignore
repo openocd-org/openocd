@@ -33,6 +33,7 @@ doc/openocd.vr
 doc/texinfo.tex
 doc/version.texi
 src/openocd
+src/openocd.exe
 
 # configure/autotools output
 aclocal.m4
