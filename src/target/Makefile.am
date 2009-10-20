@@ -11,9 +11,15 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/xsvf
 
 BIN2C		= $(top_builddir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
-DEBUG_HANDLER	= $(top_srcdir)/src/target/xscale/debug_handler.bin
 
-xscale_debug.h: $(BIN2C) $(DEBUG_HANDLER)
+DEBUG_HANDLER	= $(srcdir)/xscale/debug_handler.bin
+EXTRA_DIST = $(DEBUG_HANDLER)
+
+DEBUG_HEADER	= xscale_debug.h
+BUILT_SOURCES = $(DEBUG_HEADER)
+CLEANFILES = $(DEBUG_HEADER)
+
+$(DEBUG_HEADER): $(BIN2C) $(DEBUG_HANDLER)
 	$(BIN2C) < $(DEBUG_HANDLER) xscale_debug_handler > xscale_debug.h
 
 METASOURCES = AUTO
@@ -60,9 +66,6 @@ libtarget_la_SOURCES = \
 	mips32_dmaacc.c \
 	mips_ejtag.c \
 	avrt.c
-
-BUILT_SOURCES = \
-	xscale_debug.h
 
 noinst_HEADERS = \
 	target.h \
