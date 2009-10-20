@@ -43,7 +43,7 @@ libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
 libopenocd_la_LDFLAGS = $(all_libraries)
 
 if IS_MINGW
-MINGWLDADD = -lwsock32
+MINGWLDADD = -lws2_32
 else
 MINGWLDADD =
 endif
