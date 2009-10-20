@@ -316,30 +316,28 @@ static int svf_add_statemove(tap_state_t state_to)
 	tap_state_t state_from = cmd_queue_cur_state;
 	uint8_t index;
 
+	/* when resetting, be paranoid and ignore current state */
+	if (state_to == TAP_RESET) {
+		jtag_add_tlr();
+		return ERROR_OK;
+	}
+
 	for (index = 0; index < dimof(svf_statemoves); index++)
 	{
 		if ((svf_statemoves[index].from == state_from)
 			&& (svf_statemoves[index].to == state_to))
 		{
-			if (TAP_RESET == state_from)
-			{
-				jtag_add_tlr();
-				if (svf_statemoves[index].num_of_moves > 1)
-				{
-					jtag_add_pathmove(svf_statemoves[index].num_of_moves - 1, svf_statemoves[index].paths + 1);
-				}
-			}
+			/* recorded path includes current state ... avoid extra TCKs! */
+			if (svf_statemoves[index].num_of_moves > 1)
+				jtag_add_pathmove(svf_statemoves[index].num_of_moves - 1,
+						svf_statemoves[index].paths + 1);
 			else
-			{
-				if (svf_statemoves[index].num_of_moves > 0)
-				{
-					jtag_add_pathmove(svf_statemoves[index].num_of_moves, svf_statemoves[index].paths);
-				}
-			}
+				jtag_add_pathmove(svf_statemoves[index].num_of_moves,
+						svf_statemoves[index].paths);
 			return ERROR_OK;
 		}
 	}
-	LOG_ERROR("can not move to %s", tap_state_svf_name(state_to));
+	LOG_ERROR("SVF: can not move to %s", tap_state_svf_name(state_to));
 	return ERROR_FAIL;
 }
 
