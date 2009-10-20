@@ -1,22 +1,21 @@
-/***************************************************************************
- *	 Copyright (C) 2009 by Simon Qian									   *
- *	 SimonQian@SimonQian.com											   *
- *                                                                         *
- *	 This program is free software; you can redistribute it and/or modify  *
- *	 it under the terms of the GNU General Public License as published by  *
- *	 the Free Software Foundation; either version 2 of the License, or	   *
- *	 (at your option) any later version.								   *
- *																		   *
- *	 This program is distributed in the hope that it will be useful,	   *
- *	 but WITHOUT ANY WARRANTY; without even the implied warranty of		   *
- *	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the		   *
- *	 GNU General Public License for more details.						   *
- *																		   *
- *	 You should have received a copy of the GNU General Public License	   *
- *	 along with this program; if not, write to the						   *
- *	 Free Software Foundation, Inc.,									   *
- *	 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.			   *
- ***************************************************************************/
+/*
+ * Copyright (C) 2009 by Simon Qian
+ * SimonQian@SimonQian.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
 
 /* The specification for SVF is available here:
@@ -98,7 +97,22 @@ typedef struct
 	tap_state_t paths[8];
 }svf_statemove_t;
 
-svf_statemove_t svf_statemoves[] =
+/*
+ * These paths are from the SVF specification for the STATE command, to be
+ * used when the STATE command only includes the final state.  The first
+ * element of the path is the "from" (current) state, and the last one is
+ * the "to" (target) state.
+ *
+ * All specified paths are the shortest ones in the JTAG spec, and are thus
+ * not (!!) exact matches for the paths used elsewhere in OpenOCD.  Note
+ * that PAUSE-to-PAUSE transitions all go through UPDATE and then CAPTURE,
+ * which has specific effects on the various registers; they are not NOPs.
+ *
+ * Paths to RESET are disabled here.  As elsewhere in OpenOCD, and in XSVF
+ * and many SVF implementations, we don't want to risk missing that state.
+ * To get to RESET, always we ignore the current state.
+ */
+static const svf_statemove_t svf_statemoves[] =
 {
 	// from			to				num_of_moves,	paths[8]
 //	{TAP_RESET,		TAP_RESET,		1,				{TAP_RESET}},

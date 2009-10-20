@@ -1,31 +1,30 @@
-/***************************************************************************
- *	 Copyright (C) 2005 by Dominic Rath									   *
- *	 Dominic.Rath@gmx.de													   *
- *																		   *
- *	 Copyright (C) 2007,2008 Øyvind Harboe								   *
- *	 oyvind.harboe@zylin.com												   *
- *																		   *
- *	 Copyright (C) 2008 Peter Hettkamp									   *
- *	 peter.hettkamp@htp-tel.de											   *
- *																		   *
- *	 Copyright (C) 2009 SoftPLC Corporation. http://softplc.com             *
- *	 Dick Hollenbeck <dick@softplc.com>									   *
- *                                                                          *
- *	 This program is free software; you can redistribute it and/or modify   *
- *	 it under the terms of the GNU General Public License as published by   *
- *	 the Free Software Foundation; either version 2 of the License, or	   *
- *	 (at your option) any later version.									   *
- *																		   *
- *	 This program is distributed in the hope that it will be useful,		   *
- *	 but WITHOUT ANY WARRANTY; without even the implied warranty of		   *
- *	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the		   *
- *	 GNU General Public License for more details.						   *
- *																		   *
- *	 You should have received a copy of the GNU General Public License	   *
- *	 along with this program; if not, write to the						   *
- *	 Free Software Foundation, Inc.,										   *
- *	 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.			   *
- ***************************************************************************/
+/*
+ * Copyright (C) 2005 by Dominic Rath
+ * Dominic.Rath@gmx.de
+ *
+ * Copyright (C) 2007,2008 Øyvind Harboe
+ * oyvind.harboe@zylin.com
+ *
+ * Copyright (C) 2008 Peter Hettkamp
+ * peter.hettkamp@htp-tel.de
+ *
+ * Copyright (C) 2009 SoftPLC Corporation. http://softplc.com
+ * Dick Hollenbeck <dick@softplc.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
 
 /* The specification for SVF is available here:
@@ -186,7 +185,7 @@ static int xsvf_read_buffer(int num_bits, int fd, uint8_t* buf)
 
 static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	uint8_t *dr_out_buf = NULL; 				/* from host to device (TDI) */
+	uint8_t *dr_out_buf = NULL;				/* from host to device (TDI) */
 	uint8_t *dr_in_buf = NULL;				/* from device to host (TDO) */
 	uint8_t *dr_in_mask = NULL;
 
@@ -197,7 +196,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	tap_state_t	xendir = TAP_IDLE;		/* see page 8 of the SVF spec, initial xendir to be TAP_IDLE */
 	tap_state_t xenddr = TAP_IDLE;
 
-	uint8_t  		opcode;
+	uint8_t		opcode;
 	uint8_t		uc;
 	long		file_offset = 0;
 
@@ -206,14 +205,14 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int		loop_clocks = 0;
 	int		loop_usecs = 0;
 
-	int 		do_abort = 0;
-	int 		unsupported = 0;
-	int 		tdo_mismatch = 0;
-	int 		result;
+	int		do_abort = 0;
+	int		unsupported = 0;
+	int		tdo_mismatch = 0;
+	int		result;
 	int		verbose = 1;
 	char*	filename;
 
-	int 		runtest_requires_tck = 0;	/* a flag telling whether to clock TCK during waits, or simply sleep, controled by virt2 */
+	int		runtest_requires_tck = 0;	/* a flag telling whether to clock TCK during waits, or simply sleep, controled by virt2 */
 
 
 	/* use NULL to indicate a "plain" xsvf file which accounts for
@@ -500,7 +499,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate));
 
-				/* 	there is no need for the lookahead code that was here since we
+				/*	there is no need for the lookahead code that was here since we
 					queue up the jtag commands anyway.  This is a simple way to handle
 					the XSTATE.
 				*/
@@ -654,7 +653,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XCOMMENT:
 			{
 				unsigned int ndx = 0;
-				char 	comment[128];
+				char	comment[128];
 
 				do
 				{
@@ -687,7 +686,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				tap_state_t wait_state;
 				tap_state_t end_state;
-				int 	delay;
+				int	delay;
 
 				if (read(xsvf_fd, &wait, 1) < 0
 				  || read(xsvf_fd, &end, 1) < 0
@@ -723,7 +722,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				*/
 
 				uint8_t  clock_buf[4];
-				uint8_t  	usecs_buf[4];
+				uint8_t	usecs_buf[4];
 				uint8_t	wait;
 				uint8_t	end;
 				tap_state_t wait_state;
