@@ -3537,7 +3537,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @anchor{flash write_image}
-@deffn Command {flash write_image} [erase] filename [offset] [type]
+@deffn Command {flash write_image} [erase] [unlock] filename [offset] [type]
 Write the image @file{filename} to the current target's flash bank(s).
 A relocation @var{offset} may be specified, in which case it is added
 to the base address for each section in the image.
@@ -3546,8 +3546,9 @@ explicitly as @option{bin} (binary), @option{ihex} (Intel hex),
 @option{elf} (ELF file), @option{s19} (Motorola s19).
 @option{mem}, or @option{builder}.
 The relevant flash sectors will be erased prior to programming
-if the @option{erase} parameter is given.
-The flash bank to use is inferred from the @var{address} of
+if the @option{erase} parameter is given. If @option{unlock} is
+provided, then the flash banks are unlocked before erase and
+program. The flash bank to use is inferred from the @var{address} of
 each image segment.
 @end deffn
 

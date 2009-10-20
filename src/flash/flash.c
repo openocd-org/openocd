@@ -43,6 +43,7 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int flash_write_unlock(target_t *target, image_t *image, uint32_t *written, int erase, bool unlock);
 
 /* flash drivers
  */
@@ -199,7 +200,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, flash_cmd, "write_bank", handle_flash_write_bank_command, COMMAND_EXEC,
 						 "write binary data to <bank> <file> <offset>");
 		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
-						 "write_image [erase] <file> [offset] [type]");
+						 "write_image [erase] [unlock] <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
 						 "set protection of sectors at <bank> <first> <last> <on | off>");
 	}
@@ -697,13 +698,26 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 
 	/* flash auto-erase is disabled by default*/
 	int auto_erase = 0;
+	bool auto_unlock = false;
 
-	if (strcmp(args[0], "erase") == 0)
+	for (;;)
 	{
-		auto_erase = 1;
-		args++;
-		argc--;
-		command_print(cmd_ctx, "auto erase enabled");
+		if (strcmp(args[0], "erase") == 0)
+		{
+			auto_erase = 1;
+			args++;
+			argc--;
+			command_print(cmd_ctx, "auto erase enabled");
+		} else if (strcmp(args[0], "unlock") == 0)
+		{
+			auto_unlock = true;
+			args++;
+			argc--;
+			command_print(cmd_ctx, "auto unlock enabled");
+		} else
+		{
+			break;
+		}
 	}
 
 	if (argc < 1)
@@ -738,7 +752,7 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 		return retval;
 	}
 
-	retval = flash_write(target, &image, &written, auto_erase);
+	retval = flash_write_unlock(target, &image, &written, auto_erase, auto_unlock);
 	if (retval != ERROR_OK)
 	{
 		image_close(&image);
@@ -994,7 +1008,8 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, uint32_t addr)
 }
 
 /* erase given flash region, selects proper bank according to target and address */
-int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
+static int flash_iterate_address_range(target_t *target, uint32_t addr, uint32_t length,
+		int (*callback)(struct flash_bank_s *bank, int first, int last))
 {
 	flash_bank_t *c;
 	int first = -1;
@@ -1016,7 +1031,7 @@ int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
 		if (addr != c->base)
 			return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 
-		return flash_driver_erase(c, 0, c->num_sectors - 1);
+		return callback(c, 0, c->num_sectors - 1);
 	}
 
 	/* check whether it fits */
@@ -1039,11 +1054,29 @@ int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
 	if (first == -1 || last == -1)
 		return ERROR_OK;
 
-	return flash_driver_erase(c, first, last);
+	return callback(c, first, last);
 }
 
+
+
+int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
+{
+	return flash_iterate_address_range(target, addr, length, &flash_driver_erase);
+}
+
+static int flash_driver_unprotect(struct flash_bank_s *bank, int first, int last)
+{
+	return flash_driver_protect(bank, 0, first, last);
+}
+
+static int flash_unlock_address_range(target_t *target, uint32_t addr, uint32_t length)
+{
+	return flash_iterate_address_range(target, addr, length, &flash_driver_unprotect);
+}
+
+
 /* write (optional verify) an image to flash memory of the given target */
-int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
+static int flash_write_unlock(target_t *target, image_t *image, uint32_t *written, int erase, bool unlock)
 {
 	int retval = ERROR_OK;
 
@@ -1166,10 +1199,17 @@ int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 
 		retval = ERROR_OK;
 
-		if (erase)
+		if (unlock)
 		{
-			/* calculate and erase sectors */
-			retval = flash_erase_address_range(target, run_address, run_size);
+			retval = flash_unlock_address_range(target, run_address, run_size);
+		}
+		if (retval == ERROR_OK)
+		{
+			if (erase)
+			{
+				/* calculate and erase sectors */
+				retval = flash_erase_address_range(target, run_address, run_size);
+			}
 		}
 
 		if (retval == ERROR_OK)
@@ -1193,6 +1233,11 @@ int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 	free(padding);
 
 	return retval;
+}
+
+int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
+{
+	return flash_write_unlock(target, image, written, erase, false);
 }
 
 int default_flash_mem_blank_check(struct flash_bank_s *bank)
