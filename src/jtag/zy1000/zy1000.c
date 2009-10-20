@@ -532,12 +532,6 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 	}
 }
 
-int interface_jtag_set_end_state(tap_state_t state)
-{
-	return ERROR_OK;
-}
-
-
 int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
 

@@ -59,12 +59,6 @@ int interface_jtag_execute_queue(void)
 
 extern int jtag_check_value(uint8_t *captured, void *priv);
 
-int interface_jtag_set_end_state(tap_state_t state)
-{
-	return ERROR_OK;
-}
-
-
 int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
 	/* synchronously do the operation here */

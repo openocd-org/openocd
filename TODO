@@ -95,6 +95,13 @@ interface support:
 The following tasks have been suggested for adding new JTAG interfaces:
 
 - TCP driver: allow client/server for remote JTAG interface control.
+This requires a client and a server. The server is built into the
+normal OpenOCD and takes commands from the client and executes
+them on the interface returning the result of TCP/IP. The client
+is an OpenOCD which is built with a TCP/IP minidriver. The use
+of a minidriver is required to capture all the jtag_add_xxx()
+fn's at a high enough level and repackage these cmd's as
+TCP/IP packets handled by the server.
 
 @section thelistswd Serial Wire Debug
 
