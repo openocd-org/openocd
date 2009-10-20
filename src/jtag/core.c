@@ -567,12 +567,14 @@ int jtag_add_statemove(tap_state_t goal_state)
 		tap_state_name(goal_state));
 
 
-	if (goal_state == cur_state)
-		;	/* nothing to do */
-	else if (goal_state == TAP_RESET)
-	{
+	/* If goal is RESET, be paranoid and force that that transition
+	 * (e.g. five TCK cycles, TMS high).  Else trust "cur_state".
+	 */
+	if (goal_state == TAP_RESET)
 		jtag_add_tlr();
-	}
+	else if (goal_state == cur_state)
+		/* nothing to do */ ;
+
 	else if (tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state))
 	{
 		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
