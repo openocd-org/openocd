@@ -38,6 +38,7 @@ libflash_la_SOURCES = \
 	mflash.c \
 	pic32mx.c \
 	avrf.c \
+	faux.c \
 	mx3_nand.c
 
 noinst_HEADERS = \

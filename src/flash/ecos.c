@@ -148,7 +148,7 @@ static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char 
 	info->driverPath = strdup(args[6]);
 
 	/* eCos flash sector sizes are not exposed to OpenOCD, use 0x10000 as
-	 * a way to improve impeadance matach between OpenOCD and eCos flash
+	 * a way to improve impedance match between OpenOCD and eCos flash
 	 * driver.
 	 */
 	int i = 0;
