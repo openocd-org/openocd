@@ -32,7 +32,7 @@
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
 #define ZYLIN_OPENOCD GIT_OPENOCD_VERSION
-#define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
+#define ZYLIN_OPENOCD_VERSION "ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE
 
 /* low level command set
  */
@@ -279,6 +279,10 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 		else if (strcmp("date", str) == 0)
 		{
 			version_str = ZYLIN_DATE;
+		}
+		else if (strcmp("time", str) == 0)
+		{
+			version_str = ZYLIN_TIME;
 		}
 		else if (strcmp("pcb", str) == 0)
 		{
