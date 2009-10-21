@@ -212,46 +212,47 @@ Even with the release script, some steps require clear user intervention
 
 The following steps should be followed to produce each release:
 
--# Produce final patches to mainline (or release branch):
+-# Produce final manual patches to mainline (or release branch):
   -# Finalize @c NEWS file to describe the changes in the release
     - This file is Used to automatically post "blurbs" about the project.
     - This material should be produced during the development cycle.
     - Add a new item for each @c NEWS-worthy contribution, when committed.
-  -# bump library version if our API changed (not yet required)
-  -# Remove -dev tag from package version in configure.in:
-    - For major/minor releases, remove version tag from mainline, @a or
-    - For bug-fix releases, remove version tag from release branch.
--# Branch or tag the required tree in the git repository:
-  - Tags and branches for releases must be named consistently: @par
-    "${PACKAGE_TARNAME}-${PACKAGE_VERSION}"
-  - For a major/minor release from the mainline, the code should be
-    tagged in the repository:
+  -# Bump library version if our API changed (not yet required)
+-# Produce and tag the final revision in the git repository:
+  - Update and commit the final package version in @c configure.in :
+  -# Remove @c -dev tag.
+  -# Remove @c -rc tag, if producing the final release from an -rc series.
+  - Tags must be named consistently:
 @verbatim
-svn cp .../trunk .../branches/${RELEASE_BRANCH}
-svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
 @endverbatim
-  - For bug-fix releases produced in their respective branch, a tag
-    should be created in the repository:
+  - Tag the final commit with a consistent GIT tag name and message:
 @verbatim
-svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
+PACKAGE_VERSION="x.y.z"
+PACKAGE_TAG="v${PACKAGE_VERSION}"
+git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
 @endverbatim
--# Prepare to resume normal development activities:
-  - Archive @c NEWS file as <code>doc/news/NEWS-${PACKAGE_VERSION}</code>.
-  - Create a new @c NEWS file for the next release
-  - For major/minor release from the mainline:
-    -# Bump major or minor package version in mainline.
-    -# Restore version tag to mainline.
-  - For bug-fix releases from a release branch:
-    -# Bump bug-fix version in release branch.
-    -# Restore version tag to release branch.
+-# Prepare to resume normal development on the branch:
+  - Restore @c -dev and -@c -rc0 version tags.
+  - To start a new major (or minor) release cycle on the @c master branch:
+    - Bump major (or minor) package version, zeroing sub-components.
+    - Add -rc0 version tag:
+      - This insures casual releases from GIT always increase monotonically.
+      - For example, a major increment after releasing 1.2.3 starts 2.0.0-rc0-dev.
+    - Archive @c NEWS file as "<code>doc/news/NEWS-${PACKAGE_VERSION}</code>".
+    - Create a new @c NEWS file for the next release
+  - To start a bug-fix release on a non-master branch:
+    -# Bump bug-fix version.
+  - To start another release candidate on a major or minor branch:
+    -# Bump rc tag.
 -# Produce the package source archives:
   -# Start with a clean working copy, used for producing releases only.
-  -# Switch to release tag branch: svn switch .../${RELEASE_TAG}
-  -# Produce a ChangeLog for the release (using svn2cl).
+  -# Checkout the appropriate tag:
+<code>git checkout $(git tag ) "${PACKAGE_VERSION}"</code>
+  -# Produce a ChangeLog for the release (using @c git2cl).
   -# @c bootstrap, @c configure, and @c make the package.
   -# Run <code>make distcheck</code> to produce the distribution archives.
   -# Run <code>make maintainer-clean</code> verify the repository is empty.
-  -# Create signature files using md5sum, sha1sum, etc.
+  -# Create signature files using @c md5sum, @c sha1sum, etc.
 -# Publish documentation for the release:
   - Allow users to access the documentation for each of our releases.
   - Place static copies of the following files on the project website:
@@ -259,12 +260,21 @@ svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
     - @c ChangeLog: to show exactly what has been changed
     - User Guide, Developer Manual: to allow easy on-line viewing
 -# Upload packages and post announcements of their availability:
-  -# Release packages into files section of berliOS project site:
+  -# Release packages into files section of project sites:
+    - SF.net:
+     -# Create a new folder named "${PACKAGE_VERSION}"
+     -# Select new folder as the target for uploads.
+     -# Upload files via Web interface into new
+     -# Set platform types for each archive:
+       - .tar.bz2: Linux, Mac
+       - .tar.gz: BSD, Solaris, Others
+       - .zip: Windows
+    - Berlios:
      -# Create the new release for the new version.
      -# Provide @c NEWS and ChangeLog files, as requested.
      -# Upload files via FTP to ftp://ftp.berlios.de/incoming/
      -# Edit descriptions for each file.
-     -# Send E-mail Release Notice
+     -# Click button to send E-mail Release Notice.
   -# Post announcement e-mail to the openocd-development list.
   -# Announce updates on freshmeat.net and other trackers.
   -# Submit big updates to news feeds (e.g. Digg, Reddit, etc.).
@@ -275,7 +285,7 @@ Many of the processes described in the last section are no longer
 entrusted to humans.  Instead, the @c release.sh script provides
 automation of the mechanical steps.
 
-Presently, the @c release.sh script automates steps 1(c) through 4,
+Presently, the @c release.sh script automates steps 2 through 4,
 allowing the Release Manager from perform these tasks in easy steps.
 
 The following task still need to be automated:
@@ -285,61 +295,34 @@ The following task still need to be automated:
 - Step 6(b): package announcement e-mail process.
 - Step 6(c): post files and announce them using releaseforge.
 
-In addition, support for '-rc' releases needs to be added.
-
 @subsection releasescriptcmds Release Script Commands
 
-The following output was taken from the release script:
-@verbatim
-usage: tools/release.sh [options] <command>
+The release script can be used for two tasks:
+- Creating releases and starting a new release cycle:
+@code
+git checkout master
+tools/release.sh --type=minor --final --start-rc release
+@endcode
+- Creating a development branch from a tagged release:
+@code
+git checkout 'v0.2.0'
+tools/release.sh --type=micro branch
+@endcode
 
-Main Commands:
-  info          Show a summary of the next pending release.
-  release       Release the current tree as an archive.
-  upload        Upload archives to berliOS project site
-
-Build Commands:
-  bootstrap     Prepare the working copy for configuration and building.
-  configure     Configures the package; runs bootstrap, if needed.
-  build         Compiles the project; runs configure, if needed.
-
-Packaging Commands:
-  changelog     Generate a new ChangeLog using svn2cl.
-  package       Produce new distributable source archives.
-  stage         Move archives to staging area for upload.
-
-Repository Commands:
-  commit        Perform branch and tag, as appropriate for the version.
-  branch        Create a release branch from project mainline.
-  tag           Create a tag for the current release branch.
-
-Other Commands:
-  version ...   Perform version number and tag manipulations.
-  clean         Forces regeneration of results.
-  clean_all     Removes all traces of the release process.
-  help          Provides this list of commands.
-
-For more information about this script, see the Release Processes page
-in the OpenOCD Developer's Manual (doc/manual/release.txt).
-
-WARNING: This script should be used by the Release Manager ONLY.
-@endverbatim
-
-Run <code>tools/release.sh help</code> for current command support.
+Both of these variations make automatic commits and tags in your
+repository, so you should be sure to run it on a cloned copy before
+proceding with a live release.
 
 @subsection releasescriptopts Release Script Options
 
 The @c release.sh script recognizes some command-line options that
 affect its behavior:
 
-- @c --live : Use this option to perform a live release.
-  When this option has been given, the release commands will affect
-  the repository; otherwise, the script reports the actions to take,
-  and it produces archives that are unsuitable for public release.
-
-@note Only the Release Manager should use the @c --live option, as
-it will make permanent changes to the git repository that
-cannot be undone.
+- The @c --start-rc indicates that the new development release cycle
+  should start with @c -rc0.  Without this, the @c -rc tag will be omitted,
+  leading to non-monotonic versioning of the in-tree version numbers.
+- The @c --final indicates that the release should drop the @c -rc tag,
+  to going from @c x.y.z-rcN-dev to x.y.z.
 
 @subsection releasescriptenv Release Script Environment
 
@@ -351,66 +334,9 @@ affect its behavior:
 
 @section releasetutorial Release Tutorials
 
-This section provides tutorials for using the Release Script to perform
-common release tasks.
-
-@subsection releasetutorialsetup Release Tutorial Setup
-
-The tutorials in this section assume the following environment
-variables have been set properly:
-@verbatim
-SVN_USER="maintainer"
-SVN_URL="https://${SVN_USER}@svn.berlios.de/svnroot/repos/openocd"
-@endverbatim
-
-@subsection releasetutorialminor Minor Release Tutorial
-
-This section provides a step-by-step tutorial for a Release Manager to
-use to run the @c release.sh script to produce a minor release.
-
-If the proper environment has been set, the following steps will produce
-a new minor release:
-
--# Check out (or update) mainline from the repository:
-@code
-svn checkout "${SVN_URL}/trunk" openocd-trunk
-@endcode
--# Change to the new working copy directory:
-@code
-cd openocd-trunk
-@endcode
--# Run @c release.sh to produce the minor release:
-@code
-tools/release.sh all
-@endcode
-
-@subsection releasetutorialmicro Bug-Fix Release Tutorial
-
-This section provides a step-by-step tutorial for a Release Manager to
-use to run the @c release.sh script to produce a bug-fix release.
-
-In addition to the environment variables described in the introduction
-to these tutorials, the following variables are also used in the
-instructions for this section:
-@verbatim
-PACKAGE_BRANCH_VERSION="x.y.z"
-PACKAGE_BRANCH="openocd-${PACKAGE_BRANCH_VERSION}"
-@endverbatim
-
-If the proper environment has been set, the following steps will produce
-a new bug-fix release:
-
--# Check out (or update) the release branch from the project repository:
-@code
-svn checkout "${SVN_URL}/branches/${PACKAGE_BRANCH}" "${PACKAGE_BRANCH}"
-@endcode
-@code
-cd "${PACKAGE_BRANCH}"
-@endcode
--# Run @c release.sh to produce the bug-fix release:
-@code
-tools/release.sh all
-@endcode
+This section should contain a brief tutorial for using the Release 
+Script to perform release tasks, but the new script needs to be
+used for 0.3.0.
 
 @section releasetodo Release Script Shortcomings
 
