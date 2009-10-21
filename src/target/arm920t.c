@@ -33,7 +33,6 @@
 /* cli handling */
 int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm920t_handle_virt2phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -700,7 +699,6 @@ int arm920t_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm920t_cmd, "cp15", arm920t_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <num> [value]");
 	register_command(cmd_ctx, arm920t_cmd, "cp15i", arm920t_handle_cp15i_command, COMMAND_EXEC, "display/modify cp15 (interpreted access) <opcode> [value] [address]");
 	register_command(cmd_ctx, arm920t_cmd, "cache_info", arm920t_handle_cache_info_command, COMMAND_EXEC, "display information about target caches");
-	register_command(cmd_ctx, arm920t_cmd, "virt2phys", arm920t_handle_virt2phys_command, COMMAND_EXEC, "translate va to pa <va>");
 
 	register_command(cmd_ctx, arm920t_cmd, "mdw_phys", arm920t_handle_md_phys_command, COMMAND_EXEC, "display memory words <physical addr> [count]");
 	register_command(cmd_ctx, arm920t_cmd, "mdh_phys", arm920t_handle_md_phys_command, COMMAND_EXEC, "display memory half-words <physical addr> [count]");
@@ -1400,32 +1398,6 @@ int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *c
 	}
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &arm920t->armv4_5_mmu.armv4_5_cache);
-}
-
-int arm920t_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
-	arm_jtag_t *jtag_info;
-
-	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM920t target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
-
-	if (target->state != TARGET_HALTED)
-	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
-		return ERROR_OK;
-	}
-
-	return armv4_5_mmu_handle_virt2phys_command(cmd_ctx, cmd, args, argc, target, &arm920t->armv4_5_mmu);
 }
 
 int arm920t_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
