@@ -37,8 +37,6 @@
 int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm926ejs_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm926ejs_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm926ejs_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm926ejs_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int arm926ejs_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -835,14 +833,6 @@ int arm926ejs_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, arm926ejs_cmd, "cache_info", arm926ejs_handle_cache_info_command, COMMAND_EXEC, "display information about target caches");
 
-	register_command(cmd_ctx, arm926ejs_cmd, "mdw_phys", arm926ejs_handle_md_phys_command, COMMAND_EXEC, "display memory words <physical addr> [count]");
-	register_command(cmd_ctx, arm926ejs_cmd, "mdh_phys", arm926ejs_handle_md_phys_command, COMMAND_EXEC, "display memory half-words <physical addr> [count]");
-	register_command(cmd_ctx, arm926ejs_cmd, "mdb_phys", arm926ejs_handle_md_phys_command, COMMAND_EXEC, "display memory bytes <physical addr> [count]");
-
-	register_command(cmd_ctx, arm926ejs_cmd, "mww_phys", arm926ejs_handle_mw_phys_command, COMMAND_EXEC, "write memory word <physical addr> <value>");
-	register_command(cmd_ctx, arm926ejs_cmd, "mwh_phys", arm926ejs_handle_mw_phys_command, COMMAND_EXEC, "write memory half-word <physical addr> <value>");
-	register_command(cmd_ctx, arm926ejs_cmd, "mwb_phys", arm926ejs_handle_mw_phys_command, COMMAND_EXEC, "write memory byte <physical addr> <value>");
-
 	return retval;
 }
 
@@ -926,58 +916,6 @@ int arm926ejs_handle_cache_info_command(struct command_context_s *cmd_ctx, char 
 	}
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &arm926ejs->armv4_5_mmu.armv4_5_cache);
-}
-
-int arm926ejs_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm926ejs_common_t *arm926ejs;
-	arm_jtag_t *jtag_info;
-
-	if (arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM926EJ-S target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
-
-	if (target->state != TARGET_HALTED)
-	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
-		return ERROR_OK;
-	}
-
-	return armv4_5_mmu_handle_md_phys_command(cmd_ctx, cmd, args, argc, target, &arm926ejs->armv4_5_mmu);
-}
-
-int arm926ejs_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm926ejs_common_t *arm926ejs;
-	arm_jtag_t *jtag_info;
-
-	if (arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM926EJ-S target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
-
-	if (target->state != TARGET_HALTED)
-	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
-		return ERROR_OK;
-	}
-
-	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm926ejs->armv4_5_mmu);
 }
 
 static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical)

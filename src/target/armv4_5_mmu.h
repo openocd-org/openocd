@@ -46,10 +46,6 @@ extern uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t 
 extern int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 extern int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
-extern int armv4_5_mmu_handle_virt2phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);
-extern int armv4_5_mmu_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);
-extern int armv4_5_mmu_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);
-
 enum
 {
 	ARMV4_5_MMU_ENABLED = 0x1,
