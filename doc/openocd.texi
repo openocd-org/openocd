@@ -5431,23 +5431,6 @@ Display cp15 register @var{regnum};
 else if a @var{value} is provided, that value is written to that register.
 @end deffn
 
-@deffn Command {arm720t mdw_phys} addr [count]
-@deffnx Command {arm720t mdh_phys} addr [count]
-@deffnx Command {arm720t mdb_phys} addr [count]
-Display contents of physical address @var{addr}, as
-32-bit words (@command{mdw_phys}), 16-bit halfwords (@command{mdh_phys}),
-or 8-bit bytes (@command{mdb_phys}).
-If @var{count} is specified, displays that many units.
-@end deffn
-
-@deffn Command {arm720t mww_phys} addr word
-@deffnx Command {arm720t mwh_phys} addr halfword
-@deffnx Command {arm720t mwb_phys} addr byte
-Writes the specified @var{word} (32 bits),
-@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
-at the specified physical address @var{addr}.
-@end deffn
-
 @subsection ARM9 specific commands
 @cindex ARM9
 
@@ -5508,23 +5491,6 @@ Else if that value is written using the specified @var{address},
 or using zero if no other address is not provided.
 @end deffn
 
-@deffn Command {arm920t mdw_phys} addr [count]
-@deffnx Command {arm920t mdh_phys} addr [count]
-@deffnx Command {arm920t mdb_phys} addr [count]
-Display contents of physical address @var{addr}, as
-32-bit words (@command{mdw_phys}), 16-bit halfwords (@command{mdh_phys}),
-or 8-bit bytes (@command{mdb_phys}).
-If @var{count} is specified, displays that many units.
-@end deffn
-
-@deffn Command {arm920t mww_phys} addr word
-@deffnx Command {arm920t mwh_phys} addr halfword
-@deffnx Command {arm920t mwb_phys} addr byte
-Writes the specified @var{word} (32 bits),
-@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
-at the specified physical address @var{addr}.
-@end deffn
-
 @deffn Command {arm920t read_cache} filename
 Dump the content of ICache and DCache to a file named @file{filename}.
 @end deffn
@@ -5554,23 +5520,6 @@ Accesses cp15 register @var{regnum} using
 @var{opcode1}, @var{opcode2}, @var{CRn}, and @var{CRm}.
 If a @var{value} is provided, that value is written to that register.
 Else that register is read and displayed.
-@end deffn
-
-@deffn Command {arm926ejs mdw_phys} addr [count]
-@deffnx Command {arm926ejs mdh_phys} addr [count]
-@deffnx Command {arm926ejs mdb_phys} addr [count]
-Display contents of physical address @var{addr}, as
-32-bit words (@command{mdw_phys}), 16-bit halfwords (@command{mdh_phys}),
-or 8-bit bytes (@command{mdb_phys}).
-If @var{count} is specified, displays that many units.
-@end deffn
-
-@deffn Command {arm926ejs mww_phys} addr word
-@deffnx Command {arm926ejs mwh_phys} addr halfword
-@deffnx Command {arm926ejs mwb_phys} addr byte
-Writes the specified @var{word} (32 bits),
-@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
-at the specified physical address @var{addr}.
 @end deffn
 
 @subsection ARM966E specific commands
