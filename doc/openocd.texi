@@ -4938,23 +4938,27 @@ Please use their TARGET object siblings to avoid making assumptions
 about what TAP is the current target, or about MMU configuration.
 @end enumerate
 
-@deffn Command mdw addr [count]
-@deffnx Command mdh addr [count]
-@deffnx Command mdb addr [count]
+@deffn Command mdw [phys] addr [count]
+@deffnx Command mdh [phys] addr [count]
+@deffnx Command mdb [phys] addr [count]
 Display contents of address @var{addr}, as
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
 If @var{count} is specified, displays that many units.
+@var{phys} is an optional flag to indicate to use
+physical address and bypass MMU
 (If you want to manipulate the data instead of displaying it,
 see the @code{mem2array} primitives.)
 @end deffn
 
-@deffn Command mww addr word
-@deffnx Command mwh addr halfword
-@deffnx Command mwb addr byte
+@deffn Command mww [phys] addr word
+@deffnx Command mwh [phys] addr halfword
+@deffnx Command mwb [phys] addr byte
 Writes the specified @var{word} (32 bits),
 @var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
 at the specified address @var{addr}.
+@var{phys} is an optional flag to indicate to use
+physical address and bypass MMU
 @end deffn
 
 

@@ -601,11 +601,24 @@ int target_read_memory(struct target_s *target,
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
+int target_read_phys_memory(struct target_s *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	return target->type->read_phys_memory(target, address, size, count, buffer);
+}
+
 int target_write_memory(struct target_s *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->write_memory(target, address, size, count, buffer);
 }
+
+int target_write_phys_memory(struct target_s *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	return target->type->write_phys_memory(target, address, size, count, buffer);
+}
+
 int target_bulk_write_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint8_t *buffer)
 {
@@ -698,6 +711,17 @@ int target_init(struct command_context_s *cmd_ctx)
 		{
 			target->type->virt2phys = default_virt2phys;
 		}
+
+		if (target->type->read_phys_memory == NULL)
+		{
+			target->type->read_phys_memory = target->type->read_memory;
+		}
+
+		if (target->type->write_phys_memory == NULL)
+		{
+			target->type->write_phys_memory = target->type->write_memory;
+		}
+
 		/* a non-invasive way(in terms of patches) to add some code that
 		 * runs before the type->write/read_memory implementation
 		 */
@@ -1531,13 +1555,13 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "reset target [run | halt | init] - default is run");
 	register_command(cmd_ctx,  NULL, "soft_reset_halt", handle_soft_reset_halt_command, COMMAND_EXEC, "halt the target and do a soft reset");
 
-	register_command(cmd_ctx,  NULL, "mdw", handle_md_command, COMMAND_EXEC, "display memory words <addr> [count]");
-	register_command(cmd_ctx,  NULL, "mdh", handle_md_command, COMMAND_EXEC, "display memory half-words <addr> [count]");
-	register_command(cmd_ctx,  NULL, "mdb", handle_md_command, COMMAND_EXEC, "display memory bytes <addr> [count]");
+	register_command(cmd_ctx,  NULL, "mdw", handle_md_command, COMMAND_EXEC, "display memory words [phys] <addr> [count]");
+	register_command(cmd_ctx,  NULL, "mdh", handle_md_command, COMMAND_EXEC, "display memory half-words [phys] <addr> [count]");
+	register_command(cmd_ctx,  NULL, "mdb", handle_md_command, COMMAND_EXEC, "display memory bytes [phys] <addr> [count]");
 
-	register_command(cmd_ctx,  NULL, "mww", handle_mw_command, COMMAND_EXEC, "write memory word <addr> <value> [count]");
-	register_command(cmd_ctx,  NULL, "mwh", handle_mw_command, COMMAND_EXEC, "write memory half-word <addr> <value> [count]");
-	register_command(cmd_ctx,  NULL, "mwb", handle_mw_command, COMMAND_EXEC, "write memory byte <addr> <value> [count]");
+	register_command(cmd_ctx,  NULL, "mww", handle_mw_command, COMMAND_EXEC, "write memory word [phys]  <addr> <value> [count]");
+	register_command(cmd_ctx,  NULL, "mwh", handle_mw_command, COMMAND_EXEC, "write memory half-word [phys]  <addr> <value> [count]");
+	register_command(cmd_ctx,  NULL, "mwb", handle_mw_command, COMMAND_EXEC, "write memory byte [phys] <addr> <value> [count]");
 
 	register_command(cmd_ctx,  NULL, "bp",
 			handle_bp_command, COMMAND_EXEC,
@@ -2183,6 +2207,22 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	default: return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
+	bool physical=strcmp(args[0], "phys")==0;
+	int (*fn)(struct target_s *target,
+			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	if (physical)
+	{
+		argc--;
+		args++;
+		fn=target_read_phys_memory;
+	} else
+	{
+		fn=target_read_memory;
+	}
+	if ((argc < 1) || (argc > 2))
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 	uint32_t address;
 	int retval = parse_u32(args[0], &address);
 	if (ERROR_OK != retval)
@@ -2199,8 +2239,7 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	uint8_t *buffer = calloc(count, size);
 
 	target_t *target = get_current_target(cmd_ctx);
-	retval = target_read_memory(target,
-				address, size, count, buffer);
+	retval = fn(target, address, size, count, buffer);
 	if (ERROR_OK == retval)
 		handle_md_output(cmd_ctx, target, address, size, count, buffer);
 
@@ -2211,7 +2250,23 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	 if ((argc < 2) || (argc > 3))
+	if (argc < 2)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	bool physical=strcmp(args[0], "phys")==0;
+	int (*fn)(struct target_s *target,
+			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	if (physical)
+	{
+		argc--;
+		args++;
+		fn=target_write_phys_memory;
+	} else
+	{
+		fn=target_write_memory;
+	}
+	if ((argc < 2) || (argc > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t address;
@@ -2254,7 +2309,7 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 	for (unsigned i = 0; i < count; i++)
 	{
-		retval = target_write_memory(target,
+		retval = fn(target,
 				address + i * wordsize, wordsize, 1, value_buf);
 		if (ERROR_OK != retval)
 			return retval;

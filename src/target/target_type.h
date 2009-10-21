@@ -180,7 +180,26 @@ struct target_type_s
 	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
 	int (*quit)(void);
 
+	/* translate from virtual to physical address. Default implementation is successful
+	 * no-op(i.e. virtual==physical).
+	 */
 	int (*virt2phys)(struct target_s *target, uint32_t address, uint32_t *physical);
+
+	/* read directly from physical memory. caches are bypassed and untouched.
+	 *
+	 * If the target does not support disabling caches, leaving them untouched,
+	 * then minimally the actual physical memory location will be read even
+	 * if cache states are unchanged, flushed, etc.
+	 *
+	 * Default implementation is to call read_memory.
+	 */
+	int (*read_phys_memory)(struct target_s *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
+
+	/*
+	 * same as read_phys_memory, except that it writes...
+	 */
+	int (*write_phys_memory)(struct target_s *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
+
 	int (*mmu)(struct target_s *target, int *enabled);
 
 };
