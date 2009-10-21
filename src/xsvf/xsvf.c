@@ -42,6 +42,7 @@
 
 #include "xsvf.h"
 #include "jtag.h"
+#include "svf.h"
 
 
 /* XSVF commands, from appendix B of xapp503.pdf  */
@@ -432,7 +433,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				/* See page 19 of XSVF spec regarding opcode "XSDR" */
 				if (xruntest)
 				{
-					jtag_add_statemove(TAP_IDLE);
+					result = svf_add_statemove(TAP_IDLE);
 
 					if (runtest_requires_tck)
 						jtag_add_clocks(xruntest);
@@ -440,7 +441,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 						jtag_add_sleep(xruntest);
 				}
 				else if (xendir != TAP_DRPAUSE)	/* we are already in TAP_DRPAUSE */
-					jtag_add_statemove(xenddr);
+					result = svf_add_statemove(xenddr);
 			}
 			break;
 
@@ -499,32 +500,37 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate));
 
-				/*	there is no need for the lookahead code that was here since we
-					queue up the jtag commands anyway.  This is a simple way to handle
-					the XSTATE.
-				*/
+				/* NOTE: the current state is SVF-stable! */
 
-				if (jtag_add_statemove(mystate) != ERROR_OK)
+				/* no change == NOP */
+				if (mystate == cmd_queue_cur_state
+						&& mystate != TAP_RESET)
+					break;
+
+				/* Hand off to SVF? */
+				if (svf_tap_state_is_stable(mystate))
 				{
-					/*	For special states known as stable states
-						(Test-Logic-Reset, Run-Test/Idle, Pause-DR, Pause- IR),
-						an XSVF interpreter follows predefined TAP state paths
-						when the starting state is a stable state and when the
-						XSTATE specifies a new stable state (see the STATE
-						command in the [Ref 5] for the TAP state paths between
-						stable states). For non-stable states, XSTATE should
-						specify a state that is only one TAP state transition
-						distance from the current TAP state to avoid undefined
-						TAP state paths. A sequence of multiple XSTATE commands
-						can be issued to transition the TAP through a specific
-						state path.
-					*/
-
-					LOG_ERROR("XSTATE %s is not reachable from current state %s in one clock cycle",
-						tap_state_name(mystate),
-						tap_state_name(cmd_queue_cur_state)
-);
+					result = svf_add_statemove(mystate);
+					if (result != ERROR_OK)
+						unsupported = 1;
+					break;
 				}
+
+				/*
+				 * A sequence of XSTATE transitions, each TAP
+				 * state adjacent to the previous one.
+				 *
+				 * NOTE: OpenOCD requires something that XSVF
+				 * doesn't:  the last TAP state in the path
+				 * must be stable.
+				 *
+				 * FIXME Implement path collection; submit via
+				 * jtag_add_pathmove() after teaching it to
+				 * report errors.
+				 */
+				LOG_ERROR("XSVF: 'XSTATE %s' ... NYET",
+						tap_state_name(mystate));
+				unsupported = 1;
 			}
 			break;
 
@@ -708,9 +714,10 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				}
 				else
 				{
-					jtag_add_statemove(wait_state);
+					/* FIXME handle statemove errors ... */
+					result = svf_add_statemove(wait_state);
 					jtag_add_sleep(delay);
-					jtag_add_statemove(end_state);
+					result = svf_add_statemove(end_state);
 				}
 			}
 			break;
@@ -755,19 +762,22 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				 * be issuing a number of clocks in this state.  This set of allowed states is also
 				 * determined by the SVF RUNTEST command's allowed states.
 				 */
-				if (wait_state != TAP_IRPAUSE && wait_state != TAP_DRPAUSE && wait_state != TAP_RESET && wait_state != TAP_IDLE)
+				if (!svf_tap_state_is_stable(wait_state))
 				{
-					LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", tap_state_name(wait_state));
+					LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"",
+							tap_state_name(wait_state));
 					unsupported = 1;
+					/* REVISIT "break" so we won't run? */
 				}
 
-				jtag_add_statemove(wait_state);
+				/* FIXME handle statemove errors ... */
+				result = svf_add_statemove(wait_state);
 
 				jtag_add_clocks(clock_count);
 
 				jtag_add_sleep(usecs);
 
-				jtag_add_statemove(end_state);
+				result = svf_add_statemove(end_state);
 			}
 			break;
 
@@ -806,6 +816,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					break;
 				}
 
+				/* NOTE:  loop_state must be stable! */
 				loop_state  = xsvf_to_tap(state);
 				loop_clocks = be_to_h_u32(clock_buf);
 				loop_usecs  = be_to_h_u32(usecs_buf);
@@ -839,7 +850,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				{
 					scan_field_t field;
 
-					jtag_add_statemove(loop_state);
+					result = svf_add_statemove(loop_state);
 					jtag_add_clocks(loop_clocks);
 					jtag_add_sleep(loop_usecs);
 
@@ -917,8 +928,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			LOG_DEBUG("xsvf failed, setting taps to reasonable state");
 
 			/* upon error, return the TAPs to a reasonable state */
-			jtag_add_statemove(TAP_IDLE);
-			jtag_execute_queue();
+			result = svf_add_statemove(TAP_IDLE);
+			result = jtag_execute_queue();
 			break;
 		}
 	}

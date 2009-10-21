@@ -1,6 +1,7 @@
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/helper \
+	-I$(top_srcdir)/src/svf \
 	-I$(top_srcdir)/src/jtag
 
 METASOURCES = AUTO

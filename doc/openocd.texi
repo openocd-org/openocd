@@ -6096,6 +6096,8 @@ with handlers for that event.
 @deffn Command {pathmove} start_state [next_state ...]
 Start by moving to @var{start_state}, which
 must be one of the @emph{stable} states.
+Unless it is the only state given, this will often be the
+current state, so that no TCK transitions are needed.
 Then, in a series of single state transitions
 (conforming to the JTAG state machine) shift to
 each @var{next_state} in sequence, one per TCK cycle.
@@ -6130,8 +6132,8 @@ Default is enabled.
 
 The @var{tap_state} names used by OpenOCD in the @command{drscan},
 @command{irscan}, and @command{pathmove} commands are the same
-as those used in SVF boundary scan documents, except that some
-versions of SVF use @sc{idle} instead of @sc{run/idle}.
+as those used in SVF boundary scan documents, except that
+SVF uses @sc{idle} instead of @sc{run/idle}.
 
 @itemize @bullet
 @item @b{RESET} ... @emph{stable} (with TMS high);
@@ -6221,6 +6223,27 @@ are interpreted as TCK cycles instead of microseconds.
 Unless the @option{quiet} option is specified,
 messages are logged for comments and some retries.
 @end deffn
+
+The OpenOCD sources also include two utility scripts
+for working with XSVF; they are not currently installed
+after building the software.
+You may find them useful:
+
+@itemize
+@item @emph{svf2xsvf} ... converts SVF files into the extended XSVF
+syntax understood by the @command{xsvf} command; see notes below.
+@item @emph{xsvfdump} ... converts XSVF files into a text output format;
+understands the OpenOCD extensions.
+@end itemize
+
+The input format accepts a handful of non-standard extensions.
+These include three opcodes corresponding to SVF extensions
+from Lattice Semiconductor (LCOUNT, LDELAY, LDSR), and
+two opcodes supporting a more accurate translation of SVF
+(XTRST, XWAITSTATE).
+If @emph{xsvfdump} shows a file is using those opcodes, it
+probably will not be usable with other XSVF tools.
+
 
 @node TFTP
 @chapter TFTP

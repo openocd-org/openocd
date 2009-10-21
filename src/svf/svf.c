@@ -31,8 +31,8 @@
 #include "config.h"
 #endif
 
-#include "svf.h"
 #include "jtag.h"
+#include "svf.h"
 #include "time_support.h"
 
 
@@ -311,7 +311,7 @@ static const char* tap_state_svf_name(tap_state_t state)
 	return ret;
 }
 
-static int svf_add_statemove(tap_state_t state_to)
+int svf_add_statemove(tap_state_t state_to)
 {
 	tap_state_t state_from = cmd_queue_cur_state;
 	uint8_t index;
@@ -619,9 +619,10 @@ static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_ar
 	return ERROR_OK;
 }
 
-static int svf_tap_state_is_stable(tap_state_t state)
+bool svf_tap_state_is_stable(tap_state_t state)
 {
-	return ((TAP_RESET == state) || (TAP_IDLE == state) || (TAP_DRPAUSE == state) || (TAP_IRPAUSE == state));
+	return (TAP_RESET == state) || (TAP_IDLE == state)
+			|| (TAP_DRPAUSE == state) || (TAP_IRPAUSE == state);
 }
 
 static int svf_tap_state_is_valid(tap_state_t state)
@@ -1082,6 +1083,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
+			/* NOTE:  doesn't use SVF-specified state paths */
 			jtag_add_plain_dr_scan(1, &field, svf_para.dr_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
@@ -1177,6 +1179,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
+			/* NOTE:  doesn't use SVF-specified state paths */
 			jtag_add_plain_ir_scan(1, &field, svf_para.ir_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
@@ -1278,10 +1281,13 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				// run_state and end_state is checked to be stable state
 				// TODO: do runtest
 #if 1
+				/* FIXME handle statemove failures */
+				int retval;
+
 				// enter into run_state if necessary
 				if (cmd_queue_cur_state != svf_para.runtest_run_state)
 				{
-					svf_add_statemove(svf_para.runtest_run_state);
+					retval = svf_add_statemove(svf_para.runtest_run_state);
 				}
 
 				// call jtag_add_clocks
@@ -1290,7 +1296,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				// move to end_state if necessary
 				if (svf_para.runtest_end_state != svf_para.runtest_run_state)
 				{
-					svf_add_statemove(svf_para.runtest_end_state);
+					retval = svf_add_statemove(svf_para.runtest_end_state);
 				}
 #else
 				if (svf_para.runtest_run_state != TAP_IDLE)
@@ -1337,8 +1343,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 					free(path);
 					return ERROR_FAIL;
 				}
+				/* OpenOCD refuses paths containing TAP_RESET */
 				if (TAP_RESET == path[i])
 				{
+					/* FIXME last state MUST be stable! */
 					if (i > 0)
 					{
 						jtag_add_pathmove(i, path);
@@ -1378,10 +1386,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			state = svf_find_string_in_array(argus[1], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
 			if (svf_tap_state_is_stable(state))
 			{
-				// TODO: move to state
+				LOG_DEBUG("\tmove to %s by svf_add_statemove",
+						svf_tap_state_name[state]);
+				/* FIXME handle statemove failures */
 				svf_add_statemove(state);
-
-				LOG_DEBUG("\tmove to %s by svf_add_statemove", svf_tap_state_name[state]);
 			}
 			else
 			{
