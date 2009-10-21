@@ -47,7 +47,9 @@ int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *c
 int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp);
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm926ejs_quit(void);
-int arm926ejs_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+
+int arm926ejs_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm926ejs_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical);
 static int arm926ejs_mmu(struct target_s *target, int *enabled);
@@ -90,7 +92,10 @@ target_type_t arm926ejs_target =
 	.examine = arm9tdmi_examine,
 	.quit = arm926ejs_quit,
 	.virt2phys = arm926ejs_virt2phys,
-	.mmu = arm926ejs_mmu
+	.mmu = arm926ejs_mmu,
+
+	.read_phys_memory = arm926ejs_read_phys_memory,
+	.write_phys_memory = arm926ejs_write_phys_memory,
 };
 
 int arm926ejs_catch_broken_irscan(uint8_t *captured, void *priv, scan_field_t *field)
@@ -736,6 +741,26 @@ int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t s
 	}
 
 	return retval;
+}
+
+int arm926ejs_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+
+	return armv4_5_mmu_write_physical(target, &arm926ejs->armv4_5_mmu, address, size, count, buffer);
+}
+
+int arm926ejs_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+
+	return armv4_5_mmu_read_physical(target, &arm926ejs->armv4_5_mmu, address, size, count, buffer);
 }
 
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
