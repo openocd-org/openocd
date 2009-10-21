@@ -363,6 +363,30 @@ extern int target_write_memory(struct target_s *target,
 extern int target_bulk_write_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint8_t *buffer);
 
+/*
+ * Write to target memory using the virtual address.
+ *
+ * Note that this fn is used to implement software breakpoints. Targets
+ * can implement support for software breakpoints to memory marked as read
+ * only by making this fn write to ram even if it is read only(MMU or
+ * MPUs).
+ *
+ * It is sufficient to implement for writing a single word(16 or 32 in
+ * ARM32/16 bit case) to write the breakpoint to ram.
+ *
+ * The target should also take care of "other things" to make sure that
+ * software breakpoints can be written using this function. E.g.
+ * when there is a separate instruction and data cache, this fn must
+ * make sure that the instruction cache is synced up to the potential
+ * code change that can happen as a result of the memory write(typically
+ * by invalidating the cache).
+ *
+ * The high level wrapper fn in target.c will break down this memory write
+ * request to multiple write requests to the target driver to e.g. guarantee
+ * that writing 4 bytes to an aligned address happens with a single 32 bit
+ * write operation, thus making this fn suitable to e.g. write to special
+ * peripheral registers which do not support byte operations.
+ */
 extern int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer);
 extern int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer);
 extern int target_checksum_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* crc);
