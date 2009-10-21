@@ -328,6 +328,7 @@ void openocd_sleep_postlude(void)
 
 void format(void)
 {
+#ifdef CYGDAT_IO_FLASH_BLOCK_DEVICE_NAME_1
 	diag_printf("Formatting JFFS2...\n");
 
 	cyg_io_handle_t handle;
@@ -365,6 +366,7 @@ void format(void)
 	}
 
 	diag_printf("Flash formatted successfully\n");
+#endif
 
 	reboot();
 }

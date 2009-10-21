@@ -123,13 +123,14 @@ static inline void h_u16_to_be(uint8_t* buf, int val)
 	buf[1] = (uint8_t) (val >> 0);
 }
 
-#ifdef __ECOS
+#if defined(__ECOS)
+
 /* eCos plain lacks these definition... A series of upstream patches
  * could probably repair it, but it seems like too much work to be
  * worth it.
  */
 
-
+#if !defined(_STDINT_H)
 #define PRIx32 "x"
 #define PRId32 "d"
 #define SCNx32 "x"
@@ -151,6 +152,14 @@ typedef uint64_t uintmax_t;
 #define INT64_MAX 0x7fffffffffffffffLL
 #define INT64_MIN (-INT64_MAX - 1LL)
 #define UINT64_MAX (__CONCAT(INT64_MAX, U) * 2ULL + 1ULL)
+#endif
+
+    #ifndef LLONG_MAX
+	#define ULLONG_MAX	UINT64_C(0xFFFFFFFFFFFFFFFF)
+	#define LLONG_MAX	INT64_C(0x7FFFFFFFFFFFFFFF)
+	#define LLONG_MIN	ULLONG_MAX
+    #endif
+
 
 #define ULLONG_MAX 18446744073709551615
 
