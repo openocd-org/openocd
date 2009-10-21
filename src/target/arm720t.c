@@ -34,7 +34,6 @@
 int arm720t_register_commands(struct command_context_s *cmd_ctx);
 
 int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm720t_handle_virt2phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm720t_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm720t_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -487,7 +486,6 @@ int arm720t_register_commands(struct command_context_s *cmd_ctx)
 	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t", NULL, COMMAND_ANY, "arm720t specific commands");
 
 	register_command(cmd_ctx, arm720t_cmd, "cp15", arm720t_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <opcode> [value]");
-	register_command(cmd_ctx, arm720t_cmd, "virt2phys", arm720t_handle_virt2phys_command, COMMAND_EXEC, "translate va to pa <va>");
 
 	register_command(cmd_ctx, arm720t_cmd, "mdw_phys", arm720t_handle_md_phys_command, COMMAND_EXEC, "display memory words <physical addr> [count]");
 	register_command(cmd_ctx, arm720t_cmd, "mdh_phys", arm720t_handle_md_phys_command, COMMAND_EXEC, "display memory half-words <physical addr> [count]");
@@ -558,32 +556,6 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	}
 
 	return ERROR_OK;
-}
-
-int arm720t_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm7tdmi_common_t *arm7tdmi;
-	arm720t_common_t *arm720t;
-	arm_jtag_t *jtag_info;
-
-	if (arm720t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm7tdmi, &arm720t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM720t target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
-
-	if (target->state != TARGET_HALTED)
-	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
-		return ERROR_OK;
-	}
-
-	return armv4_5_mmu_handle_virt2phys_command(cmd_ctx, cmd, args, argc, target, &arm720t->armv4_5_mmu);
 }
 
 int arm720t_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)

@@ -170,51 +170,6 @@ int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_m
 	return retval;
 }
 
-int armv4_5_mmu_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu)
-{
-	uint32_t va;
-	uint32_t pa;
-	int type;
-	uint32_t cb;
-	int domain;
-	uint32_t ap;
-
-	if (target->state != TARGET_HALTED)
-	{
-		command_print(cmd_ctx, "target must be stopped for \"virt2phys\" command");
-		return ERROR_OK;
-	}
-
-	if (argc == 0)
-	{
-		command_print(cmd_ctx, "usage: virt2phys <virtual address>");
-		return ERROR_OK;
-	}
-
-	if (argc == 1)
-	{
-		va = strtoul(args[0], NULL, 0);
-		pa = armv4_5_mmu_translate_va(target, armv4_5_mmu, va, &type, &cb, &domain, &ap);
-		if (type == -1)
-		{
-			switch (pa)
-			{
-				case ERROR_TARGET_TRANSLATION_FAULT:
-					command_print(cmd_ctx, "no valid translation for 0x%8.8" PRIx32 "", va);
-					break;
-				default:
-					command_print(cmd_ctx, "unknown translation error");
-			}
-			return ERROR_OK;
-		}
-
-		command_print(cmd_ctx, "0x%8.8" PRIx32 " -> 0x%8.8" PRIx32 ", type: %s, cb: %i, domain: %d, ap: %2.2x",
-			      va, pa, armv4_5_mmu_page_type_names[type], (int)cb, domain, (int)ap);
-	}
-
-	return ERROR_OK;
-}
-
 int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu)
 {
 	int count = 1;
