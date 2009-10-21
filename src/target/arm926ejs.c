@@ -2,6 +2,9 @@
  *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2009 by Øyvind Harboe                                   *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -681,8 +684,40 @@ int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t s
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 
-	if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
-		return retval;
+	/* FIX!!!! this should be cleaned up and made much more general. The
+	 * plan is to write up and test on arm926ejs specifically and
+	 * then generalize and clean up afterwards. */
+	if ((count == 1) && ((size==2) || (size==4)))
+	{
+		/* special case the handling of single word writes to bypass MMU
+		 * to allow implementation of breakpoints in memory marked read only
+		 * by MMU */
+		if (arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
+		{
+			/* flush and invalidate data cache
+			 *
+			 * MCR p15,0,p,c7,c10,1 - clean cache line using virtual address
+			 *
+			 */
+			retval = arm926ejs->write_cp15(target, 0, 1, 7, 10, address&~0x3);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+
+		uint32_t pa;
+		retval = target->type->virt2phys(target, address, &pa);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* write directly to physical memory bypassing any read only MMU bits, etc. */
+		retval = armv4_5_mmu_write_physical(target, &arm926ejs->armv4_5_mmu, pa, size, count, buffer);
+		if (retval != ERROR_OK)
+			return retval;
+	} else
+	{
+		if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
+			return retval;
+	}
 
 	/* If ICache is enabled, we have to invalidate affected ICache lines
 	 * the DCache is forced to write-through, so we don't have to clean it here
