@@ -44,6 +44,8 @@ int arm720t_quit(void);
 int arm720t_arch_state(struct target_s *target);
 int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm720t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm720t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm720t_soft_reset_halt(struct target_s *target);
 
 target_type_t arm720t_target =
@@ -65,6 +67,8 @@ target_type_t arm720t_target =
 
 	.read_memory = arm720t_read_memory,
 	.write_memory = arm720t_write_memory,
+	.read_phys_memory = arm720t_read_phys_memory,
+	.write_phys_memory = arm720t_write_phys_memory,
 	.bulk_write_memory = arm7_9_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
 	.blank_check_memory = arm7_9_blank_check_memory,
@@ -81,6 +85,7 @@ target_type_t arm720t_target =
 	.init_target = arm720t_init_target,
 	.examine = arm7tdmi_examine,
 	.quit = arm720t_quit
+
 };
 
 int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruction, int clock)
@@ -357,6 +362,28 @@ int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t siz
 
 	return retval;
 }
+
+
+int arm720t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
+	arm720t_common_t *arm720t = arm7tdmi->arch_info;
+
+	return armv4_5_mmu_read_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
+}
+
+int arm720t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
+	arm720t_common_t *arm720t = arm7tdmi->arch_info;
+
+	return armv4_5_mmu_write_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
+}
+
 
 int arm720t_soft_reset_halt(struct target_s *target)
 {

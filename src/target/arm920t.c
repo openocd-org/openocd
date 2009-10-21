@@ -36,6 +36,8 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int arm920t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm920t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -68,6 +70,8 @@ target_type_t arm920t_target =
 
 	.read_memory = arm920t_read_memory,
 	.write_memory = arm920t_write_memory,
+	.read_phys_memory = arm920t_read_phys_memory,
+	.write_phys_memory = arm920t_write_phys_memory,
 	.bulk_write_memory = arm7_9_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
 	.blank_check_memory = arm7_9_blank_check_memory,
@@ -519,6 +523,28 @@ int arm920t_read_memory(struct target_s *target, uint32_t address, uint32_t size
 
 	return retval;
 }
+
+
+int arm920t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+
+	return armv4_5_mmu_read_physical(target, &arm920t->armv4_5_mmu, address, size, count, buffer);
+}
+
+int arm920t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+
+	return armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu, address, size, count, buffer);
+}
+
 
 int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
