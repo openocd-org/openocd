@@ -5448,11 +5448,6 @@ Writes the specified @var{word} (32 bits),
 at the specified physical address @var{addr}.
 @end deffn
 
-@deffn Command {arm720t virt2phys} va
-Translate a virtual address @var{va} to a physical address
-and display the result.
-@end deffn
-
 @subsection ARM9 specific commands
 @cindex ARM9
 
@@ -5538,11 +5533,6 @@ Dump the content of ICache and DCache to a file named @file{filename}.
 Dump the content of the ITLB and DTLB to a file named @file{filename}.
 @end deffn
 
-@deffn Command {arm920t virt2phys} va
-Translate a virtual address @var{va} to a physical address
-and display the result.
-@end deffn
-
 @subsection ARM926ej-s specific commands
 @cindex ARM926ej-s
 
@@ -5581,11 +5571,6 @@ If @var{count} is specified, displays that many units.
 Writes the specified @var{word} (32 bits),
 @var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
 at the specified physical address @var{addr}.
-@end deffn
-
-@deffn Command {arm926ejs virt2phys} va
-Translate a virtual address @var{va} to a physical address
-and display the result.
 @end deffn
 
 @subsection ARM966E specific commands
