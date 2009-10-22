@@ -2959,8 +2959,8 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_OK;
 	}
 
-	value = strtoul(args[0], NULL, 0);
-	spsr = strtol(args[1], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[0], value);
+	COMMAND_PARSE_NUMBER(int, args[1], spsr);
 
 	/* if we're writing the CPSR, mask the T bit */
 	if (!spsr)
@@ -3004,9 +3004,9 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 		return ERROR_OK;
 	}
 
-	value = strtoul(args[0], NULL, 0);
-	rotate = strtol(args[1], NULL, 0);
-	spsr = strtol(args[2], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[0], value);
+	COMMAND_PARSE_NUMBER(int, args[1], rotate);
+	COMMAND_PARSE_NUMBER(int, args[2], spsr);
 
 	arm7_9->write_xpsr_im8(target, value, rotate, spsr);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -3045,9 +3045,9 @@ int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char
 		return ERROR_OK;
 	}
 
-	num = strtol(args[0], NULL, 0);
-	mode = strtoul(args[1], NULL, 0);
-	value = strtoul(args[2], NULL, 0);
+	COMMAND_PARSE_NUMBER(int, args[0], num);
+	COMMAND_PARSE_NUMBER(u32, args[1], mode);
+	COMMAND_PARSE_NUMBER(u32, args[2], value);
 
 	return arm7_9_write_core_reg(target, num, mode, value);
 }
