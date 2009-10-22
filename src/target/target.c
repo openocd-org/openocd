@@ -1823,6 +1823,8 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 		{
 			int i;
 
+			command_print(cmd_ctx, "===== %s", cache->name);
+
 			for (i = 0, reg = cache->reg_list;
 					i < cache->num_regs;
 					i++, reg++, count++)
