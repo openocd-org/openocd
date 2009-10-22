@@ -76,47 +76,46 @@ struct etm_reg_info {
 /* basic registers that are always there given the right ETM version */
 static const struct etm_reg_info etm_core[] = {
 	/* NOTE: we "know" ETM_CONFIG is listed first */
-	{ ETM_CONFIG, 32, RO, 0x10, "ETM_CONFIG", },
+	{ ETM_CONFIG, 32, RO, 0x10, "ETM_config", },
 
 	/* ETM Trace Registers */
-	{ ETM_CTRL, 32, RW, 0x10, "ETM_CTRL", },
-	{ ETM_TRIG_EVENT, 17, WO, 0x10, "ETM_TRIG_EVENT", },
-	{ ETM_ASIC_CTRL,  8, WO, 0x10, "ETM_ASIC_CTRL", },
-	{ ETM_STATUS,  3, RO, 0x11, "ETM_STATUS", },
-	{ ETM_SYS_CONFIG,  9, RO, 0x12, "ETM_SYS_CONFIG", },
+	{ ETM_CTRL, 32, RW, 0x10, "ETM_ctrl", },
+	{ ETM_TRIG_EVENT, 17, WO, 0x10, "ETM_trig_event", },
+	{ ETM_ASIC_CTRL,  8, WO, 0x10, "ETM_asic_ctrl", },
+	{ ETM_STATUS,  3, RO, 0x11, "ETM_status", },
+	{ ETM_SYS_CONFIG,  9, RO, 0x12, "ETM_sys_config", },
 
 	/* TraceEnable configuration */
-	{ ETM_TRACE_RESOURCE_CTRL, 32, WO, 0x12, "ETM_TRACE_RESOURCE_CTRL", },
-	{ ETM_TRACE_EN_CTRL2, 16, WO, 0x12, "ETM_TRACE_EN_CTRL2", },
-	{ ETM_TRACE_EN_EVENT, 17, WO, 0x10, "ETM_TRACE_EN_EVENT", },
-	{ ETM_TRACE_EN_CTRL1, 26, WO, 0x10, "ETM_TRACE_EN_CTRL1", },
+	{ ETM_TRACE_RESOURCE_CTRL, 32, WO, 0x12, "ETM_trace_resource_ctrl", },
+	{ ETM_TRACE_EN_CTRL2, 16, WO, 0x12, "ETM_trace_en_ctrl2", },
+	{ ETM_TRACE_EN_EVENT, 17, WO, 0x10, "ETM_trace_en_event", },
+	{ ETM_TRACE_EN_CTRL1, 26, WO, 0x10, "ETM_trace_en_ctrl1", },
 
 	/* ViewData configuration (data trace) */
-	{ ETM_VIEWDATA_EVENT, 17, WO, 0x10, "ETM_VIEWDATA_EVENT", },
-	{ ETM_VIEWDATA_CTRL1, 32, WO, 0x10, "ETM_VIEWDATA_CTRL1", },
-	{ ETM_VIEWDATA_CTRL2, 32, WO, 0x10, "ETM_VIEWDATA_CTRL2", },
-	{ ETM_VIEWDATA_CTRL3, 17, WO, 0x10, "ETM_VIEWDATA_CTRL3", },
+	{ ETM_VIEWDATA_EVENT, 17, WO, 0x10, "ETM_viewdata_event", },
+	{ ETM_VIEWDATA_CTRL1, 32, WO, 0x10, "ETM_viewdata_ctrl1", },
+	{ ETM_VIEWDATA_CTRL2, 32, WO, 0x10, "ETM_viewdata_ctrl2", },
+	{ ETM_VIEWDATA_CTRL3, 17, WO, 0x10, "ETM_viewdata_ctrl3", },
 
 	/* REVISIT exclude VIEWDATA_CTRL2 when it's not there */
 
-	{ 0x78, 12, WO, 0x20, "ETM_SYNC_FREQ", },
-	{ 0x79, 32, RO, 0x20, "ETM_ID", },
+	{ 0x78, 12, WO, 0x20, "ETM_sync_freq", },
+	{ 0x79, 32, RO, 0x20, "ETM_id", },
 };
 
 static const struct etm_reg_info etm_fifofull[] = {
 	/* FIFOFULL configuration */
-	{ ETM_FIFOFULL_REGION, 25, WO, 0x10, "ETM_FIFOFULL_REGION", },
-	{ ETM_FIFOFULL_LEVEL,  8, WO, 0x10, "ETM_FIFOFULL_LEVEL", },
+	{ ETM_FIFOFULL_REGION, 25, WO, 0x10, "ETM_fifofull_region", },
+	{ ETM_FIFOFULL_LEVEL,  8, WO, 0x10, "ETM_fifofull_level", },
 };
 
 static const struct etm_reg_info etm_addr_comp[] = {
 	/* Address comparator register pairs */
 #define ADDR_COMPARATOR(i) \
-		{ ETM_ADDR_COMPARATOR_VALUE + (i), 32, WO, 0x10, \
-				"ETM_ADDR_COMPARATOR_VALUE" #i, }, \
-		{ ETM_ADDR_ACCESS_TYPE + (i),  7, WO, 0x10, \
-				"ETM_ADDR_ACCESS_TYPE" #i, }
-	ADDR_COMPARATOR(0),
+		{ ETM_ADDR_COMPARATOR_VALUE + (i) - 1, 32, WO, 0x10, \
+				"ETM_addr_" #i "_comparator_value", }, \
+		{ ETM_ADDR_ACCESS_TYPE + (i) - 1,  7, WO, 0x10, \
+				"ETM_addr_" #i "_access_type", }
 	ADDR_COMPARATOR(1),
 	ADDR_COMPARATOR(2),
 	ADDR_COMPARATOR(3),
@@ -124,8 +123,8 @@ static const struct etm_reg_info etm_addr_comp[] = {
 	ADDR_COMPARATOR(5),
 	ADDR_COMPARATOR(6),
 	ADDR_COMPARATOR(7),
-
 	ADDR_COMPARATOR(8),
+
 	ADDR_COMPARATOR(9),
 	ADDR_COMPARATOR(10),
 	ADDR_COMPARATOR(11),
@@ -133,17 +132,17 @@ static const struct etm_reg_info etm_addr_comp[] = {
 	ADDR_COMPARATOR(13),
 	ADDR_COMPARATOR(14),
 	ADDR_COMPARATOR(15),
+	ADDR_COMPARATOR(16),
 #undef ADDR_COMPARATOR
 };
 
 static const struct etm_reg_info etm_data_comp[] = {
 	/* Data Value Comparators (NOTE: odd addresses are reserved) */
 #define DATA_COMPARATOR(i) \
-		{ ETM_DATA_COMPARATOR_VALUE + 2*(i), 32, WO, 0x10, \
-				"ETM_DATA_COMPARATOR_VALUE" #i, }, \
-		{ ETM_DATA_COMPARATOR_MASK + 2*(i), 32, WO, 0x10, \
-				"ETM_DATA_COMPARATOR_MASK" #i, }
-	DATA_COMPARATOR(0),
+		{ ETM_DATA_COMPARATOR_VALUE + 2*(i) - 1, 32, WO, 0x10, \
+				"ETM_data_" #i "_comparator_value", }, \
+		{ ETM_DATA_COMPARATOR_MASK + 2*(i) - 1, 32, WO, 0x10, \
+				"ETM_data_" #i "_comparator_mask", }
 	DATA_COMPARATOR(1),
 	DATA_COMPARATOR(2),
 	DATA_COMPARATOR(3),
@@ -151,30 +150,31 @@ static const struct etm_reg_info etm_data_comp[] = {
 	DATA_COMPARATOR(5),
 	DATA_COMPARATOR(6),
 	DATA_COMPARATOR(7),
+	DATA_COMPARATOR(8),
 #undef DATA_COMPARATOR
 };
 
 static const struct etm_reg_info etm_counters[] = {
 #define ETM_COUNTER(i) \
-		{ ETM_COUNTER_RELOAD_VALUE + (i), 16, WO, 0x10, \
-				"ETM_COUNTER_RELOAD_VALUE" #i, }, \
-		{ ETM_COUNTER_ENABLE + (i), 18, WO, 0x10, \
-				"ETM_COUNTER_ENABLE" #i, }, \
-		{ ETM_COUNTER_RELOAD_EVENT + (i), 17, WO, 0x10, \
-				"ETM_COUNTER_RELOAD_EVENT" #i, }, \
-		{ ETM_COUNTER_VALUE + (i), 16, RO, 0x10, \
-				"ETM_COUNTER_VALUE" #i, }
-	ETM_COUNTER(0),
+		{ ETM_COUNTER_RELOAD_VALUE + (i) - 1, 16, WO, 0x10, \
+				"ETM_counter_" #i "_reload_value", }, \
+		{ ETM_COUNTER_ENABLE + (i) - 1, 18, WO, 0x10, \
+				"ETM_counter_" #i "_enable", }, \
+		{ ETM_COUNTER_RELOAD_EVENT + (i) - 1, 17, WO, 0x10, \
+				"ETM_counter_" #i "_reload_event", }, \
+		{ ETM_COUNTER_VALUE + (i) - 1, 16, RO, 0x10, \
+				"ETM_counter_" #i "_value", }
 	ETM_COUNTER(1),
 	ETM_COUNTER(2),
 	ETM_COUNTER(3),
+	ETM_COUNTER(4),
 #undef ETM_COUNTER
 };
 
 static const struct etm_reg_info etm_sequencer[] = {
 #define ETM_SEQ(i) \
 		{ ETM_SEQUENCER_EVENT + (i), 17, WO, 0x10, \
-				"ETM_SEQUENCER_EVENT" #i, }
+				"ETM_sequencer_event" #i, }
 	ETM_SEQ(0),				/* 1->2 */
 	ETM_SEQ(1),				/* 2->1 */
 	ETM_SEQ(2),				/* 2->3 */
@@ -183,18 +183,18 @@ static const struct etm_reg_info etm_sequencer[] = {
 	ETM_SEQ(5),				/* 1->3 */
 #undef ETM_SEQ
 	/* 0x66 reserved */
-	{ ETM_SEQUENCER_STATE,  2, RO, 0x10, "ETM_SEQUENCER_STATE", },
+	{ ETM_SEQUENCER_STATE,  2, RO, 0x10, "ETM_sequencer_state", },
 };
 
 static const struct etm_reg_info etm_outputs[] = {
 #define ETM_OUTPUT(i) \
-		{ ETM_EXTERNAL_OUTPUT + (i), 17, WO, 0x10, \
-				"ETM_EXTERNAL_OUTPUT" #i, }
+		{ ETM_EXTERNAL_OUTPUT + (i) - 1, 17, WO, 0x10, \
+				"ETM_external_output" #i, }
 
-	ETM_OUTPUT(0),
 	ETM_OUTPUT(1),
 	ETM_OUTPUT(2),
 	ETM_OUTPUT(3),
+	ETM_OUTPUT(4),
 #undef ETM_OUTPUT
 };
 
@@ -202,10 +202,10 @@ static const struct etm_reg_info etm_outputs[] = {
 	/* registers from 0x6c..0x7f were added after ETMv1.3 */
 
 	/* Context ID Comparators */
-	{ 0x6c, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
-	{ 0x6d, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
-	{ 0x6e, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_VALUE1", }
-	{ 0x6f, 32, RO, 0x20, "ETM_CONTEXTID_COMPARATOR_MASK", }
+	{ 0x6c, 32, RO, 0x20, "ETM_contextid_comparator_value1", }
+	{ 0x6d, 32, RO, 0x20, "ETM_contextid_comparator_value2", }
+	{ 0x6e, 32, RO, 0x20, "ETM_contextid_comparator_value3", }
+	{ 0x6f, 32, RO, 0x20, "ETM_contextid_comparator_mask", }
 #endif
 
 static int etm_reg_arch_type = -1;
@@ -1180,6 +1180,7 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 
 	if (argc == 4)
 	{
+		/* what parts of data access are traced? */
 		if (strcmp(args[0], "none") == 0)
 		{
 			tracemode = ETMV1_TRACE_NONE;
@@ -1248,6 +1249,12 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 			command_print(cmd_ctx, "invalid option '%s'", args[2]);
 			return ERROR_OK;
 		}
+
+		/* IGNORED:
+		 *  - CPRT tracing (coprocessor register transfers)
+		 *  - debug request (causes debug entry on trigger)
+		 *  - stall on FIFOFULL (preventing tracedata lossage)
+		 */
 	}
 	else if (argc != 0)
 	{

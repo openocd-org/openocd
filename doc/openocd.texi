@@ -5114,14 +5114,23 @@ ETM support in OpenOCD doesn't seem to be widely used yet.
 @quotation Issues
 ETM support may be buggy, and at least some @command{etm config}
 parameters should be detected by asking the ETM for them.
+
+ETM trigger events could also implement a kind of complex
+hardware breakpoint, much more powerful than the simple
+watchpoint hardware exported by EmbeddedICE modules.
+@emph{Such breakpoints can be triggered even when using the
+dummy trace port driver}.
+
 It seems like a GDB hookup should be possible,
-as well as triggering trace on specific events
+as well as tracing only during specific states
 (perhaps @emph{handling IRQ 23} or @emph{calls foo()}).
+
 There should be GUI tools to manipulate saved trace data and help
 analyse it in conjunction with the source code.
 It's unclear how much of a common interface is shared
 with the current XScale trace support, or should be
 shared with eventual Nexus-style trace module support.
+
 At this writing (September 2009) only ARM7 and ARM9 support
 for ETM modules is available.  The code should be able to
 work with some newer cores; but not all of them support
@@ -5135,7 +5144,10 @@ ETM setup is coupled with the trace port driver configuration.
 Declares the ETM associated with @var{target}, and associates it
 with a given trace port @var{driver}.  @xref{Trace Port Drivers}.
 
-Several of the parameters must reflect the trace port configuration.
+Several of the parameters must reflect the trace port capabilities,
+which are a function of silicon capabilties (exposed later
+using @command{etm info}) and of what hardware is connected to
+that port (such as an external pod, or ETB).
 The @var{width} must be either 4, 8, or 16.
 The @var{mode} must be @option{normal}, @option{multiplexted},
 or @option{demultiplexted}.
@@ -5151,6 +5163,9 @@ what CPU activities are traced.
 
 @deffn Command {etm info}
 Displays information about the current target's ETM.
+This includes resource counts from the @code{ETM_CONFIG} register,
+as well as silicon capabilities (except on rather old modules).
+from the @code{ETM_SYS_CONFIG} register.
 @end deffn
 
 @deffn Command {etm status}

@@ -377,7 +377,8 @@ AC_ARG_ENABLE(usbprog,
   [build_usbprog=$enableval], [build_usbprog=no])
 
 AC_ARG_ENABLE(oocd_trace,
-  AS_HELP_STRING([--enable-oocd_trace], [Enable building support for the OpenOCD+trace ETM capture device]),
+  AS_HELP_STRING([--enable-oocd_trace],
+  [Enable building support for some prototype OpenOCD+trace ETM capture hardware]),
   [build_oocd_trace=$enableval], [build_oocd_trace=no])
 
 AC_ARG_ENABLE(jlink,
