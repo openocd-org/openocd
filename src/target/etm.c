@@ -1203,7 +1203,9 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 			return ERROR_OK;
 		}
 
-		switch (strtol(args[1], NULL, 0))
+		uint8_t context_id;
+		COMMAND_PARSE_NUMBER(u8, args[1], context_id);
+		switch (context_id)
 		{
 			case 0:
 				tracemode |= ETMV1_CONTEXTID_NONE;
@@ -1376,7 +1378,9 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_FAIL;
 	}
 
-	switch (strtoul(args[1], NULL, 0))
+	uint8_t port_width;
+	COMMAND_PARSE_NUMBER(u8, args[1], port_width);
+	switch (port_width)
 	{
 		case 4:
 			portmode |= ETM_PORT_4BIT;
@@ -1688,7 +1692,7 @@ static int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd
 	if (argc >= 2)
 	{
 		etm_ctx->image->base_address_set = 1;
-		etm_ctx->image->base_address = strtoul(args[1], NULL, 0);
+		COMMAND_PARSE_NUMBER(int, args[1], etm_ctx->image->base_address);
 	}
 	else
 	{
@@ -1880,7 +1884,8 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 
 	if (argc > 0)
 	{
-		uint32_t new_value = strtoul(args[0], NULL, 0);
+		uint32_t new_value;
+		COMMAND_PARSE_NUMBER(u32, args[0], new_value);
 
 		if ((new_value < 2) || (new_value > 100))
 		{
