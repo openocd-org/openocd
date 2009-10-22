@@ -1155,15 +1155,84 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 	return ERROR_OK;
 }
 
-static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_tracemode_command_update(
+		struct command_context_s *cmd_ctx,
+		char **args, etmv1_tracemode_t *mode)
 {
-	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
 	etmv1_tracemode_t tracemode;
 
-	target = get_current_target(cmd_ctx);
+	/* what parts of data access are traced? */
+	if (strcmp(args[0], "none") == 0)
+		tracemode = ETMV1_TRACE_NONE;
+	else if (strcmp(args[0], "data") == 0)
+		tracemode = ETMV1_TRACE_DATA;
+	else if (strcmp(args[0], "address") == 0)
+		tracemode = ETMV1_TRACE_ADDR;
+	else if (strcmp(args[0], "all") == 0)
+		tracemode = ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR;
+	else
+	{
+		command_print(cmd_ctx, "invalid option '%s'", args[0]);
+		return ERROR_OK;
+	}
 
+	uint8_t context_id;
+	COMMAND_PARSE_NUMBER(u8, args[1], context_id);
+	switch (context_id)
+	{
+	case 0:
+		tracemode |= ETMV1_CONTEXTID_NONE;
+		break;
+	case 8:
+		tracemode |= ETMV1_CONTEXTID_8;
+		break;
+	case 16:
+		tracemode |= ETMV1_CONTEXTID_16;
+		break;
+	case 32:
+		tracemode |= ETMV1_CONTEXTID_32;
+		break;
+	default:
+		command_print(cmd_ctx, "invalid option '%s'", args[1]);
+		return ERROR_OK;
+	}
+
+	if (strcmp(args[2], "enable") == 0)
+		tracemode |= ETMV1_CYCLE_ACCURATE;
+	else if (strcmp(args[2], "disable") == 0)
+		tracemode |= 0;
+	else
+	{
+		command_print(cmd_ctx, "invalid option '%s'", args[2]);
+		return ERROR_OK;
+	}
+
+	if (strcmp(args[3], "enable") == 0)
+		tracemode |= ETMV1_BRANCH_OUTPUT;
+	else if (strcmp(args[3], "disable") == 0)
+		tracemode |= 0;
+	else
+	{
+		command_print(cmd_ctx, "invalid option '%s'", args[3]);
+		return ERROR_OK;
+	}
+
+	/* IGNORED:
+	 *  - CPRT tracing (coprocessor register transfers)
+	 *  - debug request (causes debug entry on trigger)
+	 *  - stall on FIFOFULL (preventing tracedata lossage)
+	 */
+	*mode = tracemode;
+
+	return ERROR_OK;
+}
+
+static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
@@ -1176,91 +1245,18 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 		return ERROR_OK;
 	}
 
-	tracemode = arm7_9->etm_ctx->tracemode;
-
-	if (argc == 4)
+	etmv1_tracemode_t tracemode = arm7_9->etm_ctx->tracemode;
+	switch (argc)
 	{
-		/* what parts of data access are traced? */
-		if (strcmp(args[0], "none") == 0)
-		{
-			tracemode = ETMV1_TRACE_NONE;
-		}
-		else if (strcmp(args[0], "data") == 0)
-		{
-			tracemode = ETMV1_TRACE_DATA;
-		}
-		else if (strcmp(args[0], "address") == 0)
-		{
-			tracemode = ETMV1_TRACE_ADDR;
-		}
-		else if (strcmp(args[0], "all") == 0)
-		{
-			tracemode = ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR;
-		}
-		else
-		{
-			command_print(cmd_ctx, "invalid option '%s'", args[0]);
-			return ERROR_OK;
-		}
-
-		uint8_t context_id;
-		COMMAND_PARSE_NUMBER(u8, args[1], context_id);
-		switch (context_id)
-		{
-			case 0:
-				tracemode |= ETMV1_CONTEXTID_NONE;
-				break;
-			case 8:
-				tracemode |= ETMV1_CONTEXTID_8;
-				break;
-			case 16:
-				tracemode |= ETMV1_CONTEXTID_16;
-				break;
-			case 32:
-				tracemode |= ETMV1_CONTEXTID_32;
-				break;
-			default:
-				command_print(cmd_ctx, "invalid option '%s'", args[1]);
-				return ERROR_OK;
-		}
-
-		if (strcmp(args[2], "enable") == 0)
-		{
-			tracemode |= ETMV1_CYCLE_ACCURATE;
-		}
-		else if (strcmp(args[2], "disable") == 0)
-		{
-			tracemode |= 0;
-		}
-		else
-		{
-			command_print(cmd_ctx, "invalid option '%s'", args[2]);
-			return ERROR_OK;
-		}
-
-		if (strcmp(args[3], "enable") == 0)
-		{
-			tracemode |= ETMV1_BRANCH_OUTPUT;
-		}
-		else if (strcmp(args[3], "disable") == 0)
-		{
-			tracemode |= 0;
-		}
-		else
-		{
-			command_print(cmd_ctx, "invalid option '%s'", args[2]);
-			return ERROR_OK;
-		}
-
-		/* IGNORED:
-		 *  - CPRT tracing (coprocessor register transfers)
-		 *  - debug request (causes debug entry on trigger)
-		 *  - stall on FIFOFULL (preventing tracedata lossage)
-		 */
-	}
-	else if (argc != 0)
-	{
-		command_print(cmd_ctx, "usage: configure trace mode <none | data | address | all> <context id bits> <cycle accurate> <branch output>");
+	case 0:
+		break;
+	case 4:
+		handle_etm_tracemode_command_update(cmd_ctx, args, &tracemode);
+		break;
+	default:
+		command_print(cmd_ctx, "usage: configure trace mode "
+				"<none | data | address | all> "
+				"<context id bits> <cycle accurate> <branch output>");
 		return ERROR_OK;
 	}
 
