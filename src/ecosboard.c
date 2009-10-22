@@ -625,6 +625,9 @@ void setNoDelay(int session, int flag)
 #endif
 }
 
+#define TEST_TCPIP() 0
+
+#if TEST_TCPIP
 struct
 {
 	int req;
@@ -633,6 +636,7 @@ struct
 	int actual2;
 } tcpipSent[512 * 1024];
 int cur;
+#endif
 
 static void zylinjtag_uart(cyg_addrword_t data)
 {
@@ -697,7 +701,9 @@ static void zylinjtag_uart(cyg_addrword_t data)
 		size_t pos, pos2;
 		pos = 0;
 		pos2 = 0;
+#if TEST_TCPIP
 		cur = 0;
+#endif
 		for (;;)
 		{
 			fd_set write_fds;
@@ -798,6 +804,7 @@ static void zylinjtag_uart(cyg_addrword_t data)
 				}
 				y2 = written;
 			}
+#if TEST_TCPIP
 			if (cur < 1024)
 			{
 				tcpipSent[cur].req = x;
@@ -806,11 +813,12 @@ static void zylinjtag_uart(cyg_addrword_t data)
 				tcpipSent[cur].actual2 = y2;
 				cur++;
 			}
-
+#endif
 		}
 		closeSession: close(session);
 		close(serHandle);
 
+#if TEST_TCPIP
 		int i;
 		for (i = 0; i < 1024; i++)
 		{
@@ -818,6 +826,7 @@ static void zylinjtag_uart(cyg_addrword_t data)
 					tcpipSent[i].req2, tcpipSent[i].actual2);
 
 		}
+#endif
 	}
 	close(fd);
 
