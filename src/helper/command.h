@@ -138,6 +138,27 @@ DECLARE_PARSE_WRAPPER(_s32, int32_t);
 DECLARE_PARSE_WRAPPER(_s16, int16_t);
 DECLARE_PARSE_WRAPPER(_s8, int8_t);
 
+/**
+ * @brief parses the string @a in into @a out as a @a type, or prints
+ * a command error and passes the error code to the caller.  If an error
+ * does occur, the calling function will return the error code produced
+ * by the parsing function (one of ERROR_COMMAND_ARGUMENT_*).
+ *
+ * This function may cause the calling function to return immediately,
+ * so it should be used carefully to avoid leaking resources.  In most
+ * situations, parsing should be completed in full before proceding
+ * to allocate resources, and this strategy will most prevents leaks.
+ */
+#define COMMAND_PARSE_NUMBER(type, in, out) \
+	do { \
+		int retval = parse_##type(in, &(out)); \
+		if (ERROR_OK != retval) { \
+			command_print(cmd_ctx, stringify(out) \
+				" option value ('%s') is not valid", in); \
+			return retval; \
+		} \
+	} while (0)
+
 void script_debug(Jim_Interp *interp, const char *cmd, int argc, Jim_Obj *const *argv);
 
 #endif /* COMMAND_H */
