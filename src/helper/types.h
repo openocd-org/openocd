@@ -56,6 +56,10 @@ typedef bool _Bool;
 
 #endif	/* HAVE_STDBOOL_H */
 
+/// turns a macro argument into a string constant
+#define stringify(s) __stringify(s)
+#define __stringify(s) #s
+
 /* DANGER!!!! here be dragons!
  *
  * Leave these fn's as byte accesses because it is safe
