@@ -638,7 +638,6 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 	unsigned long chip, aemif;
 	enum ecc eccmode;
 	int chipsel;
-	char *ep;
 
 	/* arguments:
 	 *  - "davinci"
@@ -661,8 +660,8 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 		goto fail;
 	}
 
-	chip = strtoul(argv[2], &ep, 0);
-	if (*ep || chip == 0 || chip == ULONG_MAX) {
+	COMMAND_PARSE_NUMBER(ulong, argv[2], chip);
+	if (chip == 0) {
 		LOG_ERROR("Invalid NAND chip address %s", argv[2]);
 		goto fail;
 	}
@@ -678,8 +677,8 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 		goto fail;
 	}
 
-	aemif = strtoul(argv[4], &ep, 0);
-	if (*ep || aemif == 0 || aemif == ULONG_MAX) {
+	COMMAND_PARSE_NUMBER(ulong, argv[4], aemif);
+	if (aemif == 0) {
 		LOG_ERROR("Invalid AEMIF controller address %s", argv[4]);
 		goto fail;
 	}
