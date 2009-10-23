@@ -640,12 +640,10 @@ static int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	target_t *target = NULL;
 	str7x_flash_bank_t *str7x_info = NULL;
 
 	uint32_t flash_cmd;
-	uint32_t retval;
 	uint16_t ProtectionLevel = 0;
 	uint16_t ProtectionRegs;
 
@@ -655,12 +653,10 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "str7x disable_jtag <bank> ok");
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str7x_info = bank->driver_priv;
 
@@ -673,15 +669,16 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 	}
 
 	/* first we get protection status */
-	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVAPR0), &retval);
+	uint32_t reg;
+	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVAPR0), &reg);
 
-	if (!(retval & str7x_info->disable_bit))
+	if (!(reg & str7x_info->disable_bit))
 	{
 		ProtectionLevel = 1;
 	}
 
-	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVAPR1), &retval);
-	ProtectionRegs = ~(retval >> 16);
+	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVAPR1), &reg);
+	ProtectionRegs = ~(reg >> 16);
 
 	while (((ProtectionRegs) != 0) && (ProtectionLevel < 16))
 	{
