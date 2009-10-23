@@ -279,9 +279,7 @@ int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if (argc == 1)
 	{
 		unsigned new_level;
-		int retval = parse_uint(args[0], &new_level);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], new_level);
 		debug_level = MIN(new_level, LOG_LVL_DEBUG);
 	}
 	else if (argc > 1)
