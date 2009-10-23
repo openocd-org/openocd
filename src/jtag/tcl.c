@@ -1248,6 +1248,8 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx,
  * For "irscan" or "drscan" commands, the "end" (really, "next") state
  * should be stable ... and *NOT* a shift state, otherwise free-running
  * jtag clocks could change the values latched by the update state.
+ * Not surprisingly, this is the same constraint as SVF; the "irscan"
+ * and "drscan" commands are a write-only subset of what SVF provides.
  */
 static bool scan_is_safe(tap_state_t state)
 {
@@ -1285,25 +1287,14 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 	if (argc >= 4) {
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
-		if (0 == strcmp("-endstate", args[ argc - 2 ])) {
-			const char *cpA;
-			const char *cpS;
-			cpA = args[ argc-1 ];
-			for (endstate = 0 ; endstate < TAP_NUM_STATES ; endstate++) {
-				cpS = tap_state_name(endstate);
-				if (0 == strcmp(cpA, cpS)) {
-					break;
-				}
-			}
-			if (endstate >= TAP_NUM_STATES) {
+		if (strcmp("-endstate", args[argc - 2]) == 0) {
+			endstate = tap_state_by_name(args[argc - 1]);
+			if (endstate == TAP_INVALID)
 				return ERROR_COMMAND_SYNTAX_ERROR;
-			} else {
-				if (!scan_is_safe(endstate))
-					LOG_WARNING("irscan with unsafe "
-							"endstate \"%s\"", cpA);
-				/* found - remove the last 2 args */
-				argc -= 2;
-			}
+			if (!scan_is_safe(endstate))
+				LOG_WARNING("unstable irscan endstate \"%s\"",
+						args[argc - 1]);
+			argc -= 2;
 		}
 	}
 

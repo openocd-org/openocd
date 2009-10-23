@@ -73,20 +73,23 @@ tap_state_t tap_get_end_state()
 
 int tap_move_ndx(tap_state_t astate)
 {
-	/* given a stable state, return the index into the tms_seqs[] array within tap_get_tms_path() */
+	/* given a stable state, return the index into the tms_seqs[]
+	 * array within tap_get_tms_path()
+	 */
 
 	int ndx;
 
 	switch (astate)
 	{
 	case TAP_RESET:		ndx = 0;			break;
+	case TAP_IDLE:		ndx = 1;			break;
 	case TAP_DRSHIFT:	ndx = 2;			break;
 	case TAP_DRPAUSE:	ndx = 3;			break;
-	case TAP_IDLE:		ndx = 1;			break;
 	case TAP_IRSHIFT:	ndx = 4;			break;
 	case TAP_IRPAUSE:	ndx = 5;			break;
 	default:
-		LOG_ERROR("fatal: unstable state \"%s\" used in tap_move_ndx()", tap_state_name(astate));
+		LOG_ERROR("FATAL: unstable state \"%s\" in tap_move_ndx()",
+				tap_state_name(astate));
 		exit(1);
 	}
 
@@ -95,12 +98,7 @@ int tap_move_ndx(tap_state_t astate)
 
 
 /* tap_move[i][j]: tap movement command to go from state i to state j
- * 0: Test-Logic-Reset
- * 1: Run-Test/Idle
- * 2: Shift-DR
- * 3: Pause-DR
- * 4: Shift-IR
- * 5: Pause-IR
+ * encodings of i and j are what tap_move_ndx() reports.
  *
  * DRSHIFT->DRSHIFT and IRSHIFT->IRSHIFT have to be caught in interface specific code
  */
@@ -108,7 +106,6 @@ struct tms_sequences
 {
 	uint8_t	bits;
 	uint8_t	bit_count;
-
 };
 
 /*
@@ -333,47 +330,54 @@ tap_state_t tap_state_transition(tap_state_t cur_state, bool tms)
 	return new_state;
 }
 
-const char* tap_state_name(tap_state_t state)
+
+/* NOTE:  do not change these state names.  They're documented,
+ * and we rely on them to match SVF input (except for "RUN/IDLE").
+ */
+static const struct name_mapping {
+	enum tap_state	symbol;
+	const char	*name;
+} tap_name_mapping[] = {
+	{ TAP_RESET,	"RESET", },
+	{ TAP_IDLE,	"RUN/IDLE", },
+	{ TAP_DRSELECT,	"DRSELECT", },
+	{ TAP_DRCAPTURE,"DRCAPTURE", },
+	{ TAP_DRSHIFT,	"DRSHIFT", },
+	{ TAP_DREXIT1,	"DREXIT1", },
+	{ TAP_DRPAUSE,	"DRPAUSE", },
+	{ TAP_DREXIT2,	"DREXIT2", },
+	{ TAP_DRUPDATE,	"DRUPDATE", },
+	{ TAP_IRSELECT,	"IRSELECT", },
+	{ TAP_IRCAPTURE,"IRCAPTURE", },
+	{ TAP_IRSHIFT,	"IRSHIFT", },
+	{ TAP_IREXIT1,	"IREXIT1", },
+	{ TAP_IRPAUSE,	"IRPAUSE", },
+	{ TAP_IREXIT2,	"IREXIT2", },
+	{ TAP_IRUPDATE,	"IRUPDATE", },
+
+	/* only for input:  accept standard SVF name */
+	{ TAP_IDLE,	"IDLE", },
+};
+
+const char *tap_state_name(tap_state_t state)
 {
-	const char* ret;
+	unsigned i;
 
-	switch (state)
-	{
-	case TAP_RESET:		ret = "RESET";			break;
-	case TAP_IDLE:		ret = "RUN/IDLE";		break;
-	case TAP_DRSELECT:	ret = "DRSELECT";		break;
-	case TAP_DRCAPTURE: ret = "DRCAPTURE";		break;
-	case TAP_DRSHIFT:	ret = "DRSHIFT";			break;
-	case TAP_DREXIT1:	ret = "DREXIT1";			break;
-	case TAP_DRPAUSE:	ret = "DRPAUSE";			break;
-	case TAP_DREXIT2:	ret = "DREXIT2";			break;
-	case TAP_DRUPDATE:	ret = "DRUPDATE";		break;
-	case TAP_IRSELECT:	ret = "IRSELECT";		break;
-	case TAP_IRCAPTURE: ret = "IRCAPTURE";		break;
-	case TAP_IRSHIFT:	ret = "IRSHIFT";			break;
-	case TAP_IREXIT1:	ret = "IREXIT1";			break;
-	case TAP_IRPAUSE:	ret = "IRPAUSE";			break;
-	case TAP_IREXIT2:	ret = "IREXIT2";			break;
-	case TAP_IRUPDATE:	ret = "IRUPDATE";		break;
-	default:				ret = "???";
+	for (i = 0; i < DIM(tap_name_mapping); i++) {
+		if (tap_name_mapping[i].symbol == state)
+			return tap_name_mapping[i].name;
 	}
-
-	return ret;
+	return "???";
 }
 
 tap_state_t tap_state_by_name(const char *name)
 {
-	tap_state_t x;
+	unsigned i;
 
-	/* standard SVF name is "IDLE" */
-	if (0 == strcasecmp(name, "IDLE"))
-		return TAP_IDLE;
-
-	for (x = 0 ; x < TAP_NUM_STATES ; x++) {
+	for (i = 0; i < DIM(tap_name_mapping); i++) {
 		/* be nice to the human */
-		if (0 == strcasecmp(name, tap_state_name(x))) {
-			return x;
-		}
+		if (strcasecmp(name, tap_name_mapping[i].name) == 0)
+			return tap_name_mapping[i].symbol;
 	}
 	/* not found */
 	return TAP_INVALID;

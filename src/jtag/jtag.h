@@ -57,13 +57,17 @@
  *
  * These definitions were gleaned from the ARM7TDMI-S Technical
  * Reference Manual and validated against several other ARM core
- * technical manuals.  tap_get_tms_path() is sensitive to this numbering
- * and ordering of the TAP states; furthermore, some interfaces require
- * specific numbers be used, as they are handed-off directly to their
- * hardware implementations.
+ * technical manuals.
+ *
+ * FIXME some interfaces require specific numbers be used, as they
+ * are handed-off directly to their hardware implementations.
+ * Fix those drivers to map as appropriate ... then pick some
+ * sane set of numbers here (where 0/uninitialized == INVALID).
  */
 typedef enum tap_state
 {
+	TAP_INVALID = -1,
+
 #if BUILD_ZY1000
 	/* These are the old numbers. Leave as-is for now... */
 	TAP_RESET    = 0, TAP_IDLE = 8,
@@ -72,7 +76,6 @@ typedef enum tap_state
 	TAP_IRSELECT = 9, TAP_IRCAPTURE = 10, TAP_IRSHIFT = 11, TAP_IREXIT1 = 12,
 	TAP_IRPAUSE  = 13, TAP_IREXIT2 = 14, TAP_IRUPDATE = 15,
 
-	TAP_NUM_STATES = 16, TAP_INVALID = -1,
 #else
 	/* Proper ARM recommended numbers */
 	TAP_DREXIT2 = 0x0,
@@ -92,9 +95,6 @@ typedef enum tap_state
 	TAP_IRCAPTURE = 0xe,
 	TAP_RESET = 0x0f,
 
-	TAP_NUM_STATES = 0x10,
-
-	TAP_INVALID = -1,
 #endif
 } tap_state_t;
 
