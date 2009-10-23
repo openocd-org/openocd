@@ -209,7 +209,7 @@ static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 
 	/* part wasn't probed for info yet */
 	lpc288x_info->cidr = 0;
-	lpc288x_info->cclk = strtoul(args[6], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[6], lpc288x_info->cclk);
 
 	return ERROR_OK;
 }
