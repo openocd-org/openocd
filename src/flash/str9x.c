@@ -673,7 +673,6 @@ static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	str9x_flash_bank_t *str9x_info;
-	flash_bank_t *bank;
 	target_t *target = NULL;
 
 	if (argc < 5)
@@ -681,12 +680,16 @@ static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	uint32_t bbsr, nbbsr, bbadr, nbbadr;
+	COMMAND_PARSE_NUMBER(u32, args[1], bbsr);
+	COMMAND_PARSE_NUMBER(u32, args[2], nbbsr);
+	COMMAND_PARSE_NUMBER(u32, args[3], bbadr);
+	COMMAND_PARSE_NUMBER(u32, args[4], nbbadr);
 
 	str9x_info = bank->driver_priv;
 
@@ -699,10 +702,10 @@ static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx,
 	}
 
 	/* config flash controller */
-	target_write_u32(target, FLASH_BBSR, strtoul(args[1], NULL, 0));
-	target_write_u32(target, FLASH_NBBSR, strtoul(args[2], NULL, 0));
-	target_write_u32(target, FLASH_BBADR, (strtoul(args[3], NULL, 0) >> 2));
-	target_write_u32(target, FLASH_NBBADR, (strtoul(args[4], NULL, 0) >> 2));
+	target_write_u32(target, FLASH_BBSR, bbsr);
+	target_write_u32(target, FLASH_NBBSR, nbbsr);
+	target_write_u32(target, FLASH_BBADR, bbadr >> 2);
+	target_write_u32(target, FLASH_NBBADR, nbbadr >> 2);
 
 	/* set bit 18 instruction TCM order as per flash programming manual */
 	arm966e_write_cp15(target, 62, 0x40000);
