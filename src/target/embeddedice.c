@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -203,7 +203,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	}
 
 	eice_version = buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 28, 4);
-	LOG_DEBUG("Embedded ICE version %d", eice_version);
+	LOG_INFO("Embedded ICE version %d", eice_version);
 
 	switch (eice_version)
 	{
