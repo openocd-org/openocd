@@ -95,7 +95,6 @@ static arm9tdmi_vector_t arm9tdmi_vectors[] =
 	{"swi", ARM9TDMI_SWI_VECTOR},
 	{"pabt", ARM9TDMI_PABT_VECTOR},
 	{"dabt", ARM9TDMI_DABT_VECTOR},
-	{"reserved", ARM9TDMI_RESERVED_VECTOR},
 	{"irq", ARM9TDMI_IRQ_VECTOR},
 	{"fiq", ARM9TDMI_FIQ_VECTOR},
 	{0, 0},
@@ -1067,7 +1066,7 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 			"arm9tdmi specific commands");
 	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch",
 			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
-			"arm9 vector_catch [all|none|reset|undef|swi|pabt|dabt|reserved|irq|fiq] - separate vectors to catch by space");
+			"arm9 vector_catch [all|none|reset|undef|swi|pabt|dabt|irq|fiq] - separate vectors to catch by space");
 
 
 

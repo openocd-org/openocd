@@ -5460,6 +5460,8 @@ ARMv5TE architecture instead of ARMv4T.
 
 @c 9-june-2009:  tried this on arm920t, it didn't work.
 @c no-params always lists nothing caught, and that's how it acts.
+@c 23-oct-2009:  doesn't work _consistently_ ... as if the ICE
+@c versions have different rules about when they commit writes.
 
 @anchor{arm9tdmi vector_catch}
 @deffn Command {arm9tdmi vector_catch} [@option{all}|@option{none}|list]
@@ -5476,7 +5478,7 @@ vector catch hardware to intercept
 @option{all} of the hardware vectors,
 @option{none} of them,
 or a list with one or more of the following:
-@option{reset} @option{undef} @option{swi} @option{pabt} @option{dabt} @option{reserved}
+@option{reset} @option{undef} @option{swi} @option{pabt} @option{dabt}
 @option{irq} @option{fiq}.
 @end deffn
 
