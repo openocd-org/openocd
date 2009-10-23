@@ -1067,7 +1067,9 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 			"arm9tdmi specific commands");
 	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch",
 			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
-			"catch arm9 vectors ['all'|'none'|'<vec1 vec2 ...>']");
+			"arm9 vector_catch [all|none|reset|undef|swi|pabt|dabt|reserved|irq|fiq] - separate vectors to catch by space");
+
+
 
 	return retval;
 }
