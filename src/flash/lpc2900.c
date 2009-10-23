@@ -554,7 +554,6 @@ static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time )
 static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
                                              char *cmd, char **args, int argc )
 {
-	flash_bank_t *bank;
 	uint32_t status;
 	uint32_t signature[4];
 
@@ -565,13 +564,10 @@ static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	/* Get the bank descriptor */
-	bank = get_flash_bank_by_num( strtoul(args[0], NULL, 0) );
-	if( !bank )
-	{
-		command_print( cmd_ctx, "flash bank '#%s' is out of bounds", args[0] );
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if( bank->target->state != TARGET_HALTED )
 	{
@@ -614,21 +610,16 @@ static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
 static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx,
                                                char *cmd, char **args, int argc )
 {
-	flash_bank_t *bank;
-
-
 	if( argc < 2 )
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	/* Get the bank descriptor */
-	bank = get_flash_bank_by_num( strtoul(args[0], NULL, 0) );
-	if( !bank )
-	{
-		command_print( cmd_ctx, "flash bank '#%s' is out of bounds", args[0] );
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
 	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
 	lpc2900_info->risky = 0;
 
@@ -696,21 +687,16 @@ static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx
 static int lpc2900_handle_password_command(struct command_context_s *cmd_ctx,
                                            char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
-
-
 	if (argc < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	/* Get the bank descriptor */
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
 	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
 
 #define ISS_PASSWORD "I_know_what_I_am_doing"
@@ -747,13 +733,11 @@ static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ct
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	/* Get the bank descriptor */
-	flash_bank_t *bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
 	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
 
 	/* Check if command execution is allowed. */
@@ -780,7 +764,7 @@ static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ct
 
 	char *filename = args[1];
 	char *type = (argc >= 3) ? args[2] : NULL;
-	int retval = image_open(&image, filename, type);
+	retval = image_open(&image, filename, type);
 	if (retval != ERROR_OK)
 	{
 		return retval;
@@ -866,12 +850,11 @@ static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ct
 	}
 
 	/* Get the bank descriptor */
-	flash_bank_t *bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
 	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
 
 	/* Check if command execution is allowed. */
@@ -884,8 +867,9 @@ static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ct
 	lpc2900_info->risky = 0;
 
 	/* Read sector range, and do a sanity check. */
-	int first = strtoul(args[1], NULL, 0);
-	int last = strtoul(args[2], NULL, 0);
+	int first, last;
+	COMMAND_PARSE_NUMBER(int, args[1], first);
+	COMMAND_PARSE_NUMBER(int, args[2], last);
 	if( (first >= bank->num_sectors) ||
 	    (last >= bank->num_sectors) ||
 	    (first > last) )
@@ -896,7 +880,6 @@ static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ct
 
 	uint8_t page[FLASH_PAGE_SIZE];
 	int sector;
-	int retval;
 
 	/* Sectors in page 6 */
 	if( (first <= 4) || (last >= 8) )
@@ -972,12 +955,11 @@ static int lpc2900_handle_secure_jtag_command(struct command_context_s *cmd_ctx,
 	}
 
 	/* Get the bank descriptor */
-	flash_bank_t *bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
 	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
 
 	/* Check if command execution is allowed. */
@@ -1001,7 +983,6 @@ static int lpc2900_handle_secure_jtag_command(struct command_context_s *cmd_ctx,
 	page[0x30 +  3] = 0x7F;
 
 	/* Write to page 5 */
-	int retval;
 	if( (retval = lpc2900_write_index_page( bank, 5, &page ))
 			!= ERROR_OK )
 	{
@@ -1117,7 +1098,9 @@ static int lpc2900_flash_bank_command(struct command_context_s *cmd_ctx,
 	 * Reject it if we can't meet the requirements for program time
 	 * (if clock too slow), or for erase time (clock too fast).
 	 */
-	lpc2900_info->clk_sys_fmc = strtoul(args[6], NULL, 0) * 1000;
+	uint32_t clk_sys_fmc;
+	COMMAND_PARSE_NUMBER(u32, args[6], clk_sys_fmc);
+	lpc2900_info->clk_sys_fmc = clk_sys_fmc * 1000;
 
 	uint32_t clock_limit;
 	/* Check program time limit */
