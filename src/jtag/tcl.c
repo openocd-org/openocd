@@ -1050,9 +1050,8 @@ static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx,
 	if (argc == 1)
 	{
 		unsigned delay;
-		int retval = parse_uint(args[0], &delay);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+
 		jtag_set_nsrst_delay(delay);
 	}
 	command_print(cmd_ctx, "jtag_nsrst_delay: %u", jtag_get_nsrst_delay());
@@ -1067,9 +1066,8 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
 	if (argc == 1)
 	{
 		unsigned delay;
-		int retval = parse_uint(args[0], &delay);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+
 		jtag_set_ntrst_delay(delay);
 	}
 	command_print(cmd_ctx, "jtag_ntrst_delay: %u", jtag_get_ntrst_delay());
@@ -1084,9 +1082,8 @@ static int handle_jtag_nsrst_assert_width_command(struct command_context_s *cmd_
 	if (argc == 1)
 	{
 		unsigned delay;
-		int retval = parse_uint(args[0], &delay);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+
 		jtag_set_nsrst_assert_width(delay);
 	}
 	command_print(cmd_ctx, "jtag_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
@@ -1101,9 +1098,8 @@ static int handle_jtag_ntrst_assert_width_command(struct command_context_s *cmd_
 	if (argc == 1)
 	{
 		unsigned delay;
-		int retval = parse_uint(args[0], &delay);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+
 		jtag_set_ntrst_assert_width(delay);
 	}
 	command_print(cmd_ctx, "jtag_ntrst_assert_width: %u", jtag_get_ntrst_assert_width());
@@ -1124,11 +1120,9 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 		LOG_DEBUG("handle jtag speed");
 
 		unsigned cur_speed = 0;
-		int retval = parse_uint(args[0], &cur_speed);
-		if (ERROR_OK != retval)
-			return retval;
-		retval = jtag_config_speed(cur_speed);
+		COMMAND_PARSE_NUMBER(uint, args[0], cur_speed);
 
+		retval = jtag_config_speed(cur_speed);
 	}
 	command_print(cmd_ctx, "jtag_speed: %d", jtag_get_speed());
 
@@ -1144,9 +1138,8 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 	if (argc == 1)
 	{
 		unsigned khz = 0;
-		int retval = parse_uint(args[0], &khz);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], khz);
+
 		retval = jtag_config_khz(khz);
 		if (ERROR_OK != retval)
 			return retval;
@@ -1174,9 +1167,8 @@ static int handle_jtag_rclk_command(struct command_context_s *cmd_ctx, char *cmd
 	if (argc == 1)
 	{
 		unsigned khz = 0;
-		int retval = parse_uint(args[0], &khz);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(uint, args[0], khz);
+
 		retval = jtag_config_rclk(khz);
 		if (ERROR_OK != retval)
 			return retval;
@@ -1231,9 +1223,7 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned num_clocks;
-	int retval = parse_uint(args[0], &num_clocks);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(uint, args[0], num_clocks);
 
 	jtag_add_runtest(num_clocks, TAP_IDLE);
 	return jtag_execute_queue();

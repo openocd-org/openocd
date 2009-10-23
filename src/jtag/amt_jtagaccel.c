@@ -534,9 +534,9 @@ static int amt_jtagaccel_handle_parport_port_command(
 		/* only if the port wasn't overwritten by cmdline */
 		if (amt_jtagaccel_port == 0)
 		{
-			int retval = parse_u16(args[0], &amt_jtagaccel_port);
-			if (ERROR_OK != retval)
-				return retval;
+			uint16_t port;
+			COMMAND_PARSE_NUMBER(u16, args[0], port);
+			amt_jtagaccel_port = port;
 		}
 		else
 		{

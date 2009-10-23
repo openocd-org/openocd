@@ -2919,12 +2919,8 @@ static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char
 	int retval = ERROR_OK;
 	for (i = 0; i < argc; i += 2)
 	{
-		retval = parse_u16(args[i], &ft2232_vid[i >> 1]);
-		if (ERROR_OK != retval)
-			break;
-		retval = parse_u16(args[i + 1], &ft2232_pid[i >> 1]);
-		if (ERROR_OK != retval)
-			break;
+		COMMAND_PARSE_NUMBER(u16, args[i], ft2232_vid[i >> 1]);
+		COMMAND_PARSE_NUMBER(u16, args[i + 1], ft2232_pid[i >> 1]);
 	}
 
 	/*

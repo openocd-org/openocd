@@ -576,9 +576,7 @@ static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx
 		/* only if the port wasn't overwritten by cmdline */
 		if (gw16012_port == 0)
 		{
-			int retval = parse_u16(args[0], &gw16012_port);
-			if (ERROR_OK != retval)
-				return retval;
+			COMMAND_PARSE_NUMBER(u16, args[0], gw16012_port);
 		}
 		else
 		{

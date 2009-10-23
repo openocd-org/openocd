@@ -435,9 +435,7 @@ static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx
 		/* only if the port wasn't overwritten by cmdline */
 		if (parport_port == 0)
 		{
-			int retval = parse_u16(args[0], &parport_port);
-			if (ERROR_OK != retval)
-				return retval;
+			COMMAND_PARSE_NUMBER(u16, args[0], parport_port);
 		}
 		else
 		{
