@@ -46,7 +46,6 @@ This section list issues that need to be resolved in the JTAG layer.
 The following tasks have been suggested for cleaning up the JTAG layer:
 
 - use tap_set_state everywhere to allow logging TAP state transitions
-- rename other tap_states to use standard JTAG names (suggested by ML)
 - Encapsulate cmd_queue_cur_state and related varaible handling.
 - add slick 32 bit versions of jtag_add_xxx_scan() that avoids
 buf_set_u32() calls and other evidence of poor impedance match between

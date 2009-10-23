@@ -365,6 +365,10 @@ tap_state_t tap_state_by_name(const char *name)
 {
 	tap_state_t x;
 
+	/* standard SVF name is "IDLE" */
+	if (0 == strcasecmp(name, "IDLE"))
+		return TAP_IDLE;
+
 	for (x = 0 ; x < TAP_NUM_STATES ; x++) {
 		/* be nice to the human */
 		if (0 == strcasecmp(name, tap_state_name(x))) {

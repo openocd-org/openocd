@@ -160,9 +160,6 @@ bool tap_is_state_stable(tap_state_t astate);
  */
 tap_state_t tap_state_transition(tap_state_t current_state, bool tms);
 
-/// Provides user-friendly name lookup of TAP states.
-tap_state_t tap_state_by_name(const char *name);
-
 /// Allow switching between old and new TMS tables. @see tap_get_tms_path
 void tap_use_new_tms_table(bool use_new);
 /// @returns True if new TMS table is active; false otherwise.

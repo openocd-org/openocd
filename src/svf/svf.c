@@ -55,7 +55,7 @@ typedef enum
 	TRST,
 }svf_command_t;
 
-const char *svf_command_name[14] =
+static const char *svf_command_name[14] =
 {
 	"ENDDR",
 	"ENDIR",
@@ -81,7 +81,7 @@ typedef enum
 	TRST_ABSENT
 }trst_mode_t;
 
-const char *svf_trst_mode_name[4] =
+static const char *svf_trst_mode_name[4] =
 {
 	"ON",
 	"OFF",
@@ -136,7 +136,6 @@ static const svf_statemove_t svf_statemoves[] =
 	{TAP_IRPAUSE,	TAP_IRPAUSE,	8,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}}
 };
 
-char *svf_tap_state_name[TAP_NUM_STATES];
 
 #define XXR_TDI						(1 << 0)
 #define XXR_TDO						(1 << 1)
@@ -169,8 +168,8 @@ typedef struct
 	svf_xxr_para_t sdr_para;
 }svf_para_t;
 
-svf_para_t svf_para;
-const svf_para_t svf_para_init =
+static svf_para_t svf_para;
+static const svf_para_t svf_para_init =
 {
 //	frequency,	ir_end_state,	dr_end_state,	runtest_run_state,	runtest_end_state,	trst_mode
 	0,			TAP_IDLE,		TAP_IDLE,		TAP_IDLE,			TAP_IDLE,			TRST_Z,
@@ -207,8 +206,6 @@ typedef struct
 static svf_check_tdo_para_t *svf_check_tdo_para = NULL;
 static int svf_check_tdo_para_index = 0;
 
-#define dimof(a)					(sizeof(a) / sizeof((a)[0]))
-
 static int svf_read_command_from_file(int fd);
 static int svf_check_tdo(void);
 static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len);
@@ -236,7 +233,7 @@ int svf_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-void svf_free_xxd_para(svf_xxr_para_t *para)
+static void svf_free_xxd_para(svf_xxr_para_t *para)
 {
 	if (NULL != para)
 	{
@@ -263,7 +260,7 @@ void svf_free_xxd_para(svf_xxr_para_t *para)
 	}
 }
 
-unsigned svf_get_mask_u32(int bitlen)
+static unsigned svf_get_mask_u32(int bitlen)
 {
 	uint32_t bitmask;
 
@@ -283,34 +280,6 @@ unsigned svf_get_mask_u32(int bitlen)
 	return bitmask;
 }
 
-static const char* tap_state_svf_name(tap_state_t state)
-{
-	const char* ret;
-
-	switch (state)
-	{
-	case TAP_RESET:		ret = "RESET";		break;
-	case TAP_IDLE:		ret = "IDLE";		break;
-	case TAP_DRSELECT:	ret = "DRSELECT";	break;
-	case TAP_DRCAPTURE: ret = "DRCAPTURE";	break;
-	case TAP_DRSHIFT:	ret = "DRSHIFT";	break;
-	case TAP_DREXIT1:	ret = "DREXIT1";	break;
-	case TAP_DRPAUSE:	ret = "DRPAUSE";	break;
-	case TAP_DREXIT2:	ret = "DREXIT2";	break;
-	case TAP_DRUPDATE:	ret = "DRUPDATE";	break;
-	case TAP_IRSELECT:	ret = "IRSELECT";	break;
-	case TAP_IRCAPTURE: ret = "IRCAPTURE";	break;
-	case TAP_IRSHIFT:	ret = "IRSHIFT";	break;
-	case TAP_IREXIT1:	ret = "IREXIT1";	break;
-	case TAP_IRPAUSE:	ret = "IRPAUSE";	break;
-	case TAP_IREXIT2:	ret = "IREXIT2";	break;
-	case TAP_IRUPDATE:	ret = "IRUPDATE";	break;
-	default:			ret = "???";		break;
-	}
-
-	return ret;
-}
-
 int svf_add_statemove(tap_state_t state_to)
 {
 	tap_state_t state_from = cmd_queue_cur_state;
@@ -322,7 +291,7 @@ int svf_add_statemove(tap_state_t state_to)
 		return ERROR_OK;
 	}
 
-	for (index = 0; index < dimof(svf_statemoves); index++)
+	for (index = 0; index < DIM(svf_statemoves); index++)
 	{
 		if ((svf_statemoves[index].from == state_from)
 			&& (svf_statemoves[index].to == state_to))
@@ -337,7 +306,7 @@ int svf_add_statemove(tap_state_t state_to)
 			return ERROR_OK;
 		}
 	}
-	LOG_ERROR("SVF: can not move to %s", tap_state_svf_name(state_to));
+	LOG_ERROR("SVF: can not move to %s", tap_state_name(state_to));
 	return ERROR_FAIL;
 }
 
@@ -426,10 +395,6 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	svf_buffer_size = 2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT;
 
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
-	for (i = 0; i < (int)dimof(svf_tap_state_name); i++)
-	{
-		svf_tap_state_name[i] = (char *)tap_state_svf_name(i);
-	}
 
 	// TAP_RESET
 	jtag_add_tlr();
@@ -625,11 +590,6 @@ bool svf_tap_state_is_stable(tap_state_t state)
 			|| (TAP_DRPAUSE == state) || (TAP_IRPAUSE == state);
 }
 
-static int svf_tap_state_is_valid(tap_state_t state)
-{
-	return state >= 0 && state < TAP_NUM_STATES;
-}
-
 static int svf_find_string_in_array(char *str, char **strs, int num_of_element)
 {
 	int i;
@@ -823,7 +783,12 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		return ERROR_FAIL;
 	}
 
-	command = svf_find_string_in_array(argus[0], (char **)svf_command_name, dimof(svf_command_name));
+	/* NOTE: we're a bit loose here, because we ignore case in
+	 * TAP state names (instead of insisting on uppercase).
+	 */
+
+	command = svf_find_string_in_array(argus[0],
+			(char **)svf_command_name, DIM(svf_command_name));
 	switch (command)
 	{
 	case ENDDR:
@@ -833,23 +798,28 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			LOG_ERROR("invalid parameter of %s", argus[0]);
 			return ERROR_FAIL;
 		}
-		i_tmp = svf_find_string_in_array(argus[1], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
+
+		i_tmp = tap_state_by_name(argus[1]);
+
 		if (svf_tap_state_is_stable(i_tmp))
 		{
 			if (command == ENDIR)
 			{
 				svf_para.ir_end_state = i_tmp;
-				LOG_DEBUG("\tir_end_state = %s", svf_tap_state_name[svf_para.ir_end_state]);
+				LOG_DEBUG("\tIR end_state = %s",
+						tap_state_name(i_tmp));
 			}
 			else
 			{
 				svf_para.dr_end_state = i_tmp;
-				LOG_DEBUG("\tdr_end_state = %s", svf_tap_state_name[svf_para.dr_end_state]);
+				LOG_DEBUG("\tDR end_state = %s",
+						tap_state_name(i_tmp));
 			}
 		}
 		else
 		{
-			LOG_ERROR("%s is not valid state", argus[1]);
+			LOG_ERROR("%s: %s is not a stable state",
+					argus[0], argus[1]);
 			return ERROR_FAIL;
 		}
 		break;
@@ -1203,25 +1173,31 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		min_time = 0;
 		max_time = 0;
 		i = 1;
+
 		// run_state
-		i_tmp = svf_find_string_in_array(argus[i], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
-		if (svf_tap_state_is_valid(i_tmp))
+		i_tmp = tap_state_by_name(argus[i]);
+		if (i_tmp != TAP_INVALID)
 		{
 			if (svf_tap_state_is_stable(i_tmp))
 			{
 				svf_para.runtest_run_state = i_tmp;
 
-				// When a run_state is specified, the new  run_state becomes the default end_state
+				/* When a run_state is specified, the new
+				 * run_state becomes the default end_state.
+				 */
 				svf_para.runtest_end_state = i_tmp;
-				LOG_DEBUG("\trun_state = %s", svf_tap_state_name[svf_para.runtest_run_state]);
+				LOG_DEBUG("\trun_state = %s",
+						tap_state_name(i_tmp));
 				i++;
 			}
 			else
 			{
-				LOG_ERROR("%s is not valid state", svf_tap_state_name[i_tmp]);
+				LOG_ERROR("%s: %s is not a stable state",
+					argus[0], tap_state_name(i_tmp));
 				return ERROR_FAIL;
 			}
 		}
+
 		// run_count run_clk
 		if (((i + 2) <= num_of_argu) && strcmp(argus[i + 1], "SEC"))
 		{
@@ -1255,15 +1231,18 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		// ENDSTATE end_state
 		if (((i + 2) <= num_of_argu) && !strcmp(argus[i], "ENDSTATE"))
 		{
-			i_tmp = svf_find_string_in_array(argus[i + 1], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
+			i_tmp = tap_state_by_name(argus[i + 1]);
+
 			if (svf_tap_state_is_stable(i_tmp))
 			{
 				svf_para.runtest_end_state = i_tmp;
-				LOG_DEBUG("\tend_state = %s", svf_tap_state_name[svf_para.runtest_end_state]);
+				LOG_DEBUG("\tend_state = %s",
+					tap_state_name(i_tmp));
 			}
 			else
 			{
-				LOG_ERROR("%s is not valid state", svf_tap_state_name[i_tmp]);
+				LOG_ERROR("%s: %s is not a stable state",
+					argus[0], tap_state_name(i_tmp));
 				return ERROR_FAIL;
 			}
 			i += 2;
@@ -1301,8 +1280,8 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 #else
 				if (svf_para.runtest_run_state != TAP_IDLE)
 				{
-					// RUNTEST can only executed in TAP_IDLE
-					LOG_ERROR("cannot runtest in %s state", svf_tap_state_name[svf_para.runtest_run_state]);
+					LOG_ERROR("cannot runtest in %s state",
+						tap_state_name(svf_para.runtest_run_state));
 					return ERROR_FAIL;
 				}
 
@@ -1333,13 +1312,14 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				return ERROR_FAIL;
 			}
 			num_of_argu--;		// num of path
-			i_tmp = 1;			// path is from patameter 1
-			for (i = 0; i < num_of_argu; i++)
+			i_tmp = 1;		/* path is from parameter 1 */
+			for (i = 0; i < num_of_argu; i++, i_tmp++)
 			{
-				path[i] = svf_find_string_in_array(argus[i_tmp++], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
-				if (!svf_tap_state_is_valid(path[i]))
+				path[i] = tap_state_by_name(argus[i_tmp]);
+				if (path[i] == TAP_INVALID)
 				{
-					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[i]]);
+					LOG_ERROR("%s: %s is not a valid state",
+						argus[0], argus[i_tmp]);
 					free(path);
 					return ERROR_FAIL;
 				}
@@ -1362,13 +1342,15 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				if (svf_tap_state_is_stable(path[num_of_argu - 1]))
 				{
 					// last state MUST be stable state
-					// TODO: call path_move
 					jtag_add_pathmove(num_of_argu, path);
-					LOG_DEBUG("\tmove to %s by path_move", svf_tap_state_name[path[num_of_argu - 1]]);
+					LOG_DEBUG("\tmove to %s by path_move",
+						tap_state_name(path[num_of_argu - 1]));
 				}
 				else
 				{
-					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[num_of_argu - 1]]);
+					LOG_ERROR("%s: %s is not a stable state",
+						argus[0],
+						tap_state_name(path[num_of_argu - 1]));
 					free(path);
 					return ERROR_FAIL;
 				}
@@ -1383,17 +1365,18 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		else
 		{
 			// STATE stable_state
-			state = svf_find_string_in_array(argus[1], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
+			state = tap_state_by_name(argus[1]);
 			if (svf_tap_state_is_stable(state))
 			{
 				LOG_DEBUG("\tmove to %s by svf_add_statemove",
-						svf_tap_state_name[state]);
+						tap_state_name(state));
 				/* FIXME handle statemove failures */
 				svf_add_statemove(state);
 			}
 			else
 			{
-				LOG_ERROR("%s is not valid state", svf_tap_state_name[state]);
+				LOG_ERROR("%s: %s is not a stable state",
+					argus[0], tap_state_name(state));
 				return ERROR_FAIL;
 			}
 		}
@@ -1411,7 +1394,9 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			{
 				return ERROR_FAIL;
 			}
-			i_tmp = svf_find_string_in_array(argus[1], (char **)svf_trst_mode_name, dimof(svf_trst_mode_name));
+			i_tmp = svf_find_string_in_array(argus[1],
+					(char **)svf_trst_mode_name,
+					DIM(svf_trst_mode_name));
 			switch (i_tmp)
 			{
 			case TRST_ON:

@@ -102,7 +102,10 @@ typedef enum tap_state
  * Function tap_state_name
  * Returns a string suitable for display representing the JTAG tap_state
  */
-const char* tap_state_name(tap_state_t state);
+const char *tap_state_name(tap_state_t state);
+
+/// Provides user-friendly name lookup of TAP states.
+tap_state_t tap_state_by_name(const char *name);
 
 /// The current TAP state of the pending JTAG command queue.
 extern tap_state_t cmd_queue_cur_state;
