@@ -724,7 +724,6 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 #if 0
 int pic32mx_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	target_t *target = NULL;
 	pic32mx_flash_bank_t *pic32mx_info = NULL;
 
@@ -734,12 +733,10 @@ int pic32mx_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	pic32mx_info = bank->driver_priv;
 
@@ -773,7 +770,6 @@ int pic32mx_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 int pic32mx_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	target_t *target = NULL;
 	pic32mx_flash_bank_t *pic32mx_info = NULL;
 
@@ -783,12 +779,10 @@ int pic32mx_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	pic32mx_info = bank->driver_priv;
 
@@ -867,7 +861,6 @@ static int pic32mx_chip_erase(struct flash_bank_s *bank)
 static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 #if 0
-	flash_bank_t *bank;
 	int i;
 
 	if (argc != 0)
@@ -876,12 +869,10 @@ static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, 
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (pic32mx_chip_erase(bank) == ERROR_OK)
 	{
@@ -904,7 +895,6 @@ static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, 
 
 static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	uint32_t address, value;
 	int status, res;
 
@@ -914,15 +904,14 @@ static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, ch
 		return ERROR_OK;
 	}
 
-	address = strtoul(args[0], NULL, 0);
-	value   = strtoul(args[1], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[0], address);
+	COMMAND_PARSE_NUMBER(u32, args[1], value);
 
-	bank = get_flash_bank_by_num(strtoul(args[2], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[2]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[2], &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (address < bank->base || address >= (bank->base + bank->size))
 	{
 		command_print(cmd_ctx, "flash address '%s' is out of bounds", args[0]);
