@@ -942,7 +942,6 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
 
@@ -952,12 +951,10 @@ static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *c
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	stm32x_info = bank->driver_priv;
 
@@ -991,7 +988,6 @@ static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *c
 
 static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
 
@@ -1001,12 +997,10 @@ static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char 
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	stm32x_info = bank->driver_priv;
 
@@ -1037,7 +1031,6 @@ static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char 
 
 static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	uint32_t optionbyte;
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
@@ -1048,12 +1041,10 @@ static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	stm32x_info = bank->driver_priv;
 
@@ -1096,7 +1087,6 @@ static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx,
 
 static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
 	uint16_t optionbyte = 0xF8;
@@ -1107,12 +1097,10 @@ static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	stm32x_info = bank->driver_priv;
 
@@ -1210,7 +1198,6 @@ static int stm32x_mass_erase(struct flash_bank_s *bank)
 
 static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	int i;
 
 	if (argc < 1)
@@ -1219,12 +1206,10 @@ static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, c
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (stm32x_mass_erase(bank) == ERROR_OK)
 	{
