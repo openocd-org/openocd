@@ -2,7 +2,7 @@
  *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2009 by Øyvind Harboe                                   *
+ *   Copyright (C) 2007,2008,2009 by Øyvind Harboe                         *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -35,7 +35,6 @@
 
 /* cli handling */
 int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm926ejs_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm926ejs_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int arm926ejs_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -51,6 +50,29 @@ int arm926ejs_write_phys_memory(struct target_s *target, uint32_t address, uint3
 
 static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical);
 static int arm926ejs_mmu(struct target_s *target, int *enabled);
+
+int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+
+static int arm926ejs_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+	return arm926ejs_cp15_read(target, op1, op2, CRn, CRm, value);
+}
+
+static int arm926ejs_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+	return arm926ejs_cp15_write(target, op1, op2, CRn, CRm, value);
+}
 
 target_type_t arm926ejs_target =
 {
@@ -94,6 +116,8 @@ target_type_t arm926ejs_target =
 
 	.read_phys_memory = arm926ejs_read_phys_memory,
 	.write_phys_memory = arm926ejs_write_phys_memory,
+	.mrc = arm926ejs_mrc,
+	.mcr = arm926ejs_mcr,
 };
 
 int arm926ejs_catch_broken_irscan(uint8_t *captured, void *priv, scan_field_t *field)

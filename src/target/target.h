@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *

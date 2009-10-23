@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2009 by Øyvind Harboe                                   *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -314,5 +317,20 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * Im: 8-bit immediate
  */
 #define ARMV5_T_BKPT(Im) ((0xbe00 | Im) | ((0xbe00 | Im) << 16))
+
+/* build basic mrc/mcr opcode */
+
+static inline uint32_t mrc_opcode(int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm)
+{
+	uint32_t t = 0;
+	t|=op1<<21;
+	t|=op2<<5;
+	t|=CRn<<16;
+	t|=CRm<<0;
+	return t;
+}
+
+
+
 
 #endif /* ARMV4_5_H */

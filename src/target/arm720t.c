@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2009 by Øyvind Harboe                                   *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -46,6 +49,9 @@ int arm720t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t
 int arm720t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm720t_soft_reset_halt(struct target_s *target);
 
+static int arm720t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+static int arm720t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+
 target_type_t arm720t_target =
 {
 	.name = "arm720t",
@@ -82,7 +88,9 @@ target_type_t arm720t_target =
 	.target_create = arm720t_target_create,
 	.init_target = arm720t_init_target,
 	.examine = arm7tdmi_examine,
-	.quit = arm720t_quit
+	.quit = arm720t_quit,
+	.mrc = arm720t_mrc,
+	.mcr = arm720t_mcr,
 
 };
 
@@ -574,3 +582,29 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 	return ERROR_OK;
 }
+
+
+static int arm720t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+
+	return arm720t_read_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
+
+}
+
+static int arm720t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+
+	return arm720t_write_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
+}
+
+

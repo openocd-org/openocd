@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -202,6 +202,11 @@ struct target_type_s
 
 	int (*mmu)(struct target_s *target, int *enabled);
 
+	/* Read coprocessor - arm specific. Default implementation returns error. */
+	int (*mrc)(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+
+	/* Write coprocessor. Default implementation returns error.  */
+	int (*mcr)(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
 };
 
 #endif // TARGET_TYPE_H

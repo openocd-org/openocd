@@ -69,6 +69,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
@@ -687,6 +688,60 @@ void target_reset_examined(struct target_s *target)
 }
 
 
+
+static int default_mrc(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	LOG_ERROR("Not implemented");
+	return ERROR_FAIL;
+}
+
+static int default_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	LOG_ERROR("Not implemented");
+	return ERROR_FAIL;
+}
+
+static int arm_cp_check(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm)
+{
+	/* basic check */
+	if (!target_was_examined(target))
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
+	if ((cpnum <0) || (cpnum > 15))
+	{
+		LOG_ERROR("Illegal co-processor %d", cpnum);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+int target_mrc(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	int retval;
+
+	retval = arm_cp_check(target, cpnum, op1, op2, CRn, CRm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return target->type->mrc(target, cpnum, op1, op2, CRn, CRm, value);
+}
+
+int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	int retval;
+
+	retval = arm_cp_check(target, cpnum, op1, op2, CRn, CRm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return target->type->mcr(target, cpnum, op1, op2, CRn, CRm, value);
+}
+
+
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = all_targets;
@@ -721,6 +776,17 @@ int target_init(struct command_context_s *cmd_ctx)
 		{
 			target->type->write_phys_memory = target->type->write_memory;
 		}
+
+		if (target->type->mcr == NULL)
+		{
+			target->type->mcr = default_mcr;
+		}
+
+		if (target->type->mrc == NULL)
+		{
+			target->type->mrc = default_mrc;
+		}
+
 
 		/* a non-invasive way(in terms of patches) to add some code that
 		 * runs before the type->write/read_memory implementation
@@ -1537,6 +1603,9 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
 	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing <ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
 	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values  <ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
+
+	register_jim(cmd_ctx, "mrc", jim_mcrmrc, "read coprocessor <cpnum> <op1> <op2> <CRn> <CRm>");
+	register_jim(cmd_ctx, "mcr", jim_mcrmrc, "write coprocessor <cpnum> <op1> <op2> <CRn> <CRm> <value>");
 
 	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
 			"same args as load_image, image stored in memory - mainly for profiling purposes");
@@ -3355,7 +3424,6 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	return target_array2mem(interp,target, argc-1, argv + 1);
 }
-
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
@@ -4693,10 +4761,90 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 	return retval;
 }
 
+static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	command_context_t *context;
+	target_t *target;
+	int retval;
 
-/*
- * Local Variables:
- * c-basic-offset: 4
- * tab-width: 4
- * End:
- */
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL) {
+		LOG_ERROR("array2mem: no command context");
+		return JIM_ERR;
+	}
+	target = get_current_target(context);
+	if (target == NULL) {
+		LOG_ERROR("array2mem: no current target");
+		return JIM_ERR;
+	}
+
+	if ((argc < 6) || (argc > 7))
+	{
+		return JIM_ERR;
+	}
+
+	int cpnum;
+	uint32_t op1;
+	uint32_t op2;
+	uint32_t CRn;
+	uint32_t CRm;
+	uint32_t value;
+
+	int e;
+	long l;
+	e = Jim_GetLong(interp, argv[1], &l);
+	if (e != JIM_OK) {
+		return e;
+	}
+	cpnum = l;
+
+	e = Jim_GetLong(interp, argv[2], &l);
+	if (e != JIM_OK) {
+		return e;
+	}
+	op1 = l;
+
+	e = Jim_GetLong(interp, argv[3], &l);
+	if (e != JIM_OK) {
+		return e;
+	}
+	op2 = l;
+
+	e = Jim_GetLong(interp, argv[4], &l);
+	if (e != JIM_OK) {
+		return e;
+	}
+	CRn = l;
+
+	e = Jim_GetLong(interp, argv[5], &l);
+	if (e != JIM_OK) {
+		return e;
+	}
+	CRm = l;
+
+	value = 0;
+
+	LOG_DEBUG("%d %d %d %d %d %d", cpnum, op1, op2, CRn, CRm, value);
+
+	if (argc == 7)
+	{
+		e = Jim_GetLong(interp, argv[6], &l);
+		if (e != JIM_OK) {
+			return e;
+		}
+		value = l;
+
+		retval = target_mcr(target, cpnum, op1, op2, CRn, CRm, value);
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+	} else
+	{
+		retval = target_mrc(target, cpnum, op1, op2, CRn, CRm, &value);
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+
+		Jim_SetResult(interp, Jim_NewIntObj(interp, value));
+	}
+
+	return JIM_OK;
+}
