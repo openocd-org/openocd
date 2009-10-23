@@ -152,7 +152,7 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 
-	base = strtoul(args[2], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[2], base);
 	cle = 0;
 	ale = 1;
 
