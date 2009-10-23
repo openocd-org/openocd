@@ -2347,7 +2347,6 @@ static int
 sam3_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **argv, int argc)
 {
 	unsigned x,v;
-	uint32_t v32;
 	int r,who;
 	struct sam3_chip *pChip;
 
@@ -2391,11 +2390,8 @@ sam3_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		if ((0 == strcmp(argv[0], "show")) && (0 == strcmp(argv[1], "all"))) {
 			who = -1;
 		} else {
-			r = parse_u32(argv[1], &v32);
-			if (r != ERROR_OK) {
-				command_print(cmd_ctx, "Not a number: %s", argv[1]);
-				return r;
-			}
+			uint32_t v32;
+			COMMAND_PARSE_NUMBER(u32, argv[1], v32);
 			who = v32;
 		}
 		break;
@@ -2444,9 +2440,6 @@ sam3_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 static int
 sam3_handle_slowclk_command(struct command_context_s *cmd_ctx, char *cmd, char **argv, int argc)
 {
-	uint32_t v;
-	int r;
-
 	struct sam3_chip *pChip;
 
 	pChip = get_current_sam3(cmd_ctx);
@@ -2460,8 +2453,10 @@ sam3_handle_slowclk_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		// show
 		break;
 	case 1:
+	{
 		// set
-		r = parse_u32(argv[0], &v);
+		uint32_t v;
+		COMMAND_PARSE_NUMBER(u32, argv[0], v);
 		if (v > 200000) {
 			// absurd slow clock of 200Khz?
 			command_print(cmd_ctx,"Absurd/illegal slow clock freq: %d\n", (int)(v));
@@ -2469,7 +2464,7 @@ sam3_handle_slowclk_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		}
 		pChip->cfg.slow_freq = v;
 		break;
-
+	}
 	default:
 		// error
 		command_print(cmd_ctx,"Too many parameters");
