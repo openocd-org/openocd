@@ -335,7 +335,6 @@ void feroceon_branch_resume_thumb(target_t *target)
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	uint32_t r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	uint32_t pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-	(void)(r0); // use R0...
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -351,7 +350,7 @@ void feroceon_branch_resume_thumb(target_t *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, pc, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, r0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 
