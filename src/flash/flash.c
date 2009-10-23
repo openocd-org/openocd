@@ -307,10 +307,10 @@ static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cm
 			c->target = target;
 			c->driver = flash_drivers[i];
 			c->driver_priv = NULL;
-			c->base = strtoul(args[1], NULL, 0);
-			c->size = strtoul(args[2], NULL, 0);
-			c->chip_width = strtoul(args[3], NULL, 0);
-			c->bus_width = strtoul(args[4], NULL, 0);
+			COMMAND_PARSE_NUMBER(u32, args[1], c->base);
+			COMMAND_PARSE_NUMBER(u32, args[2], c->size);
+			COMMAND_PARSE_NUMBER(int, args[3], c->chip_width);
+			COMMAND_PARSE_NUMBER(int, args[4], c->bus_width);
 			c->num_sectors = 0;
 			c->sectors = NULL;
 			c->next = NULL;
@@ -360,13 +360,14 @@ static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cm
 	int retval;
 
 	if (argc != 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+
+	unsigned bank_nr;
+	COMMAND_PARSE_NUMBER(uint, args[0], bank_nr);
 
 	for (p = flash_banks; p; p = p->next, i++)
 	{
-		if (i == strtoul(args[0], NULL, 0))
+		if (i == bank_nr)
 		{
 			char buf[1024];
 
@@ -415,7 +416,6 @@ static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cm
 
 static int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *p;
 	int retval;
 
 	if (argc != 1)
@@ -423,7 +423,9 @@ static int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *c
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	p = get_flash_bank_by_num_noprobe(strtoul(args[0], NULL, 0));
+	unsigned bank_nr;
+	COMMAND_PARSE_NUMBER(uint, args[0], bank_nr);
+	flash_bank_t *p = get_flash_bank_by_num_noprobe(bank_nr);
 	if (p)
 	{
 		if ((retval = p->driver->probe(p)) == ERROR_OK)
@@ -451,15 +453,16 @@ static int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *c
 
 static int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *p;
-	int retval;
-
 	if (argc != 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	flash_bank_t *p;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
 		int j;
@@ -509,12 +512,10 @@ static int handle_flash_erase_address_command(struct command_context_s *cmd_ctx,
 	target_t *target = get_current_target(cmd_ctx);
 
 	if (argc != 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	address = strtoul(args[0], NULL, 0);
-	length = strtoul(args[1], NULL, 0);
+	COMMAND_PARSE_NUMBER(int, args[0], address);
+	COMMAND_PARSE_NUMBER(int, args[1], length);
 	if (length <= 0)
 	{
 		command_print(cmd_ctx, "Length must be >0");
@@ -547,17 +548,17 @@ static int handle_flash_erase_address_command(struct command_context_s *cmd_ctx,
 
 static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *p;
-	int retval;
-
 	if (argc != 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	flash_bank_t *p;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
+		int retval;
 		if ((retval = p->driver->protect_check(p)) == ERROR_OK)
 		{
 			command_print(cmd_ctx, "successfully checked protect state");
@@ -570,10 +571,6 @@ static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx,
 		{
 			command_print(cmd_ctx, "unknown error when checking protection state of flash bank '#%s' at 0x%8.8" PRIx32, args[0], p->base);
 		}
-	}
-	else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -605,23 +602,19 @@ static int handle_flash_erase_command(struct command_context_s *cmd_ctx,
 		uint32_t bank_nr;
 		uint32_t first;
 		uint32_t last;
-		int retval;
 
-		if ((retval = parse_u32(args[0], &bank_nr)) != ERROR_OK)
-			return retval;
-
+		COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
 		flash_bank_t *p = get_flash_bank_by_num(bank_nr);
 		if (!p)
 			return ERROR_OK;
 
-		if ((retval = parse_u32(args[1], &first)) != ERROR_OK)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[1], first);
 		if (strcmp(args[2], "last") == 0)
 			last = p->num_sectors - 1;
 		else
-			if ((retval = parse_u32(args[2], &last)) != ERROR_OK)
-				return retval;
+			COMMAND_PARSE_NUMBER(u32, args[2], last);
 
+		int retval;
 		if ((retval = flash_check_sector_parameters(cmd_ctx,
 				first, last, p->num_sectors)) != ERROR_OK)
 			return retval;
@@ -655,23 +648,18 @@ static int handle_flash_protect_command(struct command_context_s *cmd_ctx,
 		uint32_t bank_nr;
 		uint32_t first;
 		uint32_t last;
-		int retval;
 		int set;
 
-		if ((retval = parse_u32(args[0], &bank_nr)) != ERROR_OK)
-			return retval;
-
+		COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
 		flash_bank_t *p = get_flash_bank_by_num(bank_nr);
 		if (!p)
 			return ERROR_OK;
 
-		if ((retval = parse_u32(args[1], &first)) != ERROR_OK)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[1], first);
 		if (strcmp(args[2], "last") == 0)
 			last = p->num_sectors - 1;
 		else
-			if ((retval = parse_u32(args[2], &last)) != ERROR_OK)
-				return retval;
+			COMMAND_PARSE_NUMBER(u32, args[2], last);
 
 		if (strcmp(args[3], "on") == 0)
 			set = 1;
@@ -680,6 +668,7 @@ static int handle_flash_protect_command(struct command_context_s *cmd_ctx,
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
+		int retval;
 		if ((retval = flash_check_sector_parameters(cmd_ctx,
 				first, last, p->num_sectors)) != ERROR_OK)
 			return retval;
@@ -755,7 +744,7 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 	if (argc >= 2)
 	{
 		image.base_address_set = 1;
-		image.base_address = strtoul(args[1], NULL, 0);
+		COMMAND_PARSE_NUMBER(int, args[1], image.base_address);
 	}
 	else
 	{
@@ -818,13 +807,11 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	uint32_t wordsize;
 
 	if (argc != 3)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	address	= strtoul(args[0], NULL, 0);
-	pattern	= strtoul(args[1], NULL, 0);
-	count 	= strtoul(args[2], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[0], address);
+	COMMAND_PARSE_NUMBER(u32, args[1], pattern);
+	COMMAND_PARSE_NUMBER(u32, args[2], count);
 
 	if (count == 0)
 		return ERROR_OK;
@@ -928,23 +915,18 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 	duration_t duration;
 	char *duration_text;
 
-	int retval, retvaltemp;
-	flash_bank_t *p;
 
 	if (argc != 3)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	duration_start_measure(&duration);
 
-	offset = strtoul(args[2], NULL, 0);
-	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!p)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *p;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
+	COMMAND_PARSE_NUMBER(u32, args[2], offset);
 
 	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
@@ -964,6 +946,7 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 	free(buffer);
 	buffer = NULL;
 
+	int retvaltemp;
 	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 	{
 		fileio_close(&fileio);
@@ -971,14 +954,14 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 	}
 	if (retval == ERROR_OK)
 	{
-	command_print(cmd_ctx,
-				  "wrote  %lld byte from file %s to flash bank %li at offset 0x%8.8" PRIx32 " in %s (%f kb/s)",
-				  fileio.size,
-				  args[1],
-				  strtoul(args[0], NULL, 0),
-				  offset,
-				  duration_text,
-				  (float)fileio.size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+		float elapsed = (float)duration.duration.tv_sec;
+		elapsed += (float)duration.duration.tv_usec / 1000000.0;
+		float speed = (float)fileio.size / elapsed;
+		command_print(cmd_ctx,
+				"wrote  %lld byte from file %s to flash bank %u "
+				"at offset 0x%8.8" PRIx32 " in %s (%f kb/s)",
+				fileio.size, args[1], p->bank_number, offset,
+				duration_text, speed / 1024);
 	}
 	free(duration_text);
 
