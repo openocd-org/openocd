@@ -501,7 +501,7 @@ static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 	}
 
 	lpc2000_info->iap_working_area = NULL;
-	lpc2000_info->cclk = strtoul(args[7], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[7], lpc2000_info->cclk);
 	lpc2000_info->calc_checksum = 0;
 	lpc2000_build_sector_list(bank);
 
@@ -776,7 +776,6 @@ static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	uint32_t param_table[5];
 	uint32_t result_table[4];
 	int status_code;
@@ -786,12 +785,10 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
