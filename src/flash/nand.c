@@ -1107,11 +1107,15 @@ int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *p;
 	int i = 0;
 	int j = 0;
 	int first = -1;
 	int last = -1;
+
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
 
 	switch (argc) {
 	default:
@@ -1121,15 +1125,16 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 		last = INT32_MAX;
 		break;
 	case 2:
-		first = last = strtoul(args[1], NULL, 0);
+		COMMAND_PARSE_NUMBER(int, args[1], i);
+		first = last = i;
+		i = 0;
 		break;
 	case 3:
-		first = strtoul(args[1], NULL, 0);
-		last = strtoul(args[2], NULL, 0);
+		COMMAND_PARSE_NUMBER(int, args[1], first);
+		COMMAND_PARSE_NUMBER(int, args[2], last);
 		break;
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
 	if (p)
 	{
 		if (p->device)
@@ -1181,15 +1186,16 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 
 static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *p;
-	int retval;
-
 	if (argc != 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
 		if ((retval = nand_probe(p)) == ERROR_OK)
@@ -1205,29 +1211,25 @@ static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cm
 			command_print(cmd_ctx, "unknown error when probing NAND flash device");
 		}
 	}
-	else
-	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
-	}
 
 	return ERROR_OK;
 }
 
 static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *p;
-	int retval;
-
 	if (argc != 1 && argc != 3)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
-		char *cp;
 		unsigned long offset;
 		unsigned long length;
 
@@ -1235,16 +1237,12 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 		if (argc == 3) {
 			unsigned long size = p->erase_size * p->num_blocks;
 
-			offset = strtoul(args[1], &cp, 0);
-			if (*cp || (offset == ULONG_MAX)
-					|| (offset % p->erase_size) != 0
-					|| offset >= size)
+			COMMAND_PARSE_NUMBER(ulong, args[1], offset);
+			if ((offset % p->erase_size) != 0 || offset >= size)
 				return ERROR_INVALID_ARGUMENTS;
 
-			length = strtoul(args[2], &cp, 0);
-			if (*cp || (length == ULONG_MAX)
-					|| (length == 0)
-					|| (length % p->erase_size) != 0
+			COMMAND_PARSE_NUMBER(ulong, args[2], length);
+			if ((length == 0) || (length % p->erase_size) != 0
 					|| (length + offset) > size)
 				return ERROR_INVALID_ARGUMENTS;
 
@@ -1272,18 +1270,12 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 			command_print(cmd_ctx, "unknown error when erasing NAND flash device");
 		}
 	}
-	else
-	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
-	}
 
 	return ERROR_OK;
 }
 
 int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *p;
-	int retval;
 	int first = -1;
 	int last = -1;
 
@@ -1293,31 +1285,25 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
-	if (!p) {
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds",
-				args[0]);
-		return ERROR_INVALID_ARGUMENTS;
-	}
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (argc == 3)
 	{
-		char *cp;
 		unsigned long offset;
 		unsigned long length;
 
-		offset = strtoul(args[1], &cp, 0);
-		if (*cp || offset == ULONG_MAX || offset % p->erase_size)
-		{
+		COMMAND_PARSE_NUMBER(ulong, args[1], offset);
+		if (offset % p->erase_size)
 			return ERROR_INVALID_ARGUMENTS;
-		}
 		offset /= p->erase_size;
 
-		length = strtoul(args[2], &cp, 0);
-		if (*cp || length == ULONG_MAX || length % p->erase_size)
-		{
+		COMMAND_PARSE_NUMBER(ulong, args[2], length);
+		if (length % p->erase_size)
 			return ERROR_INVALID_ARGUMENTS;
-		}
+
 		length -= 1;
 		length /= p->erase_size;
 
@@ -1357,15 +1343,16 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 	duration_t duration;
 	char *duration_text;
 
-	nand_device_t *p;
-
 	if (argc < 3)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
 		uint8_t *page = NULL;
@@ -1374,7 +1361,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 		uint32_t oob_size = 0;
 		const int *eccpos = NULL;
 
-		offset = strtoul(args[2], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[2], offset);
 
 		if (argc > 3)
 		{
@@ -1509,24 +1496,22 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 		free(duration_text);
 		duration_text = NULL;
 	}
-	else
-	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
-	}
 
 	return ERROR_OK;
 }
 
 static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *p;
-
 	if (argc < 4)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
 		if (p->device)
@@ -1540,8 +1525,10 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 			uint32_t page_size = 0;
 			uint8_t *oob = NULL;
 			uint32_t oob_size = 0;
-			uint32_t address = strtoul(args[2], NULL, 0);
-			uint32_t size = strtoul(args[3], NULL, 0);
+			uint32_t address;
+			COMMAND_PARSE_NUMBER(u32, args[2], address);
+			uint32_t size;
+			COMMAND_PARSE_NUMBER(u32, args[3], size);
 			uint32_t bytes_done = 0;
 			enum oob_formats oob_format = NAND_OOB_NONE;
 
@@ -1631,24 +1618,22 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 			command_print(cmd_ctx, "#%s: not probed", args[0]);
 		}
 	}
-	else
-	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
-	}
 
 	return ERROR_OK;
 }
 
 static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *p;
-
 	if ((argc < 1) || (argc > 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	nand_device_t *p;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	if (ERROR_OK != retval)
+		return retval;
+
 	if (p)
 	{
 		if (p->device)
@@ -1675,10 +1660,6 @@ static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, cha
 		{
 			command_print(cmd_ctx, "#%s: not probed", args[0]);
 		}
-	}
-	else
-	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
 	}
 
 	return ERROR_OK;
