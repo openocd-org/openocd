@@ -456,7 +456,6 @@ static int avrf_mass_erase(struct flash_bank_s *bank)
 
 static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	int i;
 
 	if (argc < 1)
@@ -465,12 +464,10 @@ static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, cha
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (avrf_mass_erase(bank) == ERROR_OK)
 	{
