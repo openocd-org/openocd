@@ -4824,8 +4824,6 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	value = 0;
 
-	LOG_DEBUG("%d %d %d %d %d %d", cpnum, op1, op2, CRn, CRm, value);
-
 	if (argc == 7)
 	{
 		e = Jim_GetLong(interp, argv[6], &l);
