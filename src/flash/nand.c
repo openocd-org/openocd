@@ -340,6 +340,19 @@ nand_device_t *get_nand_device_by_num(int num)
 	return NULL;
 }
 
+int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
+		char *str, nand_device_t **device)
+{
+	unsigned num;
+	COMMAND_PARSE_NUMBER(uint, str, num);
+	*device = get_nand_device_by_num(num);
+	if (!*device) {
+		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", str);
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	return ERROR_OK;
+}
+
 static int nand_build_bbt(struct nand_device_s *device, int first, int last)
 {
 	uint32_t page = 0x0;

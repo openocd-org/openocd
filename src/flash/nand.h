@@ -217,6 +217,11 @@ extern int nand_calculate_ecc_kw(struct nand_device_s *device, const uint8_t *da
 extern int nand_register_commands(struct command_context_s *cmd_ctx);
 extern int nand_init(struct command_context_s *cmd_ctx);
 
+/// helper for parsing a nand device command argument string
+int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
+		char *str, nand_device_t **device);
+
+
 #define		ERROR_NAND_DEVICE_INVALID		(-1100)
 #define		ERROR_NAND_OPERATION_FAILED		(-1101)
 #define		ERROR_NAND_OPERATION_TIMEOUT	(-1102)

@@ -255,6 +255,23 @@ flash_bank_t *get_flash_bank_by_num(int num)
 	return p;
 }
 
+int flash_command_get_bank_by_num(
+	struct command_context_s *cmd_ctx, char *str, flash_bank_t **bank)
+{
+	unsigned bank_num;
+	COMMAND_PARSE_NUMBER(uint, str, bank_num);
+
+	*bank = get_flash_bank_by_num(bank_num);
+	if (!*bank)
+	{
+		command_print(cmd_ctx,
+			"flash bank '#%u' not found", bank_num);
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	return ERROR_OK;
+}
+
+
 static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;

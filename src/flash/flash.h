@@ -314,6 +314,16 @@ extern int default_flash_mem_blank_check(struct flash_bank_s *bank);
  */
 extern flash_bank_t *get_flash_bank_by_num(int num);
 /**
+ * Retreives @a bank from a command argument, reporting errors parsing
+ * the bank identifier or retreiving the specified bank.
+ * @param cmd_ctx The command context for reporting errors.
+ * @param str The string containing the bank identifier.
+ * @param bank On output, contians a pointer to the bank or NULL.
+ * @returns ERROR_OK on success, or an error indicating the problem.
+ */
+int flash_command_get_bank_by_num(
+	struct command_context_s *cmd_ctx, char *str, flash_bank_t **bank);
+/**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.
  * @param num The flash bank number.
  * @returns A flash_bank_t for flash bank @a num, or NULL.
