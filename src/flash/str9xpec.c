@@ -795,7 +795,6 @@ static int str9xpec_probe(struct flash_bank_s *bank)
 
 static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	scan_field_t field;
 	uint8_t *buffer = NULL;
 	jtag_tap_t *tap;
@@ -803,16 +802,12 @@ static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, ch
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 	tap = str9xpec_info->tap;
@@ -851,7 +846,6 @@ static int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	uint8_t status;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
@@ -861,12 +855,10 @@ static int str9xpec_handle_flash_options_read_command(struct command_context_s *
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
@@ -971,7 +963,6 @@ static int str9xpec_write_options(struct flash_bank_s *bank)
 
 static int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	uint8_t status;
 
 	if (argc < 1)
@@ -980,12 +971,10 @@ static int str9xpec_handle_flash_options_write_command(struct command_context_s 
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	status = str9xpec_write_options(bank);
 
@@ -997,7 +986,6 @@ static int str9xpec_handle_flash_options_write_command(struct command_context_s 
 
 static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 2)
@@ -1006,12 +994,10 @@ static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
@@ -1029,7 +1015,6 @@ static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *
 
 static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 2)
@@ -1038,12 +1023,10 @@ static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
@@ -1061,7 +1044,6 @@ static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s
 
 int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 2)
@@ -1070,12 +1052,10 @@ int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_c
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
@@ -1093,7 +1073,6 @@ int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_c
 
 static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 2)
@@ -1102,12 +1081,10 @@ static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
@@ -1126,7 +1103,6 @@ static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_
 static int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	uint8_t status;
-	flash_bank_t *bank;
 
 	if (argc < 1)
 	{
@@ -1134,12 +1110,10 @@ static int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	status = str9xpec_lock_device(bank);
 
@@ -1152,7 +1126,6 @@ static int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx,
 static int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	uint8_t status;
-	flash_bank_t *bank;
 
 	if (argc < 1)
 	{
@@ -1160,12 +1133,10 @@ static int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ct
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	status = str9xpec_unlock_device(bank);
 
@@ -1177,8 +1148,6 @@ static int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ct
 
 static int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int retval;
-	flash_bank_t *bank;
 	jtag_tap_t *tap0;
 	jtag_tap_t *tap1;
 	jtag_tap_t *tap2;
@@ -1190,12 +1159,10 @@ static int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
@@ -1230,7 +1197,6 @@ static int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *
 
 static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	flash_bank_t *bank;
 	jtag_tap_t *tap;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
@@ -1240,12 +1206,10 @@ static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s 
 		return ERROR_OK;
 	}
 
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
+	flash_bank_t *bank;
+	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	if (ERROR_OK != retval)
+		return retval;
 
 	str9xpec_info = bank->driver_priv;
 	tap = str9xpec_info->tap;
