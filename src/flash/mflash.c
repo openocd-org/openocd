@@ -716,7 +716,7 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	address = strtoul(args[2], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[2], address);
 
 	ret = fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY);
 	if (ret != ERROR_OK)
@@ -783,8 +783,8 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	address = strtoul(args[2], NULL, 0);
-	size = strtoul(args[3], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[2], address);
+	COMMAND_PARSE_NUMBER(u32, args[3], size);
 
 	ret = fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY);
 	if (ret != ERROR_OK)
@@ -1238,7 +1238,9 @@ int mg_config_cmd(struct command_context_s *cmd_ctx, char *cmd,
 			break;
 		case 3:
 			if (!strcmp(args[1], "pll")) {
-				fin = strtoul(args[2], NULL, 0);
+				unsigned long freq;
+				COMMAND_PARSE_NUMBER(ulong, args[2], freq);
+				fin = freq;
 
 				if (fin > MG_PLL_CLK_OUT) {
 					LOG_ERROR("mflash: input freq. is too large");
@@ -1288,7 +1290,6 @@ int mflash_init_drivers(struct command_context_s *cmd_ctx)
 static int mg_bank_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
-	char *str;
 	int i;
 
 	if (argc < 4)
@@ -1303,7 +1304,9 @@ static int mg_bank_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	}
 
 	mflash_bank = calloc(sizeof(mflash_bank_t), 1);
-	mflash_bank->base = strtoul(args[1], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[1], mflash_bank->base);
+	/// @todo Verify how this parsing should work, then document it.
+	char *str;
 	mflash_bank->rst_pin.num = strtoul(args[2], &str, 0);
 	if (*str)
 		mflash_bank->rst_pin.port[0] = (uint16_t)tolower(str[0]);
