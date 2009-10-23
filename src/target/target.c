@@ -2014,9 +2014,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if ((args[0][0] >= '0') && (args[0][0] <= '9'))
 	{
 		unsigned num;
-		int retval = parse_uint(args[0], &num);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		COMMAND_PARSE_NUMBER(uint, args[0], num);
 
 		reg_cache_t *cache = target->reg_cache;
 		count = 0;
@@ -2270,9 +2268,7 @@ static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, c
 	uint32_t addr = 0;
 	if (argc == 1)
 	{
-		int retval = parse_u32(args[0], &addr);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[0], addr);
 		current = 0;
 	}
 
@@ -2293,9 +2289,7 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int current_pc = 1;
 	if (argc == 1)
 	{
-		int retval = parse_u32(args[0], &addr);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[0], addr);
 		current_pc = 0;
 	}
 
@@ -2382,23 +2376,18 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+
 	uint32_t address;
-	int retval = parse_u32(args[0], &address);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[0], address);
 
 	unsigned count = 1;
 	if (argc == 2)
-	{
-		retval = parse_uint(args[1], &count);
-		if (ERROR_OK != retval)
-			return retval;
-	}
+		COMMAND_PARSE_NUMBER(uint, args[1], count);
 
 	uint8_t *buffer = calloc(count, size);
 
 	target_t *target = get_current_target(cmd_ctx);
-	retval = fn(target, address, size, count, buffer);
+	int retval = fn(target, address, size, count, buffer);
 	if (ERROR_OK == retval)
 		handle_md_output(cmd_ctx, target, address, size, count, buffer);
 
@@ -2429,22 +2418,14 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t address;
-	int retval = parse_u32(args[0], &address);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[0], address);
 
 	uint32_t value;
-	retval = parse_u32(args[1], &value);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[1], value);
 
 	unsigned count = 1;
 	if (argc == 3)
-	{
-		retval = parse_uint(args[2], &count);
-		if (ERROR_OK != retval)
-			return retval;
-	}
+		COMMAND_PARSE_NUMBER(uint, args[2], count);
 
 	target_t *target = get_current_target(cmd_ctx);
 	unsigned wordsize;
@@ -2468,7 +2449,7 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 	for (unsigned i = 0; i < count; i++)
 	{
-		retval = fn(target,
+		int retval = fn(target,
 				address + i * wordsize, wordsize, 1, value_buf);
 		if (ERROR_OK != retval)
 			return retval;
@@ -2479,8 +2460,9 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 }
 
-static int parse_load_image_command_args(char **args, int argc,
-		image_t *image, uint32_t *min_address, uint32_t *max_address)
+static int parse_load_image_command_args(struct command_context_s *cmd_ctx,
+		char **args, int argc, image_t *image,
+		uint32_t *min_address, uint32_t *max_address)
 {
 	if (argc < 1 || argc > 5)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2490,9 +2472,7 @@ static int parse_load_image_command_args(char **args, int argc,
 	if (argc >= 2)
 	{
 		uint32_t addr;
-		int retval = parse_u32(args[1], &addr);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		COMMAND_PARSE_NUMBER(u32, args[1], addr);
 		image->base_address = addr;
 		image->base_address_set = 1;
 	}
@@ -2503,15 +2483,11 @@ static int parse_load_image_command_args(char **args, int argc,
 
 	if (argc >= 4)
 	{
-		int retval = parse_u32(args[3], min_address);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		COMMAND_PARSE_NUMBER(u32, args[3], *min_address);
 	}
 	if (argc == 5)
 	{
-		int retval = parse_u32(args[4], max_address);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		COMMAND_PARSE_NUMBER(u32, args[4], *max_address);
 		// use size (given) to find max (required)
 		*max_address += *min_address;
 	}
@@ -2537,7 +2513,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 	duration_t duration;
 	char *duration_text;
 
-	int retval = parse_load_image_command_args(args, argc,
+	int retval = parse_load_image_command_args(cmd_ctx, args, argc,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2642,14 +2618,9 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 	}
 
 	uint32_t address;
-	int retval = parse_u32(args[1], &address);
-	if (ERROR_OK != retval)
-		return retval;
-
+	COMMAND_PARSE_NUMBER(u32, args[1], address);
 	uint32_t size;
-	retval = parse_u32(args[2], &size);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[2], size);
 
 	if (fileio_open(&fileio, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
@@ -2658,11 +2629,11 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	duration_start_measure(&duration);
 
+	int retval = ERROR_OK;
 	while (size > 0)
 	{
 		uint32_t size_written;
 		uint32_t this_run_size = (size > 560) ? 560 : size;
-
 		retval = target_read_buffer(target, address, this_run_size, buffer);
 		if (retval != ERROR_OK)
 		{
@@ -2728,9 +2699,7 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 	if (argc >= 2)
 	{
 		uint32_t addr;
-		retval = parse_u32(args[1], &addr);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		COMMAND_PARSE_NUMBER(u32, args[1], addr);
 		image.base_address = addr;
 		image.base_address_set = 1;
 	}
@@ -2915,14 +2884,9 @@ static int handle_bp_command(struct command_context_s *cmd_ctx,
 	}
 
 	uint32_t addr;
-	int retval = parse_u32(args[0], &addr);
-	if (ERROR_OK != retval)
-		return retval;
-
+	COMMAND_PARSE_NUMBER(u32, args[0], addr);
 	uint32_t length;
-	retval = parse_u32(args[1], &length);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[1], length);
 
 	int hw = BKPT_SOFT;
 	if (argc == 3)
@@ -2942,9 +2906,7 @@ static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t addr;
-	int retval = parse_u32(args[0], &addr);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[0], addr);
 
 	target_t *target = get_current_target(cmd_ctx);
 	breakpoint_remove(target, addr);
@@ -2979,19 +2941,14 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	uint32_t length = 0;
 	uint32_t data_value = 0x0;
 	uint32_t data_mask = 0xffffffff;
-	int retval;
 
 	switch (argc)
 	{
 	case 5:
-		retval = parse_u32(args[4], &data_mask);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[4], data_mask);
 		// fall through
 	case 4:
-		retval = parse_u32(args[3], &data_value);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[3], data_value);
 		// fall through
 	case 3:
 		switch (args[2][0])
@@ -3011,12 +2968,8 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		}
 		// fall through
 	case 2:
-		retval = parse_u32(args[1], &length);
-		if (ERROR_OK != retval)
-			return retval;
-		retval = parse_u32(args[0], &addr);
-		if (ERROR_OK != retval)
-			return retval;
+		COMMAND_PARSE_NUMBER(u32, args[1], length);
+		COMMAND_PARSE_NUMBER(u32, args[0], addr);
 		break;
 
 	default:
@@ -3025,7 +2978,7 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	retval = watchpoint_add(target, addr, length, type,
+	int retval = watchpoint_add(target, addr, length, type,
 			data_value, data_mask);
 	if (ERROR_OK != retval)
 		LOG_ERROR("Failure setting watchpoints");
@@ -3039,9 +2992,7 @@ static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t addr;
-	int retval = parse_u32(args[0], &addr);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[0], addr);
 
 	target_t *target = get_current_target(cmd_ctx);
 	watchpoint_remove(target, addr);
@@ -3063,13 +3014,11 @@ static int handle_virt2phys_command(command_context_t *cmd_ctx,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t va;
-	int retval = parse_u32(args[0], &va);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(u32, args[0], va);
 	uint32_t pa;
 
 	target_t *target = get_current_target(cmd_ctx);
-	retval = target->type->virt2phys(target, va, &pa);
+	int retval = target->type->virt2phys(target, va, &pa);
 	if (retval == ERROR_OK)
 		command_print(cmd_ctx, "Physical address 0x%08" PRIx32 "", pa);
 
@@ -3204,9 +3153,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	unsigned offset;
-	int retval = parse_uint(args[0], &offset);
-	if (ERROR_OK != retval)
-		return retval;
+	COMMAND_PARSE_NUMBER(uint, args[0], offset);
 
 	timeval_add_time(&timeout, offset, 0);
 
@@ -3223,6 +3170,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	for (;;)
 	{
+		int retval;
 		target_poll(target);
 		if (target->state == TARGET_HALTED)
 		{
@@ -4726,7 +4674,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 	duration_t duration;
 	char *duration_text;
 
-	int retval = parse_load_image_command_args(args, argc,
+	int retval = parse_load_image_command_args(cmd_ctx, args, argc,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;
