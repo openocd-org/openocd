@@ -752,7 +752,7 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 
 	uint32_t base_address;
 	uint32_t bank_size;
-	uint32_t ext_freq;
+	uint32_t ext_freq = 0;
 
 	int chip_width;
 	int bus_width;
@@ -776,32 +776,36 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	at91sam7_info->ext_freq = 0;
 	at91sam7_info->flash_autodetection = 0;
 
-	if (argc == 14)
-	{
-		ext_freq = atol(args[13]) * 1000;
-		at91sam7_info->ext_freq = ext_freq;
-	}
-
-	if ((argc != 14)                ||
-		(atoi(args[4]) == 0)        ||  /* bus width */
-		(atoi(args[8]) == 0)        ||  /* banks number */
-		(atoi(args[9]) == 0)        ||  /* sectors per bank */
-		(atoi(args[10]) == 0)       ||  /* pages per sector */
-		(atoi(args[11]) == 0)       ||  /* page size */
-		(atoi(args[12]) == 0))          /* nvmbits number */
+	if (argc < 13)
 	{
 		at91sam7_info->flash_autodetection = 1;
 		return ERROR_OK;
 	}
 
-	base_address = strtoul(args[1], NULL, 0);
-	chip_width = atoi(args[3]);
-	bus_width = atoi(args[4]);
-	banks_num = atoi(args[8]);
-	num_sectors = atoi(args[9]);
-	pages_per_sector = atoi(args[10]);
-	page_size = atoi(args[11]);
-	num_nvmbits = atoi(args[12]);
+	COMMAND_PARSE_NUMBER(u32, args[1], base_address);
+
+	COMMAND_PARSE_NUMBER(int, args[3], chip_width);
+	COMMAND_PARSE_NUMBER(int, args[4], bus_width);
+
+	COMMAND_PARSE_NUMBER(int, args[8], banks_num);
+	COMMAND_PARSE_NUMBER(int, args[9], num_sectors);
+	COMMAND_PARSE_NUMBER(u16, args[10], pages_per_sector);
+	COMMAND_PARSE_NUMBER(u16, args[11], page_size);
+	COMMAND_PARSE_NUMBER(u16, args[12], num_nvmbits);
+
+	if (argc == 14) {
+		unsigned long freq;
+		COMMAND_PARSE_NUMBER(ulong, args[13], freq);
+		ext_freq = freq * 1000;
+		at91sam7_info->ext_freq = ext_freq;
+	}
+
+	if ((bus_width == 0) || (banks_num == 0) || (num_sectors == 0) ||
+		(pages_per_sector == 0) || (page_size == 0) || (num_nvmbits == 0))
+	{
+		at91sam7_info->flash_autodetection = 1;
+		return ERROR_OK;
+	}
 
 	target_name = calloc(strlen(args[7]) + 1, sizeof(char));
 	strcpy(target_name, args[7]);
@@ -1181,7 +1185,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 		}
 	}
 
-	bit = atoi(args[0]);
+	COMMAND_PARSE_NUMBER(int, args[0], bit);
 	if ((bit < 0) || (bit >= at91sam7_info->num_nvmbits))
 	{
 		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", args[0], at91sam7_info->target_name);
