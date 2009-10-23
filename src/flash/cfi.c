@@ -641,8 +641,12 @@ static int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	if ((strtoul(args[4], NULL, 0) > CFI_MAX_CHIP_WIDTH)
-		|| (strtoul(args[3], NULL, 0) > CFI_MAX_BUS_WIDTH))
+	uint16_t chip_width, bus_width;
+	COMMAND_PARSE_NUMBER(u16, args[3], bus_width);
+	COMMAND_PARSE_NUMBER(u16, args[4], chip_width);
+
+	if ((chip_width > CFI_MAX_CHIP_WIDTH)
+			|| (bus_width > CFI_MAX_BUS_WIDTH))
 	{
 		LOG_ERROR("chip and bus width have to specified in bytes");
 		return ERROR_FLASH_BANK_INVALID;
