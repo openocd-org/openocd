@@ -60,25 +60,29 @@ nand_flash_controller_t lpc3180_nand_controller =
  */
 static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device)
 {
-	lpc3180_nand_controller_t *lpc3180_info;
-
 	if (argc < 3)
 	{
 		LOG_WARNING("incomplete 'lpc3180' nand flash configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	lpc3180_info = malloc(sizeof(lpc3180_nand_controller_t));
-	device->controller_priv = lpc3180_info;
-
-	lpc3180_info->target = get_target(args[1]);
-	if (!lpc3180_info->target)
+	target_t *target = get_target(args[1]);
+	if (NULL == target)
 	{
 		LOG_ERROR("target '%s' not defined", args[1]);
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 
-	lpc3180_info->osc_freq = strtoul(args[2], NULL, 0);
+	uint32_t osc_freq;
+	COMMAND_PARSE_NUMBER(u32, args[2], osc_freq);
+
+	lpc3180_nand_controller_t *lpc3180_info;
+	lpc3180_info = malloc(sizeof(lpc3180_nand_controller_t));
+	device->controller_priv = lpc3180_info;
+
+	lpc3180_info->target = target;
+	lpc3180_info->osc_freq = osc_freq;
+
 	if ((lpc3180_info->osc_freq < 1000) || (lpc3180_info->osc_freq > 20000))
 	{
 		LOG_WARNING("LPC3180 oscillator frequency should be between 1000 and 20000 kHz, was %i", lpc3180_info->osc_freq);
@@ -864,7 +868,6 @@ static int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
 
 static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	nand_device_t *device = NULL;
 	lpc3180_nand_controller_t *lpc3180_info = NULL;
 	char *selected[] =
 	{
@@ -876,7 +879,9 @@ static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	device = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	unsigned num;
+	COMMAND_PARSE_NUMBER(uint, args[1], num);
+	nand_device_t *device = get_nand_device_by_num(num);
 	if (!device)
 	{
 		command_print(cmd_ctx, "nand device '#%s' is out of bounds", args[0]);
