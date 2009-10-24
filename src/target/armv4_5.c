@@ -415,10 +415,10 @@ handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx,
 		thumb = 1;
 		/* FALL THROUGH */
 	case 2:
-		count = strtoul(args[1], NULL, 0);
+		COMMAND_PARSE_NUMBER(int, args[1], count);
 		/* FALL THROUGH */
 	case 1:
-		address = strtoul(args[0], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[0], address);
 		if (address & 0x01) {
 			if (!thumb) {
 				command_print(cmd_ctx, "Disassemble as Thumb");
