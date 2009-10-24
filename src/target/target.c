@@ -816,11 +816,22 @@ int target_init(struct command_context_s *cmd_ctx)
 		if (target->type->mcr == NULL)
 		{
 			target->type->mcr = default_mcr;
+		} else
+		{
+			/* FIX! multiple targets will generally register global commands
+			 * multiple times. Only register this one if *one* of the
+			 * targets need the command. Hmm... make it a command on the
+			 * Jim Tcl target object?
+			 */
+			register_jim(cmd_ctx, "mcr", jim_mcrmrc, "write coprocessor <cpnum> <op1> <op2> <CRn> <CRm> <value>");
 		}
 
 		if (target->type->mrc == NULL)
 		{
 			target->type->mrc = default_mrc;
+		} else
+		{
+			register_jim(cmd_ctx, "mrc", jim_mcrmrc, "read coprocessor <cpnum> <op1> <op2> <CRn> <CRm>");
 		}
 
 
@@ -1659,9 +1670,6 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
 	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing <ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
 	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values  <ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
-
-	register_jim(cmd_ctx, "mrc", jim_mcrmrc, "read coprocessor <cpnum> <op1> <op2> <CRn> <CRm>");
-	register_jim(cmd_ctx, "mcr", jim_mcrmrc, "write coprocessor <cpnum> <op1> <op2> <CRn> <CRm> <value>");
 
 	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
 			"same args as load_image, image stored in memory - mainly for profiling purposes");
