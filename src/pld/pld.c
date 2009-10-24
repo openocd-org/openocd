@@ -175,7 +175,9 @@ static int handle_pld_load_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	p = get_pld_device_by_num(strtoul(args[0], NULL, 0));
+	unsigned dev_id;
+	COMMAND_PARSE_NUMBER(uint, args[0], dev_id);
+	p = get_pld_device_by_num(dev_id);
 	if (!p)
 	{
 		command_print(cmd_ctx, "pld device '#%s' is out of bounds", args[0]);
@@ -184,19 +186,20 @@ static int handle_pld_load_command(struct command_context_s *cmd_ctx,
 
 	if ((retval = p->driver->load(p, args[1])) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "failed loading file %s to pld device %lu",
-			args[1], strtoul(args[0], NULL, 0));
+		command_print(cmd_ctx, "failed loading file %s to pld device %u",
+			args[1], dev_id);
 		switch (retval)
 		{
 		}
+		return retval;
 	}
 	else
 	{
 		gettimeofday(&end, NULL);
 		timeval_subtract(&duration, &end, &start);
 
-		command_print(cmd_ctx, "loaded file %s to pld device %lu in %jis %jius",
-			args[1], strtoul(args[0], NULL, 0),
+		command_print(cmd_ctx, "loaded file %s to pld device %u in %jis %jius",
+			args[1], dev_id,
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
 

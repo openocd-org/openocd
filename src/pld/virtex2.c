@@ -202,7 +202,9 @@ static int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	device = get_pld_device_by_num(strtoul(args[0], NULL, 0));
+	unsigned dev_id;
+	COMMAND_PARSE_NUMBER(uint, args[0], dev_id);
+	device = get_pld_device_by_num(dev_id);
 	if (!device)
 	{
 		command_print(cmd_ctx, "pld device '#%s' is out of bounds", args[0]);
