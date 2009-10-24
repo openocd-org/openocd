@@ -544,7 +544,8 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	/* one or more argument, access a single register (write if second argument is given */
 	if (argc >= 1)
 	{
-		uint32_t opcode = strtoul(args[0], NULL, 0);
+		uint32_t opcode;
+		COMMAND_PARSE_NUMBER(u32, args[0], opcode);
 
 		if (argc == 1)
 		{
@@ -564,7 +565,9 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		else if (argc == 2)
 		{
-			uint32_t value = strtoul(args[1], NULL, 0);
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, args[1], value);
+
 			if ((retval = arm720t_write_cp15(target, opcode, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
