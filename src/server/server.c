@@ -549,3 +549,23 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
+int server_port_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc, unsigned short *out)
+{
+	switch (argc) {
+	case 0:
+		command_print(cmd_ctx, "%d", *out);
+		break;
+	case 1:
+	{
+		uint16_t port;
+		COMMAND_PARSE_NUMBER(u16, args[0], port);
+		*out = port;
+		break;
+	}
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	return ERROR_OK;
+}

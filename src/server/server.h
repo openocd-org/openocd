@@ -75,6 +75,9 @@ extern int server_quit(void);
 extern int server_loop(command_context_t *command_context);
 extern int server_register_commands(command_context_t *context);
 
+int server_port_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc, unsigned short *port);
+
 extern int server_use_pipes;
 
 #define ERROR_SERVER_REMOTE_CLOSED	(-400)
