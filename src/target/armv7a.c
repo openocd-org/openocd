@@ -286,9 +286,16 @@ static int handle_dap_info_command(struct command_context_s *cmd_ctx,
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 	uint32_t apsel;
 
-	apsel =  swjdp->apsel;
-	if (argc > 0)
-		apsel = strtoul(args[0], NULL, 0);
+	switch (argc) {
+	case 0:
+		apsel = swjdp->apsel;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
 	return dap_info_command(cmd_ctx, swjdp, apsel);
 }
@@ -320,10 +327,10 @@ handle_armv7a_disassemble_command(struct command_context_s *cmd_ctx,
 		thumb = 1;
 		/* FALL THROUGH */
 	case 2:
-		count = strtoul(args[1], NULL, 0);
+		COMMAND_PARSE_NUMBER(int, args[1], count);
 		/* FALL THROUGH */
 	case 1:
-		address = strtoul(args[0], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[0], address);
 		if (address & 0x01) {
 			if (!thumb) {
 				command_print(cmd_ctx, "Disassemble as Thumb");
