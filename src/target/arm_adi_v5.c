@@ -1370,10 +1370,18 @@ int dap_baseaddr_command(struct command_context_s *cmd_ctx,
 	uint32_t apsel, apselsave, baseaddr;
 	int retval;
 
-	apsel = swjdp->apsel;
 	apselsave = swjdp->apsel;
-	if (argc > 0)
-		apsel = strtoul(args[0], NULL, 0);
+	switch (argc) {
+	case 0:
+		apsel = swjdp->apsel;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apsel);
 
@@ -1392,11 +1400,18 @@ int dap_memaccess_command(struct command_context_s *cmd_ctx,
 {
 	uint32_t memaccess_tck;
 
-	memaccess_tck = swjdp->memaccess_tck;
-	if (argc > 0)
-		memaccess_tck = strtoul(args[0], NULL, 0);
-
+	switch (argc) {
+	case 0:
+		memaccess_tck = swjdp->memaccess_tck;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], memaccess_tck);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 	swjdp->memaccess_tck = memaccess_tck;
+
 	command_print(cmd_ctx, "memory bus access delay set to %" PRIi32 " tck",
 			swjdp->memaccess_tck);
 
@@ -1409,9 +1424,16 @@ int dap_apsel_command(struct command_context_s *cmd_ctx,
 	uint32_t apsel, apid;
 	int retval;
 
-	apsel = 0;
-	if (argc > 0)
-		apsel = strtoul(args[0], NULL, 0);
+	switch (argc) {
+	case 0:
+		apsel = 0;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
 	dap_ap_select(swjdp, apsel);
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
@@ -1428,10 +1450,17 @@ int dap_apid_command(struct command_context_s *cmd_ctx,
 	uint32_t apsel, apselsave, apid;
 	int retval;
 
-	apsel = swjdp->apsel;
 	apselsave = swjdp->apsel;
-	if (argc > 0)
-		apsel = strtoul(args[0], NULL, 0);
+	switch (argc) {
+	case 0:
+		apsel = swjdp->apsel;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apsel);
@@ -1444,5 +1473,3 @@ int dap_apid_command(struct command_context_s *cmd_ctx,
 
 	return retval;
 }
-
-
