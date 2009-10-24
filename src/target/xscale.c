@@ -3069,7 +3069,7 @@ xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx,
 		return ERROR_FAIL;
 	}
 
-	handler_address = strtoul(args[1], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[1], handler_address);
 
 	if (((handler_address >= 0x800) && (handler_address <= 0x1fef800)) ||
 		((handler_address >= 0xfe000800) && (handler_address <= 0xfffff800)))
@@ -3112,7 +3112,7 @@ xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 		return ERROR_FAIL;
 	}
 
-	cache_clean_address = strtoul(args[1], NULL, 0);
+	COMMAND_PARSE_NUMBER(u32, args[1], cache_clean_address);
 
 	if (cache_clean_address & 0xffff)
 	{
@@ -3290,7 +3290,7 @@ static int xscale_handle_vector_catch_command(command_context_t *cmd_ctx,
 	}
 	else
 	{
-		xscale->vector_catch = strtoul(args[0], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[0], xscale->vector_catch);
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 8, xscale->vector_catch);
 		xscale_write_dcsr(target, -1, -1);
 	}
@@ -3333,9 +3333,9 @@ static int xscale_handle_vector_table_command(command_context_t *cmd_ctx,
 	else
 	{
 		int idx;
+		COMMAND_PARSE_NUMBER(int, args[1], idx);
 		uint32_t vec;
-		idx = strtoul(args[1], NULL, 0);
-		vec = strtoul(args[2], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[2], vec);
 
 		if (idx < 1 || idx >= 8)
 			err = 1;
@@ -3406,10 +3406,10 @@ xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx,
 
 	if ((argc >= 2) && (strcmp("fill", args[1]) == 0))
 	{
+		uint32_t fill = 1;
 		if (argc >= 3)
-			xscale->trace.buffer_fill = strtoul(args[2], NULL, 0);
-		else
-			xscale->trace.buffer_fill = 1;
+			COMMAND_PARSE_NUMBER(u32, args[2], fill);
+		xscale->trace.buffer_fill = fill;
 	}
 	else if ((argc >= 2) && (strcmp("wrap", args[1]) == 0))
 	{
@@ -3478,7 +3478,7 @@ xscale_handle_trace_image_command(struct command_context_s *cmd_ctx,
 	if (argc >= 2)
 	{
 		xscale->trace.image->base_address_set = 1;
-		xscale->trace.image->base_address = strtoul(args[1], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[1], xscale->trace.image->base_address);
 	}
 	else
 	{
@@ -3593,7 +3593,7 @@ static int xscale_handle_cp15(command_context_t *cmd_ctx,
 	reg_t *reg = NULL;
 	if (argc > 0)
 	{
-		reg_no = strtoul(args[0], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[0], reg_no);
 		/*translate from xscale cp15 register no to openocd register*/
 		switch (reg_no)
 		{
@@ -3639,8 +3639,8 @@ static int xscale_handle_cp15(command_context_t *cmd_ctx,
 	}
 	else if (argc == 2)
 	{
-
-		uint32_t value = strtoul(args[1], NULL, 0);
+		uint32_t value;
+		COMMAND_PARSE_NUMBER(u32, args[1], value);
 
 		/* send CP write request (command 0x41) */
 		xscale_send_u32(target, 0x41);
