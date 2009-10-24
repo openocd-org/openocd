@@ -1,0 +1,3 @@
+[submodule "tools/git2cl"]
+	path = tools/git2cl
+	url = git://repo.or.cz/git2cl.git
