@@ -2060,12 +2060,12 @@ BOOL_WRAPPER(hardware_step,			"hardware single step")
 
 int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 1)
-	{
-		arm11_vcr = strtoul(args[0], NULL, 0);
-	}
-	else if (argc != 0)
-	{
+	switch (argc) {
+	case 0:
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], arm11_vcr);
+	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -2134,7 +2134,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	for (size_t i = 0; i < (read ? 5 : 6); i++)
 	{
-		values[i] = strtoul(args[i + 1], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[i + 1], values[i]);
 
 		if (values[i] > arm11_coproc_instruction_limits[i])
 		{
