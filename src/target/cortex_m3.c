@@ -1830,14 +1830,10 @@ handle_cortex_m3_disassemble_command(struct command_context_s *cmd_ctx,
 	errno = 0;
 	switch (argc) {
 	case 2:
-		count = strtoul(args[1], NULL, 0);
-		if (errno)
-			return ERROR_FAIL;
+		COMMAND_PARSE_NUMBER(ulong, args[1], count);
 		/* FALL THROUGH */
 	case 1:
-		address = strtoul(args[0], NULL, 0);
-		if (errno)
-			return ERROR_FAIL;
+		COMMAND_PARSE_NUMBER(u32, args[0], address);
 		break;
 	default:
 		command_print(cmd_ctx,
