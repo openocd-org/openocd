@@ -70,6 +70,11 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target,
 int cortex_a8_assert_reset(target_t *target);
 int cortex_a8_deassert_reset(target_t *target);
 
+static int cortex_a8_mrc(target_t *target, int cpnum, uint32_t op1,
+		uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+static int cortex_a8_mcr(target_t *target, int cpnum, uint32_t op1,
+		uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+
 target_type_t cortexa8_target =
 {
 	.name = "cortex_a8",
@@ -106,6 +111,8 @@ target_type_t cortexa8_target =
 	.target_create = cortex_a8_target_create,
 	.init_target = cortex_a8_init_target,
 	.examine = cortex_a8_examine,
+	.mrc = cortex_a8_mrc,
+	.mcr = cortex_a8_mcr,
 };
 
 /*
@@ -274,6 +281,28 @@ int cortex_a8_write_cp15(target_t *target, uint32_t op1, uint32_t op2,
 {
 	return cortex_a8_write_cp(target, value, 15, op1, CRn, CRm, op2);
 }
+
+static int cortex_a8_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+	return cortex_a8_read_cp15(target, op1, op2, CRn, CRm, value);
+}
+
+static int cortex_a8_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+	return cortex_a8_write_cp15(target, op1, op2, CRn, CRm, value);
+}
+
+
 
 int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		uint32_t *value, int regnum)
