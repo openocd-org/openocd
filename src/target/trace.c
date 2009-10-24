@@ -86,7 +86,9 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 		trace->trace_points_size += 32;
 	}
 
-	trace->trace_points[trace->num_trace_points].address = strtoul(args[0], NULL, 0);
+	uint32_t address;
+	COMMAND_PARSE_NUMBER(u32, args[0], address);
+	trace->trace_points[trace->num_trace_points].address = address;
 	trace->trace_points[trace->num_trace_points].hit_counter = 0;
 	trace->num_trace_points++;
 
@@ -112,7 +114,7 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 		if (trace->trace_history)
 			free(trace->trace_history);
 
-		trace->trace_history_size = strtoul(args[0], NULL, 0);
+		COMMAND_PARSE_NUMBER(u32, args[0], trace->trace_history_size);
 		trace->trace_history = malloc(sizeof(uint32_t) * trace->trace_history_size);
 
 		command_print(cmd_ctx, "new trace history size: %i", (int)(trace->trace_history_size));
