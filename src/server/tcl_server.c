@@ -179,10 +179,8 @@ int tcl_register_commands(command_context_t *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int handle_tcl_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_tcl_port_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	if (argc == 1) {
-		tcl_port = strtoul(args[0], NULL, 0);
-	}
-	return ERROR_OK;
+	return server_port_command(cmd_ctx, cmd, args, argc, &tcl_port);
 }

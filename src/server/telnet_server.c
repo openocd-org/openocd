@@ -622,15 +622,7 @@ int telnet_register_commands(command_context_t *command_context)
 /* daemon configuration command telnet_port */
 int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
-	{
-		command_print(cmd_ctx, "%d", telnet_port);
-		return ERROR_OK;
-	}
-
-	telnet_port = strtoul(args[0], NULL, 0);
-
-	return ERROR_OK;
+	return server_port_command(cmd_ctx, cmd, args, argc, &telnet_port);
 }
 
 int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

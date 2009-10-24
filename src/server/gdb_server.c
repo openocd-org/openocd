@@ -2271,15 +2271,7 @@ int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd, char *
 /* daemon configuration command gdb_port */
 int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
-	{
-		command_print(cmd_ctx, "%d", gdb_port);
-		return ERROR_OK;
-	}
-
-	gdb_port = strtoul(args[0], NULL, 0);
-
-	return ERROR_OK;
+	return server_port_command(cmd_ctx, cmd, args, argc, &gdb_port);
 }
 
 int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
