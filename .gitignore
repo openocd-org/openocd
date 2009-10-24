@@ -1,12 +1,16 @@
 # stuff "git status" should ignore
 
 # build output
-.*
+.libs
+.deps
 *.o
 *.a
 *.lo
 *.la
 *.in
+
+# editor files
+*.swp
 
 startup_tcl.c
 xscale_debug.h
