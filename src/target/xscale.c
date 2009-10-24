@@ -3290,7 +3290,7 @@ static int xscale_handle_vector_catch_command(command_context_t *cmd_ctx,
 	}
 	else
 	{
-		COMMAND_PARSE_NUMBER(u32, args[0], xscale->vector_catch);
+		COMMAND_PARSE_NUMBER(u8, args[0], xscale->vector_catch);
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 8, xscale->vector_catch);
 		xscale_write_dcsr(target, -1, -1);
 	}
@@ -3478,7 +3478,7 @@ xscale_handle_trace_image_command(struct command_context_s *cmd_ctx,
 	if (argc >= 2)
 	{
 		xscale->trace.image->base_address_set = 1;
-		COMMAND_PARSE_NUMBER(u32, args[1], xscale->trace.image->base_address);
+		COMMAND_PARSE_NUMBER(int, args[1], xscale->trace.image->base_address);
 	}
 	else
 	{
