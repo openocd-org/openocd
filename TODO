@@ -142,6 +142,12 @@ Once the above are completed:
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - regression: "reset halt" between 729(works) and 788(fails): @par
 https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
+- mcr/mrc target->type support
+  - missing from ARM11, ARM920t, ARM966e, XScale.
+  It's possible that the current syntax is unable to support read-modify-write
+  operations(see arm966e).
+  - mcr/mrc - retire cp15 commands when there the mrc/mrc commands have been
+  tested from: arm926ejs, arm720t, cortex_a8
 - ARM7/9:
   - clean up "arm9tdmi vector_catch". Available for some arm7 cores? @par
 https://lists.berlios.de/pipermail/openocd-development/2009-October/011488.html
