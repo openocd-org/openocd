@@ -1295,7 +1295,8 @@ int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	/* one or more argument, access a single register (write if second argument is given */
 	if (argc >= 1)
 	{
-		int address = strtoul(args[0], NULL, 0);
+		int address;
+		COMMAND_PARSE_NUMBER(int, args[0], address);
 
 		if (argc == 1)
 		{
@@ -1314,7 +1315,8 @@ int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		else if (argc == 2)
 		{
-			uint32_t value = strtoul(args[1], NULL, 0);
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, args[1], value);
 			if ((retval = arm920t_write_cp15_physical(target, address, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access reg %i", address);
@@ -1354,7 +1356,8 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 	/* one or more argument, access a single register (write if second argument is given */
 	if (argc >= 1)
 	{
-		uint32_t opcode = strtoul(args[0], NULL, 0);
+		uint32_t opcode;
+		COMMAND_PARSE_NUMBER(u32, args[0], opcode);
 
 		if (argc == 1)
 		{
@@ -1369,7 +1372,8 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 		}
 		else if (argc == 2)
 		{
-			uint32_t value = strtoul(args[1], NULL, 0);
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, args[1], value);
 			if ((retval = arm920t_write_cp15_interpreted(target, opcode, value, 0)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);
@@ -1379,8 +1383,10 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 		}
 		else if (argc == 3)
 		{
-			uint32_t value = strtoul(args[1], NULL, 0);
-			uint32_t address = strtoul(args[2], NULL, 0);
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, args[1], value);
+			uint32_t address;
+			COMMAND_PARSE_NUMBER(u32, args[2], address);
 			if ((retval = arm920t_write_cp15_interpreted(target, opcode, value, address)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);
