@@ -756,25 +756,27 @@ static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
 	uint32_t apsel, apselsave, baseaddr;
 	int retval;
 
-	apsel = swjdp->apsel;
 	apselsave = swjdp->apsel;
-	if (argc > 0)
-	{
-		apsel = strtoul(args[0], NULL, 0);
+	switch (argc) {
+	case 0:
+		apsel = swjdp->apsel;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+
 	if (apselsave != apsel)
-	{
 		dap_ap_select(swjdp, apsel);
-	}
 
 	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
 	retval = swjdp_transaction_endcheck(swjdp);
 	command_print(cmd_ctx, "0x%8.8" PRIx32 "", baseaddr);
 
 	if (apselsave != apsel)
-	{
 		dap_ap_select(swjdp, apselsave);
-	}
 
 	return retval;
 }
@@ -822,9 +824,16 @@ static int handle_dap_info_command(struct command_context_s *cmd_ctx,
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
 
-	apsel =  swjdp->apsel;
-	if (argc > 0)
-		apsel = strtoul(args[0], NULL, 0);
+	switch (argc) {
+	case 0:
+		apsel = swjdp->apsel;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
 	return dap_info_command(cmd_ctx, swjdp, apsel);
 }
