@@ -270,7 +270,8 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	/* one or more argument, access a single register (write if second argument is given */
 	if (argc >= 1)
 	{
-		int address = strtoul(args[0], NULL, 0);
+		uint32_t address;
+		COMMAND_PARSE_NUMBER(u32, args[0], address);
 
 		if (argc == 1)
 		{
@@ -289,7 +290,8 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		else if (argc == 2)
 		{
-			uint32_t value = strtoul(args[1], NULL, 0);
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, args[1], value);
 			if ((retval = arm966e_write_cp15(target, address, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access reg %i", address);
