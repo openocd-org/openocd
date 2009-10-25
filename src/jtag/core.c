@@ -1204,20 +1204,29 @@ done:
 
 void jtag_tap_init(jtag_tap_t *tap)
 {
+	unsigned ir_len_bits;
+	unsigned ir_len_bytes;
+
 	assert(0 != tap->ir_length);
 
-	/// @todo fix, this allocates one byte per bit for all three fields!
-	tap->expected = malloc(tap->ir_length);
-	tap->expected_mask = malloc(tap->ir_length);
-	tap->cur_instr = malloc(tap->ir_length);
+	ir_len_bits = tap->ir_length;
+	ir_len_bytes = CEIL(ir_len_bits, 8);
 
-	/// @todo cope sanely with ir_length bigger than 32 bits
-	buf_set_u32(tap->expected, 0, tap->ir_length, tap->ir_capture_value);
-	buf_set_u32(tap->expected_mask, 0, tap->ir_length, tap->ir_capture_mask);
+	tap->expected = calloc(1, ir_len_bytes);
+	tap->expected_mask = calloc(1, ir_len_bytes);
+	tap->cur_instr = malloc(ir_len_bytes);
+
+	/// @todo cope better with ir_length bigger than 32 bits
+	if (ir_len_bits > 32)
+		ir_len_bits = 32;
+
+	buf_set_u32(tap->expected, 0, ir_len_bits, tap->ir_capture_value);
+	buf_set_u32(tap->expected_mask, 0, ir_len_bits, tap->ir_capture_mask);
+
+	// TAP will be in bypass mode after jtag_validate_ircapture()
+	tap->bypass = 1;
 	buf_set_ones(tap->cur_instr, tap->ir_length);
 
-	// place TAP in bypass mode
-	tap->bypass = 1;
 	// register the reset callback for the TAP
 	jtag_register_event_callback(&jtag_reset_callback, tap);
 
