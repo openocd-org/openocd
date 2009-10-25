@@ -713,7 +713,7 @@ int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t s
 	/* FIX!!!! this should be cleaned up and made much more general. The
 	 * plan is to write up and test on arm926ejs specifically and
 	 * then generalize and clean up afterwards. */
-	if ((count == 1) && ((size==2) || (size==4)))
+	if (arm926ejs->armv4_5_mmu.mmu_enabled && (count == 1) && ((size==2) || (size==4)))
 	{
 		/* special case the handling of single word writes to bypass MMU
 		 * to allow implementation of breakpoints in memory marked read only
