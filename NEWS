@@ -19,6 +19,8 @@ Target Layer:
 	VERY EARLY Cortex-A8 and ARMv7A support
 	Updated BeagleBoard.org hardware support
     New commands for use with XScale processors: "xscale vector_table"
+    ARM9
+	name change:  "arm9 vector_catch" not "arm9tdmi vector_catch"
     ARM11
 	single stepping support for i.MX31
 	bugfix for missing "arm11" prefix on "arm11 memwrite ..."

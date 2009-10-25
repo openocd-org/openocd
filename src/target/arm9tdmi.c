@@ -1061,14 +1061,12 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 	command_t *arm9tdmi_cmd;
 
 	retval = arm7_9_register_commands(cmd_ctx);
-	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi",
+	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9",
 			NULL, COMMAND_ANY,
-			"arm9tdmi specific commands");
+			"arm9 specific commands");
 	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch",
 			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
-			"arm9 vector_catch [all|none|reset|undef|swi|pabt|dabt|irq|fiq] - separate vectors to catch by space");
-
-
+			"arm9 vector_catch [all|none|reset|undef|swi|pabt|dabt|irq|fiq] ...");
 
 	return retval;
 }

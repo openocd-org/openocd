@@ -768,7 +768,7 @@ early boot code, which performs some of the same actions
 that the @code{reset-init} event handler does.
 
 @item
-Likewise, the @command{arm9tdmi vector_catch} command (or
+Likewise, the @command{arm9 vector_catch} command (or
 @cindex vector_catch
 its siblings @command{xscale vector_catch}
 and @command{cortex_m3 vector_catch}) can be a timesaver
@@ -5028,7 +5028,7 @@ at @var{address} for @var{length} bytes.
 This is a software breakpoint, unless @option{hw} is specified
 in which case it will be a hardware breakpoint.
 
-(@xref{arm9tdmi vector_catch}, or @pxref{xscale vector_catch},
+(@xref{arm9 vector_catch}, or @pxref{xscale vector_catch},
 for similar mechanisms that do not consume hardware breakpoints.)
 @end deffn
 
@@ -5453,18 +5453,13 @@ ARM9-family cores are built around ARM9TDMI or ARM9E (including ARM9EJS)
 integer processors.
 Such cores include the ARM920T, ARM926EJ-S, and ARM966.
 
-For historical reasons, one command shared by these cores starts
-with the @command{arm9tdmi} prefix.
-This is true even for ARM9E based processors, which implement the
-ARMv5TE architecture instead of ARMv4T.
-
 @c 9-june-2009:  tried this on arm920t, it didn't work.
 @c no-params always lists nothing caught, and that's how it acts.
 @c 23-oct-2009:  doesn't work _consistently_ ... as if the ICE
 @c versions have different rules about when they commit writes.
 
-@anchor{arm9tdmi vector_catch}
-@deffn Command {arm9tdmi vector_catch} [@option{all}|@option{none}|list]
+@anchor{arm9 vector_catch}
+@deffn Command {arm9 vector_catch} [@option{all}|@option{none}|list]
 @cindex vector_catch
 Vector Catch hardware provides a sort of dedicated breakpoint
 for hardware events such as reset, interrupt, and abort.

@@ -138,9 +138,8 @@ Once the above are completed:
 - regression: "reset halt" between 729(works) and 788(fails): @par
 https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
 - ARM7/9:
-  - clean up "arm9tdmi vector_catch". Should be available for other arm9
-  (e.g. arm926ejs) and some(???) arm7 cores. @par 
-https://lists.berlios.de/pipermail/openocd-development/2009-October/011488.html  
+  - clean up "arm9tdmi vector_catch". Available for some arm7 cores? @par
+https://lists.berlios.de/pipermail/openocd-development/2009-October/011488.html
 https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   - add reset option to allow programming embedded ice while srst is asserted.
   Some CPUs will gate the JTAG clock when srst is asserted and in this case,
