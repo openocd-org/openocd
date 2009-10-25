@@ -78,6 +78,10 @@ There are some known bugs to fix in JTAG adapter drivers:
   - usbprog.c
   - vsllink.c
   - rlink/rlink.c
+- bug: USBprog is broken with new tms sequence; it needs 7-clock cycles.
+  Fix promised from  Peter Denison openwrt at marshadder.org
+  Workaround: use "tms_sequence long" @par
+  https://lists.berlios.de/pipermail/openocd-development/2009-July/009426.html
 
 The following tasks have been suggeted for improving OpenOCD's JTAG
 interface support:
@@ -131,10 +135,6 @@ Once the above are completed:
 
 - general layer cleanup: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
-- bug: either USBprog is broken with new tms sequence or there is a general
-  problem with XScale and the new tms sequence. Workaround: use "tms_sequence long"
-  @par
-  https://lists.berlios.de/pipermail/openocd-development/2009-July/009426.html
 - regression: "reset halt" between 729(works) and 788(fails): @par
 https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
 - ARM7/9:
@@ -144,7 +144,7 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   - add reset option to allow programming embedded ice while srst is asserted.
   Some CPUs will gate the JTAG clock when srst is asserted and in this case,
   it is necessary to program embedded ice and then assert srst afterwards.
-- ARM923EJS:
+- ARM926EJS:
   - reset run/halt/step is not robust; needs testing to map out problems.
 - ARM11 improvements (MB?)
   - add support for asserting srst to reset the core.
