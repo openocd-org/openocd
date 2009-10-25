@@ -86,8 +86,6 @@ typedef struct xscale_common_s
 	reg_cache_t *reg_cache;
 
 	/* current state of the debug handler */
-	int handler_installed;
-	int handler_running;
 	uint32_t handler_address;
 
 	/* target-endian buffers with exception vectors */

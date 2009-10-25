@@ -890,8 +890,6 @@ static int xscale_arch_state(struct target_s *target)
 static int xscale_poll(target_t *target)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
 
 	if ((target->state == TARGET_RUNNING) || (target->state == TARGET_DEBUG_RUNNING))
 	{
@@ -900,8 +898,6 @@ static int xscale_poll(target_t *target)
 		{
 
 			/* there's data to read from the tx register, we entered debug state */
-			xscale->handler_running = 1;
-
 			target->state = TARGET_HALTED;
 
 			/* process debug entry, fetching current mode regs */
@@ -1365,8 +1361,6 @@ static int xscale_resume(struct target_s *target, int current,
 
 	LOG_DEBUG("target resumed");
 
-	xscale->handler_running = 1;
-
 	return ERROR_OK;
 }
 
@@ -1574,7 +1568,17 @@ static int xscale_deassert_reset(target_t *target)
 		breakpoint = breakpoint->next;
 	}
 
-	if (!xscale->handler_installed)
+	armv4_5_invalidate_core_regs(target);
+
+	/* FIXME mark hardware watchpoints got unset too.  Also,
+	 * at least some of the XScale registers are invalid...
+	 */
+
+	/*
+	 * REVISIT:  *assumes* we had a SRST+TRST reset so the mini-icache
+	 * contents got invalidated.  Safer to force that, so writing new
+	 * contents can't ever fail..
+	 */
 	{
 		uint32_t address;
 		unsigned buf_cnt;
@@ -1599,10 +1603,6 @@ static int xscale_deassert_reset(target_t *target)
 		 * it's using halt mode (not monitor mode), it runs in
 		 * "Special Debug State" for access to registers, memory,
 		 * coprocessors, trace data, etc.
-		 *
-		 * REVISIT:  *assumes* we've had a SRST+TRST reset so the
-		 * mini-icache contents have been invalidated.  Safest to
-		 * force that, so writing new contents is reliable...
 		 */
 		address = xscale->handler_address;
 		for (unsigned binary_size = sizeof xscale_debug_handler - 1;
@@ -1672,10 +1672,6 @@ static int xscale_deassert_reset(target_t *target)
 			/* resume the target */
 			xscale_resume(target, 1, 0x0, 1, 0);
 		}
-	}
-	else
-	{
-		jtag_add_reset(0, 0);
 	}
 
 	return ERROR_OK;
@@ -2967,8 +2963,6 @@ static int xscale_init_arch_info(target_t *target,
 	}
 
 	/* the debug handler isn't installed (and thus not running) at this time */
-	xscale->handler_installed = 0;
-	xscale->handler_running = 0;
 	xscale->handler_address = 0xfe000800;
 
 	/* clear the vectors we keep locally for reference */
