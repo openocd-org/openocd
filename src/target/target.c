@@ -741,6 +741,18 @@ int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, u
 	return target->type->mcr(target, cpnum, op1, op2, CRn, CRm, value);
 }
 
+static int default_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	LOG_ERROR("Not implemented");
+	return ERROR_FAIL;
+}
+
+static int default_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	LOG_ERROR("Not implemented");
+	return ERROR_FAIL;
+}
+
 
 int target_init(struct command_context_s *cmd_ctx)
 {
@@ -769,12 +781,12 @@ int target_init(struct command_context_s *cmd_ctx)
 
 		if (target->type->read_phys_memory == NULL)
 		{
-			target->type->read_phys_memory = target->type->read_memory;
+			target->type->read_phys_memory = default_read_phys_memory;
 		}
 
 		if (target->type->write_phys_memory == NULL)
 		{
-			target->type->write_phys_memory = target->type->write_memory;
+			target->type->write_phys_memory = default_write_phys_memory;
 		}
 
 		if (target->type->mcr == NULL)
