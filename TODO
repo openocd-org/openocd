@@ -217,6 +217,11 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   https://lists.berlios.de/pipermail/openocd-development/2009-October/011507.html
 - breakpoints can get lost in some circumstances: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-June/008853.html
+- add support for masks in watchpoints. The trick is that GDB does not
+  support a breakpoint mask in the remote protocol. One way to work around
+  this is to add a separate command "watchpoint_mask add/rem <addr> <mask>", that
+  is run to register a list of masks that the gdb_server knows to use with
+  a particular watchpoint address.
 - integrate Keil AGDI interface to OpenOCD? (submitted by Dario Vecchio)
 
 @section thelisttesting Testing Suite
