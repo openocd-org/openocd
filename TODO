@@ -55,8 +55,10 @@ directly in minidriver API for better embedded host performance.
 
 The following tasks have been suggested for adding new core JTAG support:
 
-- autodetect devices present on the scan chain
-  - implement 'discover_taps' command
+- Improve autodetection of TAPs by supporting tcl escape procedures that
+  can configure discovered TAPs based on IDCODE value ... they could:
+    - Remove guessing for irlen
+    - Allow non-default irmask/ircapture values
 - SPI/UART emulation:
   - (ab)use bit-banging JTAG interfaces to emulate SPI/UART
   - allow SPI to program flash, MCUs, etc.
@@ -94,6 +96,8 @@ interface support:
 - FT2232 (libftdi):
   - make performance comparable to alternatives (on Win32, D2XX is faster)
   - make usability comparable to alternatives
+- Autodetect USB based adapters; this should be easy on Linux.  If there's
+  more than one, list the options; otherwise, just select that one.
 
 The following tasks have been suggested for adding new JTAG interfaces:
 
@@ -133,6 +137,7 @@ Once the above are completed:
 
 @section thelisttargets Target Support
 
+- Many common ARM cores could be autodetected using IDCODE
 - general layer cleanup: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - regression: "reset halt" between 729(works) and 788(fails): @par

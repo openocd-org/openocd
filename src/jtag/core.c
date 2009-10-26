@@ -890,6 +890,9 @@ void jtag_sleep(uint32_t us)
  */
 #define END_OF_CHAIN_FLAG	0x000000ff
 
+/* a larger IR length than we ever expect to autoprobe */
+#define JTAG_IRLEN_MAX		60
+
 static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcode)
 {
 	scan_field_t field = {
@@ -1027,6 +1030,8 @@ static int jtag_examine_chain(void)
 	uint8_t idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	unsigned bit_count;
 	int retval;
+	int tapcount = 0;
+	bool autoprobe = false;
 
 	/* DR scan to collect BYPASS or IDCODE register contents.
 	 * Then make sure the scan data has both ones and zeroes.
@@ -1040,11 +1045,9 @@ static int jtag_examine_chain(void)
 
 	/* point at the 1st tap */
 	jtag_tap_t *tap = jtag_tap_next_enabled(NULL);
-	if (tap == NULL)
-	{
-		LOG_ERROR("JTAG: No taps enabled?");
-		return ERROR_JTAG_INIT_FAILED;
-	}
+
+	if (!tap)
+		autoprobe = true;
 
 	for (bit_count = 0;
 			tap && bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;
@@ -1086,6 +1089,59 @@ static int jtag_examine_chain(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	/* if autoprobing, the tap list is still empty ... populate it! */
+	while (autoprobe && bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31) {
+		uint32_t idcode;
+		char buf[12];
+
+		/* Is there another TAP? */
+		idcode = buf_get_u32(idcode_buffer, bit_count, 32);
+		if (jtag_idcode_is_final(idcode))
+			break;
+
+		/* Default everything in this TAP except IR length.
+		 *
+		 * REVISIT create a jtag_alloc(chip, tap) routine, and
+		 * share it with jim_newtap_cmd().
+		 */
+		tap = calloc(1, sizeof *tap);
+		if (!tap)
+			return ERROR_FAIL;
+
+		sprintf(buf, "auto%d", tapcount++);
+		tap->chip = strdup(buf);
+		tap->tapname = strdup("tap");
+
+		sprintf(buf, "%s.%s", tap->chip, tap->tapname);
+		tap->dotted_name = strdup(buf);
+
+		/* tap->ir_length == 0 ... signifying irlen autoprobe */
+		tap->ir_capture_mask = 0x03;
+		tap->ir_capture_value = 0x01;
+
+		tap->enabled = true;
+
+		if ((idcode & 1) == 0) {
+			bit_count += 1;
+			tap->hasidcode = false;
+		} else {
+			bit_count += 32;
+			tap->hasidcode = true;
+			tap->idcode = idcode;
+
+			tap->expected_ids_cnt = 1;
+			tap->expected_ids = malloc(sizeof(uint32_t));
+			tap->expected_ids[0] = idcode;
+		}
+
+		LOG_WARNING("AUTO %s - use \"jtag newtap "
+				"%s %s -expected-id 0x%8.8" PRIx32 " ...\"",
+				tap->dotted_name, tap->chip, tap->tapname,
+				tap->idcode);
+
+		jtag_tap_init(tap);
+	}
+
 	/* After those IDCODE or BYPASS register values should be
 	 * only the data we fed into the scan chain.
 	 */
@@ -1120,10 +1176,13 @@ static int jtag_validate_ircapture(void)
 	int chain_pos = 0;
 	int retval;
 
+	/* when autoprobing, accomodate huge IR lengths */
 	for (tap = NULL, total_ir_length = 0;
 			(tap = jtag_tap_next_enabled(tap)) != NULL;
-			total_ir_length += tap->ir_length)
-		continue;
+			total_ir_length += tap->ir_length) {
+		if (tap->ir_length == 0)
+			total_ir_length += JTAG_IRLEN_MAX;
+	}
 
 	/* increase length to add 2 bit sentinel after scan */
 	total_ir_length += 2;
@@ -1154,6 +1213,25 @@ static int jtag_validate_ircapture(void)
 		tap = jtag_tap_next_enabled(tap);
 		if (tap == NULL) {
 			break;
+		}
+
+		/* If we're autoprobing, guess IR lengths.  They must be at
+		 * least two bits.  Guessing will fail if (a) any TAP does
+		 * not conform to the JTAG spec; or (b) when the upper bits
+		 * captured from some conforming TAP are nonzero.
+		 *
+		 * REVISIT alternative approach: escape to some tcl code
+		 * which could provide more knowledge, based on IDCODE; and
+		 * only guess when that has no success.
+		 */
+		if (tap->ir_length == 0) {
+			tap->ir_length = 2;
+			while ((val = buf_get_u32(ir_test, chain_pos,
+						tap->ir_length + 1)) == 1) {
+				tap->ir_length++;
+			}
+			LOG_WARNING("AUTO %s - use \"... -irlen %d\"",
+					jtag_tap_name(tap), tap->ir_length);
 		}
 
 		/* Validate the two LSBs, which must be 01 per JTAG spec.
@@ -1207,9 +1285,8 @@ void jtag_tap_init(jtag_tap_t *tap)
 	unsigned ir_len_bits;
 	unsigned ir_len_bytes;
 
-	assert(0 != tap->ir_length);
-
-	ir_len_bits = tap->ir_length;
+	/* if we're autoprobing, cope with potentially huge ir_length */
+	ir_len_bits = tap->ir_length ? : JTAG_IRLEN_MAX;
 	ir_len_bytes = CEIL(ir_len_bits, 8);
 
 	tap->expected = calloc(1, ir_len_bytes);
@@ -1302,8 +1379,21 @@ int jtag_init_inner(struct command_context_s *cmd_ctx)
 
 	tap = jtag_tap_next_enabled(NULL);
 	if (tap == NULL) {
-		LOG_ERROR("There are no enabled taps?");
-		return ERROR_JTAG_INIT_FAILED;
+		/* Once JTAG itself is properly set up, and the scan chain
+		 * isn't absurdly large, IDCODE autoprobe should work fine.
+		 *
+		 * But ... IRLEN autoprobe can fail even on systems which
+		 * are fully conformant to JTAG.  Also, JTAG setup can be
+		 * quite finicky on some systems.
+		 *
+		 * REVISIT: if TAP autoprobe works OK, then in many cases
+		 * we could escape to tcl code and set up targets based on
+		 * the TAP's IDCODE values.
+		 */
+		LOG_WARNING("There are no enabled taps.  "
+				"AUTO PROBING MIGHT NOT WORK!!");
+
+		/* REVISIT default clock will often be too fast ... */
 	}
 
 	jtag_add_tlr();
