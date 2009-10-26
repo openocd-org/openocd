@@ -722,6 +722,30 @@ static int arm_cp_check(struct target_s *target, int cpnum, uint32_t op1, uint32
 		return ERROR_FAIL;
 	}
 
+	if (op1>7)
+	{
+		LOG_ERROR("Illegal op1");
+		return ERROR_FAIL;
+	}
+
+	if (op2>7)
+	{
+		LOG_ERROR("Illegal op2");
+		return ERROR_FAIL;
+	}
+
+	if (CRn>15)
+	{
+		LOG_ERROR("Illegal CRn");
+		return ERROR_FAIL;
+	}
+
+	if (CRm>7)
+	{
+		LOG_ERROR("Illegal CRm");
+		return ERROR_FAIL;
+	}
+
 	return ERROR_OK;
 }
 
