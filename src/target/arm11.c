@@ -60,6 +60,10 @@ bool	arm11_config_hardware_step				= false;
 #define ARM11_HANDLER(x)	\
 	.x				= arm11_##x
 
+
+static int arm11_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+static int arm11_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+
 target_type_t arm11_target =
 {
 	.name			= "arm11",
@@ -97,6 +101,9 @@ target_type_t arm11_target =
 	ARM11_HANDLER(target_create),
 	ARM11_HANDLER(init_target),
 	ARM11_HANDLER(examine),
+	.mrc = arm11_mrc,
+	.mcr = arm11_mcr,
+
 };
 
 int arm11_regs_arch_type = -1;
@@ -2190,6 +2197,52 @@ int arm11_handle_mcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
 {
 	return arm11_handle_mrc_mcr(cmd_ctx, cmd, args, argc, false);
 }
+
+static int arm11_mrc_inner(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value, bool read)
+{
+	int retval;
+	arm11_common_t * arm11 = target->arch_info;
+
+	uint32_t instr = 0xEE000010	|
+		(cpnum <<  8) |
+		(op1 << 21) |
+		(CRn << 16) |
+		(CRm <<  0) |
+		(op2 <<  5);
+
+	if (read)
+		instr |= 0x00100000;
+
+	retval = arm11_run_instr_data_prepare(arm11);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (read)
+	{
+		retval = arm11_run_instr_data_from_core_via_r0(arm11, instr, value);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+	else
+	{
+		retval = arm11_run_instr_data_to_core_via_r0(arm11, instr, *value);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	return arm11_run_instr_data_finish(arm11);
+}
+
+static int arm11_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, value, true);
+}
+
+static int arm11_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);
+}
+
 
 int arm11_register_commands(struct command_context_s *cmd_ctx)
 {
