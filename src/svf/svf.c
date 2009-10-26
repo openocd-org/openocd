@@ -680,6 +680,10 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 		}
 	}
 
+	// consume optional leading '0' characters
+	while (str_len > 0 && str[str_len - 1] == '0')
+		str_len--;
+
 	// check valid
 	if (str_len > 0 || (ch & ~((1 << (4 - (bit_len % 4))) - 1)) != 0)
 	{
