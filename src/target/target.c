@@ -722,25 +722,25 @@ static int arm_cp_check(struct target_s *target, int cpnum, uint32_t op1, uint32
 		return ERROR_FAIL;
 	}
 
-	if (op1>7)
+	if (op1 > 7)
 	{
 		LOG_ERROR("Illegal op1");
 		return ERROR_FAIL;
 	}
 
-	if (op2>7)
+	if (op2 > 7)
 	{
 		LOG_ERROR("Illegal op2");
 		return ERROR_FAIL;
 	}
 
-	if (CRn>15)
+	if (CRn > 15)
 	{
 		LOG_ERROR("Illegal CRn");
 		return ERROR_FAIL;
 	}
 
-	if (CRm>7)
+	if (CRm > 15)
 	{
 		LOG_ERROR("Illegal CRm");
 		return ERROR_FAIL;
@@ -4899,19 +4899,19 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (e != JIM_OK) {
 		return e;
 	}
-	op2 = l;
+	CRn = l;
 
 	e = Jim_GetLong(interp, argv[4], &l);
 	if (e != JIM_OK) {
 		return e;
 	}
-	CRn = l;
+	CRm = l;
 
 	e = Jim_GetLong(interp, argv[5], &l);
 	if (e != JIM_OK) {
 		return e;
 	}
-	CRm = l;
+	op2 = l;
 
 	value = 0;
 
