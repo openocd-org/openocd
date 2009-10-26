@@ -1007,11 +1007,20 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	return ERROR_OK;
 }
 
+/* CID interpretation -- see ARM IHI 0029B section 3 */
+static const char *class_description[16] ={
+	"Reserved", "ROM table", "Reserved", "Reserved",
+	"Reserved", "Reserved", "Reserved", "Reserved",
+	"Reserved", "CoreSight component", "Reserved", "Peripheral Test Block",
+	"Reserved", "DESS", "Generic IP component", "PrimeCell or System component"
+};
 
-char * class_description[16] ={
-	"Reserved",
-	"ROM table","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved","Reserved",
-	"CoreSight component","Reserved","Peripheral Test Block","Reserved","DESS","Generic IP component","Non standard layout"};
+static bool
+is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
+{
+	return cid3 == 0xb1 && cid2 == 0x05
+			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
+}
 
 int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, int apsel)
 {
@@ -1058,15 +1067,13 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 	{
 		uint32_t cid0,cid1,cid2,cid3,memtype,romentry;
 		uint16_t entry_offset;
+
 		/* bit 16 of apid indicates a memory access port */
-		if (dbgbase&0x02)
-		{
+		if (dbgbase & 0x02)
 			command_print(cmd_ctx, "\tValid ROM table present");
-		}
 		else
-		{
 			command_print(cmd_ctx, "\tROM table in legacy format");
-		}
+
 		/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
@@ -1074,15 +1081,17 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
 		swjdp_transaction_endcheck(swjdp);
-		command_print(cmd_ctx, "\tCID3 0x%" PRIx32 ", CID2 0x%" PRIx32 ", CID1 0x%" PRIx32 " CID0, 0x%" PRIx32,cid3,cid2,cid1,cid0);
-		if (memtype&0x01)
-		{
+		if (!is_dap_cid_ok(cid3, cid2, cid1, cid0))
+			command_print(cmd_ctx, "\tCID3 0x%2.2" PRIx32
+					", CID2 0x%2.2" PRIx32
+					", CID1 0x%2.2" PRIx32
+					", CID0 0x%2.2" PRIx32,
+					cid3, cid2, cid1, cid0);
+		if (memtype & 0x01)
 			command_print(cmd_ctx, "\tMEMTYPE system memory present on bus");
-		}
 		else
-		{
-			command_print(cmd_ctx, "\tMEMTYPE system memory not present. Dedicated debug bus");
-		}
+			command_print(cmd_ctx, "\tMEMTYPE System memory not present. "
+					"Dedicated debug bus.");
 
 		/* Now we read ROM table entries from dbgbase&0xFFFFF000) | 0x000 until we get 0x00000000 */
 		entry_offset = 0;
@@ -1092,23 +1101,249 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%" PRIx32 "",entry_offset,romentry);
 			if (romentry&0x01)
 			{
-				uint32_t c_cid0,c_cid1,c_cid2,c_cid3,c_pid0,c_pid1,c_pid2,c_pid3,c_pid4,component_start;
-				uint32_t component_base = (uint32_t)((dbgbase&0xFFFFF000) + (int)(romentry&0xFFFFF000));
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFE0, &c_pid0);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFE4, &c_pid1);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFE8, &c_pid2);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFEC, &c_pid3);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFD0, &c_pid4);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFF0, &c_cid0);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFF4, &c_cid1);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFF8, &c_cid2);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFFC, &c_cid3);
+				uint32_t c_cid0, c_cid1, c_cid2, c_cid3;
+				uint32_t c_pid0, c_pid1, c_pid2, c_pid3, c_pid4;
+				uint32_t component_start, component_base;
+				unsigned part_num;
+				char *type, *full;
+
+				component_base = (uint32_t)((dbgbase & 0xFFFFF000)
+						+ (int)(romentry & 0xFFFFF000));
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFE0, &c_pid0);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFE4, &c_pid1);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFE8, &c_pid2);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFEC, &c_pid3);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFD0, &c_pid4);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFF0, &c_cid0);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFF4, &c_cid1);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFF8, &c_cid2);
+				mem_ap_read_atomic_u32(swjdp,
+						(component_base & 0xFFFFF000) | 0xFFC, &c_cid3);
 				component_start = component_base - 0x1000*(c_pid4 >> 4);
-				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32 ", pid4 0x%" PRIx32 ", start address 0x%" PRIx32 "",component_base,c_pid4,component_start);
-				command_print(cmd_ctx, "\t\tComponent cid1 0x%" PRIx32 ", class is %s",c_cid1,class_description[(c_cid1 >> 4)&0xF]); /* Se ARM DDI 0314 C Table 2.2 */
-				command_print(cmd_ctx, "\t\tCID3 0x%" PRIx32 ", CID2 0x%" PRIx32 ", CID1 0x%" PRIx32 ", CID0, 0x%" PRIx32 "",c_cid3,c_cid2,c_cid1,c_cid0);
-				command_print(cmd_ctx, "\t\tPID3 0x%" PRIx32 ", PID2 0x%" PRIx32 ", PID1 0x%" PRIx32 ", PID0, 0x%" PRIx32 "",c_pid3,c_pid2,c_pid1,c_pid0);
-				/* For CoreSight components,  (c_cid1 >> 4)&0xF == 9 , we also read 0xFC8 DevId and 0xFCC DevType */
+
+				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32
+						", start address 0x%" PRIx32,
+						component_base, component_start);
+				command_print(cmd_ctx, "\t\tComponent class is 0x%x, %s",
+						(int) (c_cid1 >> 4) & 0xf,
+						/* See ARM IHI 0029B Table 3-3 */
+						class_description[(c_cid1 >> 4) & 0xf]);
+
+				/* CoreSight component? */
+				if (((c_cid1 >> 4) & 0x0f) == 9) {
+					uint32_t devtype;
+					unsigned minor;
+					char *major = "Reserved", *subtype = "Reserved";
+
+					mem_ap_read_atomic_u32(swjdp,
+							(component_base & 0xfffff000) | 0xfcc,
+							&devtype);
+					minor = (devtype >> 4) & 0x0f;
+					switch (devtype & 0x0f) {
+					case 0:
+						major = "Miscellaneous";
+						switch (minor) {
+						case 0:
+							subtype = "other";
+							break;
+						case 4:
+							subtype = "Validation component";
+							break;
+						}
+						break;
+					case 1:
+						major = "Trace Sink";
+						switch (minor) {
+						case 0:
+							subtype = "other";
+							break;
+						case 1:
+							subtype = "Port";
+							break;
+						case 2:
+							subtype = "Buffer";
+							break;
+						}
+						break;
+					case 2:
+						major = "Trace Link";
+						switch (minor) {
+						case 0:
+							subtype = "other";
+							break;
+						case 1:
+							subtype = "Funnel, router";
+							break;
+						case 2:
+							subtype = "Filter";
+							break;
+						case 3:
+							subtype = "FIFO, buffer";
+							break;
+						}
+						break;
+					case 3:
+						major = "Trace Source";
+						switch (minor) {
+						case 0:
+							subtype = "other";
+							break;
+						case 1:
+							subtype = "Processor";
+							break;
+						case 2:
+							subtype = "DSP";
+							break;
+						case 3:
+							subtype = "Engine/Coprocessor";
+							break;
+						case 4:
+							subtype = "Bus";
+							break;
+						}
+						break;
+					case 4:
+						major = "Debug Control";
+						switch (minor) {
+						case 0:
+							subtype = "other";
+							break;
+						case 1:
+							subtype = "Trigger Matrix";
+							break;
+						case 2:
+							subtype = "Debug Auth";
+							break;
+						}
+						break;
+					case 5:
+						major = "Debug Logic";
+						switch (minor) {
+						case 0:
+							subtype = "other";
+							break;
+						case 1:
+							subtype = "Processor";
+							break;
+						case 2:
+							subtype = "DSP";
+							break;
+						case 3:
+							subtype = "Engine/Coprocessor";
+							break;
+						}
+						break;
+					}
+					command_print(cmd_ctx, "\t\tType is 0x%2.2x, %s, %s",
+							(unsigned) (devtype & 0xff),
+							major, subtype);
+					/* REVISIT also show 0xfc8 DevId */
+				}
+
+				if (!is_dap_cid_ok(cid3, cid2, cid1, cid0))
+					command_print(cmd_ctx, "\t\tCID3 0x%2.2" PRIx32
+							", CID2 0x%2.2" PRIx32
+							", CID1 0x%2.2" PRIx32
+							", CID0 0x%2.2" PRIx32,
+							c_cid3, c_cid2, c_cid1, c_cid0);
+				command_print(cmd_ctx, "\t\tPeripheral ID[4..0] = hex "
+						"%2.2x %2.2x %2.2x %2.2x %2.2x",
+						(int) c_pid4,
+						(int) c_pid3, (int) c_pid2,
+						(int) c_pid1, (int) c_pid0);
+
+				/* Part number interpretations are from Cortex
+				 * core specs, the CoreSight components TRM
+				 * (ARM DDI 0314H), and ETM specs; also from
+				 * chip observation (e.g. TI SDTI).
+				 */
+				part_num = c_pid0 & 0xff;
+				part_num |= (c_pid1 & 0x0f) << 8;
+				switch (part_num) {
+				case 0x000:
+					type = "Cortex-M3 NVIC";
+					full = "(Interrupt Controller)";
+					break;
+				case 0x001:
+					type = "Cortex-M3 ITM";
+					full = "(Instrumentation Trace Module)";
+					break;
+				case 0x002:
+					type = "Cortex-M3 DWT";
+					full = "(Data Watchpoint and Trace)";
+					break;
+				case 0x003:
+					type = "Cortex-M3 FBP";
+					full = "(Flash Patch and Breakpoint)";
+					break;
+				case 0x00d:
+					type = "CoreSight ETM11";
+					full = "(Embedded Trace)";
+					break;
+				// case 0x113: what?
+				case 0x120:		/* from OMAP3 memmap */
+					type = "TI SDTI";
+					full = "(System Debug Trace Interface)";
+					break;
+				case 0x343:		/* from OMAP3 memmap */
+					type = "TI DAPCTL";
+					full = "";
+					break;
+				case 0x4e0:
+					type = "Cortex-M3 ETM";
+					full = "(Embedded Trace)";
+					break;
+				case 0x906:
+					type = "Coresight CTI";
+					full = "(Cross Trigger)";
+					break;
+				case 0x907:
+					type = "Coresight ETB";
+					full = "(Trace Buffer)";
+					break;
+				case 0x908:
+					type = "Coresight CSTF";
+					full = "(Trace Funnel)";
+					break;
+				case 0x910:
+					type = "CoreSight ETM9";
+					full = "(Embedded Trace)";
+					break;
+				case 0x912:
+					type = "Coresight TPIU";
+					full = "(Trace Port Interface Unit)";
+					break;
+				case 0x921:
+					type = "Cortex-A8 ETM";
+					full = "(Embedded Trace)";
+					break;
+				case 0x922:
+					type = "Cortex-A8 CTI";
+					full = "(Cross Trigger)";
+					break;
+				case 0x923:
+					type = "Cortex-M3 TPIU";
+					full = "(Trace Port Interface Unit)";
+					break;
+				case 0xc08:
+					type = "Cortex-A8 Debug";
+					full = "(Debug Unit)";
+					break;
+				default:
+					type = "-*- unrecognized -*-";
+					full = "";
+					break;
+				}
+				command_print(cmd_ctx, "\t\tPart is %s %s",
+						type, full);
 			}
 			else
 			{
