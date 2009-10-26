@@ -713,67 +713,6 @@ static int arm926ejs_target_create(struct target *target, Jim_Interp *interp)
 	return arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 }
 
-COMMAND_HANDLER(arm926ejs_handle_cp15_command)
-{
-	int retval;
-	struct target *target = get_current_target(CMD_CTX);
-	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
-	int opcode_1;
-	int opcode_2;
-	int CRn;
-	int CRm;
-
-	if ((CMD_ARGC < 4) || (CMD_ARGC > 5))
-	{
-		command_print(CMD_CTX, "usage: arm926ejs cp15 <opcode_1> <opcode_2> <CRn> <CRm> [value]");
-		return ERROR_OK;
-	}
-
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], opcode_1);
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], opcode_2);
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], CRn);
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], CRm);
-
-	retval = arm926ejs_verify_pointer(CMD_CTX, arm926ejs);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if (target->state != TARGET_HALTED)
-	{
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
-		return ERROR_OK;
-	}
-
-	if (CMD_ARGC == 4)
-	{
-		uint32_t value;
-		if ((retval = arm926ejs->read_cp15(target, opcode_1, opcode_2, CRn, CRm, &value)) != ERROR_OK)
-		{
-			command_print(CMD_CTX, "couldn't access register");
-			return ERROR_OK;
-		}
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
-		{
-			return retval;
-		}
-
-		command_print(CMD_CTX, "%i %i %i %i: %8.8" PRIx32 "", opcode_1, opcode_2, CRn, CRm, value);
-	}
-	else
-	{
-		uint32_t value;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], value);
-		if ((retval = arm926ejs->write_cp15(target, opcode_1, opcode_2, CRn, CRm, value)) != ERROR_OK)
-		{
-			command_print(CMD_CTX, "couldn't access register");
-			return ERROR_OK;
-		}
-		command_print(CMD_CTX, "%i %i %i %i: %8.8" PRIx32 "", opcode_1, opcode_2, CRn, CRm, value);
-	}
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 {
 	int retval;
@@ -828,11 +767,6 @@ int arm926ejs_register_commands(struct command_context *cmd_ctx)
 	arm926ejs_cmd = register_command(cmd_ctx, NULL, "arm926ejs",
 		NULL, COMMAND_ANY,
 		"arm926ejs specific commands");
-
-	register_command(cmd_ctx, arm926ejs_cmd, "cp15",
-		arm926ejs_handle_cp15_command, COMMAND_EXEC,
-		"display/modify cp15 register "
-		"<opcode_1> <opcode_2> <CRn> <CRm> [value]");
 
 	register_command(cmd_ctx, arm926ejs_cmd, "cache_info",
 		arm926ejs_handle_cache_info_command, COMMAND_EXEC,

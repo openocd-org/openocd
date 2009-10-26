@@ -5704,13 +5704,6 @@ they are not built from ARM926ej-s designs.
 Print information about the caches found.
 @end deffn
 
-@deffn Command {arm926ejs cp15} opcode1 opcode2 CRn CRm regnum [value]
-Accesses cp15 register @var{regnum} using
-@var{opcode1}, @var{opcode2}, @var{CRn}, and @var{CRm}.
-If a @var{value} is provided, that value is written to that register.
-Else that register is read and displayed.
-@end deffn
-
 @subsection ARM966E specific commands
 @cindex ARM966E
 
