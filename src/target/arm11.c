@@ -2087,101 +2087,6 @@ static arm11_common_t * arm11_find_target(const char * arg)
 	return 0;
 }
 
-static int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc, bool read)
-{
-	int retval;
-
-	if (argc != (read ? 6 : 7))
-	{
-		LOG_ERROR("Invalid number of arguments.");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	arm11_common_t * arm11 = arm11_find_target(args[0]);
-
-	if (!arm11)
-	{
-		LOG_ERROR("Parameter 1 is not a the JTAG chain position of an ARM11 device.");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	if (arm11->target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target was not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	uint32_t	values[6];
-
-	for (size_t i = 0; i < (read ? 5 : 6); i++)
-	{
-		COMMAND_PARSE_NUMBER(u32, args[i + 1], values[i]);
-
-		if (values[i] > arm11_coproc_instruction_limits[i])
-		{
-			LOG_ERROR("Parameter %ld out of bounds (%" PRId32 " max).",
-				  (long)(i + 2),
-				  arm11_coproc_instruction_limits[i]);
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-	}
-
-	uint32_t instr = 0xEE000010	|
-		(values[0] <<  8) |
-		(values[1] << 21) |
-		(values[2] << 16) |
-		(values[3] <<  0) |
-		(values[4] <<  5);
-
-	if (read)
-		instr |= 0x00100000;
-
-	retval = arm11_run_instr_data_prepare(arm11);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if (read)
-	{
-		uint32_t result;
-		retval = arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
-		if (retval != ERROR_OK)
-			return retval;
-
-		LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08" PRIx32 " (%" PRId32 ")",
-			 (int)(values[0]),
-			 (int)(values[1]),
-			 (int)(values[2]),
-			 (int)(values[3]),
-			 (int)(values[4]), result, result);
-	}
-	else
-	{
-		retval = arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
-		if (retval != ERROR_OK)
-			return retval;
-
-		LOG_INFO("MRC p%d, %d, R0 (#0x%08" PRIx32 "), c%d, c%d, %d",
-			 (int)(values[0]), (int)(values[1]),
-			 values[5],
-			 (int)(values[2]), (int)(values[3]), (int)(values[4]));
-	}
-
-	return arm11_run_instr_data_finish(arm11);
-}
-
-static int arm11_handle_mrc(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
-{
-	return arm11_handle_mrc_mcr(cmd_ctx, cmd, args, argc, true);
-}
-
-static int arm11_handle_mcr(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
-{
-	return arm11_handle_mrc_mcr(cmd_ctx, cmd, args, argc, false);
-}
-
 static int arm11_mrc_inner(target_t *target, int cpnum,
 		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
 		uint32_t *value, bool read)
@@ -2300,10 +2205,6 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 			"DEBUG ONLY - Hardware single stepping"
 				" (default: disabled)");
 
-	register_command(cmd_ctx, top_cmd, "mcr",
-			arm11_handle_mcr, COMMAND_ANY,
-			"Write Coprocessor register. mcr <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2> <32bit value to write>. All parameters are numbers only.");
-
 	mw_cmd = register_command(cmd_ctx, top_cmd, "memwrite",
 			NULL, COMMAND_ANY, NULL);
 	register_command(cmd_ctx, mw_cmd, "burst",
@@ -2315,9 +2216,6 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 			"Terminate program if transfer error was found"
 				" (default: enabled)");
 
-	register_command(cmd_ctx, top_cmd, "mrc",
-			arm11_handle_mrc, COMMAND_ANY,
-			"Read Coprocessor register. mrc <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2>. All parameters are numbers only.");
 	register_command(cmd_ctx, top_cmd, "step_irq_enable",
 			arm11_handle_bool_step_irq_enable, COMMAND_ANY,
 			"Enable interrupts while stepping"

@@ -1502,7 +1502,7 @@ proc setc15 @{regs value@} @{
 
     echo [format "set p15 0x%04x, 0x%08x" $regs $value]
 
-    arm11 mcr $TARGETNAME 15 [expr ($regs>>12)&0x7] \
+    mcr 15 [expr ($regs>>12)&0x7] \
         [expr ($regs>>0)&0xf] [expr ($regs>>4)&0xf] \
         [expr ($regs>>8)&0x7] $value
 @}
@@ -5796,15 +5796,6 @@ Without arguments, the current settings are displayed.
 @subsection ARM11 specific commands
 @cindex ARM11
 
-@deffn Command {arm11 mcr} pX opc1 CRn CRm opc2 value
-Write @var{value} to a coprocessor @var{pX} register
-passing parameters @var{CRn},
-@var{CRm}, opcodes @var{opc1} and @var{opc2},
-and the MCR instruction.
-(The difference beween this and the MCR2 instruction is
-one bit in the encoding, effecively a fifth parameter.)
-@end deffn
-
 @deffn Command {arm11 memwrite burst} [value]
 Displays the value of the memwrite burst-enable flag,
 which is enabled by default. Burst writes are only used
@@ -5819,15 +5810,6 @@ If @var{value} is defined, first assigns that.
 Displays the value of the memwrite error_fatal flag,
 which is enabled by default.
 If @var{value} is defined, first assigns that.
-@end deffn
-
-@deffn Command {arm11 mrc} pX opc1 CRn CRm opc2
-Read a coprocessor @var{pX} register passing parameters @var{CRn},
-@var{CRm}, opcodes @var{opc1} and @var{opc2},
-and the MRC instruction.
-(The difference beween this and the MRC2 instruction is
-one bit in the encoding, effecively a fifth parameter.)
-Displays the result.
 @end deffn
 
 @deffn Command {arm11 step_irq_enable}  [value]
