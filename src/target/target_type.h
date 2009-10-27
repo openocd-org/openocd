@@ -199,7 +199,15 @@ struct target_type_s
 	 */
 	int (*write_phys_memory)(struct target_s *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
 
+	/* returns true if the mmu is enabled. Default implementation returns error. */
 	int (*mmu)(struct target_s *target, int *enabled);
+
+	/* returns true if the target has an mmu. This can only be
+	determined after the target has been examined.
+	
+	Default implementation returns success and has_mmu==true.
+	*/
+	int (*has_mmu)(struct target_s *target, bool *has_mmu);
 
 	/* Read coprocessor - arm specific. Default implementation returns error. */
 	int (*mrc)(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
