@@ -197,7 +197,6 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	jim_wide w;
 	int x;
 	int e;
-	int reqbits;
 	Jim_Nvp *n;
 	char *cp;
 	const Jim_Nvp opts[] = {
@@ -251,9 +250,6 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	 */
 	pTap->ir_capture_mask = 0x03;
 	pTap->ir_capture_value = 0x01;
-
-	/* clear flags for "required options" them as we find them */
-	reqbits = 1;
 
 	while (goi->argc) {
 		e = Jim_GetOpt_Nvp(goi, opts, &n);
@@ -317,7 +313,6 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 							pTap->dotted_name,
 							(int) w);
 				pTap->ir_length = w;
-				reqbits = 0;
 				break;
 			case NTAP_OPT_IRMASK:
 				if (is_bad_irval(pTap->ir_length, w)) {
@@ -355,14 +350,14 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	pTap->enabled = !pTap->disabled_after_reset;
 
 	/* Did all the required option bits get cleared? */
-	if (0 == reqbits)
+	if (pTap->ir_length != 0)
 	{
 		jtag_tap_init(pTap);
 		return ERROR_OK;
 	}
 
 	Jim_SetResult_sprintf(goi->interp,
-			"newtap: %s missing required parameters",
+			"newtap: %s missing IR length",
 			pTap->dotted_name);
 	jtag_tap_free(pTap);
 	return JIM_ERR;
