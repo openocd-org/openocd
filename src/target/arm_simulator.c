@@ -309,19 +309,17 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 	{
 		uint16_t opcode;
 
-		if ((retval = target_read_u16(target, current_pc, &opcode)) != ERROR_OK)
-		{
+		retval = target_read_u16(target, current_pc, &opcode);
+		if (retval != ERROR_OK)
 			return retval;
-		}
-		if ((retval = thumb_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
-		{
+		retval = thumb_evaluate_opcode(opcode, current_pc, &instruction);
+		 if (retval != ERROR_OK)
 			return retval;
-			}
 		instruction_size = 2;
 
 		/* check condition code (only for branch instructions) */
-		if ((!thumb_pass_branch_condition(sim->get_cpsr(sim, 0, 32), opcode)) &&
-			(instruction.type == ARM_B))
+		if (instruction.type == ARM_B &&
+		    !thumb_pass_branch_condition(sim->get_cpsr(sim, 0, 32), opcode))
 		{
 			if (dry_run_pc)
 			{
