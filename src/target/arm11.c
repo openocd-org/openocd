@@ -2201,6 +2201,13 @@ int arm11_handle_mcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
 static int arm11_mrc_inner(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value, bool read)
 {
 	int retval;
+	
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_ERROR("Target not halted");
+		return ERROR_FAIL;
+	}
+		
 	arm11_common_t * arm11 = target->arch_info;
 
 	uint32_t instr = 0xEE000010	|
