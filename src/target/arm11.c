@@ -2143,6 +2143,59 @@ static int arm11_mcr(target_t *target, int cpnum,
 	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);
 }
 
+static int arm11_handle_etm_read_write(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool read)
+{
+	if (argc != (read ? 2 : 3))
+	{
+		LOG_ERROR("Invalid number of arguments.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	arm11_common_t * arm11 = arm11_find_target(args[0]);
+
+	if (!arm11)
+	{
+		LOG_ERROR("Parameter 1 is not the target name of an ARM11 device.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	uint32_t address;
+	COMMAND_PARSE_NUMBER(u32, args[1], address);
+
+	if (!read)
+	{
+		uint32_t value;
+		COMMAND_PARSE_NUMBER(u32, args[2], value);
+
+		LOG_INFO("ETM write register 0x%02" PRIx32 " (%" PRId32 ") = 0x%08" PRIx32 " (%" PRId32 ")",
+		  address, address, value, value);
+
+		CHECK_RETVAL(arm11_write_etm(arm11, address, value));
+	}
+	else
+	{
+		uint32_t value;
+
+		CHECK_RETVAL(arm11_read_etm(arm11, address, &value));
+
+	    LOG_INFO("ETM read register 0x%02" PRIx32 " (%" PRId32 ") = 0x%08" PRIx32 " (%" PRId32 ")",
+		  address, address, value, value);
+	}
+
+	return ERROR_OK;
+}
+
+int arm11_handle_etmr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	return arm11_handle_etm_read_write(cmd_ctx, cmd, args, argc, true);
+}
+
+int arm11_handle_etmw(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	return arm11_handle_etm_read_write(cmd_ctx, cmd, args, argc, false);
+}
+
+
 #define ARM11_HANDLER(x)	.x = arm11_##x
 
 target_type_t arm11_target = {
@@ -2195,6 +2248,14 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	top_cmd = register_command(cmd_ctx, NULL, "arm11",
 			NULL, COMMAND_ANY, NULL);
+
+	register_command(cmd_ctx, top_cmd, "etmr",
+			arm11_handle_etmr, COMMAND_ANY,
+			"Read Embedded Trace Macrocell (ETM) register. etmr <jtag_target> <ETM register address>");
+
+	register_command(cmd_ctx, top_cmd, "etmw",
+			arm11_handle_etmw, COMMAND_ANY,
+			"Write Embedded Trace Macrocell (ETM) register. etmr <jtag_target> <ETM register address> <value>");
 
 	/* "hardware_step" is only here to check if the default
 	 * simulate + breakpoint implementation is broken.

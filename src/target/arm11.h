@@ -184,4 +184,9 @@ typedef struct arm11_reg_state_s
 
 int arm11_register_commands(struct command_context_s *cmd_ctx);
 
+int arm11_read_etm(arm11_common_t * arm11, uint8_t address, uint32_t *value);
+int arm11_write_etm(arm11_common_t * arm11, uint8_t address, uint32_t value);
+
+
+
 #endif /* ARM11_H */
