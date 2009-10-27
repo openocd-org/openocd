@@ -332,6 +332,18 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 
 			return ERROR_OK;
 		}
+
+		/* Deal with 32-bit BL/BLX */
+		if ((opcode & 0xf800) == 0xf000) {
+			uint32_t high = instruction.info.b_bl_bx_blx.target_address;
+			retval = target_read_u16(target, current_pc+2, &opcode);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = thumb_evaluate_opcode(opcode, current_pc, &instruction);
+			if (retval != ERROR_OK)
+				return retval;
+			instruction.info.b_bl_bx_blx.target_address += high;
+		}
 	}
 
 	/* examine instruction type */
