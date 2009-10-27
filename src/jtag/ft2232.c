@@ -1552,7 +1552,6 @@ static int ft2232_execute_runtest(jtag_command_t *cmd)
 
 		/* TMS data bits */
 		buffer_write(0x0);
-		tap_set_state(TAP_IDLE);
 
 		i -= (i > 7) ? 7 : i;
 		/* LOG_DEBUG("added TMS scan (no read)"); */
