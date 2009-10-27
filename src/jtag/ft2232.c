@@ -137,6 +137,7 @@ static int axm0432_jtag_init(void);
 static int sheevaplug_init(void);
 static int icebear_jtag_init(void);
 static int cortino_jtag_init(void);
+static int signalyzer_h_init(void);
 
 /* reset procedures for supported layouts */
 static void usbjtag_reset(int trst, int srst);
@@ -149,11 +150,13 @@ static void stm32stick_reset(int trst, int srst);
 static void axm0432_jtag_reset(int trst, int srst);
 static void sheevaplug_reset(int trst, int srst);
 static void icebear_jtag_reset(int trst, int srst);
+static void signalyzer_h_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 static void olimex_jtag_blink(void);
 static void flyswatter_jtag_blink(void);
 static void turtle_jtag_blink(void);
+static void signalyzer_h_blink(void);
 
 static const ft2232_layout_t  ft2232_layouts[] =
 {
@@ -173,6 +176,7 @@ static const ft2232_layout_t  ft2232_layouts[] =
 	{ "sheevaplug",           sheevaplug_init,           sheevaplug_reset,   NULL                    },
 	{ "icebear",              icebear_jtag_init,         icebear_jtag_reset, NULL                    },
 	{ "cortino",              cortino_jtag_init,         comstick_reset, NULL                        },
+	{ "signalyzer-h",         signalyzer_h_init,         signalyzer_h_reset, signalyzer_h_blink      },
 	{ NULL,                   NULL,                      NULL,               NULL                    },
 };
 
@@ -3069,4 +3073,809 @@ static void icebear_jtag_reset(int trst, int srst) {
 	buffer_write(low_direction);
 
 	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+}
+
+/* ---------------------------------------------------------------------
+ * Support for Signalyzer H2 and Signalyzer H4
+ * JTAG adapter from Xverve Technologies Inc.
+ * http://www.signalyzer.com or http://www.xverve.com
+ *
+ * Author: Oleg Seiljus, oleg@signalyzer.com
+ */
+static unsigned char signalyzer_h_side;
+static unsigned int signalyzer_h_adapter_type;
+
+static int signalyzer_h_ctrl_write(int address, unsigned short value);
+
+#if BUILD_FT2232_FTD2XX == 1
+static int signalyzer_h_ctrl_read(int address, unsigned short *value);
+#endif
+
+#define SIGNALYZER_COMMAND_ADDR					128
+#define SIGNALYZER_DATA_BUFFER_ADDR				129
+
+#define SIGNALYZER_COMMAND_VERSION				0x41
+#define SIGNALYZER_COMMAND_RESET				0x42
+#define SIGNALYZER_COMMAND_POWERCONTROL_GET		0x50
+#define SIGNALYZER_COMMAND_POWERCONTROL_SET		0x51
+#define SIGNALYZER_COMMAND_PWM_SET				0x52
+#define SIGNALYZER_COMMAND_LED_SET				0x53
+#define SIGNALYZER_COMMAND_ADC					0x54
+#define SIGNALYZER_COMMAND_GPIO_STATE			0x55
+#define SIGNALYZER_COMMAND_GPIO_MODE			0x56
+#define SIGNALYZER_COMMAND_GPIO_PORT			0x57
+#define SIGNALYZER_COMMAND_I2C					0x58
+
+#define SIGNALYZER_CHAN_A						1
+#define SIGNALYZER_CHAN_B						2
+/* LEDS use channel C */
+#define SIGNALYZER_CHAN_C						4
+
+#define SIGNALYZER_LED_GREEN					1
+#define SIGNALYZER_LED_RED						2
+
+#define SIGNALYZER_MODULE_TYPE_EM_LT16_A		0x0301
+#define SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG		0x0302
+#define SIGNALYZER_MODULE_TYPE_EM_JTAG			0x0303
+#define SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P	0x0304
+#define SIGNALYZER_MODULE_TYPE_EM_JTAG_P		0x0305
+
+
+static int signalyzer_h_ctrl_write(int address, unsigned short value)
+{
+#if BUILD_FT2232_FTD2XX == 1
+	return FT_WriteEE(ftdih, address, value);
+#elif BUILD_FT2232_LIBFTDI == 1
+	return 0;
+#endif
+}
+
+#if BUILD_FT2232_FTD2XX == 1
+static int signalyzer_h_ctrl_read(int address, unsigned short *value)
+{
+	return FT_ReadEE(ftdih, address, value);
+}
+#endif
+
+static int signalyzer_h_led_set(unsigned char channel, unsigned char led,
+	int on_time_ms, int off_time_ms, unsigned char cycles)
+{
+	unsigned char on_time;
+	unsigned char off_time;
+
+	if (on_time_ms < 0xFFFF)
+		on_time = (unsigned char)(on_time_ms / 62);
+	else
+		on_time = 0xFF;
+
+	off_time = (unsigned char)(off_time_ms / 62);
+
+#if BUILD_FT2232_FTD2XX == 1
+	FT_STATUS status;
+
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			((uint32_t)(channel << 8) | led))) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 1),
+			((uint32_t)(on_time << 8) | off_time))) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 2),
+			((uint32_t)cycles))) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_LED_SET)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	return ERROR_OK;
+#elif BUILD_FT2232_LIBFTDI == 1
+	int retval;
+
+	if ((retval = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			((uint32_t)(channel << 8) | led))) < 0)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
+				ftdi_get_error_string(&ftdic));
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((retval = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 1),
+			((uint32_t)(on_time << 8) | off_time))) < 0)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
+				ftdi_get_error_string(&ftdic));
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((retval = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 2),
+			(uint32_t)cycles)) < 0)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
+				ftdi_get_error_string(&ftdic));
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((retval = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_LED_SET)) < 0)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
+				ftdi_get_error_string(&ftdic));
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	return ERROR_OK;
+#endif
+}
+
+static int signalyzer_h_init(void)
+{
+#if BUILD_FT2232_FTD2XX == 1
+	FT_STATUS status;
+	int i;
+#endif
+
+	char *end_of_desc;
+
+	uint16_t read_buf[12];
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+
+	/* turn on center green led */
+	signalyzer_h_led_set(SIGNALYZER_CHAN_C, SIGNALYZER_LED_GREEN,
+			0xFFFF, 0x00, 0x00);
+
+	/* determine what channel config wants to open
+	 * TODO: change me... current implementation is made to work
+	 * with openocd description parsing.
+	 */
+	end_of_desc = strrchr(ft2232_device_desc, 0x00);
+
+	if (end_of_desc)
+	{
+		signalyzer_h_side = *(end_of_desc - 1);
+		if (signalyzer_h_side == 'B')
+			signalyzer_h_side = SIGNALYZER_CHAN_B;
+		else
+			signalyzer_h_side = SIGNALYZER_CHAN_A;
+	}
+	else
+	{
+		LOG_ERROR("No Channel was specified");
+		return ERROR_FAIL;
+	}
+
+	signalyzer_h_led_set(signalyzer_h_side, SIGNALYZER_LED_GREEN,
+			1000, 1000, 0xFF);
+
+#if BUILD_FT2232_FTD2XX == 1
+	/* read signalyzer versionining information */
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_VERSION)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	for (i = 0; i < 10; i++)
+	{
+		if ((status = signalyzer_h_ctrl_read(
+			(SIGNALYZER_DATA_BUFFER_ADDR + i),
+			&read_buf[i])) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_read returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+	}
+
+	LOG_INFO("Signalyzer: ID info: { %.4x %.4x %.4x %.4x %.4x %.4x %.4x }",
+			read_buf[0], read_buf[1], read_buf[2], read_buf[3],
+			read_buf[4], read_buf[5], read_buf[6]);
+
+	/* set gpio register */
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1,
+			0x0404)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	/* read adapter type information */
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			((uint32_t)(signalyzer_h_side << 8) | 0x01))) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 1), 0xA000)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 2), 0x0008)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_I2C)) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	usleep(100000);
+
+	if ((status = signalyzer_h_ctrl_read(SIGNALYZER_COMMAND_ADDR,
+			&read_buf[0])) != FT_OK)
+	{
+		LOG_ERROR("signalyzer_h_ctrl_read returned: %lu", status);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	if (read_buf[0] != 0x0498)
+		signalyzer_h_adapter_type = 0x0000;
+	else
+	{
+		for (i = 0; i < 4; i++)
+		{
+			if ((status = signalyzer_h_ctrl_read(
+					(SIGNALYZER_DATA_BUFFER_ADDR + i),
+					&read_buf[i])) != FT_OK)
+			{
+				LOG_ERROR("signalyzer_h_ctrl_read returned: %lu",
+					status);
+				return ERROR_JTAG_DEVICE_ERROR;
+			}
+		}
+
+		signalyzer_h_adapter_type = read_buf[0];
+	}
+
+#elif BUILD_FT2232_LIBFTDI == 1
+	/* currently libftdi does not allow reading individual eeprom
+	 * locations, therefore adapter type cannot be detected.
+	 * override with most common type
+	 */
+	signalyzer_h_adapter_type = SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG;
+#endif
+
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/* ADAPTOR: EM_LT16_A */
+	if (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_LT16_A)
+	{
+		LOG_INFO("Signalyzer: EM-LT (16-channel level translator) "
+			"detected. (HW: %2x).", (read_buf[1] >> 8));
+
+		nTRST    = 0x10;
+		nTRSTnOE = 0x10;
+		nSRST    = 0x20;
+		nSRSTnOE = 0x20;
+
+		low_output     = 0x08;
+		low_direction  = 0x1b;
+
+		high_output    = 0x0;
+		high_direction = 0x0;
+
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+		{
+			low_direction &= ~nTRSTnOE; /* nTRST input */
+			low_output    &= ~nTRST;    /* nTRST = 0 */
+		}
+		else
+		{
+			low_direction |= nTRSTnOE;  /* nTRST output */
+			low_output    |= nTRST;     /* nTRST = 1 */
+		}
+
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+		{
+			low_direction |= nSRSTnOE;  /* nSRST output */
+			low_output    |= nSRST;     /* nSRST = 1 */
+		}
+		else
+		{
+			low_direction &= ~nSRSTnOE; /* nSRST input */
+			low_output    &= ~nSRST;    /* nSRST = 0 */
+		}
+
+#if BUILD_FT2232_FTD2XX == 1
+		/* enable power to the module */
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR,
+				((uint32_t)(signalyzer_h_side << 8) | 0x01)))
+			!= FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+				status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_POWERCONTROL_SET)) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		/* set gpio mode register */
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000))
+			!= FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_GPIO_MODE)) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		/* set gpio register */
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x4040))
+			!= FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+#endif
+	}
+
+	/* ADAPTOR: EM_ARM_JTAG, EM_ARM_JTAG_P, EM_JTAG, EM_JTAG_P */
+	else if ((signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG) ||
+				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P) ||
+				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG)  ||
+				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG_P))
+	{
+		if (signalyzer_h_adapter_type
+				== SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG)
+			LOG_INFO("Signalyzer: EM-ARM-JTAG (ARM JTAG) "
+				"detected. (HW: %2x).", (read_buf[1] >> 8));
+		else if (signalyzer_h_adapter_type
+				== SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P)
+			LOG_INFO("Signalyzer: EM-ARM-JTAG_P "
+				"(ARM JTAG with PSU) detected. (HW: %2x).",
+				(read_buf[1] >> 8));
+		else if (signalyzer_h_adapter_type
+				== SIGNALYZER_MODULE_TYPE_EM_JTAG)
+			LOG_INFO("Signalyzer: EM-JTAG (Generic JTAG) "
+				"detected. (HW: %2x).", (read_buf[1] >> 8));
+		else if (signalyzer_h_adapter_type
+				== SIGNALYZER_MODULE_TYPE_EM_JTAG_P)
+			LOG_INFO("Signalyzer: EM-JTAG-P "
+				"(Generic JTAG with PSU) detected. (HW: %2x).",
+				(read_buf[1] >> 8));
+
+		nTRST          = 0x02;
+		nTRSTnOE       = 0x04;
+		nSRST          = 0x08;
+		nSRSTnOE       = 0x10;
+
+		low_output     = 0x08;
+		low_direction  = 0x1b;
+
+		high_output    = 0x0;
+		high_direction = 0x1f;
+
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+		{
+			high_output |= nTRSTnOE;
+			high_output &= ~nTRST;
+		}
+		else
+		{
+			high_output &= ~nTRSTnOE;
+			high_output |= nTRST;
+		}
+
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+		{
+			high_output &= ~nSRSTnOE;
+			high_output |= nSRST;
+		}
+		else
+		{
+			high_output |= nSRSTnOE;
+			high_output &= ~nSRST;
+		}
+
+#if BUILD_FT2232_FTD2XX == 1
+		/* enable power to the module */
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR,
+				((uint32_t)(signalyzer_h_side << 8) | 0x01)))
+			!= FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_POWERCONTROL_SET)) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		/* set gpio mode register (IO_16 and IO_17 set as analog
+		 * inputs, other is gpio)
+		 */
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0060))
+			!= FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_GPIO_MODE)) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		/* set gpio register (all inputs, for -P modules,
+		 * PSU will be turned off)
+		 */
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000))
+			!= FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		if ((status = signalyzer_h_ctrl_write(
+				SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
+		{
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+					status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+#endif
+	}
+
+	else if (signalyzer_h_adapter_type == 0x0000)
+	{
+		LOG_INFO("Signalyzer: No external modules were detected.");
+
+		nTRST    = 0x10;
+		nTRSTnOE = 0x10;
+		nSRST    = 0x20;
+		nSRSTnOE = 0x20;
+
+		low_output     = 0x08;
+		low_direction  = 0x1b;
+
+		high_output    = 0x0;
+		high_direction = 0x0;
+
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+		{
+			low_direction &= ~nTRSTnOE; /* nTRST input */
+			low_output    &= ~nTRST;    /* nTRST = 0 */
+		}
+		else
+		{
+			low_direction |= nTRSTnOE;  /* nTRST output */
+			low_output    |= nTRST;     /* nTRST = 1 */
+		}
+
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+		{
+			low_direction |= nSRSTnOE;  /* nSRST output */
+			low_output    |= nSRST;     /* nSRST = 1 */
+		}
+		else
+		{
+			low_direction &= ~nSRSTnOE; /* nSRST input */
+			low_output    &= ~nSRST;    /* nSRST = 0 */
+		}
+	}
+	else
+	{
+		LOG_ERROR("Unknown module type is detected: %.4x",
+				signalyzer_h_adapter_type);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	/* initialize low byte of controller for jtag operation */
+	buf[0] = 0x80;
+	buf[1] = low_output;
+	buf[2] = low_direction;
+
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK)
+			|| (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize Signalyzer-H layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+#if BUILD_FT2232_FTD2XX == 1
+	if (ftdi_device == FT_DEVICE_2232H)
+	{
+		/* initialize high byte of controller for jtag operation */
+		buf[0] = 0x82;
+		buf[1] = high_output;
+		buf[2] = high_direction;
+
+		if ((ft2232_write(buf, 3, &bytes_written) != ERROR_OK)
+				|| (bytes_written != 3))
+		{
+			LOG_ERROR("couldn't initialize Signalyzer-H layout");
+			return ERROR_JTAG_INIT_FAILED;
+		}
+	}
+#elif BUILD_FT2232_LIBFTDI == 1
+	if (ftdi_device == TYPE_2232H)
+	{
+		/* initialize high byte of controller for jtag operation */
+		buf[0] = 0x82;
+		buf[1] = high_output;
+		buf[2] = high_direction;
+
+		if ((ft2232_write(buf, 3, &bytes_written) != ERROR_OK)
+				|| (bytes_written != 3))
+		{
+			LOG_ERROR("couldn't initialize Signalyzer-H layout");
+			return ERROR_JTAG_INIT_FAILED;
+		}
+	}
+#endif
+	return ERROR_OK;
+}
+
+static void signalyzer_h_reset(int trst, int srst)
+{
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/* ADAPTOR: EM_LT16_A */
+	if (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_LT16_A)
+	{
+		if (trst == 1)
+		{
+			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+				/* switch to output pin (output is low) */
+				low_direction |= nTRSTnOE;
+			else
+				/* switch output low */
+				low_output &= ~nTRST;
+		}
+		else if (trst == 0)
+		{
+			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+				/* switch to input pin (high-Z + internal
+				 * and external pullup) */
+				low_direction &= ~nTRSTnOE;
+			else
+				/* switch output high */
+				low_output |= nTRST;
+		}
+
+		if (srst == 1)
+		{
+			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+				/* switch output low */
+				low_output &= ~nSRST;
+			else
+				/* switch to output pin (output is low) */
+				low_direction |= nSRSTnOE;
+		}
+		else if (srst == 0)
+		{
+			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+				/* switch output high */
+				low_output |= nSRST;
+			else
+				/* switch to input pin (high-Z) */
+				low_direction &= ~nSRSTnOE;
+		}
+
+		/* command "set data bits low byte" */
+		buffer_write(0x80);
+		buffer_write(low_output);
+		buffer_write(low_direction);
+		LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, "
+				"low_direction: 0x%2.2x",
+				trst, srst, low_output, low_direction);
+	}
+	/* ADAPTOR: EM_ARM_JTAG,  EM_ARM_JTAG_P, EM_JTAG, EM_JTAG_P */
+	else if ((signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG) ||
+				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P) ||
+				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG)  ||
+				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG_P))
+	{
+		if (trst == 1)
+		{
+			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+				high_output &= ~nTRSTnOE;
+			else
+				high_output &= ~nTRST;
+		}
+		else if (trst == 0)
+		{
+			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+				high_output |= nTRSTnOE;
+			else
+				high_output |= nTRST;
+		}
+
+		if (srst == 1)
+		{
+			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+				high_output &= ~nSRST;
+			else
+				high_output &= ~nSRSTnOE;
+		}
+		else if (srst == 0)
+		{
+			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+				high_output |= nSRST;
+			else
+				high_output |= nSRSTnOE;
+		}
+
+		/* command "set data bits high byte" */
+		buffer_write(0x82);
+		buffer_write(high_output);
+		buffer_write(high_direction);
+		LOG_INFO("trst: %i, srst: %i, high_output: 0x%2.2x, "
+				"high_direction: 0x%2.2x",
+				trst, srst, high_output, high_direction);
+	}
+	else if (signalyzer_h_adapter_type == 0x0000)
+	{
+		if (trst == 1)
+		{
+			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+				/* switch to output pin (output is low) */
+				low_direction |= nTRSTnOE;
+			else
+				/* switch output low */
+				low_output &= ~nTRST;
+		}
+		else if (trst == 0)
+		{
+			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+				/* switch to input pin (high-Z + internal
+				 * and external pullup) */
+				low_direction &= ~nTRSTnOE;
+			else
+				/* switch output high */
+				low_output |= nTRST;
+		}
+
+		if (srst == 1)
+		{
+			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+				/* switch output low */
+				low_output &= ~nSRST;
+			else
+				/* switch to output pin (output is low) */
+				low_direction |= nSRSTnOE;
+		}
+		else if (srst == 0)
+		{
+			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+				/* switch output high */
+				low_output |= nSRST;
+			else
+				/* switch to input pin (high-Z) */
+				low_direction &= ~nSRSTnOE;
+		}
+
+		/* command "set data bits low byte" */
+		buffer_write(0x80);
+		buffer_write(low_output);
+		buffer_write(low_direction);
+		LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, "
+				"low_direction: 0x%2.2x",
+				trst, srst, low_output, low_direction);
+	}
+}
+
+static void signalyzer_h_blink(void)
+{
+	signalyzer_h_led_set(signalyzer_h_side, SIGNALYZER_LED_RED, 100, 0, 1);
 }
