@@ -380,7 +380,8 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 			else if (instruction.type == ARM_BL)
 			{
 				uint32_t old_pc = sim->get_reg(sim, 15);
-				sim->set_reg_mode(sim, 14, old_pc + 4);
+				int T = (sim->get_state(sim) == ARMV4_5_STATE_THUMB);
+				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 				sim->set_reg(sim, 15, target);
 			}
 			else if (instruction.type == ARM_BX)
@@ -398,7 +399,8 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 			else if (instruction.type == ARM_BLX)
 			{
 				uint32_t old_pc = sim->get_reg(sim, 15);
-				sim->set_reg_mode(sim, 14, old_pc + 4);
+				int T = (sim->get_state(sim) == ARMV4_5_STATE_THUMB);
+				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 
 				if (target & 0x1)
 				{
@@ -465,24 +467,24 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		if (dry_run_pc)
 		{
 			if (instruction.info.data_proc.Rd == 15)
-			{
-				*dry_run_pc = Rd;
-				return ERROR_OK;
-			}
+				*dry_run_pc = Rd & ~1;
 			else
-			{
 				*dry_run_pc = current_pc + instruction_size;
-			}
 
 			return ERROR_OK;
 		}
 		else
 		{
+			if (instruction.info.data_proc.Rd == 15) {
+				sim->set_reg_mode(sim, 15, Rd & ~1);
+				if (Rd & 1)
+					sim->set_state(sim, ARMV4_5_STATE_THUMB);
+				else
+					sim->set_state(sim, ARMV4_5_STATE_ARM);
+				return ERROR_OK;
+			}
 			sim->set_reg_mode(sim, instruction.info.data_proc.Rd, Rd);
 			LOG_WARNING("no updating of flags yet");
-
-			if (instruction.info.data_proc.Rd == 15)
-				return ERROR_OK;
 		}
 	}
 	/* compare instructions (CMP, CMN, TST, TEQ) */
@@ -566,15 +568,9 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		if (dry_run_pc)
 		{
 			if (instruction.info.load_store.Rd == 15)
-			{
-				*dry_run_pc = load_value;
-				return ERROR_OK;
-			}
+				*dry_run_pc = load_value & ~1;
 			else
-			{
 				*dry_run_pc = current_pc + instruction_size;
-			}
-
 			return ERROR_OK;
 		}
 		else
@@ -584,10 +580,16 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 			{
 				sim->set_reg_mode(sim, instruction.info.load_store.Rn, modified_address);
 			}
-			sim->set_reg_mode(sim, instruction.info.load_store.Rd, load_value);
 
-			if (instruction.info.load_store.Rd == 15)
+			if (instruction.info.load_store.Rd == 15) {
+				sim->set_reg_mode(sim, 15, load_value & ~1);
+				if (load_value & 1)
+					sim->set_state(sim, ARMV4_5_STATE_THUMB);
+				else
+					sim->set_state(sim, ARMV4_5_STATE_ARM);
 				return ERROR_OK;
+			}
+			sim->set_reg_mode(sim, instruction.info.load_store.Rd, load_value);
 		}
 	}
 	/* load multiple instruction */
@@ -636,7 +638,7 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		{
 			if (instruction.info.load_store_multiple.register_list & 0x8000)
 			{
-				*dry_run_pc = load_values[15];
+				*dry_run_pc = load_values[15] & ~1;
 				return ERROR_OK;
 			}
 		}
@@ -657,7 +659,16 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 			{
 				if (instruction.info.load_store_multiple.register_list & (1 << i))
 				{
-					sim->set_reg_mode(sim, i, load_values[i]);
+					if (i == 15) {
+						uint32_t val = load_values[i];
+					sim->set_reg_mode(sim, i, val & ~1);
+					if (val & 1)
+						sim->set_state(sim, ARMV4_5_STATE_THUMB);
+					else
+						sim->set_state(sim, ARMV4_5_STATE_ARM);
+					} else {
+						sim->set_reg_mode(sim, i, load_values[i]);
+					}
 				}
 			}
 
