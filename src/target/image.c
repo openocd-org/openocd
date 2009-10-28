@@ -8,6 +8,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2009 by Franck Hereson                                  *
+ *   franck.hereson@secad.fr                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -196,6 +199,12 @@ static int image_ihex_buffer_complete(image_t *image)
 				if (section[image->num_sections].size != 0)
 				{
 					image->num_sections++;
+					if (image->num_sections >= IMAGE_MAX_SECTIONS)
+					{
+						/* too many sections */
+						LOG_ERROR("Too many sections found in IHEX file");
+						return ERROR_IMAGE_FORMAT_ERROR;
+					}
 					section[image->num_sections].size = 0x0;
 					section[image->num_sections].flags = 0;
 					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
@@ -252,6 +261,12 @@ static int image_ihex_buffer_complete(image_t *image)
 				if (section[image->num_sections].size != 0)
 				{
 					image->num_sections++;
+					if (image->num_sections >= IMAGE_MAX_SECTIONS)
+					{
+						/* too many sections */
+						LOG_ERROR("Too many sections found in IHEX file");
+						return ERROR_IMAGE_FORMAT_ERROR;
+					}
 					section[image->num_sections].size = 0x0;
 					section[image->num_sections].flags = 0;
 					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
@@ -292,6 +307,12 @@ static int image_ihex_buffer_complete(image_t *image)
 				if (section[image->num_sections].size != 0)
 				{
 					image->num_sections++;
+					if (image->num_sections >= IMAGE_MAX_SECTIONS)
+					{
+						/* too many sections */
+						LOG_ERROR("Too many sections found in IHEX file");
+						return ERROR_IMAGE_FORMAT_ERROR;
+					}
 					section[image->num_sections].size = 0x0;
 					section[image->num_sections].flags = 0;
 					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
