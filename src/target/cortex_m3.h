@@ -29,9 +29,7 @@
 #include "register.h"
 #include "target.h"
 #include "armv7m.h"
-//#include "arm_adi_v5.h"
 
-extern char* cortex_m3_state_strings[];
 
 #define CORTEX_M3_COMMON_MAGIC 0x1A451A45
 
@@ -167,33 +165,7 @@ typedef struct cortex_m3_common_s
 	uint32_t *intsetenable;
 
 	armv7m_common_t armv7m;
-//	swjdp_common_t swjdp_info;
 	void *arch_info;
 } cortex_m3_common_t;
-
-extern void cortex_m3_build_reg_cache(target_t *target);
-
-int cortex_m3_poll(target_t *target);
-int cortex_m3_halt(target_t *target);
-int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-int cortex_m3_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
-
-int cortex_m3_assert_reset(target_t *target);
-int cortex_m3_deassert_reset(target_t *target);
-int cortex_m3_soft_reset_halt(struct target_s *target);
-
-int cortex_m3_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int cortex_m3_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int cortex_m3_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer);
-
-int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
-int cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
-
-//extern int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
-extern int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap);
 
 #endif /* CORTEX_M3_H */
