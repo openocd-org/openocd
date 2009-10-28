@@ -317,8 +317,8 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 			return retval;
 		instruction_size = 2;
 
-		/* check condition code (only for branch instructions) */
-		if (instruction.type == ARM_B &&
+		/* check condition code (only for branch (1) instructions) */
+		if ((opcode & 0xf000) == 0xd000 &&
 		    !thumb_pass_branch_condition(sim->get_cpsr(sim, 0, 32), opcode))
 		{
 			if (dry_run_pc)
