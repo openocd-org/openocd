@@ -1768,6 +1768,7 @@ static int evaluate_b_bl_blx_thumb(uint16_t opcode,
 		case 1:
 			instruction->type = ARM_BLX;
 			mnemonic = "BLX";
+			target_address &= 0xfffffffc;
 			break;
 		/* BL/BLX prefix */
 		case 2:
