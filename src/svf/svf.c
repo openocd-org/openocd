@@ -685,9 +685,9 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 		str_len--;
 
 	// check valid
-	if (str_len > 0 || (ch & ~((1 << (4 - (bit_len % 4))) - 1)) != 0)
+	if (str_len > 0 || (ch & ~((2 << ((bit_len - 1) % 4)) - 1)) != 0)
 	{
-		LOG_ERROR("value execede length");
+		LOG_ERROR("value execeeds length");
 		return ERROR_FAIL;
 	}
 
