@@ -211,9 +211,16 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int		tdo_mismatch = 0;
 	int		result;
 	int		verbose = 1;
-	char*	filename;
+	char		*filename;
 
-	int		runtest_requires_tck = 0;	/* a flag telling whether to clock TCK during waits, or simply sleep, controled by virt2 */
+	bool		collecting_path = false;
+	tap_state_t	path[XSTATE_MAX_PATH];
+	unsigned	pathlen = 0;
+
+	/* a flag telling whether to clock TCK during waits,
+	 * or simply sleep, controled by virt2
+	 */
+	int		runtest_requires_tck = 0;
 
 
 	/* use NULL to indicate a "plain" xsvf file which accounts for
@@ -263,8 +270,87 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	while (read(xsvf_fd, &opcode, 1) > 0)
 	{
-		/* record the position of the just read opcode within the file */
+		/* record the position of this opcode within the file */
 		file_offset = lseek(xsvf_fd, 0, SEEK_CUR) - 1;
+
+		/* maybe collect another state for a pathmove();
+		 * or terminate a path.
+		 */
+		if (collecting_path) {
+			tap_state_t	mystate;
+			uint8_t		uc;
+
+			switch (opcode) {
+			case XCOMMENT:
+				/* ignore/show comments between XSTATE ops */
+				break;
+			case XSTATE:
+				/* try to collect another transition */
+				if (pathlen == XSTATE_MAX_PATH) {
+					LOG_ERROR("XSVF: path too long");
+					do_abort = 1;
+					break;
+				}
+
+				if (read(xsvf_fd, &uc, 1) < 0)
+				{
+					do_abort = 1;
+					break;
+				}
+
+				mystate = xsvf_to_tap(uc);
+				path[pathlen++] = mystate;
+
+				LOG_DEBUG("XSTATE 0x%02X %s", uc,
+						tap_state_name(mystate));
+
+				/* If path is incomplete, collect more */
+				if (!svf_tap_state_is_stable(mystate))
+					continue;
+
+				/* Else execute the path transitions we've
+				 * collected so far.
+				 *
+				 * NOTE:  Punting on the saved path is not
+				 * strictly correct, but we must to do this
+				 * unless jtag_add_pathmove() stops rejecting
+				 * paths containing RESET.  This is probably
+				 * harmless, since there aren't many options
+				 * for going from a stable state to reset;
+				 * at the worst, we may issue extra clocks
+				 * once we get to RESET.
+				 */
+				if (mystate == TAP_RESET) {
+					LOG_WARNING("XSVF: dodgey RESET");
+					path[0] = mystate;
+				}
+
+				/* FALL THROUGH */
+			default:
+				/* Execute the path we collected
+				 *
+				 * NOTE: OpenOCD requires something that XSVF
+				 * doesn't:  the last TAP state in the path
+				 * must be stable.  In practice, tools that
+				 * create XSVF seem to follow that rule too.
+				 */
+				collecting_path = false;
+
+				if (path[0] == TAP_RESET)
+					jtag_add_tlr();
+				else
+					jtag_add_pathmove(pathlen, path);
+
+				result = jtag_get_error();
+				if (result != ERROR_OK) {
+					LOG_ERROR("XSVF: pathmove error %d",
+							result);
+					do_abort = 1;
+					break;
+				}
+				continue;
+			}
+		}
 
 		switch (opcode)
 		{
@@ -500,6 +586,12 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate));
 
+				if (mystate == TAP_INVALID) {
+					LOG_ERROR("XSVF: bad XSTATE %02x", uc);
+					do_abort = 1;
+					break;
+				}
+
 				/* NOTE: the current state is SVF-stable! */
 
 				/* no change == NOP */
@@ -518,19 +610,12 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				/*
 				 * A sequence of XSTATE transitions, each TAP
-				 * state adjacent to the previous one.
-				 *
-				 * NOTE: OpenOCD requires something that XSVF
-				 * doesn't:  the last TAP state in the path
-				 * must be stable.
-				 *
-				 * FIXME Implement path collection; submit via
-				 * jtag_add_pathmove() after teaching it to
-				 * report errors.
+				 * state adjacent to the previous one.  Start
+				 * collecting them.
 				 */
-				LOG_ERROR("XSVF: 'XSTATE %s' ... NYET",
-						tap_state_name(mystate));
-				unsupported = 1;
+				collecting_path = true;
+				pathlen = 1;
+				path[0] = mystate;
 			}
 			break;
 
