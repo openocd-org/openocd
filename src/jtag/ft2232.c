@@ -71,6 +71,17 @@
 /* this speed value tells that RTCK is requested */
 #define RTCK_SPEED -1
 
+/*
+ * On my Athlon XP 1900+ EHCI host with FT2232H JTAG dongle I get read timeout
+ * errors with a retry count of 100. Increasing it solves the problem for me.
+ *	- Dimitar
+ *
+ * FIXME There's likely an issue with the usb_read_timeout from libftdi.
+ * Fix that (libusb? kernel? libftdi? here?) and restore the retry count
+ * to something sane.
+ */
+#define LIBFTDI_READ_RETRY_COUNT		2000
+
 #ifndef BUILD_FT2232_HIGHSPEED
  #if BUILD_FT2232_FTD2XX == 1
 	enum { FT_DEVICE_2232H = 6, FT_DEVICE_4232H };
@@ -400,7 +411,7 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 
 #elif BUILD_FT2232_LIBFTDI == 1
 	int retval;
-	int timeout = 100;
+	int timeout = LIBFTDI_READ_RETRY_COUNT;
 	*bytes_read = 0;
 
 	while ((*bytes_read < size) && timeout--)
@@ -418,9 +429,10 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 
 	if (*bytes_read < size)
 	{
-		LOG_ERROR("couldn't read the requested number of bytes from FT2232 device (%i < %i)",
-			  (unsigned int)(*bytes_read),
-			  (unsigned int)size);
+		LOG_ERROR("couldn't read enough bytes from "
+				"FT2232 device (%i < %i)",
+				(unsigned)*bytes_read,
+				(unsigned)size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -679,7 +691,8 @@ static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 
 	if (ft2232_expect_read)
 	{
-		int timeout = 100;
+		/* FIXME this "timeout" is never changed ... */
+		int timeout = LIBFTDI_READ_RETRY_COUNT;
 		ft2232_buffer_size = 0;
 
 #ifdef _DEBUG_USB_IO_
@@ -709,16 +722,21 @@ static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 
 		if (ft2232_expect_read != ft2232_buffer_size)
 		{
-			LOG_ERROR("ft2232_expect_read (%i) != ft2232_buffer_size (%i) (%i retries)", ft2232_expect_read,
+			LOG_ERROR("ft2232_expect_read (%i) != "
+					"ft2232_buffer_size (%i) "
+					"(%i retries)",
+					ft2232_expect_read,
 					ft2232_buffer_size,
-					100 - timeout);
+					LIBFTDI_READ_RETRY_COUNT - timeout);
 			ft2232_debug_dump_buffer();
 
 			exit(-1);
 		}
 
 #ifdef _DEBUG_USB_COMMS_
-		LOG_DEBUG("read buffer (%i retries): %i bytes", 100 - timeout, ft2232_buffer_size);
+		LOG_DEBUG("read buffer (%i retries): %i bytes",
+				LIBFTDI_READ_RETRY_COUNT - timeout,
+				ft2232_buffer_size);
 		ft2232_debug_dump_buffer();
 #endif
 	}
