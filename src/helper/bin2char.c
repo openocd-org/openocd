@@ -21,6 +21,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+ #include <fcntl.h>
+#endif
+
 int main(int argc, char **argv)
 {
 	int c;
@@ -33,6 +37,12 @@ int main(int argc, char **argv)
 			" array out to standard output\n");
 		exit(1);
 	}
+
+#ifdef _WIN32
+	/* for win32 set stdin/stdout to binary mode */
+	_setmode(_fileno(stdin), _O_BINARY);
+	_setmode(_fileno(stdout), _O_BINARY);
+#endif
 
 	n = 0;
 	name = argv[1];
