@@ -902,7 +902,6 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_
 	arm7_9->enable_single_step = arm9tdmi_enable_single_step;
 	arm7_9->disable_single_step = arm9tdmi_disable_single_step;
 
-	arm7_9->pre_debug_entry = NULL;
 	arm7_9->post_debug_entry = NULL;
 
 	arm7_9->pre_restore_context = NULL;

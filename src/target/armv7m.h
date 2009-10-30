@@ -108,7 +108,6 @@ typedef struct armv7m_common_s
 	int (*write_core_reg)(struct target_s *target, int num);
 
 	int (*examine_debug_reason)(target_t *target);
-	void (*pre_debug_entry)(target_t *target);
 	void (*post_debug_entry)(target_t *target);
 
 	void (*pre_restore_context)(target_t *target);

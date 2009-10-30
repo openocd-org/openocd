@@ -102,7 +102,6 @@ typedef struct arm7_9_common_s
 
 	void (*set_special_dbgrq)(target_t *target); /**< Function for setting DBGRQ if the normal way won't work */
 
-	void (*pre_debug_entry)(target_t *target); /**< Callback function called before entering debug mode */
 	void (*post_debug_entry)(target_t *target); /**< Callback function called after entering debug mode */
 
 	void (*pre_restore_context)(target_t *target); /**< Callback function called before restoring the processor context */

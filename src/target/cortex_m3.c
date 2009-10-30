@@ -322,8 +322,6 @@ static int cortex_m3_debug_entry(target_t *target)
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	LOG_DEBUG(" ");
-	if (armv7m->pre_debug_entry)
-		armv7m->pre_debug_entry(target);
 
 	cortex_m3_clear_halt(target);
 	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -1610,7 +1608,6 @@ static int cortex_m3_init_arch_info(target_t *target,
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m3_examine_debug_reason;
 
-	armv7m->pre_debug_entry = NULL;
 	armv7m->post_debug_entry = NULL;
 
 	armv7m->pre_restore_context = NULL;

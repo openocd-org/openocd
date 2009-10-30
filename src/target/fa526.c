@@ -346,7 +346,6 @@ int fa526_init_arch_info_2(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_t
 	arm7_9->enable_single_step = arm9tdmi_enable_single_step;
 	arm7_9->disable_single_step = arm9tdmi_disable_single_step;
 
-	arm7_9->pre_debug_entry = NULL;
 	arm7_9->post_debug_entry = NULL;
 
 	arm7_9->pre_restore_context = NULL;

@@ -801,7 +801,6 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_
 	arm7_9->enable_single_step = arm7_9_enable_eice_step;
 	arm7_9->disable_single_step = arm7_9_disable_eice_step;
 
-	arm7_9->pre_debug_entry = NULL;
 	arm7_9->post_debug_entry = NULL;
 
 	arm7_9->pre_restore_context = NULL;

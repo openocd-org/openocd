@@ -1391,9 +1391,6 @@ int arm7_9_debug_entry(target_t *target)
 	LOG_DEBUG("-");
 #endif
 
-	if (arm7_9->pre_debug_entry)
-		arm7_9->pre_debug_entry(target);
-
 	/* program EmbeddedICE Debug Control Register to assert DBGACK and INTDIS
 	 * ensure that DBGRQ is cleared
 	 */

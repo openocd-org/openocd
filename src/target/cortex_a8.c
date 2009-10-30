@@ -637,9 +637,6 @@ int cortex_a8_debug_entry(target_t *target)
 	cortex_a8_common_t *cortex_a8 = armv7a->arch_info;
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-	if (armv7a->pre_debug_entry)
-		armv7a->pre_debug_entry(target);
-
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
 
 	/* Enable the ITR execution once we are in debug mode */
@@ -1586,7 +1583,6 @@ LOG_DEBUG(" ");
 	/* register arch-specific functions */
 	armv7a->examine_debug_reason = NULL;
 
-	armv7a->pre_debug_entry = NULL;
 	armv7a->post_debug_entry = cortex_a8_post_debug_entry;
 
 	armv7a->pre_restore_context = NULL;

@@ -120,7 +120,6 @@ typedef struct armv7a_common_s
 			uint32_t CRn, uint32_t CRm, uint32_t value);
 
 	int (*examine_debug_reason)(target_t *target);
-	void (*pre_debug_entry)(target_t *target);
 	void (*post_debug_entry)(target_t *target);
 
 	void (*pre_restore_context)(target_t *target);
