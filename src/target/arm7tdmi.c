@@ -38,7 +38,6 @@
 /* forward declarations */
 
 int arm7tdmi_target_create(struct target_s *target,Jim_Interp *interp);
-int arm7tdmi_quit(void);
 
 /* target function declarations */
 int arm7tdmi_poll(struct target_s *target);
@@ -80,7 +79,6 @@ target_type_t arm7tdmi_target =
 	.target_create  = arm7tdmi_target_create,
 	.init_target = arm7tdmi_init_target,
 	.examine = arm7tdmi_examine,
-	.quit = arm7tdmi_quit
 };
 
 int arm7tdmi_examine_debug_reason(target_t *target)
@@ -755,11 +753,6 @@ int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 {
 	arm7tdmi_build_reg_cache(target);
 
-	return ERROR_OK;
-}
-
-int arm7tdmi_quit(void)
-{
 	return ERROR_OK;
 }
 

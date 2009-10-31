@@ -47,7 +47,6 @@
 
 /* forward declarations */
 static int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp);
-static int arm9tdmi_quit(void);
 
 target_type_t arm9tdmi_target =
 {
@@ -85,7 +84,6 @@ target_type_t arm9tdmi_target =
 	.target_create = arm9tdmi_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm9tdmi_examine,
-	.quit = arm9tdmi_quit
 };
 
 static arm9tdmi_vector_t arm9tdmi_vectors[] =
@@ -856,11 +854,6 @@ int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 
 	arm9tdmi_build_reg_cache(target);
 
-	return ERROR_OK;
-}
-
-static int arm9tdmi_quit(void)
-{
 	return ERROR_OK;
 }
 

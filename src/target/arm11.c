@@ -97,7 +97,6 @@ target_type_t arm11_target =
 	ARM11_HANDLER(target_create),
 	ARM11_HANDLER(init_target),
 	ARM11_HANDLER(examine),
-	ARM11_HANDLER(quit),
 };
 
 int arm11_regs_arch_type = -1;
@@ -1904,12 +1903,6 @@ int arm11_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm11_quit(void)
-{
-	FNC_INFO_NOTIMPLEMENTED;
-
-	return ERROR_OK;
-}
 
 /** Load a register that is marked !valid in the register cache */
 int arm11_get_reg(reg_t *reg)

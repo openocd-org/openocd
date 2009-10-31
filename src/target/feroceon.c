@@ -583,11 +583,6 @@ int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int feroceon_quit(void)
-{
-	return ERROR_OK;
-}
-
 void feroceon_common_setup(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -715,7 +710,6 @@ target_type_t feroceon_target =
 	.target_create = feroceon_target_create,
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,
-	.quit = feroceon_quit
 };
 
 target_type_t dragonite_target =
@@ -754,6 +748,5 @@ target_type_t dragonite_target =
 	.target_create = dragonite_target_create,
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,
-	.quit = feroceon_quit
 };
 

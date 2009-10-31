@@ -43,7 +43,6 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 /* forward declarations */
 int arm920t_target_create(struct target_s *target, Jim_Interp *interp);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm920t_quit(void);
 
 #define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
 
@@ -85,7 +84,6 @@ target_type_t arm920t_target =
 	.target_create = arm920t_target_create,
 	.init_target = arm920t_init_target,
 	.examine = arm9tdmi_examine,
-	.quit = arm920t_quit
 };
 
 int arm920t_read_cp15_physical(target_t *target, int reg_addr, uint32_t *value)
@@ -656,11 +654,6 @@ int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 {
 	arm9tdmi_init_target(cmd_ctx, target);
 
-	return ERROR_OK;
-}
-
-int arm920t_quit(void)
-{
 	return ERROR_OK;
 }
 

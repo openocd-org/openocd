@@ -106,7 +106,6 @@ target_type_t cortexa8_target =
 	.target_create = cortex_a8_target_create,
 	.init_target = cortex_a8_init_target,
 	.examine = cortex_a8_examine,
-	.quit = NULL
 };
 
 /*

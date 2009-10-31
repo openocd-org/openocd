@@ -41,7 +41,6 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx);
 int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int mips_m4k_quit(void);
 int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp);
 
 int mips_m4k_examine(struct target_s *target);
@@ -85,7 +84,6 @@ target_type_t mips_m4k_target =
 	.target_create = mips_m4k_target_create,
 	.init_target = mips_m4k_init_target,
 	.examine = mips_m4k_examine,
-	.quit = mips_m4k_quit
 };
 
 int mips_m4k_examine_debug_reason(target_t *target)
@@ -916,11 +914,6 @@ int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 {
 	mips32_build_reg_cache(target);
 
-	return ERROR_OK;
-}
-
-int mips_m4k_quit(void)
-{
 	return ERROR_OK;
 }
 

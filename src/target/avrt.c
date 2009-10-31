@@ -34,7 +34,6 @@ int avr_register_commands(struct command_context_s *cmd_ctx);
 /* forward declarations */
 int avr_target_create(struct target_s *target, Jim_Interp *interp);
 int avr_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int avr_quit(void);
 
 int avr_arch_state(struct target_s *target);
 int avr_poll(target_t *target);
@@ -95,7 +94,6 @@ target_type_t avr_target =
 	.register_commands = avr_register_commands,
 	.target_create = avr_target_create,
 	.init_target = avr_init_target,
-	.quit = avr_quit,
 /*
 	.virt2phys = avr_virt2phys,
 	.mmu = avr_mmu
@@ -119,12 +117,6 @@ int avr_target_create(struct target_s *target, Jim_Interp *interp)
 }
 
 int avr_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
-{
-	LOG_DEBUG("%s", __FUNCTION__);
-	return ERROR_OK;
-}
-
-int avr_quit(void)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;

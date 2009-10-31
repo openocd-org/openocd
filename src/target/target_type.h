@@ -178,7 +178,6 @@ struct target_type_s
 	 * before the JTAG chain has been examined/verified
 	 * */
 	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
-	int (*quit)(void);
 
 	/* translate from virtual to physical address. Default implementation is successful
 	 * no-op(i.e. virtual==physical).

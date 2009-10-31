@@ -230,7 +230,6 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 int arm11_register_commands(struct command_context_s *cmd_ctx);
 int arm11_target_create(struct target_s *target, Jim_Interp *interp);
 int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm11_quit(void);
 
 /* helpers */
 int arm11_build_reg_cache(target_t *target);

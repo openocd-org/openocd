@@ -35,7 +35,6 @@
 /* forward declarations */
 int arm966e_target_create(struct target_s *target, Jim_Interp *interp);
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm966e_quit(void);
 
 target_type_t arm966e_target =
 {
@@ -73,18 +72,12 @@ target_type_t arm966e_target =
 	.target_create = arm966e_target_create,
 	.init_target = arm966e_init_target,
 	.examine = arm9tdmi_examine,
-	.quit = arm966e_quit,
 };
 
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	arm9tdmi_init_target(cmd_ctx, target);
 
-	return ERROR_OK;
-}
-
-int arm966e_quit(void)
-{
 	return ERROR_OK;
 }
 

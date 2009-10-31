@@ -1498,11 +1498,6 @@ static int cortex_m3_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_quit(void)
-{
-	return ERROR_OK;
-}
-
 static int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
@@ -1843,6 +1838,5 @@ target_type_t cortexm3_target =
 	.target_create = cortex_m3_target_create,
 	.init_target = cortex_m3_init_target,
 	.examine = cortex_m3_examine,
-	.quit = cortex_m3_quit
 };
 

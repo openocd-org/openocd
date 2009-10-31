@@ -36,7 +36,6 @@
 
 int fa526_target_create(struct target_s *target, Jim_Interp *interp);
 int fa526_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int fa526_quit(void);
 
 target_type_t fa526_target =
 {
@@ -74,7 +73,6 @@ target_type_t fa526_target =
 	.target_create = fa526_target_create,
 	.init_target = fa526_init_target,
 	.examine = arm9tdmi_examine,
-	.quit = fa526_quit
 };
 
 void fa526_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
@@ -420,10 +418,5 @@ int fa526_target_create(struct target_s *target, Jim_Interp *interp)
 int fa526_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	arm9tdmi_init_target(cmd_ctx, target);
-	return ERROR_OK;
-}
-
-int fa526_quit(void)
-{
 	return ERROR_OK;
 }

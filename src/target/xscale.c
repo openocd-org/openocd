@@ -2919,12 +2919,6 @@ static int xscale_init_target(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_quit(void)
-{
-	jtag_add_runtest(100, TAP_RESET);
-	return ERROR_OK;
-}
-
 static int xscale_init_arch_info(target_t *target,
 		xscale_common_t *xscale, jtag_tap_t *tap, const char *variant)
 {
@@ -3734,7 +3728,6 @@ target_type_t xscale_target =
 	.register_commands = xscale_register_commands,
 	.target_create = xscale_target_create,
 	.init_target = xscale_init_target,
-	.quit = xscale_quit,
 
 	.virt2phys = xscale_virt2phys,
 	.mmu = xscale_mmu

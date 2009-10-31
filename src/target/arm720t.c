@@ -41,7 +41,6 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 /* forward declarations */
 int arm720t_target_create(struct target_s *target,Jim_Interp *interp);
 int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm720t_quit(void);
 int arm720t_arch_state(struct target_s *target);
 int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
@@ -88,7 +87,6 @@ target_type_t arm720t_target =
 	.target_create = arm720t_target_create,
 	.init_target = arm720t_init_target,
 	.examine = arm7tdmi_examine,
-	.quit = arm720t_quit,
 	.mrc = arm720t_mrc,
 	.mcr = arm720t_mcr,
 
@@ -469,10 +467,6 @@ int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 	return ERROR_OK;
 }
 
-int arm720t_quit(void)
-{
-	return ERROR_OK;
-}
 
 int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap_t *tap)
 {
