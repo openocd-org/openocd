@@ -906,7 +906,9 @@ static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32
 static int arm926ejs_mmu(struct target_s *target, int *enabled)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm926ejs_common_t *arm926ejs = armv4_5->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 
 	if (target->state != TARGET_HALTED)
 	{
