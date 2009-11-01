@@ -1042,14 +1042,11 @@ static int handle_arm9tdmi_catch_vectors_command(
 		embeddedice_store_reg(vector_catch);
 	}
 
-	/* output current settings (skip RESERVED vector) */
-	for (i = 0; i < 8; i++)
-	{
-		if (i != 5)
-		{
-			command_print(cmd_ctx, "%s: %s", arm9tdmi_vectors[i].name,
-				(vector_catch_value & (1 << i)) ? "catch" : "don't catch");
-		}
+	/* output current settings */
+	for (i = 0; arm9tdmi_vectors[i].name; i++) {
+		command_print(cmd_ctx, "%s: %s", arm9tdmi_vectors[i].name,
+			(vector_catch_value & arm9tdmi_vectors[i].value)
+				? "catch" : "don't catch");
 	}
 
 	return ERROR_OK;
