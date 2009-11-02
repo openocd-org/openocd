@@ -128,9 +128,11 @@ typedef struct target_s
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	uint32_t working_area;					/* working area (initialized RAM). Evaluated
 										 * upon first allocation from virtual/physical address. */
-	uint32_t working_area_virt;				/* virtual address */
-	uint32_t working_area_phys;				/* physical address */
-	uint32_t working_area_size;				/* size in bytes */
+	bool working_area_virt_spec;		/* virtual address specified? */
+	uint32_t working_area_virt;			/* virtual address */
+	bool working_area_phys_spec;		/* virtual address specified? */
+	uint32_t working_area_phys;			/* physical address */
+	uint32_t working_area_size;			/* size in bytes */
 	uint32_t backup_working_area;			/* whether the content of the working area has to be preserved */
 	struct working_area_s *working_areas;/* list of allocated working areas */
 	enum target_debug_reason debug_reason;/* reason why the target entered debug state */

@@ -1045,13 +1045,29 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 		{
 			return retval;
 		}
+
 		if (enabled)
 		{
-			target->working_area = target->working_area_virt;
-		}
-		else
+			if (target->working_area_phys_spec)
+			{
+				LOG_DEBUG("MMU disabled, using physical address for working memory 0x%08x", (unsigned)target->working_area_phys);
+				target->working_area = target->working_area_phys;
+			} else
+			{
+				LOG_ERROR("No working memory available. Specify -work-area-phys to target.");
+				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			}
+		} else
 		{
-			target->working_area = target->working_area_phys;
+			if (target->working_area_virt_spec)
+			{
+				LOG_DEBUG("MMU enabled, using virtual address for working memory 0x%08x", (unsigned)target->working_area_virt);
+				target->working_area = target->working_area_virt;
+			} else
+			{
+				LOG_ERROR("No working memory available. Specify -work-area-virt to target.");
+				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			}
 		}
 	}
 
@@ -1080,8 +1096,6 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 		uint32_t first_free = target->working_area;
 		uint32_t free_size = target->working_area_size;
 
-		LOG_DEBUG("allocating new working area");
-
 		c = target->working_areas;
 		while (c)
 		{
@@ -1097,6 +1111,8 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 				    (unsigned)(size), (unsigned)(free_size));
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
+
+		LOG_DEBUG("allocated new working area at address 0x%08x", (unsigned)first_free);
 
 		new_wa = malloc(sizeof(working_area_t));
 		new_wa->next = NULL;
@@ -3763,6 +3779,7 @@ static int target_configure(Jim_GetOptInfo *goi, target_t *target)
 					return e;
 				}
 				target->working_area_virt = w;
+				target->working_area_virt_spec = true;
 			} else {
 				if (goi->argc != 0) {
 					goto no_params;
@@ -3780,6 +3797,7 @@ static int target_configure(Jim_GetOptInfo *goi, target_t *target)
 					return e;
 				}
 				target->working_area_phys = w;
+				target->working_area_phys_spec = true;
 			} else {
 				if (goi->argc != 0) {
 					goto no_params;
