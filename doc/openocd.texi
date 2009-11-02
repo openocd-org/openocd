@@ -725,6 +725,13 @@ than the target config file, as in the AT91SAM7X256 example.
 That's because there is no external memory (flash, DDR RAM), and
 the board differences are encapsulated by application code.
 
+@item Maybe you don't know yet what your board looks like to JTAG.
+Once you know the @file{interface.cfg} file to use, you may
+need help from OpenOCD to discover what's on the board.
+Once you find the TAPs, you can just search for appropriate
+configuration files ... or write your own, from the bottom up.
+@xref{Autoprobing}.
+
 @item You can often reuse some standard config files but
 need to write a few new ones, probably a @file{board.cfg} file.
 You will be using commands described later in this User's Guide,
@@ -1533,6 +1540,8 @@ may access or activate TAPs.
 After it leaves this stage, configuration commands may no
 longer be issued.
 
+@section Entering the Run Stage
+
 The first thing OpenOCD does after leaving the configuration
 stage is to verify that it can talk to the scan chain
 (list of TAPs) which has been configured.
@@ -1545,10 +1554,18 @@ Common errors include using an initial JTAG speed that's too
 fast, and not providing the right IDCODE values for the TAPs
 on the scan chain.
 
+Once OpenOCD has entered the run stage, a number of commands
+become available.
+A number of these relate to the debug targets you may have declared.
+For example, the @command{mww} command will not be available until
+a target has been successfuly instantiated.
+If you want to use those commands, you may need to force
+entry to the run stage.
+
 @deffn {Config Command} init
 This command terminates the configuration stage and
-enters the normal command mode. This can be useful to add commands to
-the startup scripts and commands such as resetting the target,
+enters the run stage.  This helps when you need to have
+the startup scripts manage tasks such as resetting the target,
 programming flash, etc. To reset the CPU upon startup, add "init" and
 "reset" at the end of the config script or at the end of the OpenOCD
 command line using the @option{-c} command line switch.
@@ -2791,6 +2808,75 @@ for querying the state of the JTAG taps.
 @end quotation
 @end deffn
 
+@anchor{Autoprobing}
+@section Autoprobing
+@cindex autoprobe
+@cindex JTAG autoprobe
+
+TAP configuration is the first thing that needs to be done
+after interface and reset configuration.  Sometimes it's
+hard finding out what TAPs exist, or how they are identified.
+Vendor documentation is not always easy to find and use.
+
+To help you get past such problems, OpenOCD has a limited
+@emph{autoprobing} ability to look at the scan chain, doing
+a @dfn{blind interrogation} and then reporting the TAPs it finds.
+To use this mechanism, start the OpenOCD server with only data
+that configures your JTAG interface, and arranges to come up
+with a slow clock (many devices don't support fast JTAG clocks
+right when they come out of reset).
+
+For example, your @file{openocd.cfg} file might have:
+
+@example
+source [find interface/olimex-arm-usb-tiny-h.cfg]
+reset_config trst_and_srst
+jtag_rclk 8
+@end example
+
+When you start the server without any TAPs configured, it will
+attempt to autoconfigure the TAPs.  There are two parts to this:
+
+@enumerate
+@item @emph{TAP discovery} ...
+After a JTAG reset (sometimes a system reset may be needed too),
+each TAP's data registers will hold the contents of either the
+IDCODE or BYPASS register.
+If JTAG communication is working, OpenOCD will see each TAP,
+and report what @option{-expected-id} to use with it.
+@item @emph{IR Length discovery} ...
+Unfortunately JTAG does not provide a reliable way to find out
+the value of the @option{-irlen} parameter to use with a TAP
+that is discovered.
+If OpenOCD can discover the length of a TAP's instruction
+register, it will report it.
+Otherwise you may need to consult vendor documentation, such
+as chip data sheets or BSDL files.
+@end enumerate
+
+In many cases your board will have a simple scan chain with just
+a single device.  Here's what OpenOCD reported with one board
+that's a bit more complex:
+
+@example
+clock speed 8 kHz
+There are no enabled taps.  AUTO PROBING MIGHT NOT WORK!!
+AUTO auto0.tap - use "jtag newtap auto0 tap -expected-id 0x2b900f0f ..."
+AUTO auto1.tap - use "jtag newtap auto1 tap -expected-id 0x07926001 ..."
+AUTO auto2.tap - use "jtag newtap auto2 tap -expected-id 0x0b73b02f ..."
+AUTO auto0.tap - use "... -irlen 4"
+AUTO auto1.tap - use "... -irlen 4"
+AUTO auto2.tap - use "... -irlen 6"
+no gdb ports allocated as no target has been specified
+@end example
+
+Given that information, you should be able to either find some existing
+config files to use, or create your own.  If you create your own, you
+would configure from the bottom up:  first a @file{target.cfg} file
+with these TAPs, any targets associated with them, and any on-chip
+resources; then a @file{board.cfg} with off-chip resources, clocking,
+and so forth.
+
 @node CPU Configuration
 @chapter CPU Configuration
 @cindex GDB target
@@ -2923,15 +3009,15 @@ At this writing, the supported CPU types and variants are:
 
 @itemize @bullet
 @item @code{arm11} -- this is a generation of ARMv6 cores
-@item @code{arm720t} -- this is an ARMv4 core
+@item @code{arm720t} -- this is an ARMv4 core with an MMU
 @item @code{arm7tdmi} -- this is an ARMv4 core
-@item @code{arm920t} -- this is an ARMv5 core
-@item @code{arm926ejs} -- this is an ARMv5 core
+@item @code{arm920t} -- this is an ARMv5 core with an MMU
+@item @code{arm926ejs} -- this is an ARMv5 core with an MMU
 @item @code{arm966e} -- this is an ARMv5 core
 @item @code{arm9tdmi} -- this is an ARMv4 core
 @item @code{avr} -- implements Atmel's 8-bit AVR instruction set.
 (Support for this is preliminary and incomplete.)
-@item @code{cortex_a8} -- this is an ARMv7 core
+@item @code{cortex_a8} -- this is an ARMv7 core with an MMU
 @item @code{cortex_m3} -- this is an ARMv7 core, supporting only the
 compact Thumb2 instruction set.  It supports one variant:
 @itemize @minus
@@ -2941,6 +3027,7 @@ SRST, to avoid a issue with clearing the debug registers.
 This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
 be detected and the normal reset behaviour used.
 @end itemize
+@item @code{dragonite} -- resembles arm966e
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
 @item @code{mips_m4k} -- a MIPS core.  This supports one variant:
