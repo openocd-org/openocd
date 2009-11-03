@@ -46,6 +46,10 @@ int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 
 #define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
 
+static int arm920t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+static int arm920t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+
+
 target_type_t arm920t_target =
 {
 	.name = "arm920t",
@@ -84,6 +88,8 @@ target_type_t arm920t_target =
 	.target_create = arm920t_target_create,
 	.init_target = arm920t_init_target,
 	.examine = arm9tdmi_examine,
+	.mrc = arm920t_mrc,
+	.mcr = arm920t_mcr,
 };
 
 int arm920t_read_cp15_physical(target_t *target, int reg_addr, uint32_t *value)
@@ -1406,4 +1412,27 @@ int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *c
 	}
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &arm920t->armv4_5_mmu.armv4_5_cache);
+}
+
+
+static int arm920t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+
+	return arm920t_read_cp15_interpreted(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), 0, value);
+}
+
+static int arm920t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+{
+	if (cpnum!=15)
+	{
+		LOG_ERROR("Only cp15 is supported");
+		return ERROR_FAIL;
+	}
+
+	return arm920t_write_cp15_interpreted(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), 0, value);
 }
