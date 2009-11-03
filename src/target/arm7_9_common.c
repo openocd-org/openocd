@@ -2821,8 +2821,11 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	buf_set_u32(reg_params[0].value, 0, 32, address);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
+	/* 20 second timeout/megabyte */
+	int timeout = 20000 * (1 + (count / (1024*1024)));
+
 	if ((retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
-		crc_algorithm->address, crc_algorithm->address + (sizeof(arm7_9_crc_code) - 8), 20000, &armv4_5_info)) != ERROR_OK)
+		crc_algorithm->address, crc_algorithm->address + (sizeof(arm7_9_crc_code) - 8), timeout, &armv4_5_info)) != ERROR_OK)
 	{
 		LOG_ERROR("error executing arm7_9 crc algorithm");
 		destroy_reg_param(&reg_params[0]);
