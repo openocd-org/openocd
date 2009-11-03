@@ -555,26 +555,25 @@ int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t siz
 	if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
 		return retval;
 
+	/* This fn is used to write breakpoints, so we need to make sure that the
+	 * datacache is flushed and the instruction cache is invalidated */
 	if (((size == 4) || (size == 2)) && (count == 1))
 	{
 		if (arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		{
-			LOG_DEBUG("D-Cache enabled, writing through to main memory");
-			uint32_t pa, cb, ap;
-			int type, domain;
-
-			pa = armv4_5_mmu_translate_va(target, &arm920t->armv4_5_mmu, address, &type, &cb, &domain, &ap);
-			if (type == -1)
-				return ERROR_OK;
-			/* cacheable & bufferable means write-back region */
-			if (cb == 3)
-				armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu, pa, size, count, buffer);
+			LOG_DEBUG("D-Cache enabled, flush and invalidate cache line");
+			/* MCR p15,0,Rd,c7,c10,2 */
+			retval = arm920t_write_cp15_interpreted(target, 0xee070f5e, 0x0, address);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 
 		if (arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
 		{
 			LOG_DEBUG("I-Cache enabled, invalidating affected I-Cache line");
-			arm920t_write_cp15_interpreted(target, 0xee070f35, 0x0, address);
+			retval = arm920t_write_cp15_interpreted(target, 0xee070f35, 0x0, address);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 	}
 
