@@ -70,8 +70,11 @@ Build and Release:
     Clean builds on 64-bit MinGW
 
 For more details about what has changed since the last release,
-see the ChangeLog associated with this source archive.  For older NEWS,
-see the NEWS files associated with each release (i.e. NEWS-<version>).
+see the git repository history.  With gitweb, you can browse that
+in various levels of detail.
+
+For older NEWS, see the NEWS files associated with each release
+(i.e. NEWS-<version>).
 
 For more information about contributing test reports, bug fixes, or new
 features and device support, please read the new Developer Manual (or
