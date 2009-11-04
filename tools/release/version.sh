@@ -1,9 +1,20 @@
-#!/bin/sh -e
+#!/bin/bash
 # version.sh: openocd version process automation
 # Copyright (C) 2009 by Zachary T Welch <zw@superlucidity.net>
 # Release under the GNU GPL v2 (or later versions).
 
-source "tools/release/helpers.sh"
+# FIXME Remove more bash-isms.  Fix errors making "ash -e" lose.
+
+# NOTE Use with care!  "RC" should only follow x.x.x, with
+# vendor tags after that.  Be traditional; avoid "rc0".
+
+# NOTE:  This *ONLY* updates the "configure.in" version tag.
+# It does not affect GIT tags.  Use this script immediately
+# before making a release, to remove the "-dev" tag and to
+# update the version label.  Then commit the change and tag
+# that commit to match the version label.
+
+. "tools/release/helpers.sh"
 
 do_version_usage() {
 	cat << USAGE
@@ -15,6 +26,7 @@ Version Commands:
   bump tag <label>             Add or bump a versioned tag (e.g. -rcN).
   bump final <label>           Remove a versioned tag (e.g. -rcN).
 USAGE
+# REVISIT ... "commit" not listed.
 }
 
 do_version_sed() {

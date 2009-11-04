@@ -1,7 +1,9 @@
-#!/bin/sh -e
+#!/bin/bash
 # release.sh: openocd release process automation
 # Copyright (C) 2009 by Zachary T Welch <zw@superlucidity.net>
 # Release under the GNU GPL v2 (or later versions).
+
+# FIXME Remove more bash-isms.  Fix errors making "ash -e" lose.
 
 ## set these to control the build process
 #CONFIG_OPTS=""
@@ -13,7 +15,7 @@
 ## The default is the current user name, as found by the 'id' command.
 #RELEASE_TAG="$(id -un)"
 
-source "tools/release/helpers.sh"
+. "tools/release/helpers.sh"
 
 VERSION_SH="tools/release/version.sh"
 
@@ -238,13 +240,6 @@ do_release_step_rebranch() {
 	git branch -d "${OLD_BRANCH}"
 }
 
-do_release_step_0() { do_release_step_branch; }
-do_release_step_1() { do_release_step_tag; }
-do_release_step_2() { do_release_step_bump; }
-do_release_step_3() { do_release_step_news; }
-do_release_step_4() { do_release_step_package; }
-do_release_step_5() { do_release_step_rebranch; }
-
 do_release_setup() {
 	echo "Starting $CMD for ${RELEASE_VERSION}..."
 	[ "${RELEASE_TYPE}" ] || \
@@ -274,7 +269,7 @@ do_countdown() {
 do_branch() {
 	do_release_setup
 	local i=
-	for i in 0 2 5; do
+	for i in branch bump rebranch; do
 		"do_release_step_${i}"
 	done
 }
@@ -284,7 +279,7 @@ do_release() {
 	do_release_setup
 	do_release_check
 	local i=
-	for i in $(seq 0 5); do
+	for i in branch tag bump news package rebranch; do
 		"do_release_step_${i}"
 	done
 }
