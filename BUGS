@@ -22,7 +22,8 @@ that may be important.
 - If the report is for a regression:
   - Include logs for both working and broken versions.
   - Find the precise version that caused the regression by binary search.
-    You can use "git bisect" to expedite this binary search.
+    You can use "git bisect" to expedite this binary search:  
+    http://www.kernel.org/pub/software/scm/git/docs/git-bisect.html
 
 If possible, please develop and attach a patch that helps to expose or
 solve the reported problem.  See the PATCHES file for more information
