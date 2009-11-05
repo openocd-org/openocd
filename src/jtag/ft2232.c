@@ -149,6 +149,7 @@ static int sheevaplug_init(void);
 static int icebear_jtag_init(void);
 static int cortino_jtag_init(void);
 static int signalyzer_h_init(void);
+static int ktlink_init(void);
 
 /* reset procedures for supported layouts */
 static void usbjtag_reset(int trst, int srst);
@@ -162,12 +163,14 @@ static void axm0432_jtag_reset(int trst, int srst);
 static void sheevaplug_reset(int trst, int srst);
 static void icebear_jtag_reset(int trst, int srst);
 static void signalyzer_h_reset(int trst, int srst);
+static void ktlink_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 static void olimex_jtag_blink(void);
 static void flyswatter_jtag_blink(void);
 static void turtle_jtag_blink(void);
 static void signalyzer_h_blink(void);
+static void ktlink_blink(void);
 
 static const ft2232_layout_t  ft2232_layouts[] =
 {
@@ -188,6 +191,7 @@ static const ft2232_layout_t  ft2232_layouts[] =
 	{ "icebear",              icebear_jtag_init,         icebear_jtag_reset, NULL                    },
 	{ "cortino",              cortino_jtag_init,         comstick_reset, NULL                        },
 	{ "signalyzer-h",         signalyzer_h_init,         signalyzer_h_reset, signalyzer_h_blink      },
+	{ "ktlink",               ktlink_init,               ktlink_reset,       ktlink_blink            },
 	{ NULL,                   NULL,                      NULL,               NULL                    },
 };
 
@@ -3897,3 +3901,130 @@ static void signalyzer_h_blink(void)
 {
 	signalyzer_h_led_set(signalyzer_h_side, SIGNALYZER_LED_RED, 100, 0, 1);
 }
+
+/********************************************************************
+ * Support for KT-LINK
+ * JTAG adapter from KRISTECH
+ * http://www.kristech.eu
+ *******************************************************************/
+static int ktlink_init(void)
+{
+  uint8_t  buf[3];
+  uint32_t bytes_written;
+  uint8_t  swd_en = 0x20; //0x20 SWD disable, 0x00 SWD enable (ADBUS5)
+
+  low_output    = 0x08 | swd_en; // value; TMS=1,TCK=0,TDI=0,SWD=swd_en
+  low_direction = 0x3B;          // out=1; TCK/TDI/TMS=out,TDO=in,SWD=out,RTCK=in,SRSTIN=in
+
+  // initialize low port
+  buf[0] = 0x80;          // command "set data bits low byte"
+  buf[1] = low_output;
+  buf[2] = low_direction;
+  LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+  if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
+    {
+      LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
+      return ERROR_JTAG_INIT_FAILED;
+    }
+
+  nTRST    = 0x01;
+  nSRST    = 0x02;
+  nTRSTnOE = 0x04;
+  nSRSTnOE = 0x08;
+
+  high_output    = 0x80; // turn LED on
+  high_direction = 0xFF; // all outputs
+
+  enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+  if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+    {
+      high_output |= nTRSTnOE;
+      high_output &= ~nTRST;
+    }
+  else
+    {
+      high_output &= ~nTRSTnOE;
+      high_output |= nTRST;
+    }
+
+  if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+    {
+      high_output &= ~nSRSTnOE;
+      high_output |= nSRST;
+    }
+  else
+    {
+      high_output |= nSRSTnOE;
+      high_output &= ~nSRST;
+    }
+
+  // initialize high port
+  buf[0] = 0x82;              // command "set data bits high byte"
+  buf[1] = high_output;       // value
+  buf[2] = high_direction;
+  LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+  if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
+    {
+      LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
+      return ERROR_JTAG_INIT_FAILED;
+    }
+
+  return ERROR_OK;
+}
+
+static void ktlink_reset(int trst, int srst)
+{
+  enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+  if (trst == 1)
+    {
+      if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+        high_output &= ~nTRSTnOE;
+      else
+        high_output &= ~nTRST;
+    }
+  else if (trst == 0)
+    {
+      if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+        high_output |= nTRSTnOE;
+      else
+        high_output |= nTRST;
+    }
+
+  if (srst == 1)
+    {
+      if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+        high_output &= ~nSRST;
+      else
+        high_output &= ~nSRSTnOE;
+    }
+  else if (srst == 0)
+    {
+      if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+        high_output |= nSRST;
+      else
+        high_output |= nSRSTnOE;
+    }
+
+  buffer_write(0x82); // command "set data bits high byte"
+  buffer_write(high_output);
+  buffer_write(high_direction);
+  LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,high_direction);
+}
+
+static void ktlink_blink(void)
+{
+  /*LED connected to ACBUS7 */
+  if (high_output & 0x80)
+    high_output &= 0x7F;
+  else
+    high_output |= 0x80;
+
+  buffer_write(0x82);  // command "set data bits high byte"
+  buffer_write(high_output);
+  buffer_write(high_direction);
+}
+

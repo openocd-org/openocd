@@ -4,6 +4,8 @@ history for details about what changed, including bugfixes
 and other issues not mentioned here.
 
 JTAG Layer:
+	Support KT-Link JTAG adapter.
+
 Boundary Scan:
 Target Layer:
 Flash Layer:
