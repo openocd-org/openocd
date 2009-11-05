@@ -60,8 +60,6 @@
 #define FP_COMP6	0xE0002020
 #define FP_COMP7	0xE0002024
 
-#define DWT_CTRL	0xE0001000
-
 /* DCB_DHCSR bit and field definitions */
 #define DBGKEY		(0xA05F << 16)
 #define C_DEBUGEN	(1 << 0)
@@ -159,10 +157,6 @@ typedef struct cortex_m3_common_s
 	int dwt_num_comp;
 	int dwt_comp_available;
 	cortex_m3_dwt_comparator_t *dwt_comparator_list;
-
-	/* Interrupts */
-	int intlinesnum;
-	uint32_t *intsetenable;
 
 	armv7m_common_t armv7m;
 	void *arch_info;

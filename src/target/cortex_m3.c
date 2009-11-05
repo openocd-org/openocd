@@ -1495,7 +1495,7 @@ static int cortex_m3_init_target(struct command_context_s *cmd_ctx,
 static int cortex_m3_examine(struct target_s *target)
 {
 	int retval;
-	uint32_t cpuid, fpcr, dwtcr, ictr;
+	uint32_t cpuid, fpcr, dwtcr;
 	int i;
 
 	/* get pointers to arch-specific information */
@@ -1511,21 +1511,15 @@ static int cortex_m3_examine(struct target_s *target)
 		target_set_examined(target);
 
 		/* Read from Device Identification Registers */
-		if ((retval = target_read_u32(target, CPUID, &cpuid)) != ERROR_OK)
+		retval = target_read_u32(target, CPUID, &cpuid);
+		if (retval != ERROR_OK)
 			return retval;
 
 		if (((cpuid >> 4) & 0xc3f) == 0xc23)
 			LOG_DEBUG("CORTEX-M3 processor detected");
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
-		target_read_u32(target, NVIC_ICTR, &ictr);
-		cortex_m3->intlinesnum = (ictr & 0x1F) + 1;
-		cortex_m3->intsetenable = calloc(cortex_m3->intlinesnum, 4);
-		for (i = 0; i < cortex_m3->intlinesnum; i++)
-		{
-			target_read_u32(target, NVIC_ISE0 + 4 * i, cortex_m3->intsetenable + i);
-			LOG_DEBUG("interrupt enable[%i] = 0x%8.8" PRIx32 "", i, cortex_m3->intsetenable[i]);
-		}
+		/* NOTE: FPB and DWT are both optional. */
 
 		/* Setup FPB */
 		target_read_u32(target, FP_CTRL, &fpcr);
