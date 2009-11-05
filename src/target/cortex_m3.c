@@ -223,9 +223,12 @@ static int cortex_m3_endreset_event(target_t *target)
 	/* Restore DWT registers */
 	for (i = 0; i < cortex_m3->dwt_num_comp; i++)
 	{
-		target_write_u32(target, dwt_list[i].dwt_comparator_address, dwt_list[i].comp);
-		target_write_u32(target, dwt_list[i].dwt_comparator_address | 0x4, dwt_list[i].mask);
-		target_write_u32(target, dwt_list[i].dwt_comparator_address | 0x8, dwt_list[i].function);
+		target_write_u32(target, dwt_list[i].dwt_comparator_address + 0,
+				dwt_list[i].comp);
+		target_write_u32(target, dwt_list[i].dwt_comparator_address + 4,
+				dwt_list[i].mask);
+		target_write_u32(target, dwt_list[i].dwt_comparator_address + 8,
+				dwt_list[i].function);
 	}
 	swjdp_transaction_endcheck(swjdp);
 
@@ -259,7 +262,7 @@ static int cortex_m3_examine_debug_reason(target_t *target)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 		else if (cortex_m3->nvic_dfsr & DFSR_VCATCH)
 			target->debug_reason = DBG_REASON_BREAKPOINT;
-		else /* EXTERNAL, HALTED, DWTTRAP w/o BKPT */
+		else /* EXTERNAL, HALTED */
 			target->debug_reason = DBG_REASON_UNDEFINED;
 	}
 
@@ -621,7 +624,7 @@ static int cortex_m3_resume(struct target_s *target, int current,
 		{
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)",
 					  breakpoint->address,
-					  breakpoint->unique_id );
+					  breakpoint->unique_id);
 			cortex_m3_unset_breakpoint(target, breakpoint);
 			cortex_m3_single_step_core(target);
 			cortex_m3_set_breakpoint(target, breakpoint);
@@ -1036,6 +1039,7 @@ cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 
+	/* REVISIT why check? FBP can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
@@ -1067,52 +1071,63 @@ cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	cortex_m3_dwt_comparator_t * comparator_list = cortex_m3->dwt_comparator_list;
 
-	if (watchpoint->set)
-	{
-		LOG_WARNING("watchpoint (%d) already set", watchpoint->unique_id );
-		return ERROR_OK;
+	/* watchpoint params were validated earlier */
+	mask = 0;
+	temp = watchpoint->length;
+	while (temp) {
+		temp >>= 1;
+		mask++;
 	}
+	mask--;
 
-	if (watchpoint->mask == 0xffffffffu)
+	/* REVISIT Don't fully trust these "not used" records ... users
+	 * may set up breakpoints by hand, e.g. dual-address data value
+	 * watchpoint using comparator #1; comparator #0 matching cycle
+	 * count; send data trace info through ITM and TPIU; etc
+	 */
+	cortex_m3_dwt_comparator_t *comparator;
+
+	for (comparator = cortex_m3->dwt_comparator_list;
+			comparator->used && dwt_num < cortex_m3->dwt_num_comp;
+			comparator++, dwt_num++)
+		continue;
+	if (dwt_num >= cortex_m3->dwt_num_comp)
 	{
-		while (comparator_list[dwt_num].used && (dwt_num < cortex_m3->dwt_num_comp))
-			dwt_num++;
-		if (dwt_num >= cortex_m3->dwt_num_comp)
-		{
-			LOG_DEBUG("ERROR Can not find free DWT Comparator");
-			LOG_WARNING("ERROR Can not find free DWT Comparator");
-			return -1;
-		}
-		watchpoint->set = dwt_num + 1;
-		mask = 0;
-		temp = watchpoint->length;
-		while (temp > 1)
-		{
-			temp = temp / 2;
-			mask++;
-		}
-		comparator_list[dwt_num].used = 1;
-		comparator_list[dwt_num].comp = watchpoint->address;
-		comparator_list[dwt_num].mask = mask;
-		comparator_list[dwt_num].function = watchpoint->rw + 5;
-		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address, comparator_list[dwt_num].comp);
-		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address | 0x4, comparator_list[dwt_num].mask);
-		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address | 0x8, comparator_list[dwt_num].function);
-		LOG_DEBUG("dwt_num %i 0x%" PRIx32 " 0x%" PRIx32 " 0x%" PRIx32 "", dwt_num, comparator_list[dwt_num].comp, comparator_list[dwt_num].mask, comparator_list[dwt_num].function);
+		LOG_ERROR("Can not find free DWT Comparator");
+		return ERROR_FAIL;
 	}
-	else
-	{
-		/* Move this test to add_watchpoint */
-		LOG_WARNING("Cannot watch data values (id: %d)",
-				  watchpoint->unique_id );
-		return ERROR_OK;
+	comparator->used = 1;
+	watchpoint->set = dwt_num + 1;
+
+	comparator->comp = watchpoint->address;
+	target_write_u32(target, comparator->dwt_comparator_address + 0,
+			comparator->comp);
+
+	comparator->mask = mask;
+	target_write_u32(target, comparator->dwt_comparator_address + 4,
+			comparator->mask);
+
+	switch (watchpoint->rw) {
+	case WPT_READ:
+		comparator->function = 5;
+		break;
+	case WPT_WRITE:
+		comparator->function = 6;
+		break;
+	case WPT_ACCESS:
+		comparator->function = 7;
+		break;
 	}
-	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ",
-			  watchpoint->unique_id, watchpoint->address, watchpoint->set );
+	target_write_u32(target, comparator->dwt_comparator_address + 8,
+			comparator->function);
+
+	LOG_DEBUG("Watchpoint (ID %d) DWT%d 0x%08x 0x%x 0x%05x",
+			watchpoint->unique_id, dwt_num,
+			(unsigned) comparator->comp,
+			(unsigned) comparator->mask,
+			(unsigned) comparator->function);
 	return ERROR_OK;
-
 }
 
 static int
@@ -1121,28 +1136,33 @@ cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	cortex_m3_dwt_comparator_t * comparator_list = cortex_m3->dwt_comparator_list;
+	cortex_m3_dwt_comparator_t *comparator;
 	int dwt_num;
 
 	if (!watchpoint->set)
 	{
-		LOG_WARNING("watchpoint (wpid: %d) not set", watchpoint->unique_id );
+		LOG_WARNING("watchpoint (wpid: %d) not set",
+				watchpoint->unique_id);
 		return ERROR_OK;
 	}
 
-	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ",
-			  watchpoint->unique_id, watchpoint->address,watchpoint->set );
-
 	dwt_num = watchpoint->set - 1;
+
+	LOG_DEBUG("Watchpoint (ID %d) DWT%d address: 0x%08x clear",
+			watchpoint->unique_id, dwt_num,
+			(unsigned) watchpoint->address);
 
 	if ((dwt_num < 0) || (dwt_num >= cortex_m3->dwt_num_comp))
 	{
 		LOG_DEBUG("Invalid DWT Comparator number in watchpoint");
 		return ERROR_OK;
 	}
-	comparator_list[dwt_num].used = 0;
-	comparator_list[dwt_num].function = 0;
-	target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address | 0x8, comparator_list[dwt_num].function);
+
+	comparator = cortex_m3->dwt_comparator_list + dwt_num;
+	comparator->used = 0;
+	comparator->function = 0;
+	target_write_u32(target, comparator->dwt_comparator_address + 8,
+			comparator->function);
 
 	watchpoint->set = 0;
 
@@ -1156,6 +1176,7 @@ cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 
+	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
@@ -1164,11 +1185,41 @@ cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 	if (cortex_m3->dwt_comp_available < 1)
 	{
+		LOG_DEBUG("no comparators?");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	if ((watchpoint->length != 1) && (watchpoint->length != 2) && (watchpoint->length != 4))
-	{
+	/* hardware doesn't support data value masking */
+	if (watchpoint->mask != ~(uint32_t)0) {
+		LOG_DEBUG("watchpoint value masks not supported");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* hardware allows address masks of up to 32K */
+	unsigned mask;
+
+	for (mask = 0; mask < 16; mask++) {
+		if ((1 << mask) == watchpoint->length)
+			break;
+	}
+	if (mask == 16) {
+		LOG_DEBUG("unsupported watchpoint length");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	if (watchpoint->address & ((1 << mask) - 1)) {
+		LOG_DEBUG("watchpoint address is unaligned");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* Caller doesn't seem to be able to describe watching for data
+	 * values of zero; that flags "no value".
+	 *
+	 * REVISIT This DWT may well be able to watch for specific data
+	 * values.  Requires comparator #1 to set DATAVMATCH and match
+	 * the data, and another comparator (DATAVADDR0) matching addr.
+	 */
+	if (watchpoint->value) {
+		LOG_DEBUG("data value watchpoint not YET supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -1185,6 +1236,7 @@ cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 
+	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
@@ -1494,11 +1546,18 @@ static int cortex_m3_examine(struct target_s *target)
 		target_read_u32(target, DWT_CTRL, &dwtcr);
 		cortex_m3->dwt_num_comp = (dwtcr >> 28) & 0xF;
 		cortex_m3->dwt_comp_available = cortex_m3->dwt_num_comp;
-		cortex_m3->dwt_comparator_list = calloc(cortex_m3->dwt_num_comp, sizeof(cortex_m3_dwt_comparator_t));
+		cortex_m3->dwt_comparator_list = calloc(
+				cortex_m3->dwt_num_comp,
+				sizeof(cortex_m3_dwt_comparator_t));
 		for (i = 0; i < cortex_m3->dwt_num_comp; i++)
 		{
-			cortex_m3->dwt_comparator_list[i].dwt_comparator_address = DWT_COMP0 + 0x10 * i;
+			cortex_m3->dwt_comparator_list[i]
+				.dwt_comparator_address = DWT_COMP0 + 0x10 * i;
 		}
+		if (cortex_m3->dwt_num_comp)
+			LOG_DEBUG("DWT dwtcr 0x%" PRIx32 ", comp %d, watch%s",
+				dwtcr, cortex_m3->dwt_num_comp,
+				(dwtcr & (0xf << 24)) ? " only" : "/trigger");
 	}
 
 	return ERROR_OK;
