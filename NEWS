@@ -66,6 +66,7 @@ Documentation:
     Notes on target source code changes that may help debugging
 
 Build and Release:
+    Repository moved from SVN at Berlios to GIT at SourceForge
     Clean builds on (32-bit) Cygwin
     Clean builds on 64-bit MinGW
 
