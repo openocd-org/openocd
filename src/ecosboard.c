@@ -474,7 +474,6 @@ static int zylinjtag_Jim_Command_reboot(Jim_Interp *interp, int argc,
 	return JIM_OK;
 }
 
-
 static void zylinjtag_startNetwork(void)
 {
 	// Bring TCP/IP up immediately before we're ready to accept commands.
@@ -591,6 +590,7 @@ static void print_exception_handler(cyg_addrword_t data, cyg_code_t exception,
 
 }
 
+#ifdef CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION
 static void setHandler(cyg_code_t exception)
 {
 	cyg_exception_handler_t *old_handler;
@@ -599,6 +599,7 @@ static void setHandler(cyg_code_t exception)
 	cyg_exception_set_handler(exception, print_exception_handler, 0,
 			&old_handler, &old_data);
 }
+#endif
 
 static cyg_thread zylinjtag_uart_thread_object;
 static cyg_handle_t zylinjtag_uart_thread_handle;
@@ -748,7 +749,6 @@ static void zylinjtag_uart(cyg_addrword_t data)
 				pos2 = 0;
 			}
 
-			size_t x = actual2;
 			size_t y = 0;
 			if (actual2 > 0)
 			{
@@ -778,7 +778,6 @@ static void zylinjtag_uart(cyg_addrword_t data)
 				actual += t;
 			}
 
-			int x2 = actual;
 			int y2 = 0;
 			if (actual > 0)
 			{
