@@ -3256,7 +3256,7 @@ static int signalyzer_h_init(void)
 
 	char *end_of_desc;
 
-	uint16_t read_buf[12];
+	uint16_t read_buf[12] = { 0 };
 	uint8_t  buf[3];
 	uint32_t bytes_written;
 
@@ -3909,122 +3909,109 @@ static void signalyzer_h_blink(void)
  *******************************************************************/
 static int ktlink_init(void)
 {
-  uint8_t  buf[3];
-  uint32_t bytes_written;
-  uint8_t  swd_en = 0x20; //0x20 SWD disable, 0x00 SWD enable (ADBUS5)
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+	uint8_t  swd_en = 0x20; //0x20 SWD disable, 0x00 SWD enable (ADBUS5)
 
-  low_output    = 0x08 | swd_en; // value; TMS=1,TCK=0,TDI=0,SWD=swd_en
-  low_direction = 0x3B;          // out=1; TCK/TDI/TMS=out,TDO=in,SWD=out,RTCK=in,SRSTIN=in
+	low_output    = 0x08 | swd_en; // value; TMS=1,TCK=0,TDI=0,SWD=swd_en
+	low_direction = 0x3B;          // out=1; TCK/TDI/TMS=out,TDO=in,SWD=out,RTCK=in,SRSTIN=in
 
-  // initialize low port
-  buf[0] = 0x80;          // command "set data bits low byte"
-  buf[1] = low_output;
-  buf[2] = low_direction;
-  LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+	// initialize low port
+	buf[0] = 0x80;          // command "set data bits low byte"
+	buf[1] = low_output;
+	buf[2] = low_direction;
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-  if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
-    {
-      LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
-      return ERROR_JTAG_INIT_FAILED;
-    }
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
-  nTRST    = 0x01;
-  nSRST    = 0x02;
-  nTRSTnOE = 0x04;
-  nSRSTnOE = 0x08;
+	nTRST    = 0x01;
+	nSRST    = 0x02;
+	nTRSTnOE = 0x04;
+	nSRSTnOE = 0x08;
 
-  high_output    = 0x80; // turn LED on
-  high_direction = 0xFF; // all outputs
+	high_output    = 0x80; // turn LED on
+	high_direction = 0xFF; // all outputs
 
-  enum reset_types jtag_reset_config = jtag_get_reset_config();
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
-  if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-    {
-      high_output |= nTRSTnOE;
-      high_output &= ~nTRST;
-    }
-  else
-    {
-      high_output &= ~nTRSTnOE;
-      high_output |= nTRST;
-    }
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
+		high_output |= nTRSTnOE;
+		high_output &= ~nTRST;
+	} else {
+		high_output &= ~nTRSTnOE;
+		high_output |= nTRST;
+	}
 
-  if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-    {
-      high_output &= ~nSRSTnOE;
-      high_output |= nSRST;
-    }
-  else
-    {
-      high_output |= nSRSTnOE;
-      high_output &= ~nSRST;
-    }
+	if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
+		high_output &= ~nSRSTnOE;
+		high_output |= nSRST;
+	} else {
+		high_output |= nSRSTnOE;
+		high_output &= ~nSRST;
+	}
 
-  // initialize high port
-  buf[0] = 0x82;              // command "set data bits high byte"
-  buf[1] = high_output;       // value
-  buf[2] = high_direction;
-  LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+	// initialize high port
+	buf[0] = 0x82;              // command "set data bits high byte"
+	buf[1] = high_output;       // value
+	buf[2] = high_direction;
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-  if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
-    {
-      LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
-      return ERROR_JTAG_INIT_FAILED;
-    }
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
-  return ERROR_OK;
+	return ERROR_OK;
 }
 
 static void ktlink_reset(int trst, int srst)
 {
-  enum reset_types jtag_reset_config = jtag_get_reset_config();
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
-  if (trst == 1)
-    {
-      if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-        high_output &= ~nTRSTnOE;
-      else
-        high_output &= ~nTRST;
-    }
-  else if (trst == 0)
-    {
-      if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-        high_output |= nTRSTnOE;
-      else
-        high_output |= nTRST;
-    }
+	if (trst == 1) {
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+			high_output &= ~nTRSTnOE;
+		else
+			high_output &= ~nTRST;
+	} else if (trst == 0) {
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+			high_output |= nTRSTnOE;
+		else
+			high_output |= nTRST;
+	}
 
-  if (srst == 1)
-    {
-      if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-        high_output &= ~nSRST;
-      else
-        high_output &= ~nSRSTnOE;
-    }
-  else if (srst == 0)
-    {
-      if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-        high_output |= nSRST;
-      else
-        high_output |= nSRSTnOE;
-    }
+	if (srst == 1) {
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+			high_output &= ~nSRST;
+		else
+			high_output &= ~nSRSTnOE;
+	} else if (srst == 0) {
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+			high_output |= nSRST;
+		else
+			high_output |= nSRSTnOE;
+	}
 
-  buffer_write(0x82); // command "set data bits high byte"
-  buffer_write(high_output);
-  buffer_write(high_direction);
-  LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,high_direction);
+	buffer_write(0x82); // command "set data bits high byte"
+	buffer_write(high_output);
+	buffer_write(high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,high_direction);
 }
 
 static void ktlink_blink(void)
 {
-  /*LED connected to ACBUS7 */
-  if (high_output & 0x80)
-    high_output &= 0x7F;
-  else
-    high_output |= 0x80;
+	/* LED connected to ACBUS7 */
+	if (high_output & 0x80)
+		high_output &= 0x7F;
+	else
+		high_output |= 0x80;
 
-  buffer_write(0x82);  // command "set data bits high byte"
-  buffer_write(high_output);
-  buffer_write(high_direction);
+	buffer_write(0x82);  // command "set data bits high byte"
+	buffer_write(high_output);
+	buffer_write(high_direction);
 }
-
