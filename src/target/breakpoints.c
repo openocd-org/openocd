@@ -178,54 +178,61 @@ breakpoint_t* breakpoint_find(target_t *target, uint32_t address)
 	return NULL;
 }
 
-int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+int watchpoint_add(target_t *target, uint32_t address, uint32_t length,
+		enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;
 	int retval;
+	char *reason;
 
 	while (watchpoint)
 	{
-		if (watchpoint->address == address)
+		if (watchpoint->address == address) {
+			if (watchpoint->length != length
+					|| watchpoint->value != value
+					|| watchpoint->mask != mask
+					|| watchpoint->rw != rw) {
+				LOG_ERROR("address 0x%8.8" PRIx32
+						"already has watchpoint %d",
+						address, watchpoint->unique_id);
+				return ERROR_FAIL;
+			}
+
+			/* ignore duplicate watchpoint */
 			return ERROR_OK;
+		}
 		watchpoint_p = &watchpoint->next;
 		watchpoint = watchpoint->next;
 	}
 
-	(*watchpoint_p) = malloc(sizeof(watchpoint_t));
+	(*watchpoint_p) = calloc(1, sizeof(watchpoint_t));
 	(*watchpoint_p)->address = address;
 	(*watchpoint_p)->length = length;
 	(*watchpoint_p)->value = value;
 	(*watchpoint_p)->mask = mask;
 	(*watchpoint_p)->rw = rw;
-	(*watchpoint_p)->set = 0;
-	(*watchpoint_p)->next = NULL;
 	(*watchpoint_p)->unique_id = bpwp_unique_id++;
 
-	if ((retval = target_add_watchpoint(target, *watchpoint_p)) != ERROR_OK)
-	{
-		switch (retval)
-		{
-			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				LOG_INFO("can't add %s watchpoint, resource not available (WPID: %d)",
-					 watchpoint_rw_strings[(*watchpoint_p)->rw],
-					 (*watchpoint_p)->unique_id );
-				free (*watchpoint_p);
-				*watchpoint_p = NULL;
-				return retval;
-				break;
-			case ERROR_TARGET_NOT_HALTED:
-				LOG_INFO("can't add watchpoint while target is running (WPID: %d)",
-						 (*watchpoint_p)->unique_id );
-				free (*watchpoint_p);
-				*watchpoint_p = NULL;
-				return retval;
-				break;
-			default:
-				LOG_ERROR("unknown error");
-				exit(-1);
-				break;
-		}
+	retval = target_add_watchpoint(target, *watchpoint_p);
+	switch (retval) {
+	case ERROR_OK:
+		break;
+	case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
+		reason = "resource not available";
+		goto bye;
+	case ERROR_TARGET_NOT_HALTED:
+		reason = "target running";
+		goto bye;
+	default:
+		reason = "unrecognized error";
+bye:
+		LOG_ERROR("can't add %s watchpoint at 0x%8.8" PRIx32 ", %s",
+			 watchpoint_rw_strings[(*watchpoint_p)->rw],
+			 address, reason);
+		free (*watchpoint_p);
+		*watchpoint_p = NULL;
+		return retval;
 	}
 
 	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x (WPID: %d)",

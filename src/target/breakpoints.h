@@ -49,7 +49,7 @@ typedef struct breakpoint_s
 typedef struct watchpoint_s
 {
 	uint32_t address;
-	int length;
+	uint32_t length;
 	uint32_t mask;
 	uint32_t value;
 	enum watchpoint_rw rw;

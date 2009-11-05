@@ -2988,7 +2988,8 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		break;
 
 	default:
-		command_print(cmd_ctx, "usage: wp <address> <length> [r/w/a] [value] [mask]");
+		command_print(cmd_ctx, "usage: wp [address length "
+				"[(r|w|a) [value [mask]]]]");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 

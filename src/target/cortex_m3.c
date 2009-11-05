@@ -1199,7 +1199,7 @@ cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	unsigned mask;
 
 	for (mask = 0; mask < 16; mask++) {
-		if ((1 << mask) == watchpoint->length)
+		if ((1u << mask) == watchpoint->length)
 			break;
 	}
 	if (mask == 16) {
