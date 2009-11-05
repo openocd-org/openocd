@@ -1339,8 +1339,7 @@ The config file for the Atmel AT91SAM7X256
 looks (in part) like this:
 
 @example
-jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf \
-        -expected-id $_CPUTAPID
+jtag newtap $_CHIPNAME cpu -irlen 4 -expected-id $_CPUTAPID
 @end example
 
 A board with two such at91sam7 chips would be able
@@ -2496,7 +2495,7 @@ requires explicit configuration of all TAP devices using
 A command like this would declare one tap and name it @code{chip1.cpu}:
 
 @example
-jtag newtap chip1 cpu -irlen 7 -ircapture 0x01 -irmask 0x55
+jtag newtap chip1 cpu -irlen 4 -expected-id 0x3ba00477
 @end example
 
 Each target configuration file lists the TAPs provided
@@ -2641,13 +2640,21 @@ These codes are not required by all JTAG devices.
 ID code could appear (for example, multiple versions).
 Specify @var{number} as zero to suppress warnings about IDCODE
 values that were found but not included in the list.
+
+Provide this value if at all possible, since it lets OpenOCD
+tell when the scan chain it sees isn't right.  These values
+are provided in vendors' chip documentation, usually a technical
+reference manual.  Sometimes you may need to probe the JTAG
+hardware to find these values.
+@xref{Autoprobing}.
 @item @code{-ircapture} @var{NUMBER}
 @*The bit pattern loaded by the TAP into the JTAG shift register
 on entry to the @sc{ircapture} state, such as 0x01.
 JTAG requires the two LSBs of this value to be 01.
 By default, @code{-ircapture} and @code{-irmask} are set
-up to verify that two-bit value; but you may provide
-additional bits, if you know them.
+up to verify that two-bit value.  You may provide
+additional bits, if you know them, or indicate that
+a TAP doesn't conform to the JTAG specification.
 @item @code{-irmask} @var{NUMBER}
 @*A mask used with @code{-ircapture}
 to verify that instruction scans work correctly.
@@ -6149,12 +6156,13 @@ to execute before they take effect.
 @end deffn
 
 @c tms_sequence (short|long)
-@c ... temporary, debug-only, probably gone before 0.2 ships
+@c ... temporary, debug-only, other than USBprog bug workaround...
 
 @deffn Command {verify_ircapture} (@option{enable}|@option{disable})
 Verify values captured during @sc{ircapture} and returned
 during IR scans.  Default is enabled, but this can be
 overridden by @command{verify_jtag}.
+This flag is ignored when validating JTAG chain configuration.
 @end deffn
 
 @deffn Command {verify_jtag} (@option{enable}|@option{disable})
