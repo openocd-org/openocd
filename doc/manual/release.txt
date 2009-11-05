@@ -156,7 +156,8 @@ can be useful when tracking down bugs.
 (Note that at this writing, the tags do not directly
 correspond to <code>git describe</code> output.  The
 hash ID can be used with <code>git show</code>, but
-the preceding segments can't.)
+the relevant repository tag isn't <em>0.3.0-rc1-dev</em>;
+this might change in the future.)
 
 @section releasewho Release Manager
 
@@ -293,17 +294,21 @@ The following steps should be followed to produce each release:
       - If producing the next RC in a series, bump the rc number
     -# Commit that version change.
   -# Create a git tag for the final commit, with a tag name matching
-     the version string in <code>configure.in</code>:
+     the version string in <code>configure.in</code> (including <em>-rcN</em>
+     where relevant):
 @verbatim
 PACKAGE_VERSION="x.y.z"
 PACKAGE_TAG="v${PACKAGE_VERSION}"
 git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
 @endverbatim
--# Prepare to resume normal development on mainline:
-  - Restore @c -dev version tag.
-  - To start a new major (or minor) release cycle on the @c master branch:
-    - Archive @c NEWS file as "<code>doc/news/NEWS-${PACKAGE_VERSION}</code>".
-    - Create a new @c NEWS file for the next release
+-# Prepare to resume normal development on mainline (major or minor release)
+  - Update the version label
+     - Restore @c -dev version tag.
+     - For a new minor release cycle, increment the release's minor number
+     - For a new major release cycle, increment the release's major number
+       and zero its minor number
+  - Archive @c NEWS file as "<code>doc/news/NEWS-${PACKAGE_VERSION}</code>".
+  - Create a new @c NEWS file for the next release
   - Commit those changes, and push the commit and the release tag
     to mainline.
 -# Produce the package source archives:
