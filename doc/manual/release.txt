@@ -10,7 +10,7 @@ This page provides an introduction to the OpenOCD Release Processes:
   activities for each release cycle.
 - @ref releasehow - Outlines all of the steps for the
   processes used to produce and release the package source archives.
-- @ref releasescript - Introduces the automated @c release.sh script.
+- @ref releasescriptcmds - Introduces the automated @c release.sh script.
 
 @section releasewhy Why Produce Releases?
 
