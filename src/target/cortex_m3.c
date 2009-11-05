@@ -1480,22 +1480,157 @@ static int cortex_m3_bulk_write_memory(target_t *target, uint32_t address,
 	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }
 
-static void cortex_m3_build_reg_cache(target_t *target)
-{
-	armv7m_build_reg_cache(target);
-}
-
 static int cortex_m3_init_target(struct command_context_s *cmd_ctx,
 		struct target_s *target)
 {
-	cortex_m3_build_reg_cache(target);
+	armv7m_build_reg_cache(target);
 	return ERROR_OK;
+}
+
+/* REVISIT cache valid/dirty bits are unmaintained.  We could set "valid"
+ * on r/w if the core is not running, and clear on resume or reset ... or
+ * at least, in a post_restore_context() method.
+ */
+
+struct dwt_reg_state {
+	struct target_s	*target;
+	uint32_t	addr;
+	uint32_t	value;	/* scratch/cache */
+};
+
+static int cortex_m3_dwt_get_reg(struct reg_s *reg)
+{
+	struct dwt_reg_state *state = reg->arch_info;
+
+	return target_read_u32(state->target, state->addr, &state->value);
+}
+
+static int cortex_m3_dwt_set_reg(struct reg_s *reg, uint8_t *buf)
+{
+	struct dwt_reg_state *state = reg->arch_info;
+
+	return target_write_u32(state->target, state->addr,
+			buf_get_u32(buf, 0, reg->size));
+}
+
+struct dwt_reg {
+	uint32_t	addr;
+	char		*name;
+	unsigned	size;
+};
+
+static struct dwt_reg dwt_base_regs[] = {
+	{ DWT_CTRL, "dwt_ctrl", 32, },
+	{ DWT_CYCCNT, "dwt_cyccnt", 32, },
+	/* plus some 8 bit counters, useful for profiling with TPIU */
+};
+
+static struct dwt_reg dwt_comp[] = {
+#define DWT_COMPARATOR(i) \
+		{ DWT_COMP0 + 0x10 * (i), "dwt_" #i "_comp", 32, }, \
+		{ DWT_MASK0 + 0x10 * (i), "dwt_" #i "_mask", 4, }, \
+		{ DWT_FUNCTION0 + 0x10 * (i), "dwt_" #i "_function", 32, }
+	DWT_COMPARATOR(0),
+	DWT_COMPARATOR(1),
+	DWT_COMPARATOR(2),
+	DWT_COMPARATOR(3),
+#undef DWT_COMPARATOR
+};
+
+static int dwt_reg_type = -1;
+
+static void
+cortex_m3_dwt_addreg(struct target_s *t, struct reg_s *r, struct dwt_reg *d)
+{
+	struct dwt_reg_state *state;
+
+	state = calloc(1, sizeof *state);
+	if (!state)
+		return;
+	state->addr = d->addr;
+	state->target = t;
+
+	r->name = d->name;
+	r->size = d->size;
+	r->value = &state->value;
+	r->arch_info = state;
+	r->arch_type = dwt_reg_type;
+}
+
+static void
+cortex_m3_dwt_setup(cortex_m3_common_t *cm3, struct target_s *target)
+{
+	uint32_t dwtcr;
+	struct reg_cache_s *cache;
+	cortex_m3_dwt_comparator_t *comparator;
+	int reg, i;
+
+	target_read_u32(target, DWT_CTRL, &dwtcr);
+	if (!dwtcr) {
+		LOG_DEBUG("no DWT");
+		return;
+	}
+
+	if (dwt_reg_type < 0)
+		dwt_reg_type = register_reg_arch_type(cortex_m3_dwt_get_reg,
+				cortex_m3_dwt_set_reg);
+
+	cm3->dwt_num_comp = (dwtcr >> 28) & 0xF;
+	cm3->dwt_comp_available = cm3->dwt_num_comp;
+	cm3->dwt_comparator_list = calloc(cm3->dwt_num_comp,
+			sizeof(cortex_m3_dwt_comparator_t));
+	if (!cm3->dwt_comparator_list) {
+fail0:
+		cm3->dwt_num_comp = 0;
+		LOG_ERROR("out of mem");
+		return;
+	}
+
+	cache = calloc(1, sizeof *cache);
+	if (!cache) {
+fail1:
+		free(cm3->dwt_comparator_list);
+		goto fail0;
+	}
+	cache->name = "cortex-m3 dwt registers";
+	cache->num_regs = 2 + cm3->dwt_num_comp * 3;
+	cache->reg_list = calloc(cache->num_regs, sizeof *cache->reg_list);
+	if (!cache->reg_list) {
+		free(cache);
+		goto fail1;
+	}
+
+	for (reg = 0; reg < 2; reg++)
+		cortex_m3_dwt_addreg(target, cache->reg_list + reg,
+				dwt_base_regs + reg);
+
+	comparator = cm3->dwt_comparator_list;
+	for (i = 0; i < cm3->dwt_num_comp; i++, comparator++) {
+		int j;
+
+		comparator->dwt_comparator_address = DWT_COMP0 + 0x10 * i;
+		for (j = 0; j < 3; j++, reg++)
+			cortex_m3_dwt_addreg(target, cache->reg_list + reg,
+					dwt_comp + 3 * i + j);
+	}
+
+	*register_get_last_cache_p(&target->reg_cache) = cache;
+	cm3->dwt_cache = cache;
+
+	LOG_INFO("DWT dwtcr 0x%" PRIx32 ", comp %d, watch%s",
+			dwtcr, cm3->dwt_num_comp,
+			(dwtcr & (0xf << 24)) ? " only" : "/trigger");
+
+	/* REVISIT:  if num_comp > 1, check whether comparator #1 can
+	 * implement single-address data value watchpoints ... so we
+	 * won't need to check it later, when asked to set one up.
+	 */
 }
 
 static int cortex_m3_examine(struct target_s *target)
 {
 	int retval;
-	uint32_t cpuid, fpcr, dwtcr;
+	uint32_t cpuid, fpcr;
 	int i;
 
 	/* get pointers to arch-specific information */
@@ -1537,21 +1672,7 @@ static int cortex_m3_examine(struct target_s *target)
 		LOG_DEBUG("FPB fpcr 0x%" PRIx32 ", numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
 
 		/* Setup DWT */
-		target_read_u32(target, DWT_CTRL, &dwtcr);
-		cortex_m3->dwt_num_comp = (dwtcr >> 28) & 0xF;
-		cortex_m3->dwt_comp_available = cortex_m3->dwt_num_comp;
-		cortex_m3->dwt_comparator_list = calloc(
-				cortex_m3->dwt_num_comp,
-				sizeof(cortex_m3_dwt_comparator_t));
-		for (i = 0; i < cortex_m3->dwt_num_comp; i++)
-		{
-			cortex_m3->dwt_comparator_list[i]
-				.dwt_comparator_address = DWT_COMP0 + 0x10 * i;
-		}
-		if (cortex_m3->dwt_num_comp)
-			LOG_DEBUG("DWT dwtcr 0x%" PRIx32 ", comp %d, watch%s",
-				dwtcr, cortex_m3->dwt_num_comp,
-				(dwtcr & (0xf << 24)) ? " only" : "/trigger");
+		cortex_m3_dwt_setup(cortex_m3, target);
 	}
 
 	return ERROR_OK;

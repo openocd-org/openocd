@@ -45,6 +45,7 @@
 #define DCRSR_WnR	(1 << 16)
 
 #define DWT_CTRL	0xE0001000
+#define DWT_CYCCNT	0xE0001004
 #define DWT_COMP0	0xE0001020
 #define DWT_MASK0	0xE0001024
 #define DWT_FUNCTION0	0xE0001028
@@ -157,6 +158,7 @@ typedef struct cortex_m3_common_s
 	int dwt_num_comp;
 	int dwt_comp_available;
 	cortex_m3_dwt_comparator_t *dwt_comparator_list;
+	struct reg_cache_s *dwt_cache;
 
 	armv7m_common_t armv7m;
 	void *arch_info;
