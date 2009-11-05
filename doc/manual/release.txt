@@ -311,7 +311,6 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
      release's tag.  This is used only for producing these packages.
   -# Checkout the appropriate tag:
 <code>git checkout "${PACKAGE_VERSION}"</code>
-  -# Produce a ChangeLog for the release (using @c git2cl).
   -# @c bootstrap, @c configure, and @c make the package.
   -# Run <code>make distcheck</code> to produce the distribution archives.
   -# Run <code>make maintainer-clean</code> verify the repository is empty.
@@ -320,7 +319,6 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
   - Allow users to access the documentation for each of our releases.
   - Place static copies of the following files on the project website:
     - @c NEWS: to provide a blurb for each release
-    - @c ChangeLog: to show exactly what has been changed
     - User's Guide, Developer Manual: to allow easy on-line viewing
 -# Upload packages and post announcements of their availability:
   -# Release packages into files section of project sites:
@@ -334,7 +332,7 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
        - .zip: Windows
     - Berlios:
      -# Create the new release for the new version.
-     -# Provide @c NEWS and ChangeLog files, as requested.
+     -# Provide @c NEWS file, as requested.
      -# Upload files via FTP to ftp://ftp.berlios.de/incoming/
      -# Edit descriptions for each file.
      -# Click button to send E-mail Release Notice.

@@ -37,7 +37,6 @@ Build Commands:
   build         Compiles the project; runs configure, if needed.
 
 Packaging Commands:
-  changelog     Generate a new ChangeLog using ${SCM}2cl.
   package       Produce new distributable source archives.
   stage         Move archives to staging area for upload.
 
@@ -83,17 +82,8 @@ do_build() {
 maybe_build() { [ -f "src/openocd" ] || do_build; }
 do_build_clean() { [ -f Makefile ] && make maintainer-clean >/dev/null; }
 
-do_changelog() {
-	echo "Creating ChangeLog..."
-	local CMD=tools/git2cl/git2cl
-	eval ${CMD} ${OPTS} > ChangeLog
-}
-do_changelog_clean() {
-	git checkout ChangeLog
-}
 
 do_package() {
-	do_changelog
 	maybe_build
 	echo "Building distribution packages..."
 	make ${MAKE_OPTS} distcheck 2>&1 | perl tools/logger.pl > "release-pkg.log"
@@ -120,14 +110,12 @@ do_stage() {
 		mv -v "${FILE}" archives/
 	done
 	cp -a NEWS archives/
-	cp -a ChangeLog archives/
 }
 do_stage_clean() { rm -v -f -r archives; }
 
 do_clean() {
 	do_build_clean
 	do_package_clean
-	do_changelog_clean
 	rm -v -f release-*.log
 }
 do_clean_all() {
@@ -195,12 +183,13 @@ do_release_step_news() {
 	git mv "NEWS" "NEWS-${RELEASE_VERSION}"
 
 	cat >NEWS <<NEWS
-This file should include items worth mentioning in the
-OpenOCD ${NEXT_RELEASE_VERSION} source archive release.
-
-The following areas of OpenOCD functionality changed in this release:
+This file includes highlights of the changes made in the
+OpenOCD ${NEXT_RELEASE_VERSION} source archive release.  See the
+repository history for details about what changed, including
+bugfixes and other issues not mentioned here.
 
 JTAG Layer:
+Boundary Scan:
 Target Layer:
 Flash Layer:
 Board, Target, and Interface Configuration Scripts:
@@ -208,8 +197,11 @@ Documentation:
 Build and Release:
 
 For more details about what has changed since the last release,
-see the ChangeLog associated with this source archive.  For older NEWS,
-see the NEWS files associated with each release (i.e. NEWS-<version>).
+see the git repository history.  With gitweb, you can browse that
+in various levels of detail.
+
+For older NEWS, see the NEWS files associated with each release
+(i.e. NEWS-<version>).
 
 For more information about contributing test reports, bug fixes, or new
 features and device support, please read the new Developer Manual (or
@@ -353,9 +345,9 @@ CMD=$1
 [ "${CMD}" ] || usage
 shift
 
-ACTION_CMDS="bootstrap|configure|build|changelog|package|stage|clean"
+ACTION_CMDS="bootstrap|configure|build|package|stage|clean"
 MISC_CMDS="all|info|release|branch|reset|help|usage"
-CLEAN_CMDS="build_clean|changelog_clean|package_clean|stage_clean|clean_all"
+CLEAN_CMDS="build_clean|package_clean|stage_clean|clean_all"
 CMDS="|${ACTION_CMDS}|${CLEAN_CMDS}|${MISC_CMDS}|"
 is_command() { echo "${CMDS}" | grep "|$1|" >/dev/null; }
 
