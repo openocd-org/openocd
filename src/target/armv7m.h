@@ -41,7 +41,7 @@ enum armv7m_mode
 	ARMV7M_MODE_ANY = -1
 };
 
-extern char* armv7m_mode_strings[];
+extern char *armv7m_mode_strings[];
 
 enum armv7m_regtype
 {

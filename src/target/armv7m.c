@@ -43,7 +43,8 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-char* armv7m_mode_strings[] =
+/** Maps from enum armv7m_mode (except ARMV7M_MODE_ANY) to name. */
+char *armv7m_mode_strings[] =
 {
 	"Thread", "Thread (User)", "Handler",
 };
@@ -56,16 +57,18 @@ static char *armv7m_exception_strings[] =
 	"DebugMonitor", "RESERVED", "PendSV", "SysTick"
 };
 
-uint8_t armv7m_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static uint8_t armv7m_gdb_dummy_fp_value[12] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+};
 
-reg_t armv7m_gdb_dummy_fp_reg =
+static reg_t armv7m_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", armv7m_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
-uint8_t armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+static uint8_t armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
-reg_t armv7m_gdb_dummy_fps_reg =
+static reg_t armv7m_gdb_dummy_fps_reg =
 {
 	"GDB dummy floating-point status register", armv7m_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
@@ -83,6 +86,9 @@ reg_t armv7m_gdb_dummy_cpsr_reg =
  * These registers are not memory-mapped.  The ARMv7-M profile includes
  * memory mapped registers too, such as for the NVIC (interrupt controller)
  * and SysTick (timer) modules; those can mostly be treated as peripherals.
+ *
+ * The ARMv6-M profile is almost identical in this respect, except that it
+ * doesn't include basepri or faultmask registers.
  */
 static const struct {
 	unsigned id;
@@ -121,9 +127,12 @@ static const struct {
 
 #define ARMV7M_NUM_REGS	ARRAY_SIZE(armv7m_regs)
 
-int armv7m_core_reg_arch_type = -1;
-int armv7m_dummy_core_reg_arch_type = -1;
+static int armv7m_core_reg_arch_type = -1;
 
+/**
+ * Restores target context using the cache of core registers set up
+ * by armv7m_build_reg_cache(), calling optional core-specific hooks.
+ */
 int armv7m_restore_context(target_t *target)
 {
 	int i;
@@ -151,6 +160,14 @@ int armv7m_restore_context(target_t *target)
 }
 
 /* Core state functions */
+
+/**
+ * Maps ISR number (from xPSR) to name.
+ * Note that while names and meanings for the first sixteen are standardized
+ * (with zero not a true exception), external interrupts are only numbered.
+ * They are assigned by vendors, which generally assign different numbers to
+ * peripherals (such as UART0 or a USB peripheral controller).
+ */
 char *armv7m_exception_string(int number)
 {
 	static char enamebuf[32];
@@ -163,7 +180,7 @@ char *armv7m_exception_string(int number)
 	return enamebuf;
 }
 
-int armv7m_get_core_reg(reg_t *reg)
+static int armv7m_get_core_reg(reg_t *reg)
 {
 	int retval;
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
@@ -180,7 +197,7 @@ int armv7m_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
+static int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
@@ -198,7 +215,7 @@ int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int armv7m_read_core_reg(struct target_s *target, int num)
+static int armv7m_read_core_reg(struct target_s *target, int num)
 {
 	uint32_t reg_value;
 	int retval;
@@ -219,7 +236,7 @@ int armv7m_read_core_reg(struct target_s *target, int num)
 	return retval;
 }
 
-int armv7m_write_core_reg(struct target_s *target, int num)
+static int armv7m_write_core_reg(struct target_s *target, int num)
 {
 	int retval;
 	uint32_t reg_value;
@@ -247,6 +264,7 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 	return ERROR_OK;
 }
 
+/** Invalidates cache of core registers set up by armv7m_build_reg_cache(). */
 int armv7m_invalidate_core_regs(target_t *target)
 {
 	/* get pointers to arch-specific information */
@@ -262,6 +280,12 @@ int armv7m_invalidate_core_regs(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Returns generic ARM userspace registers to GDB.
+ * GDB doesn't quite understand that most ARMs don't have floating point
+ * hardware, so this also fakes a set of long-obsolete FPA registers that
+ * are not used in EABI based software stacks.
+ */
 int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */
@@ -339,7 +363,12 @@ static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, in
 	return ERROR_OK;
 }
 
-int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+/** Runs a Thumb algorithm in the target. */
+int armv7m_run_algorithm(struct target_s *target,
+	int num_mem_params, mem_param_t *mem_params,
+	int num_reg_params, reg_param_t *reg_params,
+	uint32_t entry_point, uint32_t exit_point,
+	int timeout_ms, void *arch_info)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -405,6 +434,11 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].dirty = 1;
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
 	}
+
+	/* REVISIT speed things up (3% or so in one case) by requiring
+	 * algorithms to include a BKPT instruction at each exit point.
+	 * This eliminates overheads of adding/removing a breakpoint.
+	 */
 
 	/* ARMV7M always runs in Thumb state */
 	if ((retval = breakpoint_add(target, exit_point, 2, BKPT_SOFT)) != ERROR_OK)
@@ -475,6 +509,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	return retval;
 }
 
+/** Logs summary of ARMv7-M state for a halted target. */
 int armv7m_arch_state(struct target_s *target)
 {
 	/* get pointers to arch-specific information */
@@ -498,6 +533,7 @@ int armv7m_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
+/** Builds cache of architecturally defined registers.  */
 reg_cache_t *armv7m_build_reg_cache(target_t *target)
 {
 	/* get pointers to arch-specific information */
@@ -548,13 +584,7 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 	return cache;
 }
 
-int armv7m_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
-{
-	armv7m_build_reg_cache(target);
-
-	return ERROR_OK;
-}
-
+/** Sets up target as a generic ARMv7-M core */
 int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 {
 	/* register arch-specific functions */
@@ -566,7 +596,9 @@ int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 	return ERROR_OK;
 }
 
-int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
+/** Generates a CRC32 checksum of a memory region. */
+int armv7m_checksum_memory(struct target_s *target,
+		uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	working_area_t *crc_algorithm;
 	armv7m_algorithm_t armv7m_info;
@@ -647,7 +679,9 @@ int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	return ERROR_OK;
 }
 
-int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank)
+/** Checks whether a memory region is zeroed. */
+int armv7m_blank_check_memory(struct target_s *target,
+		uint32_t address, uint32_t count, uint32_t* blank)
 {
 	working_area_t *erase_check_algorithm;
 	reg_param_t reg_params[3];
@@ -657,13 +691,13 @@ int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 
 	static const uint16_t erase_check_code[] =
 	{
-							/* loop: */
+		/* loop: */
 		0xF810, 0x3B01,		/* ldrb r3, [r0], #1 */
 		0xEA02, 0x0203,		/* and  r2, r2, r3 */
-		0x3901,				/* subs 	r1, r1, #1 */
-		0xD1F9,				/* bne		loop */
-							/* end: */
-		0xE7FE,				/* b		end */
+		0x3901,				/* subs	r1, r1, #1 */
+		0xD1F9,				/* bne	loop */
+		/* end: */
+		0xE7FE,				/* b	end */
 	};
 
 	/* make sure we have a working area */
@@ -745,12 +779,11 @@ static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
 	return retval;
 }
 
-
 /*
  * Return the debug ap id in hexadecimal;
  * no extra output to simplify script processing
  */
-extern int handle_dap_apid_command(struct command_context_s *cmd_ctx,
+static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
@@ -796,6 +829,7 @@ static int handle_dap_info_command(struct command_context_s *cmd_ctx,
 	return dap_info_command(cmd_ctx, swjdp, apsel);
 }
 
+/** Registers commands used to access DAP resources. */
 int armv7m_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *arm_adi_v5_dap_cmd;
