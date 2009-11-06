@@ -34,53 +34,13 @@
 #include "arm920t.h"
 #include "target_type.h"
 
-int fa526_target_create(struct target_s *target, Jim_Interp *interp);
-int fa526_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-
-target_type_t fa526_target =
-{
-	.name = "fa526",
-
-	.poll = arm7_9_poll,
-	.arch_state = arm920t_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = arm7_9_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm920t_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm920t_read_memory,
-	.write_memory = arm920t_write_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm920t_register_commands,
-	.target_create = fa526_target_create,
-	.init_target = fa526_init_target,
-	.examine = arm9tdmi_examine,
-};
-
-void fa526_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
+static void fa526_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
 {
 	LOG_ERROR("%s: there is no Thumb state on FA526", __func__);
 }
 
-void fa526_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16])
+static void fa526_read_core_regs(target_t *target,
+		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -108,7 +68,8 @@ void fa526_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[1
 	}
 }
 
-void fa526_read_core_regs_target_buffer(target_t *target, uint32_t mask, void* buffer, int size)
+static void fa526_read_core_regs_target_buffer(target_t *target,
+		uint32_t mask, void* buffer, int size)
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -151,7 +112,7 @@ void fa526_read_core_regs_target_buffer(target_t *target, uint32_t mask, void* b
 	}
 }
 
-void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
+static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -178,7 +139,7 @@ void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, xpsr, 0);
 }
 
-void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
+static void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -216,7 +177,8 @@ void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void fa526_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
+static void fa526_write_xpsr_im8(target_t *target,
+		uint8_t xpsr_im, int rot, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -244,7 +206,8 @@ void fa526_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
 	}
 }
 
-void fa526_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16])
+static void fa526_write_core_regs(target_t *target,
+		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -273,7 +236,7 @@ void fa526_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[1
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void fa526_write_pc(target_t *target, uint32_t pc)
+static void fa526_write_pc(target_t *target, uint32_t pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -301,12 +264,13 @@ void fa526_write_pc(target_t *target, uint32_t pc)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void fa526_branch_resume_thumb(target_t *target)
+static void fa526_branch_resume_thumb(target_t *target)
 {
 	LOG_ERROR("%s: there is no Thumb state on FA526", __func__);
 }
 
-int fa526_init_arch_info_2(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap)
+static int fa526_init_arch_info_2(target_t *target,
+		arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -370,7 +334,8 @@ int fa526_init_arch_info_2(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_t
 	return ERROR_OK;
 }
 
-int fa526_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t *tap)
+static int fa526_init_arch_info(target_t *target,
+		arm920t_common_t *arm920t, jtag_tap_t *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -406,17 +371,48 @@ int fa526_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t
 	return ERROR_OK;
 }
 
-int fa526_target_create(struct target_s *target, Jim_Interp *interp)
+static int fa526_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm920t_common_t *arm920t = calloc(1,sizeof(arm920t_common_t));
 
-	fa526_init_arch_info(target, arm920t, target->tap);
-
-	return ERROR_OK;
+	return fa526_init_arch_info(target, arm920t, target->tap);
 }
 
-int fa526_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+/** Holds methods for FA526 targets. */
+target_type_t fa526_target =
 {
-	arm9tdmi_init_target(cmd_ctx, target);
-	return ERROR_OK;
-}
+	.name = "fa526",
+
+	.poll = arm7_9_poll,
+	.arch_state = arm920t_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm920t_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm920t_read_memory,
+	.write_memory = arm920t_write_memory,
+	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm920t_register_commands,
+	.target_create = fa526_target_create,
+	.init_target = arm9tdmi_init_target,
+	.examine = arm9tdmi_examine,
+};
