@@ -321,7 +321,6 @@ static int fa526_init_arch_info_2(target_t *target,
 	arm7_9->arch_info = arm9tdmi;
 
 	arm9tdmi->common_magic = ARM9TDMI_COMMON_MAGIC;
-	arm9tdmi->arch_info = NULL;
 
 	arm7_9_init_arch_info(target, arm7_9);
 
@@ -344,7 +343,6 @@ static int fa526_init_arch_info(target_t *target,
 	 */
 	fa526_init_arch_info_2(target, arm9tdmi, tap);
 
-	arm9tdmi->arch_info = arm920t;
 	arm920t->common_magic = ARM920T_COMMON_MAGIC;
 
 	arm7_9->post_debug_entry = arm920t_post_debug_entry;

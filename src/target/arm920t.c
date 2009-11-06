@@ -54,13 +54,14 @@
 static int arm920t_read_cp15_physical(target_t *target,
 		int reg_addr, uint32_t *value)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	arm_jtag_t *jtag_info;
 	scan_field_t fields[4];
 	uint8_t access_type_buf = 1;
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 0;
+
+	jtag_info = &arm920t->arm9tdmi_common.arm7_9_common.jtag_info;
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -105,14 +106,15 @@ static int arm920t_read_cp15_physical(target_t *target,
 static int arm920t_write_cp15_physical(target_t *target,
 		int reg_addr, uint32_t value)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	arm_jtag_t *jtag_info;
 	scan_field_t fields[4];
 	uint8_t access_type_buf = 1;
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 1;
 	uint8_t value_buf[4];
+
+	jtag_info = &arm920t->arm9tdmi_common.arm7_9_common.jtag_info;
 
 	buf_set_u32(value_buf, 0, 32, value);
 
@@ -153,14 +155,15 @@ static int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode,
 		uint32_t arm_opcode)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	arm_jtag_t *jtag_info;
 	scan_field_t fields[4];
 	uint8_t access_type_buf = 0;		/* interpreted access */
 	uint8_t reg_addr_buf = 0x0;
 	uint8_t nr_w_buf = 0;
 	uint8_t cp15_opcode_buf[4];
+
+	jtag_info = &arm920t->arm9tdmi_common.arm7_9_common.jtag_info;
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -198,7 +201,7 @@ static int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode,
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		LOG_ERROR("failed executing JTAG queue, exiting");
+		LOG_ERROR("failed executing JTAG queue");
 		return retval;
 	}
 
@@ -208,7 +211,7 @@ static int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode,
 static int arm920t_read_cp15_interpreted(target_t *target,
 		uint32_t cp15_opcode, uint32_t address, uint32_t *value)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	uint32_t* regs_p[1];
 	uint32_t regs[2];
 	uint32_t cp15c15 = 0x0;
@@ -254,7 +257,7 @@ int arm920t_write_cp15_interpreted(target_t *target,
 		uint32_t cp15_opcode, uint32_t value, uint32_t address)
 {
 	uint32_t cp15c15 = 0x0;
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	uint32_t regs[2];
 
 	/* load value, address into R0, R1 */
@@ -347,10 +350,7 @@ void arm920t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_c
 void arm920t_post_debug_entry(target_t *target)
 {
 	uint32_t cp15c15;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
 	/* examine cp15 control reg */
 	arm920t_read_cp15_physical(target, 0x2, &arm920t->cp15_control_reg);
@@ -394,10 +394,7 @@ void arm920t_post_debug_entry(target_t *target)
 void arm920t_pre_restore_context(target_t *target)
 {
 	uint32_t cp15c15;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
 	/* restore i/d fault status and address register */
 	arm920t_write_cp15_interpreted(target, 0xee050f10, arm920t->d_fsr, 0x0);
@@ -416,42 +413,15 @@ void arm920t_pre_restore_context(target_t *target)
 	}
 }
 
-static int arm920t_get_arch_pointers(target_t *target,
-	armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
-	arm9tdmi_common_t **arm9tdmi_p, arm920t_common_t **arm920t_p)
+static const char arm920_not[] = "target is not an ARM920";
+
+static int arm920t_verify_pointer(struct command_context_s *cmd_ctx,
+		struct arm920t_common_s *arm920t)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		return -1;
+	if (arm920t->common_magic != ARM920T_COMMON_MAGIC) {
+		command_print(cmd_ctx, arm920_not);
+		return ERROR_TARGET_INVALID;
 	}
-
-	arm7_9 = armv4_5->arch_info;
-	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm9tdmi = arm7_9->arch_info;
-	if (arm9tdmi->common_magic != ARM9TDMI_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm920t = arm9tdmi->arch_info;
-	if (arm920t->common_magic != ARM920T_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	*armv4_5_p = armv4_5;
-	*arm7_9_p = arm7_9;
-	*arm9tdmi_p = arm9tdmi;
-	*arm920t_p = arm920t;
 
 	return ERROR_OK;
 }
@@ -459,21 +429,21 @@ static int arm920t_get_arch_pointers(target_t *target,
 /** Logs summary of ARM920 state for a halted target. */
 int arm920t_arch_state(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
-
-	char *state[] =
+	static const char *state[] =
 	{
 		"disabled", "enabled"
 	};
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	struct armv4_5_common_s *armv4_5;
+
+	if (arm920t->common_magic != ARM920T_COMMON_MAGIC)
 	{
-		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		exit(-1);
+		LOG_ERROR("BUG: %s", arm920_not);
+		return ERROR_TARGET_INVALID;
 	}
+
+	armv4_5 = &arm920t->arm9tdmi_common.arm7_9_common.armv4_5_common;
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
@@ -505,10 +475,7 @@ static int arm920t_read_phys_memory(struct target_s *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
 	return armv4_5_mmu_read_physical(target, &arm920t->armv4_5_mmu,
 			address, size, count, buffer);
@@ -518,10 +485,7 @@ static int arm920t_write_phys_memory(struct target_s *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
 	return armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu,
 			address, size, count, buffer);
@@ -532,18 +496,18 @@ static int arm920t_write_phys_memory(struct target_s *target,
 int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
 
 	if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
 		return retval;
 
-	/* This fn is used to write breakpoints, so we need to make sure that the
-	 * datacache is flushed and the instruction cache is invalidated */
+	/* This fn is used to write breakpoints, so we need to make sure
+	 * that the data cache is flushed and the instruction cache is
+	 * invalidated
+	 */
 	if (((size == 4) || (size == 2)) && (count == 1))
 	{
+		struct arm920t_common_s *arm920t = target_to_arm920(target);
+
 		if (arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		{
 			LOG_DEBUG("D-Cache enabled, flush and invalidate cache line");
@@ -569,10 +533,9 @@ int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t siz
 int arm920t_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm920t_common_t *arm920t = arm9tdmi->arch_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
@@ -647,7 +610,6 @@ int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap
 	 */
 	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
-	arm9tdmi->arch_info = arm920t;
 	arm920t->common_magic = ARM920T_COMMON_MAGIC;
 
 	arm7_9->post_debug_entry = arm920t_post_debug_entry;
@@ -686,11 +648,9 @@ static int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx,
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
-	arm_jtag_t *jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
 	uint32_t regs[16];
@@ -700,6 +660,10 @@ static int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx,
 	FILE *output;
 	arm920t_cache_line_t d_cache[8][64], i_cache[8][64];
 	int segment, index;
+
+	retval = arm920t_verify_pointer(cmd_ctx, arm920t);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (argc != 1)
 	{
@@ -715,14 +679,6 @@ static int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx,
 
 	for (i = 0; i < 16; i++)
 		regs_p[i] = &regs[i];
-
-	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM920t target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
 
 	/* disable MMU and Caches */
 	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
@@ -939,11 +895,9 @@ static int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx,
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
-	arm_jtag_t *jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
 	uint32_t regs[16];
@@ -953,6 +907,10 @@ static int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx,
 	uint32_t Dlockdown, Ilockdown;
 	arm920t_tlb_entry_t d_tlb[64], i_tlb[64];
 	int victim;
+
+	retval = arm920t_verify_pointer(cmd_ctx, arm920t);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (argc != 1)
 	{
@@ -968,14 +926,6 @@ static int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx,
 
 	for (i = 0; i < 16; i++)
 		regs_p[i] = &regs[i];
-
-	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM920t target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
 
 	/* disable MMU and Caches */
 	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
@@ -1229,19 +1179,11 @@ static int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx,
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
-	arm_jtag_t *jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
-	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM920t target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
+	retval = arm920t_verify_pointer(cmd_ctx, arm920t);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1291,19 +1233,12 @@ static int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx,
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
-	arm_jtag_t *jtag_info;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
-	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM920t target");
-		return ERROR_OK;
-	}
+	retval = arm920t_verify_pointer(cmd_ctx, arm920t);
+	if (retval != ERROR_OK)
+		return retval;
 
-	jtag_info = &arm7_9->jtag_info;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1364,17 +1299,13 @@ static int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx,
 static int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
+	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm920t_common_t *arm920t;
+	struct arm920t_common_s *arm920t = target_to_arm920(target);
 
-	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM920t target");
-		return ERROR_OK;
-	}
+	retval = arm920t_verify_pointer(cmd_ctx, arm920t);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &arm920t->armv4_5_mmu.armv4_5_cache);
 }
