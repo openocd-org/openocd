@@ -29,32 +29,21 @@
 #include "target_type.h"
 
 
+/*
+ * The ARM926 is built around the ARM9EJ-S core, and most JTAG docs
+ * are in the ARM9EJ-S Technical Reference Manual (ARM DDI 0222B) not
+ * the ARM926 manual (ARM DDI 0198E).  The scan chains are:
+ *
+ *   1 ... core debugging
+ *   2 ... EmbeddedICE
+ *   3 ... external boundary scan (SoC-specific, unused here)
+ *   6 ... ETM
+ *   15 ... coprocessor 15
+ */
+
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
-
-static int arm926ejs_catch_broken_irscan(uint8_t *captured, void *priv,
-		scan_field_t *field)
-{
-	/* FIX!!!! this code should be reenabled. For now it does not check
-	 * the queue...*/
-	return 0;
-#if 0
-	/* The ARM926EJ-S' instruction register is 4 bits wide */
-	uint8_t t = *captured & 0xf;
-	uint8_t t2 = *field->in_check_value & 0xf;
-	if (t == t2)
-	{
-		return ERROR_OK;
-	}
-	else if ((t == 0x0f) || (t == 0x00))
-	{
-		LOG_DEBUG("caught ARM926EJ-S invalid Capture-IR result after CP15 access");
-		return ERROR_OK;
-	}
-	return ERROR_JTAG_QUEUE_FAILED;;
-#endif
-}
 
 #define ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm) ((opcode_1 << 11) | (opcode_2 << 8) | (CRn << 4) | (CRm << 0))
 
@@ -136,7 +125,7 @@ static int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2,
 	LOG_DEBUG("addr: 0x%x value: %8.8x", address, *value);
 #endif
 
-	arm_jtag_set_instr(jtag_info, 0xc, &arm926ejs_catch_broken_irscan);
+	arm_jtag_set_instr(jtag_info, 0xc, NULL);
 
 	return ERROR_OK;
 }
@@ -227,7 +216,7 @@ static int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2,
 	LOG_DEBUG("addr: 0x%x value: %8.8x", address, value);
 #endif
 
-	arm_jtag_set_instr(jtag_info, 0xf, &arm926ejs_catch_broken_irscan);
+	arm_jtag_set_instr(jtag_info, 0xf, NULL);
 
 	return ERROR_OK;
 }
@@ -543,6 +532,7 @@ static int arm926ejs_get_arch_pointers(target_t *target,
 	return ERROR_OK;
 }
 
+/** Logs summary of ARM926 state for a halted target. */
 int arm926ejs_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -644,6 +634,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 }
 
+/** Writes a buffer, in the specified word size, with current MMU settings. */
 int arm926ejs_write_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -732,14 +723,6 @@ static int arm926ejs_read_phys_memory(struct target_s *target,
 	return armv4_5_mmu_read_physical(target, &arm926ejs->armv4_5_mmu, address, size, count, buffer);
 }
 
-static int arm926ejs_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target)
-{
-	arm9tdmi_init_target(cmd_ctx, target);
-
-	return ERROR_OK;
-}
-
 int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs,
 		jtag_tap_t *tap)
 {
@@ -782,9 +765,10 @@ static int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
 
-	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
+	/* ARM9EJ-S core always reports 0x1 in Capture-IR */
+	target->tap->ir_capture_mask = 0x0f;
 
-	return ERROR_OK;
+	return arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 }
 
 static int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx,
@@ -915,6 +899,7 @@ static int arm926ejs_mmu(struct target_s *target, int *enabled)
 	return ERROR_OK;
 }
 
+/** Registers commands to access coprocessor, cache, and debug resources.  */
 int arm926ejs_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
@@ -938,6 +923,7 @@ int arm926ejs_register_commands(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
+/** Holds methods for ARM926 targets. */
 target_type_t arm926ejs_target =
 {
 	.name = "arm926ejs",
@@ -972,7 +958,7 @@ target_type_t arm926ejs_target =
 
 	.register_commands = arm926ejs_register_commands,
 	.target_create = arm926ejs_target_create,
-	.init_target = arm926ejs_init_target,
+	.init_target = arm9tdmi_init_target,
 	.examine = arm9tdmi_examine,
 	.virt2phys = arm926ejs_virt2phys,
 	.mmu = arm926ejs_mmu,
@@ -982,4 +968,3 @@ target_type_t arm926ejs_target =
 	.mrc = arm926ejs_mrc,
 	.mcr = arm926ejs_mcr,
 };
-
