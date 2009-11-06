@@ -27,9 +27,9 @@
 
 typedef struct arm926ejs_common_s
 {
+	arm9tdmi_common_t arm9tdmi_common;
 	uint32_t common_magic;
 	armv4_5_mmu_common_t armv4_5_mmu;
-	arm9tdmi_common_t arm9tdmi_common;
 	int (*read_cp15)(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
 	int (*write_cp15)(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
 	uint32_t cp15_control_reg;

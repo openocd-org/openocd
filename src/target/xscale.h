@@ -80,6 +80,9 @@ typedef struct xscale_trace_s
 
 typedef struct xscale_common_s
 {
+	/* armv4/5 common stuff */
+	armv4_5_common_t armv4_5_common;
+
 	int common_magic;
 
 	/* XScale registers (CP15, DBG) */
@@ -120,9 +123,6 @@ typedef struct xscale_common_s
 	xscale_trace_t trace;
 
 	int arch_debug_reason;
-
-	/* armv4/5 common stuff */
-	armv4_5_common_t armv4_5_common;
 
 	/* MMU/Caches */
 	armv4_5_mmu_common_t armv4_5_mmu;

@@ -29,8 +29,8 @@
 
 typedef struct arm966e_common_s
 {
-	int common_magic;
 	arm9tdmi_common_t arm9tdmi_common;
+	int common_magic;
 	uint32_t cp15_control_reg;
 } arm966e_common_t;
 

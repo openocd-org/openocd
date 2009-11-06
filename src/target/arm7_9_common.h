@@ -39,6 +39,7 @@
  */
 typedef struct arm7_9_common_s
 {
+	armv4_5_common_t armv4_5_common;
 	uint32_t common_magic;
 
 	arm_jtag_t jtag_info; /**< JTAG information for target */
@@ -107,7 +108,6 @@ typedef struct arm7_9_common_s
 	void (*pre_restore_context)(target_t *target); /**< Callback function called before restoring the processor context */
 	void (*post_restore_context)(target_t *target); /**< Callback function called after restoring the processor context */
 
-	armv4_5_common_t armv4_5_common;
 
 } arm7_9_common_t;
 

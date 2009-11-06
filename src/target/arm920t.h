@@ -27,9 +27,9 @@
 
 typedef struct arm920t_common_s
 {
+	arm9tdmi_common_t arm9tdmi_common;
 	uint32_t common_magic;
 	armv4_5_mmu_common_t armv4_5_mmu;
-	arm9tdmi_common_t arm9tdmi_common;
 	uint32_t cp15_control_reg;
 	uint32_t d_fsr;
 	uint32_t i_fsr;
