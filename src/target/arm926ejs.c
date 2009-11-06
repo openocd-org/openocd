@@ -51,8 +51,7 @@ static int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
@@ -144,8 +143,7 @@ static int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
@@ -233,8 +231,7 @@ static int arm926ejs_mcr(target_t *target, int cpnum, uint32_t op1,
 
 static int arm926ejs_examine_debug_reason(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	int debug_reason;
 	int retval;
@@ -337,10 +334,7 @@ static int arm926ejs_examine_debug_reason(target_t *target)
 
 static uint32_t arm926ejs_get_ttb(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 	int retval;
 	uint32_t ttb = 0x0;
 
@@ -353,10 +347,7 @@ static uint32_t arm926ejs_get_ttb(target_t *target)
 static void arm926ejs_disable_mmu_caches(target_t *target, int mmu,
 		int d_u_cache, int i_cache)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 	uint32_t cp15_control;
 
 	/* read cp15 control register */
@@ -405,10 +396,7 @@ static void arm926ejs_disable_mmu_caches(target_t *target, int mmu,
 static void arm926ejs_enable_mmu_caches(target_t *target, int mmu,
 		int d_u_cache, int i_cache)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 	uint32_t cp15_control;
 
 	/* read cp15 control register */
@@ -429,10 +417,7 @@ static void arm926ejs_enable_mmu_caches(target_t *target, int mmu,
 
 static void arm926ejs_post_debug_entry(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
 	/* examine cp15 control reg */
 	arm926ejs->read_cp15(target, 0, 0, 1, 0, &arm926ejs->cp15_control_reg);
@@ -471,10 +456,7 @@ static void arm926ejs_post_debug_entry(target_t *target)
 
 static void arm926ejs_pre_restore_context(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
 	/* restore i/d fault status and address register */
 	arm926ejs->write_cp15(target, 0, 0, 5, 0, arm926ejs->d_fsr);
@@ -490,69 +472,38 @@ static void arm926ejs_pre_restore_context(target_t *target)
 	arm926ejs->write_cp15(target, 7, 0, 15, 0, cache_dbg_ctrl);
 }
 
-static int arm926ejs_get_arch_pointers(target_t *target,
-		armv4_5_common_t **armv4_5_p,
-		arm7_9_common_t **arm7_9_p,
-		arm9tdmi_common_t **arm9tdmi_p,
-		arm926ejs_common_t **arm926ejs_p)
+static const char arm926_not[] = "target is not an ARM926";
+
+static int arm926ejs_verify_pointer(struct command_context_s *cmd_ctx,
+		struct arm926ejs_common_s *arm926)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm926ejs_common_t *arm926ejs;
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		return -1;
+	if (arm926->common_magic != ARM926EJS_COMMON_MAGIC) {
+		command_print(cmd_ctx, arm926_not);
+		return ERROR_TARGET_INVALID;
 	}
-
-	arm7_9 = armv4_5->arch_info;
-	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm9tdmi = arm7_9->arch_info;
-	if (arm9tdmi->common_magic != ARM9TDMI_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm926ejs = arm9tdmi->arch_info;
-	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	*armv4_5_p = armv4_5;
-	*arm7_9_p = arm7_9;
-	*arm9tdmi_p = arm9tdmi;
-	*arm926ejs_p = arm926ejs;
-
 	return ERROR_OK;
 }
 
 /** Logs summary of ARM926 state for a halted target. */
 int arm926ejs_arch_state(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
-
-	char *state[] =
+	static const char *state[] =
 	{
 		"disabled", "enabled"
 	};
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
+	struct armv4_5_common_s *armv4_5;
+
+	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC)
 	{
-		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		exit(-1);
+		LOG_ERROR("BUG: %s", arm926_not);
+		return ERROR_TARGET_INVALID;
 	}
 
-	LOG_USER(
-			"target halted in %s state due to %s, current mode: %s\n"
+	armv4_5 = &arm926ejs->arm9tdmi_common.arm7_9_common.armv4_5_common;
+
+	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
@@ -570,10 +521,9 @@ int arm926ejs_arch_state(struct target_s *target)
 int arm926ejs_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
@@ -639,10 +589,7 @@ int arm926ejs_write_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
 	/* FIX!!!! this should be cleaned up and made much more general. The
 	 * plan is to write up and test on arm926ejs specifically and
@@ -703,24 +650,20 @@ static int arm926ejs_write_phys_memory(struct target_s *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
-	return armv4_5_mmu_write_physical(target, &arm926ejs->armv4_5_mmu, address, size, count, buffer);
+	return armv4_5_mmu_write_physical(target, &arm926ejs->armv4_5_mmu,
+			address, size, count, buffer);
 }
 
 static int arm926ejs_read_phys_memory(struct target_s *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
-	return armv4_5_mmu_read_physical(target, &arm926ejs->armv4_5_mmu, address, size, count, buffer);
+	return armv4_5_mmu_read_physical(target, &arm926ejs->armv4_5_mmu,
+			address, size, count, buffer);
 }
 
 int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs,
@@ -733,7 +676,6 @@ int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs,
 	 */
 	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
-	arm9tdmi->arch_info = arm926ejs;
 	arm926ejs->common_magic = ARM926EJS_COMMON_MAGIC;
 
 	arm7_9->post_debug_entry = arm926ejs_post_debug_entry;
@@ -776,10 +718,7 @@ static int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx,
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm926ejs_common_t *arm926ejs;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 	int opcode_1;
 	int opcode_2;
 	int CRn;
@@ -796,11 +735,9 @@ static int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx,
 	COMMAND_PARSE_NUMBER(int, args[2], CRn);
 	COMMAND_PARSE_NUMBER(int, args[3], CRm);
 
-	if (arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM926EJ-S target");
-		return ERROR_OK;
-	}
+	retval = arm926ejs_verify_pointer(cmd_ctx, arm926ejs);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -842,38 +779,25 @@ static int
 arm926ejs_handle_cache_info_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
+	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm926ejs_common_t *arm926ejs;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
-	if (arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM926EJ-S target");
-		return ERROR_OK;
-	}
+	retval = arm926ejs_verify_pointer(cmd_ctx, arm926ejs);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 }
 
 static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical)
 {
-	int retval;
 	int type;
 	uint32_t cb;
 	int domain;
 	uint32_t ap;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm926ejs_common_t *arm926ejs;
-	retval= arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs);
-	if (retval != ERROR_OK)
-	{
-		return retval;
-	}
 	uint32_t ret = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
 	if (type == -1)
 	{
@@ -885,10 +809,7 @@ static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32
 
 static int arm926ejs_mmu(struct target_s *target, int *enabled)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
+	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
 
 	if (target->state != TARGET_HALTED)
 	{
