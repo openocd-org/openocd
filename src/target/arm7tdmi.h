@@ -34,7 +34,6 @@ typedef struct arm7tdmi_common_s
 	arm7_9_common_t arm7_9_common;
 } arm7tdmi_common_t;
 
-int arm7tdmi_register_commands(struct command_context_s *cmd_ctx);
 int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_tap_t *tap);
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm7tdmi_examine(struct target_s *target);

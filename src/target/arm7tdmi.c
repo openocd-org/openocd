@@ -31,57 +31,17 @@
 #include "target_type.h"
 
 
+/*
+ * For information about ARM7TDMI, see ARM DDI 0210C (r4p1)
+ * or ARM DDI 0029G (r3).  "Debug In Depth", Appendix B,
+ * covers JTAG support.
+ */
+
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* forward declarations */
-
-int arm7tdmi_target_create(struct target_s *target,Jim_Interp *interp);
-
-/* target function declarations */
-int arm7tdmi_poll(struct target_s *target);
-int arm7tdmi_halt(target_t *target);
-
-target_type_t arm7tdmi_target =
-{
-	.name = "arm7tdmi",
-
-	.poll = arm7_9_poll,
-	.arch_state = armv4_5_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = arm7_9_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm7_9_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands  = arm7tdmi_register_commands,
-	.target_create  = arm7tdmi_target_create,
-	.init_target = arm7tdmi_init_target,
-	.examine = arm7tdmi_examine,
-};
-
-int arm7tdmi_examine_debug_reason(target_t *target)
+static int arm7tdmi_examine_debug_reason(target_t *target)
 {
 	int retval = ERROR_OK;
 	/* get pointers to arch-specific information */
@@ -136,7 +96,8 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 	return ERROR_OK;
 }
 
-static int arm7tdmi_num_bits[]={1, 32};
+static const int arm7tdmi_num_bits[] = {1, 32};
+
 static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, uint32_t out, int breakpoint)
 {
 	uint32_t values[2]={breakpoint, flip_u32(out, 32)};
@@ -152,8 +113,13 @@ static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, uint32_t out
 	return ERROR_OK;
 }
 
-/* put an instruction in the ARM7TDMI pipeline or write the data bus, and optionally read data */
-static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t out, uint32_t *deprecated, int breakpoint)
+/* put an instruction in the ARM7TDMI pipeline or write the data bus,
+ * and optionally read data
+ *
+ * FIXME remove the unused "deprecated" parameter
+ */
+static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info,
+		uint32_t out, uint32_t *deprecated, int breakpoint)
 {
 	jtag_set_end_state(TAP_DRPAUSE);
 	arm_jtag_scann(jtag_info, 0x1);
@@ -163,7 +129,7 @@ static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t out, uint
 }
 
 /* clock the target, reading the databus */
-int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
+static int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[2];
@@ -192,21 +158,13 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 	jtag_add_runtest(0, jtag_get_end_state());
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-{
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
-		{
-			return retval;
-		}
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+		return retval;
 
-		if (in)
-		{
-			LOG_DEBUG("in: 0x%8.8x", *in);
-		}
-		else
-		{
-			LOG_ERROR("BUG: called with in == NULL");
-		}
-}
+	if (in)
+		LOG_DEBUG("in: 0x%8.8x", *in);
+	else
+		LOG_ERROR("BUG: called with in == NULL");
 #endif
 
 	return ERROR_OK;
@@ -243,9 +201,12 @@ void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 	}
 }
 
-static int arm7endianness(jtag_callback_data_t arg, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
+static int arm7endianness(jtag_callback_data_t arg,
+	jtag_callback_data_t size, jtag_callback_data_t be,
+	jtag_callback_data_t captured)
 {
-  uint8_t *in = (uint8_t *)arg;
+	uint8_t *in = (uint8_t *)arg;
+
 	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 1);
 	return ERROR_OK;
 }
@@ -254,7 +215,8 @@ static int arm7endianness(jtag_callback_data_t arg, jtag_callback_data_t size, j
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be == 1) or little (be == 0) endianness
  */
-int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
+static int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
+		void *in, int size, int be)
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[2];
@@ -303,7 +265,8 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	return ERROR_OK;
 }
 
-void arm7tdmi_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
+static void arm7tdmi_change_to_arm(target_t *target,
+		uint32_t *r0, uint32_t *pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -360,7 +323,8 @@ void arm7tdmi_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
  * The solution is to arrange for a large out/in scan in this loop and
  * and convert data afterwards.
  */
-void arm7tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16])
+static void arm7tdmi_read_core_regs(target_t *target,
+		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -386,7 +350,8 @@ void arm7tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_reg
 	}
 }
 
-void arm7tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void* buffer, int size)
+static void arm7tdmi_read_core_regs_target_buffer(target_t *target,
+		uint32_t mask, void* buffer, int size)
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -429,7 +394,7 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void
 	}
 }
 
-void arm7tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
+static void arm7tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -449,7 +414,7 @@ void arm7tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 	arm7tdmi_clock_data_in(jtag_info, xpsr);
 }
 
-void arm7tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
+static void arm7tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -480,7 +445,8 @@ void arm7tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 }
 
-void arm7tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
+static void arm7tdmi_write_xpsr_im8(target_t *target,
+		uint8_t xpsr_im, int rot, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -499,7 +465,8 @@ void arm7tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int sps
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 }
 
-void arm7tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16])
+static void arm7tdmi_write_core_regs(target_t *target,
+		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -526,7 +493,7 @@ void arm7tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_reg
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
 }
 
-void arm7tdmi_load_word_regs(target_t *target, uint32_t mask)
+static void arm7tdmi_load_word_regs(target_t *target, uint32_t mask)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -539,7 +506,7 @@ void arm7tdmi_load_word_regs(target_t *target, uint32_t mask)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 1), NULL, 0);
 }
 
-void arm7tdmi_load_hword_reg(target_t *target, int num)
+static void arm7tdmi_load_hword_reg(target_t *target, int num)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -552,7 +519,7 @@ void arm7tdmi_load_hword_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRH_IP(num, 0), NULL, 0);
 }
 
-void arm7tdmi_load_byte_reg(target_t *target, int num)
+static void arm7tdmi_load_byte_reg(target_t *target, int num)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -565,7 +532,7 @@ void arm7tdmi_load_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRB_IP(num, 0), NULL, 0);
 }
 
-void arm7tdmi_store_word_regs(target_t *target, uint32_t mask)
+static void arm7tdmi_store_word_regs(target_t *target, uint32_t mask)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -578,7 +545,7 @@ void arm7tdmi_store_word_regs(target_t *target, uint32_t mask)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask, 0, 1), NULL, 0);
 }
 
-void arm7tdmi_store_hword_reg(target_t *target, int num)
+static void arm7tdmi_store_hword_reg(target_t *target, int num)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -591,7 +558,7 @@ void arm7tdmi_store_hword_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRH_IP(num, 0), NULL, 0);
 }
 
-void arm7tdmi_store_byte_reg(target_t *target, int num)
+static void arm7tdmi_store_byte_reg(target_t *target, int num)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -604,7 +571,7 @@ void arm7tdmi_store_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRB_IP(num, 0), NULL, 0);
 }
 
-void arm7tdmi_write_pc(target_t *target, uint32_t pc)
+static void arm7tdmi_write_pc(target_t *target, uint32_t pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -631,7 +598,7 @@ void arm7tdmi_write_pc(target_t *target, uint32_t pc)
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
 }
 
-void arm7tdmi_branch_resume(target_t *target)
+static void arm7tdmi_branch_resume(target_t *target)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -642,7 +609,7 @@ void arm7tdmi_branch_resume(target_t *target)
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_B(0xfffffa, 0), 0);
 }
 
-void arm7tdmi_branch_resume_thumb(target_t *target)
+static void arm7tdmi_branch_resume_thumb(target_t *target)
 {
 	LOG_DEBUG("-");
 
@@ -703,7 +670,7 @@ void arm7tdmi_branch_resume_thumb(target_t *target)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7f8), NULL, 0);
 }
 
-void arm7tdmi_build_reg_cache(target_t *target)
+static void arm7tdmi_build_reg_cache(target_t *target)
 {
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	/* get pointers to arch-specific information */
@@ -814,7 +781,7 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_
 	return ERROR_OK;
 }
 
-int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm7tdmi_common_t *arm7tdmi;
 
@@ -825,11 +792,41 @@ int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
+/** Holds methods for ARM7TDMI targets. */
+target_type_t arm7tdmi_target =
 {
-	int retval;
+	.name = "arm7tdmi",
 
-	retval = arm7_9_register_commands(cmd_ctx);
+	.poll = arm7_9_poll,
+	.arch_state = armv4_5_arch_state,
 
-	return retval;
-}
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm7_9_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm7_9_read_memory,
+	.write_memory = arm7_9_write_memory,
+	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands  = arm7_9_register_commands,
+	.target_create  = arm7tdmi_target_create,
+	.init_target = arm7tdmi_init_target,
+	.examine = arm7tdmi_examine,
+};
