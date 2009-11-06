@@ -1040,32 +1040,33 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 	{
 		int retval;
 		int enabled;
+
 		retval = target->type->mmu(target, &enabled);
 		if (retval != ERROR_OK)
 		{
 			return retval;
 		}
 
-		if (enabled)
-		{
-			if (target->working_area_phys_spec)
-			{
-				LOG_DEBUG("MMU disabled, using physical address for working memory 0x%08x", (unsigned)target->working_area_phys);
+		if (!enabled) {
+			if (target->working_area_phys_spec) {
+				LOG_DEBUG("MMU disabled, using physical "
+					"address for working memory 0x%08x",
+					(unsigned)target->working_area_phys);
 				target->working_area = target->working_area_phys;
-			} else
-			{
-				LOG_ERROR("No working memory available. Specify -work-area-phys to target.");
+			} else {
+				LOG_ERROR("No working memory available. "
+					"Specify -work-area-phys to target.");
 				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 			}
-		} else
-		{
-			if (target->working_area_virt_spec)
-			{
-				LOG_DEBUG("MMU enabled, using virtual address for working memory 0x%08x", (unsigned)target->working_area_virt);
+		} else {
+			if (target->working_area_virt_spec) {
+				LOG_DEBUG("MMU enabled, using virtual "
+					"address for working memory 0x%08x",
+					(unsigned)target->working_area_virt);
 				target->working_area = target->working_area_virt;
-			} else
-			{
-				LOG_ERROR("No working memory available. Specify -work-area-virt to target.");
+			} else {
+				LOG_ERROR("No working memory available. "
+					"Specify -work-area-virt to target.");
 				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 			}
 		}
