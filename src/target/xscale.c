@@ -144,28 +144,15 @@ static int xscale_set_reg_u32(reg_t *reg, uint32_t value)
 	return xscale_set_reg(reg, buf);
 }
 
+static const char xscale_not[] = "target is not an XScale";
 
-static int xscale_get_arch_pointers(target_t *target,
-		armv4_5_common_t **armv4_5_p, xscale_common_t **xscale_p)
+static int xscale_verify_pointer(struct command_context_s *cmd_ctx,
+		struct xscale_common_s *xscale)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		LOG_ERROR("target isn't an XScale target");
-		return -1;
+	if (xscale->common_magic != XSCALE_COMMON_MAGIC) {
+		command_print(cmd_ctx, xscale_not);
+		return ERROR_TARGET_INVALID;
 	}
-
-	if (xscale->common_magic != XSCALE_COMMON_MAGIC)
-	{
-		LOG_ERROR("target isn't an XScale target");
-		return -1;
-	}
-
-	*armv4_5_p = armv4_5;
-	*xscale_p = xscale;
-
 	return ERROR_OK;
 }
 
@@ -193,8 +180,7 @@ static int xscale_jtag_set_instr(jtag_tap_t *tap, uint32_t new_instr)
 
 static int xscale_read_dcsr(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
 	scan_field_t fields[3];
 	uint8_t field0 = 0x0;
@@ -371,8 +357,7 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 
 static int xscale_read_tx(target_t *target, int consume)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	tap_state_t path[3];
 	tap_state_t noconsume_path[6];
 	int retval;
@@ -470,8 +455,7 @@ static int xscale_read_tx(target_t *target, int consume)
 
 static int xscale_write_rx(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
 	struct timeval timeout, now;
 	scan_field_t fields[3];
@@ -620,8 +604,7 @@ static int xscale_send(target_t *target, uint8_t *buffer, int count, int size)
 
 static int xscale_send_u32(target_t *target, uint32_t value)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_RX].value, 0, 32, value);
 	return xscale_write_rx(target);
@@ -629,8 +612,7 @@ static int xscale_send_u32(target_t *target, uint32_t value)
 
 static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
 	scan_field_t fields[3];
 	uint8_t field0 = 0x0;
@@ -786,8 +768,7 @@ static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 
 static int xscale_update_vectors(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int i;
 	int retval;
 
@@ -851,8 +832,8 @@ static int xscale_update_vectors(target_t *target)
 
 static int xscale_arch_state(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 
 	static const char *state[] =
 	{
@@ -929,13 +910,12 @@ static int xscale_poll(target_t *target)
 
 static int xscale_debug_entry(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	uint32_t pc;
 	uint32_t buffer[10];
 	int i;
 	int retval;
-
 	uint32_t moe;
 
 	/* clear external dbg break (will be written on next DCSR read) */
@@ -1110,8 +1090,7 @@ static int xscale_debug_entry(target_t *target)
 
 static int xscale_halt(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	LOG_DEBUG("target->state: %s",
 		  target_state_name(target));
@@ -1145,8 +1124,7 @@ static int xscale_halt(target_t *target)
 
 static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale= armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
 	int retval;
 
@@ -1173,8 +1151,7 @@ static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
 
 static int xscale_disable_single_step(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale= armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
 	int retval;
 
@@ -1212,12 +1189,10 @@ static void xscale_enable_breakpoints(struct target_s *target)
 static int xscale_resume(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale= armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	breakpoint_t *breakpoint = target->breakpoints;
-
 	uint32_t current_pc;
-
 	int retval;
 	int i;
 
@@ -1367,9 +1342,8 @@ static int xscale_resume(struct target_s *target, int current,
 static int xscale_step_inner(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
-
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	uint32_t next_pc;
 	int retval;
 	int i;
@@ -1448,7 +1422,7 @@ static int xscale_step_inner(struct target_s *target, int current,
 static int xscale_step(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	breakpoint_t *breakpoint = target->breakpoints;
 
 	uint32_t current_pc;
@@ -1502,8 +1476,7 @@ static int xscale_step(struct target_s *target, int current,
 
 static int xscale_assert_reset(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	LOG_DEBUG("target->state: %s",
 		  target_state_name(target));
@@ -1544,8 +1517,7 @@ static int xscale_assert_reset(target_t *target)
 
 static int xscale_deassert_reset(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	breakpoint_t *breakpoint = target->breakpoints;
 
 	LOG_DEBUG("-");
@@ -1693,7 +1665,7 @@ static int xscale_write_core_reg(struct target_s *target, int num,
 
 static int xscale_full_context(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	uint32_t *buffer;
 
@@ -1769,7 +1741,7 @@ static int xscale_full_context(target_t *target)
 
 static int xscale_restore_context(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	int i, j;
 
@@ -1837,8 +1809,7 @@ static int xscale_restore_context(target_t *target)
 static int xscale_read_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint32_t *buf32;
 	uint32_t i;
 	int retval;
@@ -1917,8 +1888,7 @@ static int xscale_read_memory(struct target_s *target, uint32_t address,
 static int xscale_write_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
 
 	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32, address, size, count);
@@ -2001,8 +1971,7 @@ static int xscale_bulk_write_memory(target_t *target, uint32_t address,
 
 static uint32_t xscale_get_ttb(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint32_t ttb;
 
 	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_TTB]);
@@ -2014,8 +1983,7 @@ static uint32_t xscale_get_ttb(target_t *target)
 static void xscale_disable_mmu_caches(target_t *target, int mmu,
 		int d_u_cache, int i_cache)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint32_t cp15_control;
 
 	/* read cp15 control register */
@@ -2054,8 +2022,7 @@ static void xscale_disable_mmu_caches(target_t *target, int mmu,
 static void xscale_enable_mmu_caches(target_t *target, int mmu,
 		int d_u_cache, int i_cache)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint32_t cp15_control;
 
 	/* read cp15 control register */
@@ -2082,8 +2049,7 @@ static int xscale_set_breakpoint(struct target_s *target,
 		breakpoint_t *breakpoint)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2155,8 +2121,7 @@ static int xscale_set_breakpoint(struct target_s *target,
 static int xscale_add_breakpoint(struct target_s *target,
 		breakpoint_t *breakpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2188,8 +2153,7 @@ static int xscale_unset_breakpoint(struct target_s *target,
 		breakpoint_t *breakpoint)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2242,8 +2206,7 @@ static int xscale_unset_breakpoint(struct target_s *target,
 
 static int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2265,8 +2228,7 @@ static int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *break
 static int xscale_set_watchpoint(struct target_s *target,
 		watchpoint_t *watchpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint8_t enable = 0;
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	uint32_t dbcon_value = buf_get_u32(dbcon->value, 0, 32);
@@ -2322,8 +2284,7 @@ static int xscale_set_watchpoint(struct target_s *target,
 static int xscale_add_watchpoint(struct target_s *target,
 		watchpoint_t *watchpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2349,8 +2310,7 @@ static int xscale_add_watchpoint(struct target_s *target,
 static int xscale_unset_watchpoint(struct target_s *target,
 		watchpoint_t *watchpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	uint32_t dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
@@ -2385,8 +2345,7 @@ static int xscale_unset_watchpoint(struct target_s *target,
 
 static int xscale_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2408,8 +2367,7 @@ static int xscale_get_reg(reg_t *reg)
 {
 	xscale_reg_t *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	/* DCSR, TX and RX are accessible via JTAG */
 	if (strcmp(reg->name, "XSCALE_DCSR") == 0)
@@ -2454,8 +2412,7 @@ static int xscale_set_reg(reg_t *reg, uint8_t* buf)
 {
 	xscale_reg_t *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	/* DCSR, TX and RX are accessible via JTAG */
@@ -2497,9 +2454,7 @@ static int xscale_set_reg(reg_t *reg, uint8_t* buf)
 
 static int xscale_write_dcsr_sw(target_t *target, uint32_t value)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	reg_t *dcsr = &xscale->reg_cache->reg_list[XSCALE_DCSR];
 	xscale_reg_t *dcsr_arch_info = dcsr->arch_info;
 
@@ -2518,9 +2473,8 @@ static int xscale_write_dcsr_sw(target_t *target, uint32_t value)
 
 static int xscale_read_trace(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	xscale_trace_data_t **trace_data_p;
 
 	/* 258 words from debug handler
@@ -2598,9 +2552,7 @@ static int xscale_read_trace(target_t *target)
 static int xscale_read_instruction(target_t *target,
 		arm_instruction_t *instruction)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int i;
 	int section = -1;
 	uint32_t size_read;
@@ -2680,9 +2632,7 @@ static int xscale_branch_address(xscale_trace_data_t *trace_data,
 
 static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int next_pc_ok = 0;
 	uint32_t next_pc = 0x0;
 	xscale_trace_data_t *trace_data = xscale->trace.data;
@@ -2869,10 +2819,8 @@ static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 
 static void xscale_build_reg_cache(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
-
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	xscale_reg_t *arch_info = malloc(sizeof(xscale_reg_arch_info));
 	int i;
@@ -2929,7 +2877,6 @@ static int xscale_init_arch_info(target_t *target,
 	armv4_5 = &xscale->armv4_5_common;
 
 	/* store architecture specfic data (none so far) */
-	xscale->arch_info = NULL;
 	xscale->common_magic = XSCALE_COMMON_MAGIC;
 
 	/* we don't really *need* variant info ... */
@@ -3047,9 +2994,8 @@ xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = NULL;
-	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-
+	int retval;
 	uint32_t handler_address;
 
 	if (argc < 2)
@@ -3064,10 +3010,10 @@ xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx,
 		return ERROR_FAIL;
 	}
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_FAIL;
-	}
+	xscale = target_to_xscale(target);
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	COMMAND_PARSE_NUMBER(u32, args[1], handler_address);
 
@@ -3090,9 +3036,8 @@ xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = NULL;
-	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-
+	int retval;
 	uint32_t cache_clean_address;
 
 	if (argc < 2)
@@ -3106,11 +3051,10 @@ xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 		LOG_ERROR("target '%s' not defined", args[0]);
 		return ERROR_FAIL;
 	}
-
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_FAIL;
-	}
+	xscale = target_to_xscale(target);
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	COMMAND_PARSE_NUMBER(u32, args[1], cache_clean_address);
 
@@ -3131,13 +3075,12 @@ xscale_handle_cache_info_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &xscale->armv4_5_mmu.armv4_5_cache);
 }
@@ -3145,18 +3088,17 @@ xscale_handle_cache_info_command(struct command_context_s *cmd_ctx,
 static int xscale_virt2phys(struct target_s *target,
 		uint32_t virtual, uint32_t *physical)
 {
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
-	int retval;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int type;
 	uint32_t cb;
 	int domain;
 	uint32_t ap;
 
-	if ((retval = xscale_get_arch_pointers(target, &armv4_5, &xscale)) != ERROR_OK)
-	{
-		return retval;
+	if (xscale->common_magic != XSCALE_COMMON_MAGIC) {
+		LOG_ERROR(xscale_not);
+		return ERROR_TARGET_INVALID;
 	}
+
 	uint32_t ret = armv4_5_mmu_translate_va(target, &xscale->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
 	if (type == -1)
 	{
@@ -3168,8 +3110,7 @@ static int xscale_virt2phys(struct target_s *target,
 
 static int xscale_mmu(struct target_s *target, int *enabled)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	xscale_common_t *xscale = armv4_5->arch_info;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -3184,13 +3125,12 @@ static int xscale_handle_mmu_command(command_context_t *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -3221,14 +3161,13 @@ static int xscale_handle_idcache_command(command_context_t *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int icache = 0, dcache = 0;
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -3276,13 +3215,12 @@ static int xscale_handle_vector_catch_command(command_context_t *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (argc < 1)
 	{
@@ -3305,14 +3243,13 @@ static int xscale_handle_vector_table_command(command_context_t *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	int err = 0;
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (argc == 0) /* print current settings */
 	{
@@ -3366,14 +3303,14 @@ xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	uint32_t dcsr_value;
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -3446,9 +3383,9 @@ static int
 xscale_handle_trace_image_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
-	target_t *target;
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	target_t *target = get_current_target(cmd_ctx);
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	int retval;
 
 	if (argc < 1)
 	{
@@ -3456,12 +3393,9 @@ xscale_handle_trace_image_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	target = get_current_target(cmd_ctx);
-
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (xscale->trace.image)
 	{
@@ -3499,15 +3433,14 @@ static int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
 	xscale_trace_data_t *trace_data;
 	fileio_t file;
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -3559,13 +3492,12 @@ xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	xscale_analyze_trace(target, cmd_ctx);
 
@@ -3576,13 +3508,12 @@ static int xscale_handle_cp15(command_context_t *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
+	struct xscale_common_s *xscale = target_to_xscale(target);
+	int retval;
 
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{

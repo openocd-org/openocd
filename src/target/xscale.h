@@ -128,9 +128,6 @@ typedef struct xscale_common_s
 	armv4_5_mmu_common_t armv4_5_mmu;
 	uint32_t cp15_control_reg;
 
-	/* possible future enhancements that go beyond XScale common stuff */
-	void *arch_info;
-
 	int fast_memory_access;
 } xscale_common_t;
 
