@@ -39,7 +39,6 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap
 
 	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
-	arm9tdmi->arch_info = arm966e;
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
 
 	/* The ARM966E-S implements the ARMv5TE architecture which
@@ -58,51 +57,20 @@ static int arm966e_target_create(struct target_s *target, Jim_Interp *interp)
 	return arm966e_init_arch_info(target, arm966e, target->tap);
 }
 
-static int arm966e_get_arch_pointers(target_t *target,
-		armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
-		arm9tdmi_common_t **arm9tdmi_p, arm966e_common_t **arm966e_p)
+static int arm966e_verify_pointer(struct command_context_s *cmd_ctx,
+		struct arm966e_common_s *arm966e)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm966e_common_t *arm966e;
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		return -1;
+	if (arm966e->common_magic != ARM966E_COMMON_MAGIC) {
+		command_print(cmd_ctx, "target is not an ARM966");
+		return ERROR_TARGET_INVALID;
 	}
-
-	arm7_9 = armv4_5->arch_info;
-	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm9tdmi = arm7_9->arch_info;
-	if (arm9tdmi->common_magic != ARM9TDMI_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm966e = arm9tdmi->arch_info;
-	if (arm966e->common_magic != ARM966E_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	*armv4_5_p = armv4_5;
-	*arm7_9_p = arm7_9;
-	*arm9tdmi_p = arm9tdmi;
-	*arm966e_p = arm966e;
-
 	return ERROR_OK;
 }
 
 static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[3];
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
@@ -154,8 +122,7 @@ static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[3];
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
@@ -200,19 +167,11 @@ static int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx,
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-	arm966e_common_t *arm966e;
-	arm_jtag_t *jtag_info;
+	struct arm966e_common_s *arm966e = target_to_arm966(target);
 
-	if (arm966e_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm966e) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM966e target");
-		return ERROR_OK;
-	}
-
-	jtag_info = &arm7_9->jtag_info;
+	retval = arm966e_verify_pointer(cmd_ctx, arm966e);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
