@@ -26,73 +26,33 @@
 #include "target_type.h"
 
 
+/*
+ * For information about the ARM920T, see ARM DDI 0151C especially
+ * Chapter 9 about debug support, which shows how to manipulate each
+ * of the different scan chains:
+ *
+ *   0 ... ARM920 signals, e.g. to rest of SOC (unused here)
+ *   1 ... debugging; watchpoint and breakpoint status, etc; also
+ *	MMU and cache access in conjunction with scan chain 15
+ *   2 ... EmbeddedICE
+ *   3 ... external boundary scan (SoC-specific, unused here)
+ *   4 ... access to cache tag RAM
+ *   6 ... ETM9
+ *   15 ... access coprocessor 15, "physical" or "interpreted" modes
+ *	"interpreted" works with a few actual MRC/MCR instructions
+ *	"physical" provides register-like behaviors.
+ *
+ * The ARM922T is similar, but with smaller caches (8K each, vs 16K).
+ */
+
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* cli handling */
-int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm920t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm920t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-
-int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-/* forward declarations */
-int arm920t_target_create(struct target_s *target, Jim_Interp *interp);
-int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-
 #define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
 
-static int arm920t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
-static int arm920t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
-
-
-target_type_t arm920t_target =
-{
-	.name = "arm920t",
-
-	.poll = arm7_9_poll,
-	.arch_state = arm920t_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = arm7_9_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm920t_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm920t_read_memory,
-	.write_memory = arm920t_write_memory,
-	.read_phys_memory = arm920t_read_phys_memory,
-	.write_phys_memory = arm920t_write_phys_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm920t_register_commands,
-	.target_create = arm920t_target_create,
-	.init_target = arm920t_init_target,
-	.examine = arm9tdmi_examine,
-	.mrc = arm920t_mrc,
-	.mcr = arm920t_mcr,
-};
-
-int arm920t_read_cp15_physical(target_t *target, int reg_addr, uint32_t *value)
+static int arm920t_read_cp15_physical(target_t *target,
+		int reg_addr, uint32_t *value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -134,7 +94,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, uint32_t *value)
 
 	jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)value);
 
-	#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
 	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
 #endif
@@ -142,7 +102,8 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, uint32_t *value)
 	return ERROR_OK;
 }
 
-int arm920t_write_cp15_physical(target_t *target, int reg_addr, uint32_t value)
+static int arm920t_write_cp15_physical(target_t *target,
+		int reg_addr, uint32_t value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -188,7 +149,8 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, uint32_t value)
 	return ERROR_OK;
 }
 
-int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode, uint32_t arm_opcode)
+static int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode,
+		uint32_t arm_opcode)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -243,7 +205,8 @@ int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode, uint32_t arm_op
 	return ERROR_OK;
 }
 
-int arm920t_read_cp15_interpreted(target_t *target, uint32_t cp15_opcode, uint32_t address, uint32_t *value)
+static int arm920t_read_cp15_interpreted(target_t *target,
+		uint32_t cp15_opcode, uint32_t address, uint32_t *value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	uint32_t* regs_p[1];
@@ -286,7 +249,9 @@ int arm920t_read_cp15_interpreted(target_t *target, uint32_t cp15_opcode, uint32
 	return ERROR_OK;
 }
 
-int arm920t_write_cp15_interpreted(target_t *target, uint32_t cp15_opcode, uint32_t value, uint32_t address)
+static
+int arm920t_write_cp15_interpreted(target_t *target,
+		uint32_t cp15_opcode, uint32_t value, uint32_t address)
 {
 	uint32_t cp15c15 = 0x0;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -324,6 +289,7 @@ int arm920t_write_cp15_interpreted(target_t *target, uint32_t cp15_opcode, uint3
 	return ERROR_OK;
 }
 
+// EXPORTED to FA256
 uint32_t arm920t_get_ttb(target_t *target)
 {
 	int retval;
@@ -335,6 +301,7 @@ uint32_t arm920t_get_ttb(target_t *target)
 	return ttb;
 }
 
+// EXPORTED to FA256
 void arm920t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
@@ -355,6 +322,7 @@ void arm920t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_
 	arm920t_write_cp15_physical(target, 0x2, cp15_control);
 }
 
+// EXPORTED to FA256
 void arm920t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
@@ -375,6 +343,7 @@ void arm920t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_c
 	arm920t_write_cp15_physical(target, 0x2, cp15_control);
 }
 
+// EXPORTED to FA256
 void arm920t_post_debug_entry(target_t *target)
 {
 	uint32_t cp15c15;
@@ -421,6 +390,7 @@ void arm920t_post_debug_entry(target_t *target)
 	}
 }
 
+// EXPORTED to FA256
 void arm920t_pre_restore_context(target_t *target)
 {
 	uint32_t cp15c15;
@@ -446,7 +416,9 @@ void arm920t_pre_restore_context(target_t *target)
 	}
 }
 
-int arm920t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm9tdmi_common_t **arm9tdmi_p, arm920t_common_t **arm920t_p)
+static int arm920t_get_arch_pointers(target_t *target,
+	armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
+	arm9tdmi_common_t **arm9tdmi_p, arm920t_common_t **arm920t_p)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9;
@@ -484,6 +456,7 @@ int arm920t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	return ERROR_OK;
 }
 
+/** Logs summary of ARM920 state for a halted target. */
 int arm920t_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -517,6 +490,7 @@ int arm920t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
+/** Reads a buffer, in the specified word size, with current MMU settings. */
 int arm920t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
@@ -527,27 +501,34 @@ int arm920t_read_memory(struct target_s *target, uint32_t address, uint32_t size
 }
 
 
-int arm920t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm920t_read_phys_memory(struct target_s *target,
+		uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm920t_common_t *arm920t = arm9tdmi->arch_info;
 
-	return armv4_5_mmu_read_physical(target, &arm920t->armv4_5_mmu, address, size, count, buffer);
+	return armv4_5_mmu_read_physical(target, &arm920t->armv4_5_mmu,
+			address, size, count, buffer);
 }
 
-int arm920t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm920t_write_phys_memory(struct target_s *target,
+		uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm920t_common_t *arm920t = arm9tdmi->arch_info;
 
-	return armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu, address, size, count, buffer);
+	return armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu,
+			address, size, count, buffer);
 }
 
 
+/** Writes a buffer, in the specified word size, with current MMU settings. */
 int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
@@ -584,6 +565,7 @@ int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t siz
 	return retval;
 }
 
+// EXPORTED to FA256
 int arm920t_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
@@ -656,13 +638,6 @@ int arm920t_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
-{
-	arm9tdmi_init_target(cmd_ctx, target);
-
-	return ERROR_OK;
-}
-
 int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
@@ -699,36 +674,15 @@ int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap
 	return ERROR_OK;
 }
 
-int arm920t_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm920t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm920t_common_t *arm920t = calloc(1,sizeof(arm920t_common_t));
 
-	arm920t_init_arch_info(target, arm920t, target->tap);
-
-	return ERROR_OK;
+	return arm920t_init_arch_info(target, arm920t, target->tap);
 }
 
-int arm920t_register_commands(struct command_context_s *cmd_ctx)
-{
-	int retval;
-	command_t *arm920t_cmd;
-
-
-	retval = arm9tdmi_register_commands(cmd_ctx);
-
-	arm920t_cmd = register_command(cmd_ctx, NULL, "arm920t", NULL, COMMAND_ANY, "arm920t specific commands");
-
-	register_command(cmd_ctx, arm920t_cmd, "cp15", arm920t_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <num> [value]");
-	register_command(cmd_ctx, arm920t_cmd, "cp15i", arm920t_handle_cp15i_command, COMMAND_EXEC, "display/modify cp15 (interpreted access) <opcode> [value] [address]");
-	register_command(cmd_ctx, arm920t_cmd, "cache_info", arm920t_handle_cache_info_command, COMMAND_EXEC, "display information about target caches");
-
-	register_command(cmd_ctx, arm920t_cmd, "read_cache", arm920t_handle_read_cache_command, COMMAND_EXEC, "display I/D cache content");
-	register_command(cmd_ctx, arm920t_cmd, "read_mmu", arm920t_handle_read_mmu_command, COMMAND_EXEC, "display I/D mmu content");
-
-	return retval;
-}
-
-int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
@@ -980,7 +934,8 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1268,7 +1223,9 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 
 	return ERROR_OK;
 }
-int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+
+static int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1329,7 +1286,8 @@ int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1403,7 +1361,8 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
@@ -1442,3 +1401,78 @@ static int arm920t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, 
 
 	return arm920t_write_cp15_interpreted(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), 0, value);
 }
+
+/** Registers commands to access coprocessor, cache, and MMU resources. */
+int arm920t_register_commands(struct command_context_s *cmd_ctx)
+{
+	int retval;
+	command_t *arm920t_cmd;
+
+	retval = arm9tdmi_register_commands(cmd_ctx);
+
+	arm920t_cmd = register_command(cmd_ctx, NULL, "arm920t",
+			NULL, COMMAND_ANY,
+			"arm920t specific commands");
+
+	register_command(cmd_ctx, arm920t_cmd, "cp15",
+			arm920t_handle_cp15_command, COMMAND_EXEC,
+			"display/modify cp15 register <num> [value]");
+	register_command(cmd_ctx, arm920t_cmd, "cp15i",
+			arm920t_handle_cp15i_command, COMMAND_EXEC,
+			"display/modify cp15 (interpreted access) "
+				"<opcode> [value] [address]");
+	register_command(cmd_ctx, arm920t_cmd, "cache_info",
+			arm920t_handle_cache_info_command, COMMAND_EXEC,
+			"display information about target caches");
+	register_command(cmd_ctx, arm920t_cmd, "read_cache",
+			arm920t_handle_read_cache_command, COMMAND_EXEC,
+			"display I/D cache content");
+	register_command(cmd_ctx, arm920t_cmd, "read_mmu",
+			arm920t_handle_read_mmu_command, COMMAND_EXEC,
+			"display I/D mmu content");
+
+	return retval;
+}
+
+/** Holds methods for ARM920 targets. */
+target_type_t arm920t_target =
+{
+	.name = "arm920t",
+
+	.poll = arm7_9_poll,
+	.arch_state = arm920t_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm920t_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm920t_read_memory,
+	.write_memory = arm920t_write_memory,
+	.read_phys_memory = arm920t_read_phys_memory,
+	.write_phys_memory = arm920t_write_phys_memory,
+	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm920t_register_commands,
+	.target_create = arm920t_target_create,
+	.init_target = arm9tdmi_init_target,
+	.examine = arm9tdmi_examine,
+	.mrc = arm920t_mrc,
+	.mcr = arm920t_mcr,
+};
