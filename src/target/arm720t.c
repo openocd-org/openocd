@@ -29,70 +29,17 @@
 #include "target_type.h"
 
 
+/*
+ * ARM720 is an ARM7TDMI-S with MMU and ETM7.  For information, see
+ * ARM DDI 0229C especially Chapter 9 about debug support.
+ */
+
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* cli handling */
-int arm720t_register_commands(struct command_context_s *cmd_ctx);
-
-int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-/* forward declarations */
-int arm720t_target_create(struct target_s *target,Jim_Interp *interp);
-int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm720t_arch_state(struct target_s *target);
-int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm720t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm720t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm720t_soft_reset_halt(struct target_s *target);
-
-static int arm720t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
-static int arm720t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
-
-target_type_t arm720t_target =
-{
-	.name = "arm720t",
-
-	.poll = arm7_9_poll,
-	.arch_state = arm720t_arch_state,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = arm7_9_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm720t_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm720t_read_memory,
-	.write_memory = arm720t_write_memory,
-	.read_phys_memory = arm720t_read_phys_memory,
-	.write_phys_memory = arm720t_write_phys_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm720t_register_commands,
-	.target_create = arm720t_target_create,
-	.init_target = arm720t_init_target,
-	.examine = arm7tdmi_examine,
-	.mrc = arm720t_mrc,
-	.mcr = arm720t_mcr,
-
-};
-
-int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruction, int clock)
+static int arm720t_scan_cp15(target_t *target,
+		uint32_t out, uint32_t *in, int instruction, int clock)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -154,7 +101,7 @@ int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruct
 	return ERROR_OK;
 }
 
-int arm720t_read_cp15(target_t *target, uint32_t opcode, uint32_t *value)
+static int arm720t_read_cp15(target_t *target, uint32_t opcode, uint32_t *value)
 {
 	/* fetch CP15 opcode */
 	arm720t_scan_cp15(target, opcode, NULL, 1, 1);
@@ -171,7 +118,7 @@ int arm720t_read_cp15(target_t *target, uint32_t opcode, uint32_t *value)
 	return ERROR_OK;
 }
 
-int arm720t_write_cp15(target_t *target, uint32_t opcode, uint32_t value)
+static int arm720t_write_cp15(target_t *target, uint32_t opcode, uint32_t value)
 {
 	/* fetch CP15 opcode */
 	arm720t_scan_cp15(target, opcode, NULL, 1, 1);
@@ -187,7 +134,7 @@ int arm720t_write_cp15(target_t *target, uint32_t opcode, uint32_t value)
 	return ERROR_OK;
 }
 
-uint32_t arm720t_get_ttb(target_t *target)
+static uint32_t arm720t_get_ttb(target_t *target)
 {
 	uint32_t ttb = 0x0;
 
@@ -199,7 +146,8 @@ uint32_t arm720t_get_ttb(target_t *target)
 	return ttb;
 }
 
-void arm720t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
+static void arm720t_disable_mmu_caches(target_t *target,
+		int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
 
@@ -216,7 +164,8 @@ void arm720t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_
 	arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
-void arm720t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
+static void arm720t_enable_mmu_caches(target_t *target,
+		int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
 
@@ -233,7 +182,7 @@ void arm720t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_c
 	arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
-void arm720t_post_debug_entry(target_t *target)
+static void arm720t_post_debug_entry(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -255,7 +204,7 @@ void arm720t_post_debug_entry(target_t *target)
 	jtag_execute_queue();
 }
 
-void arm720t_pre_restore_context(target_t *target)
+static void arm720t_pre_restore_context(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -267,7 +216,9 @@ void arm720t_pre_restore_context(target_t *target)
 	arm720t_write_cp15(target, 0xee060f10, arm720t->far_reg);
 }
 
-int arm720t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm7tdmi_common_t **arm7tdmi_p, arm720t_common_t **arm720t_p)
+static int arm720t_get_arch_pointers(target_t *target,
+		armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
+		arm7tdmi_common_t **arm7tdmi_p, arm720t_common_t **arm720t_p)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9;
@@ -305,23 +256,17 @@ int arm720t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	return ERROR_OK;
 }
 
-int arm720t_arch_state(struct target_s *target)
+static int arm720t_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
 
-	char *state[] =
+	static const char *state[] =
 	{
 		"disabled", "enabled"
 	};
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		exit(-1);
-	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
@@ -337,7 +282,8 @@ int arm720t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm720t_read_memory(struct target_s *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -357,18 +303,8 @@ int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size
 	return retval;
 }
 
-int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
-{
-	int retval;
-
-	if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
-		return retval;
-
-	return retval;
-}
-
-
-int arm720t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm720t_read_phys_memory(struct target_s *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -378,7 +314,8 @@ int arm720t_read_phys_memory(struct target_s *target, uint32_t address, uint32_t
 	return armv4_5_mmu_read_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
 }
 
-int arm720t_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm720t_write_phys_memory(struct target_s *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -388,8 +325,7 @@ int arm720t_write_phys_memory(struct target_s *target, uint32_t address, uint32_
 	return armv4_5_mmu_write_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
 }
 
-
-int arm720t_soft_reset_halt(struct target_s *target)
+static int arm720t_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -460,15 +396,13 @@ int arm720t_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+static int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-	arm7tdmi_init_target(cmd_ctx, target);
-
-	return ERROR_OK;
+	return arm7tdmi_init_target(cmd_ctx, target);
 }
 
-
-int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap_t *tap)
+static int arm720t_init_arch_info(target_t *target,
+		arm720t_common_t *arm720t, jtag_tap_t *tap)
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;
@@ -493,31 +427,15 @@ int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap
 	return ERROR_OK;
 }
 
-int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm720t_common_t *arm720t = calloc(1,sizeof(arm720t_common_t));
 
-	arm720t_init_arch_info(target, arm720t, target->tap);
-
-	return ERROR_OK;
+	return arm720t_init_arch_info(target, arm720t, target->tap);
 }
 
-int arm720t_register_commands(struct command_context_s *cmd_ctx)
-{
-	int retval;
-	command_t *arm720t_cmd;
-
-
-	retval = arm7tdmi_register_commands(cmd_ctx);
-
-	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t", NULL, COMMAND_ANY, "arm720t specific commands");
-
-	register_command(cmd_ctx, arm720t_cmd, "cp15", arm720t_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <opcode> [value]");
-
-	return ERROR_OK;
-}
-
-int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -580,7 +498,6 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-
 static int arm720t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	if (cpnum!=15)
@@ -604,4 +521,63 @@ static int arm720t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, 
 	return arm720t_write_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
 }
 
+static int arm720t_register_commands(struct command_context_s *cmd_ctx)
+{
+	int retval;
+	command_t *arm720t_cmd;
 
+
+	retval = arm7_9_register_commands(cmd_ctx);
+
+	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t",
+			NULL, COMMAND_ANY,
+			"arm720t specific commands");
+
+	register_command(cmd_ctx, arm720t_cmd, "cp15",
+			arm720t_handle_cp15_command, COMMAND_EXEC,
+			"display/modify cp15 register <opcode> [value]");
+
+	return ERROR_OK;
+}
+
+/** Holds methods for ARM720 targets. */
+target_type_t arm720t_target =
+{
+	.name = "arm720t",
+
+	.poll = arm7_9_poll,
+	.arch_state = arm720t_arch_state,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm720t_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm720t_read_memory,
+	.write_memory = arm7_9_write_memory,
+	.read_phys_memory = arm720t_read_phys_memory,
+	.write_phys_memory = arm720t_write_phys_memory,
+	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm720t_register_commands,
+	.target_create = arm720t_target_create,
+	.init_target = arm720t_init_target,
+	.examine = arm7tdmi_examine,
+	.mrc = arm720t_mrc,
+	.mcr = arm720t_mcr,
+
+};
