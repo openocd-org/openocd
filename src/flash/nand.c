@@ -1135,50 +1135,46 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 		break;
 	}
 
-	if (p)
+	if (NULL == p->device)
 	{
-		if (p->device)
-		{
-			if (first >= p->num_blocks)
-				first = p->num_blocks - 1;
+		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		return ERROR_OK;
+	}
 
-			if (last >= p->num_blocks)
-				last = p->num_blocks - 1;
+	if (first >= p->num_blocks)
+		first = p->num_blocks - 1;
 
-			command_print(cmd_ctx, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
-				i++, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
+	if (last >= p->num_blocks)
+		last = p->num_blocks - 1;
 
-			for (j = first; j <= last; j++)
-			{
-				char *erase_state, *bad_state;
+	command_print(cmd_ctx, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
+		i++, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
 
-				if (p->blocks[j].is_erased == 0)
-					erase_state = "not erased";
-				else if (p->blocks[j].is_erased == 1)
-					erase_state = "erased";
-				else
-					erase_state = "erase state unknown";
+	for (j = first; j <= last; j++)
+	{
+		char *erase_state, *bad_state;
 
-				if (p->blocks[j].is_bad == 0)
-					bad_state = "";
-				else if (p->blocks[j].is_bad == 1)
-					bad_state = " (marked bad)";
-				else
-					bad_state = " (block condition unknown)";
-
-				command_print(cmd_ctx,
-					      "\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
-					      j,
-					      p->blocks[j].offset,
-					      p->blocks[j].size / 1024,
-					      erase_state,
-					      bad_state);
-			}
-		}
+		if (p->blocks[j].is_erased == 0)
+			erase_state = "not erased";
+		else if (p->blocks[j].is_erased == 1)
+			erase_state = "erased";
 		else
-		{
-			command_print(cmd_ctx, "#%s: not probed", args[0]);
-		}
+			erase_state = "erase state unknown";
+
+		if (p->blocks[j].is_bad == 0)
+			bad_state = "";
+		else if (p->blocks[j].is_bad == 1)
+			bad_state = " (marked bad)";
+		else
+			bad_state = " (block condition unknown)";
+
+		command_print(cmd_ctx,
+			      "\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
+			      j,
+			      p->blocks[j].offset,
+			      p->blocks[j].size / 1024,
+			      erase_state,
+			      bad_state);
 	}
 
 	return ERROR_OK;
@@ -1196,20 +1192,17 @@ static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cm
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	if ((retval = nand_probe(p)) == ERROR_OK)
 	{
-		if ((retval = nand_probe(p)) == ERROR_OK)
-		{
-			command_print(cmd_ctx, "NAND flash device '%s' found", p->device->name);
-		}
-		else if (retval == ERROR_NAND_OPERATION_FAILED)
-		{
-			command_print(cmd_ctx, "probing failed for NAND flash device");
-		}
-		else
-		{
-			command_print(cmd_ctx, "unknown error when probing NAND flash device");
-		}
+		command_print(cmd_ctx, "NAND flash device '%s' found", p->device->name);
+	}
+	else if (retval == ERROR_NAND_OPERATION_FAILED)
+	{
+		command_print(cmd_ctx, "probing failed for NAND flash device");
+	}
+	else
+	{
+		command_print(cmd_ctx, "unknown error when probing NAND flash device");
 	}
 
 	return ERROR_OK;
@@ -1228,47 +1221,44 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	unsigned long offset;
+	unsigned long length;
+
+	/* erase specified part of the chip; or else everything */
+	if (argc == 3) {
+		unsigned long size = p->erase_size * p->num_blocks;
+
+		COMMAND_PARSE_NUMBER(ulong, args[1], offset);
+		if ((offset % p->erase_size) != 0 || offset >= size)
+			return ERROR_INVALID_ARGUMENTS;
+
+		COMMAND_PARSE_NUMBER(ulong, args[2], length);
+		if ((length == 0) || (length % p->erase_size) != 0
+				|| (length + offset) > size)
+			return ERROR_INVALID_ARGUMENTS;
+
+		offset /= p->erase_size;
+		length /= p->erase_size;
+	} else {
+		offset = 0;
+		length = p->num_blocks;
+	}
+
+	retval = nand_erase(p, offset, offset + length - 1);
+	if (retval == ERROR_OK)
 	{
-		unsigned long offset;
-		unsigned long length;
-
-		/* erase specified part of the chip; or else everything */
-		if (argc == 3) {
-			unsigned long size = p->erase_size * p->num_blocks;
-
-			COMMAND_PARSE_NUMBER(ulong, args[1], offset);
-			if ((offset % p->erase_size) != 0 || offset >= size)
-				return ERROR_INVALID_ARGUMENTS;
-
-			COMMAND_PARSE_NUMBER(ulong, args[2], length);
-			if ((length == 0) || (length % p->erase_size) != 0
-					|| (length + offset) > size)
-				return ERROR_INVALID_ARGUMENTS;
-
-			offset /= p->erase_size;
-			length /= p->erase_size;
-		} else {
-			offset = 0;
-			length = p->num_blocks;
-		}
-
-		retval = nand_erase(p, offset, offset + length - 1);
-		if (retval == ERROR_OK)
-		{
-			command_print(cmd_ctx, "erased blocks %lu to %lu "
-					"on NAND flash device #%s '%s'",
-					offset, offset + length,
-					args[0], p->device->name);
-		}
-		else if (retval == ERROR_NAND_OPERATION_FAILED)
-		{
-			command_print(cmd_ctx, "erase failed");
-		}
-		else
-		{
-			command_print(cmd_ctx, "unknown error when erasing NAND flash device");
-		}
+		command_print(cmd_ctx, "erased blocks %lu to %lu "
+				"on NAND flash device #%s '%s'",
+				offset, offset + length,
+				args[0], p->device->name);
+	}
+	else if (retval == ERROR_NAND_OPERATION_FAILED)
+	{
+		command_print(cmd_ctx, "erase failed");
+	}
+	else
+	{
+		command_print(cmd_ctx, "unknown error when erasing NAND flash device");
 	}
 
 	return ERROR_OK;
@@ -1353,149 +1343,146 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	uint8_t *page = NULL;
+	uint32_t page_size = 0;
+	uint8_t *oob = NULL;
+	uint32_t oob_size = 0;
+	const int *eccpos = NULL;
+
+	COMMAND_PARSE_NUMBER(u32, args[2], offset);
+
+	if (argc > 3)
 	{
-		uint8_t *page = NULL;
-		uint32_t page_size = 0;
-		uint8_t *oob = NULL;
-		uint32_t oob_size = 0;
-		const int *eccpos = NULL;
-
-		COMMAND_PARSE_NUMBER(u32, args[2], offset);
-
-		if (argc > 3)
+		int i;
+		for (i = 3; i < argc; i++)
 		{
-			int i;
-			for (i = 3; i < argc; i++)
+			if (!strcmp(args[i], "oob_raw"))
+				oob_format |= NAND_OOB_RAW;
+			else if (!strcmp(args[i], "oob_only"))
+				oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
+			else if (!strcmp(args[i], "oob_softecc"))
+				oob_format |= NAND_OOB_SW_ECC;
+			else if (!strcmp(args[i], "oob_softecc_kw"))
+				oob_format |= NAND_OOB_SW_ECC_KW;
+			else
 			{
-				if (!strcmp(args[i], "oob_raw"))
-					oob_format |= NAND_OOB_RAW;
-				else if (!strcmp(args[i], "oob_only"))
-					oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
-				else if (!strcmp(args[i], "oob_softecc"))
-					oob_format |= NAND_OOB_SW_ECC;
-				else if (!strcmp(args[i], "oob_softecc_kw"))
-					oob_format |= NAND_OOB_SW_ECC_KW;
-				else
-				{
-					command_print(cmd_ctx, "unknown option: %s", args[i]);
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
+				command_print(cmd_ctx, "unknown option: %s", args[i]);
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		}
+	}
 
-		duration_start_measure(&duration);
+	duration_start_measure(&duration);
 
-		if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
-		{
-			return ERROR_OK;
+	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
+	{
+		return ERROR_OK;
+	}
+
+	buf_cnt = binary_size = fileio.size;
+
+	if (!(oob_format & NAND_OOB_ONLY))
+	{
+		page_size = p->page_size;
+		page = malloc(p->page_size);
+	}
+
+	if (oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC | NAND_OOB_SW_ECC_KW))
+	{
+		if (p->page_size == 512) {
+			oob_size = 16;
+			eccpos = nand_oob_16.eccpos;
+		} else if (p->page_size == 2048) {
+			oob_size = 64;
+			eccpos = nand_oob_64.eccpos;
 		}
+		oob = malloc(oob_size);
+	}
 
-		buf_cnt = binary_size = fileio.size;
-
-		if (!(oob_format & NAND_OOB_ONLY))
-		{
-			page_size = p->page_size;
-			page = malloc(p->page_size);
-		}
-
-		if (oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC | NAND_OOB_SW_ECC_KW))
-		{
-			if (p->page_size == 512) {
-				oob_size = 16;
-				eccpos = nand_oob_16.eccpos;
-			} else if (p->page_size == 2048) {
-				oob_size = 64;
-				eccpos = nand_oob_64.eccpos;
-			}
-			oob = malloc(oob_size);
-		}
-
-		if (offset % p->page_size)
-		{
-			command_print(cmd_ctx, "only page size aligned offsets and sizes are supported");
-			fileio_close(&fileio);
-			free(oob);
-			free(page);
-			return ERROR_OK;
-		}
-
-		while (buf_cnt > 0)
-		{
-			uint32_t size_read;
-
-			if (NULL != page)
-			{
-				fileio_read(&fileio, page_size, page, &size_read);
-				buf_cnt -= size_read;
-				if (size_read < page_size)
-				{
-					memset(page + size_read, 0xff, page_size - size_read);
-				}
-			}
-
-			if (oob_format & NAND_OOB_SW_ECC)
-			{
-				uint32_t i, j;
-				uint8_t ecc[3];
-				memset(oob, 0xff, oob_size);
-				for (i = 0, j = 0; i < page_size; i += 256) {
-					nand_calculate_ecc(p, page + i, ecc);
-					oob[eccpos[j++]] = ecc[0];
-					oob[eccpos[j++]] = ecc[1];
-					oob[eccpos[j++]] = ecc[2];
-				}
-			} else if (oob_format & NAND_OOB_SW_ECC_KW)
-			{
-				/*
-				 * In this case eccpos is not used as
-				 * the ECC data is always stored contigously
-				 * at the end of the OOB area.  It consists
-				 * of 10 bytes per 512-byte data block.
-				 */
-				uint32_t i;
-				uint8_t *ecc = oob + oob_size - page_size/512 * 10;
-				memset(oob, 0xff, oob_size);
-				for (i = 0; i < page_size; i += 512) {
-					nand_calculate_ecc_kw(p, page + i, ecc);
-					ecc += 10;
-				}
-			}
-			else if (NULL != oob)
-			{
-				fileio_read(&fileio, oob_size, oob, &size_read);
-				buf_cnt -= size_read;
-				if (size_read < oob_size)
-				{
-					memset(oob + size_read, 0xff, oob_size - size_read);
-				}
-			}
-
-			if (nand_write_page(p, offset / p->page_size, page, page_size, oob, oob_size) != ERROR_OK)
-			{
-				command_print(cmd_ctx, "failed writing file %s to NAND flash %s at offset 0x%8.8" PRIx32 "",
-					args[1], args[0], offset);
-
-				fileio_close(&fileio);
-				free(oob);
-				free(page);
-
-				return ERROR_OK;
-			}
-			offset += page_size;
-		}
-
+	if (offset % p->page_size)
+	{
+		command_print(cmd_ctx, "only page size aligned offsets and sizes are supported");
 		fileio_close(&fileio);
 		free(oob);
 		free(page);
-		oob = NULL;
-		page = NULL;
-		duration_stop_measure(&duration, &duration_text);
-		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to offset 0x%8.8" PRIx32 " in %s",
-			args[1], args[0], offset, duration_text);
-		free(duration_text);
-		duration_text = NULL;
+		return ERROR_OK;
 	}
+
+	while (buf_cnt > 0)
+	{
+		uint32_t size_read;
+
+		if (NULL != page)
+		{
+			fileio_read(&fileio, page_size, page, &size_read);
+			buf_cnt -= size_read;
+			if (size_read < page_size)
+			{
+				memset(page + size_read, 0xff, page_size - size_read);
+			}
+		}
+
+		if (oob_format & NAND_OOB_SW_ECC)
+		{
+			uint32_t i, j;
+			uint8_t ecc[3];
+			memset(oob, 0xff, oob_size);
+			for (i = 0, j = 0; i < page_size; i += 256) {
+				nand_calculate_ecc(p, page + i, ecc);
+				oob[eccpos[j++]] = ecc[0];
+				oob[eccpos[j++]] = ecc[1];
+				oob[eccpos[j++]] = ecc[2];
+			}
+		} else if (oob_format & NAND_OOB_SW_ECC_KW)
+		{
+			/*
+			 * In this case eccpos is not used as
+			 * the ECC data is always stored contigously
+			 * at the end of the OOB area.  It consists
+			 * of 10 bytes per 512-byte data block.
+			 */
+			uint32_t i;
+			uint8_t *ecc = oob + oob_size - page_size/512 * 10;
+			memset(oob, 0xff, oob_size);
+			for (i = 0; i < page_size; i += 512) {
+				nand_calculate_ecc_kw(p, page + i, ecc);
+				ecc += 10;
+			}
+		}
+		else if (NULL != oob)
+		{
+			fileio_read(&fileio, oob_size, oob, &size_read);
+			buf_cnt -= size_read;
+			if (size_read < oob_size)
+			{
+				memset(oob + size_read, 0xff, oob_size - size_read);
+			}
+		}
+
+		if (nand_write_page(p, offset / p->page_size, page, page_size, oob, oob_size) != ERROR_OK)
+		{
+			command_print(cmd_ctx, "failed writing file %s to NAND flash %s at offset 0x%8.8" PRIx32 "",
+				args[1], args[0], offset);
+
+			fileio_close(&fileio);
+			free(oob);
+			free(page);
+
+			return ERROR_OK;
+		}
+		offset += page_size;
+	}
+
+	fileio_close(&fileio);
+	free(oob);
+	free(page);
+	oob = NULL;
+	page = NULL;
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "wrote file %s to NAND flash %s up to offset 0x%8.8" PRIx32 " in %s",
+		args[1], args[0], offset, duration_text);
+	free(duration_text);
+	duration_text = NULL;
 
 	return ERROR_OK;
 }
@@ -1512,112 +1499,107 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	if (NULL == p->device)
 	{
-		if (p->device)
+		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		return ERROR_OK;
+	}
+
+	fileio_t fileio;
+	duration_t duration;
+	char *duration_text;
+
+	uint8_t *page = NULL;
+	uint32_t page_size = 0;
+	uint8_t *oob = NULL;
+	uint32_t oob_size = 0;
+	uint32_t address;
+	COMMAND_PARSE_NUMBER(u32, args[2], address);
+	uint32_t size;
+	COMMAND_PARSE_NUMBER(u32, args[3], size);
+	uint32_t bytes_done = 0;
+	enum oob_formats oob_format = NAND_OOB_NONE;
+
+	if (argc > 4)
+	{
+		int i;
+		for (i = 4; i < argc; i++)
 		{
-			fileio_t fileio;
-			duration_t duration;
-			char *duration_text;
-			int retval;
-
-			uint8_t *page = NULL;
-			uint32_t page_size = 0;
-			uint8_t *oob = NULL;
-			uint32_t oob_size = 0;
-			uint32_t address;
-			COMMAND_PARSE_NUMBER(u32, args[2], address);
-			uint32_t size;
-			COMMAND_PARSE_NUMBER(u32, args[3], size);
-			uint32_t bytes_done = 0;
-			enum oob_formats oob_format = NAND_OOB_NONE;
-
-			if (argc > 4)
-			{
-				int i;
-				for (i = 4; i < argc; i++)
-				{
-					if (!strcmp(args[i], "oob_raw"))
-						oob_format |= NAND_OOB_RAW;
-					else if (!strcmp(args[i], "oob_only"))
-						oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
-					else
-						command_print(cmd_ctx, "unknown option: '%s'", args[i]);
-				}
-			}
-
-			if ((address % p->page_size) || (size % p->page_size))
-			{
-				command_print(cmd_ctx, "only page size aligned addresses and sizes are supported");
-				return ERROR_OK;
-			}
-
-			if (!(oob_format & NAND_OOB_ONLY))
-			{
-				page_size = p->page_size;
-				page = malloc(p->page_size);
-			}
-
-			if (oob_format & NAND_OOB_RAW)
-			{
-				if (p->page_size == 512)
-					oob_size = 16;
-				else if (p->page_size == 2048)
-					oob_size = 64;
-				oob = malloc(oob_size);
-			}
-
-			if (fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
-			{
-				return ERROR_OK;
-			}
-
-			duration_start_measure(&duration);
-
-			while (size > 0)
-			{
-				uint32_t size_written;
-				if ((retval = nand_read_page(p, address / p->page_size, page, page_size, oob, oob_size)) != ERROR_OK)
-				{
-					command_print(cmd_ctx, "reading NAND flash page failed");
-					free(page);
-					free(oob);
-					fileio_close(&fileio);
-					return ERROR_OK;
-				}
-
-				if (NULL != page)
-				{
-					fileio_write(&fileio, page_size, page, &size_written);
-					bytes_done += page_size;
-				}
-
-				if (NULL != oob)
-				{
-					fileio_write(&fileio, oob_size, oob, &size_written);
-					bytes_done += oob_size;
-				}
-
-				size -= p->page_size;
-				address += p->page_size;
-			}
-
-			free(page);
-			page = NULL;
-			free(oob);
-			oob = NULL;
-			fileio_close(&fileio);
-
-			duration_stop_measure(&duration, &duration_text);
-			command_print(cmd_ctx, "dumped %lld byte in %s", fileio.size, duration_text);
-			free(duration_text);
-			duration_text = NULL;
-		}
-		else
-		{
-			command_print(cmd_ctx, "#%s: not probed", args[0]);
+			if (!strcmp(args[i], "oob_raw"))
+				oob_format |= NAND_OOB_RAW;
+			else if (!strcmp(args[i], "oob_only"))
+				oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
+			else
+				command_print(cmd_ctx, "unknown option: '%s'", args[i]);
 		}
 	}
+
+	if ((address % p->page_size) || (size % p->page_size))
+	{
+		command_print(cmd_ctx, "only page size aligned addresses and sizes are supported");
+		return ERROR_OK;
+	}
+
+	if (!(oob_format & NAND_OOB_ONLY))
+	{
+		page_size = p->page_size;
+		page = malloc(p->page_size);
+	}
+
+	if (oob_format & NAND_OOB_RAW)
+	{
+		if (p->page_size == 512)
+			oob_size = 16;
+		else if (p->page_size == 2048)
+			oob_size = 64;
+		oob = malloc(oob_size);
+	}
+
+	if (fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
+	{
+		return ERROR_OK;
+	}
+
+	duration_start_measure(&duration);
+
+	while (size > 0)
+	{
+		uint32_t size_written;
+		if ((retval = nand_read_page(p, address / p->page_size, page, page_size, oob, oob_size)) != ERROR_OK)
+		{
+			command_print(cmd_ctx, "reading NAND flash page failed");
+			free(page);
+			free(oob);
+			fileio_close(&fileio);
+			return ERROR_OK;
+		}
+
+		if (NULL != page)
+		{
+			fileio_write(&fileio, page_size, page, &size_written);
+			bytes_done += page_size;
+		}
+
+		if (NULL != oob)
+		{
+			fileio_write(&fileio, oob_size, oob, &size_written);
+			bytes_done += oob_size;
+		}
+
+		size -= p->page_size;
+		address += p->page_size;
+	}
+
+	free(page);
+	page = NULL;
+	free(oob);
+	oob = NULL;
+	fileio_close(&fileio);
+
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "dumped %lld byte in %s", fileio.size, duration_text);
+	free(duration_text);
+	duration_text = NULL;
 
 	return ERROR_OK;
 }
@@ -1634,33 +1616,24 @@ static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, cha
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	if (NULL == p->device)
 	{
-		if (p->device)
-		{
-			if (argc == 2)
-			{
-				if (strcmp("enable", args[1]) == 0)
-				{
-					p->use_raw = 1;
-				}
-				else if (strcmp("disable", args[1]) == 0)
-				{
-					p->use_raw = 0;
-				}
-				else
-				{
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-			}
-
-			command_print(cmd_ctx, "raw access is %s", (p->use_raw) ? "enabled" : "disabled");
-		}
-		else
-		{
-			command_print(cmd_ctx, "#%s: not probed", args[0]);
-		}
+		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		return ERROR_OK;
 	}
+
+	if (argc == 2)
+	{
+		if (strcmp("enable", args[1]) == 0)
+			p->use_raw = 1;
+		else if (strcmp("disable", args[1]) == 0)
+			p->use_raw = 0;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	const char *msg = p->use_raw ? "enabled" : "disabled";
+	command_print(cmd_ctx, "raw access is %s", msg);
 
 	return ERROR_OK;
 }
