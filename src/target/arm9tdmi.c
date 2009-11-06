@@ -45,48 +45,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* forward declarations */
-static int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp);
-
-target_type_t arm9tdmi_target =
-{
-	.name = "arm9tdmi",
-
-	.poll = arm7_9_poll,
-	.arch_state = armv4_5_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = arm7_9_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm7_9_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm9tdmi_register_commands,
-	.target_create = arm9tdmi_target_create,
-	.init_target = arm9tdmi_init_target,
-	.examine = arm9tdmi_examine,
-};
-
-static arm9tdmi_vector_t arm9tdmi_vectors[] =
+static const arm9tdmi_vector_t arm9tdmi_vectors[] =
 {
 	{"reset", ARM9TDMI_RESET_VECTOR},
 	{"undef", ARM9TDMI_UNDEF_VECTOR},
@@ -164,8 +123,11 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 	return ERROR_OK;
 }
 
-/* put an instruction in the ARM9TDMI pipeline or write the data bus, and optionally read data */
-int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr, uint32_t out, uint32_t *in, int sysspeed)
+/* put an instruction in the ARM9TDMI pipeline or write the data bus,
+ * and optionally read data
+ */
+int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr,
+		uint32_t out, uint32_t *in, int sysspeed)
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[3];
@@ -295,9 +257,12 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 
 extern void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
 
-static int arm9endianness(jtag_callback_data_t arg, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
+static int arm9endianness(jtag_callback_data_t arg,
+	jtag_callback_data_t size, jtag_callback_data_t be,
+	jtag_callback_data_t captured)
 {
-  uint8_t *in = (uint8_t *)arg;
+	uint8_t *in = (uint8_t *)arg;
+
 	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 0);
 	return ERROR_OK;
 }
@@ -306,7 +271,8 @@ static int arm9endianness(jtag_callback_data_t arg, jtag_callback_data_t size, j
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be == 1) or little (be == 0) endianness
  */
-int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
+int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
+		void *in, int size, int be)
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[3];
@@ -417,7 +383,8 @@ static void arm9tdmi_change_to_arm(target_t *target,
 	*pc -= 0xc;
 }
 
-void arm9tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16])
+void arm9tdmi_read_core_regs(target_t *target,
+		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -572,7 +539,8 @@ static void arm9tdmi_write_xpsr_im8(target_t *target,
 	}
 }
 
-void arm9tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16])
+void arm9tdmi_write_core_regs(target_t *target,
+		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -849,11 +817,10 @@ int arm9tdmi_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
+		struct target_s *target)
 {
-
 	arm9tdmi_build_reg_cache(target);
-
 	return ERROR_OK;
 }
 
@@ -1060,3 +1027,41 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
+/** Holds methods for ARM9TDMI targets. */
+target_type_t arm9tdmi_target =
+{
+	.name = "arm9tdmi",
+
+	.poll = arm7_9_poll,
+	.arch_state = armv4_5_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm7_9_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm7_9_read_memory,
+	.write_memory = arm7_9_write_memory,
+	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm9tdmi_register_commands,
+	.target_create = arm9tdmi_target_create,
+	.init_target = arm9tdmi_init_target,
+	.examine = arm9tdmi_examine,
+};
