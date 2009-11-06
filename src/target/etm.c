@@ -410,8 +410,7 @@ int etm_setup(target_t *target)
 {
 	int retval;
 	uint32_t etm_ctrl_value;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	etm_context_t *etm_ctx = arm7_9->etm_ctx;
 	reg_t *etm_ctrl_reg;
 

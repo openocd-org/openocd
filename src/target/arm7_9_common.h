@@ -108,7 +108,6 @@ typedef struct arm7_9_common_s
 	void (*post_restore_context)(target_t *target); /**< Callback function called after restoring the processor context */
 
 	armv4_5_common_t armv4_5_common;
-	void *arch_info;
 
 } arm7_9_common_t;
 

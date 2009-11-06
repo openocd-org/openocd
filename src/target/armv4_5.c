@@ -189,7 +189,7 @@ int armv4_5_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
-	armv4_5_common_t *armv4_5_target = target->arch_info;
+	struct armv4_5_common_s *armv4_5_target = target_to_armv4_5(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
@@ -237,7 +237,7 @@ int armv4_5_set_core_reg(reg_t *reg, uint8_t *buf)
 
 int armv4_5_invalidate_core_regs(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	int i;
 
 	for (i = 0; i < 37; i++)
@@ -289,7 +289,7 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 
 int armv4_5_arch_state(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
@@ -313,7 +313,7 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int output_len;
 	int mode, num;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
@@ -362,7 +362,7 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
@@ -393,7 +393,7 @@ handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx,
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	uint32_t address;
 	int count = 1;
 	int i;
@@ -487,7 +487,7 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 
 int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	int i;
 
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
@@ -516,7 +516,7 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	if ((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
 	{
@@ -547,7 +547,7 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t ex
 
 int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info))
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	armv4_5_algorithm_t *armv4_5_algorithm_info = arch_info;
 	enum armv4_5_state core_state = armv4_5->core_state;
 	enum armv4_5_mode core_mode = armv4_5->core_mode;

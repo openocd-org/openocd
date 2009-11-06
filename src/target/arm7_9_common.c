@@ -172,8 +172,7 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
  */
 int arm7_9_setup(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	return arm7_9_clear_watchpoints(arm7_9);
 }
@@ -192,18 +191,18 @@ int arm7_9_setup(target_t *target)
  */
 int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
+	/* FIXME stop using this routine; just target_to_arm7_9() and
+	 * verify the resulting pointer using a replacement routine
+	 * that emits a usage message.
+	 */
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		return -1;
-	}
+		return ERROR_TARGET_INVALID;
 
 	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
-	{
-		return -1;
-	}
+		return ERROR_TARGET_INVALID;
 
 	*armv4_5_p = armv4_5;
 	*arm7_9_p = arm7_9;
@@ -224,8 +223,7 @@ int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm
  */
 int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	int retval = ERROR_OK;
 
 	LOG_DEBUG("BPID: %d, Address: 0x%08" PRIx32 ", Type: %d" ,
@@ -355,9 +353,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval = ERROR_OK;
-
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	LOG_DEBUG("BPID: %d, Address: 0x%08" PRIx32,
 			  breakpoint->unique_id,
@@ -451,8 +447,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
  */
 int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -503,8 +498,7 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
 	{
@@ -540,8 +534,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	int rw_mask = 1;
 	uint32_t mask;
 
@@ -612,8 +605,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -660,8 +652,7 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
  */
 int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -695,8 +686,7 @@ int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if (watchpoint->set)
 	{
@@ -723,9 +713,7 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 int arm7_9_execute_sys_speed(struct target_s *target)
 {
 	int retval;
-
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -778,8 +766,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	static int set = 0;
 	static uint8_t check_value[4], check_mask[4];
 
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -820,8 +807,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
  */
 int arm7_9_target_request_data(target_t *target, uint32_t size, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	uint32_t *data;
 	int retval = ERROR_OK;
@@ -857,8 +843,7 @@ int arm7_9_handle_target_request(void *priv)
 	target_t *target = priv;
 	if (!target_was_examined(target))
 		return ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
 
@@ -916,8 +901,7 @@ int arm7_9_handle_target_request(void *priv)
 int arm7_9_poll(target_t *target)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* read debug status register */
@@ -1009,8 +993,8 @@ int arm7_9_poll(target_t *target)
  */
 int arm7_9_assert_reset(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+
 	LOG_DEBUG("target->state: %s",
 		  target_state_name(target));
 
@@ -1141,8 +1125,7 @@ int arm7_9_deassert_reset(target_t *target)
  */
 int arm7_9_clear_halt(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	/* we used DBGRQ only if we didn't come out of reset */
@@ -1199,8 +1182,8 @@ int arm7_9_clear_halt(target_t *target)
  */
 int arm7_9_soft_reset_halt(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int i;
@@ -1318,8 +1301,7 @@ int arm7_9_halt(target_t *target)
 		return ERROR_OK;
 	}
 
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	LOG_DEBUG("target->state: %s",
@@ -1381,9 +1363,8 @@ int arm7_9_debug_entry(target_t *target)
 	uint32_t r0_thumb, pc_thumb;
 	uint32_t cpsr;
 	int retval;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
@@ -1536,8 +1517,8 @@ int arm7_9_full_context(target_t *target)
 {
 	int i;
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
 	LOG_DEBUG("-");
 
@@ -1627,8 +1608,8 @@ int arm7_9_full_context(target_t *target)
  */
 int arm7_9_restore_context(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *reg;
 	armv4_5_core_reg_t *reg_arch_info;
 	enum armv4_5_mode current_mode = armv4_5->core_mode;
@@ -1777,8 +1758,7 @@ int arm7_9_restore_context(target_t *target)
  */
 int arm7_9_restart_core(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* set RESTART instruction */
@@ -1831,8 +1811,8 @@ void arm7_9_enable_breakpoints(struct target_s *target)
 
 int arm7_9_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	breakpoint_t *breakpoint = target->breakpoints;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int err, retval = ERROR_OK;
@@ -1991,9 +1971,8 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 
 void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t current_pc;
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
@@ -2029,8 +2008,7 @@ void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
 
 void arm7_9_disable_eice_step(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK]);
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK]);
@@ -2045,8 +2023,8 @@ void arm7_9_disable_eice_step(target_t *target)
 
 int arm7_9_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	breakpoint_t *breakpoint = NULL;
 	int err, retval;
 
@@ -2141,8 +2119,8 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	uint32_t* reg_p[16];
 	uint32_t value;
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
@@ -2205,8 +2183,8 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, uint32_t value)
 {
 	uint32_t reg[16];
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
@@ -2265,9 +2243,8 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 
 int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t reg[16];
 	uint32_t num_accesses = 0;
 	int thisrun_accesses;
@@ -2441,8 +2418,8 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 
 int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	uint32_t reg[16];
@@ -2628,8 +2605,7 @@ static uint8_t *dcc_buffer;
 static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if ((retval = target_wait_state(target, TARGET_DEBUG_RUNNING, 500)) != ERROR_OK)
 		return retval;
@@ -2694,8 +2670,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	int i;
 
 	if (!arm7_9->dcc_downloads)

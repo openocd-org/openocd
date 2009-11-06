@@ -825,21 +825,19 @@ static enum armv4_5_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 
 int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	struct arm_sim_interface sim;
 
-	sim.user_data=armv4_5;
-	sim.get_reg=&armv4_5_get_reg;
-	sim.set_reg=&armv4_5_set_reg;
-	sim.get_reg_mode=&armv4_5_get_reg_mode;
-	sim.set_reg_mode=&armv4_5_set_reg_mode;
-	sim.get_cpsr=&armv4_5_get_cpsr;
-	sim.get_mode=&armv4_5_get_mode;
-	sim.get_state=&armv4_5_get_state;
-	sim.set_state=&armv4_5_set_state;
+	sim.user_data = armv4_5;
+	sim.get_reg = &armv4_5_get_reg;
+	sim.set_reg = &armv4_5_set_reg;
+	sim.get_reg_mode = &armv4_5_get_reg_mode;
+	sim.set_reg_mode = &armv4_5_set_reg_mode;
+	sim.get_cpsr = &armv4_5_get_cpsr;
+	sim.get_mode = &armv4_5_get_mode;
+	sim.get_state = &armv4_5_get_state;
+	sim.set_state = &armv4_5_set_state;
 
 	return arm_simulate_step_core(target, dry_run_pc, &sim);
-
 }
 

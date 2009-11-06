@@ -276,10 +276,13 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 int embeddedice_setup(target_t *target)
 {
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
-	/* explicitly disable monitor mode */
+	/* Explicitly disable monitor mode.  For now we only support halting
+	 * debug ... we don't know how to talk with a resident debug monitor
+	 * that manages break requests.  ARM's "Angel Debug Monitor" is one
+	 * common example of such code.
+	 */
 	if (arm7_9->has_monitor_mode)
 	{
 		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
