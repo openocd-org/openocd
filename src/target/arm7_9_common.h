@@ -112,6 +112,13 @@ typedef struct arm7_9_common_s
 
 } arm7_9_common_t;
 
+static inline struct arm7_9_common_s *
+target_to_arm7_9(struct target_s *target)
+{
+	return container_of(target->arch_info, struct arm7_9_common_s,
+			armv4_5_common);
+}
+
 int arm7_9_register_commands(struct command_context_s *cmd_ctx);
 
 int arm7_9_poll(target_t *target);

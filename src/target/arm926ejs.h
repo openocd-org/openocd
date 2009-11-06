@@ -38,6 +38,14 @@ typedef struct arm926ejs_common_s
 	uint32_t d_far;
 } arm926ejs_common_t;
 
+static inline struct arm926ejs_common_s *
+target_to_arm926(struct target_s *target)
+{
+	return container_of(target->arch_info, struct arm926ejs_common_s,
+		arm9tdmi_common.arm7_9_common.armv4_5_common);
+}
+
+
 extern int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, jtag_tap_t *tap);
 extern int arm926ejs_register_commands(struct command_context_s *cmd_ctx);
 extern int arm926ejs_arch_state(struct target_s *target);

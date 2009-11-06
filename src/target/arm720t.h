@@ -35,4 +35,11 @@ typedef struct arm720t_common_s
 	uint32_t far_reg;
 } arm720t_common_t;
 
+static inline struct arm720t_common_s *
+target_to_arm720(struct target_s *target)
+{
+	return container_of(target->arch_info, struct arm720t_common_s,
+			arm7tdmi_common.arm7_9_common.armv4_5_common);
+}
+
 #endif /* ARM720T_H */

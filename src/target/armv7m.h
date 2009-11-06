@@ -116,6 +116,12 @@ typedef struct armv7m_common_s
 	void *arch_info;
 } armv7m_common_t;
 
+static inline struct armv7m_common_s *
+target_to_armv7m(struct target_s *target)
+{
+	return target->arch_info;
+}
+
 typedef struct armv7m_algorithm_s
 {
 	int common_magic;

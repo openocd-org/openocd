@@ -164,4 +164,11 @@ typedef struct cortex_m3_common_s
 	void *arch_info;
 } cortex_m3_common_t;
 
+static inline struct cortex_m3_common_s *
+target_to_cm3(struct target_s *target)
+{
+	return container_of(target->arch_info,
+			struct cortex_m3_common_s, armv7m);
+}
+
 #endif /* CORTEX_M3_H */

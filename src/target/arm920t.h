@@ -38,6 +38,13 @@ typedef struct arm920t_common_s
 	int preserve_cache;
 } arm920t_common_t;
 
+static inline struct arm920t_common_s *
+target_to_arm920(struct target_s *target)
+{
+	return container_of(target->arch_info, struct arm920t_common_s,
+			arm9tdmi_common.arm7_9_common.armv4_5_common);
+}
+
 typedef struct arm920t_cache_line_s
 {
 	uint32_t cam;

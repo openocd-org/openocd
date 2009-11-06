@@ -86,6 +86,12 @@ typedef struct armv4_5_common_s
 	void *arch_info;
 } armv4_5_common_t;
 
+static inline struct armv4_5_common_s *
+target_to_armv4_5(struct target_s *target)
+{
+	return target->arch_info;
+}
+
 typedef struct armv4_5_algorithm_s
 {
 	int common_magic;
