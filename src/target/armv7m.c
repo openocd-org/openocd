@@ -136,9 +136,7 @@ static int armv7m_core_reg_arch_type = -1;
 int armv7m_restore_context(target_t *target)
 {
 	int i;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 
 	LOG_DEBUG(" ");
 
@@ -185,14 +183,14 @@ static int armv7m_get_core_reg(reg_t *reg)
 	int retval;
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
-	armv7m_common_t *armv7m_target = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 
 	if (target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	retval = armv7m_target->read_core_reg(target, armv7m_reg->num);
+	retval = armv7m->read_core_reg(target, armv7m_reg->num);
 
 	return retval;
 }
@@ -220,9 +218,7 @@ static int armv7m_read_core_reg(struct target_s *target, int num)
 	uint32_t reg_value;
 	int retval;
 	armv7m_core_reg_t * armv7m_core_reg;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 
 	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -241,9 +237,7 @@ static int armv7m_write_core_reg(struct target_s *target, int num)
 	int retval;
 	uint32_t reg_value;
 	armv7m_core_reg_t *armv7m_core_reg;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 
 	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -267,8 +261,7 @@ static int armv7m_write_core_reg(struct target_s *target, int num)
 /** Invalidates cache of core registers set up by armv7m_build_reg_cache(). */
 int armv7m_invalidate_core_regs(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	int i;
 
 	for (i = 0; i < armv7m->core_cache->num_regs; i++)
@@ -288,8 +281,7 @@ int armv7m_invalidate_core_regs(target_t *target)
  */
 int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	int i;
 
 	*reg_list_size = 26;
@@ -370,8 +362,7 @@ int armv7m_run_algorithm(struct target_s *target,
 	uint32_t entry_point, uint32_t exit_point,
 	int timeout_ms, void *arch_info)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	armv7m_algorithm_t *armv7m_algorithm_info = arch_info;
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
@@ -512,8 +503,7 @@ int armv7m_run_algorithm(struct target_s *target,
 /** Logs summary of ARMv7-M state for a halted target. */
 int armv7m_arch_state(struct target_s *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	uint32_t ctrl, sp;
 
 	ctrl = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
@@ -536,9 +526,7 @@ int armv7m_arch_state(struct target_s *target)
 /** Builds cache of architecturally defined registers.  */
 reg_cache_t *armv7m_build_reg_cache(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	int num_regs = ARMV7M_NUM_REGS;
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
@@ -743,6 +731,16 @@ int armv7m_blank_check_memory(struct target_s *target,
 	return ERROR_OK;
 }
 
+/*--------------------------------------------------------------------------*/
+
+/*
+ * Only stuff below this line should need to verify that its target
+ * is an ARMv7-M node.
+ *
+ * FIXME yet none of it _does_ verify target types yet!
+ */
+
+
 /*
  * Return the debug ap baseaddress in hexadecimal;
  * no extra output to simplify script processing
@@ -751,7 +749,7 @@ static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel, apselsave, baseaddr;
 	int retval;
@@ -789,7 +787,7 @@ static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	return dap_apid_command(cmd_ctx, swjdp, args, argc);
@@ -799,7 +797,7 @@ static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
@@ -809,7 +807,7 @@ static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	return dap_memaccess_command(cmd_ctx, swjdp, args, argc);
@@ -820,7 +818,7 @@ static int handle_dap_info_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
 

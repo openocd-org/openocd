@@ -161,7 +161,6 @@ typedef struct cortex_m3_common_s
 	struct reg_cache_s *dwt_cache;
 
 	armv7m_common_t armv7m;
-	void *arch_info;
 } cortex_m3_common_t;
 
 static inline struct cortex_m3_common_s *

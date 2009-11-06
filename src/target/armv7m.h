@@ -99,7 +99,6 @@ typedef struct armv7m_common_s
 	int exception_number;
 	swjdp_common_t swjdp_info;
 
-
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
 	int (*store_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
@@ -112,8 +111,6 @@ typedef struct armv7m_common_s
 
 	void (*pre_restore_context)(target_t *target);
 	void (*post_restore_context)(target_t *target);
-
-	void *arch_info;
 } armv7m_common_t;
 
 static inline struct armv7m_common_s *

@@ -37,6 +37,10 @@
 #include "arm_disassembler.h"
 
 
+/* NOTE:  most of this should work fine for the Cortex-M1 and
+ * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
+ */
+
 #define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
 
 
@@ -123,10 +127,8 @@ static int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp,
 static int cortex_m3_write_debug_halt_mask(target_t *target,
 		uint32_t mask_on, uint32_t mask_off)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* mask off status bits */
 	cortex_m3->dcb_dhcsr &= ~((0xFFFF << 16) | mask_off);
@@ -138,10 +140,8 @@ static int cortex_m3_write_debug_halt_mask(target_t *target,
 
 static int cortex_m3_clear_halt(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* clear step if any */
 	cortex_m3_write_debug_halt_mask(target, C_HALT, C_STEP);
@@ -157,10 +157,8 @@ static int cortex_m3_clear_halt(target_t *target)
 
 static int cortex_m3_single_step_core(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 	uint32_t dhcsr_save;
 
 	/* backup dhcsr reg */
@@ -183,11 +181,8 @@ static int cortex_m3_endreset_event(target_t *target)
 {
 	int i;
 	uint32_t dcb_demcr;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 	cortex_m3_fp_comparator_t *fp_list = cortex_m3->fp_comparator_list;
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
@@ -242,9 +237,7 @@ static int cortex_m3_endreset_event(target_t *target)
 
 static int cortex_m3_examine_debug_reason(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
 	/* THIS IS NOT GOOD, TODO - better logic for detection of debug state reason */
 	/* only check the debug reason if we don't know it already */
@@ -272,9 +265,7 @@ static int cortex_m3_examine_debug_reason(target_t *target)
 static int cortex_m3_examine_exception_reason(target_t *target)
 {
 	uint32_t shcsr, except_sr, cfsr = -1, except_ar = -1;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	mem_ap_read_u32(swjdp, NVIC_SHCSR, &shcsr);
@@ -324,10 +315,8 @@ static int cortex_m3_debug_entry(target_t *target)
 	int i;
 	uint32_t xPSR;
 	int retval;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	LOG_DEBUG(" ");
@@ -397,11 +386,8 @@ static int cortex_m3_poll(target_t *target)
 {
 	int retval;
 	enum target_state prev_target_state = target->state;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* Read from Debug Halting Control and Status Register */
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -514,10 +500,8 @@ static int cortex_m3_halt(target_t *target)
 
 static int cortex_m3_soft_reset_halt(struct target_s *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
@@ -569,8 +553,7 @@ static void cortex_m3_enable_breakpoints(struct target_s *target)
 static int cortex_m3_resume(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	breakpoint_t *breakpoint = NULL;
 	uint32_t resume_pc;
 
@@ -658,9 +641,8 @@ static int cortex_m3_resume(struct target_s *target, int current,
 static int cortex_m3_step(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	breakpoint_t *breakpoint = NULL;
 
@@ -672,12 +654,16 @@ static int cortex_m3_step(struct target_s *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv7m->core_cache->reg_list[15].value, 0, 32, address);
+		buf_set_u32(cortex_m3->armv7m.core_cache->reg_list[15].value,
+				0, 32, address);
 
 	/* the front-end may request us not to handle breakpoints */
-	if (handle_breakpoints)
-		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv7m->core_cache->reg_list[15].value, 0, 32))))
+	if (handle_breakpoints) {
+		breakpoint = breakpoint_find(target, buf_get_u32(armv7m
+				->core_cache->reg_list[15].value, 0, 32));
+		if (breakpoint)
 			cortex_m3_unset_breakpoint(target, breakpoint);
+	}
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
@@ -706,9 +692,8 @@ static int cortex_m3_step(struct target_s *target, int current,
 
 static int cortex_m3_assert_reset(target_t *target)
 {
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 	int assert_srst = 1;
 
 	LOG_DEBUG("target->state: %s",
@@ -859,12 +844,8 @@ cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	int retval;
 	int fp_num = 0;
 	uint32_t hilo;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-
-	cortex_m3_fp_comparator_t * comparator_list = cortex_m3->fp_comparator_list;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	cortex_m3_fp_comparator_t *comparator_list = cortex_m3->fp_comparator_list;
 
 	if (breakpoint->set)
 	{
@@ -928,9 +909,7 @@ static int
 cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval;
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	cortex_m3_fp_comparator_t * comparator_list = cortex_m3->fp_comparator_list;
 
 	if (!breakpoint->set)
@@ -984,9 +963,7 @@ cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 static int
 cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
 	if (cortex_m3->auto_bp_type)
 	{
@@ -1035,9 +1012,7 @@ cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 static int
 cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
 	/* REVISIT why check? FBP can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
@@ -1067,10 +1042,7 @@ cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int dwt_num = 0;
 	uint32_t mask, temp;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
 	/* watchpoint params were validated earlier */
 	mask = 0;
@@ -1133,9 +1105,7 @@ cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 static int
 cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	cortex_m3_dwt_comparator_t *comparator;
 	int dwt_num;
 
@@ -1172,9 +1142,7 @@ cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 static int
 cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
 	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
@@ -1232,9 +1200,7 @@ cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 static int
 cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
 	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
@@ -1271,8 +1237,7 @@ static int cortex_m3_load_core_reg_u32(struct target_s *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t * value)
 {
 	int retval;
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	/* NOTE:  we "know" here that the register identifiers used
@@ -1336,9 +1301,7 @@ static int cortex_m3_store_core_reg_u32(struct target_s *target,
 {
 	int retval;
 	uint32_t reg;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 #ifdef ARMV7_GDB_HACKS
@@ -1413,8 +1376,7 @@ static int cortex_m3_store_core_reg_u32(struct target_s *target,
 static int cortex_m3_read_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	int retval;
 
@@ -1446,8 +1408,7 @@ static int cortex_m3_read_memory(struct target_s *target, uint32_t address,
 static int cortex_m3_write_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	int retval;
 
@@ -1632,11 +1593,8 @@ static int cortex_m3_examine(struct target_s *target)
 	int retval;
 	uint32_t cpuid, fpcr;
 	int i;
-
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	if ((retval = ahbap_debugport_init(swjdp)) != ERROR_OK)
 		return retval;
@@ -1702,7 +1660,7 @@ static int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ct
 static int cortex_m3_target_request_data(target_t *target,
 		uint32_t size, uint8_t *buffer)
 {
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	uint8_t data;
 	uint8_t ctrl;
@@ -1722,7 +1680,7 @@ static int cortex_m3_handle_target_request(void *priv)
 	target_t *target = priv;
 	if (!target_was_examined(target))
 		return ERROR_OK;
-	armv7m_common_t *armv7m = target->arch_info;
+	struct armv7m_common_s *armv7m = target_to_armv7m(target);
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	if (!target->dbg_msg_enabled)
@@ -1759,8 +1717,7 @@ static int cortex_m3_init_arch_info(target_t *target,
 		cortex_m3_common_t *cortex_m3, jtag_tap_t *tap)
 {
 	int retval;
-	armv7m_common_t *armv7m;
-	armv7m = &cortex_m3->armv7m;
+	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
 
 	armv7m_init_arch_info(target, armv7m);
 
@@ -1775,11 +1732,6 @@ static int cortex_m3_init_arch_info(target_t *target,
 	armv7m->swjdp_info.memaccess_tck = 8;
 	armv7m->swjdp_info.tar_autoincr_block = (1 << 12);	/* Cortex-M3 has 4096 bytes autoincrement range */
 
-	/* initialize arch-specific breakpoint handling */
-
-	cortex_m3->common_magic = CORTEX_M3_COMMON_MAGIC;
-	cortex_m3->arch_info = NULL;
-
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m3_examine_debug_reason;
 
@@ -1788,7 +1740,6 @@ static int cortex_m3_init_arch_info(target_t *target,
 	armv7m->pre_restore_context = NULL;
 	armv7m->post_restore_context = NULL;
 
-	armv7m->arch_info = cortex_m3;
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m3_store_core_reg_u32;
 
@@ -1806,10 +1757,29 @@ static int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	cortex_m3_common_t *cortex_m3 = calloc(1,sizeof(cortex_m3_common_t));
 
+	cortex_m3->common_magic = CORTEX_M3_COMMON_MAGIC;
 	cortex_m3_init_arch_info(target, cortex_m3, target->tap);
 
 	return ERROR_OK;
 }
+
+/*--------------------------------------------------------------------------*/
+
+static int cortex_m3_verify_pointer(struct command_context_s *cmd_ctx,
+		struct cortex_m3_common_s *cm3)
+{
+	if (cm3->common_magic != CORTEX_M3_COMMON_MAGIC) {
+		command_print(cmd_ctx, "target is not a Cortex-M3");
+		return ERROR_TARGET_INVALID;
+	}
+	return ERROR_OK;
+}
+
+/*
+ * Only stuff below this line should need to verify that its target
+ * is a Cortex-M3.  Everything else should have indirected through the
+ * cortexm3_target structure, which is only used with CM3 targets.
+ */
 
 /*
  * REVISIT Thumb2 disassembly should work for all ARMv7 cores, as well
@@ -1821,11 +1791,16 @@ static int
 handle_cortex_m3_disassemble_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
-	int retval = ERROR_OK;
+	int retval;
 	target_t *target = get_current_target(cmd_ctx);
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	uint32_t address;
 	unsigned long count = 1;
 	arm_instruction_t cur_instruction;
+
+	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
+	if (retval != ERROR_OK)
+		return retval;
 
 	errno = 0;
 	switch (argc) {
@@ -1871,10 +1846,16 @@ handle_cortex_m3_vector_catch_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **argv, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	uint32_t demcr = 0;
+	int retval;
 	int i;
+
+	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
+	if (retval != ERROR_OK)
+		return retval;
 
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
 
@@ -1924,8 +1905,12 @@ handle_cortex_m3_mask_interrupts_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	int retval;
+
+	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2016,4 +2001,3 @@ target_type_t cortexm3_target =
 	.has_mmu = cortex_m3_has_mmu,
 	.examine = cortex_m3_examine,
 };
-
