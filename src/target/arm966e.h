@@ -36,7 +36,6 @@ typedef struct arm966e_common_s
 
 extern int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap_t *tap);
 extern int arm966e_register_commands(struct command_context_s *cmd_ctx);
-extern int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value);
 extern int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value);
 
 #endif /* ARM966E_H */

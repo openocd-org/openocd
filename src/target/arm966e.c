@@ -32,55 +32,6 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* forward declarations */
-int arm966e_target_create(struct target_s *target, Jim_Interp *interp);
-int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-
-target_type_t arm966e_target =
-{
-	.name = "arm966e",
-
-	.poll = arm7_9_poll,
-	.arch_state = armv4_5_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = arm7_9_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm7_9_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm966e_register_commands,
-	.target_create = arm966e_target_create,
-	.init_target = arm966e_init_target,
-	.examine = arm9tdmi_examine,
-};
-
-int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
-{
-	arm9tdmi_init_target(cmd_ctx, target);
-
-	return ERROR_OK;
-}
-
 int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap_t *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
@@ -100,16 +51,16 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap
 	return ERROR_OK;
 }
 
-int arm966e_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm966e_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
 
-	arm966e_init_arch_info(target, arm966e, target->tap);
-
-	return ERROR_OK;
+	return arm966e_init_arch_info(target, arm966e, target->tap);
 }
 
-int arm966e_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm9tdmi_common_t **arm9tdmi_p, arm966e_common_t **arm966e_p)
+static int arm966e_get_arch_pointers(target_t *target,
+		armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
+		arm9tdmi_common_t **arm9tdmi_p, arm966e_common_t **arm966e_p)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9;
@@ -147,7 +98,7 @@ int arm966e_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	return ERROR_OK;
 }
 
-int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
+static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -199,6 +150,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 	return ERROR_OK;
 }
 
+// EXPORTED to str9x (flash)
 int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
@@ -243,7 +195,8 @@ int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 	return ERROR_OK;
 }
 
-int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -304,14 +257,58 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
+/** Registers commands used to access coprocessor resources. */
 int arm966e_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
 	command_t *arm966e_cmd;
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
-	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e", NULL, COMMAND_ANY, "arm966e specific commands");
-	register_command(cmd_ctx, arm966e_cmd, "cp15", arm966e_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <num> [value]");
+	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e",
+			NULL, COMMAND_ANY,
+			"arm966e specific commands");
+	register_command(cmd_ctx, arm966e_cmd, "cp15",
+			arm966e_handle_cp15_command, COMMAND_EXEC,
+			"display/modify cp15 register <num> [value]");
 
 	return retval;
 }
+
+/** Holds methods for ARM966 targets. */
+target_type_t arm966e_target =
+{
+	.name = "arm966e",
+
+	.poll = arm7_9_poll,
+	.arch_state = armv4_5_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm7_9_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm7_9_read_memory,
+	.write_memory = arm7_9_write_memory,
+	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm966e_register_commands,
+	.target_create = arm966e_target_create,
+	.init_target = arm9tdmi_init_target,
+	.examine = arm9tdmi_examine,
+};
