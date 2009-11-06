@@ -177,35 +177,35 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	register_jim(cmd_ctx, "ocd_flash_banks", jim_flash_banks, "return information about the flash banks");
 
-	if (flash_banks)
-	{
-		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
-						 "print info about flash bank <num>");
-		register_command(cmd_ctx, flash_cmd, "probe", handle_flash_probe_command, COMMAND_EXEC,
-						 "identify flash bank <num>");
-		register_command(cmd_ctx, flash_cmd, "erase_check", handle_flash_erase_check_command, COMMAND_EXEC,
-						 "check erase state of sectors in flash bank <num>");
-		register_command(cmd_ctx, flash_cmd, "protect_check", handle_flash_protect_check_command, COMMAND_EXEC,
-						 "check protection state of sectors in flash bank <num>");
-		register_command(cmd_ctx, flash_cmd, "erase_sector", handle_flash_erase_command, COMMAND_EXEC,
-						 "erase sectors at <bank> <first> <last>");
-		register_command(cmd_ctx, flash_cmd, "erase_address", handle_flash_erase_address_command, COMMAND_EXEC,
-						 "erase address range <address> <length>");
+	if (!flash_banks)
+		return ERROR_OK;
 
-		register_command(cmd_ctx, flash_cmd, "fillw", handle_flash_fill_command, COMMAND_EXEC,
-						 "fill with pattern (no autoerase) <address> <word_pattern> <count>");
-		register_command(cmd_ctx, flash_cmd, "fillh", handle_flash_fill_command, COMMAND_EXEC,
-						 "fill with pattern <address> <halfword_pattern> <count>");
-		register_command(cmd_ctx, flash_cmd, "fillb", handle_flash_fill_command, COMMAND_EXEC,
-						 "fill with pattern <address> <byte_pattern> <count>");
+	register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
+					 "print info about flash bank <num>");
+	register_command(cmd_ctx, flash_cmd, "probe", handle_flash_probe_command, COMMAND_EXEC,
+					 "identify flash bank <num>");
+	register_command(cmd_ctx, flash_cmd, "erase_check", handle_flash_erase_check_command, COMMAND_EXEC,
+					 "check erase state of sectors in flash bank <num>");
+	register_command(cmd_ctx, flash_cmd, "protect_check", handle_flash_protect_check_command, COMMAND_EXEC,
+					 "check protection state of sectors in flash bank <num>");
+	register_command(cmd_ctx, flash_cmd, "erase_sector", handle_flash_erase_command, COMMAND_EXEC,
+					 "erase sectors at <bank> <first> <last>");
+	register_command(cmd_ctx, flash_cmd, "erase_address", handle_flash_erase_address_command, COMMAND_EXEC,
+					 "erase address range <address> <length>");
 
-		register_command(cmd_ctx, flash_cmd, "write_bank", handle_flash_write_bank_command, COMMAND_EXEC,
-						 "write binary data to <bank> <file> <offset>");
-		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
-						 "write_image [erase] [unlock] <file> [offset] [type]");
-		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
-						 "set protection of sectors at <bank> <first> <last> <on | off>");
-	}
+	register_command(cmd_ctx, flash_cmd, "fillw", handle_flash_fill_command, COMMAND_EXEC,
+					 "fill with pattern (no autoerase) <address> <word_pattern> <count>");
+	register_command(cmd_ctx, flash_cmd, "fillh", handle_flash_fill_command, COMMAND_EXEC,
+					 "fill with pattern <address> <halfword_pattern> <count>");
+	register_command(cmd_ctx, flash_cmd, "fillb", handle_flash_fill_command, COMMAND_EXEC,
+					 "fill with pattern <address> <byte_pattern> <count>");
+
+	register_command(cmd_ctx, flash_cmd, "write_bank", handle_flash_write_bank_command, COMMAND_EXEC,
+					 "write binary data to <bank> <file> <offset>");
+	register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
+					 "write_image [erase] [unlock] <file> [offset] [type]");
+	register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
+					 "set protection of sectors at <bank> <first> <last> <on | off>");
 
 	return ERROR_OK;
 }
@@ -292,54 +292,54 @@ static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cm
 
 	for (i = 0; flash_drivers[i]; i++)
 	{
-		if (strcmp(args[0], flash_drivers[i]->name) == 0)
+		if (strcmp(args[0], flash_drivers[i]->name) != 0)
+			continue;
+
+		flash_bank_t *p, *c;
+
+		/* register flash specific commands */
+		if (flash_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
 		{
-			flash_bank_t *p, *c;
-
-			/* register flash specific commands */
-			if (flash_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
-			{
-				LOG_ERROR("couldn't register '%s' commands", args[0]);
-				return ERROR_FAIL;
-			}
-
-			c = malloc(sizeof(flash_bank_t));
-			c->target = target;
-			c->driver = flash_drivers[i];
-			c->driver_priv = NULL;
-			COMMAND_PARSE_NUMBER(u32, args[1], c->base);
-			COMMAND_PARSE_NUMBER(u32, args[2], c->size);
-			COMMAND_PARSE_NUMBER(int, args[3], c->chip_width);
-			COMMAND_PARSE_NUMBER(int, args[4], c->bus_width);
-			c->num_sectors = 0;
-			c->sectors = NULL;
-			c->next = NULL;
-
-			if ((retval = flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
-			{
-				LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 , args[0], c->base);
-				free(c);
-				return retval;
-			}
-
-			/* put flash bank in linked list */
-			if (flash_banks)
-			{
-				int	bank_num = 0;
-				/* find last flash bank */
-				for (p = flash_banks; p && p->next; p = p->next) bank_num++;
-				if (p)
-					p->next = c;
-				c->bank_number = bank_num + 1;
-			}
-			else
-			{
-				flash_banks = c;
-				c->bank_number = 0;
-			}
-
-			found = 1;
+			LOG_ERROR("couldn't register '%s' commands", args[0]);
+			return ERROR_FAIL;
 		}
+
+		c = malloc(sizeof(flash_bank_t));
+		c->target = target;
+		c->driver = flash_drivers[i];
+		c->driver_priv = NULL;
+		COMMAND_PARSE_NUMBER(u32, args[1], c->base);
+		COMMAND_PARSE_NUMBER(u32, args[2], c->size);
+		COMMAND_PARSE_NUMBER(int, args[3], c->chip_width);
+		COMMAND_PARSE_NUMBER(int, args[4], c->bus_width);
+		c->num_sectors = 0;
+		c->sectors = NULL;
+		c->next = NULL;
+
+		if ((retval = flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
+		{
+			LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 , args[0], c->base);
+			free(c);
+			return retval;
+		}
+
+		/* put flash bank in linked list */
+		if (flash_banks)
+		{
+			int	bank_num = 0;
+			/* find last flash bank */
+			for (p = flash_banks; p && p->next; p = p->next) bank_num++;
+			if (p)
+				p->next = c;
+			c->bank_number = bank_num + 1;
+		}
+		else
+		{
+			flash_banks = c;
+			c->bank_number = 0;
+		}
+
+		found = 1;
 	}
 
 	/* no matching flash driver found */
@@ -367,48 +367,48 @@ static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cm
 
 	for (p = flash_banks; p; p = p->next, i++)
 	{
-		if (i == bank_nr)
-		{
-			char buf[1024];
+		if (i != bank_nr)
+			continue;
 
-			/* attempt auto probe */
-			if ((retval = p->driver->auto_probe(p)) != ERROR_OK)
-				return retval;
+		char buf[1024];
+
+		/* attempt auto probe */
+		if ((retval = p->driver->auto_probe(p)) != ERROR_OK)
+			return retval;
+
+		command_print(cmd_ctx,
+			      "#%" PRIi32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", buswidth %i, chipwidth %i",
+			      i,
+			      p->driver->name,
+			      p->base,
+			      p->size,
+			      p->bus_width,
+			      p->chip_width);
+		for (j = 0; j < p->num_sectors; j++)
+		{
+			char *protect_state;
+
+			if (p->sectors[j].is_protected == 0)
+				protect_state = "not protected";
+			else if (p->sectors[j].is_protected == 1)
+				protect_state = "protected";
+			else
+				protect_state = "protection state unknown";
 
 			command_print(cmd_ctx,
-				      "#%" PRIi32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", buswidth %i, chipwidth %i",
-				      i,
-				      p->driver->name,
-				      p->base,
-				      p->size,
-				      p->bus_width,
-				      p->chip_width);
-			for (j = 0; j < p->num_sectors; j++)
-			{
-				char *protect_state;
-
-				if (p->sectors[j].is_protected == 0)
-					protect_state = "not protected";
-				else if (p->sectors[j].is_protected == 1)
-					protect_state = "protected";
-				else
-					protect_state = "protection state unknown";
-
-				command_print(cmd_ctx,
-					      "\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
-					      j,
-					      p->sectors[j].offset,
-					      p->sectors[j].size,
-					      p->sectors[j].size >> 10,
-					      protect_state);
-			}
-
-			*buf = '\0'; /* initialize buffer, otherwise it migh contain garbage if driver function fails */
-			retval = p->driver->info(p, buf, sizeof(buf));
-			command_print(cmd_ctx, "%s", buf);
-			if (retval != ERROR_OK)
-				LOG_ERROR("error retrieving flash info (%d)", retval);
+				      "\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
+				      j,
+				      p->sectors[j].offset,
+				      p->sectors[j].size,
+				      p->sectors[j].size >> 10,
+				      protect_state);
 		}
+
+		*buf = '\0'; /* initialize buffer, otherwise it migh contain garbage if driver function fails */
+		retval = p->driver->info(p, buf, sizeof(buf));
+		command_print(cmd_ctx, "%s", buf);
+		if (retval != ERROR_OK)
+			LOG_ERROR("error retrieving flash info (%d)", retval);
 	}
 
 	return ERROR_OK;
@@ -463,38 +463,35 @@ static int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, c
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	int j;
+	if ((retval = p->driver->erase_check(p)) == ERROR_OK)
 	{
-		int j;
-		if ((retval = p->driver->erase_check(p)) == ERROR_OK)
-		{
-			command_print(cmd_ctx, "successfully checked erase state");
-		}
+		command_print(cmd_ctx, "successfully checked erase state");
+	}
+	else
+	{
+		command_print(cmd_ctx, "unknown error when checking erase state of flash bank #%s at 0x%8.8" PRIx32,
+			args[0], p->base);
+	}
+
+	for (j = 0; j < p->num_sectors; j++)
+	{
+		char *erase_state;
+
+		if (p->sectors[j].is_erased == 0)
+			erase_state = "not erased";
+		else if (p->sectors[j].is_erased == 1)
+			erase_state = "erased";
 		else
-		{
-			command_print(cmd_ctx, "unknown error when checking erase state of flash bank #%s at 0x%8.8" PRIx32,
-				args[0], p->base);
-		}
+			erase_state = "erase state unknown";
 
-		for (j = 0; j < p->num_sectors; j++)
-		{
-			char *erase_state;
-
-			if (p->sectors[j].is_erased == 0)
-				erase_state = "not erased";
-			else if (p->sectors[j].is_erased == 1)
-				erase_state = "erased";
-			else
-				erase_state = "erase state unknown";
-
-			command_print(cmd_ctx,
-				      "\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
-				      j,
-				      p->sectors[j].offset,
-				      p->sectors[j].size,
-				      p->sectors[j].size >> 10,
-				      erase_state);
-		}
+		command_print(cmd_ctx,
+			      "\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
+			      j,
+			      p->sectors[j].offset,
+			      p->sectors[j].size,
+			      p->sectors[j].size >> 10,
+			      erase_state);
 	}
 
 	return ERROR_OK;
@@ -556,21 +553,17 @@ static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx,
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (p)
+	if ((retval = p->driver->protect_check(p)) == ERROR_OK)
 	{
-		int retval;
-		if ((retval = p->driver->protect_check(p)) == ERROR_OK)
-		{
-			command_print(cmd_ctx, "successfully checked protect state");
-		}
-		else if (retval == ERROR_FLASH_OPERATION_FAILED)
-		{
-			command_print(cmd_ctx, "checking protection state failed (possibly unsupported) by flash #%s at 0x%8.8" PRIx32, args[0], p->base);
-		}
-		else
-		{
-			command_print(cmd_ctx, "unknown error when checking protection state of flash bank '#%s' at 0x%8.8" PRIx32, args[0], p->base);
-		}
+		command_print(cmd_ctx, "successfully checked protect state");
+	}
+	else if (retval == ERROR_FLASH_OPERATION_FAILED)
+	{
+		command_print(cmd_ctx, "checking protection state failed (possibly unsupported) by flash #%s at 0x%8.8" PRIx32, args[0], p->base);
+	}
+	else
+	{
+		command_print(cmd_ctx, "unknown error when checking protection state of flash bank '#%s' at 0x%8.8" PRIx32, args[0], p->base);
 	}
 
 	return ERROR_OK;
@@ -597,45 +590,43 @@ static int flash_check_sector_parameters(struct command_context_s *cmd_ctx,
 static int handle_flash_erase_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
-	if (argc > 2)
-	{
-		uint32_t bank_nr;
-		uint32_t first;
-		uint32_t last;
-
-		COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
-		flash_bank_t *p = get_flash_bank_by_num(bank_nr);
-		if (!p)
-			return ERROR_OK;
-
-		COMMAND_PARSE_NUMBER(u32, args[1], first);
-		if (strcmp(args[2], "last") == 0)
-			last = p->num_sectors - 1;
-		else
-			COMMAND_PARSE_NUMBER(u32, args[2], last);
-
-		int retval;
-		if ((retval = flash_check_sector_parameters(cmd_ctx,
-				first, last, p->num_sectors)) != ERROR_OK)
-			return retval;
-
-		duration_t duration;
-		char *duration_text;
-		duration_start_measure(&duration);
-
-		if ((retval = flash_driver_erase(p, first, last)) == ERROR_OK) {
-			if ((retval = duration_stop_measure(&duration,
-						&duration_text)) != ERROR_OK)
-				return retval;
-			command_print(cmd_ctx, "erased sectors %i through %i "
-					"on flash bank %i in %s",
-				(int) first, (int) last, (int) bank_nr,
-				duration_text);
-			free(duration_text);
-		}
-	}
-	else
+	if (argc != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	uint32_t bank_nr;
+	uint32_t first;
+	uint32_t last;
+
+	COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
+	flash_bank_t *p = get_flash_bank_by_num(bank_nr);
+	if (!p)
+		return ERROR_OK;
+
+	COMMAND_PARSE_NUMBER(u32, args[1], first);
+	if (strcmp(args[2], "last") == 0)
+		last = p->num_sectors - 1;
+	else
+		COMMAND_PARSE_NUMBER(u32, args[2], last);
+
+	int retval;
+	if ((retval = flash_check_sector_parameters(cmd_ctx,
+			first, last, p->num_sectors)) != ERROR_OK)
+		return retval;
+
+	duration_t duration;
+	char *duration_text;
+	duration_start_measure(&duration);
+
+	if ((retval = flash_driver_erase(p, first, last)) == ERROR_OK) {
+		if ((retval = duration_stop_measure(&duration,
+					&duration_text)) != ERROR_OK)
+			return retval;
+		command_print(cmd_ctx, "erased sectors %i through %i "
+				"on flash bank %i in %s",
+			(int) first, (int) last, (int) bank_nr,
+			duration_text);
+		free(duration_text);
+	}
 
 	return ERROR_OK;
 }
@@ -643,46 +634,44 @@ static int handle_flash_erase_command(struct command_context_s *cmd_ctx,
 static int handle_flash_protect_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
-	if (argc > 3)
-	{
-		uint32_t bank_nr;
-		uint32_t first;
-		uint32_t last;
-		int set;
+	if (argc != 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-		COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
-		flash_bank_t *p = get_flash_bank_by_num(bank_nr);
-		if (!p)
-			return ERROR_OK;
+	uint32_t bank_nr;
+	uint32_t first;
+	uint32_t last;
+	int set;
 
-		COMMAND_PARSE_NUMBER(u32, args[1], first);
-		if (strcmp(args[2], "last") == 0)
-			last = p->num_sectors - 1;
-		else
-			COMMAND_PARSE_NUMBER(u32, args[2], last);
+	COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
+	flash_bank_t *p = get_flash_bank_by_num(bank_nr);
+	if (!p)
+		return ERROR_OK;
 
-		if (strcmp(args[3], "on") == 0)
-			set = 1;
-		else if (strcmp(args[3], "off") == 0)
-			set = 0;
-		else
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	COMMAND_PARSE_NUMBER(u32, args[1], first);
+	if (strcmp(args[2], "last") == 0)
+		last = p->num_sectors - 1;
+	else
+		COMMAND_PARSE_NUMBER(u32, args[2], last);
 
-		int retval;
-		if ((retval = flash_check_sector_parameters(cmd_ctx,
-				first, last, p->num_sectors)) != ERROR_OK)
-			return retval;
-
-		retval = flash_driver_protect(p, set, first, last);
-		if (retval == ERROR_OK) {
-			command_print(cmd_ctx, "%s protection for sectors %i "
-					"through %i on flash bank %i",
-				(set) ? "set" : "cleared", (int) first,
-				(int) last, (int) bank_nr);
-		}
-	}
+	if (strcmp(args[3], "on") == 0)
+		set = 1;
+	else if (strcmp(args[3], "off") == 0)
+		set = 0;
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	int retval;
+	if ((retval = flash_check_sector_parameters(cmd_ctx,
+			first, last, p->num_sectors)) != ERROR_OK)
+		return retval;
+
+	retval = flash_driver_protect(p, set, first, last);
+	if (retval == ERROR_OK) {
+		command_print(cmd_ctx, "%s protection for sectors %i "
+				"through %i on flash bank %i",
+			(set) ? "set" : "cleared", (int) first,
+			(int) last, (int) bank_nr);
+	}
 
 	return ERROR_OK;
 }
