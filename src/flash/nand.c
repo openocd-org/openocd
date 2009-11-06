@@ -1375,13 +1375,13 @@ static int nand_fileio_cleanup(struct nand_fileio_state *state)
 	}
 	return ERROR_OK;
 }
-int nand_fileio_finish(struct nand_fileio_state *state)
+static int nand_fileio_finish(struct nand_fileio_state *state)
 {
 	nand_fileio_cleanup(state);
 	return duration_measure(&state->bench);
 }
 
-COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
+static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 		struct nand_device **dev, enum fileio_access filemode,
 		bool need_size, bool sw_ecc)
 {
@@ -1449,7 +1449,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
  * @returns If no error occurred, returns number of bytes consumed;
  * otherwise, returns a negative error code.)
  */
-int nand_fileio_read(struct nand_device *nand,
+static int nand_fileio_read(struct nand_device *nand,
 		struct nand_fileio_state *s)
 {
 	uint32_t total_read = 0;
@@ -1503,284 +1503,82 @@ int nand_fileio_read(struct nand_device *nand,
 
 COMMAND_HANDLER(handle_nand_write_command)
 {
-	uint32_t offset;
-	uint32_t binary_size;
-	uint32_t buf_cnt;
-	enum oob_formats oob_format = NAND_OOB_NONE;
-
-	struct fileio fileio;
-
-
-	if (argc < 3)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	struct nand_device *p;
-	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	struct nand_device *nand = NULL;
+	struct nand_fileio_state s;
+	int retval = CALL_COMMAND_HANDLER(nand_fileio_parse_args,
+			&s, &nand, FILEIO_READ, false, true);
 	if (ERROR_OK != retval)
 		return retval;
 
-	uint8_t *page = NULL;
-	uint32_t page_size = 0;
-	uint8_t *oob = NULL;
-	uint32_t oob_size = 0;
-	const int *eccpos = NULL;
-
-	COMMAND_PARSE_NUMBER(u32, args[2], offset);
-
-	if (argc > 3)
+	uint32_t total_bytes = s.size;
+	while (s.size > 0)
 	{
-		for (unsigned i = 3; i < argc; i++)
+		int bytes_read = nand_fileio_read(nand, &s);
+		if (bytes_read <= 0)
 		{
-			if (!strcmp(args[i], "oob_raw"))
-				oob_format |= NAND_OOB_RAW;
-			else if (!strcmp(args[i], "oob_only"))
-				oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
-			else if (!strcmp(args[i], "oob_softecc"))
-				oob_format |= NAND_OOB_SW_ECC;
-			else if (!strcmp(args[i], "oob_softecc_kw"))
-				oob_format |= NAND_OOB_SW_ECC_KW;
-			else
-			{
-				command_print(cmd_ctx, "unknown option: %s", args[i]);
-				return ERROR_COMMAND_SYNTAX_ERROR;
-			}
+			command_print(cmd_ctx, "error while reading file");
+			return nand_fileio_cleanup(&s);
 		}
-	}
+		s.size -= bytes_read;
 
-	struct duration bench;
-	duration_start(&bench);
-
-	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
-
-	buf_cnt = binary_size = fileio.size;
-
-	if (!(oob_format & NAND_OOB_ONLY))
-	{
-		page_size = p->page_size;
-		page = malloc(p->page_size);
-	}
-
-	if (oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC | NAND_OOB_SW_ECC_KW))
-	{
-		if (p->page_size == 512) {
-			oob_size = 16;
-			eccpos = nand_oob_16.eccpos;
-		} else if (p->page_size == 2048) {
-			oob_size = 64;
-			eccpos = nand_oob_64.eccpos;
-		}
-		oob = malloc(oob_size);
-	}
-
-	if (offset % p->page_size)
-	{
-		command_print(cmd_ctx, "only page size aligned offsets and sizes are supported");
-		fileio_close(&fileio);
-		free(oob);
-		free(page);
-		return ERROR_OK;
-	}
-
-	while (buf_cnt > 0)
-	{
-		uint32_t size_read;
-
-		if (NULL != page)
+		retval = nand_write_page(nand, s.address / nand->page_size,
+				s.page, s.page_size, s.oob, s.oob_size);
+		if (ERROR_OK != retval)
 		{
-			fileio_read(&fileio, page_size, page, &size_read);
-			buf_cnt -= size_read;
-			if (size_read < page_size)
-			{
-				memset(page + size_read, 0xff, page_size - size_read);
-			}
+			command_print(cmd_ctx, "failed writing file %s "
+				"to NAND flash %s at offset 0x%8.8" PRIx32,
+				args[1], args[0], s.address);
+			return nand_fileio_cleanup(&s);
 		}
-
-		if (oob_format & NAND_OOB_SW_ECC)
-		{
-			uint32_t i, j;
-			uint8_t ecc[3];
-			memset(oob, 0xff, oob_size);
-			for (i = 0, j = 0; i < page_size; i += 256) {
-				nand_calculate_ecc(p, page + i, ecc);
-				oob[eccpos[j++]] = ecc[0];
-				oob[eccpos[j++]] = ecc[1];
-				oob[eccpos[j++]] = ecc[2];
-			}
-		} else if (oob_format & NAND_OOB_SW_ECC_KW)
-		{
-			/*
-			 * In this case eccpos is not used as
-			 * the ECC data is always stored contigously
-			 * at the end of the OOB area.  It consists
-			 * of 10 bytes per 512-byte data block.
-			 */
-			uint32_t i;
-			uint8_t *ecc = oob + oob_size - page_size/512 * 10;
-			memset(oob, 0xff, oob_size);
-			for (i = 0; i < page_size; i += 512) {
-				nand_calculate_ecc_kw(p, page + i, ecc);
-				ecc += 10;
-			}
-		}
-		else if (NULL != oob)
-		{
-			fileio_read(&fileio, oob_size, oob, &size_read);
-			buf_cnt -= size_read;
-			if (size_read < oob_size)
-			{
-				memset(oob + size_read, 0xff, oob_size - size_read);
-			}
-		}
-
-		if (nand_write_page(p, offset / p->page_size, page, page_size, oob, oob_size) != ERROR_OK)
-		{
-			command_print(cmd_ctx, "failed writing file %s to NAND flash %s at offset 0x%8.8" PRIx32 "",
-				args[1], args[0], offset);
-
-			fileio_close(&fileio);
-			free(oob);
-			free(page);
-
-			return ERROR_OK;
-		}
-		offset += page_size;
+		s.address += s.page_size;
 	}
 
-	fileio_close(&fileio);
-	free(oob);
-	free(page);
-	oob = NULL;
-	page = NULL;
-	if (duration_measure(&bench) == ERROR_OK)
+	if (nand_fileio_finish(&s))
 	{
-		command_print(cmd_ctx, "wrote file %s to NAND flash %s "
-			"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
-			args[1], args[0], offset, duration_elapsed(&bench),
-			duration_kbps(&bench, fileio.size));
+		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to "
+				"offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
+				args[1], args[0], s.address, duration_elapsed(&s.bench),
+				duration_kbps(&s.bench, total_bytes));
 	}
-
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_nand_dump_command)
 {
-	if (argc < 4)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	struct nand_device *p;
-	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
+	struct nand_device *nand = NULL;
+	struct nand_fileio_state s;
+	int retval = CALL_COMMAND_HANDLER(nand_fileio_parse_args,
+			&s, &nand, FILEIO_WRITE, true, false);
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (NULL == p->device)
-	{
-		command_print(cmd_ctx, "#%s: not probed", args[0]);
-		return ERROR_OK;
-	}
-
-	struct fileio fileio;
-
-	uint8_t *page = NULL;
-	uint32_t page_size = 0;
-	uint8_t *oob = NULL;
-	uint32_t oob_size = 0;
-	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, args[2], address);
-	uint32_t size;
-	COMMAND_PARSE_NUMBER(u32, args[3], size);
-	uint32_t bytes_done = 0;
-	enum oob_formats oob_format = NAND_OOB_NONE;
-
-	if (argc > 4)
-	{
-		for (unsigned i = 4; i < argc; i++)
-		{
-			if (!strcmp(args[i], "oob_raw"))
-				oob_format |= NAND_OOB_RAW;
-			else if (!strcmp(args[i], "oob_only"))
-				oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
-			else
-				command_print(cmd_ctx, "unknown option: '%s'", args[i]);
-		}
-	}
-
-	if ((address % p->page_size) || (size % p->page_size))
-	{
-		command_print(cmd_ctx, "only page size aligned addresses and sizes are supported");
-		return ERROR_OK;
-	}
-
-	if (!(oob_format & NAND_OOB_ONLY))
-	{
-		page_size = p->page_size;
-		page = malloc(p->page_size);
-	}
-
-	if (oob_format & NAND_OOB_RAW)
-	{
-		if (p->page_size == 512)
-			oob_size = 16;
-		else if (p->page_size == 2048)
-			oob_size = 64;
-		oob = malloc(oob_size);
-	}
-
-	if (fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
-
-	struct duration bench;
-	duration_start(&bench);
-
-	while (size > 0)
+	while (s.size > 0)
 	{
 		uint32_t size_written;
-		if ((retval = nand_read_page(p, address / p->page_size, page, page_size, oob, oob_size)) != ERROR_OK)
+		int retval = nand_read_page(nand, s.address / nand->page_size,
+				s.page, s.page_size, s.oob, s.oob_size);
+		if (ERROR_OK != retval)
 		{
 			command_print(cmd_ctx, "reading NAND flash page failed");
-			free(page);
-			free(oob);
-			fileio_close(&fileio);
-			return ERROR_OK;
+			return nand_fileio_cleanup(&s);
 		}
 
-		if (NULL != page)
-		{
-			fileio_write(&fileio, page_size, page, &size_written);
-			bytes_done += page_size;
-		}
+		if (NULL != s.page)
+			fileio_write(&s.fileio, s.page_size, s.page, &size_written);
 
-		if (NULL != oob)
-		{
-			fileio_write(&fileio, oob_size, oob, &size_written);
-			bytes_done += oob_size;
-		}
+		if (NULL != s.oob)
+			fileio_write(&s.fileio, s.oob_size, s.oob, &size_written);
 
-		size -= p->page_size;
-		address += p->page_size;
+		s.size -= nand->page_size;
+		s.address += nand->page_size;
 	}
 
-	free(page);
-	page = NULL;
-	free(oob);
-	oob = NULL;
-	fileio_close(&fileio);
-
-	if (duration_measure(&bench) == ERROR_OK)
+	if (nand_fileio_finish(&s) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "dumped %lld byte in %fs (%0.3f kb/s)",
-			fileio.size, duration_elapsed(&bench),
-			duration_kbps(&bench, fileio.size));
+		command_print(cmd_ctx, "dumped %lld byte in %fs (%0.3f kb/s)", 
+				s.fileio.size, duration_elapsed(&s.bench),
+				duration_kbps(&s.bench, s.fileio.size));
 	}
-
 	return ERROR_OK;
 }
 
