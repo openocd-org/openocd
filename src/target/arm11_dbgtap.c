@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include "arm11.h"
+#include "arm11_dbgtap.h"
 
 #include "time_support.h"
 
@@ -41,7 +41,7 @@ behavior of the FTDI driver IIRC was to go via RTI.
 Conversely there may be other places in this code where the ARM11 code relies
 on the driver to hit through RTI when coming from Update-?R.
 */
-tap_state_t arm11_move_pi_to_si_via_ci[] =
+static const tap_state_t arm11_move_pi_to_si_via_ci[] =
 {
     TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IRSHIFT
 };
@@ -56,7 +56,7 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
 	return ERROR_OK;
 }
 
-tap_state_t arm11_move_pd_to_sd_via_cd[] =
+static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
 {
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
@@ -548,7 +548,7 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
  *  https://lists.berlios.de/pipermail/openocd-development/2009-July/009698.html
  *  https://lists.berlios.de/pipermail/openocd-development/2009-August/009865.html
  */
-tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
+static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 {
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
