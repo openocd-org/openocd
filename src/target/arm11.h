@@ -182,62 +182,7 @@ typedef struct arm11_reg_state_s
 	target_t *			target;
 } arm11_reg_state_t;
 
-/* poll current target status */
-int arm11_poll(struct target_s *target);
-/* architecture specific status reply */
-int arm11_arch_state(struct target_s *target);
-
-/* target request support */
-int arm11_target_request_data(struct target_s *target, uint32_t size, uint8_t *buffer);
-
-/* target execution control */
-int arm11_halt(struct target_s *target);
-int arm11_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-int arm11_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
-int arm11_examine(struct target_s *target);
-
-/* target reset control */
-int arm11_assert_reset(struct target_s *target);
-int arm11_deassert_reset(struct target_s *target);
-int arm11_soft_reset_halt(struct target_s *target);
-
-/* target register access for gdb */
-int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], int *reg_list_size);
-
-/* target memory access
-* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
-* count: number of items of <size>
-*/
-int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-
-/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
-int arm11_bulk_write_memory(struct target_s *target, uint32_t address, uint32_t count, uint8_t *buffer);
-
-int arm11_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum);
-
-/* target break-/watchpoint control
-* rw: 0 = write, 1 = read, 2 = access
-*/
-int arm11_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int arm11_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int arm11_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
-int arm11_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
-
-/* target algorithm support */
-int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
-
 int arm11_register_commands(struct command_context_s *cmd_ctx);
-int arm11_target_create(struct target_s *target, Jim_Interp *interp);
-int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-
-/* helpers */
-int arm11_build_reg_cache(target_t *target);
-int arm11_set_reg(reg_t *reg, uint8_t *buf);
-int arm11_get_reg(reg_t *reg);
-
-void arm11_record_register_history(arm11_common_t * arm11);
-void arm11_dump_reg_changes(arm11_common_t * arm11);
 
 /* internals */
 
