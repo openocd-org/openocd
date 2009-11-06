@@ -60,9 +60,7 @@ static const arm9tdmi_vector_t arm9tdmi_vectors[] =
 int arm9tdmi_examine_debug_reason(target_t *target)
 {
 	int retval = ERROR_OK;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	/* only check the debug reason if we don't know it already */
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
@@ -331,9 +329,7 @@ static void arm9tdmi_change_to_arm(target_t *target,
 		uint32_t *r0, uint32_t *pc)
 {
 	int retval = ERROR_OK;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* save r0 before using it and put system in ARM state
@@ -387,9 +383,7 @@ void arm9tdmi_read_core_regs(target_t *target,
 		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* STMIA r0-15, [r0] at debug speed
@@ -414,9 +408,7 @@ static void arm9tdmi_read_core_regs_target_buffer(target_t *target,
 		uint32_t mask, void* buffer, int size)
 {
 	int i;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	uint32_t *buf_u32 = buffer;
@@ -454,9 +446,7 @@ static void arm9tdmi_read_core_regs_target_buffer(target_t *target,
 
 static void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* MRS r0, cpsr */
@@ -478,9 +468,7 @@ static void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 
 static void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr: %8.8" PRIx32 ", spsr: %i", xpsr, spsr);
@@ -515,9 +503,7 @@ static void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 static void arm9tdmi_write_xpsr_im8(target_t *target,
 		uint8_t xpsr_im, int rot, int spsr)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
@@ -543,9 +529,7 @@ void arm9tdmi_write_core_regs(target_t *target,
 		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
@@ -569,9 +553,7 @@ void arm9tdmi_write_core_regs(target_t *target,
 
 void arm9tdmi_load_word_regs(target_t *target, uint32_t mask)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed load-multiple into the pipeline */
@@ -581,9 +563,7 @@ void arm9tdmi_load_word_regs(target_t *target, uint32_t mask)
 
 void arm9tdmi_load_hword_reg(target_t *target, int num)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed load half-word into the pipeline */
@@ -593,9 +573,7 @@ void arm9tdmi_load_hword_reg(target_t *target, int num)
 
 void arm9tdmi_load_byte_reg(target_t *target, int num)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed load byte into the pipeline */
@@ -605,9 +583,7 @@ void arm9tdmi_load_byte_reg(target_t *target, int num)
 
 void arm9tdmi_store_word_regs(target_t *target, uint32_t mask)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed store-multiple into the pipeline */
@@ -617,9 +593,7 @@ void arm9tdmi_store_word_regs(target_t *target, uint32_t mask)
 
 void arm9tdmi_store_hword_reg(target_t *target, int num)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed store half-word into the pipeline */
@@ -629,9 +603,7 @@ void arm9tdmi_store_hword_reg(target_t *target, int num)
 
 void arm9tdmi_store_byte_reg(target_t *target, int num)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed store byte into the pipeline */
@@ -641,9 +613,7 @@ void arm9tdmi_store_byte_reg(target_t *target, int num)
 
 static void arm9tdmi_write_pc(target_t *target, uint32_t pc)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
@@ -667,9 +637,7 @@ static void arm9tdmi_write_pc(target_t *target, uint32_t pc)
 
 void arm9tdmi_branch_resume(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_B(0xfffffc, 0), 0, NULL, 0);
@@ -680,9 +648,8 @@ static void arm9tdmi_branch_resume_thumb(target_t *target)
 {
 	LOG_DEBUG("-");
 
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -738,9 +705,7 @@ static void arm9tdmi_branch_resume_thumb(target_t *target)
 
 void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if (arm7_9->has_single_step)
 	{
@@ -755,9 +720,7 @@ void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc)
 
 void arm9tdmi_disable_single_step(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 
 	if (arm7_9->has_single_step)
 	{
@@ -773,8 +736,7 @@ void arm9tdmi_disable_single_step(target_t *target)
 static void arm9tdmi_build_reg_cache(target_t *target)
 {
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
@@ -782,10 +744,9 @@ static void arm9tdmi_build_reg_cache(target_t *target)
 
 int arm9tdmi_examine(struct target_s *target)
 {
-	/* get pointers to arch-specific information */
 	int retval;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+
 	if (!target_was_examined(target))
 	{
 		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
@@ -872,10 +833,6 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_
 	arm7_9->thumb_bkpt = 0xdeee;
 
 	arm7_9->dbgreq_adjust_pc = 3;
-	arm7_9->arch_info = arm9tdmi;
-
-	arm9tdmi->common_magic = ARM9TDMI_COMMON_MAGIC;
-	arm9tdmi->arch_info = NULL;
 
 	arm7_9_init_arch_info(target, arm7_9);
 
@@ -884,38 +841,6 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_
 
 	/* all ARM9s have the vector catch register */
 	arm7_9->has_vector_catch = 1;
-
-	return ERROR_OK;
-}
-
-static int arm9tdmi_get_arch_pointers(target_t *target,
-		armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p,
-		arm9tdmi_common_t **arm9tdmi_p)
-{
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm7_9 = armv4_5->arch_info;
-	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	arm9tdmi = arm7_9->arch_info;
-	if (arm9tdmi->common_magic != ARM9TDMI_COMMON_MAGIC)
-	{
-		return -1;
-	}
-
-	*armv4_5_p = armv4_5;
-	*arm7_9_p = arm7_9;
-	*arm9tdmi_p = arm9tdmi;
 
 	return ERROR_OK;
 }
@@ -934,17 +859,17 @@ static int handle_arm9tdmi_catch_vectors_command(
 	struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm9tdmi_common_t *arm9tdmi;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	reg_t *vector_catch;
 	uint32_t vector_catch_value;
 	int i, j;
 
-	if (arm9tdmi_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM9 based target");
-		return ERROR_OK;
+	/* it's uncommon, but some ARM7 chips can support this */
+	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC
+			|| !arm7_9->has_vector_catch) {
+		command_print(cmd_ctx, "target doesn't have EmbeddedICE "
+				"with vector_catch");
+		return ERROR_TARGET_INVALID;
 	}
 
 	vector_catch = &arm7_9->eice_cache->reg_list[EICE_VEC_CATCH];

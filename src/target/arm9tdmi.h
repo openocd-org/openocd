@@ -25,12 +25,11 @@
 
 #include "embeddedice.h"
 
-#define	ARM9TDMI_COMMON_MAGIC 0x00a900a9
-
+/* FIXME we don't really need a separate arm9tdmi struct any more...
+ * remove it, the arm7/arm9 common struct suffices.
+ */
 typedef struct arm9tdmi_common_s
 {
-	int common_magic;
-	void *arch_info;
 	arm7_9_common_t arm7_9_common;
 } arm9tdmi_common_t;
 
