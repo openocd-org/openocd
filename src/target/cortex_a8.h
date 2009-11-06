@@ -134,7 +134,6 @@ typedef struct cortex_a8_common_s
 	int fast_reg_read;
 
 	armv7a_common_t armv7a_common;
-	void *arch_info;
 } cortex_a8_common_t;
 
 static inline struct cortex_a8_common_s *

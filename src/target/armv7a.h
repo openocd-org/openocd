@@ -107,7 +107,6 @@ typedef struct armv7a_common_s
 	/* Cache and Memory Management Unit */
 	armv4_5_mmu_common_t armv4_5_mmu;
 	armv4_5_common_t armv4_5_common;
-	void *arch_info;
 
 //	int (*full_context)(struct target_s *target);
 //	int (*read_core_reg)(struct target_s *target, int num, enum armv7a_mode mode);

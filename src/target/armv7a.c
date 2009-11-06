@@ -176,10 +176,7 @@ reg_t armv7a_gdb_dummy_fp_reg =
 void armv7a_show_fault_registers(target_t *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
-
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 
 	armv7a->read_cp15(target, 0, 0, 5, 0, &dfsr);
 	armv7a->read_cp15(target, 0, 1, 5, 0, &ifsr);
@@ -200,8 +197,8 @@ int armv7a_arch_state(struct target_s *target)
 		"disabled", "enabled"
 	};
 
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
@@ -237,8 +234,7 @@ static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 	return dap_baseaddr_command(cmd_ctx, swjdp, args, argc);
@@ -248,8 +244,7 @@ static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 	return dap_memaccess_command(cmd_ctx, swjdp, args, argc);
@@ -259,8 +254,7 @@ static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
@@ -270,8 +264,7 @@ static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 	return dap_apid_command(cmd_ctx, swjdp, args, argc);
@@ -281,8 +274,7 @@ static int handle_dap_info_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	armv7a_common_t *armv7a = armv4_5->arch_info;
+	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 	uint32_t apsel;
 
@@ -305,7 +297,7 @@ handle_armv7a_disassemble_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5 = target->arch_info;
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	int thumb = 0;
 	int count = 1;
 	uint32_t address;
@@ -342,7 +334,7 @@ handle_armv7a_disassemble_command(struct command_context_s *cmd_ctx,
 	default:
 usage:
 		command_print(cmd_ctx,
-			"usage: armv4_5 disassemble <address> [<count> ['thumb']]");
+			"usage: armv7a disassemble <address> [<count> ['thumb']]");
 		return ERROR_OK;
 	}
 
