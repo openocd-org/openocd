@@ -2065,6 +2065,7 @@ int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, args[0], arm11_vcr);
+		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
