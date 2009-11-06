@@ -43,9 +43,7 @@ static void fa526_read_core_regs(target_t *target,
 		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* STMIA r0-15, [r0] at debug speed
@@ -72,9 +70,7 @@ static void fa526_read_core_regs_target_buffer(target_t *target,
 		uint32_t mask, void* buffer, int size)
 {
 	int i;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	uint32_t *buf_u32 = buffer;
@@ -114,9 +110,7 @@ static void fa526_read_core_regs_target_buffer(target_t *target,
 
 static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* MRS r0, cpsr */
@@ -141,9 +135,7 @@ static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 
 static void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr: %8.8" PRIx32 ", spsr: %i", xpsr, spsr);
@@ -180,9 +172,7 @@ static void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 static void fa526_write_xpsr_im8(target_t *target,
 		uint8_t xpsr_im, int rot, int spsr)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
@@ -210,9 +200,7 @@ static void fa526_write_core_regs(target_t *target,
 		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
@@ -238,9 +226,7 @@ static void fa526_write_core_regs(target_t *target,
 
 static void fa526_write_pc(target_t *target, uint32_t pc)
 {
-	/* get pointers to arch-specific information */
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
@@ -272,11 +258,9 @@ static void fa526_branch_resume_thumb(target_t *target)
 static int fa526_init_arch_info_2(target_t *target,
 		arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap)
 {
-	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 
 	arm7_9 = &arm9tdmi->arm7_9_common;
-	armv4_5 = &arm7_9->armv4_5_common;
 
 	/* prepare JTAG information for the new target */
 	arm7_9->jtag_info.tap = tap;
@@ -318,9 +302,6 @@ static int fa526_init_arch_info_2(target_t *target,
 	arm7_9->thumb_bkpt = 0xdeee;
 
 	arm7_9->dbgreq_adjust_pc = 3;
-	arm7_9->arch_info = arm9tdmi;
-
-	arm9tdmi->common_magic = ARM9TDMI_COMMON_MAGIC;
 
 	arm7_9_init_arch_info(target, arm7_9);
 
