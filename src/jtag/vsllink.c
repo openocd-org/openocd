@@ -1445,7 +1445,7 @@ static int vsllink_handle_usb_bulkout_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u8, args[0], vsllink_usb_bulkin);
+	COMMAND_PARSE_NUMBER(u8, args[0], vsllink_usb_bulkout);
 
 	vsllink_usb_bulkout &= ~0x80;
 
