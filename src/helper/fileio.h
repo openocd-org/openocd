@@ -38,6 +38,7 @@ enum fileio_type
 
 enum fileio_access
 {
+	FILEIO_NONE,		/* open without any access (invalid mode) */
 	FILEIO_READ,		/* open for reading, position at beginning */
 	FILEIO_WRITE,		/* open for writing, position at beginning */
 	FILEIO_READWRITE,	/* open for writing, position at beginning, allow reading */
