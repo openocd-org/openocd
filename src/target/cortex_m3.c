@@ -1578,7 +1578,7 @@ fail1:
 	*register_get_last_cache_p(&target->reg_cache) = cache;
 	cm3->dwt_cache = cache;
 
-	LOG_INFO("DWT dwtcr 0x%" PRIx32 ", comp %d, watch%s",
+	LOG_DEBUG("DWT dwtcr 0x%" PRIx32 ", comp %d, watch%s",
 			dwtcr, cm3->dwt_num_comp,
 			(dwtcr & (0xf << 24)) ? " only" : "/trigger");
 
