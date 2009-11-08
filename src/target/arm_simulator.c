@@ -31,7 +31,8 @@
 #include "binarybuffer.h"
 
 
-uint32_t arm_shift(uint8_t shift, uint32_t Rm, uint32_t shift_amount, uint8_t *carry)
+static uint32_t arm_shift(uint8_t shift, uint32_t Rm,
+		uint32_t shift_amount, uint8_t *carry)
 {
 	uint32_t return_value = 0;
 	shift_amount &= 0xff;
@@ -74,8 +75,11 @@ uint32_t arm_shift(uint8_t shift, uint32_t Rm, uint32_t shift_amount, uint8_t *c
 	{
 		if ((shift_amount > 0) && (shift_amount <= 32))
 		{
-			/* right shifts of unsigned values are guaranteed to be logical (shift in zeroes)
-			 * simulate an arithmetic shift (shift in signed-bit) by adding the signed-bit manually */
+			/* C right shifts of unsigned values are guaranteed to
+			 * be logical (shift in zeroes); simulate an arithmetic
+			 * shift (shift in signed-bit) by adding the sign bit
+			 * manually
+			 */
 			return_value = Rm >> shift_amount;
 			if (Rm & 0x80000000)
 				return_value |= 0xffffffff << (32 - shift_amount);
@@ -123,7 +127,9 @@ uint32_t arm_shift(uint8_t shift, uint32_t Rm, uint32_t shift_amount, uint8_t *c
 }
 
 
-uint32_t arm_shifter_operand(struct arm_sim_interface *sim, int variant, union arm_shifter_operand shifter_operand, uint8_t *shifter_carry_out)
+static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
+		int variant, union arm_shifter_operand shifter_operand,
+		uint8_t *shifter_carry_out)
 {
 	uint32_t return_value;
 	int instruction_size;
@@ -147,7 +153,9 @@ uint32_t arm_shifter_operand(struct arm_sim_interface *sim, int variant, union a
 		if (shifter_operand.immediate_shift.Rm == 15)
 			Rm += 2 * instruction_size;
 
-		return_value = arm_shift(shifter_operand.immediate_shift.shift, Rm, shifter_operand.immediate_shift.shift_imm, shifter_carry_out);
+		return_value = arm_shift(shifter_operand.immediate_shift.shift,
+				Rm, shifter_operand.immediate_shift.shift_imm,
+				shifter_carry_out);
 	}
 	else if (variant == 2) /* register shift */
 	{
@@ -158,7 +166,8 @@ uint32_t arm_shifter_operand(struct arm_sim_interface *sim, int variant, union a
 		if (shifter_operand.register_shift.Rm == 15)
 			Rm += 2 * instruction_size;
 
-		return_value = arm_shift(shifter_operand.immediate_shift.shift, Rm, Rs, shifter_carry_out);
+		return_value = arm_shift(shifter_operand.immediate_shift.shift,
+				Rm, Rs, shifter_carry_out);
 	}
 	else
 	{
@@ -169,7 +178,7 @@ uint32_t arm_shifter_operand(struct arm_sim_interface *sim, int variant, union a
 	return return_value;
 }
 
-int pass_condition(uint32_t cpsr, uint32_t opcode)
+static int pass_condition(uint32_t cpsr, uint32_t opcode)
 {
 	switch ((opcode & 0xf0000000) >> 28)
 	{
@@ -259,7 +268,7 @@ int pass_condition(uint32_t cpsr, uint32_t opcode)
 	return 0;
 }
 
-int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
+static int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
 {
 	return pass_condition(cpsr, (opcode & 0x0f00) << 20);
 }
@@ -268,7 +277,8 @@ int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
  * if the dry_run_pc argument is provided, no state is changed,
  * but the new pc is stored in the variable pointed at by the argument
  */
-int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_sim_interface *sim)
+int arm_simulate_step_core(target_t *target,
+		uint32_t *dry_run_pc, struct arm_sim_interface *sim)
 {
 	uint32_t current_pc = sim->get_reg(sim, 15);
 	arm_instruction_t instruction;
@@ -313,13 +323,14 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		if (retval != ERROR_OK)
 			return retval;
 		retval = thumb_evaluate_opcode(opcode, current_pc, &instruction);
-		 if (retval != ERROR_OK)
+		if (retval != ERROR_OK)
 			return retval;
 		instruction_size = 2;
 
 		/* check condition code (only for branch (1) instructions) */
-		if ((opcode & 0xf000) == 0xd000 &&
-		    !thumb_pass_branch_condition(sim->get_cpsr(sim, 0, 32), opcode))
+		if ((opcode & 0xf000) == 0xd000
+				&& !thumb_pass_branch_condition(
+					sim->get_cpsr(sim, 0, 32), opcode))
 		{
 			if (dry_run_pc)
 			{
@@ -431,7 +442,10 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		else
 			Rn = 0;
 
-		shifter_operand = arm_shifter_operand(sim, instruction.info.data_proc.variant, instruction.info.data_proc.shifter_operand, &carry_out);
+		shifter_operand = arm_shifter_operand(sim,
+				instruction.info.data_proc.variant,
+				instruction.info.data_proc.shifter_operand,
+				&carry_out);
 
 		/* adjust Rn in case the PC is being read */
 		if (instruction.info.data_proc.Rn == 15)
@@ -520,7 +534,8 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		else if (instruction.info.load_store.offset_mode == 1)
 		{
 			uint32_t offset;
-			uint32_t Rm = sim->get_reg_mode(sim, instruction.info.load_store.offset.reg.Rm);
+			uint32_t Rm = sim->get_reg_mode(sim,
+					instruction.info.load_store.offset.reg.Rm);
 			uint8_t shift = instruction.info.load_store.offset.reg.shift;
 			uint8_t shift_imm = instruction.info.load_store.offset.reg.shift_imm;
 			uint8_t carry = sim->get_cpsr(sim, 29, 1);
@@ -540,29 +555,34 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		if (instruction.info.load_store.index_mode == 0)
 		{
 			/* offset mode
-			 * we load from the modified address, but don't change the base address register */
+			 * we load from the modified address, but don't change
+			 * the base address register
+			 */
 			load_address = modified_address;
 			modified_address = Rn;
 		}
 		else if (instruction.info.load_store.index_mode == 1)
 		{
 			/* pre-indexed mode
-			 * we load from the modified address, and write it back to the base address register */
+			 * we load from the modified address, and write it
+			 * back to the base address register
+			 */
 			load_address = modified_address;
 		}
 		else if (instruction.info.load_store.index_mode == 2)
 		{
 			/* post-indexed mode
-			 * we load from the unmodified address, and write the modified address back */
-			 load_address = Rn;
+			 * we load from the unmodified address, and write the
+			 * modified address back
+			 */
+			load_address = Rn;
 		}
 
 		if ((!dry_run_pc) || (instruction.info.load_store.Rd == 15))
 		{
-			if ((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
-			{
+			retval = target_read_u32(target, load_address, &load_value);
+			if (retval != ERROR_OK)
 				return retval;
-			}
 		}
 
 		if (dry_run_pc)
@@ -697,7 +717,8 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 		}
 		else
 		{
-			uint32_t Rn = sim->get_reg_mode(sim, instruction.info.load_store_multiple.Rn);
+			uint32_t Rn = sim->get_reg_mode(sim,
+					instruction.info.load_store_multiple.Rn);
 			int bits_set = 0;
 			enum armv4_5_mode mode = sim->get_mode(sim);
 
@@ -739,7 +760,8 @@ int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_si
 
 			/* base register writeback */
 			if (instruction.info.load_store_multiple.W)
-				sim->set_reg_mode(sim, instruction.info.load_store_multiple.Rn, Rn);
+				sim->set_reg_mode(sim,
+					instruction.info.load_store_multiple.Rn, Rn);
 
 		}
 	}
@@ -782,14 +804,16 @@ static uint32_t armv4_5_get_reg_mode(struct arm_sim_interface *sim, int reg)
 {
 	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
 
-	return buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, reg).value, 0, 32);
+	return buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+			armv4_5->core_mode, reg).value, 0, 32);
 }
 
 static void armv4_5_set_reg_mode(struct arm_sim_interface *sim, int reg, uint32_t value)
 {
 	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
 
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, reg).value, 0, 32, value);
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+			armv4_5->core_mode, reg).value, 0, 32, value);
 }
 
 static uint32_t armv4_5_get_cpsr(struct arm_sim_interface *sim, int pos, int bits)
