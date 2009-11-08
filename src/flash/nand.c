@@ -1285,6 +1285,222 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	return ERROR_OK;
 }
 
+struct nand_fileio_state {
+	uint32_t address;
+	uint32_t size;
+
+	uint8_t *page;
+	uint32_t page_size;
+
+	enum oob_formats oob_format;
+	uint8_t *oob;
+	uint32_t oob_size;
+
+	const int *eccpos;
+
+	bool file_opened;
+	struct fileio fileio;
+
+	struct duration bench;
+};
+
+static void nand_fileio_init(struct nand_fileio_state *state)
+{
+	memset(state, 0, sizeof(*state));
+	state->oob_format = NAND_OOB_NONE;
+}
+
+static int nand_fileio_start(struct command_context *cmd_ctx,
+		struct nand_device *nand, const char *filename, int filemode,
+		struct nand_fileio_state *state)
+{
+	if (state->address % nand->page_size)
+	{
+		command_print(cmd_ctx, "only page-aligned addresses are supported");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	duration_start(&state->bench);
+
+	if (NULL != filename)
+	{
+		int retval = fileio_open(&state->fileio, filename, filemode, FILEIO_BINARY);
+		if (ERROR_OK != retval)
+		{
+			const char *msg = (FILEIO_READ == filemode) ? "read" : "write";
+			command_print(cmd_ctx, "failed to open '%s' for %s access",
+					filename, msg);
+			return retval;
+		}
+		state->file_opened = true;
+	}
+
+	if (!(state->oob_format & NAND_OOB_ONLY))
+	{
+		state->page_size = nand->page_size;
+		state->page = malloc(nand->page_size);
+	}
+
+	if (state->oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC | NAND_OOB_SW_ECC_KW))
+	{
+		if (nand->page_size == 512)
+		{
+			state->oob_size = 16;
+			state->eccpos = nand_oob_16.eccpos;
+		}
+		else if (nand->page_size == 2048)
+		{
+			state->oob_size = 64;
+			state->eccpos = nand_oob_64.eccpos;
+		}
+		state->oob = malloc(state->oob_size);
+	}
+
+	return ERROR_OK;
+}
+static int nand_fileio_cleanup(struct nand_fileio_state *state)
+{
+	if (state->file_opened)
+		fileio_close(&state->fileio);
+
+	if (state->oob)
+	{
+		free(state->oob);
+		state->oob = NULL;
+	}
+	if (state->page)
+	{
+		free(state->page);
+		state->page = NULL;
+	}
+	return ERROR_OK;
+}
+int nand_fileio_finish(struct nand_fileio_state *state)
+{
+	nand_fileio_cleanup(state);
+	return duration_measure(&state->bench);
+}
+
+COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
+		struct nand_device **dev, enum fileio_access filemode,
+		bool need_size, bool sw_ecc)
+{
+	nand_fileio_init(state);
+
+	unsigned minargs = need_size ? 4 : 3;
+	if (argc < minargs)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct nand_device *nand;
+	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &nand);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (NULL == nand->device)
+	{
+		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		return ERROR_OK;
+	}
+
+	COMMAND_PARSE_NUMBER(u32, args[2], state->address);
+	if (need_size)
+	{
+			COMMAND_PARSE_NUMBER(u32, args[2], state->size);
+			if (state->size % nand->page_size)
+			{
+				command_print(cmd_ctx, "only page-aligned sizes are supported");
+				return ERROR_COMMAND_SYNTAX_ERROR;
+			}
+	}
+
+	if (argc > minargs)
+	{
+		for (unsigned i = minargs; i < argc; i++)
+		{
+			if (!strcmp(args[i], "oob_raw"))
+				state->oob_format |= NAND_OOB_RAW;
+			else if (!strcmp(args[i], "oob_only"))
+				state->oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
+			else if (sw_ecc && !strcmp(args[i], "oob_softecc"))
+				state->oob_format |= NAND_OOB_SW_ECC;
+			else if (sw_ecc && !strcmp(args[i], "oob_softecc_kw"))
+				state->oob_format |= NAND_OOB_SW_ECC_KW;
+			else
+			{
+				command_print(cmd_ctx, "unknown option: %s", args[i]);
+				return ERROR_COMMAND_SYNTAX_ERROR;
+			}
+		}
+	}
+
+	retval = nand_fileio_start(cmd_ctx, nand, args[1], filemode, state);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (!need_size)
+		state->size = state->fileio.size;
+
+	*dev = nand;
+
+	return ERROR_OK;
+}
+
+/**
+ * @returns If no error occurred, returns number of bytes consumed;
+ * otherwise, returns a negative error code.)
+ */
+int nand_fileio_read(struct nand_device *nand,
+		struct nand_fileio_state *s)
+{
+	uint32_t total_read = 0;
+	uint32_t one_read;
+
+	if (NULL != s->page)
+	{
+		fileio_read(&s->fileio, s->page_size, s->page, &one_read);
+		if (one_read < s->page_size)
+			memset(s->page + one_read, 0xff, s->page_size - one_read);
+		total_read += one_read;
+	}
+
+	if (s->oob_format & NAND_OOB_SW_ECC)
+	{
+		uint8_t ecc[3];
+		memset(s->oob, 0xff, s->oob_size);
+		for (uint32_t i = 0, j = 0; i < s->page_size; i += 256)
+		{
+			nand_calculate_ecc(nand, s->page + i, ecc);
+			s->oob[s->eccpos[j++]] = ecc[0];
+			s->oob[s->eccpos[j++]] = ecc[1];
+			s->oob[s->eccpos[j++]] = ecc[2];
+		}
+	}
+	else if (s->oob_format & NAND_OOB_SW_ECC_KW)
+	{
+		/*
+		 * In this case eccpos is not used as
+		 * the ECC data is always stored contigously
+		 * at the end of the OOB area.  It consists
+		 * of 10 bytes per 512-byte data block.
+		 */
+		uint8_t *ecc = s->oob + s->oob_size - s->page_size / 512 * 10;
+		memset(s->oob, 0xff, s->oob_size);
+		for (uint32_t i = 0; i < s->page_size; i += 512)
+		{
+			nand_calculate_ecc_kw(nand, s->page + i, ecc);
+			ecc += 10;
+		}
+	}
+	else if (NULL != s->oob)
+	{
+		fileio_read(&s->fileio, s->oob_size, s->oob, &one_read);
+		if (one_read < s->oob_size)
+			memset(s->oob + one_read, 0xff, s->oob_size - one_read);
+		total_read += one_read;
+	}
+	return total_read;
+}
+
 COMMAND_HANDLER(handle_nand_write_command)
 {
 	uint32_t offset;
