@@ -123,7 +123,7 @@ static int httpd_Jim_Command_writeform(Jim_Interp *interp, int argc,
 
 	const char *script = alloc_printf("set dummy_val $httppostdata(%s); set dummy_val",
 			name);
-	retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__);
+	retcode = Jim_Eval_Named(interp, script, __FILE__, __LINE__);
 	free((void *) script);
 	if (retcode != JIM_OK)
 		return retcode;
@@ -164,7 +164,7 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
 
     const char *script = alloc_printf("set dummy_val $httppostdata(%s); set dummy_val",
     			name);
-    	int retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__);
+    	int retcode = Jim_Eval_Named(interp, script, __FILE__, __LINE__);
     	free((void *) script);
     	if (retcode != JIM_OK)
     	{
@@ -288,10 +288,10 @@ static int handle_request(struct MHD_Connection * connection, const char * url)
 
 		const char *script = alloc_printf(
 				"global httpdata; source {%s}; set httpdata", url);
-		retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__);
+		retcode = Jim_Eval_Named(interp, script, __FILE__, __LINE__);
 		free((void *) script);
 
-		if (retcode == JIM_ERR)
+		if (retcode != JIM_OK)
 		{
 			printf("Tcl failed\n");
 			const char *t = httpd_exec_cgi_tcl_error(interp);
@@ -341,7 +341,10 @@ static int handle_request(struct MHD_Connection * connection, const char * url)
 		LOG_DEBUG("Serving %s length=%zu", url, len);
 		/* serve file directly */
 		response = MHD_create_response_from_data(len, data, MHD_YES, MHD_NO);
+		/* Should we expose mimetype via tcl here or just let the browser
+		   guess?
 		MHD_add_response_header(response, "Content-Type", "image/png");
+		*/
 
 		ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
 		MHD_destroy_response(response);
@@ -353,7 +356,7 @@ static int handle_request(struct MHD_Connection * connection, const char * url)
 
 static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 		const char * url, const char * method, const char * version,
-		const char * upload_data, unsigned int * upload_data_size, void ** ptr)
+		const char * upload_data, size_t * upload_data_size, void ** ptr)
 {
 	int post = 0;
 
@@ -442,7 +445,7 @@ static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 
 static int ahc_echo(void * cls, struct MHD_Connection * connection,
 		const char * url, const char * method, const char * version,
-		const char * upload_data, unsigned int * upload_data_size, void ** ptr)
+		const char * upload_data, size_t * upload_data_size, void ** ptr)
 {
 	int result;
 
