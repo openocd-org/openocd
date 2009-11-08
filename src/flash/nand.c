@@ -1543,6 +1543,67 @@ COMMAND_HANDLER(handle_nand_write_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_nand_verify_command)
+{
+	struct nand_device *nand = NULL;
+	struct nand_fileio_state file;
+	int retval = CALL_COMMAND_HANDLER(nand_fileio_parse_args,
+			&file, &nand, FILEIO_READ, false, true);
+	if (ERROR_OK != retval)
+		return retval;
+
+	struct nand_fileio_state dev;
+	nand_fileio_init(&dev);
+	dev.address = file.address;
+	dev.size = file.size;
+	dev.oob_format = file.oob_format;
+	retval = nand_fileio_start(cmd_ctx, nand, NULL, FILEIO_NONE, &dev);
+	if (ERROR_OK != retval)
+		return retval;
+
+	while (file.size > 0)
+	{
+		int retval = nand_read_page(nand, dev.address / dev.page_size,
+				dev.page, dev.page_size, dev.oob, dev.oob_size);
+		if (ERROR_OK != retval)
+		{
+			command_print(cmd_ctx, "reading NAND flash page failed");
+			nand_fileio_cleanup(&dev);
+			return nand_fileio_cleanup(&file);
+		}
+
+		int bytes_read = nand_fileio_read(nand, &file);
+		if (bytes_read <= 0)
+		{
+			command_print(cmd_ctx, "error while reading file");
+			nand_fileio_cleanup(&dev);
+			return nand_fileio_cleanup(&file);
+		}
+
+		if ((dev.page && memcmp(dev.page, file.page, dev.page_size)) ||
+		    (dev.oob && memcmp(dev.oob, file.oob, dev.oob_size)) )
+		{
+			command_print(cmd_ctx, "NAND flash contents differ "
+						"at 0x%8.8" PRIx32, dev.address);
+			nand_fileio_cleanup(&dev);
+			return nand_fileio_cleanup(&file);
+		}
+
+		file.size -= bytes_read;
+		file.address += nand->page_size;
+	}
+
+	if (nand_fileio_finish(&file) == ERROR_OK)
+	{
+		command_print(cmd_ctx, "verified file %s in NAND flash %s "
+				"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
+				args[1], args[0], dev.address, duration_elapsed(&file.bench),
+				duration_kbps(&file.bench, dev.size));
+	}
+
+	return nand_fileio_cleanup(&dev);
+}
+
 COMMAND_HANDLER(handle_nand_dump_command)
 {
 	struct nand_device *nand = NULL;
@@ -1641,6 +1702,10 @@ int nand_init(struct command_context *cmd_ctx)
 			handle_nand_dump_command, COMMAND_EXEC,
 			"dump from NAND flash device <num> <filename> "
 			 "<offset> <length> [oob_raw | oob_only]");
+	register_command(cmd_ctx, nand_cmd, "verify",
+			&handle_nand_verify_command, COMMAND_EXEC,
+			"verify NAND flash device <num> <filename> <offset> "
+			"[oob_raw | oob_only | oob_softecc | oob_softecc_kw]");
 	register_command(cmd_ctx, nand_cmd, "write",
 			handle_nand_write_command, COMMAND_EXEC,
 			"write to NAND flash device <num> <filename> <offset> "

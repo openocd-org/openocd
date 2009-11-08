@@ -4620,6 +4620,32 @@ the underlying driver from applying hardware ECC.
 @end itemize
 @end deffn
 
+@deffn Command {nand verify} num filename offset [option...]
+@cindex NAND verification
+@cindex NAND programming
+Verify the binary data in the file has been programmed to the
+specified NAND device, starting at the specified offset.
+The @var{num} parameter is the value shown by @command{nand list}.
+
+Use a complete path name for @var{filename}, so you don't depend
+on the directory used to start the OpenOCD server.
+
+The @var{offset} must be an exact multiple of the device's page size.
+All data in the file will be read and compared to the contents of the
+flash, assuming it doesn't run past the end of the device.
+As with @command{nand write}, only full pages are verified, so any extra
+space in the last page will be filled with 0xff bytes.
+
+The same @var{options} accepted by @command{nand write},
+and the file will be processed similarly to produce the buffers that
+can be compared against the contents produced from @command{nand dump}.
+
+@b{NOTE:} This will not work when the underlying NAND controller
+driver's @code{write_page} routine must update the OOB with a
+hardward-computed ECC before the data is written.  This limitation may
+be removed in a future release.
+@end deffn
+
 @section Other NAND commands
 @cindex NAND other commands
 
