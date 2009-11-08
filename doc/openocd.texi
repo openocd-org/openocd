@@ -3185,13 +3185,18 @@ since performing a backup slows down operations.
 For example, the beginning of an SRAM block is likely to
 be used by most build systems, but the end is often unused.
 
-@item @code{-work-area-size} @var{size} -- specify/set the work area
+@item @code{-work-area-size} @var{size} -- specify work are size,
+in bytes.  The same size applies regardless of whether its physical
+or virtual address is being used.
 
 @item @code{-work-area-phys} @var{address} -- set the work area
 base @var{address} to be used when no MMU is active.
 
 @item @code{-work-area-virt} @var{address} -- set the work area
 base @var{address} to be used when an MMU is active.
+@emph{Do not specify a value for this except on targets with an MMU.}
+The value should normally correspond to a static mapping for the
+@code{-work-area-phys} address, set up by the current operating system.
 
 @end itemize
 @end deffn
