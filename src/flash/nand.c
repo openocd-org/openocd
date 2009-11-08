@@ -1330,8 +1330,6 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 
 	fileio_t fileio;
 
-	duration_t duration;
-	char *duration_text;
 
 	if (argc < 3)
 	{
@@ -1372,7 +1370,8 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 		}
 	}
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
@@ -1478,11 +1477,13 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 	free(page);
 	oob = NULL;
 	page = NULL;
-	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "wrote file %s to NAND flash %s up to offset 0x%8.8" PRIx32 " in %s",
-		args[1], args[0], offset, duration_text);
-	free(duration_text);
-	duration_text = NULL;
+	if (duration_measure(&bench) == ERROR_OK)
+	{
+		command_print(cmd_ctx, "wrote file %s to NAND flash %s "
+			"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
+			args[1], args[0], offset, duration_elapsed(&bench),
+			duration_kbps(&bench, fileio.size));
+	}
 
 	return ERROR_OK;
 }
@@ -1506,8 +1507,6 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 
 	fileio_t fileio;
-	duration_t duration;
-	char *duration_text;
 
 	uint8_t *page = NULL;
 	uint32_t page_size = 0;
@@ -1560,7 +1559,8 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 		return ERROR_OK;
 	}
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	while (size > 0)
 	{
@@ -1596,10 +1596,12 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 	oob = NULL;
 	fileio_close(&fileio);
 
-	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "dumped %lld byte in %s", fileio.size, duration_text);
-	free(duration_text);
-	duration_text = NULL;
+	if (duration_measure(&bench) == ERROR_OK)
+	{
+		command_print(cmd_ctx, "dumped %lld byte in %fs (%0.3f kb/s)",
+			fileio.size, duration_elapsed(&bench),
+			duration_kbps(&bench, fileio.size));
+	}
 
 	return ERROR_OK;
 }

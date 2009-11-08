@@ -503,8 +503,6 @@ static int handle_flash_erase_address_command(struct command_context_s *cmd_ctx,
 	int retval;
 	int address;
 	int length;
-	duration_t duration;
-	char *duration_text;
 
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -528,16 +526,16 @@ static int handle_flash_erase_address_command(struct command_context_s *cmd_ctx,
 	/* We can't know if we did a resume + halt, in which case we no longer know the erased state */
 	flash_set_dirty();
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
-	if ((retval = flash_erase_address_range(target, address, length)) == ERROR_OK)
+	retval = flash_erase_address_range(target, address, length);
+
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
-		{
-			return retval;
-		}
-		command_print(cmd_ctx, "erased address 0x%8.8x length %i in %s", address, length, duration_text);
-		free(duration_text);
+		command_print(cmd_ctx, "erased address 0x%8.8x (length %i)"
+				" in %fs (%0.3f kb/s)", address, length,
+				duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
 
 	return retval;
@@ -613,19 +611,16 @@ static int handle_flash_erase_command(struct command_context_s *cmd_ctx,
 			first, last, p->num_sectors)) != ERROR_OK)
 		return retval;
 
-	duration_t duration;
-	char *duration_text;
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
-	if ((retval = flash_driver_erase(p, first, last)) == ERROR_OK) {
-		if ((retval = duration_stop_measure(&duration,
-					&duration_text)) != ERROR_OK)
-			return retval;
-		command_print(cmd_ctx, "erased sectors %i through %i "
-				"on flash bank %i in %s",
-			(int) first, (int) last, (int) bank_nr,
-			duration_text);
-		free(duration_text);
+	retval = flash_driver_erase(p, first, last);
+
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
+	{
+		command_print(cmd_ctx, "erased sectors %" PRIu32 " "
+				"through %" PRIu32" on flash bank %" PRIu32 " "
+				"in %fs", first, last, bank_nr, duration_elapsed(&bench));
 	}
 
 	return ERROR_OK;
@@ -683,10 +678,7 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 	image_t image;
 	uint32_t written;
 
-	duration_t duration;
-	char *duration_text;
-
-	int retval, retvaltemp;
+	int retval;
 
 	if (argc < 1)
 	{
@@ -728,7 +720,8 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 		return ERROR_FAIL;
 	}
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	if (argc >= 2)
 	{
@@ -756,22 +749,12 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 		return retval;
 	}
 
-	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		image_close(&image);
-		return retvaltemp;
+		command_print(cmd_ctx, "wrote %" PRIu32 " byte from file %s "
+				"in %fs (%0.3f kb/s)", written, args[0],
+				duration_elapsed(&bench), duration_kbps(&bench, written));
 	}
-
-	float speed;
-
-	speed = written / 1024.0;
-	speed /= ((float)duration.duration.tv_sec
-			+ ((float)duration.duration.tv_usec / 1000000.0));
-	command_print(cmd_ctx,
-			"wrote %" PRIu32 " byte from file %s in %s (%f kb/s)",
-			written, args[0], duration_text, speed);
-
-	free(duration_text);
 
 	image_close(&image);
 
@@ -780,7 +763,7 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 
 static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int err = ERROR_OK, retval;
+	int err = ERROR_OK;
 	uint32_t address;
 	uint32_t pattern;
 	uint32_t count;
@@ -789,8 +772,6 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	uint32_t wrote = 0;
 	uint32_t cur_size = 0;
 	uint32_t chunk_count;
-	char *duration_text;
-	duration_t duration;
 	target_t *target = get_current_target(cmd_ctx);
 	uint32_t i;
 	uint32_t wordsize;
@@ -843,7 +824,8 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 		exit(-1);
 	}
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	for (wrote = 0; wrote < (count*wordsize); wrote += cur_size)
 	{
@@ -872,24 +854,14 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 				return ERROR_FAIL;
 			}
 		}
-
 	}
 
-	if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	if (duration_measure(&bench) == ERROR_OK)
 	{
-		return retval;
+		command_print(cmd_ctx, "wrote %" PRIu32 " bytes to 0x%8.8" PRIx32 
+				" in %fs (%0.3f kb/s)", wrote, address,
+				duration_elapsed(&bench), duration_kbps(&bench, wrote));
 	}
-
-	float speed;
-
-	speed = wrote / 1024.0;
-	speed /= ((float)duration.duration.tv_sec
-			+ ((float)duration.duration.tv_usec / 1000000.0));
-	command_print(cmd_ctx,
-			"wrote %" PRIu32 " bytes to 0x%8.8" PRIx32 " in %s (%f kb/s)",
-			wrote, address, duration_text, speed);
-
-	free(duration_text);
 	return ERROR_OK;
 }
 
@@ -898,17 +870,13 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 	uint32_t offset;
 	uint8_t *buffer;
 	uint32_t buf_cnt;
-
 	fileio_t fileio;
-
-	duration_t duration;
-	char *duration_text;
-
 
 	if (argc != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	flash_bank_t *p;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
@@ -935,24 +903,13 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 	free(buffer);
 	buffer = NULL;
 
-	int retvaltemp;
-	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		fileio_close(&fileio);
-		return retvaltemp;
-	}
-	if (retval == ERROR_OK)
-	{
-		float elapsed = (float)duration.duration.tv_sec;
-		elapsed += (float)duration.duration.tv_usec / 1000000.0;
-		float speed = (float)fileio.size / elapsed;
-		command_print(cmd_ctx,
-				"wrote  %lld byte from file %s to flash bank %u "
-				"at offset 0x%8.8" PRIx32 " in %s (%f kb/s)",
+		command_print(cmd_ctx, "wrote %lld byte from file %s to flash bank %u"
+				" at offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
 				fileio.size, args[1], p->bank_number, offset,
-				duration_text, speed / 1024);
+				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
-	free(duration_text);
 
 	fileio_close(&fileio);
 

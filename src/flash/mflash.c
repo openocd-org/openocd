@@ -215,11 +215,11 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 	uint8_t status, error;
 	target_t *target = mflash_bank->target;
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
-	duration_t duration;
 	int ret;
 	long long t = 0;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	while (time) {
 
@@ -275,10 +275,11 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 			}
 		}
 
-		duration_stop_measure(&duration, NULL);
-
-		t = duration.duration.tv_usec/1000;
-		t += duration.duration.tv_sec*1000;
+		ret = duration_measure(&bench);
+		if (ERROR_OK == ret)
+			t = duration_elapsed(&bench) * 1000.0;
+		else
+			LOG_ERROR("mflash: duration measurement failed: %d", ret);
 
 		if (t > time)
 			break;
@@ -427,14 +428,14 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 	int ret;
 	target_t *target = mflash_bank->target;
 	uint8_t *buff_ptr = buff;
-	duration_t duration;
 
 	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read)) != ERROR_OK)
 		return ret;
 
 	address = mflash_bank->base + MG_BUFFER_OFFSET;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	for (i = 0; i < sect_cnt; i++) {
 		ret = mg_dsk_wait(mg_io_wait_drq, MG_OEM_DISK_WAIT_TIME_NORMAL);
@@ -453,11 +454,10 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 
 		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector read", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
 
-		duration_stop_measure(&duration, NULL);
-
-		if ((duration.duration.tv_sec * 1000 + duration.duration.tv_usec / 1000) > 3000) {
+		ret = duration_measure(&bench);
+		if ((ERROR_OK == ret) && (duration_elapsed(&bench) > 3)) {
 			LOG_INFO("mflash: read %" PRIu32 "'th sectors", sect_num + i);
-			duration_start_measure(&duration);
+			duration_start(&bench);
 		}
 	}
 
@@ -500,14 +500,14 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 	int ret;
 	target_t *target = mflash_bank->target;
 	uint8_t *buff_ptr = buff;
-	duration_t duration;
 
 	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd)) != ERROR_OK)
 		return ret;
 
 	address = mflash_bank->base + MG_BUFFER_OFFSET;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	for (i = 0; i < sect_cnt; i++) {
 		ret = mg_dsk_wait(mg_io_wait_drq, MG_OEM_DISK_WAIT_TIME_NORMAL);
@@ -526,11 +526,10 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 
 		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector write", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
 
-		duration_stop_measure(&duration, NULL);
-
-		if ((duration.duration.tv_sec * 1000 + duration.duration.tv_usec / 1000) > 3000) {
+		ret = duration_measure(&bench);
+		if ((ERROR_OK == ret) && (duration_elapsed(&bench) > 3)) {
 			LOG_INFO("mflash: wrote %" PRIu32 "'th sectors", sect_num + i);
-			duration_start_measure(&duration);
+			duration_start(&bench);
 		}
 	}
 
@@ -708,8 +707,6 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	uint32_t address, buf_cnt, cnt, res, i;
 	uint8_t *buffer;
 	fileio_t fileio;
-	duration_t duration;
-	char *duration_text;
 	int ret;
 
 	if (argc != 3) {
@@ -731,7 +728,8 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	cnt = fileio.size / MG_FILEIO_CHUNK;
 	res = fileio.size % MG_FILEIO_CHUNK;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	for (i = 0; i < cnt; i++) {
 		if ((ret = fileio_read(&fileio, MG_FILEIO_CHUNK, buffer, &buf_cnt)) !=
@@ -749,21 +747,19 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 			goto mg_write_cmd_err;
 	}
 
-	duration_stop_measure(&duration, &duration_text);
+	if (duration_measure(&bench) == ERROR_OK)
+	{
+		command_print(cmd_ctx, "wrote %lli byte from file %s "
+				"in %fs (%0.3f kB/s)", fileio.size, args[1],
+				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
+	}
 
-	command_print(cmd_ctx, "wrote %lli byte from file %s in %s (%f kB/s)",
-		fileio.size, args[1], duration_text,
-		(float)fileio.size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
-
-	free(duration_text);
 	free(buffer);
 	fileio_close(&fileio);
 
 	return ERROR_OK;
 
 mg_write_cmd_err:
-	duration_stop_measure(&duration, &duration_text);
-	free(duration_text);
  	free(buffer);
 	fileio_close(&fileio);
 
@@ -775,8 +771,6 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	uint32_t address, size_written, size, cnt, res, i;
 	uint8_t *buffer;
 	fileio_t fileio;
-	duration_t duration;
-	char *duration_text;
 	int ret;
 
 	if (argc != 4) {
@@ -799,7 +793,8 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	cnt = size / MG_FILEIO_CHUNK;
 	res = size % MG_FILEIO_CHUNK;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	for (i = 0; i < cnt; i++) {
 		if ((ret = mg_mflash_read(address, buffer, MG_FILEIO_CHUNK)) != ERROR_OK)
@@ -817,21 +812,20 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 			goto mg_dump_cmd_err;
 	}
 
-	duration_stop_measure(&duration, &duration_text);
+	if (duration_measure(&bench) == ERROR_OK)
+	{
+		command_print(cmd_ctx, "dump image (address 0x%8.8" PRIx32 " "
+				"size %" PRIu32 ") to file %s in %fs (%0.3f kB/s)",
+				address, size, args[1],
+				duration_elapsed(&bench), duration_kbps(&bench, size));
+	}
 
-	command_print(cmd_ctx, "dump image (address 0x%8.8" PRIx32 " size %" PRIu32 ") to file %s in %s (%f kB/s)",
-				address, size, args[1], duration_text,
-				(float)size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
-
-	free(duration_text);
 	free(buffer);
 	fileio_close(&fileio);
 
 	return ERROR_OK;
 
 mg_dump_cmd_err:
-	duration_stop_measure(&duration, &duration_text);
-	free(duration_text);
  	free(buffer);
 	fileio_close(&fileio);
 

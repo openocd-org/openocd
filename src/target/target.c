@@ -2507,12 +2507,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 	uint32_t min_address = 0;
 	uint32_t max_address = 0xffffffff;
 	int i;
-	int retvaltemp;
-
 	image_t image;
-
-	duration_t duration;
-	char *duration_text;
 
 	int retval = parse_load_image_command_args(cmd_ctx, args, argc,
 			&image, &min_address, &max_address);
@@ -2520,7 +2515,9 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 		return retval;
 
 	target_t *target = get_current_target(cmd_ctx);
-	duration_start_measure(&duration);
+
+	struct duration bench;
+	duration_start(&bench);
 
 	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
@@ -2580,19 +2577,12 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 		free(buffer);
 	}
 
-	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		image_close(&image);
-		return retvaltemp;
+		command_print(cmd_ctx, "downloaded %" PRIu32 " bytes "
+				"in %fs (%0.3f kb/s)", image_size,
+				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 	}
-
-	if (retval == ERROR_OK)
-	{
-		command_print(cmd_ctx, "downloaded %u byte in %s",
-					  (unsigned int)image_size,
-					  duration_text);
-	}
-	free(duration_text);
 
 	image_close(&image);
 
@@ -2607,8 +2597,6 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 	uint8_t buffer[560];
 	int retvaltemp;
 
-	duration_t duration;
-	char *duration_text;
 
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -2628,7 +2616,8 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_OK;
 	}
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	int retval = ERROR_OK;
 	while (size > 0)
@@ -2654,14 +2643,11 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 	if ((retvaltemp = fileio_close(&fileio)) != ERROR_OK)
 		return retvaltemp;
 
-	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
-		return retvaltemp;
-
-	if (retval == ERROR_OK)
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "dumped %lld byte in %s",
-				fileio.size, duration_text);
-		free(duration_text);
+		command_print(cmd_ctx,
+				"dumped %lld bytes in %fs (%0.3f kb/s)", fileio.size,
+				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
 
 	return retval;
@@ -2673,14 +2659,11 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 	uint32_t buf_cnt;
 	uint32_t image_size;
 	int i;
-	int retval, retvaltemp;
+	int retval;
 	uint32_t checksum = 0;
 	uint32_t mem_checksum = 0;
 
 	image_t image;
-
-	duration_t duration;
-	char *duration_text;
 
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -2695,7 +2678,8 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 		return ERROR_FAIL;
 	}
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	if (argc >= 2)
 	{
@@ -2802,20 +2786,12 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 		image_size += buf_cnt;
 	}
 done:
-
-	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		image_close(&image);
-		return retvaltemp;
+		command_print(cmd_ctx, "verified %" PRIu32 " bytes "
+				"in %fs (%0.3f kb/s)", image_size,
+				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 	}
-
-	if (retval == ERROR_OK)
-	{
-		command_print(cmd_ctx, "verified %u bytes in %s",
-					  (unsigned int)image_size,
-					  duration_text);
-	}
-	free(duration_text);
 
 	image_close(&image);
 
@@ -4672,15 +4648,13 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 	image_t image;
 
-	duration_t duration;
-	char *duration_text;
-
 	int retval = parse_load_image_command_args(cmd_ctx, args, argc,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;
 
-	duration_start_measure(&duration);
+	struct duration bench;
+	duration_start(&bench);
 
 	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
@@ -4753,13 +4727,16 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 		free(buffer);
 	}
 
-	duration_stop_measure(&duration, &duration_text);
-	if (retval == ERROR_OK)
+	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "Loaded %u bytes in %s", (unsigned int)image_size, duration_text);
-		command_print(cmd_ctx, "NB!!! image has not been loaded to target, issue a subsequent 'fast_load' to do so.");
+		command_print(cmd_ctx, "Loaded %" PRIu32 " bytes "
+				"in %fs (%0.3f kb/s)", image_size, 
+				duration_elapsed(&bench), duration_kbps(&bench, image_size));
+
+		command_print(cmd_ctx,
+				"WARNING: image has not been loaded to target!"
+				"You can issue a 'fast_load' to finish loading.");
 	}
-	free(duration_text);
 
 	image_close(&image);
 

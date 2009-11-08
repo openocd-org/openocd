@@ -28,7 +28,6 @@
 #endif
 
 #include "time_support.h"
-#include "log.h"
 
 
 /* calculate difference between two struct timeval values */
@@ -83,29 +82,30 @@ int timeval_add_time(struct timeval *result, int sec, int usec)
 	return 0;
 }
 
-void duration_start_measure(duration_t *duration)
+int duration_start(struct duration *duration)
 {
-	gettimeofday(&duration->start, NULL);
+	return gettimeofday(&duration->start, NULL);
 }
 
-int duration_stop_measure(duration_t *duration, char **text)
+int duration_measure(struct duration *duration)
 {
 	struct timeval end;
+	int retval = gettimeofday(&end, NULL);
+	if (0 == retval)
+		timeval_subtract(&duration->elapsed, &end, &duration->start);
+	return retval;
+}
 
-	gettimeofday(&end, NULL);
+float duration_elapsed(struct duration *duration)
+{
+	float t = duration->elapsed.tv_sec;
+	t += (float)duration->elapsed.tv_usec / 1000000.0;
+	return t;
+}
 
-	timeval_subtract(&duration->duration, &end, &duration->start);
-
-	if (text)
-	{
-		float t;
-		t = duration->duration.tv_sec;
-		t += (float)duration->duration.tv_usec/1000000.0;
-		*text = malloc(100);
-		snprintf(*text, 100, "%fs", t);
-	}
-
-	return ERROR_OK;
+float duration_kbps(struct duration *duration, size_t count)
+{
+	return count / (1024.0 * duration_elapsed(duration));
 }
 
 long long timeval_ms()

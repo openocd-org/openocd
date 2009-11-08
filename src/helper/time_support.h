@@ -37,19 +37,27 @@
 # endif
 #endif
 
-extern int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
-extern int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
-extern int timeval_add_time(struct timeval *result, int sec, int usec);
-/* gettimeofday() timeval in 64 bit ms */
-extern long long timeval_ms(void);
+int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
+int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
+int timeval_add_time(struct timeval *result, int sec, int usec);
 
-typedef struct duration_s
+/// @returns gettimeofday() timeval as 64-bit in ms
+long long timeval_ms(void);
+
+struct duration
 {
 	struct timeval start;
-	struct timeval duration;
-} duration_t;
+	struct timeval elapsed;
+};
 
-extern void duration_start_measure(duration_t *duration);
-extern int duration_stop_measure(duration_t *duration, char **text);
+/// Update the duration->start field to start the @a duration measurement.
+int duration_start(struct duration *duration);
+/// Update the duration->elapsed field to finish the @a duration measurment.
+int duration_measure(struct duration *duration);
+
+/// @returns Elapsed time in seconds.
+float duration_elapsed(struct duration *duration);
+/// @returns KB/sec for the elapsed @a duration and @a count bytes.
+float duration_kbps(struct duration *duration, size_t count);
 
 #endif /* TIME_SUPPORT_H */
