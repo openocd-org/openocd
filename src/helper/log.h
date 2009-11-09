@@ -59,20 +59,23 @@ enum log_levels
 	LOG_LVL_DEBUG = 3
 };
 
-extern void log_printf(enum log_levels level, const char *file, int line,
+void log_printf(enum log_levels level, const char *file, int line,
 	const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
-extern void log_printf_lf(enum log_levels level, const char *file, int line,
+void log_printf_lf(enum log_levels level, const char *file, int line,
 	const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
-extern int log_register_commands(struct command_context_s *cmd_ctx);
-extern int log_init(struct command_context_s *cmd_ctx);
-extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
-extern void keep_alive(void);
-extern void kept_alive(void);
-extern void alive_sleep(int ms);
-extern void busy_sleep(int ms);
 
+int log_init(struct command_context_s *cmd_ctx);
+int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
+
+int log_register_commands(struct command_context_s *cmd_ctx);
+
+void keep_alive(void);
+void kept_alive(void);
+
+void alive_sleep(int ms);
+void busy_sleep(int ms);
 
 /* log entries can be paused and replayed roughly according to the try/catch/rethrow
  * concepts in C++
@@ -92,8 +95,8 @@ typedef struct log_callback_s
 	struct log_callback_s *next;
 } log_callback_t;
 
-extern int log_add_callback(log_callback_fn fn, void *priv);
-extern int log_remove_callback(log_callback_fn fn, void *priv);
+int log_add_callback(log_callback_fn fn, void *priv);
+int log_remove_callback(log_callback_fn fn, void *priv);
 
 char *alloc_vprintf(const char *fmt, va_list ap);
 char *alloc_printf(const char *fmt, ...);

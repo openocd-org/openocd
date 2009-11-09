@@ -84,25 +84,36 @@ typedef struct command_s
 	struct command_s *next;
 } command_t;
 
-extern command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help);
-extern int unregister_command(command_context_t *context, char *name);
-extern int unregister_all_commands(command_context_t *context);
-extern void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv);
-extern command_context_t* copy_command_context(command_context_t* context);
-extern int command_context_mode(command_context_t *context, enum command_mode mode);
-extern command_context_t* command_init(void);
-extern int command_done(command_context_t *context);
+command_t* register_command(command_context_t *context,
+		command_t *parent, char *name,
+		int (*handler)(struct command_context_s *context,
+				char* name, char** args, int argc),
+		enum command_mode mode, char *help);
 
-extern void command_print(command_context_t *context, const char *format, ...)
-		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-extern void command_print_sameline(command_context_t *context, const char *format, ...)
-		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-extern int command_run_line(command_context_t *context, char *line);
-extern int command_run_linef(command_context_t *context, const char *format, ...)
-		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-extern void command_output_text(command_context_t *context, const char *data);
+int unregister_command(command_context_t *context, char *name);
+int unregister_all_commands(command_context_t *context);
 
-extern void process_jim_events(void);
+void command_set_output_handler(command_context_t* context,
+		int (*output_handler)(struct command_context_s *context,
+		const char* line), void *priv);
+
+command_context_t* copy_command_context(command_context_t* context);
+
+int command_context_mode(command_context_t *context, enum command_mode mode);
+
+command_context_t* command_init(void);
+int command_done(command_context_t *context);
+
+void command_print(command_context_t *context, const char *format, ...)
+		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+void command_print_sameline(command_context_t *context, const char *format, ...)
+		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+int command_run_line(command_context_t *context, char *line);
+int command_run_linef(command_context_t *context, const char *format, ...)
+		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+void command_output_text(command_context_t *context, const char *data);
+
+void process_jim_events(void);
 
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)

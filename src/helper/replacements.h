@@ -65,7 +65,8 @@ struct timezone {
 #endif
 struct timezone;
 
-extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+int gettimeofday(struct timeval *tv, struct timezone *tz);
+
 #endif
 
 #ifndef IN_REPLACEMENTS_C
@@ -105,11 +106,11 @@ void *fill_malloc(size_t size);
 
 /* GNU extensions to the C library that may be missing on some systems */
 #ifndef HAVE_STRNDUP
-extern char* strndup(const char *s, size_t n);
+char* strndup(const char *s, size_t n);
 #endif /* HAVE_STRNDUP */
 
 #ifndef HAVE_STRNLEN
-extern size_t strnlen(const char *s, size_t maxlen);
+size_t strnlen(const char *s, size_t maxlen);
 #endif /* HAVE_STRNLEN */
 
 #ifndef HAVE_USLEEP

@@ -30,7 +30,8 @@
  */
 
 /* inlining this will help show what fn that is taking time during profiling. */
-static inline void buf_set_u32(uint8_t* buffer, unsigned int first, unsigned int num, uint32_t value)
+static inline void buf_set_u32(uint8_t* buffer,
+		unsigned int first, unsigned int num, uint32_t value)
 {
 	if ((num == 32) && (first == 0))
 	{
@@ -51,13 +52,16 @@ static inline void buf_set_u32(uint8_t* buffer, unsigned int first, unsigned int
 		}
 	}
 }
-static inline uint32_t buf_get_u32(const uint8_t* buffer, unsigned int first, unsigned int num)
+static inline uint32_t buf_get_u32(const uint8_t* buffer,
+		unsigned int first, unsigned int num)
 {
 	if ((num == 32) && (first == 0))
 	{
-		return (((uint32_t)buffer[3]) << 24) | (((uint32_t)buffer[2]) << 16) | (((uint32_t)buffer[1]) << 8) | (((uint32_t)buffer[0]) << 0);
-	} else
-	{
+		return (((uint32_t)buffer[3]) << 24) |
+			(((uint32_t)buffer[2]) << 16) |
+			(((uint32_t)buffer[1]) << 8) |
+			(((uint32_t)buffer[0]) << 0);
+	} else {
 		uint32_t result = 0;
 		unsigned int i;
 
@@ -71,30 +75,30 @@ static inline uint32_t buf_get_u32(const uint8_t* buffer, unsigned int first, un
 	}
 }
 
-extern uint32_t flip_u32(uint32_t value, unsigned int num);
+uint32_t flip_u32(uint32_t value, unsigned int num);
 
-extern int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size);
-extern int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, int size);
-extern uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size);
+int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size);
+int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2,
+		const uint8_t *mask, int size);
+uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size);
 
-extern uint8_t* buf_set_ones(uint8_t *buf, int count);
-extern uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_start, int len);
+uint8_t* buf_set_ones(uint8_t *buf, int count);
+uint8_t* buf_set_buf(const uint8_t *src, int src_start,
+		uint8_t *dst, int dst_start, int len);
 
-extern int str_to_buf(const char *str, int len, uint8_t *bin_buf, int buf_size, int radix);
-extern char* buf_to_str(const uint8_t *buf, int size, int radix);
+int str_to_buf(const char *str, int len,
+		uint8_t *bin_buf, int buf_size, int radix);
+char* buf_to_str(const uint8_t *buf, int size, int radix);
 
 struct scan_field_s;
-extern int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 
 #define CEIL(m, n)	(((m) + (n) - 1) / (n))
 
 /* read a uint32_t from a buffer in target memory endianness */
-static inline uint32_t fast_target_buffer_get_u32(const uint8_t *buffer, int little)
+static inline uint32_t fast_target_buffer_get_u32(const uint8_t *p, int le)
 {
-	if (little)
-		return le_to_h_u32(buffer);
-	else
-		return be_to_h_u32(buffer);
+	return le ? le_to_h_u32(p) : be_to_h_u32(p);
 }
 
 #endif /* BINARYBUFFER_H */
