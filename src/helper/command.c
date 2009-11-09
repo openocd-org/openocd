@@ -47,7 +47,8 @@
 int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
 
-int run_command(command_context_t *context, command_t *c, char *words[], int num_words);
+static int run_command(command_context_t *context,
+		command_t *c, char *words[], unsigned num_words);
 
 static void tcl_output(void *privData, const char *file, unsigned line,
 		const char *function, const char *string)
@@ -403,7 +404,8 @@ void command_print(command_context_t *context, const char *format, ...)
 	va_end(ap);
 }
 
-int run_command(command_context_t *context, command_t *c, char *words[], int num_words)
+static int run_command(command_context_t *context,
+		command_t *c, char *words[], unsigned num_words)
 {
 	int start_word = 0;
 	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode)))
