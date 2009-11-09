@@ -24,37 +24,8 @@
 #include "lpc3180_nand_controller.h"
 #include "nand.h"
 
-static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
-static int lpc3180_register_commands(struct command_context_s *cmd_ctx);
-static int lpc3180_init(struct nand_device_s *device);
 static int lpc3180_reset(struct nand_device_s *device);
-static int lpc3180_command(struct nand_device_s *device, uint8_t command);
-static int lpc3180_address(struct nand_device_s *device, uint8_t address);
-static int lpc3180_write_data(struct nand_device_s *device, uint16_t data);
-static int lpc3180_read_data(struct nand_device_s *device, void *data);
-static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 static int lpc3180_controller_ready(struct nand_device_s *device, int timeout);
-static int lpc3180_nand_ready(struct nand_device_s *device, int timeout);
-
-static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-nand_flash_controller_t lpc3180_nand_controller =
-{
-	.name = "lpc3180",
-	.nand_device_command = lpc3180_nand_device_command,
-	.register_commands = lpc3180_register_commands,
-	.init = lpc3180_init,
-	.reset = lpc3180_reset,
-	.command = lpc3180_command,
-	.address = lpc3180_address,
-	.write_data = lpc3180_write_data,
-	.read_data = lpc3180_read_data,
-	.write_page = lpc3180_write_page,
-	.read_page = lpc3180_read_page,
-	.controller_ready = lpc3180_controller_ready,
-	.nand_ready = lpc3180_nand_ready,
-};
 
 /* nand device lpc3180 <target#> <oscillator_frequency>
  */
@@ -91,15 +62,6 @@ static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *
 	lpc3180_info->sw_write_protection = 0;
 	lpc3180_info->sw_wp_lower_bound = 0x0;
 	lpc3180_info->sw_wp_upper_bound = 0x0;
-
-	return ERROR_OK;
-}
-
-static int lpc3180_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *lpc3180_cmd = register_command(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
-
-	register_command(cmd_ctx, lpc3180_cmd, "select", handle_lpc3180_select_command, COMMAND_EXEC, "select <'mlc'|'slc'> controller (default is mlc)");
 
 	return ERROR_OK;
 }
@@ -910,3 +872,28 @@ static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char
 
 	return ERROR_OK;
 }
+
+static int lpc3180_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *lpc3180_cmd = register_command(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
+
+	register_command(cmd_ctx, lpc3180_cmd, "select", handle_lpc3180_select_command, COMMAND_EXEC, "select <'mlc'|'slc'> controller (default is mlc)");
+
+	return ERROR_OK;
+}
+
+nand_flash_controller_t lpc3180_nand_controller = {
+		.name = "lpc3180",
+		.nand_device_command = lpc3180_nand_device_command,
+		.register_commands = lpc3180_register_commands,
+		.init = lpc3180_init,
+		.reset = lpc3180_reset,
+		.command = lpc3180_command,
+		.address = lpc3180_address,
+		.write_data = lpc3180_write_data,
+		.read_data = lpc3180_read_data,
+		.write_page = lpc3180_write_page,
+		.read_page = lpc3180_read_page,
+		.controller_ready = lpc3180_controller_ready,
+		.nand_ready = lpc3180_nand_ready,
+	};

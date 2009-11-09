@@ -30,29 +30,6 @@
 
 #include "s3c24xx_nand.h"
 
-
-static int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
-static int s3c2412_init(struct nand_device_s *device);
-
-nand_flash_controller_t s3c2412_nand_controller =
-{
-	.name			= "s3c2412",
-	.nand_device_command	= s3c2412_nand_device_command,
-	.register_commands	= s3c24xx_register_commands,
-	.init			= s3c2412_init,
-	.reset			= s3c24xx_reset,
-	.command		= s3c24xx_command,
-	.address		= s3c24xx_address,
-	.write_data		= s3c24xx_write_data,
-	.read_data		= s3c24xx_read_data,
-	.write_page		= s3c24xx_write_page,
-	.read_page		= s3c24xx_read_page,
-	.write_block_data	= s3c2440_write_block_data,
-	.read_block_data	= s3c2440_read_block_data,
-	.controller_ready	= s3c24xx_controller_ready,
-	.nand_ready		= s3c2440_nand_ready,
-};
-
 static int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 				char **args, int argc,
 				struct nand_device_s *device)
@@ -89,3 +66,21 @@ static int s3c2412_init(struct nand_device_s *device)
 
 	return ERROR_OK;
 }
+
+nand_flash_controller_t s3c2412_nand_controller = {
+		.name = "s3c2412",
+		.nand_device_command = &s3c2412_nand_device_command,
+		.register_commands = &s3c24xx_register_commands,
+		.init = &s3c2412_init,
+		.reset = &s3c24xx_reset,
+		.command = &s3c24xx_command,
+		.address = &s3c24xx_address,
+		.write_data = &s3c24xx_write_data,
+		.read_data = &s3c24xx_read_data,
+		.write_page = s3c24xx_write_page,
+		.read_page = s3c24xx_read_page,
+		.write_block_data = &s3c2440_write_block_data,
+		.read_block_data = &s3c2440_read_block_data,
+		.controller_ready = &s3c24xx_controller_ready,
+		.nand_ready = &s3c2440_nand_ready,
+	};
