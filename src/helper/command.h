@@ -170,6 +170,7 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 		} \
 	} while (0)
 
-void script_debug(Jim_Interp *interp, const char *cmd, int argc, Jim_Obj *const *argv);
+void script_debug(Jim_Interp *interp, const char *cmd,
+		unsigned argc, Jim_Obj *const *argv);
 
 #endif /* COMMAND_H */

@@ -59,12 +59,12 @@ static void tcl_output(void *privData, const char *file, unsigned line,
 
 extern command_context_t *global_cmd_ctx;
 
-void script_debug(Jim_Interp *interp, const char *name, int argc, Jim_Obj *const *argv)
+void script_debug(Jim_Interp *interp, const char *name,
+		unsigned argc, Jim_Obj *const *argv)
 {
-	int i;
-
 	LOG_DEBUG("command - %s", name);
-	for (i = 0; i < argc; i++) {
+	for (unsigned i = 0; i < argc; i++)
+	{
 		int len;
 		const char *w = Jim_GetString(argv[i], &len);
 
