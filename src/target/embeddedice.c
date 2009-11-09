@@ -31,15 +31,21 @@
 
 #define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
 
-#if 0
-static bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =
-{
-	{"R", 1},
-	{"W", 1},
-	{"reserved", 26},
-	{"version", 4}
-};
-#endif
+/**
+ * @file
+ *
+ * This provides lowlevel glue to the EmbeddedICE (or EmbeddedICE-RT)
+ * module found on scan chain 2 in ARM7, ARM9, and some other families
+ * of ARM cores.
+ *
+ * EmbeddedICE provides basic watchpoint/breakpoint hardware and a Debug
+ * Communications Channel (DCC) used to read or write 32-bit words to
+ * OpenOCD-aware code running on the target CPU.
+ * Newer modules also include vector catch hardware.  Some versions
+ * support hardware single-stepping, "monitor mode" debug (which is not
+ * currently supported by OpenOCD), or extended reporting on why the
+ * core entered debug mode.
+ */
 
 /*
  * From:  ARM9E-S TRM, DDI 0165, table C-4 (and similar, for other cores)
@@ -140,9 +146,25 @@ static const struct {
 
 static int embeddedice_reg_arch_type = -1;
 
-static int embeddedice_get_reg(reg_t *reg);
+static int embeddedice_get_reg(reg_t *reg)
+{
+	int retval;
 
-reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
+	if ((retval = embeddedice_read_reg(reg)) != ERROR_OK)
+		LOG_ERROR("error queueing EmbeddedICE register read");
+	else if ((retval = jtag_execute_queue()) != ERROR_OK)
+		LOG_ERROR("EmbeddedICE register read failed");
+
+	return retval;
+}
+
+/**
+ * Probe EmbeddedICE module and set up local records of its registers.
+ * Different versions of the modules have different capabilities, such as
+ * hardware support for vector_catch, single stepping, and monitor mode.
+ */
+reg_cache_t *
+embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 {
 	int retval;
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
@@ -153,7 +175,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	int i;
 	int eice_version = 0;
 
-	/* register a register arch-type for EmbeddedICE registers only once */
+	/* register arch-type for EmbeddedICE registers only once */
 	if (embeddedice_reg_arch_type == -1)
 		embeddedice_reg_arch_type = register_reg_arch_type(
 				embeddedice_get_reg, embeddedice_set_reg_w_exec);
@@ -267,12 +289,17 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			if (strcmp(target_get_name(target), "feroceon") == 0 ||
 			    strcmp(target_get_name(target), "dragonite") == 0)
 				break;
-			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8" PRIx32 ")", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
+			LOG_ERROR("unknown EmbeddedICE version "
+				"(comms ctrl: 0x%8.8" PRIx32 ")",
+				buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 
 	return reg_cache;
 }
 
+/**
+ * Initialize EmbeddedICE module, if needed.
+ */
 int embeddedice_setup(target_t *target)
 {
 	int retval;
@@ -296,25 +323,13 @@ int embeddedice_setup(target_t *target)
 	return jtag_execute_queue();
 }
 
-static int embeddedice_get_reg(reg_t *reg)
-{
-	int retval;
-	if ((retval = embeddedice_read_reg(reg)) != ERROR_OK)
-	{
-		LOG_ERROR("BUG: error scheduling EmbeddedICE register read");
-		return retval;
-	}
-
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_ERROR("register read failed");
-		return retval;
-	}
-
-	return ERROR_OK;
-}
-
-int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
+/**
+ * Queue a read for an EmbeddedICE register into the register cache,
+ * optionally checking the value read.
+ * Note that at this level, all registers are 32 bits wide.
+ */
+int embeddedice_read_reg_w_check(reg_t *reg,
+		uint8_t *check_value, uint8_t *check_mask)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
@@ -327,6 +342,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
 
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 
+	/* bits 31:0 -- data (ignored here) */
 	fields[0].tap = ice_reg->jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
@@ -334,6 +350,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
 	fields[0].check_value = NULL;
 	fields[0].check_mask = NULL;
 
+	/* bits 36:32 -- register */
 	fields[1].tap = ice_reg->jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
@@ -342,6 +359,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
 	fields[1].check_value = NULL;
 	fields[1].check_mask = NULL;
 
+	/* bit 37 -- 0/read */
 	fields[2].tap = ice_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
@@ -350,8 +368,10 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
 
+	/* traverse Update-DR, setting address for the next read */
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
+	/* bits 31:0 -- the data we're reading (and maybe checking) */
 	fields[0].in_value = reg->value;
 	fields[0].check_value = check_value;
 	fields[0].check_mask = check_mask;
@@ -362,14 +382,19 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
 	 */
 	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_CTRL].addr);
 
+	/* traverse Update-DR, reading but with no other side effects */
 	jtag_add_dr_scan_check(3, fields, jtag_get_end_state());
 
 	return ERROR_OK;
 }
 
-/* receive <size> words of 32 bit from the DCC
- * we pretend the target is always going to be fast enough
- * (relative to the JTAG clock), so we don't need to handshake
+/**
+ * Receive a block of size 32-bit words from the DCC.
+ * We assume the target is always going to be fast enough (relative to
+ * the JTAG clock) that the debugger won't need to poll the handshake
+ * bit.  The JTAG clock is usually at least six times slower than the
+ * functional clock, so the 50+ JTAG clocks needed to receive the word
+ * allow hundreds of instruction cycles (per word) in the target.
  */
 int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 {
@@ -420,11 +445,19 @@ int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 	return jtag_execute_queue();
 }
 
+/**
+ * Queue a read for an EmbeddedICE register into the register cache,
+ * not checking the value read.
+ */
 int embeddedice_read_reg(reg_t *reg)
 {
 	return embeddedice_read_reg_w_check(reg, NULL, NULL);
 }
 
+/**
+ * Queue a write for an EmbeddedICE register, updating the register cache.
+ * Uses embeddedice_write_reg().
+ */
 void embeddedice_set_reg(reg_t *reg, uint32_t value)
 {
 	embeddedice_write_reg(reg, value);
@@ -435,19 +468,23 @@ void embeddedice_set_reg(reg_t *reg, uint32_t value)
 
 }
 
+/**
+ * Write an EmbeddedICE register, updating the register cache.
+ * Uses embeddedice_set_reg(); not queued.
+ */
 int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 {
 	int retval;
-	embeddedice_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 
+	embeddedice_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
 		LOG_ERROR("register write failed");
-		return retval;
-	}
-	return ERROR_OK;
+	return retval;
 }
 
+/**
+ * Queue a write for an EmbeddedICE register, bypassing the register cache.
+ */
 void embeddedice_write_reg(reg_t *reg, uint32_t value)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
@@ -461,17 +498,24 @@ void embeddedice_write_reg(reg_t *reg, uint32_t value)
 
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
 	embeddedice_write_reg_inner(ice_reg->jtag_info->tap, reg_addr, value);
-
 }
 
+/**
+ * Queue a write for an EmbeddedICE register, using cached value.
+ * Uses embeddedice_write_reg().
+ */
 void embeddedice_store_reg(reg_t *reg)
 {
 	embeddedice_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
-/* send <size> words of 32 bit to the DCC
- * we pretend the target is always going to be fast enough
- * (relative to the JTAG clock), so we don't need to handshake
+/**
+ * Send a block of size 32-bit words to the DCC.
+ * We assume the target is always going to be fast enough (relative to
+ * the JTAG clock) that the debugger won't need to poll the handshake
+ * bit.  The JTAG clock is usually at least six times slower than the
+ * functional clock, so the 50+ JTAG clocks needed to receive the word
+ * allow hundreds of instruction cycles (per word) in the target.
  */
 int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 {
@@ -515,7 +559,8 @@ int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 	return ERROR_OK;
 }
 
-/* wait for DCC control register R/W handshake bit to become active
+/**
+ * Poll DCC control register until read or write handshake completes.
  */
 int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
 {
@@ -558,8 +603,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 	gettimeofday(&lap, NULL);
-	do
-	{
+	do {
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
@@ -568,20 +612,25 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
 			return ERROR_OK;
 
 		gettimeofday(&now, NULL);
-	}
-	while ((uint32_t)((now.tv_sec-lap.tv_sec)*1000 + (now.tv_usec-lap.tv_usec)/1000) <= timeout);
+	} while ((uint32_t)((now.tv_sec - lap.tv_sec) * 1000
+			+ (now.tv_usec - lap.tv_usec) / 1000) <= timeout);
 
 	return ERROR_TARGET_TIMEOUT;
 }
 
 #ifndef HAVE_JTAG_MINIDRIVER_H
-/* this is the inner loop of the open loop DCC write of data to target */
-void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count)
+/**
+ * This is an inner loop of the open loop DCC write of data to target
+ */
+void embeddedice_write_dcc(jtag_tap_t *tap,
+		int reg_addr, uint8_t *buffer, int little, int count)
 {
 	int i;
+
 	for (i = 0; i < count; i++)
 	{
-		embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
+		embeddedice_write_reg_inner(tap, reg_addr,
+				fast_target_buffer_get_u32(buffer, little));
 		buffer += 4;
 	}
 }
