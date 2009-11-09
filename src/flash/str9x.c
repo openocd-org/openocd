@@ -33,43 +33,6 @@
 
 static uint32_t bank1start = 0x00080000;
 
-static int str9x_register_commands(struct command_context_s *cmd_ctx);
-static int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int str9x_erase(struct flash_bank_s *bank, int first, int last);
-static int str9x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str9x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int str9x_probe(struct flash_bank_s *bank);
-//static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9x_protect_check(struct flash_bank_s *bank);
-static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-flash_driver_t str9x_flash =
-{
-	.name = "str9x",
-	.register_commands = str9x_register_commands,
-	.flash_bank_command = str9x_flash_bank_command,
-	.erase = str9x_erase,
-	.protect = str9x_protect,
-	.write = str9x_write,
-	.probe = str9x_probe,
-	.auto_probe = str9x_probe,
-	.erase_check = default_flash_blank_check,
-	.protect_check = str9x_protect_check,
-	.info = str9x_info
-};
-
-static int str9x_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *str9x_cmd = register_command(cmd_ctx, NULL, "str9x", NULL, COMMAND_ANY, NULL);
-
-	register_command(cmd_ctx, str9x_cmd, "flash_config", str9x_handle_flash_config_command, COMMAND_EXEC,
-					 "configure str9 flash controller");
-
-	return ERROR_OK;
-}
-
 static int str9x_build_block_list(struct flash_bank_s *bank)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
@@ -714,3 +677,29 @@ static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx,
 	target_write_u32(target, FLASH_CR, 0x18);
 	return ERROR_OK;
 }
+
+static int str9x_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *str9x_cmd = register_command(cmd_ctx, NULL, "str9x",
+			NULL, COMMAND_ANY, "str9x flash commands");
+
+	register_command(cmd_ctx, str9x_cmd, "flash_config",
+			str9x_handle_flash_config_command, COMMAND_EXEC,
+			"configure str9 flash controller");
+
+	return ERROR_OK;
+}
+
+flash_driver_t str9x_flash = {
+		.name = "str9x",
+		.register_commands = &str9x_register_commands,
+		.flash_bank_command = &str9x_flash_bank_command,
+		.erase = &str9x_erase,
+		.protect = &str9x_protect,
+		.write = &str9x_write,
+		.probe = &str9x_probe,
+		.auto_probe = &str9x_probe,
+		.erase_check = &default_flash_blank_check,
+		.protect_check = &str9x_protect_check,
+		.info = &str9x_info,
+	};

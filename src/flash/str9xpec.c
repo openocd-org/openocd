@@ -28,76 +28,9 @@
 #include "arm7_9_common.h"
 
 
-static int str9xpec_register_commands(struct command_context_s *cmd_ctx);
-static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int str9xpec_erase(struct flash_bank_s *bank, int first, int last);
-static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int str9xpec_probe(struct flash_bank_s *bank);
-static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_protect_check(struct flash_bank_s *bank);
-static int str9xpec_erase_check(struct flash_bank_s *bank);
-static int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
 static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last);
 static int str9xpec_set_address(struct flash_bank_s *bank, uint8_t sector);
 static int str9xpec_write_options(struct flash_bank_s *bank);
-
-static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-flash_driver_t str9xpec_flash =
-{
-	.name = "str9xpec",
-	.register_commands = str9xpec_register_commands,
-	.flash_bank_command = str9xpec_flash_bank_command,
-	.erase = str9xpec_erase,
-	.protect = str9xpec_protect,
-	.write = str9xpec_write,
-	.probe = str9xpec_probe,
-	.auto_probe = str9xpec_probe,
-	.erase_check = str9xpec_erase_check,
-	.protect_check = str9xpec_protect_check,
-	.info = str9xpec_info
-};
-
-static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *str9xpec_cmd = register_command(cmd_ctx, NULL, "str9xpec", NULL, COMMAND_ANY, "str9xpec flash specific commands");
-
-	register_command(cmd_ctx, str9xpec_cmd, "enable_turbo", str9xpec_handle_flash_enable_turbo_command, COMMAND_EXEC,
-					 "enable str9xpec turbo mode");
-	register_command(cmd_ctx, str9xpec_cmd, "disable_turbo", str9xpec_handle_flash_disable_turbo_command, COMMAND_EXEC,
-					 "disable str9xpec turbo mode");
-	register_command(cmd_ctx, str9xpec_cmd, "options_cmap", str9xpec_handle_flash_options_cmap_command, COMMAND_EXEC,
-					 "configure str9xpec boot sector");
-	register_command(cmd_ctx, str9xpec_cmd, "options_lvdthd", str9xpec_handle_flash_options_lvdthd_command, COMMAND_EXEC,
-					 "configure str9xpec lvd threshold");
-	register_command(cmd_ctx, str9xpec_cmd, "options_lvdsel", str9xpec_handle_flash_options_lvdsel_command, COMMAND_EXEC,
-					 "configure str9xpec lvd selection");
-	register_command(cmd_ctx, str9xpec_cmd, "options_lvdwarn", str9xpec_handle_flash_options_lvdwarn_command, COMMAND_EXEC,
-					 "configure str9xpec lvd warning");
-	register_command(cmd_ctx, str9xpec_cmd, "options_read", str9xpec_handle_flash_options_read_command, COMMAND_EXEC,
-					 "read str9xpec options");
-	register_command(cmd_ctx, str9xpec_cmd, "options_write", str9xpec_handle_flash_options_write_command, COMMAND_EXEC,
-					 "write str9xpec options");
-	register_command(cmd_ctx, str9xpec_cmd, "lock", str9xpec_handle_flash_lock_command, COMMAND_EXEC,
-					 "lock str9xpec device");
-	register_command(cmd_ctx, str9xpec_cmd, "unlock", str9xpec_handle_flash_unlock_command, COMMAND_EXEC,
-					 "unlock str9xpec device");
-	register_command(cmd_ctx, str9xpec_cmd, "part_id", str9xpec_handle_part_id_command, COMMAND_EXEC,
-					 "print part id of str9xpec flash bank <num>");
-
-	return ERROR_OK;
-}
 
 int str9xpec_set_instr(jtag_tap_t *tap, uint32_t new_instr, tap_state_t end_state)
 {
@@ -1229,3 +1162,59 @@ static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s 
 
 	return ERROR_OK;
 }
+
+static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *str9xpec_cmd = register_command(cmd_ctx, NULL, "str9xpec",
+			NULL, COMMAND_ANY, "str9xpec flash specific commands");
+
+	register_command(cmd_ctx, str9xpec_cmd, "enable_turbo",
+			str9xpec_handle_flash_enable_turbo_command,
+			COMMAND_EXEC, "enable str9xpec turbo mode");
+	register_command(cmd_ctx, str9xpec_cmd, "disable_turbo",
+			str9xpec_handle_flash_disable_turbo_command,
+			COMMAND_EXEC, "disable str9xpec turbo mode");
+	register_command(cmd_ctx, str9xpec_cmd, "options_cmap",
+			str9xpec_handle_flash_options_cmap_command,
+			COMMAND_EXEC, "configure str9xpec boot sector");
+	register_command(cmd_ctx, str9xpec_cmd, "options_lvdthd",
+			str9xpec_handle_flash_options_lvdthd_command,
+			COMMAND_EXEC, "configure str9xpec lvd threshold");
+	register_command(cmd_ctx, str9xpec_cmd, "options_lvdsel",
+			str9xpec_handle_flash_options_lvdsel_command,
+			COMMAND_EXEC, "configure str9xpec lvd selection");
+	register_command(cmd_ctx, str9xpec_cmd, "options_lvdwarn",
+			str9xpec_handle_flash_options_lvdwarn_command,
+			COMMAND_EXEC, "configure str9xpec lvd warning");
+	register_command(cmd_ctx, str9xpec_cmd, "options_read",
+			str9xpec_handle_flash_options_read_command,
+			COMMAND_EXEC, "read str9xpec options");
+	register_command(cmd_ctx, str9xpec_cmd, "options_write",
+			str9xpec_handle_flash_options_write_command,
+			COMMAND_EXEC, "write str9xpec options");
+	register_command(cmd_ctx, str9xpec_cmd, "lock",
+			str9xpec_handle_flash_lock_command,
+			COMMAND_EXEC, "lock str9xpec device");
+	register_command(cmd_ctx, str9xpec_cmd, "unlock",
+			str9xpec_handle_flash_unlock_command,
+			COMMAND_EXEC, "unlock str9xpec device");
+	register_command(cmd_ctx, str9xpec_cmd, "part_id",
+			str9xpec_handle_part_id_command,
+			COMMAND_EXEC, "print part id of str9xpec flash bank <num>");
+
+	return ERROR_OK;
+}
+
+flash_driver_t str9xpec_flash = {
+		.name = "str9xpec",
+		.register_commands = &str9xpec_register_commands,
+		.flash_bank_command = &str9xpec_flash_bank_command,
+		.erase = &str9xpec_erase,
+		.protect = &str9xpec_protect,
+		.write = &str9xpec_write,
+		.probe = &str9xpec_probe,
+		.auto_probe = &str9xpec_probe,
+		.erase_check = &str9xpec_erase_check,
+		.protect_check = &str9xpec_protect_check,
+		.info = &str9xpec_info,
+	};

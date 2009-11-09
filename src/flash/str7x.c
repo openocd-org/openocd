@@ -45,43 +45,6 @@ str7x_mem_layout_t mem_layout_str7bank1[] = {
 	{0x00002000, 0x02000, 0x20000}
 };
 
-static int str7x_register_commands(struct command_context_s *cmd_ctx);
-static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int str7x_erase(struct flash_bank_s *bank, int first, int last);
-static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int str7x_probe(struct flash_bank_s *bank);
-//static int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int str7x_protect_check(struct flash_bank_s *bank);
-static int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-flash_driver_t str7x_flash =
-{
-	.name = "str7x",
-	.register_commands = str7x_register_commands,
-	.flash_bank_command = str7x_flash_bank_command,
-	.erase = str7x_erase,
-	.protect = str7x_protect,
-	.write = str7x_write,
-	.probe = str7x_probe,
-	.auto_probe = str7x_probe,
-	.erase_check = default_flash_blank_check,
-	.protect_check = str7x_protect_check,
-	.info = str7x_info
-};
-
-static int str7x_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *str7x_cmd = register_command(cmd_ctx, NULL, "str7x", NULL, COMMAND_ANY, NULL);
-
-	register_command(cmd_ctx, str7x_cmd, "disable_jtag", str7x_handle_disable_jtag_command, COMMAND_EXEC,
-					 "disable jtag access");
-
-	return ERROR_OK;
-}
-
 static int str7x_get_flash_adr(struct flash_bank_s *bank, uint32_t reg)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
@@ -707,3 +670,29 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 
 	return ERROR_OK;
 }
+
+static int str7x_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *str7x_cmd = register_command(cmd_ctx, NULL, "str7x",
+			NULL, COMMAND_ANY, "str7x flash specific commands");
+
+	register_command(cmd_ctx, str7x_cmd, "disable_jtag",
+			str7x_handle_disable_jtag_command, COMMAND_EXEC,
+			"disable jtag access");
+
+	return ERROR_OK;
+}
+
+flash_driver_t str7x_flash = {
+		.name = "str7x",
+		.register_commands = &str7x_register_commands,
+		.flash_bank_command = &str7x_flash_bank_command,
+		.erase = &str7x_erase,
+		.protect = &str7x_protect,
+		.write = &str7x_write,
+		.probe = &str7x_probe,
+		.auto_probe = &str7x_probe,
+		.erase_check = &default_flash_blank_check,
+		.protect_check = &str7x_protect_check,
+		.info = &str7x_info,
+	};
