@@ -56,12 +56,6 @@ extern uint8_t armv7m_gdb_dummy_cpsr_value[];
 extern reg_t armv7m_gdb_dummy_cpsr_reg;
 #endif
 
-static int cortex_m3_has_mmu(struct target_s *target, bool *has_mmu)
-{
-	*has_mmu = false;
-	return ERROR_OK;
-}
-
 static int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp,
 		uint32_t *value, int regnum)
 {
@@ -1998,6 +1992,5 @@ target_type_t cortexm3_target =
 	.register_commands = cortex_m3_register_commands,
 	.target_create = cortex_m3_target_create,
 	.init_target = cortex_m3_init_target,
-	.has_mmu = cortex_m3_has_mmu,
 	.examine = cortex_m3_examine,
 };

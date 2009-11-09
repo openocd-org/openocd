@@ -496,13 +496,7 @@ static int default_virt2phys(struct target_s *target, uint32_t virtual, uint32_t
 
 static int default_mmu(struct target_s *target, int *enabled)
 {
-	LOG_ERROR("Not implemented.");
-	return ERROR_FAIL;
-}
-
-static int default_has_mmu(struct target_s *target, bool *has_mmu)
-{
-	*has_mmu = true;
+	*enabled = 0;
 	return ERROR_OK;
 }
 
@@ -773,32 +767,14 @@ int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, u
 
 static int default_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	int retval;
-	bool mmu;
-	retval = target->type->has_mmu(target, &mmu);
-	if (retval != ERROR_OK)
-		return retval;
-	if (mmu)
-	{
-		LOG_ERROR("Not implemented");
-		return ERROR_FAIL;
-	}
-	return target_read_memory(target, address, size, count, buffer);
+	LOG_ERROR("Not implemented");
+	return ERROR_FAIL;
 }
 
 static int default_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	int retval;
-	bool mmu;
-	retval = target->type->has_mmu(target, &mmu);
-	if (retval != ERROR_OK)
-		return retval;
-	if (mmu)
-	{
-		LOG_ERROR("Not implemented");
-		return ERROR_FAIL;
-	}
-	return target_write_memory(target, address, size, count, buffer);
+	LOG_ERROR("Not implemented");
+	return ERROR_FAIL;
 }
 
 
@@ -874,10 +850,6 @@ int target_init(struct command_context_s *cmd_ctx)
 		if (target->type->mmu == NULL)
 		{
 			target->type->mmu = default_mmu;
-		}
-		if (target->type->has_mmu == NULL)
-		{
-			target->type->has_mmu = default_has_mmu;
 		}
 		target = target->next;
 	}
