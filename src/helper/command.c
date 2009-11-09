@@ -717,7 +717,7 @@ command_context_t* command_init()
 	 * "winxx" is generic.
 	 */
 	HostOs = "winxx";
-#elif defined(__LINUX__)
+#elif defined(__linux__)
 	HostOs = "linux";
 #elif defined(__DARWIN__)
 	HostOs = "darwin";
@@ -726,9 +726,11 @@ command_context_t* command_init()
 #elif defined(__MINGW32__)
 	HostOs = "mingw32";
 #else
+#warn unrecognized host OS...
 	HostOs = "other";
 #endif
-	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS", Jim_NewStringObj(interp, HostOs , strlen(HostOs)));
+	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS",
+			Jim_NewStringObj(interp, HostOs , strlen(HostOs)));
 
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
@@ -749,16 +751,19 @@ command_context_t* command_init()
 #endif
 	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1) == JIM_ERR)
 	{
-		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
+		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD)");
 		Jim_PrintErrorMessage(interp);
 		exit(-1);
 	}
 
-	register_command(context, NULL, "sleep", handle_sleep_command,
-					 COMMAND_ANY, "<n> [busy] - sleep for n milliseconds. \"busy\" means busy wait");
-
-	register_command(context, NULL, "fast", handle_fast_command,
-					 COMMAND_ANY, "fast <enable/disable> - place at beginning of config files. Sets defaults to fast and dangerous.");
+	register_command(context, NULL, "sleep",
+			handle_sleep_command, COMMAND_ANY,
+			"<n> [busy] - sleep for n milliseconds. "
+			"\"busy\" means busy wait");
+	register_command(context, NULL, "fast",
+			handle_fast_command, COMMAND_ANY,
+			"fast <enable/disable> - place at beginning of "
+			"config files. Sets defaults to fast and dangerous.");
 
 	return context;
 }

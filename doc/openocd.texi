@@ -6476,10 +6476,8 @@ called "flash_banks".
 
 @section OpenOCD specific Global Variables
 
-@subsection HostOS
-
 Real Tcl has ::tcl_platform(), and platform::identify, and many other
-variables. JimTCL, as implemented in OpenOCD creates $HostOS which
+variables. JimTCL, as implemented in OpenOCD creates $ocd_HOSTOS which
 holds one of the following values:
 
 @itemize @bullet
