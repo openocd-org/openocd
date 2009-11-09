@@ -3688,7 +3688,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @anchor{Flash Driver List}
-@section Flash Drivers, Options, and Commands
+@section Flash Driver List
 As noted above, the @command{flash bank} command requires a driver name,
 and allows driver-specific options and behaviors.
 Some drivers also activate driver-specific commands.
@@ -3704,7 +3704,7 @@ specific external chip select on the CPU.
 Frequently the first such chip is used to boot the system.
 Your board's @code{reset-init} handler might need to
 configure additional chip selects using other commands (like: @command{mww} to
-configure a bus and its timings) , or
+configure a bus and its timings), or
 perhaps configure a GPIO pin that controls the ``write protect'' pin
 on the flash chip.
 The CFI driver can use a target-specific working area to significantly
@@ -3725,6 +3725,15 @@ wide on a sixteen bit bus:
 flash bank cfi 0x00000000 0x01000000 2 2 $_TARGETNAME
 flash bank cfi 0x01000000 0x01000000 2 2 $_TARGETNAME
 @end example
+
+To configure one bank of 32 MBytes
+built from two sixteen bit (two byte) wide parts wired in parallel
+to create a thirty-two bit (four byte) bus with doubled throughput:
+
+@example
+flash bank cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
+@end example
+
 @c "cfi part_id" disabled
 @end deffn
 
@@ -4620,7 +4629,7 @@ with the wrong ECC data can cause them to be marked as bad.
 @end deffn
 
 @anchor{NAND Driver List}
-@section NAND Drivers, Options, and Commands
+@section NAND Driver List
 As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
 Some controllers also activate controller-specific commands.
