@@ -26,36 +26,12 @@
 #include "image.h"
 
 
-static int ecosflash_register_commands(struct command_context_s *cmd_ctx);
-static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int ecosflash_erase(struct flash_bank_s *bank, int first, int last);
-static int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int ecosflash_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int ecosflash_probe(struct flash_bank_s *bank);
-static int ecosflash_protect_check(struct flash_bank_s *bank);
-static int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
 #if 0
 static uint32_t ecosflash_get_flash_status(flash_bank_t *bank);
 static void ecosflash_set_flash_mode(flash_bank_t *bank,int mode);
 static uint32_t ecosflash_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout);
 static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 #endif
-
-flash_driver_t ecosflash_flash =
-{
-	.name = "ecosflash",
-	.register_commands = ecosflash_register_commands,
-	.flash_bank_command = ecosflash_flash_bank_command,
-	.erase = ecosflash_erase,
-	.protect = ecosflash_protect,
-	.write = ecosflash_write,
-	.probe = ecosflash_probe,
-	.auto_probe = ecosflash_probe,
-	.erase_check = default_flash_blank_check,
-	.protect_check = ecosflash_protect_check,
-	.info = ecosflash_info
-};
 
 typedef struct ecosflash_flash_bank_s
 {
@@ -458,3 +434,17 @@ static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, cha
 	return ERROR_OK;
 }
 #endif
+
+flash_driver_t ecosflash_flash = {
+		.name = "ecosflash",
+		.register_commands = &ecosflash_register_commands,
+		.flash_bank_command = &ecosflash_flash_bank_command,
+		.erase = &ecosflash_erase,
+		.protect = &ecosflash_protect,
+		.write = &ecosflash_write,
+		.probe = &ecosflash_probe,
+		.auto_probe = &ecosflash_probe,
+		.erase_check = &default_flash_blank_check,
+		.protect_check = &ecosflash_protect_check,
+		.info = &ecosflash_info
+	};

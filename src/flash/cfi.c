@@ -29,38 +29,11 @@
 #include "binarybuffer.h"
 
 
-static int cfi_register_commands(struct command_context_s *cmd_ctx);
-static int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int cfi_erase(struct flash_bank_s *bank, int first, int last);
-static int cfi_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int cfi_probe(struct flash_bank_s *bank);
-static int cfi_auto_probe(struct flash_bank_s *bank);
-static int cfi_protect_check(struct flash_bank_s *bank);
-static int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-//static int cfi_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 #define CFI_MAX_BUS_WIDTH	4
 #define CFI_MAX_CHIP_WIDTH	4
 
 /* defines internal maximum size for code fragment in cfi_intel_write_block() */
 #define CFI_MAX_INTEL_CODESIZE 256
-
-flash_driver_t cfi_flash =
-{
-	.name = "cfi",
-	.register_commands = cfi_register_commands,
-	.flash_bank_command = cfi_flash_bank_command,
-	.erase = cfi_erase,
-	.protect = cfi_protect,
-	.write = cfi_write,
-	.probe = cfi_probe,
-	.auto_probe = cfi_auto_probe,
-	.erase_check = default_flash_blank_check,
-	.protect_check = cfi_protect_check,
-	.info = cfi_info
-};
 
 static cfi_unlock_addresses_t cfi_unlock_addresses[] =
 {
@@ -2655,3 +2628,17 @@ static int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 	return ERROR_OK;
 }
+
+flash_driver_t cfi_flash = {
+		.name = "cfi",
+		.register_commands = &cfi_register_commands,
+		.flash_bank_command = &cfi_flash_bank_command,
+		.erase = &cfi_erase,
+		.protect = &cfi_protect,
+		.write = &cfi_write,
+		.probe = &cfi_probe,
+		.auto_probe = &cfi_auto_probe,
+		.erase_check = &default_flash_blank_check,
+		.protect_check = &cfi_protect_check,
+		.info = &cfi_info,
+	};

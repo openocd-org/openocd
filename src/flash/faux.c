@@ -25,30 +25,6 @@
 #include "image.h"
 
 
-static int faux_register_commands(struct command_context_s *cmd_ctx);
-static int faux_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int faux_erase(struct flash_bank_s *bank, int first, int last);
-static int faux_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int faux_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int faux_probe(struct flash_bank_s *bank);
-static int faux_protect_check(struct flash_bank_s *bank);
-static int faux_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-flash_driver_t faux_flash =
-{
-	.name = "faux",
-	.register_commands = faux_register_commands,
-	.flash_bank_command = faux_flash_bank_command,
-	.erase = faux_erase,
-	.protect = faux_protect,
-	.write = faux_write,
-	.probe = faux_probe,
-	.auto_probe = faux_probe,
-	.erase_check = default_flash_blank_check,
-	.protect_check = faux_protect_check,
-	.info = faux_info
-};
-
 typedef struct faux_flash_bank_s
 {
 	struct target_s *target;
@@ -151,3 +127,17 @@ static int faux_probe(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
+
+flash_driver_t faux_flash = {
+		.name = "faux",
+		.register_commands = &faux_register_commands,
+		.flash_bank_command = &faux_flash_bank_command,
+		.erase = &faux_erase,
+		.protect = &faux_protect,
+		.write = &faux_write,
+		.probe = &faux_probe,
+		.auto_probe = &faux_probe,
+		.erase_check = &default_flash_blank_check,
+		.protect_check = &faux_protect_check,
+		.info = &faux_info
+	};
