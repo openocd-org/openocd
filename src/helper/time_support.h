@@ -39,10 +39,10 @@
 
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
-int timeval_add_time(struct timeval *result, int sec, int usec);
+int timeval_add_time(struct timeval *result, long sec, long usec);
 
 /// @returns gettimeofday() timeval as 64-bit in ms
-long long timeval_ms(void);
+int64_t timeval_ms(void);
 
 struct duration
 {

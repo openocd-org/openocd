@@ -55,20 +55,11 @@ int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *
 /* add two struct timeval values */
 int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y)
 {
-	result->tv_sec = x->tv_sec + y->tv_sec;
-
-	result->tv_usec = x->tv_usec + y->tv_usec;
-
-	while (result->tv_usec > 1000000)
-	{
-		result->tv_usec -= 1000000;
-		result->tv_sec++;
-	}
-
-	return 0;
+	memcpy(result, x, sizeof(struct timeval));
+	return timeval_add_time(result, y->tv_sec, y->tv_usec);
 }
 
-int timeval_add_time(struct timeval *result, int sec, int usec)
+int timeval_add_time(struct timeval *result, long sec, long usec)
 {
 	result->tv_sec += sec;
 	result->tv_usec += usec;
@@ -81,6 +72,16 @@ int timeval_add_time(struct timeval *result, int sec, int usec)
 
 	return 0;
 }
+
+int64_t timeval_ms()
+{
+	struct timeval now;
+	int retval = gettimeofday(&now, NULL);
+	if (retval < 0)
+		return retval;
+	return (int64_t)now.tv_sec * 1000 + now.tv_usec / 1000;
+}
+
 
 int duration_start(struct duration *duration)
 {
@@ -106,16 +107,4 @@ float duration_elapsed(struct duration *duration)
 float duration_kbps(struct duration *duration, size_t count)
 {
 	return count / (1024.0 * duration_elapsed(duration));
-}
-
-long long timeval_ms()
-{
-	struct timeval now;
-	long long t = 0;
-	gettimeofday(&now, NULL);
-
-	t += now.tv_usec/1000;
-	t += now.tv_sec*1000;
-
-	return t;
 }
