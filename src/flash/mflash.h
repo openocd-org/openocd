@@ -141,8 +141,8 @@ typedef struct mflash_bank_s
 	mg_drv_info_t *drv_info;
 } mflash_bank_t;
 
-extern int mflash_register_commands(struct command_context_s *cmd_ctx);
-extern int mflash_init_drivers(struct command_context_s *cmd_ctx);
+int mflash_register_commands(struct command_context_s *cmd_ctx);
+int mflash_init_drivers(struct command_context_s *cmd_ctx);
 
 #define MG_MFLASH_SECTOR_SIZE		(0x200)		/* 512Bytes = 2^9 */
 #define MG_MFLASH_SECTOR_SIZE_MASK	(0x200-1)

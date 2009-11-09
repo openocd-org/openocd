@@ -206,16 +206,23 @@ enum oob_formats
 	NAND_OOB_YAFFS2 = 0x100,/* when writing, use YAFFS2 OOB layout */
 };
 
-/* Function prototypes */
-extern nand_device_t *get_nand_device_by_num(int num);
-extern int nand_read_page_raw(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-extern int nand_write_page_raw(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-extern int nand_read_status(struct nand_device_s *device, uint8_t *status);
-extern int nand_calculate_ecc(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code);
-extern int nand_calculate_ecc_kw(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code);
 
-extern int nand_register_commands(struct command_context_s *cmd_ctx);
-extern int nand_init(struct command_context_s *cmd_ctx);
+nand_device_t *get_nand_device_by_num(int num);
+
+int nand_read_page_raw(struct nand_device_s *device, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+int nand_write_page_raw(struct nand_device_s *device, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+
+int nand_read_status(struct nand_device_s *device, uint8_t *status);
+
+int nand_calculate_ecc(struct nand_device_s *device,
+		const uint8_t *dat, uint8_t *ecc_code);
+int nand_calculate_ecc_kw(struct nand_device_s *device,
+		const uint8_t *dat, uint8_t *ecc_code);
+
+int nand_register_commands(struct command_context_s *cmd_ctx);
+int nand_init(struct command_context_s *cmd_ctx);
 
 /// helper for parsing a nand device command argument string
 int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,

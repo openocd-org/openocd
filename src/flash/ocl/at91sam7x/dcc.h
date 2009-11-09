@@ -23,9 +23,9 @@
 #include "platform.h"
 
 /* debug channel read (debugger->MCU) */
-extern uint32 dcc_rd(void);
+uint32 dcc_rd(void);
 
 /* debug channel write (MCU->debugger) */
-extern int dcc_wr(uint32 data);
+int dcc_wr(uint32 data);
 
 #endif

@@ -34,15 +34,15 @@ extern unsigned int flash_page_count;
 extern unsigned int flash_page_size; /* words */
 
 /* detect chip and set loader parameters */
-extern int flash_init(void);
+int flash_init(void);
 
 /* program single flash page */
-extern int flash_page_program(uint32 *data, int page_num);
+int flash_page_program(uint32 *data, int page_num);
 
 /* erase whole chip */
-extern int flash_erase_all(void);
+int flash_erase_all(void);
 
 /* verify written data */
-extern int flash_verify(uint32 adr, unsigned int len, uint8 *src);
+int flash_verify(uint32 adr, unsigned int len, uint8 *src);
 
 #endif

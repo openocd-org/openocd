@@ -35,6 +35,6 @@ typedef struct non_cfi_s
 	uint8_t  status_poll_mask;
 } non_cfi_t;
 
-extern void cfi_fixup_non_cfi(flash_bank_t *bank);
+void cfi_fixup_non_cfi(flash_bank_t *bank);
 
 #endif /* NON_CFI_H */
