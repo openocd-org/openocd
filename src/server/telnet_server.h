@@ -68,7 +68,7 @@ typedef struct telnet_service_s
 	char *banner;
 } telnet_service_t;
 
-extern int telnet_init(char *banner);
-extern int telnet_register_commands(command_context_t *command_context);
+int telnet_init(char *banner);
+int telnet_register_commands(command_context_t *command_context);
 
 #endif /* TELNET_SERVER_H */

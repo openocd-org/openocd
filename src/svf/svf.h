@@ -22,7 +22,7 @@
 
 #include "command.h"
 
-extern int svf_register_commands(struct command_context_s *cmd_ctx);
+int svf_register_commands(struct command_context_s *cmd_ctx);
 
 /**
  * svf_add_statemove() moves from the current state to @a goal_state.
@@ -35,7 +35,7 @@ extern int svf_register_commands(struct command_context_s *cmd_ctx);
  * SVF specification for single-argument STATE commands (and also used
  * for various other state transitions).
  */
-extern int svf_add_statemove(tap_state_t goal_state);
+int svf_add_statemove(tap_state_t goal_state);
 
 /**
  * svf_tap_state_is_stable() returns true for stable non-SHIFT states
@@ -43,6 +43,6 @@ extern int svf_add_statemove(tap_state_t goal_state);
  * @param state The TAP state in question
  * @return true iff the state is stable and not a SHIFT state.
  */
-extern bool svf_tap_state_is_stable(tap_state_t state);
+bool svf_tap_state_is_stable(tap_state_t state);
 
 #endif /* SVF_H */

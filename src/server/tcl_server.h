@@ -22,7 +22,7 @@
 
 #include "server.h"
 
-extern int tcl_init(void);
-extern int tcl_register_commands(command_context_t *cmd_ctx);
+int tcl_init(void);
+int tcl_register_commands(command_context_t *cmd_ctx);
 
 #endif /* _TCL_SERVER_H_ */

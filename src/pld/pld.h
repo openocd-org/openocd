@@ -39,9 +39,11 @@ typedef struct pld_device_s
 	struct pld_device_s *next;
 } pld_device_t;
 
-extern int pld_register_commands(struct command_context_s *cmd_ctx);
-extern int pld_init(struct command_context_s *cmd_ctx);
-extern pld_device_t *get_pld_device_by_num(int num);
+int pld_register_commands(struct command_context_s *cmd_ctx);
+
+int pld_init(struct command_context_s *cmd_ctx);
+
+pld_device_t *get_pld_device_by_num(int num);
 
 #define ERROR_PLD_DEVICE_INVALID	(-1000)
 #define ERROR_PLD_FILE_LOAD_FAILED	(-1001)

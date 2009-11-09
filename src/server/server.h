@@ -69,11 +69,17 @@ typedef struct service_s
 	struct service_s *next;
 } service_t;
 
-extern int add_service(char *name, enum connection_type type, unsigned short port, int max_connections, new_connection_handler_t new_connection_handler, input_handler_t input_handler, connection_closed_handler_t connection_closed_handler, void *priv);
-extern int server_init(void);
-extern int server_quit(void);
-extern int server_loop(command_context_t *command_context);
-extern int server_register_commands(command_context_t *context);
+int add_service(char *name, enum connection_type type, unsigned short port,
+		int max_connections, new_connection_handler_t new_connection_handler,
+		input_handler_t in_handler, connection_closed_handler_t close_handler,
+		void *priv);
+
+int server_init(void);
+int server_quit(void);
+
+int server_loop(command_context_t *command_context);
+
+int server_register_commands(command_context_t *context);
 
 int server_port_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc, unsigned short *port);
