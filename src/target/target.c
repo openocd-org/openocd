@@ -1282,10 +1282,10 @@ void target_free_all_working_areas(struct target_s *target)
 int target_register_commands(struct command_context_s *cmd_ctx)
 {
 
-	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, "change the current command line target (one parameter) or lists targets (with no parameter)");
-
-
-
+	register_command(cmd_ctx, NULL, "targets",
+			handle_targets_command, COMMAND_EXEC,
+			"change current command line target (one parameter) "
+			"or list targets (no parameters)");
 
 	register_jim(cmd_ctx, "target", jim_target, "configure target");
 

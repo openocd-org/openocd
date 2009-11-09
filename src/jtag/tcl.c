@@ -55,10 +55,8 @@ extern jtag_interface_t *jtag_interface;
 static int handle_interface_list_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc);
 static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_rclk_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -615,15 +613,11 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL,
 		"interface_list", &handle_interface_list_command,
 		COMMAND_ANY, "list all built-in interfaces");
-	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
-		COMMAND_ANY, "(DEPRECATED) set jtag speed (if supported)");
 	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,
 		COMMAND_ANY, "set maximum jtag speed (if supported); "
 		"parameter is maximum khz, or 0 for adaptive clocking (RTCK).");
 	register_command(cmd_ctx, NULL, "jtag_rclk", handle_jtag_rclk_command,
 		COMMAND_ANY, "fallback_speed_khz - set JTAG speed to RCLK or use fallback speed");
-	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
-		COMMAND_CONFIG, "(DEPRECATED) jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_ANY,
 		"reset_config "
@@ -746,67 +740,6 @@ static int handle_interface_list_command(struct command_context_s *cmd_ctx,
 	}
 
 	return ERROR_OK;
-}
-
-static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int e;
-	char buf[1024];
-	Jim_Obj *newargs[ 10 ];
-	/*
-	 * CONVERT SYNTAX
-	 * argv[-1] = command
-	 * argv[ 0] = ir length
-	 * argv[ 1] = ir capture
-	 * argv[ 2] = ir mask
-	 * argv[ 3] = not actually used by anything but in the docs
-	 */
-
-	if (argc < 4) {
-		command_print(cmd_ctx, "OLD DEPRECATED SYNTAX: Please use the NEW syntax");
-		return ERROR_OK;
-	}
-	command_print(cmd_ctx, "OLD SYNTAX: DEPRECATED - translating to new syntax");
-	command_print(cmd_ctx, "jtag newtap CHIP TAP -irlen %s -ircapture %s -irvalue %s",
-				   args[0],
-				   args[1],
-				   args[2]);
-	command_print(cmd_ctx, "Example: STM32 has 2 taps, the cortexM3(len4) + boundaryscan(len5)");
-	command_print(cmd_ctx, "jtag newtap stm32 cortexm3 ....., thus creating the tap: \"stm32.cortexm3\"");
-	command_print(cmd_ctx, "jtag newtap stm32 boundary ....., and the tap: \"stm32.boundary\"");
-	command_print(cmd_ctx, "And then refer to the taps by the dotted name.");
-
-	newargs[0] = Jim_NewStringObj(interp, "jtag", -1);
-	newargs[1] = Jim_NewStringObj(interp, "newtap", -1);
-	sprintf(buf, "chip%d", jtag_tap_count());
-	newargs[2] = Jim_NewStringObj(interp, buf, -1);
-	sprintf(buf, "tap%d", jtag_tap_count());
-	newargs[3] = Jim_NewStringObj(interp, buf, -1);
-	newargs[4] = Jim_NewStringObj(interp, "-irlen", -1);
-	newargs[5] = Jim_NewStringObj(interp, args[0], -1);
-	newargs[6] = Jim_NewStringObj(interp, "-ircapture", -1);
-	newargs[7] = Jim_NewStringObj(interp, args[1], -1);
-	newargs[8] = Jim_NewStringObj(interp, "-irmask", -1);
-	newargs[9] = Jim_NewStringObj(interp, args[2], -1);
-
-	command_print(cmd_ctx, "NEW COMMAND:");
-	sprintf(buf, "%s %s %s %s %s %s %s %s %s %s",
-			 Jim_GetString(newargs[0], NULL),
-			 Jim_GetString(newargs[1], NULL),
-			 Jim_GetString(newargs[2], NULL),
-			 Jim_GetString(newargs[3], NULL),
-			 Jim_GetString(newargs[4], NULL),
-			 Jim_GetString(newargs[5], NULL),
-			 Jim_GetString(newargs[6], NULL),
-			 Jim_GetString(newargs[7], NULL),
-			 Jim_GetString(newargs[8], NULL),
-			 Jim_GetString(newargs[9], NULL));
-
-	e = jim_jtag_command(interp, 10, newargs);
-	if (e != JIM_OK) {
-		command_print(cmd_ctx, "%s", Jim_GetString(Jim_GetResult(interp), NULL));
-	}
-	return e;
 }
 
 static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1104,29 +1037,6 @@ static int handle_jtag_ntrst_assert_width_command(struct command_context_s *cmd_
 	}
 	command_print(cmd_ctx, "jtag_ntrst_assert_width: %u", jtag_get_ntrst_assert_width());
 	return ERROR_OK;
-}
-
-static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int retval = ERROR_OK;
-
-	command_print(cmd_ctx, "OLD SYNTAX: DEPRECATED - "
-			"use jtag_khz, not jtag_speed");
-
-	if (argc > 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (argc == 1)
-	{
-		LOG_DEBUG("handle jtag speed");
-
-		unsigned cur_speed = 0;
-		COMMAND_PARSE_NUMBER(uint, args[0], cur_speed);
-
-		retval = jtag_config_speed(cur_speed);
-	}
-	command_print(cmd_ctx, "jtag_speed: %d", jtag_get_speed());
-
-	return retval;
 }
 
 static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

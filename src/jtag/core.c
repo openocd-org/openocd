@@ -1569,13 +1569,6 @@ static int jtag_set_speed(int speed)
 	return jtag ? jtag->speed(speed) : ERROR_OK;
 }
 
-int jtag_config_speed(int speed)
-{
-	LOG_DEBUG("handle jtag speed");
-	clock_mode = CLOCK_MODE_SPEED;
-	return jtag_set_speed(speed);
-}
-
 int jtag_config_khz(unsigned khz)
 {
 	LOG_DEBUG("handle jtag khz");

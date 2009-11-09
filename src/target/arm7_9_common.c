@@ -38,7 +38,6 @@
 
 
 int arm7_9_debug_entry(target_t *target);
-int arm7_9_enable_sw_bkpts(struct target_s *target);
 
 /* command handler forward declarations */
 int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);

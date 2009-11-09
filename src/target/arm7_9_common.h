@@ -47,7 +47,6 @@ typedef struct arm7_9_common_s
 
 	uint32_t arm_bkpt; /**< ARM breakpoint instruction */
 	uint16_t thumb_bkpt; /**< Thumb breakpoint instruction */
-	bool force_hw_bkpts;
 
 	int sw_breakpoints_added; /**< Specifies which watchpoint software breakpoints are setup on */
 	int sw_breakpoint_count; /**< keep track of number of software breakpoints we have set */

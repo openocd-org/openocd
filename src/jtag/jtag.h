@@ -254,31 +254,25 @@ int jtag_call_event_callbacks(enum jtag_event event);
 
 /// @returns The current JTAG speed setting.
 int jtag_get_speed(void);
+
 /**
  * Given a @a speed setting, use the interface @c speed_div callback to
  * adjust the setting.
  * @param speed The speed setting to convert back to readable KHz.
  * @returns ERROR_OK if the interface has not been initialized or on success;
- * 	otherwise, the error code produced by the @c speed_div callback.
+ *	otherwise, the error code produced by the @c speed_div callback.
  */
 int jtag_get_speed_readable(int *speed);
-/**
- * Set the JTAG speed. This routine will call the underlying
- * interface @c speed callback, if the interface has been initialized.
- * @param speed The new speed setting.
- * @returns ERROR_OK during configuration or on success, or an error
- *   code returned from the interface @c speed callback.
- */
-int jtag_config_speed(int speed);
-
 
 /// Attempt to configure the interface for the specified KHz.
 int jtag_config_khz(unsigned khz);
+
 /**
  * Attempt to enable RTCK/RCLK. If that fails, fallback to the
  * specified frequency.
  */
 int jtag_config_rclk(unsigned fallback_speed_khz);
+
 /// Retreives the clock speed of the JTAG interface in KHz.
 unsigned jtag_get_speed_khz(void);
 
