@@ -57,58 +57,8 @@ struct pic32mx_devs_s {
 	{ 0x00, NULL, 0 }
 };
 
-static int pic32mx_register_commands(struct command_context_s *cmd_ctx);
-static int pic32mx_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int pic32mx_erase(struct flash_bank_s *bank, int first, int last);
-static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32_t srcaddr);
 static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint32_t word);
-static int pic32mx_probe(struct flash_bank_s *bank);
-static int pic32mx_auto_probe(struct flash_bank_s *bank);
-//static int pic32mx_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int pic32mx_protect_check(struct flash_bank_s *bank);
-static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-#if 0
-int pic32mx_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int pic32mx_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-#endif
-static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-//static int pic32mx_chip_erase(struct flash_bank_s *bank);
-
-flash_driver_t pic32mx_flash =
-{
-	.name = "pic32mx",
-	.register_commands = pic32mx_register_commands,
-	.flash_bank_command = pic32mx_flash_bank_command,
-	.erase = pic32mx_erase,
-	.protect = pic32mx_protect,
-	.write = pic32mx_write,
-	.probe = pic32mx_probe,
-	.auto_probe = pic32mx_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
-	.protect_check = pic32mx_protect_check,
-	.info = pic32mx_info
-};
-
-static int pic32mx_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *pic32mx_cmd = register_command(cmd_ctx, NULL, "pic32mx", NULL, COMMAND_ANY, "pic32mx flash specific commands");
-
-#if 0
-	register_command(cmd_ctx, pic32mx_cmd, "lock", pic32mx_handle_lock_command, COMMAND_EXEC,
-					 "lock device");
-	register_command(cmd_ctx, pic32mx_cmd, "unlock", pic32mx_handle_unlock_command, COMMAND_EXEC,
-					 "unlock protected device");
-#endif
-	register_command(cmd_ctx, pic32mx_cmd, "chip_erase", pic32mx_handle_chip_erase_command, COMMAND_EXEC,
-					 "erase device");
-	register_command(cmd_ctx, pic32mx_cmd, "pgm_word", pic32mx_handle_pgm_word_command, COMMAND_EXEC,
-					 "program a word");
-	return ERROR_OK;
-}
 
 /* flash bank pic32mx <base> <size> 0 0 <target#>
  */
@@ -932,3 +882,38 @@ static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, ch
 
 	return ERROR_OK;
 }
+
+static int pic32mx_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *pic32mx_cmd = register_command(cmd_ctx, NULL, "pic32mx",
+			NULL, COMMAND_ANY, "pic32mx flash specific commands");
+#if 0
+	register_command(cmd_ctx, pic32mx_cmd, "lock",
+			pic32mx_handle_lock_command, COMMAND_EXEC,
+			"lock device");
+	register_command(cmd_ctx, pic32mx_cmd, "unlock",
+			pic32mx_handle_unlock_command, COMMAND_EXEC,
+			"unlock protected device");
+#endif
+	register_command(cmd_ctx, pic32mx_cmd, "chip_erase",
+			pic32mx_handle_chip_erase_command, COMMAND_EXEC,
+			"erase device");
+	register_command(cmd_ctx, pic32mx_cmd, "pgm_word",
+			pic32mx_handle_pgm_word_command, COMMAND_EXEC,
+			"program a word");
+	return ERROR_OK;
+}
+
+flash_driver_t pic32mx_flash = {
+		.name = "pic32mx",
+		.register_commands = &pic32mx_register_commands,
+		.flash_bank_command = &pic32mx_flash_bank_command,
+		.erase = &pic32mx_erase,
+		.protect = &pic32mx_protect,
+		.write = &pic32mx_write,
+		.probe = &pic32mx_probe,
+		.auto_probe = &pic32mx_auto_probe,
+		.erase_check = &default_flash_mem_blank_check,
+		.protect_check = &pic32mx_protect_check,
+		.info = &pic32mx_info,
+	};

@@ -29,55 +29,7 @@
 #include "binarybuffer.h"
 
 
-static int stm32x_register_commands(struct command_context_s *cmd_ctx);
-static int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int stm32x_erase(struct flash_bank_s *bank, int first, int last);
-static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int stm32x_probe(struct flash_bank_s *bank);
-static int stm32x_auto_probe(struct flash_bank_s *bank);
-//static int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int stm32x_protect_check(struct flash_bank_s *bank);
-static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int stm32x_mass_erase(struct flash_bank_s *bank);
-
-flash_driver_t stm32x_flash =
-{
-	.name = "stm32x",
-	.register_commands = stm32x_register_commands,
-	.flash_bank_command = stm32x_flash_bank_command,
-	.erase = stm32x_erase,
-	.protect = stm32x_protect,
-	.write = stm32x_write,
-	.probe = stm32x_probe,
-	.auto_probe = stm32x_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
-	.protect_check = stm32x_protect_check,
-	.info = stm32x_info
-};
-
-static int stm32x_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stm32x", NULL, COMMAND_ANY, "stm32x flash specific commands");
-
-	register_command(cmd_ctx, stm32x_cmd, "lock", stm32x_handle_lock_command, COMMAND_EXEC,
-					 "lock device");
-	register_command(cmd_ctx, stm32x_cmd, "unlock", stm32x_handle_unlock_command, COMMAND_EXEC,
-					 "unlock protected device");
-	register_command(cmd_ctx, stm32x_cmd, "mass_erase", stm32x_handle_mass_erase_command, COMMAND_EXEC,
-					 "mass erase device");
-	register_command(cmd_ctx, stm32x_cmd, "options_read", stm32x_handle_options_read_command, COMMAND_EXEC,
-					 "read device option bytes");
-	register_command(cmd_ctx, stm32x_cmd, "options_write", stm32x_handle_options_write_command, COMMAND_EXEC,
-					 "write device option bytes");
-	return ERROR_OK;
-}
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
@@ -1228,3 +1180,41 @@ static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, c
 
 	return ERROR_OK;
 }
+
+static int stm32x_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stm32x",
+			NULL, COMMAND_ANY, "stm32x flash specific commands");
+
+	register_command(cmd_ctx, stm32x_cmd, "lock",
+			stm32x_handle_lock_command, COMMAND_EXEC,
+			"lock device");
+	register_command(cmd_ctx, stm32x_cmd, "unlock",
+			stm32x_handle_unlock_command, COMMAND_EXEC,
+			"unlock protected device");
+	register_command(cmd_ctx, stm32x_cmd, "mass_erase",
+			stm32x_handle_mass_erase_command, COMMAND_EXEC,
+			"mass erase device");
+	register_command(cmd_ctx, stm32x_cmd, "options_read",
+			stm32x_handle_options_read_command, COMMAND_EXEC,
+			"read device option bytes");
+	register_command(cmd_ctx, stm32x_cmd, "options_write",
+			stm32x_handle_options_write_command, COMMAND_EXEC,
+			"write device option bytes");
+
+	return ERROR_OK;
+}
+
+flash_driver_t stm32x_flash = {
+		.name = "stm32x",
+		.register_commands = &stm32x_register_commands,
+		.flash_bank_command = &stm32x_flash_bank_command,
+		.erase = &stm32x_erase,
+		.protect = &stm32x_protect,
+		.write = &stm32x_write,
+		.probe = &stm32x_probe,
+		.auto_probe = &stm32x_auto_probe,
+		.erase_check = &default_flash_mem_blank_check,
+		.protect_check = &stm32x_protect_check,
+		.info = &stm32x_info,
+	};
