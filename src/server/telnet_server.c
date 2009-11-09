@@ -101,7 +101,7 @@ int telnet_output(struct command_context_s *cmd_ctx, const char* line)
 	return telnet_outputline(connection, line);
 }
 
-void telnet_log_callback(void *priv, const char *file, int line,
+void telnet_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string)
 {
 	connection_t *connection = priv;

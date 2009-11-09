@@ -49,10 +49,10 @@ Jim_Interp *interp = NULL;
 
 int run_command(command_context_t *context, command_t *c, char *words[], int num_words);
 
-static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
+static void tcl_output(void *privData, const char *file, unsigned line,
+		const char *function, const char *string)
 {
 	Jim_Obj *tclOutput = (Jim_Obj *)privData;
-
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
 }
 

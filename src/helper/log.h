@@ -85,7 +85,7 @@ void log_catch(void);
 void log_rethrow(void);
 
 
-typedef void (*log_callback_fn)(void *priv, const char *file, int line,
+typedef void (*log_callback_fn)(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
 typedef struct log_callback_s

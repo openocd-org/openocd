@@ -49,7 +49,7 @@ extern int gdb_error(connection_t *connection, int retval);
 static unsigned short gdb_port = 3333;
 static const char *DIGITS = "0123456789abcdef";
 
-static void gdb_log_callback(void *priv, const char *file, int line,
+static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
 /* number of gdb connections, mainly to supress gdb related debugging spam
@@ -1956,7 +1956,7 @@ int gdb_detach(connection_t *connection, target_t *target)
 	return gdb_put_packet(connection, "OK", 2);
 }
 
-static void gdb_log_callback(void *priv, const char *file, int line,
+static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string)
 {
 	connection_t *connection = priv;
