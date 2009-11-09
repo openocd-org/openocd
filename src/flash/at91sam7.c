@@ -52,38 +52,13 @@
 #include "at91sam7.h"
 #include "binarybuffer.h"
 
-
-static int at91sam7_register_commands(struct command_context_s *cmd_ctx);
-static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int at91sam7_erase(struct flash_bank_s *bank, int first, int last);
-static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int at91sam7_probe(struct flash_bank_s *bank);
-//static int at91sam7_auto_probe(struct flash_bank_s *bank);
-static int at91sam7_erase_check(struct flash_bank_s *bank);
 static int at91sam7_protect_check(struct flash_bank_s *bank);
-static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 
 static uint32_t at91sam7_get_flash_status(target_t *target, int bank_number);
 static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode);
 static uint32_t at91sam7_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout);
 static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen);
-static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-flash_driver_t at91sam7_flash =
-{
-	.name = "at91sam7",
-	.register_commands = at91sam7_register_commands,
-	.flash_bank_command = at91sam7_flash_bank_command,
-	.erase = at91sam7_erase,
-	.protect = at91sam7_protect,
-	.write = at91sam7_write,
-	.probe = at91sam7_probe,
-	.auto_probe = at91sam7_probe,
-	.erase_check = at91sam7_erase_check,
-	.protect_check = at91sam7_protect_check,
-	.info = at91sam7_info
-};
 
 static uint32_t MC_FMR[4] = { 0xFFFFFF60, 0xFFFFFF70, 0xFFFFFF80, 0xFFFFFF90 };
 static uint32_t MC_FCR[4] = { 0xFFFFFF64, 0xFFFFFF74, 0xFFFFFF84, 0xFFFFFF94 };
@@ -112,14 +87,6 @@ static long SRAMSIZ[16] = {
 };
 #endif
 
-static int at91sam7_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, NULL);
-
-	register_command(cmd_ctx, at91sam7_cmd, "gpnvm", at91sam7_handle_gpnvm_command, COMMAND_EXEC,
-					"at91sam7 gpnvm <bit> set | clear, set or clear one gpnvm bit");
-	return ERROR_OK;
-}
 
 static uint32_t at91sam7_get_flash_status(target_t *target, int bank_number)
 {
@@ -567,7 +534,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 			/* create a new flash bank element */
 			flash_bank_t *fb = malloc(sizeof(flash_bank_t));
 			fb->target = target;
-			fb->driver = &at91sam7_flash;
+			fb->driver = bank->driver;
 			fb->driver_priv = malloc(sizeof(at91sam7_flash_bank_t));
 			fb->next = NULL;
 
@@ -820,7 +787,7 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 			/* create a new bank element */
 			flash_bank_t *fb = malloc(sizeof(flash_bank_t));
 			fb->target = target;
-			fb->driver = &at91sam7_flash;
+			fb->driver = bank->driver;
 			fb->driver_priv = malloc(sizeof(at91sam7_flash_bank_t));
 			fb->next = NULL;
 
@@ -1151,7 +1118,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 	{
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	if (bank->driver != &at91sam7_flash)
+	if (strcmp(bank->driver->name, "at91sam7"))
 	{
 		command_print(cmd_ctx, "not an at91sam7 flash bank '%s'", args[0]);
 		return ERROR_FLASH_BANK_INVALID;
@@ -1210,3 +1177,30 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 
 	return ERROR_OK;
 }
+
+static int at91sam7_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7",
+			NULL, COMMAND_ANY, NULL);
+
+	register_command(cmd_ctx, at91sam7_cmd, "gpnvm",
+			at91sam7_handle_gpnvm_command, COMMAND_EXEC,
+			"at91sam7 gpnvm <bit> set | clear, "
+			"set or clear one gpnvm bit");
+
+	return ERROR_OK;
+}
+
+flash_driver_t at91sam7_flash = {
+		.name = "at91sam7",
+		.register_commands = &at91sam7_register_commands,
+		.flash_bank_command = &at91sam7_flash_bank_command,
+		.erase = &at91sam7_erase,
+		.protect = &at91sam7_protect,
+		.write = &at91sam7_write,
+		.probe = &at91sam7_probe,
+		.auto_probe = &at91sam7_probe,
+		.erase_check = &at91sam7_erase_check,
+		.protect_check = &at91sam7_protect_check,
+		.info = &at91sam7_info,
+	};

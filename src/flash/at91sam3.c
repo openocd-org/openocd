@@ -2508,19 +2508,16 @@ sam3_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-
-flash_driver_t at91sam3_flash =
-{
-	.name						= "at91sam3",
-	.register_commands			= sam3_register_commands,
-
-	.flash_bank_command			= sam3_flash_bank_command,
-	.erase						= sam3_erase,
-	.protect					= sam3_protect,
-	.write						= sam3_write,
-	.probe						= sam3_probe,
-	.auto_probe					= sam3_auto_probe,
-	.erase_check				= sam3_erase_check,
-	.protect_check				= sam3_protect_check,
-	.info						= sam3_info
-};
+flash_driver_t at91sam3_flash = {
+		.name = "at91sam3",
+		.register_commands = &sam3_register_commands,
+		.flash_bank_command = &sam3_flash_bank_command,
+		.erase = &sam3_erase,
+		.protect = &sam3_protect,
+		.write = &sam3_write,
+		.probe = &sam3_probe,
+		.auto_probe = &sam3_auto_probe,
+		.erase_check = &sam3_erase_check,
+		.protect_check = &sam3_protect_check,
+		.info = &sam3_info,
+	};
