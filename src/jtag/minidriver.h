@@ -81,35 +81,35 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 	field->in_value = (uint8_t *)cmd_queue_alloc(num_bytes);
 }
 
-extern void interface_jtag_add_dr_out(jtag_tap_t* tap,
+void interface_jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state);
 
-extern void interface_jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0);
+void interface_jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0);
 
-extern void interface_jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
+void interface_jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 
 #endif
 
-extern int interface_jtag_add_ir_scan(
+int interface_jtag_add_ir_scan(
 		int num_fields, const scan_field_t* fields,
 		tap_state_t endstate);
-extern int interface_jtag_add_plain_ir_scan(
-		int num_fields, const scan_field_t* fields,
-		tap_state_t endstate);
-
-extern int interface_jtag_add_dr_scan(
-		int num_fields, const scan_field_t* fields,
-		tap_state_t endstate);
-extern int interface_jtag_add_plain_dr_scan(
+int interface_jtag_add_plain_ir_scan(
 		int num_fields, const scan_field_t* fields,
 		tap_state_t endstate);
 
-extern int interface_jtag_add_tlr(void);
-extern int interface_jtag_add_pathmove(int num_states, const tap_state_t* path);
-extern int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
+int interface_jtag_add_dr_scan(
+		int num_fields, const scan_field_t* fields,
+		tap_state_t endstate);
+int interface_jtag_add_plain_dr_scan(
+		int num_fields, const scan_field_t* fields,
+		tap_state_t endstate);
+
+int interface_jtag_add_tlr(void);
+int interface_jtag_add_pathmove(int num_states, const tap_state_t* path);
+int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
 
 /**
  * This drives the actual srst and trst pins. srst will always be 0
@@ -119,16 +119,15 @@ extern int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
  * the higher level jtag_add_reset will invoke jtag_add_tlr() if
  * approperiate
  */
-extern int interface_jtag_add_reset(int trst, int srst);
-extern int interface_jtag_add_sleep(uint32_t us);
-extern int interface_jtag_add_clocks(int num_cycles);
-extern int interface_jtag_execute_queue(void);
+int interface_jtag_add_reset(int trst, int srst);
+int interface_jtag_add_sleep(uint32_t us);
+int interface_jtag_add_clocks(int num_cycles);
+int interface_jtag_execute_queue(void);
 
 /**
  * Calls the interface callback to execute the queue.  This routine
  * is used by the JTAG driver layer and should not be called directly.
  */
-extern int default_interface_jtag_execute_queue(void);
-
+int default_interface_jtag_execute_queue(void);
 
 #endif // MINIDRIVER_H

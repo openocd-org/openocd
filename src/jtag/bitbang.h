@@ -35,6 +35,6 @@ typedef struct bitbang_interface_s
 
 extern bitbang_interface_t *bitbang_interface;
 
-extern int bitbang_execute_queue(void);
+int bitbang_execute_queue(void);
 
 #endif /* BITBANG_H */

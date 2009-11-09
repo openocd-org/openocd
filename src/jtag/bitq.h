@@ -50,8 +50,8 @@ typedef struct bitq_state_s
 
 extern bitq_interface_t *bitq_interface;
 
-extern int bitq_execute_queue(void);
+int bitq_execute_queue(void);
 
-extern void bitq_cleanup(void);
+void bitq_cleanup(void);
 
 #endif /* BITQ_H */
