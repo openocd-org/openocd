@@ -53,43 +53,6 @@
  * - 176x (tested with LPC1768)
  */
 
-static int lpc2000_register_commands(struct command_context_s *cmd_ctx);
-static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int lpc2000_erase(struct flash_bank_s *bank, int first, int last);
-static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int lpc2000_probe(struct flash_bank_s *bank);
-static int lpc2000_erase_check(struct flash_bank_s *bank);
-static int lpc2000_protect_check(struct flash_bank_s *bank);
-static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
-static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-flash_driver_t lpc2000_flash =
-{
-	.name = "lpc2000",
-	.register_commands = lpc2000_register_commands,
-	.flash_bank_command = lpc2000_flash_bank_command,
-	.erase = lpc2000_erase,
-	.protect = lpc2000_protect,
-	.write = lpc2000_write,
-	.probe = lpc2000_probe,
-	.auto_probe = lpc2000_probe,
-	.erase_check = lpc2000_erase_check,
-	.protect_check = lpc2000_protect_check,
-	.info = lpc2000_info
-};
-
-static int lpc2000_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *lpc2000_cmd = register_command(cmd_ctx, NULL, "lpc2000", NULL, COMMAND_ANY, NULL);
-
-	register_command(cmd_ctx, lpc2000_cmd, "part_id", lpc2000_handle_part_id_command, COMMAND_EXEC,
-					 "print part id of lpc2000 flash bank <num>");
-
-	return ERROR_OK;
-}
-
 static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
@@ -812,3 +775,31 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 
 	return ERROR_OK;
 }
+
+static int lpc2000_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *lpc2000_cmd = register_command(cmd_ctx, NULL, "lpc2000",
+			NULL, COMMAND_ANY, NULL);
+
+	register_command(cmd_ctx, lpc2000_cmd, "part_id",
+			lpc2000_handle_part_id_command, COMMAND_EXEC,
+			"print part id of lpc2000 flash bank <num>");
+
+	return ERROR_OK;
+}
+
+flash_driver_t lpc2000_flash = {
+		.name = "lpc2000",
+		.register_commands = &lpc2000_register_commands,
+		.flash_bank_command = &lpc2000_flash_bank_command,
+		.erase = &lpc2000_erase,
+		.protect = &lpc2000_protect,
+		.write = &lpc2000_write,
+		.probe = &lpc2000_probe,
+		.auto_probe = &lpc2000_probe,
+		.erase_check = &lpc2000_erase_check,
+		.protect_check = &lpc2000_protect_check,
+		.info = &lpc2000_info,
+	};
+
+

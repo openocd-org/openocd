@@ -171,21 +171,6 @@ typedef struct lpc2900_flash_bank_s
 } lpc2900_flash_bank_t;
 
 
-
-
-static int lpc2900_register_commands(struct command_context_s *cmd_ctx);
-static int lpc2900_flash_bank_command(struct command_context_s *cmd_ctx,
-                                      char *cmd, char **args, int argc,
-                                      struct flash_bank_s *bank);
-static int lpc2900_erase(struct flash_bank_s *bank, int first, int last);
-static int lpc2900_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc2900_write(struct flash_bank_s *bank,
-                         uint8_t *buffer, uint32_t offset, uint32_t count);
-static int lpc2900_probe(struct flash_bank_s *bank);
-static int lpc2900_erase_check(struct flash_bank_s *bank);
-static int lpc2900_protect_check(struct flash_bank_s *bank);
-static int lpc2900_info(struct flash_bank_s *bank, char *buf, int buf_size);
-
 static uint32_t lpc2900_wait_status(flash_bank_t *bank, uint32_t mask, int timeout);
 static void lpc2900_setup(struct flash_bank_s *bank);
 static uint32_t lpc2900_is_ready(struct flash_bank_s *bank);

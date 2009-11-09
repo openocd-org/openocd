@@ -84,6 +84,7 @@
 /* F_CLK_TIME */
 #define FCT_CLK_DIV_MASK    0x0FFF
 
+#if 0
 static int lpc288x_register_commands(struct command_context_s *cmd_ctx);
 static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int lpc288x_erase(struct flash_bank_s *bank, int first, int last);
@@ -93,30 +94,11 @@ static int lpc288x_probe(struct flash_bank_s *bank);
 static int lpc288x_erase_check(struct flash_bank_s *bank);
 static int lpc288x_protect_check(struct flash_bank_s *bank);
 static int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size);
+#endif
 static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
 static void lpc288x_load_timer(int erase, struct target_s *target);
 static void lpc288x_set_flash_clk(struct flash_bank_s *bank);
 static uint32_t lpc288x_system_ready(struct flash_bank_s *bank);
-
-flash_driver_t lpc288x_flash =
-{
-	.name = "lpc288x",
-	.register_commands = lpc288x_register_commands,
-	.flash_bank_command = lpc288x_flash_bank_command,
-	.erase = lpc288x_erase,
-	.protect = lpc288x_protect,
-	.write = lpc288x_write,
-	.probe = lpc288x_probe,
-	.auto_probe = lpc288x_probe,
-	.erase_check = lpc288x_erase_check,
-	.protect_check = lpc288x_protect_check,
-	.info = lpc288x_info
-};
-
-static int lpc288x_register_commands(struct command_context_s *cmd_ctx)
-{
-	return ERROR_OK;
-}
 
 static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 {
@@ -499,3 +481,16 @@ static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int la
 
 	return ERROR_OK;
 }
+
+flash_driver_t lpc288x_flash = {
+		.name = "lpc288x",
+		.flash_bank_command = &lpc288x_flash_bank_command,
+		.erase = &lpc288x_erase,
+		.protect = &lpc288x_protect,
+		.write = &lpc288x_write,
+		.probe = &lpc288x_probe,
+		.auto_probe = &lpc288x_probe,
+		.erase_check = &lpc288x_erase_check,
+		.protect_check = &lpc288x_protect_check,
+		.info = &lpc288x_info,
+	};
