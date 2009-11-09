@@ -34,38 +34,13 @@
 
 
 #define DID0_VER(did0) ((did0 >> 28)&0x07)
-static int stellaris_register_commands(struct command_context_s *cmd_ctx);
-static int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int stellaris_erase(struct flash_bank_s *bank, int first, int last);
-static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int stellaris_auto_probe(struct flash_bank_s *bank);
-static int stellaris_probe(struct flash_bank_s *bank);
-static int stellaris_protect_check(struct flash_bank_s *bank);
-static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
 static int stellaris_read_part_info(struct flash_bank_s *bank);
 static uint32_t stellaris_get_flash_status(flash_bank_t *bank);
 static void stellaris_set_flash_mode(flash_bank_t *bank,int mode);
 //static uint32_t stellaris_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout);
 
-static int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int stellaris_mass_erase(struct flash_bank_s *bank);
-
-flash_driver_t stellaris_flash =
-{
-	.name = "stellaris",
-	.register_commands = stellaris_register_commands,
-	.flash_bank_command = stellaris_flash_bank_command,
-	.erase = stellaris_erase,
-	.protect = stellaris_protect,
-	.write = stellaris_write,
-	.probe = stellaris_probe,
-	.auto_probe = stellaris_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
-	.protect_check = stellaris_protect_check,
-	.info = stellaris_info
-};
 
 static struct {
 	uint32_t partno;
@@ -261,14 +236,6 @@ static int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char 
 	 * argument; ditto, the speed of an external oscillator used
 	 * instead of a crystal.  Avoid programming flash using IOSC.
 	 */
-	return ERROR_OK;
-}
-
-static int stellaris_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stellaris", NULL, COMMAND_ANY, "stellaris flash specific commands");
-
-	register_command(cmd_ctx, stm32x_cmd, "mass_erase", stellaris_handle_mass_erase_command, COMMAND_EXEC, "mass erase device");
 	return ERROR_OK;
 }
 
@@ -1192,3 +1159,29 @@ static int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx
 
 	return ERROR_OK;
 }
+
+static int stellaris_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stellaris",
+			NULL, COMMAND_ANY, "stellaris flash specific commands");
+
+	register_command(cmd_ctx, stm32x_cmd, "mass_erase",
+			stellaris_handle_mass_erase_command, COMMAND_EXEC,
+			"mass erase device");
+	return ERROR_OK;
+}
+
+
+flash_driver_t stellaris_flash = {
+		.name = "stellaris",
+		.register_commands = &stellaris_register_commands,
+		.flash_bank_command = &stellaris_flash_bank_command,
+		.erase = &stellaris_erase,
+		.protect = &stellaris_protect,
+		.write = &stellaris_write,
+		.probe = &stellaris_probe,
+		.auto_probe = &stellaris_auto_probe,
+		.erase_check = &default_flash_mem_blank_check,
+		.protect_check = &stellaris_protect_check,
+		.info = &stellaris_info,
+	};

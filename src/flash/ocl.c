@@ -26,43 +26,12 @@
 #include "embeddedice.h"
 
 
-static int ocl_register_commands(struct command_context_s *cmd_ctx);
-static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int ocl_erase(struct flash_bank_s *bank, int first, int last);
-static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int ocl_probe(struct flash_bank_s *bank);
-static int ocl_erase_check(struct flash_bank_s *bank);
-static int ocl_protect_check(struct flash_bank_s *bank);
-static int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size);
-static int ocl_auto_probe(struct flash_bank_s *bank);
-
-flash_driver_t ocl_flash =
-{
-	.name = "ocl",
-	.register_commands = ocl_register_commands,
-	.flash_bank_command = ocl_flash_bank_command,
-	.erase = ocl_erase,
-	.protect = ocl_protect,
-	.write = ocl_write,
-	.probe = ocl_probe,
-	.erase_check = ocl_erase_check,
-	.protect_check = ocl_protect_check,
-	.info = ocl_info,
-	.auto_probe = ocl_auto_probe
-};
-
 typedef struct ocl_priv_s
 {
 	arm_jtag_t *jtag_info;
 	unsigned int buflen;
 	unsigned int bufalign;
 } ocl_priv_t;
-
-static int ocl_register_commands(struct command_context_s *cmd_ctx)
-{
-	return ERROR_OK;
-}
 
 static int ocl_erase_check(struct flash_bank_s *bank)
 {
@@ -378,3 +347,16 @@ static int ocl_auto_probe(struct flash_bank_s *bank)
 
 	return ERROR_OK;
 }
+
+flash_driver_t ocl_flash = {
+		.name = "ocl",
+		.flash_bank_command = &ocl_flash_bank_command,
+		.erase = &ocl_erase,
+		.protect = &ocl_protect,
+		.write = &ocl_write,
+		.probe = &ocl_probe,
+		.erase_check = &ocl_erase_check,
+		.protect_check = &ocl_protect_check,
+		.info = &ocl_info,
+		.auto_probe = &ocl_auto_probe,
+	};

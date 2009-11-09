@@ -56,46 +56,18 @@ avrf_type_t avft_chips_info[] =
 	{"atmega128",	0x9702,		256,				512,			8,					512},
 };
 
-static int avrf_register_commands(struct command_context_s *cmd_ctx);
-static int avrf_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int avrf_erase(struct flash_bank_s *bank, int first, int last);
-static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int avrf_probe(struct flash_bank_s *bank);
-static int avrf_auto_probe(struct flash_bank_s *bank);
-//static int avrf_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int avrf_protect_check(struct flash_bank_s *bank);
-static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size);
+int avr_jtag_sendinstr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out);
+int avr_jtag_senddat(jtag_tap_t *tap, uint32_t *dr_in, uint32_t dr_out, int len);
 
-static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-extern int avr_jtag_sendinstr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out);
-extern int avr_jtag_senddat(jtag_tap_t *tap, uint32_t *dr_in, uint32_t dr_out, int len);
-
-extern int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
-extern int mcu_write_dr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int dr_len, int rti);
-extern int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
-extern int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
-extern int mcu_write_ir_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti);
-extern int mcu_write_dr_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int dr_len, int rti);
-extern int mcu_write_ir_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti);
-extern int mcu_write_dr_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
-extern int mcu_execute_queue(void);
-
-flash_driver_t avr_flash =
-{
-	.name = "avr",
-	.register_commands = avrf_register_commands,
-	.flash_bank_command = avrf_flash_bank_command,
-	.erase = avrf_erase,
-	.protect = avrf_protect,
-	.write = avrf_write,
-	.probe = avrf_probe,
-	.auto_probe = avrf_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
-	.protect_check = avrf_protect_check,
-	.info = avrf_info
-};
+int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
+int mcu_write_dr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int dr_len, int rti);
+int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
+int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
+int mcu_write_ir_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti);
+int mcu_write_dr_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int dr_len, int rti);
+int mcu_write_ir_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti);
+int mcu_write_dr_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
+int mcu_execute_queue(void);
 
 /* avr program functions */
 static int avr_jtag_reset(avr_common_t *avr, uint32_t reset)
@@ -204,17 +176,6 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 		}
 		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
 	} while (!(poll_value & 0x0200));
-
-	return ERROR_OK;
-}
-
-/* interface command */
-static int avrf_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *avr_cmd = register_command(cmd_ctx, NULL, "avr", NULL, COMMAND_ANY, "avr flash specific commands");
-
-	register_command(cmd_ctx, avr_cmd, "mass_erase", avrf_handle_mass_erase_command, COMMAND_EXEC,
-					 "mass erase device");
 
 	return ERROR_OK;
 }
@@ -487,3 +448,29 @@ static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, cha
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
+
+static int avrf_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *avr_cmd = register_command(cmd_ctx, NULL, "avr",
+			NULL, COMMAND_ANY, "avr flash specific commands");
+
+	register_command(cmd_ctx, avr_cmd, "mass_erase",
+			avrf_handle_mass_erase_command, COMMAND_EXEC,
+			"mass erase device");
+
+	return ERROR_OK;
+}
+
+flash_driver_t avr_flash = {
+		.name = "avr",
+		.register_commands = &avrf_register_commands,
+		.flash_bank_command = &avrf_flash_bank_command,
+		.erase = &avrf_erase,
+		.protect = &avrf_protect,
+		.write = &avrf_write,
+		.probe = &avrf_probe,
+		.auto_probe = &avrf_auto_probe,
+		.erase_check = &default_flash_mem_blank_check,
+		.protect_check = &avrf_protect_check,
+		.info = &avrf_info,
+	};

@@ -29,16 +29,6 @@
 #include "time_support.h"
 
 
-static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int aduc702x_register_commands(struct command_context_s *cmd_ctx);
-static int aduc702x_erase(struct flash_bank_s *bank, int first, int last);
-static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int aduc702x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int aduc702x_write_single(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int aduc702x_probe(struct flash_bank_s *bank);
-static int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-static int aduc702x_protect_check(struct flash_bank_s *bank);
 static int aduc702x_build_sector_list(struct flash_bank_s *bank);
 static int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms);
 static int aduc702x_set_write_enable(target_t *target, int enable);
@@ -68,26 +58,6 @@ typedef struct
 {
 	working_area_t *write_algorithm;
 } aduc702x_flash_bank_t;
-
-flash_driver_t aduc702x_flash =
-{
-	.name = "aduc702x",
-	.register_commands = aduc702x_register_commands,
-	.flash_bank_command = aduc702x_flash_bank_command,
-	.erase = aduc702x_erase,
-	.protect = aduc702x_protect,
-	.write = aduc702x_write,
-	.probe = aduc702x_probe,
-	.auto_probe = aduc702x_probe,
-	.erase_check = default_flash_blank_check,
-	.protect_check = aduc702x_protect_check,
-	.info = aduc702x_info
-};
-
-static int aduc702x_register_commands(struct command_context_s *cmd_ctx)
-{
-	return ERROR_OK;
-}
 
 /* flash bank aduc702x 0 0 0 0 <target#>
  * The ADC7019-28 devices all have the same flash layout */
@@ -452,3 +422,15 @@ static int aduc702x_check_flash_completion(target_t* target, unsigned int timeou
         else return ERROR_OK;
 }
 
+flash_driver_t aduc702x_flash = {
+		.name = "aduc702x",
+		.flash_bank_command = &aduc702x_flash_bank_command,
+		.erase = &aduc702x_erase,
+		.protect = &aduc702x_protect,
+		.write = &aduc702x_write,
+		.probe = &aduc702x_probe,
+		.auto_probe = &aduc702x_probe,
+		.erase_check = &default_flash_blank_check,
+		.protect_check = &aduc702x_protect_check,
+		.info = &aduc702x_info
+	};
