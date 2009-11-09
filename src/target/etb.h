@@ -56,6 +56,6 @@ typedef struct etb_reg_s
 
 extern etm_capture_driver_t etb_capture_driver;
 
-extern reg_cache_t* etb_build_reg_cache(etb_t *etb);
+reg_cache_t* etb_build_reg_cache(etb_t *etb);
 
 #endif /* ETB_H */

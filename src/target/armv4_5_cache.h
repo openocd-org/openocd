@@ -42,10 +42,13 @@ typedef struct armv4_5_cache_common_s
 	int d_u_cache_enabled;
 } armv4_5_cache_common_t;
 
-extern int armv4_5_identify_cache(uint32_t cache_type_reg, armv4_5_cache_common_t *cache);
-extern int armv4_5_cache_state(uint32_t cp15_control_reg, armv4_5_cache_common_t *cache);
+int armv4_5_identify_cache(uint32_t cache_type_reg,
+		armv4_5_cache_common_t *cache);
+int armv4_5_cache_state(uint32_t cp15_control_reg,
+		armv4_5_cache_common_t *cache);
 
-extern int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx, armv4_5_cache_common_t *armv4_5_cache);
+int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx,
+		armv4_5_cache_common_t *armv4_5_cache);
 
 enum
 {

@@ -124,18 +124,32 @@ typedef struct mips32_core_reg_s
 #define MIPS32_SDBBP				0x7000003F
 #define MIPS16_SDBBP 				0xE801
 
-extern int mips32_arch_state(struct target_s *target);
-extern int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t *tap);
-extern int mips32_restore_context(target_t *target);
-extern int mips32_save_context(target_t *target);
-extern reg_cache_t *mips32_build_reg_cache(target_t *target);
-extern int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
-extern int mips32_configure_break_unit(struct target_s *target);
-extern int mips32_enable_interrupts(struct target_s *target, int enable);
-extern int mips32_examine(struct target_s *target);
+int mips32_arch_state(struct target_s *target);
 
-extern int mips32_register_commands(struct command_context_s *cmd_ctx);
-extern int mips32_invalidate_core_regs(target_t *target);
-extern int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size);
+int mips32_init_arch_info(target_t *target,
+		mips32_common_t *mips32, jtag_tap_t *tap);
+
+int mips32_restore_context(target_t *target);
+int mips32_save_context(target_t *target);
+
+reg_cache_t *mips32_build_reg_cache(target_t *target);
+
+int mips32_run_algorithm(struct target_s *target,
+		int num_mem_params, mem_param_t *mem_params,
+		int num_reg_params, reg_param_t *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info);
+
+int mips32_configure_break_unit(struct target_s *target);
+
+int mips32_enable_interrupts(struct target_s *target, int enable);
+
+int mips32_examine(struct target_s *target);
+
+int mips32_register_commands(struct command_context_s *cmd_ctx);
+
+int mips32_invalidate_core_regs(target_t *target);
+int mips32_get_gdb_reg_list(target_t *target,
+		reg_t **reg_list[], int *reg_list_size);
 
 #endif	/*MIPS32_H*/

@@ -51,34 +51,34 @@ enum arm9tdmi_vector
 	ARM9TDMI_FIQ_VECTOR = 0x80,
 };
 
-extern int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
-	struct target_s *target);
+int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
+		struct target_s *target);
 int arm9tdmi_examine(struct target_s *target);
-extern int arm9tdmi_init_arch_info(target_t *target,
-	arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap);
-extern int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
+int arm9tdmi_init_arch_info(target_t *target,
+		arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap);
+int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
-extern int arm9tdmi_clock_out(arm_jtag_t *jtag_info,
-	uint32_t instr, uint32_t out, uint32_t *in, int sysspeed);
-extern int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in);
-extern int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
-	void *in, int size, int be);
-extern void arm9tdmi_read_core_regs(target_t *target,
-	uint32_t mask, uint32_t* core_regs[16]);
-extern void arm9tdmi_write_core_regs(target_t *target,
-	uint32_t mask, uint32_t core_regs[16]);
+int arm9tdmi_clock_out(arm_jtag_t *jtag_info,
+		uint32_t instr, uint32_t out, uint32_t *in, int sysspeed);
+int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in);
+int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
+		void *in, int size, int be);
+void arm9tdmi_read_core_regs(target_t *target,
+		uint32_t mask, uint32_t* core_regs[16]);
+void arm9tdmi_write_core_regs(target_t *target,
+		uint32_t mask, uint32_t core_regs[16]);
 
-extern int arm9tdmi_examine_debug_reason(target_t *target);
+int arm9tdmi_examine_debug_reason(target_t *target);
 
-extern void arm9tdmi_load_word_regs(target_t *target, uint32_t mask);
-extern void arm9tdmi_load_hword_reg(target_t *target, int num);
-extern void arm9tdmi_load_byte_reg(target_t *target, int num);
-extern void arm9tdmi_store_word_regs(target_t *target, uint32_t mask);
-extern void arm9tdmi_store_hword_reg(target_t *target, int num);
-extern void arm9tdmi_store_byte_reg(target_t *target, int num);
+void arm9tdmi_load_word_regs(target_t *target, uint32_t mask);
+void arm9tdmi_load_hword_reg(target_t *target, int num);
+void arm9tdmi_load_byte_reg(target_t *target, int num);
+void arm9tdmi_store_word_regs(target_t *target, uint32_t mask);
+void arm9tdmi_store_hword_reg(target_t *target, int num);
+void arm9tdmi_store_byte_reg(target_t *target, int num);
 
-extern void arm9tdmi_branch_resume(target_t *target);
-extern void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc);
-extern void arm9tdmi_disable_single_step(target_t *target);
+void arm9tdmi_branch_resume(target_t *target);
+void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc);
+void arm9tdmi_disable_single_step(target_t *target);
 
 #endif /* ARM9TDMI_H */

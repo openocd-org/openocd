@@ -200,8 +200,10 @@ typedef enum
 	BR_RSVD7   = 0x7, /* reserved */
 } etmv1_branch_reason_t;
 
-extern reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_context_t *etm_ctx);
-extern int etm_setup(target_t *target);
+reg_cache_t* etm_build_reg_cache(target_t *target,
+		arm_jtag_t *jtag_info, etm_context_t *etm_ctx);
+
+int etm_setup(target_t *target);
 
 int etm_register_commands(struct command_context_s *cmd_ctx);
 

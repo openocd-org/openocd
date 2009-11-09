@@ -42,9 +42,17 @@ enum
 
 extern char* armv4_5_page_type_names[];
 
-extern uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap);
-extern int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-extern int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+uint32_t armv4_5_mmu_translate_va(target_t *target,
+		armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type,
+		uint32_t *cb, int *domain, uint32_t *ap);
+
+int armv4_5_mmu_read_physical(target_t *target,
+		armv4_5_mmu_common_t *armv4_5_mmu,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+
+int armv4_5_mmu_write_physical(target_t *target,
+		armv4_5_mmu_common_t *armv4_5_mmu,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 enum
 {

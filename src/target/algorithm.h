@@ -45,9 +45,12 @@ typedef struct reg_param_s
 	enum param_direction direction;
 } reg_param_t;
 
-extern void init_mem_param(mem_param_t *param, uint32_t address, uint32_t size, enum param_direction direction);
-extern void destroy_mem_param(mem_param_t *param);
-extern void init_reg_param(reg_param_t *param, char *reg_name, uint32_t size, enum param_direction direction);
-extern void destroy_reg_param(reg_param_t *param);
+void init_mem_param(mem_param_t *param,
+		uint32_t address, uint32_t size, enum param_direction dir);
+void destroy_mem_param(mem_param_t *param);
+
+void init_reg_param(reg_param_t *param,
+		char *reg_name, uint32_t size, enum param_direction dir);
+void destroy_reg_param(reg_param_t *param);
 
 #endif /* ALGORITHM_H */

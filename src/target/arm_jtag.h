@@ -36,9 +36,10 @@ typedef struct arm_jtag_s
 	uint32_t intest_instr;
 } arm_jtag_t;
 
-extern int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr, void *verify_capture);
-extern int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain);
-extern int arm_jtag_setup_connection(arm_jtag_t *jtag_info);
+int arm_jtag_set_instr(arm_jtag_t *jtag_info,
+		uint32_t new_instr, void *verify_capture);
+int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain);
+int arm_jtag_setup_connection(arm_jtag_t *jtag_info);
 
 /* JTAG buffers to host, be and le buffers, flipping variants */
 int arm_jtag_buf_to_u32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);

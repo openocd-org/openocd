@@ -58,12 +58,17 @@ typedef struct watchpoint_s
 	int unique_id;
 } watchpoint_t;
 
-extern void breakpoint_clear_target(struct target_s *target);
-extern int breakpoint_add(struct target_s *target, uint32_t address, uint32_t length, enum breakpoint_type type);
-extern void breakpoint_remove(struct target_s *target, uint32_t address);
-extern breakpoint_t* breakpoint_find(struct target_s *target, uint32_t address);
-extern int watchpoint_add(struct target_s *target, uint32_t address, uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask);
-extern void watchpoint_remove(struct target_s *target, uint32_t address);
-extern void watchpoint_clear_target(struct target_s *target);
+void breakpoint_clear_target(struct target_s *target);
+int breakpoint_add(struct target_s *target,
+		uint32_t address, uint32_t length, enum breakpoint_type type);
+void breakpoint_remove(struct target_s *target, uint32_t address);
+
+breakpoint_t* breakpoint_find(struct target_s *target, uint32_t address);
+
+void watchpoint_clear_target(struct target_s *target);
+int watchpoint_add(struct target_s *target,
+		uint32_t address, uint32_t length,
+		enum watchpoint_rw rw, uint32_t value, uint32_t mask);
+void watchpoint_remove(struct target_s *target, uint32_t address);
 
 #endif /* BREAKPOINTS_H */

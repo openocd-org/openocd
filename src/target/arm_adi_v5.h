@@ -111,39 +111,48 @@ static inline uint8_t dap_ap_get_select(swjdp_common_t *swjdp)
 }
 
 /* Internal functions used in the module, partial transactions, use with caution */
-extern int dap_dp_write_reg(swjdp_common_t *swjdp, uint32_t value, uint8_t reg_addr);
-/* extern int swjdp_write_apacc(swjdp_common_t *swjdp, uint32_t value, uint8_t reg_addr); */
-extern int dap_dp_read_reg(swjdp_common_t *swjdp, uint32_t *value, uint8_t reg_addr);
-/* extern int swjdp_read_apacc(swjdp_common_t *swjdp, uint32_t *value, uint8_t reg_addr); */
-extern int dap_setup_accessport(swjdp_common_t *swjdp, uint32_t csw, uint32_t tar);
-extern int dap_ap_select(swjdp_common_t *swjdp,uint8_t apsel);
+int dap_dp_write_reg(swjdp_common_t *swjdp, uint32_t value, uint8_t reg_addr);
+/* int swjdp_write_apacc(swjdp_common_t *swjdp, uint32_t value, uint8_t reg_addr); */
+int dap_dp_read_reg(swjdp_common_t *swjdp, uint32_t *value, uint8_t reg_addr);
+/* int swjdp_read_apacc(swjdp_common_t *swjdp, uint32_t *value, uint8_t reg_addr); */
+int dap_setup_accessport(swjdp_common_t *swjdp, uint32_t csw, uint32_t tar);
+int dap_ap_select(swjdp_common_t *swjdp,uint8_t apsel);
 
-extern int dap_ap_write_reg(swjdp_common_t *swjdp, uint32_t reg_addr, uint8_t* out_value_buf);
-extern int dap_ap_write_reg_u32(swjdp_common_t *swjdp, uint32_t reg_addr, uint32_t value);
-extern int dap_ap_read_reg(swjdp_common_t *swjdp, uint32_t reg_addr, uint8_t *in_value_buf);
-extern int dap_ap_read_reg_u32(swjdp_common_t *swjdp, uint32_t reg_addr, uint32_t *value);
+int dap_ap_write_reg(swjdp_common_t *swjdp, uint32_t addr, uint8_t* out_buf);
+int dap_ap_write_reg_u32(swjdp_common_t *swjdp, uint32_t addr, uint32_t value);
+int dap_ap_read_reg(swjdp_common_t *swjdp, uint32_t addr, uint8_t *in_buf);
+int dap_ap_read_reg_u32(swjdp_common_t *swjdp, uint32_t addr, uint32_t *value);
 
 /* External interface, partial operations must be completed with swjdp_transaction_endcheck() */
-extern int swjdp_transaction_endcheck(swjdp_common_t *swjdp);
+int swjdp_transaction_endcheck(swjdp_common_t *swjdp);
 
 /* MEM-AP memory mapped bus single uint32_t register transfers, without endcheck */
-extern int mem_ap_read_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value);
-extern int mem_ap_write_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value);
+int mem_ap_read_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value);
+int mem_ap_write_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value);
 
 /* MEM-AP memory mapped bus transfers, single registers, complete transactions */
-extern int mem_ap_read_atomic_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value);
-extern int mem_ap_write_atomic_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value);
+int mem_ap_read_atomic_u32(swjdp_common_t *swjdp,
+		uint32_t address, uint32_t *value);
+int mem_ap_write_atomic_u32(swjdp_common_t *swjdp,
+		uint32_t address, uint32_t value);
 
 /* MEM-AP memory mapped bus block transfers */
-extern int mem_ap_read_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address);
-extern int mem_ap_read_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address);
-extern int mem_ap_read_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address);
-extern int mem_ap_write_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address);
-extern int mem_ap_write_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address);
-extern int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address);
+int mem_ap_read_buf_u8(swjdp_common_t *swjdp,
+		uint8_t *buffer, int count, uint32_t address);
+int mem_ap_read_buf_u16(swjdp_common_t *swjdp,
+		uint8_t *buffer, int count, uint32_t address);
+int mem_ap_read_buf_u32(swjdp_common_t *swjdp,
+		uint8_t *buffer, int count, uint32_t address);
+
+int mem_ap_write_buf_u8(swjdp_common_t *swjdp,
+		uint8_t *buffer, int count, uint32_t address);
+int mem_ap_write_buf_u16(swjdp_common_t *swjdp,
+		uint8_t *buffer, int count, uint32_t address);
+int mem_ap_write_buf_u32(swjdp_common_t *swjdp,
+		uint8_t *buffer, int count, uint32_t address);
 
 /* Initialisation of the debug system, power domains and registers */
-extern int ahbap_debugport_init(swjdp_common_t *swjdp);
+int ahbap_debugport_init(swjdp_common_t *swjdp);
 
 
 /* Commands for user dap access */

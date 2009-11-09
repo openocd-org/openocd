@@ -50,7 +50,7 @@ enum armv7m_regtype
 	ARMV7M_REGISTER_MEMMAP
 };
 
-extern char *armv7m_exception_string(int number);
+char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
 enum
@@ -134,24 +134,31 @@ typedef struct armv7m_core_reg_s
 	armv7m_common_t *armv7m_common;
 } armv7m_core_reg_t;
 
-extern reg_cache_t *armv7m_build_reg_cache(target_t *target);
-extern enum armv7m_mode armv7m_number_to_mode(int number);
-extern int armv7m_mode_to_number(enum armv7m_mode mode);
+reg_cache_t *armv7m_build_reg_cache(target_t *target);
+enum armv7m_mode armv7m_number_to_mode(int number);
+int armv7m_mode_to_number(enum armv7m_mode mode);
 
-extern int armv7m_arch_state(struct target_s *target);
-extern int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size);
+int armv7m_arch_state(struct target_s *target);
+int armv7m_get_gdb_reg_list(target_t *target,
+		reg_t **reg_list[], int *reg_list_size);
 
-extern int armv7m_register_commands(struct command_context_s *cmd_ctx);
-extern int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m);
+int armv7m_register_commands(struct command_context_s *cmd_ctx);
+int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m);
 
-extern int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+int armv7m_run_algorithm(struct target_s *target,
+		int num_mem_params, mem_param_t *mem_params,
+		int num_reg_params, reg_param_t *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info);
 
-extern int armv7m_invalidate_core_regs(target_t *target);
+int armv7m_invalidate_core_regs(target_t *target);
 
-extern int armv7m_restore_context(target_t *target);
+int armv7m_restore_context(target_t *target);
 
-extern int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum);
-extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank);
+int armv7m_checksum_memory(struct target_s *target,
+		uint32_t address, uint32_t count, uint32_t* checksum);
+int armv7m_blank_check_memory(struct target_s *target,
+		uint32_t address, uint32_t count, uint32_t* blank);
 
 /* Thumb mode instructions
  */

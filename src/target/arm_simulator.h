@@ -37,12 +37,11 @@ struct arm_sim_interface
 	enum armv4_5_mode (*get_mode)(struct arm_sim_interface *sim);
 };
 
-
 /* armv4_5 version */
-extern int arm_simulate_step(struct target_s *target, uint32_t *dry_run_pc);
+int arm_simulate_step(struct target_s *target, uint32_t *dry_run_pc);
 
 /* a generic arm simulator. Caller must implement the sim interface */
-extern int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_sim_interface *sim);
-
+int arm_simulate_step_core(target_t *target,
+		uint32_t *dry_run_pc, struct arm_sim_interface *sim);
 
 #endif /* ARM_SIMULATOR_H */

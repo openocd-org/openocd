@@ -42,8 +42,9 @@ typedef struct debug_msg_receiver_s
 	struct debug_msg_receiver_s *next;
 } debug_msg_receiver_t;
 
-extern int target_request(target_t *target, uint32_t request);
-extern int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target);
-extern int target_request_register_commands(struct command_context_s *cmd_ctx);
+int target_request(target_t *target, uint32_t request);
+int delete_debug_msg_receiver(struct command_context_s *cmd_ctx,
+		target_t *target);
+int target_request_register_commands(struct command_context_s *cmd_ctx);
 
 #endif /* TARGET_REQUEST_H */

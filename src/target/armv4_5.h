@@ -108,7 +108,8 @@ typedef struct armv4_5_core_reg_s
 	armv4_5_common_t *armv4_5_common;
 } armv4_5_core_reg_t;
 
-extern reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5_common);
+reg_cache_t* armv4_5_build_reg_cache(target_t *target,
+		armv4_5_common_t *armv4_5_common);
 
 /* map psr mode bits to linear number */
 static __inline int armv4_5_mode_to_number(enum armv4_5_mode mode)
@@ -147,15 +148,20 @@ static __inline enum armv4_5_mode armv4_5_number_to_mode(int number)
 	}
 };
 
-extern int armv4_5_arch_state(struct target_s *target);
-extern int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size);
+int armv4_5_arch_state(struct target_s *target);
+int armv4_5_get_gdb_reg_list(target_t *target,
+		reg_t **reg_list[], int *reg_list_size);
 
-extern int armv4_5_register_commands(struct command_context_s *cmd_ctx);
-extern int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5);
+int armv4_5_register_commands(struct command_context_s *cmd_ctx);
+int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5);
 
-extern int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+int armv4_5_run_algorithm(struct target_s *target,
+		int num_mem_params, mem_param_t *mem_params,
+		int num_reg_params, reg_param_t *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info);
 
-extern int armv4_5_invalidate_core_regs(target_t *target);
+int armv4_5_invalidate_core_regs(target_t *target);
 
 /* ARM mode instructions
  */

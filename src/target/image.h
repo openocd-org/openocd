@@ -100,12 +100,16 @@ typedef struct image_mot_s
 	uint8_t *buffer;
 } image_mot_t;
 
-extern int image_open(image_t *image, char *url, char *type_string);
-extern int image_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read);
-extern void image_close(image_t *image);
-extern int image_add_section(image_t *image, uint32_t base, uint32_t size, int flags, uint8_t *data);
+int image_open(image_t *image, char *url, char *type_string);
+int image_read_section(image_t *image, int section, uint32_t offset,
+		uint32_t size, uint8_t *buffer, uint32_t *size_read);
+void image_close(image_t *image);
 
-extern int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes, uint32_t* checksum);
+int image_add_section(image_t *image, uint32_t base, uint32_t size,
+		int flags, uint8_t *data);
+
+int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes,
+		uint32_t* checksum);
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)

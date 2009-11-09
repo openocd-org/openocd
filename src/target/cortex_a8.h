@@ -143,8 +143,13 @@ target_to_cortex_a8(struct target_s *target)
 			armv7a_common.armv4_5_common);
 }
 
-extern int cortex_a8_init_arch_info(target_t *target, cortex_a8_common_t *cortex_a8, jtag_tap_t *tap);
-int cortex_a8_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int cortex_a8_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int cortex_a8_init_arch_info(target_t *target,
+		cortex_a8_common_t *cortex_a8, jtag_tap_t *tap);
+int cortex_a8_read_memory(struct target_s *target,
+		uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer);
+int cortex_a8_write_memory(struct target_s *target,
+		uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer);
 
 #endif /* CORTEX_A8_H */
