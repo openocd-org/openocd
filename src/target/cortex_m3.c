@@ -1837,7 +1837,7 @@ static const struct {
 
 static int
 handle_cortex_m3_vector_catch_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **argv, int argc)
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
@@ -1857,24 +1857,24 @@ handle_cortex_m3_vector_catch_command(struct command_context_s *cmd_ctx,
 		unsigned catch = 0;
 
 		if (argc == 1) {
-			if (strcmp(argv[0], "all") == 0) {
+			if (strcmp(args[0], "all") == 0) {
 				catch = VC_HARDERR | VC_INTERR | VC_BUSERR
 					| VC_STATERR | VC_CHKERR | VC_NOCPERR
 					| VC_MMERR | VC_CORERESET;
 				goto write;
-			} else if (strcmp(argv[0], "none") == 0) {
+			} else if (strcmp(args[0], "none") == 0) {
 				goto write;
 			}
 		}
 		while (argc-- > 0) {
 			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
-				if (strcmp(argv[argc], vec_ids[i].name) != 0)
+				if (strcmp(args[argc], vec_ids[i].name) != 0)
 					continue;
 				catch |= vec_ids[i].mask;
 				break;
 			}
 			if (i == ARRAY_SIZE(vec_ids)) {
-				LOG_ERROR("No CM3 vector '%s'", argv[argc]);
+				LOG_ERROR("No CM3 vector '%s'", args[argc]);
 				return ERROR_INVALID_ARGUMENTS;
 			}
 		}

@@ -630,7 +630,7 @@ static int davinci_read_page_ecc4infix(struct nand_device_s *nand, uint32_t page
 }
 
 static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **argv, int argc,
+		char *cmd, char **args, int argc,
 		struct nand_device_s *nand)
 {
 	struct davinci_nand *info;
@@ -650,36 +650,36 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 	if (argc < 5) {
 		LOG_ERROR("parameters: %s target "
 				"chip_addr hwecc_mode aemif_addr",
-				argv[0]);
+				args[0]);
 		goto fail;
 	}
 
-	target = get_target(argv[1]);
+	target = get_target(args[1]);
 	if (!target) {
-		LOG_ERROR("invalid target %s", argv[1]);
+		LOG_ERROR("invalid target %s", args[1]);
 		goto fail;
 	}
 
-	COMMAND_PARSE_NUMBER(ulong, argv[2], chip);
+	COMMAND_PARSE_NUMBER(ulong, args[2], chip);
 	if (chip == 0) {
-		LOG_ERROR("Invalid NAND chip address %s", argv[2]);
+		LOG_ERROR("Invalid NAND chip address %s", args[2]);
 		goto fail;
 	}
 
-	if (strcmp(argv[3], "hwecc1") == 0)
+	if (strcmp(args[3], "hwecc1") == 0)
 		eccmode = HWECC1;
-	else if (strcmp(argv[3], "hwecc4") == 0)
+	else if (strcmp(args[3], "hwecc4") == 0)
 		eccmode = HWECC4;
-	else if (strcmp(argv[3], "hwecc4_infix") == 0)
+	else if (strcmp(args[3], "hwecc4_infix") == 0)
 		eccmode = HWECC4_INFIX;
 	else {
-		LOG_ERROR("Invalid ecc mode %s", argv[3]);
+		LOG_ERROR("Invalid ecc mode %s", args[3]);
 		goto fail;
 	}
 
-	COMMAND_PARSE_NUMBER(ulong, argv[4], aemif);
+	COMMAND_PARSE_NUMBER(ulong, args[4], aemif);
 	if (aemif == 0) {
-		LOG_ERROR("Invalid AEMIF controller address %s", argv[4]);
+		LOG_ERROR("Invalid AEMIF controller address %s", args[4]);
 		goto fail;
 	}
 
