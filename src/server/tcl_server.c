@@ -36,9 +36,6 @@ typedef struct tcl_connection_s {
 
 static unsigned short tcl_port = 6666;
 
-/* commands */
-static int handle_tcl_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 /* handlers */
 static int tcl_new_connection(connection_t *connection);
 static int tcl_input(connection_t *connection);
@@ -173,14 +170,16 @@ int tcl_init(void)
 	return retval;
 }
 
-int tcl_register_commands(command_context_t *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "tcl_port", handle_tcl_port_command, COMMAND_CONFIG, "port on which to listen for incoming TCL syntax");
-	return ERROR_OK;
-}
-
 static int handle_tcl_port_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	return server_port_command(cmd_ctx, cmd, args, argc, &tcl_port);
+}
+
+int tcl_register_commands(command_context_t *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "tcl_port",
+			handle_tcl_port_command, COMMAND_CONFIG,
+			"port on which to listen for incoming TCL syntax");
+	return ERROR_OK;
 }

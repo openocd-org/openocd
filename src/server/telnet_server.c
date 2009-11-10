@@ -32,9 +32,6 @@
 
 static unsigned short telnet_port = 4444;
 
-int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 static char *negotiate =
 		"\xFF\xFB\x03"		/* IAC WILL Suppress Go Ahead */
 		"\xFF\xFB\x01"		/* IAC WILL Echo */
@@ -608,24 +605,30 @@ int telnet_init(char *banner)
 	return ERROR_OK;
 }
 
-int telnet_register_commands(command_context_t *command_context)
-{
-	register_command(command_context, NULL, "exit", handle_exit_command,
-					 COMMAND_EXEC, "exit telnet session");
-
-	register_command(command_context, NULL, "telnet_port", handle_telnet_port_command,
-					 COMMAND_ANY, "port on which to listen for incoming telnet connections");
-
-	return ERROR_OK;
-}
-
 /* daemon configuration command telnet_port */
-int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_telnet_port_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	return server_port_command(cmd_ctx, cmd, args, argc, &telnet_port);
 }
 
-int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_exit_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
+int telnet_register_commands(command_context_t *command_context)
+{
+	register_command(command_context, NULL, "exit",
+			&handle_exit_command, COMMAND_EXEC,
+			"exit telnet session");
+
+	register_command(command_context, NULL, "telnet_port",
+			&handle_telnet_port_command, COMMAND_ANY,
+			"port on which to listen for incoming telnet connections");
+
+	return ERROR_OK;
+}
+
+

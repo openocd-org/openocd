@@ -41,7 +41,6 @@ service_t *services = NULL;
 
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
 static int shutdown_openocd = 0;
-int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* set when using pipes rather than tcp */
 int server_use_pipes = 0;
@@ -534,21 +533,24 @@ int server_quit(void)
 	return ERROR_OK;
 }
 
-int server_register_commands(command_context_t *context)
-{
-	register_command(context, NULL, "shutdown", handle_shutdown_command,
-					 COMMAND_ANY, "shut the server down");
-
-	return ERROR_OK;
-}
-
 /* tell the server we want to shut down */
-int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_shutdown_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	shutdown_openocd = 1;
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
+int server_register_commands(command_context_t *context)
+{
+	register_command(context, NULL, "shutdown",
+			handle_shutdown_command, COMMAND_ANY,
+			"shut the server down");
+
+	return ERROR_OK;
+}
+
 
 int server_port_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc, unsigned short *out)

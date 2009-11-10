@@ -2249,7 +2249,7 @@ int gdb_init(void)
 	return ERROR_OK;
 }
 
-int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc != 0)
 	{
@@ -2269,12 +2269,12 @@ int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd, char *
 }
 
 /* daemon configuration command gdb_port */
-int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return server_port_command(cmd_ctx, cmd, args, argc, &gdb_port);
 }
 
-int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 1)
 	{
@@ -2295,7 +2295,7 @@ int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, 
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 1)
 	{
@@ -2316,7 +2316,7 @@ int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 1)
 	{
@@ -2338,7 +2338,7 @@ int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char
 }
 
 /* gdb_breakpoint_override */
-int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 	{
@@ -2373,17 +2373,25 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 
 int gdb_register_commands(command_context_t *command_context)
 {
-	register_command(command_context, NULL, "gdb_sync", handle_gdb_sync_command,
-			COMMAND_ANY, "next stepi will return immediately allowing GDB fetch register state without affecting target state");
-	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
-			COMMAND_ANY, "daemon configuration command gdb_port");
-	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
-			COMMAND_CONFIG, "enable or disable memory map");
-	register_command(command_context, NULL, "gdb_flash_program", handle_gdb_flash_program_command,
-			COMMAND_CONFIG, "enable or disable flash program");
-	register_command(command_context, NULL, "gdb_report_data_abort", handle_gdb_report_data_abort_command,
-			COMMAND_CONFIG, "enable or disable reporting data aborts");
-	register_command(command_context, NULL, "gdb_breakpoint_override", handle_gdb_breakpoint_override_command,
-			COMMAND_EXEC, "hard/soft/disable - force breakpoint type for gdb 'break' commands.");
+	register_command(command_context, NULL, "gdb_sync",
+			handle_gdb_sync_command, COMMAND_ANY,
+			"next stepi will return immediately allowing GDB to "
+			"fetch register state without affecting target state");
+	register_command(command_context, NULL, "gdb_port",
+			handle_gdb_port_command, COMMAND_ANY,
+			"daemon configuration command gdb_port");
+	register_command(command_context, NULL, "gdb_memory_map",
+			handle_gdb_memory_map_command, COMMAND_CONFIG,
+			"enable or disable memory map");
+	register_command(command_context, NULL, "gdb_flash_program",
+			handle_gdb_flash_program_command, COMMAND_CONFIG,
+			"enable or disable flash program");
+	register_command(command_context, NULL, "gdb_report_data_abort",
+			handle_gdb_report_data_abort_command, COMMAND_CONFIG,
+			"enable or disable reporting data aborts");
+	register_command(command_context, NULL, "gdb_breakpoint_override",
+			handle_gdb_breakpoint_override_command, COMMAND_EXEC,
+			"hard/soft/disable - force type of breakpoint "
+			"used by gdb 'break' commands.");
 	return ERROR_OK;
 }
