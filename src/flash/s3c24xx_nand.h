@@ -45,9 +45,19 @@ typedef struct s3c24xx_nand_controller_s
 #undef S3C2410_NFREG
 #define S3C2410_NFREG(x) ((x) + 0x4e000000)
 
-s3c24xx_nand_controller_t *s3c24xx_nand_device_command(
-			struct command_context_s *cmd_ctx, char *cmd,
-			char **args, int argc, struct nand_device_s *nand);
+#define S3C24XX_DEVICE_COMMAND() \
+		COMMAND_HELPER(s3c24xx_nand_device_command, \
+				struct nand_device_s *nand, \
+				s3c24xx_nand_controller_t **info)
+
+S3C24XX_DEVICE_COMMAND();
+
+#define CALL_S3C24XX_DEVICE_COMMAND(d, i) \
+	do { \
+		int retval = CALL_COMMAND_HANDLER(s3c24xx_nand_device_command, d, i); \
+		if (ERROR_OK != retval) \
+			return retval; \
+	} while (0)
 
 int s3c24xx_register_commands(struct command_context_s *cmd_ctx);
 

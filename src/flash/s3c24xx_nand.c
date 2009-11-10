@@ -31,17 +31,14 @@
 #include "s3c24xx_nand.h"
 
 
-s3c24xx_nand_controller_t *
-s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
-			    char **args, int argc,
-			    struct nand_device_s *nand)
+S3C24XX_DEVICE_COMMAND()
 {
 	s3c24xx_nand_controller_t *s3c24xx_info;
 
 	s3c24xx_info = malloc(sizeof(s3c24xx_nand_controller_t));
 	if (s3c24xx_info == NULL) {
 		LOG_ERROR("no memory for nand controller\n");
-		return NULL;
+		return -ENOMEM;
 	}
 
 	nand->controller_priv = s3c24xx_info;
@@ -49,10 +46,10 @@ s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 	s3c24xx_info->target = get_target(args[1]);
 	if (s3c24xx_info->target == NULL) {
 		LOG_ERROR("target '%s' not defined", args[1]);
-		return NULL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return s3c24xx_info;
+	return ERROR_OK;
 }
 
 int s3c24xx_register_commands(struct command_context_s *cmd_ctx)

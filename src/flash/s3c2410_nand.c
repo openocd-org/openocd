@@ -35,11 +35,7 @@ static int s3c2410_nand_device_command(struct command_context_s *cmd_ctx, char *
 				struct nand_device_s *nand)
 {
 	s3c24xx_nand_controller_t *info;
-
-	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, nand);
-	if (info == NULL) {
-		return ERROR_NAND_DEVICE_INVALID;
-	}
+	CALL_S3C24XX_DEVICE_COMMAND(nand, &info);
 
 	/* fill in the address fields for the core device */
 	info->cmd = S3C2410_NFCMD;
