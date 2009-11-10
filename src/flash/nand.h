@@ -29,10 +29,13 @@
 
 struct nand_device_s;
 
+#define __NAND_DEVICE_COMMAND(name) \
+		COMMAND_HELPER(name, struct nand_device_s *nand)
+
 typedef struct nand_flash_controller_s
 {
 	char *name;
-	int (*nand_device_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *nand);
+	__NAND_DEVICE_COMMAND((*nand_device_command));
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*init)(struct nand_device_s *nand);
 	int (*reset)(struct nand_device_s *nand);
@@ -47,6 +50,8 @@ typedef struct nand_flash_controller_s
 	int (*controller_ready)(struct nand_device_s *nand, int timeout);
 	int (*nand_ready)(struct nand_device_s *nand, int timeout);
 } nand_flash_controller_t;
+
+#define NAND_DEVICE_COMMAND_HANDLER(name) static __NAND_DEVICE_COMMAND(name)
 
 typedef struct nand_block_s
 {

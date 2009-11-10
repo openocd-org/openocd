@@ -125,9 +125,7 @@ static int orion_nand_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
-			      char **args, int argc,
-			      struct nand_device_s *nand)
+NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 {
 	orion_nand_controller_t *hw;
 	uint32_t base;

@@ -61,9 +61,7 @@ static int imx31_command (struct nand_device_s *nand, uint8_t command);
 static int imx31_address (struct nand_device_s *nand, uint8_t address);
 static int imx31_controller_ready (struct nand_device_s *nand, int tout);
 
-static int imx31_nand_device_command (struct command_context_s *cmd_ctx,
-				      char *cmd, char **args, int argc,
-				      struct nand_device_s *nand)
+NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 {
 	mx3_nf_controller_t *mx3_nf_info;
 	mx3_nf_info = malloc (sizeof (mx3_nf_controller_t));

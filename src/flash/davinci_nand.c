@@ -629,9 +629,7 @@ static int davinci_read_page_ecc4infix(struct nand_device_s *nand, uint32_t page
 	return ERROR_OK;
 }
 
-static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc,
-		struct nand_device_s *nand)
+NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 {
 	struct davinci_nand *info;
 	target_t *target;

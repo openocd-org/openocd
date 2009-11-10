@@ -31,9 +31,7 @@
 #include "s3c24xx_nand.h"
 
 
-static int s3c2440_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
-				char **args, int argc,
-				struct nand_device_s *nand)
+NAND_DEVICE_COMMAND_HANDLER(s3c2440_nand_device_command)
 {
 	s3c24xx_nand_controller_t *info;
 	CALL_S3C24XX_DEVICE_COMMAND(nand, &info);

@@ -29,7 +29,7 @@ static int lpc3180_controller_ready(struct nand_device_s *nand, int timeout);
 
 /* nand device lpc3180 <target#> <oscillator_frequency>
  */
-static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *nand)
+NAND_DEVICE_COMMAND_HANDLER(lpc3180_nand_device_command)
 {
 	if (argc < 3)
 	{
