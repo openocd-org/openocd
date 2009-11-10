@@ -88,7 +88,7 @@ typedef struct command_context_s
  */
 #define __COMMAND_HANDLER(name, extra...) \
 		int name(struct command_context_s *cmd_ctx, \
-				const char *cmd, char **args, unsigned argc, ##extra)
+				const char *cmd, const char *args[], unsigned argc, ##extra)
 
 /**
  * Use this to macro to call a command helper (or a nested handler).

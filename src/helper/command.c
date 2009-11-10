@@ -48,7 +48,7 @@ int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
 
 static int run_command(command_context_t *context,
-		command_t *c, char *words[], unsigned num_words);
+		command_t *c, const char *words[], unsigned num_words);
 
 static void tcl_output(void *privData, const char *file, unsigned line,
 		const char *function, const char *string)
@@ -141,7 +141,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	retval = run_command(context, c, words, nwords);
+	retval = run_command(context, c, (const char **)words, nwords);
 
 	log_remove_callback(tcl_output, tclOutput);
 
@@ -435,7 +435,7 @@ char *command_name(struct command_s *c, char delim)
 }
 
 static int run_command(command_context_t *context,
-		command_t *c, char *words[], unsigned num_words)
+		command_t *c, const char *words[], unsigned num_words)
 {
 	int start_word = 0;
 	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode)))
@@ -445,7 +445,9 @@ static int run_command(command_context_t *context,
 		return ERROR_FAIL;
 	}
 
-	int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
+	unsigned argc = num_words - start_word - 1;
+	const char **args = words + start_word + 1;
+	int retval = c->handler(context, c->name, args, argc);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
 		/* Print help for command */
