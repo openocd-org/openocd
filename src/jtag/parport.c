@@ -462,9 +462,7 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 	return ERROR_OK;
 }
 
-static int
-parport_handle_parport_toggling_time_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 {
 	if (argc == 1) {
 		uint32_t ns;

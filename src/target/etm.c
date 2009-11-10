@@ -1176,9 +1176,8 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 	return ERROR_OK;
 }
 
-static int handle_etm_tracemode_command_update(
-		struct command_context_s *cmd_ctx,
-		char **args, etmv1_tracemode_t *mode)
+static COMMAND_HELPER(handle_etm_tracemode_command_update,
+		etmv1_tracemode_t *mode)
 {
 	etmv1_tracemode_t tracemode;
 
@@ -1272,7 +1271,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	case 0:
 		break;
 	case 4:
-		handle_etm_tracemode_command_update(cmd_ctx, args, &tracemode);
+		handle_etm_tracemode_command_update(cmd_ctx, cmd, args, argc, &tracemode);
 		break;
 	default:
 		command_print(cmd_ctx, "usage: configure trace mode "

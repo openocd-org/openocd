@@ -81,8 +81,16 @@ int server_loop(command_context_t *command_context);
 
 int server_register_commands(command_context_t *context);
 
-int server_port_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc, unsigned short *port);
+/**
+ * Defines an extended command handler function declaration to enable
+ * access to (and manipulation of) the server port number.
+ * Call server_port like a normal COMMAND_HANDLER with an extra @a out parameter
+ * to receive the specified port number.
+ */
+#define SERVER_PORT_COMMAND() \
+		COMMAND_HELPER(server_port_command, unsigned short *out)
+
+SERVER_PORT_COMMAND();
 
 extern int server_use_pipes;
 

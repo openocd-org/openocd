@@ -1991,8 +1991,7 @@ static int arm11_build_reg_cache(target_t *target)
 	return ERROR_OK;
 }
 
-static int arm11_handle_bool(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc, bool * var, char * name)
+static COMMAND_HELPER(arm11_handle_bool, bool *var, char *name)
 {
 	if (argc == 0)
 	{
@@ -2143,7 +2142,7 @@ static int arm11_mcr(target_t *target, int cpnum,
 	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);
 }
 
-static int arm11_handle_etm_read_write(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool read)
+static COMMAND_HELPER(arm11_handle_etm_read_write, bool read)
 {
 	if (argc != (read ? 2 : 3))
 	{

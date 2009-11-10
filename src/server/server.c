@@ -551,8 +551,7 @@ int server_register_commands(command_context_t *context)
 }
 
 
-int server_port_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc, unsigned short *out)
+SERVER_PORT_COMMAND()
 {
 	switch (argc) {
 	case 0:
