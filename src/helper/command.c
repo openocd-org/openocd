@@ -770,6 +770,8 @@ command_context_t* command_init()
 	HostOs = "cygwin";
 #elif defined(__MINGW32__)
 	HostOs = "mingw32";
+#elif defined(__ECOS)
+	HostOs = "ecos";
 #else
 #warn unrecognized host OS...
 	HostOs = "other";
