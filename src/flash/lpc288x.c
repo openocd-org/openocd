@@ -84,17 +84,6 @@
 /* F_CLK_TIME */
 #define FCT_CLK_DIV_MASK    0x0FFF
 
-#if 0
-static int lpc288x_register_commands(struct command_context_s *cmd_ctx);
-static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-static int lpc288x_erase(struct flash_bank_s *bank, int first, int last);
-static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
-static int lpc288x_probe(struct flash_bank_s *bank);
-static int lpc288x_erase_check(struct flash_bank_s *bank);
-static int lpc288x_protect_check(struct flash_bank_s *bank);
-static int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-#endif
 static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
 static void lpc288x_load_timer(int erase, struct target_s *target);
 static void lpc288x_set_flash_clk(struct flash_bank_s *bank);

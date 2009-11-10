@@ -26,18 +26,6 @@
 #include "pld.h"
 
 
-static int virtex2_register_commands(struct command_context_s *cmd_ctx);
-static int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device);
-static int virtex2_load(struct pld_device_s *pld_device, char *filename);
-
-pld_driver_t virtex2_pld =
-{
-	.name = "virtex2",
-	.register_commands = virtex2_register_commands,
-	.pld_device_command = virtex2_pld_device_command,
-	.load = virtex2_load,
-};
-
 static int virtex2_set_instr(jtag_tap_t *tap, uint32_t new_instr)
 {
 	if (tap == NULL)
@@ -220,16 +208,6 @@ static int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int virtex2_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *virtex2_cmd = register_command(cmd_ctx, NULL, "virtex2", NULL, COMMAND_ANY, "virtex2 specific commands");
-
-	register_command(cmd_ctx, virtex2_cmd, "read_stat", virtex2_handle_read_stat_command, COMMAND_EXEC,
-					 "read Virtex-II status register");
-
-	return ERROR_OK;
-}
-
 static int virtex2_pld_device_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc, struct pld_device_s *pld_device)
 {
@@ -255,3 +233,22 @@ static int virtex2_pld_device_command(struct command_context_s *cmd_ctx,
 
 	return ERROR_OK;
 }
+
+static int virtex2_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *virtex2_cmd = register_command(cmd_ctx, NULL, "virtex2",
+			NULL, COMMAND_ANY, "virtex2 specific commands");
+
+	register_command(cmd_ctx, virtex2_cmd, "read_stat",
+			&virtex2_handle_read_stat_command, COMMAND_EXEC,
+			"read Virtex-II status register");
+
+	return ERROR_OK;
+}
+
+pld_driver_t virtex2_pld = {
+		.name = "virtex2",
+		.register_commands = &virtex2_register_commands,
+		.pld_device_command = &virtex2_pld_device_command,
+		.load = &virtex2_load,
+	};

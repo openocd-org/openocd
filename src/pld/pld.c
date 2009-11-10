@@ -39,26 +39,6 @@ static pld_driver_t *pld_drivers[] =
 static pld_device_t *pld_devices;
 static command_t *pld_cmd;
 
-static int handle_pld_devices_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc);
-static int handle_pld_device_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc);
-static int handle_pld_load_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc);
-
-int pld_init(struct command_context_s *cmd_ctx)
-{
-	if (pld_devices)
-	{
-		register_command(cmd_ctx, pld_cmd, "devices", handle_pld_devices_command, COMMAND_EXEC,
-						"list configured pld devices");
-		register_command(cmd_ctx, pld_cmd, "load", handle_pld_load_command, COMMAND_EXEC,
-						"load configuration <file> into programmable logic device");
-	}
-
-	return ERROR_OK;
-}
-
 pld_device_t *get_pld_device_by_num(int num)
 {
 	pld_device_t *p;
@@ -202,6 +182,21 @@ static int handle_pld_load_command(struct command_context_s *cmd_ctx,
 			args[1], dev_id,
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
+
+	return ERROR_OK;
+}
+
+int pld_init(struct command_context_s *cmd_ctx)
+{
+	if (!pld_devices)
+		return ERROR_OK;
+
+	register_command(cmd_ctx, pld_cmd, "devices",
+			handle_pld_devices_command, COMMAND_EXEC,
+			"list configured pld devices");
+	register_command(cmd_ctx, pld_cmd, "load",
+			handle_pld_load_command, COMMAND_EXEC,
+			"load configuration <file> into programmable logic device");
 
 	return ERROR_OK;
 }

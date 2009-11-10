@@ -42,8 +42,6 @@ static int etb_reg_arch_type = -1;
 
 static int etb_get_reg(reg_t *reg);
 
-static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 static int etb_set_instr(etb_t *etb, uint32_t new_instr)
 {
 	jtag_tap_t *tap;
@@ -351,17 +349,6 @@ static int etb_write_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-static int etb_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *etb_cmd;
-
-	etb_cmd = register_command(cmd_ctx, NULL, "etb", NULL, COMMAND_ANY, "Embedded Trace Buffer");
-
-	register_command(cmd_ctx, etb_cmd, "config", handle_etb_config_command, COMMAND_CONFIG, NULL);
-
-	return ERROR_OK;
-}
-
 static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
@@ -412,6 +399,18 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 		LOG_ERROR("ETM: target has no ETM defined, ETB left unconfigured");
 		return ERROR_FAIL;
 	}
+
+	return ERROR_OK;
+}
+
+static int etb_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *etb_cmd = register_command(cmd_ctx, NULL, "etb",
+			NULL, COMMAND_ANY, "Embedded Trace Buffer");
+
+	register_command(cmd_ctx, etb_cmd, "config",
+			handle_etb_config_command, COMMAND_CONFIG,
+			NULL);
 
 	return ERROR_OK;
 }

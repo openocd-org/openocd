@@ -57,40 +57,9 @@ static int poll_for_complete_op (target_t * target, const char *text);
 static int validate_target_state (struct nand_device_s *device);
 static int do_data_output (struct nand_device_s *device);
 
-static int imx31_nand_device_command (struct command_context_s *cmd_ctx,
-				      char *cmd, char **args, int argc,
-				      struct nand_device_s *device);
-static int imx31_init (struct nand_device_s *device);
-static int imx31_read_data (struct nand_device_s *device, void *data);
-static int imx31_write_data (struct nand_device_s *device, uint16_t data);
-static int imx31_nand_ready (struct nand_device_s *device, int timeout);
-static int imx31_register_commands (struct command_context_s *cmd_ctx);
-static int imx31_reset (struct nand_device_s *device);
 static int imx31_command (struct nand_device_s *device, uint8_t command);
 static int imx31_address (struct nand_device_s *device, uint8_t address);
 static int imx31_controller_ready (struct nand_device_s *device, int tout);
-static int imx31_write_page (struct nand_device_s *device, uint32_t page,
-			     uint8_t * data, uint32_t data_size, uint8_t * oob,
-			     uint32_t oob_size);
-static int imx31_read_page (struct nand_device_s *device, uint32_t page,
-			    uint8_t * data, uint32_t data_size, uint8_t * oob,
-			    uint32_t oob_size);
-
-nand_flash_controller_t imx31_nand_flash_controller = {
-	.name = "imx31",
-	.nand_device_command = imx31_nand_device_command,
-	.register_commands = imx31_register_commands,
-	.init = imx31_init,
-	.reset = imx31_reset,
-	.command = imx31_command,
-	.address = imx31_address,
-	.write_data = imx31_write_data,
-	.read_data = imx31_read_data,
-	.write_page = imx31_write_page,
-	.read_page = imx31_read_page,
-	.controller_ready = imx31_controller_ready,
-	.nand_ready = imx31_nand_ready,
-};
 
 static int imx31_nand_device_command (struct command_context_s *cmd_ctx,
 				      char *cmd, char **args, int argc,
@@ -900,3 +869,19 @@ static int do_data_output (struct nand_device_s *device)
 	}
 	return ERROR_OK;
 }
+
+nand_flash_controller_t imx31_nand_flash_controller = {
+		.name = "imx31",
+		.nand_device_command = &imx31_nand_device_command,
+		.register_commands = &imx31_register_commands,
+		.init = &imx31_init,
+		.reset = &imx31_reset,
+		.command = &imx31_command,
+		.address = &imx31_address,
+		.write_data = &imx31_write_data,
+		.read_data = &imx31_read_data,
+		.write_page = &imx31_write_page,
+		.read_page = &imx31_read_page,
+		.controller_ready = &imx31_controller_ready,
+		.nand_ready = &imx31_nand_ready,
+	};
