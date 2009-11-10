@@ -59,6 +59,9 @@ typedef struct flash_sector_s
 
 struct flash_bank_s;
 
+#define __FLASH_BANK_COMMAND(name) \
+		COMMAND_HELPER(name, struct flash_bank_s *bank)
+
 /**
  * @brief Provides the implementation-independent structure that defines
  * all of the callbacks required by OpenOCD flash drivers.
@@ -121,8 +124,7 @@ typedef struct flash_driver_s
 	 *
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*flash_bank_command)(struct command_context_s *cmd_ctx,
-			char *cmd, char **args, int argc, struct flash_bank_s *bank);
+	__FLASH_BANK_COMMAND((*flash_bank_command));
 
 	/**
 	 * Bank/sector erase routine (target-specific).  When
@@ -223,6 +225,8 @@ typedef struct flash_driver_s
 	 */
 	int (*auto_probe)(struct flash_bank_s *bank);
 } flash_driver_t;
+
+#define FLASH_BANK_COMMAND_HANDLER(name) static __FLASH_BANK_COMMAND(name)
 
 /**
  * Provides details of a flash bank, available either on-chip or through
