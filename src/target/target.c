@@ -663,13 +663,13 @@ void target_reset_examined(struct target_s *target)
 
 static int default_mrc(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
-	LOG_ERROR("Not implemented");
+	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
 }
 
 static int default_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
-	LOG_ERROR("Not implemented");
+	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
 }
 
@@ -737,18 +737,21 @@ int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, u
 	return target->type->mcr(target, cpnum, op1, op2, CRn, CRm, value);
 }
 
-static int default_read_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int
+default_read_phys_memory(struct target_s *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	LOG_ERROR("Not implemented");
+	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
 }
 
-static int default_write_phys_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int
+default_write_phys_memory(struct target_s *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	LOG_ERROR("Not implemented");
+	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
 }
-
 
 int target_init(struct command_context_s *cmd_ctx)
 {
