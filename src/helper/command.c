@@ -47,9 +47,6 @@
 int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
 
-int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 int run_command(command_context_t *context, command_t *c, char *words[], int num_words);
 
 static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
@@ -688,6 +685,54 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return retcode;
 }
 
+/* sleep command sleeps for <n> miliseconds
+ * this is useful in target startup scripts
+ */
+static int handle_sleep_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	bool busy = false;
+	if (argc == 2)
+	{
+		if (strcmp(args[1], "busy") == 0)
+			busy = true;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	else if (argc < 1 || argc > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	unsigned long duration = 0;
+	int retval = parse_ulong(args[0], &duration);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (!busy)
+	{
+		long long then = timeval_ms();
+		while (timeval_ms() - then < (long long)duration)
+		{
+			target_call_timer_callbacks_now();
+			usleep(1000);
+		}
+	}
+	else
+		busy_sleep(duration);
+
+	return ERROR_OK;
+}
+
+static int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	fast_and_dangerous = strcmp("enable", args[0]) == 0;
+
+	return ERROR_OK;
+}
+
+
 command_context_t* command_init()
 {
 	command_context_t* context = malloc(sizeof(command_context_t));
@@ -774,53 +819,6 @@ int command_context_mode(command_context_t *cmd_ctx, enum command_mode mode)
 		return ERROR_INVALID_ARGUMENTS;
 
 	cmd_ctx->mode = mode;
-	return ERROR_OK;
-}
-
-/* sleep command sleeps for <n> miliseconds
- * this is useful in target startup scripts
- */
-int handle_sleep_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
-{
-	bool busy = false;
-	if (argc == 2)
-	{
-		if (strcmp(args[1], "busy") == 0)
-			busy = true;
-		else
-			return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	else if (argc < 1 || argc > 2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	unsigned long duration = 0;
-	int retval = parse_ulong(args[0], &duration);
-	if (ERROR_OK != retval)
-		return retval;
-
-	if (!busy)
-	{
-		long long then = timeval_ms();
-		while (timeval_ms() - then < (long long)duration)
-		{
-			target_call_timer_callbacks_now();
-			usleep(1000);
-		}
-	}
-	else
-		busy_sleep(duration);
-
-	return ERROR_OK;
-}
-
-int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	fast_and_dangerous = strcmp("enable", args[0]) == 0;
-
 	return ERROR_OK;
 }
 
