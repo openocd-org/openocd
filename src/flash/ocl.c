@@ -44,7 +44,7 @@ static int ocl_protect_check(struct flash_bank_s *bank)
 }
 
 /* flash_bank ocl 0 0 0 0 <target#> */
-static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 {
 	int retval;
 	armv4_5_common_t *armv4_5;

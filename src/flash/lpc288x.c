@@ -165,7 +165,7 @@ static int lpc288x_protect_check(struct flash_bank_s *bank)
 }
 
 /* flash_bank LPC288x 0 0 0 0 <target#> <cclk> */
-static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(lpc288x_flash_bank_command)
 {
 	lpc288x_flash_bank_t *lpc288x_info;
 

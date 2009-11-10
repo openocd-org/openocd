@@ -180,7 +180,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 	return ERROR_OK;
 }
 
-static int avrf_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 {
 	avrf_flash_bank_t *avrf_info;
 

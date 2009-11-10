@@ -601,7 +601,7 @@ static int cfi_register_commands(struct command_context_s *cmd_ctx)
 
 /* flash_bank cfi <base> <size> <chip_width> <bus_width> <target#> [options]
  */
-static int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 {
 	cfi_flash_bank_t *cfi_info;
 	int i;

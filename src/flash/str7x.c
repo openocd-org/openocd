@@ -109,7 +109,7 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 
 /* flash bank str7x <base> <size> 0 0 <target#> <str71_variant>
  */
-static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(str7x_flash_bank_command)
 {
 	str7x_flash_bank_t *str7x_info;
 

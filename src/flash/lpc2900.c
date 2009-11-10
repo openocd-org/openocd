@@ -1016,9 +1016,7 @@ static int lpc2900_register_commands(struct command_context_s *cmd_ctx)
 
 
 /// Evaluate flash bank command.
-static int lpc2900_flash_bank_command(struct command_context_s *cmd_ctx,
-                                      char *cmd, char **args, int argc,
-                                      struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 {
 	lpc2900_flash_bank_t *lpc2900_info;
 

@@ -1641,12 +1641,7 @@ sam3_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int
-sam3_flash_bank_command(struct command_context_s *cmd_ctx,
-			    char *cmd,
-			    char **args,
-			    int argc,
-			    struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 {
 	struct sam3_chip *pChip;
 

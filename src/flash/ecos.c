@@ -104,7 +104,7 @@ flash_errmsg(int err)
 
 /* flash bank ecosflash <base> <size> <chip_width> <bus_width> <target#> <driverPath>
  */
-static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 {
 	ecosflash_flash_bank_t *info;
 

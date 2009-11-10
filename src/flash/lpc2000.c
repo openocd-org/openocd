@@ -419,7 +419,7 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
 /*
  * flash bank lpc2000 <base> <size> 0 0 <target#> <lpc_variant> <cclk> [calc_checksum]
  */
-static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 {
 	lpc2000_flash_bank_t *lpc2000_info;
 

@@ -235,7 +235,7 @@ static int str9xpec_build_block_list(struct flash_bank_s *bank)
 
 /* flash bank str9x <base> <size> 0 0 <target#>
  */
-static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 {
 	str9xpec_flash_controller_t *str9xpec_info;
 	armv4_5_common_t *armv4_5 = NULL;

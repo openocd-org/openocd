@@ -33,7 +33,7 @@ static int stm32x_mass_erase(struct flash_bank_s *bank);
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
-static int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 {
 	stm32x_flash_bank_t *stm32x_info;
 

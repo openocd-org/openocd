@@ -1222,7 +1222,7 @@ static int tms470_info(struct flash_bank_s *bank, char *buf, int buf_size)
  * [options...]
  */
 
-static int tms470_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(tms470_flash_bank_command)
 {
 	bank->driver_priv = malloc(sizeof(tms470_flash_bank_t));
 

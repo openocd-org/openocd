@@ -37,7 +37,7 @@ static const int sectorSize = 0x10000;
 
 /* flash bank faux <base> <size> <chip_width> <bus_width> <target#> <driverPath>
  */
-static int faux_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 {
 	faux_flash_bank_t *info;
 

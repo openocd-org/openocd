@@ -711,7 +711,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 {
 	flash_bank_t *t_bank = bank;
 	at91sam7_flash_bank_t *at91sam7_info;

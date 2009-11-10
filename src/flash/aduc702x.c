@@ -61,7 +61,7 @@ typedef struct
 
 /* flash bank aduc702x 0 0 0 0 <target#>
  * The ADC7019-28 devices all have the same flash layout */
-static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+FLASH_BANK_COMMAND_HANDLER(aduc702x_flash_bank_command)
 {
 	aduc702x_flash_bank_t *nbank;
 
