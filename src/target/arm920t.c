@@ -460,6 +460,25 @@ int arm920t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
+static int arm920_mmu(struct target_s *target, int *enabled)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("%s: target not halted", __func__);
+		return ERROR_TARGET_INVALID;
+	}
+
+	*enabled = target_to_arm920(target)->armv4_5_mmu.mmu_enabled;
+	return ERROR_OK;
+}
+
+static int arm920_virt2phys(struct target_s *target,
+		uint32_t virt, uint32_t *phys)
+{
+	/** @todo Implement this!  */
+	LOG_ERROR("%s: not implemented", __func__);
+	return ERROR_FAIL;
+}
+
 /** Reads a buffer, in the specified word size, with current MMU settings. */
 int arm920t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -1389,6 +1408,9 @@ target_type_t arm920t_target =
 	.write_memory = arm920t_write_memory,
 	.read_phys_memory = arm920t_read_phys_memory,
 	.write_phys_memory = arm920t_write_phys_memory,
+	.mmu = arm920_mmu,
+	.virt2phys = arm920_virt2phys,
+
 	.bulk_write_memory = arm7_9_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
 	.blank_check_memory = arm7_9_blank_check_memory,
