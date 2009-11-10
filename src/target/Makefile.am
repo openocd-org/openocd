@@ -25,90 +25,115 @@ $(DEBUG_HEADER): $(BIN2C) $(DEBUG_HANDLER)
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la
 libtarget_la_SOURCES = \
-	target.c \
-	register.c \
-	breakpoints.c \
-	armv4_5.c \
-	embeddedice.c \
-	etm.c \
-	arm7tdmi.c \
-	arm9tdmi.c \
-	arm_jtag.c \
-	arm7_9_common.c \
+	$(TARGET_CORE_SRC) \
+	$(ARM_DEBUG_SRC) \
+	$(ARMV4_5_SRC) \
+	$(ARMV6_SRC) \
+	$(ARMV7_SRC) \
+	$(ARM_MISC_SRC) \
+	$(MIPS32_SRC) \
+	avrt.c
+
+TARGET_CORE_SRC = \
 	algorithm.c \
-	arm920t.c \
-	arm720t.c \
+	register.c \
+	image.c \
+	breakpoints.c \
+	target.c \
+	target_request.c
+
+ARMV4_5_SRC = \
+	armv4_5.c \
 	armv4_5_mmu.c \
 	armv4_5_cache.c \
-	arm_disassembler.c \
+	$(ARM7_9_SRC)
+
+ARM7_9_SRC = \
+	arm7_9_common.c \
+	arm7tdmi.c \
+	arm720t.c \
+	arm9tdmi.c \
+	arm920t.c \
 	arm966e.c \
-	arm926ejs.c \
+	arm926ejs.c
+
+ARM_MISC_SRC = \
 	fa526.c \
 	feroceon.c \
-	etb.c \
-	xscale.c \
-	arm_simulator.c \
-	image.c \
-	armv7m.c \
-	armv7a.c \
-	cortex_m3.c \
-	cortex_a8.c \
-	arm_adi_v5.c \
-	etm_dummy.c \
-	$(OOCD_TRACE_FILES) \
-	target_request.c \
-	trace.c \
+	xscale.c
+
+ARMV6_SRC = \
 	arm11.c \
-	arm11_dbgtap.c \
+	arm11_dbgtap.c
+
+ARMV7_SRC = \
+	armv7m.c \
+	cortex_m3.c \
+	armv7a.c \
+	cortex_a8.c
+
+ARM_DEBUG_SRC = \
+	arm_jtag.c \
+	arm_disassembler.c \
+	arm_simulator.c \
+	arm_adi_v5.c \
+	embeddedice.c \
+	trace.c \
+	etb.c \
+	etm.c \
+	$(OOCD_TRACE_FILES) \
+	etm_dummy.c
+
+MIPS32_SRC = \
 	mips32.c \
 	mips_m4k.c \
 	mips32_pracc.c \
 	mips32_dmaacc.c \
-	mips_ejtag.c \
-	avrt.c
+	mips_ejtag.c
+
 
 noinst_HEADERS = \
-	target.h \
-	target_type.h \
-	trace.h \
-	register.h \
-	armv4_5.h \
-	embeddedice.h \
-	etm.h \
-	arm7tdmi.h \
-	arm9tdmi.h \
+	algorithm.h \
 	arm_jtag.h \
+	arm_adi_v5.h \
+	arm_disassembler.h \
+	arm_simulator.h \
 	arm7_9_common.h \
-	arm920t.h \
+	arm7tdmi.h \
 	arm720t.h \
+	arm9tdmi.h \
+	arm920t.h \
+	arm926ejs.h \
+	arm966e.h \
+	arm11.h \
+	armv4_5.h \
 	armv4_5_mmu.h \
 	armv4_5_cache.h \
-	breakpoints.h \
-	algorithm.h \
-	arm_disassembler.h \
-	arm966e.h \
-	arm926ejs.h \
-	etb.h \
-	xscale.h \
-	xscale_debug.h \
-	arm_simulator.h \
-	image.h \
-	armv7m.h \
 	armv7a.h \
+	armv7m.h \
+	avrt.h \
+	breakpoints.h \
 	cortex_m3.h \
 	cortex_a8.h \
-	arm_adi_v5.h \
+	embeddedice.h \
+	etb.h \
+	etm.h \
 	etm_dummy.h \
-	oocd_trace.h \
-	target_request.h \
-	trace.h \
-	arm11.h \
+	image.h \
 	mips32.h \
 	mips_m4k.h \
 	mips_ejtag.h \
 	mips32_pracc.h \
 	mips32_dmaacc.h \
-	avrt.h
+	oocd_trace.h \
+	register.h \
+	target.h \
+	target_type.h \
+	trace.h \
+	target_request.h \
+	trace.h \
+	xscale.h \
+	xscale_debug.h
 
 nobase_dist_pkglib_DATA =
 nobase_dist_pkglib_DATA += ecos/at91eb40a.elf
