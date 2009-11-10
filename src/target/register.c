@@ -30,7 +30,8 @@
 
 reg_arch_type_t *reg_arch_types = NULL;
 
-reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_all)
+reg_t* register_get_by_name(reg_cache_t *first,
+		const char *name, bool search_all)
 {
 	int i;
 	reg_cache_t *cache = first;

@@ -29,7 +29,7 @@ typedef struct pld_driver_s
 	char *name;
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*pld_device_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device);
-	int (*load)(struct pld_device_s *pld_device, char *filename);
+	int (*load)(struct pld_device_s *pld_device, const char *filename);
 } pld_driver_t;
 
 typedef struct pld_device_s

@@ -326,7 +326,7 @@ flash_bank_t *get_flash_bank_by_num(int num);
  * @returns ERROR_OK on success, or an error indicating the problem.
  */
 int flash_command_get_bank_by_num(struct command_context_s *cmd_ctx,
-		char *str, flash_bank_t **bank);
+		const char *str, flash_bank_t **bank);
 /**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.
  * @param num The flash bank number.

@@ -100,7 +100,7 @@ typedef struct image_mot_s
 	uint8_t *buffer;
 } image_mot_t;
 
-int image_open(image_t *image, char *url, char *type_string);
+int image_open(image_t *image, const char *url, const char *type_string);
 int image_read_section(image_t *image, int section, uint32_t offset,
 		uint32_t size, uint8_t *buffer, uint32_t *size_read);
 void image_close(image_t *image);

@@ -2928,7 +2928,7 @@ static void writeString(FILE *f, char *s)
 }
 
 /* Dump a gmon.out histogram file. */
-static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
+static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filename)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "w");

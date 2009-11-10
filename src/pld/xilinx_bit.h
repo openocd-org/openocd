@@ -33,6 +33,6 @@ typedef struct xilinx_bit_file_s
 	uint8_t *data;
 } xilinx_bit_file_t;
 
-int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, char *filename);
+int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, const char *filename);
 
 #endif /* XILINX_BIT_H */

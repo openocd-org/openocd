@@ -62,7 +62,8 @@ typedef struct reg_arch_type_s
 	struct reg_arch_type_s *next;
 } reg_arch_type_t;
 
-reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_all);
+reg_t* register_get_by_name(reg_cache_t *first,
+		const char *name, bool search_all);
 reg_cache_t** register_get_last_cache_p(reg_cache_t **first);
 
 int register_reg_arch_type(int (*get)(reg_t *reg),

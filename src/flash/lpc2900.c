@@ -635,7 +635,7 @@ static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx
 
 	/* Try and open the file */
 	fileio_t fileio;
-	char *filename = args[1];
+	const char *filename = args[1];
 	int ret = fileio_open( &fileio, filename, FILEIO_WRITE, FILEIO_BINARY );
 	if( ret != ERROR_OK )
 	{
@@ -747,8 +747,8 @@ static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ct
 	image.base_address = 0;
 	image.start_address_set = 0;
 
-	char *filename = args[1];
-	char *type = (argc >= 3) ? args[2] : NULL;
+	const char *filename = args[1];
+	const char *type = (argc >= 3) ? args[2] : NULL;
 	retval = image_open(&image, filename, type);
 	if (retval != ERROR_OK)
 	{

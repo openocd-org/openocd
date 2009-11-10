@@ -202,7 +202,6 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int		tdo_mismatch = 0;
 	int		result;
 	int		verbose = 1;
-	char		*filename;
 
 	bool		collecting_path = false;
 	tap_state_t	path[XSTATE_MAX_PATH];
@@ -226,7 +225,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_FAIL;
 	}
 
-	filename = args[1];		/* we mess with args starting point below, snapshot filename here */
+	/* we mess with args starting point below, snapshot filename here */
+	const char *filename = args[1];
 
 	if (strcmp(args[0], "plain") != 0)
 	{

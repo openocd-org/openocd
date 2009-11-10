@@ -304,7 +304,7 @@ nand_device_t *get_nand_device_by_num(int num)
 }
 
 int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
-		char *str, nand_device_t **device)
+		const char *str, nand_device_t **device)
 {
 	unsigned num;
 	COMMAND_PARSE_NUMBER(uint, str, num);

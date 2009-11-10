@@ -44,7 +44,7 @@
 	((elf->endianness == ELFDATA2LSB)? \
 		le_to_h_u32((uint8_t*)&field):be_to_h_u32((uint8_t*)&field))
 
-static int autodetect_image_type(image_t *image, char *url)
+static int autodetect_image_type(image_t *image, const char *url)
 {
 	int retval;
 	fileio_t fileio;
@@ -106,7 +106,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	return ERROR_OK;
 }
 
-static int identify_image_type(image_t *image, char *type_string, char *url)
+static int identify_image_type(image_t *image, const char *type_string, const char *url)
 {
 	if (type_string)
 	{
@@ -669,7 +669,7 @@ static int image_mot_buffer_complete(image_t *image)
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
-int image_open(image_t *image, char *url, char *type_string)
+int image_open(image_t *image, const char *url, const char *type_string)
 {
 	int retval = ERROR_OK;
 

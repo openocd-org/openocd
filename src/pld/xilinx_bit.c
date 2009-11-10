@@ -75,7 +75,7 @@ static int read_section(FILE *input_file, int length_size, char section,
 	return ERROR_OK;
 }
 
-int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, char *filename)
+int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, const char *filename)
 {
 	FILE *input_file;
 	struct stat input_stat;

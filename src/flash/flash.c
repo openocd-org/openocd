@@ -199,7 +199,7 @@ flash_bank_t *get_flash_bank_by_num(int num)
 }
 
 int flash_command_get_bank_by_num(
-	struct command_context_s *cmd_ctx, char *str, flash_bank_t **bank)
+	struct command_context_s *cmd_ctx, const char *str, flash_bank_t **bank)
 {
 	unsigned bank_num;
 	COMMAND_PARSE_NUMBER(uint, str, bank_num);
