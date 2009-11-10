@@ -207,8 +207,7 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	return ERROR_OK;
 }
 
-static int virtex2_pld_device_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc, struct pld_device_s *pld_device)
+PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 {
 	jtag_tap_t *tap;
 
@@ -227,8 +226,9 @@ static int virtex2_pld_device_command(struct command_context_s *cmd_ctx,
 	}
 
 	virtex2_info = malloc(sizeof(virtex2_pld_device_t));
-	pld_device->driver_priv = virtex2_info;
 	virtex2_info->tap = tap;
+
+	pld->driver_priv = virtex2_info;
 
 	return ERROR_OK;
 }

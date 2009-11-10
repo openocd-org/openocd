@@ -24,13 +24,18 @@
 
 struct pld_device_s;
 
+#define __PLD_DEVICE_COMMAND(name) \
+		COMMAND_HELPER(name, struct pld_device_s *pld)
+
 typedef struct pld_driver_s
 {
 	char *name;
+	__PLD_DEVICE_COMMAND((*pld_device_command));
 	int (*register_commands)(struct command_context_s *cmd_ctx);
-	int (*pld_device_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device);
 	int (*load)(struct pld_device_s *pld_device, const char *filename);
 } pld_driver_t;
+
+#define PLD_DEVICE_COMMAND_HANDLER(name) static __PLD_DEVICE_COMMAND(name)
 
 typedef struct pld_device_s
 {
