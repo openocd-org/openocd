@@ -1364,8 +1364,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 	return ERROR_OK;
 }
 
-int dap_baseaddr_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc)
+DAP_COMMAND_HANDLER(dap_baseaddr_command)
 {
 	uint32_t apsel, apselsave, baseaddr;
 	int retval;
@@ -1395,8 +1394,7 @@ int dap_baseaddr_command(struct command_context_s *cmd_ctx,
 	return retval;
 }
 
-int dap_memaccess_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc)
+DAP_COMMAND_HANDLER(dap_memaccess_command)
 {
 	uint32_t memaccess_tck;
 
@@ -1418,8 +1416,7 @@ int dap_memaccess_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-int dap_apsel_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc)
+DAP_COMMAND_HANDLER(dap_apsel_command)
 {
 	uint32_t apsel, apid;
 	int retval;
@@ -1444,8 +1441,7 @@ int dap_apsel_command(struct command_context_s *cmd_ctx,
 	return retval;
 }
 
-int dap_apid_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc)
+DAP_COMMAND_HANDLER(dap_apid_command)
 {
 	uint32_t apsel, apselsave, apid;
 	int retval;

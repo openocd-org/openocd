@@ -158,13 +158,12 @@ int ahbap_debugport_init(swjdp_common_t *swjdp);
 /* Commands for user dap access */
 int dap_info_command(struct command_context_s *cmd_ctx,
 		swjdp_common_t *swjdp, int apsel);
-int dap_baseaddr_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc);
-int dap_memaccess_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc);
-int dap_apsel_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc);
-int dap_apid_command(struct command_context_s *cmd_ctx,
-		swjdp_common_t *swjdp, char **args, int argc);
+
+#define DAP_COMMAND_HANDLER(name) \
+		COMMAND_HELPER(name, swjdp_common_t *swjdp)
+DAP_COMMAND_HANDLER(dap_baseaddr_command);
+DAP_COMMAND_HANDLER(dap_memaccess_command);
+DAP_COMMAND_HANDLER(dap_apsel_command);
+DAP_COMMAND_HANDLER(dap_apid_command);
 
 #endif

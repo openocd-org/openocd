@@ -236,7 +236,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-	return dap_baseaddr_command(cmd_ctx, swjdp, args, argc);
+	return CALL_COMMAND_HANDLER(dap_baseaddr_command, swjdp);
 }
 
 COMMAND_HANDLER(handle_dap_memaccess_command)
@@ -245,7 +245,7 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-	return dap_memaccess_command(cmd_ctx, swjdp, args, argc);
+	return CALL_COMMAND_HANDLER(dap_memaccess_command, swjdp);
 }
 
 COMMAND_HANDLER(handle_dap_apsel_command)
@@ -254,7 +254,7 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
+	return CALL_COMMAND_HANDLER(dap_apsel_command, swjdp);
 }
 
 COMMAND_HANDLER(handle_dap_apid_command)
@@ -263,7 +263,7 @@ COMMAND_HANDLER(handle_dap_apid_command)
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-	return dap_apid_command(cmd_ctx, swjdp, args, argc);
+	return CALL_COMMAND_HANDLER(dap_apid_command, swjdp);
 }
 
 COMMAND_HANDLER(handle_dap_info_command)
