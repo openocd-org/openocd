@@ -39,16 +39,6 @@
 
 int arm7_9_debug_entry(target_t *target);
 
-/* command handler forward declarations */
-int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_read_core_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 /**
  * Clear watchpoints for an ARM7/9 target.
  *
@@ -2881,31 +2871,6 @@ int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 	return ERROR_OK;
 }
 
-int arm7_9_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *arm7_9_cmd;
-
-	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9", NULL, COMMAND_ANY, "arm7/9 specific commands");
-
-	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr", handle_arm7_9_write_xpsr_command, COMMAND_EXEC, "write program status register <value> <not cpsr | spsr>");
-	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8", handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC, "write program status register <8bit immediate> <rotate> <not cpsr | spsr>");
-
-	register_command(cmd_ctx, arm7_9_cmd, "write_core_reg", handle_arm7_9_write_core_reg_command, COMMAND_EXEC, "write core register <num> <mode> <value>");
-
-	register_command(cmd_ctx, arm7_9_cmd, "dbgrq", handle_arm7_9_dbgrq_command,
-		COMMAND_ANY, "use EmbeddedICE dbgrq instead of breakpoint for target halt requests <enable | disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "fast_memory_access", handle_arm7_9_fast_memory_access_command,
-		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially safer accesses <enable | disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "dcc_downloads", handle_arm7_9_dcc_downloads_command,
-		COMMAND_ANY, "use DCC downloads for larger memory writes <enable | disable>");
-
-	armv4_5_register_commands(cmd_ctx);
-
-	etm_register_commands(cmd_ctx);
-
-	return ERROR_OK;
-}
-
 int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	uint32_t value;
@@ -3175,6 +3140,44 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	{
 		return retval;
 	}
+
+	return ERROR_OK;
+}
+
+int arm7_9_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *arm7_9_cmd;
+
+	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9",
+			NULL, COMMAND_ANY, "arm7/9 specific commands");
+
+	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr",
+			handle_arm7_9_write_xpsr_command, COMMAND_EXEC,
+			"write program status register <value> <not cpsr | spsr>");
+	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8",
+			handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC,
+			"write program status register "
+			"<8bit immediate> <rotate> <not cpsr | spsr>");
+
+	register_command(cmd_ctx, arm7_9_cmd, "write_core_reg",
+			handle_arm7_9_write_core_reg_command, COMMAND_EXEC,
+			"write core register <num> <mode> <value>");
+
+	register_command(cmd_ctx, arm7_9_cmd, "dbgrq",
+			handle_arm7_9_dbgrq_command, COMMAND_ANY,
+			"use EmbeddedICE dbgrq instead of breakpoint "
+			"for target halt requests <enable | disable>");
+	register_command(cmd_ctx, arm7_9_cmd, "fast_memory_access",
+			handle_arm7_9_fast_memory_access_command, COMMAND_ANY,
+			"use fast memory accesses instead of slower "
+			"but potentially safer accesses <enable | disable>");
+	register_command(cmd_ctx, arm7_9_cmd, "dcc_downloads",
+			handle_arm7_9_dcc_downloads_command, COMMAND_ANY,
+			"use DCC downloads for larger memory writes <enable | disable>");
+
+	armv4_5_register_commands(cmd_ctx);
+
+	etm_register_commands(cmd_ctx);
 
 	return ERROR_OK;
 }

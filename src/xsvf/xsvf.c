@@ -123,7 +123,6 @@ LSDR 1  TDI  (0)
 
 #define XSTATE_MAX_PATH 12
 
-static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 static int xsvf_fd = 0;
 
@@ -160,14 +159,6 @@ static tap_state_t xsvf_to_tap(int xsvf_state)
 }
 
 
-
-int xsvf_register_commands(struct command_context_s *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "xsvf", handle_xsvf_command,
-		COMMAND_EXEC, "run xsvf <file> [virt2] [quiet]");
-
-	return ERROR_OK;
-}
 
 static int xsvf_read_buffer(int num_bits, int fd, uint8_t* buf)
 {
@@ -1059,6 +1050,14 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
+int xsvf_register_commands(struct command_context_s *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "xsvf",
+			&handle_xsvf_command, COMMAND_EXEC,
+			"run xsvf <file> [virt2] [quiet]");
+
+	return ERROR_OK;
+}
 
 #if 0   /* this comment style used to try and keep uncrustify from adding * at begin of line */
 
