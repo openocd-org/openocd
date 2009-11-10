@@ -94,10 +94,6 @@ target_type_t avr_target =
 	.register_commands = avr_register_commands,
 	.target_create = avr_target_create,
 	.init_target = avr_init_target,
-/*
-	.virt2phys = avr_virt2phys,
-	.mmu = avr_mmu
-*/
 };
 
 int avr_register_commands(struct command_context_s *cmd_ctx)

@@ -460,13 +460,14 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	return retval;
 }
 
-static int default_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical)
+static int identity_virt2phys(struct target_s *target,
+		uint32_t virtual, uint32_t *physical)
 {
 	*physical = virtual;
 	return ERROR_OK;
 }
 
-static int default_mmu(struct target_s *target, int *enabled)
+static int no_mmu(struct target_s *target, int *enabled)
 {
 	*enabled = 0;
 	return ERROR_OK;
@@ -738,7 +739,7 @@ int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, u
 }
 
 static int
-default_read_phys_memory(struct target_s *target, uint32_t address,
+err_read_phys_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
@@ -746,7 +747,7 @@ default_read_phys_memory(struct target_s *target, uint32_t address,
 }
 
 static int
-default_write_phys_memory(struct target_s *target, uint32_t address,
+err_write_phys_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
@@ -775,19 +776,23 @@ int target_init(struct command_context_s *cmd_ctx)
 		/* Set up default functions if none are provided by target */
 		if (target->type->virt2phys == NULL)
 		{
-			target->type->virt2phys = default_virt2phys;
+			target->type->virt2phys = identity_virt2phys;
 		}
 
 		if (target->type->read_phys_memory == NULL)
 		{
-			target->type->read_phys_memory = default_read_phys_memory;
+			target->type->read_phys_memory = err_read_phys_memory;
 		}
 
 		if (target->type->write_phys_memory == NULL)
 		{
-			target->type->write_phys_memory = default_write_phys_memory;
+			target->type->write_phys_memory = err_write_phys_memory;
 		}
 
+		/**
+		 * @todo MCR/MRC are ARM-specific; don't require them in
+		 * all targets, or for ARMs without coprocessors.
+		 */
 		if (target->type->mcr == NULL)
 		{
 			target->type->mcr = default_mcr;
@@ -810,6 +815,12 @@ int target_init(struct command_context_s *cmd_ctx)
 		}
 
 
+		/**
+		 * @todo get rid of those *memory_imp() methods, now that all
+		 * callers are using target_*_memory() accessors ... and make
+		 * sure the "physical" paths handle the same issues.
+		 */
+
 		/* a non-invasive way(in terms of patches) to add some code that
 		 * runs before the type->write/read_memory implementation
 		 */
@@ -824,7 +835,7 @@ int target_init(struct command_context_s *cmd_ctx)
 
 		if (target->type->mmu == NULL)
 		{
-			target->type->mmu = default_mmu;
+			target->type->mmu = no_mmu;
 		}
 		target = target->next;
 	}
@@ -4780,10 +4791,11 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 			"loads active fast load image to current target "
 			"- mainly for profiling purposes");
 
-
+	/** @todo don't register virt2phys() unless target supports it */
 	register_command(cmd_ctx, NULL, "virt2phys",
 			handle_virt2phys_command, COMMAND_ANY,
 			"translate a virtual address into a physical address");
+
 	register_command(cmd_ctx,  NULL, "reg",
 			handle_reg_command, COMMAND_EXEC,
 			"display or set a register");
