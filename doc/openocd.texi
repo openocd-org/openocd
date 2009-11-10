@@ -5051,9 +5051,11 @@ about what TAP is the current target, or about MMU configuration.
 Display contents of address @var{addr}, as
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
+When the current target has an MMU which is present and active,
+@var{addr} is interpreted as a virtual address.
+Otherwise, or if the optional @var{phys} flag is specified,
+@var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
-@var{phys} is an optional flag to indicate to use
-physical address and bypass MMU
 (If you want to manipulate the data instead of displaying it,
 see the @code{mem2array} primitives.)
 @end deffn
@@ -5062,10 +5064,12 @@ see the @code{mem2array} primitives.)
 @deffnx Command mwh [phys] addr halfword
 @deffnx Command mwb [phys] addr byte
 Writes the specified @var{word} (32 bits),
-@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
+@var{halfword} (16 bits), or @var{byte} (8-bit) value,
 at the specified address @var{addr}.
-@var{phys} is an optional flag to indicate to use
-physical address and bypass MMU
+When the current target has an MMU which is present and active,
+@var{addr} is interpreted as a virtual address.
+Otherwise, or if the optional @var{phys} flag is specified,
+@var{addr} is interpreted as a physical address.
 @end deffn
 
 

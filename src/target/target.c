@@ -756,11 +756,12 @@ err_write_phys_memory(struct target_s *target, uint32_t address,
 
 int target_init(struct command_context_s *cmd_ctx)
 {
-	target_t *target = all_targets;
+	struct target_s *target;
 	int retval;
 
-	while (target)
-	{
+	for (target = all_targets; target; target = target->next) {
+		struct target_type_s *type = target->type;
+
 		target_reset_examined(target);
 		if (target->type->examine == NULL)
 		{
@@ -771,22 +772,6 @@ int target_init(struct command_context_s *cmd_ctx)
 		{
 			LOG_ERROR("target '%s' init failed", target_get_name(target));
 			return retval;
-		}
-
-		/* Set up default functions if none are provided by target */
-		if (target->type->virt2phys == NULL)
-		{
-			target->type->virt2phys = identity_virt2phys;
-		}
-
-		if (target->type->read_phys_memory == NULL)
-		{
-			target->type->read_phys_memory = err_read_phys_memory;
-		}
-
-		if (target->type->write_phys_memory == NULL)
-		{
-			target->type->write_phys_memory = err_write_phys_memory;
 		}
 
 		/**
@@ -833,11 +818,45 @@ int target_init(struct command_context_s *cmd_ctx)
 		target->type->run_algorithm_imp = target->type->run_algorithm;
 		target->type->run_algorithm = target_run_algorithm_imp;
 
-		if (target->type->mmu == NULL)
-		{
-			target->type->mmu = no_mmu;
+		/* Sanity-check MMU support ... stub in what we must, to help
+		 * implement it in stages, but warn if we need to do so.
+		 */
+		if (type->mmu) {
+			if (type->write_phys_memory == NULL) {
+				LOG_ERROR("type '%s' is missing %s",
+						type->name,
+						"write_phys_memory");
+				type->write_phys_memory = err_write_phys_memory;
+			}
+			if (type->read_phys_memory == NULL) {
+				LOG_ERROR("type '%s' is missing %s",
+						type->name,
+						"read_phys_memory");
+				type->read_phys_memory = err_read_phys_memory;
+			}
+			if (type->virt2phys == NULL) {
+				LOG_ERROR("type '%s' is missing %s",
+						type->name,
+						"virt2phys");
+				type->virt2phys = identity_virt2phys;
+			}
+
+		/* Make sure no-MMU targets all behave the same:  make no
+		 * distinction between physical and virtual addresses, and
+		 * ensure that virt2phys() is always an identity mapping.
+		 */
+		} else {
+			if (type->write_phys_memory
+					|| type->read_phys_memory
+					|| type->virt2phys)
+				LOG_WARNING("type '%s' has broken MMU hooks",
+						type->name);
+
+			type->mmu = no_mmu;
+			type->write_phys_memory = type->write_memory;
+			type->read_phys_memory = type->read_memory;
+			type->virt2phys = identity_virt2phys;
 		}
-		target = target->next;
 	}
 
 	if (all_targets)
