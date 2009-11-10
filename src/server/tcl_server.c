@@ -170,8 +170,7 @@ int tcl_init(void)
 	return retval;
 }
 
-static int handle_tcl_port_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_tcl_port_command)
 {
 	return server_port_command(cmd_ctx, cmd, args, argc, &tcl_port);
 }

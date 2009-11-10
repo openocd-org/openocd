@@ -780,7 +780,7 @@ static int stm32x_auto_probe(struct flash_bank_s *bank)
 }
 
 #if 0
-static int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stm32x_handle_part_id_command)
 {
 	return ERROR_OK;
 }
@@ -892,7 +892,7 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stm32x_handle_lock_command)
 {
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
@@ -938,7 +938,7 @@ static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stm32x_handle_unlock_command)
 {
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
@@ -981,7 +981,7 @@ static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char 
 	return ERROR_OK;
 }
 
-static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stm32x_handle_options_read_command)
 {
 	uint32_t optionbyte;
 	target_t *target = NULL;
@@ -1037,7 +1037,7 @@ static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stm32x_handle_options_write_command)
 {
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
@@ -1148,7 +1148,7 @@ static int stm32x_mass_erase(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 {
 	int i;
 

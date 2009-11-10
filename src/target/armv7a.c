@@ -230,8 +230,7 @@ int armv7a_arch_state(struct target_s *target)
 }
 
 
-static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -240,8 +239,7 @@ static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
 	return dap_baseaddr_command(cmd_ctx, swjdp, args, argc);
 }
 
-static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_memaccess_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -250,8 +248,7 @@ static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
 	return dap_memaccess_command(cmd_ctx, swjdp, args, argc);
 }
 
-static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_apsel_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -260,8 +257,7 @@ static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
 	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
 }
 
-static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_apid_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -270,8 +266,7 @@ static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
 	return dap_apid_command(cmd_ctx, swjdp, args, argc);
 }
 
-static int handle_dap_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_info_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -292,9 +287,7 @@ static int handle_dap_info_command(struct command_context_s *cmd_ctx,
 	return dap_info_command(cmd_ctx, swjdp, apsel);
 }
 
-static int
-handle_armv7a_disassemble_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_armv7a_disassemble_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);

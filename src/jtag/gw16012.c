@@ -541,7 +541,7 @@ static int gw16012_quit(void)
 	return ERROR_OK;
 }
 
-static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(gw16012_handle_parport_port_command)
 {
 	if (argc == 1)
 	{

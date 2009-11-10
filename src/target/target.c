@@ -1650,7 +1650,7 @@ int target_write_u8(struct target_s *target, uint32_t address, uint8_t value)
 	return retval;
 }
 
-static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_targets_command)
 {
 	target_t *target = all_targets;
 
@@ -1862,7 +1862,7 @@ int handle_target(void *priv)
 	return retval;
 }
 
-static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_reg_command)
 {
 	target_t *target;
 	reg_t *reg = NULL;
@@ -1993,7 +1993,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_poll_command)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
@@ -2035,7 +2035,7 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return retval;
 }
 
-static int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_wait_halt_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2102,7 +2102,7 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 	return ERROR_OK;
 }
 
-static int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_halt_command)
 {
 	LOG_DEBUG("-");
 
@@ -2124,7 +2124,7 @@ static int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
 
-static int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_soft_reset_halt_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -2135,7 +2135,7 @@ static int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, cha
 	return ERROR_OK;
 }
 
-static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_reset_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2156,7 +2156,7 @@ static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, ch
 }
 
 
-static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_resume_command)
 {
 	int current = 1;
 	if (argc > 1)
@@ -2178,7 +2178,7 @@ static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return target_resume(target, current, addr, 1, 0);
 }
 
-static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_step_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2250,7 +2250,7 @@ static void handle_md_output(struct command_context_s *cmd_ctx,
 	}
 }
 
-static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_md_command)
 {
 	if (argc < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2299,7 +2299,7 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return retval;
 }
 
-static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_mw_command)
 {
 	if (argc < 2)
 	{
@@ -2401,7 +2401,7 @@ static int parse_load_image_command_args(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_load_image_command)
 {
 	uint8_t *buffer;
 	uint32_t buf_cnt;
@@ -2492,7 +2492,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 
 }
 
-static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dump_image_command)
 {
 	fileio_t fileio;
 
@@ -2700,12 +2700,12 @@ done:
 	return retval;
 }
 
-static int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_verify_image_command)
 {
 	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 1);
 }
 
-static int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_test_image_command)
 {
 	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 0);
 }
@@ -2750,8 +2750,7 @@ static int handle_bp_command_set(struct command_context_s *cmd_ctx,
 	return retval;
 }
 
-static int handle_bp_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_bp_command)
 {
 	if (argc == 0)
 		return handle_bp_command_list(cmd_ctx);
@@ -2779,7 +2778,7 @@ static int handle_bp_command(struct command_context_s *cmd_ctx,
 	return handle_bp_command_set(cmd_ctx, addr, length, hw);
 }
 
-static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_rbp_command)
 {
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2793,7 +2792,7 @@ static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_wp_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -2865,7 +2864,7 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return retval;
 }
 
-static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_rwp_command)
 {
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2886,8 +2885,7 @@ static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char
  * The low-level target implementation must have logged a detailed error
  * which is forwarded to telnet/GDB session.
  */
-static int handle_virt2phys_command(command_context_t *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_virt2phys_command)
 {
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -3021,7 +3019,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 }
 
 /* profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC */
-static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_profile_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct timeval timeout, now;
@@ -4539,7 +4537,7 @@ static void free_fastload(void)
 
 
 
-static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_fast_load_image_command)
 {
 	uint8_t *buffer;
 	uint32_t buf_cnt;
@@ -4650,7 +4648,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 	return retval;
 }
 
-static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_fast_load_command)
 {
 	if (argc > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;

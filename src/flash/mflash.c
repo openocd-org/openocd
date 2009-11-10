@@ -408,7 +408,7 @@ static int mg_mflash_probe(void)
 	return mg_dsk_drv_info();
 }
 
-static int mg_probe_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(mg_probe_cmd)
 {
 	int ret;
 
@@ -702,7 +702,7 @@ static int mg_mflash_write(uint32_t addr, uint8_t *buff, uint32_t len)
 	return ret;
 }
 
-static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(mg_write_cmd)
 {
 	uint32_t address, buf_cnt, cnt, res, i;
 	uint8_t *buffer;
@@ -766,7 +766,7 @@ mg_write_cmd_err:
 	return ret;
 }
 
-static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(mg_dump_cmd)
 {
 	uint32_t address, size_written, size, cnt, res, i;
 	uint8_t *buffer;
@@ -1208,8 +1208,7 @@ static int mg_erase_nand(void)
 	return ret;
 }
 
-int mg_config_cmd(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
+COMMAND_HANDLER(mg_config_cmd)
 {
 	double fin, fout;
 	mg_pll_t pll;
@@ -1281,7 +1280,7 @@ int mflash_init_drivers(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int mg_bank_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(mg_bank_cmd)
 {
 	target_t *target;
 	int i;

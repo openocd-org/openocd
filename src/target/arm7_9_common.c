@@ -2871,7 +2871,7 @@ int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 	return ERROR_OK;
 }
 
-int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 {
 	uint32_t value;
 	int spsr;
@@ -2915,7 +2915,7 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 {
 	uint32_t value;
 	int rotate;
@@ -2957,7 +2957,7 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
-int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 {
 	uint32_t value;
 	uint32_t mode;
@@ -2991,7 +2991,7 @@ int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char
 	return arm7_9_write_core_reg(target, num, mode, value);
 }
 
-int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
@@ -3024,7 +3024,7 @@ int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
@@ -3057,7 +3057,7 @@ int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, 
 	return ERROR_OK;
 }
 
-int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;

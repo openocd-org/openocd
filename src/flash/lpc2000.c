@@ -737,7 +737,7 @@ static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(lpc2000_handle_part_id_command)
 {
 	uint32_t param_table[5];
 	uint32_t result_table[4];

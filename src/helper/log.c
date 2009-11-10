@@ -274,7 +274,7 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
  * 2: + INFORMATIONAL MSGS
  * 3: + DEBUG MSGS
  */
-int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_debug_level_command)
 {
 	if (argc == 1)
 	{
@@ -302,7 +302,7 @@ int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
-int handle_log_output_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_log_output_command)
 {
 	if (argc == 1)
 	{

@@ -606,14 +606,12 @@ int telnet_init(char *banner)
 }
 
 /* daemon configuration command telnet_port */
-static int handle_telnet_port_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_telnet_port_command)
 {
 	return server_port_command(cmd_ctx, cmd, args, argc, &telnet_port);
 }
 
-static int handle_exit_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_exit_command)
 {
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }

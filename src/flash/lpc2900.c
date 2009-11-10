@@ -531,8 +531,7 @@ static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time )
  * Uses the Built-In-Self-Test (BIST) to generate a 128-bit hash value
  * of the flash content.
  */
-static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
-                                             char *cmd, char **args, int argc )
+COMMAND_HANDLER(lpc2900_handle_signature_command)
 {
 	uint32_t status;
 	uint32_t signature[4];
@@ -582,8 +581,7 @@ static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
  * Read customer info from index sector, and store that block of data into
  * a disk file. The format is binary.
  */
-static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx,
-                                               char *cmd, char **args, int argc )
+COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 {
 	if( argc < 2 )
 	{
@@ -654,8 +652,7 @@ static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx
 /**
  * Enter password to enable potentially dangerous options.
  */
-static int lpc2900_handle_password_command(struct command_context_s *cmd_ctx,
-                                           char *cmd, char **args, int argc)
+COMMAND_HANDLER(lpc2900_handle_password_command)
 {
 	if (argc < 2)
 	{
@@ -690,8 +687,7 @@ static int lpc2900_handle_password_command(struct command_context_s *cmd_ctx,
 /**
  * Write customer info from file to the index sector.
  */
-static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ctx,
-                                                char *cmd, char **args, int argc )
+COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 {
 	if (argc < 2)
 	{
@@ -801,8 +797,7 @@ static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ct
 /**
  * Activate 'sector security' for a range of sectors.
  */
-static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ctx,
-                                                char *cmd, char **args, int argc)
+COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 {
 	if (argc < 3)
 	{
@@ -901,8 +896,7 @@ static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ct
 /**
  * Activate JTAG protection.
  */
-static int lpc2900_handle_secure_jtag_command(struct command_context_s *cmd_ctx,
-                                              char *cmd, char **args, int argc)
+COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 {
 	if (argc < 1)
 	{

@@ -662,8 +662,7 @@ static int arm920t_target_create(struct target_s *target, Jim_Interp *interp)
 	return arm920t_init_arch_info(target, arm920t, target->tap);
 }
 
-static int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm920t_handle_read_cache_command)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
@@ -909,8 +908,7 @@ static int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1193,8 +1191,7 @@ static int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm920t_handle_cp15_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1247,8 +1244,7 @@ static int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm920t_handle_cp15i_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1315,8 +1311,7 @@ static int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm920t_handle_cache_info_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);

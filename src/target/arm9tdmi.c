@@ -856,8 +856,7 @@ static int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-static int handle_arm9tdmi_catch_vectors_command(
-	struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);

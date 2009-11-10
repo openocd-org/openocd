@@ -1248,8 +1248,7 @@ static int handle_etm_tracemode_command_update(
 	return ERROR_OK;
 }
 
-static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_tracemode_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm *arm = target_to_arm(target);
@@ -1371,8 +1370,7 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_config_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_config_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -1522,8 +1520,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 	return etm_register_user_commands(cmd_ctx);
 }
 
-static int handle_etm_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_info_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -1655,8 +1652,7 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_status_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_status_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -1732,8 +1728,7 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_image_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_image_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -1792,8 +1787,7 @@ static int handle_etm_image_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_dump_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_dump_command)
 {
 	fileio_t file;
 	target_t *target;
@@ -1861,8 +1855,7 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_load_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_load_command)
 {
 	fileio_t file;
 	target_t *target;
@@ -1946,8 +1939,7 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_trigger_percent_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -1988,8 +1980,7 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_start_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_start_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -2037,8 +2028,7 @@ static int handle_etm_start_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_stop_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_stop_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -2077,8 +2067,7 @@ static int handle_etm_stop_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_analyze_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_analyze_command)
 {
 	target_t *target;
 	struct arm *arm;

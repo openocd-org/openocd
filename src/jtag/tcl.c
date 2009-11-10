@@ -603,8 +603,7 @@ static int default_srst_asserted(int *srst_asserted)
 	return ERROR_OK;
 }
 
-static int handle_interface_list_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_interface_list_command)
 {
 	if (strcmp(cmd, "interface_list") == 0 && argc > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -619,8 +618,7 @@ static int handle_interface_list_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_interface_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_interface_command)
 {
 	/* check whether the interface is already configured */
 	if (jtag_interface)
@@ -664,7 +662,7 @@ static int handle_interface_command(struct command_context_s *cmd_ctx,
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
-static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_scan_chain_command)
 {
 	jtag_tap_t *tap;
 
@@ -701,7 +699,7 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_reset_config_command)
 {
 	int new_cfg = 0;
 	int mask = 0;
@@ -897,8 +895,7 @@ next:
 	return ERROR_OK;
 }
 
-static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -913,8 +910,7 @@ static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -929,8 +925,7 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_jtag_nsrst_assert_width_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -945,8 +940,7 @@ static int handle_jtag_nsrst_assert_width_command(struct command_context_s *cmd_
 	return ERROR_OK;
 }
 
-static int handle_jtag_ntrst_assert_width_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -961,7 +955,7 @@ static int handle_jtag_ntrst_assert_width_command(struct command_context_s *cmd_
 	return ERROR_OK;
 }
 
-static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_khz_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -990,7 +984,7 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 	return retval;
 }
 
-static int handle_jtag_rclk_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_rclk_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1019,8 +1013,7 @@ static int handle_jtag_rclk_command(struct command_context_s *cmd_ctx, char *cmd
 	return retval;
 }
 
-static int handle_jtag_reset_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_jtag_reset_command)
 {
 	if (argc != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1048,8 +1041,7 @@ static int handle_jtag_reset_command(struct command_context_s *cmd_ctx,
 	return jtag_execute_queue();
 }
 
-static int handle_runtest_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_runtest_command)
 {
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1083,7 +1075,7 @@ static bool scan_is_safe(tap_state_t state)
 }
 
 
-static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_irscan_command)
 {
 	int i;
 	scan_field_t *fields;
@@ -1358,7 +1350,7 @@ static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const 
 }
 
 
-static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_verify_ircapture_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1379,7 +1371,7 @@ static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, ch
 	return ERROR_OK;
 }
 
-static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_verify_jtag_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1400,7 +1392,7 @@ static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_tms_sequence_command)
 {
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;

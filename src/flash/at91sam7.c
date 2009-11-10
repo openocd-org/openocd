@@ -1098,7 +1098,7 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 *   The maximum number of write/erase cycles for Non volatile Memory bits is 100. this includes
 *   Lock Bits (LOCKx), General Purpose NVM bits (GPNVMx) and the Security Bit.
 */
-static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 {
 	flash_bank_t *bank;
 	int bit;

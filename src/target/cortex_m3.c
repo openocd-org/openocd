@@ -1781,9 +1781,7 @@ static int cortex_m3_verify_pointer(struct command_context_s *cmd_ctx,
  * that *only* Thumb2 disassembly matters.  There are also some small
  * additions to Thumb2 that are specific to ARMv7-M.
  */
-static int
-handle_cortex_m3_disassemble_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1835,9 +1833,7 @@ static const struct {
 	{ "reset",	VC_CORERESET, },
 };
 
-static int
-handle_cortex_m3_vector_catch_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
@@ -1894,9 +1890,7 @@ write:
 	return ERROR_OK;
 }
 
-static int
-handle_cortex_m3_mask_interrupts_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);

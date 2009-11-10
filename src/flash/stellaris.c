@@ -1127,7 +1127,7 @@ static int stellaris_mass_erase(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 {
 	int i;
 

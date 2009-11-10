@@ -177,8 +177,7 @@ static int virtex2_load(struct pld_device_s *pld_device, const char *filename)
 	return ERROR_OK;
 }
 
-static int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(virtex2_handle_read_stat_command)
 {
 	pld_device_t *device;
 	virtex2_pld_device_t *virtex2_info;

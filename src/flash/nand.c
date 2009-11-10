@@ -205,7 +205,7 @@ static nand_ecclayout_t nand_oob_64 = {
 
 /* nand device <nand_controller> [controller options]
  */
-static int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_device_command)
 {
 	int i;
 	int retval;
@@ -1041,7 +1041,7 @@ int nand_write_page_raw(struct nand_device_s *nand, uint32_t page, uint8_t *data
 	return ERROR_OK;
 }
 
-int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_list_command)
 {
 	nand_device_t *p;
 	int i;
@@ -1068,7 +1068,7 @@ int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_info_command)
 {
 	int i = 0;
 	int j = 0;
@@ -1143,7 +1143,7 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_probe_command)
 {
 	if (argc != 1)
 	{
@@ -1171,7 +1171,7 @@ static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_erase_command)
 {
 	if (argc != 1 && argc != 3)
 	{
@@ -1227,7 +1227,7 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 {
 	int first = -1;
 	int last = -1;
@@ -1284,7 +1284,7 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
-static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_write_command)
 {
 	uint32_t offset;
 	uint32_t binary_size;
@@ -1451,7 +1451,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_dump_command)
 {
 	if (argc < 4)
 	{
@@ -1569,7 +1569,7 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_nand_raw_access_command)
 {
 	if ((argc < 1) || (argc > 2))
 	{

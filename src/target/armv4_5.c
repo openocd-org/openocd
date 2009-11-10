@@ -307,7 +307,7 @@ int armv4_5_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_armv4_5_reg_command)
 {
 	char output[128];
 	int output_len;
@@ -359,7 +359,7 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
-int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_armv4_5_core_state_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
@@ -387,9 +387,7 @@ int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-static int
-handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);

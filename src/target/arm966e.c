@@ -162,8 +162,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 	return ERROR_OK;
 }
 
-static int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm966e_handle_cp15_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);

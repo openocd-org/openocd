@@ -409,8 +409,7 @@ static int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 	return arm720t_init_arch_info(target, arm720t, target->tap);
 }
 
-static int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm720t_handle_cp15_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);

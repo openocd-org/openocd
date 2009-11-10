@@ -631,7 +631,7 @@ static int pic32mx_auto_probe(struct flash_bank_s *bank)
 }
 
 #if 0
-static int pic32mx_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(pic32mx_handle_part_id_command)
 {
 	return ERROR_OK;
 }
@@ -672,7 +672,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 }
 
 #if 0
-int pic32mx_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(pic32mx_handle_lock_command)
 {
 	target_t *target = NULL;
 	pic32mx_flash_bank_t *pic32mx_info = NULL;
@@ -718,7 +718,7 @@ int pic32mx_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int pic32mx_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(pic32mx_handle_unlock_command)
 {
 	target_t *target = NULL;
 	pic32mx_flash_bank_t *pic32mx_info = NULL;
@@ -808,7 +808,7 @@ static int pic32mx_chip_erase(struct flash_bank_s *bank)
 }
 #endif
 
-static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(pic32mx_handle_chip_erase_command)
 {
 #if 0
 	int i;
@@ -843,7 +843,7 @@ static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, 
 	return ERROR_OK;
 }
 
-static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 {
 	uint32_t address, value;
 	int status, res;

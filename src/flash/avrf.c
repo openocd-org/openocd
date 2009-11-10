@@ -415,7 +415,7 @@ static int avrf_mass_erase(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(avrf_handle_mass_erase_command)
 {
 	int i;
 

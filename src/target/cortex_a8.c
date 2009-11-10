@@ -1526,8 +1526,7 @@ static int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-static int cortex_a8_handle_cache_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -1537,8 +1536,7 @@ static int cortex_a8_handle_cache_info_command(struct command_context_s *cmd_ctx
 }
 
 
-static int cortex_a8_handle_dbginit_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 

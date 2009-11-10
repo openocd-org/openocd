@@ -2266,8 +2266,7 @@ sam3_write(struct flash_bank_s *bank,
 	return r;
 }
 
-static int
-sam3_handle_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(sam3_handle_info_command)
 {
 	struct sam3_chip *pChip;
 	void *vp;
@@ -2343,8 +2342,7 @@ sam3_handle_info_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	return ERROR_OK;
 }
 
-static int
-sam3_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(sam3_handle_gpnvm_command)
 {
 	unsigned x,v;
 	int r,who;
@@ -2437,8 +2435,7 @@ sam3_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return r;
 }
 
-static int
-sam3_handle_slowclk_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(sam3_handle_slowclk_command)
 {
 	struct sam3_chip *pChip;
 

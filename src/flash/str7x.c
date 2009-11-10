@@ -589,7 +589,7 @@ static int str7x_probe(struct flash_bank_s *bank)
 }
 
 #if 0
-static int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(str7x_handle_part_id_command)
 {
 	return ERROR_OK;
 }
@@ -601,7 +601,7 @@ static int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 {
 	target_t *target = NULL;
 	str7x_flash_bank_t *str7x_info = NULL;

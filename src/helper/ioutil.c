@@ -57,8 +57,7 @@
 #endif
 
 
-int handle_rm_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
+COMMAND_HANDLER(handle_rm_command)
 {
 	if (argc != 1)
 	{
@@ -134,10 +133,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 	return ERROR_OK;
 }
 
-
-
-int handle_cat_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
+COMMAND_HANDLER(handle_cat_command)
 {
 	if (argc != 1)
 	{
@@ -162,8 +158,8 @@ int handle_cat_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	return ERROR_OK;
 }
-int handle_trunc_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
+
+COMMAND_HANDLER(handle_trunc_command)
 {
 	if (argc != 1)
 	{
@@ -179,8 +175,7 @@ int handle_trunc_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-
-int handle_meminfo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_meminfo_command)
 {
 	static int prev = 0;
 	struct mallinfo info;
@@ -205,8 +200,7 @@ int handle_meminfo_command(struct command_context_s *cmd_ctx, char *cmd, char **
 }
 
 
-int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
+COMMAND_HANDLER(handle_append_command)
 {
 	if (argc < 1)
 	{
@@ -245,7 +239,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 
 
 
-int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_cp_command)
 {
 	if (argc != 2)
 	{

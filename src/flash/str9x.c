@@ -619,8 +619,7 @@ static int str9x_probe(struct flash_bank_s *bank)
 }
 
 #if 0
-static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(str9x_handle_part_id_command)
 {
 	return ERROR_OK;
 }
@@ -632,8 +631,7 @@ static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(str9x_handle_flash_config_command)
 {
 	str9x_flash_bank_t *str9x_info;
 	target_t *target = NULL;

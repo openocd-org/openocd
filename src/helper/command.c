@@ -716,8 +716,7 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 /* sleep command sleeps for <n> miliseconds
  * this is useful in target startup scripts
  */
-static int handle_sleep_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_sleep_command)
 {
 	bool busy = false;
 	if (argc == 2)
@@ -750,7 +749,7 @@ static int handle_sleep_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_fast_command)
 {
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;

@@ -2989,9 +2989,7 @@ static int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 			target->variant);
 }
 
-static int
-xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_debug_handler_command)
 {
 	target_t *target = NULL;
 	xscale_common_t *xscale;
@@ -3031,9 +3029,7 @@ xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int
-xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 {
 	target_t *target = NULL;
 	xscale_common_t *xscale;
@@ -3070,9 +3066,7 @@ xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int
-xscale_handle_cache_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_cache_info_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3121,8 +3115,7 @@ static int xscale_mmu(struct target_s *target, int *enabled)
 	return ERROR_OK;
 }
 
-static int xscale_handle_mmu_command(command_context_t *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_mmu_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3157,8 +3150,7 @@ static int xscale_handle_mmu_command(command_context_t *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_handle_idcache_command(command_context_t *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_idcache_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3211,8 +3203,7 @@ static int xscale_handle_idcache_command(command_context_t *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_handle_vector_catch_command(command_context_t *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_vector_catch_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3239,8 +3230,7 @@ static int xscale_handle_vector_catch_command(command_context_t *cmd_ctx,
 }
 
 
-static int xscale_handle_vector_table_command(command_context_t *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_vector_table_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3298,9 +3288,7 @@ static int xscale_handle_vector_table_command(command_context_t *cmd_ctx,
 }
 
 
-static int
-xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3379,9 +3367,7 @@ xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int
-xscale_handle_trace_image_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_trace_image_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3429,8 +3415,7 @@ xscale_handle_trace_image_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_dump_trace_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3487,9 +3472,7 @@ static int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int
-xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_analyze_trace_buffer_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
@@ -3504,8 +3487,7 @@ xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_handle_cp15(command_context_t *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(xscale_handle_cp15)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);

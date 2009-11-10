@@ -534,8 +534,7 @@ int server_quit(void)
 }
 
 /* tell the server we want to shut down */
-static int handle_shutdown_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_shutdown_command)
 {
 	shutdown_openocd = 1;
 

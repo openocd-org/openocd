@@ -57,8 +57,7 @@ pld_device_t *get_pld_device_by_num(int num)
 
 /* pld device <driver> [driver_options ...]
  */
-static int handle_pld_device_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_pld_device_command)
 {
 	int i;
 	int found = 0;
@@ -120,8 +119,7 @@ static int handle_pld_device_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_pld_devices_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_pld_devices_command)
 {
 	pld_device_t *p;
 	int i = 0;
@@ -140,8 +138,7 @@ static int handle_pld_devices_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_pld_load_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_pld_load_command)
 {
 	int retval;
 	struct timeval start, end, duration;

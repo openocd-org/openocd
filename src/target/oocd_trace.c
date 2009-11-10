@@ -289,7 +289,7 @@ etm_capture_driver_t oocd_trace_capture_driver =
 	.read_trace = oocd_trace_read_trace,
 };
 
-static int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_oocd_trace_config_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -326,7 +326,7 @@ static int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, c
 	return ERROR_OK;
 }
 
-static int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_oocd_trace_status_command)
 {
 	target_t *target;
 	struct arm *arm;
@@ -366,7 +366,7 @@ static int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, c
 	return ERROR_OK;
 }
 
-static int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_oocd_trace_resync_command)
 {
 	target_t *target;
 	struct arm *arm;

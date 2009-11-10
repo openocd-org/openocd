@@ -2249,7 +2249,7 @@ int gdb_init(void)
 	return ERROR_OK;
 }
 
-static int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_gdb_sync_command)
 {
 	if (argc != 0)
 	{
@@ -2269,12 +2269,12 @@ static int handle_gdb_sync_command(struct command_context_s *cmd_ctx, char *cmd,
 }
 
 /* daemon configuration command gdb_port */
-static int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_gdb_port_command)
 {
 	return server_port_command(cmd_ctx, cmd, args, argc, &gdb_port);
 }
 
-static int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_gdb_memory_map_command)
 {
 	if (argc == 1)
 	{
@@ -2295,7 +2295,7 @@ static int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-static int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_gdb_flash_program_command)
 {
 	if (argc == 1)
 	{
@@ -2316,7 +2316,7 @@ static int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, c
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-static int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 {
 	if (argc == 1)
 	{
@@ -2338,7 +2338,7 @@ static int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ct
 }
 
 /* gdb_breakpoint_override */
-static int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 {
 	if (argc == 0)
 	{

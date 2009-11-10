@@ -828,7 +828,7 @@ static int lpc3180_nand_ready(struct nand_device_s *nand, int timeout)
 	return 0;
 }
 
-static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_lpc3180_select_command)
 {
 	lpc3180_nand_controller_t *lpc3180_info = NULL;
 	char *selected[] =

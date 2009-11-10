@@ -745,8 +745,7 @@ int armv7m_blank_check_memory(struct target_s *target,
  * Return the debug ap baseaddress in hexadecimal;
  * no extra output to simplify script processing
  */
-static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
@@ -783,8 +782,7 @@ static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
  * Return the debug ap id in hexadecimal;
  * no extra output to simplify script processing
  */
-static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_apid_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
@@ -793,8 +791,7 @@ static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
 	return dap_apid_command(cmd_ctx, swjdp, args, argc);
 }
 
-static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_apsel_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
@@ -803,8 +800,7 @@ static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
 	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
 }
 
-static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_memaccess_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
@@ -814,8 +810,7 @@ static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
 }
 
 
-static int handle_dap_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_dap_info_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);

@@ -752,7 +752,7 @@ static int presto_jtag_speed(int speed)
 
 static char *presto_serial;
 
-static int presto_handle_serial_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(presto_handle_serial_command)
 {
 	if (argc == 1)
 	{

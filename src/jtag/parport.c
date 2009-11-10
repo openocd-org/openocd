@@ -410,7 +410,7 @@ static int parport_quit(void)
 	return ERROR_OK;
 }
 
-static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(parport_handle_parport_port_command)
 {
 	if (argc == 1)
 	{
@@ -431,7 +431,7 @@ static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx
 	return ERROR_OK;
 }
 
-static int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(parport_handle_parport_cable_command)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -446,7 +446,7 @@ static int parport_handle_parport_cable_command(struct command_context_s *cmd_ct
 	return ERROR_OK;
 }
 
-static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(parport_handle_write_on_exit_command)
 {
 	if (argc != 1)
 	{

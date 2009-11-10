@@ -2798,7 +2798,7 @@ static int ft2232_quit(void)
 	return ERROR_OK;
 }
 
-static int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+COMMAND_HANDLER(ft2232_handle_device_desc_command)
 {
 	char *cp;
 	char buf[200];
@@ -2832,7 +2832,7 @@ static int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, 
 	return ERROR_OK;
 }
 
-static int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+COMMAND_HANDLER(ft2232_handle_serial_command)
 {
 	if (argc == 1)
 	{
@@ -2846,7 +2846,7 @@ static int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char*
 	return ERROR_OK;
 }
 
-static int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+COMMAND_HANDLER(ft2232_handle_layout_command)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -2857,7 +2857,7 @@ static int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char*
 	return ERROR_OK;
 }
 
-static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 {
 	if (argc > MAX_USB_IDS * 2)
 	{
@@ -2891,7 +2891,7 @@ static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char
 	return retval;
 }
 
-static int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+COMMAND_HANDLER(ft2232_handle_latency_command)
 {
 	if (argc == 1)
 	{

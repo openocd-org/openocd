@@ -1325,7 +1325,7 @@ static void vsllink_simple_command(uint8_t command)
 	}
 }
 
-static int vsllink_handle_mode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(vsllink_handle_mode_command)
 {
 	if (argc != 1) {
 		LOG_ERROR("parameter error, should be one parameter for VID");
@@ -1349,7 +1349,7 @@ static int vsllink_handle_mode_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-static int vsllink_handle_usb_vid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(vsllink_handle_usb_vid_command)
 {
 	if (argc != 1)
 	{
@@ -1361,7 +1361,7 @@ static int vsllink_handle_usb_vid_command(struct command_context_s *cmd_ctx, cha
 	return ERROR_OK;
 }
 
-static int vsllink_handle_usb_pid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 {
 	if (argc != 1)
 	{
@@ -1372,7 +1372,7 @@ static int vsllink_handle_usb_pid_command(struct command_context_s *cmd_ctx, cha
 	return ERROR_OK;
 }
 
-static int vsllink_handle_usb_bulkin_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 {
 	if (argc != 1)
 	{
@@ -1387,7 +1387,7 @@ static int vsllink_handle_usb_bulkin_command(struct command_context_s *cmd_ctx, 
 	return ERROR_OK;
 }
 
-static int vsllink_handle_usb_bulkout_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(vsllink_handle_usb_bulkout_command)
 {
 	if (argc != 1)
 	{
@@ -1402,7 +1402,7 @@ static int vsllink_handle_usb_bulkout_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int vsllink_handle_usb_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(vsllink_handle_usb_interface_command)
 {
 	if (argc != 1)
 	{

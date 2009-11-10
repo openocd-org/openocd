@@ -495,8 +495,7 @@ static int amt_jtagaccel_quit(void)
 	return ERROR_OK;
 }
 
-static int amt_jtagaccel_handle_parport_port_command(
-		struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 {
 	if (argc == 1)
 	{
@@ -519,7 +518,7 @@ static int amt_jtagaccel_handle_parport_port_command(
 	return ERROR_OK;
 }
 
-static int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 {
 	if (argc == 0)
 	{

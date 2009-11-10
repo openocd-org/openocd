@@ -301,7 +301,7 @@ int svf_add_statemove(tap_state_t state_to)
 	return ERROR_FAIL;
 }
 
-static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_svf_command)
 {
 #define SVF_NUM_OF_OPTIONS			1
 	int command_num = 0, i;

@@ -25,7 +25,7 @@
 #include "etm_dummy.h"
 
 
-static int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etm_dummy_config_command)
 {
 	target_t *target;
 	struct arm *arm;

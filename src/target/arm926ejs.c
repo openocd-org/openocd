@@ -713,8 +713,7 @@ static int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
 	return arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 }
 
-static int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -775,9 +774,7 @@ static int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int
-arm926ejs_handle_cache_info_command(struct command_context_s *cmd_ctx,
-		char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);

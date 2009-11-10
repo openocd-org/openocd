@@ -2028,7 +2028,7 @@ static int arm11_handle_bool(struct command_context_s *cmd_ctx,
 }
 
 #define BOOL_WRAPPER(name, print_name)	\
-static int arm11_handle_bool_##name(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc) \
+COMMAND_HANDLER(arm11_handle_bool_##name) \
 { \
 	return arm11_handle_bool(cmd_ctx, cmd, args, argc, &arm11_config_##name, print_name); \
 }
@@ -2038,7 +2038,7 @@ BOOL_WRAPPER(memwrite_error_fatal,		"fatal error mode for memory writes")
 BOOL_WRAPPER(step_irq_enable,			"IRQs while stepping")
 BOOL_WRAPPER(hardware_step,			"hardware single step")
 
-static int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm11_handle_vcr)
 {
 	switch (argc) {
 	case 0:
@@ -2185,16 +2185,15 @@ static int arm11_handle_etm_read_write(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-int arm11_handle_etmr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm11_handle_etmr)
 {
 	return arm11_handle_etm_read_write(cmd_ctx, cmd, args, argc, true);
 }
 
-int arm11_handle_etmw(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(arm11_handle_etmw)
 {
 	return arm11_handle_etm_read_write(cmd_ctx, cmd, args, argc, false);
 }
-
 
 #define ARM11_HANDLER(x)	.x = arm11_##x
 

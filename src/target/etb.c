@@ -349,7 +349,7 @@ static int etb_write_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_etb_config_command)
 {
 	target_t *target;
 	jtag_tap_t *tap;

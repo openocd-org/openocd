@@ -289,7 +289,7 @@ static int tms470_read_part_info(struct flash_bank_s *bank)
 static uint32_t keysSet = 0;
 static uint32_t flashKeys[4];
 
-static int tms470_handle_flash_keyset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 {
 	if (argc > 4)
 	{
@@ -353,7 +353,7 @@ static const uint32_t FLASH_KEYS_MIX2[] = { 0x0000ffff, 0x0000ffff,
 
 static int oscMHz = 12;
 
-static int tms470_handle_osc_megahertz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(tms470_handle_osc_megahertz_command)
 {
 	if (argc > 1)
 	{
@@ -382,7 +382,7 @@ static int tms470_handle_osc_megahertz_command(struct command_context_s *cmd_ctx
 
 static int plldis = 0;
 
-static int tms470_handle_plldis_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(tms470_handle_plldis_command)
 {
 	if (argc > 1)
 	{

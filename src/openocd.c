@@ -67,7 +67,7 @@ static void print_version(void)
 }
 
 /* Give TELNET a way to find out what version this is */
-static int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_version_command)
 {
 	if (argc != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -109,7 +109,7 @@ static int log_target_callback_event_handler(struct target_s *target, enum targe
 int ioutil_init(struct command_context_s *cmd_ctx);
 
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
-static int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_init_command)
 {
 
 	if (argc != 0)

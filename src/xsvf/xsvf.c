@@ -175,7 +175,7 @@ static int xsvf_read_buffer(int num_bits, int fd, uint8_t* buf)
 }
 
 
-static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_xsvf_command)
 {
 	uint8_t *dr_out_buf = NULL;				/* from host to device (TDI) */
 	uint8_t *dr_in_buf = NULL;				/* from device to host (TDO) */

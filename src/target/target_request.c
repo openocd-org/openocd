@@ -257,7 +257,7 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 	return ERROR_OK;
 }
 
-static int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
