@@ -1315,8 +1315,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 
 	if (argc > 3)
 	{
-		int i;
-		for (i = 3; i < argc; i++)
+		for (unsigned i = 3; i < argc; i++)
 		{
 			if (!strcmp(args[i], "oob_raw"))
 				oob_format |= NAND_OOB_RAW;
@@ -1485,8 +1484,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 	if (argc > 4)
 	{
-		int i;
-		for (i = 4; i < argc; i++)
+		for (unsigned i = 4; i < argc; i++)
 		{
 			if (!strcmp(args[i], "oob_raw"))
 				oob_format |= NAND_OOB_RAW;

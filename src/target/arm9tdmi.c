@@ -862,7 +862,6 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
 	reg_t *vector_catch;
 	uint32_t vector_catch_value;
-	int i, j;
 
 	/* it's uncommon, but some ARM7 chips can support this */
 	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC
@@ -894,9 +893,10 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 		}
 		else
 		{
-			for (i = 0; i < argc; i++)
+			for (unsigned i = 0; i < argc; i++)
 			{
 				/* go through list of vectors */
+				unsigned j;
 				for (j = 0; arm9tdmi_vectors[j].name; j++)
 				{
 					if (strcmp(args[i], arm9tdmi_vectors[j].name) == 0)
@@ -927,7 +927,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	}
 
 	/* output current settings */
-	for (i = 0; arm9tdmi_vectors[i].name; i++) {
+	for (unsigned i = 0; arm9tdmi_vectors[i].name; i++) {
 		command_print(cmd_ctx, "%s: %s", arm9tdmi_vectors[i].name,
 			(vector_catch_value & arm9tdmi_vectors[i].value)
 				? "catch" : "don't catch");

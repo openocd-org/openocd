@@ -214,9 +214,9 @@ COMMAND_HANDLER(handle_append_command)
 	config_file = fopen(args[0], "a");
 	if (config_file != NULL)
 	{
-		int i;
 		fseek(config_file, 0, SEEK_END);
 
+		unsigned i;
 		for (i = 1; i < argc; i++)
 		{
 			if (fwrite(args[i], 1, strlen(args[i]), config_file) != strlen(args[i]))

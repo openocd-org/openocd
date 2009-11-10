@@ -604,9 +604,6 @@ static int cfi_register_commands(struct command_context_s *cmd_ctx)
 FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 {
 	cfi_flash_bank_t *cfi_info;
-	int i;
-	(void) cmd_ctx;
-	(void) cmd;
 
 	if (argc < 6)
 	{
@@ -635,7 +632,7 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	cfi_info->jedec_probe = 0;
 	cfi_info->not_cfi = 0;
 
-	for (i = 6; i < argc; i++)
+	for (unsigned i = 6; i < argc; i++)
 	{
 		if (strcmp(args[i], "x16_as_x8") == 0)
 		{

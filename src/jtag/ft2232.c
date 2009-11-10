@@ -2874,8 +2874,7 @@ COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 		argc -= 1;
 	}
 
-	int i;
-	int retval = ERROR_OK;
+	unsigned i;
 	for (i = 0; i < argc; i += 2)
 	{
 		COMMAND_PARSE_NUMBER(u16, args[i], ft2232_vid[i >> 1]);
@@ -2888,7 +2887,7 @@ COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 	 */
 	ft2232_vid[i >> 1] = ft2232_pid[i >> 1] = 0;
 
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ft2232_handle_latency_command)

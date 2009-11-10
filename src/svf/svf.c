@@ -304,7 +304,7 @@ int svf_add_statemove(tap_state_t state_to)
 COMMAND_HANDLER(handle_svf_command)
 {
 #define SVF_NUM_OF_OPTIONS			1
-	int command_num = 0, i;
+	int command_num = 0;
 	int ret = ERROR_OK;
 	long long time_ago;
 
@@ -316,7 +316,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	// parse variant
 	svf_quiet = 0;
-	for (i = 1; i < argc; i++)
+	for (unsigned i = 1; i < argc; i++)
 	{
 		if (!strcmp(args[i], "quiet"))
 		{
