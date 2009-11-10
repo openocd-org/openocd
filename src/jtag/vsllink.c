@@ -176,23 +176,6 @@ typedef struct
 static int pending_scan_results_length;
 static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
-/* External interface functions */
-static int vsllink_execute_queue(void);
-static int vsllink_speed(int speed);
-static int vsllink_khz(int khz, int *jtag_speed);
-static int vsllink_speed_div(int jtag_speed, int *khz);
-static int vsllink_register_commands(struct command_context_s *cmd_ctx);
-static int vsllink_init(void);
-static int vsllink_quit(void);
-
-/* CLI command handler functions */
-static int vsllink_handle_usb_vid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int vsllink_handle_usb_pid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int vsllink_handle_usb_bulkin_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int vsllink_handle_usb_bulkout_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int vsllink_handle_usb_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int vsllink_handle_mode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 /* Queue command functions */
 static void vsllink_end_state(tap_state_t state);
 static void vsllink_state_move_dma(void);
@@ -254,21 +237,6 @@ static uint8_t *tdo_buffer = NULL;
 static int last_tms;
 
 static vsllink_jtag_t* vsllink_jtag_handle = NULL;
-
-/***************************************************************************/
-/* External interface implementation */
-
-jtag_interface_t vsllink_interface =
-{
-	.name = "vsllink",
-	.execute_queue = vsllink_execute_queue,
-	.speed = vsllink_speed,
-	.khz = vsllink_khz,
-	.speed_div = vsllink_speed_div,
-	.register_commands = vsllink_register_commands,
-	.init = vsllink_init,
-	.quit = vsllink_quit
-};
 
 static void reset_command_pointer(void)
 {
@@ -1357,24 +1325,6 @@ static void vsllink_simple_command(uint8_t command)
 	}
 }
 
-static int vsllink_register_commands(struct command_context_s *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "vsllink_usb_vid", vsllink_handle_usb_vid_command,
-					COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_pid", vsllink_handle_usb_pid_command,
-					COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_bulkin", vsllink_handle_usb_bulkin_command,
-					COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_bulkout", vsllink_handle_usb_bulkout_command,
-					COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_interface", vsllink_handle_usb_interface_command,
-					COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "vsllink_mode", vsllink_handle_mode_command,
-					COMMAND_CONFIG, NULL);
-
-	return ERROR_OK;
-}
-
 static int vsllink_handle_mode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc != 1) {
@@ -1932,3 +1882,38 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 	}
 }
 #endif // _DEBUG_USB_COMMS_ || _DEBUG_JTAG_IO_
+
+static int vsllink_register_commands(struct command_context_s *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "vsllink_usb_vid",
+			vsllink_handle_usb_vid_command, COMMAND_CONFIG,
+			NULL);
+	register_command(cmd_ctx, NULL, "vsllink_usb_pid",
+			vsllink_handle_usb_pid_command, COMMAND_CONFIG,
+			NULL);
+	register_command(cmd_ctx, NULL, "vsllink_usb_bulkin",
+			vsllink_handle_usb_bulkin_command, COMMAND_CONFIG,
+			NULL);
+	register_command(cmd_ctx, NULL, "vsllink_usb_bulkout",
+			vsllink_handle_usb_bulkout_command, COMMAND_CONFIG,
+			NULL);
+	register_command(cmd_ctx, NULL, "vsllink_usb_interface",
+			vsllink_handle_usb_interface_command, COMMAND_CONFIG,
+			NULL);
+	register_command(cmd_ctx, NULL, "vsllink_mode",
+			vsllink_handle_mode_command, COMMAND_CONFIG,
+			NULL);
+
+	return ERROR_OK;
+}
+
+jtag_interface_t vsllink_interface = {
+		.name = "vsllink",
+		.register_commands = &vsllink_register_commands,
+		.init = &vsllink_init,
+		.quit = &vsllink_quit,
+		.khz = &vsllink_khz,
+		.speed = &vsllink_speed,
+		.speed_div = &vsllink_speed_div,
+		.execute_queue = &vsllink_execute_queue,
+	};

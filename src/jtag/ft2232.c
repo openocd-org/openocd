@@ -90,20 +90,6 @@
  #endif
 #endif
 
-static int ft2232_execute_queue(void);
-static int ft2232_speed(int speed);
-static int ft2232_speed_div(int speed, int* khz);
-static int ft2232_khz(int khz, int* jtag_speed);
-static int ft2232_register_commands(struct command_context_s* cmd_ctx);
-static int ft2232_init(void);
-static int ft2232_quit(void);
-
-static int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-static int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-static int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-static int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-
 /**
  * Send out \a num_cycles on the TCK line while the TAP(s) are in a
  * stable state.  Calling code must ensure that current state is stable,
@@ -349,18 +335,6 @@ static void move_to_state(tap_state_t goal_state)
 	clock_tms(0x4b,  tms_bits, tms_count, 0);
 }
 
-jtag_interface_t ft2232_interface =
-{
-	.name			= "ft2232",
-	.execute_queue		= ft2232_execute_queue,
-	.speed			= ft2232_speed,
-	.speed_div		= ft2232_speed_div,
-	.khz			= ft2232_khz,
-	.register_commands	= ft2232_register_commands,
-	.init			= ft2232_init,
-	.quit			= ft2232_quit,
-};
-
 static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
 {
 #if BUILD_FT2232_FTD2XX == 1
@@ -587,21 +561,6 @@ static int ft2232_khz(int khz, int* jtag_speed)
 		*jtag_speed = 0xFFFF;
 	}
 
-	return ERROR_OK;
-}
-
-static int ft2232_register_commands(struct command_context_s* cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "ft2232_device_desc", ft2232_handle_device_desc_command,
-			COMMAND_CONFIG, "the USB device description of the FTDI FT2232 device");
-	register_command(cmd_ctx, NULL, "ft2232_serial", ft2232_handle_serial_command,
-			COMMAND_CONFIG, "the serial number of the FTDI FT2232 device");
-	register_command(cmd_ctx, NULL, "ft2232_layout", ft2232_handle_layout_command,
-			COMMAND_CONFIG, "the layout of the FT2232 GPIO signals used to control output-enables and reset signals");
-	register_command(cmd_ctx, NULL, "ft2232_vid_pid", ft2232_handle_vid_pid_command,
-			COMMAND_CONFIG, "the vendor ID and product ID of the FTDI FT2232 device");
-	register_command(cmd_ctx, NULL, "ft2232_latency", ft2232_handle_latency_command,
-			COMMAND_CONFIG, "set the FT2232 latency timer to a new value");
 	return ERROR_OK;
 }
 
@@ -1804,7 +1763,7 @@ static int ft2232_execute_command(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_queue()
+static int ft2232_execute_queue(void)
 {
 	jtag_command_t* cmd = jtag_command_queue;	/* currently processed command */
 	int retval;
@@ -4011,3 +3970,37 @@ static void ktlink_blink(void)
 	buffer_write(high_output);
 	buffer_write(high_direction);
 }
+
+static int ft2232_register_commands(struct command_context_s* cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "ft2232_device_desc",
+			ft2232_handle_device_desc_command, COMMAND_CONFIG,
+			"the USB device description of the FTDI FT2232 device");
+	register_command(cmd_ctx, NULL, "ft2232_serial",
+			ft2232_handle_serial_command, COMMAND_CONFIG,
+			"the serial number of the FTDI FT2232 device");
+	register_command(cmd_ctx, NULL, "ft2232_layout",
+			ft2232_handle_layout_command, COMMAND_CONFIG,
+			"the layout of the FT2232 GPIO signals used "
+			"to control output-enables and reset signals");
+	register_command(cmd_ctx, NULL, "ft2232_vid_pid",
+			ft2232_handle_vid_pid_command, COMMAND_CONFIG,
+			"the vendor ID and product ID of the FTDI FT2232 device");
+	register_command(cmd_ctx, NULL, "ft2232_latency",
+			ft2232_handle_latency_command, COMMAND_CONFIG,
+			"set the FT2232 latency timer to a new value");
+
+	return ERROR_OK;
+}
+
+
+jtag_interface_t ft2232_interface = {
+		.name = "ft2232",
+		.register_commands = &ft2232_register_commands,
+		.init = &ft2232_init,
+		.quit = &ft2232_quit,
+		.speed = &ft2232_speed,
+		.speed_div = &ft2232_speed_div,
+		.khz = &ft2232_khz,
+		.execute_queue = &ft2232_execute_queue,
+	};

@@ -72,15 +72,6 @@ static int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA ;
 
 #endif // PARPORT_USE_PPDEV
 
-static int amt_jtagaccel_execute_queue(void);
-static int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx);
-static int amt_jtagaccel_speed(int speed);
-static int amt_jtagaccel_init(void);
-static int amt_jtagaccel_quit(void);
-
-static int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 /* tap_move[i][j]: tap movement command to go from state i to state j
  * 0: Test-Logic-Reset
  * 1: Run-Test/Idle
@@ -100,28 +91,6 @@ static uint8_t amt_jtagaccel_tap_move[6][6][2] =
 	{{0x1f, 0x00}, {0x0c, 0x00}, {0x07, 0x00}, {0x97, 0x00}, {0x08, 0x00}, {0x00, 0x00}},	/* IRPAUSE  */
 };
 
-
-jtag_interface_t amt_jtagaccel_interface =
-{
-	.name = "amt_jtagaccel",
-
-	.execute_queue = amt_jtagaccel_execute_queue,
-
-	.speed = amt_jtagaccel_speed,
-	.register_commands = amt_jtagaccel_register_commands,
-	.init = amt_jtagaccel_init,
-	.quit = amt_jtagaccel_quit,
-};
-
-static int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "parport_port", amt_jtagaccel_handle_parport_port_command,
-					 COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "rtck", amt_jtagaccel_handle_rtck_command,
-					 COMMAND_CONFIG, NULL);
-
-	return ERROR_OK;
-}
 
 static void amt_jtagaccel_reset(int trst, int srst)
 {
@@ -571,3 +540,24 @@ static int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, 
 
 	return ERROR_OK;
 }
+
+static int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "parport_port",
+			amt_jtagaccel_handle_parport_port_command, COMMAND_CONFIG,
+			NULL);
+	register_command(cmd_ctx, NULL, "rtck",
+			amt_jtagaccel_handle_rtck_command, COMMAND_CONFIG,
+			NULL);
+
+	return ERROR_OK;
+}
+
+jtag_interface_t amt_jtagaccel_interface = {
+		.name = "amt_jtagaccel",
+		.register_commands = &amt_jtagaccel_register_commands,
+		.init = &amt_jtagaccel_init,
+		.quit = &amt_jtagaccel_quit,
+		.speed = &amt_jtagaccel_speed,
+		.execute_queue = &amt_jtagaccel_execute_queue,
+	};

@@ -118,43 +118,6 @@ static unsigned long dataport;
 static unsigned long statusport;
 #endif
 
-/* low level command set
- */
-static int parport_read(void);
-static void parport_write(int tck, int tms, int tdi);
-static void parport_reset(int trst, int srst);
-static void parport_led(int on);
-
-static int parport_speed(int speed);
-static int parport_register_commands(struct command_context_s *cmd_ctx);
-static int parport_init(void);
-static int parport_quit(void);
-
-/* interface commands */
-static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-jtag_interface_t parport_interface =
-{
-	.name = "parport",
-
-	.execute_queue = bitbang_execute_queue,
-
-	.speed = parport_speed,
-	.register_commands = parport_register_commands,
-	.init = parport_init,
-	.quit = parport_quit,
-};
-
-static bitbang_interface_t parport_bitbang =
-{
-	.read = parport_read,
-	.write = parport_write,
-	.reset = parport_reset,
-	.blink = parport_led
-};
-
 static int parport_read(void)
 {
 	int data = 0;
@@ -244,18 +207,6 @@ static int parport_speed(int speed)
 	return ERROR_OK;
 }
 
-static int parport_register_commands(struct command_context_s *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "parport_port", parport_handle_parport_port_command,
-		COMMAND_CONFIG, "either the address of the I/O port or the number of the '/dev/parport' device");
-	register_command(cmd_ctx, NULL, "parport_cable", parport_handle_parport_cable_command,
-		COMMAND_CONFIG, "the layout of the parallel port cable used to connect to the target");
-	register_command(cmd_ctx, NULL, "parport_write_on_exit", parport_handle_write_on_exit_command,
-		COMMAND_CONFIG, "configure the parallel driver to write a known value to the parallel interface");
-
-	return ERROR_OK;
-}
-
 #if PARPORT_USE_GIVEIO == 1
 static int parport_get_giveio_access(void)
 {
@@ -281,6 +232,13 @@ static int parport_get_giveio_access(void)
 	return 0;
 }
 #endif
+
+static bitbang_interface_t parport_bitbang = {
+		.read = &parport_read,
+		.write = &parport_write,
+		.reset = &parport_reset,
+		.blink = &parport_led,
+	};
 
 static int parport_init(void)
 {
@@ -479,3 +437,32 @@ static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ct
 
 	return ERROR_OK;
 }
+
+static int parport_register_commands(struct command_context_s *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "parport_port",
+			parport_handle_parport_port_command, COMMAND_CONFIG,
+			"either the address of the I/O port "
+			"or the number of the '/dev/parport' device");
+
+	register_command(cmd_ctx, NULL, "parport_cable",
+			parport_handle_parport_cable_command, COMMAND_CONFIG,
+			"the layout of the parallel port cable "
+			"used to connect to the target");
+
+	register_command(cmd_ctx, NULL, "parport_write_on_exit",
+			parport_handle_write_on_exit_command, COMMAND_CONFIG,
+			"configure the parallel driver to write "
+			"a known value to the parallel interface");
+
+	return ERROR_OK;
+}
+
+jtag_interface_t parport_interface = {
+		.name = "parport",
+		.register_commands = &parport_register_commands,
+		.init = &parport_init,
+		.quit = &parport_quit,
+		.speed = &parport_speed,
+		.execute_queue = &bitbang_execute_queue,
+	};

@@ -78,34 +78,6 @@ static uint8_t gw16012_control_value = 0x0;
 static int device_handle;
 #endif
 
-static int gw16012_execute_queue(void);
-static int gw16012_register_commands(struct command_context_s *cmd_ctx);
-static int gw16012_speed(int speed);
-static int gw16012_init(void);
-static int gw16012_quit(void);
-
-static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-jtag_interface_t gw16012_interface =
-{
-	.name = "gw16012",
-
-	.execute_queue = gw16012_execute_queue,
-
-	.speed = gw16012_speed,
-	.register_commands = gw16012_register_commands,
-	.init = gw16012_init,
-	.quit = gw16012_quit,
-};
-
-static int gw16012_register_commands(struct command_context_s *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "parport_port", gw16012_handle_parport_port_command,
-					 COMMAND_CONFIG, NULL);
-
-	return ERROR_OK;
-}
-
 static void gw16012_data(uint8_t value)
 {
 	value = (value & 0x7f) | gw16012_msb;
@@ -589,3 +561,21 @@ static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx
 
 	return ERROR_OK;
 }
+
+static int gw16012_register_commands(struct command_context_s *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "parport_port",
+			gw16012_handle_parport_port_command, COMMAND_CONFIG,
+			NULL);
+
+	return ERROR_OK;
+}
+
+jtag_interface_t gw16012_interface = {
+		.name = "gw16012",
+		.register_commands = &gw16012_register_commands,
+		.init = &gw16012_init,
+		.quit = &gw16012_quit,
+		.speed = &gw16012_speed,
+		.execute_queue = &gw16012_execute_queue,
+	};
