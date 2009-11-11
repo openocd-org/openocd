@@ -558,7 +558,8 @@ int command_run_linef(command_context_t *context, const char *format, ...)
 	return retval;
 }
 
-void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv)
+void command_set_output_handler(command_context_t* context,
+		command_output_handler_t output_handler, void *priv)
 {
 	context->output_handler = output_handler;
 	context->output_handler_priv = priv;

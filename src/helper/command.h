@@ -51,6 +51,12 @@ enum command_mode
 	COMMAND_ANY,
 };
 
+struct command_context_s;
+
+/// The type signature for command context's output handler.
+typedef int (*command_output_handler_t)(struct command_context_s *context,
+				const char* line);
+
 typedef struct command_context_s
 {
 	enum command_mode mode;
@@ -70,7 +76,7 @@ typedef struct command_context_s
 	 * Returning ERROR_COMMAND_SYNTAX_ERROR will have the effect of
 	 * printing out the syntax of the command.
 	 */
-	int (*output_handler)(struct command_context_s *context, const char* line);
+	command_output_handler_t output_handler;
 	void *output_handler_priv;
 } command_context_t;
 
@@ -104,8 +110,7 @@ int unregister_command(command_context_t *context, char *name);
 int unregister_all_commands(command_context_t *context);
 
 void command_set_output_handler(command_context_t* context,
-		int (*output_handler)(struct command_context_s *context,
-		const char* line), void *priv);
+		command_output_handler_t output_handler, void *priv);
 
 command_context_t* copy_command_context(command_context_t* context);
 
