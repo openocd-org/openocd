@@ -162,6 +162,32 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return (retval == ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
+static Jim_Obj *command_name_list(struct command_s *c)
+{
+	Jim_Obj *cmd_list = c->parent ?
+			command_name_list(c->parent) :
+			Jim_NewListObj(interp, NULL, 0);
+	Jim_ListAppendElement(interp, cmd_list,
+			Jim_NewStringObj(interp, c->name, -1));
+
+	return cmd_list;
+}
+
+static void command_helptext_add(Jim_Obj *cmd_list, const char *help)
+{
+	Jim_Obj *cmd_entry = Jim_NewListObj(interp, NULL, 0);
+	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
+	Jim_ListAppendElement(interp, cmd_entry,
+			Jim_NewStringObj(interp, help ? : "", -1));
+
+	/* accumulate help text in Tcl helptext list.  */
+	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp,
+			"ocd_helptext", JIM_ERRMSG);
+	if (Jim_IsShared(helptext))
+		helptext = Jim_DuplicateObj(interp, helptext);
+	Jim_ListAppendElement(interp, helptext, cmd_entry);
+}
+
 /* nice short description of source file */
 #define __THIS__FILE__ "command.c"
 
@@ -179,8 +205,6 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	c->children = NULL;
 	c->handler = handler;
 	c->mode = mode;
-	if (!help)
-		help="";
 	c->next = NULL;
 
 	/* place command in tree */
@@ -233,24 +257,8 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 
 	free((void *)full_name);
 
-	/* accumulate help text in Tcl helptext list.  */
-	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
-	if (Jim_IsShared(helptext))
-		helptext = Jim_DuplicateObj(interp, helptext);
-	Jim_Obj *cmd_entry = Jim_NewListObj(interp, NULL, 0);
+	command_helptext_add(command_name_list(c), help);
 
-	Jim_Obj *cmd_list = Jim_NewListObj(interp, NULL, 0);
-
-	/* maximum of two levels :-) */
-	if (c->parent != NULL)
-	{
-		Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->parent->name, -1));
-	}
-	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->name, -1));
-
-	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
-	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
-	Jim_ListAppendElement(interp, helptext, cmd_entry);
 	return c;
 }
 
@@ -851,20 +859,11 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 {
 	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
 
-	/* FIX!!! it would be prettier to invoke add_help_text...
-	 * accumulate help text in Tcl helptext list.  */
-	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
-	if (Jim_IsShared(helptext))
-		helptext = Jim_DuplicateObj(interp, helptext);
-
-	Jim_Obj *cmd_entry = Jim_NewListObj(interp, NULL, 0);
-
 	Jim_Obj *cmd_list = Jim_NewListObj(interp, NULL, 0);
-	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, name, -1));
+	Jim_ListAppendElement(interp, cmd_list,
+			Jim_NewStringObj(interp, name, -1));
 
-	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
-	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
-	Jim_ListAppendElement(interp, helptext, cmd_entry);
+	command_helptext_add(cmd_list, help);
 }
 
 /* return global variable long value or 0 upon failure */
