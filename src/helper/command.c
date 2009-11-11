@@ -191,12 +191,52 @@ static void command_helptext_add(Jim_Obj *cmd_list, const char *help)
 /* nice short description of source file */
 #define __THIS__FILE__ "command.c"
 
-command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help)
+/**
+ * Find a command by name from a list of commands.
+ * @returns The named command if found, or NULL.
+ */
+static struct command_s *command_find(struct command_s **head, const char *name)
 {
-	command_t *c, *p;
+	assert(head);
+	for (struct command_s *cc = *head; cc; cc = cc->next)
+	{
+		if (strcmp(cc->name, name) == 0)
+			return cc;
+	}
+	return NULL;
+}
 
+/**
+ * Add the command to the end of linked list.
+ * @returns Returns false if the named command already exists in the list.
+ * Returns true otherwise.
+ */
+static void command_add_child(struct command_s **head, struct command_s *c)
+{
+	assert(head);
+	if (NULL == *head)
+	{
+		*head = c;
+		return;
+	}
+	struct command_s *cc = *head;
+	while (cc->next) cc = cc->next;
+	cc->next = c;
+}
+
+command_t* register_command(command_context_t *context,
+		command_t *parent, char *name,
+		int (*handler)(struct command_context_s *context,
+				char* name, char** args, int argc),
+		enum command_mode mode, char *help)
+{
 	if (!context || !name)
 		return NULL;
+
+	struct command_s **head = parent ? &parent->children : &context->commands;
+	struct command_s *c = command_find(head, name);
+	if (NULL != c)
+		return c;
 
 	c = malloc(sizeof(command_t));
 
@@ -207,35 +247,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	c->mode = mode;
 	c->next = NULL;
 
-	/* place command in tree */
-	if (parent)
-	{
-		if (parent->children)
-		{
-			/* find last child */
-			for (p = parent->children; p && p->next; p = p->next);
-			if (p)
-				p->next = c;
-		}
-		else
-		{
-			parent->children = c;
-		}
-	}
-	else
-	{
-		if (context->commands)
-		{
-			/* find last command */
-			for (p = context->commands; p && p->next; p = p->next);
-			if (p)
-				p->next = c;
-		}
-		else
-		{
-			context->commands = c;
-		}
-	}
+	command_add_child(head, c);
 
 	command_helptext_add(command_name_list(c), help);
 
