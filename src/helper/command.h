@@ -88,7 +88,7 @@ typedef struct command_context_s
  */
 #define __COMMAND_HANDLER(name, extra...) \
 		int name(struct command_context_s *cmd_ctx, \
-				const char *cmd, const char *args[], unsigned argc, ##extra)
+				const char *args[], unsigned argc, ##extra)
 
 /**
  * Use this to macro to call a command helper (or a nested handler).
@@ -104,7 +104,7 @@ typedef struct command_context_s
  * variables in intervening scope(s) by accident.
  */
 #define CALL_COMMAND_HANDLER(name, extra...) \
-		name(cmd_ctx, cmd, args, argc, ##extra)
+		name(cmd_ctx, args, argc, ##extra)
 
 /**
  * Always use this macro to define new command handler functions.
@@ -125,7 +125,7 @@ typedef struct command_context_s
  * Use this macro to access the name of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_NAME cmd
+#define CMD_NAME args[-1]
 
 
 /// The type signature for commands' handler functions.

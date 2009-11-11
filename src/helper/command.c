@@ -102,7 +102,8 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	script_debug(interp, c->name, argc, argv);
 
-	words = malloc(sizeof(char *) * argc);
+	words = malloc(sizeof(char *) * (argc + 1));
+	words[0] = c->name;
 	for (i = 0; i < argc; i++)
 	{
 		int len;
@@ -112,12 +113,12 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			/* hit an end of line comment */
 			break;
 		}
-		words[i] = strdup(w);
-		if (words[i] == NULL)
+		words[i + 1] = strdup(w);
+		if (words[i + 1] == NULL)
 		{
 			int j;
 			for (j = 0; j < i; j++)
-				free(words[j]);
+				free(words[j + 1]);
 			free(words);
 			return JIM_ERR;
 		}
@@ -141,7 +142,8 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	retval = run_command(context, c, (const char **)words, nwords);
+	// turn words[0] into args[-1] with this cast
+	retval = run_command(context, c, (const char **)words + 1, nwords);
 
 	log_remove_callback(tcl_output, tclOutput);
 
@@ -150,7 +152,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_DecrRefCount(interp, tclOutput);
 
 	for (i = 0; i < nwords; i++)
-		free(words[i]);
+		free(words[i + 1]);
 	free(words);
 
 	int *return_retval = Jim_GetAssocData(interp, "retval");
@@ -447,7 +449,7 @@ static int run_command(command_context_t *context,
 
 	unsigned argc = num_words - start_word - 1;
 	const char **args = words + start_word + 1;
-	int retval = c->handler(context, c->name, args, argc);
+	int retval = c->handler(context, args, argc);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
 		/* Print help for command */
