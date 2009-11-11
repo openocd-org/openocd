@@ -237,6 +237,8 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 		}
 	}
 
+	command_helptext_add(command_name_list(c), help);
+
 	/* just a placeholder, no handler */
 	if (c->handler == NULL)
 		return c;
@@ -256,8 +258,6 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	free((void *)override_name);
 
 	free((void *)full_name);
-
-	command_helptext_add(command_name_list(c), help);
 
 	return c;
 }
