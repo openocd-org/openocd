@@ -20,8 +20,6 @@
 #ifndef ETB_H
 #define ETB_H
 
-#include "etm.h"
-
 /* ETB registers */
 enum
 {

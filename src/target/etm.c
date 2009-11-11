@@ -670,12 +670,12 @@ static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instructi
 	else if (ctx->core_state == ARMV4_5_STATE_JAZELLE)
 	{
 		LOG_ERROR("BUG: tracing of jazelle code not supported");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 	else
 	{
 		LOG_ERROR("BUG: unknown core state encountered");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
@@ -976,8 +976,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 					break;
 				default:	/* reserved */
 					LOG_ERROR("BUG: branch reason code 0x%" PRIx32 " is reserved", ctx->last_branch_reason);
-					exit(-1);
-					break;
+					return ERROR_FAIL;
 			}
 
 			/* if we got here the branch was a normal PC change
@@ -1172,7 +1171,7 @@ static int handle_etm_tracemode_command_update(
 	else
 	{
 		command_print(cmd_ctx, "invalid option '%s'", args[0]);
-		return ERROR_OK;
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	uint8_t context_id;
@@ -1193,7 +1192,7 @@ static int handle_etm_tracemode_command_update(
 		break;
 	default:
 		command_print(cmd_ctx, "invalid option '%s'", args[1]);
-		return ERROR_OK;
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	if (strcmp(args[2], "enable") == 0)
@@ -1203,7 +1202,7 @@ static int handle_etm_tracemode_command_update(
 	else
 	{
 		command_print(cmd_ctx, "invalid option '%s'", args[2]);
-		return ERROR_OK;
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	if (strcmp(args[3], "enable") == 0)
@@ -1213,7 +1212,7 @@ static int handle_etm_tracemode_command_update(
 	else
 	{
 		command_print(cmd_ctx, "invalid option '%s'", args[3]);
-		return ERROR_OK;
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	/* IGNORED:
@@ -1226,25 +1225,28 @@ static int handle_etm_tracemode_command_update(
 	return ERROR_OK;
 }
 
-static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
+	struct etm *etm;
+
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
-	if (!arm7_9->etm_ctx)
-	{
+	etm = arm7_9->etm_ctx;
+	if (!etm) {
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
-	etmv1_tracemode_t tracemode = arm7_9->etm_ctx->tracemode;
+	etmv1_tracemode_t tracemode = etm->tracemode;
+
 	switch (argc)
 	{
 	case 0:
@@ -1256,8 +1258,13 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 		command_print(cmd_ctx, "usage: configure trace mode "
 				"<none | data | address | all> "
 				"<context id bits> <cycle accurate> <branch output>");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
+
+	/**
+	 * todo: fail if parameters were invalid for this hardware,
+	 * or couldn't be written; display actual hardware state...
+	 */
 
 	command_print(cmd_ctx, "current tracemode configuration:");
 
@@ -1312,13 +1319,13 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 	}
 
 	/* only update ETM_CTRL register if tracemode changed */
-	if (arm7_9->etm_ctx->tracemode != tracemode)
+	if (etm->tracemode != tracemode)
 	{
 		reg_t *etm_ctrl_reg;
 
-		etm_ctrl_reg = etm_reg_lookup(arm7_9->etm_ctx, ETM_CTRL);
+		etm_ctrl_reg = etm_reg_lookup(etm, ETM_CTRL);
 		if (!etm_ctrl_reg)
-			return ERROR_OK;
+			return ERROR_FAIL;
 
 		etm_get_reg(etm_ctrl_reg);
 
@@ -1328,48 +1335,45 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 		buf_set_u32(etm_ctrl_reg->value, 8, 1, (tracemode & ETMV1_BRANCH_OUTPUT) >> 9);
 		etm_store_reg(etm_ctrl_reg);
 
-		arm7_9->etm_ctx->tracemode = tracemode;
+		etm->tracemode = tracemode;
 
 		/* invalidate old trace data */
-		arm7_9->etm_ctx->capture_status = TRACE_IDLE;
-		if (arm7_9->etm_ctx->trace_depth > 0)
+		etm->capture_status = TRACE_IDLE;
+		if (etm->trace_depth > 0)
 		{
-			free(arm7_9->etm_ctx->trace_data);
-			arm7_9->etm_ctx->trace_data = NULL;
+			free(etm->trace_data);
+			etm->trace_data = NULL;
 		}
-		arm7_9->etm_ctx->trace_depth = 0;
+		etm->trace_depth = 0;
 	}
 
 	return ERROR_OK;
 }
 
-static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_config_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_portmode_t portmode = 0x0;
-	etm_context_t *etm_ctx = malloc(sizeof(etm_context_t));
+	struct etm *etm_ctx;
 	int i;
 
 	if (argc != 5)
-	{
-		free(etm_ctx);
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	target = get_target(args[0]);
 	if (!target)
 	{
 		LOG_ERROR("target '%s' not defined", args[0]);
-		free(etm_ctx);
 		return ERROR_FAIL;
 	}
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		free(etm_ctx);
+		command_print(cmd_ctx, "target '%s' is '%s'; not an ARM",
+				target->cmd_name, target_get_name(target));
 		return ERROR_FAIL;
 	}
 
@@ -1388,7 +1392,6 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 			break;
 		default:
 			command_print(cmd_ctx, "unsupported ETM port width '%s', must be 4, 8 or 16", args[1]);
-			free(etm_ctx);
 			return ERROR_FAIL;
 	}
 
@@ -1407,7 +1410,6 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	else
 	{
 		command_print(cmd_ctx, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", args[2]);
-		free(etm_ctx);
 		return ERROR_FAIL;
 	}
 
@@ -1422,7 +1424,12 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	else
 	{
 		command_print(cmd_ctx, "unsupported ETM port clocking '%s', must be 'full' or 'half'", args[3]);
-		free(etm_ctx);
+		return ERROR_FAIL;
+	}
+
+	etm_ctx = calloc(1, sizeof(etm_context_t));
+	if (!etm_ctx) {
+		LOG_DEBUG("out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -1489,15 +1496,15 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	etm = arm7_9->etm_ctx;
 	if (!etm)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	command_print(cmd_ctx, "ETM v%d.%d",
@@ -1548,7 +1555,7 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 			break;
 		default:
 			LOG_ERROR("Illegal max_port_size");
-			exit(-1);
+			return ERROR_FAIL;
 	}
 	command_print(cmd_ctx, "max. port size: %i", max_port_size);
 
@@ -1568,7 +1575,8 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_status_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1580,14 +1588,14 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!arm7_9->etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 	etm = arm7_9->etm_ctx;
 
@@ -1597,7 +1605,7 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cm
 
 		reg = etm_reg_lookup(etm, ETM_STATUS);
 		if (!reg)
-			return ERROR_OK;
+			return ERROR_FAIL;
 		if (etm_get_reg(reg) == ERROR_OK) {
 			unsigned s = buf_get_u32(reg->value, 0, reg->size);
 
@@ -1645,7 +1653,8 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-static int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_image_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1655,21 +1664,21 @@ static int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd
 	if (argc < 1)
 	{
 		command_print(cmd_ctx, "usage: etm image <file> [base address] [type]");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	target = get_current_target(cmd_ctx);
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!(etm_ctx = arm7_9->etm_ctx))
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (etm_ctx->image)
@@ -1698,13 +1707,14 @@ static int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd
 	{
 		free(etm_ctx->image);
 		etm_ctx->image = NULL;
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
 }
 
-static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_dump_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	fileio_t file;
 	target_t *target;
@@ -1716,21 +1726,21 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 	if (argc != 1)
 	{
 		command_print(cmd_ctx, "usage: etm dump <file>");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	target = get_current_target(cmd_ctx);
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!(etm_ctx = arm7_9->etm_ctx))
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (etm_ctx->capture_driver->status == TRACE_IDLE)
@@ -1743,7 +1753,7 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 	{
 		/* TODO: if on-the-fly capture is to be supported, this needs to be changed */
 		command_print(cmd_ctx, "trace capture not completed");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	/* read the trace data if it wasn't read already */
@@ -1752,7 +1762,7 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	fileio_write_u32(&file, etm_ctx->capture_status);
@@ -1772,7 +1782,8 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_load_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	fileio_t file;
 	target_t *target;
@@ -1784,39 +1795,39 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 	if (argc != 1)
 	{
 		command_print(cmd_ctx, "usage: etm load <file>");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	target = get_current_target(cmd_ctx);
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!(etm_ctx = arm7_9->etm_ctx))
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (etm_ctx->capture_driver->status(etm_ctx) & TRACE_RUNNING)
 	{
 		command_print(cmd_ctx, "trace capture running, stop first");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (fileio_open(&file, args[0], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (file.size % 4)
 	{
 		command_print(cmd_ctx, "size isn't a multiple of 4, no valid trace data");
 		fileio_close(&file);
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (etm_ctx->trace_depth > 0)
@@ -1837,7 +1848,7 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 	{
 		command_print(cmd_ctx, "not enough memory to perform operation");
 		fileio_close(&file);
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	for (i = 0; i < etm_ctx->trace_depth; i++)
@@ -1856,7 +1867,8 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1867,14 +1879,14 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!(etm_ctx = arm7_9->etm_ctx))
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (argc > 0)
@@ -1897,7 +1909,8 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_start_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1909,28 +1922,29 @@ static int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm7_9->etm_ctx;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	/* invalidate old tracing data */
-	arm7_9->etm_ctx->capture_status = TRACE_IDLE;
-	if (arm7_9->etm_ctx->trace_depth > 0)
+	etm_ctx->capture_status = TRACE_IDLE;
+	if (etm_ctx->trace_depth > 0)
 	{
-		free(arm7_9->etm_ctx->trace_data);
-		arm7_9->etm_ctx->trace_data = NULL;
+		free(etm_ctx->trace_data);
+		etm_ctx->trace_data = NULL;
 	}
-	arm7_9->etm_ctx->trace_depth = 0;
+	etm_ctx->trace_depth = 0;
 
 	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
 	if (!etm_ctrl_reg)
-		return ERROR_OK;
+		return ERROR_FAIL;
 
 	etm_get_reg(etm_ctrl_reg);
 
@@ -1945,7 +1959,8 @@ static int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-static int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_stop_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1957,19 +1972,19 @@ static int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!(etm_ctx = arm7_9->etm_ctx))
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
 	if (!etm_ctrl_reg)
-		return ERROR_OK;
+		return ERROR_FAIL;
 
 	etm_get_reg(etm_ctrl_reg);
 
@@ -1984,7 +1999,8 @@ static int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-static int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_analyze_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1996,14 +2012,14 @@ static int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *c
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (!(etm_ctx = arm7_9->etm_ctx))
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if ((retval = etmv1_analyze_trace(etm_ctx, cmd_ctx)) != ERROR_OK)
@@ -2024,7 +2040,7 @@ static int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *c
 		}
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 int etm_register_commands(struct command_context_s *cmd_ctx)

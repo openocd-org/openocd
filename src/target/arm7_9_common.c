@@ -3098,33 +3098,14 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	arm7_9->common_magic = ARM7_9_COMMON_MAGIC;
 
 	if ((retval = arm_jtag_setup_connection(&arm7_9->jtag_info)) != ERROR_OK)
-	{
 		return retval;
-	}
 
-	arm7_9->wp_available = 0; /* this is set up in arm7_9_clear_watchpoints() */
+	/* caller must have allocated via calloc(), so everything's zeroed */
+
 	arm7_9->wp_available_max = 2;
-	arm7_9->sw_breakpoints_added = 0;
-	arm7_9->sw_breakpoint_count = 0;
-	arm7_9->breakpoint_count = 0;
-	arm7_9->wp0_used = 0;
-	arm7_9->wp1_used = 0;
-	arm7_9->wp1_used_default = 0;
-	arm7_9->use_dbgrq = 0;
-
-	arm7_9->etm_ctx = NULL;
-	arm7_9->has_single_step = 0;
-	arm7_9->has_monitor_mode = 0;
-	arm7_9->has_vector_catch = 0;
-
-	arm7_9->debug_entry_from_reset = 0;
-
-	arm7_9->dcc_working_area = NULL;
 
 	arm7_9->fast_memory_access = fast_and_dangerous;
 	arm7_9->dcc_downloads = fast_and_dangerous;
-
-	arm7_9->need_bypass_before_restart = 0;
 
 	armv4_5->arch_info = arm7_9;
 	armv4_5->read_core_reg = arm7_9_read_core_reg;
@@ -3132,16 +3113,10 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	armv4_5->full_context = arm7_9_full_context;
 
 	if ((retval = armv4_5_init_arch_info(target, armv4_5)) != ERROR_OK)
-	{
 		return retval;
-	}
 
-	if ((retval = target_register_timer_callback(arm7_9_handle_target_request, 1, 1, target)) != ERROR_OK)
-	{
-		return retval;
-	}
-
-	return ERROR_OK;
+	return target_register_timer_callback(arm7_9_handle_target_request,
+			1, 1, target);
 }
 
 int arm7_9_register_commands(struct command_context_s *cmd_ctx)

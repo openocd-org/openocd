@@ -115,17 +115,17 @@ typedef enum
 } etmv1_tracemode_t;
 
 /* forward-declare ETM context */
-struct etm_context_s;
+struct etm;
 
 typedef struct etm_capture_driver_s
 {
 	char *name;
 	int (*register_commands)(struct command_context_s *cmd_ctx);
-	int (*init)(struct etm_context_s *etm_ctx);
-	trace_status_t (*status)(struct etm_context_s *etm_ctx);
-	int (*read_trace)(struct etm_context_s *etm_ctx);
-	int (*start_capture)(struct etm_context_s *etm_ctx);
-	int (*stop_capture)(struct etm_context_s *etm_ctx);
+	int (*init)(struct etm *etm_ctx);
+	trace_status_t (*status)(struct etm *etm_ctx);
+	int (*read_trace)(struct etm *etm_ctx);
+	int (*start_capture)(struct etm *etm_ctx);
+	int (*stop_capture)(struct etm *etm_ctx);
 } etm_capture_driver_t;
 
 enum
@@ -146,7 +146,7 @@ typedef struct etmv1_trace_data_s
  * this will have to be split into version independent elements
  * and a version specific part
  */
-typedef struct etm_context_s
+typedef struct etm
 {
 	target_t *target;		/* target this ETM is connected to */
 	reg_cache_t *reg_cache;		/* ETM register cache */
