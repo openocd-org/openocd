@@ -728,7 +728,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	if (count == 0)
 		return ERROR_OK;
 
-	switch (cmd[4])
+	switch (CMD_NAME[4])
 	{
 	case 'w':
 		wordsize = 4;

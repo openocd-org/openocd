@@ -121,6 +121,12 @@ typedef struct command_context_s
  */
 #define COMMAND_HELPER(name, extra...) __COMMAND_HANDLER(name, extra)
 
+/**
+ * Use this macro to access the name of the command being handled,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_NAME cmd
+
 
 /// The type signature for commands' handler functions.
 typedef __COMMAND_HANDLER((*command_handler_t));

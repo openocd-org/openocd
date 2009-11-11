@@ -2046,7 +2046,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
 		int retval = parse_uint(args[0], &ms);
 		if (ERROR_OK != retval)
 		{
-			command_print(cmd_ctx, "usage: %s [seconds]", cmd);
+			command_print(cmd_ctx, "usage: %s [seconds]", CMD_NAME);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		// convert seconds (given) to milliseconds (needed)
@@ -2256,7 +2256,7 @@ COMMAND_HANDLER(handle_md_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned size = 0;
-	switch (cmd[2]) {
+	switch (CMD_NAME[2]) {
 	case 'w': size = 4; break;
 	case 'h': size = 2; break;
 	case 'b': size = 1; break;
@@ -2333,7 +2333,7 @@ COMMAND_HANDLER(handle_mw_command)
 	target_t *target = get_current_target(cmd_ctx);
 	unsigned wordsize;
 	uint8_t value_buf[4];
-	switch (cmd[2])
+	switch (CMD_NAME[2])
 	{
 		case 'w':
 			wordsize = 4;

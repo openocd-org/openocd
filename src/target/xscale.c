@@ -3127,7 +3127,7 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -3163,13 +3163,13 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
-	if (strcmp(cmd, "icache") == 0)
+	if (strcmp(CMD_NAME, "icache") == 0)
 		icache = 1;
-	else if (strcmp(cmd, "dcache") == 0)
+	else if (strcmp(CMD_NAME, "dcache") == 0)
 		dcache = 1;
 
 	if (argc >= 1)
@@ -3302,7 +3302,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -3429,7 +3429,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -3499,7 +3499,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 	uint32_t reg_no = 0;

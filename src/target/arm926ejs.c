@@ -740,7 +740,7 @@ COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 

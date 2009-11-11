@@ -605,7 +605,7 @@ static int default_srst_asserted(int *srst_asserted)
 
 COMMAND_HANDLER(handle_interface_list_command)
 {
-	if (strcmp(cmd, "interface_list") == 0 && argc > 0)
+	if (strcmp(CMD_NAME, "interface_list") == 0 && argc > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(cmd_ctx, "The following JTAG interfaces are available:");
