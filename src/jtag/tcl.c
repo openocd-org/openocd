@@ -422,7 +422,8 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
 			return JIM_ERR;
 		}
-		Jim_SetResultString(goi.interp, jtag_interface->name, -1);
+		const char *name = jtag_interface ? jtag_interface->name : NULL;
+		Jim_SetResultString(goi.interp, name ? : "undefined", -1);
 		return JIM_OK;
 	case JTAG_CMD_INIT:
 		if (goi.argc != 0) {
