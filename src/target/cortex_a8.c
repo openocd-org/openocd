@@ -40,81 +40,17 @@
 #include "target_request.h"
 #include "target_type.h"
 
-/* cli handling */
-int cortex_a8_register_commands(struct command_context_s *cmd_ctx);
-
-/* forward declarations */
-int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp);
-int cortex_a8_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target);
-int cortex_a8_examine(struct target_s *target);
-int cortex_a8_poll(target_t *target);
-int cortex_a8_halt(target_t *target);
-int cortex_a8_resume(struct target_s *target, int current, uint32_t address,
-		int handle_breakpoints, int debug_execution);
-int cortex_a8_step(struct target_s *target, int current, uint32_t address,
-		int handle_breakpoints);
-int cortex_a8_debug_entry(target_t *target);
-int cortex_a8_restore_context(target_t *target);
-int cortex_a8_bulk_write_memory(target_t *target, uint32_t address,
-		uint32_t count, uint8_t *buffer);
-int cortex_a8_set_breakpoint(struct target_s *target,
+static int cortex_a8_poll(target_t *target);
+static int cortex_a8_debug_entry(target_t *target);
+static int cortex_a8_restore_context(target_t *target);
+static int cortex_a8_set_breakpoint(struct target_s *target,
 		breakpoint_t *breakpoint, uint8_t matchmode);
-int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_a8_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int cortex_a8_dap_read_coreregister_u32(target_t *target,
+static int cortex_a8_unset_breakpoint(struct target_s *target,
+		breakpoint_t *breakpoint);
+static int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		uint32_t *value, int regnum);
-int cortex_a8_dap_write_coreregister_u32(target_t *target,
+static int cortex_a8_dap_write_coreregister_u32(target_t *target,
 		uint32_t value, int regnum);
-int cortex_a8_assert_reset(target_t *target);
-int cortex_a8_deassert_reset(target_t *target);
-
-static int cortex_a8_mrc(target_t *target, int cpnum, uint32_t op1,
-		uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
-static int cortex_a8_mcr(target_t *target, int cpnum, uint32_t op1,
-		uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
-
-target_type_t cortexa8_target =
-{
-	.name = "cortex_a8",
-
-	.poll = cortex_a8_poll,
-	.arch_state = armv7a_arch_state,
-
-	.target_request_data = NULL,
-
-	.halt = cortex_a8_halt,
-	.resume = cortex_a8_resume,
-	.step = cortex_a8_step,
-
-	.assert_reset = cortex_a8_assert_reset,
-	.deassert_reset = cortex_a8_deassert_reset,
-	.soft_reset_halt = NULL,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = cortex_a8_read_memory,
-	.write_memory = cortex_a8_write_memory,
-	.bulk_write_memory = cortex_a8_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = cortex_a8_add_breakpoint,
-	.remove_breakpoint = cortex_a8_remove_breakpoint,
-	.add_watchpoint = NULL,
-	.remove_watchpoint = NULL,
-
-	.register_commands = cortex_a8_register_commands,
-	.target_create = cortex_a8_target_create,
-	.init_target = cortex_a8_init_target,
-	.examine = cortex_a8_examine,
-	.mrc = cortex_a8_mrc,
-	.mcr = cortex_a8_mcr,
-};
-
 /*
  * FIXME do topology discovery using the ROM; don't
  * assume this is an OMAP3.
@@ -126,7 +62,7 @@ target_type_t cortexa8_target =
 /*
  * Cortex-A8 Basic debug access, very low level assumes state is saved
  */
-int cortex_a8_init_debug_access(target_t *target)
+static int cortex_a8_init_debug_access(target_t *target)
 {
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
@@ -195,7 +131,7 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 Read core register with very few exec_opcode, fast but needs work_area.
 This can cause problems with MMU active.
 **************************************************************************/
-int cortex_a8_read_regs_through_mem(target_t *target, uint32_t address,
+static int cortex_a8_read_regs_through_mem(target_t *target, uint32_t address,
 		uint32_t * regfile)
 {
 	int retval = ERROR_OK;
@@ -212,7 +148,7 @@ int cortex_a8_read_regs_through_mem(target_t *target, uint32_t address,
 	return retval;
 }
 
-int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
+static int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
 		uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
 {
 	int retval;
@@ -230,7 +166,7 @@ int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
 	return retval;
 }
 
-int cortex_a8_write_cp(target_t *target, uint32_t value,
+static int cortex_a8_write_cp(target_t *target, uint32_t value,
 	uint8_t CP, uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
 {
 	int retval;
@@ -259,13 +195,13 @@ int cortex_a8_write_cp(target_t *target, uint32_t value,
 	return retval;
 }
 
-int cortex_a8_read_cp15(target_t *target, uint32_t op1, uint32_t op2,
+static int cortex_a8_read_cp15(target_t *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	return cortex_a8_read_cp(target, value, 15, op1, CRn, CRm, op2);
 }
 
-int cortex_a8_write_cp15(target_t *target, uint32_t op1, uint32_t op2,
+static int cortex_a8_write_cp15(target_t *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	return cortex_a8_write_cp(target, value, 15, op1, CRn, CRm, op2);
@@ -293,7 +229,7 @@ static int cortex_a8_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2
 
 
 
-int cortex_a8_dap_read_coreregister_u32(target_t *target,
+static int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		uint32_t *value, int regnum)
 {
 	int retval = ERROR_OK;
@@ -335,7 +271,7 @@ int cortex_a8_dap_read_coreregister_u32(target_t *target,
 	return retval;
 }
 
-int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int regnum)
+static int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int regnum)
 {
 	int retval = ERROR_OK;
 	uint8_t Rd = regnum&0xFF;
@@ -384,7 +320,7 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int r
 }
 
 /* Write to memory mapped registers directly with no cache or mmu handling */
-int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t address, uint32_t value)
+static int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t address, uint32_t value)
 {
 	int retval;
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -399,7 +335,7 @@ int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t address, u
  * Cortex-A8 Run control
  */
 
-int cortex_a8_poll(target_t *target)
+static int cortex_a8_poll(target_t *target)
 {
 	int retval = ERROR_OK;
 	uint32_t dscr;
@@ -464,7 +400,7 @@ int cortex_a8_poll(target_t *target)
 	return retval;
 }
 
-int cortex_a8_halt(target_t *target)
+static int cortex_a8_halt(target_t *target)
 {
 	int retval = ERROR_OK;
 	uint32_t dscr;
@@ -502,7 +438,7 @@ out:
 	return retval;
 }
 
-int cortex_a8_resume(struct target_s *target, int current,
+static int cortex_a8_resume(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -623,7 +559,7 @@ int cortex_a8_resume(struct target_s *target, int current,
 	return ERROR_OK;
 }
 
-int cortex_a8_debug_entry(target_t *target)
+static int cortex_a8_debug_entry(target_t *target)
 {
 	int i;
 	uint32_t regfile[16], pc, cpsr, dscr;
@@ -752,7 +688,7 @@ int cortex_a8_debug_entry(target_t *target)
 
 }
 
-void cortex_a8_post_debug_entry(target_t *target)
+static void cortex_a8_post_debug_entry(target_t *target)
 {
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
@@ -784,7 +720,7 @@ void cortex_a8_post_debug_entry(target_t *target)
 
 }
 
-int cortex_a8_step(struct target_s *target, int current, uint32_t address,
+static int cortex_a8_step(struct target_s *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -863,7 +799,7 @@ int cortex_a8_step(struct target_s *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
-int cortex_a8_restore_context(target_t *target)
+static int cortex_a8_restore_context(target_t *target)
 {
 	int i;
 	uint32_t value;
@@ -895,11 +831,11 @@ int cortex_a8_restore_context(target_t *target)
 }
 
 
+#if 0
 /*
  * Cortex-A8 Core register functions
  */
-
-int cortex_a8_load_core_reg_u32(struct target_s *target, int num,
+static int cortex_a8_load_core_reg_u32(struct target_s *target, int num,
 		armv4_5_mode_t mode, uint32_t * value)
 {
 	int retval;
@@ -936,7 +872,7 @@ int cortex_a8_load_core_reg_u32(struct target_s *target, int num,
 	return ERROR_OK;
 }
 
-int cortex_a8_store_core_reg_u32(struct target_s *target, int num,
+static int cortex_a8_store_core_reg_u32(struct target_s *target, int num,
 		armv4_5_mode_t mode, uint32_t value)
 {
 	int retval;
@@ -975,9 +911,10 @@ int cortex_a8_store_core_reg_u32(struct target_s *target, int num,
 
 	return ERROR_OK;
 }
+#endif
 
 
-int cortex_a8_read_core_reg(struct target_s *target, int num,
+static int cortex_a8_read_core_reg(struct target_s *target, int num,
 		enum armv4_5_mode mode)
 {
 	uint32_t value;
@@ -1023,7 +960,7 @@ int cortex_a8_write_core_reg(struct target_s *target, int num,
  */
 
 /* Setup hardware Breakpoint Register Pair */
-int cortex_a8_set_breakpoint(struct target_s *target,
+static int cortex_a8_set_breakpoint(struct target_s *target,
 		breakpoint_t *breakpoint, uint8_t matchmode)
 {
 	int retval;
@@ -1098,7 +1035,7 @@ int cortex_a8_set_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+static int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval;
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
@@ -1173,7 +1110,7 @@ int cortex_a8_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
-int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+static int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
 
@@ -1203,7 +1140,7 @@ int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoin
  * Cortex-A8 Reset fuctions
  */
 
-int cortex_a8_assert_reset(target_t *target)
+static int cortex_a8_assert_reset(target_t *target)
 {
 
 	LOG_DEBUG(" ");
@@ -1216,7 +1153,7 @@ int cortex_a8_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-int cortex_a8_deassert_reset(target_t *target)
+static int cortex_a8_deassert_reset(target_t *target)
 {
 
 	LOG_DEBUG(" ");
@@ -1238,7 +1175,7 @@ int cortex_a8_deassert_reset(target_t *target)
  * ap number for every access.
  */
 
-int cortex_a8_read_memory(struct target_s *target, uint32_t address,
+static int cortex_a8_read_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7a_common_s *armv7a = target_to_armv7a(target);
@@ -1327,14 +1264,14 @@ int cortex_a8_write_memory(struct target_s *target, uint32_t address,
 	return retval;
 }
 
-int cortex_a8_bulk_write_memory(target_t *target, uint32_t address,
+static int cortex_a8_bulk_write_memory(target_t *target, uint32_t address,
 		uint32_t count, uint8_t *buffer)
 {
 	return cortex_a8_write_memory(target, address, 4, count, buffer);
 }
 
 
-int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
+static int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 #if 0
 	u16 dcrdr;
@@ -1357,7 +1294,7 @@ int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 }
 
 
-int cortex_a8_handle_target_request(void *priv)
+static int cortex_a8_handle_target_request(void *priv)
 {
 	target_t *target = priv;
 	if (!target->type->examined)
@@ -1399,7 +1336,7 @@ int cortex_a8_handle_target_request(void *priv)
  * Cortex-A8 target information and configuration
  */
 
-int cortex_a8_examine(struct target_s *target)
+static int cortex_a8_examine(struct target_s *target)
 {
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
@@ -1496,7 +1433,7 @@ int cortex_a8_examine(struct target_s *target)
  *	Cortex-A8 target creation and initialization
  */
 
-void cortex_a8_build_reg_cache(target_t *target)
+static void cortex_a8_build_reg_cache(target_t *target)
 {
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
@@ -1506,7 +1443,7 @@ void cortex_a8_build_reg_cache(target_t *target)
 }
 
 
-int cortex_a8_init_target(struct command_context_s *cmd_ctx,
+static int cortex_a8_init_target(struct command_context_s *cmd_ctx,
 		struct target_s *target)
 {
 	cortex_a8_build_reg_cache(target);
@@ -1580,7 +1517,7 @@ LOG_DEBUG(" ");
 	return ERROR_OK;
 }
 
-int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
+static int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	cortex_a8_common_t *cortex_a8 = calloc(1, sizeof(cortex_a8_common_t));
 
@@ -1611,7 +1548,7 @@ static int cortex_a8_handle_dbginit_command(struct command_context_s *cmd_ctx,
 }
 
 
-int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
+static int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *cortex_a8_cmd;
 	int retval = ERROR_OK;
@@ -1633,3 +1570,42 @@ int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
 
 	return retval;
 }
+
+target_type_t cortexa8_target = {
+		.name = "cortex_a8",
+
+		.poll = &cortex_a8_poll,
+		.arch_state = &armv7a_arch_state,
+
+		.target_request_data = NULL,
+
+		.halt = &cortex_a8_halt,
+		.resume = &cortex_a8_resume,
+		.step = &cortex_a8_step,
+
+		.assert_reset = &cortex_a8_assert_reset,
+		.deassert_reset = &cortex_a8_deassert_reset,
+		.soft_reset_halt = NULL,
+
+		.get_gdb_reg_list = &armv4_5_get_gdb_reg_list,
+
+		.read_memory = &cortex_a8_read_memory,
+		.write_memory = &cortex_a8_write_memory,
+		.bulk_write_memory = &cortex_a8_bulk_write_memory,
+		.checksum_memory = &arm7_9_checksum_memory,
+		.blank_check_memory = &arm7_9_blank_check_memory,
+
+		.run_algorithm = &armv4_5_run_algorithm,
+
+		.add_breakpoint = &cortex_a8_add_breakpoint,
+		.remove_breakpoint = &cortex_a8_remove_breakpoint,
+		.add_watchpoint = NULL,
+		.remove_watchpoint = NULL,
+
+		.register_commands = &cortex_a8_register_commands,
+		.target_create = &cortex_a8_target_create,
+		.init_target = &cortex_a8_init_target,
+		.examine = &cortex_a8_examine,
+		.mrc = &cortex_a8_mrc,
+		.mcr = &cortex_a8_mcr,
+	};
