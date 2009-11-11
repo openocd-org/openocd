@@ -31,7 +31,63 @@ This section needs to be expanded to describe OpenOCD's Jim API.
 
 /** @page helpercommand OpenOCD Command API
 
-This section needs to be expanded to describe OpenOCD's Command API.
+OpenOCD's command API allows modules to register callbacks that are then
+available to the scripting services.  It provides the mechanism for
+these commands to be dispatched to the modlue using a standard
+interfaces.  It provides macros for defining functions that use and
+extend this interface.
+
+@section helpercmdhandler Command Handlers
+
+Command handlers are functions with a particular signature, which can
+be extended by modules for passing additional parameters to helpers or
+another layer of handlers.
+
+@subsection helpercmdhandlerdef Defining and Calling Command Handlers
+
+These functions should be defined using the COMMAND_HANDLER macro.
+These methods must be defined as static, as their principle entry point
+should be the run_command dispatch mechanism.
+
+Command helper functions that require access to the full set of
+parameters should be defined using the COMMAND_HELPER.  These must be
+declared static by you, as sometimes you might want to share a helper
+among several files (e.g. s3c24xx_nand.h).
+
+Both types of routines must be called using the CALL_COMMAND_HANDLER macro.
+Calls using this macro to normal handlers require the name of the command
+handler (which can a name or function pointer).  Calls to helpers and
+derived handlers must pass those extra parameters specified by their
+definitions; however, lexical capture is used for the core parameters.
+This dirty trick is being used as a stop-gap measure while the API is
+migrated to one that passes a pointer to a structure containing the
+same ingredients.  At that point, this macro will be removed and callers
+will be able to use direct invocations.
+
+Thus, the following macros can be used to define and call command
+handlers or helpers:
+
+- COMMAND_HANDLER - declare or define a command handler.
+- COMMAND_HELPER - declare or define a derived command handler or helper.
+- CALL_COMMAND_COMMAND - call a command handler/helper.
+
+@subsection helpercmdhandlerparam Command Handler Parameters
+
+The following parameters are defined in the scope of all command
+handlers and helpers:
+- <code>struct command_context_s *cmd_ctx</code> - the command's context
+- <code>unsigned argc</code> - the number of command arguments
+- <code>const char *args[]</code> - contains the command arguments
+
+@subsection helpercmdhandlermacros Command Handler Macros
+
+In addition, the following macro may be used:
+- <code>COMMAND_NAME</code> - contains the command name
+
+@section helpercmdprimer Command Development Primer
+
+This @ref primercommand provides details about the @c hello module,
+showing how the pieces desrcribed on this page fit together.
 
  */
 

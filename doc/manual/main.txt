@@ -42,10 +42,16 @@ associated with the fundamental technologies used by OpenOCD.
 - @subpage primertcl
 - @subpage primerjtag
 
-These documents should bridge any "ancillary" gaps in contributor
+The above documents should bridge any "ancillary" gaps in contributor
 knowledge, without having to learn the complete languages or technology.
 They should provide enough information for experienced developers to
 learn how to make "correct" changes when creating patches.
+
+Beyond the fundamentals, the following primers provide introductory
+tutorials for OpenOCD's sub-systems.  These complement the @ref oocd
+pages that provide more high-level perspective on related topics.
+
+- @subpage primercommand
 
 In all cases, these Primers should use idiomatic conventions that the
 community has agreed are the "right way of doing things".  In this

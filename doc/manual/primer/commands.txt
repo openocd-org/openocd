@@ -1,0 +1,99 @@
+/** @page primercommand Command Development Primer
+
+This page provides a primer for writing commands by introducing @c hello
+module.  The full source code used in this example can be found in
+hello.c, and the @ref primercmdcode section shows how to use it.
+
+A summary of this information can be found in @ref helpercommand .
+
+@section primercmdhandler Command Handlers
+
+Defining new commands and their helpers is easy.  The following code
+defines a simple command handler that delegates its argument parsing:
+@code
+COMMAND_HANDLER(handle_hello_command)
+{
+	const char *sep, *name;
+	int retval = CALL_COMMAND_HANDLER(handle_hello_args);
+	if (ERROR_OK == retval)
+		command_print(cmd_ctx, "Greetings%s%s!", sep, name);
+	return retval;
+}
+@endcode
+
+Here, the @c COMMAND_HANDLER macro establishes the function signature,
+see in command.h by the @c __COMMAND_HANDLER macro.
+
+The COMMAND_HELPER macro function allows defining functions with an
+extended version of the base signature.  These helper functions can be
+called (with the appropriate parameters), the @c CALL_COMMAND_HANDLER
+macro to pass any e as parameters to the following helper function:
+
+The subsequent blocks of code are a normal C function that can do
+anything, so only complex commands deserve should use comamnd helper
+functions.  In this respect, this example uses one to demonstrate how --
+not when -- they should be used.
+
+@code
+static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
+{
+	if (argc > 1)
+	{
+		LOG_ERROR("%s: too many arguments", COMMAND_NAME);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	if (1 == argc)
+	{
+		*sep = ", ";
+		*name = args[0];
+	}
+	else
+		*sep = *name = "";
+
+	return ERROR_OK;
+}
+@endcode
+
+Of course, you may also call other macros or functions, but that extends
+beyond the scope of this tutorial on writing commands. 
+
+@section primercmdreg Command Registration
+
+Before this new function can be used, it must be registered somehow.
+For a new module, registering should be done in a new function for
+the purpose, which must be called from @c openocd.c:
+@code
+int hello_register_commands(struct command_context_s *cmd_ctx)
+{
+	struct command_s *cmd = register_command(cmd_ctx, NULL, "hello",
+			NULL, COMMAND_ANY, "print greetings");
+	return cmd ? ERROR_OK : -ENOMEM;
+}
+@endcode
+
+That's it!  The command should now be registered and avaiable to scripts.
+
+@section primercmdcode Trying These Example Commands
+
+The commands may be enabled by editing src/openocd.c and uncommenting
+the call to @c hello_register_commands and rebuilding the source tree.
+
+Once OpenOCD has been built with this example code, the following script
+demonstrate the abilities that the @c hello module provides:
+@code
+hello
+hello World
+hello {John Doe}
+hello John Doe  # error: too many arguments
+@endcode
+
+If saved in @c hello.cfg, then running <code>openocd -f hello.cfg</code>
+should produce the following output before exiting:
+@code
+Greetings!
+Greetings, World!
+Greetings, John Doe!
+Error: ocd_hello: too many arguments
+@endcode
+
+ */
