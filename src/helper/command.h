@@ -84,6 +84,16 @@ typedef struct command_s
 	struct command_s *next;
 } command_t;
 
+/**
+ * @param c The command to be named.
+ * @param delim The character to place between command names.
+ * @returns A malloc'd string containing the full command name,
+ * which may include one or more ancestor components.  Multiple names
+ * are separated by single spaces.  The caller must free() the string
+ * when done with it.
+ */
+char *command_name(struct command_s *c, char delim);
+
 command_t* register_command(command_context_t *context,
 		command_t *parent, char *name,
 		int (*handler)(struct command_context_s *context,

@@ -217,31 +217,21 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	if (c->handler == NULL)
 		return c;
 
-	/* If this is a two level command, e.g. "flash banks", then the
-	 * "unknown" proc in startup.tcl must redirect to  this command.
-	 *
-	 * "flash banks" is translated by "unknown" to "flash_banks"
-	 * if such a proc exists
-	 */
-	/* Print help for command */
-	const char *t1="";
-	const char *t2="";
-	const char *t3="";
-	/* maximum of two levels :-) */
-	if (c->parent != NULL)
-	{
-		t1 = c->parent->name;
-		t2="_";
-	}
-	t3 = c->name;
-	const char *full_name = alloc_printf("ocd_%s%s%s", t1, t2, t3);
-	Jim_CreateCommand(interp, full_name, script_command, c, NULL);
-	free((void *)full_name);
+	const char *full_name = command_name(c, '_');
+
+	const char *ocd_name = alloc_printf("ocd_%s", full_name);
+	Jim_CreateCommand(interp, ocd_name, script_command, c, NULL);
+	free((void *)ocd_name);
 
 	/* we now need to add an overrideable proc */
-	const char *override_name = alloc_printf("proc %s%s%s {args} {if {[catch {eval ocd_%s%s%s $args}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
+	const char *override_name = alloc_printf("proc %s {args} {"
+			"if {[catch {eval ocd_%s $args}] == 0} "
+			"{return \"\"} else {return -code error}}",
+			full_name, full_name);
 	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__);
 	free((void *)override_name);
+
+	free((void *)full_name);
 
 	/* accumulate help text in Tcl helptext list.  */
 	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
@@ -404,6 +394,28 @@ void command_print(command_context_t *context, const char *format, ...)
 	va_end(ap);
 }
 
+static char *__command_name(struct command_s *c, char delim, unsigned extra)
+{
+	char *name;
+	unsigned len = strlen(c->name);
+	if (NULL == c->parent) {
+		// allocate enough for the name, child names, and '\0'
+		name = malloc(len + extra + 1);
+		strcpy(name, c->name);
+	} else {
+		// parent's extra must include both the space and name
+		name = __command_name(c->parent, delim, 1 + len + extra);
+		char dstr[2] = { delim, 0 };
+		strcat(name, dstr);
+		strcat(name, c->name);
+	}
+	return name;
+}
+char *command_name(struct command_s *c, char delim)
+{
+	return __command_name(c, delim, 0);
+}
+
 static int run_command(command_context_t *context,
 		command_t *c, char *words[], unsigned num_words)
 {
@@ -419,17 +431,12 @@ static int run_command(command_context_t *context,
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
 		/* Print help for command */
-		const char *t1="";
-		const char *t2="";
-		const char *t3="";
-		/* maximum of two levels :-) */
-		if (c->parent != NULL)
-		{
-			t1 = c->parent->name;
-			t2=" ";
-		}
-		t3 = c->name;
-		command_run_linef(context, "help {%s%s%s}", t1, t2, t3);
+		char *full_name = command_name(c, ' ');
+		if (NULL != full_name) {
+			command_run_linef(context, "help %s", full_name);
+			free(full_name);
+		} else
+			retval = -ENOMEM;
 	}
 	else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 	{
