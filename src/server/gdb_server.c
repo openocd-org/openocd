@@ -2271,7 +2271,7 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 /* daemon configuration command gdb_port */
 COMMAND_HANDLER(handle_gdb_port_command)
 {
-	return server_port_command(cmd_ctx, cmd, args, argc, &gdb_port);
+	return CALL_COMMAND_HANDLER(server_port_command, &gdb_port);
 }
 
 COMMAND_HANDLER(handle_gdb_memory_map_command)

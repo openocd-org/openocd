@@ -658,7 +658,7 @@ COMMAND_HANDLER(handle_interface_command)
 	 * didn't match one of the compiled-in interfaces
 	 */
 	LOG_ERROR("The specified JTAG interface was not found (%s)", args[0]);
-	handle_interface_list_command(cmd_ctx, cmd, args, argc);
+	CALL_COMMAND_HANDLER(handle_interface_list_command);
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
 

@@ -85,7 +85,8 @@ COMMAND_HANDLER(handle_pld_device_command)
 			c->driver = pld_drivers[i];
 			c->next = NULL;
 
-			if (pld_drivers[i]->pld_device_command(cmd_ctx, cmd, args, argc, c) != ERROR_OK)
+			int retval = CALL_COMMAND_HANDLER(pld_drivers[i]->pld_device_command, c);
+			if (ERROR_OK != retval)
 			{
 				LOG_ERROR("'%s' driver rejected pld device", args[0]);
 				free(c);

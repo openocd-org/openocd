@@ -259,7 +259,8 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		c->sectors = NULL;
 		c->next = NULL;
 
-		if ((retval = flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
+		retval = CALL_COMMAND_HANDLER(flash_drivers[i]->flash_bank_command, c);
+		if (ERROR_OK != retval)
 		{
 			LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 , args[0], c->base);
 			free(c);

@@ -2029,7 +2029,8 @@ static COMMAND_HELPER(arm11_handle_bool, bool *var, char *name)
 #define BOOL_WRAPPER(name, print_name)	\
 COMMAND_HANDLER(arm11_handle_bool_##name) \
 { \
-	return arm11_handle_bool(cmd_ctx, cmd, args, argc, &arm11_config_##name, print_name); \
+	return CALL_COMMAND_HANDLER(arm11_handle_bool, \
+			&arm11_config_##name, print_name); \
 }
 
 BOOL_WRAPPER(memwrite_burst,			"memory write burst mode")
@@ -2186,12 +2187,12 @@ static COMMAND_HELPER(arm11_handle_etm_read_write, bool read)
 
 COMMAND_HANDLER(arm11_handle_etmr)
 {
-	return arm11_handle_etm_read_write(cmd_ctx, cmd, args, argc, true);
+	return CALL_COMMAND_HANDLER(arm11_handle_etm_read_write, true);
 }
 
 COMMAND_HANDLER(arm11_handle_etmw)
 {
-	return arm11_handle_etm_read_write(cmd_ctx, cmd, args, argc, false);
+	return CALL_COMMAND_HANDLER(arm11_handle_etm_read_write, false);
 }
 
 #define ARM11_HANDLER(x)	.x = arm11_##x

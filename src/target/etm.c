@@ -1271,7 +1271,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	case 0:
 		break;
 	case 4:
-		handle_etm_tracemode_command_update(cmd_ctx, cmd, args, argc, &tracemode);
+		CALL_COMMAND_HANDLER(handle_etm_tracemode_command_update, &tracemode);
 		break;
 	default:
 		command_print(cmd_ctx, "usage: configure trace mode "

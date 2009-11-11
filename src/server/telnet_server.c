@@ -608,7 +608,7 @@ int telnet_init(char *banner)
 /* daemon configuration command telnet_port */
 COMMAND_HANDLER(handle_telnet_port_command)
 {
-	return server_port_command(cmd_ctx, cmd, args, argc, &telnet_port);
+	return CALL_COMMAND_HANDLER(server_port_command, &telnet_port);
 }
 
 COMMAND_HANDLER(handle_exit_command)

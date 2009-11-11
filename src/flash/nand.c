@@ -241,7 +241,8 @@ COMMAND_HANDLER(handle_nand_device_command)
 			c->use_raw = 0;
 			c->next = NULL;
 
-			if ((retval = nand_flash_controllers[i]->nand_device_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
+			retval = CALL_COMMAND_HANDLER(nand_flash_controllers[i]->nand_device_command, c);
+			if (ERROR_OK != retval)
 			{
 				LOG_ERROR("'%s' driver rejected nand flash", c->controller->name);
 				free(c);

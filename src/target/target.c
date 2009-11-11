@@ -2121,7 +2121,7 @@ COMMAND_HANDLER(handle_halt_command)
 			return ERROR_OK;
 	}
 
-	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
+	return CALL_COMMAND_HANDLER(handle_wait_halt_command);
 }
 
 COMMAND_HANDLER(handle_soft_reset_halt_command)
@@ -2410,7 +2410,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	int i;
 	image_t image;
 
-	int retval = parse_load_image_command_args(cmd_ctx, cmd, args, argc,
+	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_args,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2701,12 +2701,12 @@ done:
 
 COMMAND_HANDLER(handle_verify_image_command)
 {
-	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 1);
+	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 1);
 }
 
 COMMAND_HANDLER(handle_test_image_command)
 {
-	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 0);
+	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 0);
 }
 
 static int handle_bp_command_list(struct command_context_s *cmd_ctx)
@@ -4547,7 +4547,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 
 	image_t image;
 
-	int retval = parse_load_image_command_args(cmd_ctx, cmd, args, argc,
+	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_args,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;

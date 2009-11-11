@@ -172,7 +172,7 @@ int tcl_init(void)
 
 COMMAND_HANDLER(handle_tcl_port_command)
 {
-	return server_port_command(cmd_ctx, cmd, args, argc, &tcl_port);
+	return CALL_COMMAND_HANDLER(server_port_command, &tcl_port);
 }
 
 int tcl_register_commands(command_context_t *cmd_ctx)
