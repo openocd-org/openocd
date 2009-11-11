@@ -122,12 +122,15 @@ typedef struct command_context_s
 #define COMMAND_HELPER(name, extra...) __COMMAND_HANDLER(name, extra)
 
 
+/// The type signature for commands' handler functions.
+typedef __COMMAND_HANDLER((*command_handler_t));
+
 typedef struct command_s
 {
 	char *name;
 	struct command_s *parent;
 	struct command_s *children;
-	int (*handler)(struct command_context_s *context, char* name, char** args, int argc);
+	command_handler_t handler;
 	enum command_mode mode;
 	struct command_s *next;
 } command_t;
@@ -143,9 +146,7 @@ typedef struct command_s
 char *command_name(struct command_s *c, char delim);
 
 command_t* register_command(command_context_t *context,
-		command_t *parent, char *name,
-		int (*handler)(struct command_context_s *context,
-				char* name, char** args, int argc),
+		command_t *parent, char *name, command_handler_t handler,
 		enum command_mode mode, char *help);
 
 int unregister_command(command_context_t *context, char *name);

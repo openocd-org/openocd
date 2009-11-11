@@ -225,9 +225,7 @@ static void command_add_child(struct command_s **head, struct command_s *c)
 }
 
 command_t* register_command(command_context_t *context,
-		command_t *parent, char *name,
-		int (*handler)(struct command_context_s *context,
-				char* name, char** args, int argc),
+		command_t *parent, char *name, command_handler_t handler,
 		enum command_mode mode, char *help)
 {
 	if (!context || !name)
