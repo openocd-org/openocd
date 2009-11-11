@@ -12,7 +12,9 @@ endif
 openocd_SOURCES = $(MAINFILE)
 openocd_LDADD = libopenocd.la
 
-libopenocd_la_SOURCES = openocd.c
+libopenocd_la_SOURCES = \
+	hello.c \
+	openocd.c
 
 # set the include path found by configure
 AM_CPPFLAGS = \

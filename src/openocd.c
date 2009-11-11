@@ -177,6 +177,9 @@ COMMAND_HANDLER(handle_init_command)
 
 command_context_t *global_cmd_ctx;
 
+/// src/hello.c gives a simple example for writing new command modules
+int hello_register_commands(struct command_context_s *cmd_ctx);
+
 /* NB! this fn can be invoked outside this file for non PC hosted builds */
 command_context_t *setup_command_handler(void)
 {
@@ -188,6 +191,7 @@ command_context_t *setup_command_handler(void)
 					 COMMAND_EXEC, "show OpenOCD version");
 
 	/* register subsystem commands */
+	hello_register_commands(cmd_ctx);
 	server_register_commands(cmd_ctx);
 	telnet_register_commands(cmd_ctx);
 	gdb_register_commands(cmd_ctx);
