@@ -405,7 +405,7 @@ static int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	struct arm720t_common_s *arm720t = calloc(1, sizeof(*arm720t));
 
-	arm720t->arm7tdmi_common->arm7_9_common.armv4_5_common.is_armv4 = true;
+	arm720t->arm7tdmi_common.arm7_9_common.armv4_5_common.is_armv4 = true;
 	return arm720t_init_arch_info(target, arm720t, target->tap);
 }
 
