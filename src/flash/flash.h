@@ -102,12 +102,6 @@ typedef struct flash_driver_s
 	 * layer when this routine is called, and the driver can store
 	 * additional information in its flash_bank_t::driver_priv field.
 	 *
-	 * @param cmd_ctx - the command context
-	 * @param cmd     - the command, in this case 'flash'
-	 * @param args    - parameters, see below
-	 * @param argc    - number of parameters on command line
-	 * @param bank    - new filled in flash bank.
-	 *
 	 * The args are: @par
 	 * @code
 	 * args[0] = bank

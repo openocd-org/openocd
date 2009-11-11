@@ -530,11 +530,6 @@ static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time )
  *
  * Uses the Built-In-Self-Test (BIST) to generate a 128-bit hash value
  * of the flash content.
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
  */
 static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
                                              char *cmd, char **args, int argc )
@@ -586,11 +581,6 @@ static int lpc2900_handle_signature_command( struct command_context_s *cmd_ctx,
  *
  * Read customer info from index sector, and store that block of data into
  * a disk file. The format is binary.
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
  */
 static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx,
                                                char *cmd, char **args, int argc )
@@ -663,11 +653,6 @@ static int lpc2900_handle_read_custom_command( struct command_context_s *cmd_ctx
 
 /**
  * Enter password to enable potentially dangerous options.
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
  */
 static int lpc2900_handle_password_command(struct command_context_s *cmd_ctx,
                                            char *cmd, char **args, int argc)
@@ -704,11 +689,6 @@ static int lpc2900_handle_password_command(struct command_context_s *cmd_ctx,
 
 /**
  * Write customer info from file to the index sector.
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
  */
 static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ctx,
                                                 char *cmd, char **args, int argc )
@@ -820,11 +800,6 @@ static int lpc2900_handle_write_custom_command( struct command_context_s *cmd_ct
 
 /**
  * Activate 'sector security' for a range of sectors.
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
  */
 static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ctx,
                                                 char *cmd, char **args, int argc)
@@ -925,11 +900,6 @@ static int lpc2900_handle_secure_sector_command(struct command_context_s *cmd_ct
 
 /**
  * Activate JTAG protection.
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
  */
 static int lpc2900_handle_secure_jtag_command(struct command_context_s *cmd_ctx,
                                               char *cmd, char **args, int argc)
@@ -987,8 +957,6 @@ static int lpc2900_handle_secure_jtag_command(struct command_context_s *cmd_ctx,
 
 /**
  * Register private command handlers.
- *
- * @param cmd_ctx
  */
 static int lpc2900_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -1053,17 +1021,7 @@ static int lpc2900_register_commands(struct command_context_s *cmd_ctx)
 }
 
 
-/**
- * Evaluate flash bank command.
- *
- * Syntax: flash bank lpc2900 0 0 0 0 target# system_base_clock
- *
- * @param cmd_ctx
- * @param cmd
- * @param args
- * @param argc
- * @param bank Pointer to the flash bank descriptor
- */
+/// Evaluate flash bank command.
 static int lpc2900_flash_bank_command(struct command_context_s *cmd_ctx,
                                       char *cmd, char **args, int argc,
                                       struct flash_bank_s *bank)
