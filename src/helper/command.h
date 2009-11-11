@@ -80,6 +80,48 @@ typedef struct command_context_s
 	void *output_handler_priv;
 } command_context_t;
 
+
+/**
+ * Command handlers may be defined with more parameters than the base
+ * set provided by command.c.  This macro uses C99 magic to allow
+ * defining all such derivative types using this macro.
+ */
+#define __COMMAND_HANDLER(name, extra...) \
+		int name(struct command_context_s *cmd_ctx, \
+				char *cmd, char **args, int argc, ##extra)
+
+/**
+ * Use this to macro to call a command helper (or a nested handler).
+ * It provides command handler authors protection against reordering or
+ * removal of unused parameters.
+ *
+ * @b Note: This macro uses lexical capture to provide some arguments.
+ * As a result, this macro should be used @b only within functions
+ * defined by the COMMAND_HANDLER or COMMAND_HELPER macros.  Those
+ * macros provide the expected lexical context captured by this macro.
+ * Furthermore, it should be used only from the top-level of handler or
+ * helper function, or care must be taken to avoid redefining the same
+ * variables in intervening scope(s) by accident.
+ */
+#define CALL_COMMAND_HANDLER(name, extra...) \
+		name(cmd_ctx, cmd, args, argc, ##extra)
+
+/**
+ * Always use this macro to define new command handler functions.
+ * It ensures the parameters are ordered, typed, and named properly, so
+ * they be can be used by other macros (e.g. COMMAND_PARSE_NUMBER).
+ * All command handler functions must be defined as static in scope.
+ */
+#define COMMAND_HANDLER(name) static __COMMAND_HANDLER(name)
+
+/**
+ * Similar to COMMAND_HANDLER, except some parameters are expected.
+ * A helper is globally-scoped because it may be shared between several
+ * source files (e.g. the s3c24xx device command helper).
+ */
+#define COMMAND_HELPER(name, extra...) __COMMAND_HANDLER(name, extra)
+
+
 typedef struct command_s
 {
 	char *name;
