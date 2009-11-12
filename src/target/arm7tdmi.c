@@ -663,11 +663,12 @@ int arm7tdmi_examine(struct target_s *target)
 		(*cache_p) = t;
 		arm7_9->eice_cache = (*cache_p);
 
-		if (arm7_9->etm_ctx)
+		if (arm7_9->armv4_5_common.etm)
 		{
 			arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-			(*cache_p)->next = etm_build_reg_cache(target, jtag_info, arm7_9->etm_ctx);
-			arm7_9->etm_ctx->reg_cache = (*cache_p)->next;
+			(*cache_p)->next = etm_build_reg_cache(target,
+					jtag_info, arm7_9->armv4_5_common.etm);
+			arm7_9->armv4_5_common.etm->reg_cache = (*cache_p)->next;
 		}
 		target_set_examined(target);
 	}
@@ -675,7 +676,7 @@ int arm7tdmi_examine(struct target_s *target)
 		return retval;
 	if ((retval = arm7_9_setup(target)) != ERROR_OK)
 		return retval;
-	if (arm7_9->etm_ctx)
+	if (arm7_9->armv4_5_common.etm)
 	{
 		if ((retval = etm_setup(target)) != ERROR_OK)
 			return retval;
