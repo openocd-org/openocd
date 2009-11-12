@@ -1354,7 +1354,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
+	struct arm *arm;
 	arm7_9_common_t *arm7_9;
 	etm_portmode_t portmode = 0x0;
 	struct etm *etm_ctx;
@@ -1370,7 +1370,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (arm7_9_get_arch_pointers(target, &arm, &arm7_9) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target '%s' is '%s'; not an ARM",
 				target->cmd_name, target_get_name(target));
@@ -1461,22 +1461,11 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 	etm_ctx->target = target;
 	etm_ctx->trigger_percent = 50;
 	etm_ctx->trace_data = NULL;
-	etm_ctx->trace_depth = 0;
 	etm_ctx->portmode = portmode;
-	etm_ctx->tracemode = 0x0;
 	etm_ctx->core_state = ARMV4_5_STATE_ARM;
-	etm_ctx->image = NULL;
-	etm_ctx->pipe_index = 0;
-	etm_ctx->data_index = 0;
-	etm_ctx->current_pc = 0x0;
-	etm_ctx->pc_ok = 0;
-	etm_ctx->last_branch = 0x0;
-	etm_ctx->last_branch_reason = 0x0;
-	etm_ctx->last_ptr = 0x0;
-	etm_ctx->ptr_ok = 0x0;
-	etm_ctx->last_instruction = 0;
 
 	arm7_9->etm_ctx = etm_ctx;
+	arm->etm = etm_ctx;
 
 	return etm_register_user_commands(cmd_ctx);
 }

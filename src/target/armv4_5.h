@@ -73,23 +73,49 @@ enum
 
 #define ARMV4_5_COMMON_MAGIC 0x0A450A45
 
-typedef struct armv4_5_common_s
+/* NOTE:  this is being morphed into a generic toplevel holder for ARMs. */
+#define armv4_5_common_s arm
+
+/**
+ * Represents a generic ARM core, with standard application registers.
+ *
+ * There are sixteen application registers (including PC, SP, LR) and a PSR.
+ * Cortex-M series cores do not support as many core states or shadowed
+ * registers as traditional ARM cores, and only support Thumb2 instructions.
+ */
+typedef struct arm
 {
 	int common_magic;
 	reg_cache_t *core_cache;
+
 	int /* armv4_5_mode */ core_mode;
 	enum armv4_5_state core_state;
+
+	/** Flag reporting unavailability of the BKPT instruction. */
 	bool is_armv4;
+
+	/** Handle for the Embedded Trace Module, if one is present. */
+	struct etm *etm;
+
 	int (*full_context)(struct target_s *target);
-	int (*read_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode);
-	int (*write_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode, uint32_t value);
+	int (*read_core_reg)(struct target_s *target,
+			int num, enum armv4_5_mode mode);
+	int (*write_core_reg)(struct target_s *target,
+			int num, enum armv4_5_mode mode, uint32_t value);
 	void *arch_info;
 } armv4_5_common_t;
 
-static inline struct armv4_5_common_s *
-target_to_armv4_5(struct target_s *target)
+#define target_to_armv4_5 target_to_arm
+
+/** Convert target handle to generic ARM target state handle. */
+static inline struct arm *target_to_arm(struct target_s *target)
 {
 	return target->arch_info;
+}
+
+static inline bool is_arm(struct arm *arm)
+{
+	return arm && arm->common_magic == ARMV4_5_COMMON_MAGIC;
 }
 
 typedef struct armv4_5_algorithm_s
