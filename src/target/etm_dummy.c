@@ -28,8 +28,7 @@
 static int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 
 	target = get_target(args[0]);
 
@@ -39,15 +38,16 @@ static int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, ch
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(cmd_ctx, "target '%s' isn't an ARM", args[0]);
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9->etm_ctx)
+	if (arm->etm)
 	{
-		arm7_9->etm_ctx->capture_driver_priv = NULL;
+		arm->etm->capture_driver_priv = NULL;
 	}
 	else
 	{

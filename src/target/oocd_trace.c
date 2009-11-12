@@ -292,29 +292,28 @@ etm_capture_driver_t oocd_trace_capture_driver =
 static int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 
 	if (argc != 2)
 	{
 		LOG_ERROR("incomplete 'oocd_trace config <target> <tty>' command");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
-	if (arm7_9->etm_ctx)
+	if (arm->etm)
 	{
 		oocd_trace_t *oocd_trace = malloc(sizeof(oocd_trace_t));
 
-		arm7_9->etm_ctx->capture_driver_priv = oocd_trace;
-		oocd_trace->etm_ctx = arm7_9->etm_ctx;
+		arm->etm->capture_driver_priv = oocd_trace;
+		oocd_trace->etm_ctx = arm->etm;
 
 		/* copy name of TTY device used to communicate with OpenOCD + trace */
 		oocd_trace->tty = strndup(args[1], 256);
@@ -330,32 +329,32 @@ static int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, c
 static int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	oocd_trace_t *oocd_trace;
 	uint32_t status;
 
 	target = get_current_target(cmd_ctx);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
-	if (!arm7_9->etm_ctx)
+	if (!arm->etm)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
-	if (strcmp(arm7_9->etm_ctx->capture_driver->name, "oocd_trace") != 0)
+	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0)
 	{
 		command_print(cmd_ctx, "current target's ETM capture driver isn't 'oocd_trace'");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
-	oocd_trace = (oocd_trace_t*)arm7_9->etm_ctx->capture_driver_priv;
+	oocd_trace = (oocd_trace_t*)arm->etm->capture_driver_priv;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 
@@ -370,33 +369,33 @@ static int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, c
 static int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	oocd_trace_t *oocd_trace;
 	size_t bytes_written;
 	uint8_t cmd_array[1];
 
 	target = get_current_target(cmd_ctx);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
-	if (!arm7_9->etm_ctx)
+	if (!arm->etm)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
-	if (strcmp(arm7_9->etm_ctx->capture_driver->name, "oocd_trace") != 0)
+	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0)
 	{
 		command_print(cmd_ctx, "current target's ETM capture driver isn't 'oocd_trace'");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
-	oocd_trace = (oocd_trace_t*)arm7_9->etm_ctx->capture_driver_priv;
+	oocd_trace = (oocd_trace_t*)arm->etm->capture_driver_priv;
 
 	cmd_array[0] = 0xf0;
 

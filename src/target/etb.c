@@ -353,8 +353,7 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 {
 	target_t *target;
 	jtag_tap_t *tap;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 
 	if (argc != 2)
 	{
@@ -369,9 +368,10 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETB: current target isn't an ARM7/ARM9 target");
+		command_print(cmd_ctx, "ETB: '%s' isn't an ARM", args[0]);
 		return ERROR_FAIL;
 	}
 
@@ -382,11 +382,11 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9->etm_ctx)
+	if (arm->etm)
 	{
 		etb_t *etb = malloc(sizeof(etb_t));
 
-		arm7_9->etm_ctx->capture_driver_priv = etb;
+		arm->etm->capture_driver_priv = etb;
 
 		etb->tap  = tap;
 		etb->cur_scan_chain = 0xffffffff;
