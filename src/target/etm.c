@@ -410,8 +410,8 @@ int etm_setup(target_t *target)
 {
 	int retval;
 	uint32_t etm_ctrl_value;
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
-	etm_context_t *etm_ctx = arm7_9->etm_ctx;
+	struct arm *arm = target_to_arm(target);
+	etm_context_t *etm_ctx = arm->etm;
 	reg_t *etm_ctrl_reg;
 
 	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
@@ -1229,17 +1229,15 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm = target_to_arm(target);
 	struct etm *etm;
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
-	{
+	if (!is_arm(arm)) {
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	etm = arm7_9->etm_ctx;
+	etm = arm->etm;
 	if (!etm) {
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
@@ -1355,7 +1353,6 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 {
 	target_t *target;
 	struct arm *arm;
-	arm7_9_common_t *arm7_9;
 	etm_portmode_t portmode = 0x0;
 	struct etm *etm_ctx;
 	int i;
@@ -1370,8 +1367,8 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9_get_arch_pointers(target, &arm, &arm7_9) != ERROR_OK)
-	{
+	arm = target_to_arm(target);
+	if (!is_arm(arm)) {
 		command_print(cmd_ctx, "target '%s' is '%s'; not an ARM",
 				target->cmd_name, target_get_name(target));
 		return ERROR_FAIL;
@@ -1464,7 +1461,6 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 	etm_ctx->portmode = portmode;
 	etm_ctx->core_state = ARMV4_5_STATE_ARM;
 
-	arm7_9->etm_ctx = etm_ctx;
 	arm->etm = etm_ctx;
 
 	return etm_register_user_commands(cmd_ctx);
@@ -1474,22 +1470,20 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm;
 	reg_t *etm_sys_config_reg;
-
 	int max_port_size;
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	etm = arm7_9->etm_ctx;
+	etm = arm->etm;
 	if (!etm)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
@@ -1568,25 +1562,24 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm;
 	trace_status_t trace_status;
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!arm7_9->etm_ctx)
+	etm = arm->etm;
+	if (!etm)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
-	etm = arm7_9->etm_ctx;
 
 	/* ETM status */
 	if (etm->bcd_vers >= 0x11) {
@@ -1646,8 +1639,7 @@ static int handle_etm_image_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 
 	if (argc < 1)
@@ -1657,14 +1649,15 @@ static int handle_etm_image_command(struct command_context_s *cmd_ctx,
 	}
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm->etm;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
@@ -1707,8 +1700,7 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx,
 {
 	fileio_t file;
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 	uint32_t i;
 
@@ -1719,14 +1711,15 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx,
 	}
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm->etm;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
@@ -1776,8 +1769,7 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx,
 {
 	fileio_t file;
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 	uint32_t i;
 
@@ -1788,14 +1780,15 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx,
 	}
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm->etm;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
@@ -1860,19 +1853,19 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm->etm;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
@@ -1902,20 +1895,19 @@ static int handle_etm_start_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 	reg_t *etm_ctrl_reg;
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	etm_ctx = arm7_9->etm_ctx;
+	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
@@ -1952,20 +1944,20 @@ static int handle_etm_stop_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 	reg_t *etm_ctrl_reg;
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm->etm;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
@@ -1992,20 +1984,20 @@ static int handle_etm_analyze_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
 	target_t *target;
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
+	struct arm *arm;
 	etm_context_t *etm_ctx;
 	int retval;
 
 	target = get_current_target(cmd_ctx);
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
 	{
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!(etm_ctx = arm7_9->etm_ctx))
+	etm_ctx = arm->etm;
+	if (!etm_ctx)
 	{
 		command_print(cmd_ctx, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
