@@ -235,11 +235,12 @@ bye:
 		return retval;
 	}
 
-	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x (WPID: %d)",
-			  watchpoint_rw_strings[(*watchpoint_p)->rw],
-			  (*watchpoint_p)->address,
-			  (*watchpoint_p)->length,
-			  (*watchpoint_p)->unique_id );
+	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32
+			" of length 0x%8.8" PRIx32 " (WPID: %d)",
+			watchpoint_rw_strings[(*watchpoint_p)->rw],
+			(*watchpoint_p)->address,
+			(*watchpoint_p)->length,
+			(*watchpoint_p)->unique_id );
 
 	return ERROR_OK;
 }

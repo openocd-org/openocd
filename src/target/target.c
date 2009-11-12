@@ -2801,13 +2801,15 @@ COMMAND_HANDLER(handle_wp_command)
 
 		while (watchpoint)
 		{
-			command_print(cmd_ctx,
-						  "address: 0x%8.8" PRIx32 ", len: 0x%8.8x, r/w/a: %i, value: 0x%8.8" PRIx32 ", mask: 0x%8.8" PRIx32 "",
-						  watchpoint->address,
-						  watchpoint->length,
-						  (int)(watchpoint->rw),
-						  watchpoint->value,
-						  watchpoint->mask);
+			command_print(cmd_ctx, "address: 0x%8.8" PRIx32
+					", len: 0x%8.8" PRIx32
+					", r/w/a: %i, value: 0x%8.8" PRIx32
+					", mask: 0x%8.8" PRIx32,
+					watchpoint->address,
+					watchpoint->length,
+					(int)watchpoint->rw,
+					watchpoint->value,
+					watchpoint->mask);
 			watchpoint = watchpoint->next;
 		}
 		return ERROR_OK;

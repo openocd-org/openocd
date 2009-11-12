@@ -1713,13 +1713,13 @@ static int ft2232_execute_sleep(struct jtag_command *cmd)
 	int retval;
 	retval = ERROR_OK;
 
-	DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
+	DEBUG_JTAG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
 
 	if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 	first_unsent = cmd->next;
 	jtag_sleep(cmd->cmd.sleep->us);
-	DEBUG_JTAG_IO("sleep %i usec while in %s",
+	DEBUG_JTAG_IO("sleep %" PRIi32 " usec while in %s",
 			cmd->cmd.sleep->us,
 			tap_state_name(tap_get_state()));
 	return retval;

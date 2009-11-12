@@ -189,7 +189,9 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 			uint32_t value;
 			if ((retval = arm966e_read_cp15(target, address, &value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't access reg %i", address);
+				command_print(cmd_ctx,
+						"couldn't access reg %" PRIi32,
+						address);
 				return ERROR_OK;
 			}
 			if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -197,7 +199,8 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 				return retval;
 			}
 
-			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
+			command_print(cmd_ctx, "%" PRIi32 ": %8.8" PRIx32,
+					address, value);
 		}
 		else if (argc == 2)
 		{
@@ -205,10 +208,13 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 			COMMAND_PARSE_NUMBER(u32, args[1], value);
 			if ((retval = arm966e_write_cp15(target, address, value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't access reg %i", address);
+				command_print(cmd_ctx,
+						"couldn't access reg %" PRIi32,
+						address);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
+			command_print(cmd_ctx, "%" PRIi32 ": %8.8" PRIx32,
+					address, value);
 		}
 	}
 
