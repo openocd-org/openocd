@@ -736,12 +736,12 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
 
     # And calculate the LDFLAGS for the machine
     case "$host_cpu" in
-    i?86|x86_*)
+    i?86|x86_32)
       LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/i386"
       LIBS="$LIBS -lftd2xx"
       f=$with_ftd2xx_win32_zipdir/i386/ftd2xx.lib
       ;;
-    amd64)
+    amd64|x86_64)
       LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
       LIBS="$LIBS -lftd2xx"
       f=$with_ftd2xx_win32_zipdir/amd64/ftd2xx.lib
