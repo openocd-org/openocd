@@ -105,6 +105,8 @@ static cable_t cables[] =
 static char* parport_cable = NULL;
 static uint16_t parport_port;
 static int parport_exit = 0;
+static uint32_t parport_toggling_time_ns = 1000;
+static int wait_states;
 
 /* interface variables
  */
@@ -152,7 +154,7 @@ static __inline__ void parport_write_data(void)
 
 static void parport_write(int tck, int tms, int tdi)
 {
-	int i = jtag_get_speed() + 1;
+	int i = wait_states + 1;
 
 	if (tck)
 		dataport_value |= cable->TCK_MASK;
@@ -204,6 +206,26 @@ static void parport_led(int on)
 
 static int parport_speed(int speed)
 {
+	wait_states = speed;
+	return ERROR_OK;
+}
+
+static int parport_khz(int khz, int* jtag_speed)
+{
+	if (khz == 0) {
+		LOG_DEBUG("RCLK not supported");
+		return ERROR_FAIL;
+	}
+
+	*jtag_speed = 499999 / (khz * parport_toggling_time_ns);
+	return ERROR_OK;
+}
+
+static int parport_speed_div(int speed, int* khz)
+{
+	uint32_t denominator = (speed + 1) * parport_toggling_time_ns;
+
+	*khz = (499999 + denominator) / denominator;
 	return ERROR_OK;
 }
 
@@ -364,6 +386,8 @@ static int parport_init(void)
 
 	bitbang_interface = &parport_bitbang;
 
+	wait_states = jtag_get_speed();
+
 	return ERROR_OK;
 }
 
@@ -438,6 +462,32 @@ static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ct
 	return ERROR_OK;
 }
 
+static int
+parport_handle_parport_toggling_time_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	if (argc == 1) {
+		uint32_t ns;
+		int retval = parse_u32(args[0], &ns);
+
+		if (ERROR_OK != retval)
+			return retval;
+
+		if (ns == 0) {
+			LOG_ERROR("0 ns is not a valid parport toggling time");
+			return ERROR_FAIL;
+		}
+
+		parport_toggling_time_ns = ns;
+		wait_states = jtag_get_speed();
+	}
+
+	command_print(cmd_ctx, "parport toggling time = %" PRIu32 " ns",
+			parport_toggling_time_ns);
+
+	return ERROR_OK;
+}
+
 static int parport_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port",
@@ -455,14 +505,20 @@ static int parport_register_commands(struct command_context_s *cmd_ctx)
 			"configure the parallel driver to write "
 			"a known value to the parallel interface");
 
+	register_command(cmd_ctx, NULL, "parport_toggling_time",
+			parport_handle_parport_toggling_time_command, COMMAND_ANY,
+			"time <ns> it takes for the hardware to toggle TCK");
+
 	return ERROR_OK;
 }
 
 jtag_interface_t parport_interface = {
-		.name = "parport",
-		.register_commands = &parport_register_commands,
-		.init = &parport_init,
-		.quit = &parport_quit,
-		.speed = &parport_speed,
-		.execute_queue = &bitbang_execute_queue,
-	};
+	.name =			"parport",
+	.register_commands =	parport_register_commands,
+	.init =			parport_init,
+	.quit =			parport_quit,
+	.khz =			parport_khz,
+	.speed_div =		parport_speed_div,
+	.speed =		parport_speed,
+	.execute_queue =	bitbang_execute_queue,
+};

@@ -1975,6 +1975,42 @@ When using PPDEV to access the parallel port, use the number of the parallel por
 you may encounter a problem.
 @end deffn
 
+@deffn Command {parport_toggling_time} [nanoseconds]
+Displays how many nanoseconds the hardware needs to toggle TCK;
+the parport driver uses this value to obey the
+@command{jtag_khz} configuration.
+When the optional @var{nanoseconds} parameter is given,
+that setting is changed before displaying the current value.
+
+The default setting should work reasonably well on commodity PC hardware.
+However, you may want to calibrate for your specific hardware.
+@quotation Tip
+To measure the toggling time with a logic analyzer or a digital storage
+oscilloscope, follow the procedure below:
+@example
+> parport_toggling_time 1000
+> jtag_khz 500
+@end example
+This sets the maximum JTAG clock speed of the hardware, but
+the actual speed probably deviates from the requested 500 kHz.
+Now, measure the time between the two closest spaced TCK transitions.
+You can use @command{runtest 1000} or something similar to generate a
+large set of samples.
+Update the setting to match your measurement:
+@example
+> parport_toggling_time <measured nanoseconds>
+@end example
+Now the clock speed will be a better match for @command{jtag_khz rate}
+commands given in OpenOCD scripts and event handlers.
+
+You can do something similar with many digital multimeters, but note
+that you'll probably need to run the clock continuously for several
+seconds before it decides what clock rate to show.  Adjust the
+toggling time up or down until the measured clock rate is a good
+match for the jtag_khz rate you specified; be conservative.
+@end quotation
+@end deffn
+
 @deffn {Config Command} {parport_write_on_exit} (on|off)
 This will configure the parallel driver to write a known
 cable-specific value to the parallel interface on exiting OpenOCD
