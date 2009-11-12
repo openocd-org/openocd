@@ -509,7 +509,14 @@ static __inline void scanFields(int num_fields, const struct scan_field *fields,
 				}
 			}
 			/* mask away unused bits for easier debugging */
-			value&=~(((uint32_t)0xffffffff) << k);
+			if (k < 32)
+			{
+				value&=~(((uint32_t)0xffffffff) << k);
+			} else
+			{
+				/* Shifting by >= 32 is not defined by the C standard
+				 * and will in fact shift by &0x1f bits on nios */
+			}
 
 			shiftValueInner(shiftState, pause_state, k, value);
 
