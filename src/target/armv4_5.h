@@ -29,6 +29,7 @@
 #include "register.h"
 #include "target.h"
 #include "log.h"
+#include "etm.h"
 
 typedef enum armv4_5_mode
 {

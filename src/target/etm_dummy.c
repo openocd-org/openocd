@@ -21,8 +21,8 @@
 #include "config.h"
 #endif
 
+#include "armv4_5.h"
 #include "etm_dummy.h"
-#include "arm7_9_common.h"
 
 
 static int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

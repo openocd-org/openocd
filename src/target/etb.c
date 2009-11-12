@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "arm7_9_common.h"
+#include "armv4_5.h"
 #include "etb.h"
 
 

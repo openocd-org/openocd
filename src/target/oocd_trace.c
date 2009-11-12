@@ -21,8 +21,8 @@
 #include "config.h"
 #endif
 
+#include "armv4_5.h"
 #include "oocd_trace.h"
-#include "arm7_9_common.h"
 
 /*
  * This is "proof of concept" code, for prototype hardware:

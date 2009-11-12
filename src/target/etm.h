@@ -25,7 +25,6 @@
 
 #include "trace.h"
 #include "arm_jtag.h"
-#include "armv4_5.h"
 
 struct image_s;
 
@@ -158,7 +157,7 @@ typedef struct etm
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
 	etm_portmode_t portmode;	/* normal, multiplexed or demultiplexed */
 	etmv1_tracemode_t tracemode;	/* type of info trace contains */
-	armv4_5_state_t core_state;	/* current core state */
+	int /*armv4_5_state_t*/ core_state;	/* current core state */
 	struct image_s *image;		/* source for target opcodes */
 	uint32_t pipe_index;		/* current trace cycle */
 	uint32_t data_index;		/* cycle holding next data packet */

@@ -30,7 +30,7 @@
 #define ARM7_9_COMMON_H
 
 #include "breakpoints.h"
-#include "etm.h"
+#include "armv4_5.h"
 
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */
 
@@ -39,7 +39,7 @@
  */
 typedef struct arm7_9_common_s
 {
-	armv4_5_common_t armv4_5_common;
+	struct arm armv4_5_common;
 	uint32_t common_magic;
 
 	arm_jtag_t jtag_info; /**< JTAG information for target */
@@ -68,8 +68,6 @@ typedef struct arm7_9_common_s
 
 	bool fast_memory_access;
 	bool dcc_downloads;
-
-	etm_context_t *etm_ctx;
 
 	struct working_area_s *dcc_working_area;
 
