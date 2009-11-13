@@ -152,7 +152,7 @@ struct arm_data_proc_instr
 	union arm_shifter_operand shifter_operand;
 };
 
-typedef struct arm_load_store_instr_s
+struct arm_load_store_instr
 {
 	uint8_t Rd;
 	uint8_t Rn;
@@ -168,7 +168,7 @@ typedef struct arm_load_store_instr_s
 			uint8_t shift_imm;
 		} reg;
 	} offset;
-} arm_load_store_instr_t;
+};
 
 typedef struct arm_load_store_multiple_instr_s
 {
@@ -191,7 +191,7 @@ typedef struct arm_instruction_s
 	union {
 		struct arm_b_bl_bx_blx_instr b_bl_bx_blx;
 		struct arm_data_proc_instr data_proc;
-		arm_load_store_instr_t load_store;
+		struct arm_load_store_instr load_store;
 		arm_load_store_multiple_instr_t load_store_multiple;
 	} info;
 
