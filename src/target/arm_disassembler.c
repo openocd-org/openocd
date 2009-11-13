@@ -107,7 +107,7 @@ static uint32_t ror(uint32_t value, int places)
 }
 
 static int evaluate_pld(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	/* PLD */
 	if ((opcode & 0x0d70f000) == 0x0550f000)
@@ -129,7 +129,7 @@ static int evaluate_pld(uint32_t opcode,
 }
 
 static int evaluate_swi(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	instruction->type = ARM_SWI;
 
@@ -141,7 +141,7 @@ static int evaluate_swi(uint32_t opcode,
 }
 
 static int evaluate_blx_imm(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	int offset;
 	uint32_t immediate;
@@ -174,7 +174,7 @@ static int evaluate_blx_imm(uint32_t opcode,
 }
 
 static int evaluate_b_bl(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t L;
 	uint32_t immediate;
@@ -212,7 +212,7 @@ static int evaluate_b_bl(uint32_t opcode,
 /* Coprocessor load/store and double register transfers */
 /* both normal and extended instruction space (condition field b1111) */
 static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t cp_num = (opcode & 0xf00) >> 8;
 
@@ -293,7 +293,7 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 /* Coprocessor register transfer instructions */
 /* both normal and extended instruction space (condition field b1111) */
 static int evaluate_cdp_mcr_mrc(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	const char *cond;
 	char* mnemonic;
@@ -343,7 +343,7 @@ static int evaluate_cdp_mcr_mrc(uint32_t opcode,
 
 /* Load/store instructions */
 static int evaluate_load_store(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t I, P, U, B, W, L;
 	uint8_t Rn, Rd;
@@ -634,7 +634,7 @@ undef:
 
 /* ARMv6 and later support "media" instructions (includes SIMD) */
 static int evaluate_media(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	char *cp = instruction->text;
 	char *mnemonic = NULL;
@@ -829,7 +829,7 @@ undef:
 
 /* Miscellaneous load/store instructions */
 static int evaluate_misc_load_store(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t P, U, I, W, L, S, H;
 	uint8_t Rn, Rd;
@@ -957,7 +957,7 @@ static int evaluate_misc_load_store(uint32_t opcode,
 
 /* Load/store multiples instructions */
 static int evaluate_ldm_stm(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t P, U, S, W, L, Rn;
 	uint32_t register_list;
@@ -1046,7 +1046,7 @@ static int evaluate_ldm_stm(uint32_t opcode,
 
 /* Multiplies, extra load/stores */
 static int evaluate_mul_and_extra_ld_st(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	/* Multiply (accumulate) (long) and Swap/swap byte */
 	if ((opcode & 0x000000f0) == 0x00000090)
@@ -1138,7 +1138,7 @@ static int evaluate_mul_and_extra_ld_st(uint32_t opcode,
 }
 
 static int evaluate_mrs_msr(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	int R = (opcode & 0x00400000) >> 22;
 	char *PSR = (R) ? "SPSR" : "CPSR";
@@ -1193,7 +1193,7 @@ static int evaluate_mrs_msr(uint32_t opcode,
 
 /* Miscellaneous instructions */
 static int evaluate_misc_instr(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	/* MRS/MSR */
 	if ((opcode & 0x000000f0) == 0x00000000)
@@ -1384,7 +1384,7 @@ static int evaluate_misc_instr(uint32_t opcode,
 }
 
 static int evaluate_data_proc(uint32_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t I, op, S, Rn, Rd;
 	char *mnemonic = NULL;
@@ -1591,10 +1591,10 @@ static int evaluate_data_proc(uint32_t opcode,
 	return ERROR_OK;
 }
 
-int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
+int arm_evaluate_opcode(uint32_t opcode, uint32_t address, struct arm_instruction *instruction)
 {
 	/* clear fields, to avoid confusion */
-	memset(instruction, 0, sizeof(arm_instruction_t));
+	memset(instruction, 0, sizeof(struct arm_instruction));
 	instruction->opcode = opcode;
 	instruction->instruction_size = 4;
 
@@ -1744,7 +1744,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *in
 }
 
 static int evaluate_b_bl_blx_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t offset = opcode & 0x7ff;
 	uint32_t opc = (opcode >> 11) & 0x3;
@@ -1799,7 +1799,7 @@ static int evaluate_b_bl_blx_thumb(uint16_t opcode,
 }
 
 static int evaluate_add_sub_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rn = (opcode >> 3) & 0x7;
@@ -1845,7 +1845,7 @@ static int evaluate_add_sub_thumb(uint16_t opcode,
 }
 
 static int evaluate_shift_imm_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rm = (opcode >> 3) & 0x7;
@@ -1891,7 +1891,7 @@ static int evaluate_shift_imm_thumb(uint16_t opcode,
 }
 
 static int evaluate_data_proc_imm_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t imm = opcode & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7;
@@ -1934,7 +1934,7 @@ static int evaluate_data_proc_imm_thumb(uint16_t opcode,
 }
 
 static int evaluate_data_proc_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t high_reg, op, Rm, Rd,H1,H2;
 	char *mnemonic = NULL;
@@ -2120,7 +2120,7 @@ static inline uint32_t thumb_alignpc4(uint32_t addr)
 }
 
 static int evaluate_load_literal_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t immediate;
 	uint8_t Rd = (opcode >> 8) & 0x7;
@@ -2145,7 +2145,7 @@ static int evaluate_load_literal_thumb(uint16_t opcode,
 }
 
 static int evaluate_load_store_reg_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rn = (opcode >> 3) & 0x7;
@@ -2203,7 +2203,7 @@ static int evaluate_load_store_reg_thumb(uint16_t opcode,
 }
 
 static int evaluate_load_store_imm_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t offset = (opcode >> 6) & 0x1f;
 	uint8_t Rd = (opcode >> 0) & 0x7;
@@ -2250,7 +2250,7 @@ static int evaluate_load_store_imm_thumb(uint16_t opcode,
 }
 
 static int evaluate_load_store_stack_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t offset = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7;
@@ -2282,7 +2282,7 @@ static int evaluate_load_store_stack_thumb(uint16_t opcode,
 }
 
 static int evaluate_add_sp_pc_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t imm = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7;
@@ -2316,7 +2316,7 @@ static int evaluate_add_sp_pc_thumb(uint16_t opcode,
 }
 
 static int evaluate_adjust_stack_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t imm = opcode  & 0x7f;
 	uint8_t opc = opcode & (1 << 7);
@@ -2347,7 +2347,7 @@ static int evaluate_adjust_stack_thumb(uint16_t opcode,
 }
 
 static int evaluate_breakpoint_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t imm = opcode  & 0xff;
 
@@ -2361,7 +2361,7 @@ static int evaluate_breakpoint_thumb(uint16_t opcode,
 }
 
 static int evaluate_load_store_multiple_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t reg_list = opcode  & 0xff;
 	uint32_t L = opcode & (1 << 11);
@@ -2439,7 +2439,7 @@ static int evaluate_load_store_multiple_thumb(uint16_t opcode,
 }
 
 static int evaluate_cond_branch_thumb(uint16_t opcode,
-		uint32_t address, arm_instruction_t *instruction)
+		uint32_t address, struct arm_instruction *instruction)
 {
 	uint32_t offset = opcode  & 0xff;
 	uint8_t cond = (opcode >> 8) & 0xf;
@@ -2481,7 +2481,7 @@ static int evaluate_cond_branch_thumb(uint16_t opcode,
 }
 
 static int evaluate_cb_thumb(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	unsigned offset;
 
@@ -2499,7 +2499,7 @@ static int evaluate_cb_thumb(uint16_t opcode, uint32_t address,
 }
 
 static int evaluate_extend_thumb(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	/* added in ARMv6 */
 	snprintf(instruction->text, 128,
@@ -2513,7 +2513,7 @@ static int evaluate_extend_thumb(uint16_t opcode, uint32_t address,
 }
 
 static int evaluate_cps_thumb(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	/* added in ARMv6 */
 	if ((opcode & 0x0ff0) == 0x0650)
@@ -2534,7 +2534,7 @@ static int evaluate_cps_thumb(uint16_t opcode, uint32_t address,
 }
 
 static int evaluate_byterev_thumb(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	char *suffix;
 
@@ -2559,7 +2559,7 @@ static int evaluate_byterev_thumb(uint16_t opcode, uint32_t address,
 }
 
 static int evaluate_hint_thumb(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	char *hint;
 
@@ -2592,7 +2592,7 @@ static int evaluate_hint_thumb(uint16_t opcode, uint32_t address,
 }
 
 static int evaluate_ifthen_thumb(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	unsigned cond = (opcode >> 4) & 0x0f;
 	char *x = "", *y = "", *z = "";
@@ -2616,10 +2616,10 @@ static int evaluate_ifthen_thumb(uint16_t opcode, uint32_t address,
 	return ERROR_OK;
 }
 
-int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
+int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, struct arm_instruction *instruction)
 {
 	/* clear fields, to avoid confusion */
-	memset(instruction, 0, sizeof(arm_instruction_t));
+	memset(instruction, 0, sizeof(struct arm_instruction));
 	instruction->opcode = opcode;
 	instruction->instruction_size = 2;
 
@@ -2754,7 +2754,7 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *
 }
 
 static int t2ev_b_bl(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	unsigned offset;
 	unsigned b21 = 1 << 21;
@@ -2795,7 +2795,7 @@ static int t2ev_b_bl(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_cond_b(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	unsigned offset;
 	unsigned b17 = 1 << 17;
@@ -2884,7 +2884,7 @@ static const char *special_name(int number)
 }
 
 static int t2ev_hint(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	const char *mnemonic;
 
@@ -2924,7 +2924,7 @@ static int t2ev_hint(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_misc(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	const char *mnemonic;
 
@@ -2955,7 +2955,7 @@ static int t2ev_misc(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_b_misc(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	/* permanently undefined */
 	if ((opcode & 0x07f07000) == 0x07f02000) {
@@ -3003,7 +3003,7 @@ undef:
 }
 
 static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	char *mnemonic = NULL;
 	int rn = (opcode >> 16) & 0xf;
@@ -3149,7 +3149,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_data_immed(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	char *mnemonic = NULL;
 	int rn = (opcode >> 16) & 0xf;
@@ -3244,7 +3244,7 @@ do_adr:
 }
 
 static int t2ev_store_single(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	unsigned op = (opcode >> 20) & 0xf;
 	char *size = "";
@@ -3337,7 +3337,7 @@ imm8:
 }
 
 static int t2ev_mul32(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int ra = (opcode >> 12) & 0xf;
 
@@ -3367,7 +3367,7 @@ static int t2ev_mul32(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_mul64_div(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int op = (opcode >> 4) & 0xf;
 	char *infix = "MUL";
@@ -3404,7 +3404,7 @@ static int t2ev_mul64_div(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int rn = (opcode >> 16) & 0xf;
 	int op = (opcode >> 22) & 0x6;
@@ -3454,7 +3454,7 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 
 /* load/store dual or exclusive, table branch */
 static int t2ev_ldrex_strex(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	unsigned op1op2 = (opcode >> 20) & 0x3;
 	unsigned op3 = (opcode >> 4) & 0xf;
@@ -3580,7 +3580,7 @@ literal:
 }
 
 static int t2ev_data_shift(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int op = (opcode >> 21) & 0xf;
 	int rd = (opcode >> 8) & 0xf;
@@ -3755,7 +3755,7 @@ immediate:
 }
 
 static int t2ev_data_reg(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	char *mnemonic;
 	char * suffix = "";
@@ -3856,7 +3856,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_load_word(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int rn = (opcode >> 16) & 0xf;
 	int immed;
@@ -3930,7 +3930,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 }
 
 static int t2ev_load_byte_hints(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int rn = (opcode >> 16) & 0xf;
 	int rt = (opcode >> 12) & 0xf;
@@ -4109,7 +4109,7 @@ ldrsb_literal:
 }
 
 static int t2ev_load_halfword(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction, char *cp)
+		struct arm_instruction *instruction, char *cp)
 {
 	int rn = (opcode >> 16) & 0xf;
 	int rt = (opcode >> 12) & 0xf;
@@ -4191,7 +4191,7 @@ ldrh_literal:
  * always set.  That means eventual arm_simulate_step() support for Thumb2
  * will need work in this area.
  */
-int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruction)
+int thumb2_opcode(target_t *target, uint32_t address, struct arm_instruction *instruction)
 {
 	int retval;
 	uint16_t op;
@@ -4202,7 +4202,7 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	address &= ~1;
 
 	/* clear fields, to avoid confusion */
-	memset(instruction, 0, sizeof(arm_instruction_t));
+	memset(instruction, 0, sizeof(struct arm_instruction));
 
 	/* read first halfword, see if this is the only one */
 	retval = target_read_u16(target, address, &op);
@@ -4308,7 +4308,7 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	return ERROR_OK;
 }
 
-int arm_access_size(arm_instruction_t *instruction)
+int arm_access_size(struct arm_instruction *instruction)
 {
 	if ((instruction->type == ARM_LDRB)
 		|| (instruction->type == ARM_LDRBT)

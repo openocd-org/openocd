@@ -395,7 +395,7 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 	uint32_t address;
 	int count = 1;
 	int i;
-	arm_instruction_t cur_instruction;
+	struct arm_instruction cur_instruction;
 	uint32_t opcode;
 	uint16_t thumb_opcode;
 	int thumb = 0;

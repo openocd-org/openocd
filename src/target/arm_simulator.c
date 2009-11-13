@@ -281,7 +281,7 @@ int arm_simulate_step_core(target_t *target,
 		uint32_t *dry_run_pc, struct arm_sim_interface *sim)
 {
 	uint32_t current_pc = sim->get_reg(sim, 15);
-	arm_instruction_t instruction;
+	struct arm_instruction instruction;
 	int instruction_size;
 	int retval = ERROR_OK;
 

@@ -636,7 +636,7 @@ static struct etm_capture_driver *etm_capture_drivers[] =
 	NULL
 };
 
-static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
+static int etm_read_instruction(etm_context_t *ctx, struct arm_instruction *instruction)
 {
 	int i;
 	int section = -1;
@@ -887,7 +887,7 @@ static int etmv1_data(etm_context_t *ctx, int size, uint32_t *data)
 static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 {
 	int retval;
-	arm_instruction_t instruction;
+	struct arm_instruction instruction;
 
 	/* read the trace data if it wasn't read already */
 	if (ctx->trace_depth == 0)

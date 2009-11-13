@@ -179,7 +179,7 @@ struct arm_load_store_multiple_instr
 	uint8_t W;
 };
 
-typedef struct arm_instruction_s
+struct arm_instruction
 {
 	enum arm_instruction_type type;
 	char text[128];
@@ -195,15 +195,15 @@ typedef struct arm_instruction_s
 		struct arm_load_store_multiple_instr load_store_multiple;
 	} info;
 
-} arm_instruction_t;
+};
 
 int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
-		arm_instruction_t *instruction);
+		struct arm_instruction *instruction);
 int thumb_evaluate_opcode(uint16_t opcode, uint32_t address,
-		arm_instruction_t *instruction);
+		struct arm_instruction *instruction);
 int thumb2_opcode(target_t *target, uint32_t address,
-		arm_instruction_t *instruction);
-int arm_access_size(arm_instruction_t *instruction);
+		struct arm_instruction *instruction);
+int arm_access_size(struct arm_instruction *instruction);
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000) >> 28])
 

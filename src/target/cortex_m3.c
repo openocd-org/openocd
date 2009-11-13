@@ -1788,7 +1788,7 @@ COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	uint32_t address;
 	unsigned long count = 1;
-	arm_instruction_t cur_instruction;
+	struct arm_instruction cur_instruction;
 
 	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
 	if (retval != ERROR_OK)

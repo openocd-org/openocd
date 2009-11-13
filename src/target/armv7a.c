@@ -332,7 +332,7 @@ usage:
 	}
 
 	for (i = 0; i < count; i++) {
-		arm_instruction_t cur_instruction;
+		struct arm_instruction cur_instruction;
 		int retval;
 
 		if (thumb) {

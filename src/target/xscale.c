@@ -2550,7 +2550,7 @@ static int xscale_read_trace(target_t *target)
 }
 
 static int xscale_read_instruction(target_t *target,
-		arm_instruction_t *instruction)
+		struct arm_instruction *instruction)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int i;
@@ -2723,7 +2723,7 @@ static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 			if (xscale->trace.pc_ok)
 			{
 				int executed = (trace_data->entries[i].data & 0xf) + rollover * 16;
-				arm_instruction_t instruction;
+				struct arm_instruction instruction;
 
 				if ((exception == 6) || (exception == 7))
 				{
@@ -2795,7 +2795,7 @@ static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 
 		for (; xscale->trace.current_pc < trace_data->last_instruction; xscale->trace.current_pc += (xscale->trace.core_state == ARMV4_5_STATE_ARM) ? 4 : 2)
 		{
-			arm_instruction_t instruction;
+			struct arm_instruction instruction;
 			if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)
 			{
 				/* can't continue tracing with no image available */
