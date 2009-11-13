@@ -106,7 +106,7 @@ static char *const xscale_reg_list[] =
 	"XSCALE_TXRXCTRL",
 };
 
-static const xscale_reg_t xscale_reg_arch_info[] =
+static const struct xscale_reg xscale_reg_arch_info[] =
 {
 	{XSCALE_MAINID, NULL},
 	{XSCALE_CACHETYPE, NULL},
@@ -2365,7 +2365,7 @@ static int xscale_remove_watchpoint(struct target_s *target, struct watchpoint *
 
 static int xscale_get_reg(reg_t *reg)
 {
-	xscale_reg_t *arch_info = reg->arch_info;
+	struct xscale_reg *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -2410,7 +2410,7 @@ static int xscale_get_reg(reg_t *reg)
 
 static int xscale_set_reg(reg_t *reg, uint8_t* buf)
 {
-	xscale_reg_t *arch_info = reg->arch_info;
+	struct xscale_reg *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
@@ -2456,7 +2456,7 @@ static int xscale_write_dcsr_sw(target_t *target, uint32_t value)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	reg_t *dcsr = &xscale->reg_cache->reg_list[XSCALE_DCSR];
-	xscale_reg_t *dcsr_arch_info = dcsr->arch_info;
+	struct xscale_reg *dcsr_arch_info = dcsr->arch_info;
 
 	/* send CP write request (command 0x41) */
 	xscale_send_u32(target, 0x41);
@@ -2822,9 +2822,9 @@ static void xscale_build_reg_cache(target_t *target)
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	xscale_reg_t *arch_info = malloc(sizeof(xscale_reg_arch_info));
+	struct xscale_reg *arch_info = malloc(sizeof(xscale_reg_arch_info));
 	int i;
-	int num_regs = sizeof(xscale_reg_arch_info) / sizeof(xscale_reg_t);
+	int num_regs = sizeof(xscale_reg_arch_info) / sizeof(struct xscale_reg);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);

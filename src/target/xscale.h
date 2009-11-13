@@ -138,11 +138,11 @@ target_to_xscale(struct target_s *target)
 			armv4_5_common);
 }
 
-typedef struct xscale_reg_s
+struct xscale_reg
 {
 	int dbg_handler_number;
 	target_t *target;
-} xscale_reg_t;
+};
 
 enum
 {
