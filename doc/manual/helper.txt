@@ -75,7 +75,7 @@ handlers or helpers:
 
 The following parameters are defined in the scope of all command
 handlers and helpers:
-- <code>struct command_context_s *cmd_ctx</code> - the command's context
+- <code>struct command_context *cmd_ctx</code> - the command's context
 - <code>unsigned argc</code> - the number of command arguments
 - <code>const char *args[]</code> - contains the command arguments
 

@@ -66,8 +66,9 @@ Finally, try to avoid lines of code that are longer than than 72-80 columns:
 - most identifiers must use lower-case letters (and digits) only.
   - macros must use upper-case letters (and digits) only.
   - OpenOCD identifiers should NEVER use @c MixedCaps.
-- structure names must end with the '_s' suffix.
-- typedef names must end with the '_t' suffix.
+- @c typedef names must end with the '_t' suffix.
+  - This should be reserved for types that should be passed by value.
+  - Do @b not mix the typedef keyword with @c struct.
 - use underline characters between consecutive words in identifiers
   (e.g. @c more_than_one_word).
 
@@ -77,7 +78,7 @@ Finally, try to avoid lines of code that are longer than than 72-80 columns:
 - @c // comments -- in new code, prefer these for single-line comments
 - trailing comma allowed in enum declarations
 - designated initializers (@{ .field = value @})
-- variables declarations may be mixed with code
+- variables declarations should occur at the point of first use
 - new block scopes for selection and iteration statements
 
 @section styletypes Type Guidelines
@@ -176,7 +177,7 @@ The following guidelines apply to all Doxygen comment blocks:
   -# @c function_name() can be used to reference functions
     (e.g. flash_set_dirty()).
   -# @c struct_name::member_name should be used to reference structure
-    fields in the documentation (e.g. @c flash_driver_s::name).
+    fields in the documentation (e.g. @c flash_driver::name).
   -# URLS get converted to markup automatically, without any extra effort.
   -# new pages can be linked into the heirarchy by using the @c \@subpage
     command somewhere the page(s) under which they should be linked:
