@@ -66,7 +66,7 @@ static void dummy_write(int tck, int tms, int tdi);
 static void dummy_reset(int trst, int srst);
 static void dummy_led(int on);
 
-static bitbang_interface_t dummy_bitbang =
+static struct bitbang_interface dummy_bitbang =
 {
 	.read = dummy_read,
 	.write = dummy_write,

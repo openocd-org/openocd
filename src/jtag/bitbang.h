@@ -23,18 +23,17 @@
 #ifndef BITBANG_H
 #define BITBANG_H
 
-typedef struct bitbang_interface_s
-{
+struct bitbang_interface {
 	/* low level callbacks (for bitbang)
 	 */
 	int (*read)(void);
 	void (*write)(int tck, int tms, int tdi);
 	void (*reset)(int trst, int srst);
 	void (*blink)(int on);
-} bitbang_interface_t;
-
-extern bitbang_interface_t *bitbang_interface;
+};
 
 int bitbang_execute_queue(void);
+
+extern struct bitbang_interface *bitbang_interface;
 
 #endif /* BITBANG_H */

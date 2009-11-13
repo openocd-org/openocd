@@ -65,7 +65,7 @@ jtag_interface_t ep93xx_interface =
 	.quit = ep93xx_quit,
 };
 
-static bitbang_interface_t ep93xx_bitbang =
+static struct bitbang_interface ep93xx_bitbang =
 {
 	.read = ep93xx_read,
 	.write = ep93xx_write,

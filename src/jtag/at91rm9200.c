@@ -134,7 +134,7 @@ jtag_interface_t at91rm9200_interface =
 	.quit = at91rm9200_quit,
 };
 
-static bitbang_interface_t at91rm9200_bitbang =
+static struct bitbang_interface at91rm9200_bitbang =
 {
 	.read = at91rm9200_read,
 	.write = at91rm9200_write,

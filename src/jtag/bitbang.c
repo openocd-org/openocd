@@ -39,7 +39,7 @@
 static void bitbang_stableclocks(int num_cycles);
 
 
-bitbang_interface_t *bitbang_interface;
+struct bitbang_interface *bitbang_interface;
 
 /* DANGER!!!! clock absolutely *MUST* be 0 in idle or reset won't work!
  *

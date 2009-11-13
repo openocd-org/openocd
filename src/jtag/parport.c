@@ -255,7 +255,7 @@ static int parport_get_giveio_access(void)
 }
 #endif
 
-static bitbang_interface_t parport_bitbang = {
+static struct bitbang_interface parport_bitbang = {
 		.read = &parport_read,
 		.write = &parport_write,
 		.reset = &parport_reset,
