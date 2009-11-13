@@ -53,13 +53,13 @@ struct nand_flash_controller
 
 #define NAND_DEVICE_COMMAND_HANDLER(name) static __NAND_DEVICE_COMMAND(name)
 
-typedef struct nand_block_s
+struct nand_block
 {
 	uint32_t offset;
 	uint32_t size;
 	int is_erased;
 	int is_bad;
-} nand_block_t;
+};
 
 struct nand_oobfree {
 	int offset;
@@ -85,7 +85,7 @@ typedef struct nand_device_s
 	int erase_size;
 	int use_raw;
 	int num_blocks;
-	nand_block_t *blocks;
+	struct nand_block *blocks;
 	struct nand_device_s *next;
 } nand_device_t;
 

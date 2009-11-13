@@ -602,7 +602,7 @@ int nand_probe(struct nand_device_s *nand)
 	}
 
 	nand->num_blocks = (nand->device->chip_size * 1024) / (nand->erase_size / 1024);
-	nand->blocks = malloc(sizeof(nand_block_t) * nand->num_blocks);
+	nand->blocks = malloc(sizeof(struct nand_block) * nand->num_blocks);
 
 	for (i = 0; i < nand->num_blocks; i++)
 	{
