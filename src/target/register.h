@@ -54,13 +54,13 @@ struct reg_cache
 	int num_regs;
 };
 
-typedef struct reg_arch_type_s
+struct reg_arch_type
 {
 	int id;
 	int (*get)(reg_t *reg);
 	int (*set)(reg_t *reg, uint8_t *buf);
-	struct reg_arch_type_s *next;
-} reg_arch_type_t;
+	struct reg_arch_type *next;
+};
 
 reg_t* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all);
@@ -68,7 +68,7 @@ struct reg_cache** register_get_last_cache_p(struct reg_cache **first);
 
 int register_reg_arch_type(int (*get)(reg_t *reg),
 		int (*set)(reg_t *reg, uint8_t *buf));
-reg_arch_type_t* register_get_arch_type(int id);
+struct reg_arch_type* register_get_arch_type(int id);
 
 void register_init_dummy(reg_t *reg);
 

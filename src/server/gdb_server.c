@@ -1003,7 +1003,7 @@ int gdb_set_registers_packet(struct connection *connection, target_t *target, ch
 			LOG_ERROR("BUG: register packet is too small for registers");
 		}
 
-		reg_arch_type_t *arch_type;
+		struct reg_arch_type *arch_type;
 		bin_buf = malloc(CEIL(reg_list[i]->size, 8));
 		gdb_target_to_reg(target, packet_p, chars, bin_buf);
 
@@ -1070,7 +1070,7 @@ int gdb_set_register_packet(struct connection *connection, target_t *target, cha
 	reg_t **reg_list;
 	int reg_list_size;
 	int retval;
-	reg_arch_type_t *arch_type;
+	struct reg_arch_type *arch_type;
 
 	LOG_DEBUG("-");
 

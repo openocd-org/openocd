@@ -1961,7 +1961,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 		if (reg->valid == 0)
 		{
-			reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
+			struct reg_arch_type *arch_type = register_get_arch_type(reg->arch_type);
 			arch_type->get(reg);
 		}
 		value = buf_to_str(reg->value, reg->size, 16);
@@ -1976,7 +1976,7 @@ COMMAND_HANDLER(handle_reg_command)
 		uint8_t *buf = malloc(CEIL(reg->size, 8));
 		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
 
-		reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
+		struct reg_arch_type *arch_type = register_get_arch_type(reg->arch_type);
 		arch_type->set(reg, buf);
 
 		value = buf_to_str(reg->value, reg->size, 16);

@@ -28,7 +28,7 @@
 #include "log.h"
 
 
-reg_arch_type_t *reg_arch_types = NULL;
+struct reg_arch_type *reg_arch_types = NULL;
 
 reg_t* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
@@ -68,7 +68,7 @@ struct reg_cache** register_get_last_cache_p(struct reg_cache **first)
 
 int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, uint8_t *buf))
 {
-	reg_arch_type_t** arch_type_p = &reg_arch_types;
+	struct reg_arch_type** arch_type_p = &reg_arch_types;
 	int id = 0;
 
 	if (*arch_type_p)
@@ -80,7 +80,7 @@ int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, uint8_
 		}
 	}
 
-	(*arch_type_p) = malloc(sizeof(reg_arch_type_t));
+	(*arch_type_p) = malloc(sizeof(struct reg_arch_type));
 	(*arch_type_p)->id = id + 1;
 	(*arch_type_p)->set = set;
 	(*arch_type_p)->get = get;
@@ -89,9 +89,9 @@ int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, uint8_
 	return id + 1;
 }
 
-reg_arch_type_t* register_get_arch_type(int id)
+struct reg_arch_type* register_get_arch_type(int id)
 {
-	reg_arch_type_t *arch_type = reg_arch_types;
+	struct reg_arch_type *arch_type = reg_arch_types;
 
 	while (arch_type)
 	{
