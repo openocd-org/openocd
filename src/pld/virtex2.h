@@ -22,9 +22,9 @@
 
 #include "jtag.h"
 
-typedef struct virtex2_pld_device_s
+struct virtex2_pld_device
 {
   struct jtag_tap *tap;
-} virtex2_pld_device_t;
+};
 
 #endif /* VIRTEX2_H */

@@ -52,7 +52,7 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 static int virtex2_send_32(struct pld_device_s *pld_device,
 		int num_words, uint32_t *words)
 {
-	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
+	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
 	struct scan_field scan_field;
 	uint8_t *values;
 	int i;
@@ -85,7 +85,7 @@ static __inline__ void virtexflip32(jtag_callback_data_t arg)
 static int virtex2_receive_32(struct pld_device_s *pld_device,
 		int num_words, uint32_t *words)
 {
-	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
+	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
 	struct scan_field scan_field;
 
 	scan_field.tap = virtex2_info->tap;
@@ -133,7 +133,7 @@ static int virtex2_read_stat(struct pld_device_s *pld_device, uint32_t *status)
 
 static int virtex2_load(struct pld_device_s *pld_device, const char *filename)
 {
-	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
+	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
 	struct xilinx_bit_file bit_file;
 	int retval;
 	unsigned int i;
@@ -180,7 +180,7 @@ static int virtex2_load(struct pld_device_s *pld_device, const char *filename)
 COMMAND_HANDLER(virtex2_handle_read_stat_command)
 {
 	pld_device_t *device;
-	virtex2_pld_device_t *virtex2_info;
+	struct virtex2_pld_device *virtex2_info;
 	uint32_t status;
 
 	if (argc < 1)
@@ -211,7 +211,7 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 {
 	struct jtag_tap *tap;
 
-	virtex2_pld_device_t *virtex2_info;
+	struct virtex2_pld_device *virtex2_info;
 
 	if (argc < 2)
 	{
@@ -225,7 +225,7 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 		return ERROR_OK;
 	}
 
-	virtex2_info = malloc(sizeof(virtex2_pld_device_t));
+	virtex2_info = malloc(sizeof(struct virtex2_pld_device));
 	virtex2_info->tap = tap;
 
 	pld->driver_priv = virtex2_info;
