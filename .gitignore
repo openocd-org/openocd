@@ -4,6 +4,7 @@
 .libs
 .deps
 *.o
+*.o.??????
 *.a
 *.lo
 *.la
