@@ -39,15 +39,6 @@ typedef struct bitq_interface_s
 	int (*in)(void);
 } bitq_interface_t;
 
-typedef struct bitq_state_s
-{
-  jtag_command_t *cmd; /* command currently processed */
-  int field_idx; /* index of field currently being processed */
-  int bit_pos; /* position of bit curently being processed */
-
-  int status; /* processing status */
-} bitq_state_t;
-
 extern bitq_interface_t *bitq_interface;
 
 int bitq_execute_queue(void);

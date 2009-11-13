@@ -27,7 +27,14 @@
 
 bitq_interface_t* bitq_interface;       /* low level bit queue interface */
 
-static bitq_state_t      bitq_in_state;        /* state of input queue */
+/* state of input queue */
+struct bitq_state {
+	jtag_command_t *cmd; /* command currently processed */
+	int field_idx; /* index of field currently being processed */
+	int bit_pos; /* position of bit curently being processed */
+	int status; /* processing status */
+};
+static struct bitq_state bitq_in_state;
 
 static uint8_t* bitq_in_buffer;                     /* buffer dynamically reallocated as needed */
 static int     bitq_in_bufsize = 32; /* min. buffer size */
