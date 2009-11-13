@@ -22,7 +22,7 @@
 
 #include "flash.h"
 
-typedef struct tms470_flash_bank_s
+struct tms470_flash_bank
 {
 	unsigned ordinal;
 
@@ -34,6 +34,6 @@ typedef struct tms470_flash_bank_s
 	uint32_t part_number;
 	char * part_name;
 
-} tms470_flash_bank_t;
+};
 
 #endif /* TMS470_DOT_H */
