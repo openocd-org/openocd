@@ -69,13 +69,12 @@ struct pathmove_command {
 	tap_state_t* path;
 };
 
-typedef struct runtest_command_s
-{
+struct runtest_command {
 	/// number of cycles to spend in Run-Test/Idle state
 	int num_cycles;
 	/// state in which JTAG commands should finish
 	tap_state_t end_state;
-} runtest_command_t;
+};
 
 
 typedef struct stableclocks_command_s
@@ -114,7 +113,7 @@ typedef union jtag_command_container_u
 	struct scan_command*         scan;
 	struct statemove_command*    statemove;
 	struct pathmove_command*     pathmove;
-	runtest_command_t*      runtest;
+	struct runtest_command*      runtest;
 	stableclocks_command_t* stableclocks;
 	reset_command_t*        reset;
 	end_state_command_t*    end_state;
