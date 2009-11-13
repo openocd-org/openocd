@@ -22,7 +22,7 @@
 
 #include "flash.h"
 
-typedef struct stellaris_flash_bank_s
+struct stellaris_flash_bank
 {
 	/* chip id register */
 	uint32_t did0;
@@ -52,7 +52,7 @@ typedef struct stellaris_flash_bank_s
 	uint32_t mck_freq;
 	const char *iosc_desc;
 	const char *mck_desc;
-} stellaris_flash_bank_t;
+};
 
 /* STELLARIS control registers */
 #define SCB_BASE	0x400FE000

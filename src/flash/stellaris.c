@@ -215,7 +215,7 @@ static char * StellarisClassname[5] =
  */
 FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 {
-	stellaris_flash_bank_t *stellaris_info;
+	struct stellaris_flash_bank *stellaris_info;
 
 	if (argc < 6)
 	{
@@ -223,7 +223,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	stellaris_info = calloc(sizeof(stellaris_flash_bank_t), 1);
+	stellaris_info = calloc(sizeof(struct stellaris_flash_bank), 1);
 	bank->base = 0x0;
 	bank->driver_priv = stellaris_info;
 
@@ -242,7 +242,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	int printed, device_class;
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 
 	stellaris_read_part_info(bank);
 
@@ -363,7 +363,7 @@ static const unsigned rcc_xtal[32] = {
 
 static void stellaris_read_clock_info(flash_bank_t *bank)
 {
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t rcc, rcc2, pllcfg, sysdiv, usesysdiv, bypass, oscsrc;
 	unsigned xtal;
@@ -450,7 +450,7 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 /* Setup the timimg registers */
 static void stellaris_set_flash_mode(flash_bank_t *bank,int mode)
 {
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 
 	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
@@ -497,7 +497,7 @@ static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,uint16_
 /* Read device id register, main clock frequency register and fill in driver info structure */
 static int stellaris_read_part_info(struct flash_bank_s *bank)
 {
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t did0, did1, ver, fam, status;
 	int i;
@@ -617,7 +617,7 @@ static int stellaris_protect_check(struct flash_bank_s *bank)
 {
 	uint32_t status;
 
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -646,7 +646,7 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 {
 	int banknr;
 	uint32_t flash_fmc, flash_cris;
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -717,7 +717,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	uint32_t fmppe, flash_fmc, flash_cris;
 	int lockregion;
 
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -910,7 +910,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 
 static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t address = offset;
 	uint32_t flash_cris, flash_fmc;
@@ -1061,7 +1061,7 @@ static int stellaris_probe(struct flash_bank_s *bank)
 
 static int stellaris_auto_probe(struct flash_bank_s *bank)
 {
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	if (stellaris_info->did1)
 		return ERROR_OK;
 	return stellaris_probe(bank);
@@ -1070,7 +1070,7 @@ static int stellaris_auto_probe(struct flash_bank_s *bank)
 static int stellaris_mass_erase(struct flash_bank_s *bank)
 {
 	target_t *target = NULL;
-	stellaris_flash_bank_t *stellaris_info = NULL;
+	struct stellaris_flash_bank *stellaris_info = NULL;
 	uint32_t flash_fmc;
 
 	stellaris_info = bank->driver_priv;
