@@ -29,7 +29,7 @@ enum lpc3180_selected_controller
 	LPC3180_SLC_CONTROLLER,
 };
 
-typedef struct lpc3180_nand_controller_s
+struct lpc3180_nand_controller
 {
 	struct target_s *target;
 	int osc_freq;
@@ -37,6 +37,6 @@ typedef struct lpc3180_nand_controller_s
 	int sw_write_protection;
 	uint32_t sw_wp_lower_bound;
 	uint32_t sw_wp_upper_bound;
-} lpc3180_nand_controller_t;
+};
 
 #endif /*LPC3180_NAND_CONTROLLER_H */
