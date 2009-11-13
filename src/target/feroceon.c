@@ -618,7 +618,7 @@ void feroceon_common_setup(struct target_s *target)
 
 int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
+	struct arm926ejs_common *arm926ejs = calloc(1,sizeof(struct arm926ejs_common));
 
 	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 	feroceon_common_setup(target);
