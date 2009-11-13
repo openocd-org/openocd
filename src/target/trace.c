@@ -82,7 +82,7 @@ COMMAND_HANDLER(handle_trace_point_command)
 	/* resize array if necessary */
 	if (!trace->trace_points || (trace->trace_points_size == trace->num_trace_points))
 	{
-		trace->trace_points = realloc(trace->trace_points, sizeof(trace_point_t) * (trace->trace_points_size + 32));
+		trace->trace_points = realloc(trace->trace_points, sizeof(struct trace_point) * (trace->trace_points_size + 32));
 		trace->trace_points_size += 32;
 	}
 

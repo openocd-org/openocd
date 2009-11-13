@@ -25,17 +25,17 @@
 struct target_s;
 struct command_context_s;
 
-typedef struct trace_point_s
+struct trace_point
 {
 	uint32_t address;
 	uint64_t hit_counter;
-} trace_point_t;
+};
 
 typedef struct trace_s
 {
 	uint32_t num_trace_points;
 	uint32_t trace_points_size;
-	trace_point_t *trace_points;
+	struct trace_point *trace_points;
 	uint32_t trace_history_size;
 	uint32_t *trace_history;
 	uint32_t trace_history_pos;
