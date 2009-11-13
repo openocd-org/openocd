@@ -158,7 +158,7 @@ typedef struct target_s
 	struct breakpoint_s *breakpoints;	/* list of breakpoints */
 	struct watchpoint *watchpoints;	/* list of watchpoints */
 	struct trace_s *trace_info;			/* generic trace information */
-	struct debug_msg_receiver_s *dbgmsg;/* list of debug message receivers */
+	struct debug_msg_receiver *dbgmsg;/* list of debug message receivers */
 	uint32_t dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
 	struct target_s *next;				/* next target in list */

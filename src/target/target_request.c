@@ -40,7 +40,7 @@ static int charmsg_mode = 0;
 static int target_asciimsg(target_t *target, uint32_t length)
 {
 	char *msg = malloc(CEIL(length + 1, 4) * 4);
-	debug_msg_receiver_t *c = target->dbgmsg;
+	struct debug_msg_receiver *c = target->dbgmsg;
 
 	target->type->target_request_data(target, CEIL(length, 4), (uint8_t*)msg);
 	msg[length] = 0;
@@ -68,7 +68,7 @@ static int target_hexmsg(target_t *target, int size, uint32_t length)
 	uint8_t *data = malloc(CEIL(length * size, 4) * 4);
 	char line[128];
 	int line_len;
-	debug_msg_receiver_t *c = target->dbgmsg;
+	struct debug_msg_receiver *c = target->dbgmsg;
 	uint32_t i;
 
 	LOG_DEBUG("size: %i, length: %i", (int)size, (int)length);
@@ -152,7 +152,7 @@ int target_request(target_t *target, uint32_t request)
 
 static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
-	debug_msg_receiver_t **p = &target->dbgmsg;
+	struct debug_msg_receiver **p = &target->dbgmsg;
 
 	if (target == NULL)
 		return ERROR_INVALID_ARGUMENTS;
@@ -168,7 +168,7 @@ static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *t
 	}
 
 	/* add new debug message receiver */
-	(*p) = malloc(sizeof(debug_msg_receiver_t));
+	(*p) = malloc(sizeof(struct debug_msg_receiver));
 	(*p)->cmd_ctx = cmd_ctx;
 	(*p)->next = NULL;
 
@@ -178,10 +178,10 @@ static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *t
 	return ERROR_OK;
 }
 
-static debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
 	int do_all_targets = 0;
-	debug_msg_receiver_t **p = &target->dbgmsg;
+	struct debug_msg_receiver **p = &target->dbgmsg;
 
 	/* if no target has been specified search all of them */
 	if (target == NULL)
@@ -213,8 +213,8 @@ static debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *c
 
 int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
-	debug_msg_receiver_t **p;
-	debug_msg_receiver_t *c;
+	struct debug_msg_receiver **p;
+	struct debug_msg_receiver *c;
 	int do_all_targets = 0;
 
 	/* if no target has been specified search all of them */
@@ -234,7 +234,7 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 		c = *p;
 		while (c)
 		{
-			debug_msg_receiver_t *next = c->next;
+			struct debug_msg_receiver *next = c->next;
 			if (c->cmd_ctx == cmd_ctx)
 			{
 				*p = next;

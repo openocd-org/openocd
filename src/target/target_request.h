@@ -36,11 +36,11 @@ typedef enum target_req_cmd
 /*	TARGET_REQ_SEMIHOSTING, */
 } target_req_cmd_t;
 
-typedef struct debug_msg_receiver_s
+struct debug_msg_receiver
 {
 	command_context_t *cmd_ctx;
-	struct debug_msg_receiver_s *next;
-} debug_msg_receiver_t;
+	struct debug_msg_receiver *next;
+};
 
 int target_request(target_t *target, uint32_t request);
 int delete_debug_msg_receiver(struct command_context_s *cmd_ctx,
