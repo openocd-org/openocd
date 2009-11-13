@@ -47,7 +47,7 @@ static void cfi_fixup_0002_unlock_addresses(flash_bank_t *flash, void *param);
 static void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *flash, void *param);
 
 /* fixup after reading cmdset 0002 primary query table */
-static const cfi_fixup_t cfi_0002_fixups[] = {
+static const struct cfi_fixup cfi_0002_fixups[] = {
 	{CFI_MFR_SST, 0x00D4, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x00D5, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x00D6, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
@@ -63,14 +63,14 @@ static const cfi_fixup_t cfi_0002_fixups[] = {
 };
 
 /* fixup after reading cmdset 0001 primary query table */
-static const cfi_fixup_t cfi_0001_fixups[] = {
+static const struct cfi_fixup cfi_0001_fixups[] = {
 	{0, 0, NULL, NULL}
 };
 
-static void cfi_fixup(flash_bank_t *bank, const cfi_fixup_t *fixups)
+static void cfi_fixup(flash_bank_t *bank, const struct cfi_fixup *fixups)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	const cfi_fixup_t *f;
+	const struct cfi_fixup *f;
 
 	for (f = fixups; f->fixup; f++)
 	{

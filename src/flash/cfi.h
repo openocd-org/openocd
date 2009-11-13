@@ -142,13 +142,13 @@ struct cfi_unlock_addresses
 	uint32_t unlock2;
 };
 
-typedef struct cfi_fixup_s
+struct cfi_fixup
 {
 	uint16_t mfr;
 	uint16_t id;
 	void (*fixup)(flash_bank_t *flash, void *param);
 	void *param;
-} cfi_fixup_t;
+};
 
 #define CFI_MFR_AMD		0x0001
 #define CFI_MFR_FUJITSU	0x0004
