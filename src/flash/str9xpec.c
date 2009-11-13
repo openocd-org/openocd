@@ -1205,7 +1205,7 @@ static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_driver_t str9xpec_flash = {
+struct flash_driver str9xpec_flash = {
 		.name = "str9xpec",
 		.register_commands = &str9xpec_register_commands,
 		.flash_bank_command = &str9xpec_flash_bank_command,

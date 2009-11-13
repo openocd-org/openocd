@@ -20,4 +20,4 @@
 
 
 // nothing to do here other then export this.
-extern flash_driver_t at91sam3_flash;
+extern struct flash_driver at91sam3_flash;

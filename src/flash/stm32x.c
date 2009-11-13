@@ -1205,7 +1205,7 @@ static int stm32x_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_driver_t stm32x_flash = {
+struct flash_driver stm32x_flash = {
 		.name = "stm32x",
 		.register_commands = &stm32x_register_commands,
 		.flash_bank_command = &stm32x_flash_bank_command,

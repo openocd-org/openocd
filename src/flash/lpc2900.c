@@ -1830,7 +1830,7 @@ static int lpc2900_info(struct flash_bank_s *bank, char *buf, int buf_size)
 }
 
 
-flash_driver_t lpc2900_flash =
+struct flash_driver lpc2900_flash =
 {
 	.name               = "lpc2900",
 	.register_commands  = lpc2900_register_commands,

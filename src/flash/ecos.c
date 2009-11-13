@@ -435,7 +435,7 @@ static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, cha
 }
 #endif
 
-flash_driver_t ecosflash_flash = {
+struct flash_driver ecosflash_flash = {
 		.name = "ecosflash",
 		.register_commands = &ecosflash_register_commands,
 		.flash_bank_command = &ecosflash_flash_bank_command,

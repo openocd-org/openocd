@@ -1236,7 +1236,7 @@ FLASH_BANK_COMMAND_HANDLER(tms470_flash_bank_command)
 	return ERROR_OK;
 }
 
-flash_driver_t tms470_flash = {
+struct flash_driver tms470_flash = {
 		.name = "tms470",
 		.register_commands = &tms470_register_commands,
 		.flash_bank_command = &tms470_flash_bank_command,

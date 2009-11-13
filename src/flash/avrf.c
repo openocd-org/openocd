@@ -461,7 +461,7 @@ static int avrf_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_driver_t avr_flash = {
+struct flash_driver avr_flash = {
 		.name = "avr",
 		.register_commands = &avrf_register_commands,
 		.flash_bank_command = &avrf_flash_bank_command,

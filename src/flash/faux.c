@@ -128,7 +128,7 @@ static int faux_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-flash_driver_t faux_flash = {
+struct flash_driver faux_flash = {
 		.name = "faux",
 		.register_commands = &faux_register_commands,
 		.flash_bank_command = &faux_flash_bank_command,

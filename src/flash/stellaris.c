@@ -1172,7 +1172,7 @@ static int stellaris_register_commands(struct command_context_s *cmd_ctx)
 }
 
 
-flash_driver_t stellaris_flash = {
+struct flash_driver stellaris_flash = {
 		.name = "stellaris",
 		.register_commands = &stellaris_register_commands,
 		.flash_bank_command = &stellaris_flash_bank_command,

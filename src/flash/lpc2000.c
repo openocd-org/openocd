@@ -788,7 +788,7 @@ static int lpc2000_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_driver_t lpc2000_flash = {
+struct flash_driver lpc2000_flash = {
 		.name = "lpc2000",
 		.register_commands = &lpc2000_register_commands,
 		.flash_bank_command = &lpc2000_flash_bank_command,

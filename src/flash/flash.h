@@ -82,7 +82,7 @@ struct flash_bank_s;
  * corresponding static <code>flash_driver_<i>callback</i>()</code>
  * routine in flash.c.
  */
-typedef struct flash_driver_s
+struct flash_driver
 {
 	/**
 	 * Gives a human-readable name of this flash driver,
@@ -224,7 +224,7 @@ typedef struct flash_driver_s
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
 	int (*auto_probe)(struct flash_bank_s *bank);
-} flash_driver_t;
+};
 
 #define FLASH_BANK_COMMAND_HANDLER(name) static __FLASH_BANK_COMMAND(name)
 
@@ -242,7 +242,7 @@ typedef struct flash_bank_s
 {
 	struct target_s *target; /**< Target to which this bank belongs. */
 
-	flash_driver_t *driver; /**< Driver for this bank. */
+	struct flash_driver *driver; /**< Driver for this bank. */
 	void *driver_priv; /**< Private driver storage pointer */
 
 	int bank_number; /**< The 'bank' (or chip number) of this instance. */

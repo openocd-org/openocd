@@ -2626,7 +2626,7 @@ static int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-flash_driver_t cfi_flash = {
+struct flash_driver cfi_flash = {
 		.name = "cfi",
 		.register_commands = &cfi_register_commands,
 		.flash_bank_command = &cfi_flash_bank_command,

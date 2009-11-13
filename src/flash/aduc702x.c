@@ -422,7 +422,7 @@ static int aduc702x_check_flash_completion(target_t* target, unsigned int timeou
         else return ERROR_OK;
 }
 
-flash_driver_t aduc702x_flash = {
+struct flash_driver aduc702x_flash = {
 		.name = "aduc702x",
 		.flash_bank_command = &aduc702x_flash_bank_command,
 		.erase = &aduc702x_erase,

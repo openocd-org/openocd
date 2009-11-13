@@ -35,26 +35,26 @@ static int flash_write_unlock(target_t *target, image_t *image, uint32_t *writte
 
 /* flash drivers
  */
-extern flash_driver_t lpc2000_flash;
-extern flash_driver_t lpc288x_flash;
-extern flash_driver_t lpc2900_flash;
-extern flash_driver_t cfi_flash;
-extern flash_driver_t at91sam3_flash;
-extern flash_driver_t at91sam7_flash;
-extern flash_driver_t str7x_flash;
-extern flash_driver_t str9x_flash;
-extern flash_driver_t aduc702x_flash;
-extern flash_driver_t stellaris_flash;
-extern flash_driver_t str9xpec_flash;
-extern flash_driver_t stm32x_flash;
-extern flash_driver_t tms470_flash;
-extern flash_driver_t ecosflash_flash;
-extern flash_driver_t ocl_flash;
-extern flash_driver_t pic32mx_flash;
-extern flash_driver_t avr_flash;
-extern flash_driver_t faux_flash;
+extern struct flash_driver lpc2000_flash;
+extern struct flash_driver lpc288x_flash;
+extern struct flash_driver lpc2900_flash;
+extern struct flash_driver cfi_flash;
+extern struct flash_driver at91sam3_flash;
+extern struct flash_driver at91sam7_flash;
+extern struct flash_driver str7x_flash;
+extern struct flash_driver str9x_flash;
+extern struct flash_driver aduc702x_flash;
+extern struct flash_driver stellaris_flash;
+extern struct flash_driver str9xpec_flash;
+extern struct flash_driver stm32x_flash;
+extern struct flash_driver tms470_flash;
+extern struct flash_driver ecosflash_flash;
+extern struct flash_driver ocl_flash;
+extern struct flash_driver pic32mx_flash;
+extern struct flash_driver avr_flash;
+extern struct flash_driver faux_flash;
 
-flash_driver_t *flash_drivers[] = {
+struct flash_driver *flash_drivers[] = {
 	&lpc2000_flash,
 	&lpc288x_flash,
 	&lpc2900_flash,

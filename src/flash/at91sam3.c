@@ -2500,7 +2500,7 @@ sam3_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_driver_t at91sam3_flash = {
+struct flash_driver at91sam3_flash = {
 		.name = "at91sam3",
 		.register_commands = &sam3_register_commands,
 		.flash_bank_command = &sam3_flash_bank_command,

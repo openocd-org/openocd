@@ -904,7 +904,7 @@ static int pic32mx_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_driver_t pic32mx_flash = {
+struct flash_driver pic32mx_flash = {
 		.name = "pic32mx",
 		.register_commands = &pic32mx_register_commands,
 		.flash_bank_command = &pic32mx_flash_bank_command,
