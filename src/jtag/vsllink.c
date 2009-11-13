@@ -210,16 +210,15 @@ static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_comman
 static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_command_t *command, int offset);
 
 /* VSLLink lowlevel functions */
-typedef struct vsllink_jtag
-{
+struct vsllink {
 	struct usb_dev_handle* usb_handle;
-} vsllink_jtag_t;
+};
 
-static vsllink_jtag_t *vsllink_usb_open(void);
-static void vsllink_usb_close(vsllink_jtag_t *vsllink_jtag);
-static int vsllink_usb_message(vsllink_jtag_t *vsllink_jtag, int out_length, int in_length);
-static int vsllink_usb_write(vsllink_jtag_t *vsllink_jtag, int out_length);
-static int vsllink_usb_read(vsllink_jtag_t *vsllink_jtag);
+static struct vsllink *vsllink_usb_open(void);
+static void vsllink_usb_close(struct vsllink *vsllink);
+static int vsllink_usb_message(struct vsllink *vsllink, int out_length, int in_length);
+static int vsllink_usb_write(struct vsllink *vsllink, int out_length);
+static int vsllink_usb_read(struct vsllink *vsllink);
 
 #if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(uint8_t *buffer, int length);
@@ -235,7 +234,7 @@ static uint8_t *tdi_buffer = NULL;
 static uint8_t *tdo_buffer = NULL;
 static int last_tms;
 
-static vsllink_jtag_t* vsllink_jtag_handle = NULL;
+static struct vsllink* vsllink_handle = NULL;
 
 static void reset_command_pointer(void)
 {
@@ -369,7 +368,7 @@ static int vsllink_speed(int speed)
 	vsllink_usb_out_buffer[1] = (speed >> 0) & 0xff;
 	vsllink_usb_out_buffer[2] = (speed >> 8) & 0xFF;
 
-	result = vsllink_usb_write(vsllink_jtag_handle, 3);
+	result = vsllink_usb_write(vsllink_handle, 3);
 
 	if (result == 3)
 	{
@@ -412,9 +411,9 @@ static int vsllink_init(void)
 		exit(-1);
 	}
 
-	vsllink_jtag_handle = vsllink_usb_open();
+	vsllink_handle = vsllink_usb_open();
 
-	if (vsllink_jtag_handle == 0)
+	if (vsllink_handle == 0)
 	{
 		LOG_ERROR("Can't find USB JTAG Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
@@ -427,7 +426,7 @@ static int vsllink_init(void)
 	while (check_cnt < 5)
 	{
 		vsllink_simple_command(0x00);
-		result = vsllink_usb_read(vsllink_jtag_handle);
+		result = vsllink_usb_read(vsllink_handle);
 
 		if (result > 2)
 		{
@@ -516,7 +515,7 @@ static int vsllink_init(void)
 	vsllink_usb_out_buffer[0] = VSLLINK_CMD_SET_PORTDIR;
 	vsllink_usb_out_buffer[1] = JTAG_PINMSK_SRST | JTAG_PINMSK_TRST | JTAG_PINMSK_USR1 | JTAG_PINMSK_USR2;
 	vsllink_usb_out_buffer[2] = JTAG_PINMSK_SRST | JTAG_PINMSK_TRST;
-	if (vsllink_usb_write(vsllink_jtag_handle, 3) != 3)
+	if (vsllink_usb_write(vsllink_handle, 3) != 3)
 	{
 		LOG_ERROR("VSLLink USB send data error");
 		exit(-1);
@@ -539,7 +538,7 @@ static int vsllink_quit(void)
 		vsllink_usb_out_buffer[0] = VSLLINK_CMD_SET_PORTDIR;
 		vsllink_usb_out_buffer[1] = JTAG_PINMSK_SRST | JTAG_PINMSK_TRST | JTAG_PINMSK_USR1 | JTAG_PINMSK_USR2;
 		vsllink_usb_out_buffer[2] = 0;
-		if (vsllink_usb_write(vsllink_jtag_handle, 3) != 3)
+		if (vsllink_usb_write(vsllink_handle, 3) != 3)
 		{
 			LOG_ERROR("VSLLink USB send data error");
 			exit(-1);
@@ -547,8 +546,8 @@ static int vsllink_quit(void)
 
 		// disconnect
 		vsllink_disconnect();
-		vsllink_usb_close(vsllink_jtag_handle);
-		vsllink_jtag_handle = NULL;
+		vsllink_usb_close(vsllink_handle);
+		vsllink_handle = NULL;
 	}
 
 	if (vsllink_usb_in_buffer != NULL)
@@ -579,8 +578,8 @@ static int vsllink_connect(void)
 
 	vsllink_usb_out_buffer[0] = VSLLINK_CMD_CONN;
 	vsllink_usb_out_buffer[1] = vsllink_mode;
-	vsllink_usb_message(vsllink_jtag_handle, 2, 0);
-	if (vsllink_usb_read(vsllink_jtag_handle) > 2)
+	vsllink_usb_message(vsllink_handle, 2, 0);
+	if (vsllink_usb_read(vsllink_handle) > 2)
 	{
 		strncpy(vsllink_str, (char *)vsllink_usb_in_buffer + 2, sizeof(vsllink_str));
 		LOG_INFO("%s", vsllink_str);
@@ -1302,7 +1301,7 @@ static void vsllink_reset(int trst, int srst)
 		vsllink_usb_out_buffer[2] |= JTAG_PINMSK_TRST;
 	}
 
-	result = vsllink_usb_write(vsllink_jtag_handle, 3);
+	result = vsllink_usb_write(vsllink_handle, 3);
 	if (result != 3)
 	{
 		LOG_ERROR("VSLLink command VSLLINK_CMD_SET_PORT failed (%d)", result);
@@ -1316,7 +1315,7 @@ static void vsllink_simple_command(uint8_t command)
 	DEBUG_JTAG_IO("0x%02x", command);
 
 	vsllink_usb_out_buffer[0] = command;
-	result = vsllink_usb_write(vsllink_jtag_handle, 1);
+	result = vsllink_usb_write(vsllink_handle, 1);
 
 	if (result != 1)
 	{
@@ -1584,7 +1583,7 @@ static int vsllink_tap_execute_normal(void)
 			vsllink_usb_out_buffer[2] = (vsllink_usb_out_buffer_idx >> 8) & 0xff;
 		}
 
-		result = vsllink_usb_message(vsllink_jtag_handle, vsllink_usb_out_buffer_idx, vsllink_usb_in_want_length);
+		result = vsllink_usb_message(vsllink_handle, vsllink_usb_out_buffer_idx, vsllink_usb_in_want_length);
 
 		if (result == vsllink_usb_in_want_length)
 		{
@@ -1658,7 +1657,7 @@ static int vsllink_tap_execute_dma(void)
 		memcpy(&vsllink_usb_out_buffer[3], tdi_buffer, byte_length);
 		memcpy(&vsllink_usb_out_buffer[3 + byte_length], tms_buffer, byte_length);
 
-		result = vsllink_usb_message(vsllink_jtag_handle, 3 + 2 * byte_length, byte_length);
+		result = vsllink_usb_message(vsllink_handle, 3 + 2 * byte_length, byte_length);
 		if (result == byte_length)
 		{
 			for (i = 0; i < pending_scan_results_length; i++)
@@ -1703,16 +1702,16 @@ static int vsllink_tap_execute_dma(void)
 /*****************************************************************************/
 /* VSLLink USB low-level functions */
 
-static vsllink_jtag_t* vsllink_usb_open(void)
+static struct vsllink* vsllink_usb_open(void)
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
 	struct usb_device *dev;
 	int ret;
 
-	vsllink_jtag_t *result;
+	struct vsllink *result;
 
-	result = (vsllink_jtag_t*) malloc(sizeof(vsllink_jtag_t));
+	result = (struct vsllink*) malloc(sizeof(struct vsllink));
 
 	usb_init();
 	usb_find_busses();
@@ -1720,7 +1719,7 @@ static vsllink_jtag_t* vsllink_usb_open(void)
 
 	busses = usb_get_busses();
 
-	/* find vsllink_jtag device in usb bus */
+	/* find vsllink device in usb bus */
 
 	for (bus = busses; bus; bus = bus->next)
 	{
@@ -1765,38 +1764,38 @@ static vsllink_jtag_t* vsllink_usb_open(void)
 	return NULL;
 }
 
-static void vsllink_usb_close(vsllink_jtag_t *vsllink_jtag)
+static void vsllink_usb_close(struct vsllink *vsllink)
 {
 	int ret;
 
-	ret = usb_release_interface(vsllink_jtag->usb_handle, vsllink_usb_interface);
+	ret = usb_release_interface(vsllink->usb_handle, vsllink_usb_interface);
 	if (ret != 0)
 	{
 		LOG_ERROR("fail to release interface %d, %d returned", vsllink_usb_interface, ret);
 		exit(-1);
 	}
 
-	ret = usb_close(vsllink_jtag->usb_handle);
+	ret = usb_close(vsllink->usb_handle);
 	if (ret != 0)
 	{
 		LOG_ERROR("fail to close usb, %d returned", ret);
 		exit(-1);
 	}
 
-	free(vsllink_jtag);
+	free(vsllink);
 }
 
 /* Send a message and receive the reply. */
-static int vsllink_usb_message(vsllink_jtag_t *vsllink_jtag, int out_length, int in_length)
+static int vsllink_usb_message(struct vsllink *vsllink, int out_length, int in_length)
 {
 	int result;
 
-	result = vsllink_usb_write(vsllink_jtag, out_length);
+	result = vsllink_usb_write(vsllink, out_length);
 	if (result == out_length)
 	{
 		if (in_length > 0)
 		{
-			result = vsllink_usb_read(vsllink_jtag);
+			result = vsllink_usb_read(vsllink);
 			if (result == in_length)
 			{
 				return result;
@@ -1817,17 +1816,17 @@ static int vsllink_usb_message(vsllink_jtag_t *vsllink_jtag, int out_length, int
 }
 
 /* Write data from out_buffer to USB. */
-static int vsllink_usb_write(vsllink_jtag_t *vsllink_jtag, int out_length)
+static int vsllink_usb_write(struct vsllink *vsllink, int out_length)
 {
 	int result;
 
 	if (out_length > VSLLINK_BufferSize)
 	{
-		LOG_ERROR("vsllink_jtag_write illegal out_length=%d (max=%d)", out_length, VSLLINK_BufferSize);
+		LOG_ERROR("vsllink_write illegal out_length=%d (max=%d)", out_length, VSLLINK_BufferSize);
 		return -1;
 	}
 
-	result = usb_bulk_write(vsllink_jtag->usb_handle, vsllink_usb_bulkout, \
+	result = usb_bulk_write(vsllink->usb_handle, vsllink_usb_bulkout, \
 		(char *)vsllink_usb_out_buffer, out_length, VSLLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("vsllink_usb_write, out_length = %d, result = %d", out_length, result);
@@ -1845,9 +1844,9 @@ static int vsllink_usb_write(vsllink_jtag_t *vsllink_jtag, int out_length)
 }
 
 /* Read data from USB into in_buffer. */
-static int vsllink_usb_read(vsllink_jtag_t *vsllink_jtag)
+static int vsllink_usb_read(struct vsllink *vsllink)
 {
-	int result = usb_bulk_read(vsllink_jtag->usb_handle, vsllink_usb_bulkin, \
+	int result = usb_bulk_read(vsllink->usb_handle, vsllink_usb_bulkin, \
 		(char *)vsllink_usb_in_buffer, VSLLINK_BufferSize, VSLLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("vsllink_usb_read, result = %d", result);
