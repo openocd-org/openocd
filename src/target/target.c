@@ -87,7 +87,7 @@ target_type_t *target_types[] =
 
 target_t *all_targets = NULL;
 struct target_event_callback *target_event_callbacks = NULL;
-target_timer_callback_t *target_timer_callbacks = NULL;
+struct target_timer_callback *target_timer_callbacks = NULL;
 
 const Jim_Nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
@@ -896,7 +896,7 @@ int target_register_event_callback(int (*callback)(struct target_s *target, enum
 
 int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
 {
-	target_timer_callback_t **callbacks_p = &target_timer_callbacks;
+	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
 	struct timeval now;
 
 	if (callback == NULL)
@@ -911,7 +911,7 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 		callbacks_p = &((*callbacks_p)->next);
 	}
 
-	(*callbacks_p) = malloc(sizeof(target_timer_callback_t));
+	(*callbacks_p) = malloc(sizeof(struct target_timer_callback));
 	(*callbacks_p)->callback = callback;
 	(*callbacks_p)->periodic = periodic;
 	(*callbacks_p)->time_ms = time_ms;
@@ -961,8 +961,8 @@ int target_unregister_event_callback(int (*callback)(struct target_s *target, en
 
 int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
-	target_timer_callback_t **p = &target_timer_callbacks;
-	target_timer_callback_t *c = target_timer_callbacks;
+	struct target_timer_callback **p = &target_timer_callbacks;
+	struct target_timer_callback *c = target_timer_callbacks;
 
 	if (callback == NULL)
 	{
@@ -971,7 +971,7 @@ int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 
 	while (c)
 	{
-		target_timer_callback_t *next = c->next;
+		struct target_timer_callback *next = c->next;
 		if ((c->callback == callback) && (c->priv == priv))
 		{
 			*p = next;
@@ -1014,7 +1014,7 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 }
 
 static int target_timer_callback_periodic_restart(
-		target_timer_callback_t *cb, struct timeval *now)
+		struct target_timer_callback *cb, struct timeval *now)
 {
 	int time_ms = cb->time_ms;
 	cb->when.tv_usec = now->tv_usec + (time_ms % 1000) * 1000;
@@ -1028,7 +1028,7 @@ static int target_timer_callback_periodic_restart(
 	return ERROR_OK;
 }
 
-static int target_call_timer_callback(target_timer_callback_t *cb,
+static int target_call_timer_callback(struct target_timer_callback *cb,
 		struct timeval *now)
 {
 	cb->callback(cb->priv);
@@ -1046,11 +1046,11 @@ static int target_call_timer_callbacks_check_time(int checktime)
 	struct timeval now;
 	gettimeofday(&now, NULL);
 
-	target_timer_callback_t *callback = target_timer_callbacks;
+	struct target_timer_callback *callback = target_timer_callbacks;
 	while (callback)
 	{
 		// cleaning up may unregister and free this callback
-		target_timer_callback_t *next_callback = callback->next;
+		struct target_timer_callback *next_callback = callback->next;
 
 		bool call_it = callback->callback &&
 			((!checktime && callback->periodic) ||

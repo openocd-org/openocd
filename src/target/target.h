@@ -239,15 +239,15 @@ struct target_event_callback
 	struct target_event_callback *next;
 };
 
-typedef struct target_timer_callback_s
+struct target_timer_callback
 {
 	int (*callback)(void *priv);
 	int time_ms;
 	int periodic;
 	struct timeval when;
 	void *priv;
-	struct target_timer_callback_s *next;
-} target_timer_callback_t;
+	struct target_timer_callback *next;
+};
 
 int target_register_commands(struct command_context_s *cmd_ctx);
 int target_register_user_commands(struct command_context_s *cmd_ctx);
@@ -451,7 +451,7 @@ void target_free_all_working_areas_restore(struct target_s *target, int restore)
 extern target_t *all_targets;
 
 extern struct target_event_callback *target_event_callbacks;
-extern target_timer_callback_t *target_timer_callbacks;
+extern struct target_timer_callback *target_timer_callbacks;
 
 uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer);
 uint16_t target_buffer_get_u16(target_t *target, const uint8_t *buffer);
