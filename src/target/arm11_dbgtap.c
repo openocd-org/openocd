@@ -782,14 +782,14 @@ int arm11_run_instr_data_to_core_via_r0(struct arm11_common * arm11, uint32_t op
 
 /** Apply reads and writes to scan chain 7
  *
- * \see arm11_sc7_action_t
+ * \see struct arm11_sc7_action
  *
  * \param arm11		Target state variable.
  * \param actions	A list of read and/or write instructions
  * \param count		Number of instructions in the list.
  *
  */
-int arm11_sc7_run(struct arm11_common * arm11, arm11_sc7_action_t * actions, size_t count)
+int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions, size_t count)
 {
 	int retval;
 
@@ -875,8 +875,8 @@ int arm11_sc7_run(struct arm11_common * arm11, arm11_sc7_action_t * actions, siz
  */
 void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 {
-	arm11_sc7_action_t		clear_bw[arm11->brp + arm11->wrp + 1];
-	arm11_sc7_action_t *	pos = clear_bw;
+	struct arm11_sc7_action		clear_bw[arm11->brp + arm11->wrp + 1];
+	struct arm11_sc7_action *	pos = clear_bw;
 
 	for (size_t i = 0; i < asizeof(clear_bw); i++)
 	{
@@ -904,7 +904,7 @@ void arm11_sc7_clear_vbw(struct arm11_common * arm11)
  */
 void arm11_sc7_set_vcr(struct arm11_common * arm11, uint32_t value)
 {
-	arm11_sc7_action_t		set_vcr;
+	struct arm11_sc7_action		set_vcr;
 
 	set_vcr.write		= true;
 	set_vcr.address		= ARM11_SC7_VCR;

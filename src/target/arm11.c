@@ -851,7 +851,7 @@ static int arm11_resume(struct target_s *target, int current,
 
 		for (bp = target->breakpoints; bp; bp = bp->next)
 		{
-			arm11_sc7_action_t	brp[2];
+			struct arm11_sc7_action	brp[2];
 
 			brp[0].write	= 1;
 			brp[0].address	= ARM11_SC7_BVR0 + brp_num;
@@ -1074,7 +1074,7 @@ static int arm11_step(struct target_s *target, int current,
 
 		/* Set up breakpoint for stepping */
 
-		arm11_sc7_action_t	brp[2];
+		struct arm11_sc7_action	brp[2];
 
 		brp[0].write	= 1;
 		brp[0].address	= ARM11_SC7_BVR0;

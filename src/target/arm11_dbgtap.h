@@ -45,7 +45,7 @@ int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
  * Used with arm11_sc7_run to make a list of read/write commands for
  * scan chain 7
  */
-typedef struct arm11_sc7_action_s
+struct arm11_sc7_action
 {
 	bool write; /**< Access mode: true for write, false for read. */
 	uint8_t	address; /**< Register address mode. Use enum #arm11_sc7 */
@@ -54,10 +54,10 @@ typedef struct arm11_sc7_action_s
 	 * this receives the read value when the function returns.
 	 */
 	uint32_t value;
-} arm11_sc7_action_t;
+};
 
 int arm11_sc7_run(struct arm11_common *arm11,
-		arm11_sc7_action_t *actions, size_t count);
+		struct arm11_sc7_action *actions, size_t count);
 
 /* Mid-level helper functions */
 void arm11_sc7_clear_vbw(struct arm11_common *arm11);
