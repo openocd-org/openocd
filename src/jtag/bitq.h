@@ -22,10 +22,8 @@
 
 #include "commands.h"
 
-typedef struct bitq_interface_s
-{
-	/* functions enqueueing low level IO requests
-	*/
+struct bitq_interface {
+	// function to enqueueing low level IO requests
 	int (*out)(int tms, int tdi, int tdo_req);
 	int (*flush)(void);
 
@@ -37,9 +35,9 @@ typedef struct bitq_interface_s
 	 */
 	int (*in_rdy)(void);
 	int (*in)(void);
-} bitq_interface_t;
+};
 
-extern bitq_interface_t *bitq_interface;
+extern struct bitq_interface *bitq_interface;
 
 int bitq_execute_queue(void);
 

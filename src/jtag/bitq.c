@@ -25,7 +25,7 @@
 #include "interface.h"
 
 
-bitq_interface_t* bitq_interface;       /* low level bit queue interface */
+struct bitq_interface* bitq_interface;       /* low level bit queue interface */
 
 /* state of input queue */
 struct bitq_state {

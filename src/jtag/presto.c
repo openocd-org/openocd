@@ -65,7 +65,7 @@ static int presto_bitq_reset(int trst, int srst);
 static int presto_bitq_in_rdy(void);
 static int presto_bitq_in(void);
 
-static bitq_interface_t presto_bitq =
+static struct bitq_interface presto_bitq =
 {
 	.out = presto_bitq_out,
 	.flush = presto_bitq_flush,
