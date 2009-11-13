@@ -87,11 +87,11 @@ enum
 	EICE_COMM_CTRL_RBIT = 0
 };
 
-typedef struct embeddedice_reg_s
+struct embeddedice_reg
 {
 	int addr;
 	struct arm_jtag *jtag_info;
-} embeddedice_reg_t;
+};
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target,
 		struct arm7_9_common *arm7_9);

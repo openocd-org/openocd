@@ -169,7 +169,7 @@ embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 	int retval;
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
-	embeddedice_reg_t *arch_info = NULL;
+	struct embeddedice_reg *arch_info = NULL;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int num_regs = ARRAY_SIZE(eice_regs);
 	int i;
@@ -186,7 +186,7 @@ embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(num_regs, sizeof(reg_t));
-	arch_info = calloc(num_regs, sizeof(embeddedice_reg_t));
+	arch_info = calloc(num_regs, sizeof(struct embeddedice_reg));
 
 	/* fill in values for the reg cache */
 	reg_cache->name = "EmbeddedICE registers";
@@ -331,7 +331,7 @@ int embeddedice_setup(target_t *target)
 int embeddedice_read_reg_w_check(reg_t *reg,
 		uint8_t *check_value, uint8_t *check_mask)
 {
-	embeddedice_reg_t *ice_reg = reg->arch_info;
+	struct embeddedice_reg *ice_reg = reg->arch_info;
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
 	struct scan_field fields[3];
 	uint8_t field1_out[1];
@@ -487,7 +487,7 @@ int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf)
  */
 void embeddedice_write_reg(reg_t *reg, uint32_t value)
 {
-	embeddedice_reg_t *ice_reg = reg->arch_info;
+	struct embeddedice_reg *ice_reg = reg->arch_info;
 
 	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", ice_reg->addr, value);
 

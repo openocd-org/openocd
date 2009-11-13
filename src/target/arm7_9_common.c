@@ -2609,7 +2609,7 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
 		buffer += 4;
 
-		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
+		struct embeddedice_reg *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
 		uint8_t reg_addr = ice_reg->addr & 0x1f;
 		struct jtag_tap *tap;
 		tap = ice_reg->jtag_info->tap;
