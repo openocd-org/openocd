@@ -163,18 +163,17 @@ static uint8_t VSLLINK_BIT_MSK[8] =
 	0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f
 };
 
-typedef struct
-{
+struct pending_scan_result {
 	int offset;
 	int length; /* Number of bits to read */
 	scan_command_t *command; /* Corresponding scan command */
 	uint8_t *buffer;
-} pending_scan_result_t;
+};
 
 #define MAX_PENDING_SCAN_RESULTS 256
 
 static int pending_scan_results_length;
-static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
+static struct pending_scan_result pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
 /* Queue command functions */
 static void vsllink_end_state(tap_state_t state);
@@ -1488,7 +1487,7 @@ static void vsllink_tap_append_step(int tms, int tdi)
 
 static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_command_t *command, int offset)
 {
-	pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
+	struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
 
 	if (offset > 0)
@@ -1513,7 +1512,7 @@ static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_com
 }
 static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_command_t *command)
 {
-	pending_scan_result_t *pending_scan_result;
+	struct pending_scan_result *pending_scan_result;
 	int len_tmp, len_all, i;
 
 	len_all = 0;
@@ -1591,7 +1590,7 @@ static int vsllink_tap_execute_normal(void)
 		{
 			for (i = 0; i < pending_scan_results_length; i++)
 			{
-				pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
+				struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[i];
 				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int offset = pending_scan_result->offset;
@@ -1664,7 +1663,7 @@ static int vsllink_tap_execute_dma(void)
 		{
 			for (i = 0; i < pending_scan_results_length; i++)
 			{
-				pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
+				struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[i];
 				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int first = pending_scan_result->offset;

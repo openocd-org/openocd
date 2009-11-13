@@ -542,18 +542,17 @@ static uint8_t tms_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
 static uint8_t tdi_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
 static uint8_t tdo_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
 
-typedef struct
-{
+struct pending_scan_result {
 	int first;	/* First bit position in tdo_buffer to read */
 	int length; /* Number of bits to read */
 	scan_command_t *command; /* Corresponding scan command */
 	uint8_t *buffer;
-} pending_scan_result_t;
+};
 
 #define MAX_PENDING_SCAN_RESULTS 256
 
 static int pending_scan_results_length;
-static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
+static struct pending_scan_result pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
 static int last_tms;
 
@@ -612,7 +611,7 @@ static void armjtagew_tap_append_step(int tms, int tdi)
 
 void armjtagew_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command)
 {
-	pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
+	struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
 
 	pending_scan_result->first = tap_length;
@@ -683,7 +682,7 @@ static int armjtagew_tap_execute(void)
 
 			for (i = 0; i < pending_scan_results_length; i++)
 			{
-				pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
+				struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[i];
 				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int first = pending_scan_result->first;
