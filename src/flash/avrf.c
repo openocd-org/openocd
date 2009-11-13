@@ -50,7 +50,7 @@
 #define AVR_JTAG_REG_ProgrammingCommand_Len			15
 #define AVR_JTAG_REG_FlashDataByte_Len				16
 
-avrf_type_t avft_chips_info[] =
+struct avrf_type avft_chips_info[] =
 {
 //	 name,			chip_id,	flash_page_size,	flash_page_num,	eeprom_page_size,	eeprom_page_num
 	{"atmega128",	0x9702,		256,				512,			8,					512},
@@ -266,7 +266,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	avrf_flash_bank_t *avrf_info = bank->driver_priv;
 	avr_common_t *avr = target->arch_info;
-	avrf_type_t *avr_info = NULL;
+	struct avrf_type *avr_info = NULL;
 	int i;
 	uint32_t device_id;
 
@@ -347,7 +347,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	target_t *target = bank->target;
 	avr_common_t *avr = target->arch_info;
-	avrf_type_t *avr_info = NULL;
+	struct avrf_type *avr_info = NULL;
 	int i;
 	uint32_t device_id;
 

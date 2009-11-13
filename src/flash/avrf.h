@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-typedef struct avrf_type_s
+struct avrf_type
 {
 	char name[15];
 	uint16_t chip_id;
@@ -30,7 +30,7 @@ typedef struct avrf_type_s
 	int flash_page_num;
 	int eeprom_page_size;
 	int eeprom_page_num;
-} avrf_type_t;
+};
 
 typedef struct avrf_flash_bank_s
 {
