@@ -66,7 +66,7 @@ struct xscale_trace_data
 	struct xscale_trace_data *next;
 };
 
-typedef struct xscale_trace_s
+struct xscale_trace
 {
 	trace_status_t capture_status;	/* current state of capture run */
 	struct image_s *image;					/* source for target opcodes */
@@ -76,7 +76,7 @@ typedef struct xscale_trace_s
 	int pc_ok;
 	uint32_t current_pc;
 	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
-} xscale_trace_t;
+};
 
 struct xscale_common
 {
@@ -120,7 +120,7 @@ struct xscale_common
 
 	uint8_t vector_catch;
 
-	xscale_trace_t trace;
+	struct xscale_trace trace;
 
 	int arch_debug_reason;
 
