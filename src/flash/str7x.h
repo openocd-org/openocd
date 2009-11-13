@@ -25,14 +25,14 @@
 
 #include "flash.h"
 
-typedef struct str7x_flash_bank_s
+struct str7x_flash_bank
 {
 	uint32_t *sector_bits;
 	uint32_t disable_bit;
 	uint32_t busy_bits;
 	uint32_t register_base;
 	working_area_t *write_algorithm;
-} str7x_flash_bank_t;
+};
 
 enum str7x_status_codes
 {
