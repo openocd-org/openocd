@@ -32,7 +32,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, struct jtag_tap *tap)
+int arm966e_init_arch_info(target_t *target, struct arm966e_common *arm966e, struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
 	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -52,13 +52,13 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, struct j
 
 static int arm966e_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
+	struct arm966e_common *arm966e = calloc(1,sizeof(struct arm966e_common));
 
 	return arm966e_init_arch_info(target, arm966e, target->tap);
 }
 
 static int arm966e_verify_pointer(struct command_context_s *cmd_ctx,
-		struct arm966e_common_s *arm966e)
+		struct arm966e_common *arm966e)
 {
 	if (arm966e->common_magic != ARM966E_COMMON_MAGIC) {
 		command_print(cmd_ctx, "target is not an ARM966");
@@ -166,7 +166,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	struct arm966e_common_s *arm966e = target_to_arm966(target);
+	struct arm966e_common *arm966e = target_to_arm966(target);
 
 	retval = arm966e_verify_pointer(cmd_ctx, arm966e);
 	if (retval != ERROR_OK)

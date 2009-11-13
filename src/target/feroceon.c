@@ -632,7 +632,7 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 
 int dragonite_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
+	struct arm966e_common *arm966e = calloc(1,sizeof(struct arm966e_common));
 
 	arm966e_init_arch_info(target, arm966e, target->tap);
 	feroceon_common_setup(target);

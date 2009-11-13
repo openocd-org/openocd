@@ -27,22 +27,22 @@
 
 #define	ARM966E_COMMON_MAGIC 0x20f920f9
 
-typedef struct arm966e_common_s
+struct arm966e_common
 {
 	arm9tdmi_common_t arm9tdmi_common;
 	int common_magic;
 	uint32_t cp15_control_reg;
-} arm966e_common_t;
+};
 
-static inline struct arm966e_common_s *
+static inline struct arm966e_common *
 target_to_arm966(struct target_s *target)
 {
-	return container_of(target->arch_info, struct arm966e_common_s,
+	return container_of(target->arch_info, struct arm966e_common,
 			arm9tdmi_common.arm7_9_common.armv4_5_common);
 }
 
 int arm966e_init_arch_info(target_t *target,
-		arm966e_common_t *arm966e, struct jtag_tap *tap);
+		struct arm966e_common *arm966e, struct jtag_tap *tap);
 int arm966e_register_commands(struct command_context_s *cmd_ctx);
 int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value);
 
