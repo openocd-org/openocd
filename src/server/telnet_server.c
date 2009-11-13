@@ -134,7 +134,7 @@ void telnet_log_callback(void *priv, const char *file, unsigned line,
 int telnet_new_connection(connection_t *connection)
 {
 	telnet_connection_t *telnet_connection = malloc(sizeof(telnet_connection_t));
-	telnet_service_t *telnet_service = connection->service->priv;
+	struct telnet_service *telnet_service = connection->service->priv;
 	int i;
 
 	connection->priv = telnet_connection;
@@ -589,7 +589,7 @@ int telnet_set_prompt(connection_t *connection, char *prompt)
 
 int telnet_init(char *banner)
 {
-	telnet_service_t *telnet_service = malloc(sizeof(telnet_service_t));
+	struct telnet_service *telnet_service = malloc(sizeof(struct telnet_service));
 
 	if (telnet_port == 0)
 	{

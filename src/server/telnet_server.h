@@ -63,10 +63,10 @@ typedef struct telnet_connection_s
 	int closed;
 } telnet_connection_t;
 
-typedef struct telnet_service_s
+struct telnet_service
 {
 	char *banner;
-} telnet_service_t;
+};
 
 int telnet_init(char *banner);
 int telnet_register_commands(command_context_t *command_context);
