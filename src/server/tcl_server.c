@@ -27,12 +27,12 @@
 #define TCL_SERVER_VERSION	"TCL Server 0.1"
 #define TCL_MAX_LINE		(4096)
 
-typedef struct tcl_connection_s {
+struct tcl_connection {
 	int tc_linedrop;
 	int tc_lineoffset;
 	char tc_line[TCL_MAX_LINE];
 	int tc_outerror; /* flag an output error */
-} tcl_connection_t;
+};
 
 static unsigned short tcl_port = 6666;
 
@@ -50,7 +50,7 @@ static int tcl_closed(connection_t *connection);
 int tcl_output(connection_t *connection, const void *data, ssize_t len)
 {
 	ssize_t wlen;
-	tcl_connection_t *tclc;
+	struct tcl_connection *tclc;
 
 	tclc = connection->priv;
 	if (tclc->tc_outerror)
@@ -68,13 +68,13 @@ int tcl_output(connection_t *connection, const void *data, ssize_t len)
 /* connections */
 static int tcl_new_connection(connection_t *connection)
 {
-	tcl_connection_t *tclc;
+	struct tcl_connection *tclc;
 
-	tclc = malloc(sizeof(tcl_connection_t));
+	tclc = malloc(sizeof(struct tcl_connection));
 	if (tclc == NULL)
 		return ERROR_CONNECTION_REJECTED;
 
-	memset(tclc, 0, sizeof(tcl_connection_t));
+	memset(tclc, 0, sizeof(struct tcl_connection));
 	connection->priv = tclc;
 	return ERROR_OK;
 }
@@ -86,7 +86,7 @@ static int tcl_input(connection_t *connection)
 	ssize_t rlen;
 	const char *result;
 	int reslen;
-	tcl_connection_t *tclc;
+	struct tcl_connection *tclc;
 	char in[256];
 
 	rlen = read_socket(connection->fd, &in, sizeof(in));
