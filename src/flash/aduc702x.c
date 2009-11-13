@@ -54,18 +54,17 @@ typedef struct {
 	uint32_t feehide;
 } ADUC702x_FLASH_MMIO;
 
-typedef struct
-{
+struct aduc702x_flash_bank {
 	working_area_t *write_algorithm;
-} aduc702x_flash_bank_t;
+};
 
 /* flash bank aduc702x 0 0 0 0 <target#>
  * The ADC7019-28 devices all have the same flash layout */
 FLASH_BANK_COMMAND_HANDLER(aduc702x_flash_bank_command)
 {
-	aduc702x_flash_bank_t *nbank;
+	struct aduc702x_flash_bank *nbank;
 
-	nbank = malloc(sizeof(aduc702x_flash_bank_t));
+	nbank = malloc(sizeof(struct aduc702x_flash_bank));
 
         bank->base = 0x80000;
         bank->size = 0xF800; // top 4k not accessible
@@ -170,7 +169,7 @@ static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int l
  */
 static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	aduc702x_flash_bank_t *aduc702x_info = bank->driver_priv;
+	struct aduc702x_flash_bank *aduc702x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t buffer_size = 7000;
 	working_area_t *source;
