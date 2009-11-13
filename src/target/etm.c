@@ -235,7 +235,7 @@ static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 	int i;
 
 	for (i = 0; i < cache->num_regs; i++) {
-		struct etm_reg_s *reg = cache->reg_list[i].arch_info;
+		struct etm_reg *reg = cache->reg_list[i].arch_info;
 
 		if (reg->reg_info->addr == id)
 			return &cache->reg_list[i];
@@ -248,7 +248,7 @@ static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 }
 
 static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
-		reg_cache_t *cache, etm_reg_t *ereg,
+		reg_cache_t *cache, struct etm_reg *ereg,
 		const struct etm_reg_info *r, unsigned nreg)
 {
 	reg_t *reg = cache->reg_list;
@@ -284,7 +284,7 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
-	etm_reg_t *arch_info = NULL;
+	struct etm_reg *arch_info = NULL;
 	unsigned bcd_vers, config;
 
 	/* register a register arch-type for etm registers only once */
@@ -294,7 +294,7 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(128, sizeof(reg_t));
-	arch_info = calloc(128, sizeof(etm_reg_t));
+	arch_info = calloc(128, sizeof(struct etm_reg));
 
 	/* fill in values for the reg cache */
 	reg_cache->name = "etm registers";
@@ -489,7 +489,7 @@ static int etm_get_reg(reg_t *reg)
 static int etm_read_reg_w_check(reg_t *reg,
 		uint8_t* check_value, uint8_t* check_mask)
 {
-	etm_reg_t *etm_reg = reg->arch_info;
+	struct etm_reg *etm_reg = reg->arch_info;
 	const struct etm_reg_info *r = etm_reg->reg_info;
 	uint8_t reg_addr = r->addr & 0x7f;
 	struct scan_field fields[3];
@@ -575,7 +575,7 @@ static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 
 static int etm_write_reg(reg_t *reg, uint32_t value)
 {
-	etm_reg_t *etm_reg = reg->arch_info;
+	struct etm_reg *etm_reg = reg->arch_info;
 	const struct etm_reg_info *r = etm_reg->reg_info;
 	uint8_t reg_addr = r->addr & 0x7f;
 	struct scan_field fields[3];

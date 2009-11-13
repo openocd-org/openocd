@@ -71,12 +71,12 @@ enum
 	ETM_ID = 0x79,
 };
 
-typedef struct etm_reg_s
+struct etm_reg
 {
 	uint32_t value;
 	const struct etm_reg_info *reg_info;
 	struct arm_jtag *jtag_info;
-} etm_reg_t;
+};
 
 typedef enum
 {
