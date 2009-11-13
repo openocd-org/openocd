@@ -64,11 +64,11 @@ do {														\
 } while (0)
 
 
-typedef struct arm11_register_history_s
+struct arm11_register_history
 {
 	uint32_t		value;
 	uint8_t		valid;
-}arm11_register_history_t;
+};
 
 enum arm11_debug_version
 {
@@ -109,7 +109,7 @@ typedef struct arm11_common_s
 
 	/*@}*/
 
-	arm11_register_history_t
+	struct arm11_register_history
 		reg_history[ARM11_REGCACHE_COUNT];	/**< register state before last resume */
 
 	size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
