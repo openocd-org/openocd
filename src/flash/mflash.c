@@ -349,7 +349,7 @@ static int mg_dsk_drv_info(void)
 	LOG_INFO("mflash: read drive info");
 
 	if (! mflash_bank->drv_info)
-		mflash_bank->drv_info = malloc(sizeof(mg_drv_info_t));
+		mflash_bank->drv_info = malloc(sizeof(struct mg_drv_info));
 
 	target_read_memory(target, mg_buff, 2, sizeof(mg_io_type_drv_info) >> 1,
 			(uint8_t *)&mflash_bank->drv_info->drv_id);

@@ -125,10 +125,10 @@ typedef struct _mg_pll_t
 	unsigned char  output_div;	/* 2bit divider */
 } mg_pll_t;
 
-typedef struct mg_drv_info_s {
+struct mg_drv_info {
 	mg_io_type_drv_info drv_id;
 	uint32_t tot_sects;
-} mg_drv_info_t;
+};
 
 typedef struct mflash_bank_s
 {
@@ -138,7 +138,7 @@ typedef struct mflash_bank_s
 
 	struct mflash_gpio_drv *gpio_drv;
 	target_t *target;
-	mg_drv_info_t *drv_info;
+	struct mg_drv_info *drv_info;
 } mflash_bank_t;
 
 int mflash_register_commands(struct command_context_s *cmd_ctx);
