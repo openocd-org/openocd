@@ -427,7 +427,7 @@ int interface_jtag_add_clocks(int num_cycles)
 
 	cmd->type = JTAG_STABLECLOCKS;
 
-	cmd->cmd.stableclocks = cmd_queue_alloc(sizeof(stableclocks_command_t));
+	cmd->cmd.stableclocks = cmd_queue_alloc(sizeof(struct stableclocks_command));
 	cmd->cmd.stableclocks->num_cycles = num_cycles;
 
 	return ERROR_OK;

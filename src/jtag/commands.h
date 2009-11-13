@@ -77,11 +77,10 @@ struct runtest_command {
 };
 
 
-typedef struct stableclocks_command_s
-{
+struct stableclocks_command {
 	/// number of clock cycles that should be sent
 	int num_cycles;
-} stableclocks_command_t;
+};
 
 
 typedef struct reset_command_s
@@ -114,7 +113,7 @@ typedef union jtag_command_container_u
 	struct statemove_command*    statemove;
 	struct pathmove_command*     pathmove;
 	struct runtest_command*      runtest;
-	stableclocks_command_t* stableclocks;
+	struct stableclocks_command* stableclocks;
 	reset_command_t*        reset;
 	end_state_command_t*    end_state;
 	sleep_command_t* sleep;
