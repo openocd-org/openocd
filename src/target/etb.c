@@ -125,7 +125,7 @@ reg_cache_t* etb_build_reg_cache(etb_t *etb)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
-	etb_reg_t *arch_info = NULL;
+	struct etb_reg *arch_info = NULL;
 	int num_regs = 9;
 	int i;
 
@@ -135,7 +135,7 @@ reg_cache_t* etb_build_reg_cache(etb_t *etb)
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(num_regs, sizeof(reg_t));
-	arch_info = calloc(num_regs, sizeof(etb_reg_t));
+	arch_info = calloc(num_regs, sizeof(struct etb_reg));
 
 	/* fill in values for the reg cache */
 	reg_cache->name = "etb registers";
@@ -227,7 +227,7 @@ static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
 static int etb_read_reg_w_check(reg_t *reg,
 		uint8_t* check_value, uint8_t* check_mask)
 {
-	etb_reg_t *etb_reg = reg->arch_info;
+	struct etb_reg *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	struct scan_field fields[3];
 
@@ -313,7 +313,7 @@ static int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 
 static int etb_write_reg(reg_t *reg, uint32_t value)
 {
-	etb_reg_t *etb_reg = reg->arch_info;
+	struct etb_reg *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	struct scan_field fields[3];
 

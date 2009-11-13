@@ -46,11 +46,11 @@ typedef struct etb_s
 	uint32_t ram_width;
 } etb_t;
 
-typedef struct etb_reg_s
+struct etb_reg
 {
 	uint32_t addr;
 	etb_t *etb;
-} etb_reg_t;
+};
 
 extern etm_capture_driver_t etb_capture_driver;
 
