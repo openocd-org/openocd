@@ -43,7 +43,7 @@ typedef struct connection_s
 	int fd;
 	struct sockaddr_in sin;
 	command_context_t *cmd_ctx;
-	struct service_s *service;
+	struct service *service;
 	int input_pending;
 	void *priv;
 	struct connection_s *next;
@@ -53,7 +53,7 @@ typedef int (*new_connection_handler_t)(connection_t *connection);
 typedef int (*input_handler_t)(connection_t *connection);
 typedef int (*connection_closed_handler_t)(connection_t *connection);
 
-typedef struct service_s
+struct service
 {
 	char *name;
 	enum connection_type type;
@@ -66,8 +66,8 @@ typedef struct service_s
 	input_handler_t input;
 	connection_closed_handler_t connection_closed;
 	void *priv;
-	struct service_s *next;
-} service_t;
+	struct service *next;
+};
 
 int add_service(char *name, enum connection_type type, unsigned short port,
 		int max_connections, new_connection_handler_t new_connection_handler,

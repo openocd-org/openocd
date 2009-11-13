@@ -37,7 +37,7 @@
 #endif
 
 
-service_t *services = NULL;
+struct service *services = NULL;
 
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
 static int shutdown_openocd = 0;
@@ -45,7 +45,7 @@ static int shutdown_openocd = 0;
 /* set when using pipes rather than tcp */
 int server_use_pipes = 0;
 
-int add_connection(service_t *service, command_context_t *cmd_ctx)
+int add_connection(struct service *service, command_context_t *cmd_ctx)
 {
 	socklen_t address_size;
 	connection_t *c, **p;
@@ -109,7 +109,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	return ERROR_OK;
 }
 
-int remove_connection(service_t *service, connection_t *connection)
+int remove_connection(struct service *service, connection_t *connection)
 {
 	connection_t **p = &service->connections;
 	connection_t *c;
@@ -141,10 +141,10 @@ int remove_connection(service_t *service, connection_t *connection)
 
 int add_service(char *name, enum connection_type type, unsigned short port, int max_connections, new_connection_handler_t new_connection_handler, input_handler_t input_handler, connection_closed_handler_t connection_closed_handler, void *priv)
 {
-	service_t *c, **p;
+	struct service *c, **p;
 	int so_reuseaddr_option = 1;
 
-	c = malloc(sizeof(service_t));
+	c = malloc(sizeof(struct service));
 
 	c->name = strdup(name);
 	c->type = type;
@@ -232,8 +232,8 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 
 int remove_service(unsigned short port)
 {
-	service_t **p = &services;
-	service_t *c;
+	struct service **p = &services;
+	struct service *c;
 
 	/* find service */
 	while ((c = *p))
@@ -260,12 +260,12 @@ int remove_service(unsigned short port)
 
 int remove_services(void)
 {
-	service_t *c = services;
+	struct service *c = services;
 
 	/* loop service */
 	while (c)
 	{
-		service_t *next = c->next;
+		struct service *next = c->next;
 
 		if (c->name)
 			free(c->name);
@@ -290,7 +290,7 @@ extern void openocd_sleep_postlude(void);
 
 int server_loop(command_context_t *command_context)
 {
-	service_t *service;
+	struct service *service;
 
 	/* used in select() */
 	fd_set read_fds;
