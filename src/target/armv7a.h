@@ -97,7 +97,7 @@ typedef struct armv7a_common_s
 	enum armv7a_state core_state;
 
 	/* arm adp debug port */
-	swjdp_common_t swjdp_info;
+	struct swjdp_common swjdp_info;
 
 	/* Core Debug Unit */
 	uint32_t debug_base;

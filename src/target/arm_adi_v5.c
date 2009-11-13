@@ -71,7 +71,7 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
 ***************************************************************************/
 
 /* Scan out and in from target ordered uint8_t buffers */
-int adi_jtag_dp_scan(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
+int adi_jtag_dp_scan(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
 {
 	arm_jtag_t *jtag_info = swjdp->jtag_info;
 	struct scan_field fields[2];
@@ -101,7 +101,7 @@ int adi_jtag_dp_scan(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uin
 }
 
 /* Scan out and in from host ordered uint32_t variables */
-int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue, uint8_t *ack)
+int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue, uint8_t *ack)
 {
 	arm_jtag_t *jtag_info = swjdp->jtag_info;
 	struct scan_field fields[2];
@@ -143,7 +143,7 @@ int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr,
 }
 
 /* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */
-int scan_inout_check(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue)
+int scan_inout_check(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue)
 {
 	adi_jtag_dp_scan(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
 
@@ -161,7 +161,7 @@ int scan_inout_check(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uin
 	return ERROR_OK;
 }
 
-int scan_inout_check_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue)
+int scan_inout_check_u32(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue)
 {
 	adi_jtag_dp_scan_u32(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
 
@@ -179,7 +179,7 @@ int scan_inout_check_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr,
 	return ERROR_OK;
 }
 
-int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
+int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
 {
 	int retval;
 	uint32_t ctrlstat;
@@ -287,17 +287,17 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
  *                                                                         *
 ***************************************************************************/
 
-int dap_dp_write_reg(swjdp_common_t *swjdp, uint32_t value, uint8_t reg_addr)
+int dap_dp_write_reg(struct swjdp_common *swjdp, uint32_t value, uint8_t reg_addr)
 {
 	return scan_inout_check_u32(swjdp, DAP_IR_DPACC, reg_addr, DPAP_WRITE, value, NULL);
 }
 
-int dap_dp_read_reg(swjdp_common_t *swjdp, uint32_t *value, uint8_t reg_addr)
+int dap_dp_read_reg(struct swjdp_common *swjdp, uint32_t *value, uint8_t reg_addr)
 {
 	return scan_inout_check_u32(swjdp, DAP_IR_DPACC, reg_addr, DPAP_READ, 0, value);
 }
 
-int dap_ap_select(swjdp_common_t *swjdp,uint8_t apsel)
+int dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
 {
 	uint32_t select;
 	select = (apsel << 24) & 0xFF000000;
@@ -314,7 +314,7 @@ int dap_ap_select(swjdp_common_t *swjdp,uint8_t apsel)
 	return ERROR_OK;
 }
 
-int dap_dp_bankselect(swjdp_common_t *swjdp,uint32_t ap_reg)
+int dap_dp_bankselect(struct swjdp_common *swjdp,uint32_t ap_reg)
 {
 	uint32_t select;
 	select = (ap_reg & 0x000000F0);
@@ -328,7 +328,7 @@ int dap_dp_bankselect(swjdp_common_t *swjdp,uint32_t ap_reg)
 	return ERROR_OK;
 }
 
-int dap_ap_write_reg(swjdp_common_t *swjdp, uint32_t reg_addr, uint8_t* out_value_buf)
+int dap_ap_write_reg(struct swjdp_common *swjdp, uint32_t reg_addr, uint8_t* out_value_buf)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
 	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
@@ -336,14 +336,14 @@ int dap_ap_write_reg(swjdp_common_t *swjdp, uint32_t reg_addr, uint8_t* out_valu
 	return ERROR_OK;
 }
 
-int dap_ap_read_reg(swjdp_common_t *swjdp, uint32_t reg_addr, uint8_t *in_value_buf)
+int dap_ap_read_reg(struct swjdp_common *swjdp, uint32_t reg_addr, uint8_t *in_value_buf)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
 	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_READ, 0, in_value_buf);
 
 	return ERROR_OK;
 }
-int dap_ap_write_reg_u32(swjdp_common_t *swjdp, uint32_t reg_addr, uint32_t value)
+int dap_ap_write_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t value)
 {
 	uint8_t out_value_buf[4];
 
@@ -354,7 +354,7 @@ int dap_ap_write_reg_u32(swjdp_common_t *swjdp, uint32_t reg_addr, uint32_t valu
 	return ERROR_OK;
 }
 
-int dap_ap_read_reg_u32(swjdp_common_t *swjdp, uint32_t reg_addr, uint32_t *value)
+int dap_ap_read_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t *value)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
 	scan_inout_check_u32(swjdp, DAP_IR_APACC, reg_addr, DPAP_READ, 0, value);
@@ -368,7 +368,7 @@ int dap_ap_read_reg_u32(swjdp_common_t *swjdp, uint32_t reg_addr, uint32_t *valu
  *                                                                         *
 ***************************************************************************/
 
-int dap_setup_accessport(swjdp_common_t *swjdp, uint32_t csw, uint32_t tar)
+int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 {
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
 	if (csw != swjdp->ap_csw_value)
@@ -393,13 +393,13 @@ int dap_setup_accessport(swjdp_common_t *swjdp, uint32_t csw, uint32_t tar)
 
 /*****************************************************************************
 *                                                                            *
-* mem_ap_read_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value)      *
+* mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value)      *
 *                                                                            *
 * Read a uint32_t value from memory or system register                            *
 * Functionally equivalent to target_read_u32(target, address, uint32_t *value),   *
 * but with less overhead                                                     *
 *****************************************************************************/
-int mem_ap_read_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value)
+int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value)
 {
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
@@ -409,7 +409,7 @@ int mem_ap_read_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value)
 	return ERROR_OK;
 }
 
-int mem_ap_read_atomic_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value)
+int mem_ap_read_atomic_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value)
 {
 	mem_ap_read_u32(swjdp, address, value);
 
@@ -418,12 +418,12 @@ int mem_ap_read_atomic_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *va
 
 /*****************************************************************************
 *                                                                            *
-* mem_ap_write_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value)      *
+* mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value)      *
 *                                                                            *
 * Write a uint32_t value to memory or memory mapped register                              *
 *                                                                            *
 *****************************************************************************/
-int mem_ap_write_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value)
+int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value)
 {
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
@@ -433,7 +433,7 @@ int mem_ap_write_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value)
 	return ERROR_OK;
 }
 
-int mem_ap_write_atomic_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value)
+int mem_ap_write_atomic_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value)
 {
 	mem_ap_write_u32(swjdp, address, value);
 
@@ -442,12 +442,12 @@ int mem_ap_write_atomic_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t va
 
 /*****************************************************************************
 *                                                                            *
-* mem_ap_write_buf(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address) *
+* mem_ap_write_buf(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address) *
 *                                                                            *
 * Write a buffer in target order (little endian)                             *
 *                                                                            *
 *****************************************************************************/
-int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
@@ -516,7 +516,7 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint
 	return retval;
 }
 
-int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -587,7 +587,7 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int coun
 	return retval;
 }
 
-int mem_ap_write_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
@@ -612,7 +612,7 @@ int mem_ap_write_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint
 	return retval;
 }
 
-int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -679,7 +679,7 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count
 	return retval;
 }
 
-int mem_ap_write_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
@@ -704,12 +704,12 @@ int mem_ap_write_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
 
 /*********************************************************************************
 *                                                                                *
-* mem_ap_read_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)  *
+* mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)  *
 *                                                                                *
 * Read block fast in target order (little endian) into a buffer                  *
 *                                                                                *
 **********************************************************************************/
-int mem_ap_read_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
@@ -782,7 +782,7 @@ int mem_ap_read_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
 	return retval;
 }
 
-int mem_ap_read_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
@@ -834,7 +834,7 @@ int mem_ap_read_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count
 	return retval;
 }
 
-int mem_ap_read_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue, i;
 	int retval = ERROR_OK;
@@ -877,7 +877,7 @@ int mem_ap_read_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
  * The solution is to arrange for a large out/in scan in this loop and
  * and convert data afterwards.
  */
-int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
@@ -926,7 +926,7 @@ int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count,
 	return retval;
 }
 
-int mem_ap_read_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
@@ -950,7 +950,7 @@ int mem_ap_read_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32
 	return retval;
 }
 
-int ahbap_debugport_init(swjdp_common_t *swjdp)
+int ahbap_debugport_init(struct swjdp_common *swjdp)
 {
 	uint32_t idreg, romaddr, dummy;
 	uint32_t ctrlstat;
@@ -1022,7 +1022,7 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, int apsel)
+int dap_info_command(struct command_context_s *cmd_ctx, struct swjdp_common *swjdp, int apsel)
 {
 
 	uint32_t dbgbase,apid;

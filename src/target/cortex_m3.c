@@ -56,7 +56,7 @@ extern uint8_t armv7m_gdb_dummy_cpsr_value[];
 extern reg_t armv7m_gdb_dummy_cpsr_reg;
 #endif
 
-static int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp,
+static int cortexm3_dap_read_coreregister_u32(struct swjdp_common *swjdp,
 		uint32_t *value, int regnum)
 {
 	int retval;
@@ -87,7 +87,7 @@ static int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp,
 	return retval;
 }
 
-static int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp,
+static int cortexm3_dap_write_coreregister_u32(struct swjdp_common *swjdp,
 		uint32_t value, int regnum)
 {
 	int retval;
@@ -122,7 +122,7 @@ static int cortex_m3_write_debug_halt_mask(target_t *target,
 		uint32_t mask_on, uint32_t mask_off)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* mask off status bits */
 	cortex_m3->dcb_dhcsr &= ~((0xFFFF << 16) | mask_off);
@@ -135,7 +135,7 @@ static int cortex_m3_write_debug_halt_mask(target_t *target,
 static int cortex_m3_clear_halt(target_t *target)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* clear step if any */
 	cortex_m3_write_debug_halt_mask(target, C_HALT, C_STEP);
@@ -152,7 +152,7 @@ static int cortex_m3_clear_halt(target_t *target)
 static int cortex_m3_single_step_core(target_t *target)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	uint32_t dhcsr_save;
 
 	/* backup dhcsr reg */
@@ -176,7 +176,7 @@ static int cortex_m3_endreset_event(target_t *target)
 	int i;
 	uint32_t dcb_demcr;
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	cortex_m3_fp_comparator_t *fp_list = cortex_m3->fp_comparator_list;
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
@@ -260,7 +260,7 @@ static int cortex_m3_examine_exception_reason(target_t *target)
 {
 	uint32_t shcsr, except_sr, cfsr = -1, except_ar = -1;
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	mem_ap_read_u32(swjdp, NVIC_SHCSR, &shcsr);
 	switch (armv7m->exception_number)
@@ -311,7 +311,7 @@ static int cortex_m3_debug_entry(target_t *target)
 	int retval;
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	LOG_DEBUG(" ");
 
@@ -381,7 +381,7 @@ static int cortex_m3_poll(target_t *target)
 	int retval;
 	enum target_state prev_target_state = target->state;
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* Read from Debug Halting Control and Status Register */
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -495,7 +495,7 @@ static int cortex_m3_halt(target_t *target)
 static int cortex_m3_soft_reset_halt(struct target_s *target)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
@@ -637,7 +637,7 @@ static int cortex_m3_step(struct target_s *target, int current,
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	breakpoint_t *breakpoint = NULL;
 
 	if (target->state != TARGET_HALTED)
@@ -687,7 +687,7 @@ static int cortex_m3_step(struct target_s *target, int current,
 static int cortex_m3_assert_reset(target_t *target)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	int assert_srst = 1;
 
 	LOG_DEBUG("target->state: %s",
@@ -1232,7 +1232,7 @@ static int cortex_m3_load_core_reg_u32(struct target_s *target,
 {
 	int retval;
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	/* NOTE:  we "know" here that the register identifiers used
 	 * in the v7m header match the Cortex-M3 Debug Core Register
@@ -1296,7 +1296,7 @@ static int cortex_m3_store_core_reg_u32(struct target_s *target,
 	int retval;
 	uint32_t reg;
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 #ifdef ARMV7_GDB_HACKS
 	/* If the LR register is being modified, make sure it will put us
@@ -1371,7 +1371,7 @@ static int cortex_m3_read_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	int retval;
 
 	/* sanitize arguments */
@@ -1403,7 +1403,7 @@ static int cortex_m3_write_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	int retval;
 
 	/* sanitize arguments */
@@ -1588,7 +1588,7 @@ static int cortex_m3_examine(struct target_s *target)
 	uint32_t cpuid, fpcr;
 	int i;
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
-	struct swjdp_common_s *swjdp = &cortex_m3->armv7m.swjdp_info;
+	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	if ((retval = ahbap_debugport_init(swjdp)) != ERROR_OK)
 		return retval;
@@ -1630,7 +1630,7 @@ static int cortex_m3_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
+static int cortex_m3_dcc_read(struct swjdp_common *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
 
@@ -1655,7 +1655,7 @@ static int cortex_m3_target_request_data(target_t *target,
 		uint32_t size, uint8_t *buffer)
 {
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint8_t data;
 	uint8_t ctrl;
 	uint32_t i;
@@ -1675,7 +1675,7 @@ static int cortex_m3_handle_target_request(void *priv)
 	if (!target_was_examined(target))
 		return ERROR_OK;
 	struct armv7m_common_s *armv7m = target_to_armv7m(target);
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;
@@ -1838,7 +1838,7 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 	target_t *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;
-	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t demcr = 0;
 	int retval;
 	int i;
