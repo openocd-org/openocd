@@ -177,7 +177,7 @@ static int cortex_m3_endreset_event(target_t *target)
 	uint32_t dcb_demcr;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
-	cortex_m3_fp_comparator_t *fp_list = cortex_m3->fp_comparator_list;
+	struct cortex_m3_fp_comparator *fp_list = cortex_m3->fp_comparator_list;
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
@@ -839,7 +839,7 @@ cortex_m3_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 	int fp_num = 0;
 	uint32_t hilo;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
-	cortex_m3_fp_comparator_t *comparator_list = cortex_m3->fp_comparator_list;
+	struct cortex_m3_fp_comparator *comparator_list = cortex_m3->fp_comparator_list;
 
 	if (breakpoint->set)
 	{
@@ -904,7 +904,7 @@ cortex_m3_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoin
 {
 	int retval;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
-	cortex_m3_fp_comparator_t * comparator_list = cortex_m3->fp_comparator_list;
+	struct cortex_m3_fp_comparator * comparator_list = cortex_m3->fp_comparator_list;
 
 	if (!breakpoint->set)
 	{
@@ -1614,7 +1614,7 @@ static int cortex_m3_examine(struct target_s *target)
 		cortex_m3->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF); /* bits [14:12] and [7:4] */
 		cortex_m3->fp_num_lit = (fpcr >> 8) & 0xF;
 		cortex_m3->fp_code_available = cortex_m3->fp_num_code;
-		cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code + cortex_m3->fp_num_lit, sizeof(cortex_m3_fp_comparator_t));
+		cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code + cortex_m3->fp_num_lit, sizeof(struct cortex_m3_fp_comparator));
 		cortex_m3->fpb_enabled = fpcr & 1;
 		for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
 		{

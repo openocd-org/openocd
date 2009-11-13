@@ -119,13 +119,13 @@
 #define FPCR_REPLACE_BKPT_HIGH  (2 << 30)
 #define FPCR_REPLACE_BKPT_BOTH  (3 << 30)
 
-typedef struct  cortex_m3_fp_comparator_s
+struct cortex_m3_fp_comparator
 {
 	int used;
 	int type;
 	uint32_t fpcr_value;
 	uint32_t fpcr_address;
-} cortex_m3_fp_comparator_t;
+};
 
 typedef struct  cortex_m3_dwt_comparator_s
 {
@@ -152,7 +152,7 @@ struct cortex_m3_common
 	int fp_code_available;
 	int fpb_enabled;
 	int auto_bp_type;
-	cortex_m3_fp_comparator_t *fp_comparator_list;
+	struct cortex_m3_fp_comparator *fp_comparator_list;
 
 	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
