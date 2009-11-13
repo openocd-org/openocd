@@ -80,7 +80,7 @@ char* armv4_5_state_strings[] =
 
 int armv4_5_core_reg_arch_type = -1;
 
-armv4_5_core_reg_t armv4_5_core_reg_list_arch_info[] =
+struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
 {
 	{0, ARMV4_5_MODE_ANY, NULL, NULL},
 	{1, ARMV4_5_MODE_ANY, NULL, NULL},
@@ -170,7 +170,7 @@ reg_t armv4_5_gdb_dummy_fps_reg =
 int armv4_5_get_core_reg(reg_t *reg)
 {
 	int retval;
-	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
+	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
 
 	if (target->state != TARGET_HALTED)
@@ -187,7 +187,7 @@ int armv4_5_get_core_reg(reg_t *reg)
 
 int armv4_5_set_core_reg(reg_t *reg, uint8_t *buf)
 {
-	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
+	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
 	struct armv4_5_common_s *armv4_5_target = target_to_armv4_5(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
@@ -254,7 +254,7 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 	int num_regs = 37;
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
-	armv4_5_core_reg_t *arch_info = malloc(sizeof(armv4_5_core_reg_t) * num_regs);
+	struct armv4_5_core_reg *arch_info = malloc(sizeof(struct armv4_5_core_reg) * num_regs);
 	int i;
 
 	cache->name = "arm v4/5 registers";

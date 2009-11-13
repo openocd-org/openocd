@@ -127,13 +127,13 @@ struct armv4_5_algorithm
 	enum armv4_5_state core_state;
 };
 
-typedef struct armv4_5_core_reg_s
+struct armv4_5_core_reg
 {
 	int num;
 	enum armv4_5_mode mode;
 	target_t *target;
 	armv4_5_common_t *armv4_5_common;
-} armv4_5_core_reg_t;
+};
 
 reg_cache_t* armv4_5_build_reg_cache(target_t *target,
 		armv4_5_common_t *armv4_5_common);
