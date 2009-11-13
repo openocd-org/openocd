@@ -30,7 +30,7 @@
 #include "nand.h"
 #include "s3c24xx_regs_nand.h"
 
-typedef struct s3c24xx_nand_controller_s
+struct s3c24xx_nand_controller
 {
 	struct target_s *target;
 
@@ -39,7 +39,7 @@ typedef struct s3c24xx_nand_controller_s
 	uint32_t		 addr;
 	uint32_t		 data;
 	uint32_t		 nfstat;
-} s3c24xx_nand_controller_t;
+};
 
 /* Default to using the un-translated NAND register based address */
 #undef S3C2410_NFREG
@@ -48,7 +48,7 @@ typedef struct s3c24xx_nand_controller_s
 #define S3C24XX_DEVICE_COMMAND() \
 		COMMAND_HELPER(s3c24xx_nand_device_command, \
 				struct nand_device_s *nand, \
-				s3c24xx_nand_controller_t **info)
+				struct s3c24xx_nand_controller **info)
 
 S3C24XX_DEVICE_COMMAND();
 

@@ -33,7 +33,7 @@
 
 NAND_DEVICE_COMMAND_HANDLER(s3c2443_nand_device_command)
 {
-	s3c24xx_nand_controller_t *info;
+	struct s3c24xx_nand_controller *info;
 	CALL_S3C24XX_DEVICE_COMMAND(nand, &info);
 
 	/* fill in the address fields for the core device */
@@ -47,7 +47,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2443_nand_device_command)
 
 static int s3c2443_init(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	target_write_u32(target, S3C2410_NFCONF,

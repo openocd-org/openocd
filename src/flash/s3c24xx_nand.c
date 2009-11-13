@@ -33,9 +33,9 @@
 
 S3C24XX_DEVICE_COMMAND()
 {
-	s3c24xx_nand_controller_t *s3c24xx_info;
+	struct s3c24xx_nand_controller *s3c24xx_info;
 
-	s3c24xx_info = malloc(sizeof(s3c24xx_nand_controller_t));
+	s3c24xx_info = malloc(sizeof(struct s3c24xx_nand_controller));
 	if (s3c24xx_info == NULL) {
 		LOG_ERROR("no memory for nand controller\n");
 		return -ENOMEM;
@@ -59,7 +59,7 @@ int s3c24xx_register_commands(struct command_context_s *cmd_ctx)
 
 int s3c24xx_reset(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -74,7 +74,7 @@ int s3c24xx_reset(struct nand_device_s *nand)
 
 int s3c24xx_command(struct nand_device_s *nand, uint8_t command)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -89,7 +89,7 @@ int s3c24xx_command(struct nand_device_s *nand, uint8_t command)
 
 int s3c24xx_address(struct nand_device_s *nand, uint8_t address)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -103,7 +103,7 @@ int s3c24xx_address(struct nand_device_s *nand, uint8_t address)
 
 int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -117,7 +117,7 @@ int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data)
 
 int s3c24xx_read_data(struct nand_device_s *nand, void *data)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {

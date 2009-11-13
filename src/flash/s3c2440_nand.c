@@ -33,7 +33,7 @@
 
 NAND_DEVICE_COMMAND_HANDLER(s3c2440_nand_device_command)
 {
-	s3c24xx_nand_controller_t *info;
+	struct s3c24xx_nand_controller *info;
 	CALL_S3C24XX_DEVICE_COMMAND(nand, &info);
 
 	/* fill in the address fields for the core device */
@@ -47,7 +47,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2440_nand_device_command)
 
 static int s3c2440_init(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	target_write_u32(target, S3C2410_NFCONF,
@@ -63,7 +63,7 @@ static int s3c2440_init(struct nand_device_s *nand)
 
 int s3c2440_nand_ready(struct nand_device_s *nand, int timeout)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint8_t status;
 
@@ -89,7 +89,7 @@ int s3c2440_nand_ready(struct nand_device_s *nand, int timeout)
 
 int s3c2440_read_block_data(struct nand_device_s *nand, uint8_t *data, int data_size)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint32_t nfdata = s3c24xx_info->data;
 	uint32_t tmp;
@@ -125,7 +125,7 @@ int s3c2440_read_block_data(struct nand_device_s *nand, uint8_t *data, int data_
 
 int s3c2440_write_block_data(struct nand_device_s *nand, uint8_t *data, int data_size)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint32_t nfdata = s3c24xx_info->data;
 	uint32_t tmp;
