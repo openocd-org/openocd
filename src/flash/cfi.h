@@ -76,7 +76,7 @@ struct cfi_flash_bank
  * as defined for the Advanced+ Boot Block Flash Memory (C3)
  * and used by the linux kernel cfi driver (as of 2.6.14)
  */
-typedef struct cfi_intel_pri_ext_s
+struct cfi_intel_pri_ext
 {
 	char pri[3];
 	uint8_t major_version;
@@ -91,7 +91,7 @@ typedef struct cfi_intel_pri_ext_s
 	uint8_t fact_prot_reg_size;
 	uint8_t user_prot_reg_size;
 	uint8_t extra[0];
-} cfi_intel_pri_ext_t;
+};
 
 /* Spansion primary extended query table as defined for and used by
  * the linux kernel cfi driver (as of 2.6.15)

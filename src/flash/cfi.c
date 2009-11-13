@@ -316,7 +316,7 @@ static int cfi_read_intel_pri_ext(flash_bank_t *bank)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = malloc(sizeof(cfi_intel_pri_ext_t));
+	struct cfi_intel_pri_ext *pri_ext = malloc(sizeof(struct cfi_intel_pri_ext));
 	target_t *target = bank->target;
 	uint8_t command[8];
 
@@ -563,7 +563,7 @@ static int cfi_intel_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	int printed;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_intel_pri_ext *pri_ext = cfi_info->pri_ext;
 
 	printed = snprintf(buf, buf_size, "\nintel primary algorithm extend information:\n");
 	buf += printed;
@@ -801,7 +801,7 @@ static int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int 
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_intel_pri_ext *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	uint8_t command[8];
 	int retry = 0;
@@ -2448,7 +2448,7 @@ static int cfi_intel_protect_check(struct flash_bank_s *bank)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_intel_pri_ext *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	uint8_t command[CFI_MAX_BUS_WIDTH];
 	int i;
