@@ -278,7 +278,7 @@ static int oocd_trace_stop_capture(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-etm_capture_driver_t oocd_trace_capture_driver =
+struct etm_capture_driver oocd_trace_capture_driver =
 {
 	.name = "oocd_trace",
 	.register_commands = oocd_trace_register_commands,

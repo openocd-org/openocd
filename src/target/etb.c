@@ -682,7 +682,7 @@ static int etb_stop_capture(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-etm_capture_driver_t etb_capture_driver =
+struct etm_capture_driver etb_capture_driver =
 {
 	.name = "etb",
 	.register_commands = etb_register_commands,

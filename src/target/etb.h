@@ -52,7 +52,7 @@ struct etb_reg
 	etb_t *etb;
 };
 
-extern etm_capture_driver_t etb_capture_driver;
+extern struct etm_capture_driver etb_capture_driver;
 
 reg_cache_t* etb_build_reg_cache(etb_t *etb);
 

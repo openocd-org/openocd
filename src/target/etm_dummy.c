@@ -94,7 +94,7 @@ static int etm_dummy_stop_capture(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-etm_capture_driver_t etm_dummy_capture_driver =
+struct etm_capture_driver etm_dummy_capture_driver =
 {
 	.name = "dummy",
 	.register_commands = etm_dummy_register_commands,

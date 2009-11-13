@@ -123,7 +123,7 @@ typedef enum
 /* forward-declare ETM context */
 struct etm;
 
-typedef struct etm_capture_driver_s
+struct etm_capture_driver
 {
 	char *name;
 	int (*register_commands)(struct command_context_s *cmd_ctx);
@@ -132,7 +132,7 @@ typedef struct etm_capture_driver_s
 	int (*read_trace)(struct etm *etm_ctx);
 	int (*start_capture)(struct etm *etm_ctx);
 	int (*stop_capture)(struct etm *etm_ctx);
-} etm_capture_driver_t;
+};
 
 enum
 {
@@ -156,7 +156,7 @@ typedef struct etm
 {
 	target_t *target;		/* target this ETM is connected to */
 	reg_cache_t *reg_cache;		/* ETM register cache */
-	etm_capture_driver_t *capture_driver;	/* driver used to access ETM data */
+	struct etm_capture_driver *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;	/* capture driver private data */
 	uint32_t trigger_percent;	/* how much trace buffer to fill after trigger */
 	trace_status_t capture_status;	/* current state of capture run */

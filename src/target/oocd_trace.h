@@ -54,6 +54,6 @@ typedef struct oocd_trace_s
 	struct termios oldtio, newtio;
 } oocd_trace_t;
 
-extern etm_capture_driver_t oocd_trace_capture_driver;
+extern struct etm_capture_driver oocd_trace_capture_driver;
 
 #endif /* OOCD_TRACE_TRACE_H */

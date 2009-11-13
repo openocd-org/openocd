@@ -22,6 +22,6 @@
 
 #include "etm.h"
 
-extern etm_capture_driver_t etm_dummy_capture_driver;
+extern struct etm_capture_driver etm_dummy_capture_driver;
 
 #endif /* ETB_H */

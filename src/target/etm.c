@@ -621,12 +621,12 @@ static int etm_write_reg(reg_t *reg, uint32_t value)
 /* ETM trace analysis functionality
  *
  */
-extern etm_capture_driver_t etm_dummy_capture_driver;
+extern struct etm_capture_driver etm_dummy_capture_driver;
 #if BUILD_OOCD_TRACE == 1
-extern etm_capture_driver_t oocd_trace_capture_driver;
+extern struct etm_capture_driver oocd_trace_capture_driver;
 #endif
 
-static etm_capture_driver_t *etm_capture_drivers[] =
+static struct etm_capture_driver *etm_capture_drivers[] =
 {
 	&etb_capture_driver,
 	&etm_dummy_capture_driver,
