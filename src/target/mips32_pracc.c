@@ -86,10 +86,10 @@ typedef struct {
 	int code_len;
 	uint32_t stack[32];
 	int stack_offset;
-	mips_ejtag_t *ejtag_info;
+	struct mips_ejtag *ejtag_info;
 } mips32_pracc_context;
 
-static int wait_for_pracc_rw(mips_ejtag_t *ejtag_info, uint32_t *ctrl)
+static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 {
 	uint32_t ejtag_ctrl;
 
@@ -110,7 +110,7 @@ static int wait_for_pracc_rw(mips_ejtag_t *ejtag_info, uint32_t *ctrl)
 
 static int mips32_pracc_exec_read(mips32_pracc_context *ctx, uint32_t address)
 {
-	mips_ejtag_t *ejtag_info = ctx->ejtag_info;
+	struct mips_ejtag *ejtag_info = ctx->ejtag_info;
 	int offset;
 	uint32_t ejtag_ctrl, data;
 
@@ -168,7 +168,7 @@ static int mips32_pracc_exec_write(mips32_pracc_context *ctx, uint32_t address)
 {
 	uint32_t ejtag_ctrl,data;
 	int offset;
-	mips_ejtag_t *ejtag_info = ctx->ejtag_info;
+	struct mips_ejtag *ejtag_info = ctx->ejtag_info;
 
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ctx->ejtag_info, &data);
@@ -207,7 +207,7 @@ static int mips32_pracc_exec_write(mips32_pracc_context *ctx, uint32_t address)
 	return ERROR_OK;
 }
 
-int mips32_pracc_exec(mips_ejtag_t *ejtag_info, int code_len, uint32_t *code, int num_param_in, uint32_t *param_in, int num_param_out, uint32_t *param_out, int cycle)
+int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, uint32_t *code, int num_param_in, uint32_t *param_in, int num_param_out, uint32_t *param_out, int cycle)
 {
 	uint32_t ejtag_ctrl;
 	uint32_t address, data;
@@ -269,7 +269,7 @@ int mips32_pracc_exec(mips_ejtag_t *ejtag_info, int code_len, uint32_t *code, in
 	return ERROR_OK;
 }
 
-int mips32_pracc_read_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int count, void *buf)
+int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
 	switch (size)
 	{
@@ -287,7 +287,7 @@ int mips32_pracc_read_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int
 	return ERROR_OK;
 }
 
-int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -361,7 +361,7 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	return retval;
 }
 
-int mips32_pracc_read_u32(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t *buf)
+int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -395,7 +395,7 @@ int mips32_pracc_read_u32(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t *buf
 	return retval;
 }
 
-int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -474,7 +474,7 @@ int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	return ERROR_OK;
 }
 
-int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -553,7 +553,7 @@ int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, u
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int count, void *buf)
+int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
 	switch (size)
 	{
@@ -571,7 +571,7 @@ int mips32_pracc_write_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, in
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 
 //NC: use destination pointer as loop counter (last address is in $10)
@@ -620,7 +620,7 @@ int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_u32(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t *buf)
+int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -653,7 +653,7 @@ int mips32_pracc_write_u32(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t *bu
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -713,7 +713,7 @@ int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	uint32_t code[] = {
 															/* start: */
@@ -774,7 +774,7 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	return retval;
 }
 
-int mips32_pracc_write_regs(mips_ejtag_t *ejtag_info, uint32_t *regs)
+int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 {
 	uint32_t code[] = {
 														/* start: */
@@ -846,7 +846,7 @@ int mips32_pracc_write_regs(mips_ejtag_t *ejtag_info, uint32_t *regs)
 	return retval;
 }
 
-int mips32_pracc_read_regs(mips_ejtag_t *ejtag_info, uint32_t *regs)
+int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 {
 	uint32_t code[] = {
 														/* start: */

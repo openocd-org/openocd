@@ -50,7 +50,7 @@ struct mips32_common
 	uint32_t common_magic;
 	void *arch_info;
 	reg_cache_t *core_cache;
-	mips_ejtag_t ejtag_info;
+	struct mips_ejtag ejtag_info;
 	uint32_t core_regs[MIPS32NUMCOREREGS];
 
 	int bp_scanned;

@@ -39,7 +39,7 @@
  * displaying/modifying memory and memory mapped registers.
  */
 
-static int ejtag_dma_read(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t *data)
+static int ejtag_dma_read(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *data)
 {
 	uint32_t v;
 	uint32_t ejtag_ctrl;
@@ -85,7 +85,7 @@ begin_ejtag_dma_read:
 	return ERROR_OK;
 }
 
-static int ejtag_dma_read_h(mips_ejtag_t *ejtag_info, uint32_t addr, uint16_t *data)
+static int ejtag_dma_read_h(struct mips_ejtag *ejtag_info, uint32_t addr, uint16_t *data)
 {
 	uint32_t v;
 	uint32_t ejtag_ctrl;
@@ -137,7 +137,7 @@ begin_ejtag_dma_read_h:
 	return ERROR_OK;
 }
 
-static int ejtag_dma_read_b(mips_ejtag_t *ejtag_info, uint32_t addr, uint8_t *data)
+static int ejtag_dma_read_b(struct mips_ejtag *ejtag_info, uint32_t addr, uint8_t *data)
 {
 	uint32_t v;
 	uint32_t ejtag_ctrl;
@@ -199,7 +199,7 @@ begin_ejtag_dma_read_b:
 	return ERROR_OK;
 }
 
-static int ejtag_dma_write(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t data)
+static int ejtag_dma_write(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t data)
 {
 	uint32_t v;
 	uint32_t ejtag_ctrl;
@@ -246,7 +246,7 @@ begin_ejtag_dma_write:
 	return ERROR_OK;
 }
 
-static int ejtag_dma_write_h(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t data)
+static int ejtag_dma_write_h(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t data)
 {
 	uint32_t v;
 	uint32_t ejtag_ctrl;
@@ -297,7 +297,7 @@ begin_ejtag_dma_write_h:
 	return ERROR_OK;
 }
 
-static int ejtag_dma_write_b(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t data)
+static int ejtag_dma_write_b(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t data)
 {
 	uint32_t v;
 	uint32_t ejtag_ctrl;
@@ -349,7 +349,7 @@ begin_ejtag_dma_write_b:
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int count, void *buf)
+int mips32_dmaacc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
 	switch (size)
 	{
@@ -364,7 +364,7 @@ int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, in
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	int i;
 	int	retval;
@@ -377,7 +377,7 @@ int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+int mips32_dmaacc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	int i;
 	int retval;
@@ -390,7 +390,7 @@ int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	int i;
 	int retval;
@@ -403,7 +403,7 @@ int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int count, void *buf)
+int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
 	switch (size)
 	{
@@ -418,7 +418,7 @@ int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, i
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	int i;
 	int retval;
@@ -431,7 +431,7 @@ int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	int i;
 	int retval;
@@ -444,7 +444,7 @@ int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	int i;
 	int retval;

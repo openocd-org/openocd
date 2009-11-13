@@ -34,23 +34,23 @@
 
 #define RETRY_ATTEMPTS	0
 
-int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_read_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
-int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
 
-int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint8_t *buf);
-int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_read_mem16(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint16_t *buf);
-int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint32_t *buf);
 
-int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint8_t *buf);
-int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint16_t *buf);
-int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info,
+int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint32_t *buf);
 
 #endif

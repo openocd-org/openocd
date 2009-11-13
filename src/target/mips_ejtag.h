@@ -102,25 +102,25 @@
 #define		EJTAG_DBCn_BLM_SHIFT		4
 #define		EJTAG_DBCn_BE				(1 << 0)
 
-typedef struct mips_ejtag_s
+struct mips_ejtag
 {
 	struct jtag_tap *tap;
 	uint32_t impcode;
 	uint32_t idcode;
 	/*int use_dma;*/
 	uint32_t ejtag_ctrl;
-} mips_ejtag_t;
+};
 
-int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info,
+int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
 		int new_instr, void *delete_me_and_submit_patch);
-int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info);
-int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info);
-int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode);
-int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode);
-int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data);
+int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info);
+int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info);
+int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode);
+int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode);
+int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data);
 
-int mips_ejtag_init(mips_ejtag_t *ejtag_info);
-int mips_ejtag_config_step(mips_ejtag_t *ejtag_info, int enable_step);
-int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, uint32_t* debug_reg);
+int mips_ejtag_init(struct mips_ejtag *ejtag_info);
+int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step);
+int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg);
 
 #endif /* MIPS_EJTAG */

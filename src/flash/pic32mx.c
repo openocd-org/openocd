@@ -544,7 +544,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 	struct mips32_common *mips32 = target->arch_info;
-	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	int i;
 	uint16_t num_pages = 0;
 	uint32_t device_id;
@@ -641,7 +641,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	target_t *target = bank->target;
 	struct mips32_common *mips32 = target->arch_info;
-	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	uint32_t device_id;
 	int printed = 0, i;
 

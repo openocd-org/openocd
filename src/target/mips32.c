@@ -216,7 +216,7 @@ int mips32_save_context(target_t *target)
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
-	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 	/* read core registers */
 	mips32_pracc_read_regs(ejtag_info, mips32->core_regs);
@@ -238,7 +238,7 @@ int mips32_restore_context(target_t *target)
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
-	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
 	{

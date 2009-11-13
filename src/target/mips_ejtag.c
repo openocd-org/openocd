@@ -27,7 +27,7 @@
 #include "mips_ejtag.h"
 
 
-int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_me_and_submit_patch)
+int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr, void *delete_me_and_submit_patch)
 {
 	struct jtag_tap *tap;
 
@@ -52,7 +52,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode)
+int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 {
 	struct scan_field field;
 
@@ -75,7 +75,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode)
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode)
+int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
 {
 	struct scan_field field;
 
@@ -98,7 +98,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode)
 	return ERROR_OK;
 }
 
-int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
+int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 {
 	struct jtag_tap *tap;
 	tap  = ejtag_info->tap;
@@ -130,7 +130,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
 	return ERROR_OK;
 }
 
-int mips_ejtag_step_enable(mips_ejtag_t *ejtag_info)
+int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 {
 	uint32_t code[] = {
 			MIPS32_MTC0(1,31,0),			/* move $1 to COP0 DeSave */
@@ -148,7 +148,7 @@ int mips_ejtag_step_enable(mips_ejtag_t *ejtag_info)
 
 	return ERROR_OK;
 }
-int mips_ejtag_step_disable(mips_ejtag_t *ejtag_info)
+int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 {
 	uint32_t code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
@@ -175,14 +175,14 @@ int mips_ejtag_step_disable(mips_ejtag_t *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips_ejtag_config_step(mips_ejtag_t *ejtag_info, int enable_step)
+int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step)
 {
 	if (enable_step)
 		return mips_ejtag_step_enable(ejtag_info);
 	return mips_ejtag_step_disable(ejtag_info);
 }
 
-int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
+int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_ctrl;
 	jtag_set_end_state(TAP_IDLE);
@@ -202,7 +202,7 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info)
+int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 {
 	uint32_t inst;
 	inst = MIPS32_DRET;
@@ -213,7 +213,7 @@ int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, uint32_t* debug_reg)
+int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 {
 	/* read ejtag ECR */
 	uint32_t code[] = {
@@ -240,7 +240,7 @@ int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, uint32_t* debug_reg)
 	return ERROR_OK;
 }
 
-int mips_ejtag_init(mips_ejtag_t *ejtag_info)
+int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_version;
 
