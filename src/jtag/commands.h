@@ -90,11 +90,10 @@ struct reset_command {
 	int srst;
 };
 
-typedef struct end_state_command_s
-{
+struct end_state_command {
 	/// state in which JTAG commands should finish
 	tap_state_t end_state;
-} end_state_command_t;
+};
 
 typedef struct sleep_command_s
 {
@@ -114,7 +113,7 @@ typedef union jtag_command_container_u
 	struct runtest_command*      runtest;
 	struct stableclocks_command* stableclocks;
 	struct reset_command*        reset;
-	end_state_command_t*    end_state;
+	struct end_state_command*    end_state;
 	sleep_command_t* sleep;
 } jtag_command_container_t;
 
