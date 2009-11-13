@@ -1078,7 +1078,7 @@ static bool scan_is_safe(tap_state_t state)
 COMMAND_HANDLER(handle_irscan_command)
 {
 	int i;
-	scan_field_t *fields;
+	struct scan_field *fields;
 	struct jtag_tap *tap;
 	tap_state_t endstate;
 
@@ -1108,7 +1108,7 @@ COMMAND_HANDLER(handle_irscan_command)
 	}
 
 	int num_fields = argc / 2;
-	size_t fields_len = sizeof(scan_field_t) * num_fields;
+	size_t fields_len = sizeof(struct scan_field) * num_fields;
 	fields = malloc(fields_len);
 	memset(fields, 0, fields_len);
 
@@ -1159,7 +1159,7 @@ error_return:
 static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
 	int retval;
-	scan_field_t *fields;
+	struct scan_field *fields;
 	int num_fields;
 	int field_count = 0;
 	int i, e;
@@ -1245,7 +1245,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 	}
 
 	num_fields = (argc-2)/2;
-	fields = malloc(sizeof(scan_field_t) * num_fields);
+	fields = malloc(sizeof(struct scan_field) * num_fields);
 	for (i = 2; i < argc; i += 2)
 	{
 		long bits;

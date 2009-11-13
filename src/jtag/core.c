@@ -43,8 +43,8 @@
 /// The number of JTAG queue flushes (for profiling and debugging purposes).
 static int jtag_flush_queue_count;
 
-static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
-		int in_num_fields, scan_field_t *in_fields, tap_state_t state);
+static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const struct scan_field *in_fields, tap_state_t state),
+		int in_num_fields, struct scan_field *in_fields, tap_state_t state);
 
 /**
  * The jtag_error variable is set when an error occurs while executing
@@ -353,12 +353,12 @@ static void jtag_prelude(tap_state_t state)
 	cmd_queue_cur_state = state;
 }
 
-void jtag_alloc_in_value32(scan_field_t *field)
+void jtag_alloc_in_value32(struct scan_field *field)
 {
 	interface_jtag_alloc_in_value32(field);
 }
 
-void jtag_add_ir_scan_noverify(int in_count, const scan_field_t *in_fields,
+void jtag_add_ir_scan_noverify(int in_count, const struct scan_field *in_fields,
 		tap_state_t state)
 {
 	jtag_prelude(state);
@@ -368,7 +368,7 @@ void jtag_add_ir_scan_noverify(int in_count, const scan_field_t *in_fields,
 }
 
 
-void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
+void jtag_add_ir_scan(int in_num_fields, struct scan_field *in_fields, tap_state_t state)
 {
 	assert(state != TAP_RESET);
 
@@ -391,7 +391,7 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 	}
 }
 
-void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields,
+void jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field *in_fields,
 		tap_state_t state)
 {
 	assert(state != TAP_RESET);
@@ -423,12 +423,12 @@ static int jtag_check_value_mask_callback(jtag_callback_data_t data0, jtag_callb
 	return jtag_check_value_inner((uint8_t *)data0, (uint8_t *)data1, (uint8_t *)data2, (int)data3);
 }
 
-static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
-		int in_num_fields, scan_field_t *in_fields, tap_state_t state)
+static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const struct scan_field *in_fields, tap_state_t state),
+		int in_num_fields, struct scan_field *in_fields, tap_state_t state)
 {
 	for (int i = 0; i < in_num_fields; i++)
 	{
-		struct scan_field_s *field = &in_fields[i];
+		struct scan_field *field = &in_fields[i];
 		field->allocated = 0;
 		field->modified = 0;
 		if (field->check_value || field->in_value)
@@ -460,7 +460,7 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const s
 	}
 }
 
-void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
+void jtag_add_dr_scan_check(int in_num_fields, struct scan_field *in_fields, tap_state_t state)
 {
 	if (jtag_verify)
 	{
@@ -472,7 +472,7 @@ void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_stat
 }
 
 
-void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
+void jtag_add_dr_scan(int in_num_fields, const struct scan_field *in_fields,
 		tap_state_t state)
 {
 	assert(state != TAP_RESET);
@@ -484,7 +484,7 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 	jtag_set_error(retval);
 }
 
-void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
+void jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_fields,
 		tap_state_t state)
 {
 	assert(state != TAP_RESET);
@@ -806,7 +806,7 @@ static int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value,
 	return retval;
 }
 
-void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask)
+void jtag_check_value_mask(struct scan_field *field, uint8_t *value, uint8_t *mask)
 {
 	assert(field->in_value != NULL);
 
@@ -895,7 +895,7 @@ void jtag_sleep(uint32_t us)
 
 static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcode)
 {
-	scan_field_t field = {
+	struct scan_field field = {
 			.tap = NULL,
 			.num_bits = num_idcode * 32,
 			.out_value = idcode_buffer,
@@ -1171,7 +1171,7 @@ static int jtag_validate_ircapture(void)
 	struct jtag_tap *tap;
 	int total_ir_length = 0;
 	uint8_t *ir_test = NULL;
-	scan_field_t field;
+	struct scan_field field;
 	int val;
 	int chain_pos = 0;
 	int retval;

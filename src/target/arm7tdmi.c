@@ -50,7 +50,7 @@ static int arm7tdmi_examine_debug_reason(target_t *target)
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 			&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
-		scan_field_t fields[2];
+		struct scan_field fields[2];
 		uint8_t databus[4];
 		uint8_t breakpoint;
 
@@ -130,7 +130,7 @@ static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info,
 static int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 {
 	int retval = ERROR_OK;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 
 	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
@@ -217,7 +217,7 @@ static int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
 		void *in, int size, int be)
 {
 	int retval = ERROR_OK;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 
 	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)

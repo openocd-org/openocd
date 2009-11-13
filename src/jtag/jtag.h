@@ -119,8 +119,7 @@ extern tap_state_t cmd_queue_cur_state;
  *
  * The allocated, modified, and intmp fields are internal work space.
  */
-typedef struct scan_field_s
-{
+struct scan_field {
 	/// A pointer to the tap structure to which this field refers.
 	struct jtag_tap* tap;
 
@@ -142,7 +141,7 @@ typedef struct scan_field_s
 	int modified;
 	/// temporary storage for performing value checks synchronously
 	uint8_t intmp[4];
-} scan_field_t;
+};
 
 typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
 
@@ -360,20 +359,20 @@ int jtag_init_inner(struct command_context_s *cmd_ctx);
  *
  */
 void jtag_add_ir_scan(int num_fields,
-		scan_field_t* fields, tap_state_t endstate);
+		struct scan_field* fields, tap_state_t endstate);
 /**
  * The same as jtag_add_ir_scan except no verification is performed out
  * the output values.
  */
 void jtag_add_ir_scan_noverify(int num_fields,
-		const scan_field_t *fields, tap_state_t state);
+		const struct scan_field *fields, tap_state_t state);
 /**
  * Duplicate the scan fields passed into the function into an IR SCAN
  * command.  This function assumes that the caller handles extra fields
  * for bypassed TAPs.
  */
 void jtag_add_plain_ir_scan(int num_fields,
-		const scan_field_t* fields, tap_state_t endstate);
+		const struct scan_field* fields, tap_state_t endstate);
 
 
 /**
@@ -385,7 +384,7 @@ void jtag_add_plain_ir_scan(int num_fields,
  * allocation method is used, for the synchronous case the temporary 32
  * bits come from the input field itself.
  */
-void jtag_alloc_in_value32(scan_field_t *field);
+void jtag_alloc_in_value32(struct scan_field *field);
 
 /**
  * Generate a DR SCAN using the fields passed to the function.
@@ -394,17 +393,17 @@ void jtag_alloc_in_value32(scan_field_t *field);
  * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
  */
 void jtag_add_dr_scan(int num_fields,
-		const scan_field_t* fields, tap_state_t endstate);
+		const struct scan_field* fields, tap_state_t endstate);
 /// A version of jtag_add_dr_scan() that uses the check_value/mask fields
 void jtag_add_dr_scan_check(int num_fields,
-		scan_field_t* fields, tap_state_t endstate);
+		struct scan_field* fields, tap_state_t endstate);
 /**
  * Duplicate the scan fields passed into the function into a DR SCAN
  * command.  Unlike jtag_add_dr_scan(), this function assumes that the
  * caller handles extra fields for bypassed TAPs.
  */
 void jtag_add_plain_dr_scan(int num_fields,
-		const scan_field_t* fields, tap_state_t endstate);
+		const struct scan_field* fields, tap_state_t endstate);
 
 /**
  * Defines the type of data passed to the jtag_callback_t interface.
@@ -652,7 +651,7 @@ int jtag_srst_asserted(int* srst_asserted);
  * @param mask Pointer to scan mask; may be NULL.
  * @returns Nothing, but calls jtag_set_error() on any error.
  */
-void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask);
+void jtag_check_value_mask(struct scan_field *field, uint8_t *value, uint8_t *mask);
 
 void jtag_sleep(uint32_t us);
 

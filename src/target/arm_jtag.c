@@ -40,7 +40,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_veri
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
-		scan_field_t field;
+		struct scan_field field;
 		uint8_t t[4];
 
 		field.tap = tap;

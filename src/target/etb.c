@@ -52,7 +52,7 @@ static int etb_set_instr(etb_t *etb, uint32_t new_instr)
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
-		scan_field_t field;
+		struct scan_field field;
 
 		field.tap = tap;
 		field.num_bits = tap->ir_length;
@@ -73,7 +73,7 @@ static int etb_scann(etb_t *etb, uint32_t new_scan_chain)
 {
 	if (etb->cur_scan_chain != new_scan_chain)
 	{
-		scan_field_t field;
+		struct scan_field field;
 
 		field.tap = etb->tap;
 		field.num_bits = 5;
@@ -173,7 +173,7 @@ static void etb_getbuf(jtag_callback_data_t arg)
 
 static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
 {
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	int i;
 
 	jtag_set_end_state(TAP_IDLE);
@@ -229,7 +229,7 @@ static int etb_read_reg_w_check(reg_t *reg,
 {
 	etb_reg_t *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 
 	LOG_DEBUG("%i", (int)(etb_reg->addr));
 
@@ -315,7 +315,7 @@ static int etb_write_reg(reg_t *reg, uint32_t value)
 {
 	etb_reg_t *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 
 	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", (int)(etb_reg->addr), value);
 

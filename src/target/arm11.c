@@ -360,7 +360,7 @@ static int arm11_on_enter_debug_state(arm11_common_t *arm11)
 
 		arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-		scan_field_t	chain5_fields[3];
+		struct scan_field	chain5_fields[3];
 
 		arm11_setup_field(arm11, 32, NULL, &R(WDTR),	chain5_fields + 0);
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 1);
@@ -637,7 +637,7 @@ static int arm11_leave_debug_state(arm11_common_t *arm11)
 
 		arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
-		scan_field_t	chain5_fields[3];
+		struct scan_field	chain5_fields[3];
 
 		uint8_t			Ready		= 0;	/* ignored */
 		uint8_t			Valid		= 0;	/* ignored */
@@ -1821,7 +1821,7 @@ static int arm11_examine(struct target_s *target)
 
 	arm11_add_IR(arm11, ARM11_IDCODE, ARM11_TAP_DEFAULT);
 
-	scan_field_t		idcode_field;
+	struct scan_field		idcode_field;
 
 	arm11_setup_field(arm11, 32, NULL, &arm11->device_id, &idcode_field);
 
@@ -1833,7 +1833,7 @@ static int arm11_examine(struct target_s *target)
 
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t		chain0_fields[2];
+	struct scan_field		chain0_fields[2];
 
 	arm11_setup_field(arm11, 32, NULL,	&arm11->didr,		chain0_fields + 0);
 	arm11_setup_field(arm11,  8, NULL,	&arm11->implementor,	chain0_fields + 1);

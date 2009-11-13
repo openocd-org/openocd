@@ -6,7 +6,7 @@
 /* ARM11 internals */
 
 void arm11_setup_field(arm11_common_t *arm11, int num_bits,
-		void *in_data, void *out_data, scan_field_t *field);
+		void *in_data, void *out_data, struct scan_field *field);
 void arm11_add_IR(arm11_common_t *arm11,
 		uint8_t instr, tap_state_t state);
 int arm11_add_debug_SCAN_N(arm11_common_t *arm11,
@@ -36,9 +36,9 @@ int arm11_run_instr_data_from_core_via_r0(arm11_common_t *arm11,
 int arm11_run_instr_data_to_core_via_r0(arm11_common_t *arm11,
 		uint32_t opcode, uint32_t data);
 
-int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields,
+int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields,
 		tap_state_t state);
-int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields,
+int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
 		tap_state_t state);
 
 /**

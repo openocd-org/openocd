@@ -44,7 +44,7 @@ void bitq_in_proc(void)
 	static int    in_idx;   /* index of byte being scanned */
 	static uint8_t     in_mask;  /* mask of next bit to be scanned */
 
-	scan_field_t* field;
+	struct scan_field* field;
 	int           tdo;
 
 	/* loop through the queue */
@@ -213,7 +213,7 @@ void bitq_runtest(int num_cycles)
 }
 
 
-void bitq_scan_field(scan_field_t* field, int pause)
+void bitq_scan_field(struct scan_field* field, int pause)
 {
 	int bit_cnt;
 	int tdo_req;

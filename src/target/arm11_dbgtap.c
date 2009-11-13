@@ -47,7 +47,7 @@ static const tap_state_t arm11_move_pi_to_si_via_ci[] =
 };
 
 
-int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state)
+int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields, tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_IRPAUSE)
 		jtag_add_pathmove(asizeof(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
@@ -61,7 +61,7 @@ static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
-int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state)
+int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields, tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_DRPAUSE)
 		jtag_add_pathmove(asizeof(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
@@ -71,7 +71,7 @@ int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
 }
 
 
-/** Code de-clutter: Construct scan_field_t to write out a value
+/** Code de-clutter: Construct struct scan_field to write out a value
  *
  * \param arm11			Target state variable.
  * \param num_bits		Length of the data field
@@ -81,7 +81,7 @@ int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
  *						<em > (data is written when the JTAG queue is executed)</em>
  * \param field			target data structure that will be initialized
  */
-void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, void * in_data, scan_field_t * field)
+void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, void * in_data, struct scan_field * field)
 {
 	field->tap   			= arm11->target->tap;
 	field->num_bits			= num_bits;
@@ -111,7 +111,7 @@ void arm11_add_IR(arm11_common_t * arm11, uint8_t instr, tap_state_t state)
 
 	JTAG_DEBUG("IR <= 0x%02x", instr);
 
-	scan_field_t field;
+	struct scan_field field;
 
 	arm11_setup_field(arm11, 5, &instr, NULL, &field);
 
@@ -119,7 +119,7 @@ void arm11_add_IR(arm11_common_t * arm11, uint8_t instr, tap_state_t state)
 }
 
 /** Verify shifted out data from Scan Chain Register (SCREG)
- *  Used as parameter to scan_field_t::in_handler in
+ *  Used as parameter to struct scan_field::in_handler in
  *  arm11_add_debug_SCAN_N().
  *
  */
@@ -167,7 +167,7 @@ int arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t st
 
 	arm11_add_IR(arm11, ARM11_SCAN_N, ARM11_TAP_DEFAULT);
 
-	scan_field_t		field;
+	struct scan_field		field;
 
 	uint8_t tmp[1];
 	arm11_setup_field(arm11, 5, &chain, &tmp, &field);
@@ -202,7 +202,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, uint32_t inst, uint8_t * flag,
 {
 	JTAG_DEBUG("INST <= 0x%08x", inst);
 
-	scan_field_t		itr[2];
+	struct scan_field		itr[2];
 
 	arm11_setup_field(arm11, 32,    &inst,	NULL, itr + 0);
 	arm11_setup_field(arm11, 1,	    NULL,	flag, itr + 1);
@@ -230,7 +230,7 @@ int arm11_read_DSCR(arm11_common_t * arm11, uint32_t *value)
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
 	uint32_t				dscr;
-	scan_field_t	chain1_field;
+	struct scan_field	chain1_field;
 
 	arm11_setup_field(arm11, 32, NULL, &dscr, &chain1_field);
 
@@ -266,7 +266,7 @@ int arm11_write_DSCR(arm11_common_t * arm11, uint32_t dscr)
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t		    chain1_field;
+	struct scan_field		    chain1_field;
 
 	arm11_setup_field(arm11, 32, &dscr, NULL, &chain1_field);
 
@@ -451,7 +451,7 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t	chain5_fields[3];
+	struct scan_field	chain5_fields[3];
 
 	uint32_t				Data;
 	uint8_t				Ready;
@@ -578,7 +578,7 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t	chain5_fields[3];
+	struct scan_field	chain5_fields[3];
 
 	arm11_setup_field(arm11, 32,    NULL/*&Data*/,  NULL,				chain5_fields + 0);
 	arm11_setup_field(arm11,  1,    NULL,			NULL /*&Ready*/,	chain5_fields + 1);
@@ -682,7 +682,7 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint
 
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t	chain5_fields[3];
+	struct scan_field	chain5_fields[3];
 
 	uint32_t			Data;
 	uint8_t			Ready;
@@ -799,7 +799,7 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t	chain7_fields[3];
+	struct scan_field	chain7_fields[3];
 
 	uint8_t				nRW;
 	uint32_t				DataOut;
@@ -959,7 +959,7 @@ int arm11_write_etm(arm11_common_t * arm11, uint8_t address, uint32_t value)
 	/* Uses INTEST for read and write */
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t		chain6_fields[3];
+	struct scan_field		chain6_fields[3];
 
 	uint8_t				nRW			= 1;
 
@@ -993,7 +993,7 @@ int arm11_read_etm(arm11_common_t * arm11, uint8_t address, uint32_t * value)
 	/* Uses INTEST for read and write */
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-	scan_field_t		chain6_fields[3];
+	struct scan_field		chain6_fields[3];
 
 	uint8_t				nRW			= 0;
 

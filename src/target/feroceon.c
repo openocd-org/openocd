@@ -71,7 +71,7 @@ int feroceon_assert_reset(target_t *target)
 
 int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, uint32_t instr)
 {
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t out_buf[4];
 	uint8_t instr_buf[4];
 	uint8_t sysspeed_buf = 0x0;

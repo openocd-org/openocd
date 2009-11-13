@@ -40,7 +40,7 @@ int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
-		scan_field_t field;
+		struct scan_field field;
 
 		field.tap = tap;
 		field.num_bits = tap->ir_length;
@@ -58,7 +58,7 @@ int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end
 
 static uint8_t str9xpec_isc_status(struct jtag_tap *tap)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t status;
 
 	if (str9xpec_set_instr(tap, ISC_NOOP, TAP_IRPAUSE) != ERROR_OK)
@@ -139,7 +139,7 @@ static int str9xpec_isc_disable(struct flash_bank_s *bank)
 
 static int str9xpec_read_config(struct flash_bank_s *bank)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t status;
 	struct jtag_tap *tap;
 
@@ -271,7 +271,7 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 
 static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t status;
 	struct jtag_tap *tap;
 	int i;
@@ -360,7 +360,7 @@ static int str9xpec_protect_check(struct flash_bank_s *bank)
 
 static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t status;
 	struct jtag_tap *tap;
 	int i;
@@ -442,7 +442,7 @@ static int str9xpec_erase(struct flash_bank_s *bank, int first, int last)
 
 static int str9xpec_lock_device(struct flash_bank_s *bank)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t status;
 	struct jtag_tap *tap;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
@@ -540,7 +540,7 @@ static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int l
 static int str9xpec_set_address(struct flash_bank_s *bank, uint8_t sector)
 {
 	struct jtag_tap *tap;
-	scan_field_t field;
+	struct scan_field field;
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
 	tap = str9xpec_info->tap;
@@ -567,7 +567,7 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 	uint8_t status;
 	uint32_t check_address = offset;
 	struct jtag_tap *tap;
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t *scanbuf;
 	int i;
 	int first_sector = 0;
@@ -728,7 +728,7 @@ static int str9xpec_probe(struct flash_bank_s *bank)
 
 COMMAND_HANDLER(str9xpec_handle_part_id_command)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t *buffer = NULL;
 	struct jtag_tap *tap;
 	uint32_t idcode;
@@ -835,7 +835,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 
 static int str9xpec_write_options(struct flash_bank_s *bank)
 {
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t status;
 	struct jtag_tap *tap;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;

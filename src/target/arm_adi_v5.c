@@ -74,7 +74,7 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
 int adi_jtag_dp_scan(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
 {
 	arm_jtag_t *jtag_info = swjdp->jtag_info;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 	uint8_t out_addr_buf;
 
 	jtag_set_end_state(TAP_IDLE);
@@ -104,7 +104,7 @@ int adi_jtag_dp_scan(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uin
 int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue, uint8_t *ack)
 {
 	arm_jtag_t *jtag_info = swjdp->jtag_info;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 	uint8_t out_value_buf[4];
 	uint8_t out_addr_buf;
 

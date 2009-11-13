@@ -37,7 +37,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr)
 	{
-		scan_field_t field;
+		struct scan_field field;
 		uint8_t t[4];
 
 		field.tap = tap;
@@ -54,7 +54,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 
 int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode)
 {
-	scan_field_t field;
+	struct scan_field field;
 
 	jtag_set_end_state(TAP_IDLE);
 
@@ -77,7 +77,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode)
 
 int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode)
 {
-	scan_field_t field;
+	struct scan_field field;
 
 	jtag_set_end_state(TAP_IDLE);
 
@@ -105,7 +105,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
 
 	if (tap == NULL)
 		return ERROR_FAIL;
-	scan_field_t field;
+	struct scan_field field;
 	uint8_t t[4], r[4];
 	int retval;
 

@@ -56,7 +56,7 @@ static int arm920t_read_cp15_physical(target_t *target,
 {
 	struct arm920t_common_s *arm920t = target_to_arm920(target);
 	arm_jtag_t *jtag_info;
-	scan_field_t fields[4];
+	struct scan_field fields[4];
 	uint8_t access_type_buf = 1;
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 0;
@@ -108,7 +108,7 @@ static int arm920t_write_cp15_physical(target_t *target,
 {
 	struct arm920t_common_s *arm920t = target_to_arm920(target);
 	arm_jtag_t *jtag_info;
-	scan_field_t fields[4];
+	struct scan_field fields[4];
 	uint8_t access_type_buf = 1;
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 1;
@@ -157,7 +157,7 @@ static int arm920t_execute_cp15(target_t *target, uint32_t cp15_opcode,
 	int retval;
 	struct arm920t_common_s *arm920t = target_to_arm920(target);
 	arm_jtag_t *jtag_info;
-	scan_field_t fields[4];
+	struct scan_field fields[4];
 	uint8_t access_type_buf = 0;		/* interpreted access */
 	uint8_t reg_addr_buf = 0x0;
 	uint8_t nr_w_buf = 0;

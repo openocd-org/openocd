@@ -333,7 +333,7 @@ int embeddedice_read_reg_w_check(reg_t *reg,
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field1_out[1];
 	uint8_t field2_out[1];
 
@@ -398,7 +398,7 @@ int embeddedice_read_reg_w_check(reg_t *reg,
  */
 int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 {
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field1_out[1];
 	uint8_t field2_out[1];
 
@@ -519,7 +519,7 @@ void embeddedice_store_reg(reg_t *reg)
  */
 int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 {
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field0_out[4];
 	uint8_t field1_out[1];
 	uint8_t field2_out[1];
@@ -564,7 +564,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
  */
 int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
 {
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field0_in[4];
 	uint8_t field1_out[1];
 	uint8_t field2_out[1];

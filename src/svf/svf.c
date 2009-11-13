@@ -764,7 +764,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 	// for XXR
 	svf_xxr_para_t *xxr_para_tmp;
 	uint8_t **pbuffer_tmp;
-	scan_field_t field;
+	struct scan_field field;
 	// for STATE
 	tap_state_t *path = NULL, state;
 

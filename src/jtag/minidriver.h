@@ -48,12 +48,12 @@
 
 #include "jtag_minidriver.h"
 
-static inline void interface_jtag_alloc_in_value32(scan_field_t *field)
+static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
 {
 	field->in_value = field->intmp;
 }
 
-static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
+static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
 {
 	/* We're executing this synchronously, so try to use local storage. */
 	if (field->num_bits > 32)
@@ -70,12 +70,12 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 
 #include "commands.h"
 
-static inline void interface_jtag_alloc_in_value32(scan_field_t *field)
+static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
 {
 	field->in_value = (uint8_t *)cmd_queue_alloc(4);
 }
 
-static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
+static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
 {
 	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
 	field->in_value = (uint8_t *)cmd_queue_alloc(num_bytes);
@@ -94,17 +94,17 @@ void interface_jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
 #endif
 
 int interface_jtag_add_ir_scan(
-		int num_fields, const scan_field_t* fields,
+		int num_fields, const struct scan_field* fields,
 		tap_state_t endstate);
 int interface_jtag_add_plain_ir_scan(
-		int num_fields, const scan_field_t* fields,
+		int num_fields, const struct scan_field* fields,
 		tap_state_t endstate);
 
 int interface_jtag_add_dr_scan(
-		int num_fields, const scan_field_t* fields,
+		int num_fields, const struct scan_field* fields,
 		tap_state_t endstate);
 int interface_jtag_add_plain_dr_scan(
-		int num_fields, const scan_field_t* fields,
+		int num_fields, const struct scan_field* fields,
 		tap_state_t endstate);
 
 int interface_jtag_add_tlr(void);

@@ -44,7 +44,7 @@ static int arm720t_scan_cp15(target_t *target,
 	int retval;
 	struct arm720t_common_s *arm720t = target_to_arm720(target);
 	arm_jtag_t *jtag_info;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 	uint8_t out_buf[4];
 	uint8_t instruction_buf = instruction;
 

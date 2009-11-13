@@ -163,7 +163,7 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
-		scan_field_t field;
+		struct scan_field field;
 		uint8_t scratch[4];
 
 		memset(&field, 0, sizeof field);
@@ -182,7 +182,7 @@ static int xscale_read_dcsr(target_t *target)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field0 = 0x0;
 	uint8_t field0_check_value = 0x2;
 	uint8_t field0_check_mask = 0x7;
@@ -258,7 +258,7 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 
 	int retval = ERROR_OK;
 	tap_state_t path[3];
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t *field0 = malloc(num_words * 1);
 	uint8_t field0_check_value = 0x2;
 	uint8_t field0_check_mask = 0x6;
@@ -362,7 +362,7 @@ static int xscale_read_tx(target_t *target, int consume)
 	tap_state_t noconsume_path[6];
 	int retval;
 	struct timeval timeout, now;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field0_in = 0x0;
 	uint8_t field0_check_value = 0x2;
 	uint8_t field0_check_mask = 0x6;
@@ -458,7 +458,7 @@ static int xscale_write_rx(target_t *target)
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
 	struct timeval timeout, now;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field0_out = 0x0;
 	uint8_t field0_in = 0x0;
 	uint8_t field0_check_value = 0x2;
@@ -614,7 +614,7 @@ static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	int retval;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 	uint8_t field0 = 0x0;
 	uint8_t field0_check_value = 0x2;
 	uint8_t field0_check_mask = 0x7;
@@ -686,7 +686,7 @@ static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 	uint8_t packet[4];
 	uint8_t cmd;
 	int word;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 
 	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32 "", va);
 
@@ -740,7 +740,7 @@ static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 {
 	uint8_t packet[4];
 	uint8_t cmd;
-	scan_field_t fields[2];
+	struct scan_field fields[2];
 
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap, XSCALE_LDIC);

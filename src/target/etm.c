@@ -492,7 +492,7 @@ static int etm_read_reg_w_check(reg_t *reg,
 	etm_reg_t *etm_reg = reg->arch_info;
 	const struct etm_reg_info *r = etm_reg->reg_info;
 	uint8_t reg_addr = r->addr & 0x7f;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 
 	if (etm_reg->reg_info->mode == WO) {
 		LOG_ERROR("BUG: can't read write-only register %s", r->name);
@@ -578,7 +578,7 @@ static int etm_write_reg(reg_t *reg, uint32_t value)
 	etm_reg_t *etm_reg = reg->arch_info;
 	const struct etm_reg_info *r = etm_reg->reg_info;
 	uint8_t reg_addr = r->addr & 0x7f;
-	scan_field_t fields[3];
+	struct scan_field fields[3];
 
 	if (etm_reg->reg_info->mode == RO) {
 		LOG_ERROR("BUG: can't write read--only register %s", r->name);

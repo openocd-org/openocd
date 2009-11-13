@@ -445,7 +445,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 				for (attempt = 0; attempt < limit;  ++attempt)
 				{
-					scan_field_t field;
+					struct scan_field field;
 
 					if (attempt > 0)
 					{
@@ -692,7 +692,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					do_abort = 1;
 				else
 				{
-					scan_field_t field;
+					struct scan_field field;
 
 					field.tap = tap;
 					field.num_bits = bitcount;
@@ -924,7 +924,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 				for (attempt = 0; attempt < limit;  ++attempt)
 				{
-					scan_field_t field;
+					struct scan_field field;
 
 					result = svf_add_statemove(loop_state);
 					jtag_add_clocks(loop_clocks);

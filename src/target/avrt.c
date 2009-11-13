@@ -200,7 +200,7 @@ int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_l
 	}
 
 	{
-		scan_field_t field[1];
+		struct scan_field field[1];
 
 		field[0].tap = tap;
 		field[0].num_bits = tap->ir_length;
@@ -221,7 +221,7 @@ int mcu_write_dr(struct jtag_tap *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_l
 	}
 
 	{
-		scan_field_t field[1];
+		struct scan_field field[1];
 
 		field[0].tap = tap;
 		field[0].num_bits = dr_len;

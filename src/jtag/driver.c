@@ -56,11 +56,11 @@ static void jtag_callback_queue_reset(void)
 }
 
 /**
- * Copy a scan_field_t for insertion into the queue.
+ * Copy a struct scan_field for insertion into the queue.
  *
  * This allocates a new copy of out_value using cmd_queue_alloc.
  */
-static void cmd_queue_scan_field_clone(scan_field_t * dst, const scan_field_t * src)
+static void cmd_queue_scan_field_clone(struct scan_field * dst, const struct scan_field * src)
 {
 	dst->tap		= src->tap;
 	dst->num_bits	= src->num_bits;
@@ -73,13 +73,13 @@ static void cmd_queue_scan_field_clone(scan_field_t * dst, const scan_field_t * 
  * see jtag_add_ir_scan()
  *
  */
-int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_ir_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
 	size_t num_taps = jtag_tap_count_enabled();
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
-	scan_field_t * out_fields	= cmd_queue_alloc(num_taps  * sizeof(scan_field_t));
+	struct scan_field * out_fields	= cmd_queue_alloc(num_taps  * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
 
@@ -92,7 +92,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 	scan->end_state			= state;
 
 
-	scan_field_t * field = out_fields;	/* keep track where we insert data */
+	struct scan_field * field = out_fields;	/* keep track where we insert data */
 
 	/* loop over all enabled TAPs */
 
@@ -147,12 +147,12 @@ int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields,
  * see jtag_add_plain_ir_scan()
  *
  */
-int interface_jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
-	scan_field_t * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
+	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
 
@@ -176,7 +176,7 @@ int interface_jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_f
  * see jtag_add_dr_scan()
  *
  */
-int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_dr_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
 	/* count devices in bypass */
 
@@ -190,7 +190,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
-	scan_field_t * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
+	struct scan_field * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
 
@@ -203,7 +203,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 	scan->end_state			= state;
 
 
-	scan_field_t * field = out_fields;	/* keep track where we insert data */
+	struct scan_field * field = out_fields;	/* keep track where we insert data */
 
 	/* loop over all enabled TAPs */
 
@@ -213,7 +213,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 
 		if (!tap->bypass)
 		{
-			scan_field_t * start_field = field;	/* keep initial position for assert() */
+			struct scan_field * start_field = field;	/* keep initial position for assert() */
 
 			for (int j = 0; j < in_num_fields; j++)
 			{
@@ -280,7 +280,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
-	scan_field_t * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
+	struct scan_field * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
 
@@ -295,7 +295,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 
 	bool target_tap_match	= false;
 
-	scan_field_t * field = out_fields;	/* keep track where we insert data */
+	struct scan_field * field = out_fields;	/* keep track where we insert data */
 
 	/* loop over all enabled TAPs */
 
@@ -344,11 +344,11 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
  * see jtag_add_plain_dr_scan()
  *
  */
-int interface_jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
-	scan_field_t * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
+	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
 

@@ -53,7 +53,7 @@ typedef struct scan_command_s
 	/// number of fields in *fields array
 	int num_fields;
 	/// pointer to an array of data scan fields
-	scan_field_t* fields;
+	struct scan_field* fields;
 	/// state in which JTAG commands should finish
 	tap_state_t end_state;
 } scan_command_t;

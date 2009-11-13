@@ -462,7 +462,7 @@ static void gotoEndState(tap_state_t end_state)
 	setCurrentState(end_state);
 }
 
-static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_state_t shiftState, int pause)
+static __inline void scanFields(int num_fields, const struct scan_field *fields, tap_state_t shiftState, int pause)
 {
 	int i;
 	int j;
@@ -532,7 +532,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 	}
 }
 
-int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_ir_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
 
 	int j;
@@ -568,7 +568,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 			/* if a device isn't listed, set it to BYPASS */
 			uint8_t ones[]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
 
-			scan_field_t tmp;
+			struct scan_field tmp;
 			memset(&tmp, 0, sizeof(tmp));
 			tmp.out_value = ones;
 			tmp.num_bits = scan_size;
@@ -587,7 +587,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 
 
 
-int interface_jtag_add_plain_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
 	scanFields(num_fields, fields, TAP_IRSHIFT, 1);
 	gotoEndState(state);
@@ -597,7 +597,7 @@ int interface_jtag_add_plain_ir_scan(int num_fields, const scan_field_t *fields,
 
 /*extern jtag_command_t **jtag_get_last_command_p(void);*/
 
-int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
 
 	int j;
@@ -619,7 +619,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 		}
 		if (!found)
 		{
-			scan_field_t tmp;
+			struct scan_field tmp;
 			/* program the scan field to 1 bit length, and ignore it's value */
 			tmp.num_bits = 1;
 			tmp.out_value = NULL;
@@ -635,7 +635,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 	return ERROR_OK;
 }
 
-int interface_jtag_add_plain_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
 	scanFields(num_fields, fields, TAP_DRSHIFT, 1);
 	gotoEndState(state);
