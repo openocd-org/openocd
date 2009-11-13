@@ -84,16 +84,15 @@ static void armjtagew_tap_append_step(int tms, int tdi);
 static void armjtagew_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command);
 
 /* ARM-JTAG-EW lowlevel functions */
-typedef struct armjtagew_jtag
-{
+struct armjtagew {
 	struct usb_dev_handle* usb_handle;
-} armjtagew_jtag_t;
+};
 
-static armjtagew_jtag_t *armjtagew_usb_open(void);
-static void armjtagew_usb_close(armjtagew_jtag_t *armjtagew_jtag);
-static int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int in_length);
-static int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length);
-static int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length);
+static struct armjtagew *armjtagew_usb_open(void);
+static void armjtagew_usb_close(struct armjtagew *armjtagew);
+static int armjtagew_usb_message(struct armjtagew *armjtagew, int out_length, int in_length);
+static int armjtagew_usb_write(struct armjtagew *armjtagew, int out_length);
+static int armjtagew_usb_read(struct armjtagew *armjtagew, int exp_in_length);
 
 /* helper functions */
 static int armjtagew_get_version_info(void);
@@ -102,7 +101,7 @@ static int armjtagew_get_version_info(void);
 static void armjtagew_debug_buffer(uint8_t *buffer, int length);
 #endif
 
-static armjtagew_jtag_t* armjtagew_jtag_handle;
+static struct armjtagew* armjtagew_handle;
 
 
 
@@ -209,7 +208,7 @@ static int armjtagew_speed(int speed)
     usb_out_buffer[0] = CMD_SET_TCK_FREQUENCY;
 	buf_set_u32(usb_out_buffer + 1, 0, 32, speed);
 
-    result = armjtagew_usb_message(armjtagew_jtag_handle, 4, 4);
+    result = armjtagew_usb_message(armjtagew_handle, 4, 4);
 
     if (result < 0)
     {
@@ -218,7 +217,7 @@ static int armjtagew_speed(int speed)
     }
 
 	usb_out_buffer[0] = CMD_GET_TCK_FREQUENCY;
-    result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4);
+    result = armjtagew_usb_message(armjtagew_handle, 1, 4);
 	speed_real = (int)buf_get_u32(usb_in_buffer,0,32);
 	if (result < 0)
 	{
@@ -252,9 +251,9 @@ static int armjtagew_init(void)
 {
 	int check_cnt;
 
-	armjtagew_jtag_handle = armjtagew_usb_open();
+	armjtagew_handle = armjtagew_usb_open();
 
-	if (armjtagew_jtag_handle == 0)
+	if (armjtagew_handle == 0)
 	{
 		LOG_ERROR("Cannot find ARM-JTAG-EW Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
@@ -288,7 +287,7 @@ static int armjtagew_init(void)
 
 static int armjtagew_quit(void)
 {
-	armjtagew_usb_close(armjtagew_jtag_handle);
+	armjtagew_usb_close(armjtagew_handle);
 	return ERROR_OK;
 }
 
@@ -452,7 +451,7 @@ static void armjtagew_reset(int trst, int srst)
 	usb_out_buffer[1] = val;
 	usb_out_buffer[2] = outp_en;
 	usb_out_buffer[3] = change_mask;
-	result = armjtagew_usb_write(armjtagew_jtag_handle, 4);
+	result = armjtagew_usb_write(armjtagew_handle, 4);
 	if (result != 4)
 	{
 		LOG_ERROR("ARM-JTAG-EW TRST/SRST pin set failed failed (%d)", result);
@@ -465,7 +464,7 @@ static int armjtagew_get_status(void)
 	int result;
 
 	usb_out_buffer[0] = CMD_GET_TAPHW_STATE;
-	result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 12);
+	result = armjtagew_usb_message(armjtagew_handle, 1, 12);
 
 	if (result == 0)
 	{
@@ -500,7 +499,7 @@ static int armjtagew_get_version_info(void)
 
 	/* query hardware version */
 	usb_out_buffer[0] = CMD_GET_VERSION;
-	result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4 + 15 + 256);
+	result = armjtagew_usb_message(armjtagew_handle, 1, 4 + 15 + 256);
 
 	if (result != 0)
 	{
@@ -665,7 +664,7 @@ static int armjtagew_tap_execute(void)
 			usb_out_buffer[tdi_offset + i] = flip_u32(tdi_buffer[i],8);
 		}
 
-		result = armjtagew_usb_message(armjtagew_jtag_handle, 3 + 2 * byte_length, byte_length + 4);
+		result = armjtagew_usb_message(armjtagew_handle, 3 + 2 * byte_length, byte_length + 4);
 
 		if (result == 0)
 		{
@@ -726,15 +725,15 @@ static int armjtagew_tap_execute(void)
 /*****************************************************************************/
 /* JLink USB low-level functions */
 
-static armjtagew_jtag_t* armjtagew_usb_open()
+static struct armjtagew* armjtagew_usb_open()
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
 	struct usb_device *dev;
 
-	armjtagew_jtag_t *result;
+	struct armjtagew *result;
 
-	result = (armjtagew_jtag_t*) malloc(sizeof(armjtagew_jtag_t));
+	result = (struct armjtagew*) malloc(sizeof(struct armjtagew));
 
 	usb_init();
 	usb_find_busses();
@@ -742,7 +741,7 @@ static armjtagew_jtag_t* armjtagew_usb_open()
 
 	busses = usb_get_busses();
 
-	/* find armjtagew_jtag device in usb bus */
+	/* find armjtagew device in usb bus */
 
 	for (bus = busses; bus; bus = bus->next)
 	{
@@ -774,21 +773,21 @@ static armjtagew_jtag_t* armjtagew_usb_open()
 	return NULL;
 }
 
-static void armjtagew_usb_close(armjtagew_jtag_t *armjtagew_jtag)
+static void armjtagew_usb_close(struct armjtagew *armjtagew)
 {
-	usb_close(armjtagew_jtag->usb_handle);
-	free(armjtagew_jtag);
+	usb_close(armjtagew->usb_handle);
+	free(armjtagew);
 }
 
 /* Send a message and receive the reply. */
-static int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int in_length)
+static int armjtagew_usb_message(struct armjtagew *armjtagew, int out_length, int in_length)
 {
 	int result;
 
-	result = armjtagew_usb_write(armjtagew_jtag, out_length);
+	result = armjtagew_usb_write(armjtagew, out_length);
 	if (result == out_length)
 	{
-		result = armjtagew_usb_read(armjtagew_jtag, in_length);
+		result = armjtagew_usb_read(armjtagew, in_length);
 		if (result != in_length)
 		{
 			LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)", in_length, result);
@@ -804,17 +803,17 @@ static int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_lengt
 }
 
 /* Write data from out_buffer to USB. */
-static int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length)
+static int armjtagew_usb_write(struct armjtagew *armjtagew, int out_length)
 {
 	int result;
 
 	if (out_length > ARMJTAGEW_OUT_BUFFER_SIZE)
 	{
-		LOG_ERROR("armjtagew_jtag_write illegal out_length=%d (max=%d)", out_length, ARMJTAGEW_OUT_BUFFER_SIZE);
+		LOG_ERROR("armjtagew_write illegal out_length=%d (max=%d)", out_length, ARMJTAGEW_OUT_BUFFER_SIZE);
 		return -1;
 	}
 
-	result = usb_bulk_write(armjtagew_jtag->usb_handle, ARMJTAGEW_EPT_BULK_OUT, \
+	result = usb_bulk_write(armjtagew->usb_handle, ARMJTAGEW_EPT_BULK_OUT, \
 		(char*)usb_out_buffer, out_length, ARMJTAGEW_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("armjtagew_usb_write, out_length = %d, result = %d", out_length, result);
@@ -826,9 +825,9 @@ static int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length)
 }
 
 /* Read data from USB into in_buffer. */
-static int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length)
+static int armjtagew_usb_read(struct armjtagew *armjtagew, int exp_in_length)
 {
-	int result = usb_bulk_read(armjtagew_jtag->usb_handle, ARMJTAGEW_EPT_BULK_IN, \
+	int result = usb_bulk_read(armjtagew->usb_handle, ARMJTAGEW_EPT_BULK_IN, \
 		(char*)usb_in_buffer, exp_in_length, ARMJTAGEW_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("armjtagew_usb_read, result = %d", result);
