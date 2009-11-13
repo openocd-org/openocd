@@ -740,7 +740,7 @@ int image_open(image_t *image, const char *url, const char *type_string)
 			return ERROR_FAIL;
 		}
 
-		image_memory_t *image_memory;
+		struct image_memory *image_memory;
 
 		image->num_sections = 1;
 		image->sections = malloc(sizeof(struct image_section));
@@ -748,7 +748,7 @@ int image_open(image_t *image, const char *url, const char *type_string)
 		image->sections[0].size = 0xffffffff;
 		image->sections[0].flags = 0;
 
-		image_memory = image->type_private = malloc(sizeof(image_memory_t));
+		image_memory = image->type_private = malloc(sizeof(struct image_memory));
 
 		image_memory->target = target;
 		image_memory->cache = NULL;
@@ -842,7 +842,7 @@ int image_read_section(image_t *image, int section, uint32_t offset, uint32_t si
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
-		image_memory_t *image_memory = image->type_private;
+		struct image_memory *image_memory = image->type_private;
 		uint32_t address = image->sections[section].base_address + offset;
 
 		*size_read = 0;
@@ -974,7 +974,7 @@ void image_close(image_t *image)
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
-		image_memory_t *image_memory = image->type_private;
+		struct image_memory *image_memory = image->type_private;
 
 		if (image_memory->cache)
 		{

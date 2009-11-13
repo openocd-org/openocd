@@ -78,12 +78,12 @@ struct image_ihex
 	uint8_t *buffer;
 };
 
-typedef struct image_memory_s
+struct image_memory
 {
 	struct target_s *target;
 	uint8_t *cache;
 	uint32_t cache_address;
-} image_memory_t;
+};
 
 typedef struct fileio_elf_s
 {
