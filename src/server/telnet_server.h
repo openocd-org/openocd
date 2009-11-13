@@ -47,7 +47,7 @@ enum telnet_states
 	TELNET_STATE_ESCAPE,
 };
 
-typedef struct telnet_connection_s
+struct telnet_connection
 {
 	char *prompt;
 	enum telnet_states state;
@@ -61,7 +61,7 @@ typedef struct telnet_connection_s
 	int next_history;
 	int current_history;
 	int closed;
-} telnet_connection_t;
+};
 
 struct telnet_service
 {

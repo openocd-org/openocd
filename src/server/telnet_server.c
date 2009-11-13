@@ -46,7 +46,7 @@ static char *negotiate =
  */
 int telnet_write(connection_t *connection, const void *data, int len)
 {
-	telnet_connection_t *t_con = connection->priv;
+	struct telnet_connection *t_con = connection->priv;
 	if (t_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
@@ -60,7 +60,7 @@ int telnet_write(connection_t *connection, const void *data, int len)
 
 int telnet_prompt(connection_t *connection)
 {
-	telnet_connection_t *t_con = connection->priv;
+	struct telnet_connection *t_con = connection->priv;
 
 	telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
 	return telnet_write(connection, t_con->prompt, strlen(t_con->prompt));
@@ -105,7 +105,7 @@ void telnet_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string)
 {
 	connection_t *connection = priv;
-	telnet_connection_t *t_con = connection->priv;
+	struct telnet_connection *t_con = connection->priv;
 	int i;
 
 	/* if there is no prompt, simply output the message */
@@ -133,7 +133,7 @@ void telnet_log_callback(void *priv, const char *file, unsigned line,
 
 int telnet_new_connection(connection_t *connection)
 {
-	telnet_connection_t *telnet_connection = malloc(sizeof(telnet_connection_t));
+	struct telnet_connection *telnet_connection = malloc(sizeof(struct telnet_connection));
 	struct telnet_service *telnet_service = connection->service->priv;
 	int i;
 
@@ -175,7 +175,7 @@ int telnet_new_connection(connection_t *connection)
 	return ERROR_OK;
 }
 
-void telnet_clear_line(connection_t *connection, telnet_connection_t *t_con)
+void telnet_clear_line(connection_t *connection, struct telnet_connection *t_con)
 {
 	/* move to end of line */
 	if (t_con->line_cursor < t_con->line_size)
@@ -197,7 +197,7 @@ int telnet_input(connection_t *connection)
 	int bytes_read;
 	char buffer[TELNET_BUFFER_SIZE];
 	char *buf_p;
-	telnet_connection_t *t_con = connection->priv;
+	struct telnet_connection *t_con = connection->priv;
 	command_context_t *command_context = connection->cmd_ctx;
 
 	bytes_read = read_socket(connection->fd, buffer, TELNET_BUFFER_SIZE);
@@ -539,7 +539,7 @@ int telnet_input(connection_t *connection)
 
 int telnet_connection_closed(connection_t *connection)
 {
-	telnet_connection_t *t_con = connection->priv;
+	struct telnet_connection *t_con = connection->priv;
 	int i;
 
 	log_remove_callback(telnet_log_callback, connection);
@@ -577,7 +577,7 @@ int telnet_connection_closed(connection_t *connection)
 
 int telnet_set_prompt(connection_t *connection, char *prompt)
 {
-	telnet_connection_t *t_con = connection->priv;
+	struct telnet_connection *t_con = connection->priv;
 
 	if (t_con->prompt != NULL)
 		free(t_con->prompt);
