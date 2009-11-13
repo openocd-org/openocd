@@ -83,13 +83,12 @@ struct stableclocks_command {
 };
 
 
-typedef struct reset_command_s
-{
+struct reset_command {
 	/// Set TRST output: 0 = deassert, 1 = assert, -1 = no change
 	int trst;
 	/// Set SRST output: 0 = deassert, 1 = assert, -1 = no change
 	int srst;
-} reset_command_t;
+};
 
 typedef struct end_state_command_s
 {
@@ -114,7 +113,7 @@ typedef union jtag_command_container_u
 	struct pathmove_command*     pathmove;
 	struct runtest_command*      runtest;
 	struct stableclocks_command* stableclocks;
-	reset_command_t*        reset;
+	struct reset_command*        reset;
 	end_state_command_t*    end_state;
 	sleep_command_t* sleep;
 } jtag_command_container_t;

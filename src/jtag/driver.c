@@ -442,7 +442,7 @@ int interface_jtag_add_reset(int req_trst, int req_srst)
 
 	cmd->type = JTAG_RESET;
 
-	cmd->cmd.reset = cmd_queue_alloc(sizeof(reset_command_t));
+	cmd->cmd.reset = cmd_queue_alloc(sizeof(struct reset_command));
 	cmd->cmd.reset->trst = req_trst;
 	cmd->cmd.reset->srst = req_srst;
 
