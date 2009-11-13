@@ -47,20 +47,20 @@ typedef enum image_type
 	IMAGE_BUILDER,	/* when building a new image */
 } image_type_t;
 
-typedef struct image_section_s
+struct image_section
 {
 	uint32_t base_address;
 	uint32_t size;
 	int flags;
 	void *private;		/* private data */
-} image_section_t;
+};
 
 typedef struct image_s
 {
 	image_type_t type;		/* image type (plain, ihex, ...) */
 	void *type_private;		/* type private data */
 	int num_sections;		/* number of sections contained in the image */
-	image_section_t *sections;	/* array of sections */
+	struct image_section *sections;	/* array of sections */
 	int base_address_set;	/* whether the image has a base address set (for relocation purposes) */
 	int base_address;		/* base address, if one is set */
 	int start_address_set;	/* whether the image has a start address (entry point) associated */
