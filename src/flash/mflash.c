@@ -34,7 +34,7 @@ static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 
 static command_t *mflash_cmd;
 
-static mflash_bank_t *mflash_bank;
+static struct mflash_bank *mflash_bank;
 
 static struct mflash_gpio_drv pxa270_gpio = {
 	.name = "pxa270",
@@ -1296,7 +1296,7 @@ COMMAND_HANDLER(mg_bank_cmd)
 		return ERROR_FAIL;
 	}
 
-	mflash_bank = calloc(sizeof(mflash_bank_t), 1);
+	mflash_bank = calloc(sizeof(struct mflash_bank), 1);
 	COMMAND_PARSE_NUMBER(u32, args[1], mflash_bank->base);
 	/// @todo Verify how this parsing should work, then document it.
 	char *str;

@@ -130,7 +130,7 @@ struct mg_drv_info {
 	uint32_t tot_sects;
 };
 
-typedef struct mflash_bank_s
+struct mflash_bank
 {
 	uint32_t base;
 
@@ -139,7 +139,7 @@ typedef struct mflash_bank_s
 	struct mflash_gpio_drv *gpio_drv;
 	target_t *target;
 	struct mg_drv_info *drv_info;
-} mflash_bank_t;
+};
 
 int mflash_register_commands(struct command_context_s *cmd_ctx);
 int mflash_init_drivers(struct command_context_s *cmd_ctx);
