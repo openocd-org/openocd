@@ -494,7 +494,7 @@ void mips_m4k_enable_breakpoints(struct target_s *target)
 int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
-	mips32_comparator_t * comparator_list = mips32->inst_break_list;
+	struct mips32_comparator * comparator_list = mips32->inst_break_list;
 	int retval;
 
 	if (breakpoint->set)
@@ -586,7 +586,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
-	mips32_comparator_t * comparator_list = mips32->inst_break_list;
+	struct mips32_comparator * comparator_list = mips32->inst_break_list;
 	int retval;
 
 	if (!breakpoint->set)
@@ -702,7 +702,7 @@ int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 int mips_m4k_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
-	mips32_comparator_t * comparator_list = mips32->data_break_list;
+	struct mips32_comparator * comparator_list = mips32->data_break_list;
 	int wp_num = 0;
 	/*
 	 * watchpoint enabled, ignore all byte lanes in value register
@@ -771,7 +771,7 @@ int mips_m4k_unset_watchpoint(struct target_s *target, struct watchpoint *watchp
 {
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
-	mips32_comparator_t * comparator_list = mips32->data_break_list;
+	struct mips32_comparator * comparator_list = mips32->data_break_list;
 
 	if (!watchpoint->set)
 	{

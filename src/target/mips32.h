@@ -37,13 +37,13 @@ enum
 	MIPS32NUMCOREREGS
 };
 
-typedef struct mips32_comparator_s
+struct mips32_comparator
 {
 	int used;
 	//int type;
 	uint32_t bp_value;
 	uint32_t reg_address;
-} mips32_comparator_t;
+};
 
 typedef struct mips32_common_s
 {
@@ -58,8 +58,8 @@ typedef struct mips32_common_s
 	int num_data_bpoints;
 	int num_inst_bpoints_avail;
 	int num_data_bpoints_avail;
-	mips32_comparator_t *inst_break_list;
-	mips32_comparator_t *data_break_list;
+	struct mips32_comparator *inst_break_list;
+	struct mips32_comparator *data_break_list;
 
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);

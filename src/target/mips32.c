@@ -384,7 +384,7 @@ int mips32_configure_break_unit(struct target_s *target)
 
 		mips32->num_inst_bpoints = (bpinfo >> 24) & 0x0F;
 		mips32->num_inst_bpoints_avail = mips32->num_inst_bpoints;
-		mips32->inst_break_list = calloc(mips32->num_inst_bpoints, sizeof(mips32_comparator_t));
+		mips32->inst_break_list = calloc(mips32->num_inst_bpoints, sizeof(struct mips32_comparator));
 		for (i = 0; i < mips32->num_inst_bpoints; i++)
 		{
 			mips32->inst_break_list[i].reg_address = EJTAG_IBA1 + (0x100 * i);
@@ -403,7 +403,7 @@ int mips32_configure_break_unit(struct target_s *target)
 
 		mips32->num_data_bpoints = (bpinfo >> 24) & 0x0F;
 		mips32->num_data_bpoints_avail = mips32->num_data_bpoints;
-		mips32->data_break_list = calloc(mips32->num_data_bpoints, sizeof(mips32_comparator_t));
+		mips32->data_break_list = calloc(mips32->num_data_bpoints, sizeof(struct mips32_comparator));
 		for (i = 0; i < mips32->num_data_bpoints; i++)
 		{
 			mips32->data_break_list[i].reg_address = EJTAG_DBA1 + (0x100 * i);
