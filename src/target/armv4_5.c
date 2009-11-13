@@ -32,7 +32,7 @@
 #include "binarybuffer.h"
 
 
-bitfield_desc_t armv4_5_psr_bitfield_desc[] =
+struct bitfield_desc armv4_5_psr_bitfield_desc[] =
 {
 	{"M[4:0]", 5},
 	{"T", 1},

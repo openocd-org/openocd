@@ -27,11 +27,11 @@
 
 struct target_s;
 
-typedef struct bitfield_desc_s
+struct bitfield_desc
 {
 	char *name;
 	int num_bits;
-} bitfield_desc_t;
+};
 
 typedef struct reg_s
 {
@@ -40,7 +40,7 @@ typedef struct reg_s
 	int dirty;
 	int valid;
 	uint32_t size;
-	bitfield_desc_t *bitfield_desc;
+	struct bitfield_desc *bitfield_desc;
 	int num_bitfields;
 	void *arch_info;
 	int arch_type;

@@ -35,7 +35,7 @@
 #include <string.h>
 #include <unistd.h>
 
-bitfield_desc_t armv7a_psr_bitfield_desc[] =
+struct bitfield_desc armv7a_psr_bitfield_desc[] =
 {
 	{"M[4:0]", 5},
 	{"T", 1},
