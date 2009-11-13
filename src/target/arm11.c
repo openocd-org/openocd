@@ -1615,7 +1615,7 @@ static int arm11_remove_watchpoint(struct target_s *target,
 /* target algorithm support */
 static int arm11_run_algorithm(struct target_s *target,
 		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, reg_param_t *reg_params,
+		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info)
 {

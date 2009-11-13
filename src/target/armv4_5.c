@@ -543,7 +543,7 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t ex
 	return ERROR_OK;
 }
 
-int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info))
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info))
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	armv4_5_algorithm_t *armv4_5_algorithm_info = arch_info;
@@ -708,7 +708,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, str
 	return retval;
 }
 
-int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	return armv4_5_run_algorithm_inner(target, num_mem_params, mem_params, num_reg_params, reg_params, entry_point, exit_point, timeout_ms, arch_info, armv4_5_run_algorithm_completion);
 }

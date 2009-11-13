@@ -144,12 +144,12 @@ struct target_type_s
 	int (*remove_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
 
 	/* target algorithm support */
-	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 	/**
 	 * Target algorithm support.  Do @b not call this method directly,
 	 * use target_run_algorithm() instead.
 	 */
-	int (*run_algorithm)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*run_algorithm)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 

@@ -2654,7 +2654,7 @@ static const uint32_t dcc_code[] =
 	0xeafffff9	/*    b   w                   */
 };
 
-int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
 
 int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
@@ -2691,7 +2691,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 	}
 
 	armv4_5_algorithm_t armv4_5_info;
-	reg_param_t reg_params[1];
+	struct reg_param reg_params[1];
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
@@ -2725,7 +2725,7 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 {
 	working_area_t *crc_algorithm;
 	armv4_5_algorithm_t armv4_5_info;
-	reg_param_t reg_params[2];
+	struct reg_param reg_params[2];
 	int retval;
 
 	static const uint32_t arm7_9_crc_code[] = {
@@ -2808,7 +2808,7 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank)
 {
 	working_area_t *erase_check_algorithm;
-	reg_param_t reg_params[3];
+	struct reg_param reg_params[3];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval;
 	uint32_t i;

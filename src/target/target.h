@@ -361,7 +361,7 @@ int target_step(struct target_s *target,
  */
 int target_run_algorithm(struct target_s *target,
 		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, reg_param_t *reg_param,
+		int num_reg_params, struct reg_param *reg_param,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 

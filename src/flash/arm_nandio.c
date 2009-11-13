@@ -44,7 +44,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	target_t		*target = nand->target;
 	armv4_5_algorithm_t	algo;
 	armv4_5_common_t	*armv4_5 = target->arch_info;
-	reg_param_t		reg_params[3];
+	struct reg_param		reg_params[3];
 	uint32_t		target_buf;
 	uint32_t		exit = 0;
 	int			retval;

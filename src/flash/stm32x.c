@@ -437,7 +437,7 @@ static int stm32x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32
 	uint32_t buffer_size = 16384;
 	working_area_t *source;
 	uint32_t address = bank->base + offset;
-	reg_param_t reg_params[4];
+	struct reg_param reg_params[4];
 	armv7m_algorithm_t armv7m_info;
 	int retval = ERROR_OK;
 

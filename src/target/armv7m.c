@@ -358,7 +358,7 @@ static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, in
 /** Runs a Thumb algorithm in the target. */
 int armv7m_run_algorithm(struct target_s *target,
 	int num_mem_params, struct mem_param *mem_params,
-	int num_reg_params, reg_param_t *reg_params,
+	int num_reg_params, struct reg_param *reg_params,
 	uint32_t entry_point, uint32_t exit_point,
 	int timeout_ms, void *arch_info)
 {
@@ -590,7 +590,7 @@ int armv7m_checksum_memory(struct target_s *target,
 {
 	working_area_t *crc_algorithm;
 	armv7m_algorithm_t armv7m_info;
-	reg_param_t reg_params[2];
+	struct reg_param reg_params[2];
 	int retval;
 
 	static const uint16_t cortex_m3_crc_code[] = {
@@ -672,7 +672,7 @@ int armv7m_blank_check_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint32_t* blank)
 {
 	working_area_t *erase_check_algorithm;
-	reg_param_t reg_params[3];
+	struct reg_param reg_params[3];
 	armv7m_algorithm_t armv7m_info;
 	int retval;
 	uint32_t i;

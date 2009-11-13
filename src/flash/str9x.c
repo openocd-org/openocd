@@ -353,7 +353,7 @@ static int str9x_write_block(struct flash_bank_s *bank,
 	uint32_t buffer_size = 8192;
 	working_area_t *source;
 	uint32_t address = bank->base + offset;
-	reg_param_t reg_params[4];
+	struct reg_param reg_params[4];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
 

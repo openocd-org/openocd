@@ -147,7 +147,7 @@ int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m);
 
 int armv7m_run_algorithm(struct target_s *target,
 		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, reg_param_t *reg_params,
+		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 

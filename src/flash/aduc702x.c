@@ -163,7 +163,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 	uint32_t buffer_size = 7000;
 	working_area_t *source;
 	uint32_t address = bank->base + offset;
-	reg_param_t reg_params[6];
+	struct reg_param reg_params[6];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
 

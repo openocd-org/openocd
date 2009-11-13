@@ -141,7 +141,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum);
 int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank);
 
-int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_prams, reg_param_t *reg_param, uint32_t entry_point, void *arch_info);
+int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_prams, struct reg_param *reg_param, uint32_t entry_point, void *arch_info);
 
 int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
