@@ -100,7 +100,7 @@ typedef struct  cortex_a8_wrp_s
 	uint8_t 	WRPn;
 } cortex_a8_wrp_t;
 
-typedef struct cortex_a8_common_s
+struct cortex_a8_common
 {
 	int common_magic;
 	struct arm_jtag jtag_info;
@@ -134,16 +134,16 @@ typedef struct cortex_a8_common_s
 	int fast_reg_read;
 
 	struct armv7a_common armv7a_common;
-} cortex_a8_common_t;
+};
 
-static inline struct cortex_a8_common_s *
+static inline struct cortex_a8_common *
 target_to_cortex_a8(struct target_s *target)
 {
-	return container_of(target->arch_info, struct cortex_a8_common_s,
+	return container_of(target->arch_info, struct cortex_a8_common,
 			armv7a_common.armv4_5_common);
 }
 
 int cortex_a8_init_arch_info(target_t *target,
-		cortex_a8_common_t *cortex_a8, struct jtag_tap *tap);
+		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap);
 
 #endif /* CORTEX_A8_H */

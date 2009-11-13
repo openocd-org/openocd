@@ -339,7 +339,7 @@ static int cortex_a8_poll(target_t *target)
 {
 	int retval = ERROR_OK;
 	uint32_t dscr;
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	enum target_state prev_target_state = target->state;
@@ -565,7 +565,7 @@ static int cortex_a8_debug_entry(target_t *target)
 	uint32_t regfile[16], pc, cpsr, dscr;
 	int retval = ERROR_OK;
 	working_area_t *regfile_working_area = NULL;
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
@@ -690,7 +690,7 @@ static int cortex_a8_debug_entry(target_t *target)
 
 static void cortex_a8_post_debug_entry(target_t *target)
 {
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 
 //	cortex_a8_read_cp(target, &cp15_control_register, 15, 0, 1, 0, 0);
@@ -967,7 +967,7 @@ static int cortex_a8_set_breakpoint(struct target_s *target,
 	int brp_i=0;
 	uint32_t control;
 	uint8_t byte_addr_select = 0x0F;
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	cortex_a8_brp_t * brp_list = cortex_a8->brp_list;
 
@@ -1038,7 +1038,7 @@ static int cortex_a8_set_breakpoint(struct target_s *target,
 static int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval;
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	cortex_a8_brp_t * brp_list = cortex_a8->brp_list;
 
@@ -1095,7 +1095,7 @@ static int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *bre
 
 int cortex_a8_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
 	if ((breakpoint->type == BKPT_HARD) && (cortex_a8->brp_num_available < 1))
 	{
@@ -1112,7 +1112,7 @@ int cortex_a8_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 static int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
 #if 0
 /* It is perfectly possible to remove brakpoints while the taget is running */
@@ -1338,7 +1338,7 @@ static int cortex_a8_handle_target_request(void *priv)
 
 static int cortex_a8_examine(struct target_s *target)
 {
-	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	int i;
@@ -1451,7 +1451,7 @@ static int cortex_a8_init_target(struct command_context_s *cmd_ctx,
 }
 
 int cortex_a8_init_arch_info(target_t *target,
-		cortex_a8_common_t *cortex_a8, struct jtag_tap *tap)
+		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap)
 {
 	armv4_5_common_t *armv4_5;
 	struct armv7a_common *armv7a;
@@ -1460,7 +1460,7 @@ int cortex_a8_init_arch_info(target_t *target,
 	armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
-	/* Setup cortex_a8_common_t */
+	/* Setup struct cortex_a8_common */
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
 	armv4_5->arch_info = armv7a;
 
@@ -1519,7 +1519,7 @@ LOG_DEBUG(" ");
 
 static int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	cortex_a8_common_t *cortex_a8 = calloc(1, sizeof(cortex_a8_common_t));
+	struct cortex_a8_common *cortex_a8 = calloc(1, sizeof(struct cortex_a8_common));
 
 	cortex_a8_init_arch_info(target, cortex_a8, target->tap);
 
