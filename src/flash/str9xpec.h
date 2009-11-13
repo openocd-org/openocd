@@ -26,14 +26,14 @@
 #include "flash.h"
 #include "jtag.h"
 
-typedef struct str9xpec_flash_controller_s
+struct str9xpec_flash_controller
 {
 	struct jtag_tap *tap;
 	uint32_t *sector_bits;
 	int chain_pos;
 	int isc_enable;
 	uint8_t options[8];
-} str9xpec_flash_controller_t;
+};
 
 enum str9xpec_status_codes
 {
