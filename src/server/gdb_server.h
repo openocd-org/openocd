@@ -32,7 +32,7 @@ struct image_s;
 
 #define GDB_BUFFER_SIZE	16384
 
-typedef struct gdb_connection_s
+struct gdb_connection
 {
 	char buffer[GDB_BUFFER_SIZE];
 	char *buf_p;
@@ -47,7 +47,7 @@ typedef struct gdb_connection_s
 	               allowing GDB to pick up a fresh set of register values from the target
 	               without modifying the target state. */
 
-} gdb_connection_t;
+};
 
 typedef struct gdb_service_s
 {

@@ -40,7 +40,7 @@
 #define _DEBUG_GDB_IO_
 #endif
 
-static gdb_connection_t *current_gdb_connection;
+static struct gdb_connection *current_gdb_connection;
 
 static int gdb_breakpoint_override;
 static enum breakpoint_type gdb_breakpoint_override_type;
@@ -94,7 +94,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 	 */
 	struct timeval tv;
 	fd_set read_fds;
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	int t;
 	if (got_data == NULL)
 		got_data=&t;
@@ -130,7 +130,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 
 int gdb_get_char(connection_t *connection, int* next_char)
 {
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	int retval = ERROR_OK;
 
 #ifdef _DEBUG_GDB_IO_
@@ -238,7 +238,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 
 int gdb_putback_char(connection_t *connection, int last_char)
 {
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 
 	if (gdb_con->buf_p > gdb_con->buffer)
 	{
@@ -258,7 +258,7 @@ int gdb_putback_char(connection_t *connection, int last_char)
  * succeed. Shudder! */
 int gdb_write(connection_t *connection, void *data, int len)
 {
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
@@ -290,7 +290,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 #endif
 	int reply;
 	int retval;
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 
 	for (i = 0; i < len; i++)
 		my_checksum += buffer[i];
@@ -424,7 +424,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 
 int gdb_put_packet(connection_t *connection, char *buffer, int len)
 {
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = 1;
 	int retval = gdb_put_packet_inner(connection, buffer, len);
 	gdb_con->busy = 0;
@@ -442,7 +442,7 @@ static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, i
 	int character;
 	int retval;
 
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	my_checksum = 0;
 	int count = 0;
 	count = 0;
@@ -548,7 +548,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 {
 	int character;
 	int retval;
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 
 	while (1)
 	{
@@ -621,7 +621,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 
 int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 {
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = 1;
 	int retval = gdb_get_packet_inner(connection, buffer, len);
 	gdb_con->busy = 0;
@@ -660,7 +660,7 @@ int gdb_output(struct command_context_s *context, const char* line)
 
 static void gdb_frontend_halted(struct target_s *target, connection_t *connection)
 {
-	gdb_connection_t *gdb_connection = connection->priv;
+	struct gdb_connection *gdb_connection = connection->priv;
 
 	/* In the GDB protocol when we are stepping or continuing execution,
 	 * we have a lingering reply. Upon receiving a halted event
@@ -725,7 +725,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 
 int gdb_new_connection(connection_t *connection)
 {
-	gdb_connection_t *gdb_connection = malloc(sizeof(gdb_connection_t));
+	struct gdb_connection *gdb_connection = malloc(sizeof(struct gdb_connection));
 	gdb_service_t *gdb_service = connection->service->priv;
 	int retval;
 	int initial_ack;
@@ -782,7 +782,7 @@ int gdb_new_connection(connection_t *connection)
 int gdb_connection_closed(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
-	gdb_connection_t *gdb_connection = connection->priv;
+	struct gdb_connection *gdb_connection = connection->priv;
 
 	/* we're done forwarding messages. Tear down callback before
 	 * cleaning up connection.
@@ -1557,7 +1557,7 @@ static int compare_bank (const void * a, const void * b)
 int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
-	gdb_connection_t *gdb_connection = connection->priv;
+	struct gdb_connection *gdb_connection = connection->priv;
 
 	if (strstr(packet, "qRcmd,"))
 	{
@@ -1812,7 +1812,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
-	gdb_connection_t *gdb_connection = connection->priv;
+	struct gdb_connection *gdb_connection = connection->priv;
 	gdb_service_t *gdb_service = connection->service->priv;
 	int result;
 
@@ -1960,7 +1960,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string)
 {
 	connection_t *connection = priv;
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 
 	if (gdb_con->busy)
 	{
@@ -1989,7 +1989,7 @@ int gdb_input_inner(connection_t *connection)
 	char *packet = gdb_packet_buffer;
 	int packet_size;
 	int retval;
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	static int extended_protocol = 0;
 
 	/* drain input buffer */
@@ -2063,7 +2063,7 @@ int gdb_input_inner(connection_t *connection)
 					{
 						int retval = ERROR_OK;
 
-						gdb_connection_t *gdb_con = connection->priv;
+						struct gdb_connection *gdb_con = connection->priv;
 						log_add_callback(gdb_log_callback, connection);
 
 						bool nostep = false;
@@ -2183,7 +2183,7 @@ int gdb_input_inner(connection_t *connection)
 int gdb_input(connection_t *connection)
 {
 	int retval = gdb_input_inner(connection);
-	gdb_connection_t *gdb_con = connection->priv;
+	struct gdb_connection *gdb_con = connection->priv;
 	if (retval == ERROR_SERVER_REMOTE_CLOSED)
 		return retval;
 
