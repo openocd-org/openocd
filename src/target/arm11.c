@@ -87,16 +87,16 @@ enum arm11_regtype
 };
 
 
-typedef struct arm11_reg_defs_s
+struct arm11_reg_defs
 {
 	char *					name;
 	uint32_t						num;
 	int						gdb_num;
 	enum arm11_regtype		type;
-} arm11_reg_defs_t;
+};
 
 /* update arm11_regcache_ids when changing this */
-static const arm11_reg_defs_t arm11_reg_defs[] =
+static const struct arm11_reg_defs arm11_reg_defs[] =
 {
 	{"r0",	0,	0,	ARM11_REGISTER_CORE},
 	{"r1",	1,	1,	ARM11_REGISTER_CORE},
@@ -1907,7 +1907,7 @@ static int arm11_get_reg(reg_t *reg)
 
 #if 0
 	arm11_common_t *arm11 = target->arch_info;
-	const arm11_reg_defs_t * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
+	const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
 #endif
 
 	return ERROR_OK;
@@ -1920,7 +1920,7 @@ static int arm11_set_reg(reg_t *reg, uint8_t *buf)
 
 	target_t * target = ((arm11_reg_state_t *)reg->arch_info)->target;
 	arm11_common_t *arm11 = target->arch_info;
-//	  const arm11_reg_defs_t * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
+//	  const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
 
 	arm11->reg_values[((arm11_reg_state_t *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
 	reg->valid	= 1;
@@ -1971,7 +1971,7 @@ static int arm11_build_reg_cache(target_t *target)
 	for (i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
 		reg_t *						r	= reg_list			+ i;
-		const arm11_reg_defs_t *	rd	= arm11_reg_defs	+ i;
+		const struct arm11_reg_defs *	rd	= arm11_reg_defs	+ i;
 		arm11_reg_state_t *			rs	= arm11_reg_states	+ i;
 
 		r->name				= rd->name;
