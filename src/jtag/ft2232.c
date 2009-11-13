@@ -114,13 +114,12 @@ static unsigned		ft2232_max_tck = FTDI_2232C_MAX_TCK;
 static uint16_t ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
 static uint16_t ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
 
-typedef struct ft2232_layout_s
-{
+struct ft2232_layout {
 	char* name;
 	int (*init)(void);
 	void (*reset)(int trst, int srst);
 	void (*blink)(void);
-} ft2232_layout_t;
+};
 
 /* init procedures for supported layouts */
 static int usbjtag_init(void);
@@ -158,7 +157,7 @@ static void turtle_jtag_blink(void);
 static void signalyzer_h_blink(void);
 static void ktlink_blink(void);
 
-static const ft2232_layout_t  ft2232_layouts[] =
+static const struct ft2232_layout  ft2232_layouts[] =
 {
 	{ "usbjtag",              usbjtag_init,              usbjtag_reset,      NULL                    },
 	{ "jtagkey",              jtagkey_init,              jtagkey_reset,      NULL                    },
@@ -183,7 +182,7 @@ static const ft2232_layout_t  ft2232_layouts[] =
 
 static uint8_t                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
 
-static const ft2232_layout_t *layout;
+static const struct ft2232_layout *layout;
 static uint8_t                  low_output     = 0x0;
 static uint8_t                  low_direction  = 0x0;
 static uint8_t                  high_output    = 0x0;
@@ -2060,7 +2059,7 @@ static int ft2232_init(void)
 	uint8_t  buf[1];
 	int retval;
 	uint32_t bytes_written;
-	const ft2232_layout_t* cur_layout = ft2232_layouts;
+	const struct ft2232_layout* cur_layout = ft2232_layouts;
 	int i;
 
 	if (tap_get_tms_path_len(TAP_IRPAUSE,TAP_IRPAUSE) == 7)
