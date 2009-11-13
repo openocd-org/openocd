@@ -23,7 +23,7 @@
 
 #include "flash.h"
 
-typedef struct lpc288x_flash_bank_s
+struct lpc288x_flash_bank
 {
 	uint32_t working_area;
 	uint32_t working_area_size;
@@ -34,6 +34,6 @@ typedef struct lpc288x_flash_bank_s
 	uint32_t cclk;
 
 	uint32_t sector_size_break;
-} lpc288x_flash_bank_t;
+};
 
 #endif /* lpc288x_H */

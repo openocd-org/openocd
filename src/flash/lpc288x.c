@@ -111,7 +111,7 @@ static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 /* Read device id register and fill in driver info structure */
 static int lpc288x_read_part_info(struct flash_bank_s *bank)
 {
-	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
+	struct lpc288x_flash_bank *lpc288x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t cidr;
 
@@ -167,7 +167,7 @@ static int lpc288x_protect_check(struct flash_bank_s *bank)
 /* flash_bank LPC288x 0 0 0 0 <target#> <cclk> */
 FLASH_BANK_COMMAND_HANDLER(lpc288x_flash_bank_command)
 {
-	lpc288x_flash_bank_t *lpc288x_info;
+	struct lpc288x_flash_bank *lpc288x_info;
 
 	if (argc < 6)
 	{
@@ -175,7 +175,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc288x_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	lpc288x_info = malloc(sizeof(lpc288x_flash_bank_t));
+	lpc288x_info = malloc(sizeof(struct lpc288x_flash_bank));
 	bank->driver_priv = lpc288x_info;
 
 	/* part wasn't probed for info yet */
@@ -193,7 +193,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc288x_flash_bank_command)
 static void lpc288x_set_flash_clk(struct flash_bank_s *bank)
 {
 	uint32_t clk_time;
-	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
+	struct lpc288x_flash_bank *lpc288x_info = bank->driver_priv;
 	clk_time = (lpc288x_info->cclk / 66000) / 3;
 	target_write_u32(bank->target, F_CTRL, FC_CS | FC_WEN);
 	target_write_u32(bank->target, F_CLK_TIME, clk_time);
@@ -219,7 +219,7 @@ static void lpc288x_load_timer(int erase, struct target_s *target)
 
 static uint32_t lpc288x_system_ready(struct flash_bank_s *bank)
 {
-	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
+	struct lpc288x_flash_bank *lpc288x_info = bank->driver_priv;
 	if (lpc288x_info->cidr == 0)
 	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
@@ -405,7 +405,7 @@ static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 static int lpc288x_probe(struct flash_bank_s *bank)
 {
 	/* we only deal with LPC2888 so flash config is fixed */
-	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
+	struct lpc288x_flash_bank *lpc288x_info = bank->driver_priv;
 	int retval;
 
 	if (lpc288x_info->cidr != 0)
