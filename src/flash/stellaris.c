@@ -836,7 +836,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	working_area_t *write_algorithm;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[3];
-	armv7m_algorithm_t armv7m_info;
+	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
 	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " wcount=%08" PRIx32 "",

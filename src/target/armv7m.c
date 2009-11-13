@@ -363,7 +363,7 @@ int armv7m_run_algorithm(struct target_s *target,
 	int timeout_ms, void *arch_info)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	armv7m_algorithm_t *armv7m_algorithm_info = arch_info;
+	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
 	int i;
@@ -589,7 +589,7 @@ int armv7m_checksum_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	working_area_t *crc_algorithm;
-	armv7m_algorithm_t armv7m_info;
+	struct armv7m_algorithm armv7m_info;
 	struct reg_param reg_params[2];
 	int retval;
 
@@ -673,7 +673,7 @@ int armv7m_blank_check_memory(struct target_s *target,
 {
 	working_area_t *erase_check_algorithm;
 	struct reg_param reg_params[3];
-	armv7m_algorithm_t armv7m_info;
+	struct armv7m_algorithm armv7m_info;
 	int retval;
 	uint32_t i;
 

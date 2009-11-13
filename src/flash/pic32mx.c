@@ -307,7 +307,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 	int retval = ERROR_OK;
 #if 0
 	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
-	armv7m_algorithm_t armv7m_info;
+	struct armv7m_algorithm armv7m_info;
 
 	uint8_t pic32mx_flash_write_code[] = {
 									/* write: */
