@@ -108,10 +108,10 @@ struct mx3_nf_flags
 	unsigned hw_ecc_enabled:1;
 };
 
-typedef struct mx3_nf_controller_s
+struct mx3_nf_controller
 {
 	struct target_s *target;
 	enum mx_dataout_type optype;
 	enum mx_nf_finalize_action fin;
 	struct mx3_nf_flags flags;
-} mx3_nf_controller_t;
+};

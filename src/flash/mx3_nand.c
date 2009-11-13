@@ -63,8 +63,8 @@ static int imx31_controller_ready (struct nand_device_s *nand, int tout);
 
 NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 {
-	mx3_nf_controller_t *mx3_nf_info;
-	mx3_nf_info = malloc (sizeof (mx3_nf_controller_t));
+	struct mx3_nf_controller *mx3_nf_info;
+	mx3_nf_info = malloc (sizeof (struct mx3_nf_controller));
 	if (mx3_nf_info == NULL)
 	{
 	    LOG_ERROR ("no memory for nand controller");
@@ -123,7 +123,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 
 static int imx31_init (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	{
@@ -266,7 +266,7 @@ static int imx31_init (struct nand_device_s *nand)
 
 static int imx31_read_data (struct nand_device_s *nand, void *data)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	{
 	/*
@@ -337,7 +337,7 @@ static int imx31_reset (struct nand_device_s *nand)
 
 static int imx31_command (struct nand_device_s *nand, uint8_t command)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	{
 	/*
@@ -411,7 +411,7 @@ static int imx31_command (struct nand_device_s *nand, uint8_t command)
 
 static int imx31_address (struct nand_device_s *nand, uint8_t address)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	{
 	/*
@@ -444,7 +444,7 @@ static int imx31_address (struct nand_device_s *nand, uint8_t address)
 static int imx31_controller_ready (struct nand_device_s *nand, int tout)
 {
 	uint16_t poll_complete_status;
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	{
@@ -476,7 +476,7 @@ static int imx31_write_page (struct nand_device_s *nand, uint32_t page,
 			     uint8_t * data, uint32_t data_size, uint8_t * oob,
 			     uint32_t oob_size)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	if (data_size % 2)
@@ -583,7 +583,7 @@ static int imx31_read_page (struct nand_device_s *nand, uint32_t page,
 			    uint8_t * data, uint32_t data_size, uint8_t * oob,
 			    uint32_t oob_size)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	if (data_size % 2)
@@ -658,7 +658,7 @@ static int test_iomux_settings (target_t * target, uint32_t address,
 
 static int initialize_nf_controller (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	/*
 	* resets NAND flash controller in zero time ? I dont know.
@@ -786,7 +786,7 @@ static int poll_for_complete_op (target_t * target, const char *text)
 
 static int validate_target_state (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -808,7 +808,7 @@ static int validate_target_state (struct nand_device_s *nand)
 
 static int do_data_output (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
+	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	switch (mx3_nf_info->fin)
 	{
