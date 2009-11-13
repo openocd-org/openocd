@@ -72,11 +72,11 @@ struct image_binary
 	struct fileio fileio;
 };
 
-typedef struct image_ihex_s
+struct image_ihex
 {
 	struct fileio fileio;
 	uint8_t *buffer;
-} image_ihex_t;
+};
 
 typedef struct image_memory_s
 {

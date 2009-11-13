@@ -149,7 +149,7 @@ static int identify_image_type(image_t *image, const char *type_string, const ch
 
 static int image_ihex_buffer_complete(image_t *image)
 {
-	image_ihex_t *ihex = image->type_private;
+	struct image_ihex *ihex = image->type_private;
 	struct fileio *fileio = &ihex->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
@@ -697,9 +697,9 @@ int image_open(image_t *image, const char *url, const char *type_string)
 	}
 	else if (image->type == IMAGE_IHEX)
 	{
-		image_ihex_t *image_ihex;
+		struct image_ihex *image_ihex;
 
-		image_ihex = image->type_private = malloc(sizeof(image_ihex_t));
+		image_ihex = image->type_private = malloc(sizeof(struct image_ihex));
 
 		if ((retval = fileio_open(&image_ihex->fileio, url, FILEIO_READ, FILEIO_TEXT)) != ERROR_OK)
 		{
@@ -944,7 +944,7 @@ void image_close(image_t *image)
 	}
 	else if (image->type == IMAGE_IHEX)
 	{
-		image_ihex_t *image_ihex = image->type_private;
+		struct image_ihex *image_ihex = image->type_private;
 
 		fileio_close(&image_ihex->fileio);
 
