@@ -76,11 +76,11 @@
 /* Freerunning transactions with delays and overrun checking */
 #define TRANS_MODE_COMPOSITE	2
 
-typedef struct swjdp_reg_s
+struct swjdp_reg
 {
 	int addr;
 	arm_jtag_t *jtag_info;
-} swjdp_reg_t;
+};
 
 typedef struct swjdp_common_s
 {
