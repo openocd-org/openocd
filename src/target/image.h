@@ -85,14 +85,14 @@ struct image_memory
 	uint32_t cache_address;
 };
 
-typedef struct fileio_elf_s
+struct image_elf
 {
 	struct fileio fileio;
 	Elf32_Ehdr *header;
 	Elf32_Phdr *segments;
 	uint32_t segment_count;
 	uint8_t endianness;
-} image_elf_t;
+};
 
 struct image_mot
 {

@@ -359,7 +359,7 @@ static int image_ihex_buffer_complete(image_t *image)
 
 static int image_elf_read_headers(image_t *image)
 {
-	image_elf_t *elf = image->type_private;
+	struct image_elf *elf = image->type_private;
 	uint32_t read_bytes;
 	uint32_t i,j;
 	int retval;
@@ -460,7 +460,7 @@ static int image_elf_read_headers(image_t *image)
 
 static int image_elf_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
-	image_elf_t *elf = image->type_private;
+	struct image_elf *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
 	uint32_t read_size,really_read;
 	int retval;
@@ -715,9 +715,9 @@ int image_open(image_t *image, const char *url, const char *type_string)
 	}
 	else if (image->type == IMAGE_ELF)
 	{
-		image_elf_t *image_elf;
+		struct image_elf *image_elf;
 
-		image_elf = image->type_private = malloc(sizeof(image_elf_t));
+		image_elf = image->type_private = malloc(sizeof(struct image_elf));
 
 		if ((retval = fileio_open(&image_elf->fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
 		{
@@ -956,7 +956,7 @@ void image_close(image_t *image)
 	}
 	else if (image->type == IMAGE_ELF)
 	{
-		image_elf_t *image_elf = image->type_private;
+		struct image_elf *image_elf = image->type_private;
 
 		fileio_close(&image_elf->fileio);
 
