@@ -98,15 +98,21 @@ static int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 static int jtag_nsrst_assert_width = 0; /* width of assertion */
 static int jtag_ntrst_assert_width = 0; /* width of assertion */
 
-typedef struct jtag_event_callback_s
-{
-	jtag_event_handler_t          callback;
-	void*                         priv;
-	struct jtag_event_callback_s* next;
-} jtag_event_callback_t;
+/**
+ * Contains a single callback along with a pointer that will be passed
+ * when an event occurs.
+ */
+struct jtag_event_callback {
+	/// a event callback
+	jtag_event_handler_t callback;
+	/// the private data to pass to the callback
+	void* priv;
+	/// the next callback
+	struct jtag_event_callback* next;
+};
 
 /* callbacks to inform high-level handlers about JTAG state changes */
-static jtag_event_callback_t *jtag_event_callbacks;
+static struct jtag_event_callback *jtag_event_callbacks;
 
 /* speed in kHz*/
 static int speed_khz = 0;
@@ -269,7 +275,7 @@ const char *jtag_tap_name(const struct jtag_tap *tap)
 
 int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 {
-	jtag_event_callback_t **callbacks_p = &jtag_event_callbacks;
+	struct jtag_event_callback **callbacks_p = &jtag_event_callbacks;
 
 	if (callback == NULL)
 	{
@@ -283,7 +289,7 @@ int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 		callbacks_p = &((*callbacks_p)->next);
 	}
 
-	(*callbacks_p) = malloc(sizeof(jtag_event_callback_t));
+	(*callbacks_p) = malloc(sizeof(struct jtag_event_callback));
 	(*callbacks_p)->callback = callback;
 	(*callbacks_p)->priv = priv;
 	(*callbacks_p)->next = NULL;
@@ -293,8 +299,8 @@ int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 
 int jtag_unregister_event_callback(jtag_event_handler_t callback, void *priv)
 {
-	jtag_event_callback_t **callbacks_p;
-	jtag_event_callback_t **next;
+	struct jtag_event_callback **callbacks_p;
+	struct jtag_event_callback **next;
 
 	if (callback == NULL)
 	{
@@ -322,13 +328,13 @@ int jtag_unregister_event_callback(jtag_event_handler_t callback, void *priv)
 
 int jtag_call_event_callbacks(enum jtag_event event)
 {
-	jtag_event_callback_t *callback = jtag_event_callbacks;
+	struct jtag_event_callback *callback = jtag_event_callbacks;
 
 	LOG_DEBUG("jtag event: %s", jtag_event_strings[event]);
 
 	while (callback)
 	{
-		jtag_event_callback_t *next;
+		struct jtag_event_callback *next;
 
 		/* callback may remove itself */
 		next = callback->next;
