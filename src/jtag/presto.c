@@ -86,8 +86,7 @@ static struct bitq_interface presto_bitq =
 
 #define BUFFER_SIZE (64*62)
 
-typedef struct presto_s
-{
+struct presto {
 #if BUILD_PRESTO_FTD2XX == 1
 	FT_HANDLE handle;
 	FT_STATUS status;
@@ -117,11 +116,10 @@ typedef struct presto_s
 	int jtag_tdi_count;
 
 	int jtag_speed;
+};
 
-} presto_t;
-
-static presto_t presto_state;
-static presto_t *presto = &presto_state;
+static struct presto presto_state;
+static struct presto *presto = &presto_state;
 
 static uint8_t presto_init_seq[] =
 {
