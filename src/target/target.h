@@ -152,7 +152,7 @@ typedef struct target_s
 	// also see: target_state_name()
 	enum target_state state;			/* the current backend-state (running, halted, ...) */
 	struct reg_cache *reg_cache;		/* the first register cache of the target (core regs) */
-	struct breakpoint_s *breakpoints;	/* list of breakpoints */
+	struct breakpoint *breakpoints;	/* list of breakpoints */
 	struct watchpoint *watchpoints;	/* list of watchpoints */
 	struct trace_s *trace_info;			/* generic trace information */
 	struct debug_msg_receiver *dbgmsg;/* list of debug message receivers */
@@ -313,14 +313,14 @@ void target_reset_examined(struct target_s *target);
  * This routine is a wrapper for target->type->add_breakpoint.
  */
 int target_add_breakpoint(struct target_s *target,
-		struct breakpoint_s *breakpoint);
+		struct breakpoint *breakpoint);
 /**
  * Remove the @a breakpoint for @a target.
  *
  * This routine is a wrapper for target->type->remove_breakpoint.
  */
 int target_remove_breakpoint(struct target_s *target,
-		struct breakpoint_s *breakpoint);
+		struct breakpoint *breakpoint);
 /**
  * Add the @a watchpoint for @a target.
  *

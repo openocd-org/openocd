@@ -44,9 +44,9 @@ static int cortex_a8_poll(target_t *target);
 static int cortex_a8_debug_entry(target_t *target);
 static int cortex_a8_restore_context(target_t *target);
 static int cortex_a8_set_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint, uint8_t matchmode);
+		struct breakpoint *breakpoint, uint8_t matchmode);
 static int cortex_a8_unset_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint);
+		struct breakpoint *breakpoint);
 static int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		uint32_t *value, int regnum);
 static int cortex_a8_dap_write_coreregister_u32(target_t *target,
@@ -445,7 +445,7 @@ static int cortex_a8_resume(struct target_s *target, int current,
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
-//	breakpoint_t *breakpoint = NULL;
+//	struct breakpoint *breakpoint = NULL;
 	uint32_t resume_pc, dscr;
 
 	uint8_t saved_apsel = dap_ap_get_select(swjdp);
@@ -725,8 +725,8 @@ static int cortex_a8_step(struct target_s *target, int current, uint32_t address
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
-	breakpoint_t *breakpoint = NULL;
-	breakpoint_t stepbreakpoint;
+	struct breakpoint *breakpoint = NULL;
+	struct breakpoint stepbreakpoint;
 
 	int timeout = 100;
 
@@ -961,7 +961,7 @@ int cortex_a8_write_core_reg(struct target_s *target, int num,
 
 /* Setup hardware Breakpoint Register Pair */
 static int cortex_a8_set_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint, uint8_t matchmode)
+		struct breakpoint *breakpoint, uint8_t matchmode)
 {
 	int retval;
 	int brp_i=0;
@@ -1035,7 +1035,7 @@ static int cortex_a8_set_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+static int cortex_a8_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	int retval;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
@@ -1093,7 +1093,7 @@ static int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *bre
 	return ERROR_OK;
 }
 
-int cortex_a8_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int cortex_a8_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
@@ -1110,7 +1110,7 @@ int cortex_a8_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
-static int cortex_a8_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+static int cortex_a8_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 

@@ -600,12 +600,12 @@ int target_bulk_write_memory(struct target_s *target,
 }
 
 int target_add_breakpoint(struct target_s *target,
-		struct breakpoint_s *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	return target->type->add_breakpoint(target, breakpoint);
 }
 int target_remove_breakpoint(struct target_s *target,
-		struct breakpoint_s *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	return target->type->remove_breakpoint(target, breakpoint);
 }
@@ -2712,7 +2712,7 @@ COMMAND_HANDLER(handle_test_image_command)
 static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 	while (breakpoint)
 	{
 		if (breakpoint->type == BKPT_SOFT)

@@ -131,12 +131,12 @@ struct target_type_s
 	 *
 	 * Upon GDB connection all breakpoints/watchpoints are cleared.
 	 */
-	int (*add_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
+	int (*add_breakpoint)(struct target_s *target, struct breakpoint *breakpoint);
 
 	/* remove breakpoint. hw will only be updated if the target is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
-	int (*remove_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
+	int (*remove_breakpoint)(struct target_s *target, struct breakpoint *breakpoint);
 	int (*add_watchpoint)(struct target_s *target, struct watchpoint *watchpoint);
 	/* remove watchpoint. hw will only be updated if the target is currently halted.
 	 * However, this method can be invoked on unresponsive targets.

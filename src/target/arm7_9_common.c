@@ -66,7 +66,7 @@ static int arm7_9_clear_watchpoints(struct arm7_9_common *arm7_9)
  * @param arm7_9 Pointer to the common struct for an ARM7/9 target
  * @param breakpoint Pointer to the breakpoint to be used as a watchpoint
  */
-static void arm7_9_assign_wp(struct arm7_9_common *arm7_9, breakpoint_t *breakpoint)
+static void arm7_9_assign_wp(struct arm7_9_common *arm7_9, struct breakpoint *breakpoint)
 {
 	if (!arm7_9->wp0_used)
 	{
@@ -210,7 +210,7 @@ int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, str
  *         queue.  For software breakpoints, this will be the status of the
  *         required memory reads and writes
  */
-int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int arm7_9_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int retval = ERROR_OK;
@@ -339,7 +339,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
  *         queue.  For software breakpoints, this will be the status of the
  *         required memory reads and writes
  */
-int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int arm7_9_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -434,7 +434,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
  * @return An error status if there is a problem adding the breakpoint or the
  *         result of setting the breakpoint
  */
-int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int arm7_9_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -484,7 +484,7 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
  * @return Error status if there was a problem unsetting the breakpoint or the
  *         watchpoints could not be cleared
  */
-int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int arm7_9_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -1788,7 +1788,7 @@ void arm7_9_enable_watchpoints(struct target_s *target)
  */
 void arm7_9_enable_breakpoints(struct target_s *target)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	/* set any pending breakpoints */
 	while (breakpoint)
@@ -1802,7 +1802,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int err, retval = ERROR_OK;
 
@@ -2014,7 +2014,7 @@ int arm7_9_step(struct target_s *target, int current, uint32_t address, int hand
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	breakpoint_t *breakpoint = NULL;
+	struct breakpoint *breakpoint = NULL;
 	int err, retval;
 
 	if (target->state != TARGET_HALTED)

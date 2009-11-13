@@ -45,8 +45,8 @@
 
 
 /* forward declarations */
-static int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-static int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
+static int cortex_m3_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint);
+static int cortex_m3_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint);
 static void cortex_m3_enable_watchpoints(struct target_s *target);
 static int cortex_m3_store_core_reg_u32(target_t *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t value);
@@ -533,7 +533,7 @@ static int cortex_m3_soft_reset_halt(struct target_s *target)
 
 static void cortex_m3_enable_breakpoints(struct target_s *target)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	/* set any pending breakpoints */
 	while (breakpoint)
@@ -548,7 +548,7 @@ static int cortex_m3_resume(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	breakpoint_t *breakpoint = NULL;
+	struct breakpoint *breakpoint = NULL;
 	uint32_t resume_pc;
 
 	if (target->state != TARGET_HALTED)
@@ -638,7 +638,7 @@ static int cortex_m3_step(struct target_s *target, int current,
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
-	breakpoint_t *breakpoint = NULL;
+	struct breakpoint *breakpoint = NULL;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -833,7 +833,7 @@ static int cortex_m3_deassert_reset(target_t *target)
 }
 
 static int
-cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+cortex_m3_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	int retval;
 	int fp_num = 0;
@@ -900,7 +900,7 @@ cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 }
 
 static int
-cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+cortex_m3_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	int retval;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -955,7 +955,7 @@ cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 }
 
 static int
-cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+cortex_m3_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
@@ -1004,7 +1004,7 @@ cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 }
 
 static int
-cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+cortex_m3_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 

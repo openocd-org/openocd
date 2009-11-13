@@ -143,8 +143,8 @@ int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 
 int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_prams, struct reg_param *reg_param, uint32_t entry_point, void *arch_info);
 
-int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
+int arm7_9_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint);
+int arm7_9_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint);
 int arm7_9_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint);
 int arm7_9_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint);
 

@@ -44,8 +44,8 @@ static int bpwp_unique_id;
 
 int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum breakpoint_type type)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
-	breakpoint_t **breakpoint_p = &target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
+	struct breakpoint **breakpoint_p = &target->breakpoints;
 	int retval;
 	int n;
 
@@ -62,7 +62,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 		breakpoint = breakpoint->next;
 	}
 
-	(*breakpoint_p) = malloc(sizeof(breakpoint_t));
+	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
 	(*breakpoint_p)->address = address;
 	(*breakpoint_p)->length = length;
 	(*breakpoint_p)->type = type;
@@ -107,10 +107,10 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 }
 
 /* free up a breakpoint */
-static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
+static void breakpoint_free(target_t *target, struct breakpoint *breakpoint_remove)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
-	breakpoint_t **breakpoint_p = &target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
+	struct breakpoint **breakpoint_p = &target->breakpoints;
 
 	while (breakpoint)
 	{
@@ -133,8 +133,8 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 
 void breakpoint_remove(target_t *target, uint32_t address)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
-	breakpoint_t **breakpoint_p = &target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
+	struct breakpoint **breakpoint_p = &target->breakpoints;
 
 	while (breakpoint)
 	{
@@ -156,7 +156,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 
 void breakpoint_clear_target(target_t *target)
 {
-	breakpoint_t *breakpoint;
+	struct breakpoint *breakpoint;
 	LOG_DEBUG("Delete all breakpoints for target: %s", target_get_name( target ));
 	while ((breakpoint = target->breakpoints) != NULL)
 	{
@@ -164,9 +164,9 @@ void breakpoint_clear_target(target_t *target)
 	}
 }
 
-breakpoint_t* breakpoint_find(target_t *target, uint32_t address)
+struct breakpoint* breakpoint_find(target_t *target, uint32_t address)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	while (breakpoint)
 	{

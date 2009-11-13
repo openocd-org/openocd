@@ -63,9 +63,9 @@ static int xscale_debug_entry(target_t *);
 static int xscale_restore_context(target_t *);
 static int xscale_get_reg(reg_t *reg);
 static int xscale_set_reg(reg_t *reg, uint8_t *buf);
-static int xscale_set_breakpoint(struct target_s *, breakpoint_t *);
+static int xscale_set_breakpoint(struct target_s *, struct breakpoint *);
 static int xscale_set_watchpoint(struct target_s *, struct watchpoint *);
-static int xscale_unset_breakpoint(struct target_s *, breakpoint_t *);
+static int xscale_unset_breakpoint(struct target_s *, struct breakpoint *);
 static int xscale_read_trace(target_t *);
 
 
@@ -1130,7 +1130,7 @@ static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
 
 	if (xscale->ibcr0_used)
 	{
-		breakpoint_t *ibcr0_bp = breakpoint_find(target, buf_get_u32(ibcr0->value, 0, 32) & 0xfffffffe);
+		struct breakpoint *ibcr0_bp = breakpoint_find(target, buf_get_u32(ibcr0->value, 0, 32) & 0xfffffffe);
 
 		if (ibcr0_bp)
 		{
@@ -1175,7 +1175,7 @@ static void xscale_enable_watchpoints(struct target_s *target)
 
 static void xscale_enable_breakpoints(struct target_s *target)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	/* set any pending breakpoints */
 	while (breakpoint)
@@ -1191,7 +1191,7 @@ static int xscale_resume(struct target_s *target, int current,
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 	uint32_t current_pc;
 	int retval;
 	int i;
@@ -1423,7 +1423,7 @@ static int xscale_step(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	uint32_t current_pc;
 	int retval;
@@ -1518,7 +1518,7 @@ static int xscale_assert_reset(target_t *target)
 static int xscale_deassert_reset(target_t *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	LOG_DEBUG("-");
 
@@ -2046,7 +2046,7 @@ static void xscale_enable_mmu_caches(target_t *target, int mmu,
 }
 
 static int xscale_set_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	int retval;
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2119,7 +2119,7 @@ static int xscale_set_breakpoint(struct target_s *target,
 }
 
 static int xscale_add_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -2150,7 +2150,7 @@ static int xscale_add_breakpoint(struct target_s *target,
 }
 
 static int xscale_unset_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	int retval;
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2204,7 +2204,7 @@ static int xscale_unset_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+static int xscale_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 

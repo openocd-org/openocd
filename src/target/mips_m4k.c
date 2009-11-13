@@ -359,7 +359,7 @@ int mips_m4k_resume(struct target_s *target, int current, uint32_t address, int 
 {
 	struct mips32_common *mips32 = target->arch_info;
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
-	breakpoint_t *breakpoint = NULL;
+	struct breakpoint *breakpoint = NULL;
 	uint32_t resume_pc;
 
 	if (target->state != TARGET_HALTED)
@@ -431,7 +431,7 @@ int mips_m4k_step(struct target_s *target, int current, uint32_t address, int ha
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
-	breakpoint_t *breakpoint = NULL;
+	struct breakpoint *breakpoint = NULL;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -480,7 +480,7 @@ int mips_m4k_step(struct target_s *target, int current, uint32_t address, int ha
 
 void mips_m4k_enable_breakpoints(struct target_s *target)
 {
-	breakpoint_t *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = target->breakpoints;
 
 	/* set any pending breakpoints */
 	while (breakpoint)
@@ -491,7 +491,7 @@ void mips_m4k_enable_breakpoints(struct target_s *target)
 	}
 }
 
-int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int mips_m4k_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct mips32_common *mips32 = target->arch_info;
 	struct mips32_comparator * comparator_list = mips32->inst_break_list;
@@ -582,7 +582,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
-int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int mips_m4k_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -657,7 +657,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
-int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int mips_m4k_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	struct mips32_common *mips32 = target->arch_info;
 
@@ -677,7 +677,7 @@ int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
-int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
+int mips_m4k_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;

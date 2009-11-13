@@ -35,16 +35,16 @@ enum watchpoint_rw
 	WPT_READ = 0, WPT_WRITE = 1, WPT_ACCESS = 2
 };
 
-typedef struct breakpoint_s
+struct breakpoint
 {
 	uint32_t address;
 	int length;
 	enum breakpoint_type type;
 	int set;
 	uint8_t *orig_instr;
-	struct breakpoint_s *next;
+	struct breakpoint *next;
 	int unique_id;
-} breakpoint_t;
+};
 
 struct watchpoint
 {
@@ -63,7 +63,7 @@ int breakpoint_add(struct target_s *target,
 		uint32_t address, uint32_t length, enum breakpoint_type type);
 void breakpoint_remove(struct target_s *target, uint32_t address);
 
-breakpoint_t* breakpoint_find(struct target_s *target, uint32_t address);
+struct breakpoint* breakpoint_find(struct target_s *target, uint32_t address);
 
 void watchpoint_clear_target(struct target_s *target);
 int watchpoint_add(struct target_s *target,

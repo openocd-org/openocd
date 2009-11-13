@@ -833,7 +833,7 @@ static int arm11_resume(struct target_s *target, int current,
 	{
 		/* check if one matches PC and step over it if necessary */
 
-		breakpoint_t *	bp;
+		struct breakpoint *	bp;
 
 		for (bp = target->breakpoints; bp; bp = bp->next)
 		{
@@ -1552,7 +1552,7 @@ static int arm11_checksum_memory(struct target_s *target,
 * rw: 0 = write, 1 = read, 2 = access
 */
 static int arm11_add_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	FNC_INFO;
 
@@ -1584,7 +1584,7 @@ static int arm11_add_breakpoint(struct target_s *target,
 }
 
 static int arm11_remove_breakpoint(struct target_s *target,
-		breakpoint_t *breakpoint)
+		struct breakpoint *breakpoint)
 {
 	FNC_INFO;
 
