@@ -27,7 +27,7 @@
 
 struct arm720t_common
 {
-	arm7tdmi_common_t arm7tdmi_common;
+	struct arm7tdmi_common arm7tdmi_common;
 	uint32_t common_magic;
 	armv4_5_mmu_common_t armv4_5_mmu;
 	uint32_t cp15_control_reg;

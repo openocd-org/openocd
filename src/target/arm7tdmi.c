@@ -691,7 +691,7 @@ int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, struct jtag_tap *tap)
+int arm7tdmi_init_arch_info(target_t *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap)
 {
 	struct arm7_9_common *arm7_9 = &arm7tdmi->arm7_9_common;
 
@@ -743,9 +743,9 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, struc
 
 static int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	arm7tdmi_common_t *arm7tdmi;
+	struct arm7tdmi_common *arm7tdmi;
 
-	arm7tdmi = calloc(1,sizeof(arm7tdmi_common_t));
+	arm7tdmi = calloc(1,sizeof(struct arm7tdmi_common));
 	arm7tdmi_init_arch_info(target, arm7tdmi, target->tap);
 	arm7tdmi->arm7_9_common.armv4_5_common.is_armv4 = true;
 
