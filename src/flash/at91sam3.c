@@ -175,7 +175,7 @@ struct sam3_bank_private {
 	// so we can find the chip we belong to
 	struct sam3_chip *pChip;
 	// so we can find the orginal bank pointer
-	flash_bank_t *pBank;
+	struct flash_bank *pBank;
 	unsigned bank_number;
 	uint32_t controller_address;
 	uint32_t base_address;
@@ -1456,7 +1456,7 @@ static const struct sam3_reg_list sam3_all_regs[] = {
 
 
 static struct sam3_bank_private *
-get_sam3_bank_private(flash_bank_t *bank)
+get_sam3_bank_private(struct flash_bank *bank)
 {
 	return (struct sam3_bank_private *)(bank->driver_priv);
 }
@@ -1582,7 +1582,7 @@ sam3_GetInfo(struct sam3_chip *pChip)
 
 
 static int
-sam3_erase_check(struct flash_bank_s *bank)
+sam3_erase_check(struct flash_bank *bank)
 {
 	int x;
 
@@ -1606,7 +1606,7 @@ sam3_erase_check(struct flash_bank_s *bank)
 }
 
 static int
-sam3_protect_check(struct flash_bank_s *bank)
+sam3_protect_check(struct flash_bank *bank)
 {
 	int r;
 	uint32_t v=0;
@@ -1709,7 +1709,7 @@ sam3_GetDetails(struct sam3_bank_private *pPrivate)
 	const struct sam3_chip_details *pDetails;
 	struct sam3_chip *pChip;
 	void *vp;
-	flash_bank_t *saved_banks[SAM3_MAX_FLASH_BANKS];
+	struct flash_bank *saved_banks[SAM3_MAX_FLASH_BANKS];
 
 	unsigned x;
 	const char *cp;
@@ -1777,7 +1777,7 @@ sam3_GetDetails(struct sam3_bank_private *pPrivate)
 
 
 static int
-_sam3_probe(struct flash_bank_s *bank, int noise)
+_sam3_probe(struct flash_bank *bank, int noise)
 {
 	unsigned x;
 	int r;
@@ -1861,13 +1861,13 @@ _sam3_probe(struct flash_bank_s *bank, int noise)
 }
 
 static int
-sam3_probe(struct flash_bank_s *bank)
+sam3_probe(struct flash_bank *bank)
 {
 	return _sam3_probe(bank, 1);
 }
 
 static int
-sam3_auto_probe(struct flash_bank_s *bank)
+sam3_auto_probe(struct flash_bank *bank)
 {
 	return _sam3_probe(bank, 0);
 }
@@ -1875,7 +1875,7 @@ sam3_auto_probe(struct flash_bank_s *bank)
 
 
 static int
-sam3_erase(struct flash_bank_s *bank, int first, int last)
+sam3_erase(struct flash_bank *bank, int first, int last)
 {
 	struct sam3_bank_private *pPrivate;
 	int r;
@@ -1907,7 +1907,7 @@ sam3_erase(struct flash_bank_s *bank, int first, int last)
 }
 
 static int
-sam3_protect(struct flash_bank_s *bank, int set, int first, int last)
+sam3_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	struct sam3_bank_private *pPrivate;
 	int r;
@@ -1936,7 +1936,7 @@ sam3_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 
 static int
-sam3_info(flash_bank_t *bank, char *buf, int buf_size)
+sam3_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -2104,7 +2104,7 @@ sam3_page_write(struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *b
 
 
 static int
-sam3_write(struct flash_bank_s *bank,
+sam3_write(struct flash_bank *bank,
 		   uint8_t *buffer,
 		   uint32_t offset,
 		   uint32_t count)

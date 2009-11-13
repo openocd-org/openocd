@@ -52,13 +52,13 @@
 #include "at91sam7.h"
 #include "binarybuffer.h"
 
-static int at91sam7_protect_check(struct flash_bank_s *bank);
-static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
+static int at91sam7_protect_check(struct flash_bank *bank);
+static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 
 static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number);
-static void at91sam7_set_flash_mode(struct flash_bank_s *bank, int mode);
-static uint32_t at91sam7_wait_status_busy(struct flash_bank_s *bank, uint32_t waitbits, int timeout);
-static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen);
+static void at91sam7_set_flash_mode(struct flash_bank *bank, int mode);
+static uint32_t at91sam7_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout);
+static int at91sam7_flash_command(struct flash_bank *bank, uint8_t cmd, uint16_t pagen);
 
 static uint32_t MC_FMR[4] = { 0xFFFFFF60, 0xFFFFFF70, 0xFFFFFF80, 0xFFFFFF90 };
 static uint32_t MC_FCR[4] = { 0xFFFFFF64, 0xFFFFFF74, 0xFFFFFF84, 0xFFFFFF94 };
@@ -97,7 +97,7 @@ static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number
 }
 
 /* Read clock configuration and set at91sam7_info->mck_freq */
-static void at91sam7_read_clock_info(flash_bank_t *bank)
+static void at91sam7_read_clock_info(struct flash_bank *bank)
 {
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -176,7 +176,7 @@ static void at91sam7_read_clock_info(flash_bank_t *bank)
 }
 
 /* Setup the timimg registers for nvbits or normal flash */
-static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode)
+static void at91sam7_set_flash_mode(struct flash_bank *bank, int mode)
 {
 	uint32_t fmr, fmcn = 0, fws = 0;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
@@ -224,7 +224,7 @@ static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode)
 	at91sam7_info->flashmode = mode;
 }
 
-static uint32_t at91sam7_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout)
+static uint32_t at91sam7_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout)
 {
 	uint32_t status;
 
@@ -251,7 +251,7 @@ static uint32_t at91sam7_wait_status_busy(flash_bank_t *bank, uint32_t waitbits,
 }
 
 /* Send one command to the AT91SAM flash controller */
-static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen)
+static int at91sam7_flash_command(struct flash_bank *bank, uint8_t cmd, uint16_t pagen)
 {
 	uint32_t fcr;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
@@ -280,9 +280,9 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 }
 
 /* Read device id register, main clock frequency register and fill in driver info structure */
-static int at91sam7_read_part_info(struct flash_bank_s *bank)
+static int at91sam7_read_part_info(struct flash_bank *bank)
 {
-	flash_bank_t *t_bank = bank;
+	struct flash_bank *t_bank = bank;
 	struct at91sam7_flash_bank *at91sam7_info;
 	struct target *target = t_bank->target;
 
@@ -304,7 +304,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	if (at91sam7_info->cidr != 0)
 	{
 		/* flash already configured, update clock and check for protected sectors */
-		flash_bank_t *fb = bank;
+		struct flash_bank *fb = bank;
 		t_bank = fb;
 
 		while (t_bank)
@@ -336,7 +336,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	if (at91sam7_info->flash_autodetection == 0)
 	{
 		/* banks and sectors are already created, based on data from input file */
-		flash_bank_t *fb = bank;
+		struct flash_bank *fb = bank;
 		t_bank = fb;
 		while (t_bank)
 		{
@@ -532,7 +532,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 		if (bnk > 0)
 		{
 			/* create a new flash bank element */
-			flash_bank_t *fb = malloc(sizeof(flash_bank_t));
+			struct flash_bank *fb = malloc(sizeof(struct flash_bank));
 			fb->target = target;
 			fb->driver = bank->driver;
 			fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
@@ -595,7 +595,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int at91sam7_erase_check(struct flash_bank_s *bank)
+static int at91sam7_erase_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	uint16_t retval;
@@ -661,7 +661,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int at91sam7_protect_check(struct flash_bank_s *bank)
+static int at91sam7_protect_check(struct flash_bank *bank)
 {
 	uint8_t lock_pos, gpnvm_pos;
 	uint32_t status;
@@ -713,7 +713,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 
 FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 {
-	flash_bank_t *t_bank = bank;
+	struct flash_bank *t_bank = bank;
 	struct at91sam7_flash_bank *at91sam7_info;
 	struct target *target = t_bank->target;
 
@@ -785,7 +785,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		if (bnk > 0)
 		{
 			/* create a new bank element */
-			flash_bank_t *fb = malloc(sizeof(flash_bank_t));
+			struct flash_bank *fb = malloc(sizeof(struct flash_bank));
 			fb->target = target;
 			fb->driver = bank->driver;
 			fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
@@ -827,7 +827,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
+static int at91sam7_erase(struct flash_bank *bank, int first, int last)
 {
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
 	int sec;
@@ -895,7 +895,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int at91sam7_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	uint32_t cmd;
 	int sector;
@@ -945,7 +945,7 @@ static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int l
 	return ERROR_OK;
 }
 
-static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
@@ -1014,7 +1014,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 	return ERROR_OK;
 }
 
-static int at91sam7_probe(struct flash_bank_s *bank)
+static int at91sam7_probe(struct flash_bank *bank)
 {
 	/* we can't probe on an at91sam7
 	 * if this is an at91sam7, it has the configured flash */
@@ -1033,7 +1033,7 @@ static int at91sam7_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int at91sam7_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	int printed;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
@@ -1100,7 +1100,7 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 */
 COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 {
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int bit;
 	uint8_t  flashcmd;
 	uint32_t status;

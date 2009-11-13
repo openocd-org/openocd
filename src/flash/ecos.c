@@ -27,9 +27,9 @@
 
 
 #if 0
-static uint32_t ecosflash_get_flash_status(flash_bank_t *bank);
-static void ecosflash_set_flash_mode(flash_bank_t *bank,int mode);
-static uint32_t ecosflash_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout);
+static uint32_t ecosflash_get_flash_status(struct flash_bank *bank);
+static void ecosflash_set_flash_mode(struct flash_bank *bank,int mode);
+static uint32_t ecosflash_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout);
 static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 #endif
 
@@ -329,7 +329,7 @@ static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32
 	return ERROR_OK;
 }
 
-static int ecosflash_probe(struct flash_bank_s *bank)
+static int ecosflash_probe(struct flash_bank *bank)
 {
 	return ERROR_OK;
 }
@@ -342,7 +342,7 @@ static int ecosflash_register_commands(struct command_context_s *cmd_ctx)
 }
 
 #if 0
-static void command(flash_bank_t *bank, uint8_t cmd, uint8_t *cmd_buf)
+static void command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
 {
 	struct ecosflash_flash_bank *info = bank->driver_priv;
 	int i;
@@ -365,7 +365,7 @@ static void command(flash_bank_t *bank, uint8_t cmd, uint8_t *cmd_buf)
 #endif
 
 #if 0
-static uint32_t ecosflash_address(struct flash_bank_s *bank, uint32_t address)
+static uint32_t ecosflash_address(struct flash_bank *bank, uint32_t address)
 {
 	uint32_t retval = 0;
 	switch (bank->bus_width)
@@ -382,31 +382,31 @@ static uint32_t ecosflash_address(struct flash_bank_s *bank, uint32_t address)
 }
 #endif
 
-static int ecosflash_erase(struct flash_bank_s *bank, int first, int last)
+static int ecosflash_erase(struct flash_bank *bank, int first, int last)
 {
-	struct flash_bank_s *c = bank;
+	struct flash_bank *c = bank;
 	struct ecosflash_flash_bank *info = bank->driver_priv;
 	return eCosBoard_erase(info, c->base + first*sectorSize, sectorSize*(last-first + 1));
 }
 
-static int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int ecosflash_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	return ERROR_OK;
 }
 
-static int ecosflash_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int ecosflash_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct ecosflash_flash_bank *info = bank->driver_priv;
-	struct flash_bank_s *c = bank;
+	struct flash_bank *c = bank;
 	return eCosBoard_flash(info, buffer, c->base + offset, count);
 }
 
-static int ecosflash_protect_check(struct flash_bank_s *bank)
+static int ecosflash_protect_check(struct flash_bank *bank)
 {
 	return ERROR_OK;
 }
 
-static int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int ecosflash_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct ecosflash_flash_bank *info = bank->driver_priv;
 	snprintf(buf, buf_size, "eCos flash driver: %s", info->driverPath);
@@ -414,17 +414,17 @@ static int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size)
 }
 
 #if 0
-static uint32_t ecosflash_get_flash_status(flash_bank_t *bank)
+static uint32_t ecosflash_get_flash_status(struct flash_bank *bank)
 {
 	return ERROR_OK;
 }
 
-static void ecosflash_set_flash_mode(flash_bank_t *bank,int mode)
+static void ecosflash_set_flash_mode(struct flash_bank *bank,int mode)
 {
 
 }
 
-static uint32_t ecosflash_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout)
+static uint32_t ecosflash_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout)
 {
 	return ERROR_OK;
 }

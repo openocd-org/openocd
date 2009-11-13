@@ -171,14 +171,14 @@ struct lpc2900_flash_bank
 };
 
 
-static uint32_t lpc2900_wait_status(flash_bank_t *bank, uint32_t mask, int timeout);
-static void lpc2900_setup(struct flash_bank_s *bank);
-static uint32_t lpc2900_is_ready(struct flash_bank_s *bank);
-static uint32_t lpc2900_read_security_status(struct flash_bank_s *bank);
-static uint32_t lpc2900_run_bist128(struct flash_bank_s *bank,
+static uint32_t lpc2900_wait_status(struct flash_bank *bank, uint32_t mask, int timeout);
+static void lpc2900_setup(struct flash_bank *bank);
+static uint32_t lpc2900_is_ready(struct flash_bank *bank);
+static uint32_t lpc2900_read_security_status(struct flash_bank *bank);
+static uint32_t lpc2900_run_bist128(struct flash_bank *bank,
                                     uint32_t addr_from, uint32_t addr_to,
                                     uint32_t (*signature)[4] );
-static uint32_t lpc2900_address2sector(struct flash_bank_s *bank, uint32_t offset);
+static uint32_t lpc2900_address2sector(struct flash_bank *bank, uint32_t offset);
 static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time );
 
 
@@ -194,7 +194,7 @@ static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time );
  * @param[in] mask Mask to be used for INT_STATUS
  * @param[in] timeout Timeout in ms
  */
-static uint32_t lpc2900_wait_status( flash_bank_t *bank,
+static uint32_t lpc2900_wait_status( struct flash_bank *bank,
                                      uint32_t mask,
                                      int timeout )
 {
@@ -228,7 +228,7 @@ static uint32_t lpc2900_wait_status( flash_bank_t *bank,
  *
  * @param bank Pointer to the flash bank descriptor
  */
-static void lpc2900_setup( struct flash_bank_s *bank )
+static void lpc2900_setup( struct flash_bank *bank )
 {
 	uint32_t fcra;
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
@@ -251,7 +251,7 @@ static void lpc2900_setup( struct flash_bank_s *bank )
  * Must have been successfully probed.
  * Must be halted.
  */
-static uint32_t lpc2900_is_ready( struct flash_bank_s *bank )
+static uint32_t lpc2900_is_ready( struct flash_bank *bank )
 {
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
@@ -275,7 +275,7 @@ static uint32_t lpc2900_is_ready( struct flash_bank_s *bank )
  *
  * @param bank Pointer to the flash bank descriptor
  */
-static uint32_t lpc2900_read_security_status( struct flash_bank_s *bank )
+static uint32_t lpc2900_read_security_status( struct flash_bank *bank )
 {
 	uint32_t status;
 	if( (status = lpc2900_is_ready( bank )) != ERROR_OK )
@@ -356,7 +356,7 @@ static uint32_t lpc2900_read_security_status( struct flash_bank_s *bank )
  * @param addr_to
  * @param signature
  */
-static uint32_t lpc2900_run_bist128(struct flash_bank_s *bank,
+static uint32_t lpc2900_run_bist128(struct flash_bank *bank,
                                     uint32_t addr_from,
                                     uint32_t addr_to,
                                     uint32_t (*signature)[4] )
@@ -393,7 +393,7 @@ static uint32_t lpc2900_run_bist128(struct flash_bank_s *bank,
  * @param bank Pointer to the flash bank descriptor
  * @param offset Offset address relative to bank start
  */
-static uint32_t lpc2900_address2sector( struct flash_bank_s *bank,
+static uint32_t lpc2900_address2sector( struct flash_bank *bank,
                                         uint32_t offset )
 {
 	uint32_t address = bank->base + offset;
@@ -424,7 +424,7 @@ static uint32_t lpc2900_address2sector( struct flash_bank_s *bank,
  * @param pagenum Page number (0...7)
  * @param page Page array (FLASH_PAGE_SIZE bytes)
  */
-static int lpc2900_write_index_page( struct flash_bank_s *bank,
+static int lpc2900_write_index_page( struct flash_bank *bank,
                                      int pagenum,
                                      uint8_t (*page)[FLASH_PAGE_SIZE] )
 {
@@ -543,7 +543,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -588,7 +588,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -659,7 +659,7 @@ COMMAND_HANDLER(lpc2900_handle_password_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -694,7 +694,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -805,7 +805,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 	}
 
 	/* Get the bank descriptor */
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -904,7 +904,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 	}
 
 	/* Get the bank descriptor */
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1070,7 +1070,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
  * @param first First sector to be erased
  * @param last Last sector (including) to be erased
  */
-static int lpc2900_erase(struct flash_bank_s *bank, int first, int last)
+static int lpc2900_erase(struct flash_bank *bank, int first, int last)
 {
 	uint32_t status;
 	int sector;
@@ -1177,7 +1177,7 @@ static int lpc2900_erase(struct flash_bank_s *bank, int first, int last)
 
 
 
-static int lpc2900_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int lpc2900_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	/* This command is not supported.
      * "Protection" in LPC2900 terms is handled transparently. Sectors will
@@ -1199,7 +1199,7 @@ static int lpc2900_protect(struct flash_bank_s *bank, int set, int first, int la
  * @param offset Start address (relative to bank start)
  * @param count Number of bytes to be programmed
  */
-static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
+static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
                          uint32_t offset, uint32_t count)
 {
 	uint8_t page[FLASH_PAGE_SIZE];
@@ -1548,7 +1548,7 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
  *
  * @param bank Pointer to the flash bank descriptor
  */
-static int lpc2900_probe(struct flash_bank_s *bank)
+static int lpc2900_probe(struct flash_bank *bank)
 {
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -1751,7 +1751,7 @@ static int lpc2900_probe(struct flash_bank_s *bank)
  *
  * @param bank Pointer to the flash bank descriptor
  */
-static int lpc2900_erase_check(struct flash_bank_s *bank)
+static int lpc2900_erase_check(struct flash_bank *bank)
 {
 	uint32_t status = lpc2900_is_ready(bank);
 	if (status != ERROR_OK)
@@ -1809,7 +1809,7 @@ static int lpc2900_erase_check(struct flash_bank_s *bank)
  *
  * @param bank Pointer to the flash bank descriptor
  */
-static int lpc2900_protect_check(struct flash_bank_s *bank)
+static int lpc2900_protect_check(struct flash_bank *bank)
 {
 	return lpc2900_read_security_status(bank);
 }
@@ -1822,7 +1822,7 @@ static int lpc2900_protect_check(struct flash_bank_s *bank)
  * @param buf Buffer to take the string
  * @param buf_size Maximum number of characters that the buffer can take
  */
-static int lpc2900_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int lpc2900_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "lpc2900 flash driver");
 

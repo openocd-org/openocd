@@ -57,10 +57,10 @@ struct flash_sector
 	int is_protected;
 };
 
-struct flash_bank_s;
+struct flash_bank;
 
 #define __FLASH_BANK_COMMAND(name) \
-		COMMAND_HELPER(name, struct flash_bank_s *bank)
+		COMMAND_HELPER(name, struct flash_bank *bank)
 
 /**
  * @brief Provides the implementation-independent structure that defines
@@ -103,7 +103,7 @@ struct flash_driver
 	 * Finish the "flash bank" command for @a bank.  The
 	 * @a bank parameter will have been filled in by the core flash
 	 * layer when this routine is called, and the driver can store
-	 * additional information in its flash_bank_t::driver_priv field.
+	 * additional information in its struct flash_bank::driver_priv field.
 	 *
 	 * The args are: @par
 	 * @code
@@ -136,7 +136,7 @@ struct flash_driver
 	 * @param last The number of the last sector to erase, typically N-1.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*erase)(struct flash_bank_s *bank, int first, int last);
+	int (*erase)(struct flash_bank *bank, int first, int last);
 
 	/**
 	 * Bank/sector protection routine (target-specific).
@@ -150,7 +150,7 @@ struct flash_driver
 	 * @param last The last sector to (un)project, typically N-1.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*protect)(struct flash_bank_s *bank, int set, int first, int last);
+	int (*protect)(struct flash_bank *bank, int set, int first, int last);
 
 	/**
 	 * Program data into the flash.  Note CPU address will be
@@ -163,7 +163,7 @@ struct flash_driver
 	 * @param count The number of bytes to write.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*write)(struct flash_bank_s *bank,
+	int (*write)(struct flash_bank *bank,
 			uint8_t *buffer, uint32_t offset, uint32_t count);
 
 	/**
@@ -173,7 +173,7 @@ struct flash_driver
 	 * @param bank The bank to probe
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*probe)(struct flash_bank_s *bank);
+	int (*probe)(struct flash_bank *bank);
 
 	/**
 	 * Check the erasure status of a flash bank.
@@ -184,7 +184,7 @@ struct flash_driver
 	 * @param bank The bank to check
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*erase_check)(struct flash_bank_s *bank);
+	int (*erase_check)(struct flash_bank *bank);
 
 	/**
 	 * Determine if the specific bank is "protected" or not.
@@ -196,7 +196,7 @@ struct flash_driver
 	 * @param bank - the bank to check
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*protect_check)(struct flash_bank_s *bank);
+	int (*protect_check)(struct flash_bank *bank);
 
 	/**
 	 * Display human-readable information about the flash
@@ -208,7 +208,7 @@ struct flash_driver
 	 * @param buf_size - the size of the human buffer.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*info)(struct flash_bank_s *bank, char *buf, int buf_size);
+	int (*info)(struct flash_bank *bank, char *buf, int buf_size);
 
 	/**
 	 * A more gentle flavor of filash_driver_s::probe, performing
@@ -223,7 +223,7 @@ struct flash_driver
 	 * @param bank - the bank to probe
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*auto_probe)(struct flash_bank_s *bank);
+	int (*auto_probe)(struct flash_bank *bank);
 };
 
 #define FLASH_BANK_COMMAND_HANDLER(name) static __FLASH_BANK_COMMAND(name)
@@ -238,7 +238,7 @@ struct flash_driver
  * may use the @c driver_priv member to store additional data on a
  * per-bank basis, if required.
  */
-typedef struct flash_bank_s
+struct flash_bank
 {
 	struct target *target; /**< Target to which this bank belongs. */
 
@@ -261,8 +261,8 @@ typedef struct flash_bank_s
 	/// Array of sectors, allocated and initilized by the flash driver
 	struct flash_sector *sectors;
 
-	struct flash_bank_s *next; /**< The next flash bank on this chip */
-} flash_bank_t;
+	struct flash_bank *next; /**< The next flash bank on this chip */
+};
 
 /// Registers the 'flash' subsystem commands
 int flash_register_commands(struct command_context_s *cmd_ctx);
@@ -300,21 +300,21 @@ int flash_get_bank_count(void);
  * this routine will call default_flash_mem_blank_check() to confirm.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
-int default_flash_blank_check(struct flash_bank_s *bank);
+int default_flash_blank_check(struct flash_bank *bank);
 /**
  * Provides a default blank flash memory check.  Ensures the contents
  * of the given bank have truly been erased.
  * @param bank The flash bank.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
-int default_flash_mem_blank_check(struct flash_bank_s *bank);
+int default_flash_mem_blank_check(struct flash_bank *bank);
 
 /**
  * Returns a flash bank by the specified flash_bank_s bank_number, @a num.
  * @param num The flash bank number.
- * @returns A flash_bank_t for flash bank @a num, or NULL
+ * @returns A struct flash_bank for flash bank @a num, or NULL
  */
-flash_bank_t *get_flash_bank_by_num(int num);
+struct flash_bank *get_flash_bank_by_num(int num);
 /**
  * Retreives @a bank from a command argument, reporting errors parsing
  * the bank identifier or retreiving the specified bank.
@@ -324,20 +324,20 @@ flash_bank_t *get_flash_bank_by_num(int num);
  * @returns ERROR_OK on success, or an error indicating the problem.
  */
 int flash_command_get_bank_by_num(struct command_context_s *cmd_ctx,
-		const char *str, flash_bank_t **bank);
+		const char *str, struct flash_bank **bank);
 /**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.
  * @param num The flash bank number.
- * @returns A flash_bank_t for flash bank @a num, or NULL.
+ * @returns A struct flash_bank for flash bank @a num, or NULL.
  */
-flash_bank_t *get_flash_bank_by_num_noprobe(int num);
+struct flash_bank *get_flash_bank_by_num_noprobe(int num);
 /**
  * Returns the flash bank located at a specified address.
  * @param target The target, presumed to contain one or more banks.
  * @param addr An address that is within the range of the bank.
- * @returns The flash_bank_t located at @a addr, or NULL.
+ * @returns The struct flash_bank located at @a addr, or NULL.
  */
-struct flash_bank_s *get_flash_bank_by_addr(struct target *target, uint32_t addr);
+struct flash_bank *get_flash_bank_by_addr(struct target *target, uint32_t addr);
 
 #define ERROR_FLASH_BANK_INVALID			(-900)
 #define ERROR_FLASH_SECTOR_INVALID			(-901)

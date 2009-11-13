@@ -198,19 +198,19 @@ FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int avrf_erase(struct flash_bank_s *bank, int first, int last)
+static int avrf_erase(struct flash_bank *bank, int first, int last)
 {
 	LOG_INFO("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int avrf_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	LOG_INFO("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int avrf_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
@@ -261,7 +261,7 @@ static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offse
 #define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
-static int avrf_probe(struct flash_bank_s *bank)
+static int avrf_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct avrf_flash_bank *avrf_info = bank->driver_priv;
@@ -329,7 +329,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 	}
 }
 
-static int avrf_auto_probe(struct flash_bank_s *bank)
+static int avrf_auto_probe(struct flash_bank *bank)
 {
 	struct avrf_flash_bank *avrf_info = bank->driver_priv;
 	if (avrf_info->probed)
@@ -337,13 +337,13 @@ static int avrf_auto_probe(struct flash_bank_s *bank)
 	return avrf_probe(bank);
 }
 
-static int avrf_protect_check(struct flash_bank_s *bank)
+static int avrf_protect_check(struct flash_bank *bank)
 {
 	LOG_INFO("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int avrf_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
@@ -394,7 +394,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}
 }
 
-static int avrf_mass_erase(struct flash_bank_s *bank)
+static int avrf_mass_erase(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
@@ -425,7 +425,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;

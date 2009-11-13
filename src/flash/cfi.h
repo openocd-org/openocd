@@ -146,7 +146,7 @@ struct cfi_fixup
 {
 	uint16_t mfr;
 	uint16_t id;
-	void (*fixup)(flash_bank_t *flash, void *param);
+	void (*fixup)(struct flash_bank *flash, void *param);
 	void *param;
 };
 

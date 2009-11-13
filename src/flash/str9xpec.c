@@ -28,9 +28,9 @@
 #include "arm7_9_common.h"
 
 
-static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last);
-static int str9xpec_set_address(struct flash_bank_s *bank, uint8_t sector);
-static int str9xpec_write_options(struct flash_bank_s *bank);
+static int str9xpec_erase_area(struct flash_bank *bank, int first, int last);
+static int str9xpec_set_address(struct flash_bank *bank, uint8_t sector);
+static int str9xpec_write_options(struct flash_bank *bank);
 
 int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
 {
@@ -81,7 +81,7 @@ static uint8_t str9xpec_isc_status(struct jtag_tap *tap)
 	return status;
 }
 
-static int str9xpec_isc_enable(struct flash_bank_s *bank)
+static int str9xpec_isc_enable(struct flash_bank *bank)
 {
 	uint8_t status;
 	struct jtag_tap *tap;
@@ -108,7 +108,7 @@ static int str9xpec_isc_enable(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int str9xpec_isc_disable(struct flash_bank_s *bank)
+static int str9xpec_isc_disable(struct flash_bank *bank)
 {
 	uint8_t status;
 	struct jtag_tap *tap;
@@ -137,7 +137,7 @@ static int str9xpec_isc_disable(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int str9xpec_read_config(struct flash_bank_s *bank)
+static int str9xpec_read_config(struct flash_bank *bank)
 {
 	struct scan_field field;
 	uint8_t status;
@@ -166,7 +166,7 @@ static int str9xpec_read_config(struct flash_bank_s *bank)
 	return status;
 }
 
-static int str9xpec_build_block_list(struct flash_bank_s *bank)
+static int str9xpec_build_block_list(struct flash_bank *bank)
 {
 	struct str9xpec_flash_controller *str9xpec_info = bank->driver_priv;
 
@@ -269,7 +269,7 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
+static int str9xpec_blank_check(struct flash_bank *bank, int first, int last)
 {
 	struct scan_field field;
 	uint8_t status;
@@ -336,7 +336,7 @@ static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int str9xpec_protect_check(struct flash_bank_s *bank)
+static int str9xpec_protect_check(struct flash_bank *bank)
 {
 	uint8_t status;
 	int i;
@@ -358,7 +358,7 @@ static int str9xpec_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
+static int str9xpec_erase_area(struct flash_bank *bank, int first, int last)
 {
 	struct scan_field field;
 	uint8_t status;
@@ -428,7 +428,7 @@ static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	return status;
 }
 
-static int str9xpec_erase(struct flash_bank_s *bank, int first, int last)
+static int str9xpec_erase(struct flash_bank *bank, int first, int last)
 {
 	int status;
 
@@ -440,7 +440,7 @@ static int str9xpec_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int str9xpec_lock_device(struct flash_bank_s *bank)
+static int str9xpec_lock_device(struct flash_bank *bank)
 {
 	struct scan_field field;
 	uint8_t status;
@@ -482,7 +482,7 @@ static int str9xpec_lock_device(struct flash_bank_s *bank)
 	return status;
 }
 
-static int str9xpec_unlock_device(struct flash_bank_s *bank)
+static int str9xpec_unlock_device(struct flash_bank *bank)
 {
 	uint8_t status;
 
@@ -491,7 +491,7 @@ static int str9xpec_unlock_device(struct flash_bank_s *bank)
 	return status;
 }
 
-static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int str9xpec_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	uint8_t status;
 	int i;
@@ -537,7 +537,7 @@ static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int l
 	return ERROR_OK;
 }
 
-static int str9xpec_set_address(struct flash_bank_s *bank, uint8_t sector)
+static int str9xpec_set_address(struct flash_bank *bank, uint8_t sector)
 {
 	struct jtag_tap *tap;
 	struct scan_field field;
@@ -558,7 +558,7 @@ static int str9xpec_set_address(struct flash_bank_s *bank, uint8_t sector)
 	return ERROR_OK;
 }
 
-static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct str9xpec_flash_controller *str9xpec_info = bank->driver_priv;
 	uint32_t dwords_remaining = (count / 8);
@@ -721,7 +721,7 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 	return ERROR_OK;
 }
 
-static int str9xpec_probe(struct flash_bank_s *bank)
+static int str9xpec_probe(struct flash_bank *bank)
 {
 	return ERROR_OK;
 }
@@ -737,7 +737,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 	if (argc < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -766,12 +766,12 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 	return ERROR_OK;
 }
 
-static int str9xpec_erase_check(struct flash_bank_s *bank)
+static int str9xpec_erase_check(struct flash_bank *bank)
 {
 	return str9xpec_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
-static int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int str9xpec_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str9xpec flash driver info");
 	return ERROR_OK;
@@ -788,7 +788,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -833,7 +833,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 	return ERROR_OK;
 }
 
-static int str9xpec_write_options(struct flash_bank_s *bank)
+static int str9xpec_write_options(struct flash_bank *bank)
 {
 	struct scan_field field;
 	uint8_t status;
@@ -904,7 +904,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -927,7 +927,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -956,7 +956,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -985,7 +985,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1014,7 +1014,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1043,7 +1043,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_lock_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1066,7 +1066,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1092,7 +1092,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1139,7 +1139,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;

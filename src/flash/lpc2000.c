@@ -53,7 +53,7 @@
  * - 176x (tested with LPC1768)
  */
 
-static int lpc2000_build_sector_list(struct flash_bank_s *bank)
+static int lpc2000_build_sector_list(struct flash_bank *bank)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	int i;
@@ -234,7 +234,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
  * 0x20 to 0x33: command result table (1+4 words)
  * 0x34 to 0xb3: stack (only 128b needed)
  */
-static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5], uint32_t result_table[4])
+static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_table[5], uint32_t result_table[4])
 {
 	int retval;
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
@@ -375,7 +375,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5
 	return status_code;
 }
 
-static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int last)
+static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
 {
 	uint32_t param_table[5];
 	uint32_t result_table[4];
@@ -477,7 +477,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
+static int lpc2000_erase(struct flash_bank *bank, int first, int last)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	uint32_t param_table[5];
@@ -529,13 +529,13 @@ static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int lpc2000_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	/* can't protect/unprotect on the lpc2000 */
 	return ERROR_OK;
 }
 
-static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -703,7 +703,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	return retval;
 }
 
-static int lpc2000_probe(struct flash_bank_s *bank)
+static int lpc2000_probe(struct flash_bank *bank)
 {
 	/* we can't probe on an lpc2000
 	 * if this is an lpc2xxx, it has the configured flash
@@ -711,7 +711,7 @@ static int lpc2000_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int lpc2000_erase_check(struct flash_bank_s *bank)
+static int lpc2000_erase_check(struct flash_bank *bank)
 {
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -722,13 +722,13 @@ static int lpc2000_erase_check(struct flash_bank_s *bank)
 	return lpc2000_iap_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
-static int lpc2000_protect_check(struct flash_bank_s *bank)
+static int lpc2000_protect_check(struct flash_bank *bank)
 {
 	/* sectors are always protected	*/
 	return ERROR_OK;
 }
 
-static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 
@@ -748,7 +748,7 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;

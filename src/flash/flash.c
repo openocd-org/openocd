@@ -76,11 +76,11 @@ struct flash_driver *flash_drivers[] = {
 	NULL,
 };
 
-flash_bank_t *flash_banks;
+struct flash_bank *flash_banks;
 static 	command_t *flash_cmd;
 
 /* wafer thin wrapper for invoking the flash driver */
-static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int flash_driver_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 
@@ -94,7 +94,7 @@ static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, uint32
 	return retval;
 }
 
-static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
+static int flash_driver_erase(struct flash_bank *bank, int first, int last)
 {
 	int retval;
 
@@ -107,7 +107,7 @@ static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 	return retval;
 }
 
-int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last)
+int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int retval;
 
@@ -122,7 +122,7 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 
 static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	flash_bank_t *p;
+	struct flash_bank *p;
 
 	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
@@ -153,9 +153,9 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-flash_bank_t *get_flash_bank_by_num_noprobe(int num)
+struct flash_bank *get_flash_bank_by_num_noprobe(int num)
 {
-	flash_bank_t *p;
+	struct flash_bank *p;
 	int i = 0;
 
 	for (p = flash_banks; p; p = p->next)
@@ -171,7 +171,7 @@ flash_bank_t *get_flash_bank_by_num_noprobe(int num)
 
 int flash_get_bank_count(void)
 {
-	flash_bank_t *p;
+	struct flash_bank *p;
 	int i = 0;
 	for (p = flash_banks; p; p = p->next)
 	{
@@ -180,9 +180,9 @@ int flash_get_bank_count(void)
 	return i;
 }
 
-flash_bank_t *get_flash_bank_by_num(int num)
+struct flash_bank *get_flash_bank_by_num(int num)
 {
-	flash_bank_t *p = get_flash_bank_by_num_noprobe(num);
+	struct flash_bank *p = get_flash_bank_by_num_noprobe(num);
 	int retval;
 
 	if (p == NULL)
@@ -199,7 +199,7 @@ flash_bank_t *get_flash_bank_by_num(int num)
 }
 
 int flash_command_get_bank_by_num(
-	struct command_context_s *cmd_ctx, const char *str, flash_bank_t **bank)
+	struct command_context_s *cmd_ctx, const char *str, struct flash_bank **bank)
 {
 	unsigned bank_num;
 	COMMAND_PARSE_NUMBER(uint, str, bank_num);
@@ -238,7 +238,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		if (strcmp(args[0], flash_drivers[i]->name) != 0)
 			continue;
 
-		flash_bank_t *p, *c;
+		struct flash_bank *p, *c;
 
 		/* register flash specific commands */
 		if (flash_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
@@ -247,7 +247,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 			return ERROR_FAIL;
 		}
 
-		c = malloc(sizeof(flash_bank_t));
+		c = malloc(sizeof(struct flash_bank));
 		c->target = target;
 		c->driver = flash_drivers[i];
 		c->driver_priv = NULL;
@@ -298,7 +298,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 
 COMMAND_HANDLER(handle_flash_info_command)
 {
-	flash_bank_t *p;
+	struct flash_bank *p;
 	uint32_t i = 0;
 	int j = 0;
 	int retval;
@@ -369,7 +369,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 
 	unsigned bank_nr;
 	COMMAND_PARSE_NUMBER(uint, args[0], bank_nr);
-	flash_bank_t *p = get_flash_bank_by_num_noprobe(bank_nr);
+	struct flash_bank *p = get_flash_bank_by_num_noprobe(bank_nr);
 	if (p)
 	{
 		if ((retval = p->driver->probe(p)) == ERROR_OK)
@@ -402,7 +402,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	flash_bank_t *p;
+	struct flash_bank *p;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -443,7 +443,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 
 COMMAND_HANDLER(handle_flash_erase_address_command)
 {
-	flash_bank_t *p;
+	struct flash_bank *p;
 	int retval;
 	int address;
 	int length;
@@ -490,7 +490,7 @@ COMMAND_HANDLER(handle_flash_protect_check_command)
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	flash_bank_t *p;
+	struct flash_bank *p;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -539,7 +539,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	uint32_t last;
 
 	COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
-	flash_bank_t *p = get_flash_bank_by_num(bank_nr);
+	struct flash_bank *p = get_flash_bank_by_num(bank_nr);
 	if (!p)
 		return ERROR_OK;
 
@@ -580,7 +580,7 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	int set;
 
 	COMMAND_PARSE_NUMBER(u32, args[0], bank_nr);
-	flash_bank_t *p = get_flash_bank_by_num(bank_nr);
+	struct flash_bank *p = get_flash_bank_by_num(bank_nr);
 	if (!p)
 		return ERROR_OK;
 
@@ -772,7 +772,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	for (wrote = 0; wrote < (count*wordsize); wrote += cur_size)
 	{
 		cur_size = MIN((count*wordsize - wrote), sizeof(chunk));
-		flash_bank_t *bank;
+		struct flash_bank *bank;
 		bank = get_flash_bank_by_addr(target, address);
 		if (bank == NULL)
 		{
@@ -820,7 +820,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	flash_bank_t *p;
+	struct flash_bank *p;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -860,7 +860,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 
 void flash_set_dirty(void)
 {
-	flash_bank_t *c;
+	struct flash_bank *c;
 	int i;
 
 	/* set all flash to require erasing */
@@ -874,9 +874,9 @@ void flash_set_dirty(void)
 }
 
 /* lookup flash bank by address */
-struct flash_bank_s *get_flash_bank_by_addr(struct target *target, uint32_t addr)
+struct flash_bank *get_flash_bank_by_addr(struct target *target, uint32_t addr)
 {
-	flash_bank_t *c;
+	struct flash_bank *c;
 
 	/* cycle through bank list */
 	for (c = flash_banks; c; c = c->next)
@@ -899,9 +899,9 @@ struct flash_bank_s *get_flash_bank_by_addr(struct target *target, uint32_t addr
 
 /* erase given flash region, selects proper bank according to target and address */
 static int flash_iterate_address_range(struct target *target, uint32_t addr, uint32_t length,
-		int (*callback)(struct flash_bank_s *bank, int first, int last))
+		int (*callback)(struct flash_bank *bank, int first, int last))
 {
-	flash_bank_t *c;
+	struct flash_bank *c;
 	int first = -1;
 	int last = -1;
 	int i;
@@ -954,7 +954,7 @@ int flash_erase_address_range(struct target *target, uint32_t addr, uint32_t len
 	return flash_iterate_address_range(target, addr, length, &flash_driver_erase);
 }
 
-static int flash_driver_unprotect(struct flash_bank_s *bank, int first, int last)
+static int flash_driver_unprotect(struct flash_bank *bank, int first, int last)
 {
 	return flash_driver_protect(bank, 0, first, last);
 }
@@ -972,7 +972,7 @@ static int flash_write_unlock(struct target *target, struct image *image, uint32
 
 	int section;
 	uint32_t section_offset;
-	flash_bank_t *c;
+	struct flash_bank *c;
 	int *padding;
 
 	section = 0;
@@ -1130,7 +1130,7 @@ int flash_write(struct target *target, struct image *image, uint32_t *written, i
 	return flash_write_unlock(target, image, written, erase, false);
 }
 
-int default_flash_mem_blank_check(struct flash_bank_s *bank)
+int default_flash_mem_blank_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	uint8_t buffer[1024];
@@ -1177,7 +1177,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int default_flash_blank_check(struct flash_bank_s *bank)
+int default_flash_blank_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	int i;

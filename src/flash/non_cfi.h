@@ -35,6 +35,6 @@ struct non_cfi
 	uint8_t  status_poll_mask;
 };
 
-void cfi_fixup_non_cfi(flash_bank_t *bank);
+void cfi_fixup_non_cfi(struct flash_bank *bank);
 
 #endif /* NON_CFI_H */

@@ -1520,7 +1520,7 @@ static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len
 	return 0;
 }
 
-int gdb_calc_blocksize(flash_bank_t *bank)
+int gdb_calc_blocksize(struct flash_bank *bank)
 {
 	uint32_t i;
 	uint32_t block_size = 0xffffffff;
@@ -1538,9 +1538,9 @@ int gdb_calc_blocksize(flash_bank_t *bank)
 
 static int compare_bank (const void * a, const void * b)
 {
-	flash_bank_t *b1, *b2;
-	b1=*((flash_bank_t **)a);
-	b2=*((flash_bank_t **)b);
+	struct flash_bank *b1, *b2;
+	b1=*((struct flash_bank **)a);
+	b2=*((struct flash_bank **)b);
 
 	if (b1->base == b2->base)
 	{
@@ -1661,7 +1661,7 @@ int gdb_query_packet(struct connection *connection, struct target *target, char 
 		 * Normally we only execute this code once, but no big deal if we
 		 * have to regenerate it a couple of times. */
 
-		flash_bank_t *p;
+		struct flash_bank *p;
 		char *xml = NULL;
 		int size = 0;
 		int pos = 0;
@@ -1685,7 +1685,7 @@ int gdb_query_packet(struct connection *connection, struct target *target, char 
 		read/write) by default for GDB.
 		GDB does not have a concept of non-cacheable read/write memory.
 		 */
-		flash_bank_t **banks = malloc(sizeof(flash_bank_t *)*flash_get_bank_count());
+		struct flash_bank **banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
 		int i;
 
 		for (i = 0; i < flash_get_bank_count(); i++)
@@ -1701,7 +1701,7 @@ int gdb_query_packet(struct connection *connection, struct target *target, char 
 			banks[i]=p;
 		}
 
-		qsort(banks, flash_get_bank_count(), sizeof(flash_bank_t *), compare_bank);
+		qsort(banks, flash_get_bank_count(), sizeof(struct flash_bank *), compare_bank);
 
 		uint32_t ram_start = 0;
 		for (i = 0; i < flash_get_bank_count(); i++)

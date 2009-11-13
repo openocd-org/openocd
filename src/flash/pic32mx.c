@@ -57,8 +57,8 @@ struct pic32mx_devs_s {
 	{ 0x00, NULL, 0 }
 };
 
-static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32_t srcaddr);
-static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint32_t word);
+static int pic32mx_write_row(struct flash_bank *bank, uint32_t address, uint32_t srcaddr);
+static int pic32mx_write_word(struct flash_bank *bank, uint32_t address, uint32_t word);
 
 /* flash bank pic32mx <base> <size> 0 0 <target#>
  */
@@ -81,7 +81,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 	return ERROR_OK;
 }
 
-static uint32_t pic32mx_get_flash_status(flash_bank_t *bank)
+static uint32_t pic32mx_get_flash_status(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	uint32_t status;
@@ -91,7 +91,7 @@ static uint32_t pic32mx_get_flash_status(flash_bank_t *bank)
 	return status;
 }
 
-static uint32_t pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
+static uint32_t pic32mx_wait_status_busy(struct flash_bank *bank, int timeout)
 {
 	uint32_t status;
 
@@ -107,7 +107,7 @@ static uint32_t pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
 	return status;
 }
 
-static int pic32mx_nvm_exec(struct flash_bank_s *bank, uint32_t op, uint32_t timeout)
+static int pic32mx_nvm_exec(struct flash_bank *bank, uint32_t op, uint32_t timeout)
 {
 	struct target *target = bank->target;
 	uint32_t status;
@@ -129,7 +129,7 @@ static int pic32mx_nvm_exec(struct flash_bank_s *bank, uint32_t op, uint32_t tim
 	return status;
 }
 
-static int pic32mx_protect_check(struct flash_bank_s *bank)
+static int pic32mx_protect_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 
@@ -163,7 +163,7 @@ static int pic32mx_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
+static int pic32mx_erase(struct flash_bank *bank, int first, int last)
 {
 	struct target *target = bank->target;
 	int i;
@@ -205,7 +205,7 @@ static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int pic32mx_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	struct pic32mx_flash_bank *pic32mx_info = NULL;
 	struct target *target = bank->target;
@@ -298,7 +298,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 #endif
 }
 
-static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	uint32_t buffer_size = 512;
@@ -427,7 +427,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 	return retval;
 }
 
-static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint32_t word)
+static int pic32mx_write_word(struct flash_bank *bank, uint32_t address, uint32_t word)
 {
 	struct target *target = bank->target;
 
@@ -443,7 +443,7 @@ static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint3
 /*
  * Write a 128 word (512 byte) row to flash address from RAM srcaddr.
  */
-static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32_t srcaddr)
+static int pic32mx_write_row(struct flash_bank *bank, uint32_t address, uint32_t srcaddr)
 {
 	struct target *target = bank->target;
 
@@ -461,7 +461,7 @@ static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32
 	return pic32mx_nvm_exec(bank, NVMCON_OP_ROW_PROG, 100);
 }
 
-static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int pic32mx_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	uint32_t words_remaining = (count / 4);
 	uint32_t bytes_remaining = (count & 0x00000003);
@@ -539,7 +539,7 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	return ERROR_OK;
 }
 
-static int pic32mx_probe(struct flash_bank_s *bank)
+static int pic32mx_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
@@ -622,7 +622,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-static int pic32mx_auto_probe(struct flash_bank_s *bank)
+static int pic32mx_auto_probe(struct flash_bank *bank)
 {
 	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 	if (pic32mx_info->probed)
@@ -637,7 +637,7 @@ COMMAND_HANDLER(pic32mx_handle_part_id_command)
 }
 #endif
 
-static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int pic32mx_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct target *target = bank->target;
 	struct mips32_common *mips32 = target->arch_info;
@@ -683,7 +683,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -729,7 +729,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -763,7 +763,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 #endif
 
 #if 0
-static int pic32mx_chip_erase(struct flash_bank_s *bank)
+static int pic32mx_chip_erase(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 #if 0
@@ -819,7 +819,7 @@ COMMAND_HANDLER(pic32mx_handle_chip_erase_command)
 		return ERROR_OK;
 	}
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
 	if (ERROR_OK != retval)
 		return retval;
@@ -857,7 +857,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 	COMMAND_PARSE_NUMBER(u32, args[0], address);
 	COMMAND_PARSE_NUMBER(u32, args[1], value);
 
-	flash_bank_t *bank;
+	struct flash_bank *bank;
 	int retval = flash_command_get_bank_by_num(cmd_ctx, args[2], &bank);
 	if (ERROR_OK != retval)
 		return retval;

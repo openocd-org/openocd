@@ -403,7 +403,7 @@ static struct non_cfi non_cfi_flashes[] = {
 	}
 };
 
-void cfi_fixup_non_cfi(flash_bank_t *bank)
+void cfi_fixup_non_cfi(struct flash_bank *bank)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct non_cfi *non_cfi = non_cfi_flashes;
