@@ -33,14 +33,14 @@ static uint32_t ecosflash_wait_status_busy(flash_bank_t *bank, uint32_t waitbits
 static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 #endif
 
-typedef struct ecosflash_flash_bank_s
+struct ecosflash_flash_bank
 {
 	struct target_s *target;
 	working_area_t *write_algorithm;
 	working_area_t *erase_check_algorithm;
 	char *driverPath;
 	uint32_t start_address;
-} ecosflash_flash_bank_t;
+};
 
 static const int sectorSize = 0x10000;
 
@@ -106,7 +106,7 @@ flash_errmsg(int err)
  */
 FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 {
-	ecosflash_flash_bank_t *info;
+	struct ecosflash_flash_bank *info;
 
 	if (argc < 7)
 	{
@@ -114,7 +114,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	info = malloc(sizeof(ecosflash_flash_bank_t));
+	info = malloc(sizeof(struct ecosflash_flash_bank));
 	if (info == NULL)
 	{
 		LOG_ERROR("no memory for flash bank info");
@@ -149,7 +149,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int loadDriver(ecosflash_flash_bank_t *info)
+static int loadDriver(struct ecosflash_flash_bank *info)
 {
 	uint32_t buf_cnt;
 	uint32_t image_size;
@@ -198,7 +198,7 @@ static int const OFFSET_FLASH_SIZE = 0x8;
 static int const OFFSET_GET_WORKAREA = 0x18;
 static int const OFFSET_GET_WORKAREA_SIZE = 0x4;
 
-static int runCode(ecosflash_flash_bank_t *info,
+static int runCode(struct ecosflash_flash_bank *info,
 		uint32_t codeStart, uint32_t codeStop, uint32_t r0, uint32_t r1, uint32_t r2,
 		uint32_t *result,
 		/* timeout in ms */
@@ -239,7 +239,7 @@ static int runCode(ecosflash_flash_bank_t *info,
 	return ERROR_OK;
 }
 
-static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint32_t len)
+static int eCosBoard_erase(struct ecosflash_flash_bank *info, uint32_t address, uint32_t len)
 {
 	int retval;
 	int timeout = (len / 20480 + 1) * 1000; /*asume 20 KB/s*/
@@ -270,7 +270,7 @@ static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint3
 	return ERROR_OK;
 }
 
-static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t address, uint32_t len)
+static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32_t address, uint32_t len)
 {
 	target_t *target = info->target;
 	const int chunk = 8192;
@@ -344,7 +344,7 @@ static int ecosflash_register_commands(struct command_context_s *cmd_ctx)
 #if 0
 static void command(flash_bank_t *bank, uint8_t cmd, uint8_t *cmd_buf)
 {
-	ecosflash_flash_bank_t *info = bank->driver_priv;
+	struct ecosflash_flash_bank *info = bank->driver_priv;
 	int i;
 
 	if (info->target->endianness == TARGET_LITTLE_ENDIAN)
@@ -385,7 +385,7 @@ static uint32_t ecosflash_address(struct flash_bank_s *bank, uint32_t address)
 static int ecosflash_erase(struct flash_bank_s *bank, int first, int last)
 {
 	struct flash_bank_s *c = bank;
-	ecosflash_flash_bank_t *info = bank->driver_priv;
+	struct ecosflash_flash_bank *info = bank->driver_priv;
 	return eCosBoard_erase(info, c->base + first*sectorSize, sectorSize*(last-first + 1));
 }
 
@@ -396,7 +396,7 @@ static int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int 
 
 static int ecosflash_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	ecosflash_flash_bank_t *info = bank->driver_priv;
+	struct ecosflash_flash_bank *info = bank->driver_priv;
 	struct flash_bank_s *c = bank;
 	return eCosBoard_flash(info, buffer, c->base + offset, count);
 }
@@ -408,7 +408,7 @@ static int ecosflash_protect_check(struct flash_bank_s *bank)
 
 static int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	ecosflash_flash_bank_t *info = bank->driver_priv;
+	struct ecosflash_flash_bank *info = bank->driver_priv;
 	snprintf(buf, buf_size, "eCos flash driver: %s", info->driverPath);
 	return ERROR_OK;
 }
