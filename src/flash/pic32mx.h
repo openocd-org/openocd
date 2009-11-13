@@ -104,10 +104,10 @@ struct pic32mx_flash_bank
 #define NVMKEY1			0xAA996655
 #define NVMKEY2			0x556699AA
 
-typedef struct pic32mx_mem_layout_s {
+struct pic32mx_mem_layout {
 	uint32_t sector_start;
 	uint32_t sector_size;
-} pic32mx_mem_layout_t;
+};
 
 #endif /* PIC32MX_H */
 
