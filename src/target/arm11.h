@@ -176,11 +176,11 @@ enum arm11_sc7
 	ARM11_SC7_WCR0				= 112,
 };
 
-typedef struct arm11_reg_state_s
+struct arm11_reg_state
 {
 	uint32_t				def_index;
 	target_t *			target;
-} arm11_reg_state_t;
+};
 
 int arm11_register_commands(struct command_context_s *cmd_ctx);
 

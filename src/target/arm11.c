@@ -1895,7 +1895,7 @@ static int arm11_get_reg(reg_t *reg)
 {
 	FNC_INFO;
 
-	target_t * target = ((arm11_reg_state_t *)reg->arch_info)->target;
+	target_t * target = ((struct arm11_reg_state *)reg->arch_info)->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1907,7 +1907,7 @@ static int arm11_get_reg(reg_t *reg)
 
 #if 0
 	struct arm11_common *arm11 = target->arch_info;
-	const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
+	const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
 #endif
 
 	return ERROR_OK;
@@ -1918,11 +1918,11 @@ static int arm11_set_reg(reg_t *reg, uint8_t *buf)
 {
 	FNC_INFO;
 
-	target_t * target = ((arm11_reg_state_t *)reg->arch_info)->target;
+	target_t * target = ((struct arm11_reg_state *)reg->arch_info)->target;
 	struct arm11_common *arm11 = target->arch_info;
-//	  const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
+//	  const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
 
-	arm11->reg_values[((arm11_reg_state_t *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
+	arm11->reg_values[((struct arm11_reg_state *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
 	reg->valid	= 1;
 	reg->dirty	= 1;
 
@@ -1935,7 +1935,7 @@ static int arm11_build_reg_cache(target_t *target)
 
 	NEW(reg_cache_t,		cache,				1);
 	NEW(reg_t,				reg_list,			ARM11_REGCACHE_COUNT);
-	NEW(arm11_reg_state_t,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
+	NEW(struct arm11_reg_state,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
 
 	if (arm11_regs_arch_type == -1)
 		arm11_regs_arch_type = register_reg_arch_type(arm11_get_reg, arm11_set_reg);
@@ -1972,7 +1972,7 @@ static int arm11_build_reg_cache(target_t *target)
 	{
 		reg_t *						r	= reg_list			+ i;
 		const struct arm11_reg_defs *	rd	= arm11_reg_defs	+ i;
-		arm11_reg_state_t *			rs	= arm11_reg_states	+ i;
+		struct arm11_reg_state *			rs	= arm11_reg_states	+ i;
 
 		r->name				= rd->name;
 		r->size				= 32;
