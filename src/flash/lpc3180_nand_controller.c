@@ -24,12 +24,12 @@
 #include "lpc3180_nand_controller.h"
 #include "nand.h"
 
-static int lpc3180_reset(struct nand_device_s *device);
-static int lpc3180_controller_ready(struct nand_device_s *device, int timeout);
+static int lpc3180_reset(struct nand_device_s *nand);
+static int lpc3180_controller_ready(struct nand_device_s *nand, int timeout);
 
 /* nand device lpc3180 <target#> <oscillator_frequency>
  */
-static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device)
+static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *nand)
 {
 	if (argc < 3)
 	{
@@ -49,7 +49,7 @@ static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *
 
 	lpc3180_nand_controller_t *lpc3180_info;
 	lpc3180_info = malloc(sizeof(lpc3180_nand_controller_t));
-	device->controller_priv = lpc3180_info;
+	nand->controller_priv = lpc3180_info;
 
 	lpc3180_info->target = target;
 	lpc3180_info->osc_freq = osc_freq;
@@ -144,13 +144,13 @@ static float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
 	return cycle;
 }
 
-static int lpc3180_init(struct nand_device_s *device)
+static int lpc3180_init(struct nand_device_s *nand)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
-	int bus_width = (device->bus_width) ? (device->bus_width) : 8;
-	int address_cycles = (device->address_cycles) ? (device->address_cycles) : 3;
-	int page_size = (device->page_size) ? (device->page_size) : 512;
+	int bus_width = nand->bus_width ? : 8;
+	int address_cycles = nand->address_cycles ? : 3;
+	int page_size = nand->page_size ? : 512;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -174,7 +174,7 @@ static int lpc3180_init(struct nand_device_s *device)
 	}
 
 	/* inform calling code about selected bus width */
-	device->bus_width = bus_width;
+	nand->bus_width = bus_width;
 
 	if ((address_cycles != 3) && (address_cycles != 4))
 	{
@@ -240,7 +240,7 @@ static int lpc3180_init(struct nand_device_s *device)
 			((trp & 0xf) << 8) | ((treh & 0xf) << 12) | ((trhz & 0x7) << 16) |
 			((trbwb & 0x1f) << 19) | ((tcea & 0x3) << 24));
 
-		lpc3180_reset(device);
+		lpc3180_reset(nand);
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 	{
@@ -268,15 +268,15 @@ static int lpc3180_init(struct nand_device_s *device)
 			((r_width & 0xf) << 8) | ((r_rdy & 0xf) << 12) |  ((w_setup & 0xf) << 16) |
 			((w_hold & 0xf) << 20) | ((w_width & 0xf) << 24) | ((w_rdy & 0xf) << 28));
 
-		lpc3180_reset(device);
+		lpc3180_reset(nand);
 	}
 
 	return ERROR_OK;
 }
 
-static int lpc3180_reset(struct nand_device_s *device)
+static int lpc3180_reset(struct nand_device_s *nand)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -295,7 +295,7 @@ static int lpc3180_reset(struct nand_device_s *device)
 		/* MLC_CMD = 0xff (reset controller and NAND device) */
 		target_write_u32(target, 0x200b8000, 0xff);
 
-		if (!lpc3180_controller_ready(device, 100))
+		if (!lpc3180_controller_ready(nand, 100))
 		{
 			LOG_ERROR("LPC3180 NAND controller timed out after reset");
 			return ERROR_NAND_OPERATION_TIMEOUT;
@@ -306,7 +306,7 @@ static int lpc3180_reset(struct nand_device_s *device)
 		/* SLC_CTRL = 0x6 (ECC_CLEAR, SW_RESET) */
 		target_write_u32(target, 0x20020010, 0x6);
 
-		if (!lpc3180_controller_ready(device, 100))
+		if (!lpc3180_controller_ready(nand, 100))
 		{
 			LOG_ERROR("LPC3180 NAND controller timed out after reset");
 			return ERROR_NAND_OPERATION_TIMEOUT;
@@ -316,9 +316,9 @@ static int lpc3180_reset(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-static int lpc3180_command(struct nand_device_s *device, uint8_t command)
+static int lpc3180_command(struct nand_device_s *nand, uint8_t command)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -346,9 +346,9 @@ static int lpc3180_command(struct nand_device_s *device, uint8_t command)
 	return ERROR_OK;
 }
 
-static int lpc3180_address(struct nand_device_s *device, uint8_t address)
+static int lpc3180_address(struct nand_device_s *nand, uint8_t address)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -376,9 +376,9 @@ static int lpc3180_address(struct nand_device_s *device, uint8_t address)
 	return ERROR_OK;
 }
 
-static int lpc3180_write_data(struct nand_device_s *device, uint16_t data)
+static int lpc3180_write_data(struct nand_device_s *nand, uint16_t data)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -406,9 +406,9 @@ static int lpc3180_write_data(struct nand_device_s *device, uint16_t data)
 	return ERROR_OK;
 }
 
-static int lpc3180_read_data(struct nand_device_s *device, void *data)
+static int lpc3180_read_data(struct nand_device_s *nand, void *data)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -425,12 +425,12 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 	{
 		/* data = MLC_DATA, use sized access */
-		if (device->bus_width == 8)
+		if (nand->bus_width == 8)
 		{
 			uint8_t *data8 = data;
 			target_read_u8(target, 0x200b0000, data8);
 		}
-		else if (device->bus_width == 16)
+		else if (nand->bus_width == 16)
 		{
 			uint16_t *data16 = data;
 			target_read_u16(target, 0x200b0000, data16);
@@ -448,12 +448,12 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 		/* data = SLC_DATA, must use 32-bit access */
 		target_read_u32(target, 0x20020000, &data32);
 
-		if (device->bus_width == 8)
+		if (nand->bus_width == 8)
 		{
 			uint8_t *data8 = data;
 			*data8 = data32 & 0xff;
 		}
-		else if (device->bus_width == 16)
+		else if (nand->bus_width == 16)
 		{
 			uint16_t *data16 = data;
 			*data16 = data32 & 0xffff;
@@ -468,9 +468,9 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+static int lpc3180_write_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 	int retval;
 	uint8_t status;
@@ -504,7 +504,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 
-		if (data_size > (uint32_t)device->page_size)
+		if (data_size > (uint32_t)nand->page_size)
 		{
 			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
@@ -516,7 +516,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 		page_buffer = malloc(512);
 		oob_buffer = malloc(6);
 
-		if (device->page_size == 512)
+		if (nand->page_size == 512)
 		{
 			/* MLC_ADDR = 0x0 (one column cycle) */
 			target_write_u32(target, 0x200b8004, 0x0);
@@ -525,7 +525,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 			target_write_u32(target, 0x200b8004, page & 0xff);
 			target_write_u32(target, 0x200b8004, (page >> 8) & 0xff);
 
-			if (device->address_cycles == 4)
+			if (nand->address_cycles == 4)
 				target_write_u32(target, 0x200b8004, (page >> 16) & 0xff);
 		}
 		else
@@ -542,7 +542,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 		/* when using the MLC controller, we have to treat a large page device
 		 * as being made out of four quarters, each the size of a small page device
 		 */
-		num_quarters = (device->page_size == 2048) ? 4 : 1;
+		num_quarters = (nand->page_size == 2048) ? 4 : 1;
 
 		for (quarter = 0; quarter < num_quarters; quarter++)
 		{
@@ -557,7 +557,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 				data += thisrun_data_size;
 			}
 
-			memset(oob_buffer, 0xff, (device->page_size == 512) ? 6 : 24);
+			memset(oob_buffer, 0xff, (nand->page_size == 512) ? 6 : 24);
 			if (oob)
 			{
 				memcpy(page_buffer, oob, thisrun_oob_size);
@@ -574,7 +574,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 			/* write MLC_ECC_AUTO_ENC_REG to start auto encode */
 			target_write_u32(target, 0x200b8010, 0x0);
 
-			if (!lpc3180_controller_ready(device, 1000))
+			if (!lpc3180_controller_ready(nand, 1000))
 			{
 				LOG_ERROR("timeout while waiting for completion of auto encode cycle");
 				return ERROR_NAND_OPERATION_FAILED;
@@ -584,7 +584,7 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 		/* MLC_CMD = auto program command */
 		target_write_u32(target, 0x200b8000, NAND_CMD_PAGEPROG);
 
-		if ((retval = nand_read_status(device, &status)) != ERROR_OK)
+		if ((retval = nand_read_status(nand, &status)) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't read status");
 			return ERROR_NAND_OPERATION_FAILED;
@@ -601,15 +601,15 @@ static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 	{
-		return nand_write_page_raw(device, page, data, data_size, oob, oob_size);
+		return nand_write_page_raw(nand, page, data, data_size, oob, oob_size);
 	}
 
 	return ERROR_OK;
 }
 
-static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+static int lpc3180_read_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -639,13 +639,13 @@ static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_
 		}
 #endif
 
-		if (data_size > (uint32_t)device->page_size)
+		if (data_size > (uint32_t)nand->page_size)
 		{
 			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 
-		if (device->page_size == 2048)
+		if (nand->page_size == 2048)
 		{
 			page_buffer = malloc(2048);
 			oob_buffer = malloc(64);
@@ -671,7 +671,7 @@ static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_
 			target_write_u32(target, 0x200b8000, NAND_CMD_READ0);
 		}
 
-		if (device->page_size == 512)
+		if (nand->page_size == 512)
 		{
 			/* small page device */
 			/* MLC_ADDR = 0x0 (one column cycle) */
@@ -681,7 +681,7 @@ static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_
 			target_write_u32(target, 0x200b8004, page & 0xff);
 			target_write_u32(target, 0x200b8004, (page >> 8) & 0xff);
 
-			if (device->address_cycles == 4)
+			if (nand->address_cycles == 4)
 				target_write_u32(target, 0x200b8004, (page >> 16) & 0xff);
 		}
 		else
@@ -699,12 +699,12 @@ static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_
 			target_write_u32(target, 0x200b8000, NAND_CMD_READSTART);
 		}
 
-		while (page_bytes_done < (uint32_t)device->page_size)
+		while (page_bytes_done < (uint32_t)nand->page_size)
 		{
 			/* MLC_ECC_AUTO_DEC_REG = dummy */
 			target_write_u32(target, 0x200b8014, 0xaa55aa55);
 
-			if (!lpc3180_controller_ready(device, 1000))
+			if (!lpc3180_controller_ready(nand, 1000))
 			{
 				LOG_ERROR("timeout while waiting for completion of auto decode cycle");
 				return ERROR_NAND_OPERATION_FAILED;
@@ -748,15 +748,15 @@ static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 	{
-		return nand_read_page_raw(device, page, data, data_size, oob, oob_size);
+		return nand_read_page_raw(nand, page, data, data_size, oob, oob_size);
 	}
 
 	return ERROR_OK;
 }
 
-static int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
+static int lpc3180_controller_ready(struct nand_device_s *nand, int timeout)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 	uint8_t status = 0x0;
 
@@ -788,9 +788,9 @@ static int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
 	return 0;
 }
 
-static int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
+static int lpc3180_nand_ready(struct nand_device_s *nand, int timeout)
 {
-	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
+	lpc3180_nand_controller_t *lpc3180_info = nand->controller_priv;
 	target_t *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -843,14 +843,14 @@ static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char
 
 	unsigned num;
 	COMMAND_PARSE_NUMBER(uint, args[1], num);
-	nand_device_t *device = get_nand_device_by_num(num);
-	if (!device)
+	nand_device_t *nand = get_nand_device_by_num(num);
+	if (!nand)
 	{
 		command_print(cmd_ctx, "nand device '#%s' is out of bounds", args[0]);
 		return ERROR_OK;
 	}
 
-	lpc3180_info = device->controller_priv;
+	lpc3180_info = nand->controller_priv;
 
 	if (argc == 2)
 	{

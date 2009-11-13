@@ -49,21 +49,21 @@ unsigned char sign_of_sequental_byte_read;
 
 static int test_iomux_settings (target_t * target, uint32_t value,
 				uint32_t mask, const char *text);
-static int initialize_nf_controller (struct nand_device_s *device);
+static int initialize_nf_controller (struct nand_device_s *nand);
 static int get_next_byte_from_sram_buffer (target_t * target, uint8_t * value);
 static int get_next_halfword_from_sram_buffer (target_t * target,
 					       uint16_t * value);
 static int poll_for_complete_op (target_t * target, const char *text);
-static int validate_target_state (struct nand_device_s *device);
-static int do_data_output (struct nand_device_s *device);
+static int validate_target_state (struct nand_device_s *nand);
+static int do_data_output (struct nand_device_s *nand);
 
-static int imx31_command (struct nand_device_s *device, uint8_t command);
-static int imx31_address (struct nand_device_s *device, uint8_t address);
-static int imx31_controller_ready (struct nand_device_s *device, int tout);
+static int imx31_command (struct nand_device_s *nand, uint8_t command);
+static int imx31_address (struct nand_device_s *nand, uint8_t address);
+static int imx31_controller_ready (struct nand_device_s *nand, int tout);
 
 static int imx31_nand_device_command (struct command_context_s *cmd_ctx,
 				      char *cmd, char **args, int argc,
-				      struct nand_device_s *device)
+				      struct nand_device_s *nand)
 {
 	mx3_nf_controller_t *mx3_nf_info;
 	mx3_nf_info = malloc (sizeof (mx3_nf_controller_t));
@@ -73,7 +73,7 @@ static int imx31_nand_device_command (struct command_context_s *cmd_ctx,
 	    return ERROR_FAIL;
 	}
 
-	device->controller_priv = mx3_nf_info;
+	nand->controller_priv = mx3_nf_info;
 
 	mx3_nf_info->target = get_target (args[1]);
 	if (mx3_nf_info->target == NULL)
@@ -123,9 +123,9 @@ static int imx31_nand_device_command (struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int imx31_init (struct nand_device_s *device)
+static int imx31_init (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	{
@@ -133,7 +133,7 @@ static int imx31_init (struct nand_device_s *device)
 	 * validate target state
 	 */
 	int validate_target_result;
-	validate_target_result = validate_target_state (device);
+	validate_target_result = validate_target_state(nand);
 	if (validate_target_result != ERROR_OK)
 	    {
 		return validate_target_result;
@@ -149,30 +149,30 @@ static int imx31_init (struct nand_device_s *device)
 	{
 	uint32_t pcsr_register_content;
 	target_read_u32 (target, MX3_PCSR, &pcsr_register_content);
-	if (!device->bus_width)
+	if (!nand->bus_width)
 	    {
-		device->bus_width =
+		nand->bus_width =
 		    (pcsr_register_content & 0x80000000) ? 16 : 8;
 	    }
 	else
 	    {
 		pcsr_register_content |=
-		    ((device->bus_width == 16) ? 0x80000000 : 0x00000000);
+		    ((nand->bus_width == 16) ? 0x80000000 : 0x00000000);
 		target_write_u32 (target, MX3_PCSR, pcsr_register_content);
 	    }
 
-	if (!device->page_size)
+	if (!nand->page_size)
 	    {
-		device->page_size =
+		nand->page_size =
 		    (pcsr_register_content & 0x40000000) ? 2048 : 512;
 	    }
 	else
 	    {
 		pcsr_register_content |=
-		    ((device->page_size == 2048) ? 0x40000000 : 0x00000000);
+		    ((nand->page_size == 2048) ? 0x40000000 : 0x00000000);
 		target_write_u32 (target, MX3_PCSR, pcsr_register_content);
 	    }
-	if (mx3_nf_info->flags.one_kb_sram && (device->page_size == 2048))
+	if (mx3_nf_info->flags.one_kb_sram && (nand->page_size == 2048))
 	    {
 		LOG_ERROR
 		    ("NAND controller have only 1 kb SRAM, so pagesize 2048 is incompatible with it");
@@ -212,7 +212,7 @@ static int imx31_init (struct nand_device_s *device)
 	    test_iomux_settings (target, 0x43fac0c4, 0x7f7f7f7f, "d3,d4,d5,d6");
 	test_iomux |=
 	    test_iomux_settings (target, 0x43fac0c8, 0x0000007f, "d7");
-	if (device->bus_width == 16)
+	if (nand->bus_width == 16)
 	    {
 		test_iomux |=
 		    test_iomux_settings (target, 0x43fac0c8, 0x7f7f7f00,
@@ -235,15 +235,15 @@ static int imx31_init (struct nand_device_s *device)
 	    }
 	}
 
-	initialize_nf_controller (device);
+	initialize_nf_controller (nand);
 
 	{
 	int retval;
 	uint16_t nand_status_content;
 	retval = ERROR_OK;
-	retval |= imx31_command (device, NAND_CMD_STATUS);
-	retval |= imx31_address (device, 0x00);
-	retval |= do_data_output (device);
+	retval |= imx31_command (nand, NAND_CMD_STATUS);
+	retval |= imx31_address (nand, 0x00);
+	retval |= do_data_output (nand);
 	if (retval != ERROR_OK)
 	    {
 		LOG_ERROR (get_status_register_err_msg);
@@ -266,16 +266,16 @@ static int imx31_init (struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-static int imx31_read_data (struct nand_device_s *device, void *data)
+static int imx31_read_data (struct nand_device_s *nand, void *data)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	{
 	/*
 	 * validate target state
 	 */
 	int validate_target_result;
-	validate_target_result = validate_target_state (device);
+	validate_target_result = validate_target_state (nand);
 	if (validate_target_result != ERROR_OK)
 	    {
 		return validate_target_result;
@@ -287,14 +287,14 @@ static int imx31_read_data (struct nand_device_s *device, void *data)
 	 * get data from nand chip
 	 */
 	int try_data_output_from_nand_chip;
-	try_data_output_from_nand_chip = do_data_output (device);
+	try_data_output_from_nand_chip = do_data_output (nand);
 	if (try_data_output_from_nand_chip != ERROR_OK)
 	    {
 		return try_data_output_from_nand_chip;
 	    }
 	}
 
-	if (device->bus_width == 16)
+	if (nand->bus_width == 16)
 	{
 	    get_next_halfword_from_sram_buffer (target, data);
 	}
@@ -306,15 +306,15 @@ static int imx31_read_data (struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-static int imx31_write_data (struct nand_device_s *device, uint16_t data)
+static int imx31_write_data (struct nand_device_s *nand, uint16_t data)
 {
 	LOG_ERROR ("write_data() not implemented");
 	return ERROR_NAND_OPERATION_FAILED;
 }
 
-static int imx31_nand_ready (struct nand_device_s *device, int timeout)
+static int imx31_nand_ready (struct nand_device_s *nand, int timeout)
 {
-	return imx31_controller_ready (device, timeout);
+	return imx31_controller_ready (nand, timeout);
 }
 
 static int imx31_register_commands (struct command_context_s *cmd_ctx)
@@ -322,31 +322,31 @@ static int imx31_register_commands (struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int imx31_reset (struct nand_device_s *device)
+static int imx31_reset (struct nand_device_s *nand)
 {
 	/*
 	* validate target state
 	*/
 	int validate_target_result;
-	validate_target_result = validate_target_state (device);
+	validate_target_result = validate_target_state (nand);
 	if (validate_target_result != ERROR_OK)
 	{
 	    return validate_target_result;
 	}
-	initialize_nf_controller (device);
+	initialize_nf_controller (nand);
 	return ERROR_OK;
 }
 
-static int imx31_command (struct nand_device_s *device, uint8_t command)
+static int imx31_command (struct nand_device_s *nand, uint8_t command)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	{
 	/*
 	 * validate target state
 	 */
 	int validate_target_result;
-	validate_target_result = validate_target_state (device);
+	validate_target_result = validate_target_state (nand);
 	if (validate_target_result != ERROR_OK)
 	    {
 		return validate_target_result;
@@ -369,7 +369,7 @@ static int imx31_command (struct nand_device_s *device, uint8_t command)
 		 * offset == one half of page size
 		 */
 		in_sram_address =
-		    MX3_NF_MAIN_BUFFER0 + (device->page_size >> 1);
+		    MX3_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
 	    default:
 		in_sram_address = MX3_NF_MAIN_BUFFER0;
 	}
@@ -411,16 +411,16 @@ static int imx31_command (struct nand_device_s *device, uint8_t command)
 	return ERROR_OK;
 }
 
-static int imx31_address (struct nand_device_s *device, uint8_t address)
+static int imx31_address (struct nand_device_s *nand, uint8_t address)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	{
 	/*
 	 * validate target state
 	 */
 	int validate_target_result;
-	validate_target_result = validate_target_state (device);
+	validate_target_result = validate_target_state (nand);
 	if (validate_target_result != ERROR_OK)
 	    {
 		return validate_target_result;
@@ -443,10 +443,10 @@ static int imx31_address (struct nand_device_s *device, uint8_t address)
 	return ERROR_OK;
 }
 
-static int imx31_controller_ready (struct nand_device_s *device, int tout)
+static int imx31_controller_ready (struct nand_device_s *nand, int tout)
 {
 	uint16_t poll_complete_status;
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	{
@@ -454,7 +454,7 @@ static int imx31_controller_ready (struct nand_device_s *device, int tout)
 	 * validate target state
 	 */
 	int validate_target_result;
-	validate_target_result = validate_target_state (device);
+	validate_target_result = validate_target_state (nand);
 	if (validate_target_result != ERROR_OK)
 	    {
 		return validate_target_result;
@@ -474,11 +474,11 @@ static int imx31_controller_ready (struct nand_device_s *device, int tout)
 	return tout;
 }
 
-static int imx31_write_page (struct nand_device_s *device, uint32_t page,
+static int imx31_write_page (struct nand_device_s *nand, uint32_t page,
 			     uint8_t * data, uint32_t data_size, uint8_t * oob,
 			     uint32_t oob_size)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	if (data_size % 2)
@@ -501,7 +501,7 @@ static int imx31_write_page (struct nand_device_s *device, uint32_t page,
 	 * validate target state
 	 */
 	int retval;
-	retval = validate_target_state (device);
+	retval = validate_target_state (nand);
 	if (retval != ERROR_OK)
 	    {
 		return retval;
@@ -509,16 +509,16 @@ static int imx31_write_page (struct nand_device_s *device, uint32_t page,
 	}
 	{
 	int retval = ERROR_OK;
-	retval |= imx31_command (device, NAND_CMD_SEQIN);
-	retval |= imx31_address (device, 0x00);
-	retval |= imx31_address (device, page & 0xff);
-	retval |= imx31_address (device, (page >> 8) & 0xff);
-	if (device->address_cycles >= 4)
+	retval |= imx31_command(nand, NAND_CMD_SEQIN);
+	retval |= imx31_address(nand, 0x00);
+	retval |= imx31_address(nand, page & 0xff);
+	retval |= imx31_address(nand, (page >> 8) & 0xff);
+	if (nand->address_cycles >= 4)
 	    {
-		retval |= imx31_address (device, (page >> 16) & 0xff);
-		if (device->address_cycles >= 5)
+		retval |= imx31_address (nand, (page >> 16) & 0xff);
+		if (nand->address_cycles >= 5)
 		    {
-			retval |= imx31_address (device, (page >> 24) & 0xff);
+			retval |= imx31_address (nand, (page >> 24) & 0xff);
 		    }
 	    }
 	target_write_buffer (target, MX3_NF_MAIN_BUFFER0, data_size, data);
@@ -548,7 +548,7 @@ static int imx31_write_page (struct nand_device_s *device, uint32_t page,
 		    return poll_result;
 		}
 	}
-	retval |= imx31_command (device, NAND_CMD_PAGEPROG);
+	retval |= imx31_command (nand, NAND_CMD_PAGEPROG);
 	if (retval != ERROR_OK)
 	    {
 		return retval;
@@ -560,9 +560,9 @@ static int imx31_write_page (struct nand_device_s *device, uint32_t page,
 	{
 	    uint16_t nand_status_content;
 	    retval = ERROR_OK;
-	    retval |= imx31_command (device, NAND_CMD_STATUS);
-	    retval |= imx31_address (device, 0x00);
-	    retval |= do_data_output (device);
+	    retval |= imx31_command(nand, NAND_CMD_STATUS);
+	    retval |= imx31_address(nand, 0x00);
+	    retval |= do_data_output(nand);
 	    if (retval != ERROR_OK)
 		{
 		    LOG_ERROR (get_status_register_err_msg);
@@ -581,11 +581,11 @@ static int imx31_write_page (struct nand_device_s *device, uint32_t page,
 	return ERROR_OK;
 }
 
-static int imx31_read_page (struct nand_device_s *device, uint32_t page,
+static int imx31_read_page (struct nand_device_s *nand, uint32_t page,
 			    uint8_t * data, uint32_t data_size, uint8_t * oob,
 			    uint32_t oob_size)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	if (data_size % 2)
@@ -604,7 +604,7 @@ static int imx31_read_page (struct nand_device_s *device, uint32_t page,
 	 * validate target state
 	 */
 	int retval;
-	retval = validate_target_state (device);
+	retval = validate_target_state(nand);
 	if (retval != ERROR_OK)
 	    {
 		return retval;
@@ -612,20 +612,20 @@ static int imx31_read_page (struct nand_device_s *device, uint32_t page,
 	}
 	{
 	int retval = ERROR_OK;
-	retval |= imx31_command (device, NAND_CMD_READ0);
-	retval |= imx31_address (device, 0x00);
-	retval |= imx31_address (device, page & 0xff);
-	retval |= imx31_address (device, (page >> 8) & 0xff);
-	if (device->address_cycles >= 4)
+	retval |= imx31_command(nand, NAND_CMD_READ0);
+	retval |= imx31_address(nand, 0x00);
+	retval |= imx31_address(nand, page & 0xff);
+	retval |= imx31_address(nand, (page >> 8) & 0xff);
+	if (nand->address_cycles >= 4)
 	    {
-		retval |= imx31_address (device, (page >> 16) & 0xff);
-		if (device->address_cycles >= 5)
+		retval |= imx31_address(nand, (page >> 16) & 0xff);
+		if (nand->address_cycles >= 5)
 		    {
-			retval |= imx31_address (device, (page >> 24) & 0xff);
-			retval |= imx31_command (device, NAND_CMD_READSTART);
+			retval |= imx31_address(nand, (page >> 24) & 0xff);
+			retval |= imx31_command(nand, NAND_CMD_READSTART);
 		    }
 	    }
-	retval |= do_data_output (device);
+	retval |= do_data_output (nand);
 	if (retval != ERROR_OK)
 	    {
 		return retval;
@@ -658,9 +658,9 @@ static int test_iomux_settings (target_t * target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int initialize_nf_controller (struct nand_device_s *device)
+static int initialize_nf_controller (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	/*
 	* resets NAND flash controller in zero time ? I dont know.
@@ -786,9 +786,9 @@ static int poll_for_complete_op (target_t * target, const char *text)
 	return ERROR_OK;
 }
 
-static int validate_target_state (struct nand_device_s *device)
+static int validate_target_state (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 
 	if (target->state != TARGET_HALTED)
@@ -808,9 +808,9 @@ static int validate_target_state (struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-static int do_data_output (struct nand_device_s *device)
+static int do_data_output (struct nand_device_s *nand)
 {
-	mx3_nf_controller_t *mx3_nf_info = device->controller_priv;
+	mx3_nf_controller_t *mx3_nf_info = nand->controller_priv;
 	target_t *target = mx3_nf_info->target;
 	switch (mx3_nf_info->fin)
 	{

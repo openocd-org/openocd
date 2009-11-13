@@ -34,7 +34,7 @@
 s3c24xx_nand_controller_t *
 s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 			    char **args, int argc,
-			    struct nand_device_s *device)
+			    struct nand_device_s *nand)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info;
 
@@ -44,7 +44,7 @@ s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 		return NULL;
 	}
 
-	device->controller_priv = s3c24xx_info;
+	nand->controller_priv = s3c24xx_info;
 
 	s3c24xx_info->target = get_target(args[1]);
 	if (s3c24xx_info->target == NULL) {
@@ -60,9 +60,9 @@ int s3c24xx_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int s3c24xx_reset(struct nand_device_s *device)
+int s3c24xx_reset(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -75,9 +75,9 @@ int s3c24xx_reset(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-int s3c24xx_command(struct nand_device_s *device, uint8_t command)
+int s3c24xx_command(struct nand_device_s *nand, uint8_t command)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -90,9 +90,9 @@ int s3c24xx_command(struct nand_device_s *device, uint8_t command)
 }
 
 
-int s3c24xx_address(struct nand_device_s *device, uint8_t address)
+int s3c24xx_address(struct nand_device_s *nand, uint8_t address)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -104,9 +104,9 @@ int s3c24xx_address(struct nand_device_s *device, uint8_t address)
 	return ERROR_OK;
 }
 
-int s3c24xx_write_data(struct nand_device_s *device, uint16_t data)
+int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -118,9 +118,9 @@ int s3c24xx_write_data(struct nand_device_s *device, uint16_t data)
 	return ERROR_OK;
 }
 
-int s3c24xx_read_data(struct nand_device_s *device, void *data)
+int s3c24xx_read_data(struct nand_device_s *nand, void *data)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -132,7 +132,7 @@ int s3c24xx_read_data(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-int s3c24xx_controller_ready(struct nand_device_s *device, int timeout)
+int s3c24xx_controller_ready(struct nand_device_s *nand, int timeout)
 {
 	return 1;
 }

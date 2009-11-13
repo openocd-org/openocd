@@ -33,11 +33,11 @@
 
 static int s3c2440_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 				char **args, int argc,
-				struct nand_device_s *device)
+				struct nand_device_s *nand)
 {
 	s3c24xx_nand_controller_t *info;
 
-	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, device);
+	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, nand);
 	if (info == NULL) {
 		return ERROR_NAND_DEVICE_INVALID;
 	}
@@ -51,9 +51,9 @@ static int s3c2440_nand_device_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-static int s3c2440_init(struct nand_device_s *device)
+static int s3c2440_init(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	target_write_u32(target, S3C2410_NFCONF,
@@ -67,9 +67,9 @@ static int s3c2440_init(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-int s3c2440_nand_ready(struct nand_device_s *device, int timeout)
+int s3c2440_nand_ready(struct nand_device_s *nand, int timeout)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint8_t status;
 
@@ -93,14 +93,14 @@ int s3c2440_nand_ready(struct nand_device_s *device, int timeout)
 
 /* use the fact we can read/write 4 bytes in one go via a single 32bit op */
 
-int s3c2440_read_block_data(struct nand_device_s *device, uint8_t *data, int data_size)
+int s3c2440_read_block_data(struct nand_device_s *nand, uint8_t *data, int data_size)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint32_t nfdata = s3c24xx_info->data;
 	uint32_t tmp;
 
-	LOG_INFO("%s: reading data: %p, %p, %d\n", __func__, device, data, data_size);
+	LOG_INFO("%s: reading data: %p, %p, %d\n", __func__, nand, data, data_size);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -129,9 +129,9 @@ int s3c2440_read_block_data(struct nand_device_s *device, uint8_t *data, int dat
 	return ERROR_OK;
 }
 
-int s3c2440_write_block_data(struct nand_device_s *device, uint8_t *data, int data_size)
+int s3c2440_write_block_data(struct nand_device_s *nand, uint8_t *data, int data_size)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint32_t nfdata = s3c24xx_info->data;
 	uint32_t tmp;

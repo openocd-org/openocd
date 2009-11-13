@@ -49,9 +49,9 @@ typedef struct orion_nand_controller_s
 		} \
 	} while (0)
 
-static int orion_nand_command(struct nand_device_s *device, uint8_t command)
+static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
 {
-	orion_nand_controller_t *hw = device->controller_priv;
+	orion_nand_controller_t *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -59,9 +59,9 @@ static int orion_nand_command(struct nand_device_s *device, uint8_t command)
 	return ERROR_OK;
 }
 
-static int orion_nand_address(struct nand_device_s *device, uint8_t address)
+static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
 {
-	orion_nand_controller_t *hw = device->controller_priv;
+	orion_nand_controller_t *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -69,9 +69,9 @@ static int orion_nand_address(struct nand_device_s *device, uint8_t address)
 	return ERROR_OK;
 }
 
-static int orion_nand_read(struct nand_device_s *device, void *data)
+static int orion_nand_read(struct nand_device_s *nand, void *data)
 {
-	orion_nand_controller_t *hw = device->controller_priv;
+	orion_nand_controller_t *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -79,9 +79,9 @@ static int orion_nand_read(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-static int orion_nand_write(struct nand_device_s *device, uint16_t data)
+static int orion_nand_write(struct nand_device_s *nand, uint16_t data)
 {
-	orion_nand_controller_t *hw = device->controller_priv;
+	orion_nand_controller_t *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -89,33 +89,33 @@ static int orion_nand_write(struct nand_device_s *device, uint16_t data)
 	return ERROR_OK;
 }
 
-static int orion_nand_slow_block_write(struct nand_device_s *device, uint8_t *data, int size)
+static int orion_nand_slow_block_write(struct nand_device_s *nand, uint8_t *data, int size)
 {
 	while (size--)
-		orion_nand_write(device, *data++);
+		orion_nand_write(nand, *data++);
 	return ERROR_OK;
 }
 
-static int orion_nand_fast_block_write(struct nand_device_s *device, uint8_t *data, int size)
+static int orion_nand_fast_block_write(struct nand_device_s *nand, uint8_t *data, int size)
 {
-	orion_nand_controller_t *hw = device->controller_priv;
+	orion_nand_controller_t *hw = nand->controller_priv;
 	int retval;
 
-	hw->io.chunk_size = device->page_size;
+	hw->io.chunk_size = nand->page_size;
 
 	retval = arm_nandwrite(&hw->io, data, size);
 	if (retval == ERROR_NAND_NO_BUFFER)
-		retval = orion_nand_slow_block_write(device, data, size);
+		retval = orion_nand_slow_block_write(nand, data, size);
 
 	return retval;
 }
 
-static int orion_nand_reset(struct nand_device_s *device)
+static int orion_nand_reset(struct nand_device_s *nand)
 {
-	return orion_nand_command(device, NAND_CMD_RESET);
+	return orion_nand_command(nand, NAND_CMD_RESET);
 }
 
-static int orion_nand_controller_ready(struct nand_device_s *device, int timeout)
+static int orion_nand_controller_ready(struct nand_device_s *nand, int timeout)
 {
 	return 1;
 }
@@ -127,7 +127,7 @@ static int orion_nand_register_commands(struct command_context_s *cmd_ctx)
 
 int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 			      char **args, int argc,
-			      struct nand_device_s *device)
+			      struct nand_device_s *nand)
 {
 	orion_nand_controller_t *hw;
 	uint32_t base;
@@ -144,7 +144,7 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 
-	device->controller_priv = hw;
+	nand->controller_priv = hw;
 	hw->target = get_target(args[1]);
 	if (!hw->target) {
 		LOG_ERROR("target '%s' not defined", args[1]);
@@ -166,7 +166,7 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-static int orion_nand_init(struct nand_device_s *device)
+static int orion_nand_init(struct nand_device_s *nand)
 {
 	return ERROR_OK;
 }

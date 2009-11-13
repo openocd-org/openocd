@@ -32,11 +32,11 @@
 
 static int s3c2410_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 				char **args, int argc,
-				struct nand_device_s *device)
+				struct nand_device_s *nand)
 {
 	s3c24xx_nand_controller_t *info;
 
-	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, device);
+	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, nand);
 	if (info == NULL) {
 		return ERROR_NAND_DEVICE_INVALID;
 	}
@@ -50,9 +50,9 @@ static int s3c2410_nand_device_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-static int s3c2410_init(struct nand_device_s *device)
+static int s3c2410_init(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	target_write_u32(target, S3C2410_NFCONF,
@@ -62,9 +62,9 @@ static int s3c2410_init(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-static int s3c2410_write_data(struct nand_device_s *device, uint16_t data)
+static int s3c2410_write_data(struct nand_device_s *nand, uint16_t data)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -76,9 +76,9 @@ static int s3c2410_write_data(struct nand_device_s *device, uint16_t data)
 	return ERROR_OK;
 }
 
-static int s3c2410_read_data(struct nand_device_s *device, void *data)
+static int s3c2410_read_data(struct nand_device_s *nand, void *data)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -90,9 +90,9 @@ static int s3c2410_read_data(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-static int s3c2410_nand_ready(struct nand_device_s *device, int timeout)
+static int s3c2410_nand_ready(struct nand_device_s *nand, int timeout)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 	uint8_t status;
 

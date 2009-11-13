@@ -68,7 +68,7 @@ static const uint8_t nand_ecc_precalc_table[] = {
 /*
  * nand_calculate_ecc - Calculate 3-byte ECC for 256-byte block
  */
-int nand_calculate_ecc(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code)
+int nand_calculate_ecc(struct nand_device_s *nand, const uint8_t *dat, uint8_t *ecc_code)
 {
 	uint8_t idx, reg1, reg2, reg3, tmp1, tmp2;
 	int i;

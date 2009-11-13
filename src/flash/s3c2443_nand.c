@@ -33,11 +33,11 @@
 
 static int s3c2443_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 				char **args, int argc,
-				struct nand_device_s *device)
+				struct nand_device_s *nand)
 {
 	s3c24xx_nand_controller_t *info;
 
-	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, device);
+	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, nand);
 	if (info == NULL) {
 		return ERROR_NAND_DEVICE_INVALID;
 	}
@@ -51,9 +51,9 @@ static int s3c2443_nand_device_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-static int s3c2443_init(struct nand_device_s *device)
+static int s3c2443_init(struct nand_device_s *nand)
 {
-	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
+	s3c24xx_nand_controller_t *s3c24xx_info = nand->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
 	target_write_u32(target, S3C2410_NFCONF,

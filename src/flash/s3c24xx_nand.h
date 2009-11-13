@@ -47,30 +47,30 @@ typedef struct s3c24xx_nand_controller_s
 
 s3c24xx_nand_controller_t *s3c24xx_nand_device_command(
 			struct command_context_s *cmd_ctx, char *cmd,
-			char **args, int argc, struct nand_device_s *device);
+			char **args, int argc, struct nand_device_s *nand);
 
 int s3c24xx_register_commands(struct command_context_s *cmd_ctx);
 
-int s3c24xx_reset(struct nand_device_s *device);
+int s3c24xx_reset(struct nand_device_s *nand);
 
-int s3c24xx_command(struct nand_device_s *device, uint8_t command);
-int s3c24xx_address(struct nand_device_s *device, uint8_t address);
+int s3c24xx_command(struct nand_device_s *nand, uint8_t command);
+int s3c24xx_address(struct nand_device_s *nand, uint8_t address);
 
-int s3c24xx_write_data(struct nand_device_s *device, uint16_t data);
-int s3c24xx_read_data(struct nand_device_s *device, void *data);
+int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data);
+int s3c24xx_read_data(struct nand_device_s *nand, void *data);
 
-int s3c24xx_controller_ready(struct nand_device_s *device, int tout);
+int s3c24xx_controller_ready(struct nand_device_s *nand, int tout);
 
 #define s3c24xx_write_page NULL
 #define s3c24xx_read_page NULL
 
 /* code shared between different controllers */
 
-int s3c2440_nand_ready(struct nand_device_s *device, int timeout);
+int s3c2440_nand_ready(struct nand_device_s *nand, int timeout);
 
-int s3c2440_read_block_data(struct nand_device_s *device,
+int s3c2440_read_block_data(struct nand_device_s *nand,
 		uint8_t *data, int data_size);
-int s3c2440_write_block_data(struct nand_device_s *device,
+int s3c2440_write_block_data(struct nand_device_s *nand,
 		uint8_t *data, int data_size);
 
 #endif // S3C24xx_NAND_H
