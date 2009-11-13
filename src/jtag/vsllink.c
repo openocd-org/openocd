@@ -105,13 +105,12 @@ static uint8_t VSLLINK_tap_move[6][6] =
 	{0xfe, 0x60, 0x38, 0x5c, 0x40, 0x5e}	/* PI  */
 };
 
-typedef struct insert_insignificant_operation
-{
+struct insert_insignificant_operation {
 	unsigned char insert_value;
 	unsigned char insert_position;
-}insert_insignificant_operation_t;
+};
 
-static insert_insignificant_operation_t VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[6][6] =
+static struct insert_insignificant_operation VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[6][6] =
 {
 /*	 stuff	offset   */
 	{/*	TLR	*/
@@ -594,7 +593,7 @@ static void vsllink_append_tms(void)
 {
 	uint8_t tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
 	uint16_t tms2;
-	insert_insignificant_operation_t *insert = \
+	struct insert_insignificant_operation *insert = \
 		&VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())];
 
 	if (((tap_get_state() != TAP_RESET) && (tap_get_state() != TAP_IDLE) && (tap_get_state() != TAP_DRPAUSE) && (tap_get_state() != TAP_IRPAUSE)) || \
@@ -655,7 +654,7 @@ static void vsllink_state_move_normal(void)
 static void vsllink_state_move_dma(void)
 {
 	int i, insert_length = (tap_length % 8) ? (8 - (tap_length % 8)) : 0;
-	insert_insignificant_operation_t *insert = \
+	struct insert_insignificant_operation *insert = \
 		&VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())];
 	uint8_t tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
 
