@@ -31,7 +31,7 @@ struct trace_point
 	uint64_t hit_counter;
 };
 
-typedef struct trace_s
+struct trace
 {
 	uint32_t num_trace_points;
 	uint32_t trace_points_size;
@@ -40,7 +40,7 @@ typedef struct trace_s
 	uint32_t *trace_history;
 	uint32_t trace_history_pos;
 	int trace_history_overflowed;
-} trace_t;
+};
 
 typedef enum trace_status
 {

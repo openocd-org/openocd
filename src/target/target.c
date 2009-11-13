@@ -4315,7 +4315,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->halt_issued			= false;
 
 	/* initialize trace information */
-	target->trace_info = malloc(sizeof(trace_t));
+	target->trace_info = malloc(sizeof(struct trace));
 	target->trace_info->num_trace_points         = 0;
 	target->trace_info->trace_points_size        = 0;
 	target->trace_info->trace_points             = NULL;

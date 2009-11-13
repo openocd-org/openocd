@@ -27,7 +27,7 @@
 
 int trace_point(target_t *target, uint32_t number)
 {
-	trace_t *trace = target->trace_info;
+	struct trace *trace = target->trace_info;
 
 	LOG_DEBUG("tracepoint: %i", (int)number);
 
@@ -50,7 +50,7 @@ int trace_point(target_t *target, uint32_t number)
 COMMAND_HANDLER(handle_trace_point_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	trace_t *trace = target->trace_info;
+	struct trace *trace = target->trace_info;
 
 	if (argc == 0)
 	{
@@ -98,7 +98,7 @@ COMMAND_HANDLER(handle_trace_point_command)
 COMMAND_HANDLER(handle_trace_history_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	trace_t *trace = target->trace_info;
+	struct trace *trace = target->trace_info;
 
 	if (argc > 0)
 	{

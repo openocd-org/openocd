@@ -33,7 +33,7 @@
 #include "command.h"
 
 struct reg_s;
-struct trace_s;
+struct trace;
 struct command_context_s;
 
 
@@ -154,7 +154,7 @@ typedef struct target_s
 	struct reg_cache *reg_cache;		/* the first register cache of the target (core regs) */
 	struct breakpoint *breakpoints;	/* list of breakpoints */
 	struct watchpoint *watchpoints;	/* list of watchpoints */
-	struct trace_s *trace_info;			/* generic trace information */
+	struct trace *trace_info;			/* generic trace information */
 	struct debug_msg_receiver *dbgmsg;/* list of debug message receivers */
 	uint32_t dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
