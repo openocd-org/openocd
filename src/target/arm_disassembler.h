@@ -143,14 +143,14 @@ union arm_shifter_operand
 	} register_shift;
 };
 
-typedef struct arm_data_proc_instr_s
+struct arm_data_proc_instr
 {
 	int variant; /* 0: immediate, 1: immediate_shift, 2: register_shift */
 	uint8_t S;
 	uint8_t Rn;
 	uint8_t Rd;
 	union arm_shifter_operand shifter_operand;
-} arm_data_proc_instr_t;
+};
 
 typedef struct arm_load_store_instr_s
 {
@@ -190,7 +190,7 @@ typedef struct arm_instruction_s
 
 	union {
 		struct arm_b_bl_bx_blx_instr b_bl_bx_blx;
-		arm_data_proc_instr_t data_proc;
+		struct arm_data_proc_instr data_proc;
 		arm_load_store_instr_t load_store;
 		arm_load_store_multiple_instr_t load_store_multiple;
 	} info;
