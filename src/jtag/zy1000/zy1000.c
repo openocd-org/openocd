@@ -28,6 +28,8 @@
 #include <cyg/hal/hal_io.h>             // low level i/o
 #include <cyg/hal/hal_diag.h>
 
+#include <time.h>
+
 #define ZYLIN_VERSION GIT_ZY1000_VERSION
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
@@ -257,9 +259,8 @@ int handle_power_command(struct command_context *cmd_ctx, char *cmd, char **args
 /* Give TELNET a way to find out what version this is */
 static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	if ((argc < 1) || (argc > 2))
+	if ((argc < 1) || (argc > 3))
 		return JIM_ERR;
-	char buff[128];
 	const char *version_str = NULL;
 
 	if (argc == 1)
@@ -268,6 +269,9 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	} else
 	{
 		const char *str = Jim_GetString(argv[1], NULL);
+		const char *str2 = NULL;
+		if (argc > 2)
+			str2 = Jim_GetString(argv[2], NULL);
 		if (strcmp("openocd", str) == 0)
 		{
 			version_str = ZYLIN_OPENOCD;
@@ -292,6 +296,29 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 			version_str="b";
 #endif
 		}
+#ifdef CYGPKG_HAL_NIOS2
+		else if (strcmp("fpga", str) == 0)
+		{
+
+			/* return a list of 32 bit integers to describe the expected
+			 * and actual FPGA
+			 */
+			static char *fpga_id = "0x12345678 0x12345678 0x12345678 0x12345678";
+			cyg_uint32 id, timestamp;
+			HAL_READ_UINT32(SYSID_BASE, id);
+			HAL_READ_UINT32(SYSID_BASE+4, timestamp);
+			sprintf(fpga_id, "0x%08x 0x%08x 0x%08x 0x%08x", id, timestamp, SYSID_ID, SYSID_TIMESTAMP);
+			version_str = fpga_id;
+			if ((argc>2) && (strcmp("time", str2) == 0))
+			{
+			    time_t last_mod = timestamp;
+			    char * t = ctime (&last_mod) ;
+			    t[strlen(t)-1] = 0;
+			    version_str = t;
+			}
+		}
+#endif
+
 		else
 		{
 			return JIM_ERR;
