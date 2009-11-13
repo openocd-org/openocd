@@ -67,10 +67,10 @@ typedef struct image_s
 	uint32_t start_address;		/* start address, if one is set */
 } image_t;
 
-typedef struct image_binary_s
+struct image_binary
 {
 	struct fileio fileio;
-} image_binary_t;
+};
 
 typedef struct image_ihex_s
 {

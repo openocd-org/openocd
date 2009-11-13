@@ -680,9 +680,9 @@ int image_open(image_t *image, const char *url, const char *type_string)
 
 	if (image->type == IMAGE_BINARY)
 	{
-		image_binary_t *image_binary;
+		struct image_binary *image_binary;
 
-		image_binary = image->type_private = malloc(sizeof(image_binary_t));
+		image_binary = image->type_private = malloc(sizeof(struct image_binary));
 
 		if ((retval = fileio_open(&image_binary->fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
 		{
@@ -811,7 +811,7 @@ int image_read_section(image_t *image, int section, uint32_t offset, uint32_t si
 
 	if (image->type == IMAGE_BINARY)
 	{
-		image_binary_t *image_binary = image->type_private;
+		struct image_binary *image_binary = image->type_private;
 
 		/* only one section in a plain binary */
 		if (section != 0)
@@ -938,7 +938,7 @@ void image_close(image_t *image)
 {
 	if (image->type == IMAGE_BINARY)
 	{
-		image_binary_t *image_binary = image->type_private;
+		struct image_binary *image_binary = image->type_private;
 
 		fileio_close(&image_binary->fileio);
 	}
