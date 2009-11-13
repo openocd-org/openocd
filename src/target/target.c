@@ -3495,7 +3495,7 @@ void target_all_handle_event(enum target_event e)
  */
 void target_handle_event(target_t *target, enum target_event e)
 {
-	target_event_action_t *teap;
+	struct target_event_action *teap;
 
 	for (teap = target->event_action; teap != NULL; teap = teap->next) {
 		if (teap->event == e) {
@@ -3613,7 +3613,7 @@ static int target_configure(Jim_GetOptInfo *goi, target_t *target)
 			}
 
 			{
-				target_event_action_t *teap;
+				struct target_event_action *teap;
 
 				teap = target->event_action;
 				/* replace existing? */
@@ -4183,7 +4183,7 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		 * scripts/programs should use 'name cget -event NAME'
 		 */
 		{
-			target_event_action_t *teap;
+			struct target_event_action *teap;
 			teap = target->event_action;
 			command_print(cmd_ctx, "Event actions for target (%d) %s\n",
 						   target->target_number,

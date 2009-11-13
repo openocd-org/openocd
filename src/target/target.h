@@ -128,9 +128,6 @@ struct working_area
 struct target_type_s;
 typedef struct target_type_s target_type_t;
 
-/* forward decloration */
-typedef struct target_event_action_s target_event_action_t;
-
 typedef struct target_s
 {
 	target_type_t *type;				/* target type definition (name, access functions) */
@@ -138,7 +135,7 @@ typedef struct target_s
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;					/* where on the jtag chain is this */
 	const char *variant;				/* what varient of this chip is it? */
-	target_event_action_t *event_action;
+	struct target_event_action *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	uint32_t working_area;					/* working area (initialized RAM). Evaluated
@@ -225,11 +222,11 @@ enum target_event
 	TARGET_EVENT_GDB_FLASH_WRITE_END,
 };
 
-struct target_event_action_s {
+struct target_event_action {
 	enum target_event event;
 	Jim_Obj *body;
 	int has_percent;
-	target_event_action_t *next;
+	struct target_event_action *next;
  };
 
 struct target_event_callback
