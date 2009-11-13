@@ -112,8 +112,6 @@ enum target_endianess
 
 extern const Jim_Nvp nvp_target_endian[];
 
-struct target_s;
-
 struct working_area
 {
 	uint32_t address;
@@ -124,8 +122,8 @@ struct working_area
 	struct working_area *next;
 };
 
-// target_type.h contains the full definitionof struct target_type
-typedef struct target_s
+// target_type.h contains the full definitionof struct targe_type
+struct target
 {
 	struct target_type *type;				/* target type definition (name, access functions) */
 	const char *cmd_name;				/* tcl Name of target */
@@ -155,13 +153,13 @@ typedef struct target_s
 	struct debug_msg_receiver *dbgmsg;/* list of debug message receivers */
 	uint32_t dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
-	struct target_s *next;				/* next target in list */
+	struct target *next;				/* next target in list */
 
 	int display;						/* display async info in telnet session. Do not display
 										 * lots of halted/resumed info when stepping in debugger. */
 	bool halt_issued;					/* did we transition to halted state? */
 	long long halt_issued_time;			/* Note time when halt was issued */
-} target_t;
+};
 
 enum target_event
 {
@@ -228,7 +226,7 @@ struct target_event_action {
 
 struct target_event_callback
 {
-	int (*callback)(struct target_s *target, enum target_event event, void *priv);
+	int (*callback)(struct target *target, enum target_event event, void *priv);
 	void *priv;
 	struct target_event_callback *next;
 };
@@ -252,18 +250,18 @@ int target_process_reset(struct command_context_s *cmd_ctx,
 		enum target_reset_mode reset_mode);
 
 int target_register_event_callback(
-		int (*callback)(struct target_s *target,
+		int (*callback)(struct target *target,
 				enum target_event event, void *priv),
 		void *priv);
 int target_unregister_event_callback(
-		int (*callback)(struct target_s *target,
+		int (*callback)(struct target *target,
 				enum target_event event, void *priv),
 		void *priv);
-int target_poll(target_t *target);
-int target_resume(target_t *target, int current, uint32_t address,
+int target_poll(struct target *target);
+int target_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution);
-int target_halt(target_t *target);
-int target_call_event_callbacks(target_t *target, enum target_event event);
+int target_halt(struct target *target);
+int target_call_event_callbacks(struct target *target, enum target_event event);
 
 /**
  * The period is very approximate, the callback can happen much more often
@@ -280,28 +278,28 @@ int target_call_timer_callbacks(void);
  */
 int target_call_timer_callbacks_now(void);
 
-target_t* get_current_target(struct command_context_s *cmd_ctx);
-target_t *get_target(const char *id);
+struct target* get_current_target(struct command_context_s *cmd_ctx);
+struct target *get_target(const char *id);
 
 /**
  * Get the target name.
  *
  * This routine is a wrapper for the target->type->name field.
  */
-const char *target_get_name(struct target_s *target);
+const char *target_get_name(struct target *target);
 
 /**
  * Examine the specified @a target.
  *
  * This routine is a wrapper for target->type->examine.
  */
-int target_examine_one(struct target_s *target);
+int target_examine_one(struct target *target);
 /// @returns @c true if the target has been examined.
-bool target_was_examined(struct target_s *target);
+bool target_was_examined(struct target *target);
 /// Sets the @c examined flag for the given target.
-void target_set_examined(struct target_s *target);
+void target_set_examined(struct target *target);
 /// Reset the @c examined flag for the given target.
-void target_reset_examined(struct target_s *target);
+void target_reset_examined(struct target *target);
 
 
 /**
@@ -309,28 +307,28 @@ void target_reset_examined(struct target_s *target);
  *
  * This routine is a wrapper for target->type->add_breakpoint.
  */
-int target_add_breakpoint(struct target_s *target,
+int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 /**
  * Remove the @a breakpoint for @a target.
  *
  * This routine is a wrapper for target->type->remove_breakpoint.
  */
-int target_remove_breakpoint(struct target_s *target,
+int target_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 /**
  * Add the @a watchpoint for @a target.
  *
  * This routine is a wrapper for target->type->add_watchpoint.
  */
-int target_add_watchpoint(struct target_s *target,
+int target_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
 /**
  * Remove the @a watchpoint for @a target.
  *
  * This routine is a wrapper for target->type->remove_watchpoint.
  */
-int target_remove_watchpoint(struct target_s *target,
+int target_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
 
 /**
@@ -338,7 +336,7 @@ int target_remove_watchpoint(struct target_s *target,
  *
  * This routine is a wrapper for target->type->get_gdb_reg_list.
  */
-int target_get_gdb_reg_list(struct target_s *target,
+int target_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
 /**
@@ -346,14 +344,14 @@ int target_get_gdb_reg_list(struct target_s *target,
  *
  * This routine is a wrapper for target->type->step.
  */
-int target_step(struct target_s *target,
+int target_step(struct target *target,
 		int current, uint32_t address, int handle_breakpoints);
 /**
  * Run an algorithm on the @a target given.
  *
  * This routine is a wrapper for target->type->run_algorithm.
  */
-int target_run_algorithm(struct target_s *target,
+int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
 		uint32_t entry_point, uint32_t exit_point,
@@ -365,7 +363,7 @@ int target_run_algorithm(struct target_s *target,
  *
  * This routine is a wrapper for target->type->read_memory.
  */
-int target_read_memory(struct target_s *target,
+int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 /**
  * Write @a count items of @a size bytes to the memory of @a target at
@@ -373,7 +371,7 @@ int target_read_memory(struct target_s *target,
  *
  * This routine is wrapper for target->type->write_memory.
  */
-int target_write_memory(struct target_s *target,
+int target_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 /**
@@ -383,7 +381,7 @@ int target_write_memory(struct target_s *target,
  *
  * This routine is wrapper for target->type->bulk_write_memory.
  */
-int target_bulk_write_memory(struct target_s *target,
+int target_bulk_write_memory(struct target *target,
 		uint32_t address, uint32_t count, uint8_t *buffer);
 
 /*
@@ -410,18 +408,18 @@ int target_bulk_write_memory(struct target_s *target,
  * write operation, thus making this fn suitable to e.g. write to special
  * peripheral registers which do not support byte operations.
  */
-int target_write_buffer(struct target_s *target,
+int target_write_buffer(struct target *target,
 		uint32_t address, uint32_t size, uint8_t *buffer);
-int target_read_buffer(struct target_s *target,
+int target_read_buffer(struct target *target,
 		uint32_t address, uint32_t size, uint8_t *buffer);
-int target_checksum_memory(struct target_s *target,
+int target_checksum_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t* crc);
-int target_blank_check_memory(struct target_s *target,
+int target_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t* blank);
-int target_wait_state(target_t *target, enum target_state state, int ms);
+int target_wait_state(struct target *target, enum target_state state, int ms);
 
 /** Return the *name* of this targets current state */
-const char *target_state_name( target_t *target );
+const char *target_state_name( struct target *target );
 
 /* DANGER!!!!!
  *
@@ -434,37 +432,37 @@ const char *target_state_name( target_t *target );
  * upon resuming or resetting the CPU.
  *
  */
-int target_alloc_working_area(struct target_s *target,
+int target_alloc_working_area(struct target *target,
 		uint32_t size, struct working_area **area);
-int target_free_working_area(struct target_s *target, struct working_area *area);
-int target_free_working_area_restore(struct target_s *target,
+int target_free_working_area(struct target *target, struct working_area *area);
+int target_free_working_area_restore(struct target *target,
 		struct working_area *area, int restore);
-void target_free_all_working_areas(struct target_s *target);
-void target_free_all_working_areas_restore(struct target_s *target, int restore);
+void target_free_all_working_areas(struct target *target);
+void target_free_all_working_areas_restore(struct target *target, int restore);
 
-extern target_t *all_targets;
+extern struct target *all_targets;
 
 extern struct target_event_callback *target_event_callbacks;
 extern struct target_timer_callback *target_timer_callbacks;
 
-uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer);
-uint16_t target_buffer_get_u16(target_t *target, const uint8_t *buffer);
-uint8_t  target_buffer_get_u8 (target_t *target, const uint8_t *buffer);
-void target_buffer_set_u32(target_t *target, uint8_t *buffer, uint32_t value);
-void target_buffer_set_u16(target_t *target, uint8_t *buffer, uint16_t value);
-void target_buffer_set_u8 (target_t *target, uint8_t *buffer, uint8_t  value);
+uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer);
+uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer);
+uint8_t  target_buffer_get_u8 (struct target *target, const uint8_t *buffer);
+void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t value);
+void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t value);
+void target_buffer_set_u8 (struct target *target, uint8_t *buffer, uint8_t  value);
 
-int target_read_u32(struct target_s *target, uint32_t address, uint32_t *value);
-int target_read_u16(struct target_s *target, uint32_t address, uint16_t *value);
-int target_read_u8(struct target_s *target, uint32_t address, uint8_t *value);
-int target_write_u32(struct target_s *target, uint32_t address, uint32_t value);
-int target_write_u16(struct target_s *target, uint32_t address, uint16_t value);
-int target_write_u8(struct target_s *target, uint32_t address, uint8_t value);
+int target_read_u32(struct target *target, uint32_t address, uint32_t *value);
+int target_read_u16(struct target *target, uint32_t address, uint16_t *value);
+int target_read_u8(struct target *target, uint32_t address, uint8_t *value);
+int target_write_u32(struct target *target, uint32_t address, uint32_t value);
+int target_write_u16(struct target *target, uint32_t address, uint16_t value);
+int target_write_u8(struct target *target, uint32_t address, uint8_t value);
 
 /* Issues USER() statements with target state information */
-int target_arch_state(struct target_s *target);
+int target_arch_state(struct target *target);
 
-void target_handle_event(target_t *t, enum target_event e);
+void target_handle_event(struct target *t, enum target_event e);
 void target_all_handle_event(enum target_event e);
 
 #define ERROR_TARGET_INVALID	(-300)

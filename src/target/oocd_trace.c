@@ -291,7 +291,7 @@ struct etm_capture_driver oocd_trace_capture_driver =
 
 COMMAND_HANDLER(handle_oocd_trace_config_command)
 {
-	target_t *target;
+	struct target *target;
 	struct arm *arm;
 
 	if (argc != 2)
@@ -328,7 +328,7 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 
 COMMAND_HANDLER(handle_oocd_trace_status_command)
 {
-	target_t *target;
+	struct target *target;
 	struct arm *arm;
 	struct oocd_trace *oocd_trace;
 	uint32_t status;
@@ -368,7 +368,7 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 
 COMMAND_HANDLER(handle_oocd_trace_resync_command)
 {
-	target_t *target;
+	struct target *target;
 	struct arm *arm;
 	struct oocd_trace *oocd_trace;
 	size_t bytes_written;

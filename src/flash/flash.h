@@ -240,7 +240,7 @@ struct flash_driver
  */
 typedef struct flash_bank_s
 {
-	struct target_s *target; /**< Target to which this bank belongs. */
+	struct target *target; /**< Target to which this bank belongs. */
 
 	struct flash_driver *driver; /**< Driver for this bank. */
 	void *driver_priv; /**< Private driver storage pointer */
@@ -273,7 +273,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx);
  * Erases @a length bytes in the @a target flash, starting at @a addr.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
-int flash_erase_address_range(struct target_s *target,
+int flash_erase_address_range(struct target *target,
 		uint32_t addr, uint32_t length);
 /**
  * Writes @a image into the @a target flash.  The @a written parameter
@@ -285,7 +285,7 @@ int flash_erase_address_range(struct target_s *target,
  * erase the corresponding banks or sectors before programming.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
-int flash_write(struct target_s *target,
+int flash_write(struct target *target,
 		struct image *image, uint32_t *written, int erase);
 /**
  * Forces targets to re-examine their erase/protection state.
@@ -337,7 +337,7 @@ flash_bank_t *get_flash_bank_by_num_noprobe(int num);
  * @param addr An address that is within the range of the bank.
  * @returns The flash_bank_t located at @a addr, or NULL.
  */
-flash_bank_t *get_flash_bank_by_addr(struct target_s *target, uint32_t addr);
+struct flash_bank_s *get_flash_bank_by_addr(struct target *target, uint32_t addr);
 
 #define ERROR_FLASH_BANK_INVALID			(-900)
 #define ERROR_FLASH_SECTOR_INVALID			(-901)

@@ -108,26 +108,26 @@ struct armv7a_common
 	struct armv4_5_mmu_common armv4_5_mmu;
 	struct arm armv4_5_common;
 
-//	int (*full_context)(struct target_s *target);
-//	int (*read_core_reg)(struct target_s *target, int num, enum armv7a_mode mode);
-//	int (*write_core_reg)(struct target_s *target, int num, enum armv7a_mode mode, u32 value);
-	int (*read_cp15)(struct target_s *target,
+//	int (*full_context)(struct target *target);
+//	int (*read_core_reg)(struct target *target, int num, enum armv7a_mode mode);
+//	int (*write_core_reg)(struct target *target, int num, enum armv7a_mode mode, u32 value);
+	int (*read_cp15)(struct target *target,
 			uint32_t op1, uint32_t op2,
 			uint32_t CRn, uint32_t CRm, uint32_t *value);
-	int (*write_cp15)(struct target_s *target,
+	int (*write_cp15)(struct target *target,
 			uint32_t op1, uint32_t op2,
 			uint32_t CRn, uint32_t CRm, uint32_t value);
 
-	int (*examine_debug_reason)(target_t *target);
-	void (*post_debug_entry)(target_t *target);
+	int (*examine_debug_reason)(struct target *target);
+	void (*post_debug_entry)(struct target *target);
 
-	void (*pre_restore_context)(target_t *target);
-	void (*post_restore_context)(target_t *target);
+	void (*pre_restore_context)(struct target *target);
+	void (*post_restore_context)(struct target *target);
 
 };
 
 static inline struct armv7a_common *
-target_to_armv7a(struct target_s *target)
+target_to_armv7a(struct target *target)
 {
 	return container_of(target->arch_info, struct armv7a_common,
 			armv4_5_common);
@@ -145,15 +145,15 @@ struct armv7a_core_reg
 {
 	int num;
 	enum armv7a_mode mode;
-	target_t *target;
+	struct target *target;
 	struct armv7a_common *armv7a_common;
 };
 
-int armv7a_arch_state(struct target_s *target);
-struct reg_cache *armv7a_build_reg_cache(target_t *target,
+int armv7a_arch_state(struct target *target);
+struct reg_cache *armv7a_build_reg_cache(struct target *target,
 		struct armv7a_common *armv7a_common);
 int armv7a_register_commands(struct command_context_s *cmd_ctx);
-int armv7a_init_arch_info(target_t *target, struct armv7a_common *armv7a);
+int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
 
 /* map psr mode bits to linear number */
 static inline int armv7a_mode_to_number(enum armv7a_mode mode)

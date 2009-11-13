@@ -100,21 +100,21 @@ struct armv7m_common
 	struct swjdp_common swjdp_info;
 
 	/* Direct processor core register read and writes */
-	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
-	int (*store_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
+	int (*load_core_reg_u32)(struct target *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
+	int (*store_core_reg_u32)(struct target *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
 	/* register cache to processor synchronization */
-	int (*read_core_reg)(struct target_s *target, int num);
-	int (*write_core_reg)(struct target_s *target, int num);
+	int (*read_core_reg)(struct target *target, int num);
+	int (*write_core_reg)(struct target *target, int num);
 
-	int (*examine_debug_reason)(target_t *target);
-	void (*post_debug_entry)(target_t *target);
+	int (*examine_debug_reason)(struct target *target);
+	void (*post_debug_entry)(struct target *target);
 
-	void (*pre_restore_context)(target_t *target);
-	void (*post_restore_context)(target_t *target);
+	void (*pre_restore_context)(struct target *target);
+	void (*post_restore_context)(struct target *target);
 };
 
 static inline struct armv7m_common *
-target_to_armv7m(struct target_s *target)
+target_to_armv7m(struct target *target)
 {
 	return target->arch_info;
 }
@@ -130,34 +130,34 @@ struct armv7m_core_reg
 {
 	uint32_t num;
 	enum armv7m_regtype type;
-	target_t *target;
+	struct target *target;
 	struct armv7m_common *armv7m_common;
 };
 
-struct reg_cache *armv7m_build_reg_cache(target_t *target);
+struct reg_cache *armv7m_build_reg_cache(struct target *target);
 enum armv7m_mode armv7m_number_to_mode(int number);
 int armv7m_mode_to_number(enum armv7m_mode mode);
 
-int armv7m_arch_state(struct target_s *target);
-int armv7m_get_gdb_reg_list(target_t *target,
+int armv7m_arch_state(struct target *target);
+int armv7m_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
 int armv7m_register_commands(struct command_context_s *cmd_ctx);
-int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m);
+int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m);
 
-int armv7m_run_algorithm(struct target_s *target,
+int armv7m_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 
-int armv7m_invalidate_core_regs(target_t *target);
+int armv7m_invalidate_core_regs(struct target *target);
 
-int armv7m_restore_context(target_t *target);
+int armv7m_restore_context(struct target *target);
 
-int armv7m_checksum_memory(struct target_s *target,
+int armv7m_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t* checksum);
-int armv7m_blank_check_memory(struct target_s *target,
+int armv7m_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t* blank);
 
 /* Thumb mode instructions

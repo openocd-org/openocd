@@ -45,8 +45,8 @@
 
 static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
-static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
-static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
+static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
+static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
 
 /* targets */
 extern struct target_type arm7tdmi_target;
@@ -85,7 +85,7 @@ struct target_type *target_types[] =
 	NULL,
 };
 
-target_t *all_targets = NULL;
+struct target *all_targets = NULL;
 struct target_event_callback *target_event_callbacks = NULL;
 struct target_timer_callback *target_timer_callbacks = NULL;
 
@@ -213,7 +213,7 @@ const Jim_Nvp nvp_reset_modes[] = {
 };
 
 const char *
-target_state_name( target_t *t )
+target_state_name( struct target *t )
 {
 	const char *cp;
 	cp = Jim_Nvp_value2name_simple(nvp_target_state, t->state)->name;
@@ -227,7 +227,7 @@ target_state_name( target_t *t )
 /* determine the number of the new target */
 static int new_target_number(void)
 {
-	target_t *t;
+	struct target *t;
 	int x;
 
 	/* number is 0 based */
@@ -243,7 +243,7 @@ static int new_target_number(void)
 }
 
 /* read a uint32_t from a buffer in target memory endianness */
-uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer)
+uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u32(buffer);
@@ -252,7 +252,7 @@ uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer)
 }
 
 /* read a uint16_t from a buffer in target memory endianness */
-uint16_t target_buffer_get_u16(target_t *target, const uint8_t *buffer)
+uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u16(buffer);
@@ -261,13 +261,13 @@ uint16_t target_buffer_get_u16(target_t *target, const uint8_t *buffer)
 }
 
 /* read a uint8_t from a buffer in target memory endianness */
-uint8_t target_buffer_get_u8(target_t *target, const uint8_t *buffer)
+uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
 {
 	return *buffer & 0x0ff;
 }
 
 /* write a uint32_t to a buffer in target memory endianness */
-void target_buffer_set_u32(target_t *target, uint8_t *buffer, uint32_t value)
+void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t value)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		h_u32_to_le(buffer, value);
@@ -276,7 +276,7 @@ void target_buffer_set_u32(target_t *target, uint8_t *buffer, uint32_t value)
 }
 
 /* write a uint16_t to a buffer in target memory endianness */
-void target_buffer_set_u16(target_t *target, uint8_t *buffer, uint16_t value)
+void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t value)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		h_u16_to_le(buffer, value);
@@ -285,15 +285,15 @@ void target_buffer_set_u16(target_t *target, uint8_t *buffer, uint16_t value)
 }
 
 /* write a uint8_t to a buffer in target memory endianness */
-void target_buffer_set_u8(target_t *target, uint8_t *buffer, uint8_t value)
+void target_buffer_set_u8(struct target *target, uint8_t *buffer, uint8_t value)
 {
 	*buffer = value;
 }
 
 /* return a pointer to a configured target; id is name or number */
-target_t *get_target(const char *id)
+struct target *get_target(const char *id)
 {
-	target_t *target;
+	struct target *target;
 
 	/* try as tcltarget name */
 	for (target = all_targets; target; target = target->next) {
@@ -322,9 +322,9 @@ target_t *get_target(const char *id)
 }
 
 /* returns a pointer to the n-th configured target */
-static target_t *get_target_by_num(int num)
+static struct target *get_target_by_num(int num)
 {
-	target_t *target = all_targets;
+	struct target *target = all_targets;
 
 	while (target) {
 		if (target->target_number == num) {
@@ -336,9 +336,9 @@ static target_t *get_target_by_num(int num)
 	return NULL;
 }
 
-target_t* get_current_target(command_context_t *cmd_ctx)
+struct target* get_current_target(command_context_t *cmd_ctx)
 {
-	target_t *target = get_target_by_num(cmd_ctx->current_target);
+	struct target *target = get_target_by_num(cmd_ctx->current_target);
 
 	if (target == NULL)
 	{
@@ -349,7 +349,7 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 	return target;
 }
 
-int target_poll(struct target_s *target)
+int target_poll(struct target *target)
 {
 	int retval;
 
@@ -384,7 +384,7 @@ int target_poll(struct target_s *target)
 	return ERROR_OK;
 }
 
-int target_halt(struct target_s *target)
+int target_halt(struct target *target)
 {
 	int retval;
 	/* We can't poll until after examine */
@@ -404,7 +404,7 @@ int target_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int target_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
+int target_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval;
 
@@ -460,33 +460,33 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	return retval;
 }
 
-static int identity_virt2phys(struct target_s *target,
+static int identity_virt2phys(struct target *target,
 		uint32_t virtual, uint32_t *physical)
 {
 	*physical = virtual;
 	return ERROR_OK;
 }
 
-static int no_mmu(struct target_s *target, int *enabled)
+static int no_mmu(struct target *target, int *enabled)
 {
 	*enabled = 0;
 	return ERROR_OK;
 }
 
-static int default_examine(struct target_s *target)
+static int default_examine(struct target *target)
 {
 	target_set_examined(target);
 	return ERROR_OK;
 }
 
-int target_examine_one(struct target_s *target)
+int target_examine_one(struct target *target)
 {
 	return target->type->examine(target);
 }
 
 static int jtag_enable_callback(enum jtag_event event, void *priv)
 {
-	target_t *target = priv;
+	struct target *target = priv;
 
 	if (event != JTAG_TAP_EVENT_ENABLE || !target->tap->enabled)
 		return ERROR_OK;
@@ -504,7 +504,7 @@ static int jtag_enable_callback(enum jtag_event event, void *priv)
 int target_examine(void)
 {
 	int retval = ERROR_OK;
-	target_t *target;
+	struct target *target;
 
 	for (target = all_targets; target; target = target->next)
 	{
@@ -519,12 +519,12 @@ int target_examine(void)
 	}
 	return retval;
 }
-const char *target_get_name(struct target_s *target)
+const char *target_get_name(struct target *target)
 {
 	return target->type->name;
 }
 
-static int target_write_memory_imp(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int target_write_memory_imp(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -534,7 +534,7 @@ static int target_write_memory_imp(struct target_s *target, uint32_t address, ui
 	return target->type->write_memory_imp(target, address, size, count, buffer);
 }
 
-static int target_read_memory_imp(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int target_read_memory_imp(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -544,7 +544,7 @@ static int target_read_memory_imp(struct target_s *target, uint32_t address, uin
 	return target->type->read_memory_imp(target, address, size, count, buffer);
 }
 
-static int target_soft_reset_halt_imp(struct target_s *target)
+static int target_soft_reset_halt_imp(struct target *target)
 {
 	if (!target_was_examined(target))
 	{
@@ -559,7 +559,7 @@ static int target_soft_reset_halt_imp(struct target_s *target)
 	return target->type->soft_reset_halt_imp(target);
 }
 
-static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+static int target_run_algorithm_imp(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	if (!target_was_examined(target))
 	{
@@ -569,71 +569,71 @@ static int target_run_algorithm_imp(struct target_s *target, int num_mem_params,
 	return target->type->run_algorithm_imp(target, num_mem_params, mem_params, num_reg_params, reg_param, entry_point, exit_point, timeout_ms, arch_info);
 }
 
-int target_read_memory(struct target_s *target,
+int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
-int target_read_phys_memory(struct target_s *target,
+int target_read_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->read_phys_memory(target, address, size, count, buffer);
 }
 
-int target_write_memory(struct target_s *target,
+int target_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
-int target_write_phys_memory(struct target_s *target,
+int target_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->write_phys_memory(target, address, size, count, buffer);
 }
 
-int target_bulk_write_memory(struct target_s *target,
+int target_bulk_write_memory(struct target *target,
 		uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	return target->type->bulk_write_memory(target, address, count, buffer);
 }
 
-int target_add_breakpoint(struct target_s *target,
+int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	return target->type->add_breakpoint(target, breakpoint);
 }
-int target_remove_breakpoint(struct target_s *target,
+int target_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	return target->type->remove_breakpoint(target, breakpoint);
 }
 
-int target_add_watchpoint(struct target_s *target,
+int target_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	return target->type->add_watchpoint(target, watchpoint);
 }
-int target_remove_watchpoint(struct target_s *target,
+int target_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	return target->type->remove_watchpoint(target, watchpoint);
 }
 
-int target_get_gdb_reg_list(struct target_s *target,
+int target_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size)
 {
 	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size);
 }
-int target_step(struct target_s *target,
+int target_step(struct target *target,
 		int current, uint32_t address, int handle_breakpoints)
 {
 	return target->type->step(target, current, address, handle_breakpoints);
 }
 
 
-int target_run_algorithm(struct target_s *target,
+int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
 		uint32_t entry_point, uint32_t exit_point,
@@ -645,36 +645,36 @@ int target_run_algorithm(struct target_s *target,
 }
 
 /// @returns @c true if the target has been examined.
-bool target_was_examined(struct target_s *target)
+bool target_was_examined(struct target *target)
 {
 	return target->type->examined;
 }
 /// Sets the @c examined flag for the given target.
-void target_set_examined(struct target_s *target)
+void target_set_examined(struct target *target)
 {
 	target->type->examined = true;
 }
 // Reset the @c examined flag for the given target.
-void target_reset_examined(struct target_s *target)
+void target_reset_examined(struct target *target)
 {
 	target->type->examined = false;
 }
 
 
 
-static int default_mrc(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+static int default_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
 }
 
-static int default_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+static int default_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
 }
 
-static int arm_cp_check(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm)
+static int arm_cp_check(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm)
 {
 	/* basic check */
 	if (!target_was_examined(target))
@@ -716,7 +716,7 @@ static int arm_cp_check(struct target_s *target, int cpnum, uint32_t op1, uint32
 	return ERROR_OK;
 }
 
-int target_mrc(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+int target_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	int retval;
 
@@ -727,7 +727,7 @@ int target_mrc(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, u
 	return target->type->mrc(target, cpnum, op1, op2, CRn, CRm, value);
 }
 
-int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+int target_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	int retval;
 
@@ -739,7 +739,7 @@ int target_mcr(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, u
 }
 
 static int
-err_read_phys_memory(struct target_s *target, uint32_t address,
+err_read_phys_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
@@ -747,7 +747,7 @@ err_read_phys_memory(struct target_s *target, uint32_t address,
 }
 
 static int
-err_write_phys_memory(struct target_s *target, uint32_t address,
+err_write_phys_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
@@ -756,7 +756,7 @@ err_write_phys_memory(struct target_s *target, uint32_t address,
 
 int target_init(struct command_context_s *cmd_ctx)
 {
-	struct target_s *target;
+	struct target *target;
 	int retval;
 
 	for (target = all_targets; target; target = target->next) {
@@ -870,7 +870,7 @@ int target_init(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int target_register_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv)
+int target_register_event_callback(int (*callback)(struct target *target, enum target_event event, void *priv), void *priv)
 {
 	struct target_event_callback **callbacks_p = &target_event_callbacks;
 
@@ -932,7 +932,7 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 	return ERROR_OK;
 }
 
-int target_unregister_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv)
+int target_unregister_event_callback(int (*callback)(struct target *target, enum target_event event, void *priv), void *priv)
 {
 	struct target_event_callback **p = &target_event_callbacks;
 	struct target_event_callback *c = target_event_callbacks;
@@ -986,7 +986,7 @@ int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 	return ERROR_OK;
 }
 
-int target_call_event_callbacks(target_t *target, enum target_event event)
+int target_call_event_callbacks(struct target *target, enum target_event event)
 {
 	struct target_event_callback *callback = target_event_callbacks;
 	struct target_event_callback *next_callback;
@@ -1082,7 +1082,7 @@ int target_call_timer_callbacks_now(void)
 	return target_call_timer_callbacks_check_time(0);
 }
 
-int target_alloc_working_area(struct target_s *target, uint32_t size, struct working_area **area)
+int target_alloc_working_area(struct target *target, uint32_t size, struct working_area **area)
 {
 	struct working_area *c = target->working_areas;
 	struct working_area *new_wa = NULL;
@@ -1202,7 +1202,7 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, struct wor
 	return ERROR_OK;
 }
 
-int target_free_working_area_restore(struct target_s *target, struct working_area *area, int restore)
+int target_free_working_area_restore(struct target *target, struct working_area *area, int restore)
 {
 	if (area->free)
 		return ERROR_OK;
@@ -1223,7 +1223,7 @@ int target_free_working_area_restore(struct target_s *target, struct working_are
 	return ERROR_OK;
 }
 
-int target_free_working_area(struct target_s *target, struct working_area *area)
+int target_free_working_area(struct target *target, struct working_area *area)
 {
 	return target_free_working_area_restore(target, area, 1);
 }
@@ -1231,7 +1231,7 @@ int target_free_working_area(struct target_s *target, struct working_area *area)
 /* free resources and restore memory, if restoring memory fails,
  * free up resources anyway
  */
-void target_free_all_working_areas_restore(struct target_s *target, int restore)
+void target_free_all_working_areas_restore(struct target *target, int restore)
 {
 	struct working_area *c = target->working_areas;
 
@@ -1251,12 +1251,12 @@ void target_free_all_working_areas_restore(struct target_s *target, int restore)
 	target->working_areas = NULL;
 }
 
-void target_free_all_working_areas(struct target_s *target)
+void target_free_all_working_areas(struct target *target)
 {
 	target_free_all_working_areas_restore(target, 1);
 }
 
-int target_arch_state(struct target_s *target)
+int target_arch_state(struct target *target)
 {
 	int retval;
 	if (target == NULL)
@@ -1278,7 +1278,7 @@ int target_arch_state(struct target_s *target)
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer)
+int target_write_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
 	int retval;
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x",
@@ -1360,7 +1360,7 @@ int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer)
+int target_read_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
 	int retval;
 	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
@@ -1441,7 +1441,7 @@ int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size,
 	return ERROR_OK;
 }
 
-int target_checksum_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* crc)
+int target_checksum_memory(struct target *target, uint32_t address, uint32_t size, uint32_t* crc)
 {
 	uint8_t *buffer;
 	int retval;
@@ -1486,7 +1486,7 @@ int target_checksum_memory(struct target_s *target, uint32_t address, uint32_t s
 	return retval;
 }
 
-int target_blank_check_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* blank)
+int target_blank_check_memory(struct target *target, uint32_t address, uint32_t size, uint32_t* blank)
 {
 	int retval;
 	if (!target_was_examined(target))
@@ -1503,7 +1503,7 @@ int target_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 	return retval;
 }
 
-int target_read_u32(struct target_s *target, uint32_t address, uint32_t *value)
+int target_read_u32(struct target *target, uint32_t address, uint32_t *value)
 {
 	uint8_t value_buf[4];
 	if (!target_was_examined(target))
@@ -1531,7 +1531,7 @@ int target_read_u32(struct target_s *target, uint32_t address, uint32_t *value)
 	return retval;
 }
 
-int target_read_u16(struct target_s *target, uint32_t address, uint16_t *value)
+int target_read_u16(struct target *target, uint32_t address, uint16_t *value)
 {
 	uint8_t value_buf[2];
 	if (!target_was_examined(target))
@@ -1559,7 +1559,7 @@ int target_read_u16(struct target_s *target, uint32_t address, uint16_t *value)
 	return retval;
 }
 
-int target_read_u8(struct target_s *target, uint32_t address, uint8_t *value)
+int target_read_u8(struct target *target, uint32_t address, uint8_t *value)
 {
 	int retval = target_read_memory(target, address, 1, 1, value);
 	if (!target_was_examined(target))
@@ -1584,7 +1584,7 @@ int target_read_u8(struct target_s *target, uint32_t address, uint8_t *value)
 	return retval;
 }
 
-int target_write_u32(struct target_s *target, uint32_t address, uint32_t value)
+int target_write_u32(struct target *target, uint32_t address, uint32_t value)
 {
 	int retval;
 	uint8_t value_buf[4];
@@ -1607,7 +1607,7 @@ int target_write_u32(struct target_s *target, uint32_t address, uint32_t value)
 	return retval;
 }
 
-int target_write_u16(struct target_s *target, uint32_t address, uint16_t value)
+int target_write_u16(struct target *target, uint32_t address, uint16_t value)
 {
 	int retval;
 	uint8_t value_buf[2];
@@ -1630,7 +1630,7 @@ int target_write_u16(struct target_s *target, uint32_t address, uint16_t value)
 	return retval;
 }
 
-int target_write_u8(struct target_s *target, uint32_t address, uint8_t value)
+int target_write_u8(struct target *target, uint32_t address, uint8_t value)
 {
 	int retval;
 	if (!target_was_examined(target))
@@ -1652,7 +1652,7 @@ int target_write_u8(struct target_s *target, uint32_t address, uint8_t value)
 
 COMMAND_HANDLER(handle_targets_command)
 {
-	target_t *target = all_targets;
+	struct target *target = all_targets;
 
 	if (argc == 1)
 	{
@@ -1774,7 +1774,7 @@ static int sense_handler(void)
 }
 
 static void target_call_event_callbacks_all(enum target_event e) {
-	target_t *target;
+	struct target *target;
 	target = all_targets;
 	while (target) {
 		target_call_event_callbacks(target, e);
@@ -1840,7 +1840,7 @@ int handle_target(void *priv)
 	/* Poll targets for state changes unless that's globally disabled.
 	 * Skip targets that are currently disabled.
 	 */
-	for (target_t *target = all_targets;
+	for (struct target *target = all_targets;
 			is_jtag_poll_safe() && target;
 			target = target->next)
 	{
@@ -1864,7 +1864,7 @@ int handle_target(void *priv)
 
 COMMAND_HANDLER(handle_reg_command)
 {
-	target_t *target;
+	struct target *target;
 	struct reg *reg = NULL;
 	int count = 0;
 	char *value;
@@ -1996,7 +1996,7 @@ COMMAND_HANDLER(handle_reg_command)
 COMMAND_HANDLER(handle_poll_command)
 {
 	int retval = ERROR_OK;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	if (argc == 0)
 	{
@@ -2053,7 +2053,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
 		ms *= 1000;
 	}
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	return target_wait_state(target, TARGET_HALTED, ms);
 }
 
@@ -2063,7 +2063,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
  *
  * After 500ms, keep_alive() is invoked
  */
-int target_wait_state(target_t *target, enum target_state state, int ms)
+int target_wait_state(struct target *target, enum target_state state, int ms)
 {
 	int retval;
 	long long then = 0, cur;
@@ -2106,7 +2106,7 @@ COMMAND_HANDLER(handle_halt_command)
 {
 	LOG_DEBUG("-");
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	int retval = target_halt(target);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2126,7 +2126,7 @@ COMMAND_HANDLER(handle_halt_command)
 
 COMMAND_HANDLER(handle_soft_reset_halt_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	LOG_USER("requesting target halt and executing a soft reset");
 
@@ -2162,7 +2162,7 @@ COMMAND_HANDLER(handle_resume_command)
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 
 	/* with no args, resume from current pc, addr = 0,
@@ -2196,13 +2196,13 @@ COMMAND_HANDLER(handle_step_command)
 		current_pc = 0;
 	}
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	return target->type->step(target, current_pc, addr, 1);
 }
 
 static void handle_md_output(struct command_context_s *cmd_ctx,
-		struct target_s *target, uint32_t address, unsigned size,
+		struct target *target, uint32_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
 	const unsigned line_bytecnt = 32;
@@ -2264,7 +2264,7 @@ COMMAND_HANDLER(handle_md_command)
 	}
 
 	bool physical=strcmp(args[0], "phys")==0;
-	int (*fn)(struct target_s *target,
+	int (*fn)(struct target *target,
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	if (physical)
 	{
@@ -2289,7 +2289,7 @@ COMMAND_HANDLER(handle_md_command)
 
 	uint8_t *buffer = calloc(count, size);
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	int retval = fn(target, address, size, count, buffer);
 	if (ERROR_OK == retval)
 		handle_md_output(cmd_ctx, target, address, size, count, buffer);
@@ -2306,7 +2306,7 @@ COMMAND_HANDLER(handle_mw_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	bool physical=strcmp(args[0], "phys")==0;
-	int (*fn)(struct target_s *target,
+	int (*fn)(struct target *target,
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	if (physical)
 	{
@@ -2330,7 +2330,7 @@ COMMAND_HANDLER(handle_mw_command)
 	if (argc == 3)
 		COMMAND_PARSE_NUMBER(uint, args[2], count);
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	unsigned wordsize;
 	uint8_t value_buf[4];
 	switch (CMD_NAME[2])
@@ -2415,7 +2415,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	struct duration bench;
 	duration_start(&bench);
@@ -2499,7 +2499,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 	int retvaltemp;
 
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	if (argc != 3)
 	{
@@ -2566,7 +2566,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 
 	struct image image;
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	if (argc < 1)
 	{
@@ -2711,7 +2711,7 @@ COMMAND_HANDLER(handle_test_image_command)
 
 static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct breakpoint *breakpoint = target->breakpoints;
 	while (breakpoint)
 	{
@@ -2740,7 +2740,7 @@ static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 static int handle_bp_command_set(struct command_context_s *cmd_ctx,
 		uint32_t addr, uint32_t length, int hw)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	int retval = breakpoint_add(target, addr, length, hw);
 	if (ERROR_OK == retval)
 		command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
@@ -2785,7 +2785,7 @@ COMMAND_HANDLER(handle_rbp_command)
 	uint32_t addr;
 	COMMAND_PARSE_NUMBER(u32, args[0], addr);
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	breakpoint_remove(target, addr);
 
 	return ERROR_OK;
@@ -2793,7 +2793,7 @@ COMMAND_HANDLER(handle_rbp_command)
 
 COMMAND_HANDLER(handle_wp_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	if (argc == 0)
 	{
@@ -2871,7 +2871,7 @@ COMMAND_HANDLER(handle_rwp_command)
 	uint32_t addr;
 	COMMAND_PARSE_NUMBER(u32, args[0], addr);
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	watchpoint_remove(target, addr);
 
 	return ERROR_OK;
@@ -2893,7 +2893,7 @@ COMMAND_HANDLER(handle_virt2phys_command)
 	COMMAND_PARSE_NUMBER(u32, args[0], va);
 	uint32_t pa;
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	int retval = target->type->virt2phys(target, va, &pa);
 	if (retval == ERROR_OK)
 		command_print(cmd_ctx, "Physical address 0x%08" PRIx32 "", pa);
@@ -3020,7 +3020,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 /* profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC */
 COMMAND_HANDLER(handle_profile_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct timeval timeout, now;
 
 	gettimeofday(&timeout, NULL);
@@ -3133,7 +3133,7 @@ static int new_int_array_element(Jim_Interp * interp, const char *varname, int i
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	command_context_t *context;
-	target_t *target;
+	struct target *target;
 
 	context = Jim_GetAssocData(interp, "context");
 	if (context == NULL)
@@ -3151,7 +3151,7 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return 	target_mem2array(interp, target, argc-1, argv + 1);
 }
 
-static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
+static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
 	uint32_t width;
@@ -3322,7 +3322,7 @@ static int get_int_array_element(Jim_Interp * interp, const char *varname, int i
 static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	command_context_t *context;
-	target_t *target;
+	struct target *target;
 
 	context = Jim_GetAssocData(interp, "context");
 	if (context == NULL) {
@@ -3337,7 +3337,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	return target_array2mem(interp,target, argc-1, argv + 1);
 }
-static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
+static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
 	uint32_t width;
@@ -3476,7 +3476,7 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 
 void target_all_handle_event(enum target_event e)
 {
-	target_t *target;
+	struct target *target;
 
 	LOG_DEBUG("**all*targets: event: %d, %s",
 			   (int)e,
@@ -3493,7 +3493,7 @@ void target_all_handle_event(enum target_event e)
 /* FIX? should we propagate errors here rather than printing them
  * and continuing?
  */
-void target_handle_event(target_t *target, enum target_event e)
+void target_handle_event(struct target *target, enum target_event e)
 {
 	struct target_event_action *teap;
 
@@ -3540,7 +3540,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-static int target_configure(Jim_GetOptInfo *goi, target_t *target)
+static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 {
 	Jim_Nvp *n;
 	Jim_Obj *o;
@@ -3821,7 +3821,7 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int x,y,z;
 	uint8_t  target_buf[32];
 	Jim_Nvp *n;
-	target_t *target;
+	struct target *target;
 	struct command_context_s *cmd_ctx;
 	int e;
 
@@ -4237,7 +4237,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	char *cp2;
 	int e;
 	int x;
-	target_t *target;
+	struct target *target;
 	struct command_context_s *cmd_ctx;
 
 	cmd_ctx = Jim_GetAssocData(goi->interp, "context");
@@ -4285,7 +4285,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	/* Create it */
-	target = calloc(1,sizeof(target_t));
+	target = calloc(1,sizeof(struct target));
 	/* set target number */
 	target->target_number = new_target_number();
 
@@ -4364,7 +4364,7 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	/* append to end of list */
 	{
-		target_t **tpp;
+		struct target **tpp;
 		tpp = &(all_targets);
 		while (*tpp) {
 			tpp = &((*tpp)->next);
@@ -4391,7 +4391,7 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int x,r,e;
 	jim_wide w;
 	struct command_context_s *cmd_ctx;
-	target_t *target;
+	struct target *target;
 	Jim_GetOptInfo goi;
 	enum tcmd {
 		/* TG = target generic */
@@ -4662,7 +4662,7 @@ COMMAND_HANDLER(handle_fast_load_command)
 	int retval = ERROR_OK;
 	for (i = 0; i < fastload_num;i++)
 	{
-		target_t *target = get_current_target(cmd_ctx);
+		struct target *target = get_current_target(cmd_ctx);
 		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x",
 					  (unsigned int)(fastload[i].address),
 					  (unsigned int)(fastload[i].length));
@@ -4680,7 +4680,7 @@ COMMAND_HANDLER(handle_fast_load_command)
 static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	command_context_t *context;
-	target_t *target;
+	struct target *target;
 	int retval;
 
 	context = Jim_GetAssocData(interp, "context");

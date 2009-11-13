@@ -4191,7 +4191,7 @@ ldrh_literal:
  * always set.  That means eventual arm_simulate_step() support for Thumb2
  * will need work in this area.
  */
-int thumb2_opcode(target_t *target, uint32_t address, struct arm_instruction *instruction)
+int thumb2_opcode(struct target *target, uint32_t address, struct arm_instruction *instruction)
 {
 	int retval;
 	uint16_t op;

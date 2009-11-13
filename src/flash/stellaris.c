@@ -318,7 +318,7 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static uint32_t stellaris_get_flash_status(flash_bank_t *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t fmc;
 
 	target_read_u32(target, FLASH_CONTROL_BASE | FLASH_FMC, &fmc);
@@ -364,7 +364,7 @@ static const unsigned rcc_xtal[32] = {
 static void stellaris_read_clock_info(flash_bank_t *bank)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t rcc, rcc2, pllcfg, sysdiv, usesysdiv, bypass, oscsrc;
 	unsigned xtal;
 	unsigned long mainfreq;
@@ -451,7 +451,7 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 static void stellaris_set_flash_mode(flash_bank_t *bank,int mode)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
 	LOG_DEBUG("usecrl = %i",(int)(usecrl));
@@ -479,7 +479,7 @@ static uint32_t stellaris_wait_status_busy(flash_bank_t *bank, uint32_t waitbits
 static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,uint16_t pagen)
 {
 	uint32_t fmc;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	fmc = FMC_WRKEY | cmd;
 	target_write_u32(target, FLASH_CONTROL_BASE | FLASH_FMC, fmc);
@@ -498,7 +498,7 @@ static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,uint16_
 static int stellaris_read_part_info(struct flash_bank_s *bank)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t did0, did1, ver, fam, status;
 	int i;
 
@@ -647,7 +647,7 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	int banknr;
 	uint32_t flash_fmc, flash_cris;
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -718,7 +718,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	int lockregion;
 
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -830,7 +830,7 @@ static uint8_t stellaris_write_code[] =
 
 static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t wcount)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t buffer_size = 8192;
 	struct working_area *source;
 	struct working_area *write_algorithm;
@@ -911,7 +911,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t address = offset;
 	uint32_t flash_cris, flash_fmc;
 	uint32_t words_remaining = (count / 4);
@@ -1069,7 +1069,7 @@ static int stellaris_auto_probe(struct flash_bank_s *bank)
 
 static int stellaris_mass_erase(struct flash_bank_s *bank)
 {
-	target_t *target = NULL;
+	struct target *target = NULL;
 	struct stellaris_flash_bank *stellaris_info = NULL;
 	uint32_t flash_fmc;
 

@@ -32,18 +32,18 @@
 int avr_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
-int avr_target_create(struct target_s *target, Jim_Interp *interp);
-int avr_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
+int avr_target_create(struct target *target, Jim_Interp *interp);
+int avr_init_target(struct command_context_s *cmd_ctx, struct target *target);
 
-int avr_arch_state(struct target_s *target);
-int avr_poll(target_t *target);
-int avr_halt(target_t *target);
-int avr_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-int avr_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
+int avr_arch_state(struct target *target);
+int avr_poll(struct target *target);
+int avr_halt(struct target *target);
+int avr_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
+int avr_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
 
-int avr_assert_reset(target_t *target);
-int avr_deassert_reset(target_t *target);
-int avr_soft_reset_halt(struct target_s *target);
+int avr_assert_reset(struct target *target);
+int avr_deassert_reset(struct target *target);
+int avr_soft_reset_halt(struct target *target);
 
 /* IR and DR functions */
 int avr_jtag_sendinstr(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out);
@@ -102,7 +102,7 @@ int avr_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int avr_target_create(struct target_s *target, Jim_Interp *interp)
+int avr_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct avr_common *avr = calloc(1, sizeof(struct avr_common));
 
@@ -112,19 +112,19 @@ int avr_target_create(struct target_s *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-int avr_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+int avr_init_target(struct command_context_s *cmd_ctx, struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int avr_arch_state(struct target_s *target)
+int avr_arch_state(struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int avr_poll(target_t *target)
+int avr_poll(struct target *target)
 {
 	if ((target->state == TARGET_RUNNING) || (target->state == TARGET_DEBUG_RUNNING))
 	{
@@ -135,25 +135,25 @@ int avr_poll(target_t *target)
 	return ERROR_OK;
 }
 
-int avr_halt(target_t *target)
+int avr_halt(struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int avr_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
+int avr_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int avr_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
+int avr_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int avr_assert_reset(target_t *target)
+int avr_assert_reset(struct target *target)
 {
 	target->state = TARGET_RESET;
 
@@ -161,7 +161,7 @@ int avr_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-int avr_deassert_reset(target_t *target)
+int avr_deassert_reset(struct target *target)
 {
 	target->state = TARGET_RUNNING;
 
@@ -169,7 +169,7 @@ int avr_deassert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-int avr_soft_reset_halt(struct target_s *target)
+int avr_soft_reset_halt(struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;

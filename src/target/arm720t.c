@@ -38,7 +38,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-static int arm720t_scan_cp15(target_t *target,
+static int arm720t_scan_cp15(struct target *target,
 		uint32_t out, uint32_t *in, int instruction, int clock)
 {
 	int retval;
@@ -102,7 +102,7 @@ static int arm720t_scan_cp15(target_t *target,
 	return ERROR_OK;
 }
 
-static int arm720t_read_cp15(target_t *target, uint32_t opcode, uint32_t *value)
+static int arm720t_read_cp15(struct target *target, uint32_t opcode, uint32_t *value)
 {
 	/* fetch CP15 opcode */
 	arm720t_scan_cp15(target, opcode, NULL, 1, 1);
@@ -119,7 +119,7 @@ static int arm720t_read_cp15(target_t *target, uint32_t opcode, uint32_t *value)
 	return ERROR_OK;
 }
 
-static int arm720t_write_cp15(target_t *target, uint32_t opcode, uint32_t value)
+static int arm720t_write_cp15(struct target *target, uint32_t opcode, uint32_t value)
 {
 	/* fetch CP15 opcode */
 	arm720t_scan_cp15(target, opcode, NULL, 1, 1);
@@ -135,7 +135,7 @@ static int arm720t_write_cp15(target_t *target, uint32_t opcode, uint32_t value)
 	return ERROR_OK;
 }
 
-static uint32_t arm720t_get_ttb(target_t *target)
+static uint32_t arm720t_get_ttb(struct target *target)
 {
 	uint32_t ttb = 0x0;
 
@@ -147,7 +147,7 @@ static uint32_t arm720t_get_ttb(target_t *target)
 	return ttb;
 }
 
-static void arm720t_disable_mmu_caches(target_t *target,
+static void arm720t_disable_mmu_caches(struct target *target,
 		int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
@@ -165,7 +165,7 @@ static void arm720t_disable_mmu_caches(target_t *target,
 	arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
-static void arm720t_enable_mmu_caches(target_t *target,
+static void arm720t_enable_mmu_caches(struct target *target,
 		int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
@@ -183,7 +183,7 @@ static void arm720t_enable_mmu_caches(target_t *target,
 	arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
-static void arm720t_post_debug_entry(target_t *target)
+static void arm720t_post_debug_entry(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
@@ -202,7 +202,7 @@ static void arm720t_post_debug_entry(target_t *target)
 	jtag_execute_queue();
 }
 
-static void arm720t_pre_restore_context(target_t *target)
+static void arm720t_pre_restore_context(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
@@ -221,7 +221,7 @@ static int arm720t_verify_pointer(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int arm720t_arch_state(struct target_s *target)
+static int arm720t_arch_state(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
 	struct armv4_5_common_s *armv4_5;
@@ -247,7 +247,7 @@ static int arm720t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-static int arm720_mmu(struct target_s *target, int *enabled)
+static int arm720_mmu(struct target *target, int *enabled)
 {
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("%s: target not halted", __func__);
@@ -258,7 +258,7 @@ static int arm720_mmu(struct target_s *target, int *enabled)
 	return ERROR_OK;
 }
 
-static int arm720_virt2phys(struct target_s *target,
+static int arm720_virt2phys(struct target *target,
 		uint32_t virt, uint32_t *phys)
 {
 	/** @todo Implement this!  */
@@ -266,7 +266,7 @@ static int arm720_virt2phys(struct target_s *target,
 	return ERROR_FAIL;
 }
 
-static int arm720t_read_memory(struct target_s *target,
+static int arm720t_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
@@ -284,7 +284,7 @@ static int arm720t_read_memory(struct target_s *target,
 	return retval;
 }
 
-static int arm720t_read_phys_memory(struct target_s *target,
+static int arm720t_read_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
@@ -292,7 +292,7 @@ static int arm720t_read_phys_memory(struct target_s *target,
 	return armv4_5_mmu_read_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
 }
 
-static int arm720t_write_phys_memory(struct target_s *target,
+static int arm720t_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
@@ -300,7 +300,7 @@ static int arm720t_write_phys_memory(struct target_s *target,
 	return armv4_5_mmu_write_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
 }
 
-static int arm720t_soft_reset_halt(struct target_s *target)
+static int arm720t_soft_reset_halt(struct target *target)
 {
 	int retval = ERROR_OK;
 	struct arm720t_common *arm720t = target_to_arm720(target);
@@ -371,12 +371,12 @@ static int arm720t_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-static int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+static int arm720t_init_target(struct command_context_s *cmd_ctx, struct target *target)
 {
 	return arm7tdmi_init_target(cmd_ctx, target);
 }
 
-static int arm720t_init_arch_info(target_t *target,
+static int arm720t_init_arch_info(struct target *target,
 		struct arm720t_common *arm720t, struct jtag_tap *tap)
 {
 	struct arm7tdmi_common *arm7tdmi = &arm720t->arm7tdmi_common;
@@ -401,7 +401,7 @@ static int arm720t_init_arch_info(target_t *target,
 	return ERROR_OK;
 }
 
-static int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm720t_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm720t_common *arm720t = calloc(1, sizeof(*arm720t));
 
@@ -412,7 +412,7 @@ static int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 COMMAND_HANDLER(arm720t_handle_cp15_command)
 {
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm720t_common *arm720t = target_to_arm720(target);
 	struct arm_jtag *jtag_info;
 
@@ -467,7 +467,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	return ERROR_OK;
 }
 
-static int arm720t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+static int arm720t_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	if (cpnum!=15)
 	{
@@ -479,7 +479,7 @@ static int arm720t_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, 
 
 }
 
-static int arm720t_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+static int arm720t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	if (cpnum!=15)
 	{

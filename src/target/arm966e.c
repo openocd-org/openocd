@@ -32,7 +32,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-int arm966e_init_arch_info(target_t *target, struct arm966e_common *arm966e, struct jtag_tap *tap)
+int arm966e_init_arch_info(struct target *target, struct arm966e_common *arm966e, struct jtag_tap *tap)
 {
 	struct arm9tdmi_common *arm9tdmi = &arm966e->arm9tdmi_common;
 	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -50,7 +50,7 @@ int arm966e_init_arch_info(target_t *target, struct arm966e_common *arm966e, str
 	return ERROR_OK;
 }
 
-static int arm966e_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm966e_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm966e_common *arm966e = calloc(1,sizeof(struct arm966e_common));
 
@@ -67,7 +67,7 @@ static int arm966e_verify_pointer(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
+static int arm966e_read_cp15(struct target *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -119,7 +119,7 @@ static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 }
 
 // EXPORTED to str9x (flash)
-int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
+int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -165,7 +165,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 COMMAND_HANDLER(arm966e_handle_cp15_command)
 {
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm966e_common *arm966e = target_to_arm966(target);
 
 	retval = arm966e_verify_pointer(cmd_ctx, arm966e);

@@ -93,10 +93,10 @@ struct embeddedice_reg
 	struct arm_jtag *jtag_info;
 };
 
-struct reg_cache* embeddedice_build_reg_cache(target_t *target,
+struct reg_cache* embeddedice_build_reg_cache(struct target *target,
 		struct arm7_9_common *arm7_9);
 
-int embeddedice_setup(target_t *target);
+int embeddedice_setup(struct target *target);
 
 int embeddedice_read_reg(struct reg *reg);
 int embeddedice_read_reg_w_check(struct reg *reg,

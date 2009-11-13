@@ -33,8 +33,8 @@ struct arm7tdmi_common
 	struct arm7_9_common arm7_9_common;
 };
 
-int arm7tdmi_init_arch_info(target_t *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap);
-int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm7tdmi_examine(struct target_s *target);
+int arm7tdmi_init_arch_info(struct target *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap);
+int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target *target);
+int arm7tdmi_examine(struct target *target);
 
 #endif /* ARM7TDMI_H */

@@ -42,9 +42,9 @@ struct debug_msg_receiver
 	struct debug_msg_receiver *next;
 };
 
-int target_request(target_t *target, uint32_t request);
+int target_request(struct target *target, uint32_t request);
 int delete_debug_msg_receiver(struct command_context_s *cmd_ctx,
-		target_t *target);
+		struct target *target);
 int target_request_register_commands(struct command_context_s *cmd_ctx);
 
 #endif /* TARGET_REQUEST_H */

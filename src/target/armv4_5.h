@@ -98,10 +98,10 @@ struct arm
 	/** Handle for the Embedded Trace Module, if one is present. */
 	struct etm_context *etm;
 
-	int (*full_context)(struct target_s *target);
-	int (*read_core_reg)(struct target_s *target,
+	int (*full_context)(struct target *target);
+	int (*read_core_reg)(struct target *target,
 			int num, enum armv4_5_mode mode);
-	int (*write_core_reg)(struct target_s *target,
+	int (*write_core_reg)(struct target *target,
 			int num, enum armv4_5_mode mode, uint32_t value);
 	void *arch_info;
 };
@@ -109,7 +109,7 @@ struct arm
 #define target_to_armv4_5 target_to_arm
 
 /** Convert target handle to generic ARM target state handle. */
-static inline struct arm *target_to_arm(struct target_s *target)
+static inline struct arm *target_to_arm(struct target *target)
 {
 	return target->arch_info;
 }
@@ -131,11 +131,11 @@ struct armv4_5_core_reg
 {
 	int num;
 	enum armv4_5_mode mode;
-	target_t *target;
+	struct target *target;
 	struct arm *armv4_5_common;
 };
 
-struct reg_cache* armv4_5_build_reg_cache(target_t *target,
+struct reg_cache* armv4_5_build_reg_cache(struct target *target,
 		struct arm *armv4_5_common);
 
 /* map psr mode bits to linear number */
@@ -175,20 +175,20 @@ static __inline enum armv4_5_mode armv4_5_number_to_mode(int number)
 	}
 };
 
-int armv4_5_arch_state(struct target_s *target);
-int armv4_5_get_gdb_reg_list(target_t *target,
+int armv4_5_arch_state(struct target *target);
+int armv4_5_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
 int armv4_5_register_commands(struct command_context_s *cmd_ctx);
-int armv4_5_init_arch_info(target_t *target, struct arm *armv4_5);
+int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5);
 
-int armv4_5_run_algorithm(struct target_s *target,
+int armv4_5_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 
-int armv4_5_invalidate_core_regs(target_t *target);
+int armv4_5_invalidate_core_regs(struct target *target);
 
 /* ARM mode instructions
  */

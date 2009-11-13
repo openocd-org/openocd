@@ -99,7 +99,7 @@ int mips32_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
-	target_t *target = mips32_reg->target;
+	struct target *target = mips32_reg->target;
 	struct mips32_common *mips32_target = target->arch_info;
 
 	if (target->state != TARGET_HALTED)
@@ -115,7 +115,7 @@ int mips32_get_core_reg(struct reg *reg)
 int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
-	target_t *target = mips32_reg->target;
+	struct target *target = mips32_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
@@ -130,7 +130,7 @@ int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int mips32_read_core_reg(struct target_s *target, int num)
+int mips32_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	struct mips32_core_reg *mips_core_reg;
@@ -150,7 +150,7 @@ int mips32_read_core_reg(struct target_s *target, int num)
 	return ERROR_OK;
 }
 
-int mips32_write_core_reg(struct target_s *target, int num)
+int mips32_write_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	struct mips32_core_reg *mips_core_reg;
@@ -171,7 +171,7 @@ int mips32_write_core_reg(struct target_s *target, int num)
 	return ERROR_OK;
 }
 
-int mips32_invalidate_core_regs(target_t *target)
+int mips32_invalidate_core_regs(struct target *target)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -186,7 +186,7 @@ int mips32_invalidate_core_regs(target_t *target)
 	return ERROR_OK;
 }
 
-int mips32_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_list_size)
+int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -210,7 +210,7 @@ int mips32_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_
 	return ERROR_OK;
 }
 
-int mips32_save_context(target_t *target)
+int mips32_save_context(struct target *target)
 {
 	int i;
 
@@ -232,7 +232,7 @@ int mips32_save_context(target_t *target)
 	return ERROR_OK;
 }
 
-int mips32_restore_context(target_t *target)
+int mips32_restore_context(struct target *target)
 {
 	int i;
 
@@ -254,7 +254,7 @@ int mips32_restore_context(target_t *target)
 	return ERROR_OK;
 }
 
-int mips32_arch_state(struct target_s *target)
+int mips32_arch_state(struct target *target)
 {
 	struct mips32_common *mips32 = target->arch_info;
 
@@ -271,7 +271,7 @@ int mips32_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-struct reg_cache *mips32_build_reg_cache(target_t *target)
+struct reg_cache *mips32_build_reg_cache(struct target *target)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -315,7 +315,7 @@ struct reg_cache *mips32_build_reg_cache(target_t *target)
 	return cache;
 }
 
-int mips32_init_arch_info(target_t *target, struct mips32_common *mips32, struct jtag_tap *tap)
+int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, struct jtag_tap *tap)
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
@@ -336,13 +336,13 @@ int mips32_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int mips32_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+int mips32_run_algorithm(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	/*TODO*/
 	return ERROR_OK;
 }
 
-int mips32_examine(struct target_s *target)
+int mips32_examine(struct target *target)
 {
 	struct mips32_common *mips32 = target->arch_info;
 
@@ -361,7 +361,7 @@ int mips32_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int mips32_configure_break_unit(struct target_s *target)
+int mips32_configure_break_unit(struct target *target)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -421,7 +421,7 @@ int mips32_configure_break_unit(struct target_s *target)
 	return ERROR_OK;
 }
 
-int mips32_enable_interrupts(struct target_s *target, int enable)
+int mips32_enable_interrupts(struct target *target, int enable)
 {
 	int retval;
 	int update = 0;

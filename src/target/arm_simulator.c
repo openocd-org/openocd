@@ -277,7 +277,7 @@ static int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
  * if the dry_run_pc argument is provided, no state is changed,
  * but the new pc is stored in the variable pointed at by the argument
  */
-int arm_simulate_step_core(target_t *target,
+int arm_simulate_step_core(struct target *target,
 		uint32_t *dry_run_pc, struct arm_sim_interface *sim)
 {
 	uint32_t current_pc = sim->get_reg(sim, 15);
@@ -847,7 +847,7 @@ static enum armv4_5_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 
 
 
-int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
+int arm_simulate_step(struct target *target, uint32_t *dry_run_pc)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	struct arm_sim_interface sim;

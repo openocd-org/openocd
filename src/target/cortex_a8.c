@@ -40,16 +40,16 @@
 #include "target_request.h"
 #include "target_type.h"
 
-static int cortex_a8_poll(target_t *target);
-static int cortex_a8_debug_entry(target_t *target);
-static int cortex_a8_restore_context(target_t *target);
-static int cortex_a8_set_breakpoint(struct target_s *target,
+static int cortex_a8_poll(struct target *target);
+static int cortex_a8_debug_entry(struct target *target);
+static int cortex_a8_restore_context(struct target *target);
+static int cortex_a8_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint, uint8_t matchmode);
-static int cortex_a8_unset_breakpoint(struct target_s *target,
+static int cortex_a8_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
-static int cortex_a8_dap_read_coreregister_u32(target_t *target,
+static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 		uint32_t *value, int regnum);
-static int cortex_a8_dap_write_coreregister_u32(target_t *target,
+static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 		uint32_t value, int regnum);
 /*
  * FIXME do topology discovery using the ROM; don't
@@ -62,7 +62,7 @@ static int cortex_a8_dap_write_coreregister_u32(target_t *target,
 /*
  * Cortex-A8 Basic debug access, very low level assumes state is saved
  */
-static int cortex_a8_init_debug_access(target_t *target)
+static int cortex_a8_init_debug_access(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
@@ -90,7 +90,7 @@ static int cortex_a8_init_debug_access(target_t *target)
 	return retval;
 }
 
-int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
+int cortex_a8_exec_opcode(struct target *target, uint32_t opcode)
 {
 	uint32_t dscr;
 	int retval;
@@ -131,7 +131,7 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 Read core register with very few exec_opcode, fast but needs work_area.
 This can cause problems with MMU active.
 **************************************************************************/
-static int cortex_a8_read_regs_through_mem(target_t *target, uint32_t address,
+static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t address,
 		uint32_t * regfile)
 {
 	int retval = ERROR_OK;
@@ -148,7 +148,7 @@ static int cortex_a8_read_regs_through_mem(target_t *target, uint32_t address,
 	return retval;
 }
 
-static int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
+static int cortex_a8_read_cp(struct target *target, uint32_t *value, uint8_t CP,
 		uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
 {
 	int retval;
@@ -166,7 +166,7 @@ static int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
 	return retval;
 }
 
-static int cortex_a8_write_cp(target_t *target, uint32_t value,
+static int cortex_a8_write_cp(struct target *target, uint32_t value,
 	uint8_t CP, uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
 {
 	int retval;
@@ -195,19 +195,19 @@ static int cortex_a8_write_cp(target_t *target, uint32_t value,
 	return retval;
 }
 
-static int cortex_a8_read_cp15(target_t *target, uint32_t op1, uint32_t op2,
+static int cortex_a8_read_cp15(struct target *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	return cortex_a8_read_cp(target, value, 15, op1, CRn, CRm, op2);
 }
 
-static int cortex_a8_write_cp15(target_t *target, uint32_t op1, uint32_t op2,
+static int cortex_a8_write_cp15(struct target *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	return cortex_a8_write_cp(target, value, 15, op1, CRn, CRm, op2);
 }
 
-static int cortex_a8_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+static int cortex_a8_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	if (cpnum!=15)
 	{
@@ -217,7 +217,7 @@ static int cortex_a8_mrc(target_t *target, int cpnum, uint32_t op1, uint32_t op2
 	return cortex_a8_read_cp15(target, op1, op2, CRn, CRm, value);
 }
 
-static int cortex_a8_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+static int cortex_a8_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	if (cpnum!=15)
 	{
@@ -229,7 +229,7 @@ static int cortex_a8_mcr(target_t *target, int cpnum, uint32_t op1, uint32_t op2
 
 
 
-static int cortex_a8_dap_read_coreregister_u32(target_t *target,
+static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 		uint32_t *value, int regnum)
 {
 	int retval = ERROR_OK;
@@ -271,7 +271,7 @@ static int cortex_a8_dap_read_coreregister_u32(target_t *target,
 	return retval;
 }
 
-static int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int regnum)
+static int cortex_a8_dap_write_coreregister_u32(struct target *target, uint32_t value, int regnum)
 {
 	int retval = ERROR_OK;
 	uint8_t Rd = regnum&0xFF;
@@ -320,7 +320,7 @@ static int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value
 }
 
 /* Write to memory mapped registers directly with no cache or mmu handling */
-static int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t address, uint32_t value)
+static int cortex_a8_dap_write_memap_register_u32(struct target *target, uint32_t address, uint32_t value)
 {
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -335,7 +335,7 @@ static int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t add
  * Cortex-A8 Run control
  */
 
-static int cortex_a8_poll(target_t *target)
+static int cortex_a8_poll(struct target *target)
 {
 	int retval = ERROR_OK;
 	uint32_t dscr;
@@ -400,7 +400,7 @@ static int cortex_a8_poll(target_t *target)
 	return retval;
 }
 
-static int cortex_a8_halt(target_t *target)
+static int cortex_a8_halt(struct target *target)
 {
 	int retval = ERROR_OK;
 	uint32_t dscr;
@@ -438,7 +438,7 @@ out:
 	return retval;
 }
 
-static int cortex_a8_resume(struct target_s *target, int current,
+static int cortex_a8_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -559,7 +559,7 @@ static int cortex_a8_resume(struct target_s *target, int current,
 	return ERROR_OK;
 }
 
-static int cortex_a8_debug_entry(target_t *target)
+static int cortex_a8_debug_entry(struct target *target)
 {
 	int i;
 	uint32_t regfile[16], pc, cpsr, dscr;
@@ -688,7 +688,7 @@ static int cortex_a8_debug_entry(target_t *target)
 
 }
 
-static void cortex_a8_post_debug_entry(target_t *target)
+static void cortex_a8_post_debug_entry(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
@@ -720,7 +720,7 @@ static void cortex_a8_post_debug_entry(target_t *target)
 
 }
 
-static int cortex_a8_step(struct target_s *target, int current, uint32_t address,
+static int cortex_a8_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -799,7 +799,7 @@ static int cortex_a8_step(struct target_s *target, int current, uint32_t address
 	return ERROR_OK;
 }
 
-static int cortex_a8_restore_context(target_t *target)
+static int cortex_a8_restore_context(struct target *target)
 {
 	int i;
 	uint32_t value;
@@ -835,7 +835,7 @@ static int cortex_a8_restore_context(target_t *target)
 /*
  * Cortex-A8 Core register functions
  */
-static int cortex_a8_load_core_reg_u32(struct target_s *target, int num,
+static int cortex_a8_load_core_reg_u32(struct target *target, int num,
 		armv4_5_mode_t mode, uint32_t * value)
 {
 	int retval;
@@ -872,7 +872,7 @@ static int cortex_a8_load_core_reg_u32(struct target_s *target, int num,
 	return ERROR_OK;
 }
 
-static int cortex_a8_store_core_reg_u32(struct target_s *target, int num,
+static int cortex_a8_store_core_reg_u32(struct target *target, int num,
 		armv4_5_mode_t mode, uint32_t value)
 {
 	int retval;
@@ -914,7 +914,7 @@ static int cortex_a8_store_core_reg_u32(struct target_s *target, int num,
 #endif
 
 
-static int cortex_a8_read_core_reg(struct target_s *target, int num,
+static int cortex_a8_read_core_reg(struct target *target, int num,
 		enum armv4_5_mode mode)
 {
 	uint32_t value;
@@ -936,7 +936,7 @@ static int cortex_a8_read_core_reg(struct target_s *target, int num,
 	return ERROR_OK;
 }
 
-int cortex_a8_write_core_reg(struct target_s *target, int num,
+int cortex_a8_write_core_reg(struct target *target, int num,
 		enum armv4_5_mode mode, uint32_t value)
 {
 	int retval;
@@ -960,7 +960,7 @@ int cortex_a8_write_core_reg(struct target_s *target, int num,
  */
 
 /* Setup hardware Breakpoint Register Pair */
-static int cortex_a8_set_breakpoint(struct target_s *target,
+static int cortex_a8_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint, uint8_t matchmode)
 {
 	int retval;
@@ -1035,7 +1035,7 @@ static int cortex_a8_set_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int cortex_a8_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+static int cortex_a8_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
@@ -1093,7 +1093,7 @@ static int cortex_a8_unset_breakpoint(struct target_s *target, struct breakpoint
 	return ERROR_OK;
 }
 
-int cortex_a8_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+int cortex_a8_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
@@ -1110,7 +1110,7 @@ int cortex_a8_add_breakpoint(struct target_s *target, struct breakpoint *breakpo
 	return ERROR_OK;
 }
 
-static int cortex_a8_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+static int cortex_a8_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
@@ -1140,7 +1140,7 @@ static int cortex_a8_remove_breakpoint(struct target_s *target, struct breakpoin
  * Cortex-A8 Reset fuctions
  */
 
-static int cortex_a8_assert_reset(target_t *target)
+static int cortex_a8_assert_reset(struct target *target)
 {
 
 	LOG_DEBUG(" ");
@@ -1153,7 +1153,7 @@ static int cortex_a8_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_a8_deassert_reset(target_t *target)
+static int cortex_a8_deassert_reset(struct target *target)
 {
 
 	LOG_DEBUG(" ");
@@ -1175,7 +1175,7 @@ static int cortex_a8_deassert_reset(target_t *target)
  * ap number for every access.
  */
 
-static int cortex_a8_read_memory(struct target_s *target, uint32_t address,
+static int cortex_a8_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -1210,7 +1210,7 @@ static int cortex_a8_read_memory(struct target_s *target, uint32_t address,
 	return retval;
 }
 
-int cortex_a8_write_memory(struct target_s *target, uint32_t address,
+int cortex_a8_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -1264,7 +1264,7 @@ int cortex_a8_write_memory(struct target_s *target, uint32_t address,
 	return retval;
 }
 
-static int cortex_a8_bulk_write_memory(target_t *target, uint32_t address,
+static int cortex_a8_bulk_write_memory(struct target *target, uint32_t address,
 		uint32_t count, uint8_t *buffer)
 {
 	return cortex_a8_write_memory(target, address, 4, count, buffer);
@@ -1296,7 +1296,7 @@ static int cortex_a8_dcc_read(struct swjdp_common *swjdp, uint8_t *value, uint8_
 
 static int cortex_a8_handle_target_request(void *priv)
 {
-	target_t *target = priv;
+	struct target *target = priv;
 	if (!target->type->examined)
 		return ERROR_OK;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -1336,7 +1336,7 @@ static int cortex_a8_handle_target_request(void *priv)
  * Cortex-A8 target information and configuration
  */
 
-static int cortex_a8_examine(struct target_s *target)
+static int cortex_a8_examine(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
@@ -1433,7 +1433,7 @@ static int cortex_a8_examine(struct target_s *target)
  *	Cortex-A8 target creation and initialization
  */
 
-static void cortex_a8_build_reg_cache(target_t *target)
+static void cortex_a8_build_reg_cache(struct target *target)
 {
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
@@ -1444,13 +1444,13 @@ static void cortex_a8_build_reg_cache(target_t *target)
 
 
 static int cortex_a8_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target)
+		struct target *target)
 {
 	cortex_a8_build_reg_cache(target);
 	return ERROR_OK;
 }
 
-int cortex_a8_init_arch_info(target_t *target,
+int cortex_a8_init_arch_info(struct target *target,
 		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap)
 {
 	struct arm *armv4_5;
@@ -1517,7 +1517,7 @@ LOG_DEBUG(" ");
 	return ERROR_OK;
 }
 
-static int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
+static int cortex_a8_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a8_common *cortex_a8 = calloc(1, sizeof(struct cortex_a8_common));
 
@@ -1528,7 +1528,7 @@ static int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
 
 COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	return armv4_5_handle_cache_info_command(cmd_ctx,
@@ -1538,7 +1538,7 @@ COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 
 COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	cortex_a8_init_debug_access(target);
 

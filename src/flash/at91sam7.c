@@ -55,9 +55,9 @@
 static int at91sam7_protect_check(struct flash_bank_s *bank);
 static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 
-static uint32_t at91sam7_get_flash_status(target_t *target, int bank_number);
-static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode);
-static uint32_t at91sam7_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout);
+static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number);
+static void at91sam7_set_flash_mode(struct flash_bank_s *bank, int mode);
+static uint32_t at91sam7_wait_status_busy(struct flash_bank_s *bank, uint32_t waitbits, int timeout);
 static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen);
 
 static uint32_t MC_FMR[4] = { 0xFFFFFF60, 0xFFFFFF70, 0xFFFFFF80, 0xFFFFFF90 };
@@ -88,7 +88,7 @@ static long SRAMSIZ[16] = {
 #endif
 
 
-static uint32_t at91sam7_get_flash_status(target_t *target, int bank_number)
+static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number)
 {
 	uint32_t fsr;
 	target_read_u32(target, MC_FSR[bank_number], &fsr);
@@ -100,7 +100,7 @@ static uint32_t at91sam7_get_flash_status(target_t *target, int bank_number)
 static void at91sam7_read_clock_info(flash_bank_t *bank)
 {
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t mckr, mcfr, pllr, mor;
 	unsigned long tmp = 0, mainfreq;
 
@@ -180,7 +180,7 @@ static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode)
 {
 	uint32_t fmr, fmcn = 0, fws = 0;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	if (mode && (mode != at91sam7_info->flashmode))
 	{
@@ -255,7 +255,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 {
 	uint32_t fcr;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd;
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
@@ -284,7 +284,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 {
 	flash_bank_t *t_bank = bank;
 	struct at91sam7_flash_bank *at91sam7_info;
-	target_t *target = t_bank->target;
+	struct target *target = t_bank->target;
 
 	uint16_t bnk, sec;
 	uint16_t arch;
@@ -597,7 +597,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 
 static int at91sam7_erase_check(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint16_t retval;
 	uint32_t blank;
 	uint16_t fast_check;
@@ -715,7 +715,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 {
 	flash_bank_t *t_bank = bank;
 	struct at91sam7_flash_bank *at91sam7_info;
-	target_t *target = t_bank->target;
+	struct target *target = t_bank->target;
 
 	uint32_t base_address;
 	uint32_t bank_size;
@@ -949,7 +949,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 {
 	int retval;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t dst_min_alignment, wcount, bytes_remaining = count;
 	uint32_t first_page, last_page, pagen, buffer_pos;
 

@@ -82,7 +82,7 @@ static void exit_handler(void)
 	jtag_interface_quit();
 }
 
-static int log_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
+static int log_target_callback_event_handler(struct target *target, enum target_event event, void *priv)
 {
 	switch (event)
 	{

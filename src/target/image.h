@@ -80,7 +80,7 @@ struct image_ihex
 
 struct image_memory
 {
-	struct target_s *target;
+	struct target *target;
 	uint8_t *cache;
 	uint32_t cache_address;
 };

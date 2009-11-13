@@ -137,7 +137,7 @@ struct mflash_bank
 	struct mflash_gpio_num rst_pin;
 
 	struct mflash_gpio_drv *gpio_drv;
-	target_t *target;
+	struct target *target;
 	struct mg_drv_info *drv_info;
 };
 

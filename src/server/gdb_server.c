@@ -67,7 +67,7 @@ int gdb_flash_program = 1;
  * see the code in gdb_read_memory_packet() for further explanations */
 int gdb_report_data_abort = 0;
 
-int gdb_last_signal(target_t *target)
+int gdb_last_signal(struct target *target)
 {
 	switch (target->debug_reason)
 	{
@@ -658,7 +658,7 @@ int gdb_output(struct command_context_s *context, const char* line)
 }
 
 
-static void gdb_frontend_halted(struct target_s *target, struct connection *connection)
+static void gdb_frontend_halted(struct target *target, struct connection *connection)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 
@@ -695,7 +695,7 @@ static void gdb_frontend_halted(struct target_s *target, struct connection *conn
 	}
 }
 
-int gdb_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
+int gdb_target_callback_event_handler(struct target *target, enum target_event event, void *priv)
 {
 	int retval;
 	struct connection *connection = priv;
@@ -833,7 +833,7 @@ void gdb_send_error(struct connection *connection, uint8_t the_error)
 	gdb_put_packet(connection, err, 3);
 }
 
-int gdb_last_signal_packet(struct connection *connection, target_t *target, char* packet, int packet_size)
+int gdb_last_signal_packet(struct connection *connection, struct target *target, char* packet, int packet_size)
 {
 	char sig_reply[4];
 	int signal;
@@ -846,7 +846,7 @@ int gdb_last_signal_packet(struct connection *connection, target_t *target, char
 	return ERROR_OK;
 }
 
-static int gdb_reg_pos(target_t *target, int pos, int len)
+static int gdb_reg_pos(struct target *target, int pos, int len)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return pos;
@@ -863,7 +863,7 @@ static int gdb_reg_pos(target_t *target, int pos, int len)
  * The format of reg->value is little endian
  *
  */
-void gdb_str_to_target(target_t *target, char *tstr, struct reg *reg)
+void gdb_str_to_target(struct target *target, char *tstr, struct reg *reg)
 {
 	int i;
 
@@ -896,7 +896,7 @@ static int hextoint(char c)
 }
 
 /* copy over in register buffer */
-void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
+void gdb_target_to_reg(struct target *target, char *tstr, int str_len, uint8_t *bin)
 {
 	if (str_len % 2)
 	{
@@ -915,7 +915,7 @@ void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
 	}
 }
 
-int gdb_get_registers_packet(struct connection *connection, target_t *target, char* packet, int packet_size)
+int gdb_get_registers_packet(struct connection *connection, struct target *target, char* packet, int packet_size)
 {
 	struct reg **reg_list;
 	int reg_list_size;
@@ -965,7 +965,7 @@ int gdb_get_registers_packet(struct connection *connection, target_t *target, ch
 	return ERROR_OK;
 }
 
-int gdb_set_registers_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_set_registers_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	int i;
 	struct reg **reg_list;
@@ -1027,7 +1027,7 @@ int gdb_set_registers_packet(struct connection *connection, target_t *target, ch
 	return ERROR_OK;
 }
 
-int gdb_get_register_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_get_register_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	char *reg_packet;
 	int reg_num = strtoul(packet + 1, NULL, 16);
@@ -1062,7 +1062,7 @@ int gdb_get_register_packet(struct connection *connection, target_t *target, cha
 	return ERROR_OK;
 }
 
-int gdb_set_register_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_set_register_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint8_t *bin_buf;
@@ -1142,7 +1142,7 @@ int gdb_error(struct connection *connection, int retval)
  *
  * 8191 bytes by the looks of it. Why 8191 bytes instead of 8192?????
  */
-int gdb_read_memory_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_read_memory_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint32_t addr = 0;
@@ -1216,7 +1216,7 @@ int gdb_read_memory_packet(struct connection *connection, target_t *target, char
 	return retval;
 }
 
-int gdb_write_memory_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_write_memory_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint32_t addr = 0;
@@ -1273,7 +1273,7 @@ int gdb_write_memory_packet(struct connection *connection, target_t *target, cha
 	return retval;
 }
 
-int gdb_write_memory_binary_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_write_memory_binary_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint32_t addr = 0;
@@ -1321,7 +1321,7 @@ int gdb_write_memory_binary_packet(struct connection *connection, target_t *targ
 	return ERROR_OK;
 }
 
-int gdb_step_continue_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_step_continue_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	int current = 0;
 	uint32_t address = 0x0;
@@ -1354,7 +1354,7 @@ int gdb_step_continue_packet(struct connection *connection, target_t *target, ch
 	return retval;
 }
 
-int gdb_breakpoint_watchpoint_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_breakpoint_watchpoint_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	int type;
 	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
@@ -1554,7 +1554,7 @@ static int compare_bank (const void * a, const void * b)
 	}
 }
 
-int gdb_query_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_query_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
 	struct gdb_connection *gdb_connection = connection->priv;
@@ -1810,7 +1810,7 @@ int gdb_query_packet(struct connection *connection, target_t *target, char *pack
 	return ERROR_OK;
 }
 
-int gdb_v_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
+int gdb_v_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct gdb_service *gdb_service = connection->service->priv;
@@ -1947,7 +1947,7 @@ int gdb_v_packet(struct connection *connection, target_t *target, char *packet, 
 	return ERROR_OK;
 }
 
-int gdb_detach(struct connection *connection, target_t *target)
+int gdb_detach(struct connection *connection, struct target *target)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
 
@@ -1985,7 +1985,7 @@ static void gdb_sig_halted(struct connection *connection)
 int gdb_input_inner(struct connection *connection)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
-	target_t *target = gdb_service->target;
+	struct target *target = gdb_service->target;
 	char *packet = gdb_packet_buffer;
 	int packet_size;
 	int retval;
@@ -2198,7 +2198,7 @@ int gdb_input(struct connection *connection)
 int gdb_init(void)
 {
 	struct gdb_service *gdb_service;
-	target_t *target = all_targets;
+	struct target *target = all_targets;
 
 	if (!target)
 	{

@@ -25,7 +25,7 @@
 
 #include "types.h"
 
-struct target_s;
+struct target;
 
 struct bitfield_desc
 {

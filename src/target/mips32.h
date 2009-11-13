@@ -62,14 +62,14 @@ struct mips32_common
 	struct mips32_comparator *data_break_list;
 
 	/* register cache to processor synchronization */
-	int (*read_core_reg)(struct target_s *target, int num);
-	int (*write_core_reg)(struct target_s *target, int num);
+	int (*read_core_reg)(struct target *target, int num);
+	int (*write_core_reg)(struct target *target, int num);
 };
 
 struct mips32_core_reg
 {
 	uint32_t num;
-	struct target_s *target;
+	struct target *target;
 	struct mips32_common *mips32_common;
 };
 
@@ -124,32 +124,32 @@ struct mips32_core_reg
 #define MIPS32_SDBBP				0x7000003F
 #define MIPS16_SDBBP 				0xE801
 
-int mips32_arch_state(struct target_s *target);
+int mips32_arch_state(struct target *target);
 
-int mips32_init_arch_info(target_t *target,
+int mips32_init_arch_info(struct target *target,
 		struct mips32_common *mips32, struct jtag_tap *tap);
 
-int mips32_restore_context(target_t *target);
-int mips32_save_context(target_t *target);
+int mips32_restore_context(struct target *target);
+int mips32_save_context(struct target *target);
 
-struct reg_cache *mips32_build_reg_cache(target_t *target);
+struct reg_cache *mips32_build_reg_cache(struct target *target);
 
-int mips32_run_algorithm(struct target_s *target,
+int mips32_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 
-int mips32_configure_break_unit(struct target_s *target);
+int mips32_configure_break_unit(struct target *target);
 
-int mips32_enable_interrupts(struct target_s *target, int enable);
+int mips32_enable_interrupts(struct target *target, int enable);
 
-int mips32_examine(struct target_s *target);
+int mips32_examine(struct target *target);
 
 int mips32_register_commands(struct command_context_s *cmd_ctx);
 
-int mips32_invalidate_core_regs(target_t *target);
-int mips32_get_gdb_reg_list(target_t *target,
+int mips32_invalidate_core_regs(struct target *target);
+int mips32_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
 #endif	/*MIPS32_H*/

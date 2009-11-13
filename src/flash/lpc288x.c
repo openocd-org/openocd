@@ -84,15 +84,15 @@
 /* F_CLK_TIME */
 #define FCT_CLK_DIV_MASK    0x0FFF
 
-static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
-static void lpc288x_load_timer(int erase, struct target_s *target);
+static uint32_t lpc288x_wait_status_busy(struct flash_bank_s *bank, int timeout);
+static void lpc288x_load_timer(int erase, struct target *target);
 static void lpc288x_set_flash_clk(struct flash_bank_s *bank);
 static uint32_t lpc288x_system_ready(struct flash_bank_s *bank);
 
 static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 {
 	uint32_t status;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	do
 	{
 		alive_sleep(1);
@@ -112,7 +112,7 @@ static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 static int lpc288x_read_part_info(struct flash_bank_s *bank)
 {
 	struct lpc288x_flash_bank *lpc288x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t cidr;
 
 	int i = 0;
@@ -205,7 +205,7 @@ static void lpc288x_set_flash_clk(struct flash_bank_s *bank)
  * LOAD_TIMER_WRITE		FPT_TIME	= ((1,000,000 / AHB tcyc (in ns)) - 2) / 512
  *									= 23 (75) (AN10548 72 - is this wrong?)
  * TODO: Sort out timing calcs ;) */
-static void lpc288x_load_timer(int erase, struct target_s *target)
+static void lpc288x_load_timer(int erase, struct target *target)
 {
 	if (erase == LOAD_TIMER_ERASE)
 	{
@@ -249,7 +249,7 @@ static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	uint32_t status;
 	int sector;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	status = lpc288x_system_ready(bank);    /* probed? halted? */
 	if (status != ERROR_OK)
@@ -290,7 +290,7 @@ static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 {
 	uint8_t page_buffer[FLASH_PAGE_SIZE];
 	uint32_t status, source_offset,dest_offset;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t bytes_remaining = count;
 	uint32_t first_sector, last_sector, sector, page;
 	int i;
@@ -435,7 +435,7 @@ static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int la
 {
 	int lockregion, status;
 	uint32_t value;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	/* probed? halted? */
 	status = lpc288x_system_ready(bank);

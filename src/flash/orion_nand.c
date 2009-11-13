@@ -32,7 +32,7 @@
 
 struct orion_nand_controller
 {
-	struct target_s	*target;
+	struct target	*target;
 
 	struct arm_nand_data	io;
 
@@ -52,7 +52,7 @@ struct orion_nand_controller
 static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	target_t *target = hw->target;
+	struct target *target = hw->target;
 
 	CHECK_HALTED;
 	target_write_u8(target, hw->cmd, command);
@@ -62,7 +62,7 @@ static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
 static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	target_t *target = hw->target;
+	struct target *target = hw->target;
 
 	CHECK_HALTED;
 	target_write_u8(target, hw->addr, address);
@@ -72,7 +72,7 @@ static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
 static int orion_nand_read(struct nand_device_s *nand, void *data)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	target_t *target = hw->target;
+	struct target *target = hw->target;
 
 	CHECK_HALTED;
 	target_read_u8(target, hw->data, data);
@@ -82,7 +82,7 @@ static int orion_nand_read(struct nand_device_s *nand, void *data)
 static int orion_nand_write(struct nand_device_s *nand, uint16_t data)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	target_t *target = hw->target;
+	struct target *target = hw->target;
 
 	CHECK_HALTED;
 	target_write_u8(target, hw->data, data);

@@ -45,10 +45,10 @@
 
 
 /* forward declarations */
-static int cortex_m3_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint);
-static int cortex_m3_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint);
-static void cortex_m3_enable_watchpoints(struct target_s *target);
-static int cortex_m3_store_core_reg_u32(target_t *target,
+static int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
+static int cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);
+static void cortex_m3_enable_watchpoints(struct target *target);
+static int cortex_m3_store_core_reg_u32(struct target *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t value);
 
 #ifdef ARMV7_GDB_HACKS
@@ -118,7 +118,7 @@ static int cortexm3_dap_write_coreregister_u32(struct swjdp_common *swjdp,
 	return retval;
 }
 
-static int cortex_m3_write_debug_halt_mask(target_t *target,
+static int cortex_m3_write_debug_halt_mask(struct target *target,
 		uint32_t mask_on, uint32_t mask_off)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -132,7 +132,7 @@ static int cortex_m3_write_debug_halt_mask(target_t *target,
 	return mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, cortex_m3->dcb_dhcsr);
 }
 
-static int cortex_m3_clear_halt(target_t *target)
+static int cortex_m3_clear_halt(struct target *target)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
@@ -149,7 +149,7 @@ static int cortex_m3_clear_halt(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_single_step_core(target_t *target)
+static int cortex_m3_single_step_core(struct target *target)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
@@ -171,7 +171,7 @@ static int cortex_m3_single_step_core(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_endreset_event(target_t *target)
+static int cortex_m3_endreset_event(struct target *target)
 {
 	int i;
 	uint32_t dcb_demcr;
@@ -229,7 +229,7 @@ static int cortex_m3_endreset_event(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_examine_debug_reason(target_t *target)
+static int cortex_m3_examine_debug_reason(struct target *target)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
@@ -256,7 +256,7 @@ static int cortex_m3_examine_debug_reason(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_examine_exception_reason(target_t *target)
+static int cortex_m3_examine_exception_reason(struct target *target)
 {
 	uint32_t shcsr, except_sr, cfsr = -1, except_ar = -1;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -304,7 +304,7 @@ static int cortex_m3_examine_exception_reason(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_debug_entry(target_t *target)
+static int cortex_m3_debug_entry(struct target *target)
 {
 	int i;
 	uint32_t xPSR;
@@ -376,7 +376,7 @@ static int cortex_m3_debug_entry(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_poll(target_t *target)
+static int cortex_m3_poll(struct target *target)
 {
 	int retval;
 	enum target_state prev_target_state = target->state;
@@ -450,7 +450,7 @@ static int cortex_m3_poll(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_halt(target_t *target)
+static int cortex_m3_halt(struct target *target)
 {
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -492,7 +492,7 @@ static int cortex_m3_halt(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_soft_reset_halt(struct target_s *target)
+static int cortex_m3_soft_reset_halt(struct target *target)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
@@ -531,7 +531,7 @@ static int cortex_m3_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-static void cortex_m3_enable_breakpoints(struct target_s *target)
+static void cortex_m3_enable_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -544,7 +544,7 @@ static void cortex_m3_enable_breakpoints(struct target_s *target)
 	}
 }
 
-static int cortex_m3_resume(struct target_s *target, int current,
+static int cortex_m3_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -632,7 +632,7 @@ static int cortex_m3_resume(struct target_s *target, int current,
 }
 
 /* int irqstepcount = 0; */
-static int cortex_m3_step(struct target_s *target, int current,
+static int cortex_m3_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -684,7 +684,7 @@ static int cortex_m3_step(struct target_s *target, int current,
 	return ERROR_OK;
 }
 
-static int cortex_m3_assert_reset(target_t *target)
+static int cortex_m3_assert_reset(struct target *target)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
@@ -821,7 +821,7 @@ static int cortex_m3_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-static int cortex_m3_deassert_reset(target_t *target)
+static int cortex_m3_deassert_reset(struct target *target)
 {
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -833,7 +833,7 @@ static int cortex_m3_deassert_reset(target_t *target)
 }
 
 static int
-cortex_m3_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval;
 	int fp_num = 0;
@@ -900,7 +900,7 @@ cortex_m3_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 }
 
 static int
-cortex_m3_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -955,7 +955,7 @@ cortex_m3_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoin
 }
 
 static int
-cortex_m3_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
@@ -1004,7 +1004,7 @@ cortex_m3_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
 }
 
 static int
-cortex_m3_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+cortex_m3_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
@@ -1032,7 +1032,7 @@ cortex_m3_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoi
 }
 
 static int
-cortex_m3_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+cortex_m3_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
 	uint32_t mask, temp;
@@ -1097,7 +1097,7 @@ cortex_m3_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 }
 
 static int
-cortex_m3_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct cortex_m3_dwt_comparator *comparator;
@@ -1134,7 +1134,7 @@ cortex_m3_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoin
 }
 
 static int
-cortex_m3_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
@@ -1192,7 +1192,7 @@ cortex_m3_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 }
 
 static int
-cortex_m3_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+cortex_m3_remove_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
@@ -1214,7 +1214,7 @@ cortex_m3_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoi
 	return ERROR_OK;
 }
 
-static void cortex_m3_enable_watchpoints(struct target_s *target)
+static void cortex_m3_enable_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -1227,7 +1227,7 @@ static void cortex_m3_enable_watchpoints(struct target_s *target)
 	}
 }
 
-static int cortex_m3_load_core_reg_u32(struct target_s *target,
+static int cortex_m3_load_core_reg_u32(struct target *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t * value)
 {
 	int retval;
@@ -1290,7 +1290,7 @@ static int cortex_m3_load_core_reg_u32(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int cortex_m3_store_core_reg_u32(struct target_s *target,
+static int cortex_m3_store_core_reg_u32(struct target *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t value)
 {
 	int retval;
@@ -1367,7 +1367,7 @@ static int cortex_m3_store_core_reg_u32(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int cortex_m3_read_memory(struct target_s *target, uint32_t address,
+static int cortex_m3_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1399,7 +1399,7 @@ static int cortex_m3_read_memory(struct target_s *target, uint32_t address,
 	return retval;
 }
 
-static int cortex_m3_write_memory(struct target_s *target, uint32_t address,
+static int cortex_m3_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1429,14 +1429,14 @@ static int cortex_m3_write_memory(struct target_s *target, uint32_t address,
 	return retval;
 }
 
-static int cortex_m3_bulk_write_memory(target_t *target, uint32_t address,
+static int cortex_m3_bulk_write_memory(struct target *target, uint32_t address,
 		uint32_t count, uint8_t *buffer)
 {
 	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }
 
 static int cortex_m3_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target)
+		struct target *target)
 {
 	armv7m_build_reg_cache(target);
 	return ERROR_OK;
@@ -1448,7 +1448,7 @@ static int cortex_m3_init_target(struct command_context_s *cmd_ctx,
  */
 
 struct dwt_reg_state {
-	struct target_s	*target;
+	struct target	*target;
 	uint32_t	addr;
 	uint32_t	value;	/* scratch/cache */
 };
@@ -1495,7 +1495,7 @@ static struct dwt_reg dwt_comp[] = {
 static int dwt_reg_type = -1;
 
 static void
-cortex_m3_dwt_addreg(struct target_s *t, struct reg *r, struct dwt_reg *d)
+cortex_m3_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
 {
 	struct dwt_reg_state *state;
 
@@ -1513,7 +1513,7 @@ cortex_m3_dwt_addreg(struct target_s *t, struct reg *r, struct dwt_reg *d)
 }
 
 static void
-cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target_s *target)
+cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target *target)
 {
 	uint32_t dwtcr;
 	struct reg_cache *cache;
@@ -1582,7 +1582,7 @@ fail1:
 	 */
 }
 
-static int cortex_m3_examine(struct target_s *target)
+static int cortex_m3_examine(struct target *target)
 {
 	int retval;
 	uint32_t cpuid, fpcr;
@@ -1651,7 +1651,7 @@ static int cortex_m3_dcc_read(struct swjdp_common *swjdp, uint8_t *value, uint8_
 	return ERROR_OK;
 }
 
-static int cortex_m3_target_request_data(target_t *target,
+static int cortex_m3_target_request_data(struct target *target,
 		uint32_t size, uint8_t *buffer)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1671,7 +1671,7 @@ static int cortex_m3_target_request_data(target_t *target,
 
 static int cortex_m3_handle_target_request(void *priv)
 {
-	target_t *target = priv;
+	struct target *target = priv;
 	if (!target_was_examined(target))
 		return ERROR_OK;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1707,7 +1707,7 @@ static int cortex_m3_handle_target_request(void *priv)
 	return ERROR_OK;
 }
 
-static int cortex_m3_init_arch_info(target_t *target,
+static int cortex_m3_init_arch_info(struct target *target,
 		struct cortex_m3_common *cortex_m3, struct jtag_tap *tap)
 {
 	int retval;
@@ -1747,7 +1747,7 @@ static int cortex_m3_init_arch_info(target_t *target,
 	return ERROR_OK;
 }
 
-static int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
+static int cortex_m3_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_m3_common *cortex_m3 = calloc(1,sizeof(struct cortex_m3_common));
 
@@ -1784,7 +1784,7 @@ static int cortex_m3_verify_pointer(struct command_context_s *cmd_ctx,
 COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 {
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	uint32_t address;
 	unsigned long count = 1;
@@ -1835,7 +1835,7 @@ static const struct {
 
 COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
@@ -1892,7 +1892,7 @@ write:
 
 COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	int retval;
 

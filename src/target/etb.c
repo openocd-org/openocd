@@ -351,7 +351,7 @@ static int etb_write_reg(struct reg *reg, uint32_t value)
 
 COMMAND_HANDLER(handle_etb_config_command)
 {
-	target_t *target;
+	struct target *target;
 	struct jtag_tap *tap;
 	struct arm *arm;
 

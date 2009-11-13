@@ -732,7 +732,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
-		target_t *target = get_target(url);
+		struct target *target = get_target(url);
 
 		if (target == NULL)
 		{

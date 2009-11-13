@@ -28,7 +28,7 @@
 
 #include "types.h"
 
-struct target_s;
+struct target;
 
 struct target_type
 {
@@ -47,18 +47,18 @@ struct target_type
 	int examined;
 
 	/* poll current target status */
-	int (*poll)(struct target_s *target);
+	int (*poll)(struct target *target);
 	/* Invoked only from target_arch_state().
 	 * Issue USER() w/architecture specific status.  */
-	int (*arch_state)(struct target_s *target);
+	int (*arch_state)(struct target *target);
 
 	/* target request support */
-	int (*target_request_data)(struct target_s *target, uint32_t size, uint8_t *buffer);
+	int (*target_request_data)(struct target *target, uint32_t size, uint8_t *buffer);
 
 	/* halt will log a warning, but return ERROR_OK if the target is already halted. */
-	int (*halt)(struct target_s *target);
-	int (*resume)(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-	int (*step)(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
+	int (*halt)(struct target *target);
+	int (*resume)(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
+	int (*step)(struct target *target, int current, uint32_t address, int handle_breakpoints);
 
 	/* target reset control. assert reset can be invoked when OpenOCD and
 	 * the target is out of sync.
@@ -75,10 +75,10 @@ struct target_type
 	 * the way reset's are configured.
 	 *
 	 */
-	int (*assert_reset)(struct target_s *target);
-	int (*deassert_reset)(struct target_s *target);
-	int (*soft_reset_halt_imp)(struct target_s *target);
-	int (*soft_reset_halt)(struct target_s *target);
+	int (*assert_reset)(struct target *target);
+	int (*deassert_reset)(struct target *target);
+	int (*soft_reset_halt_imp)(struct target *target);
+	int (*soft_reset_halt)(struct target *target);
 
 	/**
 	 * Target register access for GDB.  Do @b not call this function
@@ -91,34 +91,34 @@ struct target_type
 	 * list, however it is after GDB is connected that monitor commands can
 	 * be run to properly initialize the target
 	 */
-	int (*get_gdb_reg_list)(struct target_s *target, struct reg **reg_list[], int *reg_list_size);
+	int (*get_gdb_reg_list)(struct target *target, struct reg **reg_list[], int *reg_list_size);
 
 	/* target memory access
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>
 	*/
-	int (*read_memory_imp)(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*read_memory_imp)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	/**
 	 * Target memory read callback.  Do @b not call this function
 	 * directly, use target_read_memory() instead.
 	 */
-	int (*read_memory)(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	int (*write_memory_imp)(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory_imp)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	/**
 	 * Target memory write callback.  Do @b not call this function
 	 * directly, use target_write_memory() instead.
 	 */
-	int (*write_memory)(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 	/**
 	 * Write target memory in multiples of 4 bytes, optimized for
 	 * writing large quantities of data.  Do @b not call this
 	 * function directly, use target_bulk_write_memory() instead.
 	 */
-	int (*bulk_write_memory)(struct target_s *target, uint32_t address, uint32_t count, uint8_t *buffer);
+	int (*bulk_write_memory)(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer);
 
-	int (*checksum_memory)(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum);
-	int (*blank_check_memory)(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank);
+	int (*checksum_memory)(struct target *target, uint32_t address, uint32_t count, uint32_t* checksum);
+	int (*blank_check_memory)(struct target *target, uint32_t address, uint32_t count, uint32_t* blank);
 
 	/*
 	 * target break-/watchpoint control
@@ -131,39 +131,39 @@ struct target_type
 	 *
 	 * Upon GDB connection all breakpoints/watchpoints are cleared.
 	 */
-	int (*add_breakpoint)(struct target_s *target, struct breakpoint *breakpoint);
+	int (*add_breakpoint)(struct target *target, struct breakpoint *breakpoint);
 
 	/* remove breakpoint. hw will only be updated if the target is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
-	int (*remove_breakpoint)(struct target_s *target, struct breakpoint *breakpoint);
-	int (*add_watchpoint)(struct target_s *target, struct watchpoint *watchpoint);
+	int (*remove_breakpoint)(struct target *target, struct breakpoint *breakpoint);
+	int (*add_watchpoint)(struct target *target, struct watchpoint *watchpoint);
 	/* remove watchpoint. hw will only be updated if the target is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
-	int (*remove_watchpoint)(struct target_s *target, struct watchpoint *watchpoint);
+	int (*remove_watchpoint)(struct target *target, struct watchpoint *watchpoint);
 
 	/* target algorithm support */
-	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*run_algorithm_imp)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 	/**
 	 * Target algorithm support.  Do @b not call this method directly,
 	 * use target_run_algorithm() instead.
 	 */
-	int (*run_algorithm)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*run_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 
 	/* called when target is created */
-	int (*target_create)(struct target_s *target, Jim_Interp *interp);
+	int (*target_create)(struct target *target, Jim_Interp *interp);
 
 	/* called for various config parameters */
 	/* returns JIM_CONTINUE - if option not understood */
 	/* otherwise: JIM_OK, or JIM_ERR, */
-	int (*target_jim_configure)(struct target_s *target, Jim_GetOptInfo *goi);
+	int (*target_jim_configure)(struct target *target, Jim_GetOptInfo *goi);
 
 	/* target commands specifically handled by the target */
 	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
-	int (*target_jim_commands)(struct target_s *target, Jim_GetOptInfo *goi);
+	int (*target_jim_commands)(struct target *target, Jim_GetOptInfo *goi);
 
 	/* invoked after JTAG chain has been examined & validated. During
 	 * this stage the target is examined and any additional setup is
@@ -171,18 +171,18 @@ struct target_type
 	 *
 	 * invoked every time after the jtag chain has been validated/examined
 	 */
-	int (*examine)(struct target_s *target);
+	int (*examine)(struct target *target);
 	/* Set up structures for target.
 	 *
 	 * It is illegal to talk to the target at this stage as this fn is invoked
 	 * before the JTAG chain has been examined/verified
 	 * */
-	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
+	int (*init_target)(struct command_context_s *cmd_ctx, struct target *target);
 
 	/* translate from virtual to physical address. Default implementation is successful
 	 * no-op(i.e. virtual==physical).
 	 */
-	int (*virt2phys)(struct target_s *target, uint32_t address, uint32_t *physical);
+	int (*virt2phys)(struct target *target, uint32_t address, uint32_t *physical);
 
 	/* read directly from physical memory. caches are bypassed and untouched.
 	 *
@@ -192,20 +192,20 @@ struct target_type
 	 *
 	 * Default implementation is to call read_memory.
 	 */
-	int (*read_phys_memory)(struct target_s *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*read_phys_memory)(struct target *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 	/*
 	 * same as read_phys_memory, except that it writes...
 	 */
-	int (*write_phys_memory)(struct target_s *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_phys_memory)(struct target *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
 
-	int (*mmu)(struct target_s *target, int *enabled);
+	int (*mmu)(struct target *target, int *enabled);
 
 	/* Read coprocessor - arm specific. Default implementation returns error. */
-	int (*mrc)(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+	int (*mrc)(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
 
 	/* Write coprocessor. Default implementation returns error.  */
-	int (*mcr)(struct target_s *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+	int (*mcr)(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
 };
 
 #endif // TARGET_TYPE_H

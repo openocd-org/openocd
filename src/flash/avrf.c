@@ -212,7 +212,7 @@ static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
 	uint32_t cur_size, cur_buffer_size, page_size;
 
@@ -263,7 +263,7 @@ static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offse
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
 static int avrf_probe(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct avrf_flash_bank *avrf_info = bank->driver_priv;
 	struct avr_common *avr = target->arch_info;
 	struct avrf_type *avr_info = NULL;
@@ -345,7 +345,7 @@ static int avrf_protect_check(struct flash_bank_s *bank)
 
 static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
 	struct avrf_type *avr_info = NULL;
 	int i;
@@ -396,7 +396,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static int avrf_mass_erase(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
 
 	if (target->state != TARGET_HALTED)

@@ -30,8 +30,8 @@
 
 
 static int aduc702x_build_sector_list(struct flash_bank_s *bank);
-static int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms);
-static int aduc702x_set_write_enable(target_t *target, int enable);
+static int aduc702x_check_flash_completion(struct target* target, unsigned int timeout_ms);
+static int aduc702x_set_write_enable(struct target *target, int enable);
 
 #define ADUC702x_FLASH				0xfffff800
 #define ADUC702x_FLASH_FEESTA		(0*4)
@@ -98,7 +98,7 @@ static int aduc702x_erase(struct flash_bank_s *bank, int first, int last)
 	int x;
 	int count;
 	//uint32_t v;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
         aduc702x_set_write_enable(target, 1);
 
@@ -159,7 +159,7 @@ static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int l
 static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct aduc702x_flash_bank *aduc702x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t buffer_size = 7000;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
@@ -305,7 +305,7 @@ static int aduc702x_write_single(struct flash_bank_s *bank, uint8_t *buffer, uin
 {
 	uint32_t x;
         uint8_t b;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
         aduc702x_set_write_enable(target, 1);
 
@@ -379,7 +379,7 @@ static int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 /* sets FEEMOD bit 3
  * enable = 1 enables writes & erases, 0 disables them */
-static int aduc702x_set_write_enable(target_t *target, int enable)
+static int aduc702x_set_write_enable(struct target *target, int enable)
 {
         // don't bother to preserve int enable bit here
         target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEMOD, enable ? 8 : 0);
@@ -392,7 +392,7 @@ static int aduc702x_set_write_enable(target_t *target, int enable)
  *
  * this function sleeps 1ms between checks (after the first one),
  * so in some cases may slow things down without a usleep after the first read */
-static int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms)
+static int aduc702x_check_flash_completion(struct target* target, unsigned int timeout_ms)
 {
         uint8_t v = 4;
 

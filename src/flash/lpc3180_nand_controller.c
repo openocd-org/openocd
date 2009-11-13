@@ -37,7 +37,7 @@ NAND_DEVICE_COMMAND_HANDLER(lpc3180_nand_device_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	target_t *target = get_target(args[1]);
+	struct target *target = get_target(args[1]);
 	if (NULL == target)
 	{
 		LOG_ERROR("target '%s' not defined", args[1]);
@@ -96,7 +96,7 @@ static int lpc3180_pll(int fclkin, uint32_t pll_ctrl)
 
 static float lpc3180_cycle_time(struct lpc3180_nand_controller *lpc3180_info)
 {
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 	uint32_t sysclk_ctrl, pwr_ctrl, hclkdiv_ctrl, hclkpll_ctrl;
 	int sysclk;
 	int hclk;
@@ -147,7 +147,7 @@ static float lpc3180_cycle_time(struct lpc3180_nand_controller *lpc3180_info)
 static int lpc3180_init(struct nand_device_s *nand)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 	int bus_width = nand->bus_width ? : 8;
 	int address_cycles = nand->address_cycles ? : 3;
 	int page_size = nand->page_size ? : 512;
@@ -277,7 +277,7 @@ static int lpc3180_init(struct nand_device_s *nand)
 static int lpc3180_reset(struct nand_device_s *nand)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -319,7 +319,7 @@ static int lpc3180_reset(struct nand_device_s *nand)
 static int lpc3180_command(struct nand_device_s *nand, uint8_t command)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -349,7 +349,7 @@ static int lpc3180_command(struct nand_device_s *nand, uint8_t command)
 static int lpc3180_address(struct nand_device_s *nand, uint8_t address)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -379,7 +379,7 @@ static int lpc3180_address(struct nand_device_s *nand, uint8_t address)
 static int lpc3180_write_data(struct nand_device_s *nand, uint16_t data)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -409,7 +409,7 @@ static int lpc3180_write_data(struct nand_device_s *nand, uint16_t data)
 static int lpc3180_read_data(struct nand_device_s *nand, void *data)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -471,7 +471,7 @@ static int lpc3180_read_data(struct nand_device_s *nand, void *data)
 static int lpc3180_write_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 	int retval;
 	uint8_t status;
 
@@ -610,7 +610,7 @@ static int lpc3180_write_page(struct nand_device_s *nand, uint32_t page, uint8_t
 static int lpc3180_read_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -757,7 +757,7 @@ static int lpc3180_read_page(struct nand_device_s *nand, uint32_t page, uint8_t 
 static int lpc3180_controller_ready(struct nand_device_s *nand, int timeout)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 	uint8_t status = 0x0;
 
 	if (target->state != TARGET_HALTED)
@@ -791,7 +791,7 @@ static int lpc3180_controller_ready(struct nand_device_s *nand, int timeout)
 static int lpc3180_nand_ready(struct nand_device_s *nand, int timeout)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
-	target_t *target = lpc3180_info->target;
+	struct target *target = lpc3180_info->target;
 
 	if (target->state != TARGET_HALTED)
 	{

@@ -173,7 +173,7 @@ struct reg armv7a_gdb_dummy_fp_reg =
 			0, 1, 96, NULL, 0, NULL, 0
 };
 
-void armv7a_show_fault_registers(target_t *target)
+void armv7a_show_fault_registers(struct target *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -190,7 +190,7 @@ void armv7a_show_fault_registers(target_t *target)
 
 }
 
-int armv7a_arch_state(struct target_s *target)
+int armv7a_arch_state(struct target *target)
 {
 	static const char *state[] =
 	{
@@ -232,7 +232,7 @@ int armv7a_arch_state(struct target_s *target)
 
 COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
@@ -241,7 +241,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 
 COMMAND_HANDLER(handle_dap_memaccess_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
@@ -250,7 +250,7 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 
 COMMAND_HANDLER(handle_dap_apsel_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
@@ -259,7 +259,7 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 
 COMMAND_HANDLER(handle_dap_apid_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
@@ -268,7 +268,7 @@ COMMAND_HANDLER(handle_dap_apid_command)
 
 COMMAND_HANDLER(handle_dap_info_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	uint32_t apsel;
@@ -289,7 +289,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 
 COMMAND_HANDLER(handle_armv7a_disassemble_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	int thumb = 0;
 	int count = 1;

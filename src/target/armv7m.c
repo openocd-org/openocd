@@ -133,7 +133,7 @@ static int armv7m_core_reg_arch_type = -1;
  * Restores target context using the cache of core registers set up
  * by armv7m_build_reg_cache(), calling optional core-specific hooks.
  */
-int armv7m_restore_context(target_t *target)
+int armv7m_restore_context(struct target *target)
 {
 	int i;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -182,7 +182,7 @@ static int armv7m_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct armv7m_core_reg *armv7m_reg = reg->arch_info;
-	target_t *target = armv7m_reg->target;
+	struct target *target = armv7m_reg->target;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if (target->state != TARGET_HALTED)
@@ -198,7 +198,7 @@ static int armv7m_get_core_reg(struct reg *reg)
 static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct armv7m_core_reg *armv7m_reg = reg->arch_info;
-	target_t *target = armv7m_reg->target;
+	struct target *target = armv7m_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
@@ -213,7 +213,7 @@ static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static int armv7m_read_core_reg(struct target_s *target, int num)
+static int armv7m_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	int retval;
@@ -232,7 +232,7 @@ static int armv7m_read_core_reg(struct target_s *target, int num)
 	return retval;
 }
 
-static int armv7m_write_core_reg(struct target_s *target, int num)
+static int armv7m_write_core_reg(struct target *target, int num)
 {
 	int retval;
 	uint32_t reg_value;
@@ -259,7 +259,7 @@ static int armv7m_write_core_reg(struct target_s *target, int num)
 }
 
 /** Invalidates cache of core registers set up by armv7m_build_reg_cache(). */
-int armv7m_invalidate_core_regs(target_t *target)
+int armv7m_invalidate_core_regs(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;
@@ -279,7 +279,7 @@ int armv7m_invalidate_core_regs(target_t *target)
  * hardware, so this also fakes a set of long-obsolete FPA registers that
  * are not used in EABI based software stacks.
  */
-int armv7m_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_list_size)
+int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;
@@ -321,7 +321,7 @@ int armv7m_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_
 }
 
 /* run to exit point. return error if exit point was not reached. */
-static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, int timeout_ms, uint32_t exit_point, struct armv7m_common *armv7m)
+static int armv7m_run_and_wait(struct target *target, uint32_t entry_point, int timeout_ms, uint32_t exit_point, struct armv7m_common *armv7m)
 {
 	uint32_t pc;
 	int retval;
@@ -356,7 +356,7 @@ static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, in
 }
 
 /** Runs a Thumb algorithm in the target. */
-int armv7m_run_algorithm(struct target_s *target,
+int armv7m_run_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
 	uint32_t entry_point, uint32_t exit_point,
@@ -501,7 +501,7 @@ int armv7m_run_algorithm(struct target_s *target,
 }
 
 /** Logs summary of ARMv7-M state for a halted target. */
-int armv7m_arch_state(struct target_s *target)
+int armv7m_arch_state(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	uint32_t ctrl, sp;
@@ -524,7 +524,7 @@ int armv7m_arch_state(struct target_s *target)
 }
 
 /** Builds cache of architecturally defined registers.  */
-struct reg_cache *armv7m_build_reg_cache(target_t *target)
+struct reg_cache *armv7m_build_reg_cache(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int num_regs = ARMV7M_NUM_REGS;
@@ -573,7 +573,7 @@ struct reg_cache *armv7m_build_reg_cache(target_t *target)
 }
 
 /** Sets up target as a generic ARMv7-M core */
-int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m)
+int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 {
 	/* register arch-specific functions */
 
@@ -585,7 +585,7 @@ int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m)
 }
 
 /** Generates a CRC32 checksum of a memory region. */
-int armv7m_checksum_memory(struct target_s *target,
+int armv7m_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	struct working_area *crc_algorithm;
@@ -668,7 +668,7 @@ int armv7m_checksum_memory(struct target_s *target,
 }
 
 /** Checks whether a memory region is zeroed. */
-int armv7m_blank_check_memory(struct target_s *target,
+int armv7m_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t* blank)
 {
 	struct working_area *erase_check_algorithm;
@@ -747,7 +747,7 @@ int armv7m_blank_check_memory(struct target_s *target,
  */
 COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel, apselsave, baseaddr;
@@ -784,7 +784,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
  */
 COMMAND_HANDLER(handle_dap_apid_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -793,7 +793,7 @@ COMMAND_HANDLER(handle_dap_apid_command)
 
 COMMAND_HANDLER(handle_dap_apsel_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -802,7 +802,7 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 
 COMMAND_HANDLER(handle_dap_memaccess_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -812,7 +812,7 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 
 COMMAND_HANDLER(handle_dap_info_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;

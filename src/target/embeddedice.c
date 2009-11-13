@@ -164,7 +164,7 @@ static int embeddedice_get_reg(struct reg *reg)
  * hardware support for vector_catch, single stepping, and monitor mode.
  */
 struct reg_cache *
-embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
+embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 {
 	int retval;
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
@@ -300,7 +300,7 @@ embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 /**
  * Initialize EmbeddedICE module, if needed.
  */
-int embeddedice_setup(target_t *target)
+int embeddedice_setup(struct target *target)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);

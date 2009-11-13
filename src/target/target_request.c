@@ -37,7 +37,7 @@
 static command_t *target_request_cmd = NULL;
 static int charmsg_mode = 0;
 
-static int target_asciimsg(target_t *target, uint32_t length)
+static int target_asciimsg(struct target *target, uint32_t length)
 {
 	char *msg = malloc(CEIL(length + 1, 4) * 4);
 	struct debug_msg_receiver *c = target->dbgmsg;
@@ -56,14 +56,14 @@ static int target_asciimsg(target_t *target, uint32_t length)
 	return ERROR_OK;
 }
 
-static int target_charmsg(target_t *target, uint8_t msg)
+static int target_charmsg(struct target *target, uint8_t msg)
 {
 	LOG_USER_N("%c", msg);
 
 	return ERROR_OK;
 }
 
-static int target_hexmsg(target_t *target, int size, uint32_t length)
+static int target_hexmsg(struct target *target, int size, uint32_t length)
 {
 	uint8_t *data = malloc(CEIL(length * size, 4) * 4);
 	char line[128];
@@ -113,7 +113,7 @@ static int target_hexmsg(target_t *target, int size, uint32_t length)
 /* handle requests from the target received by a target specific
  * side-band channel (e.g. ARM7/9 DCC)
  */
-int target_request(target_t *target, uint32_t request)
+int target_request(struct target *target, uint32_t request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
 
@@ -150,7 +150,7 @@ int target_request(target_t *target, uint32_t request)
 	return ERROR_OK;
 }
 
-static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, struct target *target)
 {
 	struct debug_msg_receiver **p = &target->dbgmsg;
 
@@ -178,7 +178,7 @@ static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *t
 	return ERROR_OK;
 }
 
-static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context_s *cmd_ctx, struct target *target)
 {
 	int do_all_targets = 0;
 	struct debug_msg_receiver **p = &target->dbgmsg;
@@ -211,7 +211,7 @@ static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context
 	return NULL;
 }
 
-int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, struct target *target)
 {
 	struct debug_msg_receiver **p;
 	struct debug_msg_receiver *c;
@@ -259,7 +259,7 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 
 COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	int receiving = 0;
 

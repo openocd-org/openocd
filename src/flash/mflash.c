@@ -67,7 +67,7 @@ static struct mflash_gpio_drv *mflash_gpio[] =
 static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
 {
 	uint32_t addr, value, mask;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	int ret;
 
 	/* remove alternate function. */
@@ -104,7 +104,7 @@ static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
 static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 {
 	uint32_t addr, value, mask;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	int ret;
 
 	mask = 0x1u << (gpio.num & 0x1F);
@@ -133,7 +133,7 @@ static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio)
 {
 	uint32_t data, mask, gpio_con;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	int ret;
 
 	if (gpio.port[0] >= 'a' && gpio.port[0] <= 'h') {
@@ -165,7 +165,7 @@ static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio)
 static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 {
 	uint32_t data, mask, gpio_dat;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	int ret;
 
 	if (gpio.port[0] >= 'a' && gpio.port[0] <= 'h') {
@@ -213,7 +213,7 @@ static int mg_init_gpio (void)
 static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 {
 	uint8_t status, error;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	int ret;
 	long long t = 0;
@@ -291,7 +291,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 
 static int mg_dsk_srst(uint8_t on)
 {
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	uint8_t value;
 	int ret;
@@ -311,7 +311,7 @@ static int mg_dsk_srst(uint8_t on)
 
 static int mg_dsk_io_cmd(uint32_t sect_num, uint32_t cnt, uint8_t cmd)
 {
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	uint8_t value;
 	int ret;
@@ -336,7 +336,7 @@ static int mg_dsk_io_cmd(uint32_t sect_num, uint32_t cnt, uint8_t cmd)
 
 static int mg_dsk_drv_info(void)
 {
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint32_t mg_buff = mflash_bank->base + MG_BUFFER_OFFSET;
 	int ret;
 
@@ -426,7 +426,7 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 {
 	uint32_t i, address;
 	int ret;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint8_t *buff_ptr = buff;
 
 	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read)) != ERROR_OK)
@@ -498,7 +498,7 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 {
 	uint32_t i, address;
 	int ret;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint8_t *buff_ptr = buff;
 
 	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd)) != ERROR_OK)
@@ -834,7 +834,7 @@ mg_dump_cmd_err:
 
 static int mg_set_feature(mg_feature_id feature, mg_feature_val config)
 {
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	int ret;
 
@@ -953,7 +953,7 @@ static int mg_verify_interface(void)
 	uint16_t buff[MG_MFLASH_SECTOR_SIZE >> 1];
 	uint16_t i, j;
 	uint32_t address = mflash_bank->base + MG_BUFFER_OFFSET;
-	target_t *target = mflash_bank->target;
+	struct target *target = mflash_bank->target;
 	int ret;
 
 	for (j = 0; j < 10; j++) {
@@ -1282,7 +1282,7 @@ int mflash_init_drivers(struct command_context_s *cmd_ctx)
 
 COMMAND_HANDLER(mg_bank_cmd)
 {
-	target_t *target;
+	struct target *target;
 	int i;
 
 	if (argc < 4)

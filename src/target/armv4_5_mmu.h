@@ -25,11 +25,11 @@
 
 struct armv4_5_mmu_common
 {
-	uint32_t (*get_ttb)(target_t *target);
-	int (*read_memory)(target_t *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	int (*write_memory)(target_t *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	void (*disable_mmu_caches)(target_t *target, int mmu, int d_u_cache, int i_cache);
-	void (*enable_mmu_caches)(target_t *target, int mmu, int d_u_cache, int i_cache);
+	uint32_t (*get_ttb)(struct target *target);
+	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	void (*disable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
+	void (*enable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
 	struct armv4_5_cache_common armv4_5_cache;
 	int has_tiny_pages;
 	int mmu_enabled;
@@ -42,15 +42,15 @@ enum
 
 extern char* armv4_5_page_type_names[];
 
-uint32_t armv4_5_mmu_translate_va(target_t *target,
+uint32_t armv4_5_mmu_translate_va(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type,
 		uint32_t *cb, int *domain, uint32_t *ap);
 
-int armv4_5_mmu_read_physical(target_t *target,
+int armv4_5_mmu_read_physical(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
-int armv4_5_mmu_write_physical(target_t *target,
+int armv4_5_mmu_write_physical(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 

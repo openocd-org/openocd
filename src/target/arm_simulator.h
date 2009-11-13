@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-struct target_s;
+struct target;
 
 struct arm_sim_interface
 {
@@ -38,10 +38,10 @@ struct arm_sim_interface
 };
 
 /* armv4_5 version */
-int arm_simulate_step(struct target_s *target, uint32_t *dry_run_pc);
+int arm_simulate_step(struct target *target, uint32_t *dry_run_pc);
 
 /* a generic arm simulator. Caller must implement the sim interface */
-int arm_simulate_step_core(target_t *target,
+int arm_simulate_step_core(struct target *target,
 		uint32_t *dry_run_pc, struct arm_sim_interface *sim);
 
 #endif /* ARM_SIMULATOR_H */

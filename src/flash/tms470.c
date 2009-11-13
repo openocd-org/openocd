@@ -109,7 +109,7 @@ const struct flash_sector TMS470R1A384_BANK2_SECTORS[] = {
 static int tms470_read_part_info(struct flash_bank_s *bank)
 {
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t device_ident_reg;
 	uint32_t silicon_version;
 	uint32_t technology_family;
@@ -402,7 +402,7 @@ COMMAND_HANDLER(tms470_handle_plldis_command)
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_check_flash_unlocked(target_t * target)
+static int tms470_check_flash_unlocked(struct target * target)
 {
 	uint32_t fmbbusy;
 
@@ -413,7 +413,7 @@ static int tms470_check_flash_unlocked(target_t * target)
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_try_flash_keys(target_t * target, const uint32_t * key_set)
+static int tms470_try_flash_keys(struct target * target, const uint32_t * key_set)
 {
 	uint32_t glbctrl, fmmstat;
 	int retval = ERROR_FLASH_OPERATION_FAILED;
@@ -493,7 +493,7 @@ static int tms470_try_flash_keys(target_t * target, const uint32_t * key_set)
 
 static int tms470_unlock_flash(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	const uint32_t *p_key_sets[5];
 	unsigned i, key_set_count;
 
@@ -533,7 +533,7 @@ static int tms470_unlock_flash(struct flash_bank_s *bank)
 static int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *bank)
 {
 	uint32_t fmmac2, fmmac1, fmmaxep, k, delay, glbctrl, sysclk;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
 	int result = ERROR_OK;
 
@@ -668,7 +668,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *b
 
 int tms470_flash_status(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int result = ERROR_OK;
 	uint32_t fmmstat;
 
@@ -725,7 +725,7 @@ int tms470_flash_status(struct flash_bank_s *bank)
 static int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 {
 	uint32_t glbctrl, orig_fmregopt, fmbsea, fmbseb, fmmstat;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t flashAddr = bank->base + bank->sectors[sector].offset;
 	int result = ERROR_OK;
 
@@ -880,7 +880,7 @@ static int tms470_erase(struct flash_bank_s *bank, int first, int last)
 static int tms470_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t fmmac2, fmbsea, fmbseb;
 	int sector;
 
@@ -931,7 +931,7 @@ static int tms470_protect(struct flash_bank_s *bank, int set, int first, int las
 
 static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, uint32_t offset, uint32_t count)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;
 	int result = ERROR_OK;
 	uint32_t i;
@@ -1051,7 +1051,7 @@ static int tms470_auto_probe(struct flash_bank_s *bank)
 
 static int tms470_erase_check(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
 	uint32_t fmmac2, fmbac2, glbctrl, orig_fmregopt;
@@ -1142,7 +1142,7 @@ static int tms470_erase_check(struct flash_bank_s *bank)
 
 static int tms470_protect_check(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
 	uint32_t fmmac2, fmbsea, fmbseb;

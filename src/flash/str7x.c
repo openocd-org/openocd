@@ -156,7 +156,7 @@ FLASH_BANK_COMMAND_HANDLER(str7x_flash_bank_command)
 
 static uint32_t str7x_status(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), &retval);
@@ -166,7 +166,7 @@ static uint32_t str7x_status(struct flash_bank_s *bank)
 
 static uint32_t str7x_result(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
@@ -177,7 +177,7 @@ static uint32_t str7x_result(struct flash_bank_s *bank)
 static int str7x_protect_check(struct flash_bank_s *bank)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	int i;
 	uint32_t retval;
@@ -204,7 +204,7 @@ static int str7x_protect_check(struct flash_bank_s *bank)
 static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	int i;
 	uint32_t cmd;
@@ -257,7 +257,7 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int i;
 	uint32_t cmd;
 	uint32_t retval;
@@ -311,7 +311,7 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t buffer_size = 8192;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
@@ -425,7 +425,7 @@ static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_
 
 static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
 	uint32_t dwords_remaining = (count / 8);
 	uint32_t bytes_remaining = (count & 0x00000007);
@@ -603,7 +603,7 @@ static int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 {
-	target_t *target = NULL;
+	struct target *target = NULL;
 	struct str7x_flash_bank *str7x_info = NULL;
 
 	uint32_t flash_cmd;

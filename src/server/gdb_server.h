@@ -51,7 +51,7 @@ struct gdb_connection
 
 struct gdb_service
 {
-	struct target_s *target;
+	struct target *target;
 };
 
 int gdb_init(void);

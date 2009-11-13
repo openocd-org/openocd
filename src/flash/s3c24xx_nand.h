@@ -32,7 +32,7 @@
 
 struct s3c24xx_nand_controller
 {
-	struct target_s *target;
+	struct target *target;
 
 	/* register addresses */
 	uint32_t		 cmd;

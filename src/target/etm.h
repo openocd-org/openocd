@@ -154,7 +154,7 @@ struct etmv1_trace_data
  */
 struct etm_context
 {
-	target_t *target;		/* target this ETM is connected to */
+	struct target *target;		/* target this ETM is connected to */
 	struct reg_cache *reg_cache;		/* ETM register cache */
 	struct etm_capture_driver *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;	/* capture driver private data */
@@ -207,10 +207,10 @@ typedef enum
 	BR_RSVD7   = 0x7, /* reserved */
 } etmv1_branch_reason_t;
 
-struct reg_cache* etm_build_reg_cache(target_t *target,
+struct reg_cache* etm_build_reg_cache(struct target *target,
 		struct arm_jtag *jtag_info, struct etm_context *etm_ctx);
 
-int etm_setup(target_t *target);
+int etm_setup(struct target *target);
 
 int etm_register_commands(struct command_context_s *cmd_ctx);
 

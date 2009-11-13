@@ -238,7 +238,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5
 {
 	int retval;
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct mem_param mem_params[2];
 	struct reg_param reg_params[5];
 	struct armv4_5_algorithm armv4_5_info; /* for LPC2000 */
@@ -538,7 +538,7 @@ static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int la
 static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t dst_min_alignment;
 	uint32_t bytes_remaining = count;
 	uint32_t bytes_written = 0;

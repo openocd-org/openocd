@@ -34,12 +34,12 @@
 #include "arm920t.h"
 #include "target_type.h"
 
-static void fa526_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
+static void fa526_change_to_arm(struct target *target, uint32_t *r0, uint32_t *pc)
 {
 	LOG_ERROR("%s: there is no Thumb state on FA526", __func__);
 }
 
-static void fa526_read_core_regs(target_t *target,
+static void fa526_read_core_regs(struct target *target,
 		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
@@ -66,7 +66,7 @@ static void fa526_read_core_regs(target_t *target,
 	}
 }
 
-static void fa526_read_core_regs_target_buffer(target_t *target,
+static void fa526_read_core_regs_target_buffer(struct target *target,
 		uint32_t mask, void* buffer, int size)
 {
 	int i;
@@ -108,7 +108,7 @@ static void fa526_read_core_regs_target_buffer(target_t *target,
 	}
 }
 
-static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
+static void fa526_read_xpsr(struct target *target, uint32_t *xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -133,7 +133,7 @@ static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, xpsr, 0);
 }
 
-static void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
+static void fa526_write_xpsr(struct target *target, uint32_t xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -169,7 +169,7 @@ static void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-static void fa526_write_xpsr_im8(target_t *target,
+static void fa526_write_xpsr_im8(struct target *target,
 		uint8_t xpsr_im, int rot, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -196,7 +196,7 @@ static void fa526_write_xpsr_im8(target_t *target,
 	}
 }
 
-static void fa526_write_core_regs(target_t *target,
+static void fa526_write_core_regs(struct target *target,
 		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
@@ -224,7 +224,7 @@ static void fa526_write_core_regs(target_t *target,
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-static void fa526_write_pc(target_t *target, uint32_t pc)
+static void fa526_write_pc(struct target *target, uint32_t pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -250,12 +250,12 @@ static void fa526_write_pc(target_t *target, uint32_t pc)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-static void fa526_branch_resume_thumb(target_t *target)
+static void fa526_branch_resume_thumb(struct target *target)
 {
 	LOG_ERROR("%s: there is no Thumb state on FA526", __func__);
 }
 
-static int fa526_init_arch_info_2(target_t *target,
+static int fa526_init_arch_info_2(struct target *target,
 		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap)
 {
 	struct arm7_9_common *arm7_9;
@@ -314,7 +314,7 @@ static int fa526_init_arch_info_2(target_t *target,
 	return ERROR_OK;
 }
 
-static int fa526_init_arch_info(target_t *target,
+static int fa526_init_arch_info(struct target *target,
 		struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
 	struct arm9tdmi_common *arm9tdmi = &arm920t->arm9tdmi_common;
@@ -350,7 +350,7 @@ static int fa526_init_arch_info(target_t *target,
 	return ERROR_OK;
 }
 
-static int fa526_target_create(struct target_s *target, Jim_Interp *interp)
+static int fa526_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm920t_common *arm920t = calloc(1,sizeof(struct arm920t_common));
 

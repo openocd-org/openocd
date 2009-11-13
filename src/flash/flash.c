@@ -31,7 +31,7 @@
 #include "image.h"
 #include "time_support.h"
 
-static int flash_write_unlock(target_t *target, struct image *image, uint32_t *written, int erase, bool unlock);
+static int flash_write_unlock(struct target *target, struct image *image, uint32_t *written, int erase, bool unlock);
 
 /* flash drivers
  */
@@ -220,7 +220,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	int retval;
 	int i;
 	int found = 0;
-	target_t *target;
+	struct target *target;
 
 	if (argc < 6)
 	{
@@ -448,7 +448,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	int address;
 	int length;
 
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	if (argc != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -615,7 +615,7 @@ COMMAND_HANDLER(handle_flash_protect_command)
 
 COMMAND_HANDLER(handle_flash_write_image_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 
 	struct image image;
 	uint32_t written;
@@ -714,7 +714,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint32_t wrote = 0;
 	uint32_t cur_size = 0;
 	uint32_t chunk_count;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	uint32_t i;
 	uint32_t wordsize;
 
@@ -874,7 +874,7 @@ void flash_set_dirty(void)
 }
 
 /* lookup flash bank by address */
-flash_bank_t *get_flash_bank_by_addr(target_t *target, uint32_t addr)
+struct flash_bank_s *get_flash_bank_by_addr(struct target *target, uint32_t addr)
 {
 	flash_bank_t *c;
 
@@ -898,7 +898,7 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, uint32_t addr)
 }
 
 /* erase given flash region, selects proper bank according to target and address */
-static int flash_iterate_address_range(target_t *target, uint32_t addr, uint32_t length,
+static int flash_iterate_address_range(struct target *target, uint32_t addr, uint32_t length,
 		int (*callback)(struct flash_bank_s *bank, int first, int last))
 {
 	flash_bank_t *c;
@@ -949,7 +949,7 @@ static int flash_iterate_address_range(target_t *target, uint32_t addr, uint32_t
 
 
 
-int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
+int flash_erase_address_range(struct target *target, uint32_t addr, uint32_t length)
 {
 	return flash_iterate_address_range(target, addr, length, &flash_driver_erase);
 }
@@ -959,14 +959,14 @@ static int flash_driver_unprotect(struct flash_bank_s *bank, int first, int last
 	return flash_driver_protect(bank, 0, first, last);
 }
 
-static int flash_unlock_address_range(target_t *target, uint32_t addr, uint32_t length)
+static int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t length)
 {
 	return flash_iterate_address_range(target, addr, length, &flash_driver_unprotect);
 }
 
 
 /* write (optional verify) an image to flash memory of the given target */
-static int flash_write_unlock(target_t *target, struct image *image, uint32_t *written, int erase, bool unlock)
+static int flash_write_unlock(struct target *target, struct image *image, uint32_t *written, int erase, bool unlock)
 {
 	int retval = ERROR_OK;
 
@@ -1125,14 +1125,14 @@ static int flash_write_unlock(target_t *target, struct image *image, uint32_t *w
 	return retval;
 }
 
-int flash_write(target_t *target, struct image *image, uint32_t *written, int erase)
+int flash_write(struct target *target, struct image *image, uint32_t *written, int erase)
 {
 	return flash_write_unlock(target, image, written, erase, false);
 }
 
 int default_flash_mem_blank_check(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint8_t buffer[1024];
 	int buffer_size = sizeof(buffer);
 	int i;
@@ -1179,7 +1179,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 
 int default_flash_blank_check(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int i;
 	int retval;
 	int fast_check = 0;

@@ -132,7 +132,7 @@ struct xscale_common
 };
 
 static inline struct xscale_common *
-target_to_xscale(struct target_s *target)
+target_to_xscale(struct target *target)
 {
 	return container_of(target->arch_info, struct xscale_common,
 			armv4_5_common);
@@ -141,7 +141,7 @@ target_to_xscale(struct target_s *target)
 struct xscale_reg
 {
 	int dbg_handler_number;
-	target_t *target;
+	struct target *target;
 };
 
 enum

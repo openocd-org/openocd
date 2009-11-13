@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-struct target_s;
+struct target;
 
 enum breakpoint_type
 {
@@ -58,17 +58,17 @@ struct watchpoint
 	int unique_id;
 };
 
-void breakpoint_clear_target(struct target_s *target);
-int breakpoint_add(struct target_s *target,
+void breakpoint_clear_target(struct target *target);
+int breakpoint_add(struct target *target,
 		uint32_t address, uint32_t length, enum breakpoint_type type);
-void breakpoint_remove(struct target_s *target, uint32_t address);
+void breakpoint_remove(struct target *target, uint32_t address);
 
-struct breakpoint* breakpoint_find(struct target_s *target, uint32_t address);
+struct breakpoint* breakpoint_find(struct target *target, uint32_t address);
 
-void watchpoint_clear_target(struct target_s *target);
-int watchpoint_add(struct target_s *target,
+void watchpoint_clear_target(struct target *target);
+int watchpoint_add(struct target *target,
 		uint32_t address, uint32_t length,
 		enum watchpoint_rw rw, uint32_t value, uint32_t mask);
-void watchpoint_remove(struct target_s *target, uint32_t address);
+void watchpoint_remove(struct target *target, uint32_t address);
 
 #endif /* BREAKPOINTS_H */

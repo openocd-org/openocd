@@ -41,7 +41,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-static int arm7tdmi_examine_debug_reason(target_t *target)
+static int arm7tdmi_examine_debug_reason(struct target *target)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -263,7 +263,7 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	return ERROR_OK;
 }
 
-static void arm7tdmi_change_to_arm(target_t *target,
+static void arm7tdmi_change_to_arm(struct target *target,
 		uint32_t *r0, uint32_t *pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -319,7 +319,7 @@ static void arm7tdmi_change_to_arm(target_t *target,
  * The solution is to arrange for a large out/in scan in this loop and
  * and convert data afterwards.
  */
-static void arm7tdmi_read_core_regs(target_t *target,
+static void arm7tdmi_read_core_regs(struct target *target,
 		uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
@@ -344,7 +344,7 @@ static void arm7tdmi_read_core_regs(target_t *target,
 	}
 }
 
-static void arm7tdmi_read_core_regs_target_buffer(target_t *target,
+static void arm7tdmi_read_core_regs_target_buffer(struct target *target,
 		uint32_t mask, void* buffer, int size)
 {
 	int i;
@@ -386,7 +386,7 @@ static void arm7tdmi_read_core_regs_target_buffer(target_t *target,
 	}
 }
 
-static void arm7tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
+static void arm7tdmi_read_xpsr(struct target *target, uint32_t *xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -404,7 +404,7 @@ static void arm7tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 	arm7tdmi_clock_data_in(jtag_info, xpsr);
 }
 
-static void arm7tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
+static void arm7tdmi_write_xpsr(struct target *target, uint32_t xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -433,7 +433,7 @@ static void arm7tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 }
 
-static void arm7tdmi_write_xpsr_im8(target_t *target,
+static void arm7tdmi_write_xpsr_im8(struct target *target,
 		uint8_t xpsr_im, int rot, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -451,7 +451,7 @@ static void arm7tdmi_write_xpsr_im8(target_t *target,
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 }
 
-static void arm7tdmi_write_core_regs(target_t *target,
+static void arm7tdmi_write_core_regs(struct target *target,
 		uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
@@ -477,7 +477,7 @@ static void arm7tdmi_write_core_regs(target_t *target,
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
 }
 
-static void arm7tdmi_load_word_regs(target_t *target, uint32_t mask)
+static void arm7tdmi_load_word_regs(struct target *target, uint32_t mask)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -488,7 +488,7 @@ static void arm7tdmi_load_word_regs(target_t *target, uint32_t mask)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 1), NULL, 0);
 }
 
-static void arm7tdmi_load_hword_reg(target_t *target, int num)
+static void arm7tdmi_load_hword_reg(struct target *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -499,7 +499,7 @@ static void arm7tdmi_load_hword_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRH_IP(num, 0), NULL, 0);
 }
 
-static void arm7tdmi_load_byte_reg(target_t *target, int num)
+static void arm7tdmi_load_byte_reg(struct target *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -510,7 +510,7 @@ static void arm7tdmi_load_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRB_IP(num, 0), NULL, 0);
 }
 
-static void arm7tdmi_store_word_regs(target_t *target, uint32_t mask)
+static void arm7tdmi_store_word_regs(struct target *target, uint32_t mask)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -521,7 +521,7 @@ static void arm7tdmi_store_word_regs(target_t *target, uint32_t mask)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask, 0, 1), NULL, 0);
 }
 
-static void arm7tdmi_store_hword_reg(target_t *target, int num)
+static void arm7tdmi_store_hword_reg(struct target *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -532,7 +532,7 @@ static void arm7tdmi_store_hword_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRH_IP(num, 0), NULL, 0);
 }
 
-static void arm7tdmi_store_byte_reg(target_t *target, int num)
+static void arm7tdmi_store_byte_reg(struct target *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -543,7 +543,7 @@ static void arm7tdmi_store_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRB_IP(num, 0), NULL, 0);
 }
 
-static void arm7tdmi_write_pc(target_t *target, uint32_t pc)
+static void arm7tdmi_write_pc(struct target *target, uint32_t pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -568,7 +568,7 @@ static void arm7tdmi_write_pc(target_t *target, uint32_t pc)
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
 }
 
-static void arm7tdmi_branch_resume(target_t *target)
+static void arm7tdmi_branch_resume(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -577,7 +577,7 @@ static void arm7tdmi_branch_resume(target_t *target)
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_B(0xfffffa, 0), 0);
 }
 
-static void arm7tdmi_branch_resume_thumb(target_t *target)
+static void arm7tdmi_branch_resume_thumb(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -637,7 +637,7 @@ static void arm7tdmi_branch_resume_thumb(target_t *target)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7f8), NULL, 0);
 }
 
-static void arm7tdmi_build_reg_cache(target_t *target)
+static void arm7tdmi_build_reg_cache(struct target *target)
 {
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
@@ -646,7 +646,7 @@ static void arm7tdmi_build_reg_cache(target_t *target)
 	armv4_5->core_cache = (*cache_p);
 }
 
-int arm7tdmi_examine(struct target_s *target)
+int arm7tdmi_examine(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int retval;
@@ -684,14 +684,14 @@ int arm7tdmi_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target *target)
 {
 	arm7tdmi_build_reg_cache(target);
 
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_arch_info(target_t *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap)
+int arm7tdmi_init_arch_info(struct target *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap)
 {
 	struct arm7_9_common *arm7_9 = &arm7tdmi->arm7_9_common;
 
@@ -741,7 +741,7 @@ int arm7tdmi_init_arch_info(target_t *target, struct arm7tdmi_common *arm7tdmi, 
 	return ERROR_OK;
 }
 
-static int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm7tdmi_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm7tdmi_common *arm7tdmi;
 

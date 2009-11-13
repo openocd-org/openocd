@@ -47,7 +47,7 @@
 
 #define ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm) ((opcode_1 << 11) | (opcode_2 << 8) | (CRn << 4) | (CRm << 0))
 
-static int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2,
+static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	int retval = ERROR_OK;
@@ -129,7 +129,7 @@ static int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2,
 	return ERROR_OK;
 }
 
-static int arm926ejs_mrc(target_t *target, int cpnum, uint32_t op1,
+static int arm926ejs_mrc(struct target *target, int cpnum, uint32_t op1,
 		uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	if (cpnum != 15) {
@@ -139,7 +139,7 @@ static int arm926ejs_mrc(target_t *target, int cpnum, uint32_t op1,
 	return arm926ejs_cp15_read(target, op1, op2, CRn, CRm, value);
 }
 
-static int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2,
+static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	int retval = ERROR_OK;
@@ -219,7 +219,7 @@ static int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2,
 	return ERROR_OK;
 }
 
-static int arm926ejs_mcr(target_t *target, int cpnum, uint32_t op1,
+static int arm926ejs_mcr(struct target *target, int cpnum, uint32_t op1,
 		uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	if (cpnum != 15) {
@@ -229,7 +229,7 @@ static int arm926ejs_mcr(target_t *target, int cpnum, uint32_t op1,
 	return arm926ejs_cp15_write(target, op1, op2, CRn, CRm, value);
 }
 
-static int arm926ejs_examine_debug_reason(target_t *target)
+static int arm926ejs_examine_debug_reason(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
@@ -332,7 +332,7 @@ static int arm926ejs_examine_debug_reason(target_t *target)
 	return ERROR_OK;
 }
 
-static uint32_t arm926ejs_get_ttb(target_t *target)
+static uint32_t arm926ejs_get_ttb(struct target *target)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	int retval;
@@ -344,7 +344,7 @@ static uint32_t arm926ejs_get_ttb(target_t *target)
 	return ttb;
 }
 
-static void arm926ejs_disable_mmu_caches(target_t *target, int mmu,
+static void arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
@@ -393,7 +393,7 @@ static void arm926ejs_disable_mmu_caches(target_t *target, int mmu,
 	arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
 }
 
-static void arm926ejs_enable_mmu_caches(target_t *target, int mmu,
+static void arm926ejs_enable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
@@ -415,7 +415,7 @@ static void arm926ejs_enable_mmu_caches(target_t *target, int mmu,
 	arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
 }
 
-static void arm926ejs_post_debug_entry(target_t *target)
+static void arm926ejs_post_debug_entry(struct target *target)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
@@ -454,7 +454,7 @@ static void arm926ejs_post_debug_entry(target_t *target)
 	arm926ejs->write_cp15(target, 7, 0, 15, 0, cache_dbg_ctrl);
 }
 
-static void arm926ejs_pre_restore_context(target_t *target)
+static void arm926ejs_pre_restore_context(struct target *target)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
@@ -485,7 +485,7 @@ static int arm926ejs_verify_pointer(struct command_context_s *cmd_ctx,
 }
 
 /** Logs summary of ARM926 state for a halted target. */
-int arm926ejs_arch_state(struct target_s *target)
+int arm926ejs_arch_state(struct target *target)
 {
 	static const char *state[] =
 	{
@@ -518,7 +518,7 @@ int arm926ejs_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm926ejs_soft_reset_halt(struct target_s *target)
+int arm926ejs_soft_reset_halt(struct target *target)
 {
 	int retval = ERROR_OK;
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
@@ -585,7 +585,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 }
 
 /** Writes a buffer, in the specified word size, with current MMU settings. */
-int arm926ejs_write_memory(struct target_s *target, uint32_t address,
+int arm926ejs_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
@@ -646,7 +646,7 @@ int arm926ejs_write_memory(struct target_s *target, uint32_t address,
 	return retval;
 }
 
-static int arm926ejs_write_phys_memory(struct target_s *target,
+static int arm926ejs_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
@@ -656,7 +656,7 @@ static int arm926ejs_write_phys_memory(struct target_s *target,
 			address, size, count, buffer);
 }
 
-static int arm926ejs_read_phys_memory(struct target_s *target,
+static int arm926ejs_read_phys_memory(struct target *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
@@ -666,7 +666,7 @@ static int arm926ejs_read_phys_memory(struct target_s *target,
 			address, size, count, buffer);
 }
 
-int arm926ejs_init_arch_info(target_t *target, struct arm926ejs_common *arm926ejs,
+int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm926ejs,
 		struct jtag_tap *tap)
 {
 	struct arm9tdmi_common *arm9tdmi = &arm926ejs->arm9tdmi_common;
@@ -703,7 +703,7 @@ int arm926ejs_init_arch_info(target_t *target, struct arm926ejs_common *arm926ej
 	return ERROR_OK;
 }
 
-static int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm926ejs_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm926ejs_common *arm926ejs = calloc(1,sizeof(struct arm926ejs_common));
 
@@ -716,7 +716,7 @@ static int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
 COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 {
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	int opcode_1;
 	int opcode_2;
@@ -777,7 +777,7 @@ COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 {
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
 	retval = arm926ejs_verify_pointer(cmd_ctx, arm926ejs);
@@ -787,7 +787,7 @@ COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 	return armv4_5_handle_cache_info_command(cmd_ctx, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 }
 
-static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical)
+static int arm926ejs_virt2phys(struct target *target, uint32_t virtual, uint32_t *physical)
 {
 	int type;
 	uint32_t cb;
@@ -804,7 +804,7 @@ static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32
 	return ERROR_OK;
 }
 
-static int arm926ejs_mmu(struct target_s *target, int *enabled)
+static int arm926ejs_mmu(struct target *target, int *enabled)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 

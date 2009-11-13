@@ -140,7 +140,7 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 {
 	int retval;
 	struct str9x_flash_bank *str9x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	int i;
 	uint32_t adr;
@@ -216,7 +216,7 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 
 static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int i;
 	uint32_t adr;
 	uint8_t status;
@@ -309,7 +309,7 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 static int str9x_protect(struct flash_bank_s *bank,
 		int set, int first, int last)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int i;
 	uint32_t adr;
 	uint8_t status;
@@ -349,7 +349,7 @@ static int str9x_write_block(struct flash_bank_s *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct str9x_flash_bank *str9x_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t buffer_size = 8192;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
@@ -457,7 +457,7 @@ static int str9x_write_block(struct flash_bank_s *bank,
 static int str9x_write(struct flash_bank_s *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t words_remaining = (count / 2);
 	uint32_t bytes_remaining = (count & 0x00000001);
 	uint32_t address = bank->base + offset;
@@ -633,7 +633,7 @@ static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 COMMAND_HANDLER(str9x_handle_flash_config_command)
 {
 	struct str9x_flash_bank *str9x_info;
-	target_t *target = NULL;
+	struct target *target = NULL;
 
 	if (argc < 5)
 	{

@@ -199,7 +199,7 @@ static uint32_t lpc2900_wait_status( flash_bank_t *bank,
                                      int timeout )
 {
 	uint32_t int_status;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 
 	do
@@ -283,7 +283,7 @@ static uint32_t lpc2900_read_security_status( struct flash_bank_s *bank )
 		return status;
 	}
 
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	/* Enable ISS access */
 	target_write_u32(target, FCTR, FCTR_FS_CS | FCTR_FS_WEB | FCTR_FS_ISS);
@@ -361,7 +361,7 @@ static uint32_t lpc2900_run_bist128(struct flash_bank_s *bank,
                                     uint32_t addr_to,
                                     uint32_t (*signature)[4] )
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	/* Clear END_OF_MISR interrupt status */
 	target_write_u32( target, INT_CLR_STATUS, INTSRC_END_OF_MISR );
@@ -436,7 +436,7 @@ static int lpc2900_write_index_page( struct flash_bank_s *bank,
 	}
 
 	/* Get target, and check if it's halted */
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	if( target->state != TARGET_HALTED )
 	{
 		LOG_ERROR( "Target not halted" );
@@ -597,7 +597,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	lpc2900_info->risky = 0;
 
 	/* Get target, and check if it's halted */
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	if( target->state != TARGET_HALTED )
 	{
 		LOG_ERROR( "Target not halted" );
@@ -710,7 +710,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	lpc2900_info->risky = 0;
 
 	/* Get target, and check if it's halted */
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
@@ -1075,7 +1075,7 @@ static int lpc2900_erase(struct flash_bank_s *bank, int first, int last)
 	uint32_t status;
 	int sector;
 	int last_unsecured_sector;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 
@@ -1205,7 +1205,7 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
 	uint8_t page[FLASH_PAGE_SIZE];
 	uint32_t status;
 	uint32_t num_bytes;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 	int sector;
 	int retval;
@@ -1551,7 +1551,7 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
 static int lpc2900_probe(struct flash_bank_s *bank)
 {
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int i = 0;
 	uint32_t offset;
 

@@ -60,7 +60,7 @@ int s3c24xx_register_commands(struct command_context_s *cmd_ctx)
 int s3c24xx_reset(struct nand_device_s *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -75,7 +75,7 @@ int s3c24xx_reset(struct nand_device_s *nand)
 int s3c24xx_command(struct nand_device_s *nand, uint8_t command)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -90,7 +90,7 @@ int s3c24xx_command(struct nand_device_s *nand, uint8_t command)
 int s3c24xx_address(struct nand_device_s *nand, uint8_t address)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -104,7 +104,7 @@ int s3c24xx_address(struct nand_device_s *nand, uint8_t address)
 int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -118,7 +118,7 @@ int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data)
 int s3c24xx_read_data(struct nand_device_s *nand, void *data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");

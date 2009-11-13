@@ -37,7 +37,7 @@
 #include "arm_simulator.h"
 
 
-int arm7_9_debug_entry(target_t *target);
+int arm7_9_debug_entry(struct target *target);
 
 /**
  * Clear watchpoints for an ARM7/9 target.
@@ -159,7 +159,7 @@ static int arm7_9_set_software_breakpoints(struct arm7_9_common *arm7_9)
  * @param target Pointer to an ARM7/9 target to setup
  * @return Result of clearing the watchpoints on the target
  */
-int arm7_9_setup(target_t *target)
+int arm7_9_setup(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -178,7 +178,7 @@ int arm7_9_setup(target_t *target)
  *                 targets
  * @return ERROR_OK if successful
  */
-int arm7_9_get_arch_pointers(target_t *target, struct arm **armv4_5_p, struct arm7_9_common **arm7_9_p)
+int arm7_9_get_arch_pointers(struct target *target, struct arm **armv4_5_p, struct arm7_9_common **arm7_9_p)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -210,7 +210,7 @@ int arm7_9_get_arch_pointers(target_t *target, struct arm **armv4_5_p, struct ar
  *         queue.  For software breakpoints, this will be the status of the
  *         required memory reads and writes
  */
-int arm7_9_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+int arm7_9_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int retval = ERROR_OK;
@@ -339,7 +339,7 @@ int arm7_9_set_breakpoint(struct target_s *target, struct breakpoint *breakpoint
  *         queue.  For software breakpoints, this will be the status of the
  *         required memory reads and writes
  */
-int arm7_9_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+int arm7_9_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -434,7 +434,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, struct breakpoint *breakpoi
  * @return An error status if there is a problem adding the breakpoint or the
  *         result of setting the breakpoint
  */
-int arm7_9_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+int arm7_9_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -484,7 +484,7 @@ int arm7_9_add_breakpoint(struct target_s *target, struct breakpoint *breakpoint
  * @return Error status if there was a problem unsetting the breakpoint or the
  *         watchpoints could not be cleared
  */
-int arm7_9_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+int arm7_9_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -520,7 +520,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, struct breakpoint *breakpo
  * @return Error status if watchpoint set fails or the result of executing the
  *         JTAG queue
  */
-int arm7_9_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -591,7 +591,7 @@ int arm7_9_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint
  * @return Error status while trying to unset the watchpoint or the result of
  *         executing the JTAG queue
  */
-int arm7_9_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+int arm7_9_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -639,7 +639,7 @@ int arm7_9_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoi
  * @param watchpoint Pointer to the watchpoint to be added
  * @return Error status while trying to add the watchpoint
  */
-int arm7_9_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+int arm7_9_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -672,7 +672,7 @@ int arm7_9_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint
  * @param watchpoint Pointer to the watchpoint to be removed
  * @return Result of trying to unset the watchpoint
  */
-int arm7_9_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+int arm7_9_remove_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -699,7 +699,7 @@ int arm7_9_remove_watchpoint(struct target_s *target, struct watchpoint *watchpo
  * @return Error status if there is a timeout or a problem while executing the
  *         JTAG queue
  */
-int arm7_9_execute_sys_speed(struct target_s *target)
+int arm7_9_execute_sys_speed(struct target *target)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -750,7 +750,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
  * @param target Pointer to the target to issue commands to
  * @return Always ERROR_OK
  */
-int arm7_9_execute_fast_sys_speed(struct target_s *target)
+int arm7_9_execute_fast_sys_speed(struct target *target)
 {
 	static int set = 0;
 	static uint8_t check_value[4], check_mask[4];
@@ -794,7 +794,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
  * @param buffer Pointer to the buffer that will hold the data
  * @return The result of receiving data from the Embedded ICE unit
  */
-int arm7_9_target_request_data(target_t *target, uint32_t size, uint8_t *buffer)
+int arm7_9_target_request_data(struct target *target, uint32_t size, uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -822,14 +822,14 @@ int arm7_9_target_request_data(target_t *target, uint32_t size, uint8_t *buffer)
  * target is running and the DCC control register has the W bit high, this will
  * execute the request on the target.
  *
- * @param priv Void pointer expected to be a target_t pointer
+ * @param priv Void pointer expected to be a struct target pointer
  * @return ERROR_OK unless there are issues with the JTAG queue or when reading
  *                  from the Embedded ICE unit
  */
 int arm7_9_handle_target_request(void *priv)
 {
 	int retval = ERROR_OK;
-	target_t *target = priv;
+	struct target *target = priv;
 	if (!target_was_examined(target))
 		return ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -887,7 +887,7 @@ int arm7_9_handle_target_request(void *priv)
  * @param target Pointer to the ARM7/9 target to poll
  * @return ERROR_OK or an error status if a command fails
  */
-int arm7_9_poll(target_t *target)
+int arm7_9_poll(struct target *target)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -980,7 +980,7 @@ int arm7_9_poll(target_t *target)
  * @param target Pointer to an ARM7/9 target to assert reset on
  * @return ERROR_FAIL if the JTAG device does not have SRST, otherwise ERROR_OK
  */
-int arm7_9_assert_reset(target_t *target)
+int arm7_9_assert_reset(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -1072,7 +1072,7 @@ int arm7_9_assert_reset(target_t *target)
  * @param target Pointer to the target to have the reset deasserted
  * @return ERROR_OK or an error from polling or halting the target
  */
-int arm7_9_deassert_reset(target_t *target)
+int arm7_9_deassert_reset(struct target *target)
 {
 	int retval = ERROR_OK;
 	LOG_DEBUG("target->state: %s",
@@ -1112,7 +1112,7 @@ int arm7_9_deassert_reset(target_t *target)
  * @param target Pointer to the ARM7/9 target to have halt cleared
  * @return Always ERROR_OK
  */
-int arm7_9_clear_halt(target_t *target)
+int arm7_9_clear_halt(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
@@ -1169,7 +1169,7 @@ int arm7_9_clear_halt(target_t *target)
  * @param target Pointer to the ARM7/9 target to be reset and halted by software
  * @return Error status if any of the commands fail, otherwise ERROR_OK
  */
-int arm7_9_soft_reset_halt(struct target_s *target)
+int arm7_9_soft_reset_halt(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -1282,7 +1282,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
  * @param target Pointer to the ARM7/9 target to be halted
  * @return Always ERROR_OK
  */
-int arm7_9_halt(target_t *target)
+int arm7_9_halt(struct target *target)
 {
 	if (target->state == TARGET_RESET)
 	{
@@ -1344,7 +1344,7 @@ int arm7_9_halt(target_t *target)
  * @param target Pointer to target that is entering debug mode
  * @return Error code if anything fails, otherwise ERROR_OK
  */
-int arm7_9_debug_entry(target_t *target)
+int arm7_9_debug_entry(struct target *target)
 {
 	int i;
 	uint32_t context[16];
@@ -1502,7 +1502,7 @@ int arm7_9_debug_entry(target_t *target)
  * @return Error if the target is not halted, has an invalid core mode, or if
  *         the JTAG queue fails to execute
  */
-int arm7_9_full_context(target_t *target)
+int arm7_9_full_context(struct target *target)
 {
 	int i;
 	int retval;
@@ -1595,7 +1595,7 @@ int arm7_9_full_context(target_t *target)
  * @return Error status if the target is not halted or the core mode in the
  *         armv4_5 struct is invalid.
  */
-int arm7_9_restore_context(target_t *target)
+int arm7_9_restore_context(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -1745,7 +1745,7 @@ int arm7_9_restore_context(target_t *target)
  * @param target Pointer to the ARM7/9 target to be restarted
  * @return Result of executing the JTAG queue
  */
-int arm7_9_restart_core(struct target_s *target)
+int arm7_9_restart_core(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -1768,7 +1768,7 @@ int arm7_9_restart_core(struct target_s *target)
  *
  * @param target Pointer to the ARM7/9 target to enable watchpoints on
  */
-void arm7_9_enable_watchpoints(struct target_s *target)
+void arm7_9_enable_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -1786,7 +1786,7 @@ void arm7_9_enable_watchpoints(struct target_s *target)
  *
  * @param target Pointer to the ARM7/9 target to enable breakpoints on
  */
-void arm7_9_enable_breakpoints(struct target_s *target)
+void arm7_9_enable_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -1798,7 +1798,7 @@ void arm7_9_enable_breakpoints(struct target_s *target)
 	}
 }
 
-int arm7_9_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
+int arm7_9_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -1958,7 +1958,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 	return ERROR_OK;
 }
 
-void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
+void arm7_9_enable_eice_step(struct target *target, uint32_t next_pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -1995,7 +1995,7 @@ void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
 	}
 }
 
-void arm7_9_disable_eice_step(target_t *target)
+void arm7_9_disable_eice_step(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -2010,7 +2010,7 @@ void arm7_9_disable_eice_step(target_t *target)
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE]);
 }
 
-int arm7_9_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
+int arm7_9_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -2103,7 +2103,7 @@ int arm7_9_step(struct target_s *target, int current, uint32_t address, int hand
 	return err;
 }
 
-int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode)
+int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
 {
 	uint32_t* reg_p[16];
 	uint32_t value;
@@ -2169,7 +2169,7 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	return ERROR_OK;
 }
 
-int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, uint32_t value)
+int arm7_9_write_core_reg(struct target *target, int num, enum armv4_5_mode mode, uint32_t value)
 {
 	uint32_t reg[16];
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -2230,7 +2230,7 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 	return jtag_execute_queue();
 }
 
-int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -2405,7 +2405,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 	return ERROR_OK;
 }
 
-int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -2591,7 +2591,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 static int dcc_count;
 static uint8_t *dcc_buffer;
 
-static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info)
+static int arm7_9_dcc_completion(struct target *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -2654,9 +2654,9 @@ static const uint32_t dcc_code[] =
 	0xeafffff9	/*    b   w                   */
 };
 
-int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
+int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target *target, uint32_t exit_point, int timeout_ms, void *arch_info));
 
-int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
+int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -2721,7 +2721,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 	return retval;
 }
 
-int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
+int arm7_9_checksum_memory(struct target *target, uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	struct working_area *crc_algorithm;
 	struct armv4_5_algorithm armv4_5_info;
@@ -2805,7 +2805,7 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	return ERROR_OK;
 }
 
-int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank)
+int arm7_9_blank_check_memory(struct target *target, uint32_t address, uint32_t count, uint32_t* blank)
 {
 	struct working_area *erase_check_algorithm;
 	struct reg_param reg_params[3];
@@ -2876,7 +2876,7 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 	uint32_t value;
 	int spsr;
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
@@ -2921,7 +2921,7 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 	int rotate;
 	int spsr;
 	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
@@ -2962,7 +2962,7 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 	uint32_t value;
 	uint32_t mode;
 	int num;
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
@@ -2993,7 +2993,7 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
@@ -3026,7 +3026,7 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 
 COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
@@ -3059,7 +3059,7 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 
 COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
@@ -3090,7 +3090,7 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 	return ERROR_OK;
 }
 
-int arm7_9_init_arch_info(target_t *target, struct arm7_9_common *arm7_9)
+int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 {
 	int retval = ERROR_OK;
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;

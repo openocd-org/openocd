@@ -6,7 +6,7 @@
 
 struct arm_nand_data {
 	/* target is proxy for some ARM core */
-	struct target_s		*target;
+	struct target		*target;
 
 	/* copy_area holds write-to-NAND loop and data to write */
 	struct working_area	*copy_area;

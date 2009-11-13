@@ -30,8 +30,8 @@ struct arm926ejs_common
 	struct arm9tdmi_common arm9tdmi_common;
 	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
-	int (*read_cp15)(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
-	int (*write_cp15)(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+	int (*read_cp15)(struct target *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+	int (*write_cp15)(struct target *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
 	uint32_t cp15_control_reg;
 	uint32_t d_fsr;
 	uint32_t i_fsr;
@@ -39,19 +39,19 @@ struct arm926ejs_common
 };
 
 static inline struct arm926ejs_common *
-target_to_arm926(struct target_s *target)
+target_to_arm926(struct target *target)
 {
 	return container_of(target->arch_info, struct arm926ejs_common,
 		arm9tdmi_common.arm7_9_common.armv4_5_common);
 }
 
 
-int arm926ejs_init_arch_info(target_t *target,
+int arm926ejs_init_arch_info(struct target *target,
 		struct arm926ejs_common *arm926ejs, struct jtag_tap *tap);
 int arm926ejs_register_commands(struct command_context_s *cmd_ctx);
-int arm926ejs_arch_state(struct target_s *target);
-int arm926ejs_write_memory(struct target_s *target,
+int arm926ejs_arch_state(struct target *target);
+int arm926ejs_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm926ejs_soft_reset_halt(struct target_s *target);
+int arm926ejs_soft_reset_halt(struct target *target);
 
 #endif /* ARM926EJS_H */

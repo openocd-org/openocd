@@ -57,16 +57,16 @@
 
 
 /* forward declarations */
-static int xscale_resume(struct target_s *, int current,
+static int xscale_resume(struct target *, int current,
 	uint32_t address, int handle_breakpoints, int debug_execution);
-static int xscale_debug_entry(target_t *);
-static int xscale_restore_context(target_t *);
+static int xscale_debug_entry(struct target *);
+static int xscale_restore_context(struct target *);
 static int xscale_get_reg(struct reg *reg);
 static int xscale_set_reg(struct reg *reg, uint8_t *buf);
-static int xscale_set_breakpoint(struct target_s *, struct breakpoint *);
-static int xscale_set_watchpoint(struct target_s *, struct watchpoint *);
-static int xscale_unset_breakpoint(struct target_s *, struct breakpoint *);
-static int xscale_read_trace(target_t *);
+static int xscale_set_breakpoint(struct target *, struct breakpoint *);
+static int xscale_set_watchpoint(struct target *, struct watchpoint *);
+static int xscale_unset_breakpoint(struct target *, struct breakpoint *);
+static int xscale_read_trace(struct target *);
 
 
 /* This XScale "debug handler" is loaded into the processor's
@@ -178,7 +178,7 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 	return ERROR_OK;
 }
 
-static int xscale_read_dcsr(target_t *target)
+static int xscale_read_dcsr(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
@@ -251,7 +251,7 @@ static void xscale_getbuf(jtag_callback_data_t arg)
 	*((uint32_t *)in) = buf_get_u32(in, 0, 32);
 }
 
-static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
+static int xscale_receive(struct target *target, uint32_t *buffer, int num_words)
 {
 	if (num_words == 0)
 		return ERROR_INVALID_ARGUMENTS;
@@ -355,7 +355,7 @@ static int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 	return retval;
 }
 
-static int xscale_read_tx(target_t *target, int consume)
+static int xscale_read_tx(struct target *target, int consume)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	tap_state_t path[3];
@@ -453,7 +453,7 @@ static int xscale_read_tx(target_t *target, int consume)
 	return ERROR_OK;
 }
 
-static int xscale_write_rx(target_t *target)
+static int xscale_write_rx(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
@@ -539,7 +539,7 @@ static int xscale_write_rx(target_t *target)
 }
 
 /* send count elements of size byte to the debug handler */
-static int xscale_send(target_t *target, uint8_t *buffer, int count, int size)
+static int xscale_send(struct target *target, uint8_t *buffer, int count, int size)
 {
 	uint32_t t[3];
 	int bits[3];
@@ -602,7 +602,7 @@ static int xscale_send(target_t *target, uint8_t *buffer, int count, int size)
 	return ERROR_OK;
 }
 
-static int xscale_send_u32(target_t *target, uint32_t value)
+static int xscale_send_u32(struct target *target, uint32_t value)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -610,7 +610,7 @@ static int xscale_send_u32(target_t *target, uint32_t value)
 	return xscale_write_rx(target);
 }
 
-static int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
+static int xscale_write_dcsr(struct target *target, int hold_rst, int ext_dbg_brk)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
@@ -681,7 +681,7 @@ static unsigned int parity (unsigned int v)
 	return (0x6996 >> v) & 1;
 }
 
-static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
+static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8])
 {
 	uint8_t packet[4];
 	uint8_t cmd;
@@ -736,7 +736,7 @@ static int xscale_load_ic(target_t *target, uint32_t va, uint32_t buffer[8])
 	return jtag_execute_queue();
 }
 
-static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
+static int xscale_invalidate_ic_line(struct target *target, uint32_t va)
 {
 	uint8_t packet[4];
 	uint8_t cmd;
@@ -766,7 +766,7 @@ static int xscale_invalidate_ic_line(target_t *target, uint32_t va)
 	return ERROR_OK;
 }
 
-static int xscale_update_vectors(target_t *target)
+static int xscale_update_vectors(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int i;
@@ -830,7 +830,7 @@ static int xscale_update_vectors(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_arch_state(struct target_s *target)
+static int xscale_arch_state(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
@@ -868,7 +868,7 @@ static int xscale_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-static int xscale_poll(target_t *target)
+static int xscale_poll(struct target *target)
 {
 	int retval = ERROR_OK;
 
@@ -908,7 +908,7 @@ static int xscale_poll(target_t *target)
 	return retval;
 }
 
-static int xscale_debug_entry(target_t *target)
+static int xscale_debug_entry(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
@@ -1088,7 +1088,7 @@ static int xscale_debug_entry(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_halt(target_t *target)
+static int xscale_halt(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -1122,7 +1122,7 @@ static int xscale_halt(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
+static int xscale_enable_single_step(struct target *target, uint32_t next_pc)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct reg *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
@@ -1149,7 +1149,7 @@ static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
 	return ERROR_OK;
 }
 
-static int xscale_disable_single_step(struct target_s *target)
+static int xscale_disable_single_step(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct reg *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
@@ -1161,7 +1161,7 @@ static int xscale_disable_single_step(struct target_s *target)
 	return ERROR_OK;
 }
 
-static void xscale_enable_watchpoints(struct target_s *target)
+static void xscale_enable_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -1173,7 +1173,7 @@ static void xscale_enable_watchpoints(struct target_s *target)
 	}
 }
 
-static void xscale_enable_breakpoints(struct target_s *target)
+static void xscale_enable_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -1186,7 +1186,7 @@ static void xscale_enable_breakpoints(struct target_s *target)
 	}
 }
 
-static int xscale_resume(struct target_s *target, int current,
+static int xscale_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -1339,7 +1339,7 @@ static int xscale_resume(struct target_s *target, int current,
 	return ERROR_OK;
 }
 
-static int xscale_step_inner(struct target_s *target, int current,
+static int xscale_step_inner(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -1419,7 +1419,7 @@ static int xscale_step_inner(struct target_s *target, int current,
 	return ERROR_OK;
 }
 
-static int xscale_step(struct target_s *target, int current,
+static int xscale_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
@@ -1474,7 +1474,7 @@ static int xscale_step(struct target_s *target, int current,
 
 }
 
-static int xscale_assert_reset(target_t *target)
+static int xscale_assert_reset(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -1515,7 +1515,7 @@ static int xscale_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_deassert_reset(target_t *target)
+static int xscale_deassert_reset(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct breakpoint *breakpoint = target->breakpoints;
@@ -1649,21 +1649,21 @@ static int xscale_deassert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_read_core_reg(struct target_s *target, int num,
+static int xscale_read_core_reg(struct target *target, int num,
 		enum armv4_5_mode mode)
 {
 	LOG_ERROR("not implemented");
 	return ERROR_OK;
 }
 
-static int xscale_write_core_reg(struct target_s *target, int num,
+static int xscale_write_core_reg(struct target *target, int num,
 		enum armv4_5_mode mode, uint32_t value)
 {
 	LOG_ERROR("not implemented");
 	return ERROR_OK;
 }
 
-static int xscale_full_context(target_t *target)
+static int xscale_full_context(struct target *target)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
@@ -1739,7 +1739,7 @@ static int xscale_full_context(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_restore_context(target_t *target)
+static int xscale_restore_context(struct target *target)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
@@ -1806,7 +1806,7 @@ static int xscale_restore_context(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_read_memory(struct target_s *target, uint32_t address,
+static int xscale_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -1885,7 +1885,7 @@ static int xscale_read_memory(struct target_s *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int xscale_write_memory(struct target_s *target, uint32_t address,
+static int xscale_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -1963,13 +1963,13 @@ static int xscale_write_memory(struct target_s *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int xscale_bulk_write_memory(target_t *target, uint32_t address,
+static int xscale_bulk_write_memory(struct target *target, uint32_t address,
 		uint32_t count, uint8_t *buffer)
 {
 	return xscale_write_memory(target, address, 4, count, buffer);
 }
 
-static uint32_t xscale_get_ttb(target_t *target)
+static uint32_t xscale_get_ttb(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t ttb;
@@ -1980,7 +1980,7 @@ static uint32_t xscale_get_ttb(target_t *target)
 	return ttb;
 }
 
-static void xscale_disable_mmu_caches(target_t *target, int mmu,
+static void xscale_disable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2019,7 +2019,7 @@ static void xscale_disable_mmu_caches(target_t *target, int mmu,
 	xscale_send_u32(target, 0x53);
 }
 
-static void xscale_enable_mmu_caches(target_t *target, int mmu,
+static void xscale_enable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2045,7 +2045,7 @@ static void xscale_enable_mmu_caches(target_t *target, int mmu,
 	xscale_send_u32(target, 0x53);
 }
 
-static int xscale_set_breakpoint(struct target_s *target,
+static int xscale_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	int retval;
@@ -2118,7 +2118,7 @@ static int xscale_set_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_add_breakpoint(struct target_s *target,
+static int xscale_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2149,7 +2149,7 @@ static int xscale_add_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_unset_breakpoint(struct target_s *target,
+static int xscale_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	int retval;
@@ -2204,7 +2204,7 @@ static int xscale_unset_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_remove_breakpoint(struct target_s *target, struct breakpoint *breakpoint)
+static int xscale_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -2225,7 +2225,7 @@ static int xscale_remove_breakpoint(struct target_s *target, struct breakpoint *
 	return ERROR_OK;
 }
 
-static int xscale_set_watchpoint(struct target_s *target,
+static int xscale_set_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2281,7 +2281,7 @@ static int xscale_set_watchpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_add_watchpoint(struct target_s *target,
+static int xscale_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2307,7 +2307,7 @@ static int xscale_add_watchpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_unset_watchpoint(struct target_s *target,
+static int xscale_unset_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2343,7 +2343,7 @@ static int xscale_unset_watchpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
+static int xscale_remove_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -2366,7 +2366,7 @@ static int xscale_remove_watchpoint(struct target_s *target, struct watchpoint *
 static int xscale_get_reg(struct reg *reg)
 {
 	struct xscale_reg *arch_info = reg->arch_info;
-	target_t *target = arch_info->target;
+	struct target *target = arch_info->target;
 	struct xscale_common *xscale = target_to_xscale(target);
 
 	/* DCSR, TX and RX are accessible via JTAG */
@@ -2411,7 +2411,7 @@ static int xscale_get_reg(struct reg *reg)
 static int xscale_set_reg(struct reg *reg, uint8_t* buf)
 {
 	struct xscale_reg *arch_info = reg->arch_info;
-	target_t *target = arch_info->target;
+	struct target *target = arch_info->target;
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
@@ -2452,7 +2452,7 @@ static int xscale_set_reg(struct reg *reg, uint8_t* buf)
 	return ERROR_OK;
 }
 
-static int xscale_write_dcsr_sw(target_t *target, uint32_t value)
+static int xscale_write_dcsr_sw(struct target *target, uint32_t value)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct reg *dcsr = &xscale->reg_cache->reg_list[XSCALE_DCSR];
@@ -2471,7 +2471,7 @@ static int xscale_write_dcsr_sw(target_t *target, uint32_t value)
 	return ERROR_OK;
 }
 
-static int xscale_read_trace(target_t *target)
+static int xscale_read_trace(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
@@ -2549,7 +2549,7 @@ static int xscale_read_trace(target_t *target)
 	return ERROR_OK;
 }
 
-static int xscale_read_instruction(target_t *target,
+static int xscale_read_instruction(struct target *target,
 		struct arm_instruction *instruction)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2630,7 +2630,7 @@ static int xscale_branch_address(struct xscale_trace_data *trace_data,
 	return 0;
 }
 
-static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
+static int xscale_analyze_trace(struct target *target, command_context_t *cmd_ctx)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int next_pc_ok = 0;
@@ -2817,7 +2817,7 @@ static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 	return ERROR_OK;
 }
 
-static void xscale_build_reg_cache(target_t *target)
+static void xscale_build_reg_cache(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
@@ -2861,13 +2861,13 @@ static void xscale_build_reg_cache(target_t *target)
 }
 
 static int xscale_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target)
+		struct target *target)
 {
 	xscale_build_reg_cache(target);
 	return ERROR_OK;
 }
 
-static int xscale_init_arch_info(target_t *target,
+static int xscale_init_arch_info(struct target *target,
 		struct xscale_common *xscale, struct jtag_tap *tap, const char *variant)
 {
 	struct arm *armv4_5;
@@ -2972,7 +2972,7 @@ static int xscale_init_arch_info(target_t *target,
 	return ERROR_OK;
 }
 
-static int xscale_target_create(struct target_s *target, Jim_Interp *interp)
+static int xscale_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct xscale_common *xscale;
 
@@ -2991,7 +2991,7 @@ static int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 
 COMMAND_HANDLER(xscale_handle_debug_handler_command)
 {
-	target_t *target = NULL;
+	struct target *target = NULL;
 	struct xscale_common *xscale;
 	int retval;
 	uint32_t handler_address;
@@ -3031,7 +3031,7 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 
 COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 {
-	target_t *target = NULL;
+	struct target *target = NULL;
 	struct xscale_common *xscale;
 	int retval;
 	uint32_t cache_clean_address;
@@ -3068,7 +3068,7 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 
 COMMAND_HANDLER(xscale_handle_cache_info_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
@@ -3079,7 +3079,7 @@ COMMAND_HANDLER(xscale_handle_cache_info_command)
 	return armv4_5_handle_cache_info_command(cmd_ctx, &xscale->armv4_5_mmu.armv4_5_cache);
 }
 
-static int xscale_virt2phys(struct target_s *target,
+static int xscale_virt2phys(struct target *target,
 		uint32_t virtual, uint32_t *physical)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -3102,7 +3102,7 @@ static int xscale_virt2phys(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_mmu(struct target_s *target, int *enabled)
+static int xscale_mmu(struct target *target, int *enabled)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -3117,7 +3117,7 @@ static int xscale_mmu(struct target_s *target, int *enabled)
 
 COMMAND_HANDLER(xscale_handle_mmu_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
@@ -3152,7 +3152,7 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 
 COMMAND_HANDLER(xscale_handle_idcache_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int icache = 0, dcache = 0;
 	int retval;
@@ -3205,7 +3205,7 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 
 COMMAND_HANDLER(xscale_handle_vector_catch_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
@@ -3232,7 +3232,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 
 COMMAND_HANDLER(xscale_handle_vector_table_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int err = 0;
 	int retval;
@@ -3290,7 +3290,7 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 
 COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	uint32_t dcsr_value;
@@ -3369,7 +3369,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 
 COMMAND_HANDLER(xscale_handle_trace_image_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
@@ -3417,7 +3417,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 
 COMMAND_HANDLER(xscale_handle_dump_trace_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct xscale_trace_data *trace_data;
 	struct fileio file;
@@ -3474,7 +3474,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 
 COMMAND_HANDLER(xscale_handle_analyze_trace_buffer_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
@@ -3489,7 +3489,7 @@ COMMAND_HANDLER(xscale_handle_analyze_trace_buffer_command)
 
 COMMAND_HANDLER(xscale_handle_cp15)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 

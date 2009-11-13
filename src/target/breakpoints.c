@@ -42,7 +42,7 @@ static char *watchpoint_rw_strings[] =
 // monotonic counter/id-number for breakpoints and watch points
 static int bpwp_unique_id;
 
-int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum breakpoint_type type)
+int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
@@ -107,7 +107,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 }
 
 /* free up a breakpoint */
-static void breakpoint_free(target_t *target, struct breakpoint *breakpoint_remove)
+static void breakpoint_free(struct target *target, struct breakpoint *breakpoint_remove)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
@@ -131,7 +131,7 @@ static void breakpoint_free(target_t *target, struct breakpoint *breakpoint_remo
 	free(breakpoint);
 }
 
-void breakpoint_remove(target_t *target, uint32_t address)
+void breakpoint_remove(struct target *target, uint32_t address)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
@@ -154,7 +154,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 	}
 }
 
-void breakpoint_clear_target(target_t *target)
+void breakpoint_clear_target(struct target *target)
 {
 	struct breakpoint *breakpoint;
 	LOG_DEBUG("Delete all breakpoints for target: %s", target_get_name( target ));
@@ -164,7 +164,7 @@ void breakpoint_clear_target(target_t *target)
 	}
 }
 
-struct breakpoint* breakpoint_find(target_t *target, uint32_t address)
+struct breakpoint* breakpoint_find(struct target *target, uint32_t address)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -178,7 +178,7 @@ struct breakpoint* breakpoint_find(target_t *target, uint32_t address)
 	return NULL;
 }
 
-int watchpoint_add(target_t *target, uint32_t address, uint32_t length,
+int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
 		enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
@@ -244,7 +244,7 @@ bye:
 	return ERROR_OK;
 }
 
-static void watchpoint_free(target_t *target, struct watchpoint *watchpoint_remove)
+static void watchpoint_free(struct target *target, struct watchpoint *watchpoint_remove)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
@@ -265,7 +265,7 @@ static void watchpoint_free(target_t *target, struct watchpoint *watchpoint_remo
 	free(watchpoint);
 }
 
-void watchpoint_remove(target_t *target, uint32_t address)
+void watchpoint_remove(struct target *target, uint32_t address)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
@@ -288,7 +288,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 	}
 }
 
-void watchpoint_clear_target(target_t *target)
+void watchpoint_clear_target(struct target *target)
 {
 	struct watchpoint *watchpoint;
 	LOG_DEBUG("Delete all watchpoints for target: %s", target_get_name( target ));

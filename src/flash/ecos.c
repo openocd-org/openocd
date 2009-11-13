@@ -35,7 +35,7 @@ static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, cha
 
 struct ecosflash_flash_bank
 {
-	struct target_s *target;
+	struct target *target;
 	struct working_area *write_algorithm;
 	struct working_area *erase_check_algorithm;
 	char *driverPath;
@@ -157,7 +157,7 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 
 	image.base_address_set = 0;
 	image.start_address_set = 0;
-	target_t *target = info->target;
+	struct target *target = info->target;
 	int retval;
 
 	if ((retval = image_open(&image, info->driverPath, NULL)) != ERROR_OK)
@@ -204,7 +204,7 @@ static int runCode(struct ecosflash_flash_bank *info,
 		/* timeout in ms */
 		int timeout)
 {
-	target_t *target = info->target;
+	struct target *target = info->target;
 
 	struct reg_param reg_params[3];
 	struct armv4_5_algorithm armv4_5_info;
@@ -272,7 +272,7 @@ static int eCosBoard_erase(struct ecosflash_flash_bank *info, uint32_t address, 
 
 static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32_t address, uint32_t len)
 {
-	target_t *target = info->target;
+	struct target *target = info->target;
 	const int chunk = 8192;
 	int retval = ERROR_OK;
 	int timeout = (chunk / 20480 + 1) * 1000; /*asume 20 KB/s + 1 second*/

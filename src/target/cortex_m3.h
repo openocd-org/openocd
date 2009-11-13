@@ -164,7 +164,7 @@ struct cortex_m3_common
 };
 
 static inline struct cortex_m3_common *
-target_to_cm3(struct target_s *target)
+target_to_cm3(struct target *target)
 {
 	return container_of(target->arch_info,
 			struct cortex_m3_common, armv7m);

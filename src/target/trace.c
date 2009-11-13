@@ -25,7 +25,7 @@
 #include "trace.h"
 #include "target.h"
 
-int trace_point(target_t *target, uint32_t number)
+int trace_point(struct target *target, uint32_t number)
 {
 	struct trace *trace = target->trace_info;
 
@@ -49,7 +49,7 @@ int trace_point(target_t *target, uint32_t number)
 
 COMMAND_HANDLER(handle_trace_point_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct trace *trace = target->trace_info;
 
 	if (argc == 0)
@@ -97,7 +97,7 @@ COMMAND_HANDLER(handle_trace_point_command)
 
 COMMAND_HANDLER(handle_trace_history_command)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct trace *trace = target->trace_info;
 
 	if (argc > 0)

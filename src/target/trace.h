@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-struct target_s;
+struct target;
 struct command_context_s;
 
 struct trace_point
@@ -51,7 +51,7 @@ typedef enum trace_status
 	TRACE_OVERFLOWED = 0x8,
 } trace_status_t;
 
-int trace_point(struct target_s *target, uint32_t number);
+int trace_point(struct target *target, uint32_t number);
 int trace_register_commands(struct command_context_s *cmd_ctx);
 
 #define ERROR_TRACE_IMAGE_UNAVAILABLE		-(1500)

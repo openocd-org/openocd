@@ -31,7 +31,7 @@ enum lpc3180_selected_controller
 
 struct lpc3180_nand_controller
 {
-	struct target_s *target;
+	struct target *target;
 	int osc_freq;
 	enum lpc3180_selected_controller selected_controller;
 	int sw_write_protection;

@@ -215,7 +215,7 @@ struct sam3_chip {
 
 	// this is "initialized" from the global const structure
 	struct sam3_chip_details details;
-	target_t *target;
+	struct target *target;
 	struct sam3_cfg cfg;
 
 	struct membuf *mbuf;
@@ -233,7 +233,7 @@ static struct sam3_chip *all_sam3_chips;
 static struct sam3_chip *
 get_current_sam3(struct command_context_s *cmd_ctx)
 {
-	target_t *t;
+	struct target *t;
 	static struct sam3_chip *p;
 
 	t = get_current_target(cmd_ctx);
@@ -1393,7 +1393,7 @@ sam3_explain_mckr(struct sam3_chip *pChip)
 
 #if 0
 static struct sam3_chip *
-target2sam3(target_t *pTarget)
+target2sam3(struct target *pTarget)
 {
 	struct sam3_chip *pChip;
 

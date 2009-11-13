@@ -35,15 +35,15 @@ struct arm966e_common
 };
 
 static inline struct arm966e_common *
-target_to_arm966(struct target_s *target)
+target_to_arm966(struct target *target)
 {
 	return container_of(target->arch_info, struct arm966e_common,
 			arm9tdmi_common.arm7_9_common.armv4_5_common);
 }
 
-int arm966e_init_arch_info(target_t *target,
+int arm966e_init_arch_info(struct target *target,
 		struct arm966e_common *arm966e, struct jtag_tap *tap);
 int arm966e_register_commands(struct command_context_s *cmd_ctx);
-int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value);
+int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value);
 
 #endif /* ARM966E_H */

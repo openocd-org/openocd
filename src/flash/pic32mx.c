@@ -83,7 +83,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 
 static uint32_t pic32mx_get_flash_status(flash_bank_t *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t status;
 
 	target_read_u32(target, PIC32MX_NVMCON, &status);
@@ -109,7 +109,7 @@ static uint32_t pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
 
 static int pic32mx_nvm_exec(struct flash_bank_s *bank, uint32_t op, uint32_t timeout)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t status;
 
 	target_write_u32(target, PIC32MX_NVMCON, NVMCON_NVMWREN | op);
@@ -131,7 +131,7 @@ static int pic32mx_nvm_exec(struct flash_bank_s *bank, uint32_t op, uint32_t tim
 
 static int pic32mx_protect_check(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	uint32_t devcfg0;
 	int s;
@@ -165,7 +165,7 @@ static int pic32mx_protect_check(struct flash_bank_s *bank)
 
 static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	int i;
 	uint32_t status;
 
@@ -208,7 +208,7 @@ static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	struct pic32mx_flash_bank *pic32mx_info = NULL;
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 #if 0
 	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 	int i, reg, bit;
@@ -300,7 +300,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 
 static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	uint32_t buffer_size = 512;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
@@ -429,7 +429,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 
 static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint32_t word)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	if (bank->base >= PIC32MX_KSEG1_PGM_FLASH)
 		target_write_u32(target, PIC32MX_NVMADDR, KS1Virt2Phys(address));
@@ -445,7 +445,7 @@ static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint3
  */
 static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32_t srcaddr)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 
 	LOG_DEBUG("addr: 0x%08" PRIx32 " srcaddr: 0x%08" PRIx32 "", address, srcaddr);
 
@@ -541,7 +541,7 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 
 static int pic32mx_probe(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 	struct mips32_common *mips32 = target->arch_info;
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -639,7 +639,7 @@ COMMAND_HANDLER(pic32mx_handle_part_id_command)
 
 static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 	struct mips32_common *mips32 = target->arch_info;
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	uint32_t device_id;
@@ -674,7 +674,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 #if 0
 COMMAND_HANDLER(pic32mx_handle_lock_command)
 {
-	target_t *target = NULL;
+	struct target *target = NULL;
 	struct pic32mx_flash_bank *pic32mx_info = NULL;
 
 	if (argc < 1)
@@ -720,7 +720,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 
 COMMAND_HANDLER(pic32mx_handle_unlock_command)
 {
-	target_t *target = NULL;
+	struct target *target = NULL;
 	struct pic32mx_flash_bank *pic32mx_info = NULL;
 
 	if (argc < 1)
@@ -765,7 +765,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 #if 0
 static int pic32mx_chip_erase(struct flash_bank_s *bank)
 {
-	target_t *target = bank->target;
+	struct target *target = bank->target;
 #if 0
 	uint32_t status;
 #endif

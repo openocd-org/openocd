@@ -262,10 +262,10 @@ static struct reg arm11_gdb_dummy_fps_reg =
 
 
 static int arm11_on_enter_debug_state(struct arm11_common *arm11);
-static int arm11_step(struct target_s *target, int current,
+static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints);
 /* helpers */
-static int arm11_build_reg_cache(target_t *target);
+static int arm11_build_reg_cache(struct target *target);
 static int arm11_set_reg(struct reg *reg, uint8_t *buf);
 static int arm11_get_reg(struct reg *reg);
 
@@ -668,7 +668,7 @@ static void arm11_record_register_history(struct arm11_common *arm11)
 
 
 /* poll current target status */
-static int arm11_poll(struct target_s *target)
+static int arm11_poll(struct target *target)
 {
 	FNC_INFO;
 	int retval;
@@ -713,7 +713,7 @@ static int arm11_poll(struct target_s *target)
 	return ERROR_OK;
 }
 /* architecture specific status reply */
-static int arm11_arch_state(struct target_s *target)
+static int arm11_arch_state(struct target *target)
 {
 	struct arm11_common * arm11 = target->arch_info;
 
@@ -726,7 +726,7 @@ static int arm11_arch_state(struct target_s *target)
 }
 
 /* target request support */
-static int arm11_target_request_data(struct target_s *target,
+static int arm11_target_request_data(struct target *target,
 		uint32_t size, uint8_t *buffer)
 {
 	FNC_INFO_NOTIMPLEMENTED;
@@ -735,7 +735,7 @@ static int arm11_target_request_data(struct target_s *target,
 }
 
 /* target execution control */
-static int arm11_halt(struct target_s *target)
+static int arm11_halt(struct target *target)
 {
 	FNC_INFO;
 
@@ -800,7 +800,7 @@ static int arm11_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-static int arm11_resume(struct target_s *target, int current,
+static int arm11_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	FNC_INFO;
@@ -995,7 +995,7 @@ static enum armv4_5_mode arm11_sim_get_mode(struct arm_sim_interface *sim)
 	return ARMV4_5_MODE_USR;
 }
 
-static int arm11_simulate_step(target_t *target, uint32_t *dry_run_pc)
+static int arm11_simulate_step(struct target *target, uint32_t *dry_run_pc)
 {
 	struct arm_sim_interface sim;
 
@@ -1013,7 +1013,7 @@ static int arm11_simulate_step(target_t *target, uint32_t *dry_run_pc)
 
 }
 
-static int arm11_step(struct target_s *target, int current,
+static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	FNC_INFO;
@@ -1169,7 +1169,7 @@ static int arm11_step(struct target_s *target, int current,
 	return ERROR_OK;
 }
 
-static int arm11_assert_reset(target_t *target)
+static int arm11_assert_reset(struct target *target)
 {
 	FNC_INFO;
 	int retval;
@@ -1231,12 +1231,12 @@ static int arm11_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
-static int arm11_deassert_reset(target_t *target)
+static int arm11_deassert_reset(struct target *target)
 {
 	return ERROR_OK;
 }
 
-static int arm11_soft_reset_halt(struct target_s *target)
+static int arm11_soft_reset_halt(struct target *target)
 {
 	FNC_INFO_NOTIMPLEMENTED;
 
@@ -1244,7 +1244,7 @@ static int arm11_soft_reset_halt(struct target_s *target)
 }
 
 /* target register access for gdb */
-static int arm11_get_gdb_reg_list(struct target_s *target,
+static int arm11_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size)
 {
 	FNC_INFO;
@@ -1280,7 +1280,7 @@ static int arm11_get_gdb_reg_list(struct target_s *target,
  * to read/write a range of data to a "port". a "port" is an action on
  * read memory address for some peripheral.
  */
-static int arm11_read_memory_inner(struct target_s *target,
+static int arm11_read_memory_inner(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
 		bool arm11_config_memrw_no_increment)
 {
@@ -1368,7 +1368,7 @@ static int arm11_read_memory_inner(struct target_s *target,
 	return arm11_run_instr_data_finish(arm11);
 }
 
-static int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm11_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return arm11_read_memory_inner(target, address, size, count, buffer, false);
 }
@@ -1378,7 +1378,7 @@ static int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t
 * to read/write a range of data to a "port". a "port" is an action on
 * read memory address for some peripheral.
 */
-static int arm11_write_memory_inner(struct target_s *target,
+static int arm11_write_memory_inner(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
 		bool arm11_config_memrw_no_increment)
 {
@@ -1517,14 +1517,14 @@ static int arm11_write_memory_inner(struct target_s *target,
 	return arm11_run_instr_data_finish(arm11);
 }
 
-static int arm11_write_memory(struct target_s *target,
+static int arm11_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return arm11_write_memory_inner(target, address, size, count, buffer, false);
 }
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
-static int arm11_bulk_write_memory(struct target_s *target,
+static int arm11_bulk_write_memory(struct target *target,
 		uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	FNC_INFO;
@@ -1542,7 +1542,7 @@ static int arm11_bulk_write_memory(struct target_s *target,
  * fallback code will read data from the target and calculate the CRC on the
  * host.
  */
-static int arm11_checksum_memory(struct target_s *target,
+static int arm11_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	return ERROR_FAIL;
@@ -1551,7 +1551,7 @@ static int arm11_checksum_memory(struct target_s *target,
 /* target break-/watchpoint control
 * rw: 0 = write, 1 = read, 2 = access
 */
-static int arm11_add_breakpoint(struct target_s *target,
+static int arm11_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	FNC_INFO;
@@ -1583,7 +1583,7 @@ static int arm11_add_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int arm11_remove_breakpoint(struct target_s *target,
+static int arm11_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	FNC_INFO;
@@ -1595,7 +1595,7 @@ static int arm11_remove_breakpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int arm11_add_watchpoint(struct target_s *target,
+static int arm11_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	FNC_INFO_NOTIMPLEMENTED;
@@ -1603,7 +1603,7 @@ static int arm11_add_watchpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int arm11_remove_watchpoint(struct target_s *target,
+static int arm11_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	FNC_INFO_NOTIMPLEMENTED;
@@ -1613,7 +1613,7 @@ static int arm11_remove_watchpoint(struct target_s *target,
 
 // HACKHACKHACK - FIXME mode/state
 /* target algorithm support */
-static int arm11_run_algorithm(struct target_s *target,
+static int arm11_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
@@ -1779,7 +1779,7 @@ restore:
 	return retval;
 }
 
-static int arm11_target_create(struct target_s *target, Jim_Interp *interp)
+static int arm11_target_create(struct target *target, Jim_Interp *interp)
 {
 	FNC_INFO;
 
@@ -1802,14 +1802,14 @@ static int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 }
 
 static int arm11_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target)
+		struct target *target)
 {
 	/* Initialize anything we can set up without talking to the target */
 	return arm11_build_reg_cache(target);
 }
 
 /* talk to the target and set things up */
-static int arm11_examine(struct target_s *target)
+static int arm11_examine(struct target *target)
 {
 	int retval;
 
@@ -1895,7 +1895,7 @@ static int arm11_get_reg(struct reg *reg)
 {
 	FNC_INFO;
 
-	target_t * target = ((struct arm11_reg_state *)reg->arch_info)->target;
+	struct target * target = ((struct arm11_reg_state *)reg->arch_info)->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1918,7 +1918,7 @@ static int arm11_set_reg(struct reg *reg, uint8_t *buf)
 {
 	FNC_INFO;
 
-	target_t * target = ((struct arm11_reg_state *)reg->arch_info)->target;
+	struct target * target = ((struct arm11_reg_state *)reg->arch_info)->target;
 	struct arm11_common *arm11 = target->arch_info;
 //	  const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
 
@@ -1929,7 +1929,7 @@ static int arm11_set_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static int arm11_build_reg_cache(target_t *target)
+static int arm11_build_reg_cache(struct target *target)
 {
 	struct arm11_common *arm11 = target->arch_info;
 
@@ -2067,7 +2067,7 @@ static const uint32_t arm11_coproc_instruction_limits[] =
 static struct arm11_common * arm11_find_target(const char * arg)
 {
 	struct jtag_tap *	tap;
-	target_t *		t;
+	struct target *		t;
 
 	tap = jtag_tap_by_string(arg);
 
@@ -2087,7 +2087,7 @@ static struct arm11_common * arm11_find_target(const char * arg)
 	return 0;
 }
 
-static int arm11_mrc_inner(target_t *target, int cpnum,
+static int arm11_mrc_inner(struct target *target, int cpnum,
 		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
 		uint32_t *value, bool read)
 {
@@ -2131,13 +2131,13 @@ static int arm11_mrc_inner(target_t *target, int cpnum,
 	return arm11_run_instr_data_finish(arm11);
 }
 
-static int arm11_mrc(target_t *target, int cpnum,
+static int arm11_mrc(struct target *target, int cpnum,
 		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, value, true);
 }
 
-static int arm11_mcr(target_t *target, int cpnum,
+static int arm11_mcr(struct target *target, int cpnum,
 		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);

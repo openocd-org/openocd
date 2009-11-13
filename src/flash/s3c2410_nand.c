@@ -47,7 +47,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2410_nand_device_command)
 static int s3c2410_init(struct nand_device_s *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	target_write_u32(target, S3C2410_NFCONF,
 			 S3C2410_NFCONF_EN | S3C2410_NFCONF_TACLS(3) |
@@ -59,7 +59,7 @@ static int s3c2410_init(struct nand_device_s *nand)
 static int s3c2410_write_data(struct nand_device_s *nand, uint16_t data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -73,7 +73,7 @@ static int s3c2410_write_data(struct nand_device_s *nand, uint16_t data)
 static int s3c2410_read_data(struct nand_device_s *nand, void *data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -87,7 +87,7 @@ static int s3c2410_read_data(struct nand_device_s *nand, void *data)
 static int s3c2410_nand_ready(struct nand_device_s *nand, int timeout)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	target_t *target = s3c24xx_info->target;
+	struct target *target = s3c24xx_info->target;
 	uint8_t status;
 
 	if (target->state != TARGET_HALTED) {

@@ -39,7 +39,7 @@ struct arm920t_common
 };
 
 static inline struct arm920t_common *
-target_to_arm920(struct target_s *target)
+target_to_arm920(struct target *target)
 {
 	return container_of(target->arch_info, struct arm920t_common,
 			arm9tdmi_common.arm7_9_common.armv4_5_common);
@@ -58,18 +58,18 @@ struct arm920t_tlb_entry
 	uint32_t ram2;
 };
 
-int arm920t_arch_state(struct target_s *target);
-int arm920t_soft_reset_halt(struct target_s *target);
-int arm920t_read_memory(struct target_s *target,
+int arm920t_arch_state(struct target *target);
+int arm920t_soft_reset_halt(struct target *target);
+int arm920t_read_memory(struct target *target,
 	uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm920t_write_memory(struct target_s *target,
+int arm920t_write_memory(struct target *target,
 	uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-void arm920t_post_debug_entry(target_t *target);
-void arm920t_pre_restore_context(target_t *target);
-	uint32_t arm920t_get_ttb(target_t *target);
-void arm920t_disable_mmu_caches(target_t *target,
+void arm920t_post_debug_entry(struct target *target);
+void arm920t_pre_restore_context(struct target *target);
+	uint32_t arm920t_get_ttb(struct target *target);
+void arm920t_disable_mmu_caches(struct target *target,
 	int mmu, int d_u_cache, int i_cache);
-void arm920t_enable_mmu_caches(target_t *target,
+void arm920t_enable_mmu_caches(struct target *target,
 	int mmu, int d_u_cache, int i_cache);
 int arm920t_register_commands(struct command_context_s *cmd_ctx);
 

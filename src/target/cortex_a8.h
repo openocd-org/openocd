@@ -137,13 +137,13 @@ struct cortex_a8_common
 };
 
 static inline struct cortex_a8_common *
-target_to_cortex_a8(struct target_s *target)
+target_to_cortex_a8(struct target *target)
 {
 	return container_of(target->arch_info, struct cortex_a8_common,
 			armv7a_common.armv4_5_common);
 }
 
-int cortex_a8_init_arch_info(target_t *target,
+int cortex_a8_init_arch_info(struct target *target,
 		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap);
 
 #endif /* CORTEX_A8_H */

@@ -80,7 +80,7 @@ enum arm11_debug_version
 
 struct arm11_common
 {
-	target_t *	target;		/**< Reference back to the owner */
+	struct target *	target;		/**< Reference back to the owner */
 
 	/** \name Processor type detection */
 	/*@{*/
@@ -179,7 +179,7 @@ enum arm11_sc7
 struct arm11_reg_state
 {
 	uint32_t				def_index;
-	target_t *			target;
+	struct target *			target;
 };
 
 int arm11_register_commands(struct command_context_s *cmd_ctx);

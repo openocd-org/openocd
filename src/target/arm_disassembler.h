@@ -201,7 +201,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
 		struct arm_instruction *instruction);
 int thumb_evaluate_opcode(uint16_t opcode, uint32_t address,
 		struct arm_instruction *instruction);
-int thumb2_opcode(target_t *target, uint32_t address,
+int thumb2_opcode(struct target *target, uint32_t address,
 		struct arm_instruction *instruction);
 int arm_access_size(struct arm_instruction *instruction);
 

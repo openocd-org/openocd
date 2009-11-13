@@ -27,7 +27,7 @@
 
 struct faux_flash_bank
 {
-	struct target_s *target;
+	struct target *target;
 	uint8_t *memory;
 	uint32_t start_address;
 };

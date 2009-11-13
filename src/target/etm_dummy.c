@@ -27,7 +27,7 @@
 
 COMMAND_HANDLER(handle_etm_dummy_config_command)
 {
-	target_t *target;
+	struct target *target;
 	struct arm *arm;
 
 	target = get_target(args[0]);

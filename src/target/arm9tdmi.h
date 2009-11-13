@@ -52,9 +52,9 @@ enum arm9tdmi_vector_bit
 };
 
 int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
-		struct target_s *target);
-int arm9tdmi_examine(struct target_s *target);
-int arm9tdmi_init_arch_info(target_t *target,
+		struct target *target);
+int arm9tdmi_examine(struct target *target);
+int arm9tdmi_init_arch_info(struct target *target,
 		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap);
 int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
@@ -63,22 +63,22 @@ int arm9tdmi_clock_out(struct arm_jtag *jtag_info,
 int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in);
 int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 		void *in, int size, int be);
-void arm9tdmi_read_core_regs(target_t *target,
+void arm9tdmi_read_core_regs(struct target *target,
 		uint32_t mask, uint32_t* core_regs[16]);
-void arm9tdmi_write_core_regs(target_t *target,
+void arm9tdmi_write_core_regs(struct target *target,
 		uint32_t mask, uint32_t core_regs[16]);
 
-int arm9tdmi_examine_debug_reason(target_t *target);
+int arm9tdmi_examine_debug_reason(struct target *target);
 
-void arm9tdmi_load_word_regs(target_t *target, uint32_t mask);
-void arm9tdmi_load_hword_reg(target_t *target, int num);
-void arm9tdmi_load_byte_reg(target_t *target, int num);
-void arm9tdmi_store_word_regs(target_t *target, uint32_t mask);
-void arm9tdmi_store_hword_reg(target_t *target, int num);
-void arm9tdmi_store_byte_reg(target_t *target, int num);
+void arm9tdmi_load_word_regs(struct target *target, uint32_t mask);
+void arm9tdmi_load_hword_reg(struct target *target, int num);
+void arm9tdmi_load_byte_reg(struct target *target, int num);
+void arm9tdmi_store_word_regs(struct target *target, uint32_t mask);
+void arm9tdmi_store_hword_reg(struct target *target, int num);
+void arm9tdmi_store_byte_reg(struct target *target, int num);
 
-void arm9tdmi_branch_resume(target_t *target);
-void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc);
-void arm9tdmi_disable_single_step(target_t *target);
+void arm9tdmi_branch_resume(struct target *target);
+void arm9tdmi_enable_single_step(struct target *target, uint32_t next_pc);
+void arm9tdmi_disable_single_step(struct target *target);
 
 #endif /* ARM9TDMI_H */
