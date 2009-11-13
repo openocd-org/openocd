@@ -133,7 +133,7 @@ typedef struct cortex_a8_common_s
 	/* Use cortex_a8_read_regs_through_mem for fast register reads */
 	int fast_reg_read;
 
-	armv7a_common_t armv7a_common;
+	struct armv7a_common armv7a_common;
 } cortex_a8_common_t;
 
 static inline struct cortex_a8_common_s *

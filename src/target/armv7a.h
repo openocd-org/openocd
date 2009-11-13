@@ -89,7 +89,7 @@ enum
 #define V2POWUR  6
 #define V2POWUW  7
 
-typedef struct armv7a_common_s
+struct armv7a_common
 {
 	int common_magic;
 	reg_cache_t *core_cache;
@@ -124,12 +124,12 @@ typedef struct armv7a_common_s
 	void (*pre_restore_context)(target_t *target);
 	void (*post_restore_context)(target_t *target);
 
-} armv7a_common_t;
+};
 
-static inline struct armv7a_common_s *
+static inline struct armv7a_common *
 target_to_armv7a(struct target_s *target)
 {
-	return container_of(target->arch_info, struct armv7a_common_s,
+	return container_of(target->arch_info, struct armv7a_common,
 			armv4_5_common);
 }
 
@@ -146,14 +146,14 @@ typedef struct armv7a_core_reg_s
 	int num;
 	enum armv7a_mode mode;
 	target_t *target;
-	armv7a_common_t *armv7a_common;
+	struct armv7a_common *armv7a_common;
 } armv7a_core_reg_t;
 
 int armv7a_arch_state(struct target_s *target);
 reg_cache_t *armv7a_build_reg_cache(target_t *target,
-		armv7a_common_t *armv7a_common);
+		struct armv7a_common *armv7a_common);
 int armv7a_register_commands(struct command_context_s *cmd_ctx);
-int armv7a_init_arch_info(target_t *target, armv7a_common_t *armv7a);
+int armv7a_init_arch_info(target_t *target, struct armv7a_common *armv7a);
 
 /* map psr mode bits to linear number */
 static inline int armv7a_mode_to_number(enum armv7a_mode mode)

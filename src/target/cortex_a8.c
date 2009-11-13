@@ -64,7 +64,7 @@ static int cortex_a8_dap_write_coreregister_u32(target_t *target,
  */
 static int cortex_a8_init_debug_access(target_t *target)
 {
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	int retval;
@@ -94,7 +94,7 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 {
 	uint32_t dscr;
 	int retval;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
@@ -135,7 +135,7 @@ static int cortex_a8_read_regs_through_mem(target_t *target, uint32_t address,
 		uint32_t * regfile)
 {
 	int retval = ERROR_OK;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	cortex_a8_dap_read_coreregister_u32(target, regfile, 0);
@@ -152,7 +152,7 @@ static int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
 		uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
 {
 	int retval;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	cortex_a8_exec_opcode(target, ARMV4_5_MRC(CP, op1, 0, CRn, CRm, op2));
@@ -171,7 +171,7 @@ static int cortex_a8_write_cp(target_t *target, uint32_t value,
 {
 	int retval;
 	uint32_t dscr;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	LOG_DEBUG("CP%i, CRn %i, value 0x%08" PRIx32, CP, CRn, value);
@@ -235,7 +235,7 @@ static int cortex_a8_dap_read_coreregister_u32(target_t *target,
 	int retval = ERROR_OK;
 	uint8_t reg = regnum&0xFF;
 	uint32_t dscr;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	if (reg > 16)
@@ -276,7 +276,7 @@ static int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value
 	int retval = ERROR_OK;
 	uint8_t Rd = regnum&0xFF;
 	uint32_t dscr;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	LOG_DEBUG("register %i, value 0x%08" PRIx32, regnum, value);
@@ -323,7 +323,7 @@ static int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value
 static int cortex_a8_dap_write_memap_register_u32(target_t *target, uint32_t address, uint32_t value)
 {
 	int retval;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	retval = mem_ap_write_atomic_u32(swjdp, address, value);
@@ -340,7 +340,7 @@ static int cortex_a8_poll(target_t *target)
 	int retval = ERROR_OK;
 	uint32_t dscr;
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
-	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	enum target_state prev_target_state = target->state;
 	uint8_t saved_apsel = dap_ap_get_select(swjdp);
@@ -404,7 +404,7 @@ static int cortex_a8_halt(target_t *target)
 {
 	int retval = ERROR_OK;
 	uint32_t dscr;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	uint8_t saved_apsel = dap_ap_get_select(swjdp);
 	dap_ap_select(swjdp, swjdp_debugap);
@@ -441,7 +441,7 @@ out:
 static int cortex_a8_resume(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
@@ -566,7 +566,7 @@ static int cortex_a8_debug_entry(target_t *target)
 	int retval = ERROR_OK;
 	working_area_t *regfile_working_area = NULL;
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
@@ -691,7 +691,7 @@ static int cortex_a8_debug_entry(target_t *target)
 static void cortex_a8_post_debug_entry(target_t *target)
 {
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
-	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 
 //	cortex_a8_read_cp(target, &cp15_control_register, 15, 0, 1, 0, 0);
 	/* examine cp15 control reg */
@@ -723,7 +723,7 @@ static void cortex_a8_post_debug_entry(target_t *target)
 static int cortex_a8_step(struct target_s *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 	breakpoint_t *breakpoint = NULL;
 	breakpoint_t stepbreakpoint;
@@ -803,7 +803,7 @@ static int cortex_a8_restore_context(target_t *target)
 {
 	int i;
 	uint32_t value;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 
 	LOG_DEBUG(" ");
@@ -968,7 +968,7 @@ static int cortex_a8_set_breakpoint(struct target_s *target,
 	uint32_t control;
 	uint8_t byte_addr_select = 0x0F;
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
-	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	cortex_a8_brp_t * brp_list = cortex_a8->brp_list;
 
 	if (breakpoint->set)
@@ -1039,7 +1039,7 @@ static int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *bre
 {
 	int retval;
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
-	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	cortex_a8_brp_t * brp_list = cortex_a8->brp_list;
 
 	if (!breakpoint->set)
@@ -1178,7 +1178,7 @@ static int cortex_a8_deassert_reset(target_t *target)
 static int cortex_a8_read_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	int retval = ERROR_OK;
@@ -1213,7 +1213,7 @@ static int cortex_a8_read_memory(struct target_s *target, uint32_t address,
 int cortex_a8_write_memory(struct target_s *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	int retval;
@@ -1299,7 +1299,7 @@ static int cortex_a8_handle_target_request(void *priv)
 	target_t *target = priv;
 	if (!target->type->examined)
 		return ERROR_OK;
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 	if (!target->dbg_msg_enabled)
@@ -1339,7 +1339,7 @@ static int cortex_a8_handle_target_request(void *priv)
 static int cortex_a8_examine(struct target_s *target)
 {
 	struct cortex_a8_common_s *cortex_a8 = target_to_cortex_a8(target);
-	struct armv7a_common_s *armv7a = &cortex_a8->armv7a_common;
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	int i;
 	int retval = ERROR_OK;
@@ -1454,7 +1454,7 @@ int cortex_a8_init_arch_info(target_t *target,
 		cortex_a8_common_t *cortex_a8, struct jtag_tap *tap)
 {
 	armv4_5_common_t *armv4_5;
-	armv7a_common_t *armv7a;
+	struct armv7a_common *armv7a;
 
 	armv7a = &cortex_a8->armv7a_common;
 	armv4_5 = &armv7a->armv4_5_common;
@@ -1529,7 +1529,7 @@ static int cortex_a8_target_create(struct target_s *target, Jim_Interp *interp)
 COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct armv7a_common_s *armv7a = target_to_armv7a(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	return armv4_5_handle_cache_info_command(cmd_ctx,
 			&armv7a->armv4_5_mmu.armv4_5_cache);
