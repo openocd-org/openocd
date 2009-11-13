@@ -26,12 +26,12 @@
 #include "embeddedice.h"
 
 
-typedef struct ocl_priv_s
+struct ocl_priv
 {
 	arm_jtag_t *jtag_info;
 	unsigned int buflen;
 	unsigned int bufalign;
-} ocl_priv_t;
+};
 
 static int ocl_erase_check(struct flash_bank_s *bank)
 {
@@ -49,7 +49,7 @@ FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 	int retval;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
-	ocl_priv_t *ocl;
+	struct ocl_priv *ocl;
 
 	if (argc < 6)
 	{
@@ -60,7 +60,7 @@ FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 	if ((retval = arm7_9_get_arch_pointers(bank->target, &armv4_5, &arm7_9)) != ERROR_OK)
 		return retval;
 
-	ocl = bank->driver_priv = malloc(sizeof(ocl_priv_t));
+	ocl = bank->driver_priv = malloc(sizeof(struct ocl_priv));
 	ocl->jtag_info = &arm7_9->jtag_info;
 	ocl->buflen = 0;
 	ocl->bufalign = 1;
@@ -70,7 +70,7 @@ FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 
 static int ocl_erase(struct flash_bank_s *bank, int first, int last)
 {
-	ocl_priv_t *ocl = bank->driver_priv;
+	struct ocl_priv *ocl = bank->driver_priv;
 	int retval;
 	uint32_t dcc_buffer[3];
 
@@ -130,7 +130,7 @@ static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	ocl_priv_t *ocl = bank->driver_priv;
+	struct ocl_priv *ocl = bank->driver_priv;
 	int retval;
 	uint32_t *dcc_buffer;
 	uint32_t *dcc_bufptr;
@@ -237,7 +237,7 @@ static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset
 
 static int ocl_probe(struct flash_bank_s *bank)
 {
-	ocl_priv_t *ocl = bank->driver_priv;
+	struct ocl_priv *ocl = bank->driver_priv;
 	int retval;
 	uint32_t dcc_buffer[1];
 	int sectsize;
@@ -340,7 +340,7 @@ static int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 static int ocl_auto_probe(struct flash_bank_s *bank)
 {
-	ocl_priv_t *ocl = bank->driver_priv;
+	struct ocl_priv *ocl = bank->driver_priv;
 
 	if (ocl->buflen == 0 || ocl->bufalign == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
