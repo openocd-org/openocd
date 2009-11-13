@@ -35,7 +35,7 @@ static int stm32x_mass_erase(struct flash_bank_s *bank);
  */
 FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 {
-	stm32x_flash_bank_t *stm32x_info;
+	struct stm32x_flash_bank *stm32x_info;
 
 	if (argc < 6)
 	{
@@ -43,7 +43,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	stm32x_info = malloc(sizeof(stm32x_flash_bank_t));
+	stm32x_info = malloc(sizeof(struct stm32x_flash_bank));
 	bank->driver_priv = stm32x_info;
 
 	stm32x_info->write_algorithm = NULL;
@@ -84,7 +84,7 @@ static uint32_t stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 static int stm32x_read_options(struct flash_bank_s *bank)
 {
 	uint32_t optiondata;
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 	target_t *target = bank->target;
 
 	stm32x_info = bank->driver_priv;
@@ -111,7 +111,7 @@ static int stm32x_read_options(struct flash_bank_s *bank)
 
 static int stm32x_erase_options(struct flash_bank_s *bank)
 {
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 	target_t *target = bank->target;
 	uint32_t status;
 
@@ -148,7 +148,7 @@ static int stm32x_erase_options(struct flash_bank_s *bank)
 
 static int stm32x_write_options(struct flash_bank_s *bank)
 {
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 	target_t *target = bank->target;
 	uint32_t status;
 
@@ -233,7 +233,7 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 static int stm32x_protect_check(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 
 	uint32_t protection;
 	int i, s;
@@ -345,7 +345,7 @@ static int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 
 static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 	target_t *target = bank->target;
 	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 	int i, reg, bit;
@@ -432,7 +432,7 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 
 static int stm32x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t buffer_size = 16384;
 	working_area_t *source;
@@ -657,7 +657,7 @@ static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t off
 static int stm32x_probe(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
 	uint16_t num_pages;
 	uint32_t device_id;
@@ -773,7 +773,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 
 static int stm32x_auto_probe(struct flash_bank_s *bank)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	if (stm32x_info->probed)
 		return ERROR_OK;
 	return stm32x_probe(bank);
@@ -895,7 +895,7 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 COMMAND_HANDLER(stm32x_handle_lock_command)
 {
 	target_t *target = NULL;
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 
 	if (argc < 1)
 	{
@@ -941,7 +941,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 COMMAND_HANDLER(stm32x_handle_unlock_command)
 {
 	target_t *target = NULL;
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 
 	if (argc < 1)
 	{
@@ -985,7 +985,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 {
 	uint32_t optionbyte;
 	target_t *target = NULL;
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 
 	if (argc < 1)
 	{
@@ -1040,7 +1040,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 COMMAND_HANDLER(stm32x_handle_options_write_command)
 {
 	target_t *target = NULL;
-	stm32x_flash_bank_t *stm32x_info = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
 	uint16_t optionbyte = 0xF8;
 
 	if (argc < 4)

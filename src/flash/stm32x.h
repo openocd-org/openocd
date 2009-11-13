@@ -32,13 +32,13 @@ struct stm32x_options
 	uint16_t protection[4];
 };
 
-typedef struct stm32x_flash_bank_s
+struct stm32x_flash_bank
 {
 	struct stm32x_options option_bytes;
 	working_area_t *write_algorithm;
 	int ppage_size;
 	int probed;
-} stm32x_flash_bank_t;
+};
 
 /* stm32x register locations */
 
