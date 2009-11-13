@@ -64,7 +64,7 @@ static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint3
  */
 FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 {
-	pic32mx_flash_bank_t *pic32mx_info;
+	struct pic32mx_flash_bank *pic32mx_info;
 
 	if (argc < 6)
 	{
@@ -72,7 +72,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	pic32mx_info = malloc(sizeof(pic32mx_flash_bank_t));
+	pic32mx_info = malloc(sizeof(struct pic32mx_flash_bank));
 	bank->driver_priv = pic32mx_info;
 
 	pic32mx_info->write_algorithm = NULL;
@@ -207,7 +207,7 @@ static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 
 static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
-	pic32mx_flash_bank_t *pic32mx_info = NULL;
+	struct pic32mx_flash_bank *pic32mx_info = NULL;
 	target_t *target = bank->target;
 #if 0
 	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
@@ -306,7 +306,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 	uint32_t address = bank->base + offset;
 	int retval = ERROR_OK;
 #if 0
-	pic32mx_flash_bank_t *pic32mx_info = bank->driver_priv;
+	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 	armv7m_algorithm_t armv7m_info;
 
 	uint8_t pic32mx_flash_write_code[] = {
@@ -542,7 +542,7 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 static int pic32mx_probe(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	pic32mx_flash_bank_t *pic32mx_info = bank->driver_priv;
+	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	int i;
@@ -624,7 +624,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 
 static int pic32mx_auto_probe(struct flash_bank_s *bank)
 {
-	pic32mx_flash_bank_t *pic32mx_info = bank->driver_priv;
+	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 	if (pic32mx_info->probed)
 		return ERROR_OK;
 	return pic32mx_probe(bank);
@@ -675,7 +675,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 COMMAND_HANDLER(pic32mx_handle_lock_command)
 {
 	target_t *target = NULL;
-	pic32mx_flash_bank_t *pic32mx_info = NULL;
+	struct pic32mx_flash_bank *pic32mx_info = NULL;
 
 	if (argc < 1)
 	{
@@ -721,7 +721,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 COMMAND_HANDLER(pic32mx_handle_unlock_command)
 {
 	target_t *target = NULL;
-	pic32mx_flash_bank_t *pic32mx_info = NULL;
+	struct pic32mx_flash_bank *pic32mx_info = NULL;
 
 	if (argc < 1)
 	{

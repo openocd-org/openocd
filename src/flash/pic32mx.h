@@ -28,13 +28,13 @@
 
 #include "flash.h"
 
-typedef struct pic32mx_flash_bank_s
+struct pic32mx_flash_bank
 {
 	working_area_t *write_algorithm;
 	int devid;
 	int ppage_size;
 	int probed;
-} pic32mx_flash_bank_t;
+};
 
 #define PIC32MX_MANUF_ID	0x029
 
