@@ -35,7 +35,7 @@
 int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
-	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
@@ -70,7 +70,7 @@ static int arm966e_verify_pointer(struct command_context_s *cmd_ctx,
 static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	struct scan_field fields[3];
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
@@ -122,7 +122,7 @@ static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	struct scan_field fields[3];
 	uint8_t reg_addr_buf = reg_addr & 0x3f;

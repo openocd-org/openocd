@@ -164,7 +164,7 @@ static int embeddedice_get_reg(reg_t *reg)
  * hardware support for vector_catch, single stepping, and monitor mode.
  */
 reg_cache_t *
-embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
+embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 {
 	int retval;
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
@@ -303,7 +303,7 @@ embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 int embeddedice_setup(target_t *target)
 {
 	int retval;
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	/* Explicitly disable monitor mode.  For now we only support halting
 	 * debug ... we don't know how to talk with a resident debug monitor

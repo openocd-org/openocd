@@ -37,7 +37,7 @@
 /**
  * Structure for items that are common between both ARM7 and ARM9 targets.
  */
-typedef struct arm7_9_common_s
+struct arm7_9_common
 {
 	struct arm armv4_5_common;
 	uint32_t common_magic;
@@ -106,12 +106,12 @@ typedef struct arm7_9_common_s
 	void (*post_restore_context)(target_t *target); /**< Callback function called after restoring the processor context */
 
 
-} arm7_9_common_t;
+};
 
-static inline struct arm7_9_common_s *
+static inline struct arm7_9_common *
 target_to_arm7_9(struct target_s *target)
 {
-	return container_of(target->arch_info, struct arm7_9_common_s,
+	return container_of(target->arch_info, struct arm7_9_common,
 			armv4_5_common);
 }
 
@@ -153,7 +153,7 @@ void arm7_9_disable_eice_step(target_t *target);
 
 int arm7_9_execute_sys_speed(struct target_s *target);
 
-int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9);
-int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p);
+int arm7_9_init_arch_info(target_t *target, struct arm7_9_common *arm7_9);
+int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, struct arm7_9_common **arm7_9_p);
 
 #endif /* ARM7_9_COMMON_H */

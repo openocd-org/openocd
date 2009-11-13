@@ -553,7 +553,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
 	struct arm920t_common *arm920t = target_to_arm920(target);
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -623,7 +623,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 int arm920t_init_arch_info(target_t *target, struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
-	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
 	 */
@@ -667,7 +667,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm920t_common *arm920t = target_to_arm920(target);
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
@@ -913,7 +913,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm920t_common *arm920t = target_to_arm920(target);
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;

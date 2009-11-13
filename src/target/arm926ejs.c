@@ -51,7 +51,7 @@ static int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	int retval = ERROR_OK;
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	struct scan_field fields[4];
@@ -143,7 +143,7 @@ static int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2,
 		uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	int retval = ERROR_OK;
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	struct scan_field fields[4];
@@ -231,7 +231,7 @@ static int arm926ejs_mcr(target_t *target, int cpnum, uint32_t op1,
 
 static int arm926ejs_examine_debug_reason(target_t *target)
 {
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	int debug_reason;
 	int retval;
@@ -522,7 +522,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
 	struct arm926ejs_common_s *arm926ejs = target_to_arm926(target);
-	struct arm7_9_common_s *arm7_9 = target_to_arm7_9(target);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -670,7 +670,7 @@ int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs,
 		struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm926ejs->arm9tdmi_common;
-	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
 	 */

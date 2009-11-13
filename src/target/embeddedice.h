@@ -94,7 +94,7 @@ typedef struct embeddedice_reg_s
 } embeddedice_reg_t;
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target,
-		arm7_9_common_t *arm7_9);
+		struct arm7_9_common *arm7_9);
 
 int embeddedice_setup(target_t *target);
 

@@ -30,7 +30,7 @@
  */
 typedef struct arm7tdmi_common_s
 {
-	arm7_9_common_t arm7_9_common;
+	struct arm7_9_common arm7_9_common;
 } arm7tdmi_common_t;
 
 int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, struct jtag_tap *tap);

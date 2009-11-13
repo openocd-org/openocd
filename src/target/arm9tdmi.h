@@ -30,7 +30,7 @@
  */
 typedef struct arm9tdmi_common_s
 {
-	arm7_9_common_t arm7_9_common;
+	struct arm7_9_common arm7_9_common;
 } arm9tdmi_common_t;
 
 typedef struct arm9tdmi_vector_s

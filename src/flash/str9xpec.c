@@ -239,7 +239,7 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info;
 	armv4_5_common_t *armv4_5 = NULL;
-	arm7_9_common_t *arm7_9 = NULL;
+	struct arm7_9_common *arm7_9 = NULL;
 	arm_jtag_t *jtag_info = NULL;
 
 	if (argc < 6)
