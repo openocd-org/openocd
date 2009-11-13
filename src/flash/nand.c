@@ -154,7 +154,7 @@ static nand_info_t nand_flash_ids[] =
 
 /* Manufacturer ID list
  */
-static nand_manufacturer_t nand_manuf_ids[] =
+static struct nand_manufacturer nand_manuf_ids[] =
 {
 	{0x0, "unknown"},
 	{NAND_MFR_TOSHIBA, "Toshiba"},

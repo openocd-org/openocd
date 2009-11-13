@@ -77,7 +77,7 @@ typedef struct nand_device_s
 {
 	struct nand_flash_controller *controller;
 	void *controller_priv;
-	struct nand_manufacturer_s *manufacturer;
+	struct nand_manufacturer *manufacturer;
 	struct nand_info_s *device;
 	int bus_width;
 	int address_cycles;
@@ -103,11 +103,11 @@ enum
 	NAND_MFR_MICRON = 0x2c,
 };
 
-typedef struct nand_manufacturer_s
+struct nand_manufacturer
 {
 	int id;
 	char *name;
-} nand_manufacturer_t;
+};
 
 typedef struct nand_info_s
 {
