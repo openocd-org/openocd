@@ -182,7 +182,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 
 FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 {
-	avrf_flash_bank_t *avrf_info;
+	struct avrf_flash_bank *avrf_info;
 
 	if (argc < 6)
 	{
@@ -190,7 +190,7 @@ FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	avrf_info = malloc(sizeof(avrf_flash_bank_t));
+	avrf_info = malloc(sizeof(struct avrf_flash_bank));
 	bank->driver_priv = avrf_info;
 
 	avrf_info->probed = 0;
@@ -264,7 +264,7 @@ static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offse
 static int avrf_probe(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	avrf_flash_bank_t *avrf_info = bank->driver_priv;
+	struct avrf_flash_bank *avrf_info = bank->driver_priv;
 	avr_common_t *avr = target->arch_info;
 	struct avrf_type *avr_info = NULL;
 	int i;
@@ -331,7 +331,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 
 static int avrf_auto_probe(struct flash_bank_s *bank)
 {
-	avrf_flash_bank_t *avrf_info = bank->driver_priv;
+	struct avrf_flash_bank *avrf_info = bank->driver_priv;
 	if (avrf_info->probed)
 		return ERROR_OK;
 	return avrf_probe(bank);

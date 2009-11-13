@@ -32,10 +32,10 @@ struct avrf_type
 	int eeprom_page_num;
 };
 
-typedef struct avrf_flash_bank_s
+struct avrf_flash_bank
 {
 	int ppage_size;
 	int probed;
-} avrf_flash_bank_t;
+};
 
 #endif /* AVRF_H */
