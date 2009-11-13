@@ -86,7 +86,7 @@ target_type_t *target_types[] =
 };
 
 target_t *all_targets = NULL;
-target_event_callback_t *target_event_callbacks = NULL;
+struct target_event_callback *target_event_callbacks = NULL;
 target_timer_callback_t *target_timer_callbacks = NULL;
 
 const Jim_Nvp nvp_assert[] = {
@@ -872,7 +872,7 @@ int target_init(struct command_context_s *cmd_ctx)
 
 int target_register_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv)
 {
-	target_event_callback_t **callbacks_p = &target_event_callbacks;
+	struct target_event_callback **callbacks_p = &target_event_callbacks;
 
 	if (callback == NULL)
 	{
@@ -886,7 +886,7 @@ int target_register_event_callback(int (*callback)(struct target_s *target, enum
 		callbacks_p = &((*callbacks_p)->next);
 	}
 
-	(*callbacks_p) = malloc(sizeof(target_event_callback_t));
+	(*callbacks_p) = malloc(sizeof(struct target_event_callback));
 	(*callbacks_p)->callback = callback;
 	(*callbacks_p)->priv = priv;
 	(*callbacks_p)->next = NULL;
@@ -934,8 +934,8 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 
 int target_unregister_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv)
 {
-	target_event_callback_t **p = &target_event_callbacks;
-	target_event_callback_t *c = target_event_callbacks;
+	struct target_event_callback **p = &target_event_callbacks;
+	struct target_event_callback *c = target_event_callbacks;
 
 	if (callback == NULL)
 	{
@@ -944,7 +944,7 @@ int target_unregister_event_callback(int (*callback)(struct target_s *target, en
 
 	while (c)
 	{
-		target_event_callback_t *next = c->next;
+		struct target_event_callback *next = c->next;
 		if ((c->callback == callback) && (c->priv == priv))
 		{
 			*p = next;
@@ -988,8 +988,8 @@ int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 
 int target_call_event_callbacks(target_t *target, enum target_event event)
 {
-	target_event_callback_t *callback = target_event_callbacks;
-	target_event_callback_t *next_callback;
+	struct target_event_callback *callback = target_event_callbacks;
+	struct target_event_callback *next_callback;
 
 	if (event == TARGET_EVENT_HALTED)
 	{

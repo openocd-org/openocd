@@ -232,12 +232,12 @@ struct target_event_action_s {
 	target_event_action_t *next;
  };
 
-typedef struct target_event_callback_s
+struct target_event_callback
 {
 	int (*callback)(struct target_s *target, enum target_event event, void *priv);
 	void *priv;
-	struct target_event_callback_s *next;
-} target_event_callback_t;
+	struct target_event_callback *next;
+};
 
 typedef struct target_timer_callback_s
 {
@@ -450,7 +450,7 @@ void target_free_all_working_areas_restore(struct target_s *target, int restore)
 
 extern target_t *all_targets;
 
-extern target_event_callback_t *target_event_callbacks;
+extern struct target_event_callback *target_event_callbacks;
 extern target_timer_callback_t *target_timer_callbacks;
 
 uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer);
