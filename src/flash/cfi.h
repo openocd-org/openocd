@@ -27,7 +27,7 @@
 
 struct cfi_flash_bank
 {
-	working_area_t *write_algorithm;
+	struct working_area *write_algorithm;
 
 	int x16_as_x8;
 	int jedec_probe;

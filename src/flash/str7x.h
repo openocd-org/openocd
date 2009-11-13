@@ -31,7 +31,7 @@ struct str7x_flash_bank
 	uint32_t disable_bit;
 	uint32_t busy_bits;
 	uint32_t register_base;
-	working_area_t *write_algorithm;
+	struct working_area *write_algorithm;
 };
 
 enum str7x_status_codes

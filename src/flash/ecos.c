@@ -36,8 +36,8 @@ static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, cha
 struct ecosflash_flash_bank
 {
 	struct target_s *target;
-	working_area_t *write_algorithm;
-	working_area_t *erase_check_algorithm;
+	struct working_area *write_algorithm;
+	struct working_area *erase_check_algorithm;
 	char *driverPath;
 	uint32_t start_address;
 };

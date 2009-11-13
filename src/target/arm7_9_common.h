@@ -69,7 +69,7 @@ struct arm7_9_common
 	bool fast_memory_access;
 	bool dcc_downloads;
 
-	struct working_area_s *dcc_working_area;
+	struct working_area *dcc_working_area;
 
 	int (*examine_debug_reason)(target_t *target); /**< Function for determining why debug state was entered */
 

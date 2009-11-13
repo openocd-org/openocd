@@ -114,15 +114,15 @@ extern const Jim_Nvp nvp_target_endian[];
 
 struct target_s;
 
-typedef struct working_area_s
+struct working_area
 {
 	uint32_t address;
 	uint32_t size;
 	int free;
 	uint8_t *backup;
-	struct working_area_s **user;
-	struct working_area_s *next;
-} working_area_t;
+	struct working_area **user;
+	struct working_area *next;
+};
 
 // target_type.h contains the full definitionof struct target_type_s
 struct target_type_s;
@@ -149,7 +149,7 @@ typedef struct target_s
 	uint32_t working_area_phys;			/* physical address */
 	uint32_t working_area_size;			/* size in bytes */
 	uint32_t backup_working_area;			/* whether the content of the working area has to be preserved */
-	struct working_area_s *working_areas;/* list of allocated working areas */
+	struct working_area *working_areas;/* list of allocated working areas */
 	enum target_debug_reason debug_reason;/* reason why the target entered debug state */
 	enum target_endianess endianness;	/* target endianess */
 	// also see: target_state_name()
@@ -441,10 +441,10 @@ const char *target_state_name( target_t *target );
  *
  */
 int target_alloc_working_area(struct target_s *target,
-		uint32_t size, working_area_t **area);
-int target_free_working_area(struct target_s *target, working_area_t *area);
+		uint32_t size, struct working_area **area);
+int target_free_working_area(struct target_s *target, struct working_area *area);
 int target_free_working_area_restore(struct target_s *target,
-		working_area_t *area, int restore);
+		struct working_area *area, int restore);
 void target_free_all_working_areas(struct target_s *target);
 void target_free_all_working_areas_restore(struct target_s *target, int restore);
 

@@ -44,7 +44,7 @@ static int aduc702x_set_write_enable(target_t *target, int enable);
 #define ADUC702x_FLASH_FEEHIDE		(7*4)
 
 struct aduc702x_flash_bank {
-	working_area_t *write_algorithm;
+	struct working_area *write_algorithm;
 };
 
 /* flash bank aduc702x 0 0 0 0 <target#>
@@ -161,7 +161,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 	struct aduc702x_flash_bank *aduc702x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t buffer_size = 7000;
-	working_area_t *source;
+	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[6];
 	struct armv4_5_algorithm armv4_5_info;

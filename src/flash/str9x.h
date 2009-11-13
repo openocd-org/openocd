@@ -30,7 +30,7 @@ struct str9x_flash_bank
 	uint32_t *sector_bits;
 	int variant;
 	int bank1;
-	working_area_t *write_algorithm;
+	struct working_area *write_algorithm;
 };
 
 enum str9x_status_codes

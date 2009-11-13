@@ -1294,7 +1294,7 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
 
 	/* Try working area allocation. Start with a large buffer, and try with
 	   reduced size if that fails. */
-	working_area_t *warea;
+	struct working_area *warea;
 	uint32_t buffer_size = lpc2900_info->max_ram_block - 1 * KiB;
 	while( (retval = target_alloc_working_area(target,
 	                                           buffer_size + target_code_size,

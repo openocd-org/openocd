@@ -564,7 +564,7 @@ static int cortex_a8_debug_entry(target_t *target)
 	int i;
 	uint32_t regfile[16], pc, cpsr, dscr;
 	int retval = ERROR_OK;
-	working_area_t *regfile_working_area = NULL;
+	struct working_area *regfile_working_area = NULL;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;

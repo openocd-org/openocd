@@ -548,7 +548,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	uint32_t result_table[4];
 	int status_code;
 	int i;
-	working_area_t *download_area;
+	struct working_area *download_area;
 	int retval = ERROR_OK;
 
 	if (bank->target->state != TARGET_HALTED)

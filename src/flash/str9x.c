@@ -351,7 +351,7 @@ static int str9x_write_block(struct flash_bank_s *bank,
 	struct str9x_flash_bank *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t buffer_size = 8192;
-	working_area_t *source;
+	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[4];
 	struct armv4_5_algorithm armv4_5_info;

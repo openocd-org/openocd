@@ -302,7 +302,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 {
 	target_t *target = bank->target;
 	uint32_t buffer_size = 512;
-	working_area_t *source;
+	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	int retval = ERROR_OK;
 #if 0

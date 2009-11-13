@@ -35,7 +35,7 @@ typedef enum
 struct lpc2000_flash_bank
 {
 	lpc2000_variant variant;
-	struct working_area_s *iap_working_area;
+	struct working_area *iap_working_area;
 	uint32_t cclk;
 	int cmd51_dst_boundary;
 	int cmd51_can_256b;

@@ -588,7 +588,7 @@ int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m)
 int armv7m_checksum_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint32_t* checksum)
 {
-	working_area_t *crc_algorithm;
+	struct working_area *crc_algorithm;
 	struct armv7m_algorithm armv7m_info;
 	struct reg_param reg_params[2];
 	int retval;
@@ -671,7 +671,7 @@ int armv7m_checksum_memory(struct target_s *target,
 int armv7m_blank_check_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint32_t* blank)
 {
-	working_area_t *erase_check_algorithm;
+	struct working_area *erase_check_algorithm;
 	struct reg_param reg_params[3];
 	struct armv7m_algorithm armv7m_info;
 	int retval;

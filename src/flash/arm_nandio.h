@@ -9,7 +9,7 @@ struct arm_nand_data {
 	struct target_s		*target;
 
 	/* copy_area holds write-to-NAND loop and data to write */
-	struct working_area_s	*copy_area;
+	struct working_area	*copy_area;
 
 	/* chunk_size == page or ECC unit */
 	unsigned		chunk_size;

@@ -30,7 +30,7 @@
 
 struct pic32mx_flash_bank
 {
-	working_area_t *write_algorithm;
+	struct working_area *write_algorithm;
 	int devid;
 	int ppage_size;
 	int probed;

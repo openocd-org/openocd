@@ -1082,10 +1082,10 @@ int target_call_timer_callbacks_now(void)
 	return target_call_timer_callbacks_check_time(0);
 }
 
-int target_alloc_working_area(struct target_s *target, uint32_t size, working_area_t **area)
+int target_alloc_working_area(struct target_s *target, uint32_t size, struct working_area **area)
 {
-	working_area_t *c = target->working_areas;
-	working_area_t *new_wa = NULL;
+	struct working_area *c = target->working_areas;
+	struct working_area *new_wa = NULL;
 
 	/* Reevaluate working area address based on MMU state*/
 	if (target->working_areas == NULL)
@@ -1145,7 +1145,7 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 	/* if not, allocate a new one */
 	if (!new_wa)
 	{
-		working_area_t **p = &target->working_areas;
+		struct working_area **p = &target->working_areas;
 		uint32_t first_free = target->working_area;
 		uint32_t free_size = target->working_area_size;
 
@@ -1167,7 +1167,7 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 
 		LOG_DEBUG("allocated new working area at address 0x%08x", (unsigned)first_free);
 
-		new_wa = malloc(sizeof(working_area_t));
+		new_wa = malloc(sizeof(struct working_area));
 		new_wa->next = NULL;
 		new_wa->size = size;
 		new_wa->address = first_free;
@@ -1202,7 +1202,7 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 	return ERROR_OK;
 }
 
-int target_free_working_area_restore(struct target_s *target, working_area_t *area, int restore)
+int target_free_working_area_restore(struct target_s *target, struct working_area *area, int restore)
 {
 	if (area->free)
 		return ERROR_OK;
@@ -1223,7 +1223,7 @@ int target_free_working_area_restore(struct target_s *target, working_area_t *ar
 	return ERROR_OK;
 }
 
-int target_free_working_area(struct target_s *target, working_area_t *area)
+int target_free_working_area(struct target_s *target, struct working_area *area)
 {
 	return target_free_working_area_restore(target, area, 1);
 }
@@ -1233,11 +1233,11 @@ int target_free_working_area(struct target_s *target, working_area_t *area)
  */
 void target_free_all_working_areas_restore(struct target_s *target, int restore)
 {
-	working_area_t *c = target->working_areas;
+	struct working_area *c = target->working_areas;
 
 	while (c)
 	{
-		working_area_t *next = c->next;
+		struct working_area *next = c->next;
 		target_free_working_area_restore(target, c, restore);
 
 		if (c->backup)
