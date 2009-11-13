@@ -24,20 +24,20 @@
 
 struct command_context_s;
 
-typedef struct armv4_5_cachesize_s
+struct armv4_5_cachesize
 {
 	int linelen;
 	int associativity;
 	int nsets;
 	int cachesize;
-} armv4_5_cachesize_t;
+};
 
 typedef struct armv4_5_cache_common_s
 {
 	int ctype;	/* specify supported cache operations */
 	int separate;	/* separate caches or unified cache */
-	armv4_5_cachesize_t d_u_size;	/* data cache */
-	armv4_5_cachesize_t i_size; /* instruction cache */
+	struct armv4_5_cachesize d_u_size;	/* data cache */
+	struct armv4_5_cachesize i_size; /* instruction cache */
 	int i_cache_enabled;
 	int d_u_cache_enabled;
 } armv4_5_cache_common_t;
