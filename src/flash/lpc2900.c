@@ -129,7 +129,7 @@
 /**
  * Private data for \c lpc2900 flash driver.
  */
-typedef struct lpc2900_flash_bank_s
+struct lpc2900_flash_bank
 {
 	/**
 	 * Holds the value read from CHIPID register.
@@ -168,7 +168,7 @@ typedef struct lpc2900_flash_bank_s
 	 */
 	uint32_t max_ram_block;
 
-} lpc2900_flash_bank_t;
+};
 
 
 static uint32_t lpc2900_wait_status(flash_bank_t *bank, uint32_t mask, int timeout);
@@ -231,7 +231,7 @@ static uint32_t lpc2900_wait_status( flash_bank_t *bank,
 static void lpc2900_setup( struct flash_bank_s *bank )
 {
 	uint32_t fcra;
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 
 	/* Power up the flash block */
@@ -253,7 +253,7 @@ static void lpc2900_setup( struct flash_bank_s *bank )
  */
 static uint32_t lpc2900_is_ready( struct flash_bank_s *bank )
 {
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 	if( lpc2900_info->chipid != EXPECTED_CHIPID )
 	{
@@ -444,7 +444,7 @@ static int lpc2900_write_index_page( struct flash_bank_s *bank,
 	}
 
 	/* Private info */
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 	/* Enable flash block and set the correct CRA clock of 66 kHz */
 	lpc2900_setup( bank );
@@ -593,7 +593,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 	lpc2900_info->risky = 0;
 
 	/* Get target, and check if it's halted */
@@ -664,7 +664,7 @@ COMMAND_HANDLER(lpc2900_handle_password_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 #define ISS_PASSWORD "I_know_what_I_am_doing"
 
@@ -699,7 +699,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 	/* Check if command execution is allowed. */
 	if( !lpc2900_info->risky )
@@ -810,7 +810,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 	/* Check if command execution is allowed. */
 	if( !lpc2900_info->risky )
@@ -909,7 +909,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 	/* Check if command execution is allowed. */
 	if( !lpc2900_info->risky )
@@ -1018,7 +1018,7 @@ static int lpc2900_register_commands(struct command_context_s *cmd_ctx)
 /// Evaluate flash bank command.
 FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 {
-	lpc2900_flash_bank_t *lpc2900_info;
+	struct lpc2900_flash_bank *lpc2900_info;
 
 	if (argc < 6)
 	{
@@ -1026,7 +1026,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	lpc2900_info = malloc(sizeof(lpc2900_flash_bank_t));
+	lpc2900_info = malloc(sizeof(struct lpc2900_flash_bank));
 	bank->driver_priv = lpc2900_info;
 
 	/* Get flash clock.
@@ -1076,7 +1076,7 @@ static int lpc2900_erase(struct flash_bank_s *bank, int first, int last)
 	int sector;
 	int last_unsecured_sector;
 	target_t *target = bank->target;
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
 
 	status = lpc2900_is_ready(bank);
@@ -1206,7 +1206,7 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
 	uint32_t status;
 	uint32_t num_bytes;
 	target_t *target = bank->target;
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 	int sector;
 	int retval;
 
@@ -1550,7 +1550,7 @@ static int lpc2900_write(struct flash_bank_s *bank, uint8_t *buffer,
  */
 static int lpc2900_probe(struct flash_bank_s *bank)
 {
-	lpc2900_flash_bank_t *lpc2900_info = bank->driver_priv;
+	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 	target_t *target = bank->target;
 	int i = 0;
 	uint32_t offset;
