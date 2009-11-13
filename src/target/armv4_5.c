@@ -249,7 +249,7 @@ int armv4_5_invalidate_core_regs(target_t *target)
 	return ERROR_OK;
 }
 
-struct reg_cache* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5_common)
+struct reg_cache* armv4_5_build_reg_cache(target_t *target, struct arm *armv4_5_common)
 {
 	int num_regs = 37;
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
@@ -713,7 +713,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, struct me
 	return armv4_5_run_algorithm_inner(target, num_mem_params, mem_params, num_reg_params, reg_params, entry_point, exit_point, timeout_ms, arch_info, armv4_5_run_algorithm_completion);
 }
 
-int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5)
+int armv4_5_init_arch_info(target_t *target, struct arm *armv4_5)
 {
 	target->arch_info = armv4_5;
 

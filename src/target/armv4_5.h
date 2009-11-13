@@ -84,7 +84,7 @@ enum
  * Cortex-M series cores do not support as many core states or shadowed
  * registers as traditional ARM cores, and only support Thumb2 instructions.
  */
-typedef struct arm
+struct arm
 {
 	int common_magic;
 	struct reg_cache *core_cache;
@@ -104,7 +104,7 @@ typedef struct arm
 	int (*write_core_reg)(struct target_s *target,
 			int num, enum armv4_5_mode mode, uint32_t value);
 	void *arch_info;
-} armv4_5_common_t;
+};
 
 #define target_to_armv4_5 target_to_arm
 
@@ -132,11 +132,11 @@ struct armv4_5_core_reg
 	int num;
 	enum armv4_5_mode mode;
 	target_t *target;
-	armv4_5_common_t *armv4_5_common;
+	struct arm *armv4_5_common;
 };
 
 struct reg_cache* armv4_5_build_reg_cache(target_t *target,
-		armv4_5_common_t *armv4_5_common);
+		struct arm *armv4_5_common);
 
 /* map psr mode bits to linear number */
 static __inline int armv4_5_mode_to_number(enum armv4_5_mode mode)
@@ -180,7 +180,7 @@ int armv4_5_get_gdb_reg_list(target_t *target,
 		reg_t **reg_list[], int *reg_list_size);
 
 int armv4_5_register_commands(struct command_context_s *cmd_ctx);
-int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5);
+int armv4_5_init_arch_info(target_t *target, struct arm *armv4_5);
 
 int armv4_5_run_algorithm(struct target_s *target,
 		int num_mem_params, struct mem_param *mem_params,

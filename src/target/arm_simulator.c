@@ -788,21 +788,21 @@ int arm_simulate_step_core(target_t *target,
 
 static uint32_t armv4_5_get_reg(struct arm_sim_interface *sim, int reg)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	return buf_get_u32(armv4_5->core_cache->reg_list[reg].value, 0, 32);
 }
 
 static void armv4_5_set_reg(struct arm_sim_interface *sim, int reg, uint32_t value)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	buf_set_u32(armv4_5->core_cache->reg_list[reg].value, 0, 32, value);
 }
 
 static uint32_t armv4_5_get_reg_mode(struct arm_sim_interface *sim, int reg)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	return buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 			armv4_5->core_mode, reg).value, 0, 32);
@@ -810,7 +810,7 @@ static uint32_t armv4_5_get_reg_mode(struct arm_sim_interface *sim, int reg)
 
 static void armv4_5_set_reg_mode(struct arm_sim_interface *sim, int reg, uint32_t value)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 			armv4_5->core_mode, reg).value, 0, 32, value);
@@ -818,21 +818,21 @@ static void armv4_5_set_reg_mode(struct arm_sim_interface *sim, int reg, uint32_
 
 static uint32_t armv4_5_get_cpsr(struct arm_sim_interface *sim, int pos, int bits)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	return buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, pos, bits);
 }
 
 static enum armv4_5_state armv4_5_get_state(struct arm_sim_interface *sim)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	return armv4_5->core_state;
 }
 
 static void armv4_5_set_state(struct arm_sim_interface *sim, enum armv4_5_state mode)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	armv4_5->core_state = mode;
 }
@@ -840,7 +840,7 @@ static void armv4_5_set_state(struct arm_sim_interface *sim, enum armv4_5_state 
 
 static enum armv4_5_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 {
-	armv4_5_common_t *armv4_5 = (armv4_5_common_t *)sim->user_data;
+	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	return armv4_5->core_mode;
 }

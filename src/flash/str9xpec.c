@@ -238,7 +238,7 @@ static int str9xpec_build_block_list(struct flash_bank_s *bank)
 FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info;
-	armv4_5_common_t *armv4_5 = NULL;
+	struct arm *armv4_5 = NULL;
 	struct arm7_9_common *arm7_9 = NULL;
 	struct arm_jtag *jtag_info = NULL;
 

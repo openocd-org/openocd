@@ -106,7 +106,7 @@ struct armv7a_common
 
 	/* Cache and Memory Management Unit */
 	struct armv4_5_mmu_common armv4_5_mmu;
-	armv4_5_common_t armv4_5_common;
+	struct arm armv4_5_common;
 
 //	int (*full_context)(struct target_s *target);
 //	int (*read_core_reg)(struct target_s *target, int num, enum armv7a_mode mode);

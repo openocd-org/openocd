@@ -81,7 +81,7 @@ struct xscale_trace
 struct xscale_common
 {
 	/* armv4/5 common stuff */
-	armv4_5_common_t armv4_5_common;
+	struct arm armv4_5_common;
 
 	int common_magic;
 

@@ -47,7 +47,7 @@ static int ocl_protect_check(struct flash_bank_s *bank)
 FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 {
 	int retval;
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 	struct ocl_priv *ocl;
 

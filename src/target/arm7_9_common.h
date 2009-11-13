@@ -154,6 +154,6 @@ void arm7_9_disable_eice_step(target_t *target);
 int arm7_9_execute_sys_speed(struct target_s *target);
 
 int arm7_9_init_arch_info(target_t *target, struct arm7_9_common *arm7_9);
-int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, struct arm7_9_common **arm7_9_p);
+int arm7_9_get_arch_pointers(target_t *target, struct arm **armv4_5_p, struct arm7_9_common **arm7_9_p);
 
 #endif /* ARM7_9_COMMON_H */

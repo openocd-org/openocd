@@ -2870,7 +2870,7 @@ static int xscale_init_target(struct command_context_s *cmd_ctx,
 static int xscale_init_arch_info(target_t *target,
 		struct xscale_common *xscale, struct jtag_tap *tap, const char *variant)
 {
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	uint32_t high_reset_branch, low_reset_branch;
 	int i;
 

@@ -178,7 +178,7 @@ int arm7_9_setup(target_t *target)
  *                 targets
  * @return ERROR_OK if successful
  */
-int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, struct arm7_9_common **arm7_9_p)
+int arm7_9_get_arch_pointers(target_t *target, struct arm **armv4_5_p, struct arm7_9_common **arm7_9_p)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -2877,7 +2877,7 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 	int spsr;
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
@@ -2922,7 +2922,7 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 	int spsr;
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
@@ -2963,7 +2963,7 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 	uint32_t mode;
 	int num;
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
@@ -2994,7 +2994,7 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
@@ -3027,7 +3027,7 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
@@ -3060,7 +3060,7 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
+	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
@@ -3093,7 +3093,7 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 int arm7_9_init_arch_info(target_t *target, struct arm7_9_common *arm7_9)
 {
 	int retval = ERROR_OK;
-	armv4_5_common_t *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 
 	arm7_9->common_magic = ARM7_9_COMMON_MAGIC;
 
