@@ -44,7 +44,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2412_nand_device_command)
 	return ERROR_OK;
 }
 
-static int s3c2412_init(struct nand_device_s *nand)
+static int s3c2412_init(struct nand_device *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;

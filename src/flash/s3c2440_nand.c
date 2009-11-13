@@ -45,7 +45,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2440_nand_device_command)
 	return ERROR_OK;
 }
 
-static int s3c2440_init(struct nand_device_s *nand)
+static int s3c2440_init(struct nand_device *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -61,7 +61,7 @@ static int s3c2440_init(struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-int s3c2440_nand_ready(struct nand_device_s *nand, int timeout)
+int s3c2440_nand_ready(struct nand_device *nand, int timeout)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -87,7 +87,7 @@ int s3c2440_nand_ready(struct nand_device_s *nand, int timeout)
 
 /* use the fact we can read/write 4 bytes in one go via a single 32bit op */
 
-int s3c2440_read_block_data(struct nand_device_s *nand, uint8_t *data, int data_size)
+int s3c2440_read_block_data(struct nand_device *nand, uint8_t *data, int data_size)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -123,7 +123,7 @@ int s3c2440_read_block_data(struct nand_device_s *nand, uint8_t *data, int data_
 	return ERROR_OK;
 }
 
-int s3c2440_write_block_data(struct nand_device_s *nand, uint8_t *data, int data_size)
+int s3c2440_write_block_data(struct nand_device *nand, uint8_t *data, int data_size)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;

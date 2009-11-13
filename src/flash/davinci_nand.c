@@ -55,9 +55,9 @@ struct davinci_nand {
 	struct arm_nand_data	io;
 
 	/* page i/o for the relevant flavor of hardware ECC */
-	int (*read_page)(struct nand_device_s *nand, uint32_t page,
+	int (*read_page)(struct nand_device *nand, uint32_t page,
 			uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-	int (*write_page)(struct nand_device_s *nand, uint32_t page,
+	int (*write_page)(struct nand_device *nand, uint32_t page,
 			uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 };
 
@@ -83,7 +83,7 @@ static int davinci_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int davinci_init(struct nand_device_s *nand)
+static int davinci_init(struct nand_device *nand)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -108,12 +108,12 @@ static int davinci_init(struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-static int davinci_reset(struct nand_device_s *nand)
+static int davinci_reset(struct nand_device *nand)
 {
 	return ERROR_OK;
 }
 
-static int davinci_nand_ready(struct nand_device_s *nand, int timeout)
+static int davinci_nand_ready(struct nand_device *nand, int timeout)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -136,7 +136,7 @@ static int davinci_nand_ready(struct nand_device_s *nand, int timeout)
 	return 0;
 }
 
-static int davinci_command(struct nand_device_s *nand, uint8_t command)
+static int davinci_command(struct nand_device *nand, uint8_t command)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -148,7 +148,7 @@ static int davinci_command(struct nand_device_s *nand, uint8_t command)
 	return ERROR_OK;
 }
 
-static int davinci_address(struct nand_device_s *nand, uint8_t address)
+static int davinci_address(struct nand_device *nand, uint8_t address)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -160,7 +160,7 @@ static int davinci_address(struct nand_device_s *nand, uint8_t address)
 	return ERROR_OK;
 }
 
-static int davinci_write_data(struct nand_device_s *nand, uint16_t data)
+static int davinci_write_data(struct nand_device *nand, uint16_t data)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -172,7 +172,7 @@ static int davinci_write_data(struct nand_device_s *nand, uint16_t data)
 	return ERROR_OK;
 }
 
-static int davinci_read_data(struct nand_device_s *nand, void *data)
+static int davinci_read_data(struct nand_device *nand, void *data)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -186,7 +186,7 @@ static int davinci_read_data(struct nand_device_s *nand, void *data)
 
 /* REVISIT a bit of native code should let block reads be MUCH faster */
 
-static int davinci_read_block_data(struct nand_device_s *nand,
+static int davinci_read_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -219,7 +219,7 @@ static int davinci_read_block_data(struct nand_device_s *nand,
 	return ERROR_OK;
 }
 
-static int davinci_write_block_data(struct nand_device_s *nand,
+static int davinci_write_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -255,7 +255,7 @@ static int davinci_write_block_data(struct nand_device_s *nand,
 	return ERROR_OK;
 }
 
-static int davinci_write_page(struct nand_device_s *nand, uint32_t page,
+static int davinci_write_page(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -306,7 +306,7 @@ static int davinci_write_page(struct nand_device_s *nand, uint32_t page,
 	return status;
 }
 
-static int davinci_read_page(struct nand_device_s *nand, uint32_t page,
+static int davinci_read_page(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -319,7 +319,7 @@ static int davinci_read_page(struct nand_device_s *nand, uint32_t page,
 	return info->read_page(nand, page, data, data_size, oob, oob_size);
 }
 
-static void davinci_write_pagecmd(struct nand_device_s *nand, uint8_t cmd, uint32_t page)
+static void davinci_write_pagecmd(struct nand_device *nand, uint8_t cmd, uint32_t page)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = info->target;
@@ -342,7 +342,7 @@ static void davinci_write_pagecmd(struct nand_device_s *nand, uint8_t cmd, uint3
 		target_write_u8(target, info->addr, page >> 24);
 }
 
-static int davinci_writepage_tail(struct nand_device_s *nand,
+static int davinci_writepage_tail(struct nand_device *nand,
 		uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -374,7 +374,7 @@ static int davinci_writepage_tail(struct nand_device_s *nand,
 /*
  * All DaVinci family chips support 1-bit ECC on a per-chipselect basis.
  */
-static int davinci_write_page_ecc1(struct nand_device_s *nand, uint32_t page,
+static int davinci_write_page_ecc1(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	unsigned oob_offset;
@@ -441,7 +441,7 @@ static int davinci_write_page_ecc1(struct nand_device_s *nand, uint32_t page,
  * is read first, so its ECC data can be used incrementally), but the
  * manufacturer bad block markers are safe.  Contrast:  old "infix" style.
  */
-static int davinci_write_page_ecc4(struct nand_device_s *nand, uint32_t page,
+static int davinci_write_page_ecc4(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	static const uint8_t ecc512[] = {
@@ -543,7 +543,7 @@ static int davinci_write_page_ecc4(struct nand_device_s *nand, uint32_t page,
  * older second stage loaders (ABL/U-Boot, etc) or other system software
  * (MVL 4.x/5.x kernels, filesystems, etc) may need it more generally.
  */
-static int davinci_write_page_ecc4infix(struct nand_device_s *nand, uint32_t page,
+static int davinci_write_page_ecc4infix(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -600,7 +600,7 @@ static int davinci_write_page_ecc4infix(struct nand_device_s *nand, uint32_t pag
 	return davinci_writepage_tail(nand, NULL, 0);
 }
 
-static int davinci_read_page_ecc4infix(struct nand_device_s *nand, uint32_t page,
+static int davinci_read_page_ecc4infix(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	davinci_write_pagecmd(nand, NAND_CMD_READ0, page);

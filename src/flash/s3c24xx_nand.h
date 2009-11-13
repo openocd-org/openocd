@@ -47,7 +47,7 @@ struct s3c24xx_nand_controller
 
 #define S3C24XX_DEVICE_COMMAND() \
 		COMMAND_HELPER(s3c24xx_nand_device_command, \
-				struct nand_device_s *nand, \
+				struct nand_device *nand, \
 				struct s3c24xx_nand_controller **info)
 
 S3C24XX_DEVICE_COMMAND();
@@ -61,26 +61,26 @@ S3C24XX_DEVICE_COMMAND();
 
 int s3c24xx_register_commands(struct command_context_s *cmd_ctx);
 
-int s3c24xx_reset(struct nand_device_s *nand);
+int s3c24xx_reset(struct nand_device *nand);
 
-int s3c24xx_command(struct nand_device_s *nand, uint8_t command);
-int s3c24xx_address(struct nand_device_s *nand, uint8_t address);
+int s3c24xx_command(struct nand_device *nand, uint8_t command);
+int s3c24xx_address(struct nand_device *nand, uint8_t address);
 
-int s3c24xx_write_data(struct nand_device_s *nand, uint16_t data);
-int s3c24xx_read_data(struct nand_device_s *nand, void *data);
+int s3c24xx_write_data(struct nand_device *nand, uint16_t data);
+int s3c24xx_read_data(struct nand_device *nand, void *data);
 
-int s3c24xx_controller_ready(struct nand_device_s *nand, int tout);
+int s3c24xx_controller_ready(struct nand_device *nand, int tout);
 
 #define s3c24xx_write_page NULL
 #define s3c24xx_read_page NULL
 
 /* code shared between different controllers */
 
-int s3c2440_nand_ready(struct nand_device_s *nand, int timeout);
+int s3c2440_nand_ready(struct nand_device *nand, int timeout);
 
-int s3c2440_read_block_data(struct nand_device_s *nand,
+int s3c2440_read_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size);
-int s3c2440_write_block_data(struct nand_device_s *nand,
+int s3c2440_write_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size);
 
 #endif // S3C24xx_NAND_H

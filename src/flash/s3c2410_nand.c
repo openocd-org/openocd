@@ -44,7 +44,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2410_nand_device_command)
 	return ERROR_OK;
 }
 
-static int s3c2410_init(struct nand_device_s *nand)
+static int s3c2410_init(struct nand_device *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -56,7 +56,7 @@ static int s3c2410_init(struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-static int s3c2410_write_data(struct nand_device_s *nand, uint16_t data)
+static int s3c2410_write_data(struct nand_device *nand, uint16_t data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -70,7 +70,7 @@ static int s3c2410_write_data(struct nand_device_s *nand, uint16_t data)
 	return ERROR_OK;
 }
 
-static int s3c2410_read_data(struct nand_device_s *nand, void *data)
+static int s3c2410_read_data(struct nand_device *nand, void *data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -84,7 +84,7 @@ static int s3c2410_read_data(struct nand_device_s *nand, void *data)
 	return ERROR_OK;
 }
 
-static int s3c2410_nand_ready(struct nand_device_s *nand, int timeout)
+static int s3c2410_nand_ready(struct nand_device *nand, int timeout)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;

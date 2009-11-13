@@ -27,28 +27,28 @@
 
 #include "flash.h"
 
-struct nand_device_s;
+struct nand_device;
 
 #define __NAND_DEVICE_COMMAND(name) \
-		COMMAND_HELPER(name, struct nand_device_s *nand)
+		COMMAND_HELPER(name, struct nand_device *nand)
 
 struct nand_flash_controller
 {
 	char *name;
 	__NAND_DEVICE_COMMAND((*nand_device_command));
 	int (*register_commands)(struct command_context_s *cmd_ctx);
-	int (*init)(struct nand_device_s *nand);
-	int (*reset)(struct nand_device_s *nand);
-	int (*command)(struct nand_device_s *nand, uint8_t command);
-	int (*address)(struct nand_device_s *nand, uint8_t address);
-	int (*write_data)(struct nand_device_s *nand, uint16_t data);
-	int (*read_data)(struct nand_device_s *nand, void *data);
-	int (*write_block_data)(struct nand_device_s *nand, uint8_t *data, int size);
-	int (*read_block_data)(struct nand_device_s *nand, uint8_t *data, int size);
-	int (*write_page)(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-	int (*read_page)(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-	int (*controller_ready)(struct nand_device_s *nand, int timeout);
-	int (*nand_ready)(struct nand_device_s *nand, int timeout);
+	int (*init)(struct nand_device *nand);
+	int (*reset)(struct nand_device *nand);
+	int (*command)(struct nand_device *nand, uint8_t command);
+	int (*address)(struct nand_device *nand, uint8_t address);
+	int (*write_data)(struct nand_device *nand, uint16_t data);
+	int (*read_data)(struct nand_device *nand, void *data);
+	int (*write_block_data)(struct nand_device *nand, uint8_t *data, int size);
+	int (*read_block_data)(struct nand_device *nand, uint8_t *data, int size);
+	int (*write_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+	int (*read_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+	int (*controller_ready)(struct nand_device *nand, int timeout);
+	int (*nand_ready)(struct nand_device *nand, int timeout);
 };
 
 #define NAND_DEVICE_COMMAND_HANDLER(name) static __NAND_DEVICE_COMMAND(name)
@@ -73,7 +73,7 @@ struct nand_ecclayout {
 	struct nand_oobfree oobfree[2];
 };
 
-typedef struct nand_device_s
+struct nand_device
 {
 	struct nand_flash_controller *controller;
 	void *controller_priv;
@@ -86,8 +86,8 @@ typedef struct nand_device_s
 	int use_raw;
 	int num_blocks;
 	struct nand_block *blocks;
-	struct nand_device_s *next;
-} nand_device_t;
+	struct nand_device *next;
+};
 
 /* NAND Flash Manufacturer ID Codes
  */
@@ -212,18 +212,18 @@ enum oob_formats
 };
 
 
-nand_device_t *get_nand_device_by_num(int num);
+struct nand_device *get_nand_device_by_num(int num);
 
-int nand_read_page_raw(struct nand_device_s *nand, uint32_t page,
+int nand_read_page_raw(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-int nand_write_page_raw(struct nand_device_s *nand, uint32_t page,
+int nand_write_page_raw(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 
-int nand_read_status(struct nand_device_s *nand, uint8_t *status);
+int nand_read_status(struct nand_device *nand, uint8_t *status);
 
-int nand_calculate_ecc(struct nand_device_s *nand,
+int nand_calculate_ecc(struct nand_device *nand,
 		const uint8_t *dat, uint8_t *ecc_code);
-int nand_calculate_ecc_kw(struct nand_device_s *nand,
+int nand_calculate_ecc_kw(struct nand_device *nand,
 		const uint8_t *dat, uint8_t *ecc_code);
 
 int nand_register_commands(struct command_context_s *cmd_ctx);
@@ -231,7 +231,7 @@ int nand_init(struct command_context_s *cmd_ctx);
 
 /// helper for parsing a nand device command argument string
 int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
-		const char *str, nand_device_t **nand);
+		const char *str, struct nand_device **nand);
 
 
 #define		ERROR_NAND_DEVICE_INVALID		(-1100)

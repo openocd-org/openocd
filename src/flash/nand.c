@@ -28,10 +28,10 @@
 #include "time_support.h"
 #include "fileio.h"
 
-static int nand_read_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-//static int nand_read_plain(struct nand_device_s *nand, uint32_t address, uint8_t *data, uint32_t data_size);
+static int nand_read_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+//static int nand_read_plain(struct nand_device *nand, uint32_t address, uint8_t *data, uint32_t data_size);
 
-static int nand_write_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+static int nand_write_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 
 /* NAND flash controller
  */
@@ -61,7 +61,7 @@ static struct nand_flash_controller *nand_flash_controllers[] =
 };
 
 /* configured NAND devices and NAND Flash command handler */
-static nand_device_t *nand_devices = NULL;
+static struct nand_device *nand_devices = NULL;
 static command_t *nand_cmd;
 
 /*	Chip ID list
@@ -218,7 +218,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 
 	for (i = 0; nand_flash_controllers[i]; i++)
 	{
-		nand_device_t *p, *c;
+		struct nand_device *p, *c;
 
 		if (strcmp(args[0], nand_flash_controllers[i]->name) == 0)
 		{
@@ -229,7 +229,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 				return retval;
 			}
 
-			c = malloc(sizeof(nand_device_t));
+			c = malloc(sizeof(struct nand_device));
 
 			c->controller = nand_flash_controllers[i];
 			c->controller_priv = NULL;
@@ -288,9 +288,9 @@ int nand_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-nand_device_t *get_nand_device_by_num(int num)
+struct nand_device *get_nand_device_by_num(int num)
 {
-	nand_device_t *p;
+	struct nand_device *p;
 	int i = 0;
 
 	for (p = nand_devices; p; p = p->next)
@@ -305,7 +305,7 @@ nand_device_t *get_nand_device_by_num(int num)
 }
 
 int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
-		const char *str, nand_device_t **nand)
+		const char *str, struct nand_device **nand)
 {
 	unsigned num;
 	COMMAND_PARSE_NUMBER(uint, str, num);
@@ -317,7 +317,7 @@ int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int nand_build_bbt(struct nand_device_s *nand, int first, int last)
+static int nand_build_bbt(struct nand_device *nand, int first, int last)
 {
 	uint32_t page = 0x0;
 	int i;
@@ -351,7 +351,7 @@ static int nand_build_bbt(struct nand_device_s *nand, int first, int last)
 	return ERROR_OK;
 }
 
-int nand_read_status(struct nand_device_s *nand, uint8_t *status)
+int nand_read_status(struct nand_device *nand, uint8_t *status)
 {
 	if (!nand->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -376,7 +376,7 @@ int nand_read_status(struct nand_device_s *nand, uint8_t *status)
 	return ERROR_OK;
 }
 
-static int nand_poll_ready(struct nand_device_s *nand, int timeout)
+static int nand_poll_ready(struct nand_device *nand, int timeout)
 {
 	uint8_t status;
 
@@ -397,7 +397,7 @@ static int nand_poll_ready(struct nand_device_s *nand, int timeout)
 	return (status & NAND_STATUS_READY) != 0;
 }
 
-int nand_probe(struct nand_device_s *nand)
+int nand_probe(struct nand_device *nand)
 {
 	uint8_t manufacturer_id, device_id;
 	uint8_t id_buff[6];
@@ -615,7 +615,7 @@ int nand_probe(struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-static int nand_erase(struct nand_device_s *nand, int first_block, int last_block)
+static int nand_erase(struct nand_device *nand, int first_block, int last_block)
 {
 	int i;
 	uint32_t page;
@@ -704,7 +704,7 @@ static int nand_erase(struct nand_device_s *nand, int first_block, int last_bloc
 }
 
 #if 0
-static int nand_read_plain(struct nand_device_s *nand, uint32_t address, uint8_t *data, uint32_t data_size)
+static int nand_read_plain(struct nand_device *nand, uint32_t address, uint8_t *data, uint32_t data_size)
 {
 	uint8_t *page;
 
@@ -741,7 +741,7 @@ static int nand_read_plain(struct nand_device_s *nand, uint32_t address, uint8_t
 	return ERROR_OK;
 }
 
-static int nand_write_plain(struct nand_device_s *nand, uint32_t address, uint8_t *data, uint32_t data_size)
+static int nand_write_plain(struct nand_device *nand, uint32_t address, uint8_t *data, uint32_t data_size)
 {
 	uint8_t *page;
 
@@ -779,7 +779,7 @@ static int nand_write_plain(struct nand_device_s *nand, uint32_t address, uint8_
 }
 #endif
 
-int nand_write_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+int nand_write_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	uint32_t block;
 
@@ -796,7 +796,7 @@ int nand_write_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, ui
 		return nand->controller->write_page(nand, page, data, data_size, oob, oob_size);
 }
 
-static int nand_read_page(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+static int nand_read_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	if (!nand->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -807,7 +807,7 @@ static int nand_read_page(struct nand_device_s *nand, uint32_t page, uint8_t *da
 		return nand->controller->read_page(nand, page, data, data_size, oob, oob_size);
 }
 
-int nand_read_page_raw(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+int nand_read_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	uint32_t i;
 
@@ -921,7 +921,7 @@ int nand_read_page_raw(struct nand_device_s *nand, uint32_t page, uint8_t *data,
 	return ERROR_OK;
 }
 
-int nand_write_page_raw(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+int nand_write_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	uint32_t i;
 	int retval;
@@ -1044,7 +1044,7 @@ int nand_write_page_raw(struct nand_device_s *nand, uint32_t page, uint8_t *data
 
 COMMAND_HANDLER(handle_nand_list_command)
 {
-	nand_device_t *p;
+	struct nand_device *p;
 	int i;
 
 	if (!nand_devices)
@@ -1076,7 +1076,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 	int first = -1;
 	int last = -1;
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1151,7 +1151,7 @@ COMMAND_HANDLER(handle_nand_probe_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1180,7 +1180,7 @@ COMMAND_HANDLER(handle_nand_erase_command)
 
 	}
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1239,7 +1239,7 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 
 	}
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1300,7 +1300,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1458,7 +1458,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;
@@ -1575,7 +1575,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	nand_device_t *p;
+	struct nand_device *p;
 	int retval = nand_command_get_device_by_num(cmd_ctx, args[0], &p);
 	if (ERROR_OK != retval)
 		return retval;

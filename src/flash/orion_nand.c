@@ -49,7 +49,7 @@ struct orion_nand_controller
 		} \
 	} while (0)
 
-static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
+static int orion_nand_command(struct nand_device *nand, uint8_t command)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
 	struct target *target = hw->target;
@@ -59,7 +59,7 @@ static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
 	return ERROR_OK;
 }
 
-static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
+static int orion_nand_address(struct nand_device *nand, uint8_t address)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
 	struct target *target = hw->target;
@@ -69,7 +69,7 @@ static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
 	return ERROR_OK;
 }
 
-static int orion_nand_read(struct nand_device_s *nand, void *data)
+static int orion_nand_read(struct nand_device *nand, void *data)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
 	struct target *target = hw->target;
@@ -79,7 +79,7 @@ static int orion_nand_read(struct nand_device_s *nand, void *data)
 	return ERROR_OK;
 }
 
-static int orion_nand_write(struct nand_device_s *nand, uint16_t data)
+static int orion_nand_write(struct nand_device *nand, uint16_t data)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
 	struct target *target = hw->target;
@@ -89,14 +89,14 @@ static int orion_nand_write(struct nand_device_s *nand, uint16_t data)
 	return ERROR_OK;
 }
 
-static int orion_nand_slow_block_write(struct nand_device_s *nand, uint8_t *data, int size)
+static int orion_nand_slow_block_write(struct nand_device *nand, uint8_t *data, int size)
 {
 	while (size--)
 		orion_nand_write(nand, *data++);
 	return ERROR_OK;
 }
 
-static int orion_nand_fast_block_write(struct nand_device_s *nand, uint8_t *data, int size)
+static int orion_nand_fast_block_write(struct nand_device *nand, uint8_t *data, int size)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
 	int retval;
@@ -110,12 +110,12 @@ static int orion_nand_fast_block_write(struct nand_device_s *nand, uint8_t *data
 	return retval;
 }
 
-static int orion_nand_reset(struct nand_device_s *nand)
+static int orion_nand_reset(struct nand_device *nand)
 {
 	return orion_nand_command(nand, NAND_CMD_RESET);
 }
 
-static int orion_nand_controller_ready(struct nand_device_s *nand, int timeout)
+static int orion_nand_controller_ready(struct nand_device *nand, int timeout)
 {
 	return 1;
 }
@@ -164,7 +164,7 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 	return ERROR_OK;
 }
 
-static int orion_nand_init(struct nand_device_s *nand)
+static int orion_nand_init(struct nand_device *nand)
 {
 	return ERROR_OK;
 }
