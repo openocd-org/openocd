@@ -42,7 +42,7 @@ static int etb_reg_arch_type = -1;
 
 static int etb_get_reg(reg_t *reg);
 
-static int etb_set_instr(etb_t *etb, uint32_t new_instr)
+static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 {
 	struct jtag_tap *tap;
 
@@ -69,7 +69,7 @@ static int etb_set_instr(etb_t *etb, uint32_t new_instr)
 	return ERROR_OK;
 }
 
-static int etb_scann(etb_t *etb, uint32_t new_scan_chain)
+static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 {
 	if (etb->cur_scan_chain != new_scan_chain)
 	{
@@ -121,7 +121,7 @@ static int etb_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-struct reg_cache* etb_build_reg_cache(etb_t *etb)
+struct reg_cache* etb_build_reg_cache(struct etb *etb)
 {
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = NULL;
@@ -171,7 +171,7 @@ static void etb_getbuf(jtag_callback_data_t arg)
 }
 
 
-static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
+static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 {
 	struct scan_field fields[3];
 	int i;
@@ -384,7 +384,7 @@ COMMAND_HANDLER(handle_etb_config_command)
 
 	if (arm->etm)
 	{
-		etb_t *etb = malloc(sizeof(etb_t));
+		struct etb *etb = malloc(sizeof(struct etb));
 
 		arm->etm->capture_driver_priv = etb;
 
@@ -417,7 +417,7 @@ static int etb_register_commands(struct command_context_s *cmd_ctx)
 
 static int etb_init(etm_context_t *etm_ctx)
 {
-	etb_t *etb = etm_ctx->capture_driver_priv;
+	struct etb *etb = etm_ctx->capture_driver_priv;
 
 	etb->etm_ctx = etm_ctx;
 
@@ -434,7 +434,7 @@ static int etb_init(etm_context_t *etm_ctx)
 
 static trace_status_t etb_status(etm_context_t *etm_ctx)
 {
-	etb_t *etb = etm_ctx->capture_driver_priv;
+	struct etb *etb = etm_ctx->capture_driver_priv;
 	reg_t *control = &etb->reg_cache->reg_list[ETB_CTRL];
 	reg_t *status = &etb->reg_cache->reg_list[ETB_STATUS];
 	trace_status_t retval = 0;
@@ -486,7 +486,7 @@ static trace_status_t etb_status(etm_context_t *etm_ctx)
 
 static int etb_read_trace(etm_context_t *etm_ctx)
 {
-	etb_t *etb = etm_ctx->capture_driver_priv;
+	struct etb *etb = etm_ctx->capture_driver_priv;
 	int first_frame = 0;
 	int num_frames = etb->ram_depth;
 	uint32_t *trace_data = NULL;
@@ -636,7 +636,7 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 
 static int etb_start_capture(etm_context_t *etm_ctx)
 {
-	etb_t *etb = etm_ctx->capture_driver_priv;
+	struct etb *etb = etm_ctx->capture_driver_priv;
 	uint32_t etb_ctrl_value = 0x1;
 	uint32_t trigger_count;
 
@@ -670,7 +670,7 @@ static int etb_start_capture(etm_context_t *etm_ctx)
 
 static int etb_stop_capture(etm_context_t *etm_ctx)
 {
-	etb_t *etb = etm_ctx->capture_driver_priv;
+	struct etb *etb = etm_ctx->capture_driver_priv;
 	reg_t *etb_ctrl_reg = &etb->reg_cache->reg_list[ETB_CTRL];
 
 	etb_write_reg(etb_ctrl_reg, 0x0);

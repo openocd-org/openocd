@@ -34,7 +34,7 @@ enum
 	ETB_CTRL = 0x08,
 };
 
-typedef struct etb_s
+struct etb
 {
 	etm_context_t *etm_ctx;
 	struct jtag_tap *tap;
@@ -44,16 +44,16 @@ typedef struct etb_s
 	/* ETB parameters */
 	uint32_t ram_depth;
 	uint32_t ram_width;
-} etb_t;
+};
 
 struct etb_reg
 {
 	uint32_t addr;
-	etb_t *etb;
+	struct etb *etb;
 };
 
 extern struct etm_capture_driver etb_capture_driver;
 
-struct reg_cache* etb_build_reg_cache(etb_t *etb);
+struct reg_cache* etb_build_reg_cache(struct etb *etb);
 
 #endif /* ETB_H */

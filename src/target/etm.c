@@ -391,7 +391,7 @@ struct reg_cache *etm_build_reg_cache(target_t *target,
 	/* the ETM might have an ETB connected */
 	if (strcmp(etm_ctx->capture_driver->name, "etb") == 0)
 	{
-		etb_t *etb = etm_ctx->capture_driver_priv;
+		struct etb *etb = etm_ctx->capture_driver_priv;
 
 		if (!etb)
 		{
