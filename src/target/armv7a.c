@@ -82,7 +82,7 @@ char* armv7a_state_strings[] =
 	"ARM", "Thumb", "Jazelle", "ThumbEE"
 };
 
-armv7a_core_reg_t armv7a_core_reg_list_arch_info[] =
+struct armv7a_core_reg armv7a_core_reg_list_arch_info[] =
 {
 	{0, ARMV4_5_MODE_ANY, NULL, NULL},
 	{1, ARMV4_5_MODE_ANY, NULL, NULL},

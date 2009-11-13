@@ -141,13 +141,13 @@ struct armv7a_algorithm
 	enum armv7a_state core_state;
 };
 
-typedef struct armv7a_core_reg_s
+struct armv7a_core_reg
 {
 	int num;
 	enum armv7a_mode mode;
 	target_t *target;
 	struct armv7a_common *armv7a_common;
-} armv7a_core_reg_t;
+};
 
 int armv7a_arch_state(struct target_s *target);
 reg_cache_t *armv7a_build_reg_cache(target_t *target,
