@@ -173,7 +173,7 @@ static nand_manufacturer_t nand_manuf_ids[] =
  */
 
 #if 0
-static nand_ecclayout_t nand_oob_8 = {
+static struct nand_ecclayout nand_oob_8 = {
 	.eccbytes = 3,
 	.eccpos = {0, 1, 2},
 	.oobfree = {
@@ -184,7 +184,7 @@ static nand_ecclayout_t nand_oob_8 = {
 };
 #endif
 
-static nand_ecclayout_t nand_oob_16 = {
+static struct nand_ecclayout nand_oob_16 = {
 	.eccbytes = 6,
 	.eccpos = {0, 1, 2, 3, 6, 7},
 	.oobfree = {
@@ -192,7 +192,7 @@ static nand_ecclayout_t nand_oob_16 = {
 		 . length = 8}}
 };
 
-static nand_ecclayout_t nand_oob_64 = {
+static struct nand_ecclayout nand_oob_64 = {
 	.eccbytes = 24,
 	.eccpos = {
 		   40, 41, 42, 43, 44, 45, 46, 47,

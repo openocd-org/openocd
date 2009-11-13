@@ -66,12 +66,12 @@ struct nand_oobfree {
 	int length;
 };
 
-typedef struct nand_ecclayout_s {
+struct nand_ecclayout {
 	int eccbytes;
 	int eccpos[64];
 	int oobavail;
 	struct nand_oobfree oobfree[2];
-} nand_ecclayout_t;
+};
 
 typedef struct nand_device_s
 {
