@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-typedef struct xilinx_bit_file_s
+struct xilinx_bit_file
 {
 	uint8_t unknown_header[13];
 	uint8_t *source_file;
@@ -31,8 +31,8 @@ typedef struct xilinx_bit_file_s
 	uint8_t *time;
 	uint32_t length;
 	uint8_t *data;
-} xilinx_bit_file_t;
+};
 
-int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, const char *filename);
+int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename);
 
 #endif /* XILINX_BIT_H */

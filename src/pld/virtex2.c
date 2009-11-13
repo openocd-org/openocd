@@ -134,7 +134,7 @@ static int virtex2_read_stat(struct pld_device_s *pld_device, uint32_t *status)
 static int virtex2_load(struct pld_device_s *pld_device, const char *filename)
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
-	xilinx_bit_file_t bit_file;
+	struct xilinx_bit_file bit_file;
 	int retval;
 	unsigned int i;
 	struct scan_field field;
