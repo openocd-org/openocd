@@ -27,10 +27,10 @@
 #include "log.h"
 
 
-static int s3c2440_set_gpio_to_output (mflash_gpio_num_t gpio);
-static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val);
-static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio);
-static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val);
+static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio);
+static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val);
+static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio);
+static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val);
 
 static command_t *mflash_cmd;
 
@@ -64,7 +64,7 @@ static mflash_gpio_drv_t *mflash_gpio[] =
 #define PXA270_GPSR0 0x40E00018
 #define PXA270_GPCR0 0x40E00024
 
-static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio)
+static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
 {
 	uint32_t addr, value, mask;
 	target_t *target = mflash_bank->target;
@@ -101,7 +101,7 @@ static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio)
 	return ret;
 }
 
-static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val)
+static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 {
 	uint32_t addr, value, mask;
 	target_t *target = mflash_bank->target;
@@ -130,7 +130,7 @@ static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val)
 #define S3C2440_GPJCON 0x560000d0
 #define S3C2440_GPJDAT 0x560000d4
 
-static int s3c2440_set_gpio_to_output (mflash_gpio_num_t gpio)
+static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio)
 {
 	uint32_t data, mask, gpio_con;
 	target_t *target = mflash_bank->target;
@@ -162,7 +162,7 @@ static int s3c2440_set_gpio_to_output (mflash_gpio_num_t gpio)
 	return ret;
 }
 
-static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val)
+static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 {
 	uint32_t data, mask, gpio_dat;
 	target_t *target = mflash_bank->target;

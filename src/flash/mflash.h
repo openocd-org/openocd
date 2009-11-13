@@ -26,17 +26,17 @@ typedef unsigned long mg_io_uint32;
 typedef unsigned short mg_io_uint16;
 typedef unsigned char mg_io_uint8;
 
-typedef struct mflash_gpio_num_s
+struct mflash_gpio_num
 {
 	char port[2];
 	signed short num;
-} mflash_gpio_num_t;
+};
 
 typedef struct mflash_gpio_drv_s
 {
 	char *name;
-	int (*set_gpio_to_output) (mflash_gpio_num_t gpio);
-	int (*set_gpio_output_val) (mflash_gpio_num_t gpio, uint8_t val);
+	int (*set_gpio_to_output) (struct mflash_gpio_num gpio);
+	int (*set_gpio_output_val) (struct mflash_gpio_num gpio, uint8_t val);
 } mflash_gpio_drv_t;
 
 typedef struct _mg_io_type_drv_info {
@@ -134,7 +134,7 @@ typedef struct mflash_bank_s
 {
 	uint32_t base;
 
-	mflash_gpio_num_t rst_pin;
+	struct mflash_gpio_num rst_pin;
 
 	mflash_gpio_drv_t *gpio_drv;
 	target_t *target;
