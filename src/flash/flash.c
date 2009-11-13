@@ -847,7 +847,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "wrote %lld byte from file %s to flash bank %u"
+		command_print(cmd_ctx, "wrote %zu byte from file %s to flash bank %u"
 				" at offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
 				fileio.size, args[1], p->bank_number, offset,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));

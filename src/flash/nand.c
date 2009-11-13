@@ -1637,7 +1637,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 	if (nand_fileio_finish(&s) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "dumped %lld byte in %fs (%0.3f kb/s)", 
+		command_print(cmd_ctx, "dumped %zu bytes in %fs (%0.3f kb/s)", 
 				s.fileio.size, duration_elapsed(&s.bench),
 				duration_kbps(&s.bench, s.fileio.size));
 	}

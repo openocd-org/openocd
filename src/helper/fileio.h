@@ -47,8 +47,8 @@ enum fileio_access
 };
 
 struct fileio {
-	char *url;
-	long long size;
+	const char *url;
+	ssize_t size;
 	enum fileio_type type;
 	enum fileio_access access;
 	FILE *file;

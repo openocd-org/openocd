@@ -750,7 +750,7 @@ COMMAND_HANDLER(mg_write_cmd)
 
 	if (duration_measure(&bench) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "wrote %lli byte from file %s "
+		command_print(cmd_ctx, "wrote %zu byte from file %s "
 				"in %fs (%0.3f kB/s)", fileio.size, args[1],
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}

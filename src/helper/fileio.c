@@ -137,7 +137,7 @@ int fileio_close(struct fileio *fileio)
 
 	retval = fileio_close_local(fileio);
 
-	free(fileio->url);
+	free((void*)fileio->url);
 	fileio->url = NULL;
 
 	return retval;

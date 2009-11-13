@@ -2543,7 +2543,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(cmd_ctx,
-				"dumped %lld bytes in %fs (%0.3f kb/s)", fileio.size,
+				"dumped %zu bytes in %fs (%0.3f kb/s)", fileio.size,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
 
