@@ -43,17 +43,6 @@ static int aduc702x_set_write_enable(target_t *target, int enable);
 #define ADUC702x_FLASH_FEEPRO		(6*4)
 #define ADUC702x_FLASH_FEEHIDE		(7*4)
 
-typedef struct {
-	uint32_t feesta;
-	uint32_t feemod;
-	uint32_t feecon;
-	uint32_t feedat;
-	uint32_t feeadr;
-	uint32_t feesign;
-	uint32_t feepro;
-	uint32_t feehide;
-} ADUC702x_FLASH_MMIO;
-
 struct aduc702x_flash_bank {
 	working_area_t *write_algorithm;
 };
