@@ -91,7 +91,7 @@ enum
 
 #define ARMV7M_COMMON_MAGIC 0x2A452A45
 
-typedef struct armv7m_common_s
+struct armv7m_common
 {
 	int common_magic;
 	reg_cache_t *core_cache;
@@ -111,9 +111,9 @@ typedef struct armv7m_common_s
 
 	void (*pre_restore_context)(target_t *target);
 	void (*post_restore_context)(target_t *target);
-} armv7m_common_t;
+};
 
-static inline struct armv7m_common_s *
+static inline struct armv7m_common *
 target_to_armv7m(struct target_s *target)
 {
 	return target->arch_info;
@@ -131,7 +131,7 @@ typedef struct armv7m_core_reg_s
 	uint32_t num;
 	enum armv7m_regtype type;
 	target_t *target;
-	armv7m_common_t *armv7m_common;
+	struct armv7m_common *armv7m_common;
 } armv7m_core_reg_t;
 
 reg_cache_t *armv7m_build_reg_cache(target_t *target);
@@ -143,7 +143,7 @@ int armv7m_get_gdb_reg_list(target_t *target,
 		reg_t **reg_list[], int *reg_list_size);
 
 int armv7m_register_commands(struct command_context_s *cmd_ctx);
-int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m);
+int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m);
 
 int armv7m_run_algorithm(struct target_s *target,
 		int num_mem_params, struct mem_param *mem_params,

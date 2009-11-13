@@ -136,7 +136,7 @@ static int armv7m_core_reg_arch_type = -1;
 int armv7m_restore_context(target_t *target)
 {
 	int i;
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	LOG_DEBUG(" ");
 
@@ -183,7 +183,7 @@ static int armv7m_get_core_reg(reg_t *reg)
 	int retval;
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -218,7 +218,7 @@ static int armv7m_read_core_reg(struct target_s *target, int num)
 	uint32_t reg_value;
 	int retval;
 	armv7m_core_reg_t * armv7m_core_reg;
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -237,7 +237,7 @@ static int armv7m_write_core_reg(struct target_s *target, int num)
 	int retval;
 	uint32_t reg_value;
 	armv7m_core_reg_t *armv7m_core_reg;
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -261,7 +261,7 @@ static int armv7m_write_core_reg(struct target_s *target, int num)
 /** Invalidates cache of core registers set up by armv7m_build_reg_cache(). */
 int armv7m_invalidate_core_regs(target_t *target)
 {
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;
 
 	for (i = 0; i < armv7m->core_cache->num_regs; i++)
@@ -281,7 +281,7 @@ int armv7m_invalidate_core_regs(target_t *target)
  */
 int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
 {
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;
 
 	*reg_list_size = 26;
@@ -321,7 +321,7 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 }
 
 /* run to exit point. return error if exit point was not reached. */
-static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, int timeout_ms, uint32_t exit_point, armv7m_common_t *armv7m)
+static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, int timeout_ms, uint32_t exit_point, struct armv7m_common *armv7m)
 {
 	uint32_t pc;
 	int retval;
@@ -362,7 +362,7 @@ int armv7m_run_algorithm(struct target_s *target,
 	uint32_t entry_point, uint32_t exit_point,
 	int timeout_ms, void *arch_info)
 {
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	armv7m_algorithm_t *armv7m_algorithm_info = arch_info;
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
@@ -503,7 +503,7 @@ int armv7m_run_algorithm(struct target_s *target,
 /** Logs summary of ARMv7-M state for a halted target. */
 int armv7m_arch_state(struct target_s *target)
 {
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	uint32_t ctrl, sp;
 
 	ctrl = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
@@ -526,7 +526,7 @@ int armv7m_arch_state(struct target_s *target)
 /** Builds cache of architecturally defined registers.  */
 reg_cache_t *armv7m_build_reg_cache(target_t *target)
 {
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int num_regs = ARMV7M_NUM_REGS;
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
@@ -573,7 +573,7 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 }
 
 /** Sets up target as a generic ARMv7-M core */
-int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
+int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m)
 {
 	/* register arch-specific functions */
 
@@ -748,7 +748,7 @@ int armv7m_blank_check_memory(struct target_s *target,
 COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel, apselsave, baseaddr;
 	int retval;
@@ -785,7 +785,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 COMMAND_HANDLER(handle_dap_apid_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	return CALL_COMMAND_HANDLER(dap_apid_command, swjdp);
@@ -794,7 +794,7 @@ COMMAND_HANDLER(handle_dap_apid_command)
 COMMAND_HANDLER(handle_dap_apsel_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	return CALL_COMMAND_HANDLER(dap_apsel_command, swjdp);
@@ -803,7 +803,7 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 COMMAND_HANDLER(handle_dap_memaccess_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
 	return CALL_COMMAND_HANDLER(dap_memaccess_command, swjdp);
@@ -813,7 +813,7 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 COMMAND_HANDLER(handle_dap_info_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct armv7m_common_s *armv7m = target_to_armv7m(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
 

@@ -160,7 +160,7 @@ typedef struct cortex_m3_common_s
 	cortex_m3_dwt_comparator_t *dwt_comparator_list;
 	struct reg_cache_s *dwt_cache;
 
-	armv7m_common_t armv7m;
+	struct armv7m_common armv7m;
 } cortex_m3_common_t;
 
 static inline struct cortex_m3_common_s *
