@@ -22,33 +22,33 @@
 
 #include "command.h"
 
-struct pld_device_s;
+struct pld_device;
 
 #define __PLD_DEVICE_COMMAND(name) \
-		COMMAND_HELPER(name, struct pld_device_s *pld)
+		COMMAND_HELPER(name, struct pld_device *pld)
 
 struct pld_driver
 {
 	char *name;
 	__PLD_DEVICE_COMMAND((*pld_device_command));
 	int (*register_commands)(struct command_context_s *cmd_ctx);
-	int (*load)(struct pld_device_s *pld_device, const char *filename);
+	int (*load)(struct pld_device *pld_device, const char *filename);
 };
 
 #define PLD_DEVICE_COMMAND_HANDLER(name) static __PLD_DEVICE_COMMAND(name)
 
-typedef struct pld_device_s
+struct pld_device
 {
 	struct pld_driver *driver;
 	void *driver_priv;
-	struct pld_device_s *next;
-} pld_device_t;
+	struct pld_device *next;
+};
 
 int pld_register_commands(struct command_context_s *cmd_ctx);
 
 int pld_init(struct command_context_s *cmd_ctx);
 
-pld_device_t *get_pld_device_by_num(int num);
+struct pld_device *get_pld_device_by_num(int num);
 
 #define ERROR_PLD_DEVICE_INVALID	(-1000)
 #define ERROR_PLD_FILE_LOAD_FAILED	(-1001)

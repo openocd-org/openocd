@@ -36,12 +36,12 @@ static struct pld_driver *pld_drivers[] =
 	NULL,
 };
 
-static pld_device_t *pld_devices;
+static struct pld_device *pld_devices;
 static command_t *pld_cmd;
 
-pld_device_t *get_pld_device_by_num(int num)
+struct pld_device *get_pld_device_by_num(int num)
 {
-	pld_device_t *p;
+	struct pld_device *p;
 	int i = 0;
 
 	for (p = pld_devices; p; p = p->next)
@@ -72,7 +72,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 	{
 		if (strcmp(args[0], pld_drivers[i]->name) == 0)
 		{
-			pld_device_t *p, *c;
+			struct pld_device *p, *c;
 
 			/* register pld specific commands */
 			if (pld_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
@@ -81,7 +81,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 				exit(-1);
 			}
 
-			c = malloc(sizeof(pld_device_t));
+			c = malloc(sizeof(struct pld_device));
 			c->driver = pld_drivers[i];
 			c->next = NULL;
 
@@ -122,7 +122,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 
 COMMAND_HANDLER(handle_pld_devices_command)
 {
-	pld_device_t *p;
+	struct pld_device *p;
 	int i = 0;
 
 	if (!pld_devices)
@@ -143,7 +143,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 {
 	int retval;
 	struct timeval start, end, duration;
-	pld_device_t *p;
+	struct pld_device *p;
 
 	gettimeofday(&start, NULL);
 

@@ -49,7 +49,7 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 	return ERROR_OK;
 }
 
-static int virtex2_send_32(struct pld_device_s *pld_device,
+static int virtex2_send_32(struct pld_device *pld_device,
 		int num_words, uint32_t *words)
 {
 	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
@@ -82,7 +82,7 @@ static __inline__ void virtexflip32(jtag_callback_data_t arg)
 	*((uint32_t *)in) = flip_u32(le_to_h_u32(in), 32);
 }
 
-static int virtex2_receive_32(struct pld_device_s *pld_device,
+static int virtex2_receive_32(struct pld_device *pld_device,
 		int num_words, uint32_t *words)
 {
 	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
@@ -109,7 +109,7 @@ static int virtex2_receive_32(struct pld_device_s *pld_device,
 	return ERROR_OK;
 }
 
-static int virtex2_read_stat(struct pld_device_s *pld_device, uint32_t *status)
+static int virtex2_read_stat(struct pld_device *pld_device, uint32_t *status)
 {
 	uint32_t data[5];
 
@@ -131,7 +131,7 @@ static int virtex2_read_stat(struct pld_device_s *pld_device, uint32_t *status)
 	return ERROR_OK;
 }
 
-static int virtex2_load(struct pld_device_s *pld_device, const char *filename)
+static int virtex2_load(struct pld_device *pld_device, const char *filename)
 {
 	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
 	struct xilinx_bit_file bit_file;
@@ -179,7 +179,7 @@ static int virtex2_load(struct pld_device_s *pld_device, const char *filename)
 
 COMMAND_HANDLER(virtex2_handle_read_stat_command)
 {
-	pld_device_t *device;
+	struct pld_device *device;
 	struct virtex2_pld_device *virtex2_info;
 	uint32_t status;
 
