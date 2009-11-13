@@ -127,14 +127,14 @@ struct cortex_m3_fp_comparator
 	uint32_t fpcr_address;
 };
 
-typedef struct  cortex_m3_dwt_comparator_s
+struct cortex_m3_dwt_comparator
 {
 	int used;
 	uint32_t comp;
 	uint32_t mask;
 	uint32_t function;
 	uint32_t dwt_comparator_address;
-} cortex_m3_dwt_comparator_t;
+};
 
 struct cortex_m3_common
 {
@@ -157,7 +157,7 @@ struct cortex_m3_common
 	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
 	int dwt_comp_available;
-	cortex_m3_dwt_comparator_t *dwt_comparator_list;
+	struct cortex_m3_dwt_comparator *dwt_comparator_list;
 	struct reg_cache *dwt_cache;
 
 	struct armv7m_common armv7m;

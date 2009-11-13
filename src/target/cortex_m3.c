@@ -178,7 +178,7 @@ static int cortex_m3_endreset_event(target_t *target)
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	struct cortex_m3_fp_comparator *fp_list = cortex_m3->fp_comparator_list;
-	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
+	struct cortex_m3_dwt_comparator *dwt_list = cortex_m3->dwt_comparator_list;
 
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
 	LOG_DEBUG("DCB_DEMCR = 0x%8.8" PRIx32 "",dcb_demcr);
@@ -1052,7 +1052,7 @@ cortex_m3_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 	 * watchpoint using comparator #1; comparator #0 matching cycle
 	 * count; send data trace info through ITM and TPIU; etc
 	 */
-	cortex_m3_dwt_comparator_t *comparator;
+	struct cortex_m3_dwt_comparator *comparator;
 
 	for (comparator = cortex_m3->dwt_comparator_list;
 			comparator->used && dwt_num < cortex_m3->dwt_num_comp;
@@ -1100,7 +1100,7 @@ static int
 cortex_m3_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
-	cortex_m3_dwt_comparator_t *comparator;
+	struct cortex_m3_dwt_comparator *comparator;
 	int dwt_num;
 
 	if (!watchpoint->set)
@@ -1517,7 +1517,7 @@ cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target_s *target)
 {
 	uint32_t dwtcr;
 	struct reg_cache *cache;
-	cortex_m3_dwt_comparator_t *comparator;
+	struct cortex_m3_dwt_comparator *comparator;
 	int reg, i;
 
 	target_read_u32(target, DWT_CTRL, &dwtcr);
@@ -1533,7 +1533,7 @@ cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target_s *target)
 	cm3->dwt_num_comp = (dwtcr >> 28) & 0xF;
 	cm3->dwt_comp_available = cm3->dwt_num_comp;
 	cm3->dwt_comparator_list = calloc(cm3->dwt_num_comp,
-			sizeof(cortex_m3_dwt_comparator_t));
+			sizeof(struct cortex_m3_dwt_comparator));
 	if (!cm3->dwt_comparator_list) {
 fail0:
 		cm3->dwt_num_comp = 0;
