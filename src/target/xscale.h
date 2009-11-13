@@ -78,7 +78,7 @@ typedef struct xscale_trace_s
 	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
 } xscale_trace_t;
 
-typedef struct xscale_common_s
+struct xscale_common
 {
 	/* armv4/5 common stuff */
 	armv4_5_common_t armv4_5_common;
@@ -129,12 +129,12 @@ typedef struct xscale_common_s
 	uint32_t cp15_control_reg;
 
 	int fast_memory_access;
-} xscale_common_t;
+};
 
-static inline struct xscale_common_s *
+static inline struct xscale_common *
 target_to_xscale(struct target_s *target)
 {
-	return container_of(target->arch_info, struct xscale_common_s,
+	return container_of(target->arch_info, struct xscale_common,
 			armv4_5_common);
 }
 
