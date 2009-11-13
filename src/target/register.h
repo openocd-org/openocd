@@ -33,7 +33,7 @@ struct bitfield_desc
 	int num_bits;
 };
 
-typedef struct reg_s
+struct reg
 {
 	char *name;
 	void *value;
@@ -44,32 +44,32 @@ typedef struct reg_s
 	int num_bitfields;
 	void *arch_info;
 	int arch_type;
-} reg_t;
+};
 
 struct reg_cache
 {
 	char *name;
 	struct reg_cache *next;
-	reg_t *reg_list;
+	struct reg *reg_list;
 	int num_regs;
 };
 
 struct reg_arch_type
 {
 	int id;
-	int (*get)(reg_t *reg);
-	int (*set)(reg_t *reg, uint8_t *buf);
+	int (*get)(struct reg *reg);
+	int (*set)(struct reg *reg, uint8_t *buf);
 	struct reg_arch_type *next;
 };
 
-reg_t* register_get_by_name(struct reg_cache *first,
+struct reg* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all);
 struct reg_cache** register_get_last_cache_p(struct reg_cache **first);
 
-int register_reg_arch_type(int (*get)(reg_t *reg),
-		int (*set)(reg_t *reg, uint8_t *buf));
+int register_reg_arch_type(int (*get)(struct reg *reg),
+		int (*set)(struct reg *reg, uint8_t *buf));
 struct reg_arch_type* register_get_arch_type(int id);
 
-void register_init_dummy(reg_t *reg);
+void register_init_dummy(struct reg *reg);
 
 #endif /* REGISTER_H */

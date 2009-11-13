@@ -622,7 +622,7 @@ int target_remove_watchpoint(struct target_s *target,
 }
 
 int target_get_gdb_reg_list(struct target_s *target,
-		struct reg_s **reg_list[], int *reg_list_size)
+		struct reg **reg_list[], int *reg_list_size)
 {
 	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size);
 }
@@ -1865,7 +1865,7 @@ int handle_target(void *priv)
 COMMAND_HANDLER(handle_reg_command)
 {
 	target_t *target;
-	reg_t *reg = NULL;
+	struct reg *reg = NULL;
 	int count = 0;
 	char *value;
 
@@ -3042,7 +3042,7 @@ COMMAND_HANDLER(handle_profile_command)
 
 	int numSamples = 0;
 	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
-	reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
+	struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
 
 	for (;;)
 	{

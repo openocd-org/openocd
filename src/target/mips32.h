@@ -150,6 +150,6 @@ int mips32_register_commands(struct command_context_s *cmd_ctx);
 
 int mips32_invalidate_core_regs(target_t *target);
 int mips32_get_gdb_reg_list(target_t *target,
-		reg_t **reg_list[], int *reg_list_size);
+		struct reg **reg_list[], int *reg_list_size);
 
 #endif	/*MIPS32_H*/

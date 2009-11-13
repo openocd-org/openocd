@@ -104,7 +104,7 @@ struct arm11_common
 	/** \name Shadow registers to save processor state */
 	/*@{*/
 
-	reg_t *	reg_list;							/**< target register list */
+	struct reg *	reg_list;							/**< target register list */
 	uint32_t		reg_values[ARM11_REGCACHE_COUNT];	/**< data for registers */
 
 	/*@}*/

@@ -155,19 +155,19 @@ int armv4_5_core_reg_map[7][17] =
 
 uint8_t armv4_5_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-reg_t armv4_5_gdb_dummy_fp_reg =
+struct reg armv4_5_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", armv4_5_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
 uint8_t armv4_5_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
-reg_t armv4_5_gdb_dummy_fps_reg =
+struct reg armv4_5_gdb_dummy_fps_reg =
 {
 	"GDB dummy floating-point status register", armv4_5_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
 
-int armv4_5_get_core_reg(reg_t *reg)
+int armv4_5_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
@@ -185,7 +185,7 @@ int armv4_5_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int armv4_5_set_core_reg(reg_t *reg, uint8_t *buf)
+int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
@@ -253,7 +253,7 @@ struct reg_cache* armv4_5_build_reg_cache(target_t *target, struct arm *armv4_5_
 {
 	int num_regs = 37;
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
+	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
 	struct armv4_5_core_reg *arch_info = malloc(sizeof(struct armv4_5_core_reg) * num_regs);
 	int i;
 
@@ -483,7 +483,7 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
+int armv4_5_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_list_size)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	int i;
@@ -492,7 +492,7 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 		return ERROR_FAIL;
 
 	*reg_list_size = 26;
-	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
+	*reg_list = malloc(sizeof(struct reg*) * (*reg_list_size));
 
 	for (i = 0; i < 16; i++)
 	{
@@ -596,7 +596,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, str
 
 	for (i = 0; i < num_reg_params; i++)
 	{
-		reg_t *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
+		struct reg *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
@@ -669,7 +669,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, str
 		if (reg_params[i].direction != PARAM_OUT)
 		{
 
-			reg_t *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
+			struct reg *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);

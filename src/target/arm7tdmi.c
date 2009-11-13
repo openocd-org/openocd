@@ -582,7 +582,7 @@ static void arm7tdmi_branch_resume_thumb(target_t *target)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	LOG_DEBUG("-");
 

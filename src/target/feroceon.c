@@ -406,7 +406,7 @@ void feroceon_set_dbgrq(target_t *target)
 {
 	struct arm *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	buf_set_u32(dbg_ctrl->value, 0, 8, 2);
 	embeddedice_store_reg(dbg_ctrl);

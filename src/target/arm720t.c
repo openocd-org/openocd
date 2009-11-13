@@ -304,7 +304,7 @@ static int arm720t_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	reg_t *dbg_stat = &arm720t->arm7tdmi_common.arm7_9_common
+	struct reg *dbg_stat = &arm720t->arm7tdmi_common.arm7_9_common
 			.eice_cache->reg_list[EICE_DBG_STAT];
 	struct armv4_5_common_s *armv4_5 = &arm720t->arm7tdmi_common
 			.arm7_9_common.armv4_5_common;

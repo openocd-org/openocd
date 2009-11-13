@@ -61,8 +61,8 @@ static int xscale_resume(struct target_s *, int current,
 	uint32_t address, int handle_breakpoints, int debug_execution);
 static int xscale_debug_entry(target_t *);
 static int xscale_restore_context(target_t *);
-static int xscale_get_reg(reg_t *reg);
-static int xscale_set_reg(reg_t *reg, uint8_t *buf);
+static int xscale_get_reg(struct reg *reg);
+static int xscale_set_reg(struct reg *reg, uint8_t *buf);
 static int xscale_set_breakpoint(struct target_s *, struct breakpoint *);
 static int xscale_set_watchpoint(struct target_s *, struct watchpoint *);
 static int xscale_unset_breakpoint(struct target_s *, struct breakpoint *);
@@ -135,7 +135,7 @@ static const struct xscale_reg xscale_reg_arch_info[] =
 static int xscale_reg_arch_type = -1;
 
 /* convenience wrapper to access XScale specific registers */
-static int xscale_set_reg_u32(reg_t *reg, uint32_t value)
+static int xscale_set_reg_u32(struct reg *reg, uint32_t value)
 {
 	uint8_t buf[4];
 
@@ -1125,7 +1125,7 @@ static int xscale_halt(target_t *target)
 static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
+	struct reg *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
 	int retval;
 
 	if (xscale->ibcr0_used)
@@ -1152,7 +1152,7 @@ static int xscale_enable_single_step(struct target_s *target, uint32_t next_pc)
 static int xscale_disable_single_step(struct target_s *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
+	struct reg *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
 	int retval;
 
 	if ((retval = xscale_set_reg_u32(ibcr0, 0x0)) != ERROR_OK)
@@ -2230,7 +2230,7 @@ static int xscale_set_watchpoint(struct target_s *target,
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint8_t enable = 0;
-	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
+	struct reg *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	uint32_t dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
 	if (target->state != TARGET_HALTED)
@@ -2311,7 +2311,7 @@ static int xscale_unset_watchpoint(struct target_s *target,
 		struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
+	struct reg *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	uint32_t dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
 	if (target->state != TARGET_HALTED)
@@ -2363,7 +2363,7 @@ static int xscale_remove_watchpoint(struct target_s *target, struct watchpoint *
 	return ERROR_OK;
 }
 
-static int xscale_get_reg(reg_t *reg)
+static int xscale_get_reg(struct reg *reg)
 {
 	struct xscale_reg *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
@@ -2408,7 +2408,7 @@ static int xscale_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-static int xscale_set_reg(reg_t *reg, uint8_t* buf)
+static int xscale_set_reg(struct reg *reg, uint8_t* buf)
 {
 	struct xscale_reg *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
@@ -2455,7 +2455,7 @@ static int xscale_set_reg(reg_t *reg, uint8_t* buf)
 static int xscale_write_dcsr_sw(target_t *target, uint32_t value)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	reg_t *dcsr = &xscale->reg_cache->reg_list[XSCALE_DCSR];
+	struct reg *dcsr = &xscale->reg_cache->reg_list[XSCALE_DCSR];
 	struct xscale_reg *dcsr_arch_info = dcsr->arch_info;
 
 	/* send CP write request (command 0x41) */
@@ -2839,7 +2839,7 @@ static void xscale_build_reg_cache(target_t *target)
 	/* fill in values for the xscale reg cache */
 	(*cache_p)->name = "XScale registers";
 	(*cache_p)->next = NULL;
-	(*cache_p)->reg_list = malloc(num_regs * sizeof(reg_t));
+	(*cache_p)->reg_list = malloc(num_regs * sizeof(struct reg));
 	(*cache_p)->num_regs = num_regs;
 
 	for (i = 0; i < num_regs; i++)
@@ -3503,7 +3503,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 		return ERROR_OK;
 	}
 	uint32_t reg_no = 0;
-	reg_t *reg = NULL;
+	struct reg *reg = NULL;
 	if (argc > 0)
 	{
 		COMMAND_PARSE_NUMBER(u32, args[0], reg_no);

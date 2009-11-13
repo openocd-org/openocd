@@ -40,7 +40,7 @@ static char* etb_reg_list[] =
 
 static int etb_reg_arch_type = -1;
 
-static int etb_get_reg(reg_t *reg);
+static int etb_get_reg(struct reg *reg);
 
 static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 {
@@ -94,15 +94,15 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 	return ERROR_OK;
 }
 
-static int etb_read_reg_w_check(reg_t *, uint8_t *, uint8_t *);
-static int etb_set_reg_w_exec(reg_t *, uint8_t *);
+static int etb_read_reg_w_check(struct reg *, uint8_t *, uint8_t *);
+static int etb_set_reg_w_exec(struct reg *, uint8_t *);
 
-static int etb_read_reg(reg_t *reg)
+static int etb_read_reg(struct reg *reg)
 {
 	return etb_read_reg_w_check(reg, NULL, NULL);
 }
 
-static int etb_get_reg(reg_t *reg)
+static int etb_get_reg(struct reg *reg)
 {
 	int retval;
 
@@ -124,7 +124,7 @@ static int etb_get_reg(reg_t *reg)
 struct reg_cache* etb_build_reg_cache(struct etb *etb)
 {
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
-	reg_t *reg_list = NULL;
+	struct reg *reg_list = NULL;
 	struct etb_reg *arch_info = NULL;
 	int num_regs = 9;
 	int i;
@@ -134,7 +134,7 @@ struct reg_cache* etb_build_reg_cache(struct etb *etb)
 		etb_reg_arch_type = register_reg_arch_type(etb_get_reg, etb_set_reg_w_exec);
 
 	/* the actual registers are kept in two arrays */
-	reg_list = calloc(num_regs, sizeof(reg_t));
+	reg_list = calloc(num_regs, sizeof(struct reg));
 	arch_info = calloc(num_regs, sizeof(struct etb_reg));
 
 	/* fill in values for the reg cache */
@@ -224,7 +224,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	return ERROR_OK;
 }
 
-static int etb_read_reg_w_check(reg_t *reg,
+static int etb_read_reg_w_check(struct reg *reg,
 		uint8_t* check_value, uint8_t* check_mask)
 {
 	struct etb_reg *etb_reg = reg->arch_info;
@@ -278,9 +278,9 @@ static int etb_read_reg_w_check(reg_t *reg,
 	return ERROR_OK;
 }
 
-static int etb_write_reg(reg_t *, uint32_t);
+static int etb_write_reg(struct reg *, uint32_t);
 
-static int etb_set_reg(reg_t *reg, uint32_t value)
+static int etb_set_reg(struct reg *reg, uint32_t value)
 {
 	int retval;
 
@@ -297,7 +297,7 @@ static int etb_set_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-static int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
+static int etb_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -311,7 +311,7 @@ static int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static int etb_write_reg(reg_t *reg, uint32_t value)
+static int etb_write_reg(struct reg *reg, uint32_t value)
 {
 	struct etb_reg *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
@@ -435,8 +435,8 @@ static int etb_init(struct etm_context *etm_ctx)
 static trace_status_t etb_status(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
-	reg_t *control = &etb->reg_cache->reg_list[ETB_CTRL];
-	reg_t *status = &etb->reg_cache->reg_list[ETB_STATUS];
+	struct reg *control = &etb->reg_cache->reg_list[ETB_CTRL];
+	struct reg *status = &etb->reg_cache->reg_list[ETB_STATUS];
 	trace_status_t retval = 0;
 	int etb_timeout = 100;
 
@@ -671,7 +671,7 @@ static int etb_start_capture(struct etm_context *etm_ctx)
 static int etb_stop_capture(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
-	reg_t *etb_ctrl_reg = &etb->reg_cache->reg_list[ETB_CTRL];
+	struct reg *etb_ctrl_reg = &etb->reg_cache->reg_list[ETB_CTRL];
 
 	etb_write_reg(etb_ctrl_reg, 0x0);
 	jtag_execute_queue();

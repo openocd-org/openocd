@@ -30,7 +30,7 @@
 
 struct reg_arch_type *reg_arch_types = NULL;
 
-reg_t* register_get_by_name(struct reg_cache *first,
+struct reg* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
 {
 	int i;
@@ -66,7 +66,7 @@ struct reg_cache** register_get_last_cache_p(struct reg_cache **first)
 	return cache_p;
 }
 
-int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, uint8_t *buf))
+int register_reg_arch_type(int (*get)(struct reg *reg), int (*set)(struct reg *reg, uint8_t *buf))
 {
 	struct reg_arch_type** arch_type_p = &reg_arch_types;
 	int id = 0;
@@ -104,12 +104,12 @@ struct reg_arch_type* register_get_arch_type(int id)
 	return NULL;
 }
 
-static int register_get_dummy_core_reg(reg_t *reg)
+static int register_get_dummy_core_reg(struct reg *reg)
 {
 	return ERROR_OK;
 }
 
-static int register_set_dummy_core_reg(reg_t *reg, uint8_t *buf)
+static int register_set_dummy_core_reg(struct reg *reg, uint8_t *buf)
 {
 	reg->dirty = 1;
 	reg->valid = 1;
@@ -117,7 +117,7 @@ static int register_set_dummy_core_reg(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-void register_init_dummy(reg_t *reg)
+void register_init_dummy(struct reg *reg)
 {
 	static int dummy_arch_type = -1;
 	if (dummy_arch_type == -1)

@@ -863,7 +863,7 @@ static int gdb_reg_pos(target_t *target, int pos, int len)
  * The format of reg->value is little endian
  *
  */
-void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
+void gdb_str_to_target(target_t *target, char *tstr, struct reg *reg)
 {
 	int i;
 
@@ -917,7 +917,7 @@ void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
 
 int gdb_get_registers_packet(struct connection *connection, target_t *target, char* packet, int packet_size)
 {
-	reg_t **reg_list;
+	struct reg **reg_list;
 	int reg_list_size;
 	int retval;
 	int reg_packet_size = 0;
@@ -968,7 +968,7 @@ int gdb_get_registers_packet(struct connection *connection, target_t *target, ch
 int gdb_set_registers_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	int i;
-	reg_t **reg_list;
+	struct reg **reg_list;
 	int reg_list_size;
 	int retval;
 	char *packet_p;
@@ -1019,7 +1019,7 @@ int gdb_set_registers_packet(struct connection *connection, target_t *target, ch
 		free(bin_buf);
 	}
 
-	/* free reg_t *reg_list[] array allocated by get_gdb_reg_list */
+	/* free struct reg *reg_list[] array allocated by get_gdb_reg_list */
 	free(reg_list);
 
 	gdb_put_packet(connection, "OK", 2);
@@ -1031,7 +1031,7 @@ int gdb_get_register_packet(struct connection *connection, target_t *target, cha
 {
 	char *reg_packet;
 	int reg_num = strtoul(packet + 1, NULL, 16);
-	reg_t **reg_list;
+	struct reg **reg_list;
 	int reg_list_size;
 	int retval;
 
@@ -1067,7 +1067,7 @@ int gdb_set_register_packet(struct connection *connection, target_t *target, cha
 	char *separator;
 	uint8_t *bin_buf;
 	int reg_num = strtoul(packet + 1, &separator, 16);
-	reg_t **reg_list;
+	struct reg **reg_list;
 	int reg_list_size;
 	int retval;
 	struct reg_arch_type *arch_type;

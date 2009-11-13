@@ -555,7 +555,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
 	{

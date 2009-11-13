@@ -167,7 +167,7 @@ int armv7a_core_reg_map[8][17] =
 
 uint8_t armv7a_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-reg_t armv7a_gdb_dummy_fp_reg =
+struct reg armv7a_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", armv7a_gdb_dummy_fp_value,
 			0, 1, 96, NULL, 0, NULL, 0

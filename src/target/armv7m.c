@@ -61,14 +61,14 @@ static uint8_t armv7m_gdb_dummy_fp_value[12] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-static reg_t armv7m_gdb_dummy_fp_reg =
+static struct reg armv7m_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", armv7m_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
 static uint8_t armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
-static reg_t armv7m_gdb_dummy_fps_reg =
+static struct reg armv7m_gdb_dummy_fps_reg =
 {
 	"GDB dummy floating-point status register", armv7m_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
@@ -76,7 +76,7 @@ static reg_t armv7m_gdb_dummy_fps_reg =
 #ifdef ARMV7_GDB_HACKS
 uint8_t armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
 
-reg_t armv7m_gdb_dummy_cpsr_reg =
+struct reg armv7m_gdb_dummy_cpsr_reg =
 {
 	"GDB dummy cpsr register", armv7m_gdb_dummy_cpsr_value, 0, 1, 32, NULL, 0, NULL, 0
 };
@@ -178,7 +178,7 @@ char *armv7m_exception_string(int number)
 	return enamebuf;
 }
 
-static int armv7m_get_core_reg(reg_t *reg)
+static int armv7m_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct armv7m_core_reg *armv7m_reg = reg->arch_info;
@@ -195,7 +195,7 @@ static int armv7m_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-static int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
+static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct armv7m_core_reg *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
@@ -279,13 +279,13 @@ int armv7m_invalidate_core_regs(target_t *target)
  * hardware, so this also fakes a set of long-obsolete FPA registers that
  * are not used in EABI based software stacks.
  */
-int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
+int armv7m_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_list_size)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;
 
 	*reg_list_size = 26;
-	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
+	*reg_list = malloc(sizeof(struct reg*) * (*reg_list_size));
 
 	/*
 	 * GDB register packet format for ARM:
@@ -398,7 +398,7 @@ int armv7m_run_algorithm(struct target_s *target,
 
 	for (i = 0; i < num_reg_params; i++)
 	{
-		reg_t *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
+		struct reg *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
 //		uint32_t regvalue;
 
 		if (!reg)
@@ -462,7 +462,7 @@ int armv7m_run_algorithm(struct target_s *target,
 	{
 		if (reg_params[i].direction != PARAM_OUT)
 		{
-			reg_t *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
+			struct reg *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
 
 			if (!reg)
 			{
@@ -530,7 +530,7 @@ struct reg_cache *armv7m_build_reg_cache(target_t *target)
 	int num_regs = ARMV7M_NUM_REGS;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	reg_t *reg_list = calloc(num_regs, sizeof(reg_t));
+	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct armv7m_core_reg *arch_info = calloc(num_regs, sizeof(struct armv7m_core_reg));
 	int i;
 

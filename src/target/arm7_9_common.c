@@ -704,7 +704,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* set RESTART instruction */
 	jtag_set_end_state(TAP_IDLE);
@@ -757,7 +757,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* set RESTART instruction */
 	jtag_set_end_state(TAP_IDLE);
@@ -834,7 +834,7 @@ int arm7_9_handle_target_request(void *priv)
 		return ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
-	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
+	struct reg *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
 
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;
@@ -891,7 +891,7 @@ int arm7_9_poll(target_t *target)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* read debug status register */
 	embeddedice_read_reg(dbg_stat);
@@ -931,7 +931,7 @@ int arm7_9_poll(target_t *target)
 
 			if (check_pc)
 			{
-				reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
+				struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
 				uint32_t t=*((uint32_t *)reg->value);
 				if (t != 0)
 				{
@@ -1115,7 +1115,7 @@ int arm7_9_deassert_reset(target_t *target)
 int arm7_9_clear_halt(target_t *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	/* we used DBGRQ only if we didn't come out of reset */
 	if (!arm7_9->debug_entry_from_reset && arm7_9->use_dbgrq)
@@ -1173,8 +1173,8 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int i;
 	int retval;
 
@@ -1291,7 +1291,7 @@ int arm7_9_halt(target_t *target)
 	}
 
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	LOG_DEBUG("target->state: %s",
 		  target_state_name(target));
@@ -1354,8 +1354,8 @@ int arm7_9_debug_entry(target_t *target)
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 #ifdef _DEBUG_ARM7_9_
 	LOG_DEBUG("-");
@@ -1599,7 +1599,7 @@ int arm7_9_restore_context(target_t *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	reg_t *reg;
+	struct reg *reg;
 	struct armv4_5_core_reg *reg_arch_info;
 	enum armv4_5_mode current_mode = armv4_5->core_mode;
 	int i, j;
@@ -1803,7 +1803,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	struct breakpoint *breakpoint = target->breakpoints;
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int err, retval = ERROR_OK;
 
 	LOG_DEBUG("-");
@@ -2409,7 +2409,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	uint32_t reg[16];
 	uint32_t num_accesses = 0;

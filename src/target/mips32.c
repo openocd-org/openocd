@@ -88,14 +88,14 @@ struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 
 uint8_t mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
 
-reg_t mips32_gdb_dummy_fp_reg =
+struct reg mips32_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", mips32_gdb_dummy_fp_value, 0, 1, 32, NULL, 0, NULL, 0
 };
 
 int mips32_core_reg_arch_type = -1;
 
-int mips32_get_core_reg(reg_t *reg)
+int mips32_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
@@ -112,7 +112,7 @@ int mips32_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
+int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
@@ -186,7 +186,7 @@ int mips32_invalidate_core_regs(target_t *target)
 	return ERROR_OK;
 }
 
-int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
+int mips32_get_gdb_reg_list(target_t *target, struct reg **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -194,7 +194,7 @@ int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 
 	/* include floating point registers */
 	*reg_list_size = MIPS32NUMCOREREGS + MIPS32NUMFPREGS;
-	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
+	*reg_list = malloc(sizeof(struct reg*) * (*reg_list_size));
 
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
 	{
@@ -279,7 +279,7 @@ struct reg_cache *mips32_build_reg_cache(target_t *target)
 	int num_regs = MIPS32NUMCOREREGS;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
+	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
 	struct mips32_core_reg *arch_info = malloc(sizeof(struct mips32_core_reg) * num_regs);
 	int i;
 

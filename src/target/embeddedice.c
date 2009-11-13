@@ -146,7 +146,7 @@ static const struct {
 
 static int embeddedice_reg_arch_type = -1;
 
-static int embeddedice_get_reg(reg_t *reg)
+static int embeddedice_get_reg(struct reg *reg)
 {
 	int retval;
 
@@ -168,7 +168,7 @@ embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 {
 	int retval;
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
-	reg_t *reg_list = NULL;
+	struct reg *reg_list = NULL;
 	struct embeddedice_reg *arch_info = NULL;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int num_regs = ARRAY_SIZE(eice_regs);
@@ -185,7 +185,7 @@ embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 		num_regs--;
 
 	/* the actual registers are kept in two arrays */
-	reg_list = calloc(num_regs, sizeof(reg_t));
+	reg_list = calloc(num_regs, sizeof(struct reg));
 	arch_info = calloc(num_regs, sizeof(struct embeddedice_reg));
 
 	/* fill in values for the reg cache */
@@ -312,7 +312,7 @@ int embeddedice_setup(target_t *target)
 	 */
 	if (arm7_9->has_monitor_mode)
 	{
-		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+		struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 		embeddedice_read_reg(dbg_ctrl);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -328,7 +328,7 @@ int embeddedice_setup(target_t *target)
  * optionally checking the value read.
  * Note that at this level, all registers are 32 bits wide.
  */
-int embeddedice_read_reg_w_check(reg_t *reg,
+int embeddedice_read_reg_w_check(struct reg *reg,
 		uint8_t *check_value, uint8_t *check_mask)
 {
 	struct embeddedice_reg *ice_reg = reg->arch_info;
@@ -449,7 +449,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
  * Queue a read for an EmbeddedICE register into the register cache,
  * not checking the value read.
  */
-int embeddedice_read_reg(reg_t *reg)
+int embeddedice_read_reg(struct reg *reg)
 {
 	return embeddedice_read_reg_w_check(reg, NULL, NULL);
 }
@@ -458,7 +458,7 @@ int embeddedice_read_reg(reg_t *reg)
  * Queue a write for an EmbeddedICE register, updating the register cache.
  * Uses embeddedice_write_reg().
  */
-void embeddedice_set_reg(reg_t *reg, uint32_t value)
+void embeddedice_set_reg(struct reg *reg, uint32_t value)
 {
 	embeddedice_write_reg(reg, value);
 
@@ -472,7 +472,7 @@ void embeddedice_set_reg(reg_t *reg, uint32_t value)
  * Write an EmbeddedICE register, updating the register cache.
  * Uses embeddedice_set_reg(); not queued.
  */
-int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf)
+int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -485,7 +485,7 @@ int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 /**
  * Queue a write for an EmbeddedICE register, bypassing the register cache.
  */
-void embeddedice_write_reg(reg_t *reg, uint32_t value)
+void embeddedice_write_reg(struct reg *reg, uint32_t value)
 {
 	struct embeddedice_reg *ice_reg = reg->arch_info;
 
@@ -504,7 +504,7 @@ void embeddedice_write_reg(reg_t *reg, uint32_t value)
  * Queue a write for an EmbeddedICE register, using cached value.
  * Uses embeddedice_write_reg().
  */
-void embeddedice_store_reg(reg_t *reg)
+void embeddedice_store_reg(struct reg *reg)
 {
 	embeddedice_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }

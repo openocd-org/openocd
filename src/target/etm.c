@@ -216,12 +216,12 @@ static const struct etm_reg_info etm_outputs[] = {
 
 static int etm_reg_arch_type = -1;
 
-static int etm_get_reg(reg_t *reg);
-static int etm_read_reg_w_check(reg_t *reg,
+static int etm_get_reg(struct reg *reg);
+static int etm_read_reg_w_check(struct reg *reg,
 		uint8_t* check_value, uint8_t* check_mask);
 static int etm_register_user_commands(struct command_context_s *cmd_ctx);
-static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf);
-static int etm_write_reg(reg_t *reg, uint32_t value);
+static int etm_set_reg_w_exec(struct reg *reg, uint8_t *buf);
+static int etm_write_reg(struct reg *reg, uint32_t value);
 
 static command_t *etm_cmd;
 
@@ -229,7 +229,7 @@ static command_t *etm_cmd;
 /* Look up register by ID ... most ETM instances only
  * support a subset of the possible registers.
  */
-static reg_t *etm_reg_lookup(struct etm_context *etm_ctx, unsigned id)
+static struct reg *etm_reg_lookup(struct etm_context *etm_ctx, unsigned id)
 {
 	struct reg_cache *cache = etm_ctx->reg_cache;
 	int i;
@@ -251,7 +251,7 @@ static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
 		struct reg_cache *cache, struct etm_reg *ereg,
 		const struct etm_reg_info *r, unsigned nreg)
 {
-	reg_t *reg = cache->reg_list;
+	struct reg *reg = cache->reg_list;
 
 	reg += cache->num_regs;
 	ereg += cache->num_regs;
@@ -283,7 +283,7 @@ struct reg_cache *etm_build_reg_cache(target_t *target,
 		struct arm_jtag *jtag_info, struct etm_context *etm_ctx)
 {
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
-	reg_t *reg_list = NULL;
+	struct reg *reg_list = NULL;
 	struct etm_reg *arch_info = NULL;
 	unsigned bcd_vers, config;
 
@@ -293,7 +293,7 @@ struct reg_cache *etm_build_reg_cache(target_t *target,
 				etm_set_reg_w_exec);
 
 	/* the actual registers are kept in two arrays */
-	reg_list = calloc(128, sizeof(reg_t));
+	reg_list = calloc(128, sizeof(struct reg));
 	arch_info = calloc(128, sizeof(struct etm_reg));
 
 	/* fill in values for the reg cache */
@@ -411,12 +411,12 @@ struct reg_cache *etm_build_reg_cache(target_t *target,
 	return reg_cache;
 }
 
-static int etm_read_reg(reg_t *reg)
+static int etm_read_reg(struct reg *reg)
 {
 	return etm_read_reg_w_check(reg, NULL, NULL);
 }
 
-static int etm_store_reg(reg_t *reg)
+static int etm_store_reg(struct reg *reg)
 {
 	return etm_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
@@ -427,7 +427,7 @@ int etm_setup(target_t *target)
 	uint32_t etm_ctrl_value;
 	struct arm *arm = target_to_arm(target);
 	struct etm_context *etm_ctx = arm->etm;
-	reg_t *etm_ctrl_reg;
+	struct reg *etm_ctrl_reg;
 
 	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
 	if (!etm_ctrl_reg)
@@ -467,7 +467,7 @@ int etm_setup(target_t *target)
 	return ERROR_OK;
 }
 
-static int etm_get_reg(reg_t *reg)
+static int etm_get_reg(struct reg *reg)
 {
 	int retval;
 
@@ -486,7 +486,7 @@ static int etm_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-static int etm_read_reg_w_check(reg_t *reg,
+static int etm_read_reg_w_check(struct reg *reg,
 		uint8_t* check_value, uint8_t* check_mask)
 {
 	struct etm_reg *etm_reg = reg->arch_info;
@@ -542,7 +542,7 @@ static int etm_read_reg_w_check(reg_t *reg,
 	return ERROR_OK;
 }
 
-static int etm_set_reg(reg_t *reg, uint32_t value)
+static int etm_set_reg(struct reg *reg, uint32_t value)
 {
 	int retval;
 
@@ -559,7 +559,7 @@ static int etm_set_reg(reg_t *reg, uint32_t value)
 	return ERROR_OK;
 }
 
-static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
+static int etm_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -573,7 +573,7 @@ static int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static int etm_write_reg(reg_t *reg, uint32_t value)
+static int etm_write_reg(struct reg *reg, uint32_t value)
 {
 	struct etm_reg *etm_reg = reg->arch_info;
 	const struct etm_reg_info *r = etm_reg->reg_info;
@@ -1340,7 +1340,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	/* only update ETM_CTRL register if tracemode changed */
 	if (etm->tracemode != tracemode)
 	{
-		reg_t *etm_ctrl_reg;
+		struct reg *etm_ctrl_reg;
 
 		etm_ctrl_reg = etm_reg_lookup(etm, ETM_CTRL);
 		if (!etm_ctrl_reg)
@@ -1524,7 +1524,7 @@ COMMAND_HANDLER(handle_etm_info_command)
 	target_t *target;
 	struct arm *arm;
 	struct etm_context *etm;
-	reg_t *etm_sys_config_reg;
+	struct reg *etm_sys_config_reg;
 	int max_port_size;
 	uint32_t config;
 
@@ -1675,7 +1675,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 
 	/* ETM status */
 	if (etm->bcd_vers >= 0x11) {
-		reg_t *reg;
+		struct reg *reg;
 
 		reg = etm_reg_lookup(etm, ETM_STATUS);
 		if (!reg)
@@ -1984,7 +1984,7 @@ COMMAND_HANDLER(handle_etm_start_command)
 	target_t *target;
 	struct arm *arm;
 	struct etm_context *etm_ctx;
-	reg_t *etm_ctrl_reg;
+	struct reg *etm_ctrl_reg;
 
 	target = get_current_target(cmd_ctx);
 	arm = target_to_arm(target);
@@ -2032,7 +2032,7 @@ COMMAND_HANDLER(handle_etm_stop_command)
 	target_t *target;
 	struct arm *arm;
 	struct etm_context *etm_ctx;
-	reg_t *etm_ctrl_reg;
+	struct reg *etm_ctrl_reg;
 
 	target = get_current_target(cmd_ctx);
 	arm = target_to_arm(target);

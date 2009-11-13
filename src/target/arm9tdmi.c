@@ -651,7 +651,7 @@ static void arm9tdmi_branch_resume_thumb(target_t *target)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* LDMIA r0-15, [r0] at debug speed
 	* register values will start to appear on 4th DCLK
@@ -860,7 +860,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	reg_t *vector_catch;
+	struct reg *vector_catch;
 	uint32_t vector_catch_value;
 
 	/* it's uncommon, but some ARM7 chips can support this */

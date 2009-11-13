@@ -248,14 +248,14 @@ enum arm11_regcache_ids
 
 static uint8_t arm11_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-static reg_t arm11_gdb_dummy_fp_reg =
+static struct reg arm11_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", arm11_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
 static uint8_t arm11_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
-static reg_t arm11_gdb_dummy_fps_reg =
+static struct reg arm11_gdb_dummy_fps_reg =
 {
 	"GDB dummy floating-point status register", arm11_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
@@ -266,8 +266,8 @@ static int arm11_step(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints);
 /* helpers */
 static int arm11_build_reg_cache(target_t *target);
-static int arm11_set_reg(reg_t *reg, uint8_t *buf);
-static int arm11_get_reg(reg_t *reg);
+static int arm11_set_reg(struct reg *reg, uint8_t *buf);
+static int arm11_get_reg(struct reg *reg);
 
 static void arm11_record_register_history(struct arm11_common * arm11);
 static void arm11_dump_reg_changes(struct arm11_common * arm11);
@@ -1245,14 +1245,14 @@ static int arm11_soft_reset_halt(struct target_s *target)
 
 /* target register access for gdb */
 static int arm11_get_gdb_reg_list(struct target_s *target,
-		struct reg_s **reg_list[], int *reg_list_size)
+		struct reg **reg_list[], int *reg_list_size)
 {
 	FNC_INFO;
 
 	struct arm11_common * arm11 = target->arch_info;
 
 	*reg_list_size	= ARM11_GDB_REGISTER_COUNT;
-	*reg_list		= malloc(sizeof(reg_t*) * ARM11_GDB_REGISTER_COUNT);
+	*reg_list		= malloc(sizeof(struct reg*) * ARM11_GDB_REGISTER_COUNT);
 
 	for (size_t i = 16; i < 24; i++)
 	{
@@ -1657,7 +1657,7 @@ static int arm11_run_algorithm(struct target_s *target,
 	// Set register parameters
 	for (int i = 0; i < num_reg_params; i++)
 	{
-		reg_t *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
+		struct reg *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
@@ -1742,7 +1742,7 @@ static int arm11_run_algorithm(struct target_s *target,
 	{
 		if (reg_params[i].direction != PARAM_OUT)
 		{
-			reg_t *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
+			struct reg *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
@@ -1891,7 +1891,7 @@ static int arm11_examine(struct target_s *target)
 
 
 /** Load a register that is marked !valid in the register cache */
-static int arm11_get_reg(reg_t *reg)
+static int arm11_get_reg(struct reg *reg)
 {
 	FNC_INFO;
 
@@ -1914,7 +1914,7 @@ static int arm11_get_reg(reg_t *reg)
 }
 
 /** Change a value in the register cache */
-static int arm11_set_reg(reg_t *reg, uint8_t *buf)
+static int arm11_set_reg(struct reg *reg, uint8_t *buf)
 {
 	FNC_INFO;
 
@@ -1934,7 +1934,7 @@ static int arm11_build_reg_cache(target_t *target)
 	struct arm11_common *arm11 = target->arch_info;
 
 	NEW(struct reg_cache,		cache,				1);
-	NEW(reg_t,				reg_list,			ARM11_REGCACHE_COUNT);
+	NEW(struct reg,				reg_list,			ARM11_REGCACHE_COUNT);
 	NEW(struct arm11_reg_state,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
 
 	if (arm11_regs_arch_type == -1)
@@ -1970,7 +1970,7 @@ static int arm11_build_reg_cache(target_t *target)
 
 	for (i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
-		reg_t *						r	= reg_list			+ i;
+		struct reg *						r	= reg_list			+ i;
 		const struct arm11_reg_defs *	rd	= arm11_reg_defs	+ i;
 		struct arm11_reg_state *			rs	= arm11_reg_states	+ i;
 

@@ -98,15 +98,15 @@ struct reg_cache* embeddedice_build_reg_cache(target_t *target,
 
 int embeddedice_setup(target_t *target);
 
-int embeddedice_read_reg(reg_t *reg);
-int embeddedice_read_reg_w_check(reg_t *reg,
+int embeddedice_read_reg(struct reg *reg);
+int embeddedice_read_reg_w_check(struct reg *reg,
 		uint8_t* check_value, uint8_t* check_mask);
 
-void embeddedice_write_reg(reg_t *reg, uint32_t value);
-void embeddedice_store_reg(reg_t *reg);
+void embeddedice_write_reg(struct reg *reg, uint32_t value);
+void embeddedice_store_reg(struct reg *reg);
 
-void embeddedice_set_reg(reg_t *reg, uint32_t value);
-int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf);
+void embeddedice_set_reg(struct reg *reg, uint32_t value);
+int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf);
 
 int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);
 int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);

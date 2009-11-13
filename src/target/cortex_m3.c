@@ -53,7 +53,7 @@ static int cortex_m3_store_core_reg_u32(target_t *target,
 
 #ifdef ARMV7_GDB_HACKS
 extern uint8_t armv7m_gdb_dummy_cpsr_value[];
-extern reg_t armv7m_gdb_dummy_cpsr_reg;
+extern struct reg armv7m_gdb_dummy_cpsr_reg;
 #endif
 
 static int cortexm3_dap_read_coreregister_u32(struct swjdp_common *swjdp,
@@ -1453,14 +1453,14 @@ struct dwt_reg_state {
 	uint32_t	value;	/* scratch/cache */
 };
 
-static int cortex_m3_dwt_get_reg(struct reg_s *reg)
+static int cortex_m3_dwt_get_reg(struct reg *reg)
 {
 	struct dwt_reg_state *state = reg->arch_info;
 
 	return target_read_u32(state->target, state->addr, &state->value);
 }
 
-static int cortex_m3_dwt_set_reg(struct reg_s *reg, uint8_t *buf)
+static int cortex_m3_dwt_set_reg(struct reg *reg, uint8_t *buf)
 {
 	struct dwt_reg_state *state = reg->arch_info;
 
@@ -1495,7 +1495,7 @@ static struct dwt_reg dwt_comp[] = {
 static int dwt_reg_type = -1;
 
 static void
-cortex_m3_dwt_addreg(struct target_s *t, struct reg_s *r, struct dwt_reg *d)
+cortex_m3_dwt_addreg(struct target_s *t, struct reg *r, struct dwt_reg *d)
 {
 	struct dwt_reg_state *state;
 

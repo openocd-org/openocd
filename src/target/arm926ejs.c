@@ -232,7 +232,7 @@ static int arm926ejs_mcr(target_t *target, int cpnum, uint32_t op1,
 static int arm926ejs_examine_debug_reason(target_t *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	int debug_reason;
 	int retval;
 
@@ -524,7 +524,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
 	{

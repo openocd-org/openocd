@@ -140,7 +140,7 @@ int armv7m_mode_to_number(enum armv7m_mode mode);
 
 int armv7m_arch_state(struct target_s *target);
 int armv7m_get_gdb_reg_list(target_t *target,
-		reg_t **reg_list[], int *reg_list_size);
+		struct reg **reg_list[], int *reg_list_size);
 
 int armv7m_register_commands(struct command_context_s *cmd_ctx);
 int armv7m_init_arch_info(target_t *target, struct armv7m_common *armv7m);
