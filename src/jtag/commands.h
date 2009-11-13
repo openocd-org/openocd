@@ -95,11 +95,10 @@ struct end_state_command {
 	tap_state_t end_state;
 };
 
-typedef struct sleep_command_s
-{
+struct sleep_command {
 	/// number of microseconds to sleep
 	uint32_t us;
-} sleep_command_t;
+};
 
 /**
  * Defines a container type that hold a pointer to a JTAG command
@@ -114,7 +113,7 @@ typedef union jtag_command_container_u
 	struct stableclocks_command* stableclocks;
 	struct reset_command*        reset;
 	struct end_state_command*    end_state;
-	sleep_command_t* sleep;
+	struct sleep_command* sleep;
 } jtag_command_container_t;
 
 /**

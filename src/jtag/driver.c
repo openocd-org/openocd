@@ -458,7 +458,7 @@ int interface_jtag_add_sleep(uint32_t us)
 
 	cmd->type = JTAG_SLEEP;
 
-	cmd->cmd.sleep = cmd_queue_alloc(sizeof(sleep_command_t));
+	cmd->cmd.sleep = cmd_queue_alloc(sizeof(struct sleep_command));
 	cmd->cmd.sleep->us = us;
 
 	return ERROR_OK;
