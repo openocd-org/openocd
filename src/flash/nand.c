@@ -1453,8 +1453,8 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 static int nand_fileio_read(struct nand_device *nand,
 		struct nand_fileio_state *s)
 {
-	uint32_t total_read = 0;
-	uint32_t one_read;
+	size_t total_read = 0;
+	size_t one_read;
 
 	if (NULL != s->page)
 	{
@@ -1616,7 +1616,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 	while (s.size > 0)
 	{
-		uint32_t size_written;
+		size_t size_written;
 		int retval = nand_read_page(nand, s.address / nand->page_size,
 				s.page, s.page_size, s.oob, s.oob_size);
 		if (ERROR_OK != retval)

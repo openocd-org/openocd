@@ -48,7 +48,7 @@ static int autodetect_image_type(struct image *image, const char *url)
 {
 	int retval;
 	struct fileio fileio;
-	uint32_t read_bytes;
+	size_t read_bytes;
 	uint8_t buffer[9];
 
 	/* read the first 4 bytes of image */
@@ -175,7 +175,7 @@ static int image_ihex_buffer_complete(struct image *image)
 		uint32_t record_type;
 		uint32_t checksum;
 		uint8_t cal_checksum = 0;
-		uint32_t bytes_read = 0;
+		size_t bytes_read = 0;
 
 		if (sscanf(&lpszLine[bytes_read], ":%2" SCNx32 "%4" SCNx32 "%2" SCNx32 , &count, &address, &record_type) != 3)
 		{
@@ -360,7 +360,7 @@ static int image_ihex_buffer_complete(struct image *image)
 static int image_elf_read_headers(struct image *image)
 {
 	struct image_elf *elf = image->type_private;
-	uint32_t read_bytes;
+	size_t read_bytes;
 	uint32_t i,j;
 	int retval;
 
@@ -458,11 +458,11 @@ static int image_elf_read_headers(struct image *image)
 	return ERROR_OK;
 }
 
-static int image_elf_read_section(struct image *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+static int image_elf_read_section(struct image *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, size_t *size_read)
 {
 	struct image_elf *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
-	uint32_t read_size,really_read;
+	size_t read_size,really_read;
 	int retval;
 
 	*size_read = 0;
@@ -474,7 +474,7 @@ static int image_elf_read_section(struct image *image, int section, uint32_t off
 	{
 		/* maximal size present in file for the current segment */
 		read_size = MIN(size, field32(elf,segment->p_filesz)-offset);
-		LOG_DEBUG("read elf: size = 0x%" PRIx32 " at 0x%" PRIx32 "",read_size,
+		LOG_DEBUG("read elf: size = 0x%zu at 0x%" PRIx32 "", read_size,
 			field32(elf,segment->p_offset) + offset);
 		/* read initialized area of the segment */
 		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset) + offset)) != ERROR_OK)
@@ -797,7 +797,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 	return retval;
 };
 
-int image_read_section(struct image *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+int image_read_section(struct image *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, size_t *size_read)
 {
 	int retval;
 

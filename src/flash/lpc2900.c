@@ -631,7 +631,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 		return ret;
 	}
 
-	uint32_t nwritten;
+	size_t nwritten;
 	ret = fileio_write( &fileio, sizeof(customer),
                         (const uint8_t *)customer, &nwritten );
 	if( ret != ERROR_OK )
@@ -755,7 +755,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	/* Page 4 */
 	uint32_t offset = ISS_CUSTOMER_START1 % FLASH_PAGE_SIZE;
 	memset( page, 0xff, FLASH_PAGE_SIZE );
-	uint32_t size_read;
+	size_t size_read;
 	retval = image_read_section( &image, 0, 0,
 	                             ISS_CUSTOMER_SIZE1, &page[offset], &size_read);
 	if( retval != ERROR_OK )

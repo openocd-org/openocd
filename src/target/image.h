@@ -102,7 +102,7 @@ struct image_mot
 
 int image_open(struct image *image, const char *url, const char *type_string);
 int image_read_section(struct image *image, int section, uint32_t offset,
-		uint32_t size, uint8_t *buffer, uint32_t *size_read);
+		uint32_t size, uint8_t *buffer, size_t *size_read);
 void image_close(struct image *image);
 
 int image_add_section(struct image *image, uint32_t base, uint32_t size,

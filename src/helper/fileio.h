@@ -58,13 +58,13 @@ int fileio_open(struct fileio *fileio,
 	const char *url, enum fileio_access access, enum fileio_type type);
 int fileio_close(struct fileio *fileio);
 
-int fileio_seek(struct fileio *fileio, uint32_t position);
-int fileio_fgets(struct fileio *fileio, uint32_t size, char *buffer);
+int fileio_seek(struct fileio *fileio, size_t position);
+int fileio_fgets(struct fileio *fileio, size_t size, void *buffer);
 
 int fileio_read(struct fileio *fileio,
-		uint32_t size, uint8_t *buffer, uint32_t *size_read);
+		size_t size, void *buffer, size_t *size_read);
 int fileio_write(struct fileio *fileio,
-		uint32_t size, const uint8_t *buffer, uint32_t *size_written);
+		size_t size, const void *buffer, size_t *size_written);
 
 int fileio_read_u32(struct fileio *fileio, uint32_t *data);
 int fileio_write_u32(struct fileio *fileio, uint32_t data);

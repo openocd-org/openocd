@@ -143,7 +143,7 @@ int fileio_close(struct fileio *fileio)
 	return retval;
 }
 
-int fileio_seek(struct fileio *fileio, uint32_t position)
+int fileio_seek(struct fileio *fileio, size_t position)
 {
 	int retval;
 	if ((retval = fseek(fileio->file, position, SEEK_SET)) != 0)
@@ -155,14 +155,16 @@ int fileio_seek(struct fileio *fileio, uint32_t position)
 	return ERROR_OK;
 }
 
-static inline int fileio_local_read(struct fileio *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+static int fileio_local_read(struct fileio *fileio,
+		size_t size, void *buffer, size_t *size_read)
 {
-	*size_read = fread(buffer, 1, size, fileio->file);
-
-	return ERROR_OK;
+	ssize_t retval = fread(buffer, 1, size, fileio->file);
+	*size_read = (retval >= 0) ? retval : 0;
+	return (retval < 0) ? retval : ERROR_OK;
 }
 
-int fileio_read(struct fileio *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+int fileio_read(struct fileio *fileio, size_t size, void *buffer,
+		size_t *size_read)
 {
 	return fileio_local_read(fileio, size, buffer, size_read);
 }
@@ -170,17 +172,17 @@ int fileio_read(struct fileio *fileio, uint32_t size, uint8_t *buffer, uint32_t 
 int fileio_read_u32(struct fileio *fileio, uint32_t *data)
 {
 	uint8_t buf[4];
-	uint32_t size_read;
-	int retval;
-
-	if ((retval = fileio_local_read(fileio, 4, buf, &size_read)) != ERROR_OK)
-		return retval;
-	*data = be_to_h_u32(buf);
-
-	return ERROR_OK;
+	size_t size_read;
+	int retval = fileio_local_read(fileio, sizeof(uint32_t), buf, &size_read);
+	if (ERROR_OK == retval && sizeof(uint32_t) != size_read)
+		retval = -EIO;
+	if (ERROR_OK == retval)
+		*data = be_to_h_u32(buf);
+	return retval;
 }
 
-static inline int fileio_local_fgets(struct fileio *fileio, uint32_t size, char *buffer)
+static int fileio_local_fgets(struct fileio *fileio,
+		size_t size, void *buffer)
 {
 	if (fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -188,40 +190,37 @@ static inline int fileio_local_fgets(struct fileio *fileio, uint32_t size, char 
 	return ERROR_OK;
 }
 
-int fileio_fgets(struct fileio *fileio, uint32_t size, char *buffer)
+int fileio_fgets(struct fileio *fileio, size_t size, void *buffer)
 {
 	return fileio_local_fgets(fileio, size, buffer);
 }
 
-static inline int fileio_local_write(struct fileio *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
+static int fileio_local_write(struct fileio *fileio,
+		size_t size, const void *buffer, size_t *size_written)
 {
-	*size_written = fwrite(buffer, 1, size, fileio->file);
-
-	return ERROR_OK;
+	ssize_t retval = fwrite(buffer, 1, size, fileio->file);
+	*size_written = (retval >= 0) ? retval : 0;
+	return (retval < 0) ? retval : ERROR_OK;
 }
 
-int fileio_write(struct fileio *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
+int fileio_write(struct fileio *fileio,
+		size_t size, const void *buffer, size_t *size_written)
 {
-	int retval;
-
-	retval = fileio_local_write(fileio, size, buffer, size_written);
-
+	int retval = fileio_local_write(fileio, size, buffer, size_written);
 	if (retval == ERROR_OK)
 		fileio->size += *size_written;
-
-	return retval;;
+	return retval;
 }
 
 int fileio_write_u32(struct fileio *fileio, uint32_t data)
 {
 	uint8_t buf[4];
-	uint32_t size_written;
-	int retval;
-
 	h_u32_to_be(buf, data);
 
-	if ((retval = fileio_local_write(fileio, 4, buf, &size_written)) != ERROR_OK)
-		return retval;
+	size_t size_written;
+	int retval = fileio_write(fileio, 4, buf, &size_written);
+	if (ERROR_OK == retval && size_written != sizeof(uint32_t))
+		retval = -EIO;
 
-	return ERROR_OK;
+	return retval;
 }

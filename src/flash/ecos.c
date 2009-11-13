@@ -152,8 +152,8 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 
 static int loadDriver(struct ecosflash_flash_bank *info)
 {
-	uint32_t buf_cnt;
-	uint32_t image_size;
+	size_t buf_cnt;
+	size_t image_size;
 	struct image image;
 
 	image.base_address_set = 0;
@@ -182,7 +182,8 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 		}
 		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
 		image_size += buf_cnt;
-		LOG_DEBUG("%" PRIu32 " byte written at address 0x%8.8" PRIx32 "", buf_cnt, image.sections[i].base_address);
+		LOG_DEBUG("%zu bytes written at address 0x%8.8" PRIx32 "",
+				buf_cnt, image.sections[i].base_address);
 
 		free(buffer);
 	}

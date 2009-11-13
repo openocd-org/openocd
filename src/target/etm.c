@@ -640,7 +640,7 @@ static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction 
 {
 	int i;
 	int section = -1;
-	uint32_t size_read;
+	size_t size_read;
 	uint32_t opcode;
 	int retval;
 

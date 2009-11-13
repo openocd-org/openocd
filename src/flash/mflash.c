@@ -705,7 +705,7 @@ static int mg_mflash_write(uint32_t addr, uint8_t *buff, uint32_t len)
 
 COMMAND_HANDLER(mg_write_cmd)
 {
-	uint32_t address, buf_cnt, cnt, res, i;
+	uint32_t address, cnt, res, i;
 	uint8_t *buffer;
 	struct fileio fileio;
 	int ret;
@@ -732,6 +732,7 @@ COMMAND_HANDLER(mg_write_cmd)
 	struct duration bench;
 	duration_start(&bench);
 
+	size_t buf_cnt;
 	for (i = 0; i < cnt; i++) {
 		if ((ret = fileio_read(&fileio, MG_FILEIO_CHUNK, buffer, &buf_cnt)) !=
 				ERROR_OK)
@@ -769,7 +770,7 @@ mg_write_cmd_err:
 
 COMMAND_HANDLER(mg_dump_cmd)
 {
-	uint32_t address, size_written, size, cnt, res, i;
+	uint32_t address, size, cnt, res, i;
 	uint8_t *buffer;
 	struct fileio fileio;
 	int ret;
@@ -797,6 +798,7 @@ COMMAND_HANDLER(mg_dump_cmd)
 	struct duration bench;
 	duration_start(&bench);
 
+	size_t size_written;
 	for (i = 0; i < cnt; i++) {
 		if ((ret = mg_mflash_read(address, buffer, MG_FILEIO_CHUNK)) != ERROR_OK)
 			goto mg_dump_cmd_err;

@@ -2399,7 +2399,7 @@ static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
 COMMAND_HANDLER(handle_load_image_command)
 {
 	uint8_t *buffer;
-	uint32_t buf_cnt;
+	size_t buf_cnt;
 	uint32_t image_size;
 	uint32_t min_address = 0;
 	uint32_t max_address = 0xffffffff;
@@ -2519,7 +2519,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 	int retval = ERROR_OK;
 	while (size > 0)
 	{
-		uint32_t size_written;
+		size_t size_written;
 		uint32_t this_run_size = (size > 560) ? 560 : size;
 		retval = target_read_buffer(target, address, this_run_size, buffer);
 		if (retval != ERROR_OK)
@@ -2553,7 +2553,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 {
 	uint8_t *buffer;
-	uint32_t buf_cnt;
+	size_t buf_cnt;
 	uint32_t image_size;
 	int i;
 	int retval;
@@ -2674,7 +2674,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 			}
 		} else
 		{
-			command_print(cmd_ctx, "address 0x%08" PRIx32 " length 0x%08" PRIx32 "",
+			command_print(cmd_ctx, "address 0x%08" PRIx32 " length 0x%08zx",
 						  image.sections[i].base_address,
 						  buf_cnt);
 		}
@@ -4537,7 +4537,7 @@ static void free_fastload(void)
 COMMAND_HANDLER(handle_fast_load_image_command)
 {
 	uint8_t *buffer;
-	uint32_t buf_cnt;
+	size_t buf_cnt;
 	uint32_t image_size;
 	uint32_t min_address = 0;
 	uint32_t max_address = 0xffffffff;

@@ -811,7 +811,6 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 {
 	uint32_t offset;
 	uint8_t *buffer;
-	uint32_t buf_cnt;
 	struct fileio fileio;
 
 	if (argc != 3)
@@ -833,6 +832,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	}
 
 	buffer = malloc(fileio.size);
+	size_t buf_cnt;
 	if (fileio_read(&fileio, fileio.size, buffer, &buf_cnt) != ERROR_OK)
 	{
 		free(buffer);
@@ -1059,7 +1059,7 @@ static int flash_write_unlock(struct target *target, struct image *image, uint32
 		/* read sections to the buffer */
 		while (buffer_size < run_size)
 		{
-			uint32_t size_read;
+			size_t size_read;
 
 			size_read = run_size - buffer_size;
 			if (size_read > image->sections[section].size - section_offset)

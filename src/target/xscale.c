@@ -2557,7 +2557,7 @@ static int xscale_read_instruction(struct target *target,
 	struct xscale_common *xscale = target_to_xscale(target);
 	int i;
 	int section = -1;
-	uint32_t size_read;
+	size_t size_read;
 	uint32_t opcode;
 	int retval;
 
