@@ -120,7 +120,7 @@ typedef struct cfi_spansion_pri_ext_s
 /* Atmel primary extended query table as defined for and used by
  * the linux kernel cfi driver (as of 2.6.20+)
  */
-typedef struct cfi_atmel_pri_ext_s
+struct cfi_atmel_pri_ext
 {
 	uint8_t pri[3];
 	uint8_t major_version;
@@ -129,7 +129,7 @@ typedef struct cfi_atmel_pri_ext_s
 	uint8_t bottom_boot;
 	uint8_t burst_mode;
 	uint8_t page_mode;
-} cfi_atmel_pri_ext_t;
+};
 
 enum {
 	CFI_UNLOCK_555_2AA,

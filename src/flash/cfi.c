@@ -446,7 +446,7 @@ static int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 static int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 {
 	int retval;
-	cfi_atmel_pri_ext_t atmel_pri_ext;
+	struct cfi_atmel_pri_ext atmel_pri_ext;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
 	target_t *target = bank->target;
