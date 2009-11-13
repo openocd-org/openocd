@@ -45,7 +45,7 @@ static struct gdb_connection *current_gdb_connection;
 static int gdb_breakpoint_override;
 static enum breakpoint_type gdb_breakpoint_override_type;
 
-extern int gdb_error(connection_t *connection, int retval);
+extern int gdb_error(struct connection *connection, int retval);
 static unsigned short gdb_port = 3333;
 static const char *DIGITS = "0123456789abcdef";
 
@@ -87,7 +87,7 @@ int gdb_last_signal(target_t *target)
 	}
 }
 
-int check_pending(connection_t *connection, int timeout_s, int *got_data)
+int check_pending(struct connection *connection, int timeout_s, int *got_data)
 {
 	/* a non-blocking socket will block if there is 0 bytes available on the socket,
 	 * but return with as many bytes as are available immediately
@@ -128,7 +128,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 	return ERROR_OK;
 }
 
-int gdb_get_char(connection_t *connection, int* next_char)
+int gdb_get_char(struct connection *connection, int* next_char)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	int retval = ERROR_OK;
@@ -236,7 +236,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 	return retval;
 }
 
-int gdb_putback_char(connection_t *connection, int last_char)
+int gdb_putback_char(struct connection *connection, int last_char)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 
@@ -256,7 +256,7 @@ int gdb_putback_char(connection_t *connection, int last_char)
 /* The only way we can detect that the socket is closed is the first time
  * we write to it, we will fail. Subsequent write operations will
  * succeed. Shudder! */
-int gdb_write(connection_t *connection, void *data, int len)
+int gdb_write(struct connection *connection, void *data, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	if (gdb_con->closed)
@@ -281,7 +281,7 @@ int gdb_write(connection_t *connection, void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
-int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
+int gdb_put_packet_inner(struct connection *connection, char *buffer, int len)
 {
 	int i;
 	unsigned char my_checksum = 0;
@@ -422,7 +422,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 	return ERROR_OK;
 }
 
-int gdb_put_packet(connection_t *connection, char *buffer, int len)
+int gdb_put_packet(struct connection *connection, char *buffer, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = 1;
@@ -435,7 +435,7 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 	return retval;
 }
 
-static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, int noack, int *len, char *buffer)
+static __inline__ int fetch_packet(struct connection *connection, int *checksum_ok, int noack, int *len, char *buffer)
 {
 	unsigned char my_checksum = 0;
 	char checksum[3];
@@ -544,7 +544,7 @@ static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, i
 	return ERROR_OK;
 }
 
-int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
+int gdb_get_packet_inner(struct connection *connection, char *buffer, int *len)
 {
 	int character;
 	int retval;
@@ -619,7 +619,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 	return ERROR_OK;
 }
 
-int gdb_get_packet(connection_t *connection, char *buffer, int *len)
+int gdb_get_packet(struct connection *connection, char *buffer, int *len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = 1;
@@ -628,7 +628,7 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 	return retval;
 }
 
-int gdb_output_con(connection_t *connection, const char* line)
+int gdb_output_con(struct connection *connection, const char* line)
 {
 	char *hex_buffer;
 	int i, bin_size;
@@ -658,7 +658,7 @@ int gdb_output(struct command_context_s *context, const char* line)
 }
 
 
-static void gdb_frontend_halted(struct target_s *target, connection_t *connection)
+static void gdb_frontend_halted(struct target_s *target, struct connection *connection)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 
@@ -698,7 +698,7 @@ static void gdb_frontend_halted(struct target_s *target, connection_t *connectio
 int gdb_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
 {
 	int retval;
-	connection_t *connection = priv;
+	struct connection *connection = priv;
 
 	target_handle_event(target, event);
 	switch (event)
@@ -723,7 +723,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 	return ERROR_OK;
 }
 
-int gdb_new_connection(connection_t *connection)
+int gdb_new_connection(struct connection *connection)
 {
 	struct gdb_connection *gdb_connection = malloc(sizeof(struct gdb_connection));
 	struct gdb_service *gdb_service = connection->service->priv;
@@ -779,7 +779,7 @@ int gdb_new_connection(connection_t *connection)
 	return ERROR_OK;
 }
 
-int gdb_connection_closed(connection_t *connection)
+int gdb_connection_closed(struct connection *connection)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
 	struct gdb_connection *gdb_connection = connection->priv;
@@ -826,14 +826,14 @@ int gdb_connection_closed(connection_t *connection)
 	return ERROR_OK;
 }
 
-void gdb_send_error(connection_t *connection, uint8_t the_error)
+void gdb_send_error(struct connection *connection, uint8_t the_error)
 {
 	char err[4];
 	snprintf(err, 4, "E%2.2X", the_error);
 	gdb_put_packet(connection, err, 3);
 }
 
-int gdb_last_signal_packet(connection_t *connection, target_t *target, char* packet, int packet_size)
+int gdb_last_signal_packet(struct connection *connection, target_t *target, char* packet, int packet_size)
 {
 	char sig_reply[4];
 	int signal;
@@ -915,7 +915,7 @@ void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
 	}
 }
 
-int gdb_get_registers_packet(connection_t *connection, target_t *target, char* packet, int packet_size)
+int gdb_get_registers_packet(struct connection *connection, target_t *target, char* packet, int packet_size)
 {
 	reg_t **reg_list;
 	int reg_list_size;
@@ -965,7 +965,7 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 	return ERROR_OK;
 }
 
-int gdb_set_registers_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_set_registers_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	int i;
 	reg_t **reg_list;
@@ -1027,7 +1027,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 	return ERROR_OK;
 }
 
-int gdb_get_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_get_register_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	char *reg_packet;
 	int reg_num = strtoul(packet + 1, NULL, 16);
@@ -1062,7 +1062,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 	return ERROR_OK;
 }
 
-int gdb_set_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_set_register_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint8_t *bin_buf;
@@ -1111,7 +1111,7 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	return ERROR_OK;
 }
 
-int gdb_error(connection_t *connection, int retval)
+int gdb_error(struct connection *connection, int retval)
 {
 	switch (retval)
 	{
@@ -1142,7 +1142,7 @@ int gdb_error(connection_t *connection, int retval)
  *
  * 8191 bytes by the looks of it. Why 8191 bytes instead of 8192?????
  */
-int gdb_read_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_read_memory_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint32_t addr = 0;
@@ -1216,7 +1216,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	return retval;
 }
 
-int gdb_write_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_write_memory_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint32_t addr = 0;
@@ -1273,7 +1273,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 	return retval;
 }
 
-int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_write_memory_binary_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	uint32_t addr = 0;
@@ -1321,7 +1321,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	return ERROR_OK;
 }
 
-int gdb_step_continue_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_step_continue_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	int current = 0;
 	uint32_t address = 0x0;
@@ -1354,7 +1354,7 @@ int gdb_step_continue_packet(connection_t *connection, target_t *target, char *p
 	return retval;
 }
 
-int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_breakpoint_watchpoint_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	int type;
 	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
@@ -1554,7 +1554,7 @@ static int compare_bank (const void * a, const void * b)
 	}
 }
 
-int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_query_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
 	struct gdb_connection *gdb_connection = connection->priv;
@@ -1810,7 +1810,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 	return ERROR_OK;
 }
 
-int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_v_packet(struct connection *connection, target_t *target, char *packet, int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct gdb_service *gdb_service = connection->service->priv;
@@ -1947,7 +1947,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 	return ERROR_OK;
 }
 
-int gdb_detach(connection_t *connection, target_t *target)
+int gdb_detach(struct connection *connection, target_t *target)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
 
@@ -1959,7 +1959,7 @@ int gdb_detach(connection_t *connection, target_t *target)
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string)
 {
-	connection_t *connection = priv;
+	struct connection *connection = priv;
 	struct gdb_connection *gdb_con = connection->priv;
 
 	if (gdb_con->busy)
@@ -1974,7 +1974,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 /* Do not allocate this on the stack */
 char gdb_packet_buffer[GDB_BUFFER_SIZE];
 
-static void gdb_sig_halted(connection_t *connection)
+static void gdb_sig_halted(struct connection *connection)
 {
 	char sig_reply[4];
 	snprintf(sig_reply, 4, "T%2.2x", 2);
@@ -1982,7 +1982,7 @@ static void gdb_sig_halted(connection_t *connection)
 
 }
 
-int gdb_input_inner(connection_t *connection)
+int gdb_input_inner(struct connection *connection)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
 	target_t *target = gdb_service->target;
@@ -2180,7 +2180,7 @@ int gdb_input_inner(connection_t *connection)
 	return ERROR_OK;
 }
 
-int gdb_input(connection_t *connection)
+int gdb_input(struct connection *connection)
 {
 	int retval = gdb_input_inner(connection);
 	struct gdb_connection *gdb_con = connection->priv;

@@ -37,17 +37,17 @@ struct tcl_connection {
 static unsigned short tcl_port = 6666;
 
 /* handlers */
-static int tcl_new_connection(connection_t *connection);
-static int tcl_input(connection_t *connection);
-static int tcl_output(connection_t *connection, const void *buf, ssize_t len);
-static int tcl_closed(connection_t *connection);
+static int tcl_new_connection(struct connection *connection);
+static int tcl_input(struct connection *connection);
+static int tcl_output(struct connection *connection, const void *buf, ssize_t len);
+static int tcl_closed(struct connection *connection);
 
 /* write data out to a socket.
  *
  * this is a blocking write, so the return value must equal the length, if
  * that is not the case then flag the connection with an output error.
  */
-int tcl_output(connection_t *connection, const void *data, ssize_t len)
+int tcl_output(struct connection *connection, const void *data, ssize_t len)
 {
 	ssize_t wlen;
 	struct tcl_connection *tclc;
@@ -66,7 +66,7 @@ int tcl_output(connection_t *connection, const void *data, ssize_t len)
 }
 
 /* connections */
-static int tcl_new_connection(connection_t *connection)
+static int tcl_new_connection(struct connection *connection)
 {
 	struct tcl_connection *tclc;
 
@@ -79,7 +79,7 @@ static int tcl_new_connection(connection_t *connection)
 	return ERROR_OK;
 }
 
-static int tcl_input(connection_t *connection)
+static int tcl_input(struct connection *connection)
 {
 	int retval;
 	int i;
@@ -146,7 +146,7 @@ static int tcl_input(connection_t *connection)
 	return ERROR_OK;
 }
 
-static int tcl_closed(connection_t *connection)
+static int tcl_closed(struct connection *connection)
 {
 	/* cleanup connection context */
 	if (connection->priv) {

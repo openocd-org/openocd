@@ -38,7 +38,7 @@ enum connection_type
 	CONNECTION_PIPE
 };
 
-typedef struct connection_s
+struct connection
 {
 	int fd;
 	struct sockaddr_in sin;
@@ -46,12 +46,12 @@ typedef struct connection_s
 	struct service *service;
 	int input_pending;
 	void *priv;
-	struct connection_s *next;
-} connection_t;
+	struct connection *next;
+};
 
-typedef int (*new_connection_handler_t)(connection_t *connection);
-typedef int (*input_handler_t)(connection_t *connection);
-typedef int (*connection_closed_handler_t)(connection_t *connection);
+typedef int (*new_connection_handler_t)(struct connection *connection);
+typedef int (*input_handler_t)(struct connection *connection);
+typedef int (*connection_closed_handler_t)(struct connection *connection);
 
 struct service
 {
@@ -61,7 +61,7 @@ struct service
 	int fd;
 	struct sockaddr_in sin;
 	int max_connections;
-	connection_t *connections;
+	struct connection *connections;
 	new_connection_handler_t new_connection;
 	input_handler_t input;
 	connection_closed_handler_t connection_closed;

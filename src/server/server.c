@@ -48,11 +48,11 @@ int server_use_pipes = 0;
 int add_connection(struct service *service, command_context_t *cmd_ctx)
 {
 	socklen_t address_size;
-	connection_t *c, **p;
+	struct connection *c, **p;
 	int retval;
 	int flag = 1;
 
-	c = malloc(sizeof(connection_t));
+	c = malloc(sizeof(struct connection));
 	c->fd = -1;
 	memset(&c->sin, 0, sizeof(c->sin));
 	c->cmd_ctx = copy_command_context(cmd_ctx);
@@ -109,10 +109,10 @@ int add_connection(struct service *service, command_context_t *cmd_ctx)
 	return ERROR_OK;
 }
 
-int remove_connection(struct service *service, connection_t *connection)
+int remove_connection(struct service *service, struct connection *connection)
 {
-	connection_t **p = &service->connections;
-	connection_t *c;
+	struct connection **p = &service->connections;
+	struct connection *c;
 
 	/* find connection */
 	while ((c = *p))
@@ -329,7 +329,7 @@ int server_loop(command_context_t *command_context)
 
 			if (service->connections)
 			{
-				connection_t *c;
+				struct connection *c;
 
 				for (c = service->connections; c; c = c->next)
 				{
@@ -423,7 +423,7 @@ int server_loop(command_context_t *command_context)
 			/* handle activity on connections */
 			if (service->connections)
 			{
-				connection_t *c;
+				struct connection *c;
 
 				for (c = service->connections; c;)
 				{
@@ -431,7 +431,7 @@ int server_loop(command_context_t *command_context)
 					{
 						if ((retval = service->input(c)) != ERROR_OK)
 						{
-							connection_t *next = c->next;
+							struct connection *next = c->next;
 							if (service->type == CONNECTION_PIPE)
 							{
 								/* if connection uses a pipe then shutdown openocd on error */
