@@ -72,11 +72,15 @@ struct etm_reg_info {
  * provide definitions for some previously-unused bits.
  */
 
-/* basic registers that are always there given the right ETM version */
+/* core registers used to version/configure the ETM */
 static const struct etm_reg_info etm_core[] = {
-	/* NOTE: we "know" ETM_CONFIG is listed first */
+	/* NOTE: we "know" the order here ... */
 	{ ETM_CONFIG, 32, RO, 0x10, "ETM_config", },
+	{ ETM_ID, 32, RO, 0x20, "ETM_id", },
+};
 
+/* basic registers that are always there given the right ETM version */
+static const struct etm_reg_info etm_basic[] = {
 	/* ETM Trace Registers */
 	{ ETM_CTRL, 32, RW, 0x10, "ETM_ctrl", },
 	{ ETM_TRIG_EVENT, 17, WO, 0x10, "ETM_trig_event", },
@@ -99,7 +103,10 @@ static const struct etm_reg_info etm_core[] = {
 	/* REVISIT exclude VIEWDATA_CTRL2 when it's not there */
 
 	{ 0x78, 12, WO, 0x20, "ETM_sync_freq", },
-	{ 0x79, 32, RO, 0x20, "ETM_id", },
+	{ 0x7a, 22, RO, 0x31, "ETM_config_code_ext", },
+	{ 0x7b, 32, WO, 0x31, "ETM_ext_input_select", },
+	{ 0x7c, 32, WO, 0x34, "ETM_trace_start_stop", },
+	{ 0x7d, 8, WO, 0x34, "ETM_behavior_control", },
 };
 
 static const struct etm_reg_info etm_fifofull[] = {
@@ -310,10 +317,19 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 		bcd_vers = 0x20;
 		LOG_WARNING("ETMv2+ support is incomplete");
 
-		/* REVISIT read ID register, distinguish ETMv3.3 etc;
+		/* REVISIT more registers may exist; they may now be
+		 * readable; more register bits have defined meanings;
 		 * don't presume trace start/stop support is present;
 		 * and include any context ID comparator registers.
 		 */
+		etm_reg_add(0x20, jtag_info, reg_cache, arch_info,
+				etm_core + 1, 1);
+		etm_get_reg(reg_list + 1);
+		etm_ctx->id = buf_get_u32(
+				(void *)&arch_info[1].value, 0, 32);
+		LOG_DEBUG("ETM ID: %08x", (unsigned) etm_ctx->id);
+		bcd_vers = 0x10 + (((etm_ctx->id) >> 4) & 0xff);
+
 	} else {
 		switch (config >> 28) {
 		case 7:
@@ -343,7 +359,7 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 	LOG_INFO("ETM v%d.%d", bcd_vers >> 4, bcd_vers & 0xf);
 
 	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
-			etm_core + 1, ARRAY_SIZE(etm_core) - 1);
+			etm_basic, ARRAY_SIZE(etm_basic));
 
 	/* address and data comparators; counters; outputs */
 	etm_reg_add(bcd_vers, jtag_info, reg_cache, arch_info,
@@ -391,7 +407,7 @@ reg_cache_t *etm_build_reg_cache(target_t *target,
 		etb->reg_cache = reg_cache->next;
 	}
 
-
+	etm_ctx->reg_cache = reg_cache;
 	return reg_cache;
 }
 
@@ -424,9 +440,13 @@ int etm_setup(target_t *target)
 	/* clear the ETM powerdown bit (0) */
 	etm_ctrl_value &= ~0x1;
 
-	/* configure port width (6:4), mode (17:16) and clocking (13) */
-	etm_ctrl_value = (etm_ctrl_value &
-		~ETM_PORT_WIDTH_MASK & ~ETM_PORT_MODE_MASK & ~ETM_PORT_CLOCK_MASK)
+	/* configure port width (21,6:4), mode (13,17:16) and
+	 * for older modules clocking (13)
+	 */
+	etm_ctrl_value = (etm_ctrl_value
+			& ~ETM_PORT_WIDTH_MASK
+			& ~ETM_PORT_MODE_MASK
+			& ~ETM_PORT_CLOCK_MASK)
 		| etm_ctx->portmode;
 
 	buf_set_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size, etm_ctrl_value);
@@ -434,6 +454,10 @@ int etm_setup(target_t *target)
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
+
+	/* REVISIT for ETMv3.0 and later, read ETM_sys_config to
+	 * verify that those width and mode settings are OK ...
+	 */
 
 	if ((retval = etm_ctx->capture_driver->init(etm_ctx)) != ERROR_OK)
 	{
@@ -1373,10 +1397,23 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 		return ERROR_FAIL;
 	}
 
+	/* FIXME for ETMv3.0 and above -- and we don't yet know what ETM
+	 * version we'll be using!! -- so we can't know how to validate
+	 * params yet.  "etm config" should likely be *AFTER* hookup...
+	 *
+	 *  - Many more widths might be supported ... and we can easily
+	 *    check whether our setting "took".
+	 *
+	 *  - The "clock" and "mode" bits are interpreted differently.
+	 *    See ARM IHI 0014O table 2-17 for the old behavior, and
+	 *    table 2-18 for the new.  With ETB it's best to specify
+	 *    "normal full" ...
+	 */
 	uint8_t port_width;
 	COMMAND_PARSE_NUMBER(u8, args[1], port_width);
 	switch (port_width)
 	{
+		/* before ETMv3.0 */
 		case 4:
 			portmode |= ETM_PORT_4BIT;
 			break;
@@ -1386,8 +1423,28 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx,
 		case 16:
 			portmode |= ETM_PORT_16BIT;
 			break;
+		/* ETMv3.0 and later*/
+		case 24:
+			portmode |= ETM_PORT_24BIT;
+			break;
+		case 32:
+			portmode |= ETM_PORT_32BIT;
+			break;
+		case 48:
+			portmode |= ETM_PORT_48BIT;
+			break;
+		case 64:
+			portmode |= ETM_PORT_64BIT;
+			break;
+		case 1:
+			portmode |= ETM_PORT_1BIT;
+			break;
+		case 2:
+			portmode |= ETM_PORT_2BIT;
+			break;
 		default:
-			command_print(cmd_ctx, "unsupported ETM port width '%s', must be 4, 8 or 16", args[1]);
+			command_print(cmd_ctx,
+				"unsupported ETM port width '%s'", args[1]);
 			return ERROR_FAIL;
 	}
 
@@ -1473,6 +1530,7 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 	etm_context_t *etm;
 	reg_t *etm_sys_config_reg;
 	int max_port_size;
+	uint32_t config;
 
 	target = get_current_target(cmd_ctx);
 	arm = target_to_arm(target);
@@ -1511,6 +1569,9 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 		command_print(cmd_ctx, "protocol version: %i",
 				(int) (etm->config >> 28) & 0x07);
 	else {
+		command_print(cmd_ctx,
+				"coprocessor and memory access %ssupported",
+				(etm->config & (1 << 26)) ? "" : "not ");
 		command_print(cmd_ctx, "trace start/stop %spresent",
 				(etm->config & (1 << 26)) ? "" : "not ");
 		command_print(cmd_ctx, "number of context comparators: %i",
@@ -1523,9 +1584,16 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 
 	etm_get_reg(etm_sys_config_reg);
+	config = buf_get_u32(etm_sys_config_reg->value, 0, 32);
 
-	switch (buf_get_u32(etm_sys_config_reg->value, 0, 3))
+	LOG_DEBUG("ETM SYS CONFIG %08x", (unsigned) config);
+
+	max_port_size = config & 0x7;
+	if (etm->bcd_vers >= 0x30)
+		max_port_size |= (config >> 6) & 0x08;
+	switch (max_port_size)
 	{
+		/* before ETMv3.0 */
 		case 0:
 			max_port_size = 4;
 			break;
@@ -1535,24 +1603,54 @@ static int handle_etm_info_command(struct command_context_s *cmd_ctx,
 		case 2:
 			max_port_size = 16;
 			break;
+		/* ETMv3.0 and later*/
+		case 3:
+			max_port_size = 24;
+			break;
+		case 4:
+			max_port_size = 32;
+			break;
+		case 5:
+			max_port_size = 48;
+			break;
+		case 6:
+			max_port_size = 64;
+			break;
+		case 8:
+			max_port_size = 1;
+			break;
+		case 9:
+			max_port_size = 2;
+			break;
 		default:
 			LOG_ERROR("Illegal max_port_size");
 			return ERROR_FAIL;
 	}
 	command_print(cmd_ctx, "max. port size: %i", max_port_size);
 
-	command_print(cmd_ctx, "half-rate clocking %ssupported",
-			(buf_get_u32(etm_sys_config_reg->value, 3, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "full-rate clocking %ssupported",
-			(buf_get_u32(etm_sys_config_reg->value, 4, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "normal trace format %ssupported",
-			(buf_get_u32(etm_sys_config_reg->value, 5, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "multiplex trace format %ssupported",
-			(buf_get_u32(etm_sys_config_reg->value, 6, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "demultiplex trace format %ssupported",
-			(buf_get_u32(etm_sys_config_reg->value, 7, 1) == 1) ? "" : "not ");
+	if (etm->bcd_vers < 0x30) {
+		command_print(cmd_ctx, "half-rate clocking %ssupported",
+				(config & (1 << 3)) ? "" : "not ");
+		command_print(cmd_ctx, "full-rate clocking %ssupported",
+				(config & (1 << 4)) ? "" : "not ");
+		command_print(cmd_ctx, "normal trace format %ssupported",
+				(config & (1 << 5)) ? "" : "not ");
+		command_print(cmd_ctx, "multiplex trace format %ssupported",
+				(config & (1 << 6)) ? "" : "not ");
+		command_print(cmd_ctx, "demultiplex trace format %ssupported",
+				(config & (1 << 7)) ? "" : "not ");
+	} else {
+		/* REVISIT show which size and format are selected ... */
+		command_print(cmd_ctx, "current port size %ssupported",
+				(config & (1 << 10)) ? "" : "not ");
+		command_print(cmd_ctx, "current trace format %ssupported",
+				(config & (1 << 11)) ? "" : "not ");
+	}
+	if (etm->bcd_vers >= 0x21)
+		command_print(cmd_ctx, "fetch comparisons %ssupported",
+				(config & (1 << 17)) ? "not " : "");
 	command_print(cmd_ctx, "FIFO full %ssupported",
-			(buf_get_u32(etm_sys_config_reg->value, 8, 1) == 1) ? "" : "not ");
+			(config & (1 << 8)) ? "" : "not ");
 
 	return ERROR_OK;
 }

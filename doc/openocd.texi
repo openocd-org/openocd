@@ -5295,10 +5295,22 @@ Several of the parameters must reflect the trace port capabilities,
 which are a function of silicon capabilties (exposed later
 using @command{etm info}) and of what hardware is connected to
 that port (such as an external pod, or ETB).
-The @var{width} must be either 4, 8, or 16.
-The @var{mode} must be @option{normal}, @option{multiplexted},
-or @option{demultiplexted}.
+The @var{width} must be either 4, 8, or 16,
+except with ETMv3.0 and newer modules which may also
+support 1, 2, 24, 32, 48, and 64 bit widths.
+(With those versions, @command{etm info} also shows whether
+the selected port width and mode are supported.)
+
+The @var{mode} must be @option{normal}, @option{multiplexed},
+or @option{demultiplexed}.
 The @var{clocking} must be @option{half} or @option{full}.
+
+@quotation Warning
+With ETMv3.0 and newer, the bits set with the @var{mode} and
+@var{clocking} parameters both control the mode.
+This modified mode does not map to the values supported by
+previous ETM modules, so this syntax is subject to change.
+@end quotation
 
 @quotation Note
 You can see the ETM registers using the @command{reg} command.

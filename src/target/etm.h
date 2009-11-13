@@ -68,6 +68,7 @@ enum
 	/* N task contexts */
 	ETM_CONTEXTID_COMPARATOR_VALUE = 0x6c,
 	ETM_CONTEXTID_COMPARATOR_MASK = 0x6f,
+	ETM_ID = 0x79,
 };
 
 typedef struct etm_reg_s
@@ -83,7 +84,13 @@ typedef enum
 	ETM_PORT_4BIT		= 0x00,
 	ETM_PORT_8BIT		= 0x10,
 	ETM_PORT_16BIT		= 0x20,
-	ETM_PORT_WIDTH_MASK	= 0x70,
+	ETM_PORT_24BIT		= 0x30,
+	ETM_PORT_32BIT		= 0x40,
+	ETM_PORT_48BIT		= 0x50,
+	ETM_PORT_64BIT		= 0x60,
+	ETM_PORT_1BIT		= 0x00 | (1 << 21),
+	ETM_PORT_2BIT		= 0x10 | (1 << 21),
+	ETM_PORT_WIDTH_MASK	= 0x70 | (1 << 21),
 	/* Port modes */
 	ETM_PORT_NORMAL    = 0x00000,
 	ETM_PORT_MUXED     = 0x10000,
@@ -166,6 +173,7 @@ typedef struct etm
 	bool ptr_ok;			/* whether last_ptr is valid */
 	uint8_t bcd_vers;		/* e.g. 0x13 == ETMv1.3 */
 	uint32_t config;		/* cache of ETM_CONFIG value */
+	uint32_t id;			/* cache of ETM_ID value, or 0 */
 	uint32_t current_pc;		/* current program counter */
 	uint32_t last_branch;		/* last branch address output */
 	uint32_t last_branch_reason;	/* type of last branch encountered */
