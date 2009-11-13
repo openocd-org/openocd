@@ -45,7 +45,7 @@ struct mips32_comparator
 	uint32_t reg_address;
 };
 
-typedef struct mips32_common_s
+struct mips32_common
 {
 	uint32_t common_magic;
 	void *arch_info;
@@ -64,13 +64,13 @@ typedef struct mips32_common_s
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);
 	int (*write_core_reg)(struct target_s *target, int num);
-} mips32_common_t;
+};
 
 typedef struct mips32_core_reg_s
 {
 	uint32_t num;
 	struct target_s *target;
-	mips32_common_t *mips32_common;
+	struct mips32_common *mips32_common;
 } mips32_core_reg_t;
 
 #define MIPS32_OP_BEQ	0x04
@@ -127,7 +127,7 @@ typedef struct mips32_core_reg_s
 int mips32_arch_state(struct target_s *target);
 
 int mips32_init_arch_info(target_t *target,
-		mips32_common_t *mips32, struct jtag_tap *tap);
+		struct mips32_common *mips32, struct jtag_tap *tap);
 
 int mips32_restore_context(target_t *target);
 int mips32_save_context(target_t *target);

@@ -100,7 +100,7 @@ int mips32_get_core_reg(reg_t *reg)
 	int retval;
 	mips32_core_reg_t *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
-	mips32_common_t *mips32_target = target->arch_info;
+	struct mips32_common *mips32_target = target->arch_info;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -136,7 +136,7 @@ int mips32_read_core_reg(struct target_s *target, int num)
 	mips32_core_reg_t *mips_core_reg;
 
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -156,7 +156,7 @@ int mips32_write_core_reg(struct target_s *target, int num)
 	mips32_core_reg_t *mips_core_reg;
 
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -174,7 +174,7 @@ int mips32_write_core_reg(struct target_s *target, int num)
 int mips32_invalidate_core_regs(target_t *target)
 {
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 	int i;
 
 	for (i = 0; i < mips32->core_cache->num_regs; i++)
@@ -189,7 +189,7 @@ int mips32_invalidate_core_regs(target_t *target)
 int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 	int i;
 
 	/* include floating point registers */
@@ -215,7 +215,7 @@ int mips32_save_context(target_t *target)
 	int i;
 
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 
 	/* read core registers */
@@ -237,7 +237,7 @@ int mips32_restore_context(target_t *target)
 	int i;
 
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
@@ -256,7 +256,7 @@ int mips32_restore_context(target_t *target)
 
 int mips32_arch_state(struct target_s *target)
 {
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 
 	if (mips32->common_magic != MIPS32_COMMON_MAGIC)
 	{
@@ -274,7 +274,7 @@ int mips32_arch_state(struct target_s *target)
 reg_cache_t *mips32_build_reg_cache(target_t *target)
 {
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 
 	int num_regs = MIPS32NUMCOREREGS;
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
@@ -315,7 +315,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	return cache;
 }
 
-int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, struct jtag_tap *tap)
+int mips32_init_arch_info(target_t *target, struct mips32_common *mips32, struct jtag_tap *tap)
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
@@ -344,7 +344,7 @@ int mips32_run_algorithm(struct target_s *target, int num_mem_params, struct mem
 
 int mips32_examine(struct target_s *target)
 {
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 
 	if (!target_was_examined(target))
 	{
@@ -364,7 +364,7 @@ int mips32_examine(struct target_s *target)
 int mips32_configure_break_unit(struct target_s *target)
 {
 	/* get pointers to arch-specific information */
-	mips32_common_t *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target->arch_info;
 	int retval;
 	uint32_t dcr, bpinfo;
 	int i;

@@ -32,7 +32,7 @@ struct target_s;
 typedef struct mips_m4k_common_s
 {
 	int common_magic;
-	mips32_common_t mips32_common;
+	struct mips32_common mips32_common;
 } mips_m4k_common_t;
 
 int mips_m4k_bulk_write_memory(struct target_s *target,
