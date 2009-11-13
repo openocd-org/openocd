@@ -38,7 +38,7 @@ char* mips32_core_reg_list[] =
 	"status", "lo", "hi", "badvaddr", "cause", "pc"
 };
 
-mips32_core_reg_t mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
+struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 {
 	{0, NULL, NULL},
 	{1, NULL, NULL},
@@ -98,7 +98,7 @@ int mips32_core_reg_arch_type = -1;
 int mips32_get_core_reg(reg_t *reg)
 {
 	int retval;
-	mips32_core_reg_t *mips32_reg = reg->arch_info;
+	struct mips32_core_reg *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
 	struct mips32_common *mips32_target = target->arch_info;
 
@@ -114,7 +114,7 @@ int mips32_get_core_reg(reg_t *reg)
 
 int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
 {
-	mips32_core_reg_t *mips32_reg = reg->arch_info;
+	struct mips32_core_reg *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
@@ -133,7 +133,7 @@ int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
 int mips32_read_core_reg(struct target_s *target, int num)
 {
 	uint32_t reg_value;
-	mips32_core_reg_t *mips_core_reg;
+	struct mips32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -153,7 +153,7 @@ int mips32_read_core_reg(struct target_s *target, int num)
 int mips32_write_core_reg(struct target_s *target, int num)
 {
 	uint32_t reg_value;
-	mips32_core_reg_t *mips_core_reg;
+	struct mips32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
@@ -280,7 +280,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
-	mips32_core_reg_t *arch_info = malloc(sizeof(mips32_core_reg_t) * num_regs);
+	struct mips32_core_reg *arch_info = malloc(sizeof(struct mips32_core_reg) * num_regs);
 	int i;
 
 	if (mips32_core_reg_arch_type == -1)

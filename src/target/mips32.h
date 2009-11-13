@@ -66,12 +66,12 @@ struct mips32_common
 	int (*write_core_reg)(struct target_s *target, int num);
 };
 
-typedef struct mips32_core_reg_s
+struct mips32_core_reg
 {
 	uint32_t num;
 	struct target_s *target;
 	struct mips32_common *mips32_common;
-} mips32_core_reg_t;
+};
 
 #define MIPS32_OP_BEQ	0x04
 #define MIPS32_OP_BNE	0x05
