@@ -42,51 +42,51 @@
  */
 
 #if BUILD_ZY1000 == 1
-extern jtag_interface_t zy1000_interface;
+extern struct jtag_interface zy1000_interface;
 #elif defined(BUILD_MINIDRIVER_DUMMY)
-extern jtag_interface_t minidummy_interface;
+extern struct jtag_interface minidummy_interface;
 #else // standard drivers
 #if BUILD_PARPORT == 1
-extern jtag_interface_t parport_interface;
+extern struct jtag_interface parport_interface;
 #endif
 #if BUILD_DUMMY == 1
-extern jtag_interface_t dummy_interface;
+extern struct jtag_interface dummy_interface;
 #endif
 #if BUILD_FT2232_FTD2XX == 1
-extern jtag_interface_t ft2232_interface;
+extern struct jtag_interface ft2232_interface;
 #endif
 #if BUILD_FT2232_LIBFTDI == 1
-extern jtag_interface_t ft2232_interface;
+extern struct jtag_interface ft2232_interface;
 #endif
 #if BUILD_AMTJTAGACCEL == 1
-extern jtag_interface_t amt_jtagaccel_interface;
+extern struct jtag_interface amt_jtagaccel_interface;
 #endif
 #if BUILD_EP93XX == 1
-extern jtag_interface_t ep93xx_interface;
+extern struct jtag_interface ep93xx_interface;
 #endif
 #if BUILD_AT91RM9200 == 1
-extern jtag_interface_t at91rm9200_interface;
+extern struct jtag_interface at91rm9200_interface;
 #endif
 #if BUILD_GW16012 == 1
-extern jtag_interface_t gw16012_interface;
+extern struct jtag_interface gw16012_interface;
 #endif
 #if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
-extern jtag_interface_t presto_interface;
+extern struct jtag_interface presto_interface;
 #endif
 #if BUILD_USBPROG == 1
-extern jtag_interface_t usbprog_interface;
+extern struct jtag_interface usbprog_interface;
 #endif
 #if BUILD_JLINK == 1
-extern jtag_interface_t jlink_interface;
+extern struct jtag_interface jlink_interface;
 #endif
 #if BUILD_VSLLINK == 1
-extern jtag_interface_t vsllink_interface;
+extern struct jtag_interface vsllink_interface;
 #endif
 #if BUILD_RLINK == 1
-extern jtag_interface_t rlink_interface;
+extern struct jtag_interface rlink_interface;
 #endif
 #if BUILD_ARMJTAGEW == 1
-extern jtag_interface_t armjtagew_interface;
+extern struct jtag_interface armjtagew_interface;
 #endif
 #endif // standard drivers
 
@@ -97,7 +97,7 @@ extern jtag_interface_t armjtagew_interface;
  * The list should be defined to contain either one minidriver interface
  * or some number of standard driver interfaces, never both.
  */
-jtag_interface_t *jtag_interfaces[] = {
+struct jtag_interface *jtag_interfaces[] = {
 #if BUILD_ZY1000 == 1
 		&zy1000_interface,
 #elif defined(BUILD_MINIDRIVER_DUMMY)

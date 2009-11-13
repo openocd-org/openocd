@@ -184,8 +184,7 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 }
 #endif // _DEBUG_JTAG_IO_
 
-typedef struct jtag_interface_s
-{
+struct jtag_interface {
 	/// The name of the JTAG interface driver.
 	char* name;
 
@@ -271,7 +270,7 @@ typedef struct jtag_interface_s
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*srst_asserted)(int* srst_asserted);
-} jtag_interface_t;
+};
 
 
 #endif // OPENOCD_JTAG_INTERFACE_H

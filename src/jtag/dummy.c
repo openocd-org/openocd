@@ -46,7 +46,7 @@ static int dummy_speed_div(int speed, int *khz);
 /* The dummy driver is used to easily check the code path
  * where the target is unresponsive.
  */
-jtag_interface_t dummy_interface =
+struct jtag_interface dummy_interface =
 {
 	.name = "dummy",
 

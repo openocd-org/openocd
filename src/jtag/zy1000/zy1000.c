@@ -110,7 +110,7 @@ static int zy1000_power_dropout(int *dropout)
 }
 
 
-jtag_interface_t zy1000_interface =
+struct jtag_interface zy1000_interface =
 {
 	.name = "ZY1000",
 	.execute_queue = NULL,

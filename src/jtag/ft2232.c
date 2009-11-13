@@ -3993,7 +3993,7 @@ static int ft2232_register_commands(struct command_context_s* cmd_ctx)
 }
 
 
-jtag_interface_t ft2232_interface = {
+struct jtag_interface ft2232_interface = {
 		.name = "ft2232",
 		.register_commands = &ft2232_register_commands,
 		.init = &ft2232_init,

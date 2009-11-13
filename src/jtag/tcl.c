@@ -49,7 +49,7 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-extern jtag_interface_t *jtag_interface;
+extern struct jtag_interface *jtag_interface;
 
 enum jtag_tap_cfg_param {
 	JCFG_EVENT

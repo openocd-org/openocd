@@ -1907,7 +1907,7 @@ static int vsllink_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-jtag_interface_t vsllink_interface = {
+struct jtag_interface vsllink_interface = {
 		.name = "vsllink",
 		.register_commands = &vsllink_register_commands,
 		.init = &vsllink_init,

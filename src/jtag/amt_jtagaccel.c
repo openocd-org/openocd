@@ -552,7 +552,7 @@ static int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-jtag_interface_t amt_jtagaccel_interface = {
+struct jtag_interface amt_jtagaccel_interface = {
 		.name = "amt_jtagaccel",
 		.register_commands = &amt_jtagaccel_register_commands,
 		.init = &amt_jtagaccel_init,

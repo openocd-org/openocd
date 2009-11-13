@@ -46,7 +46,7 @@ static int presto_jtag_register_commands(struct command_context_s *cmd_ctx);
 static int presto_jtag_init(void);
 static int presto_jtag_quit(void);
 
-jtag_interface_t presto_interface =
+struct jtag_interface presto_interface =
 {
 	.name = "presto",
 	.execute_queue = bitq_execute_queue,

@@ -61,7 +61,7 @@ static void usbprog_path_move(pathmove_command_t *cmd);
 static void usbprog_runtest(int num_cycles);
 static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size);
 
-jtag_interface_t usbprog_interface =
+struct jtag_interface usbprog_interface =
 {
 	.name = "usbprog",
 	.execute_queue = usbprog_execute_queue,

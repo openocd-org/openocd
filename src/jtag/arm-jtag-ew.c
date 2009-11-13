@@ -109,7 +109,7 @@ static armjtagew_jtag_t* armjtagew_jtag_handle;
 /***************************************************************************/
 /* External interface implementation */
 
-jtag_interface_t armjtagew_interface =
+struct jtag_interface armjtagew_interface =
 {
 	.name = "arm-jtag-ew",
 	.execute_queue = armjtagew_execute_queue,

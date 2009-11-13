@@ -571,7 +571,7 @@ static int gw16012_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-jtag_interface_t gw16012_interface = {
+struct jtag_interface gw16012_interface = {
 		.name = "gw16012",
 		.register_commands = &gw16012_register_commands,
 		.init = &gw16012_init,

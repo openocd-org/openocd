@@ -27,7 +27,7 @@
 
 
 
-jtag_interface_t minidummy_interface =
+struct jtag_interface minidummy_interface =
 {
 	.name = "minidummy",
 	.execute_queue = NULL,

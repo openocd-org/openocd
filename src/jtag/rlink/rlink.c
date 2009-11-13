@@ -1878,7 +1878,7 @@ int rlink_quit(void)
 }
 
 
-jtag_interface_t rlink_interface =
+struct jtag_interface rlink_interface =
 {
 	.name = "rlink",
 	.init = rlink_init,

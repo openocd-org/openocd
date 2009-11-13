@@ -510,7 +510,7 @@ static int parport_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-jtag_interface_t parport_interface = {
+struct jtag_interface parport_interface = {
 	.name =			"parport",
 	.register_commands =	parport_register_commands,
 	.init =			parport_init,

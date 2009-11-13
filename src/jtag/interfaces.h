@@ -40,6 +40,6 @@
 /// Dynamically load all JTAG interface modules from specified directory.
 void jtag_interface_modules_load(const char *path);
 
-extern jtag_interface_t *jtag_interfaces[];
+extern struct jtag_interface *jtag_interfaces[];
 
 #endif // OPENOCD_JTAG_INTERFACES_H

@@ -53,7 +53,7 @@ static int ep93xx_quit(void);
 
 struct timespec ep93xx_zzzz;
 
-jtag_interface_t ep93xx_interface =
+struct jtag_interface ep93xx_interface =
 {
 	.name = "ep93xx",
 

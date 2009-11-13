@@ -139,7 +139,7 @@ static jlink_jtag_t* jlink_jtag_handle;
 /***************************************************************************/
 /* External interface implementation */
 
-jtag_interface_t jlink_interface =
+struct jtag_interface jlink_interface =
 {
 	.name = "jlink",
 	.execute_queue = jlink_execute_queue,

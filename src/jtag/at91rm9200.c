@@ -122,7 +122,7 @@ static int at91rm9200_register_commands(struct command_context_s *cmd_ctx);
 static int at91rm9200_init(void);
 static int at91rm9200_quit(void);
 
-jtag_interface_t at91rm9200_interface =
+struct jtag_interface at91rm9200_interface =
 {
 	.name = "at91rm9200",
 

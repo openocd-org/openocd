@@ -115,10 +115,10 @@ static int rclk_fallback_speed_khz = 0;
 static enum {CLOCK_MODE_SPEED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
 static int jtag_speed = 0;
 
-static struct jtag_interface_s *jtag = NULL;
+static struct jtag_interface *jtag = NULL;
 
 /* configuration */
-jtag_interface_t *jtag_interface = NULL;
+struct jtag_interface *jtag_interface = NULL;
 
 void jtag_set_error(int error)
 {
