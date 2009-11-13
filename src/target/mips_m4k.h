@@ -29,11 +29,11 @@ struct target_s;
 
 #define MIPSM4K_COMMON_MAGIC	0xB321B321
 
-typedef struct mips_m4k_common_s
+struct mips_m4k_common
 {
 	int common_magic;
 	struct mips32_common mips32_common;
-} mips_m4k_common_t;
+};
 
 int mips_m4k_bulk_write_memory(struct target_s *target,
 		uint32_t address, uint32_t count, uint8_t *buffer);

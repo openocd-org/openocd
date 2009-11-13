@@ -917,7 +917,7 @@ int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, struct jtag_tap *tap)
+int mips_m4k_init_arch_info(target_t *target, struct mips_m4k_common *mips_m4k, struct jtag_tap *tap)
 {
 	struct mips32_common *mips32 = &mips_m4k->mips32_common;
 
@@ -932,7 +932,7 @@ int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, struc
 
 int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	mips_m4k_common_t *mips_m4k = calloc(1,sizeof(mips_m4k_common_t));
+	struct mips_m4k_common *mips_m4k = calloc(1,sizeof(struct mips_m4k_common));
 
 	mips_m4k_init_arch_info(target, mips_m4k, target->tap);
 
