@@ -77,7 +77,8 @@ Nico Coesel
 #include "mips32.h"
 #include "mips32_pracc.h"
 
-typedef struct {
+struct mips32_pracc_context
+{
 	uint32_t *local_iparam;
 	int num_iparam;
 	uint32_t *local_oparam;
@@ -87,7 +88,7 @@ typedef struct {
 	uint32_t stack[32];
 	int stack_offset;
 	struct mips_ejtag *ejtag_info;
-} mips32_pracc_context;
+};
 
 static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 {
@@ -108,7 +109,7 @@ static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 	return ERROR_OK;
 }
 
-static int mips32_pracc_exec_read(mips32_pracc_context *ctx, uint32_t address)
+static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t address)
 {
 	struct mips_ejtag *ejtag_info = ctx->ejtag_info;
 	int offset;
@@ -164,7 +165,7 @@ static int mips32_pracc_exec_read(mips32_pracc_context *ctx, uint32_t address)
 	return ERROR_OK;
 }
 
-static int mips32_pracc_exec_write(mips32_pracc_context *ctx, uint32_t address)
+static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t address)
 {
 	uint32_t ejtag_ctrl,data;
 	int offset;
@@ -211,7 +212,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, uint32_t *cod
 {
 	uint32_t ejtag_ctrl;
 	uint32_t address, data;
-	mips32_pracc_context ctx;
+	struct mips32_pracc_context ctx;
 	int retval;
 	int pass = 0;
 
