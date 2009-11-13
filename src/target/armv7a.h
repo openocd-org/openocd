@@ -133,13 +133,13 @@ target_to_armv7a(struct target_s *target)
 			armv4_5_common);
 }
 
-typedef struct armv7a_algorithm_s
+struct armv7a_algorithm
 {
 	int common_magic;
 
 	enum armv7a_mode core_mode;
 	enum armv7a_state core_state;
-} armv7a_algorithm_t;
+};
 
 typedef struct armv7a_core_reg_s
 {
