@@ -32,7 +32,7 @@ struct nand_device_s;
 #define __NAND_DEVICE_COMMAND(name) \
 		COMMAND_HELPER(name, struct nand_device_s *nand)
 
-typedef struct nand_flash_controller_s
+struct nand_flash_controller
 {
 	char *name;
 	__NAND_DEVICE_COMMAND((*nand_device_command));
@@ -49,7 +49,7 @@ typedef struct nand_flash_controller_s
 	int (*read_page)(struct nand_device_s *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 	int (*controller_ready)(struct nand_device_s *nand, int timeout);
 	int (*nand_ready)(struct nand_device_s *nand, int timeout);
-} nand_flash_controller_t;
+};
 
 #define NAND_DEVICE_COMMAND_HANDLER(name) static __NAND_DEVICE_COMMAND(name)
 
@@ -75,7 +75,7 @@ typedef struct nand_ecclayout_s {
 
 typedef struct nand_device_s
 {
-	nand_flash_controller_t *controller;
+	struct nand_flash_controller *controller;
 	void *controller_priv;
 	struct nand_manufacturer_s *manufacturer;
 	struct nand_info_s *device;

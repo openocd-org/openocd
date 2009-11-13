@@ -61,7 +61,7 @@ static int s3c2412_init(struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-nand_flash_controller_t s3c2412_nand_controller = {
+struct nand_flash_controller s3c2412_nand_controller = {
 		.name = "s3c2412",
 		.nand_device_command = &s3c2412_nand_device_command,
 		.register_commands = &s3c24xx_register_commands,

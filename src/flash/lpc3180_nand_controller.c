@@ -882,7 +882,7 @@ static int lpc3180_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-nand_flash_controller_t lpc3180_nand_controller = {
+struct nand_flash_controller lpc3180_nand_controller = {
 		.name = "lpc3180",
 		.nand_device_command = lpc3180_nand_device_command,
 		.register_commands = lpc3180_register_commands,

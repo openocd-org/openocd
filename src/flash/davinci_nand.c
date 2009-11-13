@@ -744,7 +744,7 @@ fail:
 	return ERROR_NAND_OPERATION_FAILED;
 }
 
-nand_flash_controller_t davinci_nand_controller = {
+struct nand_flash_controller davinci_nand_controller = {
 	.name			= "davinci",
 	.nand_device_command	= davinci_nand_device_command,
 	.register_commands	= davinci_register_commands,

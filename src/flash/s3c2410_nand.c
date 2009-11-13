@@ -107,7 +107,7 @@ static int s3c2410_nand_ready(struct nand_device_s *nand, int timeout)
 	return 0;
 }
 
-nand_flash_controller_t s3c2410_nand_controller = {
+struct nand_flash_controller s3c2410_nand_controller = {
 		.name = "s3c2410",
 		.nand_device_command = &s3c2410_nand_device_command,
 		.register_commands = &s3c24xx_register_commands,

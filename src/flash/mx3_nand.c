@@ -868,7 +868,7 @@ static int do_data_output (struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-nand_flash_controller_t imx31_nand_flash_controller = {
+struct nand_flash_controller imx31_nand_flash_controller = {
 		.name = "imx31",
 		.nand_device_command = &imx31_nand_device_command,
 		.register_commands = &imx31_register_commands,

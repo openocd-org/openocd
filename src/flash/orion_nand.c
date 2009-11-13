@@ -169,7 +169,7 @@ static int orion_nand_init(struct nand_device_s *nand)
 	return ERROR_OK;
 }
 
-nand_flash_controller_t orion_nand_controller =
+struct nand_flash_controller orion_nand_controller =
 {
 	.name			= "orion",
 	.command		= orion_nand_command,

@@ -35,18 +35,18 @@ static int nand_write_page(struct nand_device_s *nand, uint32_t page, uint8_t *d
 
 /* NAND flash controller
  */
-extern nand_flash_controller_t davinci_nand_controller;
-extern nand_flash_controller_t lpc3180_nand_controller;
-extern nand_flash_controller_t orion_nand_controller;
-extern nand_flash_controller_t s3c2410_nand_controller;
-extern nand_flash_controller_t s3c2412_nand_controller;
-extern nand_flash_controller_t s3c2440_nand_controller;
-extern nand_flash_controller_t s3c2443_nand_controller;
-extern nand_flash_controller_t imx31_nand_flash_controller;
+extern struct nand_flash_controller davinci_nand_controller;
+extern struct nand_flash_controller lpc3180_nand_controller;
+extern struct nand_flash_controller orion_nand_controller;
+extern struct nand_flash_controller s3c2410_nand_controller;
+extern struct nand_flash_controller s3c2412_nand_controller;
+extern struct nand_flash_controller s3c2440_nand_controller;
+extern struct nand_flash_controller s3c2443_nand_controller;
+extern struct nand_flash_controller imx31_nand_flash_controller;
 
-/* extern nand_flash_controller_t boundary_scan_nand_controller; */
+/* extern struct nand_flash_controller boundary_scan_nand_controller; */
 
-static nand_flash_controller_t *nand_flash_controllers[] =
+static struct nand_flash_controller *nand_flash_controllers[] =
 {
 	&davinci_nand_controller,
 	&lpc3180_nand_controller,
