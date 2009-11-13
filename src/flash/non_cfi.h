@@ -22,7 +22,7 @@
 
 #include "flash.h"
 
-typedef struct non_cfi_s
+struct non_cfi
 {
 	uint16_t mfr;
 	uint16_t id;
@@ -33,7 +33,7 @@ typedef struct non_cfi_s
 	uint8_t num_erase_regions;
 	uint32_t erase_region_info[6];
 	uint8_t  status_poll_mask;
-} non_cfi_t;
+};
 
 void cfi_fixup_non_cfi(flash_bank_t *bank);
 

@@ -32,7 +32,7 @@
 #define ERASE_REGION(num, size) (((size/256) << 16) | (num-1))
 
 /* non-CFI compatible flashes */
-static non_cfi_t non_cfi_flashes[] = {
+static struct non_cfi non_cfi_flashes[] = {
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0xd4,
@@ -406,7 +406,7 @@ static non_cfi_t non_cfi_flashes[] = {
 void cfi_fixup_non_cfi(flash_bank_t *bank)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	non_cfi_t *non_cfi = non_cfi_flashes;
+	struct non_cfi *non_cfi = non_cfi_flashes;
 
 	for (non_cfi = non_cfi_flashes; non_cfi->mfr; non_cfi++)
 	{
