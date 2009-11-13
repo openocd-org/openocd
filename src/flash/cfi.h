@@ -96,7 +96,7 @@ struct cfi_intel_pri_ext
 /* Spansion primary extended query table as defined for and used by
  * the linux kernel cfi driver (as of 2.6.15)
  */
-typedef struct cfi_spansion_pri_ext_s
+struct cfi_spansion_pri_ext
 {
 	uint8_t  pri[3];
 	uint8_t  major_version;
@@ -115,7 +115,7 @@ typedef struct cfi_spansion_pri_ext_s
 	int _reversed_geometry;
 	uint32_t _unlock1;
 	uint32_t _unlock2;
-} cfi_spansion_pri_ext_t;
+};
 
 /* Atmel primary extended query table as defined for and used by
  * the linux kernel cfi driver (as of 2.6.20+)

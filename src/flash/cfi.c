@@ -382,7 +382,7 @@ static int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
+	struct cfi_spansion_pri_ext *pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
 	target_t *target = bank->target;
 	uint8_t command[8];
 
@@ -448,7 +448,7 @@ static int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	int retval;
 	struct cfi_atmel_pri_ext atmel_pri_ext;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
+	struct cfi_spansion_pri_ext *pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
 	target_t *target = bank->target;
 	uint8_t command[8];
 
@@ -457,7 +457,7 @@ static int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	 * We read the atmel table, and prepare a valid AMD/Spansion query table.
 	 */
 
-	memset(pri_ext, 0, sizeof(cfi_spansion_pri_ext_t));
+	memset(pri_ext, 0, sizeof(struct cfi_spansion_pri_ext));
 
 	cfi_info->pri_ext = pri_ext;
 
@@ -528,7 +528,7 @@ static int cfi_spansion_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	int printed;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 
 	printed = snprintf(buf, buf_size, "\nSpansion primary algorithm extend information:\n");
 	buf += printed;
@@ -700,7 +700,7 @@ static int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	uint8_t command[8];
 	int i;
@@ -1263,7 +1263,7 @@ cleanup:
 static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t address, uint32_t count)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	reg_param_t reg_params[10];
 	armv4_5_algorithm_t armv4_5_info;
@@ -1690,7 +1690,7 @@ static int cfi_spansion_write_word(struct flash_bank_s *bank, uint8_t *word, uin
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	uint8_t command[8];
 
@@ -1738,7 +1738,7 @@ static int cfi_spansion_write_words(struct flash_bank_s *bank, uint8_t *word, ui
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint8_t command[8];
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 
 	/* Calculate buffer size and boundary mask */
 	uint32_t buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
@@ -2079,7 +2079,7 @@ static void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *bank, void *par
 {
 	(void) param;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 
 	pri_ext->_reversed_geometry = 1;
 }
@@ -2088,7 +2088,7 @@ static void cfi_fixup_0002_erase_regions(flash_bank_t *bank, void *param)
 {
 	int i;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	(void) param;
 
 	if ((pri_ext->_reversed_geometry) || (pri_ext->TopBottom == 3))
@@ -2110,7 +2110,7 @@ static void cfi_fixup_0002_erase_regions(flash_bank_t *bank, void *param)
 static void cfi_fixup_0002_unlock_addresses(flash_bank_t *bank, void *param)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	cfi_unlock_addresses_t *unlock_addresses = param;
 
 	pri_ext->_unlock1 = unlock_addresses->unlock1;
@@ -2481,7 +2481,7 @@ static int cfi_spansion_protect_check(struct flash_bank_s *bank)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	uint8_t command[8];
 	int i;

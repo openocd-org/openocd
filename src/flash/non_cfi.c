@@ -456,7 +456,7 @@ void cfi_fixup_non_cfi(flash_bank_t *bank)
 
 	if (cfi_info->pri_id == 0x2)
 	{
-		cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
+		struct cfi_spansion_pri_ext *pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
 
 		pri_ext->pri[0] = 'P';
 		pri_ext->pri[1] = 'R';
