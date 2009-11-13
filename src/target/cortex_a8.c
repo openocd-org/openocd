@@ -1572,40 +1572,40 @@ static int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
 }
 
 target_type_t cortexa8_target = {
-		.name = "cortex_a8",
+	.name = "cortex_a8",
 
-		.poll = &cortex_a8_poll,
-		.arch_state = &armv7a_arch_state,
+	.poll = cortex_a8_poll,
+	.arch_state = armv7a_arch_state,
 
-		.target_request_data = NULL,
+	.target_request_data = NULL,
 
-		.halt = &cortex_a8_halt,
-		.resume = &cortex_a8_resume,
-		.step = &cortex_a8_step,
+	.halt = cortex_a8_halt,
+	.resume = cortex_a8_resume,
+	.step = cortex_a8_step,
 
-		.assert_reset = &cortex_a8_assert_reset,
-		.deassert_reset = &cortex_a8_deassert_reset,
-		.soft_reset_halt = NULL,
+	.assert_reset = cortex_a8_assert_reset,
+	.deassert_reset = cortex_a8_deassert_reset,
+	.soft_reset_halt = NULL,
 
-		.get_gdb_reg_list = &armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
-		.read_memory = &cortex_a8_read_memory,
-		.write_memory = &cortex_a8_write_memory,
-		.bulk_write_memory = &cortex_a8_bulk_write_memory,
-		.checksum_memory = &arm7_9_checksum_memory,
-		.blank_check_memory = &arm7_9_blank_check_memory,
+	.read_memory = cortex_a8_read_memory,
+	.write_memory = cortex_a8_write_memory,
+	.bulk_write_memory = cortex_a8_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
 
-		.run_algorithm = &armv4_5_run_algorithm,
+	.run_algorithm = armv4_5_run_algorithm,
 
-		.add_breakpoint = &cortex_a8_add_breakpoint,
-		.remove_breakpoint = &cortex_a8_remove_breakpoint,
-		.add_watchpoint = NULL,
-		.remove_watchpoint = NULL,
+	.add_breakpoint = cortex_a8_add_breakpoint,
+	.remove_breakpoint = cortex_a8_remove_breakpoint,
+	.add_watchpoint = NULL,
+	.remove_watchpoint = NULL,
 
-		.register_commands = &cortex_a8_register_commands,
-		.target_create = &cortex_a8_target_create,
-		.init_target = &cortex_a8_init_target,
-		.examine = &cortex_a8_examine,
-		.mrc = &cortex_a8_mrc,
-		.mcr = &cortex_a8_mcr,
-	};
+	.register_commands = cortex_a8_register_commands,
+	.target_create = cortex_a8_target_create,
+	.init_target = cortex_a8_init_target,
+	.examine = cortex_a8_examine,
+	.mrc = cortex_a8_mrc,
+	.mcr = cortex_a8_mcr,
+};
