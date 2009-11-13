@@ -30,7 +30,7 @@
 
 struct target_s;
 
-struct target_type_s
+struct target_type
 {
 	/**
 	 * Name of the target.  Do @b not access this field directly, use

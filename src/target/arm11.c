@@ -2197,7 +2197,7 @@ COMMAND_HANDLER(arm11_handle_etmw)
 
 #define ARM11_HANDLER(x)	.x = arm11_##x
 
-target_type_t arm11_target = {
+struct target_type arm11_target = {
 		.name = "arm11",
 
 		ARM11_HANDLER(poll),

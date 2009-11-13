@@ -124,13 +124,10 @@ struct working_area
 	struct working_area *next;
 };
 
-// target_type.h contains the full definitionof struct target_type_s
-struct target_type_s;
-typedef struct target_type_s target_type_t;
-
+// target_type.h contains the full definitionof struct target_type
 typedef struct target_s
 {
-	target_type_t *type;				/* target type definition (name, access functions) */
+	struct target_type *type;				/* target type definition (name, access functions) */
 	const char *cmd_name;				/* tcl Name of target */
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;					/* where on the jtag chain is this */

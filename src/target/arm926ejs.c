@@ -842,7 +842,7 @@ int arm926ejs_register_commands(struct command_context_s *cmd_ctx)
 }
 
 /** Holds methods for ARM926 targets. */
-target_type_t arm926ejs_target =
+struct target_type arm926ejs_target =
 {
 	.name = "arm926ejs",
 

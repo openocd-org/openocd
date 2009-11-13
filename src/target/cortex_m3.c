@@ -1951,7 +1951,7 @@ static int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
-target_type_t cortexm3_target =
+struct target_type cortexm3_target =
 {
 	.name = "cortex_m3",
 

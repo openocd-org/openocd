@@ -674,7 +674,7 @@ int feroceon_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-target_type_t feroceon_target =
+struct target_type feroceon_target =
 {
 	.name = "feroceon",
 
@@ -712,7 +712,7 @@ target_type_t feroceon_target =
 	.examine = feroceon_examine,
 };
 
-target_type_t dragonite_target =
+struct target_type dragonite_target =
 {
 	.name = "dragonite",
 

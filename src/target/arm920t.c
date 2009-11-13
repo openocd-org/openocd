@@ -1380,7 +1380,7 @@ int arm920t_register_commands(struct command_context_s *cmd_ctx)
 }
 
 /** Holds methods for ARM920 targets. */
-target_type_t arm920t_target =
+struct target_type arm920t_target =
 {
 	.name = "arm920t",
 

@@ -753,7 +753,7 @@ static int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 }
 
 /** Holds methods for ARM7TDMI targets. */
-target_type_t arm7tdmi_target =
+struct target_type arm7tdmi_target =
 {
 	.name = "arm7tdmi",
 

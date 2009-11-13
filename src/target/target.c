@@ -49,23 +49,23 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
 
 /* targets */
-extern target_type_t arm7tdmi_target;
-extern target_type_t arm720t_target;
-extern target_type_t arm9tdmi_target;
-extern target_type_t arm920t_target;
-extern target_type_t arm966e_target;
-extern target_type_t arm926ejs_target;
-extern target_type_t fa526_target;
-extern target_type_t feroceon_target;
-extern target_type_t dragonite_target;
-extern target_type_t xscale_target;
-extern target_type_t cortexm3_target;
-extern target_type_t cortexa8_target;
-extern target_type_t arm11_target;
-extern target_type_t mips_m4k_target;
-extern target_type_t avr_target;
+extern struct target_type arm7tdmi_target;
+extern struct target_type arm720t_target;
+extern struct target_type arm9tdmi_target;
+extern struct target_type arm920t_target;
+extern struct target_type arm966e_target;
+extern struct target_type arm926ejs_target;
+extern struct target_type fa526_target;
+extern struct target_type feroceon_target;
+extern struct target_type dragonite_target;
+extern struct target_type xscale_target;
+extern struct target_type cortexm3_target;
+extern struct target_type cortexa8_target;
+extern struct target_type arm11_target;
+extern struct target_type mips_m4k_target;
+extern struct target_type avr_target;
 
-target_type_t *target_types[] =
+struct target_type *target_types[] =
 {
 	&arm7tdmi_target,
 	&arm9tdmi_target,
@@ -760,7 +760,7 @@ int target_init(struct command_context_s *cmd_ctx)
 	int retval;
 
 	for (target = all_targets; target; target = target->next) {
-		struct target_type_s *type = target->type;
+		struct target_type *type = target->type;
 
 		target_reset_examined(target);
 		if (target->type->examine == NULL)
@@ -4290,9 +4290,9 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->target_number = new_target_number();
 
 	/* allocate memory for each unique target type */
-	target->type = (target_type_t*)calloc(1,sizeof(target_type_t));
+	target->type = (struct target_type*)calloc(1,sizeof(struct target_type));
 
-	memcpy(target->type, target_types[x], sizeof(target_type_t));
+	memcpy(target->type, target_types[x], sizeof(struct target_type));
 
 	/* will be set by "-endian" */
 	target->endianness = TARGET_ENDIAN_UNKNOWN;

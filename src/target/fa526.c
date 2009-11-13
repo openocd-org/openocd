@@ -358,7 +358,7 @@ static int fa526_target_create(struct target_s *target, Jim_Interp *interp)
 }
 
 /** Holds methods for FA526 targets. */
-target_type_t fa526_target =
+struct target_type fa526_target =
 {
 	.name = "fa526",
 

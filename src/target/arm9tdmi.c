@@ -953,7 +953,7 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 }
 
 /** Holds methods for ARM9TDMI targets. */
-target_type_t arm9tdmi_target =
+struct target_type arm9tdmi_target =
 {
 	.name = "arm9tdmi",
 

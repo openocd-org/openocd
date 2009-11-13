@@ -59,7 +59,7 @@ int mcu_write_ir_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int
 int mcu_write_dr_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
 int mcu_execute_queue(void);
 
-target_type_t avr_target =
+struct target_type avr_target =
 {
 	.name = "avr",
 

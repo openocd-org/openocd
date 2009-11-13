@@ -1569,7 +1569,7 @@ static int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
-target_type_t cortexa8_target = {
+struct target_type cortexa8_target = {
 	.name = "cortex_a8",
 
 	.poll = cortex_a8_poll,

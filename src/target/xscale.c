@@ -3606,7 +3606,7 @@ static int xscale_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-target_type_t xscale_target =
+struct target_type xscale_target =
 {
 	.name = "xscale",
 

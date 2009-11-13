@@ -48,7 +48,7 @@ int mips_m4k_assert_reset(target_t *target);
 int mips_m4k_deassert_reset(target_t *target);
 int mips_m4k_checksum_memory(target_t *target, uint32_t address, uint32_t size, uint32_t *checksum);
 
-target_type_t mips_m4k_target =
+struct target_type mips_m4k_target =
 {
 	.name = "mips_m4k",
 

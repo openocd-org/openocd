@@ -510,7 +510,7 @@ static int arm720t_register_commands(struct command_context_s *cmd_ctx)
 }
 
 /** Holds methods for ARM720 targets. */
-target_type_t arm720t_target =
+struct target_type arm720t_target =
 {
 	.name = "arm720t",
 

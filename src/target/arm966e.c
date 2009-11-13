@@ -233,7 +233,7 @@ int arm966e_register_commands(struct command_context_s *cmd_ctx)
 }
 
 /** Holds methods for ARM966 targets. */
-target_type_t arm966e_target =
+struct target_type arm966e_target =
 {
 	.name = "arm966e",
 
