@@ -78,7 +78,7 @@ typedef struct nand_device_s
 	struct nand_flash_controller *controller;
 	void *controller_priv;
 	struct nand_manufacturer *manufacturer;
-	struct nand_info_s *device;
+	struct nand_info *device;
 	int bus_width;
 	int address_cycles;
 	int page_size;
@@ -109,7 +109,7 @@ struct nand_manufacturer
 	char *name;
 };
 
-typedef struct nand_info_s
+struct nand_info
 {
 	char *name;
 	int id;
@@ -117,7 +117,7 @@ typedef struct nand_info_s
 	int chip_size;
 	int erase_size;
 	int options;
-} nand_info_t;
+};
 
 /* Option constants for bizarre disfunctionality and real features
  */

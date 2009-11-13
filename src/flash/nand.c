@@ -74,7 +74,7 @@ static command_t *nand_cmd;
  *	256	256 Byte page size
  *	512	512 Byte page size
  */
-static nand_info_t nand_flash_ids[] =
+static struct nand_info nand_flash_ids[] =
 {
 	/* start "museum" IDs */
 	{"NAND 1MiB 5V 8-bit",		0x6e, 256, 1, 0x1000, 0},
