@@ -104,8 +104,7 @@ struct sleep_command {
  * Defines a container type that hold a pointer to a JTAG command
  * structure of any defined type.
  */
-typedef union jtag_command_container_u
-{
+union jtag_command_container {
 	struct scan_command*         scan;
 	struct statemove_command*    statemove;
 	struct pathmove_command*     pathmove;
@@ -114,10 +113,10 @@ typedef union jtag_command_container_u
 	struct reset_command*        reset;
 	struct end_state_command*    end_state;
 	struct sleep_command* sleep;
-} jtag_command_container_t;
+};
 
 /**
- * The type of the @c jtag_command_container_u contained by a
+ * The type of the @c jtag_command_container contained by a
  * @c jtag_command_s structure.
  */
 enum jtag_command_type {
@@ -132,7 +131,7 @@ enum jtag_command_type {
 
 typedef struct jtag_command_s
 {
-	jtag_command_container_t cmd;
+	union jtag_command_container cmd;
 	enum jtag_command_type   type;
 	struct jtag_command_s*   next;
 } jtag_command_t;
