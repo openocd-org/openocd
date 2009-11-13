@@ -170,14 +170,14 @@ struct arm_load_store_instr
 	} offset;
 };
 
-typedef struct arm_load_store_multiple_instr_s
+struct arm_load_store_multiple_instr
 {
 	uint8_t Rn;
 	uint32_t register_list;
 	uint8_t addressing_mode; /* 0: IA, 1: IB, 2: DA, 3: DB */
 	uint8_t S;
 	uint8_t W;
-} arm_load_store_multiple_instr_t;
+};
 
 typedef struct arm_instruction_s
 {
@@ -192,7 +192,7 @@ typedef struct arm_instruction_s
 		struct arm_b_bl_bx_blx_instr b_bl_bx_blx;
 		struct arm_data_proc_instr data_proc;
 		struct arm_load_store_instr load_store;
-		arm_load_store_multiple_instr_t load_store_multiple;
+		struct arm_load_store_multiple_instr load_store_multiple;
 	} info;
 
 } arm_instruction_t;
