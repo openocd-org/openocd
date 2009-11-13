@@ -559,7 +559,7 @@ static int target_soft_reset_halt_imp(struct target_s *target)
 	return target->type->soft_reset_halt_imp(target);
 }
 
-static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	if (!target_was_examined(target))
 	{
@@ -634,7 +634,7 @@ int target_step(struct target_s *target,
 
 
 int target_run_algorithm(struct target_s *target,
-		int num_mem_params, mem_param_t *mem_params,
+		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, reg_param_t *reg_param,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info)

@@ -336,7 +336,7 @@ int mips32_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+int mips32_run_algorithm(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	/*TODO*/
 	return ERROR_OK;

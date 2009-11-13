@@ -25,7 +25,7 @@
 #include "binarybuffer.h"
 
 
-void init_mem_param(mem_param_t *param, uint32_t address, uint32_t size, enum param_direction direction)
+void init_mem_param(struct mem_param *param, uint32_t address, uint32_t size, enum param_direction direction)
 {
 	param->address = address;
 	param->size = size;
@@ -33,7 +33,7 @@ void init_mem_param(mem_param_t *param, uint32_t address, uint32_t size, enum pa
 	param->direction = direction;
 }
 
-void destroy_mem_param(mem_param_t *param)
+void destroy_mem_param(struct mem_param *param)
 {
 	free(param->value);
 	param->value = NULL;

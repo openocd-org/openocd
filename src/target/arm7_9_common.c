@@ -2654,7 +2654,7 @@ static const uint32_t dcc_code[] =
 	0xeafffff9	/*    b   w                   */
 };
 
-int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
 
 int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {

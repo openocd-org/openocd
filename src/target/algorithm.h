@@ -29,13 +29,13 @@ enum param_direction
 	PARAM_IN_OUT
 };
 
-typedef struct mem_param_s
+struct mem_param
 {
 	uint32_t address;
 	uint32_t size;
 	uint8_t *value;
 	enum param_direction direction;
-} mem_param_t;
+};
 
 typedef struct reg_param_s
 {
@@ -45,9 +45,9 @@ typedef struct reg_param_s
 	enum param_direction direction;
 } reg_param_t;
 
-void init_mem_param(mem_param_t *param,
+void init_mem_param(struct mem_param *param,
 		uint32_t address, uint32_t size, enum param_direction dir);
-void destroy_mem_param(mem_param_t *param);
+void destroy_mem_param(struct mem_param *param);
 
 void init_reg_param(reg_param_t *param,
 		char *reg_name, uint32_t size, enum param_direction dir);
