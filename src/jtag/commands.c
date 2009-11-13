@@ -42,15 +42,15 @@ struct cmd_queue_page {
 #define CMD_QUEUE_PAGE_SIZE (1024 * 1024)
 static struct cmd_queue_page *cmd_queue_pages = NULL;
 
-jtag_command_t *jtag_command_queue = NULL;
-static jtag_command_t **next_command_pointer = &jtag_command_queue;
+struct jtag_command *jtag_command_queue = NULL;
+static struct jtag_command **next_command_pointer = &jtag_command_queue;
 
-void jtag_queue_command(jtag_command_t * cmd)
+void jtag_queue_command(struct jtag_command * cmd)
 {
 	// this command goes on the end, so ensure the queue terminates
 	cmd->next = NULL;
 
-	jtag_command_t **last_cmd = next_command_pointer;
+	struct jtag_command **last_cmd = next_command_pointer;
 	assert(NULL != last_cmd);
 	assert(NULL == *last_cmd);
 	*last_cmd = cmd;

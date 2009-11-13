@@ -127,7 +127,7 @@ static int usbprog_register_commands(struct command_context_s *cmd_ctx)
 
 static int usbprog_execute_queue(void)
 {
-	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
+	struct jtag_command *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

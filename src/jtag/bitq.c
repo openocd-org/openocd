@@ -29,7 +29,7 @@ struct bitq_interface* bitq_interface;       /* low level bit queue interface */
 
 /* state of input queue */
 struct bitq_state {
-	jtag_command_t *cmd; /* command currently processed */
+	struct jtag_command *cmd; /* command currently processed */
 	int field_idx; /* index of field currently being processed */
 	int bit_pos; /* position of bit curently being processed */
 	int status; /* processing status */
@@ -290,7 +290,7 @@ void bitq_scan(struct scan_command* cmd)
 
 int bitq_execute_queue(void)
 {
-	jtag_command_t* cmd = jtag_command_queue; /* currently processed command */
+	struct jtag_command* cmd = jtag_command_queue; /* currently processed command */
 
 	bitq_in_state.cmd = jtag_command_queue;
 	bitq_in_state.field_idx = 0;

@@ -150,7 +150,7 @@ struct jtag_interface jlink_interface =
 	.quit = jlink_quit
 };
 
-static void jlink_execute_runtest(jtag_command_t *cmd)
+static void jlink_execute_runtest(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("runtest %i cycles, end in %i",
 			cmd->cmd.runtest->num_cycles,
@@ -161,7 +161,7 @@ static void jlink_execute_runtest(jtag_command_t *cmd)
 	jlink_runtest(cmd->cmd.runtest->num_cycles);
 }
 
-static void jlink_execute_statemove(jtag_command_t *cmd)
+static void jlink_execute_statemove(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
@@ -169,7 +169,7 @@ static void jlink_execute_statemove(jtag_command_t *cmd)
 	jlink_state_move();
 }
 
-static void jlink_execute_pathmove(jtag_command_t *cmd)
+static void jlink_execute_pathmove(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("pathmove: %i states, end in %i",
 		cmd->cmd.pathmove->num_states,
@@ -179,7 +179,7 @@ static void jlink_execute_pathmove(jtag_command_t *cmd)
 			cmd->cmd.pathmove->path);
 }
 
-static void jlink_execute_scan(jtag_command_t *cmd)
+static void jlink_execute_scan(struct jtag_command *cmd)
 {
 	int scan_size;
 	enum scan_type type;
@@ -200,7 +200,7 @@ static void jlink_execute_scan(jtag_command_t *cmd)
 			type, buffer, scan_size, cmd->cmd.scan);
 }
 
-static void jlink_execute_reset(jtag_command_t *cmd)
+static void jlink_execute_reset(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("reset trst: %i srst %i",
 			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
@@ -210,14 +210,14 @@ static void jlink_execute_reset(jtag_command_t *cmd)
 	jlink_tap_execute();
 }
 
-static void jlink_execute_sleep(jtag_command_t *cmd)
+static void jlink_execute_sleep(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
 	jlink_tap_execute();
 	jtag_sleep(cmd->cmd.sleep->us);
 }
 
-static void jlink_execute_command(jtag_command_t *cmd)
+static void jlink_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type)
 	{
@@ -235,7 +235,7 @@ static void jlink_execute_command(jtag_command_t *cmd)
 
 static int jlink_execute_queue(void)
 {
-	jtag_command_t *cmd = jtag_command_queue;
+	struct jtag_command *cmd = jtag_command_queue;
 
 	while (cmd != NULL)
 	{

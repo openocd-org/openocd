@@ -122,7 +122,7 @@ struct jtag_interface armjtagew_interface =
 
 static int armjtagew_execute_queue(void)
 {
-	jtag_command_t *cmd = jtag_command_queue;
+	struct jtag_command *cmd = jtag_command_queue;
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

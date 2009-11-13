@@ -129,20 +129,19 @@ enum jtag_command_type {
 	JTAG_STABLECLOCKS = 8
 };
 
-typedef struct jtag_command_s
-{
+struct jtag_command {
 	union jtag_command_container cmd;
 	enum jtag_command_type   type;
-	struct jtag_command_s*   next;
-} jtag_command_t;
+	struct jtag_command *next;
+};
 
 /// The current queue of jtag_command_s structures.
-extern jtag_command_t* jtag_command_queue;
+extern struct jtag_command* jtag_command_queue;
 
 void* cmd_queue_alloc(size_t size);
 void cmd_queue_free(void);
 
-void jtag_queue_command(jtag_command_t *cmd);
+void jtag_queue_command(struct jtag_command *cmd);
 void jtag_command_queue_reset(void);
 
 enum scan_type jtag_scan_type(const struct scan_command* cmd);

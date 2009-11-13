@@ -100,7 +100,7 @@
  *
  * @returns ERROR_OK on success, or ERROR_JTAG_QUEUE_FAILED on failure.
  */
-static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd);
+static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd);
 
 static char *       ft2232_device_desc_A = NULL;
 static char*        ft2232_device_desc = NULL;
@@ -196,7 +196,7 @@ static struct ftdi_context ftdic;
 static enum ftdi_chip_type ftdi_device;
 #endif
 
-static jtag_command_t* first_unsent;        /* next command that has to be sent */
+static struct jtag_command* first_unsent;        /* next command that has to be sent */
 static int             require_send;
 
 /*	http://urjtag.wiki.sourceforge.net/Cable + FT2232 says:
@@ -617,9 +617,9 @@ static void ft2232_debug_dump_buffer(void)
 		LOG_DEBUG("%s", line);
 }
 
-static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
+static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command* last)
 {
-	jtag_command_t* cmd;
+	struct jtag_command* cmd;
 	uint8_t* buffer;
 	int scan_size;
 	enum scan_type  type;
@@ -1491,7 +1491,7 @@ static void sheevaplug_reset(int trst, int srst)
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
-static int ft2232_execute_runtest(jtag_command_t *cmd)
+static int ft2232_execute_runtest(struct jtag_command *cmd)
 {
 	int retval;
 	int i;
@@ -1555,7 +1555,7 @@ static int ft2232_execute_runtest(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_statemove(jtag_command_t *cmd)
+static int ft2232_execute_statemove(struct jtag_command *cmd)
 {
 	int	predicted_size = 0;
 	int	retval = ERROR_OK;
@@ -1592,7 +1592,7 @@ static int ft2232_execute_statemove(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_pathmove(jtag_command_t *cmd)
+static int ft2232_execute_pathmove(struct jtag_command *cmd)
 {
 	int	predicted_size = 0;
 	int	retval = ERROR_OK;
@@ -1621,7 +1621,7 @@ static int ft2232_execute_pathmove(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_scan(jtag_command_t *cmd)
+static int ft2232_execute_scan(struct jtag_command *cmd)
 {
 	uint8_t* buffer;
 	int scan_size;				/* size of IR or DR scan */
@@ -1676,7 +1676,7 @@ static int ft2232_execute_scan(jtag_command_t *cmd)
 
 }
 
-static int ft2232_execute_reset(jtag_command_t *cmd)
+static int ft2232_execute_reset(struct jtag_command *cmd)
 {
 	int retval;
 	int predicted_size = 0;
@@ -1708,7 +1708,7 @@ static int ft2232_execute_reset(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_sleep(jtag_command_t *cmd)
+static int ft2232_execute_sleep(struct jtag_command *cmd)
 {
 	int retval;
 	retval = ERROR_OK;
@@ -1725,7 +1725,7 @@ static int ft2232_execute_sleep(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_stableclocks(jtag_command_t *cmd)
+static int ft2232_execute_stableclocks(struct jtag_command *cmd)
 {
 	int retval;
 	retval = ERROR_OK;
@@ -1741,7 +1741,7 @@ static int ft2232_execute_stableclocks(jtag_command_t *cmd)
 	return retval;
 }
 
-static int ft2232_execute_command(jtag_command_t *cmd)
+static int ft2232_execute_command(struct jtag_command *cmd)
 {
 	int retval;
 	retval = ERROR_OK;
@@ -1764,7 +1764,7 @@ static int ft2232_execute_command(jtag_command_t *cmd)
 
 static int ft2232_execute_queue(void)
 {
-	jtag_command_t* cmd = jtag_command_queue;	/* currently processed command */
+	struct jtag_command* cmd = jtag_command_queue;	/* currently processed command */
 	int retval;
 
 	first_unsent = cmd;		/* next command that has to be sent */
@@ -2903,7 +2903,7 @@ COMMAND_HANDLER(ft2232_handle_latency_command)
 	return ERROR_OK;
 }
 
-static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd)
+static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd)
 {
 	int retval = 0;
 

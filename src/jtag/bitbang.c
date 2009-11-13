@@ -230,7 +230,7 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 
 int bitbang_execute_queue(void)
 {
-	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
+	struct jtag_command *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

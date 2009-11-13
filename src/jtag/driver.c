@@ -77,7 +77,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const struct scan_field *in_fi
 {
 	size_t num_taps = jtag_tap_count_enabled();
 
-	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc(num_taps  * sizeof(struct scan_field));
 
@@ -150,7 +150,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const struct scan_field *in_fi
 int interface_jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
 
-	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
 
@@ -188,7 +188,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const struct scan_field *in_fi
 			bypass_devices++;
 	}
 
-	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
 
@@ -278,7 +278,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 	}
 
 
-	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
 
@@ -346,7 +346,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
  */
 int interface_jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
-	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
 
@@ -371,7 +371,7 @@ int interface_jtag_add_tlr(void)
 	tap_state_t state = TAP_RESET;
 
 	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 
 	jtag_queue_command(cmd);
 
@@ -386,7 +386,7 @@ int interface_jtag_add_tlr(void)
 int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 
 	jtag_queue_command(cmd);
 
@@ -405,7 +405,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 {
 	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 
 	jtag_queue_command(cmd);
 
@@ -421,7 +421,7 @@ int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 int interface_jtag_add_clocks(int num_cycles)
 {
 	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 
 	jtag_queue_command(cmd);
 
@@ -436,7 +436,7 @@ int interface_jtag_add_clocks(int num_cycles)
 int interface_jtag_add_reset(int req_trst, int req_srst)
 {
 	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 
 	jtag_queue_command(cmd);
 
@@ -452,7 +452,7 @@ int interface_jtag_add_reset(int req_trst, int req_srst)
 int interface_jtag_add_sleep(uint32_t us)
 {
 	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	struct jtag_command * cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 
 	jtag_queue_command(cmd);
 
