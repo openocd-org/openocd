@@ -89,13 +89,13 @@ static const char *svf_trst_mode_name[4] =
 	"ABSENT"
 };
 
-typedef struct
+struct svf_statemove
 {
 	tap_state_t from;
 	tap_state_t to;
 	uint32_t num_of_moves;
 	tap_state_t paths[8];
-}svf_statemove_t;
+};
 
 /*
  * These paths are from the SVF specification for the STATE command, to be
@@ -112,7 +112,7 @@ typedef struct
  * and many SVF implementations, we don't want to risk missing that state.
  * To get to RESET, always we ignore the current state.
  */
-static const svf_statemove_t svf_statemoves[] =
+static const struct svf_statemove svf_statemoves[] =
 {
 	// from			to				num_of_moves,	paths[8]
 //	{TAP_RESET,		TAP_RESET,		1,				{TAP_RESET}},
@@ -141,7 +141,7 @@ static const svf_statemove_t svf_statemoves[] =
 #define XXR_TDO						(1 << 1)
 #define XXR_MASK					(1 << 2)
 #define XXR_SMASK					(1 << 3)
-typedef struct
+struct svf_xxr_para
 {
 	int len;
 	int data_mask;
@@ -149,9 +149,9 @@ typedef struct
 	uint8_t *tdo;
 	uint8_t *mask;
 	uint8_t *smask;
-}svf_xxr_para_t;
+};
 
-typedef struct
+struct svf_para
 {
 	float frequency;
 	tap_state_t ir_end_state;
@@ -160,16 +160,16 @@ typedef struct
 	tap_state_t runtest_end_state;
 	trst_mode_t trst_mode;
 
-	svf_xxr_para_t hir_para;
-	svf_xxr_para_t hdr_para;
-	svf_xxr_para_t tir_para;
-	svf_xxr_para_t tdr_para;
-	svf_xxr_para_t sir_para;
-	svf_xxr_para_t sdr_para;
-}svf_para_t;
+	struct svf_xxr_para hir_para;
+	struct svf_xxr_para hdr_para;
+	struct svf_xxr_para tir_para;
+	struct svf_xxr_para tdr_para;
+	struct svf_xxr_para sir_para;
+	struct svf_xxr_para sdr_para;
+};
 
-static svf_para_t svf_para;
-static const svf_para_t svf_para_init =
+static struct svf_para svf_para;
+static const struct svf_para svf_para_init =
 {
 //	frequency,	ir_end_state,	dr_end_state,	runtest_run_state,	runtest_end_state,	trst_mode
 	0,			TAP_IDLE,		TAP_IDLE,		TAP_IDLE,			TAP_IDLE,			TRST_Z,
@@ -193,17 +193,17 @@ static const svf_para_t svf_para_init =
 	{0,		0,			NULL,	NULL,	NULL,	NULL},
 };
 
-typedef struct
+struct svf_check_tdo_para
 {
 	int line_num;		// used to record line number of the check operation
 						// so more information could be printed
 	int enabled;		// check is enabled or not
 	int buffer_offset;	// buffer_offset to buffers
 	int bit_len;		// bit length to check
-}svf_check_tdo_para_t;
+};
 
 #define SVF_CHECK_TDO_PARA_SIZE	1024
-static svf_check_tdo_para_t *svf_check_tdo_para = NULL;
+static struct svf_check_tdo_para *svf_check_tdo_para = NULL;
 static int svf_check_tdo_para_index = 0;
 
 static int svf_read_command_from_file(int fd);
@@ -224,7 +224,7 @@ static int svf_buffer_index = 0, svf_buffer_size = 0;
 static int svf_quiet = 0;
 
 
-static void svf_free_xxd_para(svf_xxr_para_t *para)
+static void svf_free_xxd_para(struct svf_xxr_para *para)
 {
 	if (NULL != para)
 	{
@@ -349,7 +349,7 @@ COMMAND_HANDLER(handle_svf_command)
 	svf_command_buffer_size = 0;
 
 	svf_check_tdo_para_index = 0;
-	svf_check_tdo_para = malloc(sizeof(svf_check_tdo_para_t) * SVF_CHECK_TDO_PARA_SIZE);
+	svf_check_tdo_para = malloc(sizeof(struct svf_check_tdo_para) * SVF_CHECK_TDO_PARA_SIZE);
 	if (NULL == svf_check_tdo_para)
 	{
 		LOG_ERROR("not enough memory");
@@ -762,7 +762,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 	int run_count;
 	float min_time, max_time;
 	// for XXR
-	svf_xxr_para_t *xxr_para_tmp;
+	struct svf_xxr_para *xxr_para_tmp;
 	uint8_t **pbuffer_tmp;
 	struct scan_field field;
 	// for STATE
