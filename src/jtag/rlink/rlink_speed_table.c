@@ -87,7 +87,7 @@ static const uint8_t dtc_2[] = {
 	36, 139, 112, 193, 151, 96
 };
 
-const rlink_speed_table_t rlink_speed_table[] = {{
+const struct rlink_speed_table rlink_speed_table[] = {{
 	dtc_64, sizeof(dtc_64), (ST7_FOSC * 2) / (1000 * 64), 64
 }, {
 	dtc_11, sizeof(dtc_11), (ST7_FOSC * 2) / (1000 * 11), 11

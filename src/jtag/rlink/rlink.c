@@ -576,8 +576,7 @@ dtc_run_download(
  * The dtc reply queue is a singly linked list that describes what to do with the reply packet that comes from the DTC.  Only SCAN_IN and SCAN_IO generate these entries.
  */
 
-typedef
-struct dtc_reply_queue_entry_s {
+struct dtc_reply_queue_entry {
 	struct dtc_reply_queue_entry_s	*next;
 	jtag_command_t	*cmd;	/* the command that resulted in this entry */
 
@@ -588,7 +587,7 @@ struct dtc_reply_queue_entry_s {
 		int		length;		/* how many bits are processed in this operation? */
 		enum scan_type	type;		/* SCAN_IN/SCAN_OUT/SCAN_IO */
 	} scan;
-} dtc_reply_queue_entry_t;
+};
 
 
 /*
@@ -598,8 +597,8 @@ struct dtc_reply_queue_entry_s {
 
 static
 struct {
-	dtc_reply_queue_entry_t	*rq_head;
-	dtc_reply_queue_entry_t	*rq_tail;
+	struct dtc_reply_queue_entry	*rq_head;
+	struct dtc_reply_queue_entry	*rq_tail;
 	uint32_t			cmd_index;
 	uint32_t			reply_index;
 	uint8_t			cmd_buffer[USB_EP2BANK_SIZE];
@@ -631,7 +630,7 @@ dtc_queue_init(void) {
 
 static
 inline
-dtc_reply_queue_entry_t *
+struct dtc_reply_queue_entry *
 dtc_queue_enqueue_reply(
 	enum scan_type	type,
 	uint8_t				*buffer,
@@ -640,9 +639,9 @@ dtc_queue_enqueue_reply(
 	int				length,
 	jtag_command_t	*cmd
 ) {
-	dtc_reply_queue_entry_t	*rq_entry;
+	struct dtc_reply_queue_entry	*rq_entry;
 
-	rq_entry = malloc(sizeof(dtc_reply_queue_entry_t));
+	rq_entry = malloc(sizeof(struct dtc_reply_queue_entry));
 	if (rq_entry != NULL) {
 		rq_entry->scan.type = type;
 		rq_entry->scan.buffer = buffer;
@@ -672,7 +671,7 @@ dtc_queue_enqueue_reply(
 static
 int
 dtc_queue_run(void) {
-	dtc_reply_queue_entry_t	*rq_p, *rq_next;
+	struct dtc_reply_queue_entry	*rq_p, *rq_next;
 	int			retval;
 	int			usb_err;
 	int			bit_cnt;

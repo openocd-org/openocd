@@ -20,13 +20,12 @@
 
 #include "types.h"
 
-typedef
-struct rlink_speed_table_s {
-	uint8_t const	*dtc;
-	uint16_t			dtc_size;
-	uint16_t			khz;
-	uint8_t			prescaler;
-} rlink_speed_table_t;
+struct rlink_speed_table {
+	uint8_t const *dtc;
+	uint16_t dtc_size;
+	uint16_t khz;
+	uint8_t prescaler;
+};
 
-extern const rlink_speed_table_t	rlink_speed_table[];
-extern const size_t					rlink_speed_table_size;
+extern const struct rlink_speed_table rlink_speed_table[];
+extern const size_t rlink_speed_table_size;
