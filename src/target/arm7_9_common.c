@@ -2690,7 +2690,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 		}
 	}
 
-	armv4_5_algorithm_t armv4_5_info;
+	struct armv4_5_algorithm armv4_5_info;
 	struct reg_param reg_params[1];
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
@@ -2724,7 +2724,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	working_area_t *crc_algorithm;
-	armv4_5_algorithm_t armv4_5_info;
+	struct armv4_5_algorithm armv4_5_info;
 	struct reg_param reg_params[2];
 	int retval;
 
@@ -2809,7 +2809,7 @@ int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 {
 	working_area_t *erase_check_algorithm;
 	struct reg_param reg_params[3];
-	armv4_5_algorithm_t armv4_5_info;
+	struct armv4_5_algorithm armv4_5_info;
 	int retval;
 	uint32_t i;
 

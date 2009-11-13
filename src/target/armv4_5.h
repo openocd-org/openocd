@@ -119,13 +119,13 @@ static inline bool is_arm(struct arm *arm)
 	return arm && arm->common_magic == ARMV4_5_COMMON_MAGIC;
 }
 
-typedef struct armv4_5_algorithm_s
+struct armv4_5_algorithm
 {
 	int common_magic;
 
 	enum armv4_5_mode core_mode;
 	enum armv4_5_state core_state;
-} armv4_5_algorithm_t;
+};
 
 typedef struct armv4_5_core_reg_s
 {

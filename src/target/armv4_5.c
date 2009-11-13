@@ -546,7 +546,7 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t ex
 int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info))
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	armv4_5_algorithm_t *armv4_5_algorithm_info = arch_info;
+	struct armv4_5_algorithm *armv4_5_algorithm_info = arch_info;
 	enum armv4_5_state core_state = armv4_5->core_state;
 	enum armv4_5_mode core_mode = armv4_5->core_mode;
 	uint32_t context[17];
