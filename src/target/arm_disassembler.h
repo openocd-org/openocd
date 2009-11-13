@@ -120,11 +120,11 @@ enum arm_instruction_type
 	ARM_UNDEFINED_INSTRUCTION = 0xffffffff,
 };
 
-typedef struct arm_b_bl_bx_blx_instr_s
+struct arm_b_bl_bx_blx_instr
 {
 	int reg_operand;
 	uint32_t target_address;
-} arm_b_bl_bx_blx_instr_t;
+};
 
 union arm_shifter_operand
 {
@@ -189,7 +189,7 @@ typedef struct arm_instruction_s
 	unsigned instruction_size;
 
 	union {
-		arm_b_bl_bx_blx_instr_t b_bl_bx_blx;
+		struct arm_b_bl_bx_blx_instr b_bl_bx_blx;
 		arm_data_proc_instr_t data_proc;
 		arm_load_store_instr_t load_store;
 		arm_load_store_multiple_instr_t load_store_multiple;
