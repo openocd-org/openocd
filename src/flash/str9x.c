@@ -35,7 +35,7 @@ static uint32_t bank1start = 0x00080000;
 
 static int str9x_build_block_list(struct flash_bank_s *bank)
 {
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
+	struct str9x_flash_bank *str9x_info = bank->driver_priv;
 
 	int i;
 	int num_sectors;
@@ -118,7 +118,7 @@ static int str9x_build_block_list(struct flash_bank_s *bank)
  */
 FLASH_BANK_COMMAND_HANDLER(str9x_flash_bank_command)
 {
-	str9x_flash_bank_t *str9x_info;
+	struct str9x_flash_bank *str9x_info;
 
 	if (argc < 6)
 	{
@@ -126,7 +126,7 @@ FLASH_BANK_COMMAND_HANDLER(str9x_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	str9x_info = malloc(sizeof(str9x_flash_bank_t));
+	str9x_info = malloc(sizeof(struct str9x_flash_bank));
 	bank->driver_priv = str9x_info;
 
 	str9x_build_block_list(bank);
@@ -139,7 +139,7 @@ FLASH_BANK_COMMAND_HANDLER(str9x_flash_bank_command)
 static int str9x_protect_check(struct flash_bank_s *bank)
 {
 	int retval;
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
+	struct str9x_flash_bank *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
 
 	int i;
@@ -348,7 +348,7 @@ static int str9x_protect(struct flash_bank_s *bank,
 static int str9x_write_block(struct flash_bank_s *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
+	struct str9x_flash_bank *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t buffer_size = 8192;
 	working_area_t *source;
@@ -632,7 +632,7 @@ static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 COMMAND_HANDLER(str9x_handle_flash_config_command)
 {
-	str9x_flash_bank_t *str9x_info;
+	struct str9x_flash_bank *str9x_info;
 	target_t *target = NULL;
 
 	if (argc < 5)

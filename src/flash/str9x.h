@@ -25,13 +25,13 @@
 
 #include "flash.h"
 
-typedef struct str9x_flash_bank_s
+struct str9x_flash_bank
 {
 	uint32_t *sector_bits;
 	int variant;
 	int bank1;
 	working_area_t *write_algorithm;
-} str9x_flash_bank_t;
+};
 
 enum str9x_status_codes
 {
