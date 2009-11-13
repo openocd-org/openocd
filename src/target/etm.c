@@ -231,7 +231,7 @@ static command_t *etm_cmd;
  */
 static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 {
-	reg_cache_t *cache = etm_ctx->reg_cache;
+	struct reg_cache *cache = etm_ctx->reg_cache;
 	int i;
 
 	for (i = 0; i < cache->num_regs; i++) {
@@ -248,7 +248,7 @@ static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 }
 
 static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
-		reg_cache_t *cache, struct etm_reg *ereg,
+		struct reg_cache *cache, struct etm_reg *ereg,
 		const struct etm_reg_info *r, unsigned nreg)
 {
 	reg_t *reg = cache->reg_list;
@@ -279,10 +279,10 @@ static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
 	}
 }
 
-reg_cache_t *etm_build_reg_cache(target_t *target,
+struct reg_cache *etm_build_reg_cache(target_t *target,
 		struct arm_jtag *jtag_info, etm_context_t *etm_ctx)
 {
-	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
+	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = NULL;
 	struct etm_reg *arch_info = NULL;
 	unsigned bcd_vers, config;

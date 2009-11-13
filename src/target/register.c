@@ -30,11 +30,11 @@
 
 reg_arch_type_t *reg_arch_types = NULL;
 
-reg_t* register_get_by_name(reg_cache_t *first,
+reg_t* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
 {
 	int i;
-	reg_cache_t *cache = first;
+	struct reg_cache *cache = first;
 
 	while (cache)
 	{
@@ -53,9 +53,9 @@ reg_t* register_get_by_name(reg_cache_t *first,
 	return NULL;
 }
 
-reg_cache_t** register_get_last_cache_p(reg_cache_t **first)
+struct reg_cache** register_get_last_cache_p(struct reg_cache **first)
 {
-	reg_cache_t **cache_p = first;
+	struct reg_cache **cache_p = first;
 
 	if (*cache_p)
 		while (*cache_p)

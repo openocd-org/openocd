@@ -155,7 +155,7 @@ struct etmv1_trace_data
 typedef struct etm
 {
 	target_t *target;		/* target this ETM is connected to */
-	reg_cache_t *reg_cache;		/* ETM register cache */
+	struct reg_cache *reg_cache;		/* ETM register cache */
 	struct etm_capture_driver *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;	/* capture driver private data */
 	uint32_t trigger_percent;	/* how much trace buffer to fill after trigger */
@@ -207,7 +207,7 @@ typedef enum
 	BR_RSVD7   = 0x7, /* reserved */
 } etmv1_branch_reason_t;
 
-reg_cache_t* etm_build_reg_cache(target_t *target,
+struct reg_cache* etm_build_reg_cache(target_t *target,
 		struct arm_jtag *jtag_info, etm_context_t *etm_ctx);
 
 int etm_setup(target_t *target);

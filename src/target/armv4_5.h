@@ -87,7 +87,7 @@ enum
 typedef struct arm
 {
 	int common_magic;
-	reg_cache_t *core_cache;
+	struct reg_cache *core_cache;
 
 	int /* armv4_5_mode */ core_mode;
 	enum armv4_5_state core_state;
@@ -135,7 +135,7 @@ struct armv4_5_core_reg
 	armv4_5_common_t *armv4_5_common;
 };
 
-reg_cache_t* armv4_5_build_reg_cache(target_t *target,
+struct reg_cache* armv4_5_build_reg_cache(target_t *target,
 		armv4_5_common_t *armv4_5_common);
 
 /* map psr mode bits to linear number */

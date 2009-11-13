@@ -1516,7 +1516,7 @@ static void
 cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target_s *target)
 {
 	uint32_t dwtcr;
-	struct reg_cache_s *cache;
+	struct reg_cache *cache;
 	cortex_m3_dwt_comparator_t *comparator;
 	int reg, i;
 

@@ -116,7 +116,7 @@ struct arm11_common
 	size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
 
 	// GA
-	reg_cache_t *core_cache;
+	struct reg_cache *core_cache;
 };
 
 

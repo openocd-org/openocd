@@ -639,7 +639,7 @@ static void arm7tdmi_branch_resume_thumb(target_t *target)
 
 static void arm7tdmi_build_reg_cache(target_t *target)
 {
-	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
@@ -655,8 +655,8 @@ int arm7tdmi_examine(struct target_s *target)
 	if (!target_was_examined(target))
 	{
 		/* get pointers to arch-specific information */
-		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
-		reg_cache_t *t = embeddedice_build_reg_cache(target, arm7_9);
+		struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
+		struct reg_cache *t = embeddedice_build_reg_cache(target, arm7_9);
 		if (t == NULL)
 			return ERROR_FAIL;
 

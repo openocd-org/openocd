@@ -2821,7 +2821,7 @@ static void xscale_build_reg_cache(target_t *target)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
-	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	xscale_reg_t *arch_info = malloc(sizeof(xscale_reg_arch_info));
 	int i;
 	int num_regs = sizeof(xscale_reg_arch_info) / sizeof(xscale_reg_t);
@@ -2833,7 +2833,7 @@ static void xscale_build_reg_cache(target_t *target)
 	if (xscale_reg_arch_type == -1)
 		xscale_reg_arch_type = register_reg_arch_type(xscale_get_reg, xscale_set_reg);
 
-	(*cache_p)->next = malloc(sizeof(reg_cache_t));
+	(*cache_p)->next = malloc(sizeof(struct reg_cache));
 	cache_p = &(*cache_p)->next;
 
 	/* fill in values for the xscale reg cache */

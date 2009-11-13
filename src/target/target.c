@@ -1876,7 +1876,7 @@ COMMAND_HANDLER(handle_reg_command)
 	/* list all available registers for the current target */
 	if (argc == 0)
 	{
-		reg_cache_t *cache = target->reg_cache;
+		struct reg_cache *cache = target->reg_cache;
 
 		count = 0;
 		while (cache)
@@ -1919,7 +1919,7 @@ COMMAND_HANDLER(handle_reg_command)
 		unsigned num;
 		COMMAND_PARSE_NUMBER(uint, args[0], num);
 
-		reg_cache_t *cache = target->reg_cache;
+		struct reg_cache *cache = target->reg_cache;
 		count = 0;
 		while (cache)
 		{

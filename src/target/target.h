@@ -154,7 +154,7 @@ typedef struct target_s
 	enum target_endianess endianness;	/* target endianess */
 	// also see: target_state_name()
 	enum target_state state;			/* the current backend-state (running, halted, ...) */
-	struct reg_cache_s *reg_cache;		/* the first register cache of the target (core regs) */
+	struct reg_cache *reg_cache;		/* the first register cache of the target (core regs) */
 	struct breakpoint_s *breakpoints;	/* list of breakpoints */
 	struct watchpoint *watchpoints;	/* list of watchpoints */
 	struct trace_s *trace_info;			/* generic trace information */

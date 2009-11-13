@@ -121,9 +121,9 @@ static int etb_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-reg_cache_t* etb_build_reg_cache(etb_t *etb)
+struct reg_cache* etb_build_reg_cache(etb_t *etb)
 {
-	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
+	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = NULL;
 	struct etb_reg *arch_info = NULL;
 	int num_regs = 9;

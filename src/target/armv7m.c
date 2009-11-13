@@ -524,12 +524,12 @@ int armv7m_arch_state(struct target_s *target)
 }
 
 /** Builds cache of architecturally defined registers.  */
-reg_cache_t *armv7m_build_reg_cache(target_t *target)
+struct reg_cache *armv7m_build_reg_cache(target_t *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int num_regs = ARMV7M_NUM_REGS;
-	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
-	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = calloc(num_regs, sizeof(reg_t));
 	struct armv7m_core_reg *arch_info = calloc(num_regs, sizeof(struct armv7m_core_reg));
 	int i;

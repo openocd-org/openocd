@@ -271,14 +271,14 @@ int mips32_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-reg_cache_t *mips32_build_reg_cache(target_t *target)
+struct reg_cache *mips32_build_reg_cache(target_t *target)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target->arch_info;
 
 	int num_regs = MIPS32NUMCOREREGS;
-	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
-	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
 	struct mips32_core_reg *arch_info = malloc(sizeof(struct mips32_core_reg) * num_regs);
 	int i;

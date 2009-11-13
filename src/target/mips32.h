@@ -49,7 +49,7 @@ struct mips32_common
 {
 	uint32_t common_magic;
 	void *arch_info;
-	reg_cache_t *core_cache;
+	struct reg_cache *core_cache;
 	struct mips_ejtag ejtag_info;
 	uint32_t core_regs[MIPS32NUMCOREREGS];
 
@@ -132,7 +132,7 @@ int mips32_init_arch_info(target_t *target,
 int mips32_restore_context(target_t *target);
 int mips32_save_context(target_t *target);
 
-reg_cache_t *mips32_build_reg_cache(target_t *target);
+struct reg_cache *mips32_build_reg_cache(target_t *target);
 
 int mips32_run_algorithm(struct target_s *target,
 		int num_mem_params, struct mem_param *mem_params,

@@ -1933,7 +1933,7 @@ static int arm11_build_reg_cache(target_t *target)
 {
 	struct arm11_common *arm11 = target->arch_info;
 
-	NEW(reg_cache_t,		cache,				1);
+	NEW(struct reg_cache,		cache,				1);
 	NEW(reg_t,				reg_list,			ARM11_REGCACHE_COUNT);
 	NEW(struct arm11_reg_state,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
 
@@ -1951,7 +1951,7 @@ static int arm11_build_reg_cache(target_t *target)
 	cache->reg_list	= reg_list;
 	cache->num_regs	= ARM11_REGCACHE_COUNT;
 
-	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	(*cache_p) = cache;
 
 	arm11->core_cache = cache;

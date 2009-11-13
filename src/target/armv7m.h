@@ -94,7 +94,7 @@ enum
 struct armv7m_common
 {
 	int common_magic;
-	reg_cache_t *core_cache;
+	struct reg_cache *core_cache;
 	enum armv7m_mode core_mode;
 	int exception_number;
 	struct swjdp_common swjdp_info;
@@ -134,7 +134,7 @@ struct armv7m_core_reg
 	struct armv7m_common *armv7m_common;
 };
 
-reg_cache_t *armv7m_build_reg_cache(target_t *target);
+struct reg_cache *armv7m_build_reg_cache(target_t *target);
 enum armv7m_mode armv7m_number_to_mode(int number);
 int armv7m_mode_to_number(enum armv7m_mode mode);
 

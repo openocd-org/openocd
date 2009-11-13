@@ -86,7 +86,7 @@ typedef struct xscale_common_s
 	int common_magic;
 
 	/* XScale registers (CP15, DBG) */
-	reg_cache_t *reg_cache;
+	struct reg_cache *reg_cache;
 
 	/* current state of the debug handler */
 	uint32_t handler_address;

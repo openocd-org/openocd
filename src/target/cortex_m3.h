@@ -158,7 +158,7 @@ struct cortex_m3_common
 	int dwt_num_comp;
 	int dwt_comp_available;
 	cortex_m3_dwt_comparator_t *dwt_comparator_list;
-	struct reg_cache_s *dwt_cache;
+	struct reg_cache *dwt_cache;
 
 	struct armv7m_common armv7m;
 };

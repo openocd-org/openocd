@@ -46,13 +46,13 @@ typedef struct reg_s
 	int arch_type;
 } reg_t;
 
-typedef struct reg_cache_s
+struct reg_cache
 {
 	char *name;
-	struct reg_cache_s *next;
+	struct reg_cache *next;
 	reg_t *reg_list;
 	int num_regs;
-} reg_cache_t;
+};
 
 typedef struct reg_arch_type_s
 {
@@ -62,9 +62,9 @@ typedef struct reg_arch_type_s
 	struct reg_arch_type_s *next;
 } reg_arch_type_t;
 
-reg_t* register_get_by_name(reg_cache_t *first,
+reg_t* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all);
-reg_cache_t** register_get_last_cache_p(reg_cache_t **first);
+struct reg_cache** register_get_last_cache_p(struct reg_cache **first);
 
 int register_reg_arch_type(int (*get)(reg_t *reg),
 		int (*set)(reg_t *reg, uint8_t *buf));

@@ -163,11 +163,11 @@ static int embeddedice_get_reg(reg_t *reg)
  * Different versions of the modules have different capabilities, such as
  * hardware support for vector_catch, single stepping, and monitor mode.
  */
-reg_cache_t *
+struct reg_cache *
 embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 {
 	int retval;
-	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
+	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = NULL;
 	struct embeddedice_reg *arch_info = NULL;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;

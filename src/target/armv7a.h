@@ -92,7 +92,7 @@ enum
 struct armv7a_common
 {
 	int common_magic;
-	reg_cache_t *core_cache;
+	struct reg_cache *core_cache;
 	enum armv7a_mode core_mode;
 	enum armv7a_state core_state;
 
@@ -150,7 +150,7 @@ struct armv7a_core_reg
 };
 
 int armv7a_arch_state(struct target_s *target);
-reg_cache_t *armv7a_build_reg_cache(target_t *target,
+struct reg_cache *armv7a_build_reg_cache(target_t *target,
 		struct armv7a_common *armv7a_common);
 int armv7a_register_commands(struct command_context_s *cmd_ctx);
 int armv7a_init_arch_info(target_t *target, struct armv7a_common *armv7a);

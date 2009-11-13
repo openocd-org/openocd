@@ -39,7 +39,7 @@ typedef struct etb_s
 	etm_context_t *etm_ctx;
 	struct jtag_tap *tap;
 	uint32_t cur_scan_chain;
-	reg_cache_t *reg_cache;
+	struct reg_cache *reg_cache;
 
 	/* ETB parameters */
 	uint32_t ram_depth;
@@ -54,6 +54,6 @@ struct etb_reg
 
 extern struct etm_capture_driver etb_capture_driver;
 
-reg_cache_t* etb_build_reg_cache(etb_t *etb);
+struct reg_cache* etb_build_reg_cache(etb_t *etb);
 
 #endif /* ETB_H */

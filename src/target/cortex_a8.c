@@ -1435,7 +1435,7 @@ static int cortex_a8_examine(struct target_s *target)
 
 static void cortex_a8_build_reg_cache(target_t *target)
 {
-	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
