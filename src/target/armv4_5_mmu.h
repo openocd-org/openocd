@@ -30,7 +30,7 @@ typedef struct armv4_5_mmu_common_s
 	int (*write_memory)(target_t *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	void (*disable_mmu_caches)(target_t *target, int mmu, int d_u_cache, int i_cache);
 	void (*enable_mmu_caches)(target_t *target, int mmu, int d_u_cache, int i_cache);
-	armv4_5_cache_common_t armv4_5_cache;
+	struct armv4_5_cache_common armv4_5_cache;
 	int has_tiny_pages;
 	int mmu_enabled;
 } armv4_5_mmu_common_t;

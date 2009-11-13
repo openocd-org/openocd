@@ -24,7 +24,7 @@
 #include "armv4_5_cache.h"
 #include "log.h"
 
-int armv4_5_identify_cache(uint32_t cache_type_reg, armv4_5_cache_common_t *cache)
+int armv4_5_identify_cache(uint32_t cache_type_reg, struct armv4_5_cache_common *cache)
 {
 	int size, assoc, M, len, multiplier;
 
@@ -87,7 +87,7 @@ int armv4_5_identify_cache(uint32_t cache_type_reg, armv4_5_cache_common_t *cach
 	return ERROR_OK;
 }
 
-int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx, armv4_5_cache_common_t *armv4_5_cache)
+int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx, struct armv4_5_cache_common *armv4_5_cache)
 {
 	if (armv4_5_cache->ctype == -1)
 	{

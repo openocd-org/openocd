@@ -32,7 +32,7 @@ struct armv4_5_cachesize
 	int cachesize;
 };
 
-typedef struct armv4_5_cache_common_s
+struct armv4_5_cache_common
 {
 	int ctype;	/* specify supported cache operations */
 	int separate;	/* separate caches or unified cache */
@@ -40,15 +40,15 @@ typedef struct armv4_5_cache_common_s
 	struct armv4_5_cachesize i_size; /* instruction cache */
 	int i_cache_enabled;
 	int d_u_cache_enabled;
-} armv4_5_cache_common_t;
+};
 
 int armv4_5_identify_cache(uint32_t cache_type_reg,
-		armv4_5_cache_common_t *cache);
+		struct armv4_5_cache_common *cache);
 int armv4_5_cache_state(uint32_t cp15_control_reg,
-		armv4_5_cache_common_t *cache);
+		struct armv4_5_cache_common *cache);
 
 int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx,
-		armv4_5_cache_common_t *armv4_5_cache);
+		struct armv4_5_cache_common *armv4_5_cache);
 
 enum
 {
