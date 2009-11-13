@@ -178,7 +178,7 @@ void bitq_state_move(tap_state_t new_state)
 }
 
 
-void bitq_path_move(pathmove_command_t* cmd)
+void bitq_path_move(struct pathmove_command* cmd)
 {
 	int i;
 

@@ -392,7 +392,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 	cmd->type = JTAG_PATHMOVE;
 
-	cmd->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
+	cmd->cmd.pathmove = cmd_queue_alloc(sizeof(struct pathmove_command));
 	cmd->cmd.pathmove->num_states = num_states;
 	cmd->cmd.pathmove->path = cmd_queue_alloc(sizeof(tap_state_t) * num_states);
 

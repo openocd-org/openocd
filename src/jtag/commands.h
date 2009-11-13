@@ -62,13 +62,12 @@ struct statemove_command {
 	tap_state_t end_state;
 };
 
-typedef struct pathmove_command_s
-{
+struct pathmove_command {
 	/// number of states in *path
 	int num_states;
 	/// states that have to be passed
 	tap_state_t* path;
-} pathmove_command_t;
+};
 
 typedef struct runtest_command_s
 {
@@ -114,7 +113,7 @@ typedef union jtag_command_container_u
 {
 	struct scan_command*         scan;
 	struct statemove_command*    statemove;
-	pathmove_command_t*     pathmove;
+	struct pathmove_command*     pathmove;
 	runtest_command_t*      runtest;
 	stableclocks_command_t* stableclocks;
 	reset_command_t*        reset;

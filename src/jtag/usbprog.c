@@ -57,7 +57,7 @@ static int usbprog_quit(void);
 
 static void usbprog_end_state(tap_state_t state);
 static void usbprog_state_move(void);
-static void usbprog_path_move(pathmove_command_t *cmd);
+static void usbprog_path_move(struct pathmove_command *cmd);
 static void usbprog_runtest(int num_cycles);
 static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size);
 
@@ -249,7 +249,7 @@ static void usbprog_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void usbprog_path_move(pathmove_command_t *cmd)
+static void usbprog_path_move(struct pathmove_command *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;

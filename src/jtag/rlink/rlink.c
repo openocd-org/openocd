@@ -929,7 +929,7 @@ void rlink_state_move(void) {
 }
 
 static
-void rlink_path_move(pathmove_command_t *cmd)
+void rlink_path_move(struct pathmove_command *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;

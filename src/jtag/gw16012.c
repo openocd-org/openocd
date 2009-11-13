@@ -183,7 +183,7 @@ static void gw16012_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void gw16012_path_move(pathmove_command_t *cmd)
+static void gw16012_path_move(struct pathmove_command *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
