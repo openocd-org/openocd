@@ -115,6 +115,11 @@ target_to_arm7_9(struct target *target)
 			armv4_5_common);
 }
 
+static inline bool is_arm7_9(struct arm7_9_common *arm7_9)
+{
+	return arm7_9->common_magic == ARM7_9_COMMON_MAGIC;
+}
+
 int arm7_9_register_commands(struct command_context *cmd_ctx);
 
 int arm7_9_poll(struct target *target);
@@ -154,6 +159,5 @@ void arm7_9_disable_eice_step(struct target *target);
 int arm7_9_execute_sys_speed(struct target *target);
 
 int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9);
-int arm7_9_get_arch_pointers(struct target *target, struct arm **armv4_5_p, struct arm7_9_common **arm7_9_p);
 
 #endif /* ARM7_9_COMMON_H */

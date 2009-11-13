@@ -167,39 +167,6 @@ int arm7_9_setup(struct target *target)
 }
 
 /**
- * Retrieves the architecture information pointers for ARMv4/5 and ARM7/9
- * targets.  A return of ERROR_OK signifies that the target is a valid target
- * and that the pointers have been set properly.
- *
- * @param target Pointer to the target device to get the pointers from
- * @param armv4_5_p Pointer to be filled in with the common struct for ARMV4/5
- *                  targets
- * @param arm7_9_p Pointer to be filled in with the common struct for ARM7/9
- *                 targets
- * @return ERROR_OK if successful
- */
-int arm7_9_get_arch_pointers(struct target *target, struct arm **armv4_5_p, struct arm7_9_common **arm7_9_p)
-{
-	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-
-	/* FIXME stop using this routine; just target_to_arm7_9() and
-	 * verify the resulting pointer using a replacement routine
-	 * that emits a usage message.
-	 */
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-		return ERROR_TARGET_INVALID;
-
-	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
-		return ERROR_TARGET_INVALID;
-
-	*armv4_5_p = armv4_5;
-	*arm7_9_p = arm7_9;
-
-	return ERROR_OK;
-}
-
-/**
  * Set either a hardware or software breakpoint on an ARM7/9 target.  The
  * breakpoint is set up even if it is already set.  Some actions, e.g. reset,
  * might have erased the values in Embedded ICE.
@@ -2877,25 +2844,24 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 	int spsr;
 	int retval;
 	struct target *target = get_current_target(cmd_ctx);
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (!is_arm7_9(arm7_9))
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_TARGET_INVALID;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "can't write registers while running");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (argc < 2)
 	{
 		command_print(cmd_ctx, "usage: write_xpsr <value> <not cpsr | spsr>");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	COMMAND_PARSE_NUMBER(u32, args[0], value);
@@ -2922,25 +2888,24 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 	int spsr;
 	int retval;
 	struct target *target = get_current_target(cmd_ctx);
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (!is_arm7_9(arm7_9))
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_TARGET_INVALID;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "can't write registers while running");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (argc < 3)
 	{
 		command_print(cmd_ctx, "usage: write_xpsr_im8 <im8> <rotate> <not cpsr | spsr>");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	COMMAND_PARSE_NUMBER(u32, args[0], value);
@@ -2963,25 +2928,24 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 	uint32_t mode;
 	int num;
 	struct target *target = get_current_target(cmd_ctx);
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (!is_arm7_9(arm7_9))
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_TARGET_INVALID;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "can't write registers while running");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (argc < 3)
 	{
 		command_print(cmd_ctx, "usage: write_core_reg <num> <mode> <value>");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	COMMAND_PARSE_NUMBER(int, args[0], num);
@@ -2994,13 +2958,12 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 {
 	struct target *target = get_current_target(cmd_ctx);
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (!is_arm7_9(arm7_9))
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_TARGET_INVALID;
 	}
 
 	if (argc > 0)
@@ -3027,13 +2990,12 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 {
 	struct target *target = get_current_target(cmd_ctx);
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (!is_arm7_9(arm7_9))
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_TARGET_INVALID;
 	}
 
 	if (argc > 0)
@@ -3060,13 +3022,12 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 {
 	struct target *target = get_current_target(cmd_ctx);
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	if (!is_arm7_9(arm7_9))
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_TARGET_INVALID;
 	}
 
 	if (argc > 0)

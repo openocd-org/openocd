@@ -46,8 +46,6 @@ static int ocl_protect_check(struct flash_bank *bank)
 /* flash_bank ocl 0 0 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 {
-	int retval;
-	struct arm *armv4_5;
 	struct arm7_9_common *arm7_9;
 	struct ocl_priv *ocl;
 
@@ -57,8 +55,9 @@ FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	if ((retval = arm7_9_get_arch_pointers(bank->target, &armv4_5, &arm7_9)) != ERROR_OK)
-		return retval;
+	arm7_9 = target_to_arm7_9(bank->target);
+	if (!is_arm7_9(arm7_9))
+		return ERROR_TARGET_INVALID;
 
 	ocl = bank->driver_priv = malloc(sizeof(struct ocl_priv));
 	ocl->jtag_info = &arm7_9->jtag_info;
