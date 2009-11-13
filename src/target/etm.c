@@ -1914,7 +1914,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 	  fileio_read_u32(&file, &tmp); etm_ctx->tracemode = tmp;
 	  fileio_read_u32(&file, &etm_ctx->trace_depth);
 	}
-	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
+	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
 	if (etm_ctx->trace_data == NULL)
 	{
 		command_print(cmd_ctx, "not enough memory to perform operation");

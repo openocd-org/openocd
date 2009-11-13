@@ -140,12 +140,12 @@ enum
 	ETMV1_TRIGGER_CYCLE = 0x2,
 };
 
-typedef struct etmv1_trace_data_s
+struct etmv1_trace_data
 {
 	uint8_t pipestat;	/* bits 0-2 pipeline status */
 	uint16_t packet;		/* packet data (4, 8 or 16 bit) */
 	int flags;		/* ETMV1_TRACESYNC_CYCLE, ETMV1_TRIGGER_CYCLE */
-} etmv1_trace_data_t;
+};
 
 /* describe a trace context
  * if support for ETMv2 or ETMv3 is to be implemented,
@@ -160,7 +160,7 @@ typedef struct etm
 	void *capture_driver_priv;	/* capture driver private data */
 	uint32_t trigger_percent;	/* how much trace buffer to fill after trigger */
 	trace_status_t capture_status;	/* current state of capture run */
-	etmv1_trace_data_t *trace_data;	/* trace data */
+	struct etmv1_trace_data *trace_data;	/* trace data */
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
 	etm_portmode_t portmode;	/* normal, multiplexed or demultiplexed */
 	etmv1_tracemode_t tracemode;	/* type of info trace contains */

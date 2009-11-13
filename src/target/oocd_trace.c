@@ -208,7 +208,7 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	}
 
 	etm_ctx->trace_depth = num_frames * 16;
-	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
+	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
 
 	for (i = 0; i < num_frames * 16; i++)
 	{
