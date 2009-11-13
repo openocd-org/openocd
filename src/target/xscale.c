@@ -2475,7 +2475,7 @@ static int xscale_read_trace(target_t *target)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
-	xscale_trace_data_t **trace_data_p;
+	struct xscale_trace_data **trace_data_p;
 
 	/* 258 words from debug handler
 	 * 256 trace buffer entries
@@ -2529,7 +2529,7 @@ static int xscale_read_trace(target_t *target)
 	for (trace_data_p = &xscale->trace.data; *trace_data_p; trace_data_p = &(*trace_data_p)->next)
 		;
 
-	*trace_data_p = malloc(sizeof(xscale_trace_data_t));
+	*trace_data_p = malloc(sizeof(struct xscale_trace_data));
 	(*trace_data_p)->next = NULL;
 	(*trace_data_p)->chkpt0 = trace_buffer[256];
 	(*trace_data_p)->chkpt1 = trace_buffer[257];
@@ -2614,7 +2614,7 @@ static int xscale_read_instruction(target_t *target,
 	return ERROR_OK;
 }
 
-static int xscale_branch_address(xscale_trace_data_t *trace_data,
+static int xscale_branch_address(struct xscale_trace_data *trace_data,
 		int i, uint32_t *target)
 {
 	/* if there are less than four entries prior to the indirect branch message
@@ -2635,7 +2635,7 @@ static int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	int next_pc_ok = 0;
 	uint32_t next_pc = 0x0;
-	xscale_trace_data_t *trace_data = xscale->trace.data;
+	struct xscale_trace_data *trace_data = xscale->trace.data;
 	int retval;
 
 	while (trace_data)
@@ -3308,7 +3308,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 
 	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
 	{
-		xscale_trace_data_t *td, *next_td;
+		struct xscale_trace_data *td, *next_td;
 		xscale->trace.buffer_enabled = 1;
 
 		/* free old trace data */
@@ -3419,7 +3419,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
-	xscale_trace_data_t *trace_data;
+	struct xscale_trace_data *trace_data;
 	struct fileio file;
 	int retval;
 

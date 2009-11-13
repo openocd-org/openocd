@@ -56,21 +56,21 @@ typedef struct xscale_trace_entry_s
 	enum xscale_trace_entry_type type;
 } xscale_trace_entry_t;
 
-typedef struct xscale_trace_data_s
+struct xscale_trace_data
 {
 	xscale_trace_entry_t *entries;
 	int depth;
 	uint32_t chkpt0;
 	uint32_t chkpt1;
 	uint32_t last_instruction;
-	struct xscale_trace_data_s *next;
-} xscale_trace_data_t;
+	struct xscale_trace_data *next;
+};
 
 typedef struct xscale_trace_s
 {
 	trace_status_t capture_status;	/* current state of capture run */
 	struct image_s *image;					/* source for target opcodes */
-	xscale_trace_data_t *data;		/* linked list of collected trace data */
+	struct xscale_trace_data *data;		/* linked list of collected trace data */
 	int buffer_enabled;				/* whether trace buffer is enabled */
 	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */
 	int pc_ok;
