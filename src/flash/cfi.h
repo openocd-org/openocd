@@ -25,7 +25,7 @@
 #define CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7 0xE0 /* DQ5..DQ7 */
 #define CFI_STATUS_POLL_MASK_DQ6_DQ7     0xC0 /* DQ6..DQ7 */
 
-typedef struct cfi_flash_bank_s
+struct cfi_flash_bank
 {
 	working_area_t *write_algorithm;
 
@@ -70,7 +70,7 @@ typedef struct cfi_flash_bank_s
 
 	void *pri_ext;
 	void *alt_ext;
-} cfi_flash_bank_t;
+};
 
 /* Intel primary extended query table
  * as defined for the Advanced+ Boot Block Flash Memory (C3)
