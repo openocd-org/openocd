@@ -45,11 +45,11 @@ target_to_arm920(struct target_s *target)
 			arm9tdmi_common.arm7_9_common.armv4_5_common);
 }
 
-typedef struct arm920t_cache_line_s
+struct arm920t_cache_line
 {
 	uint32_t cam;
 	uint32_t data[8];
-} arm920t_cache_line_t;
+};
 
 typedef struct arm920t_tlb_entry_s
 {

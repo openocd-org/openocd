@@ -676,7 +676,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	uint32_t C15_C_D_Ind, C15_C_I_Ind;
 	int i;
 	FILE *output;
-	arm920t_cache_line_t d_cache[8][64], i_cache[8][64];
+	struct arm920t_cache_line d_cache[8][64], i_cache[8][64];
 	int segment, index;
 
 	retval = arm920t_verify_pointer(cmd_ctx, arm920t);
