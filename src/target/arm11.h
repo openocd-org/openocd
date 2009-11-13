@@ -78,7 +78,7 @@ enum arm11_debug_version
 	ARM11_DEBUG_V7_CP14		= 0x04,
 };
 
-typedef struct arm11_common_s
+struct arm11_common
 {
 	target_t *	target;		/**< Reference back to the owner */
 
@@ -117,7 +117,7 @@ typedef struct arm11_common_s
 
 	// GA
 	reg_cache_t *core_cache;
-} arm11_common_t;
+};
 
 
 /**
@@ -184,8 +184,8 @@ typedef struct arm11_reg_state_s
 
 int arm11_register_commands(struct command_context_s *cmd_ctx);
 
-int arm11_read_etm(arm11_common_t * arm11, uint8_t address, uint32_t *value);
-int arm11_write_etm(arm11_common_t * arm11, uint8_t address, uint32_t value);
+int arm11_read_etm(struct arm11_common * arm11, uint8_t address, uint32_t *value);
+int arm11_write_etm(struct arm11_common * arm11, uint8_t address, uint32_t value);
 
 
 

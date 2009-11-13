@@ -261,7 +261,7 @@ static reg_t arm11_gdb_dummy_fps_reg =
 };
 
 
-static int arm11_on_enter_debug_state(arm11_common_t *arm11);
+static int arm11_on_enter_debug_state(struct arm11_common *arm11);
 static int arm11_step(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints);
 /* helpers */
@@ -269,8 +269,8 @@ static int arm11_build_reg_cache(target_t *target);
 static int arm11_set_reg(reg_t *reg, uint8_t *buf);
 static int arm11_get_reg(reg_t *reg);
 
-static void arm11_record_register_history(arm11_common_t * arm11);
-static void arm11_dump_reg_changes(arm11_common_t * arm11);
+static void arm11_record_register_history(struct arm11_common * arm11);
+static void arm11_dump_reg_changes(struct arm11_common * arm11);
 
 
 /** Check and if necessary take control of the system
@@ -280,7 +280,7 @@ static void arm11_dump_reg_changes(arm11_common_t * arm11);
  *					available a pointer to a word holding the
  *					DSCR can be passed. Otherwise use NULL.
  */
-static int arm11_check_init(arm11_common_t *arm11, uint32_t *dscr)
+static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 {
 	FNC_INFO;
 
@@ -338,7 +338,7 @@ static int arm11_check_init(arm11_common_t *arm11, uint32_t *dscr)
   * or on other occasions that stop the processor.
   *
   */
-static int arm11_on_enter_debug_state(arm11_common_t *arm11)
+static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 {
 	int retval;
 	FNC_INFO;
@@ -502,7 +502,7 @@ static int arm11_on_enter_debug_state(arm11_common_t *arm11)
 	return ERROR_OK;
 }
 
-void arm11_dump_reg_changes(arm11_common_t * arm11)
+void arm11_dump_reg_changes(struct arm11_common * arm11)
 {
 
 	if (!(debug_level >= LOG_LVL_DEBUG))
@@ -537,7 +537,7 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
   * This is called in preparation for the RESTART function.
   *
   */
-static int arm11_leave_debug_state(arm11_common_t *arm11)
+static int arm11_leave_debug_state(struct arm11_common *arm11)
 {
 	FNC_INFO;
 	int retval;
@@ -654,7 +654,7 @@ static int arm11_leave_debug_state(arm11_common_t *arm11)
 	return ERROR_OK;
 }
 
-static void arm11_record_register_history(arm11_common_t *arm11)
+static void arm11_record_register_history(struct arm11_common *arm11)
 {
 	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
@@ -673,7 +673,7 @@ static int arm11_poll(struct target_s *target)
 	FNC_INFO;
 	int retval;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	uint32_t	dscr;
 
@@ -715,7 +715,7 @@ static int arm11_poll(struct target_s *target)
 /* architecture specific status reply */
 static int arm11_arch_state(struct target_s *target)
 {
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	LOG_USER("target halted due to %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name,
@@ -739,7 +739,7 @@ static int arm11_halt(struct target_s *target)
 {
 	FNC_INFO;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -808,7 +808,7 @@ static int arm11_resume(struct target_s *target, int current,
 	//	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
 	//	current, address, handle_breakpoints, debug_execution);
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -944,7 +944,7 @@ static int armv4_5_to_arm11(int reg)
 
 static uint32_t arm11_sim_get_reg(struct arm_sim_interface *sim, int reg)
 {
-	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	reg=armv4_5_to_arm11(reg);
 
@@ -954,7 +954,7 @@ static uint32_t arm11_sim_get_reg(struct arm_sim_interface *sim, int reg)
 static void arm11_sim_set_reg(struct arm_sim_interface *sim,
 		int reg, uint32_t value)
 {
-	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	reg=armv4_5_to_arm11(reg);
 
@@ -964,14 +964,14 @@ static void arm11_sim_set_reg(struct arm_sim_interface *sim,
 static uint32_t arm11_sim_get_cpsr(struct arm_sim_interface *sim,
 		int pos, int bits)
 {
-	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	return buf_get_u32(arm11->reg_list[ARM11_RC_CPSR].value, pos, bits);
 }
 
 static enum armv4_5_state arm11_sim_get_state(struct arm_sim_interface *sim)
 {
-//	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+//	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	/* FIX!!!! we should implement thumb for arm11 */
 	return ARMV4_5_STATE_ARM;
@@ -980,7 +980,7 @@ static enum armv4_5_state arm11_sim_get_state(struct arm_sim_interface *sim)
 static void arm11_sim_set_state(struct arm_sim_interface *sim,
 		enum armv4_5_state mode)
 {
-//	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+//	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	/* FIX!!!! we should implement thumb for arm11 */
 	LOG_ERROR("Not implemetned!");
@@ -989,7 +989,7 @@ static void arm11_sim_set_state(struct arm_sim_interface *sim,
 
 static enum armv4_5_mode arm11_sim_get_mode(struct arm_sim_interface *sim)
 {
-	//arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+	//struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	/* FIX!!!! we should implement something that returns the current mode here!!! */
 	return ARMV4_5_MODE_USR;
@@ -1027,7 +1027,7 @@ static int arm11_step(struct target_s *target, int current,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	if (!current)
 		R(PC) = address;
@@ -1174,7 +1174,7 @@ static int arm11_assert_reset(target_t *target)
 	FNC_INFO;
 	int retval;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 	retval = arm11_check_init(arm11, NULL);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1249,7 +1249,7 @@ static int arm11_get_gdb_reg_list(struct target_s *target,
 {
 	FNC_INFO;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	*reg_list_size	= ARM11_GDB_REGISTER_COUNT;
 	*reg_list		= malloc(sizeof(reg_t*) * ARM11_GDB_REGISTER_COUNT);
@@ -1297,7 +1297,7 @@ static int arm11_read_memory_inner(struct target_s *target,
 
 	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "", address, size, count);
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	retval = arm11_run_instr_data_prepare(arm11);
 	if (retval != ERROR_OK)
@@ -1393,7 +1393,7 @@ static int arm11_write_memory_inner(struct target_s *target,
 
 	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "", address, size, count);
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	retval = arm11_run_instr_data_prepare(arm11);
 	if (retval != ERROR_OK)
@@ -1556,7 +1556,7 @@ static int arm11_add_breakpoint(struct target_s *target,
 {
 	FNC_INFO;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 #if 0
 	if (breakpoint->type == BKPT_SOFT)
@@ -1588,7 +1588,7 @@ static int arm11_remove_breakpoint(struct target_s *target,
 {
 	FNC_INFO;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	arm11->free_brps++;
 
@@ -1619,7 +1619,7 @@ static int arm11_run_algorithm(struct target_s *target,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info)
 {
-		arm11_common_t *arm11 = target->arch_info;
+		struct arm11_common *arm11 = target->arch_info;
 //	enum armv4_5_state core_state = arm11->core_state;
 //	enum armv4_5_mode core_mode = arm11->core_mode;
 	uint32_t context[16];
@@ -1783,7 +1783,7 @@ static int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	FNC_INFO;
 
-	NEW(arm11_common_t, arm11, 1);
+	NEW(struct arm11_common, arm11, 1);
 
 	arm11->target = target;
 
@@ -1815,7 +1815,7 @@ static int arm11_examine(struct target_s *target)
 
 	FNC_INFO;
 
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	/* check IDCODE */
 
@@ -1906,7 +1906,7 @@ static int arm11_get_reg(reg_t *reg)
 	/** \todo TODO: Check this. We assume that all registers are fetched at debug entry. */
 
 #if 0
-	arm11_common_t *arm11 = target->arch_info;
+	struct arm11_common *arm11 = target->arch_info;
 	const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
 #endif
 
@@ -1919,7 +1919,7 @@ static int arm11_set_reg(reg_t *reg, uint8_t *buf)
 	FNC_INFO;
 
 	target_t * target = ((arm11_reg_state_t *)reg->arch_info)->target;
-	arm11_common_t *arm11 = target->arch_info;
+	struct arm11_common *arm11 = target->arch_info;
 //	  const struct arm11_reg_defs * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
 
 	arm11->reg_values[((arm11_reg_state_t *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
@@ -1931,7 +1931,7 @@ static int arm11_set_reg(reg_t *reg, uint8_t *buf)
 
 static int arm11_build_reg_cache(target_t *target)
 {
-	arm11_common_t *arm11 = target->arch_info;
+	struct arm11_common *arm11 = target->arch_info;
 
 	NEW(reg_cache_t,		cache,				1);
 	NEW(reg_t,				reg_list,			ARM11_REGCACHE_COUNT);
@@ -2064,7 +2064,7 @@ static const uint32_t arm11_coproc_instruction_limits[] =
 	0xFFFFFFFF,		/* value */
 };
 
-static arm11_common_t * arm11_find_target(const char * arg)
+static struct arm11_common * arm11_find_target(const char * arg)
 {
 	struct jtag_tap *	tap;
 	target_t *		t;
@@ -2099,7 +2099,7 @@ static int arm11_mrc_inner(target_t *target, int cpnum,
 		return ERROR_FAIL;
 	}
 		
-	arm11_common_t * arm11 = target->arch_info;
+	struct arm11_common * arm11 = target->arch_info;
 
 	uint32_t instr = 0xEE000010	|
 		(cpnum <<  8) |
@@ -2151,7 +2151,7 @@ static COMMAND_HELPER(arm11_handle_etm_read_write, bool read)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	arm11_common_t * arm11 = arm11_find_target(args[0]);
+	struct arm11_common * arm11 = arm11_find_target(args[0]);
 
 	if (!arm11)
 	{

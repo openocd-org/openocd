@@ -81,7 +81,7 @@ int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields, tap_state_t 
  *						<em > (data is written when the JTAG queue is executed)</em>
  * \param field			target data structure that will be initialized
  */
-void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, void * in_data, struct scan_field * field)
+void arm11_setup_field(struct arm11_common * arm11, int num_bits, void * out_data, void * in_data, struct scan_field * field)
 {
 	field->tap   			= arm11->target->tap;
 	field->num_bits			= num_bits;
@@ -98,7 +98,7 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
  *
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_IR(arm11_common_t * arm11, uint8_t instr, tap_state_t state)
+void arm11_add_IR(struct arm11_common * arm11, uint8_t instr, tap_state_t state)
 {
 	struct jtag_tap *tap;
 	tap = arm11->target->tap;
@@ -161,7 +161,7 @@ static void arm11_in_handler_SCAN_N(uint8_t *in_value)
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
 
-int arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t state)
+int arm11_add_debug_SCAN_N(struct arm11_common * arm11, uint8_t chain, tap_state_t state)
 {
 	JTAG_DEBUG("SCREG <= 0x%02x", chain);
 
@@ -198,7 +198,7 @@ int arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t st
  *
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_debug_INST(arm11_common_t * arm11, uint32_t inst, uint8_t * flag, tap_state_t state)
+void arm11_add_debug_INST(struct arm11_common * arm11, uint32_t inst, uint8_t * flag, tap_state_t state)
 {
 	JTAG_DEBUG("INST <= 0x%08x", inst);
 
@@ -220,7 +220,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, uint32_t inst, uint8_t * flag,
  *
  * \remarks			This is a stand-alone function that executes the JTAG command queue.
  */
-int arm11_read_DSCR(arm11_common_t * arm11, uint32_t *value)
+int arm11_read_DSCR(struct arm11_common * arm11, uint32_t *value)
 {
 	int retval;
 	retval = arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
@@ -257,7 +257,7 @@ int arm11_read_DSCR(arm11_common_t * arm11, uint32_t *value)
  *
  * \remarks			This is a stand-alone function that executes the JTAG command queue.
  */
-int arm11_write_DSCR(arm11_common_t * arm11, uint32_t dscr)
+int arm11_write_DSCR(struct arm11_common * arm11, uint32_t dscr)
 {
 	int retval;
 	retval = arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
@@ -339,7 +339,7 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(uint32_t dscr)
  * \param arm11		Target state variable.
  *
  */
-int arm11_run_instr_data_prepare(arm11_common_t * arm11)
+int arm11_run_instr_data_prepare(struct arm11_common * arm11)
 {
 	return arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 }
@@ -358,7 +358,7 @@ int arm11_run_instr_data_prepare(arm11_common_t * arm11)
  * \param arm11		Target state variable.
  *
  */
-int arm11_run_instr_data_finish(arm11_common_t * arm11)
+int arm11_run_instr_data_finish(struct arm11_common * arm11)
 {
 	return arm11_add_debug_SCAN_N(arm11, 0x00, ARM11_TAP_DEFAULT);
 }
@@ -374,7 +374,7 @@ int arm11_run_instr_data_finish(arm11_common_t * arm11)
  * \param count		Number of opcodes to execute
  *
  */
-int arm11_run_instr_no_data(arm11_common_t * arm11, uint32_t * opcode, size_t count)
+int arm11_run_instr_no_data(struct arm11_common * arm11, uint32_t * opcode, size_t count)
 {
 	arm11_add_IR(arm11, ARM11_ITRSEL, ARM11_TAP_DEFAULT);
 
@@ -424,7 +424,7 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, uint32_t * opcode, size_t co
  * \param opcode	ARM opcode
  *
  */
-int arm11_run_instr_no_data1(arm11_common_t * arm11, uint32_t opcode)
+int arm11_run_instr_no_data1(struct arm11_common * arm11, uint32_t opcode)
 {
 	return arm11_run_instr_no_data(arm11, &opcode, 1);
 }
@@ -443,7 +443,7 @@ int arm11_run_instr_no_data1(arm11_common_t * arm11, uint32_t opcode)
  * \param count		Number of data words and instruction repetitions
  *
  */
-int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32_t * data, size_t count)
+int arm11_run_instr_data_to_core(struct arm11_common * arm11, uint32_t opcode, uint32_t * data, size_t count)
 {
 	arm11_add_IR(arm11, ARM11_ITRSEL, ARM11_TAP_DEFAULT);
 
@@ -570,7 +570,7 @@ static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
  * \param count		Number of data words and instruction repetitions
  *
  */
-int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, uint32_t * data, size_t count)
+int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opcode, uint32_t * data, size_t count)
 {
 	arm11_add_IR(arm11, ARM11_ITRSEL, ARM11_TAP_DEFAULT);
 
@@ -655,7 +655,7 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
  * \param data		Data word to be passed to the core via DTR
  *
  */
-int arm11_run_instr_data_to_core1(arm11_common_t * arm11, uint32_t opcode, uint32_t data)
+int arm11_run_instr_data_to_core1(struct arm11_common * arm11, uint32_t opcode, uint32_t data)
 {
 	return arm11_run_instr_data_to_core(arm11, opcode, &data, 1);
 }
@@ -674,7 +674,7 @@ int arm11_run_instr_data_to_core1(arm11_common_t * arm11, uint32_t opcode, uint3
  * \param count		Number of data words and instruction repetitions
  *
  */
-int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint32_t * data, size_t count)
+int arm11_run_instr_data_from_core(struct arm11_common * arm11, uint32_t opcode, uint32_t * data, size_t count)
 {
 	arm11_add_IR(arm11, ARM11_ITRSEL, ARM11_TAP_DEFAULT);
 
@@ -740,7 +740,7 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint
  * \param data		Pointer to a data word that receives the value from r0 after \p opcode was executed.
  *
  */
-int arm11_run_instr_data_from_core_via_r0(arm11_common_t * arm11, uint32_t opcode, uint32_t * data)
+int arm11_run_instr_data_from_core_via_r0(struct arm11_common * arm11, uint32_t opcode, uint32_t * data)
 {
 	int retval;
 	retval = arm11_run_instr_no_data1(arm11, opcode);
@@ -765,7 +765,7 @@ int arm11_run_instr_data_from_core_via_r0(arm11_common_t * arm11, uint32_t opcod
  * \param data		Data word that will be written to r0 before \p opcode is executed
  *
  */
-int arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, uint32_t opcode, uint32_t data)
+int arm11_run_instr_data_to_core_via_r0(struct arm11_common * arm11, uint32_t opcode, uint32_t data)
 {
 	int retval;
 	/* MRC p14,0,r0,c0,c5,0 */
@@ -789,7 +789,7 @@ int arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, uint32_t opcode,
  * \param count		Number of instructions in the list.
  *
  */
-int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count)
+int arm11_sc7_run(struct arm11_common * arm11, arm11_sc7_action_t * actions, size_t count)
 {
 	int retval;
 
@@ -873,7 +873,7 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
  * \param arm11		Target state variable.
  *
  */
-void arm11_sc7_clear_vbw(arm11_common_t * arm11)
+void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 {
 	arm11_sc7_action_t		clear_bw[arm11->brp + arm11->wrp + 1];
 	arm11_sc7_action_t *	pos = clear_bw;
@@ -902,7 +902,7 @@ void arm11_sc7_clear_vbw(arm11_common_t * arm11)
  * \param arm11		Target state variable.
  * \param value		Value to be written
  */
-void arm11_sc7_set_vcr(arm11_common_t * arm11, uint32_t value)
+void arm11_sc7_set_vcr(struct arm11_common * arm11, uint32_t value)
 {
 	arm11_sc7_action_t		set_vcr;
 
@@ -923,7 +923,7 @@ void arm11_sc7_set_vcr(arm11_common_t * arm11, uint32_t value)
  * \param result	Pointer where to store result
  *
  */
-int arm11_read_memory_word(arm11_common_t * arm11, uint32_t address, uint32_t * result)
+int arm11_read_memory_word(struct arm11_common * arm11, uint32_t address, uint32_t * result)
 {
 	int retval;
 	retval = arm11_run_instr_data_prepare(arm11);
@@ -952,7 +952,7 @@ int arm11_read_memory_word(arm11_common_t * arm11, uint32_t address, uint32_t * 
  *
  * \remarks			This is a stand-alone function that executes the JTAG command queue.
  */
-int arm11_write_etm(arm11_common_t * arm11, uint8_t address, uint32_t value)
+int arm11_write_etm(struct arm11_common * arm11, uint8_t address, uint32_t value)
 {
 	CHECK_RETVAL(arm11_add_debug_SCAN_N(arm11, 0x06, ARM11_TAP_DEFAULT));
 
@@ -986,7 +986,7 @@ int arm11_write_etm(arm11_common_t * arm11, uint8_t address, uint32_t value)
  *
  * \remarks			This is a stand-alone function that executes the JTAG command queue.
  */
-int arm11_read_etm(arm11_common_t * arm11, uint8_t address, uint32_t * value)
+int arm11_read_etm(struct arm11_common * arm11, uint8_t address, uint32_t * value)
 {
 	CHECK_RETVAL(arm11_add_debug_SCAN_N(arm11, 0x06, ARM11_TAP_DEFAULT));
 
