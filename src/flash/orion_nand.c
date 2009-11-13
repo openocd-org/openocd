@@ -30,7 +30,7 @@
 #include "armv4_5.h"
 
 
-typedef struct orion_nand_controller_s
+struct orion_nand_controller
 {
 	struct target_s	*target;
 
@@ -39,7 +39,7 @@ typedef struct orion_nand_controller_s
 	uint32_t		cmd;
 	uint32_t		addr;
 	uint32_t		data;
-} orion_nand_controller_t;
+};
 
 #define CHECK_HALTED \
 	do { \
@@ -51,7 +51,7 @@ typedef struct orion_nand_controller_s
 
 static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
 {
-	orion_nand_controller_t *hw = nand->controller_priv;
+	struct orion_nand_controller *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -61,7 +61,7 @@ static int orion_nand_command(struct nand_device_s *nand, uint8_t command)
 
 static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
 {
-	orion_nand_controller_t *hw = nand->controller_priv;
+	struct orion_nand_controller *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -71,7 +71,7 @@ static int orion_nand_address(struct nand_device_s *nand, uint8_t address)
 
 static int orion_nand_read(struct nand_device_s *nand, void *data)
 {
-	orion_nand_controller_t *hw = nand->controller_priv;
+	struct orion_nand_controller *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -81,7 +81,7 @@ static int orion_nand_read(struct nand_device_s *nand, void *data)
 
 static int orion_nand_write(struct nand_device_s *nand, uint16_t data)
 {
-	orion_nand_controller_t *hw = nand->controller_priv;
+	struct orion_nand_controller *hw = nand->controller_priv;
 	target_t *target = hw->target;
 
 	CHECK_HALTED;
@@ -98,7 +98,7 @@ static int orion_nand_slow_block_write(struct nand_device_s *nand, uint8_t *data
 
 static int orion_nand_fast_block_write(struct nand_device_s *nand, uint8_t *data, int size)
 {
-	orion_nand_controller_t *hw = nand->controller_priv;
+	struct orion_nand_controller *hw = nand->controller_priv;
 	int retval;
 
 	hw->io.chunk_size = nand->page_size;
@@ -127,7 +127,7 @@ static int orion_nand_register_commands(struct command_context_s *cmd_ctx)
 
 NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 {
-	orion_nand_controller_t *hw;
+	struct orion_nand_controller *hw;
 	uint32_t base;
 	uint8_t ale, cle;
 
