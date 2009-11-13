@@ -25,7 +25,7 @@
 
 #define	ARM720T_COMMON_MAGIC 0xa720a720
 
-typedef struct arm720t_common_s
+struct arm720t_common
 {
 	arm7tdmi_common_t arm7tdmi_common;
 	uint32_t common_magic;
@@ -33,12 +33,12 @@ typedef struct arm720t_common_s
 	uint32_t cp15_control_reg;
 	uint32_t fsr_reg;
 	uint32_t far_reg;
-} arm720t_common_t;
+};
 
-static inline struct arm720t_common_s *
+static inline struct arm720t_common *
 target_to_arm720(struct target_s *target)
 {
-	return container_of(target->arch_info, struct arm720t_common_s,
+	return container_of(target->arch_info, struct arm720t_common,
 			arm7tdmi_common.arm7_9_common.armv4_5_common);
 }
 

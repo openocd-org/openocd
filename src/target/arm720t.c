@@ -42,7 +42,7 @@ static int arm720t_scan_cp15(target_t *target,
 		uint32_t out, uint32_t *in, int instruction, int clock)
 {
 	int retval;
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 	arm_jtag_t *jtag_info;
 	struct scan_field fields[2];
 	uint8_t out_buf[4];
@@ -185,7 +185,7 @@ static void arm720t_enable_mmu_caches(target_t *target,
 
 static void arm720t_post_debug_entry(target_t *target)
 {
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	/* examine cp15 control reg */
 	arm720t_read_cp15(target, 0xee110f10, &arm720t->cp15_control_reg);
@@ -204,7 +204,7 @@ static void arm720t_post_debug_entry(target_t *target)
 
 static void arm720t_pre_restore_context(target_t *target)
 {
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	/* restore i/d fault status and address register */
 	arm720t_write_cp15(target, 0xee050f10, arm720t->fsr_reg);
@@ -212,7 +212,7 @@ static void arm720t_pre_restore_context(target_t *target)
 }
 
 static int arm720t_verify_pointer(struct command_context_s *cmd_ctx,
-		struct arm720t_common_s *arm720t)
+		struct arm720t_common *arm720t)
 {
 	if (arm720t->common_magic != ARM720T_COMMON_MAGIC) {
 		command_print(cmd_ctx, "target is not an ARM720");
@@ -223,7 +223,7 @@ static int arm720t_verify_pointer(struct command_context_s *cmd_ctx,
 
 static int arm720t_arch_state(struct target_s *target)
 {
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 	struct armv4_5_common_s *armv4_5;
 
 	static const char *state[] =
@@ -270,7 +270,7 @@ static int arm720t_read_memory(struct target_s *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	/* disable cache, but leave MMU enabled */
 	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
@@ -287,7 +287,7 @@ static int arm720t_read_memory(struct target_s *target,
 static int arm720t_read_phys_memory(struct target_s *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	return armv4_5_mmu_read_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
 }
@@ -295,7 +295,7 @@ static int arm720t_read_phys_memory(struct target_s *target,
 static int arm720t_write_phys_memory(struct target_s *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	return armv4_5_mmu_write_physical(target, &arm720t->armv4_5_mmu, address, size, count, buffer);
 }
@@ -303,7 +303,7 @@ static int arm720t_write_phys_memory(struct target_s *target,
 static int arm720t_soft_reset_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 	reg_t *dbg_stat = &arm720t->arm7tdmi_common.arm7_9_common
 			.eice_cache->reg_list[EICE_DBG_STAT];
 	struct armv4_5_common_s *armv4_5 = &arm720t->arm7tdmi_common
@@ -377,7 +377,7 @@ static int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_
 }
 
 static int arm720t_init_arch_info(target_t *target,
-		arm720t_common_t *arm720t, struct jtag_tap *tap)
+		struct arm720t_common *arm720t, struct jtag_tap *tap)
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;
@@ -403,7 +403,7 @@ static int arm720t_init_arch_info(target_t *target,
 
 static int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	struct arm720t_common_s *arm720t = calloc(1, sizeof(*arm720t));
+	struct arm720t_common *arm720t = calloc(1, sizeof(*arm720t));
 
 	arm720t->arm7tdmi_common.arm7_9_common.armv4_5_common.is_armv4 = true;
 	return arm720t_init_arch_info(target, arm720t, target->tap);
@@ -413,7 +413,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	struct arm720t_common_s *arm720t = target_to_arm720(target);
+	struct arm720t_common *arm720t = target_to_arm720(target);
 	arm_jtag_t *jtag_info;
 
 	retval = arm720t_verify_pointer(cmd_ctx, arm720t);
