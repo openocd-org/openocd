@@ -726,7 +726,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 int gdb_new_connection(connection_t *connection)
 {
 	struct gdb_connection *gdb_connection = malloc(sizeof(struct gdb_connection));
-	gdb_service_t *gdb_service = connection->service->priv;
+	struct gdb_service *gdb_service = connection->service->priv;
 	int retval;
 	int initial_ack;
 
@@ -781,7 +781,7 @@ int gdb_new_connection(connection_t *connection)
 
 int gdb_connection_closed(connection_t *connection)
 {
-	gdb_service_t *gdb_service = connection->service->priv;
+	struct gdb_service *gdb_service = connection->service->priv;
 	struct gdb_connection *gdb_connection = connection->priv;
 
 	/* we're done forwarding messages. Tear down callback before
@@ -1813,7 +1813,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
-	gdb_service_t *gdb_service = connection->service->priv;
+	struct gdb_service *gdb_service = connection->service->priv;
 	int result;
 
 	/* if flash programming disabled - send a empty reply */
@@ -1949,7 +1949,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 int gdb_detach(connection_t *connection, target_t *target)
 {
-	gdb_service_t *gdb_service = connection->service->priv;
+	struct gdb_service *gdb_service = connection->service->priv;
 
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH);
 
@@ -1984,7 +1984,7 @@ static void gdb_sig_halted(connection_t *connection)
 
 int gdb_input_inner(connection_t *connection)
 {
-	gdb_service_t *gdb_service = connection->service->priv;
+	struct gdb_service *gdb_service = connection->service->priv;
 	target_t *target = gdb_service->target;
 	char *packet = gdb_packet_buffer;
 	int packet_size;
@@ -2197,7 +2197,7 @@ int gdb_input(connection_t *connection)
 
 int gdb_init(void)
 {
-	gdb_service_t *gdb_service;
+	struct gdb_service *gdb_service;
 	target_t *target = all_targets;
 
 	if (!target)
@@ -2216,7 +2216,7 @@ int gdb_init(void)
 	{
 		/* only a single gdb connection when using a pipe */
 
-		gdb_service = malloc(sizeof(gdb_service_t));
+		gdb_service = malloc(sizeof(struct gdb_service));
 		gdb_service->target = target;
 
 		add_service("gdb", CONNECTION_PIPE, 0, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
@@ -2230,7 +2230,7 @@ int gdb_init(void)
 
 		while (target)
 		{
-			gdb_service = malloc(sizeof(gdb_service_t));
+			gdb_service = malloc(sizeof(struct gdb_service));
 			gdb_service->target = target;
 
 			add_service("gdb", CONNECTION_TCP,

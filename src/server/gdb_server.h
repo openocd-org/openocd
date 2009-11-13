@@ -49,10 +49,10 @@ struct gdb_connection
 
 };
 
-typedef struct gdb_service_s
+struct gdb_service
 {
 	struct target_s *target;
-} gdb_service_t;
+};
 
 int gdb_init(void);
 int gdb_register_commands(command_context_t *command_context);
