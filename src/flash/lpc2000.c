@@ -55,7 +55,7 @@
 
 static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 {
-	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	int i;
 	uint32_t offset = 0;
 
@@ -237,7 +237,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5], uint32_t result_table[4])
 {
 	int retval;
-	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	target_t *target = bank->target;
 	mem_param_t mem_params[2];
 	reg_param_t reg_params[5];
@@ -421,7 +421,7 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
  */
 FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 {
-	lpc2000_flash_bank_t *lpc2000_info;
+	struct lpc2000_flash_bank *lpc2000_info;
 
 	if (argc < 8)
 	{
@@ -429,7 +429,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	lpc2000_info = malloc(sizeof(lpc2000_flash_bank_t));
+	lpc2000_info = malloc(sizeof(struct lpc2000_flash_bank));
 	bank->driver_priv = lpc2000_info;
 
 	if (strcmp(args[6], "lpc2000_v1") == 0)
@@ -479,7 +479,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 
 static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 {
-	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	uint32_t param_table[5];
 	uint32_t result_table[4];
 	int status_code;
@@ -537,7 +537,7 @@ static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int la
 
 static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	target_t *target = bank->target;
 	uint32_t dst_min_alignment;
 	uint32_t bytes_remaining = count;
@@ -730,7 +730,7 @@ static int lpc2000_protect_check(struct flash_bank_s *bank)
 
 static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 
 	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %" PRIi32 "kHz" , lpc2000_info->variant, lpc2000_info->cclk);
 

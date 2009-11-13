@@ -32,7 +32,7 @@ typedef enum
 	lpc1700
 } lpc2000_variant;
 
-typedef struct lpc2000_flash_bank_s
+struct lpc2000_flash_bank
 {
 	lpc2000_variant variant;
 	struct working_area_s *iap_working_area;
@@ -43,7 +43,7 @@ typedef struct lpc2000_flash_bank_s
 	int calc_checksum;
 	uint32_t cmd51_max_buffer;
 	int checksum_vector;
-} lpc2000_flash_bank_t;
+};
 
 enum lpc2000_status_codes
 {
