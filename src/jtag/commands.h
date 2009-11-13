@@ -57,11 +57,10 @@ struct scan_command {
 	tap_state_t end_state;
 };
 
-typedef struct statemove_command_s
-{
+struct statemove_command {
 	/// state in which JTAG commands should finish
 	tap_state_t end_state;
-} statemove_command_t;
+};
 
 typedef struct pathmove_command_s
 {
@@ -114,7 +113,7 @@ typedef struct sleep_command_s
 typedef union jtag_command_container_u
 {
 	struct scan_command*         scan;
-	statemove_command_t*    statemove;
+	struct statemove_command*    statemove;
 	pathmove_command_t*     pathmove;
 	runtest_command_t*      runtest;
 	stableclocks_command_t* stableclocks;
