@@ -315,7 +315,7 @@ static int fa526_init_arch_info_2(target_t *target,
 }
 
 static int fa526_init_arch_info(target_t *target,
-		arm920t_common_t *arm920t, struct jtag_tap *tap)
+		struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -352,7 +352,7 @@ static int fa526_init_arch_info(target_t *target,
 
 static int fa526_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	arm920t_common_t *arm920t = calloc(1,sizeof(arm920t_common_t));
+	struct arm920t_common *arm920t = calloc(1,sizeof(struct arm920t_common));
 
 	return fa526_init_arch_info(target, arm920t, target->tap);
 }

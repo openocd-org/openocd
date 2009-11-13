@@ -25,7 +25,7 @@
 
 #define	ARM920T_COMMON_MAGIC 0xa920a920
 
-typedef struct arm920t_common_s
+struct arm920t_common
 {
 	arm9tdmi_common_t arm9tdmi_common;
 	uint32_t common_magic;
@@ -36,12 +36,12 @@ typedef struct arm920t_common_s
 	uint32_t d_far;
 	uint32_t i_far;
 	int preserve_cache;
-} arm920t_common_t;
+};
 
-static inline struct arm920t_common_s *
+static inline struct arm920t_common *
 target_to_arm920(struct target_s *target)
 {
-	return container_of(target->arch_info, struct arm920t_common_s,
+	return container_of(target->arch_info, struct arm920t_common,
 			arm9tdmi_common.arm7_9_common.armv4_5_common);
 }
 
