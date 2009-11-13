@@ -25,16 +25,16 @@
 
 #include "flash.h"
 
-typedef struct stm32x_options_s
+struct stm32x_options
 {
 	uint16_t RDP;
 	uint16_t user_options;
 	uint16_t protection[4];
-} stm32x_options_t;
+};
 
 typedef struct stm32x_flash_bank_s
 {
-	stm32x_options_t option_bytes;
+	struct stm32x_options option_bytes;
 	working_area_t *write_algorithm;
 	int ppage_size;
 	int probed;
