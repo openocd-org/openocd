@@ -33,15 +33,14 @@
 
 #include "commands.h"
 
-typedef struct cmd_queue_page_s
-{
+struct cmd_queue_page {
 	void *address;
 	size_t used;
-	struct cmd_queue_page_s *next;
-} cmd_queue_page_t;
+	struct cmd_queue_page *next;
+};
 
 #define CMD_QUEUE_PAGE_SIZE (1024 * 1024)
-static cmd_queue_page_t *cmd_queue_pages = NULL;
+static struct cmd_queue_page *cmd_queue_pages = NULL;
 
 jtag_command_t *jtag_command_queue = NULL;
 static jtag_command_t **next_command_pointer = &jtag_command_queue;
@@ -62,7 +61,7 @@ void jtag_queue_command(jtag_command_t * cmd)
 
 void* cmd_queue_alloc(size_t size)
 {
-	cmd_queue_page_t **p_page = &cmd_queue_pages;
+	struct cmd_queue_page **p_page = &cmd_queue_pages;
 	int offset;
 	uint8_t *t;
 
@@ -108,7 +107,7 @@ void* cmd_queue_alloc(size_t size)
 
 	if (!*p_page)
 	{
-		*p_page = malloc(sizeof(cmd_queue_page_t));
+		*p_page = malloc(sizeof(struct cmd_queue_page));
 		(*p_page)->used = 0;
 		(*p_page)->address = malloc(CMD_QUEUE_PAGE_SIZE);
 		(*p_page)->next = NULL;
@@ -123,11 +122,11 @@ void* cmd_queue_alloc(size_t size)
 
 void cmd_queue_free(void)
 {
-	cmd_queue_page_t *page = cmd_queue_pages;
+	struct cmd_queue_page *page = cmd_queue_pages;
 
 	while (page)
 	{
-		cmd_queue_page_t *last = page;
+		struct cmd_queue_page *last = page;
 		free(page->address);
 		page = page->next;
 		free(last);
