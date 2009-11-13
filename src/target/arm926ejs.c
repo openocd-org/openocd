@@ -669,7 +669,7 @@ static int arm926ejs_read_phys_memory(struct target_s *target,
 int arm926ejs_init_arch_info(target_t *target, struct arm926ejs_common *arm926ejs,
 		struct jtag_tap *tap)
 {
-	arm9tdmi_common_t *arm9tdmi = &arm926ejs->arm9tdmi_common;
+	struct arm9tdmi_common *arm9tdmi = &arm926ejs->arm9tdmi_common;
 	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)

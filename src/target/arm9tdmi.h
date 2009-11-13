@@ -28,10 +28,10 @@
 /* FIXME we don't really need a separate arm9tdmi struct any more...
  * remove it, the arm7/arm9 common struct suffices.
  */
-typedef struct arm9tdmi_common_s
+struct arm9tdmi_common
 {
 	struct arm7_9_common arm7_9_common;
-} arm9tdmi_common_t;
+};
 
 typedef struct arm9tdmi_vector_s
 {
@@ -55,7 +55,7 @@ int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
 		struct target_s *target);
 int arm9tdmi_examine(struct target_s *target);
 int arm9tdmi_init_arch_info(target_t *target,
-		arm9tdmi_common_t *arm9tdmi, struct jtag_tap *tap);
+		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap);
 int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
 int arm9tdmi_clock_out(arm_jtag_t *jtag_info,

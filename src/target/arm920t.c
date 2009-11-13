@@ -622,7 +622,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 
 int arm920t_init_arch_info(target_t *target, struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
-	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
+	struct arm9tdmi_common *arm9tdmi = &arm920t->arm9tdmi_common;
 	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)

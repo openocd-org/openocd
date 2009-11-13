@@ -29,7 +29,7 @@
 
 struct arm966e_common
 {
-	arm9tdmi_common_t arm9tdmi_common;
+	struct arm9tdmi_common arm9tdmi_common;
 	int common_magic;
 	uint32_t cp15_control_reg;
 };

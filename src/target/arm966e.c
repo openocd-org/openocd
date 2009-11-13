@@ -34,7 +34,7 @@
 
 int arm966e_init_arch_info(target_t *target, struct arm966e_common *arm966e, struct jtag_tap *tap)
 {
-	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
+	struct arm9tdmi_common *arm9tdmi = &arm966e->arm9tdmi_common;
 	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
