@@ -78,7 +78,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const struct scan_field *in_fi
 	size_t num_taps = jtag_tap_count_enabled();
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc(num_taps  * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
@@ -151,7 +151,7 @@ int interface_jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field 
 {
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
@@ -189,7 +189,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const struct scan_field *in_fi
 	}
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
@@ -279,7 +279,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
@@ -347,7 +347,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 int interface_jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
 {
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
 	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);

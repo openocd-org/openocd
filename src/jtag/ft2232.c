@@ -956,7 +956,7 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 	}
 }
 
-static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* buffer, int scan_size)
+static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint8_t* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;

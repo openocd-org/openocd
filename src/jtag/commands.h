@@ -46,8 +46,7 @@ enum scan_type {
  * The scan_command provide a means of encapsulating a set of scan_field_s
  * structures that should be scanned in/out to the device.
  */
-typedef struct scan_command_s
-{
+struct scan_command {
 	/// instruction/not data scan
 	bool ir_scan;
 	/// number of fields in *fields array
@@ -56,7 +55,7 @@ typedef struct scan_command_s
 	struct scan_field* fields;
 	/// state in which JTAG commands should finish
 	tap_state_t end_state;
-} scan_command_t;
+};
 
 typedef struct statemove_command_s
 {
@@ -114,7 +113,7 @@ typedef struct sleep_command_s
  */
 typedef union jtag_command_container_u
 {
-	scan_command_t*         scan;
+	struct scan_command*         scan;
 	statemove_command_t*    statemove;
 	pathmove_command_t*     pathmove;
 	runtest_command_t*      runtest;
@@ -154,9 +153,9 @@ void cmd_queue_free(void);
 void jtag_queue_command(jtag_command_t *cmd);
 void jtag_command_queue_reset(void);
 
-enum scan_type jtag_scan_type(const scan_command_t* cmd);
-int jtag_scan_size(const scan_command_t* cmd);
-int jtag_read_buffer(uint8_t* buffer, const scan_command_t* cmd);
-int jtag_build_buffer(const scan_command_t* cmd, uint8_t** buffer);
+enum scan_type jtag_scan_type(const struct scan_command* cmd);
+int jtag_scan_size(const struct scan_command* cmd);
+int jtag_read_buffer(uint8_t* buffer, const struct scan_command* cmd);
+int jtag_build_buffer(const struct scan_command* cmd, uint8_t** buffer);
 
 #endif // JTAG_COMMANDS_H

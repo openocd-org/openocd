@@ -165,7 +165,7 @@ static uint8_t VSLLINK_BIT_MSK[8] =
 struct pending_scan_result {
 	int offset;
 	int length; /* Number of bits to read */
-	scan_command_t *command; /* Corresponding scan command */
+	struct scan_command *command; /* Corresponding scan command */
 	uint8_t *buffer;
 };
 
@@ -186,9 +186,9 @@ static void vsllink_runtest(int num_cycles);
 static void vsllink_stableclocks_dma(int num_cycles, int tms);
 static void vsllink_stableclocks_normal(int num_cycles, int tms);
 static void (*vsllink_stableclocks)(int num_cycles, int tms);
-static void vsllink_scan_dma(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
-static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
-static void (*vsllink_scan)(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
+static void vsllink_scan_dma(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
+static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
+static void (*vsllink_scan)(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
 static void vsllink_reset(int trst, int srst);
 static void vsllink_simple_command(uint8_t command);
 static int vsllink_connect(void);
@@ -205,8 +205,8 @@ static int (*vsllink_tap_execute)(void);
 static void vsllink_tap_ensure_space_dma(int scans, int length);
 static void vsllink_tap_ensure_space_normal(int scans, int length);
 static void (*vsllink_tap_ensure_space)(int scans, int length);
-static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_command_t *command);
-static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_command_t *command, int offset);
+static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, struct scan_command *command);
+static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, struct scan_command *command, int offset);
 
 /* VSLLink lowlevel functions */
 struct vsllink {
@@ -1137,7 +1137,7 @@ static void vsllink_runtest(int num_cycles)
 	}
 }
 
-static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
+static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command)
 {
 	tap_state_t saved_end_state;
 	uint8_t bits_left, tms_tmp, tdi_len;
@@ -1253,7 +1253,7 @@ static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buff
 
 	tap_set_state(tap_get_end_state());
 }
-static void vsllink_scan_dma(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
+static void vsllink_scan_dma(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command)
 {
 	tap_state_t saved_end_state;
 
@@ -1483,7 +1483,7 @@ static void vsllink_tap_append_step(int tms, int tdi)
 	}
 }
 
-static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_command_t *command, int offset)
+static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, struct scan_command *command, int offset)
 {
 	struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
@@ -1508,7 +1508,7 @@ static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_com
 
 	pending_scan_results_length++;
 }
-static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_command_t *command)
+static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, struct scan_command *command)
 {
 	struct pending_scan_result *pending_scan_result;
 	int len_tmp, len_all, i;
@@ -1592,7 +1592,7 @@ static int vsllink_tap_execute_normal(void)
 				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int offset = pending_scan_result->offset;
-				scan_command_t *command = pending_scan_result->command;
+				struct scan_command *command = pending_scan_result->command;
 
 				if (buffer != NULL)
 				{
@@ -1666,7 +1666,7 @@ static int vsllink_tap_execute_dma(void)
 				int length = pending_scan_result->length;
 				int first = pending_scan_result->offset;
 
-				scan_command_t *command = pending_scan_result->command;
+				struct scan_command *command = pending_scan_result->command;
 				buf_set_buf(vsllink_usb_in_buffer, first, buffer, 0, length);
 
 				DEBUG_JTAG_IO("JTAG scan read(%d bits, from %d bits):", length, first);

@@ -272,7 +272,7 @@ void bitq_scan_field(struct scan_field* field, int pause)
 }
 
 
-void bitq_scan(scan_command_t* cmd)
+void bitq_scan(struct scan_command* cmd)
 {
 	int i;
 

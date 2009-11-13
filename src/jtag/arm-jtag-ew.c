@@ -71,7 +71,7 @@ static void armjtagew_end_state(tap_state_t state);
 static void armjtagew_state_move(void);
 static void armjtagew_path_move(int num_states, tap_state_t *path);
 static void armjtagew_runtest(int num_cycles);
-static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
+static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
 static void armjtagew_reset(int trst, int srst);
 //static void armjtagew_simple_command(uint8_t command);
 static int armjtagew_get_status(void);
@@ -81,7 +81,7 @@ static void armjtagew_tap_init(void);
 static int armjtagew_tap_execute(void);
 static void armjtagew_tap_ensure_space(int scans, int bits);
 static void armjtagew_tap_append_step(int tms, int tdi);
-static void armjtagew_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command);
+static void armjtagew_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command);
 
 /* ARM-JTAG-EW lowlevel functions */
 struct armjtagew {
@@ -382,7 +382,7 @@ static void armjtagew_runtest(int num_cycles)
 	}
 }
 
-static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
+static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command)
 {
 	tap_state_t saved_end_state;
 
@@ -545,7 +545,7 @@ static uint8_t tdo_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
 struct pending_scan_result {
 	int first;	/* First bit position in tdo_buffer to read */
 	int length; /* Number of bits to read */
-	scan_command_t *command; /* Corresponding scan command */
+	struct scan_command *command; /* Corresponding scan command */
 	uint8_t *buffer;
 };
 
@@ -609,7 +609,7 @@ static void armjtagew_tap_append_step(int tms, int tdi)
 	}
 }
 
-void armjtagew_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command)
+void armjtagew_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command)
 {
 	struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
@@ -686,7 +686,7 @@ static int armjtagew_tap_execute(void)
 				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int first = pending_scan_result->first;
-				scan_command_t *command = pending_scan_result->command;
+				struct scan_command *command = pending_scan_result->command;
 
 				/* Copy to buffer */
 				buf_set_buf(tdo_buffer, first, buffer, 0, length);

@@ -144,7 +144,7 @@ void jtag_command_queue_reset(void)
 	next_command_pointer = &jtag_command_queue;
 }
 
-enum scan_type jtag_scan_type(const scan_command_t *cmd)
+enum scan_type jtag_scan_type(const struct scan_command *cmd)
 {
 	int i;
 	int type = 0;
@@ -160,7 +160,7 @@ enum scan_type jtag_scan_type(const scan_command_t *cmd)
 	return type;
 }
 
-int jtag_scan_size(const scan_command_t *cmd)
+int jtag_scan_size(const struct scan_command *cmd)
 {
 	int bit_count = 0;
 	int i;
@@ -174,7 +174,7 @@ int jtag_scan_size(const scan_command_t *cmd)
 	return bit_count;
 }
 
-int jtag_build_buffer(const scan_command_t *cmd, uint8_t **buffer)
+int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 {
 	int bit_count = 0;
 	int i;
@@ -219,7 +219,7 @@ int jtag_build_buffer(const scan_command_t *cmd, uint8_t **buffer)
 	return bit_count;
 }
 
-int jtag_read_buffer(uint8_t *buffer, const scan_command_t *cmd)
+int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 {
 	int i;
 	int bit_count = 0;
