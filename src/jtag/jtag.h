@@ -143,8 +143,6 @@ struct scan_field {
 	uint8_t intmp[4];
 };
 
-typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
-
 struct jtag_tap {
 	const char* chip;
 	const char* tapname;
@@ -174,7 +172,7 @@ struct jtag_tap {
 	/// Bypass register selected
 	int bypass;
 
-	jtag_tap_event_action_t *event_action;
+	struct jtag_tap_event_action *event_action;
 
 	struct jtag_tap* next_tap;
 };
@@ -220,11 +218,11 @@ enum jtag_event {
 	JTAG_TAP_EVENT_DISABLE,
 };
 
-struct jtag_tap_event_action_s
+struct jtag_tap_event_action
 {
 	enum jtag_event		event;
 	Jim_Obj*                 body;
-	jtag_tap_event_action_t* next;
+	struct jtag_tap_event_action* next;
 };
 
 /**

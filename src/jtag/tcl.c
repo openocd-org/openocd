@@ -103,7 +103,7 @@ static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, struct jtag_tap * tap)
 				}
 
 				{
-					jtag_tap_event_action_t *jteap;
+					struct jtag_tap_event_action *jteap;
 
 					jteap = tap->event_action;
 					/* replace existing? */
@@ -337,7 +337,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 
 static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 {
-	jtag_tap_event_action_t * jteap;
+	struct jtag_tap_event_action * jteap;
 
 	for (jteap = tap->event_action; jteap != NULL; jteap = jteap->next) {
 		if (jteap->event == e) {
