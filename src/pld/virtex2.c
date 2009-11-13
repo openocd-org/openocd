@@ -245,7 +245,7 @@ static int virtex2_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-pld_driver_t virtex2_pld = {
+struct pld_driver virtex2_pld = {
 		.name = "virtex2",
 		.register_commands = &virtex2_register_commands,
 		.pld_device_command = &virtex2_pld_device_command,

@@ -28,9 +28,9 @@
 
 /* pld drivers
  */
-extern pld_driver_t virtex2_pld;
+extern struct pld_driver virtex2_pld;
 
-static pld_driver_t *pld_drivers[] =
+static struct pld_driver *pld_drivers[] =
 {
 	&virtex2_pld,
 	NULL,

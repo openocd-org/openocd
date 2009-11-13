@@ -27,19 +27,19 @@ struct pld_device_s;
 #define __PLD_DEVICE_COMMAND(name) \
 		COMMAND_HELPER(name, struct pld_device_s *pld)
 
-typedef struct pld_driver_s
+struct pld_driver
 {
 	char *name;
 	__PLD_DEVICE_COMMAND((*pld_device_command));
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*load)(struct pld_device_s *pld_device, const char *filename);
-} pld_driver_t;
+};
 
 #define PLD_DEVICE_COMMAND_HANDLER(name) static __PLD_DEVICE_COMMAND(name)
 
 typedef struct pld_device_s
 {
-	pld_driver_t *driver;
+	struct pld_driver *driver;
 	void *driver_priv;
 	struct pld_device_s *next;
 } pld_device_t;
