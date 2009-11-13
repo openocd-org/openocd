@@ -812,7 +812,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	uint32_t offset;
 	uint8_t *buffer;
 	uint32_t buf_cnt;
-	fileio_t fileio;
+	struct fileio fileio;
 
 	if (argc != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;

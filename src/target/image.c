@@ -47,7 +47,7 @@
 static int autodetect_image_type(image_t *image, const char *url)
 {
 	int retval;
-	fileio_t fileio;
+	struct fileio fileio;
 	uint32_t read_bytes;
 	uint8_t buffer[9];
 
@@ -150,7 +150,7 @@ static int identify_image_type(image_t *image, const char *type_string, const ch
 static int image_ihex_buffer_complete(image_t *image)
 {
 	image_ihex_t *ihex = image->type_private;
-	fileio_t *fileio = &ihex->fileio;
+	struct fileio *fileio = &ihex->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
 	int i;
@@ -502,7 +502,7 @@ static int image_elf_read_section(image_t *image, int section, uint32_t offset, 
 static int image_mot_buffer_complete(image_t *image)
 {
 	image_mot_t *mot = image->type_private;
-	fileio_t *fileio = &mot->fileio;
+	struct fileio *fileio = &mot->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
 	int i;

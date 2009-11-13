@@ -45,29 +45,28 @@ enum fileio_access
 	FILEIO_APPENDREAD,	/* open for writing, position at end, allow reading */
 };
 
-typedef struct fileio_s
-{
+struct fileio {
 	char *url;
 	long long size;
 	enum fileio_type type;
 	enum fileio_access access;
 	FILE *file;
-} fileio_t;
+};
 
-int fileio_open(fileio_t *fileio,
+int fileio_open(struct fileio *fileio,
 	const char *url, enum fileio_access access, enum fileio_type type);
-int fileio_close(fileio_t *fileio);
+int fileio_close(struct fileio *fileio);
 
-int fileio_seek(fileio_t *fileio, uint32_t position);
-int fileio_fgets(fileio_t *fileio, uint32_t size, char *buffer);
+int fileio_seek(struct fileio *fileio, uint32_t position);
+int fileio_fgets(struct fileio *fileio, uint32_t size, char *buffer);
 
-int fileio_read(fileio_t *fileio,
+int fileio_read(struct fileio *fileio,
 		uint32_t size, uint8_t *buffer, uint32_t *size_read);
-int fileio_write(fileio_t *fileio,
+int fileio_write(struct fileio *fileio,
 		uint32_t size, const uint8_t *buffer, uint32_t *size_written);
 
-int fileio_read_u32(fileio_t *fileio, uint32_t *data);
-int fileio_write_u32(fileio_t *fileio, uint32_t data);
+int fileio_read_u32(struct fileio *fileio, uint32_t *data);
+int fileio_write_u32(struct fileio *fileio, uint32_t data);
 
 #define ERROR_FILEIO_LOCATION_UNKNOWN	(-1200)
 #define ERROR_FILEIO_NOT_FOUND			(-1201)

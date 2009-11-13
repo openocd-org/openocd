@@ -2493,7 +2493,7 @@ COMMAND_HANDLER(handle_load_image_command)
 
 COMMAND_HANDLER(handle_dump_image_command)
 {
-	fileio_t fileio;
+	struct fileio fileio;
 
 	uint8_t buffer[560];
 	int retvaltemp;

@@ -1788,7 +1788,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 
 COMMAND_HANDLER(handle_etm_dump_command)
 {
-	fileio_t file;
+	struct fileio file;
 	target_t *target;
 	struct arm *arm;
 	etm_context_t *etm_ctx;
@@ -1856,7 +1856,7 @@ COMMAND_HANDLER(handle_etm_dump_command)
 
 COMMAND_HANDLER(handle_etm_load_command)
 {
-	fileio_t file;
+	struct fileio file;
 	target_t *target;
 	struct arm *arm;
 	etm_context_t *etm_ctx;

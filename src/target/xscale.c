@@ -3420,7 +3420,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 	target_t *target = get_current_target(cmd_ctx);
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	xscale_trace_data_t *trace_data;
-	fileio_t file;
+	struct fileio file;
 	int retval;
 
 	retval = xscale_verify_pointer(cmd_ctx, xscale);

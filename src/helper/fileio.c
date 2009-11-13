@@ -31,7 +31,7 @@
 #include "configuration.h"
 #include "fileio.h"
 
-static inline int fileio_open_local(fileio_t *fileio)
+static inline int fileio_open_local(struct fileio *fileio)
 {
 	char access[4];
 
@@ -98,7 +98,7 @@ static inline int fileio_open_local(fileio_t *fileio)
 	return ERROR_OK;
 }
 
-int fileio_open(fileio_t *fileio, const char *url, enum fileio_access access,	enum fileio_type type)
+int fileio_open(struct fileio *fileio, const char *url, enum fileio_access access,	enum fileio_type type)
 {
 	int retval = ERROR_OK;
 
@@ -111,7 +111,7 @@ int fileio_open(fileio_t *fileio, const char *url, enum fileio_access access,	en
 	return retval;
 }
 
-static inline int fileio_close_local(fileio_t *fileio)
+static inline int fileio_close_local(struct fileio *fileio)
 {
 	int retval;
 	if ((retval = fclose(fileio->file)) != 0)
@@ -131,7 +131,7 @@ static inline int fileio_close_local(fileio_t *fileio)
 	return ERROR_OK;
 }
 
-int fileio_close(fileio_t *fileio)
+int fileio_close(struct fileio *fileio)
 {
 	int retval;
 
@@ -143,7 +143,7 @@ int fileio_close(fileio_t *fileio)
 	return retval;
 }
 
-int fileio_seek(fileio_t *fileio, uint32_t position)
+int fileio_seek(struct fileio *fileio, uint32_t position)
 {
 	int retval;
 	if ((retval = fseek(fileio->file, position, SEEK_SET)) != 0)
@@ -155,19 +155,19 @@ int fileio_seek(fileio_t *fileio, uint32_t position)
 	return ERROR_OK;
 }
 
-static inline int fileio_local_read(fileio_t *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+static inline int fileio_local_read(struct fileio *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	*size_read = fread(buffer, 1, size, fileio->file);
 
 	return ERROR_OK;
 }
 
-int fileio_read(fileio_t *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+int fileio_read(struct fileio *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	return fileio_local_read(fileio, size, buffer, size_read);
 }
 
-int fileio_read_u32(fileio_t *fileio, uint32_t *data)
+int fileio_read_u32(struct fileio *fileio, uint32_t *data)
 {
 	uint8_t buf[4];
 	uint32_t size_read;
@@ -180,7 +180,7 @@ int fileio_read_u32(fileio_t *fileio, uint32_t *data)
 	return ERROR_OK;
 }
 
-static inline int fileio_local_fgets(fileio_t *fileio, uint32_t size, char *buffer)
+static inline int fileio_local_fgets(struct fileio *fileio, uint32_t size, char *buffer)
 {
 	if (fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -188,19 +188,19 @@ static inline int fileio_local_fgets(fileio_t *fileio, uint32_t size, char *buff
 	return ERROR_OK;
 }
 
-int fileio_fgets(fileio_t *fileio, uint32_t size, char *buffer)
+int fileio_fgets(struct fileio *fileio, uint32_t size, char *buffer)
 {
 	return fileio_local_fgets(fileio, size, buffer);
 }
 
-static inline int fileio_local_write(fileio_t *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
+static inline int fileio_local_write(struct fileio *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
 {
 	*size_written = fwrite(buffer, 1, size, fileio->file);
 
 	return ERROR_OK;
 }
 
-int fileio_write(fileio_t *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
+int fileio_write(struct fileio *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
 {
 	int retval;
 
@@ -212,7 +212,7 @@ int fileio_write(fileio_t *fileio, uint32_t size, const uint8_t *buffer, uint32_
 	return retval;;
 }
 
-int fileio_write_u32(fileio_t *fileio, uint32_t data)
+int fileio_write_u32(struct fileio *fileio, uint32_t data)
 {
 	uint8_t buf[4];
 	uint32_t size_written;

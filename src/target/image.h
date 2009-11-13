@@ -69,12 +69,12 @@ typedef struct image_s
 
 typedef struct image_binary_s
 {
-	fileio_t fileio;
+	struct fileio fileio;
 } image_binary_t;
 
 typedef struct image_ihex_s
 {
-	fileio_t fileio;
+	struct fileio fileio;
 	uint8_t *buffer;
 } image_ihex_t;
 
@@ -87,7 +87,7 @@ typedef struct image_memory_s
 
 typedef struct fileio_elf_s
 {
-	fileio_t fileio;
+	struct fileio fileio;
 	Elf32_Ehdr *header;
 	Elf32_Phdr *segments;
 	uint32_t segment_count;
@@ -96,7 +96,7 @@ typedef struct fileio_elf_s
 
 typedef struct image_mot_s
 {
-	fileio_t fileio;
+	struct fileio fileio;
 	uint8_t *buffer;
 } image_mot_t;
 

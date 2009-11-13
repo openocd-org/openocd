@@ -706,7 +706,7 @@ COMMAND_HANDLER(mg_write_cmd)
 {
 	uint32_t address, buf_cnt, cnt, res, i;
 	uint8_t *buffer;
-	fileio_t fileio;
+	struct fileio fileio;
 	int ret;
 
 	if (argc != 3) {
@@ -770,7 +770,7 @@ COMMAND_HANDLER(mg_dump_cmd)
 {
 	uint32_t address, size_written, size, cnt, res, i;
 	uint8_t *buffer;
-	fileio_t fileio;
+	struct fileio fileio;
 	int ret;
 
 	if (argc != 4) {

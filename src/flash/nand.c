@@ -1292,7 +1292,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 	uint32_t buf_cnt;
 	enum oob_formats oob_format = NAND_OOB_NONE;
 
-	fileio_t fileio;
+	struct fileio fileio;
 
 
 	if (argc < 3)
@@ -1469,7 +1469,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 		return ERROR_OK;
 	}
 
-	fileio_t fileio;
+	struct fileio fileio;
 
 	uint8_t *page = NULL;
 	uint32_t page_size = 0;
