@@ -922,7 +922,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	int i;
 	FILE *output;
 	uint32_t Dlockdown, Ilockdown;
-	arm920t_tlb_entry_t d_tlb[64], i_tlb[64];
+	struct arm920t_tlb_entry d_tlb[64], i_tlb[64];
 	int victim;
 
 	retval = arm920t_verify_pointer(cmd_ctx, arm920t);

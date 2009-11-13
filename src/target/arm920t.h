@@ -51,12 +51,12 @@ struct arm920t_cache_line
 	uint32_t data[8];
 };
 
-typedef struct arm920t_tlb_entry_s
+struct arm920t_tlb_entry
 {
 	uint32_t cam;
 	uint32_t ram1;
 	uint32_t ram2;
-} arm920t_tlb_entry_t;
+};
 
 int arm920t_arch_state(struct target_s *target);
 int arm920t_soft_reset_halt(struct target_s *target);
