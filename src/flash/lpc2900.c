@@ -954,7 +954,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
  */
 static int lpc2900_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *lpc2900_cmd = register_command(cmd_ctx, NULL, "lpc2900",
+	struct command *lpc2900_cmd = register_command(cmd_ctx, NULL, "lpc2900",
 	                                          NULL, COMMAND_ANY, NULL);
 
 	register_command(

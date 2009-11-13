@@ -939,7 +939,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 int arm9tdmi_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
-	command_t *arm9tdmi_cmd;
+	struct command *arm9tdmi_cmd;
 
 	retval = arm7_9_register_commands(cmd_ctx);
 	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9",

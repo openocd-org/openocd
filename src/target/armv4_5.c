@@ -464,7 +464,7 @@ usage:
 
 int armv4_5_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *armv4_5_cmd;
+	struct command *armv4_5_cmd;
 
 	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5",
 			NULL, COMMAND_ANY,

@@ -1183,7 +1183,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 
 static int stm32x_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stm32x",
+	struct command *stm32x_cmd = register_command(cmd_ctx, NULL, "stm32x",
 			NULL, COMMAND_ANY, "stm32x flash specific commands");
 
 	register_command(cmd_ctx, stm32x_cmd, "lock",

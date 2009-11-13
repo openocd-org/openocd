@@ -595,7 +595,7 @@ int interface_jtag_add_plain_ir_scan(int num_fields, const struct scan_field *fi
 	return ERROR_OK;
 }
 
-/*extern jtag_command_t **jtag_get_last_command_p(void);*/
+/*extern jtag_struct command **jtag_get_last_command_p(void);*/
 
 int interface_jtag_add_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {

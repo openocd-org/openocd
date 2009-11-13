@@ -821,7 +821,7 @@ static int arm926ejs_mmu(struct target *target, int *enabled)
 int arm926ejs_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
-	command_t *arm926ejs_cmd;
+	struct command *arm926ejs_cmd;
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
 

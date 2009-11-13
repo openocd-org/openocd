@@ -819,7 +819,7 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 
 static int tms470_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *tms470_cmd = register_command(cmd_ctx, NULL, "tms470", NULL, COMMAND_ANY, "applies to TI tms470 family");
+	struct command *tms470_cmd = register_command(cmd_ctx, NULL, "tms470", NULL, COMMAND_ANY, "applies to TI tms470 family");
 
 	register_command(cmd_ctx, tms470_cmd, "flash_keyset", tms470_handle_flash_keyset_command, COMMAND_ANY, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
 	register_command(cmd_ctx, tms470_cmd, "osc_megahertz", tms470_handle_osc_megahertz_command, COMMAND_ANY, "tms470 osc_megahertz <MHz>");

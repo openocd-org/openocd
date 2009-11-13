@@ -578,7 +578,7 @@ dtc_run_download(
 
 struct dtc_reply_queue_entry {
 	struct dtc_reply_queue_entry_s	*next;
-	jtag_command_t	*cmd;	/* the command that resulted in this entry */
+	jtag_struct command	*cmd;	/* the command that resulted in this entry */
 
 	struct {
 		uint8_t		*buffer;	/* the scan buffer */
@@ -637,7 +637,7 @@ dtc_queue_enqueue_reply(
 	int				size,
 	int				offset,
 	int				length,
-	jtag_command_t	*cmd
+	jtag_struct command	*cmd
 ) {
 	struct dtc_reply_queue_entry	*rq_entry;
 
@@ -1090,7 +1090,7 @@ void rlink_reset(int trst, int srst)
 static
 int
 rlink_scan(
-	jtag_command_t	*cmd,
+	jtag_struct command	*cmd,
 	enum scan_type	type,
 	uint8_t			*buffer,
 	int			scan_size
@@ -1378,7 +1378,7 @@ rlink_scan(
 static
 int rlink_execute_queue(void)
 {
-	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
+	jtag_struct command *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

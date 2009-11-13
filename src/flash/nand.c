@@ -62,7 +62,7 @@ static struct nand_flash_controller *nand_flash_controllers[] =
 
 /* configured NAND devices and NAND Flash command handler */
 static struct nand_device *nand_devices = NULL;
-static command_t *nand_cmd;
+static struct command *nand_cmd;
 
 /*	Chip ID list
  *

@@ -409,7 +409,7 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 
 int oocd_trace_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *oocd_trace_cmd;
+	struct command *oocd_trace_cmd;
 
 	oocd_trace_cmd = register_command(cmd_ctx, NULL, "oocd_trace", NULL, COMMAND_ANY, "OpenOCD + trace");
 

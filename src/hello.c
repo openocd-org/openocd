@@ -50,7 +50,7 @@ COMMAND_HANDLER(handle_hello_command)
 
 int hello_register_commands(struct command_context *cmd_ctx)
 {
-	struct command_s *cmd = register_command(cmd_ctx, NULL, "hello",
+	struct command *cmd = register_command(cmd_ctx, NULL, "hello",
 			&handle_hello_command, COMMAND_ANY,
 			"option");
 	return cmd ? ERROR_OK : -ENOMEM;

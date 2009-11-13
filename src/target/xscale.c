@@ -3577,7 +3577,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 
 static int xscale_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *xscale_cmd;
+	struct command *xscale_cmd;
 
 	xscale_cmd = register_command(cmd_ctx, NULL, "xscale", NULL, COMMAND_ANY, "xscale specific commands");
 

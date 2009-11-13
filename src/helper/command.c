@@ -48,7 +48,7 @@ int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
 
 static int run_command(struct command_context *context,
-		command_t *c, const char *words[], unsigned num_words);
+		struct command *c, const char *words[], unsigned num_words);
 
 static void tcl_output(void *privData, const char *file, unsigned line,
 		const char *function, const char *string)
@@ -79,7 +79,7 @@ void script_debug(Jim_Interp *interp, const char *name,
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
-	command_t *c;
+	struct command *c;
 	struct command_context *context;
 	int retval;
 	int i;
@@ -164,7 +164,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return (retval == ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
-static Jim_Obj *command_name_list(struct command_s *c)
+static Jim_Obj *command_name_list(struct command *c)
 {
 	Jim_Obj *cmd_list = c->parent ?
 			command_name_list(c->parent) :
@@ -197,10 +197,10 @@ static void command_helptext_add(Jim_Obj *cmd_list, const char *help)
  * Find a command by name from a list of commands.
  * @returns The named command if found, or NULL.
  */
-static struct command_s *command_find(struct command_s **head, const char *name)
+static struct command *command_find(struct command **head, const char *name)
 {
 	assert(head);
-	for (struct command_s *cc = *head; cc; cc = cc->next)
+	for (struct command *cc = *head; cc; cc = cc->next)
 	{
 		if (strcmp(cc->name, name) == 0)
 			return cc;
@@ -213,7 +213,7 @@ static struct command_s *command_find(struct command_s **head, const char *name)
  * @returns Returns false if the named command already exists in the list.
  * Returns true otherwise.
  */
-static void command_add_child(struct command_s **head, struct command_s *c)
+static void command_add_child(struct command **head, struct command *c)
 {
 	assert(head);
 	if (NULL == *head)
@@ -221,24 +221,24 @@ static void command_add_child(struct command_s **head, struct command_s *c)
 		*head = c;
 		return;
 	}
-	struct command_s *cc = *head;
+	struct command *cc = *head;
 	while (cc->next) cc = cc->next;
 	cc->next = c;
 }
 
-command_t* register_command(struct command_context *context,
-		command_t *parent, char *name, command_handler_t handler,
+struct command* register_command(struct command_context *context,
+		struct command *parent, char *name, command_handler_t handler,
 		enum command_mode mode, char *help)
 {
 	if (!context || !name)
 		return NULL;
 
-	struct command_s **head = parent ? &parent->children : &context->commands;
-	struct command_s *c = command_find(head, name);
+	struct command **head = parent ? &parent->children : &context->commands;
+	struct command *c = command_find(head, name);
 	if (NULL != c)
 		return c;
 
-	c = malloc(sizeof(command_t));
+	c = malloc(sizeof(struct command));
 
 	c->name = strdup(name);
 	c->parent = parent;
@@ -276,7 +276,7 @@ command_t* register_command(struct command_context *context,
 
 int unregister_all_commands(struct command_context *context)
 {
-	command_t *c, *c2;
+	struct command *c, *c2;
 
 	if (context == NULL)
 		return ERROR_OK;
@@ -308,7 +308,7 @@ int unregister_all_commands(struct command_context *context)
 
 int unregister_command(struct command_context *context, char *name)
 {
-	command_t *c, *p = NULL, *c2;
+	struct command *c, *p = NULL, *c2;
 
 	if ((!context) || (!name))
 		return ERROR_INVALID_ARGUMENTS;
@@ -414,7 +414,7 @@ void command_print(struct command_context *context, const char *format, ...)
 	va_end(ap);
 }
 
-static char *__command_name(struct command_s *c, char delim, unsigned extra)
+static char *__command_name(struct command *c, char delim, unsigned extra)
 {
 	char *name;
 	unsigned len = strlen(c->name);
@@ -431,13 +431,13 @@ static char *__command_name(struct command_s *c, char delim, unsigned extra)
 	}
 	return name;
 }
-char *command_name(struct command_s *c, char delim)
+char *command_name(struct command *c, char delim)
 {
 	return __command_name(c, delim, 0);
 }
 
 static int run_command(struct command_context *context,
-		command_t *c, const char *words[], unsigned num_words)
+		struct command *c, const char *words[], unsigned num_words)
 {
 	int start_word = 0;
 	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode)))

@@ -493,7 +493,7 @@ static int arm720t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 static int arm720t_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
-	command_t *arm720t_cmd;
+	struct command *arm720t_cmd;
 
 
 	retval = arm7_9_register_commands(cmd_ctx);

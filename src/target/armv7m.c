@@ -834,7 +834,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 /** Registers commands used to access DAP resources. */
 int armv7m_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *arm_adi_v5_dap_cmd;
+	struct command *arm_adi_v5_dap_cmd;
 
 	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap",
 			NULL, COMMAND_ANY,

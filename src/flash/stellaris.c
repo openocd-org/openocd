@@ -1162,7 +1162,7 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 
 static int stellaris_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stellaris",
+	struct command *stm32x_cmd = register_command(cmd_ctx, NULL, "stellaris",
 			NULL, COMMAND_ANY, "stellaris flash specific commands");
 
 	register_command(cmd_ctx, stm32x_cmd, "mass_erase",

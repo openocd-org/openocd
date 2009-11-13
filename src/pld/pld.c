@@ -37,7 +37,7 @@ static struct pld_driver *pld_drivers[] =
 };
 
 static struct pld_device *pld_devices;
-static command_t *pld_cmd;
+static struct command *pld_cmd;
 
 struct pld_device *get_pld_device_by_num(int num)
 {

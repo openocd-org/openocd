@@ -3121,7 +3121,7 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 
 int arm7_9_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *arm7_9_cmd;
+	struct command *arm7_9_cmd;
 
 	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9",
 			NULL, COMMAND_ANY, "arm7/9 specific commands");

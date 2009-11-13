@@ -2243,7 +2243,7 @@ int arm11_register_commands(struct command_context *cmd_ctx)
 {
 	FNC_INFO;
 
-	command_t *top_cmd, *mw_cmd;
+	struct command *top_cmd, *mw_cmd;
 
 	top_cmd = register_command(cmd_ctx, NULL, "arm11",
 			NULL, COMMAND_ANY, NULL);

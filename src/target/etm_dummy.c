@@ -60,7 +60,7 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 
 static int etm_dummy_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *etm_dummy_cmd;
+	struct command *etm_dummy_cmd;
 
 	etm_dummy_cmd = register_command(cmd_ctx, NULL, "etm_dummy", NULL, COMMAND_ANY, "Dummy ETM capture driver");
 

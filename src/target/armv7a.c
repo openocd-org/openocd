@@ -363,8 +363,8 @@ usage:
 
 int armv7a_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *arm_adi_v5_dap_cmd;
-	command_t *armv7a_cmd;
+	struct command *arm_adi_v5_dap_cmd;
+	struct command *armv7a_cmd;
 
 	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap",
 			NULL, COMMAND_ANY,

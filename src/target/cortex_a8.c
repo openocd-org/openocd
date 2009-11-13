@@ -1548,7 +1548,7 @@ COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 
 static int cortex_a8_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *cortex_a8_cmd;
+	struct command *cortex_a8_cmd;
 	int retval = ERROR_OK;
 
 	armv4_5_register_commands(cmd_ctx);

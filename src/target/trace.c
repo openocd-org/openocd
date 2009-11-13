@@ -158,7 +158,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 
 int trace_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *trace_cmd =
+	struct command *trace_cmd =
 		register_command(cmd_ctx, NULL, "trace", NULL, COMMAND_ANY, "trace commands");
 
 	register_command(cmd_ctx, trace_cmd, "history", handle_trace_history_command,

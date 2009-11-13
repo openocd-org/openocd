@@ -451,7 +451,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 
 static int avrf_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *avr_cmd = register_command(cmd_ctx, NULL, "avr",
+	struct command *avr_cmd = register_command(cmd_ctx, NULL, "avr",
 			NULL, COMMAND_ANY, "avr flash specific commands");
 
 	register_command(cmd_ctx, avr_cmd, "mass_erase",

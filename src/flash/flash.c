@@ -77,7 +77,7 @@ struct flash_driver *flash_drivers[] = {
 };
 
 struct flash_bank *flash_banks;
-static 	command_t *flash_cmd;
+static 	struct command *flash_cmd;
 
 /* wafer thin wrapper for invoking the flash driver */
 static int flash_driver_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)

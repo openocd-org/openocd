@@ -1931,7 +1931,7 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 static int cortex_m3_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
-	command_t *cortex_m3_cmd;
+	struct command *cortex_m3_cmd;
 
 	retval = armv7m_register_commands(cmd_ctx);
 

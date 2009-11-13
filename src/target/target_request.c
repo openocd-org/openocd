@@ -34,7 +34,7 @@
 #include "log.h"
 
 
-static command_t *target_request_cmd = NULL;
+static struct command *target_request_cmd = NULL;
 static int charmsg_mode = 0;
 
 static int target_asciimsg(struct target *target, uint32_t length)

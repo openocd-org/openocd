@@ -2474,7 +2474,7 @@ static int sam3_registered;
 static int
 sam3_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *pCmd;
+	struct command *pCmd;
 
 	// only register once
 	if (!sam3_registered) {

@@ -1165,7 +1165,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 
 static int str9xpec_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *str9xpec_cmd = register_command(cmd_ctx, NULL, "str9xpec",
+	struct command *str9xpec_cmd = register_command(cmd_ctx, NULL, "str9xpec",
 			NULL, COMMAND_ANY, "str9xpec flash specific commands");
 
 	register_command(cmd_ctx, str9xpec_cmd, "enable_turbo",

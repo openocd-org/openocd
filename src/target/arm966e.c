@@ -219,7 +219,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 int arm966e_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
-	command_t *arm966e_cmd;
+	struct command *arm966e_cmd;
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
 	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e",

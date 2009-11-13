@@ -1351,7 +1351,7 @@ static int arm920t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 int arm920t_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
-	command_t *arm920t_cmd;
+	struct command *arm920t_cmd;
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
 

@@ -60,7 +60,7 @@ typedef int (*command_output_handler_t)(struct command_context *context,
 struct command_context
 {
 	enum command_mode mode;
-	struct command_s *commands;
+	struct command *commands;
 	int current_target;
 	/* Execute a command.
 	 *
@@ -131,15 +131,15 @@ struct command_context
 /// The type signature for commands' handler functions.
 typedef __COMMAND_HANDLER((*command_handler_t));
 
-typedef struct command_s
+struct command
 {
 	char *name;
-	struct command_s *parent;
-	struct command_s *children;
+	struct command *parent;
+	struct command *children;
 	command_handler_t handler;
 	enum command_mode mode;
-	struct command_s *next;
-} command_t;
+	struct command *next;
+};
 
 /**
  * @param c The command to be named.
@@ -149,10 +149,10 @@ typedef struct command_s
  * are separated by single spaces.  The caller must free() the string
  * when done with it.
  */
-char *command_name(struct command_s *c, char delim);
+char *command_name(struct command *c, char delim);
 
-command_t* register_command(struct command_context *context,
-		command_t *parent, char *name, command_handler_t handler,
+struct command* register_command(struct command_context *context,
+		struct command *parent, char *name, command_handler_t handler,
 		enum command_mode mode, char *help);
 
 int unregister_command(struct command_context *context, char *name);

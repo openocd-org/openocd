@@ -223,7 +223,7 @@ static int etm_register_user_commands(struct command_context *cmd_ctx);
 static int etm_set_reg_w_exec(struct reg *reg, uint8_t *buf);
 static int etm_write_reg(struct reg *reg, uint32_t value);
 
-static command_t *etm_cmd;
+static struct command *etm_cmd;
 
 
 /* Look up register by ID ... most ETM instances only

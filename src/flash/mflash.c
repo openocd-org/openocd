@@ -32,7 +32,7 @@ static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val
 static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio);
 static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val);
 
-static command_t *mflash_cmd;
+static struct command *mflash_cmd;
 
 static struct mflash_bank *mflash_bank;
 

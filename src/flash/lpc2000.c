@@ -778,7 +778,7 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 
 static int lpc2000_register_commands(struct command_context *cmd_ctx)
 {
-	command_t *lpc2000_cmd = register_command(cmd_ctx, NULL, "lpc2000",
+	struct command *lpc2000_cmd = register_command(cmd_ctx, NULL, "lpc2000",
 			NULL, COMMAND_ANY, NULL);
 
 	register_command(cmd_ctx, lpc2000_cmd, "part_id",
