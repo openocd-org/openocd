@@ -50,15 +50,15 @@ enum xscale_trace_entry_type
 	XSCALE_TRACE_ADDRESS = 0x1,
 };
 
-typedef struct xscale_trace_entry_s
+struct xscale_trace_entry
 {
 	uint8_t data;
 	enum xscale_trace_entry_type type;
-} xscale_trace_entry_t;
+};
 
 struct xscale_trace_data
 {
-	xscale_trace_entry_t *entries;
+	struct xscale_trace_entry *entries;
 	int depth;
 	uint32_t chkpt0;
 	uint32_t chkpt1;

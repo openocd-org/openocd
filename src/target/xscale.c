@@ -2534,7 +2534,7 @@ static int xscale_read_trace(target_t *target)
 	(*trace_data_p)->chkpt0 = trace_buffer[256];
 	(*trace_data_p)->chkpt1 = trace_buffer[257];
 	(*trace_data_p)->last_instruction = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-	(*trace_data_p)->entries = malloc(sizeof(xscale_trace_entry_t) * (256 - j));
+	(*trace_data_p)->entries = malloc(sizeof(struct xscale_trace_entry) * (256 - j));
 	(*trace_data_p)->depth = 256 - j;
 
 	for (i = j; i < 256; i++)
