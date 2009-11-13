@@ -38,7 +38,7 @@ struct image_s;
  * within a flash bank.  A single bank typically consists of multiple
  * sectors, each of which can be erased and protected independently.
  */
-typedef struct flash_sector_s
+struct flash_sector
 {
 	/// Bus offset from start of the flash chip (in bytes).
 	uint32_t offset;
@@ -55,7 +55,7 @@ typedef struct flash_sector_s
 	 * @c flash_driver_s::protect_check.
 	 */
 	int is_protected;
-} flash_sector_t;
+};
 
 struct flash_bank_s;
 
@@ -259,7 +259,7 @@ typedef struct flash_bank_s
 	 */
 	int num_sectors;
 	/// Array of sectors, allocated and initilized by the flash driver
-	flash_sector_t *sectors;
+	struct flash_sector *sectors;
 
 	struct flash_bank_s *next; /**< The next flash bank on this chip */
 } flash_bank_t;

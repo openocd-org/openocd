@@ -28,7 +28,7 @@
                       Internal Support, Helpers
    ---------------------------------------------------------------------- */
 
-const flash_sector_t TMS470R1A256_SECTORS[] = {
+const struct flash_sector TMS470R1A256_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
 	{0x00002000, 0x00002000, -1, -1},
 	{0x00004000, 0x00002000, -1, -1},
@@ -48,7 +48,7 @@ const flash_sector_t TMS470R1A256_SECTORS[] = {
 #define TMS470R1A256_NUM_SECTORS \
 	(sizeof(TMS470R1A256_SECTORS)/sizeof(TMS470R1A256_SECTORS[0]))
 
-const flash_sector_t TMS470R1A288_BANK0_SECTORS[] = {
+const struct flash_sector TMS470R1A288_BANK0_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
 	{0x00002000, 0x00002000, -1, -1},
 	{0x00004000, 0x00002000, -1, -1},
@@ -58,7 +58,7 @@ const flash_sector_t TMS470R1A288_BANK0_SECTORS[] = {
 #define TMS470R1A288_BANK0_NUM_SECTORS \
 	(sizeof(TMS470R1A288_BANK0_SECTORS)/sizeof(TMS470R1A288_BANK0_SECTORS[0]))
 
-const flash_sector_t TMS470R1A288_BANK1_SECTORS[] = {
+const struct flash_sector TMS470R1A288_BANK1_SECTORS[] = {
 	{0x00040000, 0x00010000, -1, -1},
 	{0x00050000, 0x00010000, -1, -1},
 	{0x00060000, 0x00010000, -1, -1},
@@ -68,7 +68,7 @@ const flash_sector_t TMS470R1A288_BANK1_SECTORS[] = {
 #define TMS470R1A288_BANK1_NUM_SECTORS \
 	(sizeof(TMS470R1A288_BANK1_SECTORS)/sizeof(TMS470R1A288_BANK1_SECTORS[0]))
 
-const flash_sector_t TMS470R1A384_BANK0_SECTORS[] = {
+const struct flash_sector TMS470R1A384_BANK0_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
 	{0x00002000, 0x00002000, -1, -1},
 	{0x00004000, 0x00004000, -1, -1},
@@ -84,7 +84,7 @@ const flash_sector_t TMS470R1A384_BANK0_SECTORS[] = {
 #define TMS470R1A384_BANK0_NUM_SECTORS \
 	(sizeof(TMS470R1A384_BANK0_SECTORS)/sizeof(TMS470R1A384_BANK0_SECTORS[0]))
 
-const flash_sector_t TMS470R1A384_BANK1_SECTORS[] = {
+const struct flash_sector TMS470R1A384_BANK1_SECTORS[] = {
 	{0x00020000, 0x00008000, -1, -1},
 	{0x00028000, 0x00008000, -1, -1},
 	{0x00030000, 0x00008000, -1, -1},
@@ -94,7 +94,7 @@ const flash_sector_t TMS470R1A384_BANK1_SECTORS[] = {
 #define TMS470R1A384_BANK1_NUM_SECTORS \
 	(sizeof(TMS470R1A384_BANK1_SECTORS)/sizeof(TMS470R1A384_BANK1_SECTORS[0]))
 
-const flash_sector_t TMS470R1A384_BANK2_SECTORS[] = {
+const struct flash_sector TMS470R1A384_BANK2_SECTORS[] = {
 	{0x00040000, 0x00008000, -1, -1},
 	{0x00048000, 0x00008000, -1, -1},
 	{0x00050000, 0x00008000, -1, -1},

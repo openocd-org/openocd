@@ -290,7 +290,7 @@ static int ocl_probe(struct flash_bank_s *bank)
 	ocl->buflen = dcc_buffer[0] & 0xffff;
 	ocl->bufalign = dcc_buffer[0] >> 16;
 
-	bank->sectors = realloc(bank->sectors, sizeof(flash_sector_t)*bank->num_sectors);
+	bank->sectors = realloc(bank->sectors, sizeof(struct flash_sector)*bank->num_sectors);
 	if (bank->num_sectors == 0)
 	{
 		LOG_ERROR("number of sectors shall be non zero value");

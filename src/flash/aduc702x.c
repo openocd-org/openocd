@@ -85,7 +85,7 @@ static int aduc702x_build_sector_list(struct flash_bank_s *bank)
 
         // sector size is 512
         bank->num_sectors = bank->size / 512;
-        bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+        bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
         for (i = 0; i < bank->num_sectors; ++i)
         {
                 bank->sectors[i].offset = offset;

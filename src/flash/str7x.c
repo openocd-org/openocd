@@ -81,7 +81,7 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 	num_sectors = b0_sectors + b1_sectors;
 
 	bank->num_sectors = num_sectors;
-	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
+	bank->sectors = malloc(sizeof(struct flash_sector) * num_sectors);
 	str7x_info->sector_bits = malloc(sizeof(uint32_t) * num_sectors);
 
 	num_sectors = 0;

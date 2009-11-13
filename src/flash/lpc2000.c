@@ -68,7 +68,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		if (bank->size == 128 * 1024)
 		{
 			bank->num_sectors = 16;
-			bank->sectors = malloc(sizeof(flash_sector_t) * 16);
+			bank->sectors = malloc(sizeof(struct flash_sector) * 16);
 			for (i = 0; i < 16; i++)
 			{
 				bank->sectors[i].offset = offset;
@@ -81,7 +81,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		else if (bank->size == 256 * 1024)
 		{
 			bank->num_sectors = 18;
-			bank->sectors = malloc(sizeof(flash_sector_t) * 18);
+			bank->sectors = malloc(sizeof(struct flash_sector) * 18);
 
 			for (i = 0; i < 8; i++)
 			{
@@ -152,7 +152,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 				break;
 		}
 
-		bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
 		for (i = 0; i < bank->num_sectors; i++)
 		{
@@ -206,7 +206,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 				exit(-1);
 		}
 
-		bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
 		for(i = 0; i < bank->num_sectors; i++)
 		{

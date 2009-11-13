@@ -756,7 +756,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 	bank->base = 0x08000000;
 	bank->size = (num_pages * page_size);
 	bank->num_sectors = num_pages;
-	bank->sectors = malloc(sizeof(flash_sector_t) * num_pages);
+	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
 
 	for (i = 0; i < num_pages; i++)
 	{

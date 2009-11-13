@@ -1702,7 +1702,7 @@ static int lpc2900_probe(struct flash_bank_s *bank)
 	 * the logical flash number are translated into the physical flash numbers
 	 * of the device.
 	 */
-	bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
 	offset = 0;
 	for (i = 0; i < bank->num_sectors; i++)

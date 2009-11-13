@@ -607,7 +607,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	bank->num_sectors = num_pages;
 	bank->chip_width = 4;
 	bank->bus_width  = 4;
-	bank->sectors = malloc(sizeof(flash_sector_t) * num_pages);
+	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
 
 	for (i = 0; i < num_pages; i++)
 	{

@@ -2391,7 +2391,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 	{
 		/* a device might have only one erase block, spanning the whole device */
 		bank->num_sectors = 1;
-		bank->sectors = malloc(sizeof(flash_sector_t));
+		bank->sectors = malloc(sizeof(struct flash_sector));
 
 		bank->sectors[sector].offset = 0x0;
 		bank->sectors[sector].size = bank->size;
@@ -2408,7 +2408,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 		}
 
 		bank->num_sectors = num_sectors;
-		bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
+		bank->sectors = malloc(sizeof(struct flash_sector) * num_sectors);
 
 		for (i = 0; i < cfi_info->num_erase_regions; i++)
 		{

@@ -551,7 +551,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 		t_bank->num_sectors = sectors_num;
 
 		/* allocate sectors */
-		t_bank->sectors = malloc(sectors_num * sizeof(flash_sector_t));
+		t_bank->sectors = malloc(sectors_num * sizeof(struct flash_sector));
 		for (sec = 0; sec < sectors_num; sec++)
 		{
 			t_bank->sectors[sec].offset = sec * pages_per_sector * page_size;
@@ -804,7 +804,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		t_bank->num_sectors = num_sectors;
 
 		/* allocate sectors */
-		t_bank->sectors = malloc(num_sectors * sizeof(flash_sector_t));
+		t_bank->sectors = malloc(num_sectors * sizeof(struct flash_sector));
 		for (sec = 0; sec < num_sectors; sec++)
 		{
 			t_bank->sectors[sec].offset = sec * pages_per_sector * page_size;

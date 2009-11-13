@@ -592,7 +592,7 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 
 	/* provide this for the benefit of the higher flash driver layers */
 	bank->num_sectors = stellaris_info->num_pages;
-	bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	for (i = 0; i < bank->num_sectors; i++)
 	{
 		bank->sectors[i].offset = i * stellaris_info->pagesize;

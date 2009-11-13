@@ -137,7 +137,7 @@ static int lpc288x_read_part_info(struct flash_bank_s *bank)
 	/* setup the sector info... */
 	offset = bank->base;
 	bank->num_sectors = 23;
-	bank->sectors = malloc(sizeof(flash_sector_t) * 23);
+	bank->sectors = malloc(sizeof(struct flash_sector) * 23);
 
 	for (i = 0; i < 15; i++)
 	{

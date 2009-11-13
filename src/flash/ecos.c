@@ -130,7 +130,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 	int i = 0;
 	uint32_t offset = 0;
 	bank->num_sectors = bank->size/sectorSize;
-	bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	for (i = 0; i < bank->num_sectors; i++)
 	{
 		bank->sectors[i].offset = offset;

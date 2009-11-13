@@ -306,7 +306,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 		bank->base = 0x00000000;
 		bank->size = (avr_info->flash_page_size * avr_info->flash_page_num);
 		bank->num_sectors = avr_info->flash_page_num;
-		bank->sectors = malloc(sizeof(flash_sector_t) * avr_info->flash_page_num);
+		bank->sectors = malloc(sizeof(struct flash_sector) * avr_info->flash_page_num);
 
 		for (i = 0; i < avr_info->flash_page_num; i++)
 		{
