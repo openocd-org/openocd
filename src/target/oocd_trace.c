@@ -32,7 +32,7 @@
 
 static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
 
-static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, uint32_t *value)
+static int oocd_trace_read_reg(struct oocd_trace *oocd_trace, int reg, uint32_t *value)
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
 	uint8_t cmd;
@@ -52,7 +52,7 @@ static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, uint32_t *valu
 	return ERROR_OK;
 }
 
-static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, uint32_t value)
+static int oocd_trace_write_reg(struct oocd_trace *oocd_trace, int reg, uint32_t value)
 {
 	size_t bytes_written;
 	uint8_t data[5];
@@ -69,7 +69,7 @@ static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, uint32_t valu
 	return ERROR_OK;
 }
 
-static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, uint8_t *data, uint32_t address, uint32_t size)
+static int oocd_trace_read_memory(struct oocd_trace *oocd_trace, uint8_t *data, uint32_t address, uint32_t size)
 {
 	size_t bytes_written, bytes_to_read;
 	ssize_t bytes_read;
@@ -99,7 +99,7 @@ static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, uint8_t *data, uint3
 static int oocd_trace_init(etm_context_t *etm_ctx)
 {
 	uint8_t trash[256];
-	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
+	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	size_t bytes_read;
 
 	oocd_trace->tty_fd = open(oocd_trace->tty, O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -145,7 +145,7 @@ static int oocd_trace_init(etm_context_t *etm_ctx)
 
 static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 {
-	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
+	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	uint32_t status;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
@@ -177,7 +177,7 @@ static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 
 static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 {
-	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
+	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	uint32_t status, address;
 	uint32_t first_frame = 0x0;
 	uint32_t num_frames = 1048576;
@@ -235,7 +235,7 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 
 static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 {
-	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
+	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	uint32_t control = 0x1;	/* 0x1: enabled */
 	uint32_t trigger_count;
 
@@ -268,7 +268,7 @@ static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 
 static int oocd_trace_stop_capture(etm_context_t *etm_ctx)
 {
-	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
+	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 
 	/* trace stopped, just clear running flag, but preserve others */
 	etm_ctx->capture_status &= ~TRACE_RUNNING;
@@ -310,7 +310,7 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 
 	if (arm->etm)
 	{
-		oocd_trace_t *oocd_trace = malloc(sizeof(oocd_trace_t));
+		struct oocd_trace *oocd_trace = malloc(sizeof(struct oocd_trace));
 
 		arm->etm->capture_driver_priv = oocd_trace;
 		oocd_trace->etm_ctx = arm->etm;
@@ -330,7 +330,7 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 {
 	target_t *target;
 	struct arm *arm;
-	oocd_trace_t *oocd_trace;
+	struct oocd_trace *oocd_trace;
 	uint32_t status;
 
 	target = get_current_target(cmd_ctx);
@@ -354,7 +354,7 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 		return ERROR_FAIL;
 	}
 
-	oocd_trace = (oocd_trace_t*)arm->etm->capture_driver_priv;
+	oocd_trace = (struct oocd_trace*)arm->etm->capture_driver_priv;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 
@@ -370,7 +370,7 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 {
 	target_t *target;
 	struct arm *arm;
-	oocd_trace_t *oocd_trace;
+	struct oocd_trace *oocd_trace;
 	size_t bytes_written;
 	uint8_t cmd_array[1];
 
@@ -395,7 +395,7 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 		return ERROR_FAIL;
 	}
 
-	oocd_trace = (oocd_trace_t*)arm->etm->capture_driver_priv;
+	oocd_trace = (struct oocd_trace*)arm->etm->capture_driver_priv;
 
 	cmd_array[0] = 0xf0;
 

@@ -46,13 +46,13 @@ enum
 	OOCD_TRACE_RESYNC = 0xf0,
 };
 
-typedef struct oocd_trace_s
+struct oocd_trace
 {
 	etm_context_t *etm_ctx;
 	char *tty;
 	int tty_fd;
 	struct termios oldtio, newtio;
-} oocd_trace_t;
+};
 
 extern struct etm_capture_driver oocd_trace_capture_driver;
 
