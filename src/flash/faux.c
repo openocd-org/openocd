@@ -25,12 +25,12 @@
 #include "image.h"
 
 
-typedef struct faux_flash_bank_s
+struct faux_flash_bank
 {
 	struct target_s *target;
 	uint8_t *memory;
 	uint32_t start_address;
-} faux_flash_bank_t;
+};
 
 static const int sectorSize = 0x10000;
 
@@ -39,7 +39,7 @@ static const int sectorSize = 0x10000;
  */
 FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 {
-	faux_flash_bank_t *info;
+	struct faux_flash_bank *info;
 
 	if (argc < 6)
 	{
@@ -47,7 +47,7 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	info = malloc(sizeof(faux_flash_bank_t));
+	info = malloc(sizeof(struct faux_flash_bank));
 	if (info == NULL)
 	{
 		LOG_ERROR("no memory for flash bank info");
@@ -94,7 +94,7 @@ static int faux_register_commands(struct command_context_s *cmd_ctx)
 
 static int faux_erase(struct flash_bank_s *bank, int first, int last)
 {
-	faux_flash_bank_t *info = bank->driver_priv;
+	struct faux_flash_bank *info = bank->driver_priv;
 	memset(info->memory + first*sectorSize, 0xff, sectorSize*(last-first + 1));
 	return ERROR_OK;
 }
@@ -107,7 +107,7 @@ static int faux_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 static int faux_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	faux_flash_bank_t *info = bank->driver_priv;
+	struct faux_flash_bank *info = bank->driver_priv;
 	memcpy(info->memory + offset, buffer, count);
 	return ERROR_OK;
 }
