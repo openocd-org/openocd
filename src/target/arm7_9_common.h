@@ -115,7 +115,7 @@ target_to_arm7_9(struct target *target)
 			armv4_5_common);
 }
 
-int arm7_9_register_commands(struct command_context_s *cmd_ctx);
+int arm7_9_register_commands(struct command_context *cmd_ctx);
 
 int arm7_9_poll(struct target *target);
 

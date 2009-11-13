@@ -577,7 +577,7 @@ int feroceon_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	return retval;
 }
 
-int feroceon_init_target(struct command_context_s *cmd_ctx, struct target *target)
+int feroceon_init_target(struct command_context *cmd_ctx, struct target *target)
 {
 	arm9tdmi_init_target(cmd_ctx, target);
 	return ERROR_OK;

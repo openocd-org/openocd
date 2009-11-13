@@ -69,6 +69,6 @@ struct telnet_service
 };
 
 int telnet_init(char *banner);
-int telnet_register_commands(command_context_t *command_context);
+int telnet_register_commands(struct command_context *command_context);
 
 #endif /* TELNET_SERVER_H */

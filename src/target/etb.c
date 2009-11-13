@@ -403,7 +403,7 @@ COMMAND_HANDLER(handle_etb_config_command)
 	return ERROR_OK;
 }
 
-static int etb_register_commands(struct command_context_s *cmd_ctx)
+static int etb_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *etb_cmd = register_command(cmd_ctx, NULL, "etb",
 			NULL, COMMAND_ANY, "Embedded Trace Buffer");

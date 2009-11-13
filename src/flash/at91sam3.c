@@ -231,7 +231,7 @@ struct sam3_reg_list {
 static struct sam3_chip *all_sam3_chips;
 
 static struct sam3_chip *
-get_current_sam3(struct command_context_s *cmd_ctx)
+get_current_sam3(struct command_context *cmd_ctx)
 {
 	struct target *t;
 	static struct sam3_chip *p;
@@ -2472,7 +2472,7 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 
 static int sam3_registered;
 static int
-sam3_register_commands(struct command_context_s *cmd_ctx)
+sam3_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *pCmd;
 

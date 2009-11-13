@@ -126,7 +126,7 @@ struct etm_context;
 struct etm_capture_driver
 {
 	char *name;
-	int (*register_commands)(struct command_context_s *cmd_ctx);
+	int (*register_commands)(struct command_context *cmd_ctx);
 	int (*init)(struct etm_context *etm_ctx);
 	trace_status_t (*status)(struct etm_context *etm_ctx);
 	int (*read_trace)(struct etm_context *etm_ctx);
@@ -212,7 +212,7 @@ struct reg_cache* etm_build_reg_cache(struct target *target,
 
 int etm_setup(struct target *target);
 
-int etm_register_commands(struct command_context_s *cmd_ctx);
+int etm_register_commands(struct command_context *cmd_ctx);
 
 #define ERROR_ETM_INVALID_DRIVER	(-1300)
 #define ERROR_ETM_PORTMODE_NOT_SUPPORTED	(-1301)

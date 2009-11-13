@@ -146,7 +146,7 @@ int mips32_enable_interrupts(struct target *target, int enable);
 
 int mips32_examine(struct target *target);
 
-int mips32_register_commands(struct command_context_s *cmd_ctx);
+int mips32_register_commands(struct command_context *cmd_ctx);
 
 int mips32_invalidate_core_regs(struct target *target);
 int mips32_get_gdb_reg_list(struct target *target,

@@ -279,7 +279,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 	return ERROR_OK;
 }
 
-int nand_register_commands(struct command_context_s *cmd_ctx)
+int nand_register_commands(struct command_context *cmd_ctx)
 {
 	nand_cmd = register_command(cmd_ctx, NULL, "nand", NULL, COMMAND_ANY, "NAND specific commands");
 
@@ -304,7 +304,7 @@ struct nand_device *get_nand_device_by_num(int num)
 	return NULL;
 }
 
-int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
+int nand_command_get_device_by_num(struct command_context *cmd_ctx,
 		const char *str, struct nand_device **nand)
 {
 	unsigned num;
@@ -1602,7 +1602,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 	return ERROR_OK;
 }
 
-int nand_init(struct command_context_s *cmd_ctx)
+int nand_init(struct command_context *cmd_ctx)
 {
 	if (!nand_devices)
 		return ERROR_OK;

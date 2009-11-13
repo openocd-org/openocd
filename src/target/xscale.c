@@ -146,7 +146,7 @@ static int xscale_set_reg_u32(struct reg *reg, uint32_t value)
 
 static const char xscale_not[] = "target is not an XScale";
 
-static int xscale_verify_pointer(struct command_context_s *cmd_ctx,
+static int xscale_verify_pointer(struct command_context *cmd_ctx,
 		struct xscale_common *xscale)
 {
 	if (xscale->common_magic != XSCALE_COMMON_MAGIC) {
@@ -2630,7 +2630,7 @@ static int xscale_branch_address(struct xscale_trace_data *trace_data,
 	return 0;
 }
 
-static int xscale_analyze_trace(struct target *target, command_context_t *cmd_ctx)
+static int xscale_analyze_trace(struct target *target, struct command_context *cmd_ctx)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int next_pc_ok = 0;
@@ -2860,7 +2860,7 @@ static void xscale_build_reg_cache(struct target *target)
 	xscale->reg_cache = (*cache_p);
 }
 
-static int xscale_init_target(struct command_context_s *cmd_ctx,
+static int xscale_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	xscale_build_reg_cache(target);
@@ -3575,7 +3575,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	return ERROR_OK;
 }
 
-static int xscale_register_commands(struct command_context_s *cmd_ctx)
+static int xscale_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *xscale_cmd;
 

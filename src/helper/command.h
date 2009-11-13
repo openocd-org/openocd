@@ -51,13 +51,13 @@ enum command_mode
 	COMMAND_ANY,
 };
 
-struct command_context_s;
+struct command_context;
 
 /// The type signature for command context's output handler.
-typedef int (*command_output_handler_t)(struct command_context_s *context,
+typedef int (*command_output_handler_t)(struct command_context *context,
 				const char* line);
 
-typedef struct command_context_s
+struct command_context
 {
 	enum command_mode mode;
 	struct command_s *commands;
@@ -78,7 +78,7 @@ typedef struct command_context_s
 	 */
 	command_output_handler_t output_handler;
 	void *output_handler_priv;
-} command_context_t;
+};
 
 
 /**
@@ -87,7 +87,7 @@ typedef struct command_context_s
  * defining all such derivative types using this macro.
  */
 #define __COMMAND_HANDLER(name, extra...) \
-		int name(struct command_context_s *cmd_ctx, \
+		int name(struct command_context *cmd_ctx, \
 				const char *args[], unsigned argc, ##extra)
 
 /**
@@ -151,31 +151,31 @@ typedef struct command_s
  */
 char *command_name(struct command_s *c, char delim);
 
-command_t* register_command(command_context_t *context,
+command_t* register_command(struct command_context *context,
 		command_t *parent, char *name, command_handler_t handler,
 		enum command_mode mode, char *help);
 
-int unregister_command(command_context_t *context, char *name);
-int unregister_all_commands(command_context_t *context);
+int unregister_command(struct command_context *context, char *name);
+int unregister_all_commands(struct command_context *context);
 
-void command_set_output_handler(command_context_t* context,
+void command_set_output_handler(struct command_context* context,
 		command_output_handler_t output_handler, void *priv);
 
-command_context_t* copy_command_context(command_context_t* context);
+struct command_context* copy_command_context(struct command_context* context);
 
-int command_context_mode(command_context_t *context, enum command_mode mode);
+int command_context_mode(struct command_context *context, enum command_mode mode);
 
-command_context_t* command_init(void);
-int command_done(command_context_t *context);
+struct command_context* command_init(void);
+int command_done(struct command_context *context);
 
-void command_print(command_context_t *context, const char *format, ...)
+void command_print(struct command_context *context, const char *format, ...)
 		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-void command_print_sameline(command_context_t *context, const char *format, ...)
+void command_print_sameline(struct command_context *context, const char *format, ...)
 		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-int command_run_line(command_context_t *context, char *line);
-int command_run_linef(command_context_t *context, const char *format, ...)
+int command_run_line(struct command_context *context, char *line);
+int command_run_linef(struct command_context *context, const char *format, ...)
 		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-void command_output_text(command_context_t *context, const char *data);
+void command_output_text(struct command_context *context, const char *data);
 
 void process_jim_events(void);
 
@@ -190,7 +190,7 @@ extern int fast_and_dangerous;
 
 extern Jim_Interp *interp;
 
-void register_jim(command_context_t *context, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help);
+void register_jim(struct command_context *context, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help);
 
 long jim_global_long(const char *variable);
 

@@ -675,7 +675,7 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 	return ERROR_OK;
 }
 
-static int str9x_register_commands(struct command_context_s *cmd_ctx)
+static int str9x_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *str9x_cmd = register_command(cmd_ctx, NULL, "str9x",
 			NULL, COMMAND_ANY, "str9x flash commands");

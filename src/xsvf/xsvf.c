@@ -1050,7 +1050,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 	return ERROR_OK;
 }
 
-int xsvf_register_commands(struct command_context_s *cmd_ctx)
+int xsvf_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "xsvf",
 			&handle_xsvf_command, COMMAND_EXEC,

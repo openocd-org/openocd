@@ -336,7 +336,7 @@ static struct target *get_target_by_num(int num)
 	return NULL;
 }
 
-struct target* get_current_target(command_context_t *cmd_ctx)
+struct target* get_current_target(struct command_context *cmd_ctx)
 {
 	struct target *target = get_target_by_num(cmd_ctx->current_target);
 
@@ -425,7 +425,7 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 	return retval;
 }
 
-int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
+int target_process_reset(struct command_context *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	char buf[100];
 	int retval;
@@ -754,7 +754,7 @@ err_write_phys_memory(struct target *target, uint32_t address,
 	return ERROR_FAIL;
 }
 
-int target_init(struct command_context_s *cmd_ctx)
+int target_init(struct command_context *cmd_ctx)
 {
 	struct target *target;
 	int retval;
@@ -2201,7 +2201,7 @@ COMMAND_HANDLER(handle_step_command)
 	return target->type->step(target, current_pc, addr, 1);
 }
 
-static void handle_md_output(struct command_context_s *cmd_ctx,
+static void handle_md_output(struct command_context *cmd_ctx,
 		struct target *target, uint32_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
@@ -2709,7 +2709,7 @@ COMMAND_HANDLER(handle_test_image_command)
 	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 0);
 }
 
-static int handle_bp_command_list(struct command_context_s *cmd_ctx)
+static int handle_bp_command_list(struct command_context *cmd_ctx)
 {
 	struct target *target = get_current_target(cmd_ctx);
 	struct breakpoint *breakpoint = target->breakpoints;
@@ -2737,7 +2737,7 @@ static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int handle_bp_command_set(struct command_context_s *cmd_ctx,
+static int handle_bp_command_set(struct command_context *cmd_ctx,
 		uint32_t addr, uint32_t length, int hw)
 {
 	struct target *target = get_current_target(cmd_ctx);
@@ -3132,7 +3132,7 @@ static int new_int_array_element(Jim_Interp * interp, const char *varname, int i
 
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	command_context_t *context;
+	struct command_context *context;
 	struct target *target;
 
 	context = Jim_GetAssocData(interp, "context");
@@ -3321,7 +3321,7 @@ static int get_int_array_element(Jim_Interp * interp, const char *varname, int i
 
 static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	command_context_t *context;
+	struct command_context *context;
 	struct target *target;
 
 	context = Jim_GetAssocData(interp, "context");
@@ -3822,7 +3822,7 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	uint8_t  target_buf[32];
 	Jim_Nvp *n;
 	struct target *target;
-	struct command_context_s *cmd_ctx;
+	struct command_context *cmd_ctx;
 	int e;
 
 	enum {
@@ -4238,7 +4238,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	int e;
 	int x;
 	struct target *target;
-	struct command_context_s *cmd_ctx;
+	struct command_context *cmd_ctx;
 
 	cmd_ctx = Jim_GetAssocData(goi->interp, "context");
 	if (goi->argc < 3) {
@@ -4390,7 +4390,7 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	int x,r,e;
 	jim_wide w;
-	struct command_context_s *cmd_ctx;
+	struct command_context *cmd_ctx;
 	struct target *target;
 	Jim_GetOptInfo goi;
 	enum tcmd {
@@ -4679,7 +4679,7 @@ COMMAND_HANDLER(handle_fast_load_command)
 
 static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	command_context_t *context;
+	struct command_context *context;
 	struct target *target;
 	int retval;
 
@@ -4763,7 +4763,7 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-int target_register_commands(struct command_context_s *cmd_ctx)
+int target_register_commands(struct command_context *cmd_ctx)
 {
 
 	register_command(cmd_ctx, NULL, "targets",
@@ -4776,7 +4776,7 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int target_register_user_commands(struct command_context_s *cmd_ctx)
+int target_register_user_commands(struct command_context *cmd_ctx)
 {
 	int retval = ERROR_OK;
 	if ((retval = target_request_register_commands(cmd_ctx)) != ERROR_OK)

@@ -883,7 +883,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 	return ERROR_OK;
 }
 
-static int pic32mx_register_commands(struct command_context_s *cmd_ctx)
+static int pic32mx_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *pic32mx_cmd = register_command(cmd_ctx, NULL, "pic32mx",
 			NULL, COMMAND_ANY, "pic32mx flash specific commands");

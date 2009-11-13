@@ -22,7 +22,7 @@
 
 #include "command.h"
 
-int svf_register_commands(struct command_context_s *cmd_ctx);
+int svf_register_commands(struct command_context *cmd_ctx);
 
 /**
  * svf_add_statemove() moves from the current state to @a goal_state.

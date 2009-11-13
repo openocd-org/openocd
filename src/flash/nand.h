@@ -36,7 +36,7 @@ struct nand_flash_controller
 {
 	char *name;
 	__NAND_DEVICE_COMMAND((*nand_device_command));
-	int (*register_commands)(struct command_context_s *cmd_ctx);
+	int (*register_commands)(struct command_context *cmd_ctx);
 	int (*init)(struct nand_device *nand);
 	int (*reset)(struct nand_device *nand);
 	int (*command)(struct nand_device *nand, uint8_t command);
@@ -226,11 +226,11 @@ int nand_calculate_ecc(struct nand_device *nand,
 int nand_calculate_ecc_kw(struct nand_device *nand,
 		const uint8_t *dat, uint8_t *ecc_code);
 
-int nand_register_commands(struct command_context_s *cmd_ctx);
-int nand_init(struct command_context_s *cmd_ctx);
+int nand_register_commands(struct command_context *cmd_ctx);
+int nand_init(struct command_context *cmd_ctx);
 
 /// helper for parsing a nand device command argument string
-int nand_command_get_device_by_num(struct command_context_s *cmd_ctx,
+int nand_command_get_device_by_num(struct command_context *cmd_ctx,
 		const char *str, struct nand_device **nand);
 
 

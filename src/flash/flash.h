@@ -97,7 +97,7 @@ struct flash_driver
 	 *
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*register_commands)(struct command_context_s *cmd_ctx);
+	int (*register_commands)(struct command_context *cmd_ctx);
 
 	/**
 	 * Finish the "flash bank" command for @a bank.  The
@@ -265,9 +265,9 @@ struct flash_bank
 };
 
 /// Registers the 'flash' subsystem commands
-int flash_register_commands(struct command_context_s *cmd_ctx);
+int flash_register_commands(struct command_context *cmd_ctx);
 /// Initializes the 'flash' subsystem drivers
-int flash_init_drivers(struct command_context_s *cmd_ctx);
+int flash_init_drivers(struct command_context *cmd_ctx);
 
 /**
  * Erases @a length bytes in the @a target flash, starting at @a addr.
@@ -323,7 +323,7 @@ struct flash_bank *get_flash_bank_by_num(int num);
  * @param bank On output, contians a pointer to the bank or NULL.
  * @returns ERROR_OK on success, or an error indicating the problem.
  */
-int flash_command_get_bank_by_num(struct command_context_s *cmd_ctx,
+int flash_command_get_bank_by_num(struct command_context *cmd_ctx,
 		const char *str, struct flash_bank **bank);
 /**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.

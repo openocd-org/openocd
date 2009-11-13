@@ -51,12 +51,12 @@ enum arm9tdmi_vector_bit
 	ARM9TDMI_FIQ_VECTOR = 0x80,
 };
 
-int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
+int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target);
 int arm9tdmi_examine(struct target *target);
 int arm9tdmi_init_arch_info(struct target *target,
 		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap);
-int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
+int arm9tdmi_register_commands(struct command_context *cmd_ctx);
 
 int arm9tdmi_clock_out(struct arm_jtag *jtag_info,
 		uint32_t instr, uint32_t out, uint32_t *in, int sysspeed);

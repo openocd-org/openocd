@@ -87,7 +87,7 @@ int armv4_5_identify_cache(uint32_t cache_type_reg, struct armv4_5_cache_common 
 	return ERROR_OK;
 }
 
-int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx, struct armv4_5_cache_common *armv4_5_cache)
+int armv4_5_handle_cache_info_command(struct command_context *cmd_ctx, struct armv4_5_cache_common *armv4_5_cache)
 {
 	if (armv4_5_cache->ctype == -1)
 	{

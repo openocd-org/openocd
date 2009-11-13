@@ -23,7 +23,7 @@
 #include "types.h"
 
 struct target;
-struct command_context_s;
+struct command_context;
 
 struct trace_point
 {
@@ -52,7 +52,7 @@ typedef enum trace_status
 } trace_status_t;
 
 int trace_point(struct target *target, uint32_t number);
-int trace_register_commands(struct command_context_s *cmd_ctx);
+int trace_register_commands(struct command_context *cmd_ctx);
 
 #define ERROR_TRACE_IMAGE_UNAVAILABLE		-(1500)
 #define ERROR_TRACE_INSTRUCTION_UNAVAILABLE	-(1501)

@@ -1022,7 +1022,7 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-int dap_info_command(struct command_context_s *cmd_ctx, struct swjdp_common *swjdp, int apsel)
+int dap_info_command(struct command_context *cmd_ctx, struct swjdp_common *swjdp, int apsel)
 {
 
 	uint32_t dbgbase,apid;

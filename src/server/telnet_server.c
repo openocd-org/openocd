@@ -94,7 +94,7 @@ int telnet_outputline(struct connection *connection, const char *line)
 	return ERROR_OK;
 }
 
-int telnet_output(struct command_context_s *cmd_ctx, const char* line)
+int telnet_output(struct command_context *cmd_ctx, const char* line)
 {
 	struct connection *connection = cmd_ctx->output_handler_priv;
 
@@ -198,7 +198,7 @@ int telnet_input(struct connection *connection)
 	char buffer[TELNET_BUFFER_SIZE];
 	char *buf_p;
 	struct telnet_connection *t_con = connection->priv;
-	command_context_t *command_context = connection->cmd_ctx;
+	struct command_context *command_context = connection->cmd_ctx;
 
 	bytes_read = read_socket(connection->fd, buffer, TELNET_BUFFER_SIZE);
 
@@ -616,7 +616,7 @@ COMMAND_HANDLER(handle_exit_command)
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
 
-int telnet_register_commands(command_context_t *command_context)
+int telnet_register_commands(struct command_context *command_context)
 {
 	register_command(command_context, NULL, "exit",
 			&handle_exit_command, COMMAND_EXEC,

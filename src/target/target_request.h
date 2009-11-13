@@ -38,13 +38,13 @@ typedef enum target_req_cmd
 
 struct debug_msg_receiver
 {
-	command_context_t *cmd_ctx;
+	struct command_context *cmd_ctx;
 	struct debug_msg_receiver *next;
 };
 
 int target_request(struct target *target, uint32_t request);
-int delete_debug_msg_receiver(struct command_context_s *cmd_ctx,
+int delete_debug_msg_receiver(struct command_context *cmd_ctx,
 		struct target *target);
-int target_request_register_commands(struct command_context_s *cmd_ctx);
+int target_request_register_commands(struct command_context *cmd_ctx);
 
 #endif /* TARGET_REQUEST_H */

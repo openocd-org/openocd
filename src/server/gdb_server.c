@@ -650,7 +650,7 @@ int gdb_output_con(struct connection *connection, const char* line)
 	return retval;
 }
 
-int gdb_output(struct command_context_s *context, const char* line)
+int gdb_output(struct command_context *context, const char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
 	LOG_USER_N("%s", line);
@@ -1556,7 +1556,7 @@ static int compare_bank (const void * a, const void * b)
 
 int gdb_query_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
 {
-	command_context_t *cmd_ctx = connection->cmd_ctx;
+	struct command_context *cmd_ctx = connection->cmd_ctx;
 	struct gdb_connection *gdb_connection = connection->priv;
 
 	if (strstr(packet, "qRcmd,"))
@@ -2371,7 +2371,7 @@ COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 	return ERROR_OK;
 }
 
-int gdb_register_commands(command_context_t *command_context)
+int gdb_register_commands(struct command_context *command_context)
 {
 	register_command(command_context, NULL, "gdb_sync",
 			handle_gdb_sync_command, COMMAND_ANY,

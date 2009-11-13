@@ -1574,7 +1574,7 @@ int rlink_khz(
 static
 int
 handle_dtc_directory_command(
-	struct command_context_s *cmd_ctx,
+	struct command_context *cmd_ctx,
 	char *cmd,
 	char **args,
 	int argc
@@ -1592,7 +1592,7 @@ handle_dtc_directory_command(
 
 
 static
-int rlink_register_commands(struct command_context_s *cmd_ctx)
+int rlink_register_commands(struct command_context *cmd_ctx)
 {
 
 #ifdef _DEBUG_JTAG_IO_

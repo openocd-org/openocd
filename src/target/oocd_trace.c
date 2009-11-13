@@ -30,7 +30,7 @@
  */
 
 
-static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
+static int oocd_trace_register_commands(struct command_context *cmd_ctx);
 
 static int oocd_trace_read_reg(struct oocd_trace *oocd_trace, int reg, uint32_t *value)
 {
@@ -407,7 +407,7 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 	return ERROR_OK;
 }
 
-int oocd_trace_register_commands(struct command_context_s *cmd_ctx)
+int oocd_trace_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *oocd_trace_cmd;
 

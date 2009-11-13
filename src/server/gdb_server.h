@@ -55,7 +55,7 @@ struct gdb_service
 };
 
 int gdb_init(void);
-int gdb_register_commands(command_context_t *command_context);
+int gdb_register_commands(struct command_context *command_context);
 
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
 #define ERROR_GDB_TIMEOUT (-801)

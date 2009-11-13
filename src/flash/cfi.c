@@ -588,7 +588,7 @@ static int cfi_intel_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int cfi_register_commands(struct command_context_s *cmd_ctx)
+static int cfi_register_commands(struct command_context *cmd_ctx)
 {
 	/*command_t *cfi_cmd = */
 	register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, "flash bank cfi <base> <size> <chip_width> <bus_width> <targetNum> [jedec_probe/x16_as_x8]");

@@ -209,7 +209,7 @@ static int svf_check_tdo_para_index = 0;
 static int svf_read_command_from_file(int fd);
 static int svf_check_tdo(void);
 static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len);
-static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str);
+static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str);
 
 static int svf_fd = 0;
 static char *svf_command_buffer = NULL;
@@ -750,7 +750,7 @@ static int svf_execute_tap(void)
 	return ERROR_OK;
 }
 
-static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
+static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 {
 	char *argus[256], command;
 	int num_of_argu = 0, i;
@@ -1460,7 +1460,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 	return ERROR_OK;
 }
 
-int svf_register_commands(struct command_context_s *cmd_ctx)
+int svf_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "svf",
 			&handle_svf_command, COMMAND_EXEC,

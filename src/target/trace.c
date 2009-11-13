@@ -156,7 +156,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 	return ERROR_OK;
 }
 
-int trace_register_commands(struct command_context_s *cmd_ctx)
+int trace_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *trace_cmd =
 		register_command(cmd_ctx, NULL, "trace", NULL, COMMAND_ANY, "trace commands");

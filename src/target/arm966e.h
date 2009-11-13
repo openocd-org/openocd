@@ -43,7 +43,7 @@ target_to_arm966(struct target *target)
 
 int arm966e_init_arch_info(struct target *target,
 		struct arm966e_common *arm966e, struct jtag_tap *tap);
-int arm966e_register_commands(struct command_context_s *cmd_ctx);
+int arm966e_register_commands(struct command_context *cmd_ctx);
 int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value);
 
 #endif /* ARM966E_H */

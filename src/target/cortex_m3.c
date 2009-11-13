@@ -1435,7 +1435,7 @@ static int cortex_m3_bulk_write_memory(struct target *target, uint32_t address,
 	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }
 
-static int cortex_m3_init_target(struct command_context_s *cmd_ctx,
+static int cortex_m3_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	armv7m_build_reg_cache(target);
@@ -1759,7 +1759,7 @@ static int cortex_m3_target_create(struct target *target, Jim_Interp *interp)
 
 /*--------------------------------------------------------------------------*/
 
-static int cortex_m3_verify_pointer(struct command_context_s *cmd_ctx,
+static int cortex_m3_verify_pointer(struct command_context *cmd_ctx,
 		struct cortex_m3_common *cm3)
 {
 	if (cm3->common_magic != CORTEX_M3_COMMON_MAGIC) {
@@ -1928,7 +1928,7 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 	return ERROR_OK;
 }
 
-static int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
+static int cortex_m3_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 	command_t *cortex_m3_cmd;

@@ -361,7 +361,7 @@ usage:
 	return ERROR_OK;
 }
 
-int armv7a_register_commands(struct command_context_s *cmd_ctx)
+int armv7a_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *arm_adi_v5_dap_cmd;
 	command_t *armv7a_cmd;

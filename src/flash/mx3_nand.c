@@ -315,7 +315,7 @@ static int imx31_nand_ready (struct nand_device *nand, int timeout)
 	return imx31_controller_ready (nand, timeout);
 }
 
-static int imx31_register_commands (struct command_context_s *cmd_ctx)
+static int imx31_register_commands (struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

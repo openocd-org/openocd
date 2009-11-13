@@ -66,10 +66,10 @@ void log_printf_lf(enum log_levels level, const char *file, int line,
 	const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 
-int log_init(struct command_context_s *cmd_ctx);
-int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
+int log_init(struct command_context *cmd_ctx);
+int set_log_output(struct command_context *cmd_ctx, FILE *output);
 
-int log_register_commands(struct command_context_s *cmd_ctx);
+int log_register_commands(struct command_context *cmd_ctx);
 
 void keep_alive(void);
 void kept_alive(void);

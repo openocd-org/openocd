@@ -1178,7 +1178,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	return ERROR_OK;
 }
 
-static int at91sam7_register_commands(struct command_context_s *cmd_ctx)
+static int at91sam7_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7",
 			NULL, COMMAND_ANY, NULL);

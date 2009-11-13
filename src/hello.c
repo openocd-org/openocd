@@ -48,7 +48,7 @@ COMMAND_HANDLER(handle_hello_command)
 	return retval;
 }
 
-int hello_register_commands(struct command_context_s *cmd_ctx)
+int hello_register_commands(struct command_context *cmd_ctx)
 {
 	struct command_s *cmd = register_command(cmd_ctx, NULL, "hello",
 			&handle_hello_command, COMMAND_ANY,

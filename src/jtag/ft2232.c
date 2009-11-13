@@ -3969,7 +3969,7 @@ static void ktlink_blink(void)
 	buffer_write(high_direction);
 }
 
-static int ft2232_register_commands(struct command_context_s* cmd_ctx)
+static int ft2232_register_commands(struct command_context* cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "ft2232_device_desc",
 			ft2232_handle_device_desc_command, COMMAND_CONFIG,

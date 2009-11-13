@@ -36,7 +36,7 @@ static uint32_t dummy_data;
 
 
 static int dummy_speed(int speed);
-static int dummy_register_commands(struct command_context_s *cmd_ctx);
+static int dummy_register_commands(struct command_context *cmd_ctx);
 static int dummy_init(void);
 static int dummy_quit(void);
 static int dummy_khz(int khz, int *jtag_speed);
@@ -161,7 +161,7 @@ static int dummy_speed(int speed)
 	return ERROR_OK;
 }
 
-static int dummy_register_commands(struct command_context_s *cmd_ctx)
+static int dummy_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

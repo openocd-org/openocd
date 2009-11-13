@@ -211,7 +211,7 @@ static void arm720t_pre_restore_context(struct target *target)
 	arm720t_write_cp15(target, 0xee060f10, arm720t->far_reg);
 }
 
-static int arm720t_verify_pointer(struct command_context_s *cmd_ctx,
+static int arm720t_verify_pointer(struct command_context *cmd_ctx,
 		struct arm720t_common *arm720t)
 {
 	if (arm720t->common_magic != ARM720T_COMMON_MAGIC) {
@@ -371,7 +371,7 @@ static int arm720t_soft_reset_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int arm720t_init_target(struct command_context_s *cmd_ctx, struct target *target)
+static int arm720t_init_target(struct command_context *cmd_ctx, struct target *target)
 {
 	return arm7tdmi_init_target(cmd_ctx, target);
 }
@@ -490,7 +490,7 @@ static int arm720t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 	return arm720t_write_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
 }
 
-static int arm720t_register_commands(struct command_context_s *cmd_ctx)
+static int arm720t_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 	command_t *arm720t_cmd;

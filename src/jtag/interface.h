@@ -207,7 +207,7 @@ struct jtag_interface {
 	 * @param cmd_ctx The context in which commands should be registered.
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
-	int (*register_commands)(struct command_context_s* cmd_ctx);
+	int (*register_commands)(struct command_context* cmd_ctx);
 
 	/**
 	 * Interface driver must initalize any resources and connect to a

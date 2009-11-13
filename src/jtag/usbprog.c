@@ -51,7 +51,7 @@
 
 static int usbprog_execute_queue(void);
 static int usbprog_speed(int speed);
-static int usbprog_register_commands(struct command_context_s *cmd_ctx);
+static int usbprog_register_commands(struct command_context *cmd_ctx);
 static int usbprog_init(void);
 static int usbprog_quit(void);
 
@@ -120,7 +120,7 @@ static int usbprog_speed(int speed)
 	return ERROR_OK;
 }
 
-static int usbprog_register_commands(struct command_context_s *cmd_ctx)
+static int usbprog_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

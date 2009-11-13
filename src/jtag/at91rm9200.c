@@ -118,7 +118,7 @@ static void at91rm9200_write(int tck, int tms, int tdi);
 static void at91rm9200_reset(int trst, int srst);
 
 static int at91rm9200_speed(int speed);
-static int at91rm9200_register_commands(struct command_context_s *cmd_ctx);
+static int at91rm9200_register_commands(struct command_context *cmd_ctx);
 static int at91rm9200_init(void);
 static int at91rm9200_quit(void);
 
@@ -185,7 +185,7 @@ static int at91rm9200_speed(int speed)
 	return ERROR_OK;
 }
 
-static int at91rm9200_handle_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -200,7 +200,7 @@ static int at91rm9200_handle_device_command(struct command_context_s *cmd_ctx, c
 	return ERROR_OK;
 }
 
-static int at91rm9200_register_commands(struct command_context_s *cmd_ctx)
+static int at91rm9200_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "at91rm9200_device", at91rm9200_handle_device_command,
 		COMMAND_CONFIG, NULL);

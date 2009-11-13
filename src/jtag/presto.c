@@ -42,7 +42,7 @@
 static int presto_jtag_speed(int speed);
 static int presto_jtag_khz(int khz, int *jtag_speed);
 static int presto_jtag_speed_div(int speed, int *khz);
-static int presto_jtag_register_commands(struct command_context_s *cmd_ctx);
+static int presto_jtag_register_commands(struct command_context *cmd_ctx);
 static int presto_jtag_init(void);
 static int presto_jtag_quit(void);
 
@@ -766,7 +766,7 @@ COMMAND_HANDLER(presto_handle_serial_command)
 	return ERROR_OK;
 }
 
-static int presto_jtag_register_commands(struct command_context_s *cmd_ctx)
+static int presto_jtag_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "presto_serial", presto_handle_serial_command,
 		COMMAND_CONFIG, NULL);

@@ -317,7 +317,7 @@ COMMAND_HANDLER(handle_log_output_command)
 	return ERROR_OK;
 }
 
-int log_register_commands(struct command_context_s *cmd_ctx)
+int log_register_commands(struct command_context *cmd_ctx)
 {
 	start = timeval_ms();
 	register_command(cmd_ctx, NULL, "log_output", handle_log_output_command,
@@ -328,7 +328,7 @@ int log_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int log_init(struct command_context_s *cmd_ctx)
+int log_init(struct command_context *cmd_ctx)
 {
 	/* set defaults for daemon configuration, if not set by cmdline or cfgfile */
 	if (debug_level == -1)
@@ -344,7 +344,7 @@ int log_init(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
+int set_log_output(struct command_context *cmd_ctx, FILE *output)
 {
 	log_output = output;
 	return ERROR_OK;

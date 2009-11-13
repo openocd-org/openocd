@@ -150,7 +150,7 @@ int target_request(struct target *target, uint32_t request)
 	return ERROR_OK;
 }
 
-static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, struct target *target)
+static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target *target)
 {
 	struct debug_msg_receiver **p = &target->dbgmsg;
 
@@ -178,7 +178,7 @@ static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, struct targ
 	return ERROR_OK;
 }
 
-static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context_s *cmd_ctx, struct target *target)
+static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context *cmd_ctx, struct target *target)
 {
 	int do_all_targets = 0;
 	struct debug_msg_receiver **p = &target->dbgmsg;
@@ -211,7 +211,7 @@ static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context
 	return NULL;
 }
 
-int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, struct target *target)
+int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *target)
 {
 	struct debug_msg_receiver **p;
 	struct debug_msg_receiver *c;
@@ -299,7 +299,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 	return ERROR_OK;
 }
 
-int target_request_register_commands(struct command_context_s *cmd_ctx)
+int target_request_register_commands(struct command_context *cmd_ctx)
 {
 	target_request_cmd =
 		register_command(cmd_ctx, NULL, "target_request", NULL, COMMAND_ANY, "target_request commands");

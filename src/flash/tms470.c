@@ -817,7 +817,7 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
               Implementation of Flash Driver Interfaces
    ---------------------------------------------------------------------- */
 
-static int tms470_register_commands(struct command_context_s *cmd_ctx)
+static int tms470_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *tms470_cmd = register_command(cmd_ctx, NULL, "tms470", NULL, COMMAND_ANY, "applies to TI tms470 family");
 

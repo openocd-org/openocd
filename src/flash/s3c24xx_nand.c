@@ -52,7 +52,7 @@ S3C24XX_DEVICE_COMMAND()
 	return ERROR_OK;
 }
 
-int s3c24xx_register_commands(struct command_context_s *cmd_ctx)
+int s3c24xx_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

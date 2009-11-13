@@ -156,7 +156,7 @@ int ahbap_debugport_init(struct swjdp_common *swjdp);
 
 
 /* Commands for user dap access */
-int dap_info_command(struct command_context_s *cmd_ctx,
+int dap_info_command(struct command_context *cmd_ctx,
 		struct swjdp_common *swjdp, int apsel);
 
 #define DAP_COMMAND_HANDLER(name) \

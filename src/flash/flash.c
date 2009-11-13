@@ -199,7 +199,7 @@ struct flash_bank *get_flash_bank_by_num(int num)
 }
 
 int flash_command_get_bank_by_num(
-	struct command_context_s *cmd_ctx, const char *str, struct flash_bank **bank)
+	struct command_context *cmd_ctx, const char *str, struct flash_bank **bank)
 {
 	unsigned bank_num;
 	COMMAND_PARSE_NUMBER(uint, str, bank_num);
@@ -511,7 +511,7 @@ COMMAND_HANDLER(handle_flash_protect_check_command)
 	return ERROR_OK;
 }
 
-static int flash_check_sector_parameters(struct command_context_s *cmd_ctx,
+static int flash_check_sector_parameters(struct command_context *cmd_ctx,
 		uint32_t first, uint32_t last, uint32_t num_sectors)
 {
 	if (!(first <= last)) {
@@ -1217,7 +1217,7 @@ int default_flash_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-int flash_init_drivers(struct command_context_s *cmd_ctx)
+int flash_init_drivers(struct command_context *cmd_ctx)
 {
 	register_jim(cmd_ctx, "ocd_flash_banks",
 			jim_flash_banks, "return information about the flash banks");
@@ -1267,7 +1267,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int flash_register_commands(struct command_context_s *cmd_ctx)
+int flash_register_commands(struct command_context *cmd_ctx)
 {
 	flash_cmd = register_command(cmd_ctx, NULL, "flash",
 			NULL, COMMAND_ANY, NULL);

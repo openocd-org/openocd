@@ -22,7 +22,7 @@
 
 #include "command.h"
 
-int xsvf_register_commands(struct command_context_s *cmd_ctx);
+int xsvf_register_commands(struct command_context *cmd_ctx);
 
 #define ERROR_XSVF_EOF	(-200)
 #define ERROR_XSVF_FAILED	(-201)

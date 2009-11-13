@@ -645,7 +645,7 @@ static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 
 
 
-int ioutil_init(struct command_context_s *cmd_ctx)
+int ioutil_init(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
 			"remove file");

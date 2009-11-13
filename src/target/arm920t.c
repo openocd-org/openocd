@@ -415,7 +415,7 @@ void arm920t_pre_restore_context(struct target *target)
 
 static const char arm920_not[] = "target is not an ARM920";
 
-static int arm920t_verify_pointer(struct command_context_s *cmd_ctx,
+static int arm920t_verify_pointer(struct command_context *cmd_ctx,
 		struct arm920t_common *arm920t)
 {
 	if (arm920t->common_magic != ARM920T_COMMON_MAGIC) {
@@ -1348,7 +1348,7 @@ static int arm920t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 }
 
 /** Registers commands to access coprocessor, cache, and MMU resources. */
-int arm920t_register_commands(struct command_context_s *cmd_ctx)
+int arm920t_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 	command_t *arm920t_cmd;

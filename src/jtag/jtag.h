@@ -315,7 +315,7 @@ bool jtag_will_verify_capture_ir(void);
  * Initialize interface upon startup.  Return a successful no-op upon
  * subsequent invocations.
  */
-int  jtag_interface_init(struct command_context_s* cmd_ctx);
+int  jtag_interface_init(struct command_context* cmd_ctx);
 
 /// Shutdown the JTAG interface upon program exit.
 int  jtag_interface_quit(void);
@@ -324,12 +324,12 @@ int  jtag_interface_quit(void);
  * Initialize JTAG chain using only a RESET reset. If init fails,
  * try reset + init.
  */
-int  jtag_init(struct command_context_s* cmd_ctx);
+int  jtag_init(struct command_context* cmd_ctx);
 
 /// reset, then initialize JTAG chain
-int jtag_init_reset(struct command_context_s* cmd_ctx);
-int jtag_register_commands(struct command_context_s* cmd_ctx);
-int jtag_init_inner(struct command_context_s *cmd_ctx);
+int jtag_init_reset(struct command_context* cmd_ctx);
+int jtag_register_commands(struct command_context* cmd_ctx);
+int jtag_init_inner(struct command_context *cmd_ctx);
 
 /**
  * @file

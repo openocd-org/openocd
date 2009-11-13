@@ -179,7 +179,7 @@ int armv4_5_arch_state(struct target *target);
 int armv4_5_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
-int armv4_5_register_commands(struct command_context_s *cmd_ctx);
+int armv4_5_register_commands(struct command_context *cmd_ctx);
 int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5);
 
 int armv4_5_run_algorithm(struct target *target,

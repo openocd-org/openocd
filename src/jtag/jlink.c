@@ -87,13 +87,13 @@ static int jlink_execute_queue(void);
 static int jlink_speed(int speed);
 static int jlink_speed_div(int speed, int* khz);
 static int jlink_khz(int khz, int *jtag_speed);
-static int jlink_register_commands(struct command_context_s *cmd_ctx);
+static int jlink_register_commands(struct command_context *cmd_ctx);
 static int jlink_init(void);
 static int jlink_quit(void);
 
 /* CLI command handler functions */
-static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int jlink_handle_jlink_hw_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int jlink_handle_jlink_info_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
+static int jlink_handle_jlink_hw_jtag_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
 
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
@@ -290,7 +290,7 @@ static int jlink_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int jlink_register_commands(struct command_context_s *cmd_ctx)
+static int jlink_register_commands(struct command_context *cmd_ctx)
 {
 
 	register_command(cmd_ctx, NULL, "jlink_info",
@@ -630,7 +630,7 @@ static int jlink_get_version_info(void)
 	return ERROR_OK;
 }
 
-static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int jlink_handle_jlink_info_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (jlink_get_version_info() == ERROR_OK)
 	{
@@ -641,7 +641,7 @@ static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, ch
 	return ERROR_OK;
 }
 
-static int jlink_handle_jlink_hw_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int jlink_handle_jlink_hw_jtag_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
 	switch (argc) {
 	case 0:

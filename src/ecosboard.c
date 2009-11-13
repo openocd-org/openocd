@@ -229,7 +229,7 @@ void reboot_port(void)
 	cyg_thread_resume(zylinjtag_reboot_port_thread_handle);
 }
 
-int configuration_output_handler(struct command_context_s *context,
+int configuration_output_handler(struct command_context *context,
 		const char* line)
 {
 	diag_printf("%s", line);
@@ -237,7 +237,7 @@ int configuration_output_handler(struct command_context_s *context,
 	return ERROR_OK;
 }
 
-int zy1000_configuration_output_handler_log(struct command_context_s *context,
+int zy1000_configuration_output_handler_log(struct command_context *context,
 		const char* line)
 {
 	LOG_USER_N("%s", line);
@@ -247,7 +247,7 @@ int zy1000_configuration_output_handler_log(struct command_context_s *context,
 
 #ifdef CYGPKG_PROFILE_GPROF
 
-int eCosBoard_handle_eCosBoard_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int eCosBoard_handle_eCosBoard_profile_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
 	command_print(cmd_ctx, "Profiling started");
 	start_profile();
@@ -258,7 +258,7 @@ int eCosBoard_handle_eCosBoard_profile_command(struct command_context_s *cmd_ctx
 
 externC void phi_init_all_network_interfaces(void);
 
-command_context_t *cmd_ctx;
+struct command_context *cmd_ctx;
 
 static bool webRunning = false;
 
@@ -840,7 +840,7 @@ void startUart(void)
 	cyg_thread_resume(zylinjtag_uart_thread_handle);
 }
 
-int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd,
+int handle_uart_command(struct command_context *cmd_ctx, char *cmd,
 		char **args, int argc)
 {
 	static int current_baud = 38400;
@@ -924,7 +924,7 @@ bool logAllToSerial = false;
 int boolParam(char *var);
 
 
-command_context_t *setup_command_handler(void);
+struct command_context *setup_command_handler(void);
 
 static const char *zylin_config_dir="/config/settings";
 
@@ -936,7 +936,7 @@ static int add_default_dirs(void)
 	return ERROR_OK;
 }
 
-int ioutil_init(struct command_context_s *cmd_ctx);
+int ioutil_init(struct command_context *cmd_ctx);
 
 int main(int argc, char *argv[])
 {
@@ -1068,7 +1068,7 @@ int main(int argc, char *argv[])
 	add_default_dirs();
 
 	/* initialize commandline interface */
-	command_context_t * cmd_ctx;
+	struct command_context * cmd_ctx;
 	cmd_ctx = setup_command_handler();
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);

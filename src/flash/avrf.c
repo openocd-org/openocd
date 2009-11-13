@@ -449,7 +449,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 	return ERROR_OK;
 }
 
-static int avrf_register_commands(struct command_context_s *cmd_ctx)
+static int avrf_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *avr_cmd = register_command(cmd_ctx, NULL, "avr",
 			NULL, COMMAND_ANY, "avr flash specific commands");

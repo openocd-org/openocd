@@ -1334,7 +1334,7 @@ void jtag_tap_free(struct jtag_tap *tap)
 	free(tap);
 }
 
-int jtag_interface_init(struct command_context_s *cmd_ctx)
+int jtag_interface_init(struct command_context *cmd_ctx)
 {
 	if (jtag)
 		return ERROR_OK;
@@ -1375,7 +1375,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int jtag_init_inner(struct command_context_s *cmd_ctx)
+int jtag_init_inner(struct command_context *cmd_ctx)
 {
 	struct jtag_tap *tap;
 	int retval;
@@ -1461,7 +1461,7 @@ int jtag_interface_quit(void)
 }
 
 
-int jtag_init_reset(struct command_context_s *cmd_ctx)
+int jtag_init_reset(struct command_context *cmd_ctx)
 {
 	int retval;
 
@@ -1515,7 +1515,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	return jtag_init_inner(cmd_ctx);
 }
 
-int jtag_init(struct command_context_s *cmd_ctx)
+int jtag_init(struct command_context *cmd_ctx)
 {
 	int retval;
 

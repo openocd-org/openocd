@@ -474,7 +474,7 @@ static void arm926ejs_pre_restore_context(struct target *target)
 
 static const char arm926_not[] = "target is not an ARM926";
 
-static int arm926ejs_verify_pointer(struct command_context_s *cmd_ctx,
+static int arm926ejs_verify_pointer(struct command_context *cmd_ctx,
 		struct arm926ejs_common *arm926)
 {
 	if (arm926->common_magic != ARM926EJS_COMMON_MAGIC) {
@@ -818,7 +818,7 @@ static int arm926ejs_mmu(struct target *target, int *enabled)
 }
 
 /** Registers commands to access coprocessor, cache, and debug resources.  */
-int arm926ejs_register_commands(struct command_context_s *cmd_ctx)
+int arm926ejs_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 	command_t *arm926ejs_cmd;

@@ -45,7 +45,7 @@ static int shutdown_openocd = 0;
 /* set when using pipes rather than tcp */
 int server_use_pipes = 0;
 
-int add_connection(struct service *service, command_context_t *cmd_ctx)
+int add_connection(struct service *service, struct command_context *cmd_ctx)
 {
 	socklen_t address_size;
 	struct connection *c, **p;
@@ -288,7 +288,7 @@ int remove_services(void)
 extern void openocd_sleep_prelude(void);
 extern void openocd_sleep_postlude(void);
 
-int server_loop(command_context_t *command_context)
+int server_loop(struct command_context *command_context)
 {
 	struct service *service;
 
@@ -541,7 +541,7 @@ COMMAND_HANDLER(handle_shutdown_command)
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
 
-int server_register_commands(command_context_t *context)
+int server_register_commands(struct command_context *context)
 {
 	register_command(context, NULL, "shutdown",
 			handle_shutdown_command, COMMAND_ANY,

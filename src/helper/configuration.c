@@ -103,7 +103,7 @@ FILE *open_file_from_path (char *file, char *mode)
 	}
 }
 
-int parse_config_file(struct command_context_s *cmd_ctx)
+int parse_config_file(struct command_context *cmd_ctx)
 {
 	int retval;
 	char **cfg;

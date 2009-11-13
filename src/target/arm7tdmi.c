@@ -684,7 +684,7 @@ int arm7tdmi_examine(struct target *target)
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target *target)
+int arm7tdmi_init_target(struct command_context *cmd_ctx, struct target *target)
 {
 	arm7tdmi_build_reg_cache(target);
 

@@ -57,7 +57,7 @@ static int arm966e_target_create(struct target *target, Jim_Interp *interp)
 	return arm966e_init_arch_info(target, arm966e, target->tap);
 }
 
-static int arm966e_verify_pointer(struct command_context_s *cmd_ctx,
+static int arm966e_verify_pointer(struct command_context *cmd_ctx,
 		struct arm966e_common *arm966e)
 {
 	if (arm966e->common_magic != ARM966E_COMMON_MAGIC) {
@@ -216,7 +216,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 }
 
 /** Registers commands used to access coprocessor resources. */
-int arm966e_register_commands(struct command_context_s *cmd_ctx)
+int arm966e_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 	command_t *arm966e_cmd;

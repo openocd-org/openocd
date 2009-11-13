@@ -142,7 +142,7 @@ int armv7m_arch_state(struct target *target);
 int armv7m_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
-int armv7m_register_commands(struct command_context_s *cmd_ctx);
+int armv7m_register_commands(struct command_context *cmd_ctx);
 int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m);
 
 int armv7m_run_algorithm(struct target *target,

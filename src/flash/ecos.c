@@ -30,7 +30,7 @@
 static uint32_t ecosflash_get_flash_status(struct flash_bank *bank);
 static void ecosflash_set_flash_mode(struct flash_bank *bank,int mode);
 static uint32_t ecosflash_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout);
-static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
 #endif
 
 struct ecosflash_flash_bank
@@ -334,7 +334,7 @@ static int ecosflash_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int ecosflash_register_commands(struct command_context_s *cmd_ctx)
+static int ecosflash_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "ecosflash", NULL, COMMAND_ANY, NULL);
 
@@ -429,7 +429,7 @@ static uint32_t ecosflash_wait_status_busy(struct flash_bank *bank, uint32_t wai
 	return ERROR_OK;
 }
 
-static int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return ERROR_OK;
 }

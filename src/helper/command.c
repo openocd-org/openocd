@@ -47,7 +47,7 @@
 int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
 
-static int run_command(command_context_t *context,
+static int run_command(struct command_context *context,
 		command_t *c, const char *words[], unsigned num_words);
 
 static void tcl_output(void *privData, const char *file, unsigned line,
@@ -57,7 +57,7 @@ static void tcl_output(void *privData, const char *file, unsigned line,
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
 }
 
-extern command_context_t *global_cmd_ctx;
+extern struct command_context *global_cmd_ctx;
 
 void script_debug(Jim_Interp *interp, const char *name,
 		unsigned argc, Jim_Obj *const *argv)
@@ -80,7 +80,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
 	command_t *c;
-	command_context_t *context;
+	struct command_context *context;
 	int retval;
 	int i;
 	int nwords;
@@ -226,7 +226,7 @@ static void command_add_child(struct command_s **head, struct command_s *c)
 	cc->next = c;
 }
 
-command_t* register_command(command_context_t *context,
+command_t* register_command(struct command_context *context,
 		command_t *parent, char *name, command_handler_t handler,
 		enum command_mode mode, char *help)
 {
@@ -274,7 +274,7 @@ command_t* register_command(command_context_t *context,
 	return c;
 }
 
-int unregister_all_commands(command_context_t *context)
+int unregister_all_commands(struct command_context *context)
 {
 	command_t *c, *c2;
 
@@ -306,7 +306,7 @@ int unregister_all_commands(command_context_t *context)
 	return ERROR_OK;
 }
 
-int unregister_command(command_context_t *context, char *name)
+int unregister_command(struct command_context *context, char *name)
 {
 	command_t *c, *p = NULL, *c2;
 
@@ -358,14 +358,14 @@ int unregister_command(command_context_t *context, char *name)
 	return ERROR_OK;
 }
 
-void command_output_text(command_context_t *context, const char *data)
+void command_output_text(struct command_context *context, const char *data)
 {
 	if (context && context->output_handler && data) {
 		context->output_handler(context, data);
 	}
 }
 
-void command_print_sameline(command_context_t *context, const char *format, ...)
+void command_print_sameline(struct command_context *context, const char *format, ...)
 {
 	char *string;
 
@@ -389,7 +389,7 @@ void command_print_sameline(command_context_t *context, const char *format, ...)
 	va_end(ap);
 }
 
-void command_print(command_context_t *context, const char *format, ...)
+void command_print(struct command_context *context, const char *format, ...)
 {
 	char *string;
 
@@ -436,7 +436,7 @@ char *command_name(struct command_s *c, char delim)
 	return __command_name(c, delim, 0);
 }
 
-static int run_command(command_context_t *context,
+static int run_command(struct command_context *context,
 		command_t *c, const char *words[], unsigned num_words)
 {
 	int start_word = 0;
@@ -475,7 +475,7 @@ static int run_command(command_context_t *context,
 	return retval;
 }
 
-int command_run_line(command_context_t *context, char *line)
+int command_run_line(struct command_context *context, char *line)
 {
 	/* all the parent commands have been registered with the interpreter
 	 * so, can just evaluate the line as a script and check for
@@ -545,7 +545,7 @@ int command_run_line(command_context_t *context, char *line)
 	return retval;
 }
 
-int command_run_linef(command_context_t *context, const char *format, ...)
+int command_run_linef(struct command_context *context, const char *format, ...)
 {
 	int retval = ERROR_FAIL;
 	char *string;
@@ -560,23 +560,23 @@ int command_run_linef(command_context_t *context, const char *format, ...)
 	return retval;
 }
 
-void command_set_output_handler(command_context_t* context,
+void command_set_output_handler(struct command_context* context,
 		command_output_handler_t output_handler, void *priv)
 {
 	context->output_handler = output_handler;
 	context->output_handler_priv = priv;
 }
 
-command_context_t* copy_command_context(command_context_t* context)
+struct command_context* copy_command_context(struct command_context* context)
 {
-	command_context_t* copy_context = malloc(sizeof(command_context_t));
+	struct command_context* copy_context = malloc(sizeof(struct command_context));
 
 	*copy_context = *context;
 
 	return copy_context;
 }
 
-int command_done(command_context_t *context)
+int command_done(struct command_context *context)
 {
 	free(context);
 	context = NULL;
@@ -764,9 +764,9 @@ COMMAND_HANDLER(handle_fast_command)
 }
 
 
-command_context_t* command_init()
+struct command_context* command_init()
 {
-	command_context_t* context = malloc(sizeof(command_context_t));
+	struct command_context* context = malloc(sizeof(struct command_context));
 	extern const char startup_tcl[];
 	const char *HostOs;
 
@@ -846,7 +846,7 @@ command_context_t* command_init()
 	return context;
 }
 
-int command_context_mode(command_context_t *cmd_ctx, enum command_mode mode)
+int command_context_mode(struct command_context *cmd_ctx, enum command_mode mode)
 {
 	if (!cmd_ctx)
 		return ERROR_INVALID_ARGUMENTS;
@@ -869,7 +869,7 @@ void process_jim_events(void)
 #endif
 }
 
-void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)
+void register_jim(struct command_context *cmd_ctx, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)
 {
 	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
 

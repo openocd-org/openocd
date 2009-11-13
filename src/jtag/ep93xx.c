@@ -47,7 +47,7 @@ static void ep93xx_write(int tck, int tms, int tdi);
 static void ep93xx_reset(int trst, int srst);
 
 static int ep93xx_speed(int speed);
-static int ep93xx_register_commands(struct command_context_s *cmd_ctx);
+static int ep93xx_register_commands(struct command_context *cmd_ctx);
 static int ep93xx_init(void);
 static int ep93xx_quit(void);
 
@@ -122,7 +122,7 @@ static int ep93xx_speed(int speed)
 	return ERROR_OK;
 }
 
-static int ep93xx_register_commands(struct command_context_s *cmd_ctx)
+static int ep93xx_register_commands(struct command_context *cmd_ctx)
 {
 
 	return ERROR_OK;

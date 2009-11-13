@@ -46,7 +46,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-int configuration_output_handler(struct command_context_s *context, const char* line)
+int configuration_output_handler(struct command_context *context, const char* line)
 {
 	LOG_USER_N("%s", line);
 
@@ -108,7 +108,7 @@ static void add_default_dirs(void)
 #endif
 }
 
-int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[])
+int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 {
 	int c;
 	char command_buffer[128];

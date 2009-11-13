@@ -78,7 +78,7 @@ static int halted(struct target *target, const char *label)
 	return false;
 }
 
-static int davinci_register_commands(struct command_context_s *cmd_ctx)
+static int davinci_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

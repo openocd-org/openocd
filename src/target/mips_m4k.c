@@ -39,8 +39,8 @@ int mips_m4k_resume(struct target *target, int current, uint32_t address, int ha
 int mips_m4k_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
 int mips_m4k_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int mips_m4k_register_commands(struct command_context_s *cmd_ctx);
-int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target *target);
+int mips_m4k_register_commands(struct command_context *cmd_ctx);
+int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target);
 int mips_m4k_target_create(struct target *target, Jim_Interp *interp);
 
 int mips_m4k_examine(struct target *target);
@@ -902,7 +902,7 @@ int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size
 		return mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 }
 
-int mips_m4k_register_commands(struct command_context_s *cmd_ctx)
+int mips_m4k_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 
@@ -910,7 +910,7 @@ int mips_m4k_register_commands(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
-int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target *target)
+int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target)
 {
 	mips32_build_reg_cache(target);
 

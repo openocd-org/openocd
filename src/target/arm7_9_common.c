@@ -3119,7 +3119,7 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 			1, 1, target);
 }
 
-int arm7_9_register_commands(struct command_context_s *cmd_ctx)
+int arm7_9_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *arm7_9_cmd;
 

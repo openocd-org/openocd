@@ -219,7 +219,7 @@ static int etm_reg_arch_type = -1;
 static int etm_get_reg(struct reg *reg);
 static int etm_read_reg_w_check(struct reg *reg,
 		uint8_t* check_value, uint8_t* check_mask);
-static int etm_register_user_commands(struct command_context_s *cmd_ctx);
+static int etm_register_user_commands(struct command_context *cmd_ctx);
 static int etm_set_reg_w_exec(struct reg *reg, uint8_t *buf);
 static int etm_write_reg(struct reg *reg, uint32_t value);
 
@@ -884,7 +884,7 @@ static int etmv1_data(struct etm_context *ctx, int size, uint32_t *data)
 	return 0;
 }
 
-static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context_s *cmd_ctx)
+static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *cmd_ctx)
 {
 	int retval;
 	struct arm_instruction instruction;
@@ -2109,7 +2109,7 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 	return retval;
 }
 
-int etm_register_commands(struct command_context_s *cmd_ctx)
+int etm_register_commands(struct command_context *cmd_ctx)
 {
 	etm_cmd = register_command(cmd_ctx, NULL, "etm", NULL, COMMAND_ANY, "Embedded Trace Macrocell");
 
@@ -2119,7 +2119,7 @@ int etm_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int etm_register_user_commands(struct command_context_s *cmd_ctx)
+static int etm_register_user_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
 		COMMAND_EXEC, "configure/display trace mode: "

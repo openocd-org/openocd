@@ -31,7 +31,7 @@ struct pld_driver
 {
 	char *name;
 	__PLD_DEVICE_COMMAND((*pld_device_command));
-	int (*register_commands)(struct command_context_s *cmd_ctx);
+	int (*register_commands)(struct command_context *cmd_ctx);
 	int (*load)(struct pld_device *pld_device, const char *filename);
 };
 
@@ -44,9 +44,9 @@ struct pld_device
 	struct pld_device *next;
 };
 
-int pld_register_commands(struct command_context_s *cmd_ctx);
+int pld_register_commands(struct command_context *cmd_ctx);
 
-int pld_init(struct command_context_s *cmd_ctx);
+int pld_init(struct command_context *cmd_ctx);
 
 struct pld_device *get_pld_device_by_num(int num);
 

@@ -42,7 +42,7 @@ struct connection
 {
 	int fd;
 	struct sockaddr_in sin;
-	command_context_t *cmd_ctx;
+	struct command_context *cmd_ctx;
 	struct service *service;
 	int input_pending;
 	void *priv;
@@ -77,9 +77,9 @@ int add_service(char *name, enum connection_type type, unsigned short port,
 int server_init(void);
 int server_quit(void);
 
-int server_loop(command_context_t *command_context);
+int server_loop(struct command_context *command_context);
 
-int server_register_commands(command_context_t *context);
+int server_register_commands(struct command_context *context);
 
 /**
  * Defines an extended command handler function declaration to enable

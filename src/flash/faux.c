@@ -87,7 +87,7 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int faux_register_commands(struct command_context_s *cmd_ctx)
+static int faux_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

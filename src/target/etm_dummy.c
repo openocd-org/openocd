@@ -58,7 +58,7 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 	return ERROR_OK;
 }
 
-static int etm_dummy_register_commands(struct command_context_s *cmd_ctx)
+static int etm_dummy_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *etm_dummy_cmd;
 

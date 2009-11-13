@@ -34,7 +34,7 @@
 
 struct reg;
 struct trace;
-struct command_context_s;
+struct command_context;
 
 
 /**
@@ -241,12 +241,12 @@ struct target_timer_callback
 	struct target_timer_callback *next;
 };
 
-int target_register_commands(struct command_context_s *cmd_ctx);
-int target_register_user_commands(struct command_context_s *cmd_ctx);
-int target_init(struct command_context_s *cmd_ctx);
+int target_register_commands(struct command_context *cmd_ctx);
+int target_register_user_commands(struct command_context *cmd_ctx);
+int target_init(struct command_context *cmd_ctx);
 int target_examine(void);
 int handle_target(void *priv);
-int target_process_reset(struct command_context_s *cmd_ctx,
+int target_process_reset(struct command_context *cmd_ctx,
 		enum target_reset_mode reset_mode);
 
 int target_register_event_callback(
@@ -278,7 +278,7 @@ int target_call_timer_callbacks(void);
  */
 int target_call_timer_callbacks_now(void);
 
-struct target* get_current_target(struct command_context_s *cmd_ctx);
+struct target* get_current_target(struct command_context *cmd_ctx);
 struct target *get_target(const char *id);
 
 /**

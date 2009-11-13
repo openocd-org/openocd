@@ -152,7 +152,7 @@ struct armv7a_core_reg
 int armv7a_arch_state(struct target *target);
 struct reg_cache *armv7a_build_reg_cache(struct target *target,
 		struct armv7a_common *armv7a_common);
-int armv7a_register_commands(struct command_context_s *cmd_ctx);
+int armv7a_register_commands(struct command_context *cmd_ctx);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
 
 /* map psr mode bits to linear number */

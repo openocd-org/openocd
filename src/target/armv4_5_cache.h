@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-struct command_context_s;
+struct command_context;
 
 struct armv4_5_cachesize
 {
@@ -47,7 +47,7 @@ int armv4_5_identify_cache(uint32_t cache_type_reg,
 int armv4_5_cache_state(uint32_t cp15_control_reg,
 		struct armv4_5_cache_common *cache);
 
-int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx,
+int armv4_5_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv4_5_cache_common *armv4_5_cache);
 
 enum

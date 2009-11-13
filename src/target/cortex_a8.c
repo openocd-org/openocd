@@ -1443,7 +1443,7 @@ static void cortex_a8_build_reg_cache(struct target *target)
 }
 
 
-static int cortex_a8_init_target(struct command_context_s *cmd_ctx,
+static int cortex_a8_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	cortex_a8_build_reg_cache(target);
@@ -1546,7 +1546,7 @@ COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 }
 
 
-static int cortex_a8_register_commands(struct command_context_s *cmd_ctx)
+static int cortex_a8_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *cortex_a8_cmd;
 	int retval = ERROR_OK;

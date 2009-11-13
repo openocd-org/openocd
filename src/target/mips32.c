@@ -331,7 +331,7 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 	return ERROR_OK;
 }
 
-int mips32_register_commands(struct command_context_s *cmd_ctx)
+int mips32_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

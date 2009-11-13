@@ -59,7 +59,7 @@ S3C24XX_DEVICE_COMMAND();
 			return retval; \
 	} while (0)
 
-int s3c24xx_register_commands(struct command_context_s *cmd_ctx);
+int s3c24xx_register_commands(struct command_context *cmd_ctx);
 
 int s3c24xx_reset(struct nand_device *nand);
 

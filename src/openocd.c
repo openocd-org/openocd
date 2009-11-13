@@ -106,7 +106,7 @@ static int log_target_callback_event_handler(struct target *target, enum target_
 	return ERROR_OK;
 }
 
-int ioutil_init(struct command_context_s *cmd_ctx);
+int ioutil_init(struct command_context *cmd_ctx);
 
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
 COMMAND_HANDLER(handle_init_command)
@@ -175,15 +175,15 @@ COMMAND_HANDLER(handle_init_command)
 	return ERROR_OK;
 }
 
-command_context_t *global_cmd_ctx;
+struct command_context *global_cmd_ctx;
 
 /// src/hello.c gives a simple example for writing new command modules
-int hello_register_commands(struct command_context_s *cmd_ctx);
+int hello_register_commands(struct command_context *cmd_ctx);
 
 /* NB! this fn can be invoked outside this file for non PC hosted builds */
-command_context_t *setup_command_handler(void)
+struct command_context *setup_command_handler(void)
 {
-	command_context_t *cmd_ctx;
+	struct command_context *cmd_ctx;
 
 	global_cmd_ctx = cmd_ctx = command_init();
 
@@ -246,7 +246,7 @@ int openocd_main(int argc, char *argv[])
 	int ret;
 
 	/* initialize commandline interface */
-	command_context_t *cmd_ctx;
+	struct command_context *cmd_ctx;
 
 	cmd_ctx = setup_command_handler();
 

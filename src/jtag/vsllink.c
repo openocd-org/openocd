@@ -1880,7 +1880,7 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 }
 #endif // _DEBUG_USB_COMMS_ || _DEBUG_JTAG_IO_
 
-static int vsllink_register_commands(struct command_context_s *cmd_ctx)
+static int vsllink_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "vsllink_usb_vid",
 			vsllink_handle_usb_vid_command, COMMAND_CONFIG,

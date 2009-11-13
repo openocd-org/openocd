@@ -25,15 +25,15 @@
 
 #include "command.h"
 
-int parse_cmdline_args(struct command_context_s *cmd_ctx,
+int parse_cmdline_args(struct command_context *cmd_ctx,
 		int argc, char *argv[]);
 
-int parse_config_file(struct command_context_s *cmd_ctx);
+int parse_config_file(struct command_context *cmd_ctx);
 void add_config_command(const char *cfg);
 
 void add_script_search_dir(const char *dir);
 
-int configuration_output_handler(struct command_context_s *cmd_ctx,
+int configuration_output_handler(struct command_context *cmd_ctx,
 		const char *line);
 
 FILE *open_file_from_path(char *file, char *mode);

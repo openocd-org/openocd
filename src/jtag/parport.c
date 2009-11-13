@@ -485,7 +485,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 	return ERROR_OK;
 }
 
-static int parport_register_commands(struct command_context_s *cmd_ctx)
+static int parport_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port",
 			parport_handle_parport_port_command, COMMAND_CONFIG,

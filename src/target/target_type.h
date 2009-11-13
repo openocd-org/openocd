@@ -151,7 +151,7 @@ struct target_type
 	 */
 	int (*run_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 
-	int (*register_commands)(struct command_context_s *cmd_ctx);
+	int (*register_commands)(struct command_context *cmd_ctx);
 
 	/* called when target is created */
 	int (*target_create)(struct target *target, Jim_Interp *interp);
@@ -177,7 +177,7 @@ struct target_type
 	 * It is illegal to talk to the target at this stage as this fn is invoked
 	 * before the JTAG chain has been examined/verified
 	 * */
-	int (*init_target)(struct command_context_s *cmd_ctx, struct target *target);
+	int (*init_target)(struct command_context *cmd_ctx, struct target *target);
 
 	/* translate from virtual to physical address. Default implementation is successful
 	 * no-op(i.e. virtual==physical).

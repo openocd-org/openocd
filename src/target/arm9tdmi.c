@@ -779,7 +779,7 @@ int arm9tdmi_examine(struct target *target)
 	return ERROR_OK;
 }
 
-int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
+int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	arm9tdmi_build_reg_cache(target);
@@ -936,7 +936,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	return ERROR_OK;
 }
 
-int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
+int arm9tdmi_register_commands(struct command_context *cmd_ctx)
 {
 	int retval;
 	command_t *arm9tdmi_cmd;

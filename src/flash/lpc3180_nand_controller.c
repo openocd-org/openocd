@@ -873,7 +873,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	return ERROR_OK;
 }
 
-static int lpc3180_register_commands(struct command_context_s *cmd_ctx)
+static int lpc3180_register_commands(struct command_context *cmd_ctx)
 {
 	command_t *lpc3180_cmd = register_command(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
 

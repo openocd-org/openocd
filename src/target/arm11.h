@@ -182,7 +182,7 @@ struct arm11_reg_state
 	struct target *			target;
 };
 
-int arm11_register_commands(struct command_context_s *cmd_ctx);
+int arm11_register_commands(struct command_context *cmd_ctx);
 
 int arm11_read_etm(struct arm11_common * arm11, uint8_t address, uint32_t *value);
 int arm11_write_etm(struct arm11_common * arm11, uint8_t address, uint32_t value);

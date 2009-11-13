@@ -40,12 +40,12 @@ void zy1000_reset(int trst, int srst);
 
 
 int zy1000_speed(int speed);
-int zy1000_register_commands(struct command_context_s *cmd_ctx);
+int zy1000_register_commands(struct command_context *cmd_ctx);
 int zy1000_init(void);
 int zy1000_quit(void);
 
 /* interface commands */
-int zy1000_handle_zy1000_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int zy1000_handle_zy1000_port_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
 
 static int zy1000_khz(int khz, int *jtag_speed)
 {
@@ -225,7 +225,7 @@ static void setPower(bool power)
 	}
 }
 
-int handle_power_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_power_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc > 1)
 	{
@@ -354,7 +354,7 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-int zy1000_register_commands(struct command_context_s *cmd_ctx)
+int zy1000_register_commands(struct command_context *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
 			"power <on/off> - turn power switch to target on/off. No arguments - print status.");

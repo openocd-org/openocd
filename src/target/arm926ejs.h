@@ -48,7 +48,7 @@ target_to_arm926(struct target *target)
 
 int arm926ejs_init_arch_info(struct target *target,
 		struct arm926ejs_common *arm926ejs, struct jtag_tap *tap);
-int arm926ejs_register_commands(struct command_context_s *cmd_ctx);
+int arm926ejs_register_commands(struct command_context *cmd_ctx);
 int arm926ejs_arch_state(struct target *target);
 int arm926ejs_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);

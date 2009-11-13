@@ -120,7 +120,7 @@ static int orion_nand_controller_ready(struct nand_device *nand, int timeout)
 	return 1;
 }
 
-static int orion_nand_register_commands(struct command_context_s *cmd_ctx)
+static int orion_nand_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }

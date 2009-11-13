@@ -29,11 +29,11 @@
 #define AVR_JTAG_INS_LEN	4
 
 /* cli handling */
-int avr_register_commands(struct command_context_s *cmd_ctx);
+int avr_register_commands(struct command_context *cmd_ctx);
 
 /* forward declarations */
 int avr_target_create(struct target *target, Jim_Interp *interp);
-int avr_init_target(struct command_context_s *cmd_ctx, struct target *target);
+int avr_init_target(struct command_context *cmd_ctx, struct target *target);
 
 int avr_arch_state(struct target *target);
 int avr_poll(struct target *target);
@@ -96,7 +96,7 @@ struct target_type avr_target =
 	.init_target = avr_init_target,
 };
 
-int avr_register_commands(struct command_context_s *cmd_ctx)
+int avr_register_commands(struct command_context *cmd_ctx)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
@@ -112,7 +112,7 @@ int avr_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-int avr_init_target(struct command_context_s *cmd_ctx, struct target *target)
+int avr_init_target(struct command_context *cmd_ctx, struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;

@@ -1801,7 +1801,7 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-static int arm11_init_target(struct command_context_s *cmd_ctx,
+static int arm11_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	/* Initialize anything we can set up without talking to the target */
@@ -2239,7 +2239,7 @@ struct target_type arm11_target = {
 	};
 
 
-int arm11_register_commands(struct command_context_s *cmd_ctx)
+int arm11_register_commands(struct command_context *cmd_ctx)
 {
 	FNC_INFO;
 

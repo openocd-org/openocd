@@ -373,7 +373,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int e;
 	Jim_Nvp *n;
 	Jim_Obj *o;
-	struct command_context_s *context;
+	struct command_context *context;
 
 	enum {
 		JTAG_CMD_INTERFACE,
@@ -1416,7 +1416,7 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 	return ERROR_OK;
 }
 
-int jtag_register_commands(struct command_context_s *cmd_ctx)
+int jtag_register_commands(struct command_context *cmd_ctx)
 {
 	register_jim(cmd_ctx, "jtag", jim_jtag_command,
 			"perform jtag tap actions");
