@@ -36,19 +36,19 @@ static command_t *mflash_cmd;
 
 static mflash_bank_t *mflash_bank;
 
-static mflash_gpio_drv_t pxa270_gpio = {
+static struct mflash_gpio_drv pxa270_gpio = {
 	.name = "pxa270",
 	.set_gpio_to_output = pxa270_set_gpio_to_output,
 	.set_gpio_output_val = pxa270_set_gpio_output_val
 };
 
-static mflash_gpio_drv_t s3c2440_gpio = {
+static struct mflash_gpio_drv s3c2440_gpio = {
 	.name = "s3c2440",
 	.set_gpio_to_output = s3c2440_set_gpio_to_output,
 	.set_gpio_output_val = s3c2440_set_gpio_output_val
 };
 
-static mflash_gpio_drv_t *mflash_gpio[] =
+static struct mflash_gpio_drv *mflash_gpio[] =
 {
 		&pxa270_gpio,
 		&s3c2440_gpio,
@@ -199,7 +199,7 @@ static int mg_hdrst(uint8_t level)
 static int mg_init_gpio (void)
 {
 	int ret;
-	mflash_gpio_drv_t *gpio_drv = mflash_bank->gpio_drv;
+	struct mflash_gpio_drv *gpio_drv = mflash_bank->gpio_drv;
 
 	ret = gpio_drv->set_gpio_to_output(mflash_bank->rst_pin);
 	if (ret != ERROR_OK)

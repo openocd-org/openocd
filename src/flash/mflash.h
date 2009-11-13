@@ -32,12 +32,12 @@ struct mflash_gpio_num
 	signed short num;
 };
 
-typedef struct mflash_gpio_drv_s
+struct mflash_gpio_drv
 {
 	char *name;
 	int (*set_gpio_to_output) (struct mflash_gpio_num gpio);
 	int (*set_gpio_output_val) (struct mflash_gpio_num gpio, uint8_t val);
-} mflash_gpio_drv_t;
+};
 
 typedef struct _mg_io_type_drv_info {
 
@@ -136,7 +136,7 @@ typedef struct mflash_bank_s
 
 	struct mflash_gpio_num rst_pin;
 
-	mflash_gpio_drv_t *gpio_drv;
+	struct mflash_gpio_drv *gpio_drv;
 	target_t *target;
 	mg_drv_info_t *drv_info;
 } mflash_bank_t;
