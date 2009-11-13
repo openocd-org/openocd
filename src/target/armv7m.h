@@ -126,13 +126,13 @@ struct armv7m_algorithm
 	enum armv7m_mode core_mode;
 };
 
-typedef struct armv7m_core_reg_s
+struct armv7m_core_reg
 {
 	uint32_t num;
 	enum armv7m_regtype type;
 	target_t *target;
 	struct armv7m_common *armv7m_common;
-} armv7m_core_reg_t;
+};
 
 reg_cache_t *armv7m_build_reg_cache(target_t *target);
 enum armv7m_mode armv7m_number_to_mode(int number);

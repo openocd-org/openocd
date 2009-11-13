@@ -181,7 +181,7 @@ char *armv7m_exception_string(int number)
 static int armv7m_get_core_reg(reg_t *reg)
 {
 	int retval;
-	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
+	struct armv7m_core_reg *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
@@ -197,7 +197,7 @@ static int armv7m_get_core_reg(reg_t *reg)
 
 static int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
 {
-	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
+	struct armv7m_core_reg *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
@@ -217,7 +217,7 @@ static int armv7m_read_core_reg(struct target_s *target, int num)
 {
 	uint32_t reg_value;
 	int retval;
-	armv7m_core_reg_t * armv7m_core_reg;
+	struct armv7m_core_reg * armv7m_core_reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
@@ -236,7 +236,7 @@ static int armv7m_write_core_reg(struct target_s *target, int num)
 {
 	int retval;
 	uint32_t reg_value;
-	armv7m_core_reg_t *armv7m_core_reg;
+	struct armv7m_core_reg *armv7m_core_reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
@@ -531,7 +531,7 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = calloc(num_regs, sizeof(reg_t));
-	armv7m_core_reg_t *arch_info = calloc(num_regs, sizeof(armv7m_core_reg_t));
+	struct armv7m_core_reg *arch_info = calloc(num_regs, sizeof(struct armv7m_core_reg));
 	int i;
 
 	if (armv7m_core_reg_arch_type == -1)
