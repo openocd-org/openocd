@@ -216,7 +216,7 @@ static char *svf_command_buffer = NULL;
 static int svf_command_buffer_size = 0;
 static int svf_line_number = 1;
 
-static jtag_tap_t *tap = NULL;
+static struct jtag_tap *tap = NULL;
 
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT	(4 * 1024)
 static uint8_t *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;

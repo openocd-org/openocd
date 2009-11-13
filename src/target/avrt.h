@@ -24,7 +24,7 @@
 
 typedef struct mcu_jtag_s
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 } mcu_jtag_t;
 
 typedef struct avr_common_s

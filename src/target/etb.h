@@ -37,7 +37,7 @@ enum
 typedef struct etb_s
 {
 	etm_context_t *etm_ctx;
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	uint32_t cur_scan_chain;
 	reg_cache_t *reg_cache;
 

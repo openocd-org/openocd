@@ -1708,7 +1708,7 @@ static int cortex_m3_handle_target_request(void *priv)
 }
 
 static int cortex_m3_init_arch_info(target_t *target,
-		cortex_m3_common_t *cortex_m3, jtag_tap_t *tap)
+		cortex_m3_common_t *cortex_m3, struct jtag_tap *tap)
 {
 	int retval;
 	struct armv7m_common_s *armv7m = &cortex_m3->armv7m;

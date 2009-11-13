@@ -537,7 +537,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 
 	int j;
 	int scan_size = 0;
-	jtag_tap_t *tap, *nextTap;
+	struct jtag_tap *tap, *nextTap;
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
@@ -601,7 +601,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 {
 
 	int j;
-	jtag_tap_t *tap, *nextTap;
+	struct jtag_tap *tap, *nextTap;
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
@@ -759,7 +759,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 
 
-void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count)
+void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
 //	static int const reg_addr = 0x5;
 	tap_state_t end_state = jtag_get_end_state();

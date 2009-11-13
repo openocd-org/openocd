@@ -42,7 +42,7 @@ target_to_arm966(struct target_s *target)
 }
 
 int arm966e_init_arch_info(target_t *target,
-		arm966e_common_t *arm966e, jtag_tap_t *tap);
+		arm966e_common_t *arm966e, struct jtag_tap *tap);
 int arm966e_register_commands(struct command_context_s *cmd_ctx);
 int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value);
 

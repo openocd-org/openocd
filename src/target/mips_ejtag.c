@@ -29,7 +29,7 @@
 
 int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_me_and_submit_patch)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 
 	tap = ejtag_info->tap;
 	if (tap == NULL)
@@ -100,7 +100,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode)
 
 int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	tap  = ejtag_info->tap;
 
 	if (tap == NULL)

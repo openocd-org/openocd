@@ -20,7 +20,7 @@
 
 
 
-static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
+static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,
@@ -29,7 +29,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 	/* synchronously do the operation here */
 }
 
-static __inline__ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
+static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,

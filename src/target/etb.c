@@ -44,7 +44,7 @@ static int etb_get_reg(reg_t *reg);
 
 static int etb_set_instr(etb_t *etb, uint32_t new_instr)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 
 	tap = etb->tap;
 	if (tap == NULL)
@@ -352,7 +352,7 @@ static int etb_write_reg(reg_t *reg, uint32_t value)
 COMMAND_HANDLER(handle_etb_config_command)
 {
 	target_t *target;
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	struct arm *arm;
 
 	if (argc != 2)

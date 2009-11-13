@@ -26,7 +26,6 @@
 #include "binarybuffer.h"
 #include "log.h"
 
-
 #ifdef _DEBUG_JTAG_IO_
 #define DEBUG_JTAG_IO(expr ...) \
 	do { if (1) LOG_DEBUG(expr); } while (0)
@@ -123,7 +122,7 @@ extern tap_state_t cmd_queue_cur_state;
 typedef struct scan_field_s
 {
 	/// A pointer to the tap structure to which this field refers.
-	jtag_tap_t* tap;
+	struct jtag_tap* tap;
 
 	/// The number of bits this field specifies (up to 32)
 	int num_bits;
@@ -147,11 +146,7 @@ typedef struct scan_field_s
 
 typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
 
-/* this is really: typedef jtag_tap_t */
-/* But - the typedef is done in "types.h" */
-/* due to "forward declaration reasons" */
-struct jtag_tap_s
-{
+struct jtag_tap {
 	const char* chip;
 	const char* tapname;
 	const char* dotted_name;
@@ -182,17 +177,17 @@ struct jtag_tap_s
 
 	jtag_tap_event_action_t *event_action;
 
-	jtag_tap_t* next_tap;
+	struct jtag_tap* next_tap;
 };
 
-void jtag_tap_init(jtag_tap_t *tap);
-void jtag_tap_free(jtag_tap_t *tap);
+void jtag_tap_init(struct jtag_tap *tap);
+void jtag_tap_free(struct jtag_tap *tap);
 
-jtag_tap_t* jtag_all_taps(void);
-const char *jtag_tap_name(const jtag_tap_t *tap);
-jtag_tap_t* jtag_tap_by_string(const char* dotted_name);
-jtag_tap_t* jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj* obj);
-jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p);
+struct jtag_tap* jtag_all_taps(void);
+const char *jtag_tap_name(const struct jtag_tap *tap);
+struct jtag_tap* jtag_tap_by_string(const char* dotted_name);
+struct jtag_tap* jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj* obj);
+struct jtag_tap* jtag_tap_next_enabled(struct jtag_tap* p);
 unsigned jtag_tap_count_enabled(void);
 unsigned jtag_tap_count(void);
 
@@ -702,7 +697,7 @@ void jtag_sleep(uint32_t us);
  * There is no jtag_add_dr_outin() version of this fn that also allows
  * clocking data back in. Patches gladly accepted!
  */
-void jtag_add_dr_out(jtag_tap_t* tap,
+void jtag_add_dr_out(struct jtag_tap* tap,
 		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state);
 

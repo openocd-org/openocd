@@ -127,7 +127,7 @@ typedef struct mips32_core_reg_s
 int mips32_arch_state(struct target_s *target);
 
 int mips32_init_arch_info(target_t *target,
-		mips32_common_t *mips32, jtag_tap_t *tap);
+		mips32_common_t *mips32, struct jtag_tap *tap);
 
 int mips32_restore_context(target_t *target);
 int mips32_save_context(target_t *target);

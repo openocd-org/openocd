@@ -217,7 +217,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 	   additional devices in the scan chain, otherwise the device
 	   that should be affected
 	*/
-	jtag_tap_t *tap = NULL;
+	struct jtag_tap *tap = NULL;
 
 	if (argc < 2)
 	{

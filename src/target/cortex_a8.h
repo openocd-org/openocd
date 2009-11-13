@@ -144,6 +144,6 @@ target_to_cortex_a8(struct target_s *target)
 }
 
 int cortex_a8_init_arch_info(target_t *target,
-		cortex_a8_common_t *cortex_a8, jtag_tap_t *tap);
+		cortex_a8_common_t *cortex_a8, struct jtag_tap *tap);
 
 #endif /* CORTEX_A8_H */

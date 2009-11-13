@@ -78,7 +78,7 @@ static int jtag_srst = -1;
 /**
  * List all TAPs that have been created.
  */
-static jtag_tap_t *__jtag_all_taps = NULL;
+static struct jtag_tap *__jtag_all_taps = NULL;
 /**
  * The number of TAPs in the __jtag_all_taps list, used to track the
  * assigned chain position to new TAPs
@@ -164,7 +164,7 @@ void jtag_poll_set_enabled(bool value)
 
 /************/
 
-jtag_tap_t *jtag_all_taps(void)
+struct jtag_tap *jtag_all_taps(void)
 {
 	return __jtag_all_taps;
 };
@@ -176,7 +176,7 @@ unsigned jtag_tap_count(void)
 
 unsigned jtag_tap_count_enabled(void)
 {
-	jtag_tap_t *t = jtag_all_taps();
+	struct jtag_tap *t = jtag_all_taps();
 	unsigned n = 0;
 	while (t)
 	{
@@ -188,20 +188,20 @@ unsigned jtag_tap_count_enabled(void)
 }
 
 /// Append a new TAP to the chain of all taps.
-void jtag_tap_add(struct jtag_tap_s *t)
+void jtag_tap_add(struct jtag_tap *t)
 {
 	t->abs_chain_position = jtag_num_taps++;
 
-	jtag_tap_t **tap = &__jtag_all_taps;
+	struct jtag_tap **tap = &__jtag_all_taps;
 	while (*tap != NULL)
 		tap = &(*tap)->next_tap;
 	*tap = t;
 }
 
 /* returns a pointer to the n-th device in the scan chain */
-static inline jtag_tap_t *jtag_tap_by_position(unsigned n)
+static inline struct jtag_tap *jtag_tap_by_position(unsigned n)
 {
-	jtag_tap_t *t = jtag_all_taps();
+	struct jtag_tap *t = jtag_all_taps();
 
 	while (t && n-- > 0)
 		t = t->next_tap;
@@ -209,10 +209,10 @@ static inline jtag_tap_t *jtag_tap_by_position(unsigned n)
 	return t;
 }
 
-jtag_tap_t *jtag_tap_by_string(const char *s)
+struct jtag_tap *jtag_tap_by_string(const char *s)
 {
 	/* try by name first */
-	jtag_tap_t *t = jtag_all_taps();
+	struct jtag_tap *t = jtag_all_taps();
 
 	while (t)
 	{
@@ -238,10 +238,10 @@ jtag_tap_t *jtag_tap_by_string(const char *s)
 	return t;
 }
 
-jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
+struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 {
 	const char *cp = Jim_GetString(o, NULL);
-	jtag_tap_t *t = cp ? jtag_tap_by_string(cp) : NULL;
+	struct jtag_tap *t = cp ? jtag_tap_by_string(cp) : NULL;
 	if (NULL == cp)
 		cp = "(unknown)";
 	if (NULL == t)
@@ -249,7 +249,7 @@ jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 	return t;
 }
 
-jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p)
+struct jtag_tap* jtag_tap_next_enabled(struct jtag_tap* p)
 {
 	p = p ? p->next_tap : jtag_all_taps();
 	while (p)
@@ -261,7 +261,7 @@ jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p)
 	return NULL;
 }
 
-const char *jtag_tap_name(const jtag_tap_t *tap)
+const char *jtag_tap_name(const struct jtag_tap *tap)
 {
 	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
 }
@@ -496,7 +496,7 @@ void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 	jtag_set_error(retval);
 }
 
-void jtag_add_dr_out(jtag_tap_t* tap,
+void jtag_add_dr_out(struct jtag_tap* tap,
 		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state)
 {
@@ -856,7 +856,7 @@ int jtag_execute_queue(void)
 
 static int jtag_reset_callback(enum jtag_event event, void *priv)
 {
-	jtag_tap_t *tap = priv;
+	struct jtag_tap *tap = priv;
 
 	if (event == JTAG_TRST_ASSERTED)
 	{
@@ -989,7 +989,7 @@ static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 	return triggered;
 }
 
-static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
+static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 {
 	/* ignore expected BYPASS codes; warn otherwise */
 	if (0 == tap->expected_ids_cnt && !tap->idcode)
@@ -1044,7 +1044,7 @@ static int jtag_examine_chain(void)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* point at the 1st tap */
-	jtag_tap_t *tap = jtag_tap_next_enabled(NULL);
+	struct jtag_tap *tap = jtag_tap_next_enabled(NULL);
 
 	if (!tap)
 		autoprobe = true;
@@ -1168,7 +1168,7 @@ static int jtag_examine_chain(void)
  */
 static int jtag_validate_ircapture(void)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	int total_ir_length = 0;
 	uint8_t *ir_test = NULL;
 	scan_field_t field;
@@ -1280,7 +1280,7 @@ done:
 }
 
 
-void jtag_tap_init(jtag_tap_t *tap)
+void jtag_tap_init(struct jtag_tap *tap)
 {
 	unsigned ir_len_bits;
 	unsigned ir_len_bytes;
@@ -1315,7 +1315,7 @@ void jtag_tap_init(jtag_tap_t *tap)
 	jtag_tap_add(tap);
 }
 
-void jtag_tap_free(jtag_tap_t *tap)
+void jtag_tap_free(struct jtag_tap *tap)
 {
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
@@ -1371,7 +1371,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 
 int jtag_init_inner(struct command_context_s *cmd_ctx)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	int retval;
 	bool issue_setup = true;
 

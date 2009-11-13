@@ -148,7 +148,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 
 
 
-static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
+static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,
@@ -156,7 +156,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 {
 	enum tap_state pause_state = TAP_DRSHIFT;
 
-	jtag_tap_t *tap, *nextTap;
+	struct jtag_tap *tap, *nextTap;
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
@@ -180,7 +180,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 	}
 }
 
-static __inline__ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
+static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,

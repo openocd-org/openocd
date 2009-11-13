@@ -32,7 +32,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap_t *tap)
+int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;

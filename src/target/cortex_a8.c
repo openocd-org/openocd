@@ -1451,7 +1451,7 @@ static int cortex_a8_init_target(struct command_context_s *cmd_ctx,
 }
 
 int cortex_a8_init_arch_info(target_t *target,
-		cortex_a8_common_t *cortex_a8, jtag_tap_t *tap)
+		cortex_a8_common_t *cortex_a8, struct jtag_tap *tap)
 {
 	armv4_5_common_t *armv4_5;
 	armv7a_common_t *armv7a;

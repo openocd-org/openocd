@@ -100,7 +100,7 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
  */
 void arm11_add_IR(arm11_common_t * arm11, uint8_t instr, tap_state_t state)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	tap = arm11->target->tap;
 
 	if (buf_get_u32(tap->cur_instr, 0, 5) == instr)

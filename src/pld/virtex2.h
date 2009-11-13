@@ -24,7 +24,7 @@
 
 typedef struct virtex2_pld_device_s
 {
-  jtag_tap_t *tap;
+  struct jtag_tap *tap;
 } virtex2_pld_device_t;
 
 #endif /* VIRTEX2_H */

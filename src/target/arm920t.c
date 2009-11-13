@@ -620,7 +620,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t *tap)
+int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, struct jtag_tap *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;

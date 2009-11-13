@@ -81,7 +81,7 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 	field->in_value = (uint8_t *)cmd_queue_alloc(num_bytes);
 }
 
-void interface_jtag_add_dr_out(jtag_tap_t* tap,
+void interface_jtag_add_dr_out(struct jtag_tap* tap,
 		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state);
 

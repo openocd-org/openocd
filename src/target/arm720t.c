@@ -377,7 +377,7 @@ static int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_
 }
 
 static int arm720t_init_arch_info(target_t *target,
-		arm720t_common_t *arm720t, jtag_tap_t *tap)
+		arm720t_common_t *arm720t, struct jtag_tap *tap)
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;

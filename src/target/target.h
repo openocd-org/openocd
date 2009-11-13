@@ -136,7 +136,7 @@ typedef struct target_s
 	target_type_t *type;				/* target type definition (name, access functions) */
 	const char *cmd_name;				/* tcl Name of target */
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
-	jtag_tap_t *tap;					/* where on the jtag chain is this */
+	struct jtag_tap *tap;					/* where on the jtag chain is this */
 	const char *variant;				/* what varient of this chip is it? */
 	target_event_action_t *event_action;
 

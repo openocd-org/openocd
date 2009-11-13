@@ -26,7 +26,7 @@
 #include "pld.h"
 
 
-static int virtex2_set_instr(jtag_tap_t *tap, uint32_t new_instr)
+static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 {
 	if (tap == NULL)
 		return ERROR_FAIL;
@@ -209,7 +209,7 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 
 PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 
 	virtex2_pld_device_t *virtex2_info;
 

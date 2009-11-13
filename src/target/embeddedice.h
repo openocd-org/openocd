@@ -116,7 +116,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout);
 /* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of
  * embeddedice_write_reg
  */
-static __inline__ void embeddedice_write_reg_inner(jtag_tap_t *tap, int reg_addr, uint32_t value)
+static __inline__ void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg_addr, uint32_t value)
 {
 	static const int embeddedice_num_bits[]={32,5,1};
 	uint32_t values[3];
@@ -132,6 +132,6 @@ static __inline__ void embeddedice_write_reg_inner(jtag_tap_t *tap, int reg_addr
 			jtag_get_end_state());
 }
 
-void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count);
+void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count);
 
 #endif /* EMBEDDED_ICE_H */

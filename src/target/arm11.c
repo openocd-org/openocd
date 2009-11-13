@@ -2066,7 +2066,7 @@ static const uint32_t arm11_coproc_instruction_limits[] =
 
 static arm11_common_t * arm11_find_target(const char * arg)
 {
-	jtag_tap_t *	tap;
+	struct jtag_tap *	tap;
 	target_t *		t;
 
 	tap = jtag_tap_by_string(arg);

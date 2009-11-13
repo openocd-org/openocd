@@ -315,7 +315,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	return cache;
 }
 
-int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t *tap)
+int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, struct jtag_tap *tap)
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;

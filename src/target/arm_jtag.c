@@ -33,7 +33,7 @@
 
 int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_verify_capture)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	tap = jtag_info->tap;
 	if (tap == NULL)
 		return ERROR_FAIL;

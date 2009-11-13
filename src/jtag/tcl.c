@@ -61,7 +61,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = NULL,          .value = -1 }
 };
 
-static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, jtag_tap_t * tap)
+static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, struct jtag_tap * tap)
 {
 	Jim_Nvp *n;
 	Jim_Obj *o;
@@ -165,7 +165,7 @@ static int is_bad_irval(int ir_length, jim_wide w)
 
 static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 {
-	jtag_tap_t *pTap;
+	struct jtag_tap *pTap;
 	jim_wide w;
 	int x;
 	int e;
@@ -187,7 +187,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		{ .name = NULL				,	.value = -1 },
 	};
 
-	pTap = calloc(1, sizeof(jtag_tap_t));
+	pTap = calloc(1, sizeof(struct jtag_tap));
 	if (!pTap) {
 		Jim_SetResult_sprintf(goi->interp, "no memory");
 		return JIM_ERR;
@@ -335,7 +335,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	return JIM_ERR;
 }
 
-static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
+static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 {
 	jtag_tap_event_action_t * jteap;
 
@@ -459,7 +459,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 
 		{
-			jtag_tap_t *t;
+			struct jtag_tap *t;
 
 			t = jtag_tap_by_jim_obj(goi.interp, goi.argv[0]);
 			if (t == NULL)
@@ -511,7 +511,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 
 		{
-			jtag_tap_t *t;
+			struct jtag_tap *t;
 
 			Jim_GetOpt_Obj(&goi, &o);
 			t = jtag_tap_by_jim_obj(goi.interp, o);
@@ -532,7 +532,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 
 		{
-			jtag_tap_t *t;
+			struct jtag_tap *t;
 
 			Jim_GetOpt_Obj(&goi, &o);
 			t = jtag_tap_by_jim_obj(goi.interp, o);
@@ -552,7 +552,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 		Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
 		{
-			jtag_tap_t *tap;
+			struct jtag_tap *tap;
 
 			for (tap = jtag_all_taps(); tap; tap = tap->next_tap) {
 				Jim_ListAppendElement(goi.interp,
@@ -572,7 +572,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 void jtag_notify_event(enum jtag_event event)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 
 	for (tap = jtag_all_taps(); tap; tap = tap->next_tap)
 		jtag_tap_handle_event(tap, event);
@@ -664,7 +664,7 @@ COMMAND_HANDLER(handle_interface_command)
 
 COMMAND_HANDLER(handle_scan_chain_command)
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 
 	tap = jtag_all_taps();
 	command_print(cmd_ctx, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
@@ -1079,7 +1079,7 @@ COMMAND_HANDLER(handle_irscan_command)
 {
 	int i;
 	scan_field_t *fields;
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	tap_state_t endstate;
 
 	if ((argc < 2) || (argc % 2))
@@ -1163,7 +1163,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 	int num_fields;
 	int field_count = 0;
 	int i, e;
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	tap_state_t endstate;
 
 	/* args[1] = device

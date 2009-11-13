@@ -3785,7 +3785,7 @@ static int target_configure(Jim_GetOptInfo *goi, target_t *target)
 		case TCFG_CHAIN_POSITION:
 			if (goi->isconfigure) {
 				Jim_Obj *o;
-				jtag_tap_t *tap;
+				struct jtag_tap *tap;
 				target_free_all_working_areas(target);
 				e = Jim_GetOpt_Obj(goi, &o);
 				if (e != JIM_OK) {

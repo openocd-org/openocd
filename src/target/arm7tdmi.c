@@ -691,7 +691,7 @@ int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_tap_t *tap)
+int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, struct jtag_tap *tap)
 {
 	struct arm7_9_common_s *arm7_9 = &arm7tdmi->arm7_9_common;
 

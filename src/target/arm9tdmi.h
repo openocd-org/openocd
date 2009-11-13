@@ -55,7 +55,7 @@ int arm9tdmi_init_target(struct command_context_s *cmd_ctx,
 		struct target_s *target);
 int arm9tdmi_examine(struct target_s *target);
 int arm9tdmi_init_arch_info(target_t *target,
-		arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap);
+		arm9tdmi_common_t *arm9tdmi, struct jtag_tap *tap);
 int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
 int arm9tdmi_clock_out(arm_jtag_t *jtag_info,

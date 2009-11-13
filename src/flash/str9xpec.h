@@ -28,7 +28,7 @@
 
 typedef struct str9xpec_flash_controller_s
 {
-	jtag_tap_t *tap;
+	struct jtag_tap *tap;
 	uint32_t *sector_bits;
 	int chain_pos;
 	int isc_enable;

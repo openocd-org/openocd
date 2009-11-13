@@ -33,8 +33,6 @@
 #include <inttypes.h>
 #endif
 
-typedef struct jtag_tap_s jtag_tap_t;
-
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #else	/* HAVE_STDBOOL_H */

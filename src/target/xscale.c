@@ -156,7 +156,7 @@ static int xscale_verify_pointer(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_jtag_set_instr(jtag_tap_t *tap, uint32_t new_instr)
+static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 {
 	if (tap == NULL)
 		return ERROR_FAIL;
@@ -2868,7 +2868,7 @@ static int xscale_init_target(struct command_context_s *cmd_ctx,
 }
 
 static int xscale_init_arch_info(target_t *target,
-		xscale_common_t *xscale, jtag_tap_t *tap, const char *variant)
+		xscale_common_t *xscale, struct jtag_tap *tap, const char *variant)
 {
 	armv4_5_common_t *armv4_5;
 	uint32_t high_reset_branch, low_reset_branch;
