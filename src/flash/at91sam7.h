@@ -25,7 +25,7 @@
 
 #include "flash.h"
 
-typedef struct at91sam7_flash_bank_s
+struct at91sam7_flash_bank
 {
 	/* chip id register */
 	uint32_t cidr;
@@ -67,7 +67,7 @@ typedef struct at91sam7_flash_bank_s
 	/* external clock frequency */
 	uint32_t ext_freq;
 
-} at91sam7_flash_bank_t;
+};
 
 
 /* AT91SAM7 control registers */
