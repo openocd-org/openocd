@@ -22,14 +22,14 @@
 
 #include "jtag.h"
 
-typedef struct mcu_jtag_s
+struct mcu_jtag
 {
 	struct jtag_tap *tap;
-} mcu_jtag_t;
+};
 
 typedef struct avr_common_s
 {
-	mcu_jtag_t jtag_info;
+	struct mcu_jtag jtag_info;
 } avr_common_t;
 
 #endif /* AVRT_H */
