@@ -45,7 +45,7 @@
 int debug_level = -1;
 
 static FILE* log_output;
-static log_callback_t *log_callbacks = NULL;
+static struct log_callback *log_callbacks = NULL;
 
 static long long last_time;
 static long long current_time;
@@ -82,7 +82,7 @@ static void log_forward(const char *file, int line, const char *function, const 
 {
 	if (log_forward_count==0)
 	{
-		log_callback_t *cb, *next;
+		struct log_callback *cb, *next;
 		cb = log_callbacks;
 		/* DANGER!!!! the log callback can remove itself!!!! */
 		while (cb)
@@ -353,7 +353,7 @@ int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
 /* add/remove log callback handler */
 int log_add_callback(log_callback_fn fn, void *priv)
 {
-	log_callback_t *cb;
+	struct log_callback *cb;
 
 	/* prevent the same callback to be registered more than once, just for sure */
 	for (cb = log_callbacks; cb; cb = cb->next)
@@ -363,7 +363,7 @@ int log_add_callback(log_callback_fn fn, void *priv)
 	}
 
 	/* alloc memory, it is safe just to return in case of an error, no need for the caller to check this */
-	if ((cb = malloc(sizeof(log_callback_t))) == NULL)
+	if ((cb = malloc(sizeof(struct log_callback))) == NULL)
 		return ERROR_BUF_TOO_SMALL;
 
 	/* add item to the beginning of the linked list */
@@ -377,7 +377,7 @@ int log_add_callback(log_callback_fn fn, void *priv)
 
 int log_remove_callback(log_callback_fn fn, void *priv)
 {
-	log_callback_t *cb, **p;
+	struct log_callback *cb, **p;
 
 	for (p = &log_callbacks; (cb = *p); p = &(*p)->next)
 	{

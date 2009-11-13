@@ -88,12 +88,11 @@ void log_rethrow(void);
 typedef void (*log_callback_fn)(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
-typedef struct log_callback_s
-{
+struct log_callback {
 	log_callback_fn fn;
 	void *priv;
-	struct log_callback_s *next;
-} log_callback_t;
+	struct log_callback *next;
+};
 
 int log_add_callback(log_callback_fn fn, void *priv);
 int log_remove_callback(log_callback_fn fn, void *priv);
