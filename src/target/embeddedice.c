@@ -170,7 +170,7 @@ embeddedice_build_reg_cache(target_t *target, struct arm7_9_common *arm7_9)
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
 	embeddedice_reg_t *arch_info = NULL;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int num_regs = ARRAY_SIZE(eice_regs);
 	int i;
 	int eice_version = 0;
@@ -396,7 +396,7 @@ int embeddedice_read_reg_w_check(reg_t *reg,
  * functional clock, so the 50+ JTAG clocks needed to receive the word
  * allow hundreds of instruction cycles (per word) in the target.
  */
-int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
+int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 {
 	struct scan_field fields[3];
 	uint8_t field1_out[1];
@@ -517,7 +517,7 @@ void embeddedice_store_reg(reg_t *reg)
  * functional clock, so the 50+ JTAG clocks needed to receive the word
  * allow hundreds of instruction cycles (per word) in the target.
  */
-int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
+int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 {
 	struct scan_field fields[3];
 	uint8_t field0_out[4];
@@ -562,7 +562,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 /**
  * Poll DCC control register until read or write handshake completes.
  */
-int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
+int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeout)
 {
 	struct scan_field fields[3];
 	uint8_t field0_in[4];

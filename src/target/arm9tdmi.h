@@ -58,10 +58,10 @@ int arm9tdmi_init_arch_info(target_t *target,
 		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap);
 int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
-int arm9tdmi_clock_out(arm_jtag_t *jtag_info,
+int arm9tdmi_clock_out(struct arm_jtag *jtag_info,
 		uint32_t instr, uint32_t out, uint32_t *in, int sysspeed);
-int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in);
-int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
+int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in);
+int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 		void *in, int size, int be);
 void arm9tdmi_read_core_regs(target_t *target,
 		uint32_t mask, uint32_t* core_regs[16]);

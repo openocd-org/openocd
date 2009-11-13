@@ -44,7 +44,7 @@ static void fa526_read_core_regs(target_t *target,
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* STMIA r0-15, [r0] at debug speed
 	 * register values will start to appear on 4th DCLK
@@ -71,7 +71,7 @@ static void fa526_read_core_regs_target_buffer(target_t *target,
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	uint32_t *buf_u32 = buffer;
 	uint16_t *buf_u16 = buffer;
@@ -111,7 +111,7 @@ static void fa526_read_core_regs_target_buffer(target_t *target,
 static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* MRS r0, cpsr */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MRS(0, spsr & 1), 0, NULL, 0);
@@ -136,7 +136,7 @@ static void fa526_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 static void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr: %8.8" PRIx32 ", spsr: %i", xpsr, spsr);
 
@@ -173,7 +173,7 @@ static void fa526_write_xpsr_im8(target_t *target,
 		uint8_t xpsr_im, int rot, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
 
@@ -201,7 +201,7 @@ static void fa526_write_core_regs(target_t *target,
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
 	* register values will start to appear on 4th DCLK
@@ -227,7 +227,7 @@ static void fa526_write_core_regs(target_t *target,
 static void fa526_write_pc(target_t *target, uint32_t pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
 	 * register values will start to appear on 4th DCLK

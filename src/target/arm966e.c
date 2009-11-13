@@ -71,7 +71,7 @@ static int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	struct scan_field fields[3];
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 0;
@@ -123,7 +123,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	struct scan_field fields[3];
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 1;

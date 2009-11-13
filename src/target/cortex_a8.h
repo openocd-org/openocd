@@ -103,7 +103,7 @@ typedef struct  cortex_a8_wrp_s
 typedef struct cortex_a8_common_s
 {
 	int common_magic;
-	arm_jtag_t jtag_info;
+	struct arm_jtag jtag_info;
 
 	/* Context information */
 	uint32_t cpudbg_dscr;

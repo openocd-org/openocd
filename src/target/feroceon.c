@@ -69,7 +69,7 @@ int feroceon_assert_reset(target_t *target)
 	return arm7_9_assert_reset(target);
 }
 
-int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, uint32_t instr)
+int feroceon_dummy_clock_out(struct arm_jtag *jtag_info, uint32_t instr)
 {
 	struct scan_field fields[3];
 	uint8_t out_buf[4];
@@ -112,7 +112,7 @@ void feroceon_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/*
 	 * save r0 before using it and put system in ARM state
@@ -159,7 +159,7 @@ void feroceon_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_reg
 	int i;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask & 0xffff, 0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -178,7 +178,7 @@ void feroceon_read_core_regs_target_buffer(target_t *target, uint32_t mask, void
 	int i;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	uint32_t *buf_u32 = buffer;
 	uint16_t *buf_u16 = buffer;
@@ -214,7 +214,7 @@ void feroceon_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MRS(0, spsr & 1), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -237,7 +237,7 @@ void feroceon_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr: %8.8" PRIx32 ", spsr: %i", xpsr, spsr);
 
@@ -278,7 +278,7 @@ void feroceon_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int sps
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
 
@@ -296,7 +296,7 @@ void feroceon_write_core_regs(target_t *target, uint32_t mask, uint32_t core_reg
 	int i;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -315,7 +315,7 @@ void feroceon_branch_resume(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -332,7 +332,7 @@ void feroceon_branch_resume_thumb(target_t *target)
 
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	uint32_t r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	uint32_t pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
@@ -365,7 +365,7 @@ int feroceon_read_cp15(target_t *target, uint32_t op1, uint32_t op2, uint32_t CR
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int err;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MRC(15, op1, 0, CRn, CRm, op2), 0, NULL, 0);
@@ -387,7 +387,7 @@ int feroceon_write_cp15(target_t *target, uint32_t op1, uint32_t op2, uint32_t C
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, 1, 0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);

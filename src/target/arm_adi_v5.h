@@ -79,12 +79,12 @@
 struct swjdp_reg
 {
 	int addr;
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 };
 
 struct swjdp_common
 {
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 	/* Control config */
 	uint32_t dp_ctrl_stat;
 	/* Support for several AP's in one DAP */

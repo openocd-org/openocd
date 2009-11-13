@@ -703,7 +703,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* set RESTART instruction */
@@ -756,7 +756,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	static uint8_t check_value[4], check_mask[4];
 
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* set RESTART instruction */
@@ -797,7 +797,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 int arm7_9_target_request_data(target_t *target, uint32_t size, uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	uint32_t *data;
 	int retval = ERROR_OK;
 	uint32_t i;
@@ -833,7 +833,7 @@ int arm7_9_handle_target_request(void *priv)
 	if (!target_was_examined(target))
 		return ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
 
 	if (!target->dbg_msg_enabled)
@@ -1748,7 +1748,7 @@ int arm7_9_restore_context(target_t *target)
 int arm7_9_restart_core(struct target_s *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* set RESTART instruction */
 	jtag_set_end_state(TAP_IDLE);

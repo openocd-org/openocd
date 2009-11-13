@@ -43,7 +43,7 @@ static int arm720t_scan_cp15(target_t *target,
 {
 	int retval;
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 	struct scan_field fields[2];
 	uint8_t out_buf[4];
 	uint8_t instruction_buf = instruction;
@@ -414,7 +414,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 
 	retval = arm720t_verify_pointer(cmd_ctx, arm720t);
 	if (retval != ERROR_OK)

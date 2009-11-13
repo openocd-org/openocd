@@ -75,7 +75,7 @@ typedef struct etm_reg_s
 {
 	uint32_t value;
 	const struct etm_reg_info *reg_info;
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 } etm_reg_t;
 
 typedef enum
@@ -208,7 +208,7 @@ typedef enum
 } etmv1_branch_reason_t;
 
 reg_cache_t* etm_build_reg_cache(target_t *target,
-		arm_jtag_t *jtag_info, etm_context_t *etm_ctx);
+		struct arm_jtag *jtag_info, etm_context_t *etm_ctx);
 
 int etm_setup(target_t *target);
 

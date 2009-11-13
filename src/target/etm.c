@@ -247,7 +247,7 @@ static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
 	return NULL;
 }
 
-static void etm_reg_add(unsigned bcd_vers, arm_jtag_t *jtag_info,
+static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
 		reg_cache_t *cache, etm_reg_t *ereg,
 		const struct etm_reg_info *r, unsigned nreg)
 {
@@ -280,7 +280,7 @@ static void etm_reg_add(unsigned bcd_vers, arm_jtag_t *jtag_info,
 }
 
 reg_cache_t *etm_build_reg_cache(target_t *target,
-		arm_jtag_t *jtag_info, etm_context_t *etm_ctx)
+		struct arm_jtag *jtag_info, etm_context_t *etm_ctx)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;

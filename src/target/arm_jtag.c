@@ -31,7 +31,7 @@
 #define _ARM_JTAG_SCAN_N_CHECK_
 #endif
 
-int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_verify_capture)
+int arm_jtag_set_instr(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture)
 {
 	struct jtag_tap *tap;
 	tap = jtag_info->tap;
@@ -66,7 +66,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_veri
 	return ERROR_OK;
 }
 
-int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain)
+int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
 {
 	int retval = ERROR_OK;
 	if (jtag_info->cur_scan_chain != new_scan_chain)
@@ -96,7 +96,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain)
 
 int arm_jtag_reset_callback(enum jtag_event event, void *priv)
 {
-	arm_jtag_t *jtag_info = priv;
+	struct arm_jtag *jtag_info = priv;
 
 	if (event == JTAG_TRST_ASSERTED)
 	{
@@ -106,7 +106,7 @@ int arm_jtag_reset_callback(enum jtag_event event, void *priv)
 	return ERROR_OK;
 }
 
-int arm_jtag_setup_connection(arm_jtag_t *jtag_info)
+int arm_jtag_setup_connection(struct arm_jtag *jtag_info)
 {
 	jtag_info->scann_instr = 0x2;
 	jtag_info->cur_scan_chain = 0;

@@ -90,7 +90,7 @@ enum
 typedef struct embeddedice_reg_s
 {
 	int addr;
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 } embeddedice_reg_t;
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target,
@@ -108,10 +108,10 @@ void embeddedice_store_reg(reg_t *reg);
 void embeddedice_set_reg(reg_t *reg, uint32_t value);
 int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf);
 
-int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size);
-int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size);
+int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);
+int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);
 
-int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout);
+int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeout);
 
 /* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of
  * embeddedice_write_reg

@@ -124,7 +124,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 /* put an instruction in the ARM9TDMI pipeline or write the data bus,
  * and optionally read data
  */
-int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr,
+int arm9tdmi_clock_out(struct arm_jtag *jtag_info, uint32_t instr,
 		uint32_t out, uint32_t *in, int sysspeed)
 {
 	int retval = ERROR_OK;
@@ -198,7 +198,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr,
 }
 
 /* just read data (instruction and data-out = don't care) */
-int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
+int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 {
 	int retval = ERROR_OK;;
 	struct scan_field fields[3];
@@ -269,7 +269,7 @@ static int arm9endianness(jtag_callback_data_t arg,
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be == 1) or little (be == 0) endianness
  */
-int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info,
+int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 		void *in, int size, int be)
 {
 	int retval = ERROR_OK;
@@ -330,7 +330,7 @@ static void arm9tdmi_change_to_arm(target_t *target,
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* save r0 before using it and put system in ARM state
 	 * to allow common handling of ARM and THUMB debugging */
@@ -384,7 +384,7 @@ void arm9tdmi_read_core_regs(target_t *target,
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* STMIA r0-15, [r0] at debug speed
 	 * register values will start to appear on 4th DCLK
@@ -409,7 +409,7 @@ static void arm9tdmi_read_core_regs_target_buffer(target_t *target,
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	uint32_t *buf_u32 = buffer;
 	uint16_t *buf_u16 = buffer;
@@ -447,7 +447,7 @@ static void arm9tdmi_read_core_regs_target_buffer(target_t *target,
 static void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* MRS r0, cpsr */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MRS(0, spsr & 1), 0, NULL, 0);
@@ -469,7 +469,7 @@ static void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 static void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr: %8.8" PRIx32 ", spsr: %i", xpsr, spsr);
 
@@ -504,7 +504,7 @@ static void arm9tdmi_write_xpsr_im8(target_t *target,
 		uint8_t xpsr_im, int rot, int spsr)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
 
@@ -530,7 +530,7 @@ void arm9tdmi_write_core_regs(target_t *target,
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
 	* register values will start to appear on 4th DCLK
@@ -554,7 +554,7 @@ void arm9tdmi_write_core_regs(target_t *target,
 void arm9tdmi_load_word_regs(target_t *target, uint32_t mask)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed load-multiple into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 1), 0, NULL, 0);
@@ -564,7 +564,7 @@ void arm9tdmi_load_word_regs(target_t *target, uint32_t mask)
 void arm9tdmi_load_hword_reg(target_t *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed load half-word into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDRH_IP(num, 0), 0, NULL, 0);
@@ -574,7 +574,7 @@ void arm9tdmi_load_hword_reg(target_t *target, int num)
 void arm9tdmi_load_byte_reg(target_t *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed load byte into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDRB_IP(num, 0), 0, NULL, 0);
@@ -584,7 +584,7 @@ void arm9tdmi_load_byte_reg(target_t *target, int num)
 void arm9tdmi_store_word_regs(target_t *target, uint32_t mask)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed store-multiple into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask, 0, 1), 0, NULL, 0);
@@ -594,7 +594,7 @@ void arm9tdmi_store_word_regs(target_t *target, uint32_t mask)
 void arm9tdmi_store_hword_reg(target_t *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed store half-word into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STRH_IP(num, 0), 0, NULL, 0);
@@ -604,7 +604,7 @@ void arm9tdmi_store_hword_reg(target_t *target, int num)
 void arm9tdmi_store_byte_reg(target_t *target, int num)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* put system-speed store byte into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STRB_IP(num, 0), 0, NULL, 0);
@@ -614,7 +614,7 @@ void arm9tdmi_store_byte_reg(target_t *target, int num)
 static void arm9tdmi_write_pc(target_t *target, uint32_t pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	/* LDMIA r0-15, [r0] at debug speed
 	 * register values will start to appear on 4th DCLK
@@ -638,7 +638,7 @@ static void arm9tdmi_write_pc(target_t *target, uint32_t pc)
 void arm9tdmi_branch_resume(target_t *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_B(0xfffffc, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
@@ -650,7 +650,7 @@ static void arm9tdmi_branch_resume_thumb(target_t *target)
 
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* LDMIA r0-15, [r0] at debug speed
@@ -760,7 +760,7 @@ int arm9tdmi_examine(struct target_s *target)
 
 		if (arm7_9->armv4_5_common.etm)
 		{
-			arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+			struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 			(*cache_p)->next = etm_build_reg_cache(target,
 					jtag_info, arm7_9->armv4_5_common.etm);
 			arm7_9->armv4_5_common.etm->reg_cache = (*cache_p)->next;

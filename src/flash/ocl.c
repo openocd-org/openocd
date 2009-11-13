@@ -28,7 +28,7 @@
 
 struct ocl_priv
 {
-	arm_jtag_t *jtag_info;
+	struct arm_jtag *jtag_info;
 	unsigned int buflen;
 	unsigned int bufalign;
 };

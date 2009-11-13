@@ -42,7 +42,7 @@ struct arm7_9_common
 	struct arm armv4_5_common;
 	uint32_t common_magic;
 
-	arm_jtag_t jtag_info; /**< JTAG information for target */
+	struct arm_jtag jtag_info; /**< JTAG information for target */
 	reg_cache_t *eice_cache; /**< Embedded ICE register cache */
 
 	uint32_t arm_bkpt; /**< ARM breakpoint instruction */
