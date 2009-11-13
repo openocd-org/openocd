@@ -70,7 +70,7 @@ int mcu_write_dr_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int
 int mcu_execute_queue(void);
 
 /* avr program functions */
-static int avr_jtag_reset(avr_common_t *avr, uint32_t reset)
+static int avr_jtag_reset(struct avr_common *avr, uint32_t reset)
 {
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_AVR_RESET);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, reset ,AVR_JTAG_REG_Reset_Len);
@@ -78,7 +78,7 @@ static int avr_jtag_reset(avr_common_t *avr, uint32_t reset)
 	return ERROR_OK;
 }
 
-static int avr_jtag_read_jtagid(avr_common_t *avr, uint32_t *id)
+static int avr_jtag_read_jtagid(struct avr_common *avr, uint32_t *id)
 {
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_IDCODE);
 	avr_jtag_senddat(avr->jtag_info.tap, id, 0, AVR_JTAG_REG_JTAGID_Len);
@@ -86,7 +86,7 @@ static int avr_jtag_read_jtagid(avr_common_t *avr, uint32_t *id)
 	return ERROR_OK;
 }
 
-static int avr_jtagprg_enterprogmode(avr_common_t *avr)
+static int avr_jtagprg_enterprogmode(struct avr_common *avr)
 {
 	avr_jtag_reset(avr, 1);
 
@@ -96,7 +96,7 @@ static int avr_jtagprg_enterprogmode(avr_common_t *avr)
 	return ERROR_OK;
 }
 
-static int avr_jtagprg_leaveprogmode(avr_common_t *avr)
+static int avr_jtagprg_leaveprogmode(struct avr_common *avr)
 {
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_PROG_COMMANDS);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x2300, AVR_JTAG_REG_ProgrammingCommand_Len);
@@ -110,7 +110,7 @@ static int avr_jtagprg_leaveprogmode(avr_common_t *avr)
 	return ERROR_OK;
 }
 
-static int avr_jtagprg_chiperase(avr_common_t *avr)
+static int avr_jtagprg_chiperase(struct avr_common *avr)
 {
 	uint32_t poll_value;
 
@@ -133,7 +133,7 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 	return ERROR_OK;
 }
 
-static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint32_t buf_size, uint32_t addr, uint32_t page_size)
+static int avr_jtagprg_writeflashpage(struct avr_common *avr, uint8_t *page_buf, uint32_t buf_size, uint32_t addr, uint32_t page_size)
 {
 	uint32_t i, poll_value;
 
@@ -213,7 +213,7 @@ static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last)
 static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	target_t *target = bank->target;
-	avr_common_t *avr = target->arch_info;
+	struct avr_common *avr = target->arch_info;
 	uint32_t cur_size, cur_buffer_size, page_size;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -265,7 +265,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 	struct avrf_flash_bank *avrf_info = bank->driver_priv;
-	avr_common_t *avr = target->arch_info;
+	struct avr_common *avr = target->arch_info;
 	struct avrf_type *avr_info = NULL;
 	int i;
 	uint32_t device_id;
@@ -346,7 +346,7 @@ static int avrf_protect_check(struct flash_bank_s *bank)
 static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	target_t *target = bank->target;
-	avr_common_t *avr = target->arch_info;
+	struct avr_common *avr = target->arch_info;
 	struct avrf_type *avr_info = NULL;
 	int i;
 	uint32_t device_id;
@@ -397,7 +397,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 static int avrf_mass_erase(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	avr_common_t *avr = target->arch_info;
+	struct avr_common *avr = target->arch_info;
 
 	if (target->state != TARGET_HALTED)
 	{

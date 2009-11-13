@@ -104,7 +104,7 @@ int avr_register_commands(struct command_context_s *cmd_ctx)
 
 int avr_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	avr_common_t *avr = calloc(1, sizeof(avr_common_t));
+	struct avr_common *avr = calloc(1, sizeof(struct avr_common));
 
 	avr->jtag_info.tap = target->tap;
 	target->arch_info = avr;

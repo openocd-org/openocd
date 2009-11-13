@@ -27,9 +27,9 @@ struct mcu_jtag
 	struct jtag_tap *tap;
 };
 
-typedef struct avr_common_s
+struct avr_common
 {
 	struct mcu_jtag jtag_info;
-} avr_common_t;
+};
 
 #endif /* AVRT_H */
