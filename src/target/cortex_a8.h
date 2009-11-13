@@ -82,14 +82,14 @@ extern char* cortex_a8_state_strings[];
 #define DSCR_DTR_TX_FULL 		29
 #define DSCR_DTR_RX_FULL 		30
 
-typedef struct  cortex_a8_brp_s
+struct cortex_a8_brp
 {
 	int used;
 	int type;
 	uint32_t value;
 	uint32_t control;
 	uint8_t 	BRPn;
-} cortex_a8_brp_t;
+};
 
 typedef struct  cortex_a8_wrp_s
 {
@@ -119,7 +119,7 @@ struct cortex_a8_common
 	int brp_num;
 	int brp_num_available;
 //	int brp_enabled;
-	cortex_a8_brp_t *brp_list;
+	struct cortex_a8_brp *brp_list;
 
 	/* Watchpoint register pairs */
 	int wrp_num;

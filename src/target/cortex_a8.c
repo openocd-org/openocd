@@ -969,7 +969,7 @@ static int cortex_a8_set_breakpoint(struct target_s *target,
 	uint8_t byte_addr_select = 0x0F;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-	cortex_a8_brp_t * brp_list = cortex_a8->brp_list;
+	struct cortex_a8_brp * brp_list = cortex_a8->brp_list;
 
 	if (breakpoint->set)
 	{
@@ -1040,7 +1040,7 @@ static int cortex_a8_unset_breakpoint(struct target_s *target, struct breakpoint
 	int retval;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-	cortex_a8_brp_t * brp_list = cortex_a8->brp_list;
+	struct cortex_a8_brp * brp_list = cortex_a8->brp_list;
 
 	if (!breakpoint->set)
 	{
@@ -1392,7 +1392,7 @@ static int cortex_a8_examine(struct target_s *target)
 	cortex_a8->brp_num = ((didr >> 24) & 0x0F) + 1;
 	cortex_a8->brp_num_context = ((didr >> 20) & 0x0F) + 1;
 	cortex_a8->brp_num_available = cortex_a8->brp_num;
-	cortex_a8->brp_list = calloc(cortex_a8->brp_num, sizeof(cortex_a8_brp_t));
+	cortex_a8->brp_list = calloc(cortex_a8->brp_num, sizeof(struct cortex_a8_brp));
 //	cortex_a8->brb_enabled = ????;
 	for (i = 0; i < cortex_a8->brp_num; i++)
 	{
