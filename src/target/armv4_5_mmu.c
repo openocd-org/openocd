@@ -25,14 +25,14 @@
 #include "armv4_5_mmu.h"
 
 
-uint32_t armv4mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap);
+uint32_t armv4mmu_translate_va(target_t *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap);
 
 char* armv4_5_mmu_page_type_names[] =
 {
 	"section", "large page", "small page", "tiny page"
 };
 
-uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap)
+uint32_t armv4_5_mmu_translate_va(target_t *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap)
 {
 	uint32_t first_lvl_descriptor = 0x0;
 	uint32_t second_lvl_descriptor = 0x0;
@@ -130,7 +130,7 @@ uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_
 	return ERROR_TARGET_TRANSLATION_FAULT;
 }
 
-int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int armv4_5_mmu_read_physical(target_t *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 
@@ -150,7 +150,7 @@ int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mm
 	return retval;
 }
 
-int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int armv4_5_mmu_write_physical(target_t *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 

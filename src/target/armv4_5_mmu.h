@@ -23,7 +23,7 @@
 #include "armv4_5_cache.h"
 #include "target.h"
 
-typedef struct armv4_5_mmu_common_s
+struct armv4_5_mmu_common
 {
 	uint32_t (*get_ttb)(target_t *target);
 	int (*read_memory)(target_t *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
@@ -33,7 +33,7 @@ typedef struct armv4_5_mmu_common_s
 	struct armv4_5_cache_common armv4_5_cache;
 	int has_tiny_pages;
 	int mmu_enabled;
-} armv4_5_mmu_common_t;
+};
 
 enum
 {
@@ -43,15 +43,15 @@ enum
 extern char* armv4_5_page_type_names[];
 
 uint32_t armv4_5_mmu_translate_va(target_t *target,
-		armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type,
+		struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type,
 		uint32_t *cb, int *domain, uint32_t *ap);
 
 int armv4_5_mmu_read_physical(target_t *target,
-		armv4_5_mmu_common_t *armv4_5_mmu,
+		struct armv4_5_mmu_common *armv4_5_mmu,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 int armv4_5_mmu_write_physical(target_t *target,
-		armv4_5_mmu_common_t *armv4_5_mmu,
+		struct armv4_5_mmu_common *armv4_5_mmu,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 enum

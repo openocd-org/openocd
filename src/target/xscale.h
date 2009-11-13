@@ -125,7 +125,7 @@ typedef struct xscale_common_s
 	int arch_debug_reason;
 
 	/* MMU/Caches */
-	armv4_5_mmu_common_t armv4_5_mmu;
+	struct armv4_5_mmu_common armv4_5_mmu;
 	uint32_t cp15_control_reg;
 
 	int fast_memory_access;

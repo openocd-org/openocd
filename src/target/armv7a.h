@@ -105,7 +105,7 @@ typedef struct armv7a_common_s
 	uint8_t memory_ap;
 
 	/* Cache and Memory Management Unit */
-	armv4_5_mmu_common_t armv4_5_mmu;
+	struct armv4_5_mmu_common armv4_5_mmu;
 	armv4_5_common_t armv4_5_common;
 
 //	int (*full_context)(struct target_s *target);
