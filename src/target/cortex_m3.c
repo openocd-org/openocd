@@ -121,7 +121,7 @@ static int cortexm3_dap_write_coreregister_u32(struct swjdp_common *swjdp,
 static int cortex_m3_write_debug_halt_mask(target_t *target,
 		uint32_t mask_on, uint32_t mask_off)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* mask off status bits */
@@ -134,7 +134,7 @@ static int cortex_m3_write_debug_halt_mask(target_t *target,
 
 static int cortex_m3_clear_halt(target_t *target)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* clear step if any */
@@ -151,7 +151,7 @@ static int cortex_m3_clear_halt(target_t *target)
 
 static int cortex_m3_single_step_core(target_t *target)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	uint32_t dhcsr_save;
 
@@ -175,7 +175,7 @@ static int cortex_m3_endreset_event(target_t *target)
 {
 	int i;
 	uint32_t dcb_demcr;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	cortex_m3_fp_comparator_t *fp_list = cortex_m3->fp_comparator_list;
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
@@ -231,7 +231,7 @@ static int cortex_m3_endreset_event(target_t *target)
 
 static int cortex_m3_examine_debug_reason(target_t *target)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
 	/* THIS IS NOT GOOD, TODO - better logic for detection of debug state reason */
 	/* only check the debug reason if we don't know it already */
@@ -309,7 +309,7 @@ static int cortex_m3_debug_entry(target_t *target)
 	int i;
 	uint32_t xPSR;
 	int retval;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -380,7 +380,7 @@ static int cortex_m3_poll(target_t *target)
 {
 	int retval;
 	enum target_state prev_target_state = target->state;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	/* Read from Debug Halting Control and Status Register */
@@ -494,7 +494,7 @@ static int cortex_m3_halt(target_t *target)
 
 static int cortex_m3_soft_reset_halt(struct target_s *target)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
@@ -635,7 +635,7 @@ static int cortex_m3_resume(struct target_s *target, int current,
 static int cortex_m3_step(struct target_s *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	breakpoint_t *breakpoint = NULL;
@@ -686,7 +686,7 @@ static int cortex_m3_step(struct target_s *target, int current,
 
 static int cortex_m3_assert_reset(target_t *target)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	int assert_srst = 1;
 
@@ -838,7 +838,7 @@ cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	int retval;
 	int fp_num = 0;
 	uint32_t hilo;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	cortex_m3_fp_comparator_t *comparator_list = cortex_m3->fp_comparator_list;
 
 	if (breakpoint->set)
@@ -903,7 +903,7 @@ static int
 cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	cortex_m3_fp_comparator_t * comparator_list = cortex_m3->fp_comparator_list;
 
 	if (!breakpoint->set)
@@ -957,7 +957,7 @@ cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 static int
 cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
 	if (cortex_m3->auto_bp_type)
 	{
@@ -1006,7 +1006,7 @@ cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 static int
 cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
 	/* REVISIT why check? FBP can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
@@ -1036,7 +1036,7 @@ cortex_m3_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
 	uint32_t mask, temp;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
 	/* watchpoint params were validated earlier */
 	mask = 0;
@@ -1099,7 +1099,7 @@ cortex_m3_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 static int
 cortex_m3_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	cortex_m3_dwt_comparator_t *comparator;
 	int dwt_num;
 
@@ -1136,7 +1136,7 @@ cortex_m3_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoin
 static int
 cortex_m3_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
 	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
@@ -1194,7 +1194,7 @@ cortex_m3_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 static int
 cortex_m3_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
 	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED)
@@ -1513,7 +1513,7 @@ cortex_m3_dwt_addreg(struct target_s *t, struct reg_s *r, struct dwt_reg *d)
 }
 
 static void
-cortex_m3_dwt_setup(cortex_m3_common_t *cm3, struct target_s *target)
+cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target_s *target)
 {
 	uint32_t dwtcr;
 	struct reg_cache_s *cache;
@@ -1587,7 +1587,7 @@ static int cortex_m3_examine(struct target_s *target)
 	int retval;
 	uint32_t cpuid, fpcr;
 	int i;
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 
 	if ((retval = ahbap_debugport_init(swjdp)) != ERROR_OK)
@@ -1708,7 +1708,7 @@ static int cortex_m3_handle_target_request(void *priv)
 }
 
 static int cortex_m3_init_arch_info(target_t *target,
-		cortex_m3_common_t *cortex_m3, struct jtag_tap *tap)
+		struct cortex_m3_common *cortex_m3, struct jtag_tap *tap)
 {
 	int retval;
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
@@ -1749,7 +1749,7 @@ static int cortex_m3_init_arch_info(target_t *target,
 
 static int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	cortex_m3_common_t *cortex_m3 = calloc(1,sizeof(cortex_m3_common_t));
+	struct cortex_m3_common *cortex_m3 = calloc(1,sizeof(struct cortex_m3_common));
 
 	cortex_m3->common_magic = CORTEX_M3_COMMON_MAGIC;
 	cortex_m3_init_arch_info(target, cortex_m3, target->tap);
@@ -1760,7 +1760,7 @@ static int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 /*--------------------------------------------------------------------------*/
 
 static int cortex_m3_verify_pointer(struct command_context_s *cmd_ctx,
-		struct cortex_m3_common_s *cm3)
+		struct cortex_m3_common *cm3)
 {
 	if (cm3->common_magic != CORTEX_M3_COMMON_MAGIC) {
 		command_print(cmd_ctx, "target is not a Cortex-M3");
@@ -1785,7 +1785,7 @@ COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	uint32_t address;
 	unsigned long count = 1;
 	arm_instruction_t cur_instruction;
@@ -1836,7 +1836,7 @@ static const struct {
 COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t demcr = 0;
@@ -1893,7 +1893,7 @@ write:
 COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	int retval;
 
 	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);

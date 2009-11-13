@@ -136,7 +136,7 @@ typedef struct  cortex_m3_dwt_comparator_s
 	uint32_t dwt_comparator_address;
 } cortex_m3_dwt_comparator_t;
 
-typedef struct cortex_m3_common_s
+struct cortex_m3_common
 {
 	int common_magic;
 	struct arm_jtag jtag_info;
@@ -161,13 +161,13 @@ typedef struct cortex_m3_common_s
 	struct reg_cache_s *dwt_cache;
 
 	struct armv7m_common armv7m;
-} cortex_m3_common_t;
+};
 
-static inline struct cortex_m3_common_s *
+static inline struct cortex_m3_common *
 target_to_cm3(struct target_s *target)
 {
 	return container_of(target->arch_info,
-			struct cortex_m3_common_s, armv7m);
+			struct cortex_m3_common, armv7m);
 }
 
 #endif /* CORTEX_M3_H */
