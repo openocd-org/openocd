@@ -501,7 +501,7 @@ static int image_elf_read_section(image_t *image, int section, uint32_t offset, 
 
 static int image_mot_buffer_complete(image_t *image)
 {
-	image_mot_t *mot = image->type_private;
+	struct image_mot *mot = image->type_private;
 	struct fileio *fileio = &mot->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
@@ -756,9 +756,9 @@ int image_open(image_t *image, const char *url, const char *type_string)
 	}
 	else if (image->type == IMAGE_SRECORD)
 	{
-		image_mot_t *image_mot;
+		struct image_mot *image_mot;
 
-		image_mot = image->type_private = malloc(sizeof(image_mot_t));
+		image_mot = image->type_private = malloc(sizeof(struct image_mot));
 
 		if ((retval = fileio_open(&image_mot->fileio, url, FILEIO_READ, FILEIO_TEXT)) != ERROR_OK)
 		{
@@ -984,7 +984,7 @@ void image_close(image_t *image)
 	}
 	else if (image->type == IMAGE_SRECORD)
 	{
-		image_mot_t *image_mot = image->type_private;
+		struct image_mot *image_mot = image->type_private;
 
 		fileio_close(&image_mot->fileio);
 

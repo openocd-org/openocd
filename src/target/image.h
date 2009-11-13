@@ -94,11 +94,11 @@ typedef struct fileio_elf_s
 	uint8_t endianness;
 } image_elf_t;
 
-typedef struct image_mot_s
+struct image_mot
 {
 	struct fileio fileio;
 	uint8_t *buffer;
-} image_mot_t;
+};
 
 int image_open(image_t *image, const char *url, const char *type_string);
 int image_read_section(image_t *image, int section, uint32_t offset,
