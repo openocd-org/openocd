@@ -29,7 +29,7 @@
 #include "binarybuffer.h"
 
 
-str7x_mem_layout_t mem_layout_str7bank0[] = {
+struct str7x_mem_layout mem_layout_str7bank0[] = {
 	{0x00000000, 0x02000, 0x01},
 	{0x00002000, 0x02000, 0x02},
 	{0x00004000, 0x02000, 0x04},
@@ -40,7 +40,7 @@ str7x_mem_layout_t mem_layout_str7bank0[] = {
 	{0x00030000, 0x10000, 0x80}
 };
 
-str7x_mem_layout_t mem_layout_str7bank1[] = {
+struct str7x_mem_layout mem_layout_str7bank1[] = {
 	{0x00000000, 0x02000, 0x10000},
 	{0x00002000, 0x02000, 0x20000}
 };

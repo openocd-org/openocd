@@ -101,10 +101,10 @@ enum str7x_status_codes
 #define FLASH_ERER		0x00000002
 #define FLASH_ERR		0x00000001
 
-typedef struct str7x_mem_layout_s {
+struct str7x_mem_layout {
 	uint32_t sector_start;
 	uint32_t sector_size;
 	uint32_t sector_bit;
-} str7x_mem_layout_t;
+};
 
 #endif /* STR7X_H */
