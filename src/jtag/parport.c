@@ -59,8 +59,7 @@
 
 /* parallel port cable description
  */
-typedef struct cable_s
-{
+struct cable {
 	char* name;
 	uint8_t TDO_MASK;	/* status port bit containing current TDO value */
 	uint8_t TRST_MASK;	/* data port bit for TRST */
@@ -73,9 +72,9 @@ typedef struct cable_s
 	uint8_t PORT_INIT;	/* initialize data port with this value */
 	uint8_t PORT_EXIT;	/* de-initialize data port with this value */
 	uint8_t LED_MASK;	/* data port bit for LED */
-} cable_t;
+};
 
-static cable_t cables[] =
+static struct cable cables[] =
 {
 	/* name					tdo   trst  tms   tck   tdi   srst  o_inv i_inv init  exit  led */
 	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x80, 0x00 },
@@ -110,7 +109,7 @@ static int wait_states;
 
 /* interface variables
  */
-static cable_t* cable;
+static struct cable* cable;
 static uint8_t dataport_value = 0x0;
 
 #if PARPORT_USE_PPDEV == 1
@@ -264,7 +263,7 @@ static struct bitbang_interface parport_bitbang = {
 
 static int parport_init(void)
 {
-	cable_t *cur_cable;
+	struct cable *cur_cable;
 #if PARPORT_USE_PPDEV == 1
 	char buffer[256];
 	int i = 0;
