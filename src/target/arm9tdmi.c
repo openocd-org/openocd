@@ -45,7 +45,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-static const arm9tdmi_vector_t arm9tdmi_vectors[] =
+static const struct arm9tdmi_vector arm9tdmi_vectors[] =
 {
 	{"reset", ARM9TDMI_RESET_VECTOR},
 	{"undef", ARM9TDMI_UNDEF_VECTOR},

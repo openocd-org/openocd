@@ -33,13 +33,13 @@ struct arm9tdmi_common
 	struct arm7_9_common arm7_9_common;
 };
 
-typedef struct arm9tdmi_vector_s
+struct arm9tdmi_vector
 {
 	char *name;
 	uint32_t value;
-} arm9tdmi_vector_t;
+};
 
-enum arm9tdmi_vector
+enum arm9tdmi_vector_bit
 {
 	ARM9TDMI_RESET_VECTOR = 0x01,
 	ARM9TDMI_UNDEF_VECTOR = 0x02,
