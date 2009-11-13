@@ -86,7 +86,7 @@ char *find_file(const char *file)
 	return NULL;
 }
 
-FILE *open_file_from_path (char *file, char *mode)
+FILE *open_file_from_path(const char *file, const char *mode)
 {
 	if (mode[0]!='r')
 	{

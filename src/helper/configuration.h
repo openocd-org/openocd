@@ -36,7 +36,7 @@ void add_script_search_dir(const char *dir);
 int configuration_output_handler(struct command_context *cmd_ctx,
 		const char *line);
 
-FILE *open_file_from_path(char *file, char *mode);
+FILE *open_file_from_path(const char *file, const char *mode);
 
 char *find_file(const char *name);
 
