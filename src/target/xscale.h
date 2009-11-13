@@ -69,7 +69,7 @@ struct xscale_trace_data
 struct xscale_trace
 {
 	trace_status_t capture_status;	/* current state of capture run */
-	struct image_s *image;					/* source for target opcodes */
+	struct image *image;					/* source for target opcodes */
 	struct xscale_trace_data *data;		/* linked list of collected trace data */
 	int buffer_enabled;				/* whether trace buffer is enabled */
 	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */

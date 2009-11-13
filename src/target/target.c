@@ -2363,7 +2363,7 @@ COMMAND_HANDLER(handle_mw_command)
 
 }
 
-static COMMAND_HELPER(parse_load_image_command_args, image_t *image,
+static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
 		uint32_t *min_address, uint32_t *max_address)
 {
 	if (argc < 1 || argc > 5)
@@ -2408,7 +2408,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	uint32_t min_address = 0;
 	uint32_t max_address = 0xffffffff;
 	int i;
-	image_t image;
+	struct image image;
 
 	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_args,
 			&image, &min_address, &max_address);
@@ -2564,7 +2564,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 	uint32_t checksum = 0;
 	uint32_t mem_checksum = 0;
 
-	image_t image;
+	struct image image;
 
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -4545,7 +4545,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	uint32_t max_address = 0xffffffff;
 	int i;
 
-	image_t image;
+	struct image image;
 
 	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_args,
 			&image, &min_address, &max_address);

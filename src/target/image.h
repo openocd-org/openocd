@@ -37,7 +37,7 @@
 
 #define IMAGE_MEMORY_CACHE_SIZE		(2048)
 
-typedef enum image_type
+enum image_type
 {
 	IMAGE_BINARY,	/* plain binary */
 	IMAGE_IHEX,		/* intel hex-record format */
@@ -45,9 +45,9 @@ typedef enum image_type
 	IMAGE_ELF,		/* ELF binary */
 	IMAGE_SRECORD,	/* motorola s19 */
 	IMAGE_BUILDER,	/* when building a new image */
-} image_type_t;
+};
 
-struct image_section
+struct imageection
 {
 	uint32_t base_address;
 	uint32_t size;
@@ -55,17 +55,17 @@ struct image_section
 	void *private;		/* private data */
 };
 
-typedef struct image_s
+struct image
 {
-	image_type_t type;		/* image type (plain, ihex, ...) */
+	enum image_type type;		/* image type (plain, ihex, ...) */
 	void *type_private;		/* type private data */
 	int num_sections;		/* number of sections contained in the image */
-	struct image_section *sections;	/* array of sections */
+	struct imageection *sections;	/* array of sections */
 	int base_address_set;	/* whether the image has a base address set (for relocation purposes) */
 	int base_address;		/* base address, if one is set */
 	int start_address_set;	/* whether the image has a start address (entry point) associated */
 	uint32_t start_address;		/* start address, if one is set */
-} image_t;
+};
 
 struct image_binary
 {
@@ -100,12 +100,12 @@ struct image_mot
 	uint8_t *buffer;
 };
 
-int image_open(image_t *image, const char *url, const char *type_string);
-int image_read_section(image_t *image, int section, uint32_t offset,
+int image_open(struct image *image, const char *url, const char *type_string);
+int image_read_section(struct image *image, int section, uint32_t offset,
 		uint32_t size, uint8_t *buffer, uint32_t *size_read);
-void image_close(image_t *image);
+void image_close(struct image *image);
 
-int image_add_section(image_t *image, uint32_t base, uint32_t size,
+int image_add_section(struct image *image, uint32_t base, uint32_t size,
 		int flags, uint8_t *data);
 
 int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes,

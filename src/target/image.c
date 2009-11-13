@@ -44,7 +44,7 @@
 	((elf->endianness == ELFDATA2LSB)? \
 		le_to_h_u32((uint8_t*)&field):be_to_h_u32((uint8_t*)&field))
 
-static int autodetect_image_type(image_t *image, const char *url)
+static int autodetect_image_type(struct image *image, const char *url)
 {
 	int retval;
 	struct fileio fileio;
@@ -106,7 +106,7 @@ static int autodetect_image_type(image_t *image, const char *url)
 	return ERROR_OK;
 }
 
-static int identify_image_type(image_t *image, const char *type_string, const char *url)
+static int identify_image_type(struct image *image, const char *type_string, const char *url)
 {
 	if (type_string)
 	{
@@ -147,7 +147,7 @@ static int identify_image_type(image_t *image, const char *type_string, const ch
 	return ERROR_OK;
 }
 
-static int image_ihex_buffer_complete(image_t *image)
+static int image_ihex_buffer_complete(struct image *image)
 {
 	struct image_ihex *ihex = image->type_private;
 	struct fileio *fileio = &ihex->fileio;
@@ -158,7 +158,7 @@ static int image_ihex_buffer_complete(image_t *image)
 
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
-	struct image_section section[IMAGE_MAX_SECTIONS];
+	struct imageection section[IMAGE_MAX_SECTIONS];
 
 	ihex->buffer = malloc(fileio->size >> 1);
 	cooked_bytes = 0x0;
@@ -232,7 +232,7 @@ static int image_ihex_buffer_complete(image_t *image)
 			image->num_sections++;
 
 			/* copy section information */
-			image->sections = malloc(sizeof(struct image_section) * image->num_sections);
+			image->sections = malloc(sizeof(struct imageection) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
 			{
 				image->sections[i].private = section[i].private;
@@ -357,7 +357,7 @@ static int image_ihex_buffer_complete(image_t *image)
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
-static int image_elf_read_headers(image_t *image)
+static int image_elf_read_headers(struct image *image)
 {
 	struct image_elf *elf = image->type_private;
 	uint32_t read_bytes;
@@ -439,7 +439,7 @@ static int image_elf_read_headers(image_t *image)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 	/* alloc and fill sections array with loadable segments */
-	image->sections = malloc(image->num_sections * sizeof(struct image_section));
+	image->sections = malloc(image->num_sections * sizeof(struct imageection));
 	for (i = 0,j = 0;i < elf->segment_count;i++)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
@@ -458,7 +458,7 @@ static int image_elf_read_headers(image_t *image)
 	return ERROR_OK;
 }
 
-static int image_elf_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+static int image_elf_read_section(struct image *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	struct image_elf *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
@@ -499,7 +499,7 @@ static int image_elf_read_section(image_t *image, int section, uint32_t offset, 
 	return ERROR_OK;
 }
 
-static int image_mot_buffer_complete(image_t *image)
+static int image_mot_buffer_complete(struct image *image)
 {
 	struct image_mot *mot = image->type_private;
 	struct fileio *fileio = &mot->fileio;
@@ -510,7 +510,7 @@ static int image_mot_buffer_complete(image_t *image)
 
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
-	struct image_section section[IMAGE_MAX_SECTIONS];
+	struct imageection section[IMAGE_MAX_SECTIONS];
 
 	mot->buffer = malloc(fileio->size >> 1);
 	cooked_bytes = 0x0;
@@ -635,7 +635,7 @@ static int image_mot_buffer_complete(image_t *image)
 			image->num_sections++;
 
 			/* copy section information */
-			image->sections = malloc(sizeof(struct image_section) * image->num_sections);
+			image->sections = malloc(sizeof(struct imageection) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
 			{
 				image->sections[i].private = section[i].private;
@@ -669,7 +669,7 @@ static int image_mot_buffer_complete(image_t *image)
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
-int image_open(image_t *image, const char *url, const char *type_string)
+int image_open(struct image *image, const char *url, const char *type_string)
 {
 	int retval = ERROR_OK;
 
@@ -690,7 +690,7 @@ int image_open(image_t *image, const char *url, const char *type_string)
 		}
 
 		image->num_sections = 1;
-		image->sections = malloc(sizeof(struct image_section));
+		image->sections = malloc(sizeof(struct imageection));
 		image->sections[0].base_address = 0x0;
 		image->sections[0].size = image_binary->fileio.size;
 		image->sections[0].flags = 0;
@@ -743,7 +743,7 @@ int image_open(image_t *image, const char *url, const char *type_string)
 		struct image_memory *image_memory;
 
 		image->num_sections = 1;
-		image->sections = malloc(sizeof(struct image_section));
+		image->sections = malloc(sizeof(struct imageection));
 		image->sections[0].base_address = 0x0;
 		image->sections[0].size = 0xffffffff;
 		image->sections[0].flags = 0;
@@ -797,7 +797,7 @@ int image_open(image_t *image, const char *url, const char *type_string)
 	return retval;
 };
 
-int image_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
+int image_read_section(struct image *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	int retval;
 
@@ -897,9 +897,9 @@ int image_read_section(image_t *image, int section, uint32_t offset, uint32_t si
 	return ERROR_OK;
 }
 
-int image_add_section(image_t *image, uint32_t base, uint32_t size, int flags, uint8_t *data)
+int image_add_section(struct image *image, uint32_t base, uint32_t size, int flags, uint8_t *data)
 {
-	struct image_section *section;
+	struct imageection *section;
 
 	/* only image builder supports adding sections */
 	if (image->type != IMAGE_BUILDER)
@@ -923,7 +923,7 @@ int image_add_section(image_t *image, uint32_t base, uint32_t size, int flags, u
 
 	/* allocate new section */
 	image->num_sections++;
-	image->sections = realloc(image->sections, sizeof(struct image_section) * image->num_sections);
+	image->sections = realloc(image->sections, sizeof(struct imageection) * image->num_sections);
 	section = &image->sections[image->num_sections - 1];
 	section->base_address = base;
 	section->size = size;
@@ -934,7 +934,7 @@ int image_add_section(image_t *image, uint32_t base, uint32_t size, int flags, u
 	return ERROR_OK;
 }
 
-void image_close(image_t *image)
+void image_close(struct image *image)
 {
 	if (image->type == IMAGE_BINARY)
 	{

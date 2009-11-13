@@ -1899,7 +1899,7 @@ int gdb_v_packet(struct connection *connection, target_t *target, char *packet, 
 		/* create a new image if there isn't already one */
 		if (gdb_connection->vflash_image == NULL)
 		{
-			gdb_connection->vflash_image = malloc(sizeof(image_t));
+			gdb_connection->vflash_image = malloc(sizeof(struct image));
 			image_open(gdb_connection->vflash_image, "", "build");
 		}
 

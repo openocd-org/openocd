@@ -29,7 +29,7 @@
 #include "target.h"
 #include "log.h"
 
-struct image_s;
+struct image;
 
 #define FLASH_MAX_ERROR_STR	(128)
 
@@ -286,7 +286,7 @@ int flash_erase_address_range(struct target_s *target,
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
 int flash_write(struct target_s *target,
-		struct image_s *image, uint32_t *written, int erase);
+		struct image *image, uint32_t *written, int erase);
 /**
  * Forces targets to re-examine their erase/protection state.
  * This routine must be called when the system may modify the status.

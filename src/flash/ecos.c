@@ -153,7 +153,7 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 {
 	uint32_t buf_cnt;
 	uint32_t image_size;
-	image_t image;
+	struct image image;
 
 	image.base_address_set = 0;
 	image.start_address_set = 0;

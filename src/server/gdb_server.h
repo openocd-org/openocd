@@ -28,7 +28,7 @@
 
 #include "target.h"
 
-struct image_s;
+struct image;
 
 #define GDB_BUFFER_SIZE	16384
 
@@ -39,7 +39,7 @@ struct gdb_connection
 	int buf_cnt;
 	int ctrl_c;
 	enum target_state frontend_state;
-	struct image_s *vflash_image;
+	struct image *vflash_image;
 	int closed;
 	int busy;
 	int noack_mode;

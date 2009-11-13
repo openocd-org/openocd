@@ -718,7 +718,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	}
 
 	/* The image will always start at offset 0 */
-	image_t image;
+	struct image image;
 	image.base_address_set = 1;
 	image.base_address = 0;
 	image.start_address_set = 0;

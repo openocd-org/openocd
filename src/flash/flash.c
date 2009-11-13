@@ -31,7 +31,7 @@
 #include "image.h"
 #include "time_support.h"
 
-static int flash_write_unlock(target_t *target, image_t *image, uint32_t *written, int erase, bool unlock);
+static int flash_write_unlock(target_t *target, struct image *image, uint32_t *written, int erase, bool unlock);
 
 /* flash drivers
  */
@@ -617,7 +617,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
-	image_t image;
+	struct image image;
 	uint32_t written;
 
 	int retval;
@@ -966,7 +966,7 @@ static int flash_unlock_address_range(target_t *target, uint32_t addr, uint32_t 
 
 
 /* write (optional verify) an image to flash memory of the given target */
-static int flash_write_unlock(target_t *target, image_t *image, uint32_t *written, int erase, bool unlock)
+static int flash_write_unlock(target_t *target, struct image *image, uint32_t *written, int erase, bool unlock)
 {
 	int retval = ERROR_OK;
 
@@ -1125,7 +1125,7 @@ static int flash_write_unlock(target_t *target, image_t *image, uint32_t *writte
 	return retval;
 }
 
-int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
+int flash_write(target_t *target, struct image *image, uint32_t *written, int erase)
 {
 	return flash_write_unlock(target, image, written, erase, false);
 }

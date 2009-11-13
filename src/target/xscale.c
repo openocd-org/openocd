@@ -3390,7 +3390,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 		command_print(cmd_ctx, "previously loaded image found and closed");
 	}
 
-	xscale->trace.image = malloc(sizeof(image_t));
+	xscale->trace.image = malloc(sizeof(struct image));
 	xscale->trace.image->base_address_set = 0;
 	xscale->trace.image->start_address_set = 0;
 

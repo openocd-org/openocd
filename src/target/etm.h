@@ -26,7 +26,7 @@
 #include "trace.h"
 #include "arm_jtag.h"
 
-struct image_s;
+struct image;
 
 /* ETM registers (JTAG protocol) */
 enum
@@ -165,7 +165,7 @@ struct etm_context
 	etm_portmode_t portmode;	/* normal, multiplexed or demultiplexed */
 	etmv1_tracemode_t tracemode;	/* type of info trace contains */
 	int /*armv4_5_state_t*/ core_state;	/* current core state */
-	struct image_s *image;		/* source for target opcodes */
+	struct image *image;		/* source for target opcodes */
 	uint32_t pipe_index;		/* current trace cycle */
 	uint32_t data_index;		/* cycle holding next data packet */
 	bool data_half;			/* port half on a 16 bit port */

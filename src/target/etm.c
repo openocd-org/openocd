@@ -1761,7 +1761,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 		command_print(cmd_ctx, "previously loaded image found and closed");
 	}
 
-	etm_ctx->image = malloc(sizeof(image_t));
+	etm_ctx->image = malloc(sizeof(struct image));
 	etm_ctx->image->base_address_set = 0;
 	etm_ctx->image->start_address_set = 0;
 
