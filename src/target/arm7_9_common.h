@@ -145,8 +145,8 @@ int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, struct mem
 
 int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
-int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
+int arm7_9_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint);
+int arm7_9_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint);
 
 void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc);
 void arm7_9_disable_eice_step(target_t *target);

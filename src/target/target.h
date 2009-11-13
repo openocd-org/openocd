@@ -156,7 +156,7 @@ typedef struct target_s
 	enum target_state state;			/* the current backend-state (running, halted, ...) */
 	struct reg_cache_s *reg_cache;		/* the first register cache of the target (core regs) */
 	struct breakpoint_s *breakpoints;	/* list of breakpoints */
-	struct watchpoint_s *watchpoints;	/* list of watchpoints */
+	struct watchpoint *watchpoints;	/* list of watchpoints */
 	struct trace_s *trace_info;			/* generic trace information */
 	struct debug_msg_receiver_s *dbgmsg;/* list of debug message receivers */
 	uint32_t dbg_msg_enabled;				/* debug message status */
@@ -330,14 +330,14 @@ int target_remove_breakpoint(struct target_s *target,
  * This routine is a wrapper for target->type->add_watchpoint.
  */
 int target_add_watchpoint(struct target_s *target,
-		struct watchpoint_s *watchpoint);
+		struct watchpoint *watchpoint);
 /**
  * Remove the @a watchpoint for @a target.
  *
  * This routine is a wrapper for target->type->remove_watchpoint.
  */
 int target_remove_watchpoint(struct target_s *target,
-		struct watchpoint_s *watchpoint);
+		struct watchpoint *watchpoint);
 
 /**
  * Obtain the registers for GDB.

@@ -45,9 +45,9 @@ int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *bp);
 int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *bp);
 
 void mips_m4k_enable_watchpoints(struct target_s *target);
-int mips_m4k_set_watchpoint(struct target_s *target, watchpoint_t *wp);
-int mips_m4k_unset_watchpoint(struct target_s *target, watchpoint_t *wp);
-int mips_m4k_add_watchpoint(struct target_s *target, watchpoint_t *wp);
-int mips_m4k_remove_watchpoint(struct target_s *target, watchpoint_t *wp);
+int mips_m4k_set_watchpoint(struct target_s *target, struct watchpoint *wp);
+int mips_m4k_unset_watchpoint(struct target_s *target, struct watchpoint *wp);
+int mips_m4k_add_watchpoint(struct target_s *target, struct watchpoint *wp);
+int mips_m4k_remove_watchpoint(struct target_s *target, struct watchpoint *wp);
 
 #endif	/*MIPS_M4K_H*/

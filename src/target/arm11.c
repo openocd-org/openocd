@@ -1596,7 +1596,7 @@ static int arm11_remove_breakpoint(struct target_s *target,
 }
 
 static int arm11_add_watchpoint(struct target_s *target,
-		watchpoint_t *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	FNC_INFO_NOTIMPLEMENTED;
 
@@ -1604,7 +1604,7 @@ static int arm11_add_watchpoint(struct target_s *target,
 }
 
 static int arm11_remove_watchpoint(struct target_s *target,
-		watchpoint_t *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	FNC_INFO_NOTIMPLEMENTED;
 

@@ -64,7 +64,7 @@ static int xscale_restore_context(target_t *);
 static int xscale_get_reg(reg_t *reg);
 static int xscale_set_reg(reg_t *reg, uint8_t *buf);
 static int xscale_set_breakpoint(struct target_s *, breakpoint_t *);
-static int xscale_set_watchpoint(struct target_s *, watchpoint_t *);
+static int xscale_set_watchpoint(struct target_s *, struct watchpoint *);
 static int xscale_unset_breakpoint(struct target_s *, breakpoint_t *);
 static int xscale_read_trace(target_t *);
 
@@ -1163,7 +1163,7 @@ static int xscale_disable_single_step(struct target_s *target)
 
 static void xscale_enable_watchpoints(struct target_s *target)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
 
 	while (watchpoint)
 	{
@@ -2226,7 +2226,7 @@ static int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *break
 }
 
 static int xscale_set_watchpoint(struct target_s *target,
-		watchpoint_t *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	uint8_t enable = 0;
@@ -2282,7 +2282,7 @@ static int xscale_set_watchpoint(struct target_s *target,
 }
 
 static int xscale_add_watchpoint(struct target_s *target,
-		watchpoint_t *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 
@@ -2308,7 +2308,7 @@ static int xscale_add_watchpoint(struct target_s *target,
 }
 
 static int xscale_unset_watchpoint(struct target_s *target,
-		watchpoint_t *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
@@ -2343,7 +2343,7 @@ static int xscale_unset_watchpoint(struct target_s *target,
 	return ERROR_OK;
 }
 
-static int xscale_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+static int xscale_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	struct xscale_common_s *xscale = target_to_xscale(target);
 

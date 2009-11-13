@@ -699,7 +699,7 @@ int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 	return ERROR_OK;
 }
 
-int mips_m4k_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int mips_m4k_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->data_break_list;
@@ -767,7 +767,7 @@ int mips_m4k_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
-int mips_m4k_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int mips_m4k_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
@@ -793,7 +793,7 @@ int mips_m4k_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
-int mips_m4k_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int mips_m4k_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
 
@@ -809,7 +809,7 @@ int mips_m4k_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
-int mips_m4k_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int mips_m4k_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
@@ -832,7 +832,7 @@ int mips_m4k_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 
 void mips_m4k_enable_watchpoints(struct target_s *target)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
 
 	/* set any pending watchpoints */
 	while (watchpoint)

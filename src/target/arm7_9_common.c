@@ -520,7 +520,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
  * @return Error status if watchpoint set fails or the result of executing the
  *         JTAG queue
  */
-int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int arm7_9_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -591,7 +591,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
  * @return Error status while trying to unset the watchpoint or the result of
  *         executing the JTAG queue
  */
-int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int arm7_9_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -639,7 +639,7 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
  * @param watchpoint Pointer to the watchpoint to be added
  * @return Error status while trying to add the watchpoint
  */
-int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int arm7_9_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -672,7 +672,7 @@ int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
  * @param watchpoint Pointer to the watchpoint to be removed
  * @return Result of trying to unset the watchpoint
  */
-int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+int arm7_9_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -1770,7 +1770,7 @@ int arm7_9_restart_core(struct target_s *target)
  */
 void arm7_9_enable_watchpoints(struct target_s *target)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
 
 	while (watchpoint)
 	{

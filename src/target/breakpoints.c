@@ -181,8 +181,8 @@ breakpoint_t* breakpoint_find(target_t *target, uint32_t address)
 int watchpoint_add(target_t *target, uint32_t address, uint32_t length,
 		enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
-	watchpoint_t **watchpoint_p = &target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
+	struct watchpoint **watchpoint_p = &target->watchpoints;
 	int retval;
 	char *reason;
 
@@ -206,7 +206,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length,
 		watchpoint = watchpoint->next;
 	}
 
-	(*watchpoint_p) = calloc(1, sizeof(watchpoint_t));
+	(*watchpoint_p) = calloc(1, sizeof(struct watchpoint));
 	(*watchpoint_p)->address = address;
 	(*watchpoint_p)->length = length;
 	(*watchpoint_p)->value = value;
@@ -244,10 +244,10 @@ bye:
 	return ERROR_OK;
 }
 
-static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
+static void watchpoint_free(target_t *target, struct watchpoint *watchpoint_remove)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
-	watchpoint_t **watchpoint_p = &target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
+	struct watchpoint **watchpoint_p = &target->watchpoints;
 
 	while (watchpoint)
 	{
@@ -267,8 +267,8 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 
 void watchpoint_remove(target_t *target, uint32_t address)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
-	watchpoint_t **watchpoint_p = &target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
+	struct watchpoint **watchpoint_p = &target->watchpoints;
 
 	while (watchpoint)
 	{
@@ -290,7 +290,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 
 void watchpoint_clear_target(target_t *target)
 {
-	watchpoint_t *watchpoint;
+	struct watchpoint *watchpoint;
 	LOG_DEBUG("Delete all watchpoints for target: %s", target_get_name( target ));
 	while ((watchpoint = target->watchpoints) != NULL)
 	{

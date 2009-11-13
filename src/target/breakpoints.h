@@ -46,7 +46,7 @@ typedef struct breakpoint_s
 	int unique_id;
 } breakpoint_t;
 
-typedef struct watchpoint_s
+struct watchpoint
 {
 	uint32_t address;
 	uint32_t length;
@@ -54,9 +54,9 @@ typedef struct watchpoint_s
 	uint32_t value;
 	enum watchpoint_rw rw;
 	int set;
-	struct watchpoint_s *next;
+	struct watchpoint *next;
 	int unique_id;
-} watchpoint_t;
+};
 
 void breakpoint_clear_target(struct target_s *target);
 int breakpoint_add(struct target_s *target,

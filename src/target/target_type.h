@@ -137,11 +137,11 @@ struct target_type_s
 	 * However, this method can be invoked on unresponsive targets.
 	 */
 	int (*remove_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
-	int (*add_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
+	int (*add_watchpoint)(struct target_s *target, struct watchpoint *watchpoint);
 	/* remove watchpoint. hw will only be updated if the target is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
-	int (*remove_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
+	int (*remove_watchpoint)(struct target_s *target, struct watchpoint *watchpoint);
 
 	/* target algorithm support */
 	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);

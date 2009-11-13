@@ -1032,7 +1032,7 @@ cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 }
 
 static int
-cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+cortex_m3_set_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
 	uint32_t mask, temp;
@@ -1097,7 +1097,7 @@ cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 }
 
 static int
-cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+cortex_m3_unset_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 	cortex_m3_dwt_comparator_t *comparator;
@@ -1134,7 +1134,7 @@ cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 }
 
 static int
-cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+cortex_m3_add_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
@@ -1192,7 +1192,7 @@ cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 }
 
 static int
-cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
+cortex_m3_remove_watchpoint(struct target_s *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common_s *cortex_m3 = target_to_cm3(target);
 
@@ -1216,7 +1216,7 @@ cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 static void cortex_m3_enable_watchpoints(struct target_s *target)
 {
-	watchpoint_t *watchpoint = target->watchpoints;
+	struct watchpoint *watchpoint = target->watchpoints;
 
 	/* set any pending watchpoints */
 	while (watchpoint)

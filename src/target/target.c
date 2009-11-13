@@ -611,12 +611,12 @@ int target_remove_breakpoint(struct target_s *target,
 }
 
 int target_add_watchpoint(struct target_s *target,
-		struct watchpoint_s *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	return target->type->add_watchpoint(target, watchpoint);
 }
 int target_remove_watchpoint(struct target_s *target,
-		struct watchpoint_s *watchpoint)
+		struct watchpoint *watchpoint)
 {
 	return target->type->remove_watchpoint(target, watchpoint);
 }
@@ -2797,7 +2797,7 @@ COMMAND_HANDLER(handle_wp_command)
 
 	if (argc == 0)
 	{
-		watchpoint_t *watchpoint = target->watchpoints;
+		struct watchpoint *watchpoint = target->watchpoints;
 
 		while (watchpoint)
 		{
