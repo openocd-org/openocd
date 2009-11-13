@@ -91,14 +91,14 @@ struct cortex_a8_brp
 	uint8_t 	BRPn;
 };
 
-typedef struct  cortex_a8_wrp_s
+struct cortex_a8_wrp
 {
 	int used;
 	int type;
 	uint32_t value;
 	uint32_t control;
 	uint8_t 	WRPn;
-} cortex_a8_wrp_t;
+};
 
 struct cortex_a8_common
 {
@@ -124,7 +124,7 @@ struct cortex_a8_common
 	/* Watchpoint register pairs */
 	int wrp_num;
 	int wrp_num_available;
-	cortex_a8_wrp_t *wrp_list;
+	struct cortex_a8_wrp *wrp_list;
 
 	/* Interrupts */
 	int intlinesnum;

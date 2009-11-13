@@ -1409,7 +1409,7 @@ static int cortex_a8_examine(struct target_s *target)
 	/* Setup Watchpoint Register Pairs */
 	cortex_a8->wrp_num = ((didr >> 28) & 0x0F) + 1;
 	cortex_a8->wrp_num_available = cortex_a8->wrp_num;
-	cortex_a8->wrp_list = calloc(cortex_a8->wrp_num, sizeof(cortex_a8_wrp_t));
+	cortex_a8->wrp_list = calloc(cortex_a8->wrp_num, sizeof(struct cortex_a8_wrp));
 	for (i = 0; i < cortex_a8->wrp_num; i++)
 	{
 		cortex_a8->wrp_list[i].used = 0;
