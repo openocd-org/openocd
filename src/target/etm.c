@@ -229,7 +229,7 @@ static command_t *etm_cmd;
 /* Look up register by ID ... most ETM instances only
  * support a subset of the possible registers.
  */
-static reg_t *etm_reg_lookup(etm_context_t *etm_ctx, unsigned id)
+static reg_t *etm_reg_lookup(struct etm_context *etm_ctx, unsigned id)
 {
 	struct reg_cache *cache = etm_ctx->reg_cache;
 	int i;
@@ -280,7 +280,7 @@ static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
 }
 
 struct reg_cache *etm_build_reg_cache(target_t *target,
-		struct arm_jtag *jtag_info, etm_context_t *etm_ctx)
+		struct arm_jtag *jtag_info, struct etm_context *etm_ctx)
 {
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	reg_t *reg_list = NULL;
@@ -426,7 +426,7 @@ int etm_setup(target_t *target)
 	int retval;
 	uint32_t etm_ctrl_value;
 	struct arm *arm = target_to_arm(target);
-	etm_context_t *etm_ctx = arm->etm;
+	struct etm_context *etm_ctx = arm->etm;
 	reg_t *etm_ctrl_reg;
 
 	etm_ctrl_reg = etm_reg_lookup(etm_ctx, ETM_CTRL);
@@ -636,7 +636,7 @@ static struct etm_capture_driver *etm_capture_drivers[] =
 	NULL
 };
 
-static int etm_read_instruction(etm_context_t *ctx, struct arm_instruction *instruction)
+static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction *instruction)
 {
 	int i;
 	int section = -1;
@@ -704,7 +704,7 @@ static int etm_read_instruction(etm_context_t *ctx, struct arm_instruction *inst
 	return ERROR_OK;
 }
 
-static int etmv1_next_packet(etm_context_t *ctx, uint8_t *packet, int apo)
+static int etmv1_next_packet(struct etm_context *ctx, uint8_t *packet, int apo)
 {
 	while (ctx->data_index < ctx->trace_depth)
 	{
@@ -769,7 +769,7 @@ static int etmv1_next_packet(etm_context_t *ctx, uint8_t *packet, int apo)
 	return -1;
 }
 
-static int etmv1_branch_address(etm_context_t *ctx)
+static int etmv1_branch_address(struct etm_context *ctx)
 {
 	int retval;
 	uint8_t packet;
@@ -855,7 +855,7 @@ static int etmv1_branch_address(etm_context_t *ctx)
 	return 0;
 }
 
-static int etmv1_data(etm_context_t *ctx, int size, uint32_t *data)
+static int etmv1_data(struct etm_context *ctx, int size, uint32_t *data)
 {
 	int j;
 	uint8_t buf[4];
@@ -884,7 +884,7 @@ static int etmv1_data(etm_context_t *ctx, int size, uint32_t *data)
 	return 0;
 }
 
-static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
+static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context_s *cmd_ctx)
 {
 	int retval;
 	struct arm_instruction instruction;
@@ -1251,7 +1251,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct arm *arm = target_to_arm(target);
-	struct etm *etm;
+	struct etm_context *etm;
 
 	if (!is_arm(arm)) {
 		command_print(cmd_ctx, "ETM: current target isn't an ARM");
@@ -1374,7 +1374,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	target_t *target;
 	struct arm *arm;
 	etm_portmode_t portmode = 0x0;
-	struct etm *etm_ctx;
+	struct etm_context *etm_ctx;
 	int i;
 
 	if (argc != 5)
@@ -1477,7 +1477,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 		return ERROR_FAIL;
 	}
 
-	etm_ctx = calloc(1, sizeof(etm_context_t));
+	etm_ctx = calloc(1, sizeof(struct etm_context));
 	if (!etm_ctx) {
 		LOG_DEBUG("out of memory");
 		return ERROR_FAIL;
@@ -1523,7 +1523,7 @@ COMMAND_HANDLER(handle_etm_info_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm;
+	struct etm_context *etm;
 	reg_t *etm_sys_config_reg;
 	int max_port_size;
 	uint32_t config;
@@ -1655,7 +1655,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm;
+	struct etm_context *etm;
 	trace_status_t trace_status;
 
 	target = get_current_target(cmd_ctx);
@@ -1731,7 +1731,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 
 	if (argc < 1)
 	{
@@ -1791,7 +1791,7 @@ COMMAND_HANDLER(handle_etm_dump_command)
 	struct fileio file;
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	uint32_t i;
 
 	if (argc != 1)
@@ -1859,7 +1859,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 	struct fileio file;
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	uint32_t i;
 
 	if (argc != 1)
@@ -1942,7 +1942,7 @@ COMMAND_HANDLER(handle_etm_trigger_percent_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 
 	target = get_current_target(cmd_ctx);
 	arm = target_to_arm(target);
@@ -1983,7 +1983,7 @@ COMMAND_HANDLER(handle_etm_start_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	reg_t *etm_ctrl_reg;
 
 	target = get_current_target(cmd_ctx);
@@ -2031,7 +2031,7 @@ COMMAND_HANDLER(handle_etm_stop_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	reg_t *etm_ctrl_reg;
 
 	target = get_current_target(cmd_ctx);
@@ -2070,7 +2070,7 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 {
 	target_t *target;
 	struct arm *arm;
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	int retval;
 
 	target = get_current_target(cmd_ctx);

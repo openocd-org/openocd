@@ -96,7 +96,7 @@ typedef struct arm
 	bool is_armv4;
 
 	/** Handle for the Embedded Trace Module, if one is present. */
-	struct etm *etm;
+	struct etm_context *etm;
 
 	int (*full_context)(struct target_s *target);
 	int (*read_core_reg)(struct target_s *target,

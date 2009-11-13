@@ -48,7 +48,7 @@ enum
 
 struct oocd_trace
 {
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	char *tty;
 	int tty_fd;
 	struct termios oldtio, newtio;

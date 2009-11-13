@@ -121,17 +121,17 @@ typedef enum
 } etmv1_tracemode_t;
 
 /* forward-declare ETM context */
-struct etm;
+struct etm_context;
 
 struct etm_capture_driver
 {
 	char *name;
 	int (*register_commands)(struct command_context_s *cmd_ctx);
-	int (*init)(struct etm *etm_ctx);
-	trace_status_t (*status)(struct etm *etm_ctx);
-	int (*read_trace)(struct etm *etm_ctx);
-	int (*start_capture)(struct etm *etm_ctx);
-	int (*stop_capture)(struct etm *etm_ctx);
+	int (*init)(struct etm_context *etm_ctx);
+	trace_status_t (*status)(struct etm_context *etm_ctx);
+	int (*read_trace)(struct etm_context *etm_ctx);
+	int (*start_capture)(struct etm_context *etm_ctx);
+	int (*stop_capture)(struct etm_context *etm_ctx);
 };
 
 enum
@@ -152,7 +152,7 @@ struct etmv1_trace_data
  * this will have to be split into version independent elements
  * and a version specific part
  */
-typedef struct etm
+struct etm_context
 {
 	target_t *target;		/* target this ETM is connected to */
 	struct reg_cache *reg_cache;		/* ETM register cache */
@@ -179,7 +179,7 @@ typedef struct etm
 	uint32_t last_branch_reason;	/* type of last branch encountered */
 	uint32_t last_ptr;		/* address of the last data access */
 	uint32_t last_instruction;	/* index of last executed (to calc timings) */
-} etm_context_t;
+};
 
 /* PIPESTAT values */
 typedef enum
@@ -208,7 +208,7 @@ typedef enum
 } etmv1_branch_reason_t;
 
 struct reg_cache* etm_build_reg_cache(target_t *target,
-		struct arm_jtag *jtag_info, etm_context_t *etm_ctx);
+		struct arm_jtag *jtag_info, struct etm_context *etm_ctx);
 
 int etm_setup(target_t *target);
 

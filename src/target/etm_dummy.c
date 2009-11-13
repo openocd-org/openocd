@@ -69,27 +69,27 @@ static int etm_dummy_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int etm_dummy_init(etm_context_t *etm_ctx)
+static int etm_dummy_init(struct etm_context *etm_ctx)
 {
 	return ERROR_OK;
 }
 
-static trace_status_t etm_dummy_status(etm_context_t *etm_ctx)
+static trace_status_t etm_dummy_status(struct etm_context *etm_ctx)
 {
 	return TRACE_IDLE;
 }
 
-static int etm_dummy_read_trace(etm_context_t *etm_ctx)
+static int etm_dummy_read_trace(struct etm_context *etm_ctx)
 {
 	return ERROR_OK;
 }
 
-static int etm_dummy_start_capture(etm_context_t *etm_ctx)
+static int etm_dummy_start_capture(struct etm_context *etm_ctx)
 {
 	return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 }
 
-static int etm_dummy_stop_capture(etm_context_t *etm_ctx)
+static int etm_dummy_stop_capture(struct etm_context *etm_ctx)
 {
 	return ERROR_OK;
 }

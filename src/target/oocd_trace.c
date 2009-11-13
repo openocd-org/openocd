@@ -96,7 +96,7 @@ static int oocd_trace_read_memory(struct oocd_trace *oocd_trace, uint8_t *data, 
 	return ERROR_OK;
 }
 
-static int oocd_trace_init(etm_context_t *etm_ctx)
+static int oocd_trace_init(struct etm_context *etm_ctx)
 {
 	uint8_t trash[256];
 	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
@@ -143,7 +143,7 @@ static int oocd_trace_init(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
+static trace_status_t oocd_trace_status(struct etm_context *etm_ctx)
 {
 	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	uint32_t status;
@@ -175,7 +175,7 @@ static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 	return etm_ctx->capture_status;
 }
 
-static int oocd_trace_read_trace(etm_context_t *etm_ctx)
+static int oocd_trace_read_trace(struct etm_context *etm_ctx)
 {
 	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	uint32_t status, address;
@@ -233,7 +233,7 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-static int oocd_trace_start_capture(etm_context_t *etm_ctx)
+static int oocd_trace_start_capture(struct etm_context *etm_ctx)
 {
 	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 	uint32_t control = 0x1;	/* 0x1: enabled */
@@ -266,7 +266,7 @@ static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-static int oocd_trace_stop_capture(etm_context_t *etm_ctx)
+static int oocd_trace_stop_capture(struct etm_context *etm_ctx)
 {
 	struct oocd_trace *oocd_trace = etm_ctx->capture_driver_priv;
 

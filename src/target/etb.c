@@ -415,7 +415,7 @@ static int etb_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int etb_init(etm_context_t *etm_ctx)
+static int etb_init(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
 
@@ -432,7 +432,7 @@ static int etb_init(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-static trace_status_t etb_status(etm_context_t *etm_ctx)
+static trace_status_t etb_status(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
 	reg_t *control = &etb->reg_cache->reg_list[ETB_CTRL];
@@ -484,7 +484,7 @@ static trace_status_t etb_status(etm_context_t *etm_ctx)
 	return retval;
 }
 
-static int etb_read_trace(etm_context_t *etm_ctx)
+static int etb_read_trace(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
 	int first_frame = 0;
@@ -634,7 +634,7 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-static int etb_start_capture(etm_context_t *etm_ctx)
+static int etb_start_capture(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
 	uint32_t etb_ctrl_value = 0x1;
@@ -668,7 +668,7 @@ static int etb_start_capture(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-static int etb_stop_capture(etm_context_t *etm_ctx)
+static int etb_stop_capture(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
 	reg_t *etb_ctrl_reg = &etb->reg_cache->reg_list[ETB_CTRL];

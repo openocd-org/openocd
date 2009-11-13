@@ -36,7 +36,7 @@ enum
 
 struct etb
 {
-	etm_context_t *etm_ctx;
+	struct etm_context *etm_ctx;
 	struct jtag_tap *tap;
 	uint32_t cur_scan_chain;
 	struct reg_cache *reg_cache;
