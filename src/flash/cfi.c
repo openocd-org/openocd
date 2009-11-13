@@ -35,7 +35,7 @@
 /* defines internal maximum size for code fragment in cfi_intel_write_block() */
 #define CFI_MAX_INTEL_CODESIZE 256
 
-static cfi_unlock_addresses_t cfi_unlock_addresses[] =
+static struct cfi_unlock_addresses cfi_unlock_addresses[] =
 {
 	[CFI_UNLOCK_555_2AA] = { .unlock1 = 0x555, .unlock2 = 0x2aa },
 	[CFI_UNLOCK_5555_2AAA] = { .unlock1 = 0x5555, .unlock2 = 0x2aaa },
@@ -2111,7 +2111,7 @@ static void cfi_fixup_0002_unlock_addresses(flash_bank_t *bank, void *param)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
-	cfi_unlock_addresses_t *unlock_addresses = param;
+	struct cfi_unlock_addresses *unlock_addresses = param;
 
 	pri_ext->_unlock1 = unlock_addresses->unlock1;
 	pri_ext->_unlock2 = unlock_addresses->unlock2;

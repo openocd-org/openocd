@@ -136,11 +136,11 @@ enum {
 	CFI_UNLOCK_5555_2AAA,
 };
 
-typedef struct cfi_unlock_addresses_s
+struct cfi_unlock_addresses
 {
 	uint32_t unlock1;
 	uint32_t unlock2;
-} cfi_unlock_addresses_t;
+};
 
 typedef struct cfi_fixup_s
 {
