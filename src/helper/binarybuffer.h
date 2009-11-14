@@ -73,7 +73,8 @@ uint32_t flip_u32(uint32_t value, unsigned int num);
 bool buf_cmp(const void *buf1, const void *buf2, unsigned size);
 bool buf_cmp_mask(const void *buf1, const void *buf2,
 		const void *mask, unsigned size);
-uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size);
+
+void* buf_cpy(const void *from, void *to, unsigned size);
 
 uint8_t* buf_set_ones(uint8_t *buf, int count);
 uint8_t* buf_set_buf(const uint8_t *src, int src_start,

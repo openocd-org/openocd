@@ -48,21 +48,22 @@ const unsigned char bit_reverse_table256[] =
 };
 
 
-uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size)
+void* buf_cpy(const void *from, void *_to, unsigned size)
 {
-	if (from == NULL)
+	if (NULL == from || NULL == _to)
 		return NULL;
 
-	for (unsigned i = 0, num_bytes = CEIL(size, 8); i < num_bytes; i++)
-		to[i] = from[i];
+	// copy entire buffer
+	memcpy(_to, from, CEIL(size, 8));
 
 	/* mask out bits that don't belong to the buffer */
-	if (size % 8)
+	unsigned trailing_bits = size % 8;
+	if (trailing_bits)
 	{
-		to[size / 8] &= (0xff >> (8 - (size % 8)));
+		uint8_t *to = _to;
+		to[size / 8] &= (1 << trailing_bits) - 1;
 	}
-
-	return to;
+	return _to;
 }
 
 static bool buf_cmp_masked(uint8_t a, uint8_t b, uint8_t m)
