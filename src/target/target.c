@@ -2256,7 +2256,8 @@ COMMAND_HANDLER(handle_md_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned size = 0;
-	switch (CMD_NAME[2]) {
+	const char *cmd_name = CMD_NAME;
+	switch (cmd_name[6]) {
 	case 'w': size = 4; break;
 	case 'h': size = 2; break;
 	case 'b': size = 1; break;
