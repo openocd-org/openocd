@@ -23,9 +23,7 @@
 #ifndef ARM11_H
 #define ARM11_H
 
-#include "target.h"
-#include "register.h"
-#include "jtag.h"
+#include "armv4_5.h"
 
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 
@@ -80,6 +78,7 @@ enum arm11_debug_version
 
 struct arm11_common
 {
+	struct arm	arm;
 	struct target *	target;		/**< Reference back to the owner */
 
 	/** \name Processor type detection */
@@ -117,8 +116,15 @@ struct arm11_common
 
 	// GA
 	struct reg_cache *core_cache;
+
+	struct arm_jtag jtag_info;
 };
 
+static inline struct arm11_common *target_to_arm11(struct target *target)
+{
+	return container_of(target->arch_info, struct arm11_common,
+			arm);
+}
 
 /**
  * ARM11 DBGTAP instructions

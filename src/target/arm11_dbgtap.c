@@ -178,6 +178,8 @@ int arm11_add_debug_SCAN_N(struct arm11_common * arm11, uint8_t chain, tap_state
 
 	arm11_in_handler_SCAN_N(tmp);
 
+	arm11->jtag_info.cur_scan_chain = chain;
+
 	return jtag_execute_queue();
 }
 
