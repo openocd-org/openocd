@@ -2308,6 +2308,7 @@ COMMAND_HANDLER(handle_mw_command)
 	bool physical=strcmp(args[0], "phys")==0;
 	int (*fn)(struct target *target,
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	const char *cmd_name = CMD_NAME;
 	if (physical)
 	{
 		argc--;
@@ -2333,7 +2334,7 @@ COMMAND_HANDLER(handle_mw_command)
 	struct target *target = get_current_target(cmd_ctx);
 	unsigned wordsize;
 	uint8_t value_buf[4];
-	switch (CMD_NAME[2])
+	switch (cmd_name[6])
 	{
 		case 'w':
 			wordsize = 4;
