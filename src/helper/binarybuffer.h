@@ -76,7 +76,8 @@ bool buf_cmp_mask(const void *buf1, const void *buf2,
 
 void* buf_cpy(const void *from, void *to, unsigned size);
 
-uint8_t* buf_set_ones(uint8_t *buf, int count);
+void* buf_set_ones(void *buf, unsigned count);
+
 uint8_t* buf_set_buf(const uint8_t *src, int src_start,
 		uint8_t *dst, int dst_start, int len);
 

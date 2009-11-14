@@ -113,17 +113,17 @@ bool buf_cmp_mask(const void *_buf1, const void *_buf2,
 }
 
 
-uint8_t* buf_set_ones(uint8_t *buf, int count)
+void* buf_set_ones(void *_buf, unsigned size)
 {
-	for (unsigned i = 0, num_bytes = CEIL(count, 8); i < num_bytes; i++)
-	{
-		if (count >= 8)
-			buf[i] = 0xff;
-		else
-			buf[i] = (1 << count) - 1;
+	uint8_t *buf = _buf;
+	if (!buf)
+		return NULL;
 
-		count -= 8;
-	}
+	memset(buf, 0xff, size / 8);
+
+	unsigned trailing_bits = size % 8;
+	if (trailing_bits)
+		buf[size / 8] = (1 << trailing_bits) - 1;
 
 	return buf;
 }
