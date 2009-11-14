@@ -2076,29 +2076,6 @@ static const uint32_t arm11_coproc_instruction_limits[] =
 	0xFFFFFFFF,		/* value */
 };
 
-static struct arm11_common * arm11_find_target(const char * arg)
-{
-	struct jtag_tap *	tap;
-	struct target *		t;
-
-	tap = jtag_tap_by_string(arg);
-
-	if (!tap)
-		return 0;
-
-	for (t = all_targets; t; t = t->next)
-	{
-		if (t->tap != tap)
-			continue;
-
-		/* if (t->type == arm11_target) */
-		if (0 == strcmp(target_get_name(t), "arm11"))
-			return t->arch_info;
-	}
-
-	return 0;
-}
-
 static int arm11_mrc_inner(struct target *target, int cpnum,
 		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
 		uint32_t *value, bool read)
@@ -2154,58 +2131,6 @@ static int arm11_mcr(struct target *target, int cpnum,
 	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);
 }
 
-static COMMAND_HELPER(arm11_handle_etm_read_write, bool read)
-{
-	if (argc != (read ? 2 : 3))
-	{
-		LOG_ERROR("Invalid number of arguments.");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	struct arm11_common * arm11 = arm11_find_target(args[0]);
-
-	if (!arm11)
-	{
-		LOG_ERROR("Parameter 1 is not the target name of an ARM11 device.");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, args[1], address);
-
-	if (!read)
-	{
-		uint32_t value;
-		COMMAND_PARSE_NUMBER(u32, args[2], value);
-
-		LOG_INFO("ETM write register 0x%02" PRIx32 " (%" PRId32 ") = 0x%08" PRIx32 " (%" PRId32 ")",
-		  address, address, value, value);
-
-		CHECK_RETVAL(arm11_write_etm(arm11, address, value));
-	}
-	else
-	{
-		uint32_t value;
-
-		CHECK_RETVAL(arm11_read_etm(arm11, address, &value));
-
-	    LOG_INFO("ETM read register 0x%02" PRIx32 " (%" PRId32 ") = 0x%08" PRIx32 " (%" PRId32 ")",
-		  address, address, value, value);
-	}
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(arm11_handle_etmr)
-{
-	return CALL_COMMAND_HANDLER(arm11_handle_etm_read_write, true);
-}
-
-COMMAND_HANDLER(arm11_handle_etmw)
-{
-	return CALL_COMMAND_HANDLER(arm11_handle_etm_read_write, false);
-}
-
 #define ARM11_HANDLER(x)	.x = arm11_##x
 
 struct target_type arm11_target = {
@@ -2258,14 +2183,6 @@ int arm11_register_commands(struct command_context *cmd_ctx)
 
 	top_cmd = register_command(cmd_ctx, NULL, "arm11",
 			NULL, COMMAND_ANY, NULL);
-
-	register_command(cmd_ctx, top_cmd, "etmr",
-			arm11_handle_etmr, COMMAND_ANY,
-			"Read Embedded Trace Macrocell (ETM) register. etmr <jtag_target> <ETM register address>");
-
-	register_command(cmd_ctx, top_cmd, "etmw",
-			arm11_handle_etmw, COMMAND_ANY,
-			"Write Embedded Trace Macrocell (ETM) register. etmr <jtag_target> <ETM register address> <value>");
 
 	/* "hardware_step" is only here to check if the default
 	 * simulate + breakpoint implementation is broken.
