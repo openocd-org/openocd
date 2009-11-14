@@ -29,10 +29,10 @@
  * Support functions to access arbitrary bits in a byte array
  */
 
-/* inlining this will help show what fn that is taking time during profiling. */
-static inline void buf_set_u32(uint8_t* buffer,
-		unsigned int first, unsigned int num, uint32_t value)
+static inline void buf_set_u32(void *_buffer,
+		unsigned first, unsigned num, uint32_t value)
 {
+	char *buffer = (char *)_buffer;
 	if ((num == 32) && (first == 0)) {
 		buffer[3] = (value >> 24) & 0xff;
 		buffer[2] = (value >> 16) & 0xff;
@@ -48,9 +48,10 @@ static inline void buf_set_u32(uint8_t* buffer,
 		}
 	}
 }
-static inline uint32_t buf_get_u32(const uint8_t* buffer,
-		unsigned int first, unsigned int num)
+static inline uint32_t buf_get_u32(const void *_buffer,
+		unsigned first, unsigned num)
 {
+	char *buffer = (char *)_buffer;
 	if ((num == 32) && (first == 0)) {
 		return (((uint32_t)buffer[3]) << 24) |
 			(((uint32_t)buffer[2]) << 16) |
@@ -68,7 +69,7 @@ static inline uint32_t buf_get_u32(const uint8_t* buffer,
 }
 
 /// flip_u32 inverts the bit order inside a 32-bit word (31..0 -> 0..31)
-uint32_t flip_u32(uint32_t value, unsigned int num);
+uint32_t flip_u32(uint32_t value, unsigned num);
 
 bool buf_cmp(const void *buf1, const void *buf2, unsigned size);
 bool buf_cmp_mask(const void *buf1, const void *buf2,
@@ -88,7 +89,7 @@ char* buf_to_str(const void *buf, unsigned size, unsigned radix);
 #define CEIL(m, n)	(((m) + (n) - 1) / (n))
 
 /* read a uint32_t from a buffer in target memory endianness */
-static inline uint32_t fast_target_buffer_get_u32(const uint8_t *p, int le)
+static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
 {
 	return le ? le_to_h_u32(p) : be_to_h_u32(p);
 }
