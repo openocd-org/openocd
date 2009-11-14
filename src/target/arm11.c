@@ -1898,6 +1898,20 @@ static int arm11_examine(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* ETM on ARM11 still uses original scanchain 6 access mode */
+	if (arm11->arm.etm && !target_was_examined(target)) {
+		*register_get_last_cache_p(&target->reg_cache) =
+			etm_build_reg_cache(target, &arm11->jtag_info,
+					arm11->arm.etm);
+		retval = etm_setup(target);
+	}
+
+	/* FIXME this sets a flag in the (shared) arm11_target structure,
+	 * not in the (per-cpu) "target" structure ... so it's clearly
+	 * wrong in the case of e.g. two different ARM11 chips on the
+	 * same board.  (Maybe ARM11 MPCore works though.)  Whoever calls
+	 * the examine() method should set a target-specific flag...
+	 */
 	target_set_examined(target);
 
 	return ERROR_OK;
@@ -2212,5 +2226,5 @@ int arm11_register_commands(struct command_context *cmd_ctx)
 			arm11_handle_vcr, COMMAND_ANY,
 			"Control (Interrupt) Vector Catch Register");
 
-	return ERROR_OK;
+	return etm_register_commands(cmd_ctx);
 }
