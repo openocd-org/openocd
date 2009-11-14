@@ -145,10 +145,10 @@ uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_st
 
 	for (i = 0; i < len; i++)
 	{
-		if (((src[src_idx/8] >> (src_idx % 8)) & 1) == 1)
-			dst[dst_idx/8] |= 1 << (dst_idx%8);
+		if (((src[src_idx / 8] >> (src_idx % 8)) & 1) == 1)
+			dst[dst_idx / 8] |= 1 << (dst_idx % 8);
 		else
-			dst[dst_idx/8] &= ~(1 << (dst_idx%8));
+			dst[dst_idx / 8] &= ~(1 << (dst_idx % 8));
 		dst_idx++;
 		src_idx++;
 	}
