@@ -268,5 +268,5 @@ struct target_type arm966e_target =
 	.register_commands = arm966e_register_commands,
 	.target_create = arm966e_target_create,
 	.init_target = arm9tdmi_init_target,
-	.examine = arm9tdmi_examine,
+	.examine = arm7_9_examine,
 };

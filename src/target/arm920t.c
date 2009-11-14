@@ -1420,7 +1420,7 @@ struct target_type arm920t_target =
 	.register_commands = arm920t_register_commands,
 	.target_create = arm920t_target_create,
 	.init_target = arm9tdmi_init_target,
-	.examine = arm9tdmi_examine,
+	.examine = arm7_9_examine,
 	.mrc = arm920t_mrc,
 	.mcr = arm920t_mcr,
 };

@@ -548,8 +548,7 @@ struct target_type arm720t_target =
 	.register_commands = arm720t_register_commands,
 	.target_create = arm720t_target_create,
 	.init_target = arm720t_init_target,
-	.examine = arm7tdmi_examine,
+	.examine = arm7_9_examine,
 	.mrc = arm720t_mrc,
 	.mcr = arm720t_mcr,
-
 };

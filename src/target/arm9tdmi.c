@@ -742,41 +742,6 @@ static void arm9tdmi_build_reg_cache(struct target *target)
 	armv4_5->core_cache = (*cache_p);
 }
 
-int arm9tdmi_examine(struct target *target)
-{
-	int retval;
-	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-
-	if (!target_was_examined(target))
-	{
-		struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-		struct reg_cache *t;
-		/* one extra register (vector catch) */
-		t = embeddedice_build_reg_cache(target, arm7_9);
-		if (t == NULL)
-			return ERROR_FAIL;
-		(*cache_p) = t;
-		arm7_9->eice_cache = (*cache_p);
-
-		if (arm7_9->armv4_5_common.etm)
-			(*cache_p)->next = etm_build_reg_cache(target,
-					&arm7_9->jtag_info,
-					arm7_9->armv4_5_common.etm);
-
-		target_set_examined(target);
-	}
-	if ((retval = embeddedice_setup(target)) != ERROR_OK)
-		return retval;
-	if ((retval = arm7_9_setup(target)) != ERROR_OK)
-		return retval;
-	if (arm7_9->armv4_5_common.etm)
-	{
-		if ((retval = etm_setup(target)) != ERROR_OK)
-			return retval;
-	}
-	return ERROR_OK;
-}
-
 int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -986,5 +951,5 @@ struct target_type arm9tdmi_target =
 	.register_commands = arm9tdmi_register_commands,
 	.target_create = arm9tdmi_target_create,
 	.init_target = arm9tdmi_init_target,
-	.examine = arm9tdmi_examine,
+	.examine = arm7_9_examine,
 };

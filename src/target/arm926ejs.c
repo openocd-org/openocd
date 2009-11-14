@@ -877,7 +877,7 @@ struct target_type arm926ejs_target =
 	.register_commands = arm926ejs_register_commands,
 	.target_create = arm926ejs_target_create,
 	.init_target = arm9tdmi_init_target,
-	.examine = arm9tdmi_examine,
+	.examine = arm7_9_examine,
 	.virt2phys = arm926ejs_virt2phys,
 	.mmu = arm926ejs_mmu,
 

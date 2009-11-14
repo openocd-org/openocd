@@ -37,7 +37,25 @@
 #include "arm_simulator.h"
 
 
-int arm7_9_debug_entry(struct target *target);
+/**
+ * @file
+ * Hold common code supporting the ARM7 and ARM9 core generations.
+ *
+ * While the ARM core implementations evolved substantially during these
+ * two generations, they look quite similar from the JTAG perspective.
+ * Both have similar debug facilities, based on the same two scan chains
+ * providing access to the core and to an EmbeddedICE module.  Both can
+ * support similar ETM and ETB modules, for tracing.  And both expose
+ * what could be viewed as "ARM Classic", with multiple processor modes,
+ * shadowed registers, and support for the Thumb instruction set.
+ *
+ * Processor differences include things like presence or absence of MMU
+ * and cache, pipeline sizes, use of a modified Harvard Architecure
+ * (with separate instruction and data busses from the CPU), support
+ * for cpu clock gating during idle, and more.
+ */
+
+static int arm7_9_debug_entry(struct target *target);
 
 /**
  * Clear watchpoints for an ARM7/9 target.
@@ -1311,7 +1329,7 @@ int arm7_9_halt(struct target *target)
  * @param target Pointer to target that is entering debug mode
  * @return Error code if anything fails, otherwise ERROR_OK
  */
-int arm7_9_debug_entry(struct target *target)
+static int arm7_9_debug_entry(struct target *target)
 {
 	int i;
 	uint32_t context[16];
@@ -2837,6 +2855,42 @@ int arm7_9_blank_check_memory(struct target *target, uint32_t address, uint32_t 
 
 	return ERROR_OK;
 }
+
+/**
+ * Perform per-target setup that requires JTAG access.
+ */
+int arm7_9_examine(struct target *target)
+{
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+	int retval;
+
+	if (!target_was_examined(target)) {
+		struct reg_cache *t, **cache_p;
+
+		t = embeddedice_build_reg_cache(target, arm7_9);
+		if (t == NULL)
+			return ERROR_FAIL;
+
+		cache_p = register_get_last_cache_p(&target->reg_cache);
+		(*cache_p) = t;
+		arm7_9->eice_cache = (*cache_p);
+
+		if (arm7_9->armv4_5_common.etm)
+			(*cache_p)->next = etm_build_reg_cache(target,
+					&arm7_9->jtag_info,
+					arm7_9->armv4_5_common.etm);
+
+		target_set_examined(target);
+	}
+
+	retval = embeddedice_setup(target);
+	if (retval == ERROR_OK)
+		retval = arm7_9_setup(target);
+	if (retval == ERROR_OK && arm7_9->armv4_5_common.etm)
+		retval = etm_setup(target);
+	return retval;
+}
+
 
 COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 {

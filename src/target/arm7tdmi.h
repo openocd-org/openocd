@@ -35,6 +35,5 @@ struct arm7tdmi_common
 
 int arm7tdmi_init_arch_info(struct target *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap);
 int arm7tdmi_init_target(struct command_context *cmd_ctx, struct target *target);
-int arm7tdmi_examine(struct target *target);
 
 #endif /* ARM7TDMI_H */

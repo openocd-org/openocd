@@ -53,7 +53,6 @@ enum arm9tdmi_vector_bit
 
 int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target);
-int arm9tdmi_examine(struct target *target);
 int arm9tdmi_init_arch_info(struct target *target,
 		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap);
 int arm9tdmi_register_commands(struct command_context *cmd_ctx);

@@ -646,7 +646,7 @@ int feroceon_examine(struct target *target)
 	struct arm7_9_common *arm7_9;
 	int retval;
 
-	retval = arm9tdmi_examine(target);
+	retval = arm7_9_examine(target);
 	if (retval != ERROR_OK)
 		return retval;
 
