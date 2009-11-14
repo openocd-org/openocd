@@ -169,43 +169,36 @@ int ceil_f_to_u32(float x)
 	return y;
 }
 
-char* buf_to_str(const uint8_t *buf, int buf_len, int radix)
+char* buf_to_str(const void *_buf, unsigned buf_len, unsigned radix)
 {
-	const char *DIGITS = "0123456789ABCDEF";
 	float factor;
-	char *str;
-	int str_len;
-	int b256_len = CEIL(buf_len, 8);
-	uint32_t tmp;
-
-	int j; /* base-256 digits */
-	int i; /* output digits (radix) */
-
-	if (radix == 16)
-	{
+	switch (radix) {
+	case 16:
 		factor = 2.0;   /* log(256) / log(16) = 2.0 */
-	}
-	else if (radix == 10)
-	{
+		break;
+	case 10:
 		factor = 2.40824;   /* log(256) / log(10) = 2.40824 */
-	}
-	else if (radix == 8)
-	{
+		break;
+	case 8:
 		factor = 2.66667;	/* log(256) / log(8) = 2.66667 */
-	}
-	else
+		break;
+	default:
 		return NULL;
+	}
 
-	str_len = ceil_f_to_u32(CEIL(buf_len, 8) * factor);
-	str = calloc(str_len + 1, 1);
+	unsigned str_len = ceil_f_to_u32(CEIL(buf_len, 8) * factor);
+	char *str = calloc(str_len + 1, 1);
 
-	for (i = b256_len - 1; i >= 0; i--)
+	const uint8_t *buf = _buf;
+	int b256_len = CEIL(buf_len, 8);
+	for (int i = b256_len - 1; i >= 0; i--)
 	{
-		tmp = buf[i];
-		if ((i == (buf_len / 8)) && (buf_len % 8))
+		uint32_t tmp = buf[i];
+		if (((unsigned)i == (buf_len / 8)) && (buf_len % 8))
 			tmp &= (0xff >> (8 - (buf_len % 8)));
 
-		for (j = str_len; j > 0; j--)
+		/* base-256 digits */
+		for (unsigned j = str_len; j > 0; j--)
 		{
 			tmp += (uint32_t)str[j-1] * 256;
 			str[j-1] = (uint8_t)(tmp % radix);
@@ -213,44 +206,49 @@ char* buf_to_str(const uint8_t *buf, int buf_len, int radix)
 		}
 	}
 
-	for (j = 0; j < str_len; j++)
+	const char *DIGITS = "0123456789ABCDEF";
+	for (unsigned j = 0; j < str_len; j++)
 		str[j] = DIGITS[(int)str[j]];
 
 	return str;
 }
 
-int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radix)
+/// identify radix, and skip radix-prefix (0, 0x or 0X)
+static void str_radix_guess(const char **_str, unsigned *_str_len,
+		unsigned *_radix)
 {
-	char *charbuf;
-	uint32_t tmp;
-	float factor;
-	uint8_t *b256_buf;
-	int b256_len;
-
-	int j; /* base-256 digits */
-	int i; /* input digits (ASCII) */
-
-	if (radix == 0)
+	unsigned radix = *_radix;
+	if (0 != radix)
+		return;
+	const char *str = *_str;
+	unsigned str_len = *_str_len;	
+	if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
 	{
-		/* identify radix, and skip radix-prefix (0, 0x or 0X) */
-		if ((str[0] == '0') && (str[1] && ((str[1] == 'x') || (str[1] == 'X'))))
-		{
-			radix = 16;
-			str += 2;
-			str_len -= 2;
-		}
-		else if ((str[0] == '0') && (str_len != 1))
-		{
-			radix = 8;
-			str += 1;
-			str_len -= 1;
-		}
-		else
-		{
-			radix = 10;
-		}
+		radix = 16;
+		str += 2;
+		str_len -= 2;
 	}
+	else if ((str[0] == '0') && (str_len != 1))
+	{
+		radix = 8;
+		str += 1;
+		str_len -= 1;
+	}
+	else
+	{
+		radix = 10;
+	}
+	*_str = str;
+	*_str_len = str_len;
+	*_radix = radix;
+}
 
+int str_to_buf(const char *str, unsigned str_len,
+		void *_buf, unsigned buf_len, unsigned radix)
+{
+	str_radix_guess(&str, &str_len, &radix);
+
+	float factor;
 	if (radix == 16)
 		factor = 0.5; /* log(16) / log(256) = 0.5 */
 	else if (radix == 10)
@@ -261,18 +259,20 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 		return 0;
 
 	/* copy to zero-terminated buffer */
-	charbuf = malloc(str_len + 1);
+	char *charbuf = malloc(str_len + 1);
 	memcpy(charbuf, str, str_len);
 	charbuf[str_len] = '\0';
 
 	/* number of digits in base-256 notation */
-	b256_len = ceil_f_to_u32(str_len * factor);
-	b256_buf = calloc(b256_len, 1);
+	unsigned b256_len = ceil_f_to_u32(str_len * factor);
+	uint8_t *b256_buf = calloc(b256_len, 1);
 
 	/* go through zero terminated buffer */
+	/* input digits (ASCII) */
+	unsigned i;
 	for (i = 0; charbuf[i]; i++)
 	{
-		tmp = charbuf[i];
+		uint32_t tmp = charbuf[i];
 		if ((tmp >= '0') && (tmp <= '9'))
 			tmp = (tmp - '0');
 		else if ((tmp >= 'a') && (tmp <= 'f'))
@@ -281,10 +281,11 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 			tmp = (tmp - 'A' + 10);
 		else continue;	/* skip characters other than [0-9,a-f,A-F] */
 
-		if (tmp >= (uint32_t)radix)
+		if (tmp >= radix)
 			continue;	/* skip digits invalid for the current radix */
 
-		for (j = 0; j < b256_len; j++)
+		/* base-256 digits */
+		for (unsigned j = 0; j < b256_len; j++)
 		{
 			tmp += (uint32_t)b256_buf[j] * radix;
 			b256_buf[j] = (uint8_t)(tmp & 0xFF);
@@ -293,7 +294,8 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 
 	}
 
-	for (j = 0; j < CEIL(buf_len, 8); j++)
+	uint8_t *buf = _buf;
+	for (unsigned j = 0; j < CEIL(buf_len, 8); j++)
 	{
 		if (j < b256_len)
 			buf[j] = b256_buf[j];

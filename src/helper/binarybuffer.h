@@ -79,9 +79,9 @@ uint8_t* buf_set_ones(uint8_t *buf, int count);
 uint8_t* buf_set_buf(const uint8_t *src, int src_start,
 		uint8_t *dst, int dst_start, int len);
 
-int str_to_buf(const char *str, int len,
-		uint8_t *bin_buf, int buf_size, int radix);
-char* buf_to_str(const uint8_t *buf, int size, int radix);
+int str_to_buf(const char *str, unsigned len,
+		void *bin_buf, unsigned buf_size, unsigned radix);
+char* buf_to_str(const void *buf, unsigned size, unsigned radix);
 
 #define CEIL(m, n)	(((m) + (n) - 1) / (n))
 
