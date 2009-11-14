@@ -65,51 +65,52 @@ uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size)
 	return to;
 }
 
-int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size)
+static bool buf_cmp_masked(uint8_t a, uint8_t b, uint8_t m)
 {
-	if (!buf1 || !buf2)
-		return 1;
-
-	for (unsigned i = 0, num_bytes = CEIL(size, 8); i < num_bytes; i++)
-	{
-		/* last byte */
-		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
-		if ((size % 8) && (i == num_bytes -1))
-		{
-			if ((buf1[i] & ((1 << (size % 8)) - 1)) != (buf2[i] & ((1 << (size % 8)) - 1)))
-				return 1;
-		}
-		else
-		{
-			if (buf1[i] != buf2[i])
-				return 1;
-		}
-	}
-
-	return 0;
+	return (a & m) != (b & m);
+}
+static bool buf_cmp_trailing(uint8_t a, uint8_t b, uint8_t m, unsigned trailing)
+{
+	uint8_t mask = (1 << trailing) - 1;
+	return buf_cmp_masked(a, b, mask & m);
 }
 
-int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, int size)
+bool buf_cmp(const void *_buf1, const void *_buf2, unsigned size)
 {
-	for (unsigned i = 0, num_bytes = CEIL(size, 8); i < num_bytes; i++)
-	{
-		/* last byte */
-		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
-		if ((size % 8) && (i == num_bytes -1))
-		{
-			if ((buf1[i] & ((1 << (size % 8)) - 1) & mask[i]) !=
-				(buf2[i] & ((1 << (size % 8)) - 1) & mask[i]))
-				return 1;
-		}
-		else
-		{
-			if ((buf1[i] & mask[i]) != (buf2[i] & mask[i]))
-				return 1;
-		}
-	}
+	if (!_buf1 || !_buf2)
+		return _buf1 != _buf2;
 
-	return 0;
+	unsigned last = size / 8;
+	if (memcmp(_buf1, _buf2, last) != 0)
+		return false;
+
+	unsigned trailing = size % 8;
+	if (!trailing)
+		return false;
+
+	const uint8_t *buf1 = _buf1, *buf2 = _buf2;
+	return buf_cmp_trailing(buf1[last], buf2[last], 0xff, trailing);
 }
+
+bool buf_cmp_mask(const void *_buf1, const void *_buf2,
+		const void *_mask, unsigned size)
+{
+	if (!_buf1 || !_buf2)
+		return _buf1 != _buf2 || _buf1 != _mask;
+
+	const uint8_t *buf1 = _buf1, *buf2 = _buf2, *mask = _mask;
+	unsigned last = size / 8;
+	for (unsigned i = 0; i < last; i++)
+	{
+		if (buf_cmp_masked(buf1[i], buf2[i], mask[i]))
+			return true;
+	}
+	unsigned trailing = size % 8;
+	if (!trailing)
+		return false;
+	return buf_cmp_trailing(buf1[last], buf2[last], mask[last], trailing);
+}
+
 
 uint8_t* buf_set_ones(uint8_t *buf, int count)
 {

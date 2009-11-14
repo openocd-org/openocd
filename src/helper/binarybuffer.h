@@ -70,9 +70,9 @@ static inline uint32_t buf_get_u32(const uint8_t* buffer,
 /// flip_u32 inverts the bit order inside a 32-bit word (31..0 -> 0..31)
 uint32_t flip_u32(uint32_t value, unsigned int num);
 
-int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size);
-int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2,
-		const uint8_t *mask, int size);
+bool buf_cmp(const void *buf1, const void *buf2, unsigned size);
+bool buf_cmp_mask(const void *buf1, const void *buf2,
+		const void *mask, unsigned size);
 uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size);
 
 uint8_t* buf_set_ones(uint8_t *buf, int count);
