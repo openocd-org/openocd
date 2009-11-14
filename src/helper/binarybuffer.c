@@ -50,13 +50,10 @@ const unsigned char bit_reverse_table256[] =
 
 uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size)
 {
-	unsigned int num_bytes = CEIL(size, 8);
-	unsigned int i;
-
 	if (from == NULL)
 		return NULL;
 
-	for (i = 0; i < num_bytes; i++)
+	for (unsigned i = 0, num_bytes = CEIL(size, 8); i < num_bytes; i++)
 		to[i] = from[i];
 
 	/* mask out bits that don't belong to the buffer */
@@ -70,13 +67,10 @@ uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size)
 
 int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size)
 {
-	int num_bytes = CEIL(size, 8);
-	int i;
-
 	if (!buf1 || !buf2)
 		return 1;
 
-	for (i = 0; i < num_bytes; i++)
+	for (unsigned i = 0, num_bytes = CEIL(size, 8); i < num_bytes; i++)
 	{
 		/* last byte */
 		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
@@ -97,10 +91,7 @@ int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size)
 
 int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, int size)
 {
-	int num_bytes = CEIL(size, 8);
-	int i;
-
-	for (i = 0; i < num_bytes; i++)
+	for (unsigned i = 0, num_bytes = CEIL(size, 8); i < num_bytes; i++)
 	{
 		/* last byte */
 		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
@@ -122,10 +113,7 @@ int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, 
 
 uint8_t* buf_set_ones(uint8_t *buf, int count)
 {
-	int num_bytes = CEIL(count, 8);
-	int i;
-
-	for (i = 0; i < num_bytes; i++)
+	for (unsigned i = 0, num_bytes = CEIL(count, 8); i < num_bytes; i++)
 	{
 		if (count >= 8)
 			buf[i] = 0xff;
@@ -141,9 +129,8 @@ uint8_t* buf_set_ones(uint8_t *buf, int count)
 uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_start, int len)
 {
 	int src_idx = src_start, dst_idx = dst_start;
-	int i;
 
-	for (i = 0; i < len; i++)
+	for (int i = 0; i < len; i++)
 	{
 		if (((src[src_idx / 8] >> (src_idx % 8)) & 1) == 1)
 			dst[dst_idx / 8] |= 1 << (dst_idx % 8);
@@ -158,9 +145,7 @@ uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_st
 
 uint32_t flip_u32(uint32_t value, unsigned int num)
 {
-	uint32_t c;
-
-	c = (bit_reverse_table256[value & 0xff] << 24) |
+	uint32_t c = (bit_reverse_table256[value & 0xff] << 24) |
 		(bit_reverse_table256[(value >> 8) & 0xff] << 16) |
 		(bit_reverse_table256[(value >> 16) & 0xff] << 8) |
 		(bit_reverse_table256[(value >> 24) & 0xff]);
@@ -173,12 +158,10 @@ uint32_t flip_u32(uint32_t value, unsigned int num)
 
 int ceil_f_to_u32(float x)
 {
-	uint32_t y;
-
 	if (x < 0)	/* return zero for negative numbers */
 		return 0;
 
-	y = x;	/* cut off fraction */
+	uint32_t y = x;	/* cut off fraction */
 
 	if ((x - y) > 0.0) /* if there was a fractional part, increase by one */
 		y++;
