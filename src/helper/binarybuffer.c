@@ -327,12 +327,3 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 
 	return i;
 }
-
-int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field *field)
-{
-	uint32_t *dest = priv;
-
-	*dest = buf_get_u32(in_buf, 0, 32);
-
-	return ERROR_OK;
-}
