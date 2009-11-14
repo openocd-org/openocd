@@ -128,11 +128,14 @@ void* buf_set_ones(void *_buf, unsigned size)
 	return buf;
 }
 
-uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_start, int len)
+void* buf_set_buf(const void *_src, unsigned src_start,
+		void *_dst, unsigned dst_start, unsigned len)
 {
-	int src_idx = src_start, dst_idx = dst_start;
+	const uint8_t *src = _src;
+	uint8_t *dst = _dst;
 
-	for (int i = 0; i < len; i++)
+	unsigned src_idx = src_start, dst_idx = dst_start;
+	for (unsigned i = 0; i < len; i++)
 	{
 		if (((src[src_idx / 8] >> (src_idx % 8)) & 1) == 1)
 			dst[dst_idx / 8] |= 1 << (dst_idx % 8);

@@ -78,8 +78,8 @@ void* buf_cpy(const void *from, void *to, unsigned size);
 
 void* buf_set_ones(void *buf, unsigned count);
 
-uint8_t* buf_set_buf(const uint8_t *src, int src_start,
-		uint8_t *dst, int dst_start, int len);
+void* buf_set_buf(const void *src, unsigned src_start,
+		void *dst, unsigned dst_start, unsigned len);
 
 int str_to_buf(const char *str, unsigned len,
 		void *bin_buf, unsigned buf_size, unsigned radix);
