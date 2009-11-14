@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
- *   Dominic.Rath@gmx.de                                                   *
+ *   Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>              *
+ *   Copyright (C) 2009 by Zachary T Welch <zw@superlucidity.net>          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -18,22 +18,22 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#ifndef OPENOCD_H
+#define OPENOCD_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+/** 
+ * Different applications can define this entry point to override
+ * the default openocd main function.  On most systems, this will be
+ * defined in src/openocd.c.
+ * @param argc normally passed from main()
+ * @param argv normally passed from main()
+ * @returns return code for main()
+ */
+int openocd_main(int argc, char *argv[]);
+
+/// used by the server_loop() function in src/server/server.c
+void openocd_sleep_prelude(void);
+/// used by the server_loop() function in src/server/server.c
+void openocd_sleep_postlude(void);
+
 #endif
-#include "openocd.h"
-
-/* This is the main entry for developer PC hosted OpenOCD.
- *
- * OpenOCD can also be used as a library that is linked with
- * another application(not mainstream yet, but possible), e.g.
- * w/as an embedded application.
- *
- * Those applications will have their own main() implementation
- * and use bits and pieces from openocd.c. */
-
-int main(int argc, char *argv[])
-{
-	return openocd_main(argc, argv);
-}

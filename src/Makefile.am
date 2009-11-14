@@ -16,6 +16,10 @@ libopenocd_la_SOURCES = \
 	hello.c \
 	openocd.c
 
+noinst_HEADERS = \
+	openocd.h
+
+
 # set the include path found by configure
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src \

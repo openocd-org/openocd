@@ -29,6 +29,7 @@
 
 #include "server.h"
 #include "target.h"
+#include "openocd.h"
 
 #include <signal.h>
 
@@ -284,9 +285,6 @@ int remove_services(void)
 
 	return ERROR_OK;
 }
-
-extern void openocd_sleep_prelude(void);
-extern void openocd_sleep_postlude(void);
 
 int server_loop(struct command_context *command_context)
 {
