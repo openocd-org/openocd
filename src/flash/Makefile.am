@@ -63,7 +63,6 @@ noinst_HEADERS = \
 	flash.h \
 	lpc2000.h \
 	lpc288x.h \
-	lpc2900.h \
 	lpc3180_nand_controller.h \
 	mflash.h \
 	mx3_nand.h \
