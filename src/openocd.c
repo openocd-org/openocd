@@ -51,21 +51,6 @@
 #define OPENOCD_VERSION \
 		"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
 
-static void print_version(void)
-{
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	LOG_OUTPUT("$URL$\n");
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-}
-
 /* Give TELNET a way to find out what version this is */
 COMMAND_HANDLER(handle_version_command)
 {
@@ -256,8 +241,6 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 #endif
-
-	print_version();
 
 	LOG_OUTPUT("For bug reports, read\n\t"
 		"http://openocd.berlios.de/doc/doxygen/bugs.html"
