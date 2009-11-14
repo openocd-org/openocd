@@ -24,8 +24,7 @@
 
 
 #include "image.h"
-
-#include "lpc2900.h"
+#include "flash.h"
 #include "binarybuffer.h"
 #include "armv4_5.h"
 
