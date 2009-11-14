@@ -116,7 +116,7 @@ int arm_jtag_setup_connection(struct arm_jtag *jtag_info)
 }
 
 /* read JTAG buffer into host-endian uint32_t, flipping bit-order */
-int arm_jtag_buf_to_u32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_u32_flip(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	uint32_t *dest = priv;
 	*dest = flip_u32(le_to_h_u32(in_buf), 32);
@@ -124,35 +124,35 @@ int arm_jtag_buf_to_u32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *f
 }
 
 /* read JTAG buffer into little-endian uint32_t, flipping bit-order */
-int arm_jtag_buf_to_le32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_le32_flip(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u32_to_le(((uint8_t*)priv), flip_u32(le_to_h_u32(in_buf), 32));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into little-endian uint16_t, flipping bit-order */
-int arm_jtag_buf_to_le16_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_le16_flip(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u16_to_le(((uint8_t*)priv), flip_u32(le_to_h_u32(in_buf), 32) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian uint32_t, flipping bit-order */
-int arm_jtag_buf_to_be32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_be32_flip(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u32_to_be(((uint8_t*)priv), flip_u32(le_to_h_u32(in_buf), 32));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian uint16_t, flipping bit-order */
-int arm_jtag_buf_to_be16_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_be16_flip(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u16_to_be(((uint8_t*)priv), flip_u32(le_to_h_u32(in_buf), 32) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into uint8_t, flipping bit-order */
-int arm_jtag_buf_to_8_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_8_flip(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	uint8_t *dest = priv;
 	*dest = flip_u32(le_to_h_u32(in_buf), 32) & 0xff;
@@ -161,7 +161,7 @@ int arm_jtag_buf_to_8_flip(uint8_t *in_buf, void *priv, struct scan_field_s *fie
 
 /* not-flipping variants */
 /* read JTAG buffer into host-endian uint32_t */
-int arm_jtag_buf_to_u32(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_u32(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	uint32_t *dest = priv;
 	*dest = le_to_h_u32(in_buf);
@@ -169,35 +169,35 @@ int arm_jtag_buf_to_u32(uint8_t *in_buf, void *priv, struct scan_field_s *field)
 }
 
 /* read JTAG buffer into little-endian uint32_t */
-int arm_jtag_buf_to_le32(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_le32(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u32_to_le(((uint8_t*)priv), le_to_h_u32(in_buf));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into little-endian uint16_t */
-int arm_jtag_buf_to_le16(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_le16(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u16_to_le(((uint8_t*)priv), le_to_h_u32(in_buf) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian uint32_t */
-int arm_jtag_buf_to_be32(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_be32(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u32_to_be(((uint8_t*)priv), le_to_h_u32(in_buf));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian uint16_t */
-int arm_jtag_buf_to_be16(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_be16(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	h_u16_to_be(((uint8_t*)priv), le_to_h_u32(in_buf) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into uint8_t */
-int arm_jtag_buf_to_8(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int arm_jtag_buf_to_8(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	uint8_t *dest = priv;
 	*dest = le_to_h_u32(in_buf) & 0xff;

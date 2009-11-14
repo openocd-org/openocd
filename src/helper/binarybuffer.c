@@ -328,7 +328,7 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 	return i;
 }
 
-int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field)
+int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field *field)
 {
 	uint32_t *dest = priv;
 

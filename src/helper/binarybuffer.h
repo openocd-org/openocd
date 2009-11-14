@@ -90,8 +90,8 @@ int str_to_buf(const char *str, int len,
 		uint8_t *bin_buf, int buf_size, int radix);
 char* buf_to_str(const uint8_t *buf, int size, int radix);
 
-struct scan_field_s;
-int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+struct scan_field;
+int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field *field);
 
 #define CEIL(m, n)	(((m) + (n) - 1) / (n))
 
