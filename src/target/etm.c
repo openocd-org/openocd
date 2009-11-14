@@ -349,10 +349,7 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 			break;
 		default:
 			LOG_WARNING("Bad ETMv1 protocol %d", config >> 28);
-			free(reg_cache);
-			free(reg_list);
-			free(arch_info);
-			return ERROR_OK;
+			goto fail;
 		}
 	}
 	etm_ctx->bcd_vers = bcd_vers;
@@ -396,10 +393,7 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 		if (!etb)
 		{
 			LOG_ERROR("etb selected as etm capture driver, but no ETB configured");
-			free(reg_cache);
-			free(reg_list);
-			free(arch_info);
-			return ERROR_OK;
+			goto fail;
 		}
 
 		reg_cache->next = etb_build_reg_cache(etb);
@@ -409,6 +403,12 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 
 	etm_ctx->reg_cache = reg_cache;
 	return reg_cache;
+
+fail:
+	free(reg_cache);
+	free(reg_list);
+	free(arch_info);
+	return NULL;
 }
 
 static int etm_read_reg(struct reg *reg)

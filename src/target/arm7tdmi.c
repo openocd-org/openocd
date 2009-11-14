@@ -664,12 +664,10 @@ int arm7tdmi_examine(struct target *target)
 		arm7_9->eice_cache = (*cache_p);
 
 		if (arm7_9->armv4_5_common.etm)
-		{
-			struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 			(*cache_p)->next = etm_build_reg_cache(target,
-					jtag_info, arm7_9->armv4_5_common.etm);
-			arm7_9->armv4_5_common.etm->reg_cache = (*cache_p)->next;
-		}
+					&arm7_9->jtag_info,
+					arm7_9->armv4_5_common.etm);
+
 		target_set_examined(target);
 	}
 	if ((retval = embeddedice_setup(target)) != ERROR_OK)
