@@ -90,7 +90,13 @@ uint8_t mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
 
 struct reg mips32_gdb_dummy_fp_reg =
 {
-	"GDB dummy floating-point register", mips32_gdb_dummy_fp_value, 0, 1, 32, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point register",
+	.value = mips32_gdb_dummy_fp_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 32,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
 int mips32_core_reg_arch_type = -1;
@@ -306,8 +312,6 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].bitfield_desc = NULL;
-		reg_list[i].num_bitfields = 0;
 		reg_list[i].arch_type = mips32_core_reg_arch_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}

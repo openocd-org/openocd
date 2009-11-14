@@ -32,22 +32,6 @@
 #include "binarybuffer.h"
 
 
-struct bitfield_desc armv4_5_psr_bitfield_desc[] =
-{
-	{"M[4:0]", 5},
-	{"T", 1},
-	{"F", 1},
-	{"I", 1},
-	{"reserved", 16},
-	{"J", 1},
-	{"reserved", 2},
-	{"Q", 1},
-	{"V", 1},
-	{"C", 1},
-	{"Z", 1},
-	{"N", 1},
-};
-
 char* armv4_5_core_reg_list[] =
 {
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
@@ -157,14 +141,26 @@ uint8_t armv4_5_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 struct reg armv4_5_gdb_dummy_fp_reg =
 {
-	"GDB dummy floating-point register", armv4_5_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point register",
+	.value = armv4_5_gdb_dummy_fp_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 96,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
 uint8_t armv4_5_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
 struct reg armv4_5_gdb_dummy_fps_reg =
 {
-	"GDB dummy floating-point status register", armv4_5_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point status register",
+	.value = armv4_5_gdb_dummy_fps_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 32,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
 int armv4_5_get_core_reg(struct reg *reg)
@@ -278,8 +274,6 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].bitfield_desc = NULL;
-		reg_list[i].num_bitfields = 0;
 		reg_list[i].arch_type = armv4_5_core_reg_arch_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}

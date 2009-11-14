@@ -201,8 +201,6 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 		reg_list[i].size = eice_regs[i].width;
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].bitfield_desc = NULL;
-		reg_list[i].num_bitfields = 0;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].arch_type = embeddedice_reg_arch_type;

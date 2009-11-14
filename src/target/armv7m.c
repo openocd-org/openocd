@@ -57,20 +57,33 @@ static char *armv7m_exception_strings[] =
 	"DebugMonitor", "RESERVED", "PendSV", "SysTick"
 };
 
-static uint8_t armv7m_gdb_dummy_fp_value[12] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
+/* FIXME these dummies are IDENTICAL to the armv4_5, arm11, and armv7a
+ * ones... except for naming/scoping
+ */
+static uint8_t armv7m_gdb_dummy_fp_value[12];
 
 static struct reg armv7m_gdb_dummy_fp_reg =
 {
-	"GDB dummy floating-point register", armv7m_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point register",
+	.value = armv7m_gdb_dummy_fp_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 96,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
-static uint8_t armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+static uint8_t armv7m_gdb_dummy_fps_value[4];
 
 static struct reg armv7m_gdb_dummy_fps_reg =
 {
-	"GDB dummy floating-point status register", armv7m_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point status register",
+	.value = armv7m_gdb_dummy_fps_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 32,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
 #ifdef ARMV7_GDB_HACKS
@@ -78,7 +91,13 @@ uint8_t armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
 
 struct reg armv7m_gdb_dummy_cpsr_reg =
 {
-	"GDB dummy cpsr register", armv7m_gdb_dummy_cpsr_value, 0, 1, 32, NULL, 0, NULL, 0
+	.name = "GDB dummy cpsr register",
+	.value = armv7m_gdb_dummy_cpsr_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 32,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 #endif
 
@@ -563,8 +582,6 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].bitfield_desc = NULL;
-		reg_list[i].num_bitfields = 0;
 		reg_list[i].arch_type = armv7m_core_reg_arch_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}

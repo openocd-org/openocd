@@ -2849,8 +2849,6 @@ static void xscale_build_reg_cache(struct target *target)
 		(*cache_p)->reg_list[i].dirty = 0;
 		(*cache_p)->reg_list[i].valid = 0;
 		(*cache_p)->reg_list[i].size = 32;
-		(*cache_p)->reg_list[i].bitfield_desc = NULL;
-		(*cache_p)->reg_list[i].num_bitfields = 0;
 		(*cache_p)->reg_list[i].arch_info = &arch_info[i];
 		(*cache_p)->reg_list[i].arch_type = xscale_reg_arch_type;
 		arch_info[i] = xscale_reg_arch_info[i];

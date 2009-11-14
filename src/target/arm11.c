@@ -246,18 +246,35 @@ enum arm11_regcache_ids
 
 #define ARM11_GDB_REGISTER_COUNT	26
 
-static uint8_t arm11_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+/* FIXME these are *identical* to the ARMv4_5 dummies ...  except
+ * for their names, and being static vs global, and having different
+ * addresses.  Ditto ARMv7a and ARMv7m dummies.
+ */
+
+static uint8_t arm11_gdb_dummy_fp_value[12];
 
 static struct reg arm11_gdb_dummy_fp_reg =
 {
-	"GDB dummy floating-point register", arm11_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point register",
+	.value = arm11_gdb_dummy_fp_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 96,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
-static uint8_t arm11_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+static uint8_t arm11_gdb_dummy_fps_value[4];
 
 static struct reg arm11_gdb_dummy_fps_reg =
 {
-	"GDB dummy floating-point status register", arm11_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point status register",
+	.value = arm11_gdb_dummy_fps_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 32,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
 
@@ -1979,8 +1996,6 @@ static int arm11_build_reg_cache(struct target *target)
 		r->value			= (uint8_t *)(arm11->reg_values + i);
 		r->dirty			= 0;
 		r->valid			= 0;
-		r->bitfield_desc	= NULL;
-		r->num_bitfields	= 0;
 		r->arch_type		= arm11_regs_arch_type;
 		r->arch_info		= rs;
 

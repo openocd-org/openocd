@@ -35,25 +35,6 @@
 #include <string.h>
 #include <unistd.h>
 
-struct bitfield_desc armv7a_psr_bitfield_desc[] =
-{
-	{"M[4:0]", 5},
-	{"T", 1},
-	{"F", 1},
-	{"I", 1},
-	{"A", 1},
-	{"E", 1},
-	{"IT[7:2]", 6},
-	{"GE[3:0]", 4},
-	{"reserved(DNM)", 4},
-	{"J", 1},
-	{"IT[0:1]", 2},
-	{"Q", 1},
-	{"V", 1},
-	{"C", 1},
-	{"Z", 1},
-	{"N", 1},
-};
 
 char* armv7a_core_reg_list[] =
 {
@@ -165,12 +146,20 @@ int armv7a_core_reg_map[8][17] =
 	}
 };
 
+/* FIXME this dummy is IDENTICAL to the armv4_5, arm11, and armv7m
+ * ones... except for naming/scoping
+ */
 uint8_t armv7a_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 struct reg armv7a_gdb_dummy_fp_reg =
 {
-	"GDB dummy floating-point register", armv7a_gdb_dummy_fp_value,
-			0, 1, 96, NULL, 0, NULL, 0
+	.name = "GDB dummy floating-point register",
+	.value = armv7a_gdb_dummy_fp_value,
+	.dirty = 0,
+	.valid = 1,
+	.size = 96,
+	.arch_info = NULL,
+	.arch_type = 0,
 };
 
 void armv7a_show_fault_registers(struct target *target)

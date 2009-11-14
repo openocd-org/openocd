@@ -27,12 +27,6 @@
 
 struct target;
 
-struct bitfield_desc
-{
-	char *name;
-	int num_bits;
-};
-
 struct reg
 {
 	char *name;
@@ -40,8 +34,6 @@ struct reg
 	int dirty;
 	int valid;
 	uint32_t size;
-	struct bitfield_desc *bitfield_desc;
-	int num_bitfields;
 	void *arch_info;
 	int arch_type;
 };

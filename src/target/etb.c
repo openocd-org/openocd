@@ -150,8 +150,6 @@ struct reg_cache* etb_build_reg_cache(struct etb *etb)
 		reg_list[i].size = 32;
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].bitfield_desc = NULL;
-		reg_list[i].num_bitfields = 0;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].arch_type = etb_reg_arch_type;
