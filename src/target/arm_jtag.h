@@ -41,23 +41,6 @@ int arm_jtag_set_instr(struct arm_jtag *jtag_info,
 int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain);
 int arm_jtag_setup_connection(struct arm_jtag *jtag_info);
 
-/* JTAG buffers to host, be and le buffers, flipping variants */
-int arm_jtag_buf_to_u32_flip(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_le32_flip(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_le16_flip(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_be32_flip(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_be16_flip(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_8_flip(uint8_t *in_buf, void *priv, struct scan_field *field);
-
-/* JTAG buffers to host, be and le buffers */
-int arm_jtag_buf_to_u32(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_le32(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_le16(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_be32(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_be16(uint8_t *in_buf, void *priv, struct scan_field *field);
-int arm_jtag_buf_to_8(uint8_t *in_buf, void *priv, struct scan_field *field);
-
-
 /* use this as a static so we can inline it in -O3 and refer to it via a pointer  */
 static __inline__ void arm7flip32(jtag_callback_data_t arg)
 {
