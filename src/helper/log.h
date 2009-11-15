@@ -59,10 +59,10 @@ enum log_levels
 	LOG_LVL_DEBUG = 3
 };
 
-void log_printf(enum log_levels level, const char *file, int line,
+void log_printf(enum log_levels level, const char *file, unsigned line,
 	const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
-void log_printf_lf(enum log_levels level, const char *file, int line,
+void log_printf_lf(enum log_levels level, const char *file, unsigned line,
 	const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 
@@ -74,8 +74,8 @@ int log_register_commands(struct command_context *cmd_ctx);
 void keep_alive(void);
 void kept_alive(void);
 
-void alive_sleep(int ms);
-void busy_sleep(int ms);
+void alive_sleep(uint64_t ms);
+void busy_sleep(uint64_t ms);
 
 /* log entries can be paused and replayed roughly according to the try/catch/rethrow
  * concepts in C++

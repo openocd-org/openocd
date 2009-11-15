@@ -77,7 +77,7 @@ struct store_log_forward
 };
 
 /* either forward the log to the listeners or store it for possible forwarding later */
-static void log_forward(const char *file, int line, const char *function, const char *string)
+static void log_forward(const char *file, unsigned line, const char *function, const char *string)
 {
 	if (log_forward_count==0)
 	{
@@ -224,7 +224,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 }
 
 
-void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
+void log_printf(enum log_levels level, const char *file, unsigned line, const char *function, const char *format, ...)
 {
 	char *string;
 	va_list ap;
@@ -245,7 +245,7 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	va_end(ap);
 }
 
-void log_printf_lf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
+void log_printf_lf(enum log_levels level, const char *file, unsigned line, const char *function, const char *format, ...)
 {
 	char *string;
 	va_list ap;
@@ -504,27 +504,24 @@ void kept_alive()
 }
 
 /* if we sleep for extended periods of time, we must invoke keep_alive() intermittantly */
-void alive_sleep(int ms)
+void alive_sleep(uint64_t ms)
 {
-	int i;
-	int napTime = 10;
-	for (i = 0; i < ms; i += napTime)
+	uint64_t napTime = 10;
+	for (uint64_t i = 0; i < ms; i += napTime)
 	{
-		int sleep_a_bit = ms-i;
+		uint64_t sleep_a_bit = ms - i;
 		if (sleep_a_bit > napTime)
-		{
 			sleep_a_bit = napTime;
-		}
-		usleep(sleep_a_bit*1000);
+
+		usleep(sleep_a_bit * 1000);
 		keep_alive();
 	}
 }
 
-void busy_sleep(int ms)
+void busy_sleep(uint64_t ms)
 {
-	long long then;
-	then = timeval_ms();
-	while ((timeval_ms()-then) < ms)
+	uint64_t then = timeval_ms();
+	while (timeval_ms() - then < ms)
 	{
 		/* busy wait */
 	}
