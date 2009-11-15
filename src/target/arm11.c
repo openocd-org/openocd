@@ -2139,51 +2139,7 @@ static int arm11_mcr(struct target *target, int cpnum,
 	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);
 }
 
-#define ARM11_HANDLER(x)	.x = arm11_##x
-
-struct target_type arm11_target = {
-		.name = "arm11",
-
-		ARM11_HANDLER(poll),
-		ARM11_HANDLER(arch_state),
-
-		ARM11_HANDLER(target_request_data),
-
-		ARM11_HANDLER(halt),
-		ARM11_HANDLER(resume),
-		ARM11_HANDLER(step),
-
-		ARM11_HANDLER(assert_reset),
-		ARM11_HANDLER(deassert_reset),
-		ARM11_HANDLER(soft_reset_halt),
-
-		ARM11_HANDLER(get_gdb_reg_list),
-
-		ARM11_HANDLER(read_memory),
-		ARM11_HANDLER(write_memory),
-
-		ARM11_HANDLER(bulk_write_memory),
-
-		ARM11_HANDLER(checksum_memory),
-
-		ARM11_HANDLER(add_breakpoint),
-		ARM11_HANDLER(remove_breakpoint),
-		ARM11_HANDLER(add_watchpoint),
-		ARM11_HANDLER(remove_watchpoint),
-
-		ARM11_HANDLER(run_algorithm),
-
-		ARM11_HANDLER(register_commands),
-		ARM11_HANDLER(target_create),
-		ARM11_HANDLER(init_target),
-		ARM11_HANDLER(examine),
-
-		ARM11_HANDLER(mrc),
-		ARM11_HANDLER(mcr),
-	};
-
-
-int arm11_register_commands(struct command_context *cmd_ctx)
+static int arm11_register_commands(struct command_context *cmd_ctx)
 {
 	FNC_INFO;
 
@@ -2222,3 +2178,45 @@ int arm11_register_commands(struct command_context *cmd_ctx)
 
 	return etm_register_commands(cmd_ctx);
 }
+
+/** Holds methods for ARM11xx targets. */
+struct target_type arm11_target = {
+	.name =			"arm11",
+
+	.poll =			arm11_poll,
+	.arch_state =		arm11_arch_state,
+
+	.target_request_data =	arm11_target_request_data,
+
+	.halt =			arm11_halt,
+	.resume =		arm11_resume,
+	.step =			arm11_step,
+
+	.assert_reset =		arm11_assert_reset,
+	.deassert_reset =	arm11_deassert_reset,
+	.soft_reset_halt =	arm11_soft_reset_halt,
+
+	.get_gdb_reg_list =	arm11_get_gdb_reg_list,
+
+	.read_memory =		arm11_read_memory,
+	.write_memory =		arm11_write_memory,
+
+	.bulk_write_memory =	arm11_bulk_write_memory,
+
+	.checksum_memory =	arm11_checksum_memory,
+
+	.add_breakpoint =	arm11_add_breakpoint,
+	.remove_breakpoint =	arm11_remove_breakpoint,
+	.add_watchpoint =	arm11_add_watchpoint,
+	.remove_watchpoint =	arm11_remove_watchpoint,
+
+	.run_algorithm =	arm11_run_algorithm,
+
+	.register_commands =	arm11_register_commands,
+	.target_create =	arm11_target_create,
+	.init_target =		arm11_init_target,
+	.examine =		arm11_examine,
+
+	.mrc =			arm11_mrc,
+	.mcr =			arm11_mcr,
+};

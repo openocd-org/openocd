@@ -188,6 +188,4 @@ struct arm11_reg_state
 	struct target *			target;
 };
 
-int arm11_register_commands(struct command_context *cmd_ctx);
-
 #endif /* ARM11_H */
