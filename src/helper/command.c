@@ -447,9 +447,12 @@ static int run_command(struct command_context *context,
 		return ERROR_FAIL;
 	}
 
-	unsigned argc = num_words - start_word - 1;
-	const char **args = words + start_word + 1;
-	int retval = c->handler(context, args, argc);
+	struct command_invocation cmd = {
+			.ctx = context,
+			.argc = num_words - start_word - 1,
+			.argv = words + start_word + 1,
+		};
+	int retval = c->handler(&cmd);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
 		/* Print help for command */

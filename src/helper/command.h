@@ -80,6 +80,16 @@ struct command_context
 	void *output_handler_priv;
 };
 
+/**
+ * When run_command is called, a new instance will be created on the
+ * stack, filled with the proper values, and passed by reference to the
+ * required COMMAND_HANDLER routine.
+ */
+struct command_invocation {
+	struct command_context *ctx;
+	unsigned argc;
+	const char **argv;
+};
 
 /**
  * Command handlers may be defined with more parameters than the base
@@ -87,8 +97,7 @@ struct command_context
  * defining all such derivative types using this macro.
  */
 #define __COMMAND_HANDLER(name, extra...) \
-		int name(struct command_context *cmd_ctx, \
-				const char *args[], unsigned argc, ##extra)
+		int name(struct command_invocation *cmd, ##extra)
 
 /**
  * Use this to macro to call a command helper (or a nested handler).
@@ -104,7 +113,7 @@ struct command_context
  * variables in intervening scope(s) by accident.
  */
 #define CALL_COMMAND_HANDLER(name, extra...) \
-		name(cmd_ctx, args, argc, ##extra)
+		name(cmd, ##extra)
 
 /**
  * Always use this macro to define new command handler functions.
@@ -125,17 +134,17 @@ struct command_context
  * Use this macro to access the context of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_CTX cmd_ctx
+#define CMD_CTX cmd->ctx
 /**
  * Use this macro to access the number of arguments for the command being
  * handled, rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_ARGC argc
+#define CMD_ARGC cmd->argc
 /**
  * Use this macro to access the arguments for the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_ARGV args
+#define CMD_ARGV cmd->argv
 /**
  * Use this macro to access the name of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
