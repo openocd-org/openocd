@@ -1551,16 +1551,6 @@ static int arm11_bulk_write_memory(struct target *target,
 	return arm11_write_memory(target, address, 4, count, buffer);
 }
 
-/* here we have nothing target specific to contribute, so we fail and then the
- * fallback code will read data from the target and calculate the CRC on the
- * host.
- */
-static int arm11_checksum_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t* checksum)
-{
-	return ERROR_FAIL;
-}
-
 /* target break-/watchpoint control
 * rw: 0 = write, 1 = read, 2 = access
 */
@@ -2203,7 +2193,8 @@ struct target_type arm11_target = {
 
 	.bulk_write_memory =	arm11_bulk_write_memory,
 
-	.checksum_memory =	arm11_checksum_memory,
+	.checksum_memory =	arm_checksum_memory,
+	.blank_check_memory =	arm_blank_check_memory,
 
 	.add_breakpoint =	arm11_add_breakpoint,
 	.remove_breakpoint =	arm11_remove_breakpoint,

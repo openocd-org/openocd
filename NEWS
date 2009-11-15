@@ -8,8 +8,16 @@ JTAG Layer:
 
 Boundary Scan:
 Target Layer:
+	ARM11
+		- Preliminary ETM and ETB hookup
+		- accelerated "flash erase_check"
+		- accelerated GDB memory checksum
+
 Flash Layer:
 Board, Target, and Interface Configuration Scripts:
+	ARM9
+		- ETM and ETB hookup for iMX2* targets
+
 Documentation:
 Build and Release:
 
