@@ -1297,11 +1297,11 @@ static int cortex_a8_dcc_read(struct swjdp_common *swjdp, uint8_t *value, uint8_
 static int cortex_a8_handle_target_request(void *priv)
 {
 	struct target *target = priv;
-	if (!target->type->examined)
-		return ERROR_OK;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
+	if (!target_was_examined(target))
+		return ERROR_OK;
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;
 
@@ -1424,7 +1424,7 @@ static int cortex_a8_examine(struct target *target)
 	/* Configure core debug access */
 	cortex_a8_init_debug_access(target);
 
-	target->type->examined = 1;
+	target_set_examined(target);
 
 	return retval;
 }

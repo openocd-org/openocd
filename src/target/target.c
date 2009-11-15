@@ -644,20 +644,13 @@ int target_run_algorithm(struct target *target,
 			entry_point, exit_point, timeout_ms, arch_info);
 }
 
-/// @returns @c true if the target has been examined.
-bool target_was_examined(struct target *target)
+/**
+ * Reset the @c examined flag for the given target.
+ * Pure paranoia -- targets are zeroed on allocation.
+ */
+static void target_reset_examined(struct target *target)
 {
-	return target->type->examined;
-}
-/// Sets the @c examined flag for the given target.
-void target_set_examined(struct target *target)
-{
-	target->type->examined = true;
-}
-// Reset the @c examined flag for the given target.
-void target_reset_examined(struct target *target)
-{
-	target->type->examined = false;
+	target->examined = false;
 }
 
 

@@ -129,7 +129,16 @@ struct target
 	const char *cmd_name;				/* tcl Name of target */
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;					/* where on the jtag chain is this */
-	const char *variant;				/* what varient of this chip is it? */
+	const char *variant;				/* what variant of this chip is it? */
+
+	/**
+	 * Indicates whether this target has been examined.
+	 *
+	 * Do @b not access this field directly, use target_was_examined()
+	 * or target_set_examined().
+	 */
+	bool examined;
+
 	struct target_event_action *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
@@ -289,18 +298,25 @@ struct target *get_target(const char *id);
 const char *target_get_name(struct target *target);
 
 /**
- * Examine the specified @a target.
+ * Examine the specified @a target, letting it perform any
+ * initialization that requires JTAG access.
  *
  * This routine is a wrapper for target->type->examine.
  */
 int target_examine_one(struct target *target);
-/// @returns @c true if the target has been examined.
-bool target_was_examined(struct target *target);
-/// Sets the @c examined flag for the given target.
-void target_set_examined(struct target *target);
-/// Reset the @c examined flag for the given target.
-void target_reset_examined(struct target *target);
 
+/// @returns @c true if target_set_examined() has been called.
+static inline bool target_was_examined(struct target *target)
+{
+	return target->examined;
+}
+
+/// Sets the @c examined flag for the given target.
+/// Use in target->type->examine() after one-time setup is done.
+static inline void target_set_examined(struct target *target)
+{
+	target->examined = true;
+}
 
 /**
  * Add the @a breakpoint for @a target.

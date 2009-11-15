@@ -1906,12 +1906,6 @@ static int arm11_examine(struct target *target)
 		retval = etm_setup(target);
 	}
 
-	/* FIXME this sets a flag in the (shared) arm11_target structure,
-	 * not in the (per-cpu) "target" structure ... so it's clearly
-	 * wrong in the case of e.g. two different ARM11 chips on the
-	 * same board.  (Maybe ARM11 MPCore works though.)  Whoever calls
-	 * the examine() method should set a target-specific flag...
-	 */
 	target_set_examined(target);
 
 	return ERROR_OK;

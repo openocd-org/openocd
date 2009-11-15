@@ -30,21 +30,18 @@
 
 struct target;
 
+/**
+ * This holds methods shared between all instances of a given target
+ * type.  For example, all Cortex-M3 targets on a scan chain share
+ * the same method table.
+ */
 struct target_type
 {
 	/**
-	 * Name of the target.  Do @b not access this field directly, use
-	 * target_get_name() instead.
+	 * Name of this type of target.  Do @b not access this
+	 * field directly, use target_get_name() instead.
 	 */
 	char *name;
-
-	/**
-	 * Indicates whether this target has been examined.
-	 *
-	 * Do @b not access this field directly, use target_was_examined()
-	 * target_set_examined(), and target_reset_examined().
-	 */
-	int examined;
 
 	/* poll current target status */
 	int (*poll)(struct target *target);
@@ -165,13 +162,22 @@ struct target_type
 	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
 	int (*target_jim_commands)(struct target *target, Jim_GetOptInfo *goi);
 
-	/* invoked after JTAG chain has been examined & validated. During
-	 * this stage the target is examined and any additional setup is
-	 * performed.
+	/**
+	 * This method is used to perform target setup that requires
+	 * JTAG access.
 	 *
-	 * invoked every time after the jtag chain has been validated/examined
+	 * This may be called multiple times.  It is called after the
+	 * scan chain is initially validated, or later after the target
+	 * is enabled by a JRC.  It may also be called during some
+	 * parts of the reset sequence.
+	 *
+	 * For one-time initialization tasks, use target_was_examined()
+	 * and target_set_examined().  For example, probe the hardware
+	 * before setting up chip-specific state, and then set that
+	 * flag so you don't do that again.
 	 */
 	int (*examine)(struct target *target);
+
 	/* Set up structures for target.
 	 *
 	 * It is illegal to talk to the target at this stage as this fn is invoked
