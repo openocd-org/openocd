@@ -230,8 +230,8 @@ int nand_register_commands(struct command_context *cmd_ctx);
 int nand_init(struct command_context *cmd_ctx);
 
 /// helper for parsing a nand device command argument string
-int nand_command_get_device_by_num(struct command_context *cmd_ctx,
-		const char *str, struct nand_device **nand);
+COMMAND_HELPER(nand_command_get_device_by_num, unsigned name_index,
+		struct nand_device **nand);
 
 
 #define		ERROR_NAND_DEVICE_INVALID		(-1100)
