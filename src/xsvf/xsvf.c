@@ -219,7 +219,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 	*/
 	struct jtag_tap *tap = NULL;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "usage: xsvf <device#|plain> <file> [<variant>] [quiet]");
 		return ERROR_FAIL;
@@ -245,14 +245,14 @@ COMMAND_HANDLER(handle_xsvf_command)
 	}
 
 	/* if this argument is present, then interpret xruntest counts as TCK cycles rather than as usecs */
-	if ((argc > 2) && (strcmp(args[2], "virt2") == 0))
+	if ((CMD_ARGC > 2) && (strcmp(args[2], "virt2") == 0))
 	{
 		runtest_requires_tck = 1;
-		--argc;
+		--CMD_ARGC;
 		++args;
 	}
 
-	if ((argc > 2) && (strcmp(args[2], "quiet") == 0))
+	if ((CMD_ARGC > 2) && (strcmp(args[2], "quiet") == 0))
 	{
 		verbose = 0;
 	}

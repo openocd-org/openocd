@@ -49,7 +49,7 @@ FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 	struct arm7_9_common *arm7_9;
 	struct ocl_priv *ocl;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank ocl configuration");
 		return ERROR_FLASH_BANK_INVALID;

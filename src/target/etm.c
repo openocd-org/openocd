@@ -1263,7 +1263,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 
 	etmv1_tracemode_t tracemode = etm->tracemode;
 
-	switch (argc)
+	switch (CMD_ARGC)
 	{
 	case 0:
 		break;
@@ -1374,7 +1374,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	struct etm_context *etm_ctx;
 	int i;
 
-	if (argc != 5)
+	if (CMD_ARGC != 5)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	target = get_target(args[0]);
@@ -1730,7 +1730,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 	struct arm *arm;
 	struct etm_context *etm_ctx;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "usage: etm image <file> [base address] [type]");
 		return ERROR_FAIL;
@@ -1763,7 +1763,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 	etm_ctx->image->start_address_set = 0;
 
 	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
-	if (argc >= 2)
+	if (CMD_ARGC >= 2)
 	{
 		etm_ctx->image->base_address_set = 1;
 		COMMAND_PARSE_NUMBER(int, args[1], etm_ctx->image->base_address);
@@ -1773,7 +1773,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 		etm_ctx->image->base_address_set = 0;
 	}
 
-	if (image_open(etm_ctx->image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(etm_ctx->image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		free(etm_ctx->image);
 		etm_ctx->image = NULL;
@@ -1791,7 +1791,7 @@ COMMAND_HANDLER(handle_etm_dump_command)
 	struct etm_context *etm_ctx;
 	uint32_t i;
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "usage: etm dump <file>");
 		return ERROR_FAIL;
@@ -1859,7 +1859,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 	struct etm_context *etm_ctx;
 	uint32_t i;
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "usage: etm load <file>");
 		return ERROR_FAIL;
@@ -1956,7 +1956,7 @@ COMMAND_HANDLER(handle_etm_trigger_percent_command)
 		return ERROR_FAIL;
 	}
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		uint32_t new_value;
 		COMMAND_PARSE_NUMBER(u32, args[0], new_value);

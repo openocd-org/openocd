@@ -222,7 +222,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	int found = 0;
 	struct target *target;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -303,7 +303,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 	int j = 0;
 	int retval;
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned bank_nr;
@@ -362,7 +362,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 {
 	int retval;
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -397,7 +397,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 
 COMMAND_HANDLER(handle_flash_erase_check_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -450,7 +450,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 
 	struct target *target = get_current_target(cmd_ctx);
 
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	COMMAND_PARSE_NUMBER(int, args[0], address);
@@ -487,7 +487,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 
 COMMAND_HANDLER(handle_flash_protect_check_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *p;
@@ -531,7 +531,7 @@ static int flash_check_sector_parameters(struct command_context *cmd_ctx,
 
 COMMAND_HANDLER(handle_flash_erase_command)
 {
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t bank_nr;
@@ -571,7 +571,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 
 COMMAND_HANDLER(handle_flash_protect_command)
 {
-	if (argc != 3)
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t bank_nr;
@@ -622,7 +622,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 
 	int retval;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -637,13 +637,13 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 		{
 			auto_erase = 1;
 			args++;
-			argc--;
+			CMD_ARGC--;
 			command_print(cmd_ctx, "auto erase enabled");
 		} else if (strcmp(args[0], "unlock") == 0)
 		{
 			auto_unlock = true;
 			args++;
-			argc--;
+			CMD_ARGC--;
 			command_print(cmd_ctx, "auto unlock enabled");
 		} else
 		{
@@ -651,7 +651,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 		}
 	}
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -665,7 +665,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (argc >= 2)
+	if (CMD_ARGC >= 2)
 	{
 		image.base_address_set = 1;
 		COMMAND_PARSE_NUMBER(int, args[1], image.base_address);
@@ -678,7 +678,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 
 	image.start_address_set = 0;
 
-	retval = image_open(&image, args[0], (argc == 3) ? args[2] : NULL);
+	retval = image_open(&image, args[0], (CMD_ARGC == 3) ? args[2] : NULL);
 	if (retval != ERROR_OK)
 	{
 		return retval;
@@ -718,7 +718,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint32_t i;
 	uint32_t wordsize;
 
-	if (argc != 3)
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	COMMAND_PARSE_NUMBER(u32, args[0], address);
@@ -813,7 +813,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	uint8_t *buffer;
 	struct fileio fileio;
 
-	if (argc != 3)
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct duration bench;

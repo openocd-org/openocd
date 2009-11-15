@@ -682,7 +682,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "usage: arm920t read_cache <filename>");
 		return ERROR_OK;
@@ -928,7 +928,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "usage: arm920t read_mmu <filename>");
 		return ERROR_OK;
@@ -1207,12 +1207,12 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 	}
 
 	/* one or more argument, access a single register (write if second argument is given */
-	if (argc >= 1)
+	if (CMD_ARGC >= 1)
 	{
 		int address;
 		COMMAND_PARSE_NUMBER(int, args[0], address);
 
-		if (argc == 1)
+		if (CMD_ARGC == 1)
 		{
 			uint32_t value;
 			if ((retval = arm920t_read_cp15_physical(target, address, &value)) != ERROR_OK)
@@ -1227,7 +1227,7 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 
 			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
 		}
-		else if (argc == 2)
+		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, args[1], value);
@@ -1261,12 +1261,12 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 	}
 
 	/* one or more argument, access a single register (write if second argument is given */
-	if (argc >= 1)
+	if (CMD_ARGC >= 1)
 	{
 		uint32_t opcode;
 		COMMAND_PARSE_NUMBER(u32, args[0], opcode);
 
-		if (argc == 1)
+		if (CMD_ARGC == 1)
 		{
 			uint32_t value;
 			if ((retval = arm920t_read_cp15_interpreted(target, opcode, 0x0, &value)) != ERROR_OK)
@@ -1277,7 +1277,7 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 
 			command_print(cmd_ctx, "%8.8" PRIx32 ": %8.8" PRIx32 "", opcode, value);
 		}
-		else if (argc == 2)
+		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, args[1], value);
@@ -1288,7 +1288,7 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 			}
 			command_print(cmd_ctx, "%8.8" PRIx32 ": %8.8" PRIx32 "", opcode, value);
 		}
-		else if (argc == 3)
+		else if (CMD_ARGC == 3)
 		{
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, args[1], value);

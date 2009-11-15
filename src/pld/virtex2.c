@@ -183,7 +183,7 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	struct virtex2_pld_device *virtex2_info;
 	uint32_t status;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "usage: virtex2 read_stat <num>");
 		return ERROR_OK;
@@ -213,7 +213,7 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 
 	struct virtex2_pld_device *virtex2_info;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		LOG_WARNING("incomplete pld device 'virtex2' configuration");
 		return ERROR_PLD_DEVICE_INVALID;

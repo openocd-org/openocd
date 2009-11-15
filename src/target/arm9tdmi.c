@@ -853,7 +853,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	/* get the current setting */
 	vector_catch_value = buf_get_u32(vector_catch->value, 0, 8);
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		vector_catch_value = 0x0;
 		if (strcmp(args[0], "all") == 0)
@@ -866,7 +866,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 		}
 		else
 		{
-			for (unsigned i = 0; i < argc; i++)
+			for (unsigned i = 0; i < CMD_ARGC; i++)
 			{
 				/* go through list of vectors */
 				unsigned j;

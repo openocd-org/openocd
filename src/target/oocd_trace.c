@@ -294,7 +294,7 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 	struct target *target;
 	struct arm *arm;
 
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 	{
 		LOG_ERROR("incomplete 'oocd_trace config <target> <tty>' command");
 		return ERROR_FAIL;

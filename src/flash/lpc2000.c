@@ -424,7 +424,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 {
 	struct lpc2000_flash_bank *lpc2000_info;
 
-	if (argc < 8)
+	if (CMD_ARGC < 8)
 	{
 		LOG_WARNING("incomplete flash_bank lpc2000 configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -469,7 +469,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 	lpc2000_info->calc_checksum = 0;
 	lpc2000_build_sector_list(bank);
 
-	if (argc >= 9)
+	if (CMD_ARGC >= 9)
 	{
 		if (strcmp(args[8], "calc_checksum") == 0)
 			lpc2000_info->calc_checksum = 1;
@@ -744,7 +744,7 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 	uint32_t result_table[4];
 	int status_code;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

@@ -242,7 +242,7 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 	struct arm7_9_common *arm7_9 = NULL;
 	struct arm_jtag *jtag_info = NULL;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank str9x configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -734,7 +734,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 	uint32_t idcode;
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
@@ -782,7 +782,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 	uint8_t status;
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str9xpec options_read <bank>");
 		return ERROR_OK;
@@ -898,7 +898,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 {
 	uint8_t status;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str9xpec options_write <bank>");
 		return ERROR_OK;
@@ -921,7 +921,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "str9xpec options_cmap <bank> <bank0 | bank1>");
 		return ERROR_OK;
@@ -950,7 +950,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "str9xpec options_lvdthd <bank> <2.4v | 2.7v>");
 		return ERROR_OK;
@@ -979,7 +979,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "str9xpec options_lvdsel <bank> <vdd | vdd_vddq>");
 		return ERROR_OK;
@@ -1008,7 +1008,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "str9xpec options_lvdwarn <bank> <vdd | vdd_vddq>");
 		return ERROR_OK;
@@ -1037,7 +1037,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_lock_command)
 {
 	uint8_t status;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str9xpec lock <bank>");
 		return ERROR_OK;
@@ -1060,7 +1060,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 {
 	uint8_t status;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str9xpec unlock <bank>");
 		return ERROR_OK;
@@ -1086,7 +1086,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 	struct jtag_tap *tap2;
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str9xpec enable_turbo <bank>");
 		return ERROR_OK;
@@ -1133,7 +1133,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 	struct jtag_tap *tap;
 	struct str9xpec_flash_controller *str9xpec_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str9xpec disable_turbo <bank>");
 		return ERROR_OK;

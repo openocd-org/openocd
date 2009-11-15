@@ -52,7 +52,7 @@
 /* Give TELNET a way to find out what version this is */
 COMMAND_HANDLER(handle_version_command)
 {
-	if (argc != 0)
+	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(cmd_ctx, OPENOCD_VERSION);
@@ -95,7 +95,7 @@ int ioutil_init(struct command_context *cmd_ctx);
 COMMAND_HANDLER(handle_init_command)
 {
 
-	if (argc != 0)
+	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval;

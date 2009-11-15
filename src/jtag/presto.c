@@ -752,7 +752,7 @@ static char *presto_serial;
 
 COMMAND_HANDLER(presto_handle_serial_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		if (presto_serial)
 			free(presto_serial);

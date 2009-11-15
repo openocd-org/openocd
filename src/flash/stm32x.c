@@ -38,7 +38,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 {
 	struct stm32x_flash_bank *stm32x_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank stm32x configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -898,7 +898,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	struct target *target = NULL;
 	struct stm32x_flash_bank *stm32x_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "stm32x lock <bank>");
 		return ERROR_OK;
@@ -944,7 +944,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	struct target *target = NULL;
 	struct stm32x_flash_bank *stm32x_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "stm32x unlock <bank>");
 		return ERROR_OK;
@@ -988,7 +988,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	struct target *target = NULL;
 	struct stm32x_flash_bank *stm32x_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "stm32x options_read <bank>");
 		return ERROR_OK;
@@ -1044,7 +1044,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 	struct stm32x_flash_bank *stm32x_info = NULL;
 	uint16_t optionbyte = 0xF8;
 
-	if (argc < 4)
+	if (CMD_ARGC < 4)
 	{
 		command_print(cmd_ctx, "stm32x options_write <bank> <SWWDG | HWWDG> <RSTSTNDBY | NORSTSTNDBY> <RSTSTOP | NORSTSTOP>");
 		return ERROR_OK;
@@ -1153,7 +1153,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 {
 	int i;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "stm32x mass_erase <bank>");
 		return ERROR_OK;

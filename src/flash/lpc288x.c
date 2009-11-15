@@ -169,7 +169,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc288x_flash_bank_command)
 {
 	struct lpc288x_flash_bank *lpc288x_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank LPC288x configuration");
 		return ERROR_FLASH_BANK_INVALID;

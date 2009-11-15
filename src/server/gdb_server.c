@@ -2245,7 +2245,7 @@ int gdb_init(void)
 
 COMMAND_HANDLER(handle_gdb_sync_command)
 {
-	if (argc != 0)
+	if (CMD_ARGC != 0)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -2270,7 +2270,7 @@ COMMAND_HANDLER(handle_gdb_port_command)
 
 COMMAND_HANDLER(handle_gdb_memory_map_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
 		{
@@ -2291,7 +2291,7 @@ COMMAND_HANDLER(handle_gdb_memory_map_command)
 
 COMMAND_HANDLER(handle_gdb_flash_program_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
 		{
@@ -2312,7 +2312,7 @@ COMMAND_HANDLER(handle_gdb_flash_program_command)
 
 COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
 		{
@@ -2334,10 +2334,10 @@ COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 /* gdb_breakpoint_override */
 COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 
-	} else if (argc == 1)
+	} else if (CMD_ARGC == 1)
 	{
 		gdb_breakpoint_override = 1;
 		if (strcmp(args[0], "hard") == 0)

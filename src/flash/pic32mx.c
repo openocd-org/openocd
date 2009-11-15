@@ -66,7 +66,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 {
 	struct pic32mx_flash_bank *pic32mx_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank pic32mx configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -677,7 +677,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 	struct target *target = NULL;
 	struct pic32mx_flash_bank *pic32mx_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "pic32mx lock <bank>");
 		return ERROR_OK;
@@ -723,7 +723,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 	struct target *target = NULL;
 	struct pic32mx_flash_bank *pic32mx_info = NULL;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "pic32mx unlock <bank>");
 		return ERROR_OK;
@@ -813,7 +813,7 @@ COMMAND_HANDLER(pic32mx_handle_chip_erase_command)
 #if 0
 	int i;
 
-	if (argc != 0)
+	if (CMD_ARGC != 0)
 	{
 		command_print(cmd_ctx, "pic32mx chip_erase");
 		return ERROR_OK;
@@ -848,7 +848,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 	uint32_t address, value;
 	int status, res;
 
-	if (argc != 3)
+	if (CMD_ARGC != 3)
 	{
 		command_print(cmd_ctx, "pic32mx pgm_word <addr> <value> <bank>");
 		return ERROR_OK;

@@ -543,7 +543,7 @@ static int gw16012_quit(void)
 
 COMMAND_HANDLER(gw16012_handle_parport_port_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		/* only if the port wasn't overwritten by cmdline */
 		if (gw16012_port == 0)

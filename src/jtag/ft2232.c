@@ -2801,7 +2801,7 @@ COMMAND_HANDLER(ft2232_handle_device_desc_command)
 {
 	char *cp;
 	char buf[200];
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		ft2232_device_desc = strdup(args[0]);
 		cp = strchr(ft2232_device_desc, 0);
@@ -2833,7 +2833,7 @@ COMMAND_HANDLER(ft2232_handle_device_desc_command)
 
 COMMAND_HANDLER(ft2232_handle_serial_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		ft2232_serial = strdup(args[0]);
 	}
@@ -2847,7 +2847,7 @@ COMMAND_HANDLER(ft2232_handle_serial_command)
 
 COMMAND_HANDLER(ft2232_handle_layout_command)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 		return ERROR_OK;
 
 	ft2232_layout = malloc(strlen(args[0]) + 1);
@@ -2858,23 +2858,23 @@ COMMAND_HANDLER(ft2232_handle_layout_command)
 
 COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 {
-	if (argc > MAX_USB_IDS * 2)
+	if (CMD_ARGC > MAX_USB_IDS * 2)
 	{
 		LOG_WARNING("ignoring extra IDs in ft2232_vid_pid "
 					"(maximum is %d pairs)", MAX_USB_IDS);
-		argc = MAX_USB_IDS * 2;
+		CMD_ARGC = MAX_USB_IDS * 2;
 	}
-	if (argc < 2 || (argc & 1))
+	if (CMD_ARGC < 2 || (CMD_ARGC & 1))
 	{
 		LOG_WARNING("incomplete ft2232_vid_pid configuration directive");
-		if (argc < 2)
+		if (CMD_ARGC < 2)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		/* remove the incomplete trailing id */
-		argc -= 1;
+		CMD_ARGC -= 1;
 	}
 
 	unsigned i;
-	for (i = 0; i < argc; i += 2)
+	for (i = 0; i < CMD_ARGC; i += 2)
 	{
 		COMMAND_PARSE_NUMBER(u16, args[i], ft2232_vid[i >> 1]);
 		COMMAND_PARSE_NUMBER(u16, args[i + 1], ft2232_pid[i >> 1]);
@@ -2891,7 +2891,7 @@ COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 
 COMMAND_HANDLER(ft2232_handle_latency_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		ft2232_latency = atoi(args[0]);
 	}

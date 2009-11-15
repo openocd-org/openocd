@@ -1324,7 +1324,7 @@ static void vsllink_simple_command(uint8_t command)
 
 COMMAND_HANDLER(vsllink_handle_mode_command)
 {
-	if (argc != 1) {
+	if (CMD_ARGC != 1) {
 		LOG_ERROR("parameter error, should be one parameter for VID");
 		return ERROR_FAIL;
 	}
@@ -1348,7 +1348,7 @@ COMMAND_HANDLER(vsllink_handle_mode_command)
 
 COMMAND_HANDLER(vsllink_handle_usb_vid_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		LOG_ERROR("parameter error, should be one parameter for VID");
 		return ERROR_OK;
@@ -1360,7 +1360,7 @@ COMMAND_HANDLER(vsllink_handle_usb_vid_command)
 
 COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		LOG_ERROR("parameter error, should be one parameter for PID");
 		return ERROR_OK;
@@ -1371,7 +1371,7 @@ COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 
 COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		LOG_ERROR("parameter error, should be one parameter for BULKIN endpoint");
 		return ERROR_OK;
@@ -1386,7 +1386,7 @@ COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 
 COMMAND_HANDLER(vsllink_handle_usb_bulkout_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		LOG_ERROR("parameter error, should be one parameter for BULKOUT endpoint");
 		return ERROR_OK;
@@ -1401,7 +1401,7 @@ COMMAND_HANDLER(vsllink_handle_usb_bulkout_command)
 
 COMMAND_HANDLER(vsllink_handle_usb_interface_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		LOG_ERROR("parameter error, should be one parameter for interface number");
 		return ERROR_OK;

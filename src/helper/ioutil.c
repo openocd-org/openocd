@@ -59,7 +59,7 @@
 
 COMMAND_HANDLER(handle_rm_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "rm <filename>");
 		return ERROR_INVALID_ARGUMENTS;
@@ -135,7 +135,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 
 COMMAND_HANDLER(handle_cat_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "cat <filename>");
 		return ERROR_INVALID_ARGUMENTS;
@@ -161,7 +161,7 @@ COMMAND_HANDLER(handle_cat_command)
 
 COMMAND_HANDLER(handle_trunc_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "trunc <filename>");
 		return ERROR_INVALID_ARGUMENTS;
@@ -180,7 +180,7 @@ COMMAND_HANDLER(handle_meminfo_command)
 	static int prev = 0;
 	struct mallinfo info;
 
-	if (argc != 0)
+	if (CMD_ARGC != 0)
 	{
 		command_print(cmd_ctx, "meminfo");
 		return ERROR_INVALID_ARGUMENTS;
@@ -202,7 +202,7 @@ COMMAND_HANDLER(handle_meminfo_command)
 
 COMMAND_HANDLER(handle_append_command)
 {
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx,
 				"append <filename> [<string1>, [<string2>, ...]]");
@@ -217,17 +217,17 @@ COMMAND_HANDLER(handle_append_command)
 		fseek(config_file, 0, SEEK_END);
 
 		unsigned i;
-		for (i = 1; i < argc; i++)
+		for (i = 1; i < CMD_ARGC; i++)
 		{
 			if (fwrite(args[i], 1, strlen(args[i]), config_file) != strlen(args[i]))
 				break;
-			if (i != argc - 1)
+			if (i != CMD_ARGC - 1)
 			{
 				if (fwrite(" ", 1, 1, config_file) != 1)
 					break;
 			}
 		}
-		if ((i == argc) && (fwrite("\n", 1, 1, config_file) == 1))
+		if ((i == CMD_ARGC) && (fwrite("\n", 1, 1, config_file) == 1))
 		{
 			retval = ERROR_OK;
 		}
@@ -241,7 +241,7 @@ COMMAND_HANDLER(handle_append_command)
 
 COMMAND_HANDLER(handle_cp_command)
 {
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}

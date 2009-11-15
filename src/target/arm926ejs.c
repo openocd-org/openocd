@@ -722,7 +722,7 @@ COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 	int CRn;
 	int CRm;
 
-	if ((argc < 4) || (argc > 5))
+	if ((CMD_ARGC < 4) || (CMD_ARGC > 5))
 	{
 		command_print(cmd_ctx, "usage: arm926ejs cp15 <opcode_1> <opcode_2> <CRn> <CRm> [value]");
 		return ERROR_OK;
@@ -743,7 +743,7 @@ COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 		return ERROR_OK;
 	}
 
-	if (argc == 4)
+	if (CMD_ARGC == 4)
 	{
 		uint32_t value;
 		if ((retval = arm926ejs->read_cp15(target, opcode_1, opcode_2, CRn, CRm, &value)) != ERROR_OK)

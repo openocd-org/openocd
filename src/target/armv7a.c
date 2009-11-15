@@ -259,7 +259,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	uint32_t apsel;
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		apsel = swjdp->apsel;
 		break;

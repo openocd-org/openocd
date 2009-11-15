@@ -354,7 +354,7 @@ COMMAND_HANDLER(handle_etb_config_command)
 	struct jtag_tap *tap;
 	struct arm *arm;
 
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

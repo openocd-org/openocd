@@ -31,7 +31,7 @@ static int lpc3180_controller_ready(struct nand_device *nand, int timeout);
  */
 NAND_DEVICE_COMMAND_HANDLER(lpc3180_nand_device_command)
 {
-	if (argc < 3)
+	if (CMD_ARGC < 3)
 	{
 		LOG_WARNING("incomplete 'lpc3180' nand flash configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -836,7 +836,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 		"no", "mlc", "slc"
 	};
 
-	if ((argc < 1) || (argc > 2))
+	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -852,7 +852,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 
 	lpc3180_info = nand->controller_priv;
 
-	if (argc == 2)
+	if (CMD_ARGC == 2)
 	{
 		if (strcmp(args[1], "mlc") == 0)
 		{

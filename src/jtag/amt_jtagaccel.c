@@ -497,7 +497,7 @@ static int amt_jtagaccel_quit(void)
 
 COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		/* only if the port wasn't overwritten by cmdline */
 		if (amt_jtagaccel_port == 0)
@@ -520,7 +520,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 
 COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 		command_print(cmd_ctx, "amt_jtagaccel RTCK feature %s", (rtck_enabled) ? "enabled" : "disabled");
 		return ERROR_OK;

@@ -24,12 +24,12 @@
 
 static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 	{
 		LOG_ERROR("%s: too many arguments", CMD_NAME);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	if (1 == argc)
+	if (1 == CMD_ARGC)
 	{
 		*sep = " ";
 		*name = args[0];

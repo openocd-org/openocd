@@ -79,7 +79,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 	    LOG_ERROR ("target '%s' not defined", args[1]);
 	    return ERROR_FAIL;
 	}
-	if (argc < 3)
+	if (CMD_ARGC < 3)
 	{
 	    LOG_ERROR ("use \"nand device imx31 target noecc|hwecc\"");
 	    return ERROR_FAIL;

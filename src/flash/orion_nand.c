@@ -131,7 +131,7 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 	uint32_t base;
 	uint8_t ale, cle;
 
-	if (argc != 3) {
+	if (CMD_ARGC != 3) {
 		LOG_ERROR("arguments must be: <target_id> <NAND_address>\n");
 		return ERROR_NAND_DEVICE_INVALID;
 	}

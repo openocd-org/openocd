@@ -606,7 +606,7 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 {
 	struct cfi_flash_bank *cfi_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank cfi configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -633,7 +633,7 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	cfi_info->jedec_probe = 0;
 	cfi_info->not_cfi = 0;
 
-	for (unsigned i = 6; i < argc; i++)
+	for (unsigned i = 6; i < CMD_ARGC; i++)
 	{
 		if (strcmp(args[i], "x16_as_x8") == 0)
 		{

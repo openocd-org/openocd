@@ -2765,7 +2765,7 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 		return ERROR_FAIL;
 	}
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "usage: write_xpsr <value> <not cpsr | spsr>");
 		return ERROR_FAIL;
@@ -2809,7 +2809,7 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 		return ERROR_FAIL;
 	}
 
-	if (argc < 3)
+	if (CMD_ARGC < 3)
 	{
 		command_print(cmd_ctx, "usage: write_xpsr_im8 <im8> <rotate> <not cpsr | spsr>");
 		return ERROR_FAIL;
@@ -2849,7 +2849,7 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 		return ERROR_FAIL;
 	}
 
-	if (argc < 3)
+	if (CMD_ARGC < 3)
 	{
 		command_print(cmd_ctx, "usage: write_core_reg <num> <mode> <value>");
 		return ERROR_FAIL;
@@ -2873,7 +2873,7 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 		return ERROR_TARGET_INVALID;
 	}
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{
@@ -2905,7 +2905,7 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 		return ERROR_TARGET_INVALID;
 	}
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{
@@ -2937,7 +2937,7 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 		return ERROR_TARGET_INVALID;
 	}
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{

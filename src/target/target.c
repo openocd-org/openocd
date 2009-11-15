@@ -1648,7 +1648,7 @@ COMMAND_HANDLER(handle_targets_command)
 {
 	struct target *target = all_targets;
 
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		target = get_target(args[0]);
 		if (target == NULL) {
@@ -1868,7 +1868,7 @@ COMMAND_HANDLER(handle_reg_command)
 	target = get_current_target(cmd_ctx);
 
 	/* list all available registers for the current target */
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 		struct reg_cache *cache = target->reg_cache;
 
@@ -1948,9 +1948,9 @@ COMMAND_HANDLER(handle_reg_command)
 	}
 
 	/* display a register */
-	if ((argc == 1) || ((argc == 2) && !((args[1][0] >= '0') && (args[1][0] <= '9'))))
+	if ((CMD_ARGC == 1) || ((CMD_ARGC == 2) && !((args[1][0] >= '0') && (args[1][0] <= '9'))))
 	{
-		if ((argc == 2) && (strcmp(args[1], "force") == 0))
+		if ((CMD_ARGC == 2) && (strcmp(args[1], "force") == 0))
 			reg->valid = 0;
 
 		if (reg->valid == 0)
@@ -1964,7 +1964,7 @@ COMMAND_HANDLER(handle_reg_command)
 	}
 
 	/* set register value */
-	if (argc == 2)
+	if (CMD_ARGC == 2)
 	{
 		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
 		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
@@ -1990,7 +1990,7 @@ COMMAND_HANDLER(handle_poll_command)
 	int retval = ERROR_OK;
 	struct target *target = get_current_target(cmd_ctx);
 
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 		command_print(cmd_ctx, "background polling: %s",
 				jtag_poll_get_enabled() ? "on" : "off");
@@ -2005,7 +2005,7 @@ COMMAND_HANDLER(handle_poll_command)
 			return retval;
 
 	}
-	else if (argc == 1)
+	else if (CMD_ARGC == 1)
 	{
 		if (strcmp(args[0], "on") == 0)
 		{
@@ -2029,11 +2029,11 @@ COMMAND_HANDLER(handle_poll_command)
 
 COMMAND_HANDLER(handle_wait_halt_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned ms = 5000;
-	if (1 == argc)
+	if (1 == CMD_ARGC)
 	{
 		int retval = parse_uint(args[0], &ms);
 		if (ERROR_OK != retval)
@@ -2103,7 +2103,7 @@ COMMAND_HANDLER(handle_halt_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned wait;
 		retval = parse_uint(args[0], &wait);
@@ -2129,11 +2129,11 @@ COMMAND_HANDLER(handle_soft_reset_halt_command)
 
 COMMAND_HANDLER(handle_reset_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	enum target_reset_mode reset_mode = RESET_RUN;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		const Jim_Nvp *n;
 		n = Jim_Nvp_name2value_simple(nvp_reset_modes, args[0]);
@@ -2151,7 +2151,7 @@ COMMAND_HANDLER(handle_reset_command)
 COMMAND_HANDLER(handle_resume_command)
 {
 	int current = 1;
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct target *target = get_current_target(cmd_ctx);
@@ -2161,7 +2161,7 @@ COMMAND_HANDLER(handle_resume_command)
 	 * with one arguments, addr = args[0],
 	 * handle breakpoints, not debugging */
 	uint32_t addr = 0;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		COMMAND_PARSE_NUMBER(u32, args[0], addr);
 		current = 0;
@@ -2172,7 +2172,7 @@ COMMAND_HANDLER(handle_resume_command)
 
 COMMAND_HANDLER(handle_step_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_DEBUG("-");
@@ -2182,7 +2182,7 @@ COMMAND_HANDLER(handle_step_command)
 	 * handle breakpoints, debugging */
 	uint32_t addr = 0;
 	int current_pc = 1;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		COMMAND_PARSE_NUMBER(u32, args[0], addr);
 		current_pc = 0;
@@ -2244,7 +2244,7 @@ static void handle_md_output(struct command_context *cmd_ctx,
 
 COMMAND_HANDLER(handle_md_command)
 {
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned size = 0;
@@ -2261,14 +2261,14 @@ COMMAND_HANDLER(handle_md_command)
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	if (physical)
 	{
-		argc--;
+		CMD_ARGC--;
 		args++;
 		fn=target_read_phys_memory;
 	} else
 	{
 		fn=target_read_memory;
 	}
-	if ((argc < 1) || (argc > 2))
+	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -2277,7 +2277,7 @@ COMMAND_HANDLER(handle_md_command)
 	COMMAND_PARSE_NUMBER(u32, args[0], address);
 
 	unsigned count = 1;
-	if (argc == 2)
+	if (CMD_ARGC == 2)
 		COMMAND_PARSE_NUMBER(uint, args[1], count);
 
 	uint8_t *buffer = calloc(count, size);
@@ -2294,7 +2294,7 @@ COMMAND_HANDLER(handle_md_command)
 
 COMMAND_HANDLER(handle_mw_command)
 {
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -2304,14 +2304,14 @@ COMMAND_HANDLER(handle_mw_command)
 	const char *cmd_name = CMD_NAME;
 	if (physical)
 	{
-		argc--;
+		CMD_ARGC--;
 		args++;
 		fn=target_write_phys_memory;
 	} else
 	{
 		fn=target_write_memory;
 	}
-	if ((argc < 2) || (argc > 3))
+	if ((CMD_ARGC < 2) || (CMD_ARGC > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t address;
@@ -2321,7 +2321,7 @@ COMMAND_HANDLER(handle_mw_command)
 	COMMAND_PARSE_NUMBER(u32, args[1], value);
 
 	unsigned count = 1;
-	if (argc == 3)
+	if (CMD_ARGC == 3)
 		COMMAND_PARSE_NUMBER(uint, args[2], count);
 
 	struct target *target = get_current_target(cmd_ctx);
@@ -2360,12 +2360,12 @@ COMMAND_HANDLER(handle_mw_command)
 static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
 		uint32_t *min_address, uint32_t *max_address)
 {
-	if (argc < 1 || argc > 5)
+	if (CMD_ARGC < 1 || CMD_ARGC > 5)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* a base address isn't always necessary,
 	 * default to 0x0 (i.e. don't relocate) */
-	if (argc >= 2)
+	if (CMD_ARGC >= 2)
 	{
 		uint32_t addr;
 		COMMAND_PARSE_NUMBER(u32, args[1], addr);
@@ -2377,11 +2377,11 @@ static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
 
 	image->start_address_set = 0;
 
-	if (argc >= 4)
+	if (CMD_ARGC >= 4)
 	{
 		COMMAND_PARSE_NUMBER(u32, args[3], *min_address);
 	}
-	if (argc == 5)
+	if (CMD_ARGC == 5)
 	{
 		COMMAND_PARSE_NUMBER(u32, args[4], *max_address);
 		// use size (given) to find max (required)
@@ -2414,7 +2414,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(&image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
@@ -2495,7 +2495,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 
 	struct target *target = get_current_target(cmd_ctx);
 
-	if (argc != 3)
+	if (CMD_ARGC != 3)
 	{
 		command_print(cmd_ctx, "usage: dump_image <filename> <address> <size>");
 		return ERROR_OK;
@@ -2562,7 +2562,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 
 	struct target *target = get_current_target(cmd_ctx);
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -2576,7 +2576,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (argc >= 2)
+	if (CMD_ARGC >= 2)
 	{
 		uint32_t addr;
 		COMMAND_PARSE_NUMBER(u32, args[1], addr);
@@ -2591,7 +2591,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 
 	image.start_address_set = 0;
 
-	if ((retval = image_open(&image, args[0], (argc == 3) ? args[2] : NULL)) != ERROR_OK)
+	if ((retval = image_open(&image, args[0], (CMD_ARGC == 3) ? args[2] : NULL)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -2745,10 +2745,10 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 
 COMMAND_HANDLER(handle_bp_command)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 		return handle_bp_command_list(cmd_ctx);
 
-	if (argc < 2 || argc > 3)
+	if (CMD_ARGC < 2 || CMD_ARGC > 3)
 	{
 		command_print(cmd_ctx, "usage: bp <address> <length> ['hw']");
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2760,7 +2760,7 @@ COMMAND_HANDLER(handle_bp_command)
 	COMMAND_PARSE_NUMBER(u32, args[1], length);
 
 	int hw = BKPT_SOFT;
-	if (argc == 3)
+	if (CMD_ARGC == 3)
 	{
 		if (strcmp(args[2], "hw") == 0)
 			hw = BKPT_HARD;
@@ -2773,7 +2773,7 @@ COMMAND_HANDLER(handle_bp_command)
 
 COMMAND_HANDLER(handle_rbp_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t addr;
@@ -2789,7 +2789,7 @@ COMMAND_HANDLER(handle_wp_command)
 {
 	struct target *target = get_current_target(cmd_ctx);
 
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 		struct watchpoint *watchpoint = target->watchpoints;
 
@@ -2815,7 +2815,7 @@ COMMAND_HANDLER(handle_wp_command)
 	uint32_t data_value = 0x0;
 	uint32_t data_mask = 0xffffffff;
 
-	switch (argc)
+	switch (CMD_ARGC)
 	{
 	case 5:
 		COMMAND_PARSE_NUMBER(u32, args[4], data_mask);
@@ -2861,7 +2861,7 @@ COMMAND_HANDLER(handle_wp_command)
 
 COMMAND_HANDLER(handle_rwp_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t addr;
@@ -2882,7 +2882,7 @@ COMMAND_HANDLER(handle_rwp_command)
  */
 COMMAND_HANDLER(handle_virt2phys_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t va;
@@ -3020,7 +3020,7 @@ COMMAND_HANDLER(handle_profile_command)
 	struct timeval timeout, now;
 
 	gettimeofday(&timeout, NULL);
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -4551,7 +4551,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(&image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
@@ -4645,7 +4645,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 
 COMMAND_HANDLER(handle_fast_load_command)
 {
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (fastload == NULL)
 	{

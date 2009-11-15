@@ -187,7 +187,7 @@ static int at91rm9200_speed(int speed)
 
 static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 		return ERROR_OK;
 
 	/* only if the device name wasn't overwritten by cmdline */

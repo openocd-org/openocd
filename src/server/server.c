@@ -551,7 +551,7 @@ int server_register_commands(struct command_context *context)
 
 SERVER_PORT_COMMAND()
 {
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		command_print(cmd_ctx, "%d", *out);
 		break;

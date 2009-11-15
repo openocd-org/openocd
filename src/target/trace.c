@@ -52,7 +52,7 @@ COMMAND_HANDLER(handle_trace_point_command)
 	struct target *target = get_current_target(cmd_ctx);
 	struct trace *trace = target->trace_info;
 
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 		uint32_t i;
 
@@ -100,7 +100,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 	struct target *target = get_current_target(cmd_ctx);
 	struct trace *trace = target->trace_info;
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		trace->trace_history_pos = 0;
 		trace->trace_history_overflowed = 0;

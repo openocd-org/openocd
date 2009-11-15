@@ -411,7 +411,7 @@ static int parport_quit(void)
 
 COMMAND_HANDLER(parport_handle_parport_port_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		/* only if the port wasn't overwritten by cmdline */
 		if (parport_port == 0)
@@ -432,7 +432,7 @@ COMMAND_HANDLER(parport_handle_parport_port_command)
 
 COMMAND_HANDLER(parport_handle_parport_cable_command)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 		return ERROR_OK;
 
 	/* only if the cable name wasn't overwritten by cmdline */
@@ -447,7 +447,7 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 
 COMMAND_HANDLER(parport_handle_write_on_exit_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		command_print(cmd_ctx, "usage: parport_write_on_exit <on | off>");
 		return ERROR_OK;
@@ -463,7 +463,7 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 
 COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 {
-	if (argc == 1) {
+	if (CMD_ARGC == 1) {
 		uint32_t ns;
 		int retval = parse_u32(args[0], &ns);
 

@@ -118,7 +118,7 @@ struct flash_driver
 	 *
 	 * For example, args[4] = 16 bit flash, args[5] = 32bit bus.
 	 *
-	 * If extra arguments are provided (@a argc > 6), they will
+	 * If extra arguments are provided (@a CMD_ARGC > 6), they will
 	 * start in @a args[6].  These can be used to implement
 	 * driver-specific extensions.
 	 *

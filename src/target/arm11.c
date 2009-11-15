@@ -2005,13 +2005,13 @@ static int arm11_build_reg_cache(struct target *target)
 
 static COMMAND_HELPER(arm11_handle_bool, bool *var, char *name)
 {
-	if (argc == 0)
+	if (CMD_ARGC == 0)
 	{
 		LOG_INFO("%s is %s.", name, *var ? "enabled" : "disabled");
 		return ERROR_OK;
 	}
 
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	switch (args[0][0])
@@ -2052,7 +2052,7 @@ BOOL_WRAPPER(hardware_step,			"hardware single step")
 
 COMMAND_HANDLER(arm11_handle_vcr)
 {
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		break;
 	case 1:

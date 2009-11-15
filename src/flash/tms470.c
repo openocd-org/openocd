@@ -291,12 +291,12 @@ static uint32_t flashKeys[4];
 
 COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 {
-	if (argc > 4)
+	if (CMD_ARGC > 4)
 	{
 		command_print(cmd_ctx, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
-	else if (argc == 4)
+	else if (CMD_ARGC == 4)
 	{
 		int i;
 
@@ -314,7 +314,7 @@ COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 
 		keysSet = 1;
 	}
-	else if (argc != 0)
+	else if (CMD_ARGC != 0)
 	{
 		command_print(cmd_ctx, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
 		return ERROR_INVALID_ARGUMENTS;
@@ -355,12 +355,12 @@ static int oscMHz = 12;
 
 COMMAND_HANDLER(tms470_handle_osc_megahertz_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 	{
 		command_print(cmd_ctx, "tms470 osc_megahertz <MHz>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
-	else if (argc == 1)
+	else if (CMD_ARGC == 1)
 	{
 		sscanf(args[0], "%d", &oscMHz);
 	}
@@ -384,12 +384,12 @@ static int plldis = 0;
 
 COMMAND_HANDLER(tms470_handle_plldis_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 	{
 		command_print(cmd_ctx, "tms470 plldis <0 | 1>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
-	else if (argc == 1)
+	else if (CMD_ARGC == 1)
 	{
 		sscanf(args[0], "%d", &plldis);
 		plldis = plldis ? 1 : 0;

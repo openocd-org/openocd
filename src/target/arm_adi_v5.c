@@ -1370,7 +1370,7 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 	int retval;
 
 	apselsave = swjdp->apsel;
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		apsel = swjdp->apsel;
 		break;
@@ -1398,7 +1398,7 @@ DAP_COMMAND_HANDLER(dap_memaccess_command)
 {
 	uint32_t memaccess_tck;
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		memaccess_tck = swjdp->memaccess_tck;
 		break;
@@ -1421,7 +1421,7 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 	uint32_t apsel, apid;
 	int retval;
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		apsel = 0;
 		break;
@@ -1447,7 +1447,7 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 	int retval;
 
 	apselsave = swjdp->apsel;
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		apsel = swjdp->apsel;
 		break;

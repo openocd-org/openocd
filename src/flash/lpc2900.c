@@ -537,7 +537,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
 	uint32_t signature[4];
 
 
-	if( argc < 1 )
+	if( CMD_ARGC < 1 )
 	{
 		LOG_WARNING( "Too few arguments. Call: lpc2900 signature <bank#>" );
 		return ERROR_FLASH_BANK_INVALID;
@@ -583,7 +583,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
  */
 COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 {
-	if( argc < 2 )
+	if( CMD_ARGC < 2 )
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -654,7 +654,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
  */
 COMMAND_HANDLER(lpc2900_handle_password_command)
 {
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -689,7 +689,7 @@ COMMAND_HANDLER(lpc2900_handle_password_command)
  */
 COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 {
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -724,7 +724,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	image.start_address_set = 0;
 
 	const char *filename = args[1];
-	const char *type = (argc >= 3) ? args[2] : NULL;
+	const char *type = (CMD_ARGC >= 3) ? args[2] : NULL;
 	retval = image_open(&image, filename, type);
 	if (retval != ERROR_OK)
 	{
@@ -799,7 +799,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
  */
 COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 {
-	if (argc < 3)
+	if (CMD_ARGC < 3)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -898,7 +898,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
  */
 COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 {
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1020,7 +1020,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 {
 	struct lpc2900_flash_bank *lpc2900_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank LPC2900 configuration");
 		return ERROR_FLASH_BANK_INVALID;

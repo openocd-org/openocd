@@ -627,7 +627,7 @@ COMMAND_HANDLER(jlink_handle_jlink_info_command)
 
 COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 {
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		command_print(cmd_ctx, "jlink hw jtag  %i", jlink_hw_jtag_version);
 		break;

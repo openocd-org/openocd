@@ -41,7 +41,7 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 {
 	struct faux_flash_bank *info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank faux configuration");
 		return ERROR_FLASH_BANK_INVALID;

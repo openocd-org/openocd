@@ -62,7 +62,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 	int i;
 	int found = 0;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		LOG_WARNING("incomplete 'pld device' command");
 		return ERROR_OK;
@@ -147,7 +147,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 
 	gettimeofday(&start, NULL);
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		command_print(cmd_ctx, "usage: pld load <device#> <file>");
 		return ERROR_OK;

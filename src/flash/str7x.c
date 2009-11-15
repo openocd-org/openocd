@@ -114,7 +114,7 @@ FLASH_BANK_COMMAND_HANDLER(str7x_flash_bank_command)
 {
 	struct str7x_flash_bank *str7x_info;
 
-	if (argc < 7)
+	if (CMD_ARGC < 7)
 	{
 		LOG_WARNING("incomplete flash_bank str7x configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -611,7 +611,7 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 	uint16_t ProtectionLevel = 0;
 	uint16_t ProtectionRegs;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "str7x disable_jtag <bank>");
 		return ERROR_OK;

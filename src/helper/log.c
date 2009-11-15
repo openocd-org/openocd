@@ -275,13 +275,13 @@ void log_printf_lf(enum log_levels level, const char *file, unsigned line, const
  */
 COMMAND_HANDLER(handle_debug_level_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned new_level;
 		COMMAND_PARSE_NUMBER(uint, args[0], new_level);
 		debug_level = MIN(new_level, LOG_LVL_DEBUG);
 	}
-	else if (argc > 1)
+	else if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (debug_level >= LOG_LVL_DEBUG && server_use_pipes == 1)
@@ -303,7 +303,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 
 COMMAND_HANDLER(handle_log_output_command)
 {
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		FILE* file = fopen(args[0], "w");
 

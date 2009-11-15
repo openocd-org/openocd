@@ -422,7 +422,7 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 		return ERROR_FAIL;
 	}
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		if (strcmp(args[0], "arm") == 0)
 		{
@@ -453,7 +453,7 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 		return ERROR_FAIL;
 	}
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 3:
 		if (strcmp(args[2], "thumb") != 0)
 			goto usage;

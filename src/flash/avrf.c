@@ -184,7 +184,7 @@ FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 {
 	struct avrf_flash_bank *avrf_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank avr configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -419,7 +419,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 {
 	int i;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "avr mass_erase <bank>");
 		return ERROR_OK;

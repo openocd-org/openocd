@@ -766,7 +766,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 	int retval;
 
 	apselsave = swjdp->apsel;
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		apsel = swjdp->apsel;
 		break;
@@ -829,7 +829,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 0:
 		apsel = swjdp->apsel;
 		break;

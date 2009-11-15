@@ -710,7 +710,7 @@ COMMAND_HANDLER(mg_write_cmd)
 	struct fileio fileio;
 	int ret;
 
-	if (argc != 3) {
+	if (CMD_ARGC != 3) {
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -775,7 +775,7 @@ COMMAND_HANDLER(mg_dump_cmd)
 	struct fileio fileio;
 	int ret;
 
-	if (argc != 4) {
+	if (CMD_ARGC != 4) {
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1223,7 +1223,7 @@ COMMAND_HANDLER(mg_config_cmd)
 	if ((ret = mg_mflash_rst()) != ERROR_OK)
 		return ret;
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 		case 2:
 			if (!strcmp(args[1], "boot"))
 				return mg_boot_config();
@@ -1288,7 +1288,7 @@ COMMAND_HANDLER(mg_bank_cmd)
 	struct target *target;
 	int i;
 
-	if (argc < 4)
+	if (CMD_ARGC < 4)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

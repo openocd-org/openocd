@@ -218,7 +218,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 {
 	struct stellaris_flash_bank *stellaris_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank stellaris configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -1132,7 +1132,7 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 {
 	int i;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "stellaris mass_erase <bank>");
 		return ERROR_OK;

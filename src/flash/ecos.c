@@ -109,7 +109,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 {
 	struct ecosflash_flash_bank *info;
 
-	if (argc < 7)
+	if (CMD_ARGC < 7)
 	{
 		LOG_WARNING("incomplete flash_bank ecosflash configuration");
 		return ERROR_FLASH_BANK_INVALID;

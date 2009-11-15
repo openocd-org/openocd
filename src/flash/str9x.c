@@ -121,7 +121,7 @@ FLASH_BANK_COMMAND_HANDLER(str9x_flash_bank_command)
 {
 	struct str9x_flash_bank *str9x_info;
 
-	if (argc < 6)
+	if (CMD_ARGC < 6)
 	{
 		LOG_WARNING("incomplete flash_bank str9x configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -636,7 +636,7 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 	struct str9x_flash_bank *str9x_info;
 	struct target *target = NULL;
 
-	if (argc < 5)
+	if (CMD_ARGC < 5)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

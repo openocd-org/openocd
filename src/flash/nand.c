@@ -210,7 +210,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 	int i;
 	int retval;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		LOG_WARNING("incomplete flash device nand configuration");
 		return ERROR_FLASH_BANK_INVALID;
@@ -1082,7 +1082,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	switch (argc) {
+	switch (CMD_ARGC) {
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	case 1:
@@ -1147,7 +1147,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 
 COMMAND_HANDLER(handle_nand_probe_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1175,7 +1175,7 @@ COMMAND_HANDLER(handle_nand_probe_command)
 
 COMMAND_HANDLER(handle_nand_erase_command)
 {
-	if (argc != 1 && argc != 3)
+	if (CMD_ARGC != 1 && CMD_ARGC != 3)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -1190,7 +1190,7 @@ COMMAND_HANDLER(handle_nand_erase_command)
 	unsigned long length;
 
 	/* erase specified part of the chip; or else everything */
-	if (argc == 3) {
+	if (CMD_ARGC == 3) {
 		unsigned long size = p->erase_size * p->num_blocks;
 
 		COMMAND_PARSE_NUMBER(ulong, args[1], offset);
@@ -1234,7 +1234,7 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	int first = -1;
 	int last = -1;
 
-	if ((argc < 1) || (argc > 3) || (argc == 2))
+	if ((CMD_ARGC < 1) || (CMD_ARGC > 3) || (CMD_ARGC == 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -1245,7 +1245,7 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (argc == 3)
+	if (CMD_ARGC == 3)
 	{
 		unsigned long offset;
 		unsigned long length;
@@ -1389,7 +1389,7 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 	nand_fileio_init(state);
 
 	unsigned minargs = need_size ? 4 : 3;
-	if (argc < minargs)
+	if (CMD_ARGC < minargs)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct nand_device *nand;
@@ -1414,9 +1414,9 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 			}
 	}
 
-	if (argc > minargs)
+	if (CMD_ARGC > minargs)
 	{
-		for (unsigned i = minargs; i < argc; i++)
+		for (unsigned i = minargs; i < CMD_ARGC; i++)
 		{
 			if (!strcmp(args[i], "oob_raw"))
 				state->oob_format |= NAND_OOB_RAW;
@@ -1646,7 +1646,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 COMMAND_HANDLER(handle_nand_raw_access_command)
 {
-	if ((argc < 1) || (argc > 2))
+	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1662,7 +1662,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 		return ERROR_OK;
 	}
 
-	if (argc == 2)
+	if (CMD_ARGC == 2)
 	{
 		if (strcmp("enable", args[1]) == 0)
 			p->use_raw = 1;

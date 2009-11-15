@@ -179,12 +179,12 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 	}
 
 	/* one or more argument, access a single register (write if second argument is given */
-	if (argc >= 1)
+	if (CMD_ARGC >= 1)
 	{
 		uint32_t address;
 		COMMAND_PARSE_NUMBER(u32, args[0], address);
 
-		if (argc == 1)
+		if (CMD_ARGC == 1)
 		{
 			uint32_t value;
 			if ((retval = arm966e_read_cp15(target, address, &value)) != ERROR_OK)
@@ -202,7 +202,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 			command_print(cmd_ctx, "%" PRIi32 ": %8.8" PRIx32,
 					address, value);
 		}
-		else if (argc == 2)
+		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, args[1], value);

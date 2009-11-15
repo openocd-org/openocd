@@ -2995,7 +2995,7 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 	int retval;
 	uint32_t handler_address;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		LOG_ERROR("'xscale debug_handler <target#> <address>' command takes two required operands");
 		return ERROR_OK;
@@ -3035,7 +3035,7 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 	int retval;
 	uint32_t cache_clean_address;
 
-	if (argc < 2)
+	if (CMD_ARGC < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -3130,7 +3130,7 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 		return ERROR_OK;
 	}
 
-	if (argc >= 1)
+	if (CMD_ARGC >= 1)
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{
@@ -3171,7 +3171,7 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 	else if (strcmp(CMD_NAME, "dcache") == 0)
 		dcache = 1;
 
-	if (argc >= 1)
+	if (CMD_ARGC >= 1)
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{
@@ -3212,7 +3212,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "usage: xscale vector_catch [mask]");
 	}
@@ -3240,7 +3240,7 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (argc == 0) /* print current settings */
+	if (CMD_ARGC == 0) /* print current settings */
 	{
 		int idx;
 
@@ -3254,7 +3254,7 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 		return ERROR_OK;
 	}
 
-	if (argc != 3)
+	if (CMD_ARGC != 3)
 		err = 1;
 	else
 	{
@@ -3305,7 +3305,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		return ERROR_OK;
 	}
 
-	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
+	if ((CMD_ARGC >= 1) && (strcmp("enable", args[0]) == 0))
 	{
 		struct xscale_trace_data *td, *next_td;
 		xscale->trace.buffer_enabled = 1;
@@ -3323,19 +3323,19 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		}
 		xscale->trace.data = NULL;
 	}
-	else if ((argc >= 1) && (strcmp("disable", args[0]) == 0))
+	else if ((CMD_ARGC >= 1) && (strcmp("disable", args[0]) == 0))
 	{
 		xscale->trace.buffer_enabled = 0;
 	}
 
-	if ((argc >= 2) && (strcmp("fill", args[1]) == 0))
+	if ((CMD_ARGC >= 2) && (strcmp("fill", args[1]) == 0))
 	{
 		uint32_t fill = 1;
-		if (argc >= 3)
+		if (CMD_ARGC >= 3)
 			COMMAND_PARSE_NUMBER(u32, args[2], fill);
 		xscale->trace.buffer_fill = fill;
 	}
-	else if ((argc >= 2) && (strcmp("wrap", args[1]) == 0))
+	else if ((CMD_ARGC >= 2) && (strcmp("wrap", args[1]) == 0))
 	{
 		xscale->trace.buffer_fill = -1;
 	}
@@ -3372,7 +3372,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "usage: xscale trace_image <file> [base address] [type]");
 		return ERROR_OK;
@@ -3394,7 +3394,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 	xscale->trace.image->start_address_set = 0;
 
 	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
-	if (argc >= 2)
+	if (CMD_ARGC >= 2)
 	{
 		xscale->trace.image->base_address_set = 1;
 		COMMAND_PARSE_NUMBER(int, args[1], xscale->trace.image->base_address);
@@ -3404,7 +3404,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 		xscale->trace.image->base_address_set = 0;
 	}
 
-	if (image_open(xscale->trace.image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(xscale->trace.image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		free(xscale->trace.image);
 		xscale->trace.image = NULL;
@@ -3432,7 +3432,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 		return ERROR_OK;
 	}
 
-	if (argc < 1)
+	if (CMD_ARGC < 1)
 	{
 		command_print(cmd_ctx, "usage: xscale dump_trace <file>");
 		return ERROR_OK;
@@ -3503,7 +3503,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	}
 	uint32_t reg_no = 0;
 	struct reg *reg = NULL;
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		COMMAND_PARSE_NUMBER(u32, args[0], reg_no);
 		/*translate from xscale cp15 register no to openocd register*/
@@ -3540,7 +3540,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 		reg = &xscale->reg_cache->reg_list[reg_no];
 
 	}
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		uint32_t value;
 
@@ -3549,7 +3549,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 		value = buf_get_u32(reg->value, 0, 32);
 		command_print(cmd_ctx, "%s (/%i): 0x%" PRIx32 "", reg->name, (int)(reg->size), value);
 	}
-	else if (argc == 2)
+	else if (CMD_ARGC == 2)
 	{
 		uint32_t value;
 		COMMAND_PARSE_NUMBER(u32, args[1], value);

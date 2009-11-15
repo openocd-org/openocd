@@ -605,7 +605,7 @@ static int default_srst_asserted(int *srst_asserted)
 
 COMMAND_HANDLER(handle_interface_list_command)
 {
-	if (strcmp(CMD_NAME, "interface_list") == 0 && argc > 0)
+	if (strcmp(CMD_NAME, "interface_list") == 0 && CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(cmd_ctx, "The following JTAG interfaces are available:");
@@ -628,7 +628,7 @@ COMMAND_HANDLER(handle_interface_command)
 	}
 
 	/* interface name is a mandatory argument */
-	if (argc != 1 || args[0][0] == '\0')
+	if (CMD_ARGC != 1 || args[0][0] == '\0')
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
@@ -711,7 +711,7 @@ COMMAND_HANDLER(handle_reset_config_command)
 	 * Here we don't care about the order, and only change values
 	 * which have been explicitly specified.
 	 */
-	for (; argc; argc--, args++) {
+	for (; CMD_ARGC; CMD_ARGC--, args++) {
 		int tmp = 0;
 		int m;
 
@@ -897,9 +897,9 @@ next:
 
 COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
 		COMMAND_PARSE_NUMBER(uint, args[0], delay);
@@ -912,9 +912,9 @@ COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
 
 COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
 		COMMAND_PARSE_NUMBER(uint, args[0], delay);
@@ -927,9 +927,9 @@ COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 
 COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
 		COMMAND_PARSE_NUMBER(uint, args[0], delay);
@@ -942,9 +942,9 @@ COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
 
 COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
 		COMMAND_PARSE_NUMBER(uint, args[0], delay);
@@ -957,11 +957,11 @@ COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 
 COMMAND_HANDLER(handle_jtag_khz_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval = ERROR_OK;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned khz = 0;
 		COMMAND_PARSE_NUMBER(uint, args[0], khz);
@@ -986,11 +986,11 @@ COMMAND_HANDLER(handle_jtag_khz_command)
 
 COMMAND_HANDLER(handle_jtag_rclk_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval = ERROR_OK;
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		unsigned khz = 0;
 		COMMAND_PARSE_NUMBER(uint, args[0], khz);
@@ -1015,7 +1015,7 @@ COMMAND_HANDLER(handle_jtag_rclk_command)
 
 COMMAND_HANDLER(handle_jtag_reset_command)
 {
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int trst = -1;
@@ -1043,7 +1043,7 @@ COMMAND_HANDLER(handle_jtag_reset_command)
 
 COMMAND_HANDLER(handle_runtest_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned num_clocks;
@@ -1082,7 +1082,7 @@ COMMAND_HANDLER(handle_irscan_command)
 	struct jtag_tap *tap;
 	tap_state_t endstate;
 
-	if ((argc < 2) || (argc % 2))
+	if ((CMD_ARGC < 2) || (CMD_ARGC % 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1093,21 +1093,21 @@ COMMAND_HANDLER(handle_irscan_command)
 	 */
 	endstate = TAP_IDLE;
 
-	if (argc >= 4) {
+	if (CMD_ARGC >= 4) {
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
-		if (strcmp("-endstate", args[argc - 2]) == 0) {
-			endstate = tap_state_by_name(args[argc - 1]);
+		if (strcmp("-endstate", args[CMD_ARGC - 2]) == 0) {
+			endstate = tap_state_by_name(args[CMD_ARGC - 1]);
 			if (endstate == TAP_INVALID)
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			if (!scan_is_safe(endstate))
 				LOG_WARNING("unstable irscan endstate \"%s\"",
-						args[argc - 1]);
-			argc -= 2;
+						args[CMD_ARGC - 1]);
+			CMD_ARGC -= 2;
 		}
 	}
 
-	int num_fields = argc / 2;
+	int num_fields = CMD_ARGC / 2;
 	size_t fields_len = sizeof(struct scan_field) * num_fields;
 	fields = malloc(fields_len);
 	memset(fields, 0, fields_len);
@@ -1352,10 +1352,10 @@ static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const 
 
 COMMAND_HANDLER(handle_verify_ircapture_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
 			jtag_set_verify_capture_ir(true);
@@ -1373,10 +1373,10 @@ COMMAND_HANDLER(handle_verify_ircapture_command)
 
 COMMAND_HANDLER(handle_verify_jtag_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
 			jtag_set_verify(true);
@@ -1394,10 +1394,10 @@ COMMAND_HANDLER(handle_verify_jtag_command)
 
 COMMAND_HANDLER(handle_tms_sequence_command)
 {
-	if (argc > 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc == 1)
+	if (CMD_ARGC == 1)
 	{
 		bool use_new_table;
 		if (strcmp(args[0], "short") == 0)

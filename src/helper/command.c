@@ -723,14 +723,14 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 COMMAND_HANDLER(handle_sleep_command)
 {
 	bool busy = false;
-	if (argc == 2)
+	if (CMD_ARGC == 2)
 	{
 		if (strcmp(args[1], "busy") == 0)
 			busy = true;
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	else if (argc < 1 || argc > 2)
+	else if (CMD_ARGC < 1 || CMD_ARGC > 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned long duration = 0;
@@ -755,7 +755,7 @@ COMMAND_HANDLER(handle_sleep_command)
 
 COMMAND_HANDLER(handle_fast_command)
 {
-	if (argc != 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	fast_and_dangerous = strcmp("enable", args[0]) == 0;

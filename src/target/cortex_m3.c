@@ -1780,7 +1780,7 @@ COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 		return retval;
 
 	errno = 0;
-	switch (argc) {
+	switch (CMD_ARGC) {
 	case 2:
 		COMMAND_PARSE_NUMBER(ulong, args[1], count);
 		/* FALL THROUGH */
@@ -1832,10 +1832,10 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
 
-	if (argc > 0) {
+	if (CMD_ARGC > 0) {
 		unsigned catch = 0;
 
-		if (argc == 1) {
+		if (CMD_ARGC == 1) {
 			if (strcmp(args[0], "all") == 0) {
 				catch = VC_HARDERR | VC_INTERR | VC_BUSERR
 					| VC_STATERR | VC_CHKERR | VC_NOCPERR
@@ -1845,16 +1845,16 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 				goto write;
 			}
 		}
-		while (argc-- > 0) {
+		while (CMD_ARGC-- > 0) {
 			unsigned i;
 			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
-				if (strcmp(args[argc], vec_ids[i].name) != 0)
+				if (strcmp(args[CMD_ARGC], vec_ids[i].name) != 0)
 					continue;
 				catch |= vec_ids[i].mask;
 				break;
 			}
 			if (i == ARRAY_SIZE(vec_ids)) {
-				LOG_ERROR("No CM3 vector '%s'", args[argc]);
+				LOG_ERROR("No CM3 vector '%s'", args[CMD_ARGC]);
 				return ERROR_INVALID_ARGUMENTS;
 			}
 		}
@@ -1890,7 +1890,7 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 		return ERROR_OK;
 	}
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		if (!strcmp(args[0], "on"))
 		{

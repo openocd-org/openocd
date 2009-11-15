@@ -308,7 +308,7 @@ COMMAND_HANDLER(handle_svf_command)
 	int ret = ERROR_OK;
 	long long time_ago;
 
-	if ((argc < 1) || (argc > (1 + SVF_NUM_OF_OPTIONS)))
+	if ((CMD_ARGC < 1) || (CMD_ARGC > (1 + SVF_NUM_OF_OPTIONS)))
 	{
 		command_print(cmd_ctx, "usage: svf <file> [quiet]");
 		return ERROR_FAIL;
@@ -316,7 +316,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	// parse variant
 	svf_quiet = 0;
-	for (unsigned i = 1; i < argc; i++)
+	for (unsigned i = 1; i < CMD_ARGC; i++)
 	{
 		if (!strcmp(args[i], "quiet"))
 		{

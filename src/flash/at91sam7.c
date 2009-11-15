@@ -743,7 +743,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	at91sam7_info->ext_freq = 0;
 	at91sam7_info->flash_autodetection = 0;
 
-	if (argc < 13)
+	if (CMD_ARGC < 13)
 	{
 		at91sam7_info->flash_autodetection = 1;
 		return ERROR_OK;
@@ -760,7 +760,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	COMMAND_PARSE_NUMBER(u16, args[11], page_size);
 	COMMAND_PARSE_NUMBER(u16, args[12], num_nvmbits);
 
-	if (argc == 14) {
+	if (CMD_ARGC == 14) {
 		unsigned long freq;
 		COMMAND_PARSE_NUMBER(ulong, args[13], freq);
 		ext_freq = freq * 1000;
@@ -1107,7 +1107,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	struct at91sam7_flash_bank *at91sam7_info;
 	int retval;
 
-	if (argc != 2)
+	if (CMD_ARGC != 2)
 	{
 		command_print(cmd_ctx, "at91sam7 gpnvm <bit> <set | clear>");
 		return ERROR_OK;

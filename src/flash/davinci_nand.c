@@ -645,7 +645,7 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 	 *  - aemif address
 	 * Plus someday, optionally, ALE and CLE masks.
 	 */
-	if (argc < 5) {
+	if (CMD_ARGC < 5) {
 		LOG_ERROR("parameters: %s target "
 				"chip_addr hwecc_mode aemif_addr",
 				args[0]);

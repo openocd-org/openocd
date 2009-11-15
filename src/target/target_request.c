@@ -268,7 +268,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 	if (find_debug_msg_receiver(cmd_ctx, target) != NULL)
 		receiving = 1;
 
-	if (argc > 0)
+	if (CMD_ARGC > 0)
 	{
 		if (!strcmp(args[0], "enable") || !strcmp(args[0], "charmsg"))
 		{
