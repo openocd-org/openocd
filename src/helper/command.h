@@ -190,7 +190,8 @@ extern int fast_and_dangerous;
 
 extern Jim_Interp *interp;
 
-void register_jim(struct command_context *context, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help);
+void register_jim(struct command_context *context, const char *name,
+		Jim_CmdProc cmd, const char *help);
 
 long jim_global_long(const char *variable);
 

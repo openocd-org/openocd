@@ -869,7 +869,8 @@ void process_jim_events(void)
 #endif
 }
 
-void register_jim(struct command_context *cmd_ctx, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)
+void register_jim(struct command_context *cmd_ctx, const char *name,
+		Jim_CmdProc cmd, const char *help)
 {
 	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
 
