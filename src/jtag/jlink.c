@@ -91,10 +91,6 @@ static int jlink_register_commands(struct command_context *cmd_ctx);
 static int jlink_init(void);
 static int jlink_quit(void);
 
-/* CLI command handler functions */
-static int jlink_handle_jlink_info_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
-static int jlink_handle_jlink_hw_jtag_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
-
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
@@ -287,18 +283,6 @@ static int jlink_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = khz;
 
-	return ERROR_OK;
-}
-
-static int jlink_register_commands(struct command_context *cmd_ctx)
-{
-
-	register_command(cmd_ctx, NULL, "jlink_info",
-		&jlink_handle_jlink_info_command, COMMAND_EXEC,
-		"query jlink info");
-	register_command(cmd_ctx, NULL, "jlink_hw_jtag",
-		&jlink_handle_jlink_hw_jtag_command, COMMAND_EXEC,
-		"set/get jlink hw jtag command version [2 | 3]");
 	return ERROR_OK;
 }
 
@@ -630,7 +614,7 @@ static int jlink_get_version_info(void)
 	return ERROR_OK;
 }
 
-static int jlink_handle_jlink_info_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(jlink_handle_jlink_info_command)
 {
 	if (jlink_get_version_info() == ERROR_OK)
 	{
@@ -641,7 +625,7 @@ static int jlink_handle_jlink_info_command(struct command_context *cmd_ctx, char
 	return ERROR_OK;
 }
 
-static int jlink_handle_jlink_hw_jtag_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 {
 	switch (argc) {
 	case 0:
@@ -662,6 +646,18 @@ static int jlink_handle_jlink_hw_jtag_command(struct command_context *cmd_ctx, c
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
+	return ERROR_OK;
+}
+
+static int jlink_register_commands(struct command_context *cmd_ctx)
+{
+
+	register_command(cmd_ctx, NULL, "jlink_info",
+		&jlink_handle_jlink_info_command, COMMAND_EXEC,
+		"query jlink info");
+	register_command(cmd_ctx, NULL, "jlink_hw_jtag",
+		&jlink_handle_jlink_hw_jtag_command, COMMAND_EXEC,
+		"set/get jlink hw jtag command version [2 | 3]");
 	return ERROR_OK;
 }
 

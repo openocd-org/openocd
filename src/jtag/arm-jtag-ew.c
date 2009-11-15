@@ -63,9 +63,6 @@ static int armjtagew_register_commands(struct command_context *cmd_ctx);
 static int armjtagew_init(void);
 static int armjtagew_quit(void);
 
-/* CLI command handler functions */
-static int armjtagew_handle_armjtagew_info_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
-
 /* Queue command functions */
 static void armjtagew_end_state(tap_state_t state);
 static void armjtagew_state_move(void);
@@ -237,13 +234,6 @@ static int armjtagew_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = khz;
 
-	return ERROR_OK;
-}
-
-static int armjtagew_register_commands(struct command_context *cmd_ctx)
-{
-	register_command(cmd_ctx, NULL, "armjtagew_info", armjtagew_handle_armjtagew_info_command, COMMAND_EXEC,
-		"query armjtagew info");
 	return ERROR_OK;
 }
 
@@ -520,7 +510,7 @@ static int armjtagew_get_version_info(void)
 	return ERROR_OK;
 }
 
-static int armjtagew_handle_armjtagew_info_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(armjtagew_handle_armjtagew_info_command)
 {
 	if (armjtagew_get_version_info() == ERROR_OK)
 	{
@@ -528,6 +518,14 @@ static int armjtagew_handle_armjtagew_info_command(struct command_context *cmd_c
 		armjtagew_get_status();
 	}
 
+	return ERROR_OK;
+}
+
+static int armjtagew_register_commands(struct command_context *cmd_ctx)
+{
+	register_command(cmd_ctx, NULL, "armjtagew_info", 
+			&armjtagew_handle_armjtagew_info_command, COMMAND_EXEC,
+			"query armjtagew info");
 	return ERROR_OK;
 }
 
