@@ -1512,17 +1512,17 @@ static int cortex_a8_target_create(struct target *target, Jim_Interp *interp)
 
 COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
-	return armv4_5_handle_cache_info_command(cmd_ctx,
+	return armv4_5_handle_cache_info_command(CMD_CTX,
 			&armv7a->armv4_5_mmu.armv4_5_cache);
 }
 
 
 COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	cortex_a8_init_debug_access(target);
 

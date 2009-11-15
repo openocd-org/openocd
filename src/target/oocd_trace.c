@@ -300,11 +300,11 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 		return ERROR_FAIL;
 	}
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM");
+		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
@@ -333,24 +333,24 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 	struct oocd_trace *oocd_trace;
 	uint32_t status;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM");
+		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (!arm->etm)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
 	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0)
 	{
-		command_print(cmd_ctx, "current target's ETM capture driver isn't 'oocd_trace'");
+		command_print(CMD_CTX, "current target's ETM capture driver isn't 'oocd_trace'");
 		return ERROR_FAIL;
 	}
 
@@ -359,9 +359,9 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 
 	if (status & 0x8)
-		command_print(cmd_ctx, "trace clock locked");
+		command_print(CMD_CTX, "trace clock locked");
 	else
-		command_print(cmd_ctx, "no trace clock");
+		command_print(CMD_CTX, "no trace clock");
 
 	return ERROR_OK;
 }
@@ -374,24 +374,24 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 	size_t bytes_written;
 	uint8_t cmd_array[1];
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM");
+		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (!arm->etm)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
 	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0)
 	{
-		command_print(cmd_ctx, "current target's ETM capture driver isn't 'oocd_trace'");
+		command_print(CMD_CTX, "current target's ETM capture driver isn't 'oocd_trace'");
 		return ERROR_FAIL;
 	}
 
@@ -401,7 +401,7 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 
 	bytes_written = write(oocd_trace->tty_fd, cmd_array, 1);
 
-	command_print(cmd_ctx, "requesting traceclock resync");
+	command_print(CMD_CTX, "requesting traceclock resync");
 	LOG_DEBUG("resyncing traceclk pll");
 
 	return ERROR_OK;

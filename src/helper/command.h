@@ -244,7 +244,7 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 	do { \
 		int retval = parse_##type(in, &(out)); \
 		if (ERROR_OK != retval) { \
-			command_print(cmd_ctx, stringify(out) \
+			command_print(CMD_CTX, stringify(out) \
 				" option value ('%s') is not valid", in); \
 			return retval; \
 		} \

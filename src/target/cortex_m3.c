@@ -1769,13 +1769,13 @@ static int cortex_m3_verify_pointer(struct command_context *cmd_ctx,
 COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 {
 	int retval;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	uint32_t address;
 	unsigned long count = 1;
 	struct arm_instruction cur_instruction;
 
-	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
+	retval = cortex_m3_verify_pointer(CMD_CTX, cortex_m3);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1788,7 +1788,7 @@ COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 		break;
 	default:
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 			"usage: cortex_m3 disassemble <address> [<count>]");
 		return ERROR_OK;
 	}
@@ -1797,7 +1797,7 @@ COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 		retval = thumb2_opcode(target, address, &cur_instruction);
 		if (retval != ERROR_OK)
 			return retval;
-		command_print(cmd_ctx, "%s", cur_instruction.text);
+		command_print(CMD_CTX, "%s", cur_instruction.text);
 		address += cur_instruction.instruction_size;
 	}
 
@@ -1820,13 +1820,14 @@ static const struct {
 
 COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t demcr = 0;
 	int retval;
-	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
+
+	retval = cortex_m3_verify_pointer(CMD_CTX, cortex_m3);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1868,25 +1869,27 @@ write:
 	}
 
 	for (unsigned i = 0; i < ARRAY_SIZE(vec_ids); i++)
-		command_print(cmd_ctx, "%9s: %s", vec_ids[i].name,
+	{
+		command_print(CMD_CTX, "%9s: %s", vec_ids[i].name,
 			(demcr & vec_ids[i].mask) ? "catch" : "ignore");
+	}
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	int retval;
 
-	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
+	retval = cortex_m3_verify_pointer(CMD_CTX, cortex_m3);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -1902,11 +1905,11 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: cortex_m3 maskisr ['on'|'off']");
+			command_print(CMD_CTX, "usage: cortex_m3 maskisr ['on'|'off']");
 		}
 	}
 
-	command_print(cmd_ctx, "cortex_m3 interrupt mask %s",
+	command_print(CMD_CTX, "cortex_m3 interrupt mask %s",
 			(cortex_m3->dcb_dhcsr & C_MASKINTS) ? "on" : "off");
 
 	return ERROR_OK;

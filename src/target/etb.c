@@ -370,14 +370,14 @@ COMMAND_HANDLER(handle_etb_config_command)
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETB: '%s' isn't an ARM", CMD_ARGV[0]);
+		command_print(CMD_CTX, "ETB: '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	tap = jtag_tap_by_string(CMD_ARGV[1]);
 	if (tap == NULL)
 	{
-		command_print(cmd_ctx, "ETB: TAP %s does not exist", CMD_ARGV[1]);
+		command_print(CMD_CTX, "ETB: TAP %s does not exist", CMD_ARGV[1]);
 		return ERROR_FAIL;
 	}
 

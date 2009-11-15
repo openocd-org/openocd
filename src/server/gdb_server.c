@@ -2252,7 +2252,7 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 
 	if (current_gdb_connection == NULL)
 	{
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 				"gdb_sync command can only be run from within gdb using \"monitor gdb_sync\"");
 		return ERROR_FAIL;
 	}

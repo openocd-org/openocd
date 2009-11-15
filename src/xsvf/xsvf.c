@@ -221,7 +221,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "usage: xsvf <device#|plain> <file> [<variant>] [quiet]");
+		command_print(CMD_CTX, "usage: xsvf <device#|plain> <file> [<variant>] [quiet]");
 		return ERROR_FAIL;
 	}
 
@@ -233,14 +233,14 @@ COMMAND_HANDLER(handle_xsvf_command)
 		tap = jtag_tap_by_string(CMD_ARGV[0]);
 		if (!tap)
 		{
-			command_print(cmd_ctx, "Tap: %s unknown", CMD_ARGV[0]);
+			command_print(CMD_CTX, "Tap: %s unknown", CMD_ARGV[0]);
 			return ERROR_FAIL;
 		}
 	}
 
 	if ((xsvf_fd = open(filename, O_RDONLY)) < 0)
 	{
-		command_print(cmd_ctx, "file \"%s\" not found", filename);
+		command_print(CMD_CTX, "file \"%s\" not found", filename);
 		return ERROR_FAIL;
 	}
 
@@ -1012,7 +1012,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 	if (tdo_mismatch)
 	{
-		command_print(cmd_ctx, "TDO mismatch, somewhere near offset %lu in xsvf file, aborting",
+		command_print(CMD_CTX, "TDO mismatch, somewhere near offset %lu in xsvf file, aborting",
 					  file_offset);
 
 
@@ -1022,7 +1022,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 	if (unsupported)
 	{
 		off_t offset = lseek(xsvf_fd, 0, SEEK_CUR) - 1;
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 				"unsupported xsvf command (0x%02X) at offset %jd, aborting",
 				uc, (intmax_t)offset);
 		return ERROR_FAIL;
@@ -1030,7 +1030,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 	if (do_abort)
 	{
-		command_print(cmd_ctx, "premature end of xsvf file detected, aborting");
+		command_print(CMD_CTX, "premature end of xsvf file detected, aborting");
 		return ERROR_FAIL;
 	}
 
@@ -1045,7 +1045,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 	close(xsvf_fd);
 
-	command_print(cmd_ctx, "XSVF file programmed successfully");
+	command_print(CMD_CTX, "XSVF file programmed successfully");
 
 	return ERROR_OK;
 }

@@ -416,7 +416,7 @@ COMMAND_HANDLER(mg_probe_cmd)
 	ret = mg_mflash_probe();
 
 	if (ret == ERROR_OK) {
-		command_print(cmd_ctx, "mflash (total %" PRIu32 " sectors) found at 0x%8.8" PRIx32 "",
+		command_print(CMD_CTX, "mflash (total %" PRIu32 " sectors) found at 0x%8.8" PRIx32 "",
 				mflash_bank->drv_info->tot_sects, mflash_bank->base);
 	}
 
@@ -751,7 +751,7 @@ COMMAND_HANDLER(mg_write_cmd)
 
 	if (duration_measure(&bench) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "wrote %zu byte from file %s "
+		command_print(CMD_CTX, "wrote %zu byte from file %s "
 				"in %fs (%0.3f kB/s)", fileio.size, CMD_ARGV[1],
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
@@ -817,7 +817,7 @@ COMMAND_HANDLER(mg_dump_cmd)
 
 	if (duration_measure(&bench) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "dump image (address 0x%8.8" PRIx32 " "
+		command_print(CMD_CTX, "dump image (address 0x%8.8" PRIx32 " "
 				"size %" PRIu32 ") to file %s in %fs (%0.3f kB/s)",
 				address, size, CMD_ARGV[1],
 				duration_elapsed(&bench), duration_kbps(&bench, size));

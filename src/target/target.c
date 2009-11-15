@@ -1652,24 +1652,24 @@ COMMAND_HANDLER(handle_targets_command)
 	{
 		target = get_target(CMD_ARGV[0]);
 		if (target == NULL) {
-			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", CMD_ARGV[0]);
+			command_print(CMD_CTX,"Target: %s is unknown, try one of:\n", CMD_ARGV[0]);
 			goto DumpTargets;
 		}
 		if (!target->tap->enabled) {
-			command_print(cmd_ctx,"Target: TAP %s is disabled, "
+			command_print(CMD_CTX,"Target: TAP %s is disabled, "
 					"can't be the current target\n",
 					target->tap->dotted_name);
 			return ERROR_FAIL;
 		}
 
-		cmd_ctx->current_target = target->target_number;
+		CMD_CTX->current_target = target->target_number;
 		return ERROR_OK;
 	}
 DumpTargets:
 
 	target = all_targets;
-	command_print(cmd_ctx, "    TargetName         Type       Endian TapName            State       ");
-	command_print(cmd_ctx, "--  ------------------ ---------- ------ ------------------ ------------");
+	command_print(CMD_CTX, "    TargetName         Type       Endian TapName            State       ");
+	command_print(CMD_CTX, "--  ------------------ ---------- ------ ------------------ ------------");
 	while (target)
 	{
 		const char *state;
@@ -1680,11 +1680,11 @@ DumpTargets:
 		else
 			state = "tap-disabled";
 
-		if (cmd_ctx->current_target == target->target_number)
+		if (CMD_CTX->current_target == target->target_number)
 			marker = '*';
 
 		/* keep columns lined up to match the headers above */
-		command_print(cmd_ctx, "%2d%c %-18s %-10s %-6s %-18s %s",
+		command_print(CMD_CTX, "%2d%c %-18s %-10s %-6s %-18s %s",
 					  target->target_number,
 					  marker,
 					  target->cmd_name,
@@ -1865,7 +1865,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 	LOG_DEBUG("-");
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 
 	/* list all available registers for the current target */
 	if (CMD_ARGC == 0)
@@ -1877,7 +1877,7 @@ COMMAND_HANDLER(handle_reg_command)
 		{
 			int i;
 
-			command_print(cmd_ctx, "===== %s", cache->name);
+			command_print(CMD_CTX, "===== %s", cache->name);
 
 			for (i = 0, reg = cache->reg_list;
 					i < cache->num_regs;
@@ -1887,7 +1887,7 @@ COMMAND_HANDLER(handle_reg_command)
 				if (reg->valid) {
 					value = buf_to_str(reg->value,
 							reg->size, 16);
-					command_print(cmd_ctx,
+					command_print(CMD_CTX,
 							"(%i) %s (/%" PRIu32 "): 0x%s%s",
 							count, reg->name,
 							reg->size, value,
@@ -1896,7 +1896,7 @@ COMMAND_HANDLER(handle_reg_command)
 								: "");
 					free(value);
 				} else {
-					command_print(cmd_ctx, "(%i) %s (/%" PRIu32 ")",
+					command_print(CMD_CTX, "(%i) %s (/%" PRIu32 ")",
 							  count, reg->name,
 							  reg->size) ;
 				}
@@ -1933,7 +1933,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 		if (!reg)
 		{
-			command_print(cmd_ctx, "%i is out of bounds, the current target has only %i registers (0 - %i)", num, count, count - 1);
+			command_print(CMD_CTX, "%i is out of bounds, the current target has only %i registers (0 - %i)", num, count, count - 1);
 			return ERROR_OK;
 		}
 	} else /* access a single register by its name */
@@ -1942,7 +1942,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 		if (!reg)
 		{
-			command_print(cmd_ctx, "register %s not found in current target", CMD_ARGV[0]);
+			command_print(CMD_CTX, "register %s not found in current target", CMD_ARGV[0]);
 			return ERROR_OK;
 		}
 	}
@@ -1958,7 +1958,7 @@ COMMAND_HANDLER(handle_reg_command)
 			reg->type->get(reg);
 		}
 		value = buf_to_str(reg->value, reg->size, 16);
-		command_print(cmd_ctx, "%s (/%i): 0x%s", reg->name, (int)(reg->size), value);
+		command_print(CMD_CTX, "%s (/%i): 0x%s", reg->name, (int)(reg->size), value);
 		free(value);
 		return ERROR_OK;
 	}
@@ -1972,7 +1972,7 @@ COMMAND_HANDLER(handle_reg_command)
 		reg->type->set(reg, buf);
 
 		value = buf_to_str(reg->value, reg->size, 16);
-		command_print(cmd_ctx, "%s (/%i): 0x%s", reg->name, (int)(reg->size), value);
+		command_print(CMD_CTX, "%s (/%i): 0x%s", reg->name, (int)(reg->size), value);
 		free(value);
 
 		free(buf);
@@ -1980,7 +1980,7 @@ COMMAND_HANDLER(handle_reg_command)
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "usage: reg <#|name> [value]");
+	command_print(CMD_CTX, "usage: reg <#|name> [value]");
 
 	return ERROR_OK;
 }
@@ -1988,13 +1988,13 @@ COMMAND_HANDLER(handle_reg_command)
 COMMAND_HANDLER(handle_poll_command)
 {
 	int retval = ERROR_OK;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC == 0)
 	{
-		command_print(cmd_ctx, "background polling: %s",
+		command_print(CMD_CTX, "background polling: %s",
 				jtag_poll_get_enabled() ? "on" : "off");
-		command_print(cmd_ctx, "TAP: %s (%s)",
+		command_print(CMD_CTX, "TAP: %s (%s)",
 				target->tap->dotted_name,
 				target->tap->enabled ? "enabled" : "disabled");
 		if (!target->tap->enabled)
@@ -2017,7 +2017,7 @@ COMMAND_HANDLER(handle_poll_command)
 		}
 		else
 		{
-			command_print(cmd_ctx, "arg is \"on\" or \"off\"");
+			command_print(CMD_CTX, "arg is \"on\" or \"off\"");
 		}
 	} else
 	{
@@ -2038,14 +2038,14 @@ COMMAND_HANDLER(handle_wait_halt_command)
 		int retval = parse_uint(CMD_ARGV[0], &ms);
 		if (ERROR_OK != retval)
 		{
-			command_print(cmd_ctx, "usage: %s [seconds]", CMD_NAME);
+			command_print(CMD_CTX, "usage: %s [seconds]", CMD_NAME);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		// convert seconds (given) to milliseconds (needed)
 		ms *= 1000;
 	}
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	return target_wait_state(target, TARGET_HALTED, ms);
 }
 
@@ -2098,7 +2098,7 @@ COMMAND_HANDLER(handle_halt_command)
 {
 	LOG_DEBUG("-");
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	int retval = target_halt(target);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2118,7 +2118,7 @@ COMMAND_HANDLER(handle_halt_command)
 
 COMMAND_HANDLER(handle_soft_reset_halt_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	LOG_USER("requesting target halt and executing a soft reset");
 
@@ -2144,7 +2144,7 @@ COMMAND_HANDLER(handle_reset_command)
 	}
 
 	/* reset *all* targets */
-	return target_process_reset(cmd_ctx, reset_mode);
+	return target_process_reset(CMD_CTX, reset_mode);
 }
 
 
@@ -2154,7 +2154,7 @@ COMMAND_HANDLER(handle_resume_command)
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 
 	/* with no CMD_ARGV, resume from current pc, addr = 0,
@@ -2188,7 +2188,7 @@ COMMAND_HANDLER(handle_step_command)
 		current_pc = 0;
 	}
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	return target->type->step(target, current_pc, addr, 1);
 }
@@ -2282,10 +2282,10 @@ COMMAND_HANDLER(handle_md_command)
 
 	uint8_t *buffer = calloc(count, size);
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	int retval = fn(target, address, size, count, buffer);
 	if (ERROR_OK == retval)
-		handle_md_output(cmd_ctx, target, address, size, count, buffer);
+		handle_md_output(CMD_CTX, target, address, size, count, buffer);
 
 	free(buffer);
 
@@ -2324,7 +2324,7 @@ COMMAND_HANDLER(handle_mw_command)
 	if (CMD_ARGC == 3)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], count);
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	unsigned wordsize;
 	uint8_t value_buf[4];
 	switch (cmd_name[6])
@@ -2409,7 +2409,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	struct duration bench;
 	duration_start(&bench);
@@ -2426,7 +2426,7 @@ COMMAND_HANDLER(handle_load_image_command)
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL)
 		{
-			command_print(cmd_ctx,
+			command_print(CMD_CTX,
 						  "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
 			break;
@@ -2464,7 +2464,7 @@ COMMAND_HANDLER(handle_load_image_command)
 				break;
 			}
 			image_size += length;
-			command_print(cmd_ctx, "%u bytes written at address 0x%8.8" PRIx32 "",
+			command_print(CMD_CTX, "%u bytes written at address 0x%8.8" PRIx32 "",
 						  (unsigned int)length,
 						  image.sections[i].base_address + offset);
 		}
@@ -2474,7 +2474,7 @@ COMMAND_HANDLER(handle_load_image_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "downloaded %" PRIu32 " bytes "
+		command_print(CMD_CTX, "downloaded %" PRIu32 " bytes "
 				"in %fs (%0.3f kb/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 	}
@@ -2493,11 +2493,11 @@ COMMAND_HANDLER(handle_dump_image_command)
 	int retvaltemp;
 
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC != 3)
 	{
-		command_print(cmd_ctx, "usage: dump_image <filename> <address> <size>");
+		command_print(CMD_CTX, "usage: dump_image <filename> <address> <size>");
 		return ERROR_OK;
 	}
 
@@ -2540,7 +2540,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 				"dumped %zu bytes in %fs (%0.3f kb/s)", fileio.size,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
@@ -2560,7 +2560,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 
 	struct image image;
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC < 1)
 	{
@@ -2603,7 +2603,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL)
 		{
-			command_print(cmd_ctx,
+			command_print(CMD_CTX,
 						  "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
 			break;
@@ -2631,7 +2631,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 				/* failed crc checksum, fall back to a binary compare */
 				uint8_t *data;
 
-				command_print(cmd_ctx, "checksum mismatch - attempting binary compare");
+				command_print(CMD_CTX, "checksum mismatch - attempting binary compare");
 
 				data = (uint8_t*)malloc(buf_cnt);
 
@@ -2651,7 +2651,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 					{
 						if (data[t] != buffer[t])
 						{
-							command_print(cmd_ctx,
+							command_print(CMD_CTX,
 										  "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n",
 										  (unsigned)(t + image.sections[i].base_address),
 										  data[t],
@@ -2672,7 +2672,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 			}
 		} else
 		{
-			command_print(cmd_ctx, "address 0x%08" PRIx32 " length 0x%08zx",
+			command_print(CMD_CTX, "address 0x%08" PRIx32 " length 0x%08zx",
 						  image.sections[i].base_address,
 						  buf_cnt);
 		}
@@ -2683,7 +2683,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 done:
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "verified %" PRIu32 " bytes "
+		command_print(CMD_CTX, "verified %" PRIu32 " bytes "
 				"in %fs (%0.3f kb/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 	}
@@ -2746,11 +2746,11 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 COMMAND_HANDLER(handle_bp_command)
 {
 	if (CMD_ARGC == 0)
-		return handle_bp_command_list(cmd_ctx);
+		return handle_bp_command_list(CMD_CTX);
 
 	if (CMD_ARGC < 2 || CMD_ARGC > 3)
 	{
-		command_print(cmd_ctx, "usage: bp <address> <length> ['hw']");
+		command_print(CMD_CTX, "usage: bp <address> <length> ['hw']");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -2768,7 +2768,7 @@ COMMAND_HANDLER(handle_bp_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return handle_bp_command_set(cmd_ctx, addr, length, hw);
+	return handle_bp_command_set(CMD_CTX, addr, length, hw);
 }
 
 COMMAND_HANDLER(handle_rbp_command)
@@ -2779,7 +2779,7 @@ COMMAND_HANDLER(handle_rbp_command)
 	uint32_t addr;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	breakpoint_remove(target, addr);
 
 	return ERROR_OK;
@@ -2787,7 +2787,7 @@ COMMAND_HANDLER(handle_rbp_command)
 
 COMMAND_HANDLER(handle_wp_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC == 0)
 	{
@@ -2795,7 +2795,7 @@ COMMAND_HANDLER(handle_wp_command)
 
 		while (watchpoint)
 		{
-			command_print(cmd_ctx, "address: 0x%8.8" PRIx32
+			command_print(CMD_CTX, "address: 0x%8.8" PRIx32
 					", len: 0x%8.8" PRIx32
 					", r/w/a: %i, value: 0x%8.8" PRIx32
 					", mask: 0x%8.8" PRIx32,
@@ -2846,7 +2846,7 @@ COMMAND_HANDLER(handle_wp_command)
 		break;
 
 	default:
-		command_print(cmd_ctx, "usage: wp [address length "
+		command_print(CMD_CTX, "usage: wp [address length "
 				"[(r|w|a) [value [mask]]]]");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -2867,7 +2867,7 @@ COMMAND_HANDLER(handle_rwp_command)
 	uint32_t addr;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	watchpoint_remove(target, addr);
 
 	return ERROR_OK;
@@ -2889,10 +2889,10 @@ COMMAND_HANDLER(handle_virt2phys_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], va);
 	uint32_t pa;
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	int retval = target->type->virt2phys(target, va, &pa);
 	if (retval == ERROR_OK)
-		command_print(cmd_ctx, "Physical address 0x%08" PRIx32 "", pa);
+		command_print(CMD_CTX, "Physical address 0x%08" PRIx32 "", pa);
 
 	return retval;
 }
@@ -3016,7 +3016,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 /* profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC */
 COMMAND_HANDLER(handle_profile_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct timeval timeout, now;
 
 	gettimeofday(&timeout, NULL);
@@ -3029,7 +3029,7 @@ COMMAND_HANDLER(handle_profile_command)
 
 	timeval_add_time(&timeout, offset, 0);
 
-	command_print(cmd_ctx, "Starting profiling. Halting and resuming the target as often as we can...");
+	command_print(CMD_CTX, "Starting profiling. Halting and resuming the target as often as we can...");
 
 	static const int maxSample = 10000;
 	uint32_t *samples = malloc(sizeof(uint32_t)*maxSample);
@@ -3061,7 +3061,7 @@ COMMAND_HANDLER(handle_profile_command)
 			}
 		} else
 		{
-			command_print(cmd_ctx, "Target not halted or running");
+			command_print(CMD_CTX, "Target not halted or running");
 			retval = ERROR_OK;
 			break;
 		}
@@ -3073,7 +3073,7 @@ COMMAND_HANDLER(handle_profile_command)
 		gettimeofday(&now, NULL);
 		if ((numSamples >= maxSample) || ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
-			command_print(cmd_ctx, "Profiling completed. %d samples.", numSamples);
+			command_print(CMD_CTX, "Profiling completed. %d samples.", numSamples);
 			if ((retval = target_poll(target)) != ERROR_OK)
 			{
 				free(samples);
@@ -3089,7 +3089,7 @@ COMMAND_HANDLER(handle_profile_command)
 				return retval;
 			}
 			writeGmon(samples, numSamples, CMD_ARGV[1]);
-			command_print(cmd_ctx, "Wrote %s", CMD_ARGV[1]);
+			command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
 			break;
 		}
 	}
@@ -4571,7 +4571,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL)
 		{
-			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)",
+			command_print(CMD_CTX, "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
 			break;
 		}
@@ -4614,7 +4614,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 			fastload[i].length = length;
 
 			image_size += length;
-			command_print(cmd_ctx, "%u bytes written at address 0x%8.8x",
+			command_print(CMD_CTX, "%u bytes written at address 0x%8.8x",
 						  (unsigned int)length,
 						  ((unsigned int)(image.sections[i].base_address + offset)));
 		}
@@ -4624,11 +4624,11 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "Loaded %" PRIu32 " bytes "
+		command_print(CMD_CTX, "Loaded %" PRIu32 " bytes "
 				"in %fs (%0.3f kb/s)", image_size, 
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 				"WARNING: image has not been loaded to target!"
 				"You can issue a 'fast_load' to finish loading.");
 	}
@@ -4658,8 +4658,8 @@ COMMAND_HANDLER(handle_fast_load_command)
 	int retval = ERROR_OK;
 	for (i = 0; i < fastload_num;i++)
 	{
-		struct target *target = get_current_target(cmd_ctx);
-		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x",
+		struct target *target = get_current_target(CMD_CTX);
+		command_print(CMD_CTX, "Write to 0x%08x, length 0x%08x",
 					  (unsigned int)(fastload[i].address),
 					  (unsigned int)(fastload[i].length));
 		if (retval == ERROR_OK)
@@ -4669,7 +4669,7 @@ COMMAND_HANDLER(handle_fast_load_command)
 		size += fastload[i].length;
 	}
 	int after = timeval_ms();
-	command_print(cmd_ctx, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
+	command_print(CMD_CTX, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
 	return retval;
 }
 

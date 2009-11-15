@@ -846,7 +846,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand)
 	{
-		command_print(cmd_ctx, "nand device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD_CTX, "nand device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -868,7 +868,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 		}
 	}
 
-	command_print(cmd_ctx, "%s controller selected", selected[lpc3180_info->selected_controller]);
+	command_print(CMD_CTX, "%s controller selected", selected[lpc3180_info->selected_controller]);
 
 	return ERROR_OK;
 }

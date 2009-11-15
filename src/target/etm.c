@@ -1189,7 +1189,7 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 		tracemode = ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR;
 	else
 	{
-		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[0]);
+		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[0]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -1210,7 +1210,7 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 		tracemode |= ETMV1_CONTEXTID_32;
 		break;
 	default:
-		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[1]);
+		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[1]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -1220,7 +1220,7 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 		tracemode |= 0;
 	else
 	{
-		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[2]);
+		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[2]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -1230,7 +1230,7 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 		tracemode |= 0;
 	else
 	{
-		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[3]);
+		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[3]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -1246,18 +1246,18 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 
 COMMAND_HANDLER(handle_etm_tracemode_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target_to_arm(target);
 	struct etm_context *etm;
 
 	if (!is_arm(arm)) {
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm = arm->etm;
 	if (!etm) {
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
@@ -1271,7 +1271,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		CALL_COMMAND_HANDLER(handle_etm_tracemode_command_update, &tracemode);
 		break;
 	default:
-		command_print(cmd_ctx, "usage: configure trace mode "
+		command_print(CMD_CTX, "usage: configure trace mode "
 				"<none | data | address | all> "
 				"<context id bits> <cycle accurate> <branch output>");
 		return ERROR_FAIL;
@@ -1282,56 +1282,56 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	 * or couldn't be written; display actual hardware state...
 	 */
 
-	command_print(cmd_ctx, "current tracemode configuration:");
+	command_print(CMD_CTX, "current tracemode configuration:");
 
 	switch (tracemode & ETMV1_TRACE_MASK)
 	{
 		case ETMV1_TRACE_NONE:
-			command_print(cmd_ctx, "data tracing: none");
+			command_print(CMD_CTX, "data tracing: none");
 			break;
 		case ETMV1_TRACE_DATA:
-			command_print(cmd_ctx, "data tracing: data only");
+			command_print(CMD_CTX, "data tracing: data only");
 			break;
 		case ETMV1_TRACE_ADDR:
-			command_print(cmd_ctx, "data tracing: address only");
+			command_print(CMD_CTX, "data tracing: address only");
 			break;
 		case ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR:
-			command_print(cmd_ctx, "data tracing: address and data");
+			command_print(CMD_CTX, "data tracing: address and data");
 			break;
 	}
 
 	switch (tracemode & ETMV1_CONTEXTID_MASK)
 	{
 		case ETMV1_CONTEXTID_NONE:
-			command_print(cmd_ctx, "contextid tracing: none");
+			command_print(CMD_CTX, "contextid tracing: none");
 			break;
 		case ETMV1_CONTEXTID_8:
-			command_print(cmd_ctx, "contextid tracing: 8 bit");
+			command_print(CMD_CTX, "contextid tracing: 8 bit");
 			break;
 		case ETMV1_CONTEXTID_16:
-			command_print(cmd_ctx, "contextid tracing: 16 bit");
+			command_print(CMD_CTX, "contextid tracing: 16 bit");
 			break;
 		case ETMV1_CONTEXTID_32:
-			command_print(cmd_ctx, "contextid tracing: 32 bit");
+			command_print(CMD_CTX, "contextid tracing: 32 bit");
 			break;
 	}
 
 	if (tracemode & ETMV1_CYCLE_ACCURATE)
 	{
-		command_print(cmd_ctx, "cycle-accurate tracing enabled");
+		command_print(CMD_CTX, "cycle-accurate tracing enabled");
 	}
 	else
 	{
-		command_print(cmd_ctx, "cycle-accurate tracing disabled");
+		command_print(CMD_CTX, "cycle-accurate tracing disabled");
 	}
 
 	if (tracemode & ETMV1_BRANCH_OUTPUT)
 	{
-		command_print(cmd_ctx, "full branch address output enabled");
+		command_print(CMD_CTX, "full branch address output enabled");
 	}
 	else
 	{
-		command_print(cmd_ctx, "full branch address output disabled");
+		command_print(CMD_CTX, "full branch address output disabled");
 	}
 
 	/* only update ETM_CTRL register if tracemode changed */
@@ -1386,7 +1386,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(cmd_ctx, "target '%s' is '%s'; not an ARM",
+		command_print(CMD_CTX, "target '%s' is '%s'; not an ARM",
 				target->cmd_name, target_get_name(target));
 		return ERROR_FAIL;
 	}
@@ -1437,7 +1437,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 			portmode |= ETM_PORT_2BIT;
 			break;
 		default:
-			command_print(cmd_ctx,
+			command_print(CMD_CTX,
 				"unsupported ETM port width '%s'", CMD_ARGV[1]);
 			return ERROR_FAIL;
 	}
@@ -1456,7 +1456,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	}
 	else
 	{
-		command_print(cmd_ctx, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", CMD_ARGV[2]);
+		command_print(CMD_CTX, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", CMD_ARGV[2]);
 		return ERROR_FAIL;
 	}
 
@@ -1470,7 +1470,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	}
 	else
 	{
-		command_print(cmd_ctx, "unsupported ETM port clocking '%s', must be 'full' or 'half'", CMD_ARGV[3]);
+		command_print(CMD_CTX, "unsupported ETM port clocking '%s', must be 'full' or 'half'", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
@@ -1485,7 +1485,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 		if (strcmp(CMD_ARGV[4], etm_capture_drivers[i]->name) == 0)
 		{
 			int retval;
-			if ((retval = etm_capture_drivers[i]->register_commands(cmd_ctx)) != ERROR_OK)
+			if ((retval = etm_capture_drivers[i]->register_commands(CMD_CTX)) != ERROR_OK)
 			{
 				free(etm_ctx);
 				return retval;
@@ -1513,7 +1513,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 
 	arm->etm = etm_ctx;
 
-	return etm_register_user_commands(cmd_ctx);
+	return etm_register_user_commands(CMD_CTX);
 }
 
 COMMAND_HANDLER(handle_etm_info_command)
@@ -1525,49 +1525,49 @@ COMMAND_HANDLER(handle_etm_info_command)
 	int max_port_size;
 	uint32_t config;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm = arm->etm;
 	if (!etm)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
-	command_print(cmd_ctx, "ETM v%d.%d",
+	command_print(CMD_CTX, "ETM v%d.%d",
 			etm->bcd_vers >> 4, etm->bcd_vers & 0xf);
-	command_print(cmd_ctx, "pairs of address comparators: %i",
+	command_print(CMD_CTX, "pairs of address comparators: %i",
 			(int) (etm->config >> 0) & 0x0f);
-	command_print(cmd_ctx, "data comparators: %i",
+	command_print(CMD_CTX, "data comparators: %i",
 			(int) (etm->config >> 4) & 0x0f);
-	command_print(cmd_ctx, "memory map decoders: %i",
+	command_print(CMD_CTX, "memory map decoders: %i",
 			(int) (etm->config >> 8) & 0x1f);
-	command_print(cmd_ctx, "number of counters: %i",
+	command_print(CMD_CTX, "number of counters: %i",
 			(int) (etm->config >> 13) & 0x07);
-	command_print(cmd_ctx, "sequencer %spresent",
+	command_print(CMD_CTX, "sequencer %spresent",
 			(int) (etm->config & (1 << 16)) ? "" : "not ");
-	command_print(cmd_ctx, "number of ext. inputs: %i",
+	command_print(CMD_CTX, "number of ext. inputs: %i",
 			(int) (etm->config >> 17) & 0x07);
-	command_print(cmd_ctx, "number of ext. outputs: %i",
+	command_print(CMD_CTX, "number of ext. outputs: %i",
 			(int) (etm->config >> 20) & 0x07);
-	command_print(cmd_ctx, "FIFO full %spresent",
+	command_print(CMD_CTX, "FIFO full %spresent",
 			(int) (etm->config & (1 << 23)) ? "" : "not ");
 	if (etm->bcd_vers < 0x20)
-		command_print(cmd_ctx, "protocol version: %i",
+		command_print(CMD_CTX, "protocol version: %i",
 				(int) (etm->config >> 28) & 0x07);
 	else {
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 				"coprocessor and memory access %ssupported",
 				(etm->config & (1 << 26)) ? "" : "not ");
-		command_print(cmd_ctx, "trace start/stop %spresent",
+		command_print(CMD_CTX, "trace start/stop %spresent",
 				(etm->config & (1 << 26)) ? "" : "not ");
-		command_print(cmd_ctx, "number of context comparators: %i",
+		command_print(CMD_CTX, "number of context comparators: %i",
 				(int) (etm->config >> 24) & 0x03);
 	}
 
@@ -1619,30 +1619,30 @@ COMMAND_HANDLER(handle_etm_info_command)
 			LOG_ERROR("Illegal max_port_size");
 			return ERROR_FAIL;
 	}
-	command_print(cmd_ctx, "max. port size: %i", max_port_size);
+	command_print(CMD_CTX, "max. port size: %i", max_port_size);
 
 	if (etm->bcd_vers < 0x30) {
-		command_print(cmd_ctx, "half-rate clocking %ssupported",
+		command_print(CMD_CTX, "half-rate clocking %ssupported",
 				(config & (1 << 3)) ? "" : "not ");
-		command_print(cmd_ctx, "full-rate clocking %ssupported",
+		command_print(CMD_CTX, "full-rate clocking %ssupported",
 				(config & (1 << 4)) ? "" : "not ");
-		command_print(cmd_ctx, "normal trace format %ssupported",
+		command_print(CMD_CTX, "normal trace format %ssupported",
 				(config & (1 << 5)) ? "" : "not ");
-		command_print(cmd_ctx, "multiplex trace format %ssupported",
+		command_print(CMD_CTX, "multiplex trace format %ssupported",
 				(config & (1 << 6)) ? "" : "not ");
-		command_print(cmd_ctx, "demultiplex trace format %ssupported",
+		command_print(CMD_CTX, "demultiplex trace format %ssupported",
 				(config & (1 << 7)) ? "" : "not ");
 	} else {
 		/* REVISIT show which size and format are selected ... */
-		command_print(cmd_ctx, "current port size %ssupported",
+		command_print(CMD_CTX, "current port size %ssupported",
 				(config & (1 << 10)) ? "" : "not ");
-		command_print(cmd_ctx, "current trace format %ssupported",
+		command_print(CMD_CTX, "current trace format %ssupported",
 				(config & (1 << 11)) ? "" : "not ");
 	}
 	if (etm->bcd_vers >= 0x21)
-		command_print(cmd_ctx, "fetch comparisons %ssupported",
+		command_print(CMD_CTX, "fetch comparisons %ssupported",
 				(config & (1 << 17)) ? "not " : "");
-	command_print(cmd_ctx, "FIFO full %ssupported",
+	command_print(CMD_CTX, "FIFO full %ssupported",
 			(config & (1 << 8)) ? "" : "not ");
 
 	return ERROR_OK;
@@ -1655,18 +1655,18 @@ COMMAND_HANDLER(handle_etm_status_command)
 	struct etm_context *etm;
 	trace_status_t trace_status;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm = arm->etm;
 	if (!etm)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
@@ -1680,7 +1680,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 		if (etm_get_reg(reg) == ERROR_OK) {
 			unsigned s = buf_get_u32(reg->value, 0, reg->size);
 
-			command_print(cmd_ctx, "etm: %s%s%s%s",
+			command_print(CMD_CTX, "etm: %s%s%s%s",
 				/* bit(1) == progbit */
 				(etm->bcd_vers >= 0x12)
 					? ((s & (1 << 1))
@@ -1699,7 +1699,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 	trace_status = etm->capture_driver->status(etm);
 	if (trace_status == TRACE_IDLE)
 	{
-		command_print(cmd_ctx, "%s: idle", etm->capture_driver->name);
+		command_print(CMD_CTX, "%s: idle", etm->capture_driver->name);
 	}
 	else
 	{
@@ -1708,7 +1708,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 		static char *overflowed = ", overflowed";
 		static char *triggered = ", triggered";
 
-		command_print(cmd_ctx, "%s: trace collection%s%s%s",
+		command_print(CMD_CTX, "%s: trace collection%s%s%s",
 			etm->capture_driver->name,
 			(trace_status & TRACE_RUNNING) ? running : completed,
 			(trace_status & TRACE_OVERFLOWED) ? overflowed : "",
@@ -1716,7 +1716,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 
 		if (etm->trace_depth > 0)
 		{
-			command_print(cmd_ctx, "%i frames of trace data read",
+			command_print(CMD_CTX, "%i frames of trace data read",
 					(int)(etm->trace_depth));
 		}
 	}
@@ -1732,22 +1732,22 @@ COMMAND_HANDLER(handle_etm_image_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "usage: etm image <file> [base address] [type]");
+		command_print(CMD_CTX, "usage: etm image <file> [base address] [type]");
 		return ERROR_FAIL;
 	}
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
@@ -1755,7 +1755,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 	{
 		image_close(etm_ctx->image);
 		free(etm_ctx->image);
-		command_print(cmd_ctx, "previously loaded image found and closed");
+		command_print(CMD_CTX, "previously loaded image found and closed");
 	}
 
 	etm_ctx->image = malloc(sizeof(struct image));
@@ -1793,35 +1793,35 @@ COMMAND_HANDLER(handle_etm_dump_command)
 
 	if (CMD_ARGC != 1)
 	{
-		command_print(cmd_ctx, "usage: etm dump <file>");
+		command_print(CMD_CTX, "usage: etm dump <file>");
 		return ERROR_FAIL;
 	}
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
 	if (etm_ctx->capture_driver->status == TRACE_IDLE)
 	{
-		command_print(cmd_ctx, "trace capture wasn't enabled, no trace data captured");
+		command_print(CMD_CTX, "trace capture wasn't enabled, no trace data captured");
 		return ERROR_OK;
 	}
 
 	if (etm_ctx->capture_driver->status(etm_ctx) & TRACE_RUNNING)
 	{
 		/* TODO: if on-the-fly capture is to be supported, this needs to be changed */
-		command_print(cmd_ctx, "trace capture not completed");
+		command_print(CMD_CTX, "trace capture not completed");
 		return ERROR_FAIL;
 	}
 
@@ -1861,28 +1861,28 @@ COMMAND_HANDLER(handle_etm_load_command)
 
 	if (CMD_ARGC != 1)
 	{
-		command_print(cmd_ctx, "usage: etm load <file>");
+		command_print(CMD_CTX, "usage: etm load <file>");
 		return ERROR_FAIL;
 	}
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
 	if (etm_ctx->capture_driver->status(etm_ctx) & TRACE_RUNNING)
 	{
-		command_print(cmd_ctx, "trace capture running, stop first");
+		command_print(CMD_CTX, "trace capture running, stop first");
 		return ERROR_FAIL;
 	}
 
@@ -1893,7 +1893,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 
 	if (file.size % 4)
 	{
-		command_print(cmd_ctx, "size isn't a multiple of 4, no valid trace data");
+		command_print(CMD_CTX, "size isn't a multiple of 4, no valid trace data");
 		fileio_close(&file);
 		return ERROR_FAIL;
 	}
@@ -1914,7 +1914,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
 	if (etm_ctx->trace_data == NULL)
 	{
-		command_print(cmd_ctx, "not enough memory to perform operation");
+		command_print(CMD_CTX, "not enough memory to perform operation");
 		fileio_close(&file);
 		return ERROR_FAIL;
 	}
@@ -1941,18 +1941,18 @@ COMMAND_HANDLER(handle_etm_trigger_percent_command)
 	struct arm *arm;
 	struct etm_context *etm_ctx;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
@@ -1963,7 +1963,7 @@ COMMAND_HANDLER(handle_etm_trigger_percent_command)
 
 		if ((new_value < 2) || (new_value > 100))
 		{
-			command_print(cmd_ctx, "valid settings are 2%% to 100%%");
+			command_print(CMD_CTX, "valid settings are 2%% to 100%%");
 		}
 		else
 		{
@@ -1971,7 +1971,7 @@ COMMAND_HANDLER(handle_etm_trigger_percent_command)
 		}
 	}
 
-	command_print(cmd_ctx, "%i percent of the tracebuffer reserved for after the trigger", ((int)(etm_ctx->trigger_percent)));
+	command_print(CMD_CTX, "%i percent of the tracebuffer reserved for after the trigger", ((int)(etm_ctx->trigger_percent)));
 
 	return ERROR_OK;
 }
@@ -1983,18 +1983,18 @@ COMMAND_HANDLER(handle_etm_start_command)
 	struct etm_context *etm_ctx;
 	struct reg *etm_ctrl_reg;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
@@ -2031,18 +2031,18 @@ COMMAND_HANDLER(handle_etm_stop_command)
 	struct etm_context *etm_ctx;
 	struct reg *etm_ctrl_reg;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
@@ -2070,36 +2070,36 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 	struct etm_context *etm_ctx;
 	int retval;
 
-	target = get_current_target(cmd_ctx);
+	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETM: current target isn't an ARM");
+		command_print(CMD_CTX, "ETM: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm_ctx = arm->etm;
 	if (!etm_ctx)
 	{
-		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
-	if ((retval = etmv1_analyze_trace(etm_ctx, cmd_ctx)) != ERROR_OK)
+	if ((retval = etmv1_analyze_trace(etm_ctx, CMD_CTX)) != ERROR_OK)
 	{
 		switch (retval)
 		{
 			case ERROR_ETM_ANALYSIS_FAILED:
-				command_print(cmd_ctx, "further analysis failed (corrupted trace data or just end of data");
+				command_print(CMD_CTX, "further analysis failed (corrupted trace data or just end of data");
 				break;
 			case ERROR_TRACE_INSTRUCTION_UNAVAILABLE:
-				command_print(cmd_ctx, "no instruction for current address available, analysis aborted");
+				command_print(CMD_CTX, "no instruction for current address available, analysis aborted");
 				break;
 			case ERROR_TRACE_IMAGE_UNAVAILABLE:
-				command_print(cmd_ctx, "no image available for trace analysis");
+				command_print(CMD_CTX, "no image available for trace analysis");
 				break;
 			default:
-				command_print(cmd_ctx, "unknown error: %i", retval);
+				command_print(CMD_CTX, "unknown error: %i", retval);
 		}
 	}
 

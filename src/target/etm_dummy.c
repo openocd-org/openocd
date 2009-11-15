@@ -41,7 +41,7 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "target '%s' isn't an ARM", CMD_ARGV[0]);
+		command_print(CMD_CTX, "target '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 

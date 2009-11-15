@@ -2750,24 +2750,24 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 	uint32_t value;
 	int spsr;
 	int retval;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "can't write registers while running");
+		command_print(CMD_CTX, "can't write registers while running");
 		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "usage: write_xpsr <value> <not cpsr | spsr>");
+		command_print(CMD_CTX, "usage: write_xpsr <value> <not cpsr | spsr>");
 		return ERROR_FAIL;
 	}
 
@@ -2794,24 +2794,24 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 	int rotate;
 	int spsr;
 	int retval;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "can't write registers while running");
+		command_print(CMD_CTX, "can't write registers while running");
 		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC < 3)
 	{
-		command_print(cmd_ctx, "usage: write_xpsr_im8 <im8> <rotate> <not cpsr | spsr>");
+		command_print(CMD_CTX, "usage: write_xpsr_im8 <im8> <rotate> <not cpsr | spsr>");
 		return ERROR_FAIL;
 	}
 
@@ -2834,24 +2834,24 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 	uint32_t value;
 	uint32_t mode;
 	int num;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "can't write registers while running");
+		command_print(CMD_CTX, "can't write registers while running");
 		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC < 3)
 	{
-		command_print(cmd_ctx, "usage: write_core_reg <num> <mode> <value>");
+		command_print(CMD_CTX, "usage: write_core_reg <num> <mode> <value>");
 		return ERROR_FAIL;
 	}
 
@@ -2864,12 +2864,12 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -2885,23 +2885,23 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 dbgrq <enable | disable>");
+			command_print(CMD_CTX, "usage: arm7_9 dbgrq <enable | disable>");
 		}
 	}
 
-	command_print(cmd_ctx, "use of EmbeddedICE dbgrq instead of breakpoint for target halt %s", (arm7_9->use_dbgrq) ? "enabled" : "disabled");
+	command_print(CMD_CTX, "use of EmbeddedICE dbgrq instead of breakpoint for target halt %s", (arm7_9->use_dbgrq) ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -2917,23 +2917,23 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 fast_memory_access <enable | disable>");
+			command_print(CMD_CTX, "usage: arm7_9 fast_memory_access <enable | disable>");
 		}
 	}
 
-	command_print(cmd_ctx, "fast memory access is %s", (arm7_9->fast_memory_access) ? "enabled" : "disabled");
+	command_print(CMD_CTX, "fast memory access is %s", (arm7_9->fast_memory_access) ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -2949,11 +2949,11 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 dcc_downloads <enable | disable>");
+			command_print(CMD_CTX, "usage: arm7_9 dcc_downloads <enable | disable>");
 		}
 	}
 
-	command_print(cmd_ctx, "dcc downloads are %s", (arm7_9->dcc_downloads) ? "enabled" : "disabled");
+	command_print(CMD_CTX, "dcc downloads are %s", (arm7_9->dcc_downloads) ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }

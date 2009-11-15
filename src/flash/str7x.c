@@ -613,7 +613,7 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str7x disable_jtag <bank>");
+		command_print(CMD_CTX, "str7x disable_jtag <bank>");
 		return ERROR_OK;
 	}
 

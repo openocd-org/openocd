@@ -358,18 +358,18 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	char output[128];
 	int output_len;
 	int mode, num;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	if (!is_arm(armv4_5))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM");
+		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "error: target must be halted for register accesses");
+		command_print(CMD_CTX, "error: target must be halted for register accesses");
 		return ERROR_OK;
 	}
 
@@ -377,7 +377,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 		return ERROR_FAIL;
 
 	if (!armv4_5->full_context) {
-		command_print(cmd_ctx, "error: target doesn't support %s",
+		command_print(CMD_CTX, "error: target doesn't support %s",
 				CMD_NAME);
 		return ERROR_FAIL;
 	}
@@ -397,9 +397,9 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 					       ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
 					       buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
 		}
-		command_print(cmd_ctx, "%s", output);
+		command_print(CMD_CTX, "%s", output);
 	}
-	command_print(cmd_ctx,
+	command_print(CMD_CTX,
 		      "    cpsr: %8.8" PRIx32 " spsr_fiq: %8.8" PRIx32 " spsr_irq: %8.8" PRIx32 " spsr_svc: %8.8" PRIx32 " spsr_abt: %8.8" PRIx32 " spsr_und: %8.8" PRIx32 "",
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_FIQ].value, 0, 32),
@@ -413,12 +413,12 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 
 COMMAND_HANDLER(handle_armv4_5_core_state_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	if (!is_arm(armv4_5))
 	{
-		command_print(cmd_ctx, "current target isn't an ARM");
+		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
@@ -434,7 +434,7 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 		}
 	}
 
-	command_print(cmd_ctx, "core state: %s", armv4_5_state_strings[armv4_5->core_state]);
+	command_print(CMD_CTX, "core state: %s", armv4_5_state_strings[armv4_5->core_state]);
 
 	return ERROR_OK;
 }
@@ -442,14 +442,14 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 {
 	int retval = ERROR_OK;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target ? target_to_arm(target) : NULL;
 	uint32_t address;
 	int count = 1;
 	int thumb = 0;
 
 	if (!is_arm(arm)) {
-		command_print(cmd_ctx, "current target isn't an ARM");
+		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
@@ -466,7 +466,7 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 		if (address & 0x01) {
 			if (!thumb) {
-				command_print(cmd_ctx, "Disassemble as Thumb");
+				command_print(CMD_CTX, "Disassemble as Thumb");
 				thumb = 1;
 			}
 			address &= ~1;
@@ -474,7 +474,7 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 		break;
 	default:
 usage:
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 			"usage: arm disassemble <address> [<count> ['thumb']]");
 		count = 0;
 		retval = ERROR_FAIL;
@@ -503,7 +503,7 @@ usage:
 			if (retval != ERROR_OK)
 				break;
 		}
-		command_print(cmd_ctx, "%s", cur_instruction.text);
+		command_print(CMD_CTX, "%s", cur_instruction.text);
 		address += cur_instruction.instruction_size;
 	}
 

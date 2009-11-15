@@ -55,7 +55,7 @@ COMMAND_HANDLER(handle_version_command)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(cmd_ctx, OPENOCD_VERSION);
+	command_print(CMD_CTX, OPENOCD_VERSION);
 
 	return ERROR_OK;
 }
@@ -107,11 +107,11 @@ COMMAND_HANDLER(handle_init_command)
 
 	atexit(exit_handler);
 
-	if (target_init(cmd_ctx) != ERROR_OK)
+	if (target_init(CMD_CTX) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("target init complete");
 
-	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
+	if ((retval = jtag_interface_init(CMD_CTX)) != ERROR_OK)
 	{
 		/* we must be able to set up the jtag interface */
 		return retval;
@@ -120,7 +120,7 @@ COMMAND_HANDLER(handle_init_command)
 
 	/* Try to initialize & examine the JTAG chain at this point, but
 	 * continue startup regardless */
-	if (jtag_init(cmd_ctx) == ERROR_OK)
+	if (jtag_init(CMD_CTX) == ERROR_OK)
 	{
 		LOG_DEBUG("jtag init complete");
 		if (target_examine() == ERROR_OK)
@@ -129,19 +129,19 @@ COMMAND_HANDLER(handle_init_command)
 		}
 	}
 
-	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
+	if (flash_init_drivers(CMD_CTX) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("flash init complete");
 
-	if (mflash_init_drivers(cmd_ctx) != ERROR_OK)
+	if (mflash_init_drivers(CMD_CTX) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("mflash init complete");
 
-	if (nand_init(cmd_ctx) != ERROR_OK)
+	if (nand_init(CMD_CTX) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("NAND init complete");
 
-	if (pld_init(cmd_ctx) != ERROR_OK)
+	if (pld_init(CMD_CTX) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("pld init complete");
 
@@ -153,7 +153,7 @@ COMMAND_HANDLER(handle_init_command)
 	gdb_init();
 	tcl_init(); /* allows tcl to just connect without going thru telnet */
 
-	target_register_event_callback(log_target_callback_event_handler, cmd_ctx);
+	target_register_event_callback(log_target_callback_event_handler, CMD_CTX);
 
 	return ERROR_OK;
 }

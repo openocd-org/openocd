@@ -564,7 +564,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
 		return status;
 	}
 
-	command_print( cmd_ctx, "signature: 0x%8.8" PRIx32
+	command_print( CMD_CTX, "signature: 0x%8.8" PRIx32
 	                                  ":0x%8.8" PRIx32
 	                                  ":0x%8.8" PRIx32
 	                                  ":0x%8.8" PRIx32,
@@ -672,11 +672,11 @@ COMMAND_HANDLER(lpc2900_handle_password_command)
 
 	if( !lpc2900_info->risky )
 	{
-		command_print(cmd_ctx, "Wrong password (use '%s')", ISS_PASSWORD);
+		command_print(CMD_CTX, "Wrong password (use '%s')", ISS_PASSWORD);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	command_print(cmd_ctx,
+	command_print(CMD_CTX,
                   "Potentially dangerous operation allowed in next command!");
 
 	return ERROR_OK;
@@ -704,7 +704,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	/* Check if command execution is allowed. */
 	if( !lpc2900_info->risky )
 	{
-		command_print( cmd_ctx, "Command execution not allowed!" );
+		command_print( CMD_CTX, "Command execution not allowed!" );
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 	lpc2900_info->risky = 0;
@@ -815,7 +815,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 	/* Check if command execution is allowed. */
 	if( !lpc2900_info->risky )
 	{
-		command_print( cmd_ctx, "Command execution not allowed! "
+		command_print( CMD_CTX, "Command execution not allowed! "
 		"(use 'password' command first)");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
@@ -829,7 +829,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 	    (last >= bank->num_sectors) ||
 	    (first > last) )
 	{
-		command_print( cmd_ctx, "Illegal sector range" );
+		command_print( CMD_CTX, "Illegal sector range" );
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -878,7 +878,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 		}
 	}
 
-	command_print( cmd_ctx,
+	command_print( CMD_CTX,
 	        "Sectors security will become effective after next power cycle");
 
 	/* Update the sector security status */
@@ -914,7 +914,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 	/* Check if command execution is allowed. */
 	if( !lpc2900_info->risky )
 	{
-		command_print( cmd_ctx, "Command execution not allowed! "
+		command_print( CMD_CTX, "Command execution not allowed! "
 		                        "(use 'password' command first)");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}

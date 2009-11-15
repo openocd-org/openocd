@@ -759,7 +759,7 @@ int armv7m_blank_check_memory(struct target *target,
  */
 COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel, apselsave, baseaddr;
@@ -782,7 +782,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 
 	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "0x%8.8" PRIx32 "", baseaddr);
+	command_print(CMD_CTX, "0x%8.8" PRIx32 "", baseaddr);
 
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apselsave);
@@ -796,7 +796,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
  */
 COMMAND_HANDLER(handle_dap_apid_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -805,7 +805,7 @@ COMMAND_HANDLER(handle_dap_apid_command)
 
 COMMAND_HANDLER(handle_dap_apsel_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -814,7 +814,7 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 
 COMMAND_HANDLER(handle_dap_memaccess_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
@@ -824,7 +824,7 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 
 COMMAND_HANDLER(handle_dap_info_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
@@ -840,7 +840,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return dap_info_command(cmd_ctx, swjdp, apsel);
+	return dap_info_command(CMD_CTX, swjdp, apsel);
 }
 
 /** Registers commands used to access DAP resources. */

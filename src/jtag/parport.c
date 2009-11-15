@@ -425,7 +425,7 @@ COMMAND_HANDLER(parport_handle_parport_port_command)
 		}
 	}
 
-	command_print(cmd_ctx, "parport port = %u", parport_port);
+	command_print(CMD_CTX, "parport port = %u", parport_port);
 
 	return ERROR_OK;
 }
@@ -449,7 +449,7 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(cmd_ctx, "usage: parport_write_on_exit <on | off>");
+		command_print(CMD_CTX, "usage: parport_write_on_exit <on | off>");
 		return ERROR_OK;
 	}
 
@@ -479,7 +479,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 		wait_states = jtag_get_speed();
 	}
 
-	command_print(cmd_ctx, "parport toggling time = %" PRIu32 " ns",
+	command_print(CMD_CTX, "parport toggling time = %" PRIu32 " ns",
 			parport_toggling_time_ns);
 
 	return ERROR_OK;

@@ -61,13 +61,13 @@ COMMAND_HANDLER(handle_rm_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(cmd_ctx, "rm <filename>");
+		command_print(CMD_CTX, "rm <filename>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	if (unlink(CMD_ARGV[0]) != 0)
 	{
-		command_print(cmd_ctx, "failed: %d", errno);
+		command_print(CMD_CTX, "failed: %d", errno);
 	}
 
 	return ERROR_OK;
@@ -137,7 +137,7 @@ COMMAND_HANDLER(handle_cat_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(cmd_ctx, "cat <filename>");
+		command_print(CMD_CTX, "cat <filename>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -148,12 +148,12 @@ COMMAND_HANDLER(handle_cat_command)
 	int retval = loadFile(CMD_ARGV[0], &data, &len);
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "%s", (char *)data);
+		command_print(CMD_CTX, "%s", (char *)data);
 		free(data);
 	}
 	else
 	{
-		command_print(cmd_ctx, "%s not found %d", CMD_ARGV[0], retval);
+		command_print(CMD_CTX, "%s not found %d", CMD_ARGV[0], retval);
 	}
 
 	return ERROR_OK;
@@ -163,7 +163,7 @@ COMMAND_HANDLER(handle_trunc_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(cmd_ctx, "trunc <filename>");
+		command_print(CMD_CTX, "trunc <filename>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -182,7 +182,7 @@ COMMAND_HANDLER(handle_meminfo_command)
 
 	if (CMD_ARGC != 0)
 	{
-		command_print(cmd_ctx, "meminfo");
+		command_print(CMD_CTX, "meminfo");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -190,11 +190,11 @@ COMMAND_HANDLER(handle_meminfo_command)
 
 	if (prev > 0)
 	{
-		command_print(cmd_ctx, "Diff:            %d", prev - info.fordblks);
+		command_print(CMD_CTX, "Diff:            %d", prev - info.fordblks);
 	}
 	prev = info.fordblks;
 
-	command_print(cmd_ctx, "Available ram:   %d", info.fordblks);
+	command_print(CMD_CTX, "Available ram:   %d", info.fordblks);
 
 	return ERROR_OK;
 }
@@ -204,7 +204,7 @@ COMMAND_HANDLER(handle_append_command)
 {
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 				"append <filename> [<string1>, [<string2>, ...]]");
 		return ERROR_INVALID_ARGUMENTS;
 	}
@@ -276,7 +276,7 @@ COMMAND_HANDLER(handle_cp_command)
 			break;
 		}
 
-		command_print(cmd_ctx, "%zu", len - pos);
+		command_print(CMD_CTX, "%zu", len - pos);
 
 		pos += chunk;
 
@@ -286,10 +286,10 @@ COMMAND_HANDLER(handle_cp_command)
 
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
+		command_print(CMD_CTX, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
 	} else
 	{
-		command_print(cmd_ctx, "Failed: %d", retval);
+		command_print(CMD_CTX, "Failed: %d", retval);
 	}
 
 	if (data != NULL)

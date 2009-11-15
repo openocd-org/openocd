@@ -223,7 +223,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 		if (strcmp(CMD_ARGV[0], nand_flash_controllers[i]->name) == 0)
 		{
 			/* register flash specific commands */
-			if ((retval = nand_flash_controllers[i]->register_commands(cmd_ctx)) != ERROR_OK)
+			if ((retval = nand_flash_controllers[i]->register_commands(CMD_CTX)) != ERROR_OK)
 			{
 				LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
 				return retval;
@@ -312,7 +312,7 @@ COMMAND_HELPER(nand_command_get_device_by_num, unsigned name_index,
 	COMMAND_PARSE_NUMBER(uint, str, num);
 	*nand = get_nand_device_by_num(num);
 	if (!*nand) {
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", str);
+		command_print(CMD_CTX, "NAND flash device '#%s' is out of bounds", str);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	return ERROR_OK;
@@ -1050,21 +1050,21 @@ COMMAND_HANDLER(handle_nand_list_command)
 
 	if (!nand_devices)
 	{
-		command_print(cmd_ctx, "no NAND flash devices configured");
+		command_print(CMD_CTX, "no NAND flash devices configured");
 		return ERROR_OK;
 	}
 
 	for (p = nand_devices, i = 0; p; p = p->next, i++)
 	{
 		if (p->device)
-			command_print(cmd_ctx, "#%i: %s (%s) "
+			command_print(CMD_CTX, "#%i: %s (%s) "
 				"pagesize: %i, buswidth: %i,\n\t"
 				"blocksize: %i, blocks: %i",
 				i, p->device->name, p->manufacturer->name,
 				p->page_size, p->bus_width,
 				p->erase_size, p->num_blocks);
 		else
-			command_print(cmd_ctx, "#%i: not probed", i);
+			command_print(CMD_CTX, "#%i: not probed", i);
 	}
 
 	return ERROR_OK;
@@ -1102,7 +1102,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 
 	if (NULL == p->device)
 	{
-		command_print(cmd_ctx, "#%s: not probed", CMD_ARGV[0]);
+		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -1112,7 +1112,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 	if (last >= p->num_blocks)
 		last = p->num_blocks - 1;
 
-	command_print(cmd_ctx, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
+	command_print(CMD_CTX, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
 		i++, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
 
 	for (j = first; j <= last; j++)
@@ -1133,7 +1133,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 		else
 			bad_state = " (block condition unknown)";
 
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 			      "\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
 			      j,
 			      p->blocks[j].offset,
@@ -1159,15 +1159,15 @@ COMMAND_HANDLER(handle_nand_probe_command)
 
 	if ((retval = nand_probe(p)) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "NAND flash device '%s' found", p->device->name);
+		command_print(CMD_CTX, "NAND flash device '%s' found", p->device->name);
 	}
 	else if (retval == ERROR_NAND_OPERATION_FAILED)
 	{
-		command_print(cmd_ctx, "probing failed for NAND flash device");
+		command_print(CMD_CTX, "probing failed for NAND flash device");
 	}
 	else
 	{
-		command_print(cmd_ctx, "unknown error when probing NAND flash device");
+		command_print(CMD_CTX, "unknown error when probing NAND flash device");
 	}
 
 	return ERROR_OK;
@@ -1212,18 +1212,18 @@ COMMAND_HANDLER(handle_nand_erase_command)
 	retval = nand_erase(p, offset, offset + length - 1);
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "erased blocks %lu to %lu "
+		command_print(CMD_CTX, "erased blocks %lu to %lu "
 				"on NAND flash device #%s '%s'",
 				offset, offset + length,
 				CMD_ARGV[0], p->device->name);
 	}
 	else if (retval == ERROR_NAND_OPERATION_FAILED)
 	{
-		command_print(cmd_ctx, "erase failed");
+		command_print(CMD_CTX, "erase failed");
 	}
 	else
 	{
-		command_print(cmd_ctx, "unknown error when erasing NAND flash device");
+		command_print(CMD_CTX, "unknown error when erasing NAND flash device");
 	}
 
 	return ERROR_OK;
@@ -1269,17 +1269,17 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	retval = nand_build_bbt(p, first, last);
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "checked NAND flash device for bad blocks, "
+		command_print(CMD_CTX, "checked NAND flash device for bad blocks, "
 				"use \"nand info\" command to list blocks");
 	}
 	else if (retval == ERROR_NAND_OPERATION_FAILED)
 	{
-		command_print(cmd_ctx, "error when checking for bad blocks on "
+		command_print(CMD_CTX, "error when checking for bad blocks on "
 				"NAND flash device");
 	}
 	else
 	{
-		command_print(cmd_ctx, "unknown error when checking for bad "
+		command_print(CMD_CTX, "unknown error when checking for bad "
 				"blocks on NAND flash device");
 	}
 
@@ -1399,7 +1399,7 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 
 	if (NULL == nand->device)
 	{
-		command_print(cmd_ctx, "#%s: not probed", CMD_ARGV[0]);
+		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -1409,7 +1409,7 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], state->size);
 			if (state->size % nand->page_size)
 			{
-				command_print(cmd_ctx, "only page-aligned sizes are supported");
+				command_print(CMD_CTX, "only page-aligned sizes are supported");
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 	}
@@ -1428,13 +1428,13 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 				state->oob_format |= NAND_OOB_SW_ECC_KW;
 			else
 			{
-				command_print(cmd_ctx, "unknown option: %s", CMD_ARGV[i]);
+				command_print(CMD_CTX, "unknown option: %s", CMD_ARGV[i]);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		}
 	}
 
-	retval = nand_fileio_start(cmd_ctx, nand, CMD_ARGV[1], filemode, state);
+	retval = nand_fileio_start(CMD_CTX, nand, CMD_ARGV[1], filemode, state);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1517,7 +1517,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 		int bytes_read = nand_fileio_read(nand, &s);
 		if (bytes_read <= 0)
 		{
-			command_print(cmd_ctx, "error while reading file");
+			command_print(CMD_CTX, "error while reading file");
 			return nand_fileio_cleanup(&s);
 		}
 		s.size -= bytes_read;
@@ -1526,7 +1526,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 				s.page, s.page_size, s.oob, s.oob_size);
 		if (ERROR_OK != retval)
 		{
-			command_print(cmd_ctx, "failed writing file %s "
+			command_print(CMD_CTX, "failed writing file %s "
 				"to NAND flash %s at offset 0x%8.8" PRIx32,
 				CMD_ARGV[1], CMD_ARGV[0], s.address);
 			return nand_fileio_cleanup(&s);
@@ -1536,7 +1536,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 
 	if (nand_fileio_finish(&s))
 	{
-		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to "
+		command_print(CMD_CTX, "wrote file %s to NAND flash %s up to "
 				"offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
 				CMD_ARGV[1], CMD_ARGV[0], s.address, duration_elapsed(&s.bench),
 				duration_kbps(&s.bench, total_bytes));
@@ -1558,7 +1558,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 	dev.address = file.address;
 	dev.size = file.size;
 	dev.oob_format = file.oob_format;
-	retval = nand_fileio_start(cmd_ctx, nand, NULL, FILEIO_NONE, &dev);
+	retval = nand_fileio_start(CMD_CTX, nand, NULL, FILEIO_NONE, &dev);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1568,7 +1568,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 				dev.page, dev.page_size, dev.oob, dev.oob_size);
 		if (ERROR_OK != retval)
 		{
-			command_print(cmd_ctx, "reading NAND flash page failed");
+			command_print(CMD_CTX, "reading NAND flash page failed");
 			nand_fileio_cleanup(&dev);
 			return nand_fileio_cleanup(&file);
 		}
@@ -1576,7 +1576,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		int bytes_read = nand_fileio_read(nand, &file);
 		if (bytes_read <= 0)
 		{
-			command_print(cmd_ctx, "error while reading file");
+			command_print(CMD_CTX, "error while reading file");
 			nand_fileio_cleanup(&dev);
 			return nand_fileio_cleanup(&file);
 		}
@@ -1584,7 +1584,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		if ((dev.page && memcmp(dev.page, file.page, dev.page_size)) ||
 		    (dev.oob && memcmp(dev.oob, file.oob, dev.oob_size)) )
 		{
-			command_print(cmd_ctx, "NAND flash contents differ "
+			command_print(CMD_CTX, "NAND flash contents differ "
 						"at 0x%8.8" PRIx32, dev.address);
 			nand_fileio_cleanup(&dev);
 			return nand_fileio_cleanup(&file);
@@ -1596,7 +1596,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 
 	if (nand_fileio_finish(&file) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "verified file %s in NAND flash %s "
+		command_print(CMD_CTX, "verified file %s in NAND flash %s "
 				"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
 				CMD_ARGV[1], CMD_ARGV[0], dev.address, duration_elapsed(&file.bench),
 				duration_kbps(&file.bench, dev.size));
@@ -1621,7 +1621,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 				s.page, s.page_size, s.oob, s.oob_size);
 		if (ERROR_OK != retval)
 		{
-			command_print(cmd_ctx, "reading NAND flash page failed");
+			command_print(CMD_CTX, "reading NAND flash page failed");
 			return nand_fileio_cleanup(&s);
 		}
 
@@ -1637,7 +1637,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 	if (nand_fileio_finish(&s) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "dumped %zu bytes in %fs (%0.3f kb/s)", 
+		command_print(CMD_CTX, "dumped %zu bytes in %fs (%0.3f kb/s)", 
 				s.fileio.size, duration_elapsed(&s.bench),
 				duration_kbps(&s.bench, s.fileio.size));
 	}
@@ -1658,7 +1658,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 
 	if (NULL == p->device)
 	{
-		command_print(cmd_ctx, "#%s: not probed", CMD_ARGV[0]);
+		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -1673,7 +1673,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 	}
 
 	const char *msg = p->use_raw ? "enabled" : "disabled";
-	command_print(cmd_ctx, "raw access is %s", msg);
+	command_print(CMD_CTX, "raw access is %s", msg);
 
 	return ERROR_OK;
 }

@@ -260,12 +260,12 @@ int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *ta
 
 COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	int receiving = 0;
 
 	/* see if reciever is already registered */
-	if (find_debug_msg_receiver(cmd_ctx, target) != NULL)
+	if (find_debug_msg_receiver(CMD_CTX, target) != NULL)
 		receiving = 1;
 
 	if (CMD_ARGC > 0)
@@ -276,7 +276,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 			if (!receiving)
 			{
 				receiving = 1;
-				add_debug_msg_receiver(cmd_ctx, target);
+				add_debug_msg_receiver(CMD_CTX, target);
 			}
 			charmsg_mode = !strcmp(CMD_ARGV[0], "charmsg");
 		}
@@ -286,16 +286,16 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 			if (receiving)
 			{
 				receiving = 0;
-				delete_debug_msg_receiver(cmd_ctx, target);
+				delete_debug_msg_receiver(CMD_CTX, target);
 			}
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: target_request debugmsgs ['enable'|'disable'|'charmsg']");
+			command_print(CMD_CTX, "usage: target_request debugmsgs ['enable'|'disable'|'charmsg']");
 		}
 	}
 
-	command_print(cmd_ctx, "receiving debug messages from current target %s",
+	command_print(CMD_CTX, "receiving debug messages from current target %s",
 		      (receiving) ? (charmsg_mode?"charmsg":"enabled") : "disabled");
 	return ERROR_OK;
 }

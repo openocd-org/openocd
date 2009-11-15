@@ -208,7 +208,7 @@ COMMAND_HELPER(flash_command_get_bank_by_num,
 	*bank = get_flash_bank_by_num(bank_num);
 	if (!*bank)
 	{
-		command_print(cmd_ctx, "flash bank '%s' not found", name);
+		command_print(CMD_CTX, "flash bank '%s' not found", name);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	return ERROR_OK;
@@ -241,7 +241,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		struct flash_bank *p, *c;
 
 		/* register flash specific commands */
-		if (flash_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
+		if (flash_drivers[i]->register_commands(CMD_CTX) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
 			return ERROR_FAIL;
@@ -320,7 +320,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 		if ((retval = p->driver->auto_probe(p)) != ERROR_OK)
 			return retval;
 
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 			      "#%" PRIi32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", buswidth %i, chipwidth %i",
 			      i,
 			      p->driver->name,
@@ -339,7 +339,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 			else
 				protect_state = "protection state unknown";
 
-			command_print(cmd_ctx,
+			command_print(CMD_CTX,
 				      "\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
 				      j,
 				      p->sectors[j].offset,
@@ -350,7 +350,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 
 		*buf = '\0'; /* initialize buffer, otherwise it migh contain garbage if driver function fails */
 		retval = p->driver->info(p, buf, sizeof(buf));
-		command_print(cmd_ctx, "%s", buf);
+		command_print(CMD_CTX, "%s", buf);
 		if (retval != ERROR_OK)
 			LOG_ERROR("error retrieving flash info (%d)", retval);
 	}
@@ -374,22 +374,22 @@ COMMAND_HANDLER(handle_flash_probe_command)
 	{
 		if ((retval = p->driver->probe(p)) == ERROR_OK)
 		{
-			command_print(cmd_ctx, "flash '%s' found at 0x%8.8" PRIx32, p->driver->name, p->base);
+			command_print(CMD_CTX, "flash '%s' found at 0x%8.8" PRIx32, p->driver->name, p->base);
 		}
 		else if (retval == ERROR_FLASH_BANK_INVALID)
 		{
-			command_print(cmd_ctx, "probing failed for flash bank '#%s' at 0x%8.8" PRIx32,
+			command_print(CMD_CTX, "probing failed for flash bank '#%s' at 0x%8.8" PRIx32,
 						  CMD_ARGV[0], p->base);
 		}
 		else
 		{
-			command_print(cmd_ctx, "unknown error when probing flash bank '#%s' at 0x%8.8" PRIx32,
+			command_print(CMD_CTX, "unknown error when probing flash bank '#%s' at 0x%8.8" PRIx32,
 						  CMD_ARGV[0], p->base);
 		}
 	}
 	else
 	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD_CTX, "flash bank '#%s' is out of bounds", CMD_ARGV[0]);
 	}
 
 	return ERROR_OK;
@@ -410,11 +410,11 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 	int j;
 	if ((retval = p->driver->erase_check(p)) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "successfully checked erase state");
+		command_print(CMD_CTX, "successfully checked erase state");
 	}
 	else
 	{
-		command_print(cmd_ctx, "unknown error when checking erase state of flash bank #%s at 0x%8.8" PRIx32,
+		command_print(CMD_CTX, "unknown error when checking erase state of flash bank #%s at 0x%8.8" PRIx32,
 			CMD_ARGV[0], p->base);
 	}
 
@@ -429,7 +429,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 		else
 			erase_state = "erase state unknown";
 
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 			      "\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
 			      j,
 			      p->sectors[j].offset,
@@ -448,7 +448,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	int address;
 	int length;
 
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -457,7 +457,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], length);
 	if (length <= 0)
 	{
-		command_print(cmd_ctx, "Length must be >0");
+		command_print(CMD_CTX, "Length must be >0");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -477,7 +477,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "erased address 0x%8.8x (length %i)"
+		command_print(CMD_CTX, "erased address 0x%8.8x (length %i)"
 				" in %fs (%0.3f kb/s)", address, length,
 				duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
@@ -497,15 +497,15 @@ COMMAND_HANDLER(handle_flash_protect_check_command)
 
 	if ((retval = p->driver->protect_check(p)) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "successfully checked protect state");
+		command_print(CMD_CTX, "successfully checked protect state");
 	}
 	else if (retval == ERROR_FLASH_OPERATION_FAILED)
 	{
-		command_print(cmd_ctx, "checking protection state failed (possibly unsupported) by flash #%s at 0x%8.8" PRIx32, CMD_ARGV[0], p->base);
+		command_print(CMD_CTX, "checking protection state failed (possibly unsupported) by flash #%s at 0x%8.8" PRIx32, CMD_ARGV[0], p->base);
 	}
 	else
 	{
-		command_print(cmd_ctx, "unknown error when checking protection state of flash bank '#%s' at 0x%8.8" PRIx32, CMD_ARGV[0], p->base);
+		command_print(CMD_CTX, "unknown error when checking protection state of flash bank '#%s' at 0x%8.8" PRIx32, CMD_ARGV[0], p->base);
 	}
 
 	return ERROR_OK;
@@ -550,7 +550,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
 
 	int retval;
-	if ((retval = flash_check_sector_parameters(cmd_ctx,
+	if ((retval = flash_check_sector_parameters(CMD_CTX,
 			first, last, p->num_sectors)) != ERROR_OK)
 		return retval;
 
@@ -561,7 +561,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "erased sectors %" PRIu32 " "
+		command_print(CMD_CTX, "erased sectors %" PRIu32 " "
 				"through %" PRIu32" on flash bank %" PRIu32 " "
 				"in %fs", first, last, bank_nr, duration_elapsed(&bench));
 	}
@@ -598,13 +598,13 @@ COMMAND_HANDLER(handle_flash_protect_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval;
-	if ((retval = flash_check_sector_parameters(cmd_ctx,
+	if ((retval = flash_check_sector_parameters(CMD_CTX,
 			first, last, p->num_sectors)) != ERROR_OK)
 		return retval;
 
 	retval = flash_driver_protect(p, set, first, last);
 	if (retval == ERROR_OK) {
-		command_print(cmd_ctx, "%s protection for sectors %i "
+		command_print(CMD_CTX, "%s protection for sectors %i "
 				"through %i on flash bank %i",
 			(set) ? "set" : "cleared", (int) first,
 			(int) last, (int) bank_nr);
@@ -615,7 +615,7 @@ COMMAND_HANDLER(handle_flash_protect_command)
 
 COMMAND_HANDLER(handle_flash_write_image_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	struct image image;
 	uint32_t written;
@@ -638,13 +638,13 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 			auto_erase = 1;
 			CMD_ARGV++;
 			CMD_ARGC--;
-			command_print(cmd_ctx, "auto erase enabled");
+			command_print(CMD_CTX, "auto erase enabled");
 		} else if (strcmp(CMD_ARGV[0], "unlock") == 0)
 		{
 			auto_unlock = true;
 			CMD_ARGV++;
 			CMD_ARGC--;
-			command_print(cmd_ctx, "auto unlock enabled");
+			command_print(CMD_CTX, "auto unlock enabled");
 		} else
 		{
 			break;
@@ -693,7 +693,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "wrote %" PRIu32 " byte from file %s "
+		command_print(CMD_CTX, "wrote %" PRIu32 " byte from file %s "
 				"in %fs (%0.3f kb/s)", written, CMD_ARGV[0],
 				duration_elapsed(&bench), duration_kbps(&bench, written));
 	}
@@ -714,7 +714,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint32_t wrote = 0;
 	uint32_t cur_size = 0;
 	uint32_t chunk_count;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	uint32_t i;
 	uint32_t wordsize;
 
@@ -800,7 +800,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 
 	if (duration_measure(&bench) == ERROR_OK)
 	{
-		command_print(cmd_ctx, "wrote %" PRIu32 " bytes to 0x%8.8" PRIx32 
+		command_print(CMD_CTX, "wrote %" PRIu32 " bytes to 0x%8.8" PRIx32
 				" in %fs (%0.3f kb/s)", wrote, address,
 				duration_elapsed(&bench), duration_kbps(&bench, wrote));
 	}
@@ -847,7 +847,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
-		command_print(cmd_ctx, "wrote %zu byte from file %s to flash bank %u"
+		command_print(CMD_CTX, "wrote %zu byte from file %s to flash bank %u"
 				" at offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
 				fileio.size, CMD_ARGV[1], p->bank_number, offset,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));

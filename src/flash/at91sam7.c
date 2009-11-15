@@ -1109,7 +1109,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 
 	if (CMD_ARGC != 2)
 	{
-		command_print(cmd_ctx, "at91sam7 gpnvm <bit> <set | clear>");
+		command_print(CMD_CTX, "at91sam7 gpnvm <bit> <set | clear>");
 		return ERROR_OK;
 	}
 
@@ -1120,7 +1120,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	}
 	if (strcmp(bank->driver->name, "at91sam7"))
 	{
-		command_print(cmd_ctx, "not an at91sam7 flash bank '%s'", CMD_ARGV[0]);
+		command_print(CMD_CTX, "not an at91sam7 flash bank '%s'", CMD_ARGV[0]);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	if (bank->target->state != TARGET_HALTED)
@@ -1155,7 +1155,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], bit);
 	if ((bit < 0) || (bit >= at91sam7_info->num_nvmbits))
 	{
-		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", CMD_ARGV[0], at91sam7_info->target_name);
+		command_print(CMD_CTX, "gpnvm bit '#%s' is out of bounds for target %s", CMD_ARGV[0], at91sam7_info->target_name);
 		return ERROR_OK;
 	}
 

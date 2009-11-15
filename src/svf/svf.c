@@ -310,7 +310,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	if ((CMD_ARGC < 1) || (CMD_ARGC > (1 + SVF_NUM_OF_OPTIONS)))
 	{
-		command_print(cmd_ctx, "usage: svf <file> [quiet]");
+		command_print(CMD_CTX, "usage: svf <file> [quiet]");
 		return ERROR_FAIL;
 	}
 
@@ -333,7 +333,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	if ((svf_fd = open(CMD_ARGV[0], O_RDONLY)) < 0)
 	{
-		command_print(cmd_ctx, "file \"%s\" not found", CMD_ARGV[0]);
+		command_print(CMD_CTX, "file \"%s\" not found", CMD_ARGV[0]);
 
 		// no need to free anything now
 		return ERROR_FAIL;
@@ -392,7 +392,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	while (ERROR_OK == svf_read_command_from_file(svf_fd))
 	{
-		if (ERROR_OK != svf_run_command(cmd_ctx, svf_command_buffer))
+		if (ERROR_OK != svf_run_command(CMD_CTX, svf_command_buffer))
 		{
 			LOG_ERROR("fail to run command at line %d", svf_line_number);
 			ret = ERROR_FAIL;
@@ -410,7 +410,7 @@ COMMAND_HANDLER(handle_svf_command)
 	}
 
 	// print time
-	command_print(cmd_ctx, "%lld ms used", timeval_ms() - time_ago);
+	command_print(CMD_CTX, "%lld ms used", timeval_ms() - time_ago);
 
 free_all:
 
@@ -457,11 +457,11 @@ free_all:
 
 	if (ERROR_OK == ret)
 	{
-		command_print(cmd_ctx, "svf file programmed successfully for %d commands", command_num);
+		command_print(CMD_CTX, "svf file programmed successfully for %d commands", command_num);
 	}
 	else
 	{
-		command_print(cmd_ctx, "svf file programmed failed");
+		command_print(CMD_CTX, "svf file programmed failed");
 	}
 
 	return ret;

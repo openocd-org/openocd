@@ -764,14 +764,14 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 	{
 		if (status_code == ERROR_FLASH_OPERATION_FAILED)
 		{
-			command_print(cmd_ctx, "no sufficient working area specified, can't access LPC2000 IAP interface");
+			command_print(CMD_CTX, "no sufficient working area specified, can't access LPC2000 IAP interface");
 			return ERROR_OK;
 		}
-		command_print(cmd_ctx, "lpc2000 IAP returned status code %i", status_code);
+		command_print(CMD_CTX, "lpc2000 IAP returned status code %i", status_code);
 	}
 	else
 	{
-		command_print(cmd_ctx, "lpc2000 part id: 0x%8.8" PRIx32 , result_table[0]);
+		command_print(CMD_CTX, "lpc2000 part id: 0x%8.8" PRIx32 , result_table[0]);
 	}
 
 	return ERROR_OK;

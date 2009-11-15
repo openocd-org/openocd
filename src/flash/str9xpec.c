@@ -759,7 +759,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 
 	idcode = buf_get_u32(buffer, 0, 32);
 
-	command_print(cmd_ctx, "str9xpec part id: 0x%8.8" PRIx32 "", idcode);
+	command_print(CMD_CTX, "str9xpec part id: 0x%8.8" PRIx32 "", idcode);
 
 	free(buffer);
 
@@ -784,7 +784,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str9xpec options_read <bank>");
+		command_print(CMD_CTX, "str9xpec options_read <bank>");
 		return ERROR_OK;
 	}
 
@@ -802,33 +802,33 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 
 	/* boot bank */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_CSMAPBIT, 1))
-		command_print(cmd_ctx, "CS Map: bank1");
+		command_print(CMD_CTX, "CS Map: bank1");
 	else
-		command_print(cmd_ctx, "CS Map: bank0");
+		command_print(CMD_CTX, "CS Map: bank0");
 
 	/* OTP lock */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_OTPBIT, 1))
-		command_print(cmd_ctx, "OTP Lock: OTP Locked");
+		command_print(CMD_CTX, "OTP Lock: OTP Locked");
 	else
-		command_print(cmd_ctx, "OTP Lock: OTP Unlocked");
+		command_print(CMD_CTX, "OTP Lock: OTP Unlocked");
 
 	/* LVD Threshold */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_LVDTHRESBIT, 1))
-		command_print(cmd_ctx, "LVD Threshold: 2.7v");
+		command_print(CMD_CTX, "LVD Threshold: 2.7v");
 	else
-		command_print(cmd_ctx, "LVD Threshold: 2.4v");
+		command_print(CMD_CTX, "LVD Threshold: 2.4v");
 
 	/* LVD reset warning */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_LVDWARNBIT, 1))
-		command_print(cmd_ctx, "LVD Reset Warning: VDD or VDDQ Inputs");
+		command_print(CMD_CTX, "LVD Reset Warning: VDD or VDDQ Inputs");
 	else
-		command_print(cmd_ctx, "LVD Reset Warning: VDD Input Only");
+		command_print(CMD_CTX, "LVD Reset Warning: VDD Input Only");
 
 	/* LVD reset select */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_LVDSELBIT, 1))
-		command_print(cmd_ctx, "LVD Reset Selection: VDD or VDDQ Inputs");
+		command_print(CMD_CTX, "LVD Reset Selection: VDD or VDDQ Inputs");
 	else
-		command_print(cmd_ctx, "LVD Reset Selection: VDD Input Only");
+		command_print(CMD_CTX, "LVD Reset Selection: VDD Input Only");
 
 	return ERROR_OK;
 }
@@ -900,7 +900,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str9xpec options_write <bank>");
+		command_print(CMD_CTX, "str9xpec options_write <bank>");
 		return ERROR_OK;
 	}
 
@@ -923,7 +923,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_cmap <bank> <bank0 | bank1>");
+		command_print(CMD_CTX, "str9xpec options_cmap <bank> <bank0 | bank1>");
 		return ERROR_OK;
 	}
 
@@ -952,7 +952,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_lvdthd <bank> <2.4v | 2.7v>");
+		command_print(CMD_CTX, "str9xpec options_lvdthd <bank> <2.4v | 2.7v>");
 		return ERROR_OK;
 	}
 
@@ -981,7 +981,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_lvdsel <bank> <vdd | vdd_vddq>");
+		command_print(CMD_CTX, "str9xpec options_lvdsel <bank> <vdd | vdd_vddq>");
 		return ERROR_OK;
 	}
 
@@ -1010,7 +1010,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_lvdwarn <bank> <vdd | vdd_vddq>");
+		command_print(CMD_CTX, "str9xpec options_lvdwarn <bank> <vdd | vdd_vddq>");
 		return ERROR_OK;
 	}
 
@@ -1039,7 +1039,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_lock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str9xpec lock <bank>");
+		command_print(CMD_CTX, "str9xpec lock <bank>");
 		return ERROR_OK;
 	}
 
@@ -1062,7 +1062,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str9xpec unlock <bank>");
+		command_print(CMD_CTX, "str9xpec unlock <bank>");
 		return ERROR_OK;
 	}
 
@@ -1088,7 +1088,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str9xpec enable_turbo <bank>");
+		command_print(CMD_CTX, "str9xpec enable_turbo <bank>");
 		return ERROR_OK;
 	}
 
@@ -1106,14 +1106,14 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 	if (tap1 == NULL)
 	{
 		/* things are *WRONG* */
-		command_print(cmd_ctx,"**STR9FLASH** (tap1) invalid chain?");
+		command_print(CMD_CTX,"**STR9FLASH** (tap1) invalid chain?");
 		return ERROR_OK;
 	}
 	tap2 = tap1->next_tap;
 	if (tap2 == NULL)
 	{
 		/* things are *WRONG* */
-		command_print(cmd_ctx,"**STR9FLASH** (tap2) invalid chain?");
+		command_print(CMD_CTX,"**STR9FLASH** (tap2) invalid chain?");
 		return ERROR_OK;
 	}
 
@@ -1135,7 +1135,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "str9xpec disable_turbo <bank>");
+		command_print(CMD_CTX, "str9xpec disable_turbo <bank>");
 		return ERROR_OK;
 	}
 

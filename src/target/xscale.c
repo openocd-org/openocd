@@ -3008,7 +3008,7 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 	}
 
 	xscale = target_to_xscale(target);
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3047,7 +3047,7 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 		return ERROR_FAIL;
 	}
 	xscale = target_to_xscale(target);
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3067,15 +3067,15 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 
 COMMAND_HANDLER(xscale_handle_cache_info_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return armv4_5_handle_cache_info_command(cmd_ctx, &xscale->armv4_5_mmu.armv4_5_cache);
+	return armv4_5_handle_cache_info_command(CMD_CTX, &xscale->armv4_5_mmu.armv4_5_cache);
 }
 
 static int xscale_virt2phys(struct target *target,
@@ -3116,17 +3116,17 @@ static int xscale_mmu(struct target *target, int *enabled)
 
 COMMAND_HANDLER(xscale_handle_mmu_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -3144,25 +3144,25 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 		}
 	}
 
-	command_print(cmd_ctx, "mmu %s", (xscale->armv4_5_mmu.mmu_enabled) ? "enabled" : "disabled");
+	command_print(CMD_CTX, "mmu %s", (xscale->armv4_5_mmu.mmu_enabled) ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(xscale_handle_idcache_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int icache = 0, dcache = 0;
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -3194,27 +3194,27 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 	}
 
 	if (icache)
-		command_print(cmd_ctx, "icache %s", (xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled) ? "enabled" : "disabled");
+		command_print(CMD_CTX, "icache %s", (xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled) ? "enabled" : "disabled");
 
 	if (dcache)
-		command_print(cmd_ctx, "dcache %s", (xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) ? "enabled" : "disabled");
+		command_print(CMD_CTX, "dcache %s", (xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(xscale_handle_vector_catch_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "usage: xscale vector_catch [mask]");
+		command_print(CMD_CTX, "usage: xscale vector_catch [mask]");
 	}
 	else
 	{
@@ -3223,7 +3223,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 		xscale_write_dcsr(target, -1, -1);
 	}
 
-	command_print(cmd_ctx, "vector catch mask: 0x%2.2x", xscale->vector_catch);
+	command_print(CMD_CTX, "vector catch mask: 0x%2.2x", xscale->vector_catch);
 
 	return ERROR_OK;
 }
@@ -3231,12 +3231,12 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 
 COMMAND_HANDLER(xscale_handle_vector_table_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int err = 0;
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3244,13 +3244,13 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 	{
 		int idx;
 
-		command_print(cmd_ctx, "active user-set static vectors:");
+		command_print(CMD_CTX, "active user-set static vectors:");
 		for (idx = 1; idx < 8; idx++)
 			if (xscale->static_low_vectors_set & (1 << idx))
-				command_print(cmd_ctx, "low  %d: 0x%" PRIx32, idx, xscale->static_low_vectors[idx]);
+				command_print(CMD_CTX, "low  %d: 0x%" PRIx32, idx, xscale->static_low_vectors[idx]);
 		for (idx = 1; idx < 8; idx++)
 			if (xscale->static_high_vectors_set & (1 << idx))
-				command_print(cmd_ctx, "high %d: 0x%" PRIx32, idx, xscale->static_high_vectors[idx]);
+				command_print(CMD_CTX, "high %d: 0x%" PRIx32, idx, xscale->static_high_vectors[idx]);
 		return ERROR_OK;
 	}
 
@@ -3281,7 +3281,7 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 	}
 
 	if (err)
-		command_print(cmd_ctx, "usage: xscale vector_table <high|low> <index> <code>");
+		command_print(CMD_CTX, "usage: xscale vector_table <high|low> <index> <code>");
 
 	return ERROR_OK;
 }
@@ -3289,19 +3289,19 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 
 COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct armv4_5_common_s *armv4_5 = &xscale->armv4_5_common;
 	uint32_t dcsr_value;
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -3353,7 +3353,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		xscale->trace.pc_ok = 0;
 	}
 
-	command_print(cmd_ctx, "trace buffer %s (%s)",
+	command_print(CMD_CTX, "trace buffer %s (%s)",
 		(xscale->trace.buffer_enabled) ? "enabled" : "disabled",
 		(xscale->trace.buffer_fill > 0) ? "fill" : "wrap");
 
@@ -3368,17 +3368,17 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 
 COMMAND_HANDLER(xscale_handle_trace_image_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "usage: xscale trace_image <file> [base address] [type]");
+		command_print(CMD_CTX, "usage: xscale trace_image <file> [base address] [type]");
 		return ERROR_OK;
 	}
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3386,7 +3386,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 	{
 		image_close(xscale->trace.image);
 		free(xscale->trace.image);
-		command_print(cmd_ctx, "previously loaded image found and closed");
+		command_print(CMD_CTX, "previously loaded image found and closed");
 	}
 
 	xscale->trace.image = malloc(sizeof(struct image));
@@ -3416,25 +3416,25 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 
 COMMAND_HANDLER(xscale_handle_dump_trace_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct xscale_trace_data *trace_data;
 	struct fileio file;
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "usage: xscale dump_trace <file>");
+		command_print(CMD_CTX, "usage: xscale dump_trace <file>");
 		return ERROR_OK;
 	}
 
@@ -3442,7 +3442,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 
 	if (!trace_data)
 	{
-		command_print(cmd_ctx, "no trace data collected");
+		command_print(CMD_CTX, "no trace data collected");
 		return ERROR_OK;
 	}
 
@@ -3473,32 +3473,32 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 
 COMMAND_HANDLER(xscale_handle_analyze_trace_buffer_command)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
-	xscale_analyze_trace(target, cmd_ctx);
+	xscale_analyze_trace(target, CMD_CTX);
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(xscale_handle_cp15)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(cmd_ctx, xscale);
+	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 	uint32_t reg_no = 0;
@@ -3534,7 +3534,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 			reg_no = XSCALE_CPACCESS;
 			break;
 		default:
-			command_print(cmd_ctx, "invalid register number");
+			command_print(CMD_CTX, "invalid register number");
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		reg = &xscale->reg_cache->reg_list[reg_no];
@@ -3547,7 +3547,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 		/* read cp15 control register */
 		xscale_get_reg(reg);
 		value = buf_get_u32(reg->value, 0, 32);
-		command_print(cmd_ctx, "%s (/%i): 0x%" PRIx32 "", reg->name, (int)(reg->size), value);
+		command_print(CMD_CTX, "%s (/%i): 0x%" PRIx32 "", reg->name, (int)(reg->size), value);
 	}
 	else if (CMD_ARGC == 2)
 	{
@@ -3568,7 +3568,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	}
 	else
 	{
-		command_print(cmd_ctx, "usage: cp15 [register]<, [value]>");
+		command_print(CMD_CTX, "usage: cp15 [register]<, [value]>");
 	}
 
 	return ERROR_OK;

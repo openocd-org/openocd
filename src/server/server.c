@@ -553,7 +553,7 @@ SERVER_PORT_COMMAND()
 {
 	switch (CMD_ARGC) {
 	case 0:
-		command_print(cmd_ctx, "%d", *out);
+		command_print(CMD_CTX, "%d", *out);
 		break;
 	case 1:
 	{

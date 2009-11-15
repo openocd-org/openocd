@@ -296,7 +296,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 		}
 	}
 
-	command_print(cmd_ctx, "debug_level: %i", debug_level);
+	command_print(CMD_CTX, "debug_level: %i", debug_level);
 
 	return ERROR_OK;
 }

@@ -44,7 +44,7 @@ COMMAND_HANDLER(handle_hello_command)
 	const char *sep, *name;
 	int retval = CALL_COMMAND_HANDLER(handle_hello_args, &sep, &name);
 	if (ERROR_OK == retval)
-		command_print(cmd_ctx, "Greetings%s%s!", sep, name);
+		command_print(CMD_CTX, "Greetings%s%s!", sep, name);
 	return retval;
 }
 

@@ -900,7 +900,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "stm32x lock <bank>");
+		command_print(CMD_CTX, "stm32x lock <bank>");
 		return ERROR_OK;
 	}
 
@@ -921,7 +921,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 
 	if (stm32x_erase_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "stm32x failed to erase options");
+		command_print(CMD_CTX, "stm32x failed to erase options");
 		return ERROR_OK;
 	}
 
@@ -930,11 +930,11 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 
 	if (stm32x_write_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "stm32x failed to lock device");
+		command_print(CMD_CTX, "stm32x failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "stm32x locked");
+	command_print(CMD_CTX, "stm32x locked");
 
 	return ERROR_OK;
 }
@@ -946,7 +946,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "stm32x unlock <bank>");
+		command_print(CMD_CTX, "stm32x unlock <bank>");
 		return ERROR_OK;
 	}
 
@@ -967,17 +967,17 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 
 	if (stm32x_erase_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "stm32x failed to unlock device");
+		command_print(CMD_CTX, "stm32x failed to unlock device");
 		return ERROR_OK;
 	}
 
 	if (stm32x_write_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "stm32x failed to lock device");
+		command_print(CMD_CTX, "stm32x failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "stm32x unlocked");
+	command_print(CMD_CTX, "stm32x unlocked");
 
 	return ERROR_OK;
 }
@@ -990,7 +990,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "stm32x options_read <bank>");
+		command_print(CMD_CTX, "stm32x options_read <bank>");
 		return ERROR_OK;
 	}
 
@@ -1010,30 +1010,30 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	}
 
 	target_read_u32(target, STM32_FLASH_OBR, &optionbyte);
-	command_print(cmd_ctx, "Option Byte: 0x%" PRIx32 "", optionbyte);
+	command_print(CMD_CTX, "Option Byte: 0x%" PRIx32 "", optionbyte);
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_ERROR, 1))
-		command_print(cmd_ctx, "Option Byte Complement Error");
+		command_print(CMD_CTX, "Option Byte Complement Error");
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_READOUT, 1))
-		command_print(cmd_ctx, "Readout Protection On");
+		command_print(CMD_CTX, "Readout Protection On");
 	else
-		command_print(cmd_ctx, "Readout Protection Off");
+		command_print(CMD_CTX, "Readout Protection Off");
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_RDWDGSW, 1))
-		command_print(cmd_ctx, "Software Watchdog");
+		command_print(CMD_CTX, "Software Watchdog");
 	else
-		command_print(cmd_ctx, "Hardware Watchdog");
+		command_print(CMD_CTX, "Hardware Watchdog");
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_RDRSTSTOP, 1))
-		command_print(cmd_ctx, "Stop: No reset generated");
+		command_print(CMD_CTX, "Stop: No reset generated");
 	else
-		command_print(cmd_ctx, "Stop: Reset generated");
+		command_print(CMD_CTX, "Stop: Reset generated");
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_RDRSTSTDBY, 1))
-		command_print(cmd_ctx, "Standby: No reset generated");
+		command_print(CMD_CTX, "Standby: No reset generated");
 	else
-		command_print(cmd_ctx, "Standby: Reset generated");
+		command_print(CMD_CTX, "Standby: Reset generated");
 
 	return ERROR_OK;
 }
@@ -1046,7 +1046,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 
 	if (CMD_ARGC < 4)
 	{
-		command_print(cmd_ctx, "stm32x options_write <bank> <SWWDG | HWWDG> <RSTSTNDBY | NORSTSTNDBY> <RSTSTOP | NORSTSTOP>");
+		command_print(CMD_CTX, "stm32x options_write <bank> <SWWDG | HWWDG> <RSTSTNDBY | NORSTSTNDBY> <RSTSTOP | NORSTSTOP>");
 		return ERROR_OK;
 	}
 
@@ -1094,7 +1094,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 
 	if (stm32x_erase_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "stm32x failed to erase options");
+		command_print(CMD_CTX, "stm32x failed to erase options");
 		return ERROR_OK;
 	}
 
@@ -1102,11 +1102,11 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 
 	if (stm32x_write_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "stm32x failed to write options");
+		command_print(CMD_CTX, "stm32x failed to write options");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "stm32x write options complete");
+	command_print(CMD_CTX, "stm32x write options complete");
 
 	return ERROR_OK;
 }
@@ -1155,7 +1155,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "stm32x mass_erase <bank>");
+		command_print(CMD_CTX, "stm32x mass_erase <bank>");
 		return ERROR_OK;
 	}
 
@@ -1172,11 +1172,11 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 			bank->sectors[i].is_erased = 1;
 		}
 
-		command_print(cmd_ctx, "stm32x mass erase complete");
+		command_print(CMD_CTX, "stm32x mass erase complete");
 	}
 	else
 	{
-		command_print(cmd_ctx, "stm32x mass erase failed");
+		command_print(CMD_CTX, "stm32x mass erase failed");
 	}
 
 	return ERROR_OK;

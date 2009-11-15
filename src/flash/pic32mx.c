@@ -679,7 +679,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "pic32mx lock <bank>");
+		command_print(CMD_CTX, "pic32mx lock <bank>");
 		return ERROR_OK;
 	}
 
@@ -700,7 +700,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 
 	if (pic32mx_erase_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "pic32mx failed to erase options");
+		command_print(CMD_CTX, "pic32mx failed to erase options");
 		return ERROR_OK;
 	}
 
@@ -709,11 +709,11 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 
 	if (pic32mx_write_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "pic32mx failed to lock device");
+		command_print(CMD_CTX, "pic32mx failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "pic32mx locked");
+	command_print(CMD_CTX, "pic32mx locked");
 
 	return ERROR_OK;
 }
@@ -725,7 +725,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "pic32mx unlock <bank>");
+		command_print(CMD_CTX, "pic32mx unlock <bank>");
 		return ERROR_OK;
 	}
 
@@ -746,17 +746,17 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 
 	if (pic32mx_erase_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "pic32mx failed to unlock device");
+		command_print(CMD_CTX, "pic32mx failed to unlock device");
 		return ERROR_OK;
 	}
 
 	if (pic32mx_write_options(bank) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "pic32mx failed to lock device");
+		command_print(CMD_CTX, "pic32mx failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "pic32mx unlocked");
+	command_print(CMD_CTX, "pic32mx unlocked");
 
 	return ERROR_OK;
 }
@@ -815,7 +815,7 @@ COMMAND_HANDLER(pic32mx_handle_chip_erase_command)
 
 	if (CMD_ARGC != 0)
 	{
-		command_print(cmd_ctx, "pic32mx chip_erase");
+		command_print(CMD_CTX, "pic32mx chip_erase");
 		return ERROR_OK;
 	}
 
@@ -832,11 +832,11 @@ COMMAND_HANDLER(pic32mx_handle_chip_erase_command)
 			bank->sectors[i].is_erased = 1;
 		}
 
-		command_print(cmd_ctx, "pic32mx chip erase complete");
+		command_print(CMD_CTX, "pic32mx chip erase complete");
 	}
 	else
 	{
-		command_print(cmd_ctx, "pic32mx chip erase failed");
+		command_print(CMD_CTX, "pic32mx chip erase failed");
 	}
 #endif
 
@@ -850,7 +850,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 	if (CMD_ARGC != 3)
 	{
-		command_print(cmd_ctx, "pic32mx pgm_word <addr> <value> <bank>");
+		command_print(CMD_CTX, "pic32mx pgm_word <addr> <value> <bank>");
 		return ERROR_OK;
 	}
 
@@ -864,7 +864,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 	if (address < bank->base || address >= (bank->base + bank->size))
 	{
-		command_print(cmd_ctx, "flash address '%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD_CTX, "flash address '%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -876,9 +876,9 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 		res = ERROR_FLASH_OPERATION_FAILED;
 
 	if (res == ERROR_OK)
-		command_print(cmd_ctx, "pic32mx pgm word complete");
+		command_print(CMD_CTX, "pic32mx pgm word complete");
 	else
-		command_print(cmd_ctx, "pic32mx pgm word failed (status = 0x%x)", status);
+		command_print(CMD_CTX, "pic32mx pgm word failed (status = 0x%x)", status);
 
 	return ERROR_OK;
 }

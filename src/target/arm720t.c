@@ -412,11 +412,11 @@ static int arm720t_target_create(struct target *target, Jim_Interp *interp)
 COMMAND_HANDLER(arm720t_handle_cp15_command)
 {
 	int retval;
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	struct arm720t_common *arm720t = target_to_arm720(target);
 	struct arm_jtag *jtag_info;
 
-	retval = arm720t_verify_pointer(cmd_ctx, arm720t);
+	retval = arm720t_verify_pointer(CMD_CTX, arm720t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -424,7 +424,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -439,7 +439,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 			uint32_t value;
 			if ((retval = arm720t_read_cp15(target, opcode, &value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
+				command_print(CMD_CTX, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
 
@@ -448,7 +448,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 				return retval;
 			}
 
-			command_print(cmd_ctx, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
+			command_print(CMD_CTX, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
 		}
 		else if (CMD_ARGC == 2)
 		{
@@ -457,10 +457,10 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 
 			if ((retval = arm720t_write_cp15(target, opcode, value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
+				command_print(CMD_CTX, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
+			command_print(CMD_CTX, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
 		}
 	}
 

@@ -75,7 +75,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 			struct pld_device *p, *c;
 
 			/* register pld specific commands */
-			if (pld_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
+			if (pld_drivers[i]->register_commands(CMD_CTX) != ERROR_OK)
 			{
 				LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
 				exit(-1);
@@ -127,13 +127,13 @@ COMMAND_HANDLER(handle_pld_devices_command)
 
 	if (!pld_devices)
 	{
-		command_print(cmd_ctx, "no pld devices configured");
+		command_print(CMD_CTX, "no pld devices configured");
 		return ERROR_OK;
 	}
 
 	for (p = pld_devices; p; p = p->next)
 	{
-		command_print(cmd_ctx, "#%i: %s", i++, p->driver->name);
+		command_print(CMD_CTX, "#%i: %s", i++, p->driver->name);
 	}
 
 	return ERROR_OK;
@@ -149,7 +149,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(cmd_ctx, "usage: pld load <device#> <file>");
+		command_print(CMD_CTX, "usage: pld load <device#> <file>");
 		return ERROR_OK;
 	}
 
@@ -158,13 +158,13 @@ COMMAND_HANDLER(handle_pld_load_command)
 	p = get_pld_device_by_num(dev_id);
 	if (!p)
 	{
-		command_print(cmd_ctx, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD_CTX, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
 	if ((retval = p->driver->load(p, CMD_ARGV[1])) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "failed loading file %s to pld device %u",
+		command_print(CMD_CTX, "failed loading file %s to pld device %u",
 			CMD_ARGV[1], dev_id);
 		switch (retval)
 		{
@@ -176,7 +176,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 		gettimeofday(&end, NULL);
 		timeval_subtract(&duration, &end, &start);
 
-		command_print(cmd_ctx, "loaded file %s to pld device %u in %jis %jius",
+		command_print(CMD_CTX, "loaded file %s to pld device %u in %jis %jius",
 			CMD_ARGV[1], dev_id,
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}

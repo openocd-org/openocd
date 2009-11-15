@@ -1386,7 +1386,7 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 
 	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "0x%8.8" PRIx32, baseaddr);
+	command_print(CMD_CTX, "0x%8.8" PRIx32, baseaddr);
 
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apselsave);
@@ -1410,7 +1410,7 @@ DAP_COMMAND_HANDLER(dap_memaccess_command)
 	}
 	swjdp->memaccess_tck = memaccess_tck;
 
-	command_print(cmd_ctx, "memory bus access delay set to %" PRIi32 " tck",
+	command_print(CMD_CTX, "memory bus access delay set to %" PRIi32 " tck",
 			swjdp->memaccess_tck);
 
 	return ERROR_OK;
@@ -1435,7 +1435,7 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 	dap_ap_select(swjdp, apsel);
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "ap %" PRIi32 " selected, identification register 0x%8.8" PRIx32,
+	command_print(CMD_CTX, "ap %" PRIi32 " selected, identification register 0x%8.8" PRIx32,
 			apsel, apid);
 
 	return retval;
@@ -1463,7 +1463,7 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "0x%8.8" PRIx32, apid);
+	command_print(CMD_CTX, "0x%8.8" PRIx32, apid);
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apselsave);
 

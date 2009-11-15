@@ -2267,7 +2267,7 @@ COMMAND_HANDLER(sam3_handle_info_command)
 	unsigned x;
 	int r;
 
-	pChip = get_current_sam3(cmd_ctx);
+	pChip = get_current_sam3(CMD_CTX);
 	if (!pChip) {
 		return ERROR_OK;
 	}
@@ -2278,7 +2278,7 @@ COMMAND_HANDLER(sam3_handle_info_command)
 	if (pChip->details.bank[0].pBank == NULL) {
 		x = 0;
 	need_define:
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 					   "Please define bank %d via command: flash bank %s ... ",
 					   x,
 					   at91sam3_flash.name);
@@ -2329,7 +2329,7 @@ COMMAND_HANDLER(sam3_handle_info_command)
 	// print results
 	cp = membuf_strtok(pChip->mbuf, "\n", &vp);
 	while (cp) {
-		command_print(cmd_ctx,"%s", cp);
+		command_print(CMD_CTX,"%s", cp);
 		cp = membuf_strtok(NULL, "\n", &vp);
 	}
 	return ERROR_OK;
@@ -2341,7 +2341,7 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 	int r,who;
 	struct sam3_chip *pChip;
 
-	pChip = get_current_sam3(cmd_ctx);
+	pChip = get_current_sam3(CMD_CTX);
 	if (!pChip) {
 		return ERROR_OK;
 	}
@@ -2353,7 +2353,7 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 
 
 	if (pChip->details.bank[0].pBank == NULL) {
-		command_print(cmd_ctx, "Bank0 must be defined first via: flash bank %s ...",
+		command_print(CMD_CTX, "Bank0 must be defined first via: flash bank %s ...",
 					   at91sam3_flash.name);
 		return ERROR_FAIL;
 	}
@@ -2367,7 +2367,7 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 
 	switch (CMD_ARGC) {
 	default:
-		command_print(cmd_ctx,"Too many parameters\n");
+		command_print(CMD_CTX,"Too many parameters\n");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	case 0:
@@ -2397,22 +2397,22 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 				if (r != ERROR_OK) {
 					break;
 				}
-				command_print(cmd_ctx, "sam3-gpnvm%u: %u", x, v);
+				command_print(CMD_CTX, "sam3-gpnvm%u: %u", x, v);
 			}
 			return r;
 		}
 		if ((who >= 0) && (((unsigned)(who)) < pChip->details.n_gpnvms)) {
 			r = FLASHD_GetGPNVM(&(pChip->details.bank[0]), who, &v);
-			command_print(cmd_ctx, "sam3-gpnvm%u: %u", who, v);
+			command_print(CMD_CTX, "sam3-gpnvm%u: %u", who, v);
 			return r;
 		} else {
-			command_print(cmd_ctx, "sam3-gpnvm invalid GPNVM: %u", who);
+			command_print(CMD_CTX, "sam3-gpnvm invalid GPNVM: %u", who);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 
 	if (who == -1) {
-		command_print(cmd_ctx, "Missing GPNVM number");
+		command_print(CMD_CTX, "Missing GPNVM number");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -2422,7 +2422,7 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 			   (0 == strcmp("clear", CMD_ARGV[0]))) { // quietly accept both
 		r = FLASHD_ClrGPNVM(&(pChip->details.bank[0]), who);
 	} else {
-		command_print(cmd_ctx, "Unkown command: %s", CMD_ARGV[0]);
+		command_print(CMD_CTX, "Unkown command: %s", CMD_ARGV[0]);
 		r = ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return r;
@@ -2432,7 +2432,7 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 {
 	struct sam3_chip *pChip;
 
-	pChip = get_current_sam3(cmd_ctx);
+	pChip = get_current_sam3(CMD_CTX);
 	if (!pChip) {
 		return ERROR_OK;
 	}
@@ -2449,7 +2449,7 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], v);
 		if (v > 200000) {
 			// absurd slow clock of 200Khz?
-			command_print(cmd_ctx,"Absurd/illegal slow clock freq: %d\n", (int)(v));
+			command_print(CMD_CTX,"Absurd/illegal slow clock freq: %d\n", (int)(v));
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		pChip->cfg.slow_freq = v;
@@ -2457,11 +2457,11 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 	}
 	default:
 		// error
-		command_print(cmd_ctx,"Too many parameters");
+		command_print(CMD_CTX,"Too many parameters");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	}
-	command_print(cmd_ctx, "Slowclk freq: %d.%03dkhz",
+	command_print(CMD_CTX, "Slowclk freq: %d.%03dkhz",
 				   (int)(pChip->cfg.slow_freq/ 1000),
 				   (int)(pChip->cfg.slow_freq% 1000));
 	return ERROR_OK;

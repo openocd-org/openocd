@@ -293,7 +293,7 @@ COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 {
 	if (CMD_ARGC > 4)
 	{
-		command_print(cmd_ctx, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
+		command_print(CMD_CTX, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	else if (CMD_ARGC == 4)
@@ -306,7 +306,7 @@ COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 
 			if (1 != sscanf(&CMD_ARGV[i][start], "%" SCNx32 "", &flashKeys[i]))
 			{
-				command_print(cmd_ctx, "could not process flash key %s", CMD_ARGV[i]);
+				command_print(CMD_CTX, "could not process flash key %s", CMD_ARGV[i]);
 				LOG_ERROR("could not process flash key %s", CMD_ARGV[i]);
 				return ERROR_INVALID_ARGUMENTS;
 			}
@@ -316,18 +316,18 @@ COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 	}
 	else if (CMD_ARGC != 0)
 	{
-		command_print(cmd_ctx, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
+		command_print(CMD_CTX, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	if (keysSet)
 	{
-		command_print(cmd_ctx, "using flash keys 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 "",
+		command_print(CMD_CTX, "using flash keys 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 "",
 			      flashKeys[0], flashKeys[1], flashKeys[2], flashKeys[3]);
 	}
 	else
 	{
-		command_print(cmd_ctx, "flash keys not set");
+		command_print(CMD_CTX, "flash keys not set");
 	}
 
 	return ERROR_OK;
@@ -357,7 +357,7 @@ COMMAND_HANDLER(tms470_handle_osc_megahertz_command)
 {
 	if (CMD_ARGC > 1)
 	{
-		command_print(cmd_ctx, "tms470 osc_megahertz <MHz>");
+		command_print(CMD_CTX, "tms470 osc_megahertz <MHz>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	else if (CMD_ARGC == 1)
@@ -368,12 +368,12 @@ COMMAND_HANDLER(tms470_handle_osc_megahertz_command)
 	if (oscMHz <= 0)
 	{
 		LOG_ERROR("osc_megahertz must be positive and non-zero!");
-		command_print(cmd_ctx, "osc_megahertz must be positive and non-zero!");
+		command_print(CMD_CTX, "osc_megahertz must be positive and non-zero!");
 		oscMHz = 12;
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	command_print(cmd_ctx, "osc_megahertz=%d", oscMHz);
+	command_print(CMD_CTX, "osc_megahertz=%d", oscMHz);
 
 	return ERROR_OK;
 }
@@ -386,7 +386,7 @@ COMMAND_HANDLER(tms470_handle_plldis_command)
 {
 	if (CMD_ARGC > 1)
 	{
-		command_print(cmd_ctx, "tms470 plldis <0 | 1>");
+		command_print(CMD_CTX, "tms470 plldis <0 | 1>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	else if (CMD_ARGC == 1)
@@ -395,7 +395,7 @@ COMMAND_HANDLER(tms470_handle_plldis_command)
 		plldis = plldis ? 1 : 0;
 	}
 
-	command_print(cmd_ctx, "plldis=%d", plldis);
+	command_print(CMD_CTX, "plldis=%d", plldis);
 
 	return ERROR_OK;
 }

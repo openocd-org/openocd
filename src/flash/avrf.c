@@ -421,7 +421,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(cmd_ctx, "avr mass_erase <bank>");
+		command_print(CMD_CTX, "avr mass_erase <bank>");
 		return ERROR_OK;
 	}
 
@@ -438,11 +438,11 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 			bank->sectors[i].is_erased = 1;
 		}
 
-		command_print(cmd_ctx, "avr mass erase complete");
+		command_print(CMD_CTX, "avr mass erase complete");
 	}
 	else
 	{
-		command_print(cmd_ctx, "avr mass erase failed");
+		command_print(CMD_CTX, "avr mass erase failed");
 	}
 
 	LOG_DEBUG("%s", __FUNCTION__);

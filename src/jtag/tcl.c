@@ -608,11 +608,11 @@ COMMAND_HANDLER(handle_interface_list_command)
 	if (strcmp(CMD_NAME, "interface_list") == 0 && CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(cmd_ctx, "The following JTAG interfaces are available:");
+	command_print(CMD_CTX, "The following JTAG interfaces are available:");
 	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
 	{
 		const char *name = jtag_interfaces[i]->name;
-		command_print(cmd_ctx, "%u: %s", i + 1, name);
+		command_print(CMD_CTX, "%u: %s", i + 1, name);
 	}
 
 	return ERROR_OK;
@@ -636,7 +636,7 @@ COMMAND_HANDLER(handle_interface_command)
 		if (strcmp(CMD_ARGV[0], jtag_interfaces[i]->name) != 0)
 			continue;
 
-		int retval = jtag_interfaces[i]->register_commands(cmd_ctx);
+		int retval = jtag_interfaces[i]->register_commands(CMD_CTX);
 		if (ERROR_OK != retval)
 				return retval;
 
@@ -667,8 +667,8 @@ COMMAND_HANDLER(handle_scan_chain_command)
 	struct jtag_tap *tap;
 
 	tap = jtag_all_taps();
-	command_print(cmd_ctx, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
-	command_print(cmd_ctx, "---|--------------------|---------|------------|------------|------|------|------|---------");
+	command_print(CMD_CTX, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
+	command_print(CMD_CTX, "---|--------------------|---------|------------|------------|------|------|------|---------");
 
 	while (tap) {
 		uint32_t expected, expected_mask, cur_instr, ii;
@@ -676,7 +676,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
 		cur_instr = buf_get_u32(tap->cur_instr, 0, tap->ir_length);
 
-		command_print(cmd_ctx,
+		command_print(CMD_CTX,
 					  "%2d | %-18s |    %c    | 0x%08x | 0x%08x | 0x%02x | 0x%02x | 0x%02x | 0x%02x",
 					  tap->abs_chain_position,
 					  tap->dotted_name,
@@ -689,7 +689,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 					  (unsigned int)(cur_instr));
 
 		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
-			command_print(cmd_ctx, "   |                    |         |            | 0x%08x |      |      |      |         ",
+			command_print(CMD_CTX, "   |                    |         |            | 0x%08x |      |      |      |         ",
 						  (unsigned int)(tap->expected_ids[ii]));
 		}
 
@@ -888,7 +888,7 @@ next:
 		modes[4] = "";
 	}
 
-	command_print(cmd_ctx, "%s %s%s%s%s",
+	command_print(CMD_CTX, "%s %s%s%s%s",
 			modes[0], modes[1],
 			modes[2], modes[3], modes[4]);
 
@@ -906,7 +906,7 @@ COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
 
 		jtag_set_nsrst_delay(delay);
 	}
-	command_print(cmd_ctx, "jtag_nsrst_delay: %u", jtag_get_nsrst_delay());
+	command_print(CMD_CTX, "jtag_nsrst_delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
 
@@ -921,7 +921,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 
 		jtag_set_ntrst_delay(delay);
 	}
-	command_print(cmd_ctx, "jtag_ntrst_delay: %u", jtag_get_ntrst_delay());
+	command_print(CMD_CTX, "jtag_ntrst_delay: %u", jtag_get_ntrst_delay());
 	return ERROR_OK;
 }
 
@@ -936,7 +936,7 @@ COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
 
 		jtag_set_nsrst_assert_width(delay);
 	}
-	command_print(cmd_ctx, "jtag_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	command_print(CMD_CTX, "jtag_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
 	return ERROR_OK;
 }
 
@@ -951,7 +951,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 
 		jtag_set_ntrst_assert_width(delay);
 	}
-	command_print(cmd_ctx, "jtag_ntrst_assert_width: %u", jtag_get_ntrst_assert_width());
+	command_print(CMD_CTX, "jtag_ntrst_assert_width: %u", jtag_get_ntrst_assert_width());
 	return ERROR_OK;
 }
 
@@ -977,9 +977,9 @@ COMMAND_HANDLER(handle_jtag_khz_command)
 		return retval;
 
 	if (cur_speed)
-		command_print(cmd_ctx, "%d kHz", cur_speed);
+		command_print(CMD_CTX, "%d kHz", cur_speed);
 	else
-		command_print(cmd_ctx, "RCLK - adaptive");
+		command_print(CMD_CTX, "RCLK - adaptive");
 
 	return retval;
 }
@@ -1006,9 +1006,9 @@ COMMAND_HANDLER(handle_jtag_rclk_command)
 		return retval;
 
 	if (cur_khz)
-		command_print(cmd_ctx, "RCLK not supported - fallback to %d kHz", cur_khz);
+		command_print(CMD_CTX, "RCLK not supported - fallback to %d kHz", cur_khz);
 	else
-		command_print(cmd_ctx, "RCLK - adaptive");
+		command_print(CMD_CTX, "RCLK - adaptive");
 
 	return retval;
 }
@@ -1034,7 +1034,7 @@ COMMAND_HANDLER(handle_jtag_reset_command)
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (jtag_interface_init(cmd_ctx) != ERROR_OK)
+	if (jtag_interface_init(CMD_CTX) != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
 	jtag_add_reset(trst, srst);
@@ -1122,7 +1122,7 @@ COMMAND_HANDLER(handle_irscan_command)
 			for (j = 0; j < i; j++)
 				free(fields[j].out_value);
                         free(fields);
-			command_print(cmd_ctx, "Tap: %s unknown", CMD_ARGV[i*2]);
+			command_print(CMD_CTX, "Tap: %s unknown", CMD_ARGV[i*2]);
 
 			return ERROR_FAIL;
 		}
@@ -1366,7 +1366,7 @@ COMMAND_HANDLER(handle_verify_ircapture_command)
 	}
 
 	const char *status = jtag_will_verify_capture_ir() ? "enabled": "disabled";
-	command_print(cmd_ctx, "verify Capture-IR is %s", status);
+	command_print(CMD_CTX, "verify Capture-IR is %s", status);
 
 	return ERROR_OK;
 }
@@ -1387,7 +1387,7 @@ COMMAND_HANDLER(handle_verify_jtag_command)
 	}
 
 	const char *status = jtag_will_verify() ? "enabled": "disabled";
-	command_print(cmd_ctx, "verify jtag capture is %s", status);
+	command_print(CMD_CTX, "verify jtag capture is %s", status);
 
 	return ERROR_OK;
 }
@@ -1410,7 +1410,7 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 		tap_use_new_tms_table(use_new_table);
 	}
 
-	command_print(cmd_ctx, "tms sequence is  %s",
+	command_print(CMD_CTX, "tms sequence is  %s",
 			tap_uses_new_tms_table() ? "short": "long");
 
 	return ERROR_OK;

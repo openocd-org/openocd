@@ -629,7 +629,7 @@ COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 {
 	switch (CMD_ARGC) {
 	case 0:
-		command_print(cmd_ctx, "jlink hw jtag  %i", jlink_hw_jtag_version);
+		command_print(CMD_CTX, "jlink hw jtag  %i", jlink_hw_jtag_version);
 		break;
 	case 1: {
 		int request_version = atoi(CMD_ARGV[0]);

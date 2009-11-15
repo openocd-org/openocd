@@ -513,7 +513,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 		}
 	}
 
-	command_print(cmd_ctx, "parport port = %u", amt_jtagaccel_port);
+	command_print(CMD_CTX, "parport port = %u", amt_jtagaccel_port);
 
 	return ERROR_OK;
 }
@@ -522,7 +522,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 {
 	if (CMD_ARGC == 0)
 	{
-		command_print(cmd_ctx, "amt_jtagaccel RTCK feature %s", (rtck_enabled) ? "enabled" : "disabled");
+		command_print(CMD_CTX, "amt_jtagaccel RTCK feature %s", (rtck_enabled) ? "enabled" : "disabled");
 		return ERROR_OK;
 	}
 	else
