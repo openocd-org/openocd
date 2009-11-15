@@ -122,10 +122,25 @@ struct command_context
 #define COMMAND_HELPER(name, extra...) __COMMAND_HANDLER(name, extra)
 
 /**
+ * Use this macro to access the context of the command being handled,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_CTX cmd_ctx
+/**
+ * Use this macro to access the number of arguments for the command being
+ * handled, rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_ARGC argc
+/**
+ * Use this macro to access the arguments for the command being handled,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_ARGV args
+/**
  * Use this macro to access the name of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_NAME args[-1]
+#define CMD_NAME CMD_ARGV[-1]
 
 
 /// The type signature for commands' handler functions.
