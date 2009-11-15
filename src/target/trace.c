@@ -66,7 +66,7 @@ COMMAND_HANDLER(handle_trace_point_command)
 		return ERROR_OK;
 	}
 
-	if (!strcmp(args[0], "clear"))
+	if (!strcmp(CMD_ARGV[0], "clear"))
 	{
 		if (trace->trace_points)
 		{
@@ -87,7 +87,7 @@ COMMAND_HANDLER(handle_trace_point_command)
 	}
 
 	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, args[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 	trace->trace_points[trace->num_trace_points].address = address;
 	trace->trace_points[trace->num_trace_points].hit_counter = 0;
 	trace->num_trace_points++;
@@ -105,7 +105,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 		trace->trace_history_pos = 0;
 		trace->trace_history_overflowed = 0;
 
-		if (!strcmp(args[0], "clear"))
+		if (!strcmp(CMD_ARGV[0], "clear"))
 		{
 			/* clearing is implicit, we've just reset position anyway */
 			return ERROR_OK;
@@ -114,7 +114,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 		if (trace->trace_history)
 			free(trace->trace_history);
 
-		COMMAND_PARSE_NUMBER(u32, args[0], trace->trace_history_size);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], trace->trace_history_size);
 		trace->trace_history = malloc(sizeof(uint32_t) * trace->trace_history_size);
 
 		command_print(cmd_ctx, "new trace history size: %i", (int)(trace->trace_history_size));

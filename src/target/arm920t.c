@@ -688,7 +688,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 		return ERROR_OK;
 	}
 
-	if ((output = fopen(args[0], "w")) == NULL)
+	if ((output = fopen(CMD_ARGV[0], "w")) == NULL)
 	{
 		LOG_DEBUG("error opening cache content file");
 		return ERROR_OK;
@@ -885,7 +885,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	/* restore CP15 MMU and Cache settings */
 	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl_saved);
 
-	command_print(cmd_ctx, "cache content successfully output to %s", args[0]);
+	command_print(cmd_ctx, "cache content successfully output to %s", CMD_ARGV[0]);
 
 	fclose(output);
 
@@ -934,7 +934,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 		return ERROR_OK;
 	}
 
-	if ((output = fopen(args[0], "w")) == NULL)
+	if ((output = fopen(CMD_ARGV[0], "w")) == NULL)
 	{
 		LOG_DEBUG("error opening mmu content file");
 		return ERROR_OK;
@@ -1168,7 +1168,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 		fprintf(output, "%i: 0x%8.8" PRIx32 " 0x%8.8" PRIx32 " 0x%8.8" PRIx32 " %s\n", i, i_tlb[i].cam, i_tlb[i].ram1, i_tlb[i].ram2, (i_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
 	}
 
-	command_print(cmd_ctx, "mmu content successfully output to %s", args[0]);
+	command_print(cmd_ctx, "mmu content successfully output to %s", CMD_ARGV[0]);
 
 	fclose(output);
 
@@ -1210,7 +1210,7 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 	if (CMD_ARGC >= 1)
 	{
 		int address;
-		COMMAND_PARSE_NUMBER(int, args[0], address);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], address);
 
 		if (CMD_ARGC == 1)
 		{
@@ -1230,7 +1230,7 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, args[1], value);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 			if ((retval = arm920t_write_cp15_physical(target, address, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access reg %i", address);
@@ -1264,7 +1264,7 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 	if (CMD_ARGC >= 1)
 	{
 		uint32_t opcode;
-		COMMAND_PARSE_NUMBER(u32, args[0], opcode);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], opcode);
 
 		if (CMD_ARGC == 1)
 		{
@@ -1280,7 +1280,7 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, args[1], value);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 			if ((retval = arm920t_write_cp15_interpreted(target, opcode, value, 0)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);
@@ -1291,9 +1291,9 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 		else if (CMD_ARGC == 3)
 		{
 			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, args[1], value);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 			uint32_t address;
-			COMMAND_PARSE_NUMBER(u32, args[2], address);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], address);
 			if ((retval = arm920t_write_cp15_interpreted(target, opcode, value, address)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);

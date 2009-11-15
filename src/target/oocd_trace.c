@@ -316,7 +316,7 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 		oocd_trace->etm_ctx = arm->etm;
 
 		/* copy name of TTY device used to communicate with OpenOCD + trace */
-		oocd_trace->tty = strndup(args[1], 256);
+		oocd_trace->tty = strndup(CMD_ARGV[1], 256);
 	}
 	else
 	{

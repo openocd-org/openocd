@@ -1782,10 +1782,10 @@ COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
 	errno = 0;
 	switch (CMD_ARGC) {
 	case 2:
-		COMMAND_PARSE_NUMBER(ulong, args[1], count);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[1], count);
 		/* FALL THROUGH */
 	case 1:
-		COMMAND_PARSE_NUMBER(u32, args[0], address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 		break;
 	default:
 		command_print(cmd_ctx,
@@ -1836,25 +1836,25 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 		unsigned catch = 0;
 
 		if (CMD_ARGC == 1) {
-			if (strcmp(args[0], "all") == 0) {
+			if (strcmp(CMD_ARGV[0], "all") == 0) {
 				catch = VC_HARDERR | VC_INTERR | VC_BUSERR
 					| VC_STATERR | VC_CHKERR | VC_NOCPERR
 					| VC_MMERR | VC_CORERESET;
 				goto write;
-			} else if (strcmp(args[0], "none") == 0) {
+			} else if (strcmp(CMD_ARGV[0], "none") == 0) {
 				goto write;
 			}
 		}
 		while (CMD_ARGC-- > 0) {
 			unsigned i;
 			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
-				if (strcmp(args[CMD_ARGC], vec_ids[i].name) != 0)
+				if (strcmp(CMD_ARGV[CMD_ARGC], vec_ids[i].name) != 0)
 					continue;
 				catch |= vec_ids[i].mask;
 				break;
 			}
 			if (i == ARRAY_SIZE(vec_ids)) {
-				LOG_ERROR("No CM3 vector '%s'", args[CMD_ARGC]);
+				LOG_ERROR("No CM3 vector '%s'", CMD_ARGV[CMD_ARGC]);
 				return ERROR_INVALID_ARGUMENTS;
 			}
 		}
@@ -1892,11 +1892,11 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (!strcmp(args[0], "on"))
+		if (!strcmp(CMD_ARGV[0], "on"))
 		{
 			cortex_m3_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
 		}
-		else if (!strcmp(args[0], "off"))
+		else if (!strcmp(CMD_ARGV[0], "off"))
 		{
 			cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
 		}

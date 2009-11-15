@@ -2771,8 +2771,8 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_command)
 		return ERROR_FAIL;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[0], value);
-	COMMAND_PARSE_NUMBER(int, args[1], spsr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], spsr);
 
 	/* if we're writing the CPSR, mask the T bit */
 	if (!spsr)
@@ -2815,9 +2815,9 @@ COMMAND_HANDLER(handle_arm7_9_write_xpsr_im8_command)
 		return ERROR_FAIL;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[0], value);
-	COMMAND_PARSE_NUMBER(int, args[1], rotate);
-	COMMAND_PARSE_NUMBER(int, args[2], spsr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], rotate);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], spsr);
 
 	arm7_9->write_xpsr_im8(target, value, rotate, spsr);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -2855,9 +2855,9 @@ COMMAND_HANDLER(handle_arm7_9_write_core_reg_command)
 		return ERROR_FAIL;
 	}
 
-	COMMAND_PARSE_NUMBER(int, args[0], num);
-	COMMAND_PARSE_NUMBER(u32, args[1], mode);
-	COMMAND_PARSE_NUMBER(u32, args[2], value);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], num);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], mode);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
 
 	return arm7_9_write_core_reg(target, num, mode, value);
 }
@@ -2875,11 +2875,11 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (strcmp("enable", args[0]) == 0)
+		if (strcmp("enable", CMD_ARGV[0]) == 0)
 		{
 			arm7_9->use_dbgrq = 1;
 		}
-		else if (strcmp("disable", args[0]) == 0)
+		else if (strcmp("disable", CMD_ARGV[0]) == 0)
 		{
 			arm7_9->use_dbgrq = 0;
 		}
@@ -2907,11 +2907,11 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (strcmp("enable", args[0]) == 0)
+		if (strcmp("enable", CMD_ARGV[0]) == 0)
 		{
 			arm7_9->fast_memory_access = 1;
 		}
-		else if (strcmp("disable", args[0]) == 0)
+		else if (strcmp("disable", CMD_ARGV[0]) == 0)
 		{
 			arm7_9->fast_memory_access = 0;
 		}
@@ -2939,11 +2939,11 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (strcmp("enable", args[0]) == 0)
+		if (strcmp("enable", CMD_ARGV[0]) == 0)
 		{
 			arm7_9->dcc_downloads = 1;
 		}
-		else if (strcmp("disable", args[0]) == 0)
+		else if (strcmp("disable", CMD_ARGV[0]) == 0)
 		{
 			arm7_9->dcc_downloads = 0;
 		}

@@ -558,7 +558,7 @@ SERVER_PORT_COMMAND()
 	case 1:
 	{
 		uint16_t port;
-		COMMAND_PARSE_NUMBER(u16, args[0], port);
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], port);
 		*out = port;
 		break;
 	}

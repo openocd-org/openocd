@@ -359,25 +359,25 @@ COMMAND_HANDLER(handle_etb_config_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	target = get_target(args[0]);
+	target = get_target(CMD_ARGV[0]);
 
 	if (!target)
 	{
-		LOG_ERROR("ETB: target '%s' not defined", args[0]);
+		LOG_ERROR("ETB: target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "ETB: '%s' isn't an ARM", args[0]);
+		command_print(cmd_ctx, "ETB: '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
-	tap = jtag_tap_by_string(args[1]);
+	tap = jtag_tap_by_string(CMD_ARGV[1]);
 	if (tap == NULL)
 	{
-		command_print(cmd_ctx, "ETB: TAP %s does not exist", args[1]);
+		command_print(cmd_ctx, "ETB: TAP %s does not exist", CMD_ARGV[1]);
 		return ERROR_FAIL;
 	}
 

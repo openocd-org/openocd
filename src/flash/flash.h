@@ -105,21 +105,21 @@ struct flash_driver
 	 * layer when this routine is called, and the driver can store
 	 * additional information in its struct flash_bank::driver_priv field.
 	 *
-	 * The args are: @par
+	 * The CMD_ARGV are: @par
 	 * @code
-	 * args[0] = bank
-	 * args[1] = drivername {name above}
-	 * args[2] = baseaddress
-	 * args[3] = lengthbytes
-	 * args[4] = chip_width_in bytes
-	 * args[5] = bus_width_bytes
-	 * args[6] = driver-specific parameters
+	 * CMD_ARGV[0] = bank
+	 * CMD_ARGV[1] = drivername {name above}
+	 * CMD_ARGV[2] = baseaddress
+	 * CMD_ARGV[3] = lengthbytes
+	 * CMD_ARGV[4] = chip_width_in bytes
+	 * CMD_ARGV[5] = bus_width_bytes
+	 * CMD_ARGV[6] = driver-specific parameters
 	 * @endcode
 	 *
-	 * For example, args[4] = 16 bit flash, args[5] = 32bit bus.
+	 * For example, CMD_ARGV[4] = 16 bit flash, CMD_ARGV[5] = 32bit bus.
 	 *
 	 * If extra arguments are provided (@a CMD_ARGC > 6), they will
-	 * start in @a args[6].  These can be used to implement
+	 * start in @a CMD_ARGV[6].  These can be used to implement
 	 * driver-specific extensions.
 	 *
 	 * @returns ERROR_OK if successful; otherwise, an error code.

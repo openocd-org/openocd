@@ -628,12 +628,12 @@ COMMAND_HANDLER(handle_interface_command)
 	}
 
 	/* interface name is a mandatory argument */
-	if (CMD_ARGC != 1 || args[0][0] == '\0')
+	if (CMD_ARGC != 1 || CMD_ARGV[0][0] == '\0')
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
 	{
-		if (strcmp(args[0], jtag_interfaces[i]->name) != 0)
+		if (strcmp(CMD_ARGV[0], jtag_interfaces[i]->name) != 0)
 			continue;
 
 		int retval = jtag_interfaces[i]->register_commands(cmd_ctx);
@@ -657,7 +657,7 @@ COMMAND_HANDLER(handle_interface_command)
 	/* no valid interface was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in interfaces
 	 */
-	LOG_ERROR("The specified JTAG interface was not found (%s)", args[0]);
+	LOG_ERROR("The specified JTAG interface was not found (%s)", CMD_ARGV[0]);
 	CALL_COMMAND_HANDLER(handle_interface_list_command);
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
@@ -711,21 +711,21 @@ COMMAND_HANDLER(handle_reset_config_command)
 	 * Here we don't care about the order, and only change values
 	 * which have been explicitly specified.
 	 */
-	for (; CMD_ARGC; CMD_ARGC--, args++) {
+	for (; CMD_ARGC; CMD_ARGC--, CMD_ARGV++) {
 		int tmp = 0;
 		int m;
 
 		/* gating */
 		m = RESET_SRST_NO_GATING;
-		if (strcmp(*args, "srst_gates_jtag") == 0)
+		if (strcmp(*CMD_ARGV, "srst_gates_jtag") == 0)
 			/* default: don't use JTAG while SRST asserted */;
-		else if (strcmp(*args, "srst_nogate") == 0)
+		else if (strcmp(*CMD_ARGV, "srst_nogate") == 0)
 			tmp = RESET_SRST_NO_GATING;
 		else
 			m = 0;
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
-					"gating", *args);
+					"gating", *CMD_ARGV);
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		if (m)
@@ -733,19 +733,19 @@ COMMAND_HANDLER(handle_reset_config_command)
 
 		/* signals */
 		m = RESET_HAS_TRST | RESET_HAS_SRST;
-		if (strcmp(*args, "none") == 0)
+		if (strcmp(*CMD_ARGV, "none") == 0)
 			tmp = RESET_NONE;
-		else if (strcmp(*args, "trst_only") == 0)
+		else if (strcmp(*CMD_ARGV, "trst_only") == 0)
 			tmp = RESET_HAS_TRST;
-		else if (strcmp(*args, "srst_only") == 0)
+		else if (strcmp(*CMD_ARGV, "srst_only") == 0)
 			tmp = RESET_HAS_SRST;
-		else if (strcmp(*args, "trst_and_srst") == 0)
+		else if (strcmp(*CMD_ARGV, "trst_and_srst") == 0)
 			tmp = RESET_HAS_TRST | RESET_HAS_SRST;
 		else
 			m = 0;
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
-					"signal", *args);
+					"signal", *CMD_ARGV);
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		if (m)
@@ -753,19 +753,19 @@ COMMAND_HANDLER(handle_reset_config_command)
 
 		/* combination (options for broken wiring) */
 		m = RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
-		if (strcmp(*args, "separate") == 0)
+		if (strcmp(*CMD_ARGV, "separate") == 0)
 			/* separate reset lines - default */;
-		else if (strcmp(*args, "srst_pulls_trst") == 0)
+		else if (strcmp(*CMD_ARGV, "srst_pulls_trst") == 0)
 			tmp |= RESET_SRST_PULLS_TRST;
-		else if (strcmp(*args, "trst_pulls_srst") == 0)
+		else if (strcmp(*CMD_ARGV, "trst_pulls_srst") == 0)
 			tmp |= RESET_TRST_PULLS_SRST;
-		else if (strcmp(*args, "combined") == 0)
+		else if (strcmp(*CMD_ARGV, "combined") == 0)
 			tmp |= RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
 		else
 			m = 0;
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
-					"combination", *args);
+					"combination", *CMD_ARGV);
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		if (m)
@@ -773,15 +773,15 @@ COMMAND_HANDLER(handle_reset_config_command)
 
 		/* trst_type (NOP without HAS_TRST) */
 		m = RESET_TRST_OPEN_DRAIN;
-		if (strcmp(*args, "trst_open_drain") == 0)
+		if (strcmp(*CMD_ARGV, "trst_open_drain") == 0)
 			tmp |= RESET_TRST_OPEN_DRAIN;
-		else if (strcmp(*args, "trst_push_pull") == 0)
+		else if (strcmp(*CMD_ARGV, "trst_push_pull") == 0)
 			/* push/pull from adapter - default */;
 		else
 			m = 0;
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
-					"trst_type", *args);
+					"trst_type", *CMD_ARGV);
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		if (m)
@@ -789,22 +789,22 @@ COMMAND_HANDLER(handle_reset_config_command)
 
 		/* srst_type (NOP without HAS_SRST) */
 		m |= RESET_SRST_PUSH_PULL;
-		if (strcmp(*args, "srst_push_pull") == 0)
+		if (strcmp(*CMD_ARGV, "srst_push_pull") == 0)
 			tmp |= RESET_SRST_PUSH_PULL;
-		else if (strcmp(*args, "srst_open_drain") == 0)
+		else if (strcmp(*CMD_ARGV, "srst_open_drain") == 0)
 			/* open drain from adapter - default */;
 		else
 			m = 0;
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
-					"srst_type", *args);
+					"srst_type", *CMD_ARGV);
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		if (m)
 			goto next;
 
 		/* caller provided nonsense; fail */
-		LOG_ERROR("unknown reset_config flag (%s)", *args);
+		LOG_ERROR("unknown reset_config flag (%s)", *CMD_ARGV);
 		return ERROR_INVALID_ARGUMENTS;
 
 next:
@@ -902,7 +902,7 @@ COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
-		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
 		jtag_set_nsrst_delay(delay);
 	}
@@ -917,7 +917,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
-		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
 		jtag_set_ntrst_delay(delay);
 	}
@@ -932,7 +932,7 @@ COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
-		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
 		jtag_set_nsrst_assert_width(delay);
 	}
@@ -947,7 +947,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned delay;
-		COMMAND_PARSE_NUMBER(uint, args[0], delay);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
 		jtag_set_ntrst_assert_width(delay);
 	}
@@ -964,7 +964,7 @@ COMMAND_HANDLER(handle_jtag_khz_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned khz = 0;
-		COMMAND_PARSE_NUMBER(uint, args[0], khz);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
 		retval = jtag_config_khz(khz);
 		if (ERROR_OK != retval)
@@ -993,7 +993,7 @@ COMMAND_HANDLER(handle_jtag_rclk_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned khz = 0;
-		COMMAND_PARSE_NUMBER(uint, args[0], khz);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
 		retval = jtag_config_rclk(khz);
 		if (ERROR_OK != retval)
@@ -1019,17 +1019,17 @@ COMMAND_HANDLER(handle_jtag_reset_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int trst = -1;
-	if (args[0][0] == '1')
+	if (CMD_ARGV[0][0] == '1')
 		trst = 1;
-	else if (args[0][0] == '0')
+	else if (CMD_ARGV[0][0] == '0')
 		trst = 0;
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int srst = -1;
-	if (args[1][0] == '1')
+	if (CMD_ARGV[1][0] == '1')
 		srst = 1;
-	else if (args[1][0] == '0')
+	else if (CMD_ARGV[1][0] == '0')
 		srst = 0;
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1047,7 +1047,7 @@ COMMAND_HANDLER(handle_runtest_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned num_clocks;
-	COMMAND_PARSE_NUMBER(uint, args[0], num_clocks);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num_clocks);
 
 	jtag_add_runtest(num_clocks, TAP_IDLE);
 	return jtag_execute_queue();
@@ -1096,13 +1096,13 @@ COMMAND_HANDLER(handle_irscan_command)
 	if (CMD_ARGC >= 4) {
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
-		if (strcmp("-endstate", args[CMD_ARGC - 2]) == 0) {
-			endstate = tap_state_by_name(args[CMD_ARGC - 1]);
+		if (strcmp("-endstate", CMD_ARGV[CMD_ARGC - 2]) == 0) {
+			endstate = tap_state_by_name(CMD_ARGV[CMD_ARGC - 1]);
 			if (endstate == TAP_INVALID)
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			if (!scan_is_safe(endstate))
 				LOG_WARNING("unstable irscan endstate \"%s\"",
-						args[CMD_ARGC - 1]);
+						CMD_ARGV[CMD_ARGC - 1]);
 			CMD_ARGC -= 2;
 		}
 	}
@@ -1115,14 +1115,14 @@ COMMAND_HANDLER(handle_irscan_command)
 	int retval;
 	for (i = 0; i < num_fields; i++)
 	{
-		tap = jtag_tap_by_string(args[i*2]);
+		tap = jtag_tap_by_string(CMD_ARGV[i*2]);
 		if (tap == NULL)
 		{
 			int j;
 			for (j = 0; j < i; j++)
 				free(fields[j].out_value);
                         free(fields);
-			command_print(cmd_ctx, "Tap: %s unknown", args[i*2]);
+			command_print(cmd_ctx, "Tap: %s unknown", CMD_ARGV[i*2]);
 
 			return ERROR_FAIL;
 		}
@@ -1132,7 +1132,7 @@ COMMAND_HANDLER(handle_irscan_command)
 		fields[i].out_value = malloc(DIV_ROUND_UP(field_size, 8));
 
 		uint32_t value;
-		retval = parse_u32(args[i * 2 + 1], &value);
+		retval = parse_u32(CMD_ARGV[i * 2 + 1], &value);
 		if (ERROR_OK != retval)
 			goto error_return;
 		buf_set_u32(fields[i].out_value, 0, field_size, value);
@@ -1357,9 +1357,9 @@ COMMAND_HANDLER(handle_verify_ircapture_command)
 
 	if (CMD_ARGC == 1)
 	{
-		if (strcmp(args[0], "enable") == 0)
+		if (strcmp(CMD_ARGV[0], "enable") == 0)
 			jtag_set_verify_capture_ir(true);
-		else if (strcmp(args[0], "disable") == 0)
+		else if (strcmp(CMD_ARGV[0], "disable") == 0)
 			jtag_set_verify_capture_ir(false);
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1378,9 +1378,9 @@ COMMAND_HANDLER(handle_verify_jtag_command)
 
 	if (CMD_ARGC == 1)
 	{
-		if (strcmp(args[0], "enable") == 0)
+		if (strcmp(CMD_ARGV[0], "enable") == 0)
 			jtag_set_verify(true);
-		else if (strcmp(args[0], "disable") == 0)
+		else if (strcmp(CMD_ARGV[0], "disable") == 0)
 			jtag_set_verify(false);
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1400,9 +1400,9 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 	if (CMD_ARGC == 1)
 	{
 		bool use_new_table;
-		if (strcmp(args[0], "short") == 0)
+		if (strcmp(CMD_ARGV[0], "short") == 0)
 			use_new_table = true;
-		else if (strcmp(args[0], "long") == 0)
+		else if (strcmp(CMD_ARGV[0], "long") == 0)
 			use_new_table = false;
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;

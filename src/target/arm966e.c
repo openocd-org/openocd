@@ -182,7 +182,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 	if (CMD_ARGC >= 1)
 	{
 		uint32_t address;
-		COMMAND_PARSE_NUMBER(u32, args[0], address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 
 		if (CMD_ARGC == 1)
 		{
@@ -205,7 +205,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, args[1], value);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 			if ((retval = arm966e_write_cp15(target, address, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx,

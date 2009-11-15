@@ -1650,9 +1650,9 @@ COMMAND_HANDLER(handle_targets_command)
 
 	if (CMD_ARGC == 1)
 	{
-		target = get_target(args[0]);
+		target = get_target(CMD_ARGV[0]);
 		if (target == NULL) {
-			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", args[0]);
+			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", CMD_ARGV[0]);
 			goto DumpTargets;
 		}
 		if (!target->tap->enabled) {
@@ -1908,10 +1908,10 @@ COMMAND_HANDLER(handle_reg_command)
 	}
 
 	/* access a single register by its ordinal number */
-	if ((args[0][0] >= '0') && (args[0][0] <= '9'))
+	if ((CMD_ARGV[0][0] >= '0') && (CMD_ARGV[0][0] <= '9'))
 	{
 		unsigned num;
-		COMMAND_PARSE_NUMBER(uint, args[0], num);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 
 		struct reg_cache *cache = target->reg_cache;
 		count = 0;
@@ -1938,19 +1938,19 @@ COMMAND_HANDLER(handle_reg_command)
 		}
 	} else /* access a single register by its name */
 	{
-		reg = register_get_by_name(target->reg_cache, args[0], 1);
+		reg = register_get_by_name(target->reg_cache, CMD_ARGV[0], 1);
 
 		if (!reg)
 		{
-			command_print(cmd_ctx, "register %s not found in current target", args[0]);
+			command_print(cmd_ctx, "register %s not found in current target", CMD_ARGV[0]);
 			return ERROR_OK;
 		}
 	}
 
 	/* display a register */
-	if ((CMD_ARGC == 1) || ((CMD_ARGC == 2) && !((args[1][0] >= '0') && (args[1][0] <= '9'))))
+	if ((CMD_ARGC == 1) || ((CMD_ARGC == 2) && !((CMD_ARGV[1][0] >= '0') && (CMD_ARGV[1][0] <= '9'))))
 	{
-		if ((CMD_ARGC == 2) && (strcmp(args[1], "force") == 0))
+		if ((CMD_ARGC == 2) && (strcmp(CMD_ARGV[1], "force") == 0))
 			reg->valid = 0;
 
 		if (reg->valid == 0)
@@ -1967,7 +1967,7 @@ COMMAND_HANDLER(handle_reg_command)
 	if (CMD_ARGC == 2)
 	{
 		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
-		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
+		str_to_buf(CMD_ARGV[1], strlen(CMD_ARGV[1]), buf, reg->size, 0);
 
 		reg->type->set(reg, buf);
 
@@ -2007,11 +2007,11 @@ COMMAND_HANDLER(handle_poll_command)
 	}
 	else if (CMD_ARGC == 1)
 	{
-		if (strcmp(args[0], "on") == 0)
+		if (strcmp(CMD_ARGV[0], "on") == 0)
 		{
 			jtag_poll_set_enabled(true);
 		}
-		else if (strcmp(args[0], "off") == 0)
+		else if (strcmp(CMD_ARGV[0], "off") == 0)
 		{
 			jtag_poll_set_enabled(false);
 		}
@@ -2035,7 +2035,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
 	unsigned ms = 5000;
 	if (1 == CMD_ARGC)
 	{
-		int retval = parse_uint(args[0], &ms);
+		int retval = parse_uint(CMD_ARGV[0], &ms);
 		if (ERROR_OK != retval)
 		{
 			command_print(cmd_ctx, "usage: %s [seconds]", CMD_NAME);
@@ -2106,7 +2106,7 @@ COMMAND_HANDLER(handle_halt_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned wait;
-		retval = parse_uint(args[0], &wait);
+		retval = parse_uint(CMD_ARGV[0], &wait);
 		if (ERROR_OK != retval)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		if (!wait)
@@ -2136,7 +2136,7 @@ COMMAND_HANDLER(handle_reset_command)
 	if (CMD_ARGC == 1)
 	{
 		const Jim_Nvp *n;
-		n = Jim_Nvp_name2value_simple(nvp_reset_modes, args[0]);
+		n = Jim_Nvp_name2value_simple(nvp_reset_modes, CMD_ARGV[0]);
 		if ((n->name == NULL) || (n->value == RESET_UNKNOWN)) {
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
@@ -2157,13 +2157,13 @@ COMMAND_HANDLER(handle_resume_command)
 	struct target *target = get_current_target(cmd_ctx);
 	target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 
-	/* with no args, resume from current pc, addr = 0,
-	 * with one arguments, addr = args[0],
+	/* with no CMD_ARGV, resume from current pc, addr = 0,
+	 * with one arguments, addr = CMD_ARGV[0],
 	 * handle breakpoints, not debugging */
 	uint32_t addr = 0;
 	if (CMD_ARGC == 1)
 	{
-		COMMAND_PARSE_NUMBER(u32, args[0], addr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 		current = 0;
 	}
 
@@ -2177,14 +2177,14 @@ COMMAND_HANDLER(handle_step_command)
 
 	LOG_DEBUG("-");
 
-	/* with no args, step from current pc, addr = 0,
-	 * with one argument addr = args[0],
+	/* with no CMD_ARGV, step from current pc, addr = 0,
+	 * with one argument addr = CMD_ARGV[0],
 	 * handle breakpoints, debugging */
 	uint32_t addr = 0;
 	int current_pc = 1;
 	if (CMD_ARGC == 1)
 	{
-		COMMAND_PARSE_NUMBER(u32, args[0], addr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 		current_pc = 0;
 	}
 
@@ -2256,13 +2256,13 @@ COMMAND_HANDLER(handle_md_command)
 	default: return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	bool physical=strcmp(args[0], "phys")==0;
+	bool physical=strcmp(CMD_ARGV[0], "phys")==0;
 	int (*fn)(struct target *target,
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	if (physical)
 	{
 		CMD_ARGC--;
-		args++;
+		CMD_ARGV++;
 		fn=target_read_phys_memory;
 	} else
 	{
@@ -2274,11 +2274,11 @@ COMMAND_HANDLER(handle_md_command)
 	}
 
 	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, args[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 
 	unsigned count = 1;
 	if (CMD_ARGC == 2)
-		COMMAND_PARSE_NUMBER(uint, args[1], count);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
 
 	uint8_t *buffer = calloc(count, size);
 
@@ -2298,14 +2298,14 @@ COMMAND_HANDLER(handle_mw_command)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	bool physical=strcmp(args[0], "phys")==0;
+	bool physical=strcmp(CMD_ARGV[0], "phys")==0;
 	int (*fn)(struct target *target,
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	const char *cmd_name = CMD_NAME;
 	if (physical)
 	{
 		CMD_ARGC--;
-		args++;
+		CMD_ARGV++;
 		fn=target_write_phys_memory;
 	} else
 	{
@@ -2315,14 +2315,14 @@ COMMAND_HANDLER(handle_mw_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, args[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 
 	uint32_t value;
-	COMMAND_PARSE_NUMBER(u32, args[1], value);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 	unsigned count = 1;
 	if (CMD_ARGC == 3)
-		COMMAND_PARSE_NUMBER(uint, args[2], count);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], count);
 
 	struct target *target = get_current_target(cmd_ctx);
 	unsigned wordsize;
@@ -2357,7 +2357,7 @@ COMMAND_HANDLER(handle_mw_command)
 
 }
 
-static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
+static COMMAND_HELPER(parse_load_image_command_CMD_ARGV, struct image *image,
 		uint32_t *min_address, uint32_t *max_address)
 {
 	if (CMD_ARGC < 1 || CMD_ARGC > 5)
@@ -2368,7 +2368,7 @@ static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
 	if (CMD_ARGC >= 2)
 	{
 		uint32_t addr;
-		COMMAND_PARSE_NUMBER(u32, args[1], addr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], addr);
 		image->base_address = addr;
 		image->base_address_set = 1;
 	}
@@ -2379,11 +2379,11 @@ static COMMAND_HELPER(parse_load_image_command_args, struct image *image,
 
 	if (CMD_ARGC >= 4)
 	{
-		COMMAND_PARSE_NUMBER(u32, args[3], *min_address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], *min_address);
 	}
 	if (CMD_ARGC == 5)
 	{
-		COMMAND_PARSE_NUMBER(u32, args[4], *max_address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], *max_address);
 		// use size (given) to find max (required)
 		*max_address += *min_address;
 	}
@@ -2404,7 +2404,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	int i;
 	struct image image;
 
-	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_args,
+	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_CMD_ARGV,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2414,7 +2414,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (image_open(&image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(&image, CMD_ARGV[0], (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
@@ -2502,11 +2502,11 @@ COMMAND_HANDLER(handle_dump_image_command)
 	}
 
 	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, args[1], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], address);
 	uint32_t size;
-	COMMAND_PARSE_NUMBER(u32, args[2], size);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], size);
 
-	if (fileio_open(&fileio, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
+	if (fileio_open(&fileio, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
@@ -2579,7 +2579,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 	if (CMD_ARGC >= 2)
 	{
 		uint32_t addr;
-		COMMAND_PARSE_NUMBER(u32, args[1], addr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], addr);
 		image.base_address = addr;
 		image.base_address_set = 1;
 	}
@@ -2591,7 +2591,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 
 	image.start_address_set = 0;
 
-	if ((retval = image_open(&image, args[0], (CMD_ARGC == 3) ? args[2] : NULL)) != ERROR_OK)
+	if ((retval = image_open(&image, CMD_ARGV[0], (CMD_ARGC == 3) ? CMD_ARGV[2] : NULL)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -2755,14 +2755,14 @@ COMMAND_HANDLER(handle_bp_command)
 	}
 
 	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, args[0], addr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 	uint32_t length;
-	COMMAND_PARSE_NUMBER(u32, args[1], length);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 
 	int hw = BKPT_SOFT;
 	if (CMD_ARGC == 3)
 	{
-		if (strcmp(args[2], "hw") == 0)
+		if (strcmp(CMD_ARGV[2], "hw") == 0)
 			hw = BKPT_HARD;
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2777,7 +2777,7 @@ COMMAND_HANDLER(handle_rbp_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, args[0], addr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 
 	struct target *target = get_current_target(cmd_ctx);
 	breakpoint_remove(target, addr);
@@ -2818,13 +2818,13 @@ COMMAND_HANDLER(handle_wp_command)
 	switch (CMD_ARGC)
 	{
 	case 5:
-		COMMAND_PARSE_NUMBER(u32, args[4], data_mask);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], data_mask);
 		// fall through
 	case 4:
-		COMMAND_PARSE_NUMBER(u32, args[3], data_value);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], data_value);
 		// fall through
 	case 3:
-		switch (args[2][0])
+		switch (CMD_ARGV[2][0])
 		{
 		case 'r':
 			type = WPT_READ;
@@ -2836,13 +2836,13 @@ COMMAND_HANDLER(handle_wp_command)
 			type = WPT_ACCESS;
 			break;
 		default:
-			LOG_ERROR("invalid watchpoint mode ('%c')", args[2][0]);
+			LOG_ERROR("invalid watchpoint mode ('%c')", CMD_ARGV[2][0]);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		// fall through
 	case 2:
-		COMMAND_PARSE_NUMBER(u32, args[1], length);
-		COMMAND_PARSE_NUMBER(u32, args[0], addr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 		break;
 
 	default:
@@ -2865,7 +2865,7 @@ COMMAND_HANDLER(handle_rwp_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, args[0], addr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
 
 	struct target *target = get_current_target(cmd_ctx);
 	watchpoint_remove(target, addr);
@@ -2886,7 +2886,7 @@ COMMAND_HANDLER(handle_virt2phys_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t va;
-	COMMAND_PARSE_NUMBER(u32, args[0], va);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], va);
 	uint32_t pa;
 
 	struct target *target = get_current_target(cmd_ctx);
@@ -3025,7 +3025,7 @@ COMMAND_HANDLER(handle_profile_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	unsigned offset;
-	COMMAND_PARSE_NUMBER(uint, args[0], offset);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], offset);
 
 	timeval_add_time(&timeout, offset, 0);
 
@@ -3088,8 +3088,8 @@ COMMAND_HANDLER(handle_profile_command)
 				free(samples);
 				return retval;
 			}
-			writeGmon(samples, numSamples, args[1]);
-			command_print(cmd_ctx, "Wrote %s", args[1]);
+			writeGmon(samples, numSamples, CMD_ARGV[1]);
+			command_print(cmd_ctx, "Wrote %s", CMD_ARGV[1]);
 			break;
 		}
 	}
@@ -4543,7 +4543,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 
 	struct image image;
 
-	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_args,
+	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_CMD_ARGV,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
 		return retval;
@@ -4551,7 +4551,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (image_open(&image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(&image, CMD_ARGV[0], (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
@@ -4795,7 +4795,7 @@ int target_register_user_commands(struct command_context *cmd_ctx)
 
 	register_command(cmd_ctx, NULL, "fast_load_image",
 			handle_fast_load_image_command, COMMAND_ANY,
-			"same args as load_image, image stored in memory "
+			"same CMD_ARGV as load_image, image stored in memory "
 			"- mainly for profiling purposes");
 
 	register_command(cmd_ctx, NULL, "fast_load",

@@ -109,7 +109,7 @@ static int httpd_Jim_Command_writeform(Jim_Interp *interp, int argc,
 {
 	if (argc != 3)
 	{
-		Jim_WrongNumArgs(interp, 1, argv, "method ?args ...?");
+		Jim_WrongNumArgs(interp, 1, argv, "method ?CMD_ARGV ...?");
 		return JIM_ERR;
 	}
 	char *name = (char*) Jim_GetString(argv[1], NULL);
@@ -156,7 +156,7 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
 {
     if (argc != 2)
     {
-        Jim_WrongNumArgs(interp, 1, argv, "method ?args ...?");
+        Jim_WrongNumArgs(interp, 1, argv, "method ?CMD_ARGV ...?");
         return JIM_ERR;
     }
     char *name = (char*)Jim_GetString(argv[1], NULL);

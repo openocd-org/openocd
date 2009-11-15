@@ -30,18 +30,18 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 	struct target *target;
 	struct arm *arm;
 
-	target = get_target(args[0]);
+	target = get_target(CMD_ARGV[0]);
 
 	if (!target)
 	{
-		LOG_ERROR("target '%s' not defined", args[0]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm))
 	{
-		command_print(cmd_ctx, "target '%s' isn't an ARM", args[0]);
+		command_print(cmd_ctx, "target '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 

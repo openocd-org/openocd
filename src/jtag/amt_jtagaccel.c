@@ -503,7 +503,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 		if (amt_jtagaccel_port == 0)
 		{
 			uint16_t port;
-			COMMAND_PARSE_NUMBER(u16, args[0], port);
+			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], port);
 			amt_jtagaccel_port = port;
 		}
 		else
@@ -527,7 +527,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 	}
 	else
 	{
-		if (strcmp(args[0], "enabled") == 0)
+		if (strcmp(CMD_ARGV[0], "enabled") == 0)
 		{
 			rtck_enabled = 1;
 		}

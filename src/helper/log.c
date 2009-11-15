@@ -278,7 +278,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 	if (CMD_ARGC == 1)
 	{
 		unsigned new_level;
-		COMMAND_PARSE_NUMBER(uint, args[0], new_level);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], new_level);
 		debug_level = MIN(new_level, LOG_LVL_DEBUG);
 	}
 	else if (CMD_ARGC > 1)
@@ -305,7 +305,7 @@ COMMAND_HANDLER(handle_log_output_command)
 {
 	if (CMD_ARGC == 1)
 	{
-		FILE* file = fopen(args[0], "w");
+		FILE* file = fopen(CMD_ARGV[0], "w");
 
 		if (file)
 		{

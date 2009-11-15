@@ -647,10 +647,10 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 		return retval;
 
 	uint32_t bbsr, nbbsr, bbadr, nbbadr;
-	COMMAND_PARSE_NUMBER(u32, args[1], bbsr);
-	COMMAND_PARSE_NUMBER(u32, args[2], nbbsr);
-	COMMAND_PARSE_NUMBER(u32, args[3], bbadr);
-	COMMAND_PARSE_NUMBER(u32, args[4], nbbadr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], bbsr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], nbbsr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], bbadr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], nbbadr);
 
 	str9x_info = bank->driver_priv;
 

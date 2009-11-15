@@ -122,7 +122,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 		exit(-1);
 	}
 	bank->driver_priv = info;
-	info->driverPath = strdup(args[6]);
+	info->driverPath = strdup(CMD_ARGV[6]);
 
 	/* eCos flash sector sizes are not exposed to OpenOCD, use 0x10000 as
 	 * a way to improve impedance match between OpenOCD and eCos flash
@@ -141,10 +141,10 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 		bank->sectors[i].is_protected = 0;
 	}
 
-	info->target = get_target(args[5]);
+	info->target = get_target(CMD_ARGV[5]);
 	if (info->target == NULL)
 	{
-		LOG_ERROR("target '%s' not defined", args[5]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[5]);
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;

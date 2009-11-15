@@ -43,9 +43,9 @@ S3C24XX_DEVICE_COMMAND()
 
 	nand->controller_priv = s3c24xx_info;
 
-	s3c24xx_info->target = get_target(args[1]);
+	s3c24xx_info->target = get_target(CMD_ARGV[1]);
 	if (s3c24xx_info->target == NULL) {
-		LOG_ERROR("target '%s' not defined", args[1]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 

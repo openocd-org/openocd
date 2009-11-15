@@ -433,7 +433,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 	lpc2000_info = malloc(sizeof(struct lpc2000_flash_bank));
 	bank->driver_priv = lpc2000_info;
 
-	if (strcmp(args[6], "lpc2000_v1") == 0)
+	if (strcmp(CMD_ARGV[6], "lpc2000_v1") == 0)
 	{
 		lpc2000_info->variant = lpc2000_v1;
 		lpc2000_info->cmd51_dst_boundary = 512;
@@ -441,7 +441,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->cmd51_can_8192b = 1;
 		lpc2000_info->checksum_vector = 5;
 	}
-	else if (strcmp(args[6], "lpc2000_v2") == 0)
+	else if (strcmp(CMD_ARGV[6], "lpc2000_v2") == 0)
 	{
 		lpc2000_info->variant = lpc2000_v2;
 		lpc2000_info->cmd51_dst_boundary = 256;
@@ -449,7 +449,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 5;
 	}
-	else if (strcmp(args[6], "lpc1700") == 0)
+	else if (strcmp(CMD_ARGV[6], "lpc1700") == 0)
 	{
 		lpc2000_info->variant = lpc1700;
 		lpc2000_info->cmd51_dst_boundary = 256;
@@ -459,19 +459,19 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 	}
 	else
 	{
-		LOG_ERROR("unknown LPC2000 variant: %s", args[6]);
+		LOG_ERROR("unknown LPC2000 variant: %s", CMD_ARGV[6]);
 		free(lpc2000_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	lpc2000_info->iap_working_area = NULL;
-	COMMAND_PARSE_NUMBER(u32, args[7], lpc2000_info->cclk);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[7], lpc2000_info->cclk);
 	lpc2000_info->calc_checksum = 0;
 	lpc2000_build_sector_list(bank);
 
 	if (CMD_ARGC >= 9)
 	{
-		if (strcmp(args[8], "calc_checksum") == 0)
+		if (strcmp(CMD_ARGV[8], "calc_checksum") == 0)
 			lpc2000_info->calc_checksum = 1;
 	}
 

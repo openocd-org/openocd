@@ -2014,7 +2014,7 @@ static COMMAND_HELPER(arm11_handle_bool, bool *var, char *name)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	switch (args[0][0])
+	switch (CMD_ARGV[0][0])
 	{
 	case '0':	/* 0 */
 	case 'f':	/* false */
@@ -2056,7 +2056,7 @@ COMMAND_HANDLER(arm11_handle_vcr)
 	case 0:
 		break;
 	case 1:
-		COMMAND_PARSE_NUMBER(u32, args[0], arm11_vcr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11_vcr);
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;

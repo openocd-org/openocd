@@ -749,20 +749,20 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[1], base_address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], base_address);
 
-	COMMAND_PARSE_NUMBER(int, args[3], chip_width);
-	COMMAND_PARSE_NUMBER(int, args[4], bus_width);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], chip_width);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], bus_width);
 
-	COMMAND_PARSE_NUMBER(int, args[8], banks_num);
-	COMMAND_PARSE_NUMBER(int, args[9], num_sectors);
-	COMMAND_PARSE_NUMBER(u16, args[10], pages_per_sector);
-	COMMAND_PARSE_NUMBER(u16, args[11], page_size);
-	COMMAND_PARSE_NUMBER(u16, args[12], num_nvmbits);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[8], banks_num);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[9], num_sectors);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[10], pages_per_sector);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[11], page_size);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[12], num_nvmbits);
 
 	if (CMD_ARGC == 14) {
 		unsigned long freq;
-		COMMAND_PARSE_NUMBER(ulong, args[13], freq);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[13], freq);
 		ext_freq = freq * 1000;
 		at91sam7_info->ext_freq = ext_freq;
 	}
@@ -774,8 +774,8 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		return ERROR_OK;
 	}
 
-	target_name = calloc(strlen(args[7]) + 1, sizeof(char));
-	strcpy(target_name, args[7]);
+	target_name = calloc(strlen(CMD_ARGV[7]) + 1, sizeof(char));
+	strcpy(target_name, CMD_ARGV[7]);
 
 	/* calculate bank size  */
 	bank_size = num_sectors * pages_per_sector * page_size;
@@ -1120,7 +1120,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	}
 	if (strcmp(bank->driver->name, "at91sam7"))
 	{
-		command_print(cmd_ctx, "not an at91sam7 flash bank '%s'", args[0]);
+		command_print(cmd_ctx, "not an at91sam7 flash bank '%s'", CMD_ARGV[0]);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	if (bank->target->state != TARGET_HALTED)
@@ -1129,11 +1129,11 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (strcmp(args[1], "set") == 0)
+	if (strcmp(CMD_ARGV[1], "set") == 0)
 	{
 		flashcmd = SGPB;
 	}
-	else if (strcmp(args[1], "clear") == 0)
+	else if (strcmp(CMD_ARGV[1], "clear") == 0)
 	{
 		flashcmd = CGPB;
 	}
@@ -1152,10 +1152,10 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 		}
 	}
 
-	COMMAND_PARSE_NUMBER(int, args[0], bit);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], bit);
 	if ((bit < 0) || (bit >= at91sam7_info->num_nvmbits))
 	{
-		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", args[0], at91sam7_info->target_name);
+		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", CMD_ARGV[0], at91sam7_info->target_name);
 		return ERROR_OK;
 	}
 

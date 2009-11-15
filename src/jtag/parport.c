@@ -416,7 +416,7 @@ COMMAND_HANDLER(parport_handle_parport_port_command)
 		/* only if the port wasn't overwritten by cmdline */
 		if (parport_port == 0)
 		{
-			COMMAND_PARSE_NUMBER(u16, args[0], parport_port);
+			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], parport_port);
 		}
 		else
 		{
@@ -438,8 +438,8 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 	/* only if the cable name wasn't overwritten by cmdline */
 	if (parport_cable == 0)
 	{
-		parport_cable = malloc(strlen(args[0]) + sizeof(char));
-		strcpy(parport_cable, args[0]);
+		parport_cable = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
+		strcpy(parport_cable, CMD_ARGV[0]);
 	}
 
 	return ERROR_OK;
@@ -453,9 +453,9 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 		return ERROR_OK;
 	}
 
-	if (strcmp(args[0], "on") == 0)
+	if (strcmp(CMD_ARGV[0], "on") == 0)
 		parport_exit = 1;
-	else if (strcmp(args[0], "off") == 0)
+	else if (strcmp(CMD_ARGV[0], "off") == 0)
 		parport_exit = 0;
 
 	return ERROR_OK;
@@ -465,7 +465,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 {
 	if (CMD_ARGC == 1) {
 		uint32_t ns;
-		int retval = parse_u32(args[0], &ns);
+		int retval = parse_u32(CMD_ARGV[0], &ns);
 
 		if (ERROR_OK != retval)
 			return retval;

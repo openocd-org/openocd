@@ -856,11 +856,11 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	if (CMD_ARGC > 0)
 	{
 		vector_catch_value = 0x0;
-		if (strcmp(args[0], "all") == 0)
+		if (strcmp(CMD_ARGV[0], "all") == 0)
 		{
 			vector_catch_value = 0xdf;
 		}
-		else if (strcmp(args[0], "none") == 0)
+		else if (strcmp(CMD_ARGV[0], "none") == 0)
 		{
 			/* do nothing */
 		}
@@ -872,7 +872,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 				unsigned j;
 				for (j = 0; arm9tdmi_vectors[j].name; j++)
 				{
-					if (strcmp(args[i], arm9tdmi_vectors[j].name) == 0)
+					if (strcmp(CMD_ARGV[i], arm9tdmi_vectors[j].name) == 0)
 					{
 						vector_catch_value |= arm9tdmi_vectors[j].value;
 						break;
@@ -882,7 +882,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 				/* complain if vector wasn't found */
 				if (!arm9tdmi_vectors[j].name)
 				{
-					command_print(cmd_ctx, "vector '%s' not found, leaving current setting unchanged", args[i]);
+					command_print(cmd_ctx, "vector '%s' not found, leaving current setting unchanged", CMD_ARGV[i]);
 
 					/* reread current setting */
 					vector_catch_value = buf_get_u32(

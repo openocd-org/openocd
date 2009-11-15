@@ -73,10 +73,10 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 
 	nand->controller_priv = mx3_nf_info;
 
-	mx3_nf_info->target = get_target (args[1]);
+	mx3_nf_info->target = get_target (CMD_ARGV[1]);
 	if (mx3_nf_info->target == NULL)
 	{
-	    LOG_ERROR ("target '%s' not defined", args[1]);
+	    LOG_ERROR ("target '%s' not defined", CMD_ARGV[1]);
 	    return ERROR_FAIL;
 	}
 	if (CMD_ARGC < 3)
@@ -89,7 +89,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 	*/
 	{
 	int hwecc_needed;
-	hwecc_needed = strcmp (args[2], "hwecc");
+	hwecc_needed = strcmp (CMD_ARGV[2], "hwecc");
 	if (hwecc_needed == 0)
 	    {
 		mx3_nf_info->flags.hw_ecc_enabled = 1;

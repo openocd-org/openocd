@@ -623,7 +623,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 
 	/* Try and open the file */
 	struct fileio fileio;
-	const char *filename = args[1];
+	const char *filename = CMD_ARGV[1];
 	int ret = fileio_open( &fileio, filename, FILEIO_WRITE, FILEIO_BINARY );
 	if( ret != ERROR_OK )
 	{
@@ -668,7 +668,7 @@ COMMAND_HANDLER(lpc2900_handle_password_command)
 
 #define ISS_PASSWORD "I_know_what_I_am_doing"
 
-	lpc2900_info->risky = !strcmp( args[1], ISS_PASSWORD );
+	lpc2900_info->risky = !strcmp( CMD_ARGV[1], ISS_PASSWORD );
 
 	if( !lpc2900_info->risky )
 	{
@@ -723,8 +723,8 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	image.base_address = 0;
 	image.start_address_set = 0;
 
-	const char *filename = args[1];
-	const char *type = (CMD_ARGC >= 3) ? args[2] : NULL;
+	const char *filename = CMD_ARGV[1];
+	const char *type = (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL;
 	retval = image_open(&image, filename, type);
 	if (retval != ERROR_OK)
 	{
@@ -823,8 +823,8 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 
 	/* Read sector range, and do a sanity check. */
 	int first, last;
-	COMMAND_PARSE_NUMBER(int, args[1], first);
-	COMMAND_PARSE_NUMBER(int, args[2], last);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], first);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
 	if( (first >= bank->num_sectors) ||
 	    (last >= bank->num_sectors) ||
 	    (first > last) )
@@ -1034,7 +1034,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 	 * (if clock too slow), or for erase time (clock too fast).
 	 */
 	uint32_t clk_sys_fmc;
-	COMMAND_PARSE_NUMBER(u32, args[6], clk_sys_fmc);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], clk_sys_fmc);
 	lpc2900_info->clk_sys_fmc = clk_sys_fmc * 1000;
 
 	uint32_t clock_limit;

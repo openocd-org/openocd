@@ -32,7 +32,7 @@ static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 	if (1 == CMD_ARGC)
 	{
 		*sep = " ";
-		*name = args[0];
+		*name = CMD_ARGV[0];
 	}
 	else
 		*sep = *name = "";

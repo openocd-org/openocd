@@ -190,11 +190,11 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	}
 
 	unsigned dev_id;
-	COMMAND_PARSE_NUMBER(uint, args[0], dev_id);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], dev_id);
 	device = get_pld_device_by_num(dev_id);
 	if (!device)
 	{
-		command_print(cmd_ctx, "pld device '#%s' is out of bounds", args[0]);
+		command_print(cmd_ctx, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -219,9 +219,9 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 		return ERROR_PLD_DEVICE_INVALID;
 	}
 
-	tap = jtag_tap_by_string(args[1]);
+	tap = jtag_tap_by_string(CMD_ARGV[1]);
 	if (tap == NULL) {
-		command_print(cmd_ctx, "Tap: %s does not exist", args[1]);
+		command_print(cmd_ctx, "Tap: %s does not exist", CMD_ARGV[1]);
 		return ERROR_OK;
 	}
 

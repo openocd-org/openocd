@@ -1329,17 +1329,17 @@ COMMAND_HANDLER(vsllink_handle_mode_command)
 		return ERROR_FAIL;
 	}
 
-	if (!strcmp(args[0], "normal"))
+	if (!strcmp(CMD_ARGV[0], "normal"))
 	{
 		vsllink_mode = VSLLINK_MODE_NORMAL;
 	}
-	else if (!strcmp(args[0], "dma"))
+	else if (!strcmp(CMD_ARGV[0], "dma"))
 	{
 		vsllink_mode = VSLLINK_MODE_DMA;
 	}
 	else
 	{
-		LOG_ERROR("invalid vsllink_mode: %s", args[0]);
+		LOG_ERROR("invalid vsllink_mode: %s", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -1354,7 +1354,7 @@ COMMAND_HANDLER(vsllink_handle_usb_vid_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u16, args[0], vsllink_usb_vid);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], vsllink_usb_vid);
 	return ERROR_OK;
 }
 
@@ -1365,7 +1365,7 @@ COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 		LOG_ERROR("parameter error, should be one parameter for PID");
 		return ERROR_OK;
 	}
-	COMMAND_PARSE_NUMBER(u16, args[0], vsllink_usb_pid);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], vsllink_usb_pid);
 	return ERROR_OK;
 }
 
@@ -1377,7 +1377,7 @@ COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u8, args[0], vsllink_usb_bulkin);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], vsllink_usb_bulkin);
 
 	vsllink_usb_bulkin |= 0x80;
 
@@ -1392,7 +1392,7 @@ COMMAND_HANDLER(vsllink_handle_usb_bulkout_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u8, args[0], vsllink_usb_bulkout);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], vsllink_usb_bulkout);
 
 	vsllink_usb_bulkout &= ~0x80;
 
@@ -1407,7 +1407,7 @@ COMMAND_HANDLER(vsllink_handle_usb_interface_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u8, args[0], vsllink_usb_interface);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], vsllink_usb_interface);
 	return ERROR_OK;
 }
 

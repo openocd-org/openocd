@@ -3001,9 +3001,9 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 		return ERROR_OK;
 	}
 
-	if ((target = get_target(args[0])) == NULL)
+	if ((target = get_target(CMD_ARGV[0])) == NULL)
 	{
-		LOG_ERROR("target '%s' not defined", args[0]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -3012,7 +3012,7 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	COMMAND_PARSE_NUMBER(u32, args[1], handler_address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], handler_address);
 
 	if (((handler_address >= 0x800) && (handler_address <= 0x1fef800)) ||
 		((handler_address >= 0xfe000800) && (handler_address <= 0xfffff800)))
@@ -3040,10 +3040,10 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	target = get_target(args[0]);
+	target = get_target(CMD_ARGV[0]);
 	if (target == NULL)
 	{
-		LOG_ERROR("target '%s' not defined", args[0]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 	xscale = target_to_xscale(target);
@@ -3051,7 +3051,7 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	COMMAND_PARSE_NUMBER(u32, args[1], cache_clean_address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cache_clean_address);
 
 	if (cache_clean_address & 0xffff)
 	{
@@ -3132,12 +3132,12 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 
 	if (CMD_ARGC >= 1)
 	{
-		if (strcmp("enable", args[0]) == 0)
+		if (strcmp("enable", CMD_ARGV[0]) == 0)
 		{
 			xscale_enable_mmu_caches(target, 1, 0, 0);
 			xscale->armv4_5_mmu.mmu_enabled = 1;
 		}
-		else if (strcmp("disable", args[0]) == 0)
+		else if (strcmp("disable", CMD_ARGV[0]) == 0)
 		{
 			xscale_disable_mmu_caches(target, 1, 0, 0);
 			xscale->armv4_5_mmu.mmu_enabled = 0;
@@ -3173,7 +3173,7 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 
 	if (CMD_ARGC >= 1)
 	{
-		if (strcmp("enable", args[0]) == 0)
+		if (strcmp("enable", CMD_ARGV[0]) == 0)
 		{
 			xscale_enable_mmu_caches(target, 0, dcache, icache);
 
@@ -3182,7 +3182,7 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 			else if (dcache)
 				xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 1;
 		}
-		else if (strcmp("disable", args[0]) == 0)
+		else if (strcmp("disable", CMD_ARGV[0]) == 0)
 		{
 			xscale_disable_mmu_caches(target, 0, dcache, icache);
 
@@ -3218,7 +3218,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 	}
 	else
 	{
-		COMMAND_PARSE_NUMBER(u8, args[0], xscale->vector_catch);
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], xscale->vector_catch);
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 8, xscale->vector_catch);
 		xscale_write_dcsr(target, -1, -1);
 	}
@@ -3259,19 +3259,19 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 	else
 	{
 		int idx;
-		COMMAND_PARSE_NUMBER(int, args[1], idx);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], idx);
 		uint32_t vec;
-		COMMAND_PARSE_NUMBER(u32, args[2], vec);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], vec);
 
 		if (idx < 1 || idx >= 8)
 			err = 1;
 
-		if (!err && strcmp(args[0], "low") == 0)
+		if (!err && strcmp(CMD_ARGV[0], "low") == 0)
 		{
 			xscale->static_low_vectors_set |= (1<<idx);
 			xscale->static_low_vectors[idx] = vec;
 		}
-		else if (!err && (strcmp(args[0], "high") == 0))
+		else if (!err && (strcmp(CMD_ARGV[0], "high") == 0))
 		{
 			xscale->static_high_vectors_set |= (1<<idx);
 			xscale->static_high_vectors[idx] = vec;
@@ -3305,7 +3305,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		return ERROR_OK;
 	}
 
-	if ((CMD_ARGC >= 1) && (strcmp("enable", args[0]) == 0))
+	if ((CMD_ARGC >= 1) && (strcmp("enable", CMD_ARGV[0]) == 0))
 	{
 		struct xscale_trace_data *td, *next_td;
 		xscale->trace.buffer_enabled = 1;
@@ -3323,19 +3323,19 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		}
 		xscale->trace.data = NULL;
 	}
-	else if ((CMD_ARGC >= 1) && (strcmp("disable", args[0]) == 0))
+	else if ((CMD_ARGC >= 1) && (strcmp("disable", CMD_ARGV[0]) == 0))
 	{
 		xscale->trace.buffer_enabled = 0;
 	}
 
-	if ((CMD_ARGC >= 2) && (strcmp("fill", args[1]) == 0))
+	if ((CMD_ARGC >= 2) && (strcmp("fill", CMD_ARGV[1]) == 0))
 	{
 		uint32_t fill = 1;
 		if (CMD_ARGC >= 3)
-			COMMAND_PARSE_NUMBER(u32, args[2], fill);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], fill);
 		xscale->trace.buffer_fill = fill;
 	}
-	else if ((CMD_ARGC >= 2) && (strcmp("wrap", args[1]) == 0))
+	else if ((CMD_ARGC >= 2) && (strcmp("wrap", CMD_ARGV[1]) == 0))
 	{
 		xscale->trace.buffer_fill = -1;
 	}
@@ -3397,14 +3397,14 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 	if (CMD_ARGC >= 2)
 	{
 		xscale->trace.image->base_address_set = 1;
-		COMMAND_PARSE_NUMBER(int, args[1], xscale->trace.image->base_address);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], xscale->trace.image->base_address);
 	}
 	else
 	{
 		xscale->trace.image->base_address_set = 0;
 	}
 
-	if (image_open(xscale->trace.image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(xscale->trace.image, CMD_ARGV[0], (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL) != ERROR_OK)
 	{
 		free(xscale->trace.image);
 		xscale->trace.image = NULL;
@@ -3446,7 +3446,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 		return ERROR_OK;
 	}
 
-	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
+	if (fileio_open(&file, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
@@ -3505,7 +3505,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	struct reg *reg = NULL;
 	if (CMD_ARGC > 0)
 	{
-		COMMAND_PARSE_NUMBER(u32, args[0], reg_no);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], reg_no);
 		/*translate from xscale cp15 register no to openocd register*/
 		switch (reg_no)
 		{
@@ -3552,7 +3552,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	else if (CMD_ARGC == 2)
 	{
 		uint32_t value;
-		COMMAND_PARSE_NUMBER(u32, args[1], value);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 		/* send CP write request (command 0x41) */
 		xscale_send_u32(target, 0x41);

@@ -714,9 +714,9 @@ COMMAND_HANDLER(mg_write_cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[2], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], address);
 
-	ret = fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY);
+	ret = fileio_open(&fileio, CMD_ARGV[1], FILEIO_READ, FILEIO_BINARY);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -752,7 +752,7 @@ COMMAND_HANDLER(mg_write_cmd)
 	if (duration_measure(&bench) == ERROR_OK)
 	{
 		command_print(cmd_ctx, "wrote %zu byte from file %s "
-				"in %fs (%0.3f kB/s)", fileio.size, args[1],
+				"in %fs (%0.3f kB/s)", fileio.size, CMD_ARGV[1],
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
 
@@ -779,10 +779,10 @@ COMMAND_HANDLER(mg_dump_cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[2], address);
-	COMMAND_PARSE_NUMBER(u32, args[3], size);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], size);
 
-	ret = fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY);
+	ret = fileio_open(&fileio, CMD_ARGV[1], FILEIO_WRITE, FILEIO_BINARY);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -819,7 +819,7 @@ COMMAND_HANDLER(mg_dump_cmd)
 	{
 		command_print(cmd_ctx, "dump image (address 0x%8.8" PRIx32 " "
 				"size %" PRIu32 ") to file %s in %fs (%0.3f kB/s)",
-				address, size, args[1],
+				address, size, CMD_ARGV[1],
 				duration_elapsed(&bench), duration_kbps(&bench, size));
 	}
 
@@ -1225,17 +1225,17 @@ COMMAND_HANDLER(mg_config_cmd)
 
 	switch (CMD_ARGC) {
 		case 2:
-			if (!strcmp(args[1], "boot"))
+			if (!strcmp(CMD_ARGV[1], "boot"))
 				return mg_boot_config();
-			else if (!strcmp(args[1], "storage"))
+			else if (!strcmp(CMD_ARGV[1], "storage"))
 				return mg_storage_config();
 			else
 				return ERROR_COMMAND_NOTFOUND;
 			break;
 		case 3:
-			if (!strcmp(args[1], "pll")) {
+			if (!strcmp(CMD_ARGV[1], "pll")) {
 				unsigned long freq;
-				COMMAND_PARSE_NUMBER(ulong, args[2], freq);
+				COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], freq);
 				fin = freq;
 
 				if (fin > MG_PLL_CLK_OUT) {
@@ -1293,30 +1293,30 @@ COMMAND_HANDLER(mg_bank_cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if ((target = get_target(args[3])) == NULL)
+	if ((target = get_target(CMD_ARGV[3])) == NULL)
 	{
-		LOG_ERROR("target '%s' not defined", args[3]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
 	mflash_bank = calloc(sizeof(struct mflash_bank), 1);
-	COMMAND_PARSE_NUMBER(u32, args[1], mflash_bank->base);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], mflash_bank->base);
 	/// @todo Verify how this parsing should work, then document it.
 	char *str;
-	mflash_bank->rst_pin.num = strtoul(args[2], &str, 0);
+	mflash_bank->rst_pin.num = strtoul(CMD_ARGV[2], &str, 0);
 	if (*str)
 		mflash_bank->rst_pin.port[0] = (uint16_t)tolower(str[0]);
 
 	mflash_bank->target = target;
 
 	for (i = 0; mflash_gpio[i] ; i++) {
-		if (! strcmp(mflash_gpio[i]->name, args[0])) {
+		if (! strcmp(mflash_gpio[i]->name, CMD_ARGV[0])) {
 			mflash_bank->gpio_drv = mflash_gpio[i];
 		}
 	}
 
 	if (! mflash_bank->gpio_drv) {
-		LOG_ERROR("%s is unsupported soc", args[0]);
+		LOG_ERROR("%s is unsupported soc", CMD_ARGV[0]);
 		return ERROR_MG_UNSUPPORTED_SOC;
 	}
 

@@ -1065,7 +1065,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (strcmp(args[1], "SWWDG") == 0)
+	if (strcmp(CMD_ARGV[1], "SWWDG") == 0)
 	{
 		optionbyte |= (1 << 0);
 	}
@@ -1074,7 +1074,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		optionbyte &= ~(1 << 0);
 	}
 
-	if (strcmp(args[2], "NORSTSTNDBY") == 0)
+	if (strcmp(CMD_ARGV[2], "NORSTSTNDBY") == 0)
 	{
 		optionbyte |= (1 << 1);
 	}
@@ -1083,7 +1083,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		optionbyte &= ~(1 << 1);
 	}
 
-	if (strcmp(args[3], "NORSTSTOP") == 0)
+	if (strcmp(CMD_ARGV[3], "NORSTSTOP") == 0)
 	{
 		optionbyte |= (1 << 2);
 	}

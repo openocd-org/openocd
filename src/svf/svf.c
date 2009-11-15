@@ -318,28 +318,28 @@ COMMAND_HANDLER(handle_svf_command)
 	svf_quiet = 0;
 	for (unsigned i = 1; i < CMD_ARGC; i++)
 	{
-		if (!strcmp(args[i], "quiet"))
+		if (!strcmp(CMD_ARGV[i], "quiet"))
 		{
 			svf_quiet = 1;
 		}
 		else
 		{
-			LOG_ERROR("unknown variant for svf: %s", args[i]);
+			LOG_ERROR("unknown variant for svf: %s", CMD_ARGV[i]);
 
 			// no need to free anything now
 			return ERROR_FAIL;
 		}
 	}
 
-	if ((svf_fd = open(args[0], O_RDONLY)) < 0)
+	if ((svf_fd = open(CMD_ARGV[0], O_RDONLY)) < 0)
 	{
-		command_print(cmd_ctx, "file \"%s\" not found", args[0]);
+		command_print(cmd_ctx, "file \"%s\" not found", CMD_ARGV[0]);
 
 		// no need to free anything now
 		return ERROR_FAIL;
 	}
 
-	LOG_USER("svf processing file: \"%s\"", args[0]);
+	LOG_USER("svf processing file: \"%s\"", CMD_ARGV[0]);
 
 	// get time
 	time_ago = timeval_ms();

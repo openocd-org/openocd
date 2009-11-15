@@ -2378,17 +2378,17 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 		who = -1;
 		break;
 	case 2:
-		if ((0 == strcmp(args[0], "show")) && (0 == strcmp(args[1], "all"))) {
+		if ((0 == strcmp(CMD_ARGV[0], "show")) && (0 == strcmp(CMD_ARGV[1], "all"))) {
 			who = -1;
 		} else {
 			uint32_t v32;
-			COMMAND_PARSE_NUMBER(u32, args[1], v32);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
 			who = v32;
 		}
 		break;
 	}
 
-	if (0 == strcmp("show", args[0])) {
+	if (0 == strcmp("show", CMD_ARGV[0])) {
 		if (who == -1) {
 		showall:
 			r = ERROR_OK;
@@ -2416,13 +2416,13 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (0 == strcmp("set", args[0])) {
+	if (0 == strcmp("set", CMD_ARGV[0])) {
 		r = FLASHD_SetGPNVM(&(pChip->details.bank[0]), who);
-	} else if ((0 == strcmp("clr", args[0])) ||
-			   (0 == strcmp("clear", args[0]))) { // quietly accept both
+	} else if ((0 == strcmp("clr", CMD_ARGV[0])) ||
+			   (0 == strcmp("clear", CMD_ARGV[0]))) { // quietly accept both
 		r = FLASHD_ClrGPNVM(&(pChip->details.bank[0]), who);
 	} else {
-		command_print(cmd_ctx, "Unkown command: %s", args[0]);
+		command_print(cmd_ctx, "Unkown command: %s", CMD_ARGV[0]);
 		r = ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return r;
@@ -2446,7 +2446,7 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 	{
 		// set
 		uint32_t v;
-		COMMAND_PARSE_NUMBER(u32, args[0], v);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], v);
 		if (v > 200000) {
 			// absurd slow clock of 200Khz?
 			command_print(cmd_ctx,"Absurd/illegal slow clock freq: %d\n", (int)(v));

@@ -302,12 +302,12 @@ COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 
 		for (i = 0; i < 4; i++)
 		{
-			int start = (0 == strncmp(args[i], "0x", 2)) ? 2 : 0;
+			int start = (0 == strncmp(CMD_ARGV[i], "0x", 2)) ? 2 : 0;
 
-			if (1 != sscanf(&args[i][start], "%" SCNx32 "", &flashKeys[i]))
+			if (1 != sscanf(&CMD_ARGV[i][start], "%" SCNx32 "", &flashKeys[i]))
 			{
-				command_print(cmd_ctx, "could not process flash key %s", args[i]);
-				LOG_ERROR("could not process flash key %s", args[i]);
+				command_print(cmd_ctx, "could not process flash key %s", CMD_ARGV[i]);
+				LOG_ERROR("could not process flash key %s", CMD_ARGV[i]);
 				return ERROR_INVALID_ARGUMENTS;
 			}
 		}
@@ -362,7 +362,7 @@ COMMAND_HANDLER(tms470_handle_osc_megahertz_command)
 	}
 	else if (CMD_ARGC == 1)
 	{
-		sscanf(args[0], "%d", &oscMHz);
+		sscanf(CMD_ARGV[0], "%d", &oscMHz);
 	}
 
 	if (oscMHz <= 0)
@@ -391,7 +391,7 @@ COMMAND_HANDLER(tms470_handle_plldis_command)
 	}
 	else if (CMD_ARGC == 1)
 	{
-		sscanf(args[0], "%d", &plldis);
+		sscanf(CMD_ARGV[0], "%d", &plldis);
 		plldis = plldis ? 1 : 0;
 	}
 

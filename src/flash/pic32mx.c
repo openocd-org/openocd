@@ -854,8 +854,8 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[0], address);
-	COMMAND_PARSE_NUMBER(u32, args[1], value);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 2, &bank);
@@ -864,7 +864,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 	if (address < bank->base || address >= (bank->base + bank->size))
 	{
-		command_print(cmd_ctx, "flash address '%s' is out of bounds", args[0]);
+		command_print(cmd_ctx, "flash address '%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 

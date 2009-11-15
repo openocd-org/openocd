@@ -1179,22 +1179,22 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 	etmv1_tracemode_t tracemode;
 
 	/* what parts of data access are traced? */
-	if (strcmp(args[0], "none") == 0)
+	if (strcmp(CMD_ARGV[0], "none") == 0)
 		tracemode = ETMV1_TRACE_NONE;
-	else if (strcmp(args[0], "data") == 0)
+	else if (strcmp(CMD_ARGV[0], "data") == 0)
 		tracemode = ETMV1_TRACE_DATA;
-	else if (strcmp(args[0], "address") == 0)
+	else if (strcmp(CMD_ARGV[0], "address") == 0)
 		tracemode = ETMV1_TRACE_ADDR;
-	else if (strcmp(args[0], "all") == 0)
+	else if (strcmp(CMD_ARGV[0], "all") == 0)
 		tracemode = ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR;
 	else
 	{
-		command_print(cmd_ctx, "invalid option '%s'", args[0]);
+		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[0]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	uint8_t context_id;
-	COMMAND_PARSE_NUMBER(u8, args[1], context_id);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[1], context_id);
 	switch (context_id)
 	{
 	case 0:
@@ -1210,27 +1210,27 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 		tracemode |= ETMV1_CONTEXTID_32;
 		break;
 	default:
-		command_print(cmd_ctx, "invalid option '%s'", args[1]);
+		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[1]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (strcmp(args[2], "enable") == 0)
+	if (strcmp(CMD_ARGV[2], "enable") == 0)
 		tracemode |= ETMV1_CYCLE_ACCURATE;
-	else if (strcmp(args[2], "disable") == 0)
+	else if (strcmp(CMD_ARGV[2], "disable") == 0)
 		tracemode |= 0;
 	else
 	{
-		command_print(cmd_ctx, "invalid option '%s'", args[2]);
+		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[2]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (strcmp(args[3], "enable") == 0)
+	if (strcmp(CMD_ARGV[3], "enable") == 0)
 		tracemode |= ETMV1_BRANCH_OUTPUT;
-	else if (strcmp(args[3], "disable") == 0)
+	else if (strcmp(CMD_ARGV[3], "disable") == 0)
 		tracemode |= 0;
 	else
 	{
-		command_print(cmd_ctx, "invalid option '%s'", args[3]);
+		command_print(cmd_ctx, "invalid option '%s'", CMD_ARGV[3]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -1377,10 +1377,10 @@ COMMAND_HANDLER(handle_etm_config_command)
 	if (CMD_ARGC != 5)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	target = get_target(args[0]);
+	target = get_target(CMD_ARGV[0]);
 	if (!target)
 	{
-		LOG_ERROR("target '%s' not defined", args[0]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -1404,7 +1404,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	 *    "normal full" ...
 	 */
 	uint8_t port_width;
-	COMMAND_PARSE_NUMBER(u8, args[1], port_width);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[1], port_width);
 	switch (port_width)
 	{
 		/* before ETMv3.0 */
@@ -1438,39 +1438,39 @@ COMMAND_HANDLER(handle_etm_config_command)
 			break;
 		default:
 			command_print(cmd_ctx,
-				"unsupported ETM port width '%s'", args[1]);
+				"unsupported ETM port width '%s'", CMD_ARGV[1]);
 			return ERROR_FAIL;
 	}
 
-	if (strcmp("normal", args[2]) == 0)
+	if (strcmp("normal", CMD_ARGV[2]) == 0)
 	{
 		portmode |= ETM_PORT_NORMAL;
 	}
-	else if (strcmp("multiplexed", args[2]) == 0)
+	else if (strcmp("multiplexed", CMD_ARGV[2]) == 0)
 	{
 		portmode |= ETM_PORT_MUXED;
 	}
-	else if (strcmp("demultiplexed", args[2]) == 0)
+	else if (strcmp("demultiplexed", CMD_ARGV[2]) == 0)
 	{
 		portmode |= ETM_PORT_DEMUXED;
 	}
 	else
 	{
-		command_print(cmd_ctx, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", args[2]);
+		command_print(cmd_ctx, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", CMD_ARGV[2]);
 		return ERROR_FAIL;
 	}
 
-	if (strcmp("half", args[3]) == 0)
+	if (strcmp("half", CMD_ARGV[3]) == 0)
 	{
 		portmode |= ETM_PORT_HALF_CLOCK;
 	}
-	else if (strcmp("full", args[3]) == 0)
+	else if (strcmp("full", CMD_ARGV[3]) == 0)
 	{
 		portmode |= ETM_PORT_FULL_CLOCK;
 	}
 	else
 	{
-		command_print(cmd_ctx, "unsupported ETM port clocking '%s', must be 'full' or 'half'", args[3]);
+		command_print(cmd_ctx, "unsupported ETM port clocking '%s', must be 'full' or 'half'", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
@@ -1482,7 +1482,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 
 	for (i = 0; etm_capture_drivers[i]; i++)
 	{
-		if (strcmp(args[4], etm_capture_drivers[i]->name) == 0)
+		if (strcmp(CMD_ARGV[4], etm_capture_drivers[i]->name) == 0)
 		{
 			int retval;
 			if ((retval = etm_capture_drivers[i]->register_commands(cmd_ctx)) != ERROR_OK)
@@ -1501,7 +1501,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	{
 		/* no supported capture driver found, don't register an ETM */
 		free(etm_ctx);
-		LOG_ERROR("trace capture driver '%s' not found", args[4]);
+		LOG_ERROR("trace capture driver '%s' not found", CMD_ARGV[4]);
 		return ERROR_FAIL;
 	}
 
@@ -1766,14 +1766,14 @@ COMMAND_HANDLER(handle_etm_image_command)
 	if (CMD_ARGC >= 2)
 	{
 		etm_ctx->image->base_address_set = 1;
-		COMMAND_PARSE_NUMBER(int, args[1], etm_ctx->image->base_address);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], etm_ctx->image->base_address);
 	}
 	else
 	{
 		etm_ctx->image->base_address_set = 0;
 	}
 
-	if (image_open(etm_ctx->image, args[0], (CMD_ARGC >= 3) ? args[2] : NULL) != ERROR_OK)
+	if (image_open(etm_ctx->image, CMD_ARGV[0], (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL) != ERROR_OK)
 	{
 		free(etm_ctx->image);
 		etm_ctx->image = NULL;
@@ -1829,7 +1829,7 @@ COMMAND_HANDLER(handle_etm_dump_command)
 	if (etm_ctx->trace_depth == 0)
 		etm_ctx->capture_driver->read_trace(etm_ctx);
 
-	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
+	if (fileio_open(&file, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
 		return ERROR_FAIL;
 	}
@@ -1886,7 +1886,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 		return ERROR_FAIL;
 	}
 
-	if (fileio_open(&file, args[0], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
+	if (fileio_open(&file, CMD_ARGV[0], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
 		return ERROR_FAIL;
 	}
@@ -1959,7 +1959,7 @@ COMMAND_HANDLER(handle_etm_trigger_percent_command)
 	if (CMD_ARGC > 0)
 	{
 		uint32_t new_value;
-		COMMAND_PARSE_NUMBER(u32, args[0], new_value);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], new_value);
 
 		if ((new_value < 2) || (new_value > 100))
 		{

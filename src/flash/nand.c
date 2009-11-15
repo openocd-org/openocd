@@ -220,12 +220,12 @@ COMMAND_HANDLER(handle_nand_device_command)
 	{
 		struct nand_device *p, *c;
 
-		if (strcmp(args[0], nand_flash_controllers[i]->name) == 0)
+		if (strcmp(CMD_ARGV[0], nand_flash_controllers[i]->name) == 0)
 		{
 			/* register flash specific commands */
 			if ((retval = nand_flash_controllers[i]->register_commands(cmd_ctx)) != ERROR_OK)
 			{
-				LOG_ERROR("couldn't register '%s' commands", args[0]);
+				LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
 				return retval;
 			}
 
@@ -269,7 +269,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 	/* no valid NAND controller was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in controllers)
 	 */
-	LOG_ERROR("No valid NAND flash controller found (%s)", args[0]);
+	LOG_ERROR("No valid NAND flash controller found (%s)", CMD_ARGV[0]);
 	LOG_ERROR("compiled-in NAND flash controllers:");
 	for (i = 0; nand_flash_controllers[i]; i++)
 	{
@@ -307,7 +307,7 @@ struct nand_device *get_nand_device_by_num(int num)
 COMMAND_HELPER(nand_command_get_device_by_num, unsigned name_index,
 		struct nand_device **nand)
 {
-	const char *str = args[name_index];
+	const char *str = CMD_ARGV[name_index];
 	unsigned num;
 	COMMAND_PARSE_NUMBER(uint, str, num);
 	*nand = get_nand_device_by_num(num);
@@ -1090,19 +1090,19 @@ COMMAND_HANDLER(handle_nand_info_command)
 		last = INT32_MAX;
 		break;
 	case 2:
-		COMMAND_PARSE_NUMBER(int, args[1], i);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], i);
 		first = last = i;
 		i = 0;
 		break;
 	case 3:
-		COMMAND_PARSE_NUMBER(int, args[1], first);
-		COMMAND_PARSE_NUMBER(int, args[2], last);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], first);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
 		break;
 	}
 
 	if (NULL == p->device)
 	{
-		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		command_print(cmd_ctx, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -1193,11 +1193,11 @@ COMMAND_HANDLER(handle_nand_erase_command)
 	if (CMD_ARGC == 3) {
 		unsigned long size = p->erase_size * p->num_blocks;
 
-		COMMAND_PARSE_NUMBER(ulong, args[1], offset);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[1], offset);
 		if ((offset % p->erase_size) != 0 || offset >= size)
 			return ERROR_INVALID_ARGUMENTS;
 
-		COMMAND_PARSE_NUMBER(ulong, args[2], length);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], length);
 		if ((length == 0) || (length % p->erase_size) != 0
 				|| (length + offset) > size)
 			return ERROR_INVALID_ARGUMENTS;
@@ -1215,7 +1215,7 @@ COMMAND_HANDLER(handle_nand_erase_command)
 		command_print(cmd_ctx, "erased blocks %lu to %lu "
 				"on NAND flash device #%s '%s'",
 				offset, offset + length,
-				args[0], p->device->name);
+				CMD_ARGV[0], p->device->name);
 	}
 	else if (retval == ERROR_NAND_OPERATION_FAILED)
 	{
@@ -1250,12 +1250,12 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 		unsigned long offset;
 		unsigned long length;
 
-		COMMAND_PARSE_NUMBER(ulong, args[1], offset);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[1], offset);
 		if (offset % p->erase_size)
 			return ERROR_INVALID_ARGUMENTS;
 		offset /= p->erase_size;
 
-		COMMAND_PARSE_NUMBER(ulong, args[2], length);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], length);
 		if (length % p->erase_size)
 			return ERROR_INVALID_ARGUMENTS;
 
@@ -1399,14 +1399,14 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 
 	if (NULL == nand->device)
 	{
-		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		command_print(cmd_ctx, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[2], state->address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], state->address);
 	if (need_size)
 	{
-			COMMAND_PARSE_NUMBER(u32, args[2], state->size);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], state->size);
 			if (state->size % nand->page_size)
 			{
 				command_print(cmd_ctx, "only page-aligned sizes are supported");
@@ -1418,23 +1418,23 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 	{
 		for (unsigned i = minargs; i < CMD_ARGC; i++)
 		{
-			if (!strcmp(args[i], "oob_raw"))
+			if (!strcmp(CMD_ARGV[i], "oob_raw"))
 				state->oob_format |= NAND_OOB_RAW;
-			else if (!strcmp(args[i], "oob_only"))
+			else if (!strcmp(CMD_ARGV[i], "oob_only"))
 				state->oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
-			else if (sw_ecc && !strcmp(args[i], "oob_softecc"))
+			else if (sw_ecc && !strcmp(CMD_ARGV[i], "oob_softecc"))
 				state->oob_format |= NAND_OOB_SW_ECC;
-			else if (sw_ecc && !strcmp(args[i], "oob_softecc_kw"))
+			else if (sw_ecc && !strcmp(CMD_ARGV[i], "oob_softecc_kw"))
 				state->oob_format |= NAND_OOB_SW_ECC_KW;
 			else
 			{
-				command_print(cmd_ctx, "unknown option: %s", args[i]);
+				command_print(cmd_ctx, "unknown option: %s", CMD_ARGV[i]);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		}
 	}
 
-	retval = nand_fileio_start(cmd_ctx, nand, args[1], filemode, state);
+	retval = nand_fileio_start(cmd_ctx, nand, CMD_ARGV[1], filemode, state);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1528,7 +1528,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 		{
 			command_print(cmd_ctx, "failed writing file %s "
 				"to NAND flash %s at offset 0x%8.8" PRIx32,
-				args[1], args[0], s.address);
+				CMD_ARGV[1], CMD_ARGV[0], s.address);
 			return nand_fileio_cleanup(&s);
 		}
 		s.address += s.page_size;
@@ -1538,7 +1538,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 	{
 		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to "
 				"offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
-				args[1], args[0], s.address, duration_elapsed(&s.bench),
+				CMD_ARGV[1], CMD_ARGV[0], s.address, duration_elapsed(&s.bench),
 				duration_kbps(&s.bench, total_bytes));
 	}
 	return ERROR_OK;
@@ -1598,7 +1598,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 	{
 		command_print(cmd_ctx, "verified file %s in NAND flash %s "
 				"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
-				args[1], args[0], dev.address, duration_elapsed(&file.bench),
+				CMD_ARGV[1], CMD_ARGV[0], dev.address, duration_elapsed(&file.bench),
 				duration_kbps(&file.bench, dev.size));
 	}
 
@@ -1658,15 +1658,15 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 
 	if (NULL == p->device)
 	{
-		command_print(cmd_ctx, "#%s: not probed", args[0]);
+		command_print(cmd_ctx, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
 	if (CMD_ARGC == 2)
 	{
-		if (strcmp("enable", args[1]) == 0)
+		if (strcmp("enable", CMD_ARGV[1]) == 0)
 			p->use_raw = 1;
-		else if (strcmp("disable", args[1]) == 0)
+		else if (strcmp("disable", CMD_ARGV[1]) == 0)
 			p->use_raw = 0;
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;

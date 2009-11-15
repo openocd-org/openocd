@@ -127,23 +127,23 @@ FLASH_BANK_COMMAND_HANDLER(str7x_flash_bank_command)
 	str7x_info->busy_bits = (FLASH_LOCK | FLASH_BSYA1 | FLASH_BSYA0);
 	str7x_info->disable_bit = (1 << 1);
 
-	if (strcmp(args[6], "STR71x") == 0)
+	if (strcmp(CMD_ARGV[6], "STR71x") == 0)
 	{
 		str7x_info->register_base = 0x40100000;
 	}
-	else if (strcmp(args[6], "STR73x") == 0)
+	else if (strcmp(CMD_ARGV[6], "STR73x") == 0)
 	{
 		str7x_info->register_base = 0x80100000;
 		str7x_info->busy_bits = (FLASH_LOCK | FLASH_BSYA0);
 	}
-	else if (strcmp(args[6], "STR75x") == 0)
+	else if (strcmp(CMD_ARGV[6], "STR75x") == 0)
 	{
 		str7x_info->register_base = 0x20100000;
 		str7x_info->disable_bit = (1 << 0);
 	}
 	else
 	{
-		LOG_ERROR("unknown STR7x variant: '%s'", args[6]);
+		LOG_ERROR("unknown STR7x variant: '%s'", CMD_ARGV[6]);
 		free(str7x_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}

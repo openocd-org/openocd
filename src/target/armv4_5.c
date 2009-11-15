@@ -424,11 +424,11 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (strcmp(args[0], "arm") == 0)
+		if (strcmp(CMD_ARGV[0], "arm") == 0)
 		{
 			armv4_5->core_state = ARMV4_5_STATE_ARM;
 		}
-		if (strcmp(args[0], "thumb") == 0)
+		if (strcmp(CMD_ARGV[0], "thumb") == 0)
 		{
 			armv4_5->core_state = ARMV4_5_STATE_THUMB;
 		}
@@ -455,15 +455,15 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 
 	switch (CMD_ARGC) {
 	case 3:
-		if (strcmp(args[2], "thumb") != 0)
+		if (strcmp(CMD_ARGV[2], "thumb") != 0)
 			goto usage;
 		thumb = 1;
 		/* FALL THROUGH */
 	case 2:
-		COMMAND_PARSE_NUMBER(int, args[1], count);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], count);
 		/* FALL THROUGH */
 	case 1:
-		COMMAND_PARSE_NUMBER(u32, args[0], address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 		if (address & 0x01) {
 			if (!thumb) {
 				command_print(cmd_ctx, "Disassemble as Thumb");

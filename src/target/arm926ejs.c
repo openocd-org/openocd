@@ -728,10 +728,10 @@ COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(int, args[0], opcode_1);
-	COMMAND_PARSE_NUMBER(int, args[1], opcode_2);
-	COMMAND_PARSE_NUMBER(int, args[2], CRn);
-	COMMAND_PARSE_NUMBER(int, args[3], CRm);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], opcode_1);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], opcode_2);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], CRn);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], CRm);
 
 	retval = arm926ejs_verify_pointer(cmd_ctx, arm926ejs);
 	if (retval != ERROR_OK)
@@ -761,7 +761,7 @@ COMMAND_HANDLER(arm926ejs_handle_cp15_command)
 	else
 	{
 		uint32_t value;
-		COMMAND_PARSE_NUMBER(u32, args[4], value);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], value);
 		if ((retval = arm926ejs->write_cp15(target, opcode_1, opcode_2, CRn, CRm, value)) != ERROR_OK)
 		{
 			command_print(cmd_ctx, "couldn't access register");

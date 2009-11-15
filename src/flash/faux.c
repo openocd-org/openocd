@@ -76,10 +76,10 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 		bank->sectors[i].is_protected = 0;
 	}
 
-	info->target = get_target(args[5]);
+	info->target = get_target(CMD_ARGV[5]);
 	if (info->target == NULL)
 	{
-		LOG_ERROR("target '%s' not defined", args[5]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[5]);
 		free(info->memory);
 		free(info);
 		return ERROR_FAIL;

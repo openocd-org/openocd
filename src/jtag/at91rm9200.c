@@ -185,7 +185,7 @@ static int at91rm9200_speed(int speed)
 	return ERROR_OK;
 }
 
-static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, char *cmd, char **CMD_ARGV, int argc)
 {
 	if (CMD_ARGC == 0)
 		return ERROR_OK;
@@ -193,8 +193,8 @@ static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, cha
 	/* only if the device name wasn't overwritten by cmdline */
 	if (at91rm9200_device == 0)
 	{
-		at91rm9200_device = malloc(strlen(args[0]) + sizeof(char));
-		strcpy(at91rm9200_device, args[0]);
+		at91rm9200_device = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
+		strcpy(at91rm9200_device, CMD_ARGV[0]);
 	}
 
 	return ERROR_OK;

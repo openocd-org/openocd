@@ -225,15 +225,15 @@ COMMAND_HANDLER(handle_xsvf_command)
 		return ERROR_FAIL;
 	}
 
-	/* we mess with args starting point below, snapshot filename here */
-	const char *filename = args[1];
+	/* we mess with CMD_ARGV starting point below, snapshot filename here */
+	const char *filename = CMD_ARGV[1];
 
-	if (strcmp(args[0], "plain") != 0)
+	if (strcmp(CMD_ARGV[0], "plain") != 0)
 	{
-		tap = jtag_tap_by_string(args[0]);
+		tap = jtag_tap_by_string(CMD_ARGV[0]);
 		if (!tap)
 		{
-			command_print(cmd_ctx, "Tap: %s unknown", args[0]);
+			command_print(cmd_ctx, "Tap: %s unknown", CMD_ARGV[0]);
 			return ERROR_FAIL;
 		}
 	}
@@ -245,14 +245,14 @@ COMMAND_HANDLER(handle_xsvf_command)
 	}
 
 	/* if this argument is present, then interpret xruntest counts as TCK cycles rather than as usecs */
-	if ((CMD_ARGC > 2) && (strcmp(args[2], "virt2") == 0))
+	if ((CMD_ARGC > 2) && (strcmp(CMD_ARGV[2], "virt2") == 0))
 	{
 		runtest_requires_tck = 1;
 		--CMD_ARGC;
-		++args;
+		++CMD_ARGV;
 	}
 
-	if ((CMD_ARGC > 2) && (strcmp(args[2], "quiet") == 0))
+	if ((CMD_ARGC > 2) && (strcmp(CMD_ARGV[2], "quiet") == 0))
 	{
 		verbose = 0;
 	}

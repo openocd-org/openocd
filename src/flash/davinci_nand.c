@@ -648,36 +648,36 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 	if (CMD_ARGC < 5) {
 		LOG_ERROR("parameters: %s target "
 				"chip_addr hwecc_mode aemif_addr",
-				args[0]);
+				CMD_ARGV[0]);
 		goto fail;
 	}
 
-	target = get_target(args[1]);
+	target = get_target(CMD_ARGV[1]);
 	if (!target) {
-		LOG_ERROR("invalid target %s", args[1]);
+		LOG_ERROR("invalid target %s", CMD_ARGV[1]);
 		goto fail;
 	}
 
-	COMMAND_PARSE_NUMBER(ulong, args[2], chip);
+	COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], chip);
 	if (chip == 0) {
-		LOG_ERROR("Invalid NAND chip address %s", args[2]);
+		LOG_ERROR("Invalid NAND chip address %s", CMD_ARGV[2]);
 		goto fail;
 	}
 
-	if (strcmp(args[3], "hwecc1") == 0)
+	if (strcmp(CMD_ARGV[3], "hwecc1") == 0)
 		eccmode = HWECC1;
-	else if (strcmp(args[3], "hwecc4") == 0)
+	else if (strcmp(CMD_ARGV[3], "hwecc4") == 0)
 		eccmode = HWECC4;
-	else if (strcmp(args[3], "hwecc4_infix") == 0)
+	else if (strcmp(CMD_ARGV[3], "hwecc4_infix") == 0)
 		eccmode = HWECC4_INFIX;
 	else {
-		LOG_ERROR("Invalid ecc mode %s", args[3]);
+		LOG_ERROR("Invalid ecc mode %s", CMD_ARGV[3]);
 		goto fail;
 	}
 
-	COMMAND_PARSE_NUMBER(ulong, args[4], aemif);
+	COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[4], aemif);
 	if (aemif == 0) {
-		LOG_ERROR("Invalid AEMIF controller address %s", args[4]);
+		LOG_ERROR("Invalid AEMIF controller address %s", CMD_ARGV[4]);
 		goto fail;
 	}
 

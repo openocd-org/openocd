@@ -756,7 +756,7 @@ COMMAND_HANDLER(presto_handle_serial_command)
 	{
 		if (presto_serial)
 			free(presto_serial);
-		presto_serial = strdup(args[0]);
+		presto_serial = strdup(CMD_ARGV[0]);
 	}
 	else
 	{

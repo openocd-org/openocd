@@ -548,7 +548,7 @@ COMMAND_HANDLER(gw16012_handle_parport_port_command)
 		/* only if the port wasn't overwritten by cmdline */
 		if (gw16012_port == 0)
 		{
-			COMMAND_PARSE_NUMBER(u16, args[0], gw16012_port);
+			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], gw16012_port);
 		}
 		else
 		{

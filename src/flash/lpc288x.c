@@ -180,7 +180,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc288x_flash_bank_command)
 
 	/* part wasn't probed for info yet */
 	lpc288x_info->cidr = 0;
-	COMMAND_PARSE_NUMBER(u32, args[6], lpc288x_info->cclk);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], lpc288x_info->cclk);
 
 	return ERROR_OK;
 }

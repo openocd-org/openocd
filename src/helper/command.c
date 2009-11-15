@@ -142,7 +142,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	// turn words[0] into args[-1] with this cast
+	// turn words[0] into CMD_ARGV[-1] with this cast
 	retval = run_command(context, c, (const char **)words + 1, nwords);
 
 	log_remove_callback(tcl_output, tclOutput);
@@ -725,7 +725,7 @@ COMMAND_HANDLER(handle_sleep_command)
 	bool busy = false;
 	if (CMD_ARGC == 2)
 	{
-		if (strcmp(args[1], "busy") == 0)
+		if (strcmp(CMD_ARGV[1], "busy") == 0)
 			busy = true;
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -734,7 +734,7 @@ COMMAND_HANDLER(handle_sleep_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned long duration = 0;
-	int retval = parse_ulong(args[0], &duration);
+	int retval = parse_ulong(CMD_ARGV[0], &duration);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -758,7 +758,7 @@ COMMAND_HANDLER(handle_fast_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	fast_and_dangerous = strcmp("enable", args[0]) == 0;
+	fast_and_dangerous = strcmp("enable", CMD_ARGV[0]) == 0;
 
 	return ERROR_OK;
 }

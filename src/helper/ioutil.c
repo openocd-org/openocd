@@ -65,7 +65,7 @@ COMMAND_HANDLER(handle_rm_command)
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (unlink(args[0]) != 0)
+	if (unlink(CMD_ARGV[0]) != 0)
 	{
 		command_print(cmd_ctx, "failed: %d", errno);
 	}
@@ -145,7 +145,7 @@ COMMAND_HANDLER(handle_cat_command)
 	void *data;
 	size_t len;
 
-	int retval = loadFile(args[0], &data, &len);
+	int retval = loadFile(CMD_ARGV[0], &data, &len);
 	if (retval == ERROR_OK)
 	{
 		command_print(cmd_ctx, "%s", (char *)data);
@@ -153,7 +153,7 @@ COMMAND_HANDLER(handle_cat_command)
 	}
 	else
 	{
-		command_print(cmd_ctx, "%s not found %d", args[0], retval);
+		command_print(cmd_ctx, "%s not found %d", CMD_ARGV[0], retval);
 	}
 
 	return ERROR_OK;
@@ -168,7 +168,7 @@ COMMAND_HANDLER(handle_trunc_command)
 	}
 
 	FILE *config_file = NULL;
-	config_file = fopen(args[0], "w");
+	config_file = fopen(CMD_ARGV[0], "w");
 	if (config_file != NULL)
 		fclose(config_file);
 
@@ -211,7 +211,7 @@ COMMAND_HANDLER(handle_append_command)
 
 	int retval = ERROR_FAIL;
 	FILE *config_file = NULL;
-	config_file = fopen(args[0], "a");
+	config_file = fopen(CMD_ARGV[0], "a");
 	if (config_file != NULL)
 	{
 		fseek(config_file, 0, SEEK_END);
@@ -219,7 +219,7 @@ COMMAND_HANDLER(handle_append_command)
 		unsigned i;
 		for (i = 1; i < CMD_ARGC; i++)
 		{
-			if (fwrite(args[i], 1, strlen(args[i]), config_file) != strlen(args[i]))
+			if (fwrite(CMD_ARGV[i], 1, strlen(CMD_ARGV[i]), config_file) != strlen(CMD_ARGV[i]))
 				break;
 			if (i != CMD_ARGC - 1)
 			{
@@ -250,11 +250,11 @@ COMMAND_HANDLER(handle_cp_command)
 	void *data;
 	size_t len;
 
-	int retval = loadFile(args[0], &data, &len);
+	int retval = loadFile(CMD_ARGV[0], &data, &len);
 	if (retval != ERROR_OK)
 		return retval;
 
-	FILE *f = fopen(args[1], "wb");
+	FILE *f = fopen(CMD_ARGV[1], "wb");
 	if (f == NULL)
 		retval = ERROR_INVALID_ARGUMENTS;
 
@@ -286,7 +286,7 @@ COMMAND_HANDLER(handle_cp_command)
 
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "Copied %s to %s", args[0], args[1]);
+		command_print(cmd_ctx, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
 	} else
 	{
 		command_print(cmd_ctx, "Failed: %d", retval);
@@ -298,7 +298,7 @@ COMMAND_HANDLER(handle_cp_command)
 		fclose(f);
 
 	if (retval != ERROR_OK)
-		unlink(args[1]);
+		unlink(CMD_ARGV[1]);
 
 	return retval;
 }

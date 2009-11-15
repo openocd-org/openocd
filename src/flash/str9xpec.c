@@ -934,7 +934,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 
 	str9xpec_info = bank->driver_priv;
 
-	if (strcmp(args[1], "bank1") == 0)
+	if (strcmp(CMD_ARGV[1], "bank1") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_CSMAPBIT, 1, 1);
 	}
@@ -963,7 +963,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 
 	str9xpec_info = bank->driver_priv;
 
-	if (strcmp(args[1], "2.7v") == 0)
+	if (strcmp(CMD_ARGV[1], "2.7v") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_LVDTHRESBIT, 1, 1);
 	}
@@ -992,7 +992,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 
 	str9xpec_info = bank->driver_priv;
 
-	if (strcmp(args[1], "vdd_vddq") == 0)
+	if (strcmp(CMD_ARGV[1], "vdd_vddq") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_LVDSELBIT, 1, 1);
 	}
@@ -1021,7 +1021,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 
 	str9xpec_info = bank->driver_priv;
 
-	if (strcmp(args[1], "vdd_vddq") == 0)
+	if (strcmp(CMD_ARGV[1], "vdd_vddq") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_LVDWARNBIT, 1, 1);
 	}

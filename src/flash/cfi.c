@@ -613,8 +613,8 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	}
 
 	uint16_t chip_width, bus_width;
-	COMMAND_PARSE_NUMBER(u16, args[3], bus_width);
-	COMMAND_PARSE_NUMBER(u16, args[4], chip_width);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[3], bus_width);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[4], chip_width);
 
 	if ((chip_width > CFI_MAX_CHIP_WIDTH)
 			|| (bus_width > CFI_MAX_BUS_WIDTH))
@@ -635,11 +635,11 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 
 	for (unsigned i = 6; i < CMD_ARGC; i++)
 	{
-		if (strcmp(args[i], "x16_as_x8") == 0)
+		if (strcmp(CMD_ARGV[i], "x16_as_x8") == 0)
 		{
 			cfi_info->x16_as_x8 = 1;
 		}
-		else if (strcmp(args[i], "jedec_probe") == 0)
+		else if (strcmp(CMD_ARGV[i], "jedec_probe") == 0)
 		{
 			cfi_info->jedec_probe = 1;
 		}

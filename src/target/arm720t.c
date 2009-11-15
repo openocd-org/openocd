@@ -432,7 +432,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	if (CMD_ARGC >= 1)
 	{
 		uint32_t opcode;
-		COMMAND_PARSE_NUMBER(u32, args[0], opcode);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], opcode);
 
 		if (CMD_ARGC == 1)
 		{
@@ -453,7 +453,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 		else if (CMD_ARGC == 2)
 		{
 			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, args[1], value);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 			if ((retval = arm720t_write_cp15(target, opcode, value)) != ERROR_OK)
 			{

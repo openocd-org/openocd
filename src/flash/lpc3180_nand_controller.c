@@ -37,15 +37,15 @@ NAND_DEVICE_COMMAND_HANDLER(lpc3180_nand_device_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	struct target *target = get_target(args[1]);
+	struct target *target = get_target(CMD_ARGV[1]);
 	if (NULL == target)
 	{
-		LOG_ERROR("target '%s' not defined", args[1]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 
 	uint32_t osc_freq;
-	COMMAND_PARSE_NUMBER(u32, args[2], osc_freq);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], osc_freq);
 
 	struct lpc3180_nand_controller *lpc3180_info;
 	lpc3180_info = malloc(sizeof(struct lpc3180_nand_controller));
@@ -842,11 +842,11 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	}
 
 	unsigned num;
-	COMMAND_PARSE_NUMBER(uint, args[1], num);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], num);
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand)
 	{
-		command_print(cmd_ctx, "nand device '#%s' is out of bounds", args[0]);
+		command_print(cmd_ctx, "nand device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -854,11 +854,11 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 
 	if (CMD_ARGC == 2)
 	{
-		if (strcmp(args[1], "mlc") == 0)
+		if (strcmp(CMD_ARGV[1], "mlc") == 0)
 		{
 			lpc3180_info->selected_controller = LPC3180_MLC_CONTROLLER;
 		}
-		else if (strcmp(args[1], "slc") == 0)
+		else if (strcmp(CMD_ARGV[1], "slc") == 0)
 		{
 			lpc3180_info->selected_controller = LPC3180_SLC_CONTROLLER;
 		}

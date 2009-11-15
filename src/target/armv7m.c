@@ -771,7 +771,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 		apsel = swjdp->apsel;
 		break;
 	case 1:
-		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -834,7 +834,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 		apsel = swjdp->apsel;
 		break;
 	case 1:
-		COMMAND_PARSE_NUMBER(u32, args[0], apsel);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;

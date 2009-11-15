@@ -270,7 +270,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (!strcmp(args[0], "enable") || !strcmp(args[0], "charmsg"))
+		if (!strcmp(CMD_ARGV[0], "enable") || !strcmp(CMD_ARGV[0], "charmsg"))
 		{
 			/* don't register if this command context is already receiving */
 			if (!receiving)
@@ -278,9 +278,9 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 				receiving = 1;
 				add_debug_msg_receiver(cmd_ctx, target);
 			}
-			charmsg_mode = !strcmp(args[0], "charmsg");
+			charmsg_mode = !strcmp(CMD_ARGV[0], "charmsg");
 		}
-		else if (!strcmp(args[0], "disable"))
+		else if (!strcmp(CMD_ARGV[0], "disable"))
 		{
 			/* no need to delete a receiver if none is registered */
 			if (receiving)

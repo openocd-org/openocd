@@ -143,14 +143,14 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 	}
 
 	nand->controller_priv = hw;
-	hw->target = get_target(args[1]);
+	hw->target = get_target(CMD_ARGV[1]);
 	if (!hw->target) {
-		LOG_ERROR("target '%s' not defined", args[1]);
+		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
 		free(hw);
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, args[2], base);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], base);
 	cle = 0;
 	ale = 1;
 

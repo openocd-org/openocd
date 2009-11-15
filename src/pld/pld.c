@@ -70,14 +70,14 @@ COMMAND_HANDLER(handle_pld_device_command)
 
 	for (i = 0; pld_drivers[i]; i++)
 	{
-		if (strcmp(args[0], pld_drivers[i]->name) == 0)
+		if (strcmp(CMD_ARGV[0], pld_drivers[i]->name) == 0)
 		{
 			struct pld_device *p, *c;
 
 			/* register pld specific commands */
 			if (pld_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
 			{
-				LOG_ERROR("couldn't register '%s' commands", args[0]);
+				LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
 				exit(-1);
 			}
 
@@ -88,7 +88,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 			int retval = CALL_COMMAND_HANDLER(pld_drivers[i]->pld_device_command, c);
 			if (ERROR_OK != retval)
 			{
-				LOG_ERROR("'%s' driver rejected pld device", args[0]);
+				LOG_ERROR("'%s' driver rejected pld device", CMD_ARGV[0]);
 				free(c);
 				return ERROR_OK;
 			}
@@ -113,7 +113,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 	/* no matching pld driver found */
 	if (!found)
 	{
-		LOG_ERROR("pld driver '%s' not found", args[0]);
+		LOG_ERROR("pld driver '%s' not found", CMD_ARGV[0]);
 		exit(-1);
 	}
 
@@ -154,18 +154,18 @@ COMMAND_HANDLER(handle_pld_load_command)
 	}
 
 	unsigned dev_id;
-	COMMAND_PARSE_NUMBER(uint, args[0], dev_id);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], dev_id);
 	p = get_pld_device_by_num(dev_id);
 	if (!p)
 	{
-		command_print(cmd_ctx, "pld device '#%s' is out of bounds", args[0]);
+		command_print(cmd_ctx, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
-	if ((retval = p->driver->load(p, args[1])) != ERROR_OK)
+	if ((retval = p->driver->load(p, CMD_ARGV[1])) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "failed loading file %s to pld device %u",
-			args[1], dev_id);
+			CMD_ARGV[1], dev_id);
 		switch (retval)
 		{
 		}
@@ -177,7 +177,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 		timeval_subtract(&duration, &end, &start);
 
 		command_print(cmd_ctx, "loaded file %s to pld device %u in %jis %jius",
-			args[1], dev_id,
+			CMD_ARGV[1], dev_id,
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
 
