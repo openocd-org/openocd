@@ -198,11 +198,11 @@ struct flash_bank *get_flash_bank_by_num(int num)
 	return p;
 }
 
-int flash_command_get_bank_by_num(
-	struct command_context *cmd_ctx, const char *str, struct flash_bank **bank)
+COMMAND_HELPER(flash_command_get_bank_by_num,
+	unsigned name_index, struct flash_bank **bank)
 {
 	unsigned bank_num;
-	COMMAND_PARSE_NUMBER(uint, str, bank_num);
+	COMMAND_PARSE_NUMBER(uint, args[name_index], bank_num);
 
 	*bank = get_flash_bank_by_num(bank_num);
 	if (!*bank)
@@ -403,7 +403,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 	}
 
 	struct flash_bank *p;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -491,7 +491,7 @@ COMMAND_HANDLER(handle_flash_protect_check_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *p;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -821,7 +821,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	duration_start(&bench);
 
 	struct flash_bank *p;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &p);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 

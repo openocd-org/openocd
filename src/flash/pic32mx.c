@@ -684,7 +684,7 @@ COMMAND_HANDLER(pic32mx_handle_lock_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -730,7 +730,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -820,7 +820,7 @@ COMMAND_HANDLER(pic32mx_handle_chip_erase_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -858,7 +858,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 	COMMAND_PARSE_NUMBER(u32, args[1], value);
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[2], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 2, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 

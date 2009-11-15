@@ -318,13 +318,13 @@ struct flash_bank *get_flash_bank_by_num(int num);
 /**
  * Retreives @a bank from a command argument, reporting errors parsing
  * the bank identifier or retreiving the specified bank.
- * @param cmd_ctx The command context for reporting errors.
- * @param str The string containing the bank identifier.
+ * @param name_index The index to the string in args containing the
+ * bank identifier.
  * @param bank On output, contians a pointer to the bank or NULL.
  * @returns ERROR_OK on success, or an error indicating the problem.
  */
-int flash_command_get_bank_by_num(struct command_context *cmd_ctx,
-		const char *str, struct flash_bank **bank);
+COMMAND_HELPER(flash_command_get_bank_by_num, unsigned name_index,
+		struct flash_bank **bank);
 /**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.
  * @param num The flash bank number.

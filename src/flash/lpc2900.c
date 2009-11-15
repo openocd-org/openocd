@@ -544,7 +544,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -589,7 +589,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -660,7 +660,7 @@ COMMAND_HANDLER(lpc2900_handle_password_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -695,7 +695,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -806,7 +806,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 
 	/* Get the bank descriptor */
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -905,7 +905,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 
 	/* Get the bank descriptor */
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 

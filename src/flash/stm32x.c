@@ -905,7 +905,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -951,7 +951,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -995,7 +995,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1051,7 +1051,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1160,7 +1160,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = flash_command_get_bank_by_num(cmd_ctx, args[0], &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
