@@ -21,5 +21,6 @@ struct arm_nand_data {
 };
 
 int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size);
+int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size);
 
 #endif  /* __ARM_NANDIO_H */
