@@ -3626,8 +3626,9 @@ struct target_type xscale_target =
 	.read_memory = xscale_read_memory,
 	.write_memory = xscale_write_memory,
 	.bulk_write_memory = xscale_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.checksum_memory = arm_checksum_memory,
+	.blank_check_memory = arm_blank_check_memory,
 
 	.run_algorithm = armv4_5_run_algorithm,
 

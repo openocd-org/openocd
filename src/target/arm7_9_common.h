@@ -143,8 +143,6 @@ int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
 int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer);
-int arm7_9_checksum_memory(struct target *target, uint32_t address, uint32_t count, uint32_t* checksum);
-int arm7_9_blank_check_memory(struct target *target, uint32_t address, uint32_t count, uint32_t* blank);
 
 int arm7_9_run_algorithm(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_prams, struct reg_param *reg_param, uint32_t entry_point, void *arch_info);
 

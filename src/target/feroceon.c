@@ -696,8 +696,9 @@ struct target_type feroceon_target =
 	.read_memory = arm7_9_read_memory,
 	.write_memory = arm926ejs_write_memory,
 	.bulk_write_memory = feroceon_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.checksum_memory = arm_checksum_memory,
+	.blank_check_memory = arm_blank_check_memory,
 
 	.run_algorithm = armv4_5_run_algorithm,
 
@@ -734,8 +735,9 @@ struct target_type dragonite_target =
 	.read_memory = arm7_9_read_memory,
 	.write_memory = arm7_9_write_memory,
 	.bulk_write_memory = feroceon_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.checksum_memory = arm_checksum_memory,
+	.blank_check_memory = arm_blank_check_memory,
 
 	.run_algorithm = armv4_5_run_algorithm,
 

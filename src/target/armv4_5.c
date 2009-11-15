@@ -707,6 +707,176 @@ int armv4_5_run_algorithm(struct target *target, int num_mem_params, struct mem_
 	return armv4_5_run_algorithm_inner(target, num_mem_params, mem_params, num_reg_params, reg_params, entry_point, exit_point, timeout_ms, arch_info, armv4_5_run_algorithm_completion);
 }
 
+/**
+ * Runs ARM code in the target to calculate a CRC32 checksum.
+ *
+ * \todo On ARMv5+, rely on BKPT termination for reduced overhead.
+ */
+int arm_checksum_memory(struct target *target,
+		uint32_t address, uint32_t count, uint32_t *checksum)
+{
+	struct working_area *crc_algorithm;
+	struct armv4_5_algorithm armv4_5_info;
+	struct reg_param reg_params[2];
+	int retval;
+	uint32_t i;
+
+	static const uint32_t arm_crc_code[] = {
+		0xE1A02000,		/* mov		r2, r0 */
+		0xE3E00000,		/* mov		r0, #0xffffffff */
+		0xE1A03001,		/* mov		r3, r1 */
+		0xE3A04000,		/* mov		r4, #0 */
+		0xEA00000B,		/* b		ncomp */
+		/* nbyte: */
+		0xE7D21004,		/* ldrb	r1, [r2, r4] */
+		0xE59F7030,		/* ldr		r7, CRC32XOR */
+		0xE0200C01,		/* eor		r0, r0, r1, asl 24 */
+		0xE3A05000,		/* mov		r5, #0 */
+		/* loop: */
+		0xE3500000,		/* cmp		r0, #0 */
+		0xE1A06080,		/* mov		r6, r0, asl #1 */
+		0xE2855001,		/* add		r5, r5, #1 */
+		0xE1A00006,		/* mov		r0, r6 */
+		0xB0260007,		/* eorlt	r0, r6, r7 */
+		0xE3550008,		/* cmp		r5, #8 */
+		0x1AFFFFF8,		/* bne		loop */
+		0xE2844001,		/* add		r4, r4, #1 */
+		/* ncomp: */
+		0xE1540003,		/* cmp		r4, r3 */
+		0x1AFFFFF1,		/* bne		nbyte */
+		/* end: */
+		0xEAFFFFFE,		/* b		end */
+		/* CRC32XOR: */
+		0x04C11DB7		/* .word 0x04C11DB7 */
+	};
+
+	retval = target_alloc_working_area(target,
+			sizeof(arm_crc_code), &crc_algorithm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* convert code into a buffer in target endianness */
+	for (i = 0; i < DIM(arm_crc_code); i++) {
+		retval = target_write_u32(target,
+				crc_algorithm->address + i * sizeof(uint32_t),
+				arm_crc_code[i]);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+
+	/* 20 second timeout/megabyte */
+	int timeout = 20000 * (1 + (count / (1024 * 1024)));
+
+	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
+			crc_algorithm->address,
+			crc_algorithm->address + sizeof(arm_crc_code) - 8,
+			timeout, &armv4_5_info);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("error executing ARM crc algorithm");
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		target_free_working_area(target, crc_algorithm);
+		return retval;
+	}
+
+	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+
+	target_free_working_area(target, crc_algorithm);
+
+	return ERROR_OK;
+}
+
+/**
+ * Runs ARM code in the target to check whether a memory block holds
+ * all ones.  NOR flash which has been erased, and thus may be written,
+ * holds all ones.
+ *
+ * \todo On ARMv5+, rely on BKPT termination for reduced overhead.
+ */
+int arm_blank_check_memory(struct target *target,
+		uint32_t address, uint32_t count, uint32_t *blank)
+{
+	struct working_area *check_algorithm;
+	struct reg_param reg_params[3];
+	struct armv4_5_algorithm armv4_5_info;
+	int retval;
+	uint32_t i;
+
+	static const uint32_t check_code[] = {
+		/* loop: */
+		0xe4d03001,		/* ldrb r3, [r0], #1 */
+		0xe0022003,		/* and r2, r2, r3    */
+		0xe2511001,		/* subs r1, r1, #1   */
+		0x1afffffb,		/* bne loop          */
+		/* end: */
+		0xeafffffe		/* b end             */
+	};
+
+	/* make sure we have a working area */
+	retval = target_alloc_working_area(target,
+			sizeof(check_code), &check_algorithm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* convert code into a buffer in target endianness */
+	for (i = 0; i < DIM(check_code); i++) {
+		retval = target_write_u32(target,
+				check_algorithm->address
+						+ i * sizeof(uint32_t),
+				check_code[i]);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
+	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+
+	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
+			check_algorithm->address,
+			check_algorithm->address + sizeof(check_code) - 4,
+			10000, &armv4_5_info);
+	if (retval != ERROR_OK) {
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		destroy_reg_param(&reg_params[2]);
+		target_free_working_area(target, check_algorithm);
+		return retval;
+	}
+
+	*blank = buf_get_u32(reg_params[2].value, 0, 32);
+
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
+
+	target_free_working_area(target, check_algorithm);
+
+	return ERROR_OK;
+}
+
 int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 {
 	target->arch_info = armv4_5;

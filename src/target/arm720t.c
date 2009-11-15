@@ -535,8 +535,9 @@ struct target_type arm720t_target =
 	.virt2phys = arm720_virt2phys,
 
 	.bulk_write_memory = arm7_9_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.checksum_memory = arm_checksum_memory,
+	.blank_check_memory = arm_blank_check_memory,
 
 	.run_algorithm = armv4_5_run_algorithm,
 

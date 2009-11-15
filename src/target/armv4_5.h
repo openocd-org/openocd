@@ -190,6 +190,12 @@ int armv4_5_run_algorithm(struct target *target,
 
 int armv4_5_invalidate_core_regs(struct target *target);
 
+int arm_checksum_memory(struct target *target,
+		uint32_t address, uint32_t count, uint32_t *checksum);
+int arm_blank_check_memory(struct target *target,
+		uint32_t address, uint32_t count, uint32_t *blank);
+
+
 /* ARM mode instructions
  */
 
@@ -368,8 +374,5 @@ static inline uint32_t mrc_opcode(int cpnum, uint32_t op1, uint32_t op2, uint32_
 	t|=CRm<<0;
 	return t;
 }
-
-
-
 
 #endif /* ARMV4_5_H */

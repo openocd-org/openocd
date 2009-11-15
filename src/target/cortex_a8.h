@@ -32,7 +32,6 @@
 #include "register.h"
 #include "target.h"
 #include "armv7a.h"
-#include "arm7_9_common.h"
 
 extern char* cortex_a8_state_strings[];
 
