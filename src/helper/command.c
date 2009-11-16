@@ -438,7 +438,6 @@ char *command_name(struct command *c, char delim)
 static int run_command(struct command_context *context,
 		struct command *c, const char *words[], unsigned num_words)
 {
-	int start_word = 0;
 	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode)))
 	{
 		/* Config commands can not run after the config stage */
@@ -449,8 +448,8 @@ static int run_command(struct command_context *context,
 	struct command_invocation cmd = {
 			.ctx = context,
 			.name = c->name,
-			.argc = num_words - start_word - 1,
-			.argv = words + start_word + 1,
+			.argc = num_words - 1,
+			.argv = words + 1,
 		};
 	int retval = c->handler(&cmd);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
