@@ -27,6 +27,7 @@
 #include "stm32x.h"
 #include "armv7m.h"
 #include "binarybuffer.h"
+#include "algorithm.h"
 
 
 static int stm32x_mass_erase(struct flash_bank *bank);

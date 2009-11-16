@@ -31,6 +31,7 @@
 #include "breakpoints.h"
 #include "arm_disassembler.h"
 #include "binarybuffer.h"
+#include "algorithm.h"
 
 
 char* armv4_5_core_reg_list[] =

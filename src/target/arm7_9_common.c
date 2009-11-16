@@ -36,6 +36,7 @@
 #include "arm7_9_common.h"
 #include "time_support.h"
 #include "arm_simulator.h"
+#include "algorithm.h"
 
 
 /**

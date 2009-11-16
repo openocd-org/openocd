@@ -36,6 +36,7 @@
 
 #include "breakpoints.h"
 #include "armv7m.h"
+#include "algorithm.h"
 
 #define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
 

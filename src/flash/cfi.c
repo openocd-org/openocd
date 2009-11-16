@@ -27,6 +27,7 @@
 #include "non_cfi.h"
 #include "armv4_5.h"
 #include "binarybuffer.h"
+#include "algorithm.h"
 
 
 #define CFI_MAX_BUS_WIDTH	4

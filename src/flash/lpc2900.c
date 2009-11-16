@@ -27,6 +27,7 @@
 #include "flash.h"
 #include "binarybuffer.h"
 #include "armv4_5.h"
+#include "algorithm.h"
 
 
 /* 1024 bytes */

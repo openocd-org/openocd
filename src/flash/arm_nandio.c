@@ -26,6 +26,7 @@
 
 #include "arm_nandio.h"
 #include "armv4_5.h"
+#include "algorithm.h"
 
 
 /*
@@ -43,8 +44,8 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 {
 	struct target		*target = nand->target;
 	struct armv4_5_algorithm	algo;
-	struct arm	*armv4_5 = target->arch_info;
-	struct reg_param		reg_params[3];
+	struct arm		*armv4_5 = target->arch_info;
+	struct reg_param	reg_params[3];
 	uint32_t		target_buf;
 	uint32_t		exit = 0;
 	int			retval;

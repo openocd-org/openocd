@@ -33,6 +33,7 @@
 #include "arm_simulator.h"
 #include "time_support.h"
 #include "target_type.h"
+#include "algorithm.h"
 
 
 #if 0

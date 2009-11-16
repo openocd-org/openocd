@@ -29,6 +29,7 @@
 #include "armv4_5.h"
 #include "armv7m.h"
 #include "binarybuffer.h"
+#include "algorithm.h"
 
 
 /* flash programming support for NXP LPC17xx and LPC2xxx devices

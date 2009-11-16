@@ -20,8 +20,6 @@
 #ifndef ALGORITHM_H
 #define ALGORITHM_H
 
-#include "types.h"
-
 enum param_direction
 {
 	PARAM_IN,

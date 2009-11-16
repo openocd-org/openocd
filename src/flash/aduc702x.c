@@ -27,6 +27,7 @@
 #include "armv4_5.h"
 #include "binarybuffer.h"
 #include "time_support.h"
+#include "algorithm.h"
 
 
 static int aduc702x_build_sector_list(struct flash_bank *bank);
