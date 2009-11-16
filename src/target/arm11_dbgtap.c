@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include "arm_jtag.h"
 #include "arm11_dbgtap.h"
 
 #include "time_support.h"

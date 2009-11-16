@@ -28,6 +28,7 @@
 #endif
 
 #include "armv4_5.h"
+#include "arm_jtag.h"
 #include "breakpoints.h"
 #include "arm_disassembler.h"
 #include "binarybuffer.h"

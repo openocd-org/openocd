@@ -22,6 +22,7 @@
 #endif
 
 #include "armv4_5.h"
+#include "etm.h"
 #include "etb.h"
 #include "image.h"
 #include "arm_disassembler.h"

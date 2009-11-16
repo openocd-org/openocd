@@ -42,6 +42,11 @@ struct trace
 	int trace_history_overflowed;
 };
 
+/**
+ * \todo This enum is one of the few things in this file related
+ * to *hardware* tracing ... split such "real" tracing out from
+ * the contrib/libdcc support.
+ */
 typedef enum trace_status
 {
 	TRACE_IDLE = 0x0,

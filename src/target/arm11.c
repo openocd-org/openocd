@@ -26,10 +26,10 @@
 #include "config.h"
 #endif
 
+#include "etm.h"
 #include "arm11.h"
 #include "breakpoints.h"
 #include "arm11_dbgtap.h"
-#include "armv4_5.h"
 #include "arm_simulator.h"
 #include "time_support.h"
 #include "target_type.h"
