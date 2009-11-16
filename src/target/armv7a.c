@@ -27,7 +27,6 @@
 
 #include "target.h"
 #include "register.h"
-#include "log.h"
 #include "binarybuffer.h"
 #include "command.h"
 

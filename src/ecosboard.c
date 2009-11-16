@@ -21,18 +21,15 @@
 #include "config.h"
 #endif
 
-#include "log.h"
 #include "types.h"
 #include "jtag.h"
 #include "configuration.h"
 #include "xsvf.h"
 #include "svf.h"
 #include "target.h"
-#include "flash.h"
 #include "nand.h"
 #include "pld.h"
 
-#include "command.h"
 #include "server.h"
 #include "telnet_server.h"
 #include "gdb_server.h"

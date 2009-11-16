@@ -27,8 +27,8 @@
 #define TARGET_H
 
 #include <stddef.h>
-
-#include "command.h"
+#include "types.h"
+#include "jim.h"
 
 struct reg;
 struct trace;
@@ -230,7 +230,7 @@ enum target_event
 
 struct target_event_action {
 	enum target_event event;
-	Jim_Obj *body;
+	struct Jim_Obj *body;
 	int has_percent;
 	struct target_event_action *next;
  };

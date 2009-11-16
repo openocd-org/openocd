@@ -25,7 +25,6 @@
 #endif
 
 #include "configuration.h"
-#include "log.h"
 // @todo the inclusion of server.h here is a layering violation
 #include "server.h"
 
