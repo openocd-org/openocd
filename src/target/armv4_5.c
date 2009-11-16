@@ -53,13 +53,63 @@ char* armv4_5_core_reg_list[] =
 	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und"
 };
 
-char * armv4_5_mode_strings_list[] =
+static const char *armv4_5_mode_strings_list[] =
 {
 	"Illegal mode value", "User", "FIQ", "IRQ", "Supervisor", "Abort", "Undefined", "System"
 };
 
 /* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
-char** armv4_5_mode_strings = armv4_5_mode_strings_list + 1;
+const char **armv4_5_mode_strings = armv4_5_mode_strings_list + 1;
+
+/** Map PSR mode bits to linear number */
+int armv4_5_mode_to_number(enum armv4_5_mode mode)
+{
+	switch (mode) {
+	case ARMV4_5_MODE_ANY:
+		/* map MODE_ANY to user mode */
+	case ARMV4_5_MODE_USR:
+		return 0;
+	case ARMV4_5_MODE_FIQ:
+		return 1;
+	case ARMV4_5_MODE_IRQ:
+		return 2;
+	case ARMV4_5_MODE_SVC:
+		return 3;
+	case ARMV4_5_MODE_ABT:
+		return 4;
+	case ARMV4_5_MODE_UND:
+		return 5;
+	case ARMV4_5_MODE_SYS:
+		return 6;
+	default:
+		LOG_ERROR("invalid mode value encountered %d", mode);
+		return -1;
+	}
+}
+
+/** Map linear number to PSR mode bits. */
+enum armv4_5_mode armv4_5_number_to_mode(int number)
+{
+	switch (number) {
+	case 0:
+		return ARMV4_5_MODE_USR;
+	case 1:
+		return ARMV4_5_MODE_FIQ;
+	case 2:
+		return ARMV4_5_MODE_IRQ;
+	case 3:
+		return ARMV4_5_MODE_SVC;
+	case 4:
+		return ARMV4_5_MODE_ABT;
+	case 5:
+		return ARMV4_5_MODE_UND;
+	case 6:
+		return ARMV4_5_MODE_SYS;
+	default:
+		LOG_ERROR("mode index out of bounds %d", number);
+		return ARMV4_5_MODE_ANY;
+	}
+}
 
 char* armv4_5_state_strings[] =
 {
