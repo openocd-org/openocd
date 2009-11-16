@@ -85,8 +85,8 @@ typedef bool _Bool;
 
 /**
  * Rounds @c m up to the nearest multiple of @c n using division.
- * @params m The value to round up to @c n.
- * @params n Round @c m up to a multiple of this number.
+ * @param m The value to round up to @c n.
+ * @param n Round @c m up to a multiple of this number.
  * @returns The rounded integer value.
  */
 #define DIV_ROUND_UP(m, n)	(((m) + (n) - 1) / (n))
