@@ -41,7 +41,8 @@
 static inline void buf_set_u32(void *_buffer,
 		unsigned first, unsigned num, uint32_t value)
 {
-	char *buffer = (char *)_buffer;
+	uint8_t *buffer = (uint8_t *)_buffer;
+
 	if ((num == 32) && (first == 0)) {
 		buffer[3] = (value >> 24) & 0xff;
 		buffer[2] = (value >> 16) & 0xff;
@@ -69,7 +70,8 @@ static inline void buf_set_u32(void *_buffer,
 static inline uint32_t buf_get_u32(const void *_buffer,
 		unsigned first, unsigned num)
 {
-	char *buffer = (char *)_buffer;
+	uint8_t *buffer = (uint8_t *)_buffer;
+
 	if ((num == 32) && (first == 0)) {
 		return (((uint32_t)buffer[3]) << 24) |
 			(((uint32_t)buffer[2]) << 16) |
