@@ -1064,7 +1064,7 @@ static int jtag_examine_chain(void)
 		if ((idcode & 1) == 0)
 		{
 			/* Zero for LSB indicates a device in bypass */
-			LOG_WARNING("TAP %s does not have IDCODE",
+			LOG_INFO("TAP %s does not have IDCODE",
 					tap->dotted_name);
 			idcode = 0;
 			tap->hasidcode = false;
