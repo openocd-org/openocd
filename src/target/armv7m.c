@@ -40,8 +40,6 @@
 #include "algorithm.h"
 #include "register.h"
 
-#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
-
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
@@ -389,7 +387,6 @@ int armv7m_run_algorithm(struct target *target,
 	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
-	int i;
 	uint32_t context[ARMV7M_NUM_REGS];
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
@@ -406,20 +403,20 @@ int armv7m_run_algorithm(struct target *target,
 
 	/* refresh core register cache */
 	/* Not needed if core register cache is always consistent with target process state */
-	for (i = 0; i < ARMV7M_NUM_REGS; i++)
+	for (unsigned i = 0; i < ARMV7M_NUM_REGS; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
 		context[i] = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
 	}
 
-	for (i = 0; i < num_mem_params; i++)
+	for (int i = 0; i < num_mem_params; i++)
 	{
 		if ((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
 			return retval;
 	}
 
-	for (i = 0; i < num_reg_params; i++)
+	for (int i = 0; i < num_reg_params; i++)
 	{
 		struct reg *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
 //		uint32_t regvalue;
@@ -471,7 +468,7 @@ int armv7m_run_algorithm(struct target *target,
 	}
 
 	/* Read memory values to mem_params[] */
-	for (i = 0; i < num_mem_params; i++)
+	for (int i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
 			if ((retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
@@ -481,7 +478,7 @@ int armv7m_run_algorithm(struct target *target,
 	}
 
 	/* Copy core register values to reg_params[] */
-	for (i = 0; i < num_reg_params; i++)
+	for (int i = 0; i < num_reg_params; i++)
 	{
 		if (reg_params[i].direction != PARAM_OUT)
 		{
@@ -503,7 +500,7 @@ int armv7m_run_algorithm(struct target *target,
 		}
 	}
 
-	for (i = ARMV7M_NUM_REGS - 1; i >= 0; i--)
+	for (int i = ARMV7M_NUM_REGS - 1; i >= 0; i--)
 	{
 		uint32_t regvalue;
 		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);

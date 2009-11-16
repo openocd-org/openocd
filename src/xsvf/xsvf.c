@@ -470,7 +470,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 							TAP_IDLE,
 						};
 
-						jtag_add_pathmove(DIM(exception_path), exception_path);
+						jtag_add_pathmove(ARRAY_SIZE(exception_path), exception_path);
 
 						if (verbose)
 							LOG_USER("%s mismatch, xsdrsize=%d retry=%d", op_name, xsdrsize, attempt);

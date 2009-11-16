@@ -586,7 +586,7 @@ int jtag_add_statemove(tap_state_t goal_state)
 		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
 		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
 		tap_state_t moves[8];
-		assert(tms_count < DIM(moves));
+		assert(tms_count < ARRAY_SIZE(moves));
 
 		for (unsigned i = 0; i < tms_count; i++, tms_bits >>= 1)
 		{

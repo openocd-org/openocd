@@ -759,7 +759,7 @@ int arm_checksum_memory(struct target *target,
 		return retval;
 
 	/* convert code into a buffer in target endianness */
-	for (i = 0; i < DIM(arm_crc_code); i++) {
+	for (i = 0; i < ARRAY_SIZE(arm_crc_code); i++) {
 		retval = target_write_u32(target,
 				crc_algorithm->address + i * sizeof(uint32_t),
 				arm_crc_code[i]);
@@ -835,7 +835,7 @@ int arm_blank_check_memory(struct target *target,
 		return retval;
 
 	/* convert code into a buffer in target endianness */
-	for (i = 0; i < DIM(check_code); i++) {
+	for (i = 0; i < ARRAY_SIZE(check_code); i++) {
 		retval = target_write_u32(target,
 				check_algorithm->address
 						+ i * sizeof(uint32_t),

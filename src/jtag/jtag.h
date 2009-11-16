@@ -38,14 +38,6 @@
 #define DEBUG_JTAG_IOZ 64
 #endif
 
-/*-----<Macros>--------------------------------------------------*/
-
-/**
- * When given an array, compute its DIMension; in other words, the
- * number of elements in the array
- */
-#define DIM(x)					(sizeof(x)/sizeof((x)[0]))
-
 /*-----</Macros>-------------------------------------------------*/
 
 /**

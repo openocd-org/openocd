@@ -43,8 +43,6 @@
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
  */
 
-#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
-
 
 /* forward declarations */
 static int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
@@ -1843,8 +1841,6 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t demcr = 0;
 	int retval;
-	int i;
-
 	retval = cortex_m3_verify_pointer(cmd_ctx, cortex_m3);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1865,6 +1861,7 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 			}
 		}
 		while (argc-- > 0) {
+			unsigned i;
 			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
 				if (strcmp(args[argc], vec_ids[i].name) != 0)
 					continue;
@@ -1885,7 +1882,7 @@ write:
 		mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
 	}
 
-	for (i = 0; i < ARRAY_SIZE(vec_ids); i++)
+	for (unsigned i = 0; i < ARRAY_SIZE(vec_ids); i++)
 		command_print(cmd_ctx, "%9s: %s", vec_ids[i].name,
 			(demcr & vec_ids[i].mask) ? "catch" : "ignore");
 

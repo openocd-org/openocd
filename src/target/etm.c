@@ -50,8 +50,6 @@
  *  ARM IHI 0014O ... Embedded Trace Macrocell, Architecture Specification
  */
 
-#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
-
 enum {
 	RO,				/* read/only */
 	WO,				/* write/only */

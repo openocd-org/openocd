@@ -25,8 +25,6 @@
 
 #include "armv4_5.h"
 
-#define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
-
 #define NEW(type, variable, items)			\
 	type * variable = calloc(1, sizeof(type) * items)
 

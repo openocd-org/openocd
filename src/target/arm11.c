@@ -363,7 +363,7 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 	int retval;
 	FNC_INFO;
 
-	for (size_t i = 0; i < asizeof(arm11->reg_values); i++)
+	for (size_t i = 0; i < ARRAY_SIZE(arm11->reg_values); i++)
 	{
 		arm11->reg_list[i].valid	= 1;
 		arm11->reg_list[i].dirty	= 0;
@@ -386,7 +386,7 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 1);
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 2);
 
-		arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 	else
 	{
@@ -666,7 +666,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11)
 		arm11_setup_field(arm11,  1, &Ready,	NULL, chain5_fields + 1);
 		arm11_setup_field(arm11,  1, &Valid,	NULL, chain5_fields + 2);
 
-		arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 
 	arm11_record_register_history(arm11);
@@ -877,7 +877,7 @@ static int arm11_resume(struct target *target, int current,
 			brp[1].address	= ARM11_SC7_BCR0 + brp_num;
 			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
 
-			arm11_sc7_run(arm11, brp, asizeof(brp));
+			arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp));
 
 			LOG_DEBUG("Add BP " ZU " at %08" PRIx32 "", brp_num, bp->address);
 
@@ -1120,7 +1120,7 @@ static int arm11_step(struct target *target, int current,
 			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
 		}
 
-		CHECK_RETVAL(arm11_sc7_run(arm11, brp, asizeof(brp)));
+		CHECK_RETVAL(arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp)));
 
 		/* resume */
 
@@ -1847,7 +1847,7 @@ static int arm11_examine(struct target *target)
 	arm11_setup_field(arm11, 32, NULL,	&arm11->didr,		chain0_fields + 0);
 	arm11_setup_field(arm11,  8, NULL,	&arm11->implementor,	chain0_fields + 1);
 
-	arm11_add_dr_scan_vc(asizeof(chain0_fields), chain0_fields, TAP_IDLE);
+	arm11_add_dr_scan_vc(ARRAY_SIZE(chain0_fields), chain0_fields, TAP_IDLE);
 
 	CHECK_RETVAL(jtag_execute_queue());
 
@@ -1975,11 +1975,11 @@ static int arm11_build_reg_cache(struct target *target)
 	size_t i;
 
 	/* Not very elegant assertion */
-	if (ARM11_REGCACHE_COUNT != asizeof(arm11->reg_values) ||
-		ARM11_REGCACHE_COUNT != asizeof(arm11_reg_defs) ||
+	if (ARM11_REGCACHE_COUNT != ARRAY_SIZE(arm11->reg_values) ||
+		ARM11_REGCACHE_COUNT != ARRAY_SIZE(arm11_reg_defs) ||
 		ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
 	{
-		LOG_ERROR("BUG: arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
+		LOG_ERROR("BUG: arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, ARRAY_SIZE(arm11->reg_values), ARRAY_SIZE(arm11_reg_defs), ARM11_RC_MAX);
 		exit(-1);
 	}
 

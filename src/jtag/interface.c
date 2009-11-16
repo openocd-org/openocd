@@ -363,7 +363,7 @@ const char *tap_state_name(tap_state_t state)
 {
 	unsigned i;
 
-	for (i = 0; i < DIM(tap_name_mapping); i++) {
+	for (i = 0; i < ARRAY_SIZE(tap_name_mapping); i++) {
 		if (tap_name_mapping[i].symbol == state)
 			return tap_name_mapping[i].name;
 	}
@@ -374,7 +374,7 @@ tap_state_t tap_state_by_name(const char *name)
 {
 	unsigned i;
 
-	for (i = 0; i < DIM(tap_name_mapping); i++) {
+	for (i = 0; i < ARRAY_SIZE(tap_name_mapping); i++) {
 		/* be nice to the human */
 		if (strcasecmp(name, tap_name_mapping[i].name) == 0)
 			return tap_name_mapping[i].symbol;

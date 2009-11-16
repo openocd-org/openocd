@@ -282,7 +282,7 @@ int svf_add_statemove(tap_state_t state_to)
 		return ERROR_OK;
 	}
 
-	for (index = 0; index < DIM(svf_statemoves); index++)
+	for (index = 0; index < ARRAY_SIZE(svf_statemoves); index++)
 	{
 		if ((svf_statemoves[index].from == state_from)
 			&& (svf_statemoves[index].to == state_to))
@@ -783,7 +783,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	 */
 
 	command = svf_find_string_in_array(argus[0],
-			(char **)svf_command_name, DIM(svf_command_name));
+			(char **)svf_command_name, ARRAY_SIZE(svf_command_name));
 	switch (command)
 	{
 	case ENDDR:
@@ -1391,7 +1391,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			}
 			i_tmp = svf_find_string_in_array(argus[1],
 					(char **)svf_trst_mode_name,
-					DIM(svf_trst_mode_name));
+					ARRAY_SIZE(svf_trst_mode_name));
 			switch (i_tmp)
 			{
 			case TRST_ON:
