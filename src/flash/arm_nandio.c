@@ -68,7 +68,7 @@ int arm_code_to_working_area(struct target *target, const uint32_t *code, unsign
 	return retval;
 }
 
-/*
+/**
  * ARM-specific bulk write from buffer to address of 8-bit wide NAND.
  * For now this only supports ARMv4 and ARMv5 cores.
  *
@@ -78,6 +78,11 @@ int arm_code_to_working_area(struct target *target, const uint32_t *code, unsign
  * Different code fragments could handle:
  *   - Thumb2 cores like Cortex-M (needs different byteswapping)
  *   - 16-bit wide data (needs different setup too)
+ *
+ * @param nand Pointer to the arm_nand_data struct that defines the I/O
+ * @param data Pointer to the data to be copied to flash
+ * @param size Size of the data being copied
+ * @return Success or failure of the operation
  */
 int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 {
@@ -159,6 +164,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
  * @param nand Pointer to the arm_nand_data struct that defines the I/O
  * @param data Pointer to the data buffer to store the read data
  * @param size Amount of data to be stored to the buffer.
+ * @return Success or failure of the operation
  */
 int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 {
