@@ -29,6 +29,15 @@
  * Support functions to access arbitrary bits in a byte array
  */
 
+/**
+ * Sets @c num bits in @c _buffer, starting at the @c first bit,
+ * using the bits in @c value.  This routine fast-paths writes
+ * of little-endian, byte-aligned, 32-bit words.
+ * @param _buffer The buffer whose bits will be set.
+ * @param first The bit offset in @c _buffer to start writing (0-31).
+ * @param num The number of bits from @c value to copy (1-32).
+ * @param value Up to 32 bits that will be copied to _buffer.
+ */
 static inline void buf_set_u32(void *_buffer,
 		unsigned first, unsigned num, uint32_t value)
 {
@@ -48,6 +57,15 @@ static inline void buf_set_u32(void *_buffer,
 		}
 	}
 }
+/**
+ * Retrieves @c num bits from @c _buffer, starting at the @c first bit,
+ * returning the bits in a 32-bit word.  This routine fast-paths reads
+ * of little-endian, byte-aligned, 32-bit words.
+ * @param _buffer The buffer whose bits will be read.
+ * @param first The bit offset in @c _buffer to start reading (0-31).
+ * @param num The number of bits from @c _buffer to read (1-32).
+ * @returns Up to 32-bits that were read from @c _buffer.
+ */
 static inline uint32_t buf_get_u32(const void *_buffer,
 		unsigned first, unsigned num)
 {
@@ -68,16 +86,36 @@ static inline uint32_t buf_get_u32(const void *_buffer,
 	}
 }
 
-/// flip_u32 inverts the bit order inside a 32-bit word (31..0 -> 0..31)
-uint32_t flip_u32(uint32_t value, unsigned num);
+/**
+ * Inverts the ordering of bits inside a 32-bit word (e.g. 31..0 -> 0..31).
+ * This routine can be used to flip smaller data types by using smaller
+ * values for @c width.
+ * @param value The word to flip.
+ * @param width The number of bits in value (2-32).
+ * @returns A 32-bit word with @c value in reversed bit-order.
+ */
+uint32_t flip_u32(uint32_t value, unsigned width);
 
 bool buf_cmp(const void *buf1, const void *buf2, unsigned size);
 bool buf_cmp_mask(const void *buf1, const void *buf2,
 		const void *mask, unsigned size);
 
+/**
+ * Copies @c size bits out of @c from and into @c to.  Any extra
+ * bits in the final byte will be set to zero.
+ * @param from The buffer to copy into @c to.
+ * @param to The buffer that will receive the copy of @c from.
+ * @param size The number of bits to copy.
+ */
 void* buf_cpy(const void *from, void *to, unsigned size);
 
-void* buf_set_ones(void *buf, unsigned count);
+/**
+ * Set the contents of @c buf with @c count bits, all set to 1.
+ * @param buf The buffer to fill with ones.
+ * @param size The number of bits.
+ * @returns The original buffer (@c buf).
+ */
+void* buf_set_ones(void *buf, unsigned size);
 
 void* buf_set_buf(const void *src, unsigned src_start,
 		void *dst, unsigned dst_start, unsigned len);
