@@ -710,6 +710,7 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 
 	info->io.target = target;
 	info->io.data = info->data;
+	info->io.op = ARM_NAND_NONE;
 
 	/* NOTE:  for now we don't do any error correction on read.
 	 * Nothing else in OpenOCD currently corrects read errors,

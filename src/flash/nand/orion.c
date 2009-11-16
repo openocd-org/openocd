@@ -155,6 +155,7 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 
 	hw->io.target = hw->target;
 	hw->io.data = hw->data;
+	hw->io.op = ARM_NAND_NONE;
 
 	return ERROR_OK;
 }
