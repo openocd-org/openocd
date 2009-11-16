@@ -573,7 +573,7 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 	{
 		if (offset >= bank->sectors[i].offset)
 			first_sector = i;
-		if (offset + CEIL(count, dst_min_alignment) * dst_min_alignment > bank->sectors[i].offset)
+		if (offset + DIV_ROUND_UP(count, dst_min_alignment) * dst_min_alignment > bank->sectors[i].offset)
 			last_sector = i;
 	}
 

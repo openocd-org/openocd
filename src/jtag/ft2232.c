@@ -721,7 +721,7 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 			if (type != SCAN_OUT)
 			{
 				scan_size = jtag_scan_size(cmd->cmd.scan);
-				buffer    = calloc(CEIL(scan_size, 8), 1);
+				buffer    = calloc(DIV_ROUND_UP(scan_size, 8), 1);
 				ft2232_read_scan(type, buffer, scan_size);
 				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
 					retval = ERROR_JTAG_QUEUE_FAILED;
@@ -962,7 +962,7 @@ static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint
 	int bits_left = scan_size;
 	int cur_byte  = 0;
 	int last_bit;
-	uint8_t* receive_buffer  = malloc(CEIL(scan_size, 8));
+	uint8_t* receive_buffer  = malloc(DIV_ROUND_UP(scan_size, 8));
 	uint8_t* receive_pointer = receive_buffer;
 	uint32_t bytes_written;
 	uint32_t bytes_read;
@@ -1182,7 +1182,7 @@ static int ft2232_predict_scan_out(int scan_size, enum scan_type type)
 	if (type == SCAN_IN)	/* only from device to host */
 	{
 		/* complete bytes */
-		predicted_size += CEIL(num_bytes, 65536) * 3;
+		predicted_size += DIV_ROUND_UP(num_bytes, 65536) * 3;
 
 		/* remaining bits - 1 (up to 7) */
 		predicted_size += ((scan_size - 1) % 8) ? 2 : 0;
@@ -1190,7 +1190,7 @@ static int ft2232_predict_scan_out(int scan_size, enum scan_type type)
 	else	/* host to device, or bidirectional */
 	{
 		/* complete bytes */
-		predicted_size += num_bytes + CEIL(num_bytes, 65536) * 3;
+		predicted_size += num_bytes + DIV_ROUND_UP(num_bytes, 65536) * 3;
 
 		/* remaining bits -1 (up to 7) */
 		predicted_size += ((scan_size - 1) % 8) ? 3 : 0;
@@ -1206,7 +1206,7 @@ static int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 	if (type != SCAN_OUT)
 	{
 		/* complete bytes */
-		predicted_size += (CEIL(scan_size, 8) > 1) ? (CEIL(scan_size, 8) - 1) : 0;
+		predicted_size += (DIV_ROUND_UP(scan_size, 8) > 1) ? (DIV_ROUND_UP(scan_size, 8) - 1) : 0;
 
 		/* remaining bits - 1 */
 		predicted_size += ((scan_size - 1) % 8) ? 1 : 0;
@@ -1506,7 +1506,7 @@ static int ft2232_execute_runtest(struct jtag_command *cmd)
 	predicted_size = 0;
 	if (tap_get_state() != TAP_IDLE)
 		predicted_size += 3;
-	predicted_size += 3 * CEIL(cmd->cmd.runtest->num_cycles, 7);
+	predicted_size += 3 * DIV_ROUND_UP(cmd->cmd.runtest->num_cycles, 7);
 	if (cmd->cmd.runtest->end_state != TAP_IDLE)
 		predicted_size += 3;
 	if (tap_get_end_state() != TAP_IDLE)
@@ -1605,7 +1605,7 @@ static int ft2232_execute_pathmove(struct jtag_command *cmd)
 			tap_state_name(path[num_states-1]));
 
 	/* only send the maximum buffer size that FT2232C can handle */
-	predicted_size = 3 * CEIL(num_states, 7);
+	predicted_size = 3 * DIV_ROUND_UP(num_states, 7);
 	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 	{
 		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)

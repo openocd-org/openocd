@@ -479,7 +479,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
-					field.in_value = calloc(CEIL(field.num_bits, 8), 1);
+					field.in_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
@@ -933,7 +933,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
-					field.in_value = calloc(CEIL(field.num_bits, 8), 1);
+					field.in_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 
 					if (attempt > 0 && verbose)
 						LOG_USER("LSDR retry %d", attempt);

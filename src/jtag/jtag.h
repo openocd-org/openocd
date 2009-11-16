@@ -47,7 +47,7 @@
 #define DIM(x)					(sizeof(x)/sizeof((x)[0]))
 
 /** Calculate the number of bytes required to hold @a n TAP scan bits */
-#define TAP_SCAN_BYTES(n)		CEIL(n, 8)
+#define TAP_SCAN_BYTES(n)		DIV_ROUND_UP(n, 8)
 
 /*-----</Macros>-------------------------------------------------*/
 

@@ -44,7 +44,7 @@ int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end
 
 		field.tap = tap;
 		field.num_bits = tap->ir_length;
-		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
+		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
@@ -289,7 +289,7 @@ static int str9xpec_blank_check(struct flash_bank *bank, int first, int last)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	buffer = calloc(CEIL(64, 8), 1);
+	buffer = calloc(DIV_ROUND_UP(64, 8), 1);
 
 	LOG_DEBUG("blank check: first_bank: %i, last_bank: %i", first, last);
 
@@ -378,7 +378,7 @@ static int str9xpec_erase_area(struct flash_bank *bank, int first, int last)
 		return ISC_STATUS_ERROR;
 	}
 
-	buffer = calloc(CEIL(64, 8), 1);
+	buffer = calloc(DIV_ROUND_UP(64, 8), 1);
 
 	LOG_DEBUG("erase: first_bank: %i, last_bank: %i", first, last);
 
@@ -618,7 +618,7 @@ static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 
 	LOG_DEBUG("first_sector: %i, last_sector: %i", first_sector, last_sector);
 
-	scanbuf = calloc(CEIL(64, 8), 1);
+	scanbuf = calloc(DIV_ROUND_UP(64, 8), 1);
 
 	LOG_DEBUG("ISC_PROGRAM");
 
@@ -745,7 +745,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 	str9xpec_info = bank->driver_priv;
 	tap = str9xpec_info->tap;
 
-	buffer = calloc(CEIL(32, 8), 1);
+	buffer = calloc(DIV_ROUND_UP(32, 8), 1);
 
 	str9xpec_set_instr(tap, ISC_IDCODE, TAP_IRPAUSE);
 

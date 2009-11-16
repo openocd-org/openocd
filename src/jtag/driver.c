@@ -64,7 +64,7 @@ static void cmd_queue_scan_field_clone(struct scan_field * dst, const struct sca
 {
 	dst->tap		= src->tap;
 	dst->num_bits	= src->num_bits;
-	dst->out_value	= buf_cpy(src->out_value, cmd_queue_alloc(CEIL(src->num_bits, 8)), src->num_bits);
+	dst->out_value	= buf_cpy(src->out_value, cmd_queue_alloc(DIV_ROUND_UP(src->num_bits, 8)), src->num_bits);
 	dst->in_value	= src->in_value;
 }
 
@@ -128,7 +128,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const struct scan_field *in_fi
 
 			field->tap			= tap;
 			field->num_bits		= tap->ir_length;
-			field->out_value	= buf_set_ones(cmd_queue_alloc(CEIL(tap->ir_length, 8)), tap->ir_length);
+			field->out_value	= buf_set_ones(cmd_queue_alloc(DIV_ROUND_UP(tap->ir_length, 8)), tap->ir_length);
 			field->in_value		= NULL; /* do not collect input for tap's in bypass */
 		}
 
@@ -317,7 +317,7 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 
 				field->tap			= tap;
 				field->num_bits		= scan_size;
-				field->out_value	= buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				field->out_value	= buf_cpy(out_value, cmd_queue_alloc(DIV_ROUND_UP(scan_size, 8)), scan_size);
 				field->in_value		= NULL;
 
 				field++;

@@ -54,7 +54,7 @@ void* buf_cpy(const void *from, void *_to, unsigned size)
 		return NULL;
 
 	// copy entire buffer
-	memcpy(_to, from, CEIL(size, 8));
+	memcpy(_to, from, DIV_ROUND_UP(size, 8));
 
 	/* mask out bits that don't belong to the buffer */
 	unsigned trailing_bits = size % 8;
@@ -191,11 +191,11 @@ char* buf_to_str(const void *_buf, unsigned buf_len, unsigned radix)
 		return NULL;
 	}
 
-	unsigned str_len = ceil_f_to_u32(CEIL(buf_len, 8) * factor);
+	unsigned str_len = ceil_f_to_u32(DIV_ROUND_UP(buf_len, 8) * factor);
 	char *str = calloc(str_len + 1, 1);
 
 	const uint8_t *buf = _buf;
-	int b256_len = CEIL(buf_len, 8);
+	int b256_len = DIV_ROUND_UP(buf_len, 8);
 	for (int i = b256_len - 1; i >= 0; i--)
 	{
 		uint32_t tmp = buf[i];
@@ -300,7 +300,7 @@ int str_to_buf(const char *str, unsigned str_len,
 	}
 
 	uint8_t *buf = _buf;
-	for (unsigned j = 0; j < CEIL(buf_len, 8); j++)
+	for (unsigned j = 0; j < DIV_ROUND_UP(buf_len, 8); j++)
 	{
 		if (j < b256_len)
 			buf[j] = b256_buf[j];

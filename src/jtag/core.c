@@ -1193,7 +1193,7 @@ static int jtag_validate_ircapture(void)
 	/* increase length to add 2 bit sentinel after scan */
 	total_ir_length += 2;
 
-	ir_test = malloc(CEIL(total_ir_length, 8));
+	ir_test = malloc(DIV_ROUND_UP(total_ir_length, 8));
 	if (ir_test == NULL)
 		return ERROR_FAIL;
 
@@ -1293,7 +1293,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 
 	/* if we're autoprobing, cope with potentially huge ir_length */
 	ir_len_bits = tap->ir_length ? : JTAG_IRLEN_MAX;
-	ir_len_bytes = CEIL(ir_len_bits, 8);
+	ir_len_bytes = DIV_ROUND_UP(ir_len_bits, 8);
 
 	tap->expected = calloc(1, ir_len_bytes);
 	tap->expected_mask = calloc(1, ir_len_bytes);

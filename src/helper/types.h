@@ -73,6 +73,15 @@ typedef bool _Bool;
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
 
+/**
+ * Rounds @c m up to the nearest multiple of @c n using division.
+ * @params m The value to round up to @c n.
+ * @params n Round @c m up to a multiple of this number.
+ * @returns The rounded integer value.
+ */
+#define DIV_ROUND_UP(m, n)	(((m) + (n) - 1) / (n))
+
+
 /* DANGER!!!! here be dragons!
  *
  * Leave these fn's as byte accesses because it is safe

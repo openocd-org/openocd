@@ -1129,7 +1129,7 @@ COMMAND_HANDLER(handle_irscan_command)
 		int field_size = tap->ir_length;
 		fields[i].tap = tap;
 		fields[i].num_bits = field_size;
-		fields[i].out_value = malloc(CEIL(field_size, 8));
+		fields[i].out_value = malloc(DIV_ROUND_UP(field_size, 8));
 
 		uint32_t value;
 		retval = parse_u32(args[i * 2 + 1], &value);
@@ -1257,7 +1257,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 		fields[field_count].tap = tap;
 		fields[field_count].num_bits = bits;
-		fields[field_count].out_value = malloc(CEIL(bits, 8));
+		fields[field_count].out_value = malloc(DIV_ROUND_UP(bits, 8));
 		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
 		fields[field_count].in_value = fields[field_count].out_value;
 		field_count++;

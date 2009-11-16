@@ -979,7 +979,7 @@ static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	first_page = offset/dst_min_alignment;
-	last_page = CEIL(offset + count, dst_min_alignment);
+	last_page = DIV_ROUND_UP(offset + count, dst_min_alignment);
 
 	LOG_DEBUG("first_page: %i, last_page: %i, count %i", (int)first_page, (int)last_page, (int)count);
 
@@ -997,7 +997,7 @@ static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 
 		/* Write one block to the PageWriteBuffer */
 		buffer_pos = (pagen-first_page)*dst_min_alignment;
-		wcount = CEIL(count,4);
+		wcount = DIV_ROUND_UP(count,4);
 		if ((retval = target_write_memory(target, bank->base + pagen*dst_min_alignment, 4, wcount, buffer + buffer_pos)) != ERROR_OK)
 		{
 			return retval;

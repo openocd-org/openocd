@@ -57,7 +57,7 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 
 		field.tap = tap;
 		field.num_bits = tap->ir_length;
-		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
+		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
 		field.in_value = NULL;
@@ -78,7 +78,7 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 
 		field.tap = etb->tap;
 		field.num_bits = 5;
-		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
+		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
 
 		field.in_value = NULL;

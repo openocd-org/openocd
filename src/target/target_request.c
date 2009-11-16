@@ -40,10 +40,10 @@ static int charmsg_mode = 0;
 
 static int target_asciimsg(struct target *target, uint32_t length)
 {
-	char *msg = malloc(CEIL(length + 1, 4) * 4);
+	char *msg = malloc(DIV_ROUND_UP(length + 1, 4) * 4);
 	struct debug_msg_receiver *c = target->dbgmsg;
 
-	target->type->target_request_data(target, CEIL(length, 4), (uint8_t*)msg);
+	target->type->target_request_data(target, DIV_ROUND_UP(length, 4), (uint8_t*)msg);
 	msg[length] = 0;
 
 	LOG_DEBUG("%s", msg);
@@ -66,7 +66,7 @@ static int target_charmsg(struct target *target, uint8_t msg)
 
 static int target_hexmsg(struct target *target, int size, uint32_t length)
 {
-	uint8_t *data = malloc(CEIL(length * size, 4) * 4);
+	uint8_t *data = malloc(DIV_ROUND_UP(length * size, 4) * 4);
 	char line[128];
 	int line_len;
 	struct debug_msg_receiver *c = target->dbgmsg;
@@ -74,7 +74,7 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
 
 	LOG_DEBUG("size: %i, length: %i", (int)size, (int)length);
 
-	target->type->target_request_data(target, CEIL(length * size, 4), (uint8_t*)data);
+	target->type->target_request_data(target, DIV_ROUND_UP(length * size, 4), (uint8_t*)data);
 
 	line_len = 0;
 	for (i = 0; i < length; i++)

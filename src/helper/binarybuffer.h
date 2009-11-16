@@ -124,8 +124,6 @@ int str_to_buf(const char *str, unsigned len,
 		void *bin_buf, unsigned buf_size, unsigned radix);
 char* buf_to_str(const void *buf, unsigned size, unsigned radix);
 
-#define CEIL(m, n)	(((m) + (n) - 1) / (n))
-
 /* read a uint32_t from a buffer in target memory endianness */
 static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
 {

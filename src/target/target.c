@@ -1967,7 +1967,7 @@ COMMAND_HANDLER(handle_reg_command)
 	/* set register value */
 	if (argc == 2)
 	{
-		uint8_t *buf = malloc(CEIL(reg->size, 8));
+		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
 		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
 
 		struct reg_arch_type *arch_type = register_get_arch_type(reg->arch_type);

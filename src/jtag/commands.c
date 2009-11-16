@@ -179,7 +179,7 @@ int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 	int i;
 
 	bit_count = jtag_scan_size(cmd);
-	*buffer = calloc(1,CEIL(bit_count, 8));
+	*buffer = calloc(1,DIV_ROUND_UP(bit_count, 8));
 
 	bit_count = 0;
 
@@ -235,7 +235,7 @@ int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 		if (cmd->fields[i].in_value)
 		{
 			int num_bits = cmd->fields[i].num_bits;
-			uint8_t *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
+			uint8_t *captured = buf_set_buf(buffer, bit_count, malloc(DIV_ROUND_UP(num_bits, 8)), 0, num_bits);
 
 #ifdef _DEBUG_JTAG_IO_
 			char *char_buf = buf_to_str(captured,

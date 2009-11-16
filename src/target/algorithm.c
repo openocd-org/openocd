@@ -43,7 +43,7 @@ void init_reg_param(struct reg_param *param, char *reg_name, uint32_t size, enum
 {
 	param->reg_name = reg_name;
 	param->size = size;
-	param->value = malloc(CEIL(size, 8));
+	param->value = malloc(DIV_ROUND_UP(size, 8));
 	param->direction = direction;
 }
 

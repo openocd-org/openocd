@@ -871,7 +871,7 @@ void gdb_str_to_target(struct target *target, char *tstr, struct reg *reg)
 	uint8_t *buf;
 	int buf_len;
 	buf = reg->value;
-	buf_len = CEIL(reg->size, 8);
+	buf_len = DIV_ROUND_UP(reg->size, 8);
 
 	for (i = 0; i < buf_len; i++)
 	{
@@ -940,25 +940,25 @@ int gdb_get_registers_packet(struct connection *connection, struct target *targe
 		reg_packet_size += reg_list[i]->size;
 	}
 
-	reg_packet = malloc(CEIL(reg_packet_size, 8) * 2);
+	reg_packet = malloc(DIV_ROUND_UP(reg_packet_size, 8) * 2);
 	reg_packet_p = reg_packet;
 
 	for (i = 0; i < reg_list_size; i++)
 	{
 		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
-		reg_packet_p += CEIL(reg_list[i]->size, 8) * 2;
+		reg_packet_p += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
 	}
 
 #ifdef _DEBUG_GDB_IO_
 	{
 		char *reg_packet_p;
-		reg_packet_p = strndup(reg_packet, CEIL(reg_packet_size, 8) * 2);
+		reg_packet_p = strndup(reg_packet, DIV_ROUND_UP(reg_packet_size, 8) * 2);
 		LOG_DEBUG("reg_packet: %s", reg_packet_p);
 		free(reg_packet_p);
 	}
 #endif
 
-	gdb_put_packet(connection, reg_packet, CEIL(reg_packet_size, 8) * 2);
+	gdb_put_packet(connection, reg_packet, DIV_ROUND_UP(reg_packet_size, 8) * 2);
 	free(reg_packet);
 
 	free(reg_list);
@@ -997,7 +997,7 @@ int gdb_set_registers_packet(struct connection *connection, struct target *targe
 	for (i = 0; i < reg_list_size; i++)
 	{
 		uint8_t *bin_buf;
-		int chars = (CEIL(reg_list[i]->size, 8) * 2);
+		int chars = (DIV_ROUND_UP(reg_list[i]->size, 8) * 2);
 
 		if (packet_p + chars > packet + packet_size)
 		{
@@ -1005,7 +1005,7 @@ int gdb_set_registers_packet(struct connection *connection, struct target *targe
 		}
 
 		struct reg_arch_type *arch_type;
-		bin_buf = malloc(CEIL(reg_list[i]->size, 8));
+		bin_buf = malloc(DIV_ROUND_UP(reg_list[i]->size, 8));
 		gdb_target_to_reg(target, packet_p, chars, bin_buf);
 
 		/* get register arch_type, and call set method */
@@ -1051,11 +1051,11 @@ int gdb_get_register_packet(struct connection *connection, struct target *target
 		exit(-1);
 	}
 
-	reg_packet = malloc(CEIL(reg_list[reg_num]->size, 8) * 2);
+	reg_packet = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
 
 	gdb_str_to_target(target, reg_packet, reg_list[reg_num]);
 
-	gdb_put_packet(connection, reg_packet, CEIL(reg_list[reg_num]->size, 8) * 2);
+	gdb_put_packet(connection, reg_packet, DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
 
 	free(reg_list);
 	free(reg_packet);
@@ -1093,8 +1093,8 @@ int gdb_set_register_packet(struct connection *connection, struct target *target
 	}
 
 	/* convert from GDB-string (target-endian) to hex-string (big-endian) */
-	bin_buf = malloc(CEIL(reg_list[reg_num]->size, 8));
-	int chars = (CEIL(reg_list[reg_num]->size, 8) * 2);
+	bin_buf = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8));
+	int chars = (DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
 
 	/* fix!!! add some sanity checks on packet size here */
 
