@@ -23,6 +23,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <stddef.h>
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -57,6 +58,20 @@ typedef bool _Bool;
 /// turns a macro argument into a string constant
 #define stringify(s) __stringify(s)
 #define __stringify(s) #s
+
+
+/**
+ * Cast a member of a structure out to the containing structure.
+ * @param ptr The pointer to the member.
+ * @param type The type of the container struct this is embedded in.
+ * @param member The name of the member within the struct.
+ *
+ * This is a mechanism which is used throughout the Linux kernel.
+ */
+#define container_of(ptr, type, member) ({			\
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+	(type *)( (char *)__mptr - offsetof(type,member) );})
+
 
 /* DANGER!!!! here be dragons!
  *
