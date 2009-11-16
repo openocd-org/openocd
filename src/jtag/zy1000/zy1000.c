@@ -455,8 +455,6 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 }
 #endif
 
-extern int jtag_check_value(uint8_t *captured, void *priv);
-
 static void gotoEndState(tap_state_t end_state)
 {
 	setCurrentState(end_state);
@@ -594,8 +592,6 @@ int interface_jtag_add_plain_ir_scan(int num_fields, const struct scan_field *fi
 
 	return ERROR_OK;
 }
-
-/*extern jtag_struct command **jtag_get_last_command_p(void);*/
 
 int interface_jtag_add_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {

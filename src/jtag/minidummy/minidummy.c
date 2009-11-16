@@ -24,9 +24,6 @@
 #include "minidriver.h"
 #include "interface.h"
 
-
-
-
 struct jtag_interface minidummy_interface =
 {
 	.name = "minidummy",
@@ -41,23 +38,12 @@ struct jtag_interface minidummy_interface =
 	.srst_asserted = NULL,
 };
 
-
-
-
-
-
 int interface_jtag_execute_queue(void)
 {
 	/* synchronously do the operation here */
 
 	return ERROR_OK;
 }
-
-
-
-
-
-extern int jtag_check_value(uint8_t *captured, void *priv);
 
 int interface_jtag_add_ir_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
@@ -67,18 +53,12 @@ int interface_jtag_add_ir_scan(int num_fields, const struct scan_field *fields, 
 
 }
 
-
-
-
-
 int interface_jtag_add_plain_ir_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
 	/* synchronously do the operation here */
 
 	return ERROR_OK;
 }
-
-/*extern jtag_struct command **jtag_get_last_command_p(void);*/
 
 int interface_jtag_add_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
 {
@@ -94,7 +74,6 @@ int interface_jtag_add_plain_dr_scan(int num_fields, const struct scan_field *fi
 	return ERROR_OK;
 }
 
-
 int interface_jtag_add_tlr()
 {
 	/* synchronously do the operation here */
@@ -102,15 +81,12 @@ int interface_jtag_add_tlr()
 	return ERROR_OK;
 }
 
-
-
 int interface_jtag_add_reset(int req_trst, int req_srst)
 {
 	/* synchronously do the operation here */
 
 	return ERROR_OK;
 }
-
 
 int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 {
@@ -170,8 +146,6 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	return ERROR_OK;
 }
 
-
-
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
 	int i;
@@ -181,4 +155,3 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 		buffer += 4;
 	}
 }
-
