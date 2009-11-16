@@ -763,15 +763,16 @@ static int jlink_tap_execute(void)
 	if (!tap_length)
 		return ERROR_OK;
 
-	/* JLink returns an extra NULL in packet when size of in message is a multiple of 64, creates problems with usb comms */
-	/* WARNING This will interfere with tap state counting */
-	while ((TAP_SCAN_BYTES(tap_length)%64) == 0)
+	/* JLink returns an extra NULL in packet when size of incoming
+	 * message is a multiple of 64, creates problems with USB comms.
+	 * WARNING: This will interfere with tap state counting. */
+	while ((DIV_ROUND_UP(tap_length, 8) % 64) == 0)
 	{
 		jlink_tap_append_step((tap_get_state() == TAP_RESET)?1:0, 0);
 	}
 
 	// number of full bytes (plus one if some would be left over)
-	byte_length = TAP_SCAN_BYTES(tap_length);
+	byte_length = DIV_ROUND_UP(tap_length, 8);
 
 	bool use_jtag3 = jlink_hw_jtag_version >= 3;
 	usb_out_buffer[0] = use_jtag3 ? EMU_CMD_HW_JTAG3 : EMU_CMD_HW_JTAG2;
@@ -808,7 +809,7 @@ static int jlink_tap_execute(void)
 		DEBUG_JTAG_IO("pending scan result, length = %d", length);
 
 #ifdef _DEBUG_USB_COMMS_
-		jlink_debug_buffer(buffer, TAP_SCAN_BYTES(length));
+		jlink_debug_buffer(buffer, DIV_ROUND_UP(length, 8));
 #endif
 
 		if (jtag_read_buffer(buffer, command) != ERROR_OK)

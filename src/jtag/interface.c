@@ -413,7 +413,7 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 	tms_buffer = (const uint8_t *)tms_buf;
 	tdi_buffer = (const uint8_t *)tdi_buf;
 
-	tap_bytes = TAP_SCAN_BYTES(tap_bits);
+	tap_bytes = DIV_ROUND_UP(tap_bits, 8);
 	DEBUG_JTAG_IO("TAP/SM: TMS bits: %u (bytes: %u)", tap_bits, tap_bytes);
 
 	tap_out_bits = 0;
