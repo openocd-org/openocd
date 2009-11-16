@@ -28,6 +28,7 @@
 #include "mips_m4k.h"
 #include "mips32_dmaacc.h"
 #include "target_type.h"
+#include "register.h"
 
 
 /* cli handling */

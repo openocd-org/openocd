@@ -24,7 +24,6 @@
 #define ARM_ADI_V5_H
 
 #include "target.h"
-#include "register.h"
 #include "arm_jtag.h"
 
 #define DAP_IR_DPACC	0xA

@@ -23,8 +23,6 @@
 #ifndef REGISTER_H
 #define REGISTER_H
 
-#include "types.h"
-
 struct target;
 
 struct reg

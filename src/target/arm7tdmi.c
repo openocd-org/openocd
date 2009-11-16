@@ -29,6 +29,7 @@
 
 #include "arm7tdmi.h"
 #include "target_type.h"
+#include "register.h"
 
 
 /*

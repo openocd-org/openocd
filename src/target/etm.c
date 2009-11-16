@@ -25,6 +25,7 @@
 #include "etb.h"
 #include "image.h"
 #include "arm_disassembler.h"
+#include "register.h"
 
 
 /*

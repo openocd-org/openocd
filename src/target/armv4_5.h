@@ -26,7 +26,6 @@
 #ifndef ARMV4_5_H
 #define ARMV4_5_H
 
-#include "register.h"
 #include "target.h"
 #include "etm.h"
 

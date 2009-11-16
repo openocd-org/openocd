@@ -34,6 +34,7 @@
 #include "time_support.h"
 #include "target_type.h"
 #include "algorithm.h"
+#include "register.h"
 
 
 #if 0

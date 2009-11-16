@@ -27,6 +27,7 @@
 #include "arm926ejs.h"
 #include "time_support.h"
 #include "target_type.h"
+#include "register.h"
 
 
 /*

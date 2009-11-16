@@ -27,6 +27,7 @@
 #endif
 
 #include "mips32.h"
+#include "register.h"
 
 
 char* mips32_core_reg_list[] =

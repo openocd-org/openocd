@@ -29,7 +29,6 @@
 #ifndef CORTEX_A8_H
 #define CORTEX_A8_H
 
-#include "register.h"
 #include "target.h"
 #include "armv7a.h"
 

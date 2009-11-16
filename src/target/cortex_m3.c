@@ -36,6 +36,7 @@
 #include "target_request.h"
 #include "target_type.h"
 #include "arm_disassembler.h"
+#include "register.h"
 
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and

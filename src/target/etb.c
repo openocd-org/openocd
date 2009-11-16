@@ -23,6 +23,7 @@
 
 #include "armv4_5.h"
 #include "etb.h"
+#include "register.h"
 
 
 static char* etb_reg_list[] =

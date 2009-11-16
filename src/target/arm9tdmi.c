@@ -29,6 +29,7 @@
 
 #include "arm9tdmi.h"
 #include "target_type.h"
+#include "register.h"
 
 
 /*

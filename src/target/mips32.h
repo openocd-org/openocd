@@ -24,7 +24,6 @@
 #define MIPS32_H
 
 #include "target.h"
-#include "register.h"
 #include "mips32_pracc.h"
 
 

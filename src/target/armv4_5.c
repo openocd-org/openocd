@@ -32,6 +32,7 @@
 #include "arm_disassembler.h"
 #include "binarybuffer.h"
 #include "algorithm.h"
+#include "register.h"
 
 
 char* armv4_5_core_reg_list[] =

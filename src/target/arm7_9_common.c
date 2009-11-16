@@ -37,6 +37,7 @@
 #include "time_support.h"
 #include "arm_simulator.h"
 #include "algorithm.h"
+#include "register.h"
 
 
 /**

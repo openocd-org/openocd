@@ -35,9 +35,8 @@
 
 #include "breakpoints.h"
 #include "cortex_a8.h"
-#include "armv7a.h"
 #include "armv4_5.h"
-
+#include "register.h"
 #include "target_request.h"
 #include "target_type.h"
 
