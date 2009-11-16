@@ -87,6 +87,7 @@ struct command_context
  */
 struct command_invocation {
 	struct command_context *ctx;
+	const char *name;
 	unsigned argc;
 	const char **argv;
 };
@@ -149,7 +150,7 @@ struct command_invocation {
  * Use this macro to access the name of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_NAME CMD_ARGV[-1]
+#define CMD_NAME cmd->name
 
 
 /// The type signature for commands' handler functions.
