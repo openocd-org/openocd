@@ -236,14 +236,14 @@ static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static int armv7m_read_core_reg(struct target *target, int num)
+static int armv7m_read_core_reg(struct target *target, unsigned num)
 {
 	uint32_t reg_value;
 	int retval;
 	struct armv7m_core_reg * armv7m_core_reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
-	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
+	if (num >= ARMV7M_NUM_REGS)
 		return ERROR_INVALID_ARGUMENTS;
 
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
@@ -255,14 +255,14 @@ static int armv7m_read_core_reg(struct target *target, int num)
 	return retval;
 }
 
-static int armv7m_write_core_reg(struct target *target, int num)
+static int armv7m_write_core_reg(struct target *target, unsigned num)
 {
 	int retval;
 	uint32_t reg_value;
 	struct armv7m_core_reg *armv7m_core_reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
-	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
+	if (num >= ARMV7M_NUM_REGS)
 		return ERROR_INVALID_ARGUMENTS;
 
 	reg_value = buf_get_u32(armv7m->core_cache->reg_list[num].value, 0, 32);

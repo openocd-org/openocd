@@ -103,8 +103,8 @@ struct armv7m_common
 	int (*load_core_reg_u32)(struct target *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
 	int (*store_core_reg_u32)(struct target *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
 	/* register cache to processor synchronization */
-	int (*read_core_reg)(struct target *target, int num);
-	int (*write_core_reg)(struct target *target, int num);
+	int (*read_core_reg)(struct target *target, unsigned num);
+	int (*write_core_reg)(struct target *target, unsigned num);
 
 	int (*examine_debug_reason)(struct target *target);
 	void (*post_debug_entry)(struct target *target);
