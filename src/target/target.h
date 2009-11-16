@@ -28,13 +28,14 @@
 
 #include <stddef.h>
 
-#include "breakpoints.h"
 #include "algorithm.h"
 #include "command.h"
 
 struct reg;
 struct trace;
 struct command_context;
+struct breakpoint;
+struct watchpoint;
 
 
 /**

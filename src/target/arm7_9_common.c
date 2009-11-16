@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include "breakpoints.h"
 #include "embeddedice.h"
 #include "target_request.h"
 #include "arm7_9_common.h"

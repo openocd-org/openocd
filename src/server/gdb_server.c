@@ -28,6 +28,7 @@
 #endif
 
 #include "gdb_server.h"
+#include "breakpoints.h"
 #include "target_request.h"
 #include "register.h"
 #include "server.h"

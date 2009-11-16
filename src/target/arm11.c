@@ -27,6 +27,7 @@
 #endif
 
 #include "arm11.h"
+#include "breakpoints.h"
 #include "arm11_dbgtap.h"
 #include "armv4_5.h"
 #include "arm_simulator.h"

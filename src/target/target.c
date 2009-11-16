@@ -36,6 +36,7 @@
 #include "target.h"
 #include "target_type.h"
 #include "target_request.h"
+#include "breakpoints.h"
 #include "time_support.h"
 #include "register.h"
 #include "trace.h"

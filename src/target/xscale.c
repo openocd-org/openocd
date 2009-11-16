@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include "breakpoints.h"
 #include "xscale.h"
 #include "target_type.h"
 #include "arm7_9_common.h"

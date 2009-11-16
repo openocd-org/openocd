@@ -29,7 +29,6 @@
 #ifndef ARM7_9_COMMON_H
 #define ARM7_9_COMMON_H
 
-#include "breakpoints.h"
 #include "armv4_5.h"
 
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */

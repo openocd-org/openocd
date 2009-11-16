@@ -31,6 +31,7 @@
 #include "config.h"
 #endif
 
+#include "breakpoints.h"
 #include "cortex_m3.h"
 #include "target_request.h"
 #include "target_type.h"
