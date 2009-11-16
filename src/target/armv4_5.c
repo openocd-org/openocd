@@ -439,19 +439,14 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 {
 	int retval = ERROR_OK;
 	struct target *target = get_current_target(cmd_ctx);
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *arm = target ? target_to_arm(target) : NULL;
 	uint32_t address;
 	int count = 1;
-	int i;
-	struct arm_instruction cur_instruction;
-	uint32_t opcode;
-	uint16_t thumb_opcode;
 	int thumb = 0;
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
-		return ERROR_OK;
+	if (!is_arm(arm)) {
+		command_print(cmd_ctx, "current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	switch (argc) {
@@ -477,37 +472,38 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 usage:
 		command_print(cmd_ctx,
 			"usage: armv4_5 disassemble <address> [<count> ['thumb']]");
-		return ERROR_OK;
+		count = 0;
+		retval = ERROR_FAIL;
 	}
 
-	for (i = 0; i < count; i++)
-	{
-		if (thumb)
-		{
-			if ((retval = target_read_u16(target, address, &thumb_opcode)) != ERROR_OK)
-			{
-				return retval;
-			}
-			if ((retval = thumb_evaluate_opcode(thumb_opcode, address, &cur_instruction)) != ERROR_OK)
-			{
-				return retval;
-			}
-		}
-		else {
-			if ((retval = target_read_u32(target, address, &opcode)) != ERROR_OK)
-			{
-				return retval;
-			}
-			if ((retval = arm_evaluate_opcode(opcode, address, &cur_instruction)) != ERROR_OK)
-			{
-				return retval;
-			}
+	while (count-- > 0) {
+		struct arm_instruction cur_instruction;
+
+		if (thumb) {
+			/* Always use Thumb2 disassembly for best handling
+			 * of 32-bit BL/BLX, and to work with newer cores
+			 * (some ARMv6, all ARMv7) that use Thumb2.
+			 */
+			retval = thumb2_opcode(target, address,
+					&cur_instruction);
+			if (retval != ERROR_OK)
+				break;
+		} else {
+			uint32_t opcode;
+
+			retval = target_read_u32(target, address, &opcode);
+			if (retval != ERROR_OK)
+				break;
+			retval = arm_evaluate_opcode(opcode, address,
+					&cur_instruction) != ERROR_OK;
+			if (retval != ERROR_OK)
+				break;
 		}
 		command_print(cmd_ctx, "%s", cur_instruction.text);
-		address += (thumb) ? 2 : 4;
+		address += cur_instruction.instruction_size;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 int armv4_5_register_commands(struct command_context *cmd_ctx)

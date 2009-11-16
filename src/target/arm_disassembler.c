@@ -1784,8 +1784,12 @@ static int evaluate_b_bl_blx_thumb(uint16_t opcode,
 	}
 
 	/* TODO: deal correctly with dual opcode (prefixed) BL/BLX;
-	 * these are effectively 32-bit instructions even in Thumb1.
-	 * Might be simplest to always use the Thumb2 decoder.
+	 * these are effectively 32-bit instructions even in Thumb1.  For
+	 * disassembly, it's simplest to always use the Thumb2 decoder.
+	 *
+	 * But some cores will evidently handle them as two instructions,
+	 * where exceptions may occur between the two.  The ETMv3.2+ ID
+	 * register has a bit which exposes this behavior.
 	 */
 
 	snprintf(instruction->text, 128,
