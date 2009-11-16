@@ -40,13 +40,19 @@
  * @param area Pointer to a pointer to a working area to copy code to
  * @return Success or failure of the operation
  */
-int arm_code_to_working_area(struct target *target, const uint32_t *code, unsigned code_size,
+int arm_code_to_working_area(struct target *target,
+		const uint32_t *code, unsigned code_size,
 		unsigned additional, struct working_area **area)
 {
 	uint8_t code_buf[code_size];
 	unsigned i;
 	int retval;
 	unsigned size = code_size + additional;
+
+	/* REVISIT this assumes size doesn't ever change.
+	 * That's usually correct; but there are boards with
+	 * both large and small page chips, where it won't be...
+	 */
 
 	/* make sure we have a working area */
 	if (NULL == *area) {
@@ -109,13 +115,15 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 		0xe1200070,	/* e: bkpt  #0           */
 	};
 
-	if (!nand->copy_area) {
+	if (nand->op != ARM_NAND_WRITE || !nand->copy_area) {
 		retval = arm_code_to_working_area(target, code, sizeof(code),
 				nand->chunk_size, &nand->copy_area);
 		if (retval != ERROR_OK) {
 			return retval;
 		}
 	}
+
+	nand->op = ARM_NAND_WRITE;
 
 	/* copy data to work area */
 	target_buf = nand->copy_area->address + sizeof(code);
@@ -192,7 +200,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	};
 
 	/* create the copy area if not yet available */
-	if (!nand->copy_area) {
+	if (nand->op != ARM_NAND_READ || !nand->copy_area) {
 		retval = arm_code_to_working_area(target, code, sizeof(code),
 				nand->chunk_size, &nand->copy_area);
 		if (retval != ERROR_OK) {
@@ -200,6 +208,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 		}
 	}
 
+	nand->op = ARM_NAND_READ;
 	target_buf = nand->copy_area->address + sizeof(code);
 
 	/* set up algorithm and parameters */
@@ -223,7 +232,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			nand->copy_area->address, exit, 1000, &algo);
 	if (retval != ERROR_OK)
-		LOG_ERROR("error executing hosted NAND write");
+		LOG_ERROR("error executing hosted NAND read");
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
