@@ -22,6 +22,7 @@
 #endif
 
 #include "log.h"
+#include "target.h"
 #include "armv4_5_mmu.h"
 
 

@@ -26,7 +26,8 @@
 #ifndef TARGET_REQUEST_H
 #define TARGET_REQUEST_H
 
-#include "target.h"
+struct target;
+struct command_context;
 
 typedef enum target_req_cmd
 {

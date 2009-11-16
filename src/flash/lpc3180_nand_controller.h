@@ -20,8 +20,6 @@
 #ifndef LPC3180_NAND_CONTROLLER_H
 #define LPC3180_NAND_CONTROLLER_H
 
-#include "target.h"
-
 enum lpc3180_selected_controller
 {
 	LPC3180_NO_CONTROLLER,

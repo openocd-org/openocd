@@ -35,6 +35,7 @@
 #endif
 
 #include "breakpoints.h"
+#include "target.h"
 #include "armv7m.h"
 #include "algorithm.h"
 #include "register.h"

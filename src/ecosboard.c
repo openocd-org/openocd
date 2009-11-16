@@ -26,7 +26,6 @@
 #include "configuration.h"
 #include "xsvf.h"
 #include "svf.h"
-#include "target.h"
 #include "nand.h"
 #include "pld.h"
 

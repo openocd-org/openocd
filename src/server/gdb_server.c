@@ -27,12 +27,12 @@
 #include "config.h"
 #endif
 
-#include "gdb_server.h"
 #include "breakpoints.h"
 #include "target_request.h"
 #include "register.h"
 #include "server.h"
 #include "flash.h"
+#include "gdb_server.h"
 #include "image.h"
 #include "jtag.h"
 

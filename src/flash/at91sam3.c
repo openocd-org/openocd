@@ -62,7 +62,6 @@
 #include <stddef.h>
 #include "types.h"
 #include "flash.h"
-#include "target.h"
 #include "membuf.h"
 #include "at91sam3.h"
 #include "time_support.h"

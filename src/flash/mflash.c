@@ -22,6 +22,7 @@
 #endif
 
 #include "mflash.h"
+#include "target.h"
 #include "time_support.h"
 #include "fileio.h"
 #include "log.h"

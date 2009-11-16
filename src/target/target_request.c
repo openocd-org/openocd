@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include "target.h"
 #include "target_request.h"
 #include "target_type.h"
 #include "binarybuffer.h"

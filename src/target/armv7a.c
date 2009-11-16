@@ -25,7 +25,6 @@
 #include "armv7a.h"
 #include "arm_disassembler.h"
 
-#include "target.h"
 #include "register.h"
 #include "binarybuffer.h"
 #include "command.h"
