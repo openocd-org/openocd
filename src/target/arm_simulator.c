@@ -29,6 +29,7 @@
 #include "arm_simulator.h"
 #include "binarybuffer.h"
 #include "register.h"
+#include "log.h"
 
 
 static uint32_t arm_shift(uint8_t shift, uint32_t Rm,
