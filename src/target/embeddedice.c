@@ -349,7 +349,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[1].tap = ice_reg->jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, reg_addr);
+	fields[1].out_value[0] = reg_addr;
 	fields[1].in_value = NULL;
 	fields[1].check_value = NULL;
 	fields[1].check_mask = NULL;
@@ -358,7 +358,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[2].tap = ice_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
-	buf_set_u32(fields[2].out_value, 0, 1, 0);
+	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
@@ -375,7 +375,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	 * EICE_COMMS_DATA would read the register twice
 	 * reading the control register is safe
 	 */
-	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_CTRL].addr);
+	fields[1].out_value[0] = eice_regs[EICE_COMMS_CTRL].addr;
 
 	/* traverse Update-DR, reading but with no other side effects */
 	jtag_add_dr_scan_check(3, fields, jtag_get_end_state());
@@ -409,13 +409,13 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_DATA].addr);
+	fields[1].out_value[0] = eice_regs[EICE_COMMS_DATA].addr;
 	fields[1].in_value = NULL;
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
-	buf_set_u32(fields[2].out_value, 0, 1, 0);
+	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
@@ -426,8 +426,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 		 * to avoid reading additional data from the DCC data reg
 		 */
 		if (size == 1)
-			buf_set_u32(fields[1].out_value, 0, 5,
-					eice_regs[EICE_COMMS_CTRL].addr);
+			fields[1].out_value[0] = eice_regs[EICE_COMMS_CTRL].addr;
 
 		fields[0].in_value = (uint8_t *)data;
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
@@ -531,13 +530,13 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_DATA].addr);
+	fields[1].out_value[0] = eice_regs[EICE_COMMS_DATA].addr;
 	fields[1].in_value = NULL;
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
-	buf_set_u32(fields[2].out_value, 0, 1, 1);
+	fields[2].out_value[0] = 1;
 
 	fields[2].in_value = NULL;
 
@@ -587,13 +586,13 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_DATA].addr);
+	fields[1].out_value[0] = eice_regs[EICE_COMMS_DATA].addr;
 	fields[1].in_value = NULL;
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
-	buf_set_u32(fields[2].out_value, 0, 1, 0);
+	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
