@@ -62,7 +62,7 @@ static int arm920t_read_cp15_physical(struct target *target,
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 0;
 
-	jtag_info = &arm920t->arm9tdmi_common.arm7_9_common.jtag_info;
+	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -115,7 +115,7 @@ static int arm920t_write_cp15_physical(struct target *target,
 	uint8_t nr_w_buf = 1;
 	uint8_t value_buf[4];
 
-	jtag_info = &arm920t->arm9tdmi_common.arm7_9_common.jtag_info;
+	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
 	buf_set_u32(value_buf, 0, 32, value);
 
@@ -164,7 +164,7 @@ static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 	uint8_t nr_w_buf = 0;
 	uint8_t cp15_opcode_buf[4];
 
-	jtag_info = &arm920t->arm9tdmi_common.arm7_9_common.jtag_info;
+	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -444,7 +444,7 @@ int arm920t_arch_state(struct target *target)
 		return ERROR_TARGET_INVALID;
 	}
 
-	armv4_5 = &arm920t->arm9tdmi_common.arm7_9_common.armv4_5_common;
+	armv4_5 = &arm920t->arm7_9_common.armv4_5_common;
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
@@ -623,12 +623,10 @@ int arm920t_soft_reset_halt(struct target *target)
 
 int arm920t_init_arch_info(struct target *target, struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
-	struct arm9tdmi_common *arm9tdmi = &arm920t->arm9tdmi_common;
-	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm920t->arm7_9_common;
 
-	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
-	 */
-	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
+	/* initialize arm7/arm9 specific info (including armv4_5) */
+	arm9tdmi_init_arch_info(target, arm7_9, tap);
 
 	arm920t->common_magic = ARM920T_COMMON_MAGIC;
 

@@ -256,12 +256,8 @@ static void fa526_branch_resume_thumb(struct target *target)
 }
 
 static int fa526_init_arch_info_2(struct target *target,
-		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap)
+		struct arm7_9_common *arm7_9, struct jtag_tap *tap)
 {
-	struct arm7_9_common *arm7_9;
-
-	arm7_9 = &arm9tdmi->arm7_9_common;
-
 	/* prepare JTAG information for the new target */
 	arm7_9->jtag_info.tap = tap;
 	arm7_9->jtag_info.scann_size = 5;
@@ -317,12 +313,10 @@ static int fa526_init_arch_info_2(struct target *target,
 static int fa526_init_arch_info(struct target *target,
 		struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
-	struct arm9tdmi_common *arm9tdmi = &arm920t->arm9tdmi_common;
-	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm920t->arm7_9_common;
 
-	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
-	 */
-	fa526_init_arch_info_2(target, arm9tdmi, tap);
+	/* initialize arm7/arm9 specific info (including armv4_5) */
+	fa526_init_arch_info_2(target, arm7_9, tap);
 
 	arm920t->common_magic = ARM920T_COMMON_MAGIC;
 

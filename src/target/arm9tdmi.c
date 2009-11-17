@@ -46,8 +46,22 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-static const struct arm9tdmi_vector arm9tdmi_vectors[] =
+enum arm9tdmi_vector_bit
 {
+	ARM9TDMI_RESET_VECTOR = 0x01,
+	ARM9TDMI_UNDEF_VECTOR = 0x02,
+	ARM9TDMI_SWI_VECTOR = 0x04,
+	ARM9TDMI_PABT_VECTOR = 0x08,
+	ARM9TDMI_DABT_VECTOR = 0x10,
+	/* BIT(5) reserved -- must be zero */
+	ARM9TDMI_IRQ_VECTOR = 0x40,
+	ARM9TDMI_FIQ_VECTOR = 0x80,
+};
+
+static const struct arm9tdmi_vector {
+	char *name;
+	uint32_t value;
+} arm9tdmi_vectors[] = {
 	{"reset", ARM9TDMI_RESET_VECTOR},
 	{"undef", ARM9TDMI_UNDEF_VECTOR},
 	{"swi", ARM9TDMI_SWI_VECTOR},
@@ -750,14 +764,9 @@ int arm9tdmi_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-int arm9tdmi_init_arch_info(struct target *target, struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap)
+int arm9tdmi_init_arch_info(struct target *target,
+		struct arm7_9_common *arm7_9, struct jtag_tap *tap)
 {
-	struct arm *armv4_5;
-	struct arm7_9_common *arm7_9;
-
-	arm7_9 = &arm9tdmi->arm7_9_common;
-	armv4_5 = &arm7_9->armv4_5_common;
-
 	/* prepare JTAG information for the new target */
 	arm7_9->jtag_info.tap = tap;
 	arm7_9->jtag_info.scann_size = 5;
@@ -812,10 +821,10 @@ int arm9tdmi_init_arch_info(struct target *target, struct arm9tdmi_common *arm9t
 
 static int arm9tdmi_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct arm9tdmi_common *arm9tdmi = calloc(1,sizeof(struct arm9tdmi_common));
+	struct arm7_9_common *arm7_9 = calloc(1,sizeof(struct arm7_9_common));
 
-	arm9tdmi_init_arch_info(target, arm9tdmi, target->tap);
-	arm9tdmi->arm7_9_common.armv4_5_common.is_armv4 = true;
+	arm9tdmi_init_arch_info(target, arm7_9, target->tap);
+	arm7_9->armv4_5_common.is_armv4 = true;
 
 	return ERROR_OK;
 }

@@ -34,10 +34,10 @@
 
 int arm966e_init_arch_info(struct target *target, struct arm966e_common *arm966e, struct jtag_tap *tap)
 {
-	struct arm9tdmi_common *arm9tdmi = &arm966e->arm9tdmi_common;
-	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm966e->arm7_9_common;
 
-	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
+	/* initialize arm7/arm9 specific info (including armv4_5) */
+	arm9tdmi_init_arch_info(target, arm7_9, tap);
 
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
 

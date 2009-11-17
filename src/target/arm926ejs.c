@@ -502,7 +502,7 @@ int arm926ejs_arch_state(struct target *target)
 		return ERROR_TARGET_INVALID;
 	}
 
-	armv4_5 = &arm926ejs->arm9tdmi_common.arm7_9_common.armv4_5_common;
+	armv4_5 = &arm926ejs->arm7_9_common.armv4_5_common;
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
@@ -670,12 +670,10 @@ static int arm926ejs_read_phys_memory(struct target *target,
 int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm926ejs,
 		struct jtag_tap *tap)
 {
-	struct arm9tdmi_common *arm9tdmi = &arm926ejs->arm9tdmi_common;
-	struct arm7_9_common *arm7_9 = &arm9tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm926ejs->arm7_9_common;
 
-	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
-	 */
-	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
+	/* initialize arm7/arm9 specific info (including armv4_5) */
+	arm9tdmi_init_arch_info(target, arm7_9, tap);
 
 	arm926ejs->common_magic = ARM926EJS_COMMON_MAGIC;
 

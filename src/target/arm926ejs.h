@@ -27,7 +27,7 @@
 
 struct arm926ejs_common
 {
-	struct arm9tdmi_common arm9tdmi_common;
+	struct arm7_9_common arm7_9_common;
 	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
 	int (*read_cp15)(struct target *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
@@ -42,7 +42,7 @@ static inline struct arm926ejs_common *
 target_to_arm926(struct target *target)
 {
 	return container_of(target->arch_info, struct arm926ejs_common,
-		arm9tdmi_common.arm7_9_common.armv4_5_common);
+			arm7_9_common.armv4_5_common);
 }
 
 

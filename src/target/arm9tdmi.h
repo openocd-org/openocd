@@ -25,36 +25,10 @@
 
 #include "embeddedice.h"
 
-/* FIXME we don't really need a separate arm9tdmi struct any more...
- * remove it, the arm7/arm9 common struct suffices.
- */
-struct arm9tdmi_common
-{
-	struct arm7_9_common arm7_9_common;
-};
-
-struct arm9tdmi_vector
-{
-	char *name;
-	uint32_t value;
-};
-
-enum arm9tdmi_vector_bit
-{
-	ARM9TDMI_RESET_VECTOR = 0x01,
-	ARM9TDMI_UNDEF_VECTOR = 0x02,
-	ARM9TDMI_SWI_VECTOR = 0x04,
-	ARM9TDMI_PABT_VECTOR = 0x08,
-	ARM9TDMI_DABT_VECTOR = 0x10,
-	/* BIT(5) reserved -- must be zero */
-	ARM9TDMI_IRQ_VECTOR = 0x40,
-	ARM9TDMI_FIQ_VECTOR = 0x80,
-};
-
 int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target);
 int arm9tdmi_init_arch_info(struct target *target,
-		struct arm9tdmi_common *arm9tdmi, struct jtag_tap *tap);
+		struct arm7_9_common *arm7_9, struct jtag_tap *tap);
 int arm9tdmi_register_commands(struct command_context *cmd_ctx);
 
 int arm9tdmi_clock_out(struct arm_jtag *jtag_info,
