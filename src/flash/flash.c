@@ -216,7 +216,7 @@ struct flash_bank *get_flash_bank_by_num(int num)
 	return p;
 }
 
-COMMAND_HELPER(flash_command_get_bank_by_num, unsigned name_index,
+COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 		struct flash_bank **bank)
 {
 	const char *name = CMD_ARGV[name_index];
@@ -425,7 +425,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 	}
 
 	struct flash_bank *p;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -513,7 +513,7 @@ COMMAND_HANDLER(handle_flash_protect_check_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *p;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -837,7 +837,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	duration_start(&bench);
 
 	struct flash_bank *p;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 

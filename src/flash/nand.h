@@ -239,7 +239,7 @@ int nand_register_commands(struct command_context *cmd_ctx);
 int nand_init(struct command_context *cmd_ctx);
 
 /// helper for parsing a nand device command argument string
-COMMAND_HELPER(nand_command_get_device_by_num, unsigned name_index,
+COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 		struct nand_device **nand);
 
 

@@ -426,7 +426,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 

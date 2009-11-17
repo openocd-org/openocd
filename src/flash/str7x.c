@@ -618,7 +618,7 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 

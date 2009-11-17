@@ -738,7 +738,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -789,7 +789,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -905,7 +905,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -928,7 +928,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -957,7 +957,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -986,7 +986,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1015,7 +1015,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1044,7 +1044,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_lock_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1067,7 +1067,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1093,7 +1093,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1140,7 +1140,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 	}
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_by_num, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 

@@ -322,7 +322,7 @@ struct nand_device *get_nand_device_by_num(int num)
 	return NULL;
 }
 
-COMMAND_HELPER(nand_command_get_device_by_num, unsigned name_index,
+COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 		struct nand_device **nand)
 {
 	const char *str = CMD_ARGV[name_index];
@@ -1100,7 +1100,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 	int last = -1;
 
 	struct nand_device *p;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1175,7 +1175,7 @@ COMMAND_HANDLER(handle_nand_probe_command)
 	}
 
 	struct nand_device *p;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1204,7 +1204,7 @@ COMMAND_HANDLER(handle_nand_erase_command)
 	}
 
 	struct nand_device *p;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1263,7 +1263,7 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	}
 
 	struct nand_device *p;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1415,7 +1415,7 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct nand_device *nand;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device_by_num, 0, &nand);
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &nand);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1674,7 +1674,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 	}
 
 	struct nand_device *p;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device_by_num, 0, &p);
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 

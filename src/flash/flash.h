@@ -333,7 +333,7 @@ struct flash_bank *get_flash_bank_by_num(int num);
  * @param bank On output, contians a pointer to the bank or NULL.
  * @returns ERROR_OK on success, or an error indicating the problem.
  */
-COMMAND_HELPER(flash_command_get_bank_by_num, unsigned name_index,
+COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 		struct flash_bank **bank);
 /**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.
