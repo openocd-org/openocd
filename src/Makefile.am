@@ -116,7 +116,7 @@ BIN2C = $(builddir)/helper/bin2char$(EXEEXT_FOR_BUILD)
 
 # Convert .tcl to cfile
 startup_tcl.c: startup.tcl $(BIN2C)
-	$(BIN2C) startup_tcl < $< > $@ || rm -f $@
+	$(BIN2C) openocd_startup_tcl < $< > $@ || rm -f $@
 
 # add startup_tcl.c to make clean list
 CLEANFILES = startup.tcl startup_tcl.c

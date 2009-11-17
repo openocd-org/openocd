@@ -28,6 +28,7 @@
 #include "config.h"
 #endif
 
+#include "openocd.h"
 #include "jtag.h"
 #include "configuration.h"
 #include "xsvf.h"
@@ -168,7 +169,7 @@ struct command_context *setup_command_handler(void)
 {
 	struct command_context *cmd_ctx;
 
-	global_cmd_ctx = cmd_ctx = command_init();
+	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl);
 
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");

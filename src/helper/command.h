@@ -190,7 +190,10 @@ struct command_context* copy_command_context(struct command_context* context);
 
 int command_context_mode(struct command_context *context, enum command_mode mode);
 
-struct command_context* command_init(void);
+/**
+ * Creates a new command context using the startup TCL provided.
+ */
+struct command_context* command_init(const char *startup_tcl);
 int command_done(struct command_context *context);
 
 void command_print(struct command_context *context, const char *format, ...)

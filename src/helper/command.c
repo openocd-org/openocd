@@ -766,10 +766,9 @@ COMMAND_HANDLER(handle_fast_command)
 }
 
 
-struct command_context* command_init()
+struct command_context* command_init(const char *startup_tcl)
 {
 	struct command_context* context = malloc(sizeof(struct command_context));
-	extern const char startup_tcl[];
 	const char *HostOs;
 
 	context->mode = COMMAND_EXEC;
