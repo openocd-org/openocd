@@ -268,7 +268,7 @@ int mips32_arch_state(struct target *target)
 	if (mips32->common_magic != MIPS32_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-MIPS32 target");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 
 	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",

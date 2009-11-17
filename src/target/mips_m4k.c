@@ -513,10 +513,9 @@ int mips_m4k_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 			bp_num++;
 		if (bp_num >= mips32->num_inst_bpoints)
 		{
-			LOG_DEBUG("ERROR Can not find free FP Comparator(bpid: %d)",
+			LOG_ERROR("Can not find free FP Comparator(bpid: %d)",
 					  breakpoint->unique_id );
-			LOG_WARNING("ERROR Can not find free FP Comparator");
-			exit(-1);
+			return ERROR_FAIL;
 		}
 		breakpoint->set = bp_num + 1;
 		comparator_list[bp_num].used = 1;
@@ -724,9 +723,8 @@ int mips_m4k_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 		wp_num++;
 	if (wp_num >= mips32->num_data_bpoints)
 	{
-		LOG_DEBUG("ERROR Can not find free FP Comparator");
-		LOG_WARNING("ERROR Can not find free FP Comparator");
-		exit(-1);
+		LOG_ERROR("Can not find free FP Comparator");
+		return ERROR_FAIL;
 	}
 
 	if (watchpoint->length != 4)
