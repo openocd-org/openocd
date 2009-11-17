@@ -5535,10 +5535,17 @@ that is not currently supported in OpenOCD.)
 Disassembles @var{count} instructions starting at @var{address}.
 If @var{count} is not specified, a single instruction is disassembled.
 If @option{thumb} is specified, or the low bit of the address is set,
-Thumb (16-bit) instructions are used;
+Thumb2 (mixed 16/32-bit) instructions are used;
 else ARM (32-bit) instructions are used.
 (Processors may also support the Jazelle state, but
 those instructions are not currently understood by OpenOCD.)
+
+Note that all Thumb instructions are Thumb2 instructions,
+so older processors (without Thumb2 support) will still
+see correct disassembly of Thumb code.
+Also, ThumbEE opcodes are the same as Thumb2,
+with a handful of exceptions.
+ThumbEE disassembly currently has no explicit support.
 @end deffn
 
 @deffn Command {arm reg}
@@ -5940,23 +5947,6 @@ defaulting to the currently selected AP.
 Displays the number of extra tck for mem-ap memory bus access [0-255].
 If @var{value} is defined, first assigns that.
 @end deffn
-
-@subsection ARMv7-A specific commands
-@cindex ARMv7-A
-
-@deffn Command {armv7a disassemble} address [count [@option{thumb}]]
-@cindex disassemble
-Disassembles @var{count} instructions starting at @var{address}.
-If @var{count} is not specified, a single instruction is disassembled.
-If @option{thumb} is specified, or the low bit of the address is set,
-Thumb2 (mixed 16/32-bit) instructions are used;
-else ARM (32-bit) instructions are used.
-With a handful of exceptions, ThumbEE instructions are the same as Thumb2;
-ThumbEE disassembly currently has no explicit support.
-(Processors may also support the Jazelle state, but
-those instructions are not currently understood by OpenOCD.)
-@end deffn
-
 
 @subsection Cortex-M3 specific commands
 @cindex Cortex-M3

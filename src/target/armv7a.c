@@ -274,84 +274,9 @@ COMMAND_HANDLER(handle_dap_info_command)
 	return dap_info_command(cmd_ctx, swjdp, apsel);
 }
 
-COMMAND_HANDLER(handle_armv7a_disassemble_command)
-{
-	struct target *target = get_current_target(cmd_ctx);
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	int thumb = 0;
-	int count = 1;
-	uint32_t address;
-	int i;
-
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC) {
-		command_print(cmd_ctx, "current target isn't an ARM target");
-		return ERROR_OK;
-	}
-
-	/* REVISIT:  eventually support ThumbEE disassembly too;
-	 * some opcodes work differently.
-	 */
-
-	switch (argc) {
-	case 3:
-		if (strcmp(args[2], "thumb") != 0)
-			goto usage;
-		thumb = 1;
-		/* FALL THROUGH */
-	case 2:
-		COMMAND_PARSE_NUMBER(int, args[1], count);
-		/* FALL THROUGH */
-	case 1:
-		COMMAND_PARSE_NUMBER(u32, args[0], address);
-		if (address & 0x01) {
-			if (!thumb) {
-				command_print(cmd_ctx, "Disassemble as Thumb");
-				thumb = 1;
-			}
-			address &= ~1;
-		}
-		break;
-	default:
-usage:
-		command_print(cmd_ctx,
-			"usage: armv7a disassemble <address> [<count> ['thumb']]");
-		return ERROR_OK;
-	}
-
-	for (i = 0; i < count; i++) {
-		struct arm_instruction cur_instruction;
-		int retval;
-
-		if (thumb) {
-			retval = thumb2_opcode(target, address, &cur_instruction);
-			if (retval != ERROR_OK)
-				return retval;
-
-			address += cur_instruction.instruction_size;
-		} else {
-			uint32_t opcode;
-
-			retval = target_read_u32(target, address, &opcode);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = arm_evaluate_opcode(opcode, address,
-					&cur_instruction);
-			if (retval != ERROR_OK)
-				return retval;
-
-			address += 4;
-		}
-		command_print(cmd_ctx, "%s", cur_instruction.text);
-	}
-
-	return ERROR_OK;
-}
-
 int armv7a_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *arm_adi_v5_dap_cmd;
-	struct command *armv7a_cmd;
 
 	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap",
 			NULL, COMMAND_ANY,
@@ -376,14 +301,6 @@ int armv7a_register_commands(struct command_context *cmd_ctx)
 			handle_dap_memaccess_command, COMMAND_EXEC,
 			"set/get number of extra tck for mem-ap memory "
 			"bus access [0-255]");
-
-	armv7a_cmd = register_command(cmd_ctx, NULL, "armv7a",
-			NULL, COMMAND_ANY,
-			"ARMv7-A specific commands");
-
-	register_command(cmd_ctx, armv7a_cmd, "disassemble",
-			handle_armv7a_disassemble_command, COMMAND_EXEC,
-			"disassemble instructions <address> [<count> ['thumb']]");
 
 	return ERROR_OK;
 }
