@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2009 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -79,6 +79,14 @@
 
 #include <unistd.h>
 #include <stdio.h>
+
+
+#ifdef CYGPKG_HAL_NIOS2
+#define ZY1000_SER_DEV "/dev/uart_0"
+#else
+#define ZY1000_SER_DEV "/dev/ser0"
+
+#endif
 
 
 #define MAX_IFS 64
@@ -684,7 +692,7 @@ static void zylinjtag_uart(cyg_addrword_t data)
 		int oldopts = fcntl(session, F_GETFL, 0);
 		fcntl(session, F_SETFL, oldopts | O_NONBLOCK); //
 
-		int serHandle = open("/dev/ser0", O_RDWR | O_NONBLOCK);
+		int serHandle = open(ZY1000_SER_DEV, O_RDWR | O_NONBLOCK);
 		if (serHandle < 0)
 		{
 			close(session);
@@ -886,10 +894,10 @@ int handle_uart_command(struct command_context *cmd_ctx, char *cmd,
 	int err;
 	cyg_io_handle_t serial_handle;
 
-	err = cyg_io_lookup("/dev/ser0", &serial_handle);
+	err = cyg_io_lookup(ZY1000_SER_DEV, &serial_handle);
 	if (err != ENOERR)
 	{
-		LOG_ERROR("/dev/ser0 not found\n");
+		LOG_ERROR("Could not open serial port\n");
 		return ERROR_FAIL;
 	}
 
