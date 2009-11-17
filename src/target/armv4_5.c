@@ -342,7 +342,7 @@ int armv4_5_arch_state(struct target *target)
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
@@ -651,13 +651,13 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 
 		if ((retval = armv4_5_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
@@ -674,7 +674,7 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 	else
 	{
 		LOG_ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
-		exit(-1);
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	if (armv4_5_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
@@ -724,13 +724,15 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				exit(-1);
+				retval = ERROR_INVALID_ARGUMENTS;
+				continue;
 			}
 
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-				exit(-1);
+				retval = ERROR_INVALID_ARGUMENTS;
+				continue;
 			}
 
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
