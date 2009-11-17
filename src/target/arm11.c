@@ -1665,13 +1665,13 @@ static int arm11_run_algorithm(struct target *target,
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 		arm11_set_reg(reg,reg_params[i].value);
 //		printf("%i: Set %s =%08x\n", i, reg_params[i].reg_name,val);
@@ -1750,13 +1750,15 @@ static int arm11_run_algorithm(struct target *target,
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				exit(-1);
+				retval = ERROR_INVALID_ARGUMENTS;
+				goto del_breakpoint;
 			}
 
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-				exit(-1);
+				retval = ERROR_INVALID_ARGUMENTS;
+				goto del_breakpoint;
 			}
 
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
