@@ -16,7 +16,7 @@ COMMAND_HANDLER(handle_hello_command)
 	const char *sep, *name;
 	int retval = CALL_COMMAND_HANDLER(handle_hello_args);
 	if (ERROR_OK == retval)
-		command_print(cmd_ctx, "Greetings%s%s!", sep, name);
+		command_print(CMD_CTX, "Greetings%s%s!", sep, name);
 	return retval;
 }
 @endcode
@@ -39,13 +39,13 @@ static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 {
 	if (argc > 1)
 	{
-		LOG_ERROR("%s: too many arguments", COMMAND_NAME);
+		LOG_ERROR("%s: too many arguments", CMD_NAME);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	if (1 == argc)
+	if (1 == CMD_ARGC)
 	{
 		*sep = ", ";
-		*name = args[0];
+		*name = CMD_ARGV[0];
 	}
 	else
 		*sep = *name = "";
@@ -95,5 +95,10 @@ Greetings, World!
 Greetings, John Doe!
 Error: ocd_hello: too many arguments
 @endcode
+
+This difference between the registered and displayed command name comes from
+the fact that the TCL scripts are provided with a stub that calls the munged
+name.  This stub wraps the internal <code>ocd_</code>-prefixed routine,
+providing a measure of high-level error handling.
 
  */

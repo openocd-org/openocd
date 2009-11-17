@@ -45,16 +45,16 @@ another layer of handlers.
 
 @subsection helpercmdhandlerdef Defining and Calling Command Handlers
 
-These functions should be defined using the COMMAND_HANDLER macro.
+These functions should be defined using the @c COMMAND_HANDLER macro.
 These methods must be defined as static, as their principle entry point
 should be the run_command dispatch mechanism.
 
 Command helper functions that require access to the full set of
-parameters should be defined using the COMMAND_HELPER.  These must be
+parameters should be defined using the @c COMMAND_HELPER.  These must be
 declared static by you, as sometimes you might want to share a helper
-among several files (e.g. s3c24xx_nand.h).
+among several files (e.g. @c s3c24xx_nand.h).
 
-Both types of routines must be called using the CALL_COMMAND_HANDLER macro.
+Both types of routines must be called using the @c CALL_COMMAND_HANDLER macro.
 Calls using this macro to normal handlers require the name of the command
 handler (which can a name or function pointer).  Calls to helpers and
 derived handlers must pass those extra parameters specified by their
@@ -67,22 +67,18 @@ will be able to use direct invocations.
 Thus, the following macros can be used to define and call command
 handlers or helpers:
 
-- COMMAND_HANDLER - declare or define a command handler.
-- COMMAND_HELPER - declare or define a derived command handler or helper.
-- CALL_COMMAND_COMMAND - call a command handler/helper.
-
-@subsection helpercmdhandlerparam Command Handler Parameters
-
-The following parameters are defined in the scope of all command
-handlers and helpers:
-- <code>struct command_context *cmd_ctx</code> - the command's context
-- <code>unsigned argc</code> - the number of command arguments
-- <code>const char *args[]</code> - contains the command arguments
+- @c COMMAND_HANDLER - declare or define a command handler.
+- @c COMMAND_HELPER - declare or define a derived command handler or helper.
+- @c CALL_COMMAND_COMMAND - call a command handler/helper.
 
 @subsection helpercmdhandlermacros Command Handler Macros
 
-In addition, the following macro may be used:
-- <code>COMMAND_NAME</code> - contains the command name
+In addition, the following macros may be used in the context of
+command handlers and helpers:
+- @c CMD_CTX - the current @c command_context
+- @c CMD_NAME - invoked command name
+- @c CMD_ARGC - the number of command arguments
+- @c CMD_ARGV - array of command argument strings
 
 @section helpercmdprimer Command Development Primer
 
