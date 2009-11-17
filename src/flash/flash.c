@@ -239,25 +239,24 @@ COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 
 COMMAND_HANDLER(handle_flash_bank_command)
 {
-	int retval;
-	int i;
-	int found = 0;
-	struct target *target;
-
 	if (CMD_ARGC < 6)
 	{
+		LOG_ERROR("usage: flash bank <driver> "
+				"<base> <size> <chip_width> <bus_width>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
+	struct target *target;
 	if ((target = get_target(CMD_ARGV[5])) == NULL)
 	{
 		LOG_ERROR("target '%s' not defined", CMD_ARGV[5]);
 		return ERROR_FAIL;
 	}
 
-	for (i = 0; flash_drivers[i]; i++)
+	const char *driver_name = CMD_ARGV[0];
+	for (unsigned i = 0; flash_drivers[i]; i++)
 	{
-		if (strcmp(CMD_ARGV[0], flash_drivers[i]->name) != 0)
+		if (strcmp(driver_name, flash_drivers[i]->name) != 0)
 			continue;
 
 		struct flash_bank *p, *c;
@@ -265,7 +264,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		/* register flash specific commands */
 		if (flash_drivers[i]->register_commands(CMD_CTX) != ERROR_OK)
 		{
-			LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
+			LOG_ERROR("couldn't register '%s' commands", driver_name);
 			return ERROR_FAIL;
 		}
 
@@ -281,10 +280,12 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		c->sectors = NULL;
 		c->next = NULL;
 
+		int retval;
 		retval = CALL_COMMAND_HANDLER(flash_drivers[i]->flash_bank_command, c);
 		if (ERROR_OK != retval)
 		{
-			LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 , CMD_ARGV[0], c->base);
+			LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32,
+					driver_name, c->base);
 			free(c);
 			return retval;
 		}
@@ -305,17 +306,12 @@ COMMAND_HANDLER(handle_flash_bank_command)
 			c->bank_number = 0;
 		}
 
-		found = 1;
+		return ERROR_OK;
 	}
 
 	/* no matching flash driver found */
-	if (!found)
-	{
-		LOG_ERROR("flash driver '%s' not found", CMD_ARGV[0]);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
+	LOG_ERROR("flash driver '%s' not found", driver_name);
+	return ERROR_FAIL;
 }
 
 COMMAND_HANDLER(handle_flash_info_command)
