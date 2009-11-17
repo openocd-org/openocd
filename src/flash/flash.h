@@ -240,6 +240,8 @@ struct flash_driver
  */
 struct flash_bank
 {
+	char *name;
+
 	struct target *target; /**< Target to which this bank belongs. */
 
 	struct flash_driver *driver; /**< Driver for this bank. */

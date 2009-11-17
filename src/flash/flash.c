@@ -189,6 +189,8 @@ struct flash_bank *get_flash_bank_by_name(const char *name)
 	struct flash_bank *bank;
 	for (bank = flash_banks; NULL != bank; bank = bank->next)
 	{
+		if (strcmp(bank->name, name) == 0)
+			return bank;
 		if (!flash_driver_name_matches(bank->driver->name, name))
 			continue;
 		if (++found < requested)
@@ -239,12 +241,15 @@ COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 
 COMMAND_HANDLER(handle_flash_bank_command)
 {
-	if (CMD_ARGC < 6)
+	if (CMD_ARGC < 7)
 	{
-		LOG_ERROR("usage: flash bank <driver> "
+		LOG_ERROR("usage: flash bank <name> <driver> "
 				"<base> <size> <chip_width> <bus_width>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+	// save bank name and advance arguments for compatibility
+	const char *bank_name = *CMD_ARGV++;
+	CMD_ARGC--;
 
 	struct target *target;
 	if ((target = get_target(CMD_ARGV[5])) == NULL)
@@ -269,6 +274,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		}
 
 		c = malloc(sizeof(struct flash_bank));
+		c->name = strdup(bank_name);
 		c->target = target;
 		c->driver = flash_drivers[i];
 		c->driver_priv = NULL;
