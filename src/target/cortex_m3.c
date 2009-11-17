@@ -858,9 +858,8 @@ cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 			fp_num++;
 		if (fp_num >= cortex_m3->fp_num_code)
 		{
-			LOG_DEBUG("ERROR Can not find free FP Comparator");
-			LOG_WARNING("ERROR Can not find free FP Comparator");
-			exit(-1);
+			LOG_ERROR("Can not find free FPB Comparator!");
+			return ERROR_FAIL;
 		}
 		breakpoint->set = fp_num + 1;
 		hilo = (breakpoint->address & 0x2) ? FPCR_REPLACE_BKPT_HIGH : FPCR_REPLACE_BKPT_LOW;
@@ -1372,16 +1371,11 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
-	int retval;
-
-	/* sanitize arguments */
-	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_INVALID_ARGUMENTS;
 
 	/* cortex_m3 handles unaligned memory access */
-
-	switch (size)
-	{
+	if (count && buffer) {
+		switch (size) {
 		case 4:
 			retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
@@ -1391,9 +1385,7 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 		case 1:
 			retval = mem_ap_read_buf_u8(swjdp, buffer, count, address);
 			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
+		}
 	}
 
 	return retval;
@@ -1404,14 +1396,10 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
-	int retval;
+	int retval = ERROR_INVALID_ARGUMENTS;
 
-	/* sanitize arguments */
-	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
-
-	switch (size)
-	{
+	if (count && buffer) {
+		switch (size) {
 		case 4:
 			retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
@@ -1421,9 +1409,7 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 		case 1:
 			retval = mem_ap_write_buf_u8(swjdp, buffer, count, address);
 			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
+		}
 	}
 
 	return retval;
