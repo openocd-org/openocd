@@ -13,6 +13,7 @@
 # editor files
 *.swp
 
+src/startup.tcl
 startup_tcl.c
 xscale_debug.h
 

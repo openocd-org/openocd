@@ -14,7 +14,8 @@ openocd_LDADD = libopenocd.la
 
 libopenocd_la_SOURCES = \
 	hello.c \
-	openocd.c
+	openocd.c \
+	startup_tcl.c
 
 noinst_HEADERS = \
 	openocd.h
@@ -96,6 +97,26 @@ libopenocd_la_LIBADD = \
 if HTTPD
 libopenocd_la_LIBADD += -lmicrohttpd
 endif
+
+STARTUP_TCL_SRCS = \
+	$(srcdir)/helper/startup.tcl
+
+EXTRA_DIST = $(STARTUP_TCL_SRCS)
+
+BUILT_SOURCES = startup.tcl
+
+startup.tcl: $(STARTUP_TCL_SRCS)
+	cat $^ > $@
+
+BIN2C = $(builddir)/helper/bin2char$(EXEEXT_FOR_BUILD)
+
+# Convert .tcl to cfile
+startup_tcl.c: startup.tcl $(BIN2C)
+	$(BIN2C) startup_tcl < $< > $@ || rm -f $@
+
+# add startup_tcl.c to make clean list
+CLEANFILES = startup.tcl startup_tcl.c
+
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
