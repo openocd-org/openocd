@@ -28,9 +28,16 @@ Doxyfile: $(srcdir)/Doxyfile.in
 	  sed -e 's,@srcdir\@,$(srcdir),' $< \
 	) > $@
 
+THE_MANUAL = doxygen/latex/refman.pdf
+
 doxygen::
 	$(MAKE) Doxyfile
 	doxygen Doxyfile 2>&1 | perl $(srcdir)/tools/logger.pl > doxygen.log
+	$(MAKE) $(THE_MANUAL)
+
+%.pdf: %.tex
+	-cd $$(dirname $*) && pdflatex $$(basename $*)
+	-cd $$(dirname $*) && pdflatex $$(basename $*)
 
 TCL_PATH = tcl
 # command to find paths of script files, relative to TCL_PATH
