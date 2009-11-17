@@ -11,6 +11,7 @@ libflash_la_SOURCES = \
 	mflash.c
 
 FLASH_SRCS = \
+	common.c \
 	cfi.c \
 	non_cfi.c \
 	faux.c \
@@ -60,6 +61,7 @@ noinst_HEADERS = \
 	at91sam3.h \
 	avrf.h \
 	cfi.h \
+	common.h \
 	flash.h \
 	lpc2000.h \
 	lpc288x.h \

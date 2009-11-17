@@ -212,6 +212,15 @@ enum oob_formats
 };
 
 
+/**
+ * Returns the flash bank specified by @a name, which matches the
+ * driver name and a suffix (option) specify the driver-specific
+ * bank number. The suffix consists of the '.' and the driver-specific
+ * bank number: when two davinci banks are defined, then 'davinci.1' refers
+ * to the second (e.g. DM355EVM).
+ */
+struct nand_device *get_nand_device_by_name(const char *name);
+
 struct nand_device *get_nand_device_by_num(int num);
 
 int nand_read_page_raw(struct nand_device *nand, uint32_t page,

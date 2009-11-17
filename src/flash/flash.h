@@ -310,6 +310,14 @@ int default_flash_blank_check(struct flash_bank *bank);
 int default_flash_mem_blank_check(struct flash_bank *bank);
 
 /**
+ * Returns the flash bank specified by @a name, which matches the
+ * driver name and a suffix (option) specify the driver-specific
+ * bank number. The suffix consists of the '.' and the driver-specific
+ * bank number: when two str9x banks are defined, then 'str9x.1' refers
+ * to the second.
+ */
+struct flash_bank *get_flash_bank_by_name(const char *name);
+/**
  * Returns a flash bank by the specified flash_bank_s bank_number, @a num.
  * @param num The flash bank number.
  * @returns A struct flash_bank for flash bank @a num, or NULL
@@ -317,7 +325,9 @@ int default_flash_mem_blank_check(struct flash_bank *bank);
 struct flash_bank *get_flash_bank_by_num(int num);
 /**
  * Retreives @a bank from a command argument, reporting errors parsing
- * the bank identifier or retreiving the specified bank.
+ * the bank identifier or retreiving the specified bank.  The bank
+ * may be identified by its bank number or by @c name.instance, where
+ * @a instance is driver-specific.
  * @param name_index The index to the string in args containing the
  * bank identifier.
  * @param bank On output, contians a pointer to the bank or NULL.

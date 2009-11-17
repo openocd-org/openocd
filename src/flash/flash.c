@@ -28,6 +28,7 @@
 #endif
 
 #include "flash.h"
+#include "common.h"
 #include "image.h"
 #include "time_support.h"
 
@@ -180,6 +181,23 @@ int flash_get_bank_count(void)
 	return i;
 }
 
+struct flash_bank *get_flash_bank_by_name(const char *name)
+{
+	unsigned requested = get_flash_name_index(name);
+	unsigned found = 0;
+
+	struct flash_bank *bank;
+	for (bank = flash_banks; NULL != bank; bank = bank->next)
+	{
+		if (!flash_driver_name_matches(bank->driver->name, name))
+			continue;
+		if (++found < requested)
+			continue;
+		return bank;
+	}
+	return NULL;
+}
+
 struct flash_bank *get_flash_bank_by_num(int num)
 {
 	struct flash_bank *p = get_flash_bank_by_num_noprobe(num);
@@ -198,10 +216,14 @@ struct flash_bank *get_flash_bank_by_num(int num)
 	return p;
 }
 
-COMMAND_HELPER(flash_command_get_bank_by_num,
-	unsigned name_index, struct flash_bank **bank)
+COMMAND_HELPER(flash_command_get_bank_by_num, unsigned name_index,
+		struct flash_bank **bank)
 {
 	const char *name = CMD_ARGV[name_index];
+	*bank = get_flash_bank_by_name(name);
+	if (*bank)
+		return ERROR_OK;
+
 	unsigned bank_num;
 	COMMAND_PARSE_NUMBER(uint, name, bank_num);
 

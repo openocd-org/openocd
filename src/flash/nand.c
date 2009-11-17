@@ -25,6 +25,7 @@
 #endif
 
 #include "nand.h"
+#include "common.h"
 #include "time_support.h"
 #include "fileio.h"
 
@@ -288,6 +289,23 @@ int nand_register_commands(struct command_context *cmd_ctx)
 	return ERROR_OK;
 }
 
+struct nand_device *get_nand_device_by_name(const char *name)
+{
+	unsigned requested = get_flash_name_index(name);
+	unsigned found = 0;
+
+	struct nand_device *nand;
+	for (nand = nand_devices; NULL != nand; nand = nand->next)
+	{
+		if (!flash_driver_name_matches(nand->controller->name, name))
+			continue;
+		if (++found < requested)
+			continue;
+		return nand;
+	}
+	return NULL;
+}
+
 struct nand_device *get_nand_device_by_num(int num)
 {
 	struct nand_device *p;
@@ -308,11 +326,15 @@ COMMAND_HELPER(nand_command_get_device_by_num, unsigned name_index,
 		struct nand_device **nand)
 {
 	const char *str = CMD_ARGV[name_index];
+	*nand = get_nand_device_by_name(str);
+	if (*nand)
+		return ERROR_OK;
+
 	unsigned num;
 	COMMAND_PARSE_NUMBER(uint, str, num);
 	*nand = get_nand_device_by_num(num);
 	if (!*nand) {
-		command_print(CMD_CTX, "NAND flash device '#%s' is out of bounds", str);
+		command_print(CMD_CTX, "NAND flash device '%s' not found", str);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	return ERROR_OK;
