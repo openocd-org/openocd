@@ -33,7 +33,6 @@
 #include "breakpoints.h"
 #include "embeddedice.h"
 #include "target_request.h"
-#include "arm7_9_common.h"
 #include "etm.h"
 #include "time_support.h"
 #include "arm_simulator.h"

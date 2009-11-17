@@ -27,7 +27,6 @@
 #endif
 
 #include "etm.h"
-#include "arm11.h"
 #include "breakpoints.h"
 #include "arm11_dbgtap.h"
 #include "arm_simulator.h"

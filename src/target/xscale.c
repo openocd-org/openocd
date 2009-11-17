@@ -30,7 +30,7 @@
 #include "breakpoints.h"
 #include "xscale.h"
 #include "target_type.h"
-#include "arm7_9_common.h"
+#include "arm_jtag.h"
 #include "arm_simulator.h"
 #include "arm_disassembler.h"
 #include "time_support.h"
