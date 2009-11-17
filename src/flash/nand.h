@@ -32,32 +32,78 @@ struct nand_device;
 #define __NAND_DEVICE_COMMAND(name) \
 		COMMAND_HELPER(name, struct nand_device *nand)
 
+/**
+ * Interface for NAND flash controllers.  Not all of these functions are
+ * required for full functionality of the NAND driver, but better performance
+ * can be achieved by implementing each function.
+ */
 struct nand_flash_controller
 {
+	/** Driver name that is used to select it from configuration files. */
 	char *name;
-	const struct command_registration *commands;
+
+    const struct command_registration *commands;
+
+	/** NAND device command called when driver is instantiated during configuration. */
 	__NAND_DEVICE_COMMAND((*nand_device_command));
+
+	/** Register controller specific commands as a TCL interface to the driver. */
+	int (*register_commands)(struct command_context *cmd_ctx);
+
+	/** Initialize the NAND device. */
 	int (*init)(struct nand_device *nand);
+
+	/** Reset the NAND device. */
 	int (*reset)(struct nand_device *nand);
+
+	/** Issue a command to the NAND device. */
 	int (*command)(struct nand_device *nand, uint8_t command);
+
+	/** Write an address to the NAND device. */
 	int (*address)(struct nand_device *nand, uint8_t address);
+
+	/** Write word of data to the NAND device. */
 	int (*write_data)(struct nand_device *nand, uint16_t data);
+
+	/** Read word of data from the NAND device. */
 	int (*read_data)(struct nand_device *nand, void *data);
+
+	/** Write a block of data to the NAND device. */
 	int (*write_block_data)(struct nand_device *nand, uint8_t *data, int size);
+
+	/** Read a block of data from the NAND device. */
 	int (*read_block_data)(struct nand_device *nand, uint8_t *data, int size);
+
+	/** Write a page to the NAND device. */
 	int (*write_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+
+	/** Read a page from the NAND device. */
 	int (*read_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+
+	/** Check if the controller is ready for more instructions with timeout. */
 	int (*controller_ready)(struct nand_device *nand, int timeout);
+
+	/** Check if the NAND device is ready for more instructions with timeout. */
 	int (*nand_ready)(struct nand_device *nand, int timeout);
 };
 
 #define NAND_DEVICE_COMMAND_HANDLER(name) static __NAND_DEVICE_COMMAND(name)
 
+/**
+ * Representation of a single NAND block in a NAND device.
+ */
 struct nand_block
 {
+	/** Offset to the block. */
 	uint32_t offset;
+
+	/** Size of the block. */
 	uint32_t size;
+
+	/** True if the block has been erased. */
 	int is_erased;
+
+	/** True if the block is bad. */
 	int is_bad;
 };
 
