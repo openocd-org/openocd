@@ -585,7 +585,7 @@ static int xscale_send(struct target *target, uint8_t *buffer, int count, int si
 			break;
 		default:
 			LOG_ERROR("BUG: size neither 4, 2 nor 1");
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 		jtag_add_dr_out(target->tap,
 				3,
@@ -850,7 +850,7 @@ static int xscale_arch_state(struct target *target)
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		exit(-1);
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
@@ -1865,8 +1865,8 @@ static int xscale_read_memory(struct target *target, uint32_t address,
 				*buffer++ = buf32[i] & 0xff;
 				break;
 			default:
-				LOG_ERROR("should never get here");
-				exit(-1);
+				LOG_ERROR("invalid read size");
+				return ERROR_INVALID_ARGUMENTS;
 		}
 	}
 
