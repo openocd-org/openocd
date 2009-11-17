@@ -204,87 +204,87 @@ static struct nand_ecclayout nand_oob_64 = {
 		 .length = 38}}
 };
 
-/* nand device <nand_controller> [controller options]
- */
-COMMAND_HANDLER(handle_nand_device_command)
+COMMAND_HANDLER(handle_nand_list_drivers)
 {
-	int i;
-	int retval;
+	command_print(CMD_CTX, "Available NAND flash controller drivers:");
+	for (unsigned i = 0; nand_flash_controllers[i]; i++)
+		command_print(CMD_CTX, "  %s", nand_flash_controllers[i]->name);
+	return ERROR_OK;
+}
 
-	if (CMD_ARGC < 1)
+static COMMAND_HELPER(create_nand_device,
+		struct nand_flash_controller *controller)
+{
+	int retval = controller->register_commands(CMD_CTX);
+	if (ERROR_OK != retval)
 	{
-		LOG_WARNING("incomplete flash device nand configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		LOG_ERROR("couldn't register '%s' commands", controller->name);
+		return retval;
 	}
 
-	for (i = 0; nand_flash_controllers[i]; i++)
+	struct nand_device *c = malloc(sizeof(struct nand_device));
+
+	c->controller = controller;
+	c->controller_priv = NULL;
+	c->manufacturer = NULL;
+	c->device = NULL;
+	c->bus_width = 0;
+	c->address_cycles = 0;
+	c->page_size = 0;
+	c->use_raw = 0;
+	c->next = NULL;
+
+	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
+	if (ERROR_OK != retval)
 	{
-		struct nand_device *p, *c;
-
-		if (strcmp(CMD_ARGV[0], nand_flash_controllers[i]->name) == 0)
-		{
-			/* register flash specific commands */
-			if ((retval = nand_flash_controllers[i]->register_commands(CMD_CTX)) != ERROR_OK)
-			{
-				LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
-				return retval;
-			}
-
-			c = malloc(sizeof(struct nand_device));
-
-			c->controller = nand_flash_controllers[i];
-			c->controller_priv = NULL;
-			c->manufacturer = NULL;
-			c->device = NULL;
-			c->bus_width = 0;
-			c->address_cycles = 0;
-			c->page_size = 0;
-			c->use_raw = 0;
-			c->next = NULL;
-
-			retval = CALL_COMMAND_HANDLER(nand_flash_controllers[i]->nand_device_command, c);
-			if (ERROR_OK != retval)
-			{
-				LOG_ERROR("'%s' driver rejected nand flash", c->controller->name);
-				free(c);
-				return ERROR_OK;
-			}
-
-			/* put NAND device in linked list */
-			if (nand_devices)
-			{
-				/* find last flash device */
-				for (p = nand_devices; p && p->next; p = p->next);
-				if (p)
-					p->next = c;
-			}
-			else
-			{
-				nand_devices = c;
-			}
-
-			return ERROR_OK;
-		}
+		LOG_ERROR("'%s' driver rejected nand flash", controller->name);
+		free(c);
+		return ERROR_OK;
 	}
 
-	/* no valid NAND controller was found (i.e. the configuration option,
-	 * didn't match one of the compiled-in controllers)
-	 */
-	LOG_ERROR("No valid NAND flash controller found (%s)", CMD_ARGV[0]);
-	LOG_ERROR("compiled-in NAND flash controllers:");
-	for (i = 0; nand_flash_controllers[i]; i++)
-	{
-		LOG_ERROR("%i: %s", i, nand_flash_controllers[i]->name);
-	}
+	if (nand_devices) {
+		struct nand_device *p = nand_devices;
+		while (p && p->next) p = p->next;
+		p->next = c;
+	} else
+		nand_devices = c;
 
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_nand_device_command)
+{
+	if (CMD_ARGC < 1)
+	{
+		LOG_ERROR("incomplete nand device configuration");
+		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	const char *driver_name = CMD_ARGV[0];
+	for (unsigned i = 0; nand_flash_controllers[i]; i++)
+	{
+		struct nand_flash_controller *controller = nand_flash_controllers[i];
+		if (strcmp(driver_name, controller->name) != 0)
+			continue;
+
+		return CALL_COMMAND_HANDLER(create_nand_device, controller);
+	}
+
+	LOG_ERROR("No valid NAND flash driver found (%s)", driver_name);
+	return CALL_COMMAND_HANDLER(handle_nand_list_drivers);
+}
+
 int nand_register_commands(struct command_context *cmd_ctx)
 {
-	nand_cmd = register_command(cmd_ctx, NULL, "nand", NULL, COMMAND_ANY, "NAND specific commands");
+	nand_cmd = register_command(cmd_ctx, NULL, "nand",
+			NULL, COMMAND_ANY, "NAND specific commands");
 
-	register_command(cmd_ctx, nand_cmd, "device", handle_nand_device_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, nand_cmd, "device",
+			&handle_nand_device_command, COMMAND_CONFIG,
+			"defines a new NAND bank");
+	register_command(cmd_ctx, nand_cmd, "drivers",
+			&handle_nand_list_drivers, COMMAND_ANY,
+			"lists available NAND drivers");
 
 	return ERROR_OK;
 }
