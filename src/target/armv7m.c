@@ -424,13 +424,13 @@ int armv7m_run_algorithm(struct target *target,
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-			exit(-1);
+			return ERROR_INVALID_ARGUMENTS;
 		}
 
 //		regvalue = buf_get_u32(reg_params[i].value, 0, 32);
@@ -487,13 +487,13 @@ int armv7m_run_algorithm(struct target *target,
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				exit(-1);
+				return ERROR_INVALID_ARGUMENTS;
 			}
 
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-				exit(-1);
+				return ERROR_INVALID_ARGUMENTS;
 			}
 
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
