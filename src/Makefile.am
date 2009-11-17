@@ -99,7 +99,11 @@ libopenocd_la_LIBADD += -lmicrohttpd
 endif
 
 STARTUP_TCL_SRCS = \
-	$(srcdir)/helper/startup.tcl
+	$(srcdir)/helper/startup.tcl \
+	$(srcdir)/jtag/startup.tcl \
+	$(srcdir)/target/startup.tcl \
+	$(srcdir)/flash/startup.tcl \
+	$(srcdir)/server/startup.tcl
 
 EXTRA_DIST = $(STARTUP_TCL_SRCS)
 

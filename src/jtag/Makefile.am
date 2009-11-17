@@ -94,4 +94,6 @@ noinst_HEADERS = \
 	rlink/st7.h \
 	minidummy/jtag_minidriver.h
 
+EXTRA_DIST = startup.tcl
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

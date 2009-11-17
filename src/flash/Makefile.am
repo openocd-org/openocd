@@ -79,4 +79,6 @@ noinst_HEADERS = \
 	s3c24xx_nand.h \
 	s3c24xx_regs_nand.h
 
+EXTRA_DIST = startup.tcl
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

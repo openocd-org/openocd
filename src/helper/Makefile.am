@@ -50,6 +50,8 @@ noinst_HEADERS = \
 	system.h \
 	bin2char.c
 
+EXTRA_DIST = startup.tcl
+
 BIN2C = bin2char$(EXEEXT_FOR_BUILD)
 
 BUILT_SOURCES = $(BIN2C)

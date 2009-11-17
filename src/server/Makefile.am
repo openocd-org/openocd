@@ -35,6 +35,7 @@ nobase_dist_pkgdata_DATA = \
 endif
 
 EXTRA_DIST = \
+	startup.tcl \
 	httpd/readme.txt \
 	httpd/menu.xml \
 	httpd/menu.xsl \

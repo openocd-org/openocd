@@ -13,7 +13,9 @@ AM_CPPFLAGS = \
 BIN2C		= $(top_builddir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
 
 DEBUG_HANDLER	= $(srcdir)/xscale/debug_handler.bin
-EXTRA_DIST = $(DEBUG_HANDLER)
+EXTRA_DIST = \
+	startup.tcl \
+	$(DEBUG_HANDLER)
 
 DEBUG_HEADER	= xscale_debug.h
 BUILT_SOURCES = $(DEBUG_HEADER)
