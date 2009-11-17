@@ -8,6 +8,8 @@ JTAG Layer:
 
 Boundary Scan:
 Target Layer:
+	ARM
+		- renamed "armv4_5" command prefix as "arm"
 	ARM11
 		- Preliminary ETM and ETB hookup
 		- accelerated "flash erase_check"

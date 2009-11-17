@@ -363,10 +363,10 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	struct target *target = get_current_target(cmd_ctx);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	if (!is_arm(armv4_5))
 	{
-		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (target->state != TARGET_HALTED)
@@ -412,10 +412,10 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 	struct target *target = get_current_target(cmd_ctx);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	if (!is_arm(armv4_5))
 	{
-		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
-		return ERROR_OK;
+		command_print(cmd_ctx, "current target isn't an ARM");
+		return ERROR_FAIL;
 	}
 
 	if (argc > 0)
@@ -471,7 +471,7 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 	default:
 usage:
 		command_print(cmd_ctx,
-			"usage: armv4_5 disassemble <address> [<count> ['thumb']]");
+			"usage: arm disassemble <address> [<count> ['thumb']]");
 		count = 0;
 		retval = ERROR_FAIL;
 	}
@@ -510,9 +510,9 @@ int armv4_5_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *armv4_5_cmd;
 
-	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5",
+	armv4_5_cmd = register_command(cmd_ctx, NULL, "arm",
 			NULL, COMMAND_ANY,
-			"armv4/5 specific commands");
+			"generic ARM commands");
 
 	register_command(cmd_ctx, armv4_5_cmd, "reg",
 			handle_armv4_5_reg_command, COMMAND_EXEC,

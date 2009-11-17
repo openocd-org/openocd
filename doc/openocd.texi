@@ -5515,16 +5515,14 @@ Reports whether the capture clock is locked or not.
 @end deffn
 
 
-@section ARMv4 and ARMv5 Architecture
-@cindex ARMv4
-@cindex ARMv5
+@section Generic ARM
+@cindex ARM
 
-These commands are specific to ARM architecture v4 and v5,
-including all ARM7 or ARM9 systems and Intel XScale.
+These commands should be available on all ARM processors.
 They are available in addition to other core-specific
 commands that may be available.
 
-@deffn Command {armv4_5 core_state} [@option{arm}|@option{thumb}]
+@deffn Command {arm core_state} [@option{arm}|@option{thumb}]
 Displays the core_state, optionally changing it to process
 either @option{arm} or @option{thumb} instructions.
 The target may later be resumed in the currently set core_state.
@@ -5532,7 +5530,7 @@ The target may later be resumed in the currently set core_state.
 that is not currently supported in OpenOCD.)
 @end deffn
 
-@deffn Command {armv4_5 disassemble} address [count [@option{thumb}]]
+@deffn Command {arm disassemble} address [count [@option{thumb}]]
 @cindex disassemble
 Disassembles @var{count} instructions starting at @var{address}.
 If @var{count} is not specified, a single instruction is disassembled.
@@ -5543,7 +5541,7 @@ else ARM (32-bit) instructions are used.
 those instructions are not currently understood by OpenOCD.)
 @end deffn
 
-@deffn Command {armv4_5 reg}
+@deffn Command {arm reg}
 Display a table of all banked core registers, fetching the current value from every
 core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
 register value.

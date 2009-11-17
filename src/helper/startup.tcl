@@ -142,6 +142,15 @@ proc ocd_gdb_restart {target_id} {
 	reset halt
 }
 
+#########
+
+# Temporary migration aid.  May be removed starting in January 2011.
+proc armv4_5 params {
+	echo "DEPRECATED! use 'arm $params' not 'armv4_5 $params'"
+	arm $params
+}
+
+#########
 
 # This reset logic may be overridden by board/target/... scripts as needed
 # to provide a reset that, if possible, is close to a power-up reset.
