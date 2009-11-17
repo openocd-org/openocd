@@ -72,7 +72,6 @@ static struct reg armv7m_gdb_dummy_fp_reg =
 	.valid = 1,
 	.size = 96,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 static uint8_t armv7m_gdb_dummy_fps_value[4];
@@ -85,7 +84,6 @@ static struct reg armv7m_gdb_dummy_fps_reg =
 	.valid = 1,
 	.size = 32,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 #ifdef ARMV7_GDB_HACKS
@@ -99,7 +97,6 @@ struct reg armv7m_gdb_dummy_cpsr_reg =
 	.valid = 1,
 	.size = 32,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 #endif
 
@@ -147,8 +144,6 @@ static const struct {
 };
 
 #define ARMV7M_NUM_REGS	ARRAY_SIZE(armv7m_regs)
-
-static int armv7m_core_reg_arch_type = -1;
 
 /**
  * Restores target context using the cache of core registers set up
@@ -542,6 +537,10 @@ int armv7m_arch_state(struct target *target)
 
 	return ERROR_OK;
 }
+static const struct reg_arch_type armv7m_reg_type = {
+	.get = armv7m_get_core_reg,
+	.set = armv7m_set_core_reg,
+};
 
 /** Builds cache of architecturally defined registers.  */
 struct reg_cache *armv7m_build_reg_cache(struct target *target)
@@ -553,11 +552,6 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct armv7m_core_reg *arch_info = calloc(num_regs, sizeof(struct armv7m_core_reg));
 	int i;
-
-	if (armv7m_core_reg_arch_type == -1)
-	{
-		armv7m_core_reg_arch_type = register_reg_arch_type(armv7m_get_core_reg, armv7m_set_core_reg);
-	}
 
 	register_init_dummy(&armv7m_gdb_dummy_fps_reg);
 #ifdef ARMV7_GDB_HACKS
@@ -583,7 +577,7 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].arch_type = armv7m_core_reg_arch_type;
+		reg_list[i].type = &armv7m_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
 

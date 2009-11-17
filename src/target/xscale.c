@@ -134,8 +134,6 @@ static const struct xscale_reg xscale_reg_arch_info[] =
 	{-1, NULL}, /* TXRXCTRL implicit access via JTAG */
 };
 
-static int xscale_reg_arch_type = -1;
-
 /* convenience wrapper to access XScale specific registers */
 static int xscale_set_reg_u32(struct reg *reg, uint32_t value)
 {
@@ -2819,6 +2817,11 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 	return ERROR_OK;
 }
 
+static const struct reg_arch_type xscale_reg_type = {
+	.get = xscale_get_reg,
+	.set = xscale_set_reg,
+};
+
 static void xscale_build_reg_cache(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
@@ -2830,10 +2833,6 @@ static void xscale_build_reg_cache(struct target *target)
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
-
-	/* register a register arch-type for XScale dbg registers only once */
-	if (xscale_reg_arch_type == -1)
-		xscale_reg_arch_type = register_reg_arch_type(xscale_get_reg, xscale_set_reg);
 
 	(*cache_p)->next = malloc(sizeof(struct reg_cache));
 	cache_p = &(*cache_p)->next;
@@ -2852,7 +2851,7 @@ static void xscale_build_reg_cache(struct target *target)
 		(*cache_p)->reg_list[i].valid = 0;
 		(*cache_p)->reg_list[i].size = 32;
 		(*cache_p)->reg_list[i].arch_info = &arch_info[i];
-		(*cache_p)->reg_list[i].arch_type = xscale_reg_arch_type;
+		(*cache_p)->reg_list[i].type = &xscale_reg_type;
 		arch_info[i] = xscale_reg_arch_info[i];
 		arch_info[i].target = target;
 	}

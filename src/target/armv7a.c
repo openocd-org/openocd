@@ -157,7 +157,6 @@ struct reg armv7a_gdb_dummy_fp_reg =
 	.valid = 1,
 	.size = 96,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 void armv7a_show_fault_registers(struct target *target)

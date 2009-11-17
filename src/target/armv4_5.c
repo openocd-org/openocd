@@ -116,8 +116,6 @@ char* armv4_5_state_strings[] =
 	"ARM", "Thumb", "Jazelle"
 };
 
-int armv4_5_core_reg_arch_type = -1;
-
 struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
 {
 	{0, ARMV4_5_MODE_ANY, NULL, NULL},
@@ -201,7 +199,6 @@ struct reg armv4_5_gdb_dummy_fp_reg =
 	.valid = 1,
 	.size = 96,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 uint8_t armv4_5_gdb_dummy_fps_value[] = {0, 0, 0, 0};
@@ -214,7 +211,6 @@ struct reg armv4_5_gdb_dummy_fps_reg =
 	.valid = 1,
 	.size = 32,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 int armv4_5_get_core_reg(struct reg *reg)
@@ -285,6 +281,11 @@ int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
+static const struct reg_arch_type arm_reg_type = {
+	.get = armv4_5_get_core_reg,
+	.set = armv4_5_set_core_reg,
+};
+
 int armv4_5_invalidate_core_regs(struct target *target)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
@@ -312,9 +313,6 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 	cache->reg_list = reg_list;
 	cache->num_regs = num_regs;
 
-	if (armv4_5_core_reg_arch_type == -1)
-		armv4_5_core_reg_arch_type = register_reg_arch_type(armv4_5_get_core_reg, armv4_5_set_core_reg);
-
 	register_init_dummy(&armv4_5_gdb_dummy_fp_reg);
 	register_init_dummy(&armv4_5_gdb_dummy_fps_reg);
 
@@ -328,7 +326,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].arch_type = armv4_5_core_reg_arch_type;
+		reg_list[i].type = &arm_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
 

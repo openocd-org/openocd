@@ -214,8 +214,6 @@ static const struct etm_reg_info etm_outputs[] = {
 	{ 0x6f, 32, RO, 0x20, "ETM_contextid_comparator_mask", }
 #endif
 
-static int etm_reg_arch_type = -1;
-
 static int etm_get_reg(struct reg *reg);
 static int etm_read_reg_w_check(struct reg *reg,
 		uint8_t* check_value, uint8_t* check_mask);
@@ -225,6 +223,10 @@ static int etm_write_reg(struct reg *reg, uint32_t value);
 
 static struct command *etm_cmd;
 
+static const struct reg_arch_type etm_scan6_type = {
+	.get = etm_get_reg,
+	.set = etm_set_reg_w_exec,
+};
 
 /* Look up register by ID ... most ETM instances only
  * support a subset of the possible registers.
@@ -269,7 +271,7 @@ static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
 		reg->size = r->size;
 		reg->value = &ereg->value;
 		reg->arch_info = ereg;
-		reg->arch_type = etm_reg_arch_type;
+		reg->type = &etm_scan6_type;
 		reg++;
 		cache->num_regs++;
 
@@ -286,11 +288,6 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 	struct reg *reg_list = NULL;
 	struct etm_reg *arch_info = NULL;
 	unsigned bcd_vers, config;
-
-	/* register a register arch-type for etm registers only once */
-	if (etm_reg_arch_type == -1)
-		etm_reg_arch_type = register_reg_arch_type(etm_get_reg,
-				etm_set_reg_w_exec);
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(128, sizeof(struct reg));

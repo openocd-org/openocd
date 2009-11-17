@@ -40,8 +40,6 @@ static char* etb_reg_list[] =
 	"ETB_control",
 };
 
-static int etb_reg_arch_type = -1;
-
 static int etb_get_reg(struct reg *reg);
 
 static int etb_set_instr(struct etb *etb, uint32_t new_instr)
@@ -123,6 +121,11 @@ static int etb_get_reg(struct reg *reg)
 	return ERROR_OK;
 }
 
+static const struct reg_arch_type etb_reg_type = {
+	.get = etb_get_reg,
+	.set = etb_set_reg_w_exec,
+};
+
 struct reg_cache* etb_build_reg_cache(struct etb *etb)
 {
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
@@ -130,10 +133,6 @@ struct reg_cache* etb_build_reg_cache(struct etb *etb)
 	struct etb_reg *arch_info = NULL;
 	int num_regs = 9;
 	int i;
-
-	/* register a register arch-type for etm registers only once */
-	if (etb_reg_arch_type == -1)
-		etb_reg_arch_type = register_reg_arch_type(etb_get_reg, etb_set_reg_w_exec);
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(num_regs, sizeof(struct reg));
@@ -154,7 +153,7 @@ struct reg_cache* etb_build_reg_cache(struct etb *etb)
 		reg_list[i].valid = 0;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
-		reg_list[i].arch_type = etb_reg_arch_type;
+		reg_list[i].type = &etb_reg_type;
 		reg_list[i].size = 32;
 		arch_info[i].addr = i;
 		arch_info[i].etb = etb;

@@ -58,8 +58,6 @@ static uint32_t arm11_vcr = 0;
 static bool arm11_config_step_irq_enable = false;
 static bool arm11_config_hardware_step = false;
 
-static int arm11_regs_arch_type = -1;
-
 enum arm11_regtype
 {
 	ARM11_REGISTER_CORE,
@@ -263,7 +261,6 @@ static struct reg arm11_gdb_dummy_fp_reg =
 	.valid = 1,
 	.size = 96,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 static uint8_t arm11_gdb_dummy_fps_value[4];
@@ -276,7 +273,6 @@ static struct reg arm11_gdb_dummy_fps_reg =
 	.valid = 1,
 	.size = 32,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
 
 
@@ -1945,6 +1941,11 @@ static int arm11_set_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
+static const struct reg_arch_type arm11_reg_type = {
+	.get = arm11_get_reg,
+	.set = arm11_set_reg,
+};
+
 static int arm11_build_reg_cache(struct target *target)
 {
 	struct arm11_common *arm11 = target_to_arm11(target);
@@ -1952,9 +1953,6 @@ static int arm11_build_reg_cache(struct target *target)
 	NEW(struct reg_cache,		cache,				1);
 	NEW(struct reg,				reg_list,			ARM11_REGCACHE_COUNT);
 	NEW(struct arm11_reg_state,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
-
-	if (arm11_regs_arch_type == -1)
-		arm11_regs_arch_type = register_reg_arch_type(arm11_get_reg, arm11_set_reg);
 
 	register_init_dummy(&arm11_gdb_dummy_fp_reg);
 	register_init_dummy(&arm11_gdb_dummy_fps_reg);
@@ -1995,7 +1993,7 @@ static int arm11_build_reg_cache(struct target *target)
 		r->value			= (uint8_t *)(arm11->reg_values + i);
 		r->dirty			= 0;
 		r->valid			= 0;
-		r->arch_type		= arm11_regs_arch_type;
+		r->type = &arm11_reg_type;
 		r->arch_info		= rs;
 
 		rs->def_index		= i;

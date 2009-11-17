@@ -33,7 +33,7 @@ struct reg
 	int valid;
 	uint32_t size;
 	void *arch_info;
-	int arch_type;
+	const struct reg_arch_type *type;
 };
 
 struct reg_cache
@@ -46,19 +46,13 @@ struct reg_cache
 
 struct reg_arch_type
 {
-	int id;
 	int (*get)(struct reg *reg);
 	int (*set)(struct reg *reg, uint8_t *buf);
-	struct reg_arch_type *next;
 };
 
 struct reg* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all);
 struct reg_cache** register_get_last_cache_p(struct reg_cache **first);
-
-int register_reg_arch_type(int (*get)(struct reg *reg),
-		int (*set)(struct reg *reg, uint8_t *buf));
-struct reg_arch_type* register_get_arch_type(int id);
 
 void register_init_dummy(struct reg *reg);
 

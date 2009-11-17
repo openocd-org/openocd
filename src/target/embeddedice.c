@@ -143,8 +143,6 @@ static const struct {
 };
 
 
-static int embeddedice_reg_arch_type = -1;
-
 static int embeddedice_get_reg(struct reg *reg)
 {
 	int retval;
@@ -156,6 +154,11 @@ static int embeddedice_get_reg(struct reg *reg)
 
 	return retval;
 }
+
+static const struct reg_arch_type eice_reg_type = {
+	.get = embeddedice_get_reg,
+	.set = embeddedice_set_reg_w_exec,
+};
 
 /**
  * Probe EmbeddedICE module and set up local records of its registers.
@@ -173,11 +176,6 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 	int num_regs = ARRAY_SIZE(eice_regs);
 	int i;
 	int eice_version = 0;
-
-	/* register arch-type for EmbeddedICE registers only once */
-	if (embeddedice_reg_arch_type == -1)
-		embeddedice_reg_arch_type = register_reg_arch_type(
-				embeddedice_get_reg, embeddedice_set_reg_w_exec);
 
 	/* vector_catch isn't always present */
 	if (!arm7_9->has_vector_catch)
@@ -202,7 +200,7 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 		reg_list[i].valid = 0;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
-		reg_list[i].arch_type = embeddedice_reg_arch_type;
+		reg_list[i].type = &eice_reg_type;
 		arch_info[i].addr = eice_regs[i].addr;
 		arch_info[i].jtag_info = jtag_info;
 	}

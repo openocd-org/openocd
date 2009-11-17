@@ -97,10 +97,7 @@ struct reg mips32_gdb_dummy_fp_reg =
 	.valid = 1,
 	.size = 32,
 	.arch_info = NULL,
-	.arch_type = 0,
 };
-
-int mips32_core_reg_arch_type = -1;
 
 int mips32_get_core_reg(struct reg *reg)
 {
@@ -278,6 +275,11 @@ int mips32_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
+static const struct reg_arch_type mips32_reg_type = {
+	.get = mips32_get_core_reg,
+	.set = mips32_set_core_reg,
+};
+
 struct reg_cache *mips32_build_reg_cache(struct target *target)
 {
 	/* get pointers to arch-specific information */
@@ -289,9 +291,6 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
 	struct mips32_core_reg *arch_info = malloc(sizeof(struct mips32_core_reg) * num_regs);
 	int i;
-
-	if (mips32_core_reg_arch_type == -1)
-		mips32_core_reg_arch_type = register_reg_arch_type(mips32_get_core_reg, mips32_set_core_reg);
 
 	register_init_dummy(&mips32_gdb_dummy_fp_reg);
 
@@ -313,7 +312,7 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
-		reg_list[i].arch_type = mips32_core_reg_arch_type;
+		reg_list[i].type = &mips32_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
 

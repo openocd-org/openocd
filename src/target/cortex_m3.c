@@ -1478,7 +1478,10 @@ static struct dwt_reg dwt_comp[] = {
 #undef DWT_COMPARATOR
 };
 
-static int dwt_reg_type = -1;
+static const struct reg_arch_type dwt_reg_type = {
+	.get = cortex_m3_dwt_get_reg,
+	.set = cortex_m3_dwt_set_reg,
+};
 
 static void
 cortex_m3_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
@@ -1495,7 +1498,7 @@ cortex_m3_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
 	r->size = d->size;
 	r->value = &state->value;
 	r->arch_info = state;
-	r->arch_type = dwt_reg_type;
+	r->type = &dwt_reg_type;
 }
 
 static void
@@ -1511,10 +1514,6 @@ cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target *target)
 		LOG_DEBUG("no DWT");
 		return;
 	}
-
-	if (dwt_reg_type < 0)
-		dwt_reg_type = register_reg_arch_type(cortex_m3_dwt_get_reg,
-				cortex_m3_dwt_set_reg);
 
 	cm3->dwt_num_comp = (dwtcr >> 28) & 0xF;
 	cm3->dwt_comp_available = cm3->dwt_num_comp;

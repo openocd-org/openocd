@@ -29,8 +29,6 @@
 #include "log.h"
 
 
-struct reg_arch_type *reg_arch_types = NULL;
-
 struct reg* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
 {
@@ -67,44 +65,6 @@ struct reg_cache** register_get_last_cache_p(struct reg_cache **first)
 	return cache_p;
 }
 
-int register_reg_arch_type(int (*get)(struct reg *reg), int (*set)(struct reg *reg, uint8_t *buf))
-{
-	struct reg_arch_type** arch_type_p = &reg_arch_types;
-	int id = 0;
-
-	if (*arch_type_p)
-	{
-		while (*arch_type_p)
-		{
-			id = (*arch_type_p)->id;
-			arch_type_p = &((*arch_type_p)->next);
-		}
-	}
-
-	(*arch_type_p) = malloc(sizeof(struct reg_arch_type));
-	(*arch_type_p)->id = id + 1;
-	(*arch_type_p)->set = set;
-	(*arch_type_p)->get = get;
-	(*arch_type_p)->next = NULL;
-
-	return id + 1;
-}
-
-struct reg_arch_type* register_get_arch_type(int id)
-{
-	struct reg_arch_type *arch_type = reg_arch_types;
-
-	while (arch_type)
-	{
-		if (arch_type->id == id)
-			return arch_type;
-		arch_type = arch_type->next;
-	}
-	LOG_ERROR("BUG: encountered unregistered arch type 0x%08x", id);
-	exit(-1);
-	return NULL;
-}
-
 static int register_get_dummy_core_reg(struct reg *reg)
 {
 	return ERROR_OK;
@@ -118,11 +78,12 @@ static int register_set_dummy_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
+static const struct reg_arch_type dummy_type = {
+	.get = register_get_dummy_core_reg,
+	.set = register_set_dummy_core_reg,
+};
+
 void register_init_dummy(struct reg *reg)
 {
-	static int dummy_arch_type = -1;
-	if (dummy_arch_type == -1)
-		dummy_arch_type = register_reg_arch_type(register_get_dummy_core_reg, register_set_dummy_core_reg);
-
-	reg->arch_type = dummy_arch_type;
+	reg->type = &dummy_type;
 }
