@@ -212,7 +212,7 @@ COMMAND_HANDLER(handle_nand_list_drivers)
 	return ERROR_OK;
 }
 
-static COMMAND_HELPER(create_nand_device,
+static COMMAND_HELPER(create_nand_device, const char *bank_name,
 		struct nand_flash_controller *controller)
 {
 	int retval = controller->register_commands(CMD_CTX);
@@ -221,9 +221,9 @@ static COMMAND_HELPER(create_nand_device,
 		LOG_ERROR("couldn't register '%s' commands", controller->name);
 		return retval;
 	}
-
 	struct nand_device *c = malloc(sizeof(struct nand_device));
 
+	c->name = strdup(bank_name);
 	c->controller = controller;
 	c->controller_priv = NULL;
 	c->manufacturer = NULL;
@@ -260,6 +260,10 @@ COMMAND_HANDLER(handle_nand_device_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
+	// save name and increment (for compatibility) with drivers
+	const char *bank_name = *CMD_ARGV++;
+	CMD_ARGC--;
+
 	const char *driver_name = CMD_ARGV[0];
 	for (unsigned i = 0; nand_flash_controllers[i]; i++)
 	{
@@ -267,7 +271,8 @@ COMMAND_HANDLER(handle_nand_device_command)
 		if (strcmp(driver_name, controller->name) != 0)
 			continue;
 
-		return CALL_COMMAND_HANDLER(create_nand_device, controller);
+		return CALL_COMMAND_HANDLER(create_nand_device,
+				bank_name, controller);
 	}
 
 	LOG_ERROR("No valid NAND flash driver found (%s)", driver_name);
@@ -297,6 +302,8 @@ struct nand_device *get_nand_device_by_name(const char *name)
 	struct nand_device *nand;
 	for (nand = nand_devices; NULL != nand; nand = nand->next)
 	{
+		if (strcmp(nand->name, name) == 0)
+			return nand;
 		if (!flash_driver_name_matches(nand->controller->name, name))
 			continue;
 		if (++found < requested)
