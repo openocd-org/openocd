@@ -1224,7 +1224,14 @@ static int jtag_validate_ircapture(void)
 		/* If we're autoprobing, guess IR lengths.  They must be at
 		 * least two bits.  Guessing will fail if (a) any TAP does
 		 * not conform to the JTAG spec; or (b) when the upper bits
-		 * captured from some conforming TAP are nonzero.
+		 * captured from some conforming TAP are nonzero.  Or if
+		 * (c) an IR length is longer than 32 bits -- which is only
+		 * an implementation limit, which could someday be raised.
+		 *
+		 * REVISIT optimization:  if there's a *single* TAP we can
+		 * lift restrictions (a) and (b) by scanning a recognizable
+		 * pattern before the all-ones BYPASS.  Check for where the
+		 * pattern starts in the result, instead of an 0...01 value.
 		 *
 		 * REVISIT alternative approach: escape to some tcl code
 		 * which could provide more knowledge, based on IDCODE; and
@@ -1233,7 +1240,8 @@ static int jtag_validate_ircapture(void)
 		if (tap->ir_length == 0) {
 			tap->ir_length = 2;
 			while ((val = buf_get_u32(ir_test, chain_pos,
-						tap->ir_length + 1)) == 1) {
+						tap->ir_length + 1)) == 1
+					&& tap->ir_length <= 32) {
 				tap->ir_length++;
 			}
 			LOG_WARNING("AUTO %s - use \"... -irlen %d\"",
