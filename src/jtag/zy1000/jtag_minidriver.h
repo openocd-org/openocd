@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2009 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -148,7 +148,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 
 
 
-static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *struct targetap,
+static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,
@@ -164,7 +164,7 @@ static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *struct ta
 		{
 			pause_state = end_state;
 		}
-		if (tap == struct targetap)
+		if (tap == target_tap)
 		{
 			int j;
 			for (j = 0; j < (num_fields-1); j++)
@@ -180,7 +180,7 @@ static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *struct ta
 	}
 }
 
-static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *struct targetap,
+static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,
@@ -201,7 +201,7 @@ static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *struct targeta
 		shiftValueInner(TAP_DRSHIFT, end_state, num_bits[1], value[1]);
 	} else
 	{
-		interface_jtag_add_dr_out_core(struct targetap, num_fields, num_bits, value, end_state);
+		interface_jtag_add_dr_out_core(target_tap, num_fields, num_bits, value, end_state);
 	}
 }
 
