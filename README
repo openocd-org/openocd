@@ -258,6 +258,9 @@ options may be available there:
   --enable-httpd          Enable builtin httpd server - useful for standalone
                           OpenOCD implementations
 
+  --disable-doxygen-html Disable building Doxygen manual as HTML.
+  --enable-doxygen-pdf   Enable building Doxygen manual as PDF.
+
 Miscellaneous Configure Options
 -------------------------------
 

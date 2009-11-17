@@ -764,7 +764,7 @@ IGNORE_PREFIX          =
 # If the GENERATE_HTML tag is set to YES (the default) Doxygen will
 # generate HTML output.
 
-GENERATE_HTML          = YES
+GENERATE_HTML          = @doxygen_as_html@
 
 # The HTML_OUTPUT tag is used to specify where the HTML docs will be put.
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be
@@ -981,7 +981,7 @@ FORMULA_FONTSIZE       = 10
 # If the GENERATE_LATEX tag is set to YES (the default) Doxygen will
 # generate Latex output.
 
-GENERATE_LATEX         = YES
+GENERATE_LATEX         = @doxygen_as_pdf@
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put.
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be
