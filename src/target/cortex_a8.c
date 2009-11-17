@@ -984,7 +984,7 @@ static int cortex_a8_set_breakpoint(struct target *target,
 		if (brp_i >= cortex_a8->brp_num)
 		{
 			LOG_ERROR("ERROR Can not find free Breakpoint Register Pair");
-			exit(-1);
+			return ERROR_FAIL;
 		}
 		breakpoint->set = brp_i + 1;
 		if (breakpoint->length == 2)
@@ -1180,19 +1180,14 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
-
-	int retval = ERROR_OK;
-
-	/* sanitize arguments */
-	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_INVALID_ARGUMENTS;
 
 	/* cortex_a8 handles unaligned memory access */
 
 // ???	dap_ap_select(swjdp, swjdp_memoryap);
 
-	switch (size)
-	{
+	if (count && buffer) {
+		switch (size) {
 		case 4:
 			retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
@@ -1202,9 +1197,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 		case 1:
 			retval = mem_ap_read_buf_u8(swjdp, buffer, count, address);
 			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
+		}
 	}
 
 	return retval;
@@ -1215,17 +1208,12 @@ int cortex_a8_write_memory(struct target *target, uint32_t address,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
-
-	int retval;
-
-	/* sanitize arguments */
-	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_INVALID_ARGUMENTS;
 
 // ???	dap_ap_select(swjdp, swjdp_memoryap);
 
-	switch (size)
-	{
+	if (count && buffer) {
+		switch (size) {
 		case 4:
 			retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
@@ -1235,12 +1223,10 @@ int cortex_a8_write_memory(struct target *target, uint32_t address,
 		case 1:
 			retval = mem_ap_write_buf_u8(swjdp, buffer, count, address);
 			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
+		}
 	}
 
-	if (target->state == TARGET_HALTED)
+	if (retval == ERROR_OK && target->state == TARGET_HALTED)
 	{
 		/* The Cache handling will NOT work with MMU active, the wrong addresses will be invalidated */
 		/* invalidate I-Cache */
@@ -1453,18 +1439,17 @@ static int cortex_a8_init_target(struct command_context *cmd_ctx,
 int cortex_a8_init_arch_info(struct target *target,
 		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap)
 {
-	struct arm *armv4_5;
-	struct armv7a_common *armv7a;
-
-	armv7a = &cortex_a8->armv7a_common;
-	armv4_5 = &armv7a->armv4_5_common;
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
+
+	/* REVISIT v7a setup should be in a v7a-specific routine */
+	armv4_5_init_arch_info(target, armv4_5);
+	armv7a->common_magic = ARMV7_COMMON_MAGIC;
 
 	/* Setup struct cortex_a8_common */
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
 	armv4_5->arch_info = armv7a;
-
-	armv4_5_init_arch_info(target, armv4_5);
 
 	/* prepare JTAG information for the new target */
 	cortex_a8->jtag_info.tap = tap;
