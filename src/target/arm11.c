@@ -2138,6 +2138,8 @@ static int arm11_register_commands(struct command_context *cmd_ctx)
 
 	struct command *top_cmd, *mw_cmd;
 
+	armv4_5_register_commands(cmd_ctx);
+
 	top_cmd = register_command(cmd_ctx, NULL, "arm11",
 			NULL, COMMAND_ANY, NULL);
 

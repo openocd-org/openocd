@@ -378,6 +378,12 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
+	if (!armv4_5->full_context) {
+		command_print(cmd_ctx, "error: target doesn't support %s",
+				CMD_NAME);
+		return ERROR_FAIL;
+	}
+
 	for (num = 0; num <= 15; num++)
 	{
 		output_len = 0;
@@ -522,7 +528,8 @@ int armv4_5_register_commands(struct command_context *cmd_ctx)
 			"display/change ARM core state <arm | thumb>");
 	register_command(cmd_ctx, armv4_5_cmd, "disassemble",
 			handle_armv4_5_disassemble_command, COMMAND_EXEC,
-			"disassemble instructions <address> [<count> ['thumb']]");
+			"disassemble instructions "
+				"<address> [<count> ['thumb']]");
 
 	return ERROR_OK;
 }
