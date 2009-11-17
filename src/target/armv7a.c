@@ -187,10 +187,10 @@ int armv7a_arch_state(struct target *target)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	if (armv7a->common_magic != ARMV7_COMMON_MAGIC)
 	{
-		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		exit(-1);
+		LOG_ERROR("BUG: called for a non-ARMv7A target");
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"

@@ -73,7 +73,6 @@ enum
 	ARMV7A_SPSR_UND = 36
 };
 
-#define ARMV4_5_COMMON_MAGIC 0x0A450A45
 #define ARMV7_COMMON_MAGIC 0x0A450999
 
 /* VA to PA translation operations opc2 values*/
