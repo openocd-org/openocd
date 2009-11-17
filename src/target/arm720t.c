@@ -49,7 +49,7 @@ static int arm720t_scan_cp15(struct target *target,
 	uint8_t out_buf[4];
 	uint8_t instruction_buf = instruction;
 
-	jtag_info = &arm720t->arm7tdmi_common.arm7_9_common.jtag_info;
+	jtag_info = &arm720t->arm7_9_common.jtag_info;
 
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 
@@ -232,7 +232,7 @@ static int arm720t_arch_state(struct target *target)
 		"disabled", "enabled"
 	};
 
-	armv4_5 = &arm720t->arm7tdmi_common.arm7_9_common.armv4_5_common;
+	armv4_5 = &arm720t->arm7_9_common.armv4_5_common;
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
@@ -305,10 +305,10 @@ static int arm720t_soft_reset_halt(struct target *target)
 {
 	int retval = ERROR_OK;
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	struct reg *dbg_stat = &arm720t->arm7tdmi_common.arm7_9_common
+	struct reg *dbg_stat = &arm720t->arm7_9_common
 			.eice_cache->reg_list[EICE_DBG_STAT];
-	struct armv4_5_common_s *armv4_5 = &arm720t->arm7tdmi_common
-			.arm7_9_common.armv4_5_common;
+	struct armv4_5_common_s *armv4_5 = &arm720t->arm7_9_common
+			.armv4_5_common;
 
 	if ((retval = target_halt(target)) != ERROR_OK)
 	{
@@ -380,10 +380,9 @@ static int arm720t_init_target(struct command_context *cmd_ctx, struct target *t
 static int arm720t_init_arch_info(struct target *target,
 		struct arm720t_common *arm720t, struct jtag_tap *tap)
 {
-	struct arm7tdmi_common *arm7tdmi = &arm720t->arm7tdmi_common;
-	struct arm7_9_common *arm7_9 = &arm7tdmi->arm7_9_common;
+	struct arm7_9_common *arm7_9 = &arm720t->arm7_9_common;
 
-	arm7tdmi_init_arch_info(target, arm7tdmi, tap);
+	arm7tdmi_init_arch_info(target, arm7_9, tap);
 
 	arm720t->common_magic = ARM720T_COMMON_MAGIC;
 
@@ -406,7 +405,7 @@ static int arm720t_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm720t_common *arm720t = calloc(1, sizeof(*arm720t));
 
-	arm720t->arm7tdmi_common.arm7_9_common.armv4_5_common.is_armv4 = true;
+	arm720t->arm7_9_common.armv4_5_common.is_armv4 = true;
 	return arm720t_init_arch_info(target, arm720t, target->tap);
 }
 
@@ -421,7 +420,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	jtag_info = &arm720t->arm7tdmi_common.arm7_9_common.jtag_info;
+	jtag_info = &arm720t->arm7_9_common.jtag_info;
 
 	if (target->state != TARGET_HALTED)
 	{

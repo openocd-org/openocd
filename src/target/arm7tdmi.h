@@ -25,15 +25,9 @@
 
 #include "embeddedice.h"
 
-/* FIXME we don't really need a separate arm7tdmi struct any more...
- * remove it, the arm7/arm9 common struct suffices.
- */
-struct arm7tdmi_common
-{
-	struct arm7_9_common arm7_9_common;
-};
-
-int arm7tdmi_init_arch_info(struct target *target, struct arm7tdmi_common *arm7tdmi, struct jtag_tap *tap);
-int arm7tdmi_init_target(struct command_context *cmd_ctx, struct target *target);
+int arm7tdmi_init_arch_info(struct target *target,
+		struct arm7_9_common *arm7_9, struct jtag_tap *tap);
+int arm7tdmi_init_target(struct command_context *cmd_ctx,
+		struct target *target);
 
 #endif /* ARM7TDMI_H */

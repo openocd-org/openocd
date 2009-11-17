@@ -27,7 +27,7 @@
 
 struct arm720t_common
 {
-	struct arm7tdmi_common arm7tdmi_common;
+	struct arm7_9_common arm7_9_common;
 	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
 	uint32_t cp15_control_reg;
@@ -39,7 +39,7 @@ static inline struct arm720t_common *
 target_to_arm720(struct target *target)
 {
 	return container_of(target->arch_info, struct arm720t_common,
-			arm7tdmi_common.arm7_9_common.armv4_5_common);
+			arm7_9_common.armv4_5_common);
 }
 
 #endif /* ARM720T_H */
