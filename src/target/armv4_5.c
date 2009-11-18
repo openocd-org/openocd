@@ -39,26 +39,59 @@
 static const char *armv4_5_core_reg_list[] =
 {
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
-	"r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
+	"r8", "r9", "r10", "r11", "r12", "sp_usr", "lr_usr", "pc",
 
-	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "r13_fiq", "lr_fiq",
+	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "sp_fiq", "lr_fiq",
 
-	"r13_irq", "lr_irq",
+	"sp_irq", "lr_irq",
 
-	"r13_svc", "lr_svc",
+	"sp_svc", "lr_svc",
 
-	"r13_abt", "lr_abt",
+	"sp_abt", "lr_abt",
 
-	"r13_und", "lr_und",
+	"sp_und", "lr_und",
 
 	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und",
 
-	"r13_mon", "lr_mon", "spsr_mon",
+	"sp_mon", "lr_mon", "spsr_mon",
+};
+
+static const uint8_t arm_usr_indices[17] = {
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, ARMV4_5_CPSR,
+};
+
+static const uint8_t arm_fiq_indices[8] = {
+	16, 17, 18, 19, 20, 21, 22, ARMV4_5_SPSR_FIQ,
+};
+
+static const uint8_t arm_irq_indices[3] = {
+	23, 24, ARMV4_5_SPSR_IRQ,
+};
+
+static const uint8_t arm_svc_indices[3] = {
+	25, 26, ARMV4_5_SPSR_SVC,
+};
+
+static const uint8_t arm_abt_indices[3] = {
+	27, 28, ARMV4_5_SPSR_ABT,
+};
+
+static const uint8_t arm_und_indices[3] = {
+	29, 30, ARMV4_5_SPSR_UND,
+};
+
+static const uint8_t arm_mon_indices[3] = {
+	37, 38, ARM_SPSR_MON,
 };
 
 static const struct {
 	const char *name;
-	unsigned psr;
+	unsigned short psr;
+	/* For user and system modes, these list indices for all registers.
+	 * otherwise they're just indices for the shadow registers and SPSR.
+	 */
+	unsigned short n_indices;
+	const uint8_t *indices;
 } arm_mode_data[] = {
 	/* Seven modes are standard from ARM7 on. "System" and "User" share
 	 * the same registers; other modes shadow from 3 to 8 registers.
@@ -66,30 +99,44 @@ static const struct {
 	{
 		.name = "User",
 		.psr = ARMV4_5_MODE_USR,
+		.n_indices = ARRAY_SIZE(arm_usr_indices),
+		.indices = arm_usr_indices,
 	},
 	{
 		.name = "FIQ",
 		.psr = ARMV4_5_MODE_FIQ,
+		.n_indices = ARRAY_SIZE(arm_fiq_indices),
+		.indices = arm_fiq_indices,
 	},
 	{
 		.name = "Supervisor",
 		.psr = ARMV4_5_MODE_SVC,
+		.n_indices = ARRAY_SIZE(arm_svc_indices),
+		.indices = arm_svc_indices,
 	},
 	{
 		.name = "Abort",
 		.psr = ARMV4_5_MODE_ABT,
+		.n_indices = ARRAY_SIZE(arm_abt_indices),
+		.indices = arm_abt_indices,
 	},
 	{
 		.name = "IRQ",
 		.psr = ARMV4_5_MODE_IRQ,
+		.n_indices = ARRAY_SIZE(arm_irq_indices),
+		.indices = arm_irq_indices,
 	},
 	{
-		.name = "Undefined" /* instruction */,
+		.name = "Undefined instruction",
 		.psr = ARMV4_5_MODE_UND,
+		.n_indices = ARRAY_SIZE(arm_und_indices),
+		.indices = arm_und_indices,
 	},
 	{
 		.name = "System",
 		.psr = ARMV4_5_MODE_SYS,
+		.n_indices = ARRAY_SIZE(arm_usr_indices),
+		.indices = arm_usr_indices,
 	},
 	/* TrustZone "Security Extensions" add a secure monitor mode.
 	 * This is distinct from a "debug monitor" which can support
@@ -98,6 +145,8 @@ static const struct {
 	{
 		.name = "Secure Monitor",
 		.psr = ARM_MODE_MON,
+		.n_indices = ARRAY_SIZE(arm_mon_indices),
+		.indices = arm_mon_indices,
 	},
 };
 
@@ -461,11 +510,10 @@ int armv4_5_arch_state(struct target *target)
 
 COMMAND_HANDLER(handle_armv4_5_reg_command)
 {
-	char output[128];
-	int output_len;
-	int mode, num;
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	unsigned num_regs;
+	struct reg *regs;
 
 	if (!is_arm(armv4_5))
 	{
@@ -476,7 +524,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(CMD_CTX, "error: target must be halted for register accesses");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (!is_arm_mode(armv4_5->core_mode))
@@ -488,31 +536,61 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 		return ERROR_FAIL;
 	}
 
-	for (num = 0; num <= 15; num++)
-	{
-		output_len = 0;
-		for (mode = 0; mode < 6; mode++)
-		{
-			if (!ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).valid)
-			{
-				armv4_5->full_context(target);
-			}
-			output_len += snprintf(output + output_len,
-					       128 - output_len,
-					       "%8s: %8.8" PRIx32 " ",
-					       ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
-					       buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
+	num_regs = armv4_5->core_cache->num_regs;
+	regs = armv4_5->core_cache->reg_list;
+
+	for (unsigned mode = 0; mode < ARRAY_SIZE(arm_mode_data); mode++) {
+		const char *name;
+		char *sep = "\n";
+		char *shadow = "";
+
+		/* label this bank of registers (or shadows) */
+		switch (arm_mode_data[mode].psr) {
+		case ARMV4_5_MODE_SYS:
+			continue;
+		case ARMV4_5_MODE_USR:
+			name = "System and User";
+			sep = "";
+			break;
+		case ARM_MODE_MON:
+			if (armv4_5->core_type != ARM_MODE_MON)
+				continue;
+			/* FALLTHROUGH */
+		default:
+			name = arm_mode_data[mode].name;
+			shadow = "shadow ";
+			break;
 		}
-		command_print(CMD_CTX, "%s", output);
+		command_print(CMD_CTX, "%s%s mode %sregisters",
+				sep, name, shadow);
+
+		/* display N rows of up to 4 registers each */
+		for (unsigned i = 0; i < arm_mode_data[mode].n_indices;) {
+			char output[80];
+			int output_len = 0;
+
+			for (unsigned j = 0; j < 4; j++, i++) {
+				uint32_t value;
+				struct reg *reg = regs;
+
+				if (i >= arm_mode_data[mode].n_indices)
+					break;
+
+				reg += arm_mode_data[mode].indices[i];
+
+				/* REVISIT be smarter about faults... */
+				if (!reg->valid)
+					armv4_5->full_context(target);
+
+				value = buf_get_u32(reg->value, 0, 32);
+				output_len += snprintf(output + output_len,
+						sizeof(output) - output_len,
+					       "%8s: %8.8" PRIx32 " ",
+					       reg->name, value);
+			}
+			command_print(CMD_CTX, "%s", output);
+		}
 	}
-	command_print(CMD_CTX,
-		      "    cpsr: %8.8" PRIx32 " spsr_fiq: %8.8" PRIx32 " spsr_irq: %8.8" PRIx32 " spsr_svc: %8.8" PRIx32 " spsr_abt: %8.8" PRIx32 " spsr_und: %8.8" PRIx32 "",
-			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
-			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_FIQ].value, 0, 32),
-			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_IRQ].value, 0, 32),
-			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_SVC].value, 0, 32),
-			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_ABT].value, 0, 32),
-			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_UND].value, 0, 32));
 
 	return ERROR_OK;
 }
