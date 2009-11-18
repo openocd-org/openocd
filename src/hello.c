@@ -22,6 +22,57 @@
 #endif
 #include "log.h"
 
+COMMAND_HANDLER(handle_foo_command)
+{
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
+	{
+		LOG_ERROR("%s: incorrect number of arguments", CMD_NAME);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	uint32_t address;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+
+	const char *msg = "<unchanged>";
+	if (CMD_ARGC == 2)
+	{
+		bool enable;
+		COMMAND_PARSE_ENABLE(CMD_ARGV[1], enable);
+		msg = enable ? "enable" : "disable";
+	}
+
+	LOG_INFO("%s: address=0x%8.8" PRIx32 " enabled=%s", CMD_NAME, address, msg);
+	return ERROR_OK;
+}
+
+static bool foo_flag;
+
+COMMAND_HANDLER(handle_flag_command)
+{
+	return CALL_COMMAND_HANDLER(handle_command_parse_bool,
+			&foo_flag, "foo flag");
+}
+
+int foo_register_commands(struct command_context *cmd_ctx)
+{
+	// register several commands under the foo command
+	struct command *cmd = register_command(cmd_ctx, NULL, "foo",
+			NULL, COMMAND_ANY, "foo: command handler skeleton");
+
+	register_command(cmd_ctx, cmd, "bar",
+			&handle_foo_command, COMMAND_ANY,
+			"<address> [enable|disable] - an example command");
+	register_command(cmd_ctx, cmd, "baz",
+			&handle_foo_command, COMMAND_ANY,
+			"<address> [enable|disable] - a sample command");
+
+	register_command(cmd_ctx, cmd, "flag",
+			&handle_flag_command, COMMAND_ANY,
+			"[on|off] - set a flag");
+
+	return ERROR_OK;
+}
+
 static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 {
 	if (CMD_ARGC > 1)
@@ -50,8 +101,10 @@ COMMAND_HANDLER(handle_hello_command)
 
 int hello_register_commands(struct command_context *cmd_ctx)
 {
+	foo_register_commands(cmd_ctx);
+
 	struct command *cmd = register_command(cmd_ctx, NULL, "hello",
 			&handle_hello_command, COMMAND_ANY,
-			"option");
+			"[<name>] - prints a warm welcome");
 	return cmd ? ERROR_OK : -ENOMEM;
 }
