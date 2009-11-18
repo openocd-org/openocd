@@ -2929,8 +2929,8 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 
 	arm7_9->wp_available_max = 2;
 
-	arm7_9->fast_memory_access = fast_and_dangerous;
-	arm7_9->dcc_downloads = fast_and_dangerous;
+	arm7_9->fast_memory_access = false;
+	arm7_9->dcc_downloads = false;
 
 	armv4_5->arch_info = arm7_9;
 	armv4_5->read_core_reg = arm7_9_read_core_reg;

@@ -44,7 +44,6 @@
 #include "jim-eventloop.h"
 
 
-int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
 
 static int run_command(struct command_context *context,
@@ -141,7 +140,6 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	// turn words[0] into CMD_ARGV[-1] with this cast
 	retval = run_command(context, c, (const char **)words, nwords);
 
 	log_remove_callback(tcl_output, tclOutput);
@@ -755,17 +753,6 @@ COMMAND_HANDLER(handle_sleep_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_fast_command)
-{
-	if (CMD_ARGC != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	fast_and_dangerous = strcmp("enable", CMD_ARGV[0]) == 0;
-
-	return ERROR_OK;
-}
-
-
 struct command_context* command_init(const char *startup_tcl)
 {
 	struct command_context* context = malloc(sizeof(struct command_context));
@@ -839,10 +826,6 @@ struct command_context* command_init(const char *startup_tcl)
 			handle_sleep_command, COMMAND_ANY,
 			"<n> [busy] - sleep for n milliseconds. "
 			"\"busy\" means busy wait");
-	register_command(context, NULL, "fast",
-			handle_fast_command, COMMAND_ANY,
-			"fast <enable/disable> - place at beginning of "
-			"config files. Sets defaults to fast and dangerous.");
 
 	return context;
 }
@@ -880,18 +863,6 @@ void register_jim(struct command_context *cmd_ctx, const char *name,
 			Jim_NewStringObj(interp, name, -1));
 
 	command_helptext_add(cmd_list, help);
-}
-
-/* return global variable long value or 0 upon failure */
-long jim_global_long(const char *variable)
-{
-	Jim_Obj *objPtr = Jim_GetGlobalVariableStr(interp, variable, JIM_ERRMSG);
-	long t;
-	if (Jim_GetLong(interp, objPtr, &t) == JIM_OK)
-	{
-		return t;
-	}
-	return 0;
 }
 
 #define DEFINE_PARSE_NUM_TYPE(name, type, func, min, max) \

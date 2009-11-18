@@ -214,14 +214,10 @@ void process_jim_events(void);
 #define		ERROR_COMMAND_ARGUMENT_OVERFLOW		(-604)
 #define		ERROR_COMMAND_ARGUMENT_UNDERFLOW	(-605)
 
-extern int fast_and_dangerous;
-
 extern Jim_Interp *interp;
 
 void register_jim(struct command_context *context, const char *name,
 		Jim_CmdProc cmd, const char *help);
-
-long jim_global_long(const char *variable);
 
 int parse_ulong(const char *str, unsigned long *ul);
 int parse_ullong(const char *str, unsigned long long *ul);
