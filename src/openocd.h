@@ -37,6 +37,6 @@ void openocd_sleep_prelude(void);
 void openocd_sleep_postlude(void);
 
 /// provides a hard-coded command environment setup
-extern const char *openocd_startup_tcl;
+extern const char openocd_startup_tcl[];
 
 #endif
