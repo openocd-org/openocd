@@ -46,9 +46,6 @@ int zy1000_register_commands(struct command_context *cmd_ctx);
 int zy1000_init(void);
 int zy1000_quit(void);
 
-/* interface commands */
-int zy1000_handle_zy1000_port_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
-
 static int zy1000_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0)
@@ -227,21 +224,22 @@ static void setPower(bool power)
 	}
 }
 
-int handle_power_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+COMMAND_HANDLER(handle_power_command)
 {
-	if (argc > 1)
+	switch (CMD_ARGC)
 	{
+	case 1: {
+		bool enable;
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
+		setPower(enable);
+		// fall through
+	}
+	case 0:
+		command_print(cmd_ctx, "Target power %s", savePower ? "on" : "off");
+		break;
+	default:
 		return ERROR_INVALID_ARGUMENTS;
 	}
-
-	if (argc == 1)
-	{
-		bool enable;
-		COMMAND_PARSE_ON_OFF(args[0], enable);
-		setPower(enable);
-	}
-
-	command_print(cmd_ctx, "Target power %s", savePower ? "on" : "off");
 
 	return ERROR_OK;
 }
