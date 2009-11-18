@@ -2248,8 +2248,7 @@ COMMAND_HANDLER(handle_md_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned size = 0;
-	const char *cmd_name = CMD_NAME;
-	switch (cmd_name[6]) {
+	switch (CMD_NAME[2]) {
 	case 'w': size = 4; break;
 	case 'h': size = 2; break;
 	case 'b': size = 1; break;
@@ -2301,7 +2300,6 @@ COMMAND_HANDLER(handle_mw_command)
 	bool physical=strcmp(CMD_ARGV[0], "phys")==0;
 	int (*fn)(struct target *target,
 			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	const char *cmd_name = CMD_NAME;
 	if (physical)
 	{
 		CMD_ARGC--;
@@ -2327,7 +2325,7 @@ COMMAND_HANDLER(handle_mw_command)
 	struct target *target = get_current_target(CMD_CTX);
 	unsigned wordsize;
 	uint8_t value_buf[4];
-	switch (cmd_name[6])
+	switch (CMD_NAME[2])
 	{
 		case 'w':
 			wordsize = 4;
