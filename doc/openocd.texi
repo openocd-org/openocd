@@ -3540,7 +3540,7 @@ board by (re)installing working boot firmware.
 @section Flash Configuration Commands
 @cindex flash configuration
 
-@deffn {Config Command} {flash bank} driver base size chip_width bus_width target [driver_options]
+@deffn {Config Command} {flash bank} name driver base size chip_width bus_width target [driver_options]
 Configures a flash bank which provides persistent storage
 for addresses from @math{base} to @math{base + size - 1}.
 These banks will often be visible to GDB through the target's memory map.
@@ -3548,6 +3548,8 @@ In some cases, configuring a flash bank will activate extra commands;
 see the driver-specific documentation.
 
 @itemize @bullet
+@item @var{name} ... may be used to reference the flash bank
+in other flash commands.
 @item @var{driver} ... identifies the controller driver
 associated with the flash bank being declared.
 This is usually @code{cfi} for external flash, or else
@@ -4456,7 +4458,7 @@ NAND chips must be declared in configuration scripts,
 plus some additional configuration that's done after
 OpenOCD has initialized.
 
-@deffn {Config Command} {nand device} controller target [configparams...]
+@deffn {Config Command} {nand device} name controller target [configparams...]
 Declares a NAND device, which can be read and written to
 after it has been configured through @command{nand probe}.
 In OpenOCD, devices are single chips; this is unlike some
@@ -4470,6 +4472,8 @@ initialization has completed.  Use it in board specific
 configuration files, not interactively.
 
 @itemize @bullet
+@item @var{name} ... may be used to reference the NAND bank
+in other commands.
 @item @var{controller} ... identifies the controller driver
 associated with the NAND device being declared.
 @xref{NAND Driver List}.
