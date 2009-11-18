@@ -2870,20 +2870,7 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 	}
 
 	if (CMD_ARGC > 0)
-	{
-		if (strcmp("enable", CMD_ARGV[0]) == 0)
-		{
-			arm7_9->use_dbgrq = 1;
-		}
-		else if (strcmp("disable", CMD_ARGV[0]) == 0)
-		{
-			arm7_9->use_dbgrq = 0;
-		}
-		else
-		{
-			command_print(CMD_CTX, "usage: arm7_9 dbgrq <enable | disable>");
-		}
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0],arm7_9->use_dbgrq);
 
 	command_print(CMD_CTX, "use of EmbeddedICE dbgrq instead of breakpoint for target halt %s", (arm7_9->use_dbgrq) ? "enabled" : "disabled");
 
@@ -2902,20 +2889,7 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 	}
 
 	if (CMD_ARGC > 0)
-	{
-		if (strcmp("enable", CMD_ARGV[0]) == 0)
-		{
-			arm7_9->fast_memory_access = 1;
-		}
-		else if (strcmp("disable", CMD_ARGV[0]) == 0)
-		{
-			arm7_9->fast_memory_access = 0;
-		}
-		else
-		{
-			command_print(CMD_CTX, "usage: arm7_9 fast_memory_access <enable | disable>");
-		}
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], arm7_9->fast_memory_access);
 
 	command_print(CMD_CTX, "fast memory access is %s", (arm7_9->fast_memory_access) ? "enabled" : "disabled");
 
@@ -2934,20 +2908,7 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 	}
 
 	if (CMD_ARGC > 0)
-	{
-		if (strcmp("enable", CMD_ARGV[0]) == 0)
-		{
-			arm7_9->dcc_downloads = 1;
-		}
-		else if (strcmp("disable", CMD_ARGV[0]) == 0)
-		{
-			arm7_9->dcc_downloads = 0;
-		}
-		else
-		{
-			command_print(CMD_CTX, "usage: arm7_9 dcc_downloads <enable | disable>");
-		}
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], arm7_9->dcc_downloads);
 
 	command_print(CMD_CTX, "dcc downloads are %s", (arm7_9->dcc_downloads) ? "enabled" : "disabled");
 

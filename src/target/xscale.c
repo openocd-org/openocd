@@ -3130,16 +3130,13 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 
 	if (CMD_ARGC >= 1)
 	{
-		if (strcmp("enable", CMD_ARGV[0]) == 0)
-		{
+		bool enable;
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], enable);
+		if (enable)
 			xscale_enable_mmu_caches(target, 1, 0, 0);
-			xscale->armv4_5_mmu.mmu_enabled = 1;
-		}
-		else if (strcmp("disable", CMD_ARGV[0]) == 0)
-		{
+		else
 			xscale_disable_mmu_caches(target, 1, 0, 0);
-			xscale->armv4_5_mmu.mmu_enabled = 0;
-		}
+		xscale->armv4_5_mmu.mmu_enabled = enable;
 	}
 
 	command_print(CMD_CTX, "mmu %s", (xscale->armv4_5_mmu.mmu_enabled) ? "enabled" : "disabled");
@@ -3151,10 +3148,8 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
-	int icache = 0, dcache = 0;
-	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	int retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3164,38 +3159,28 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 		return ERROR_OK;
 	}
 
-	if (strcmp(CMD_NAME, "icache") == 0)
-		icache = 1;
-	else if (strcmp(CMD_NAME, "dcache") == 0)
-		dcache = 1;
+	bool icache;
+	COMMAND_PARSE_BOOL(CMD_NAME, icache, "icache", "dcache");
 
 	if (CMD_ARGC >= 1)
 	{
-		if (strcmp("enable", CMD_ARGV[0]) == 0)
-		{
-			xscale_enable_mmu_caches(target, 0, dcache, icache);
-
-			if (icache)
-				xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 1;
-			else if (dcache)
-				xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 1;
-		}
-		else if (strcmp("disable", CMD_ARGV[0]) == 0)
-		{
-			xscale_disable_mmu_caches(target, 0, dcache, icache);
-
-			if (icache)
-				xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
-			else if (dcache)
-				xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
-		}
+		bool enable;
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], enable);
+		if (enable)
+			xscale_enable_mmu_caches(target, 1, 0, 0);
+		else
+			xscale_disable_mmu_caches(target, 1, 0, 0);
+		if (icache)
+			xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = enable;
+		else
+			xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = enable;
 	}
 
-	if (icache)
-		command_print(CMD_CTX, "icache %s", (xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled) ? "enabled" : "disabled");
-
-	if (dcache)
-		command_print(CMD_CTX, "dcache %s", (xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) ? "enabled" : "disabled");
+	bool enabled = icache ?
+					xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled :
+					xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled;
+	const char *msg = enabled ? "enabled" : "disabled";
+	command_print(CMD_CTX, "%s %s", CMD_NAME, msg);
 
 	return ERROR_OK;
 }

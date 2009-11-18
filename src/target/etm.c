@@ -1214,25 +1214,14 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (strcmp(CMD_ARGV[2], "enable") == 0)
+	bool etmv1_cycle_accurate;
+	COMMAND_PARSE_ENABLE(CMD_ARGV[2], etmv1_cycle_accurate);
+	if (etmv1_cycle_accurate)
 		tracemode |= ETMV1_CYCLE_ACCURATE;
-	else if (strcmp(CMD_ARGV[2], "disable") == 0)
-		tracemode |= 0;
-	else
-	{
-		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[2]);
-		return ERROR_INVALID_ARGUMENTS;
-	}
 
-	if (strcmp(CMD_ARGV[3], "enable") == 0)
+	bool etmv1_branch_output;
+	COMMAND_PARSE_ENABLE(CMD_ARGV[3], etmv1_branch_output);
 		tracemode |= ETMV1_BRANCH_OUTPUT;
-	else if (strcmp(CMD_ARGV[3], "disable") == 0)
-		tracemode |= 0;
-	else
-	{
-		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[3]);
-		return ERROR_INVALID_ARGUMENTS;
-	}
 
 	/* IGNORED:
 	 *  - CPRT tracing (coprocessor register transfers)

@@ -1663,14 +1663,7 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 	}
 
 	if (CMD_ARGC == 2)
-	{
-		if (strcmp("enable", CMD_ARGV[1]) == 0)
-			p->use_raw = 1;
-		else if (strcmp("disable", CMD_ARGV[1]) == 0)
-			p->use_raw = 0;
-		else
-			return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[1], p->use_raw);
 
 	const char *msg = p->use_raw ? "enabled" : "disabled";
 	command_print(CMD_CTX, "raw access is %s", msg);

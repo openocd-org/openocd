@@ -2271,20 +2271,7 @@ COMMAND_HANDLER(handle_gdb_port_command)
 COMMAND_HANDLER(handle_gdb_memory_map_command)
 {
 	if (CMD_ARGC == 1)
-	{
-		if (strcmp(CMD_ARGV[0], "enable") == 0)
-		{
-			gdb_use_memory_map = 1;
-			return ERROR_OK;
-		}
-		else if (strcmp(CMD_ARGV[0], "disable") == 0)
-		{
-			gdb_use_memory_map = 0;
-			return ERROR_OK;
-		}
-		else
-			LOG_WARNING("invalid gdb_memory_map configuration directive %s", CMD_ARGV[0]);
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_use_memory_map);
 
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
@@ -2292,20 +2279,7 @@ COMMAND_HANDLER(handle_gdb_memory_map_command)
 COMMAND_HANDLER(handle_gdb_flash_program_command)
 {
 	if (CMD_ARGC == 1)
-	{
-		if (strcmp(CMD_ARGV[0], "enable") == 0)
-		{
-			gdb_flash_program = 1;
-			return ERROR_OK;
-		}
-		else if (strcmp(CMD_ARGV[0], "disable") == 0)
-		{
-			gdb_flash_program = 0;
-			return ERROR_OK;
-		}
-		else
-			LOG_WARNING("invalid gdb_flash_program configuration directive: %s", CMD_ARGV[0]);
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_flash_program);
 
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
@@ -2313,20 +2287,7 @@ COMMAND_HANDLER(handle_gdb_flash_program_command)
 COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 {
 	if (CMD_ARGC == 1)
-	{
-		if (strcmp(CMD_ARGV[0], "enable") == 0)
-		{
-			gdb_report_data_abort = 1;
-			return ERROR_OK;
-		}
-		else if (strcmp(CMD_ARGV[0], "disable") == 0)
-		{
-			gdb_report_data_abort = 0;
-			return ERROR_OK;
-		}
-		else
-			LOG_WARNING("invalid gdb_report_data_abort configuration directive: %s", CMD_ARGV[0]);
-	}
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_report_data_abort);
 
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
