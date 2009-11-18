@@ -1456,10 +1456,6 @@ int cortex_a8_init_arch_info(struct target *target,
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
-	/* REVISIT v7a setup should be in a v7a-specific routine */
-	armv4_5_init_arch_info(target, armv4_5);
-	armv7a->common_magic = ARMV7_COMMON_MAGIC;
-
 	/* Setup struct cortex_a8_common */
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
 	armv4_5->arch_info = armv7a;
@@ -1503,12 +1499,10 @@ LOG_DEBUG(" ");
 
 	armv4_5->read_core_reg = cortex_a8_read_core_reg;
 	armv4_5->write_core_reg = cortex_a8_write_core_reg;
-//	armv4_5->full_context = arm7_9_full_context;
 
-//	armv4_5->load_core_reg_u32 = cortex_a8_load_core_reg_u32;
-//	armv4_5->store_core_reg_u32 = cortex_a8_store_core_reg_u32;
-//	armv4_5->read_core_reg = armv4_5_read_core_reg; /* this is default */
-//	armv4_5->write_core_reg = armv4_5_write_core_reg;
+	/* REVISIT v7a setup should be in a v7a-specific routine */
+	armv4_5_init_arch_info(target, armv4_5);
+	armv7a->common_magic = ARMV7_COMMON_MAGIC;
 
 	target_register_timer_callback(cortex_a8_handle_target_request, 1, 1, target);
 

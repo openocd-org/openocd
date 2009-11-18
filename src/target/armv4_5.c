@@ -299,7 +299,7 @@ static void arm_gdb_dummy_init(void)
 	register_init_dummy(&arm_gdb_dummy_fps_reg);
 }
 
-int armv4_5_get_core_reg(struct reg *reg)
+static int armv4_5_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
@@ -311,13 +311,14 @@ int armv4_5_get_core_reg(struct reg *reg)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* retval = armv4_5->armv4_5_common->full_context(target); */
 	retval = armv4_5->armv4_5_common->read_core_reg(target, armv4_5->num, armv4_5->mode);
+	if (retval == ERROR_OK)
+		reg->valid = 1;
 
 	return retval;
 }
 
-int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
+static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
 	struct target *target = armv4_5->target;
@@ -326,6 +327,7 @@ int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1038,6 +1040,21 @@ int arm_blank_check_memory(struct target *target,
 	return ERROR_OK;
 }
 
+static int arm_full_context(struct target *target)
+{
+	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	unsigned num_regs = armv4_5->core_cache->num_regs;
+	struct reg *reg = armv4_5->core_cache->reg_list;
+	int retval = ERROR_OK;
+
+	for (; num_regs && retval == ERROR_OK; num_regs--, reg++) {
+		if (reg->valid)
+			continue;
+		retval = armv4_5_get_core_reg(reg);
+	}
+	return retval;
+}
+
 int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 {
 	target->arch_info = armv4_5;
@@ -1048,6 +1065,10 @@ int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 
 	/* core_type may be overridden by subtype logic */
 	armv4_5->core_type = ARMV4_5_MODE_ANY;
+
+	/* default full_context() has no core-specific optimizations */
+	if (!armv4_5->full_context && armv4_5->read_core_reg)
+		armv4_5->full_context = arm_full_context;
 
 	return ERROR_OK;
 }
