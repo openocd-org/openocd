@@ -38,7 +38,8 @@
 
 static const char *armv4_5_core_reg_list[] =
 {
-	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
+	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
+	"r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
 
 	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "r13_fiq", "lr_fiq",
 
@@ -50,7 +51,9 @@ static const char *armv4_5_core_reg_list[] =
 
 	"r13_und", "lr_und",
 
-	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und"
+	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und",
+
+	"r13_mon", "lr_mon", "spsr_mon",
 };
 
 static const struct {
@@ -139,6 +142,8 @@ int armv4_5_mode_to_number(enum armv4_5_mode mode)
 		return 5;
 	case ARMV4_5_MODE_SYS:
 		return 6;
+	case ARM_MODE_MON:
+		return 7;
 	default:
 		LOG_ERROR("invalid mode value encountered %d", mode);
 		return -1;
@@ -163,6 +168,8 @@ enum armv4_5_mode armv4_5_number_to_mode(int number)
 		return ARMV4_5_MODE_UND;
 	case 6:
 		return ARMV4_5_MODE_SYS;
+	case 7:
+		return ARM_MODE_MON;
 	default:
 		LOG_ERROR("mode index out of bounds %d", number);
 		return ARMV4_5_MODE_ANY;
@@ -218,16 +225,20 @@ static const struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
 	{16, ARMV4_5_MODE_IRQ, NULL, NULL},
 	{16, ARMV4_5_MODE_SVC, NULL, NULL},
 	{16, ARMV4_5_MODE_ABT, NULL, NULL},
-	{16, ARMV4_5_MODE_UND, NULL, NULL}
+	{16, ARMV4_5_MODE_UND, NULL, NULL},
+
+	{13, ARM_MODE_MON, NULL, NULL},
+	{14, ARM_MODE_MON, NULL, NULL},
+	{16, ARM_MODE_MON, NULL, NULL},
 };
 
 /* map core mode (USR, FIQ, ...) and register number to indizes into the register cache */
-const int armv4_5_core_reg_map[7][17] =
+const int armv4_5_core_reg_map[8][17] =
 {
 	{	/* USR */
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
 	},
-	{	/* FIQ */
+	{	/* FIQ (8 shadows of USR, vs normal 3) */
 		0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 15, 32
 	},
 	{	/* IRQ */
@@ -242,8 +253,11 @@ const int armv4_5_core_reg_map[7][17] =
 	{	/* UND */
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 29, 30, 15, 36
 	},
-	{	/* SYS */
+	{	/* SYS (same registers as USR) */
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
+	},
+	{	/* MON */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 37, 38, 15, 39,
 	}
 };
 
@@ -359,45 +373,62 @@ static const struct reg_arch_type arm_reg_type = {
 	.set = armv4_5_set_core_reg,
 };
 
+/** Marks the contents of the register cache as invalid (and clean). */
 int armv4_5_invalidate_core_regs(struct target *target)
 {
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	int i;
+	unsigned num_regs = armv4_5->core_cache->num_regs;
+	struct reg *reg = armv4_5->core_cache->reg_list;
 
-	for (i = 0; i < 37; i++)
-	{
-		armv4_5->core_cache->reg_list[i].valid = 0;
-		armv4_5->core_cache->reg_list[i].dirty = 0;
+	for (unsigned i = 0; i < num_regs; i++, reg++) {
+		reg->valid = 0;
+		reg->dirty = 0;
 	}
 
+	/* FIXME don't bother returning a value then */
 	return ERROR_OK;
 }
 
 struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *armv4_5_common)
 {
-	int num_regs = 37;
+	int num_regs = ARRAY_SIZE(armv4_5_core_reg_list_arch_info);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
-	struct armv4_5_core_reg *arch_info = malloc(sizeof(struct armv4_5_core_reg) * num_regs);
+	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
+	struct armv4_5_core_reg *arch_info = calloc(num_regs,
+					sizeof(struct armv4_5_core_reg));
 	int i;
 
-	cache->name = "arm v4/5 registers";
+	if (!cache || !reg_list || !arch_info) {
+		free(cache);
+		free(reg_list);
+		free(arch_info);
+		return NULL;
+	}
+
+	cache->name = "ARM registers";
 	cache->next = NULL;
 	cache->reg_list = reg_list;
-	cache->num_regs = num_regs;
+	cache->num_regs = 0;
 
-	for (i = 0; i < 37; i++)
+	for (i = 0; i < num_regs; i++)
 	{
+		/* Skip registers this core doesn't expose */
+		if (armv4_5_core_reg_list_arch_info[i].mode == ARM_MODE_MON
+				&& armv4_5_common->core_type != ARM_MODE_MON)
+			continue;
+
+		/* REVISIT handle Cortex-M, which only shadows R13/SP */
+
 		arch_info[i] = armv4_5_core_reg_list_arch_info[i];
 		arch_info[i].target = target;
 		arch_info[i].armv4_5_common = armv4_5_common;
 		reg_list[i].name = (char *) armv4_5_core_reg_list[i];
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
 		reg_list[i].type = &arm_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
+
+		cache->num_regs++;
 	}
 
 	return cache;

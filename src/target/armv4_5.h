@@ -56,7 +56,7 @@ typedef enum armv4_5_state
 
 extern char* armv4_5_state_strings[];
 
-extern const int armv4_5_core_reg_map[7][17];
+extern const int armv4_5_core_reg_map[8][17];
 
 #define ARMV4_5_CORE_REG_MODE(cache, mode, num) \
 		cache->reg_list[armv4_5_core_reg_map[armv4_5_mode_to_number(mode)][num]]
@@ -69,7 +69,8 @@ enum
 	ARMV4_5_SPSR_IRQ = 33,
 	ARMV4_5_SPSR_SVC = 34,
 	ARMV4_5_SPSR_ABT = 35,
-	ARMV4_5_SPSR_UND = 36
+	ARMV4_5_SPSR_UND = 36,
+	ARM_SPSR_MON = 39,
 };
 
 #define ARMV4_5_COMMON_MAGIC 0x0A450A45
