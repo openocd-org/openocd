@@ -1981,52 +1981,17 @@ static int arm11_build_reg_cache(struct target *target)
 	return ERROR_OK;
 }
 
-static COMMAND_HELPER(arm11_handle_bool, bool *var, char *name)
-{
-	if (CMD_ARGC == 0)
-	{
-		LOG_INFO("%s is %s.", name, *var ? "enabled" : "disabled");
-		return ERROR_OK;
-	}
+#define ARM11_BOOL_WRAPPER(name, print_name)	\
+		COMMAND_HANDLER(arm11_handle_bool_##name) \
+		{ \
+			return CALL_COMMAND_HANDLER(handle_command_parse_bool, \
+					&arm11_config_##name, print_name); \
+		}
 
-	if (CMD_ARGC != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	switch (CMD_ARGV[0][0])
-	{
-	case '0':	/* 0 */
-	case 'f':	/* false */
-	case 'F':
-	case 'd':	/* disable */
-	case 'D':
-		*var = false;
-		break;
-
-	case '1':	/* 1 */
-	case 't':	/* true */
-	case 'T':
-	case 'e':	/* enable */
-	case 'E':
-		*var = true;
-		break;
-	}
-
-	LOG_INFO("%s %s.", *var ? "Enabled" : "Disabled", name);
-
-	return ERROR_OK;
-}
-
-#define BOOL_WRAPPER(name, print_name)	\
-COMMAND_HANDLER(arm11_handle_bool_##name) \
-{ \
-	return CALL_COMMAND_HANDLER(arm11_handle_bool, \
-			&arm11_config_##name, print_name); \
-}
-
-BOOL_WRAPPER(memwrite_burst,			"memory write burst mode")
-BOOL_WRAPPER(memwrite_error_fatal,		"fatal error mode for memory writes")
-BOOL_WRAPPER(step_irq_enable,			"IRQs while stepping")
-BOOL_WRAPPER(hardware_step,			"hardware single step")
+ARM11_BOOL_WRAPPER(memwrite_burst, "memory write burst mode")
+ARM11_BOOL_WRAPPER(memwrite_error_fatal, "fatal error mode for memory writes")
+ARM11_BOOL_WRAPPER(step_irq_enable, "IRQs while stepping")
+ARM11_BOOL_WRAPPER(hardware_step, "hardware single step")
 
 COMMAND_HANDLER(arm11_handle_vcr)
 {

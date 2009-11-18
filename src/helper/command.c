@@ -954,3 +954,53 @@ DEFINE_PARSE_LONG(_int, int, n < INT_MIN, INT_MAX)
 DEFINE_PARSE_LONG(_s32, int32_t, n < INT32_MIN, INT32_MAX)
 DEFINE_PARSE_LONG(_s16, int16_t, n < INT16_MIN, INT16_MAX)
 DEFINE_PARSE_LONG(_s8, int8_t, n < INT8_MIN, INT8_MAX)
+
+int command_parse_bool(const char *in, bool *out,
+		const char *on, const char *off)
+{
+	if (strcasecmp(in, on) == 0)
+		*out = true;
+	else if (strcasecmp(in, off) == 0)
+		*out = false;
+	else
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	return  ERROR_OK;
+}
+
+int command_parse_bool_any(const char *in, bool *out)
+{
+	if (command_parse_bool(in, out, "on", "off") == ERROR_OK)
+		return ERROR_OK;
+	if (command_parse_bool(in, out, "enable", "disable") == ERROR_OK)
+		return ERROR_OK;
+	if (command_parse_bool(in, out, "true", "false") == ERROR_OK)
+		return ERROR_OK;
+	if (command_parse_bool(in, out, "yes", "no") == ERROR_OK)
+		return ERROR_OK;
+	if (command_parse_bool(in, out, "1", "0") == ERROR_OK)
+		return ERROR_OK;
+	return ERROR_INVALID_ARGUMENTS;
+}
+
+COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
+{
+	switch (CMD_ARGC) {
+	case 1: {
+		const char *in = CMD_ARGV[0];
+		if (command_parse_bool_any(in, out) != ERROR_OK)
+		{
+			LOG_ERROR("%s: argument '%s' is not valid", CMD_NAME, in);
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		// fall through
+	}
+	case 0:
+		LOG_INFO("%s is %s", label, *out ? "enabled" : "disabled");
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	return ERROR_OK;
+}
+
+
