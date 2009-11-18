@@ -845,21 +845,25 @@ void startUart(void)
 	cyg_thread_resume(zylinjtag_uart_thread_handle);
 }
 
-int handle_uart_command(struct command_context *cmd_ctx, char *cmd,
-		char **args, int argc)
+static int zylinjtag_Jim_Command_uart(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
 {
 	static int current_baud = 38400;
-	if (argc == 0)
+	if (argc == 1)
 	{
 		command_print(cmd_ctx, "%d", current_baud);
-		return ERROR_OK;
+		return JIM_OK;
 	}
-	else if (argc != 1)
+	else if (argc != 2)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return JIM_ERR;
 	}
 
-	current_baud = atol(args[0]);
+	long new_baudrate;
+	if (Jim_GetLong(interp, argv[1], &new_baudrate) != JIM_OK)
+		return JIM_ERR;
+
+	current_baud = new_baudrate;
 
 	int baud;
 	switch (current_baud)
@@ -898,7 +902,7 @@ int handle_uart_command(struct command_context *cmd_ctx, char *cmd,
 	if (err != ENOERR)
 	{
 		LOG_ERROR("Could not open serial port\n");
-		return ERROR_FAIL;
+		return JIM_ERR;
 	}
 
 	err = cyg_io_get_config(serial_handle,
@@ -907,8 +911,8 @@ int handle_uart_command(struct command_context *cmd_ctx, char *cmd,
 			&len);
 	if (err != ENOERR)
 	{
-		command_print(cmd_ctx, "Failed to get serial port settings %d", err);
-		return ERROR_OK;
+		LOG_ERROR("Failed to get serial port settings %d", err);
+		return JIM_ERR;
 	}
 	buf.baud = baud;
 
@@ -916,11 +920,11 @@ int handle_uart_command(struct command_context *cmd_ctx, char *cmd,
 			&len);
 	if (err != ENOERR)
 	{
-		command_print(cmd_ctx, "Failed to set serial port settings %d", err);
-		return ERROR_OK;
+		LOG_ERROR("Failed to set serial port settings %d", err);
+		return JIM_ERR;
 	}
 
-	return ERROR_OK;
+	return JIM_OK;
 }
 
 bool logAllToSerial = false;
@@ -1091,8 +1095,8 @@ int main(int argc, char *argv[])
 			COMMAND_ANY, NULL);
 #endif
 
-	register_command(cmd_ctx, NULL, "uart", handle_uart_command, COMMAND_ANY,
-			"uart <baud>  - forward uart on port 5555");
+	Jim_CreateCommand(interp, "uart", zylinjtag_Jim_Command_uart, NULL, NULL);
+
 
 	int errVal;
 	errVal = log_init(cmd_ctx);
