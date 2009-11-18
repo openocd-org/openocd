@@ -272,7 +272,7 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 #define COMMAND_PARSE_BOOL(in, out, on, off) \
 	do { \
 		bool value; \
-		int retval = command_parse_bool(in, &value, on, off); \
+		int retval = command_parse_bool_arg(in, &value); \
 		if (ERROR_OK != retval) { \
 			command_print(CMD_CTX, stringify(out) \
 				" option value ('%s') is not valid", in); \
@@ -283,8 +283,7 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 		out = value; \
 	} while (0)
 
-int command_parse_bool(const char *in, bool *out,
-		const char *on, const char *off);
+int command_parse_bool_arg(const char *in, bool *out);
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 
 /// parses an on/off command argument
