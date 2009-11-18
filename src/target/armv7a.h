@@ -45,15 +45,6 @@ typedef enum armv7a_state
 	ARMV7A_STATE_THUMBEE,
 } armv7a_state_t;
 
-extern char *armv7a_state_strings[];
-
-extern int armv7a_core_reg_map[8][17];
-
-#define ARMV7A_CORE_REG_MODE(cache, mode, num) \
-		cache->reg_list[armv7a_core_reg_map[armv7a_mode_to_number(mode)][num]]
-#define ARMV7A_CORE_REG_MODENUM(cache, mode, num) \
-		cache->reg_list[armv7a_core_reg_map[mode][num]]
-
 enum
 {
 	ARM_PC  = 15,
@@ -102,9 +93,6 @@ struct armv7a_common
 	struct armv4_5_mmu_common armv4_5_mmu;
 	struct arm armv4_5_common;
 
-//	int (*full_context)(struct target *target);
-//	int (*read_core_reg)(struct target *target, int num, enum armv7a_mode mode);
-//	int (*write_core_reg)(struct target *target, int num, enum armv7a_mode mode, u32 value);
 	int (*read_cp15)(struct target *target,
 			uint32_t op1, uint32_t op2,
 			uint32_t CRn, uint32_t CRm, uint32_t *value);
@@ -148,45 +136,5 @@ struct reg_cache *armv7a_build_reg_cache(struct target *target,
 		struct armv7a_common *armv7a_common);
 int armv7a_register_commands(struct command_context *cmd_ctx);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
-
-/* map psr mode bits to linear number */
-static inline int armv7a_mode_to_number(enum armv7a_mode mode)
-{
-	switch (mode)
-	{
-		case ARMV7A_MODE_USR: return 0; break;
-		case ARMV7A_MODE_FIQ: return 1; break;
-		case ARMV7A_MODE_IRQ: return 2; break;
-		case ARMV7A_MODE_SVC: return 3; break;
-		case ARMV7A_MODE_ABT: return 4; break;
-		case ARMV7A_MODE_UND: return 5; break;
-		case ARMV7A_MODE_SYS: return 6; break;
-		case ARMV7A_MODE_MON: return 7; break;
-		case ARMV7A_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
-		default:
-			LOG_ERROR("invalid mode value encountered, val %d", mode);
-			return -1;
-	}
-}
-
-/* map linear number to mode bits */
-static inline enum armv7a_mode armv7a_number_to_mode(int number)
-{
-	switch(number)
-	{
-		case 0: return ARMV7A_MODE_USR; break;
-		case 1: return ARMV7A_MODE_FIQ; break;
-		case 2: return ARMV7A_MODE_IRQ; break;
-		case 3: return ARMV7A_MODE_SVC; break;
-		case 4: return ARMV7A_MODE_ABT; break;
-		case 5: return ARMV7A_MODE_UND; break;
-		case 6: return ARMV7A_MODE_SYS; break;
-		case 7: return ARMV7A_MODE_MON; break;
-		default:
-			LOG_ERROR("mode index out of bounds");
-			return ARMV7A_MODE_ANY;
-	}
-};
-
 
 #endif /* ARMV4_5_H */

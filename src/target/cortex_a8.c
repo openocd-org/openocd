@@ -242,16 +242,18 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 
 	if (reg < 15)
 	{
-		/* Rn to DCCTX, MCR p14, 0, Rd, c0, c5, 0,  0xEE000E15 */
+		/* Rn to DCCTX, "MCR p14, 0, Rn, c0, c5, 0"  0xEE00nE15 */
 		cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, reg, 0, 5, 0));
 	}
 	else if (reg == 15)
 	{
+		/* "MOV r0, r15"; then move r0 to DCCTX */
 		cortex_a8_exec_opcode(target, 0xE1A0000F);
 		cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 	}
 	else if (reg == 16)
 	{
+		/* "MRS r0, CPSR"; then move r0 to DCCTX */
 		cortex_a8_exec_opcode(target, ARMV4_5_MRS(0, 0));
 		cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 	}
@@ -480,7 +482,7 @@ static int cortex_a8_resume(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	resume_pc = buf_get_u32(
-			ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).value,
 			0, 32);
 	if (!current)
@@ -501,12 +503,12 @@ static int cortex_a8_resume(struct target *target, int current,
 		resume_pc |= 0x1;
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
-	buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).value,
 			0, 32, resume_pc);
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 			armv4_5->core_mode, 15).dirty = 1;
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 			armv4_5->core_mode, 15).valid = 1;
 
 	cortex_a8_restore_context(target);
@@ -627,19 +629,23 @@ static int cortex_a8_debug_entry(struct target *target)
 
 	for (i = 0; i <= ARM_PC; i++)
 	{
-		buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					armv4_5->core_mode, i).value,
 				0, 32, regfile[i]);
-		ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, i).valid = 1;
-		ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, i).dirty = 0;
 	}
-	buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+
+	/* FIXME for exception states, this caches CPSR as SPSR!! */
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 16).value,
 			0, 32, cpsr);
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).valid = 1;
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).dirty = 0;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+			armv4_5->core_mode, 16).valid = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+			armv4_5->core_mode, 16).dirty = 0;
 
 	/* Fixup PC Resume Address */
 	if (armv7a->core_state == ARMV7A_STATE_THUMB)
@@ -652,15 +658,15 @@ static int cortex_a8_debug_entry(struct target *target)
 		// ARM state
 		regfile[ARM_PC] -= 8;
 	}
-	buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, ARM_PC).value,
 			0, 32, regfile[ARM_PC]);
 
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0)
-		.dirty = ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0)
+		.dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 0).valid;
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15)
-		.dirty = ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15)
+		.dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).valid;
 
 #if 0
@@ -738,13 +744,13 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
 	{
-		buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					armv4_5->core_mode, ARM_PC).value,
 				0, 32, address);
 	}
 	else
 	{
-		address = buf_get_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		address = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					armv4_5->core_mode, ARM_PC).value,
 				0, 32);
 	}
@@ -756,7 +762,8 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	handle_breakpoints = 1;
 	if (handle_breakpoints) {
 		breakpoint = breakpoint_find(target,
-				buf_get_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+				buf_get_u32(ARMV4_5_CORE_REG_MODE(
+					armv4_5->core_cache,
 					armv4_5->core_mode, 15).value,
 			0, 32));
 		if (breakpoint)
@@ -812,10 +819,11 @@ static int cortex_a8_restore_context(struct target *target)
 
 	for (i = 15; i >= 0; i--)
 	{
-		if (ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					armv4_5->core_mode, i).dirty)
 		{
-			value = buf_get_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+			value = buf_get_u32(ARMV4_5_CORE_REG_MODE(
+						armv4_5->core_cache,
 						armv4_5->core_mode, i).value,
 					0, 32);
 			/* TODO Check return values */
@@ -859,13 +867,13 @@ static int cortex_a8_load_core_reg_u32(struct target *target, int num,
 
 	/* Register other than r0 - r14 uses r0 for access */
 	if (num > 14)
-		ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 0).dirty =
-			ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 0).valid;
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).dirty =
-			ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).valid;
 
 	return ERROR_OK;
@@ -895,9 +903,9 @@ static int cortex_a8_store_core_reg_u32(struct target *target, int num,
 		if (retval != ERROR_OK)
 		{
 			LOG_ERROR("JTAG failure %i", retval);
-			ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					armv4_5->core_mode, num).dirty =
-				ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					armv4_5->core_mode, num).valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -920,6 +928,8 @@ static int cortex_a8_read_core_reg(struct target *target, int num,
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
+	/* FIXME cortex may not be in "mode" ... */
+
 	cortex_a8_dap_read_coreregister_u32(target, &value, num);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -927,19 +937,21 @@ static int cortex_a8_read_core_reg(struct target *target, int num,
 		return retval;
 	}
 
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
-	buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 			mode, num).value, 0, 32, value);
 
 	return ERROR_OK;
 }
 
-int cortex_a8_write_core_reg(struct target *target, int num,
+static int cortex_a8_write_core_reg(struct target *target, int num,
 		enum armv4_5_mode mode, uint32_t value)
 {
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+
+	/* FIXME cortex may not be in "mode" ... */
 
 	cortex_a8_dap_write_coreregister_u32(target, value, num);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -947,8 +959,8 @@ int cortex_a8_write_core_reg(struct target *target, int num,
 		return retval;
 	}
 
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
 
 	return ERROR_OK;
 }

@@ -34,108 +34,12 @@
 #include <unistd.h>
 
 
-char* armv7a_core_reg_list[] =
-{
-	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
-	"r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
-	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "r13_fiq", "lr_fiq",
-	"r13_irq", "lr_irq",
-	"r13_svc", "lr_svc",
-	"r13_abt", "lr_abt",
-	"r13_und", "lr_und",
-	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und",
-	"r13_mon", "lr_mon", "spsr_mon"
-};
-
-char* armv7a_state_strings[] =
+static const char *armv7a_state_strings[] =
 {
 	"ARM", "Thumb", "Jazelle", "ThumbEE"
 };
 
-struct armv7a_core_reg armv7a_core_reg_list_arch_info[] =
-{
-	{0, ARMV4_5_MODE_ANY, NULL, NULL},
-	{1, ARMV4_5_MODE_ANY, NULL, NULL},
-	{2, ARMV4_5_MODE_ANY, NULL, NULL},
-	{3, ARMV4_5_MODE_ANY, NULL, NULL},
-	{4, ARMV4_5_MODE_ANY, NULL, NULL},
-	{5, ARMV4_5_MODE_ANY, NULL, NULL},
-	{6, ARMV4_5_MODE_ANY, NULL, NULL},
-	{7, ARMV4_5_MODE_ANY, NULL, NULL},
-	{8, ARMV4_5_MODE_ANY, NULL, NULL},
-	{9, ARMV4_5_MODE_ANY, NULL, NULL},
-	{10, ARMV4_5_MODE_ANY, NULL, NULL},
-	{11, ARMV4_5_MODE_ANY, NULL, NULL},
-	{12, ARMV4_5_MODE_ANY, NULL, NULL},
-	{13, ARMV4_5_MODE_USR, NULL, NULL},
-	{14, ARMV4_5_MODE_USR, NULL, NULL},
-	{15, ARMV4_5_MODE_ANY, NULL, NULL},
-
-	{8, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{9, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{10, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{11, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{12, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{13, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{14, ARMV4_5_MODE_FIQ, NULL, NULL},
-
-	{13, ARMV4_5_MODE_IRQ, NULL, NULL},
-	{14, ARMV4_5_MODE_IRQ, NULL, NULL},
-
-	{13, ARMV4_5_MODE_SVC, NULL, NULL},
-	{14, ARMV4_5_MODE_SVC, NULL, NULL},
-
-	{13, ARMV4_5_MODE_ABT, NULL, NULL},
-	{14, ARMV4_5_MODE_ABT, NULL, NULL},
-
-	{13, ARMV4_5_MODE_UND, NULL, NULL},
-	{14, ARMV4_5_MODE_UND, NULL, NULL},
-
-	{16, ARMV4_5_MODE_ANY, NULL, NULL},
-	{16, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{16, ARMV4_5_MODE_IRQ, NULL, NULL},
-	{16, ARMV4_5_MODE_SVC, NULL, NULL},
-	{16, ARMV4_5_MODE_ABT, NULL, NULL},
-	{16, ARMV4_5_MODE_UND, NULL, NULL},
-
-	{13, ARMV7A_MODE_MON, NULL, NULL},
-	{14, ARMV7A_MODE_MON, NULL, NULL},
-	{16, ARMV7A_MODE_MON, NULL, NULL}
-};
-
-/* map core mode (USR, FIQ, ...) and register number to indizes into the register cache */
-int armv7a_core_reg_map[8][17] =
-{
-	{	/* USR */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
-	},
-	{	/* FIQ */
-		0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 15, 32
-	},
-	{	/* IRQ */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 15, 33
-	},
-	{	/* SVC */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 25, 26, 15, 34
-	},
-	{	/* ABT */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 27, 28, 15, 35
-	},
-	{	/* UND */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 29, 30, 15, 36
-	},
-	{	/* SYS */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
-	},
-	{	/* MON */
-		/* TODO Fix the register mapping for mon, we need r13_mon,
-		 * r14_mon and spsr_mon
-		 */
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
-	}
-};
-
-void armv7a_show_fault_registers(struct target *target)
+static void armv7a_show_fault_registers(struct target *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -169,16 +73,14 @@ int armv7a_arch_state(struct target *target)
 	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
-			 "%s: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
+			 "cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			 "MMU: %s, D-Cache: %s, I-Cache: %s",
 		 armv7a_state_strings[armv7a->core_state],
 		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 				target->debug_reason)->name,
 		 arm_mode_name(armv4_5->core_mode),
-		 armv7a_core_reg_list[armv7a_core_reg_map[
-			armv7a_mode_to_number(armv4_5->core_mode)][16]],
-		 buf_get_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 16).value, 0, 32),
+		 buf_get_u32(armv4_5->core_cache
+				->reg_list[ARMV4_5_CPSR].value, 0, 32),
 		 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 		 state[armv7a->armv4_5_mmu.mmu_enabled],
 		 state[armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
