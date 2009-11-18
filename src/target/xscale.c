@@ -857,7 +857,7 @@ static int xscale_arch_state(struct target *target)
 			"%s",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name ,
-			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
+			 arm_mode_name(armv4_5->core_mode),
 			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 			 state[xscale->armv4_5_mmu.mmu_enabled],
@@ -960,7 +960,8 @@ static int xscale_debug_entry(struct target *target)
 		LOG_ERROR("cpsr contains invalid mode value - communication failure");
 		return ERROR_TARGET_FAILURE;
 	}
-	LOG_DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
+	LOG_DEBUG("target entered debug state in %s mode",
+			 arm_mode_name(armv4_5->core_mode));
 
 	if (buffer[9] & 0x20)
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;

@@ -1420,7 +1420,8 @@ static int arm7_9_debug_entry(struct target *target)
 		return ERROR_TARGET_FAILURE;
 	}
 
-	LOG_DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
+	LOG_DEBUG("target entered debug state in %s mode",
+			 arm_mode_name(armv4_5->core_mode));
 
 	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
 	{
@@ -1613,7 +1614,8 @@ int arm7_9_restore_context(struct target *target)
 	 */
 	for (i = 0; i < 6; i++)
 	{
-		LOG_DEBUG("examining %s mode", armv4_5_mode_strings[i]);
+		LOG_DEBUG("examining %s mode",
+				arm_mode_name(armv4_5->core_mode));
 		dirty = 0;
 		mode_change = 0;
 		/* check if there are dirty registers in the current mode
@@ -1675,7 +1677,10 @@ int arm7_9_restore_context(struct target *target)
 					num_regs++;
 					reg->dirty = 0;
 					reg->valid = 1;
-					LOG_DEBUG("writing register %i of mode %s with value 0x%8.8" PRIx32 "", j, armv4_5_mode_strings[i], regs[j]);
+					LOG_DEBUG("writing register %i mode %s "
+						"with value 0x%8.8" PRIx32, j,
+						arm_mode_name(armv4_5->core_mode),
+						regs[j]);
 				}
 			}
 

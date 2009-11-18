@@ -35,15 +35,15 @@ typedef enum armv4_5_mode
 	ARMV4_5_MODE_IRQ = 18,
 	ARMV4_5_MODE_SVC = 19,
 	ARMV4_5_MODE_ABT = 23,
+	ARM_MODE_MON = 26,
 	ARMV4_5_MODE_UND = 27,
 	ARMV4_5_MODE_SYS = 31,
 	ARMV4_5_MODE_ANY = -1
 } armv4_5_mode_t;
 
+const char *arm_mode_name(unsigned psr_mode);
 int armv4_5_mode_to_number(enum armv4_5_mode mode);
 enum armv4_5_mode armv4_5_number_to_mode(int number);
-
-extern const char **armv4_5_mode_strings;
 
 typedef enum armv4_5_state
 {

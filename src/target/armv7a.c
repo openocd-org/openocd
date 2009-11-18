@@ -47,15 +47,6 @@ char* armv7a_core_reg_list[] =
 	"r13_mon", "lr_mon", "spsr_mon"
 };
 
-char * armv7a_mode_strings_list[] =
-{
-	"Illegal mode value", "User", "FIQ", "IRQ",
-	"Supervisor", "Abort", "Undefined", "System", "Monitor"
-};
-
-/* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
-char** armv7a_mode_strings = armv7a_mode_strings_list+1;
-
 char* armv7a_state_strings[] =
 {
 	"ARM", "Thumb", "Jazelle", "ThumbEE"
@@ -183,8 +174,7 @@ int armv7a_arch_state(struct target *target)
 		 armv7a_state_strings[armv7a->core_state],
 		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 				target->debug_reason)->name,
-		 armv7a_mode_strings[
-			armv7a_mode_to_number(armv4_5->core_mode)],
+		 arm_mode_name(armv4_5->core_mode),
 		 armv7a_core_reg_list[armv7a_core_reg_map[
 			armv7a_mode_to_number(armv4_5->core_mode)][16]],
 		 buf_get_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,

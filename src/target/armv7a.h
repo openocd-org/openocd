@@ -37,8 +37,6 @@ typedef enum armv7a_mode
 	ARMV7A_MODE_ANY = -1
 } armv7a_t;
 
-extern char **armv7a_mode_strings;
-
 typedef enum armv7a_state
 {
 	ARMV7A_STATE_ARM,

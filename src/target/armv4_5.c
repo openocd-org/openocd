@@ -53,13 +53,63 @@ char* armv4_5_core_reg_list[] =
 	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und"
 };
 
-static const char *armv4_5_mode_strings_list[] =
-{
-	"Illegal mode value", "User", "FIQ", "IRQ", "Supervisor", "Abort", "Undefined", "System"
+static const struct {
+	const char *name;
+	unsigned psr;
+} arm_mode_data[] = {
+	/* Seven modes are standard from ARM7 on. "System" and "User" share
+	 * the same registers; other modes shadow from 3 to 8 registers.
+	 */
+	{
+		.name = "User",
+		.psr = ARMV4_5_MODE_USR,
+	},
+	{
+		.name = "FIQ",
+		.psr = ARMV4_5_MODE_FIQ,
+	},
+	{
+		.name = "Supervisor",
+		.psr = ARMV4_5_MODE_SVC,
+	},
+	{
+		.name = "Abort",
+		.psr = ARMV4_5_MODE_ABT,
+	},
+	{
+		.name = "IRQ",
+		.psr = ARMV4_5_MODE_IRQ,
+	},
+	{
+		.name = "Undefined" /* instruction */,
+		.psr = ARMV4_5_MODE_UND,
+	},
+	{
+		.name = "System",
+		.psr = ARMV4_5_MODE_SYS,
+	},
+	/* TrustZone "Security Extensions" add a secure monitor mode.
+	 * This is distinct from a "debug monitor" which can support
+	 * non-halting debug, in conjunction with some debuggers.
+	 */
+	{
+		.name = "Secure Monitor",
+		.psr = ARM_MODE_MON,
+	},
 };
 
-/* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
-const char **armv4_5_mode_strings = armv4_5_mode_strings_list + 1;
+/** Map PSR mode bits to the name of an ARM processor operating mode. */
+const char *arm_mode_name(unsigned psr_mode)
+{
+	unsigned i;
+
+	for (i = 0; i < ARRAY_SIZE(arm_mode_data); i++) {
+		if (arm_mode_data[i].psr == psr_mode)
+			return arm_mode_data[i].name;
+	}
+	LOG_ERROR("unrecognized psr mode: %#02x", psr_mode);
+	return "UNRECOGNIZED";
+}
 
 /** Map PSR mode bits to linear number */
 int armv4_5_mode_to_number(enum armv4_5_mode mode)
@@ -282,7 +332,8 @@ int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 
 		if (armv4_5_target->core_mode != (enum armv4_5_mode)(value & 0x1f))
 		{
-			LOG_DEBUG("changing ARM core mode to '%s'", armv4_5_mode_strings[armv4_5_mode_to_number(value & 0x1f)]);
+			LOG_DEBUG("changing ARM core mode to '%s'",
+					arm_mode_name(value & 0x1f));
 			armv4_5_target->core_mode = value & 0x1f;
 			armv4_5_target->write_core_reg(target, 16, ARMV4_5_MODE_ANY, value);
 		}
@@ -357,7 +408,7 @@ int armv4_5_arch_state(struct target *target)
 	LOG_USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name,
-			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
+			 arm_mode_name(armv4_5->core_mode),
 			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
