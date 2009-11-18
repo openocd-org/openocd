@@ -1423,6 +1423,8 @@ static void cortex_a8_build_reg_cache(struct target *target)
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
+	armv4_5->core_type = ARM_MODE_MON;
+
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
 }

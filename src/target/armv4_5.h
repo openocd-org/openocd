@@ -89,7 +89,15 @@ struct arm
 	int common_magic;
 	struct reg_cache *core_cache;
 
-	int /* armv4_5_mode */ core_mode;
+	/**
+	 * Indicates what registers are in the ARM state core register set.
+	 * ARMV4_5_MODE_ANY indicates the standard set of 37 registers,
+	 * seen on for example ARM7TDMI cores.  ARM_MODE_MON indicates three
+	 * more registers are shadowed, for "Secure Monitor" mode.
+	 */
+	enum armv4_5_mode core_type;
+
+	enum armv4_5_mode core_mode;
 	enum armv4_5_state core_state;
 
 	/** Flag reporting unavailability of the BKPT instruction. */

@@ -1015,5 +1015,8 @@ int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
 	armv4_5->core_mode = ARMV4_5_MODE_USR;
 
+	/* core_type may be overridden by subtype logic */
+	armv4_5->core_type = ARMV4_5_MODE_ANY;
+
 	return ERROR_OK;
 }

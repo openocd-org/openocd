@@ -1780,6 +1780,11 @@ static int arm11_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	/* Initialize anything we can set up without talking to the target */
+
+	/* FIXME Switch to use the standard build_reg_cache() not custom
+	 * code.  Do it from examine(), after we check whether we're
+	 * an arm1176 and thus support the Secure Monitor mode.
+	 */
 	return arm11_build_reg_cache(target);
 }
 
@@ -1787,7 +1792,7 @@ static int arm11_init_target(struct command_context *cmd_ctx,
 static int arm11_examine(struct target *target)
 {
 	int retval;
-
+	char *type;
 	FNC_INFO;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
@@ -1818,13 +1823,21 @@ static int arm11_examine(struct target *target)
 
 	switch (arm11->device_id & 0x0FFFF000)
 	{
-	case 0x07B36000:	LOG_INFO("found ARM1136"); break;
-	case 0x07B56000:	LOG_INFO("found ARM1156"); break;
-	case 0x07B76000:	LOG_INFO("found ARM1176"); break;
+	case 0x07B36000:
+		type = "ARM1136";
+		break;
+	case 0x07B56000:
+		type = "ARM1156";
+		break;
+	case 0x07B76000:
+		arm11->arm.core_type = ARM_MODE_MON;
+		type = "ARM1176";
+		break;
 	default:
 		LOG_ERROR("'target arm11' expects IDCODE 0x*7B*7****");
 		return ERROR_FAIL;
 	}
+	LOG_INFO("found %s", type);
 
 	arm11->debug_version = (arm11->didr >> 16) & 0x0F;
 
