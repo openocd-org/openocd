@@ -570,6 +570,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
+	struct reg *reg;
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
 
@@ -606,6 +607,9 @@ static int cortex_a8_debug_entry(struct target *target)
 	/* First load register acessible through core debug port*/
 	if (!regfile_working_area)
 	{
+		/* FIXME we don't actually need all these registers;
+		 * reading them slows us down.  Just R0, PC, CPSR...
+		 */
 		for (i = 0; i <= 15; i++)
 			cortex_a8_dap_read_coreregister_u32(target,
 					&regfile[i], i);
@@ -619,33 +623,32 @@ static int cortex_a8_debug_entry(struct target *target)
 		target_free_working_area(target, regfile_working_area);
 	}
 
+	/* read Current PSR */
 	cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
 	pc = regfile[15];
 	dap_ap_select(swjdp, swjdp_debugap);
 	LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
 	armv4_5->core_mode = cpsr & 0x1F;
-	armv7a->core_state = (cpsr & 0x20)?ARMV7A_STATE_THUMB:ARMV7A_STATE_ARM;
+	armv7a->core_state = (cpsr & 0x20)
+			? ARMV7A_STATE_THUMB
+			: ARMV7A_STATE_ARM;
+
+	/* update cache */
+	reg = armv4_5->core_cache->reg_list + ARMV4_5_CPSR;
+	buf_set_u32(reg->value, 0, 32, cpsr);
+	reg->valid = 1;
+	reg->dirty = 0;
 
 	for (i = 0; i <= ARM_PC; i++)
 	{
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, i).value,
-				0, 32, regfile[i]);
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, i).valid = 1;
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, i).dirty = 0;
-	}
+		reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					armv4_5->core_mode, i);
 
-	/* FIXME for exception states, this caches CPSR as SPSR!! */
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 16).value,
-			0, 32, cpsr);
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			armv4_5->core_mode, 16).valid = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			armv4_5->core_mode, 16).dirty = 0;
+		buf_set_u32(reg->value, 0, 32, regfile[i]);
+		reg->valid = 1;
+		reg->dirty = 0;
+	}
 
 	/* Fixup PC Resume Address */
 	if (armv7a->core_state == ARMV7A_STATE_THUMB)
