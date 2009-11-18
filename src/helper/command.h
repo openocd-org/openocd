@@ -263,6 +263,34 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 		} \
 	} while (0)
 
+/**
+ * Parse the string @c as a binary parameter, storing the boolean value
+ * in @c out.  The strings @c on and @c off are used to match different
+ * strings for true and false options (e.g. "on" and "off" or
+ * "enable" and "disable").
+ */
+#define COMMAND_PARSE_BOOL(in, out, on, off) \
+	do { \
+		if (strcmp(in, on) == 0) \
+			out = true; \
+		else if (strcmp(in, off) == 0) \
+			out = false; \
+		else { \
+			command_print(CMD_CTX, stringify(out) \
+				" option value ('%s') is not valid", in); \
+			command_print(CMD_CTX, "  choices are '%s' or '%s'", \
+				on, off); \
+			return ERROR_COMMAND_SYNTAX_ERROR; \
+		} \
+	} while (0)
+
+/// parses an on/off command argument
+#define COMMAND_PARSE_ON_OFF(in, out) \
+		COMMAND_PARSE_BOOL(in, out, "on", "off")
+/// parses an enable/disable command argument
+#define COMMAND_PARSE_ENABLE(in, out) \
+		COMMAND_PARSE_BOOL(in, out, "enable", "disable")
+
 void script_debug(Jim_Interp *interp, const char *cmd,
 		unsigned argc, Jim_Obj *const *argv);
 
