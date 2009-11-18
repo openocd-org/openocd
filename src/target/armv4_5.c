@@ -36,7 +36,7 @@
 #include "register.h"
 
 
-char* armv4_5_core_reg_list[] =
+static const char *armv4_5_core_reg_list[] =
 {
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
 
@@ -101,9 +101,7 @@ static const struct {
 /** Map PSR mode bits to the name of an ARM processor operating mode. */
 const char *arm_mode_name(unsigned psr_mode)
 {
-	unsigned i;
-
-	for (i = 0; i < ARRAY_SIZE(arm_mode_data); i++) {
+	for (unsigned i = 0; i < ARRAY_SIZE(arm_mode_data); i++) {
 		if (arm_mode_data[i].psr == psr_mode)
 			return arm_mode_data[i].name;
 	}
@@ -111,7 +109,17 @@ const char *arm_mode_name(unsigned psr_mode)
 	return "UNRECOGNIZED";
 }
 
-/** Map PSR mode bits to linear number */
+/** Return true iff the parameter denotes a valid ARM processor mode. */
+bool is_arm_mode(unsigned psr_mode)
+{
+	for (unsigned i = 0; i < ARRAY_SIZE(arm_mode_data); i++) {
+		if (arm_mode_data[i].psr == psr_mode)
+			return true;
+	}
+	return false;
+}
+
+/** Map PSR mode bits to linear number indexing armv4_5_core_reg_map */
 int armv4_5_mode_to_number(enum armv4_5_mode mode)
 {
 	switch (mode) {
@@ -137,7 +145,7 @@ int armv4_5_mode_to_number(enum armv4_5_mode mode)
 	}
 }
 
-/** Map linear number to PSR mode bits. */
+/** Map linear number indexing armv4_5_core_reg_map to PSR mode bits. */
 enum armv4_5_mode armv4_5_number_to_mode(int number)
 {
 	switch (number) {
@@ -166,7 +174,7 @@ char* armv4_5_state_strings[] =
 	"ARM", "Thumb", "Jazelle"
 };
 
-struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
+static const struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
 {
 	{0, ARMV4_5_MODE_ANY, NULL, NULL},
 	{1, ARMV4_5_MODE_ANY, NULL, NULL},
@@ -214,7 +222,7 @@ struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
 };
 
 /* map core mode (USR, FIQ, ...) and register number to indizes into the register cache */
-int armv4_5_core_reg_map[7][17] =
+const int armv4_5_core_reg_map[7][17] =
 {
 	{	/* USR */
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
@@ -383,7 +391,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		arch_info[i] = armv4_5_core_reg_list_arch_info[i];
 		arch_info[i].target = target;
 		arch_info[i].armv4_5_common = armv4_5_common;
-		reg_list[i].name = armv4_5_core_reg_list[i];
+		reg_list[i].name = (char *) armv4_5_core_reg_list[i];
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
@@ -415,6 +423,9 @@ int armv4_5_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
+#define ARMV4_5_CORE_REG_MODENUM(cache, mode, num) \
+		cache->reg_list[armv4_5_core_reg_map[mode][num]]
+
 COMMAND_HANDLER(handle_armv4_5_reg_command)
 {
 	char output[128];
@@ -435,7 +446,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 		return ERROR_OK;
 	}
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	if (!armv4_5->full_context) {
@@ -599,7 +610,7 @@ int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	int i;
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	*reg_list_size = 26;
@@ -679,7 +690,7 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	/* armv5 and later can terminate with BKPT instruction; less overhead */

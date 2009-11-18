@@ -244,7 +244,7 @@ static int arm920t_read_cp15_interpreted(struct target *target,
 	LOG_DEBUG("cp15_opcode: %8.8x, address: %8.8x, value: %8.8x", cp15_opcode, address, *value);
 #endif
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
@@ -284,7 +284,7 @@ int arm920t_write_cp15_interpreted(struct target *target,
 	LOG_DEBUG("cp15_opcode: %8.8x, value: %8.8x, address: %8.8x", cp15_opcode, value, address);
 #endif
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
@@ -889,7 +889,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 	fclose(output);
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	/* mark registers dirty. */
@@ -1172,7 +1172,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 	fclose(output);
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	/* mark registers dirty */

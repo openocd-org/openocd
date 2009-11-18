@@ -42,6 +42,8 @@ typedef enum armv4_5_mode
 } armv4_5_mode_t;
 
 const char *arm_mode_name(unsigned psr_mode);
+bool is_arm_mode(unsigned psr_mode);
+
 int armv4_5_mode_to_number(enum armv4_5_mode mode);
 enum armv4_5_mode armv4_5_number_to_mode(int number);
 
@@ -54,12 +56,10 @@ typedef enum armv4_5_state
 
 extern char* armv4_5_state_strings[];
 
-extern int armv4_5_core_reg_map[7][17];
+extern const int armv4_5_core_reg_map[7][17];
 
 #define ARMV4_5_CORE_REG_MODE(cache, mode, num) \
 		cache->reg_list[armv4_5_core_reg_map[armv4_5_mode_to_number(mode)][num]]
-#define ARMV4_5_CORE_REG_MODENUM(cache, mode, num) \
-		cache->reg_list[armv4_5_core_reg_map[mode][num]]
 
 /* offsets into armv4_5 core register cache */
 enum

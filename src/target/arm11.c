@@ -1603,7 +1603,7 @@ static int arm11_run_algorithm(struct target *target,
 	}
 
 	// FIXME
-//	if (armv4_5_mode_to_number(arm11->core_mode)==-1)
+//	if (!is_arm_mode(arm11->core_mode))
 //		return ERROR_FAIL;
 
 	// Save regs

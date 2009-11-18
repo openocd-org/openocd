@@ -1242,9 +1242,6 @@ int arm7_9_soft_reset_halt(struct target *target)
 	armv4_5->core_mode = ARMV4_5_MODE_SVC;
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
-		return ERROR_FAIL;
-
 	/* reset registers */
 	for (i = 0; i <= 14; i++)
 	{
@@ -1413,7 +1410,7 @@ static int arm7_9_debug_entry(struct target *target)
 
 	armv4_5->core_mode = cpsr & 0x1f;
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode) == -1)
+	if (!is_arm_mode(armv4_5->core_mode))
 	{
 		target->state = TARGET_UNKNOWN;
 		LOG_ERROR("cpsr contains invalid mode value - communication failure");
@@ -1439,9 +1436,6 @@ static int arm7_9_debug_entry(struct target *target)
 	else
 		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
-		return ERROR_FAIL;
-
 	for (i = 0; i <= 15; i++)
 	{
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
@@ -1451,9 +1445,6 @@ static int arm7_9_debug_entry(struct target *target)
 	}
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 "", context[15]);
-
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
-		return ERROR_FAIL;
 
 	/* exceptions other than USR & SYS have a saved program status register */
 	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
@@ -1506,7 +1497,7 @@ int arm7_9_full_context(struct target *target)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
@@ -1606,7 +1597,7 @@ int arm7_9_restore_context(struct target *target)
 	if (arm7_9->pre_restore_context)
 		arm7_9->pre_restore_context(target);
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
@@ -2104,7 +2095,7 @@ int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	enum armv4_5_mode reg_mode = ((struct armv4_5_core_reg*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
@@ -2168,7 +2159,7 @@ int arm7_9_write_core_reg(struct target *target, int num, enum armv4_5_mode mode
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	enum armv4_5_mode reg_mode = ((struct armv4_5_core_reg*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
@@ -2373,7 +2364,7 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 			break;
 	}
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	for (i = 0; i <= last_reg; i++)
@@ -2556,7 +2547,7 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 1);
 	embeddedice_store_reg(dbg_ctrl);
 
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
 	for (i = 0; i <= last_reg; i++)

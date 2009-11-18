@@ -954,7 +954,7 @@ static int xscale_debug_entry(struct target *target)
 	LOG_DEBUG("cpsr: 0x%8.8" PRIx32 "", buffer[9]);
 
 	armv4_5->core_mode = buffer[9] & 0x1f;
-	if (armv4_5_mode_to_number(armv4_5->core_mode) == -1)
+	if (!is_arm_mode(armv4_5->core_mode))
 	{
 		target->state = TARGET_UNKNOWN;
 		LOG_ERROR("cpsr contains invalid mode value - communication failure");
@@ -968,9 +968,6 @@ static int xscale_debug_entry(struct target *target)
 	else
 		armv4_5->core_state = ARMV4_5_STATE_ARM;
 
-
-	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
-		return ERROR_FAIL;
 
 	/* get banked registers, r8 to r14, and spsr if not in USR/SYS mode */
 	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
