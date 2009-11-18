@@ -26,7 +26,6 @@
 #endif
 
 #include "lpc2000.h"
-#include "armv4_5.h"
 #include "armv7m.h"
 #include "binarybuffer.h"
 #include "algorithm.h"

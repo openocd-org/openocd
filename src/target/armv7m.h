@@ -27,6 +27,7 @@
 #define ARMV7M_COMMON_H
 
 #include "arm_adi_v5.h"
+#include "armv4_5.h"
 
 /* define for enabling armv7 gdb workarounds */
 #if 1

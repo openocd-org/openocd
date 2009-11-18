@@ -26,7 +26,6 @@
 #ifndef CORTEX_M3_H
 #define CORTEX_M3_H
 
-#include "target.h"
 #include "armv7m.h"
 
 

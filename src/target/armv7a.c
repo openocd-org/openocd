@@ -144,21 +144,6 @@ int armv7a_core_reg_map[8][17] =
 	}
 };
 
-/* FIXME this dummy is IDENTICAL to the armv4_5, arm11, and armv7m
- * ones... except for naming/scoping
- */
-uint8_t armv7a_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-struct reg armv7a_gdb_dummy_fp_reg =
-{
-	.name = "GDB dummy floating-point register",
-	.value = armv7a_gdb_dummy_fp_value,
-	.dirty = 0,
-	.valid = 1,
-	.size = 96,
-	.arch_info = NULL,
-};
-
 void armv7a_show_fault_registers(struct target *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;

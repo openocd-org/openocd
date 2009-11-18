@@ -189,29 +189,43 @@ int armv4_5_core_reg_map[7][17] =
 	}
 };
 
-uint8_t armv4_5_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static const uint8_t arm_gdb_dummy_fp_value[12];
 
-struct reg armv4_5_gdb_dummy_fp_reg =
+/**
+ * Dummy FPA registers are required to support GDB on ARM.
+ * Register packets require eight obsolete FPA register values.
+ * Modern ARM cores use Vector Floating Point (VFP), if they
+ * have any floating point support.  VFP is not FPA-compatible.
+ */
+struct reg arm_gdb_dummy_fp_reg =
 {
-	.name = "GDB dummy floating-point register",
-	.value = armv4_5_gdb_dummy_fp_value,
-	.dirty = 0,
+	.name = "GDB dummy FPA register",
+	.value = (uint8_t *) arm_gdb_dummy_fp_value,
 	.valid = 1,
 	.size = 96,
-	.arch_info = NULL,
 };
 
-uint8_t armv4_5_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+static const uint8_t arm_gdb_dummy_fps_value[4];
 
-struct reg armv4_5_gdb_dummy_fps_reg =
+/**
+ * Dummy FPA status registers are required to support GDB on ARM.
+ * Register packets require an obsolete FPA status register.
+ */
+struct reg arm_gdb_dummy_fps_reg =
 {
-	.name = "GDB dummy floating-point status register",
-	.value = armv4_5_gdb_dummy_fps_value,
-	.dirty = 0,
+	.name = "GDB dummy FPA status register",
+	.value = (uint8_t *) arm_gdb_dummy_fps_value,
 	.valid = 1,
 	.size = 32,
-	.arch_info = NULL,
 };
+
+static void arm_gdb_dummy_init(void) __attribute__ ((constructor));
+
+static void arm_gdb_dummy_init(void)
+{
+	register_init_dummy(&arm_gdb_dummy_fp_reg);
+	register_init_dummy(&arm_gdb_dummy_fps_reg);
+}
 
 int armv4_5_get_core_reg(struct reg *reg)
 {
@@ -312,9 +326,6 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 	cache->next = NULL;
 	cache->reg_list = reg_list;
 	cache->num_regs = num_regs;
-
-	register_init_dummy(&armv4_5_gdb_dummy_fp_reg);
-	register_init_dummy(&armv4_5_gdb_dummy_fps_reg);
 
 	for (i = 0; i < 37; i++)
 	{
@@ -550,10 +561,10 @@ int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int
 
 	for (i = 16; i < 24; i++)
 	{
-		(*reg_list)[i] = &armv4_5_gdb_dummy_fp_reg;
+		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
 	}
 
-	(*reg_list)[24] = &armv4_5_gdb_dummy_fps_reg;
+	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
 	(*reg_list)[25] = &armv4_5->core_cache->reg_list[ARMV4_5_CPSR];
 
 	return ERROR_OK;

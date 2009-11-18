@@ -35,7 +35,6 @@
 #endif
 
 #include "breakpoints.h"
-#include "target.h"
 #include "armv7m.h"
 #include "algorithm.h"
 #include "register.h"
@@ -57,33 +56,6 @@ static char *armv7m_exception_strings[] =
 	"MemManage", "BusFault", "UsageFault", "RESERVED",
 	"RESERVED", "RESERVED", "RESERVED", "SVCall",
 	"DebugMonitor", "RESERVED", "PendSV", "SysTick"
-};
-
-/* FIXME these dummies are IDENTICAL to the armv4_5, arm11, and armv7a
- * ones... except for naming/scoping
- */
-static uint8_t armv7m_gdb_dummy_fp_value[12];
-
-static struct reg armv7m_gdb_dummy_fp_reg =
-{
-	.name = "GDB dummy floating-point register",
-	.value = armv7m_gdb_dummy_fp_value,
-	.dirty = 0,
-	.valid = 1,
-	.size = 96,
-	.arch_info = NULL,
-};
-
-static uint8_t armv7m_gdb_dummy_fps_value[4];
-
-static struct reg armv7m_gdb_dummy_fps_reg =
-{
-	.name = "GDB dummy floating-point status register",
-	.value = armv7m_gdb_dummy_fps_value,
-	.dirty = 0,
-	.valid = 1,
-	.size = 32,
-	.arch_info = NULL,
 };
 
 #ifdef ARMV7_GDB_HACKS
@@ -316,11 +288,8 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int 
 	}
 
 	for (i = 16; i < 24; i++)
-	{
-		(*reg_list)[i] = &armv7m_gdb_dummy_fp_reg;
-	}
-
-	(*reg_list)[24] = &armv7m_gdb_dummy_fps_reg;
+		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
+	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
 
 #ifdef ARMV7_GDB_HACKS
 	/* use dummy cpsr reg otherwise gdb may try and set the thumb bit */
@@ -553,11 +522,9 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	struct armv7m_core_reg *arch_info = calloc(num_regs, sizeof(struct armv7m_core_reg));
 	int i;
 
-	register_init_dummy(&armv7m_gdb_dummy_fps_reg);
 #ifdef ARMV7_GDB_HACKS
 	register_init_dummy(&armv7m_gdb_dummy_cpsr_reg);
 #endif
-	register_init_dummy(&armv7m_gdb_dummy_fp_reg);
 
 	/* Build the process context cache */
 	cache->name = "arm v7m registers";

@@ -334,6 +334,9 @@ static int cortex_m3_debug_entry(struct target *target)
 	xPSR = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32);
 
 #ifdef ARMV7_GDB_HACKS
+	/* FIXME this breaks on scan chains with more than one Cortex-M3.
+	 * Instead, each CM3 should have its own dummy value...
+	 */
 	/* copy real xpsr reg for gdb, setting thumb bit */
 	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 0, 32, xPSR);
 	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 5, 1, 1);

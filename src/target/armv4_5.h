@@ -158,6 +158,8 @@ int arm_checksum_memory(struct target *target,
 int arm_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *blank);
 
+extern struct reg arm_gdb_dummy_fp_reg;
+extern struct reg arm_gdb_dummy_fps_reg;
 
 /* ARM mode instructions
  */
