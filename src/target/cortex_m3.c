@@ -1898,18 +1898,11 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (!strcmp(CMD_ARGV[0], "on"))
-		{
-			cortex_m3_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
-		}
-		else if (!strcmp(CMD_ARGV[0], "off"))
-		{
-			cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
-		}
-		else
-		{
-			command_print(CMD_CTX, "usage: cortex_m3 maskisr ['on'|'off']");
-		}
+		bool enable;
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
+		uint32_t mask_on = C_HALT | (enable ? C_MASKINTS : 0);
+		uint32_t mask_off = enable ? 0 : C_MASKINTS;
+		cortex_m3_write_debug_halt_mask(target, mask_on, mask_off);
 	}
 
 	command_print(CMD_CTX, "cortex_m3 interrupt mask %s",

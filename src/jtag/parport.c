@@ -103,7 +103,7 @@ static struct cable cables[] =
 /* configuration */
 static char* parport_cable = NULL;
 static uint16_t parport_port;
-static int parport_exit = 0;
+static bool parport_exit = 0;
 static uint32_t parport_toggling_time_ns = 1000;
 static int wait_states;
 
@@ -453,10 +453,7 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 		return ERROR_OK;
 	}
 
-	if (strcmp(CMD_ARGV[0], "on") == 0)
-		parport_exit = 1;
-	else if (strcmp(CMD_ARGV[0], "off") == 0)
-		parport_exit = 0;
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], parport_exit);
 
 	return ERROR_OK;
 }

@@ -577,7 +577,6 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	uint32_t bank_nr;
 	uint32_t first;
 	uint32_t last;
-	int set;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bank_nr);
 	struct flash_bank *p = get_flash_bank_by_num(bank_nr);
@@ -590,12 +589,8 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	else
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
 
-	if (strcmp(CMD_ARGV[3], "on") == 0)
-		set = 1;
-	else if (strcmp(CMD_ARGV[3], "off") == 0)
-		set = 0;
-	else
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	bool set;
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[3], set);
 
 	int retval;
 	if ((retval = flash_check_sector_parameters(CMD_CTX,

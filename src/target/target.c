@@ -2003,23 +2003,14 @@ COMMAND_HANDLER(handle_poll_command)
 			return retval;
 		if ((retval = target_arch_state(target)) != ERROR_OK)
 			return retval;
-
 	}
 	else if (CMD_ARGC == 1)
 	{
-		if (strcmp(CMD_ARGV[0], "on") == 0)
-		{
-			jtag_poll_set_enabled(true);
-		}
-		else if (strcmp(CMD_ARGV[0], "off") == 0)
-		{
-			jtag_poll_set_enabled(false);
-		}
-		else
-		{
-			command_print(CMD_CTX, "arg is \"on\" or \"off\"");
-		}
-	} else
+		bool enable;
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
+		jtag_poll_set_enabled(enable);
+	}
+	else
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

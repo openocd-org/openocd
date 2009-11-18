@@ -236,18 +236,9 @@ int handle_power_command(struct command_context *cmd_ctx, char *cmd, char **args
 
 	if (argc == 1)
 	{
-		if (strcmp(args[0], "on") == 0)
-		{
-			setPower(1);
-		}
-		else if (strcmp(args[0], "off") == 0)
-		{
-			setPower(0);
-		} else
-		{
-			command_print(cmd_ctx, "arg is \"on\" or \"off\"");
-			return ERROR_INVALID_ARGUMENTS;
-		}
+		bool enable;
+		COMMAND_PARSE_ON_OFF(args[0], enable);
+		setPower(enable);
 	}
 
 	command_print(cmd_ctx, "Target power %s", savePower ? "on" : "off");
