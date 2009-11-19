@@ -227,7 +227,7 @@ enum armv4_5_mode armv4_5_number_to_mode(int number)
 
 char* armv4_5_state_strings[] =
 {
-	"ARM", "Thumb", "Jazelle"
+	"ARM", "Thumb", "Jazelle", "ThumbEE",
 };
 
 static const struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =

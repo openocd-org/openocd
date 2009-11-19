@@ -24,15 +24,6 @@
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
 
-
-typedef enum armv7a_state
-{
-	ARMV7A_STATE_ARM,
-	ARMV7A_STATE_THUMB,
-	ARMV7A_STATE_JAZELLE,
-	ARMV7A_STATE_THUMBEE,
-} armv7a_state_t;
-
 enum
 {
 	ARM_PC  = 15,
@@ -64,9 +55,9 @@ enum
 
 struct armv7a_common
 {
+	struct arm armv4_5_common;
 	int common_magic;
 	struct reg_cache *core_cache;
-	enum armv7a_state core_state;
 
 	/* arm adp debug port */
 	struct swjdp_common swjdp_info;
@@ -78,7 +69,6 @@ struct armv7a_common
 
 	/* Cache and Memory Management Unit */
 	struct armv4_5_mmu_common armv4_5_mmu;
-	struct arm armv4_5_common;
 
 	int (*read_cp15)(struct target *target,
 			uint32_t op1, uint32_t op2,
@@ -107,7 +97,7 @@ struct armv7a_algorithm
 	int common_magic;
 
 	enum armv4_5_mode core_mode;
-	enum armv7a_state core_state;
+	enum armv4_5_state core_state;
 };
 
 struct armv7a_core_reg

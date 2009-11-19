@@ -491,16 +491,21 @@ static int cortex_a8_resume(struct target *target, int current,
 	/* Make sure that the Armv7 gdb thumb fixups does not
 	 * kill the return address
 	 */
-	if (armv7a->core_state == ARMV7A_STATE_ARM)
+	switch (armv4_5->core_state)
 	{
+	case ARMV4_5_STATE_ARM:
 		resume_pc &= 0xFFFFFFFC;
-	}
-	/* When the return address is loaded into PC
-	 * bit 0 must be 1 to stay in Thumb state
-	 */
-	if (armv7a->core_state == ARMV7A_STATE_THUMB)
-	{
+		break;
+	case ARMV4_5_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		/* When the return address is loaded into PC
+		 * bit 0 must be 1 to stay in Thumb state
+		 */
 		resume_pc |= 0x1;
+		break;
+	case ARMV4_5_STATE_JAZELLE:
+		LOG_ERROR("How do I resume into Jazelle state??");
+		return ERROR_FAIL;
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
@@ -630,9 +635,29 @@ static int cortex_a8_debug_entry(struct target *target)
 	LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
 	armv4_5->core_mode = cpsr & 0x1F;
-	armv7a->core_state = (cpsr & 0x20)
-			? ARMV7A_STATE_THUMB
-			: ARMV7A_STATE_ARM;
+
+	i = (cpsr >> 5) & 1;	/* T */
+	i |= (cpsr >> 23) & 1;	/* J << 1 */
+	switch (i) {
+	case 0:	/* J = 0, T = 0 */
+		armv4_5->core_state = ARMV4_5_STATE_ARM;
+		break;
+	case 1:	/* J = 0, T = 1 */
+		armv4_5->core_state = ARMV4_5_STATE_THUMB;
+		break;
+	case 2:	/* J = 1, T = 0 */
+		LOG_WARNING("Jazelle state -- not handled");
+		armv4_5->core_state = ARMV4_5_STATE_JAZELLE;
+		break;
+	case 3:	/* J = 1, T = 1 */
+		/* ThumbEE is very much like Thumb, but some of the
+		 * instructions are different.  Single stepping and
+		 * breakpoints need updating...
+		 */
+		LOG_WARNING("ThumbEE -- incomplete support");
+		armv4_5->core_state = ARM_STATE_THUMB_EE;
+		break;
+	}
 
 	/* update cache */
 	reg = armv4_5->core_cache->reg_list + ARMV4_5_CPSR;
@@ -651,7 +676,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	}
 
 	/* Fixup PC Resume Address */
-	if (armv7a->core_state == ARMV7A_STATE_THUMB)
+	if (cpsr & (1 << 5))
 	{
 		// T bit set for Thumb or ThumbEE state
 		regfile[ARM_PC] -= 4;
@@ -775,7 +800,8 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 
 	/* Setup single step breakpoint */
 	stepbreakpoint.address = address;
-	stepbreakpoint.length = (armv7a->core_state == ARMV7A_STATE_THUMB) ? 2 : 4;
+	stepbreakpoint.length = (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+			? 2 : 4;
 	stepbreakpoint.type = BKPT_HARD;
 	stepbreakpoint.set = 0;
 

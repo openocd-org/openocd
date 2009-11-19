@@ -34,11 +34,6 @@
 #include <unistd.h>
 
 
-static const char *armv7a_state_strings[] =
-{
-	"ARM", "Thumb", "Jazelle", "ThumbEE"
-};
-
 static void armv7a_show_fault_registers(struct target *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
@@ -75,7 +70,7 @@ int armv7a_arch_state(struct target *target)
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			 "cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			 "MMU: %s, D-Cache: %s, I-Cache: %s",
-		 armv7a_state_strings[armv7a->core_state],
+		 armv4_5_state_strings[armv4_5->core_state],
 		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 				target->debug_reason)->name,
 		 arm_mode_name(armv4_5->core_mode),

@@ -52,6 +52,7 @@ typedef enum armv4_5_state
 	ARMV4_5_STATE_ARM,
 	ARMV4_5_STATE_THUMB,
 	ARMV4_5_STATE_JAZELLE,
+	ARM_STATE_THUMB_EE,
 } armv4_5_state_t;
 
 extern char* armv4_5_state_strings[];
