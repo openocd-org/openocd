@@ -28,9 +28,7 @@
 
 #include "interface.h"
 #include "commands.h"
-
-#include <usb.h>
-
+#include "usb_common.h"
 
 //#define _VSLLINK_IN_DEBUG_MODE_
 
@@ -1703,64 +1701,42 @@ static int vsllink_tap_execute_dma(void)
 
 static struct vsllink* vsllink_usb_open(void)
 {
-	struct usb_bus *busses;
-	struct usb_bus *bus;
-	struct usb_device *dev;
-	int ret;
-
-	struct vsllink *result;
-
-	result = (struct vsllink*) malloc(sizeof(struct vsllink));
-
 	usb_init();
-	usb_find_busses();
-	usb_find_devices();
 
-	busses = usb_get_busses();
+	const uint16_t vids[] = { vsllink_usb_vid, 0 };
+	const uint16_t pids[] = { vsllink_usb_pid, 0 };
+	struct usb_dev_handle *dev;
+	if (jtag_usb_open(vids, pids, &dev) != ERROR_OK)
+		return NULL;
 
-	/* find vsllink device in usb bus */
-
-	for (bus = busses; bus; bus = bus->next)
+	/* usb_set_configuration required under win32 */
+	struct usb_device *udev = usb_device(dev);
+	int ret = usb_set_configuration(dev, udev->config[0].bConfigurationValue);
+	if (ret != 0)
 	{
-		for (dev = bus->devices; dev; dev = dev->next)
-		{
-			if ((dev->descriptor.idVendor == vsllink_usb_vid) && (dev->descriptor.idProduct == vsllink_usb_pid))
-			{
-				result->usb_handle = usb_open(dev);
-				if (NULL == result->usb_handle)
-				{
-					LOG_ERROR("failed to open %04X:%04X, not enough permissions?", vsllink_usb_vid, vsllink_usb_pid);
-					exit(-1);
-				}
-
-				/* usb_set_configuration required under win32 */
-				ret = usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
-				if (ret != 0)
-				{
-					LOG_ERROR("fail to set configuration to %d, %d returned, not enough permissions?", dev->config[0].bConfigurationValue, ret);
-					exit(-1);
-				}
-				ret = usb_claim_interface(result->usb_handle, vsllink_usb_interface);
-				if (ret != 0)
-				{
-					LOG_ERROR("fail to claim interface %d, %d returned", vsllink_usb_interface, ret);
-					exit(-1);
-				}
-
-#if 0
-				/*
-				 * This makes problems under Mac OS X. And is not needed
-				 * under Windows. Hopefully this will not break a linux build
-				 */
-				usb_set_altinterface(result->usb_handle, 0);
-#endif
-				return result;
-			}
-		}
+		LOG_ERROR("fail to set configuration to %d (error %d)."
+				"Not enough permissions for the device?",
+				udev->config[0].bConfigurationValue, ret);
+		return NULL;
 	}
+	ret = usb_claim_interface(dev, vsllink_usb_interface);
+	if (ret != 0)
+	{
+		LOG_ERROR("fail to claim interface %d, %d returned",
+				vsllink_usb_interface, ret);
+		return NULL;
+	}
+#if 0
+	/*
+	* This makes problems under Mac OS X. And is not needed
+	* under Windows. Hopefully this will not break a linux build
+	*/
+	usb_set_altinterface(dev, 0);
+#endif
 
-	free(result);
-	return NULL;
+	struct vsllink *result = malloc(sizeof(struct vsllink));
+	result->usb_handle = dev;
+	return result;
 }
 
 static void vsllink_usb_close(struct vsllink *vsllink)
