@@ -34,9 +34,7 @@
 #include "st7.h"
 #include "ep1_cmd.h"
 #include "dtc_cmd.h"
-
-/* system includes */
-#include <usb.h>
+#include "usb_common.h"
 
 
 /* This feature is made useless by running the DTC all the time.  When automatic, the LED is on whenever the DTC is running.  Otherwise, USB messages are sent to turn it on and off. */
@@ -1616,103 +1614,72 @@ int rlink_register_commands(struct command_context *cmd_ctx)
 static
 int rlink_init(void)
 {
-	struct usb_bus *busses;
-	struct usb_bus *bus;
 	int i, j, retries;
-	int found = 0;
-	int success = 0;
 	uint8_t reply_buffer[USB_EP1IN_SIZE];
 
 	usb_init();
-	usb_find_busses();
-	usb_find_devices();
+	const uint16_t vids[] = { USB_IDVENDOR, 0 };
+	const uint16_t pids[] = { USB_IDPRODUCT, 0 };
+	if (jtag_usb_open(vids, pids, &pHDev) != ERROR_OK)
+		return ERROR_FAIL;
 
-	busses = usb_get_busses();
-
-	for (bus = busses; bus; bus = bus->next)
+	struct usb_device *dev = usb_device(pHDev);
+	if (dev->descriptor.bNumConfigurations > 1)
 	{
-		struct usb_device *dev;
+		LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
+		return ERROR_FAIL;
+	}
+	if (dev->config->bNumInterfaces > 1)
+	{
+		LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
+		return ERROR_FAIL;
+	}
 
-		for (dev = bus->devices; dev; dev = dev->next)
+	LOG_DEBUG("Opened device, pHDev = %p\n", pHDev);
+
+	/* usb_set_configuration required under win32 */
+	usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
+
+	retries = 3;
+	do
+	{
+		i = usb_claim_interface(pHDev,0);
+		if (i)
 		{
-			if ((dev->descriptor.idVendor != USB_IDVENDOR) ||
-				(dev->descriptor.idProduct != USB_IDPRODUCT))
-			{
-				continue;
-			}
-			found = 1;
-			LOG_DEBUG("Found device on bus.\n");
-
-			if (dev->descriptor.bNumConfigurations > 1)
-			{
-				LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
-				break;
-			}
-			if (dev->config->bNumInterfaces > 1)
-			{
-				LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
-				break;
-			}
-
-			pHDev = usb_open(dev);
-			if (!pHDev)
-			{
-				LOG_ERROR ("Failed to open device.\n");
-				break;
-			}
-			LOG_DEBUG("Opened device, pHDev = %p\n",pHDev);
-
-			/* usb_set_configuration required under win32 */
-			usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
-
-			retries = 3;
-			do
-			{
-				i = usb_claim_interface(pHDev,0);
-				if (i)
-				{
-					LOG_ERROR("usb_claim_interface: %s", usb_strerror());
+			LOG_ERROR("usb_claim_interface: %s", usb_strerror());
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-					j = usb_detach_kernel_driver_np(pHDev, 0);
-					if (j)
-						LOG_ERROR("detach kernel driver: %s", usb_strerror());
+			j = usb_detach_kernel_driver_np(pHDev, 0);
+			if (j)
+				LOG_ERROR("detach kernel driver: %s", usb_strerror());
 #endif
-				}
-				else
-				{
-					LOG_DEBUG("interface claimed!\n");
-					break;
-				}
-			} while (--retries);
-
-			if (!i)
-			{
-				if (usb_set_altinterface(pHDev,0))
-				{
-					LOG_ERROR("Failed to set interface.\n");
-					break;
-				}
-				else
-					success = 1;
-			}
 		}
-	}
+		else
+		{
+			LOG_DEBUG("interface claimed!\n");
+			break;
+		}
+	} while (--retries);
 
-	if (!found)
-	{
-		LOG_ERROR("No device found on bus.\n");
-		exit(1);
-	}
-
-	if (!success)
+	if (i)
 	{
 		LOG_ERROR("Initialisation failed.");
-		exit(1);
+		return ERROR_FAIL;
+	}
+	if (usb_set_altinterface(pHDev,0) != 0)
+	{
+		LOG_ERROR("Failed to set interface.\n");
+		return ERROR_FAIL;
 	}
 
-
-	/* The device starts out in an unknown state on open.  As such, result reads time out, and it's not even known whether the command was accepted.  So, for this first command, we issue it repeatedly until its response doesn't time out.  Also, if sending a command is going to time out, we'll find that out here. */
-	/* It must be possible to open the device in such a way that this special magic isn't needed, but, so far, it escapes us. */
+	/* The device starts out in an unknown state on open.  As such,
+	 * result reads time out, and it's not even known whether the
+	 * command was accepted.  So, for this first command, we issue
+	 * it repeatedly until its response doesn't time out.  Also, if
+	 * sending a command is going to time out, we find that out here.
+	 *
+	 * It must be possible to open the device in such a way that
+	 * this special magic isn't needed, but, so far, it escapes us.
+	 */
 	for (i = 0; i < 5; i++) {
 		j = ep1_generic_commandl(
 			pHDev, 1,
