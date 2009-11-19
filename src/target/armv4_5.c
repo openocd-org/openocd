@@ -36,26 +36,6 @@
 #include "register.h"
 
 
-static const char *armv4_5_core_reg_list[] =
-{
-	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
-	"r8", "r9", "r10", "r11", "r12", "sp_usr", "lr_usr", "pc",
-
-	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "sp_fiq", "lr_fiq",
-
-	"sp_irq", "lr_irq",
-
-	"sp_svc", "lr_svc",
-
-	"sp_abt", "lr_abt",
-
-	"sp_und", "lr_und",
-
-	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und",
-
-	"sp_mon", "lr_mon", "spsr_mon",
-};
-
 static const uint8_t arm_usr_indices[17] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, ARMV4_5_CPSR,
 };
@@ -230,58 +210,90 @@ char* armv4_5_state_strings[] =
 	"ARM", "Thumb", "Jazelle", "ThumbEE",
 };
 
-static const struct armv4_5_core_reg armv4_5_core_reg_list_arch_info[] =
-{
-	{0, ARMV4_5_MODE_ANY, NULL, NULL},
-	{1, ARMV4_5_MODE_ANY, NULL, NULL},
-	{2, ARMV4_5_MODE_ANY, NULL, NULL},
-	{3, ARMV4_5_MODE_ANY, NULL, NULL},
-	{4, ARMV4_5_MODE_ANY, NULL, NULL},
-	{5, ARMV4_5_MODE_ANY, NULL, NULL},
-	{6, ARMV4_5_MODE_ANY, NULL, NULL},
-	{7, ARMV4_5_MODE_ANY, NULL, NULL},
-	{8, ARMV4_5_MODE_ANY, NULL, NULL},
-	{9, ARMV4_5_MODE_ANY, NULL, NULL},
-	{10, ARMV4_5_MODE_ANY, NULL, NULL},
-	{11, ARMV4_5_MODE_ANY, NULL, NULL},
-	{12, ARMV4_5_MODE_ANY, NULL, NULL},
-	{13, ARMV4_5_MODE_USR, NULL, NULL},
-	{14, ARMV4_5_MODE_USR, NULL, NULL},
-	{15, ARMV4_5_MODE_ANY, NULL, NULL},
+/* Templates for ARM core registers.
+ *
+ * NOTE:  offsets in this table are coupled to the arm_mode_data
+ * table above, the armv4_5_core_reg_map array below, and also to
+ * the ARMV4_5_*PSR* symols.
+ */
+static const struct {
+	/* The name is used for e.g. the "regs" command. */
+	const char *name;
 
-	{8, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{9, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{10, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{11, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{12, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{13, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{14, ARMV4_5_MODE_FIQ, NULL, NULL},
+	/* The {cookie, mode} tuple uniquely identifies one register.
+	 * In a given mode, cookies 0..15 map to registers R0..R15,
+	 * with R13..R15 usually called SP, LR, PC.
+	 *
+	 * MODE_ANY is used as *input* to the mapping, and indicates
+	 * various special cases (sigh) and errors.
+	 *
+	 * Cookie 16 is (currently) confusing, since it indicates
+	 * CPSR -or- SPSR depending on whether 'mode' is MODE_ANY.
+	 * (Exception modes have both CPSR and SPSR registers ...)
+	 */
+	unsigned cookie;
+	enum armv4_5_mode mode;
+} arm_core_regs[] = {
+	{ .name = "r0", .cookie = 0, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r1", .cookie = 1, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r2", .cookie = 2, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r3", .cookie = 3, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r4", .cookie = 4, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r5", .cookie = 5, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r6", .cookie = 6, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r7", .cookie = 7, .mode = ARMV4_5_MODE_ANY, },
 
-	{13, ARMV4_5_MODE_IRQ, NULL, NULL},
-	{14, ARMV4_5_MODE_IRQ, NULL, NULL},
+	/* NOTE: regs 8..12 might be shadowed by FIQ ... flagging
+	 * them as MODE_ANY creates special cases.
+	 */
+	{ .name = "r8", .cookie = 8, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r9", .cookie = 9, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r10", .cookie = 10, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r11", .cookie = 11, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r12", .cookie = 12, .mode = ARMV4_5_MODE_ANY, },
 
-	{13, ARMV4_5_MODE_SVC, NULL, NULL},
-	{14, ARMV4_5_MODE_SVC, NULL, NULL},
+	/* NOTE all MODE_USR registers are equivalent to MODE_SYS ones */
+	{ .name = "sp_usr", .cookie = 13, .mode = ARMV4_5_MODE_USR, },
+	{ .name = "lr_usr", .cookie = 14, .mode = ARMV4_5_MODE_USR, },
 
-	{13, ARMV4_5_MODE_ABT, NULL, NULL},
-	{14, ARMV4_5_MODE_ABT, NULL, NULL},
+	{ .name = "pc", .cookie = 15, .mode = ARMV4_5_MODE_ANY, },
 
-	{13, ARMV4_5_MODE_UND, NULL, NULL},
-	{14, ARMV4_5_MODE_UND, NULL, NULL},
+	{ .name = "r8_fiq", .cookie = 8, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "r9_fiq", .cookie = 9, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "r10_fiq", .cookie = 10, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "r11_fiq", .cookie = 11, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "r12_fiq", .cookie = 12, .mode = ARMV4_5_MODE_FIQ, },
 
-	{16, ARMV4_5_MODE_ANY, NULL, NULL},
-	{16, ARMV4_5_MODE_FIQ, NULL, NULL},
-	{16, ARMV4_5_MODE_IRQ, NULL, NULL},
-	{16, ARMV4_5_MODE_SVC, NULL, NULL},
-	{16, ARMV4_5_MODE_ABT, NULL, NULL},
-	{16, ARMV4_5_MODE_UND, NULL, NULL},
+	{ .name = "lr_fiq", .cookie = 13, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "sp_fiq", .cookie = 14, .mode = ARMV4_5_MODE_FIQ, },
 
-	{13, ARM_MODE_MON, NULL, NULL},
-	{14, ARM_MODE_MON, NULL, NULL},
-	{16, ARM_MODE_MON, NULL, NULL},
+	{ .name = "lr_irq", .cookie = 13, .mode = ARMV4_5_MODE_IRQ, },
+	{ .name = "sp_irq", .cookie = 14, .mode = ARMV4_5_MODE_IRQ, },
+
+	{ .name = "lr_svc", .cookie = 13, .mode = ARMV4_5_MODE_SVC, },
+	{ .name = "sp_svc", .cookie = 14, .mode = ARMV4_5_MODE_SVC, },
+
+	{ .name = "lr_abt", .cookie = 13, .mode = ARMV4_5_MODE_ABT, },
+	{ .name = "sp_abt", .cookie = 14, .mode = ARMV4_5_MODE_ABT, },
+
+	{ .name = "lr_und", .cookie = 13, .mode = ARMV4_5_MODE_UND, },
+	{ .name = "sp_und", .cookie = 14, .mode = ARMV4_5_MODE_UND, },
+
+	{ .name = "cpsr", .cookie = 16, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "spsr_fiq", .cookie = 16, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "spsr_irq", .cookie = 16, .mode = ARMV4_5_MODE_IRQ, },
+	{ .name = "spsr_svc", .cookie = 16, .mode = ARMV4_5_MODE_SVC, },
+	{ .name = "spsr_abt", .cookie = 16, .mode = ARMV4_5_MODE_ABT, },
+	{ .name = "spsr_und", .cookie = 16, .mode = ARMV4_5_MODE_UND, },
+
+	{ .name = "lr_mon", .cookie = 13, .mode = ARM_MODE_MON, },
+	{ .name = "sp_mon", .cookie = 14, .mode = ARM_MODE_MON, },
+	{ .name = "spsr_mon", .cookie = 16, .mode = ARM_MODE_MON, },
 };
 
-/* map core mode (USR, FIQ, ...) and register number to indizes into the register cache */
+/* map core mode (USR, FIQ, ...) and register number to
+ * indices into the register cache
+ */
 const int armv4_5_core_reg_map[8][17] =
 {
 	{	/* USR */
@@ -442,7 +454,7 @@ int armv4_5_invalidate_core_regs(struct target *target)
 
 struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *armv4_5_common)
 {
-	int num_regs = ARRAY_SIZE(armv4_5_core_reg_list_arch_info);
+	int num_regs = ARRAY_SIZE(arm_core_regs);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct armv4_5_core_reg *arch_info = calloc(num_regs,
@@ -464,16 +476,18 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 	for (i = 0; i < num_regs; i++)
 	{
 		/* Skip registers this core doesn't expose */
-		if (armv4_5_core_reg_list_arch_info[i].mode == ARM_MODE_MON
+		if (arm_core_regs[i].mode == ARM_MODE_MON
 				&& armv4_5_common->core_type != ARM_MODE_MON)
 			continue;
 
 		/* REVISIT handle Cortex-M, which only shadows R13/SP */
 
-		arch_info[i] = armv4_5_core_reg_list_arch_info[i];
+		arch_info[i].num = arm_core_regs[i].cookie;
+		arch_info[i].mode = arm_core_regs[i].mode;
 		arch_info[i].target = target;
 		arch_info[i].armv4_5_common = armv4_5_common;
-		reg_list[i].name = (char *) armv4_5_core_reg_list[i];
+
+		reg_list[i].name = (char *) arm_core_regs[i].name;
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].type = &arm_reg_type;
