@@ -36,8 +36,7 @@
 
 #include "interface.h"
 #include "commands.h"
-
-#include <usb.h>
+#include "usb_common.h"
 
 
 #define VID 0x1781
@@ -383,39 +382,23 @@ struct usb_bus *busses;
 
 struct usbprog_jtag* usbprog_jtag_open(void)
 {
-	struct usb_bus *bus;
-	struct usb_device *dev;
-
-	struct usbprog_jtag *tmp;
-
-	tmp = (struct usbprog_jtag*)malloc(sizeof(struct usbprog_jtag));
-
 	usb_set_debug(10);
 	usb_init();
-	usb_find_busses();
-	usb_find_devices();
 
-	busses = usb_get_busses();
+	const uint16_t vids[] = { VID, 0 };
+	const uint16_t pids[] = { PID, 0 };
+	struct usb_dev_handle *dev;
+	if (jtag_usb_open(vids, pids, &dev) != ERROR_OK)
+		return NULL;
 
-	/* find usbprog_jtag device in usb bus */
+	struct usbprog_jtag *tmp = malloc(sizeof(struct usbprog_jtag));
+	tmp->usb_handle = dev;
 
-	for (bus = busses; bus; bus = bus->next)
-	{
-		for (dev = bus->devices; dev; dev = dev->next)
-		{
-			/* condition for sucessfully hit (too bad, I only check the vendor id)*/
-			if (dev->descriptor.idVendor == VID && dev->descriptor.idProduct == PID)
-			{
-				tmp->usb_handle = usb_open(dev);
-				usb_set_configuration(tmp->usb_handle, 1);
-				usb_claim_interface(tmp->usb_handle, 0);
-				usb_set_altinterface(tmp->usb_handle, 0);
-				return tmp;
-			}
-		}
-	}
-	free(tmp);
-	return 0;
+	usb_set_configuration(dev, 1);
+	usb_claim_interface(dev, 0);
+	usb_set_altinterface(dev, 0);
+
+	return tmp;
 }
 
 #if 0
