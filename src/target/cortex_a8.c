@@ -1362,7 +1362,7 @@ static int cortex_a8_handle_target_request(void *priv)
  * Cortex-A8 target information and configuration
  */
 
-static int cortex_a8_examine(struct target *target)
+static int cortex_a8_examine_first(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
@@ -1447,10 +1447,21 @@ static int cortex_a8_examine(struct target *target)
 	LOG_DEBUG("Configured %i hw breakpoint pairs and %i hw watchpoint pairs",
 			cortex_a8->brp_num , cortex_a8->wrp_num);
 
-	/* Configure core debug access */
-	cortex_a8_init_debug_access(target);
-
 	target_set_examined(target);
+	return ERROR_OK;
+}
+
+static int cortex_a8_examine(struct target *target)
+{
+	int retval = ERROR_OK;
+
+	/* don't re-probe hardware after each reset */
+	if (!target_was_examined(target))
+		retval = cortex_a8_examine_first(target);
+
+	/* Configure core debug access */
+	if (retval == ERROR_OK)
+		retval = cortex_a8_init_debug_access(target);
 
 	return retval;
 }
