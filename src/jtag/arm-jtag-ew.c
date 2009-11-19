@@ -25,6 +25,7 @@
 #include "interface.h"
 #include "commands.h"
 #include <usb.h>
+#include "usb_common.h"
 
 
 #define USB_VID						0x15ba
@@ -714,50 +715,30 @@ static int armjtagew_tap_execute(void)
 
 static struct armjtagew* armjtagew_usb_open()
 {
-	struct usb_bus *busses;
-	struct usb_bus *bus;
-	struct usb_device *dev;
-
-	struct armjtagew *result;
-
-	result = (struct armjtagew*) malloc(sizeof(struct armjtagew));
-
 	usb_init();
-	usb_find_busses();
-	usb_find_devices();
 
-	busses = usb_get_busses();
+	const uint16_t vids[] = { USB_VID, 0 };
+	const uint16_t pids[] = { USB_PID, 0 };
+	struct usb_dev_handle *dev;
+	if (jtag_usb_open(vids, pids, &dev) != ERROR_OK)
+		return NULL;
 
-	/* find armjtagew device in usb bus */
-
-	for (bus = busses; bus; bus = bus->next)
-	{
-		for (dev = bus->devices; dev; dev = dev->next)
-		{
-			if ((dev->descriptor.idVendor == USB_VID) && (dev->descriptor.idProduct == USB_PID))
-			{
-				result->usb_handle = usb_open(dev);
+	struct armjtagew *result = malloc(sizeof(struct armjtagew));
+	result->usb_handle = dev;
 
 #if 0
-				/* usb_set_configuration required under win32 */
-				usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
+	/* usb_set_configuration required under win32 */
+	usb_set_configuration(dev, dev->config[0].bConfigurationValue);
 #endif
-				usb_claim_interface(result->usb_handle, 0);
-
+	usb_claim_interface(dev, 0);
 #if 0
-				/*
-				 * This makes problems under Mac OS X. And is not needed
-				 * under Windows. Hopefully this will not break a linux build
-				 */
-				usb_set_altinterface(result->usb_handle, 0);
+	/*
+	 * This makes problems under Mac OS X. And is not needed
+	 * under Windows. Hopefully this will not break a linux build
+	 */
+	usb_set_altinterface(dev, 0);
 #endif
-				return result;
-			}
-		}
-	}
-
-	free(result);
-	return NULL;
+	return result;
 }
 
 static void armjtagew_usb_close(struct armjtagew *armjtagew)
