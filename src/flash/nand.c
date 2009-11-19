@@ -1620,7 +1620,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		}
 
 		file.size -= bytes_read;
-		file.address += nand->page_size;
+		dev.address += nand->page_size;
 	}
 
 	if (nand_fileio_finish(&file) == ERROR_OK)
