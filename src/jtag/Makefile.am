@@ -23,6 +23,10 @@ else
 # Standard Driver: common files
 DRIVERFILES += driver.c commands.c
 
+if USB
+DRIVERFILES += usb_common.c
+endif
+
 if BITBANG
 DRIVERFILES += bitbang.c
 endif
@@ -92,7 +96,8 @@ noinst_HEADERS = \
 	rlink/ep1_cmd.h \
 	rlink/rlink.h \
 	rlink/st7.h \
-	minidummy/jtag_minidriver.h
+	minidummy/jtag_minidriver.h \
+	usb_common.h
 
 EXTRA_DIST = startup.tcl
 
