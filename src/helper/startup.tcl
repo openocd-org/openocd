@@ -58,24 +58,6 @@ proc cmd_help {cmdname h indent} {
 	}
 }
 
-#Print help text for a command. Word wrap
-#help text that is too wide inside column.
-proc help {args} {
-	global ocd_helptext
-	set cmd $args
-	foreach a [lsort $ocd_helptext] {
-		if {[string length $cmd] == 0 || \
-			[string first $cmd $a] != -1 || \
-			[string first $cmd [lindex $a 1]] != -1} \
-		{
-			cmd_help [lindex $a 0] [lindex $a 1] 0
-		}
-	}
-}
-
-add_help_text help "Tcl implementation of help command"
-
-
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
 #
 # We also support two level commands. "flash banks" is translated to

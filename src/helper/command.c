@@ -250,6 +250,8 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	memset(c, 0, sizeof(struct command));
 
 	c->name = strdup(name);
+	if (help)
+		c->help = strdup(help);
 	c->parent = parent;
 	c->handler = handler;
 	c->mode = mode;
@@ -273,6 +275,8 @@ static void command_free(struct command *c)
 
 	if (c->name)
 		free(c->name);
+	if (c->help)
+		free((void*)c->help);
 	free(c);
 }
 
@@ -721,6 +725,52 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return retcode;
 }
 
+static COMMAND_HELPER(command_help_find, struct command *head,
+		struct command **out)
+{
+	if (0 == CMD_ARGC)
+		return ERROR_INVALID_ARGUMENTS;
+	*out = command_find(head, CMD_ARGV[0]);
+	if (NULL == *out)
+		return ERROR_INVALID_ARGUMENTS;
+	if (--CMD_ARGC == 0)
+		return ERROR_OK;
+	CMD_ARGV++;
+	return CALL_COMMAND_HANDLER(command_help_find, (*out)->children, out);
+}
+
+static COMMAND_HELPER(command_help_show, struct command *c, unsigned n);
+
+static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n)
+{
+	for (struct command *c = head; NULL != c; c = c->next)
+		CALL_COMMAND_HANDLER(command_help_show, c, n);
+	return ERROR_OK;
+}
+static COMMAND_HELPER(command_help_show, struct command *c, unsigned n)
+{
+	command_run_linef(CMD_CTX, "cmd_help {%s} {%s} %d", command_name(c, ' '),
+			c->help ? : "no help available", n);
+
+	if (++n >= 2)
+		return ERROR_OK;
+
+	return CALL_COMMAND_HANDLER(command_help_show_list, c->children, n);
+}
+COMMAND_HANDLER(handle_help_command)
+{
+	struct command *c = CMD_CTX->commands;
+
+	if (0 == CMD_ARGC)
+		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0);
+
+	int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
+	if (ERROR_OK != retval)
+		return retval;
+
+	return CALL_COMMAND_HANDLER(command_help_show, c, 0);
+}
+
 /* sleep command sleeps for <n> miliseconds
  * this is useful in target startup scripts
  */
@@ -830,6 +880,10 @@ struct command_context* command_init(const char *startup_tcl)
 			handle_sleep_command, COMMAND_ANY,
 			"<n> [busy] - sleep for n milliseconds. "
 			"\"busy\" means busy wait");
+
+	register_command(context, NULL, "help",
+			&handle_help_command, COMMAND_ANY,
+			"[<command_name> ...] - show built-in command help");
 
 	return context;
 }
@@ -977,5 +1031,3 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
 	}
 	return ERROR_OK;
 }
-
-
