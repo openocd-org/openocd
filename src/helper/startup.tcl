@@ -3,21 +3,6 @@
 # Embedded into OpenOCD executable
 #
 
-# Help text list. A list of command + help text pairs.
-#
-# Commands can be more than one word and they are stored
-# as "flash banks" "help text x x x"
-
-proc add_help_text {cmd cmd_help} {
-	global ocd_helptext
-	lappend ocd_helptext [list $cmd $cmd_help]
-}
-
-proc get_help_text {} {
-	global ocd_helptext
-	return $ocd_helptext
-}
-
 
 # We need to explicitly redirect this to the OpenOCD command
 # as Tcl defines the exit proc
@@ -25,6 +10,7 @@ proc exit {} {
 	ocd_throw exit
 }
 
+# Help text list. A list of command + help text pairs.
 proc cmd_help {cmdname h indent} {
 	set indent [expr $indent * 2]
 

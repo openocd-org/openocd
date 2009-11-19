@@ -172,32 +172,6 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return (retval == ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
-static Jim_Obj *command_name_list(struct command *c)
-{
-	Jim_Obj *cmd_list = c->parent ?
-			command_name_list(c->parent) :
-			Jim_NewListObj(interp, NULL, 0);
-	Jim_ListAppendElement(interp, cmd_list,
-			Jim_NewStringObj(interp, c->name, -1));
-
-	return cmd_list;
-}
-
-static void command_helptext_add(Jim_Obj *cmd_list, const char *help)
-{
-	Jim_Obj *cmd_entry = Jim_NewListObj(interp, NULL, 0);
-	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
-	Jim_ListAppendElement(interp, cmd_entry,
-			Jim_NewStringObj(interp, help ? : "", -1));
-
-	/* accumulate help text in Tcl helptext list.  */
-	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp,
-			"ocd_helptext", JIM_ERRMSG);
-	if (Jim_IsShared(helptext))
-		helptext = Jim_DuplicateObj(interp, helptext);
-	Jim_ListAppendElement(interp, helptext, cmd_entry);
-}
-
 /* nice short description of source file */
 #define __THIS__FILE__ "command.c"
 
@@ -257,8 +231,6 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	c->mode = mode;
 
 	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
-
-	command_helptext_add(command_name_list(c), help);
 
 	return c;
 }
@@ -771,6 +743,66 @@ COMMAND_HANDLER(handle_help_command)
 	return CALL_COMMAND_HANDLER(command_help_show, c, 0);
 }
 
+
+int help_add_command(struct command_context *cmd_ctx, struct command *parent,
+		const char *cmd_name, const char *help_text)
+{
+	struct command **head = command_list_for_parent(cmd_ctx, parent);
+	struct command *nc = command_find(*head, cmd_name);
+	if (NULL == nc)
+	{
+		// add a new command with help text
+		nc = register_command(cmd_ctx, parent, cmd_name,
+				NULL, COMMAND_ANY, help_text);
+		if (NULL == nc)
+		{
+			LOG_ERROR("failed to add '%s' help text", cmd_name);
+			return ERROR_FAIL;
+		}
+		LOG_DEBUG("added '%s' help text", cmd_name);
+	}
+	else
+	{
+		bool replaced = false;
+		if (nc->help)
+		{
+			free((void *)nc->help);
+			replaced = true;
+		}
+		nc->help = strdup(help_text);
+
+		if (replaced)
+			LOG_INFO("replaced existing '%s' help", cmd_name);
+		else
+			LOG_DEBUG("added '%s' help text", cmd_name);
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_help_add_command)
+{
+	if (CMD_ARGC < 2)
+	{
+		LOG_ERROR("%s: insufficient arguments", CMD_NAME);
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	// save help text and remove it from argument list
+	const char *help_text = CMD_ARGV[--CMD_ARGC];
+	// likewise for the leaf command name
+	const char *cmd_name = CMD_ARGV[--CMD_ARGC];
+
+	struct command *c = NULL;
+	if (CMD_ARGC > 0)
+	{
+		c = CMD_CTX->commands;
+		int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
+		if (ERROR_OK != retval)
+			return retval;
+	}
+	return help_add_command(CMD_CTX, c, cmd_name, help_text);
+}
+
 /* sleep command sleeps for <n> miliseconds
  * this is useful in target startup scripts
  */
@@ -866,6 +898,11 @@ struct command_context* command_init(const char *startup_tcl)
 	interp->cb_fflush = openocd_jim_fflush;
 	interp->cb_fgets = openocd_jim_fgets;
 
+	register_command(context, NULL, "add_help_text",
+			handle_help_add_command, COMMAND_ANY,
+			"<command> [...] <help_text>] - "
+			"add new command help text");
+
 #if !BUILD_ECOSBOARD
 	Jim_EventLoopOnLoad(interp);
 #endif
@@ -922,7 +959,7 @@ void register_jim(struct command_context *cmd_ctx, const char *name,
 	Jim_ListAppendElement(interp, cmd_list,
 			Jim_NewStringObj(interp, name, -1));
 
-	command_helptext_add(cmd_list, help);
+	help_add_command(cmd_ctx, NULL, name, help);
 }
 
 #define DEFINE_PARSE_NUM_TYPE(name, type, func, min, max) \
