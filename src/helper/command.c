@@ -233,33 +233,69 @@ static void command_add_child(struct command **head, struct command *c)
 	cc->next = c;
 }
 
+static struct command **command_list_for_parent(
+		struct command_context *cmd_ctx, struct command *parent)
+{
+	return parent ? &parent->children : &cmd_ctx->commands;
+}
+
+static struct command *command_new(struct command_context *cmd_ctx,
+		struct command *parent, const char *name,
+		command_handler_t handler, enum command_mode mode,
+		const char *help)
+{
+	assert(name);
+
+	struct command *c = malloc(sizeof(struct command));
+	memset(c, 0, sizeof(struct command));
+
+	c->name = strdup(name);
+	c->parent = parent;
+	c->handler = handler;
+	c->mode = mode;
+
+	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
+
+	command_helptext_add(command_name_list(c), help);
+
+	return c;
+}
+static void command_free(struct command *c)
+{
+	/// @todo if command has a handler, unregister its jim command!
+
+	while (NULL != c->children)
+	{
+		struct command *tmp = c->children;
+		c->children = tmp->next;
+		command_free(tmp);
+	}
+
+	if (c->name)
+		free(c->name);
+	free(c);
+}
+
 struct command* register_command(struct command_context *context,
-		struct command *parent, char *name, command_handler_t handler,
-		enum command_mode mode, char *help)
+		struct command *parent, const char *name,
+		command_handler_t handler, enum command_mode mode,
+		const char *help)
 {
 	if (!context || !name)
 		return NULL;
 
-	struct command **head = parent ? &parent->children : &context->commands;
+	struct command **head = command_list_for_parent(context, parent);
 	struct command *c = command_find(*head, name);
 	if (NULL != c)
+	{
+		LOG_ERROR("command '%s' is already registered in '%s' context",
+				name, parent ? parent->name : "<global>");
 		return c;
+	}
 
-	c = malloc(sizeof(struct command));
-
-	c->name = strdup(name);
-	c->parent = parent;
-	c->children = NULL;
-	c->handler = handler;
-	c->mode = mode;
-	c->next = NULL;
-
-	command_add_child(head, c);
-
-	command_helptext_add(command_name_list(c), help);
-
-	/* just a placeholder, no handler */
-	if (c->handler == NULL)
+	c = command_new(context, parent, name, handler, mode, help);
+	/* if allocation failed or it is a placeholder (no handler), we're done */
+	if (NULL == c || NULL == c->handler)
 		return c;
 
 	const char *full_name = command_name(c, '_');
@@ -281,85 +317,43 @@ struct command* register_command(struct command_context *context,
 	return c;
 }
 
-int unregister_all_commands(struct command_context *context)
+int unregister_all_commands(struct command_context *context,
+		struct command *parent)
 {
-	struct command *c, *c2;
-
 	if (context == NULL)
 		return ERROR_OK;
 
-	while (NULL != context->commands)
+	struct command **head = command_list_for_parent(context, parent);
+	while (NULL != *head)
 	{
-		c = context->commands;
-
-		while (NULL != c->children)
-		{
-			c2 = c->children;
-			c->children = c->children->next;
-			free(c2->name);
-			c2->name = NULL;
-			free(c2);
-			c2 = NULL;
-		}
-
-		context->commands = context->commands->next;
-
-		free(c->name);
-		c->name = NULL;
-		free(c);
-		c = NULL;
+		struct command *tmp = *head;
+		*head = tmp->next;
+		command_free(tmp);
 	}
 
 	return ERROR_OK;
 }
 
-int unregister_command(struct command_context *context, char *name)
+int unregister_command(struct command_context *context,
+		struct command *parent, const char *name)
 {
-	struct command *c, *p = NULL, *c2;
-
 	if ((!context) || (!name))
 		return ERROR_INVALID_ARGUMENTS;
 
-	/* find command */
-	c = context->commands;
-
-	while (NULL != c)
+	struct command *p = NULL;
+	struct command **head = command_list_for_parent(context, parent);
+	for (struct command *c = *head; NULL != c; p = c, c = c->next)
 	{
-		if (strcmp(name, c->name) == 0)
-		{
-			/* unlink command */
-			if (p)
-			{
-				p->next = c->next;
-			}
-			else
-			{
-				/* first element in command list */
-				context->commands = c->next;
-			}
+		if (strcmp(name, c->name) != 0)
+			continue;
 
-			/* unregister children */
-			while (NULL != c->children)
-			{
-				c2 = c->children;
-				c->children = c->children->next;
-				free(c2->name);
-				c2->name = NULL;
-				free(c2);
-				c2 = NULL;
-			}
+		if (p)
+			p->next = c->next;
+		else
+			*head = c->next;
 
-			/* delete command */
-			free(c->name);
-			c->name = NULL;
-			free(c);
-			c = NULL;
-			return ERROR_OK;
-		}
-
-		/* remember the last command for unlinking */
-		p = c;
-		c = c->next;
+		command_free(c);
+		return ERROR_OK;
 	}
 
 	return ERROR_OK;

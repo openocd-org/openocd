@@ -278,7 +278,7 @@ int openocd_main(int argc, char *argv[])
 	httpd_stop();
 #endif
 
-	unregister_all_commands(cmd_ctx);
+	unregister_all_commands(cmd_ctx, NULL);
 
 	/* free commandline interface */
 	command_done(cmd_ctx);

@@ -176,12 +176,53 @@ struct command
  */
 char *command_name(struct command *c, char delim);
 
-struct command* register_command(struct command_context *context,
-		struct command *parent, char *name, command_handler_t handler,
-		enum command_mode mode, char *help);
+/**
+ * Register a command @c handler that can be called from scripts during
+ * the execution @c mode specified.
+ *
+ * If @c parent is non-NULL, the new command will be registered as a
+ * sub-command under it; otherwise, it will be available as a top-level
+ * command.
+ *
+ * A conventioal format should be used for help strings, to provide both
+ * usage and basic information:
+ * @code
+ * "@<options@> ... - some explanation text"
+ * @endcode
+ *
+ * @param cmd_ctx The command_context in which to register the command.
+ * @param parent Register this command as a child of this, or NULL to
+ * register a top-level command.
+ * @param name The name of the command to register, which must not have
+ * been registered previously.
+ * @param handler The callback function that will be called.  If NULL,
+ * then the command serves as a placeholder for its children or a script.
+ * @param mode The command mode(s) in which this command may be run.
+ * @param help The help text that will be displayed to the user.
+ * @returns The new command, if successful; otherwise, NULL.
+ */
+struct command* register_command(struct command_context *cmd_ctx,
+		struct command *parent, const char *name,
+		command_handler_t handler, enum command_mode mode,
+		const char *help);
 
-int unregister_command(struct command_context *context, char *name);
-int unregister_all_commands(struct command_context *context);
+/**
+ * Unregisters command @c name from the given context, @c cmd_ctx.
+ * @param cmd_ctx The context of the registered command.
+ * @param parent The parent of the given command, or NULL.
+ * @param name The name of the command to unregister.
+ * @returns ERROR_OK on success, or an error code.
+ */
+int unregister_command(struct command_context *cmd_ctx,
+		struct command *parent, const char *name);
+/**
+ * Unregisters all commands from the specfied context.
+ * @param cmd_ctx The context that will be cleared of registered commands.
+ * @param parent If given, only clear commands from under this one command.
+ * @returns ERROR_OK on success, or an error code.
+ */
+int unregister_all_commands(struct command_context *cmd_ctx,
+		struct command *parent);
 
 void command_set_output_handler(struct command_context* context,
 		command_output_handler_t output_handler, void *priv);
