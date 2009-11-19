@@ -86,7 +86,7 @@ int armv7a_arch_state(struct target *target)
 		 state[armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
 		 state[armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled]);
 
-	if (armv4_5->core_mode == ARMV7A_MODE_ABT)
+	if (armv4_5->core_mode == ARMV4_5_MODE_ABT)
 		armv7a_show_fault_registers(target);
 
 	return ERROR_OK;

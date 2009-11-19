@@ -24,18 +24,6 @@
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
 
-typedef enum armv7a_mode
-{
-	ARMV7A_MODE_USR = 16,
-	ARMV7A_MODE_FIQ = 17,
-	ARMV7A_MODE_IRQ = 18,
-	ARMV7A_MODE_SVC = 19,
-	ARMV7A_MODE_ABT = 23,
-	ARMV7A_MODE_UND = 27,
-	ARMV7A_MODE_SYS = 31,
-	ARMV7A_MODE_MON = 22,
-	ARMV7A_MODE_ANY = -1
-} armv7a_t;
 
 typedef enum armv7a_state
 {
@@ -78,7 +66,6 @@ struct armv7a_common
 {
 	int common_magic;
 	struct reg_cache *core_cache;
-	enum armv7a_mode core_mode;
 	enum armv7a_state core_state;
 
 	/* arm adp debug port */
@@ -119,14 +106,14 @@ struct armv7a_algorithm
 {
 	int common_magic;
 
-	enum armv7a_mode core_mode;
+	enum armv4_5_mode core_mode;
 	enum armv7a_state core_state;
 };
 
 struct armv7a_core_reg
 {
 	int num;
-	enum armv7a_mode mode;
+	enum armv4_5_mode mode;
 	struct target *target;
 	struct armv7a_common *armv7a_common;
 };
