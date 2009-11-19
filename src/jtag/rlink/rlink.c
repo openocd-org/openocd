@@ -1635,66 +1635,65 @@ int rlink_init(void)
 
 		for (dev = bus->devices; dev; dev = dev->next)
 		{
-			if ((dev->descriptor.idVendor == USB_IDVENDOR) && (dev->descriptor.idProduct == USB_IDPRODUCT))
+			if ((dev->descriptor.idVendor != USB_IDVENDOR) ||
+				(dev->descriptor.idProduct != USB_IDPRODUCT))
 			{
-				found = 1;
-				LOG_DEBUG("Found device on bus.\n");
+				continue;
+			}
+			found = 1;
+			LOG_DEBUG("Found device on bus.\n");
 
-				do
+			if (dev->descriptor.bNumConfigurations > 1)
+			{
+				LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
+				break;
+			}
+			if (dev->config->bNumInterfaces > 1)
+			{
+				LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
+				break;
+			}
+
+			pHDev = usb_open(dev);
+			if (!pHDev)
+			{
+				LOG_ERROR ("Failed to open device.\n");
+				break;
+			}
+			LOG_DEBUG("Opened device, pHDev = %p\n",pHDev);
+
+			/* usb_set_configuration required under win32 */
+			usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
+
+			retries = 3;
+			do
+			{
+				i = usb_claim_interface(pHDev,0);
+				if (i)
 				{
-					if (dev->descriptor.bNumConfigurations > 1)
-					{
-						LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
-						break;
-					}
-					if (dev->config->bNumInterfaces > 1)
-					{
-						LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
-						break;
-					}
-
-					pHDev = usb_open(dev);
-					if (!pHDev)
-						LOG_ERROR ("Failed to open device.\n");
-					else
-					{
-						LOG_DEBUG("Opened device, pHDev = %p\n",pHDev);
-
-						/* usb_set_configuration required under win32 */
-						usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
-
-						retries = 3;
-						do
-						{
-							i = usb_claim_interface(pHDev,0);
-							if (i)
-							{
-								LOG_ERROR("usb_claim_interface: %s", usb_strerror());
+					LOG_ERROR("usb_claim_interface: %s", usb_strerror());
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-								j = usb_detach_kernel_driver_np(pHDev, 0);
-								if (j)
-									LOG_ERROR("detach kernel driver: %s", usb_strerror());
+					j = usb_detach_kernel_driver_np(pHDev, 0);
+					if (j)
+						LOG_ERROR("detach kernel driver: %s", usb_strerror());
 #endif
-							}
-							else
-							{
-								LOG_DEBUG("interface claimed!\n");
-								break;
-							}
-						} while (--retries);
+				}
+				else
+				{
+					LOG_DEBUG("interface claimed!\n");
+					break;
+				}
+			} while (--retries);
 
-						if (!i)
-						{
-							if (usb_set_altinterface(pHDev,0))
-							{
-								LOG_ERROR("Failed to set interface.\n");
-								break;
-							}
-							else
-								success = 1;
-						}
-					}
-				} while (0);
+			if (!i)
+			{
+				if (usb_set_altinterface(pHDev,0))
+				{
+					LOG_ERROR("Failed to set interface.\n");
+					break;
+				}
+				else
+					success = 1;
 			}
 		}
 	}
