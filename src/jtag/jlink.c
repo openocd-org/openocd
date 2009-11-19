@@ -27,8 +27,7 @@
 
 #include "interface.h"
 #include "commands.h"
-
-#include <usb.h>
+#include "usb_common.h"
 
 
 #define VID 0x1366
@@ -818,53 +817,17 @@ static int jlink_tap_execute(void)
 	return ERROR_OK;
 }
 
-static struct usb_device* find_jlink_device(void)
-{
-	struct usb_bus *busses;
-	struct usb_bus *bus;
-	struct usb_device *dev;
-
-	usb_find_busses();
-	usb_find_devices();
-
-	busses = usb_get_busses();
-
-	/* find jlink device in usb bus */
-
-	for (bus = busses; bus; bus = bus->next)
-	{
-		for (dev = bus->devices; dev; dev = dev->next)
-		{
-			if ((dev->descriptor.idVendor == VID) && (dev->descriptor.idProduct == PID)) {
-				return dev;
-			}
-		}
-	}
-
-	return NULL;
-}
-
 /*****************************************************************************/
 /* JLink USB low-level functions */
 
 static struct jlink* jlink_usb_open()
 {
-	struct usb_device *dev;
-
-	struct jlink *result;
-
-	result = (struct jlink*) malloc(sizeof(struct jlink));
-
 	usb_init();
 
-	if ((dev = find_jlink_device()) == NULL) {
-		free(result);
-		return NULL;
-	}
-
-	result->usb_handle = usb_open(dev);
-
-	if (NULL == result->usb_handle)
+	const uint16_t vids[] = { VID, 0 };
+	const uint16_t pids[] = { PID, 0 };
+	struct usb_dev_handle *dev;
+	if (jtag_usb_open(vids, pids, &dev) != ERROR_OK)
 		return NULL;
 
 	/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS
@@ -880,15 +843,15 @@ static struct jlink* jlink_usb_open()
 
 #if IS_WIN32 == 0
 
-	usb_reset(result->usb_handle);
+	usb_reset(dev);
 
 #if IS_DARWIN == 0
 
 	int timeout = 5;
-
 	/* reopen jlink after usb_reset
 	 * on win32 this may take a second or two to re-enumerate */
-	while ((dev = find_jlink_device()) == NULL)
+	int retval;
+	while ((retval = jtag_usb_open(vids, pids, &dev)) != ERROR_OK)
 	{
 		usleep(1000);
 		timeout--;
@@ -896,27 +859,16 @@ static struct jlink* jlink_usb_open()
 			break;
 		}
 	}
-
-	if (dev == NULL)
-	{
-		free(result);
+	if (ERROR_OK != retval)
 		return NULL;
-	}
-
-	result->usb_handle = usb_open(dev);
 #endif
 
 #endif
-
-	if (NULL == result->usb_handle)
-	{
-		free(result);
-		return NULL;
-	}
 
 	/* usb_set_configuration required under win32 */
-	usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
-	usb_claim_interface(result->usb_handle, 0);
+	struct usb_device *udev = usb_device(dev);
+	usb_set_configuration(dev, udev->config[0].bConfigurationValue);
+	usb_claim_interface(dev, 0);
 
 #if 0
 	/*
@@ -925,7 +877,7 @@ static struct jlink* jlink_usb_open()
 	 */
 	usb_set_altinterface(result->usb_handle, 0);
 #endif
-	struct usb_interface *iface = dev->config->interface;
+	struct usb_interface *iface = udev->config->interface;
 	struct usb_interface_descriptor *desc = iface->altsetting;
 	for (int i = 0; i < desc->bNumEndpoints; i++)
 	{
@@ -938,6 +890,8 @@ static struct jlink* jlink_usb_open()
 			jlink_write_ep = epnum;
 	}
 
+	struct jlink *result = malloc(sizeof(struct jlink));
+	result->usb_handle = dev;
 	return result;
 }
 
