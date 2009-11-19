@@ -75,15 +75,45 @@ void script_debug(Jim_Interp *interp, const char *name,
 	}
 }
 
+static void script_command_args_free(const char **words, unsigned nwords)
+{
+	for (unsigned i = 0; i < nwords; i++)
+		free((void *)words[i]);
+	free(words);
+}
+static const char **script_command_args_alloc(
+		unsigned argc, Jim_Obj *const *argv, unsigned *nwords)
+{
+	const char **words = malloc(argc * sizeof(char *));
+	if (NULL == words)
+		return NULL;
+
+	unsigned i;
+	for (i = 0; i < argc; i++)
+	{
+		int len;
+		const char *w = Jim_GetString(argv[i], &len);
+		/* a comment may end the line early */
+		if (*w == '#')
+			break;
+
+		words[i] = strdup(w);
+		if (words[i] == NULL)
+		{
+			script_command_args_free(words, i);
+			return NULL;
+		}
+	}
+	*nwords = i;
+	return words;
+}
+
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
 	struct command *c;
 	struct command_context *context;
 	int retval;
-	int i;
-	int nwords;
-	char **words;
 
 	/* DANGER!!!! be careful what we invoke here, since interp->cmdPrivData might
 	 * get overwritten by running other Jim commands! Treat it as an
@@ -101,27 +131,10 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	script_debug(interp, c->name, argc, argv);
 
-	words = malloc(argc * sizeof(char *));
-	for (i = 0; i < argc; i++)
-	{
-		int len;
-		const char *w = Jim_GetString(argv[i], &len);
-		if (*w=='#')
-		{
-			/* hit an end of line comment */
-			break;
-		}
-		words[i] = strdup(w);
-		if (words[i] == NULL)
-		{
-			int j;
-			for (j = 0; j < i; j++)
-				free(words[j]);
-			free(words);
-			return JIM_ERR;
-		}
-	}
-	nwords = i;
+	unsigned nwords;
+	const char **words = script_command_args_alloc(argc, argv, &nwords);
+	if (NULL == words)
+		return JIM_ERR;
 
 	/* grab the command context from the associated data */
 	context = Jim_GetAssocData(interp, "context");
@@ -148,9 +161,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_SetResult(interp, tclOutput);
 	Jim_DecrRefCount(interp, tclOutput);
 
-	for (i = 0; i < nwords; i++)
-		free(words[i]);
-	free(words);
+	script_command_args_free(words, nwords);
 
 	int *return_retval = Jim_GetAssocData(interp, "retval");
 	if (return_retval != NULL)
