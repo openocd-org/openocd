@@ -205,10 +205,9 @@ static void command_helptext_add(Jim_Obj *cmd_list, const char *help)
  * Find a command by name from a list of commands.
  * @returns The named command if found, or NULL.
  */
-static struct command *command_find(struct command **head, const char *name)
+static struct command *command_find(struct command *head, const char *name)
 {
-	assert(head);
-	for (struct command *cc = *head; cc; cc = cc->next)
+	for (struct command *cc = head; cc; cc = cc->next)
 	{
 		if (strcmp(cc->name, name) == 0)
 			return cc;
@@ -242,7 +241,7 @@ struct command* register_command(struct command_context *context,
 		return NULL;
 
 	struct command **head = parent ? &parent->children : &context->commands;
-	struct command *c = command_find(head, name);
+	struct command *c = command_find(*head, name);
 	if (NULL != c)
 		return c;
 
