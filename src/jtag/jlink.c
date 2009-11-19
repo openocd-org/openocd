@@ -864,78 +864,81 @@ static struct jlink* jlink_usb_open()
 
 	result->usb_handle = usb_open(dev);
 
-	if (result->usb_handle)
-	{
+	if (NULL == result->usb_handle)
+		return NULL;
 
-		/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS AREA!!!!!!!!!!!
-		 * The behavior of libusb is not completely consistent across Windows, Linux, and Mac OS X platforms.  The actions taken
-		 * in the following compiler conditionals may not agree with published documentation for libusb, but were found
-		 * to be necessary through trials and tribulations.  Even little tweaks can break one or more platforms, so if you do make changes
-		 * test them carefully on all platforms before committing them!
-		 */
+	/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS
+	 * AREA!!!!!!!!!!!  The behavior of libusb is not completely
+	 * consistent across Windows, Linux, and Mac OS X platforms.
+	 * The actions taken in the following compiler conditionals may
+	 * not agree with published documentation for libusb, but were
+	 * found to be necessary through trials and tribulations.  Even
+	 * little tweaks can break one or more platforms, so if you do
+	 * make changes test them carefully on all platforms before
+	 * committing them!
+	 */
 
 #if IS_WIN32 == 0
 
-		usb_reset(result->usb_handle);
+	usb_reset(result->usb_handle);
 
 #if IS_DARWIN == 0
 
-		int timeout = 5;
+	int timeout = 5;
 
-		/* reopen jlink after usb_reset
-		 * on win32 this may take a second or two to re-enumerate */
-		while ((dev = find_jlink_device()) == NULL)
-		{
-			usleep(1000);
-			timeout--;
-			if (!timeout) {
-				break;
-			}
-		}
-
-		if (dev == NULL)
-		{
-			free(result);
-			return NULL;
-		}
-
-		result->usb_handle = usb_open(dev);
-#endif
-
-#endif
-
-		if (result->usb_handle)
-		{
-			/* usb_set_configuration required under win32 */
-			usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
-			usb_claim_interface(result->usb_handle, 0);
-
-#if 0
-			/*
-			 * This makes problems under Mac OS X. And is not needed
-			 * under Windows. Hopefully this will not break a linux build
-			 */
-			usb_set_altinterface(result->usb_handle, 0);
-#endif
-			struct usb_interface *iface = dev->config->interface;
-			struct usb_interface_descriptor *desc = iface->altsetting;
-			for (int i = 0; i < desc->bNumEndpoints; i++)
-			{
-				uint8_t epnum = desc->endpoint[i].bEndpointAddress;
-				bool is_input = epnum & 0x80;
-				LOG_DEBUG("usb ep %s %02x", is_input ? "in" : "out", epnum);
-				if (is_input)
-					jlink_read_ep = epnum;
-				else
-					jlink_write_ep = epnum;
-			}
-
-			return result;
+	/* reopen jlink after usb_reset
+	 * on win32 this may take a second or two to re-enumerate */
+	while ((dev = find_jlink_device()) == NULL)
+	{
+		usleep(1000);
+		timeout--;
+		if (!timeout) {
+			break;
 		}
 	}
 
-	free(result);
-	return NULL;
+	if (dev == NULL)
+	{
+		free(result);
+		return NULL;
+	}
+
+	result->usb_handle = usb_open(dev);
+#endif
+
+#endif
+
+	if (NULL == result->usb_handle)
+	{
+		free(result);
+		return NULL;
+	}
+
+	/* usb_set_configuration required under win32 */
+	usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
+	usb_claim_interface(result->usb_handle, 0);
+
+#if 0
+	/*
+	 * This makes problems under Mac OS X. And is not needed
+	 * under Windows. Hopefully this will not break a linux build
+	 */
+	usb_set_altinterface(result->usb_handle, 0);
+#endif
+	struct usb_interface *iface = dev->config->interface;
+	struct usb_interface_descriptor *desc = iface->altsetting;
+	for (int i = 0; i < desc->bNumEndpoints; i++)
+	{
+		uint8_t epnum = desc->endpoint[i].bEndpointAddress;
+		bool is_input = epnum & 0x80;
+		LOG_DEBUG("usb ep %s %02x", is_input ? "in" : "out", epnum);
+		if (is_input)
+			jlink_read_ep = epnum;
+		else
+			jlink_write_ep = epnum;
+	}
+
+	return result;
 }
 
 static void jlink_usb_close(struct jlink *jlink)
