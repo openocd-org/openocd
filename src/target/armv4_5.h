@@ -143,6 +143,7 @@ struct armv4_5_core_reg
 	enum armv4_5_mode mode;
 	struct target *target;
 	struct arm *armv4_5_common;
+	uint32_t value;
 };
 
 struct reg_cache* armv4_5_build_reg_cache(struct target *target,
