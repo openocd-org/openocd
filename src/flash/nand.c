@@ -1406,7 +1406,7 @@ static COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], state->address);
 	if (need_size)
 	{
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], state->size);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], state->size);
 			if (state->size % nand->page_size)
 			{
 				command_print(CMD_CTX, "only page-aligned sizes are supported");
