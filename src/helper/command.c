@@ -869,12 +869,14 @@ struct command_context* command_init(const char *startup_tcl)
 #if !BUILD_ECOSBOARD
 	Jim_EventLoopOnLoad(interp);
 #endif
+	Jim_SetAssocData(interp, "context", NULL, context);
 	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1) == JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD)");
 		Jim_PrintErrorMessage(interp);
 		exit(-1);
 	}
+	Jim_DeleteAssocData(interp, "context");
 
 	register_command(context, NULL, "sleep",
 			handle_sleep_command, COMMAND_ANY,
