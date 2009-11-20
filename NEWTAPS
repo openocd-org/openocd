@@ -135,3 +135,11 @@ For example: A consumer GPS unit or a cellphone
     ie: An FPGA or CPLD ...
 
 ========================================
+
+(I) What target config files need updating?
+
+    In fact it's best if you submit a patch with those
+    updates.  Most of the other information listed here
+    is just to help create a good patch.
+
+========================================
