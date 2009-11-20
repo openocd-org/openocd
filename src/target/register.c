@@ -28,11 +28,20 @@
 #include "register.h"
 #include "log.h"
 
+/**
+ * @file
+ * Holds utilities to work with register caches.
+ *
+ * OpenOCD uses machine registers internally, and exposes them by name
+ * to Tcl scripts.  Sets of related registers are grouped into caches.
+ * For example, a CPU core will expose a set of registers, and there
+ * may be separate registers associated with debug or trace modules.
+ */
 
 struct reg* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
 {
-	int i;
+	unsigned i;
 	struct reg_cache *cache = first;
 
 	while (cache)
@@ -63,6 +72,17 @@ struct reg_cache** register_get_last_cache_p(struct reg_cache **first)
 		return first;
 
 	return cache_p;
+}
+
+/** Marks the contents of the register cache as invalid (and clean). */
+void register_cache_invalidate(struct reg_cache *cache)
+{
+	struct reg *reg = cache->reg_list;
+
+	for (unsigned n = cache->num_regs; n != 0; n--, reg++) {
+		reg->valid = 0;
+		reg->dirty = 0;
+	}
 }
 
 static int register_get_dummy_core_reg(struct reg *reg)

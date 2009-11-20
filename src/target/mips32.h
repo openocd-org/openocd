@@ -147,7 +147,6 @@ int mips32_examine(struct target *target);
 
 int mips32_register_commands(struct command_context *cmd_ctx);
 
-int mips32_invalidate_core_regs(struct target *target);
 int mips32_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 

@@ -221,7 +221,7 @@ static int cortex_m3_endreset_event(struct target *target)
 	}
 	swjdp_transaction_endcheck(swjdp);
 
-	armv7m_invalidate_core_regs(target);
+	register_cache_invalidate(cortex_m3->armv7m.core_cache);
 
 	/* make sure we have latest dhcsr flags */
 	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -510,7 +510,7 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	target->state = TARGET_RESET;
 
 	/* registers are now invalid */
-	armv7m_invalidate_core_regs(target);
+	register_cache_invalidate(cortex_m3->armv7m.core_cache);
 
 	while (timeout < 100)
 	{
@@ -617,7 +617,8 @@ static int cortex_m3_resume(struct target *target, int current,
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	/* registers are now invalid */
-	armv7m_invalidate_core_regs(target);
+	register_cache_invalidate(armv7m->core_cache);
+
 	if (!debug_execution)
 	{
 		target->state = TARGET_RUNNING;
@@ -673,7 +674,7 @@ static int cortex_m3_step(struct target *target, int current,
 	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 
 	/* registers are now invalid */
-	armv7m_invalidate_core_regs(target);
+	register_cache_invalidate(cortex_m3->armv7m.core_cache);
 
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
@@ -812,7 +813,7 @@ static int cortex_m3_assert_reset(struct target *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
-	armv7m_invalidate_core_regs(target);
+	register_cache_invalidate(cortex_m3->armv7m.core_cache);
 
 	if (target->reset_halt)
 	{

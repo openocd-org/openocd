@@ -234,7 +234,7 @@ static const struct reg_arch_type etm_scan6_type = {
 static struct reg *etm_reg_lookup(struct etm_context *etm_ctx, unsigned id)
 {
 	struct reg_cache *cache = etm_ctx->reg_cache;
-	int i;
+	unsigned i;
 
 	for (i = 0; i < cache->num_regs; i++) {
 		struct etm_reg *reg = cache->reg_list[i].arch_info;

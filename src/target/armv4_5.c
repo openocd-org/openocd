@@ -436,22 +436,6 @@ static const struct reg_arch_type arm_reg_type = {
 	.set = armv4_5_set_core_reg,
 };
 
-/** Marks the contents of the register cache as invalid (and clean). */
-int armv4_5_invalidate_core_regs(struct target *target)
-{
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	unsigned num_regs = armv4_5->core_cache->num_regs;
-	struct reg *reg = armv4_5->core_cache->reg_list;
-
-	for (unsigned i = 0; i < num_regs; i++, reg++) {
-		reg->valid = 0;
-		reg->dirty = 0;
-	}
-
-	/* FIXME don't bother returning a value then */
-	return ERROR_OK;
-}
-
 struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *armv4_5_common)
 {
 	int num_regs = ARRAY_SIZE(arm_core_regs);

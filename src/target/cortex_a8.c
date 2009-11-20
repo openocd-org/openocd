@@ -545,7 +545,7 @@ static int cortex_a8_resume(struct target *target, int current,
 	target->state = TARGET_RUNNING;
 
 	/* registers are now invalid */
-	armv4_5_invalidate_core_regs(target);
+	register_cache_invalidate(armv4_5->core_cache);
 
 	if (!debug_execution)
 	{
@@ -1182,11 +1182,12 @@ static int cortex_a8_remove_breakpoint(struct target *target, struct breakpoint 
 
 static int cortex_a8_assert_reset(struct target *target)
 {
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	LOG_DEBUG(" ");
 
 	/* registers are now invalid */
-	armv4_5_invalidate_core_regs(target);
+	register_cache_invalidate(armv7a->armv4_5_common.core_cache);
 
 	target->state = TARGET_RESET;
 

@@ -162,8 +162,6 @@ int armv4_5_run_algorithm(struct target *target,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 
-int armv4_5_invalidate_core_regs(struct target *target);
-
 int arm_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum);
 int arm_blank_check_memory(struct target *target,

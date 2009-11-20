@@ -1040,7 +1040,7 @@ int arm7_9_assert_reset(struct target *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
-	armv4_5_invalidate_core_regs(target);
+	register_cache_invalidate(arm7_9->armv4_5_common.core_cache);
 
 	if ((target->reset_halt) && ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0))
 	{
@@ -1224,10 +1224,7 @@ int arm7_9_soft_reset_halt(struct target *target)
 	}
 
 	/* all register content is now invalid */
-	if ((retval = armv4_5_invalidate_core_regs(target)) != ERROR_OK)
-	{
-		return retval;
-	}
+	register_cache_invalidate(armv4_5->core_cache);
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8, 0xd3);
@@ -1921,7 +1918,7 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 	if (!debug_execution)
 	{
 		/* registers are now invalid */
-		armv4_5_invalidate_core_regs(target);
+		register_cache_invalidate(armv4_5->core_cache);
 		target->state = TARGET_RUNNING;
 		if ((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
 		{
@@ -2064,7 +2061,7 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 	arm7_9->disable_single_step(target);
 
 	/* registers are now invalid */
-	armv4_5_invalidate_core_regs(target);
+	register_cache_invalidate(armv4_5->core_cache);
 
 	if (err != ERROR_OK)
 	{

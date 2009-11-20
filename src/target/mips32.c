@@ -175,21 +175,6 @@ int mips32_write_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-int mips32_invalidate_core_regs(struct target *target)
-{
-	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
-	int i;
-
-	for (i = 0; i < mips32->core_cache->num_regs; i++)
-	{
-		mips32->core_cache->reg_list[i].valid = 0;
-		mips32->core_cache->reg_list[i].dirty = 0;
-	}
-
-	return ERROR_OK;
-}
-
 int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */

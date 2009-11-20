@@ -1860,7 +1860,7 @@ COMMAND_HANDLER(handle_reg_command)
 {
 	struct target *target;
 	struct reg *reg = NULL;
-	int count = 0;
+	unsigned count = 0;
 	char *value;
 
 	LOG_DEBUG("-");
@@ -1875,7 +1875,7 @@ COMMAND_HANDLER(handle_reg_command)
 		count = 0;
 		while (cache)
 		{
-			int i;
+			unsigned i;
 
 			command_print(CMD_CTX, "===== %s", cache->name);
 
@@ -1917,10 +1917,10 @@ COMMAND_HANDLER(handle_reg_command)
 		count = 0;
 		while (cache)
 		{
-			int i;
+			unsigned i;
 			for (i = 0; i < cache->num_regs; i++)
 			{
-				if (count++ == (int)num)
+				if (count++ == num)
 				{
 					reg = &cache->reg_list[i];
 					break;

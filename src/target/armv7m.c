@@ -246,21 +246,6 @@ static int armv7m_write_core_reg(struct target *target, unsigned num)
 	return ERROR_OK;
 }
 
-/** Invalidates cache of core registers set up by armv7m_build_reg_cache(). */
-int armv7m_invalidate_core_regs(struct target *target)
-{
-	struct armv7m_common *armv7m = target_to_armv7m(target);
-	int i;
-
-	for (i = 0; i < armv7m->core_cache->num_regs; i++)
-	{
-		armv7m->core_cache->reg_list[i].valid = 0;
-		armv7m->core_cache->reg_list[i].dirty = 0;
-	}
-
-	return ERROR_OK;
-}
-
 /**
  * Returns generic ARM userspace registers to GDB.
  * GDB doesn't quite understand that most ARMs don't have floating point

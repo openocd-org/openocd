@@ -1322,7 +1322,7 @@ static int xscale_resume(struct target *target, int current,
 	if (!debug_execution)
 	{
 		/* registers are now invalid */
-		armv4_5_invalidate_core_regs(target);
+		register_cache_invalidate(armv4_5->core_cache);
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 	}
@@ -1401,8 +1401,7 @@ static int xscale_step_inner(struct target *target, int current,
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
 	/* registers are now invalid */
-	if ((retval = armv4_5_invalidate_core_regs(target)) != ERROR_OK)
-		return retval;
+	register_cache_invalidate(armv4_5->core_cache);
 
 	/* wait for and process debug entry */
 	if ((retval = xscale_debug_entry(target)) != ERROR_OK)
@@ -1538,7 +1537,7 @@ static int xscale_deassert_reset(struct target *target)
 		breakpoint = breakpoint->next;
 	}
 
-	armv4_5_invalidate_core_regs(target);
+	register_cache_invalidate(xscale->armv4_5_common.core_cache);
 
 	/* FIXME mark hardware watchpoints got unset too.  Also,
 	 * at least some of the XScale registers are invalid...

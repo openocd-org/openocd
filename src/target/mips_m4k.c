@@ -309,7 +309,7 @@ int mips_m4k_assert_reset(struct target *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
-	mips32_invalidate_core_regs(target);
+	register_cache_invalidate(mips32->core_cache);
 
 	if (target->reset_halt)
 	{
@@ -410,7 +410,7 @@ int mips_m4k_resume(struct target *target, int current, uint32_t address, int ha
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	/* registers are now invalid */
-	mips32_invalidate_core_regs(target);
+	register_cache_invalidate(mips32->core_cache);
 
 	if (!debug_execution)
 	{
@@ -467,7 +467,7 @@ int mips_m4k_step(struct target *target, int current, uint32_t address, int hand
 	mips_ejtag_exit_debug(ejtag_info);
 
 	/* registers are now invalid */
-	mips32_invalidate_core_regs(target);
+	register_cache_invalidate(mips32->core_cache);
 
 	if (breakpoint)
 		mips_m4k_set_breakpoint(target, breakpoint);

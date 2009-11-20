@@ -41,7 +41,7 @@ struct reg_cache
 	char *name;
 	struct reg_cache *next;
 	struct reg *reg_list;
-	int num_regs;
+	unsigned num_regs;
 };
 
 struct reg_arch_type
@@ -53,6 +53,7 @@ struct reg_arch_type
 struct reg* register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all);
 struct reg_cache** register_get_last_cache_p(struct reg_cache **first);
+void register_cache_invalidate(struct reg_cache *cache);
 
 void register_init_dummy(struct reg *reg);
 
