@@ -592,9 +592,9 @@ static int cfi_intel_info(struct flash_bank *bank, char *buf, int buf_size)
 static int cfi_register_commands(struct command_context *cmd_ctx)
 {
 	/*struct command *cfi_cmd = */
-	register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, "flash bank cfi <base> <size> <chip_width> <bus_width> <targetNum> [jedec_probe/x16_as_x8]");
+	COMMAND_REGISTER(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, "flash bank cfi <base> <size> <chip_width> <bus_width> <targetNum> [jedec_probe/x16_as_x8]");
 	/*
-	register_command(cmd_ctx, cfi_cmd, "part_id", cfi_handle_part_id_command, COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, cfi_cmd, "part_id", cfi_handle_part_id_command, COMMAND_EXEC,
 					 "print part id of cfi flash bank <num>");
 	*/
 	return ERROR_OK;

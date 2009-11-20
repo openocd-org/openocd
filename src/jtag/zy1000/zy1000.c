@@ -372,7 +372,7 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 
 int zy1000_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
+	COMMAND_REGISTER(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
 			"power <on/off> - turn power switch to target on/off. No arguments - print status.");
 
 	Jim_CreateCommand(interp, "zy1000_version", jim_zy1000_version, NULL, NULL);

@@ -171,7 +171,7 @@ struct command_context *setup_command_handler(void)
 
 	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl);
 
-	register_command(cmd_ctx, NULL, "version", handle_version_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");
 
 	/* register subsystem commands */
@@ -198,7 +198,7 @@ struct command_context *setup_command_handler(void)
 
 	LOG_OUTPUT(OPENOCD_VERSION "\n");
 
-	register_command(cmd_ctx, NULL, "init", handle_init_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "init", handle_init_command,
 					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
 
 	return cmd_ctx;

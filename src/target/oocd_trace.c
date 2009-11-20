@@ -411,12 +411,12 @@ int oocd_trace_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *oocd_trace_cmd;
 
-	oocd_trace_cmd = register_command(cmd_ctx, NULL, "oocd_trace", NULL, COMMAND_ANY, "OpenOCD + trace");
+	oocd_trace_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "oocd_trace", NULL, COMMAND_ANY, "OpenOCD + trace");
 
-	register_command(cmd_ctx, oocd_trace_cmd, "config", handle_oocd_trace_config_command, COMMAND_CONFIG, NULL);
+	COMMAND_REGISTER(cmd_ctx, oocd_trace_cmd, "config", handle_oocd_trace_config_command, COMMAND_CONFIG, NULL);
 
-	register_command(cmd_ctx, oocd_trace_cmd, "status", handle_oocd_trace_status_command, COMMAND_EXEC, "display OpenOCD + trace status");
-	register_command(cmd_ctx, oocd_trace_cmd, "resync", handle_oocd_trace_resync_command, COMMAND_EXEC, "resync OpenOCD + trace capture clock");
+	COMMAND_REGISTER(cmd_ctx, oocd_trace_cmd, "status", handle_oocd_trace_status_command, COMMAND_EXEC, "display OpenOCD + trace status");
+	COMMAND_REGISTER(cmd_ctx, oocd_trace_cmd, "resync", handle_oocd_trace_resync_command, COMMAND_EXEC, "resync OpenOCD + trace capture clock");
 
 	return ERROR_OK;
 }

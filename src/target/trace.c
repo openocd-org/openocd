@@ -159,12 +159,12 @@ COMMAND_HANDLER(handle_trace_history_command)
 int trace_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *trace_cmd =
-		register_command(cmd_ctx, NULL, "trace", NULL, COMMAND_ANY, "trace commands");
+		COMMAND_REGISTER(cmd_ctx, NULL, "trace", NULL, COMMAND_ANY, "trace commands");
 
-	register_command(cmd_ctx, trace_cmd, "history", handle_trace_history_command,
+	COMMAND_REGISTER(cmd_ctx, trace_cmd, "history", handle_trace_history_command,
 		COMMAND_EXEC, "display trace history, ['clear'] history or set [size]");
 
-	register_command(cmd_ctx, trace_cmd, "point", handle_trace_point_command,
+	COMMAND_REGISTER(cmd_ctx, trace_cmd, "point", handle_trace_point_command,
 		COMMAND_EXEC, "display trace points, ['clear'] list of trace points, or add new tracepoint at [address]");
 
 	return ERROR_OK;

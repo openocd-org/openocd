@@ -56,17 +56,17 @@ COMMAND_HANDLER(handle_flag_command)
 int foo_register_commands(struct command_context *cmd_ctx)
 {
 	// register several commands under the foo command
-	struct command *cmd = register_command(cmd_ctx, NULL, "foo",
+	struct command *cmd = COMMAND_REGISTER(cmd_ctx, NULL, "foo",
 			NULL, COMMAND_ANY, "foo: command handler skeleton");
 
-	register_command(cmd_ctx, cmd, "bar",
+	COMMAND_REGISTER(cmd_ctx, cmd, "bar",
 			&handle_foo_command, COMMAND_ANY,
 			"<address> [enable|disable] - an example command");
-	register_command(cmd_ctx, cmd, "baz",
+	COMMAND_REGISTER(cmd_ctx, cmd, "baz",
 			&handle_foo_command, COMMAND_ANY,
 			"<address> [enable|disable] - a sample command");
 
-	register_command(cmd_ctx, cmd, "flag",
+	COMMAND_REGISTER(cmd_ctx, cmd, "flag",
 			&handle_flag_command, COMMAND_ANY,
 			"[on|off] - set a flag");
 
@@ -103,7 +103,7 @@ int hello_register_commands(struct command_context *cmd_ctx)
 {
 	foo_register_commands(cmd_ctx);
 
-	struct command *cmd = register_command(cmd_ctx, NULL, "hello",
+	struct command *cmd = COMMAND_REGISTER(cmd_ctx, NULL, "hello",
 			&handle_hello_command, COMMAND_ANY,
 			"[<name>] - prints a warm welcome");
 	return cmd ? ERROR_OK : -ENOMEM;

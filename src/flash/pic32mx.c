@@ -885,20 +885,20 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 static int pic32mx_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *pic32mx_cmd = register_command(cmd_ctx, NULL, "pic32mx",
+	struct command *pic32mx_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "pic32mx",
 			NULL, COMMAND_ANY, "pic32mx flash specific commands");
 #if 0
-	register_command(cmd_ctx, pic32mx_cmd, "lock",
+	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "lock",
 			pic32mx_handle_lock_command, COMMAND_EXEC,
 			"lock device");
-	register_command(cmd_ctx, pic32mx_cmd, "unlock",
+	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "unlock",
 			pic32mx_handle_unlock_command, COMMAND_EXEC,
 			"unlock protected device");
 #endif
-	register_command(cmd_ctx, pic32mx_cmd, "chip_erase",
+	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "chip_erase",
 			pic32mx_handle_chip_erase_command, COMMAND_EXEC,
 			"erase device");
-	register_command(cmd_ctx, pic32mx_cmd, "pgm_word",
+	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "pgm_word",
 			pic32mx_handle_pgm_word_command, COMMAND_EXEC,
 			"program a word");
 	return ERROR_OK;

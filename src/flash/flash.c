@@ -1280,42 +1280,42 @@ int flash_init_drivers(struct command_context *cmd_ctx)
 	if (!flash_banks)
 		return ERROR_OK;
 
-	register_command(cmd_ctx, flash_cmd, "info",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "info",
 			handle_flash_info_command, COMMAND_EXEC,
 			"print info about flash bank <num>");
-	register_command(cmd_ctx, flash_cmd, "probe",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "probe",
 			handle_flash_probe_command, COMMAND_EXEC,
 			"identify flash bank <num>");
-	register_command(cmd_ctx, flash_cmd, "erase_check",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "erase_check",
 			handle_flash_erase_check_command, COMMAND_EXEC,
 			"check erase state of sectors in flash bank <num>");
-	register_command(cmd_ctx, flash_cmd, "protect_check",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "protect_check",
 			handle_flash_protect_check_command, COMMAND_EXEC,
 			"check protection state of sectors in flash bank <num>");
-	register_command(cmd_ctx, flash_cmd, "erase_sector",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "erase_sector",
 			handle_flash_erase_command, COMMAND_EXEC,
 			"erase sectors at <bank> <first> <last>");
-	register_command(cmd_ctx, flash_cmd, "erase_address",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "erase_address",
 			handle_flash_erase_address_command, COMMAND_EXEC,
 			"erase address range <address> <length>");
 
-	register_command(cmd_ctx, flash_cmd, "fillw",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "fillw",
 			handle_flash_fill_command, COMMAND_EXEC,
 			"fill with pattern (no autoerase) <address> <word_pattern> <count>");
-	register_command(cmd_ctx, flash_cmd, "fillh",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "fillh",
 			handle_flash_fill_command, COMMAND_EXEC,
 			"fill with pattern <address> <halfword_pattern> <count>");
-	register_command(cmd_ctx, flash_cmd, "fillb",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "fillb",
 			handle_flash_fill_command, COMMAND_EXEC,
 			"fill with pattern <address> <byte_pattern> <count>");
 
-	register_command(cmd_ctx, flash_cmd, "write_bank",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "write_bank",
 			handle_flash_write_bank_command, COMMAND_EXEC,
 			"write binary data to <bank> <file> <offset>");
-	register_command(cmd_ctx, flash_cmd, "write_image",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "write_image",
 			handle_flash_write_image_command, COMMAND_EXEC,
 			"write_image [erase] [unlock] <file> [offset] [type]");
-	register_command(cmd_ctx, flash_cmd, "protect",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "protect",
 			handle_flash_protect_command, COMMAND_EXEC,
 			"set protection of sectors at <bank> <first> <last> <on | off>");
 
@@ -1324,10 +1324,10 @@ int flash_init_drivers(struct command_context *cmd_ctx)
 
 int flash_register_commands(struct command_context *cmd_ctx)
 {
-	flash_cmd = register_command(cmd_ctx, NULL, "flash",
+	flash_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "flash",
 			NULL, COMMAND_ANY, NULL);
 
-	register_command(cmd_ctx, flash_cmd, "bank",
+	COMMAND_REGISTER(cmd_ctx, flash_cmd, "bank",
 			handle_flash_bank_command, COMMAND_CONFIG,
 			"flash bank <driver> <base> <size> "
 			"<chip_width> <bus_width> <target> [driver_options ...]");

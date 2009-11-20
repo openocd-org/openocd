@@ -404,10 +404,10 @@ COMMAND_HANDLER(handle_etb_config_command)
 
 static int etb_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *etb_cmd = register_command(cmd_ctx, NULL, "etb",
+	struct command *etb_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "etb",
 			NULL, COMMAND_ANY, "Embedded Trace Buffer");
 
-	register_command(cmd_ctx, etb_cmd, "config",
+	COMMAND_REGISTER(cmd_ctx, etb_cmd, "config",
 			handle_etb_config_command, COMMAND_CONFIG,
 			NULL);
 

@@ -618,11 +618,11 @@ COMMAND_HANDLER(handle_exit_command)
 
 int telnet_register_commands(struct command_context *command_context)
 {
-	register_command(command_context, NULL, "exit",
+	COMMAND_REGISTER(command_context, NULL, "exit",
 			&handle_exit_command, COMMAND_EXEC,
 			"exit telnet session");
 
-	register_command(command_context, NULL, "telnet_port",
+	COMMAND_REGISTER(command_context, NULL, "telnet_port",
 			&handle_telnet_port_command, COMMAND_ANY,
 			"port on which to listen for incoming telnet connections");
 

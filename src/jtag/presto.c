@@ -741,7 +741,7 @@ COMMAND_HANDLER(presto_handle_serial_command)
 
 static int presto_jtag_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "presto_serial", presto_handle_serial_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "presto_serial", presto_handle_serial_command,
 		COMMAND_CONFIG, NULL);
 	return ERROR_OK;
 }

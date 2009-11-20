@@ -1571,34 +1571,34 @@ static int arm11_register_commands(struct command_context *cmd_ctx)
 
 	armv4_5_register_commands(cmd_ctx);
 
-	top_cmd = register_command(cmd_ctx, NULL, "arm11",
+	top_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm11",
 			NULL, COMMAND_ANY, NULL);
 
 	/* "hardware_step" is only here to check if the default
 	 * simulate + breakpoint implementation is broken.
 	 * TEMPORARY! NOT DOCUMENTED!
 	 */
-	register_command(cmd_ctx, top_cmd, "hardware_step",
+	COMMAND_REGISTER(cmd_ctx, top_cmd, "hardware_step",
 			arm11_handle_bool_hardware_step, COMMAND_ANY,
 			"DEBUG ONLY - Hardware single stepping"
 				" (default: disabled)");
 
-	mw_cmd = register_command(cmd_ctx, top_cmd, "memwrite",
+	mw_cmd = COMMAND_REGISTER(cmd_ctx, top_cmd, "memwrite",
 			NULL, COMMAND_ANY, NULL);
-	register_command(cmd_ctx, mw_cmd, "burst",
+	COMMAND_REGISTER(cmd_ctx, mw_cmd, "burst",
 			arm11_handle_bool_memwrite_burst, COMMAND_ANY,
 			"Enable/Disable non-standard but fast burst mode"
 				" (default: enabled)");
-	register_command(cmd_ctx, mw_cmd, "error_fatal",
+	COMMAND_REGISTER(cmd_ctx, mw_cmd, "error_fatal",
 			arm11_handle_bool_memwrite_error_fatal, COMMAND_ANY,
 			"Terminate program if transfer error was found"
 				" (default: enabled)");
 
-	register_command(cmd_ctx, top_cmd, "step_irq_enable",
+	COMMAND_REGISTER(cmd_ctx, top_cmd, "step_irq_enable",
 			arm11_handle_bool_step_irq_enable, COMMAND_ANY,
 			"Enable interrupts while stepping"
 				" (default: disabled)");
-	register_command(cmd_ctx, top_cmd, "vcr",
+	COMMAND_REGISTER(cmd_ctx, top_cmd, "vcr",
 			arm11_handle_vcr, COMMAND_ANY,
 			"Control (Interrupt) Vector Catch Register");
 

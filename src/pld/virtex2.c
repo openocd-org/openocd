@@ -235,10 +235,10 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 
 static int virtex2_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *virtex2_cmd = register_command(cmd_ctx, NULL, "virtex2",
+	struct command *virtex2_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "virtex2",
 			NULL, COMMAND_ANY, "virtex2 specific commands");
 
-	register_command(cmd_ctx, virtex2_cmd, "read_stat",
+	COMMAND_REGISTER(cmd_ctx, virtex2_cmd, "read_stat",
 			&virtex2_handle_read_stat_command, COMMAND_EXEC,
 			"read Virtex-II status register");
 

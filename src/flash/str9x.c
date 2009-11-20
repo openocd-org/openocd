@@ -678,10 +678,10 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 
 static int str9x_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *str9x_cmd = register_command(cmd_ctx, NULL, "str9x",
+	struct command *str9x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "str9x",
 			NULL, COMMAND_ANY, "str9x flash commands");
 
-	register_command(cmd_ctx, str9x_cmd, "flash_config",
+	COMMAND_REGISTER(cmd_ctx, str9x_cmd, "flash_config",
 			str9x_handle_flash_config_command, COMMAND_EXEC,
 			"configure str9 flash controller");
 

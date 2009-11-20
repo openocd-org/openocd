@@ -564,7 +564,7 @@ COMMAND_HANDLER(gw16012_handle_parport_port_command)
 
 static int gw16012_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "parport_port",
+	COMMAND_REGISTER(cmd_ctx, NULL, "parport_port",
 			gw16012_handle_parport_port_command, COMMAND_CONFIG,
 			NULL);
 

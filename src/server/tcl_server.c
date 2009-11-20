@@ -177,7 +177,7 @@ COMMAND_HANDLER(handle_tcl_port_command)
 
 int tcl_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "tcl_port",
+	COMMAND_REGISTER(cmd_ctx, NULL, "tcl_port",
 			handle_tcl_port_command, COMMAND_CONFIG,
 			"port on which to listen for incoming TCL syntax");
 	return ERROR_OK;

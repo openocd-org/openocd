@@ -778,10 +778,10 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 
 static int lpc2000_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *lpc2000_cmd = register_command(cmd_ctx, NULL, "lpc2000",
+	struct command *lpc2000_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "lpc2000",
 			NULL, COMMAND_ANY, NULL);
 
-	register_command(cmd_ctx, lpc2000_cmd, "part_id",
+	COMMAND_REGISTER(cmd_ctx, lpc2000_cmd, "part_id",
 			lpc2000_handle_part_id_command, COMMAND_EXEC,
 			"print part id of lpc2000 flash bank <num>");
 

@@ -908,7 +908,7 @@ struct command_context* command_init(const char *startup_tcl)
 	interp->cb_fflush = openocd_jim_fflush;
 	interp->cb_fgets = openocd_jim_fgets;
 
-	register_command(context, NULL, "add_help_text",
+	COMMAND_REGISTER(context, NULL, "add_help_text",
 			handle_help_add_command, COMMAND_ANY,
 			"<command> [...] <help_text>] - "
 			"add new command help text");
@@ -925,12 +925,12 @@ struct command_context* command_init(const char *startup_tcl)
 	}
 	Jim_DeleteAssocData(interp, "context");
 
-	register_command(context, NULL, "sleep",
+	COMMAND_REGISTER(context, NULL, "sleep",
 			handle_sleep_command, COMMAND_ANY,
 			"<n> [busy] - sleep for n milliseconds. "
 			"\"busy\" means busy wait");
 
-	register_command(context, NULL, "help",
+	COMMAND_REGISTER(context, NULL, "help",
 			&handle_help_command, COMMAND_ANY,
 			"[<command_name> ...] - show built-in command help");
 

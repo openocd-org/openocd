@@ -504,7 +504,7 @@ COMMAND_HANDLER(armjtagew_handle_armjtagew_info_command)
 
 static int armjtagew_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "armjtagew_info", 
+	COMMAND_REGISTER(cmd_ctx, NULL, "armjtagew_info",
 			&armjtagew_handle_armjtagew_info_command, COMMAND_EXEC,
 			"query armjtagew info");
 	return ERROR_OK;

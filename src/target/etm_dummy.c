@@ -62,9 +62,9 @@ static int etm_dummy_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *etm_dummy_cmd;
 
-	etm_dummy_cmd = register_command(cmd_ctx, NULL, "etm_dummy", NULL, COMMAND_ANY, "Dummy ETM capture driver");
+	etm_dummy_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "etm_dummy", NULL, COMMAND_ANY, "Dummy ETM capture driver");
 
-	register_command(cmd_ctx, etm_dummy_cmd, "config", handle_etm_dummy_config_command, COMMAND_CONFIG, NULL);
+	COMMAND_REGISTER(cmd_ctx, etm_dummy_cmd, "config", handle_etm_dummy_config_command, COMMAND_CONFIG, NULL);
 
 	return ERROR_OK;
 }

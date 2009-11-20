@@ -1091,7 +1091,7 @@ int main(int argc, char *argv[])
 
 
 #ifdef CYGPKG_PROFILE_GPROF
-	register_command(cmd_ctx, NULL, "ecosboard_profile", eCosBoard_handle_eCosBoard_profile_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "ecosboard_profile", eCosBoard_handle_eCosBoard_profile_command,
 			COMMAND_ANY, NULL);
 #endif
 

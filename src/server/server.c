@@ -541,7 +541,7 @@ COMMAND_HANDLER(handle_shutdown_command)
 
 int server_register_commands(struct command_context *context)
 {
-	register_command(context, NULL, "shutdown",
+	COMMAND_REGISTER(context, NULL, "shutdown",
 			handle_shutdown_command, COMMAND_ANY,
 			"shut the server down");
 

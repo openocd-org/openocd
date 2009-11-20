@@ -228,10 +228,10 @@ int arm966e_register_commands(struct command_context *cmd_ctx)
 	struct command *arm966e_cmd;
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
-	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e",
+	arm966e_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm966e",
 			NULL, COMMAND_ANY,
 			"arm966e specific commands");
-	register_command(cmd_ctx, arm966e_cmd, "cp15",
+	COMMAND_REGISTER(cmd_ctx, arm966e_cmd, "cp15",
 			arm966e_handle_cp15_command, COMMAND_EXEC,
 			"display/modify cp15 register <num> [value]");
 

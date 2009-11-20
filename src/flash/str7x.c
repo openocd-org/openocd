@@ -674,10 +674,10 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 
 static int str7x_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *str7x_cmd = register_command(cmd_ctx, NULL, "str7x",
+	struct command *str7x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "str7x",
 			NULL, COMMAND_ANY, "str7x flash specific commands");
 
-	register_command(cmd_ctx, str7x_cmd, "disable_jtag",
+	COMMAND_REGISTER(cmd_ctx, str7x_cmd, "disable_jtag",
 			str7x_handle_disable_jtag_command, COMMAND_EXEC,
 			"disable jtag access");
 

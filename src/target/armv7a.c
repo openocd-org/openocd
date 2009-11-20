@@ -148,26 +148,26 @@ int armv7a_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *arm_adi_v5_dap_cmd;
 
-	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap",
+	arm_adi_v5_dap_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "dap",
 			NULL, COMMAND_ANY,
 			"cortex dap specific commands");
 
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info",
+	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "info",
 			handle_dap_info_command, COMMAND_EXEC,
 			"dap info for ap [num], "
 			"default currently selected AP");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel",
+	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "apsel",
 			handle_dap_apsel_command, COMMAND_EXEC,
 			"select a different AP [num] (default 0)");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apid",
+	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "apid",
 			handle_dap_apid_command, COMMAND_EXEC,
 			"return id reg from AP [num], "
 			"default currently selected AP");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr",
+	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr",
 			handle_dap_baseaddr_command, COMMAND_EXEC,
 			"return debug base address from AP [num], "
 			"default currently selected AP");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "memaccess",
+	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "memaccess",
 			handle_dap_memaccess_command, COMMAND_EXEC,
 			"set/get number of extra tck for mem-ap memory "
 			"bus access [0-255]");

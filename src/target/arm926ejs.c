@@ -764,11 +764,11 @@ int arm926ejs_register_commands(struct command_context *cmd_ctx)
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
 
-	arm926ejs_cmd = register_command(cmd_ctx, NULL, "arm926ejs",
+	arm926ejs_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm926ejs",
 		NULL, COMMAND_ANY,
 		"arm926ejs specific commands");
 
-	register_command(cmd_ctx, arm926ejs_cmd, "cache_info",
+	COMMAND_REGISTER(cmd_ctx, arm926ejs_cmd, "cache_info",
 		arm926ejs_handle_cache_info_command, COMMAND_EXEC,
 		"display information about target caches");
 

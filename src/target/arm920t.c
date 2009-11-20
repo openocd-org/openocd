@@ -1369,24 +1369,24 @@ int arm920t_register_commands(struct command_context *cmd_ctx)
 
 	retval = arm9tdmi_register_commands(cmd_ctx);
 
-	arm920t_cmd = register_command(cmd_ctx, NULL, "arm920t",
+	arm920t_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm920t",
 			NULL, COMMAND_ANY,
 			"arm920t specific commands");
 
-	register_command(cmd_ctx, arm920t_cmd, "cp15",
+	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "cp15",
 			arm920t_handle_cp15_command, COMMAND_EXEC,
 			"display/modify cp15 register <num> [value]");
-	register_command(cmd_ctx, arm920t_cmd, "cp15i",
+	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "cp15i",
 			arm920t_handle_cp15i_command, COMMAND_EXEC,
 			"display/modify cp15 (interpreted access) "
 				"<opcode> [value] [address]");
-	register_command(cmd_ctx, arm920t_cmd, "cache_info",
+	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "cache_info",
 			arm920t_handle_cache_info_command, COMMAND_EXEC,
 			"display information about target caches");
-	register_command(cmd_ctx, arm920t_cmd, "read_cache",
+	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "read_cache",
 			arm920t_handle_read_cache_command, COMMAND_EXEC,
 			"display I/D cache content");
-	register_command(cmd_ctx, arm920t_cmd, "read_mmu",
+	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "read_mmu",
 			arm920t_handle_read_mmu_command, COMMAND_EXEC,
 			"display I/D mmu content");
 

@@ -630,10 +630,10 @@ COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 static int jlink_register_commands(struct command_context *cmd_ctx)
 {
 
-	register_command(cmd_ctx, NULL, "jlink_info",
+	COMMAND_REGISTER(cmd_ctx, NULL, "jlink_info",
 		&jlink_handle_jlink_info_command, COMMAND_EXEC,
 		"query jlink info");
-	register_command(cmd_ctx, NULL, "jlink_hw_jtag",
+	COMMAND_REGISTER(cmd_ctx, NULL, "jlink_hw_jtag",
 		&jlink_handle_jlink_hw_jtag_command, COMMAND_EXEC,
 		"set/get jlink hw jtag command version [2 | 3]");
 	return ERROR_OK;

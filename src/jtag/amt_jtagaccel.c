@@ -542,10 +542,10 @@ COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 
 static int amt_jtagaccel_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "parport_port",
+	COMMAND_REGISTER(cmd_ctx, NULL, "parport_port",
 			amt_jtagaccel_handle_parport_port_command, COMMAND_CONFIG,
 			NULL);
-	register_command(cmd_ctx, NULL, "rtck",
+	COMMAND_REGISTER(cmd_ctx, NULL, "rtck",
 			amt_jtagaccel_handle_rtck_command, COMMAND_CONFIG,
 			NULL);
 

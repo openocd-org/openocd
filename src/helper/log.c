@@ -319,9 +319,9 @@ COMMAND_HANDLER(handle_log_output_command)
 int log_register_commands(struct command_context *cmd_ctx)
 {
 	start = timeval_ms();
-	register_command(cmd_ctx, NULL, "log_output", handle_log_output_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "log_output", handle_log_output_command,
 		COMMAND_ANY, "redirect logging to <file> (default: stderr)");
-	register_command(cmd_ctx, NULL, "debug_level", handle_debug_level_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "debug_level", handle_debug_level_command,
 		COMMAND_ANY, "adjust debug level <0-3>");
 
 	return ERROR_OK;

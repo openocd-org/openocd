@@ -189,10 +189,10 @@ int pld_init(struct command_context *cmd_ctx)
 	if (!pld_devices)
 		return ERROR_OK;
 
-	register_command(cmd_ctx, pld_cmd, "devices",
+	COMMAND_REGISTER(cmd_ctx, pld_cmd, "devices",
 			handle_pld_devices_command, COMMAND_EXEC,
 			"list configured pld devices");
-	register_command(cmd_ctx, pld_cmd, "load",
+	COMMAND_REGISTER(cmd_ctx, pld_cmd, "load",
 			handle_pld_load_command, COMMAND_EXEC,
 			"load configuration <file> into programmable logic device");
 
@@ -201,9 +201,9 @@ int pld_init(struct command_context *cmd_ctx)
 
 int pld_register_commands(struct command_context *cmd_ctx)
 {
-	pld_cmd = register_command(cmd_ctx, NULL, "pld", NULL, COMMAND_ANY, "programmable logic device commands");
+	pld_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "pld", NULL, COMMAND_ANY, "programmable logic device commands");
 
-	register_command(cmd_ctx, pld_cmd, "device", handle_pld_device_command, COMMAND_CONFIG, NULL);
+	COMMAND_REGISTER(cmd_ctx, pld_cmd, "device", handle_pld_device_command, COMMAND_CONFIG, NULL);
 
 	return ERROR_OK;
 }

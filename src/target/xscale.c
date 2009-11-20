@@ -3558,27 +3558,27 @@ static int xscale_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *xscale_cmd;
 
-	xscale_cmd = register_command(cmd_ctx, NULL, "xscale", NULL, COMMAND_ANY, "xscale specific commands");
+	xscale_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "xscale", NULL, COMMAND_ANY, "xscale specific commands");
 
-	register_command(cmd_ctx, xscale_cmd, "debug_handler", xscale_handle_debug_handler_command, COMMAND_ANY, "'xscale debug_handler <target#> <address>' command takes two required operands");
-	register_command(cmd_ctx, xscale_cmd, "cache_clean_address", xscale_handle_cache_clean_address_command, COMMAND_ANY, NULL);
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "debug_handler", xscale_handle_debug_handler_command, COMMAND_ANY, "'xscale debug_handler <target#> <address>' command takes two required operands");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "cache_clean_address", xscale_handle_cache_clean_address_command, COMMAND_ANY, NULL);
 
-	register_command(cmd_ctx, xscale_cmd, "cache_info", xscale_handle_cache_info_command, COMMAND_EXEC, NULL);
-	register_command(cmd_ctx, xscale_cmd, "mmu", xscale_handle_mmu_command, COMMAND_EXEC, "['enable'|'disable'] the MMU");
-	register_command(cmd_ctx, xscale_cmd, "icache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the ICache");
-	register_command(cmd_ctx, xscale_cmd, "dcache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the DCache");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "cache_info", xscale_handle_cache_info_command, COMMAND_EXEC, NULL);
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "mmu", xscale_handle_mmu_command, COMMAND_EXEC, "['enable'|'disable'] the MMU");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "icache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the ICache");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "dcache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the DCache");
 
-	register_command(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_vector_catch_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
-	register_command(cmd_ctx, xscale_cmd, "vector_table", xscale_handle_vector_table_command, COMMAND_EXEC, "<high|low> <index> <code> set static code for exception handler entry");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_vector_catch_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "vector_table", xscale_handle_vector_table_command, COMMAND_EXEC, "<high|low> <index> <code> set static code for exception handler entry");
 
-	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable | disable> ['fill' [n]|'wrap']");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable | disable> ['fill' [n]|'wrap']");
 
-	register_command(cmd_ctx, xscale_cmd, "dump_trace", xscale_handle_dump_trace_command, COMMAND_EXEC, "dump content of trace buffer to <file>");
-	register_command(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");
-	register_command(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "dump_trace", xscale_handle_dump_trace_command, COMMAND_EXEC, "dump content of trace buffer to <file>");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
 		COMMAND_EXEC, "load image from <file> [base address]");
 
-	register_command(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
+	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
 
 	armv4_5_register_commands(cmd_ctx);
 

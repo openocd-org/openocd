@@ -1634,15 +1634,15 @@ static int cortex_a8_register_commands(struct command_context *cmd_ctx)
 	armv4_5_register_commands(cmd_ctx);
 	armv7a_register_commands(cmd_ctx);
 
-	cortex_a8_cmd =	register_command(cmd_ctx, NULL, "cortex_a8",
+	cortex_a8_cmd =	COMMAND_REGISTER(cmd_ctx, NULL, "cortex_a8",
 			NULL, COMMAND_ANY,
 			"cortex_a8 specific commands");
 
-	register_command(cmd_ctx, cortex_a8_cmd, "cache_info",
+	COMMAND_REGISTER(cmd_ctx, cortex_a8_cmd, "cache_info",
 			cortex_a8_handle_cache_info_command, COMMAND_EXEC,
 			"display information about target caches");
 
-	register_command(cmd_ctx, cortex_a8_cmd, "dbginit",
+	COMMAND_REGISTER(cmd_ctx, cortex_a8_cmd, "dbginit",
 			cortex_a8_handle_dbginit_command, COMMAND_EXEC,
 			"Initialize core debug");
 

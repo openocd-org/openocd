@@ -2478,18 +2478,18 @@ sam3_register_commands(struct command_context *cmd_ctx)
 	if (!sam3_registered) {
 		sam3_registered++;
 
-		pCmd = register_command(cmd_ctx, NULL, "at91sam3", NULL, COMMAND_ANY, NULL);
-		register_command(cmd_ctx, pCmd,
+		pCmd = COMMAND_REGISTER(cmd_ctx, NULL, "at91sam3", NULL, COMMAND_ANY, NULL);
+		COMMAND_REGISTER(cmd_ctx, pCmd,
 						  "gpnvm",
 						  sam3_handle_gpnvm_command,
 						  COMMAND_EXEC,
 						  "at91sam3 gpnvm [action [<BIT>], by default 'show', otherwise set | clear BIT");
-		register_command(cmd_ctx, pCmd,
+		COMMAND_REGISTER(cmd_ctx, pCmd,
 						  "info",
 						  sam3_handle_info_command,
 						  COMMAND_EXEC,
 						  "at91sam3 info - print information about the current sam3 chip");
-		register_command(cmd_ctx, pCmd,
+		COMMAND_REGISTER(cmd_ctx, pCmd,
 						  "slowclk",
 						  sam3_handle_slowclk_command,
 						  COMMAND_EXEC,

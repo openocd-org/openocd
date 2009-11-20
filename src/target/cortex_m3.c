@@ -1919,16 +1919,16 @@ static int cortex_m3_register_commands(struct command_context *cmd_ctx)
 
 	retval = armv7m_register_commands(cmd_ctx);
 
-	cortex_m3_cmd = register_command(cmd_ctx, NULL, "cortex_m3",
+	cortex_m3_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "cortex_m3",
 			NULL, COMMAND_ANY, "cortex_m3 specific commands");
 
-	register_command(cmd_ctx, cortex_m3_cmd, "disassemble",
+	COMMAND_REGISTER(cmd_ctx, cortex_m3_cmd, "disassemble",
 			handle_cortex_m3_disassemble_command, COMMAND_EXEC,
 			"disassemble Thumb2 instructions <address> [<count>]");
-	register_command(cmd_ctx, cortex_m3_cmd, "maskisr",
+	COMMAND_REGISTER(cmd_ctx, cortex_m3_cmd, "maskisr",
 			handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC,
 			"mask cortex_m3 interrupts ['on'|'off']");
-	register_command(cmd_ctx, cortex_m3_cmd, "vector_catch",
+	COMMAND_REGISTER(cmd_ctx, cortex_m3_cmd, "vector_catch",
 			handle_cortex_m3_vector_catch_command, COMMAND_EXEC,
 			"catch hardware vectors ['all'|'none'|<list>]");
 

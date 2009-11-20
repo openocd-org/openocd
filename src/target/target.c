@@ -4765,7 +4765,7 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 int target_register_commands(struct command_context *cmd_ctx)
 {
 
-	register_command(cmd_ctx, NULL, "targets",
+	COMMAND_REGISTER(cmd_ctx, NULL, "targets",
 			handle_targets_command, COMMAND_EXEC,
 			"change current command line target (one parameter) "
 			"or list targets (no parameters)");
@@ -4784,7 +4784,7 @@ int target_register_user_commands(struct command_context *cmd_ctx)
 	if ((retval = trace_register_commands(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	register_command(cmd_ctx, NULL, "profile",
+	COMMAND_REGISTER(cmd_ctx, NULL, "profile",
 			handle_profile_command, COMMAND_EXEC,
 			"profiling samples the CPU PC");
 
@@ -4796,94 +4796,94 @@ int target_register_user_commands(struct command_context *cmd_ctx)
 			"convert a TCL array to memory locations and write the values "
 			"<ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
 
-	register_command(cmd_ctx, NULL, "fast_load_image",
+	COMMAND_REGISTER(cmd_ctx, NULL, "fast_load_image",
 			handle_fast_load_image_command, COMMAND_ANY,
 			"same CMD_ARGV as load_image, image stored in memory "
 			"- mainly for profiling purposes");
 
-	register_command(cmd_ctx, NULL, "fast_load",
+	COMMAND_REGISTER(cmd_ctx, NULL, "fast_load",
 			handle_fast_load_command, COMMAND_ANY,
 			"loads active fast load image to current target "
 			"- mainly for profiling purposes");
 
 	/** @todo don't register virt2phys() unless target supports it */
-	register_command(cmd_ctx, NULL, "virt2phys",
+	COMMAND_REGISTER(cmd_ctx, NULL, "virt2phys",
 			handle_virt2phys_command, COMMAND_ANY,
 			"translate a virtual address into a physical address");
 
-	register_command(cmd_ctx,  NULL, "reg",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "reg",
 			handle_reg_command, COMMAND_EXEC,
 			"display or set a register");
 
-	register_command(cmd_ctx,  NULL, "poll",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "poll",
 			handle_poll_command, COMMAND_EXEC,
 			"poll target state");
-	register_command(cmd_ctx,  NULL, "wait_halt",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "wait_halt",
 			handle_wait_halt_command, COMMAND_EXEC,
 			"wait for target halt [time (s)]");
-	register_command(cmd_ctx,  NULL, "halt",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "halt",
 			handle_halt_command, COMMAND_EXEC,
 			"halt target");
-	register_command(cmd_ctx,  NULL, "resume",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "resume",
 			handle_resume_command, COMMAND_EXEC,
 			"resume target [addr]");
-	register_command(cmd_ctx,  NULL, "reset",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "reset",
 			handle_reset_command, COMMAND_EXEC,
 			"reset target [run | halt | init] - default is run");
-	register_command(cmd_ctx,  NULL, "soft_reset_halt",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "soft_reset_halt",
 			handle_soft_reset_halt_command, COMMAND_EXEC,
 			"halt the target and do a soft reset");
 
-	register_command(cmd_ctx,  NULL, "step",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "step",
 			handle_step_command, COMMAND_EXEC,
 			"step one instruction from current PC or [addr]");
 
-	register_command(cmd_ctx,  NULL, "mdw",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "mdw",
 			handle_md_command, COMMAND_EXEC,
 			"display memory words [phys] <addr> [count]");
-	register_command(cmd_ctx,  NULL, "mdh",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "mdh",
 			handle_md_command, COMMAND_EXEC,
 			"display memory half-words [phys] <addr> [count]");
-	register_command(cmd_ctx,  NULL, "mdb",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "mdb",
 			handle_md_command, COMMAND_EXEC,
 			"display memory bytes [phys] <addr> [count]");
 
-	register_command(cmd_ctx,  NULL, "mww",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "mww",
 			handle_mw_command, COMMAND_EXEC,
 			"write memory word [phys]  <addr> <value> [count]");
-	register_command(cmd_ctx,  NULL, "mwh",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "mwh",
 			handle_mw_command, COMMAND_EXEC,
 			"write memory half-word [phys]  <addr> <value> [count]");
-	register_command(cmd_ctx,  NULL, "mwb",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "mwb",
 			handle_mw_command, COMMAND_EXEC,
 			"write memory byte [phys] <addr> <value> [count]");
 
-	register_command(cmd_ctx,  NULL, "bp",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "bp",
 			handle_bp_command, COMMAND_EXEC,
 			"list or set breakpoint [<address> <length> [hw]]");
-	register_command(cmd_ctx,  NULL, "rbp",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "rbp",
 			handle_rbp_command, COMMAND_EXEC,
 			"remove breakpoint <address>");
 
-	register_command(cmd_ctx,  NULL, "wp",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "wp",
 			handle_wp_command, COMMAND_EXEC,
 			"list or set watchpoint "
 				"[<address> <length> <r/w/a> [value] [mask]]");
-	register_command(cmd_ctx,  NULL, "rwp",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "rwp",
 			handle_rwp_command, COMMAND_EXEC,
 			"remove watchpoint <address>");
 
-	register_command(cmd_ctx,  NULL, "load_image",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "load_image",
 			handle_load_image_command, COMMAND_EXEC,
 			"load_image <file> <address> "
 			"['bin'|'ihex'|'elf'|'s19'] [min_address] [max_length]");
-	register_command(cmd_ctx,  NULL, "dump_image",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "dump_image",
 			handle_dump_image_command, COMMAND_EXEC,
 			"dump_image <file> <address> <size>");
-	register_command(cmd_ctx,  NULL, "verify_image",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "verify_image",
 			handle_verify_image_command, COMMAND_EXEC,
 			"verify_image <file> [offset] [type]");
-	register_command(cmd_ctx,  NULL, "test_image",
+	COMMAND_REGISTER(cmd_ctx,  NULL, "test_image",
 			handle_test_image_command, COMMAND_EXEC,
 			"test_image <file> [offset] [type]");
 

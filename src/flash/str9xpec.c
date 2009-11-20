@@ -1165,40 +1165,40 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 
 static int str9xpec_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *str9xpec_cmd = register_command(cmd_ctx, NULL, "str9xpec",
+	struct command *str9xpec_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "str9xpec",
 			NULL, COMMAND_ANY, "str9xpec flash specific commands");
 
-	register_command(cmd_ctx, str9xpec_cmd, "enable_turbo",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "enable_turbo",
 			str9xpec_handle_flash_enable_turbo_command,
 			COMMAND_EXEC, "enable str9xpec turbo mode");
-	register_command(cmd_ctx, str9xpec_cmd, "disable_turbo",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "disable_turbo",
 			str9xpec_handle_flash_disable_turbo_command,
 			COMMAND_EXEC, "disable str9xpec turbo mode");
-	register_command(cmd_ctx, str9xpec_cmd, "options_cmap",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_cmap",
 			str9xpec_handle_flash_options_cmap_command,
 			COMMAND_EXEC, "configure str9xpec boot sector");
-	register_command(cmd_ctx, str9xpec_cmd, "options_lvdthd",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_lvdthd",
 			str9xpec_handle_flash_options_lvdthd_command,
 			COMMAND_EXEC, "configure str9xpec lvd threshold");
-	register_command(cmd_ctx, str9xpec_cmd, "options_lvdsel",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_lvdsel",
 			str9xpec_handle_flash_options_lvdsel_command,
 			COMMAND_EXEC, "configure str9xpec lvd selection");
-	register_command(cmd_ctx, str9xpec_cmd, "options_lvdwarn",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_lvdwarn",
 			str9xpec_handle_flash_options_lvdwarn_command,
 			COMMAND_EXEC, "configure str9xpec lvd warning");
-	register_command(cmd_ctx, str9xpec_cmd, "options_read",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_read",
 			str9xpec_handle_flash_options_read_command,
 			COMMAND_EXEC, "read str9xpec options");
-	register_command(cmd_ctx, str9xpec_cmd, "options_write",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_write",
 			str9xpec_handle_flash_options_write_command,
 			COMMAND_EXEC, "write str9xpec options");
-	register_command(cmd_ctx, str9xpec_cmd, "lock",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "lock",
 			str9xpec_handle_flash_lock_command,
 			COMMAND_EXEC, "lock str9xpec device");
-	register_command(cmd_ctx, str9xpec_cmd, "unlock",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "unlock",
 			str9xpec_handle_flash_unlock_command,
 			COMMAND_EXEC, "unlock str9xpec device");
-	register_command(cmd_ctx, str9xpec_cmd, "part_id",
+	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "part_id",
 			str9xpec_handle_part_id_command,
 			COMMAND_EXEC, "print part id of str9xpec flash bank <num>");
 

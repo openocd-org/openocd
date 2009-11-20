@@ -647,22 +647,22 @@ static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 
 int ioutil_init(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
+	COMMAND_REGISTER(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
 			"remove file");
 
-	register_command(cmd_ctx, NULL, "cat", handle_cat_command, COMMAND_ANY,
+	COMMAND_REGISTER(cmd_ctx, NULL, "cat", handle_cat_command, COMMAND_ANY,
 			"display file content");
 
-	register_command(cmd_ctx, NULL, "trunc", handle_trunc_command, COMMAND_ANY,
+	COMMAND_REGISTER(cmd_ctx, NULL, "trunc", handle_trunc_command, COMMAND_ANY,
 			"truncate a file to 0 size");
 
-	register_command(cmd_ctx, NULL, "cp", handle_cp_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "cp", handle_cp_command,
 					 COMMAND_ANY, "copy a file <from> <to>");
 
-	register_command(cmd_ctx, NULL, "append_file", handle_append_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "append_file", handle_append_command,
 			COMMAND_ANY, "append a variable number of strings to a file");
 
-	register_command(cmd_ctx, NULL, "meminfo", handle_meminfo_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "meminfo", handle_meminfo_command,
 			COMMAND_ANY, "display available ram memory");
 
     Jim_CreateCommand(interp, "rm", zylinjtag_Jim_Command_rm, NULL, NULL);

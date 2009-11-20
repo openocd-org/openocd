@@ -484,22 +484,22 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 
 static int parport_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "parport_port",
+	COMMAND_REGISTER(cmd_ctx, NULL, "parport_port",
 			parport_handle_parport_port_command, COMMAND_CONFIG,
 			"either the address of the I/O port "
 			"or the number of the '/dev/parport' device");
 
-	register_command(cmd_ctx, NULL, "parport_cable",
+	COMMAND_REGISTER(cmd_ctx, NULL, "parport_cable",
 			parport_handle_parport_cable_command, COMMAND_CONFIG,
 			"the layout of the parallel port cable "
 			"used to connect to the target");
 
-	register_command(cmd_ctx, NULL, "parport_write_on_exit",
+	COMMAND_REGISTER(cmd_ctx, NULL, "parport_write_on_exit",
 			parport_handle_write_on_exit_command, COMMAND_CONFIG,
 			"configure the parallel driver to write "
 			"a known value to the parallel interface");
 
-	register_command(cmd_ctx, NULL, "parport_toggling_time",
+	COMMAND_REGISTER(cmd_ctx, NULL, "parport_toggling_time",
 			parport_handle_parport_toggling_time_command, COMMAND_ANY,
 			"time <ns> it takes for the hardware to toggle TCK");
 

@@ -1184,22 +1184,22 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 
 static int stm32x_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *stm32x_cmd = register_command(cmd_ctx, NULL, "stm32x",
+	struct command *stm32x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "stm32x",
 			NULL, COMMAND_ANY, "stm32x flash specific commands");
 
-	register_command(cmd_ctx, stm32x_cmd, "lock",
+	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "lock",
 			stm32x_handle_lock_command, COMMAND_EXEC,
 			"lock device");
-	register_command(cmd_ctx, stm32x_cmd, "unlock",
+	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "unlock",
 			stm32x_handle_unlock_command, COMMAND_EXEC,
 			"unlock protected device");
-	register_command(cmd_ctx, stm32x_cmd, "mass_erase",
+	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "mass_erase",
 			stm32x_handle_mass_erase_command, COMMAND_EXEC,
 			"mass erase device");
-	register_command(cmd_ctx, stm32x_cmd, "options_read",
+	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "options_read",
 			stm32x_handle_options_read_command, COMMAND_EXEC,
 			"read device option bytes");
-	register_command(cmd_ctx, stm32x_cmd, "options_write",
+	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "options_write",
 			stm32x_handle_options_write_command, COMMAND_EXEC,
 			"write device option bytes");
 

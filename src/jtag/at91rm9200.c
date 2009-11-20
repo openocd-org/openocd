@@ -202,7 +202,7 @@ static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, cha
 
 static int at91rm9200_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "at91rm9200_device", at91rm9200_handle_device_command,
+	COMMAND_REGISTER(cmd_ctx, NULL, "at91rm9200_device", at91rm9200_handle_device_command,
 		COMMAND_CONFIG, NULL);
 	return ERROR_OK;
 }

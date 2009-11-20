@@ -954,60 +954,36 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
  */
 static int lpc2900_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *lpc2900_cmd = register_command(cmd_ctx, NULL, "lpc2900",
+	struct command *lpc2900_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "lpc2900",
 	                                          NULL, COMMAND_ANY, NULL);
 
-	register_command(
-	    cmd_ctx,
-	    lpc2900_cmd,
-	    "signature",
-	    lpc2900_handle_signature_command,
-	    COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "signature",
+	    &lpc2900_handle_signature_command, COMMAND_EXEC,
 	    "<bank> | "
-            "print device signature of flash bank");
+	    "print device signature of flash bank");
 
-	register_command(
-	    cmd_ctx,
-	    lpc2900_cmd,
-	    "read_custom",
-	    lpc2900_handle_read_custom_command,
-	    COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "read_custom",
+	    &lpc2900_handle_read_custom_command, COMMAND_EXEC,
 	    "<bank> <filename> | "
             "read customer information from index sector to file");
 
-	register_command(
-	    cmd_ctx,
-	    lpc2900_cmd,
-	    "password",
-	    lpc2900_handle_password_command,
-	    COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "password",
+	    &lpc2900_handle_password_command, COMMAND_EXEC,
 	    "<bank> <password> | "
             "enter password to enable 'dangerous' options");
 
-	register_command(
-	    cmd_ctx,
-	    lpc2900_cmd,
-	    "write_custom",
-	    lpc2900_handle_write_custom_command,
-	    COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "write_custom",
+	    &lpc2900_handle_write_custom_command, COMMAND_EXEC,
 	    "<bank> <filename> [<type>] | "
             "write customer info from file to index sector");
 
-	register_command(
-	    cmd_ctx,
-	    lpc2900_cmd,
-	    "secure_sector",
-	    lpc2900_handle_secure_sector_command,
-	    COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "secure_sector",
+	    &lpc2900_handle_secure_sector_command, COMMAND_EXEC,
 	    "<bank> <first> <last> | "
             "activate sector security for a range of sectors");
 
-	register_command(
-	    cmd_ctx,
-	    lpc2900_cmd,
-	    "secure_jtag",
-	    lpc2900_handle_secure_jtag_command,
-	    COMMAND_EXEC,
+	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "secure_jtag",
+	    &lpc2900_handle_secure_jtag_command, COMMAND_EXEC,
 	    "<bank> <level> | "
             "activate JTAG security");
 

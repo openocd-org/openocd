@@ -875,9 +875,9 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 
 static int lpc3180_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *lpc3180_cmd = register_command(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
+	struct command *lpc3180_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
 
-	register_command(cmd_ctx, lpc3180_cmd, "select", handle_lpc3180_select_command, COMMAND_EXEC, "select <'mlc'|'slc'> controller (default is mlc)");
+	COMMAND_REGISTER(cmd_ctx, lpc3180_cmd, "select", handle_lpc3180_select_command, COMMAND_EXEC, "select <'mlc'|'slc'> controller (default is mlc)");
 
 	return ERROR_OK;
 }

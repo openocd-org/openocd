@@ -1271,12 +1271,12 @@ COMMAND_HANDLER(mg_config_cmd)
 int mflash_init_drivers(struct command_context *cmd_ctx)
 {
 	if (mflash_bank) {
-		register_command(cmd_ctx, mflash_cmd, "probe", mg_probe_cmd, COMMAND_EXEC, NULL);
-		register_command(cmd_ctx, mflash_cmd, "write", mg_write_cmd, COMMAND_EXEC,
+		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "probe", mg_probe_cmd, COMMAND_EXEC, NULL);
+		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "write", mg_write_cmd, COMMAND_EXEC,
 				"mflash write <num> <file> <address>");
-		register_command(cmd_ctx, mflash_cmd, "dump", mg_dump_cmd, COMMAND_EXEC,
+		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "dump", mg_dump_cmd, COMMAND_EXEC,
 						"mflash dump <num> <file> <address> <size>");
-		register_command(cmd_ctx, mflash_cmd, "config", mg_config_cmd,
+		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "config", mg_config_cmd,
 				COMMAND_EXEC, "mflash config <num> <stage>");
 	}
 
@@ -1325,8 +1325,8 @@ COMMAND_HANDLER(mg_bank_cmd)
 
 int mflash_register_commands(struct command_context *cmd_ctx)
 {
-	mflash_cmd = register_command(cmd_ctx, NULL, "mflash", NULL, COMMAND_ANY, NULL);
-	register_command(cmd_ctx, mflash_cmd, "bank", mg_bank_cmd, COMMAND_CONFIG,
+	mflash_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "mflash", NULL, COMMAND_ANY, NULL);
+	COMMAND_REGISTER(cmd_ctx, mflash_cmd, "bank", mg_bank_cmd, COMMAND_CONFIG,
 			"mflash bank <soc> <base> <RST pin> <target #>");
 	return ERROR_OK;
 }

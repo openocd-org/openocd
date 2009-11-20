@@ -1462,7 +1462,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 
 int svf_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "svf",
+	COMMAND_REGISTER(cmd_ctx, NULL, "svf",
 			&handle_svf_command, COMMAND_EXEC,
 			"run svf <file>");
 

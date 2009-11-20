@@ -2328,23 +2328,23 @@ COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 
 int gdb_register_commands(struct command_context *command_context)
 {
-	register_command(command_context, NULL, "gdb_sync",
+	COMMAND_REGISTER(command_context, NULL, "gdb_sync",
 			handle_gdb_sync_command, COMMAND_ANY,
 			"next stepi will return immediately allowing GDB to "
 			"fetch register state without affecting target state");
-	register_command(command_context, NULL, "gdb_port",
+	COMMAND_REGISTER(command_context, NULL, "gdb_port",
 			handle_gdb_port_command, COMMAND_ANY,
 			"daemon configuration command gdb_port");
-	register_command(command_context, NULL, "gdb_memory_map",
+	COMMAND_REGISTER(command_context, NULL, "gdb_memory_map",
 			handle_gdb_memory_map_command, COMMAND_CONFIG,
 			"enable or disable memory map");
-	register_command(command_context, NULL, "gdb_flash_program",
+	COMMAND_REGISTER(command_context, NULL, "gdb_flash_program",
 			handle_gdb_flash_program_command, COMMAND_CONFIG,
 			"enable or disable flash program");
-	register_command(command_context, NULL, "gdb_report_data_abort",
+	COMMAND_REGISTER(command_context, NULL, "gdb_report_data_abort",
 			handle_gdb_report_data_abort_command, COMMAND_CONFIG,
 			"enable or disable reporting data aborts");
-	register_command(command_context, NULL, "gdb_breakpoint_override",
+	COMMAND_REGISTER(command_context, NULL, "gdb_breakpoint_override",
 			handle_gdb_breakpoint_override_command, COMMAND_EXEC,
 			"hard/soft/disable - force type of breakpoint "
 			"used by gdb 'break' commands.");

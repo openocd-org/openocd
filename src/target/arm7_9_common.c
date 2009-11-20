@@ -2851,18 +2851,18 @@ int arm7_9_register_commands(struct command_context *cmd_ctx)
 {
 	struct command *arm7_9_cmd;
 
-	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9",
+	arm7_9_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm7_9",
 			NULL, COMMAND_ANY, "arm7/9 specific commands");
 
-	register_command(cmd_ctx, arm7_9_cmd, "dbgrq",
+	COMMAND_REGISTER(cmd_ctx, arm7_9_cmd, "dbgrq",
 			handle_arm7_9_dbgrq_command, COMMAND_ANY,
 			"use EmbeddedICE dbgrq instead of breakpoint "
 			"for target halt requests <enable | disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "fast_memory_access",
+	COMMAND_REGISTER(cmd_ctx, arm7_9_cmd, "fast_memory_access",
 			handle_arm7_9_fast_memory_access_command, COMMAND_ANY,
 			"use fast memory accesses instead of slower "
 			"but potentially safer accesses <enable | disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "dcc_downloads",
+	COMMAND_REGISTER(cmd_ctx, arm7_9_cmd, "dcc_downloads",
 			handle_arm7_9_dcc_downloads_command, COMMAND_ANY,
 			"use DCC downloads for larger memory writes <enable | disable>");
 

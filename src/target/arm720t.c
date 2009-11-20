@@ -499,11 +499,11 @@ static int arm720t_register_commands(struct command_context *cmd_ctx)
 
 	retval = arm7_9_register_commands(cmd_ctx);
 
-	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t",
+	arm720t_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm720t",
 			NULL, COMMAND_ANY,
 			"arm720t specific commands");
 
-	register_command(cmd_ctx, arm720t_cmd, "cp15",
+	COMMAND_REGISTER(cmd_ctx, arm720t_cmd, "cp15",
 			arm720t_handle_cp15_command, COMMAND_EXEC,
 			"display/modify cp15 register <opcode> [value]");
 

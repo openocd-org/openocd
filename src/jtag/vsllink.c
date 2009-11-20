@@ -1858,22 +1858,22 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 
 static int vsllink_register_commands(struct command_context *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "vsllink_usb_vid",
+	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_vid",
 			vsllink_handle_usb_vid_command, COMMAND_CONFIG,
 			NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_pid",
+	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_pid",
 			vsllink_handle_usb_pid_command, COMMAND_CONFIG,
 			NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_bulkin",
+	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_bulkin",
 			vsllink_handle_usb_bulkin_command, COMMAND_CONFIG,
 			NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_bulkout",
+	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_bulkout",
 			vsllink_handle_usb_bulkout_command, COMMAND_CONFIG,
 			NULL);
-	register_command(cmd_ctx, NULL, "vsllink_usb_interface",
+	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_interface",
 			vsllink_handle_usb_interface_command, COMMAND_CONFIG,
 			NULL);
-	register_command(cmd_ctx, NULL, "vsllink_mode",
+	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_mode",
 			vsllink_handle_mode_command, COMMAND_CONFIG,
 			NULL);
 

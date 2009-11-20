@@ -303,9 +303,9 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 int target_request_register_commands(struct command_context *cmd_ctx)
 {
 	target_request_cmd =
-		register_command(cmd_ctx, NULL, "target_request", NULL, COMMAND_ANY, "target_request commands");
+		COMMAND_REGISTER(cmd_ctx, NULL, "target_request", NULL, COMMAND_ANY, "target_request commands");
 
-	register_command(cmd_ctx, target_request_cmd, "debugmsgs", handle_target_request_debugmsgs_command,
+	COMMAND_REGISTER(cmd_ctx, target_request_cmd, "debugmsgs", handle_target_request_debugmsgs_command,
 		COMMAND_EXEC, "enable/disable reception of debug messages from target");
 
 	return ERROR_OK;
