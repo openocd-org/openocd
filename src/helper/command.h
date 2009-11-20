@@ -201,6 +201,9 @@ struct command_registration {
 	const char *help;
 };
 
+/// Use this as the last entry in an array of command_registration records.
+#define COMMAND_REGISTRATION_DONE { .name = NULL }
+
 /**
  * Register a command @c handler that can be called from scripts during
  * the execution @c mode specified.
@@ -229,6 +232,22 @@ struct command* register_command(struct command_context *cmd_ctx,
 			}; \
 		register_command(_cmd_ctx, _parent, &cr); \
 	})
+
+/**
+ * Register one or more commands in the specified context, as children
+ * of @c parent (or top-level commends, if NULL).
+ *
+ * @param cmd_ctx The command_context in which to register the command.
+ * @param parent Register this command as a child of this, or NULL to
+ * register a top-level command.
+ * @param cmds Pointer to an array of command_registration records that
+ * contains the desired command parameters.  The last record must have
+ * NULL for all fields.
+ * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
+ */
+int register_commands(struct command_context *cmd_ctx, struct command *parent,
+		const struct command_registration *cmds);
+
 
 /**
  * Unregisters command @c name from the given context, @c cmd_ctx.

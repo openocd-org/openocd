@@ -302,6 +302,23 @@ struct command* register_command(struct command_context *context,
 	return c;
 }
 
+int register_commands(struct command_context *cmd_ctx, struct command *parent,
+		const struct command_registration *cmds)
+{
+	unsigned i;
+	for (i = 0; cmds[i].name; i++)
+	{
+		struct command *c = register_command(cmd_ctx, parent, cmds + i);
+		if (NULL != c)
+			continue;
+
+		for (unsigned j = 0; j < i; j++)
+			unregister_command(cmd_ctx, parent, cmds[j].name);
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 int unregister_all_commands(struct command_context *context,
 		struct command *parent)
 {
