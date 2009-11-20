@@ -237,7 +237,7 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
-	if (reg > 16)
+	if (reg > 17)
 		return retval;
 
 	if (reg < 15)
@@ -251,10 +251,12 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 		cortex_a8_exec_opcode(target, 0xE1A0000F);
 		cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 	}
-	else if (reg == 16)
+	else
 	{
-		/* "MRS r0, CPSR"; then move r0 to DCCTX */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRS(0, 0));
+		/* "MRS r0, CPSR" or "MRS r0, SPSR"
+		 * then move r0 to DCCTX
+		 */
+		cortex_a8_exec_opcode(target, ARMV4_5_MRS(0, reg & 1));
 		cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 	}
 
@@ -268,11 +270,13 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 
 	retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DTRTX, value);
+	LOG_DEBUG("read DCC 0x%08" PRIx32, *value);
 
 	return retval;
 }
 
-static int cortex_a8_dap_write_coreregister_u32(struct target *target, uint32_t value, int regnum)
+static int cortex_a8_dap_write_coreregister_u32(struct target *target,
+		uint32_t value, int regnum)
 {
 	int retval = ERROR_OK;
 	uint8_t Rd = regnum&0xFF;
@@ -292,29 +296,39 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target, uint32_t 
 		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
 	}
 
-	if (Rd > 16)
+	if (Rd > 17)
 		return retval;
 
 	/* Write to DCCRX */
+	LOG_DEBUG("write DCC 0x%08" PRIx32, value);
 	retval = mem_ap_write_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DTRRX, value);
 
 	if (Rd < 15)
 	{
-		/* DCCRX to Rd, MCR p14, 0, Rd, c0, c5, 0,  0xEE000E15 */
+		/* DCCRX to Rn, "MCR p14, 0, Rn, c0, c5, 0", 0xEE00nE15 */
 		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, Rd, 0, 5, 0));
 	}
 	else if (Rd == 15)
 	{
+		/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15
+		 * then "mov r15, r0"
+		 */
 		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
 		cortex_a8_exec_opcode(target, 0xE1A0F000);
 	}
-	else if (Rd == 16)
+	else
 	{
+		/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15
+		 * then "MSR CPSR_cxsf, r0" or "MSR SPSR_cxsf, r0" (all fields)
+		 */
 		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
-		cortex_a8_exec_opcode(target, ARMV4_5_MSR_GP(0, 0xF, 0));
-		/* Execute a PrefetchFlush instruction through the ITR. */
-		cortex_a8_exec_opcode(target, ARMV4_5_MCR(15, 0, 0, 7, 5, 4));
+		cortex_a8_exec_opcode(target, ARMV4_5_MSR_GP(0, 0xF, Rd & 1));
+
+		/* "Prefetch flush" after modifying execution status in CPSR */
+		if (Rd == 16)
+			cortex_a8_exec_opcode(target,
+					ARMV4_5_MCR(15, 0, 0, 7, 5, 4));
 	}
 
 	return retval;
@@ -950,28 +964,64 @@ static int cortex_a8_store_core_reg_u32(struct target *target, int num,
 #endif
 
 
+static int cortex_a8_write_core_reg(struct target *target, int num,
+		enum armv4_5_mode mode, uint32_t value);
+
 static int cortex_a8_read_core_reg(struct target *target, int num,
 		enum armv4_5_mode mode)
 {
 	uint32_t value;
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct reg_cache *cache = armv4_5->core_cache;
+	uint32_t cpsr = 0;
+	unsigned cookie = num;
 
-	/* FIXME cortex may not be in "mode" ... */
+	/* avoid some needless mode changes
+	 * FIXME move some of these to shared ARM code...
+	 */
+	if (mode != armv4_5->core_mode) {
+		if ((armv4_5->core_mode == ARMV4_5_MODE_SYS)
+				&& (mode == ARMV4_5_MODE_USR))
+			mode = ARMV4_5_MODE_ANY;
+		else if ((mode != ARMV4_5_MODE_FIQ) && (num <= 12))
+			mode = ARMV4_5_MODE_ANY;
 
-	cortex_a8_dap_read_coreregister_u32(target, &value, num);
-
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		return retval;
+		if (mode != ARMV4_5_MODE_ANY) {
+			cpsr = buf_get_u32(cache ->reg_list[ARMV4_5_CPSR]
+					.value, 0, 32);
+			cortex_a8_write_core_reg(target, 16,
+					ARMV4_5_MODE_ANY, mode);
+		}
 	}
 
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			mode, num).value, 0, 32, value);
+	if (num == 16) {
+		switch (mode) {
+		case ARMV4_5_MODE_USR:
+		case ARMV4_5_MODE_SYS:
+		case ARMV4_5_MODE_ANY:
+			/* CPSR */
+			break;
+		default:
+			/* SPSR */
+			cookie++;
+			break;
+		}
+	}
 
-	return ERROR_OK;
+	cortex_a8_dap_read_coreregister_u32(target, &value, cookie);
+	retval = jtag_execute_queue();
+	if (retval == ERROR_OK) {
+		struct reg *r = &ARMV4_5_CORE_REG_MODE(cache, mode, num);
+
+		r->valid = 1;
+		r->dirty = 0;
+		buf_set_u32(r->value, 0, 32, value);
+	}
+
+	if (cpsr)
+		cortex_a8_write_core_reg(target, 16, ARMV4_5_MODE_ANY, cpsr);
+	return retval;
 }
 
 static int cortex_a8_write_core_reg(struct target *target, int num,
@@ -979,19 +1029,55 @@ static int cortex_a8_write_core_reg(struct target *target, int num,
 {
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct reg_cache *cache = armv4_5->core_cache;
+	uint32_t cpsr = 0;
+	unsigned cookie = num;
 
-	/* FIXME cortex may not be in "mode" ... */
+	/* avoid some needless mode changes
+	 * FIXME move some of these to shared ARM code...
+	 */
+	if (mode != armv4_5->core_mode) {
+		if ((armv4_5->core_mode == ARMV4_5_MODE_SYS)
+				&& (mode == ARMV4_5_MODE_USR))
+			mode = ARMV4_5_MODE_ANY;
+		else if ((mode != ARMV4_5_MODE_FIQ) && (num <= 12))
+			mode = ARMV4_5_MODE_ANY;
 
-	cortex_a8_dap_write_coreregister_u32(target, value, num);
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		return retval;
+		if (mode != ARMV4_5_MODE_ANY) {
+			cpsr = buf_get_u32(cache ->reg_list[ARMV4_5_CPSR]
+					.value, 0, 32);
+			cortex_a8_write_core_reg(target, 16,
+					ARMV4_5_MODE_ANY, mode);
+		}
 	}
 
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
 
-	return ERROR_OK;
+	if (num == 16) {
+		switch (mode) {
+		case ARMV4_5_MODE_USR:
+		case ARMV4_5_MODE_SYS:
+		case ARMV4_5_MODE_ANY:
+			/* CPSR */
+			break;
+		default:
+			/* SPSR */
+			cookie++;
+			break;
+		}
+	}
+
+	cortex_a8_dap_write_coreregister_u32(target, value, cookie);
+	if ((retval = jtag_execute_queue()) == ERROR_OK) {
+		struct reg *r = &ARMV4_5_CORE_REG_MODE(cache, mode, num);
+
+		buf_set_u32(r->value, 0, 32, value);
+		r->valid = 1;
+		r->dirty = 0;
+	}
+
+	if (cpsr)
+		cortex_a8_write_core_reg(target, 16, ARMV4_5_MODE_ANY, cpsr);
+	return retval;
 }
 
 
