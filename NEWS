@@ -16,13 +16,30 @@ Target Layer:
 		- accelerated GDB memory checksum
 
 Flash Layer:
+	'flash bank' and 'nand device' take <bank_name> as first argument.
+	With this, flash/NAND commands allow referencing banks by name:
+		- <bank_name>: reference the bank with its defined name
+		- <driver_name>[.N]: reference the driver's Nth bank
+	New 'nand verify' command to check bank against an image file.
+
 Board, Target, and Interface Configuration Scripts:
 	ARM9
 		- ETM and ETB hookup for iMX2* targets
 	Add $HOME/.openocd to the search path.
 
+Core Jim/TCL Scripting:
+	New 'usage' command to provide terse command help.
+	Improved command 'help' command output (sorted and indented).
+	Improved command handling:
+		- Most boolean settings now accept any of the following:
+		  on/off, enable/disable, true/false, yes/no, 1/0
+		- More error checking and reporting.
+
 Documentation:
+	New built-in command development documentation and primer.
+
 Build and Release:
+	Use --enable-doxygen-pdf to build PDF developer documentation.
 
 For more details about what has changed since the last release,
 see the git repository history.  With gitweb, you can browse that
