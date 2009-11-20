@@ -316,15 +316,29 @@ COMMAND_HANDLER(handle_log_output_command)
 	return ERROR_OK;
 }
 
+static struct command_registration log_command_handlers[] = {
+	{
+		.name = "log_output",
+		.handler = &handle_log_output_command,
+		.mode = COMMAND_ANY,
+		.help = "redirect logging to a file (default: stderr)",
+		.usage = "<file_name>",
+	},
+	{
+		.name = "debug_level",
+		.handler = &handle_debug_level_command,
+		.mode = COMMAND_ANY,
+		.help = "sets the verbosity level of debugging output",
+		.usage = "<level:0-3>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int log_register_commands(struct command_context *cmd_ctx)
 {
 	start = timeval_ms();
-	COMMAND_REGISTER(cmd_ctx, NULL, "log_output", handle_log_output_command,
-		COMMAND_ANY, "redirect logging to <file> (default: stderr)");
-	COMMAND_REGISTER(cmd_ctx, NULL, "debug_level", handle_debug_level_command,
-		COMMAND_ANY, "adjust debug level <0-3>");
 
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, log_command_handlers);
 }
 
 int log_init(struct command_context *cmd_ctx)
