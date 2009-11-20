@@ -207,6 +207,10 @@ struct command* register_command(struct command_context *cmd_ctx,
 		command_handler_t handler, enum command_mode mode,
 		const char *help);
 
+// provide a simple shim, for now; allows parameters to be migrated
+#define COMMAND_REGISTER(_cmd_ctx, _parent, _name, _handler, _mode, _help) \
+		register_command(_cmd_ctx, _parent, _name, _handler, _mode, _help)
+
 /**
  * Unregisters command @c name from the given context, @c cmd_ctx.
  * @param cmd_ctx The context of the registered command.
