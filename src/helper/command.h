@@ -177,6 +177,30 @@ struct command
  */
 char *command_name(struct command *c, char delim);
 
+/*
+ * Commands should be registered by filling in one or more of these
+ * structures and passing them to register_command().
+ *
+ * A conventioal format should be used for help strings, to provide both
+ * usage and basic information:
+ * @code
+ * "@<options@> ... - some explanation text"
+ * @endcode
+ *
+ * @param name The name of the command to register, which must not have
+ * been registered previously in the intended context.
+ * @param handler The callback function that will be called.  If NULL,
+ * then the command serves as a placeholder for its children or a script.
+ * @param mode The command mode(s) in which this command may be run.
+ * @param help The help text that will be displayed to the user.
+ */
+struct command_registration {
+	const char *name;
+	command_handler_t handler;
+	enum command_mode mode;
+	const char *help;
+};
+
 /**
  * Register a command @c handler that can be called from scripts during
  * the execution @c mode specified.
@@ -185,31 +209,26 @@ char *command_name(struct command *c, char delim);
  * sub-command under it; otherwise, it will be available as a top-level
  * command.
  *
- * A conventioal format should be used for help strings, to provide both
- * usage and basic information:
- * @code
- * "@<options@> ... - some explanation text"
- * @endcode
- *
  * @param cmd_ctx The command_context in which to register the command.
  * @param parent Register this command as a child of this, or NULL to
  * register a top-level command.
- * @param name The name of the command to register, which must not have
- * been registered previously.
- * @param handler The callback function that will be called.  If NULL,
- * then the command serves as a placeholder for its children or a script.
- * @param mode The command mode(s) in which this command may be run.
- * @param help The help text that will be displayed to the user.
+ * @param rec A command_registration record that contains the desired
+ * command parameters.
  * @returns The new command, if successful; otherwise, NULL.
  */
 struct command* register_command(struct command_context *cmd_ctx,
-		struct command *parent, const char *name,
-		command_handler_t handler, enum command_mode mode,
-		const char *help);
+		struct command *parent, const struct command_registration *rec);
 
-// provide a simple shim, for now; allows parameters to be migrated
 #define COMMAND_REGISTER(_cmd_ctx, _parent, _name, _handler, _mode, _help) \
-		register_command(_cmd_ctx, _parent, _name, _handler, _mode, _help)
+	({ \
+		struct command_registration cr = { \
+				.name = _name, \
+				.handler = _handler, \
+				.mode = _mode, \
+				.help = _help, \
+			}; \
+		register_command(_cmd_ctx, _parent, &cr); \
+	})
 
 /**
  * Unregisters command @c name from the given context, @c cmd_ctx.

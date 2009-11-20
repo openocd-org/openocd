@@ -263,13 +263,12 @@ static void command_free(struct command *c)
 }
 
 struct command* register_command(struct command_context *context,
-		struct command *parent, const char *name,
-		command_handler_t handler, enum command_mode mode,
-		const char *help)
+		struct command *parent, const struct command_registration *cr)
 {
-	if (!context || !name)
+	if (!context || !cr->name)
 		return NULL;
 
+	const char *name = cr->name;
 	struct command **head = command_list_for_parent(context, parent);
 	struct command *c = command_find(*head, name);
 	if (NULL != c)
@@ -279,7 +278,7 @@ struct command* register_command(struct command_context *context,
 		return c;
 	}
 
-	c = command_new(context, parent, name, handler, mode, help);
+	c = command_new(context, parent, name, cr->handler, cr->mode, cr->help);
 	/* if allocation failed or it is a placeholder (no handler), we're done */
 	if (NULL == c || NULL == c->handler)
 		return c;
@@ -762,8 +761,12 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 	if (NULL == nc)
 	{
 		// add a new command with help text
-		nc = register_command(cmd_ctx, parent, cmd_name,
-				NULL, COMMAND_ANY, help_text);
+		struct command_registration cr = {
+				.name = cmd_name,
+				.mode = COMMAND_ANY,
+				.help = help_text,
+			};
+		nc = register_command(cmd_ctx, parent, &cr);
 		if (NULL == nc)
 		{
 			LOG_ERROR("failed to add '%s' help text", cmd_name);
