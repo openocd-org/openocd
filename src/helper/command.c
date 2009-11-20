@@ -900,6 +900,39 @@ COMMAND_HANDLER(handle_sleep_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration command_builtin_handlers[] = {
+	{
+		.name = "add_help_text",
+		.handler = &handle_help_add_command,
+		.mode = COMMAND_ANY,
+		.help = "add new command help text",
+		.usage = "<command> [...] <help_text>]",
+	},
+	{
+		.name = "sleep",
+		.handler = &handle_sleep_command,
+		.mode = COMMAND_ANY,
+		.help = "sleep for n milliseconds.  "
+			"\"busy\" will busy wait",
+		.usage = "<n> [busy]",
+	},
+	{
+		.name = "help",
+		.handler = &handle_help_command,
+		.mode = COMMAND_ANY,
+		.help = "show built-in command help",
+		.usage = "[<command_name> ...]",
+	},
+	{
+		.name = "usage",
+		.handler = &handle_usage_command,
+		.mode = COMMAND_ANY,
+		.help = "show command usage",
+		.usage = "[<command_name> ...]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 struct command_context* command_init(const char *startup_tcl)
 {
 	struct command_context* context = malloc(sizeof(struct command_context));
@@ -959,10 +992,7 @@ struct command_context* command_init(const char *startup_tcl)
 	interp->cb_fflush = openocd_jim_fflush;
 	interp->cb_fgets = openocd_jim_fgets;
 
-	COMMAND_REGISTER(context, NULL, "add_help_text",
-			handle_help_add_command, COMMAND_ANY,
-			"<command> [...] <help_text>] - "
-			"add new command help text");
+	register_commands(context, NULL, command_builtin_handlers);
 
 #if !BUILD_ECOSBOARD
 	Jim_EventLoopOnLoad(interp);
@@ -975,19 +1005,6 @@ struct command_context* command_init(const char *startup_tcl)
 		exit(-1);
 	}
 	Jim_DeleteAssocData(interp, "context");
-
-	COMMAND_REGISTER(context, NULL, "sleep",
-			handle_sleep_command, COMMAND_ANY,
-			"<n> [busy] - sleep for n milliseconds. "
-			"\"busy\" means busy wait");
-
-	COMMAND_REGISTER(context, NULL, "help",
-			&handle_help_command, COMMAND_ANY,
-			"[<command_name> ...] - show built-in command help");
-	COMMAND_REGISTER(context, NULL, "usage",
-			&handle_usage_command, COMMAND_ANY,
-			"[<command_name> ...] | "
-			"show command usage");
 
 	return context;
 }
