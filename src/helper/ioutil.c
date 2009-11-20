@@ -643,27 +643,55 @@ static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 
 }
 
+static const struct command_registration ioutil_command_handlers[] = {
+	{
+		.name = "rm",
+		.handler = &handle_rm_command,
+		.mode = COMMAND_ANY,
+		.help = "remove file",
+		.usage= "<file_name>",
+	},
+	{
+		.name = "cat",
+		.handler = &handle_cat_command,
+		.mode = COMMAND_ANY,
+		.help = "display file content",
+		.usage= "<file_name>",
+	},
+	{
+		.name = "trunc",
+		.handler = &handle_trunc_command,
+		.mode = COMMAND_ANY,
+		.help = "truncate a file 0 size",
+		.usage= "<file_name>",
+	},
+	{
+		.name = "cp",
+		.handler = &handle_cp_command,
+		.mode = COMMAND_ANY,
+		.help = "copy a file",
+		.usage = "<src> <dst>",
+	},
+	{
+		.name = "append_file",
+		.handler = &handle_append_command,
+		.mode = COMMAND_ANY,
+		.help = "append a variable number of strings to a file",
+		.usage= "<file_name> [<string> ...]",
+	},
+	{
+		.name = "meminfo",
+		.handler = &handle_meminfo_command,
+		.mode = COMMAND_ANY,
+		.help = "display available ram memory",
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 
 int ioutil_init(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
-			"remove file");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "cat", handle_cat_command, COMMAND_ANY,
-			"display file content");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "trunc", handle_trunc_command, COMMAND_ANY,
-			"truncate a file to 0 size");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "cp", handle_cp_command,
-					 COMMAND_ANY, "copy a file <from> <to>");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "append_file", handle_append_command,
-			COMMAND_ANY, "append a variable number of strings to a file");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "meminfo", handle_meminfo_command,
-			COMMAND_ANY, "display available ram memory");
+	register_commands(cmd_ctx, NULL, ioutil_command_handlers);
 
     Jim_CreateCommand(interp, "rm", zylinjtag_Jim_Command_rm, NULL, NULL);
 
