@@ -25,9 +25,11 @@
 
 unsigned get_flash_name_index(const char *name)
 {
-	const char *index = strchr(name, '.');
+	const char *index = strrchr(name, '.');
 	if (NULL == index)
 		return 0;
+	if (index[1] < '0' || index[1] > '9')
+		return ~0U;
 	unsigned requested;
 	int retval = parse_uint(index + 1, &requested);
 	// detect parsing error by forcing past end of bank list
