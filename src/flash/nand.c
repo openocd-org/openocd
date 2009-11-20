@@ -863,20 +863,19 @@ static int nand_read_page(struct nand_device *nand, uint32_t page, uint8_t *data
 		return nand->controller->read_page(nand, page, data, data_size, oob, oob_size);
 }
 
-int nand_read_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+int nand_page_command(struct nand_device *nand, uint32_t page,
+		uint8_t cmd, bool oob_only)
 {
-	uint32_t i;
-
 	if (!nand->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 
-	if (nand->page_size <= 512)
-	{
+	if (oob_only && NAND_CMD_READ0 == cmd && nand->page_size <= 512)
+		cmd = NAND_CMD_READOOB;
+
+	nand->controller->command(nand, cmd);
+
+	if (nand->page_size <= 512) {
 		/* small page device */
-		if (data)
-			nand->controller->command(nand, NAND_CMD_READ0);
-		else
-			nand->controller->command(nand, NAND_CMD_READOOB);
 
 		/* column (always 0, we start at the beginning of a page/OOB area) */
 		nand->controller->address(nand, 0x0);
@@ -892,20 +891,17 @@ int nand_read_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, u
 		/* 5th cycle only on devices with more than 8 GiB */
 		if (nand->address_cycles >= 5)
 			nand->controller->address(nand, (page >> 24) & 0xff);
-	}
-	else
-	{
+	} else {
 		/* large page device */
-		nand->controller->command(nand, NAND_CMD_READ0);
 
 		/* column (0 when we start at the beginning of a page,
 		 * or 2048 for the beginning of OOB area)
 		 */
 		nand->controller->address(nand, 0x0);
-		if (data)
-			nand->controller->address(nand, 0x0);
-		else
+		if (oob_only)
 			nand->controller->address(nand, 0x8);
+		else
+			nand->controller->address(nand, 0x0);
 
 		/* row */
 		nand->controller->address(nand, page & 0xff);
@@ -915,8 +911,9 @@ int nand_read_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, u
 		if (nand->address_cycles >= 5)
 			nand->controller->address(nand, (page >> 16) & 0xff);
 
-		/* large page devices need a start command */
-		nand->controller->command(nand, NAND_CMD_READSTART);
+		/* large page devices need a start command if reading */
+		if (NAND_CMD_READ0 == cmd)
+			nand->controller->command(nand, NAND_CMD_READSTART);
 	}
 
 	if (nand->controller->nand_ready) {
@@ -925,6 +922,20 @@ int nand_read_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, u
 	} else {
 		alive_sleep(1);
 	}
+
+	return ERROR_OK;
+}
+
+int nand_read_page_raw(struct nand_device *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size,
+		uint8_t *oob, uint32_t oob_size)
+{
+	uint32_t i;
+	int retval;
+
+	retval = nand_page_command(nand, page, NAND_CMD_READ0, !data);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (data)
 	{
@@ -983,47 +994,9 @@ int nand_write_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, 
 	int retval;
 	uint8_t status;
 
-	if (!nand->device)
-		return ERROR_NAND_DEVICE_NOT_PROBED;
-
-	nand->controller->command(nand, NAND_CMD_SEQIN);
-
-	if (nand->page_size <= 512)
-	{
-		/* column (always 0, we start at the beginning of a page/OOB area) */
-		nand->controller->address(nand, 0x0);
-
-		/* row */
-		nand->controller->address(nand, page & 0xff);
-		nand->controller->address(nand, (page >> 8) & 0xff);
-
-		/* 4th cycle only on devices with more than 32 MiB */
-		if (nand->address_cycles >= 4)
-			nand->controller->address(nand, (page >> 16) & 0xff);
-
-		/* 5th cycle only on devices with more than 8 GiB */
-		if (nand->address_cycles >= 5)
-			nand->controller->address(nand, (page >> 24) & 0xff);
-	}
-	else
-	{
-		/* column (0 when we start at the beginning of a page,
-		 * or 2048 for the beginning of OOB area)
-		 */
-		nand->controller->address(nand, 0x0);
-		if (data)
-			nand->controller->address(nand, 0x0);
-		else
-			nand->controller->address(nand, 0x8);
-
-		/* row */
-		nand->controller->address(nand, page & 0xff);
-		nand->controller->address(nand, (page >> 8) & 0xff);
-
-		/* 5th cycle only on devices with more than 128 MiB */
-		if (nand->address_cycles >= 5)
-			nand->controller->address(nand, (page >> 16) & 0xff);
-	}
+	retval = nand_page_command(nand, page, NAND_CMD_SEQIN, !data);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (data)
 	{

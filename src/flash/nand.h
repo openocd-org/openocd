@@ -270,6 +270,9 @@ struct nand_device *get_nand_device_by_name(const char *name);
 
 struct nand_device *get_nand_device_by_num(int num);
 
+int nand_page_command(struct nand_device *nand, uint32_t page,
+		uint8_t cmd, bool oob_only);
+
 int nand_read_page_raw(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 int nand_write_page_raw(struct nand_device *nand, uint32_t page,
