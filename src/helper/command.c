@@ -177,7 +177,8 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 /**
  * Find a command by name from a list of commands.
- * @returns The named command if found, or NULL.
+ * @returns Returns the named command if it exists in the list.
+ * Returns NULL otherwise.
  */
 static struct command *command_find(struct command *head, const char *name)
 {
@@ -190,9 +191,10 @@ static struct command *command_find(struct command *head, const char *name)
 }
 
 /**
- * Add the command to the end of linked list.
- * @returns Returns false if the named command already exists in the list.
- * Returns true otherwise.
+ * Add the command into the linked list, sorted by name.
+ * @param head Address to head of command list pointer, which may be
+ * updated if @c c gets inserted at the beginning of the list.
+ * @param c The command to add to the list pointed to by @c head.
  */
 static void command_add_child(struct command **head, struct command *c)
 {
@@ -202,9 +204,17 @@ static void command_add_child(struct command **head, struct command *c)
 		*head = c;
 		return;
 	}
-	struct command *cc = *head;
-	while (cc->next) cc = cc->next;
-	cc->next = c;
+
+	while ((*head)->next && (strcmp(c->name, (*head)->name) > 0))
+		head = &(*head)->next;
+
+	if (strcmp(c->name, (*head)->name) > 0) {
+		c->next = (*head)->next;
+		(*head)->next = c;
+	} else {
+		c->next = *head;
+		*head = c;
+	}
 }
 
 static struct command **command_list_for_parent(
