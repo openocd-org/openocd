@@ -160,6 +160,7 @@ struct command
 {
 	char *name;
 	const char *help;
+	const char *usage;
 	struct command *parent;
 	struct command *children;
 	command_handler_t handler;
@@ -199,6 +200,8 @@ struct command_registration {
 	command_handler_t handler;
 	enum command_mode mode;
 	const char *help;
+	/// a string listing the options and arguments, required or optional
+	const char *usage;
 };
 
 /// Use this as the last entry in an array of command_registration records.

@@ -226,7 +226,7 @@ static struct command **command_list_for_parent(
 static struct command *command_new(struct command_context *cmd_ctx,
 		struct command *parent, const char *name,
 		command_handler_t handler, enum command_mode mode,
-		const char *help)
+		const char *help, const char *usage)
 {
 	assert(name);
 
@@ -236,6 +236,8 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	c->name = strdup(name);
 	if (help)
 		c->help = strdup(help);
+	if (usage)
+		c->usage = strdup(usage);
 	c->parent = parent;
 	c->handler = handler;
 	c->mode = mode;
@@ -259,6 +261,8 @@ static void command_free(struct command *c)
 		free(c->name);
 	if (c->help)
 		free((void*)c->help);
+	if (c->usage)
+		free((void*)c->usage);
 	free(c);
 }
 
@@ -278,7 +282,7 @@ struct command* register_command(struct command_context *context,
 		return c;
 	}
 
-	c = command_new(context, parent, name, cr->handler, cr->mode, cr->help);
+	c = command_new(context, parent, name, cr->handler, cr->mode, cr->help, cr->usage);
 	/* if allocation failed or it is a placeholder (no handler), we're done */
 	if (NULL == c || NULL == c->handler)
 		return c;
@@ -737,41 +741,67 @@ static COMMAND_HELPER(command_help_find, struct command *head,
 	return CALL_COMMAND_HANDLER(command_help_find, (*out)->children, out);
 }
 
-static COMMAND_HELPER(command_help_show, struct command *c, unsigned n);
+static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
+		bool show_help);
 
-static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n)
+static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n,
+		bool show_help)
 {
 	for (struct command *c = head; NULL != c; c = c->next)
-		CALL_COMMAND_HANDLER(command_help_show, c, n);
+		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help);
 	return ERROR_OK;
 }
-static COMMAND_HELPER(command_help_show, struct command *c, unsigned n)
+static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
+		bool show_help)
 {
-	command_run_linef(CMD_CTX, "cmd_help {%s} {%s} %d", command_name(c, ' '),
-			c->help ? : "no help available", n);
+	const char *usage = c->usage ? : "";
+	const char *help = "";
+	const char *sep = "";
+	if (show_help && c->help)
+	{
+		help = c->help ? : "";
+		sep = c->usage ? " | " : "";
+	}
+	command_run_linef(CMD_CTX, "cmd_help {%s} {%s%s%s} %d",
+			command_name(c, ' '), usage, sep, help, n);
 
 	if (++n >= 2)
 		return ERROR_OK;
 
-	return CALL_COMMAND_HANDLER(command_help_show_list, c->children, n);
+	return CALL_COMMAND_HANDLER(command_help_show_list,
+			c->children, n, show_help);
 }
 COMMAND_HANDLER(handle_help_command)
 {
 	struct command *c = CMD_CTX->commands;
 
 	if (0 == CMD_ARGC)
-		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0);
+		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, true);
 
 	int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
 	if (ERROR_OK != retval)
 		return retval;
 
-	return CALL_COMMAND_HANDLER(command_help_show, c, 0);
+	return CALL_COMMAND_HANDLER(command_help_show, c, 0, true);
+}
+
+COMMAND_HANDLER(handle_usage_command)
+{
+	struct command *c = CMD_CTX->commands;
+
+	if (0 == CMD_ARGC)
+		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, false);
+
+	int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
+	if (ERROR_OK != retval)
+		return retval;
+
+	return CALL_COMMAND_HANDLER(command_help_show, c, 0, false);
 }
 
 
 int help_add_command(struct command_context *cmd_ctx, struct command *parent,
-		const char *cmd_name, const char *help_text)
+		const char *cmd_name, const char *help_text, const char *usage)
 {
 	struct command **head = command_list_for_parent(cmd_ctx, parent);
 	struct command *nc = command_find(*head, cmd_name);
@@ -782,6 +812,7 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 				.name = cmd_name,
 				.mode = COMMAND_ANY,
 				.help = help_text,
+				.usage = usage,
 			};
 		nc = register_command(cmd_ctx, parent, &cr);
 		if (NULL == nc)
@@ -830,7 +861,7 @@ COMMAND_HANDLER(handle_help_add_command)
 		if (ERROR_OK != retval)
 			return retval;
 	}
-	return help_add_command(CMD_CTX, c, cmd_name, help_text);
+	return help_add_command(CMD_CTX, c, cmd_name, help_text, NULL);
 }
 
 /* sleep command sleeps for <n> miliseconds
@@ -953,6 +984,10 @@ struct command_context* command_init(const char *startup_tcl)
 	COMMAND_REGISTER(context, NULL, "help",
 			&handle_help_command, COMMAND_ANY,
 			"[<command_name> ...] - show built-in command help");
+	COMMAND_REGISTER(context, NULL, "usage",
+			&handle_usage_command, COMMAND_ANY,
+			"[<command_name> ...] | "
+			"show command usage");
 
 	return context;
 }
@@ -989,7 +1024,7 @@ void register_jim(struct command_context *cmd_ctx, const char *name,
 	Jim_ListAppendElement(interp, cmd_list,
 			Jim_NewStringObj(interp, name, -1));
 
-	help_add_command(cmd_ctx, NULL, name, help);
+	help_add_command(cmd_ctx, NULL, name, help, NULL);
 }
 
 #define DEFINE_PARSE_NUM_TYPE(name, type, func, min, max) \
