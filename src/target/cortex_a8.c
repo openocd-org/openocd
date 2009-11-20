@@ -531,7 +531,7 @@ static int cortex_a8_resume(struct target *target, int current,
 			armv4_5->core_mode, 15).valid = 1;
 
 	cortex_a8_restore_context(target);
-//	arm7_9_restore_context(target); TODO Context is currently NOT Properly restored
+
 #if 0
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
@@ -850,29 +850,83 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 
 static int cortex_a8_restore_context(struct target *target)
 {
-	int i;
 	uint32_t value;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
+	struct reg_cache *cache = armv7a->armv4_5_common.core_cache;
+	unsigned max = cache->num_regs;
+	struct reg *r;
+	bool flushed, flush_cpsr = false;
 
 	LOG_DEBUG(" ");
 
 	if (armv7a->pre_restore_context)
 		armv7a->pre_restore_context(target);
 
-	for (i = 15; i >= 0; i--)
-	{
-		if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, i).dirty)
-		{
-			value = buf_get_u32(ARMV4_5_CORE_REG_MODE(
-						armv4_5->core_cache,
-						armv4_5->core_mode, i).value,
-					0, 32);
+	/* Flush all dirty registers from the cache, one mode at a time so
+	 * that we write CPSR as little as possible.  Save CPSR and R0 for
+	 * last; they're used to change modes and write other registers.
+	 *
+	 * REVISIT be smarter:  save eventual mode for last loop, don't
+	 * need to write CPSR an extra time.
+	 */
+	do {
+		enum armv4_5_mode mode = ARMV4_5_MODE_ANY;
+		unsigned i;
+
+		flushed = false;
+
+		/* write dirty non-{R0,CPSR} registers sharing the same mode */
+		for (i = max - 1, r = cache->reg_list + 1; i > 0; i--, r++) {
+			struct armv4_5_core_reg *reg;
+
+			if (!r->dirty || i == ARMV4_5_CPSR)
+				continue;
+			reg = r->arch_info;
+
 			/* TODO Check return values */
-			cortex_a8_dap_write_coreregister_u32(target, value, i);
+
+			/* Pick a mode and update CPSR; else ignore this
+			 * register if it's for a different mode than what
+			 * we're handling on this pass.
+			 *
+			 * REVISIT don't distinguish SYS and USR modes.
+			 *
+			 * FIXME if we restore from FIQ mode, R8..R12 will
+			 * get wrongly flushed onto FIQ shadows...
+			 */
+			if (mode == ARMV4_5_MODE_ANY) {
+				mode = reg->mode;
+				if (mode != ARMV4_5_MODE_ANY) {
+					cortex_a8_dap_write_coreregister_u32(
+							target, mode, 16);
+					flush_cpsr = true;
+				}
+			} else if (mode != reg->mode)
+				continue;
+
+			/* Write this register */
+			value = buf_get_u32(r->value, 0, 32);
+			cortex_a8_dap_write_coreregister_u32(target, value,
+					(reg->num == 16) ? 17 : reg->num);
+			r->dirty = false;
+			flushed = true;
 		}
+
+	} while (flushed);
+
+	/* now flush CPSR if needed ... */
+	r = cache->reg_list + ARMV4_5_CPSR;
+	if (flush_cpsr || r->dirty) {
+		value = buf_get_u32(r->value, 0, 32);
+		cortex_a8_dap_write_coreregister_u32(target, value, 16);
+		r->dirty = false;
 	}
+
+	/* ... and R0 always (it was dirtied when we saved context) */
+	r = cache->reg_list + 0;
+	value = buf_get_u32(r->value, 0, 32);
+	cortex_a8_dap_write_coreregister_u32(target, value, 0);
+	r->dirty = false;
 
 	if (armv7a->post_restore_context)
 		armv7a->post_restore_context(target);
