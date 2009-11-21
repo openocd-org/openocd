@@ -331,18 +331,36 @@ struct command* register_command(struct command_context *context,
 int register_commands(struct command_context *cmd_ctx, struct command *parent,
 		const struct command_registration *cmds)
 {
+	int retval = ERROR_OK;
 	unsigned i;
-	for (i = 0; cmds[i].name; i++)
+	for (i = 0; cmds[i].name || cmds[i].chain; i++)
 	{
-		struct command *c = register_command(cmd_ctx, parent, cmds + i);
-		if (NULL != c)
-			continue;
+		const struct command_registration *cr = cmds + i;
 
+		struct command *c = NULL;
+		if (NULL != cr->name)
+		{
+			c = register_command(cmd_ctx, parent, cr);
+			if (NULL == c)
+			{
+				retval = ERROR_FAIL;
+				break;
+			}
+		}
+		if (NULL != cr->chain)
+		{
+			struct command *p = c ? : parent;
+			retval = register_commands(cmd_ctx, p, cr->chain);
+			if (ERROR_OK != retval)
+				break;
+		}
+	}
+	if (ERROR_OK != retval)
+	{
 		for (unsigned j = 0; j < i; j++)
 			unregister_command(cmd_ctx, parent, cmds[j].name);
-		return ERROR_FAIL;
 	}
-	return ERROR_OK;
+	return retval;
 }
 
 int unregister_all_commands(struct command_context *context,

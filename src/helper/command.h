@@ -202,10 +202,18 @@ struct command_registration {
 	const char *help;
 	/// a string listing the options and arguments, required or optional
 	const char *usage;
+
+	/**
+	 * If non-NULL, the commands in @c chain will be registered in
+	 * the same context and scope of this registration record.
+	 * This allows modules to inherit lists commands from other
+	 * modules.
+	 */
+	const struct command_registration *chain;
 };
 
 /// Use this as the last entry in an array of command_registration records.
-#define COMMAND_REGISTRATION_DONE { .name = NULL }
+#define COMMAND_REGISTRATION_DONE { .name = NULL, .chain = NULL }
 
 /**
  * Register a command @c handler that can be called from scripts during
@@ -238,7 +246,10 @@ struct command* register_command(struct command_context *cmd_ctx,
 
 /**
  * Register one or more commands in the specified context, as children
- * of @c parent (or top-level commends, if NULL).
+ * of @c parent (or top-level commends, if NULL).  In a registration's
+ * record contains a non-NULL @c chain member and name is NULL, the
+ * commands on the chain will be registered in the same context.
+ * Otherwise, the chained commands are added as children of the command.
  *
  * @param cmd_ctx The command_context in which to register the command.
  * @param parent Register this command as a child of this, or NULL to
