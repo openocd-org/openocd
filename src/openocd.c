@@ -159,6 +159,23 @@ COMMAND_HANDLER(handle_init_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration openocd_command_handlers[] = {
+	{
+		.name = "version",
+		.handler = &handle_version_command,
+		.mode = COMMAND_EXEC,
+		.help = "show program version",
+	},
+	{
+		.name = "init",
+		.handler = &handle_init_command,
+		.mode = COMMAND_ANY,
+		.help = "Initializes configured targets and servers.  "
+			"If called more than once, does nothing.",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 struct command_context *global_cmd_ctx;
 
 /// src/hello.c gives a simple example for writing new command modules
@@ -171,9 +188,7 @@ struct command_context *setup_command_handler(void)
 
 	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl);
 
-	COMMAND_REGISTER(cmd_ctx, NULL, "version", handle_version_command,
-					 COMMAND_EXEC, "show OpenOCD version");
-
+	register_commands(cmd_ctx, NULL, openocd_command_handlers);
 	/* register subsystem commands */
 	hello_register_commands(cmd_ctx);
 	server_register_commands(cmd_ctx);
@@ -197,9 +212,6 @@ struct command_context *setup_command_handler(void)
 	LOG_DEBUG("log init complete");
 
 	LOG_OUTPUT(OPENOCD_VERSION "\n");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "init", handle_init_command,
-					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
 
 	return cmd_ctx;
 }
