@@ -75,16 +75,6 @@ static const struct command_registration foo_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int foo_register_commands(struct command_context *cmd_ctx)
-{
-	// register several commands under the foo command
-	struct command *cmd = COMMAND_REGISTER(cmd_ctx, NULL, "foo",
-			NULL, COMMAND_ANY, "example command handler skeleton");
-
-
-	return register_commands(cmd_ctx, cmd, foo_command_handlers);
-}
-
 static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 {
 	if (CMD_ARGC > 1)
@@ -119,12 +109,17 @@ static const struct command_registration hello_command_handlers[] = {
 		.help = "prints a warm welcome",
 		.usage = "[<name>]",
 	},
+	{
+		.name = "foo",
+		.mode = COMMAND_ANY,
+		.help = "example command handler skeleton",
+
+		.chain = foo_command_handlers,
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
 int hello_register_commands(struct command_context *cmd_ctx)
 {
-	foo_register_commands(cmd_ctx);
-
 	return register_commands(cmd_ctx, NULL, hello_command_handlers);
 }
