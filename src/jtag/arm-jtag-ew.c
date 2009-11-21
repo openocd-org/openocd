@@ -502,12 +502,19 @@ COMMAND_HANDLER(armjtagew_handle_armjtagew_info_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration armjtagew_command_handlers[] = {
+	{
+		.name = "armjtagew_info",
+		.handler = &armjtagew_handle_armjtagew_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "query armjtagew info",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int armjtagew_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "armjtagew_info",
-			&armjtagew_handle_armjtagew_info_command, COMMAND_EXEC,
-			"query armjtagew info");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, armjtagew_command_handlers);
 }
 
 struct jtag_interface armjtagew_interface = {
