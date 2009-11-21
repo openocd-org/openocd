@@ -61,21 +61,23 @@ char *find_file(const char *file)
 	char **search_dirs = script_search_dirs;
 	char *dir;
 	char const *mode="r";
-	char full_path[1024];
+	char *full_path;
 
 	/* Check absolute and relative to current working dir first.
 	 * This keeps full_path reporting belowing working. */
-	snprintf(full_path, 1024, "%s", file);
+	full_path = alloc_printf("%s", file);
 	fp = fopen(full_path, mode);
 
 	while (!fp)
 	{
+		free(full_path);
+		full_path = NULL;
 		dir = *search_dirs++;
 
 		if (!dir)
 			break;
 
-		snprintf(full_path, 1024, "%s/%s", dir, file);
+		full_path = alloc_printf("%s/%s", dir, file);
 		fp = fopen(full_path, mode);
 	}
 
@@ -83,8 +85,11 @@ char *find_file(const char *file)
 	{
 		fclose(fp);
 		LOG_DEBUG("found %s", full_path);
-		return strdup(full_path);
+		return full_path;
 	}
+
+	free(full_path);
+
 	return NULL;
 }
 
