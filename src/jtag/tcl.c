@@ -1413,65 +1413,128 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration jtag_command_handlers[] = {
+	{
+		.name = "interface",
+		.handler = &handle_interface_command,
+		.mode = COMMAND_CONFIG,
+		.help = "select a JTAG interface",
+		.usage = "<driver_name>",
+	},
+	{
+		.name = "interface_list",
+		.handler = &handle_interface_list_command,
+		.mode = COMMAND_ANY,
+		.help = "list all built-in interfaces",
+	},
+	{
+		.name = "jtag_khz",
+		.handler = &handle_jtag_khz_command,
+		.mode = COMMAND_ANY,
+		.help = "set maximum jtag speed (if supported)",
+		.usage = "<khz:0=rtck>",
+	},
+	{
+		.name = "jtag_rclk",
+		.handler = &handle_jtag_rclk_command,
+		.mode = COMMAND_ANY,
+		.help = "set JTAG speed to RCLK or use fallback speed",
+		.usage = "<fallback_speed_khz>",
+	},
+	{
+		.name = "reset_config",
+		.handler = &handle_reset_config_command,
+		.mode = COMMAND_ANY,
+		.help = "configure JTAG reset behavior",
+		.usage = "[none|trst_only|srst_only|trst_and_srst] "
+			"[srst_pulls_trst|trst_pulls_srst|combined|separate] "
+			"[srst_gates_jtag|srst_nogate] "
+			"[trst_push_pull|trst_open_drain] "
+			"[srst_push_pull|srst_open_drain]",
+	},
+	{
+		.name = "jtag_nsrst_delay",
+		.handler = &handle_jtag_nsrst_delay_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after deasserting srst in ms",
+		.usage = "<ms>",
+	},
+	{
+		.name = "jtag_ntrst_delay",
+		.handler = &handle_jtag_ntrst_delay_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after deasserting trst in ms",
+		.usage = "<ms>"
+	},
+	{
+		.name = "jtag_nsrst_assert_width",
+		.handler = &handle_jtag_nsrst_assert_width_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after asserting srst in ms",
+		.usage = "<ms>"
+	},
+	{
+		.name = "jtag_ntrst_assert_width",
+		.handler = &handle_jtag_ntrst_assert_width_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after asserting trst in ms",
+		.usage = "<ms>"
+	},
+	{
+		.name = "scan_chain",
+		.handler = &handle_scan_chain_command,
+		.mode = COMMAND_EXEC,
+		.help = "print current scan chain configuration",
+	},
+	{
+		.name = "jtag_reset",
+		.handler = &handle_jtag_reset_command,
+		.mode = COMMAND_EXEC,
+		.help = "toggle reset lines",
+		.usage = "<trst> <srst>",
+	},
+	{
+		.name = "runtest",
+		.handler = &handle_runtest_command,
+		.mode = COMMAND_EXEC,
+		.help = "move to Run-Test/Idle, and execute <num_cycles>",
+		.usage = "<num_cycles>"
+	},
+	{
+		.name = "irscan",
+		.handler = &handle_irscan_command,
+		.mode = COMMAND_EXEC,
+		.help = "execute IR scan",
+		.usage = "<device> <instr> [dev2] [instr2] ...",
+	},
+	{
+		.name = "verify_ircapture",
+		.handler = &handle_verify_ircapture_command,
+		.mode = COMMAND_ANY,
+		.help = "verify value captured during Capture-IR",
+		.usage = "<enable | disable>",
+	},
+	{
+		.name = "verify_jtag",
+		.handler = &handle_verify_jtag_command,
+		.mode = COMMAND_ANY,
+		.help = "verify value capture",
+		.usage = "<enable | disable>",
+	},
+	{
+		.name = "tms_sequence",
+		.handler = &handle_tms_sequence_command,
+		.mode = COMMAND_ANY,
+		.help = "choose short(default) or long tms_sequence",
+		.usage = "<short | long>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int jtag_register_commands(struct command_context *cmd_ctx)
 {
 	register_jim(cmd_ctx, "jtag", jim_jtag_command,
 			"perform jtag tap actions");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "interface",
-			handle_interface_command, COMMAND_CONFIG,
-			"try to configure interface");
-	COMMAND_REGISTER(cmd_ctx, NULL, "interface_list",
-			&handle_interface_list_command, COMMAND_ANY,
-			"list all built-in interfaces");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_khz",
-			handle_jtag_khz_command, COMMAND_ANY,
-			"set maximum jtag speed (if supported); "
-			"parameter is maximum khz, or 0 for adaptive clocking (RTCK).");
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_rclk",
-			handle_jtag_rclk_command, COMMAND_ANY,
-			"fallback_speed_khz - set JTAG speed to RCLK or use fallback speed");
-	COMMAND_REGISTER(cmd_ctx, NULL, "reset_config",
-			handle_reset_config_command, COMMAND_ANY,
-			"reset_config "
-			"[none|trst_only|srst_only|trst_and_srst] "
-			"[srst_pulls_trst|trst_pulls_srst|combined|separate] "
-			"[srst_gates_jtag|srst_nogate] "
-			"[trst_push_pull|trst_open_drain] "
-			"[srst_push_pull|srst_open_drain]");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_nsrst_delay",
-			handle_jtag_nsrst_delay_command, COMMAND_ANY,
-			"jtag_nsrst_delay <ms> "
-			"- delay after deasserting srst in ms");
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_ntrst_delay",
-			handle_jtag_ntrst_delay_command, COMMAND_ANY,
-			"jtag_ntrst_delay <ms> "
-			"- delay after deasserting trst in ms");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_nsrst_assert_width",
-			handle_jtag_nsrst_assert_width_command, COMMAND_ANY,
-			"jtag_nsrst_assert_width <ms> "
-			"- delay after asserting srst in ms");
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_ntrst_assert_width",
-			handle_jtag_ntrst_assert_width_command, COMMAND_ANY,
-			"jtag_ntrst_assert_width <ms> "
-			"- delay after asserting trst in ms");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "scan_chain",
-			handle_scan_chain_command, COMMAND_EXEC,
-			"print current scan chain configuration");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "jtag_reset",
-			handle_jtag_reset_command, COMMAND_EXEC,
-			"toggle reset lines <trst> <srst>");
-	COMMAND_REGISTER(cmd_ctx, NULL, "runtest",
-			handle_runtest_command, COMMAND_EXEC,
-			"move to Run-Test/Idle, and execute <num_cycles>");
-	COMMAND_REGISTER(cmd_ctx, NULL, "irscan",
-			handle_irscan_command, COMMAND_EXEC,
-			"execute IR scan <device> <instr> [dev2] [instr2] ...");
 
 	register_jim(cmd_ctx, "drscan", Jim_Command_drscan,
 			"execute DR scan <device> "
@@ -1484,18 +1547,7 @@ int jtag_register_commands(struct command_context *cmd_ctx)
 			"<state1>,<state2>,<state3>... "
 			"- move JTAG to state1 then to state2, state3, etc.");
 
-	COMMAND_REGISTER(cmd_ctx, NULL, "verify_ircapture",
-			handle_verify_ircapture_command, COMMAND_ANY,
-			"verify value captured during Capture-IR <enable | disable>");
-	COMMAND_REGISTER(cmd_ctx, NULL, "verify_jtag",
-			handle_verify_jtag_command, COMMAND_ANY,
-			"verify value capture <enable | disable>");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "tms_sequence",
-			handle_tms_sequence_command, COMMAND_ANY,
-			"choose short(default) or long tms_sequence <short | long>");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, jtag_command_handlers);
 }
 
 
