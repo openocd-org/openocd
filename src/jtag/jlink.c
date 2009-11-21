@@ -627,16 +627,26 @@ COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration jlink_command_handlers[] = {
+	{
+		.name = "jlink_info",
+		.handler = &jlink_handle_jlink_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "show jlink info",
+	},
+	{
+		.name = "jlink_hw_jtag",
+		.handler = &jlink_handle_jlink_hw_jtag_command,
+		.mode = COMMAND_EXEC,
+		.help = "access J-Link HW JTAG command version",
+		.usage = "[2|3]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int jlink_register_commands(struct command_context *cmd_ctx)
 {
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "jlink_info",
-		&jlink_handle_jlink_info_command, COMMAND_EXEC,
-		"query jlink info");
-	COMMAND_REGISTER(cmd_ctx, NULL, "jlink_hw_jtag",
-		&jlink_handle_jlink_hw_jtag_command, COMMAND_EXEC,
-		"set/get jlink hw jtag command version [2 | 3]");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, jlink_command_handlers);
 }
 
 struct jtag_interface jlink_interface = {
