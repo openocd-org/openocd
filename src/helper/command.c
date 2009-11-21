@@ -266,6 +266,38 @@ static void command_free(struct command *c)
 	free(c);
 }
 
+static int register_command_handler(struct command *c)
+{
+	int retval = -ENOMEM;
+	const char *full_name = command_name(c, '_');
+	if (NULL == full_name)
+		return retval;
+
+	const char *ocd_name = alloc_printf("ocd_%s", full_name);
+	if (NULL == full_name)
+		goto free_full_name;
+
+	Jim_CreateCommand(interp, ocd_name, script_command, c, NULL);
+	free((void *)ocd_name);
+
+	/* we now need to add an overrideable proc */
+	const char *override_name = alloc_printf("proc %s {args} {"
+			"if {[catch {eval ocd_%s $args}] == 0} "
+			"{return \"\"} else {return -code error}}",
+			full_name, full_name);
+	if (NULL == full_name)
+		goto free_full_name;
+
+	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__);
+	free((void *)override_name);
+
+	retval = ERROR_OK;
+
+free_full_name:
+	free((void *)full_name);
+	return retval;
+}
+
 struct command* register_command(struct command_context *context,
 		struct command *parent, const struct command_registration *cr)
 {
@@ -287,22 +319,12 @@ struct command* register_command(struct command_context *context,
 	if (NULL == c || NULL == c->handler)
 		return c;
 
-	const char *full_name = command_name(c, '_');
-
-	const char *ocd_name = alloc_printf("ocd_%s", full_name);
-	Jim_CreateCommand(interp, ocd_name, script_command, c, NULL);
-	free((void *)ocd_name);
-
-	/* we now need to add an overrideable proc */
-	const char *override_name = alloc_printf("proc %s {args} {"
-			"if {[catch {eval ocd_%s $args}] == 0} "
-			"{return \"\"} else {return -code error}}",
-			full_name, full_name);
-	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__);
-	free((void *)override_name);
-
-	free((void *)full_name);
-
+	int retval = register_command_handler(c);
+	if (ERROR_OK != retval)
+	{
+		unregister_command(context, parent, name);
+		c = NULL;
+	}
 	return c;
 }
 
