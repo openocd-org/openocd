@@ -3969,26 +3969,49 @@ static void ktlink_blink(void)
 	buffer_write(high_direction);
 }
 
+static const struct command_registration ft2232_command_handlers[] = {
+	{
+		.name = "ft2232_device_desc",
+		.handler = &ft2232_handle_device_desc_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the USB device description of the FTDI FT2232 device",
+		.usage = "<description>",
+	},
+	{
+		.name = "ft2232_serial",
+		.handler = &ft2232_handle_serial_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the serial number of the FTDI FT2232 device",
+		.usage = "<serial#>",
+	},
+	{
+		.name = "ft2232_layout",
+		.handler = &ft2232_handle_layout_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the layout of the FT2232 GPIO signals used "
+			"to control output-enables and reset signals",
+		.usage = "<layout>",
+	},
+	{
+		.name = "ft2232_vid_pid",
+		.handler = &ft2232_handle_vid_pid_command,
+		.mode = COMMAND_CONFIG,
+		.help = "the vendor ID and product ID of the FTDI FT2232 device",
+		.usage = "<vid> <pid> [...]",
+	},
+	{
+		.name = "ft2232_latency",
+		.handler = &ft2232_handle_latency_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the FT2232 latency timer to a new value",
+		.usage = "<vid> <pid> [...]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int ft2232_register_commands(struct command_context* cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "ft2232_device_desc",
-			ft2232_handle_device_desc_command, COMMAND_CONFIG,
-			"the USB device description of the FTDI FT2232 device");
-	COMMAND_REGISTER(cmd_ctx, NULL, "ft2232_serial",
-			ft2232_handle_serial_command, COMMAND_CONFIG,
-			"the serial number of the FTDI FT2232 device");
-	COMMAND_REGISTER(cmd_ctx, NULL, "ft2232_layout",
-			ft2232_handle_layout_command, COMMAND_CONFIG,
-			"the layout of the FT2232 GPIO signals used "
-			"to control output-enables and reset signals");
-	COMMAND_REGISTER(cmd_ctx, NULL, "ft2232_vid_pid",
-			ft2232_handle_vid_pid_command, COMMAND_CONFIG,
-			"the vendor ID and product ID of the FTDI FT2232 device");
-	COMMAND_REGISTER(cmd_ctx, NULL, "ft2232_latency",
-			ft2232_handle_latency_command, COMMAND_CONFIG,
-			"set the FT2232 latency timer to a new value");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, ft2232_command_handlers);
 }
 
 
