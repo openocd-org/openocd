@@ -1023,17 +1023,23 @@ int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes, uint32_t* checksu
 	uint32_t crc = 0xffffffff;
 	LOG_DEBUG("Calculating checksum");
 
-	uint32_t crc32_table[256];
+	static uint32_t crc32_table[256];
 
-	/* Initialize the CRC table and the decoding table.  */
-	int i, j;
-	unsigned int c;
-	for (i = 0; i < 256; i++)
+	static bool first_init = false;
+	if (!first_init)
 	{
-		/* as per gdb */
-		for (c = i << 24, j = 8; j > 0; --j)
-			c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : (c << 1);
-		crc32_table[i] = c;
+		/* Initialize the CRC table and the decoding table.  */
+		int i, j;
+		unsigned int c;
+		for (i = 0; i < 256; i++)
+		{
+			/* as per gdb */
+			for (c = i << 24, j = 8; j > 0; --j)
+				c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : (c << 1);
+			crc32_table[i] = c;
+		}
+
+		first_init = true;
 	}
 
 	while (nbytes > 0)
