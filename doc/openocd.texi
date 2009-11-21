@@ -4933,26 +4933,37 @@ target which should become current.
 
 @deffn Command reg [(number|name) [value]]
 Access a single register by @var{number} or by its @var{name}.
+The target must generally be halted before access to CPU core
+registers is allowed.  Depending on the hardware, some other
+registers may be accessible while the target is running.
 
 @emph{With no arguments}:
 list all available registers for the current target,
 showing number, name, size, value, and cache status.
+For valid entries, a value is shown; valid entries
+which are also dirty (and will be written back later)
+are flagged as such.
 
 @emph{With number/name}: display that register's value.
 
 @emph{With both number/name and value}: set register's value.
+Writes may be held in a writeback cache internal to OpenOCD,
+so that setting the value marks the register as dirty instead
+of immediately flushing that value.  Resuming CPU execution
+(including by single stepping) or otherwise activating the
+relevant module will flush such values.
 
 Cores may have surprisingly many registers in their
 Debug and trace infrastructure:
 
 @example
 > reg
-(0) r0 (/32): 0x0000D3C2 (dirty: 1, valid: 1)
-(1) r1 (/32): 0xFD61F31C (dirty: 0, valid: 1)
-(2) r2 (/32): 0x00022551 (dirty: 0, valid: 1)
+===== ARM registers
+(0) r0 (/32): 0x0000D3C2 (dirty)
+(1) r1 (/32): 0xFD61F31C
+(2) r2 (/32)
 ...
-(164) ETM_CONTEXTID_COMPARATOR_MASK (/32): \
-              0x00000000 (dirty: 0, valid: 0)
+(164) ETM_contextid_comparator_mask (/32)
 >
 @end example
 @end deffn
@@ -5554,9 +5565,17 @@ ThumbEE disassembly currently has no explicit support.
 
 @deffn Command {arm reg}
 Display a table of all banked core registers, fetching the current value from every
-core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
-register value.
+core mode if necessary.
 @end deffn
+
+@section ARMv4 and ARMv5 Architecture
+@cindex ARMv4
+@cindex ARMv5
+
+The ARMv4 and ARMv5 architectures are widely used in embedded systems,
+and introduced core parts of the instruction set in use today. 
+That includes the Thumb instruction set, introduced in the ARMv4T
+variant.
 
 @subsection ARM7 and ARM9 specific commands
 @cindex ARM7
@@ -5564,7 +5583,7 @@ register value.
 
 These commands are specific to ARM7 and ARM9 cores, like ARM7TDMI, ARM720T,
 ARM9TDMI, ARM920T or ARM926EJ-S.
-They are available in addition to the ARMv4/5 commands,
+They are available in addition to the ARM commands,
 and any other core-specific commands that may be available.
 
 @deffn Command {arm7_9 dbgrq} (@option{enable}|@option{disable})
@@ -5591,49 +5610,13 @@ cables (FT2232), but might be unsafe if used with targets running at very low
 speeds, like the 32kHz startup clock of an AT91RM9200.
 @end deffn
 
-@deffn {Debug Command} {arm7_9 write_core_reg} num mode word
-@emph{This is intended for use while debugging OpenOCD; you probably
-shouldn't use it.}
-
-Writes a 32-bit @var{word} to register @var{num} (from 0 to 16)
-as used in the specified @var{mode}
-(where e.g. mode 16 is "user" and mode 19 is "supervisor";
-the M4..M0 bits of the PSR).
-Registers 0..15 are the normal CPU registers such as r0(0), r1(1) ... pc(15).
-Register 16 is the mode-specific SPSR,
-unless the specified mode is 0xffffffff (32-bit all-ones)
-in which case register 16 is the CPSR.
-The write goes directly to the CPU, bypassing the register cache.
-@end deffn
-
-@deffn {Debug Command} {arm7_9 write_xpsr} word (@option{0}|@option{1})
-@emph{This is intended for use while debugging OpenOCD; you probably
-shouldn't use it.}
-
-If the second parameter is zero, writes @var{word} to the
-Current Program Status register (CPSR).
-Else writes @var{word} to the current mode's Saved PSR (SPSR).
-In both cases, this bypasses the register cache.
-@end deffn
-
-@deffn {Debug Command} {arm7_9 write_xpsr_im8} byte rotate (@option{0}|@option{1})
-@emph{This is intended for use while debugging OpenOCD; you probably
-shouldn't use it.}
-
-Writes eight bits to the CPSR or SPSR,
-first rotating them by @math{2*rotate} bits,
-and bypassing the register cache.
-This has lower JTAG overhead than writing the entire CPSR or SPSR
-with @command{arm7_9 write_xpsr}.
-@end deffn
-
 @subsection ARM720T specific commands
 @cindex ARM720T
 
 These commands are available to ARM720T based CPUs,
 which are implementations of the ARMv4T architecture
 based on the ARM7TDMI-S integer core.
-They are available in addition to the ARMv4/5 and ARM7/ARM9 commands.
+They are available in addition to the ARM and ARM7/ARM9 commands.
 
 @deffn Command {arm720t cp15} regnum [value]
 Display cp15 register @var{regnum};
@@ -5677,8 +5660,8 @@ or a list with one or more of the following:
 These commands are available to ARM920T based CPUs,
 which are implementations of the ARMv4T architecture
 built using the ARM9TDMI integer core.
-They are available in addition to the ARMv4/5, ARM7/ARM9,
-and ARM9TDMI commands.
+They are available in addition to the ARM, ARM7/ARM9,
+and ARM9 commands.
 
 @deffn Command {arm920t cache_info}
 Print information about the caches found. This allows to see whether your target
@@ -5711,8 +5694,8 @@ Dump the content of the ITLB and DTLB to a file named @file{filename}.
 These commands are available to ARM926ej-s based CPUs,
 which are implementations of the ARMv5TEJ architecture
 based on the ARM9EJ-S integer core.
-They are available in addition to the ARMv4/5, ARM7/ARM9,
-and ARM9TDMI commands.
+They are available in addition to the ARM, ARM7/ARM9,
+and ARM9 commands.
 
 The Feroceon cores also support these commands, although
 they are not built from ARM926ej-s designs.
@@ -5733,8 +5716,8 @@ Else that register is read and displayed.
 
 These commands are available to ARM966 based CPUs,
 which are implementations of the ARMv5TE architecture.
-They are available in addition to the ARMv4/5, ARM7/ARM9,
-and ARM9TDMI commands.
+They are available in addition to the ARM, ARM7/ARM9,
+and ARM9 commands.
 
 @deffn Command {arm966e cp15} regnum [value]
 Display cp15 register @var{regnum};
@@ -5926,7 +5909,7 @@ cores @emph{except the ARM1176} use the same six bits.
 @cindex Debug Access Port
 @cindex DAP
 These commands are specific to ARM architecture v7 Debug Access Port (DAP),
-included on cortex-m3 and cortex-a8 systems.
+included on Cortex-M3 and Cortex-A8 systems.
 They are available in addition to other core-specific commands that may be available.
 
 @deffn Command {dap info} [num]
