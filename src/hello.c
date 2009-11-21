@@ -53,24 +53,36 @@ COMMAND_HANDLER(handle_flag_command)
 			&foo_flag, "foo flag");
 }
 
+static const struct command_registration foo_command_handlers[] = {
+	{
+		.name = "bar",
+		.handler = &handle_foo_command,
+		.mode = COMMAND_ANY,
+		.help = "<address> [enable|disable] - an example command",
+	},
+	{
+		.name = "baz",
+		.handler = &handle_foo_command,
+		.mode = COMMAND_ANY,
+		.help = "<address> [enable|disable] - a sample command",
+	},
+	{
+		.name = "flag",
+		.handler = &handle_flag_command,
+		.mode = COMMAND_ANY,
+		.help = "[on|off] - set a flag",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int foo_register_commands(struct command_context *cmd_ctx)
 {
 	// register several commands under the foo command
 	struct command *cmd = COMMAND_REGISTER(cmd_ctx, NULL, "foo",
-			NULL, COMMAND_ANY, "foo: command handler skeleton");
+			NULL, COMMAND_ANY, "example command handler skeleton");
 
-	COMMAND_REGISTER(cmd_ctx, cmd, "bar",
-			&handle_foo_command, COMMAND_ANY,
-			"<address> [enable|disable] - an example command");
-	COMMAND_REGISTER(cmd_ctx, cmd, "baz",
-			&handle_foo_command, COMMAND_ANY,
-			"<address> [enable|disable] - a sample command");
 
-	COMMAND_REGISTER(cmd_ctx, cmd, "flag",
-			&handle_flag_command, COMMAND_ANY,
-			"[on|off] - set a flag");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, cmd, foo_command_handlers);
 }
 
 static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
@@ -99,12 +111,20 @@ COMMAND_HANDLER(handle_hello_command)
 	return retval;
 }
 
+static const struct command_registration hello_command_handlers[] = {
+	{
+		.name = "hello",
+		.handler = &handle_hello_command,
+		.mode = COMMAND_ANY,
+		.help = "prints a warm welcome",
+		.usage = "[<name>]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int hello_register_commands(struct command_context *cmd_ctx)
 {
 	foo_register_commands(cmd_ctx);
 
-	struct command *cmd = COMMAND_REGISTER(cmd_ctx, NULL, "hello",
-			&handle_hello_command, COMMAND_ANY,
-			"[<name>] - prints a warm welcome");
-	return cmd ? ERROR_OK : -ENOMEM;
+	return register_commands(cmd_ctx, NULL, hello_command_handlers);
 }
