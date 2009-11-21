@@ -147,18 +147,16 @@ static int identify_image_type(struct image *image, const char *type_string, con
 	return ERROR_OK;
 }
 
-static int image_ihex_buffer_complete(struct image *image)
+static int image_ihex_buffer_complete_inner(struct image *image, char *lpszLine, struct imageection *section)
 {
 	struct image_ihex *ihex = image->type_private;
 	struct fileio *fileio = &ihex->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
 	int i;
-	char lpszLine[1023];
 
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
-	struct imageection section[IMAGE_MAX_SECTIONS];
 
 	ihex->buffer = malloc(fileio->size >> 1);
 	cooked_bytes = 0x0;
@@ -357,6 +355,35 @@ static int image_ihex_buffer_complete(struct image *image)
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
+/**
+ * Allocate memory dynamically instead of on the stack. This
+ * is important w/embedded hosts.
+ */
+static int image_ihex_buffer_complete(struct image *image)
+{
+	char *lpszLine = malloc(1023);
+	if (lpszLine == NULL)
+	{
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	struct imageection *section = malloc(sizeof(struct imageection) * IMAGE_MAX_SECTIONS);
+	if (section == NULL)
+	{
+		free(lpszLine);
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	int retval;
+
+	retval = image_ihex_buffer_complete_inner(image, lpszLine, section);
+
+	free(section);
+	free(lpszLine);
+
+	return retval;
+}
+
 static int image_elf_read_headers(struct image *image)
 {
 	struct image_elf *elf = image->type_private;
@@ -499,18 +526,16 @@ static int image_elf_read_section(struct image *image, int section, uint32_t off
 	return ERROR_OK;
 }
 
-static int image_mot_buffer_complete(struct image *image)
+static int image_mot_buffer_complete_inner(struct image *image, char *lpszLine, struct imageection *section)
 {
 	struct image_mot *mot = image->type_private;
 	struct fileio *fileio = &mot->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
 	int i;
-	char lpszLine[1023];
 
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
-	struct imageection section[IMAGE_MAX_SECTIONS];
 
 	mot->buffer = malloc(fileio->size >> 1);
 	cooked_bytes = 0x0;
@@ -668,6 +693,36 @@ static int image_mot_buffer_complete(struct image *image)
 	LOG_ERROR("premature end of S19 file, no end-of-file record found");
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
+
+/**
+ * Allocate memory dynamically instead of on the stack. This
+ * is important w/embedded hosts.
+ */
+static int image_mot_buffer_complete(struct image *image)
+{
+	char *lpszLine = malloc(1023);
+	if (lpszLine == NULL)
+	{
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	struct imageection *section = malloc(sizeof(struct imageection) * IMAGE_MAX_SECTIONS);
+	if (section == NULL)
+	{
+		free(lpszLine);
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	int retval;
+
+	retval = image_mot_buffer_complete_inner(image, lpszLine, section);
+
+	free(section);
+	free(lpszLine);
+
+	return retval;
+}
+
 
 int image_open(struct image *image, const char *url, const char *type_string)
 {
