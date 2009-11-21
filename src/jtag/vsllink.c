@@ -1856,28 +1856,43 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 }
 #endif // _DEBUG_USB_COMMS_ || _DEBUG_JTAG_IO_
 
+static const struct command_registration vsllink_command_handlers[] = {
+	{
+		.name = "vsllink_usb_vid",
+		.handler = &vsllink_handle_usb_vid_command,
+		.mode = COMMAND_CONFIG,
+	},
+	{
+		.name = "vsllink_usb_pid",
+		.handler = &vsllink_handle_usb_pid_command,
+		.mode = COMMAND_CONFIG,
+	},
+	{
+		.name = "vsllink_usb_bulkin",
+		.handler = &vsllink_handle_usb_bulkin_command,
+		.mode = COMMAND_CONFIG,
+	},
+	{
+		.name = "vsllink_usb_bulkout",
+		.handler = &vsllink_handle_usb_bulkout_command,
+		.mode = COMMAND_CONFIG,
+	},
+	{
+		.name = "vsllink_usb_interface",
+		.handler = &vsllink_handle_usb_interface_command,
+		.mode = COMMAND_CONFIG,
+	},
+	{
+		.name = "vsllink_mode",
+		.handler = &vsllink_handle_mode_command,
+		.mode = COMMAND_CONFIG,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int vsllink_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_vid",
-			vsllink_handle_usb_vid_command, COMMAND_CONFIG,
-			NULL);
-	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_pid",
-			vsllink_handle_usb_pid_command, COMMAND_CONFIG,
-			NULL);
-	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_bulkin",
-			vsllink_handle_usb_bulkin_command, COMMAND_CONFIG,
-			NULL);
-	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_bulkout",
-			vsllink_handle_usb_bulkout_command, COMMAND_CONFIG,
-			NULL);
-	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_usb_interface",
-			vsllink_handle_usb_interface_command, COMMAND_CONFIG,
-			NULL);
-	COMMAND_REGISTER(cmd_ctx, NULL, "vsllink_mode",
-			vsllink_handle_mode_command, COMMAND_CONFIG,
-			NULL);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, vsllink_command_handlers);
 }
 
 struct jtag_interface vsllink_interface = {
