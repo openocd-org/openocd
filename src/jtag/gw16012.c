@@ -562,13 +562,20 @@ COMMAND_HANDLER(gw16012_handle_parport_port_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration gw16012_command_handlers[] = {
+	{
+		.name = "parport_port",
+		.handler = &gw16012_handle_parport_port_command,
+		.mode = COMMAND_CONFIG,
+		.help = "configure the parallel port to use",
+		.usage = "<port_num>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int gw16012_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "parport_port",
-			gw16012_handle_parport_port_command, COMMAND_CONFIG,
-			NULL);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, gw16012_command_handlers);
 }
 
 struct jtag_interface gw16012_interface = {
