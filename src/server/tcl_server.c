@@ -175,10 +175,19 @@ COMMAND_HANDLER(handle_tcl_port_command)
 	return CALL_COMMAND_HANDLER(server_port_command, &tcl_port);
 }
 
+static const struct command_registration tcl_command_handlers[] = {
+	{
+		.name = "tcl_port",
+		.handler = &handle_tcl_port_command,
+		.mode = COMMAND_CONFIG,
+		.help = "port on which to listen "
+			"for incoming TCL syntax",
+		.usage = "<port>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int tcl_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "tcl_port",
-			handle_tcl_port_command, COMMAND_CONFIG,
-			"port on which to listen for incoming TCL syntax");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, tcl_command_handlers);
 }

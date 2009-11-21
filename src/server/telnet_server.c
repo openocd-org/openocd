@@ -616,17 +616,25 @@ COMMAND_HANDLER(handle_exit_command)
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
 
-int telnet_register_commands(struct command_context *command_context)
+static const struct command_registration telnet_command_handlers[] = {
+	{
+		.name = "exit",
+		.handler = &handle_exit_command,
+		.mode = COMMAND_EXEC,
+		.help = "exit telnet session",
+	},
+	{
+		.name = "telnet_port",
+		.handler = &handle_telnet_port_command,
+		.mode = COMMAND_ANY,
+		.help = "port on which to listen "
+			"for incoming telnet connections",
+		.usage = "<port>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+int telnet_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(command_context, NULL, "exit",
-			&handle_exit_command, COMMAND_EXEC,
-			"exit telnet session");
-
-	COMMAND_REGISTER(command_context, NULL, "telnet_port",
-			&handle_telnet_port_command, COMMAND_ANY,
-			"port on which to listen for incoming telnet connections");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, telnet_command_handlers);
 }
-
-

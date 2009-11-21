@@ -2326,27 +2326,55 @@ COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 	return ERROR_OK;
 }
 
-int gdb_register_commands(struct command_context *command_context)
+static const struct command_registration gdb_command_handlers[] = {
+	{
+		.name = "gdb_sync",
+		.handler = &handle_gdb_sync_command,
+		.mode = COMMAND_ANY,
+		.help = "next stepi will return immediately allowing "
+			"GDB to fetch register state without affecting "
+			"target state",
+	},
+	{
+		.name = "gdb_port",
+		.handler = &handle_gdb_port_command,
+		.mode = COMMAND_ANY,
+		.help = "daemon configuration command gdb_port",
+		.usage = "<port>",
+	},
+	{
+		.name = "gdb_memory_map",
+		.handler = &handle_gdb_memory_map_command,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable memory map",
+		.usage = "enable|disable"
+	},
+	{
+		.name = "gdb_flash_program",
+		.handler = &handle_gdb_flash_program_command,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable flash program",
+		.usage = "enable|disable"
+	},
+	{
+		.name = "gdb_report_data_abort",
+		.handler = &handle_gdb_report_data_abort_command,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable reporting data aborts",
+		.usage = "enable|disable"
+	},
+	{
+		.name = "gdb_breakpoint_override",
+		.handler = &handle_gdb_breakpoint_override_command,
+		.mode = COMMAND_EXEC,
+		.help = "force type of breakpoint "
+			"used by gdb 'break' commands.",
+		.usage = "hard|soft|disable",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+int gdb_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(command_context, NULL, "gdb_sync",
-			handle_gdb_sync_command, COMMAND_ANY,
-			"next stepi will return immediately allowing GDB to "
-			"fetch register state without affecting target state");
-	COMMAND_REGISTER(command_context, NULL, "gdb_port",
-			handle_gdb_port_command, COMMAND_ANY,
-			"daemon configuration command gdb_port");
-	COMMAND_REGISTER(command_context, NULL, "gdb_memory_map",
-			handle_gdb_memory_map_command, COMMAND_CONFIG,
-			"enable or disable memory map");
-	COMMAND_REGISTER(command_context, NULL, "gdb_flash_program",
-			handle_gdb_flash_program_command, COMMAND_CONFIG,
-			"enable or disable flash program");
-	COMMAND_REGISTER(command_context, NULL, "gdb_report_data_abort",
-			handle_gdb_report_data_abort_command, COMMAND_CONFIG,
-			"enable or disable reporting data aborts");
-	COMMAND_REGISTER(command_context, NULL, "gdb_breakpoint_override",
-			handle_gdb_breakpoint_override_command, COMMAND_EXEC,
-			"hard/soft/disable - force type of breakpoint "
-			"used by gdb 'break' commands.");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, gdb_command_handlers);
 }

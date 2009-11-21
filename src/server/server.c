@@ -539,15 +539,20 @@ COMMAND_HANDLER(handle_shutdown_command)
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
 
-int server_register_commands(struct command_context *context)
+static const struct command_registration server_command_handlers[] = {
+	{
+		.name = "shutdown",
+		.handler = &handle_shutdown_command,
+		.mode = COMMAND_ANY,
+		.help = "shut the server down",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+int server_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(context, NULL, "shutdown",
-			handle_shutdown_command, COMMAND_ANY,
-			"shut the server down");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, server_command_handlers);
 }
-
 
 SERVER_PORT_COMMAND()
 {
