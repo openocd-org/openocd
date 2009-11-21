@@ -200,11 +200,18 @@ static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, cha
 	return ERROR_OK;
 }
 
+static const struct command_registration at91rm9200_command_handlers[] = {
+	{
+		.name = "at91rm9200_device",
+		.handler = &at91rm9200_handle_device_command,
+		.mode = COMMAND_CONFIG,
+		.help = "query armjtagew info",
+	},
+};
+
 static int at91rm9200_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "at91rm9200_device", at91rm9200_handle_device_command,
-		COMMAND_CONFIG, NULL);
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, at91rm9200_command_handlers);
 }
 
 static int at91rm9200_init(void)
