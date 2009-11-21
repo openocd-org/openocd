@@ -74,21 +74,21 @@ static void add_default_dirs(void)
 		add_script_search_dir(strExePath);
 	}
 	/*
-	 * Add support for the default (as of 20080121) layout when
-	 * using autotools and cygwin to build native MinGW binary.
+	 * Add support for the default (as of 20091118) layout when
+	 * using autotools and cygwin/MinGW to build native binary.
 	 * Path separator is converted to UNIX style so that MinGW is
 	 * pleased.
 	 *
 	 * bin/openocd.exe
-	 * lib/openocd/event/at91eb40a_reset.cfg
-	 * lib/openocd/target/at91eb40a.cfg
+	 * share/openocd/scripts/interface/dummy.cfg
+	 * share/openocd/scripts/target/at91eb40a.cfg
 	 */
 	{
 		char strExePath [MAX_PATH];
 		char *p;
 		GetModuleFileName (NULL, strExePath, MAX_PATH);
 		*strrchr(strExePath, '\\') = 0;
-		strcat(strExePath, "/../lib/"PACKAGE);
+		strcat(strExePath, "/../share/"PACKAGE"/scripts");
 		for (p = strExePath; *p; p++) {
 			if (*p == '\\')
 				*p = '/';
