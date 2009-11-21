@@ -363,7 +363,7 @@ static void arm_gdb_dummy_init(void)
 static int armv4_5_get_core_reg(struct reg *reg)
 {
 	int retval;
-	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
+	struct arm_reg *armv4_5 = reg->arch_info;
 	struct target *target = armv4_5->target;
 
 	if (target->state != TARGET_HALTED)
@@ -372,16 +372,18 @@ static int armv4_5_get_core_reg(struct reg *reg)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	retval = armv4_5->armv4_5_common->read_core_reg(target, armv4_5->num, armv4_5->mode);
-	if (retval == ERROR_OK)
+	retval = armv4_5->armv4_5_common->read_core_reg(target, reg, armv4_5->num, armv4_5->mode);
+	if (retval == ERROR_OK) {
 		reg->valid = 1;
+		reg->dirty = 0;
+	}
 
 	return retval;
 }
 
 static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 {
-	struct armv4_5_core_reg *armv4_5 = reg->arch_info;
+	struct arm_reg *armv4_5 = reg->arch_info;
 	struct target *target = armv4_5->target;
 	struct armv4_5_common_s *armv4_5_target = target_to_armv4_5(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
@@ -392,8 +394,16 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	/* Except for CPSR, the "reg" command exposes a writeback model
+	 * for the register cache.
+	 */
+	buf_set_u32(reg->value, 0, 32, value);
+	reg->dirty = 1;
+	reg->valid = 1;
+
 	if (reg == &armv4_5_target->core_cache->reg_list[ARMV4_5_CPSR])
 	{
+		/* FIXME handle J bit too; mostly for ThumbEE, also Jazelle */
 		if (value & 0x20)
 		{
 			/* T bit should be set */
@@ -415,18 +425,22 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 			}
 		}
 
+		/* REVISIT Why only update core for mode change, not also
+		 * for state changes?  Possibly older cores need to stay
+		 * in ARM mode during halt mode debug, not execute Thumb;
+		 * v6/v7a/v7r seem to do that automatically...
+		 */
+
 		if (armv4_5_target->core_mode != (enum armv4_5_mode)(value & 0x1f))
 		{
 			LOG_DEBUG("changing ARM core mode to '%s'",
 					arm_mode_name(value & 0x1f));
 			armv4_5_target->core_mode = value & 0x1f;
-			armv4_5_target->write_core_reg(target, 16, ARMV4_5_MODE_ANY, value);
+			armv4_5_target->write_core_reg(target, reg,
+					16, ARMV4_5_MODE_ANY, value);
+			reg->dirty = 0;
 		}
 	}
-
-	buf_set_u32(reg->value, 0, 32, value);
-	reg->dirty = 1;
-	reg->valid = 1;
 
 	return ERROR_OK;
 }
@@ -441,8 +455,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 	int num_regs = ARRAY_SIZE(arm_core_regs);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
-	struct armv4_5_core_reg *arch_info = calloc(num_regs,
-					sizeof(struct armv4_5_core_reg));
+	struct arm_reg *arch_info = calloc(num_regs, sizeof(struct arm_reg));
 	int i;
 
 	if (!cache || !reg_list || !arch_info) {
@@ -480,6 +493,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		cache->num_regs++;
 	}
 
+	armv4_5_common->core_cache = cache;
 	return cache;
 }
 
@@ -811,9 +825,14 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 
 	for (i = 0; i <= 16; i++)
 	{
-		if (!ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).valid)
-			armv4_5->read_core_reg(target, i, armv4_5_algorithm_info->core_mode);
-		context[i] = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32);
+		struct reg *r;
+
+		r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+				armv4_5_algorithm_info->core_mode, i);
+		if (!r->valid)
+			armv4_5->read_core_reg(target, r, i,
+					armv4_5_algorithm_info->core_mode);
+		context[i] = buf_get_u32(r->value, 0, 32);
 	}
 	cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32);
 

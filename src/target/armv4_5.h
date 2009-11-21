@@ -109,9 +109,9 @@ struct arm
 	struct etm_context *etm;
 
 	int (*full_context)(struct target *target);
-	int (*read_core_reg)(struct target *target,
+	int (*read_core_reg)(struct target *target, struct reg *reg,
 			int num, enum armv4_5_mode mode);
-	int (*write_core_reg)(struct target *target,
+	int (*write_core_reg)(struct target *target, struct reg *reg,
 			int num, enum armv4_5_mode mode, uint32_t value);
 	void *arch_info;
 };
@@ -137,7 +137,7 @@ struct armv4_5_algorithm
 	enum armv4_5_state core_state;
 };
 
-struct armv4_5_core_reg
+struct arm_reg
 {
 	int num;
 	enum armv4_5_mode mode;

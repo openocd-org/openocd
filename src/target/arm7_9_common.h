@@ -139,7 +139,6 @@ int arm7_9_full_context(struct target *target);
 int arm7_9_restore_context(struct target *target);
 int arm7_9_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
 int arm7_9_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
-int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode);
 int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer);

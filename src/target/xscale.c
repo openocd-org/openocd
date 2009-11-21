@@ -1646,16 +1646,18 @@ static int xscale_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int xscale_read_core_reg(struct target *target, int num,
-		enum armv4_5_mode mode)
+static int xscale_read_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode)
 {
+	/** \todo add debug handler support for core register reads */
 	LOG_ERROR("not implemented");
 	return ERROR_OK;
 }
 
-static int xscale_write_core_reg(struct target *target, int num,
-		enum armv4_5_mode mode, uint32_t value)
+static int xscale_write_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode, uint32_t value)
 {
+	/** \todo add debug handler support for core register writes */
 	LOG_ERROR("not implemented");
 	return ERROR_OK;
 }
@@ -2829,7 +2831,6 @@ static void xscale_build_reg_cache(struct target *target)
 	int num_regs = sizeof(xscale_reg_arch_info) / sizeof(struct xscale_reg);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
-	armv4_5->core_cache = (*cache_p);
 
 	(*cache_p)->next = malloc(sizeof(struct reg_cache));
 	cache_p = &(*cache_p)->next;

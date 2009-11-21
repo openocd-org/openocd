@@ -1577,7 +1577,7 @@ int arm7_9_restore_context(struct target *target)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 	struct reg *reg;
-	struct armv4_5_core_reg *reg_arch_info;
+	struct arm_reg *reg_arch_info;
 	enum armv4_5_mode current_mode = armv4_5->core_mode;
 	int i, j;
 	int dirty;
@@ -2084,25 +2084,24 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 	return err;
 }
 
-int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
+static int arm7_9_read_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode)
 {
 	uint32_t* reg_p[16];
 	uint32_t value;
 	int retval;
+	struct arm_reg *areg = r->arch_info;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
-
-	enum armv4_5_mode reg_mode = ((struct armv4_5_core_reg*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
-
 	if ((num < 0) || (num > 16))
 		return ERROR_INVALID_ARGUMENTS;
 
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (reg_mode != ARMV4_5_MODE_ANY))
+			&& (areg->mode != ARMV4_5_MODE_ANY))
 	{
 		uint32_t tmp_cpsr;
 
@@ -2125,10 +2124,7 @@ int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
 		/* read a program status register
 		 * if the register mode is MODE_ANY, we read the cpsr, otherwise a spsr
 		 */
-		struct armv4_5_core_reg *arch_info = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info;
-		int spsr = (arch_info->mode == ARMV4_5_MODE_ANY) ? 0 : 1;
-
-		arm7_9->read_xpsr(target, &value, spsr);
+		arm7_9->read_xpsr(target, &value, areg->mode != ARMV4_5_MODE_ANY);
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -2136,13 +2132,13 @@ int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
 		return retval;
 	}
 
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).value, 0, 32, value);
+	r->valid = 1;
+	r->dirty = 0;
+	buf_set_u32(r->value, 0, 32, value);
 
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (reg_mode != ARMV4_5_MODE_ANY))	{
+			&& (areg->mode != ARMV4_5_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	}
@@ -2150,23 +2146,22 @@ int arm7_9_read_core_reg(struct target *target, int num, enum armv4_5_mode mode)
 	return ERROR_OK;
 }
 
-int arm7_9_write_core_reg(struct target *target, int num, enum armv4_5_mode mode, uint32_t value)
+static int arm7_9_write_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode, uint32_t value)
 {
 	uint32_t reg[16];
+	struct arm_reg *areg = r->arch_info;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
 
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
-
-	enum armv4_5_mode reg_mode = ((struct armv4_5_core_reg*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
-
 	if ((num < 0) || (num > 16))
 		return ERROR_INVALID_ARGUMENTS;
 
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (reg_mode != ARMV4_5_MODE_ANY))	{
+			&& (areg->mode != ARMV4_5_MODE_ANY))	{
 		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
@@ -2188,8 +2183,7 @@ int arm7_9_write_core_reg(struct target *target, int num, enum armv4_5_mode mode
 		/* write a program status register
 		* if the register mode is MODE_ANY, we write the cpsr, otherwise a spsr
 		*/
-		struct armv4_5_core_reg *arch_info = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info;
-		int spsr = (arch_info->mode == ARMV4_5_MODE_ANY) ? 0 : 1;
+		int spsr = (areg->mode != ARMV4_5_MODE_ANY);
 
 		/* if we're writing the CPSR, mask the T bit */
 		if (!spsr)
@@ -2198,12 +2192,12 @@ int arm7_9_write_core_reg(struct target *target, int num, enum armv4_5_mode mode
 		arm7_9->write_xpsr(target, value, spsr);
 	}
 
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
+	r->valid = 1;
+	r->dirty = 0;
 
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (reg_mode != ARMV4_5_MODE_ANY))	{
+			&& (areg->mode != ARMV4_5_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	}

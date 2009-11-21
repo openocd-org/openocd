@@ -754,7 +754,6 @@ static void arm9tdmi_build_reg_cache(struct target *target)
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
-	armv4_5->core_cache = (*cache_p);
 }
 
 int arm9tdmi_init_target(struct command_context *cmd_ctx,

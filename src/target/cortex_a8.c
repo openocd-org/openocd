@@ -877,7 +877,7 @@ static int cortex_a8_restore_context(struct target *target)
 
 		/* write dirty non-{R0,CPSR} registers sharing the same mode */
 		for (i = max - 1, r = cache->reg_list + 1; i > 0; i--, r++) {
-			struct armv4_5_core_reg *reg;
+			struct arm_reg *reg;
 
 			if (!r->dirty || i == ARMV4_5_CPSR)
 				continue;
@@ -1018,16 +1018,17 @@ static int cortex_a8_store_core_reg_u32(struct target *target, int num,
 #endif
 
 
-static int cortex_a8_write_core_reg(struct target *target, int num,
-		enum armv4_5_mode mode, uint32_t value);
+static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode, uint32_t value);
 
-static int cortex_a8_read_core_reg(struct target *target, int num,
-		enum armv4_5_mode mode)
+static int cortex_a8_read_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode)
 {
 	uint32_t value;
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	struct reg_cache *cache = armv4_5->core_cache;
+	struct reg *cpsr_r = NULL;
 	uint32_t cpsr = 0;
 	unsigned cookie = num;
 
@@ -1042,10 +1043,10 @@ static int cortex_a8_read_core_reg(struct target *target, int num,
 			mode = ARMV4_5_MODE_ANY;
 
 		if (mode != ARMV4_5_MODE_ANY) {
-			cpsr = buf_get_u32(cache ->reg_list[ARMV4_5_CPSR]
-					.value, 0, 32);
-			cortex_a8_write_core_reg(target, 16,
-					ARMV4_5_MODE_ANY, mode);
+			cpsr_r = cache->reg_list + ARMV4_5_CPSR;
+			cpsr = buf_get_u32(cpsr_r->value, 0, 32);
+			cortex_a8_write_core_reg(target, cpsr_r,
+					16, ARMV4_5_MODE_ANY, mode);
 		}
 	}
 
@@ -1066,24 +1067,24 @@ static int cortex_a8_read_core_reg(struct target *target, int num,
 	cortex_a8_dap_read_coreregister_u32(target, &value, cookie);
 	retval = jtag_execute_queue();
 	if (retval == ERROR_OK) {
-		struct reg *r = &ARMV4_5_CORE_REG_MODE(cache, mode, num);
-
 		r->valid = 1;
 		r->dirty = 0;
 		buf_set_u32(r->value, 0, 32, value);
 	}
 
-	if (cpsr)
-		cortex_a8_write_core_reg(target, 16, ARMV4_5_MODE_ANY, cpsr);
+	if (cpsr_r)
+		cortex_a8_write_core_reg(target, cpsr_r,
+				16, ARMV4_5_MODE_ANY, cpsr);
 	return retval;
 }
 
-static int cortex_a8_write_core_reg(struct target *target, int num,
-		enum armv4_5_mode mode, uint32_t value)
+static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
+		int num, enum armv4_5_mode mode, uint32_t value)
 {
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	struct reg_cache *cache = armv4_5->core_cache;
+	struct reg *cpsr_r = NULL;
 	uint32_t cpsr = 0;
 	unsigned cookie = num;
 
@@ -1098,10 +1099,10 @@ static int cortex_a8_write_core_reg(struct target *target, int num,
 			mode = ARMV4_5_MODE_ANY;
 
 		if (mode != ARMV4_5_MODE_ANY) {
-			cpsr = buf_get_u32(cache ->reg_list[ARMV4_5_CPSR]
-					.value, 0, 32);
-			cortex_a8_write_core_reg(target, 16,
-					ARMV4_5_MODE_ANY, mode);
+			cpsr_r = cache->reg_list + ARMV4_5_CPSR;
+			cpsr = buf_get_u32(cpsr_r->value, 0, 32);
+			cortex_a8_write_core_reg(target, cpsr_r,
+					16, ARMV4_5_MODE_ANY, mode);
 		}
 	}
 
@@ -1122,15 +1123,14 @@ static int cortex_a8_write_core_reg(struct target *target, int num,
 
 	cortex_a8_dap_write_coreregister_u32(target, value, cookie);
 	if ((retval = jtag_execute_queue()) == ERROR_OK) {
-		struct reg *r = &ARMV4_5_CORE_REG_MODE(cache, mode, num);
-
 		buf_set_u32(r->value, 0, 32, value);
 		r->valid = 1;
 		r->dirty = 0;
 	}
 
-	if (cpsr)
-		cortex_a8_write_core_reg(target, 16, ARMV4_5_MODE_ANY, cpsr);
+	if (cpsr_r)
+		cortex_a8_write_core_reg(target, cpsr_r,
+				16, ARMV4_5_MODE_ANY, cpsr);
 	return retval;
 }
 
@@ -1619,7 +1619,6 @@ static void cortex_a8_build_reg_cache(struct target *target)
 	armv4_5->core_type = ARM_MODE_MON;
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
-	armv4_5->core_cache = (*cache_p);
 }
 
 
