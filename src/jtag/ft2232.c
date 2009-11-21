@@ -4009,15 +4009,9 @@ static const struct command_registration ft2232_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int ft2232_register_commands(struct command_context* cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, ft2232_command_handlers);
-}
-
-
 struct jtag_interface ft2232_interface = {
 		.name = "ft2232",
-		.register_commands = &ft2232_register_commands,
+		.commands = ft2232_command_handlers,
 		.init = &ft2232_init,
 		.quit = &ft2232_quit,
 		.speed = &ft2232_speed,

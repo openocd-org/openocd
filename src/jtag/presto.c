@@ -750,11 +750,6 @@ static const struct command_registration presto_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int presto_jtag_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, presto_command_handlers);
-}
-
 static int presto_jtag_init(void)
 {
 	if (presto_open(presto_serial) != ERROR_OK)
@@ -792,11 +787,14 @@ static int presto_jtag_quit(void)
 
 struct jtag_interface presto_interface = {
 		.name = "presto",
+
+		.commands = presto_command_handlers,
+
 		.execute_queue = &bitq_execute_queue,
 		.speed = &presto_jtag_speed,
 		.khz = &presto_jtag_khz,
 		.speed_div = &presto_jtag_speed_div,
-		.register_commands = &presto_jtag_register_commands,
+
 		.init = &presto_jtag_init,
 		.quit = &presto_jtag_quit,
 	};

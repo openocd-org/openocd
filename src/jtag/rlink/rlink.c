@@ -1568,49 +1568,6 @@ int rlink_khz(
 }
 
 
-#if 0
-static
-int
-handle_dtc_directory_command(
-	struct command_context *cmd_ctx,
-	char *cmd,
-	char **args,
-	int argc
-) {
-	if (argc != 1) {
-		LOG_ERROR("expected exactly one argument to rlink_dtc_directory <directory-path>");
-		return(ERROR_INVALID_ARGUMENTS);
-	}
-
-	printf("handle_dtc_directory_command called with \"%s\"\n", args[0]);
-
-	return(ERROR_OK);
-}
-#endif
-
-
-static
-int rlink_register_commands(struct command_context *cmd_ctx)
-{
-
-#ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("rlink_register_commands called with cmd_ctx=%p\n", cmd_ctx);
-#endif
-
-#if 0
-	register_command(
-		cmd_ctx, NULL,
-		"rlink_dtc_directory",
-		handle_dtc_directory_command,
-		COMMAND_CONFIG,
-		"The directory in which to search for DTC load images"
-);
-#endif
-
-	return ERROR_OK;
-}
-
-
 static
 int rlink_init(void)
 {
@@ -1848,7 +1805,6 @@ struct jtag_interface rlink_interface =
 	.name = "rlink",
 	.init = rlink_init,
 	.quit = rlink_quit,
-	.register_commands = rlink_register_commands,
 	.speed = rlink_speed,
 	.speed_div = rlink_speed_div,
 	.khz = rlink_khz,

@@ -644,18 +644,16 @@ static const struct command_registration jlink_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int jlink_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, jlink_command_handlers);
-}
-
 struct jtag_interface jlink_interface = {
 		.name = "jlink",
+
+		.commands = jlink_command_handlers,
+
 		.execute_queue = &jlink_execute_queue,
 		.speed = &jlink_speed,
 		.speed_div = &jlink_speed_div,
 		.khz = &jlink_khz,
-		.register_commands = &jlink_register_commands,
+
 		.init = &jlink_init,
 		.quit = &jlink_quit,
 	};

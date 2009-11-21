@@ -204,10 +204,8 @@ struct jtag_interface {
 	/**
 	 * The interface driver may register additional commands to expose
 	 * additional features not covered by the standard command set.
-	 * @param cmd_ctx The context in which commands should be registered.
-	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
-	int (*register_commands)(struct command_context* cmd_ctx);
+	const struct command_registration *commands;
 
 	/**
 	 * Interface driver must initalize any resources and connect to a

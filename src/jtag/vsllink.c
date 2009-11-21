@@ -1890,14 +1890,10 @@ static const struct command_registration vsllink_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int vsllink_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, vsllink_command_handlers);
-}
-
 struct jtag_interface vsllink_interface = {
 		.name = "vsllink",
-		.register_commands = &vsllink_register_commands,
+		.commands = vsllink_command_handlers,
+
 		.init = &vsllink_init,
 		.quit = &vsllink_quit,
 		.khz = &vsllink_khz,

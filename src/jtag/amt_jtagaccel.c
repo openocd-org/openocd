@@ -558,14 +558,9 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int amt_jtagaccel_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, amtjtagaccel_command_handlers);
-}
-
 struct jtag_interface amt_jtagaccel_interface = {
 		.name = "amt_jtagaccel",
-		.register_commands = &amt_jtagaccel_register_commands,
+		.commands = amtjtagaccel_command_handlers,
 		.init = &amt_jtagaccel_init,
 		.quit = &amt_jtagaccel_quit,
 		.speed = &amt_jtagaccel_speed,

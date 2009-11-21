@@ -517,19 +517,17 @@ static const struct command_registration parport_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-
-static int parport_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, parport_command_handlers);
-}
-
 struct jtag_interface parport_interface = {
-	.name =			"parport",
-	.register_commands =	parport_register_commands,
-	.init =			parport_init,
-	.quit =			parport_quit,
-	.khz =			parport_khz,
-	.speed_div =		parport_speed_div,
-	.speed =		parport_speed,
-	.execute_queue =	bitbang_execute_queue,
-};
+		.name = "parport",
+
+		.commands = parport_command_handlers,
+
+		.init = &parport_init,
+		.quit = &parport_quit,
+
+		.khz = &parport_khz,
+		.speed_div = &parport_speed_div,
+		.speed = &parport_speed,
+
+		.execute_queue = &bitbang_execute_queue,
+	};

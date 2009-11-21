@@ -512,17 +512,15 @@ static const struct command_registration armjtagew_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int armjtagew_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, armjtagew_command_handlers);
-}
-
 struct jtag_interface armjtagew_interface = {
 		.name = "arm-jtag-ew",
+
+		.commands = armjtagew_command_handlers,
+
 		.execute_queue = &armjtagew_execute_queue,
 		.speed = &armjtagew_speed,
 		.khz = &armjtagew_khz,
-		.register_commands = &armjtagew_register_commands,
+
 		.init = &armjtagew_init,
 		.quit = &armjtagew_quit,
 	};

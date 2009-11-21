@@ -134,11 +134,6 @@ static int dummy_speed(int speed)
 	return ERROR_OK;
 }
 
-static int dummy_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 static int dummy_init(void)
 {
 	bitbang_interface = &dummy_bitbang;
@@ -160,7 +155,6 @@ struct jtag_interface dummy_interface = {
 		.execute_queue = &bitbang_execute_queue,
 
 		.speed = &dummy_speed,
-		.register_commands = &dummy_register_commands,
 		.khz = &dummy_khz,
 		.speed_div = &dummy_speed_div,
 

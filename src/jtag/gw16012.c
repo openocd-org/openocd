@@ -573,14 +573,9 @@ static const struct command_registration gw16012_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int gw16012_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, gw16012_command_handlers);
-}
-
 struct jtag_interface gw16012_interface = {
 		.name = "gw16012",
-		.register_commands = &gw16012_register_commands,
+		.commands = gw16012_command_handlers,
 		.init = &gw16012_init,
 		.quit = &gw16012_quit,
 		.speed = &gw16012_speed,
