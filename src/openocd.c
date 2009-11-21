@@ -182,6 +182,9 @@ struct command_context *global_cmd_ctx;
 /* NB! this fn can be invoked outside this file for non PC hosted builds */
 struct command_context *setup_command_handler(void)
 {
+	log_init();
+	LOG_DEBUG("log_init: complete");
+
 	struct command_context *cmd_ctx;
 
 	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl);
@@ -202,11 +205,7 @@ struct command_context *setup_command_handler(void)
 	pld_register_commands(cmd_ctx);
 	mflash_register_commands(cmd_ctx);
 
-	if (log_init(cmd_ctx) != ERROR_OK)
-	{
-		exit(-1);
-	}
-	LOG_DEBUG("log init complete");
+	LOG_DEBUG("command registration: complete");
 
 	LOG_OUTPUT(OPENOCD_VERSION "\n");
 

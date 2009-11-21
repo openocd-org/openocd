@@ -336,25 +336,20 @@ static struct command_registration log_command_handlers[] = {
 
 int log_register_commands(struct command_context *cmd_ctx)
 {
-	start = timeval_ms();
-
 	return register_commands(cmd_ctx, NULL, log_command_handlers);
 }
 
-int log_init(struct command_context *cmd_ctx)
+void log_init(void)
 {
-	/* set defaults for daemon configuration, if not set by cmdline or cfgfile */
+	/* set defaults for daemon configuration,
+	 * if not set by cmdline or cfgfile */
 	if (debug_level == -1)
 		debug_level = LOG_LVL_INFO;
 
 	if (log_output == NULL)
-	{
 		log_output = stderr;
-	}
 
 	start = last_time = timeval_ms();
-
-	return ERROR_OK;
 }
 
 int set_log_output(struct command_context *cmd_ctx, FILE *output)

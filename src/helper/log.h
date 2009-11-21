@@ -66,7 +66,10 @@ void log_printf_lf(enum log_levels level, const char *file, unsigned line,
 	const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 
-int log_init(struct command_context *cmd_ctx);
+/**
+ * Initialize logging module.  Call during program startup.
+ */
+void log_init(void);
 int set_log_output(struct command_context *cmd_ctx, FILE *output);
 
 int log_register_commands(struct command_context *cmd_ctx);
