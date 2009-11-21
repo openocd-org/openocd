@@ -41,6 +41,8 @@ void add_script_search_dir (const char *dir)
 
 	script_search_dirs[num_script_dirs-1] = strdup(dir);
 	script_search_dirs[num_script_dirs] = NULL;
+
+	LOG_DEBUG("adding %s", dir);
 }
 
 void add_config_command (const char *cfg)
