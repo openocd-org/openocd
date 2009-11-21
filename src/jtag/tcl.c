@@ -636,9 +636,12 @@ COMMAND_HANDLER(handle_interface_command)
 		if (strcmp(CMD_ARGV[0], jtag_interfaces[i]->name) != 0)
 			continue;
 
-		int retval = jtag_interfaces[i]->register_commands(CMD_CTX);
-		if (ERROR_OK != retval)
+		if (NULL != jtag_interfaces[i]->register_commands)
+		{
+			int retval = jtag_interfaces[i]->register_commands(CMD_CTX);
+			if (ERROR_OK != retval)
 				return retval;
+		}
 
 		jtag_interface = jtag_interfaces[i];
 
