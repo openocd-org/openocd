@@ -540,16 +540,27 @@ COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration amtjtagaccel_command_handlers[] = {
+	{
+		.name = "parport_port",
+		.handler = &amt_jtagaccel_handle_parport_port_command,
+		.mode = COMMAND_CONFIG,
+		.help = "configure the parallel port to use",
+		.usage = "<port_num>",
+	},
+	{
+		.name = "parport_port",
+		.handler = &amt_jtagaccel_handle_rtck_command,
+		.mode = COMMAND_CONFIG,
+		.help = "enable RTCK",
+		.usage = "<enable|disable>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int amt_jtagaccel_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "parport_port",
-			amt_jtagaccel_handle_parport_port_command, COMMAND_CONFIG,
-			NULL);
-	COMMAND_REGISTER(cmd_ctx, NULL, "rtck",
-			amt_jtagaccel_handle_rtck_command, COMMAND_CONFIG,
-			NULL);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, amtjtagaccel_command_handlers);
 }
 
 struct jtag_interface amt_jtagaccel_interface = {
