@@ -82,15 +82,6 @@ static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 /* max speed 12MHz v5.0 jlink */
 #define JLINK_MAX_SPEED 12000
 
-/* External interface functions */
-static int jlink_execute_queue(void);
-static int jlink_speed(int speed);
-static int jlink_speed_div(int speed, int* khz);
-static int jlink_khz(int khz, int *jtag_speed);
-static int jlink_register_commands(struct command_context *cmd_ctx);
-static int jlink_init(void);
-static int jlink_quit(void);
-
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
@@ -133,18 +124,6 @@ static struct jlink* jlink_handle;
 
 /***************************************************************************/
 /* External interface implementation */
-
-struct jtag_interface jlink_interface =
-{
-	.name = "jlink",
-	.execute_queue = jlink_execute_queue,
-	.speed = jlink_speed,
-	.speed_div = jlink_speed_div,
-	.khz = jlink_khz,
-	.register_commands = jlink_register_commands,
-	.init = jlink_init,
-	.quit = jlink_quit
-};
 
 static void jlink_execute_runtest(struct jtag_command *cmd)
 {
@@ -660,6 +639,17 @@ static int jlink_register_commands(struct command_context *cmd_ctx)
 		"set/get jlink hw jtag command version [2 | 3]");
 	return ERROR_OK;
 }
+
+struct jtag_interface jlink_interface = {
+		.name = "jlink",
+		.execute_queue = &jlink_execute_queue,
+		.speed = &jlink_speed,
+		.speed_div = &jlink_speed_div,
+		.khz = &jlink_khz,
+		.register_commands = &jlink_register_commands,
+		.init = &jlink_init,
+		.quit = &jlink_quit,
+	};
 
 /***************************************************************************/
 /* J-Link tap functions */

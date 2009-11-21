@@ -35,45 +35,6 @@ static int clock_count;         /* count clocks in any stable state, only stable
 static uint32_t dummy_data;
 
 
-static int dummy_speed(int speed);
-static int dummy_register_commands(struct command_context *cmd_ctx);
-static int dummy_init(void);
-static int dummy_quit(void);
-static int dummy_khz(int khz, int *jtag_speed);
-static int dummy_speed_div(int speed, int *khz);
-
-
-/* The dummy driver is used to easily check the code path
- * where the target is unresponsive.
- */
-struct jtag_interface dummy_interface =
-{
-	.name = "dummy",
-
-	.execute_queue = bitbang_execute_queue,
-
-	.speed = dummy_speed,
-	.register_commands = dummy_register_commands,
-	.khz = dummy_khz,
-	.speed_div = dummy_speed_div,
-
-	.init = dummy_init,
-	.quit = dummy_quit,
-};
-
-static int dummy_read(void);
-static void dummy_write(int tck, int tms, int tdi);
-static void dummy_reset(int trst, int srst);
-static void dummy_led(int on);
-
-static struct bitbang_interface dummy_bitbang =
-{
-	.read = dummy_read,
-	.write = dummy_write,
-	.reset = dummy_reset,
-	.blink = dummy_led
-};
-
 static int dummy_read(void)
 {
 	int data = 1 & dummy_data;
@@ -129,6 +90,18 @@ static void dummy_reset(int trst, int srst)
 	LOG_DEBUG("reset to: %s", tap_state_name(dummy_state));
 }
 
+static void dummy_led(int on)
+{
+}
+
+static struct bitbang_interface dummy_bitbang = {
+		.read = &dummy_read,
+		.write = &dummy_write,
+		.reset = &dummy_reset,
+		.blink = &dummy_led,
+	};
+
+
 static int dummy_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0)
@@ -178,7 +151,19 @@ static int dummy_quit(void)
 	return ERROR_OK;
 }
 
-static void dummy_led(int on)
-{
-}
+/* The dummy driver is used to easily check the code path
+ * where the target is unresponsive.
+ */
+struct jtag_interface dummy_interface = {
+		.name = "dummy",
 
+		.execute_queue = &bitbang_execute_queue,
+
+		.speed = &dummy_speed,
+		.register_commands = &dummy_register_commands,
+		.khz = &dummy_khz,
+		.speed_div = &dummy_speed_div,
+
+		.init = &dummy_init,
+		.quit = &dummy_quit,
+	};

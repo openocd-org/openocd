@@ -49,27 +49,11 @@
 #define TCK_BIT			2
 #define TMS_BIT			1
 
-static int usbprog_execute_queue(void);
-static int usbprog_speed(int speed);
-static int usbprog_register_commands(struct command_context *cmd_ctx);
-static int usbprog_init(void);
-static int usbprog_quit(void);
-
 static void usbprog_end_state(tap_state_t state);
 static void usbprog_state_move(void);
 static void usbprog_path_move(struct pathmove_command *cmd);
 static void usbprog_runtest(int num_cycles);
 static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size);
-
-struct jtag_interface usbprog_interface =
-{
-	.name = "usbprog",
-	.execute_queue = usbprog_execute_queue,
-	.speed = usbprog_speed,
-	.register_commands = usbprog_register_commands,
-	.init = usbprog_init,
-	.quit = usbprog_quit
-};
 
 #define UNKOWN_COMMAND	0x00
 #define PORT_DIRECTION	0x01
@@ -116,11 +100,6 @@ static void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag,int bit, int 
 //static int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit);
 
 static int usbprog_speed(int speed)
-{
-	return ERROR_OK;
-}
-
-static int usbprog_register_commands(struct command_context *cmd_ctx)
 {
 	return ERROR_OK;
 }
@@ -688,3 +667,11 @@ static void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag)
 		tms_chain_index = 0;
 	}
 }
+
+struct jtag_interface usbprog_interface = {
+		.name = "usbprog",
+		.execute_queue = &usbprog_execute_queue,
+		.speed = &usbprog_speed,
+		.init = &usbprog_init,
+		.quit = &usbprog_quit
+	};

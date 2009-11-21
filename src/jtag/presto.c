@@ -39,42 +39,6 @@
 #error "BUG: either FTD2XX and LIBFTDI has to be used"
 #endif
 
-static int presto_jtag_speed(int speed);
-static int presto_jtag_khz(int khz, int *jtag_speed);
-static int presto_jtag_speed_div(int speed, int *khz);
-static int presto_jtag_register_commands(struct command_context *cmd_ctx);
-static int presto_jtag_init(void);
-static int presto_jtag_quit(void);
-
-struct jtag_interface presto_interface =
-{
-	.name = "presto",
-	.execute_queue = bitq_execute_queue,
-	.speed = presto_jtag_speed,
-	.khz = presto_jtag_khz,
-	.speed_div = presto_jtag_speed_div,
-	.register_commands = presto_jtag_register_commands,
-	.init = presto_jtag_init,
-	.quit = presto_jtag_quit,
-};
-
-static int presto_bitq_out(int tms, int tdi, int tdo_req);
-static int presto_bitq_flush(void);
-static int presto_bitq_sleep(unsigned long us);
-static int presto_bitq_reset(int trst, int srst);
-static int presto_bitq_in_rdy(void);
-static int presto_bitq_in(void);
-
-static struct bitq_interface presto_bitq =
-{
-	.out = presto_bitq_out,
-	.flush = presto_bitq_flush,
-	.sleep = presto_bitq_sleep,
-	.reset = presto_bitq_reset,
-	.in_rdy = presto_bitq_in_rdy,
-	.in = presto_bitq_in,
-};
-
 /* -------------------------------------------------------------------------- */
 
 #define FT_DEVICE_NAME_LEN 64
@@ -699,6 +663,15 @@ static int presto_bitq_reset(int trst, int srst)
 	return 0;
 }
 
+static struct bitq_interface presto_bitq = {
+		.out = &presto_bitq_out,
+		.flush = &presto_bitq_flush,
+		.sleep = &presto_bitq_sleep,
+		.reset = &presto_bitq_reset,
+		.in_rdy = &presto_bitq_in_rdy,
+		.in = &presto_bitq_in,
+	};
+
 /* -------------------------------------------------------------------------- */
 
 static int presto_jtag_khz(int khz, int *jtag_speed)
@@ -807,3 +780,14 @@ static int presto_jtag_quit(void)
 
 	return ERROR_OK;
 }
+
+struct jtag_interface presto_interface = {
+		.name = "presto",
+		.execute_queue = &bitq_execute_queue,
+		.speed = &presto_jtag_speed,
+		.khz = &presto_jtag_khz,
+		.speed_div = &presto_jtag_speed_div,
+		.register_commands = &presto_jtag_register_commands,
+		.init = &presto_jtag_init,
+		.quit = &presto_jtag_quit,
+	};

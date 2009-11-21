@@ -55,14 +55,6 @@
 static uint8_t usb_in_buffer[ARMJTAGEW_IN_BUFFER_SIZE];
 static uint8_t usb_out_buffer[ARMJTAGEW_OUT_BUFFER_SIZE];
 
-/* External interface functions */
-static int armjtagew_execute_queue(void);
-static int armjtagew_speed(int speed);
-static int armjtagew_khz(int khz, int *jtag_speed);
-static int armjtagew_register_commands(struct command_context *cmd_ctx);
-static int armjtagew_init(void);
-static int armjtagew_quit(void);
-
 /* Queue command functions */
 static void armjtagew_end_state(tap_state_t state);
 static void armjtagew_state_move(void);
@@ -104,18 +96,6 @@ static struct armjtagew* armjtagew_handle;
 
 /***************************************************************************/
 /* External interface implementation */
-
-struct jtag_interface armjtagew_interface =
-{
-	.name = "arm-jtag-ew",
-	.execute_queue = armjtagew_execute_queue,
-	.speed = armjtagew_speed,
-	.khz = armjtagew_khz,
-	.register_commands = armjtagew_register_commands,
-	.init = armjtagew_init,
-	.quit = armjtagew_quit
-};
-
 
 static int armjtagew_execute_queue(void)
 {
@@ -528,6 +508,16 @@ static int armjtagew_register_commands(struct command_context *cmd_ctx)
 			"query armjtagew info");
 	return ERROR_OK;
 }
+
+struct jtag_interface armjtagew_interface = {
+		.name = "arm-jtag-ew",
+		.execute_queue = &armjtagew_execute_queue,
+		.speed = &armjtagew_speed,
+		.khz = &armjtagew_khz,
+		.register_commands = &armjtagew_register_commands,
+		.init = &armjtagew_init,
+		.quit = &armjtagew_quit,
+	};
 
 /***************************************************************************/
 /* ARM-JTAG-EW tap functions */
