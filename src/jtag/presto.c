@@ -739,11 +739,20 @@ COMMAND_HANDLER(presto_handle_serial_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration presto_command_handlers[] = {
+	{
+		.name = "presto_serial",
+		.handler = &presto_handle_serial_command,
+		.mode = COMMAND_CONFIG,
+		.help = "configure serial port",
+		.usage = "<devname>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int presto_jtag_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "presto_serial", presto_handle_serial_command,
-		COMMAND_CONFIG, NULL);
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, presto_command_handlers);
 }
 
 static int presto_jtag_init(void)
