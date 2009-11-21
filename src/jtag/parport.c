@@ -482,28 +482,45 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration parport_command_handlers[] = {
+	{
+		.name = "parport_port",
+		.handler = &parport_handle_parport_port_command,
+		.mode = COMMAND_CONFIG,
+		.help = "either the address of the I/O port "
+			"or the number of the '/dev/parport' device",
+		.usage = "[<port|devname>]",
+	},
+	{
+		.name = "parport_cable",
+		.handler = &parport_handle_parport_cable_command,
+		.mode = COMMAND_CONFIG,
+		.help = "the layout of the parallel port cable "
+			"used to connect to the target",
+		.usage = "[<layout>]",
+	},
+	{
+		.name = "parport_write_on_exit",
+		.handler = &parport_handle_write_on_exit_command,
+		.mode = COMMAND_CONFIG,
+		.help = "configure the parallel driver to write "
+			"a known value to the parallel interface",
+		.usage = "[<on|off>]",
+	},
+	{
+		.name = "parport_toggling_time",
+		.handler = &parport_handle_parport_toggling_time_command,
+		.mode = COMMAND_CONFIG,
+		.help = "time <ns> it takes for the hardware to toggle TCK",
+		.usage = "[<ns>]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+
 static int parport_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "parport_port",
-			parport_handle_parport_port_command, COMMAND_CONFIG,
-			"either the address of the I/O port "
-			"or the number of the '/dev/parport' device");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "parport_cable",
-			parport_handle_parport_cable_command, COMMAND_CONFIG,
-			"the layout of the parallel port cable "
-			"used to connect to the target");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "parport_write_on_exit",
-			parport_handle_write_on_exit_command, COMMAND_CONFIG,
-			"configure the parallel driver to write "
-			"a known value to the parallel interface");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "parport_toggling_time",
-			parport_handle_parport_toggling_time_command, COMMAND_ANY,
-			"time <ns> it takes for the hardware to toggle TCK");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, parport_command_handlers);
 }
 
 struct jtag_interface parport_interface = {
