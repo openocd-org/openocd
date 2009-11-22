@@ -67,9 +67,6 @@ enum { ARMV4_5_CPSR = 31, };
 
 #define ARMV4_5_COMMON_MAGIC 0x0A450A45
 
-/* NOTE:  this is being morphed into a generic toplevel holder for ARMs. */
-#define armv4_5_common_s arm
-
 /**
  * Represents a generic ARM core, with standard application registers.
  *

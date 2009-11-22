@@ -494,7 +494,7 @@ int arm926ejs_arch_state(struct target *target)
 	};
 
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
-	struct armv4_5_common_s *armv4_5;
+	struct arm *armv4_5;
 
 	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC)
 	{
@@ -524,7 +524,7 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	int retval = ERROR_OK;
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)

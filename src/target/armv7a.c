@@ -59,7 +59,7 @@ int armv7a_arch_state(struct target *target)
 	};
 
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
 
 	if (armv7a->common_magic != ARMV7_COMMON_MAGIC)
 	{

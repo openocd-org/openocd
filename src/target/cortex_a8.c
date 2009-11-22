@@ -457,7 +457,7 @@ static int cortex_a8_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 
 //	struct breakpoint *breakpoint = NULL;
@@ -587,7 +587,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	struct working_area *regfile_working_area = NULL;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct swjdp_common *swjdp = &armv7a->swjdp_info;
 	struct reg *reg;
 
@@ -743,7 +743,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv4_5_common_s *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct breakpoint *breakpoint = NULL;
 	struct breakpoint stepbreakpoint;
 
@@ -915,7 +915,7 @@ static int cortex_a8_load_core_reg_u32(struct target *target, int num,
 		armv4_5_mode_t mode, uint32_t * value)
 {
 	int retval;
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 
 	if ((num <= ARM_CPSR))
 	{
@@ -953,7 +953,7 @@ static int cortex_a8_store_core_reg_u32(struct target *target, int num,
 {
 	int retval;
 //	uint32_t reg;
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 
 #ifdef ARMV7_GDB_HACKS
 	/* If the LR register is being modified, make sure it will put us
@@ -998,7 +998,7 @@ static int cortex_a8_read_core_reg(struct target *target, struct reg *r,
 {
 	uint32_t value;
 	int retval;
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 	struct reg *cpsr_r = NULL;
 	uint32_t cpsr = 0;
 	unsigned cookie = num;
@@ -1053,7 +1053,7 @@ static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
 		int num, enum armv4_5_mode mode, uint32_t value)
 {
 	int retval;
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 	struct reg *cpsr_r = NULL;
 	uint32_t cpsr = 0;
 	unsigned cookie = num;
@@ -1584,7 +1584,7 @@ static int cortex_a8_examine(struct target *target)
 static void cortex_a8_build_reg_cache(struct target *target)
 {
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 
 	armv4_5->core_type = ARM_MODE_MON;
 

@@ -581,7 +581,7 @@ static void arm7tdmi_branch_resume(struct target *target)
 static void arm7tdmi_branch_resume_thumb(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -641,7 +641,7 @@ static void arm7tdmi_branch_resume_thumb(struct target *target)
 static void arm7tdmi_build_reg_cache(struct target *target)
 {
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 }

@@ -225,7 +225,7 @@ static int arm720t_verify_pointer(struct command_context *cmd_ctx,
 static int arm720t_arch_state(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	struct armv4_5_common_s *armv4_5;
+	struct arm *armv4_5;
 
 	static const char *state[] =
 	{
@@ -307,7 +307,7 @@ static int arm720t_soft_reset_halt(struct target *target)
 	struct arm720t_common *arm720t = target_to_arm720(target);
 	struct reg *dbg_stat = &arm720t->arm7_9_common
 			.eice_cache->reg_list[EICE_DBG_STAT];
-	struct armv4_5_common_s *armv4_5 = &arm720t->arm7_9_common
+	struct arm *armv4_5 = &arm720t->arm7_9_common
 			.armv4_5_common;
 
 	if ((retval = target_halt(target)) != ERROR_OK)

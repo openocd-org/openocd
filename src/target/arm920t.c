@@ -212,7 +212,7 @@ static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 static int arm920t_read_cp15_interpreted(struct target *target,
 		uint32_t cp15_opcode, uint32_t address, uint32_t *value)
 {
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 	uint32_t* regs_p[1];
 	uint32_t regs[2];
 	uint32_t cp15c15 = 0x0;
@@ -258,7 +258,7 @@ int arm920t_write_cp15_interpreted(struct target *target,
 		uint32_t cp15_opcode, uint32_t value, uint32_t address)
 {
 	uint32_t cp15c15 = 0x0;
-	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_armv4_5(target);
 	uint32_t regs[2];
 
 	/* load value, address into R0, R1 */
@@ -436,7 +436,7 @@ int arm920t_arch_state(struct target *target)
 	};
 
 	struct arm920t_common *arm920t = target_to_arm920(target);
-	struct armv4_5_common_s *armv4_5;
+	struct arm *armv4_5;
 
 	if (arm920t->common_magic != ARM920T_COMMON_MAGIC)
 	{
@@ -555,7 +555,7 @@ int arm920t_soft_reset_halt(struct target *target)
 	int retval = ERROR_OK;
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
@@ -668,7 +668,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
 	uint32_t regs[16];
@@ -914,7 +914,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
 	uint32_t regs[16];
