@@ -37,12 +37,9 @@
 #define ZU		"%Iu"
 #endif
 
-#define ARM11_REGCACHE_MODEREGS		0
-#define ARM11_REGCACHE_FREGS		0
 
-#define ARM11_REGCACHE_COUNT		(20 +					\
-					 23 * ARM11_REGCACHE_MODEREGS +			\
-					  9 * ARM11_REGCACHE_FREGS)
+/* TEMPORARY -- till we switch to the shared infrastructure */
+#define ARM11_REGCACHE_COUNT		20
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 

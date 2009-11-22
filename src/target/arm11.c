@@ -115,51 +115,7 @@ static const struct arm11_reg_defs arm11_reg_defs[] =
 	{"lr",	14,	14,	ARM11_REGISTER_CORE},
 	{"pc",	15,	15,	ARM11_REGISTER_CORE},
 
-#if ARM11_REGCACHE_FREGS
-	{"f0",	0,	16,	ARM11_REGISTER_FX},
-	{"f1",	1,	17,	ARM11_REGISTER_FX},
-	{"f2",	2,	18,	ARM11_REGISTER_FX},
-	{"f3",	3,	19,	ARM11_REGISTER_FX},
-	{"f4",	4,	20,	ARM11_REGISTER_FX},
-	{"f5",	5,	21,	ARM11_REGISTER_FX},
-	{"f6",	6,	22,	ARM11_REGISTER_FX},
-	{"f7",	7,	23,	ARM11_REGISTER_FX},
-	{"fps",	0,	24,	ARM11_REGISTER_FPS},
-#endif
-
 	{"cpsr",	0,	25,	ARM11_REGISTER_CPSR},
-
-#if ARM11_REGCACHE_MODEREGS
-	{"r8_fiq",	8,	-1,	ARM11_REGISTER_FIQ},
-	{"r9_fiq",	9,	-1,	ARM11_REGISTER_FIQ},
-	{"r10_fiq",	10,	-1,	ARM11_REGISTER_FIQ},
-	{"r11_fiq",	11,	-1,	ARM11_REGISTER_FIQ},
-	{"r12_fiq",	12,	-1,	ARM11_REGISTER_FIQ},
-	{"r13_fiq",	13,	-1,	ARM11_REGISTER_FIQ},
-	{"r14_fiq",	14,	-1,	ARM11_REGISTER_FIQ},
-	{"spsr_fiq", 0,	-1,	ARM11_REGISTER_SPSR_FIQ},
-
-	{"r13_svc",	13,	-1,	ARM11_REGISTER_SVC},
-	{"r14_svc",	14,	-1,	ARM11_REGISTER_SVC},
-	{"spsr_svc", 0,	-1,	ARM11_REGISTER_SPSR_SVC},
-
-	{"r13_abt",	13,	-1,	ARM11_REGISTER_ABT},
-	{"r14_abt",	14,	-1,	ARM11_REGISTER_ABT},
-	{"spsr_abt", 0,	-1,	ARM11_REGISTER_SPSR_ABT},
-
-	{"r13_irq",	13,	-1,	ARM11_REGISTER_IRQ},
-	{"r14_irq",	14,	-1,	ARM11_REGISTER_IRQ},
-	{"spsr_irq", 0,	-1,	ARM11_REGISTER_SPSR_IRQ},
-
-	{"r13_und",	13,	-1,	ARM11_REGISTER_UND},
-	{"r14_und",	14,	-1,	ARM11_REGISTER_UND},
-	{"spsr_und", 0,	-1,	ARM11_REGISTER_SPSR_UND},
-
-	/* ARM1176 only */
-	{"r13_mon",	13,	-1,	ARM11_REGISTER_MON},
-	{"r14_mon",	14,	-1,	ARM11_REGISTER_MON},
-	{"spsr_mon", 0,	-1,	ARM11_REGISTER_SPSR_MON},
-#endif
 
 	/* Debug Registers */
 	{"dscr",	0,	-1,	ARM11_REGISTER_DSCR},
@@ -191,51 +147,7 @@ enum arm11_regcache_ids
 	ARM11_RC_R15,
 	ARM11_RC_PC			= ARM11_RC_R15,
 
-#if ARM11_REGCACHE_FREGS
-	ARM11_RC_F0,
-	ARM11_RC_FX			= ARM11_RC_F0,
-	ARM11_RC_F1,
-	ARM11_RC_F2,
-	ARM11_RC_F3,
-	ARM11_RC_F4,
-	ARM11_RC_F5,
-	ARM11_RC_F6,
-	ARM11_RC_F7,
-	ARM11_RC_FPS,
-#endif
-
 	ARM11_RC_CPSR,
-
-#if ARM11_REGCACHE_MODEREGS
-	ARM11_RC_R8_FIQ,
-	ARM11_RC_R9_FIQ,
-	ARM11_RC_R10_FIQ,
-	ARM11_RC_R11_FIQ,
-	ARM11_RC_R12_FIQ,
-	ARM11_RC_R13_FIQ,
-	ARM11_RC_R14_FIQ,
-	ARM11_RC_SPSR_FIQ,
-
-	ARM11_RC_R13_SVC,
-	ARM11_RC_R14_SVC,
-	ARM11_RC_SPSR_SVC,
-
-	ARM11_RC_R13_ABT,
-	ARM11_RC_R14_ABT,
-	ARM11_RC_SPSR_ABT,
-
-	ARM11_RC_R13_IRQ,
-	ARM11_RC_R14_IRQ,
-	ARM11_RC_SPSR_IRQ,
-
-	ARM11_RC_R13_UND,
-	ARM11_RC_R14_UND,
-	ARM11_RC_SPSR_UND,
-
-	ARM11_RC_R13_MON,
-	ARM11_RC_R14_MON,
-	ARM11_RC_SPSR_MON,
-#endif
 
 	ARM11_RC_DSCR,
 	ARM11_RC_WDTR,
@@ -244,6 +156,7 @@ enum arm11_regcache_ids
 	ARM11_RC_MAX,
 };
 
+/* GDB expects ARMs to give R0..R15, CPSR, and 7 FPA dummies */
 #define ARM11_GDB_REGISTER_COUNT	26
 
 static int arm11_on_enter_debug_state(struct arm11_common *arm11);
