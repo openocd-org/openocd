@@ -1242,15 +1242,9 @@ static const struct command_registration str9xpec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int str9xpec_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, str9xpec_command_handlers);
-}
-
-
 struct flash_driver str9xpec_flash = {
 		.name = "str9xpec",
-		.register_commands = &str9xpec_register_commands,
+		.commands = str9xpec_command_handlers,
 		.flash_bank_command = &str9xpec_flash_bank_command,
 		.erase = &str9xpec_erase,
 		.protect = &str9xpec_protect,

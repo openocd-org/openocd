@@ -1225,13 +1225,9 @@ static const struct command_registration stm32x_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int stm32x_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, stm32x_command_handlers);
-}
 struct flash_driver stm32x_flash = {
 		.name = "stm32x",
-		.register_commands = &stm32x_register_commands,
+		.commands = stm32x_command_handlers,
 		.flash_bank_command = &stm32x_flash_bank_command,
 		.erase = &stm32x_erase,
 		.protect = &stm32x_protect,

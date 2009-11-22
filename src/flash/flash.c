@@ -263,15 +263,20 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		if (strcmp(driver_name, flash_drivers[i]->name) != 0)
 			continue;
 
-		struct flash_bank *p, *c;
-
 		/* register flash specific commands */
-		if (flash_drivers[i]->register_commands(CMD_CTX) != ERROR_OK)
+		if (NULL != flash_drivers[i]->commands)
 		{
-			LOG_ERROR("couldn't register '%s' commands", driver_name);
-			return ERROR_FAIL;
+			int retval = register_commands(CMD_CTX, NULL,
+					flash_drivers[i]->commands);
+			if (ERROR_OK != retval)
+			{
+				LOG_ERROR("couldn't register '%s' commands",
+						driver_name);
+				return ERROR_FAIL;
+			}
 		}
 
+		struct flash_bank *p, *c;
 		c = malloc(sizeof(struct flash_bank));
 		c->name = strdup(bank_name);
 		c->target = target;

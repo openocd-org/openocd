@@ -907,14 +907,9 @@ static const struct command_registration pic32mx_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int pic32mx_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, pic32mx_command_handlers);
-}
-
 struct flash_driver pic32mx_flash = {
 		.name = "pic32mx",
-		.register_commands = &pic32mx_register_commands,
+		.commands = pic32mx_command_handlers,
 		.flash_bank_command = &pic32mx_flash_bank_command,
 		.erase = &pic32mx_erase,
 		.protect = &pic32mx_protect,

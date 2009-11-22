@@ -1198,14 +1198,9 @@ static const struct command_registration at91sam7_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int at91sam7_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, at91sam7_command_handlers);
-}
-
 struct flash_driver at91sam7_flash = {
 		.name = "at91sam7",
-		.register_commands = &at91sam7_register_commands,
+		.commands = at91sam7_command_handlers,
 		.flash_bank_command = &at91sam7_flash_bank_command,
 		.erase = &at91sam7_erase,
 		.protect = &at91sam7_protect,

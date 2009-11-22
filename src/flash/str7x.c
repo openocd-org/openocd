@@ -691,14 +691,9 @@ static const struct command_registration str7x_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int str7x_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, str7x_command_handlers);
-}
-
 struct flash_driver str7x_flash = {
 		.name = "str7x",
-		.register_commands = &str7x_register_commands,
+		.commands = str7x_command_handlers,
 		.flash_bank_command = &str7x_flash_bank_command,
 		.erase = &str7x_erase,
 		.protect = &str7x_protect,

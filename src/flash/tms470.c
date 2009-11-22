@@ -848,11 +848,6 @@ static const struct command_registration tms470_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int tms470_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, tms470_command_handlers);
-}
-
 /* ---------------------------------------------------------------------- */
 
 static int tms470_erase(struct flash_bank *bank, int first, int last)
@@ -1263,7 +1258,7 @@ FLASH_BANK_COMMAND_HANDLER(tms470_flash_bank_command)
 
 struct flash_driver tms470_flash = {
 		.name = "tms470",
-		.register_commands = &tms470_register_commands,
+		.commands = tms470_command_handlers,
 		.flash_bank_command = &tms470_flash_bank_command,
 		.erase = &tms470_erase,
 		.protect = &tms470_protect,

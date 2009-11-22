@@ -468,14 +468,9 @@ static const struct command_registration avrf_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int avrf_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, avrf_command_handlers);
-}
-
 struct flash_driver avr_flash = {
 		.name = "avr",
-		.register_commands = &avrf_register_commands,
+		.commands = avrf_command_handlers,
 		.flash_bank_command = &avrf_flash_bank_command,
 		.erase = &avrf_erase,
 		.protect = &avrf_protect,

@@ -91,13 +91,11 @@ struct flash_driver
 	char *name;
 
 	/**
-	 * Registers driver-specific commands.  When called (during the
-	 * "flash bank" command), the driver may register addition
+	 * An array of driver-specific commands to register.  When called
+	 * during the "flash bank" command, the driver can register addition
 	 * commands to support new flash chip functions.
-	 *
-	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*register_commands)(struct command_context *cmd_ctx);
+	const struct command_registration *commands;
 
 	/**
 	 * Finish the "flash bank" command for @a bank.  The

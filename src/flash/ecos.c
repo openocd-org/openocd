@@ -336,11 +336,6 @@ static int ecosflash_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int ecosflash_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 #if 0
 static void command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
 {
@@ -437,7 +432,6 @@ static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx, char 
 
 struct flash_driver ecosflash_flash = {
 		.name = "ecosflash",
-		.register_commands = &ecosflash_register_commands,
 		.flash_bank_command = &ecosflash_flash_bank_command,
 		.erase = &ecosflash_erase,
 		.protect = &ecosflash_protect,

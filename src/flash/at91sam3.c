@@ -2501,14 +2501,9 @@ static const struct command_registration at91sam3_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int sam3_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, at91sam3_command_handlers);
-}
-
 struct flash_driver at91sam3_flash = {
 		.name = "at91sam3",
-		.register_commands = &sam3_register_commands,
+		.commands = at91sam3_command_handlers,
 		.flash_bank_command = &sam3_flash_bank_command,
 		.erase = &sam3_erase,
 		.protect = &sam3_protect,

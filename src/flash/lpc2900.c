@@ -1003,15 +1003,6 @@ static const struct command_registration lpc2900_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-/**
- * Register private command handlers.
- */
-static int lpc2900_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, lpc2900_command_handlers);
-}
-
-
 /// Evaluate flash bank command.
 FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 {
@@ -1830,7 +1821,7 @@ static int lpc2900_info(struct flash_bank *bank, char *buf, int buf_size)
 struct flash_driver lpc2900_flash =
 {
 	.name               = "lpc2900",
-	.register_commands  = lpc2900_register_commands,
+	.commands           = lpc2900_command_handlers,
 	.flash_bank_command = lpc2900_flash_bank_command,
 	.erase              = lpc2900_erase,
 	.protect            = lpc2900_protect,

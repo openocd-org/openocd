@@ -87,11 +87,6 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int faux_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 static int faux_erase(struct flash_bank *bank, int first, int last)
 {
 	struct faux_flash_bank *info = bank->driver_priv;
@@ -130,7 +125,6 @@ static int faux_probe(struct flash_bank *bank)
 
 struct flash_driver faux_flash = {
 		.name = "faux",
-		.register_commands = &faux_register_commands,
 		.flash_bank_command = &faux_flash_bank_command,
 		.erase = &faux_erase,
 		.protect = &faux_protect,

@@ -1180,15 +1180,9 @@ static const struct command_registration stellaris_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int stellaris_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, stellaris_command_handlers);
-}
-
-
 struct flash_driver stellaris_flash = {
 		.name = "stellaris",
-		.register_commands = &stellaris_register_commands,
+		.commands = stellaris_command_handlers,
 		.flash_bank_command = &stellaris_flash_bank_command,
 		.erase = &stellaris_erase,
 		.protect = &stellaris_protect,

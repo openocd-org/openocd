@@ -589,11 +589,6 @@ static int cfi_intel_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int cfi_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 /* flash_bank cfi <base> <size> <chip_width> <bus_width> <target#> [options]
  */
 FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
@@ -2623,7 +2618,6 @@ static int cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 
 struct flash_driver cfi_flash = {
 		.name = "cfi",
-		.register_commands = &cfi_register_commands,
 		.flash_bank_command = &cfi_flash_bank_command,
 		.erase = &cfi_erase,
 		.protect = &cfi_protect,

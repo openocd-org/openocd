@@ -795,14 +795,9 @@ static const struct command_registration lpc2000_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int lpc2000_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, lpc2000_command_handlers);
-}
-
 struct flash_driver lpc2000_flash = {
 		.name = "lpc2000",
-		.register_commands = &lpc2000_register_commands,
+		.commands = lpc2000_command_handlers,
 		.flash_bank_command = &lpc2000_flash_bank_command,
 		.erase = &lpc2000_erase,
 		.protect = &lpc2000_protect,
