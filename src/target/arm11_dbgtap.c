@@ -880,10 +880,11 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
  */
 void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 {
-	struct arm11_sc7_action		clear_bw[arm11->brp + arm11->wrp + 1];
+	size_t clear_bw_size = arm11->brp + arm11->wrp + 1;
+	struct arm11_sc7_action		*clear_bw = malloc(sizeof(struct arm11_sc7_action) * clear_bw_size);
 	struct arm11_sc7_action *	pos = clear_bw;
 
-	for (size_t i = 0; i < ARRAY_SIZE(clear_bw); i++)
+	for (size_t i = 0; i < clear_bw_size; i++)
 	{
 		clear_bw[i].write	= true;
 		clear_bw[i].value	= 0;
@@ -899,7 +900,9 @@ void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 
 	(pos++)->address = ARM11_SC7_VCR;
 
-	arm11_sc7_run(arm11, clear_bw, ARRAY_SIZE(clear_bw));
+	arm11_sc7_run(arm11, clear_bw, clear_bw_size);
+
+	free (clear_bw);
 }
 
 /** Write VCR register
