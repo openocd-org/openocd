@@ -233,16 +233,29 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration virtex2_exec_command_handlers[] = {
+	{
+		.name = "read_stat",
+		.mode = COMMAND_EXEC,
+		.handler = &virtex2_handle_read_stat_command,
+		.help = "read status register",
+		.usage = "<device_id>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration virtex2_command_handler[] = {
+	{
+		.name = "virtex2",
+		.mode = COMMAND_ANY,
+		.help = "Virtex-II specific commands",
+		.chain = virtex2_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int virtex2_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *virtex2_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "virtex2",
-			NULL, COMMAND_ANY, "virtex2 specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, virtex2_cmd, "read_stat",
-			&virtex2_handle_read_stat_command, COMMAND_EXEC,
-			"read Virtex-II status register");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, virtex2_command_handler);
 }
 
 struct pld_driver virtex2_pld = {

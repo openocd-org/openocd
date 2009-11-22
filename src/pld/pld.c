@@ -37,7 +37,6 @@ static struct pld_driver *pld_drivers[] =
 };
 
 static struct pld_device *pld_devices;
-static struct command *pld_cmd;
 
 struct pld_device *get_pld_device_by_num(int num)
 {
@@ -184,26 +183,52 @@ COMMAND_HANDLER(handle_pld_load_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration pld_exec_command_handlers[] = {
+	{
+		.name = "devices",
+		.handler = &handle_pld_devices_command,
+		.mode = COMMAND_EXEC,
+		.help = "list configured pld devices",
+	},
+	{
+		.name = "load",
+		.handler = &handle_pld_load_command,
+		.mode = COMMAND_EXEC,
+		.help = "load configuration file into PLD",
+		.usage = "<device#> <file>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
 int pld_init(struct command_context *cmd_ctx)
 {
 	if (!pld_devices)
 		return ERROR_OK;
 
-	COMMAND_REGISTER(cmd_ctx, pld_cmd, "devices",
-			handle_pld_devices_command, COMMAND_EXEC,
-			"list configured pld devices");
-	COMMAND_REGISTER(cmd_ctx, pld_cmd, "load",
-			handle_pld_load_command, COMMAND_EXEC,
-			"load configuration <file> into programmable logic device");
-
-	return ERROR_OK;
+	struct command *parent = command_find_in_context(cmd_ctx, "pld");
+	return register_commands(cmd_ctx, parent, pld_exec_command_handlers);
 }
 
+static const struct command_registration pld_config_command_handlers[] = {
+	{
+		.name = "device",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_pld_device_command,
+		.help = "configure a PLD device",
+		.usage = "<driver> ...",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration pld_command_handler[] = {
+	{
+		.name = "pld",
+		.mode = COMMAND_ANY,
+		.help = "programmable logic device commands",
+
+		.chain = pld_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 int pld_register_commands(struct command_context *cmd_ctx)
 {
-	pld_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "pld", NULL, COMMAND_ANY, "programmable logic device commands");
-
-	COMMAND_REGISTER(cmd_ctx, pld_cmd, "device", handle_pld_device_command, COMMAND_CONFIG, NULL);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, pld_command_handler);
 }
