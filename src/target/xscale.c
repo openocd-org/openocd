@@ -948,12 +948,9 @@ static int xscale_debug_entry(struct target *target)
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, buffer[i + 1]);
 	}
 
-	buf_set_u32(armv4_5->cpsr->value, 0, 32, buffer[9]);
-	armv4_5->cpsr->dirty = 1;
-	armv4_5->cpsr->valid = 1;
+	arm_set_cpsr(armv4_5, buffer[9]);
 	LOG_DEBUG("cpsr: 0x%8.8" PRIx32 "", buffer[9]);
 
-	armv4_5->core_mode = buffer[9] & 0x1f;
 	if (!is_arm_mode(armv4_5->core_mode))
 	{
 		target->state = TARGET_UNKNOWN;

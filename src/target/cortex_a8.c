@@ -648,7 +648,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	dap_ap_select(swjdp, swjdp_debugap);
 	LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
-	armv4_5->core_mode = cpsr & 0x1F;
+	arm_set_cpsr(armv4_5, cpsr);
 
 	i = (cpsr >> 5) & 1;	/* T */
 	i |= (cpsr >> 23) & 1;	/* J << 1 */
@@ -674,11 +674,6 @@ static int cortex_a8_debug_entry(struct target *target)
 	}
 
 	/* update cache */
-	reg = armv4_5->cpsr;
-	buf_set_u32(reg->value, 0, 32, cpsr);
-	reg->valid = 1;
-	reg->dirty = 0;
-
 	for (i = 0; i <= ARM_PC; i++)
 	{
 		reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,

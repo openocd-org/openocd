@@ -565,17 +565,19 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	target->state = TARGET_HALTED;
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
-	buf_set_u32(armv4_5->cpsr->value, 0, 8, 0xd3);
+	uint32_t cpsr;
+
+	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
+	cpsr &= ~0xff;
+	cpsr |= 0xd3;
+	arm_set_cpsr(armv4_5, cpsr);
 	armv4_5->cpsr->dirty = 1;
-	armv4_5->cpsr->valid = 1;
+	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
-
-	armv4_5->core_mode = ARMV4_5_MODE_SVC;
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	arm926ejs_disable_mmu_caches(target, 1, 1, 1);
 	arm926ejs->armv4_5_mmu.mmu_enabled = 0;

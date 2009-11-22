@@ -1227,17 +1227,19 @@ int arm7_9_soft_reset_halt(struct target *target)
 	register_cache_invalidate(armv4_5->core_cache);
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
-	buf_set_u32(armv4_5->cpsr->value, 0, 8, 0xd3);
+	uint32_t cpsr;
+
+	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
+	cpsr &= ~0xff;
+	cpsr |= 0xd3;
+	arm_set_cpsr(armv4_5, cpsr);
 	armv4_5->cpsr->dirty = 1;
-	armv4_5->cpsr->valid = 1;
+	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
-
-	armv4_5->core_mode = ARMV4_5_MODE_SVC;
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	/* reset registers */
 	for (i = 0; i <= 14; i++)
@@ -1401,11 +1403,7 @@ static int arm7_9_debug_entry(struct target *target)
 	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
 		cpsr |= 0x20;
 
-	buf_set_u32(armv4_5->cpsr->value, 0, 32, cpsr);
-	armv4_5->cpsr->dirty = 0;
-	armv4_5->cpsr->valid = 1;
-
-	armv4_5->core_mode = cpsr & 0x1f;
+	arm_set_cpsr(armv4_5, cpsr);
 
 	if (!is_arm_mode(armv4_5->core_mode))
 	{

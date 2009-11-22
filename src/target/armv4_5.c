@@ -245,6 +245,10 @@ static const struct {
 	unsigned cookie;
 	enum armv4_5_mode mode;
 } arm_core_regs[] = {
+	/* IMPORTANT:  we guarantee that the first eight cached registers
+	 * correspond to r0..r7, and the fifteenth to PC, so that callers
+	 * don't need to map them.
+	 */
 	{ .name = "r0", .cookie = 0, .mode = ARMV4_5_MODE_ANY, },
 	{ .name = "r1", .cookie = 1, .mode = ARMV4_5_MODE_ANY, },
 	{ .name = "r2", .cookie = 2, .mode = ARMV4_5_MODE_ANY, },
@@ -255,7 +259,8 @@ static const struct {
 	{ .name = "r7", .cookie = 7, .mode = ARMV4_5_MODE_ANY, },
 
 	/* NOTE: regs 8..12 might be shadowed by FIQ ... flagging
-	 * them as MODE_ANY creates special cases.
+	 * them as MODE_ANY creates special cases.  (ANY means
+	 * "not mapped" elsewhere; here it's "everything but FIQ".)
 	 */
 	{ .name = "r8", .cookie = 8, .mode = ARMV4_5_MODE_ANY, },
 	{ .name = "r9", .cookie = 9, .mode = ARMV4_5_MODE_ANY, },
@@ -267,6 +272,7 @@ static const struct {
 	{ .name = "sp_usr", .cookie = 13, .mode = ARMV4_5_MODE_USR, },
 	{ .name = "lr_usr", .cookie = 14, .mode = ARMV4_5_MODE_USR, },
 
+	/* guaranteed to be at index 15 */
 	{ .name = "pc", .cookie = 15, .mode = ARMV4_5_MODE_ANY, },
 
 	{ .name = "r8_fiq", .cookie = 8, .mode = ARMV4_5_MODE_FIQ, },
@@ -332,6 +338,73 @@ const int armv4_5_core_reg_map[8][17] =
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 37, 38, 15, 39,
 	}
 };
+
+/**
+ * Configures host-side ARM records to reflect the specified CPSR.
+ * Later, code can use arm_reg_current() to map register numbers
+ * according to how they are exposed by this mode.
+ */
+void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
+{
+	enum armv4_5_mode mode = cpsr & 0x1f;
+	int num;
+
+	/* NOTE:  this may be called very early, before the register
+	 * cache is set up.  We can't defend against many errors, in
+	 * particular against CPSRs that aren't valid *here* ...
+	 */
+	if (arm->cpsr) {
+		buf_set_u32(arm->cpsr->value, 0, 32, cpsr);
+		arm->cpsr->valid = 1;
+		arm->cpsr->dirty = 0;
+	}
+
+	arm->core_mode = mode;
+
+	/* mode_to_number() warned; set up a somewhat-sane mapping */
+	num = armv4_5_mode_to_number(mode);
+	if (num < 0) {
+		mode = ARMV4_5_MODE_USR;
+		num = 0;
+	}
+
+	arm->map = &armv4_5_core_reg_map[num][0];
+	arm->spsr = (mode == ARMV4_5_MODE_USR || mode == ARMV4_5_MODE_SYS)
+			? NULL
+			: arm->core_cache->reg_list + arm->map[16];
+}
+
+/**
+ * Returns handle to the register currently mapped to a given number.
+ * Someone must have called arm_set_cpsr() before.
+ *
+ * \param arm This core's state and registers are used.
+ * \param regnum From 0..15 corresponding to R0..R14 and PC.
+ *	Note that R0..R7 don't require mapping; you may access those
+ *	as the first eight entries in the register cache.  Likewise
+ *	R15 (PC) doesn't need mapping; you may also access it directly.
+ *	However, R8..R14, and SPSR (arm->spsr) *must* be mapped.
+ *	CPSR (arm->cpsr) is also not mapped.
+ */
+struct reg *arm_reg_current(struct arm *arm, unsigned regnum)
+{
+	struct reg *r;
+
+	if (regnum > 16)
+		return NULL;
+
+	r = arm->core_cache->reg_list + arm->map[regnum];
+
+	/* e.g. invalid CPSR said "secure monitor" mode on a core
+	 * that doesn't support it...
+	 */
+	if (!r) {
+		LOG_ERROR("Invalid CPSR mode");
+		r = arm->core_cache->reg_list + regnum;
+	}
+
+	return r;
+}
 
 static const uint8_t arm_gdb_dummy_fp_value[12];
 
@@ -446,10 +519,9 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 		{
 			LOG_DEBUG("changing ARM core mode to '%s'",
 					arm_mode_name(value & 0x1f));
-			armv4_5_target->core_mode = value & 0x1f;
 			armv4_5_target->write_core_reg(target, reg,
 					16, ARMV4_5_MODE_ANY, value);
-			reg->dirty = 0;
+			arm_set_cpsr(armv4_5_target, value);
 		}
 	}
 
@@ -752,14 +824,10 @@ int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int
 	*reg_list = malloc(sizeof(struct reg*) * (*reg_list_size));
 
 	for (i = 0; i < 16; i++)
-	{
-		(*reg_list)[i] = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i);
-	}
+		(*reg_list)[i] = arm_reg_current(armv4_5, i);
 
 	for (i = 16; i < 24; i++)
-	{
 		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
-	}
 
 	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
 	(*reg_list)[25] = armv4_5->cpsr;
@@ -805,7 +873,6 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
 	struct armv4_5_algorithm *armv4_5_algorithm_info = arch_info;
 	enum armv4_5_state core_state = armv4_5->core_state;
-	enum armv4_5_mode core_mode = armv4_5->core_mode;
 	uint32_t context[17];
 	uint32_t cpsr;
 	int exit_breakpoint_size = 0;
@@ -835,6 +902,9 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 		return ERROR_FAIL;
 	}
 
+	/* save r0..pc, cpsr-or-spsr, and then cpsr-for-sure;
+	 * they'll be restored later.
+	 */
 	for (i = 0; i <= 16; i++)
 	{
 		struct reg *r;
@@ -952,6 +1022,7 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 		}
 	}
 
+	/* restore everything we saved before (17 or 18 registers) */
 	for (i = 0; i <= 16; i++)
 	{
 		uint32_t regvalue;
@@ -964,12 +1035,11 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).dirty = 1;
 		}
 	}
-	buf_set_u32(armv4_5->cpsr->value, 0, 32, cpsr);
-	armv4_5->cpsr->valid = 1;
+
+	arm_set_cpsr(armv4_5, cpsr);
 	armv4_5->cpsr->dirty = 1;
 
 	armv4_5->core_state = core_state;
-	armv4_5->core_mode = core_mode;
 
 	return retval;
 }
@@ -1169,8 +1239,8 @@ int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 	target->arch_info = armv4_5;
 
 	armv4_5->common_magic = ARMV4_5_COMMON_MAGIC;
+	arm_set_cpsr(armv4_5, ARMV4_5_MODE_USR);
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
-	armv4_5->core_mode = ARMV4_5_MODE_USR;
 
 	/* core_type may be overridden by subtype logic */
 	armv4_5->core_type = ARMV4_5_MODE_ANY;

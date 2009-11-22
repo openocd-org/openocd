@@ -85,6 +85,11 @@ struct arm
 	/** Handle to the CPSR; valid in all core modes. */
 	struct reg *cpsr;
 
+	/** Handle to the SPSR; valid only in core modes with an SPSR. */
+	struct reg *spsr;
+
+	const int *map;
+
 	/**
 	 * Indicates what registers are in the ARM state core register set.
 	 * ARMV4_5_MODE_ANY indicates the standard set of 37 registers,
@@ -160,6 +165,9 @@ int arm_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum);
 int arm_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *blank);
+
+void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
+struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
 
 extern struct reg arm_gdb_dummy_fp_reg;
 extern struct reg arm_gdb_dummy_fps_reg;
