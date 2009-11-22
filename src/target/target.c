@@ -3145,7 +3145,6 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	uint32_t count;
 	uint32_t v;
 	const char *varname;
-	uint8_t buffer[4096];
 	int  n, e, retval;
 	uint32_t i;
 
@@ -3227,14 +3226,20 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 
 	/* index counter */
 	n = 0;
+
+	size_t buffersize = 4096;
+	uint8_t *buffer = malloc(buffersize);
+	if (buffer == NULL)
+		return JIM_ERR;
+
 	/* assume ok */
 	e = JIM_OK;
 	while (len) {
 		/* Slurp... in buffer size chunks */
 
 		count = len; /* in objects.. */
-		if (count > (sizeof(buffer)/width)) {
-			count = (sizeof(buffer)/width);
+		if (count > (buffersize/width)) {
+			count = (buffersize/width);
 		}
 
 		retval = target_read_memory(target, addr, width, count, buffer);
@@ -3267,6 +3272,8 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 			len -= count;
 		}
 	}
+
+	free(buffer);
 
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 
@@ -3331,7 +3338,6 @@ static int target_array2mem(Jim_Interp *interp, struct target *target, int argc,
 	uint32_t count;
 	uint32_t v;
 	const char *varname;
-	uint8_t buffer[4096];
 	int  n, e, retval;
 	uint32_t i;
 
@@ -3415,12 +3421,18 @@ static int target_array2mem(Jim_Interp *interp, struct target *target, int argc,
 	n = 0;
 	/* assume ok */
 	e = JIM_OK;
+
+	size_t buffersize = 4096;
+	uint8_t *buffer = malloc(buffersize);
+	if (buffer == NULL)
+		return JIM_ERR;
+
 	while (len) {
 		/* Slurp... in buffer size chunks */
 
 		count = len; /* in objects.. */
-		if (count > (sizeof(buffer)/width)) {
-			count = (sizeof(buffer)/width);
+		if (count > (buffersize/width)) {
+			count = (buffersize/width);
 		}
 
 		v = 0; /* shut up gcc */
@@ -3453,6 +3465,8 @@ static int target_array2mem(Jim_Interp *interp, struct target *target, int argc,
 			len = 0;
 		}
 	}
+
+	free(buffer);
 
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 
