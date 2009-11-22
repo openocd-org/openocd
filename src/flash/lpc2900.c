@@ -948,46 +948,67 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 
 /***********************  Flash interface functions  **************************/
 
+static const struct command_registration lpc2900_exec_command_handlers[] = {
+	{
+		.name = "signature",
+		.handler = &lpc2900_handle_signature_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank>",
+		.help = "print device signature of flash bank",
+	},
+	{
+		.name = "read_custom",
+		.handler = &lpc2900_handle_read_custom_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <filename>",
+		.help = "read customer information from index sector to file",
+	},
+	{
+		.name = "password",
+		.handler = &lpc2900_handle_password_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <password>",
+		.help = "enter password to enable 'dangerous' options",
+	},
+	{
+		.name = "write_custom",
+		.handler = &lpc2900_handle_write_custom_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <filename> [<type>]",
+		.help = "write customer info from file to index sector",
+	},
+	{
+		.name = "secure_sector",
+		.handler = &lpc2900_handle_secure_sector_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <first> <last>",
+		.help = "activate sector security for a range of sectors",
+	},
+	{
+		.name = "secure_jtag",
+		.handler = &lpc2900_handle_secure_jtag_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <level>",
+		.help = "activate JTAG security",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration lpc2900_command_handlers[] = {
+	{
+		.name = "lpc2900",
+		.mode = COMMAND_ANY,
+		.help = "LPC2900 flash command group",
+		.chain = lpc2900_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 /**
  * Register private command handlers.
  */
 static int lpc2900_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *lpc2900_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "lpc2900",
-	                                          NULL, COMMAND_ANY, NULL);
-
-	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "signature",
-	    &lpc2900_handle_signature_command, COMMAND_EXEC,
-	    "<bank> | "
-	    "print device signature of flash bank");
-
-	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "read_custom",
-	    &lpc2900_handle_read_custom_command, COMMAND_EXEC,
-	    "<bank> <filename> | "
-            "read customer information from index sector to file");
-
-	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "password",
-	    &lpc2900_handle_password_command, COMMAND_EXEC,
-	    "<bank> <password> | "
-            "enter password to enable 'dangerous' options");
-
-	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "write_custom",
-	    &lpc2900_handle_write_custom_command, COMMAND_EXEC,
-	    "<bank> <filename> [<type>] | "
-            "write customer info from file to index sector");
-
-	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "secure_sector",
-	    &lpc2900_handle_secure_sector_command, COMMAND_EXEC,
-	    "<bank> <first> <last> | "
-            "activate sector security for a range of sectors");
-
-	COMMAND_REGISTER(cmd_ctx, lpc2900_cmd, "secure_jtag",
-	    &lpc2900_handle_secure_jtag_command, COMMAND_EXEC,
-	    "<bank> <level> | "
-            "activate JTAG security");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, lpc2900_command_handlers);
 }
 
 
