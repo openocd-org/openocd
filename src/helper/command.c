@@ -853,6 +853,70 @@ COMMAND_HANDLER(handle_usage_command)
 	return CALL_COMMAND_HANDLER(command_help_show, c, 0, false);
 }
 
+static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
+		struct command *head, struct command **out)
+{
+	if (0 == argc)
+		return argc;
+	struct command *c = command_find(head, Jim_GetString(argv[0], NULL));
+	if (NULL == c)
+		return argc;
+	*out = c;
+	return command_unknown_find(--argc, ++argv, (*out)->children, out);
+}
+
+static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	script_debug(interp, cmd_name, argc - 1, argv + 1);
+
+	struct command_context *cmd_ctx = current_command_context();
+	struct command *c = cmd_ctx->commands;
+	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c);
+	// if nothing could be consumed, then it's really an unknown command
+	if (remaining == argc - 1)
+	{
+		const char *cmd = Jim_GetString(argv[1], NULL);
+		LOG_ERROR("Unknown command:\n  %s", cmd);
+		return JIM_OK;
+	}
+
+	bool found = true;
+	Jim_Obj *const *start;
+	unsigned count;
+	if (c->handler)
+	{
+		// include the command name in the list
+		count = remaining + 1;
+		start = argv + (argc - remaining - 1);
+	}
+	else
+	{
+		c = command_find(cmd_ctx->commands, "help");
+		if (NULL == c)
+		{
+			LOG_ERROR("unknown command, but help is missing too");
+			return JIM_ERR;
+		}
+		count = argc - remaining;
+		start = argv;
+		found = false;
+	}
+
+	unsigned nwords;
+	const char **words = script_command_args_alloc(count, start, &nwords);
+	if (NULL == words)
+		return JIM_ERR;
+
+	int retval = run_command(cmd_ctx, c, words, nwords);
+
+	script_command_args_free(words, nwords);
+
+	if (!found && ERROR_OK == retval)
+		retval = ERROR_FAIL;
+
+	return retval;
+}
 
 int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 		const char *cmd_name, const char *help_text, const char *usage)
@@ -1032,6 +1096,7 @@ struct command_context* command_init(const char *startup_tcl)
 	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS",
 			Jim_NewStringObj(interp, HostOs , strlen(HostOs)));
 
+	Jim_CreateCommand(interp, "unknown", &command_unknown, NULL, NULL);
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
 	Jim_CreateCommand(interp, "capture", jim_capture, NULL, NULL);

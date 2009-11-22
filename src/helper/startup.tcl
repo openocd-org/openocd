@@ -44,23 +44,6 @@ proc cmd_help {cmdname h indent} {
 	}
 }
 
-# If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
-#
-# We also support two level commands. "flash banks" is translated to
-# flash_banks
-proc unknown {args} {
-	# do the name mangling from "flash banks" to "flash_banks"
-	if {[llength $args]>=2} {
-		set cmd_name "[lindex $args 0]_[lindex $args 1]"
-		if {[catch {info body $cmd_name}]==0} {
-		    # the command exists, try it...
-			return [eval "$cmd_name [lrange $args 2 end]"]
-		}
-	}
-	# This really is an unknown command.
-	return -code error "Unknown command: $args"
-}
-
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
 proc find {filename} {
