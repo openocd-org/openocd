@@ -306,6 +306,22 @@ These ideas were first introduced here: @par
 The following architectural tasks need to be accomplished and should be
 fairly easy to complete:
 
+
+- use dynamic allocations for working memory. Scan & fix code
+for excessive stack allocations. take linux/scripts/checkpatch.pl and
+see what the worst offenders are.  Example, on amd64:
+
+ $ objdump -d | checkpatch.pl | head -10
+ 0x004311e3 image_open [openocd]:                      13464
+ 0x00431301 image_open [openocd]:                      13464
+ 0x004237a4 target_array2mem [openocd]:                        4376
+ 0x0042382b target_array2mem [openocd]:                        4376
+ 0x00423e74 target_mem2array [openocd]:                        4360
+ 0x00423ef9 target_mem2array [openocd]:                        4360
+ 0x00404aed handle_svf_command [openocd]:              2248
+ 0x00404b7e handle_svf_command [openocd]:              2248
+ 0x00413581 handle_flash_fill_command [openocd]:               2200
+ 0x004135fa handle_flash_fill_command [openocd]:               2200
 - clean-up code to match style guides
 - factor code to eliminate duplicated functionality
 - rewrite code that uses casts to access 16-bit and larger types
