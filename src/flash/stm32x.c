@@ -1182,30 +1182,53 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration stm32x_exec_command_handlers[] = {
+	{
+		.name = "lock",
+		.handler = &stm32x_handle_lock_command,
+		.mode = COMMAND_EXEC,
+		.help = "lock device",
+	},
+	{
+		.name = "unlock",
+		.handler = &stm32x_handle_unlock_command,
+		.mode = COMMAND_EXEC,
+		.help = "unlock protected device",
+	},
+	{
+		.name = "mass_erase",
+		.handler = &stm32x_handle_mass_erase_command,
+		.mode = COMMAND_EXEC,
+		.help = "mass erase device",
+	},
+	{
+		.name = "options_read",
+		.handler = &stm32x_handle_options_read_command,
+		.mode = COMMAND_EXEC,
+		.help = "read device option bytes",
+	},
+	{
+		.name = "options_write",
+		.handler = &stm32x_handle_options_write_command,
+		.mode = COMMAND_EXEC,
+		.help = "write device option bytes",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration stm32x_command_handlers[] = {
+	{
+		.name = "stm32x",
+		.mode = COMMAND_ANY,
+		.help = "stm32x flash command group",
+		.chain = stm32x_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int stm32x_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *stm32x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "stm32x",
-			NULL, COMMAND_ANY, "stm32x flash specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "lock",
-			stm32x_handle_lock_command, COMMAND_EXEC,
-			"lock device");
-	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "unlock",
-			stm32x_handle_unlock_command, COMMAND_EXEC,
-			"unlock protected device");
-	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "mass_erase",
-			stm32x_handle_mass_erase_command, COMMAND_EXEC,
-			"mass erase device");
-	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "options_read",
-			stm32x_handle_options_read_command, COMMAND_EXEC,
-			"read device option bytes");
-	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "options_write",
-			stm32x_handle_options_write_command, COMMAND_EXEC,
-			"write device option bytes");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, stm32x_command_handlers);
 }
-
 struct flash_driver stm32x_flash = {
 		.name = "stm32x",
 		.register_commands = &stm32x_register_commands,
