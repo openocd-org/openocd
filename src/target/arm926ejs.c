@@ -56,7 +56,7 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	struct scan_field fields[4];
-	uint8_t address_buf[2];
+	uint8_t address_buf[2] = {0, 0};
 	uint8_t nr_w_buf = 0;
 	uint8_t access = 1;
 
@@ -149,7 +149,7 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	struct scan_field fields[4];
 	uint8_t value_buf[4];
-	uint8_t address_buf[2];
+	uint8_t address_buf[2] = {0, 0};
 	uint8_t nr_w_buf = 1;
 	uint8_t access = 1;
 
