@@ -873,13 +873,29 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration lpc3180_exec_command_handlers[] = {
+	{
+		.name = "select",
+		.handler = &handle_lpc3180_select_command,
+		.mode = COMMAND_EXEC,
+		.help = "select <'mlc'|'slc'> controller (default is mlc)",
+		.usage = "<device_id> (mlc|slc)",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration lpc3180_command_handler[] = {
+	{
+		.name = "lpc3180",
+		.mode = COMMAND_ANY,
+		.help = "LPC3180 NAND flash controller commands",
+		.chain = lpc3180_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int lpc3180_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *lpc3180_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
-
-	COMMAND_REGISTER(cmd_ctx, lpc3180_cmd, "select", handle_lpc3180_select_command, COMMAND_EXEC, "select <'mlc'|'slc'> controller (default is mlc)");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, lpc3180_command_handler);
 }
 
 struct nand_flash_controller lpc3180_nand_controller = {
