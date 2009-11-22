@@ -29,8 +29,8 @@ struct reg
 {
 	char *name;
 	void *value;
-	int dirty;
-	int valid;
+	bool dirty;
+	bool valid;
 	uint32_t size;
 	void *arch_info;
 	const struct reg_arch_type *type;
