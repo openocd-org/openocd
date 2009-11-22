@@ -23,6 +23,7 @@
 
 #include "flash.h"
 #include "image.h"
+#include "../hello.h"
 
 
 struct faux_flash_bank
@@ -123,8 +124,19 @@ static int faux_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
+static const struct command_registration faux_command_handlers[] = {
+	{
+		.name = "faux",
+		.mode = COMMAND_ANY,
+		.help = "faux flash command group",
+		.chain = hello_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 struct flash_driver faux_flash = {
 		.name = "faux",
+		.commands = faux_command_handlers,
 		.flash_bank_command = &faux_flash_bank_command,
 		.erase = &faux_erase,
 		.protect = &faux_protect,

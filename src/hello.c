@@ -101,7 +101,7 @@ COMMAND_HANDLER(handle_hello_command)
 	return retval;
 }
 
-static const struct command_registration hello_command_handlers[] = {
+const struct command_registration hello_command_handlers[] = {
 	{
 		.name = "hello",
 		.handler = &handle_hello_command,

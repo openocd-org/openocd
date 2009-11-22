@@ -179,9 +179,6 @@ static const struct command_registration openocd_command_handlers[] = {
 
 struct command_context *global_cmd_ctx;
 
-/// src/hello.c gives a simple example for writing new command modules
-int hello_register_commands(struct command_context *cmd_ctx);
-
 /* NB! this fn can be invoked outside this file for non PC hosted builds */
 struct command_context *setup_command_handler(void)
 {
@@ -191,7 +188,6 @@ struct command_context *setup_command_handler(void)
 
 	register_commands(cmd_ctx, NULL, openocd_command_handlers);
 	/* register subsystem commands */
-	hello_register_commands(cmd_ctx);
 	server_register_commands(cmd_ctx);
 	telnet_register_commands(cmd_ctx);
 	gdb_register_commands(cmd_ctx);

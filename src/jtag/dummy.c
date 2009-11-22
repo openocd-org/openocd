@@ -23,6 +23,7 @@
 
 #include "interface.h"
 #include "bitbang.h"
+#include "../hello.h"
 
 
 /* my private tap controller state, which tracks state for calling code */
@@ -146,11 +147,24 @@ static int dummy_quit(void)
 	return ERROR_OK;
 }
 
+static const struct command_registration dummy_command_handlers[] = {
+	{
+		.name = "dummy",
+		.mode = COMMAND_ANY,
+		.help = "dummy interface driver commands",
+
+		.chain = hello_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE,
+};
+
 /* The dummy driver is used to easily check the code path
  * where the target is unresponsive.
  */
 struct jtag_interface dummy_interface = {
 		.name = "dummy",
+
+		.commands = dummy_command_handlers,
 
 		.execute_queue = &bitbang_execute_queue,
 
