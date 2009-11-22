@@ -40,18 +40,6 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-#if 0
-#define FNC_INFO	LOG_DEBUG("-")
-#else
-#define FNC_INFO
-#endif
-
-#if 1
-#define FNC_INFO_NOTIMPLEMENTED do { LOG_DEBUG("NOT IMPLEMENTED"); /*exit(-1);*/ } while (0)
-#else
-#define FNC_INFO_NOTIMPLEMENTED
-#endif
-
 static bool arm11_config_memwrite_burst = true;
 static bool arm11_config_memwrite_error_fatal = true;
 static uint32_t arm11_vcr = 0;
@@ -180,8 +168,6 @@ static void arm11_dump_reg_changes(struct arm11_common * arm11);
  */
 static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 {
-	FNC_INFO;
-
 	uint32_t			dscr_local_tmp_copy;
 
 	if (!dscr)
@@ -239,7 +225,6 @@ static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 {
 	int retval;
-	FNC_INFO;
 
 	for (size_t i = 0; i < ARRAY_SIZE(arm11->reg_values); i++)
 	{
@@ -437,7 +422,6 @@ void arm11_dump_reg_changes(struct arm11_common * arm11)
   */
 static int arm11_leave_debug_state(struct arm11_common *arm11)
 {
-	FNC_INFO;
 	int retval;
 
 	retval = arm11_run_instr_data_prepare(arm11);
@@ -569,7 +553,6 @@ static void arm11_record_register_history(struct arm11_common *arm11)
 /* poll current target status */
 static int arm11_poll(struct target *target)
 {
-	FNC_INFO;
 	int retval;
 	struct arm11_common *arm11 = target_to_arm11(target);
 	uint32_t	dscr;
@@ -626,15 +609,14 @@ static int arm11_arch_state(struct target *target)
 static int arm11_target_request_data(struct target *target,
 		uint32_t size, uint8_t *buffer)
 {
-	FNC_INFO_NOTIMPLEMENTED;
+	LOG_WARNING("Not implemented: %s", __func__);
 
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 /* target execution control */
 static int arm11_halt(struct target *target)
 {
-	FNC_INFO;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	LOG_DEBUG("target->state: %s",
@@ -699,8 +681,6 @@ static int arm11_halt(struct target *target)
 static int arm11_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	FNC_INFO;
-
 	//	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
 	//	current, address, handle_breakpoints, debug_execution);
 
@@ -880,7 +860,7 @@ static void arm11_sim_set_state(struct arm_sim_interface *sim,
 //	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
 
 	/* FIX!!!! we should implement thumb for arm11 */
-	LOG_ERROR("Not implemetned!");
+	LOG_ERROR("Not implemented: %s", __func__);
 }
 
 
@@ -913,8 +893,6 @@ static int arm11_simulate_step(struct target *target, uint32_t *dry_run_pc)
 static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
-	FNC_INFO;
-
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 
@@ -1068,7 +1046,6 @@ static int arm11_step(struct target *target, int current,
 
 static int arm11_assert_reset(struct target *target)
 {
-	FNC_INFO;
 	int retval;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
@@ -1135,16 +1112,15 @@ static int arm11_deassert_reset(struct target *target)
 
 static int arm11_soft_reset_halt(struct target *target)
 {
-	FNC_INFO_NOTIMPLEMENTED;
+	LOG_WARNING("Not implemented: %s", __func__);
 
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 /* target register access for gdb */
 static int arm11_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size)
 {
-	FNC_INFO;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	*reg_list_size	= ARM11_GDB_REGISTER_COUNT;
@@ -1180,8 +1156,6 @@ static int arm11_read_memory_inner(struct target *target,
 {
 	/** \todo TODO: check if buffer cast to uint32_t* and uint16_t* might cause alignment problems */
 	int retval;
-
-	FNC_INFO;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1277,7 +1251,6 @@ static int arm11_write_memory_inner(struct target *target,
 		bool arm11_config_memrw_no_increment)
 {
 	int retval;
-	FNC_INFO;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1421,8 +1394,6 @@ static int arm11_write_memory(struct target *target,
 static int arm11_bulk_write_memory(struct target *target,
 		uint32_t address, uint32_t count, uint8_t *buffer)
 {
-	FNC_INFO;
-
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target was not halted");
@@ -1438,7 +1409,6 @@ static int arm11_bulk_write_memory(struct target *target,
 static int arm11_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	FNC_INFO;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 #if 0
@@ -1469,7 +1439,6 @@ static int arm11_add_breakpoint(struct target *target,
 static int arm11_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	FNC_INFO;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	arm11->free_brps++;
@@ -1480,17 +1449,17 @@ static int arm11_remove_breakpoint(struct target *target,
 static int arm11_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
-	FNC_INFO_NOTIMPLEMENTED;
+	LOG_WARNING("Not implemented: %s", __func__);
 
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 static int arm11_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
-	FNC_INFO_NOTIMPLEMENTED;
+	LOG_WARNING("Not implemented: %s", __func__);
 
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 // HACKHACKHACK - FIXME mode/state
@@ -1665,11 +1634,7 @@ restore:
 
 static int arm11_target_create(struct target *target, Jim_Interp *interp)
 {
-	FNC_INFO;
-
-	NEW(struct arm11_common, arm11, 1);
-
-	arm11->target = target;
+	struct arm11_common *arm11;
 
 	if (target->tap == NULL)
 		return ERROR_FAIL;
@@ -1680,7 +1645,13 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
+	arm11 = calloc(1, sizeof *arm11);
+	if (!arm11)
+		return ERROR_FAIL;
+
 	armv4_5_init_arch_info(target, &arm11->arm);
+
+	arm11->target = target;
 
 	arm11->jtag_info.tap = target->tap;
 	arm11->jtag_info.scann_size = 5;
@@ -1708,7 +1679,6 @@ static int arm11_examine(struct target *target)
 {
 	int retval;
 	char *type;
-	FNC_INFO;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	/* check IDCODE */
@@ -1801,8 +1771,6 @@ static int arm11_examine(struct target *target)
 /** Load a register that is marked !valid in the register cache */
 static int arm11_get_reg(struct reg *reg)
 {
-	FNC_INFO;
-
 	struct target * target = ((struct arm11_reg_state *)reg->arch_info)->target;
 
 	if (target->state != TARGET_HALTED)
@@ -1824,8 +1792,6 @@ static int arm11_get_reg(struct reg *reg)
 /** Change a value in the register cache */
 static int arm11_set_reg(struct reg *reg, uint8_t *buf)
 {
-	FNC_INFO;
-
 	struct target *target = ((struct arm11_reg_state *)reg->arch_info)->target;
 	struct arm11_common *arm11 = target_to_arm11(target);
 //	const struct arm11_reg_defs *arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
@@ -1845,10 +1811,20 @@ static const struct reg_arch_type arm11_reg_type = {
 static int arm11_build_reg_cache(struct target *target)
 {
 	struct arm11_common *arm11 = target_to_arm11(target);
+	struct reg_cache *cache;
+	struct reg *reg_list;
+	struct arm11_reg_state *arm11_reg_states;
 
-	NEW(struct reg_cache,		cache,				1);
-	NEW(struct reg,				reg_list,			ARM11_REGCACHE_COUNT);
-	NEW(struct arm11_reg_state,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
+	cache = calloc(1, sizeof *cache);
+	reg_list = calloc(ARM11_REGCACHE_COUNT, sizeof *reg_list);
+	arm11_reg_states = calloc(ARM11_REGCACHE_COUNT,
+			sizeof *arm11_reg_states);
+	if (!cache || !reg_list || !arm11_reg_states) {
+		free(cache);
+		free(reg_list);
+		free(arm11_reg_states);
+		return ERROR_FAIL;
+	}
 
 	arm11->reg_list	= reg_list;
 
@@ -1998,8 +1974,6 @@ static int arm11_mcr(struct target *target, int cpnum,
 
 static int arm11_register_commands(struct command_context *cmd_ctx)
 {
-	FNC_INFO;
-
 	struct command *top_cmd, *mw_cmd;
 
 	armv4_5_register_commands(cmd_ctx);

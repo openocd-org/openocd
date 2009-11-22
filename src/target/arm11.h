@@ -25,27 +25,20 @@
 
 #include "armv4_5.h"
 
-#define NEW(type, variable, items)			\
-	type * variable = calloc(1, sizeof(type) * items)
-
 /* TEMPORARY -- till we switch to the shared infrastructure */
 #define ARM11_REGCACHE_COUNT		20
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 
-
-#define CHECK_RETVAL(action)								\
-do {														\
-	int __retval = (action);								\
-															\
-	if (__retval != ERROR_OK)								\
-	{														\
-		LOG_DEBUG("error while calling \"" # action "\"");	\
-		return __retval;									\
-	}														\
-															\
-} while (0)
-
+#define CHECK_RETVAL(action)			\
+	do {					\
+		int __retval = (action);	\
+		if (__retval != ERROR_OK) {	\
+			LOG_DEBUG("error while calling \"%s\"",	\
+				# action );	\
+			return __retval;	\
+		}				\
+	} while (0)
 
 struct arm11_register_history
 {
