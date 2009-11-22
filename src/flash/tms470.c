@@ -817,15 +817,40 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
               Implementation of Flash Driver Interfaces
    ---------------------------------------------------------------------- */
 
+static const struct command_registration tms470_any_command_handlers[] = {
+	{
+		.name = "flash_keyset",
+		.handler = &tms470_handle_flash_keyset_command,
+		.mode = COMMAND_ANY,
+		.help = "tms470 flash_keyset <key0> <key1> <key2> <key3>",
+	},
+	{
+		.name = "osc_megahertz",
+		.handler = &tms470_handle_osc_megahertz_command,
+		.mode = COMMAND_ANY,
+		.help = "tms470 osc_megahertz <MHz>",
+	},
+	{
+		.name = "plldis",
+		.handler = &tms470_handle_plldis_command,
+		.mode = COMMAND_ANY,
+		.help = "tms470 plldis <0/1>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration tms470_command_handlers[] = {
+	{
+		.name = "tms470",
+		.mode = COMMAND_ANY,
+		.help = "TI tms470 flash command group",
+		.chain = tms470_any_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int tms470_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *tms470_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "tms470", NULL, COMMAND_ANY, "applies to TI tms470 family");
-
-	COMMAND_REGISTER(cmd_ctx, tms470_cmd, "flash_keyset", tms470_handle_flash_keyset_command, COMMAND_ANY, "tms470 flash_keyset <key0> <key1> <key2> <key3>");
-	COMMAND_REGISTER(cmd_ctx, tms470_cmd, "osc_megahertz", tms470_handle_osc_megahertz_command, COMMAND_ANY, "tms470 osc_megahertz <MHz>");
-	COMMAND_REGISTER(cmd_ctx, tms470_cmd, "plldis", tms470_handle_plldis_command, COMMAND_ANY, "tms470 plldis <0/1>");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, tms470_command_handlers);
 }
 
 /* ---------------------------------------------------------------------- */
