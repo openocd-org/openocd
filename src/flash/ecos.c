@@ -338,8 +338,6 @@ static int ecosflash_probe(struct flash_bank *bank)
 
 static int ecosflash_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "ecosflash", NULL, COMMAND_ANY, NULL);
-
 	return ERROR_OK;
 }
 
