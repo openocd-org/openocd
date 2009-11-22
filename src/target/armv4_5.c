@@ -372,6 +372,24 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 	arm->spsr = (mode == ARMV4_5_MODE_USR || mode == ARMV4_5_MODE_SYS)
 			? NULL
 			: arm->core_cache->reg_list + arm->map[16];
+
+	/* Older ARMs won't have the J bit */
+	enum armv4_5_state state;
+
+	if (cpsr & (1 << 5)) {	/* T */
+		if (cpsr & (1 << 24)) {	/* J */
+			LOG_WARNING("ThumbEE -- incomplete support");
+			state = ARM_STATE_THUMB_EE;
+		} else
+			state = ARMV4_5_STATE_THUMB;
+	} else {
+		if (cpsr & (1 << 24)) {	/* J */
+			LOG_ERROR("Jazelle state handling is BROKEN!");
+			state = ARMV4_5_STATE_JAZELLE;
+		} else
+			state = ARMV4_5_STATE_ARM;
+	}
+	arm->core_state = state;
 }
 
 /**
@@ -481,49 +499,27 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 	/* Except for CPSR, the "reg" command exposes a writeback model
 	 * for the register cache.
 	 */
-	buf_set_u32(reg->value, 0, 32, value);
-	reg->dirty = 1;
-	reg->valid = 1;
+	if (reg == armv4_5_target->cpsr) {
+		arm_set_cpsr(armv4_5_target, value);
 
-	if (reg == armv4_5_target->cpsr)
-	{
-		/* FIXME handle J bit too; mostly for ThumbEE, also Jazelle */
-		if (value & 0x20)
-		{
-			/* T bit should be set */
-			if (armv4_5_target->core_state == ARMV4_5_STATE_ARM)
-			{
-				/* change state to Thumb */
-				LOG_DEBUG("changing to Thumb state");
-				armv4_5_target->core_state = ARMV4_5_STATE_THUMB;
-			}
-		}
-		else
-		{
-			/* T bit should be cleared */
-			if (armv4_5_target->core_state == ARMV4_5_STATE_THUMB)
-			{
-				/* change state to ARM */
-				LOG_DEBUG("changing to ARM state");
-				armv4_5_target->core_state = ARMV4_5_STATE_ARM;
-			}
-		}
-
-		/* REVISIT Why only update core for mode change, not also
-		 * for state changes?  Possibly older cores need to stay
-		 * in ARM mode during halt mode debug, not execute Thumb;
-		 * v6/v7a/v7r seem to do that automatically...
+		/* Older cores need help to be in ARM mode during halt
+		 * mode debug, so we clear the J and T bits if we flush.
+		 * For newer cores (v6/v7a/v7r) we don't need that, but
+		 * it won't hurt since CPSR is always flushed anyway.
 		 */
-
-		if (armv4_5_target->core_mode != (enum armv4_5_mode)(value & 0x1f))
-		{
+		if (armv4_5_target->core_mode !=
+				(enum armv4_5_mode)(value & 0x1f)) {
 			LOG_DEBUG("changing ARM core mode to '%s'",
 					arm_mode_name(value & 0x1f));
+			value &= ~((1 << 24) | (1 << 5));
 			armv4_5_target->write_core_reg(target, reg,
 					16, ARMV4_5_MODE_ANY, value);
-			arm_set_cpsr(armv4_5_target, value);
 		}
+	} else {
+		buf_set_u32(reg->value, 0, 32, value);
+		reg->valid = 1;
 	}
+	reg->dirty = 1;
 
 	return ERROR_OK;
 }
@@ -1240,7 +1236,6 @@ int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 
 	armv4_5->common_magic = ARMV4_5_COMMON_MAGIC;
 	arm_set_cpsr(armv4_5, ARMV4_5_MODE_USR);
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	/* core_type may be overridden by subtype logic */
 	armv4_5->core_type = ARMV4_5_MODE_ANY;

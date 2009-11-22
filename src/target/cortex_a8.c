@@ -650,29 +650,6 @@ static int cortex_a8_debug_entry(struct target *target)
 
 	arm_set_cpsr(armv4_5, cpsr);
 
-	i = (cpsr >> 5) & 1;	/* T */
-	i |= (cpsr >> 23) & 1;	/* J << 1 */
-	switch (i) {
-	case 0:	/* J = 0, T = 0 */
-		armv4_5->core_state = ARMV4_5_STATE_ARM;
-		break;
-	case 1:	/* J = 0, T = 1 */
-		armv4_5->core_state = ARMV4_5_STATE_THUMB;
-		break;
-	case 2:	/* J = 1, T = 0 */
-		LOG_WARNING("Jazelle state -- not handled");
-		armv4_5->core_state = ARMV4_5_STATE_JAZELLE;
-		break;
-	case 3:	/* J = 1, T = 1 */
-		/* ThumbEE is very much like Thumb, but some of the
-		 * instructions are different.  Single stepping and
-		 * breakpoints need updating...
-		 */
-		LOG_WARNING("ThumbEE -- incomplete support");
-		armv4_5->core_state = ARM_STATE_THUMB_EE;
-		break;
-	}
-
 	/* update cache */
 	for (i = 0; i <= ARM_PC; i++)
 	{

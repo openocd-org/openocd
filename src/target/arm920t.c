@@ -603,7 +603,6 @@ int arm920t_soft_reset_halt(struct target *target)
 	cpsr |= 0xd3;
 	arm_set_cpsr(armv4_5, cpsr);
 	armv4_5->cpsr->dirty = 1;
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);

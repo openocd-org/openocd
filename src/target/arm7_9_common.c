@@ -1223,6 +1223,8 @@ int arm7_9_soft_reset_halt(struct target *target)
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
 	}
 
+	/* REVISIT likewise for bit 5 -- switch Jazelle-to-ARM */
+
 	/* all register content is now invalid */
 	register_cache_invalidate(armv4_5->core_cache);
 
@@ -1234,7 +1236,6 @@ int arm7_9_soft_reset_halt(struct target *target)
 	cpsr |= 0xd3;
 	arm_set_cpsr(armv4_5, cpsr);
 	armv4_5->cpsr->dirty = 1;
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
@@ -1334,7 +1335,7 @@ static int arm7_9_debug_entry(struct target *target)
 	uint32_t context[16];
 	uint32_t* context_p[16];
 	uint32_t r0_thumb, pc_thumb;
-	uint32_t cpsr;
+	uint32_t cpsr, cpsr_mask = 0;
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct armv4_5_common_s *armv4_5 = &arm7_9->armv4_5_common;
@@ -1379,11 +1380,21 @@ static int arm7_9_debug_entry(struct target *target)
 		LOG_DEBUG("target entered debug from Thumb state");
 		/* Entered debug from Thumb mode */
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;
+		cpsr_mask = 1 << 5;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
-		LOG_DEBUG("r0_thumb: 0x%8.8" PRIx32 ", pc_thumb: 0x%8.8" PRIx32 "", r0_thumb, pc_thumb);
-	}
-	else
-	{
+		LOG_DEBUG("r0_thumb: 0x%8.8" PRIx32
+			", pc_thumb: 0x%8.8" PRIx32, r0_thumb, pc_thumb);
+	} else if (buf_get_u32(dbg_stat->value, 5, 1)) {
+		/* \todo Get some vaguely correct handling of Jazelle, if
+		 * anyone ever uses it and full info becomes available.
+		 * See ARM9EJS TRM B.7.1 for how to switch J->ARM; and
+		 * B.7.3 for the reverse.  That'd be the bare minimum...
+		 */
+		LOG_DEBUG("target entered debug from Jazelle state");
+		armv4_5->core_state = ARMV4_5_STATE_JAZELLE;
+		cpsr_mask = 1 << 24;
+		LOG_ERROR("Jazelle debug entry -- BROKEN!");
+	} else {
 		LOG_DEBUG("target entered debug from ARM state");
 		/* Entered debug from ARM mode */
 		armv4_5->core_state = ARMV4_5_STATE_ARM;
@@ -1399,11 +1410,10 @@ static int arm7_9_debug_entry(struct target *target)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
-	/* if the core has been executing in Thumb state, set the T bit */
-	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
-		cpsr |= 0x20;
-
-	arm_set_cpsr(armv4_5, cpsr);
+	/* Sync our CPSR copy with J or T bits EICE reported, but
+	 * which we then erased by putting the core into ARM mode.
+	 */
+	arm_set_cpsr(armv4_5, cpsr | cpsr_mask);
 
 	if (!is_arm_mode(armv4_5->core_mode))
 	{

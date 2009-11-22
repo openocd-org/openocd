@@ -960,12 +960,6 @@ static int xscale_debug_entry(struct target *target)
 	LOG_DEBUG("target entered debug state in %s mode",
 			 arm_mode_name(armv4_5->core_mode));
 
-	if (buffer[9] & 0x20)
-		armv4_5->core_state = ARMV4_5_STATE_THUMB;
-	else
-		armv4_5->core_state = ARMV4_5_STATE_ARM;
-
-
 	/* get banked registers, r8 to r14, and spsr if not in USR/SYS mode */
 	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
 	{
