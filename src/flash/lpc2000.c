@@ -776,16 +776,28 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration lpc2000_exec_command_handlers[] = {
+	{
+		.name = "part_id",
+		.handler = &lpc2000_handle_part_id_command,
+		.mode = COMMAND_EXEC,
+		.help = "print part id of lpc2000 flash bank <num>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration lpc2000_command_handlers[] = {
+	{
+		.name = "lpc2000",
+		.mode = COMMAND_ANY,
+		.help = "lpc2000 flash command group",
+		.chain = lpc2000_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int lpc2000_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *lpc2000_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "lpc2000",
-			NULL, COMMAND_ANY, NULL);
-
-	COMMAND_REGISTER(cmd_ctx, lpc2000_cmd, "part_id",
-			lpc2000_handle_part_id_command, COMMAND_EXEC,
-			"print part id of lpc2000 flash bank <num>");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, lpc2000_command_handlers);
 }
 
 struct flash_driver lpc2000_flash = {
