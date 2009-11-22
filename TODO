@@ -308,10 +308,10 @@ fairly easy to complete:
 
 
 - use dynamic allocations for working memory. Scan & fix code
-for excessive stack allocations. take linux/scripts/checkpatch.pl and
+for excessive stack allocations. take linux/scripts/checkstack.pl and
 see what the worst offenders are.  Example, on amd64:
 
- $ objdump -d | checkpatch.pl | head -10
+ $ objdump -d | checkstack.pl | head -10
  0x004311e3 image_open [openocd]:                      13464
  0x00431301 image_open [openocd]:                      13464
  0x004237a4 target_array2mem [openocd]:                        4376
