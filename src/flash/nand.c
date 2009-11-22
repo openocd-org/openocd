@@ -63,7 +63,6 @@ static struct nand_flash_controller *nand_flash_controllers[] =
 
 /* configured NAND devices and NAND Flash command handler */
 static struct nand_device *nand_devices = NULL;
-static struct command *nand_cmd;
 
 /*	Chip ID list
  *
@@ -279,19 +278,34 @@ COMMAND_HANDLER(handle_nand_device_command)
 	return CALL_COMMAND_HANDLER(handle_nand_list_drivers);
 }
 
+static const struct command_registration nand_config_command_handlers[] = {
+	{
+		.name = "device",
+		.handler = &handle_nand_device_command,
+		.mode = COMMAND_CONFIG,
+		.help = "defines a new NAND bank",
+	},
+	{
+		.name = "drivers",
+		.handler = &handle_nand_list_drivers,
+		.mode = COMMAND_ANY,
+		.help = "lists available NAND drivers",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration nand_command_handlers[] = {
+	{
+		.name = "nand",
+		.mode = COMMAND_ANY,
+		.help = "NAND flash command group",
+		.chain = nand_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int nand_register_commands(struct command_context *cmd_ctx)
 {
-	nand_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "nand",
-			NULL, COMMAND_ANY, "NAND specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "device",
-			&handle_nand_device_command, COMMAND_CONFIG,
-			"defines a new NAND bank");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "drivers",
-			&handle_nand_list_drivers, COMMAND_ANY,
-			"lists available NAND drivers");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, nand_command_handlers);
 }
 
 struct nand_device *get_nand_device_by_name(const char *name)
@@ -1700,43 +1714,80 @@ COMMAND_HANDLER(handle_nand_raw_access_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration nand_exec_command_handlers[] = {
+	{
+		.name = "list",
+		.handler = &handle_nand_list_command,
+		.mode = COMMAND_EXEC,
+		.help = "list configured NAND flash devices",
+	},
+	{
+		.name = "info",
+		.handler = &handle_nand_info_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank>",
+		.help = "print info about a NAND flash device",
+	},
+	{
+		.name = "probe",
+		.handler = &handle_nand_probe_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank>",
+		.help = "identify NAND flash device <num>",
+
+	},
+	{
+		.name = "check_bad_blocks",
+		.handler = &handle_nand_check_bad_blocks_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> [<offset> <length>]",
+		.help = "check NAND flash device <num> for bad blocks",
+	},
+	{
+		.name = "erase",
+		.handler = &handle_nand_erase_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> [<offset> <length>]",
+		.help = "erase blocks on NAND flash device",
+	},
+	{
+		.name = "dump",
+		.handler = &handle_nand_dump_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <filename> <offset> <length> "
+			"[oob_raw | oob_only]",
+		.help = "dump from NAND flash device",
+	},
+	{
+		.name = "verify",
+		.handler = &handle_nand_verify_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <filename> <offset> "
+			"[oob_raw | oob_only | oob_softecc | oob_softecc_kw]",
+		.help = "verify NAND flash device",
+	},
+	{
+		.name = "write",
+		.handler = &handle_nand_write_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<bank> <filename> <offset> "
+			"[oob_raw | oob_only | oob_softecc | oob_softecc_kw]",
+		.help = "write to NAND flash device",
+	},
+	{
+		.name = "raw_access",
+		.handler = &handle_nand_raw_access_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<num> ['enable'|'disable']",
+		.help = "raw access to NAND flash device",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int nand_init(struct command_context *cmd_ctx)
 {
 	if (!nand_devices)
 		return ERROR_OK;
-
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "list",
-			handle_nand_list_command, COMMAND_EXEC,
-			"list configured NAND flash devices");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "info",
-			handle_nand_info_command, COMMAND_EXEC,
-			"print info about NAND flash device <num>");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "probe",
-			handle_nand_probe_command, COMMAND_EXEC,
-			"identify NAND flash device <num>");
-
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "check_bad_blocks",
-			handle_nand_check_bad_blocks_command, COMMAND_EXEC,
-			"check NAND flash device <num> for bad blocks [<offset> <length>]");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "erase",
-			handle_nand_erase_command, COMMAND_EXEC,
-			"erase blocks on NAND flash device <num> [<offset> <length>]");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "dump",
-			handle_nand_dump_command, COMMAND_EXEC,
-			"dump from NAND flash device <num> <filename> "
-			 "<offset> <length> [oob_raw | oob_only]");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "verify",
-			&handle_nand_verify_command, COMMAND_EXEC,
-			"verify NAND flash device <num> <filename> <offset> "
-			"[oob_raw | oob_only | oob_softecc | oob_softecc_kw]");
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "write",
-			handle_nand_write_command, COMMAND_EXEC,
-			"write to NAND flash device <num> <filename> <offset> "
-			"[oob_raw | oob_only | oob_softecc | oob_softecc_kw]");
-
-	COMMAND_REGISTER(cmd_ctx, nand_cmd, "raw_access",
-			handle_nand_raw_access_command, COMMAND_EXEC,
-			"raw access to NAND flash device <num> ['enable'|'disable']");
-
-	return ERROR_OK;
+	struct command *parent = command_find_in_context(cmd_ctx, "nand");
+	return register_commands(cmd_ctx, parent, nand_exec_command_handlers);
 }
