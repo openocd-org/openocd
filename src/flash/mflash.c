@@ -33,8 +33,6 @@ static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val
 static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio);
 static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val);
 
-static struct command *mflash_cmd;
-
 static struct mflash_bank *mflash_bank;
 
 static struct mflash_gpio_drv pxa270_gpio = {
@@ -1268,19 +1266,42 @@ COMMAND_HANDLER(mg_config_cmd)
 	}
 }
 
+static const struct command_registration mflash_exec_command_handlers[] = {
+	{
+		.name = "probe",
+		.handler = &mg_probe_cmd,
+		.mode = COMMAND_EXEC,
+		.help = "Detect bank configuration information",
+	},
+	{
+		.name = "write",
+		.handler = &mg_write_cmd,
+		.mode = COMMAND_EXEC,
+		.usage = "<num> <file> <address>",
+		.help = "Write a file at the specified address",
+	},
+	{
+		.name = "dump",
+		.handler = &mg_dump_cmd,
+		.mode = COMMAND_EXEC,
+		.usage = "<num> <file> <address> <size>",
+		.help = "Dump to a file from the specified address",
+	},
+	{
+		.name = "config",
+		.handler = &mg_config_cmd,
+		.mode = COMMAND_EXEC,
+		.usage = "<num> <stage>",
+		.help = "Dump to a file from the specified address",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int mflash_init_drivers(struct command_context *cmd_ctx)
 {
-	if (mflash_bank) {
-		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "probe", mg_probe_cmd, COMMAND_EXEC, NULL);
-		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "write", mg_write_cmd, COMMAND_EXEC,
-				"mflash write <num> <file> <address>");
-		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "dump", mg_dump_cmd, COMMAND_EXEC,
-						"mflash dump <num> <file> <address> <size>");
-		COMMAND_REGISTER(cmd_ctx, mflash_cmd, "config", mg_config_cmd,
-				COMMAND_EXEC, "mflash config <num> <stage>");
-	}
-
-	return ERROR_OK;
+	if (!mflash_bank)
+		return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, mflash_exec_command_handlers);
 }
 
 COMMAND_HANDLER(mg_bank_cmd)
@@ -1323,10 +1344,26 @@ COMMAND_HANDLER(mg_bank_cmd)
 	return ERROR_OK;
 }
 
+static const struct command_registration mflash_config_command_handlers[] = {
+	{
+		.name = "bank",
+		.handler = &mg_bank_cmd,
+		.mode = COMMAND_CONFIG,
+		.help = "configure a mflash device bank",
+		.usage = "<soc> <base> <RST pin> <target #>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration mflash_command_handler[] = {
+	{
+		.name = "mflash",
+		.mode = COMMAND_ANY,
+		.help = "mflash command group",
+		.chain = mflash_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 int mflash_register_commands(struct command_context *cmd_ctx)
 {
-	mflash_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "mflash", NULL, COMMAND_ANY, NULL);
-	COMMAND_REGISTER(cmd_ctx, mflash_cmd, "bank", mg_bank_cmd, COMMAND_CONFIG,
-			"mflash bank <soc> <base> <RST pin> <target #>");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, mflash_command_handler);
 }
