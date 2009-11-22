@@ -440,7 +440,7 @@ int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 	};
 
 //	/* TODO remove array */
-	uint32_t param_out[count];
+	uint32_t *param_out = malloc(count * sizeof(uint32_t));
 	int i;
 
 //	int retval;
@@ -471,6 +471,8 @@ int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 	{
 		buf[i] = param_out[i];
 	}
+
+	free(param_out);
 
 	return ERROR_OK;
 }
@@ -519,7 +521,7 @@ int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int cou
 	};
 
 //	/* TODO remove array */
-	uint32_t param_out[count];
+	uint32_t *param_out = malloc(count * sizeof(uint32_t));
 	int i;
 
 //	int retval;
@@ -550,6 +552,8 @@ int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int cou
 	{
 		buf[i] = param_out[i];
 	}
+
+	free(param_out);
 
 	return ERROR_OK;
 }
@@ -609,7 +613,7 @@ int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	};
 
 	/* TODO remove array */
-	uint32_t param_in[count + 2];
+	uint32_t *param_in = malloc((count + 2) * sizeof(uint32_t));
 	param_in[0] = addr;
 	param_in[1] = addr + count * sizeof(uint32_t);	//last address
 
@@ -617,6 +621,8 @@ int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
 		sizeof(param_in)/sizeof(param_in[0]),param_in, 0, NULL, 1);
+
+	free(param_in);
 
 	return ERROR_OK;
 }
@@ -698,7 +704,7 @@ int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	};
 
 	/* TODO remove array */
-	uint32_t param_in[count + 2];
+	uint32_t *param_in = malloc((count + 2) * sizeof(uint32_t));
 	int i;
 	param_in[0] = addr;
 	param_in[1] = count;
@@ -710,6 +716,8 @@ int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
 		sizeof(param_in)/sizeof(param_in[0]), param_in, 0, NULL, 1);
+
+	free(param_in);
 
 	return ERROR_OK;
 }
@@ -758,7 +766,7 @@ int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 	};
 
 	/* TODO remove array */
-	uint32_t param_in[count + 2];
+	uint32_t *param_in = malloc((count + 2) * sizeof(uint32_t));
 	int retval;
 	int i;
 	param_in[0] = addr;
@@ -771,6 +779,8 @@ int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 
 	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
 		sizeof(param_in)/sizeof(param_in[0]), param_in, 0, NULL, 1);
+
+	free(param_in);
 
 	return retval;
 }
