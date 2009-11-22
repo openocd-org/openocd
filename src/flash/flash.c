@@ -728,24 +728,40 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint32_t address;
 	uint32_t pattern;
 	uint32_t count;
-	uint8_t chunk[1024];
-	uint8_t readback[1024];
 	uint32_t wrote = 0;
 	uint32_t cur_size = 0;
 	uint32_t chunk_count;
 	struct target *target = get_current_target(CMD_CTX);
 	uint32_t i;
 	uint32_t wordsize;
+	int retval = ERROR_OK;
+
+	static size_t const chunksize = 1024;
+	uint8_t *chunk = malloc(chunksize);
+	if (chunk == NULL)
+		return ERROR_FAIL;
+
+	uint8_t *readback = malloc(chunksize);
+	if (readback == NULL)
+	{
+		free(chunk);
+		return ERROR_FAIL;
+	}
+
 
 	if (CMD_ARGC != 3)
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	{
+		retval = ERROR_COMMAND_SYNTAX_ERROR;
+		goto done;
+	}
+
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], pattern);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], count);
 
 	if (count == 0)
-		return ERROR_OK;
+		goto done;
 
 	switch (CMD_NAME[4])
 	{
@@ -759,10 +775,11 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		wordsize = 1;
 		break;
 	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		retval = ERROR_COMMAND_SYNTAX_ERROR;
+		goto done;
 	}
 
-	chunk_count = MIN(count, (1024 / wordsize));
+	chunk_count = MIN(count, (chunksize / wordsize));
 	switch (wordsize)
 	{
 	case 4:
@@ -795,15 +812,22 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		bank = get_flash_bank_by_addr(target, address);
 		if (bank == NULL)
 		{
-			return ERROR_FAIL;
+			retval = ERROR_FAIL;
+			goto done;
 		}
 		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
 		if (err != ERROR_OK)
-			return err;
+		{
+			retval = err;
+			goto done;
+		}
 
 		err = target_read_buffer(target, address + wrote, cur_size, readback);
 		if (err != ERROR_OK)
-			return err;
+		{
+			retval = err;
+			goto done;
+		}
 
 		unsigned i;
 		for (i = 0; i < cur_size; i++)
@@ -812,7 +836,8 @@ COMMAND_HANDLER(handle_flash_fill_command)
 			{
 				LOG_ERROR("Verfication error address 0x%08" PRIx32 ", read back 0x%02x, expected 0x%02x",
 						  address + wrote + i, readback[i], chunk[i]);
-				return ERROR_FAIL;
+				retval = ERROR_FAIL;
+				goto done;
 			}
 		}
 	}
@@ -823,7 +848,12 @@ COMMAND_HANDLER(handle_flash_fill_command)
 				" in %fs (%0.3f kb/s)", wrote, address,
 				duration_elapsed(&bench), duration_kbps(&bench, wrote));
 	}
-	return ERROR_OK;
+
+	done:
+	free(readback);
+	free(chunk);
+
+	return retval;
 }
 
 COMMAND_HANDLER(handle_flash_write_bank_command)
@@ -1152,16 +1182,18 @@ int flash_write(struct target *target, struct image *image, uint32_t *written, i
 int default_flash_mem_blank_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	uint8_t buffer[1024];
-	int buffer_size = sizeof(buffer);
+	const int buffer_size = 1024;
 	int i;
 	uint32_t nBytes;
+	int retval = ERROR_OK;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	uint8_t *buffer = malloc(buffer_size);
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
@@ -1171,7 +1203,6 @@ int default_flash_mem_blank_check(struct flash_bank *bank)
 		for (j = 0; j < bank->sectors[i].size; j += buffer_size)
 		{
 			uint32_t chunk;
-			int retval;
 			chunk = buffer_size;
 			if (chunk > (j - bank->sectors[i].size))
 			{
@@ -1180,7 +1211,9 @@ int default_flash_mem_blank_check(struct flash_bank *bank)
 
 			retval = target_read_memory(target, bank->base + bank->sectors[i].offset + j, 4, chunk/4, buffer);
 			if (retval != ERROR_OK)
-				return retval;
+			{
+				goto done;
+			}
 
 			for (nBytes = 0; nBytes < chunk; nBytes++)
 			{
@@ -1193,7 +1226,10 @@ int default_flash_mem_blank_check(struct flash_bank *bank)
 		}
 	}
 
-	return ERROR_OK;
+	done:
+	free(buffer);
+
+	return retval;
 }
 
 int default_flash_blank_check(struct flash_bank *bank)
