@@ -281,6 +281,11 @@ int unregister_command(struct command_context *cmd_ctx,
 int unregister_all_commands(struct command_context *cmd_ctx,
 		struct command *parent);
 
+struct command *command_find_in_context(struct command_context *cmd_ctx,
+		const char *name);
+struct command *command_find_in_parent(struct command *parent,
+		const char *name);
+
 void command_set_output_handler(struct command_context* context,
 		command_output_handler_t output_handler, void *priv);
 

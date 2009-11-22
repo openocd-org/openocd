@@ -193,6 +193,16 @@ static struct command *command_find(struct command *head, const char *name)
 	}
 	return NULL;
 }
+struct command *command_find_in_context(struct command_context *cmd_ctx,
+		const char *name)
+{
+	return command_find(cmd_ctx->commands, name);
+}
+struct command *command_find_in_parent(struct command *parent,
+		const char *name)
+{
+	return command_find(parent->children, name);
+}
 
 /**
  * Add the command into the linked list, sorted by name.
