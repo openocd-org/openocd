@@ -62,15 +62,9 @@ struct arm11_common
 	/** \name Processor type detection */
 	/*@{*/
 
-	uint32_t		device_id;		/**< IDCODE readout				*/
-	uint32_t		didr;			/**< DIDR readout (debug capabilities)	*/
-	uint8_t		implementor;	/**< DIDR Implementor readout		*/
-
 	size_t	brp;			/**< Number of Breakpoint Register Pairs from DIDR	*/
 	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
 
-	enum arm11_debug_version
-		debug_version;		/**< ARM debug architecture from DIDR	*/
 	/*@}*/
 
 	uint32_t		last_dscr;		/**< Last retrieved DSCR value;

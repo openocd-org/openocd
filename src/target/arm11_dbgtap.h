@@ -11,8 +11,6 @@ void arm11_add_IR(struct arm11_common *arm11,
 		uint8_t instr, tap_state_t state);
 int arm11_add_debug_SCAN_N(struct arm11_common *arm11,
 		uint8_t chain, tap_state_t state);
-void arm11_add_debug_INST(struct arm11_common *arm11,
-		uint32_t inst, uint8_t *flag, tap_state_t state);
 int arm11_read_DSCR(struct arm11_common *arm11, uint32_t *dscr);
 int arm11_write_DSCR(struct arm11_common *arm11, uint32_t dscr);
 
@@ -20,8 +18,6 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(uint32_t dscr);
 
 int arm11_run_instr_data_prepare(struct arm11_common *arm11);
 int arm11_run_instr_data_finish(struct arm11_common *arm11);
-int arm11_run_instr_no_data(struct arm11_common *arm11,
-		uint32_t *opcode, size_t count);
 int arm11_run_instr_no_data1(struct arm11_common *arm11, uint32_t opcode);
 int arm11_run_instr_data_to_core(struct arm11_common *arm11,
 		uint32_t opcode, uint32_t *data, size_t count);
@@ -37,8 +33,6 @@ int arm11_run_instr_data_to_core_via_r0(struct arm11_common *arm11,
 		uint32_t opcode, uint32_t data);
 
 int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields,
-		tap_state_t state);
-int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
 		tap_state_t state);
 
 /**

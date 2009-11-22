@@ -48,7 +48,8 @@ static const tap_state_t arm11_move_pi_to_si_via_ci[] =
 };
 
 
-int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields, tap_state_t state)
+static int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
+		tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_IRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
@@ -201,7 +202,8 @@ int arm11_add_debug_SCAN_N(struct arm11_common * arm11, uint8_t chain, tap_state
  *
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_debug_INST(struct arm11_common * arm11, uint32_t inst, uint8_t * flag, tap_state_t state)
+static void arm11_add_debug_INST(struct arm11_common * arm11,
+		uint32_t inst, uint8_t * flag, tap_state_t state)
 {
 	JTAG_DEBUG("INST <= 0x%08x", inst);
 
@@ -377,7 +379,9 @@ int arm11_run_instr_data_finish(struct arm11_common * arm11)
  * \param count		Number of opcodes to execute
  *
  */
-int arm11_run_instr_no_data(struct arm11_common * arm11, uint32_t * opcode, size_t count)
+static
+int arm11_run_instr_no_data(struct arm11_common * arm11,
+		uint32_t * opcode, size_t count)
 {
 	arm11_add_IR(arm11, ARM11_ITRSEL, ARM11_TAP_DEFAULT);
 

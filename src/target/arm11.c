@@ -385,7 +385,7 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 	return ERROR_OK;
 }
 
-void arm11_dump_reg_changes(struct arm11_common * arm11)
+static void arm11_dump_reg_changes(struct arm11_common * arm11)
 {
 
 	if (!(debug_level >= LOG_LVL_DEBUG))
@@ -1680,6 +1680,8 @@ static int arm11_examine(struct target *target)
 	int retval;
 	char *type;
 	struct arm11_common *arm11 = target_to_arm11(target);
+	uint32_t didr, device_id;
+	uint8_t implementor;
 
 	/* check IDCODE */
 
@@ -1687,7 +1689,7 @@ static int arm11_examine(struct target *target)
 
 	struct scan_field		idcode_field;
 
-	arm11_setup_field(arm11, 32, NULL, &arm11->device_id, &idcode_field);
+	arm11_setup_field(arm11, 32, NULL, &device_id, &idcode_field);
 
 	arm11_add_dr_scan_vc(1, &idcode_field, TAP_DRPAUSE);
 
@@ -1699,14 +1701,14 @@ static int arm11_examine(struct target *target)
 
 	struct scan_field		chain0_fields[2];
 
-	arm11_setup_field(arm11, 32, NULL,	&arm11->didr,		chain0_fields + 0);
-	arm11_setup_field(arm11,  8, NULL,	&arm11->implementor,	chain0_fields + 1);
+	arm11_setup_field(arm11, 32, NULL, &didr, chain0_fields + 0);
+	arm11_setup_field(arm11,  8, NULL, &implementor, chain0_fields + 1);
 
 	arm11_add_dr_scan_vc(ARRAY_SIZE(chain0_fields), chain0_fields, TAP_IDLE);
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	switch (arm11->device_id & 0x0FFFF000)
+	switch (device_id & 0x0FFFF000)
 	{
 	case 0x07B36000:
 		type = "ARM1136";
@@ -1724,26 +1726,25 @@ static int arm11_examine(struct target *target)
 	}
 	LOG_INFO("found %s", type);
 
-	arm11->debug_version = (arm11->didr >> 16) & 0x0F;
-
-	if (arm11->debug_version != ARM11_DEBUG_V6 &&
-		arm11->debug_version != ARM11_DEBUG_V61)
-	{
-		LOG_ERROR("Only ARMv6 v6 and v6.1 architectures supported.");
+	/* unlikely this could ever fail, but ... */
+	switch ((didr >> 16) & 0x0F) {
+	case ARM11_DEBUG_V6:
+	case ARM11_DEBUG_V61:		/* supports security extensions */
+		break;
+	default:
+		LOG_ERROR("Only ARM v6 and v6.1 debug supported.");
 		return ERROR_FAIL;
 	}
 
-	arm11->brp	= ((arm11->didr >> 24) & 0x0F) + 1;
-	arm11->wrp	= ((arm11->didr >> 28) & 0x0F) + 1;
+	arm11->brp = ((didr >> 24) & 0x0F) + 1;
+	arm11->wrp = ((didr >> 28) & 0x0F) + 1;
 
 	/** \todo TODO: reserve one brp slot if we allow breakpoints during step */
 	arm11->free_brps = arm11->brp;
 	arm11->free_wrps = arm11->wrp;
 
-	LOG_DEBUG("IDCODE %08" PRIx32 " IMPLEMENTOR %02x DIDR %08" PRIx32 "",
-		arm11->device_id,
-		(int)(arm11->implementor),
-		arm11->didr);
+	LOG_DEBUG("IDCODE %08" PRIx32 " IMPLEMENTOR %02x DIDR %08" PRIx32,
+			device_id, implementor, didr);
 
 	/* as a side-effect this reads DSCR and thus
 	 * clears the ARM11_DSCR_STICKY_PRECISE_DATA_ABORT / Sticky Precise Data Abort Flag
