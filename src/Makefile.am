@@ -112,7 +112,7 @@ BUILT_SOURCES = startup.tcl
 startup.tcl: $(STARTUP_TCL_SRCS)
 	cat $^ > $@
 
-BIN2C = $(builddir)/helper/bin2char$(EXEEXT_FOR_BUILD)
+BIN2C = $(top_builddir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
 
 # Convert .tcl to cfile
 startup_tcl.c: startup.tcl $(BIN2C)
