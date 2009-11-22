@@ -1,20 +1,8 @@
-#########
+# Defines basic Tcl procs for OpenOCD target module
 
-# This reset logic may be overridden by board/target/... scripts as needed
-# to provide a reset that, if possible, is close to a power-up reset.
-#
-# Exit requirements include:  (a) JTAG must be working, (b) the scan
-# chain was validated with "jtag arp_init" (or equivalent), (c) nothing
-# stays in reset.  No TAP-specific scans were performed.  It's OK if
-# some targets haven't been reset yet; they may need TAP-specific scans.
-#
-# The "mode" values include:  halt, init, run (from "reset" command);
-# startup (at OpenOCD server startup, when JTAG may not yet work); and
-# potentially more (for reset types like cold, warm, etc)
-proc init_reset { mode } {
-	jtag arp_init-reset
+proc new_target_name { } {
+	return [target number [expr [target count] - 1 ]]
 }
-
 
 global in_process_reset
 set in_process_reset 0

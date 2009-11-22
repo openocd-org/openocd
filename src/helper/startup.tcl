@@ -61,10 +61,6 @@ proc unknown {args} {
 	return -code error "Unknown command: $args"
 }
 
-proc new_target_name { } {
-	return [target number [expr [target count] - 1 ]]
-}
-
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
 proc find {filename} {

@@ -1,3 +1,5 @@
+# Defines basic Tcl procs for OpenOCD server modules
+
 # Handle GDB 'R' packet. Can be overriden by configuration script,
 # but it's not something one would expect target scripts to do
 # normally
