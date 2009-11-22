@@ -108,11 +108,24 @@ static const char **script_command_args_alloc(
 	return words;
 }
 
+static struct command_context *current_command_context(void)
+{
+	/* grab the command context from the associated data */
+	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
+	if (NULL == cmd_ctx)
+	{
+		/* Tcl can invoke commands directly instead of via command_run_line(). This would
+		 * happen when the Jim Tcl interpreter is provided by eCos.
+		 */
+		cmd_ctx = global_cmd_ctx;
+	}
+	return cmd_ctx;
+}
+
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
 	struct command *c;
-	struct command_context *context;
 	int retval;
 
 	/* DANGER!!!! be careful what we invoke here, since interp->cmdPrivData might
@@ -136,16 +149,6 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (NULL == words)
 		return JIM_ERR;
 
-	/* grab the command context from the associated data */
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL)
-	{
-		/* Tcl can invoke commands directly instead of via command_run_line(). This would
-		 * happen when the Jim Tcl interpreter is provided by eCos.
-		 */
-		context = global_cmd_ctx;
-	}
-
 	/* capture log output and return it */
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
 	/* a garbage collect can happen, so we need a reference count to this object */
@@ -153,7 +156,8 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	retval = run_command(context, c, (const char **)words, nwords);
+	struct command_context *cmd_ctx = current_command_context();
+	retval = run_command(cmd_ctx, c, (const char **)words, nwords);
 
 	log_remove_callback(tcl_output, tclOutput);
 
