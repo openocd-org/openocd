@@ -1161,15 +1161,28 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration stellaris_exec_command_handlers[] = {
+	{
+		.name = "mass_erase",
+		.handler = &stellaris_handle_mass_erase_command,
+		.mode = COMMAND_EXEC,
+		.help = "erase entire device",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration stellaris_command_handlers[] = {
+	{
+		.name = "stellaris",
+		.mode = COMMAND_ANY,
+		.help = "Stellaris flash command group",
+		.chain = stellaris_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int stellaris_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *stm32x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "stellaris",
-			NULL, COMMAND_ANY, "stellaris flash specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, stm32x_cmd, "mass_erase",
-			stellaris_handle_mass_erase_command, COMMAND_EXEC,
-			"mass erase device");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, stellaris_command_handlers);
 }
 
 
