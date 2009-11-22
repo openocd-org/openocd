@@ -882,26 +882,34 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 	return ERROR_OK;
 }
+static const struct command_registration pic32mx_exec_command_handlers[] = {
+	{
+		.name = "chip_erase",
+		.handler = &pic32mx_handle_chip_erase_command,
+		.mode = COMMAND_EXEC,
+		.help = "erase device",
+	},
+	{
+		.name = "pgm_word",
+		.handler = &pic32mx_handle_pgm_word_command,
+		.mode = COMMAND_EXEC,
+		.help = "program a word",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration pic32mx_command_handlers[] = {
+	{
+		.name = "pic32mx",
+		.mode = COMMAND_ANY,
+		.help = "pic32mx flash command group",
+		.chain = pic32mx_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 static int pic32mx_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *pic32mx_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "pic32mx",
-			NULL, COMMAND_ANY, "pic32mx flash specific commands");
-#if 0
-	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "lock",
-			pic32mx_handle_lock_command, COMMAND_EXEC,
-			"lock device");
-	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "unlock",
-			pic32mx_handle_unlock_command, COMMAND_EXEC,
-			"unlock protected device");
-#endif
-	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "chip_erase",
-			pic32mx_handle_chip_erase_command, COMMAND_EXEC,
-			"erase device");
-	COMMAND_REGISTER(cmd_ctx, pic32mx_cmd, "pgm_word",
-			pic32mx_handle_pgm_word_command, COMMAND_EXEC,
-			"program a word");
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, pic32mx_command_handlers);
 }
 
 struct flash_driver pic32mx_flash = {
