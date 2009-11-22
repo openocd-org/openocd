@@ -1460,11 +1460,18 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	return ERROR_OK;
 }
 
+static const struct command_registration svf_command_handlers[] = {
+	{
+		.name = "svf",
+		.handler = &handle_svf_command,
+		.mode = COMMAND_EXEC,
+		.help = "Runs a SVF file.",
+		.usage = "<file>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int svf_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "svf",
-			&handle_svf_command, COMMAND_EXEC,
-			"run svf <file>");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, svf_command_handlers);
 }

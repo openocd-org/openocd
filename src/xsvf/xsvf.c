@@ -1050,13 +1050,23 @@ COMMAND_HANDLER(handle_xsvf_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration xsvf_command_handlers[] = {
+	{
+		.name = "xsvf",
+		.handler = &handle_xsvf_command,
+		.mode = COMMAND_EXEC,
+		.help = "Runs a XSVF file.  If 'virt2' is given, xruntest "
+			"counts are interpreted as TCK cycles rather than "
+			"as microseconds.  Without the 'quiet' option, all "
+			"comments, retries, and mismatches will be reported.",
+		.usage = "<file> [virt2] [quiet]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int xsvf_register_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, NULL, "xsvf",
-			&handle_xsvf_command, COMMAND_EXEC,
-			"run xsvf <file> [virt2] [quiet]");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, xsvf_command_handlers);
 }
 
 #if 0   /* this comment style used to try and keep uncrustify from adding * at begin of line */
