@@ -496,8 +496,7 @@ static int cortex_a8_resume(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	resume_pc = buf_get_u32(
-			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 15).value,
+			armv4_5->core_cache->reg_list[15].value,
 			0, 32);
 	if (!current)
 		resume_pc = address;
@@ -522,13 +521,10 @@ static int cortex_a8_resume(struct target *target, int current,
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 15).value,
+	buf_set_u32(armv4_5->core_cache->reg_list[15].value,
 			0, 32, resume_pc);
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			armv4_5->core_mode, 15).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			armv4_5->core_mode, 15).valid = 1;
+	armv4_5->core_cache->reg_list[15].dirty = 1;
+	armv4_5->core_cache->reg_list[15].valid = 1;
 
 	cortex_a8_restore_context(target);
 
@@ -653,8 +649,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	/* update cache */
 	for (i = 0; i <= ARM_PC; i++)
 	{
-		reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, i);
+		reg = arm_reg_current(armv4_5, i);
 
 		buf_set_u32(reg->value, 0, 32, regfile[i]);
 		reg->valid = 1;
@@ -672,13 +667,10 @@ static int cortex_a8_debug_entry(struct target *target)
 		// ARM state
 		regfile[ARM_PC] -= 8;
 	}
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, ARM_PC).value,
-			0, 32, regfile[ARM_PC]);
 
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0)
-		.dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 0).valid;
+	reg = armv4_5->core_cache->reg_list + 15;
+	buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
+	reg->dirty = reg->valid;
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15)
 		.dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).valid;

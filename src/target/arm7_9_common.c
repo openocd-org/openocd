@@ -1245,9 +1245,11 @@ int arm7_9_soft_reset_halt(struct target *target)
 	/* reset registers */
 	for (i = 0; i <= 14; i++)
 	{
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, 0xffffffff);
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 1;
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
+		struct reg *r = arm_reg_current(armv4_5, i);
+
+		buf_set_u32(r->value, 0, 32, 0xffffffff);
+		r->dirty = 1;
+		r->valid = 1;
 	}
 
 	if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
@@ -1443,31 +1445,30 @@ static int arm7_9_debug_entry(struct target *target)
 
 	for (i = 0; i <= 15; i++)
 	{
+		struct reg *r = arm_reg_current(armv4_5, i);
+
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, context[i]);
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 0;
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
+
+		buf_set_u32(r->value, 0, 32, context[i]);
+		/* r0 and r15 (pc) have to be restored later */
+		r->dirty = (i == 0) || (i == 15);
+		r->valid = 1;
 	}
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 "", context[15]);
 
 	/* exceptions other than USR & SYS have a saved program status register */
-	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
-	{
+	if (armv4_5->spsr) {
 		uint32_t spsr;
 		arm7_9->read_xpsr(target, &spsr, 1);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32, spsr);
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).dirty = 0;
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).valid = 1;
+		buf_set_u32(armv4_5->spsr->value, 0, 32, spsr);
+		armv4_5->spsr->dirty = 0;
+		armv4_5->spsr->valid = 1;
 	}
-
-	/* r0 and r15 (pc) have to be restored later */
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).valid;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15).valid;
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
@@ -2377,8 +2378,11 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
-	for (i = 0; i <= last_reg; i++)
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
+	for (i = 0; i <= last_reg; i++) {
+		struct reg *r = arm_reg_current(armv4_5, i);
+
+		r->dirty = r->valid;
+	}
 
 	arm7_9->read_xpsr(target, &cpsr, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -2562,8 +2566,11 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
-	for (i = 0; i <= last_reg; i++)
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
+	for (i = 0; i <= last_reg; i++) {
+		struct reg *r = arm_reg_current(armv4_5, i);
+
+		r->dirty = r->valid;
+	}
 
 	arm7_9->read_xpsr(target, &cpsr, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
