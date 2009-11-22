@@ -214,11 +214,12 @@ COMMAND_HANDLER(handle_nand_list_drivers)
 static COMMAND_HELPER(create_nand_device, const char *bank_name,
 		struct nand_flash_controller *controller)
 {
-	int retval = controller->register_commands(CMD_CTX);
-	if (ERROR_OK != retval)
+	if (NULL != controller->commands)
 	{
-		LOG_ERROR("couldn't register '%s' commands", controller->name);
-		return retval;
+		int retval = register_commands(CMD_CTX, NULL,
+				controller->commands);
+		if (ERROR_OK != retval)
+			return retval;
 	}
 	struct nand_device *c = malloc(sizeof(struct nand_device));
 
@@ -233,7 +234,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	c->use_raw = 0;
 	c->next = NULL;
 
-	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
+	int retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
 	if (ERROR_OK != retval)
 	{
 		LOG_ERROR("'%s' driver rejected nand flash", controller->name);

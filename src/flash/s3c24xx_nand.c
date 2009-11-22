@@ -52,11 +52,6 @@ S3C24XX_DEVICE_COMMAND()
 	return ERROR_OK;
 }
 
-int s3c24xx_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 int s3c24xx_reset(struct nand_device *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;

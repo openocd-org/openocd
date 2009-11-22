@@ -65,7 +65,6 @@ static int s3c2443_init(struct nand_device *nand)
 struct nand_flash_controller s3c2443_nand_controller = {
 		.name = "s3c2443",
 		.nand_device_command = &s3c2443_nand_device_command,
-		.register_commands = &s3c24xx_register_commands,
 		.init = &s3c2443_init,
 		.reset = &s3c24xx_reset,
 		.command = &s3c24xx_command,

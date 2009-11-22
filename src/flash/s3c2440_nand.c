@@ -156,7 +156,6 @@ int s3c2440_write_block_data(struct nand_device *nand, uint8_t *data, int data_s
 struct nand_flash_controller s3c2440_nand_controller = {
 		.name = "s3c2440",
 		.nand_device_command = &s3c2440_nand_device_command,
-		.register_commands = &s3c24xx_register_commands,
 		.init = &s3c2440_init,
 		.reset = &s3c24xx_reset,
 		.command = &s3c24xx_command,

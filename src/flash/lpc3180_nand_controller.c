@@ -893,15 +893,10 @@ static const struct command_registration lpc3180_command_handler[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int lpc3180_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, lpc3180_command_handler);
-}
-
 struct nand_flash_controller lpc3180_nand_controller = {
 		.name = "lpc3180",
+		.commands = lpc3180_command_handler,
 		.nand_device_command = lpc3180_nand_device_command,
-		.register_commands = lpc3180_register_commands,
 		.init = lpc3180_init,
 		.reset = lpc3180_reset,
 		.command = lpc3180_command,

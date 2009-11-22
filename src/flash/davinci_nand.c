@@ -78,11 +78,6 @@ static int halted(struct target *target, const char *label)
 	return false;
 }
 
-static int davinci_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 static int davinci_init(struct nand_device *nand)
 {
 	struct davinci_nand *info = nand->controller_priv;
@@ -747,7 +742,6 @@ fail:
 struct nand_flash_controller davinci_nand_controller = {
 	.name			= "davinci",
 	.nand_device_command	= davinci_nand_device_command,
-	.register_commands	= davinci_register_commands,
 	.init			= davinci_init,
 	.reset			= davinci_reset,
 	.command		= davinci_command,

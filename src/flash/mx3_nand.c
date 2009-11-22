@@ -315,11 +315,6 @@ static int imx31_nand_ready (struct nand_device *nand, int timeout)
 	return imx31_controller_ready (nand, timeout);
 }
 
-static int imx31_register_commands (struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 static int imx31_reset (struct nand_device *nand)
 {
 	/*
@@ -871,7 +866,6 @@ static int do_data_output (struct nand_device *nand)
 struct nand_flash_controller imx31_nand_flash_controller = {
 		.name = "imx31",
 		.nand_device_command = &imx31_nand_device_command,
-		.register_commands = &imx31_register_commands,
 		.init = &imx31_init,
 		.reset = &imx31_reset,
 		.command = &imx31_command,

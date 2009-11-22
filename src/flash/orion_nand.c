@@ -120,11 +120,6 @@ static int orion_nand_controller_ready(struct nand_device *nand, int timeout)
 	return 1;
 }
 
-static int orion_nand_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 {
 	struct orion_nand_controller *hw;
@@ -180,7 +175,6 @@ struct nand_flash_controller orion_nand_controller =
 	.reset			= orion_nand_reset,
 	.controller_ready	= orion_nand_controller_ready,
 	.nand_device_command	= orion_nand_device_command,
-	.register_commands	= orion_nand_register_commands,
 	.init			= orion_nand_init,
 };
 

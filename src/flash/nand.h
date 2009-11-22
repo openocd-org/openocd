@@ -35,8 +35,8 @@ struct nand_device;
 struct nand_flash_controller
 {
 	char *name;
+	const struct command_registration *commands;
 	__NAND_DEVICE_COMMAND((*nand_device_command));
-	int (*register_commands)(struct command_context *cmd_ctx);
 	int (*init)(struct nand_device *nand);
 	int (*reset)(struct nand_device *nand);
 	int (*command)(struct nand_device *nand, uint8_t command);
