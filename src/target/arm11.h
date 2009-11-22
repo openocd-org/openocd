@@ -28,16 +28,6 @@
 #define NEW(type, variable, items)			\
 	type * variable = calloc(1, sizeof(type) * items)
 
-/* For MinGW use 'I' prefix to print size_t (instead of 'z') */
-/* Except if __USE_MINGW_ANSI_STDIO is defined with MinGW    */
-
-#if (!defined(__MSVCRT__) || defined(__USE_MINGW_ANSI_STDIO))
-#define ZU		"%zu"
-#else
-#define ZU		"%Iu"
-#endif
-
-
 /* TEMPORARY -- till we switch to the shared infrastructure */
 #define ARM11_REGCACHE_COUNT		20
 

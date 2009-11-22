@@ -588,12 +588,13 @@ int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opc
 	arm11_setup_field(arm11,  1,    NULL,			NULL,				chain5_fields + 2);
 
 	uint8_t			*Readies;
-	size_t readiesNum = (count + 1);
-	size_t bytes = sizeof(*Readies)*readiesNum;
+	unsigned readiesNum = count + 1;
+	unsigned bytes = sizeof(*Readies)*readiesNum;
+
 	Readies = (uint8_t *) malloc(bytes);
 	if (Readies == NULL)
 	{
-		LOG_ERROR("Out of memory allocating " ZU " bytes", bytes);
+		LOG_ERROR("Out of memory allocating %u bytes", bytes);
 		return ERROR_FAIL;
 	}
 
@@ -626,7 +627,7 @@ int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opc
 	int retval = jtag_execute_queue();
 	if (retval == ERROR_OK)
 	{
-		size_t error_count = 0;
+		unsigned error_count = 0;
 
 		for (size_t i = 0; i < readiesNum; i++)
 		{
@@ -637,7 +638,8 @@ int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opc
 		}
 
 		if (error_count > 0 )
-			LOG_ERROR(ZU " words out of " ZU " not transferred", error_count, readiesNum);
+			LOG_ERROR("%u words out of %u not transferred",
+				error_count, readiesNum);
 
 	}
 

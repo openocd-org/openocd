@@ -448,15 +448,16 @@ static int arm11_leave_debug_state(struct arm11_common *arm11)
 
 	/* restore R1 - R14 */
 
-	for (size_t i = 1; i < 15; i++)
+	for (unsigned i = 1; i < 15; i++)
 	{
 		if (!arm11->reg_list[ARM11_RC_RX + i].dirty)
 			continue;
 
 		/* MRC p14,0,r?,c0,c5,0 */
-		arm11_run_instr_data_to_core1(arm11, 0xee100e15 | (i << 12), R(RX + i));
+		arm11_run_instr_data_to_core1(arm11,
+				0xee100e15 | (i << 12), R(RX + i));
 
-		//	LOG_DEBUG("RESTORE R" ZU " %08x", i, R(RX + i));
+		//	LOG_DEBUG("RESTORE R%u %08x", i, R(RX + i));
 	}
 
 	retval = arm11_run_instr_data_finish(arm11);
@@ -742,7 +743,7 @@ static int arm11_resume(struct target *target, int current,
 
 		/* set all breakpoints */
 
-		size_t		brp_num = 0;
+		unsigned brp_num = 0;
 
 		for (bp = target->breakpoints; bp; bp = bp->next)
 		{
@@ -757,7 +758,8 @@ static int arm11_resume(struct target *target, int current,
 
 			arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp));
 
-			LOG_DEBUG("Add BP " ZU " at %08" PRIx32 "", brp_num, bp->address);
+			LOG_DEBUG("Add BP %d at %08" PRIx32, brp_num,
+					bp->address);
 
 			brp_num++;
 		}
@@ -1869,7 +1871,14 @@ static int arm11_build_reg_cache(struct target *target)
 		ARM11_REGCACHE_COUNT != ARRAY_SIZE(arm11_reg_defs) ||
 		ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
 	{
-		LOG_ERROR("BUG: arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, ARRAY_SIZE(arm11->reg_values), ARRAY_SIZE(arm11_reg_defs), ARM11_RC_MAX);
+		LOG_ERROR("BUG: arm11->reg_values inconsistent (%d %u %u %d)",
+				ARM11_REGCACHE_COUNT,
+				(unsigned) ARRAY_SIZE(arm11->reg_values),
+				(unsigned) ARRAY_SIZE(arm11_reg_defs),
+				ARM11_RC_MAX);
+		/* FIXME minimally, use a build_bug_on(X) mechanism;
+		 * runtime exit() here is bad!
+		 */
 		exit(-1);
 	}
 
