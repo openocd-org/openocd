@@ -2467,35 +2467,43 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration at91sam3_exec_command_handlers[] = {
+	{
+		.name = "gpnvm",
+		.handler = &sam3_handle_gpnvm_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[(set|clear) [<bit_id>]]",
+		.help = "Without arguments, shows the gpnvm register; "
+			"otherwise, sets or clear the specified bit.",
+	},
+	{
+		.name = "info",
+		.handler = &sam3_handle_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "print information about the current sam3 chip",
+	},
+	{
+		.name = "slowclk",
+		.handler = &sam3_handle_slowclk_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<value>",
+		.help = "set the slowclock frequency (default 32768hz)",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration at91sam3_command_handlers[] = {
+	{
+		.name = "at91sam3",
+		.mode = COMMAND_ANY,
+		.help = "at91sam3 flash command group",
+		.chain = at91sam3_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
-static int sam3_registered;
-static int
-sam3_register_commands(struct command_context *cmd_ctx)
+static int sam3_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *pCmd;
-
-	// only register once
-	if (!sam3_registered) {
-		sam3_registered++;
-
-		pCmd = COMMAND_REGISTER(cmd_ctx, NULL, "at91sam3", NULL, COMMAND_ANY, NULL);
-		COMMAND_REGISTER(cmd_ctx, pCmd,
-						  "gpnvm",
-						  sam3_handle_gpnvm_command,
-						  COMMAND_EXEC,
-						  "at91sam3 gpnvm [action [<BIT>], by default 'show', otherwise set | clear BIT");
-		COMMAND_REGISTER(cmd_ctx, pCmd,
-						  "info",
-						  sam3_handle_info_command,
-						  COMMAND_EXEC,
-						  "at91sam3 info - print information about the current sam3 chip");
-		COMMAND_REGISTER(cmd_ctx, pCmd,
-						  "slowclk",
-						  sam3_handle_slowclk_command,
-						  COMMAND_EXEC,
-						  "at91sam3 slowclk [VALUE] set the slowclock frequency (default 32768hz)");
-	}
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, at91sam3_command_handlers);
 }
 
 struct flash_driver at91sam3_flash = {
