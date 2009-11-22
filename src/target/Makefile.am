@@ -42,7 +42,8 @@ TARGET_CORE_SRC = \
 	image.c \
 	breakpoints.c \
 	target.c \
-	target_request.c
+	target_request.c \
+	testee.c
 
 ARMV4_5_SRC = \
 	armv4_5.c \

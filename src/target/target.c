@@ -65,6 +65,7 @@ extern struct target_type cortexa8_target;
 extern struct target_type arm11_target;
 extern struct target_type mips_m4k_target;
 extern struct target_type avr_target;
+extern struct target_type testee_target;
 
 struct target_type *target_types[] =
 {
@@ -83,6 +84,7 @@ struct target_type *target_types[] =
 	&arm11_target,
 	&mips_m4k_target,
 	&avr_target,
+	&testee_target,
 	NULL,
 };
 
