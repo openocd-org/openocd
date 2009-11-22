@@ -1178,17 +1178,29 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration at91sam7_exec_command_handlers[] = {
+	{
+		.name = "gpnvm",
+		.handler = &at91sam7_handle_gpnvm_command,
+		.mode = COMMAND_EXEC,
+		.usage = "gpnvm <bit> set | clear, "
+			"set or clear one gpnvm bit",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration at91sam7_command_handlers[] = {
+	{
+		.name = "at91sam7",
+		.mode = COMMAND_ANY,
+		.help = "at91sam7 flash command group",
+		.chain = at91sam7_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int at91sam7_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *at91sam7_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "at91sam7",
-			NULL, COMMAND_ANY, NULL);
-
-	COMMAND_REGISTER(cmd_ctx, at91sam7_cmd, "gpnvm",
-			at91sam7_handle_gpnvm_command, COMMAND_EXEC,
-			"at91sam7 gpnvm <bit> set | clear, "
-			"set or clear one gpnvm bit");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, at91sam7_command_handlers);
 }
 
 struct flash_driver at91sam7_flash = {
