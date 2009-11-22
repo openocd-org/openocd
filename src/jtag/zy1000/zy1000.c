@@ -235,7 +235,7 @@ COMMAND_HANDLER(handle_power_command)
 		// fall through
 	}
 	case 0:
-		command_print(cmd_ctx, "Target power %s", savePower ? "on" : "off");
+		LOG_INFO("Target power %s", savePower ? "on" : "off");
 		break;
 	default:
 		return ERROR_INVALID_ARGUMENTS;
