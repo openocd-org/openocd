@@ -674,7 +674,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	}
 
 	/* update cache */
-	reg = armv4_5->core_cache->reg_list + ARMV4_5_CPSR;
+	reg = armv4_5->cpsr;
 	buf_set_u32(reg->value, 0, 32, cpsr);
 	reg->valid = 1;
 	reg->dirty = 0;
@@ -879,7 +879,7 @@ static int cortex_a8_restore_context(struct target *target)
 		for (i = max - 1, r = cache->reg_list + 1; i > 0; i--, r++) {
 			struct arm_reg *reg;
 
-			if (!r->dirty || i == ARMV4_5_CPSR)
+			if (!r->dirty || r == armv7a->armv4_5_common.cpsr)
 				continue;
 			reg = r->arch_info;
 
@@ -915,7 +915,7 @@ static int cortex_a8_restore_context(struct target *target)
 	} while (flushed);
 
 	/* now flush CPSR if needed ... */
-	r = cache->reg_list + ARMV4_5_CPSR;
+	r = armv7a->armv4_5_common.cpsr;
 	if (flush_cpsr || r->dirty) {
 		value = buf_get_u32(r->value, 0, 32);
 		cortex_a8_dap_write_coreregister_u32(target, value, 16);
@@ -1027,7 +1027,6 @@ static int cortex_a8_read_core_reg(struct target *target, struct reg *r,
 	uint32_t value;
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	struct reg_cache *cache = armv4_5->core_cache;
 	struct reg *cpsr_r = NULL;
 	uint32_t cpsr = 0;
 	unsigned cookie = num;
@@ -1043,7 +1042,7 @@ static int cortex_a8_read_core_reg(struct target *target, struct reg *r,
 			mode = ARMV4_5_MODE_ANY;
 
 		if (mode != ARMV4_5_MODE_ANY) {
-			cpsr_r = cache->reg_list + ARMV4_5_CPSR;
+			cpsr_r = armv4_5->cpsr;
 			cpsr = buf_get_u32(cpsr_r->value, 0, 32);
 			cortex_a8_write_core_reg(target, cpsr_r,
 					16, ARMV4_5_MODE_ANY, mode);
@@ -1083,7 +1082,6 @@ static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
 {
 	int retval;
 	struct armv4_5_common_s *armv4_5 = target_to_armv4_5(target);
-	struct reg_cache *cache = armv4_5->core_cache;
 	struct reg *cpsr_r = NULL;
 	uint32_t cpsr = 0;
 	unsigned cookie = num;
@@ -1099,7 +1097,7 @@ static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
 			mode = ARMV4_5_MODE_ANY;
 
 		if (mode != ARMV4_5_MODE_ANY) {
-			cpsr_r = cache->reg_list + ARMV4_5_CPSR;
+			cpsr_r = armv4_5->cpsr;
 			cpsr = buf_get_u32(cpsr_r->value, 0, 32);
 			cortex_a8_write_core_reg(target, cpsr_r,
 					16, ARMV4_5_MODE_ANY, mode);

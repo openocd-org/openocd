@@ -36,6 +36,17 @@
 #include "register.h"
 
 
+/* offsets into armv4_5 core register cache */
+enum {
+//	ARMV4_5_CPSR = 31,
+	ARMV4_5_SPSR_FIQ = 32,
+	ARMV4_5_SPSR_IRQ = 33,
+	ARMV4_5_SPSR_SVC = 34,
+	ARMV4_5_SPSR_ABT = 35,
+	ARMV4_5_SPSR_UND = 36,
+	ARM_SPSR_MON = 39,
+};
+
 static const uint8_t arm_usr_indices[17] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, ARMV4_5_CPSR,
 };
@@ -214,7 +225,7 @@ char* armv4_5_state_strings[] =
  *
  * NOTE:  offsets in this table are coupled to the arm_mode_data
  * table above, the armv4_5_core_reg_map array below, and also to
- * the ARMV4_5_*PSR* symols.
+ * the ARMV4_5_CPSR symbol (which should vanish after ARM11 updates).
  */
 static const struct {
 	/* The name is used for e.g. the "regs" command. */
@@ -401,7 +412,7 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 	reg->dirty = 1;
 	reg->valid = 1;
 
-	if (reg == &armv4_5_target->core_cache->reg_list[ARMV4_5_CPSR])
+	if (reg == armv4_5_target->cpsr)
 	{
 		/* FIXME handle J bit too; mostly for ThumbEE, also Jazelle */
 		if (value & 0x20)
@@ -493,6 +504,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		cache->num_regs++;
 	}
 
+	armv4_5_common->cpsr = reg_list + ARMV4_5_CPSR;
 	armv4_5_common->core_cache = cache;
 	return cache;
 }
@@ -511,7 +523,7 @@ int armv4_5_arch_state(struct target *target)
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name,
 			 arm_mode_name(armv4_5->core_mode),
-			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
+			 buf_get_u32(armv4_5->cpsr->value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
 	return ERROR_OK;
@@ -750,7 +762,7 @@ int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int
 	}
 
 	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
-	(*reg_list)[25] = &armv4_5->core_cache->reg_list[ARMV4_5_CPSR];
+	(*reg_list)[25] = armv4_5->cpsr;
 
 	return ERROR_OK;
 }
@@ -834,7 +846,7 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 					armv4_5_algorithm_info->core_mode);
 		context[i] = buf_get_u32(r->value, 0, 32);
 	}
-	cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32);
+	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
 
 	for (i = 0; i < num_mem_params; i++)
 	{
@@ -878,10 +890,12 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 
 	if (armv4_5_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
 	{
-		LOG_DEBUG("setting core_mode: 0x%2.2x", armv4_5_algorithm_info->core_mode);
-		buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 5, armv4_5_algorithm_info->core_mode);
-		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
-		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
+		LOG_DEBUG("setting core_mode: 0x%2.2x",
+				armv4_5_algorithm_info->core_mode);
+		buf_set_u32(armv4_5->cpsr->value, 0, 5,
+				armv4_5_algorithm_info->core_mode);
+		armv4_5->cpsr->dirty = 1;
+		armv4_5->cpsr->valid = 1;
 	}
 
 	/* terminate using a hardware or (ARMv5+) software breakpoint */
@@ -950,9 +964,9 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).dirty = 1;
 		}
 	}
-	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, cpsr);
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
+	buf_set_u32(armv4_5->cpsr->value, 0, 32, cpsr);
+	armv4_5->cpsr->valid = 1;
+	armv4_5->cpsr->dirty = 1;
 
 	armv4_5->core_state = core_state;
 	armv4_5->core_mode = core_mode;

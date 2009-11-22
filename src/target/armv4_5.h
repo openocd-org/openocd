@@ -62,17 +62,8 @@ extern const int armv4_5_core_reg_map[8][17];
 #define ARMV4_5_CORE_REG_MODE(cache, mode, num) \
 		cache->reg_list[armv4_5_core_reg_map[armv4_5_mode_to_number(mode)][num]]
 
-/* offsets into armv4_5 core register cache */
-enum
-{
-	ARMV4_5_CPSR = 31,
-	ARMV4_5_SPSR_FIQ = 32,
-	ARMV4_5_SPSR_IRQ = 33,
-	ARMV4_5_SPSR_SVC = 34,
-	ARMV4_5_SPSR_ABT = 35,
-	ARMV4_5_SPSR_UND = 36,
-	ARM_SPSR_MON = 39,
-};
+/* offset into armv4_5 core register cache -- OBSOLETE, DO NOT USE! */
+enum { ARMV4_5_CPSR = 31, };
 
 #define ARMV4_5_COMMON_MAGIC 0x0A450A45
 
@@ -90,6 +81,9 @@ struct arm
 {
 	int common_magic;
 	struct reg_cache *core_cache;
+
+	/** Handle to the CPSR; valid in all core modes. */
+	struct reg *cpsr;
 
 	/**
 	 * Indicates what registers are in the ARM state core register set.

@@ -1227,9 +1227,9 @@ int arm7_9_soft_reset_halt(struct target *target)
 	register_cache_invalidate(armv4_5->core_cache);
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
-	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8, 0xd3);
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
+	buf_set_u32(armv4_5->cpsr->value, 0, 8, 0xd3);
+	armv4_5->cpsr->dirty = 1;
+	armv4_5->cpsr->valid = 1;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
@@ -1401,9 +1401,9 @@ static int arm7_9_debug_entry(struct target *target)
 	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
 		cpsr |= 0x20;
 
-	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, cpsr);
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 0;
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
+	buf_set_u32(armv4_5->cpsr->value, 0, 32, cpsr);
+	armv4_5->cpsr->dirty = 0;
+	armv4_5->cpsr->valid = 1;
 
 	armv4_5->core_mode = cpsr & 0x1f;
 
@@ -1520,7 +1520,8 @@ int arm7_9_full_context(struct target *target)
 			uint32_t tmp_cpsr;
 
 			/* change processor mode (and mask T bit) */
-			tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
+			tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8)
+					& 0xe0;
 			tmp_cpsr |= armv4_5_number_to_mode(i);
 			tmp_cpsr &= ~0x20;
 			arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
@@ -1551,7 +1552,9 @@ int arm7_9_full_context(struct target *target)
 	}
 
 	/* restore processor mode (mask T bit) */
-	arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
+	arm7_9->write_xpsr_im8(target,
+			buf_get_u32(armv4_5->cpsr->value, 0, 8) & ~0x20,
+			0, 0);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -1645,7 +1648,8 @@ int arm7_9_restore_context(struct target *target)
 				uint32_t tmp_cpsr;
 
 				/* change processor mode (mask T bit) */
-				tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
+				tmp_cpsr = buf_get_u32(armv4_5->cpsr->value,
+						0, 8) & 0xe0;
 				tmp_cpsr |= armv4_5_number_to_mode(i);
 				tmp_cpsr &= ~0x20;
 				arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
@@ -1687,24 +1691,27 @@ int arm7_9_restore_context(struct target *target)
 		}
 	}
 
-	if ((armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 0) && (armv4_5->core_mode != current_mode))
+	if (!armv4_5->cpsr->dirty && (armv4_5->core_mode != current_mode))
 	{
 		/* restore processor mode (mask T bit) */
 		uint32_t tmp_cpsr;
 
-		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
+		tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8) & 0xE0;
 		tmp_cpsr |= armv4_5_number_to_mode(i);
 		tmp_cpsr &= ~0x20;
 		LOG_DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", (unsigned)(tmp_cpsr));
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
-	else if (armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 1)
+	else if (armv4_5->cpsr->dirty)
 	{
 		/* CPSR has been changed, full restore necessary (mask T bit) */
-		LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-		arm7_9->write_xpsr(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32) & ~0x20, 0);
-		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 0;
-		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
+		LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32,
+				buf_get_u32(armv4_5->cpsr->value, 0, 32));
+		arm7_9->write_xpsr(target,
+				buf_get_u32(armv4_5->cpsr->value, 0, 32)
+					& ~0x20, 0);
+		armv4_5->cpsr->dirty = 0;
+		armv4_5->cpsr->valid = 1;
 	}
 
 	/* restore PC */
@@ -2106,7 +2113,7 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
-		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
+		tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8) & 0xE0;
 		tmp_cpsr |= mode;
 		tmp_cpsr &= ~0x20;
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
@@ -2140,7 +2147,9 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 			&& (mode != armv4_5->core_mode)
 			&& (areg->mode != ARMV4_5_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
+		arm7_9->write_xpsr_im8(target,
+				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+					& ~0x20, 0, 0);
 	}
 
 	return ERROR_OK;
@@ -2165,7 +2174,7 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
-		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
+		tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8) & 0xE0;
 		tmp_cpsr |= mode;
 		tmp_cpsr &= ~0x20;
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
@@ -2199,7 +2208,9 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 			&& (mode != armv4_5->core_mode)
 			&& (areg->mode != ARMV4_5_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
+		arm7_9->write_xpsr_im8(target,
+				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+					& ~0x20, 0, 0);
 	}
 
 	return jtag_execute_queue();
@@ -2372,7 +2383,9 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 	{
 		LOG_WARNING("memory read caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
+		arm7_9->write_xpsr_im8(target,
+				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+					& ~0x20, 0, 0);
 
 		return ERROR_TARGET_DATA_ABORT;
 	}
@@ -2555,7 +2568,9 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 	{
 		LOG_WARNING("memory write caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
+		arm7_9->write_xpsr_im8(target,
+				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+					& ~0x20, 0, 0);
 
 		return ERROR_TARGET_DATA_ABORT;
 	}

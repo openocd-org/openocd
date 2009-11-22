@@ -240,7 +240,7 @@ static int arm720t_arch_state(struct target *target)
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name ,
 			 arm_mode_name(armv4_5->core_mode),
-			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
+			 buf_get_u32(armv4_5->cpsr->value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 			 state[arm720t->armv4_5_mmu.mmu_enabled],
 			 state[arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled]);
@@ -347,9 +347,9 @@ static int arm720t_soft_reset_halt(struct target *target)
 	target->state = TARGET_HALTED;
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
-	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8, 0xd3);
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
+	buf_set_u32(armv4_5->cpsr->value, 0, 8, 0xd3);
+	armv4_5->cpsr->dirty = 1;
+	armv4_5->cpsr->valid = 1;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);

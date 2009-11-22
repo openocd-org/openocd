@@ -821,7 +821,7 @@ static uint32_t armv4_5_get_cpsr(struct arm_sim_interface *sim, int pos, int bit
 {
 	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
-	return buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, pos, bits);
+	return buf_get_u32(armv4_5->cpsr->value, pos, bits);
 }
 
 static enum armv4_5_state armv4_5_get_state(struct arm_sim_interface *sim)

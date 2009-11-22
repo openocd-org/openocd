@@ -30,16 +30,6 @@ enum
 	ARM_CPSR = 16
 }
 ;
-/* offsets into armv4_5 core register cache */
-enum
-{
-	ARMV7A_CPSR = 31,
-	ARMV7A_SPSR_FIQ = 32,
-	ARMV7A_SPSR_IRQ = 33,
-	ARMV7A_SPSR_SVC = 34,
-	ARMV7A_SPSR_ABT = 35,
-	ARMV7A_SPSR_UND = 36
-};
 
 #define ARMV7_COMMON_MAGIC 0x0A450999
 

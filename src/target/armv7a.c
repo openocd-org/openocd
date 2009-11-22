@@ -74,8 +74,7 @@ int armv7a_arch_state(struct target *target)
 		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 				target->debug_reason)->name,
 		 arm_mode_name(armv4_5->core_mode),
-		 buf_get_u32(armv4_5->core_cache
-				->reg_list[ARMV4_5_CPSR].value, 0, 32),
+		 buf_get_u32(armv4_5->cpsr->value, 0, 32),
 		 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 		 state[armv7a->armv4_5_mmu.mmu_enabled],
 		 state[armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],

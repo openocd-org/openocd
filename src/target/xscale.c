@@ -858,7 +858,7 @@ static int xscale_arch_state(struct target *target)
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name ,
 			 arm_mode_name(armv4_5->core_mode),
-			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
+			 buf_get_u32(armv4_5->cpsr->value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 			 state[xscale->armv4_5_mmu.mmu_enabled],
 			 state[xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
@@ -948,9 +948,9 @@ static int xscale_debug_entry(struct target *target)
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, buffer[i + 1]);
 	}
 
-	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, buffer[9]);
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
+	buf_set_u32(armv4_5->cpsr->value, 0, 32, buffer[9]);
+	armv4_5->cpsr->dirty = 1;
+	armv4_5->cpsr->valid = 1;
 	LOG_DEBUG("cpsr: 0x%8.8" PRIx32 "", buffer[9]);
 
 	armv4_5->core_mode = buffer[9] & 0x1f;
@@ -1260,8 +1260,10 @@ static int xscale_resume(struct target *target, int current,
 				xscale_send_u32(target, 0x30);
 
 			/* send CPSR */
-			xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-			LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+			xscale_send_u32(target,
+				buf_get_u32(armv4_5->cpsr->value, 0, 32));
+			LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32,
+				buf_get_u32(armv4_5->cpsr->value, 0, 32));
 
 			for (i = 7; i >= 0; i--)
 			{
@@ -1303,8 +1305,9 @@ static int xscale_resume(struct target *target, int current,
 		xscale_send_u32(target, 0x30);
 
 	/* send CPSR */
-	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-	LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+	xscale_send_u32(target, buf_get_u32(armv4_5->cpsr->value, 0, 32));
+	LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32,
+			buf_get_u32(armv4_5->cpsr->value, 0, 32));
 
 	for (i = 7; i >= 0; i--)
 	{
@@ -1381,9 +1384,12 @@ static int xscale_step_inner(struct target *target, int current,
 			return retval;
 
 	/* send CPSR */
-	if ((retval = xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32))) != ERROR_OK)
+	retval = xscale_send_u32(target,
+			buf_get_u32(armv4_5->cpsr->value, 0, 32));
+	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+	LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32,
+			buf_get_u32(armv4_5->cpsr->value, 0, 32));
 
 	for (i = 7; i >= 0; i--)
 	{
