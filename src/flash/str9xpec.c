@@ -1163,47 +1163,90 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration str9xpec_config_command_handlers[] = {
+	{
+		.name = "enable_turbo",
+		.handler = str9xpec_handle_flash_enable_turbo_command,
+		.mode = COMMAND_EXEC,
+		.help = "enable str9xpec turbo mode",
+	},
+	{
+		.name = "disable_turbo",
+		.handler = str9xpec_handle_flash_disable_turbo_command,
+		.mode = COMMAND_EXEC,
+		.help = "disable str9xpec turbo mode",
+	},
+	{
+		.name = "options_cmap",
+		.handler = str9xpec_handle_flash_options_cmap_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure str9xpec boot sector",
+	},
+	{
+		.name = "options_lvdthd",
+		.handler = str9xpec_handle_flash_options_lvdthd_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure str9xpec lvd threshold",
+	},
+	{
+		.name = "options_lvdsel",
+		.handler = str9xpec_handle_flash_options_lvdsel_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure str9xpec lvd selection",
+	},
+	{
+		.name = "options_lvdwarn",
+		.handler = str9xpec_handle_flash_options_lvdwarn_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure str9xpec lvd warning",
+	},
+	{
+		.name = "options_read",
+		.handler = str9xpec_handle_flash_options_read_command,
+		.mode = COMMAND_EXEC,
+		.help = "read str9xpec options",
+	},
+	{
+		.name = "options_write",
+		.handler = str9xpec_handle_flash_options_write_command,
+		.mode = COMMAND_EXEC,
+		.help = "write str9xpec options",
+	},
+	{
+		.name = "lock",
+		.handler = str9xpec_handle_flash_lock_command,
+		.mode = COMMAND_EXEC,
+		.help = "lock str9xpec device",
+	},
+	{
+		.name = "unlock",
+		.handler = str9xpec_handle_flash_unlock_command,
+		.mode = COMMAND_EXEC,
+		.help = "unlock str9xpec device",
+	},
+	{
+		.name = "part_id",
+		.handler = str9xpec_handle_part_id_command,
+		.mode = COMMAND_EXEC,
+		.help = "print part id of str9xpec flash bank <num>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration str9xpec_command_handlers[] = {
+	{
+		.name = "str9xpec",
+		.mode = COMMAND_ANY,
+		.help = "str9xpec flash command group",
+		.chain = str9xpec_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int str9xpec_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *str9xpec_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "str9xpec",
-			NULL, COMMAND_ANY, "str9xpec flash specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "enable_turbo",
-			str9xpec_handle_flash_enable_turbo_command,
-			COMMAND_EXEC, "enable str9xpec turbo mode");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "disable_turbo",
-			str9xpec_handle_flash_disable_turbo_command,
-			COMMAND_EXEC, "disable str9xpec turbo mode");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_cmap",
-			str9xpec_handle_flash_options_cmap_command,
-			COMMAND_EXEC, "configure str9xpec boot sector");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_lvdthd",
-			str9xpec_handle_flash_options_lvdthd_command,
-			COMMAND_EXEC, "configure str9xpec lvd threshold");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_lvdsel",
-			str9xpec_handle_flash_options_lvdsel_command,
-			COMMAND_EXEC, "configure str9xpec lvd selection");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_lvdwarn",
-			str9xpec_handle_flash_options_lvdwarn_command,
-			COMMAND_EXEC, "configure str9xpec lvd warning");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_read",
-			str9xpec_handle_flash_options_read_command,
-			COMMAND_EXEC, "read str9xpec options");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "options_write",
-			str9xpec_handle_flash_options_write_command,
-			COMMAND_EXEC, "write str9xpec options");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "lock",
-			str9xpec_handle_flash_lock_command,
-			COMMAND_EXEC, "lock str9xpec device");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "unlock",
-			str9xpec_handle_flash_unlock_command,
-			COMMAND_EXEC, "unlock str9xpec device");
-	COMMAND_REGISTER(cmd_ctx, str9xpec_cmd, "part_id",
-			str9xpec_handle_part_id_command,
-			COMMAND_EXEC, "print part id of str9xpec flash bank <num>");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, str9xpec_command_handlers);
 }
+
 
 struct flash_driver str9xpec_flash = {
 		.name = "str9xpec",
