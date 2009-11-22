@@ -672,16 +672,28 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration str7x_exec_command_handlers[] = {
+	{
+		.name = "disable_jtag",
+		.handler = &str7x_handle_disable_jtag_command,
+		.mode = COMMAND_EXEC,
+		.help = "disable jtag access",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration str7x_command_handlers[] = {
+	{
+		.name = "str7x",
+		.mode = COMMAND_ANY,
+		.help = "str7x flash command group",
+		.chain = str7x_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int str7x_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *str7x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "str7x",
-			NULL, COMMAND_ANY, "str7x flash specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, str7x_cmd, "disable_jtag",
-			str7x_handle_disable_jtag_command, COMMAND_EXEC,
-			"disable jtag access");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, str7x_command_handlers);
 }
 
 struct flash_driver str7x_flash = {
