@@ -676,16 +676,29 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration str9x_config_command_handlers[] = {
+	{
+		.name = "disable_jtag",
+		.handler = &str9x_handle_flash_config_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure str9x flash controller",
+		.usage = "<bank_id> <BBSR> <NBBSR> <BBADR> <NBBADR>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration str9x_command_handlers[] = {
+	{
+		.name = "str9x",
+		.mode = COMMAND_ANY,
+		.help = "str9x flash command group",
+		.chain = str9x_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int str9x_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *str9x_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "str9x",
-			NULL, COMMAND_ANY, "str9x flash commands");
-
-	COMMAND_REGISTER(cmd_ctx, str9x_cmd, "flash_config",
-			str9x_handle_flash_config_command, COMMAND_EXEC,
-			"configure str9 flash controller");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, str9x_command_handlers);
 }
 
 struct flash_driver str9x_flash = {
