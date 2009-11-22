@@ -449,16 +449,28 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration avrf_exec_command_handlers[] = {
+	{
+		.name = "mass_erase",
+		.handler = &avrf_handle_mass_erase_command,
+		.mode = COMMAND_EXEC,
+		.help = "erase entire device",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration avrf_command_handlers[] = {
+	{
+		.name = "avrf",
+		.mode = COMMAND_ANY,
+		.help = "AVR flash command group",
+		.chain = avrf_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int avrf_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *avr_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "avr",
-			NULL, COMMAND_ANY, "avr flash specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, avr_cmd, "mass_erase",
-			avrf_handle_mass_erase_command, COMMAND_EXEC,
-			"mass erase device");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, avrf_command_handlers);
 }
 
 struct flash_driver avr_flash = {
