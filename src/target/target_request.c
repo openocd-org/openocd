@@ -35,7 +35,6 @@
 #include "log.h"
 
 
-static struct command *target_request_cmd = NULL;
 static int charmsg_mode = 0;
 
 static int target_asciimsg(struct target *target, uint32_t length)
@@ -300,13 +299,27 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration target_req_exec_command_handlers[] = {
+	{
+		.name = "debugmsgs",
+		.handler = &handle_target_request_debugmsgs_command,
+		.mode = COMMAND_EXEC,
+		.help = "set reception of debug messages from target",
+		.usage = "(enable|disable)",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration target_req_command_handlers[] = {
+	{
+		.name = "target_request",
+		.mode = COMMAND_ANY,
+		.help = "target request command group",
+		.chain = target_req_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int target_request_register_commands(struct command_context *cmd_ctx)
 {
-	target_request_cmd =
-		COMMAND_REGISTER(cmd_ctx, NULL, "target_request", NULL, COMMAND_ANY, "target_request commands");
-
-	COMMAND_REGISTER(cmd_ctx, target_request_cmd, "debugmsgs", handle_target_request_debugmsgs_command,
-		COMMAND_EXEC, "enable/disable reception of debug messages from target");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, target_req_command_handlers);
 }
