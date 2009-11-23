@@ -101,7 +101,22 @@ static void add_default_dirs(void)
 	 * listed last in the built-in search order, so the user can
 	 * override these scripts with site-specific customizations.
 	 */
-	/// @todo Implement @c add_script_search_dir("${HOME}/.openocd").
+
+	const char *home = getenv("HOME");
+
+	if (home) 
+	{
+		char *path;
+
+		path = alloc_printf("%s/.openocd", home);
+
+		if (path) 
+	        {
+			add_script_search_dir(path);
+			free(path);
+		}
+	}
+
 	add_script_search_dir(PKGDATADIR "/site");
 	add_script_search_dir(PKGDATADIR "/scripts");
 #endif

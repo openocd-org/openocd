@@ -483,13 +483,23 @@ bash$ openocd --help
 --pipe       | -p       use pipes when talking to gdb
 @end verbatim
 
-By default OpenOCD reads the file configuration file @file{openocd.cfg}
-in the current directory.  To specify a different (or multiple)
-configuration file, you can use the ``-f'' option. For example:
+By default OpenOCD reads the configuration file @file{openocd.cfg}.
+To specify a different (or multiple)
+configuration file, you can use the @option{-f} option. For example:
 
 @example
 openocd -f config1.cfg -f config2.cfg -f config3.cfg
 @end example
+
+Configuration files and scripts are searched for in
+@enumerate
+@item the current directory,
+@item any search dir specified on the command line using the @option{-s} option,
+@item @file{$HOME/.openocd} (not on Windows),
+@item the site wide script library @file{$pkgdatadir/site} and
+@item the OpenOCD-supplied script library @file{$pkgdatadir/scripts}.
+@end enumerate
+The first found file with a matching file name will be used.
 
 OpenOCD starts by processing the configuration commands provided
 on the command line or in @file{openocd.cfg}.
@@ -507,7 +517,7 @@ clients (Telnet, GDB, Other) and processes the commands issued through
 those channels.
 
 If you are having problems, you can enable internal debug messages via
-the ``-d'' option.
+the @option{-d} option.
 
 Also it is possible to interleave JIM-Tcl commands w/config scripts using the
 @option{-c} command line switch.
@@ -522,10 +532,6 @@ setting from within a telnet or gdb session using @command{debug_level
 
 You can redirect all output from the daemon to a file using the
 @option{-l <logfile>} switch.
-
-Search paths for config/script files can be added to OpenOCD by using
-the @option{-s <search>} switch. The current directory and the OpenOCD
-target library is in the search path by default.
 
 For details on the @option{-p} option. @xref{Connecting to GDB}.
 

@@ -19,6 +19,7 @@ Flash Layer:
 Board, Target, and Interface Configuration Scripts:
 	ARM9
 		- ETM and ETB hookup for iMX2* targets
+	Add $HOME/.openocd to the search path.
 
 Documentation:
 Build and Release:
