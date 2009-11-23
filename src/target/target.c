@@ -4762,19 +4762,211 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
+static const struct command_registration target_command_handlers[] = {
+	{
+		.name = "targets",
+		.handler = &handle_targets_command,
+		.mode = COMMAND_ANY,
+		.help = "change current command line target (one parameter) "
+			"or list targets (no parameters)",
+		.usage = "[<new_current_target>]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int target_register_commands(struct command_context *cmd_ctx)
 {
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "targets",
-			handle_targets_command, COMMAND_EXEC,
-			"change current command line target (one parameter) "
-			"or list targets (no parameters)");
-
 	register_jim(cmd_ctx, "target", jim_target, "configure target");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, target_command_handlers);
 }
 
+static const struct command_registration target_exec_command_handlers[] = {
+	{
+		.name = "fast_load_image",
+		.handler = &handle_fast_load_image_command,
+		.mode = COMMAND_ANY,
+		.help = "Load image into memory, mainly for profiling purposes",
+		.usage = "<file> <address> ['bin'|'ihex'|'elf'|'s19'] "
+			"[min_address] [max_length]",
+	},
+	{
+		.name = "fast_load",
+		.handler = &handle_fast_load_command,
+		.mode = COMMAND_ANY,
+		.help = "loads active fast load image to current target "
+			"- mainly for profiling purposes",
+	},
+	{
+		.name = "profile",
+		.handler = &handle_profile_command,
+		.mode = COMMAND_EXEC,
+		.help = "profiling samples the CPU PC",
+	},
+	/** @todo don't register virt2phys() unless target supports it */
+	{
+		.name = "virt2phys",
+		.handler = &handle_virt2phys_command,
+		.mode = COMMAND_ANY,
+		.help = "translate a virtual address into a physical address",
+	},
+
+	{
+		.name = "reg",
+		.handler = &handle_reg_command,
+		.mode = COMMAND_EXEC,
+		.help = "display or set a register",
+	},
+
+	{
+		.name = "poll",
+		.handler = &handle_poll_command,
+		.mode = COMMAND_EXEC,
+		.help = "poll target state",
+	},
+	{
+		.name = "wait_halt",
+		.handler = &handle_wait_halt_command,
+		.mode = COMMAND_EXEC,
+		.help = "wait for target halt",
+		.usage = "[time (s)]",
+	},
+	{
+		.name = "halt",
+		.handler = &handle_halt_command,
+		.mode = COMMAND_EXEC,
+		.help = "halt target",
+	},
+	{
+		.name = "resume",
+		.handler = &handle_resume_command,
+		.mode = COMMAND_EXEC,
+		.help = "resume target",
+		.usage = "[<address>]",
+	},
+	{
+		.name = "reset",
+		.handler = &handle_reset_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[run|halt|init]",
+		.help = "Reset all targets into the specified mode."
+			"Default reset mode is run, if not given.",
+	},
+	{
+		.name = "soft_reset_halt",
+		.handler = &handle_soft_reset_halt_command,
+		.mode = COMMAND_EXEC,
+		.help = "halt the target and do a soft reset",
+	},
+	{
+
+		.name = "step",
+		.handler = &handle_step_command,
+		.mode = COMMAND_EXEC,
+		.help =	"step one instruction from current PC or [addr]",
+		.usage = "[<address>]",
+	},
+	{
+
+		.name = "mdw",
+		.handler = &handle_md_command,
+		.mode = COMMAND_EXEC,
+		.help = "display memory words",
+		.usage = "[phys] <addr> [count]",
+	},
+	{
+		.name = "mdh",
+		.handler = &handle_md_command,
+		.mode = COMMAND_EXEC,
+		.help = "display memory half-words",
+		.usage = "[phys] <addr> [count]",
+	},
+	{
+		.name = "mdb",
+		.handler = &handle_md_command,
+		.mode = COMMAND_EXEC,
+		.help = "display memory bytes",
+		.usage = "[phys] <addr> [count]",
+	},
+	{
+
+		.name = "mww",
+		.handler = &handle_mw_command,
+		.mode = COMMAND_EXEC,
+		.help = "write memory word",
+		.usage = "[phys]  <addr> <value> [count]",
+	},
+	{
+		.name = "mwh",
+		.handler = &handle_mw_command,
+		.mode = COMMAND_EXEC,
+		.help = "write memory half-word",
+		.usage = "[phys] <addr> <value> [count]",
+	},
+	{
+		.name = "mwb",
+		.handler = &handle_mw_command,
+		.mode = COMMAND_EXEC,
+		.help = "write memory byte",
+		.usage = "[phys] <addr> <value> [count]",
+	},
+	{
+
+		.name = "bp",
+		.handler = &handle_bp_command,
+		.mode = COMMAND_EXEC,
+		.help = "list or set breakpoint",
+		.usage = "[<address> <length> [hw]]",
+	},
+	{
+		.name = "rbp",
+		.handler = &handle_rbp_command,
+		.mode = COMMAND_EXEC,
+		.help = "remove breakpoint",
+		.usage = "<address>",
+	},
+	{
+
+		.name = "wp",
+		.handler = &handle_wp_command,
+		.mode = COMMAND_EXEC,
+		.help = "list or set watchpoint",
+		.usage = "[<address> <length> <r/w/a> [value] [mask]]",
+	},
+	{
+		.name = "rwp",
+		.handler = &handle_rwp_command,
+		.mode = COMMAND_EXEC,
+		.help = "remove watchpoint",
+		.usage = "<address>",
+
+	},
+	{
+		.name = "load_image",
+		.handler = &handle_load_image_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<file> <address> ['bin'|'ihex'|'elf'|'s19'] "
+			"[min_address] [max_length]",
+	},
+	{
+		.name = "dump_image",
+		.handler = &handle_dump_image_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<file> <address> <size>",
+	},
+	{
+		.name = "verify_image",
+		.handler = &handle_verify_image_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<file> [offset] [type]",
+	},
+	{
+		.name = "test_image",
+		.handler = &handle_test_image_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<file> [offset] [type]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
 int target_register_user_commands(struct command_context *cmd_ctx)
 {
 	int retval = ERROR_OK;
@@ -4784,10 +4976,6 @@ int target_register_user_commands(struct command_context *cmd_ctx)
 	if ((retval = trace_register_commands(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	COMMAND_REGISTER(cmd_ctx, NULL, "profile",
-			handle_profile_command, COMMAND_EXEC,
-			"profiling samples the CPU PC");
-
 	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array,
 			"read memory and return as a TCL array for script processing "
 			"<ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
@@ -4796,96 +4984,5 @@ int target_register_user_commands(struct command_context *cmd_ctx)
 			"convert a TCL array to memory locations and write the values "
 			"<ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
 
-	COMMAND_REGISTER(cmd_ctx, NULL, "fast_load_image",
-			handle_fast_load_image_command, COMMAND_ANY,
-			"same CMD_ARGV as load_image, image stored in memory "
-			"- mainly for profiling purposes");
-
-	COMMAND_REGISTER(cmd_ctx, NULL, "fast_load",
-			handle_fast_load_command, COMMAND_ANY,
-			"loads active fast load image to current target "
-			"- mainly for profiling purposes");
-
-	/** @todo don't register virt2phys() unless target supports it */
-	COMMAND_REGISTER(cmd_ctx, NULL, "virt2phys",
-			handle_virt2phys_command, COMMAND_ANY,
-			"translate a virtual address into a physical address");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "reg",
-			handle_reg_command, COMMAND_EXEC,
-			"display or set a register");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "poll",
-			handle_poll_command, COMMAND_EXEC,
-			"poll target state");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "wait_halt",
-			handle_wait_halt_command, COMMAND_EXEC,
-			"wait for target halt [time (s)]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "halt",
-			handle_halt_command, COMMAND_EXEC,
-			"halt target");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "resume",
-			handle_resume_command, COMMAND_EXEC,
-			"resume target [addr]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "reset",
-			handle_reset_command, COMMAND_EXEC,
-			"reset target [run | halt | init] - default is run");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "soft_reset_halt",
-			handle_soft_reset_halt_command, COMMAND_EXEC,
-			"halt the target and do a soft reset");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "step",
-			handle_step_command, COMMAND_EXEC,
-			"step one instruction from current PC or [addr]");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "mdw",
-			handle_md_command, COMMAND_EXEC,
-			"display memory words [phys] <addr> [count]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "mdh",
-			handle_md_command, COMMAND_EXEC,
-			"display memory half-words [phys] <addr> [count]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "mdb",
-			handle_md_command, COMMAND_EXEC,
-			"display memory bytes [phys] <addr> [count]");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "mww",
-			handle_mw_command, COMMAND_EXEC,
-			"write memory word [phys]  <addr> <value> [count]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "mwh",
-			handle_mw_command, COMMAND_EXEC,
-			"write memory half-word [phys]  <addr> <value> [count]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "mwb",
-			handle_mw_command, COMMAND_EXEC,
-			"write memory byte [phys] <addr> <value> [count]");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "bp",
-			handle_bp_command, COMMAND_EXEC,
-			"list or set breakpoint [<address> <length> [hw]]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "rbp",
-			handle_rbp_command, COMMAND_EXEC,
-			"remove breakpoint <address>");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "wp",
-			handle_wp_command, COMMAND_EXEC,
-			"list or set watchpoint "
-				"[<address> <length> <r/w/a> [value] [mask]]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "rwp",
-			handle_rwp_command, COMMAND_EXEC,
-			"remove watchpoint <address>");
-
-	COMMAND_REGISTER(cmd_ctx,  NULL, "load_image",
-			handle_load_image_command, COMMAND_EXEC,
-			"load_image <file> <address> "
-			"['bin'|'ihex'|'elf'|'s19'] [min_address] [max_length]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "dump_image",
-			handle_dump_image_command, COMMAND_EXEC,
-			"dump_image <file> <address> <size>");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "verify_image",
-			handle_verify_image_command, COMMAND_EXEC,
-			"verify_image <file> [offset] [type]");
-	COMMAND_REGISTER(cmd_ctx,  NULL, "test_image",
-			handle_test_image_command, COMMAND_EXEC,
-			"test_image <file> [offset] [type]");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, target_exec_command_handlers);
 }
