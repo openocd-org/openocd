@@ -402,16 +402,28 @@ COMMAND_HANDLER(handle_etb_config_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration etb_config_command_handlers[] = {
+	{
+		.name = "config",
+		.handler = &handle_etb_config_command,
+		.mode = COMMAND_CONFIG,
+		.usage = "<target> <tap>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration etb_command_handlers[] = {
+	{
+		.name = "etb",
+		.mode = COMMAND_ANY,
+		.help = "Emebdded Trace Buffer command group",
+		.chain = etb_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int etb_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *etb_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "etb",
-			NULL, COMMAND_ANY, "Embedded Trace Buffer");
-
-	COMMAND_REGISTER(cmd_ctx, etb_cmd, "config",
-			handle_etb_config_command, COMMAND_CONFIG,
-			NULL);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, etb_command_handlers);
 }
 
 static int etb_init(struct etm_context *etm_ctx)
