@@ -491,23 +491,31 @@ static int arm720t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 	return arm720t_write_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
 }
 
+static const struct command_registration arm720t_exec_command_handlers[] = {
+	{
+		.name = "cp15",
+		.handler = arm720t_handle_cp15_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<opcode> [value]",
+		.help = "display/modify cp15 register",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration arm720t_command_handlers[] = {
+	{
+		.name = "arm720t",
+		.mode = COMMAND_ANY,
+		.help = "arm720t command group",
+		.chain = arm720t_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int arm720t_register_commands(struct command_context *cmd_ctx)
 {
-	int retval;
-	struct command *arm720t_cmd;
-
-
-	retval = arm7_9_register_commands(cmd_ctx);
-
-	arm720t_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm720t",
-			NULL, COMMAND_ANY,
-			"arm720t specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, arm720t_cmd, "cp15",
-			arm720t_handle_cp15_command, COMMAND_EXEC,
-			"display/modify cp15 register <opcode> [value]");
-
-	return ERROR_OK;
+	arm7_9_register_commands(cmd_ctx);
+	return register_commands(cmd_ctx, NULL, arm720t_command_handlers);
 }
 
 /** Holds methods for ARM720 targets. */
