@@ -221,21 +221,32 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration arm966e_exec_command_handlers[] = {
+	{
+		.name = "cp15",
+		.handler = arm966e_handle_cp15_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<opcode> [value]",
+		.help = "display/modify cp15 register",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration arm966e_command_handlers[] = {
+	{
+		.name = "arm966e",
+		.mode = COMMAND_ANY,
+		.help = "arm966e command group",
+		.chain = arm966e_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 /** Registers commands used to access coprocessor resources. */
 int arm966e_register_commands(struct command_context *cmd_ctx)
 {
-	int retval;
-	struct command *arm966e_cmd;
-
-	retval = arm9tdmi_register_commands(cmd_ctx);
-	arm966e_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm966e",
-			NULL, COMMAND_ANY,
-			"arm966e specific commands");
-	COMMAND_REGISTER(cmd_ctx, arm966e_cmd, "cp15",
-			arm966e_handle_cp15_command, COMMAND_EXEC,
-			"display/modify cp15 register <num> [value]");
-
-	return retval;
+	arm9tdmi_register_commands(cmd_ctx);
+	return register_commands(cmd_ctx, NULL, arm966e_command_handlers);
 }
 
 /** Holds methods for ARM966 targets. */
