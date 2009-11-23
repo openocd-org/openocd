@@ -811,20 +811,48 @@ static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n,
 		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help);
 	return ERROR_OK;
 }
+
+#define HELP_LINE_WIDTH(_n) (int)(76 - (2 * _n))
+
+static void command_help_show_indent(unsigned n)
+{
+	for (unsigned i = 0; i < n; i++)
+		LOG_USER_N("  ");
+}
+static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
+{
+	const char *cp = str, *last = str;
+	while (*cp)
+	{
+		const char *next = last;
+		do {
+			cp = next;
+			do {
+				next++;
+			} while (*next != ' ' && *next != '\t' && *next != '\0');
+		} while ((next - last < HELP_LINE_WIDTH(n)) && *next != '\0');
+		if (next - last < HELP_LINE_WIDTH(n))
+			cp = next;
+		command_help_show_indent(n);
+		LOG_USER_N("%.*s", (int)(cp - last), last);
+		LOG_USER_N("\n");
+		last = cp + 1;
+		n = n2;
+	}
+}
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 		bool show_help)
 {
-	const char *usage = c->usage ? : "";
-	const char *help = "";
-	const char *sep = "";
-	if (show_help && c->help)
-	{
-		help = c->help ? : "";
-		sep = c->usage ? " | " : "";
+	command_help_show_indent(n);
+	LOG_USER_N("%s", command_name(c, ' '));
+	if (c->usage) {
+		LOG_USER_N(" ");
+		command_help_show_wrap(c->usage, 0, n + 5);
 	}
-	command_run_linef(CMD_CTX, "cmd_help {%s} {%s%s%s} %d",
-			command_name(c, ' '), usage, sep, help, n);
-
+	else
+		LOG_USER_N("\n");
+	if (show_help && c->help)
+		command_help_show_wrap(c->help, n + 3, n + 3);
 	if (++n >= 2)
 		return ERROR_OK;
 
