@@ -786,26 +786,42 @@ usage:
 	return retval;
 }
 
+static const struct command_registration arm_exec_command_handlers[] = {
+	{
+		.name = "reg",
+		.handler = &handle_armv4_5_reg_command,
+		.mode = COMMAND_EXEC,
+		.help = "display ARM core registers",
+	},
+	{
+		.name = "core_state",
+		.handler = &handle_armv4_5_core_state_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<arm | thumb>",
+		.help = "display/change ARM core state",
+	},
+	{
+		.name = "disassemble",
+		.handler = &handle_armv4_5_disassemble_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<address> [<count> ['thumb']]",
+		.help = "disassemble instructions ",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration arm_command_handlers[] = {
+	{
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM command group",
+		.chain = arm_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int armv4_5_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *armv4_5_cmd;
-
-	armv4_5_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm",
-			NULL, COMMAND_ANY,
-			"generic ARM commands");
-
-	COMMAND_REGISTER(cmd_ctx, armv4_5_cmd, "reg",
-			handle_armv4_5_reg_command, COMMAND_EXEC,
-			"display ARM core registers");
-	COMMAND_REGISTER(cmd_ctx, armv4_5_cmd, "core_state",
-			handle_armv4_5_core_state_command, COMMAND_EXEC,
-			"display/change ARM core state <arm | thumb>");
-	COMMAND_REGISTER(cmd_ctx, armv4_5_cmd, "disassemble",
-			handle_armv4_5_disassemble_command, COMMAND_EXEC,
-			"disassemble instructions "
-				"<address> [<count> ['thumb']]");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, arm_command_handlers);
 }
 
 int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
