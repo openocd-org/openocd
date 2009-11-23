@@ -74,17 +74,22 @@ COMMAND_HANDLER(handle_pld_device_command)
 			struct pld_device *p, *c;
 
 			/* register pld specific commands */
-			if (pld_drivers[i]->register_commands(CMD_CTX) != ERROR_OK)
-			{
-				LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
-				exit(-1);
+			int retval;
+			if (pld_drivers[i]->commands) {
+				retval = register_commands(CMD_CTX, NULL, 
+						pld_drivers[i]->commands);
+				if (ERROR_OK != retval)
+				{
+					LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
+					return ERROR_FAIL;
+				}
 			}
 
 			c = malloc(sizeof(struct pld_device));
 			c->driver = pld_drivers[i];
 			c->next = NULL;
 
-			int retval = CALL_COMMAND_HANDLER(pld_drivers[i]->pld_device_command, c);
+			retval = CALL_COMMAND_HANDLER(pld_drivers[i]->pld_device_command, c);
 			if (ERROR_OK != retval)
 			{
 				LOG_ERROR("'%s' driver rejected pld device", CMD_ARGV[0]);

@@ -253,14 +253,9 @@ static const struct command_registration virtex2_command_handler[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int virtex2_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, virtex2_command_handler);
-}
-
 struct pld_driver virtex2_pld = {
 		.name = "virtex2",
-		.register_commands = &virtex2_register_commands,
+		.commands = virtex2_command_handler,
 		.pld_device_command = &virtex2_pld_device_command,
 		.load = &virtex2_load,
 	};
