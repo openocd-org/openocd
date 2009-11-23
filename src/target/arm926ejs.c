@@ -756,23 +756,31 @@ static int arm926ejs_mmu(struct target *target, int *enabled)
 	return ERROR_OK;
 }
 
+static const struct command_registration arm926ejs_exec_command_handlers[] = {
+	{
+		.name = "cache_info",
+		.handler = &arm926ejs_handle_cache_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display information about target caches",
+
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration arm926ejs_command_handlers[] = {
+	{
+		.name = "arm926ejs",
+		.mode = COMMAND_ANY,
+		.help = "arm926ejs command group",
+		.chain = arm926ejs_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 /** Registers commands to access coprocessor, cache, and debug resources.  */
 int arm926ejs_register_commands(struct command_context *cmd_ctx)
 {
-	int retval;
-	struct command *arm926ejs_cmd;
-
-	retval = arm9tdmi_register_commands(cmd_ctx);
-
-	arm926ejs_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm926ejs",
-		NULL, COMMAND_ANY,
-		"arm926ejs specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, arm926ejs_cmd, "cache_info",
-		arm926ejs_handle_cache_info_command, COMMAND_EXEC,
-		"display information about target caches");
-
-	return retval;
+	arm9tdmi_register_commands(cmd_ctx);
+	return register_commands(cmd_ctx, NULL, arm926ejs_command_handlers);
 }
 
 /** Holds methods for ARM926 targets. */
