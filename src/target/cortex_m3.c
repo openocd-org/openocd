@@ -1912,27 +1912,44 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration cortex_m3_exec_command_handlers[] = {
+	{
+		.name = "disassemble",
+		.handler = &handle_cortex_m3_disassemble_command,
+		.mode = COMMAND_EXEC,
+		.help = "disassemble Thumb2 instructions",
+		.usage = "<address> [<count>]",
+	},
+	{
+		.name = "maskisr",
+		.handler = &handle_cortex_m3_mask_interrupts_command,
+		.mode = COMMAND_EXEC,
+		.help = "mask cortex_m3 interrupts",
+		.usage = "['on'|'off']",
+	},
+	{
+		.name = "vector_catch",
+		.handler = &handle_cortex_m3_vector_catch_command,
+		.mode = COMMAND_EXEC,
+		.help = "catch hardware vectors",
+		.usage = "['all'|'none'|<list>]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration cortex_m3_command_handlers[] = {
+	{
+		.name = "cortex_m3",
+		.mode = COMMAND_ANY,
+		.help = "Cortex-M3 command group",
+		.chain = cortex_m3_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int cortex_m3_register_commands(struct command_context *cmd_ctx)
 {
-	int retval;
-	struct command *cortex_m3_cmd;
-
-	retval = armv7m_register_commands(cmd_ctx);
-
-	cortex_m3_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "cortex_m3",
-			NULL, COMMAND_ANY, "cortex_m3 specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, cortex_m3_cmd, "disassemble",
-			handle_cortex_m3_disassemble_command, COMMAND_EXEC,
-			"disassemble Thumb2 instructions <address> [<count>]");
-	COMMAND_REGISTER(cmd_ctx, cortex_m3_cmd, "maskisr",
-			handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC,
-			"mask cortex_m3 interrupts ['on'|'off']");
-	COMMAND_REGISTER(cmd_ctx, cortex_m3_cmd, "vector_catch",
-			handle_cortex_m3_vector_catch_command, COMMAND_EXEC,
-			"catch hardware vectors ['all'|'none'|<list>]");
-
-	return retval;
+	armv7m_register_commands(cmd_ctx);
+	return register_commands(cmd_ctx, NULL, cortex_m3_command_handlers);
 }
 
 struct target_type cortexm3_target =
