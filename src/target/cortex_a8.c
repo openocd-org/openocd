@@ -1625,28 +1625,36 @@ COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration cortex_a8_exec_command_handlers[] = {
+	{
+		.name = "cache_info",
+		.handler = &cortex_a8_handle_cache_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display information about target caches",
+	},
+	{
+		.name = "dbginit",
+		.handler = &cortex_a8_handle_dbginit_command,
+		.mode = COMMAND_EXEC,
+		.help = "Initialize core debug",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration cortex_a8_command_handlers[] = {
+	{
+		.name = "cortex_a8",
+		.mode = COMMAND_ANY,
+		.help = "Cortex-A8 command group",
+		.chain = cortex_a8_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 static int cortex_a8_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *cortex_a8_cmd;
-	int retval = ERROR_OK;
-
 	armv4_5_register_commands(cmd_ctx);
 	armv7a_register_commands(cmd_ctx);
-
-	cortex_a8_cmd =	COMMAND_REGISTER(cmd_ctx, NULL, "cortex_a8",
-			NULL, COMMAND_ANY,
-			"cortex_a8 specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, cortex_a8_cmd, "cache_info",
-			cortex_a8_handle_cache_info_command, COMMAND_EXEC,
-			"display information about target caches");
-
-	COMMAND_REGISTER(cmd_ctx, cortex_a8_cmd, "dbginit",
-			cortex_a8_handle_dbginit_command, COMMAND_EXEC,
-			"Initialize core debug");
-
-	return retval;
+	return register_commands(cmd_ctx, NULL, cortex_a8_command_handlers);
 }
 
 struct target_type cortexa8_target = {
