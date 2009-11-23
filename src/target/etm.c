@@ -221,8 +221,6 @@ static int etm_register_user_commands(struct command_context *cmd_ctx);
 static int etm_set_reg_w_exec(struct reg *reg, uint8_t *buf);
 static int etm_write_reg(struct reg *reg, uint32_t value);
 
-static struct command *etm_cmd;
-
 static const struct reg_arch_type etm_scan6_type = {
 	.get = etm_get_reg,
 	.set = etm_set_reg_w_exec,
@@ -2095,45 +2093,99 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 	return retval;
 }
 
+static const struct command_registration etm_config_command_handlers[] = {
+	{
+		.name = "config",
+		.handler = &handle_etm_config_command,
+		.mode = COMMAND_CONFIG,
+		.usage = "<target> <port_width> <port_mode> "
+			"<clocking> <capture_driver>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration etm_command_handlers[] = {
+	{
+		.name = "etm",
+		.mode = COMMAND_ANY,
+		.help = "Emebdded Trace Macrocell command group",
+		.chain = etm_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int etm_register_commands(struct command_context *cmd_ctx)
 {
-	etm_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "etm", NULL, COMMAND_ANY, "Embedded Trace Macrocell");
-
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "config", handle_etm_config_command,
-		COMMAND_CONFIG, "etm config <target> <port_width> <port_mode> <clocking> <capture_driver>");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, etm_command_handlers);
 }
+
+static const struct command_registration etm_exec_command_handlers[] = {
+	{
+		.name = "tracemode", handle_etm_tracemode_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure/display trace mode",
+		.usage = "<none | data | address | all> "
+			"<context_id_bits> <cycle_accurate> <branch_output>",
+	},
+	{
+		.name = "info",
+		.handler = &handle_etm_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display info about the current target's ETM",
+	},
+	{
+		.name = "trigger_percent",
+		.handler = &handle_etm_trigger_percent_command,
+		.mode = COMMAND_EXEC,
+		.help = "amount (<percent>) of trace buffer "
+			"to be filled after the trigger occured",
+	},
+	{
+		.name = "status",
+		.handler = &handle_etm_status_command,
+		.mode = COMMAND_EXEC,
+		.help = "display current target's ETM status",
+	},
+	{
+		.name = "start",
+		.handler = &handle_etm_start_command,
+		.mode = COMMAND_EXEC,
+		.help = "start ETM trace collection",
+	},
+	{
+		.name = "stop",
+		.handler = &handle_etm_stop_command,
+		.mode = COMMAND_EXEC,
+		.help = "stop ETM trace collection",
+	},
+	{
+		.name = "analyze",
+		.handler = &handle_etm_analyze_command,
+		.mode = COMMAND_EXEC,
+		.help = "anaylze collected ETM trace",
+	},
+	{
+		.name = "image",
+		.handler = &handle_etm_image_command,
+		.mode = COMMAND_EXEC,
+		.help = "load image from <file> [base address]",
+	},
+	{
+		.name = "dump",
+		.handler = &handle_etm_dump_command,
+		.mode = COMMAND_EXEC,
+		.help = "dump captured trace data <file>",
+	},
+	{
+		.name = "load",
+		.handler = &handle_etm_load_command,
+		.mode = COMMAND_EXEC,
+		.help = "load trace data for analysis <file>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 static int etm_register_user_commands(struct command_context *cmd_ctx)
 {
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
-		COMMAND_EXEC, "configure/display trace mode: "
-			"<none | data | address | all> "
-			"<context_id_bits> <cycle_accurate> <branch_output>");
-
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "info", handle_etm_info_command,
-		COMMAND_EXEC, "display info about the current target's ETM");
-
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "trigger_percent", handle_etm_trigger_percent_command,
-		COMMAND_EXEC, "amount (<percent>) of trace buffer to be filled after the trigger occured");
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "status", handle_etm_status_command,
-		COMMAND_EXEC, "display current target's ETM status");
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "start", handle_etm_start_command,
-		COMMAND_EXEC, "start ETM trace collection");
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "stop", handle_etm_stop_command,
-		COMMAND_EXEC, "stop ETM trace collection");
-
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "analyze", handle_etm_analyze_command,
-		COMMAND_EXEC, "anaylze collected ETM trace");
-
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "image", handle_etm_image_command,
-		COMMAND_EXEC, "load image from <file> [base address]");
-
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "dump", handle_etm_dump_command,
-		COMMAND_EXEC, "dump captured trace data <file>");
-	COMMAND_REGISTER(cmd_ctx, etm_cmd, "load", handle_etm_load_command,
-		COMMAND_EXEC, "load trace data for analysis <file>");
-
-	return ERROR_OK;
+	struct command *etm_cmd = command_find_in_context(cmd_ctx, "etm");
+	return register_commands(cmd_ctx, etm_cmd, etm_exec_command_handlers);
 }
