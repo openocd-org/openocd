@@ -59,14 +59,15 @@ proc find {filename} {
 	# make sure error message matches original input string
 	return -code error "Can't find $filename"
 }
-add_help_text find "<file> - print full path to file according to OpenOCD search rules"
+add_usage_text find "<file>"
+add_help_text find "print full path to file according to OpenOCD search rules"
 
 # Run script
 proc script {filename} {
 	source [find $filename]
 }
-
-add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
+add_help_text script "filename of OpenOCD script (tcl) to run"
+add_usage_text script "<file>"
 
 #########
 

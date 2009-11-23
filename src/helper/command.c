@@ -951,8 +951,9 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 			return ERROR_FAIL;
 		}
 		LOG_DEBUG("added '%s' help text", cmd_name);
+		return ERROR_OK;
 	}
-	else
+	if (help_text)
 	{
 		bool replaced = false;
 		if (nc->help)
@@ -961,11 +962,24 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 			replaced = true;
 		}
 		nc->help = strdup(help_text);
-
 		if (replaced)
 			LOG_INFO("replaced existing '%s' help", cmd_name);
 		else
 			LOG_DEBUG("added '%s' help text", cmd_name);
+	}
+	if (usage)
+	{
+		bool replaced = false;
+		if (nc->usage)
+		{
+			free((void *)nc->usage);
+			replaced = true;
+		}
+		nc->usage = strdup(usage);
+		if (replaced)
+			LOG_INFO("replaced existing '%s' usage", cmd_name);
+		else
+			LOG_DEBUG("added '%s' usage text", cmd_name);
 	}
 	return ERROR_OK;
 }
@@ -979,7 +993,14 @@ COMMAND_HANDLER(handle_help_add_command)
 	}
 
 	// save help text and remove it from argument list
-	const char *help_text = CMD_ARGV[--CMD_ARGC];
+	const char *str = CMD_ARGV[--CMD_ARGC];
+	const char *help = !strcmp(CMD_NAME, "add_help_text") ? str : NULL;
+	const char *usage = !strcmp(CMD_NAME, "add_usage_text") ? str : NULL;
+	if (!help && !usage)
+	{
+		LOG_ERROR("command name '%s' is unknown", CMD_NAME);
+		return ERROR_INVALID_ARGUMENTS;
+	}
 	// likewise for the leaf command name
 	const char *cmd_name = CMD_ARGV[--CMD_ARGC];
 
@@ -991,7 +1012,7 @@ COMMAND_HANDLER(handle_help_add_command)
 		if (ERROR_OK != retval)
 			return retval;
 	}
-	return help_add_command(CMD_CTX, c, cmd_name, help_text, NULL);
+	return help_add_command(CMD_CTX, c, cmd_name, help, usage);
 }
 
 /* sleep command sleeps for <n> miliseconds
@@ -1037,6 +1058,13 @@ static const struct command_registration command_builtin_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "add new command help text",
 		.usage = "<command> [...] <help_text>]",
+	},
+	{
+		.name = "add_usage_text",
+		.handler = &handle_help_add_command,
+		.mode = COMMAND_ANY,
+		.help = "add new command usage text",
+		.usage = "<command> [...] <usage_text>]",
 	},
 	{
 		.name = "sleep",
