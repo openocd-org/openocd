@@ -795,34 +795,54 @@ COMMAND_HANDLER(handle_dap_info_command)
 	return dap_info_command(CMD_CTX, swjdp, apsel);
 }
 
-/** Registers commands used to access DAP resources. */
+static const struct command_registration armv7m_exec_command_handlers[] = {
+	{
+		.name = "info",
+		.handler = &handle_dap_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "dap info for ap [num], "
+			"default currently selected AP",
+	},
+	{
+		.name = "apsel",
+		.handler = &handle_dap_apsel_command,
+		.mode = COMMAND_EXEC,
+		.help = "select a different AP [num] (default 0)",
+	},
+	{
+		.name = "apid",
+		.handler = &handle_dap_apid_command,
+		.mode = COMMAND_EXEC,
+		.help = "return id reg from AP [num], "
+			"default currently selected AP",
+	},
+	{
+		.name = "baseaddr",
+		.handler = &handle_dap_baseaddr_command,
+		.mode = COMMAND_EXEC,
+		.help = "return debug base address from AP [num], "
+			"default currently selected AP",
+	},
+	{
+		.name = "memaccess",
+		.handler = &handle_dap_memaccess_command,
+		.mode = COMMAND_EXEC,
+		.help = "set/get number of extra tck for mem-ap memory "
+			"bus access [0-255]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration armv7m_command_handlers[] = {
+	{
+		.name = "dap",
+		.mode = COMMAND_ANY,
+		.help = "Cortex DAP command group",
+		.chain = armv7m_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int armv7m_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *arm_adi_v5_dap_cmd;
-
-	arm_adi_v5_dap_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "dap",
-			NULL, COMMAND_ANY,
-			"cortex dap specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "info",
-			handle_dap_info_command, COMMAND_EXEC,
-			"Displays dap info for ap [num],"
-			"default currently selected AP");
-	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "apsel",
-			handle_dap_apsel_command, COMMAND_EXEC,
-			"Select a different AP [num] (default 0)");
-	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "apid",
-			handle_dap_apid_command, COMMAND_EXEC,
-			"Displays id reg from AP [num], "
-			"default currently selected AP");
-	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr",
-			handle_dap_baseaddr_command, COMMAND_EXEC,
-			"Displays debug base address from AP [num],"
-			"default currently selected AP");
-	COMMAND_REGISTER(cmd_ctx, arm_adi_v5_dap_cmd, "memaccess",
-			handle_dap_memaccess_command, COMMAND_EXEC,
-			"set/get number of extra tck for mem-ap "
-			"memory bus access [0-255]");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, armv7m_command_handlers);
 }
