@@ -407,16 +407,38 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration oocd_trace_all_command_handlers[] = {
+	{
+		.name = "config",
+		.handler = &handle_oocd_trace_config_command,
+		.mode = COMMAND_CONFIG,
+		.usage = "<target>",
+	},
+	{
+		.name = "status",
+		.handler = &handle_oocd_trace_status_command,
+		.mode = COMMAND_EXEC,
+		.help = "display OpenOCD + trace status",
+	},
+	{
+		.name = "resync",
+		.handler = handle_oocd_trace_resync_command,
+		.mode = COMMAND_EXEC,
+		.help = "resync OpenOCD + trace capture clock",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration oocd_trace_command_handlers[] = {
+	{
+		.name = "oocd_trace",
+		.mode = COMMAND_ANY,
+		.help = "OpenOCD trace capture driver command group",
+		.chain = oocd_trace_all_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int oocd_trace_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *oocd_trace_cmd;
-
-	oocd_trace_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "oocd_trace", NULL, COMMAND_ANY, "OpenOCD + trace");
-
-	COMMAND_REGISTER(cmd_ctx, oocd_trace_cmd, "config", handle_oocd_trace_config_command, COMMAND_CONFIG, NULL);
-
-	COMMAND_REGISTER(cmd_ctx, oocd_trace_cmd, "status", handle_oocd_trace_status_command, COMMAND_EXEC, "display OpenOCD + trace status");
-	COMMAND_REGISTER(cmd_ctx, oocd_trace_cmd, "resync", handle_oocd_trace_resync_command, COMMAND_EXEC, "resync OpenOCD + trace capture clock");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, oocd_trace_command_handlers);
 }
