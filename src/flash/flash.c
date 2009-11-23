@@ -1368,15 +1368,12 @@ static const struct command_registration flash_exec_command_handlers[] = {
 
 int flash_init_drivers(struct command_context *cmd_ctx)
 {
-	register_jim(cmd_ctx, "ocd_flash_banks",
-			jim_flash_banks, "return information about the flash banks");
 	if (!flash_banks)
 		return ERROR_OK;
 
 	struct command *parent = command_find_in_context(cmd_ctx, "flash");
 	return register_commands(cmd_ctx, parent, flash_exec_command_handlers);
 }
-
 
 static const struct command_registration flash_config_command_handlers[] = {
 	{
@@ -1388,6 +1385,12 @@ static const struct command_registration flash_config_command_handlers[] = {
 			"[driver_options ...]",
 		.help = "Define a new bank with the given name, "
 			"using the specified NOR flash driver.",
+	},
+	{
+		.name = "banks",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_flash_banks,
+		.help = "return information about the flash banks",
 	},
 	COMMAND_REGISTRATION_DONE
 };

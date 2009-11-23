@@ -1529,26 +1529,37 @@ static const struct command_registration jtag_command_handlers[] = {
 		.help = "choose short(default) or long tms_sequence",
 		.usage = "<short | long>",
 	},
+	// jim commands
+	{
+		.name = "jtag",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_jtag_command,
+		.help = "perform jtag tap actions",
+	},
+	{
+		.name = "drscan",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &Jim_Command_drscan,
+		.help = "execute DR scan <device> "
+			"<num_bits> <value> <num_bits1> <value2> ...",
+	},
+	{
+		.name = "flush_count",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &Jim_Command_flush_count,
+		.help = "returns number of times the JTAG queue has been flushed",
+	},
+	{
+		.name = "pathmove",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &Jim_Command_pathmove,
+		.usage = "<state1>,<state2>,<state3>... ",
+		.help = "move JTAG to state1 then to state2, state3, etc.",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
 int jtag_register_commands(struct command_context *cmd_ctx)
 {
-	register_jim(cmd_ctx, "jtag", jim_jtag_command,
-			"perform jtag tap actions");
-
-	register_jim(cmd_ctx, "drscan", Jim_Command_drscan,
-			"execute DR scan <device> "
-			"<num_bits> <value> <num_bits1> <value2> ...");
-
-	register_jim(cmd_ctx, "flush_count", Jim_Command_flush_count,
-			"returns number of times the JTAG queue has been flushed");
-
-	register_jim(cmd_ctx, "pathmove", Jim_Command_pathmove,
-			"<state1>,<state2>,<state3>... "
-			"- move JTAG to state1 then to state2, state3, etc.");
-
 	return register_commands(cmd_ctx, NULL, jtag_command_handlers);
 }
-
-

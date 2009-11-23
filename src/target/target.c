@@ -777,12 +777,14 @@ int target_init(struct command_context *cmd_ctx)
 			target->type->mcr = default_mcr;
 		} else
 		{
-			/* FIX! multiple targets will generally register global commands
-			 * multiple times. Only register this one if *one* of the
-			 * targets need the command. Hmm... make it a command on the
-			 * Jim Tcl target object?
-			 */
-			register_jim(cmd_ctx, "mcr", jim_mcrmrc, "write coprocessor <cpnum> <op1> <op2> <CRn> <CRm> <value>");
+			const struct command_registration mcr_cmd = {
+				.name = "mcr",
+				.mode = COMMAND_EXEC,
+				.jim_handler = &jim_mcrmrc,
+				.help = "write coprocessor",
+				.usage = "<cpnum> <op1> <op2> <CRn> <CRm> <value>",
+			};
+			register_command(cmd_ctx, NULL, &mcr_cmd);
 		}
 
 		if (target->type->mrc == NULL)
@@ -790,7 +792,13 @@ int target_init(struct command_context *cmd_ctx)
 			target->type->mrc = default_mrc;
 		} else
 		{
-			register_jim(cmd_ctx, "mrc", jim_mcrmrc, "read coprocessor <cpnum> <op1> <op2> <CRn> <CRm>");
+			const struct command_registration mrc_cmd = {
+				.name = "mrc",
+				.jim_handler = &jim_mcrmrc,
+				.help = "read coprocessor",
+				.usage = "<cpnum> <op1> <op2> <CRn> <CRm>",
+			};
+			register_command(cmd_ctx, NULL, &mrc_cmd);
 		}
 
 
@@ -4377,14 +4385,14 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	/* now - create the new target name command */
-	e = Jim_CreateCommand(goi->interp,
-						   /* name */
-						   cp,
-						   tcl_target_func, /* C function */
-						   target, /* private data */
-						   NULL); /* no del proc */
-
-	return e;
+	const struct command_registration target_command = {
+		.name = cp,
+		.jim_handler = &tcl_target_func,
+		.jim_handler_data = target,
+		.help = "target command group",
+	};
+	struct command *c = register_command(cmd_ctx, NULL, &target_command);
+	return (NULL != c) ? ERROR_OK : ERROR_FAIL;
 }
 
 static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -4773,12 +4781,17 @@ static const struct command_registration target_command_handlers[] = {
 			"or list targets (no parameters)",
 		.usage = "[<new_current_target>]",
 	},
+	{
+		.name = "target",
+		.mode = COMMAND_CONFIG,
+		.jim_handler = &jim_target,
+		.help = "configure target",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
 int target_register_commands(struct command_context *cmd_ctx)
 {
-	register_jim(cmd_ctx, "target", jim_target, "configure target");
 	return register_commands(cmd_ctx, NULL, target_command_handlers);
 }
 
@@ -4967,6 +4980,22 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "<file> [offset] [type]",
 	},
+	{
+		.name = "ocd_mem2array",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_mem2array,
+		.help = "read memory and return as a TCL array "
+			"for script processing",
+		.usage = "<arrayname> <width=32|16|8> <address> <count>",
+	},
+	{
+		.name = "ocd_array2mem",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_array2mem,
+		.help = "convert a TCL array to memory locations "
+			"and write the values",
+		.usage = "<arrayname> <width=32|16|8> <address> <count>",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 int target_register_user_commands(struct command_context *cmd_ctx)
@@ -4978,13 +5007,6 @@ int target_register_user_commands(struct command_context *cmd_ctx)
 	if ((retval = trace_register_commands(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array,
-			"read memory and return as a TCL array for script processing "
-			"<ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
-
-	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem,
-			"convert a TCL array to memory locations and write the values "
-			"<ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
 
 	return register_commands(cmd_ctx, NULL, target_exec_command_handlers);
 }

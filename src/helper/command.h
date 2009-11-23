@@ -164,6 +164,8 @@ struct command
 	struct command *parent;
 	struct command *children;
 	command_handler_t handler;
+	Jim_CmdProc jim_handler;
+	void *jim_handler_data;
 	enum command_mode mode;
 	struct command *next;
 };
@@ -198,6 +200,8 @@ char *command_name(struct command *c, char delim);
 struct command_registration {
 	const char *name;
 	command_handler_t handler;
+	Jim_CmdProc jim_handler;
+	void *jim_handler_data;
 	enum command_mode mode;
 	const char *help;
 	/// a string listing the options and arguments, required or optional
@@ -318,9 +322,6 @@ void process_jim_events(void);
 #define		ERROR_COMMAND_ARGUMENT_UNDERFLOW	(-605)
 
 extern Jim_Interp *interp;
-
-void register_jim(struct command_context *context, const char *name,
-		Jim_CmdProc cmd, const char *help);
 
 int parse_ulong(const char *str, unsigned long *ul);
 int parse_ullong(const char *str, unsigned long long *ul);

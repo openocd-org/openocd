@@ -685,27 +685,51 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "display available ram memory",
 	},
+	// jim handlers
+	{
+		.name = "rm",
+		.mode = COMMAND_ANY,
+		.jim_handler = &zylinjtag_Jim_Command_rm,
+		.help = "remove a file",
+		.usage = "<file>",
+	},
+	{
+		.name = "peek",
+		.mode = COMMAND_ANY,
+		.jim_handler = &zylinjtag_Jim_Command_peek,
+		.help = "peek at a memory address",
+		.usage = "<addr>",
+	},
+	{
+		.name = "poke",
+		.mode = COMMAND_ANY,
+		.jim_handler = &zylinjtag_Jim_Command_poke,
+		.help = "poke at a memory address",
+		.usage = "<addr> <value>",
+	},
+	{
+		.name = "ls",
+		.mode = COMMAND_ANY,
+		.jim_handler = &zylinjtag_Jim_Command_ls,
+		.help = "show a listing of files",
+		.usage = "<dir>",
+	},
+	{
+		.name = "mac",
+		.mode = COMMAND_ANY,
+		.jim_handler = &zylinjtag_Jim_Command_mac,
+		.help = "show MAC address",
+	},
+	{
+		.name = "ip",
+		.jim_handler = &zylinjtag_Jim_Command_ip,
+		.mode = COMMAND_ANY,
+		.help = "show IP address",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
-
 int ioutil_init(struct command_context *cmd_ctx)
 {
-	register_commands(cmd_ctx, NULL, ioutil_command_handlers);
-
-    Jim_CreateCommand(interp, "rm", zylinjtag_Jim_Command_rm, NULL, NULL);
-
-    Jim_CreateCommand(interp, "peek", zylinjtag_Jim_Command_peek, NULL, NULL);
-    Jim_CreateCommand(interp, "poke", zylinjtag_Jim_Command_poke, NULL, NULL);
-    Jim_CreateCommand(interp, "ls", zylinjtag_Jim_Command_ls, NULL, NULL);
-
-	Jim_CreateCommand(interp, "mac", zylinjtag_Jim_Command_mac,
-			NULL, NULL);
-
-	Jim_CreateCommand(interp, "ip", zylinjtag_Jim_Command_ip,
-			NULL, NULL);
-
-    return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, ioutil_command_handlers);
 }
-
-

@@ -252,6 +252,8 @@ static struct command *command_new(struct command_context *cmd_ctx,
 		c->usage = strdup(cr->usage);
 	c->parent = parent;
 	c->handler = cr->handler;
+	c->jim_handler = cr->jim_handler;
+	c->jim_handler_data = cr->jim_handler_data;
 	c->mode = cr->mode;
 
 	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
@@ -327,16 +329,22 @@ struct command* register_command(struct command_context *context,
 	}
 
 	c = command_new(context, parent, cr);
-	/* if allocation failed or it is a placeholder (no handler), we're done */
-	if (NULL == c || NULL == c->handler)
-		return c;
+	if (NULL == c)
+		return NULL;
 
-	int retval = register_command_handler(c);
-	if (ERROR_OK != retval)
+	if (NULL != c->handler)
 	{
-		unregister_command(context, parent, name);
-		c = NULL;
+		int retval = register_command_handler(c);
+		if (ERROR_OK != retval)
+		{
+			unregister_command(context, parent, name);
+			return NULL;
+		}
 	}
+
+	if (NULL != cr->jim_handler && NULL == parent)
+		Jim_CreateCommand(interp, cr->name, cr->jim_handler, cr->jim_handler_data, NULL);
+
 	return c;
 }
 
@@ -882,7 +890,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	bool found = true;
 	Jim_Obj *const *start;
 	unsigned count;
-	if (c->handler)
+	if (c->handler || c->jim_handler)
 	{
 		// include the command name in the list
 		count = remaining + 1;
@@ -899,6 +907,12 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		count = argc - remaining;
 		start = argv;
 		found = false;
+	}
+	// pass the command through to the intended handler
+	if (c->jim_handler)
+	{
+		interp->cmdPrivData = c->jim_handler_data;
+		return (*c->jim_handler)(interp, count, start);
 	}
 
 	unsigned nwords;
@@ -1147,18 +1161,6 @@ void process_jim_events(void)
 		recursion--;
 	}
 #endif
-}
-
-void register_jim(struct command_context *cmd_ctx, const char *name,
-		Jim_CmdProc cmd, const char *help)
-{
-	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
-
-	Jim_Obj *cmd_list = Jim_NewListObj(interp, NULL, 0);
-	Jim_ListAppendElement(interp, cmd_list,
-			Jim_NewStringObj(interp, name, -1));
-
-	help_add_command(cmd_ctx, NULL, name, help, NULL);
 }
 
 #define DEFINE_PARSE_NUM_TYPE(name, type, func, min, max) \
