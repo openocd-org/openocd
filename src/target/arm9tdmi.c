@@ -908,20 +908,29 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration arm9tdmi_exec_command_handlers[] = {
+	{
+		.name = "vector_catch",
+		.handler = handle_arm9tdmi_catch_vectors_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[all|none|reset|undef|swi|pabt|dabt|irq|fiq] ...",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration arm9tdmi_command_handlers[] = {
+	{
+		.name = "arm9tdmi",
+		.mode = COMMAND_ANY,
+		.help = "arm9tdmi command group",
+		.chain = arm9tdmi_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int arm9tdmi_register_commands(struct command_context *cmd_ctx)
 {
-	int retval;
-	struct command *arm9tdmi_cmd;
-
-	retval = arm7_9_register_commands(cmd_ctx);
-	arm9tdmi_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm9",
-			NULL, COMMAND_ANY,
-			"arm9 specific commands");
-	COMMAND_REGISTER(cmd_ctx, arm9tdmi_cmd, "vector_catch",
-			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
-			"arm9 vector_catch [all|none|reset|undef|swi|pabt|dabt|irq|fiq] ...");
-
-	return retval;
+	arm7_9_register_commands(cmd_ctx);
+	return register_commands(cmd_ctx, NULL, arm9tdmi_command_handlers);
 }
 
 /** Holds methods for ARM9TDMI targets. */
