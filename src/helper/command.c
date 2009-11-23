@@ -238,23 +238,21 @@ static struct command **command_list_for_parent(
 }
 
 static struct command *command_new(struct command_context *cmd_ctx,
-		struct command *parent, const char *name,
-		command_handler_t handler, enum command_mode mode,
-		const char *help, const char *usage)
+		struct command *parent, const struct command_registration *cr)
 {
-	assert(name);
+	assert(cr->name);
 
 	struct command *c = malloc(sizeof(struct command));
 	memset(c, 0, sizeof(struct command));
 
-	c->name = strdup(name);
-	if (help)
-		c->help = strdup(help);
-	if (usage)
-		c->usage = strdup(usage);
+	c->name = strdup(cr->name);
+	if (cr->help)
+		c->help = strdup(cr->help);
+	if (cr->usage)
+		c->usage = strdup(cr->usage);
 	c->parent = parent;
-	c->handler = handler;
-	c->mode = mode;
+	c->handler = cr->handler;
+	c->mode = cr->mode;
 
 	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
 
@@ -328,7 +326,7 @@ struct command* register_command(struct command_context *context,
 		return c;
 	}
 
-	c = command_new(context, parent, name, cr->handler, cr->mode, cr->help, cr->usage);
+	c = command_new(context, parent, cr);
 	/* if allocation failed or it is a placeholder (no handler), we're done */
 	if (NULL == c || NULL == c->handler)
 		return c;
