@@ -3554,31 +3554,115 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	return ERROR_OK;
 }
 
+static const struct command_registration xscale_exec_command_handlers[] = {
+	{
+		.name = "cache_info",
+		.handler = &xscale_handle_cache_info_command,
+		.mode = COMMAND_EXEC, NULL,
+	},
+
+	{
+		.name = "mmu",
+		.handler = &xscale_handle_mmu_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[enable|disable]",
+		.help = "enable or disable the MMU",
+	},
+	{
+		.name = "icache",
+		.handler = &xscale_handle_idcache_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[enable|disable]",
+		.help = "enable or disable the ICache",
+	},
+	{
+		.name = "dcache",
+		.handler = &xscale_handle_idcache_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[enable|disable]",
+		.help = "enable or disable the DCache",
+	},
+
+	{
+		.name = "vector_catch",
+		.handler = &xscale_handle_vector_catch_command,
+		.mode = COMMAND_EXEC,
+		.help = "mask of vectors that should be caught",
+		.usage = "[<mask>]",
+	},
+	{
+		.name = "vector_table",
+		.handler = &xscale_handle_vector_table_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<high|low> <index> <code>",
+		.help = "set static code for exception handler entry",
+	},
+
+	{
+		.name = "trace_buffer",
+		.handler = &xscale_handle_trace_buffer_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<enable | disable> [fill [n]|wrap]",
+	},
+	{
+		.name = "dump_trace",
+		.handler = &xscale_handle_dump_trace_command,
+		.mode = COMMAND_EXEC,
+		.help = "dump content of trace buffer to <file>",
+		.usage = "<file>",
+	},
+	{
+		.name = "analyze_trace",
+		.handler = &xscale_handle_analyze_trace_buffer_command,
+		.mode = COMMAND_EXEC,
+		.help = "analyze content of trace buffer",
+	},
+	{
+		.name = "trace_image",
+		.handler = &xscale_handle_trace_image_command,
+		COMMAND_EXEC,
+		.help = "load image from <file> [base address]",
+		.usage = "<file> [address] [type]",
+	},
+
+	{
+		.name = "cp15",
+		.handler = &xscale_handle_cp15,
+		.mode = COMMAND_EXEC,
+		.help = "access coproc 15",
+		.usage = "<register> [value]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration xscale_any_command_handlers[] = {
+	{
+		.name = "debug_handler",
+		.handler = &xscale_handle_debug_handler_command,
+		.mode = COMMAND_ANY,
+		.usage = "<target#> <address>",
+	},
+	{
+		.name = "cache_clean_address",
+		.handler = &xscale_handle_cache_clean_address_command,
+		.mode = COMMAND_ANY,
+	},
+	{
+		.chain = xscale_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration xscale_command_handlers[] = {
+	{
+		.name = "xscale",
+		.mode = COMMAND_ANY,
+		.help = "xscale command group",
+		.chain = xscale_any_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int xscale_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *xscale_cmd;
-
-	xscale_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "xscale", NULL, COMMAND_ANY, "xscale specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "debug_handler", xscale_handle_debug_handler_command, COMMAND_ANY, "'xscale debug_handler <target#> <address>' command takes two required operands");
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "cache_clean_address", xscale_handle_cache_clean_address_command, COMMAND_ANY, NULL);
-
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "cache_info", xscale_handle_cache_info_command, COMMAND_EXEC, NULL);
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "mmu", xscale_handle_mmu_command, COMMAND_EXEC, "['enable'|'disable'] the MMU");
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "icache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the ICache");
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "dcache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the DCache");
-
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_vector_catch_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "vector_table", xscale_handle_vector_table_command, COMMAND_EXEC, "<high|low> <index> <code> set static code for exception handler entry");
-
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable | disable> ['fill' [n]|'wrap']");
-
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "dump_trace", xscale_handle_dump_trace_command, COMMAND_EXEC, "dump content of trace buffer to <file>");
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
-		COMMAND_EXEC, "load image from <file> [base address]");
-
-	COMMAND_REGISTER(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
 
 	armv4_5_register_commands(cmd_ctx);
 
