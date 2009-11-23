@@ -71,6 +71,7 @@ void arm920t_disable_mmu_caches(struct target *target,
 	int mmu, int d_u_cache, int i_cache);
 void arm920t_enable_mmu_caches(struct target *target,
 	int mmu, int d_u_cache, int i_cache);
-int arm920t_register_commands(struct command_context *cmd_ctx);
+
+extern const struct command_registration arm920t_command_handlers[];
 
 #endif /* ARM920T_H */

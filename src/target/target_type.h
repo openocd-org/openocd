@@ -148,7 +148,7 @@ struct target_type
 	 */
 	int (*run_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 
-	int (*register_commands)(struct command_context *cmd_ctx);
+	const struct command_registration *commands;
 
 	/* called when target is created */
 	int (*target_create)(struct target *target, Jim_Interp *interp);

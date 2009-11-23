@@ -809,7 +809,7 @@ static const struct command_registration arm_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-static const struct command_registration arm_command_handlers[] = {
+const struct command_registration arm_command_handlers[] = {
 	{
 		.name = "arm",
 		.mode = COMMAND_ANY,
@@ -818,11 +818,6 @@ static const struct command_registration arm_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-int armv4_5_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, arm_command_handlers);
-}
 
 int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {

@@ -41,7 +41,6 @@ int mips_m4k_resume(struct target *target, int current, uint32_t address, int ha
 int mips_m4k_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
 int mips_m4k_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int mips_m4k_register_commands(struct command_context *cmd_ctx);
 int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target);
 int mips_m4k_target_create(struct target *target, Jim_Interp *interp);
 
@@ -82,7 +81,6 @@ struct target_type mips_m4k_target =
 	.add_watchpoint = mips_m4k_add_watchpoint,
 	.remove_watchpoint = mips_m4k_remove_watchpoint,
 
-	.register_commands = mips_m4k_register_commands,
 	.target_create = mips_m4k_target_create,
 	.init_target = mips_m4k_init_target,
 	.examine = mips_m4k_examine,
@@ -900,14 +898,6 @@ int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size
 		return mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 	else
 		return mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
-}
-
-int mips_m4k_register_commands(struct command_context *cmd_ctx)
-{
-	int retval;
-
-	retval = mips32_register_commands(cmd_ctx);
-	return retval;
 }
 
 int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target)

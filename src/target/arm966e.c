@@ -232,7 +232,10 @@ static const struct command_registration arm966e_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration arm966e_command_handlers[] = {
+const struct command_registration arm966e_command_handlers[] = {
+	{
+		.chain = arm9tdmi_command_handlers,
+	},
 	{
 		.name = "arm966e",
 		.mode = COMMAND_ANY,
@@ -241,13 +244,6 @@ static const struct command_registration arm966e_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-/** Registers commands used to access coprocessor resources. */
-int arm966e_register_commands(struct command_context *cmd_ctx)
-{
-	arm9tdmi_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, arm966e_command_handlers);
-}
 
 /** Holds methods for ARM966 targets. */
 struct target_type arm966e_target =
@@ -283,7 +279,7 @@ struct target_type arm966e_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm966e_register_commands,
+	.commands = arm966e_command_handlers,
 	.target_create = arm966e_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm7_9_examine,

@@ -2103,7 +2103,7 @@ static const struct command_registration etm_config_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-static const struct command_registration etm_command_handlers[] = {
+const struct command_registration etm_command_handlers[] = {
 	{
 		.name = "etm",
 		.mode = COMMAND_ANY,
@@ -2112,11 +2112,6 @@ static const struct command_registration etm_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-int etm_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, etm_command_handlers);
-}
 
 static const struct command_registration etm_exec_command_handlers[] = {
 	{

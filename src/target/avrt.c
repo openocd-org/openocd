@@ -28,9 +28,6 @@
 
 #define AVR_JTAG_INS_LEN	4
 
-/* cli handling */
-int avr_register_commands(struct command_context *cmd_ctx);
-
 /* forward declarations */
 int avr_target_create(struct target *target, Jim_Interp *interp);
 int avr_init_target(struct command_context *cmd_ctx, struct target *target);
@@ -91,16 +88,9 @@ struct target_type avr_target =
 	.add_watchpoint = avr_add_watchpoint,
 	.remove_watchpoint = avr_remove_watchpoint,
 */
-	.register_commands = avr_register_commands,
 	.target_create = avr_target_create,
 	.init_target = avr_init_target,
 };
-
-int avr_register_commands(struct command_context *cmd_ctx)
-{
-	LOG_DEBUG("%s", __FUNCTION__);
-	return ERROR_OK;
-}
 
 int avr_target_create(struct target *target, Jim_Interp *interp)
 {

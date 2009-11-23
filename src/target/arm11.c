@@ -1617,6 +1617,12 @@ static const struct command_registration arm11_any_command_handlers[] = {
 };
 static const struct command_registration arm11_command_handlers[] = {
 	{
+		.chain = arm_command_handlers,
+	},
+	{
+		.chain = etm_command_handlers,
+	},
+	{
 		.name = "arm11",
 		.mode = COMMAND_ANY,
 		.help = "ARM11 command group",
@@ -1624,13 +1630,6 @@ static const struct command_registration arm11_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-static int arm11_register_commands(struct command_context *cmd_ctx)
-{
-	armv4_5_register_commands(cmd_ctx);
-	etm_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, arm11_command_handlers);
-}
 
 /** Holds methods for ARM11xx targets. */
 struct target_type arm11_target = {
@@ -1666,7 +1665,7 @@ struct target_type arm11_target = {
 
 	.run_algorithm =	armv4_5_run_algorithm,
 
-	.register_commands =	arm11_register_commands,
+	.commands =		arm11_command_handlers,
 	.target_create =	arm11_target_create,
 	.init_target =		arm11_init_target,
 	.examine =		arm11_examine,

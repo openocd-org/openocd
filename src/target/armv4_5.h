@@ -27,6 +27,8 @@
 #define ARMV4_5_H
 
 #include "target.h"
+#include "command.h"
+
 
 typedef enum armv4_5_mode
 {
@@ -155,7 +157,8 @@ int armv4_5_arch_state(struct target *target);
 int armv4_5_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
-int armv4_5_register_commands(struct command_context *cmd_ctx);
+extern const struct command_registration arm_command_handlers[];
+
 int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5);
 
 int armv4_5_run_algorithm(struct target *target,

@@ -120,7 +120,7 @@ static inline bool is_arm7_9(struct arm7_9_common *arm7_9)
 	return arm7_9->common_magic == ARM7_9_COMMON_MAGIC;
 }
 
-int arm7_9_register_commands(struct command_context *cmd_ctx);
+extern const struct command_registration arm7_9_command_handlers[];
 
 int arm7_9_poll(struct target *target);
 

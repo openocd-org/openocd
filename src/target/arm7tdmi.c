@@ -747,7 +747,7 @@ struct target_type arm7tdmi_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands  = arm7_9_register_commands,
+	.commands  = arm7_9_command_handlers,
 	.target_create  = arm7tdmi_target_create,
 	.init_target = arm7tdmi_init_target,
 	.examine = arm7_9_examine,

@@ -212,7 +212,7 @@ struct reg_cache* etm_build_reg_cache(struct target *target,
 
 int etm_setup(struct target *target);
 
-int etm_register_commands(struct command_context *cmd_ctx);
+extern const struct command_registration etm_command_handlers[];
 
 #define ERROR_ETM_INVALID_DRIVER	(-1300)
 #define ERROR_ETM_PORTMODE_NOT_SUPPORTED	(-1301)

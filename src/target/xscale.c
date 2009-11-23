@@ -3653,6 +3653,9 @@ static const struct command_registration xscale_any_command_handlers[] = {
 };
 static const struct command_registration xscale_command_handlers[] = {
 	{
+		.chain = arm_command_handlers,
+	},
+	{
 		.name = "xscale",
 		.mode = COMMAND_ANY,
 		.help = "xscale command group",
@@ -3660,14 +3663,6 @@ static const struct command_registration xscale_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-static int xscale_register_commands(struct command_context *cmd_ctx)
-{
-
-	armv4_5_register_commands(cmd_ctx);
-
-	return ERROR_OK;
-}
 
 struct target_type xscale_target =
 {
@@ -3702,7 +3697,7 @@ struct target_type xscale_target =
 	.add_watchpoint = xscale_add_watchpoint,
 	.remove_watchpoint = xscale_remove_watchpoint,
 
-	.register_commands = xscale_register_commands,
+	.commands = xscale_command_handlers,
 	.target_create = xscale_target_create,
 	.init_target = xscale_init_target,
 

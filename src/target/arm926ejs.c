@@ -766,7 +766,10 @@ static const struct command_registration arm926ejs_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-static const struct command_registration arm926ejs_command_handlers[] = {
+const struct command_registration arm926ejs_command_handlers[] = {
+	{
+		.chain = arm9tdmi_command_handlers,
+	},
 	{
 		.name = "arm926ejs",
 		.mode = COMMAND_ANY,
@@ -775,13 +778,6 @@ static const struct command_registration arm926ejs_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-/** Registers commands to access coprocessor, cache, and debug resources.  */
-int arm926ejs_register_commands(struct command_context *cmd_ctx)
-{
-	arm9tdmi_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, arm926ejs_command_handlers);
-}
 
 /** Holds methods for ARM926 targets. */
 struct target_type arm926ejs_target =
@@ -817,7 +813,7 @@ struct target_type arm926ejs_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm926ejs_register_commands,
+	.commands = arm926ejs_command_handlers,
 	.target_create = arm926ejs_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm7_9_examine,

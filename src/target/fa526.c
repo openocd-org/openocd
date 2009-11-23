@@ -385,7 +385,7 @@ struct target_type fa526_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm920t_register_commands,
+	.commands = arm920t_command_handlers,
 	.target_create = fa526_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm7_9_examine,

@@ -320,11 +320,6 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 	return ERROR_OK;
 }
 
-int mips32_register_commands(struct command_context *cmd_ctx)
-{
-	return ERROR_OK;
-}
-
 int mips32_run_algorithm(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	/*TODO*/

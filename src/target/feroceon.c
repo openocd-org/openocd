@@ -709,7 +709,7 @@ struct target_type feroceon_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm926ejs_register_commands,
+	.commands = arm926ejs_command_handlers,
 	.target_create = feroceon_target_create,
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,
@@ -748,7 +748,7 @@ struct target_type dragonite_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm966e_register_commands,
+	.commands = arm966e_command_handlers,
 	.target_create = dragonite_target_create,
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,

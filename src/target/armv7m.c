@@ -832,7 +832,7 @@ static const struct command_registration armv7m_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-static const struct command_registration armv7m_command_handlers[] = {
+const struct command_registration armv7m_command_handlers[] = {
 	{
 		.name = "dap",
 		.mode = COMMAND_ANY,
@@ -841,8 +841,3 @@ static const struct command_registration armv7m_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-int armv7m_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, armv7m_command_handlers);
-}

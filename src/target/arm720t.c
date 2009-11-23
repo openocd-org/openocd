@@ -504,6 +504,9 @@ static const struct command_registration arm720t_exec_command_handlers[] = {
 
 static const struct command_registration arm720t_command_handlers[] = {
 	{
+		.chain = arm7_9_command_handlers,
+	},
+	{
 		.name = "arm720t",
 		.mode = COMMAND_ANY,
 		.help = "arm720t command group",
@@ -511,12 +514,6 @@ static const struct command_registration arm720t_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-static int arm720t_register_commands(struct command_context *cmd_ctx)
-{
-	arm7_9_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, arm720t_command_handlers);
-}
 
 /** Holds methods for ARM720 targets. */
 struct target_type arm720t_target =
@@ -555,7 +552,7 @@ struct target_type arm720t_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm720t_register_commands,
+	.commands = arm720t_command_handlers,
 	.target_create = arm720t_target_create,
 	.init_target = arm720t_init_target,
 	.examine = arm7_9_examine,

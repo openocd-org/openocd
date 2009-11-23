@@ -1642,6 +1642,12 @@ static const struct command_registration cortex_a8_exec_command_handlers[] = {
 };
 static const struct command_registration cortex_a8_command_handlers[] = {
 	{
+		.chain = arm_command_handlers,
+	},
+	{
+		.chain = armv7a_command_handlers,
+	},
+	{
 		.name = "cortex_a8",
 		.mode = COMMAND_ANY,
 		.help = "Cortex-A8 command group",
@@ -1649,13 +1655,6 @@ static const struct command_registration cortex_a8_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-static int cortex_a8_register_commands(struct command_context *cmd_ctx)
-{
-	armv4_5_register_commands(cmd_ctx);
-	armv7a_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, cortex_a8_command_handlers);
-}
 
 struct target_type cortexa8_target = {
 	.name = "cortex_a8",
@@ -1689,7 +1688,7 @@ struct target_type cortexa8_target = {
 	.add_watchpoint = NULL,
 	.remove_watchpoint = NULL,
 
-	.register_commands = cortex_a8_register_commands,
+	.commands = cortex_a8_command_handlers,
 	.target_create = cortex_a8_target_create,
 	.init_target = cortex_a8_init_target,
 	.examine = cortex_a8_examine,

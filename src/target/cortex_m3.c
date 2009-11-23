@@ -1938,6 +1938,12 @@ static const struct command_registration cortex_m3_exec_command_handlers[] = {
 };
 static const struct command_registration cortex_m3_command_handlers[] = {
 	{
+		.chain = arm_command_handlers,
+	},
+	{
+		.chain = armv7m_command_handlers,
+	},
+	{
 		.name = "cortex_m3",
 		.mode = COMMAND_ANY,
 		.help = "Cortex-M3 command group",
@@ -1945,12 +1951,6 @@ static const struct command_registration cortex_m3_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-static int cortex_m3_register_commands(struct command_context *cmd_ctx)
-{
-	armv7m_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, cortex_m3_command_handlers);
-}
 
 struct target_type cortexm3_target =
 {
@@ -1984,7 +1984,7 @@ struct target_type cortexm3_target =
 	.add_watchpoint = cortex_m3_add_watchpoint,
 	.remove_watchpoint = cortex_m3_remove_watchpoint,
 
-	.register_commands = cortex_m3_register_commands,
+	.commands = cortex_m3_command_handlers,
 	.target_create = cortex_m3_target_create,
 	.init_target = cortex_m3_init_target,
 	.examine = cortex_m3_examine,

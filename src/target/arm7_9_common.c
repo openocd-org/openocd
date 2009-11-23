@@ -2873,7 +2873,13 @@ static const struct command_registration arm7_9_any_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-static const struct command_registration arm7_9_command_handlers[] = {
+const struct command_registration arm7_9_command_handlers[] = {
+	{
+		.chain = arm_command_handlers,
+	},
+	{
+		.chain = etm_command_handlers,
+	},
 	{
 		.name = "arm7_9",
 		.mode = COMMAND_ANY,
@@ -2882,10 +2888,3 @@ static const struct command_registration arm7_9_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-int arm7_9_register_commands(struct command_context *cmd_ctx)
-{
-	armv4_5_register_commands(cmd_ctx);
-	etm_register_commands(cmd_ctx);
-	return register_commands(cmd_ctx, NULL, arm7_9_command_handlers);
-}

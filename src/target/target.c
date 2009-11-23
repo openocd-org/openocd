@@ -4353,9 +4353,14 @@ static int target_create(Jim_GetOptInfo *goi)
 	if (!target->variant)
 		target->variant = strdup("");
 
+	cp = Jim_GetString(new_cmd, NULL);
+	target->cmd_name = strdup(cp);
+
 	/* create the target specific commands */
-	if (target->type->register_commands) {
-		(*(target->type->register_commands))(cmd_ctx);
+	if (target->type->commands) {
+		e = register_commands(cmd_ctx, NULL, target->type->commands);
+		if (ERROR_OK != e)
+			LOG_ERROR("unable to register '%s' commands", cp);
 	}
 	if (target->type->target_create) {
 		(*(target->type->target_create))(target, goi->interp);
@@ -4370,9 +4375,6 @@ static int target_create(Jim_GetOptInfo *goi)
 		}
 		*tpp = target;
 	}
-
-	cp = Jim_GetString(new_cmd, NULL);
-	target->cmd_name = strdup(cp);
 
 	/* now - create the new target name command */
 	e = Jim_CreateCommand(goi->interp,

@@ -29,7 +29,7 @@ int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target);
 int arm9tdmi_init_arch_info(struct target *target,
 		struct arm7_9_common *arm7_9, struct jtag_tap *tap);
-int arm9tdmi_register_commands(struct command_context *cmd_ctx);
+extern const struct command_registration arm9tdmi_command_handlers[];
 
 int arm9tdmi_clock_out(struct arm_jtag *jtag_info,
 		uint32_t instr, uint32_t out, uint32_t *in, int sysspeed);
