@@ -620,7 +620,7 @@ int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	memcpy(&param_in[2], buf, count * sizeof(uint32_t));
 
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-		sizeof(param_in)/sizeof(param_in[0]),param_in, 0, NULL, 1);
+		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
 
@@ -715,7 +715,7 @@ int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	}
 
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-		sizeof(param_in)/sizeof(param_in[0]), param_in, 0, NULL, 1);
+		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
 
@@ -778,7 +778,7 @@ int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 	}
 
 	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-		sizeof(param_in)/sizeof(param_in[0]), param_in, 0, NULL, 1);
+		count +2, param_in, 0, NULL, 1);
 
 	free(param_in);
 
