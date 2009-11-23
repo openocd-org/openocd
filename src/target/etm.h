@@ -126,7 +126,7 @@ struct etm_context;
 struct etm_capture_driver
 {
 	char *name;
-	int (*register_commands)(struct command_context *cmd_ctx);
+	const struct command_registration *commands;
 	int (*init)(struct etm_context *etm_ctx);
 	trace_status_t (*status)(struct etm_context *etm_ctx);
 	int (*read_trace)(struct etm_context *etm_ctx);

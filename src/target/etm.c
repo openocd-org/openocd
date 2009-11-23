@@ -1471,8 +1471,9 @@ COMMAND_HANDLER(handle_etm_config_command)
 	{
 		if (strcmp(CMD_ARGV[4], etm_capture_drivers[i]->name) == 0)
 		{
-			int retval;
-			if ((retval = etm_capture_drivers[i]->register_commands(CMD_CTX)) != ERROR_OK)
+			int retval = register_commands(CMD_CTX, NULL,
+					etm_capture_drivers[i]->commands);
+			if (ERROR_OK != retval)
 			{
 				free(etm_ctx);
 				return retval;

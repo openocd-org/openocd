@@ -421,11 +421,6 @@ static const struct command_registration etb_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int etb_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, etb_command_handlers);
-}
-
 static int etb_init(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
@@ -696,7 +691,7 @@ static int etb_stop_capture(struct etm_context *etm_ctx)
 struct etm_capture_driver etb_capture_driver =
 {
 	.name = "etb",
-	.register_commands = etb_register_commands,
+	.commands = etb_command_handlers,
 	.init = etb_init,
 	.status = etb_status,
 	.start_capture = etb_start_capture,

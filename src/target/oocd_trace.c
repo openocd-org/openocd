@@ -30,8 +30,6 @@
  */
 
 
-static int oocd_trace_register_commands(struct command_context *cmd_ctx);
-
 static int oocd_trace_read_reg(struct oocd_trace *oocd_trace, int reg, uint32_t *value)
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
@@ -278,17 +276,6 @@ static int oocd_trace_stop_capture(struct etm_context *etm_ctx)
 	return ERROR_OK;
 }
 
-struct etm_capture_driver oocd_trace_capture_driver =
-{
-	.name = "oocd_trace",
-	.register_commands = oocd_trace_register_commands,
-	.init = oocd_trace_init,
-	.status = oocd_trace_status,
-	.start_capture = oocd_trace_start_capture,
-	.stop_capture = oocd_trace_stop_capture,
-	.read_trace = oocd_trace_read_trace,
-};
-
 COMMAND_HANDLER(handle_oocd_trace_config_command)
 {
 	struct target *target;
@@ -438,7 +425,15 @@ static const struct command_registration oocd_trace_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int oocd_trace_register_commands(struct command_context *cmd_ctx)
+struct etm_capture_driver oocd_trace_capture_driver =
 {
-	return register_commands(cmd_ctx, NULL, oocd_trace_command_handlers);
-}
+	.name = "oocd_trace",
+	.commands = oocd_trace_command_handlers,
+	.init = oocd_trace_init,
+	.status = oocd_trace_status,
+	.start_capture = oocd_trace_start_capture,
+	.stop_capture = oocd_trace_stop_capture,
+	.read_trace = oocd_trace_read_trace,
+};
+
+

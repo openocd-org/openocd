@@ -77,11 +77,6 @@ static const struct command_registration etm_dummy_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int etm_dummy_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, etm_dummy_command_handlers);
-}
-
 static int etm_dummy_init(struct etm_context *etm_ctx)
 {
 	return ERROR_OK;
@@ -110,7 +105,7 @@ static int etm_dummy_stop_capture(struct etm_context *etm_ctx)
 struct etm_capture_driver etm_dummy_capture_driver =
 {
 	.name = "dummy",
-	.register_commands = etm_dummy_register_commands,
+	.commands = etm_dummy_command_handlers,
 	.init = etm_dummy_init,
 	.status = etm_dummy_status,
 	.start_capture = etm_dummy_start_capture,
