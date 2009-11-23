@@ -1361,36 +1361,56 @@ static int arm920t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 	return arm920t_write_cp15_interpreted(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), 0, value);
 }
 
+static const struct command_registration arm920t_exec_command_handlers[] = {
+	{
+		.name = "cp15",
+		.handler = &arm920t_handle_cp15_command,
+		.mode = COMMAND_EXEC,
+		.help = "display/modify cp15 register",
+		.usage = "<num> [value]",
+	},
+	{
+		.name = "cp15i",
+		.handler = &arm920t_handle_cp15i_command,
+		.mode = COMMAND_EXEC,
+		.help = "display/modify cp15 (interpreted access)",
+		.usage = "<opcode> [value] [address]",
+	},
+	{
+		.name = "cache_info",
+		.handler = &arm920t_handle_cache_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display information about target caches",
+	},
+	{
+		.name = "read_cache",
+		.handler = &arm920t_handle_read_cache_command,
+		.mode = COMMAND_EXEC,
+		.help = "display I/D cache content",
+	},
+	{
+		.name = "read_mmu",
+		.handler = &arm920t_handle_read_mmu_command,
+		.mode = COMMAND_EXEC,
+		.help = "display I/D mmu content",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration arm920t_command_handlers[] = {
+	{
+		.name = "arm920t",
+		.mode = COMMAND_ANY,
+		.help = "arm920t command group",
+		.chain = arm920t_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 /** Registers commands to access coprocessor, cache, and MMU resources. */
 int arm920t_register_commands(struct command_context *cmd_ctx)
 {
-	int retval;
-	struct command *arm920t_cmd;
-
-	retval = arm9tdmi_register_commands(cmd_ctx);
-
-	arm920t_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm920t",
-			NULL, COMMAND_ANY,
-			"arm920t specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "cp15",
-			arm920t_handle_cp15_command, COMMAND_EXEC,
-			"display/modify cp15 register <num> [value]");
-	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "cp15i",
-			arm920t_handle_cp15i_command, COMMAND_EXEC,
-			"display/modify cp15 (interpreted access) "
-				"<opcode> [value] [address]");
-	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "cache_info",
-			arm920t_handle_cache_info_command, COMMAND_EXEC,
-			"display information about target caches");
-	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "read_cache",
-			arm920t_handle_read_cache_command, COMMAND_EXEC,
-			"display I/D cache content");
-	COMMAND_REGISTER(cmd_ctx, arm920t_cmd, "read_mmu",
-			arm920t_handle_read_mmu_command, COMMAND_EXEC,
-			"display I/D mmu content");
-
-	return retval;
+	arm9tdmi_register_commands(cmd_ctx);
+	return register_commands(cmd_ctx, NULL, arm920t_command_handlers);
 }
 
 /** Holds methods for ARM920 targets. */
