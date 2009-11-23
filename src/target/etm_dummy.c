@@ -58,15 +58,28 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration etm_dummy_config_command_handlers[] = {
+	{
+		.name = "config",
+		.handler = &handle_etm_dummy_config_command,
+		.mode = COMMAND_CONFIG,
+		.usage = "<target>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration etm_dummy_command_handlers[] = {
+	{
+		.name = "etm_dummy",
+		.mode = COMMAND_ANY,
+		.help = "Dummy ETM capture driver command group",
+		.chain = etm_dummy_config_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int etm_dummy_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *etm_dummy_cmd;
-
-	etm_dummy_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "etm_dummy", NULL, COMMAND_ANY, "Dummy ETM capture driver");
-
-	COMMAND_REGISTER(cmd_ctx, etm_dummy_cmd, "config", handle_etm_dummy_config_command, COMMAND_CONFIG, NULL);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, etm_dummy_command_handlers);
 }
 
 static int etm_dummy_init(struct etm_context *etm_ctx)
