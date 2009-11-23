@@ -156,16 +156,35 @@ COMMAND_HANDLER(handle_trace_history_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration trace_exec_command_handlers[] = {
+	{
+		.name = "history",
+		.handler = &handle_trace_history_command,
+		.mode = COMMAND_EXEC,
+		.help = "display trace history, clear history or set [size]",
+		.usage = "[clear|<size>]",
+	},
+	{
+		.name = "point",
+		.handler = &handle_trace_point_command,
+		.mode = COMMAND_EXEC,
+		.help = "display trace points, clear list of trace points, "
+			"or add new tracepoint at [address]",
+		.usage = "[clear|<address>]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration trace_command_handlers[] = {
+	{
+		.name = "trace",
+		.mode = COMMAND_ANY,
+		.help = "trace command group",
+		.chain = trace_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int trace_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *trace_cmd =
-		COMMAND_REGISTER(cmd_ctx, NULL, "trace", NULL, COMMAND_ANY, "trace commands");
-
-	COMMAND_REGISTER(cmd_ctx, trace_cmd, "history", handle_trace_history_command,
-		COMMAND_EXEC, "display trace history, ['clear'] history or set [size]");
-
-	COMMAND_REGISTER(cmd_ctx, trace_cmd, "point", handle_trace_point_command,
-		COMMAND_EXEC, "display trace points, ['clear'] list of trace points, or add new tracepoint at [address]");
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, trace_command_handlers);
 }
