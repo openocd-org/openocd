@@ -2847,28 +2847,45 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 			1, 1, target);
 }
 
+static const struct command_registration arm7_9_any_command_handlers[] = {
+	{
+		"dbgrq",
+		.handler = &handle_arm7_9_dbgrq_command,
+		.mode = COMMAND_ANY,
+		.usage = "<enable|disable>",
+		.help = "use EmbeddedICE dbgrq instead of breakpoint "
+			"for target halt requests",
+	},
+	{
+		"fast_memory_access",
+		.handler = &handle_arm7_9_fast_memory_access_command,
+		.mode = COMMAND_ANY,
+		.usage = "<enable|disable>",
+		.help = "use fast memory accesses instead of slower "
+			"but potentially safer accesses",
+	},
+	{
+		"dcc_downloads",
+		.handler = &handle_arm7_9_dcc_downloads_command,
+		.mode = COMMAND_ANY,
+		.usage = "<enable | disable>",
+		.help = "use DCC downloads for larger memory writes",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration arm7_9_command_handlers[] = {
+	{
+		.name = "arm7_9",
+		.mode = COMMAND_ANY,
+		.help = "arm7/9 specific commands",
+		.chain = arm7_9_any_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 int arm7_9_register_commands(struct command_context *cmd_ctx)
 {
-	struct command *arm7_9_cmd;
-
-	arm7_9_cmd = COMMAND_REGISTER(cmd_ctx, NULL, "arm7_9",
-			NULL, COMMAND_ANY, "arm7/9 specific commands");
-
-	COMMAND_REGISTER(cmd_ctx, arm7_9_cmd, "dbgrq",
-			handle_arm7_9_dbgrq_command, COMMAND_ANY,
-			"use EmbeddedICE dbgrq instead of breakpoint "
-			"for target halt requests <enable | disable>");
-	COMMAND_REGISTER(cmd_ctx, arm7_9_cmd, "fast_memory_access",
-			handle_arm7_9_fast_memory_access_command, COMMAND_ANY,
-			"use fast memory accesses instead of slower "
-			"but potentially safer accesses <enable | disable>");
-	COMMAND_REGISTER(cmd_ctx, arm7_9_cmd, "dcc_downloads",
-			handle_arm7_9_dcc_downloads_command, COMMAND_ANY,
-			"use DCC downloads for larger memory writes <enable | disable>");
-
 	armv4_5_register_commands(cmd_ctx);
-
 	etm_register_commands(cmd_ctx);
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, arm7_9_command_handlers);
 }
