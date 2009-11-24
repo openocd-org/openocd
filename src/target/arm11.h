@@ -26,8 +26,7 @@
 #include "armv4_5.h"
 #include "arm_dpm.h"
 
-/* TEMPORARY -- till we switch to the shared infrastructure */
-#define ARM11_REGCACHE_COUNT		20
+#define ARM11_REGCACHE_COUNT		3
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 
@@ -70,7 +69,7 @@ struct arm11_common
 
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
-	/** \name Shadow registers to save processor state */
+	/** \name Shadow registers to save debug state */
 	/*@{*/
 
 	struct reg *	reg_list;							/**< target register list */
