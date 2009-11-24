@@ -761,96 +761,6 @@ static int arm11_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
-
-static int armv4_5_to_arm11(int reg)
-{
-	if (reg < 16)
-		return reg;
-	switch (reg)
-	{
-	case ARMV4_5_CPSR:
-		return ARM11_RC_CPSR;
-	case 16:
-		/* FIX!!! handle thumb better! */
-		return ARM11_RC_CPSR;
-	default:
-		LOG_ERROR("BUG: register translation from armv4_5 to arm11 not supported %d", reg);
-		exit(-1);
-	}
-}
-
-
-static uint32_t arm11_sim_get_reg(struct arm_sim_interface *sim, int reg)
-{
-	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
-
-	reg=armv4_5_to_arm11(reg);
-
-	return buf_get_u32(arm11->reg_list[reg].value, 0, 32);
-}
-
-static void arm11_sim_set_reg(struct arm_sim_interface *sim,
-		int reg, uint32_t value)
-{
-	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
-
-	reg=armv4_5_to_arm11(reg);
-
-	buf_set_u32(arm11->reg_list[reg].value, 0, 32, value);
-}
-
-static uint32_t arm11_sim_get_cpsr(struct arm_sim_interface *sim,
-		int pos, int bits)
-{
-	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
-
-	return buf_get_u32(arm11->reg_list[ARM11_RC_CPSR].value, pos, bits);
-}
-
-static enum armv4_5_state arm11_sim_get_state(struct arm_sim_interface *sim)
-{
-//	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
-
-	/* FIX!!!! we should implement thumb for arm11 */
-	return ARMV4_5_STATE_ARM;
-}
-
-static void arm11_sim_set_state(struct arm_sim_interface *sim,
-		enum armv4_5_state mode)
-{
-//	struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
-
-	/* FIX!!!! we should implement thumb for arm11 */
-	LOG_ERROR("Not implemented: %s", __func__);
-}
-
-
-static enum armv4_5_mode arm11_sim_get_mode(struct arm_sim_interface *sim)
-{
-	//struct arm11_common * arm11 = (struct arm11_common *)sim->user_data;
-
-	/* FIX!!!! we should implement something that returns the current mode here!!! */
-	return ARMV4_5_MODE_USR;
-}
-
-static int arm11_simulate_step(struct target *target, uint32_t *dry_run_pc)
-{
-	struct arm_sim_interface sim;
-
-	sim.user_data=target->arch_info;
-	sim.get_reg=&arm11_sim_get_reg;
-	sim.set_reg=&arm11_sim_set_reg;
-	sim.get_reg_mode=&arm11_sim_get_reg;
-	sim.set_reg_mode=&arm11_sim_set_reg;
-	sim.get_cpsr=&arm11_sim_get_cpsr;
-	sim.get_mode=&arm11_sim_get_mode;
-	sim.get_state=&arm11_sim_get_state;
-	sim.set_state=&arm11_sim_set_state;
-
-	return arm_simulate_step_core(target, dry_run_pc, &sim);
-
-}
-
 static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
@@ -919,24 +829,41 @@ static int arm11_step(struct target *target, int current,
 
 		if (arm11_config_hardware_step)
 		{
-			/* hardware single stepping be used if possible or is it better to
-			 * always use the same code path? Hardware single stepping is not supported
-			 * on all hardware
+			/* Hardware single stepping ("instruction address
+			 * mismatch") is used if enabled.  It's not quite
+			 * exactly "run one instruction"; "branch to here"
+			 * loops won't break, neither will some other cases,
+			 * but it's probably the best default.
+			 *
+			 * Hardware single stepping isn't supported on v6
+			 * debug modules.  ARM1176 and v7 can support it...
+			 *
+			 * FIXME Thumb stepping likely needs to use 0x03
+			 * or 0xc0 byte masks, not 0x0f.
 			 */
 			 brp[0].value	= R(PC);
-			 brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (2 << 21);
+			 brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5)
+					| (0 << 14) | (0 << 16) | (0 << 20)
+					| (2 << 21);
 		} else
 		{
-			/* sets a breakpoint on the next PC(calculated by simulation),
+			/* Sets a breakpoint on the next PC, as calculated
+			 * by instruction set simulation.
+			 *
+			 * REVISIT stepping Thumb on ARM1156 requires Thumb2
+			 * support from the simulator.
 			 */
 			uint32_t next_pc;
 			int retval;
-			retval = arm11_simulate_step(target, &next_pc);
+
+			retval = arm_simulate_step(target, &next_pc);
 			if (retval != ERROR_OK)
 				return retval;
 
 			brp[0].value	= next_pc;
-			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
+			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5)
+					| (0 << 14) | (0 << 16) | (0 << 20)
+					| (0 << 21);
 		}
 
 		CHECK_RETVAL(arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp)));
@@ -1825,6 +1752,13 @@ static int arm11_build_reg_cache(struct target *target)
 
 	return ERROR_OK;
 }
+
+/* FIXME all these BOOL_WRAPPER things should be modifying
+ * per-instance state, not shared state; ditto the vector
+ * catch register support.  Scan chains with multiple cores
+ * should be able to say "work with this core like this,
+ * that core like that".  Example, ARM11 MPCore ...
+ */
 
 #define ARM11_BOOL_WRAPPER(name, print_name)	\
 		COMMAND_HANDLER(arm11_handle_bool_##name) \
