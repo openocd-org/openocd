@@ -951,3 +951,76 @@ int arm11_read_memory_word(struct arm11_common * arm11, uint32_t address, uint32
 	return arm11_run_instr_data_finish(arm11);
 }
 
+
+/************************************************************************/
+
+/*
+ * ARM11 provider for the OpenOCD implementation of the standard
+ * architectural ARM v6/v7 "Debug Programmer's Model" (DPM).
+ */
+
+static inline struct arm11_common *dpm_to_arm11(struct arm_dpm *dpm)
+{
+	return container_of(dpm, struct arm11_common, dpm);
+}
+
+static int arm11_dpm_prepare(struct arm_dpm *dpm)
+{
+	struct arm11_common *arm11 = dpm_to_arm11(dpm);
+
+	arm11 = container_of(dpm->arm, struct arm11_common, arm);
+
+	return arm11_run_instr_data_prepare(dpm_to_arm11(dpm));
+}
+
+static int arm11_dpm_finish(struct arm_dpm *dpm)
+{
+	return arm11_run_instr_data_finish(dpm_to_arm11(dpm));
+}
+
+static int arm11_dpm_instr_write_data_dcc(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t data)
+{
+	return arm11_run_instr_data_to_core(dpm_to_arm11(dpm),
+			opcode, &data, 1);
+}
+
+static int arm11_dpm_instr_write_data_r0(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t data)
+{
+	return arm11_run_instr_data_to_core_via_r0(dpm_to_arm11(dpm),
+			opcode, data);
+}
+
+static int arm11_dpm_instr_read_data_dcc(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t *data)
+{
+	return arm11_run_instr_data_from_core(dpm_to_arm11(dpm),
+			opcode, data, 1);
+}
+
+static int arm11_dpm_instr_read_data_r0(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t *data)
+{
+	return arm11_run_instr_data_from_core_via_r0(dpm_to_arm11(dpm),
+			opcode, data);
+}
+
+
+void arm11_dpm_init(struct arm11_common *arm11, uint32_t didr)
+{
+	struct arm_dpm *dpm = &arm11->dpm;
+
+	dpm->arm = &arm11->arm;
+
+	dpm->didr = didr;
+
+	dpm->prepare = arm11_dpm_prepare;
+	dpm->finish = arm11_dpm_finish;
+
+	dpm->instr_write_data_dcc = arm11_dpm_instr_write_data_dcc;
+	dpm->instr_write_data_r0 = arm11_dpm_instr_write_data_r0;
+
+	dpm->instr_read_data_dcc = arm11_dpm_instr_read_data_dcc;
+	dpm->instr_read_data_r0 = arm11_dpm_instr_read_data_r0;
+}

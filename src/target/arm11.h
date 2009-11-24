@@ -24,6 +24,7 @@
 #define ARM11_H
 
 #include "armv4_5.h"
+#include "arm_dpm.h"
 
 /* TEMPORARY -- till we switch to the shared infrastructure */
 #define ARM11_REGCACHE_COUNT		20
@@ -58,6 +59,9 @@ struct arm11_common
 {
 	struct arm	arm;
 	struct target *	target;		/**< Reference back to the owner */
+
+	/** Debug module state. */
+	struct arm_dpm dpm;
 
 	/** \name Processor type detection */
 	/*@{*/
