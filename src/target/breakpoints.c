@@ -46,6 +46,7 @@ int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enu
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
+	char *reason;
 	int retval;
 	int n;
 
@@ -53,7 +54,11 @@ int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enu
 	while (breakpoint)
 	{
 		n++;
-		if (breakpoint->address == address){
+		if (breakpoint->address == address) {
+			/* FIXME don't assume "same address" means "same
+			 * breakpoint" ... check all the parameters before
+			 * succeeding.
+			 */
 			LOG_DEBUG("Duplicate Breakpoint address: 0x%08" PRIx32 " (BP %d)",
 				  address, breakpoint->unique_id );
 			return ERROR_OK;
@@ -71,31 +76,24 @@ int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enu
 	(*breakpoint_p)->next = NULL;
 	(*breakpoint_p)->unique_id = bpwp_unique_id++;
 
-	if ((retval = target_add_breakpoint(target, *breakpoint_p)) != ERROR_OK)
-	{
-		switch (retval)
-		{
-			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				LOG_INFO("can't add %s breakpoint, resource not available (BPID=%d)",
-					 breakpoint_type_strings[(*breakpoint_p)->type],
-					 (*breakpoint_p)->unique_id );
-
-				free((*breakpoint_p)->orig_instr);
-				free(*breakpoint_p);
-				*breakpoint_p = NULL;
-				return retval;
-				break;
-			case ERROR_TARGET_NOT_HALTED:
-				LOG_INFO("can't add breakpoint while target is running (BPID: %d)",
-						 (*breakpoint_p)->unique_id );
-				free((*breakpoint_p)->orig_instr);
-				free(*breakpoint_p);
-				*breakpoint_p = NULL;
-				return retval;
-				break;
-			default:
-				break;
-		}
+	retval = target_add_breakpoint(target, *breakpoint_p);
+	switch (retval) {
+	case ERROR_OK:
+		break;
+	case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
+		reason = "resource not available";
+		goto fail;
+	case ERROR_TARGET_NOT_HALTED:
+		reason = "target running";
+		goto fail;
+	default:
+		reason = "unknown reason";
+fail:
+		LOG_ERROR("can't add breakpoint: %s", reason);
+		free((*breakpoint_p)->orig_instr);
+		free(*breakpoint_p);
+		*breakpoint_p = NULL;
+		return retval;
 	}
 
 	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
