@@ -14,6 +14,7 @@ libserver_la_SOURCES = server.c telnet_server.c gdb_server.c
 if HTTPD
 libserver_la_SOURCES += httpd.c
 endif
+noinst_HEADERS += httpd.h
 
 libserver_la_CFLAGS =
 if IS_MINGW

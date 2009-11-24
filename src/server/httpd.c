@@ -460,7 +460,25 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 
 static struct MHD_Daemon * d;
 
-int httpd_start(void)
+static const struct command_registration httpd_command_handlers[] = {
+	{
+		.name = "formfetch",
+		.jim_handler = &httpd_Jim_Command_formfetch,
+		.mode = COMMAND_EXEC,
+		.usage = "<parameter_name>",
+		.help = "Reads a posted form value.",
+	},
+	{
+		.name = "writeform",
+		.jim_handler = &httpd_Jim_Command_writeform,
+		.mode = COMMAND_EXEC,
+		.usage = "<parameter_name> <file>",
+		.help = "Writes a form value to a file.",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+int httpd_start(struct command_context *cmd_ctx)
 {
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
@@ -475,20 +493,7 @@ int httpd_start(void)
 	if (d == NULL)
 		return ERROR_FAIL;
 
-	Jim_CreateCommand(interp,
-						  "formfetch",
-						  httpd_Jim_Command_formfetch,
-						  NULL,
-						  NULL);
-
-    Jim_CreateCommand(interp,
-                      "writeform",
-                      httpd_Jim_Command_writeform,
-                      NULL,
-                      NULL);
-
-
-	return ERROR_OK;
+	return register_commands(cmd_ctx, NULL, httpd_command_handlers);
 }
 
 void httpd_stop(void)

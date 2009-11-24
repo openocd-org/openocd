@@ -41,6 +41,7 @@
 #include "telnet_server.h"
 #include "gdb_server.h"
 #include "tcl_server.h"
+#include "httpd.h"
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -216,10 +217,6 @@ struct command_context *setup_command_handler(void)
 	return cmd_ctx;
 }
 
-int httpd_start(void);
-void httpd_stop(void);
-
-
 #if !BUILD_HTTPD && !BUILD_ECOSBOARD
 /* implementations of OpenOCD that uses multithreading needs to know when
  * OpenOCD is sleeping. No-op in vanilla OpenOCD
@@ -269,7 +266,7 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 #if BUILD_HTTPD
-	if (httpd_start() != ERROR_OK)
+	if (httpd_start(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 #endif
 
