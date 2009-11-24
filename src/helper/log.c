@@ -395,37 +395,26 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 /* return allocated string w/printf() result */
 char *alloc_vprintf(const char *fmt, va_list ap)
 {
-	/* no buffer at the beginning, force realloc to do the job */
-	char *string = NULL;
+	va_list ap_copy;
+	int len;
+	char *string;
 
-	/* start with buffer size suitable for typical messages */
-	int size = 128;
+	/* determine the length of the buffer needed */
+	va_copy(ap_copy, ap);
+	len = vsnprintf(NULL, 0, fmt, ap_copy);
+	va_end(ap_copy);
 
-	for (;;)
-	{
-		char *t = string;
-		va_list ap_copy;
-		int ret;
-		string = realloc(string, size);
-		if (string == NULL)
-		{
-			if (t != NULL)
-				free(t);
-			return NULL;
-		}
+	/* allocate and make room for terminating zero. */
+	/* FIXME: The old version always allocated at least one byte extra and
+	 * other code depend on that. They should be probably be fixed, but for
+	 * now reserve the extra byte. */
+	string = malloc(len + 2);
+	if (string == NULL)
+		return NULL;
 
-		va_copy(ap_copy, ap);
+	/* do the real work */
+	vsnprintf(string, len + 1, fmt, ap);
 
-		ret = vsnprintf(string, size, fmt, ap_copy);
-		/* NB! The result of the vsnprintf() might be an *EMPTY* string! */
-		if ((ret >= 0) && ((ret + 1) < size))
-			break;
-
-		/* there was just enough or not enough space, allocate more in the next round */
-		size *= 2; /* double the buffer size */
-	}
-
-	/* the returned buffer is by principle guaranteed to be at least one character longer */
 	return string;
 }
 
