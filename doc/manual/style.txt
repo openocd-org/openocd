@@ -80,6 +80,9 @@ Finally, try to avoid lines of code that are longer than than 72-80 columns:
 - designated initializers (@{ .field = value @})
 - variables declarations should occur at the point of first use
 - new block scopes for selection and iteration statements
+- use malloc() to create dynamic arrays. Do @b not use @c alloca
+or variable length arrays on the stack. non-MMU hosts(uClinux) and
+pthreads require modest and predictable stack usage.
 
 @section styletypes Type Guidelines
 - use native types (@c int or @c unsigned) if the type is not important
