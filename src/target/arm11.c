@@ -155,9 +155,6 @@ static int arm11_build_reg_cache(struct target *target);
 static int arm11_set_reg(struct reg *reg, uint8_t *buf);
 static int arm11_get_reg(struct reg *reg);
 
-static void arm11_record_register_history(struct arm11_common * arm11);
-static void arm11_dump_reg_changes(struct arm11_common * arm11);
-
 
 /** Check and if necessary take control of the system
  *
@@ -380,39 +377,7 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 	if (retval != ERROR_OK)
 		return retval;
 
-	arm11_dump_reg_changes(arm11);
-
 	return ERROR_OK;
-}
-
-static void arm11_dump_reg_changes(struct arm11_common * arm11)
-{
-
-	if (!(debug_level >= LOG_LVL_DEBUG))
-	{
-		return;
-	}
-
-	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
-	{
-		if (!arm11->reg_list[i].valid)
-		{
-			if (arm11->reg_history[i].valid)
-				LOG_DEBUG("%8s INVALID	 (%08" PRIx32 ")", arm11_reg_defs[i].name, arm11->reg_history[i].value);
-		}
-		else
-		{
-			if (arm11->reg_history[i].valid)
-			{
-				if (arm11->reg_history[i].value != arm11->reg_values[i])
-					LOG_DEBUG("%8s %08" PRIx32 " (%08" PRIx32 ")", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
-			}
-			else
-			{
-				LOG_DEBUG("%8s %08" PRIx32 " (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
-			}
-		}
-	}
 }
 
 /** Restore processor state
@@ -532,23 +497,8 @@ static int arm11_leave_debug_state(struct arm11_common *arm11)
 		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 
-	arm11_record_register_history(arm11);
-
 	return ERROR_OK;
 }
-
-static void arm11_record_register_history(struct arm11_common *arm11)
-{
-	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
-	{
-		arm11->reg_history[i].value	= arm11->reg_values[i];
-		arm11->reg_history[i].valid	= arm11->reg_list[i].valid;
-
-		arm11->reg_list[i].valid	= 0;
-		arm11->reg_list[i].dirty	= 0;
-	}
-}
-
 
 /* poll current target status */
 static int arm11_poll(struct target *target)

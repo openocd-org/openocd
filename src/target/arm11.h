@@ -41,12 +41,6 @@
 		}				\
 	} while (0)
 
-struct arm11_register_history
-{
-	uint32_t		value;
-	uint8_t		valid;
-};
-
 enum arm11_debug_version
 {
 	ARM11_DEBUG_V6			= 0x01,
@@ -83,9 +77,6 @@ struct arm11_common
 	uint32_t		reg_values[ARM11_REGCACHE_COUNT];	/**< data for registers */
 
 	/*@}*/
-
-	struct arm11_register_history
-		reg_history[ARM11_REGCACHE_COUNT];	/**< register state before last resume */
 
 	size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
 	size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
