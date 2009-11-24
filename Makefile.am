@@ -35,9 +35,14 @@ THE_MANUAL = doxygen/latex/refman.pdf
 doxygen::
 	$(MAKE) Doxyfile
 	doxygen Doxyfile 2>&1 | perl $(srcdir)/tools/logger.pl > doxygen.log
-	$(MAKE) $(THE_MANUAL)
+	@if [ -f doxygen/latex/refman.tex ]; then \
+		echo "Creating $(THE_MANUAL)..."; \
+		$(MAKE) $(THE_MANUAL); \
+	else \
+		echo "Skipping Doxygen PDF..."; \
+	fi
 
-%.pdf: %.tex
+$(THE_MANUAL): %.pdf: %.tex
 	-cd $$(dirname $*) && pdflatex $$(basename $*)
 	-cd $$(dirname $*) && pdflatex $$(basename $*)
 
