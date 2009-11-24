@@ -1233,6 +1233,7 @@ static int arm_full_context(struct target *target)
 int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 {
 	target->arch_info = armv4_5;
+	armv4_5->target = target;
 
 	armv4_5->common_magic = ARMV4_5_COMMON_MAGIC;
 	arm_set_cpsr(armv4_5, ARMV4_5_MODE_USR);

@@ -101,6 +101,12 @@ struct arm
 	/** Flag reporting unavailability of the BKPT instruction. */
 	bool is_armv4;
 
+	/** Backpointer to the target. */
+	struct target *target;
+
+	/** Handle for the debug module, if one is present. */
+	struct arm_dpm *dpm;
+
 	/** Handle for the Embedded Trace Module, if one is present. */
 	struct etm_context *etm;
 

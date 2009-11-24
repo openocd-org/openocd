@@ -75,6 +75,7 @@ ARMV7_SRC = \
 	cortex_a8.c
 
 ARM_DEBUG_SRC = \
+	arm_dpm.c \
 	arm_jtag.c \
 	arm_disassembler.c \
 	arm_simulator.c \
@@ -96,6 +97,7 @@ MIPS32_SRC = \
 
 noinst_HEADERS = \
 	algorithm.h \
+	arm_dpm.h \
 	arm_jtag.h \
 	arm_adi_v5.h \
 	arm_disassembler.h \
