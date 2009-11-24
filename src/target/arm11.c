@@ -665,8 +665,11 @@ static int arm11_resume(struct target *target, int current,
 	/* clear breakpoints/watchpoints and VCR*/
 	arm11_sc7_clear_vbw(arm11);
 
-	/* Set up breakpoints */
 	if (!debug_execution)
+		target_free_all_working_areas(target);
+
+	/* Set up breakpoints */
+	if (handle_breakpoints)
 	{
 		/* check if one matches PC and step over it if necessary */
 
@@ -1325,176 +1328,6 @@ static int arm11_remove_watchpoint(struct target *target,
 	return ERROR_FAIL;
 }
 
-// HACKHACKHACK - FIXME mode/state
-/* target algorithm support */
-static int arm11_run_algorithm(struct target *target,
-		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, struct reg_param *reg_params,
-		uint32_t entry_point, uint32_t exit_point,
-		int timeout_ms, void *arch_info)
-{
-	struct arm11_common *arm11 = target_to_arm11(target);
-//	enum armv4_5_state core_state = arm11->core_state;
-//	enum armv4_5_mode core_mode = arm11->core_mode;
-	uint32_t context[16];
-	uint32_t cpsr;
-	int exit_breakpoint_size = 0;
-	int retval = ERROR_OK;
-		LOG_DEBUG("Running algorithm");
-
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	// FIXME
-//	if (!is_arm_mode(arm11->core_mode))
-//		return ERROR_FAIL;
-
-	// Save regs
-	for (unsigned i = 0; i < 16; i++)
-	{
-		context[i] = buf_get_u32((uint8_t*)(&arm11->reg_values[i]),0,32);
-		LOG_DEBUG("Save %u: 0x%" PRIx32 "", i, context[i]);
-	}
-
-	cpsr = buf_get_u32((uint8_t*)(arm11->reg_values + ARM11_RC_CPSR),0,32);
-	LOG_DEBUG("Save CPSR: 0x%" PRIx32 "", cpsr);
-
-	for (int i = 0; i < num_mem_params; i++)
-	{
-		target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
-	}
-
-	// Set register parameters
-	for (int i = 0; i < num_reg_params; i++)
-	{
-		struct reg *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
-		if (!reg)
-		{
-			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
-		}
-
-		if (reg->size != reg_params[i].size)
-		{
-			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
-		}
-		arm11_set_reg(reg,reg_params[i].value);
-//		printf("%i: Set %s =%08x\n", i, reg_params[i].reg_name,val);
-	}
-
-	exit_breakpoint_size = 4;
-
-/*	arm11->core_state = arm11_algorithm_info->core_state;
-	if (arm11->core_state == ARMV4_5_STATE_ARM)
-				exit_breakpoint_size = 4;
-	else if (arm11->core_state == ARMV4_5_STATE_THUMB)
-		exit_breakpoint_size = 2;
-	else
-	{
-		LOG_ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
-		exit(-1);
-	}
-*/
-
-
-/* arm11 at this point only supports ARM not THUMB mode
-   however if this test needs to be reactivated the current state can be read back
-   from CPSR */
-#if 0
-	if (arm11_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
-	{
-		LOG_DEBUG("setting core_mode: 0x%2.2x", arm11_algorithm_info->core_mode);
-		buf_set_u32(arm11->reg_list[ARM11_RC_CPSR].value, 0, 5, arm11_algorithm_info->core_mode);
-		arm11->reg_list[ARM11_RC_CPSR].dirty = 1;
-		arm11->reg_list[ARM11_RC_CPSR].valid = 1;
-	}
-#endif
-
-	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_HARD)) != ERROR_OK)
-	{
-		LOG_ERROR("can't add breakpoint to finish algorithm execution");
-		retval = ERROR_TARGET_FAILURE;
-		goto restore;
-	}
-
-	// no debug, otherwise breakpoint is not set
-	CHECK_RETVAL(target_resume(target, 0, entry_point, 1, 0));
-
-	CHECK_RETVAL(target_wait_state(target, TARGET_HALTED, timeout_ms));
-
-	if (target->state != TARGET_HALTED)
-	{
-		CHECK_RETVAL(target_halt(target));
-
-		CHECK_RETVAL(target_wait_state(target, TARGET_HALTED, 500));
-
-		retval = ERROR_TARGET_TIMEOUT;
-
-		goto del_breakpoint;
-	}
-
-	if (buf_get_u32(arm11->reg_list[15].value, 0, 32) != exit_point)
-	{
-		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4" PRIx32 "",
-			buf_get_u32(arm11->reg_list[15].value, 0, 32));
-		retval = ERROR_TARGET_TIMEOUT;
-		goto del_breakpoint;
-	}
-
-	for (int i = 0; i < num_mem_params; i++)
-	{
-		if (mem_params[i].direction != PARAM_OUT)
-			target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
-	}
-
-	for (int i = 0; i < num_reg_params; i++)
-	{
-		if (reg_params[i].direction != PARAM_OUT)
-		{
-			struct reg *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
-			if (!reg)
-			{
-				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				retval = ERROR_INVALID_ARGUMENTS;
-				goto del_breakpoint;
-			}
-
-			if (reg->size != reg_params[i].size)
-			{
-				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-				retval = ERROR_INVALID_ARGUMENTS;
-				goto del_breakpoint;
-			}
-
-			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
-		}
-	}
-
-del_breakpoint:
-	breakpoint_remove(target, exit_point);
-
-restore:
-	// Restore context
-	for (size_t i = 0; i < 16; i++)
-	{
-		LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "",
-			 arm11->reg_list[i].name, context[i]);
-		arm11_set_reg(&arm11->reg_list[i], (uint8_t*)&context[i]);
-	}
-	LOG_DEBUG("restoring CPSR with value 0x%8.8" PRIx32 "", cpsr);
-	arm11_set_reg(&arm11->reg_list[ARM11_RC_CPSR], (uint8_t*)&cpsr);
-
-//	arm11->core_state = core_state;
-//	arm11->core_mode = core_mode;
-
-	return retval;
-}
-
 static int arm11_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm11_common *arm11;
@@ -1925,7 +1758,7 @@ struct target_type arm11_target = {
 	.add_watchpoint =	arm11_add_watchpoint,
 	.remove_watchpoint =	arm11_remove_watchpoint,
 
-	.run_algorithm =	arm11_run_algorithm,
+	.run_algorithm =	armv4_5_run_algorithm,
 
 	.register_commands =	arm11_register_commands,
 	.target_create =	arm11_target_create,
