@@ -309,7 +309,7 @@ int server_loop(struct command_context *command_context)
 
 	while (!shutdown_openocd)
 	{
-		/* monitor sockets for acitvity */
+		/* monitor sockets for activity */
 		fd_max = 0;
 		FD_ZERO(&read_fds);
 

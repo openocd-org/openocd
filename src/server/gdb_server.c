@@ -53,7 +53,7 @@ static const char *DIGITS = "0123456789abcdef";
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
-/* number of gdb connections, mainly to supress gdb related debugging spam
+/* number of gdb connections, mainly to suppress gdb related debugging spam
  * in helper/log.c when no gdb connections are actually active */
 int gdb_actual_connections;
 
@@ -568,7 +568,7 @@ int gdb_get_packet_inner(struct connection *connection, char *buffer, int *len)
 					break;
 				case '+':
 					/* gdb sends a dummy ack '+' at every remote connect - see remote_start_remote (remote.c)
-					 * incase anyone tries to debug why they receive this warning every time */
+					 * in case anyone tries to debug why they receive this warning every time */
 					LOG_WARNING("acknowledgment received, but no packet pending");
 					break;
 				case '-':
@@ -859,7 +859,7 @@ static int gdb_reg_pos(struct target *target, int pos, int len)
  * register might be non-divisible by 8(a byte), in which
  * case an entire byte is shown.
  *
- * NB! the format on the wire is the target endianess
+ * NB! the format on the wire is the target endianness
  *
  * The format of reg->value is little endian
  *
@@ -2141,7 +2141,7 @@ int gdb_input_inner(struct connection *connection)
 							target_name(target));
 					break;
 				default:
-					/* ignore unkown packets */
+					/* ignore unknown packets */
 					LOG_DEBUG("ignoring 0x%2.2x packet", packet[0]);
 					gdb_put_packet(connection, NULL, 0);
 					break;
@@ -2320,7 +2320,7 @@ COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 		LOG_USER("force %s breakpoints", (gdb_breakpoint_override_type == BKPT_HARD)?"hard":"soft");
 	} else
 	{
-		LOG_USER("breakpoint type is not overriden");
+		LOG_USER("breakpoint type is not overridden");
 	}
 
 	return ERROR_OK;

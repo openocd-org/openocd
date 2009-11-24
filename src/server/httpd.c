@@ -207,7 +207,7 @@ static void request_completed(void *cls, struct MHD_Connection *connection,
 	*con_cls = NULL;
 }
 
-/* append to said key in dictonary */
+/* append to said key in dictionary */
 static void append_key(struct httpd_request *r, const char *key,
 		const char *data, size_t off, size_t size)
 {
@@ -388,7 +388,7 @@ static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 		r->post = post;
 		Jim_SetVariableStr(interp, "httppostdata", Jim_NewDictObj(interp, NULL, 0));
 
-		/* fill in url query strings in dictonary */
+		/* fill in url query strings in dictionary */
 		MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND,
 				record_arg, r);
 
