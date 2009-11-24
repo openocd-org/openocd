@@ -144,9 +144,6 @@ enum arm11_regcache_ids
 	ARM11_RC_MAX,
 };
 
-/* GDB expects ARMs to give R0..R15, CPSR, and 7 FPA dummies */
-#define ARM11_GDB_REGISTER_COUNT	26
-
 static int arm11_on_enter_debug_state(struct arm11_common *arm11);
 static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints);
@@ -223,6 +220,9 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 {
 	int retval;
 
+	/* REVISIT entire cache should already be invalid !!! */
+	register_cache_invalidate(arm11->arm.core_cache);
+
 	for (size_t i = 0; i < ARRAY_SIZE(arm11->reg_values); i++)
 	{
 		arm11->reg_list[i].valid	= 1;
@@ -296,6 +296,10 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 		}
 	}
 #endif
+
+	retval = arm_dpm_read_current_registers(&arm11->dpm);
+	if (retval != ERROR_OK)
+		LOG_ERROR("DPM REG READ -- fail %d", retval);
 
 	retval = arm11_run_instr_data_prepare(arm11);
 	if (retval != ERROR_OK)
@@ -434,6 +438,9 @@ static int arm11_leave_debug_state(struct arm11_common *arm11)
 		}
 	}
 
+/* DEBUG for now, trust "new" code only for shadowed registers */
+retval = arm_dpm_write_dirty_registers(&arm11->dpm);
+
 	retval = arm11_run_instr_data_prepare(arm11);
 	if (retval != ERROR_OK)
 		return retval;
@@ -472,6 +479,11 @@ static int arm11_leave_debug_state(struct arm11_common *arm11)
 	retval = arm11_run_instr_data_finish(arm11);
 	if (retval != ERROR_OK)
 		return retval;
+
+/* DEBUG use this when "new" code is really managing core registers */
+// retval = arm_dpm_write_dirty_registers(&arm11->dpm);
+
+	register_cache_invalidate(arm11->arm.core_cache);
 
 	/* restore DSCR */
 
@@ -545,14 +557,13 @@ static int arm11_poll(struct target *target)
 /* architecture specific status reply */
 static int arm11_arch_state(struct target *target)
 {
-	struct arm11_common *arm11 = target_to_arm11(target);
+	int retval;
 
-	LOG_USER("target halted due to %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
-			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name,
-			 R(CPSR),
-			 R(PC));
+	retval = armv4_5_arch_state(target);
 
-	return ERROR_OK;
+	/* REVISIT also display ARM11-specific MMU and cache status ... */
+
+	return retval;
 }
 
 /* target request support */
@@ -1065,31 +1076,6 @@ static int arm11_soft_reset_halt(struct target *target)
 	LOG_WARNING("Not implemented: %s", __func__);
 
 	return ERROR_FAIL;
-}
-
-/* target register access for gdb */
-static int arm11_get_gdb_reg_list(struct target *target,
-		struct reg **reg_list[], int *reg_list_size)
-{
-	struct arm11_common *arm11 = target_to_arm11(target);
-
-	*reg_list_size	= ARM11_GDB_REGISTER_COUNT;
-	*reg_list		= malloc(sizeof(struct reg*) * ARM11_GDB_REGISTER_COUNT);
-
-	/* nine unused legacy FPA registers are expected by GDB */
-	for (size_t i = 16; i < 24; i++)
-		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
-	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
-
-	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
-	{
-		if (arm11_reg_defs[i].gdb_num == -1)
-			continue;
-
-		(*reg_list)[arm11_reg_defs[i].gdb_num] = arm11->reg_list + i;
-	}
-
-	return ERROR_OK;
 }
 
 /* target memory access
@@ -1633,6 +1619,8 @@ static int arm11_examine(struct target *target)
 	uint32_t didr, device_id;
 	uint8_t implementor;
 
+	/* FIXME split into do-first-time and do-every-time logic ... */
+
 	/* check IDCODE */
 
 	arm11_add_IR(arm11, ARM11_IDCODE, ARM11_TAP_DEFAULT);
@@ -1704,6 +1692,14 @@ static int arm11_examine(struct target *target)
 	retval = arm11_check_init(arm11, NULL);
 	if (retval != ERROR_OK)
 		return retval;
+
+	/* Build register cache "late", after target_init(), since we
+	 * want to know if this core supports Secure Monitor mode.
+	 */
+	if (!target_was_examined(target)) {
+		arm11_dpm_init(arm11, didr);
+		retval = arm_dpm_setup(&arm11->dpm);
+	}
 
 	/* ETM on ARM11 still uses original scanchain 6 access mode */
 	if (arm11->arm.etm && !target_was_examined(target)) {
@@ -1980,7 +1976,7 @@ struct target_type arm11_target = {
 	.deassert_reset =	arm11_deassert_reset,
 	.soft_reset_halt =	arm11_soft_reset_halt,
 
-	.get_gdb_reg_list =	arm11_get_gdb_reg_list,
+	.get_gdb_reg_list =	armv4_5_get_gdb_reg_list,
 
 	.read_memory =		arm11_read_memory,
 	.write_memory =		arm11_write_memory,
