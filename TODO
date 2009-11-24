@@ -1,4 +1,4 @@
-// This file is part of the Doyxgen Developer Manual
+// This file is part of the Doxygen Developer Manual
 /** @page tasks Pending and Open Tasks
 
 This page lists pending and open tasks being considered or worked upon
@@ -46,7 +46,7 @@ This section list issues that need to be resolved in the JTAG layer.
 The following tasks have been suggested for cleaning up the JTAG layer:
 
 - use tap_set_state everywhere to allow logging TAP state transitions
-- Encapsulate cmd_queue_cur_state and related varaible handling.
+- Encapsulate cmd_queue_cur_state and related variable handling.
 - add slick 32 bit versions of jtag_add_xxx_scan() that avoids
 buf_set_u32() calls and other evidence of poor impedance match between
 API and calling code. New API should cut down # of lines in calling
@@ -85,7 +85,7 @@ There are some known bugs to fix in JTAG adapter drivers:
   Workaround: use "tms_sequence long" @par
   https://lists.berlios.de/pipermail/openocd-development/2009-July/009426.html
 
-The following tasks have been suggeted for improving OpenOCD's JTAG
+The following tasks have been suggested for improving OpenOCD's JTAG
 interface support:
 
 - rework USB communication to be more robust.  Two possible options are:
@@ -290,11 +290,11 @@ These ideas were first introduced here: @par
   - automatically detect the features that are available, unless
     options were specifically provided to configure
   - provide a report of the drivers that will be build at the end of
-    running configure, so the users can verify which driverswill be
+    running configure, so the users can verify which drivers will be
     built during 'make' (and their options) .
 - eliminate sources of confusion in @c bootstrap script:
   -# Make @c bootstrap call 'configure --enable-maintainer-mode \<opts\>'?
-  -# Add @c buildstrap script to assist with boostrap and configure steps.
+  -# Add @c buildstrap script to assist with bootstrap and configure steps.
 - automatically build tool-chains required for cross-compiling
   - produce mingw32, arm-elf, others using in-tree scripts
   - build all required target code from sources
@@ -348,7 +348,7 @@ to complete:
   - reviewing patches
   - committing to Subversion
 - Review The Guide for OpenOCD Users for documentation errors or omissions
-- Update The Manual for OpenOCD Developerrs:
+- Update The Manual for OpenOCD Developers:
   - Add documentation describing the architecture of each module
   - Provide more Technical Primers to bootstrap contributor knowledge
 

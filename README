@@ -338,7 +338,7 @@ all operating systems used with OpenOCD.  You may, however, build such
 copies for personal use.
 
 The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
-TAR.GZ file. You must unpack them ``some where'' convient. As of this
+TAR.GZ file. You must unpack them ``some where'' convenient. As of this
 writing FTDICHIP does not supply means to install these files "in an
 appropriate place."
 
@@ -404,7 +404,7 @@ Then you can update that at your convenience using
    git pull
 
 There is also a gitweb interface, which you can use either to browse
-the repository or to downlad arbitrary snapshots using HTTP:
+the repository or to download arbitrary snapshots using HTTP:
 
    http://openocd.git.sourceforge.net/git/gitweb.cgi?p=openocd/openocd
    http://repo.or.cz/w/openocd.git
