@@ -150,31 +150,39 @@ static struct command_context *current_command_context(void)
 	return cmd_ctx;
 }
 
-static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int script_command_run(Jim_Interp *interp,
+		int argc, Jim_Obj *const *argv, struct command *c, bool capture)
 {
-	/* the private data is stashed in the interp structure */
-
-	struct command *c = interp->cmdPrivData;
-	assert(c);
-
 	target_call_timer_callbacks_now();
 	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/
-
-	script_debug(interp, c->name, argc, argv);
 
 	unsigned nwords;
 	const char **words = script_command_args_alloc(argc, argv, &nwords);
 	if (NULL == words)
 		return JIM_ERR;
 
-	Jim_Obj *tclOutput = command_log_capture_start(interp);
+	Jim_Obj *tclOutput = NULL;
+	if (capture)
+		tclOutput = command_log_capture_start(interp);
 
 	struct command_context *cmd_ctx = current_command_context();
 	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
 
-	command_log_capture_finish(interp, tclOutput);
+	if (capture)
+		command_log_capture_finish(interp, tclOutput);
+
 	script_command_args_free(words, nwords);
 	return command_retval_set(interp, retval);
+}
+
+static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	/* the private data is stashed in the interp structure */
+
+	struct command *c = interp->cmdPrivData;
+	assert(c);
+	script_debug(interp, c->name, argc, argv);
+	return script_command_run(interp, argc, argv, c, true);
 }
 
 /* nice short description of source file */
@@ -922,22 +930,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return (*c->jim_handler)(interp, count, start);
 	}
 
-	unsigned nwords;
-	const char **words = script_command_args_alloc(count, start, &nwords);
-	if (NULL == words)
-		return JIM_ERR;
-
-	Jim_Obj *tclOutput = command_log_capture_start(interp);
-
-	int retval = run_command(cmd_ctx, c, words, nwords);
-
-	command_log_capture_finish(interp, tclOutput);
-	script_command_args_free(words, nwords);
-
-	if (!found && ERROR_OK == retval)
-		retval = ERROR_FAIL;
-
-	return command_retval_set(interp, retval);
+	return script_command_run(interp, count, start, c, found);
 }
 
 int help_add_command(struct command_context *cmd_ctx, struct command *parent,
