@@ -348,8 +348,8 @@ int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 		param_in[0] = addr;
 		param_in[1] = blocksize;
 
-		if ((retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code,
-			sizeof(param_in)/sizeof(param_in[0]), param_in, blocksize, &buf[bytesread], 1)) != ERROR_OK)
+		if ((retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
+			ARRAY_SIZE(param_in), param_in, blocksize, &buf[bytesread], 1)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -387,8 +387,8 @@ int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t
 
 	param_in[0] = addr;
 
-	if ((retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code,
-		sizeof(param_in)/sizeof(param_in[0]), param_in, sizeof(uint32_t), buf, 1)) != ERROR_OK)
+	if ((retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
+		ARRAY_SIZE(param_in), param_in, sizeof(uint32_t), buf, 1)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -459,8 +459,8 @@ int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 		param_in[0] = addr;
 		param_in[1] = blocksize;
 
-		mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-			sizeof(param_in)/sizeof(param_in[0]), param_in, count, param_out, 1);
+		mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+			ARRAY_SIZE(param_in), param_in, count, param_out, 1);
 
 //		count -= blocksize;
 //		addr += blocksize;
@@ -540,8 +540,8 @@ int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int cou
 		param_in[0] = addr;
 		param_in[1] = blocksize;
 
-		mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-			sizeof(param_in)/sizeof(param_in[0]), param_in, count, param_out, 1);
+		mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+			ARRAY_SIZE(param_in), param_in, count, param_out, 1);
 
 //		count -= blocksize;
 //		addr += blocksize;
@@ -619,7 +619,7 @@ int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 
 	memcpy(&param_in[2], buf, count * sizeof(uint32_t));
 
-	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
@@ -654,8 +654,8 @@ int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_
 	param_in[0] = addr;
 	param_in[1] = *buf;
 
-	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-		sizeof(param_in)/sizeof(param_in[0]),param_in, 0, NULL, 1);
+	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+		ARRAY_SIZE(param_in),param_in, 0, NULL, 1);
 
 	return ERROR_OK;
 }
@@ -714,7 +714,7 @@ int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 		param_in[i + 2] = buf[i];
 	}
 
-	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
@@ -777,7 +777,7 @@ int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 		param_in[i + 2] = buf[i];
 	}
 
-	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		count +2, param_in, 0, NULL, 1);
 
 	free(param_in);
@@ -851,7 +851,7 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 
 	int retval;
 
-	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		38, regs, 0, NULL, 1);
 
 	return retval;
@@ -928,7 +928,7 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 
 	int retval;
 
-	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		0, NULL, 38, regs, 1);
 
 	return retval;

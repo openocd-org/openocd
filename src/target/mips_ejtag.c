@@ -143,7 +143,7 @@ int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 			MIPS32_NOP,
 	};
 
-	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		0, NULL, 0, NULL, 1);
 
 	return ERROR_OK;
@@ -169,7 +169,7 @@ int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 			MIPS32_NOP,
 	};
 
-	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		0, NULL, 0, NULL, 1);
 
 	return ERROR_OK;
@@ -234,7 +234,7 @@ int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 			MIPS32_NOP,
 	};
 
-	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		0, NULL, 1, debug_reg, 1);
 
 	return ERROR_OK;

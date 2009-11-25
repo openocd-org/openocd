@@ -596,7 +596,7 @@ int armv7m_checksum_memory(struct target *target,
 	}
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < (sizeof(cortex_m3_crc_code)/sizeof(uint16_t)); i++)
+	for (i = 0; i < ARRAY_SIZE(cortex_m3_crc_code); i++)
 		if ((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(uint16_t), cortex_m3_crc_code[i])) != ERROR_OK)
 		{
 			return retval;
@@ -659,7 +659,7 @@ int armv7m_blank_check_memory(struct target *target,
 	}
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < (sizeof(erase_check_code)/sizeof(uint16_t)); i++)
+	for (i = 0; i < ARRAY_SIZE(erase_check_code); i++)
 		target_write_u16(target, erase_check_algorithm->address + i*sizeof(uint16_t), erase_check_code[i]);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;

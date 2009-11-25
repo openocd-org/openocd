@@ -97,5 +97,5 @@ const struct rlink_speed_table rlink_speed_table[] = {{
 	dtc_2, sizeof(dtc_2), (ST7_FOSC * 2) / (1000 * 2), 2
 }};
 
-const size_t rlink_speed_table_size = sizeof(rlink_speed_table) / sizeof(*rlink_speed_table);
+const size_t rlink_speed_table_size = ARRAY_SIZE(rlink_speed_table);
 

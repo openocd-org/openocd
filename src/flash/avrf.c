@@ -290,7 +290,7 @@ static int avrf_probe(struct flash_bank *bank)
 		LOG_ERROR("0x%" PRIx32 " is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
 	}
 
-	for (i = 0; i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])); i++)
+	for (i = 0; i < (int)ARRAY_SIZE(avft_chips_info); i++)
 	{
 		if (avft_chips_info[i].chip_id == EXTRACT_PART(device_id))
 		{
@@ -369,7 +369,7 @@ static int avrf_info(struct flash_bank *bank, char *buf, int buf_size)
 		LOG_ERROR("0x%" PRIx32 " is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
 	}
 
-	for (i = 0; i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])); i++)
+	for (i = 0; i < (int)ARRAY_SIZE(avft_chips_info); i++)
 	{
 		if (avft_chips_info[i].chip_id == EXTRACT_PART(device_id))
 		{

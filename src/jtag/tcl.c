@@ -1304,7 +1304,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 {
 	tap_state_t states[8];
 
-	if ((argc < 2) || ((size_t)argc > (sizeof(states)/sizeof(*states) + 1)))
+	if ((argc < 2) || ((size_t)argc > (ARRAY_SIZE(states) + 1)))
 	{
 		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
 		return JIM_ERR;

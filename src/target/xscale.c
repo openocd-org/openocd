@@ -412,7 +412,7 @@ static int xscale_read_tx(struct target *target, int consume)
 			jtag_add_pathmove(3, path);
 		else
 		{
-			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
+			jtag_add_pathmove(ARRAY_SIZE(noconsume_path), noconsume_path);
 		}
 
 		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
@@ -2825,7 +2825,7 @@ static void xscale_build_reg_cache(struct target *target)
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct xscale_reg *arch_info = malloc(sizeof(xscale_reg_arch_info));
 	int i;
-	int num_regs = sizeof(xscale_reg_arch_info) / sizeof(struct xscale_reg);
+	int num_regs = ARRAY_SIZE(xscale_reg_arch_info);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 
