@@ -4424,128 +4424,155 @@ static int target_create(Jim_GetOptInfo *goi)
 	return (NULL != c) ? ERROR_OK : ERROR_FAIL;
 }
 
-static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_target_current(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	int x,r,e;
-	jim_wide w;
-	struct command_context *cmd_ctx;
-	struct target *target;
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
+		return JIM_ERR;
+	}
+	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
+	Jim_SetResultString(interp, get_current_target(cmd_ctx)->cmd_name, -1);
+	return JIM_OK;
+}
+
+static int jim_target_types(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
+		return JIM_ERR;
+	}
+	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
+	for (unsigned x = 0; NULL != target_types[x]; x++)
+	{
+		Jim_ListAppendElement(interp, Jim_GetResult(interp),
+			Jim_NewStringObj(interp, target_types[x]->name, -1));
+	}
+	return JIM_OK;
+}
+
+static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
+		return JIM_ERR;
+	}
+	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
+	struct target *target = all_targets;
+	while (target)
+	{
+		Jim_ListAppendElement(interp, Jim_GetResult(interp),
+			Jim_NewStringObj(interp, target_name(target), -1));
+		target = target->next;
+	}
+	return JIM_OK;
+}
+
+static int jim_target_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
 	Jim_GetOptInfo goi;
-	enum tcmd {
-		/* TG = target generic */
-		TG_CMD_CREATE,
-		TG_CMD_TYPES,
-		TG_CMD_NAMES,
-		TG_CMD_CURRENT,
-		TG_CMD_NUMBER,
-		TG_CMD_COUNT,
-	};
-	const char *target_cmds[] = {
-		"create", "types", "names", "current", "number",
-		"count",
-		NULL /* terminate */
-	};
-
-	LOG_DEBUG("Target command params:");
-	LOG_DEBUG("%s", Jim_Debug_ArgvString(interp, argc, argv));
-
-	cmd_ctx = Jim_GetAssocData(interp, "context");
-
-	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
-
-	if (goi.argc == 0) {
-		Jim_WrongNumArgs(interp, 1, argv, "missing: command ...");
+	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
+	if (goi.argc < 3)
+	{
+		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
+			"<name> <target_type> [<target_options> ...]");
 		return JIM_ERR;
 	}
+	return target_create(&goi);
+}
 
-	/* Jim_GetOpt_Debug(&goi); */
-	r = Jim_GetOpt_Enum(&goi, target_cmds, &x);
-	if (r != JIM_OK) {
-		return r;
-	}
+static int jim_target_number(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
 
-	switch (x) {
-	default:
-		Jim_Panic(goi.interp,"Why am I here?");
+	/* It's OK to remove this mechanism sometime after August 2010 or so */
+	LOG_WARNING("don't use numbers as target identifiers; use names");
+	if (goi.argc != 1)
+	{
+		Jim_SetResult_sprintf(goi.interp, "usage: target number <number>");
 		return JIM_ERR;
-	case TG_CMD_CURRENT:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
-			return JIM_ERR;
-		}
-		Jim_SetResultString(goi.interp,
-				target_name(get_current_target(cmd_ctx)),
-				-1);
-		return JIM_OK;
-	case TG_CMD_TYPES:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
-			return JIM_ERR;
-		}
-		Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
-		for (x = 0 ; target_types[x] ; x++) {
-			Jim_ListAppendElement(goi.interp,
-								   Jim_GetResult(goi.interp),
-								   Jim_NewStringObj(goi.interp, target_types[x]->name, -1));
-		}
-		return JIM_OK;
-	case TG_CMD_NAMES:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
-			return JIM_ERR;
-		}
-		Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
-		target = all_targets;
-		while (target) {
-			Jim_ListAppendElement(goi.interp,
-					Jim_GetResult(goi.interp),
-					Jim_NewStringObj(goi.interp,
-						target_name(target), -1));
-			target = target->next;
-		}
-		return JIM_OK;
-	case TG_CMD_CREATE:
-		if (goi.argc < 3) {
-			Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv, "?name  ... config options ...");
-			return JIM_ERR;
-		}
-		return target_create(&goi);
-		break;
-	case TG_CMD_NUMBER:
-		/* It's OK to remove this mechanism sometime after August 2010 or so */
-		LOG_WARNING("don't use numbers as target identifiers; use names");
-		if (goi.argc != 1) {
-			Jim_SetResult_sprintf(goi.interp, "expected: target number ?NUMBER?");
-			return JIM_ERR;
-		}
-		e = Jim_GetOpt_Wide(&goi, &w);
-		if (e != JIM_OK) {
-			return JIM_ERR;
-		}
-		for (x = 0, target = all_targets; target; target = target->next, x++) {
-			if (target->target_number == w)
-				break;
-		}
-		if (target == NULL) {
-			Jim_SetResult_sprintf(goi.interp,
-					"Target: number %d does not exist", (int)(w));
-			return JIM_ERR;
-		}
+	}
+	jim_wide w;
+	int e = Jim_GetOpt_Wide(&goi, &w);
+	if (e != JIM_OK)
+		return JIM_ERR;
+
+	struct target *target;
+	for (target = all_targets; NULL != target; target = target->next)
+	{
+		if (target->target_number != w)
+			continue;
+
 		Jim_SetResultString(goi.interp, target_name(target), -1);
 		return JIM_OK;
-	case TG_CMD_COUNT:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 0, goi.argv, "<no parameters>");
-			return JIM_ERR;
-		}
-		for (x = 0, target = all_targets; target; target = target->next, x++)
-			continue;
-		Jim_SetResult(goi.interp, Jim_NewIntObj(goi.interp, x));
-		return JIM_OK;
 	}
-
+	Jim_SetResult_sprintf(goi.interp,
+			"Target: number %d does not exist", (int)(w));
 	return JIM_ERR;
 }
+
+static int jim_target_count(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "<no parameters>");
+		return JIM_ERR;
+	}
+	unsigned count = 0;
+	struct target *target = all_targets;
+	while (NULL != target)
+	{
+		target = target->next;
+		count++;
+	}
+	Jim_SetResult(interp, Jim_NewIntObj(interp, count));
+	return JIM_OK;
+}
+
+static const struct command_registration target_subcommand_handlers[] = {
+	{
+		.name = "create",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_target_create,
+		.usage = "<name> <type> ...",
+		.help = "Returns the currently selected target",
+	},
+	{
+		.name = "current",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_target_current,
+		.help = "Returns the currently selected target",
+	},
+	{
+		.name = "types",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_target_types,
+		.help = "Returns the available target types as a list of strings",
+	},
+	{
+		.name = "names",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_target_names,
+		.help = "Returns the names of all targets as a list of strings",
+	},
+	{
+		.name = "number",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_target_number,
+		.usage = "<number>",
+		.help = "Returns the name of target <n>",
+	},
+	{
+		.name = "count",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_target_count,
+		.help = "Returns the number of targets as an integer",
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 
 struct FastLoad
@@ -4816,8 +4843,9 @@ static const struct command_registration target_command_handlers[] = {
 	{
 		.name = "target",
 		.mode = COMMAND_CONFIG,
-		.jim_handler = &jim_target,
 		.help = "configure target",
+
+		.chain = target_subcommand_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
