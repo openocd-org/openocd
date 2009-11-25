@@ -861,30 +861,18 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 }
 COMMAND_HANDLER(handle_help_command)
 {
+	bool full = strcmp(CMD_NAME, "help") == 0;
+
 	struct command *c = CMD_CTX->commands;
 
 	if (0 == CMD_ARGC)
-		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, true);
+		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, full);
 
 	int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
 	if (ERROR_OK != retval)
 		return retval;
 
-	return CALL_COMMAND_HANDLER(command_help_show, c, 0, true);
-}
-
-COMMAND_HANDLER(handle_usage_command)
-{
-	struct command *c = CMD_CTX->commands;
-
-	if (0 == CMD_ARGC)
-		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, false);
-
-	int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
-	if (ERROR_OK != retval)
-		return retval;
-
-	return CALL_COMMAND_HANDLER(command_help_show, c, 0, false);
+	return CALL_COMMAND_HANDLER(command_help_show, c, 0, full);
 }
 
 static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
@@ -1106,15 +1094,15 @@ static const struct command_registration command_builtin_handlers[] = {
 		.name = "help",
 		.handler = &handle_help_command,
 		.mode = COMMAND_ANY,
-		.help = "show built-in command help",
-		.usage = "[<command_name> ...]",
+		.help = "show full command help",
+		.usage = "[<command> ...]",
 	},
 	{
 		.name = "usage",
-		.handler = &handle_usage_command,
+		.handler = &handle_help_command,
 		.mode = COMMAND_ANY,
-		.help = "show command usage",
-		.usage = "[<command_name> ...]",
+		.help = "show basic command usage",
+		.usage = "[<command> ...]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
