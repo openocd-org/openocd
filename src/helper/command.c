@@ -56,6 +56,34 @@ static void tcl_output(void *privData, const char *file, unsigned line,
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
 }
 
+static Jim_Obj *command_log_capture_start(Jim_Interp *interp)
+{
+	/* capture log output and return it. A garbage collect can
+	 * happen, so we need a reference count to this object */
+	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
+	if (NULL == tclOutput)
+		return NULL;
+	Jim_IncrRefCount(tclOutput);
+	log_add_callback(tcl_output, tclOutput);
+	return tclOutput;
+}
+
+static void command_log_capture_finish(Jim_Interp *interp, Jim_Obj *tclOutput)
+{
+	log_remove_callback(tcl_output, tclOutput);
+	Jim_SetResult(interp, tclOutput);
+	Jim_DecrRefCount(interp, tclOutput);
+}
+
+static int command_retval_set(Jim_Interp *interp, int retval)
+{
+	int *return_retval = Jim_GetAssocData(interp, "retval");
+	if (return_retval != NULL)
+		*return_retval = retval;
+
+	return (retval == ERROR_OK) ? JIM_OK : JIM_ERR;
+}
+
 extern struct command_context *global_cmd_ctx;
 
 void script_debug(Jim_Interp *interp, const char *name,
@@ -125,20 +153,10 @@ static struct command_context *current_command_context(void)
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
-	struct command *c;
-	int retval;
 
-	/* DANGER!!!! be careful what we invoke here, since interp->cmdPrivData might
-	 * get overwritten by running other Jim commands! Treat it as an
-	 * emphemeral global variable that is used in lieu of an argument
-	 * to the fn and fish it out manually.
-	 */
-	c = interp->cmdPrivData;
-	if (c == NULL)
-	{
-		LOG_ERROR("BUG: interp->cmdPrivData == NULL");
-		return JIM_ERR;
-	}
+	struct command *c = interp->cmdPrivData;
+	assert(c);
+
 	target_call_timer_callbacks_now();
 	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/
 
@@ -149,31 +167,14 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (NULL == words)
 		return JIM_ERR;
 
-	/* capture log output and return it */
-	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-	/* a garbage collect can happen, so we need a reference count to this object */
-	Jim_IncrRefCount(tclOutput);
-
-	log_add_callback(tcl_output, tclOutput);
+	Jim_Obj *tclOutput = command_log_capture_start(interp);
 
 	struct command_context *cmd_ctx = current_command_context();
-	retval = run_command(cmd_ctx, c, (const char **)words, nwords);
+	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
 
-	log_remove_callback(tcl_output, tclOutput);
-
-	/* We dump output into this local variable */
-	Jim_SetResult(interp, tclOutput);
-	Jim_DecrRefCount(interp, tclOutput);
-
+	command_log_capture_finish(interp, tclOutput);
 	script_command_args_free(words, nwords);
-
-	int *return_retval = Jim_GetAssocData(interp, "retval");
-	if (return_retval != NULL)
-	{
-		*return_retval = retval;
-	}
-
-	return (retval == ERROR_OK)?JIM_OK:JIM_ERR;
+	return command_retval_set(interp, retval);
 }
 
 /* nice short description of source file */
@@ -766,23 +767,13 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 2)
 		return JIM_ERR;
-	int retcode;
+
+	Jim_Obj *tclOutput = command_log_capture_start(interp);
+
 	const char *str = Jim_GetString(argv[1], NULL);
+	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
 
-	/* capture log output and return it */
-	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-	/* a garbage collect can happen, so we need a reference count to this object */
-	Jim_IncrRefCount(tclOutput);
-
-	log_add_callback(tcl_output, tclOutput);
-
-	retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
-
-	log_remove_callback(tcl_output, tclOutput);
-
-	/* We dump output into this local variable */
-	Jim_SetResult(interp, tclOutput);
-	Jim_DecrRefCount(interp, tclOutput);
+	command_log_capture_finish(interp, tclOutput);
 
 	return retcode;
 }
@@ -936,14 +927,17 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (NULL == words)
 		return JIM_ERR;
 
+	Jim_Obj *tclOutput = command_log_capture_start(interp);
+
 	int retval = run_command(cmd_ctx, c, words, nwords);
 
+	command_log_capture_finish(interp, tclOutput);
 	script_command_args_free(words, nwords);
 
 	if (!found && ERROR_OK == retval)
 		retval = ERROR_FAIL;
 
-	return retval;
+	return command_retval_set(interp, retval);
 }
 
 int help_add_command(struct command_context *cmd_ctx, struct command *parent,
