@@ -352,6 +352,173 @@ static int cortex_a8_dap_write_memap_register_u32(struct target *target, uint32_
 }
 
 /*
+ * Cortex-A8 implementation of Debug Programmer's Model
+ *
+ * NOTE that in several of these cases the "stall" mode might be useful.
+ * It'd let us queue a few operations together... prepare/finish might
+ * be the places to enable/disable that mode.
+ */
+
+static inline struct cortex_a8_common *dpm_to_a8(struct arm_dpm *dpm)
+{
+	return container_of(dpm, struct cortex_a8_common, armv7a_common.dpm);
+}
+
+static int cortex_a8_write_dcc(struct cortex_a8_common *a8, uint32_t data)
+{
+	LOG_DEBUG("write DCC 0x%08" PRIx32, data);
+	return mem_ap_write_u32(&a8->armv7a_common.swjdp_info,
+			a8->armv7a_common.debug_base + CPUDBG_DTRRX, data);
+}
+
+static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data)
+{
+	struct swjdp_common *swjdp = &a8->armv7a_common.swjdp_info;
+	uint32_t dscr;
+	int retval;
+
+	/* Wait for DTRRXfull */
+	do {
+		retval = mem_ap_read_atomic_u32(swjdp,
+				a8->armv7a_common.debug_base + CPUDBG_DSCR,
+				&dscr);
+	} while ((dscr & (1 << DSCR_DTR_TX_FULL)) == 0);
+
+	retval = mem_ap_read_atomic_u32(swjdp,
+			a8->armv7a_common.debug_base + CPUDBG_DTRTX, data);
+	LOG_DEBUG("read DCC 0x%08" PRIx32, *data);
+
+	return retval;
+}
+
+static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	struct swjdp_common *swjdp = &a8->armv7a_common.swjdp_info;
+	uint32_t dscr;
+	int retval;
+
+	retval = mem_ap_read_atomic_u32(swjdp,
+			a8->armv7a_common.debug_base + CPUDBG_DSCR,
+			&dscr);
+
+	/* this "should never happen" ... */
+	if (dscr & (1 << DSCR_DTR_RX_FULL)) {
+		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
+		/* Clear DCCRX */
+		retval = cortex_a8_exec_opcode(
+				a8->armv7a_common.armv4_5_common.target,
+				ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
+	}
+
+	return retval;
+}
+
+static int cortex_a8_dpm_finish(struct arm_dpm *dpm)
+{
+	/* REVISIT what could be done here? */
+	return ERROR_OK;
+}
+
+static int cortex_a8_instr_write_data_dcc(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t data)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	int retval;
+
+	retval = cortex_a8_write_dcc(a8, data);
+
+	return cortex_a8_exec_opcode(
+			a8->armv7a_common.armv4_5_common.target,
+			opcode);
+}
+
+static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t data)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	int retval;
+
+	retval = cortex_a8_write_dcc(a8, data);
+
+	/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
+	retval = cortex_a8_exec_opcode(
+			a8->armv7a_common.armv4_5_common.target,
+			ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
+
+	/* then the opcode, taking data from R0 */
+	retval = cortex_a8_exec_opcode(
+			a8->armv7a_common.armv4_5_common.target,
+			opcode);
+
+	return retval;
+}
+
+static int cortex_a8_instr_cpsr_sync(struct arm_dpm *dpm)
+{
+	struct target *target = dpm->arm->target;
+
+	/* "Prefetch flush" after modifying execution status in CPSR */
+	return cortex_a8_exec_opcode(target, ARMV4_5_MCR(15, 0, 0, 7, 5, 4));
+}
+
+static int cortex_a8_instr_read_data_dcc(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t *data)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	int retval;
+
+	/* the opcode, writing data to DCC */
+	retval = cortex_a8_exec_opcode(
+			a8->armv7a_common.armv4_5_common.target,
+			opcode);
+
+	return cortex_a8_read_dcc(a8, data);
+}
+
+
+static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
+		uint32_t opcode, uint32_t *data)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	int retval;
+
+	/* the opcode, writing data to R0 */
+	retval = cortex_a8_exec_opcode(
+			a8->armv7a_common.armv4_5_common.target,
+			opcode);
+
+	/* write R0 to DCC */
+	retval = cortex_a8_exec_opcode(
+			a8->armv7a_common.armv4_5_common.target,
+			ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
+
+	return cortex_a8_read_dcc(a8, data);
+}
+
+// static
+int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
+{
+	struct arm_dpm *dpm = &a8->armv7a_common.dpm;
+
+	dpm->arm = &a8->armv7a_common.armv4_5_common;
+	dpm->didr = didr;
+
+	dpm->prepare = cortex_a8_dpm_prepare;
+	dpm->finish = cortex_a8_dpm_finish;
+
+	dpm->instr_write_data_dcc = cortex_a8_instr_write_data_dcc;
+	dpm->instr_write_data_r0 = cortex_a8_instr_write_data_r0;
+	dpm->instr_cpsr_sync = cortex_a8_instr_cpsr_sync;
+
+	dpm->instr_read_data_dcc = cortex_a8_instr_read_data_dcc;
+	dpm->instr_read_data_r0 = cortex_a8_instr_read_data_r0;
+
+	return arm_dpm_setup(dpm);
+}
+
+
+/*
  * Cortex-A8 Run control
  */
 

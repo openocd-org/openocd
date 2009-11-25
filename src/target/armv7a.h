@@ -23,6 +23,7 @@
 #include "armv4_5.h"
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
+#include "arm_dpm.h"
 
 enum
 {
@@ -53,6 +54,7 @@ struct armv7a_common
 	struct swjdp_common swjdp_info;
 
 	/* Core Debug Unit */
+	struct arm_dpm dpm;
 	uint32_t debug_base;
 	uint8_t debug_ap;
 	uint8_t memory_ap;

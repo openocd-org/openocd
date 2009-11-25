@@ -52,10 +52,8 @@ static int dpm_modeswitch(struct arm_dpm *dpm, enum armv4_5_mode mode)
 
 	retval = dpm->instr_write_data_r0(dpm, ARMV4_5_MSR_GP(0, 0xf, 0), cpsr);
 
-	/* REVISIT on Cortex-A8, we need a Prefetch Flush operation too ...
-			cortex_a8_exec_opcode(target,
-					ARMV4_5_MCR(15, 0, 0, 7, 5, 4));
-	 */
+	if (dpm->instr_cpsr_sync)
+		retval = dpm->instr_cpsr_sync(dpm);
 
 	return retval;
 }
@@ -142,11 +140,8 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 				ARMV4_5_MSR_GP(0, 0xf, regnum & 1),
 				value);
 
-		/* REVISIT on Cortex-A8, we need a Prefetch Flush operation
-		 * after writing CPSR ...
-			cortex_a8_exec_opcode(target,
-					ARMV4_5_MCR(15, 0, 0, 7, 5, 4));
-		 */
+		if (regnum == 16 && dpm->instr_cpsr_sync)
+			retval = dpm->instr_cpsr_sync(dpm);
 
 		break;
 	}

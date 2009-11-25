@@ -61,6 +61,9 @@ struct arm_dpm {
 	int (*instr_write_data_r0)(struct arm_dpm *,
 			uint32_t opcode, uint32_t data);
 
+	/** Optional core-specific operation invoked after CPSR writes. */
+	int (*instr_cpsr_sync)(struct arm_dpm *dpm);
+
 	/* READ FROM CPU */
 
 	/** Runs one instruction, reading data from dcc after execution. */
