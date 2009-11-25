@@ -80,6 +80,42 @@ command handlers and helpers:
 - @c CMD_ARGC - the number of command arguments
 - @c CMD_ARGV - array of command argument strings
 
+@section helpercmdregister Command Registration
+
+In order to use a command handler, it must be registered with the
+command subsystem.  All commands are registered with command_registration
+structures, specifying the name of the command, its handler, its allowed
+mode(s) of execution, and strings that provide usage and help text.
+A single handler may be registered using multiple names, but any name
+may have only one handler associated with it.
+
+The @c register_commands() and @c register_commands() functions provide
+registration, while the @c unregister_command() and
+@c unregister_all_commands() functions will remove existing commands.
+These may be called at any time, allowing the command set to change in
+response to system actions.
+
+@subsection helpercmdjim Jim Command Registration
+
+The command_registration structure provides support for registering
+native Jim command handlers (@c jim_handler) too.  For these handlers,
+the module can provide help and usage support; however, this mechanism
+allows Jim handlers to be called as sub-commands of other commands.
+These commands may be registered with a private data value (@c
+jim_handler_data) that will be available when called, as with low-level
+Jim command registration.
+
+A command may have a normal @c handler or a @c jim_handler, but not both.
+
+@subsection helpercmdregisterchains Command Chaining
+
+When using register_commands(), the array of commands may reference
+other arrays.  When the @c chain field is filled in a
+command_registration record, the commands on in the chained list will
+added in one of two places.  If the record defines a new command, then
+the chained commands are added under it; otherwise, the commands are
+added in the same context as the other commands in the array.
+
 @section helpercmdprimer Command Development Primer
 
 This @ref primercommand provides details about the @c hello module,

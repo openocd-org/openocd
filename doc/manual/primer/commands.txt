@@ -63,42 +63,71 @@ Before this new function can be used, it must be registered somehow.
 For a new module, registering should be done in a new function for
 the purpose, which must be called from @c openocd.c:
 @code
+
+static const struct command_registration hello_command_handlers[] = {
+	{
+		.name = "hello",
+		.mode = COMMAND_ANY,
+		.handler = &handle_hello_command,
+		.help = "print a warm greetings",
+		.usage = "[<name>]",
+	},
+	{
+		.chain = foo_command_handlers,
+	}
+	COMMAND_REGISTRATION_DONE
+};
+
 int hello_register_commands(struct command_context_s *cmd_ctx)
 {
-	struct command_s *cmd = register_command(cmd_ctx, NULL, "hello",
-			NULL, COMMAND_ANY, "print greetings");
-	return cmd ? ERROR_OK : -ENOMEM;
+	return register_commands(cmd_ctx, NULL, handle_command_handlers);
 }
 @endcode
 
 That's it!  The command should now be registered and avaiable to scripts.
 
+@section primercmdchain Command Chaining
+
+This example also shows how to chain command handler registration, so
+your modules can "inherit" commands provided by other (sub)modules.
+Here, the hello module includes the foo commands in the same context
+that the 'hello' command will be registered.
+
+If the @c chain field had been put in the 'hello' command, then the
+@c foo module commands would be registered under it.  Indeed, that
+technique is used to define the 'foo bar' and 'foo baz' commands,
+as well as for the example drivers that use these modules.
+
+The code for the 'foo' command handlers can be found in @c hello.c.
+
 @section primercmdcode Trying These Example Commands
 
-The commands may be enabled by editing src/openocd.c and uncommenting
-the call to @c hello_register_commands and rebuilding the source tree.
+These commands have been inherited by the dummy interface, faux flash,
+and testee target drivers.  The easiest way to test these is by using the
+dummy interface.
 
-Once OpenOCD has been built with this example code, the following script
-demonstrate the abilities that the @c hello module provides:
+Once OpenOCD has been built with this example code, the following command
+demonstrates the abilities that the @c hello module provides:
 @code
-hello
-hello World
-hello {John Doe}
-hello John Doe  # error: too many arguments
+openocd -c 'interface dummy' \
+	-c 'dummy hello' \
+	-c 'dummy hello World' \
+	-c 'dummy hello {John Doe}' \
+	-c 'dummy hello John Doe'  # error: too many arguments
 @endcode
 
 If saved in @c hello.cfg, then running <code>openocd -f hello.cfg</code>
-should produce the following output before exiting:
+should produce the following output before displaying the help text and
+exiting:
 @code
 Greetings!
 Greetings, World!
 Greetings, John Doe!
-Error: ocd_hello: too many arguments
+Error: hello: too many arguments
+Runtime error, file "openocd.cfg", line 14:
+    hello: too many arguments
+dummy hello [<name>]
+      prints a warm welcome
 @endcode
-
-This difference between the registered and displayed command name comes from
-the fact that the TCL scripts are provided with a stub that calls the munged
-name.  This stub wraps the internal <code>ocd_</code>-prefixed routine,
-providing a measure of high-level error handling.
 
  */
