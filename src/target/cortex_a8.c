@@ -496,8 +496,7 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 	return cortex_a8_read_dcc(a8, data);
 }
 
-// static
-int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
+static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 {
 	struct arm_dpm *dpm = &a8->armv7a_common.dpm;
 
@@ -806,12 +805,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	/* First load register acessible through core debug port*/
 	if (!regfile_working_area)
 	{
-		/* FIXME we don't actually need all these registers;
-		 * reading them slows us down.  Just R0, PC, CPSR...
-		 */
-		for (i = 0; i <= 15; i++)
-			cortex_a8_dap_read_coreregister_u32(target,
-					&regfile[i], i);
+		retval = arm_dpm_read_current_registers(&armv7a->dpm);
 	}
 	else
 	{
@@ -820,44 +814,41 @@ static int cortex_a8_debug_entry(struct target *target)
 				regfile_working_area->address, regfile);
 		dap_ap_select(swjdp, swjdp_memoryap);
 		target_free_working_area(target, regfile_working_area);
+
+		/* read Current PSR */
+		cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
+		pc = regfile[15];
+		dap_ap_select(swjdp, swjdp_debugap);
+		LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
+
+		arm_set_cpsr(armv4_5, cpsr);
+
+		/* update cache */
+		for (i = 0; i <= ARM_PC; i++)
+		{
+			reg = arm_reg_current(armv4_5, i);
+
+			buf_set_u32(reg->value, 0, 32, regfile[i]);
+			reg->valid = 1;
+			reg->dirty = 0;
+		}
+
+		/* Fixup PC Resume Address */
+		if (cpsr & (1 << 5))
+		{
+			// T bit set for Thumb or ThumbEE state
+			regfile[ARM_PC] -= 4;
+		}
+		else
+		{
+			// ARM state
+			regfile[ARM_PC] -= 8;
+		}
+
+		reg = armv4_5->core_cache->reg_list + 15;
+		buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
+		reg->dirty = reg->valid;
 	}
-
-	/* read Current PSR */
-	cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
-	pc = regfile[15];
-	dap_ap_select(swjdp, swjdp_debugap);
-	LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
-
-	arm_set_cpsr(armv4_5, cpsr);
-
-	/* update cache */
-	for (i = 0; i <= ARM_PC; i++)
-	{
-		reg = arm_reg_current(armv4_5, i);
-
-		buf_set_u32(reg->value, 0, 32, regfile[i]);
-		reg->valid = 1;
-		reg->dirty = 0;
-	}
-
-	/* Fixup PC Resume Address */
-	if (cpsr & (1 << 5))
-	{
-		// T bit set for Thumb or ThumbEE state
-		regfile[ARM_PC] -= 4;
-	}
-	else
-	{
-		// ARM state
-		regfile[ARM_PC] -= 8;
-	}
-
-	reg = armv4_5->core_cache->reg_list + 15;
-	buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
-	reg->dirty = reg->valid;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15)
-		.dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 15).valid;
 
 #if 0
 /* TODO, Move this */
@@ -992,286 +983,19 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 
 static int cortex_a8_restore_context(struct target *target)
 {
-	uint32_t value;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct reg_cache *cache = armv7a->armv4_5_common.core_cache;
-	unsigned max = cache->num_regs;
-	struct reg *r;
-	bool flushed, flush_cpsr = false;
 
 	LOG_DEBUG(" ");
 
 	if (armv7a->pre_restore_context)
 		armv7a->pre_restore_context(target);
 
-	/* Flush all dirty registers from the cache, one mode at a time so
-	 * that we write CPSR as little as possible.  Save CPSR and R0 for
-	 * last; they're used to change modes and write other registers.
-	 *
-	 * REVISIT be smarter:  save eventual mode for last loop, don't
-	 * need to write CPSR an extra time.
-	 */
-	do {
-		enum armv4_5_mode mode = ARMV4_5_MODE_ANY;
-		unsigned i;
-
-		flushed = false;
-
-		/* write dirty non-{R0,CPSR} registers sharing the same mode */
-		for (i = max - 1, r = cache->reg_list + 1; i > 0; i--, r++) {
-			struct arm_reg *reg;
-
-			if (!r->dirty || r == armv7a->armv4_5_common.cpsr)
-				continue;
-			reg = r->arch_info;
-
-			/* TODO Check return values */
-
-			/* Pick a mode and update CPSR; else ignore this
-			 * register if it's for a different mode than what
-			 * we're handling on this pass.
-			 *
-			 * REVISIT don't distinguish SYS and USR modes.
-			 *
-			 * FIXME if we restore from FIQ mode, R8..R12 will
-			 * get wrongly flushed onto FIQ shadows...
-			 */
-			if (mode == ARMV4_5_MODE_ANY) {
-				mode = reg->mode;
-				if (mode != ARMV4_5_MODE_ANY) {
-					cortex_a8_dap_write_coreregister_u32(
-							target, mode, 16);
-					flush_cpsr = true;
-				}
-			} else if (mode != reg->mode)
-				continue;
-
-			/* Write this register */
-			value = buf_get_u32(r->value, 0, 32);
-			cortex_a8_dap_write_coreregister_u32(target, value,
-					(reg->num == 16) ? 17 : reg->num);
-			r->dirty = false;
-			flushed = true;
-		}
-
-	} while (flushed);
-
-	/* now flush CPSR if needed ... */
-	r = armv7a->armv4_5_common.cpsr;
-	if (flush_cpsr || r->dirty) {
-		value = buf_get_u32(r->value, 0, 32);
-		cortex_a8_dap_write_coreregister_u32(target, value, 16);
-		r->dirty = false;
-	}
-
-	/* ... and R0 always (it was dirtied when we saved context) */
-	r = cache->reg_list + 0;
-	value = buf_get_u32(r->value, 0, 32);
-	cortex_a8_dap_write_coreregister_u32(target, value, 0);
-	r->dirty = false;
+	arm_dpm_write_dirty_registers(&armv7a->dpm);
 
 	if (armv7a->post_restore_context)
 		armv7a->post_restore_context(target);
 
 	return ERROR_OK;
-}
-
-
-#if 0
-/*
- * Cortex-A8 Core register functions
- */
-static int cortex_a8_load_core_reg_u32(struct target *target, int num,
-		armv4_5_mode_t mode, uint32_t * value)
-{
-	int retval;
-	struct arm *armv4_5 = target_to_armv4_5(target);
-
-	if ((num <= ARM_CPSR))
-	{
-		/* read a normal core register */
-		retval = cortex_a8_dap_read_coreregister_u32(target, value, num);
-
-		if (retval != ERROR_OK)
-		{
-			LOG_ERROR("JTAG failure %i", retval);
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-		LOG_DEBUG("load from core reg %i value 0x%" PRIx32, num, *value);
-	}
-	else
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	/* Register other than r0 - r14 uses r0 for access */
-	if (num > 14)
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 0).dirty =
-			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 0).valid;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 15).dirty =
-			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5->core_mode, 15).valid;
-
-	return ERROR_OK;
-}
-
-static int cortex_a8_store_core_reg_u32(struct target *target, int num,
-		armv4_5_mode_t mode, uint32_t value)
-{
-	int retval;
-//	uint32_t reg;
-	struct arm *armv4_5 = target_to_armv4_5(target);
-
-#ifdef ARMV7_GDB_HACKS
-	/* If the LR register is being modified, make sure it will put us
-	 * in "thumb" mode, or an INVSTATE exception will occur. This is a
-	 * hack to deal with the fact that gdb will sometimes "forge"
-	 * return addresses, and doesn't set the LSB correctly (i.e., when
-	 * printing expressions containing function calls, it sets LR=0.) */
-
-	if (num == 14)
-		value |= 0x01;
-#endif
-
-	if ((num <= ARM_CPSR))
-	{
-		retval = cortex_a8_dap_write_coreregister_u32(target, value, num);
-		if (retval != ERROR_OK)
-		{
-			LOG_ERROR("JTAG failure %i", retval);
-			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, num).dirty =
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, num).valid;
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-		LOG_DEBUG("write core reg %i value 0x%" PRIx32, num, value);
-	}
-	else
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	return ERROR_OK;
-}
-#endif
-
-
-static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode, uint32_t value);
-
-static int cortex_a8_read_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode)
-{
-	uint32_t value;
-	int retval;
-	struct arm *armv4_5 = target_to_armv4_5(target);
-	struct reg *cpsr_r = NULL;
-	uint32_t cpsr = 0;
-	unsigned cookie = num;
-
-	/* avoid some needless mode changes
-	 * FIXME move some of these to shared ARM code...
-	 */
-	if (mode != armv4_5->core_mode) {
-		if ((armv4_5->core_mode == ARMV4_5_MODE_SYS)
-				&& (mode == ARMV4_5_MODE_USR))
-			mode = ARMV4_5_MODE_ANY;
-		else if ((mode != ARMV4_5_MODE_FIQ) && (num <= 12))
-			mode = ARMV4_5_MODE_ANY;
-
-		if (mode != ARMV4_5_MODE_ANY) {
-			cpsr_r = armv4_5->cpsr;
-			cpsr = buf_get_u32(cpsr_r->value, 0, 32);
-			cortex_a8_write_core_reg(target, cpsr_r,
-					16, ARMV4_5_MODE_ANY, mode);
-		}
-	}
-
-	if (num == 16) {
-		switch (mode) {
-		case ARMV4_5_MODE_USR:
-		case ARMV4_5_MODE_SYS:
-		case ARMV4_5_MODE_ANY:
-			/* CPSR */
-			break;
-		default:
-			/* SPSR */
-			cookie++;
-			break;
-		}
-	}
-
-	cortex_a8_dap_read_coreregister_u32(target, &value, cookie);
-	retval = jtag_execute_queue();
-	if (retval == ERROR_OK) {
-		r->valid = 1;
-		r->dirty = 0;
-		buf_set_u32(r->value, 0, 32, value);
-	}
-
-	if (cpsr_r)
-		cortex_a8_write_core_reg(target, cpsr_r,
-				16, ARMV4_5_MODE_ANY, cpsr);
-	return retval;
-}
-
-static int cortex_a8_write_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode, uint32_t value)
-{
-	int retval;
-	struct arm *armv4_5 = target_to_armv4_5(target);
-	struct reg *cpsr_r = NULL;
-	uint32_t cpsr = 0;
-	unsigned cookie = num;
-
-	/* avoid some needless mode changes
-	 * FIXME move some of these to shared ARM code...
-	 */
-	if (mode != armv4_5->core_mode) {
-		if ((armv4_5->core_mode == ARMV4_5_MODE_SYS)
-				&& (mode == ARMV4_5_MODE_USR))
-			mode = ARMV4_5_MODE_ANY;
-		else if ((mode != ARMV4_5_MODE_FIQ) && (num <= 12))
-			mode = ARMV4_5_MODE_ANY;
-
-		if (mode != ARMV4_5_MODE_ANY) {
-			cpsr_r = armv4_5->cpsr;
-			cpsr = buf_get_u32(cpsr_r->value, 0, 32);
-			cortex_a8_write_core_reg(target, cpsr_r,
-					16, ARMV4_5_MODE_ANY, mode);
-		}
-	}
-
-
-	if (num == 16) {
-		switch (mode) {
-		case ARMV4_5_MODE_USR:
-		case ARMV4_5_MODE_SYS:
-		case ARMV4_5_MODE_ANY:
-			/* CPSR */
-			break;
-		default:
-			/* SPSR */
-			cookie++;
-			break;
-		}
-	}
-
-	cortex_a8_dap_write_coreregister_u32(target, value, cookie);
-	if ((retval = jtag_execute_queue()) == ERROR_OK) {
-		buf_set_u32(r->value, 0, 32, value);
-		r->valid = 1;
-		r->dirty = 0;
-	}
-
-	if (cpsr_r)
-		cortex_a8_write_core_reg(target, cpsr_r,
-				16, ARMV4_5_MODE_ANY, cpsr);
-	return retval;
 }
 
 
@@ -1696,6 +1420,8 @@ static int cortex_a8_examine_first(struct target *target)
 	LOG_DEBUG("ttypr = 0x%08" PRIx32, ttypr);
 	LOG_DEBUG("didr = 0x%08" PRIx32, didr);
 
+	cortex_a8_dpm_setup(cortex_a8, didr);
+
 	/* Setup Breakpoint Register Pairs */
 	cortex_a8->brp_num = ((didr >> 24) & 0x0F) + 1;
 	cortex_a8->brp_num_context = ((didr >> 20) & 0x0F) + 1;
@@ -1752,21 +1478,10 @@ static int cortex_a8_examine(struct target *target)
  *	Cortex-A8 target creation and initialization
  */
 
-static void cortex_a8_build_reg_cache(struct target *target)
-{
-	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	struct arm *armv4_5 = target_to_armv4_5(target);
-
-	armv4_5->core_type = ARM_MODE_MON;
-
-	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
-}
-
-
 static int cortex_a8_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
-	cortex_a8_build_reg_cache(target);
+	/* examine_first() does a bunch of this */
 	return ERROR_OK;
 }
 
@@ -1817,9 +1532,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 
 
 //	arm7_9->handle_target_request = cortex_a8_handle_target_request;
-
-	armv4_5->read_core_reg = cortex_a8_read_core_reg;
-	armv4_5->write_core_reg = cortex_a8_write_core_reg;
 
 	/* REVISIT v7a setup should be in a v7a-specific routine */
 	armv4_5_init_arch_info(target, armv4_5);
