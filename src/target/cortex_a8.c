@@ -89,7 +89,12 @@ static int cortex_a8_init_debug_access(struct target *target)
 	return retval;
 }
 
-int cortex_a8_exec_opcode(struct target *target, uint32_t opcode)
+/* FIXME we waste a *LOT* of round-trips with needless DSCR reads, which
+ * slows down operations considerably.  One good way to start reducing
+ * them would pass current values into and out of this routine.  That
+ * should also help synch DCC read/write.
+ */
+static int cortex_a8_exec_opcode(struct target *target, uint32_t opcode)
 {
 	uint32_t dscr;
 	int retval;
@@ -592,6 +597,12 @@ static int cortex_a8_debug_entry(struct target *target)
 	/* Enable the ITR execution once we are in debug mode */
 	mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+
+	/* REVISIT see A8 TRM 12.11.4 steps 2..3 -- make sure that any
+	 * imprecise data aborts get discarded by issuing a Data
+	 * Synchronization Barrier:  ARMV4_5_MCR(15, 0, 0, 7, 10, 4).
+	 */
+
 	dscr |= (1 << DSCR_EXT_INT_EN);
 	retval = mem_ap_write_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, dscr);
@@ -599,21 +610,27 @@ static int cortex_a8_debug_entry(struct target *target)
 	/* Examine debug reason */
 	switch ((cortex_a8->cpudbg_dscr >> 2)&0xF)
 	{
-		case 0:
-		case 4:
+		case 0:		/* DRCR[0] write */
+		case 4:		/* EDBGRQ */
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
-		case 1:
-		case 3:
+		case 1:		/* HW breakpoint */
+		case 3:		/* SW BKPT */
+		case 5:		/* vector catch */
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
-		case 10:
+		case 10:	/* precise watchpoint */
 			target->debug_reason = DBG_REASON_WATCHPOINT;
+			/* REVISIT could collect WFAR later, to see just
+			 * which instruction triggered the watchpoint.
+			 */
 			break;
 		default:
 			target->debug_reason = DBG_REASON_UNDEFINED;
 			break;
 	}
+
+	/* REVISIT fast_reg_read is never set ... */
 
 	/* Examine target state and mode */
 	if (cortex_a8->fast_reg_read)
@@ -738,6 +755,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct breakpoint *breakpoint = NULL;
 	struct breakpoint stepbreakpoint;
+	struct reg *r;
 
 	int timeout = 100;
 
@@ -748,17 +766,14 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
+	r = armv4_5->core_cache->reg_list + 15;
 	if (!current)
 	{
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, ARM_PC).value,
-				0, 32, address);
+		buf_set_u32(r->value, 0, 32, address);
 	}
 	else
 	{
-		address = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-					armv4_5->core_mode, ARM_PC).value,
-				0, 32);
+		address = buf_get_u32(r->value, 0, 32);
 	}
 
 	/* The front-end may request us not to handle breakpoints.
@@ -767,11 +782,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	 */
 	handle_breakpoints = 1;
 	if (handle_breakpoints) {
-		breakpoint = breakpoint_find(target,
-				buf_get_u32(ARMV4_5_CORE_REG_MODE(
-					armv4_5->core_cache,
-					armv4_5->core_mode, 15).value,
-			0, 32));
+		breakpoint = breakpoint_find(target, address);
 		if (breakpoint)
 			cortex_a8_unset_breakpoint(target, breakpoint);
 	}
@@ -1235,7 +1246,8 @@ static int cortex_a8_unset_breakpoint(struct target *target, struct breakpoint *
 	return ERROR_OK;
 }
 
-int cortex_a8_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int cortex_a8_add_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
@@ -1346,7 +1358,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
-int cortex_a8_write_memory(struct target *target, uint32_t address,
+static int cortex_a8_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -1591,7 +1603,7 @@ static int cortex_a8_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-int cortex_a8_init_arch_info(struct target *target,
+static int cortex_a8_init_arch_info(struct target *target,
 		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap)
 {
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
@@ -1605,7 +1617,7 @@ int cortex_a8_init_arch_info(struct target *target,
 	/* prepare JTAG information for the new target */
 	cortex_a8->jtag_info.tap = tap;
 	cortex_a8->jtag_info.scann_size = 4;
-LOG_DEBUG(" ");
+
 	swjdp->dp_select_value = -1;
 	swjdp->ap_csw_value = -1;
 	swjdp->ap_tar_value = -1;
