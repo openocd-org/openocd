@@ -406,26 +406,106 @@ static int is_bad_irval(int ir_length, jim_wide w)
 	return (w & v) != 0;
 }
 
+static int jim_newtap_expected_id(Jim_Nvp *n, Jim_GetOptInfo *goi,
+		struct jtag_tap *pTap)
+{
+	jim_wide w;
+	int e = Jim_GetOpt_Wide(goi, &w);
+	if (e != JIM_OK) {
+		Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
+		return e;
+	}
+
+	unsigned expected_len = sizeof(uint32_t) * pTap->expected_ids_cnt;
+	uint32_t *new_expected_ids = malloc(expected_len + sizeof(uint32_t));
+	if (new_expected_ids == NULL)
+	{
+		Jim_SetResult_sprintf(goi->interp, "no memory");
+		return JIM_ERR;
+	}
+
+	memcpy(new_expected_ids, pTap->expected_ids, expected_len);
+
+	new_expected_ids[pTap->expected_ids_cnt] = w;
+
+	free(pTap->expected_ids);
+	pTap->expected_ids = new_expected_ids;
+	pTap->expected_ids_cnt++;
+
+	return JIM_OK;
+}
+
+#define NTAP_OPT_IRLEN     0
+#define NTAP_OPT_IRMASK    1
+#define NTAP_OPT_IRCAPTURE 2
+#define NTAP_OPT_ENABLED   3
+#define NTAP_OPT_DISABLED  4
+#define NTAP_OPT_EXPECTED_ID 5
+
+static int jim_newtap_ir_param(Jim_Nvp *n, Jim_GetOptInfo *goi,
+		struct jtag_tap *pTap)
+{
+	jim_wide w;
+	int e = Jim_GetOpt_Wide(goi, &w);
+	if (e != JIM_OK)
+	{
+		Jim_SetResult_sprintf(goi->interp,
+				"option: %s bad parameter", n->name);
+		free((void *)pTap->dotted_name);
+		return e;
+	}
+	switch (n->value) {
+	case NTAP_OPT_IRLEN:
+		if (w > (jim_wide) (8 * sizeof(pTap->ir_capture_value)))
+		{
+			LOG_WARNING("%s: huge IR length %d",
+					pTap->dotted_name, (int) w);
+		}
+		pTap->ir_length = w;
+		break;
+	case NTAP_OPT_IRMASK:
+		if (is_bad_irval(pTap->ir_length, w))
+		{
+			LOG_ERROR("%s: IR mask %x too big",
+					pTap->dotted_name,
+					(int) w);
+			return JIM_ERR;
+		}
+		if ((w & 3) != 3)
+			LOG_WARNING("%s: nonstandard IR mask", pTap->dotted_name);
+		pTap->ir_capture_mask = w;
+		break;
+	case NTAP_OPT_IRCAPTURE:
+		if (is_bad_irval(pTap->ir_length, w))
+		{
+			LOG_ERROR("%s: IR capture %x too big",
+					pTap->dotted_name, (int) w);
+			return JIM_ERR;
+		}
+		if ((w & 3) != 1)
+			LOG_WARNING("%s: nonstandard IR value",
+					pTap->dotted_name);
+		pTap->ir_capture_value = w;
+		break;
+	default:
+		return JIM_ERR;
+	}
+	return JIM_OK;
+}
+
 static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 {
 	struct jtag_tap *pTap;
-	jim_wide w;
 	int x;
 	int e;
 	Jim_Nvp *n;
 	char *cp;
 	const Jim_Nvp opts[] = {
-#define NTAP_OPT_IRLEN     0
 		{ .name = "-irlen"			,	.value = NTAP_OPT_IRLEN },
-#define NTAP_OPT_IRMASK    1
 		{ .name = "-irmask"			,	.value = NTAP_OPT_IRMASK },
-#define NTAP_OPT_IRCAPTURE 2
 		{ .name = "-ircapture"		,	.value = NTAP_OPT_IRCAPTURE },
-#define NTAP_OPT_ENABLED   3
 		{ .name = "-enable"			,	.value = NTAP_OPT_ENABLED },
-#define NTAP_OPT_DISABLED  4
 		{ .name = "-disable"		,	.value = NTAP_OPT_DISABLED },
-#define NTAP_OPT_EXPECTED_ID 5
 		{ .name = "-expected-id"	,	.value = NTAP_OPT_EXPECTED_ID },
 		{ .name = NULL				,	.value = -1 },
 	};
@@ -483,81 +563,25 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 			pTap->disabled_after_reset = true;
 			break;
 		case NTAP_OPT_EXPECTED_ID:
-		{
-			uint32_t *new_expected_ids;
-
-			e = Jim_GetOpt_Wide(goi, &w);
-			if (e != JIM_OK) {
-				Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
+			e = jim_newtap_expected_id(n, goi, pTap);
+			if (JIM_OK != e)
+			{
 				free((void *)pTap->dotted_name);
 				free(pTap);
 				return e;
 			}
-
-			new_expected_ids = malloc(sizeof(uint32_t) * (pTap->expected_ids_cnt + 1));
-			if (new_expected_ids == NULL) {
-				Jim_SetResult_sprintf(goi->interp, "no memory");
-				free((void *)pTap->dotted_name);
-				free(pTap);
-				return JIM_ERR;
-			}
-
-			memcpy(new_expected_ids, pTap->expected_ids, sizeof(uint32_t) * pTap->expected_ids_cnt);
-
-			new_expected_ids[pTap->expected_ids_cnt] = w;
-
-			free(pTap->expected_ids);
-			pTap->expected_ids = new_expected_ids;
-			pTap->expected_ids_cnt++;
 			break;
-		}
 		case NTAP_OPT_IRLEN:
 		case NTAP_OPT_IRMASK:
 		case NTAP_OPT_IRCAPTURE:
-			e = Jim_GetOpt_Wide(goi, &w);
-			if (e != JIM_OK) {
-				Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
+			e = jim_newtap_ir_param(n, goi, pTap);
+			if (JIM_OK != e)
+			{
 				free((void *)pTap->dotted_name);
 				free(pTap);
 				return e;
 			}
-			switch (n->value) {
-			case NTAP_OPT_IRLEN:
-				if (w > (jim_wide) (8 * sizeof(pTap->ir_capture_value)))
-					LOG_WARNING("%s: huge IR length %d",
-							pTap->dotted_name,
-							(int) w);
-				pTap->ir_length = w;
-				break;
-			case NTAP_OPT_IRMASK:
-				if (is_bad_irval(pTap->ir_length, w)) {
-					LOG_ERROR("%s: IR mask %x too big",
-							pTap->dotted_name,
-							(int) w);
-					free((void *)pTap->dotted_name);
-					free(pTap);
-					return ERROR_FAIL;
-				}
-				if ((w & 3) != 3)
-					LOG_WARNING("%s: nonstandard IR mask",
-							pTap->dotted_name);
-				pTap->ir_capture_mask = w;
-				break;
-			case NTAP_OPT_IRCAPTURE:
-				if (is_bad_irval(pTap->ir_length, w)) {
-					LOG_ERROR("%s: IR capture %x too big",
-							pTap->dotted_name,
-							(int) w);
-					free((void *)pTap->dotted_name);
-					free(pTap);
-					return ERROR_FAIL;
-				}
-				if ((w & 3) != 1)
-					LOG_WARNING("%s: nonstandard IR value",
-							pTap->dotted_name);
-				pTap->ir_capture_value = w;
-				break;
-			}
+			break;
 		} /* switch (n->value) */
 	} /* while (goi->argc) */
 
