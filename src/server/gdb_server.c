@@ -2216,7 +2216,7 @@ int gdb_init(void)
 		add_service("gdb", CONNECTION_PIPE, 0, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
 
 		LOG_DEBUG("gdb service for target %s using pipes",
-				target_get_name(target));
+				target_type_name(target));
 	}
 	else
 	{
@@ -2233,7 +2233,7 @@ int gdb_init(void)
 					gdb_connection_closed, gdb_service);
 
 			LOG_DEBUG("gdb service for target %s at TCP port %i",
-					target_get_name(target),
+					target_type_name(target),
 					port);
 			target = target->next;
 			port++;

@@ -39,7 +39,7 @@ struct target_type
 {
 	/**
 	 * Name of this type of target.  Do @b not access this
-	 * field directly, use target_get_name() instead.
+	 * field directly, use target_type_name() instead.
 	 */
 	char *name;
 

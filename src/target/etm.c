@@ -1374,7 +1374,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "target '%s' is '%s'; not an ARM",
-				target->cmd_name, target_get_name(target));
+				target->cmd_name, target_type_name(target));
 		return ERROR_FAIL;
 	}
 

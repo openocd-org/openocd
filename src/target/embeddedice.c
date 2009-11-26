@@ -281,8 +281,8 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 			 * in some unusual bits.  Let feroceon.c validate it
 			 * and do the appropriate setup itself.
 			 */
-			if (strcmp(target_get_name(target), "feroceon") == 0 ||
-			    strcmp(target_get_name(target), "dragonite") == 0)
+			if (strcmp(target_type_name(target), "feroceon") == 0 ||
+			    strcmp(target_type_name(target), "dragonite") == 0)
 				break;
 			LOG_ERROR("unknown EmbeddedICE version "
 				"(comms ctrl: 0x%8.8" PRIx32 ")",

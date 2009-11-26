@@ -522,7 +522,7 @@ int target_examine(void)
 	}
 	return retval;
 }
-const char *target_get_name(struct target *target)
+const char *target_type_name(struct target *target)
 {
 	return target->type->name;
 }
@@ -766,7 +766,7 @@ int target_init(struct command_context *cmd_ctx)
 
 		if ((retval = target->type->init_target(cmd_ctx, target)) != ERROR_OK)
 		{
-			LOG_ERROR("target '%s' init failed", target_get_name(target));
+			LOG_ERROR("target '%s' init failed", target_type_name(target));
 			return retval;
 		}
 
@@ -1698,7 +1698,7 @@ DumpTargets:
 					  target->target_number,
 					  marker,
 					  target->cmd_name,
-					  target_get_name(target),
+					  target_type_name(target),
 					  Jim_Nvp_value2name_simple(nvp_target_endian,
 								target->endianness)->name,
 					  target->tap->dotted_name,
@@ -3511,7 +3511,7 @@ void target_handle_event(struct target *target, enum target_event e)
 			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s",
 					   target->target_number,
 					   target->cmd_name,
-					   target_get_name(target),
+					   target_type_name(target),
 					   e,
 					   Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
 					   Jim_GetString(teap->body, NULL));
@@ -3585,16 +3585,20 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 		case TCFG_TYPE:
 			/* not setable */
 			if (goi->isconfigure) {
-				Jim_SetResult_sprintf(goi->interp, "not setable: %s", n->name);
+				Jim_SetResult_sprintf(goi->interp,
+						"not settable: %s", n->name);
 				return JIM_ERR;
 			} else {
 			no_params:
 				if (goi->argc != 0) {
-					Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "NO PARAMS");
+					Jim_WrongNumArgs(goi->interp,
+							goi->argc, goi->argv,
+							"NO PARAMS");
 					return JIM_ERR;
 				}
 			}
-			Jim_SetResultString(goi->interp, target_get_name(target), -1);
+			Jim_SetResultString(goi->interp,
+					target_type_name(target), -1);
 			/* loop for more */
 			break;
 		case TCFG_EVENT:

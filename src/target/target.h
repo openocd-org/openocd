@@ -280,11 +280,12 @@ struct target* get_current_target(struct command_context *cmd_ctx);
 struct target *get_target(const char *id);
 
 /**
- * Get the target name.
+ * Get the target type name.
  *
  * This routine is a wrapper for the target->type->name field.
+ * Note that this is not an instance-specific name for his target.
  */
-const char *target_get_name(struct target *target);
+const char *target_type_name(struct target *target);
 
 /**
  * Examine the specified @a target, letting it perform any
