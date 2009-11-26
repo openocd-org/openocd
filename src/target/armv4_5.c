@@ -390,6 +390,10 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 			state = ARMV4_5_STATE_ARM;
 	}
 	arm->core_state = state;
+
+	LOG_DEBUG("set CPSR %#8.8x: %s mode, %s state", (unsigned) cpsr,
+			arm_mode_name(mode),
+			armv4_5_state_strings[arm->core_state]);
 }
 
 /**
@@ -875,7 +879,13 @@ static int armv4_5_run_algorithm_completion(struct target *target, uint32_t exit
 	return ERROR_OK;
 }
 
-int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target *target, uint32_t exit_point, int timeout_ms, void *arch_info))
+int armv4_5_run_algorithm_inner(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info,
+		int (*run_it)(struct target *target, uint32_t exit_point,
+				int timeout_ms, void *arch_info))
 {
 	struct arm *armv4_5 = target_to_armv4_5(target);
 	struct armv4_5_algorithm *armv4_5_algorithm_info = arch_info;
@@ -885,6 +895,7 @@ int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struc
 	int exit_breakpoint_size = 0;
 	int i;
 	int retval = ERROR_OK;
+
 	LOG_DEBUG("Running algorithm");
 
 	if (armv4_5_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
