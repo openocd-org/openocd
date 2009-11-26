@@ -157,7 +157,7 @@ void breakpoint_clear_target(struct target *target)
 	struct breakpoint *breakpoint;
 
 	LOG_DEBUG("Delete all breakpoints for target: %s",
-			target_type_name(target));
+			target_name(target));
 	while ((breakpoint = target->breakpoints) != NULL)
 	{
 		breakpoint_free(target, breakpoint);
@@ -294,7 +294,7 @@ void watchpoint_clear_target(struct target *target)
 	struct watchpoint *watchpoint;
 
 	LOG_DEBUG("Delete all watchpoints for target: %s",
-			target_type_name(target));
+			target_name(target));
 	while ((watchpoint = target->watchpoints) != NULL)
 	{
 		watchpoint_free(target, watchpoint);

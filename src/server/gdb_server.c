@@ -774,7 +774,7 @@ int gdb_new_connection(struct connection *connection)
 	gdb_actual_connections++;
 	LOG_DEBUG("New GDB Connection: %d, Target %s, state: %s",
 		  gdb_actual_connections,
-		  gdb_service->target->cmd_name,
+		  target_name(gdb_service->target),
 		  target_state_name(gdb_service->target));
 
 	return ERROR_OK;
@@ -792,7 +792,7 @@ int gdb_connection_closed(struct connection *connection)
 
 	gdb_actual_connections--;
 	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d",
-		  gdb_service->target->cmd_name,
+		  target_name(gdb_service->target),
 		  target_state_name(gdb_service->target),
 		  gdb_actual_connections);
 
@@ -2138,7 +2138,7 @@ int gdb_input_inner(struct connection *connection)
 					watchpoint_clear_target(gdb_service->target);
 					command_run_linef(connection->cmd_ctx,
 							"ocd_gdb_restart %s",
-							target->cmd_name);
+							target_name(target));
 					break;
 				default:
 					/* ignore unkown packets */
@@ -2216,7 +2216,7 @@ int gdb_init(void)
 		add_service("gdb", CONNECTION_PIPE, 0, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
 
 		LOG_DEBUG("gdb service for target %s using pipes",
-				target_type_name(target));
+				target_name(target));
 	}
 	else
 	{
@@ -2233,7 +2233,7 @@ int gdb_init(void)
 					gdb_connection_closed, gdb_service);
 
 			LOG_DEBUG("gdb service for target %s at TCP port %i",
-					target_type_name(target),
+					target_name(target),
 					port);
 			target = target->next;
 			port++;

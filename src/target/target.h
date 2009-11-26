@@ -159,6 +159,12 @@ struct target
 	long long halt_issued_time;			/* Note time when halt was issued */
 };
 
+/** Returns the instance-specific name of the specified target. */
+static inline const char *target_name(struct target *target)
+{
+	return target->cmd_name;
+}
+
 enum target_event
 {
 	/* LD historical names

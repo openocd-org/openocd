@@ -556,7 +556,7 @@ static int target_soft_reset_halt_imp(struct target *target)
 	}
 	if (!target->type->soft_reset_halt_imp) {
 		LOG_ERROR("Target %s does not support soft_reset_halt",
-				target->cmd_name);
+				target_name(target));
 		return ERROR_FAIL;
 	}
 	return target->type->soft_reset_halt_imp(target);
@@ -766,7 +766,7 @@ int target_init(struct command_context *cmd_ctx)
 
 		if ((retval = target->type->init_target(cmd_ctx, target)) != ERROR_OK)
 		{
-			LOG_ERROR("target '%s' init failed", target_type_name(target));
+			LOG_ERROR("target '%s' init failed", target_name(target));
 			return retval;
 		}
 
@@ -1697,7 +1697,7 @@ DumpTargets:
 		command_print(CMD_CTX, "%2d%c %-18s %-10s %-6s %-18s %s",
 					  target->target_number,
 					  marker,
-					  target->cmd_name,
+					  target_name(target),
 					  target_type_name(target),
 					  Jim_Nvp_value2name_simple(nvp_target_endian,
 								target->endianness)->name,
@@ -3510,7 +3510,7 @@ void target_handle_event(struct target *target, enum target_event e)
 		if (teap->event == e) {
 			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s",
 					   target->target_number,
-					   target->cmd_name,
+					   target_name(target),
 					   target_type_name(target),
 					   e,
 					   Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
@@ -4139,7 +4139,7 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 				|| !target->type->deassert_reset) {
 			Jim_SetResult_sprintf(interp,
 					"No target-specific reset for %s",
-					target->cmd_name);
+					target_name(target));
 			return JIM_ERR;
 		}
 		/* determine if we should halt or not. */
@@ -4183,10 +4183,9 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		e = target_wait_state(target, n->value, a);
 		if (e != ERROR_OK) {
 			Jim_SetResult_sprintf(goi.interp,
-								   "target: %s wait %s fails (%d) %s",
-								   target->cmd_name,
-								   n->name,
-								   e, target_strerror_safe(e));
+					"target: %s wait %s fails (%d) %s",
+					target_name(target), n->name,
+					e, target_strerror_safe(e));
 			return JIM_ERR;
 		} else {
 			return JIM_OK;
@@ -4198,9 +4197,10 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		{
 			struct target_event_action *teap;
 			teap = target->event_action;
-			command_print(cmd_ctx, "Event actions for target (%d) %s\n",
-						   target->target_number,
-						   target->cmd_name);
+			command_print(cmd_ctx,
+					"Event actions for target (%d) %s\n",
+					target->target_number,
+					target_name(target));
 			command_print(cmd_ctx, "%-25s | Body", "Event");
 			command_print(cmd_ctx, "------------------------- | ----------------------------------------");
 			while (teap) {
@@ -4450,7 +4450,9 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
 			return JIM_ERR;
 		}
-		Jim_SetResultString(goi.interp, get_current_target(cmd_ctx)->cmd_name, -1);
+		Jim_SetResultString(goi.interp,
+				target_name(get_current_target(cmd_ctx)),
+				-1);
 		return JIM_OK;
 	case TG_CMD_TYPES:
 		if (goi.argc != 0) {
@@ -4473,8 +4475,9 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		target = all_targets;
 		while (target) {
 			Jim_ListAppendElement(goi.interp,
-								   Jim_GetResult(goi.interp),
-								   Jim_NewStringObj(goi.interp, target->cmd_name, -1));
+					Jim_GetResult(goi.interp),
+					Jim_NewStringObj(goi.interp,
+						target_name(target), -1));
 			target = target->next;
 		}
 		return JIM_OK;
@@ -4505,7 +4508,7 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 					"Target: number %d does not exist", (int)(w));
 			return JIM_ERR;
 		}
-		Jim_SetResultString(goi.interp, target->cmd_name, -1);
+		Jim_SetResultString(goi.interp, target_name(target), -1);
 		return JIM_OK;
 	case TG_CMD_COUNT:
 		if (goi.argc != 0) {
