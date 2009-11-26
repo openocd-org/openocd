@@ -559,7 +559,7 @@ static int flash_check_sector_parameters(struct command_context *cmd_ctx,
 
 COMMAND_HANDLER(handle_flash_erase_command)
 {
-	if (CMD_ARGC != 2)
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t bank_nr;
@@ -599,7 +599,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 
 COMMAND_HANDLER(handle_flash_protect_command)
 {
-	if (CMD_ARGC != 3)
+	if (CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	uint32_t bank_nr;
@@ -1316,7 +1316,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "erase_address",
 		.handler = &handle_flash_erase_address_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <address> <length>",
+		.usage = "<address> <length>",
 		.help = "erase address range",
 
 	},
