@@ -571,29 +571,36 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 {
 	struct jtag_tap_event_action * jteap;
 
-	for (jteap = tap->event_action; jteap != NULL; jteap = jteap->next) {
-		if (jteap->event == e) {
-			LOG_DEBUG("JTAG tap: %s event: %d (%s)\n\taction: %s",
-					tap->dotted_name,
-					e,
-					Jim_Nvp_value2name_simple(nvp_jtag_tap_event, e)->name,
-					Jim_GetString(jteap->body, NULL));
-			if (Jim_EvalObj(interp, jteap->body) != JIM_OK) {
-				Jim_PrintErrorMessage(interp);
-			} else switch (e) {
-			case JTAG_TAP_EVENT_ENABLE:
-			case JTAG_TAP_EVENT_DISABLE:
-				/* NOTE:  we currently assume the handlers
-				 * can't fail.  Right here is where we should
-				 * really be verifying the scan chains ...
-				 */
-				tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
-				LOG_INFO("JTAG tap: %s %s", tap->dotted_name,
-					tap->enabled ? "enabled" : "disabled");
-				break;
-			default:
-				break;
-			}
+	for (jteap = tap->event_action; jteap != NULL; jteap = jteap->next)
+	{
+		if (jteap->event != e)
+			continue;
+
+		Jim_Nvp *nvp = Jim_Nvp_value2name_simple(nvp_jtag_tap_event, e);
+		LOG_DEBUG("JTAG tap: %s event: %d (%s)\n\taction: %s",
+				tap->dotted_name, e, nvp->name,
+				Jim_GetString(jteap->body, NULL));
+
+		if (Jim_EvalObj(interp, jteap->body) != JIM_OK)
+		{
+			Jim_PrintErrorMessage(interp);
+			continue;
+		}
+
+		switch (e)
+		{
+		case JTAG_TAP_EVENT_ENABLE:
+		case JTAG_TAP_EVENT_DISABLE:
+			/* NOTE:  we currently assume the handlers
+			 * can't fail.  Right here is where we should
+			 * really be verifying the scan chains ...
+			 */
+			tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
+			LOG_INFO("JTAG tap: %s %s", tap->dotted_name,
+				tap->enabled ? "enabled" : "disabled");
+			break;
+		default:
+			break;
 		}
 	}
 }
