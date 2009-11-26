@@ -51,6 +51,238 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
 
 extern struct jtag_interface *jtag_interface;
 
+static bool scan_is_safe(tap_state_t state)
+{
+	switch (state)
+	{
+	case TAP_RESET:
+	case TAP_IDLE:
+	case TAP_DRPAUSE:
+	case TAP_IRPAUSE:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
+{
+	int retval;
+	struct scan_field *fields;
+	int num_fields;
+	int field_count = 0;
+	int i, e;
+	struct jtag_tap *tap;
+	tap_state_t endstate;
+
+	/* args[1] = device
+	 * args[2] = num_bits
+	 * args[3] = hex string
+	 * ... repeat num bits and hex string ...
+	 *
+	 * .. optionally:
+	*     args[N-2] = "-endstate"
+	 *     args[N-1] = statename
+	 */
+	if ((argc < 4) || ((argc % 2) != 0))
+	{
+		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
+		return JIM_ERR;
+	}
+
+	endstate = TAP_IDLE;
+
+	script_debug(interp, "drscan", argc, args);
+
+	/* validate arguments as numbers */
+	e = JIM_OK;
+	for (i = 2; i < argc; i += 2)
+	{
+		long bits;
+		const char *cp;
+
+		e = Jim_GetLong(interp, args[i], &bits);
+		/* If valid - try next arg */
+		if (e == JIM_OK) {
+			continue;
+		}
+
+		/* Not valid.. are we at the end? */
+		if (((i + 2) != argc)) {
+			/* nope, then error */
+			return e;
+		}
+
+		/* it could be: "-endstate FOO"
+		 * e.g. DRPAUSE so we can issue more instructions
+		 * before entering RUN/IDLE and executing them.
+		 */
+
+		/* get arg as a string. */
+		cp = Jim_GetString(args[i], NULL);
+		/* is it the magic? */
+		if (0 == strcmp("-endstate", cp)) {
+			/* is the statename valid? */
+			cp = Jim_GetString(args[i + 1], NULL);
+
+			/* see if it is a valid state name */
+			endstate = tap_state_by_name(cp);
+			if (endstate < 0) {
+				/* update the error message */
+				Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp);
+			} else {
+				if (!scan_is_safe(endstate))
+					LOG_WARNING("drscan with unsafe "
+							"endstate \"%s\"", cp);
+
+				/* valid - so clear the error */
+				e = JIM_OK;
+				/* and remove the last 2 args */
+				argc -= 2;
+			}
+		}
+
+		/* Still an error? */
+		if (e != JIM_OK) {
+			return e; /* too bad */
+		}
+	} /* validate args */
+
+	tap = jtag_tap_by_jim_obj(interp, args[1]);
+	if (tap == NULL) {
+		return JIM_ERR;
+	}
+
+	num_fields = (argc-2)/2;
+	fields = malloc(sizeof(struct scan_field) * num_fields);
+	for (i = 2; i < argc; i += 2)
+	{
+		long bits;
+		int len;
+		const char *str;
+
+		Jim_GetLong(interp, args[i], &bits);
+		str = Jim_GetString(args[i + 1], &len);
+
+		fields[field_count].tap = tap;
+		fields[field_count].num_bits = bits;
+		fields[field_count].out_value = malloc(DIV_ROUND_UP(bits, 8));
+		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
+		fields[field_count].in_value = fields[field_count].out_value;
+		field_count++;
+	}
+
+	jtag_add_dr_scan(num_fields, fields, endstate);
+
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+	{
+		Jim_SetResultString(interp, "drscan: jtag execute failed",-1);
+		return JIM_ERR;
+	}
+
+	field_count = 0;
+	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
+	for (i = 2; i < argc; i += 2)
+	{
+		long bits;
+		char *str;
+
+		Jim_GetLong(interp, args[i], &bits);
+		str = buf_to_str(fields[field_count].in_value, bits, 16);
+		free(fields[field_count].out_value);
+
+		Jim_ListAppendElement(interp, list, Jim_NewStringObj(interp, str, strlen(str)));
+		free(str);
+		field_count++;
+	}
+
+	Jim_SetResult(interp, list);
+
+	free(fields);
+
+	return JIM_OK;
+}
+
+
+static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *args)
+{
+	tap_state_t states[8];
+
+	if ((argc < 2) || ((size_t)argc > (ARRAY_SIZE(states) + 1)))
+	{
+		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
+		return JIM_ERR;
+	}
+
+	script_debug(interp, "pathmove", argc, args);
+
+	int i;
+	for (i = 0; i < argc-1; i++)
+	{
+		const char *cp;
+		cp = Jim_GetString(args[i + 1], NULL);
+		states[i] = tap_state_by_name(cp);
+		if (states[i] < 0)
+		{
+			/* update the error message */
+			Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp);
+			return JIM_ERR;
+		}
+	}
+
+	if ((jtag_add_statemove(states[0]) != ERROR_OK) || (jtag_execute_queue()!= ERROR_OK))
+	{
+		Jim_SetResultString(interp, "pathmove: jtag execute failed",-1);
+		return JIM_ERR;
+	}
+
+	jtag_add_pathmove(argc-2, states + 1);
+
+	if (jtag_execute_queue()!= ERROR_OK)
+	{
+		Jim_SetResultString(interp, "pathmove: failed",-1);
+		return JIM_ERR;
+	}
+
+	return JIM_OK;
+}
+
+
+static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args)
+{
+	script_debug(interp, "flush_count", argc, args);
+
+	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
+
+	return JIM_OK;
+}
+
+static const struct command_registration jtag_command_handlers_to_move[] = {
+	{
+		.name = "drscan",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &Jim_Command_drscan,
+		.help = "execute DR scan <device> "
+			"<num_bits> <value> <num_bits1> <value2> ...",
+	},
+	{
+		.name = "flush_count",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &Jim_Command_flush_count,
+		.help = "returns number of times the JTAG queue has been flushed",
+	},
+	{
+		.name = "pathmove",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &Jim_Command_pathmove,
+		.usage = "<state1>,<state2>,<state3>... ",
+		.help = "move JTAG to state1 then to state2, state3, etc.",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+
 enum jtag_tap_cfg_param {
 	JCFG_EVENT
 };
@@ -598,6 +830,9 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 		.jim_handler = &jim_jtag_names,
 		.help = "Returns list of all JTAG tap names",
 	},
+	{
+		.chain = jtag_command_handlers_to_move,
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1095,20 +1330,6 @@ COMMAND_HANDLER(handle_runtest_command)
  * Not surprisingly, this is the same constraint as SVF; the "irscan"
  * and "drscan" commands are a write-only subset of what SVF provides.
  */
-static bool scan_is_safe(tap_state_t state)
-{
-	switch (state)
-	{
-	case TAP_RESET:
-	case TAP_IDLE:
-	case TAP_DRPAUSE:
-	case TAP_IRPAUSE:
-		return true;
-	default:
-		return false;
-	}
-}
-
 
 COMMAND_HANDLER(handle_irscan_command)
 {
@@ -1189,199 +1410,6 @@ error_return:
 	free (fields);
 
 	return retval;
-}
-
-static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
-{
-	int retval;
-	struct scan_field *fields;
-	int num_fields;
-	int field_count = 0;
-	int i, e;
-	struct jtag_tap *tap;
-	tap_state_t endstate;
-
-	/* args[1] = device
-	 * args[2] = num_bits
-	 * args[3] = hex string
-	 * ... repeat num bits and hex string ...
-	 *
-	 * .. optionally:
-	*     args[N-2] = "-endstate"
-	 *     args[N-1] = statename
-	 */
-	if ((argc < 4) || ((argc % 2) != 0))
-	{
-		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
-		return JIM_ERR;
-	}
-
-	endstate = TAP_IDLE;
-
-	script_debug(interp, "drscan", argc, args);
-
-	/* validate arguments as numbers */
-	e = JIM_OK;
-	for (i = 2; i < argc; i += 2)
-	{
-		long bits;
-		const char *cp;
-
-		e = Jim_GetLong(interp, args[i], &bits);
-		/* If valid - try next arg */
-		if (e == JIM_OK) {
-			continue;
-		}
-
-		/* Not valid.. are we at the end? */
-		if (((i + 2) != argc)) {
-			/* nope, then error */
-			return e;
-		}
-
-		/* it could be: "-endstate FOO"
-		 * e.g. DRPAUSE so we can issue more instructions
-		 * before entering RUN/IDLE and executing them.
-		 */
-
-		/* get arg as a string. */
-		cp = Jim_GetString(args[i], NULL);
-		/* is it the magic? */
-		if (0 == strcmp("-endstate", cp)) {
-			/* is the statename valid? */
-			cp = Jim_GetString(args[i + 1], NULL);
-
-			/* see if it is a valid state name */
-			endstate = tap_state_by_name(cp);
-			if (endstate < 0) {
-				/* update the error message */
-				Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp);
-			} else {
-				if (!scan_is_safe(endstate))
-					LOG_WARNING("drscan with unsafe "
-							"endstate \"%s\"", cp);
-
-				/* valid - so clear the error */
-				e = JIM_OK;
-				/* and remove the last 2 args */
-				argc -= 2;
-			}
-		}
-
-		/* Still an error? */
-		if (e != JIM_OK) {
-			return e; /* too bad */
-		}
-	} /* validate args */
-
-	tap = jtag_tap_by_jim_obj(interp, args[1]);
-	if (tap == NULL) {
-		return JIM_ERR;
-	}
-
-	num_fields = (argc-2)/2;
-	fields = malloc(sizeof(struct scan_field) * num_fields);
-	for (i = 2; i < argc; i += 2)
-	{
-		long bits;
-		int len;
-		const char *str;
-
-		Jim_GetLong(interp, args[i], &bits);
-		str = Jim_GetString(args[i + 1], &len);
-
-		fields[field_count].tap = tap;
-		fields[field_count].num_bits = bits;
-		fields[field_count].out_value = malloc(DIV_ROUND_UP(bits, 8));
-		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
-		fields[field_count].in_value = fields[field_count].out_value;
-		field_count++;
-	}
-
-	jtag_add_dr_scan(num_fields, fields, endstate);
-
-	retval = jtag_execute_queue();
-	if (retval != ERROR_OK)
-	{
-		Jim_SetResultString(interp, "drscan: jtag execute failed",-1);
-		return JIM_ERR;
-	}
-
-	field_count = 0;
-	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
-	for (i = 2; i < argc; i += 2)
-	{
-		long bits;
-		char *str;
-
-		Jim_GetLong(interp, args[i], &bits);
-		str = buf_to_str(fields[field_count].in_value, bits, 16);
-		free(fields[field_count].out_value);
-
-		Jim_ListAppendElement(interp, list, Jim_NewStringObj(interp, str, strlen(str)));
-		free(str);
-		field_count++;
-	}
-
-	Jim_SetResult(interp, list);
-
-	free(fields);
-
-	return JIM_OK;
-}
-
-
-static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *args)
-{
-	tap_state_t states[8];
-
-	if ((argc < 2) || ((size_t)argc > (ARRAY_SIZE(states) + 1)))
-	{
-		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
-		return JIM_ERR;
-	}
-
-	script_debug(interp, "pathmove", argc, args);
-
-	int i;
-	for (i = 0; i < argc-1; i++)
-	{
-		const char *cp;
-		cp = Jim_GetString(args[i + 1], NULL);
-		states[i] = tap_state_by_name(cp);
-		if (states[i] < 0)
-		{
-			/* update the error message */
-			Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp);
-			return JIM_ERR;
-		}
-	}
-
-	if ((jtag_add_statemove(states[0]) != ERROR_OK) || (jtag_execute_queue()!= ERROR_OK))
-	{
-		Jim_SetResultString(interp, "pathmove: jtag execute failed",-1);
-		return JIM_ERR;
-	}
-
-	jtag_add_pathmove(argc-2, states + 1);
-
-	if (jtag_execute_queue()!= ERROR_OK)
-	{
-		Jim_SetResultString(interp, "pathmove: failed",-1);
-		return JIM_ERR;
-	}
-
-	return JIM_OK;
-}
-
-
-static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args)
-{
-	script_debug(interp, "flush_count", argc, args);
-
-	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
-
-	return JIM_OK;
 }
 
 
@@ -1560,7 +1588,6 @@ static const struct command_registration jtag_command_handlers[] = {
 		.help = "choose short(default) or long tms_sequence",
 		.usage = "<short | long>",
 	},
-	// jim commands
 	{
 		.name = "jtag",
 		.mode = COMMAND_ANY,
@@ -1569,28 +1596,10 @@ static const struct command_registration jtag_command_handlers[] = {
 		.chain = jtag_subcommand_handlers,
 	},
 	{
-		.name = "drscan",
-		.mode = COMMAND_EXEC,
-		.jim_handler = &Jim_Command_drscan,
-		.help = "execute DR scan <device> "
-			"<num_bits> <value> <num_bits1> <value2> ...",
-	},
-	{
-		.name = "flush_count",
-		.mode = COMMAND_EXEC,
-		.jim_handler = &Jim_Command_flush_count,
-		.help = "returns number of times the JTAG queue has been flushed",
-	},
-	{
-		.name = "pathmove",
-		.mode = COMMAND_EXEC,
-		.jim_handler = &Jim_Command_pathmove,
-		.usage = "<state1>,<state2>,<state3>... ",
-		.help = "move JTAG to state1 then to state2, state3, etc.",
+		.chain = jtag_command_handlers_to_move,
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
 int jtag_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, jtag_command_handlers);
