@@ -2659,7 +2659,13 @@ static const uint32_t dcc_code[] =
 	0xeafffff9	/*    b   w                   */
 };
 
-int armv4_5_run_algorithm_inner(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target *target, uint32_t exit_point, int timeout_ms, void *arch_info));
+extern int armv4_5_run_algorithm_inner(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	uint32_t entry_point, uint32_t exit_point,
+	int timeout_ms, void *arch_info,
+	int (*run_it)(struct target *target, uint32_t exit_point,
+			int timeout_ms, void *arch_info));
 
 int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
@@ -2709,7 +2715,9 @@ int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t c
 	dcc_count = count;
 	dcc_buffer = buffer;
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
-			arm7_9->dcc_working_area->address, arm7_9->dcc_working_area->address + 6*4, 20*1000, &armv4_5_info, arm7_9_dcc_completion);
+			arm7_9->dcc_working_area->address,
+				arm7_9->dcc_working_area->address + 6*4,
+			20*1000, &armv4_5_info, arm7_9_dcc_completion);
 
 	if (retval == ERROR_OK)
 	{
