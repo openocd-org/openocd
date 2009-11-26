@@ -366,209 +366,240 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 	}
 }
 
-
-static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_jtag_interface(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	Jim_GetOptInfo goi;
-	int e;
-	Jim_Nvp *n;
-	Jim_Obj *o;
-	struct command_context *context;
-
-	enum {
-		JTAG_CMD_INTERFACE,
-		JTAG_CMD_INIT,
-		JTAG_CMD_INIT_RESET,
-		JTAG_CMD_NEWTAP,
-		JTAG_CMD_TAPENABLE,
-		JTAG_CMD_TAPDISABLE,
-		JTAG_CMD_TAPISENABLED,
-		JTAG_CMD_CONFIGURE,
-		JTAG_CMD_CGET,
-		JTAG_CMD_NAMES,
-	};
-
-	const Jim_Nvp jtag_cmds[] = {
-		{ .name = "interface"     , .value = JTAG_CMD_INTERFACE },
-		{ .name = "arp_init"      , .value = JTAG_CMD_INIT },
-		{ .name = "arp_init-reset", .value = JTAG_CMD_INIT_RESET },
-		{ .name = "newtap"        , .value = JTAG_CMD_NEWTAP },
-		{ .name = "tapisenabled"     , .value = JTAG_CMD_TAPISENABLED },
-		{ .name = "tapenable"     , .value = JTAG_CMD_TAPENABLE },
-		{ .name = "tapdisable"    , .value = JTAG_CMD_TAPDISABLE },
-		{ .name = "configure"     , .value = JTAG_CMD_CONFIGURE },
-		{ .name = "cget"          , .value = JTAG_CMD_CGET },
-		{ .name = "names"         , .value = JTAG_CMD_NAMES },
-
-		{ .name = NULL, .value = -1 },
-	};
-
-	context = Jim_GetAssocData(interp, "context");
-	/* go past the command */
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
 
-	e = Jim_GetOpt_Nvp(&goi, jtag_cmds, &n);
-	if (e != JIM_OK) {
-		Jim_GetOpt_NvpUnknown(&goi, jtag_cmds, 0);
-		return e;
+	/* return the name of the interface */
+	/* TCL code might need to know the exact type... */
+	/* FUTURE: we allow this as a means to "set" the interface. */
+	if (goi.argc != 0) {
+		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
+		return JIM_ERR;
 	}
-		Jim_SetEmptyResult(goi.interp);
-	switch (n->value) {
-	case JTAG_CMD_INTERFACE:
-		/* return the name of the interface */
-		/* TCL code might need to know the exact type... */
-		/* FUTURE: we allow this as a means to "set" the interface. */
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-			return JIM_ERR;
-		}
-		const char *name = jtag_interface ? jtag_interface->name : NULL;
-		Jim_SetResultString(goi.interp, name ? : "undefined", -1);
-		return JIM_OK;
-	case JTAG_CMD_INIT:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-			return JIM_ERR;
-		}
-		e = jtag_init_inner(context);
-		if (e != ERROR_OK) {
-			Jim_SetResult_sprintf(goi.interp, "error: %d", e);
-			return JIM_ERR;
-		}
-		return JIM_OK;
-	case JTAG_CMD_INIT_RESET:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-			return JIM_ERR;
-		}
-		e = jtag_init_reset(context);
-		if (e != ERROR_OK) {
-			Jim_SetResult_sprintf(goi.interp, "error: %d", e);
-			return JIM_ERR;
-		}
-		return JIM_OK;
-	case JTAG_CMD_NEWTAP:
-		return jim_newtap_cmd(&goi);
-		break;
-	case JTAG_CMD_TAPISENABLED:
-	case JTAG_CMD_TAPENABLE:
-	case JTAG_CMD_TAPDISABLE:
-		if (goi.argc != 1) {
-			Jim_SetResultString(goi.interp, "Too many parameters",-1);
-			return JIM_ERR;
-		}
-
-		{
-			struct jtag_tap *t;
-
-			t = jtag_tap_by_jim_obj(goi.interp, goi.argv[0]);
-			if (t == NULL)
-				return JIM_ERR;
-
-			switch (n->value) {
-			case JTAG_CMD_TAPISENABLED:
-				break;
-			case JTAG_CMD_TAPENABLE:
-				if (t->enabled)
-					break;
-				jtag_tap_handle_event(t, JTAG_TAP_EVENT_ENABLE);
-				if (!t->enabled)
-					break;
-
-				/* FIXME add JTAG sanity checks, w/o TLR
-				 *  - scan chain length grew by one (this)
-				 *  - IDs and IR lengths are as expected
-				 */
-
-				jtag_call_event_callbacks(JTAG_TAP_EVENT_ENABLE);
-				break;
-			case JTAG_CMD_TAPDISABLE:
-				if (!t->enabled)
-					break;
-				jtag_tap_handle_event(t, JTAG_TAP_EVENT_DISABLE);
-				if (t->enabled)
-					break;
-
-				/* FIXME add JTAG sanity checks, w/o TLR
-				 *  - scan chain length shrank by one (this)
-				 *  - IDs and IR lengths are as expected
-				 */
-
-				jtag_call_event_callbacks(JTAG_TAP_EVENT_DISABLE);
-				break;
-			}
-			e = t->enabled;
-			Jim_SetResult(goi.interp, Jim_NewIntObj(goi.interp, e));
-			return JIM_OK;
-		}
-		break;
-
-	case JTAG_CMD_CGET:
-		if (goi.argc < 2) {
-			Jim_WrongNumArgs(goi.interp, 0, NULL,
-					"cget tap_name queryparm");
-			return JIM_ERR;
-		}
-
-		{
-			struct jtag_tap *t;
-
-			Jim_GetOpt_Obj(&goi, &o);
-			t = jtag_tap_by_jim_obj(goi.interp, o);
-			if (t == NULL) {
-				return JIM_ERR;
-			}
-
-			goi.isconfigure = 0;
-			return jtag_tap_configure_cmd(&goi, t);
-		}
-		break;
-
-	case JTAG_CMD_CONFIGURE:
-		if (goi.argc < 3) {
-			Jim_WrongNumArgs(goi.interp, 0, NULL,
-					"configure tap_name attribute value ...");
-			return JIM_ERR;
-		}
-
-		{
-			struct jtag_tap *t;
-
-			Jim_GetOpt_Obj(&goi, &o);
-			t = jtag_tap_by_jim_obj(goi.interp, o);
-			if (t == NULL) {
-				return JIM_ERR;
-			}
-
-			goi.isconfigure = 1;
-			return jtag_tap_configure_cmd(&goi, t);
-		}
-		break;
-
-	case JTAG_CMD_NAMES:
-		if (goi.argc != 0) {
-			Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
-			return JIM_ERR;
-		}
-		Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
-		{
-			struct jtag_tap *tap;
-
-			for (tap = jtag_all_taps(); tap; tap = tap->next_tap) {
-				Jim_ListAppendElement(goi.interp,
-					Jim_GetResult(goi.interp),
-					Jim_NewStringObj(goi.interp,
-						tap->dotted_name, -1));
-			}
-			return JIM_OK;
-		}
-		break;
-
-	}
-
-	return JIM_ERR;
+	const char *name = jtag_interface ? jtag_interface->name : NULL;
+	Jim_SetResultString(goi.interp, name ? : "undefined", -1);
+	return JIM_OK;
 }
 
+static int jim_jtag_arp_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	if (goi.argc != 0) {
+		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
+		return JIM_ERR;
+	}
+	struct command_context *context = Jim_GetAssocData(interp, "context");
+	int e = jtag_init_inner(context);
+	if (e != ERROR_OK) {
+		Jim_SetResult_sprintf(goi.interp, "error: %d", e);
+		return JIM_ERR;
+	}
+	return JIM_OK;
+}
+
+static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	if (goi.argc != 0) {
+		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
+		return JIM_ERR;
+	}
+	struct command_context *context = Jim_GetAssocData(interp, "context");
+	int e = jtag_init_reset(context);
+	if (e != ERROR_OK) {
+		Jim_SetResult_sprintf(goi.interp, "error: %d", e);
+		return JIM_ERR;
+	}
+	return JIM_OK;
+}
+
+static int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	return jim_newtap_cmd(&goi);
+}
+
+static bool jtag_tap_enable(struct jtag_tap *t)
+{
+	if (t->enabled)
+		return false;
+	jtag_tap_handle_event(t, JTAG_TAP_EVENT_ENABLE);
+	if (!t->enabled)
+		return false;
+
+	/* FIXME add JTAG sanity checks, w/o TLR
+	 *  - scan chain length grew by one (this)
+	 *  - IDs and IR lengths are as expected
+	 */
+	jtag_call_event_callbacks(JTAG_TAP_EVENT_ENABLE);
+	return true;
+}
+static bool jtag_tap_disable(struct jtag_tap *t)
+{
+	if (!t->enabled)
+		return false;
+	jtag_tap_handle_event(t, JTAG_TAP_EVENT_DISABLE);
+	if (t->enabled)
+		return false;
+
+	/* FIXME add JTAG sanity checks, w/o TLR
+	 *  - scan chain length shrank by one (this)
+	 *  - IDs and IR lengths are as expected
+	 */
+	jtag_call_event_callbacks(JTAG_TAP_EVENT_DISABLE);
+	return true;
+}
+
+static int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	if (goi.argc != 1) {
+		Jim_SetResult_sprintf(goi.interp, "usage: %s <name>", cmd_name);
+		return JIM_ERR;
+	}
+
+	struct jtag_tap *t;
+
+	t = jtag_tap_by_jim_obj(goi.interp, goi.argv[0]);
+	if (t == NULL)
+		return JIM_ERR;
+
+	if (strcasecmp(cmd_name, "tapisenabled") == 0) {
+		// do nothing, just return the value
+	} else if (strcasecmp(cmd_name, "tapenable") == 0) {
+		if (!jtag_tap_enable(t))
+			LOG_WARNING("failed to disable tap");
+	} else if (strcasecmp(cmd_name, "tapdisable") == 0) {
+		if (!jtag_tap_disable(t))
+			LOG_WARNING("failed to disable tap");
+	} else {
+		LOG_ERROR("command '%s' unknown", cmd_name);
+		return JIM_ERR;
+	}
+	bool e = t->enabled;
+	Jim_SetResult(goi.interp, Jim_NewIntObj(goi.interp, e));
+	return JIM_OK;
+}
+
+static int jim_jtag_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	goi.isconfigure = !strcmp(cmd_name, "configure");
+	if (goi.argc < 2 + goi.isconfigure) {
+		Jim_WrongNumArgs(goi.interp, 0, NULL,
+				"<tap_name> <attribute> ...");
+		return JIM_ERR;
+	}
+
+	struct jtag_tap *t;
+
+	Jim_Obj *o;
+	Jim_GetOpt_Obj(&goi, &o);
+	t = jtag_tap_by_jim_obj(goi.interp, o);
+	if (t == NULL) {
+		return JIM_ERR;
+	}
+
+	return jtag_tap_configure_cmd(&goi, t);
+}
+
+static int jim_jtag_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	if (goi.argc != 0) {
+		Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
+		return JIM_ERR;
+	}
+	Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
+	struct jtag_tap *tap;
+
+	for (tap = jtag_all_taps(); tap; tap = tap->next_tap) {
+		Jim_ListAppendElement(goi.interp,
+			Jim_GetResult(goi.interp),
+			Jim_NewStringObj(goi.interp,
+				tap->dotted_name, -1));
+	}
+	return JIM_OK;
+}
+
+static const struct command_registration jtag_subcommand_handlers[] = {
+	{
+		.name = "interface",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_jtag_interface,
+		.help = "Returns the selected interface",
+	},
+	{
+		.name = "arp_init",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_jtag_arp_init,
+	},
+	{
+		.name = "arp_init-reset",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_jtag_arp_init_reset,
+	},
+	{
+		.name = "newtap",
+		.mode = COMMAND_CONFIG,
+		.jim_handler = &jim_jtag_newtap,
+		.help = "Create a new TAP instance",
+		.usage = "<name> <type> -irlen <count> [-ircapture <count>] "
+			"[-irmask <count>] [-enable|-disable]",
+	},
+	{
+		.name = "tapisenabled",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_jtag_tap_enabler,
+		.help = "Returns a integer indicating TAP state (0/1)",
+		.usage = "<name>",
+	},
+	{
+		.name = "tapenable",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_jtag_tap_enabler,
+		.help = "Enable the specified TAP",
+		.usage = "<name>",
+	},
+	{
+		.name = "tapdisable",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_jtag_tap_enabler,
+		.help = "Enable the specified TAP",
+		.usage = "<name>",
+	},
+	{
+		.name = "configure",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_jtag_configure,
+		.help = "Enable the specified TAP",
+		.usage = "<name> [<key> <value> ...]",
+	},
+	{
+		.name = "cget",
+		.mode = COMMAND_EXEC,
+		.jim_handler = &jim_jtag_configure,
+		.help = "Enable the specified TAP",
+		.usage = "<name> [<key> <value> ...]",
+	},
+	{
+		.name = "names",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_jtag_names,
+		.help = "Returns list of all JTAG tap names",
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 void jtag_notify_event(enum jtag_event event)
 {
@@ -1533,8 +1564,9 @@ static const struct command_registration jtag_command_handlers[] = {
 	{
 		.name = "jtag",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_jtag_command,
 		.help = "perform jtag tap actions",
+
+		.chain = jtag_subcommand_handlers,
 	},
 	{
 		.name = "drscan",
