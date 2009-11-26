@@ -1881,6 +1881,15 @@ static int xscale_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
+static int xscale_read_phys_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	/** \todo: provide a non-stub implementtion of this routine. */
+	LOG_ERROR("%s: %s is not implemented.  Disable MMU?",
+			target_name(target), __func__);
+	return ERROR_FAIL;
+}
+
 static int xscale_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -1957,6 +1966,15 @@ static int xscale_write_memory(struct target *target, uint32_t address,
 	}
 
 	return ERROR_OK;
+}
+
+static int xscale_write_phys_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	/** \todo: provide a non-stub implementtion of this routine. */
+	LOG_ERROR("%s: %s is not implemented.  Disable MMU?",
+			target_name(target), __func__);
+	return ERROR_FAIL;
 }
 
 static int xscale_bulk_write_memory(struct target *target, uint32_t address,
@@ -3684,7 +3702,9 @@ struct target_type xscale_target =
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
 	.read_memory = xscale_read_memory,
+	.read_phys_memory = xscale_read_phys_memory,
 	.write_memory = xscale_write_memory,
+	.write_phys_memory = xscale_write_phys_memory,
 	.bulk_write_memory = xscale_bulk_write_memory,
 
 	.checksum_memory = arm_checksum_memory,
