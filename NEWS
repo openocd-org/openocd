@@ -10,10 +10,20 @@ Boundary Scan:
 Target Layer:
 	ARM
 		- renamed "armv4_5" command prefix as "arm"
+		- recognize TrustZone "Secure Monitor" mode
+		- "arm regs" command output changed
+		- register names use "sp" not "r13"
 	ARM11
 		- Preliminary ETM and ETB hookup
 		- accelerated "flash erase_check"
 		- accelerated GDB memory checksum
+		- support "arm regs" command
+		- can access all core modes and registers
+	Cortex-A8
+		- support "arm regs" command
+		- can access all core modes and registers
+	Cortex-M3
+		- Exposed DWT registers like cycle counter
 
 Flash Layer:
 	'flash bank' and 'nand device' take <bank_name> as first argument.
