@@ -293,94 +293,105 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = NULL,          .value = -1 }
 };
 
+static int jtag_tap_configure_event(Jim_GetOptInfo *goi, struct jtag_tap * tap)
+{
+	if (goi->argc == 0)
+	{
+		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event <event-name> ...");
+		return JIM_ERR;
+	}
+
+	Jim_Nvp *n;
+	int e = Jim_GetOpt_Nvp(goi, nvp_jtag_tap_event, &n);
+	if (e != JIM_OK)
+	{
+		Jim_GetOpt_NvpUnknown(goi, nvp_jtag_tap_event, 1);
+		return e;
+	}
+
+	if (goi->isconfigure) {
+		if (goi->argc != 1) {
+			Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event <event-name> <event-body>");
+			return JIM_ERR;
+		}
+	} else {
+		if (goi->argc != 0) {
+			Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event <event-name>");
+			return JIM_ERR;
+		}
+	}
+
+	struct jtag_tap_event_action *jteap  = tap->event_action;
+	/* replace existing event body */
+	bool found = false;
+	while (jteap)
+	{
+		if (jteap->event == (enum jtag_event)n->value)
+		{
+			found = true;
+			break;
+		}
+		jteap = jteap->next;
+	}
+
+	Jim_SetEmptyResult(goi->interp);
+
+	if (goi->isconfigure)
+	{
+		if (!found)
+			jteap = calloc(1, sizeof(*jteap));
+		else if (NULL != jteap->body)
+			Jim_DecrRefCount(interp, jteap->body);
+
+		jteap->event = n->value;
+
+		Jim_Obj *o;
+		Jim_GetOpt_Obj(goi, &o);
+		jteap->body = Jim_DuplicateObj(goi->interp, o);
+		Jim_IncrRefCount(jteap->body);
+
+		if (!found)
+		{
+			/* add to head of event list */
+			jteap->next = tap->event_action;
+			tap->event_action = jteap;
+		}
+	}
+	else if (found)
+	{
+		Jim_SetResult(goi->interp,
+			Jim_DuplicateObj(goi->interp, jteap->body));
+	}
+	return JIM_OK;
+}
+
 static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, struct jtag_tap * tap)
 {
-	Jim_Nvp *n;
-	Jim_Obj *o;
-	int e;
-
 	/* parse config or cget options */
-	while (goi->argc > 0) {
+	while (goi->argc > 0)
+	{
 		Jim_SetEmptyResult (goi->interp);
 
-		e = Jim_GetOpt_Nvp(goi, nvp_config_opts, &n);
-		if (e != JIM_OK) {
+		Jim_Nvp *n;
+		int e = Jim_GetOpt_Nvp(goi, nvp_config_opts, &n);
+		if (e != JIM_OK)
+		{
 			Jim_GetOpt_NvpUnknown(goi, nvp_config_opts, 0);
 			return e;
 		}
 
-		switch (n->value) {
-			case JCFG_EVENT:
-				if (goi->argc == 0) {
-					Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name? ...");
-					return JIM_ERR;
-				}
-
-				e = Jim_GetOpt_Nvp(goi, nvp_jtag_tap_event, &n);
-				if (e != JIM_OK) {
-					Jim_GetOpt_NvpUnknown(goi, nvp_jtag_tap_event, 1);
-					return e;
-				}
-
-				if (goi->isconfigure) {
-					if (goi->argc != 1) {
-						Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
-						return JIM_ERR;
-					}
-				} else {
-					if (goi->argc != 0) {
-						Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name?");
-						return JIM_ERR;
-					}
-				}
-
-				{
-					struct jtag_tap_event_action *jteap;
-
-					jteap = tap->event_action;
-					/* replace existing? */
-					while (jteap) {
-						if (jteap->event == (enum jtag_event)n->value) {
-							break;
-						}
-						jteap = jteap->next;
-					}
-
-					if (goi->isconfigure) {
-						bool replace = true;
-						if (jteap == NULL) {
-							/* create new */
-							jteap = calloc(1, sizeof (*jteap));
-							replace = false;
-						}
-						jteap->event = n->value;
-						Jim_GetOpt_Obj(goi, &o);
-						if (jteap->body) {
-							Jim_DecrRefCount(interp, jteap->body);
-						}
-						jteap->body = Jim_DuplicateObj(goi->interp, o);
-						Jim_IncrRefCount(jteap->body);
-
-						if (!replace)
-						{
-							/* add to head of event list */
-							jteap->next = tap->event_action;
-							tap->event_action = jteap;
-						}
-						Jim_SetEmptyResult(goi->interp);
-					} else {
-						/* get */
-						if (jteap == NULL) {
-							Jim_SetEmptyResult(goi->interp);
-						} else {
-							Jim_SetResult(goi->interp, Jim_DuplicateObj(goi->interp, jteap->body));
-						}
-					}
-				}
-				/* loop for more */
-				break;
+		switch (n->value)
+		{
+		case JCFG_EVENT:
+			e = jtag_tap_configure_event(goi, tap);
+			if (e != JIM_OK)
+				return e;
+			break;
+		default:
+			Jim_SetResult_sprintf(goi->interp, "unknown event: %s", n->name);
+			return JIM_ERR;
 		}
-	} /* while (goi->argc) */
+	}
 
 	return JIM_OK;
 }
