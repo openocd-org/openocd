@@ -40,9 +40,29 @@ static int testee_init(struct command_context *cmd_ctx, struct target *target)
 {
 	return ERROR_OK;
 }
-
+static int testee_poll(struct target *target)
+{
+	return ERROR_OK;
+}
+static int testee_halt(struct target *target)
+{
+	return ERROR_OK;
+}
+static int testee_reset_assert(struct target *target)
+{
+	return ERROR_OK;
+}
+static int testee_reset_deassert(struct target *target)
+{
+	return ERROR_OK;
+}
 struct target_type testee_target = {
 	.name = "testee",
-	.init_target = &testee_init,
 	.commands = testee_command_handlers,
+
+	.init_target = &testee_init,
+	.poll = &testee_poll,
+	.halt = &testee_halt,
+	.assert_reset = &testee_reset_assert,
+	.deassert_reset = &testee_reset_deassert,
 };
