@@ -1007,12 +1007,15 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	return ERROR_OK;
 }
 
-/* CID interpretation -- see ARM IHI 0029B section 3 */
+/* CID interpretation -- see ARM IHI 0029B section 3
+ * and ARM IHI 0031A table 13-3.
+ */
 static const char *class_description[16] ={
 	"Reserved", "ROM table", "Reserved", "Reserved",
 	"Reserved", "Reserved", "Reserved", "Reserved",
 	"Reserved", "CoreSight component", "Reserved", "Peripheral Test Block",
-	"Reserved", "DESS", "Generic IP component", "PrimeCell or System component"
+	"Reserved", "OptimoDE DESS",
+		"Generic IP component", "PrimeCell or System component"
 };
 
 static bool
