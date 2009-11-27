@@ -1098,13 +1098,7 @@ int main(int argc, char *argv[])
 	Jim_CreateCommand(interp, "uart", zylinjtag_Jim_Command_uart, NULL, NULL);
 
 
-	int errVal;
-	errVal = log_init(cmd_ctx);
-	if (errVal != ERROR_OK)
-	{
-		diag_printf("log_init() failed %d\n", errVal);
-		exit(-1);
-	}
+	log_init();
 
 	set_log_output(cmd_ctx, log);
 
