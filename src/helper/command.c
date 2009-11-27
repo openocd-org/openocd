@@ -44,6 +44,9 @@
 #include "jim-eventloop.h"
 
 
+/* nice short description of source file */
+#define __THIS__FILE__ "command.c"
+
 Jim_Interp *interp = NULL;
 
 static int run_command(struct command_context *context,
@@ -185,8 +188,12 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return script_command_run(interp, argc, argv, c, true);
 }
 
-/* nice short description of source file */
-#define __THIS__FILE__ "command.c"
+static struct command *command_root(struct command *c)
+{
+	while (NULL != c->parent)
+		c = c->parent;
+	return c;
+}
 
 /**
  * Find a command by name from a list of commands.
@@ -296,19 +303,22 @@ static int register_command_handler(struct command *c)
 	if (NULL == full_name)
 		return retval;
 
-	const char *ocd_name = alloc_printf("ocd_%s", full_name);
-	if (NULL == full_name)
-		goto free_full_name;
+	if (NULL != c->handler)
+	{
+		const char *ocd_name = alloc_printf("ocd_%s", full_name);
+		if (NULL == full_name)
+			goto free_full_name;
 
-	Jim_CreateCommand(interp, ocd_name, script_command, c, NULL);
-	free((void *)ocd_name);
+		Jim_CreateCommand(interp, ocd_name, script_command, c, NULL);
+		free((void *)ocd_name);
+	}
 
 	/* we now need to add an overrideable proc */
 	const char *override_name = alloc_printf("proc %s {args} {"
 			"if {[catch {eval ocd_%s $args}] == 0} "
 			"{return \"\"} else {return -code error}}",
 			full_name, full_name);
-	if (NULL == full_name)
+	if (NULL == override_name)
 		goto free_full_name;
 
 	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__);
@@ -343,7 +353,7 @@ struct command* register_command(struct command_context *context,
 
 	if (NULL != c->handler)
 	{
-		int retval = register_command_handler(c);
+		int retval = register_command_handler(command_root(c));
 		if (ERROR_OK != retval)
 		{
 			unregister_command(context, parent, name);
@@ -792,6 +802,8 @@ static COMMAND_HELPER(command_help_find, struct command *head,
 	if (0 == CMD_ARGC)
 		return ERROR_INVALID_ARGUMENTS;
 	*out = command_find(head, CMD_ARGV[0]);
+	if (NULL == *out && strncmp(CMD_ARGV[0], "ocd_", 4) == 0)
+		*out = command_find(head, CMD_ARGV[0] + 4);
 	if (NULL == *out)
 		return ERROR_INVALID_ARGUMENTS;
 	if (--CMD_ARGC == 0)
@@ -875,15 +887,18 @@ COMMAND_HANDLER(handle_help_command)
 }
 
 static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
-		struct command *head, struct command **out)
+		struct command *head, struct command **out, bool top_level)
 {
 	if (0 == argc)
 		return argc;
-	struct command *c = command_find(head, Jim_GetString(argv[0], NULL));
+	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	struct command *c = command_find(head, cmd_name);
+	if (NULL == c && top_level && strncmp(cmd_name, "ocd_", 4) == 0)
+		c = command_find(head, cmd_name + 4);
 	if (NULL == c)
 		return argc;
 	*out = c;
-	return command_unknown_find(--argc, ++argv, (*out)->children, out);
+	return command_unknown_find(--argc, ++argv, (*out)->children, out, false);
 }
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -893,7 +908,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	struct command_context *cmd_ctx = current_command_context();
 	struct command *c = cmd_ctx->commands;
-	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c);
+	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
 	// if nothing could be consumed, then it's really an unknown command
 	if (remaining == argc - 1)
 	{
