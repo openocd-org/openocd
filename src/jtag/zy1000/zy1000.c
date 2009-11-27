@@ -36,15 +36,6 @@
 #define ZYLIN_OPENOCD GIT_OPENOCD_VERSION
 #define ZYLIN_OPENOCD_VERSION "ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE
 
-/* low level command set
- */
-void zy1000_reset(int trst, int srst);
-
-
-int zy1000_speed(int speed);
-int zy1000_register_commands(struct command_context *cmd_ctx);
-int zy1000_init(void);
-int zy1000_quit(void);
 
 static int zy1000_khz(int khz, int *jtag_speed)
 {
@@ -107,21 +98,6 @@ static int zy1000_power_dropout(int *dropout)
 	*dropout = readPowerDropout();
 	return ERROR_OK;
 }
-
-
-struct jtag_interface zy1000_interface =
-{
-	.name = "ZY1000",
-	.execute_queue = NULL,
-	.speed = zy1000_speed,
-	.register_commands = zy1000_register_commands,
-	.init = zy1000_init,
-	.quit = zy1000_quit,
-	.khz = zy1000_khz,
-	.speed_div = zy1000_speed_div,
-	.power_dropout = zy1000_power_dropout,
-	.srst_asserted = zy1000_srst_asserted,
-};
 
 void zy1000_reset(int trst, int srst)
 {
@@ -368,24 +344,6 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80) != 0));
 
 	return JIM_OK;
-}
-
-int zy1000_register_commands(struct command_context *cmd_ctx)
-{
-	COMMAND_REGISTER(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
-			"power <on/off> - turn power switch to target on/off. No arguments - print status.");
-
-	Jim_CreateCommand(interp, "zy1000_version", jim_zy1000_version, NULL, NULL);
-
-
-	Jim_CreateCommand(interp, "powerstatus", zylinjtag_Jim_Command_powerstatus, NULL, NULL);
-
-#ifdef CYGPKG_HAL_NIOS2
-	Jim_CreateCommand(interp, "updatezy1000firmware", jim_zy1000_writefirmware, NULL, NULL);
-#endif
-
-
-	return ERROR_OK;
 }
 
 
@@ -816,4 +774,50 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 	}
 }
 
+
+static const struct command_registration zy1000_commands[] = {
+	{
+		.name = "power",
+		.handler = &handle_power_command,
+		.mode = COMMAND_ANY,
+		.help = "turn power switch to target on/off. No arguments - print status.",
+		.usage = "power <on/off>",
+	},
+	{
+		.name = "zy1000_version",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_zy1000_version,
+		.help = "print version info for zy1000",
+	},
+	{
+		.name = "powerstatus",
+		.mode = COMMAND_ANY,
+		.jim_handler = & zylinjtag_Jim_Command_powerstatus,
+		.help = "print power status of target",
+	},
+#ifdef CYGPKG_HAL_NIOS2
+	{
+		.name = "updatezy1000firmware",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_zy1000_writefirmware,
+		.help = "writes firmware to flash",
+	},
+#endif
+};
+
+
+
+struct jtag_interface zy1000_interface =
+{
+	.name = "ZY1000",
+	.execute_queue = NULL,
+	.speed = zy1000_speed,
+	.commands = zy1000_commands,
+	.init = zy1000_init,
+	.quit = zy1000_quit,
+	.khz = zy1000_khz,
+	.speed_div = zy1000_speed_div,
+	.power_dropout = zy1000_power_dropout,
+	.srst_asserted = zy1000_srst_asserted,
+};
 
