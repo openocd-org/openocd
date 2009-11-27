@@ -1121,11 +1121,6 @@ COMMAND_HANDLER(handle_nand_info_command)
 	int first = -1;
 	int last = -1;
 
-	struct nand_device *p;
-	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
-	if (ERROR_OK != retval)
-		return retval;
-
 	switch (CMD_ARGC) {
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1143,6 +1138,11 @@ COMMAND_HANDLER(handle_nand_info_command)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
 		break;
 	}
+
+	struct nand_device *p;
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (NULL == p->device)
 	{
