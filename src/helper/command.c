@@ -525,13 +525,18 @@ char *command_name(struct command *c, char delim)
 	return __command_name(c, delim, 0);
 }
 
+static bool command_can_run(struct command_context *cmd_ctx, struct command *c)
+{
+	return c->mode == COMMAND_ANY || c->mode == cmd_ctx->mode;
+}
+
 static int run_command(struct command_context *context,
 		struct command *c, const char *words[], unsigned num_words)
 {
-	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode)))
+	if (!command_can_run(context, c))
 	{
 		/* Config commands can not run after the config stage */
-		LOG_ERROR("Command '%s' only runs during configuration stage", c->name);
+		LOG_ERROR("The '%s' command must be used before 'init'.", c->name);
 		return ERROR_FAIL;
 	}
 
