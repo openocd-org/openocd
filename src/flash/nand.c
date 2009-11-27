@@ -36,6 +36,7 @@ static int nand_write_page(struct nand_device *nand, uint32_t page, uint8_t *dat
 
 /* NAND flash controller
  */
+extern struct nand_flash_controller nonce_nand_controller;
 extern struct nand_flash_controller davinci_nand_controller;
 extern struct nand_flash_controller lpc3180_nand_controller;
 extern struct nand_flash_controller orion_nand_controller;
@@ -49,6 +50,7 @@ extern struct nand_flash_controller imx31_nand_flash_controller;
 
 static struct nand_flash_controller *nand_flash_controllers[] =
 {
+	&nonce_nand_controller,
 	&davinci_nand_controller,
 	&lpc3180_nand_controller,
 	&orion_nand_controller,

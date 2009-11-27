@@ -44,6 +44,7 @@ NAND_SRCS = \
 	nand.c
 
 NAND_DEVICES_SRCS = \
+	nonce_nand.c \
 	davinci_nand.c \
 	lpc3180_nand_controller.c \
 	mx3_nand.c \
