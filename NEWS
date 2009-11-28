@@ -8,6 +8,8 @@ JTAG Layer:
 
 Boundary Scan:
 Target Layer:
+	General
+		- new "reset-assert" event, for systems without SRST
 	ARM
 		- renamed "armv4_5" command prefix as "arm"
 		- recognize TrustZone "Secure Monitor" mode
@@ -22,6 +24,7 @@ Target Layer:
 	Cortex-A8
 		- support "arm regs" command
 		- can access all core modes and registers
+		- supports "reset-assert" event (used on OMAP3530)
 	Cortex-M3
 		- Exposed DWT registers like cycle counter
 
