@@ -1246,6 +1246,21 @@ static int cortex_a8_assert_reset(struct target *target)
 
 	LOG_DEBUG(" ");
 
+	/* FIXME when halt is requested, make it work somehow... */
+
+	/* Issue some kind of warm reset. */
+	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
+		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
+	} else if (jtag_get_reset_config() & RESET_HAS_SRST) {
+		/* REVISIT handle "pulls" cases, if there's
+		 * hardware that needs them to work.
+		 */
+		jtag_add_reset(0, 1);
+	} else {
+		LOG_ERROR("%s: how to reset?", target_name(target));
+		return ERROR_FAIL;
+	}
+
 	/* registers are now invalid */
 	register_cache_invalidate(armv7a->armv4_5_common.core_cache);
 
@@ -1256,14 +1271,22 @@ static int cortex_a8_assert_reset(struct target *target)
 
 static int cortex_a8_deassert_reset(struct target *target)
 {
+	int retval;
 
 	LOG_DEBUG(" ");
 
-	if (target->reset_halt)
-	{
-		int retval;
-		if ((retval = target_halt(target)) != ERROR_OK)
-			return retval;
+	/* be certain SRST is off */
+	jtag_add_reset(0, 0);
+
+	retval = cortex_a8_poll(target);
+
+	if (target->reset_halt) {
+		if (target->state != TARGET_HALTED) {
+			LOG_WARNING("%s: ran after reset and before halt ...",
+					target_name(target));
+			if ((retval = target_halt(target)) != ERROR_OK)
+				return retval;
+		}
 	}
 
 	return ERROR_OK;
