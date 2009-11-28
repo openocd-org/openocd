@@ -172,8 +172,6 @@ enum target_event
 	 * - June/July/Aug 2008
 	 * - Duane Ellis */
 	TARGET_EVENT_OLD_gdb_program_config,
-	TARGET_EVENT_OLD_pre_reset,
-	TARGET_EVENT_OLD_post_reset,
 	TARGET_EVENT_OLD_pre_resume,
 
 	/* allow GDB to do stuff before others handle the halted event,
