@@ -253,29 +253,6 @@ static struct command **command_list_for_parent(
 	return parent ? &parent->children : &cmd_ctx->commands;
 }
 
-static struct command *command_new(struct command_context *cmd_ctx,
-		struct command *parent, const struct command_registration *cr)
-{
-	assert(cr->name);
-
-	struct command *c = malloc(sizeof(struct command));
-	memset(c, 0, sizeof(struct command));
-
-	c->name = strdup(cr->name);
-	if (cr->help)
-		c->help = strdup(cr->help);
-	if (cr->usage)
-		c->usage = strdup(cr->usage);
-	c->parent = parent;
-	c->handler = cr->handler;
-	c->jim_handler = cr->jim_handler;
-	c->jim_handler_data = cr->jim_handler_data;
-	c->mode = cr->mode;
-
-	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
-
-	return c;
-}
 static void command_free(struct command *c)
 {
 	/// @todo if command has a handler, unregister its jim command!
@@ -294,6 +271,39 @@ static void command_free(struct command *c)
 	if (c->usage)
 		free((void*)c->usage);
 	free(c);
+}
+
+static struct command *command_new(struct command_context *cmd_ctx,
+		struct command *parent, const struct command_registration *cr)
+{
+	assert(cr->name);
+
+	struct command *c = calloc(1, sizeof(struct command));
+	if (NULL == c)
+		return NULL;
+
+	c->name = strdup(cr->name);
+	if (cr->help)
+		c->help = strdup(cr->help);
+	if (cr->usage)
+		c->usage = strdup(cr->usage);
+
+	if (!c->name || (cr->help && !c->help) || (cr->usage && !c->usage))
+		goto command_new_error;
+
+	c->parent = parent;
+	c->handler = cr->handler;
+	c->jim_handler = cr->jim_handler;
+	c->jim_handler_data = cr->jim_handler_data;
+	c->mode = cr->mode;
+
+	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
+
+	return c;
+
+command_new_error:
+	command_free(c);
+	return NULL;
 }
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
