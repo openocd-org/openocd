@@ -989,13 +989,14 @@ static int arm11_read_memory(struct target *target, uint32_t address, uint32_t s
 }
 
 /*
-* arm11_config_memrw_no_increment - in the future we may want to be able
+* no_increment - in the future we may want to be able
 * to read/write a range of data to a "port". a "port" is an action on
 * read memory address for some peripheral.
 */
 static int arm11_write_memory_inner(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
-		bool arm11_config_memrw_no_increment)
+		uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer,
+		bool no_increment)
 {
 	int retval;
 
@@ -1043,7 +1044,9 @@ static int arm11_write_memory_inner(struct target *target,
 				/* strb    r1, [r0], #1 */
 				/* strb    r1, [r0] */
 				retval = arm11_run_instr_no_data1(arm11,
-					!arm11_config_memrw_no_increment ? 0xe4c01001 : 0xe5c01000);
+					!no_increment
+						? 0xe4c01001
+						: 0xe5c01000);
 				if (retval != ERROR_OK)
 					return retval;
 			}
@@ -1068,7 +1071,9 @@ static int arm11_write_memory_inner(struct target *target,
 				/* strh    r1, [r0], #2 */
 				/* strh    r1, [r0] */
 				retval = arm11_run_instr_no_data1(arm11,
-					!arm11_config_memrw_no_increment ? 0xe0c010b2 : 0xe1c010b0);
+					!no_increment
+						? 0xe0c010b2
+						: 0xe1c010b0);
 				if (retval != ERROR_OK)
 					return retval;
 			}
@@ -1077,7 +1082,7 @@ static int arm11_write_memory_inner(struct target *target,
 		}
 
 	case 4: {
-		uint32_t instr = !arm11_config_memrw_no_increment ? 0xeca05e01 : 0xed805e00;
+		uint32_t instr = !no_increment ? 0xeca05e01 : 0xed805e00;
 
 		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
 		uint32_t *words = (uint32_t*)buffer;
@@ -1104,7 +1109,7 @@ static int arm11_write_memory_inner(struct target *target,
 	}
 
 	/* r0 verification */
-	if (!arm11_config_memrw_no_increment)
+	if (!no_increment)
 	{
 		uint32_t r0;
 
@@ -1132,9 +1137,14 @@ static int arm11_write_memory_inner(struct target *target,
 }
 
 static int arm11_write_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer)
 {
-	return arm11_write_memory_inner(target, address, size, count, buffer, false);
+	/* pointer increment matters only for multi-unit writes ...
+	 * not e.g. to a "reset the chip" controller.
+	 */
+	return arm11_write_memory_inner(target, address, size,
+			count, buffer, count == 1);
 }
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
