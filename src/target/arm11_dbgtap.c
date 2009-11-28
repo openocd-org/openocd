@@ -30,9 +30,9 @@
 #include "time_support.h"
 
 #if 0
-#define JTAG_DEBUG(expr ...)	DEBUG(expr)
+#define JTAG_DEBUG(expr ...)	do { if (1) LOG_DEBUG(expr); } while (0)
 #else
-#define JTAG_DEBUG(expr ...)	do {} while (0)
+#define JTAG_DEBUG(expr ...)	do { if (0) LOG_DEBUG(expr); } while (0)
 #endif
 
 /*
