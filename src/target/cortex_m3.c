@@ -1931,9 +1931,6 @@ static const struct command_registration cortex_m3_exec_command_handlers[] = {
 };
 static const struct command_registration cortex_m3_command_handlers[] = {
 	{
-		.chain = arm_command_handlers,
-	},
-	{
 		.chain = armv7m_command_handlers,
 	},
 	{
