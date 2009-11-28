@@ -314,9 +314,8 @@ static int register_command_handler(struct command *c)
 	}
 
 	/* we now need to add an overrideable proc */
-	const char *override_name = alloc_printf("proc %s {args} {"
-			"if {[catch {eval ocd_%s $args}] == 0} "
-			"{return \"\"} else {return -code error}}",
+	const char *override_name = alloc_printf(
+			"proc %s {args} {eval ocd_bouncer %s $args}",
 			full_name, full_name);
 	if (NULL == override_name)
 		goto free_full_name;
