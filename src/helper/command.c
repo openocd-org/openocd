@@ -950,6 +950,36 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return script_command_run(interp, count, start, c, found);
 }
 
+static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	struct command_context *cmd_ctx = current_command_context();
+	enum command_mode mode;
+	if (argc > 1)
+	{
+		struct command *c = cmd_ctx->commands;
+		int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
+		// if nothing could be consumed, then it's an unknown command
+		if (remaining == argc - 1)
+		{
+			Jim_SetResultString(interp, "unknown", -1);
+			return JIM_OK;
+		}
+		mode = c->mode;
+	}
+	else
+		mode = cmd_ctx->mode;
+
+	const char *mode_str;
+	switch (mode) {
+	case COMMAND_ANY: mode_str = "any"; break;
+	case COMMAND_CONFIG: mode_str = "config"; break;
+	case COMMAND_EXEC: mode_str = "exec"; break;
+	default: mode_str = "unknown"; break;
+	}
+	Jim_SetResultString(interp, mode_str, -1);
+	return JIM_OK;
+}
+
 static int jim_command_type(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (1 == argc)
@@ -1097,6 +1127,15 @@ COMMAND_HANDLER(handle_sleep_command)
 }
 
 static const struct command_registration command_subcommand_handlers[] = {
+	{
+		.name = "mode",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_command_mode,
+		.usage = "[<name> ...]",
+		.help = "Returns the command modes allowed by a  command:"
+			"'any', 'config', or 'exec'.  If no command is"
+			"specified, returns the current command mode.",
+	},
 	{
 		.name = "type",
 		.mode = COMMAND_ANY,
