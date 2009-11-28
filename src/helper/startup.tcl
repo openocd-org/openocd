@@ -15,7 +15,7 @@ proc exit {} {
 # to discard 'handler' command output,
 proc ocd_bouncer {name args} {
 	set cmd [format "ocd_%s" $name]
-	set type [eval command type $cmd $args]
+	set type [eval ocd_command type $cmd $args]
 	if {$type == "native"} {
 		return [eval $cmd $args]
 	} else {if {$type == "simple"} {
@@ -25,7 +25,7 @@ proc ocd_bouncer {name args} {
 			set errmsg "Command handler execution failed"
 		}
 	} else {if {$type == "group"} {
-		catch {eval help $name $args}
+		catch {eval ocd_help $name $args}
 		set errmsg [format "%s: command requires more arguments" \
 			[concat $name " " $args]]
 	} else {

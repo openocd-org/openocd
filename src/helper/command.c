@@ -296,37 +296,32 @@ static void command_free(struct command *c)
 	free(c);
 }
 
+static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+
 static int register_command_handler(struct command *c)
 {
-	int retval = -ENOMEM;
-	const char *full_name = command_name(c, '_');
-	if (NULL == full_name)
+	const char *ocd_name = alloc_printf("ocd_%s", c->name);
+	if (NULL == ocd_name)
+		return JIM_ERR;
+
+	LOG_DEBUG("registering '%s'...", ocd_name);
+
+	Jim_CmdProc func = c->handler ? &script_command : &command_unknown;
+	int retval = Jim_CreateCommand(interp, ocd_name, func, c, NULL);
+	free((void *)ocd_name);
+	if (JIM_OK != retval)
 		return retval;
-
-	if (NULL != c->handler)
-	{
-		const char *ocd_name = alloc_printf("ocd_%s", full_name);
-		if (NULL == full_name)
-			goto free_full_name;
-
-		Jim_CreateCommand(interp, ocd_name, script_command, c, NULL);
-		free((void *)ocd_name);
-	}
 
 	/* we now need to add an overrideable proc */
 	const char *override_name = alloc_printf(
 			"proc %s {args} {eval ocd_bouncer %s $args}",
-			full_name, full_name);
+			c->name, c->name);
 	if (NULL == override_name)
-		goto free_full_name;
+		return JIM_ERR;
 
-	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__);
+	retval = Jim_Eval_Named(interp, override_name, __FILE__, __LINE__);
 	free((void *)override_name);
 
-	retval = ERROR_OK;
-
-free_full_name:
-	free((void *)full_name);
 	return retval;
 }
 
@@ -350,19 +345,20 @@ struct command* register_command(struct command_context *context,
 	if (NULL == c)
 		return NULL;
 
-	if (NULL != c->handler)
-	{
-		int retval = register_command_handler(command_root(c));
-		if (ERROR_OK != retval)
-		{
-			unregister_command(context, parent, name);
-			return NULL;
-		}
-	}
-
+	int retval = ERROR_OK;
 	if (NULL != cr->jim_handler && NULL == parent)
-		Jim_CreateCommand(interp, cr->name, cr->jim_handler, cr->jim_handler_data, NULL);
+	{
+		retval = Jim_CreateCommand(interp, cr->name,
+				cr->jim_handler, cr->jim_handler_data, NULL);
+	}
+	else if (NULL != cr->handler || NULL != parent)
+		retval = register_command_handler(command_root(c));
 
+	if (ERROR_OK != retval)
+	{
+		unregister_command(context, parent, name);
+		c = NULL;
+	}
 	return c;
 }
 
@@ -903,15 +899,22 @@ static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	const char *cmd_name = Jim_GetString(argv[0], NULL);
-	script_debug(interp, cmd_name, argc - 1, argv + 1);
+	if (strcmp(cmd_name, "unknown") == 0)
+	{
+		if (argc == 1)
+			return JIM_OK;
+		argc--;
+		argv++;
+	}
+	script_debug(interp, cmd_name, argc, argv);
 
 	struct command_context *cmd_ctx = current_command_context();
 	struct command *c = cmd_ctx->commands;
-	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
+	int remaining = command_unknown_find(argc, argv, c, &c, true);
 	// if nothing could be consumed, then it's really an unknown command
-	if (remaining == argc - 1)
+	if (remaining == argc)
 	{
-		const char *cmd = Jim_GetString(argv[1], NULL);
+		const char *cmd = Jim_GetString(argv[0], NULL);
 		LOG_ERROR("Unknown command:\n  %s", cmd);
 		return JIM_OK;
 	}
@@ -1196,7 +1199,6 @@ struct command_context* command_init(const char *startup_tcl)
 	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS",
 			Jim_NewStringObj(interp, HostOs , strlen(HostOs)));
 
-	Jim_CreateCommand(interp, "unknown", &command_unknown, NULL, NULL);
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
 	Jim_CreateCommand(interp, "capture", jim_capture, NULL, NULL);
