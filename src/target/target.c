@@ -147,6 +147,7 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_START, .name = "reset-start" },
 
 	{ .value = TARGET_EVENT_RESET_ASSERT_PRE,    .name = "reset-assert-pre" },
+	{ .value = TARGET_EVENT_RESET_ASSERT,        .name = "reset-assert" },
 	{ .value = TARGET_EVENT_RESET_ASSERT_POST,   .name = "reset-assert-post" },
 	{ .value = TARGET_EVENT_RESET_DEASSERT_PRE,  .name = "reset-deassert-pre" },
 	{ .value = TARGET_EVENT_RESET_DEASSERT_POST, .name = "reset-deassert-post" },
@@ -154,8 +155,8 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_HALT_POST,     .name = "reset-halt-post" },
 	{ .value = TARGET_EVENT_RESET_WAIT_PRE,      .name = "reset-wait-pre" },
 	{ .value = TARGET_EVENT_RESET_WAIT_POST,     .name = "reset-wait-post" },
-	{ .value = TARGET_EVENT_RESET_INIT , .name = "reset-init" },
-	{ .value = TARGET_EVENT_RESET_END, .name = "reset-end" },
+	{ .value = TARGET_EVENT_RESET_INIT,          .name = "reset-init" },
+	{ .value = TARGET_EVENT_RESET_END,           .name = "reset-end" },
 
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
 	{ .value = TARGET_EVENT_EXAMINE_END, .name = "examine-end" },
@@ -3521,6 +3522,20 @@ void target_handle_event(struct target *target, enum target_event e)
 			}
 		}
 	}
+}
+
+/**
+ * Returns true only if the target has a handler for the specified event.
+ */
+bool target_has_event_action(struct target *target, enum target_event event)
+{
+	struct target_event_action *teap;
+
+	for (teap = target->event_action; teap != NULL; teap = teap->next) {
+		if (teap->event == event)
+			return true;
+	}
+	return false;
 }
 
 enum target_cfg_param {

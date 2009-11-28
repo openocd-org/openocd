@@ -1411,6 +1411,20 @@ chip can be tweaked by the board.
 Some chips have specific ways the TRST and SRST signals are
 managed. In the unusual case that these are @emph{chip specific}
 and can never be changed by board wiring, they could go here.
+For example, some chips can't support JTAG debugging without
+both signals.
+
+Provide a @code{reset-assert} event handler if you can.
+Such a handler uses JTAG operations to reset the target,
+letting this target config be used in systems which don't
+provide the optional SRST signal, or on systems where you
+don't want to reset all targets at once.
+Such a handler might write to chip registers to force a reset,
+use a JRC to do that (preferable -- the target may be wedged!),
+or force a watchdog timer to trigger.
+(For Cortex-M3 targets, this is not necessary.  The target
+driver knows how to use trigger an NVIC reset when SRST is
+not available.)
 
 Some chips need special attention during reset handling if
 they're going to be used with JTAG.
@@ -1418,6 +1432,8 @@ An example might be needing to send some commands right
 after the target's TAP has been reset, providing a
 @code{reset-deassert-post} event handler that writes a chip
 register to report that JTAG debugging is being done.
+Another would be reconfiguring the watchdog so that it stops
+counting while the core is halted in the debugger.
 
 JTAG clocking constraints often change during reset, and in
 some cases target config files (rather than board config files)
@@ -2400,6 +2416,12 @@ The commands shown in the previous section give standard parameters.
 There are also @emph{event handlers} associated with TAPs or Targets.
 Those handlers are Tcl procedures you can provide, which are invoked
 at particular points in the reset sequence.
+
+@emph{When SRST is not an option} you must set
+up a @code{reset-assert} event handler for your target.
+For example, some JTAG adapters don't include the SRST signal;
+and some boards have multiple targets, and you won't always
+want to reset everything at once.
 
 After configuring those mechanisms, you might still
 find your board doesn't start up or reset correctly.
@@ -3390,9 +3412,14 @@ For example:
 @itemize @bullet
 @item What should happen when GDB connects? Should your target reset?
 @item When GDB tries to flash the target, do you need to enable the flash via a special command?
+@item Is using SRST appropriate (and possible) on your system?
+Or instead of that, do you need to issue JTAG commands to trigger reset?
+SRST usually resets everything on the scan chain, which can be inappropriate.
 @item During reset, do you need to write to certain memory locations
 to set up system clocks or
 to reconfigure the SDRAM?
+How about configuring the watchdog timer, or other peripherals,
+to stop running while you hold the core stopped for debugging?
 @end itemize
 
 All of the above items can be addressed by target event handlers.
@@ -3457,16 +3484,28 @@ The following target events are defined:
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
 after @command{reset_init} was triggered
-but before SRST alone is re-asserted on the tap.
+but before either SRST alone is re-asserted on the scan chain,
+or @code{reset-assert} is triggered.
+@item @b{reset-assert}
+@* Issued as part of @command{reset} processing
+after @command{reset-assert-pre} was triggered.
+When such a handler is present, cores which support this event will use
+it instead of asserting SRST.
+This support is essential for debugging with JTAG interfaces which
+don't include an SRST line (JTAG doesn't require SRST), and for
+selective reset on scan chains that have multiple targets.
 @item @b{reset-assert-post}
 @* Issued as part of @command{reset} processing
-when SRST is asserted on the tap.
+after @code{reset-assert} has been triggered.
+or the target asserted SRST on the entire scan chain.
 @item @b{reset-deassert-pre}
 @* Issued as part of @command{reset} processing
-when SRST is about to be released on the tap.
+after @code{reset-assert-post} has been triggered.
 @item @b{reset-deassert-post}
 @* Issued as part of @command{reset} processing
-when SRST has been released on the tap.
+after @code{reset-deassert-pre} has been triggered
+and (if the target is using it) after SRST has been
+released on the scan chain.
 @item @b{reset-end}
 @* Issued as the final step in @command{reset} processing.
 @ignore

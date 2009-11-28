@@ -196,6 +196,7 @@ enum target_event
 
 	TARGET_EVENT_RESET_START,
 	TARGET_EVENT_RESET_ASSERT_PRE,
+	TARGET_EVENT_RESET_ASSERT,	/* C code uses this instead of SRST */
 	TARGET_EVENT_RESET_ASSERT_POST,
 	TARGET_EVENT_RESET_DEASSERT_PRE,
 	TARGET_EVENT_RESET_DEASSERT_POST,
@@ -226,7 +227,9 @@ struct target_event_action {
 	struct Jim_Obj *body;
 	int has_percent;
 	struct target_event_action *next;
- };
+};
+
+bool target_has_event_action(struct target *target, enum target_event event);
 
 struct target_event_callback
 {
