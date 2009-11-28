@@ -606,6 +606,10 @@ int target_bulk_write_memory(struct target *target,
 int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
 	return target->type->add_breakpoint(target, breakpoint);
 }
 int target_remove_breakpoint(struct target *target,
@@ -617,6 +621,10 @@ int target_remove_breakpoint(struct target *target,
 int target_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
 	return target->type->add_watchpoint(target, watchpoint);
 }
 int target_remove_watchpoint(struct target *target,

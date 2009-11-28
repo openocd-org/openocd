@@ -124,18 +124,24 @@ struct target_type
 	 * Target must be halted while this is invoked as this
 	 * will actually set up breakpoints on target.
 	 *
-	 * The breakpoint hardware will be set up upon adding the first breakpoint.
+	 * The breakpoint hardware will be set up upon adding the
+	 * first breakpoint.
 	 *
 	 * Upon GDB connection all breakpoints/watchpoints are cleared.
 	 */
 	int (*add_breakpoint)(struct target *target, struct breakpoint *breakpoint);
 
-	/* remove breakpoint. hw will only be updated if the target is currently halted.
+	/* remove breakpoint. hw will only be updated if the target
+	 * is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
 	int (*remove_breakpoint)(struct target *target, struct breakpoint *breakpoint);
+
+	/* add watchpoint ... see add_breakpoint() comment above. */
 	int (*add_watchpoint)(struct target *target, struct watchpoint *watchpoint);
-	/* remove watchpoint. hw will only be updated if the target is currently halted.
+
+	/* remove watchpoint. hw will only be updated if the target
+	 * is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
 	int (*remove_watchpoint)(struct target *target, struct watchpoint *watchpoint);

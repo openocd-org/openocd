@@ -109,6 +109,7 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
+	int retval;
 
 	while (breakpoint)
 	{
@@ -121,9 +122,9 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 	if (breakpoint == NULL)
 		return;
 
-	target_remove_breakpoint(target, breakpoint);
+	retval = target_remove_breakpoint(target, breakpoint);
 
-	LOG_DEBUG("BPID: %d", breakpoint->unique_id );
+	LOG_DEBUG("free BPID: %d --> %d", breakpoint->unique_id, retval);
 	(*breakpoint_p) = breakpoint->next;
 	free(breakpoint->orig_instr);
 	free(breakpoint);
@@ -249,6 +250,7 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
+	int retval;
 
 	while (watchpoint)
 	{
@@ -260,8 +262,8 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 
 	if (watchpoint == NULL)
 		return;
-	target_remove_watchpoint(target, watchpoint);
-	LOG_DEBUG("WPID: %d", watchpoint->unique_id );
+	retval = target_remove_watchpoint(target, watchpoint);
+	LOG_DEBUG("free WPID: %d --> %d", watchpoint->unique_id, retval);
 	(*watchpoint_p) = watchpoint->next;
 	free(watchpoint);
 }

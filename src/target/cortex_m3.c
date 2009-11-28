@@ -1141,13 +1141,6 @@ cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
-	/* REVISIT why check? DWT can be updated with core running ... */
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	if (cortex_m3->dwt_comp_available < 1)
 	{
 		LOG_DEBUG("no comparators?");

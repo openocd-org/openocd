@@ -2137,12 +2137,6 @@ static int xscale_add_breakpoint(struct target *target,
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	if ((breakpoint->type == BKPT_HARD) && (xscale->ibcr_available < 1))
 	{
 		LOG_INFO("no breakpoint unit available for hardware breakpoint");
@@ -2299,12 +2293,6 @@ static int xscale_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	if (xscale->dbr_available < 1)
 	{

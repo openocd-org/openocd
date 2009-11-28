@@ -426,12 +426,6 @@ int arm7_9_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	if (arm7_9->breakpoint_count == 0)
 	{
 		/* make sure we don't have any dangling breakpoints. This is vital upon
@@ -630,12 +624,6 @@ int arm7_9_unset_watchpoint(struct target *target, struct watchpoint *watchpoint
 int arm7_9_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	if (arm7_9->wp_available < 1)
 	{
