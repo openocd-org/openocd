@@ -38,9 +38,6 @@
 #ifdef HAVE_NET_IF_H
 #include <net/if.h>
 #endif
-//#ifdef HAVE_NETINET_TCP_H
-//#include <netinet/tcp.h>
-//#endif
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
@@ -55,23 +52,6 @@
 #include <malloc.h>
 #endif
 #endif
-
-
-COMMAND_HANDLER(handle_rm_command)
-{
-	if (CMD_ARGC != 1)
-	{
-		command_print(CMD_CTX, "rm <filename>");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	if (unlink(CMD_ARGV[0]) != 0)
-	{
-		command_print(CMD_CTX, "failed: %d", errno);
-	}
-
-	return ERROR_OK;
-}
 
 
 /* loads a file and returns a pointer to it in memory. The file contains
@@ -644,13 +624,6 @@ static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 }
 
 static const struct command_registration ioutil_command_handlers[] = {
-	{
-		.name = "rm",
-		.handler = &handle_rm_command,
-		.mode = COMMAND_ANY,
-		.help = "remove file",
-		.usage= "<file_name>",
-	},
 	{
 		.name = "cat",
 		.handler = &handle_cat_command,
