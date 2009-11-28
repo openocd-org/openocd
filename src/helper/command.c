@@ -862,16 +862,40 @@ static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 		bool show_help)
 {
+	char *cmd_name = command_name(c, ' ');
+	if (NULL == cmd_name)
+		return -ENOMEM;
+
 	command_help_show_indent(n);
-	LOG_USER_N("%s", command_name(c, ' '));
+	LOG_USER_N("%s", cmd_name);
+	free(cmd_name);
+
 	if (c->usage) {
 		LOG_USER_N(" ");
 		command_help_show_wrap(c->usage, 0, n + 5);
 	}
 	else
 		LOG_USER_N("\n");
-	if (show_help && c->help)
-		command_help_show_wrap(c->help, n + 3, n + 3);
+
+	if (show_help)
+	{
+		const char *stage_msg;
+		switch (c->mode) {
+		case COMMAND_CONFIG: stage_msg = "CONFIG"; break;
+		case COMMAND_EXEC: stage_msg = "EXEC"; break;
+		case COMMAND_ANY: stage_msg = "CONFIG or EXEC"; break;
+		default: stage_msg = "***UNKNOWN***"; break;
+		}
+		char *msg = alloc_printf("%s%sValid Modes: %s",
+			c->help ? : "", c->help ? "  " : "", stage_msg);
+		if (NULL != msg)
+		{
+			command_help_show_wrap(msg, n + 3, n + 3);
+			free(msg);
+		} else
+			return -ENOMEM;
+	}
+
 	if (++n >= 2)
 		return ERROR_OK;
 
