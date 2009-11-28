@@ -948,6 +948,31 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return script_command_run(interp, count, start, c, found);
 }
 
+static int jim_command_type(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (1 == argc)
+		return JIM_ERR;
+
+	struct command_context *cmd_ctx = current_command_context();
+	struct command *c = cmd_ctx->commands;
+	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
+	// if nothing could be consumed, then it's an unknown command
+	if (remaining == argc - 1)
+	{
+		Jim_SetResultString(interp, "unknown", -1);
+		return JIM_OK;
+	}
+
+	if (c->jim_handler)
+		Jim_SetResultString(interp, "native", -1);
+	else if (c->handler)
+		Jim_SetResultString(interp, "simple", -1);
+	else
+		Jim_SetResultString(interp, "group", -1);
+
+	return JIM_OK;
+}
+
 int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 		const char *cmd_name, const char *help_text, const char *usage)
 {
@@ -1069,6 +1094,18 @@ COMMAND_HANDLER(handle_sleep_command)
 	return ERROR_OK;
 }
 
+static const struct command_registration command_subcommand_handlers[] = {
+	{
+		.name = "type",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_command_type,
+		.usage = "<name> ...",
+		.help = "Returns the type of built-in command:"
+			"'native', 'simple', 'group', or 'unknown'",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static const struct command_registration command_builtin_handlers[] = {
 	{
 		.name = "add_help_text",
@@ -1105,6 +1142,12 @@ static const struct command_registration command_builtin_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "show basic command usage",
 		.usage = "[<command> ...]",
+	},
+	{
+		.name = "command",
+		.mode= COMMAND_ANY,
+		.help = "core command group (introspection)",
+		.chain = command_subcommand_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
