@@ -439,6 +439,14 @@ int unregister_command(struct command_context *context,
 	return ERROR_OK;
 }
 
+void command_set_handler_data(struct command *c, void *p)
+{
+	if (NULL != c->handler || NULL != c->jim_handler)
+		c->jim_handler_data = p;
+	for (struct command *cc = c->children; NULL != cc; cc = cc->next)
+		command_set_handler_data(cc, p);
+}
+
 void command_output_text(struct command_context *context, const char *data)
 {
 	if (context && context->output_handler && data) {

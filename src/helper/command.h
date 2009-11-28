@@ -80,6 +80,8 @@ struct command_context
 	void *output_handler_priv;
 };
 
+struct command;
+
 /**
  * When run_command is called, a new instance will be created on the
  * stack, filled with the proper values, and passed by reference to the
@@ -87,6 +89,7 @@ struct command_context
  */
 struct command_invocation {
 	struct command_context *ctx;
+	struct command *current;
 	const char *name;
 	unsigned argc;
 	const char **argv;
@@ -151,6 +154,16 @@ struct command_invocation {
  * rather than accessing the variable directly.  It may be moved.
  */
 #define CMD_NAME cmd->name
+/**
+ * Use this macro to access the current command being handled,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_CURRENT cmd->current
+/**
+ * Use this macro to access the invoked command handler's data pointer,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_DATA CMD_CURRENT->jim_handler_data
 
 
 /// The type signature for commands' handler functions.
@@ -289,6 +302,16 @@ struct command *command_find_in_context(struct command_context *cmd_ctx,
 		const char *name);
 struct command *command_find_in_parent(struct command *parent,
 		const char *name);
+
+/**
+ * Update the private command data field for a command and all descendents.
+ * This is used when creating a new heirarchy of commands that depends
+ * on obtaining a dynamically created context.  The value will be available
+ * in command handlers by using the CMD_DATA macro.
+ * @param c The command (group) whose data pointer(s) will be updated.
+ * @param p The new data pointer to use for the command or its descendents.
+ */
+void command_set_handler_data(struct command *c, void *p);
 
 void command_set_output_handler(struct command_context* context,
 		command_output_handler_t output_handler, void *priv);
