@@ -871,7 +871,10 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 
 	for (size_t i = 0; i < count; i++)
 	{
-		JTAG_DEBUG("SC7 %02d: %02x %s %08x", i, actions[i].address, actions[i].write ? "<=" : "=>", actions[i].value);
+		JTAG_DEBUG("SC7 %02d: %02x %s %08x",
+			(unsigned) i, actions[i].address,
+			actions[i].write ? "<=" : "=>",
+			actions[i].value);
 	}
 
 	return ERROR_OK;
