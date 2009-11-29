@@ -1697,14 +1697,20 @@ static int xscale_full_context(struct target *target)
 	 */
 	for (i = 1; i < 7; i++)
 	{
-		int valid = 1;
+		enum armv4_5_mode mode = armv4_5_number_to_mode(i);
+		bool valid = true;
+		struct reg *r;
+
+		if (mode == ARMV4_5_MODE_USR)
+			continue;
 
 		/* check if there are invalid registers in the current mode
 		 */
-		for (j = 0; j <= 16; j++)
+		for (j = 0; valid && j <= 16; j++)
 		{
-			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
-				valid = 0;
+			if (!ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, j).valid)
+				valid = false;
 		}
 
 		if (!valid)
@@ -1715,31 +1721,40 @@ static int xscale_full_context(struct target *target)
 			xscale_send_u32(target, 0x0);
 
 			tmp_cpsr = 0x0;
-			tmp_cpsr |= armv4_5_number_to_mode(i);
+			tmp_cpsr |= mode;
 			tmp_cpsr |= 0xc0; /* I/F bits */
 
 			/* send CPSR for desired mode */
 			xscale_send_u32(target, tmp_cpsr);
 
-			/* get banked registers, r8 to r14, and spsr if not in USR/SYS mode */
-			if ((armv4_5_number_to_mode(i) != ARMV4_5_MODE_USR) && (armv4_5_number_to_mode(i) != ARMV4_5_MODE_SYS))
-			{
+			/* get banked registers:  r8 to r14; and SPSR
+			 * if not in USR/SYS mode
+			 */
+			if (mode != ARMV4_5_MODE_SYS) {
+				/* SPSR */
+				r = &ARMV4_5_CORE_REG_MODE(
+						armv4_5->core_cache,
+						mode, 16);
+
 				xscale_receive(target, buffer, 8);
-				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32, buffer[7]);
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).dirty = 0;
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).valid = 1;
-			}
-			else
-			{
+
+				buf_set_u32(r->value, 0, 32, buffer[7]);
+				r->dirty = false;
+				r->valid = true;
+			} else {
 				xscale_receive(target, buffer, 7);
 			}
 
 			/* move data from buffer to register cache */
 			for (j = 8; j <= 14; j++)
 			{
-				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).value, 0, 32, buffer[j - 8]);
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty = 0;
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid = 1;
+				r = &ARMV4_5_CORE_REG_MODE(
+						armv4_5->core_cache,
+						mode, j);
+
+				buf_set_u32(r->value, 0, 32, buffer[j - 8]);
+				r->dirty = false;
+				r->valid = true;
 			}
 		}
 	}
