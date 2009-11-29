@@ -37,6 +37,10 @@
 #define XSCALE_LDIC	0x07
 #define XSCALE_SELDCSR	0x09
 
+/* Possible CPU types */
+#define	XSCALE_IXP4XX_PXA2XX	0x0
+#define	XSCALE_PXA3XX		0x4
+
 enum xscale_debug_reason
 {
 	XSCALE_DBG_REASON_GENERIC,
@@ -129,6 +133,9 @@ struct xscale_common
 	uint32_t cp15_control_reg;
 
 	int fast_memory_access;
+
+	/* CPU variant */
+	int xscale_variant;
 };
 
 static inline struct xscale_common *

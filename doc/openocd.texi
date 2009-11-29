@@ -3117,6 +3117,7 @@ There are several variants defined:
 @code{pxa27x} ... instruction register length is 7 bits
 @item @code{pxa250}, @code{pxa255},
 @code{pxa26x} ... instruction register length is 5 bits
+@item @code{pxa3xx} ... instruction register length is 11 bits
 @end itemize
 @end itemize
 @end deffn
