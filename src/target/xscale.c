@@ -973,12 +973,11 @@ static int xscale_debug_entry(struct target *target)
 			 arm_mode_name(armv4_5->core_mode));
 
 	/* get banked registers, r8 to r14, and spsr if not in USR/SYS mode */
-	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
-	{
+	if (armv4_5->spsr) {
 		xscale_receive(target, buffer, 8);
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32, buffer[7]);
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).dirty = 0;
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).valid = 1;
+		buf_set_u32(armv4_5->spsr->value, 0, 32, buffer[7]);
+		armv4_5->spsr->dirty = false;
+		armv4_5->spsr->valid = true;
 	}
 	else
 	{
@@ -986,12 +985,14 @@ static int xscale_debug_entry(struct target *target)
 		xscale_receive(target, buffer, 7);
 	}
 
-	/* move data from buffer to register cache */
+	/* move data from buffer to right banked register in cache */
 	for (i = 8; i <= 14; i++)
 	{
-		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, buffer[i - 8]);
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 0;
-		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
+		struct reg *r = arm_reg_current(armv4_5, i);
+
+		buf_set_u32(r->value, 0, 32, buffer[i - 8]);
+		r->dirty = false;
+		r->valid = true;
 	}
 
 	/* examine debug reason */
