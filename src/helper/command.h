@@ -316,7 +316,6 @@ void command_set_handler_data(struct command *c, void *p);
 void command_set_output_handler(struct command_context* context,
 		command_output_handler_t output_handler, void *priv);
 
-struct command_context* copy_command_context(struct command_context* context);
 
 int command_context_mode(struct command_context *context, enum command_mode mode);
 
@@ -324,7 +323,21 @@ int command_context_mode(struct command_context *context, enum command_mode mode
  * Creates a new command context using the startup TCL provided.
  */
 struct command_context* command_init(const char *startup_tcl);
-int command_done(struct command_context *context);
+/**
+ * Creates a copy of an existing command context.  This does not create
+ * a deep copy of the command list, so modifications in one context will
+ * affect all shared contexts.  The caller must track reference counting
+ * and ensure the commands are freed before destroying the last instance.
+ * @param cmd_ctx The command_context that will be copied.
+ * @returns A new command_context with the same state as the original.
+ */
+struct command_context* copy_command_context(struct command_context* cmd_ctx);
+/**
+ * Frees the resources associated with a command context.  The commands
+ * are not removed, so unregister_all_commands() must be called first.
+ * @param cmd_ctx The command_context that will be destroyed.
+ */
+void command_done(struct command_context *context);
 
 void command_print(struct command_context *context, const char *format, ...)
 		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));

@@ -683,12 +683,12 @@ struct command_context* copy_command_context(struct command_context* context)
 	return copy_context;
 }
 
-int command_done(struct command_context *context)
+void command_done(struct command_context *cmd_ctx)
 {
-	free(context);
-	context = NULL;
+	if (NULL == cmd_ctx)
+		return;
 
-	return ERROR_OK;
+	free(cmd_ctx);
 }
 
 /* find full path to file */
