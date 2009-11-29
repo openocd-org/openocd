@@ -30,6 +30,8 @@
 #include "server.h"
 #include "target.h"
 #include "openocd.h"
+#include "tcl_server.h"
+#include "telnet_server.h"
 
 #include <signal.h>
 
@@ -516,7 +518,11 @@ int server_init(void)
 	signal(SIGABRT, sig_handler);
 #endif
 
-	return ERROR_OK;
+	int ret = tcl_init();
+	if (ERROR_OK != ret)
+		return ret;
+
+	return telnet_init("Open On-Chip Debugger");
 }
 
 int server_quit(void)
@@ -551,6 +557,14 @@ static const struct command_registration server_command_handlers[] = {
 
 int server_register_commands(struct command_context *cmd_ctx)
 {
+	int retval = telnet_register_commands(cmd_ctx);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = tcl_register_commands(cmd_ctx);
+	if (ERROR_OK != retval)
+		return retval;
+
 	return register_commands(cmd_ctx, NULL, server_command_handlers);
 }
 

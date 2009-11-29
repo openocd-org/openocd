@@ -38,9 +38,7 @@
 #include "mflash.h"
 
 #include "server.h"
-#include "telnet_server.h"
 #include "gdb_server.h"
-#include "tcl_server.h"
 #include "httpd.h"
 
 #ifdef HAVE_STRINGS_H
@@ -149,13 +147,8 @@ COMMAND_HANDLER(handle_init_command)
 		return ERROR_FAIL;
 	LOG_DEBUG("pld init complete");
 
-	/* initialize tcp server */
-	server_init();
-
 	/* initialize telnet subsystem */
-	telnet_init("Open On-Chip Debugger");
 	gdb_target_add_all(all_targets);
-	tcl_init(); /* allows tcl to just connect without going thru telnet */
 
 	target_register_event_callback(log_target_callback_event_handler, CMD_CTX);
 
@@ -194,9 +187,7 @@ struct command_context *setup_command_handler(void)
 	register_commands(cmd_ctx, NULL, openocd_command_handlers);
 	/* register subsystem commands */
 	server_register_commands(cmd_ctx);
-	telnet_register_commands(cmd_ctx);
 	gdb_register_commands(cmd_ctx);
-	tcl_register_commands(cmd_ctx); /* tcl server commands */
 	log_register_commands(cmd_ctx);
 	jtag_register_commands(cmd_ctx);
 	xsvf_register_commands(cmd_ctx);
@@ -259,7 +250,7 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	ret = parse_config_file(cmd_ctx);
-	if ((ret != ERROR_OK) && (ret != ERROR_COMMAND_CLOSE_CONNECTION))
+	if (ret != ERROR_OK)
 		return EXIT_FAILURE;
 
 #if BUILD_HTTPD
@@ -267,16 +258,21 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 #endif
 
-	if (ret != ERROR_COMMAND_CLOSE_CONNECTION)
-	{
-		if (command_run_line(cmd_ctx, "init") != ERROR_OK)
-			return EXIT_FAILURE;
+	ret = server_init();
+	if (ERROR_OK != ret)
+		return EXIT_FAILURE;
 
-		/* handle network connections */
-		server_loop(cmd_ctx);
+	if (1)
+	{
+		ret = command_run_line(cmd_ctx, "init");
+		if (ERROR_OK != ret)
+			ret = EXIT_FAILURE;
 	}
 
-	/* shut server down */
+	/* handle network connections */
+	if (ERROR_OK == ret)
+		server_loop(cmd_ctx);
+
 	server_quit();
 
 #if BUILD_HTTPD
@@ -288,6 +284,5 @@ int openocd_main(int argc, char *argv[])
 	/* free commandline interface */
 	command_done(cmd_ctx);
 
-
-	return EXIT_SUCCESS;
+	return ret;
 }
