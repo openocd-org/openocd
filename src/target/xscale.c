@@ -1712,50 +1712,41 @@ static int xscale_full_context(struct target *target)
 					mode, j).valid)
 				valid = false;
 		}
+		if (valid)
+			continue;
 
-		if (!valid)
+		/* request banked registers */
+		xscale_send_u32(target, 0x0);
+
+		/* send CPSR for desired bank mode */
+		xscale_send_u32(target, mode | 0xc0 /* I/F bits */);
+
+		/* get banked registers:  r8 to r14; and SPSR
+		 * except in USR/SYS mode
+		 */
+		if (mode != ARMV4_5_MODE_SYS) {
+			/* SPSR */
+			r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, 16);
+
+			xscale_receive(target, buffer, 8);
+
+			buf_set_u32(r->value, 0, 32, buffer[7]);
+			r->dirty = false;
+			r->valid = true;
+		} else {
+			xscale_receive(target, buffer, 7);
+		}
+
+		/* move data from buffer to register cache */
+		for (j = 8; j <= 14; j++)
 		{
-			uint32_t tmp_cpsr;
+			r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, j);
 
-			/* request banked registers */
-			xscale_send_u32(target, 0x0);
-
-			tmp_cpsr = 0x0;
-			tmp_cpsr |= mode;
-			tmp_cpsr |= 0xc0; /* I/F bits */
-
-			/* send CPSR for desired mode */
-			xscale_send_u32(target, tmp_cpsr);
-
-			/* get banked registers:  r8 to r14; and SPSR
-			 * if not in USR/SYS mode
-			 */
-			if (mode != ARMV4_5_MODE_SYS) {
-				/* SPSR */
-				r = &ARMV4_5_CORE_REG_MODE(
-						armv4_5->core_cache,
-						mode, 16);
-
-				xscale_receive(target, buffer, 8);
-
-				buf_set_u32(r->value, 0, 32, buffer[7]);
-				r->dirty = false;
-				r->valid = true;
-			} else {
-				xscale_receive(target, buffer, 7);
-			}
-
-			/* move data from buffer to register cache */
-			for (j = 8; j <= 14; j++)
-			{
-				r = &ARMV4_5_CORE_REG_MODE(
-						armv4_5->core_cache,
-						mode, j);
-
-				buf_set_u32(r->value, 0, 32, buffer[j - 8]);
-				r->dirty = false;
-				r->valid = true;
-			}
+			buf_set_u32(r->value, 0, 32, buffer[j - 8]);
+			r->dirty = false;
+			r->valid = true;
 		}
 	}
 
