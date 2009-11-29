@@ -565,8 +565,16 @@ static int run_command(struct command_context *context,
 {
 	if (!command_can_run(context, c))
 	{
-		/* Config commands can not run after the config stage */
-		LOG_ERROR("The '%s' command must be used before 'init'.", c->name);
+		/* Many commands may be run only before/after 'init' */
+		const char *when;
+		switch (c->mode) {
+		case COMMAND_CONFIG: when = "before"; break;
+		case COMMAND_EXEC: when = "after"; break;
+		// handle the impossible with humor; it guarantees a bug report!
+		default: when = "if Cthulhu is summoned by"; break;
+		}
+		LOG_ERROR("The '%s' command must be used %s 'init'.",
+				c->name, when);
 		return ERROR_FAIL;
 	}
 
