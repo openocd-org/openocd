@@ -91,6 +91,16 @@ static int log_target_callback_event_handler(struct target *target, enum target_
 
 int ioutil_init(struct command_context *cmd_ctx);
 
+static bool init_at_startup = true;
+
+COMMAND_HANDLER(handle_noinit_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	init_at_startup = false;
+	return ERROR_OK;
+}
+
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
 COMMAND_HANDLER(handle_init_command)
 {
@@ -159,15 +169,24 @@ static const struct command_registration openocd_command_handlers[] = {
 	{
 		.name = "version",
 		.handler = &handle_version_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.help = "show program version",
+	},
+	{
+		.name = "noinit",
+		.handler = &handle_noinit_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Prevent 'init' from being called at startup.",
 	},
 	{
 		.name = "init",
 		.handler = &handle_init_command,
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_CONFIG,
 		.help = "Initializes configured targets and servers.  "
-			"If called more than once, does nothing.",
+			"Changes command mode from CONFIG to EXEC.  "
+			"Unless 'noinit' is called, this command is "
+			"called automatically at the end of startup.",
+
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -262,7 +281,7 @@ int openocd_main(int argc, char *argv[])
 	if (ERROR_OK != ret)
 		return EXIT_FAILURE;
 
-	if (1)
+	if (init_at_startup)
 	{
 		ret = command_run_line(cmd_ctx, "init");
 		if (ERROR_OK != ret)
