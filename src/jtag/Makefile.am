@@ -1,7 +1,5 @@
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/helper \
-	-I$(top_srcdir)/src/target
+	-I$(top_srcdir)/src
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libjtag.la

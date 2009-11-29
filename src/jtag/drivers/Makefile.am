@@ -1,7 +1,4 @@
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/helper \
-	-I$(top_srcdir)/src/jtag
+AM_CPPFLAGS = -I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libocdjtagdrivers.la
 

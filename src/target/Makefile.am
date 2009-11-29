@@ -6,10 +6,7 @@ OOCD_TRACE_FILES =
 endif
 
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/helper \
-	-I$(top_srcdir)/src/jtag \
-	-I$(top_srcdir)/src/xsvf
+	-I$(top_srcdir)/src
 
 BIN2C		= $(top_builddir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
 

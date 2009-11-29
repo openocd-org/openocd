@@ -24,15 +24,7 @@ noinst_HEADERS = \
 
 # set the include path found by configure
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_srcdir)/src/helper \
-	-I$(top_srcdir)/src/jtag \
-	-I$(top_srcdir)/src/target \
-	-I$(top_srcdir)/src/xsvf \
-	-I$(top_srcdir)/src/svf \
-	-I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/flash \
-	-I$(top_srcdir)/src/pld
+	-I$(top_srcdir)/src
 
 libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
 
