@@ -52,7 +52,8 @@ struct gdb_service
 	struct target *target;
 };
 
-int gdb_init(void);
+int gdb_target_add_one(struct target *target);
+int gdb_target_add_all(struct target *target);
 int gdb_register_commands(struct command_context *command_context);
 
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)

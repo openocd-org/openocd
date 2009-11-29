@@ -154,7 +154,7 @@ COMMAND_HANDLER(handle_init_command)
 
 	/* initialize telnet subsystem */
 	telnet_init("Open On-Chip Debugger");
-	gdb_init();
+	gdb_target_add_all(all_targets);
 	tcl_init(); /* allows tcl to just connect without going thru telnet */
 
 	target_register_event_callback(log_target_callback_event_handler, CMD_CTX);

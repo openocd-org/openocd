@@ -2189,55 +2189,68 @@ int gdb_input(struct connection *connection)
 	return ERROR_OK;
 }
 
-int gdb_init(void)
+static int gdb_target_start(struct target *target, uint16_t port)
 {
-	struct gdb_service *gdb_service;
-	struct target *target = all_targets;
+	bool use_pipes = 0 == port;
+	struct gdb_service *gdb_service = malloc(sizeof(struct gdb_service));
+	if (NULL == gdb_service)
+		return -ENOMEM;
 
-	if (!target)
-	{
-		LOG_WARNING("no gdb ports allocated as no target has been specified");
-		return ERROR_OK;
-	}
+	gdb_service->target = target;
 
+	add_service("gdb", use_pipes ? CONNECTION_PIPE : CONNECTION_TCP,
+			port, 1, &gdb_new_connection, &gdb_input,
+			&gdb_connection_closed, gdb_service);
+
+	const char *name = target_name(target);
+	if (use_pipes)
+		LOG_DEBUG("gdb service for target '%s' using pipes", name);
+	else
+		LOG_DEBUG("gdb service for target '%s' on TCP port %u", name, port);
+	return ERROR_OK;
+}
+
+int gdb_target_add_one(struct target *target)
+{
 	if (gdb_port == 0 && server_use_pipes == 0)
 	{
 		LOG_INFO("gdb port disabled");
 		return ERROR_OK;
 	}
 
-	if (server_use_pipes)
+	bool use_pipes = server_use_pipes;
+	static bool server_started_with_pipes = false;
+	if (server_started_with_pipes)
 	{
-		/* only a single gdb connection when using a pipe */
+		LOG_WARNING("gdb service permits one target when using pipes");
+		if (0 == gdb_port)
+			return ERROR_OK;
 
-		gdb_service = malloc(sizeof(struct gdb_service));
-		gdb_service->target = target;
-
-		add_service("gdb", CONNECTION_PIPE, 0, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
-
-		LOG_DEBUG("gdb service for target %s using pipes",
-				target_name(target));
+		use_pipes = false;
 	}
-	else
+
+	int e = gdb_target_start(target, use_pipes ? 0 : gdb_port++);
+	if (ERROR_OK == e)
+		server_started_with_pipes |= use_pipes;
+
+	return e;
+}
+
+int gdb_target_add_all(struct target *target)
+{
+	if (NULL == target)
 	{
-		unsigned short port = gdb_port;
+		LOG_WARNING("gdb services need one or more targets defined");
+		return ERROR_OK;
+	}
 
-		while (target)
-		{
-			gdb_service = malloc(sizeof(struct gdb_service));
-			gdb_service->target = target;
+	while (NULL != target)
+	{
+		int retval = gdb_target_add_one(target);
+		if (ERROR_OK != retval)
+			return retval;
 
-			add_service("gdb", CONNECTION_TCP,
-					port, 1,
-					gdb_new_connection, gdb_input,
-					gdb_connection_closed, gdb_service);
-
-			LOG_DEBUG("gdb service for target %s at TCP port %i",
-					target_name(target),
-					port);
-			target = target->next;
-			port++;
-		}
+		target = target->next;
 	}
 
 	return ERROR_OK;
