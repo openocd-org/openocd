@@ -205,7 +205,7 @@ int arm11_add_debug_SCAN_N(struct arm11_common * arm11, uint8_t chain, tap_state
 static void arm11_add_debug_INST(struct arm11_common * arm11,
 		uint32_t inst, uint8_t * flag, tap_state_t state)
 {
-	JTAG_DEBUG("INST <= 0x%08x", inst);
+	JTAG_DEBUG("INST <= 0x%08x", (unsigned) inst);
 
 	struct scan_field		itr[2];
 
@@ -244,7 +244,9 @@ int arm11_read_DSCR(struct arm11_common * arm11, uint32_t *value)
 	CHECK_RETVAL(jtag_execute_queue());
 
 	if (arm11->last_dscr != dscr)
-		JTAG_DEBUG("DSCR  = %08x (OLD %08x)", dscr, arm11->last_dscr);
+		JTAG_DEBUG("DSCR  = %08x (OLD %08x)",
+				(unsigned) dscr,
+				(unsigned) arm11->last_dscr);
 
 	arm11->last_dscr = dscr;
 
@@ -279,7 +281,9 @@ int arm11_write_DSCR(struct arm11_common * arm11, uint32_t dscr)
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	JTAG_DEBUG("DSCR <= %08x (OLD %08x)", dscr, arm11->last_dscr);
+	JTAG_DEBUG("DSCR <= %08x (OLD %08x)",
+			(unsigned) dscr,
+			(unsigned) arm11->last_dscr);
 
 	arm11->last_dscr = dscr;
 
@@ -514,7 +518,8 @@ int arm11_run_instr_data_to_core(struct arm11_common * arm11, uint32_t opcode, u
 
 		CHECK_RETVAL(jtag_execute_queue());
 
-		JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
+		JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d",
+				(unsigned) Data, Ready, nRetry);
 
 		long long then = 0;
 
@@ -710,7 +715,8 @@ int arm11_run_instr_data_from_core(struct arm11_common * arm11, uint32_t opcode,
 
 			CHECK_RETVAL(jtag_execute_queue());
 
-			JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
+			JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d",
+					(unsigned) Data, Ready, nRetry);
 
 			long long then = 0;
 
@@ -838,13 +844,20 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 
 		do
 		{
-			JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d", AddressOut, DataOut, nRW);
+			JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d",
+					(unsigned) AddressOut,
+					(unsigned) DataOut,
+					nRW);
 
-			arm11_add_dr_scan_vc(ARRAY_SIZE(chain7_fields), chain7_fields, TAP_DRPAUSE);
+			arm11_add_dr_scan_vc(ARRAY_SIZE(chain7_fields),
+					chain7_fields, TAP_DRPAUSE);
 
 			CHECK_RETVAL(jtag_execute_queue());
 
-			JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d", AddressIn, DataIn, Ready);
+			JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d",
+					(unsigned) AddressIn,
+					(unsigned) DataIn,
+					Ready);
 		}
 		while (!Ready); /* 'nRW' is 'Ready' on read out */
 
@@ -874,7 +887,7 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 		JTAG_DEBUG("SC7 %02d: %02x %s %08x",
 			(unsigned) i, actions[i].address,
 			actions[i].write ? "<=" : "=>",
-			actions[i].value);
+			(unsigned) actions[i].value);
 	}
 
 	return ERROR_OK;
