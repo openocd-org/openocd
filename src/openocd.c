@@ -109,6 +109,8 @@ COMMAND_HANDLER(handle_init_command)
 
 	atexit(exit_handler);
 
+	command_context_mode(CMD_CTX, COMMAND_EXEC);
+
 	if (target_init(CMD_CTX) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("target init complete");
@@ -267,7 +269,6 @@ int openocd_main(int argc, char *argv[])
 
 	if (ret != ERROR_COMMAND_CLOSE_CONNECTION)
 	{
-		command_context_mode(cmd_ctx, COMMAND_EXEC);
 		if (command_run_line(cmd_ctx, "init") != ERROR_OK)
 			return EXIT_FAILURE;
 
