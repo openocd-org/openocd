@@ -58,19 +58,22 @@ static const struct command_registration foo_command_handlers[] = {
 		.name = "bar",
 		.handler = &handle_foo_command,
 		.mode = COMMAND_ANY,
-		.help = "<address> [enable|disable] - an example command",
+		.usage = "<address> [enable|disable]",
+		.help = "an example command",
 	},
 	{
 		.name = "baz",
 		.handler = &handle_foo_command,
 		.mode = COMMAND_ANY,
-		.help = "<address> [enable|disable] - a sample command",
+		.usage = "<address> [enable|disable]",
+		.help = "a sample command",
 	},
 	{
 		.name = "flag",
 		.handler = &handle_flag_command,
 		.mode = COMMAND_ANY,
-		.help = "[on|off] - set a flag",
+		.usage = "[on|off]",
+		.help = "set a flag",
 	},
 	COMMAND_REGISTRATION_DONE
 };
