@@ -62,20 +62,6 @@ struct command_context
 	enum command_mode mode;
 	struct command *commands;
 	int current_target;
-	/* Execute a command.
-	 *
-	 * If the command fails, it *MUST* return a value != ERROR_OK
-	 * (many commands break this rule, patches welcome!)
-	 *
-	 * This is *especially* important for commands such as writing
-	 * to flash or verifying memory. The reason is that those commands
-	 * can be used by programs to determine if the operation succeded
-	 * or not. If the operation failed, then a program can try
-	 * an alternative approach.
-	 *
-	 * Returning ERROR_COMMAND_SYNTAX_ERROR will have the effect of
-	 * printing out the syntax of the command.
-	 */
 	command_output_handler_t output_handler;
 	void *output_handler_priv;
 };
@@ -166,7 +152,23 @@ struct command_invocation {
 #define CMD_DATA CMD_CURRENT->jim_handler_data
 
 
-/// The type signature for commands' handler functions.
+/**
+ * The type signature for command handling functions.  They are
+ * usually registered as part of command_registration, providing
+ * a high-level means for executing a command.
+ *
+ * If the command fails, it *MUST* return a value != ERROR_OK
+ * (many commands break this rule, patches welcome!)
+ *
+ * This is *especially* important for commands such as writing
+ * to flash or verifying memory. The reason is that those commands
+ * can be used by programs to determine if the operation succeded
+ * or not. If the operation failed, then a program can try
+ * an alternative approach.
+ *
+ * Returning ERROR_COMMAND_SYNTAX_ERROR will have the effect of
+ * printing out the syntax of the command.
+ */
 typedef __COMMAND_HANDLER((*command_handler_t));
 
 struct command
