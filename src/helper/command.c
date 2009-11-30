@@ -562,7 +562,7 @@ static int run_command(struct command_context *context,
 		/* Print help for command */
 		char *full_name = command_name(c, ' ');
 		if (NULL != full_name) {
-			command_run_linef(context, "help %s", full_name);
+			command_run_linef(context, "usage %s", full_name);
 			free(full_name);
 		} else
 			retval = -ENOMEM;
@@ -980,10 +980,10 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	else
 	{
-		c = command_find(cmd_ctx->commands, "help");
+		c = command_find(cmd_ctx->commands, "usage");
 		if (NULL == c)
 		{
-			LOG_ERROR("unknown command, but help is missing too");
+			LOG_ERROR("unknown command, but usage is missing too");
 			return JIM_ERR;
 		}
 		count = argc - remaining;

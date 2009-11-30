@@ -25,7 +25,7 @@ proc ocd_bouncer {name args} {
 			set errmsg "Command handler execution failed"
 		}
 	} else {if {$type == "group"} {
-		catch {eval ocd_help $name $args}
+		catch {eval ocd_usage $name $args}
 		set errmsg [format "%s: command requires more arguments" \
 			[concat $name " " $args]]
 	} else {
