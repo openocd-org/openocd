@@ -60,10 +60,6 @@ COMMAND_HANDLER(handle_version_command)
 	return ERROR_OK;
 }
 
-static void exit_handler(void)
-{
-	jtag_interface_quit();
-}
 
 static int log_target_callback_event_handler(struct target *target, enum target_event event, void *priv)
 {
@@ -114,8 +110,6 @@ COMMAND_HANDLER(handle_init_command)
 		return ERROR_OK;
 
 	initialized = 1;
-
-	atexit(exit_handler);
 
 	command_context_mode(CMD_CTX, COMMAND_EXEC);
 
@@ -302,6 +296,8 @@ int openocd_main(int argc, char *argv[])
 
 	/* free commandline interface */
 	command_done(cmd_ctx);
+
+	jtag_interface_quit();
 
 	return ret;
 }
