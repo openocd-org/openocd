@@ -386,7 +386,7 @@ int server_loop(struct command_context *command_context)
 		}
 
 		target_call_timer_callbacks();
-		process_jim_events ();
+		process_jim_events(command_context);
 
 		if (retval == 0)
 		{

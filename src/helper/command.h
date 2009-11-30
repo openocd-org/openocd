@@ -351,7 +351,7 @@ int command_run_linef(struct command_context *context, const char *format, ...)
 		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 void command_output_text(struct command_context *context, const char *data);
 
-void process_jim_events(void);
+void process_jim_events(struct command_context *cmd_ctx);
 
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)

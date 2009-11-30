@@ -47,7 +47,6 @@
 /* nice short description of source file */
 #define __THIS__FILE__ "command.c"
 
-Jim_Interp *interp = NULL;
 
 static int run_command(struct command_context *context,
 		struct command *c, const char *words[], unsigned num_words);
@@ -159,7 +158,7 @@ static const char **script_command_args_alloc(
 	return words;
 }
 
-static struct command_context *current_command_context(void)
+static struct command_context *current_command_context(Jim_Interp *interp)
 {
 	/* grab the command context from the associated data */
 	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
@@ -188,7 +187,7 @@ static int script_command_run(Jim_Interp *interp,
 	if (capture)
 		state = command_log_capture_start(interp);
 
-	struct command_context *cmd_ctx = current_command_context();
+	struct command_context *cmd_ctx = current_command_context(interp);
 	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
 
 	command_log_capture_finish(state);
@@ -327,8 +326,10 @@ command_new_error:
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
-static int register_command_handler(struct command *c)
+static int register_command_handler(struct command_context *cmd_ctx,
+		struct command *c)
 {
+	Jim_Interp *interp = cmd_ctx->interp;
 	const char *ocd_name = alloc_printf("ocd_%s", c->name);
 	if (NULL == ocd_name)
 		return JIM_ERR;
@@ -377,11 +378,11 @@ struct command* register_command(struct command_context *context,
 	int retval = ERROR_OK;
 	if (NULL != cr->jim_handler && NULL == parent)
 	{
-		retval = Jim_CreateCommand(interp, cr->name,
+		retval = Jim_CreateCommand(context->interp, cr->name,
 				cr->jim_handler, cr->jim_handler_data, NULL);
 	}
 	else if (NULL != cr->handler || NULL != parent)
-		retval = register_command_handler(command_root(c));
+		retval = register_command_handler(context, command_root(c));
 
 	if (ERROR_OK != retval)
 	{
@@ -615,6 +616,7 @@ int command_run_line(struct command_context *context, char *line)
 	 * happen when the Jim Tcl interpreter is provided by eCos for
 	 * instance.
 	 */
+	Jim_Interp *interp = context->interp;
 	Jim_DeleteAssocData(interp, "context");
 	retcode = Jim_SetAssocData(interp, "context", NULL, context);
 	if (retcode == JIM_OK)
@@ -977,7 +979,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	script_debug(interp, cmd_name, argc, argv);
 
-	struct command_context *cmd_ctx = current_command_context();
+	struct command_context *cmd_ctx = current_command_context(interp);
 	struct command *c = cmd_ctx->commands;
 	int remaining = command_unknown_find(argc, argv, c, &c, true);
 	// if nothing could be consumed, then it's really an unknown command
@@ -1021,7 +1023,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	struct command_context *cmd_ctx = current_command_context();
+	struct command_context *cmd_ctx = current_command_context(interp);
 	enum command_mode mode;
 	if (argc > 1)
 	{
@@ -1054,7 +1056,7 @@ static int jim_command_type(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (1 == argc)
 		return JIM_ERR;
 
-	struct command_context *cmd_ctx = current_command_context();
+	struct command_context *cmd_ctx = current_command_context(interp);
 	struct command *c = cmd_ctx->commands;
 	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
 	// if nothing could be consumed, then it's an unknown command
@@ -1276,11 +1278,12 @@ struct command_context* command_init(const char *startup_tcl)
 #if !BUILD_ECOSBOARD
 	Jim_InitEmbedded();
 	/* Create an interpreter */
-	interp = context->interp = Jim_CreateInterp();
+	context->interp = Jim_CreateInterp();
 	/* Add all the Jim core commands */
-	Jim_RegisterCoreCommands(interp);
+	Jim_RegisterCoreCommands(context->interp);
 #endif
 
+	Jim_Interp *interp = context->interp;
 #if defined(_MSC_VER)
 	/* WinXX - is generic, the forward
 	 * looking problem is this:
@@ -1347,17 +1350,16 @@ int command_context_mode(struct command_context *cmd_ctx, enum command_mode mode
 	return ERROR_OK;
 }
 
-void process_jim_events(void)
+void process_jim_events(struct command_context *cmd_ctx)
 {
 #if !BUILD_ECOSBOARD
 	static int recursion = 0;
+	if (recursion)
+		return;
 
-	if (!recursion)
-	{
-		recursion++;
-		Jim_ProcessEvents (interp, JIM_ALL_EVENTS | JIM_DONT_WAIT);
-		recursion--;
-	}
+	recursion++;
+	Jim_ProcessEvents(cmd_ctx->interp, JIM_ALL_EVENTS | JIM_DONT_WAIT);
+	recursion--;
 #endif
 }
 
