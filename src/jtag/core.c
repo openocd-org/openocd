@@ -1535,7 +1535,7 @@ int jtag_init(struct command_context *cmd_ctx)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
-	if (Jim_Eval_Named(interp, "jtag_init", __FILE__, __LINE__) != JIM_OK)
+	if (Jim_Eval_Named(cmd_ctx->interp, "jtag_init", __FILE__, __LINE__) != JIM_OK)
 		return ERROR_FAIL;
 
 	return ERROR_OK;

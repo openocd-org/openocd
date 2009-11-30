@@ -449,12 +449,12 @@ int target_process_reset(struct command_context *cmd_ctx, enum target_reset_mode
 	jtag_poll_set_enabled(false);
 
 	sprintf(buf, "ocd_process_reset %s", n->name);
-	retval = Jim_Eval(interp, buf);
+	retval = Jim_Eval(cmd_ctx->interp, buf);
 
 	jtag_poll_set_enabled(save_poll);
 
 	if (retval != JIM_OK) {
-		Jim_PrintErrorMessage(interp);
+		Jim_PrintErrorMessage(cmd_ctx->interp);
 		return ERROR_FAIL;
 	}
 
@@ -759,6 +759,8 @@ err_write_phys_memory(struct target *target, uint32_t address,
 	return ERROR_FAIL;
 }
 
+static int handle_target(void *priv);
+
 int target_init(struct command_context *cmd_ctx)
 {
 	struct target *target;
@@ -876,7 +878,7 @@ int target_init(struct command_context *cmd_ctx)
 	{
 		if ((retval = target_register_user_commands(cmd_ctx)) != ERROR_OK)
 			return retval;
-		if ((retval = target_register_timer_callback(handle_target, 100, 1, NULL)) != ERROR_OK)
+		if ((retval = target_register_timer_callback(&handle_target, 100, 1, cmd_ctx->interp)) != ERROR_OK)
 			return retval;
 	}
 
@@ -1796,8 +1798,9 @@ static void target_call_event_callbacks_all(enum target_event e) {
 }
 
 /* process target state changes */
-int handle_target(void *priv)
+static int handle_target(void *priv)
 {
+	Jim_Interp *interp = (Jim_Interp *)priv;
 	int retval = ERROR_OK;
 
 	/* we do not want to recurse here... */

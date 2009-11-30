@@ -74,7 +74,7 @@ int add_service(char *name, enum connection_type type, unsigned short port,
 		input_handler_t in_handler, connection_closed_handler_t close_handler,
 		void *priv);
 
-int server_init(void);
+int server_init(struct command_context *cmd_ctx);
 int server_quit(void);
 
 int server_loop(struct command_context *command_context);

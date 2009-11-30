@@ -59,6 +59,7 @@ typedef int (*command_output_handler_t)(struct command_context *context,
 
 struct command_context
 {
+	Jim_Interp *interp;
 	enum command_mode mode;
 	struct command *commands;
 	int current_target;
@@ -358,8 +359,6 @@ void process_jim_events(void);
 #define		ERROR_COMMAND_ARGUMENT_INVALID		(-603)
 #define		ERROR_COMMAND_ARGUMENT_OVERFLOW		(-604)
 #define		ERROR_COMMAND_ARGUMENT_UNDERFLOW	(-605)
-
-extern Jim_Interp *interp;
 
 int parse_ulong(const char *str, unsigned long *ul);
 int parse_ullong(const char *str, unsigned long long *ul);

@@ -277,7 +277,7 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 #endif
 
-	ret = server_init();
+	ret = server_init(cmd_ctx);
 	if (ERROR_OK != ret)
 		return EXIT_FAILURE;
 

@@ -487,7 +487,7 @@ void sig_handler(int sig) {
 }
 #endif
 
-int server_init(void)
+int server_init(struct command_context *cmd_ctx)
 {
 #ifdef _WIN32
 	WORD wVersionRequested;
@@ -518,7 +518,7 @@ int server_init(void)
 	signal(SIGABRT, sig_handler);
 #endif
 
-	int ret = tcl_init();
+	int ret = tcl_init(cmd_ctx);
 	if (ERROR_OK != ret)
 		return ret;
 

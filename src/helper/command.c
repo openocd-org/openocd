@@ -1257,7 +1257,7 @@ struct command_context* command_init(const char *startup_tcl)
 #if !BUILD_ECOSBOARD
 	Jim_InitEmbedded();
 	/* Create an interpreter */
-	interp = Jim_CreateInterp();
+	interp = context->interp = Jim_CreateInterp();
 	/* Add all the Jim core commands */
 	Jim_RegisterCoreCommands(interp);
 #endif

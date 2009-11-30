@@ -251,7 +251,6 @@ int target_register_commands(struct command_context *cmd_ctx);
 int target_register_user_commands(struct command_context *cmd_ctx);
 int target_init(struct command_context *cmd_ctx);
 int target_examine(void);
-int handle_target(void *priv);
 int target_process_reset(struct command_context *cmd_ctx,
 		enum target_reset_mode reset_mode);
 

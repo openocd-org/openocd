@@ -180,6 +180,7 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
 struct httpd_request
 {
 	int post;
+	Jim_Interp *interp;
 	struct MHD_PostProcessor *postprocessor;
 
 	//Jim_Obj *dict;
@@ -208,7 +209,8 @@ static void request_completed(void *cls, struct MHD_Connection *connection,
 }
 
 /* append to said key in dictionary */
-static void append_key(struct httpd_request *r, const char *key,
+static void append_key(Jim_Interp *interp,
+		struct httpd_request *r, const char *key,
 		const char *data, size_t off, size_t size)
 {
 	Jim_Obj *keyObj = Jim_NewStringObj(interp, key, -1);
@@ -259,7 +261,7 @@ static int iterate_post(void *con_cls, enum MHD_ValueKind kind,
 {
 	struct httpd_request *r = (struct httpd_request*) con_cls;
 
-	append_key(r, key, data, off, size);
+	append_key(r->interp, r, key, data, off, size);
 
 	return MHD_YES;
 }
@@ -268,12 +270,13 @@ static int record_arg(void *cls, enum MHD_ValueKind kind, const char *key,
 		const char *value)
 {
 	struct httpd_request *r = (struct httpd_request*) cls;
-	append_key(r, key, value, 0, strlen(value));
+	append_key(r->interp, r, key, value, 0, strlen(value));
 	return MHD_YES;
 }
 
 
-static int handle_request(struct MHD_Connection * connection, const char * url)
+static int handle_request(Jim_Interp *interp,
+		struct MHD_Connection * connection, const char * url)
 {
 	struct MHD_Response * response;
 
@@ -358,6 +361,7 @@ static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 		const char * url, const char * method, const char * version,
 		const char * upload_data, size_t * upload_data_size, void ** ptr)
 {
+	Jim_Interp *interp = (Jim_Interp *)cls;
 	int post = 0;
 
 	if (0 == strcmp(method, "POST"))
@@ -384,7 +388,7 @@ static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 		memset(*ptr, 0, sizeof(struct httpd_request));
 
 		r = (struct httpd_request *) *ptr;
-
+		r->interp = interp;
 		r->post = post;
 		Jim_SetVariableStr(interp, "httppostdata", Jim_NewDictObj(interp, NULL, 0));
 
@@ -437,7 +441,7 @@ static int ahc_echo_inner(void * cls, struct MHD_Connection * connection,
 		url="index.tcl";
 
 	const char *file_name = alloc_printf("%s/%s", httpd_dir, url);
-	int result = handle_request(connection, file_name);
+	int result = handle_request(interp, connection, file_name);
 	free((void *)file_name);
 	return result;
 }
@@ -487,7 +491,7 @@ int httpd_start(struct command_context *cmd_ctx)
 	int port = 8888;
 	LOG_USER("Launching httpd server on port %d", port);
 	d = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, port, NULL, NULL,
-			&ahc_echo, NULL, /* could be data for handler, but we only have a single handler, use global variables instead */
+			&ahc_echo, cmd_ctx->interp,
 			MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL, /* Closure... what's that??? */
 			MHD_OPTION_END);
 	if (d == NULL)
