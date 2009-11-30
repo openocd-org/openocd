@@ -3524,9 +3524,9 @@ void target_handle_event(struct target *target, enum target_event e)
 					   e,
 					   Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
 					   Jim_GetString(teap->body, NULL));
-			if (Jim_EvalObj(interp, teap->body) != JIM_OK)
+			if (Jim_EvalObj(teap->interp, teap->body) != JIM_OK)
 			{
-				Jim_PrintErrorMessage(interp);
+				Jim_PrintErrorMessage(teap->interp);
 			}
 		}
 	}
@@ -3668,9 +3668,10 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 						replace = false;
 					}
 					teap->event = n->value;
+					teap->interp = goi->interp;
 					Jim_GetOpt_Obj(goi, &o);
 					if (teap->body) {
-						Jim_DecrRefCount(interp, teap->body);
+						Jim_DecrRefCount(teap->interp, teap->body);
 					}
 					teap->body  = Jim_DuplicateObj(goi->interp, o);
 					/*
@@ -3718,7 +3719,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 					goto no_params;
 				}
 			}
-			Jim_SetResult(interp, Jim_NewIntObj(goi->interp, target->working_area_virt));
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->working_area_virt));
 			/* loop for more */
 			break;
 
@@ -3736,7 +3737,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 					goto no_params;
 				}
 			}
-			Jim_SetResult(interp, Jim_NewIntObj(goi->interp, target->working_area_phys));
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->working_area_phys));
 			/* loop for more */
 			break;
 
@@ -3753,7 +3754,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 					goto no_params;
 				}
 			}
-			Jim_SetResult(interp, Jim_NewIntObj(goi->interp, target->working_area_size));
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->working_area_size));
 			/* loop for more */
 			break;
 
@@ -3771,7 +3772,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 					goto no_params;
 				}
 			}
-			Jim_SetResult(interp, Jim_NewIntObj(goi->interp, target->backup_working_area));
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->backup_working_area));
 			/* loop for more e*/
 			break;
 
@@ -3838,7 +3839,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 					goto no_params;
 				}
 			}
-			Jim_SetResultString(interp, target->tap->dotted_name, -1);
+			Jim_SetResultString(goi->interp, target->tap->dotted_name, -1);
 			/* loop for more e*/
 			break;
 		}
@@ -4486,7 +4487,7 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	if (target->tap == NULL)
 	{
-		Jim_SetResultString(interp, "-chain-position required when creating target", -1);
+		Jim_SetResultString(goi->interp, "-chain-position required when creating target", -1);
 		e = JIM_ERR;
 	}
 
