@@ -803,6 +803,7 @@ static const struct command_registration zy1000_commands[] = {
 		.help = "writes firmware to flash",
 	},
 #endif
+	COMMAND_REGISTRATION_DONE
 };
 
 
