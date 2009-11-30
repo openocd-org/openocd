@@ -209,9 +209,14 @@ enum jtag_event {
 
 struct jtag_tap_event_action
 {
-	enum jtag_event		event;
-	Jim_Obj*                 body;
-	struct jtag_tap_event_action* next;
+	/// The event for which this action will be triggered.
+	enum jtag_event event;
+	/// The interpreter to use for evaluating the @c body.
+	Jim_Interp *interp;
+	/// Contains a script to 'eval' when the @c event is triggered.
+	Jim_Obj *body;
+	// next action in linked list
+	struct jtag_tap_event_action *next;
 };
 
 /**

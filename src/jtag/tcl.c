@@ -341,8 +341,9 @@ static int jtag_tap_configure_event(Jim_GetOptInfo *goi, struct jtag_tap * tap)
 		if (!found)
 			jteap = calloc(1, sizeof(*jteap));
 		else if (NULL != jteap->body)
-			Jim_DecrRefCount(interp, jteap->body);
+			Jim_DecrRefCount(goi->interp, jteap->body);
 
+		jteap->interp = goi->interp;
 		jteap->event = n->value;
 
 		Jim_Obj *o;
@@ -359,6 +360,7 @@ static int jtag_tap_configure_event(Jim_GetOptInfo *goi, struct jtag_tap * tap)
 	}
 	else if (found)
 	{
+		jteap->interp = goi->interp;
 		Jim_SetResult(goi->interp,
 			Jim_DuplicateObj(goi->interp, jteap->body));
 	}
@@ -616,9 +618,9 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 				tap->dotted_name, e, nvp->name,
 				Jim_GetString(jteap->body, NULL));
 
-		if (Jim_EvalObj(interp, jteap->body) != JIM_OK)
+		if (Jim_EvalObj(jteap->interp, jteap->body) != JIM_OK)
 		{
-			Jim_PrintErrorMessage(interp);
+			Jim_PrintErrorMessage(jteap->interp);
 			continue;
 		}
 
