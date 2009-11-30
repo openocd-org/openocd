@@ -52,30 +52,50 @@ Jim_Interp *interp = NULL;
 static int run_command(struct command_context *context,
 		struct command *c, const char *words[], unsigned num_words);
 
+struct log_capture_state {
+	Jim_Interp *interp;
+	Jim_Obj *output;
+};
+
 static void tcl_output(void *privData, const char *file, unsigned line,
 		const char *function, const char *string)
 {
-	Jim_Obj *tclOutput = (Jim_Obj *)privData;
-	Jim_AppendString(interp, tclOutput, string, strlen(string));
+	struct log_capture_state *state = (struct log_capture_state *)privData;
+	Jim_AppendString(state->interp, state->output, string, strlen(string));
 }
 
-static Jim_Obj *command_log_capture_start(Jim_Interp *interp)
+static struct log_capture_state *command_log_capture_start(Jim_Interp *interp)
 {
 	/* capture log output and return it. A garbage collect can
 	 * happen, so we need a reference count to this object */
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
 	if (NULL == tclOutput)
 		return NULL;
+
+	struct log_capture_state *state = malloc(sizeof(*state));
+	if (NULL == state)
+		return NULL;
+
+	state->interp = interp;
 	Jim_IncrRefCount(tclOutput);
-	log_add_callback(tcl_output, tclOutput);
-	return tclOutput;
+	state->output = tclOutput;
+
+	log_add_callback(tcl_output, state);
+
+	return state;
 }
 
-static void command_log_capture_finish(Jim_Interp *interp, Jim_Obj *tclOutput)
+static void command_log_capture_finish(struct log_capture_state *state)
 {
-	log_remove_callback(tcl_output, tclOutput);
-	Jim_SetResult(interp, tclOutput);
-	Jim_DecrRefCount(interp, tclOutput);
+	if (NULL == state)
+		return;
+
+	log_remove_callback(tcl_output, state);
+
+	Jim_SetResult(state->interp, state->output);
+	Jim_DecrRefCount(state->interp, state->output);
+
+	free(state);
 }
 
 static int command_retval_set(Jim_Interp *interp, int retval)
@@ -164,15 +184,14 @@ static int script_command_run(Jim_Interp *interp,
 	if (NULL == words)
 		return JIM_ERR;
 
-	Jim_Obj *tclOutput = NULL;
+	struct log_capture_state *state = NULL;
 	if (capture)
-		tclOutput = command_log_capture_start(interp);
+		state = command_log_capture_start(interp);
 
 	struct command_context *cmd_ctx = current_command_context();
 	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
 
-	if (capture)
-		command_log_capture_finish(interp, tclOutput);
+	command_log_capture_finish(state);
 
 	script_command_args_free(words, nwords);
 	return command_retval_set(interp, retval);
@@ -804,12 +823,12 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (argc != 2)
 		return JIM_ERR;
 
-	Jim_Obj *tclOutput = command_log_capture_start(interp);
+	struct log_capture_state *state = command_log_capture_start(interp);
 
 	const char *str = Jim_GetString(argv[1], NULL);
 	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
 
-	command_log_capture_finish(interp, tclOutput);
+	command_log_capture_finish(state);
 
 	return retcode;
 }
