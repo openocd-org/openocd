@@ -681,93 +681,108 @@ err_write_phys_memory(struct target *target, uint32_t address,
 
 static int handle_target(void *priv);
 
+static int target_init_one(struct command_context *cmd_ctx,
+		struct target *target)
+{
+	target_reset_examined(target);
+
+	struct target_type *type = target->type;
+	if (type->examine == NULL)
+		type->examine = default_examine;
+
+	int retval = type->init_target(cmd_ctx, target);
+	if (ERROR_OK != retval)
+	{
+		LOG_ERROR("target '%s' init failed", target_name(target));
+		return retval;
+	}
+
+	/**
+	 * @todo get rid of those *memory_imp() methods, now that all
+	 * callers are using target_*_memory() accessors ... and make
+	 * sure the "physical" paths handle the same issues.
+	 */
+	/* a non-invasive way(in terms of patches) to add some code that
+	 * runs before the type->write/read_memory implementation
+	 */
+	type->write_memory_imp = target->type->write_memory;
+	type->write_memory = target_write_memory_imp;
+
+	type->read_memory_imp = target->type->read_memory;
+	type->read_memory = target_read_memory_imp;
+
+	type->soft_reset_halt_imp = target->type->soft_reset_halt;
+	type->soft_reset_halt = target_soft_reset_halt_imp;
+
+	type->run_algorithm_imp = target->type->run_algorithm;
+	type->run_algorithm = target_run_algorithm_imp;
+
+	/* Sanity-check MMU support ... stub in what we must, to help
+	 * implement it in stages, but warn if we need to do so.
+	 */
+	if (type->mmu)
+	{
+		if (type->write_phys_memory == NULL)
+		{
+			LOG_ERROR("type '%s' is missing write_phys_memory",
+					type->name);
+			type->write_phys_memory = err_write_phys_memory;
+		}
+		if (type->read_phys_memory == NULL)
+		{
+			LOG_ERROR("type '%s' is missing read_phys_memory",
+					type->name);
+			type->read_phys_memory = err_read_phys_memory;
+		}
+		if (type->virt2phys == NULL)
+		{
+			LOG_ERROR("type '%s' is missing virt2phys", type->name);
+			type->virt2phys = identity_virt2phys;
+		}
+	}
+	else
+	{
+		/* Make sure no-MMU targets all behave the same:  make no
+		 * distinction between physical and virtual addresses, and
+		 * ensure that virt2phys() is always an identity mapping.
+		 */
+		if (type->write_phys_memory || type->read_phys_memory
+				|| type->virt2phys)
+		{
+			LOG_WARNING("type '%s' has bad MMU hooks", type->name);
+		}
+
+		type->mmu = no_mmu;
+		type->write_phys_memory = type->write_memory;
+		type->read_phys_memory = type->read_memory;
+		type->virt2phys = identity_virt2phys;
+	}
+	return ERROR_OK;
+}
+
 int target_init(struct command_context *cmd_ctx)
 {
 	struct target *target;
 	int retval;
 
-	for (target = all_targets; target; target = target->next) {
-		struct target_type *type = target->type;
-
-		target_reset_examined(target);
-		if (target->type->examine == NULL)
-		{
-			target->type->examine = default_examine;
-		}
-
-		if ((retval = target->type->init_target(cmd_ctx, target)) != ERROR_OK)
-		{
-			LOG_ERROR("target '%s' init failed", target_name(target));
-			return retval;
-		}
-
-
-		/**
-		 * @todo get rid of those *memory_imp() methods, now that all
-		 * callers are using target_*_memory() accessors ... and make
-		 * sure the "physical" paths handle the same issues.
-		 */
-
-		/* a non-invasive way(in terms of patches) to add some code that
-		 * runs before the type->write/read_memory implementation
-		 */
-		target->type->write_memory_imp = target->type->write_memory;
-		target->type->write_memory = target_write_memory_imp;
-		target->type->read_memory_imp = target->type->read_memory;
-		target->type->read_memory = target_read_memory_imp;
-		target->type->soft_reset_halt_imp = target->type->soft_reset_halt;
-		target->type->soft_reset_halt = target_soft_reset_halt_imp;
-		target->type->run_algorithm_imp = target->type->run_algorithm;
-		target->type->run_algorithm = target_run_algorithm_imp;
-
-		/* Sanity-check MMU support ... stub in what we must, to help
-		 * implement it in stages, but warn if we need to do so.
-		 */
-		if (type->mmu) {
-			if (type->write_phys_memory == NULL) {
-				LOG_ERROR("type '%s' is missing %s",
-						type->name,
-						"write_phys_memory");
-				type->write_phys_memory = err_write_phys_memory;
-			}
-			if (type->read_phys_memory == NULL) {
-				LOG_ERROR("type '%s' is missing %s",
-						type->name,
-						"read_phys_memory");
-				type->read_phys_memory = err_read_phys_memory;
-			}
-			if (type->virt2phys == NULL) {
-				LOG_ERROR("type '%s' is missing %s",
-						type->name,
-						"virt2phys");
-				type->virt2phys = identity_virt2phys;
-			}
-
-		/* Make sure no-MMU targets all behave the same:  make no
-		 * distinction between physical and virtual addresses, and
-		 * ensure that virt2phys() is always an identity mapping.
-		 */
-		} else {
-			if (type->write_phys_memory
-					|| type->read_phys_memory
-					|| type->virt2phys)
-				LOG_WARNING("type '%s' has broken MMU hooks",
-						type->name);
-
-			type->mmu = no_mmu;
-			type->write_phys_memory = type->write_memory;
-			type->read_phys_memory = type->read_memory;
-			type->virt2phys = identity_virt2phys;
-		}
-	}
-
-	if (all_targets)
+	for (target = all_targets; target; target = target->next)
 	{
-		if ((retval = target_register_user_commands(cmd_ctx)) != ERROR_OK)
-			return retval;
-		if ((retval = target_register_timer_callback(&handle_target, 100, 1, cmd_ctx->interp)) != ERROR_OK)
+		retval = target_init_one(cmd_ctx, target);
+		if (ERROR_OK != retval)
 			return retval;
 	}
+
+	if (!all_targets)
+		return ERROR_OK;
+
+	retval = target_register_user_commands(cmd_ctx);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = target_register_timer_callback(&handle_target,
+			100, 1, cmd_ctx->interp);
+	if (ERROR_OK != retval)
+		return retval;
 
 	return ERROR_OK;
 }
