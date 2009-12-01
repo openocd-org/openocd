@@ -673,6 +673,9 @@ int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm
 {
 	struct arm7_9_common *arm7_9 = &arm926ejs->arm7_9_common;
 
+	arm7_9->armv4_5_common.mrc = arm926ejs_mrc;
+	arm7_9->armv4_5_common.mcr = arm926ejs_mcr;
+
 	/* initialize arm7/arm9 specific info (including armv4_5) */
 	arm9tdmi_init_arch_info(target, arm7_9, tap);
 
@@ -822,6 +825,4 @@ struct target_type arm926ejs_target =
 
 	.read_phys_memory = arm926ejs_read_phys_memory,
 	.write_phys_memory = arm926ejs_write_phys_memory,
-	.mrc = arm926ejs_mrc,
-	.mcr = arm926ejs_mcr,
 };

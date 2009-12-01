@@ -378,10 +378,23 @@ static int arm720t_init_target(struct command_context *cmd_ctx, struct target *t
 	return arm7tdmi_init_target(cmd_ctx, target);
 }
 
+/* FIXME remove forward decls */
+static int arm720t_mrc(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t *value);
+static int arm720t_mcr(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t value);
+
 static int arm720t_init_arch_info(struct target *target,
 		struct arm720t_common *arm720t, struct jtag_tap *tap)
 {
 	struct arm7_9_common *arm7_9 = &arm720t->arm7_9_common;
+
+	arm7_9->armv4_5_common.mrc = arm720t_mrc;
+	arm7_9->armv4_5_common.mcr = arm720t_mcr;
 
 	arm7tdmi_init_arch_info(target, arm7_9, tap);
 
@@ -556,6 +569,4 @@ struct target_type arm720t_target =
 	.target_create = arm720t_target_create,
 	.init_target = arm720t_init_target,
 	.examine = arm7_9_examine,
-	.mrc = arm720t_mrc,
-	.mcr = arm720t_mcr,
 };

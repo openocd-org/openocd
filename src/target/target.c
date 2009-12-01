@@ -44,8 +44,6 @@
 #include "jtag.h"
 
 
-static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
-
 static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
 static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
 
@@ -665,84 +663,6 @@ static void target_reset_examined(struct target *target)
 	target->examined = false;
 }
 
-
-
-static int default_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
-{
-	LOG_ERROR("Not implemented: %s", __func__);
-	return ERROR_FAIL;
-}
-
-static int default_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
-{
-	LOG_ERROR("Not implemented: %s", __func__);
-	return ERROR_FAIL;
-}
-
-static int arm_cp_check(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm)
-{
-	/* basic check */
-	if (!target_was_examined(target))
-	{
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
-
-	if ((cpnum <0) || (cpnum > 15))
-	{
-		LOG_ERROR("Illegal co-processor %d", cpnum);
-		return ERROR_FAIL;
-	}
-
-	if (op1 > 7)
-	{
-		LOG_ERROR("Illegal op1");
-		return ERROR_FAIL;
-	}
-
-	if (op2 > 7)
-	{
-		LOG_ERROR("Illegal op2");
-		return ERROR_FAIL;
-	}
-
-	if (CRn > 15)
-	{
-		LOG_ERROR("Illegal CRn");
-		return ERROR_FAIL;
-	}
-
-	if (CRm > 15)
-	{
-		LOG_ERROR("Illegal CRm");
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
-}
-
-int target_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
-{
-	int retval;
-
-	retval = arm_cp_check(target, cpnum, op1, op2, CRn, CRm);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return target->type->mrc(target, cpnum, op1, op2, CRn, CRm, value);
-}
-
-int target_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
-{
-	int retval;
-
-	retval = arm_cp_check(target, cpnum, op1, op2, CRn, CRm);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return target->type->mcr(target, cpnum, op1, op2, CRn, CRm, value);
-}
-
 static int
 err_read_phys_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
@@ -779,39 +699,6 @@ int target_init(struct command_context *cmd_ctx)
 		{
 			LOG_ERROR("target '%s' init failed", target_name(target));
 			return retval;
-		}
-
-		/**
-		 * @todo MCR/MRC are ARM-specific; don't require them in
-		 * all targets, or for ARMs without coprocessors.
-		 */
-		if (target->type->mcr == NULL)
-		{
-			target->type->mcr = default_mcr;
-		} else
-		{
-			const struct command_registration mcr_cmd = {
-				.name = "mcr",
-				.mode = COMMAND_EXEC,
-				.jim_handler = &jim_mcrmrc,
-				.help = "write coprocessor",
-				.usage = "<cpnum> <op1> <op2> <CRn> <CRm> <value>",
-			};
-			register_command(cmd_ctx, NULL, &mcr_cmd);
-		}
-
-		if (target->type->mrc == NULL)
-		{
-			target->type->mrc = default_mrc;
-		} else
-		{
-			const struct command_registration mrc_cmd = {
-				.name = "mrc",
-				.jim_handler = &jim_mcrmrc,
-				.help = "read coprocessor",
-				.usage = "<cpnum> <op1> <op2> <CRn> <CRm>",
-			};
-			register_command(cmd_ctx, NULL, &mrc_cmd);
 		}
 
 
@@ -4881,92 +4768,6 @@ COMMAND_HANDLER(handle_fast_load_command)
 	int after = timeval_ms();
 	command_print(CMD_CTX, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
 	return retval;
-}
-
-static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct command_context *context;
-	struct target *target;
-	int retval;
-
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL) {
-		LOG_ERROR("array2mem: no command context");
-		return JIM_ERR;
-	}
-	target = get_current_target(context);
-	if (target == NULL) {
-		LOG_ERROR("array2mem: no current target");
-		return JIM_ERR;
-	}
-
-	if ((argc < 6) || (argc > 7))
-	{
-		return JIM_ERR;
-	}
-
-	int cpnum;
-	uint32_t op1;
-	uint32_t op2;
-	uint32_t CRn;
-	uint32_t CRm;
-	uint32_t value;
-
-	int e;
-	long l;
-	e = Jim_GetLong(interp, argv[1], &l);
-	if (e != JIM_OK) {
-		return e;
-	}
-	cpnum = l;
-
-	e = Jim_GetLong(interp, argv[2], &l);
-	if (e != JIM_OK) {
-		return e;
-	}
-	op1 = l;
-
-	e = Jim_GetLong(interp, argv[3], &l);
-	if (e != JIM_OK) {
-		return e;
-	}
-	CRn = l;
-
-	e = Jim_GetLong(interp, argv[4], &l);
-	if (e != JIM_OK) {
-		return e;
-	}
-	CRm = l;
-
-	e = Jim_GetLong(interp, argv[5], &l);
-	if (e != JIM_OK) {
-		return e;
-	}
-	op2 = l;
-
-	value = 0;
-
-	if (argc == 7)
-	{
-		e = Jim_GetLong(interp, argv[6], &l);
-		if (e != JIM_OK) {
-			return e;
-		}
-		value = l;
-
-		retval = target_mcr(target, cpnum, op1, op2, CRn, CRm, value);
-		if (retval != ERROR_OK)
-			return JIM_ERR;
-	} else
-	{
-		retval = target_mrc(target, cpnum, op1, op2, CRn, CRm, &value);
-		if (retval != ERROR_OK)
-			return JIM_ERR;
-
-		Jim_SetResult(interp, Jim_NewIntObj(interp, value));
-	}
-
-	return JIM_OK;
 }
 
 static const struct command_registration target_command_handlers[] = {

@@ -624,9 +624,22 @@ int arm920t_soft_reset_halt(struct target *target)
 	return ERROR_OK;
 }
 
+/* FIXME remove forward decls */
+static int arm920t_mrc(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t *value);
+static int arm920t_mcr(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t value);
+
 int arm920t_init_arch_info(struct target *target, struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
 	struct arm7_9_common *arm7_9 = &arm920t->arm7_9_common;
+
+	arm7_9->armv4_5_common.mrc = arm920t_mrc;
+	arm7_9->armv4_5_common.mcr = arm920t_mcr;
 
 	/* initialize arm7/arm9 specific info (including armv4_5) */
 	arm9tdmi_init_arch_info(target, arm7_9, tap);
@@ -1452,6 +1465,4 @@ struct target_type arm920t_target =
 	.target_create = arm920t_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm7_9_examine,
-	.mrc = arm920t_mrc,
-	.mcr = arm920t_mcr,
 };

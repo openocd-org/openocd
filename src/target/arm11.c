@@ -1219,6 +1219,13 @@ static int arm11_remove_watchpoint(struct target *target,
 	return ERROR_FAIL;
 }
 
+static int arm11_mrc(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm, uint32_t *value);
+static int arm11_mcr(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2, uint32_t CRn,
+		uint32_t CRm, uint32_t value);
+
 static int arm11_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm11_common *arm11;
@@ -1237,6 +1244,9 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 
 	armv4_5_init_arch_info(target, &arm11->arm);
+
+	arm11->arm.mrc = arm11_mrc;
+	arm11->arm.mcr = arm11_mcr;
 
 	arm11->target = target;
 
@@ -1679,7 +1689,4 @@ struct target_type arm11_target = {
 	.target_create =	arm11_target_create,
 	.init_target =		arm11_init_target,
 	.examine =		arm11_examine,
-
-	.mrc =			arm11_mrc,
-	.mcr =			arm11_mcr,
 };

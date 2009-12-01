@@ -112,11 +112,26 @@ struct arm
 	/** Handle for the Embedded Trace Module, if one is present. */
 	struct etm_context *etm;
 
+	/* FIXME all these methods should take "struct arm *" not target */
+
 	int (*full_context)(struct target *target);
 	int (*read_core_reg)(struct target *target, struct reg *reg,
 			int num, enum armv4_5_mode mode);
 	int (*write_core_reg)(struct target *target, struct reg *reg,
 			int num, enum armv4_5_mode mode, uint32_t value);
+
+	/** Read coprocessor register.  */
+	int (*mrc)(struct target *target, int cpnum,
+			uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm,
+			uint32_t *value);
+
+	/* Write coprocessor register.  */
+	int (*mcr)(struct target *target, int cpnum,
+			uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm,
+			uint32_t value);
+
 	void *arch_info;
 };
 

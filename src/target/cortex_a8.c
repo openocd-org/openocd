@@ -936,7 +936,7 @@ static void cortex_a8_post_debug_entry(struct target *target)
 	int retval;
 
 	/* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
-	retval = target->type->mrc(target, 15,
+	retval = armv7a->armv4_5_common.mrc(target, 15,
 			0, 0,	/* op1, op2 */
 			1, 0,	/* CRn, CRm */
 			&cortex_a8->cp15_control_reg);
@@ -947,7 +947,7 @@ static void cortex_a8_post_debug_entry(struct target *target)
 		uint32_t cache_type_reg;
 
 		/* MRC p15,0,<Rt>,c0,c0,1 ; Read CP15 Cache Type Register */
-		retval = target->type->mrc(target, 15,
+		retval = armv7a->armv4_5_common.mrc(target, 15,
 				0, 1,	/* op1, op2 */
 				0, 0,	/* CRn, CRm */
 				&cache_type_reg);
@@ -1535,6 +1535,7 @@ static int cortex_a8_examine_first(struct target *target)
 	LOG_DEBUG("ttypr = 0x%08" PRIx32, ttypr);
 	LOG_DEBUG("didr = 0x%08" PRIx32, didr);
 
+	armv7a->armv4_5_common.core_type = ARM_MODE_MON;
 	cortex_a8_dpm_setup(cortex_a8, didr);
 
 	/* Setup Breakpoint Register Pairs */
@@ -1611,6 +1612,9 @@ static int cortex_a8_init_arch_info(struct target *target,
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
 	armv4_5->arch_info = armv7a;
 
+	armv4_5->mrc = cortex_a8_mrc,
+	armv4_5->mcr = cortex_a8_mcr,
+
 	/* prepare JTAG information for the new target */
 	cortex_a8->jtag_info.tap = tap;
 	cortex_a8->jtag_info.scann_size = 4;
@@ -1625,7 +1629,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 	swjdp->tar_autoincr_block = (1 << 10);
 
 	cortex_a8->fast_reg_read = 0;
-
 
 	/* register arch-specific functions */
 	armv7a->examine_debug_reason = NULL;
@@ -1752,6 +1755,4 @@ struct target_type cortexa8_target = {
 	.target_create = cortex_a8_target_create,
 	.init_target = cortex_a8_init_target,
 	.examine = cortex_a8_examine,
-	.mrc = cortex_a8_mrc,
-	.mcr = cortex_a8_mcr,
 };

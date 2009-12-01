@@ -213,11 +213,6 @@ struct target_type
 
 	int (*mmu)(struct target *target, int *enabled);
 
-	/* Read coprocessor - arm specific. Default implementation returns error. */
-	int (*mrc)(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
-
-	/* Write coprocessor. Default implementation returns error.  */
-	int (*mcr)(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
 };
 
 #endif // TARGET_TYPE_H
