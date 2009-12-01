@@ -34,6 +34,61 @@
  * implementation differences between cores like ARM1136 and Cortex-A8.
  */
 
+/*
+ * Coprocessor support
+ */
+
+/* Read coprocessor */
+static int dpm_mrc(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
+		uint32_t *value)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("MRC p%d, %d, r0, c%d, c%d, %d", cpnum, op1, CRn, CRm, op2);
+
+	/* read coprocessor register into R0; return via DCC */
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(cpnum, op1, 0, CRn, CRm, op2),
+			value);
+
+	/* (void) */ dpm->finish(dpm);
+	return retval;
+}
+
+static int dpm_mcr(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
+		uint32_t value)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("MCR p%d, %d, r0, c%d, c%d, %d", cpnum, op1, CRn, CRm, op2);
+
+	/* read DCC into r0; then write coprocessor register from R0 */
+	retval = dpm->instr_write_data_r0(dpm,
+			ARMV4_5_MCR(cpnum, op1, 0, CRn, CRm, op2),
+			value);
+
+	/* (void) */ dpm->finish(dpm);
+	return retval;
+}
+
+/*
+ * Register access utilities
+ */
+
 /* Toggles between recorded core mode (USR, SVC, etc) and a temporary one.
  * Routines *must* restore the original mode before returning!!
  */
@@ -510,6 +565,10 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 		return ERROR_FAIL;
 
 	*register_get_last_cache_p(&target->reg_cache) = cache;
+
+	arm->mrc = dpm_mrc;
+	arm->mcr = dpm_mcr;
+
 	return ERROR_OK;
 }
 
