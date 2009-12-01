@@ -933,19 +933,26 @@ static void cortex_a8_post_debug_entry(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
+	int retval;
 
-//	cortex_a8_read_cp(target, &cp15_control_register, 15, 0, 1, 0, 0);
-	/* examine cp15 control reg */
-	armv7a->read_cp15(target, 0, 0, 1, 0, &cortex_a8->cp15_control_reg);
-	jtag_execute_queue();
+	/* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
+	retval = target->type->mrc(target, 15,
+			0, 0,	/* op1, op2 */
+			1, 0,	/* CRn, CRm */
+			&cortex_a8->cp15_control_reg);
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a8->cp15_control_reg);
 
 	if (armv7a->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
 		uint32_t cache_type_reg;
-		/* identify caches */
-		armv7a->read_cp15(target, 0, 1, 0, 0, &cache_type_reg);
-		jtag_execute_queue();
+
+		/* MRC p15,0,<Rt>,c0,c0,1 ; Read CP15 Cache Type Register */
+		retval = target->type->mrc(target, 15,
+				0, 1,	/* op1, op2 */
+				0, 0,	/* CRn, CRm */
+				&cache_type_reg);
+		LOG_DEBUG("cp15 cache type: %8.8x", (unsigned) cache_type_reg);
+
 		/* FIXME the armv4_4 cache info DOES NOT APPLY to Cortex-A8 */
 		armv4_5_identify_cache(cache_type_reg,
 				&armv7a->armv4_5_mmu.armv4_5_cache);
@@ -1350,25 +1357,55 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 		}
 	}
 
+	/* REVISIT this op is generic ARMv7-A/R stuff */
 	if (retval == ERROR_OK && target->state == TARGET_HALTED)
 	{
-		/* The Cache handling will NOT work with MMU active, the wrong addresses will be invalidated */
+		struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+
+		retval = dpm->prepare(dpm);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* The Cache handling will NOT work with MMU active, the
+		 * wrong addresses will be invalidated!
+		 *
+		 * For both ICache and DCache, walk all cache lines in the
+		 * address range. Cortex-A8 has fixed 64 byte line length.
+		 */
+
 		/* invalidate I-Cache */
 		if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
 		{
-			/* Invalidate ICache single entry with MVA, repeat this for all cache
-			   lines in the address range, Cortex-A8 has fixed 64 byte line length */
-			/* Invalidate Cache single entry with MVA to PoU */
-			for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
-				armv7a->write_cp15(target, 0, 1, 7, 5, cacheline); /* I-Cache to PoU */
+			/* ICIMVAU - Invalidate Cache single entry
+			 * with MVA to PoU
+			 *	MCR p15, 0, r0, c7, c5, 1
+			 */
+			for (uint32_t cacheline = address;
+					cacheline < address + size * count;
+					cacheline += 64) {
+				retval = dpm->instr_write_data_r0(dpm,
+					ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
+					cacheline);
+			}
 		}
+
 		/* invalidate D-Cache */
 		if (armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		{
-			/* Invalidate Cache single entry with MVA to PoC */
-			for (uint32_t cacheline=address; cacheline<address+size*count; cacheline+=64)
-				armv7a->write_cp15(target, 0, 1, 7, 6, cacheline); /* U/D cache to PoC */
+			/* DCIMVAC - Invalidate data Cache line
+			 * with MVA to PoC
+			 *	MCR p15, 0, r0, c7, c6, 1
+			 */
+			for (uint32_t cacheline = address;
+					cacheline < address + size * count;
+					cacheline += 64) {
+				retval = dpm->instr_write_data_r0(dpm,
+					ARMV4_5_MCR(15, 0, 0, 7, 6, 1),
+					cacheline);
+			}
 		}
+
+		/* (void) */ dpm->finish(dpm);
 	}
 
 	return retval;
