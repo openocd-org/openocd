@@ -62,7 +62,7 @@
 static int xscale_resume(struct target *, int current,
 	uint32_t address, int handle_breakpoints, int debug_execution);
 static int xscale_debug_entry(struct target *);
-static int xscale_restore_context(struct target *);
+static int xscale_restore_banked(struct target *);
 static int xscale_get_reg(struct reg *reg);
 static int xscale_set_reg(struct reg *reg, uint8_t *buf);
 static int xscale_set_breakpoint(struct target *, struct breakpoint *);
@@ -1251,7 +1251,7 @@ static int xscale_resume(struct target *target, int current,
 			xscale_enable_single_step(target, next_pc);
 
 			/* restore banked registers */
-			xscale_restore_context(target);
+			retval = xscale_restore_banked(target);
 
 			/* send resume request (command 0x30 or 0x31)
 			 * clean the trace buffer if it is to be enabled (0x62) */
@@ -1296,7 +1296,7 @@ static int xscale_resume(struct target *target, int current,
 	xscale_enable_watchpoints(target);
 
 	/* restore banked registers */
-	xscale_restore_context(target);
+	retval = xscale_restore_banked(target);
 
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
@@ -1371,7 +1371,7 @@ static int xscale_step_inner(struct target *target, int current,
 		return retval;
 
 	/* restore banked registers */
-	if ((retval = xscale_restore_context(target)) != ERROR_OK)
+	if ((retval = xscale_restore_banked(target)) != ERROR_OK)
 		return retval;
 
 	/* send resume request (command 0x30 or 0x31)
@@ -1755,7 +1755,7 @@ static int xscale_full_context(struct target *target)
 	return ERROR_OK;
 }
 
-static int xscale_restore_context(struct target *target)
+static int xscale_restore_banked(struct target *target)
 {
 	struct arm *armv4_5 = target_to_armv4_5(target);
 
@@ -1774,8 +1774,8 @@ static int xscale_restore_context(struct target *target)
 	 */
 	for (i = 1; i < 7; i++)
 	{
-		int dirty = 0;
 		enum armv4_5_mode mode = armv4_5_number_to_mode(i);
+		struct reg *r;
 
 		if (mode == ARMV4_5_MODE_USR)
 			continue;
@@ -1785,7 +1785,7 @@ static int xscale_restore_context(struct target *target)
 		{
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					mode, j).dirty)
-				dirty = 1;
+				goto dirty;
 		}
 
 		/* if not USR/SYS, check if the SPSR needs to be written */
@@ -1793,43 +1793,35 @@ static int xscale_restore_context(struct target *target)
 		{
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					mode, 16).dirty)
-				dirty = 1;
+				goto dirty;
 		}
 
-		/* is there anything to flush for this mode? */
-		if (dirty)
-		{
-			uint32_t tmp_cpsr;
-			struct reg *r;
+		/* there's nothing to flush for this mode */
+		continue;
 
-			/* command 0x1:  "send banked registers" */
-			xscale_send_u32(target, 0x1);
+dirty:
+		/* command 0x1:  "send banked registers" */
+		xscale_send_u32(target, 0x1);
 
-			tmp_cpsr = 0x0;
-			tmp_cpsr |= mode;
-			tmp_cpsr |= 0xc0; /* I/F bits */
+		/* send CPSR for desired mode */
+		xscale_send_u32(target, mode | 0xc0 /* I/F bits */);
 
-			/* send CPSR for desired mode */
-			xscale_send_u32(target, tmp_cpsr);
+		/* send r8 to r14/lr ... only FIQ needs more than r13..r14,
+		 * but this protocol doesn't understand that nuance.
+		 */
+		for (j = 8; j <= 14; j++) {
+			r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, j);
+			xscale_send_u32(target, buf_get_u32(r->value, 0, 32));
+			r->dirty = false;
+		}
 
-			/* send banked registers, r8 to r14, and spsr if not in USR/SYS mode */
-			for (j = 8; j <= 14; j++)
-			{
-				r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-						mode, j);
-				xscale_send_u32(target,
-						buf_get_u32(r->value, 0, 32));
-				r->dirty = false;
-			}
-
-			if (mode != ARMV4_5_MODE_SYS)
-			{
-				r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-						mode, 16);
-				xscale_send_u32(target,
-						buf_get_u32(r->value, 0, 32));
-				r->dirty = false;
-			}
+		/* send spsr if not in USR/SYS mode */
+		if (mode != ARMV4_5_MODE_SYS) {
+			r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, 16);
+			xscale_send_u32(target, buf_get_u32(r->value, 0, 32));
+			r->dirty = false;
 		}
 	}
 
