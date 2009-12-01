@@ -38,17 +38,48 @@ static void armv7a_show_fault_registers(struct target *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	int retval;
 
-	armv7a->read_cp15(target, 0, 0, 5, 0, &dfsr);
-	armv7a->read_cp15(target, 0, 1, 5, 0, &ifsr);
-	armv7a->read_cp15(target, 0, 0, 6, 0, &dfar);
-	armv7a->read_cp15(target, 0, 2, 6, 0, &ifar);
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return;
+
+	/* ARMV4_5_MRC(cpnum, op1, r0, CRn, CRm, op2) */
+
+	/* c5/c0 - {data, instruction} fault status registers */
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 5, 0, 0),
+			&dfsr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 5, 0, 1),
+			&ifsr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	/* c6/c0 - {data, instruction} fault address registers */
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 6, 0, 0),
+			&dfar);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 6, 0, 2),
+			&ifar);
+	if (retval != ERROR_OK)
+		goto done;
 
 	LOG_USER("Data fault registers        DFSR: %8.8" PRIx32
 			", DFAR: %8.8" PRIx32, dfsr, dfar);
 	LOG_USER("Instruction fault registers IFSR: %8.8" PRIx32
 			", IFAR: %8.8" PRIx32, ifsr, ifar);
 
+done:
+	/* (void) */ dpm->finish(dpm);
 }
 
 int armv7a_arch_state(struct target *target)
