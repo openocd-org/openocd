@@ -281,6 +281,9 @@ COMMAND_HANDLER(handle_nand_device_command)
 	return CALL_COMMAND_HANDLER(handle_nand_list_drivers);
 }
 
+
+COMMAND_HANDLER(handle_nand_init_command);
+
 static const struct command_registration nand_config_command_handlers[] = {
 	{
 		.name = "device",
@@ -293,6 +296,12 @@ static const struct command_registration nand_config_command_handlers[] = {
 		.handler = &handle_nand_list_drivers,
 		.mode = COMMAND_ANY,
 		.help = "lists available NAND drivers",
+	},
+	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_nand_init_command,
+		.help = "initialize NAND devices",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1793,4 +1802,21 @@ int nand_init(struct command_context *cmd_ctx)
 		return ERROR_OK;
 	struct command *parent = command_find_in_context(cmd_ctx, "nand");
 	return register_commands(cmd_ctx, parent, nand_exec_command_handlers);
+}
+
+COMMAND_HANDLER(handle_nand_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool nand_initialized = false;
+	if (nand_initialized)
+	{
+		LOG_INFO("'nand init' has already been called");
+		return ERROR_OK;
+	}
+	nand_initialized = true;
+
+	LOG_DEBUG("Initializing NAND devices...");
+	return nand_init(CMD_CTX);
 }
