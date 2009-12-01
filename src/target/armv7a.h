@@ -62,13 +62,6 @@ struct armv7a_common
 	/* Cache and Memory Management Unit */
 	struct armv4_5_mmu_common armv4_5_mmu;
 
-	int (*read_cp15)(struct target *target,
-			uint32_t op1, uint32_t op2,
-			uint32_t CRn, uint32_t CRm, uint32_t *value);
-	int (*write_cp15)(struct target *target,
-			uint32_t op1, uint32_t op2,
-			uint32_t CRn, uint32_t CRm, uint32_t value);
-
 	int (*examine_debug_reason)(struct target *target);
 	void (*post_debug_entry)(struct target *target);
 

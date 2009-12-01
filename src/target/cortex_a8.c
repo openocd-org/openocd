@@ -159,97 +159,6 @@ static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t addre
 	return retval;
 }
 
-static int cortex_a8_read_cp(struct target *target, uint32_t *value, uint8_t CP,
-		uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
-{
-	int retval;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct swjdp_common *swjdp = &armv7a->swjdp_info;
-	uint32_t dscr = 0;
-
-	/* MRC(...) to read coprocessor register into r0 */
-	cortex_a8_exec_opcode(target, ARMV4_5_MRC(CP, op1, 0, CRn, CRm, op2),
-			&dscr);
-
-	/* Move R0 to DTRTX */
-	cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
-			&dscr);
-
-	/* Read DCCTX */
-	retval = mem_ap_read_atomic_u32(swjdp,
-			armv7a->debug_base + CPUDBG_DTRTX, value);
-
-	return retval;
-}
-
-static int cortex_a8_write_cp(struct target *target, uint32_t value,
-	uint8_t CP, uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
-{
-	int retval;
-	uint32_t dscr;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct swjdp_common *swjdp = &armv7a->swjdp_info;
-
-	LOG_DEBUG("CP%i, CRn %i, value 0x%08" PRIx32, CP, CRn, value);
-
-	/* Check that DCCRX is not full */
-	retval = mem_ap_read_atomic_u32(swjdp,
-				armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	if (dscr & (1 << DSCR_DTR_RX_FULL))
-	{
-		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
-		/* Clear DCCRX with MCR(p14, 0, Rd, c0, c5, 0), opcode  0xEE000E15 */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
-				&dscr);
-	}
-
-	/* Write DTRRX ... sets DSCR.DTRRXfull but exec_opcode() won't care */
-	retval = mem_ap_write_u32(swjdp,
-			armv7a->debug_base + CPUDBG_DTRRX, value);
-
-	/* Move DTRRX to r0 */
-	cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0), &dscr);
-
-	/* MCR(...) to write r0 to coprocessor */
-	return cortex_a8_exec_opcode(target,
-			ARMV4_5_MCR(CP, op1, 0, CRn, CRm, op2),
-			&dscr);
-}
-
-static int cortex_a8_read_cp15(struct target *target, uint32_t op1, uint32_t op2,
-		uint32_t CRn, uint32_t CRm, uint32_t *value)
-{
-	return cortex_a8_read_cp(target, value, 15, op1, CRn, CRm, op2);
-}
-
-static int cortex_a8_write_cp15(struct target *target, uint32_t op1, uint32_t op2,
-		uint32_t CRn, uint32_t CRm, uint32_t value)
-{
-	return cortex_a8_write_cp(target, value, 15, op1, CRn, CRm, op2);
-}
-
-static int cortex_a8_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
-{
-	if (cpnum!=15)
-	{
-		LOG_ERROR("Only cp15 is supported");
-		return ERROR_FAIL;
-	}
-	return cortex_a8_read_cp15(target, op1, op2, CRn, CRm, value);
-}
-
-static int cortex_a8_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
-{
-	if (cpnum!=15)
-	{
-		LOG_ERROR("Only cp15 is supported");
-		return ERROR_FAIL;
-	}
-	return cortex_a8_write_cp15(target, op1, op2, CRn, CRm, value);
-}
-
-
-
 static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 		uint32_t *value, int regnum)
 {
@@ -421,7 +330,7 @@ static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data,
 
 	retval = mem_ap_read_atomic_u32(swjdp,
 			a8->armv7a_common.debug_base + CPUDBG_DTRTX, data);
-	LOG_DEBUG("read DCC 0x%08" PRIx32, *data);
+	//LOG_DEBUG("read DCC 0x%08" PRIx32, *data);
 
 	if (dscr_p)
 		*dscr_p = dscr;
@@ -1612,9 +1521,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
 	armv4_5->arch_info = armv7a;
 
-	armv4_5->mrc = cortex_a8_mrc,
-	armv4_5->mcr = cortex_a8_mcr,
-
 	/* prepare JTAG information for the new target */
 	cortex_a8->jtag_info.tap = tap;
 	cortex_a8->jtag_info.scann_size = 4;
@@ -1645,8 +1551,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 //	armv7a->armv4_5_mmu.enable_mmu_caches = armv7a_enable_mmu_caches;
 	armv7a->armv4_5_mmu.has_tiny_pages = 1;
 	armv7a->armv4_5_mmu.mmu_enabled = 0;
-	armv7a->read_cp15 = cortex_a8_read_cp15;
-	armv7a->write_cp15 = cortex_a8_write_cp15;
 
 
 //	arm7_9->handle_target_request = cortex_a8_handle_target_request;
