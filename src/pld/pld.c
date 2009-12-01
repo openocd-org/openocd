@@ -213,6 +213,23 @@ int pld_init(struct command_context *cmd_ctx)
 	return register_commands(cmd_ctx, parent, pld_exec_command_handlers);
 }
 
+COMMAND_HANDLER(handle_pld_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool pld_initialized = false;
+	if (pld_initialized)
+	{
+		LOG_INFO("'pld init' has already been called");
+		return ERROR_OK;
+	}
+	pld_initialized = true;
+
+	LOG_DEBUG("Initializing PLDs...");
+	return pld_init(CMD_CTX);
+}
+
 static const struct command_registration pld_config_command_handlers[] = {
 	{
 		.name = "device",
@@ -220,6 +237,12 @@ static const struct command_registration pld_config_command_handlers[] = {
 		.handler = &handle_pld_device_command,
 		.help = "configure a PLD device",
 		.usage = "<driver> ...",
+	},
+	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_pld_init_command,
+		.help = "initialize PLD devices",
 	},
 	COMMAND_REGISTRATION_DONE
 };

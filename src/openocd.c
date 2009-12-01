@@ -147,9 +147,10 @@ COMMAND_HANDLER(handle_init_command)
 		return ERROR_FAIL;
 	LOG_DEBUG("NAND init complete");
 
-	if (pld_init(CMD_CTX) != ERROR_OK)
+	command_context_mode(CMD_CTX, COMMAND_CONFIG);
+	if (command_run_line(CMD_CTX, "pld init") != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_DEBUG("pld init complete");
+	command_context_mode(CMD_CTX, COMMAND_EXEC);
 
 	/* initialize telnet subsystem */
 	gdb_target_add_all(all_targets);
