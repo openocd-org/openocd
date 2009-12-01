@@ -1375,6 +1375,23 @@ int flash_init_drivers(struct command_context *cmd_ctx)
 	return register_commands(cmd_ctx, parent, flash_exec_command_handlers);
 }
 
+COMMAND_HANDLER(handle_flash_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool flash_initialized = false;
+	if (flash_initialized)
+	{
+		LOG_INFO("'flash init' has already been called");
+		return ERROR_OK;
+	}
+	flash_initialized = true;
+
+	LOG_DEBUG("Initializing flash devices...");
+	return flash_init_drivers(CMD_CTX);
+}
+
 static const struct command_registration flash_config_command_handlers[] = {
 	{
 		.name = "bank",
@@ -1385,6 +1402,12 @@ static const struct command_registration flash_config_command_handlers[] = {
 			"[driver_options ...]",
 		.help = "Define a new bank with the given name, "
 			"using the specified NOR flash driver.",
+	},
+	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_flash_init_command,
+		.help = "initialize flash devices",
 	},
 	{
 		.name = "banks",
