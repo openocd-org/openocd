@@ -111,11 +111,9 @@ COMMAND_HANDLER(handle_init_command)
 
 	initialized = 1;
 
-	command_context_mode(CMD_CTX, COMMAND_EXEC);
-
-	if (target_init(CMD_CTX) != ERROR_OK)
+	retval = command_run_line(CMD_CTX, "target init");
+	if (ERROR_OK != retval)
 		return ERROR_FAIL;
-	LOG_DEBUG("target init complete");
 
 	if ((retval = jtag_interface_init(CMD_CTX)) != ERROR_OK)
 	{
@@ -126,7 +124,6 @@ COMMAND_HANDLER(handle_init_command)
 
 	/* Try to initialize & examine the JTAG chain at this point, but
 	 * continue startup regardless */
-	command_context_mode(CMD_CTX, COMMAND_CONFIG);
 	if (command_run_line(CMD_CTX, "jtag init") == ERROR_OK)
 	{
 		command_context_mode(CMD_CTX, COMMAND_EXEC);

@@ -787,6 +787,23 @@ int target_init(struct command_context *cmd_ctx)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_target_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool target_initialized = false;
+	if (target_initialized)
+	{
+		LOG_INFO("'target init' has already been called");
+		return ERROR_OK;
+	}
+	target_initialized = true;
+
+	LOG_DEBUG("Initializing targets...");
+	return target_init(CMD_CTX);
+}
+
 int target_register_event_callback(int (*callback)(struct target *target, enum target_event event, void *priv), void *priv)
 {
 	struct target_event_callback **callbacks_p = &target_event_callbacks;
@@ -4786,6 +4803,12 @@ COMMAND_HANDLER(handle_fast_load_command)
 }
 
 static const struct command_registration target_command_handlers[] = {
+	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_target_init_command,
+		.help = "initialize targets",
+	},
 	{
 		.name = "targets",
 		.handler = &handle_targets_command,
