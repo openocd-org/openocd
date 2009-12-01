@@ -808,7 +808,30 @@ static int jim_jtag_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
+COMMAND_HANDLER(handle_jtag_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool jtag_initialized = false;
+	if (jtag_initialized)
+	{
+		LOG_INFO("'jtag init' has already been called");
+		return ERROR_OK;
+	}
+	jtag_initialized = true;
+
+	LOG_DEBUG("Initializing jtag devices...");
+	return jtag_init(CMD_CTX);
+}
+
 static const struct command_registration jtag_subcommand_handlers[] = {
+	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_jtag_init_command,
+		.help = "initialize jtag scan chain",
+	},
 	{
 		.name = "interface",
 		.mode = COMMAND_ANY,

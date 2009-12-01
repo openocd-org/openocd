@@ -126,16 +126,18 @@ COMMAND_HANDLER(handle_init_command)
 
 	/* Try to initialize & examine the JTAG chain at this point, but
 	 * continue startup regardless */
-	if (jtag_init(CMD_CTX) == ERROR_OK)
-	{
-		LOG_DEBUG("jtag init complete");
-		if (target_examine() == ERROR_OK)
-		{
-			LOG_DEBUG("jtag examine complete");
-		}
-	}
-
 	command_context_mode(CMD_CTX, COMMAND_CONFIG);
+	if (command_run_line(CMD_CTX, "jtag init") == ERROR_OK)
+	{
+		command_context_mode(CMD_CTX, COMMAND_EXEC);
+		LOG_DEBUG("Examining targets...");
+		if (target_examine() != ERROR_OK)
+			LOG_DEBUG("target examination failed");
+		command_context_mode(CMD_CTX, COMMAND_CONFIG);
+	}
+	else
+		LOG_WARNING("jtag initialization failed; try 'jtag init' again.");
+
 	if (command_run_line(CMD_CTX, "flash init") != ERROR_OK)
 		return ERROR_FAIL;
 
