@@ -188,14 +188,14 @@ static const struct command_registration openocd_command_handlers[] = {
 struct command_context *global_cmd_ctx;
 
 /* NB! this fn can be invoked outside this file for non PC hosted builds */
-struct command_context *setup_command_handler(void)
+struct command_context *setup_command_handler(Jim_Interp *interp)
 {
 	log_init();
 	LOG_DEBUG("log_init: complete");
 
 	struct command_context *cmd_ctx;
 
-	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl);
+	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl, interp);
 
 	register_commands(cmd_ctx, NULL, openocd_command_handlers);
 	/* register subsystem commands */
@@ -242,7 +242,7 @@ int openocd_main(int argc, char *argv[])
 	/* initialize commandline interface */
 	struct command_context *cmd_ctx;
 
-	cmd_ctx = setup_command_handler();
+	cmd_ctx = setup_command_handler(NULL);
 
 #if BUILD_IOUTIL
 	if (ioutil_init(cmd_ctx) != ERROR_OK)

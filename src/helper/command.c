@@ -1272,7 +1272,7 @@ static const struct command_registration command_builtin_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct command_context* command_init(const char *startup_tcl)
+struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp)
 {
 	struct command_context* context = malloc(sizeof(struct command_context));
 	const char *HostOs;
@@ -1284,14 +1284,18 @@ struct command_context* command_init(const char *startup_tcl)
 	context->output_handler_priv = NULL;
 
 #if !BUILD_ECOSBOARD
-	Jim_InitEmbedded();
-	/* Create an interpreter */
-	context->interp = Jim_CreateInterp();
-	/* Add all the Jim core commands */
-	Jim_RegisterCoreCommands(context->interp);
+	/* Create a jim interpreter if we were not handed one */
+	if (interp == NULL)
+	{
+		Jim_InitEmbedded();
+		/* Create an interpreter */
+		interp = Jim_CreateInterp();
+		/* Add all the Jim core commands */
+		Jim_RegisterCoreCommands(interp);
+	}
 #endif
+	context->interp = interp;
 
-	Jim_Interp *interp = context->interp;
 #if defined(_MSC_VER)
 	/* WinXX - is generic, the forward
 	 * looking problem is this:

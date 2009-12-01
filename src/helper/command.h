@@ -323,9 +323,11 @@ void command_set_output_handler(struct command_context* context,
 int command_context_mode(struct command_context *context, enum command_mode mode);
 
 /**
- * Creates a new command context using the startup TCL provided.
+ * Creates a new command context using the startup TCL provided and
+ * the existing Jim interpreter, if any. If interp == NULL, then command_init
+ * creates a command interpreter.
  */
-struct command_context* command_init(const char *startup_tcl);
+struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp);
 /**
  * Creates a copy of an existing command context.  This does not create
  * a deep copy of the command list, so modifications in one context will
