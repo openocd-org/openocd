@@ -80,6 +80,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include <openocd.h>
 
 #ifdef CYGPKG_HAL_NIOS2
 #define ZY1000_SER_DEV "/dev/uart_0"
@@ -504,8 +505,6 @@ static void zylinjtag_startNetwork(void)
 #endif
 
 	cyg_httpd_init_tcl_interpreter();
-
-	interp = httpstate.jim_interp;
 
 	Jim_CreateCommand(httpstate.jim_interp, "log", zylinjtag_Jim_Command_log,
 			NULL, NULL);
@@ -933,8 +932,6 @@ bool logAllToSerial = false;
 int boolParam(char *var);
 
 
-struct command_context *setup_command_handler(void);
-
 static const char *zylin_config_dir="/config/settings";
 
 static int add_default_dirs(void)
@@ -1078,7 +1075,8 @@ int main(int argc, char *argv[])
 
 	/* initialize commandline interface */
 	struct command_context * cmd_ctx;
-	cmd_ctx = setup_command_handler();
+	struct command_context *setup_command_handler(Jim_Interp *interp);
+	cmd_ctx = setup_command_handler(httpstate.jim_interp);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
 
@@ -1095,7 +1093,7 @@ int main(int argc, char *argv[])
 			COMMAND_ANY, NULL);
 #endif
 
-	Jim_CreateCommand(interp, "uart", zylinjtag_Jim_Command_uart, NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "uart", zylinjtag_Jim_Command_uart, NULL, NULL);
 
 
 	log_init();
