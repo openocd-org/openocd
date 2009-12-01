@@ -1219,13 +1219,6 @@ static int arm11_remove_watchpoint(struct target *target,
 	return ERROR_FAIL;
 }
 
-static int arm11_mrc(struct target *target, int cpnum,
-		uint32_t op1, uint32_t op2,
-		uint32_t CRn, uint32_t CRm, uint32_t *value);
-static int arm11_mcr(struct target *target, int cpnum,
-		uint32_t op1, uint32_t op2, uint32_t CRn,
-		uint32_t CRm, uint32_t value);
-
 static int arm11_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm11_common *arm11;
@@ -1244,9 +1237,6 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 
 	armv4_5_init_arch_info(target, &arm11->arm);
-
-	arm11->arm.mrc = arm11_mrc;
-	arm11->arm.mcr = arm11_mcr;
 
 	arm11->target = target;
 
@@ -1518,71 +1508,6 @@ COMMAND_HANDLER(arm11_handle_vcr)
 
 	LOG_INFO("VCR 0x%08" PRIx32 "", arm11_vcr);
 	return ERROR_OK;
-}
-
-static const uint32_t arm11_coproc_instruction_limits[] =
-{
-	15,				/* coprocessor */
-	7,				/* opcode 1 */
-	15,				/* CRn */
-	15,				/* CRm */
-	7,				/* opcode 2 */
-	0xFFFFFFFF,		/* value */
-};
-
-static int arm11_mrc_inner(struct target *target, int cpnum,
-		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
-		uint32_t *value, bool read)
-{
-	int retval;
-	struct arm11_common *arm11 = target_to_arm11(target);
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_ERROR("Target not halted");
-		return ERROR_FAIL;
-	}
-
-	uint32_t instr = 0xEE000010	|
-		(cpnum <<  8) |
-		(op1 << 21) |
-		(CRn << 16) |
-		(CRm <<  0) |
-		(op2 <<  5);
-
-	if (read)
-		instr |= 0x00100000;
-
-	retval = arm11_run_instr_data_prepare(arm11);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if (read)
-	{
-		retval = arm11_run_instr_data_from_core_via_r0(arm11, instr, value);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-	else
-	{
-		retval = arm11_run_instr_data_to_core_via_r0(arm11, instr, *value);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	return arm11_run_instr_data_finish(arm11);
-}
-
-static int arm11_mrc(struct target *target, int cpnum,
-		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
-{
-	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, value, true);
-}
-
-static int arm11_mcr(struct target *target, int cpnum,
-		uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
-{
-	return arm11_mrc_inner(target, cpnum, op1, op2, CRn, CRm, &value, false);
 }
 
 static const struct command_registration arm11_mw_command_handlers[] = {
