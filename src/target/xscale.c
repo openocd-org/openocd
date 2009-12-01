@@ -1768,37 +1768,45 @@ static int xscale_restore_context(struct target *target)
 	}
 
 	/* iterate through processor modes (FIQ, IRQ, SVC, ABT, UND and SYS)
-	* we can't enter User mode on an XScale (unpredictable),
-	* but User shares registers with SYS
-	*/
+	 * and check if any banked registers need to be written.  Ignore
+	 * USR mode (number 0) in favor of SYS; we can't enter User mode on
+	 * an XScale (unpredictable), but they share all registers.
+	 */
 	for (i = 1; i < 7; i++)
 	{
 		int dirty = 0;
+		enum armv4_5_mode mode = armv4_5_number_to_mode(i);
 
-		/* check if there are invalid registers in the current mode
-		*/
+		if (mode == ARMV4_5_MODE_USR)
+			continue;
+
+		/* check if there are dirty registers in this mode */
 		for (j = 8; j <= 14; j++)
 		{
-			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty == 1)
+			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, j).dirty)
 				dirty = 1;
 		}
 
 		/* if not USR/SYS, check if the SPSR needs to be written */
-		if ((armv4_5_number_to_mode(i) != ARMV4_5_MODE_USR) && (armv4_5_number_to_mode(i) != ARMV4_5_MODE_SYS))
+		if (mode != ARMV4_5_MODE_SYS)
 		{
-			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).dirty == 1)
+			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+					mode, 16).dirty)
 				dirty = 1;
 		}
 
+		/* is there anything to flush for this mode? */
 		if (dirty)
 		{
 			uint32_t tmp_cpsr;
+			struct reg *r;
 
-			/* send banked registers */
+			/* command 0x1:  "send banked registers" */
 			xscale_send_u32(target, 0x1);
 
 			tmp_cpsr = 0x0;
-			tmp_cpsr |= armv4_5_number_to_mode(i);
+			tmp_cpsr |= mode;
 			tmp_cpsr |= 0xc0; /* I/F bits */
 
 			/* send CPSR for desired mode */
@@ -1807,14 +1815,20 @@ static int xscale_restore_context(struct target *target)
 			/* send banked registers, r8 to r14, and spsr if not in USR/SYS mode */
 			for (j = 8; j <= 14; j++)
 			{
-				xscale_send_u32(target, buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, j).value, 0, 32));
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty = 0;
+				r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+						mode, j);
+				xscale_send_u32(target,
+						buf_get_u32(r->value, 0, 32));
+				r->dirty = false;
 			}
 
-			if ((armv4_5_number_to_mode(i) != ARMV4_5_MODE_USR) && (armv4_5_number_to_mode(i) != ARMV4_5_MODE_SYS))
+			if (mode != ARMV4_5_MODE_SYS)
 			{
-				xscale_send_u32(target, buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32));
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).dirty = 0;
+				r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
+						mode, 16);
+				xscale_send_u32(target,
+						buf_get_u32(r->value, 0, 32));
+				r->dirty = false;
 			}
 		}
 	}
