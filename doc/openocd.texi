@@ -1524,7 +1524,7 @@ proc setc15 @{regs value@} @{
 
     echo [format "set p15 0x%04x, 0x%08x" $regs $value]
 
-    mcr 15 [expr ($regs>>12)&0x7] \
+    arm mcr 15 [expr ($regs>>12)&0x7] \
         [expr ($regs>>0)&0xf] [expr ($regs>>4)&0xf] \
         [expr ($regs>>8)&0x7] $value
 @}
@@ -5607,6 +5607,24 @@ see correct disassembly of Thumb code.
 Also, ThumbEE opcodes are the same as Thumb2,
 with a handful of exceptions.
 ThumbEE disassembly currently has no explicit support.
+@end deffn
+
+@deffn Command {arm mcr} pX op1 CRn CRm op2 value
+Write @var{value} to a coprocessor @var{pX} register
+passing parameters @var{CRn},
+@var{CRm}, opcodes @var{opc1} and @var{opc2},
+and using the MCR instruction.
+(Parameter sequence matches the ARM instruction, but omits
+an ARM register.)
+@end deffn
+
+@deffn Command {arm mrc} pX coproc op1 CRn CRm op2 
+Read a coprocessor @var{pX} register passing parameters @var{CRn},
+@var{CRm}, opcodes @var{opc1} and @var{opc2},
+and the MRC instruction.
+Returns the result so it can be manipulated by Jim scripts.
+(Parameter sequence matches the ARM instruction, but omits
+an ARM register.)
 @end deffn
 
 @deffn Command {arm reg}

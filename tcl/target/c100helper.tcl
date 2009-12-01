@@ -436,22 +436,22 @@ proc initC100 {} {
     #	 */
     #	mov	r0, #0
     #	mcr	p15, 0, r0, c7, c7, 0	/* flush v3/v4 cache */
-    mcr 15 0 7 7 0 0x0
+    arm mcr 15 0 7 7 0 0x0
     #	mcr	p15, 0, r0, c8, c7, 0	/* flush v4 TLB */
-    mcr 15 0 8 7 0 0x0
+    arm mcr 15 0 8 7 0 0x0
 
     #	/*
     #	 * disable MMU stuff and caches
     #	 */
     #	mrc	p15, 0, r0, c1, c0, 0
-    mrc 15 0 1 0 0
+    arm mrc 15 0 1 0 0
     #	bic	r0, r0, #0x00002300	@ clear bits 13, 9:8 (--V- --RS)
     #	bic	r0, r0, #0x00000087	@ clear bits 7, 2:0 (B--- -CAM)
     #	orr	r0, r0, #0x00000002	@ set bit 2 (A) Align
     #	orr	r0, r0, #0x00001000	@ set bit 12 (I) I-Cache
     #	orr	r0, r0, #0x00400000	@ set bit 22 (U)
     #	mcr	p15, 0, r0, c1, c0, 0
-    mcr 15 0 1 0 0 0x401002
+    arm mcr 15 0 1 0 0 0x401002
     # This is from bsp_init() in u-boot/boards/mindspeed/ooma-darwin/board.c
     # APB init
     #    	// Setting APB Bus Wait states to 1, set post write
