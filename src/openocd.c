@@ -139,11 +139,10 @@ COMMAND_HANDLER(handle_init_command)
 		return ERROR_FAIL;
 	LOG_DEBUG("flash init complete");
 
-	if (mflash_init_drivers(CMD_CTX) != ERROR_OK)
-		return ERROR_FAIL;
-	LOG_DEBUG("mflash init complete");
-
 	command_context_mode(CMD_CTX, COMMAND_CONFIG);
+	if (command_run_line(CMD_CTX, "mflash init") != ERROR_OK)
+		return ERROR_FAIL;
+
 	if (command_run_line(CMD_CTX, "nand init") != ERROR_OK)
 		return ERROR_FAIL;
 

@@ -1304,6 +1304,23 @@ int mflash_init_drivers(struct command_context *cmd_ctx)
 	return register_commands(cmd_ctx, NULL, mflash_exec_command_handlers);
 }
 
+COMMAND_HANDLER(handle_mflash_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool mflash_initialized = false;
+	if (mflash_initialized)
+	{
+		LOG_INFO("'mflash init' has already been called");
+		return ERROR_OK;
+	}
+	mflash_initialized = true;
+
+	LOG_DEBUG("Initializing mflash devices...");
+	return mflash_init_drivers(CMD_CTX);
+}
+
 COMMAND_HANDLER(mg_bank_cmd)
 {
 	struct target *target;
@@ -1351,6 +1368,12 @@ static const struct command_registration mflash_config_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "configure a mflash device bank",
 		.usage = "<soc> <base> <RST pin> <target #>",
+	},
+	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_mflash_init_command,
+		.help = "initialize mflash devices",
 	},
 	COMMAND_REGISTRATION_DONE
 };
