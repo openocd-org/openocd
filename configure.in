@@ -614,12 +614,6 @@ else
   AC_DEFINE(BUILD_ZY1000, 0, [0 if you don't want ZY1000.])
 fi
 
-if test $build_ioutil = yes; then
-  AC_DEFINE(BUILD_IOUTIL, 1, [1 if you want ioutils.])
-else
-  AC_DEFINE(BUILD_IOUTIL, 0, [0 if you don't want ioutils.])
-fi
-
 if test $build_httpd = yes; then
   AC_DEFINE(BUILD_HTTPD, 1, [1 if you want httpd.])
 else

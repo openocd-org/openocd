@@ -27,6 +27,8 @@ libhelper_la_SOURCES = \
 
 if IOUTIL
 libhelper_la_SOURCES += ioutil.c
+else
+libhelper_la_SOURCES += ioutil_stubs.c
 endif
 
 libhelper_la_CFLAGS =
@@ -38,6 +40,7 @@ endif
 noinst_HEADERS = \
 	binarybuffer.h \
 	configuration.h \
+	ioutil.h \
 	types.h \
 	log.h \
 	command.h \

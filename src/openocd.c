@@ -30,6 +30,7 @@
 
 #include "openocd.h"
 #include "jtag.h"
+#include "ioutil.h"
 #include "configuration.h"
 #include "xsvf.h"
 #include "svf.h"
@@ -84,8 +85,6 @@ static int log_target_callback_event_handler(struct target *target, enum target_
 
 	return ERROR_OK;
 }
-
-int ioutil_init(struct command_context *cmd_ctx);
 
 static bool init_at_startup = true;
 
@@ -227,12 +226,8 @@ int openocd_main(int argc, char *argv[])
 
 	cmd_ctx = setup_command_handler(NULL);
 
-#if BUILD_IOUTIL
 	if (ioutil_init(cmd_ctx) != ERROR_OK)
-	{
 		return EXIT_FAILURE;
-	}
-#endif
 
 	LOG_OUTPUT("For bug reports, read\n\t"
 		"http://openocd.berlios.de/doc/doxygen/bugs.html"
