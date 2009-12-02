@@ -1122,6 +1122,7 @@ AC_OUTPUT(dnl
     src/target/Makefile dnl
     src/server/Makefile dnl
     src/flash/Makefile dnl
+    src/flash/nor/Makefile dnl
     src/flash/nand/Makefile dnl
     src/pld/Makefile dnl
     doc/Makefile dnl
