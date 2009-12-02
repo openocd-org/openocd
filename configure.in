@@ -614,12 +614,6 @@ else
   AC_DEFINE(BUILD_ZY1000, 0, [0 if you don't want ZY1000.])
 fi
 
-if test $build_httpd = yes; then
-  AC_DEFINE(BUILD_HTTPD, 1, [1 if you want httpd.])
-else
-  AC_DEFINE(BUILD_HTTPD, 0, [0 if you don't want httpd.])
-fi
-
 if test $build_at91rm9200 = yes; then
   build_bitbang=yes
   AC_DEFINE(BUILD_AT91RM9200, 1, [1 if you want at91rm9200.])

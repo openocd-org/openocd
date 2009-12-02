@@ -14,6 +14,7 @@ libserver_la_SOURCES = server.c telnet_server.c gdb_server.c
 if HTTPD
 libserver_la_SOURCES += httpd.c
 else
+libserver_la_SOURCES += httpd_stubs.c
 if !ECOSBOARD
 libserver_la_SOURCES += server_stubs.c
 endif

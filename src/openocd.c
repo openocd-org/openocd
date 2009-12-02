@@ -244,10 +244,8 @@ int openocd_main(int argc, char *argv[])
 	if (ret != ERROR_OK)
 		return EXIT_FAILURE;
 
-#if BUILD_HTTPD
 	if (httpd_start(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-#endif
 
 	ret = server_init(cmd_ctx);
 	if (ERROR_OK != ret)
@@ -266,9 +264,7 @@ int openocd_main(int argc, char *argv[])
 
 	server_quit();
 
-#if BUILD_HTTPD
 	httpd_stop();
-#endif
 
 	unregister_all_commands(cmd_ctx, NULL);
 
