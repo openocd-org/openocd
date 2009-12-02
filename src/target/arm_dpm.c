@@ -25,6 +25,8 @@
 #include "arm_dpm.h"
 #include "jtag.h"
 #include "register.h"
+#include "breakpoints.h"
+#include "target_type.h"
 
 
 /**
@@ -33,6 +35,8 @@
  * These routines layer over core-specific communication methods to cope with
  * implementation differences between cores like ARM1136 and Cortex-A8.
  */
+
+/*----------------------------------------------------------------------*/
 
 /*
  * Coprocessor support
@@ -84,6 +88,8 @@ static int dpm_mcr(struct target *target, int cpnum,
 	/* (void) */ dpm->finish(dpm);
 	return retval;
 }
+
+/*----------------------------------------------------------------------*/
 
 /*
  * Register access utilities
@@ -178,7 +184,7 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 
 	switch (regnum) {
 	case 0 ... 14:
-		/* load register from DCC:  "MCR p14, 0, Rnum, c0, c5, 0" */
+		/* load register from DCC:  "MRC p14, 0, Rnum, c0, c5, 0" */
 		retval = dpm->instr_write_data_dcc(dpm,
 				ARMV4_5_MRC(14, 0, regnum, 0, 5, 0),
 				value);
@@ -256,6 +262,11 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 
 	/* NOTE: SPSR ignored (if it's even relevant). */
 
+	/* REVISIT the debugger can trigger various exceptions.  See the
+	 * ARMv7A architecture spec, section C5.7, for more info about
+	 * what defenses are needed; v6 debug has the most issues.
+	 */
+
 fail:
 	/* (void) */ dpm->finish(dpm);
 	return retval;
@@ -264,8 +275,11 @@ fail:
 /**
  * Writes all modified core registers for all processor modes.  In normal
  * operation this is called on exit from halting debug state.
+ *
+ * @param bpwp: true ensures breakpoints and watchpoints are set,
+ *	false ensures they are cleared
  */
-int arm_dpm_write_dirty_registers(struct arm_dpm *dpm)
+int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 {
 	struct arm *arm = dpm->arm;
 	struct reg_cache *cache = arm->core_cache;
@@ -275,6 +289,53 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm)
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
+
+	/* enable/disable watchpoints */
+	for (unsigned i = 0; i < dpm->nwp; i++) {
+		struct dpm_wp *dwp = dpm->dwp + i;
+		struct watchpoint *wp = dwp->wp;
+		bool disable;
+
+		/* Avoid needless I/O ... leave watchpoints alone
+		 * unless they're removed, or need updating because
+		 * of single-stepping or running debugger code.
+		 */
+		if (!wp) {
+			if (!dwp->dirty)
+				continue;
+			dwp->dirty = false;
+			/* removed or startup; we must disable it */
+			disable = true;
+		} else if (bpwp) {
+			if (!dwp->dirty)
+				continue;
+			/* disabled, but we must set it */
+			dwp->dirty = disable = false;
+			wp->set = true;
+		} else {
+			if (!wp->set)
+				continue;
+			/* set, but we must temporarily disable it */
+			dwp->dirty = disable = true;
+			wp->set = false;
+		}
+
+		if (disable)
+			retval = dpm->bpwp_disable(dpm, 16 + i);
+		else
+			retval = dpm->bpwp_enable(dpm, 16 + i,
+					wp->address, dwp->control);
+
+		if (retval != ERROR_OK)
+			LOG_ERROR("%s: can't %s HW watchpoint %d",
+					target_name(arm->target),
+					disable ? "disable" : "enable",
+					i);
+	}
+
+	/* NOTE:  writes to breakpoint and watchpoint registers might
+	 * be queued, and need (efficient/batched) flushing later.
+	 */
 
 	/* Scan the registers until we find one that's both dirty and
 	 * eligible for flushing.  Flush that and everything else that
@@ -398,6 +459,13 @@ static enum armv4_5_mode dpm_mapmode(struct arm *arm,
 	}
 	return ARMV4_5_MODE_ANY;
 }
+
+
+/*
+ * Standard ARM register accessors ... there are three methods
+ * in "struct arm", to support individual read/write and bulk read
+ * of registers.
+ */
 
 static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 		int regnum, enum armv4_5_mode mode)
@@ -544,9 +612,141 @@ done:
 	return retval;
 }
 
+
+/*----------------------------------------------------------------------*/
+
+/*
+ * Breakpoint and Watchpoint support.
+ *
+ * Hardware {break,watch}points are usually left active, to minimize
+ * debug entry/exit costs.  When they are set or cleared, it's done in
+ * batches.  Also, DPM-conformant hardware can update debug registers
+ * regardless of whether the CPU is running or halted ... though that
+ * fact isn't currently leveraged.
+ */
+
+static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
+		struct watchpoint *wp)
+{
+	uint32_t addr = wp->address;
+	uint32_t control;
+
+	/* this hardware doesn't support data value matching or masking */
+	if (wp->value || wp->mask != ~(uint32_t)0) {
+		LOG_DEBUG("watchpoint values and masking not supported");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	control = (1 << 0)	/* enable */
+		| (3 << 1);	/* both user and privileged access */
+
+	switch (wp->rw) {
+	case WPT_READ:
+		control |= 1 << 3;
+		break;
+	case WPT_WRITE:
+		control |= 2 << 3;
+		break;
+	case WPT_ACCESS:
+		control |= 3 << 3;
+		break;
+	}
+
+	/* Match 1, 2, or all 4 byte addresses in this word.
+	 *
+	 * FIXME:  v7 hardware allows lengths up to 2 GB, and has eight
+	 * byte address select bits.  Support larger wp->length, if addr
+	 * is suitably aligned.
+	 */
+	switch (wp->length) {
+	case 1:
+		control |= (1 << (addr & 3)) << 5;
+		addr &= ~3;
+		break;
+	case 2:
+		/* require 2-byte alignment */
+		if (!(addr & 1)) {
+			control |= (3 << (addr & 2)) << 5;
+			break;
+		}
+		/* FALL THROUGH */
+	case 4:
+		/* require 4-byte alignment */
+		if (!(addr & 3)) {
+			control |= 0xf << 5;
+			break;
+		}
+		/* FALL THROUGH */
+	default:
+		LOG_DEBUG("bad watchpoint length or alignment");
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	/* other control bits:
+	 * bits 9:12 == 0 ... only checking up to four byte addresses (v7 only)
+	 * bits 15:14 == 0 ... both secure and nonsecure states (v6.1+ only)
+	 * bit 20 == 0 ... not linked to a context ID
+	 * bit 28:24 == 0 ... not ignoring N LSBs (v7 only)
+	 */
+
+	dpm->dwp[index].wp = wp;
+	dpm->dwp[index].control = control;
+	dpm->dwp[index].dirty = true;
+
+	/* hardware is updated in write_dirty_registers() */
+	return ERROR_OK;
+}
+
+
+static int dpm_add_watchpoint(struct target *target, struct watchpoint *wp)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	if (dpm->bpwp_enable) {
+		for (unsigned i = 0; i < dpm->nwp; i++) {
+			if (!dpm->dwp[i].wp) {
+				retval = dpm_watchpoint_setup(dpm, i, wp);
+				break;
+			}
+		}
+	}
+
+	return retval;
+}
+
+static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval = ERROR_INVALID_ARGUMENTS;
+
+	for (unsigned i = 0; i < dpm->nwp; i++) {
+		if (dpm->dwp[i].wp == wp) {
+			dpm->dwp[i].wp = NULL;
+			dpm->dwp[i].dirty = true;
+
+			/* hardware is updated in write_dirty_registers() */
+			retval = ERROR_OK;
+			break;
+		}
+	}
+
+	return retval;
+}
+
+/*----------------------------------------------------------------------*/
+
+/*
+ * Setup and management support.
+ */
+
 /**
  * Hooks up this DPM to its associated target; call only once.
  * Initially this only covers the register cache.
+ *
+ * Oh, and watchpoints.  Yeah.
  */
 int arm_dpm_setup(struct arm_dpm *dpm)
 {
@@ -556,6 +756,7 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 
 	arm->dpm = dpm;
 
+	/* register access setup */
 	arm->full_context = arm_dpm_full_context;
 	arm->read_core_reg = arm_dpm_read_core_reg;
 	arm->write_core_reg = arm_dpm_write_core_reg;
@@ -566,8 +767,47 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 
 	*register_get_last_cache_p(&target->reg_cache) = cache;
 
+	/* coprocessor access setup */
 	arm->mrc = dpm_mrc;
 	arm->mcr = dpm_mcr;
+
+	/* breakpoint and watchpoint setup */
+	target->type->add_watchpoint = dpm_add_watchpoint;
+	target->type->remove_watchpoint = dpm_remove_watchpoint;
+
+	/* FIXME add breakpoint support */
+	/* FIXME add vector catch support */
+
+	dpm->nbp = 1 + ((dpm->didr >> 24) & 0xf);
+	dpm->dbp = calloc(dpm->nbp, sizeof *dpm->dbp);
+
+	dpm->nwp = 1 + ((dpm->didr >> 28) & 0xf);
+	dpm->dwp = calloc(dpm->nwp, sizeof *dpm->dwp);
+
+	if (!dpm->dbp || !dpm->dwp) {
+		free(dpm->dbp);
+		free(dpm->dwp);
+		return ERROR_FAIL;
+	}
+
+	/* Disable all breakpoints and watchpoints at startup. */
+	if (dpm->bpwp_disable) {
+		unsigned i;
+
+		for (i = 0; i < dpm->nbp; i++)
+			(void) dpm->bpwp_disable(dpm, i);
+		for (i = 0; i < dpm->nwp; i++)
+			(void) dpm->bpwp_disable(dpm, 16 + i);
+	} else
+		LOG_WARNING("%s: can't disable breakpoints and watchpoints",
+			target_name(target));
+
+	LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints",
+			target_name(target), dpm->nbp, dpm->nwp);
+
+	/* REVISIT ... and some of those breakpoints could match
+	 * execution context IDs...
+	 */
 
 	return ERROR_OK;
 }

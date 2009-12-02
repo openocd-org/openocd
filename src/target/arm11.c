@@ -293,12 +293,11 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 	return ERROR_OK;
 }
 
-/** Restore processor state
-  *
-  * This is called in preparation for the RESTART function.
-  *
-  */
-static int arm11_leave_debug_state(struct arm11_common *arm11)
+/**
+ * Restore processor state.  This is called in preparation for
+ * the RESTART function.
+ */
+static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 {
 	int retval;
 
@@ -354,7 +353,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11)
 	/* restore CPSR, PC, and R0 ... after flushing any modified
 	 * registers.
 	 */
-	retval = arm_dpm_write_dirty_registers(&arm11->dpm);
+	retval = arm_dpm_write_dirty_registers(&arm11->dpm, bpwp);
 
 	register_cache_invalidate(arm11->arm.core_cache);
 
@@ -598,7 +597,7 @@ static int arm11_resume(struct target *target, int current,
 		arm11_sc7_set_vcr(arm11, arm11_vcr);
 	}
 
-	arm11_leave_debug_state(arm11);
+	arm11_leave_debug_state(arm11, handle_breakpoints);
 
 	arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
@@ -762,7 +761,7 @@ static int arm11_step(struct target *target, int current,
 			R(DSCR) |= ARM11_DSCR_INTERRUPTS_DISABLE;
 
 
-		CHECK_RETVAL(arm11_leave_debug_state(arm11));
+		CHECK_RETVAL(arm11_leave_debug_state(arm11, handle_breakpoints));
 
 		arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
@@ -1203,22 +1202,6 @@ static int arm11_remove_breakpoint(struct target *target,
 	return ERROR_OK;
 }
 
-static int arm11_add_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
-{
-	LOG_WARNING("Not implemented: %s", __func__);
-
-	return ERROR_FAIL;
-}
-
-static int arm11_remove_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
-{
-	LOG_WARNING("Not implemented: %s", __func__);
-
-	return ERROR_FAIL;
-}
-
 static int arm11_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm11_common *arm11;
@@ -1605,8 +1588,6 @@ struct target_type arm11_target = {
 
 	.add_breakpoint =	arm11_add_breakpoint,
 	.remove_breakpoint =	arm11_remove_breakpoint,
-	.add_watchpoint =	arm11_add_watchpoint,
-	.remove_watchpoint =	arm11_remove_watchpoint,
 
 	.run_algorithm =	armv4_5_run_algorithm,
 

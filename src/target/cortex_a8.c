@@ -41,7 +41,7 @@
 
 static int cortex_a8_poll(struct target *target);
 static int cortex_a8_debug_entry(struct target *target);
-static int cortex_a8_restore_context(struct target *target);
+static int cortex_a8_restore_context(struct target *target, bool bpwp);
 static int cortex_a8_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint, uint8_t matchmode);
 static int cortex_a8_unset_breakpoint(struct target *target,
@@ -602,11 +602,7 @@ static int cortex_a8_resume(struct target *target, int current,
 	dap_ap_select(swjdp, swjdp_debugap);
 
 	if (!debug_execution)
-	{
 		target_free_all_working_areas(target);
-//		cortex_m3_enable_breakpoints(target);
-//		cortex_m3_enable_watchpoints(target);
-	}
 
 #if 0
 	if (debug_execution)
@@ -661,7 +657,7 @@ static int cortex_a8_resume(struct target *target, int current,
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
 
-	cortex_a8_restore_context(target);
+	cortex_a8_restore_context(target, handle_breakpoints);
 
 #if 0
 	/* the front-end may request us not to handle breakpoints */
@@ -952,7 +948,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
-static int cortex_a8_restore_context(struct target *target)
+static int cortex_a8_restore_context(struct target *target, bool bpwp)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
@@ -961,7 +957,7 @@ static int cortex_a8_restore_context(struct target *target)
 	if (armv7a->pre_restore_context)
 		armv7a->pre_restore_context(target);
 
-	arm_dpm_write_dirty_registers(&armv7a->dpm);
+	arm_dpm_write_dirty_registers(&armv7a->dpm, bpwp);
 
 	if (armv7a->post_restore_context)
 		armv7a->post_restore_context(target);

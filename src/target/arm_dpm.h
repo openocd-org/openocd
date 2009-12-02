@@ -31,6 +31,26 @@
  * registers are compatible.
  */
 
+struct dpm_bp {
+	struct breakpoint *bp;
+	/* bp->address == breakpoint value register
+	 * control == breakpoint control register
+	 */
+	uint32_t control;
+	/* true if hardware state needs flushing */
+	bool dirty;
+};
+
+struct dpm_wp {
+	struct watchpoint *wp;
+	/* wp->address == watchpoint value register
+	 * control == watchpoint control register
+	 */
+	uint32_t control;
+	/* true if hardware state needs flushing */
+	bool dirty;
+};
+
 /**
  * This wraps an implementation of DPM primitives.  Each interface
  * provider supplies a structure like this, which is the glue between
@@ -74,9 +94,33 @@ struct arm_dpm {
 	int (*instr_read_data_r0)(struct arm_dpm *,
 			uint32_t opcode, uint32_t *data);
 
-	// FIXME -- add breakpoint support
+	/* BREAKPOINT/WATCHPOINT SUPPORT */
 
-	// FIXME -- add watchpoint support (including context-sensitive ones)
+	/**
+	 * Enables one breakpoint or watchpoint by writing to the
+	 * hardware registers.  The specified breakpoint/watchpoint
+	 * must currently be disabled.  Indices 0..15 are used for
+	 * breakpoints; indices 16..31 are for watchpoints.
+	 */
+	int (*bpwp_enable)(struct arm_dpm *, unsigned index,
+			uint32_t addr, uint32_t control);
+
+	/**
+	 * Disables one breakpoint or watchpoint by clearing its
+	 * hardware control registers.  Indices are the same ones
+	 * accepted by bpwp_enable().
+	 */
+	int (*bpwp_disable)(struct arm_dpm *, unsigned index);
+
+	/* The breakpoint and watchpoint arrays are private to the
+	 * DPM infrastructure.  There are nbp indices in the dbp
+	 * array.  There are nwp indices in the dwp array.
+	 */
+
+	unsigned nbp;
+	unsigned nwp;
+	struct dpm_bp *dbp;
+	struct dpm_wp *dwp;
 
 	// FIXME -- read/write DCSR methods and symbols
 };
@@ -85,6 +129,6 @@ int arm_dpm_setup(struct arm_dpm *dpm);
 int arm_dpm_reinitialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
-int arm_dpm_write_dirty_registers(struct arm_dpm *);
+int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
 
 #endif /* __ARM_DPM_H */
