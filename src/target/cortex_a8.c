@@ -460,6 +460,66 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 	return cortex_a8_read_dcc(a8, data, &dscr);
 }
 
+static int cortex_a8_bpwp_enable(struct arm_dpm *dpm, unsigned index,
+		uint32_t addr, uint32_t control)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	uint32_t vr = a8->armv7a_common.debug_base;
+	uint32_t cr = a8->armv7a_common.debug_base;
+	int retval;
+
+	switch (index) {
+	case 0 ... 15:		/* breakpoints */
+		vr += CPUDBG_BVR_BASE;
+		cr += CPUDBG_BCR_BASE;
+		break;
+	case 16 ... 31:		/* watchpoints */
+		vr += CPUDBG_WVR_BASE;
+		cr += CPUDBG_WCR_BASE;
+		index -= 16;
+		break;
+	default:
+		return ERROR_FAIL;
+	}
+	vr += 4 * index;
+	cr += 4 * index;
+
+	LOG_DEBUG("A8: bpwp enable, vr %08x cr %08x",
+			(unsigned) vr, (unsigned) cr);
+
+	retval = cortex_a8_dap_write_memap_register_u32(dpm->arm->target,
+			vr, addr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cortex_a8_dap_write_memap_register_u32(dpm->arm->target,
+			cr, control);
+	return retval;
+}
+
+static int cortex_a8_bpwp_disable(struct arm_dpm *dpm, unsigned index)
+{
+	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
+	uint32_t cr;
+
+	switch (index) {
+	case 0 ... 15:
+		cr = a8->armv7a_common.debug_base + CPUDBG_BCR_BASE;
+		break;
+	case 16 ... 31:
+		cr = a8->armv7a_common.debug_base + CPUDBG_WCR_BASE;
+		index -= 16;
+		break;
+	default:
+		return ERROR_FAIL;
+	}
+	cr += 4 * index;
+
+	LOG_DEBUG("A8: bpwp disable, cr %08x", (unsigned) cr);
+
+	/* clear control register */
+	return cortex_a8_dap_write_memap_register_u32(dpm->arm->target, cr, 0);
+}
+
 static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 {
 	struct arm_dpm *dpm = &a8->armv7a_common.dpm;
@@ -476,6 +536,9 @@ static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 
 	dpm->instr_read_data_dcc = cortex_a8_instr_read_data_dcc;
 	dpm->instr_read_data_r0 = cortex_a8_instr_read_data_r0;
+
+	dpm->bpwp_enable = cortex_a8_bpwp_enable;
+	dpm->bpwp_disable = cortex_a8_bpwp_disable;
 
 	return arm_dpm_setup(dpm);
 }
@@ -745,6 +808,7 @@ static int cortex_a8_debug_entry(struct target *target)
 		case 5:		/* vector catch */
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
+		case 2:		/* asynch watchpoint */
 		case 10:	/* precise watchpoint */
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 			/* REVISIT could collect WFAR later, to see just
@@ -1276,6 +1340,8 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 		 *
 		 * For both ICache and DCache, walk all cache lines in the
 		 * address range. Cortex-A8 has fixed 64 byte line length.
+		 *
+		 * REVISIT per ARMv7, these may trigger watchpoints ...
 		 */
 
 		/* invalidate I-Cache */
