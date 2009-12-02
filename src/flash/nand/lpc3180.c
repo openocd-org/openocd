@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "lpc3180_nand_controller.h"
+#include "lpc3180.h"
 #include "nand.h"
 
 static int lpc3180_reset(struct nand_device *nand);

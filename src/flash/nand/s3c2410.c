@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /*
- * S3C24XX Series OpenOCD NAND Flash controller support.
+ * S3C2410 OpenOCD NAND Flash controller support.
  *
  * Many thanks to Simtec Electronics for sponsoring this work.
  */
@@ -28,34 +28,35 @@
 #include "config.h"
 #endif
 
-#include "s3c24xx_nand.h"
+#include "s3c24xx.h"
 
-
-S3C24XX_DEVICE_COMMAND()
+NAND_DEVICE_COMMAND_HANDLER(s3c2410_nand_device_command)
 {
-	*info = NULL;
+	struct s3c24xx_nand_controller *info;
+	CALL_S3C24XX_DEVICE_COMMAND(nand, &info);
 
-	struct s3c24xx_nand_controller *s3c24xx_info;
-	s3c24xx_info = malloc(sizeof(struct s3c24xx_nand_controller));
-	if (s3c24xx_info == NULL) {
-		LOG_ERROR("no memory for nand controller\n");
-		return -ENOMEM;
-	}
-
-	nand->controller_priv = s3c24xx_info;
-
-	s3c24xx_info->target = get_target(CMD_ARGV[1]);
-	if (s3c24xx_info->target == NULL) {
-		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	*info = s3c24xx_info;
+	/* fill in the address fields for the core device */
+	info->cmd = S3C2410_NFCMD;
+	info->addr = S3C2410_NFADDR;
+	info->data = S3C2410_NFDATA;
+	info->nfstat = S3C2410_NFSTAT;
 
 	return ERROR_OK;
 }
 
-int s3c24xx_reset(struct nand_device *nand)
+static int s3c2410_init(struct nand_device *nand)
+{
+	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
+	struct target *target = s3c24xx_info->target;
+
+	target_write_u32(target, S3C2410_NFCONF,
+			 S3C2410_NFCONF_EN | S3C2410_NFCONF_TACLS(3) |
+			 S3C2410_NFCONF_TWRPH0(5) | S3C2410_NFCONF_TWRPH1(3));
+
+	return ERROR_OK;
+}
+
+static int s3c2410_write_data(struct nand_device *nand, uint16_t data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -65,12 +66,11 @@ int s3c24xx_reset(struct nand_device *nand)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	target_write_u32(target, s3c24xx_info->cmd, 0xff);
-
+	target_write_u32(target, S3C2410_NFDATA, data);
 	return ERROR_OK;
 }
 
-int s3c24xx_command(struct nand_device *nand, uint8_t command)
+static int s3c2410_read_data(struct nand_device *nand, void *data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -80,54 +80,44 @@ int s3c24xx_command(struct nand_device *nand, uint8_t command)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	target_write_u16(target, s3c24xx_info->cmd, command);
+	target_read_u8(target, S3C2410_NFDATA, data);
 	return ERROR_OK;
 }
 
-
-int s3c24xx_address(struct nand_device *nand, uint8_t address)
+static int s3c2410_nand_ready(struct nand_device *nand, int timeout)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
+	uint8_t status;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	target_write_u16(target, s3c24xx_info->addr, address);
-	return ERROR_OK;
+	do {
+		target_read_u8(target, S3C2410_NFSTAT, &status);
+
+		if (status & S3C2410_NFSTAT_BUSY)
+			return 1;
+
+		alive_sleep(1);
+	} while (timeout-- > 0);
+
+	return 0;
 }
 
-int s3c24xx_write_data(struct nand_device *nand, uint16_t data)
-{
-	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
-		return ERROR_NAND_OPERATION_FAILED;
-	}
-
-	target_write_u8(target, s3c24xx_info->data, data);
-	return ERROR_OK;
-}
-
-int s3c24xx_read_data(struct nand_device *nand, void *data)
-{
-	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
-		return ERROR_NAND_OPERATION_FAILED;
-	}
-
-	target_read_u8(target, s3c24xx_info->data, data);
-	return ERROR_OK;
-}
-
-int s3c24xx_controller_ready(struct nand_device *nand, int timeout)
-{
-	return 1;
-}
+struct nand_flash_controller s3c2410_nand_controller = {
+		.name = "s3c2410",
+		.nand_device_command = &s3c2410_nand_device_command,
+		.init = &s3c2410_init,
+		.reset = &s3c24xx_reset,
+		.command = &s3c24xx_command,
+		.address = &s3c24xx_address,
+		.write_data = &s3c2410_write_data,
+		.read_data = &s3c2410_read_data,
+		.write_page = s3c24xx_write_page,
+		.read_page = s3c24xx_read_page,
+		.controller_ready = &s3c24xx_controller_ready,
+		.nand_ready = &s3c2410_nand_ready,
+	};

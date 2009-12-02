@@ -28,7 +28,7 @@
  */
 
 #include "nand.h"
-#include "s3c24xx_regs_nand.h"
+#include "s3c24xx_regs.h"
 
 struct s3c24xx_nand_controller
 {

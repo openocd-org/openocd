@@ -1,3 +1,6 @@
+SUBDIRS = \
+	nand
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/helper \
 	-I$(top_srcdir)/src/jtag \
@@ -9,6 +12,9 @@ libflash_la_SOURCES = \
 	$(FLASH_SRCS) \
 	$(NAND_SRCS) \
 	mflash.c
+
+libflash_la_LIBADD = \
+	$(top_builddir)/src/flash/nand/libocdflashnand.la
 
 FLASH_SRCS = \
 	common.c \
@@ -40,21 +46,7 @@ NAND_SRCS = \
 	arm_nandio.c \
 	nand_ecc.c \
 	nand_ecc_kw.c \
-	$(NAND_DEVICES_SRCS) \
 	nand.c
-
-NAND_DEVICES_SRCS = \
-	nonce_nand.c \
-	davinci_nand.c \
-	lpc3180_nand_controller.c \
-	mx3_nand.c \
-	orion_nand.c \
-	s3c24xx_nand.c \
-	s3c2410_nand.c \
-	s3c2412_nand.c \
-	s3c2440_nand.c \
-	s3c2443_nand.c
-
 
 noinst_HEADERS = \
 	arm_nandio.h \
@@ -66,9 +58,7 @@ noinst_HEADERS = \
 	flash.h \
 	lpc2000.h \
 	lpc288x.h \
-	lpc3180_nand_controller.h \
 	mflash.h \
-	mx3_nand.h \
 	non_cfi.h \
 	nand.h \
 	ocl.h \
@@ -78,9 +68,7 @@ noinst_HEADERS = \
 	str7x.h \
 	str9x.h \
 	str9xpec.h \
-	tms470.h \
-	s3c24xx_nand.h \
-	s3c24xx_regs_nand.h
+	tms470.h
 
 EXTRA_DIST = startup.tcl
 

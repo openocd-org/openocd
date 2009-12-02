@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /*
- * S3C2443 OpenOCD NAND Flash controller support.
+ * S3C2412 OpenOCD NAND Flash controller support.
  *
  * Many thanks to Simtec Electronics for sponsoring this work.
  */
@@ -28,10 +28,9 @@
 #include "config.h"
 #endif
 
-#include "s3c24xx_nand.h"
+#include "s3c24xx.h"
 
-
-NAND_DEVICE_COMMAND_HANDLER(s3c2443_nand_device_command)
+NAND_DEVICE_COMMAND_HANDLER(s3c2412_nand_device_command)
 {
 	struct s3c24xx_nand_controller *info;
 	CALL_S3C24XX_DEVICE_COMMAND(nand, &info);
@@ -45,7 +44,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2443_nand_device_command)
 	return ERROR_OK;
 }
 
-static int s3c2443_init(struct nand_device *nand)
+static int s3c2412_init(struct nand_device *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
 	struct target *target = s3c24xx_info->target;
@@ -62,10 +61,10 @@ static int s3c2443_init(struct nand_device *nand)
 	return ERROR_OK;
 }
 
-struct nand_flash_controller s3c2443_nand_controller = {
-		.name = "s3c2443",
-		.nand_device_command = &s3c2443_nand_device_command,
-		.init = &s3c2443_init,
+struct nand_flash_controller s3c2412_nand_controller = {
+		.name = "s3c2412",
+		.nand_device_command = &s3c2412_nand_device_command,
+		.init = &s3c2412_init,
 		.reset = &s3c24xx_reset,
 		.command = &s3c24xx_command,
 		.address = &s3c24xx_address,

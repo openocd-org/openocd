@@ -28,7 +28,7 @@
 #include "config.h"
 #endif
 
-#include "s3c24xx_nand.h"
+#include "s3c24xx.h"
 
 
 NAND_DEVICE_COMMAND_HANDLER(s3c2440_nand_device_command)
