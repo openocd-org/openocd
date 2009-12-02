@@ -281,20 +281,20 @@ static const struct {
 	{ .name = "r11_fiq", .cookie = 11, .mode = ARMV4_5_MODE_FIQ, },
 	{ .name = "r12_fiq", .cookie = 12, .mode = ARMV4_5_MODE_FIQ, },
 
-	{ .name = "lr_fiq", .cookie = 13, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "sp_fiq", .cookie = 14, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "sp_fiq", .cookie = 13, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "lr_fiq", .cookie = 14, .mode = ARMV4_5_MODE_FIQ, },
 
-	{ .name = "lr_irq", .cookie = 13, .mode = ARMV4_5_MODE_IRQ, },
-	{ .name = "sp_irq", .cookie = 14, .mode = ARMV4_5_MODE_IRQ, },
+	{ .name = "sp_irq", .cookie = 13, .mode = ARMV4_5_MODE_IRQ, },
+	{ .name = "lr_irq", .cookie = 14, .mode = ARMV4_5_MODE_IRQ, },
 
-	{ .name = "lr_svc", .cookie = 13, .mode = ARMV4_5_MODE_SVC, },
-	{ .name = "sp_svc", .cookie = 14, .mode = ARMV4_5_MODE_SVC, },
+	{ .name = "sp_svc", .cookie = 13, .mode = ARMV4_5_MODE_SVC, },
+	{ .name = "lr_svc", .cookie = 14, .mode = ARMV4_5_MODE_SVC, },
 
-	{ .name = "lr_abt", .cookie = 13, .mode = ARMV4_5_MODE_ABT, },
-	{ .name = "sp_abt", .cookie = 14, .mode = ARMV4_5_MODE_ABT, },
+	{ .name = "sp_abt", .cookie = 13, .mode = ARMV4_5_MODE_ABT, },
+	{ .name = "lr_abt", .cookie = 14, .mode = ARMV4_5_MODE_ABT, },
 
-	{ .name = "lr_und", .cookie = 13, .mode = ARMV4_5_MODE_UND, },
-	{ .name = "sp_und", .cookie = 14, .mode = ARMV4_5_MODE_UND, },
+	{ .name = "sp_und", .cookie = 13, .mode = ARMV4_5_MODE_UND, },
+	{ .name = "lr_und", .cookie = 14, .mode = ARMV4_5_MODE_UND, },
 
 	{ .name = "cpsr", .cookie = 16, .mode = ARMV4_5_MODE_ANY, },
 	{ .name = "spsr_fiq", .cookie = 16, .mode = ARMV4_5_MODE_FIQ, },
@@ -303,8 +303,8 @@ static const struct {
 	{ .name = "spsr_abt", .cookie = 16, .mode = ARMV4_5_MODE_ABT, },
 	{ .name = "spsr_und", .cookie = 16, .mode = ARMV4_5_MODE_UND, },
 
-	{ .name = "lr_mon", .cookie = 13, .mode = ARM_MODE_MON, },
-	{ .name = "sp_mon", .cookie = 14, .mode = ARM_MODE_MON, },
+	{ .name = "sp_mon", .cookie = 13, .mode = ARM_MODE_MON, },
+	{ .name = "lr_mon", .cookie = 14, .mode = ARM_MODE_MON, },
 	{ .name = "spsr_mon", .cookie = 16, .mode = ARM_MODE_MON, },
 };
 
