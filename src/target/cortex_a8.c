@@ -772,7 +772,7 @@ static int cortex_a8_resume(struct target *target, int current,
 static int cortex_a8_debug_entry(struct target *target)
 {
 	int i;
-	uint32_t regfile[16], pc, cpsr, dscr;
+	uint32_t regfile[16], wfar, cpsr, dscr;
 	int retval = ERROR_OK;
 	struct working_area *regfile_working_area = NULL;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
@@ -811,9 +811,12 @@ static int cortex_a8_debug_entry(struct target *target)
 		case 2:		/* asynch watchpoint */
 		case 10:	/* precise watchpoint */
 			target->debug_reason = DBG_REASON_WATCHPOINT;
-			/* REVISIT could collect WFAR later, to see just
-			 * which instruction triggered the watchpoint.
-			 */
+
+			/* save address of faulting instruction */
+			retval = mem_ap_read_atomic_u32(swjdp,
+					armv7a->debug_base + CPUDBG_WFAR,
+					&wfar);
+			arm_dpm_report_wfar(&armv7a->dpm, wfar);
 			break;
 		default:
 			target->debug_reason = DBG_REASON_UNDEFINED;
@@ -841,7 +844,6 @@ static int cortex_a8_debug_entry(struct target *target)
 
 		/* read Current PSR */
 		cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
-		pc = regfile[15];
 		dap_ap_select(swjdp, swjdp_debugap);
 		LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
@@ -892,10 +894,7 @@ static int cortex_a8_debug_entry(struct target *target)
 	if (armv7a->post_debug_entry)
 		armv7a->post_debug_entry(target);
 
-
-
 	return retval;
-
 }
 
 static void cortex_a8_post_debug_entry(struct target *target)
@@ -1527,20 +1526,7 @@ static int cortex_a8_examine_first(struct target *target)
 		cortex_a8->brp_list[i].BRPn = i;
 	}
 
-	/* Setup Watchpoint Register Pairs */
-	cortex_a8->wrp_num = ((didr >> 28) & 0x0F) + 1;
-	cortex_a8->wrp_num_available = cortex_a8->wrp_num;
-	cortex_a8->wrp_list = calloc(cortex_a8->wrp_num, sizeof(struct cortex_a8_wrp));
-	for (i = 0; i < cortex_a8->wrp_num; i++)
-	{
-		cortex_a8->wrp_list[i].used = 0;
-		cortex_a8->wrp_list[i].type = 0;
-		cortex_a8->wrp_list[i].value = 0;
-		cortex_a8->wrp_list[i].control = 0;
-		cortex_a8->wrp_list[i].WRPn = i;
-	}
-	LOG_DEBUG("Configured %i hw breakpoint pairs and %i hw watchpoint pairs",
-			cortex_a8->brp_num , cortex_a8->wrp_num);
+	LOG_DEBUG("Configured %i hw breakpoints", cortex_a8->brp_num);
 
 	target_set_examined(target);
 	return ERROR_OK;

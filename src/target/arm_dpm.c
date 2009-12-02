@@ -736,6 +736,23 @@ static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
 	return retval;
 }
 
+void arm_dpm_report_wfar(struct arm_dpm *dpm, uint32_t addr)
+{
+	switch (dpm->arm->core_state) {
+	case ARMV4_5_STATE_ARM:
+		addr -= 8;
+		break;
+	case ARMV4_5_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		addr -= 4;
+		break;
+	case ARMV4_5_STATE_JAZELLE:
+		/* ?? */
+		break;
+	}
+	dpm->wp_pc = addr;
+}
+
 /*----------------------------------------------------------------------*/
 
 /*

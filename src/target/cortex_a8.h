@@ -54,15 +54,6 @@ struct cortex_a8_brp
 	uint8_t BRPn;
 };
 
-struct cortex_a8_wrp
-{
-	int used;
-	int type;
-	uint32_t value;
-	uint32_t control;
-	uint8_t WRPn;
-};
-
 struct cortex_a8_common
 {
 	int common_magic;
@@ -70,28 +61,15 @@ struct cortex_a8_common
 
 	/* Context information */
 	uint32_t cpudbg_dscr;
-	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
-	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
 	/* Saved cp15 registers */
 	uint32_t cp15_control_reg;
-	uint32_t cp15_aux_control_reg;
 
 	/* Breakpoint register pairs */
 	int brp_num_context;
 	int brp_num;
 	int brp_num_available;
-//	int brp_enabled;
 	struct cortex_a8_brp *brp_list;
-
-	/* Watchpoint register pairs */
-	int wrp_num;
-	int wrp_num_available;
-	struct cortex_a8_wrp *wrp_list;
-
-	/* Interrupts */
-	int intlinesnum;
-	uint32_t *intsetenable;
 
 	/* Use cortex_a8_read_regs_through_mem for fast register reads */
 	int fast_reg_read;

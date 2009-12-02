@@ -122,6 +122,9 @@ struct arm_dpm {
 	struct dpm_bp *dbp;
 	struct dpm_wp *dwp;
 
+	/** Address of the instruction which triggered a watchpoint. */
+	uint32_t wp_pc;
+
 	// FIXME -- read/write DCSR methods and symbols
 };
 
@@ -130,5 +133,7 @@ int arm_dpm_reinitialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
 int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
+
+void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 
 #endif /* __ARM_DPM_H */
