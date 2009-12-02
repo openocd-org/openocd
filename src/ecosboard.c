@@ -1113,6 +1113,11 @@ int main(int argc, char *argv[])
 
 	command_run_linef(cmd_ctx, "script /rom/openocd.cfg");
 
+	int ret;
+	ret = server_init(cmd_ctx);
+	if (ERROR_OK != ret)
+		return EXIT_FAILURE;
+
 	/* we MUST always run the init command as it will launch telnet sessions */
 	command_run_line(cmd_ctx, "init");
 
