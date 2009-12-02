@@ -21,6 +21,7 @@
 #include <config.h>
 #endif
 #include "ioutil.h"
+#include "log.h"
 
 int ioutil_init(struct command_context *cmd_ctx)
 {

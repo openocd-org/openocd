@@ -21,6 +21,7 @@
 #include <config.h>
 #endif
 #include "httpd.h"
+#include "log.h"
 
 int httpd_start(struct command_context *cmd_ctx)
 {
