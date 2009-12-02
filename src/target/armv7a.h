@@ -77,6 +77,53 @@ target_to_armv7a(struct target *target)
 			armv4_5_common);
 }
 
+/* register offsets from armv7a.debug_base */
+
+/* See ARMv7a arch spec section C10.2 */
+#define CPUDBG_DIDR		0x000
+
+/* See ARMv7a arch spec section C10.3 */
+#define CPUDBG_WFAR		0x018
+/* PCSR at 0x084 -or- 0x0a0 -or- both ... based on flags in DIDR */
+#define CPUDBG_DSCR		0x088
+#define CPUDBG_DRCR		0x090
+#define CPUDBG_PRCR		0x310
+#define CPUDBG_PRSR		0x314
+
+/* See ARMv7a arch spec section C10.4 */
+#define CPUDBG_DTRRX		0x080
+#define CPUDBG_ITR		0x084
+#define CPUDBG_DTRTX		0x08c
+
+/* See ARMv7a arch spec section C10.5 */
+#define CPUDBG_BVR_BASE		0x100
+#define CPUDBG_BCR_BASE		0x140
+#define CPUDBG_WVR_BASE		0x180
+#define CPUDBG_WCR_BASE		0x1C0
+#define CPUDBG_VCR		0x01C
+
+/* See ARMv7a arch spec section C10.6 */
+#define CPUDBG_OSLAR		0x300
+#define CPUDBG_OSLSR		0x304
+#define CPUDBG_OSSRR		0x308
+#define CPUDBG_ECR		0x024
+
+/* See ARMv7a arch spec section C10.7 */
+#define CPUDBG_DSCCR		0x028
+
+/* See ARMv7a arch spec section C10.8 */
+#define CPUDBG_AUTHSTATUS	0xFB8
+
+/* DSCR bit numbers (See ARMv7a arch spec section 12.4.5) */
+#define DSCR_CORE_HALTED	0
+#define DSCR_CORE_RESTARTED	1
+#define DSCR_EXT_INT_EN		13
+#define DSCR_HALT_DBG_MODE	14
+#define DSCR_MON_DBG_MODE	15
+#define DSCR_INSTR_COMP		24
+#define DSCR_DTR_TX_FULL	29
+#define DSCR_DTR_RX_FULL	30
+
 struct armv7a_algorithm
 {
 	int common_magic;

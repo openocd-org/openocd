@@ -35,49 +35,15 @@ extern char* cortex_a8_state_strings[];
 
 #define CORTEX_A8_COMMON_MAGIC 0x411fc082
 
-#define CPUID		0x54011D00
-/* Debug Control Block */
-#define CPUDBG_DIDR		0x000
-#define CPUDBG_WFAR		0x018
-#define CPUDBG_VCR	0x01C
-#define CPUDBG_ECR	0x024
-#define CPUDBG_DSCCR	0x028
-#define CPUDBG_DTRRX	0x080
-#define CPUDBG_ITR	0x084
-#define CPUDBG_DSCR	0x088
-#define CPUDBG_DTRTX	0x08c
-#define CPUDBG_DRCR	0x090
-#define CPUDBG_BVR_BASE	0x100
-#define CPUDBG_BCR_BASE	0x140
-#define CPUDBG_WVR_BASE	0x180
-#define CPUDBG_WCR_BASE	0x1C0
-
-#define CPUDBG_OSLAR	0x300
-#define CPUDBG_OSLSR	0x304
-#define CPUDBG_OSSRR	0x308
-
-#define CPUDBG_PRCR	0x310
-#define CPUDBG_PRSR	0x314
-
+/* See Cortex-A8 TRM section 12.5 */
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
 #define CPUDBG_TTYPR	0xD0C
 #define CPUDBG_LOCKACCESS 0xFB0
 #define CPUDBG_LOCKSTATUS 0xFB4
-#define CPUDBG_AUTHSTATUS 0xFB8
 
 #define BRP_NORMAL 0
 #define BRP_CONTEXT 1
-
-/* DSCR Bit offset */
-#define DSCR_CORE_HALTED		0
-#define DSCR_CORE_RESTARTED 	1
-#define DSCR_EXT_INT_EN 		13
-#define DSCR_HALT_DBG_MODE		14
-#define DSCR_MON_DBG_MODE 		15
-#define DSCR_INSTR_COMP 		24
-#define DSCR_DTR_TX_FULL 		29
-#define DSCR_DTR_RX_FULL 		30
 
 struct cortex_a8_brp
 {
