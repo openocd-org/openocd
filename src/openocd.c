@@ -215,20 +215,6 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	return cmd_ctx;
 }
 
-#if !BUILD_HTTPD && !BUILD_ECOSBOARD
-/* implementations of OpenOCD that uses multithreading needs to know when
- * OpenOCD is sleeping. No-op in vanilla OpenOCD
- */
-void openocd_sleep_prelude(void)
-{
-}
-
-void openocd_sleep_postlude(void)
-{
-}
-#endif
-
-
 /* normally this is the main() function entry, but if OpenOCD is linked
  * into application, then this fn will not be invoked, but rather that
  * application will have it's own implementation of main(). */

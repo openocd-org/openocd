@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>              *
- *   Copyright (C) 2009 by Zachary T Welch <zw@superlucidity.net>          *
+ *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -18,20 +17,16 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef OPENOCD_H
-#define OPENOCD_H
-
-/** 
- * Different applications can define this entry point to override
- * the default openocd main function.  On most systems, this will be
- * defined in src/openocd.c.
- * @param argc normally passed from main()
- * @param argv normally passed from main()
- * @returns return code for main()
- */
-int openocd_main(int argc, char *argv[]);
-
-/// provides a hard-coded command environment setup
-extern const char openocd_startup_tcl[];
-
+#ifdef HAVE_CONFIG_H
+#include <config.h>
 #endif
+#include "server.h"
+
+void openocd_sleep_prelude(void)
+{
+	// no-op
+}
+void openocd_sleep_postlude(void)
+{
+	// no-op
+}
