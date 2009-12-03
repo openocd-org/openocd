@@ -4,7 +4,7 @@
 #endif
 
 #include "rlink.h"
-#include "st7.h"
+#include "rlink_st7.h"
 
 static const uint8_t dtc_64[] = {
 	0, 2, 68, 84, 67, 2, 13, 160, 176, 151, 147, 182, 141, 152, 177, 129, 148,

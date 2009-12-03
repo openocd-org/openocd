@@ -31,9 +31,9 @@
 #include "interface.h"
 #include "commands.h"
 #include "rlink.h"
-#include "st7.h"
-#include "ep1_cmd.h"
-#include "dtc_cmd.h"
+#include "rlink_st7.h"
+#include "rlink_ep1_cmd.h"
+#include "rlink_dtc_cmd.h"
 #include "usb_common.h"
 
 
