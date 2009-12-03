@@ -24,7 +24,7 @@
 #include "types.h"
 #include "jtag.h"
 #include "ioutil.h"
-#include "configuration.h"
+#include <helper/configuration.h>
 #include "xsvf.h"
 #include "svf.h"
 #include "nand.h"
