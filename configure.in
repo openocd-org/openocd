@@ -979,6 +979,7 @@ enum ftdi_chip_type x = TYPE_2232H;
 fi
 
 # check for usb.h when a driver will require it
+build_usb=no
 if test $build_jlink = yes -o $build_vsllink = yes -o $build_usbprog = yes -o \
   $build_rlink = yes -o $build_armjtagew = yes
 then
