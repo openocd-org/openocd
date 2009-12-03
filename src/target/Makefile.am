@@ -111,6 +111,7 @@ noinst_HEADERS = \
 	arm926ejs.h \
 	arm966e.h \
 	arm11.h \
+	arm11_dbgtap.h \
 	armv4_5.h \
 	armv4_5_mmu.h \
 	armv4_5_cache.h \

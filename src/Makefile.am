@@ -18,6 +18,7 @@ libopenocd_la_SOURCES = \
 	startup_tcl.c
 
 noinst_HEADERS = \
+	hello.h \
 	openocd.h
 
 
