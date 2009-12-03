@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "interface.h"
+#include <jtag/interface.h>
 #include <jtag/commands.h>
 
 

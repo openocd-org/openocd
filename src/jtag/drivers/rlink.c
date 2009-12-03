@@ -28,7 +28,7 @@
 #endif
 
 /* project specific includes */
-#include "interface.h"
+#include <jtag/interface.h>
 #include <jtag/commands.h>
 #include "rlink.h"
 #include "rlink_st7.h"

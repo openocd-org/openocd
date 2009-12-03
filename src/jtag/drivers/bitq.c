@@ -22,7 +22,7 @@
 #endif
 
 #include "bitq.h"
-#include "interface.h"
+#include <jtag/interface.h>
 
 
 struct bitq_interface* bitq_interface;       /* low level bit queue interface */

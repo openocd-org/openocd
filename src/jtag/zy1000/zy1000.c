@@ -22,7 +22,7 @@
 
 #include "embeddedice.h"
 #include "minidriver.h"
-#include "interface.h"
+#include <jtag/interface.h>
 #include "zy1000_version.h"
 
 #include <cyg/hal/hal_io.h>             // low level i/o

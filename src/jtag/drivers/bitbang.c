@@ -25,7 +25,7 @@
 #endif
 
 #include "bitbang.h"
-#include "interface.h"
+#include <jtag/interface.h>
 #include <jtag/commands.h>
 
 /**

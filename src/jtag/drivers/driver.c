@@ -31,7 +31,7 @@
 #include "config.h"
 #endif
 
-#include "interface.h"
+#include <jtag/interface.h>
 #include "minidriver.h"
 #include <helper/command.h>
 

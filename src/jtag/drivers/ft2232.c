@@ -41,7 +41,7 @@
 #endif
 
 /* project specific includes */
-#include "interface.h"
+#include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <helper/time_support.h>
 

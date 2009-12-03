@@ -35,7 +35,7 @@
  * for loading and unloading them dynamically from shared libraries.
  */
 
-#include "interface.h"
+#include <jtag/interface.h>
 
 /// Dynamically load all JTAG interface modules from specified directory.
 void jtag_interface_modules_load(const char *path);

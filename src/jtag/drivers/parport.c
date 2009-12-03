@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include "interface.h"
+#include <jtag/interface.h>
 #include "bitbang.h"
 
 /* -ino: 060521-1036 */
