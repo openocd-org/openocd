@@ -23,7 +23,7 @@
 #ifndef ARM9TDMI_H
 #define ARM9TDMI_H
 
-#include "embeddedice.h"
+#include <target/embeddedice.h>
 
 int arm9tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target);

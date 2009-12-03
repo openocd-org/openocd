@@ -23,7 +23,7 @@
 
 #include "ocl.h"
 #include "flash.h"
-#include "embeddedice.h"
+#include <target/embeddedice.h>
 
 
 struct ocl_priv

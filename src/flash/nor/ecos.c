@@ -22,7 +22,7 @@
 #endif
 
 #include "flash.h"
-#include "embeddedice.h"
+#include <target/embeddedice.h>
 #include "image.h"
 #include <target/algorithm.h>
 
