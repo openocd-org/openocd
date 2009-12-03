@@ -25,7 +25,7 @@
 #ifndef MIPS32_DMAACC_H
 #define MIPS32_DMAACC_H
 
-#include "mips_ejtag.h"
+#include <target/mips_ejtag.h>
 
 #define EJTAG_CTRL_DMA_BYTE			0x00000000
 #define EJTAG_CTRL_DMA_HALFWORD		0x00000080
