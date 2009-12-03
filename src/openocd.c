@@ -171,7 +171,7 @@ static const struct command_registration openocd_command_handlers[] = {
 	{
 		.name = "init",
 		.handler = &handle_init_command,
-		.mode = COMMAND_CONFIG,
+		.mode = COMMAND_ANY,
 		.help = "Initializes configured targets and servers.  "
 			"Changes command mode from CONFIG to EXEC.  "
 			"Unless 'noinit' is called, this command is "
