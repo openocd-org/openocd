@@ -65,6 +65,7 @@ endif
 noinst_HEADERS = \
 	bitbang.h \
 	bitq.h \
+	minidriver_imp.h \
 	rlink.h \
 	rlink_dtc_cmd.h \
 	rlink_ep1_cmd.h \

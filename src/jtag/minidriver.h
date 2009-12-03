@@ -26,13 +26,14 @@
 #ifndef MINIDRIVER_H
 #define MINIDRIVER_H
 
-/* @page jtagminidriver JTAG Mini-Driver
+/**
+ * @page jtagminidriver JTAG Mini-Driver
  *
  * The JTAG minidriver interface allows the definition of alternate
  * interface functions, instead of the built-in asynchronous driver
  * module that is used by the standard JTAG interface drivers.
  *
- * In addtion to the functions defined in the c minidriver.h file, the
+ * In addtion to the functions defined in the @c minidriver.h file, the
  * @c jtag_minidriver.h file must declare the following functions (or
  * define static inline versions of them):
  * - jtag_add_callback
@@ -44,54 +45,9 @@
  * - default_interface_jtag_execute_queue()
  */
 
-#ifdef HAVE_JTAG_MINIDRIVER_H
-
-#include "jtag_minidriver.h"
-
-static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
-{
-	field->in_value = field->intmp;
-}
-
-static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
-{
-	/* We're executing this synchronously, so try to use local storage. */
-	if (field->num_bits > 32)
-	{
-		unsigned num_bytes = DIV_ROUND_UP(field->num_bits, 8);
-		field->in_value = (uint8_t *)malloc(num_bytes);
-		field->allocated = 1;
-	}
-	else
-		field->in_value = field->intmp;
-}
-
-#else
-
-#include "commands.h"
-
-static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
-{
-	field->in_value = (uint8_t *)cmd_queue_alloc(4);
-}
-
-static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
-{
-	unsigned num_bytes = DIV_ROUND_UP(field->num_bits, 8);
-	field->in_value = (uint8_t *)cmd_queue_alloc(num_bytes);
-}
-
-void interface_jtag_add_dr_out(struct jtag_tap* tap,
-		int num_fields, const int* num_bits, const uint32_t* value,
-		tap_state_t end_state);
-
-void interface_jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0);
-
-void interface_jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
-		jtag_callback_data_t data1, jtag_callback_data_t data2,
-		jtag_callback_data_t data3);
-
-#endif
+// this header will be provided by the minidriver implementation,
+// and it may provide additional declarations that must be defined.
+#include "minidriver_imp.h"
 
 int interface_jtag_add_ir_scan(
 		int num_fields, const struct scan_field* fields,

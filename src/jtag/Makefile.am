@@ -11,6 +11,9 @@ libjtag_la_LIBADD =
 
 if MINIDRIVER
 
+# for minidriver_imp.h
+AM_CPPFLAGS += -I$(srcdir)/minidriver
+
 if ZY1000
 DRIVERFILES += zy1000/zy1000.c
 AM_CPPFLAGS += -I$(srcdir)/zy1000
@@ -26,6 +29,9 @@ DRIVERFILES += commands.c
 
 SUBDIRS += drivers
 libjtag_la_LIBADD += $(top_builddir)/src/jtag/drivers/libocdjtagdrivers.la
+
+# for minidriver_imp.h
+AM_CPPFLAGS += -I$(srcdir)/drivers
 
 endif
 # endif // MINIDRIVER
@@ -43,6 +49,7 @@ noinst_HEADERS = \
 	interfaces.h \
 	minidriver.h \
 	jtag.h \
+	minidriver/minidriver_imp.h \
 	minidummy/jtag_minidriver.h
 
 EXTRA_DIST = startup.tcl
