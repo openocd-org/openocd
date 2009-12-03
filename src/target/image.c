@@ -32,7 +32,7 @@
 
 #include "image.h"
 #include "target.h"
-#include "log.h"
+#include <helper/log.h>
 
 
 /* convert ELF header field to host endianness */

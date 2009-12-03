@@ -25,7 +25,7 @@
 
 #include "target.h"
 #include "arm_disassembler.h"
-#include "log.h"
+#include <helper/log.h>
 
 
 /*

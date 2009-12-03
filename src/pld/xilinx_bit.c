@@ -23,7 +23,7 @@
 
 #include "xilinx_bit.h"
 #include "pld.h"
-#include "log.h"
+#include <helper/log.h>
 
 #include <sys/stat.h>
 

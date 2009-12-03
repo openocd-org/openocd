@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "log.h"
+#include <helper/log.h>
 #include "trace.h"
 #include "target.h"
 

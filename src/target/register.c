@@ -26,7 +26,7 @@
 
 #include "types.h"
 #include "register.h"
-#include "log.h"
+#include <helper/log.h>
 
 /**
  * @file

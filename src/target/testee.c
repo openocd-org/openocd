@@ -22,7 +22,7 @@
 #endif
 #include "target.h"
 #include "target_type.h"
-#include "log.h"
+#include <helper/log.h>
 #include "../hello.h"
 
 static const struct command_registration testee_command_handlers[] = {

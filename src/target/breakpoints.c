@@ -22,7 +22,7 @@
 #endif
 
 #include "target.h"
-#include "log.h"
+#include <helper/log.h>
 #include "breakpoints.h"
 
 

@@ -25,7 +25,7 @@
 #include "target.h"
 #include "time_support.h"
 #include <helper/fileio.h>
-#include "log.h"
+#include <helper/log.h>
 
 
 static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio);

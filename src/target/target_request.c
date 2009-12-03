@@ -32,7 +32,7 @@
 #include "target_type.h"
 #include <helper/binarybuffer.h>
 #include "trace.h"
-#include "log.h"
+#include <helper/log.h>
 
 
 static int charmsg_mode = 0;

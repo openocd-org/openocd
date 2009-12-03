@@ -24,7 +24,7 @@
 #define JTAG_H
 
 #include <helper/binarybuffer.h>
-#include "log.h"
+#include <helper/log.h>
 
 #ifdef _DEBUG_JTAG_IO_
 #define DEBUG_JTAG_IO(expr ...) \

@@ -27,7 +27,7 @@
 #define FLASH_H
 
 #include "target.h"
-#include "log.h"
+#include <helper/log.h>
 
 struct image;
 

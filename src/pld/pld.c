@@ -22,7 +22,7 @@
 #endif
 
 #include "pld.h"
-#include "log.h"
+#include <helper/log.h>
 #include "time_support.h"
 
 

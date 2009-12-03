@@ -26,7 +26,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "log.h"
+#include <helper/log.h>
 
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>

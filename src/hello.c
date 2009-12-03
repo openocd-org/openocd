@@ -20,7 +20,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include "log.h"
+#include <helper/log.h>
 
 COMMAND_HANDLER(handle_foo_command)
 {
