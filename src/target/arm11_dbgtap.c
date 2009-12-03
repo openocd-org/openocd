@@ -85,7 +85,7 @@ int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields, tap_state_t 
  */
 void arm11_setup_field(struct arm11_common * arm11, int num_bits, void * out_data, void * in_data, struct scan_field * field)
 {
-	field->tap   			= arm11->target->tap;
+	field->tap			= arm11->arm.target->tap;
 	field->num_bits			= num_bits;
 	field->out_value		= out_data;
 	field->in_value			= in_data;
@@ -102,8 +102,7 @@ void arm11_setup_field(struct arm11_common * arm11, int num_bits, void * out_dat
  */
 void arm11_add_IR(struct arm11_common * arm11, uint8_t instr, tap_state_t state)
 {
-	struct jtag_tap *tap;
-	tap = arm11->target->tap;
+	struct jtag_tap *tap = arm11->arm.target->tap;
 
 	if (buf_get_u32(tap->cur_instr, 0, 5) == instr)
 	{

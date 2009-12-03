@@ -51,18 +51,13 @@ enum arm11_debug_version
 struct arm11_common
 {
 	struct arm	arm;
-	struct target *	target;		/**< Reference back to the owner */
 
 	/** Debug module state. */
 	struct arm_dpm dpm;
 
-	/** \name Processor type detection */
-	/*@{*/
-
 	size_t	brp;			/**< Number of Breakpoint Register Pairs from DIDR	*/
 	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
-
-	/*@}*/
+	size_t	free_brps;		/**< Number of breakpoints allocated */
 
 	uint32_t		last_dscr;		/**< Last retrieved DSCR value;
 							     Use only for debug message generation		*/
@@ -77,8 +72,6 @@ struct arm11_common
 
 	/*@}*/
 
-	size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
-	size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
 
 	// GA
 	struct reg_cache *core_cache;

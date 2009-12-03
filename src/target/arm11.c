@@ -127,13 +127,14 @@ static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 			  * the target.
 			  */
 
-			arm11->target->state	= TARGET_HALTED;
-			arm11->target->debug_reason	= arm11_get_DSCR_debug_reason(*dscr);
+			arm11->arm.target->state = TARGET_HALTED;
+			arm11->arm.target->debug_reason =
+					arm11_get_DSCR_debug_reason(*dscr);
 		}
 		else
 		{
-			arm11->target->state	= TARGET_RUNNING;
-			arm11->target->debug_reason	= DBG_REASON_NOTHALTED;
+			arm11->arm.target->state = TARGET_RUNNING;
+			arm11->arm.target->debug_reason = DBG_REASON_NOTHALTED;
 		}
 
 		arm11_sc7_clear_vbw(arm11);
@@ -1221,8 +1222,6 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 
 	armv4_5_init_arch_info(target, &arm11->arm);
 
-	arm11->target = target;
-
 	arm11->jtag_info.tap = target->tap;
 	arm11->jtag_info.scann_size = 5;
 	arm11->jtag_info.scann_instr = ARM11_SCAN_N;
@@ -1313,7 +1312,6 @@ static int arm11_examine(struct target *target)
 
 	/** \todo TODO: reserve one brp slot if we allow breakpoints during step */
 	arm11->free_brps = arm11->brp;
-	arm11->free_wrps = arm11->wrp;
 
 	LOG_DEBUG("IDCODE %08" PRIx32 " IMPLEMENTOR %02x DIDR %08" PRIx32,
 			device_id, implementor, didr);
@@ -1350,7 +1348,8 @@ static int arm11_examine(struct target *target)
 /** Load a register that is marked !valid in the register cache */
 static int arm11_get_reg(struct reg *reg)
 {
-	struct target * target = ((struct arm11_reg_state *)reg->arch_info)->target;
+	struct arm11_reg_state *r = reg->arch_info;
+	struct target *target = r->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1371,7 +1370,8 @@ static int arm11_get_reg(struct reg *reg)
 /** Change a value in the register cache */
 static int arm11_set_reg(struct reg *reg, uint8_t *buf)
 {
-	struct target *target = ((struct arm11_reg_state *)reg->arch_info)->target;
+	struct arm11_reg_state *r = reg->arch_info;
+	struct target *target = r->target;
 	struct arm11_common *arm11 = target_to_arm11(target);
 //	const struct arm11_reg_defs *arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
 
