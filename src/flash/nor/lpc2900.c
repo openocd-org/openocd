@@ -23,7 +23,7 @@
 #endif
 
 
-#include "image.h"
+#include <target/image.h>
 #include "flash.h"
 #include <helper/binarybuffer.h>
 #include <target/armv4_5.h>

@@ -29,7 +29,7 @@
 
 #include "flash.h"
 #include "common.h"
-#include "image.h"
+#include <target/image.h>
 #include <helper/time_support.h>
 
 static int flash_write_unlock(struct target *target, struct image *image, uint32_t *written, int erase, bool unlock);

@@ -22,7 +22,7 @@
 #endif
 
 #include "flash.h"
-#include "image.h"
+#include <target/image.h>
 #include "../hello.h"
 
 

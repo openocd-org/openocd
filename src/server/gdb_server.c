@@ -33,7 +33,7 @@
 #include "server.h"
 #include "flash.h"
 #include "gdb_server.h"
-#include "image.h"
+#include <target/image.h>
 #include <jtag/jtag.h>
 
 
