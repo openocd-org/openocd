@@ -20,7 +20,7 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
+#include <helper/replacements.h>
 
 #include "armv7a.h"
 #include "arm_disassembler.h"
