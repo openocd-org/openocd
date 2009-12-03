@@ -20,7 +20,7 @@
 #ifndef XILINX_BIT_H
 #define XILINX_BIT_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct xilinx_bit_file
 {

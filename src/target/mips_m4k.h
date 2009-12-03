@@ -23,7 +23,7 @@
 #ifndef MIPS_M4K_H
 #define MIPS_M4K_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct target;
 

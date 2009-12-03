@@ -60,7 +60,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
-#include "types.h"
+#include <helper/types.h>
 #include "flash.h"
 #include <helper/membuf.h>
 #include "at91sam3.h"

@@ -20,7 +20,7 @@
 #ifndef BREAKPOINTS_H
 #define BREAKPOINTS_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct target;
 

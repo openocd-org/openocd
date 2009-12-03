@@ -20,7 +20,7 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct target;
 struct command_context;

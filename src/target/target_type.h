@@ -26,7 +26,7 @@
 #ifndef TARGET_TYPE_H
 #define TARGET_TYPE_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct target;
 

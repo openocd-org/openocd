@@ -26,7 +26,7 @@
 #ifndef TARGET_H
 #define TARGET_H
 
-#include "types.h"
+#include <helper/types.h>
 #include <helper/jim.h>
 
 struct reg;

@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#include "types.h"
+#include <helper/types.h>
 
 struct rlink_speed_table {
 	uint8_t const *dtc;

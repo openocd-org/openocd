@@ -20,7 +20,7 @@
 #ifndef ARM_DISASSEMBLER_H
 #define ARM_DISASSEMBLER_H
 
-#include "types.h"
+#include <helper/types.h>
 
 enum arm_instruction_type
 {

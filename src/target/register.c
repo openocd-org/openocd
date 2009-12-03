@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include "types.h"
+#include <helper/types.h>
 #include "register.h"
 #include <helper/log.h>
 

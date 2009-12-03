@@ -20,7 +20,7 @@
 #ifndef ARMV4_5_CACHE_H
 #define ARMV4_5_CACHE_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct command_context;
 

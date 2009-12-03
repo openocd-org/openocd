@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "types.h"
+#include <helper/types.h>
 #include "jtag.h"
 #include <helper/ioutil.h>
 #include <helper/configuration.h>

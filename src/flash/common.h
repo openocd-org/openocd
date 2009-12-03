@@ -19,7 +19,7 @@
 #ifndef FLASH_COMMON_H
 #define FLASH_COMMON_H
 
-#include "types.h"
+#include <helper/types.h>
 
 /**
  * Parses the optional '.index' portion of a flash bank identifier.

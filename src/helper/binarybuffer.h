@@ -23,7 +23,7 @@
 #ifndef BINARYBUFFER_H
 #define BINARYBUFFER_H
 
-#include "types.h"
+#include <helper/types.h>
 
 /** @file
  * Support functions to access arbitrary bits in a byte array

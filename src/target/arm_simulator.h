@@ -20,7 +20,7 @@
 #ifndef ARM_SIMULATOR_H
 #define ARM_SIMULATOR_H
 
-#include "types.h"
+#include <helper/types.h>
 
 struct target;
 

@@ -20,7 +20,7 @@
 #ifndef JTAG_USB_COMMON_H
 #define JTAG_USB_COMMON_H
 
-#include "types.h"
+#include <helper/types.h>
 
 #include <usb.h>
 
