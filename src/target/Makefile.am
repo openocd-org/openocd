@@ -58,11 +58,11 @@ ARM7_9_SRC = \
 	arm9tdmi.c \
 	arm920t.c \
 	arm966e.c \
-	arm926ejs.c
+	arm926ejs.c \
+	feroceon.c
 
 ARM_MISC_SRC = \
 	fa526.c \
-	feroceon.c \
 	xscale.c
 
 ARMV6_SRC = \
