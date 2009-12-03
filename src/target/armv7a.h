@@ -19,7 +19,7 @@
 #ifndef ARMV7A_H
 #define ARMV7A_H
 
-#include "arm_adi_v5.h"
+#include <target/arm_adi_v5.h>
 #include "armv4_5.h"
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
