@@ -23,7 +23,7 @@
 #ifndef XSCALE_H
 #define XSCALE_H
 
-#include "armv4_5.h"
+#include <target/armv4_5.h>
 #include "armv4_5_mmu.h"
 #include "trace.h"
 

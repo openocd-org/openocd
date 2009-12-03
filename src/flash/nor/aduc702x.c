@@ -24,7 +24,7 @@
 #endif
 
 #include "flash.h"
-#include "armv4_5.h"
+#include <target/armv4_5.h>
 #include <helper/binarybuffer.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>

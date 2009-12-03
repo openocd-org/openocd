@@ -25,7 +25,7 @@
 #endif
 
 #include "arm_nandio.h"
-#include "armv4_5.h"
+#include <target/armv4_5.h>
 #include <target/algorithm.h>
 
 /**

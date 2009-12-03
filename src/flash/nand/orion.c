@@ -27,7 +27,7 @@
 #endif
 
 #include "arm_nandio.h"
-#include "armv4_5.h"
+#include <target/armv4_5.h>
 
 
 struct orion_nand_controller
