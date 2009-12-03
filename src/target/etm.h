@@ -23,7 +23,7 @@
 #ifndef ETM_H
 #define ETM_H
 
-#include "trace.h"
+#include <target/trace.h>
 #include <target/arm_jtag.h>
 
 struct image;
