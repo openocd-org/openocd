@@ -42,7 +42,7 @@
 
 #include "xsvf.h"
 #include <jtag/jtag.h>
-#include "svf.h"
+#include <svf/svf.h>
 
 
 /* XSVF commands, from appendix B of xapp503.pdf  */

@@ -33,7 +33,7 @@
 #include <helper/ioutil.h>
 #include <helper/configuration.h>
 #include "xsvf.h"
-#include "svf.h"
+#include <svf/svf.h>
 #include <flash/nand.h>
 #include <pld/pld.h>
 #include <flash/mflash.h>
