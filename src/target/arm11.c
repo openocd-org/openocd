@@ -81,7 +81,6 @@ enum arm11_regcache_ids
 	ARM11_RC_MAX,
 };
 
-static int arm11_on_enter_debug_state(struct arm11_common *arm11);
 static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints);
 /* helpers */
@@ -122,7 +121,7 @@ static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 		if (*dscr & ARM11_DSCR_CORE_HALTED)
 		{
 			/** \todo TODO: this needs further scrutiny because
-			  * arm11_on_enter_debug_state() never gets properly called.
+			  * arm11_debug_entry() never gets called.  (WHY NOT?)
 			  * As a result we don't read the actual register states from
 			  * the target.
 			  */
@@ -148,15 +147,17 @@ static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 #define R(x) \
 	(arm11->reg_values[ARM11_RC_##x])
 
-/** Save processor state.
-  *
-  * This is called when the HALT instruction has succeeded
-  * or on other occasions that stop the processor.
-  *
-  */
-static int arm11_on_enter_debug_state(struct arm11_common *arm11)
+/**
+ * Save processor state.  This is called after a HALT instruction
+ * succeeds, and on other occasions the processor enters debug mode
+ * (breakpoint, watchpoint, etc).
+ */
+static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 {
 	int retval;
+
+	arm11->arm.target->state = TARGET_HALTED;
+	arm11->arm.target->debug_reason = arm11_get_DSCR_debug_reason(dscr);
 
 	/* REVISIT entire cache should already be invalid !!! */
 	register_cache_invalidate(arm11->arm.core_cache);
@@ -170,11 +171,11 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 	/* See e.g. ARM1136 TRM, "14.8.4 Entering Debug state" */
 
 	/* Save DSCR */
-	CHECK_RETVAL(arm11_read_DSCR(arm11, &R(DSCR)));
+	R(DSCR) = dscr;
 
 	/* Save wDTR */
 
-	if (R(DSCR) & ARM11_DSCR_WDTR_FULL)
+	if (dscr & ARM11_DSCR_WDTR_FULL)
 	{
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 
@@ -200,7 +201,7 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 	 * but not to issue ITRs. ARM1136 seems to require this to issue
 	 * ITR's as well...
 	 */
-	uint32_t new_dscr = R(DSCR) | ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE;
+	uint32_t new_dscr = dscr | ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE;
 
 	/* this executes JTAG queue: */
 
@@ -256,7 +257,7 @@ static int arm11_on_enter_debug_state(struct arm11_common *arm11)
 
 	/* check rDTRfull in DSCR */
 
-	if (R(DSCR) & ARM11_DSCR_RDTR_FULL)
+	if (dscr & ARM11_DSCR_RDTR_FULL)
 	{
 		/* MRC p14,0,R0,c0,c5,0 (move rDTR -> r0 (-> wDTR -> local var)) */
 		retval = arm11_run_instr_data_from_core_via_r0(arm11, 0xEE100E15, &R(RDTR));
@@ -407,9 +408,7 @@ static int arm11_poll(struct target *target)
 			enum target_state old_state = target->state;
 
 			LOG_DEBUG("enter TARGET_HALTED");
-			target->state			= TARGET_HALTED;
-			target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
-			retval = arm11_on_enter_debug_state(arm11);
+			retval = arm11_debug_entry(arm11, dscr);
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -474,8 +473,8 @@ static int arm11_halt(struct target *target)
 	CHECK_RETVAL(jtag_execute_queue());
 
 	uint32_t dscr;
-
 	int i = 0;
+
 	while (1)
 	{
 		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
@@ -500,12 +499,9 @@ static int arm11_halt(struct target *target)
 		i++;
 	}
 
-	arm11_on_enter_debug_state(arm11);
-
 	enum target_state old_state	= target->state;
 
-	target->state		= TARGET_HALTED;
-	target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
+	arm11_debug_entry(arm11, dscr);
 
 	CHECK_RETVAL(
 		target_call_event_callbacks(target,
@@ -770,10 +766,10 @@ static int arm11_step(struct target *target, int current,
 
 		/* wait for halt */
 		int i = 0;
+		uint32_t dscr;
+
 		while (1)
 		{
-			uint32_t dscr;
-
 			CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 			LOG_DEBUG("DSCR %08" PRIx32 "e", dscr);
@@ -802,14 +798,13 @@ static int arm11_step(struct target *target, int current,
 		arm11_sc7_clear_vbw(arm11);
 
 		/* save state */
-		CHECK_RETVAL(arm11_on_enter_debug_state(arm11));
+		CHECK_RETVAL(arm11_debug_entry(arm11, dscr));
 
 	    /* restore default state */
 		R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
 
 	}
 
-	//	  target->state		= TARGET_HALTED;
 	target->debug_reason	= DBG_REASON_SINGLESTEP;
 
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
