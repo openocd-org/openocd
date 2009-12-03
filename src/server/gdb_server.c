@@ -29,7 +29,7 @@
 
 #include <target/breakpoints.h>
 #include "target_request.h"
-#include "register.h"
+#include <target/register.h>
 #include "server.h"
 #include "flash.h"
 #include "gdb_server.h"
