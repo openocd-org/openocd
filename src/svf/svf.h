@@ -20,7 +20,7 @@
 #ifndef SVF_H
 #define SVF_H
 
-#include "command.h"
+#include "jtag.h"
 
 int svf_register_commands(struct command_context *cmd_ctx);
 
