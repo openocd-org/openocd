@@ -33,7 +33,7 @@
 
 #include "jtag.h"
 #include "svf.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 
 
 // SVF command

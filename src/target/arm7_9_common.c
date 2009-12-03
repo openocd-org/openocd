@@ -34,7 +34,7 @@
 #include "embeddedice.h"
 #include "target_request.h"
 #include "etm.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 #include "arm_simulator.h"
 #include "algorithm.h"
 #include "register.h"

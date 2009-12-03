@@ -25,7 +25,7 @@
 #endif
 
 #include "arm720t.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 #include "target_type.h"
 #include "register.h"
 

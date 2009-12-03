@@ -39,7 +39,7 @@
 #endif
 
 #include "arm_adi_v5.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 
 /*
  * Transaction Mode:

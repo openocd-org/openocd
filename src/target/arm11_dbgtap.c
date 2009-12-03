@@ -27,7 +27,7 @@
 #include "arm_jtag.h"
 #include "arm11_dbgtap.h"
 
-#include "time_support.h"
+#include <helper/time_support.h>
 
 #if 0
 #define JTAG_DEBUG(expr ...)	do { if (1) LOG_DEBUG(expr); } while (0)

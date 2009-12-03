@@ -33,7 +33,7 @@
 #include "arm_jtag.h"
 #include "arm_simulator.h"
 #include "arm_disassembler.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 #include "register.h"
 #include "image.h"
 

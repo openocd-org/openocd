@@ -64,7 +64,7 @@
 #include "flash.h"
 #include <helper/membuf.h>
 #include "at91sam3.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 
 #define REG_NAME_WIDTH  (12)
 

@@ -43,7 +43,7 @@
 /* project specific includes */
 #include "interface.h"
 #include "commands.h"
-#include "time_support.h"
+#include <helper/time_support.h>
 
 #if IS_CYGWIN == 1
 #include <windows.h>
