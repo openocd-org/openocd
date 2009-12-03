@@ -26,7 +26,7 @@
 #endif
 
 #include "telnet_server.h"
-#include "target.h"
+#include <target/target.h>
 
 #include <microhttpd.h>
 #include <pthread.h>

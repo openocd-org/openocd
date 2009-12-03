@@ -28,7 +28,7 @@
 #endif
 
 #include "server.h"
-#include "target.h"
+#include <target/target.h>
 #include "openocd.h"
 #include "tcl_server.h"
 #include "telnet_server.h"

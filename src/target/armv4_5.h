@@ -26,7 +26,7 @@
 #ifndef ARMV4_5_H
 #define ARMV4_5_H
 
-#include "target.h"
+#include <target/target.h>
 #include <helper/command.h>
 
 

@@ -23,7 +23,7 @@
 #ifndef MIPS32_H
 #define MIPS32_H
 
-#include "target.h"
+#include <target/target.h>
 #include <target/mips32_pracc.h>
 
 

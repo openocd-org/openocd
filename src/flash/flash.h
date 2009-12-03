@@ -26,7 +26,7 @@
 #ifndef FLASH_H
 #define FLASH_H
 
-#include "target.h"
+#include <target/target.h>
 #include <helper/log.h>
 
 struct image;

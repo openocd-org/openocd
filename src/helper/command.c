@@ -36,7 +36,7 @@
 #endif
 
 // @todo the inclusion of target.h here is a layering violation
-#include "target.h"
+#include <target/target.h>
 #include "command.h"
 #include "configuration.h"
 #include "log.h"
