@@ -40,7 +40,7 @@
 
 #include "server.h"
 #include <server/gdb_server.h>
-#include "httpd.h"
+#include <server/httpd.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
