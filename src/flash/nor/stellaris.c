@@ -30,7 +30,7 @@
 
 #include "stellaris.h"
 #include "armv7m.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 #include "algorithm.h"
 
 

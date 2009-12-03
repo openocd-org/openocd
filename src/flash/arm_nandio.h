@@ -2,7 +2,7 @@
 #define __ARM_NANDIO_H
 
 #include "nand.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 
 /**
  * The arm_nand_data struct is used for defining NAND I/O operations on an ARM

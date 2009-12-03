@@ -27,7 +27,7 @@
 #include "armv4_5.h"
 #include "arm_disassembler.h"
 #include "arm_simulator.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 #include "register.h"
 #include "log.h"
 

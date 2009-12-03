@@ -32,7 +32,7 @@
 #endif
 
 #include "lpc288x.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 
 
 #define LOAD_TIMER_ERASE	0

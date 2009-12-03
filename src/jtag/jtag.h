@@ -23,7 +23,7 @@
 #ifndef JTAG_H
 #define JTAG_H
 
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 #include "log.h"
 
 #ifdef _DEBUG_JTAG_IO_

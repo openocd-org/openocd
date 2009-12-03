@@ -50,7 +50,7 @@
 #endif
 
 #include "at91sam7.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 
 static int at91sam7_protect_check(struct flash_bank *bank);
 static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count);

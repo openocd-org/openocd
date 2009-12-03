@@ -22,7 +22,7 @@
 #endif
 
 #include "algorithm.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 
 
 void init_mem_param(struct mem_param *param, uint32_t address, uint32_t size, enum param_direction direction)

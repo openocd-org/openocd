@@ -26,7 +26,7 @@
 #include "arm_disassembler.h"
 
 #include "register.h"
-#include "binarybuffer.h"
+#include <helper/binarybuffer.h>
 #include "command.h"
 
 #include <stdlib.h>
