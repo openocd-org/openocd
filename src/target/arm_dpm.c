@@ -23,7 +23,7 @@
 
 #include "armv4_5.h"		/* REVISIT to become arm.h */
 #include "arm_dpm.h"
-#include "jtag.h"
+#include <jtag/jtag.h>
 #include "register.h"
 #include "breakpoints.h"
 #include "target_type.h"

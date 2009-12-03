@@ -26,7 +26,7 @@
 #ifndef JTAG_COMMANDS_H
 #define JTAG_COMMANDS_H
 
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 /**
  * The inferred type of a scan_command_s structure, indicating whether

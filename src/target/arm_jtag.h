@@ -23,7 +23,7 @@
 #ifndef ARM_JTAG
 #define ARM_JTAG
 
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 struct arm_jtag
 {

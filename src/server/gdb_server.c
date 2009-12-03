@@ -34,7 +34,7 @@
 #include "flash.h"
 #include "gdb_server.h"
 #include "image.h"
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 
 #if 0

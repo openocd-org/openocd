@@ -41,7 +41,7 @@
 #endif
 
 #include "xsvf.h"
-#include "jtag.h"
+#include <jtag/jtag.h>
 #include "svf.h"
 
 

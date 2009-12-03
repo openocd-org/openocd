@@ -20,7 +20,7 @@
 #ifndef AVRT_H
 #define AVRT_H
 
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 struct mcu_jtag
 {

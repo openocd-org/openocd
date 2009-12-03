@@ -23,7 +23,7 @@
 #ifndef MIPS_EJTAG
 #define MIPS_EJTAG
 
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 /* tap instructions */
 #define EJTAG_INST_IDCODE		0x01

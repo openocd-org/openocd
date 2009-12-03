@@ -29,7 +29,7 @@
 #endif
 
 #include "openocd.h"
-#include "jtag.h"
+#include <jtag/jtag.h>
 #include <helper/ioutil.h>
 #include <helper/configuration.h>
 #include "xsvf.h"

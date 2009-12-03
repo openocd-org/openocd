@@ -31,7 +31,7 @@
 #include "config.h"
 #endif
 
-#include "jtag.h"
+#include <jtag/jtag.h>
 #include "svf.h"
 #include <helper/time_support.h>
 

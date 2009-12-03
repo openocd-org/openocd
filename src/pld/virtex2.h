@@ -20,7 +20,7 @@
 #ifndef VIRTEX2_H
 #define VIRTEX2_H
 
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 struct virtex2_pld_device
 {

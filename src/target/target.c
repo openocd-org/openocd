@@ -41,7 +41,7 @@
 #include "register.h"
 #include "trace.h"
 #include "image.h"
-#include "jtag.h"
+#include <jtag/jtag.h>
 
 
 static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
