@@ -4591,6 +4591,12 @@ static int jim_target_count(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 static const struct command_registration target_subcommand_handlers[] = {
 	{
+		.name = "init",
+		.mode = COMMAND_CONFIG,
+		.handler = &handle_target_init_command,
+		.help = "initialize targets",
+	},
+	{
 		.name = "create",
 		.mode = COMMAND_ANY,
 		.jim_handler = &jim_target_create,
@@ -4803,12 +4809,6 @@ COMMAND_HANDLER(handle_fast_load_command)
 }
 
 static const struct command_registration target_command_handlers[] = {
-	{
-		.name = "init",
-		.mode = COMMAND_CONFIG,
-		.handler = &handle_target_init_command,
-		.help = "initialize targets",
-	},
 	{
 		.name = "targets",
 		.handler = &handle_targets_command,
