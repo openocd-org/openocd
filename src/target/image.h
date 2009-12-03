@@ -26,7 +26,7 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#include "fileio.h"
+#include <helper/fileio.h>
 
 #ifdef HAVE_ELF_H
 #include <elf.h>

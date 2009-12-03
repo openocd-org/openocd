@@ -27,7 +27,7 @@
 #include "nand.h"
 #include "common.h"
 #include "time_support.h"
-#include "fileio.h"
+#include <helper/fileio.h>
 
 static int nand_read_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 //static int nand_read_plain(struct nand_device *nand, uint32_t address, uint8_t *data, uint32_t data_size);
