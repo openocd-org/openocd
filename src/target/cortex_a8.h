@@ -29,7 +29,7 @@
 #ifndef CORTEX_A8_H
 #define CORTEX_A8_H
 
-#include "armv7a.h"
+#include <target/armv7a.h>
 
 extern char* cortex_a8_state_strings[];
 
