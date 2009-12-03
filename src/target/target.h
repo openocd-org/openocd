@@ -27,7 +27,7 @@
 #define TARGET_H
 
 #include "types.h"
-#include "jim.h"
+#include <helper/jim.h>
 
 struct reg;
 struct trace;

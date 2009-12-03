@@ -32,7 +32,7 @@
 /* Jim is provied by eCos */
 #include <cyg/jimtcl/jim.h>
 #else
-#include "jim.h"
+#include <helper/jim.h>
 #endif
 
 /* To achieve C99 printf compatibility in MinGW, gnu_printf should be
