@@ -20,7 +20,7 @@
 #ifndef PLD_H
 #define PLD_H
 
-#include "command.h"
+#include <helper/command.h>
 
 struct pld_device;
 

@@ -20,7 +20,7 @@
 #ifndef XSVF_H
 #define XSVF_H
 
-#include "command.h"
+#include <helper/command.h>
 
 int xsvf_register_commands(struct command_context *cmd_ctx);
 

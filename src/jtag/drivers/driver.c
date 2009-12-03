@@ -33,7 +33,7 @@
 
 #include "interface.h"
 #include "minidriver.h"
-#include "command.h"
+#include <helper/command.h>
 
 struct jtag_callback_entry
 {

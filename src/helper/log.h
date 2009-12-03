@@ -26,7 +26,7 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-#include "command.h"
+#include <helper/command.h>
 
 /* To achieve C99 printf compatibility in MinGW, gnu_printf should be
  * used for __attribute__((format( ... ))), with GCC v4.4 or later

@@ -27,7 +27,7 @@
 #define ARMV4_5_H
 
 #include "target.h"
-#include "command.h"
+#include <helper/command.h>
 
 
 typedef enum armv4_5_mode

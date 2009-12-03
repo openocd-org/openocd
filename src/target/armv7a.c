@@ -27,7 +27,7 @@
 
 #include "register.h"
 #include <helper/binarybuffer.h>
-#include "command.h"
+#include <helper/command.h>
 
 #include <stdlib.h>
 #include <string.h>
