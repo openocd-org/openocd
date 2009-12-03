@@ -21,7 +21,7 @@
 #endif
 
 #include "embeddedice.h"
-#include "minidriver.h"
+#include <jtag/minidriver.h>
 #include <jtag/interface.h>
 
 struct jtag_interface minidummy_interface =

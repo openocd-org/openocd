@@ -32,7 +32,7 @@
 #endif
 
 #include <jtag/interface.h>
-#include "minidriver.h"
+#include <jtag/minidriver.h>
 #include <helper/command.h>
 
 struct jtag_callback_entry
