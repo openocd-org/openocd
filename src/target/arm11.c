@@ -1330,10 +1330,8 @@ static int arm11_examine(struct target *target)
 	/* Build register cache "late", after target_init(), since we
 	 * want to know if this core supports Secure Monitor mode.
 	 */
-	if (!target_was_examined(target)) {
-		arm11_dpm_init(arm11, didr);
-		retval = arm_dpm_setup(&arm11->dpm);
-	}
+	if (!target_was_examined(target))
+		retval = arm11_dpm_init(arm11, didr);
 
 	/* ETM on ARM11 still uses original scanchain 6 access mode */
 	if (arm11->arm.etm && !target_was_examined(target)) {

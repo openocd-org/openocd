@@ -60,7 +60,6 @@ void arm11_sc7_set_vcr(struct arm11_common *arm11, uint32_t value);
 int arm11_read_memory_word(struct arm11_common *arm11,
 		uint32_t address, uint32_t *result);
 
-/* Set up high-level debug module utilities */
-void arm11_dpm_init(struct arm11_common *arm11, uint32_t didr);
+int arm11_dpm_init(struct arm11_common *arm11, uint32_t didr);
 
 #endif // ARM11_DBGTAP_H

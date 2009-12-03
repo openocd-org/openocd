@@ -807,18 +807,6 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 		return ERROR_FAIL;
 	}
 
-	/* Disable all breakpoints and watchpoints at startup. */
-	if (dpm->bpwp_disable) {
-		unsigned i;
-
-		for (i = 0; i < dpm->nbp; i++)
-			(void) dpm->bpwp_disable(dpm, i);
-		for (i = 0; i < dpm->nwp; i++)
-			(void) dpm->bpwp_disable(dpm, 16 + i);
-	} else
-		LOG_WARNING("%s: can't disable breakpoints and watchpoints",
-			target_name(target));
-
 	LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints",
 			target_name(target), dpm->nbp, dpm->nwp);
 
@@ -835,6 +823,17 @@ int arm_dpm_setup(struct arm_dpm *dpm)
  */
 int arm_dpm_initialize(struct arm_dpm *dpm)
 {
-	/* FIXME -- nothing yet */
+	/* Disable all breakpoints and watchpoints at startup. */
+	if (dpm->bpwp_disable) {
+		unsigned i;
+
+		for (i = 0; i < dpm->nbp; i++)
+			(void) dpm->bpwp_disable(dpm, i);
+		for (i = 0; i < dpm->nwp; i++)
+			(void) dpm->bpwp_disable(dpm, 16 + i);
+	} else
+		LOG_WARNING("%s: can't disable breakpoints and watchpoints",
+			target_name(dpm->arm->target));
+
 	return ERROR_OK;
 }

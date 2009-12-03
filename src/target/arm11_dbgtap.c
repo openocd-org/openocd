@@ -1022,10 +1022,11 @@ static int arm11_dpm_instr_read_data_r0(struct arm_dpm *dpm,
 			opcode, data);
 }
 
-
-void arm11_dpm_init(struct arm11_common *arm11, uint32_t didr)
+/** Set up high-level debug module utilities */
+int arm11_dpm_init(struct arm11_common *arm11, uint32_t didr)
 {
 	struct arm_dpm *dpm = &arm11->dpm;
+	int retval;
 
 	dpm->arm = &arm11->arm;
 
@@ -1039,4 +1040,12 @@ void arm11_dpm_init(struct arm11_common *arm11, uint32_t didr)
 
 	dpm->instr_read_data_dcc = arm11_dpm_instr_read_data_dcc;
 	dpm->instr_read_data_r0 = arm11_dpm_instr_read_data_r0;
+
+	retval = arm_dpm_setup(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = arm_dpm_initialize(dpm);
+
+	return retval;
 }

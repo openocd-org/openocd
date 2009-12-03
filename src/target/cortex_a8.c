@@ -523,6 +523,7 @@ static int cortex_a8_bpwp_disable(struct arm_dpm *dpm, unsigned index)
 static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 {
 	struct arm_dpm *dpm = &a8->armv7a_common.dpm;
+	int retval;
 
 	dpm->arm = &a8->armv7a_common.armv4_5_common;
 	dpm->didr = didr;
@@ -540,7 +541,11 @@ static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 	dpm->bpwp_enable = cortex_a8_bpwp_enable;
 	dpm->bpwp_disable = cortex_a8_bpwp_disable;
 
-	return arm_dpm_setup(dpm);
+	retval = arm_dpm_setup(dpm);
+	if (retval == ERROR_OK)
+		retval = arm_dpm_initialize(dpm);
+
+	return retval;
 }
 
 

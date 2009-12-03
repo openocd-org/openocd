@@ -129,7 +129,7 @@ struct arm_dpm {
 };
 
 int arm_dpm_setup(struct arm_dpm *dpm);
-int arm_dpm_reinitialize(struct arm_dpm *dpm);
+int arm_dpm_initialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
 int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
