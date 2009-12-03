@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 #include <flash/nand.h>
+#include "hello.h"
 
 
 static int nonce_nand_command(struct nand_device *nand, uint8_t command)
@@ -68,6 +69,7 @@ static int nonce_nand_init(struct nand_device *nand)
 struct nand_flash_controller nonce_nand_controller =
 {
 	.name			= "nonce",
+	.commands               = hello_command_handlers,
 	.nand_device_command	= &nonce_nand_device_command,
 	.init			= &nonce_nand_init,
 	.reset			= &nonce_nand_reset,

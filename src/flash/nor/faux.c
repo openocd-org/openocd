@@ -23,7 +23,7 @@
 
 #include <flash/flash.h>
 #include <target/image.h>
-#include "../hello.h"
+#include "hello.h"
 
 
 struct faux_flash_bank

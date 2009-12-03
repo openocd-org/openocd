@@ -23,7 +23,7 @@
 
 #include <jtag/interface.h>
 #include "bitbang.h"
-#include "../hello.h"
+#include "hello.h"
 
 
 /* my private tap controller state, which tracks state for calling code */
