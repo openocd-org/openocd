@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "flash.h"
+#include <flash/flash.h>
 #include <target/embeddedice.h>
 #include <target/image.h>
 #include <target/algorithm.h>

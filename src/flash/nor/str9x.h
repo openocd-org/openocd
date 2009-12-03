@@ -23,7 +23,7 @@
 #ifndef STR9X_H
 #define STR9X_H
 
-#include "flash.h"
+#include <flash/flash.h>
 
 struct str9x_flash_bank
 {

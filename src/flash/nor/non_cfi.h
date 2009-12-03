@@ -20,7 +20,7 @@
 #ifndef NON_CFI_H
 #define NON_CFI_H
 
-#include "flash.h"
+#include <flash/flash.h>
 
 struct non_cfi
 {

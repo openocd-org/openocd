@@ -22,7 +22,7 @@
 #endif
 
 #include "ocl.h"
-#include "flash.h"
+#include <flash/flash.h>
 #include <target/embeddedice.h>
 
 

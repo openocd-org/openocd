@@ -23,7 +23,7 @@
 
 #include "avrf.h"
 #include <target/avrt.h>
-#include "flash.h"
+#include <flash/flash.h>
 
 
 /* AVR_JTAG_Instructions */

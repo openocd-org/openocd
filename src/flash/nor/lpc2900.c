@@ -24,7 +24,7 @@
 
 
 #include <target/image.h>
-#include "flash.h"
+#include <flash/flash.h>
 #include <helper/binarybuffer.h>
 #include <target/armv4_5.h>
 #include <target/algorithm.h>

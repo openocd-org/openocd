@@ -23,7 +23,7 @@
 #include "config.h"
 #endif
 
-#include "flash.h"
+#include <flash/flash.h>
 #include <target/armv4_5.h>
 #include <helper/binarybuffer.h>
 #include <helper/time_support.h>

@@ -23,7 +23,7 @@
 #ifndef AT91SAM7_H
 #define AT91SAM7_H
 
-#include "flash.h"
+#include <flash/flash.h>
 
 struct at91sam7_flash_bank
 {

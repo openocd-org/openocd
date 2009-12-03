@@ -20,7 +20,7 @@
 #ifndef STELLARIS_FLASH_H
 #define STELLARIS_FLASH_H
 
-#include "flash.h"
+#include <flash/flash.h>
 
 struct stellaris_flash_bank
 {

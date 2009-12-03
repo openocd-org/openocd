@@ -61,7 +61,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <helper/types.h>
-#include "flash.h"
+#include <flash/flash.h>
 #include <helper/membuf.h>
 #include "at91sam3.h"
 #include <helper/time_support.h>
