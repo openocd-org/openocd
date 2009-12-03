@@ -24,7 +24,7 @@
 #define XSCALE_H
 
 #include <target/armv4_5.h>
-#include "armv4_5_mmu.h"
+#include <target/armv4_5_mmu.h>
 #include "trace.h"
 
 #define	XSCALE_COMMON_MAGIC 0x58534341

@@ -21,7 +21,7 @@
 #define ARM926EJS_H
 
 #include <target/arm9tdmi.h>
-#include "armv4_5_mmu.h"
+#include <target/armv4_5_mmu.h>
 
 #define	ARM926EJS_COMMON_MAGIC 0xa926a926
 
