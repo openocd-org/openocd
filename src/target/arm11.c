@@ -46,41 +46,8 @@ static uint32_t arm11_vcr = 0;
 static bool arm11_config_step_irq_enable = false;
 static bool arm11_config_hardware_step = false;
 
-enum arm11_regtype
-{
-	/* debug regs */
-	ARM11_REGISTER_DSCR,
-};
-
-
-struct arm11_reg_defs
-{
-	char *					name;
-	uint32_t						num;
-	int						gdb_num;
-	enum arm11_regtype		type;
-};
-
-/* update arm11_regcache_ids when changing this */
-static const struct arm11_reg_defs arm11_reg_defs[] =
-{
-	/* Debug Registers */
-	{"dscr",	0,	-1,	ARM11_REGISTER_DSCR},
-};
-
-enum arm11_regcache_ids
-{
-	ARM11_RC_DSCR,
-
-	ARM11_RC_MAX,
-};
-
 static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints);
-/* helpers */
-static int arm11_build_reg_cache(struct target *target);
-static int arm11_set_reg(struct reg *reg, uint8_t *buf);
-static int arm11_get_reg(struct reg *reg);
 
 
 /** Check and if necessary take control of the system
@@ -127,11 +94,6 @@ static int arm11_check_init(struct arm11_common *arm11)
 	return ERROR_OK;
 }
 
-
-
-#define R(x) \
-	(arm11->reg_values[ARM11_RC_##x])
-
 /**
  * Save processor state.  This is called after a HALT instruction
  * succeeds, and on other occasions the processor enters debug mode
@@ -148,16 +110,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	/* REVISIT entire cache should already be invalid !!! */
 	register_cache_invalidate(arm11->arm.core_cache);
 
-	for (size_t i = 0; i < ARRAY_SIZE(arm11->reg_values); i++)
-	{
-		arm11->reg_list[i].valid	= 1;
-		arm11->reg_list[i].dirty	= 0;
-	}
-
 	/* See e.g. ARM1136 TRM, "14.8.4 Entering Debug state" */
-
-	/* Save DSCR */
-	R(DSCR) = arm11->dscr;
 
 	/* maybe save wDTR (pending DCC write to debug SW, e.g. libdcc) */
 	arm11->is_wdtr_saved = !!(arm11->dscr & ARM11_DSCR_WDTR_FULL);
@@ -336,11 +289,9 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	register_cache_invalidate(arm11->arm.core_cache);
 
 	/* restore DSCR */
-
-	arm11_write_DSCR(arm11, R(DSCR));
+	arm11_write_DSCR(arm11, arm11->dscr);
 
 	/* maybe restore rDTR */
-
 	if (arm11->is_rdtr_saved)
 	{
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
@@ -722,9 +673,10 @@ static int arm11_step(struct target *target, int current,
 
 
 		if (arm11_config_step_irq_enable)
-			R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;		/* should be redundant */
+			/* this disable should be redundant ... */
+			arm11->dscr &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
 		else
-			R(DSCR) |= ARM11_DSCR_INTERRUPTS_DISABLE;
+			arm11->dscr |= ARM11_DSCR_INTERRUPTS_DISABLE;
 
 
 		CHECK_RETVAL(arm11_leave_debug_state(arm11, handle_breakpoints));
@@ -769,8 +721,8 @@ static int arm11_step(struct target *target, int current,
 		/* save state */
 		CHECK_RETVAL(arm11_debug_entry(arm11));
 
-	    /* restore default state */
-		R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
+		/* restore default state */
+		arm11->dscr &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
 
 	}
 
@@ -1199,12 +1151,7 @@ static int arm11_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	/* Initialize anything we can set up without talking to the target */
-
-	/* REVISIT do we really want such a debug-registers-only cache?
-	 * If we do, it should probably be handled purely by the DPM code,
-	 * so it works identically on the v7a/v7r cores.
-	 */
-	return arm11_build_reg_cache(target);
+	return ERROR_OK;
 }
 
 /* talk to the target and set things up */
@@ -1308,117 +1255,6 @@ static int arm11_examine(struct target *target)
 	return ERROR_OK;
 }
 
-
-/** Load a register that is marked !valid in the register cache */
-static int arm11_get_reg(struct reg *reg)
-{
-	struct arm11_reg_state *r = reg->arch_info;
-	struct target *target = r->target;
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target was not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	/** \todo TODO: Check this. We assume that all registers are fetched at debug entry. */
-
-#if 0
-	struct arm11_common *arm11 = target_to_arm11(target);
-	const struct arm11_reg_defs *arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
-#endif
-
-	return ERROR_OK;
-}
-
-/** Change a value in the register cache */
-static int arm11_set_reg(struct reg *reg, uint8_t *buf)
-{
-	struct arm11_reg_state *r = reg->arch_info;
-	struct target *target = r->target;
-	struct arm11_common *arm11 = target_to_arm11(target);
-//	const struct arm11_reg_defs *arm11_reg_info = arm11_reg_defs + ((struct arm11_reg_state *)reg->arch_info)->def_index;
-
-	arm11->reg_values[((struct arm11_reg_state *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
-	reg->valid	= 1;
-	reg->dirty	= 1;
-
-	return ERROR_OK;
-}
-
-static const struct reg_arch_type arm11_reg_type = {
-	.get = arm11_get_reg,
-	.set = arm11_set_reg,
-};
-
-static int arm11_build_reg_cache(struct target *target)
-{
-	struct arm11_common *arm11 = target_to_arm11(target);
-	struct reg_cache *cache;
-	struct reg *reg_list;
-	struct arm11_reg_state *arm11_reg_states;
-
-	cache = calloc(1, sizeof *cache);
-	reg_list = calloc(ARM11_REGCACHE_COUNT, sizeof *reg_list);
-	arm11_reg_states = calloc(ARM11_REGCACHE_COUNT,
-			sizeof *arm11_reg_states);
-	if (!cache || !reg_list || !arm11_reg_states) {
-		free(cache);
-		free(reg_list);
-		free(arm11_reg_states);
-		return ERROR_FAIL;
-	}
-
-	arm11->reg_list	= reg_list;
-
-	/* build cache for some of the debug registers */
-	cache->name = "arm11 debug registers";
-	cache->reg_list	= reg_list;
-	cache->num_regs	= ARM11_REGCACHE_COUNT;
-
-	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	(*cache_p) = cache;
-
-	arm11->core_cache = cache;
-
-	size_t i;
-
-	/* Not very elegant assertion */
-	if (ARM11_REGCACHE_COUNT != ARRAY_SIZE(arm11->reg_values) ||
-		ARM11_REGCACHE_COUNT != ARRAY_SIZE(arm11_reg_defs) ||
-		ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
-	{
-		LOG_ERROR("BUG: arm11->reg_values inconsistent (%d %u %u %d)",
-				ARM11_REGCACHE_COUNT,
-				(unsigned) ARRAY_SIZE(arm11->reg_values),
-				(unsigned) ARRAY_SIZE(arm11_reg_defs),
-				ARM11_RC_MAX);
-		/* FIXME minimally, use a build_bug_on(X) mechanism;
-		 * runtime exit() here is bad!
-		 */
-		exit(-1);
-	}
-
-	for (i = 0; i < ARM11_REGCACHE_COUNT; i++)
-	{
-		struct reg *						r	= reg_list			+ i;
-		const struct arm11_reg_defs *	rd	= arm11_reg_defs	+ i;
-		struct arm11_reg_state *			rs	= arm11_reg_states	+ i;
-
-		r->name				= rd->name;
-		r->size				= 32;
-		r->value			= (uint8_t *)(arm11->reg_values + i);
-		r->dirty			= 0;
-		r->valid			= 0;
-		r->type = &arm11_reg_type;
-		r->arch_info		= rs;
-
-		rs->def_index		= i;
-		rs->target			= target;
-	}
-
-	return ERROR_OK;
-}
 
 /* FIXME all these BOOL_WRAPPER things should be modifying
  * per-instance state, not shared state; ditto the vector

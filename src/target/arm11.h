@@ -26,8 +26,6 @@
 #include "armv4_5.h"
 #include "arm_dpm.h"
 
-#define ARM11_REGCACHE_COUNT		1
-
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 
 #define CHECK_RETVAL(action)			\
@@ -68,18 +66,6 @@ struct arm11_common
 	bool is_wdtr_saved;
 
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
-
-	/** \name Shadow registers to save debug state */
-	/*@{*/
-
-	struct reg *	reg_list;							/**< target register list */
-	uint32_t		reg_values[ARM11_REGCACHE_COUNT];	/**< data for registers */
-
-	/*@}*/
-
-
-	// GA
-	struct reg_cache *core_cache;
 
 	struct arm_jtag jtag_info;
 };
