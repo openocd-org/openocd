@@ -28,7 +28,7 @@
 #endif
 
 #include <target/breakpoints.h>
-#include "target_request.h"
+#include <target/target_request.h>
 #include <target/register.h>
 #include "server.h"
 #include "flash.h"

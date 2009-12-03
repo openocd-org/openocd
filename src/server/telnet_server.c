@@ -28,7 +28,7 @@
 #endif
 
 #include "telnet_server.h"
-#include "target_request.h"
+#include <target/target_request.h>
 
 static unsigned short telnet_port = 4444;
 
