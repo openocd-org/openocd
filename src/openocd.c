@@ -34,7 +34,7 @@
 #include <helper/configuration.h>
 #include "xsvf.h"
 #include "svf.h"
-#include "nand.h"
+#include <flash/nand.h>
 #include "pld.h"
 #include <flash/mflash.h>
 

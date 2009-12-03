@@ -25,7 +25,7 @@
  *
  * Many thanks to Ben Dooks for writing s3c24xx driver.
  */
-#include "nand.h"
+#include <flash/nand.h>
 
 #define		MX3_NF_BASE_ADDR		0xb8000000
 #define		MX3_NF_BUFSIZ			(MX3_NF_BASE_ADDR + 0xe00)

@@ -1,7 +1,7 @@
 #ifndef __ARM_NANDIO_H
 #define __ARM_NANDIO_H
 
-#include "nand.h"
+#include <flash/nand.h>
 #include <helper/binarybuffer.h>
 
 /**

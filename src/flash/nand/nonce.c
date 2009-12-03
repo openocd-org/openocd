@@ -20,7 +20,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "nand.h"
+#include <flash/nand.h>
 
 
 static int nonce_nand_command(struct nand_device *nand, uint8_t command)

@@ -22,7 +22,7 @@
 #endif
 
 #include "lpc3180.h"
-#include "nand.h"
+#include <flash/nand.h>
 
 static int lpc3180_reset(struct nand_device *nand);
 static int lpc3180_controller_ready(struct nand_device *nand, int timeout);
