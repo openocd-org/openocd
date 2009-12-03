@@ -48,6 +48,7 @@ static enum breakpoint_type gdb_breakpoint_override_type;
 
 extern int gdb_error(struct connection *connection, int retval);
 static unsigned short gdb_port = 3333;
+static unsigned short gdb_port_next = 0;
 static const char *DIGITS = "0123456789abcdef";
 
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
@@ -2217,6 +2218,8 @@ int gdb_target_add_one(struct target *target)
 		LOG_INFO("gdb port disabled");
 		return ERROR_OK;
 	}
+	if (0 == gdb_port_next)
+		gdb_port_next = gdb_port;
 
 	bool use_pipes = server_use_pipes;
 	static bool server_started_with_pipes = false;
@@ -2229,10 +2232,12 @@ int gdb_target_add_one(struct target *target)
 		use_pipes = false;
 	}
 
-	int e = gdb_target_start(target, use_pipes ? 0 : gdb_port++);
+	int e = gdb_target_start(target, use_pipes ? 0 : gdb_port_next);
 	if (ERROR_OK == e)
+	{
 		server_started_with_pipes |= use_pipes;
-
+		gdb_port_next++;
+	}
 	return e;
 }
 
@@ -2278,7 +2283,10 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 /* daemon configuration command gdb_port */
 COMMAND_HANDLER(handle_gdb_port_command)
 {
-	return CALL_COMMAND_HANDLER(server_port_command, &gdb_port);
+	int retval = CALL_COMMAND_HANDLER(server_port_command, &gdb_port);
+	if (ERROR_OK == retval)
+		gdb_port_next = gdb_port;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_gdb_memory_map_command)
