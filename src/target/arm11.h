@@ -26,7 +26,7 @@
 #include "armv4_5.h"
 #include "arm_dpm.h"
 
-#define ARM11_REGCACHE_COUNT		2
+#define ARM11_REGCACHE_COUNT		1
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 
@@ -63,8 +63,11 @@ struct arm11_common
 							     Use only for debug message generation		*/
 
 	uint32_t saved_rdtr;
+	uint32_t saved_wdtr;
 
 	bool is_rdtr_saved;
+	bool is_wdtr_saved;
+
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
 	/** \name Shadow registers to save debug state */

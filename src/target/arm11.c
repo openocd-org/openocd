@@ -50,7 +50,6 @@ enum arm11_regtype
 {
 	/* debug regs */
 	ARM11_REGISTER_DSCR,
-	ARM11_REGISTER_WDTR,
 };
 
 
@@ -67,13 +66,11 @@ static const struct arm11_reg_defs arm11_reg_defs[] =
 {
 	/* Debug Registers */
 	{"dscr",	0,	-1,	ARM11_REGISTER_DSCR},
-	{"wdtr",	0,	-1,	ARM11_REGISTER_WDTR},
 };
 
 enum arm11_regcache_ids
 {
 	ARM11_RC_DSCR,
-	ARM11_RC_WDTR,
 
 	ARM11_RC_MAX,
 };
@@ -171,8 +168,8 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 	R(DSCR) = dscr;
 
 	/* Save wDTR */
-
-	if (dscr & ARM11_DSCR_WDTR_FULL)
+	arm11->is_wdtr_saved = !!(dscr & ARM11_DSCR_WDTR_FULL);
+	if (arm11->is_wdtr_saved)
 	{
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 
@@ -180,17 +177,13 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 
 		struct scan_field	chain5_fields[3];
 
-		arm11_setup_field(arm11, 32, NULL, &R(WDTR),	chain5_fields + 0);
+		arm11_setup_field(arm11, 32, NULL,
+				&arm11->saved_wdtr, chain5_fields + 0);
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 1);
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 2);
 
 		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
-	else
-	{
-		arm11->reg_list[ARM11_RC_WDTR].valid	= 0;
-	}
-
 
 	/* DSCR: set ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE
 	 *
@@ -328,14 +321,15 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	}
 
 	/* maybe restore original wDTR */
-	if ((R(DSCR) & ARM11_DSCR_WDTR_FULL) || arm11->reg_list[ARM11_RC_WDTR].dirty)
+	if (arm11->is_wdtr_saved)
 	{
 		retval = arm11_run_instr_data_prepare(arm11);
 		if (retval != ERROR_OK)
 			return retval;
 
 		/* MCR p14,0,R0,c0,c5,0 */
-		retval = arm11_run_instr_data_to_core_via_r0(arm11, 0xee000e15, R(WDTR));
+		retval = arm11_run_instr_data_to_core_via_r0(arm11,
+				0xee000e15, arm11->saved_wdtr);
 		if (retval != ERROR_OK)
 			return retval;
 
