@@ -28,7 +28,7 @@
 #endif
 
 #include "pic32mx.h"
-#include "mips32.h"
+#include <target/mips32.h>
 
 
 static
