@@ -20,7 +20,7 @@
 #ifndef ARM920T_H
 #define ARM920T_H
 
-#include "arm9tdmi.h"
+#include <target/arm9tdmi.h>
 #include "armv4_5_mmu.h"
 
 #define	ARM920T_COMMON_MAGIC 0xa920a920
