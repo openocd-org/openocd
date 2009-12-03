@@ -29,7 +29,7 @@
 
 #include "str9x.h"
 #include "arm966e.h"
-#include "algorithm.h"
+#include <target/algorithm.h>
 
 
 static uint32_t bank1start = 0x00080000;

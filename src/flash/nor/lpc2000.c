@@ -28,7 +28,7 @@
 #include "lpc2000.h"
 #include "armv7m.h"
 #include <helper/binarybuffer.h>
-#include "algorithm.h"
+#include <target/algorithm.h>
 
 
 /* flash programming support for NXP LPC17xx and LPC2xxx devices

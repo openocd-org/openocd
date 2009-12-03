@@ -26,7 +26,7 @@
 
 #include "arm_nandio.h"
 #include "armv4_5.h"
-#include "algorithm.h"
+#include <target/algorithm.h>
 
 /**
  * Copies code to a working area.  This will allocate room for the code plus the

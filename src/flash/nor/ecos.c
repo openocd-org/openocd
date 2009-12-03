@@ -24,7 +24,7 @@
 #include "flash.h"
 #include "embeddedice.h"
 #include "image.h"
-#include "algorithm.h"
+#include <target/algorithm.h>
 
 
 #if 0

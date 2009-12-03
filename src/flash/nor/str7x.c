@@ -27,7 +27,7 @@
 #include "str7x.h"
 #include "armv4_5.h"
 #include <helper/binarybuffer.h>
-#include "algorithm.h"
+#include <target/algorithm.h>
 
 
 struct str7x_mem_layout mem_layout_str7bank0[] = {

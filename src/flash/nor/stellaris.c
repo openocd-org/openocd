@@ -31,7 +31,7 @@
 #include "stellaris.h"
 #include "armv7m.h"
 #include <helper/binarybuffer.h>
-#include "algorithm.h"
+#include <target/algorithm.h>
 
 
 #define DID0_VER(did0) ((did0 >> 28)&0x07)
