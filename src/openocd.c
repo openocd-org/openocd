@@ -121,18 +121,21 @@ COMMAND_HANDLER(handle_init_command)
 	}
 	LOG_DEBUG("jtag interface init complete");
 
-	/* Try to initialize & examine the JTAG chain at this point, but
-	 * continue startup regardless */
+	/* Try to initialize & examine the JTAG chain at this point,
+	 * but continue startup regardless.  Note that platforms
+	 * need to be able to provide JTAG event handlers that use
+	 * a variety of JTAG operations in order to do that...
+	 */
+	command_context_mode(CMD_CTX, COMMAND_EXEC);
 	if (command_run_line(CMD_CTX, "jtag init") == ERROR_OK)
 	{
-		command_context_mode(CMD_CTX, COMMAND_EXEC);
 		LOG_DEBUG("Examining targets...");
 		if (target_examine() != ERROR_OK)
 			LOG_DEBUG("target examination failed");
-		command_context_mode(CMD_CTX, COMMAND_CONFIG);
 	}
 	else
 		LOG_WARNING("jtag initialization failed; try 'jtag init' again.");
+	command_context_mode(CMD_CTX, COMMAND_CONFIG);
 
 	if (command_run_line(CMD_CTX, "flash init") != ERROR_OK)
 		return ERROR_FAIL;
