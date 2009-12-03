@@ -30,7 +30,7 @@
 
 #include "openocd.h"
 #include "jtag.h"
-#include "ioutil.h"
+#include <helper/ioutil.h>
 #include <helper/configuration.h>
 #include "xsvf.h"
 #include "svf.h"
