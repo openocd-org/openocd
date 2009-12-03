@@ -23,7 +23,7 @@
 #ifndef ARM_ADI_V5_H
 #define ARM_ADI_V5_H
 
-#include "arm_jtag.h"
+#include <target/arm_jtag.h>
 
 #define DAP_IR_DPACC	0xA
 #define DAP_IR_APACC	0xB

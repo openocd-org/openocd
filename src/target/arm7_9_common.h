@@ -30,7 +30,7 @@
 #define ARM7_9_COMMON_H
 
 #include "armv4_5.h"
-#include "arm_jtag.h"
+#include <target/arm_jtag.h>
 
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */
 
