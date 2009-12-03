@@ -25,7 +25,7 @@
 #endif
 
 #include "str9xpec.h"
-#include "arm7_9_common.h"
+#include <target/arm7_9_common.h>
 
 
 static int str9xpec_erase_area(struct flash_bank *bank, int first, int last);
