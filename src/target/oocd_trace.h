@@ -20,7 +20,7 @@
 #ifndef OOCD_TRACE_H
 #define OOCD_TRACE_H
 
-#include "etm.h"
+#include <target/etm.h>
 
 #include <termios.h>
 
