@@ -26,7 +26,7 @@
 
 #include "configuration.h"
 // @todo the inclusion of server.h here is a layering violation
-#include "server.h"
+#include <server/server.h>
 
 #include <getopt.h>
 

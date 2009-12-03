@@ -20,7 +20,7 @@
 #ifndef _TCL_SERVER_H_
 #define _TCL_SERVER_H_
 
-#include "server.h"
+#include <server/server.h>
 
 int tcl_init(struct command_context *cmd_ctx);
 int tcl_register_commands(struct command_context *cmd_ctx);

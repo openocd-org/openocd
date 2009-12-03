@@ -26,7 +26,7 @@
 #ifndef TELNET_SERVER_H
 #define TELNET_SERVER_H
 
-#include "server.h"
+#include <server/server.h>
 
 #define TELNET_BUFFER_SIZE (1024)
 

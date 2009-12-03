@@ -38,7 +38,7 @@
 #include "pld.h"
 #include <flash/mflash.h>
 
-#include "server.h"
+#include <server/server.h>
 #include <server/gdb_server.h>
 #include <server/httpd.h>
 
