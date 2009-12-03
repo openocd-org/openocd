@@ -36,7 +36,7 @@
 #include "svf.h"
 #include "nand.h"
 #include "pld.h"
-#include "mflash.h"
+#include <flash/mflash.h>
 
 #include "server.h"
 #include "gdb_server.h"
