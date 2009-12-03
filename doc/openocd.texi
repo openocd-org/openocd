@@ -5674,6 +5674,17 @@ cables (FT2232), but might be unsafe if used with targets running at very low
 speeds, like the 32kHz startup clock of an AT91RM9200.
 @end deffn
 
+@deffn Command {arm7_9 semihosting} [@option{enable}|@option{disable}]
+Display status of semihosting, after optionally changing that status.
+
+Semihosting allows for code executing on an ARM target to use the
+I/O facilities on the host computer i.e. the system where OpenOCD
+is running. The target application must be linked against a library
+implementing the ARM semihosting convention that forwards operation
+requests by using a special SVC instruction that is trapped at the
+Supervisor Call vector by OpenOCD.
+@end deffn
+
 @subsection ARM720T specific commands
 @cindex ARM720T
 

@@ -36,6 +36,7 @@
 #include "etm.h"
 #include <helper/time_support.h>
 #include "arm_simulator.h"
+#include "arm_semihosting.h"
 #include "algorithm.h"
 #include "register.h"
 
@@ -914,6 +915,9 @@ int arm7_9_poll(struct target *target)
 					LOG_ERROR("PC was not 0. Does this target need srst_pulls_trst?");
 				}
 			}
+
+			if (arm_semihosting(target, &retval) != 0)
+				return retval;
 
 			if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
 			{
@@ -2814,6 +2818,39 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_arm7_9_semihosting_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+
+	if (!is_arm7_9(arm7_9))
+	{
+		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
+		return ERROR_TARGET_INVALID;
+	}
+
+	if (CMD_ARGC > 0)
+	{
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], semihosting_active);
+
+		/* TODO: support other methods if vector catch is unavailable */
+		if (arm7_9->has_vector_catch) {
+			struct reg *vector_catch = &arm7_9->eice_cache->reg_list[EICE_VEC_CATCH];
+			if (!vector_catch->valid)
+				embeddedice_read_reg(vector_catch);
+			buf_set_u32(vector_catch->value, 2, 1, semihosting_active);
+			embeddedice_store_reg(vector_catch);
+		} else if (semihosting_active) {
+			command_print(CMD_CTX, "vector catch unavailable");
+			semihosting_active = 0;
+		}
+	}
+
+	command_print(CMD_CTX, "semihosting is %s", (semihosting_active) ? "enabled" : "disabled");
+
+	return ERROR_OK;
+}
+
 int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 {
 	int retval = ERROR_OK;
@@ -2866,6 +2903,13 @@ static const struct command_registration arm7_9_any_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "<enable | disable>",
 		.help = "use DCC downloads for larger memory writes",
+	},
+	{
+		"semihosting",
+		.handler = &handle_arm7_9_semihosting_command,
+		.mode = COMMAND_EXEC,
+		.usage = "<enable | disable>",
+		.help = "activate support for semihosting operations",
 	},
 	COMMAND_REGISTRATION_DONE
 };

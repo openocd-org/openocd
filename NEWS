@@ -17,6 +17,7 @@ Target Layer:
 		- register names use "sp" not "r13"
 		- add top-level "mcr" and "mrc" commands, replacing
 		  various core-specific operations
+		- basic semihosting support
 	ARM11
 		- Preliminary ETM and ETB hookup
 		- accelerated "flash erase_check"
