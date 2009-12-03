@@ -20,7 +20,7 @@
 #ifndef ARMV4_5_MMU_H
 #define ARMV4_5_MMU_H
 
-#include "armv4_5_cache.h"
+#include <target/armv4_5_cache.h>
 
 struct target;
 
