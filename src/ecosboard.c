@@ -33,9 +33,9 @@
 #include <server/server.h>
 #include <server/telnet_server.h>
 #include <server/gdb_server.h>
-#include "openocd.h"
+#include <openocd.h>
 
-#include <time_support.h>
+#include <helper/time_support.h>
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
