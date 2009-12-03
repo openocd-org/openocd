@@ -35,7 +35,7 @@
 #include "xsvf.h"
 #include "svf.h"
 #include <flash/nand.h>
-#include "pld.h"
+#include <pld/pld.h>
 #include <flash/mflash.h>
 
 #include <server/server.h>
