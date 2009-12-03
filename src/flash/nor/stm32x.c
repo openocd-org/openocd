@@ -25,7 +25,7 @@
 #endif
 
 #include "stm32x.h"
-#include "armv7m.h"
+#include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 

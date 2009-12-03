@@ -26,7 +26,7 @@
 #ifndef CORTEX_M3_H
 #define CORTEX_M3_H
 
-#include "armv7m.h"
+#include <target/armv7m.h>
 
 
 #define CORTEX_M3_COMMON_MAGIC 0x1A451A45

@@ -26,7 +26,7 @@
 #endif
 
 #include "lpc2000.h"
-#include "armv7m.h"
+#include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 
