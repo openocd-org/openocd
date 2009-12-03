@@ -28,7 +28,7 @@
 #endif
 
 #include "str9x.h"
-#include "arm966e.h"
+#include <target/arm966e.h>
 #include <target/algorithm.h>
 
 
