@@ -19,7 +19,7 @@
  ***************************************************************************/
 #include "platform.h"
 
-#include "ocl.h"
+#include <flash/nor/ocl.h>
 #include "dcc.h"
 #include "samflash.h"
 
