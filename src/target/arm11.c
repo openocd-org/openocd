@@ -86,33 +86,24 @@ static int arm11_get_reg(struct reg *reg);
 /** Check and if necessary take control of the system
  *
  * \param arm11		Target state variable.
- * \param dscr		If the current DSCR content is
- *					available a pointer to a word holding the
- *					DSCR can be passed. Otherwise use NULL.
  */
-static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
+static int arm11_check_init(struct arm11_common *arm11)
 {
-	uint32_t			dscr_local_tmp_copy;
+	CHECK_RETVAL(arm11_read_DSCR(arm11));
+	LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 
-	if (!dscr)
-	{
-		dscr = &dscr_local_tmp_copy;
-
-		CHECK_RETVAL(arm11_read_DSCR(arm11, dscr));
-	}
-
-	if (!(*dscr & ARM11_DSCR_MODE_SELECT))
+	if (!(arm11->dscr & ARM11_DSCR_MODE_SELECT))
 	{
 		LOG_DEBUG("Bringing target into debug mode");
 
-		*dscr |= ARM11_DSCR_MODE_SELECT;		/* Halt debug-mode */
-		arm11_write_DSCR(arm11, *dscr);
+		arm11->dscr |= ARM11_DSCR_MODE_SELECT;		/* Halt debug-mode */
+		arm11_write_DSCR(arm11, arm11->dscr);
 
 		/* add further reset initialization here */
 
 		arm11->simulate_reset_on_next_halt = true;
 
-		if (*dscr & ARM11_DSCR_CORE_HALTED)
+		if (arm11->dscr & ARM11_DSCR_CORE_HALTED)
 		{
 			/** \todo TODO: this needs further scrutiny because
 			  * arm11_debug_entry() never gets called.  (WHY NOT?)
@@ -122,7 +113,7 @@ static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 
 			arm11->arm.target->state = TARGET_HALTED;
 			arm11->arm.target->debug_reason =
-					arm11_get_DSCR_debug_reason(*dscr);
+					arm11_get_DSCR_debug_reason(arm11->dscr);
 		}
 		else
 		{
@@ -144,14 +135,15 @@ static int arm11_check_init(struct arm11_common *arm11, uint32_t *dscr)
 /**
  * Save processor state.  This is called after a HALT instruction
  * succeeds, and on other occasions the processor enters debug mode
- * (breakpoint, watchpoint, etc).
+ * (breakpoint, watchpoint, etc).  Caller has updated arm11->dscr.
  */
-static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
+static int arm11_debug_entry(struct arm11_common *arm11)
 {
 	int retval;
 
 	arm11->arm.target->state = TARGET_HALTED;
-	arm11->arm.target->debug_reason = arm11_get_DSCR_debug_reason(dscr);
+	arm11->arm.target->debug_reason =
+			arm11_get_DSCR_debug_reason(arm11->dscr);
 
 	/* REVISIT entire cache should already be invalid !!! */
 	register_cache_invalidate(arm11->arm.core_cache);
@@ -165,10 +157,10 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 	/* See e.g. ARM1136 TRM, "14.8.4 Entering Debug state" */
 
 	/* Save DSCR */
-	R(DSCR) = dscr;
+	R(DSCR) = arm11->dscr;
 
-	/* Save wDTR */
-	arm11->is_wdtr_saved = !!(dscr & ARM11_DSCR_WDTR_FULL);
+	/* maybe save wDTR (pending DCC write to debug SW, e.g. libdcc) */
+	arm11->is_wdtr_saved = !!(arm11->dscr & ARM11_DSCR_WDTR_FULL);
 	if (arm11->is_wdtr_saved)
 	{
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
@@ -183,6 +175,7 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 2);
 
 		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+
 	}
 
 	/* DSCR: set ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE
@@ -191,11 +184,9 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 	 * but not to issue ITRs. ARM1136 seems to require this to issue
 	 * ITR's as well...
 	 */
-	uint32_t new_dscr = dscr | ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE;
 
-	/* this executes JTAG queue: */
-
-	arm11_write_DSCR(arm11, new_dscr);
+	arm11_write_DSCR(arm11, ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE
+				| arm11->dscr);
 
 
 	/* From the spec:
@@ -243,8 +234,8 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* maybe save rDTR */
-	arm11->is_rdtr_saved = !!(dscr & ARM11_DSCR_RDTR_FULL);
+	/* maybe save rDTR (pending DCC read from debug SW, e.g. libdcc) */
+	arm11->is_rdtr_saved = !!(arm11->dscr & ARM11_DSCR_RDTR_FULL);
 	if (arm11->is_rdtr_saved)
 	{
 		/* MRC p14,0,R0,c0,c5,0 (move rDTR -> r0 (-> wDTR -> local var)) */
@@ -302,11 +293,9 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	/* spec says clear wDTR and rDTR; we assume they are clear as
 	   otherwise our programming would be sloppy */
 	{
-		uint32_t DSCR;
+		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-		CHECK_RETVAL(arm11_read_DSCR(arm11, &DSCR));
-
-		if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
+		if (arm11->dscr & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 		{
 			/*
 			The wDTR/rDTR two registers that are used to send/receive data to/from
@@ -315,7 +304,8 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 			registers hold data that was written by one side (CPU or JTAG) and not
 			read out by the other side.
 			*/
-			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08" PRIx32 ")", DSCR);
+			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08x)",
+					(unsigned) arm11->dscr);
 			return ERROR_FAIL;
 		}
 	}
@@ -380,22 +370,17 @@ static int arm11_poll(struct target *target)
 {
 	int retval;
 	struct arm11_common *arm11 = target_to_arm11(target);
-	uint32_t	dscr;
 
-	CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
+	CHECK_RETVAL(arm11_check_init(arm11));
 
-	LOG_DEBUG("DSCR %08" PRIx32 "", dscr);
-
-	CHECK_RETVAL(arm11_check_init(arm11, &dscr));
-
-	if (dscr & ARM11_DSCR_CORE_HALTED)
+	if (arm11->dscr & ARM11_DSCR_CORE_HALTED)
 	{
 		if (target->state != TARGET_HALTED)
 		{
 			enum target_state old_state = target->state;
 
 			LOG_DEBUG("enter TARGET_HALTED");
-			retval = arm11_debug_entry(arm11, dscr);
+			retval = arm11_debug_entry(arm11);
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -459,14 +444,13 @@ static int arm11_halt(struct target *target)
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	uint32_t dscr;
 	int i = 0;
 
 	while (1)
 	{
-		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
+		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-		if (dscr & ARM11_DSCR_CORE_HALTED)
+		if (arm11->dscr & ARM11_DSCR_CORE_HALTED)
 			break;
 
 
@@ -488,7 +472,7 @@ static int arm11_halt(struct target *target)
 
 	enum target_state old_state	= target->state;
 
-	arm11_debug_entry(arm11, dscr);
+	arm11_debug_entry(arm11);
 
 	CHECK_RETVAL(
 		target_call_event_callbacks(target,
@@ -590,13 +574,11 @@ static int arm11_resume(struct target *target, int current,
 	int i = 0;
 	while (1)
 	{
-		uint32_t dscr;
+		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
+		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 
-		LOG_DEBUG("DSCR %08" PRIx32 "", dscr);
-
-		if (dscr & ARM11_DSCR_CORE_RESTARTED)
+		if (arm11->dscr & ARM11_DSCR_CORE_RESTARTED)
 			break;
 
 
@@ -753,16 +735,16 @@ static int arm11_step(struct target *target, int current,
 
 		/* wait for halt */
 		int i = 0;
-		uint32_t dscr;
 
 		while (1)
 		{
-			CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
+			const uint32_t mask = ARM11_DSCR_CORE_RESTARTED
+					| ARM11_DSCR_CORE_HALTED;
 
-			LOG_DEBUG("DSCR %08" PRIx32 "e", dscr);
+			CHECK_RETVAL(arm11_read_DSCR(arm11));
+			LOG_DEBUG("DSCR %08x e", (unsigned) arm11->dscr);
 
-			if ((dscr & (ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED)) ==
-				(ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED))
+			if ((arm11->dscr & mask) == mask)
 				break;
 
 			long long then = 0;
@@ -785,7 +767,7 @@ static int arm11_step(struct target *target, int current,
 		arm11_sc7_clear_vbw(arm11);
 
 		/* save state */
-		CHECK_RETVAL(arm11_debug_entry(arm11, dscr));
+		CHECK_RETVAL(arm11_debug_entry(arm11));
 
 	    /* restore default state */
 		R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
@@ -804,7 +786,7 @@ static int arm11_assert_reset(struct target *target)
 	int retval;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
-	retval = arm11_check_init(arm11, NULL);
+	retval = arm11_check_init(arm11);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1303,7 +1285,7 @@ static int arm11_examine(struct target *target)
 	 * as suggested by the spec.
 	 */
 
-	retval = arm11_check_init(arm11, NULL);
+	retval = arm11_check_init(arm11);
 	if (retval != ERROR_OK)
 		return retval;
 

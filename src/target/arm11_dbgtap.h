@@ -11,7 +11,7 @@ void arm11_add_IR(struct arm11_common *arm11,
 		uint8_t instr, tap_state_t state);
 int arm11_add_debug_SCAN_N(struct arm11_common *arm11,
 		uint8_t chain, tap_state_t state);
-int arm11_read_DSCR(struct arm11_common *arm11, uint32_t *dscr);
+int arm11_read_DSCR(struct arm11_common *arm11);
 int arm11_write_DSCR(struct arm11_common *arm11, uint32_t dscr);
 
 enum target_debug_reason arm11_get_DSCR_debug_reason(uint32_t dscr);

@@ -214,19 +214,20 @@ static void arm11_add_debug_INST(struct arm11_common * arm11,
 	arm11_add_dr_scan_vc(ARRAY_SIZE(itr), itr, state == ARM11_TAP_DEFAULT ? TAP_IDLE : state);
 }
 
-/** Read the Debug Status and Control Register (DSCR)
- *
- * same as CP14 c1
+/**
+ * Read and save the Debug Status and Control Register (DSCR).
  *
  * \param arm11		Target state variable.
- * \param value		DSCR content
- * \return			Error status
+ * \return Error status; arm11->dscr is updated on success.
  *
- * \remarks			This is a stand-alone function that executes the JTAG command queue.
+ * \remarks This is a stand-alone function that executes the JTAG
+ * command queue.  It does not require the ARM11 debug TAP to be
+ * in any particular state.
  */
-int arm11_read_DSCR(struct arm11_common * arm11, uint32_t *value)
+int arm11_read_DSCR(struct arm11_common *arm11)
 {
 	int retval;
+
 	retval = arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
 	if (retval != ERROR_OK)
 		return retval;
@@ -242,14 +243,12 @@ int arm11_read_DSCR(struct arm11_common * arm11, uint32_t *value)
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	if (arm11->last_dscr != dscr)
+	if (arm11->dscr != dscr)
 		JTAG_DEBUG("DSCR  = %08x (OLD %08x)",
 				(unsigned) dscr,
-				(unsigned) arm11->last_dscr);
+				(unsigned) arm11->dscr);
 
-	arm11->last_dscr = dscr;
-
-	*value = dscr;
+	arm11->dscr = dscr;
 
 	return ERROR_OK;
 }
@@ -282,9 +281,9 @@ int arm11_write_DSCR(struct arm11_common * arm11, uint32_t dscr)
 
 	JTAG_DEBUG("DSCR <= %08x (OLD %08x)",
 			(unsigned) dscr,
-			(unsigned) arm11->last_dscr);
+			(unsigned) arm11->dscr);
 
-	arm11->last_dscr = dscr;
+	arm11->dscr = dscr;
 
 	return ERROR_OK;
 }

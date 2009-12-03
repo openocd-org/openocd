@@ -59,8 +59,7 @@ struct arm11_common
 	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
 	size_t	free_brps;		/**< Number of breakpoints allocated */
 
-	uint32_t		last_dscr;		/**< Last retrieved DSCR value;
-							     Use only for debug message generation		*/
+	uint32_t dscr;			/**< Last retrieved DSCR value. */
 
 	uint32_t saved_rdtr;
 	uint32_t saved_wdtr;
