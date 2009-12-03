@@ -27,7 +27,7 @@
 #include "config.h"
 #endif
 
-#include "breakpoints.h"
+#include <target/breakpoints.h>
 #include "target_request.h"
 #include "register.h"
 #include "server.h"
