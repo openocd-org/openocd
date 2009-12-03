@@ -28,7 +28,7 @@
 #include "config.h"
 #endif
 
-#include "arm_nandio.h"
+#include <flash/arm_nandio.h>
 
 
 enum ecc {
