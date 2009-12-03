@@ -32,7 +32,7 @@
 
 #include "server.h"
 #include "telnet_server.h"
-#include "gdb_server.h"
+#include <server/gdb_server.h>
 #include "openocd.h"
 
 #include <time_support.h>

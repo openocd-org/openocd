@@ -39,7 +39,7 @@
 #include <flash/mflash.h>
 
 #include "server.h"
-#include "gdb_server.h"
+#include <server/gdb_server.h>
 #include "httpd.h"
 
 #ifdef HAVE_STRINGS_H
