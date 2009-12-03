@@ -51,7 +51,6 @@ enum arm11_regtype
 	/* debug regs */
 	ARM11_REGISTER_DSCR,
 	ARM11_REGISTER_WDTR,
-	ARM11_REGISTER_RDTR,
 };
 
 
@@ -69,14 +68,12 @@ static const struct arm11_reg_defs arm11_reg_defs[] =
 	/* Debug Registers */
 	{"dscr",	0,	-1,	ARM11_REGISTER_DSCR},
 	{"wdtr",	0,	-1,	ARM11_REGISTER_WDTR},
-	{"rdtr",	0,	-1,	ARM11_REGISTER_RDTR},
 };
 
 enum arm11_regcache_ids
 {
 	ARM11_RC_DSCR,
 	ARM11_RC_WDTR,
-	ARM11_RC_RDTR,
 
 	ARM11_RC_MAX,
 };
@@ -254,19 +251,14 @@ static int arm11_debug_entry(struct arm11_common *arm11, uint32_t dscr)
 		return retval;
 
 	/* maybe save rDTR */
-
-	/* check rDTRfull in DSCR */
-
-	if (dscr & ARM11_DSCR_RDTR_FULL)
+	arm11->is_rdtr_saved = !!(dscr & ARM11_DSCR_RDTR_FULL);
+	if (arm11->is_rdtr_saved)
 	{
 		/* MRC p14,0,R0,c0,c5,0 (move rDTR -> r0 (-> wDTR -> local var)) */
-		retval = arm11_run_instr_data_from_core_via_r0(arm11, 0xEE100E15, &R(RDTR));
+		retval = arm11_run_instr_data_from_core_via_r0(arm11,
+				0xEE100E15, &arm11->saved_rdtr);
 		if (retval != ERROR_OK)
 			return retval;
-	}
-	else
-	{
-		arm11->reg_list[ARM11_RC_RDTR].valid	= 0;
 	}
 
 	/* REVISIT Now that we've saved core state, there's may also
@@ -365,7 +357,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 
 	/* maybe restore rDTR */
 
-	if (R(DSCR) & ARM11_DSCR_RDTR_FULL || arm11->reg_list[ARM11_RC_RDTR].dirty)
+	if (arm11->is_rdtr_saved)
 	{
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 
@@ -376,7 +368,8 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 		uint8_t			Ready		= 0;	/* ignored */
 		uint8_t			Valid		= 0;	/* ignored */
 
-		arm11_setup_field(arm11, 32, &R(RDTR),	NULL, chain5_fields + 0);
+		arm11_setup_field(arm11, 32, &arm11->saved_rdtr,
+				NULL, chain5_fields + 0);
 		arm11_setup_field(arm11,  1, &Ready,	NULL, chain5_fields + 1);
 		arm11_setup_field(arm11,  1, &Valid,	NULL, chain5_fields + 2);
 

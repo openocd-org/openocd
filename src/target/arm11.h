@@ -26,7 +26,7 @@
 #include "armv4_5.h"
 #include "arm_dpm.h"
 
-#define ARM11_REGCACHE_COUNT		3
+#define ARM11_REGCACHE_COUNT		2
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 
@@ -62,6 +62,9 @@ struct arm11_common
 	uint32_t		last_dscr;		/**< Last retrieved DSCR value;
 							     Use only for debug message generation		*/
 
+	uint32_t saved_rdtr;
+
+	bool is_rdtr_saved;
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
 	/** \name Shadow registers to save debug state */
