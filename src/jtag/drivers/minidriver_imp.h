@@ -21,7 +21,7 @@
 #ifndef MINIDRIVER_IMP_H
 #define MINIDRIVER_IMP_H
 
-#include "commands.h"
+#include <jtag/commands.h>
 
 static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
 {

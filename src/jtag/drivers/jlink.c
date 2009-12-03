@@ -26,7 +26,7 @@
 #endif
 
 #include "interface.h"
-#include "commands.h"
+#include <jtag/commands.h>
 #include "usb_common.h"
 
 

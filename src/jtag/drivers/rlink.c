@@ -29,7 +29,7 @@
 
 /* project specific includes */
 #include "interface.h"
-#include "commands.h"
+#include <jtag/commands.h>
 #include "rlink.h"
 #include "rlink_st7.h"
 #include "rlink_ep1_cmd.h"

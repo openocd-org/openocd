@@ -26,7 +26,7 @@
 
 #include "bitbang.h"
 #include "interface.h"
-#include "commands.h"
+#include <jtag/commands.h>
 
 /**
  * Function bitbang_stableclocks

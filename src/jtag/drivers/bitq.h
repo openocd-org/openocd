@@ -20,7 +20,7 @@
 #ifndef BITQ_H
 #define BITQ_H
 
-#include "commands.h"
+#include <jtag/commands.h>
 
 struct bitq_interface {
 	// function to enqueueing low level IO requests
