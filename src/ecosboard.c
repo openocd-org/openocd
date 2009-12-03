@@ -31,7 +31,7 @@
 #include "pld.h"
 
 #include <server/server.h>
-#include "telnet_server.h"
+#include <server/telnet_server.h>
 #include <server/gdb_server.h>
 #include "openocd.h"
 
