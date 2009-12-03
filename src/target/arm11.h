@@ -24,7 +24,7 @@
 #define ARM11_H
 
 #include "armv4_5.h"
-#include "arm_dpm.h"
+#include <target/arm_dpm.h>
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 

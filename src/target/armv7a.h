@@ -23,7 +23,7 @@
 #include "armv4_5.h"
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
-#include "arm_dpm.h"
+#include <target/arm_dpm.h>
 
 enum
 {
