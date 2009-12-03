@@ -22,7 +22,7 @@
 #endif
 
 #include "avrf.h"
-#include "avrt.h"
+#include <target/avrt.h>
 #include "flash.h"
 
 
