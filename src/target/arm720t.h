@@ -20,7 +20,7 @@
 #ifndef ARM720T_H
 #define ARM720T_H
 
-#include "arm7tdmi.h"
+#include <target/arm7tdmi.h>
 #include "armv4_5_mmu.h"
 
 #define	ARM720T_COMMON_MAGIC 0xa720a720
