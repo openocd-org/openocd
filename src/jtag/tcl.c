@@ -51,6 +51,17 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
 
 extern struct jtag_interface *jtag_interface;
 
+struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
+{
+	const char *cp = Jim_GetString(o, NULL);
+	struct jtag_tap *t = cp ? jtag_tap_by_string(cp) : NULL;
+	if (NULL == cp)
+		cp = "(unknown)";
+	if (NULL == t)
+		Jim_SetResult_sprintf(interp, "Tap '%s' could not be found", cp);
+	return t;
+}
+
 static bool scan_is_safe(tap_state_t state)
 {
 	switch (state)

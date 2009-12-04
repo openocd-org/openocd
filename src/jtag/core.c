@@ -244,17 +244,6 @@ struct jtag_tap *jtag_tap_by_string(const char *s)
 	return t;
 }
 
-struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
-{
-	const char *cp = Jim_GetString(o, NULL);
-	struct jtag_tap *t = cp ? jtag_tap_by_string(cp) : NULL;
-	if (NULL == cp)
-		cp = "(unknown)";
-	if (NULL == t)
-		Jim_SetResult_sprintf(interp, "Tap '%s' could not be found", cp);
-	return t;
-}
-
 struct jtag_tap* jtag_tap_next_enabled(struct jtag_tap* p)
 {
 	p = p ? p->next_tap : jtag_all_taps();
