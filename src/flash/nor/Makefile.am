@@ -2,6 +2,10 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libocdflashnor.la
 libocdflashnor_la_SOURCES = \
+	tcl.c \
+	$(NOR_DRIVERS)
+
+NOR_DRIVERS = \
 	aduc702x.c \
 	at91sam3.c \
 	at91sam7.c \
@@ -27,6 +31,7 @@ noinst_HEADERS = \
 	at91sam3.h \
 	avrf.h \
 	cfi.h \
+	imp.h \
 	lpc2000.h \
 	lpc288x.h \
 	non_cfi.h \
