@@ -2,6 +2,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libocdflashnor.la
 libocdflashnor_la_SOURCES = \
+	core.c \
 	tcl.c \
 	$(NOR_DRIVERS)
 

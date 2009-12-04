@@ -16,21 +16,16 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef FLASH_NOR_IMP_H
-#define FLASH_NOR_IMP_H
+#ifndef FLASH_NOR_CORE_H
+#define FLASH_NOR_CORE_H
 
-// this is an internal header
-#include "core.h"
-
-/**
- * Adds a new NOR bank to the global list of banks.
- * @params bank The bank that should be added.
- */
-void flash_bank_add(struct flash_bank *bank);
+#include <flash/flash.h>
 
 /**
- * @return The first bank in the global list.
+ * Find a NOR flash driver by its name.
+ * @param name The name of the requested driver.
+ * @returns The flash_driver called @c name, or NULL if not found.
  */
-struct flash_bank *flash_bank_list(void);
+struct flash_driver *flash_driver_find_by_name(const char *name);
 
-#endif // FLASH_NOR_IMP_H
+#endif // FLASH_NOR_CORE_H

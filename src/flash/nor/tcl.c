@@ -44,84 +44,65 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	}
 
 	const char *driver_name = CMD_ARGV[0];
-	for (unsigned i = 0; flash_drivers[i]; i++)
+	struct flash_driver *driver = flash_driver_find_by_name(driver_name);
+	if (NULL == driver)
 	{
-		if (strcmp(driver_name, flash_drivers[i]->name) != 0)
-			continue;
-
-		/* register flash specific commands */
-		if (NULL != flash_drivers[i]->commands)
-		{
-			int retval = register_commands(CMD_CTX, NULL,
-					flash_drivers[i]->commands);
-			if (ERROR_OK != retval)
-			{
-				LOG_ERROR("couldn't register '%s' commands",
-						driver_name);
-				return ERROR_FAIL;
-			}
-		}
-
-		struct flash_bank *p, *c;
-		c = malloc(sizeof(struct flash_bank));
-		c->name = strdup(bank_name);
-		c->target = target;
-		c->driver = flash_drivers[i];
-		c->driver_priv = NULL;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], c->base);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], c->size);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], c->chip_width);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], c->bus_width);
-		c->num_sectors = 0;
-		c->sectors = NULL;
-		c->next = NULL;
-
-		int retval;
-		retval = CALL_COMMAND_HANDLER(flash_drivers[i]->flash_bank_command, c);
-		if (ERROR_OK != retval)
-		{
-			LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32,
-					driver_name, c->base);
-			free(c);
-			return retval;
-		}
-
-		/* put flash bank in linked list */
-		if (flash_banks)
-		{
-			int	bank_num = 0;
-			/* find last flash bank */
-			for (p = flash_banks; p && p->next; p = p->next) bank_num++;
-			if (p)
-				p->next = c;
-			c->bank_number = bank_num + 1;
-		}
-		else
-		{
-			flash_banks = c;
-			c->bank_number = 0;
-		}
-
-		return ERROR_OK;
+		/* no matching flash driver found */
+		LOG_ERROR("flash driver '%s' not found", driver_name);
+		return ERROR_FAIL;
 	}
 
-	/* no matching flash driver found */
-	LOG_ERROR("flash driver '%s' not found", driver_name);
-	return ERROR_FAIL;
+	/* register flash specific commands */
+	if (NULL != driver->commands)
+	{
+		int retval = register_commands(CMD_CTX, NULL,
+				driver->commands);
+		if (ERROR_OK != retval)
+		{
+			LOG_ERROR("couldn't register '%s' commands",
+					driver_name);
+			return ERROR_FAIL;
+		}
+	}
+
+	struct flash_bank *c = malloc(sizeof(*c));
+	c->name = strdup(bank_name);
+	c->target = target;
+	c->driver = driver;
+	c->driver_priv = NULL;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], c->base);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], c->size);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], c->chip_width);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], c->bus_width);
+	c->num_sectors = 0;
+	c->sectors = NULL;
+	c->next = NULL;
+
+	int retval;
+	retval = CALL_COMMAND_HANDLER(driver->flash_bank_command, c);
+	if (ERROR_OK != retval)
+	{
+		LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32,
+				driver_name, c->base);
+		free(c);
+		return retval;
+	}
+
+	return ERROR_OK;
+
 }
 
 
 static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	struct flash_bank *p;
-
 	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
 		return JIM_ERR;
 	}
 
 	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
-	for (p = flash_banks; p; p = p->next)
+
+	for (struct flash_bank *p = flash_bank_list(); p; p = p->next)
 	{
 		Jim_Obj *elem = Jim_NewListObj(interp, NULL, 0);
 
