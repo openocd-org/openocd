@@ -31,6 +31,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "lpc288x.h"
 #include <helper/binarybuffer.h>
 

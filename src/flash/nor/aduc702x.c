@@ -23,11 +23,11 @@
 #include "config.h"
 #endif
 
-#include <flash/flash.h>
-#include <target/armv4_5.h>
+#include "imp.h"
 #include <helper/binarybuffer.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>
+#include <target/armv4_5.h>
 
 
 static int aduc702x_build_sector_list(struct flash_bank *bank);

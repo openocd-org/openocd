@@ -24,10 +24,11 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "stm32x.h"
-#include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
+#include <target/armv7m.h>
 
 
 static int stm32x_mass_erase(struct flash_bank *bank);

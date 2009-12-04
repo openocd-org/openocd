@@ -23,11 +23,11 @@
 #endif
 
 
-#include <target/image.h>
-#include <flash/flash.h>
+#include "imp.h"
 #include <helper/binarybuffer.h>
-#include <target/armv4_5.h>
 #include <target/algorithm.h>
+#include <target/armv4_5.h>
+#include <target/image.h>
 
 
 /* 1024 bytes */

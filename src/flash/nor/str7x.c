@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "str7x.h"
 #include <target/armv4_5.h>
 #include <helper/binarybuffer.h>

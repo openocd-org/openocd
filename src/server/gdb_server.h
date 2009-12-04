@@ -27,6 +27,7 @@
 #define GDB_SERVER_H
 
 struct image;
+#include <target/target.h>
 
 #define GDB_BUFFER_SIZE	16384
 

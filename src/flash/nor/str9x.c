@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "str9x.h"
 #include <target/arm966e.h>
 #include <target/algorithm.h>

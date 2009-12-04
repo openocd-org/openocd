@@ -28,10 +28,11 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "stellaris.h"
-#include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
+#include <target/armv7m.h>
 
 
 #define DID0_VER(did0) ((did0 >> 28)&0x07)

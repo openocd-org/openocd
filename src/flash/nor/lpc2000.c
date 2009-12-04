@@ -25,10 +25,11 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "lpc2000.h"
-#include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
+#include <target/armv7m.h>
 
 
 /* flash programming support for NXP LPC17xx and LPC2xxx devices

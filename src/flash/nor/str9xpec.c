@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "str9xpec.h"
 #include <target/arm7_9_common.h>
 

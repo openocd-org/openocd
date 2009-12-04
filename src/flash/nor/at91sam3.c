@@ -57,13 +57,9 @@
 #endif
 
 
-#include <stdio.h>
-#include <string.h>
-#include <stddef.h>
-#include <helper/types.h>
-#include <flash/flash.h>
-#include <helper/membuf.h>
+#include "imp.h"
 #include "at91sam3.h"
+#include <helper/membuf.h>
 #include <helper/time_support.h>
 
 #define REG_NAME_WIDTH  (12)

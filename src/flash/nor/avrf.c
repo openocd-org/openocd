@@ -21,9 +21,9 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "avrf.h"
 #include <target/avrt.h>
-#include <flash/flash.h>
 
 
 /* AVR_JTAG_Instructions */

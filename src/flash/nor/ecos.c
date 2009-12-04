@@ -21,10 +21,10 @@
 #include "config.h"
 #endif
 
-#include <flash/flash.h>
+#include "imp.h"
 #include <target/embeddedice.h>
-#include <target/image.h>
 #include <target/algorithm.h>
+#include <target/image.h>
 
 
 #if 0

@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "cfi.h"
 #include "non_cfi.h"
 #include <target/armv4_5.h>

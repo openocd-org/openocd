@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include <flash/flash.h>
+#include "imp.h"
 #include <target/image.h>
 #include "hello.h"
 

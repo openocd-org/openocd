@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "pic32mx.h"
 #include <target/mips32.h>
 

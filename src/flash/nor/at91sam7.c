@@ -49,6 +49,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "at91sam7.h"
 #include <helper/binarybuffer.h>
 

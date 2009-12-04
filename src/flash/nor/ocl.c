@@ -21,8 +21,8 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "ocl.h"
-#include <flash/flash.h>
 #include <target/embeddedice.h>
 
 

@@ -21,6 +21,10 @@
 
 // this is an internal header
 #include "core.h"
+// common flash internals
+#include <flash/common.h>
+// almost all drivers will need this file
+#include <target/target.h>
 
 /**
  * Adds a new NOR bank to the global list of banks.
