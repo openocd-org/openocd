@@ -9,7 +9,6 @@ METASOURCES = AUTO
 noinst_LTLIBRARIES = libflash.la
 libflash_la_SOURCES = \
 	common.c \
-	flash.c \
 	arm_nandio.c \
 	nand_ecc.c \
 	nand_ecc_kw.c \
