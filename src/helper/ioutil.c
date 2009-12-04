@@ -401,25 +401,18 @@ void copydir(char *name, char *destdir)
 
 
 
-static int
-zylinjtag_Jim_Command_rm(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_rm_command)
 {
-	int del;
-	if (argc != 2)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "rm ?dirorfile?");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC != 1)
+		return ERROR_INVALID_ARGUMENTS;
 
-	del = 0;
-	if (unlink(Jim_GetString(argv[1], NULL)) == 0)
-		del = 1;
-	if (rmdir(Jim_GetString(argv[1], NULL)) == 0)
-		del = 1;
+	bool del = false;
+	if (rmdir(CMD_ARGV[0]) == 0)
+		del = true;
+	else if (unlink(CMD_ARGV[0]) == 0)
+		del = true;
 
-	return del ? JIM_OK : JIM_ERR;
+	return del ? ERROR_OK : ERROR_FAIL;
 }
 
 
@@ -658,14 +651,14 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "display available ram memory",
 	},
-	// jim handlers
 	{
 		.name = "rm",
 		.mode = COMMAND_ANY,
-		.jim_handler = &zylinjtag_Jim_Command_rm,
+		.handler = &handle_rm_command,
 		.help = "remove a file",
 		.usage = "<file>",
 	},
+	// jim handlers
 	{
 		.name = "peek",
 		.mode = COMMAND_ANY,
