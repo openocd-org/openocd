@@ -31,6 +31,7 @@ noinst_HEADERS = \
 	at91sam7.h \
 	at91sam3.h \
 	avrf.h \
+	core.h \
 	cfi.h \
 	imp.h \
 	lpc2000.h \

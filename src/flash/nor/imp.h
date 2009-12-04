@@ -33,4 +33,13 @@ void flash_bank_add(struct flash_bank *bank);
  */
 struct flash_bank *flash_bank_list(void);
 
+int flash_driver_erase(struct flash_bank *bank, int first, int last);
+int flash_driver_protect(struct flash_bank *bank, int set, int first, int last);
+int flash_driver_write(struct flash_bank *bank,
+		uint8_t *buffer, uint32_t offset, uint32_t count);
+
+/* write (optional verify) an image to flash memory of the given target */
+int flash_write_unlock(struct target *target, struct image *image,
+		uint32_t *written, int erase, bool unlock);
+
 #endif // FLASH_NOR_IMP_H
