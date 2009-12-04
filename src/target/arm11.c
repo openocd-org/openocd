@@ -83,8 +83,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 			  */
 
 			arm11->arm.target->state = TARGET_HALTED;
-			arm11->arm.target->debug_reason =
-					arm11_get_DSCR_debug_reason(arm11->dscr);
+			arm_dpm_report_dscr(arm11->arm.dpm, arm11->dscr);
 		}
 		else
 		{
@@ -108,8 +107,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	int retval;
 
 	arm11->arm.target->state = TARGET_HALTED;
-	arm11->arm.target->debug_reason =
-			arm11_get_DSCR_debug_reason(arm11->dscr);
+	arm_dpm_report_dscr(arm11->arm.dpm, arm11->dscr);
 
 	/* REVISIT entire cache should already be invalid !!! */
 	register_cache_invalidate(arm11->arm.core_cache);
@@ -551,20 +549,12 @@ static int arm11_resume(struct target *target, int current,
 		i++;
 	}
 
+	target->debug_reason = DBG_REASON_NOTHALTED;
 	if (!debug_execution)
-	{
-		target->state			= TARGET_RUNNING;
-		target->debug_reason	= DBG_REASON_NOTHALTED;
-
-		CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
-	}
+		target->state = TARGET_RUNNING;
 	else
-	{
-		target->state			= TARGET_DEBUG_RUNNING;
-		target->debug_reason	= DBG_REASON_NOTHALTED;
-
-		CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
-	}
+		target->state = TARGET_DEBUG_RUNNING;
+	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
 
 	return ERROR_OK;
 }
@@ -728,7 +718,7 @@ static int arm11_step(struct target *target, int current,
 
 	}
 
-	target->debug_reason	= DBG_REASON_SINGLESTEP;
+	target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
 

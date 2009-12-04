@@ -288,50 +288,6 @@ int arm11_write_DSCR(struct arm11_common * arm11, uint32_t dscr)
 	return ERROR_OK;
 }
 
-
-
-/** Get the debug reason from Debug Status and Control Register (DSCR)
- *
- * \param dscr		DSCR value to analyze
- * \return			Debug reason
- *
- */
-enum target_debug_reason arm11_get_DSCR_debug_reason(uint32_t dscr)
-{
-	switch (dscr & ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK)
-	{
-	case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT:
-		LOG_INFO("Debug entry: JTAG HALT");
-		return DBG_REASON_DBGRQ;
-
-	case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT:
-		LOG_INFO("Debug entry: breakpoint");
-		return DBG_REASON_BREAKPOINT;
-
-	case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT:
-		LOG_INFO("Debug entry: watchpoint");
-		return DBG_REASON_WATCHPOINT;
-
-	case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION:
-		LOG_INFO("Debug entry: BKPT instruction");
-		return DBG_REASON_BREAKPOINT;
-
-	case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ:
-		LOG_INFO("Debug entry: EDBGRQ signal");
-		return DBG_REASON_DBGRQ;
-
-	case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH:
-		LOG_INFO("Debug entry: VCR vector catch");
-		return DBG_REASON_BREAKPOINT;
-
-	default:
-		LOG_INFO("Debug entry: unknown");
-		return DBG_REASON_DBGRQ;
-	}
-};
-
-
-
 /** Prepare the stage for ITR/DTR operations
  * from the arm11_run_instr... group of functions.
  *

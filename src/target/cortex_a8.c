@@ -782,7 +782,7 @@ static int cortex_a8_resume(struct target *target, int current,
 static int cortex_a8_debug_entry(struct target *target)
 {
 	int i;
-	uint32_t regfile[16], wfar, cpsr, dscr;
+	uint32_t regfile[16], cpsr, dscr;
 	int retval = ERROR_OK;
 	struct working_area *regfile_working_area = NULL;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
@@ -793,6 +793,7 @@ static int cortex_a8_debug_entry(struct target *target)
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
 
+	/* REVISIT surely we should not re-read DSCR !! */
 	mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 
@@ -807,30 +808,16 @@ static int cortex_a8_debug_entry(struct target *target)
 			armv7a->debug_base + CPUDBG_DSCR, dscr);
 
 	/* Examine debug reason */
-	switch (DSCR_ENTRY(cortex_a8->cpudbg_dscr))
-	{
-		case 0:		/* DRCR[0] write */
-		case 4:		/* EDBGRQ */
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case 1:		/* HW breakpoint */
-		case 3:		/* SW BKPT */
-		case 5:		/* vector catch */
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case 2:		/* asynch watchpoint */
-		case 10:	/* precise watchpoint */
-			target->debug_reason = DBG_REASON_WATCHPOINT;
+	arm_dpm_report_dscr(&armv7a->dpm, cortex_a8->cpudbg_dscr);
 
-			/* save address of faulting instruction */
-			retval = mem_ap_read_atomic_u32(swjdp,
-					armv7a->debug_base + CPUDBG_WFAR,
-					&wfar);
-			arm_dpm_report_wfar(&armv7a->dpm, wfar);
-			break;
-		default:
-			target->debug_reason = DBG_REASON_UNDEFINED;
-			break;
+	/* save address of instruction that triggered the watchpoint? */
+	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+		uint32_t wfar;
+
+		retval = mem_ap_read_atomic_u32(swjdp,
+				armv7a->debug_base + CPUDBG_WFAR,
+				&wfar);
+		arm_dpm_report_wfar(&armv7a->dpm, wfar);
 	}
 
 	/* REVISIT fast_reg_read is never set ... */

@@ -756,6 +756,42 @@ void arm_dpm_report_wfar(struct arm_dpm *dpm, uint32_t addr)
 /*----------------------------------------------------------------------*/
 
 /*
+ * Other debug and support utilities
+ */
+
+void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
+{
+	struct target *target = dpm->arm->target;
+
+	dpm->dscr = dscr;
+
+	/* Examine debug reason */
+	switch (DSCR_ENTRY(dscr)) {
+	case 6:		/* Data abort (v6 only) */
+	case 7:		/* Prefetch abort (v6 only) */
+		/* FALL THROUGH -- assume a v6 core in abort mode */
+	case 0:		/* HALT request from debugger */
+	case 4:		/* EDBGRQ */
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case 1:		/* HW breakpoint */
+	case 3:		/* SW BKPT */
+	case 5:		/* vector catch */
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case 2:		/* asynch watchpoint */
+	case 10:	/* precise watchpoint */
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	default:
+		target->debug_reason = DBG_REASON_UNDEFINED;
+		break;
+	}
+}
+
+/*----------------------------------------------------------------------*/
+
+/*
  * Setup and management support.
  */
 
