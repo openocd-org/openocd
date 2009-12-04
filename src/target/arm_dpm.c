@@ -276,6 +276,7 @@ fail:
  * Writes all modified core registers for all processor modes.  In normal
  * operation this is called on exit from halting debug state.
  *
+ * @param dpm: represents the processor
  * @param bpwp: true ensures breakpoints and watchpoints are set,
  *	false ensures they are cleared
  */

@@ -340,7 +340,7 @@ struct command_context* copy_command_context(struct command_context* cmd_ctx);
 /**
  * Frees the resources associated with a command context.  The commands
  * are not removed, so unregister_all_commands() must be called first.
- * @param cmd_ctx The command_context that will be destroyed.
+ * @param context The command_context that will be destroyed.
  */
 void command_done(struct command_context *context);
 
