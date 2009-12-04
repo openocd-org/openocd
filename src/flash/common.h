@@ -19,7 +19,7 @@
 #ifndef FLASH_COMMON_H
 #define FLASH_COMMON_H
 
-#include <helper/types.h>
+#include <helper/log.h>
 
 /**
  * Parses the optional '.index' portion of a flash bank identifier.
@@ -35,5 +35,14 @@ unsigned get_flash_name_index(const char *name);
  * @param expected The expected driver name, passed by the user.
  */
 bool flash_driver_name_matches(const char *name, const char *expected);
+
+#define ERROR_FLASH_BANK_INVALID -900
+#define ERROR_FLASH_SECTOR_INVALID -901
+#define ERROR_FLASH_OPERATION_FAILED -902
+#define ERROR_FLASH_DST_OUT_OF_BANK -903
+#define ERROR_FLASH_DST_BREAKS_ALIGNMENT -904
+#define ERROR_FLASH_BUSY -905
+#define ERROR_FLASH_SECTOR_NOT_ERASED -906
+#define ERROR_FLASH_BANK_NOT_PROBED -907
 
 #endif // FLASH_COMMON_H

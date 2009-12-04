@@ -26,8 +26,8 @@
 #ifndef FLASH_H
 #define FLASH_H
 
+#include <flash/common.h>
 #include <target/target.h>
-#include <helper/log.h>
 
 struct image;
 
@@ -348,14 +348,5 @@ struct flash_bank *get_flash_bank_by_num_noprobe(int num);
  * @returns The struct flash_bank located at @a addr, or NULL.
  */
 struct flash_bank *get_flash_bank_by_addr(struct target *target, uint32_t addr);
-
-#define ERROR_FLASH_BANK_INVALID			(-900)
-#define ERROR_FLASH_SECTOR_INVALID			(-901)
-#define ERROR_FLASH_OPERATION_FAILED		(-902)
-#define ERROR_FLASH_DST_OUT_OF_BANK			(-903)
-#define ERROR_FLASH_DST_BREAKS_ALIGNMENT	(-904)
-#define ERROR_FLASH_BUSY					(-905)
-#define ERROR_FLASH_SECTOR_NOT_ERASED		(-906)
-#define ERROR_FLASH_BANK_NOT_PROBED			(-907)
 
 #endif /* FLASH_H */

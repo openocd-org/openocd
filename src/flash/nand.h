@@ -25,7 +25,9 @@
 #ifndef NAND_H
 #define NAND_H
 
-#include <flash/flash.h>
+#include <flash/common.h>
+// to be removed later
+#include <target/target.h>
 
 struct nand_device;
 
