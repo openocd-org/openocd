@@ -9,32 +9,48 @@ SUBDIRS =
 DRIVERFILES =
 libjtag_la_LIBADD =
 
-if MINIDRIVER
+CLEANFILES =
 
-# for minidriver_imp.h
-AM_CPPFLAGS += -I$(srcdir)/minidriver
+BUILT_SOURCES =
+
+BUILT_SOURCES += minidriver_imp.h
+CLEANFILES += minidriver_imp.h
+
+if MINIDRIVER
 
 if ZY1000
 DRIVERFILES += zy1000/zy1000.c
-AM_CPPFLAGS += -I$(srcdir)/zy1000
+JTAG_MINIDRIVER_DIR = $(srcdir)/zy1000
 endif
 if MINIDRIVER_DUMMY
 DRIVERFILES += minidummy/minidummy.c commands.c
-AM_CPPFLAGS += -I$(srcdir)/minidummy
+JTAG_MINIDRIVER_DIR = $(srcdir)/minidummy
 endif
+
+MINIDRIVER_IMP_DIR = $(srcdir)/minidriver
+
+jtag_minidriver.h: $(JTAG_MINIDRIVER_DIR)/jtag_minidriver.h
+	cp $< $@
+
+BUILT_SOURCES += jtag_minidriver.h
+
+CLEANFILES += jtag_minidriver.h
 
 else
 
+MINIDRIVER_IMP_DIR = $(srcdir)/drivers
 DRIVERFILES += commands.c
 
 SUBDIRS += drivers
 libjtag_la_LIBADD += $(top_builddir)/src/jtag/drivers/libocdjtagdrivers.la
 
-# for minidriver_imp.h
-AM_CPPFLAGS += -I$(srcdir)/drivers
-
 endif
+
 # endif // MINIDRIVER
+
+minidriver_imp.h: $(MINIDRIVER_IMP_DIR)/minidriver_imp.h
+	cp $< $@
+
 
 libjtag_la_SOURCES = \
 	core.c \

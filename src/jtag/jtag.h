@@ -461,10 +461,6 @@ typedef int (*jtag_callback_t)(jtag_callback_data_t data0,
  * @param data3 An integer big enough to use as an @c int or a pointer.
  *
  */
-void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
-		jtag_callback_data_t data1, jtag_callback_data_t data2,
-		jtag_callback_data_t data3);
-
 
 /**
  * Run a TAP_RESET reset where the end state is TAP_RESET,
@@ -688,9 +684,6 @@ void jtag_sleep(uint32_t us);
  * There is no jtag_add_dr_outin() version of this fn that also allows
  * clocking data back in. Patches gladly accepted!
  */
-void jtag_add_dr_out(struct jtag_tap* tap,
-		int num_fields, const int* num_bits, const uint32_t* value,
-		tap_state_t end_state);
 
 
 /**
@@ -724,5 +717,10 @@ bool jtag_poll_get_enabled(void);
  * Assign flag reporting whether JTAG polling is disallowed.
  */
 void jtag_poll_set_enabled(bool value);
+
+
+/* The minidriver may have inline versions of some of the low
+ * level APIs that are used in inner loops. */
+#include <jtag/minidriver.h>
 
 #endif /* JTAG_H */

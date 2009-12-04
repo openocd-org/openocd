@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
@@ -31,7 +31,9 @@
 #include "config.h"
 #endif
 
+#include <jtag/jtag.h>
 #include <jtag/interface.h>
+#include <jtag/commands.h>
 #include <jtag/minidriver.h>
 #include <helper/command.h>
 
@@ -525,3 +527,30 @@ void interface_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t
 	jtag_add_callback4(jtag_convert_to_callback4, data0, (jtag_callback_data_t)callback, 0, 0);
 }
 
+
+/* A minidriver can use use an inline versions of this API level fn */
+void jtag_add_dr_out(struct jtag_tap* tap,
+		int num_fields, const int* num_bits, const uint32_t* value,
+		tap_state_t end_state)
+{
+	assert(end_state != TAP_RESET);
+	assert(end_state != TAP_INVALID);
+
+	cmd_queue_cur_state = end_state;
+
+	interface_jtag_add_dr_out(tap,
+			num_fields, num_bits, value,
+			end_state);
+}
+
+void jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0)
+{
+	interface_jtag_add_callback(f, data0);
+}
+
+void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
+		jtag_callback_data_t data1, jtag_callback_data_t data2,
+		jtag_callback_data_t data3)
+{
+	interface_jtag_add_callback4(f, data0, data1, data2, data3);
+}

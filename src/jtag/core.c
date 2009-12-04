@@ -32,7 +32,6 @@
 #endif
 
 #include "jtag.h"
-#include "minidriver.h"
 #include "interface.h"
 
 #ifdef HAVE_STRINGS_H
@@ -398,18 +397,6 @@ void jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field *in_field
 	jtag_set_error(retval);
 }
 
-void jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0)
-{
-	interface_jtag_add_callback(f, data0);
-}
-
-void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
-		jtag_callback_data_t data1, jtag_callback_data_t data2,
-		jtag_callback_data_t data3)
-{
-	interface_jtag_add_callback4(f, data0, data1, data2, data3);
-}
-
 static int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value,
 		uint8_t *in_check_mask, int num_bits);
 
@@ -489,20 +476,6 @@ void jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_field
 	int retval;
 	retval = interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, state);
 	jtag_set_error(retval);
-}
-
-void jtag_add_dr_out(struct jtag_tap* tap,
-		int num_fields, const int* num_bits, const uint32_t* value,
-		tap_state_t end_state)
-{
-	assert(end_state != TAP_RESET);
-	assert(end_state != TAP_INVALID);
-
-	cmd_queue_cur_state = end_state;
-
-	interface_jtag_add_dr_out(tap,
-			num_fields, num_bits, value,
-			end_state);
 }
 
 void jtag_add_tlr(void)

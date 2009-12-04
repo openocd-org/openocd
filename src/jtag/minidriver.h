@@ -47,7 +47,7 @@
 
 // this header will be provided by the minidriver implementation,
 // and it may provide additional declarations that must be defined.
-#include "minidriver_imp.h"
+#include <jtag/minidriver_imp.h>
 
 int interface_jtag_add_ir_scan(
 		int num_fields, const struct scan_field* fields,

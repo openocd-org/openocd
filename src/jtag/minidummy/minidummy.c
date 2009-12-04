@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/jtag.h>
 #include <target/embeddedice.h>
 #include <jtag/minidriver.h>
 #include <jtag/interface.h>

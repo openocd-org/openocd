@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>              *
- *   Copyright (C) 2007,2008 Øyvind Harboe <oyvind.harboe@zylin.com>       *
+ *   Copyright (C) 2007-2009 Øyvind Harboe <oyvind.harboe@zylin.com>       *
  *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -41,6 +41,15 @@ void interface_jtag_add_dr_out(struct jtag_tap* tap,
 void interface_jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0);
 
 void interface_jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
+		jtag_callback_data_t data1, jtag_callback_data_t data2,
+		jtag_callback_data_t data3);
+
+void jtag_add_dr_out(struct jtag_tap* tap,
+		int num_fields, const int* num_bits, const uint32_t* value,
+		tap_state_t end_state);
+
+
+void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 

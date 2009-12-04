@@ -21,7 +21,7 @@
 #ifndef MINIDRIVER_IMP_H
 #define MINIDRIVER_IMP_H
 
-#include "jtag_minidriver.h"
+#include <jtag/jtag_minidriver.h>
 
 static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
 {
@@ -40,5 +40,22 @@ static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
 	else
 		field->in_value = field->intmp;
 }
+
+static inline void jtag_add_dr_out(struct jtag_tap* tap,
+		int num_fields, const int* num_bits, const uint32_t* value,
+		tap_state_t end_state)
+{
+	cmd_queue_cur_state = end_state;
+
+	interface_jtag_add_dr_out(tap,
+			num_fields, num_bits, value,
+			end_state);
+}
+
+#define jtag_add_callback(callback, in) interface_jtag_add_callback(callback, in)
+
+#define jtag_add_callback4(callback, in, data1, data2, data3) interface_jtag_add_callback4(callback, in, data1, data2, data3)
+
+
 
 #endif // MINIDRIVER_IMP_H
