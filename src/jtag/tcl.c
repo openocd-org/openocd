@@ -828,7 +828,7 @@ COMMAND_HANDLER(handle_jtag_init_command)
 static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "init",
-		.mode = COMMAND_CONFIG,
+		.mode = COMMAND_ANY,
 		.handler = &handle_jtag_init_command,
 		.help = "initialize jtag scan chain",
 	},
