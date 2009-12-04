@@ -1,6 +1,9 @@
 #!/bin/sh -e
 # Run the autotools bootstrap sequence to create the configure script
 
+# Stop execution as soon as we have an unknown command 
+set -e
+
 if libtoolize --version >/dev/null 2>&1; then
 	libtoolize="libtoolize"
 elif glibtoolize --version >/dev/null 2>&1; then
