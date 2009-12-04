@@ -184,6 +184,11 @@ static const struct command_registration openocd_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+int openocd_register_commands(struct command_context *cmd_ctx)
+{
+	return register_commands(cmd_ctx, NULL, openocd_command_handlers);
+}
+
 struct command_context *global_cmd_ctx;
 
 /* NB! this fn can be invoked outside this file for non PC hosted builds */
@@ -192,27 +197,40 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	log_init();
 	LOG_DEBUG("log_init: complete");
 
-	struct command_context *cmd_ctx;
+	const char *startup = openocd_startup_tcl;
+	struct command_context *cmd_ctx = command_init(startup, interp);
 
-	global_cmd_ctx = cmd_ctx = command_init(openocd_startup_tcl, interp);
-
-	register_commands(cmd_ctx, NULL, openocd_command_handlers);
 	/* register subsystem commands */
-	server_register_commands(cmd_ctx);
-	gdb_register_commands(cmd_ctx);
-	log_register_commands(cmd_ctx);
-	jtag_register_commands(cmd_ctx);
-	xsvf_register_commands(cmd_ctx);
-	svf_register_commands(cmd_ctx);
-	target_register_commands(cmd_ctx);
-	flash_register_commands(cmd_ctx);
-	nand_register_commands(cmd_ctx);
-	pld_register_commands(cmd_ctx);
-	mflash_register_commands(cmd_ctx);
-
+	typedef int (*command_registrant_t)(struct command_context *cmd_ctx);
+	command_registrant_t command_registrants[] = {
+		&openocd_register_commands,
+		&server_register_commands,
+		&gdb_register_commands,
+		&log_register_commands,
+		&jtag_register_commands,
+		&xsvf_register_commands,
+		&svf_register_commands,
+		&target_register_commands,
+		&flash_register_commands,
+		&nand_register_commands,
+		&pld_register_commands,
+		&mflash_register_commands,
+		NULL
+	};
+	for (unsigned i = 0; NULL != command_registrants[i]; i++)
+	{
+		int retval = (*command_registrants[i])(cmd_ctx);
+		if (ERROR_OK != retval)
+		{
+			command_done(cmd_ctx);
+			return NULL;
+		}
+	}
 	LOG_DEBUG("command registration: complete");
 
 	LOG_OUTPUT(OPENOCD_VERSION "\n");
+
+	global_cmd_ctx = cmd_ctx;
 
 	return cmd_ctx;
 }
