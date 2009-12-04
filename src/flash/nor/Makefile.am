@@ -4,7 +4,8 @@ noinst_LTLIBRARIES = libocdflashnor.la
 libocdflashnor_la_SOURCES = \
 	core.c \
 	tcl.c \
-	$(NOR_DRIVERS)
+	$(NOR_DRIVERS) \
+	drivers.c
 
 NOR_DRIVERS = \
 	aduc702x.c \

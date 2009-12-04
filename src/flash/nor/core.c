@@ -25,18 +25,7 @@
 #include <target/image.h>
 
 // in flash.c, to be moved here
-extern struct flash_driver *flash_drivers[];
 extern struct flash_bank *flash_banks;
-
-struct flash_driver *flash_driver_find_by_name(const char *name)
-{
-	for (unsigned i = 0; flash_drivers[i]; i++)
-	{
-		if (strcmp(name, flash_drivers[i]->name) == 0)
-			return flash_drivers[i];
-	}
-	return NULL;
-}
 
 int flash_driver_erase(struct flash_bank *bank, int first, int last)
 {
