@@ -1,4 +1,12 @@
-SUBDIRS = helper jtag xsvf svf target server flash pld
+SUBDIRS = \
+	helper \
+	jtag \
+	target \
+	flash \
+	svf \
+	xsvf \
+	pld \
+	server
 
 lib_LTLIBRARIES = libopenocd.la
 bin_PROGRAMS = openocd
