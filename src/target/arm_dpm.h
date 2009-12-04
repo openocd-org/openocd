@@ -136,4 +136,18 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
 
 void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 
+/* Subset of DSCR bits; see ARMv7a arch spec section C10.3.1.
+ * Not all v7 bits are valid in v6.
+ */
+#define DSCR_CORE_HALTED	(1 << 0)
+#define DSCR_CORE_RESTARTED	(1 << 1)
+#define DSCR_ITR_EN		(1 << 13)
+#define DSCR_HALT_DBG_MODE	(1 << 14)
+#define DSCR_MON_DBG_MODE	(1 << 15)
+#define DSCR_INSTR_COMP		(1 << 24)
+#define DSCR_DTR_TX_FULL	(1 << 29)
+#define DSCR_DTR_RX_FULL	(1 << 30)
+
+#define DSCR_ENTRY(dscr) (((dscr) >> 2) & 0xf)
+
 #endif /* __ARM_DPM_H */

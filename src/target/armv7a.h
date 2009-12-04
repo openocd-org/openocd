@@ -114,16 +114,6 @@ target_to_armv7a(struct target *target)
 /* See ARMv7a arch spec section C10.8 */
 #define CPUDBG_AUTHSTATUS	0xFB8
 
-/* DSCR bit numbers (See ARMv7a arch spec section 12.4.5) */
-#define DSCR_CORE_HALTED	0
-#define DSCR_CORE_RESTARTED	1
-#define DSCR_EXT_INT_EN		13
-#define DSCR_HALT_DBG_MODE	14
-#define DSCR_MON_DBG_MODE	15
-#define DSCR_INSTR_COMP		24
-#define DSCR_DTR_TX_FULL	29
-#define DSCR_DTR_RX_FULL	30
-
 struct armv7a_algorithm
 {
 	int common_magic;

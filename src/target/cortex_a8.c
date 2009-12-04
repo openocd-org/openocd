@@ -91,8 +91,8 @@ static int cortex_a8_init_debug_access(struct target *target)
 
 /* To reduce needless round-trips, pass in a pointer to the current
  * DSCR value.  Initialize it to zero if you just need to know the
- * value on return from this function; or (1 << DSCR_INSTR_COMP) if
- * you happen to know that no instruction is pending.
+ * value on return from this function; or DSCR_INSTR_COMP if you
+ * happen to know that no instruction is pending.
  */
 static int cortex_a8_exec_opcode(struct target *target,
 		uint32_t opcode, uint32_t *dscr_p)
@@ -107,7 +107,7 @@ static int cortex_a8_exec_opcode(struct target *target,
 	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
 
 	/* Wait for InstrCompl bit to be set */
-	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0)
+	while ((dscr & DSCR_INSTR_COMP) == 0)
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -130,7 +130,7 @@ static int cortex_a8_exec_opcode(struct target *target,
 			return retval;
 		}
 	}
-	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
+	while ((dscr & DSCR_INSTR_COMP) == 0); /* Wait for InstrCompl bit to be set */
 
 	if (dscr_p)
 		*dscr_p = dscr;
@@ -198,7 +198,7 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 	}
 
 	/* Wait for DTRRXfull then read DTRRTX */
-	while ((dscr & (1 << DSCR_DTR_TX_FULL)) == 0)
+	while ((dscr & DSCR_DTR_TX_FULL) == 0)
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -225,7 +225,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	/* Check that DCCRX is not full */
 	retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	if (dscr & (1 << DSCR_DTR_RX_FULL))
+	if (dscr & DSCR_DTR_RX_FULL)
 	{
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
 		/* Clear DCCRX with MCR(p14, 0, Rd, c0, c5, 0), opcode  0xEE000E15 */
@@ -315,14 +315,14 @@ static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data,
 		uint32_t *dscr_p)
 {
 	struct swjdp_common *swjdp = &a8->armv7a_common.swjdp_info;
-	uint32_t dscr = 1 << DSCR_INSTR_COMP;
+	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
 	if (dscr_p)
 		dscr = *dscr_p;
 
 	/* Wait for DTRRXfull */
-	while ((dscr & (1 << DSCR_DTR_TX_FULL)) == 0) {
+	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
 		retval = mem_ap_read_atomic_u32(swjdp,
 				a8->armv7a_common.debug_base + CPUDBG_DSCR,
 				&dscr);
@@ -350,10 +350,10 @@ static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
 		retval = mem_ap_read_atomic_u32(swjdp,
 				a8->armv7a_common.debug_base + CPUDBG_DSCR,
 				&dscr);
-	} while ((dscr & (1 << DSCR_INSTR_COMP)) == 0);
+	} while ((dscr & DSCR_INSTR_COMP) == 0);
 
 	/* this "should never happen" ... */
-	if (dscr & (1 << DSCR_DTR_RX_FULL)) {
+	if (dscr & DSCR_DTR_RX_FULL) {
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
 		/* Clear DCCRX */
 		retval = cortex_a8_exec_opcode(
@@ -376,7 +376,7 @@ static int cortex_a8_instr_write_data_dcc(struct arm_dpm *dpm,
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
 	int retval;
-	uint32_t dscr = 1 << DSCR_INSTR_COMP;
+	uint32_t dscr = DSCR_INSTR_COMP;
 
 	retval = cortex_a8_write_dcc(a8, data);
 
@@ -390,7 +390,7 @@ static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
 		uint32_t opcode, uint32_t data)
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
-	uint32_t dscr = 1 << DSCR_INSTR_COMP;
+	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
 	retval = cortex_a8_write_dcc(a8, data);
@@ -413,7 +413,7 @@ static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
 static int cortex_a8_instr_cpsr_sync(struct arm_dpm *dpm)
 {
 	struct target *target = dpm->arm->target;
-	uint32_t dscr = 1 << DSCR_INSTR_COMP;
+	uint32_t dscr = DSCR_INSTR_COMP;
 
 	/* "Prefetch flush" after modifying execution status in CPSR */
 	return cortex_a8_exec_opcode(target,
@@ -426,7 +426,7 @@ static int cortex_a8_instr_read_data_dcc(struct arm_dpm *dpm,
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
 	int retval;
-	uint32_t dscr = 1 << DSCR_INSTR_COMP;
+	uint32_t dscr = DSCR_INSTR_COMP;
 
 	/* the opcode, writing data to DCC */
 	retval = cortex_a8_exec_opcode(
@@ -442,7 +442,7 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 		uint32_t opcode, uint32_t *data)
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
-	uint32_t dscr = 1 << DSCR_INSTR_COMP;
+	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
 	/* the opcode, writing data to R0 */
@@ -639,7 +639,7 @@ static int cortex_a8_halt(struct target *target)
 	 */
 	mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	retval = mem_ap_write_atomic_u32(swjdp,
-		armv7a->debug_base + CPUDBG_DSCR, dscr | (1 << DSCR_HALT_DBG_MODE));
+		armv7a->debug_base + CPUDBG_DSCR, dscr | DSCR_HALT_DBG_MODE);
 
 	if (retval != ERROR_OK)
 		goto out;
@@ -647,7 +647,7 @@ static int cortex_a8_halt(struct target *target)
 	do {
 		mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	} while ((dscr & (1 << DSCR_CORE_HALTED)) == 0);
+	} while ((dscr & DSCR_CORE_HALTED) == 0);
 
 	target->debug_reason = DBG_REASON_DBGRQ;
 
@@ -742,13 +742,18 @@ static int cortex_a8_resume(struct target *target, int current,
 	}
 
 #endif
-	/* Restart core and wait for it to be started */
+	/* Restart core and wait for it to be started
+	 * NOTE: this clears DSCR_ITR_EN and other bits.
+	 *
+	 * REVISIT: for single stepping, we probably want to
+	 * disable IRQs by default, with optional override...
+	 */
 	mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DRCR, 0x2);
 
 	do {
 		mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	} while ((dscr & (1 << DSCR_CORE_RESTARTED)) == 0);
+	} while ((dscr & DSCR_CORE_RESTARTED) == 0);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	target->state = TARGET_RUNNING;
@@ -788,7 +793,6 @@ static int cortex_a8_debug_entry(struct target *target)
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
 
-	/* Enable the ITR execution once we are in debug mode */
 	mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 
@@ -797,12 +801,13 @@ static int cortex_a8_debug_entry(struct target *target)
 	 * Synchronization Barrier:  ARMV4_5_MCR(15, 0, 0, 7, 10, 4).
 	 */
 
-	dscr |= (1 << DSCR_EXT_INT_EN);
+	/* Enable the ITR execution once we are in debug mode */
+	dscr |= DSCR_ITR_EN;
 	retval = mem_ap_write_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, dscr);
 
 	/* Examine debug reason */
-	switch ((cortex_a8->cpudbg_dscr >> 2)&0xF)
+	switch (DSCR_ENTRY(cortex_a8->cpudbg_dscr))
 	{
 		case 0:		/* DRCR[0] write */
 		case 4:		/* EDBGRQ */
@@ -1005,7 +1010,8 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	}
 
 	cortex_a8_unset_breakpoint(target, &stepbreakpoint);
-	if (timeout > 0) target->debug_reason = DBG_REASON_BREAKPOINT;
+	if (timeout > 0)
+		target->debug_reason = DBG_REASON_BREAKPOINT;
 
 	if (breakpoint)
 		cortex_a8_set_breakpoint(target, breakpoint, 0);
