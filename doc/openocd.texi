@@ -873,6 +873,20 @@ handling issues like:
 
 @itemize @bullet
 
+@item @b{ARM Semihosting}...
+@cindex ARM semihosting
+When linked with a special runtime library provided with many
+toolchains@footnote{See chapter 8 "Semihosting" in
+@uref{http://infocenter.arm.com/help/topic/com.arm.doc.dui0203i/DUI0203I_rvct_developer_guide.pdf,
+ARM DUI 0203I}, the "RealView Compilation Tools Developer Guide".
+The CodeSourcery EABI toolchain also includes a semihosting library.},
+your target code can use I/O facilities on the debug host.  That library
+provides a small set of system calls which are handled by OpenOCD.
+It can let the debugger provide your system console and a file system,
+helping with early debugging or providing a more capable environment
+for sometimes-complex tasks like installing system firmware onto
+NAND or SPI flash.
+
 @item @b{ARM Wait-For-Interrupt}...
 Many ARM chips synchronize the JTAG clock using the core clock.
 Low power states which stop that core clock thus prevent JTAG access.
@@ -5675,6 +5689,7 @@ speeds, like the 32kHz startup clock of an AT91RM9200.
 @end deffn
 
 @deffn Command {arm7_9 semihosting} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
 Display status of semihosting, after optionally changing that status.
 
 Semihosting allows for code executing on an ARM target to use the
@@ -6049,8 +6064,12 @@ This finishes by listing the current vector catch configuration.
 @cindex tracing
 @cindex libdcc
 @cindex DCC
-OpenOCD can process certain requests from target software.  Currently
-@command{target_request debugmsgs}
+OpenOCD can process certain requests from target software, when
+the target uses appropriate libraries.
+The most powerful mechanism is semihosting, but there is also
+a lighter weight mechanism using only the DCC channel.
+
+Currently @command{target_request debugmsgs}
 is supported only for @option{arm7_9} and @option{cortex_m3} cores.
 These messages are received as part of target polling, so
 you need to have @command{poll on} active to receive them.
