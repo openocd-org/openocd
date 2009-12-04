@@ -38,6 +38,7 @@
 		}				\
 	} while (0)
 
+/* bits from ARMv7 DIDR */
 enum arm11_debug_version
 {
 	ARM11_DEBUG_V6			= 0x01,
@@ -95,8 +96,6 @@ enum arm11_instructions
 
 enum arm11_dscr
 {
-	ARM11_DSCR_CORE_HALTED									= 1 << 0,
-	ARM11_DSCR_CORE_RESTARTED								= 1 << 1,
 
 	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK					= 0x0F << 2,
 	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT					= 0x00 << 2,
@@ -105,20 +104,6 @@ enum arm11_dscr
 	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION		= 0x03 << 2,
 	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ					= 0x04 << 2,
 	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH			= 0x05 << 2,
-
-	ARM11_DSCR_STICKY_PRECISE_DATA_ABORT					= 1 << 6,
-	ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT					= 1 << 7,
-	ARM11_DSCR_INTERRUPTS_DISABLE							= 1 << 11,
-	ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE				= 1 << 13,
-	ARM11_DSCR_MODE_SELECT									= 1 << 14,
-	ARM11_DSCR_WDTR_FULL									= 1 << 29,
-	ARM11_DSCR_RDTR_FULL									= 1 << 30,
-};
-
-enum arm11_cpsr
-{
-	ARM11_CPSR_T				= 1 << 5,
-	ARM11_CPSR_J				= 1 << 24,
 };
 
 enum arm11_sc7
@@ -130,12 +115,6 @@ enum arm11_sc7
 	ARM11_SC7_BCR0				= 80,
 	ARM11_SC7_WVR0				= 96,
 	ARM11_SC7_WCR0				= 112,
-};
-
-struct arm11_reg_state
-{
-	uint32_t				def_index;
-	struct target *			target;
 };
 
 #endif /* ARM11_H */

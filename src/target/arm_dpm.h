@@ -141,6 +141,7 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
  */
 #define DSCR_CORE_HALTED	(1 << 0)
 #define DSCR_CORE_RESTARTED	(1 << 1)
+#define DSCR_INT_DIS		(1 << 11)
 #define DSCR_ITR_EN		(1 << 13)
 #define DSCR_HALT_DBG_MODE	(1 << 14)
 #define DSCR_MON_DBG_MODE	(1 << 15)

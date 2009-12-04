@@ -40,6 +40,10 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
+
+/* FIXME none of these flags should be global to all ARM11 cores!
+ * Most of them shouldn't exist at all, once the code works...
+ */
 static bool arm11_config_memwrite_burst = true;
 static bool arm11_config_memwrite_error_fatal = true;
 static uint32_t arm11_vcr = 0;
@@ -59,18 +63,18 @@ static int arm11_check_init(struct arm11_common *arm11)
 	CHECK_RETVAL(arm11_read_DSCR(arm11));
 	LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 
-	if (!(arm11->dscr & ARM11_DSCR_MODE_SELECT))
+	if (!(arm11->dscr & DSCR_HALT_DBG_MODE))
 	{
 		LOG_DEBUG("Bringing target into debug mode");
 
-		arm11->dscr |= ARM11_DSCR_MODE_SELECT;		/* Halt debug-mode */
+		arm11->dscr |= DSCR_HALT_DBG_MODE;
 		arm11_write_DSCR(arm11, arm11->dscr);
 
 		/* add further reset initialization here */
 
 		arm11->simulate_reset_on_next_halt = true;
 
-		if (arm11->dscr & ARM11_DSCR_CORE_HALTED)
+		if (arm11->dscr & DSCR_CORE_HALTED)
 		{
 			/** \todo TODO: this needs further scrutiny because
 			  * arm11_debug_entry() never gets called.  (WHY NOT?)
@@ -113,7 +117,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	/* See e.g. ARM1136 TRM, "14.8.4 Entering Debug state" */
 
 	/* maybe save wDTR (pending DCC write to debug SW, e.g. libdcc) */
-	arm11->is_wdtr_saved = !!(arm11->dscr & ARM11_DSCR_WDTR_FULL);
+	arm11->is_wdtr_saved = !!(arm11->dscr & DSCR_DTR_TX_FULL);
 	if (arm11->is_wdtr_saved)
 	{
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
@@ -131,15 +135,13 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 
 	}
 
-	/* DSCR: set ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE
+	/* DSCR: set the Execute ARM instruction enable bit.
 	 *
 	 * ARM1176 spec says this is needed only for wDTR/rDTR's "ITR mode",
-	 * but not to issue ITRs. ARM1136 seems to require this to issue
-	 * ITR's as well...
+	 * but not to issue ITRs(?).  The ARMv7 arch spec says it's required
+	 * for executing instructions via ITR.
 	 */
-
-	arm11_write_DSCR(arm11, ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE
-				| arm11->dscr);
+	arm11_write_DSCR(arm11, DSCR_ITR_EN | arm11->dscr);
 
 
 	/* From the spec:
@@ -188,7 +190,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 		return retval;
 
 	/* maybe save rDTR (pending DCC read from debug SW, e.g. libdcc) */
-	arm11->is_rdtr_saved = !!(arm11->dscr & ARM11_DSCR_RDTR_FULL);
+	arm11->is_rdtr_saved = !!(arm11->dscr & DSCR_DTR_RX_FULL);
 	if (arm11->is_rdtr_saved)
 	{
 		/* MRC p14,0,R0,c0,c5,0 (move rDTR -> r0 (-> wDTR -> local var)) */
@@ -248,7 +250,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	{
 		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-		if (arm11->dscr & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
+		if (arm11->dscr & (DSCR_DTR_RX_FULL | DSCR_DTR_TX_FULL))
 		{
 			/*
 			The wDTR/rDTR two registers that are used to send/receive data to/from
@@ -324,7 +326,7 @@ static int arm11_poll(struct target *target)
 
 	CHECK_RETVAL(arm11_check_init(arm11));
 
-	if (arm11->dscr & ARM11_DSCR_CORE_HALTED)
+	if (arm11->dscr & DSCR_CORE_HALTED)
 	{
 		if (target->state != TARGET_HALTED)
 		{
@@ -401,7 +403,7 @@ static int arm11_halt(struct target *target)
 	{
 		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-		if (arm11->dscr & ARM11_DSCR_CORE_HALTED)
+		if (arm11->dscr & DSCR_CORE_HALTED)
 			break;
 
 
@@ -529,7 +531,7 @@ static int arm11_resume(struct target *target, int current,
 
 		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 
-		if (arm11->dscr & ARM11_DSCR_CORE_RESTARTED)
+		if (arm11->dscr & DSCR_CORE_RESTARTED)
 			break;
 
 
@@ -674,9 +676,9 @@ static int arm11_step(struct target *target, int current,
 
 		if (arm11_config_step_irq_enable)
 			/* this disable should be redundant ... */
-			arm11->dscr &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
+			arm11->dscr &= ~DSCR_INT_DIS;
 		else
-			arm11->dscr |= ARM11_DSCR_INTERRUPTS_DISABLE;
+			arm11->dscr |= DSCR_INT_DIS;
 
 
 		CHECK_RETVAL(arm11_leave_debug_state(arm11, handle_breakpoints));
@@ -690,8 +692,8 @@ static int arm11_step(struct target *target, int current,
 
 		while (1)
 		{
-			const uint32_t mask = ARM11_DSCR_CORE_RESTARTED
-					| ARM11_DSCR_CORE_HALTED;
+			const uint32_t mask = DSCR_CORE_RESTARTED
+					| DSCR_CORE_HALTED;
 
 			CHECK_RETVAL(arm11_read_DSCR(arm11));
 			LOG_DEBUG("DSCR %08x e", (unsigned) arm11->dscr);
@@ -722,7 +724,7 @@ static int arm11_step(struct target *target, int current,
 		CHECK_RETVAL(arm11_debug_entry(arm11));
 
 		/* restore default state */
-		arm11->dscr &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
+		arm11->dscr &= ~DSCR_INT_DIS;
 
 	}
 
