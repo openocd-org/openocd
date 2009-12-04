@@ -55,7 +55,9 @@ static int dpm_mrc(struct target *target, int cpnum,
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("MRC p%d, %d, r0, c%d, c%d, %d", cpnum, op1, CRn, CRm, op2);
+	LOG_DEBUG("MRC p%d, %d, r0, c%d, c%d, %d", cpnum,
+			(int) op1, (int) CRn,
+			(int) CRm, (int) op2);
 
 	/* read coprocessor register into R0; return via DCC */
 	retval = dpm->instr_read_data_r0(dpm,
@@ -78,7 +80,9 @@ static int dpm_mcr(struct target *target, int cpnum,
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("MCR p%d, %d, r0, c%d, c%d, %d", cpnum, op1, CRn, CRm, op2);
+	LOG_DEBUG("MCR p%d, %d, r0, c%d, c%d, %d", cpnum,
+			(int) op1, (int) CRn,
+			(int) CRm, (int) op2);
 
 	/* read DCC into r0; then write coprocessor register from R0 */
 	retval = dpm->instr_write_data_r0(dpm,

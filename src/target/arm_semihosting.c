@@ -360,7 +360,8 @@ static int do_semihosting(struct target *target)
 		case 0x20028:	/* ADP_Stopped_DivisionByZero */
 		case 0x20029:	/* ADP_Stopped_OSSpecific */
 		default:
-			fprintf(stderr, "semihosting: exception %#x\n", r1);
+			fprintf(stderr, "semihosting: exception %#x\n",
+					(unsigned) r1);
 		}
 		return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
@@ -371,7 +372,8 @@ static int do_semihosting(struct target *target)
 	case 0x30:	/* SYS_ELAPSED */
 	case 0x31:	/* SYS_TICKFREQ */
 	default:
-		fprintf(stderr, "semihosting: unsupported call %#x\n", r0);
+		fprintf(stderr, "semihosting: unsupported call %#x\n",
+				(unsigned) r0);
 		result = -1;
 		semihosting_errno = ENOTSUP;
 	}
