@@ -30,7 +30,7 @@
 #include <helper/command.h>
 
 
-typedef enum armv4_5_mode
+typedef enum arm_mode
 {
 	ARM_MODE_USR = 16,
 	ARM_MODE_FIQ = 17,
@@ -41,13 +41,13 @@ typedef enum armv4_5_mode
 	ARM_MODE_UND = 27,
 	ARM_MODE_SYS = 31,
 	ARM_MODE_ANY = -1
-} armv4_5_mode_t;
+} arm_mode_t;
 
 const char *arm_mode_name(unsigned psr_mode);
 bool is_arm_mode(unsigned psr_mode);
 
-int armv4_5_mode_to_number(enum armv4_5_mode mode);
-enum armv4_5_mode armv4_5_number_to_mode(int number);
+int arm_mode_to_number(enum arm_mode mode);
+enum arm_mode armv4_5_number_to_mode(int number);
 
 typedef enum armv4_5_state
 {
@@ -62,7 +62,7 @@ extern char* armv4_5_state_strings[];
 extern const int armv4_5_core_reg_map[8][17];
 
 #define ARMV4_5_CORE_REG_MODE(cache, mode, num) \
-		cache->reg_list[armv4_5_core_reg_map[armv4_5_mode_to_number(mode)][num]]
+		cache->reg_list[armv4_5_core_reg_map[arm_mode_to_number(mode)][num]]
 
 /* offset into armv4_5 core register cache -- OBSOLETE, DO NOT USE! */
 enum { ARMV4_5_CPSR = 31, };
@@ -95,9 +95,9 @@ struct arm
 	 * seen on for example ARM7TDMI cores.  ARM_MODE_MON indicates three
 	 * more registers are shadowed, for "Secure Monitor" mode.
 	 */
-	enum armv4_5_mode core_type;
+	enum arm_mode core_type;
 
-	enum armv4_5_mode core_mode;
+	enum arm_mode core_mode;
 	enum armv4_5_state core_state;
 
 	/** Flag reporting unavailability of the BKPT instruction. */
@@ -122,9 +122,9 @@ struct arm
 
 	int (*full_context)(struct target *target);
 	int (*read_core_reg)(struct target *target, struct reg *reg,
-			int num, enum armv4_5_mode mode);
+			int num, enum arm_mode mode);
 	int (*write_core_reg)(struct target *target, struct reg *reg,
-			int num, enum armv4_5_mode mode, uint32_t value);
+			int num, enum arm_mode mode, uint32_t value);
 
 	/** Read coprocessor register.  */
 	int (*mrc)(struct target *target, int cpnum,
@@ -158,14 +158,14 @@ struct armv4_5_algorithm
 {
 	int common_magic;
 
-	enum armv4_5_mode core_mode;
+	enum arm_mode core_mode;
 	enum armv4_5_state core_state;
 };
 
 struct arm_reg
 {
 	int num;
-	enum armv4_5_mode mode;
+	enum arm_mode mode;
 	struct target *target;
 	struct arm *armv4_5_common;
 	uint32_t value;

@@ -665,7 +665,7 @@ int arm_simulate_step_core(struct target *target,
 		}
 		else
 		{
-			enum armv4_5_mode mode = sim->get_mode(sim);
+			enum arm_mode mode = sim->get_mode(sim);
 			int update_cpsr = 0;
 
 			if (instruction.info.load_store_multiple.S)
@@ -721,7 +721,7 @@ int arm_simulate_step_core(struct target *target,
 			uint32_t Rn = sim->get_reg_mode(sim,
 					instruction.info.load_store_multiple.Rn);
 			int bits_set = 0;
-			enum armv4_5_mode mode = sim->get_mode(sim);
+			enum arm_mode mode = sim->get_mode(sim);
 
 			for (i = 0; i < 16; i++)
 			{
@@ -839,7 +839,7 @@ static void armv4_5_set_state(struct arm_sim_interface *sim, enum armv4_5_state 
 }
 
 
-static enum armv4_5_mode armv4_5_get_mode(struct arm_sim_interface *sim)
+static enum arm_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 {
 	struct arm *armv4_5 = (struct arm *)sim->user_data;
 

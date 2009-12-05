@@ -163,7 +163,7 @@ bool is_arm_mode(unsigned psr_mode)
 }
 
 /** Map PSR mode bits to linear number indexing armv4_5_core_reg_map */
-int armv4_5_mode_to_number(enum armv4_5_mode mode)
+int arm_mode_to_number(enum arm_mode mode)
 {
 	switch (mode) {
 	case ARM_MODE_ANY:
@@ -191,7 +191,7 @@ int armv4_5_mode_to_number(enum armv4_5_mode mode)
 }
 
 /** Map linear number indexing armv4_5_core_reg_map to PSR mode bits. */
-enum armv4_5_mode armv4_5_number_to_mode(int number)
+enum arm_mode armv4_5_number_to_mode(int number)
 {
 	switch (number) {
 	case 0:
@@ -243,7 +243,7 @@ static const struct {
 	 * (Exception modes have both CPSR and SPSR registers ...)
 	 */
 	unsigned cookie;
-	enum armv4_5_mode mode;
+	enum arm_mode mode;
 } arm_core_regs[] = {
 	/* IMPORTANT:  we guarantee that the first eight cached registers
 	 * correspond to r0..r7, and the fifteenth to PC, so that callers
@@ -346,7 +346,7 @@ const int armv4_5_core_reg_map[8][17] =
  */
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 {
-	enum armv4_5_mode mode = cpsr & 0x1f;
+	enum arm_mode mode = cpsr & 0x1f;
 	int num;
 
 	/* NOTE:  this may be called very early, before the register
@@ -362,7 +362,7 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 	arm->core_mode = mode;
 
 	/* mode_to_number() warned; set up a somewhat-sane mapping */
-	num = armv4_5_mode_to_number(mode);
+	num = arm_mode_to_number(mode);
 	if (num < 0) {
 		mode = ARM_MODE_USR;
 		num = 0;
@@ -512,7 +512,7 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 		 * it won't hurt since CPSR is always flushed anyway.
 		 */
 		if (armv4_5_target->core_mode !=
-				(enum armv4_5_mode)(value & 0x1f)) {
+				(enum arm_mode)(value & 0x1f)) {
 			LOG_DEBUG("changing ARM core mode to '%s'",
 					arm_mode_name(value & 0x1f));
 			value &= ~((1 << 24) | (1 << 5));

@@ -1582,7 +1582,7 @@ int arm7_9_restore_context(struct target *target)
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	struct reg *reg;
 	struct arm_reg *reg_arch_info;
-	enum armv4_5_mode current_mode = armv4_5->core_mode;
+	enum arm_mode current_mode = armv4_5->core_mode;
 	int i, j;
 	int dirty;
 	int mode_change;
@@ -2093,7 +2093,7 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 }
 
 static int arm7_9_read_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode)
+		int num, enum arm_mode mode)
 {
 	uint32_t* reg_p[16];
 	uint32_t value;
@@ -2157,7 +2157,7 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 }
 
 static int arm7_9_write_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode, uint32_t value)
+		int num, enum arm_mode mode, uint32_t value)
 {
 	uint32_t reg[16];
 	struct arm_reg *areg = r->arch_info;

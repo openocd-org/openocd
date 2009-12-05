@@ -1658,7 +1658,7 @@ static int xscale_deassert_reset(struct target *target)
 }
 
 static int xscale_read_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode)
+		int num, enum arm_mode mode)
 {
 	/** \todo add debug handler support for core register reads */
 	LOG_ERROR("not implemented");
@@ -1666,7 +1666,7 @@ static int xscale_read_core_reg(struct target *target, struct reg *r,
 }
 
 static int xscale_write_core_reg(struct target *target, struct reg *r,
-		int num, enum armv4_5_mode mode, uint32_t value)
+		int num, enum arm_mode mode, uint32_t value)
 {
 	/** \todo add debug handler support for core register writes */
 	LOG_ERROR("not implemented");
@@ -1697,7 +1697,7 @@ static int xscale_full_context(struct target *target)
 	 */
 	for (i = 1; i < 7; i++)
 	{
-		enum armv4_5_mode mode = armv4_5_number_to_mode(i);
+		enum arm_mode mode = armv4_5_number_to_mode(i);
 		bool valid = true;
 		struct reg *r;
 
@@ -1774,7 +1774,7 @@ static int xscale_restore_banked(struct target *target)
 	 */
 	for (i = 1; i < 7; i++)
 	{
-		enum armv4_5_mode mode = armv4_5_number_to_mode(i);
+		enum arm_mode mode = armv4_5_number_to_mode(i);
 		struct reg *r;
 
 		if (mode == ARM_MODE_USR)

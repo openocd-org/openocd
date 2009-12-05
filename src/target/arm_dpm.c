@@ -102,7 +102,7 @@ static int dpm_mcr(struct target *target, int cpnum,
 /* Toggles between recorded core mode (USR, SVC, etc) and a temporary one.
  * Routines *must* restore the original mode before returning!!
  */
-static int dpm_modeswitch(struct arm_dpm *dpm, enum armv4_5_mode mode)
+static int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 {
 	int retval;
 	uint32_t cpsr;
@@ -348,7 +348,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * actually find anything to do...
 	 */
 	do {
-		enum armv4_5_mode mode = ARM_MODE_ANY;
+		enum arm_mode mode = ARM_MODE_ANY;
 
 		did_write = false;
 
@@ -370,7 +370,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 			/* may need to pick and set a mode */
 			if (!did_write) {
-				enum armv4_5_mode tmode;
+				enum arm_mode tmode;
 
 				did_write = true;
 				mode = tmode = r->mode;
@@ -432,10 +432,10 @@ done:
  * Caller already filtered out SPSR access; mode is never MODE_SYS
  * or MODE_ANY.
  */
-static enum armv4_5_mode dpm_mapmode(struct arm *arm,
-		unsigned num, enum armv4_5_mode mode)
+static enum arm_mode dpm_mapmode(struct arm *arm,
+		unsigned num, enum arm_mode mode)
 {
-	enum armv4_5_mode amode = arm->core_mode;
+	enum arm_mode amode = arm->core_mode;
 
 	/* don't switch if the mode is already correct */
 	if (amode == ARM_MODE_SYS)
@@ -473,7 +473,7 @@ static enum armv4_5_mode dpm_mapmode(struct arm *arm,
  */
 
 static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
-		int regnum, enum armv4_5_mode mode)
+		int regnum, enum arm_mode mode)
 {
 	struct arm_dpm *dpm = target_to_arm(target)->dpm;
 	int retval;
@@ -513,7 +513,7 @@ fail:
 }
 
 static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
-		int regnum, enum armv4_5_mode mode, uint32_t value)
+		int regnum, enum arm_mode mode, uint32_t value)
 {
 	struct arm_dpm *dpm = target_to_arm(target)->dpm;
 	int retval;
@@ -566,7 +566,7 @@ static int arm_dpm_full_context(struct target *target)
 		goto done;
 
 	do {
-		enum armv4_5_mode mode = ARM_MODE_ANY;
+		enum arm_mode mode = ARM_MODE_ANY;
 
 		did_read = false;
 

@@ -118,14 +118,14 @@ struct armv7a_algorithm
 {
 	int common_magic;
 
-	enum armv4_5_mode core_mode;
+	enum arm_mode core_mode;
 	enum armv4_5_state core_state;
 };
 
 struct armv7a_core_reg
 {
 	int num;
-	enum armv4_5_mode mode;
+	enum arm_mode mode;
 	struct target *target;
 	struct armv7a_common *armv7a_common;
 };
