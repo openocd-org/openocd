@@ -19,7 +19,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <flash/nor/core.h>
+#include "imp.h"
 
 extern struct flash_driver lpc2000_flash;
 extern struct flash_driver lpc288x_flash;

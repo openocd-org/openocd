@@ -34,6 +34,7 @@ noinst_HEADERS = \
 	avrf.h \
 	core.h \
 	cfi.h \
+	driver.h \
 	imp.h \
 	lpc2000.h \
 	lpc288x.h \

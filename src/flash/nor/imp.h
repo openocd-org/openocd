@@ -21,6 +21,7 @@
 
 // this is an internal header
 #include "core.h"
+#include "driver.h"
 // common flash internals
 #include <flash/common.h>
 // almost all drivers will need this file
