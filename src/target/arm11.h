@@ -53,9 +53,10 @@ struct arm11_common
 
 	/** Debug module state. */
 	struct arm_dpm dpm;
+	struct arm11_sc7_action *bpwp_actions;
+	unsigned bpwp_n;
 
 	size_t	brp;			/**< Number of Breakpoint Register Pairs from DIDR	*/
-	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
 	size_t	free_brps;		/**< Number of breakpoints allocated */
 
 	uint32_t dscr;			/**< Last retrieved DSCR value. */

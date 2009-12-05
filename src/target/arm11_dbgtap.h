@@ -59,5 +59,6 @@ int arm11_read_memory_word(struct arm11_common *arm11,
 		uint32_t address, uint32_t *result);
 
 int arm11_dpm_init(struct arm11_common *arm11, uint32_t didr);
+int arm11_bpwp_flush(struct arm11_common *arm11);
 
 #endif // ARM11_DBGTAP_H

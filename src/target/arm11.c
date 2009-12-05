@@ -286,6 +286,8 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	 */
 	retval = arm_dpm_write_dirty_registers(&arm11->dpm, bpwp);
 
+	retval = arm11_bpwp_flush(arm11);
+
 	register_cache_invalidate(arm11->arm.core_cache);
 
 	/* restore DSCR */
@@ -1212,7 +1214,6 @@ static int arm11_examine(struct target *target)
 	}
 
 	arm11->brp = ((didr >> 24) & 0x0F) + 1;
-	arm11->wrp = ((didr >> 28) & 0x0F) + 1;
 
 	/** \todo TODO: reserve one brp slot if we allow breakpoints during step */
 	arm11->free_brps = arm11->brp;

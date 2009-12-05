@@ -892,7 +892,7 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
  */
 void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 {
-	size_t clear_bw_size = arm11->brp + arm11->wrp + 1;
+	size_t clear_bw_size = arm11->brp + 1;
 	struct arm11_sc7_action		*clear_bw = malloc(sizeof(struct arm11_sc7_action) * clear_bw_size);
 	struct arm11_sc7_action *	pos = clear_bw;
 
@@ -904,11 +904,6 @@ void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 
 	for (size_t i = 0; i < arm11->brp; i++)
 		(pos++)->address = ARM11_SC7_BCR0 + i;
-
-
-	for (size_t i = 0; i < arm11->wrp; i++)
-		(pos++)->address = ARM11_SC7_WCR0 + i;
-
 
 	(pos++)->address = ARM11_SC7_VCR;
 
@@ -1013,6 +1008,88 @@ static int arm11_dpm_instr_read_data_r0(struct arm_dpm *dpm,
 			opcode, data);
 }
 
+/* Because arm11_sc7_run() takes a vector of actions, we batch breakpoint
+ * and watchpoint operations instead of running them right away.  Since we
+ * pre-allocated our vector, we don't need to worry about space.
+ */
+static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index,
+		uint32_t addr, uint32_t control)
+{
+	struct arm11_common *arm11 = dpm_to_arm11(dpm);
+	struct arm11_sc7_action *action;
+
+	action = arm11->bpwp_actions + arm11->bpwp_n;
+
+	/* Invariant:  this bp/wp is disabled.
+	 * It also happens that the core is halted here, but for
+	 * DPM-based cores we don't actually care about that.
+	 */
+
+	action[0].write = action[1].write = true;
+
+	action[0].value = addr;
+	action[1].value = control;
+
+	switch (index) {
+	case 0 ... 15:
+		action[0].address = ARM11_SC7_BVR0 + index;
+		action[1].address = ARM11_SC7_BCR0 + index;
+		break;
+	case 16 ... 32:
+		index -= 16;
+		action[0].address = ARM11_SC7_WVR0 + index;
+		action[1].address = ARM11_SC7_WCR0 + index;
+		break;
+	default:
+		return ERROR_FAIL;
+	}
+
+	arm11->bpwp_n += 2;
+
+	return ERROR_OK;
+}
+
+static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned index)
+{
+	struct arm11_common *arm11 = dpm_to_arm11(dpm);
+	struct arm11_sc7_action *action;
+
+	action = arm11->bpwp_actions + arm11->bpwp_n;
+
+	action[0].write = true;
+	action[0].value = 0;
+
+	switch (index) {
+	case 0 ... 15:
+		action[0].address = ARM11_SC7_BCR0 + index;
+		break;
+	case 16 ... 32:
+		index -= 16;
+		action[0].address = ARM11_SC7_WCR0 + index;
+		break;
+	default:
+		return ERROR_FAIL;
+	}
+
+	arm11->bpwp_n += 1;
+
+	return ERROR_OK;
+}
+
+/** Flush any pending breakpoint and watchpoint updates. */
+int arm11_bpwp_flush(struct arm11_common *arm11)
+{
+	int retval;
+
+	if (!arm11->bpwp_n)
+		return ERROR_OK;
+
+	retval = arm11_sc7_run(arm11, arm11->bpwp_actions, arm11->bpwp_n);
+	arm11->bpwp_n = 0;
+
+	return retval;
+}
+
 /** Set up high-level debug module utilities */
 int arm11_dpm_init(struct arm11_common *arm11, uint32_t didr)
 {
@@ -1032,11 +1109,22 @@ int arm11_dpm_init(struct arm11_common *arm11, uint32_t didr)
 	dpm->instr_read_data_dcc = arm11_dpm_instr_read_data_dcc;
 	dpm->instr_read_data_r0 = arm11_dpm_instr_read_data_r0;
 
+	dpm->bpwp_enable = arm11_bpwp_enable;
+	dpm->bpwp_disable = arm11_bpwp_disable;
+
 	retval = arm_dpm_setup(dpm);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = arm_dpm_initialize(dpm);
+	/* alloc enough to enable all breakpoints and watchpoints at once */
+	arm11->bpwp_actions = calloc(2 * (dpm->nbp + dpm->nwp),
+			sizeof *arm11->bpwp_actions);
+	if (!arm11->bpwp_actions)
+		return ERROR_FAIL;
 
-	return retval;
+	retval = arm_dpm_initialize(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return arm11_bpwp_flush(arm11);
 }

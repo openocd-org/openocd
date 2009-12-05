@@ -24,10 +24,12 @@ Target Layer:
 		- accelerated GDB memory checksum
 		- support "arm regs" command
 		- can access all core modes and registers
+		- watchpoint support
 	Cortex-A8
 		- support "arm regs" command
 		- can access all core modes and registers
 		- supports "reset-assert" event (used on OMAP3530)
+		- watchpoint support
 	Cortex-M3
 		- Exposed DWT registers like cycle counter
 
