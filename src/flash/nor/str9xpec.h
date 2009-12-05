@@ -23,8 +23,6 @@
 #ifndef STR9XPEC_H
 #define STR9XPEC_H
 
-#include <flash/flash.h>
-#include <jtag/jtag.h>
 
 struct str9xpec_flash_controller
 {

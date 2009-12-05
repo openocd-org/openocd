@@ -20,8 +20,6 @@
 #ifndef NON_CFI_H
 #define NON_CFI_H
 
-#include <flash/flash.h>
-
 struct non_cfi
 {
 	uint16_t mfr;

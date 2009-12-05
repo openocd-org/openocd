@@ -31,7 +31,7 @@
 #include <target/target_request.h>
 #include <target/register.h>
 #include "server.h"
-#include <flash/flash.h>
+#include <flash/nor/core.h>
 #include "gdb_server.h"
 #include <target/image.h>
 #include <jtag/jtag.h>

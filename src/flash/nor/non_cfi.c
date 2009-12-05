@@ -23,8 +23,9 @@
 #include "config.h"
 #endif
 
-#include "non_cfi.h"
+#include "imp.h"
 #include "cfi.h"
+#include "non_cfi.h"
 
 
 #define KB 1024

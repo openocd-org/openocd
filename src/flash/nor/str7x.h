@@ -23,8 +23,6 @@
 #ifndef STR7X_H
 #define STR7X_H
 
-#include <flash/flash.h>
-
 struct str7x_flash_bank
 {
 	uint32_t *sector_bits;

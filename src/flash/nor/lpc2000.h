@@ -23,8 +23,6 @@
 #ifndef LPC2000_H
 #define LPC2000_H
 
-#include <flash/flash.h>
-
 typedef enum
 {
 	lpc2000_v1,

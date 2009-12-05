@@ -23,8 +23,6 @@
 #ifndef STM32X_H
 #define STM32X_H
 
-#include <flash/flash.h>
-
 struct stm32x_options
 {
 	uint16_t RDP;

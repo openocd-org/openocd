@@ -22,7 +22,6 @@ libflash_la_LIBADD = \
 noinst_HEADERS = \
 	arm_nandio.h \
 	common.h \
-	flash.h \
 	mflash.h \
 	nand.h
 

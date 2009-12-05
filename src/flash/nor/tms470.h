@@ -20,8 +20,6 @@
 #ifndef TMS470_DOT_H
 #define TMS470_DOT_H
 
-#include <flash/flash.h>
-
 struct tms470_flash_bank
 {
 	unsigned ordinal;

@@ -21,8 +21,6 @@
 #ifndef lpc288x_H
 #define lpc288x_H
 
-#include <flash/flash.h>
-
 struct lpc288x_flash_bank
 {
 	uint32_t working_area;

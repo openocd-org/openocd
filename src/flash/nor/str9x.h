@@ -23,8 +23,6 @@
 #ifndef STR9X_H
 #define STR9X_H
 
-#include <flash/flash.h>
-
 struct str9x_flash_bank
 {
 	uint32_t *sector_bits;

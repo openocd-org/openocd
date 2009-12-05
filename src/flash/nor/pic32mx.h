@@ -26,8 +26,6 @@
 #ifndef PIC32MX_H
 #define PIC32MX_H
 
-#include <flash/flash.h>
-
 struct pic32mx_flash_bank
 {
 	struct working_area *write_algorithm;

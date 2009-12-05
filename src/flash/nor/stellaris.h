@@ -20,8 +20,6 @@
 #ifndef STELLARIS_FLASH_H
 #define STELLARIS_FLASH_H
 
-#include <flash/flash.h>
-
 struct stellaris_flash_bank
 {
 	/* chip id register */
