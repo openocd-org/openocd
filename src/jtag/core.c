@@ -762,8 +762,7 @@ static int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value,
 		uint8_t *in_check_mask, int num_bits)
 {
 	int retval = ERROR_OK;
-
-	int compare_failed = 0;
+	int compare_failed;
 
 	if (in_check_mask)
 		compare_failed = buf_cmp_mask(captured, in_check_value, in_check_mask, num_bits);

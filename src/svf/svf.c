@@ -1350,12 +1350,9 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 					return ERROR_FAIL;
 				}
 			}
-			// no need to keep this memory, in jtag_add_pathmove, path will be duplicated
-			if (NULL != path)
-			{
-				free(path);
-				path = NULL;
-			}
+
+			free(path);
+			path = NULL;
 		}
 		else
 		{

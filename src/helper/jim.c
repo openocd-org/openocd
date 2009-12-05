@@ -6077,7 +6077,7 @@ int SetIndexFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
             index = INT_MAX;
         else
             index = -(index + 1);
-    } else if (!end && index < 0)
+    } else if (index < 0)
         index = -INT_MAX;
     /* Free the old internal repr and set the new one. */
     Jim_FreeIntRep(interp, objPtr);
@@ -7063,7 +7063,6 @@ trydouble:
                     "Got floating-point value where integer was expected", -1);
                 error = 1;
                 goto err;
-                break;
             case JIM_EXPROP_ADD: dC = dA + dB; break;
             case JIM_EXPROP_SUB: dC = dA-dB; break;
             case JIM_EXPROP_MUL: dC = dA*dB; break;
@@ -7071,6 +7070,7 @@ trydouble:
             case JIM_EXPROP_GT: dC = dA > dB; break;
             case JIM_EXPROP_LTE: dC = dA <= dB; break;
             case JIM_EXPROP_GTE: dC = dA >= dB; break;
+	    /* FIXME comparing floats for equality/inequality is bad juju */
             case JIM_EXPROP_NUMEQ: dC = dA == dB; break;
             case JIM_EXPROP_NUMNE: dC = dA != dB; break;
             case JIM_EXPROP_LOGICAND_LEFT:
@@ -9889,8 +9889,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
                         Jim_GetWide(interp, objPtr, &wideValueB) != JIM_OK)
                     {
                         Jim_DecrRefCount(interp, varAObjPtr);
-                        if (varBObjPtr)
-                            Jim_DecrRefCount(interp, varBObjPtr);
+                        Jim_DecrRefCount(interp, varBObjPtr);
                         goto noopt;
                     }
                 }

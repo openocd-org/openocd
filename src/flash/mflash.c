@@ -342,7 +342,8 @@ static int mg_dsk_drv_info(void)
 	if ((ret =  mg_dsk_io_cmd(0, 1, mg_io_cmd_identify)) != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_wait(mg_io_wait_drq, MG_OEM_DISK_WAIT_TIME_NORMAL)) != ERROR_OK)
+	ret = mg_dsk_wait(mg_io_wait_drq, MG_OEM_DISK_WAIT_TIME_NORMAL);
+	if (ret != ERROR_OK)
 		return ret;
 
 	LOG_INFO("mflash: read drive info");
@@ -350,7 +351,8 @@ static int mg_dsk_drv_info(void)
 	if (! mflash_bank->drv_info)
 		mflash_bank->drv_info = malloc(sizeof(struct mg_drv_info));
 
-	target_read_memory(target, mg_buff, 2, sizeof(mg_io_type_drv_info) >> 1,
+	ret = target_read_memory(target, mg_buff, 2,
+			sizeof(mg_io_type_drv_info) >> 1,
 			(uint8_t *)&mflash_bank->drv_info->drv_id);
 	if (ret != ERROR_OK)
 		return ret;
