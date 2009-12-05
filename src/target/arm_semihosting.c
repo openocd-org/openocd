@@ -379,15 +379,22 @@ static int do_semihosting(struct target *target)
 	}
 
 	/* resume execution to the original mode */
+
+	/* return value in R0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, result);
 	armv4_5->core_cache->reg_list[0].dirty = 1;
+
+	/* LR --> PC */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, lr);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
-	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, spsr);
-	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
+
+	/* saved PSR --> current PSR */
+	buf_set_u32(armv4_5->cpsr->value, 0, 32, spsr);
+	armv4_5->cpsr->dirty = 1;
 	armv4_5->core_mode = spsr & 0x1f;
 	if (spsr & 0x20)
 		armv4_5->core_state = ARM_STATE_THUMB;
+
 	return target_resume(target, 1, 0, 0, 0);
 }
 

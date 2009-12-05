@@ -164,7 +164,7 @@ struct etm_context
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
 	etm_portmode_t portmode;	/* normal, multiplexed or demultiplexed */
 	etmv1_tracemode_t tracemode;	/* type of info trace contains */
-	int /*arm_state_t*/ core_state;	/* current core state */
+	int /*arm_state*/ core_state;	/* current core state */
 	struct image *image;		/* source for target opcodes */
 	uint32_t pipe_index;		/* current trace cycle */
 	uint32_t data_index;		/* cycle holding next data packet */

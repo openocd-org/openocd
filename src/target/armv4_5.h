@@ -30,8 +30,11 @@
 #include <helper/command.h>
 
 
-typedef enum arm_mode
-{
+/* These numbers match the five low bits of the *PSR registers on
+ * "classic ARM" processors, which build on the ARMv4 processor
+ * modes and register set.
+ */
+enum arm_mode {
 	ARM_MODE_USR = 16,
 	ARM_MODE_FIQ = 17,
 	ARM_MODE_IRQ = 18,
@@ -41,23 +44,28 @@ typedef enum arm_mode
 	ARM_MODE_UND = 27,
 	ARM_MODE_SYS = 31,
 	ARM_MODE_ANY = -1
-} arm_mode_t;
+};
 
 const char *arm_mode_name(unsigned psr_mode);
 bool is_arm_mode(unsigned psr_mode);
 
-int arm_mode_to_number(enum arm_mode mode);
-enum arm_mode armv4_5_number_to_mode(int number);
-
-typedef enum arm_state
-{
+/* The PSR "T" and "J" bits define the mode of "classic ARM" cores */
+enum arm_state {
 	ARM_STATE_ARM,
 	ARM_STATE_THUMB,
 	ARM_STATE_JAZELLE,
 	ARM_STATE_THUMB_EE,
-} arm_state_t;
+};
 
 extern const char *arm_state_strings[];
+
+/* OBSOLETE, DO NOT USE IN NEW CODE!  The "number" of an arm_mode is an
+ * index into the armv4_5_core_reg_map array.  Its remaining users are
+ * remnants which could as easily walk * the register cache directly as
+ * use the expensive ARMV4_5_CORE_REG_MODE() macro.
+ */
+int arm_mode_to_number(enum arm_mode mode);
+enum arm_mode armv4_5_number_to_mode(int number);
 
 extern const int armv4_5_core_reg_map[8][17];
 
