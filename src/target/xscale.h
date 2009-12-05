@@ -79,7 +79,7 @@ struct xscale_trace
 	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */
 	int pc_ok;
 	uint32_t current_pc;
-	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
+	arm_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
 };
 
 struct xscale_common

@@ -49,15 +49,15 @@ bool is_arm_mode(unsigned psr_mode);
 int arm_mode_to_number(enum arm_mode mode);
 enum arm_mode armv4_5_number_to_mode(int number);
 
-typedef enum armv4_5_state
+typedef enum arm_state
 {
 	ARM_STATE_ARM,
 	ARM_STATE_THUMB,
 	ARM_STATE_JAZELLE,
 	ARM_STATE_THUMB_EE,
-} armv4_5_state_t;
+} arm_state_t;
 
-extern char* armv4_5_state_strings[];
+extern const char *arm_state_strings[];
 
 extern const int armv4_5_core_reg_map[8][17];
 
@@ -98,7 +98,7 @@ struct arm
 	enum arm_mode core_type;
 
 	enum arm_mode core_mode;
-	enum armv4_5_state core_state;
+	enum arm_state core_state;
 
 	/** Flag reporting unavailability of the BKPT instruction. */
 	bool is_armv4;
@@ -159,7 +159,7 @@ struct armv4_5_algorithm
 	int common_magic;
 
 	enum arm_mode core_mode;
-	enum armv4_5_state core_state;
+	enum arm_state core_state;
 };
 
 struct arm_reg

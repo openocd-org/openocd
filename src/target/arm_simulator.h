@@ -32,8 +32,8 @@ struct arm_sim_interface
 	uint32_t (*get_reg_mode)(struct arm_sim_interface *sim, int reg);
 	void (*set_reg_mode)(struct arm_sim_interface *sim, int reg, uint32_t value);
 	uint32_t (*get_cpsr)(struct arm_sim_interface *sim, int pos, int bits);
-	enum armv4_5_state (*get_state)(struct arm_sim_interface *sim);
-	void (*set_state)(struct arm_sim_interface *sim, enum armv4_5_state mode);
+	enum arm_state (*get_state)(struct arm_sim_interface *sim);
+	void (*set_state)(struct arm_sim_interface *sim, enum arm_state mode);
 	enum arm_mode (*get_mode)(struct arm_sim_interface *sim);
 };
 

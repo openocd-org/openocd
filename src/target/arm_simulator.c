@@ -824,14 +824,14 @@ static uint32_t armv4_5_get_cpsr(struct arm_sim_interface *sim, int pos, int bit
 	return buf_get_u32(armv4_5->cpsr->value, pos, bits);
 }
 
-static enum armv4_5_state armv4_5_get_state(struct arm_sim_interface *sim)
+static enum arm_state armv4_5_get_state(struct arm_sim_interface *sim)
 {
 	struct arm *armv4_5 = (struct arm *)sim->user_data;
 
 	return armv4_5->core_state;
 }
 
-static void armv4_5_set_state(struct arm_sim_interface *sim, enum armv4_5_state mode)
+static void armv4_5_set_state(struct arm_sim_interface *sim, enum arm_state mode)
 {
 	struct arm *armv4_5 = (struct arm *)sim->user_data;
 

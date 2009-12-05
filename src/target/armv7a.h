@@ -119,7 +119,7 @@ struct armv7a_algorithm
 	int common_magic;
 
 	enum arm_mode core_mode;
-	enum armv4_5_state core_state;
+	enum arm_state core_state;
 };
 
 struct armv7a_core_reg

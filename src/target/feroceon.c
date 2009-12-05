@@ -455,7 +455,7 @@ int feroceon_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	int retval;
 	struct arm *armv4_5 = target->arch_info;
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
-	enum armv4_5_state core_state = armv4_5->core_state;
+	enum arm_state core_state = armv4_5->core_state;
 	uint32_t x, flip, shift, save[7];
 	uint32_t i;
 

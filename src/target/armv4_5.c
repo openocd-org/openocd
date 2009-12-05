@@ -216,7 +216,7 @@ enum arm_mode armv4_5_number_to_mode(int number)
 	}
 }
 
-char* armv4_5_state_strings[] =
+const char *arm_state_strings[] =
 {
 	"ARM", "Thumb", "Jazelle", "ThumbEE",
 };
@@ -374,7 +374,7 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 			: arm->core_cache->reg_list + arm->map[16];
 
 	/* Older ARMs won't have the J bit */
-	enum armv4_5_state state;
+	enum arm_state state;
 
 	if (cpsr & (1 << 5)) {	/* T */
 		if (cpsr & (1 << 24)) {	/* J */
@@ -393,7 +393,7 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 
 	LOG_DEBUG("set CPSR %#8.8x: %s mode, %s state", (unsigned) cpsr,
 			arm_mode_name(mode),
-			armv4_5_state_strings[arm->core_state]);
+			arm_state_strings[arm->core_state]);
 }
 
 /**
@@ -593,7 +593,7 @@ int armv4_5_arch_state(struct target *target)
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "%s",
-			 armv4_5_state_strings[armv4_5->core_state],
+			 arm_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 					target->debug_reason)->name,
 			 arm_mode_name(armv4_5->core_mode),
@@ -718,7 +718,7 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 		}
 	}
 
-	command_print(CMD_CTX, "core state: %s", armv4_5_state_strings[armv4_5->core_state]);
+	command_print(CMD_CTX, "core state: %s", arm_state_strings[armv4_5->core_state]);
 
 	return ERROR_OK;
 }
@@ -1038,7 +1038,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 {
 	struct arm *armv4_5 = target_to_armv4_5(target);
 	struct armv4_5_algorithm *armv4_5_algorithm_info = arch_info;
-	enum armv4_5_state core_state = armv4_5->core_state;
+	enum arm_state core_state = armv4_5->core_state;
 	uint32_t context[17];
 	uint32_t cpsr;
 	int exit_breakpoint_size = 0;
