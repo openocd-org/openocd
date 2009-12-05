@@ -26,7 +26,7 @@
 #include "config.h"
 #endif
 
-#include <flash/arm_nandio.h>
+#include "arm_io.h"
 #include <target/armv4_5.h>
 
 

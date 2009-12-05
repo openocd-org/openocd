@@ -9,9 +9,6 @@ METASOURCES = AUTO
 noinst_LTLIBRARIES = libflash.la
 libflash_la_SOURCES = \
 	common.c \
-	arm_nandio.c \
-	nand_ecc.c \
-	nand_ecc_kw.c \
 	mflash.c
 
 libflash_la_LIBADD = \
@@ -19,7 +16,6 @@ libflash_la_LIBADD = \
 	$(top_builddir)/src/flash/nand/libocdflashnand.la
 
 noinst_HEADERS = \
-	arm_nandio.h \
 	common.h \
 	mflash.h \
 	nand.h

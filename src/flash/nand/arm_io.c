@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include "arm_nandio.h"
+#include "arm_io.h"
 #include <target/armv4_5.h>
 #include <target/algorithm.h>
 

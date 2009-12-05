@@ -41,7 +41,7 @@
 #include "config.h"
 #endif
 
-#include "nand.h"
+#include <flash/nand.h>
 
 /*
  * Pre-calculated 256-way 1 byte column parity
