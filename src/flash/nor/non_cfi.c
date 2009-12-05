@@ -281,6 +281,23 @@ static struct non_cfi non_cfi_flashes[] = {
 		}
 	},
 	{
+		.mfr = CFI_MFR_FUJITSU,
+		.id = 0xba,				/* 29LV400BC */
+		.pri_id = 0x02,
+		.dev_size = 512*KB,
+		.interface_desc = 0x1,		/* x8 or x16 device w/ nBYTE */
+		.max_buf_write_size = 0x00,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 32*KB),
+			ERASE_REGION(7, 64*KB)
+		}
+	},
+	{
 		.mfr = CFI_MFR_AMIC,
 		.id = 0xb31a,				/* A29L800A */
 		.pri_id = 0x02,
