@@ -410,7 +410,7 @@ static int str9x_write_block(struct flash_bank *bank,
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);

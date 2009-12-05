@@ -1211,7 +1211,7 @@ int arm7_9_soft_reset_halt(struct target *target)
 		uint32_t r0_thumb, pc_thumb;
 		LOG_DEBUG("target entered debug from Thumb state, changing to ARM");
 		/* Entered debug from Thumb mode */
-		armv4_5->core_state = ARMV4_5_STATE_THUMB;
+		armv4_5->core_state = ARM_STATE_THUMB;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
 	}
 
@@ -1373,7 +1373,7 @@ static int arm7_9_debug_entry(struct target *target)
 	{
 		LOG_DEBUG("target entered debug from Thumb state");
 		/* Entered debug from Thumb mode */
-		armv4_5->core_state = ARMV4_5_STATE_THUMB;
+		armv4_5->core_state = ARM_STATE_THUMB;
 		cpsr_mask = 1 << 5;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
 		LOG_DEBUG("r0_thumb: 0x%8.8" PRIx32
@@ -1385,13 +1385,13 @@ static int arm7_9_debug_entry(struct target *target)
 		 * B.7.3 for the reverse.  That'd be the bare minimum...
 		 */
 		LOG_DEBUG("target entered debug from Jazelle state");
-		armv4_5->core_state = ARMV4_5_STATE_JAZELLE;
+		armv4_5->core_state = ARM_STATE_JAZELLE;
 		cpsr_mask = 1 << 24;
 		LOG_ERROR("Jazelle debug entry -- BROKEN!");
 	} else {
 		LOG_DEBUG("target entered debug from ARM state");
 		/* Entered debug from ARM mode */
-		armv4_5->core_state = ARMV4_5_STATE_ARM;
+		armv4_5->core_state = ARM_STATE_ARM;
 	}
 
 	for (i = 0; i < 16; i++)
@@ -1419,21 +1419,21 @@ static int arm7_9_debug_entry(struct target *target)
 	LOG_DEBUG("target entered debug state in %s mode",
 			 arm_mode_name(armv4_5->core_mode));
 
-	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+	if (armv4_5->core_state == ARM_STATE_THUMB)
 	{
 		LOG_DEBUG("thumb state, applying fixups");
 		context[0] = r0_thumb;
 		context[15] = pc_thumb;
-	} else if (armv4_5->core_state == ARMV4_5_STATE_ARM)
+	} else if (armv4_5->core_state == ARM_STATE_ARM)
 	{
 		/* adjust value stored by STM */
 		context[15] -= 3 * 4;
 	}
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ) || (!arm7_9->use_dbgrq))
-		context[15] -= 3 * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
+		context[15] -= 3 * ((armv4_5->core_state == ARM_STATE_ARM) ? 4 : 2);
 	else
-		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
+		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARM_STATE_ARM) ? 4 : 2);
 
 	for (i = 0; i <= 15; i++)
 	{
@@ -1846,9 +1846,9 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 				return retval;
 			}
 
-			if (armv4_5->core_state == ARMV4_5_STATE_ARM)
+			if (armv4_5->core_state == ARM_STATE_ARM)
 				arm7_9->branch_resume(target);
-			else if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+			else if (armv4_5->core_state == ARM_STATE_THUMB)
 			{
 				arm7_9->branch_resume_thumb(target);
 			}
@@ -1895,11 +1895,11 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 		return retval;
 	}
 
-	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
+	if (armv4_5->core_state == ARM_STATE_ARM)
 	{
 		arm7_9->branch_resume(target);
 	}
-	else if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+	else if (armv4_5->core_state == ARM_STATE_THUMB)
 	{
 		arm7_9->branch_resume_thumb(target);
 	}
@@ -2046,11 +2046,11 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 
 	arm7_9->enable_single_step(target, next_pc);
 
-	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
+	if (armv4_5->core_state == ARM_STATE_ARM)
 	{
 		arm7_9->branch_resume(target);
 	}
-	else if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+	else if (armv4_5->core_state == ARM_STATE_THUMB)
 	{
 		arm7_9->branch_resume_thumb(target);
 	}
@@ -2698,7 +2698,7 @@ int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t c
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
 

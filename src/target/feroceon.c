@@ -524,7 +524,7 @@ int feroceon_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, address);
 	armv4_5->core_cache->reg_list[0].valid = 1;
 	armv4_5->core_cache->reg_list[0].dirty = 1;
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
+	armv4_5->core_state = ARM_STATE_ARM;
 
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], 0);
 	arm7_9_resume(target, 0, arm7_9->dcc_working_area->address, 1, 1);

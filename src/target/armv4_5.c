@@ -381,13 +381,13 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 			LOG_WARNING("ThumbEE -- incomplete support");
 			state = ARM_STATE_THUMB_EE;
 		} else
-			state = ARMV4_5_STATE_THUMB;
+			state = ARM_STATE_THUMB;
 	} else {
 		if (cpsr & (1 << 24)) {	/* J */
 			LOG_ERROR("Jazelle state handling is BROKEN!");
-			state = ARMV4_5_STATE_JAZELLE;
+			state = ARM_STATE_JAZELLE;
 		} else
-			state = ARMV4_5_STATE_ARM;
+			state = ARM_STATE_ARM;
 	}
 	arm->core_state = state;
 
@@ -710,11 +710,11 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 	{
 		if (strcmp(CMD_ARGV[0], "arm") == 0)
 		{
-			armv4_5->core_state = ARMV4_5_STATE_ARM;
+			armv4_5->core_state = ARM_STATE_ARM;
 		}
 		if (strcmp(CMD_ARGV[0], "thumb") == 0)
 		{
-			armv4_5->core_state = ARMV4_5_STATE_THUMB;
+			armv4_5->core_state = ARM_STATE_THUMB;
 		}
 	}
 
@@ -1115,9 +1115,9 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	}
 
 	armv4_5->core_state = armv4_5_algorithm_info->core_state;
-	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
+	if (armv4_5->core_state == ARM_STATE_ARM)
 		exit_breakpoint_size = 4;
-	else if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+	else if (armv4_5->core_state == ARM_STATE_THUMB)
 		exit_breakpoint_size = 2;
 	else
 	{
@@ -1275,7 +1275,7 @@ int arm_checksum_memory(struct target *target,
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
@@ -1352,7 +1352,7 @@ int arm_blank_check_memory(struct target *target,
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, address);

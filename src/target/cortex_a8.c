@@ -705,17 +705,17 @@ static int cortex_a8_resume(struct target *target, int current,
 	 */
 	switch (armv4_5->core_state)
 	{
-	case ARMV4_5_STATE_ARM:
+	case ARM_STATE_ARM:
 		resume_pc &= 0xFFFFFFFC;
 		break;
-	case ARMV4_5_STATE_THUMB:
+	case ARM_STATE_THUMB:
 	case ARM_STATE_THUMB_EE:
 		/* When the return address is loaded into PC
 		 * bit 0 must be 1 to stay in Thumb state
 		 */
 		resume_pc |= 0x1;
 		break;
-	case ARMV4_5_STATE_JAZELLE:
+	case ARM_STATE_JAZELLE:
 		LOG_ERROR("How do I resume into Jazelle state??");
 		return ERROR_FAIL;
 	}
@@ -974,7 +974,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 
 	/* Setup single step breakpoint */
 	stepbreakpoint.address = address;
-	stepbreakpoint.length = (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+	stepbreakpoint.length = (armv4_5->core_state == ARM_STATE_THUMB)
 			? 2 : 4;
 	stepbreakpoint.type = BKPT_HARD;
 	stepbreakpoint.set = 0;

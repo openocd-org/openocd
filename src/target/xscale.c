@@ -2607,7 +2607,7 @@ static int xscale_read_instruction(struct target *target,
 		return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 	}
 
-	if (xscale->trace.core_state == ARMV4_5_STATE_ARM)
+	if (xscale->trace.core_state == ARM_STATE_ARM)
 	{
 		uint8_t buf[4];
 		if ((retval = image_read_section(xscale->trace.image, section,
@@ -2620,7 +2620,7 @@ static int xscale_read_instruction(struct target *target,
 		opcode = target_buffer_get_u32(target, buf);
 		arm_evaluate_opcode(opcode, xscale->trace.current_pc, instruction);
 	}
-	else if (xscale->trace.core_state == ARMV4_5_STATE_THUMB)
+	else if (xscale->trace.core_state == ARM_STATE_THUMB)
 	{
 		uint8_t buf[2];
 		if ((retval = image_read_section(xscale->trace.image, section,
@@ -2672,7 +2672,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 		int rollover;
 		int branch;
 		int exception;
-		xscale->trace.core_state = ARMV4_5_STATE_ARM;
+		xscale->trace.core_state = ARM_STATE_ARM;
 
 		chkpt = 0;
 		rollover = 0;
@@ -2806,7 +2806,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 					}
 					else
 					{
-						xscale->trace.current_pc += (xscale->trace.core_state == ARMV4_5_STATE_ARM) ? 4 : 2;
+						xscale->trace.current_pc += (xscale->trace.core_state == ARM_STATE_ARM) ? 4 : 2;
 					}
 					command_print(cmd_ctx, "%s", instruction.text);
 				}
@@ -2821,7 +2821,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 			}
 		}
 
-		for (; xscale->trace.current_pc < trace_data->last_instruction; xscale->trace.current_pc += (xscale->trace.core_state == ARMV4_5_STATE_ARM) ? 4 : 2)
+		for (; xscale->trace.current_pc < trace_data->last_instruction; xscale->trace.current_pc += (xscale->trace.core_state == ARM_STATE_ARM) ? 4 : 2)
 		{
 			struct arm_instruction instruction;
 			if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)

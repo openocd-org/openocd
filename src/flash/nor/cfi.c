@@ -1087,7 +1087,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	/* If we are setting up the write_algorith, we need target_code_src */
 	/* if not we only need target_code_size. */
@@ -1410,7 +1410,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	int target_code_size;
 	const uint32_t *target_code_src;

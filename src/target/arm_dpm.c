@@ -147,14 +147,14 @@ static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 		 * is always right except in those broken-by-intent cases.
 		 */
 		switch (dpm->arm->core_state) {
-		case ARMV4_5_STATE_ARM:
+		case ARM_STATE_ARM:
 			value -= 8;
 			break;
-		case ARMV4_5_STATE_THUMB:
+		case ARM_STATE_THUMB:
 		case ARM_STATE_THUMB_EE:
 			value -= 4;
 			break;
-		case ARMV4_5_STATE_JAZELLE:
+		case ARM_STATE_JAZELLE:
 			/* core-specific ... ? */
 			LOG_WARNING("Jazelle PC adjustment unknown");
 			break;
@@ -744,14 +744,14 @@ static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
 void arm_dpm_report_wfar(struct arm_dpm *dpm, uint32_t addr)
 {
 	switch (dpm->arm->core_state) {
-	case ARMV4_5_STATE_ARM:
+	case ARM_STATE_ARM:
 		addr -= 8;
 		break;
-	case ARMV4_5_STATE_THUMB:
+	case ARM_STATE_THUMB:
 	case ARM_STATE_THUMB_EE:
 		addr -= 4;
 		break;
-	case ARMV4_5_STATE_JAZELLE:
+	case ARM_STATE_JAZELLE:
 		/* ?? */
 		break;
 	}

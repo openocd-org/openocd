@@ -135,7 +135,7 @@ static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
 	uint32_t return_value;
 	int instruction_size;
 
-	if (sim->get_state(sim) == ARMV4_5_STATE_ARM)
+	if (sim->get_state(sim) == ARM_STATE_ARM)
 		instruction_size = 4;
 	else
 		instruction_size = 2;
@@ -286,7 +286,7 @@ int arm_simulate_step_core(struct target *target,
 	int instruction_size;
 	int retval = ERROR_OK;
 
-	if (sim->get_state(sim) == ARMV4_5_STATE_ARM)
+	if (sim->get_state(sim) == ARM_STATE_ARM)
 	{
 		uint32_t opcode;
 
@@ -392,7 +392,7 @@ int arm_simulate_step_core(struct target *target,
 			else if (instruction.type == ARM_BL)
 			{
 				uint32_t old_pc = sim->get_reg(sim, 15);
-				int T = (sim->get_state(sim) == ARMV4_5_STATE_THUMB);
+				int T = (sim->get_state(sim) == ARM_STATE_THUMB);
 				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 				sim->set_reg(sim, 15, target);
 			}
@@ -400,27 +400,27 @@ int arm_simulate_step_core(struct target *target,
 			{
 				if (target & 0x1)
 				{
-					sim->set_state(sim, ARMV4_5_STATE_THUMB);
+					sim->set_state(sim, ARM_STATE_THUMB);
 				}
 				else
 				{
-					sim->set_state(sim, ARMV4_5_STATE_ARM);
+					sim->set_state(sim, ARM_STATE_ARM);
 				}
 				sim->set_reg(sim, 15, target & 0xfffffffe);
 			}
 			else if (instruction.type == ARM_BLX)
 			{
 				uint32_t old_pc = sim->get_reg(sim, 15);
-				int T = (sim->get_state(sim) == ARMV4_5_STATE_THUMB);
+				int T = (sim->get_state(sim) == ARM_STATE_THUMB);
 				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 
 				if (target & 0x1)
 				{
-					sim->set_state(sim, ARMV4_5_STATE_THUMB);
+					sim->set_state(sim, ARM_STATE_THUMB);
 				}
 				else
 				{
-					sim->set_state(sim, ARMV4_5_STATE_ARM);
+					sim->set_state(sim, ARM_STATE_ARM);
 				}
 				sim->set_reg(sim, 15, target & 0xfffffffe);
 			}
@@ -493,9 +493,9 @@ int arm_simulate_step_core(struct target *target,
 			if (instruction.info.data_proc.Rd == 15) {
 				sim->set_reg_mode(sim, 15, Rd & ~1);
 				if (Rd & 1)
-					sim->set_state(sim, ARMV4_5_STATE_THUMB);
+					sim->set_state(sim, ARM_STATE_THUMB);
 				else
-					sim->set_state(sim, ARMV4_5_STATE_ARM);
+					sim->set_state(sim, ARM_STATE_ARM);
 				return ERROR_OK;
 			}
 			sim->set_reg_mode(sim, instruction.info.data_proc.Rd, Rd);
@@ -605,9 +605,9 @@ int arm_simulate_step_core(struct target *target,
 			if (instruction.info.load_store.Rd == 15) {
 				sim->set_reg_mode(sim, 15, load_value & ~1);
 				if (load_value & 1)
-					sim->set_state(sim, ARMV4_5_STATE_THUMB);
+					sim->set_state(sim, ARM_STATE_THUMB);
 				else
-					sim->set_state(sim, ARMV4_5_STATE_ARM);
+					sim->set_state(sim, ARM_STATE_ARM);
 				return ERROR_OK;
 			}
 			sim->set_reg_mode(sim, instruction.info.load_store.Rd, load_value);
@@ -684,9 +684,9 @@ int arm_simulate_step_core(struct target *target,
 						uint32_t val = load_values[i];
 					sim->set_reg_mode(sim, i, val & ~1);
 					if (val & 1)
-						sim->set_state(sim, ARMV4_5_STATE_THUMB);
+						sim->set_state(sim, ARM_STATE_THUMB);
 					else
-						sim->set_state(sim, ARMV4_5_STATE_ARM);
+						sim->set_state(sim, ARM_STATE_ARM);
 					} else {
 						sim->set_reg_mode(sim, i, load_values[i]);
 					}

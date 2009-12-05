@@ -138,7 +138,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	/* set up algorithm and parameters */
 	algo.common_magic = ARMV4_5_COMMON_MAGIC;
 	algo.core_mode = ARMV4_5_MODE_SVC;
-	algo.core_state = ARMV4_5_STATE_ARM;
+	algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_IN);
@@ -214,7 +214,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	/* set up algorithm and parameters */
 	algo.common_magic = ARMV4_5_COMMON_MAGIC;
 	algo.core_mode = ARMV4_5_MODE_SVC;
-	algo.core_state = ARMV4_5_STATE_ARM;
+	algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_IN);

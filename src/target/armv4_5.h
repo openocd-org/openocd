@@ -51,9 +51,9 @@ enum armv4_5_mode armv4_5_number_to_mode(int number);
 
 typedef enum armv4_5_state
 {
-	ARMV4_5_STATE_ARM,
-	ARMV4_5_STATE_THUMB,
-	ARMV4_5_STATE_JAZELLE,
+	ARM_STATE_ARM,
+	ARM_STATE_THUMB,
+	ARM_STATE_JAZELLE,
 	ARM_STATE_THUMB_EE,
 } armv4_5_state_t;
 

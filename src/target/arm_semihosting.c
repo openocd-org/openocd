@@ -387,7 +387,7 @@ static int do_semihosting(struct target *target)
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
 	armv4_5->core_mode = spsr & 0x1f;
 	if (spsr & 0x20)
-		armv4_5->core_state = ARMV4_5_STATE_THUMB;
+		armv4_5->core_state = ARM_STATE_THUMB;
 	return target_resume(target, 1, 0, 0, 0);
 }
 

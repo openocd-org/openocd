@@ -659,7 +659,7 @@ static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction 
 		return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 	}
 
-	if (ctx->core_state == ARMV4_5_STATE_ARM)
+	if (ctx->core_state == ARM_STATE_ARM)
 	{
 		uint8_t buf[4];
 		if ((retval = image_read_section(ctx->image, section,
@@ -672,7 +672,7 @@ static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction 
 		opcode = target_buffer_get_u32(ctx->target, buf);
 		arm_evaluate_opcode(opcode, ctx->current_pc, instruction);
 	}
-	else if (ctx->core_state == ARMV4_5_STATE_THUMB)
+	else if (ctx->core_state == ARM_STATE_THUMB)
 	{
 		uint8_t buf[2];
 		if ((retval = image_read_section(ctx->image, section,
@@ -685,7 +685,7 @@ static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction 
 		opcode = target_buffer_get_u16(ctx->target, buf);
 		thumb_evaluate_opcode(opcode, ctx->current_pc, instruction);
 	}
-	else if (ctx->core_state == ARMV4_5_STATE_JAZELLE)
+	else if (ctx->core_state == ARM_STATE_JAZELLE)
 	{
 		LOG_ERROR("BUG: tracing of jazelle code not supported");
 		return ERROR_FAIL;
@@ -829,7 +829,7 @@ static int etmv1_branch_address(struct etm_context *ctx)
 	/* if a full address was output, we might have branched into Jazelle state */
 	if ((shift == 32) && (packet & 0x80))
 	{
-		ctx->core_state = ARMV4_5_STATE_JAZELLE;
+		ctx->core_state = ARM_STATE_JAZELLE;
 	}
 	else
 	{
@@ -837,12 +837,12 @@ static int etmv1_branch_address(struct etm_context *ctx)
 		 * encoded in bit 0 of the branch target address */
 		if (ctx->last_branch & 0x1)
 		{
-			ctx->core_state = ARMV4_5_STATE_THUMB;
+			ctx->core_state = ARM_STATE_THUMB;
 			ctx->last_branch &= ~0x1;
 		}
 		else
 		{
-			ctx->core_state = ARMV4_5_STATE_ARM;
+			ctx->core_state = ARM_STATE_ARM;
 			ctx->last_branch &= ~0x3;
 		}
 	}
@@ -1126,12 +1126,12 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 			}
 			else
 			{
-				next_pc += (ctx->core_state == ARMV4_5_STATE_ARM) ? 4 : 2;
+				next_pc += (ctx->core_state == ARM_STATE_ARM) ? 4 : 2;
 			}
 		}
 		else if (pipestat == STAT_IN)
 		{
-			next_pc += (ctx->core_state == ARMV4_5_STATE_ARM) ? 4 : 2;
+			next_pc += (ctx->core_state == ARM_STATE_ARM) ? 4 : 2;
 		}
 
 		if ((pipestat != STAT_TD) && (pipestat != STAT_WT))
@@ -1498,7 +1498,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	etm_ctx->trigger_percent = 50;
 	etm_ctx->trace_data = NULL;
 	etm_ctx->portmode = portmode;
-	etm_ctx->core_state = ARMV4_5_STATE_ARM;
+	etm_ctx->core_state = ARM_STATE_ARM;
 
 	arm->etm = etm_ctx;
 
