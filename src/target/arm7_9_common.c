@@ -2831,22 +2831,32 @@ COMMAND_HANDLER(handle_arm7_9_semihosting_command)
 
 	if (CMD_ARGC > 0)
 	{
-		COMMAND_PARSE_ENABLE(CMD_ARGV[0], semihosting_active);
+		int semihosting;
+
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], semihosting);
 
 		/* TODO: support other methods if vector catch is unavailable */
 		if (arm7_9->has_vector_catch) {
-			struct reg *vector_catch = &arm7_9->eice_cache->reg_list[EICE_VEC_CATCH];
+			struct reg *vector_catch = &arm7_9->eice_cache
+					->reg_list[EICE_VEC_CATCH];
+
 			if (!vector_catch->valid)
 				embeddedice_read_reg(vector_catch);
-			buf_set_u32(vector_catch->value, 2, 1, semihosting_active);
+			buf_set_u32(vector_catch->value, 2, 1, semihosting);
 			embeddedice_store_reg(vector_catch);
-		} else if (semihosting_active) {
+
+			/* FIXME never let that "catch" be dropped! */
+
+			arm7_9->armv4_5_common.is_semihosting = semihosting;
+
+		} else if (semihosting) {
 			command_print(CMD_CTX, "vector catch unavailable");
-			semihosting_active = 0;
 		}
 	}
 
-	command_print(CMD_CTX, "semihosting is %s", (semihosting_active) ? "enabled" : "disabled");
+	command_print(CMD_CTX, "semihosting is %s",
+			arm7_9->armv4_5_common.is_semihosting
+			? "enabled" : "disabled");
 
 	return ERROR_OK;
 }

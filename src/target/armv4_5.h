@@ -103,6 +103,12 @@ struct arm
 	/** Flag reporting unavailability of the BKPT instruction. */
 	bool is_armv4;
 
+	/** Flag reporting whether semihosting is active. */
+	bool is_semihosting;
+
+	/** Value to be returned by semihosting SYS_ERRNO request. */
+	int semihosting_errno;
+
 	/** Backpointer to the target. */
 	struct target *target;
 

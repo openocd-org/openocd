@@ -21,8 +21,6 @@
 #ifndef ARM_SEMIHOSTING_H
 #define ARM_SEMIHOSTING_H
 
-extern int semihosting_active;
-
 int arm_semihosting(struct target *target, int *retval);
 
 #endif

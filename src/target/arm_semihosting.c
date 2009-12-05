@@ -40,9 +40,6 @@
 #include <helper/binarybuffer.h>
 #include <helper/log.h>
 
-/* TODO: this needs to be per target */
-int semihosting_active;
-int semihosting_errno;
 
 static int do_semihosting(struct target *target)
 {
@@ -93,10 +90,10 @@ static int do_semihosting(struct target *target)
 						result = dup(1);
 				} else
 					result = open((char *)fn, mode);
-				semihosting_errno =  errno;
+				armv4_5->semihosting_errno =  errno;
 			} else {
 				result = -1;
-				semihosting_errno = EINVAL;
+				armv4_5->semihosting_errno = EINVAL;
 			}
 		}
 		break;
@@ -108,7 +105,7 @@ static int do_semihosting(struct target *target)
 		else {
 			int fd = target_buffer_get_u32(target, params+0);
 			result = close(fd);
-			semihosting_errno = errno;
+			armv4_5->semihosting_errno = errno;
 		}
 		break;
 
@@ -147,7 +144,7 @@ static int do_semihosting(struct target *target)
 			uint8_t *buf = malloc(l);
 			if (!buf) {
 				result = -1;
-				semihosting_errno = ENOMEM;
+				armv4_5->semihosting_errno = ENOMEM;
 			} else {
 				retval = target_read_buffer(target, a, l, buf);
 				if (retval != ERROR_OK) {
@@ -155,7 +152,7 @@ static int do_semihosting(struct target *target)
 					return retval;
 				}
 				result = write(fd, buf, l);
-				semihosting_errno = errno;
+				armv4_5->semihosting_errno = errno;
 				if (result >= 0)
 					result = l - result;
 				free(buf);
@@ -174,10 +171,10 @@ static int do_semihosting(struct target *target)
 			uint8_t *buf = malloc(l);
 			if (!buf) {
 				result = -1;
-				semihosting_errno = ENOMEM;
+				armv4_5->semihosting_errno = ENOMEM;
 			} else {
 				result = read(fd, buf, l);
-				semihosting_errno = errno;
+				armv4_5->semihosting_errno = errno;
 				if (result > 0) {
 					retval = target_write_buffer(target, a, result, buf);
 					if (retval != ERROR_OK) {
@@ -217,7 +214,7 @@ static int do_semihosting(struct target *target)
 			int fd = target_buffer_get_u32(target, params+0);
 			off_t pos = target_buffer_get_u32(target, params+4);
 			result = lseek(fd, pos, SEEK_SET);
-			semihosting_errno = errno;
+			armv4_5->semihosting_errno = errno;
 			if (result == pos)
 				result = 0;
 		}
@@ -231,14 +228,14 @@ static int do_semihosting(struct target *target)
 			int fd = target_buffer_get_u32(target, params+0);
 			off_t cur = lseek(fd, 0, SEEK_CUR);
 			if (cur == (off_t)-1) {
-				semihosting_errno = errno;
+				armv4_5->semihosting_errno = errno;
 				result = -1;
 				break;
 			}
 			result = lseek(fd, 0, SEEK_END);
-			semihosting_errno = errno;
+			armv4_5->semihosting_errno = errno;
 			if (lseek(fd, cur, SEEK_SET) == (off_t)-1) {
-				semihosting_errno = errno;
+				armv4_5->semihosting_errno = errno;
 				result = -1;
 			}
 		}
@@ -258,10 +255,10 @@ static int do_semihosting(struct target *target)
 					return retval;
 				fn[l] = 0;
 				result = remove((char *)fn);
-				semihosting_errno =  errno;
+				armv4_5->semihosting_errno =  errno;
 			} else {
 				result = -1;
-				semihosting_errno = EINVAL;
+				armv4_5->semihosting_errno = EINVAL;
 			}
 		}
 		break;
@@ -286,10 +283,10 @@ static int do_semihosting(struct target *target)
 				fn1[l1] = 0;
 				fn2[l2] = 0;
 				result = rename((char *)fn1, (char *)fn2);
-				semihosting_errno =  errno;
+				armv4_5->semihosting_errno =  errno;
 			} else {
 				result = -1;
-				semihosting_errno = EINVAL;
+				armv4_5->semihosting_errno = EINVAL;
 			}
 		}
 		break;
@@ -299,7 +296,7 @@ static int do_semihosting(struct target *target)
 		break;
 
 	case 0x13:	/* SYS_ERRNO */
-		result = semihosting_errno;
+		result = armv4_5->semihosting_errno;
 		break;
 
 	case 0x15:	/* SYS_GET_CMDLINE */
@@ -375,7 +372,7 @@ static int do_semihosting(struct target *target)
 		fprintf(stderr, "semihosting: unsupported call %#x\n",
 				(unsigned) r0);
 		result = -1;
-		semihosting_errno = ENOTSUP;
+		armv4_5->semihosting_errno = ENOTSUP;
 	}
 
 	/* resume execution to the original mode */
@@ -408,7 +405,7 @@ int arm_semihosting(struct target *target, int *retval)
 	struct arm *armv4_5 = target_to_armv4_5(target);
 	uint32_t lr, spsr;
 
-	if (!semihosting_active ||
+	if (!armv4_5->is_semihosting ||
 	    armv4_5->core_mode != ARMV4_5_MODE_SVC ||
 	    buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != 0x08)
 		return 0;
