@@ -46,7 +46,7 @@ static int do_semihosting(struct target *target)
 	struct arm *armv4_5 = target_to_armv4_5(target);
 	uint32_t r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	uint32_t r1 = buf_get_u32(armv4_5->core_cache->reg_list[1].value, 0, 32);
-	uint32_t lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, ARMV4_5_MODE_SVC, 14).value, 0, 32);
+	uint32_t lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, ARM_MODE_SVC, 14).value, 0, 32);
 	uint32_t spsr = buf_get_u32(armv4_5->spsr->value, 0, 32);;
 	uint8_t params[16];
 	int retval, result;
@@ -410,7 +410,7 @@ int arm_semihosting(struct target *target, int *retval)
 	uint32_t lr, spsr;
 	struct reg *r;
 
-	if (!arm->is_semihosting || arm->core_mode != ARMV4_5_MODE_SVC)
+	if (!arm->is_semihosting || arm->core_mode != ARM_MODE_SVC)
 		return 0;
 
 	/* Check for PC == 8:  Supervisor Call vector

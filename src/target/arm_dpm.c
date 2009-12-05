@@ -108,7 +108,7 @@ static int dpm_modeswitch(struct arm_dpm *dpm, enum armv4_5_mode mode)
 	uint32_t cpsr;
 
 	/* restore previous mode */
-	if (mode == ARMV4_5_MODE_ANY)
+	if (mode == ARM_MODE_ANY)
 		cpsr = buf_get_u32(dpm->arm->cpsr->value, 0, 32);
 
 	/* else force to the specified mode */
@@ -348,7 +348,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * actually find anything to do...
 	 */
 	do {
-		enum armv4_5_mode mode = ARMV4_5_MODE_ANY;
+		enum armv4_5_mode mode = ARM_MODE_ANY;
 
 		did_write = false;
 
@@ -382,10 +382,10 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 					 * we "know" core mode is accurate
 					 * since we haven't changed it yet
 					 */
-					if (arm->core_mode == ARMV4_5_MODE_FIQ
-							&& ARMV4_5_MODE_ANY
+					if (arm->core_mode == ARM_MODE_FIQ
+							&& ARM_MODE_ANY
 								!= mode)
-						tmode = ARMV4_5_MODE_USR;
+						tmode = ARM_MODE_USR;
 					break;
 				case 16:
 					/* SPSR */
@@ -394,7 +394,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 				}
 
 				/* REVISIT error checks */
-				if (tmode != ARMV4_5_MODE_ANY)
+				if (tmode != ARM_MODE_ANY)
 					retval = dpm_modeswitch(dpm, tmode);
 			}
 			if (r->mode != mode)
@@ -412,7 +412,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * or it's dirty.  Must write PC to ensure the return address is
 	 * defined, and must not write it before CPSR.
 	 */
-	retval = dpm_modeswitch(dpm, ARMV4_5_MODE_ANY);
+	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
 	arm->cpsr->dirty = false;
 
 	retval = dpm_write_reg(dpm, &cache->reg_list[15], 15);
@@ -427,7 +427,7 @@ done:
 	return retval;
 }
 
-/* Returns ARMV4_5_MODE_ANY or temporary mode to use while reading the
+/* Returns ARM_MODE_ANY or temporary mode to use while reading the
  * specified register ... works around flakiness from ARM core calls.
  * Caller already filtered out SPSR access; mode is never MODE_SYS
  * or MODE_ANY.
@@ -438,10 +438,10 @@ static enum armv4_5_mode dpm_mapmode(struct arm *arm,
 	enum armv4_5_mode amode = arm->core_mode;
 
 	/* don't switch if the mode is already correct */
-	if (amode == ARMV4_5_MODE_SYS)
-		 amode = ARMV4_5_MODE_USR;
+	if (amode == ARM_MODE_SYS)
+		 amode = ARM_MODE_USR;
 	if (mode == amode)
-		return ARMV4_5_MODE_ANY;
+		return ARM_MODE_ANY;
 
 	switch (num) {
 	/* don't switch for non-shadowed registers (r0..r7, r15/pc, cpsr) */
@@ -451,7 +451,7 @@ static enum armv4_5_mode dpm_mapmode(struct arm *arm,
 		break;
 	/* r8..r12 aren't shadowed for anything except FIQ */
 	case 8 ... 12:
-		if (mode == ARMV4_5_MODE_FIQ)
+		if (mode == ARM_MODE_FIQ)
 			return mode;
 		break;
 	/* r13/sp, and r14/lr are always shadowed */
@@ -462,7 +462,7 @@ static enum armv4_5_mode dpm_mapmode(struct arm *arm,
 		LOG_WARNING("invalid register #%u", num);
 		break;
 	}
-	return ARMV4_5_MODE_ANY;
+	return ARM_MODE_ANY;
 }
 
 
@@ -482,7 +482,7 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 		return ERROR_INVALID_ARGUMENTS;
 
 	if (regnum == 16) {
-		if (mode != ARMV4_5_MODE_ANY)
+		if (mode != ARM_MODE_ANY)
 			regnum = 17;
 	} else
 		mode = dpm_mapmode(dpm->arm, regnum, mode);
@@ -495,7 +495,7 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (mode != ARMV4_5_MODE_ANY) {
+	if (mode != ARM_MODE_ANY) {
 		retval = dpm_modeswitch(dpm, mode);
 		if (retval != ERROR_OK)
 			goto fail;
@@ -504,8 +504,8 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 	retval = dpm_read_reg(dpm, r, regnum);
 	/* always clean up, regardless of error */
 
-	if (mode != ARMV4_5_MODE_ANY)
-		/* (void) */ dpm_modeswitch(dpm, ARMV4_5_MODE_ANY);
+	if (mode != ARM_MODE_ANY)
+		/* (void) */ dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 fail:
 	/* (void) */ dpm->finish(dpm);
@@ -523,7 +523,7 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 		return ERROR_INVALID_ARGUMENTS;
 
 	if (regnum == 16) {
-		if (mode != ARMV4_5_MODE_ANY)
+		if (mode != ARM_MODE_ANY)
 			regnum = 17;
 	} else
 		mode = dpm_mapmode(dpm->arm, regnum, mode);
@@ -536,7 +536,7 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (mode != ARMV4_5_MODE_ANY) {
+	if (mode != ARM_MODE_ANY) {
 		retval = dpm_modeswitch(dpm, mode);
 		if (retval != ERROR_OK)
 			goto fail;
@@ -545,8 +545,8 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 	retval = dpm_write_reg(dpm, r, regnum);
 	/* always clean up, regardless of error */
 
-	if (mode != ARMV4_5_MODE_ANY)
-		/* (void) */ dpm_modeswitch(dpm, ARMV4_5_MODE_ANY);
+	if (mode != ARM_MODE_ANY)
+		/* (void) */ dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 fail:
 	/* (void) */ dpm->finish(dpm);
@@ -566,7 +566,7 @@ static int arm_dpm_full_context(struct target *target)
 		goto done;
 
 	do {
-		enum armv4_5_mode mode = ARMV4_5_MODE_ANY;
+		enum armv4_5_mode mode = ARM_MODE_ANY;
 
 		did_read = false;
 
@@ -593,8 +593,8 @@ static int arm_dpm_full_context(struct target *target)
 				/* For R8..R12 when we've entered debug
 				 * state in FIQ mode... patch mode.
 				 */
-				if (mode == ARMV4_5_MODE_ANY)
-					mode = ARMV4_5_MODE_USR;
+				if (mode == ARM_MODE_ANY)
+					mode = ARM_MODE_USR;
 
 				/* REVISIT error checks */
 				retval = dpm_modeswitch(dpm, mode);
@@ -611,7 +611,7 @@ static int arm_dpm_full_context(struct target *target)
 
 	} while (did_read);
 
-	retval = dpm_modeswitch(dpm, ARMV4_5_MODE_ANY);
+	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
 	/* (void) */ dpm->finish(dpm);
 done:
 	return retval;

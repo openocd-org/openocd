@@ -32,15 +32,15 @@
 
 typedef enum armv4_5_mode
 {
-	ARMV4_5_MODE_USR = 16,
-	ARMV4_5_MODE_FIQ = 17,
-	ARMV4_5_MODE_IRQ = 18,
-	ARMV4_5_MODE_SVC = 19,
-	ARMV4_5_MODE_ABT = 23,
+	ARM_MODE_USR = 16,
+	ARM_MODE_FIQ = 17,
+	ARM_MODE_IRQ = 18,
+	ARM_MODE_SVC = 19,
+	ARM_MODE_ABT = 23,
 	ARM_MODE_MON = 26,
-	ARMV4_5_MODE_UND = 27,
-	ARMV4_5_MODE_SYS = 31,
-	ARMV4_5_MODE_ANY = -1
+	ARM_MODE_UND = 27,
+	ARM_MODE_SYS = 31,
+	ARM_MODE_ANY = -1
 } armv4_5_mode_t;
 
 const char *arm_mode_name(unsigned psr_mode);
@@ -91,7 +91,7 @@ struct arm
 
 	/**
 	 * Indicates what registers are in the ARM state core register set.
-	 * ARMV4_5_MODE_ANY indicates the standard set of 37 registers,
+	 * ARM_MODE_ANY indicates the standard set of 37 registers,
 	 * seen on for example ARM7TDMI cores.  ARM_MODE_MON indicates three
 	 * more registers are shadowed, for "Secure Monitor" mode.
 	 */

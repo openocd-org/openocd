@@ -293,7 +293,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 		case lpc2000_v1:
 		case lpc2000_v2:
 			armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-			armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+			armv4_5_info.core_mode = ARM_MODE_SVC;
 			armv4_5_info.core_state = ARM_STATE_ARM;
 			iap_entry_point = 0x7ffffff1;
 			break;

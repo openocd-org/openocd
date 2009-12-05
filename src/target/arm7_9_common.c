@@ -1622,10 +1622,10 @@ int arm7_9_restore_context(struct target *target)
 				{
 					dirty = 1;
 					LOG_DEBUG("examining dirty reg: %s", reg->name);
-					if ((reg_arch_info->mode != ARMV4_5_MODE_ANY)
+					if ((reg_arch_info->mode != ARM_MODE_ANY)
 						&& (reg_arch_info->mode != current_mode)
-						&& !((reg_arch_info->mode == ARMV4_5_MODE_USR) && (armv4_5->core_mode == ARMV4_5_MODE_SYS))
-						&& !((reg_arch_info->mode == ARMV4_5_MODE_SYS) && (armv4_5->core_mode == ARMV4_5_MODE_USR)))
+						&& !((reg_arch_info->mode == ARM_MODE_USR) && (armv4_5->core_mode == ARM_MODE_SYS))
+						&& !((reg_arch_info->mode == ARM_MODE_SYS) && (armv4_5->core_mode == ARM_MODE_USR)))
 					{
 						mode_change = 1;
 						LOG_DEBUG("require mode change");
@@ -1684,7 +1684,7 @@ int arm7_9_restore_context(struct target *target)
 
 			reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16);
 			reg_arch_info = reg->arch_info;
-			if ((reg->dirty) && (reg_arch_info->mode != ARMV4_5_MODE_ANY))
+			if ((reg->dirty) && (reg_arch_info->mode != ARM_MODE_ANY))
 			{
 				LOG_DEBUG("writing SPSR of mode %i with value 0x%8.8" PRIx32 "", i, buf_get_u32(reg->value, 0, 32));
 				arm7_9->write_xpsr(target, buf_get_u32(reg->value, 0, 32), 1);
@@ -2107,9 +2107,9 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 	if ((num < 0) || (num > 16))
 		return ERROR_INVALID_ARGUMENTS;
 
-	if ((mode != ARMV4_5_MODE_ANY)
+	if ((mode != ARM_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (areg->mode != ARMV4_5_MODE_ANY))
+			&& (areg->mode != ARM_MODE_ANY))
 	{
 		uint32_t tmp_cpsr;
 
@@ -2132,7 +2132,7 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 		/* read a program status register
 		 * if the register mode is MODE_ANY, we read the cpsr, otherwise a spsr
 		 */
-		arm7_9->read_xpsr(target, &value, areg->mode != ARMV4_5_MODE_ANY);
+		arm7_9->read_xpsr(target, &value, areg->mode != ARM_MODE_ANY);
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -2144,9 +2144,9 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 	r->dirty = 0;
 	buf_set_u32(r->value, 0, 32, value);
 
-	if ((mode != ARMV4_5_MODE_ANY)
+	if ((mode != ARM_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (areg->mode != ARMV4_5_MODE_ANY))	{
+			&& (areg->mode != ARM_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
 		arm7_9->write_xpsr_im8(target,
 				buf_get_u32(armv4_5->cpsr->value, 0, 8)
@@ -2169,9 +2169,9 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 	if ((num < 0) || (num > 16))
 		return ERROR_INVALID_ARGUMENTS;
 
-	if ((mode != ARMV4_5_MODE_ANY)
+	if ((mode != ARM_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (areg->mode != ARMV4_5_MODE_ANY))	{
+			&& (areg->mode != ARM_MODE_ANY))	{
 		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
@@ -2193,7 +2193,7 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 		/* write a program status register
 		* if the register mode is MODE_ANY, we write the cpsr, otherwise a spsr
 		*/
-		int spsr = (areg->mode != ARMV4_5_MODE_ANY);
+		int spsr = (areg->mode != ARM_MODE_ANY);
 
 		/* if we're writing the CPSR, mask the T bit */
 		if (!spsr)
@@ -2205,9 +2205,9 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 	r->valid = 1;
 	r->dirty = 0;
 
-	if ((mode != ARMV4_5_MODE_ANY)
+	if ((mode != ARM_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
-			&& (areg->mode != ARMV4_5_MODE_ANY))	{
+			&& (areg->mode != ARM_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
 		arm7_9->write_xpsr_im8(target,
 				buf_get_u32(armv4_5->cpsr->value, 0, 8)
@@ -2383,7 +2383,7 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
-	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
+	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (armv4_5->core_mode != ARM_MODE_ABT))
 	{
 		LOG_WARNING("memory read caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
@@ -2571,7 +2571,7 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
-	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
+	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (armv4_5->core_mode != ARM_MODE_ABT))
 	{
 		LOG_WARNING("memory write caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
@@ -2697,7 +2697,7 @@ int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t c
 	struct reg_param reg_params[1];
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);

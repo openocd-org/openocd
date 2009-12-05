@@ -1701,7 +1701,7 @@ static int xscale_full_context(struct target *target)
 		bool valid = true;
 		struct reg *r;
 
-		if (mode == ARMV4_5_MODE_USR)
+		if (mode == ARM_MODE_USR)
 			continue;
 
 		/* check if there are invalid registers in the current mode
@@ -1724,7 +1724,7 @@ static int xscale_full_context(struct target *target)
 		/* get banked registers:  r8 to r14; and SPSR
 		 * except in USR/SYS mode
 		 */
-		if (mode != ARMV4_5_MODE_SYS) {
+		if (mode != ARM_MODE_SYS) {
 			/* SPSR */
 			r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					mode, 16);
@@ -1777,7 +1777,7 @@ static int xscale_restore_banked(struct target *target)
 		enum armv4_5_mode mode = armv4_5_number_to_mode(i);
 		struct reg *r;
 
-		if (mode == ARMV4_5_MODE_USR)
+		if (mode == ARM_MODE_USR)
 			continue;
 
 		/* check if there are dirty registers in this mode */
@@ -1789,7 +1789,7 @@ static int xscale_restore_banked(struct target *target)
 		}
 
 		/* if not USR/SYS, check if the SPSR needs to be written */
-		if (mode != ARMV4_5_MODE_SYS)
+		if (mode != ARM_MODE_SYS)
 		{
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					mode, 16).dirty)
@@ -1817,7 +1817,7 @@ dirty:
 		}
 
 		/* send spsr if not in USR/SYS mode */
-		if (mode != ARMV4_5_MODE_SYS) {
+		if (mode != ARM_MODE_SYS) {
 			r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
 					mode, 16);
 			xscale_send_u32(target, buf_get_u32(r->value, 0, 32));

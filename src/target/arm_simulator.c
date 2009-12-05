@@ -673,7 +673,7 @@ int arm_simulate_step_core(struct target *target,
 				if (instruction.info.load_store_multiple.register_list & 0x8000)
 					update_cpsr = 1;
 				else
-					mode = ARMV4_5_MODE_USR;
+					mode = ARM_MODE_USR;
 			}
 
 			for (i = 0; i < 16; i++)
@@ -731,7 +731,7 @@ int arm_simulate_step_core(struct target *target,
 
 			if (instruction.info.load_store_multiple.S)
 			{
-				mode = ARMV4_5_MODE_USR;
+				mode = ARM_MODE_USR;
 			}
 
 			switch (instruction.info.load_store_multiple.addressing_mode)

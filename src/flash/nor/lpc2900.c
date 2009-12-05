@@ -1424,7 +1424,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 
 			/* Execute algorithm, assume breakpoint for last instruction */
 			armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-			armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+			armv4_5_info.core_mode = ARM_MODE_SVC;
 			armv4_5_info.core_state = ARM_STATE_ARM;
 
 			retval = target_run_algorithm(target, 0, NULL, 5, reg_params,

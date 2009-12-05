@@ -89,43 +89,43 @@ static const struct {
 	 */
 	{
 		.name = "User",
-		.psr = ARMV4_5_MODE_USR,
+		.psr = ARM_MODE_USR,
 		.n_indices = ARRAY_SIZE(arm_usr_indices),
 		.indices = arm_usr_indices,
 	},
 	{
 		.name = "FIQ",
-		.psr = ARMV4_5_MODE_FIQ,
+		.psr = ARM_MODE_FIQ,
 		.n_indices = ARRAY_SIZE(arm_fiq_indices),
 		.indices = arm_fiq_indices,
 	},
 	{
 		.name = "Supervisor",
-		.psr = ARMV4_5_MODE_SVC,
+		.psr = ARM_MODE_SVC,
 		.n_indices = ARRAY_SIZE(arm_svc_indices),
 		.indices = arm_svc_indices,
 	},
 	{
 		.name = "Abort",
-		.psr = ARMV4_5_MODE_ABT,
+		.psr = ARM_MODE_ABT,
 		.n_indices = ARRAY_SIZE(arm_abt_indices),
 		.indices = arm_abt_indices,
 	},
 	{
 		.name = "IRQ",
-		.psr = ARMV4_5_MODE_IRQ,
+		.psr = ARM_MODE_IRQ,
 		.n_indices = ARRAY_SIZE(arm_irq_indices),
 		.indices = arm_irq_indices,
 	},
 	{
 		.name = "Undefined instruction",
-		.psr = ARMV4_5_MODE_UND,
+		.psr = ARM_MODE_UND,
 		.n_indices = ARRAY_SIZE(arm_und_indices),
 		.indices = arm_und_indices,
 	},
 	{
 		.name = "System",
-		.psr = ARMV4_5_MODE_SYS,
+		.psr = ARM_MODE_SYS,
 		.n_indices = ARRAY_SIZE(arm_usr_indices),
 		.indices = arm_usr_indices,
 	},
@@ -166,21 +166,21 @@ bool is_arm_mode(unsigned psr_mode)
 int armv4_5_mode_to_number(enum armv4_5_mode mode)
 {
 	switch (mode) {
-	case ARMV4_5_MODE_ANY:
+	case ARM_MODE_ANY:
 		/* map MODE_ANY to user mode */
-	case ARMV4_5_MODE_USR:
+	case ARM_MODE_USR:
 		return 0;
-	case ARMV4_5_MODE_FIQ:
+	case ARM_MODE_FIQ:
 		return 1;
-	case ARMV4_5_MODE_IRQ:
+	case ARM_MODE_IRQ:
 		return 2;
-	case ARMV4_5_MODE_SVC:
+	case ARM_MODE_SVC:
 		return 3;
-	case ARMV4_5_MODE_ABT:
+	case ARM_MODE_ABT:
 		return 4;
-	case ARMV4_5_MODE_UND:
+	case ARM_MODE_UND:
 		return 5;
-	case ARMV4_5_MODE_SYS:
+	case ARM_MODE_SYS:
 		return 6;
 	case ARM_MODE_MON:
 		return 7;
@@ -195,24 +195,24 @@ enum armv4_5_mode armv4_5_number_to_mode(int number)
 {
 	switch (number) {
 	case 0:
-		return ARMV4_5_MODE_USR;
+		return ARM_MODE_USR;
 	case 1:
-		return ARMV4_5_MODE_FIQ;
+		return ARM_MODE_FIQ;
 	case 2:
-		return ARMV4_5_MODE_IRQ;
+		return ARM_MODE_IRQ;
 	case 3:
-		return ARMV4_5_MODE_SVC;
+		return ARM_MODE_SVC;
 	case 4:
-		return ARMV4_5_MODE_ABT;
+		return ARM_MODE_ABT;
 	case 5:
-		return ARMV4_5_MODE_UND;
+		return ARM_MODE_UND;
 	case 6:
-		return ARMV4_5_MODE_SYS;
+		return ARM_MODE_SYS;
 	case 7:
 		return ARM_MODE_MON;
 	default:
 		LOG_ERROR("mode index out of bounds %d", number);
-		return ARMV4_5_MODE_ANY;
+		return ARM_MODE_ANY;
 	}
 }
 
@@ -249,59 +249,59 @@ static const struct {
 	 * correspond to r0..r7, and the fifteenth to PC, so that callers
 	 * don't need to map them.
 	 */
-	{ .name = "r0", .cookie = 0, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r1", .cookie = 1, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r2", .cookie = 2, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r3", .cookie = 3, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r4", .cookie = 4, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r5", .cookie = 5, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r6", .cookie = 6, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r7", .cookie = 7, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r0", .cookie = 0, .mode = ARM_MODE_ANY, },
+	{ .name = "r1", .cookie = 1, .mode = ARM_MODE_ANY, },
+	{ .name = "r2", .cookie = 2, .mode = ARM_MODE_ANY, },
+	{ .name = "r3", .cookie = 3, .mode = ARM_MODE_ANY, },
+	{ .name = "r4", .cookie = 4, .mode = ARM_MODE_ANY, },
+	{ .name = "r5", .cookie = 5, .mode = ARM_MODE_ANY, },
+	{ .name = "r6", .cookie = 6, .mode = ARM_MODE_ANY, },
+	{ .name = "r7", .cookie = 7, .mode = ARM_MODE_ANY, },
 
 	/* NOTE: regs 8..12 might be shadowed by FIQ ... flagging
 	 * them as MODE_ANY creates special cases.  (ANY means
 	 * "not mapped" elsewhere; here it's "everything but FIQ".)
 	 */
-	{ .name = "r8", .cookie = 8, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r9", .cookie = 9, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r10", .cookie = 10, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r11", .cookie = 11, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "r12", .cookie = 12, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "r8", .cookie = 8, .mode = ARM_MODE_ANY, },
+	{ .name = "r9", .cookie = 9, .mode = ARM_MODE_ANY, },
+	{ .name = "r10", .cookie = 10, .mode = ARM_MODE_ANY, },
+	{ .name = "r11", .cookie = 11, .mode = ARM_MODE_ANY, },
+	{ .name = "r12", .cookie = 12, .mode = ARM_MODE_ANY, },
 
 	/* NOTE all MODE_USR registers are equivalent to MODE_SYS ones */
-	{ .name = "sp_usr", .cookie = 13, .mode = ARMV4_5_MODE_USR, },
-	{ .name = "lr_usr", .cookie = 14, .mode = ARMV4_5_MODE_USR, },
+	{ .name = "sp_usr", .cookie = 13, .mode = ARM_MODE_USR, },
+	{ .name = "lr_usr", .cookie = 14, .mode = ARM_MODE_USR, },
 
 	/* guaranteed to be at index 15 */
-	{ .name = "pc", .cookie = 15, .mode = ARMV4_5_MODE_ANY, },
+	{ .name = "pc", .cookie = 15, .mode = ARM_MODE_ANY, },
 
-	{ .name = "r8_fiq", .cookie = 8, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "r9_fiq", .cookie = 9, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "r10_fiq", .cookie = 10, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "r11_fiq", .cookie = 11, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "r12_fiq", .cookie = 12, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "r8_fiq", .cookie = 8, .mode = ARM_MODE_FIQ, },
+	{ .name = "r9_fiq", .cookie = 9, .mode = ARM_MODE_FIQ, },
+	{ .name = "r10_fiq", .cookie = 10, .mode = ARM_MODE_FIQ, },
+	{ .name = "r11_fiq", .cookie = 11, .mode = ARM_MODE_FIQ, },
+	{ .name = "r12_fiq", .cookie = 12, .mode = ARM_MODE_FIQ, },
 
-	{ .name = "sp_fiq", .cookie = 13, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "lr_fiq", .cookie = 14, .mode = ARMV4_5_MODE_FIQ, },
+	{ .name = "sp_fiq", .cookie = 13, .mode = ARM_MODE_FIQ, },
+	{ .name = "lr_fiq", .cookie = 14, .mode = ARM_MODE_FIQ, },
 
-	{ .name = "sp_irq", .cookie = 13, .mode = ARMV4_5_MODE_IRQ, },
-	{ .name = "lr_irq", .cookie = 14, .mode = ARMV4_5_MODE_IRQ, },
+	{ .name = "sp_irq", .cookie = 13, .mode = ARM_MODE_IRQ, },
+	{ .name = "lr_irq", .cookie = 14, .mode = ARM_MODE_IRQ, },
 
-	{ .name = "sp_svc", .cookie = 13, .mode = ARMV4_5_MODE_SVC, },
-	{ .name = "lr_svc", .cookie = 14, .mode = ARMV4_5_MODE_SVC, },
+	{ .name = "sp_svc", .cookie = 13, .mode = ARM_MODE_SVC, },
+	{ .name = "lr_svc", .cookie = 14, .mode = ARM_MODE_SVC, },
 
-	{ .name = "sp_abt", .cookie = 13, .mode = ARMV4_5_MODE_ABT, },
-	{ .name = "lr_abt", .cookie = 14, .mode = ARMV4_5_MODE_ABT, },
+	{ .name = "sp_abt", .cookie = 13, .mode = ARM_MODE_ABT, },
+	{ .name = "lr_abt", .cookie = 14, .mode = ARM_MODE_ABT, },
 
-	{ .name = "sp_und", .cookie = 13, .mode = ARMV4_5_MODE_UND, },
-	{ .name = "lr_und", .cookie = 14, .mode = ARMV4_5_MODE_UND, },
+	{ .name = "sp_und", .cookie = 13, .mode = ARM_MODE_UND, },
+	{ .name = "lr_und", .cookie = 14, .mode = ARM_MODE_UND, },
 
-	{ .name = "cpsr", .cookie = 16, .mode = ARMV4_5_MODE_ANY, },
-	{ .name = "spsr_fiq", .cookie = 16, .mode = ARMV4_5_MODE_FIQ, },
-	{ .name = "spsr_irq", .cookie = 16, .mode = ARMV4_5_MODE_IRQ, },
-	{ .name = "spsr_svc", .cookie = 16, .mode = ARMV4_5_MODE_SVC, },
-	{ .name = "spsr_abt", .cookie = 16, .mode = ARMV4_5_MODE_ABT, },
-	{ .name = "spsr_und", .cookie = 16, .mode = ARMV4_5_MODE_UND, },
+	{ .name = "cpsr", .cookie = 16, .mode = ARM_MODE_ANY, },
+	{ .name = "spsr_fiq", .cookie = 16, .mode = ARM_MODE_FIQ, },
+	{ .name = "spsr_irq", .cookie = 16, .mode = ARM_MODE_IRQ, },
+	{ .name = "spsr_svc", .cookie = 16, .mode = ARM_MODE_SVC, },
+	{ .name = "spsr_abt", .cookie = 16, .mode = ARM_MODE_ABT, },
+	{ .name = "spsr_und", .cookie = 16, .mode = ARM_MODE_UND, },
 
 	{ .name = "sp_mon", .cookie = 13, .mode = ARM_MODE_MON, },
 	{ .name = "lr_mon", .cookie = 14, .mode = ARM_MODE_MON, },
@@ -364,12 +364,12 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 	/* mode_to_number() warned; set up a somewhat-sane mapping */
 	num = armv4_5_mode_to_number(mode);
 	if (num < 0) {
-		mode = ARMV4_5_MODE_USR;
+		mode = ARM_MODE_USR;
 		num = 0;
 	}
 
 	arm->map = &armv4_5_core_reg_map[num][0];
-	arm->spsr = (mode == ARMV4_5_MODE_USR || mode == ARMV4_5_MODE_SYS)
+	arm->spsr = (mode == ARM_MODE_USR || mode == ARM_MODE_SYS)
 			? NULL
 			: arm->core_cache->reg_list + arm->map[16];
 
@@ -517,7 +517,7 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 					arm_mode_name(value & 0x1f));
 			value &= ~((1 << 24) | (1 << 5));
 			armv4_5_target->write_core_reg(target, reg,
-					16, ARMV4_5_MODE_ANY, value);
+					16, ARM_MODE_ANY, value);
 		}
 	} else {
 		buf_set_u32(reg->value, 0, 32, value);
@@ -646,9 +646,9 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 
 		/* label this bank of registers (or shadows) */
 		switch (arm_mode_data[mode].psr) {
-		case ARMV4_5_MODE_SYS:
+		case ARM_MODE_SYS:
 			continue;
-		case ARMV4_5_MODE_USR:
+		case ARM_MODE_USR:
 			name = "System and User";
 			sep = "";
 			break;
@@ -1125,7 +1125,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (armv4_5_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
+	if (armv4_5_algorithm_info->core_mode != ARM_MODE_ANY)
 	{
 		LOG_DEBUG("setting core_mode: 0x%2.2x",
 				armv4_5_algorithm_info->core_mode);
@@ -1274,7 +1274,7 @@ int arm_checksum_memory(struct target *target,
 	}
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
@@ -1351,7 +1351,7 @@ int arm_blank_check_memory(struct target *target,
 	}
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
@@ -1425,10 +1425,10 @@ int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 	armv4_5->target = target;
 
 	armv4_5->common_magic = ARMV4_5_COMMON_MAGIC;
-	arm_set_cpsr(armv4_5, ARMV4_5_MODE_USR);
+	arm_set_cpsr(armv4_5, ARM_MODE_USR);
 
 	/* core_type may be overridden by subtype logic */
-	armv4_5->core_type = ARMV4_5_MODE_ANY;
+	armv4_5->core_type = ARM_MODE_ANY;
 
 	/* default full_context() has no core-specific optimizations */
 	if (!armv4_5->full_context && armv4_5->read_core_reg)
