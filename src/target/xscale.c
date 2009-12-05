@@ -1429,7 +1429,7 @@ static int xscale_step_inner(struct target *target, int current,
 static int xscale_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	struct breakpoint *breakpoint = target->breakpoints;
 
 	uint32_t current_pc;
@@ -1675,7 +1675,7 @@ static int xscale_write_core_reg(struct target *target, struct reg *r,
 
 static int xscale_full_context(struct target *target)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 
 	uint32_t *buffer;
 
@@ -1757,7 +1757,7 @@ static int xscale_full_context(struct target *target)
 
 static int xscale_restore_banked(struct target *target)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 
 	int i, j;
 

@@ -751,7 +751,7 @@ void arm9tdmi_disable_single_step(struct target *target)
 static void arm9tdmi_build_reg_cache(struct target *target)
 {
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 }

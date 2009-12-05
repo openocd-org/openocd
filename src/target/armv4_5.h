@@ -141,8 +141,6 @@ struct arm
 	void *arch_info;
 };
 
-#define target_to_armv4_5 target_to_arm
-
 /** Convert target handle to generic ARM target state handle. */
 static inline struct arm *target_to_arm(struct target *target)
 {

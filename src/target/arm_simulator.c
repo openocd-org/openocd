@@ -850,7 +850,7 @@ static enum arm_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 
 int arm_simulate_step(struct target *target, uint32_t *dry_run_pc)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	struct arm_sim_interface sim;
 
 	sim.user_data = armv4_5;

@@ -491,7 +491,7 @@ static int armv4_5_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct arm_reg *armv4_5 = reg->arch_info;
 	struct target *target = armv4_5->target;
-	struct arm *armv4_5_target = target_to_armv4_5(target);
+	struct arm *armv4_5_target = target_to_arm(target);
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
@@ -583,7 +583,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 
 int armv4_5_arch_state(struct target *target)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
@@ -611,7 +611,7 @@ int armv4_5_arch_state(struct target *target)
 COMMAND_HANDLER(handle_armv4_5_reg_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	unsigned num_regs;
 	struct reg *regs;
 
@@ -698,7 +698,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 COMMAND_HANDLER(handle_armv4_5_core_state_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 
 	if (!is_arm(armv4_5))
 	{
@@ -974,7 +974,7 @@ const struct command_registration arm_command_handlers[] = {
 
 int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	int i;
 
 	if (!is_arm_mode(armv4_5->core_mode))
@@ -999,7 +999,7 @@ int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int
 static int armv4_5_run_algorithm_completion(struct target *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	int retval;
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 
 	if ((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
 	{
@@ -1036,7 +1036,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		int (*run_it)(struct target *target, uint32_t exit_point,
 				int timeout_ms, void *arch_info))
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	struct armv4_5_algorithm *armv4_5_algorithm_info = arch_info;
 	enum arm_state core_state = armv4_5->core_state;
 	uint32_t context[17];
@@ -1388,7 +1388,7 @@ int arm_blank_check_memory(struct target *target,
 
 static int arm_full_context(struct target *target)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	unsigned num_regs = armv4_5->core_cache->num_regs;
 	struct reg *reg = armv4_5->core_cache->reg_list;
 	int retval = ERROR_OK;

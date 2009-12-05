@@ -43,7 +43,7 @@
 
 static int do_semihosting(struct target *target)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *armv4_5 = target_to_arm(target);
 	uint32_t r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	uint32_t r1 = buf_get_u32(armv4_5->core_cache->reg_list[1].value, 0, 32);
 	uint32_t lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, ARM_MODE_SVC, 14).value, 0, 32);
@@ -406,7 +406,7 @@ static int do_semihosting(struct target *target)
  */
 int arm_semihosting(struct target *target, int *retval)
 {
-	struct arm *arm = target_to_armv4_5(target);
+	struct arm *arm = target_to_arm(target);
 	uint32_t lr, spsr;
 	struct reg *r;
 
