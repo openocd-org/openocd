@@ -25,10 +25,6 @@
 #include <jtag/jtag.h>
 #include <helper/ioutil.h>
 #include <helper/configuration.h>
-#include <xsvf/xsvf.h>
-#include <svf/svf.h>
-#include <flash/nand.h>
-#include <pld/pld.h>
 
 #include <server/server.h>
 #include <server/telnet_server.h>
