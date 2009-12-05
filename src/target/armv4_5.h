@@ -30,7 +30,8 @@
 #include <helper/command.h>
 
 
-/* These numbers match the five low bits of the *PSR registers on
+/**
+ * These numbers match the five low bits of the *PSR registers on
  * "classic ARM" processors, which build on the ARMv4 processor
  * modes and register set.
  */
@@ -49,7 +50,7 @@ enum arm_mode {
 const char *arm_mode_name(unsigned psr_mode);
 bool is_arm_mode(unsigned psr_mode);
 
-/* The PSR "T" and "J" bits define the mode of "classic ARM" cores */
+/** The PSR "T" and "J" bits define the mode of "classic ARM" cores. */
 enum arm_state {
 	ARM_STATE_ARM,
 	ARM_STATE_THUMB,
@@ -95,6 +96,7 @@ struct arm
 	/** Handle to the SPSR; valid only in core modes with an SPSR. */
 	struct reg *spsr;
 
+	/** Support for arm_reg_current() */
 	const int *map;
 
 	/**
@@ -105,7 +107,10 @@ struct arm
 	 */
 	enum arm_mode core_type;
 
+	/** Record the current core mode: SVC, USR, or some other mode. */
 	enum arm_mode core_mode;
+
+	/** Record the current core state: ARM, Thumb, or otherwise. */
 	enum arm_state core_state;
 
 	/** Flag reporting unavailability of the BKPT instruction. */
@@ -128,7 +133,10 @@ struct arm
 
 	/* FIXME all these methods should take "struct arm *" not target */
 
+	/** Retrieve all core registers, for display. */
 	int (*full_context)(struct target *target);
+
+	/** Retrieve a single core register. */
 	int (*read_core_reg)(struct target *target, struct reg *reg,
 			int num, enum arm_mode mode);
 	int (*write_core_reg)(struct target *target, struct reg *reg,
@@ -140,7 +148,7 @@ struct arm
 			uint32_t CRn, uint32_t CRm,
 			uint32_t *value);
 
-	/* Write coprocessor register.  */
+	/** Write coprocessor register.  */
 	int (*mcr)(struct target *target, int cpnum,
 			uint32_t op1, uint32_t op2,
 			uint32_t CRn, uint32_t CRm,
