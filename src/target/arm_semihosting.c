@@ -56,6 +56,9 @@ static int do_semihosting(struct target *target)
 	 * - no validation on target provided file descriptors
 	 * - no safety checks on opened/deleted/renamed file paths
 	 * Beware the target app you use this support with.
+	 *
+	 * TODO: explore mapping requests to GDB's "File-I/O Remote
+	 * Protocol Extension" ... when GDB is active.
 	 */
 	switch (r0) {
 	case 0x01:	/* SYS_OPEN */
@@ -396,42 +399,70 @@ static int do_semihosting(struct target *target)
  * or an error was encountered, in which case the caller must return
  * immediately.
  *
- * @param target Pointer to the ARM target to process
+ * @param target Pointer to the ARM target to process.  This target must
+ *	not represent an ARMv6-M or ARMv7-M processor.
  * @param retval Pointer to a location where the return code will be stored
  * @return non-zero value if a request was processed or an error encountered
  */
 int arm_semihosting(struct target *target, int *retval)
 {
-	struct arm *armv4_5 = target_to_armv4_5(target);
+	struct arm *arm = target_to_armv4_5(target);
 	uint32_t lr, spsr;
+	struct reg *r;
 
-	if (!armv4_5->is_semihosting ||
-	    armv4_5->core_mode != ARMV4_5_MODE_SVC ||
-	    buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != 0x08)
+	if (!arm->is_semihosting || arm->core_mode != ARMV4_5_MODE_SVC)
 		return 0;
 
-	lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, ARMV4_5_MODE_SVC, 14).value, 0, 32);
-	spsr = buf_get_u32(armv4_5->spsr->value, 0, 32);
+	/* Check for PC == 8:  Supervisor Call vector
+	 * REVISIT:  assumes low exception vectors, not hivecs...
+	 * safer to test "was this entry from a vector catch".
+	 */
+	r = arm->core_cache->reg_list + 15;
+	if (buf_get_u32(r->value, 0, 32) != 0x08)
+		return 0;
+
+	r = arm_reg_current(arm, 14);
+	lr = buf_get_u32(r->value, 0, 32);
+
+	/* Core-specific code should make sure SPSR is retrieved
+	 * when the above checks pass...
+	 */
+	if (!arm->spsr->valid) {
+		LOG_ERROR("SPSR not valid!");
+		*retval = ERROR_FAIL;
+		return 1;
+	}
+
+	spsr = buf_get_u32(arm->spsr->value, 0, 32);
 
 	/* check instruction that triggered this trap */
 	if (spsr & (1 << 5)) {
-		/* was in Thumb mode */
+		/* was in Thumb (or ThumbEE) mode */
 		uint8_t insn_buf[2];
 		uint16_t insn;
+
 		*retval = target_read_memory(target, lr-2, 2, 1, insn_buf);
 		if (*retval != ERROR_OK)
 			return 1;
 		insn = target_buffer_get_u16(target, insn_buf);
+
+		/* SVC 0xab */
 		if (insn != 0xDFAB)
 			return 0;
+	} else if (spsr & (1 << 24)) {
+		/* was in Jazelle mode */
+		return 0;
 	} else {
 		/* was in ARM mode */
 		uint8_t insn_buf[4];
 		uint32_t insn;
+
 		*retval = target_read_memory(target, lr-4, 4, 1, insn_buf);
 		if (*retval != ERROR_OK)
 			return 1;
 		insn = target_buffer_get_u32(target, insn_buf);
+
+		/* SVC 0x123456 */
 		if (insn != 0xEF123456)
 			return 0;
 	}
