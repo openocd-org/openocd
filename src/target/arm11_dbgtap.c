@@ -91,6 +91,38 @@ void arm11_setup_field(struct arm11_common * arm11, int num_bits, void * out_dat
 	field->in_value			= in_data;
 }
 
+static const char *arm11_ir_to_string(uint8_t ir)
+{
+	const char *s = "unknown";
+
+	switch (ir) {
+	case ARM11_EXTEST:
+		s = "EXTEST";
+		break;
+	case ARM11_SCAN_N:
+		s = "SCAN_N";
+		break;
+	case ARM11_RESTART:
+		s = "RESTART";
+		break;
+	case ARM11_HALT:
+		s = "HALT";
+		break;
+	case ARM11_INTEST:
+		s = "INTEST";
+		break;
+	case ARM11_ITRSEL:
+		s = "ITRSEL";
+		break;
+	case ARM11_IDCODE:
+		s = "IDCODE";
+		break;
+	case ARM11_BYPASS:
+		s = "BYPASS";
+		break;
+	}
+	return s;
+}
 
 /** Write JTAG instruction register
  *
@@ -110,7 +142,7 @@ void arm11_add_IR(struct arm11_common * arm11, uint8_t instr, tap_state_t state)
 		return;
 	}
 
-	JTAG_DEBUG("IR <= 0x%02x", instr);
+	JTAG_DEBUG("IR <= %s (0x%02x)", arm11_ir_to_string(instr), instr);
 
 	struct scan_field field;
 
@@ -135,7 +167,8 @@ static void arm11_in_handler_SCAN_N(uint8_t *in_value)
 		jtag_set_error(ERROR_FAIL);
 	}
 
-	JTAG_DEBUG("SCREG SCAN OUT 0x%02x", v);
+	if (v != 0x10)
+		JTAG_DEBUG("SCREG SCAN OUT 0x%02x", v);
 }
 
 /** Select and write to Scan Chain Register (SCREG)
@@ -150,6 +183,9 @@ static void arm11_in_handler_SCAN_N(uint8_t *in_value)
  * \param state	    Pass the final TAP state or ARM11_TAP_DEFAULT for the default
  *					value (Pause-DR).
  *
+ * Changes the current scan chain if needed, transitions to the specified
+ * TAP state, and leaves the IR undefined.
+ *
  * The chain takes effect when Update-DR is passed (usually when subsequently
  * the INTEXT/EXTEST instructions are written).
  *
@@ -162,9 +198,19 @@ static void arm11_in_handler_SCAN_N(uint8_t *in_value)
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
 
-int arm11_add_debug_SCAN_N(struct arm11_common * arm11, uint8_t chain, tap_state_t state)
+int arm11_add_debug_SCAN_N(struct arm11_common *arm11,
+		uint8_t chain, tap_state_t state)
 {
-	JTAG_DEBUG("SCREG <= 0x%02x", chain);
+	/* Don't needlessly switch the scan chain.
+	 * NOTE:  the ITRSEL instruction fakes SCREG changing;
+	 * but leaves its actual value unchanged.
+	 */
+	if (arm11->jtag_info.cur_scan_chain == chain) {
+		JTAG_DEBUG("SCREG <= %d SKIPPED", chain);
+		return jtag_add_statemove((state == ARM11_TAP_DEFAULT)
+					? TAP_DRPAUSE : state);
+	}
+	JTAG_DEBUG("SCREG <= %d", chain);
 
 	arm11_add_IR(arm11, ARM11_SCAN_N, ARM11_TAP_DEFAULT);
 
@@ -791,29 +837,30 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 		}
 		else
 		{
-			nRW			= 0;
+			nRW			= 1;
 			DataOut		= 0;
 			AddressOut	= 0;
 		}
 
 		do
 		{
-			JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d",
+			JTAG_DEBUG("SC7 <= c%-3d Data %08x %s",
 					(unsigned) AddressOut,
 					(unsigned) DataOut,
-					nRW);
+					nRW ? "write" : "read");
 
 			arm11_add_dr_scan_vc(ARRAY_SIZE(chain7_fields),
 					chain7_fields, TAP_DRPAUSE);
 
 			CHECK_RETVAL(jtag_execute_queue());
 
-			JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d",
-					(unsigned) AddressIn,
-					(unsigned) DataIn,
-					Ready);
+			if (!Ready)
+				JTAG_DEBUG("SC7 => !ready");
 		}
 		while (!Ready); /* 'nRW' is 'Ready' on read out */
+
+		if (!nRW)
+			JTAG_DEBUG("SC7 => Data %08x", (unsigned) DataIn);
 
 		if (i > 0)
 		{
@@ -835,15 +882,6 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 			}
 		}
 	}
-
-	for (size_t i = 0; i < count; i++)
-	{
-		JTAG_DEBUG("SC7 %02d: %02x %s %08x",
-			(unsigned) i, actions[i].address,
-			actions[i].write ? "<=" : "=>",
-			(unsigned) actions[i].value);
-	}
-
 	return ERROR_OK;
 }
 
@@ -891,7 +929,6 @@ void arm11_sc7_set_vcr(struct arm11_common * arm11, uint32_t value)
 	set_vcr.write		= true;
 	set_vcr.address		= ARM11_SC7_VCR;
 	set_vcr.value		= value;
-
 
 	arm11_sc7_run(arm11, &set_vcr, 1);
 }

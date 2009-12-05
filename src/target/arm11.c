@@ -513,7 +513,8 @@ static int arm11_resume(struct target *target, int current,
 			brp_num++;
 		}
 
-		arm11_sc7_set_vcr(arm11, arm11_vcr);
+		if (arm11_vcr)
+			arm11_sc7_set_vcr(arm11, arm11_vcr);
 	}
 
 	arm11_leave_debug_state(arm11, handle_breakpoints);
@@ -1133,7 +1134,7 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 	arm11->jtag_info.tap = target->tap;
 	arm11->jtag_info.scann_size = 5;
 	arm11->jtag_info.scann_instr = ARM11_SCAN_N;
-	/* cur_scan_chain == 0 */
+	arm11->jtag_info.cur_scan_chain = ~0;	/* invalid/unknown */
 	arm11->jtag_info.intest_instr = ARM11_INTEST;
 
 	return ERROR_OK;
