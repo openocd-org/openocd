@@ -1012,7 +1012,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct target *target = bank->target;
 	struct reg_param reg_params[7];
-	struct armv4_5_algorithm armv4_5_info;
+	struct arm_algorithm armv4_5_info;
 	struct working_area *source;
 	uint32_t buffer_size = 32768;
 	uint32_t write_command_val, busy_pattern_val, error_pattern_val;
@@ -1257,7 +1257,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	struct target *target = bank->target;
 	struct reg_param reg_params[10];
-	struct armv4_5_algorithm armv4_5_info;
+	struct arm_algorithm armv4_5_info;
 	struct working_area *source;
 	uint32_t buffer_size = 32768;
 	uint32_t status;

@@ -160,7 +160,7 @@ static inline bool is_arm(struct arm *arm)
 	return arm && arm->common_magic == ARM_COMMON_MAGIC;
 }
 
-struct armv4_5_algorithm
+struct arm_algorithm
 {
 	int common_magic;
 

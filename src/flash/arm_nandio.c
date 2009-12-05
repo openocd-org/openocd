@@ -93,7 +93,7 @@ int arm_code_to_working_area(struct target *target,
 int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 {
 	struct target		*target = nand->target;
-	struct armv4_5_algorithm	algo;
+	struct arm_algorithm	algo;
 	struct arm		*armv4_5 = target->arch_info;
 	struct reg_param	reg_params[3];
 	uint32_t		target_buf;
@@ -177,7 +177,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 {
 	struct target *target = nand->target;
-	struct armv4_5_algorithm algo;
+	struct arm_algorithm algo;
 	struct arm *armv4_5 = target->arch_info;
 	struct reg_param reg_params[3];
 	uint32_t target_buf;

@@ -2693,7 +2693,7 @@ int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t c
 		}
 	}
 
-	struct armv4_5_algorithm armv4_5_info;
+	struct arm_algorithm armv4_5_info;
 	struct reg_param reg_params[1];
 
 	armv4_5_info.common_magic = ARM_COMMON_MAGIC;

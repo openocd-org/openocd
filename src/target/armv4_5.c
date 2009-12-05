@@ -1037,7 +1037,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 				int timeout_ms, void *arch_info))
 {
 	struct arm *armv4_5 = target_to_arm(target);
-	struct armv4_5_algorithm *armv4_5_algorithm_info = arch_info;
+	struct arm_algorithm *arm_algorithm_info = arch_info;
 	enum arm_state core_state = armv4_5->core_state;
 	uint32_t context[17];
 	uint32_t cpsr;
@@ -1047,7 +1047,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 
 	LOG_DEBUG("Running algorithm");
 
-	if (armv4_5_algorithm_info->common_magic != ARM_COMMON_MAGIC)
+	if (arm_algorithm_info->common_magic != ARM_COMMON_MAGIC)
 	{
 		LOG_ERROR("current target isn't an ARMV4/5 target");
 		return ERROR_TARGET_INVALID;
@@ -1077,10 +1077,10 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		struct reg *r;
 
 		r = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-				armv4_5_algorithm_info->core_mode, i);
+				arm_algorithm_info->core_mode, i);
 		if (!r->valid)
 			armv4_5->read_core_reg(target, r, i,
-					armv4_5_algorithm_info->core_mode);
+					arm_algorithm_info->core_mode);
 		context[i] = buf_get_u32(r->value, 0, 32);
 	}
 	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
@@ -1114,7 +1114,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		}
 	}
 
-	armv4_5->core_state = armv4_5_algorithm_info->core_state;
+	armv4_5->core_state = arm_algorithm_info->core_state;
 	if (armv4_5->core_state == ARM_STATE_ARM)
 		exit_breakpoint_size = 4;
 	else if (armv4_5->core_state == ARM_STATE_THUMB)
@@ -1125,12 +1125,12 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (armv4_5_algorithm_info->core_mode != ARM_MODE_ANY)
+	if (arm_algorithm_info->core_mode != ARM_MODE_ANY)
 	{
 		LOG_DEBUG("setting core_mode: 0x%2.2x",
-				armv4_5_algorithm_info->core_mode);
+				arm_algorithm_info->core_mode);
 		buf_set_u32(armv4_5->cpsr->value, 0, 5,
-				armv4_5_algorithm_info->core_mode);
+				arm_algorithm_info->core_mode);
 		armv4_5->cpsr->dirty = 1;
 		armv4_5->cpsr->valid = 1;
 	}
@@ -1193,13 +1193,13 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	for (i = 0; i <= 16; i++)
 	{
 		uint32_t regvalue;
-		regvalue = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32);
+		regvalue = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, arm_algorithm_info->core_mode, i).value, 0, 32);
 		if (regvalue != context[i])
 		{
-			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
-			buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32, context[i]);
-			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).valid = 1;
-			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).dirty = 1;
+			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, arm_algorithm_info->core_mode, i).name, context[i]);
+			buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, arm_algorithm_info->core_mode, i).value, 0, 32, context[i]);
+			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, arm_algorithm_info->core_mode, i).valid = 1;
+			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, arm_algorithm_info->core_mode, i).dirty = 1;
 		}
 	}
 
@@ -1225,7 +1225,7 @@ int arm_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum)
 {
 	struct working_area *crc_algorithm;
-	struct armv4_5_algorithm armv4_5_info;
+	struct arm_algorithm armv4_5_info;
 	struct reg_param reg_params[2];
 	int retval;
 	uint32_t i;
@@ -1320,7 +1320,7 @@ int arm_blank_check_memory(struct target *target,
 {
 	struct working_area *check_algorithm;
 	struct reg_param reg_params[3];
-	struct armv4_5_algorithm armv4_5_info;
+	struct arm_algorithm armv4_5_info;
 	int retval;
 	uint32_t i;
 

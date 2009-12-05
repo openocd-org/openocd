@@ -242,7 +242,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 	struct target *target = bank->target;
 	struct mem_param mem_params[2];
 	struct reg_param reg_params[5];
-	struct armv4_5_algorithm armv4_5_info; /* for LPC2000 */
+	struct arm_algorithm armv4_5_info; /* for LPC2000 */
 	struct armv7m_algorithm armv7m_info;   /* for LPC1700 */
  	uint32_t status_code;
 	uint32_t iap_entry_point = 0; /* to make compiler happier */

@@ -1302,7 +1302,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 	if( warea )
 	{
 		struct reg_param reg_params[5];
-		struct armv4_5_algorithm armv4_5_info;
+		struct arm_algorithm armv4_5_info;
 
 		/* We can use target mode. Download the algorithm. */
 		retval = target_write_buffer( target,

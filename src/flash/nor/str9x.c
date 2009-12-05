@@ -356,7 +356,7 @@ static int str9x_write_block(struct flash_bank *bank,
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[4];
-	struct armv4_5_algorithm armv4_5_info;
+	struct arm_algorithm armv4_5_info;
 	int retval = ERROR_OK;
 
 	uint32_t str9x_flash_write_code[] = {
