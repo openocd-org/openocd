@@ -26,6 +26,7 @@ NAND_DRIVERS = \
 
 noinst_HEADERS = \
 	arm_io.h \
+	core.h \
 	lpc3180.h \
 	driver.h \
 	mx3.h \

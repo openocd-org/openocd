@@ -19,9 +19,6 @@
 #ifndef __ARM_NANDIO_H
 #define __ARM_NANDIO_H
 
-#include <flash/nand.h>
-#include <helper/binarybuffer.h>
-
 /**
  * Available operational states the arm_nand_data struct can be in.
  */

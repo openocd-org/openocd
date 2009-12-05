@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Dominic Rath                                    *
- *   Dominic.Rath@gmx.de                                                   *
+ *   Copyright (C) 2007 by Dominic Rath <Dominic.Rath@gmx.de>              *
+ *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
  *                                                                         *
  *   Partially based on linux/include/linux/mtd/nand.h                     *
  *   Copyright (C) 2000 David Woodhouse <dwmw2@mvhi.com>                   *
@@ -22,14 +22,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef NAND_H
-#define NAND_H
+#ifndef FLASH_NAND_CORE_H
+#define FLASH_NAND_CORE_H
 
 #include <flash/common.h>
-// to be removed later
-#include <target/target.h>
-// to be removed later
-#include <flash/nand/driver.h>
 
 /**
  * Representation of a single NAND block in a NAND device.
@@ -243,4 +239,5 @@ COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 #define		ERROR_NAND_ERROR_CORRECTION_FAILED	(-1105)
 #define		ERROR_NAND_NO_BUFFER			(-1106)
 
-#endif /* NAND_H */
+#endif // FLASH_NAND_CORE_H
+

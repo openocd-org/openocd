@@ -28,8 +28,9 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "arm_io.h"
-
+#include <target/target.h>
 
 enum ecc {
 	HWECC1,		/* all controllers support 1-bit ECC */

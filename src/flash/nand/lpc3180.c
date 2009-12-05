@@ -21,8 +21,10 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "lpc3180.h"
-#include <flash/nand.h>
+#include <target/target.h>
+
 
 static int lpc3180_reset(struct nand_device *nand);
 static int lpc3180_controller_ready(struct nand_device *nand, int timeout);

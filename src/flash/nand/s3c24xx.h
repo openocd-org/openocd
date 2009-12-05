@@ -27,8 +27,9 @@
  * Many thanks to Simtec Electronics for sponsoring this work.
  */
 
-#include <flash/nand.h>
-#include <flash/nand/s3c24xx_regs.h>
+#include "imp.h"
+#include "s3c24xx_regs.h"
+#include <target/target.h>
 
 struct s3c24xx_nand_controller
 {

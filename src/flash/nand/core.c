@@ -24,8 +24,6 @@
 #include "config.h"
 #endif
 
-#include <flash/nand.h>
-#include <flash/common.h>
 #include "imp.h"
 
 /* configured NAND devices and NAND Flash command handler */

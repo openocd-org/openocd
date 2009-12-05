@@ -19,6 +19,9 @@
 #ifndef FLASH_NAND_IMP_H
 #define FLASH_NAND_IMP_H
 
+#include "core.h"
+#include "driver.h"
+
 int nand_write_page(struct nand_device *nand,
 		uint32_t page, uint8_t *data, uint32_t data_size,
 		uint8_t *oob, uint32_t oob_size);

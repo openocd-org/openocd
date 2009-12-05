@@ -35,7 +35,7 @@
 #include <xsvf/xsvf.h>
 #include <svf/svf.h>
 #include <flash/nor/core.h>
-#include <flash/nand.h>
+#include <flash/nand/core.h>
 #include <pld/pld.h>
 #include <flash/mflash.h>
 

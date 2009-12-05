@@ -23,7 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <flash/nand.h>
+#include "core.h"
 #include "driver.h"
 
 /* NAND flash controller

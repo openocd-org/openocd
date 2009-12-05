@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include <flash/nand.h>
+#include "core.h"
 #include "imp.h"
 #include "fileio.h"
 

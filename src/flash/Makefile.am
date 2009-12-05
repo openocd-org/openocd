@@ -17,8 +17,7 @@ libflash_la_LIBADD = \
 
 noinst_HEADERS = \
 	common.h \
-	mflash.h \
-	nand.h
+	mflash.h
 
 EXTRA_DIST = startup.tcl
 

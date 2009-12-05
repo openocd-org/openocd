@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#include <flash/nand.h>
+#include "core.h"
 #include "fileio.h"
 
 static struct nand_ecclayout nand_oob_16 = {

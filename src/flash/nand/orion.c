@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "arm_io.h"
 #include <target/armv4_5.h>
 

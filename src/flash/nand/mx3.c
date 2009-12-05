@@ -35,7 +35,9 @@ get_next_halfword_from_sram_buffer() not tested
 #include "config.h"
 #endif
 
+#include "imp.h"
 #include "mx3.h"
+#include <target/target.h>
 
 static const char target_not_halted_err_msg[] =
 	"target must be halted to use mx3 NAND flash controller";

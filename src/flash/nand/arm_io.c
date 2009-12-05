@@ -24,9 +24,12 @@
 #include "config.h"
 #endif
 
+#include "core.h"
 #include "arm_io.h"
+#include <helper/binarybuffer.h>
 #include <target/armv4_5.h>
 #include <target/algorithm.h>
+
 
 /**
  * Copies code to a working area.  This will allocate room for the code plus the

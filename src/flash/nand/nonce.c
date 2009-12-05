@@ -20,7 +20,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <flash/nand.h>
+
+#include "imp.h"
 #include "hello.h"
 
 

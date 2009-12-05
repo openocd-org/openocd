@@ -20,7 +20,7 @@
 #include "config.h"
 #endif
 
-#include <flash/nand.h>
+#include "core.h"
 
 /*****************************************************************************
  * Arithmetic in GF(2^10) ("F") modulo x^10 + x^3 + 1.
