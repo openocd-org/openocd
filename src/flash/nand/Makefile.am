@@ -3,6 +3,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 noinst_LTLIBRARIES = libocdflashnand.la
 
 libocdflashnand_la_SOURCES = \
+	core.c \
+	fileio.c \
+	tcl.c \
 	$(NAND_DRIVERS) \
 	driver.c
 

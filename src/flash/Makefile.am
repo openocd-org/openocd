@@ -12,7 +12,6 @@ libflash_la_SOURCES = \
 	arm_nandio.c \
 	nand_ecc.c \
 	nand_ecc_kw.c \
-	nand.c \
 	mflash.c
 
 libflash_la_LIBADD = \
