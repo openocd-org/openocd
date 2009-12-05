@@ -217,6 +217,19 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 
 	}
 
+	if (arm11->arm.target->debug_reason == DBG_REASON_WATCHPOINT) {
+		uint32_t wfar;
+
+		/* MRC p15, 0, <Rd>, c6, c0, 1 ; Read WFAR */
+		retval = arm11_run_instr_data_from_core_via_r0(arm11,
+				ARMV4_5_MRC(15, 0, 0, 6, 0, 1),
+				&wfar);
+		if (retval != ERROR_OK)
+			return retval;
+		arm_dpm_report_wfar(arm11->arm.dpm, wfar);
+	}
+
+
 	retval = arm11_run_instr_data_finish(arm11);
 	if (retval != ERROR_OK)
 		return retval;
@@ -356,11 +369,16 @@ static int arm11_poll(struct target *target)
 /* architecture specific status reply */
 static int arm11_arch_state(struct target *target)
 {
+	struct arm11_common *arm11 = target_to_arm11(target);
 	int retval;
 
 	retval = armv4_5_arch_state(target);
 
 	/* REVISIT also display ARM11-specific MMU and cache status ... */
+
+	if (target->debug_reason == DBG_REASON_WATCHPOINT)
+		LOG_USER("Watchpoint triggered at PC %#08x",
+				(unsigned) arm11->dpm.wp_pc);
 
 	return retval;
 }
