@@ -136,7 +136,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 		return retval;
 
 	/* set up algorithm and parameters */
-	algo.common_magic = ARMV4_5_COMMON_MAGIC;
+	algo.common_magic = ARM_COMMON_MAGIC;
 	algo.core_mode = ARM_MODE_SVC;
 	algo.core_state = ARM_STATE_ARM;
 
@@ -212,7 +212,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	target_buf = nand->copy_area->address + sizeof(code);
 
 	/* set up algorithm and parameters */
-	algo.common_magic = ARMV4_5_COMMON_MAGIC;
+	algo.common_magic = ARM_COMMON_MAGIC;
 	algo.core_mode = ARM_MODE_SVC;
 	algo.core_state = ARM_STATE_ARM;
 

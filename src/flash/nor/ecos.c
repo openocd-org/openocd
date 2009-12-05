@@ -210,7 +210,7 @@ static int runCode(struct ecosflash_flash_bank *info,
 
 	struct reg_param reg_params[3];
 	struct armv4_5_algorithm armv4_5_info;
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 

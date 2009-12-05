@@ -585,7 +585,7 @@ int armv4_5_arch_state(struct target *target)
 {
 	struct arm *armv4_5 = target_to_arm(target);
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	if (armv4_5->common_magic != ARM_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARM target");
 		return ERROR_FAIL;
@@ -1047,7 +1047,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 
 	LOG_DEBUG("Running algorithm");
 
-	if (armv4_5_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
+	if (armv4_5_algorithm_info->common_magic != ARM_COMMON_MAGIC)
 	{
 		LOG_ERROR("current target isn't an ARMV4/5 target");
 		return ERROR_TARGET_INVALID;
@@ -1273,7 +1273,7 @@ int arm_checksum_memory(struct target *target,
 			return retval;
 	}
 
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 
@@ -1350,7 +1350,7 @@ int arm_blank_check_memory(struct target *target,
 			return retval;
 	}
 
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 
@@ -1424,7 +1424,7 @@ int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
 	target->arch_info = armv4_5;
 	armv4_5->target = target;
 
-	armv4_5->common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5->common_magic = ARM_COMMON_MAGIC;
 	arm_set_cpsr(armv4_5, ARM_MODE_USR);
 
 	/* core_type may be overridden by subtype logic */

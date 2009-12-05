@@ -67,7 +67,7 @@ extern const int armv4_5_core_reg_map[8][17];
 /* offset into armv4_5 core register cache -- OBSOLETE, DO NOT USE! */
 enum { ARMV4_5_CPSR = 31, };
 
-#define ARMV4_5_COMMON_MAGIC 0x0A450A45
+#define ARM_COMMON_MAGIC 0x0A450A45
 
 /**
  * Represents a generic ARM core, with standard application registers.
@@ -149,7 +149,7 @@ static inline struct arm *target_to_arm(struct target *target)
 
 static inline bool is_arm(struct arm *arm)
 {
-	return arm && arm->common_magic == ARMV4_5_COMMON_MAGIC;
+	return arm && arm->common_magic == ARM_COMMON_MAGIC;
 }
 
 struct armv4_5_algorithm

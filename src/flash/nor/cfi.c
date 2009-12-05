@@ -1085,7 +1085,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 
 	cfi_intel_clear_status_register(bank);
 
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 
@@ -1408,7 +1408,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 		0xeafffffe 	/* b	8204 <sp_8_done>               */
 	};
 
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 

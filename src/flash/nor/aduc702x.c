@@ -241,7 +241,7 @@ static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32
 		}
 	}
 
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARM_MODE_SVC;
 	armv4_5_info.core_state = ARM_STATE_ARM;
 

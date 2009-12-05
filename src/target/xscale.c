@@ -857,7 +857,7 @@ static int xscale_arch_state(struct target *target)
 		"", "\n(processor reset)", "\n(trace buffer full)"
 	};
 
-	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	if (armv4_5->common_magic != ARM_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		return ERROR_INVALID_ARGUMENTS;
