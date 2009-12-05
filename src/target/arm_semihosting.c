@@ -414,18 +414,16 @@ static int do_semihosting(struct target *target)
 int arm_semihosting(struct target *target, int *retval)
 {
 	struct arm *arm = target_to_arm(target);
-	uint32_t lr, spsr;
+	uint32_t pc, lr, spsr;
 	struct reg *r;
 
 	if (!arm->is_semihosting || arm->core_mode != ARM_MODE_SVC)
 		return 0;
 
-	/* Check for PC == 8:  Supervisor Call vector
-	 * REVISIT:  assumes low exception vectors, not hivecs...
-	 * safer to test "was this entry from a vector catch".
-	 */
+	/* Check for PC == 0x00000008 or 0xffff0008: Supervisor Call vector. */
 	r = arm->core_cache->reg_list + 15;
-	if (buf_get_u32(r->value, 0, 32) != 0x08)
+	pc = buf_get_u32(r->value, 0, 32);
+	if (pc != 0x00000008 && pc != 0xffff0008)
 		return 0;
 
 	r = arm_reg_current(arm, 14);
