@@ -34,35 +34,6 @@ static int nand_read_page(struct nand_device *nand, uint32_t page, uint8_t *data
 
 static int nand_write_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 
-/* NAND flash controller
- */
-extern struct nand_flash_controller nonce_nand_controller;
-extern struct nand_flash_controller davinci_nand_controller;
-extern struct nand_flash_controller lpc3180_nand_controller;
-extern struct nand_flash_controller orion_nand_controller;
-extern struct nand_flash_controller s3c2410_nand_controller;
-extern struct nand_flash_controller s3c2412_nand_controller;
-extern struct nand_flash_controller s3c2440_nand_controller;
-extern struct nand_flash_controller s3c2443_nand_controller;
-extern struct nand_flash_controller imx31_nand_flash_controller;
-
-/* extern struct nand_flash_controller boundary_scan_nand_controller; */
-
-static struct nand_flash_controller *nand_flash_controllers[] =
-{
-	&nonce_nand_controller,
-	&davinci_nand_controller,
-	&lpc3180_nand_controller,
-	&orion_nand_controller,
-	&s3c2410_nand_controller,
-	&s3c2412_nand_controller,
-	&s3c2440_nand_controller,
-	&s3c2443_nand_controller,
- 	&imx31_nand_flash_controller,
-/*	&boundary_scan_nand_controller, */
-	NULL
-};
-
 /* configured NAND devices and NAND Flash command handler */
 static struct nand_device *nand_devices = NULL;
 
@@ -205,12 +176,16 @@ static struct nand_ecclayout nand_oob_64 = {
 		 .length = 38}}
 };
 
+int nand_list_walker(struct nand_flash_controller *c, void *x)
+{
+	struct command_context *cmd_ctx = (struct command_context *)x;
+	command_print(cmd_ctx, "  %s", c->name);
+	return ERROR_OK;
+}
 COMMAND_HANDLER(handle_nand_list_drivers)
 {
 	command_print(CMD_CTX, "Available NAND flash controller drivers:");
-	for (unsigned i = 0; nand_flash_controllers[i]; i++)
-		command_print(CMD_CTX, "  %s", nand_flash_controllers[i]->name);
-	return ERROR_OK;
+	return nand_driver_walk(&nand_list_walker, CMD_CTX);
 }
 
 static COMMAND_HELPER(create_nand_device, const char *bank_name,
@@ -267,18 +242,14 @@ COMMAND_HANDLER(handle_nand_device_command)
 	CMD_ARGC--;
 
 	const char *driver_name = CMD_ARGV[0];
-	for (unsigned i = 0; nand_flash_controllers[i]; i++)
+	struct nand_flash_controller *controller;
+	controller = nand_driver_find_by_name(CMD_ARGV[0]);
+	if (NULL == controller)
 	{
-		struct nand_flash_controller *controller = nand_flash_controllers[i];
-		if (strcmp(driver_name, controller->name) != 0)
-			continue;
-
-		return CALL_COMMAND_HANDLER(create_nand_device,
-				bank_name, controller);
+		LOG_ERROR("No valid NAND flash driver found (%s)", driver_name);
+		return CALL_COMMAND_HANDLER(handle_nand_list_drivers);
 	}
-
-	LOG_ERROR("No valid NAND flash driver found (%s)", driver_name);
-	return CALL_COMMAND_HANDLER(handle_nand_list_drivers);
+	return CALL_COMMAND_HANDLER(create_nand_device, bank_name, controller);
 }
 
 

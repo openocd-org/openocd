@@ -3,6 +3,10 @@ AM_CPPFLAGS = -I$(top_srcdir)/src
 noinst_LTLIBRARIES = libocdflashnand.la
 
 libocdflashnand_la_SOURCES = \
+	$(NAND_DRIVERS) \
+	driver.c
+
+NAND_DRIVERS = \
 	nonce.c \
 	davinci.c \
 	lpc3180.c \
@@ -16,6 +20,7 @@ libocdflashnand_la_SOURCES = \
 
 noinst_HEADERS = \
 	lpc3180.h \
+	driver.h \
 	mx3.h \
 	s3c24xx.h \
 	s3c24xx_regs.h
