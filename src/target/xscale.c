@@ -2859,7 +2859,7 @@ static void xscale_build_reg_cache(struct target *target)
 	int i;
 	int num_regs = ARRAY_SIZE(xscale_reg_arch_info);
 
-	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
+	(*cache_p) = arm_build_reg_cache(target, armv4_5);
 
 	(*cache_p)->next = malloc(sizeof(struct reg_cache));
 	cache_p = &(*cache_p)->next;

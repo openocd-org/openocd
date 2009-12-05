@@ -533,7 +533,7 @@ static const struct reg_arch_type arm_reg_type = {
 	.set = armv4_5_set_core_reg,
 };
 
-struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *armv4_5_common)
+struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 {
 	int num_regs = ARRAY_SIZE(arm_core_regs);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
@@ -557,7 +557,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 	{
 		/* Skip registers this core doesn't expose */
 		if (arm_core_regs[i].mode == ARM_MODE_MON
-				&& armv4_5_common->core_type != ARM_MODE_MON)
+				&& arm->core_type != ARM_MODE_MON)
 			continue;
 
 		/* REVISIT handle Cortex-M, which only shadows R13/SP */
@@ -565,7 +565,7 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		arch_info[i].num = arm_core_regs[i].cookie;
 		arch_info[i].mode = arm_core_regs[i].mode;
 		arch_info[i].target = target;
-		arch_info[i].armv4_5_common = armv4_5_common;
+		arch_info[i].armv4_5_common = arm;
 
 		reg_list[i].name = (char *) arm_core_regs[i].name;
 		reg_list[i].size = 32;
@@ -576,8 +576,8 @@ struct reg_cache* armv4_5_build_reg_cache(struct target *target, struct arm *arm
 		cache->num_regs++;
 	}
 
-	armv4_5_common->cpsr = reg_list + ARMV4_5_CPSR;
-	armv4_5_common->core_cache = cache;
+	arm->cpsr = reg_list + ARMV4_5_CPSR;
+	arm->core_cache = cache;
 	return cache;
 }
 

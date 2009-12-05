@@ -643,7 +643,7 @@ static void arm7tdmi_build_reg_cache(struct target *target)
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct arm *armv4_5 = target_to_arm(target);
 
-	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
+	(*cache_p) = arm_build_reg_cache(target, armv4_5);
 }
 
 int arm7tdmi_init_target(struct command_context *cmd_ctx, struct target *target)

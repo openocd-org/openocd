@@ -177,8 +177,7 @@ struct arm_reg
 	uint32_t value;
 };
 
-struct reg_cache* armv4_5_build_reg_cache(struct target *target,
-		struct arm *armv4_5_common);
+struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);
 
 int armv4_5_arch_state(struct target *target);
 int armv4_5_get_gdb_reg_list(struct target *target,
