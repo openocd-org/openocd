@@ -3,7 +3,8 @@ SUBDIRS = \
 	nand
 
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libflash.la

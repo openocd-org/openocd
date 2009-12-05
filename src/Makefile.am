@@ -32,7 +32,8 @@ noinst_HEADERS = \
 
 # set the include path found by configure
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src
 
 libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
 
