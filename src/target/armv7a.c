@@ -100,7 +100,7 @@ int armv7a_arch_state(struct target *target)
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	armv4_5_arch_state(target);
+	arm_arch_state(target);
 
 	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",
 		 state[armv7a->armv4_5_mmu.mmu_enabled],

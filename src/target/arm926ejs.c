@@ -801,7 +801,7 @@ struct target_type arm926ejs_target =
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm926ejs_soft_reset_halt,
 
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
 	.write_memory = arm926ejs_write_memory,

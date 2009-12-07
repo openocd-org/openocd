@@ -2885,7 +2885,8 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 	armv4_5->write_core_reg = arm7_9_write_core_reg;
 	armv4_5->full_context = arm7_9_full_context;
 
-	if ((retval = armv4_5_init_arch_info(target, armv4_5)) != ERROR_OK)
+	retval = arm_init_arch_info(target, armv4_5);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return target_register_timer_callback(arm7_9_handle_target_request,

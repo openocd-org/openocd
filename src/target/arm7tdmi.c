@@ -720,7 +720,7 @@ struct target_type arm7tdmi_target =
 	.name = "arm7tdmi",
 
 	.poll = arm7_9_poll,
-	.arch_state = armv4_5_arch_state,
+	.arch_state = arm_arch_state,
 
 	.target_request_data = arm7_9_target_request_data,
 
@@ -732,7 +732,7 @@ struct target_type arm7tdmi_target =
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm7_9_soft_reset_halt,
 
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
 	.write_memory = arm7_9_write_memory,

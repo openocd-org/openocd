@@ -187,13 +187,13 @@ struct arm_reg
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);
 
-int armv4_5_arch_state(struct target *target);
-int armv4_5_get_gdb_reg_list(struct target *target,
+int arm_arch_state(struct target *target);
+int arm_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 
 extern const struct command_registration arm_command_handlers[];
 
-int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5);
+int arm_init_arch_info(struct target *target, struct arm *arm);
 
 int armv4_5_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,

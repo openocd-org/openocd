@@ -1453,7 +1453,7 @@ struct target_type arm920t_target =
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm920t_soft_reset_halt,
 
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm920t_read_memory,
 	.write_memory = arm920t_write_memory,

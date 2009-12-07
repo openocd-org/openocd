@@ -1603,7 +1603,7 @@ static int cortex_a8_init_arch_info(struct target *target,
 //	arm7_9->handle_target_request = cortex_a8_handle_target_request;
 
 	/* REVISIT v7a setup should be in a v7a-specific routine */
-	armv4_5_init_arch_info(target, armv4_5);
+	arm_init_arch_info(target, armv4_5);
 	armv7a->common_magic = ARMV7_COMMON_MAGIC;
 
 	target_register_timer_callback(cortex_a8_handle_target_request, 1, 1, target);
@@ -1686,7 +1686,7 @@ struct target_type cortexa8_target = {
 	.deassert_reset = cortex_a8_deassert_reset,
 	.soft_reset_halt = NULL,
 
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = cortex_a8_read_memory,
 	.write_memory = cortex_a8_write_memory,

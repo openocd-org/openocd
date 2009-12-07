@@ -373,7 +373,7 @@ static int arm11_arch_state(struct target *target)
 	struct arm11_common *arm11 = target_to_arm11(target);
 	int retval;
 
-	retval = armv4_5_arch_state(target);
+	retval = arm_arch_state(target);
 
 	/* REVISIT also display ARM11-specific MMU and cache status ... */
 
@@ -1150,7 +1150,7 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 	if (!arm11)
 		return ERROR_FAIL;
 
-	armv4_5_init_arch_info(target, &arm11->arm);
+	arm_init_arch_info(target, &arm11->arm);
 
 	arm11->jtag_info.tap = target->tap;
 	arm11->jtag_info.scann_size = 5;
@@ -1387,7 +1387,7 @@ struct target_type arm11_target = {
 	.deassert_reset =	arm11_deassert_reset,
 	.soft_reset_halt =	arm11_soft_reset_halt,
 
-	.get_gdb_reg_list =	armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list =	arm_get_gdb_reg_list,
 
 	.read_memory =		arm11_read_memory,
 	.write_memory =		arm11_write_memory,

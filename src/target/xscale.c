@@ -2993,7 +2993,7 @@ static int xscale_init_arch_info(struct target *target,
 	armv4_5->write_core_reg = xscale_write_core_reg;
 	armv4_5->full_context = xscale_full_context;
 
-	armv4_5_init_arch_info(target, armv4_5);
+	arm_init_arch_info(target, armv4_5);
 
 	xscale->armv4_5_mmu.armv4_5_cache.ctype = -1;
 	xscale->armv4_5_mmu.get_ttb = xscale_get_ttb;
@@ -3722,7 +3722,7 @@ struct target_type xscale_target =
 	.deassert_reset = xscale_deassert_reset,
 	.soft_reset_halt = NULL,
 
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = xscale_read_memory,
 	.read_phys_memory = xscale_read_phys_memory,

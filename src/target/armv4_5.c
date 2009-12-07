@@ -581,7 +581,7 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 	return cache;
 }
 
-int armv4_5_arch_state(struct target *target)
+int arm_arch_state(struct target *target)
 {
 	struct arm *armv4_5 = target_to_arm(target);
 
@@ -593,11 +593,11 @@ int armv4_5_arch_state(struct target *target)
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "%s",
-			 arm_state_strings[armv4_5->core_state],
-			 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
+			arm_state_strings[armv4_5->core_state],
+			Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 					target->debug_reason)->name,
-			 arm_mode_name(armv4_5->core_mode),
-			 buf_get_u32(armv4_5->cpsr->value, 0, 32),
+			arm_mode_name(armv4_5->core_mode),
+			buf_get_u32(armv4_5->cpsr->value, 0, 32),
 			buf_get_u32(armv4_5->core_cache->reg_list[15].value,
 					0, 32),
 			armv4_5->is_semihosting ? ", semihosting" : "");
@@ -972,7 +972,8 @@ const struct command_registration arm_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int armv4_5_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
+int arm_get_gdb_reg_list(struct target *target,
+		struct reg **reg_list[], int *reg_list_size)
 {
 	struct arm *armv4_5 = target_to_arm(target);
 	int i;
@@ -1419,7 +1420,7 @@ static int arm_default_mcr(struct target *target, int cpnum,
 	return ERROR_FAIL;
 }
 
-int armv4_5_init_arch_info(struct target *target, struct arm *armv4_5)
+int arm_init_arch_info(struct target *target, struct arm *armv4_5)
 {
 	target->arch_info = armv4_5;
 	armv4_5->target = target;
