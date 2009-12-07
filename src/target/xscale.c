@@ -865,15 +865,8 @@ static int xscale_arch_state(struct target *target)
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
-			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
-			"MMU: %s, D-Cache: %s, I-Cache: %s"
-			"%s",
-			 arm_state_strings[armv4_5->core_state],
-			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name ,
-			 arm_mode_name(armv4_5->core_mode),
-			 buf_get_u32(armv4_5->cpsr->value, 0, 32),
-			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
+	arm_arch_state(target);
+	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s%s",
 			 state[xscale->armv4_5_mmu.mmu_enabled],
 			 state[xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
 			 state[xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled],
