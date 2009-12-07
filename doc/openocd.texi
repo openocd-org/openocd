@@ -5385,7 +5385,7 @@ It's unclear how much of a common interface is shared
 with the current XScale trace support, or should be
 shared with eventual Nexus-style trace module support.
 
-At this writing (September 2009) only ARM7 and ARM9 support
+At this writing (November 2009) only ARM7, ARM9, and ARM11 support
 for ETM modules is available.  The code should be able to
 work with some newer cores; but not all of them support
 this original style of JTAG access.
