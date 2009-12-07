@@ -3638,10 +3638,16 @@ Use it in board specific configuration files, not interactively.
 @comment the REAL name for this command is "ocd_flash_banks"
 @comment less confusing would be:  "flash list" (like "nand list")
 @deffn Command {flash banks}
-Prints a one-line summary of each device declared
-using @command{flash bank}, numbered from zero.
+Prints a one-line summary of each device that was 
+declared using @command{flash bank}, numbered from zero.
 Note that this is the @emph{plural} form;
 the @emph{singular} form is a very different command.
+@end deffn
+
+@deffn Command {flash list}
+Retrieves a list of associative arrays for each device that was 
+declared using @command{flash bank}, numbered from zero.
+This returned list can be manipulated easily from within scripts.
 @end deffn
 
 @deffn Command {flash probe} num

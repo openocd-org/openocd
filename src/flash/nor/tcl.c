@@ -816,14 +816,30 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	flash_bank_add(c);
 
 	return ERROR_OK;
-
 }
 
-
-static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_flash_banks_command)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
+	if (CMD_ARGC != 0)
+		return ERROR_INVALID_ARGUMENTS;
+
+	unsigned n = 0;
+	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++)
+	{
+		LOG_USER("#%u: %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
+			"buswidth %u, chipwidth %u", n,
+			p->driver->name, p->base, p->size,
+			p->bus_width, p->chip_width);
+	}
+	return ERROR_OK;
+}
+
+static int jim_flash_list(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv,
+				"no arguments to 'flash list' command");
 		return JIM_ERR;
 	}
 
@@ -890,8 +906,14 @@ static const struct command_registration flash_config_command_handlers[] = {
 	{
 		.name = "banks",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_flash_banks,
-		.help = "return information about the flash banks",
+		.handler = &handle_flash_banks_command,
+		.help = "return readable information about the flash banks",
+	},
+	{
+		.name = "list",
+		.mode = COMMAND_ANY,
+		.jim_handler = &jim_flash_list,
+		.help = "returns a list of details about the flash banks",
 	},
 	COMMAND_REGISTRATION_DONE
 };
