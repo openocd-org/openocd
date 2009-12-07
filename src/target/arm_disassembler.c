@@ -106,6 +106,16 @@ static uint32_t ror(uint32_t value, int places)
 	return (value >> places) | (value << (32 - places));
 }
 
+static int evaluate_unknown(uint32_t opcode,
+		uint32_t address, struct arm_instruction *instruction)
+{
+	instruction->type = ARM_UNDEFINED_INSTRUCTION;
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+			"\tUNDEFINED INSTRUCTION", address, opcode);
+	return ERROR_OK;
+}
+
 static int evaluate_pld(uint32_t opcode,
 		uint32_t address, struct arm_instruction *instruction)
 {
@@ -118,14 +128,50 @@ static int evaluate_pld(uint32_t opcode,
 
 		return ERROR_OK;
 	}
-	else
-	{
-		instruction->type = ARM_UNDEFINED_INSTRUCTION;
-		return ERROR_OK;
+	return evaluate_unknown(opcode, address, instruction);
+}
+
+static int evaluate_srs(uint32_t opcode,
+		uint32_t address, struct arm_instruction *instruction)
+{
+	const char *wback = (opcode & (1 << 21)) ? "!" : "";
+	const char *mode;
+
+	switch ((opcode >> 23) & 0x3) {
+	case 0:
+		mode = "DA";
+		break;
+	case 1:
+		/* "IA" is default */
+		mode = "";
+		break;
+	case 2:
+		mode = "DB";
+		break;
+	case 3:
+		mode = "IB";
+		break;
 	}
 
-	LOG_ERROR("should never reach this point");
-	return -1;
+	switch (opcode & 0x0e500000) {
+	case 0x08400000:
+		snprintf(instruction->text, 128, "0x%8.8" PRIx32
+				"\t0x%8.8" PRIx32
+				"\tSRS%s\tSP%s, #%d",
+				address, opcode,
+				mode, wback, opcode & 0x1f);
+		break;
+	case 0x08100000:
+		snprintf(instruction->text, 128, "0x%8.8" PRIx32
+				"\t0x%8.8" PRIx32
+				"\tRFE%s\tr%d%s",
+				address, opcode,
+				mode, (opcode >> 16) & 0xf, wback);
+		break;
+	default:
+		return evaluate_unknown(opcode, address, instruction);
+	}
+	return ERROR_OK;
 }
 
 static int evaluate_swi(uint32_t opcode,
@@ -1605,13 +1651,9 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, struct arm_instructio
 		if ((opcode & 0x08000000) == 0x00000000)
 			return evaluate_pld(opcode, address, instruction);
 
-		/* Undefined instruction */
+		/* Undefined instruction (or ARMv6+ SRS/RFE) */
 		if ((opcode & 0x0e000000) == 0x08000000)
-		{
-			instruction->type = ARM_UNDEFINED_INSTRUCTION;
-			snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION", address, opcode);
-			return ERROR_OK;
-		}
+			return evaluate_srs(opcode, address, instruction);
 
 		/* Branch and branch with link and change to Thumb */
 		if ((opcode & 0x0e000000) == 0x0a000000)
@@ -3414,11 +3456,28 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 	int op = (opcode >> 22) & 0x6;
 	int t = (opcode >> 21) & 1;
 	unsigned registers = opcode & 0xffff;
+	char *mode = "";
 
 	if (opcode & (1 << 20))
 		op |= 1;
 
 	switch (op) {
+	case 0:
+		mode = "DB";
+		/* FALL THROUGH */
+	case 6:
+		sprintf(cp, "SRS%s\tsp%s, #%d", mode,
+				t ? "!" : "",
+				opcode & 0x1f);
+		return ERROR_OK;
+	case 1:
+		mode = "DB";
+		/* FALL THROUGH */
+	case 7:
+		sprintf(cp, "RFE%s\tr%d%s", mode,
+				(opcode >> 16) & 0xf,
+				t ? "!" : "");
+		return ERROR_OK;
 	case 2:
 		sprintf(cp, "STM.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
