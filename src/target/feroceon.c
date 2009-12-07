@@ -56,6 +56,7 @@
 #include "arm966e.h"
 #include "target_type.h"
 #include "register.h"
+#include "arm_opcodes.h"
 
 
 int feroceon_assert_reset(struct target *target)

@@ -27,6 +27,7 @@
 #include "register.h"
 #include "breakpoints.h"
 #include "target_type.h"
+#include "arm_opcodes.h"
 
 
 /**

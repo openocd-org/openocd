@@ -34,6 +34,7 @@
 #include "target_type.h"
 #include "algorithm.h"
 #include "register.h"
+#include "arm_opcodes.h"
 
 
 #if 0

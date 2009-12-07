@@ -33,6 +33,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "arm_opcodes.h"
+
 
 static void armv7a_show_fault_registers(struct target *target)
 {

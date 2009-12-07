@@ -28,6 +28,7 @@
 #include <helper/time_support.h>
 #include "target_type.h"
 #include "register.h"
+#include "arm_opcodes.h"
 
 
 /*

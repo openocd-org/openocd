@@ -36,6 +36,7 @@
 #include <helper/time_support.h>
 #include "register.h"
 #include "image.h"
+#include "arm_opcodes.h"
 
 
 /*

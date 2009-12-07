@@ -38,6 +38,7 @@
 #include "register.h"
 #include "target_request.h"
 #include "target_type.h"
+#include "arm_opcodes.h"
 
 static int cortex_a8_poll(struct target *target);
 static int cortex_a8_debug_entry(struct target *target);

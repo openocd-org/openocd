@@ -37,6 +37,7 @@
 #include "target_type.h"
 #include "arm_disassembler.h"
 #include "register.h"
+#include "arm_opcodes.h"
 
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
@@ -880,7 +881,7 @@ cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	else if (breakpoint->type == BKPT_SOFT)
 	{
 		uint8_t code[4];
-		buf_set_u32(code, 0, 32, ARMV7M_T_BKPT(0x11));
+		buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
 		if ((retval = target_read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 		{
 			return retval;

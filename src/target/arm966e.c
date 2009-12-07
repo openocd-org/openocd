@@ -26,6 +26,7 @@
 
 #include "arm966e.h"
 #include "target_type.h"
+#include "arm_opcodes.h"
 
 
 #if 0

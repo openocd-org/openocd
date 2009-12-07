@@ -33,6 +33,7 @@
 
 #include "arm920t.h"
 #include "target_type.h"
+#include "arm_opcodes.h"
 
 static void fa526_change_to_arm(struct target *target, uint32_t *r0, uint32_t *pc)
 {
