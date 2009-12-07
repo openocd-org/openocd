@@ -5,7 +5,7 @@
 proc flash_banks {} {
 	set i 0
 	set result ""
-	foreach {a} [ocd_flash_banks] {
+	foreach {a} [ocd_flash banks] {
 		if {$i > 0} {
 			set result "$result\n"
 		}
