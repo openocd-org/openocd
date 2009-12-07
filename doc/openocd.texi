@@ -501,8 +501,43 @@ Configuration files and scripts are searched for in
 @end enumerate
 The first found file with a matching file name will be used.
 
+@section Simple setup, no customization
+
+In the best case, you can use two scripts from one of the script
+libraries, hook up your JTAG adapter, and start the server ... and
+your JTAG setup will just work "out of the box".  Always try to
+start by reusing those scripts, but assume you'll need more
+customization even if this works.  @xref{OpenOCD Project Setup}.
+
+If you find a script for your JTAG adapter, and for your board or
+target, you may be able to hook up your JTAG adapter then start
+the server like:
+
+@example
+openocd -f interface/ADAPTER.cfg -f board/MYBOARD.cfg
+@end example
+
+You might also need to configure which reset signals are present,
+using @option{-c 'reset_config trst_and_srst'} or something similar.
+If all goes well you'll see output something like
+
+@example
+Open On-Chip Debugger 0.4.0 (2010-01-14-15:06)
+For bug reports, read
+        http://openocd.berlios.de/doc/doxygen/bugs.html
+Info : JTAG tap: lm3s.cpu tap/device found: 0x3ba00477
+       (mfg: 0x23b, part: 0xba00, ver: 0x3)
+@end example
+
+Seeing that "tap/device found" message, and no warnings, means
+the JTAG communication is working.  That's a key milestone, but
+you'll probably need more project-specific setup.
+
+@section What OpenOCD does as it starts
+
 OpenOCD starts by processing the configuration commands provided
-on the command line or in @file{openocd.cfg}.
+on the command line or, if there were no @option{-c command} or
+@option{-f file.cfg} options given, in @file{openocd.cfg}.
 @xref{Configuration Stage}.
 At the end of the configuration stage it verifies the JTAG scan
 chain defined using those commands; your configuration should
@@ -548,6 +583,8 @@ just connecting the JTAG adapter hardware (dongle) to your development board
 and then starting the OpenOCD server.
 You also need to configure that server so that it knows
 about that adapter and board, and helps your work.
+You may also want to connect OpenOCD to GDB, possibly
+using Eclipse or some other GUI.
 
 @section Hooking up the JTAG Adapter
 
@@ -604,7 +641,8 @@ you are using to run OpenOCD.
 For Ethernet, consult the documentation and your network administrator.
 
 For USB based JTAG adapters you have an easy sanity check at this point:
-does the host operating system see the JTAG adapter?
+does the host operating system see the JTAG adapter?  If that host is an
+MS-Windows host, you'll need to install a driver before OpenOCD works.
 
 @item @emph{Connect the adapter's power supply, if needed.}
 This step is primarily for non-USB adapters,
@@ -629,6 +667,7 @@ A simple way to organize them all involves keeping a
 single directory for your work with a given board.
 When you start OpenOCD from that directory,
 it searches there first for configuration files, scripts,
+files accessed through semihosting,
 and for code you upload to the target board.
 It is also the natural place to write files,
 such as log files and data you download from the board.
