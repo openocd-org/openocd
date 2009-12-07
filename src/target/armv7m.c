@@ -480,8 +480,7 @@ int armv7m_arch_state(struct target *target)
 
 	LOG_USER("target halted due to %s, current mode: %s %s\n"
 		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32,
-		Jim_Nvp_value2name_simple(nvp_target_debug_reason,
-				target->debug_reason)->name,
+		debug_reason_name(target),
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
 		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32),

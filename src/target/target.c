@@ -187,7 +187,7 @@ const Jim_Nvp nvp_target_state[] = {
 	{ .name = NULL, .value = -1 },
 };
 
-const Jim_Nvp nvp_target_debug_reason [] = {
+static const Jim_Nvp nvp_target_debug_reason [] = {
 	{ .name = "debug-request"            , .value = DBG_REASON_DBGRQ },
 	{ .name = "breakpoint"               , .value = DBG_REASON_BREAKPOINT },
 	{ .name = "watchpoint"               , .value = DBG_REASON_WATCHPOINT },
@@ -213,6 +213,19 @@ const Jim_Nvp nvp_reset_modes[] = {
 	{ .name = "init"   , .value = RESET_INIT },
 	{ .name = NULL     , .value = -1 },
 };
+
+const char *debug_reason_name(struct target *t)
+{
+	const char *cp;
+
+	cp = Jim_Nvp_value2name_simple(nvp_target_debug_reason,
+			t->debug_reason)->name;
+	if (!cp) {
+		LOG_ERROR("Invalid debug reason: %d", (int)(t->debug_reason));
+		cp = "(*BUG*unknown*BUG*)";
+	}
+	return cp;
+}
 
 const char *
 target_state_name( struct target *t )

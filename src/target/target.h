@@ -91,8 +91,6 @@ enum target_debug_reason
 	DBG_REASON_UNDEFINED = 6
 };
 
-extern const Jim_Nvp nvp_target_debug_reason[];
-
 enum target_endianess
 {
 	TARGET_ENDIAN_UNKNOWN = 0,
@@ -164,6 +162,8 @@ static inline const char *target_name(struct target *target)
 {
 	return target->cmd_name;
 }
+
+const char *debug_reason_name(struct target *t);
 
 enum target_event
 {

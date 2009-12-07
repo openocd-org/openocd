@@ -595,8 +595,7 @@ int arm_arch_state(struct target *target)
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "%s",
 			arm_state_strings[armv4_5->core_state],
-			Jim_Nvp_value2name_simple(nvp_target_debug_reason,
-					target->debug_reason)->name,
+			debug_reason_name(target),
 			arm_mode_name(armv4_5->core_mode),
 			buf_get_u32(armv4_5->cpsr->value, 0, 32),
 			buf_get_u32(armv4_5->core_cache->reg_list[15].value,

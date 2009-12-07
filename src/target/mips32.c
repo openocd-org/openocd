@@ -254,7 +254,7 @@ int mips32_arch_state(struct target *target)
 	}
 
 	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",
-		Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name ,
+		debug_reason_name(target),
 		buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32));
 
 	return ERROR_OK;
