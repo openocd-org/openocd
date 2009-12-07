@@ -329,7 +329,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 			retval = dpm->bpwp_disable(dpm, 16 + i);
 		else
 			retval = dpm->bpwp_enable(dpm, 16 + i,
-					wp->address, dwp->control);
+					wp->address & ~3, dwp->control);
 
 		if (retval != ERROR_OK)
 			LOG_ERROR("%s: can't %s HW watchpoint %d",
