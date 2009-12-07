@@ -32,31 +32,7 @@ int  diag_printf(const char *fmt, ...);
 #define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b); diag_printf("peek 0x%08x = 0x%08x\n", a, b)
 #else
 #define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b)
-
-#ifdef CYGPKG_HAL_NIOS2
-#define ZY1000_POKE(a, b) \
-		 {/* This will flush the bridge FIFO. Overflowed bridge FIFO fails. We must \
-		 flush every "often". No precise system has been found, but 4 seems solid. \
-		  This code goes away once the FPGA has been fixed. */ \
-\
-CYG_INTERRUPT_STATE _old_; \
-HAL_DISABLE_INTERRUPTS(_old_); \
-HAL_WRITE_UINT32(a, b);\
- static int overflow_counter = 0; \
-   if (++overflow_counter >= 1) \
-   { \
-	   /* clear FIFO */ \
-	   cyg_uint32 empty; ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty); \
-	   overflow_counter = 0; \
-   } \
-   /* NB! interrupts must be restored *after* read */ \
-   HAL_RESTORE_INTERRUPTS(_old_); \
-}\
-
-#else
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b)
-#endif
-
 #endif
 
 // FIFO empty?

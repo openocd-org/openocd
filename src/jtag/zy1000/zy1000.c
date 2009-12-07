@@ -93,8 +93,8 @@ static bool readPowerDropout(void)
 {
 	cyg_uint32 state;
 	// sample and clear power dropout
-	HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x10, 0x80);
-	HAL_READ_UINT32(ZY1000_JTAG_BASE + 0x10, state);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x80);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, state);
 	bool powerDropout;
 	powerDropout = (state & 0x80) != 0;
 	return powerDropout;
@@ -105,8 +105,8 @@ static bool readSRST(void)
 {
 	cyg_uint32 state;
 	// sample and clear SRST sensing
-	HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x10, 0x00000040);
-	HAL_READ_UINT32(ZY1000_JTAG_BASE + 0x10, state);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000040);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, state);
 	bool srstAsserted;
 	srstAsserted = (state & 0x40) != 0;
 	return srstAsserted;
@@ -218,10 +218,10 @@ static void setPower(bool power)
 	savePower = power;
 	if (power)
 	{
-		HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x14, 0x8);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x8);
 	} else
 	{
-		HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x10, 0x8);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x8);
 	}
 }
 
