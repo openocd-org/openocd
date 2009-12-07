@@ -1352,7 +1352,10 @@ COMMAND_HANDLER(arm920t_handle_cache_info_command)
 }
 
 
-static int arm920t_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+static int arm920t_mrc(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t *value)
 {
 	if (cpnum!=15)
 	{
@@ -1360,10 +1363,16 @@ static int arm920t_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t 
 		return ERROR_FAIL;
 	}
 
-	return arm920t_read_cp15_interpreted(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), 0, value);
+	/* read "to" r0 */
+	return arm920t_read_cp15_interpreted(target,
+			ARMV4_5_MRC(cpnum, op1, 0, CRn, CRm, op2),
+			0, value);
 }
 
-static int arm920t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+static int arm920t_mcr(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t value)
 {
 	if (cpnum!=15)
 	{
@@ -1371,7 +1380,10 @@ static int arm920t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 		return ERROR_FAIL;
 	}
 
-	return arm920t_write_cp15_interpreted(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), 0, value);
+	/* write "from" r0 */
+	return arm920t_write_cp15_interpreted(target,
+			ARMV4_5_MCR(cpnum, op1, 0, CRn, CRm, op2),
+			0, value);
 }
 
 static const struct command_registration arm920t_exec_command_handlers[] = {

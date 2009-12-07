@@ -379,16 +379,4 @@ extern struct reg arm_gdb_dummy_fps_reg;
  */
 #define ARMV5_T_BKPT(Im) ((0xbe00 | Im) | ((0xbe00 | Im) << 16))
 
-/* build basic mrc/mcr opcode */
-
-static inline uint32_t mrc_opcode(int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm)
-{
-	uint32_t t = 0;
-	t|=op1<<21;
-	t|=op2<<5;
-	t|=CRn<<16;
-	t|=CRm<<0;
-	return t;
-}
-
 #endif /* ARMV4_5_H */

@@ -481,7 +481,10 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	return ERROR_OK;
 }
 
-static int arm720t_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
+static int arm720t_mrc(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t *value)
 {
 	if (cpnum!=15)
 	{
@@ -489,11 +492,17 @@ static int arm720t_mrc(struct target *target, int cpnum, uint32_t op1, uint32_t 
 		return ERROR_FAIL;
 	}
 
-	return arm720t_read_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
+	/* read "to" r0 */
+	return arm720t_read_cp15(target,
+			ARMV4_5_MRC(cpnum, op1, 0, CRn, CRm, op2),
+			value);
 
 }
 
-static int arm720t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
+static int arm720t_mcr(struct target *target, int cpnum,
+		uint32_t op1, uint32_t op2,
+		uint32_t CRn, uint32_t CRm,
+		uint32_t value)
 {
 	if (cpnum!=15)
 	{
@@ -501,7 +510,10 @@ static int arm720t_mcr(struct target *target, int cpnum, uint32_t op1, uint32_t 
 		return ERROR_FAIL;
 	}
 
-	return arm720t_write_cp15(target, mrc_opcode(cpnum, op1, op2, CRn, CRm), value);
+	/* write "from" r0 */
+	return arm720t_write_cp15(target,
+			ARMV4_5_MCR(cpnum, op1, 0, CRn, CRm, op2),
+			value);
 }
 
 static const struct command_registration arm720t_exec_command_handlers[] = {
