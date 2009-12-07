@@ -6497,6 +6497,21 @@ a bit of googling to find something that fits your requirements.
 @cindex GDB
 OpenOCD complies with the remote gdbserver protocol, and as such can be used
 to debug remote targets.
+Setting up GDB to work with OpenOCD can involve several components:
+
+@itemize
+@item OpenOCD itself may need to be configured.  @xref{GDB Configuration}.
+@item GDB itself may need configuration, as shown in this chapter.
+@item If you have a GUI environment like Eclipse,
+that also will probably need to be configured.
+@end itemize
+
+Of course, the version of GDB you use will need to be one which has
+been built to know about the target CPU you're using.  It's probably
+part of the tool chain you're using.  For example, if you are doing
+cross-development for ARM on an x86 PC, instead of using the native
+x86 @command{gdb} command you might use @command{arm-none-eabi-gdb}
+if that's the tool chain used to compile your code.
 
 @anchor{Connecting to GDB}
 @section Connecting to GDB
@@ -6528,19 +6543,34 @@ session.
 To list the available OpenOCD commands type @command{monitor help} on the
 GDB command line.
 
+@section Configuring GDB for OpenOCD
+
 OpenOCD supports the gdb @option{qSupported} packet, this enables information
 to be sent by the GDB remote server (i.e. OpenOCD) to GDB. Typical information includes
 packet size and the device's memory map.
+You do not need to configure the packet size by hand,
+and the relevant parts of the memory map should be automatically
+set up when you declare (NOR) flash banks.
 
-Previous versions of OpenOCD required the following GDB options to increase
-the packet size and speed up GDB communication:
+However, there are other things which GDB can't currently query.
+You may need to set those up by hand.
+As OpenOCD starts up, you will often see a line reporting
+something like:
+
 @example
-set remote memory-write-packet-size 1024
-set remote memory-write-packet-size fixed
-set remote memory-read-packet-size 1024
-set remote memory-read-packet-size fixed
+Info : lm3s.cpu: hardware has 6 breakpoints, 4 watchpoints
 @end example
-This is now handled in the @option{qSupported} PacketSize and should not be required.
+
+You can pass that information to GDB with these commands:
+
+@example
+set remote hardware-breakpoint-limit 6
+set remote hardware-watchpoint-limit 4
+@end example
+
+With that particular hardware (Cortex-M3) the hardware breakpoints
+only work for code running from flash memory.  Most other ARM systems
+do not have such restrictions.
 
 @section Programming using GDB
 @cindex Programming using GDB

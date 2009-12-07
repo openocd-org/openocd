@@ -289,6 +289,9 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 				buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 
+	LOG_INFO("%s: hardware has 2 breakpoints or watchpoints",
+			target_name(target));
+
 	return reg_cache;
 }
 

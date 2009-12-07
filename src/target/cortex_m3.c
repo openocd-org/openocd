@@ -1608,6 +1608,12 @@ static int cortex_m3_examine(struct target *target)
 
 		/* Setup DWT */
 		cortex_m3_dwt_setup(cortex_m3, target);
+
+		/* These hardware breakpoints only work for code in flash! */
+		LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints",
+				target_name(target),
+				cortex_m3->fp_num_code,
+				cortex_m3->dwt_num_comp);
 	}
 
 	return ERROR_OK;

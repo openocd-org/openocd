@@ -2970,6 +2970,9 @@ static int xscale_init_arch_info(struct target *target,
 	xscale->dbr0_used = 0;
 	xscale->dbr1_used = 0;
 
+	LOG_INFO("%s: hardware has 2 breakpoints and 2 watchpoints",
+			target_name(target));
+
 	xscale->arm_bkpt = ARMV5_BKPT(0x0);
 	xscale->thumb_bkpt = ARMV5_T_BKPT(0x0) & 0xffff;
 
