@@ -97,6 +97,7 @@ MIPS32_SRC = \
 
 noinst_HEADERS = \
 	algorithm.h \
+	arm.h \
 	arm_dpm.h \
 	arm_jtag.h \
 	arm_adi_v5.h \

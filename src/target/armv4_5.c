@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include "arm.h"
 #include "armv4_5.h"
 #include "arm_jtag.h"
 #include "breakpoints.h"

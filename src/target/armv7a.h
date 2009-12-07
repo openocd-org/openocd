@@ -20,7 +20,7 @@
 #define ARMV7A_H
 
 #include <target/arm_adi_v5.h>
-#include <target/armv4_5.h>
+#include <target/arm.h>
 #include <target/armv4_5_mmu.h>
 #include <target/armv4_5_cache.h>
 #include <target/arm_dpm.h>
@@ -113,22 +113,6 @@ target_to_armv7a(struct target *target)
 
 /* See ARMv7a arch spec section C10.8 */
 #define CPUDBG_AUTHSTATUS	0xFB8
-
-struct armv7a_algorithm
-{
-	int common_magic;
-
-	enum arm_mode core_mode;
-	enum arm_state core_state;
-};
-
-struct armv7a_core_reg
-{
-	int num;
-	enum arm_mode mode;
-	struct target *target;
-	struct armv7a_common *armv7a_common;
-};
 
 int armv7a_arch_state(struct target *target);
 struct reg_cache *armv7a_build_reg_cache(struct target *target,

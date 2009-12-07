@@ -27,7 +27,7 @@
 #include "core.h"
 #include "arm_io.h"
 #include <helper/binarybuffer.h>
-#include <target/armv4_5.h>
+#include <target/arm.h>
 #include <target/algorithm.h>
 
 

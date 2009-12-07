@@ -27,7 +27,7 @@
 #include <helper/binarybuffer.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>
-#include <target/armv4_5.h>
+#include <target/arm.h>
 
 
 static int aduc702x_build_sector_list(struct flash_bank *bank);

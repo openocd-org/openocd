@@ -28,7 +28,7 @@
 
 #include "imp.h"
 #include "arm_io.h"
-#include <target/armv4_5.h>
+#include <target/arm.h>
 
 
 struct orion_nand_controller

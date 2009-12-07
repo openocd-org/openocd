@@ -37,6 +37,7 @@
 #include "register.h"
 #include "image.h"
 #include "arm_opcodes.h"
+#include "armv4_5.h"
 
 
 /*

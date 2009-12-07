@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "armv4_5.h"
+#include "arm.h"
 #include "etm_dummy.h"
 
 

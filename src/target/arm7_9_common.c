@@ -39,6 +39,7 @@
 #include "arm_semihosting.h"
 #include "algorithm.h"
 #include "register.h"
+#include "armv4_5.h"
 
 
 /**

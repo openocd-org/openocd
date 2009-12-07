@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include "arm.h"
 #include "armv4_5.h"
 #include "arm_disassembler.h"
 #include "arm_simulator.h"

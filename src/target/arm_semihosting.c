@@ -34,6 +34,7 @@
 #include "config.h"
 #endif
 
+#include "arm.h"
 #include "armv4_5.h"
 #include "register.h"
 #include "arm_semihosting.h"
