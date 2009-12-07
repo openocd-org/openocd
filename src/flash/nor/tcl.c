@@ -813,6 +813,8 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		return retval;
 	}
 
+	flash_bank_add(c);
+
 	return ERROR_OK;
 
 }
