@@ -135,7 +135,7 @@ static int evaluate_srs(uint32_t opcode,
 		uint32_t address, struct arm_instruction *instruction)
 {
 	const char *wback = (opcode & (1 << 21)) ? "!" : "";
-	const char *mode;
+	const char *mode = "";
 
 	switch ((opcode >> 23) & 0x3) {
 	case 0:
@@ -143,7 +143,6 @@ static int evaluate_srs(uint32_t opcode,
 		break;
 	case 1:
 		/* "IA" is default */
-		mode = "";
 		break;
 	case 2:
 		mode = "DB";
