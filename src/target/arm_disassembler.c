@@ -158,14 +158,16 @@ static int evaluate_srs(uint32_t opcode,
 				"\t0x%8.8" PRIx32
 				"\tSRS%s\tSP%s, #%d",
 				address, opcode,
-				mode, wback, opcode & 0x1f);
+				mode, wback,
+				(unsigned)(opcode & 0x1f));
 		break;
 	case 0x08100000:
 		snprintf(instruction->text, 128, "0x%8.8" PRIx32
 				"\t0x%8.8" PRIx32
 				"\tRFE%s\tr%d%s",
 				address, opcode,
-				mode, (opcode >> 16) & 0xf, wback);
+				mode,
+				(unsigned)((opcode >> 16) & 0xf), wback);
 		break;
 	default:
 		return evaluate_unknown(opcode, address, instruction);
@@ -3467,14 +3469,14 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 	case 6:
 		sprintf(cp, "SRS%s\tsp%s, #%d", mode,
 				t ? "!" : "",
-				opcode & 0x1f);
+				(unsigned) (opcode & 0x1f));
 		return ERROR_OK;
 	case 1:
 		mode = "DB";
 		/* FALL THROUGH */
 	case 7:
 		sprintf(cp, "RFE%s\tr%d%s", mode,
-				(opcode >> 16) & 0xf,
+				(unsigned) ((opcode >> 16) & 0xf),
 				t ? "!" : "");
 		return ERROR_OK;
 	case 2:
