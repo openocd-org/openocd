@@ -16,6 +16,31 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+/* This file supports the zy1000 debugger: http://www.zylin.com/zy1000.html
+ *
+ * The zy1000 is a standalone debugger that has a web interface and
+ * requires no drivers on the developer host as all communication
+ * is via TCP/IP. The zy1000 gets it performance(~400-700kBytes/s
+ * DCC downloads @ 16MHz target) as it has an FPGA to hardware
+ * accelerate the JTAG commands, while offering *very* low latency
+ * between OpenOCD and the FPGA registers.
+ *
+ * The disadvantage of the zy1000 is that it has a feeble CPU compared to
+ * a PC(ca. 50-500 DMIPS depending on how one counts it), whereas a PC
+ * is on the order of 10000 DMIPS(i.e. at a factor of 20-200).
+ *
+ * The zy1000 revc hardware is using an Altera Nios CPU, whereas the
+ * revb is using ARM7 + Xilinx.
+ *
+ * See Zylin web pages or contact Zylin for more information.
+ *
+ * The reason this code is in OpenOCD rather than OpenOCD linked with the
+ * ZY1000 code is that OpenOCD is the long road towards getting
+ * libopenocd into place. libopenocd will support both low performance,
+ * low latency systems(embedded) and high performance high latency
+ * systems(PCs).
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
