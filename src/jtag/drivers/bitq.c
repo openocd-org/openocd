@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/jtag.h>
 #include "bitq.h"
 #include <jtag/interface.h>
 
