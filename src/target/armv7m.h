@@ -34,6 +34,12 @@
 #define ARMV7_GDB_HACKS
 #endif
 
+#ifdef ARMV7_GDB_HACKS
+extern uint8_t armv7m_gdb_dummy_cpsr_value[];
+extern struct reg armv7m_gdb_dummy_cpsr_reg;
+#endif
+
+
 enum armv7m_mode
 {
 	ARMV7M_MODE_THREAD = 0,

@@ -269,8 +269,6 @@ int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	return ERROR_OK;
 }
 
-extern void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
-
 static int arm9endianness(jtag_callback_data_t arg,
 	jtag_callback_data_t size, jtag_callback_data_t be,
 	jtag_callback_data_t captured)

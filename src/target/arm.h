@@ -191,6 +191,13 @@ int armv4_5_run_algorithm(struct target *target,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
+int armv4_5_run_algorithm_inner(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info,
+		int (*run_it)(struct target *target, uint32_t exit_point,
+				int timeout_ms, void *arch_info));
 
 int arm_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum);
@@ -199,6 +206,8 @@ int arm_blank_check_memory(struct target *target,
 
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
+
+void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
 
 extern struct reg arm_gdb_dummy_fp_reg;
 extern struct reg arm_gdb_dummy_fps_reg;

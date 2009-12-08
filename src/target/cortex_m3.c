@@ -52,11 +52,6 @@ static void cortex_m3_enable_watchpoints(struct target *target);
 static int cortex_m3_store_core_reg_u32(struct target *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t value);
 
-#ifdef ARMV7_GDB_HACKS
-extern uint8_t armv7m_gdb_dummy_cpsr_value[];
-extern struct reg armv7m_gdb_dummy_cpsr_reg;
-#endif
-
 static int cortexm3_dap_read_coreregister_u32(struct swjdp_common *swjdp,
 		uint32_t *value, int regnum)
 {
