@@ -90,7 +90,7 @@ struct target *all_targets = NULL;
 struct target_event_callback *target_event_callbacks = NULL;
 struct target_timer_callback *target_timer_callbacks = NULL;
 
-const Jim_Nvp nvp_assert[] = {
+static const Jim_Nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
 	{ .name = "deassert", NVP_DEASSERT },
 	{ .name = "T", NVP_ASSERT },
@@ -100,7 +100,7 @@ const Jim_Nvp nvp_assert[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-const Jim_Nvp nvp_error_target[] = {
+static const Jim_Nvp nvp_error_target[] = {
 	{ .value = ERROR_TARGET_INVALID, .name = "err-invalid" },
 	{ .value = ERROR_TARGET_INIT_FAILED, .name = "err-init-failed" },
 	{ .value = ERROR_TARGET_TIMEOUT, .name = "err-timeout" },
@@ -178,7 +178,7 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-const Jim_Nvp nvp_target_state[] = {
+static const Jim_Nvp nvp_target_state[] = {
 	{ .name = "unknown", .value = TARGET_UNKNOWN },
 	{ .name = "running", .value = TARGET_RUNNING },
 	{ .name = "halted",  .value = TARGET_HALTED },
@@ -198,7 +198,7 @@ static const Jim_Nvp nvp_target_debug_reason [] = {
 	{ .name = NULL, .value = -1 },
 };
 
-const Jim_Nvp nvp_target_endian[] = {
+static const Jim_Nvp nvp_target_endian[] = {
 	{ .name = "big",    .value = TARGET_BIG_ENDIAN },
 	{ .name = "little", .value = TARGET_LITTLE_ENDIAN },
 	{ .name = "be",     .value = TARGET_BIG_ENDIAN },
@@ -206,7 +206,7 @@ const Jim_Nvp nvp_target_endian[] = {
 	{ .name = NULL,     .value = -1 },
 };
 
-const Jim_Nvp nvp_reset_modes[] = {
+static const Jim_Nvp nvp_reset_modes[] = {
 	{ .name = "unknown", .value = RESET_UNKNOWN },
 	{ .name = "run"    , .value = RESET_RUN },
 	{ .name = "halt"   , .value = RESET_HALT },

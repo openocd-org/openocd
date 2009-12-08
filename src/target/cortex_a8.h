@@ -31,8 +31,6 @@
 
 #include <target/armv7a.h>
 
-extern char* cortex_a8_state_strings[];
-
 #define CORTEX_A8_COMMON_MAGIC 0x411fc082
 
 /* See Cortex-A8 TRM section 12.5 */

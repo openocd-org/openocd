@@ -61,14 +61,10 @@ enum target_state
 	TARGET_DEBUG_RUNNING = 4,
 };
 
-extern const Jim_Nvp nvp_target_state[];
-
 enum nvp_assert {
 	NVP_DEASSERT,
 	NVP_ASSERT,
 };
-
-extern const Jim_Nvp nvp_assert[];
 
 enum target_reset_mode
 {
@@ -77,8 +73,6 @@ enum target_reset_mode
 	RESET_HALT = 2,		/* reset and halt target out of reset */
 	RESET_INIT = 3,		/* reset and halt target out of reset, then run init script */
 };
-
-extern const Jim_Nvp nvp_reset_mode[];
 
 enum target_debug_reason
 {
@@ -96,8 +90,6 @@ enum target_endianess
 	TARGET_ENDIAN_UNKNOWN = 0,
 	TARGET_BIG_ENDIAN = 1, TARGET_LITTLE_ENDIAN = 2
 };
-
-extern const Jim_Nvp nvp_target_endian[];
 
 struct working_area
 {
@@ -489,8 +481,6 @@ void target_all_handle_event(enum target_event e);
 #define ERROR_TARGET_TRANSLATION_FAULT	(-309)
 #define ERROR_TARGET_NOT_RUNNING (-310)
 #define ERROR_TARGET_NOT_EXAMINED (-311)
-
-extern const Jim_Nvp nvp_error_target[];
 
 const char *target_strerror_safe(int err);
 

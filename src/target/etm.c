@@ -27,6 +27,8 @@
 #include "image.h"
 #include "arm_disassembler.h"
 #include "register.h"
+#include "etm_dummy.h"
+#include "oocd_trace.h"
 
 
 /*
@@ -613,13 +615,7 @@ static int etm_write_reg(struct reg *reg, uint32_t value)
 }
 
 
-/* ETM trace analysis functionality
- *
- */
-extern struct etm_capture_driver etm_dummy_capture_driver;
-#if BUILD_OOCD_TRACE == 1
-extern struct etm_capture_driver oocd_trace_capture_driver;
-#endif
+/* ETM trace analysis functionality */
 
 static struct etm_capture_driver *etm_capture_drivers[] =
 {
