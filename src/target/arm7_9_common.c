@@ -2362,10 +2362,6 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 				}
 			}
 			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
-			break;
 	}
 
 	if (!is_arm_mode(armv4_5->core_mode))
@@ -2545,10 +2541,6 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 
 				num_accesses += thisrun_accesses;
 			}
-			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
 			break;
 	}
 
