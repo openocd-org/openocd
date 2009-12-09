@@ -24,7 +24,8 @@ NAND_DRIVERS = \
 	s3c2410.c \
 	s3c2412.c \
 	s3c2440.c \
-	s3c2443.c
+	s3c2443.c \
+	at91sam9.c
 
 noinst_HEADERS = \
 	arm_io.h \

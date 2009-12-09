@@ -4812,6 +4812,41 @@ As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
 Some controllers also activate controller-specific commands.
 
+@deffn {NAND Driver} at91sam9
+This driver handles the NAND controllers found on AT91SAM9 family chips from
+Atmel.  It takes two extra parameters: address of the NAND chip;
+address of the ECC controller.
+@example
+nand device $NANDFLASH at91sam9 $CHIPNAME 0x40000000 0xfffffe800
+@end example
+AT91SAM9 chips support single-bit ECC hardware. The @code{write_page} and
+@code{read_page} methods are used to utilize the ECC hardware unless they are
+disabled by using the @command{nand raw_access} command.  There are four 
+additional commands that are needed to fully configure the AT91SAM9 NAND
+controller.  Two are optional; most boards use the same wiring for ALE/CLE:
+@deffn Command {at91sam9 cle} num addr_line
+Configure the address line used for latching commands.  The @var{num} 
+parameter is the value shown by @command{nand list}.
+@end deffn
+@deffn Command {at91sam9 ale} num addr_line
+Configure the address line used for latching addresses.  The @var{num} 
+parameter is the value shown by @command{nand list}.
+@end deffn
+
+For the next two commands, it is assumed that the pins have already been 
+properly configured for input or output.
+@deffn Command {at91sam9 rdy_busy} num pio_base_addr pin
+Configure the RDY/nBUSY input from the NAND device.  The @var{num} 
+parameter is the value shown by @command{nand list}.  @var{pio_base_addr} 
+is the base address of the PIO controller and @var{pin} is the pin number.
+@end deffn
+@deffn Command {at91sam9 ce} num pio_base_addr pin
+Configure the chip enable input to the NAND device.  The @var{num} 
+parameter is the value shown by @command{nand list}.  @var{pio_base_addr} 
+is the base address of the PIO controller and @var{pin} is the pin number.
+@end deffn
+@end deffn
+
 @deffn {NAND Driver} davinci
 This driver handles the NAND controllers found on DaVinci family
 chips from Texas Instruments.
