@@ -28,7 +28,10 @@
 #include "arm_disassembler.h"
 #include "register.h"
 #include "etm_dummy.h"
+
+#if BUILD_OOCD_TRACE == 1
 #include "oocd_trace.h"
+#endif
 
 
 /*
