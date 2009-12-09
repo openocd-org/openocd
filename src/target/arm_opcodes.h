@@ -26,6 +26,11 @@
 #ifndef __ARM_OPCODES_H
 #define __ARM_OPCODES_H
 
+/**
+ * @file
+ * Macros used to generate various ARM or Thumb opcodes.
+ */
+
 /* ARM mode instructions */
 
 /* Store multiple increment after
@@ -145,9 +150,13 @@
 
 /* Thumb mode instructions
  *
- * FIXME there must be some reason all these opcodes are 32-bits
- * not 16-bits ... this should get either an explanatory comment,
- * or be changed not to duplicate the opcode.
+ * NOTE: these 16-bit opcodes fill both halves of a word with the same
+ * value.  The reason for this is that when we need to execute Thumb
+ * opcodes on ARM7/ARM9 cores (to switch to ARM state on debug entry),
+ * we must shift 32 bits to the bus using scan chain 1 ... if we write
+ * both halves, we don't need to track which half matters.  On ARMv6 and
+ * ARMv7 we don't execute Thumb instructions in debug mode; the ITR
+ * register does not accept Thumb (or Thumb2) opcodes.
  */
 
 /* Store register (Thumb mode)

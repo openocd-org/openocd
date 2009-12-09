@@ -86,7 +86,7 @@ struct nand_flash_controller
 
 /**
  * Find a NAND flash controller by name.
- * @param The name of the NAND controller to find.
+ * @param name Identifies the NAND controller to find.
  * @returns The nand_flash_controller named @c name, or NULL if not found.
  */
 struct nand_flash_controller *nand_driver_find_by_name(const char *name);

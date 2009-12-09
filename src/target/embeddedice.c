@@ -35,7 +35,8 @@
  *
  * This provides lowlevel glue to the EmbeddedICE (or EmbeddedICE-RT)
  * module found on scan chain 2 in ARM7, ARM9, and some other families
- * of ARM cores.
+ * of ARM cores.  The module is called "EmbeddedICE-RT" if it has
+ * monitor mode support.
  *
  * EmbeddedICE provides basic watchpoint/breakpoint hardware and a Debug
  * Communications Channel (DCC) used to read or write 32-bit words to

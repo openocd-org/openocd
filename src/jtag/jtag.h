@@ -417,24 +417,9 @@ typedef void (*jtag_callback1_t)(jtag_callback_data_t data0);
 void jtag_add_callback(jtag_callback1_t, jtag_callback_data_t data0);
 
 
-
 /**
- * Defines the interface of the JTAG callback mechanism.
- *
- * @param in the pointer to the data clocked in
- * @param data1 An integer big enough to use as an @c int or a pointer.
- * @param data2 An integer big enough to use as an @c int or a pointer.
- * @param data3 An integer big enough to use as an @c int or a pointer.
- * @returns an error code
- */
-typedef int (*jtag_callback_t)(jtag_callback_data_t data0,
-				jtag_callback_data_t data1,
-				jtag_callback_data_t data2,
-				jtag_callback_data_t data3);
-
-
-/**
- * This callback can be executed immediately the queue has been flushed.
+ * Defines the interface of the JTAG callback mechanism.  Such
+ * callbacks can be executed once the queue has been flushed.
  *
  * The JTAG queue can be executed synchronously or asynchronously.
  * Typically for USB, the queue is executed asynchronously.  For
@@ -448,19 +433,21 @@ typedef int (*jtag_callback_t)(jtag_callback_data_t data0,
  *
  * If the execution of the queue fails before the callbacks, then --
  * depending on driver implementation -- the callbacks may or may not be
- * invoked.  @todo Can we make this behavior consistent?
+ * invoked.
  *
- * The strange name is due to C's lack of overloading using function
- * arguments.
+ * @todo Make that behavior consistent.
  *
- * @param f The callback function to add.
  * @param data0 Typically used to point to the data to operate on.
  * Frequently this will be the data clocked in during a shift operation.
  * @param data1 An integer big enough to use as an @c int or a pointer.
  * @param data2 An integer big enough to use as an @c int or a pointer.
  * @param data3 An integer big enough to use as an @c int or a pointer.
- *
+ * @returns an error code
  */
+typedef int (*jtag_callback_t)(jtag_callback_data_t data0,
+				jtag_callback_data_t data1,
+				jtag_callback_data_t data2,
+				jtag_callback_data_t data3);
 
 /**
  * Run a TAP_RESET reset where the end state is TAP_RESET,

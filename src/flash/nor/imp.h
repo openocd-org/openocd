@@ -22,14 +22,12 @@
 // this is an internal header
 #include "core.h"
 #include "driver.h"
-// common flash internals
-#include <flash/common.h>
 // almost all drivers will need this file
 #include <target/target.h>
 
 /**
  * Adds a new NOR bank to the global list of banks.
- * @params bank The bank that should be added.
+ * @param bank The bank that should be added.
  */
 void flash_bank_add(struct flash_bank *bank);
 
