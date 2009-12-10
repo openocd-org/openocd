@@ -149,29 +149,10 @@ int check_pending(struct connection *connection, int timeout_s, int *got_data)
 	return ERROR_OK;
 }
 
-int gdb_get_char(struct connection *connection, int* next_char)
+static int gdb_get_char_inner(struct connection *connection, int* next_char)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	int retval = ERROR_OK;
-
-#ifdef _DEBUG_GDB_IO_
-	char *debug_buffer;
-#endif
-
-	if (gdb_con->buf_cnt-- > 0)
-	{
-		*next_char = *(gdb_con->buf_p++);
-		if (gdb_con->buf_cnt > 0)
-			connection->input_pending = 1;
-		else
-			connection->input_pending = 0;
-
-#ifdef _DEBUG_GDB_IO_
-		LOG_DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
-#endif
-
-		return ERROR_OK;
-	}
 
 	for (;;)
 	{
@@ -256,6 +237,50 @@ int gdb_get_char(struct connection *connection, int* next_char)
 
 	return retval;
 }
+
+/**
+ * The cool thing about this fn is that it allows buf_p and buf_cnt to be
+ * held in registers in the inner loop.
+ *
+ * For small caches and embedded systems this is important!
+ */
+static inline int gdb_get_char_fast(struct connection *connection, int* next_char, char **buf_p, int *buf_cnt)
+{
+	int retval = ERROR_OK;
+
+	if ((*buf_cnt)-- > 0)
+	{
+		*next_char = **buf_p;
+		(*buf_p)++;
+		if (*buf_cnt > 0)
+			connection->input_pending = 1;
+		else
+			connection->input_pending = 0;
+
+#ifdef _DEBUG_GDB_IO_
+		LOG_DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
+#endif
+
+		return ERROR_OK;
+	}
+
+	struct gdb_connection *gdb_con = connection->priv;
+	gdb_con->buf_p = *buf_p;
+	gdb_con->buf_cnt = *buf_cnt;
+	retval = gdb_get_char_inner(connection, next_char);
+	*buf_p = gdb_con->buf_p;
+	*buf_cnt = gdb_con->buf_cnt;
+
+	return retval;
+}
+
+
+int gdb_get_char(struct connection *connection, int* next_char)
+{
+	struct gdb_connection *gdb_con = connection->priv;
+	return gdb_get_char_fast(connection, next_char, &gdb_con->buf_p, &gdb_con->buf_cnt);
+}
+
 
 int gdb_putback_char(struct connection *connection, int last_char)
 {
@@ -461,27 +486,33 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 	unsigned char my_checksum = 0;
 	char checksum[3];
 	int character;
-	int retval;
+	int retval = ERROR_OK;
 
 	struct gdb_connection *gdb_con = connection->priv;
 	my_checksum = 0;
 	int count = 0;
 	count = 0;
+
+	/* move this over into local variables to use registers and give the
+	 * more freedom to optimize */
+	char *buf_p = gdb_con->buf_p;
+	int buf_cnt = gdb_con->buf_cnt;
+
 	for (;;)
 	{
 		/* The common case is that we have an entire packet with no escape chars.
 		 * We need to leave at least 2 bytes in the buffer to have
 		 * gdb_get_char() update various bits and bobs correctly.
 		 */
-		if ((gdb_con->buf_cnt > 2) && ((gdb_con->buf_cnt + count) < *len))
+		if ((buf_cnt > 2) && ((buf_cnt + count) < *len))
 		{
 			/* The compiler will struggle a bit with constant propagation and
 			 * aliasing, so we help it by showing that these values do not
 			 * change inside the loop
 			 */
 			int i;
-			char *buf = gdb_con->buf_p;
-			int run = gdb_con->buf_cnt - 2;
+			char *buf = buf_p;
+			int run = buf_cnt - 2;
 			i = 0;
 			int done = 0;
 			while (i < run)
@@ -513,19 +544,21 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 					buffer[count++] = character & 0xff;
 				}
 			}
-			gdb_con->buf_p += i;
-			gdb_con->buf_cnt -= i;
+			buf_p += i;
+			buf_cnt -= i;
 			if (done)
 				break;
 		}
 		if (count > *len)
 		{
 			LOG_ERROR("packet buffer too small");
-			return ERROR_GDB_BUFFER_TOO_SMALL;
+			retval = ERROR_GDB_BUFFER_TOO_SMALL;
+			break;
 		}
 
-		if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
-			return retval;
+		retval = gdb_get_char_fast(connection, &character, &buf_p, &buf_cnt);
+		if (retval != ERROR_OK)
+			break;
 
 		if (character == '#')
 			break;
@@ -535,8 +568,11 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 			/* data transmitted in binary mode (X packet)
 			 * uses 0x7d as escape character */
 			my_checksum += character & 0xff;
-			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
-				return retval;
+
+			retval = gdb_get_char_fast(connection, &character, &buf_p, &buf_cnt);
+			if (retval != ERROR_OK)
+				break;
+
 			my_checksum += character & 0xff;
 			buffer[count++] = (character ^ 0x20) & 0xff;
 		}
@@ -546,6 +582,12 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 			buffer[count++] = character & 0xff;
 		}
 	}
+
+	gdb_con->buf_p = buf_p;
+	gdb_con->buf_cnt = buf_cnt;
+
+	if (retval != ERROR_OK)
+		return retval;
 
 	*len = count;
 
