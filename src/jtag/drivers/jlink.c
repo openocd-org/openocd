@@ -186,7 +186,7 @@ static void jlink_execute_reset(struct jtag_command *cmd)
 
 static void jlink_execute_sleep(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
+	DEBUG_JTAG_IO("sleep %" PRIi32 "", cmd->cmd.sleep->us);
 	jlink_tap_execute();
 	jtag_sleep(cmd->cmd.sleep->us);
 }
