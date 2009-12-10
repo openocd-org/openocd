@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -35,6 +35,25 @@
 #include "gdb_server.h"
 #include <target/image.h>
 #include <jtag/jtag.h>
+
+
+/* private connection data for GDB */
+struct gdb_connection
+{
+	char buffer[GDB_BUFFER_SIZE];
+	char *buf_p;
+	int buf_cnt;
+	int ctrl_c;
+	enum target_state frontend_state;
+	struct image *vflash_image;
+	int closed;
+	int busy;
+	int noack_mode;
+	bool sync; 	/* set flag to true if you want the next stepi to return immediately.
+	               allowing GDB to pick up a fresh set of register values from the target
+	               without modifying the target state. */
+
+};
 
 
 #if 0
