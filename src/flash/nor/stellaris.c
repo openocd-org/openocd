@@ -30,7 +30,6 @@
 
 #include "imp.h"
 #include "stellaris.h"
-#include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 
@@ -39,8 +38,6 @@
 
 static int stellaris_read_part_info(struct flash_bank *bank);
 static uint32_t stellaris_get_flash_status(struct flash_bank *bank);
-static void stellaris_set_flash_mode(struct flash_bank *bank,int mode);
-//static uint32_t stellaris_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout);
 
 static int stellaris_mass_erase(struct flash_bank *bank);
 
@@ -94,6 +91,7 @@ static struct {
 	{0x46,"LM3S3759"},
 	{0x48,"LM3S3768"},
 	{0x49,"LM3S3748"},
+	{0x4B,"LM3S5R36"},
 	{0x50,"LM3S2678"},
 	{0x51,"LM3S2110"},
 	{0x52,"LM3S2739"},
@@ -302,12 +300,13 @@ static int stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (stellaris_info->num_lockbits > 0)
 	{
 		printed = snprintf(buf,
-				   buf_size,
-				   "pagesize: %" PRIi32 ", lockbits: %i 0x%4.4" PRIx32 ", pages in lock region: %i \n",
-				   stellaris_info->pagesize,
-				   stellaris_info->num_lockbits,
-				   stellaris_info->lockbits,
-				   (int)(stellaris_info->num_pages/stellaris_info->num_lockbits));
+				buf_size,
+				"pagesize: %" PRIi32 ", pages: %d, "
+				"lockbits: %i, pages per lockbit: %i\n",
+				stellaris_info->pagesize,
+				(unsigned) stellaris_info->num_pages,
+				stellaris_info->num_lockbits,
+				(unsigned) stellaris_info->pages_in_lockregion);
 		buf += printed;
 		buf_size -= printed;
 	}
@@ -328,7 +327,16 @@ static uint32_t stellaris_get_flash_status(struct flash_bank *bank)
 	return fmc;
 }
 
-/** Read clock configuration and set stellaris_info->usec_clocks*/
+/* Setup the timimg registers */
+static void stellaris_set_flash_mode(struct flash_bank *bank,int mode)
+{
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
+	struct target *target = bank->target;
+	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
+
+	LOG_DEBUG("usecrl = %i",(int)(usecrl));
+	target_write_u32(target, SCB_BASE | USECRL, usecrl);
+}
 
 static const unsigned rcc_xtal[32] = {
 	[0x00] = 1000000,		/* no pll */
@@ -363,6 +371,7 @@ static const unsigned rcc_xtal[32] = {
 	[0x16] = 16384000,
 };
 
+/** Read clock configuration and set stellaris_info->usec_clocks. */
 static void stellaris_read_clock_info(struct flash_bank *bank)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
@@ -447,17 +456,6 @@ static void stellaris_read_clock_info(struct flash_bank *bank)
 
 	/* Forget old flash timing */
 	stellaris_set_flash_mode(bank, 0);
-}
-
-/* Setup the timimg registers */
-static void stellaris_set_flash_mode(struct flash_bank *bank,int mode)
-{
-	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	struct target *target = bank->target;
-
-	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
-	LOG_DEBUG("usecrl = %i",(int)(usecrl));
-	target_write_u32(target, SCB_BASE | USECRL, usecrl);
 }
 
 #if 0
@@ -590,7 +588,6 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	stellaris_info->pagesize = 1024;
 	bank->size = 1024 * stellaris_info->num_pages;
 	stellaris_info->pages_in_lockregion = 2;
-	target_read_u32(target, SCB_BASE | FMPPE, &stellaris_info->lockbits);
 
 	/* provide this for the benefit of the higher flash driver layers */
 	bank->num_sectors = stellaris_info->num_pages;
@@ -617,31 +614,51 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 
 static int stellaris_protect_check(struct flash_bank *bank)
 {
-	uint32_t status;
+	struct stellaris_flash_bank *stellaris = bank->driver_priv;
+	int status = ERROR_OK;
+	unsigned i;
+	unsigned page;
 
-	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-
-	if (bank->target->state != TARGET_HALTED)
+	if (stellaris->did1 == 0)
 	{
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
+		status = stellaris_read_part_info(bank);
+		if (status < 0)
+			return status;
 	}
 
-	if (stellaris_info->did1 == 0)
-	{
-		stellaris_read_part_info(bank);
+	for (i = 0; i < (unsigned) bank->num_sectors; i++)
+		bank->sectors[i].is_protected = -1;
+
+	/* Read each Flash Memory Protection Program Enable (FMPPE) register
+	 * to report any pages that we can't write.  Ignore the Read Enable
+	 * register (FMPRE).
+	 */
+	for (i = 0, page = 0;
+			i < DIV_ROUND_UP(stellaris->num_lockbits, 32u);
+			i++) {
+		uint32_t lockbits;
+
+		status = target_read_u32(bank->target,
+				SCB_BASE + (i ? (FMPPE0 + 4 * i) : FMPPE),
+				&lockbits);
+		LOG_DEBUG("FMPPE%d = %#8.8x (status %d)", i, lockbits, status);
+		if (status != ERROR_OK)
+			goto done;
+
+		for (unsigned j = 0; j < 32; j++) {
+			unsigned k;
+
+			for (k = 0; k < stellaris->pages_in_lockregion; k++) {
+				if (page >= (unsigned) bank->num_sectors)
+					goto done;
+				bank->sectors[page++].is_protected =
+						!(lockbits & (1 << j));
+			}
+		}
 	}
 
-	if (stellaris_info->did1 == 0)
-	{
-		LOG_WARNING("Cannot identify target as Stellaris");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	status = stellaris_get_flash_status(bank);
-	stellaris_info->lockbits = status >> 16;
-
-	return ERROR_OK;
+done:
+	return status;
 }
 
 static int stellaris_erase(struct flash_bank *bank, int first, int last)
@@ -728,8 +745,19 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first < 0) || (last < first) || (last >= stellaris_info->num_lockbits))
+	if (!set)
 	{
+		LOG_ERROR("Can't unprotect write-protected pages.");
+		/* except by the "recover locked device" procedure ... */
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	/* lockregions are 2 pages ... must protect [even..odd] */
+	if ((first < 0) || (first & 1)
+			|| (last < first) || !(last & 1)
+			|| (last >= 2 * stellaris_info->num_lockbits))
+	{
+		LOG_ERROR("Can't protect unaligned or out-of-range sectors.");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -748,14 +776,22 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	stellaris_read_clock_info(bank);
 	stellaris_set_flash_mode(bank, 0);
 
-	fmppe = stellaris_info->lockbits;
-	for (lockregion = first; lockregion <= last; lockregion++)
-	{
-		if (set)
-			fmppe &= ~(1 << lockregion);
-		else
-			fmppe |= (1 << lockregion);
+	/* convert from pages to lockregions */
+	first /= 2;
+	last /= 2;
+
+	/* FIXME this assumes single FMPPE, for a max of 64K of flash!!
+	 * Current parts can be much bigger.
+	 */
+	if (last >= 32) {
+		LOG_ERROR("No support yet for protection > 64K");
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
+	target_read_u32(target, SCB_BASE | FMPPE, &fmppe);
+
+	for (lockregion = first; lockregion <= last; lockregion++)
+		fmppe &= ~(1 << lockregion);
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
@@ -763,12 +799,17 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 
 	LOG_DEBUG("fmppe 0x%" PRIx32 "",fmppe);
 	target_write_u32(target, SCB_BASE | FMPPE, fmppe);
+
 	/* Commit FMPPE */
 	target_write_u32(target, FLASH_FMA, 1);
+
 	/* Write commit command */
-	/* TODO safety check, sice this cannot be undone */
+	/* REVISIT safety check, since this cannot be undone
+	 * except by the "Recover a locked device" procedure.
+	 */
 	LOG_WARNING("Flash protection cannot be removed once commited, commit is NOT executed !");
 	/* target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_COMT); */
+
 	/* Wait until erase complete */
 	do
 	{
@@ -785,12 +826,10 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	target_read_u32(target, SCB_BASE | FMPPE, &stellaris_info->lockbits);
-
 	return ERROR_OK;
 }
 
-static uint8_t stellaris_write_code[] =
+static const uint8_t stellaris_write_code[] =
 {
 /*
 	Call with :
@@ -827,10 +866,11 @@ static uint8_t stellaris_write_code[] =
 /* pFLASH_CTRL_BASE: */
 	0x00,0xD0,0x0F,0x40,	/* .word	0x400FD000 */
 /* FLASHWRITECMD: */
-	0x01,0x00,0x42,0xA4 	/* .word	0xA4420001 */
+	0x01,0x00,0x42,0xA4	/* .word	0xA4420001 */
 };
 
-static int stellaris_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t wcount)
+static int stellaris_write_block(struct flash_bank *bank,
+		uint8_t *buffer, uint32_t offset, uint32_t wcount)
 {
 	struct target *target = bank->target;
 	uint32_t buffer_size = 8192;
@@ -851,7 +891,9 @@ static int stellaris_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, write_algorithm->address, sizeof(stellaris_write_code), stellaris_write_code);
+	target_write_buffer(target, write_algorithm->address,
+			sizeof(stellaris_write_code),
+			(uint8_t *) stellaris_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -1182,15 +1224,15 @@ static const struct command_registration stellaris_command_handlers[] = {
 };
 
 struct flash_driver stellaris_flash = {
-		.name = "stellaris",
-		.commands = stellaris_command_handlers,
-		.flash_bank_command = &stellaris_flash_bank_command,
-		.erase = &stellaris_erase,
-		.protect = &stellaris_protect,
-		.write = &stellaris_write,
-		.probe = &stellaris_probe,
-		.auto_probe = &stellaris_auto_probe,
-		.erase_check = &default_flash_mem_blank_check,
-		.protect_check = &stellaris_protect_check,
-		.info = &stellaris_info,
-	};
+	.name = "stellaris",
+	.commands = stellaris_command_handlers,
+	.flash_bank_command = stellaris_flash_bank_command,
+	.erase = stellaris_erase,
+	.protect = stellaris_protect,
+	.write = stellaris_write,
+	.probe = stellaris_probe,
+	.auto_probe = stellaris_auto_probe,
+	.erase_check = default_flash_mem_blank_check,
+	.protect_check = stellaris_protect_check,
+	.info = stellaris_info,
+};

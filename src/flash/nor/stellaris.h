@@ -39,7 +39,6 @@ struct stellaris_flash_bank
 
 	/* nv memory bits */
 	uint16_t num_lockbits;
-	uint32_t lockbits;
 
 	/* main clock status */
 	uint32_t rcc;
@@ -67,8 +66,14 @@ struct stellaris_flash_bank
 #define	PLLCFG		0x064
 #define	RCC2		0x070
 
+/* "legacy" flash memory protection registers (64KB max) */
 #define FMPRE		0x130
 #define FMPPE		0x134
+
+/* new flash memory protection registers (for more than 64KB) */
+#define FMPRE0		0x200		/* PRE1 = PRE0 + 4, etc */
+#define FMPPE0		0x400		/* PPE1 = PPE0 + 4, etc */
+
 #define USECRL		0x140
 
 #define FLASH_CONTROL_BASE	0x400FD000
@@ -93,5 +98,9 @@ struct stellaris_flash_bank
 #define FMC_WRITE	(1 << 0)
 
 /* STELLARIS constants */
+
+/* values to write in FMA to commit write-"once" values */
+#define FLASH_FMA_PRE(x)	(2 * (x))	/* for FMPPREx */
+#define FLASH_FMA_PPE(x)	(2 * (x) + 1)	/* for FMPPPEx */
 
 #endif /* STELLARIS_H */
