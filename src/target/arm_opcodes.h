@@ -2,6 +2,9 @@
  * Copyright (C) 2005 by Dominic Rath
  * Dominic.Rath@gmx.de
  *
+ * Copyright (C) 2006 by Magnus Lundin
+ * lundin@mlu.mine.nu
+ *
  * Copyright (C) 2008 by Spencer Oliver
  * spen@spen-soft.co.uk
  *
