@@ -36,9 +36,40 @@ struct arm_jtag
 	uint32_t intest_instr;
 };
 
-int arm_jtag_set_instr(struct arm_jtag *jtag_info,
-		uint32_t new_instr, void *verify_capture);
-int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain);
+int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture);
+static inline int arm_jtag_set_instr(struct arm_jtag *jtag_info,
+		uint32_t new_instr, void *no_verify_capture)
+{
+	/* inline most common code path */
+	struct jtag_tap *tap;
+	tap = jtag_info->tap;
+	if (tap == NULL)
+		return ERROR_FAIL;
+
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
+	{
+		return arm_jtag_set_instr_inner(jtag_info, new_instr, no_verify_capture);
+	}
+
+	return ERROR_OK;
+
+}
+
+
+int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain);
+static inline int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
+{
+	/* inline most common code path */
+	int retval = ERROR_OK;
+	if (jtag_info->cur_scan_chain != new_scan_chain)
+	{
+		return arm_jtag_scann_inner(jtag_info, new_scan_chain);
+	}
+
+	return retval;
+}
+
+
 int arm_jtag_setup_connection(struct arm_jtag *jtag_info);
 
 /* use this as a static so we can inline it in -O3 and refer to it via a pointer  */

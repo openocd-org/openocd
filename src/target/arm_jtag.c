@@ -31,65 +31,54 @@
 #define _ARM_JTAG_SCAN_N_CHECK_
 #endif
 
-int arm_jtag_set_instr(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture)
+int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture)
 {
 	struct jtag_tap *tap;
 	tap = jtag_info->tap;
-	if (tap == NULL)
-		return ERROR_FAIL;
+	struct scan_field field;
+	uint8_t t[4];
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
+	field.tap = tap;
+	field.num_bits = tap->ir_length;
+	field.out_value = t;
+	buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
+	field.in_value = NULL;
+
+	if (no_verify_capture == NULL)
 	{
-		struct scan_field field;
-		uint8_t t[4];
-
-		field.tap = tap;
-		field.num_bits = tap->ir_length;
-		field.out_value = t;
-		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		field.in_value = NULL;
-
-
-
-		if (no_verify_capture == NULL)
-		{
-			jtag_add_ir_scan(1, &field, jtag_get_end_state());
-		} else
-		{
-			/* FIX!!!! this is a kludge!!! arm926ejs.c should reimplement this arm_jtag_set_instr to
-			 * have special verification code.
-			 */
-			jtag_add_ir_scan_noverify(1, &field, jtag_get_end_state());
-		}
+		jtag_add_ir_scan(1, &field, jtag_get_end_state());
+	} else
+	{
+		/* FIX!!!! this is a kludge!!! arm926ejs.c should reimplement this arm_jtag_set_instr to
+		 * have special verification code.
+		 */
+		jtag_add_ir_scan_noverify(1, &field, jtag_get_end_state());
 	}
 
 	return ERROR_OK;
 }
 
-int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
+int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
 {
 	int retval = ERROR_OK;
-	if (jtag_info->cur_scan_chain != new_scan_chain)
+	uint32_t values[1];
+	int num_bits[1];
+
+	values[0]=new_scan_chain;
+	num_bits[0]=jtag_info->scann_size;
+
+	if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL)) != ERROR_OK)
 	{
-		uint32_t values[1];
-		int num_bits[1];
-
-		values[0]=new_scan_chain;
-		num_bits[0]=jtag_info->scann_size;
-
-		if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL)) != ERROR_OK)
-		{
-			return retval;
-		}
-
-		jtag_add_dr_out(jtag_info->tap,
-				1,
-				num_bits,
-				values,
-				jtag_get_end_state());
-
-		jtag_info->cur_scan_chain = new_scan_chain;
+		return retval;
 	}
+
+	jtag_add_dr_out(jtag_info->tap,
+			1,
+			num_bits,
+			values,
+			jtag_get_end_state());
+
+	jtag_info->cur_scan_chain = new_scan_chain;
 
 	return retval;
 }
