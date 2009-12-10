@@ -62,7 +62,6 @@ COMMAND_HANDLER(handle_version_command)
 	return ERROR_OK;
 }
 
-
 static int log_target_callback_event_handler(struct target *target, enum target_event event, void *priv)
 {
 	switch (event)
@@ -255,11 +254,13 @@ int openocd_main(int argc, char *argv[])
 		"http://openocd.berlios.de/doc/doxygen/bugs.html"
 		"\n");
 
-
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
 	if (parse_cmdline_args(cmd_ctx, argc, argv) != ERROR_OK)
+		return EXIT_FAILURE;
+
+	if (server_preinit() != ERROR_OK)
 		return EXIT_FAILURE;
 
 	ret = parse_config_file(cmd_ctx);

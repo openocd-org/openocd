@@ -487,8 +487,12 @@ void sig_handler(int sig) {
 }
 #endif
 
-int server_init(struct command_context *cmd_ctx)
+int server_preinit(void)
 {
+	/* this currently only calls WSAStartup on native win32 systems
+	 * before any socket operations are performed.
+	 * This is an issue if you call init in your config script */
+
 #ifdef _WIN32
 	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -518,6 +522,11 @@ int server_init(struct command_context *cmd_ctx)
 	signal(SIGABRT, sig_handler);
 #endif
 
+	return ERROR_OK;
+}
+
+int server_init(struct command_context *cmd_ctx)
+{
 	int ret = tcl_init(cmd_ctx);
 	if (ERROR_OK != ret)
 		return ret;
