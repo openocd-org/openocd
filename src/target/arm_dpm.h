@@ -31,24 +31,22 @@
  * registers are compatible.
  */
 
-struct dpm_bp {
-	struct breakpoint *bp;
-	/* bp->address == breakpoint value register
-	 * control == breakpoint control register
-	 */
+struct dpm_bpwp {
+	unsigned number;
+	uint32_t address;
 	uint32_t control;
 	/* true if hardware state needs flushing */
 	bool dirty;
 };
 
+struct dpm_bp {
+	struct breakpoint *bp;
+	struct dpm_bpwp bpwp;
+};
+
 struct dpm_wp {
 	struct watchpoint *wp;
-	/* wp->address == watchpoint value register
-	 * control == watchpoint control register
-	 */
-	uint32_t control;
-	/* true if hardware state needs flushing */
-	bool dirty;
+	struct dpm_bpwp bpwp;
 };
 
 /**

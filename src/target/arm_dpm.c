@@ -277,6 +277,51 @@ fail:
 	return retval;
 }
 
+/* Avoid needless I/O ... leave breakpoints and watchpoints alone
+ * unless they're removed, or need updating because of single-stepping
+ * or running debugger code.
+ */
+static int dpm_maybe_update_bpwp(struct arm_dpm *dpm, bool bpwp,
+		struct dpm_bpwp *xp, int *set_p)
+{
+	int retval = ERROR_OK;
+	bool disable;
+
+	if (!set_p) {
+		if (!xp->dirty)
+			goto done;
+		xp->dirty = false;
+		/* removed or startup; we must disable it */
+		disable = true;
+	} else if (bpwp) {
+		if (!xp->dirty)
+			goto done;
+		/* disabled, but we must set it */
+		xp->dirty = disable = false;
+		*set_p = true;
+	} else {
+		if (!*set_p)
+			goto done;
+		/* set, but we must temporarily disable it */
+		xp->dirty = disable = true;
+		*set_p = false;
+	}
+
+	if (disable)
+		retval = dpm->bpwp_disable(dpm, xp->number);
+	else
+		retval = dpm->bpwp_enable(dpm, xp->number,
+				xp->address, xp->control);
+
+	if (retval != ERROR_OK)
+		LOG_ERROR("%s: can't %s HW bp/wp %d",
+				disable ? "disable" : "enable",
+				target_name(dpm->arm->target),
+				xp->number);
+done:
+	return retval;
+}
+
 /**
  * Writes all modified core registers for all processor modes.  In normal
  * operation this is called on exit from halting debug state.
@@ -296,47 +341,22 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	if (retval != ERROR_OK)
 		goto done;
 
+	/* enable/disable hardware breakpoints */
+	for (unsigned i = 0; i < dpm->nbp; i++) {
+		struct dpm_bp *dbp = dpm->dbp + i;
+		struct breakpoint *bp = dbp->bp;
+
+		retval = dpm_maybe_update_bpwp(dpm, bpwp, &dbp->bpwp,
+				bp ? &bp->set : NULL);
+	}
+
 	/* enable/disable watchpoints */
 	for (unsigned i = 0; i < dpm->nwp; i++) {
 		struct dpm_wp *dwp = dpm->dwp + i;
 		struct watchpoint *wp = dwp->wp;
-		bool disable;
 
-		/* Avoid needless I/O ... leave watchpoints alone
-		 * unless they're removed, or need updating because
-		 * of single-stepping or running debugger code.
-		 */
-		if (!wp) {
-			if (!dwp->dirty)
-				continue;
-			dwp->dirty = false;
-			/* removed or startup; we must disable it */
-			disable = true;
-		} else if (bpwp) {
-			if (!dwp->dirty)
-				continue;
-			/* disabled, but we must set it */
-			dwp->dirty = disable = false;
-			wp->set = true;
-		} else {
-			if (!wp->set)
-				continue;
-			/* set, but we must temporarily disable it */
-			dwp->dirty = disable = true;
-			wp->set = false;
-		}
-
-		if (disable)
-			retval = dpm->bpwp_disable(dpm, 16 + i);
-		else
-			retval = dpm->bpwp_enable(dpm, 16 + i,
-					wp->address & ~3, dwp->control);
-
-		if (retval != ERROR_OK)
-			LOG_ERROR("%s: can't %s HW watchpoint %d",
-					target_name(arm->target),
-					disable ? "disable" : "enable",
-					i);
+		retval = dpm_maybe_update_bpwp(dpm, bpwp, &dwp->bpwp,
+				wp ? &wp->set : NULL);
 	}
 
 	/* NOTE:  writes to breakpoint and watchpoint registers might
@@ -696,8 +716,9 @@ static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
 	 */
 
 	dpm->dwp[index].wp = wp;
-	dpm->dwp[index].control = control;
-	dpm->dwp[index].dirty = true;
+	dpm->dwp[index].bpwp.address = addr & ~3;
+	dpm->dwp[index].bpwp.control = control;
+	dpm->dwp[index].bpwp.dirty = true;
 
 	/* hardware is updated in write_dirty_registers() */
 	return ERROR_OK;
@@ -731,7 +752,7 @@ static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
 	for (unsigned i = 0; i < dpm->nwp; i++) {
 		if (dpm->dwp[i].wp == wp) {
 			dpm->dwp[i].wp = NULL;
-			dpm->dwp[i].dirty = true;
+			dpm->dwp[i].bpwp.dirty = true;
 
 			/* hardware is updated in write_dirty_registers() */
 			retval = ERROR_OK;
@@ -869,10 +890,14 @@ int arm_dpm_initialize(struct arm_dpm *dpm)
 	if (dpm->bpwp_disable) {
 		unsigned i;
 
-		for (i = 0; i < dpm->nbp; i++)
+		for (i = 0; i < dpm->nbp; i++) {
+			dpm->dbp[i].bpwp.number = i;
 			(void) dpm->bpwp_disable(dpm, i);
-		for (i = 0; i < dpm->nwp; i++)
+		}
+		for (i = 0; i < dpm->nwp; i++) {
+			dpm->dwp[i].bpwp.number = 16 + i;
 			(void) dpm->bpwp_disable(dpm, 16 + i);
+		}
 	} else
 		LOG_WARNING("%s: can't disable breakpoints and watchpoints",
 			target_name(dpm->arm->target));
