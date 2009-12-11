@@ -48,14 +48,14 @@ static const tap_state_t arm11_move_pi_to_si_via_ci[] =
 };
 
 
-static int arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
+/* REVISIT no error handling here! */
+static void arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
 		tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_IRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
 
 	jtag_add_ir_scan(num_fields, fields, state);
-	return ERROR_OK;
 }
 
 static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
@@ -63,13 +63,14 @@ static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
-int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields, tap_state_t state)
+/* REVISIT no error handling here! */
+void arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields,
+		tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_DRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
 
 	jtag_add_dr_scan(num_fields, fields, state);
-	return ERROR_OK;
 }
 
 
@@ -83,7 +84,8 @@ int arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields, tap_state_t 
  *						<em > (data is written when the JTAG queue is executed)</em>
  * \param field			target data structure that will be initialized
  */
-void arm11_setup_field(struct arm11_common * arm11, int num_bits, void * out_data, void * in_data, struct scan_field * field)
+void arm11_setup_field(struct arm11_common *arm11, int num_bits,
+		void *out_data, void *in_data, struct scan_field *field)
 {
 	field->tap			= arm11->arm.target->tap;
 	field->num_bits			= num_bits;
@@ -151,24 +153,17 @@ void arm11_add_IR(struct arm11_common * arm11, uint8_t instr, tap_state_t state)
 	arm11_add_ir_scan_vc(1, &field, state == ARM11_TAP_DEFAULT ? TAP_IRPAUSE : state);
 }
 
-/** Verify shifted out data from Scan Chain Register (SCREG)
- *  Used as parameter to struct scan_field::in_handler in
- *  arm11_add_debug_SCAN_N().
- *
- */
+/** Verify data shifted out from Scan Chain Register (SCREG). */
 static void arm11_in_handler_SCAN_N(uint8_t *in_value)
 {
-	/** \todo TODO: clarify why this isnt properly masked in core.c jtag_read_buffer() */
+	/* Don't expect JTAG layer to modify bits we didn't ask it to read */
 	uint8_t v = *in_value & 0x1F;
 
 	if (v != 0x10)
 	{
-		LOG_ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
+		LOG_ERROR("'arm11 target' JTAG error SCREG OUT 0x%02x", v);
 		jtag_set_error(ERROR_FAIL);
 	}
-
-	if (v != 0x10)
-		JTAG_DEBUG("SCREG SCAN OUT 0x%02x", v);
 }
 
 /** Select and write to Scan Chain Register (SCREG)
