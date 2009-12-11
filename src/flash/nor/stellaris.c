@@ -641,7 +641,8 @@ static int stellaris_protect_check(struct flash_bank *bank)
 		status = target_read_u32(bank->target,
 				SCB_BASE + (i ? (FMPPE0 + 4 * i) : FMPPE),
 				&lockbits);
-		LOG_DEBUG("FMPPE%d = %#8.8x (status %d)", i, lockbits, status);
+		LOG_DEBUG("FMPPE%d = %#8.8x (status %d)", i,
+				(unsigned) lockbits, status);
 		if (status != ERROR_OK)
 			goto done;
 
