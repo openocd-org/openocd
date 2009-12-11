@@ -1012,27 +1012,25 @@ static int arm11_write_memory_inner(struct target *target,
 		}
 
 	case 4: {
+		/* increment:		STC p14,c5,[R0],#4 */
+		/* no increment:	STC p14,c5,[R0]*/
 		uint32_t instr = !no_increment ? 0xeca05e01 : 0xed805e00;
 
 		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
 		uint32_t *words = (uint32_t*)buffer;
 
+		/* "burst" here just means trusting each instruction executes
+		 * fully before we run the next one:  per-word roundtrips, to
+		 * check the Ready flag, are not used.
+		 */
 		if (!burst)
-		{
-			/* STC p14,c5,[R0],#4 */
-			/* STC p14,c5,[R0]*/
-			retval = arm11_run_instr_data_to_core(arm11, instr, words, count);
-			if (retval != ERROR_OK)
-				return retval;
-		}
+			retval = arm11_run_instr_data_to_core(arm11,
+					instr, words, count);
 		else
-		{
-			/* STC p14,c5,[R0],#4 */
-			/* STC p14,c5,[R0]*/
-			retval = arm11_run_instr_data_to_core_noack(arm11, instr, words, count);
-			if (retval != ERROR_OK)
-				return retval;
-		}
+			retval = arm11_run_instr_data_to_core_noack(arm11,
+					instr, words, count);
+		if (retval != ERROR_OK)
+			return retval;
 
 		break;
 	}
@@ -1309,7 +1307,7 @@ static const struct command_registration arm11_mw_command_handlers[] = {
 		.name = "burst",
 		.handler = &arm11_handle_bool_memwrite_burst,
 		.mode = COMMAND_ANY,
-		.help = "Enable/Disable non-standard but fast burst mode"
+		.help = "Enable/Disable potentially risky fast burst mode"
 			" (default: enabled)",
 	},
 	{

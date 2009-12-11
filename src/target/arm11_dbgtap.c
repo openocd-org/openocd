@@ -230,22 +230,23 @@ int arm11_add_debug_SCAN_N(struct arm11_common *arm11,
 	return jtag_execute_queue();
 }
 
-/** Write an instruction into the ITR register
+/**
+ * Queue a DR scan of the ITR register.  Caller must have selected
+ * scan chain 4 (ITR), possibly using ITRSEL.
  *
  * \param arm11		Target state variable.
  * \param inst		An ARM11 processor instruction/opcode.
- * \param flag		Optional parameter to retrieve the InstCompl flag
- *					(this will be written when the JTAG chain is executed).
- * \param state		Pass the final TAP state or ARM11_TAP_DEFAULT for the default
- *					value (Run-Test/Idle).
+ * \param flag		Optional parameter to retrieve the Ready flag;
+ *	this address will be written when the JTAG chain is scanned.
+ * \param state		The TAP state to enter after the DR scan.
  *
- * \remarks			By default this ends with Run-Test/Idle state
- *					and causes the instruction to be executed. If
- *					a subsequent write to DTR is needed before
- *					executing the instruction then TAP_DRPAUSE should be
- *					passed to \p state.
+ * Going through the TAP_DRUPDATE state writes ITR only if Ready was
+ * previously set.  Only the Ready flag is readable by the scan.
  *
- * \remarks			This adds to the JTAG command queue but does \em not execute it.
+ * An instruction loaded into ITR is executed when going through the
+ * TAP_IDLE state only if Ready was previously set and the debug state
+ * is properly set up.  Depending on the instruction, you may also need
+ * to ensure that the rDTR is ready before that Run-Test/Idle state.
  */
 static void arm11_add_debug_INST(struct arm11_common * arm11,
 		uint32_t inst, uint8_t * flag, tap_state_t state)
@@ -257,7 +258,7 @@ static void arm11_add_debug_INST(struct arm11_common * arm11,
 	arm11_setup_field(arm11, 32,    &inst,	NULL, itr + 0);
 	arm11_setup_field(arm11, 1,	    NULL,	flag, itr + 1);
 
-	arm11_add_dr_scan_vc(ARRAY_SIZE(itr), itr, state == ARM11_TAP_DEFAULT ? TAP_IDLE : state);
+	arm11_add_dr_scan_vc(ARRAY_SIZE(itr), itr, state);
 }
 
 /**
@@ -374,7 +375,11 @@ int arm11_run_instr_data_finish(struct arm11_common * arm11)
 
 
 
-/** Execute one or multiple instructions via ITR
+/**
+ * Execute one or more instructions via ITR.
+ * Caller guarantees that processor is in debug state, that DSCR_ITR_EN
+ * is set, the ITR Ready flag is set (as seen on the previous entry to
+ * TAP_DRCAPTURE), and the DSCR sticky abort flag is clear.
  *
  * \pre arm11_run_instr_data_prepare() /  arm11_run_instr_data_finish() block
  *
@@ -443,6 +448,10 @@ int arm11_run_instr_no_data1(struct arm11_common * arm11, uint32_t opcode)
 
 /** Execute one instruction via ITR repeatedly while
  *  passing data to the core via DTR on each execution.
+ *
+ * Caller guarantees that processor is in debug state, that DSCR_ITR_EN
+ * is set, the ITR Ready flag is set (as seen on the previous entry to
+ * TAP_DRCAPTURE), and the DSCR sticky abort flag is clear.
  *
  *  The executed instruction \em must read data from DTR.
  *
@@ -570,6 +579,10 @@ static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 /** Execute one instruction via ITR repeatedly while
  *  passing data to the core via DTR on each execution.
  *
+ * Caller guarantees that processor is in debug state, that DSCR_ITR_EN
+ * is set, the ITR Ready flag is set (as seen on the previous entry to
+ * TAP_DRCAPTURE), and the DSCR sticky abort flag is clear.
+ *
  *  No Ready check during transmission.
  *
  *  The executed instruction \em must read data from DTR.
@@ -677,6 +690,10 @@ int arm11_run_instr_data_to_core1(struct arm11_common * arm11, uint32_t opcode, 
 
 /** Execute one instruction via ITR repeatedly while
  *  reading data from the core via DTR on each execution.
+ *
+ * Caller guarantees that processor is in debug state, that DSCR_ITR_EN
+ * is set, the ITR Ready flag is set (as seen on the previous entry to
+ * TAP_DRCAPTURE), and the DSCR sticky abort flag is clear.
  *
  *  The executed instruction \em must write data to DTR.
  *
