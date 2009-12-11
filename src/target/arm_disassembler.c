@@ -288,8 +288,13 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 			mnemonic = "MRRC";
 		}
 
-		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s%s p%i, %x, r%i, r%i, c%i",
-				 address, opcode, mnemonic, COND(opcode), cp_num, cp_opcode, Rd, Rn, CRm);
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+				"\t%s%s%s p%i, %x, r%i, r%i, c%i",
+				 address, opcode, mnemonic,
+				((opcode & 0xf0000000) == 0xf0000000)
+						? "2" : COND(opcode),
+				 COND(opcode), cp_num, cp_opcode, Rd, Rn, CRm);
 	}
 	else /* LDC or STC */
 	{
@@ -300,7 +305,7 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 
 		CRd = (opcode & 0xf000) >> 12;
 		Rn = (opcode & 0xf0000) >> 16;
-		offset = (opcode & 0xff);
+		offset = (opcode & 0xff) << 2;
 
 		/* load/store */
 		if (opcode & 0x00100000)
@@ -318,19 +323,27 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 		N = (opcode & 0x00400000) >> 22;
 
 		/* addressing modes */
-		if ((opcode & 0x01200000) == 0x01000000) /* immediate offset */
-			snprintf(addressing_mode, 32, "[r%i, #%s0x%2.2x*4]", Rn, (U) ? "" : "-", offset);
-		else if ((opcode & 0x01200000) == 0x01200000) /* immediate pre-indexed */
-			snprintf(addressing_mode, 32, "[r%i, #%s0x%2.2x*4]!", Rn, (U) ? "" : "-", offset);
-		else if ((opcode & 0x01200000) == 0x00200000) /* immediate post-indexed */
-			snprintf(addressing_mode, 32, "[r%i], #%s0x%2.2x*4", Rn, (U) ? "" : "-", offset);
+		if ((opcode & 0x01200000) == 0x01000000) /* offset */
+			snprintf(addressing_mode, 32, "[r%i, #%s%d]",
+					Rn, U ? "" : "-", offset);
+		else if ((opcode & 0x01200000) == 0x01200000) /* pre-indexed */
+			snprintf(addressing_mode, 32, "[r%i, #%s%d]!",
+					Rn, U ? "" : "-", offset);
+		else if ((opcode & 0x01200000) == 0x00200000) /* post-indexed */
+			snprintf(addressing_mode, 32, "[r%i], #%s%d",
+					Rn, U ? "" : "-", offset);
 		else if ((opcode & 0x01200000) == 0x00000000) /* unindexed */
-			snprintf(addressing_mode, 32, "[r%i], #0x%2.2x", Rn, offset);
+			snprintf(addressing_mode, 32, "[r%i], {%d}",
+					Rn, offset >> 2);
 
-		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s%s%s p%i, c%i, %s",
-				 address, opcode, mnemonic, ((opcode & 0xf0000000) == 0xf0000000) ? COND(opcode) : "2",
-				 (N) ? "L" : "",
-				 cp_num, CRd, addressing_mode);
+		snprintf(instruction->text, 128, "0x%8.8" PRIx32
+				"\t0x%8.8" PRIx32
+				"\t%s%s%s p%i, c%i, %s",
+				address, opcode, mnemonic,
+				((opcode & 0xf0000000) == 0xf0000000)
+						? "2" : COND(opcode),
+				(opcode & (1 << 22)) ? "L" : "",
+				cp_num, CRd, addressing_mode);
 	}
 
 	return ERROR_OK;
@@ -1638,7 +1651,8 @@ static int evaluate_data_proc(uint32_t opcode,
 	return ERROR_OK;
 }
 
-int arm_evaluate_opcode(uint32_t opcode, uint32_t address, struct arm_instruction *instruction)
+int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
+		struct arm_instruction *instruction)
 {
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(struct arm_instruction));
@@ -1760,7 +1774,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, struct arm_instructio
 	}
 
 	/* catch opcodes with [27:25] = b110 */
-	if ((opcode & 0x0e000000) == 0x0a000000)
+	if ((opcode & 0x0e000000) == 0x0c000000)
 	{
 		/* Coprocessor load/store and double register transfers */
 		return evaluate_ldc_stc_mcrr_mrrc(opcode, address, instruction);
@@ -1782,7 +1796,8 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, struct arm_instructio
 			return evaluate_cdp_mcr_mrc(opcode, address, instruction);
 	}
 
-	LOG_ERROR("should never reach this point");
+	LOG_ERROR("ARM: should never reach this point (opcode=%08x)",
+			(unsigned) opcode);
 	return -1;
 }
 
@@ -2796,7 +2811,7 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, struct arm_instruct
 		}
 	}
 
-	LOG_ERROR("should never reach this point (opcode=%04x)",opcode);
+	LOG_ERROR("Thumb: should never reach this point (opcode=%04x)", opcode);
 	return -1;
 }
 
