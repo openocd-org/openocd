@@ -343,7 +343,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 		case lpc2000_v1:
 		case lpc2000_v2:
 			/* IAP stack */
-			init_reg_param(&reg_params[3], "r13_svc", 32, PARAM_OUT);
+			init_reg_param(&reg_params[3], "sp_svc", 32, PARAM_OUT);
 			buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xb4);
 
 			/* return address */
