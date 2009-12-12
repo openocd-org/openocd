@@ -726,7 +726,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "write_image",
 		.handler = &handle_flash_write_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> [erase] [unlock] <file> [offset] [type]",
+		.usage = "[erase] [unlock] <file> [offset] [type]",
 		.help = "write an image to flash"
 	},
 	{
