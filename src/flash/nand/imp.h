@@ -22,6 +22,8 @@
 #include "core.h"
 #include "driver.h"
 
+void nand_device_add(struct nand_device *c);
+
 int nand_write_page(struct nand_device *nand,
 		uint32_t page, uint8_t *data, uint32_t data_size,
 		uint8_t *oob, uint32_t oob_size);

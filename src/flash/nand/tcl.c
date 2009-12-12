@@ -580,6 +580,8 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 		return ERROR_OK;
 	}
 
+	nand_device_add(c);
+
 	return ERROR_OK;
 }
 
