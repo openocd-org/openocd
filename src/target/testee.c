@@ -20,9 +20,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <helper/log.h>
+
 #include "target.h"
 #include "target_type.h"
-#include <helper/log.h>
 #include "hello.h"
 
 static const struct command_registration testee_command_handlers[] = {

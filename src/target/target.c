@@ -33,15 +33,16 @@
 #include "config.h"
 #endif
 
+#include <helper/time_support.h>
+#include <jtag/jtag.h>
+
 #include "target.h"
 #include "target_type.h"
 #include "target_request.h"
 #include "breakpoints.h"
-#include <helper/time_support.h>
 #include "register.h"
 #include "trace.h"
 #include "image.h"
-#include <jtag/jtag.h>
 
 
 static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);

@@ -27,7 +27,6 @@
 #define TARGET_H
 
 #include <helper/types.h>
-#include <helper/jim.h>
 
 struct reg;
 struct trace;
@@ -214,7 +213,7 @@ enum target_event
 
 struct target_event_action {
 	enum target_event event;
-	Jim_Interp *interp;
+	struct Jim_Interp *interp;
 	struct Jim_Obj *body;
 	int has_percent;
 	struct target_event_action *next;

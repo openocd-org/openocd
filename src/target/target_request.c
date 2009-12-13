@@ -27,12 +27,13 @@
 #include "config.h"
 #endif
 
+#include <helper/log.h>
+#include <helper/binarybuffer.h>
+
 #include "target.h"
 #include "target_request.h"
 #include "target_type.h"
-#include <helper/binarybuffer.h>
 #include "trace.h"
-#include <helper/log.h>
 
 
 static int charmsg_mode = 0;
