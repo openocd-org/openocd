@@ -23,7 +23,7 @@
 #ifndef ARM7TDMI_H
 #define ARM7TDMI_H
 
-#include <target/embeddedice.h>
+#include "embeddedice.h"
 
 int arm7tdmi_init_arch_info(struct target *target,
 		struct arm7_9_common *arm7_9, struct jtag_tap *tap);

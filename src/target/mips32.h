@@ -23,8 +23,8 @@
 #ifndef MIPS32_H
 #define MIPS32_H
 
-#include <target/target.h>
-#include <target/mips32_pracc.h>
+#include "target.h"
+#include "mips32_pracc.h"
 
 
 #define MIPS32_COMMON_MAGIC		0xB320B320

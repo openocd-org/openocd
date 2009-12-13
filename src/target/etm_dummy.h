@@ -20,7 +20,7 @@
 #ifndef ETM_DUMMY_H
 #define ETM_DUMMY_H
 
-#include <target/etm.h>
+#include "etm.h"
 
 extern struct etm_capture_driver etm_dummy_capture_driver;
 

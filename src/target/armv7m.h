@@ -26,8 +26,8 @@
 #ifndef ARMV7M_COMMON_H
 #define ARMV7M_COMMON_H
 
-#include <target/arm_adi_v5.h>
-#include <target/arm.h>
+#include "arm_adi_v5.h"
+#include "arm.h"
 
 /* define for enabling armv7 gdb workarounds */
 #if 1

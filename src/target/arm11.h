@@ -23,8 +23,8 @@
 #ifndef ARM11_H
 #define ARM11_H
 
-#include <target/arm.h>
-#include <target/arm_dpm.h>
+#include "arm.h"
+#include "arm_dpm.h"
 
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 

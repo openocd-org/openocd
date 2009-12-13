@@ -26,7 +26,7 @@
 #ifndef EMBEDDED_ICE_H
 #define EMBEDDED_ICE_H
 
-#include <target/arm7_9_common.h>
+#include "arm7_9_common.h"
 
 enum
 {

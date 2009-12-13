@@ -20,8 +20,6 @@
 #ifndef OOCD_TRACE_H
 #define OOCD_TRACE_H
 
-#include <target/etm.h>
-
 #include <termios.h>
 
 /* registers */

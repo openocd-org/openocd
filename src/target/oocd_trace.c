@@ -22,6 +22,7 @@
 #endif
 
 #include "arm.h"
+#include "etm.h"
 #include "oocd_trace.h"
 
 /*

@@ -1,7 +1,7 @@
 #ifndef ARM11_DBGTAP_H
 #define ARM11_DBGTAP_H
 
-#include <target/arm11.h>
+#include "arm11.h"
 
 /* ARM11 internals */
 

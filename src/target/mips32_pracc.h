@@ -22,7 +22,7 @@
 #ifndef MIPS32_PRACC_H
 #define MIPS32_PRACC_H
 
-#include <target/mips_ejtag.h>
+#include "mips_ejtag.h"
 
 #define MIPS32_PRACC_TEXT			0xFF200200
 //#define MIPS32_PRACC_STACK			0xFF2FFFFC

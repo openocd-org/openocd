@@ -26,8 +26,8 @@
 #ifndef ARM_H
 #define ARM_H
 
-#include <target/target.h>
 #include <helper/command.h>
+#include "target.h"
 
 
 /**

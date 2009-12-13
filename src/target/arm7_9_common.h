@@ -29,8 +29,8 @@
 #ifndef ARM7_9_COMMON_H
 #define ARM7_9_COMMON_H
 
-#include <target/arm.h>
-#include <target/arm_jtag.h>
+#include "arm.h"
+#include "arm_jtag.h"
 
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */
 

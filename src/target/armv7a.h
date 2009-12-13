@@ -19,11 +19,11 @@
 #ifndef ARMV7A_H
 #define ARMV7A_H
 
-#include <target/arm_adi_v5.h>
-#include <target/arm.h>
-#include <target/armv4_5_mmu.h>
-#include <target/armv4_5_cache.h>
-#include <target/arm_dpm.h>
+#include "arm_adi_v5.h"
+#include "arm.h"
+#include "armv4_5_mmu.h"
+#include "armv4_5_cache.h"
+#include "arm_dpm.h"
 
 enum
 {

@@ -29,7 +29,7 @@
 #ifndef CORTEX_A8_H
 #define CORTEX_A8_H
 
-#include <target/armv7a.h>
+#include "armv7a.h"
 
 #define CORTEX_A8_COMMON_MAGIC 0x411fc082
 

@@ -23,7 +23,7 @@
 #ifndef ARM966E_H
 #define ARM966E_H
 
-#include <target/arm9tdmi.h>
+#include "arm9tdmi.h"
 
 #define	ARM966E_COMMON_MAGIC 0x20f920f9
 

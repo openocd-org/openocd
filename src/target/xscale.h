@@ -23,9 +23,9 @@
 #ifndef XSCALE_H
 #define XSCALE_H
 
-#include <target/arm.h>
-#include <target/armv4_5_mmu.h>
-#include <target/trace.h>
+#include "arm.h"
+#include "armv4_5_mmu.h"
+#include "trace.h"
 
 #define	XSCALE_COMMON_MAGIC 0x58534341
 
