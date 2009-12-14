@@ -2763,6 +2763,12 @@ are provided in vendors' chip documentation, usually a technical
 reference manual.  Sometimes you may need to probe the JTAG
 hardware to find these values.
 @xref{Autoprobing}.
+@item @code{-ignore-version}
+@*Specify this to ignore the JTAG version field in the @code{-expected-id}
+option.  When vendors put out multiple versions of a chip, or use the same
+JTAG-level ID for several largely-compatible chips, it may be more practical
+to ignore the version field than to update config files to handle all of
+the various chip IDs.
 @item @code{-ircapture} @var{NUMBER}
 @*The bit pattern loaded by the TAP into the JTAG shift register
 on entry to the @sc{ircapture} state, such as 0x01.

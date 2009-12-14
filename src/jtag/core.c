@@ -958,16 +958,25 @@ static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 
 static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 {
+	uint32_t idcode = tap->idcode;
+
 	/* ignore expected BYPASS codes; warn otherwise */
-	if (0 == tap->expected_ids_cnt && !tap->idcode)
+	if (0 == tap->expected_ids_cnt && !idcode)
 		return true;
+
+	/* optionally ignore the JTAG version field */
+	uint32_t mask = tap->ignore_version ? ~(0xff << 24) : ~0;
+
+	idcode &= mask;
 
 	/* Loop over the expected identification codes and test for a match */
 	unsigned ii, limit = tap->expected_ids_cnt;
 
 	for (ii = 0; ii < limit; ii++)
 	{
-		if (tap->idcode == tap->expected_ids[ii])
+		uint32_t expected = tap->expected_ids[ii] & mask;
+
+		if (idcode == expected)
 			return true;
 
 		/* treat "-expected-id 0" as a "don't-warn" wildcard */

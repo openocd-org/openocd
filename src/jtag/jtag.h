@@ -156,6 +156,9 @@ struct jtag_tap {
 	/// Number of expected identification codes
 	uint8_t expected_ids_cnt;
 
+	/// Flag saying whether to ignore version field in expected_ids[]
+	bool ignore_version;
+
 	/// current instruction
 	uint8_t* cur_instr;
 	/// Bypass register selected
