@@ -1496,7 +1496,7 @@ static int xscale_assert_reset(struct target *target)
 	xscale_write_dcsr(target, 1, 0);
 
 	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
-	xscale_jtag_set_instr(target->tap, 0x7f);
+	xscale_jtag_set_instr(target->tap, ~0);
 	jtag_execute_queue();
 
 	/* assert reset */
