@@ -253,17 +253,6 @@ struct command_registration {
 struct command* register_command(struct command_context *cmd_ctx,
 		struct command *parent, const struct command_registration *rec);
 
-#define COMMAND_REGISTER(_cmd_ctx, _parent, _name, _handler, _mode, _help) \
-	({ \
-		struct command_registration cr = { \
-				.name = _name, \
-				.handler = _handler, \
-				.mode = _mode, \
-				.help = _help, \
-			}; \
-		register_command(_cmd_ctx, _parent, &cr); \
-	})
-
 /**
  * Register one or more commands in the specified context, as children
  * of @c parent (or top-level commends, if NULL).  In a registration's
