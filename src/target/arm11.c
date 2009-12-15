@@ -352,7 +352,9 @@ static int arm11_poll(struct target *target)
 				return retval;
 
 			target_call_event_callbacks(target,
-				old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED);
+				(old_state == TARGET_DEBUG_RUNNING)
+					? TARGET_EVENT_DEBUG_HALTED
+					: TARGET_EVENT_HALTED);
 		}
 	}
 	else
@@ -749,67 +751,72 @@ static int arm11_step(struct target *target, int current,
 
 static int arm11_assert_reset(struct target *target)
 {
-	int retval;
 	struct arm11_common *arm11 = target_to_arm11(target);
 
-	retval = arm11_check_init(arm11);
-	if (retval != ERROR_OK)
-		return retval;
+	/* optionally catch reset vector */
+	if (target->reset_halt && !(arm11_vcr & 1))
+		arm11_sc7_set_vcr(arm11, arm11_vcr | 1);
 
-	target->state = TARGET_UNKNOWN;
-
-	/* we would very much like to reset into the halted, state,
-	 * but resetting and halting is second best... */
-	if (target->reset_halt)
-	{
-		CHECK_RETVAL(target_halt(target));
+	/* Issue some kind of warm reset. */
+	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
+		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
+	} else if (jtag_get_reset_config() & RESET_HAS_SRST) {
+		/* REVISIT handle "pulls" cases, if there's
+		 * hardware that needs them to work.
+		 */
+		jtag_add_reset(0, 1);
+	} else {
+		LOG_ERROR("%s: how to reset?", target_name(target));
+		return ERROR_FAIL;
 	}
 
+	/* registers are now invalid */
+	register_cache_invalidate(arm11->arm.core_cache);
 
-	/* srst is funny. We can not do *anything* else while it's asserted
-	 * and it has unkonwn side effects. Make sure no other code runs
-	 * meanwhile.
-	 *
-	 * Code below assumes srst:
-	 *
-	 * - Causes power-on-reset (but of what parts of the system?). Bug
-	 * in arm11?
-	 *
-	 * - Messes us TAP state without asserting trst.
-	 *
-	 * - There is another bug in the arm11 core. When you generate an access to
-	 * external logic (for example ddr controller via AHB bus) and that block
-	 * is not configured (perhaps it is still held in reset), that transaction
-	 * will never complete. This will hang arm11 core but it will also hang
-	 * JTAG controller. Nothing, short of srst assertion will bring it out of
-	 * this.
-	 *
-	 * Mysteries:
-	 *
-	 * - What should the PC be after an srst reset when starting in the halted
-	 * state?
-	 */
-
-	jtag_add_reset(0, 1);
-	jtag_add_reset(0, 0);
-
-	/* How long do we have to wait? */
-	jtag_add_sleep(5000);
-
-	/* un-mess up TAP state */
-	jtag_add_tlr();
-
-	retval = jtag_execute_queue();
-	if (retval != ERROR_OK)
-	{
-		return retval;
-	}
+	target->state = TARGET_RESET;
 
 	return ERROR_OK;
 }
 
+/*
+ * - There is another bug in the arm11 core.  (iMX31 specific again?)
+ *   When you generate an access to external logic (for example DDR
+ *   controller via AHB bus) and that block is not configured (perhaps
+ *   it is still held in reset), that transaction will never complete.
+ *   This will hang arm11 core but it will also hang JTAG controller.
+ *   Nothing short of srst assertion will bring it out of this.
+ */
+
 static int arm11_deassert_reset(struct target *target)
 {
+	struct arm11_common *arm11 = target_to_arm11(target);
+	int retval;
+
+	/* be certain SRST is off */
+	jtag_add_reset(0, 0);
+
+	/* WORKAROUND i.MX31 problems:  SRST goofs the TAP, and resets
+	 * at least DSCR.  OMAP24xx doesn't show that problem, though
+	 * SRST-only reset seems to be problematic for other reasons.
+	 * (Secure boot sequences being one likelihood!)
+	 */
+	jtag_add_tlr();
+
+	retval = arm11_poll(target);
+
+	if (target->reset_halt) {
+		if (target->state != TARGET_HALTED) {
+			LOG_WARNING("%s: ran after reset and before halt ...",
+					target_name(target));
+			if ((retval = target_halt(target)) != ERROR_OK)
+				return retval;
+		}
+	}
+
+	/* maybe restore vector catch config */
+	if (target->reset_halt && !(arm11_vcr & 1))
+		arm11_sc7_set_vcr(arm11, arm11_vcr);
+
 	return ERROR_OK;
 }
 
