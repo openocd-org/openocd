@@ -3157,6 +3157,8 @@ This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
 be detected and the normal reset behaviour used.
 @end itemize
 @item @code{dragonite} -- resembles arm966e
+@item @code{dsp563xx} -- implements Freescale's 24-bit DSP.
+(Support for this is still incomplete.)
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
 @item @code{mips_m4k} -- a MIPS core.  This supports one variant:
