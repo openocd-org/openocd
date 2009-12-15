@@ -1097,8 +1097,11 @@ static int evaluate_ldm_stm(uint32_t opcode,
 		}
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s%s%s r%i%s, {%s}%s",
-			 address, opcode, mnemonic, COND(opcode), addressing_mode,
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+			"\t%s%s%s r%i%s, {%s}%s",
+			 address, opcode,
+			 mnemonic, addressing_mode, COND(opcode),
 			 Rn, (W) ? "!" : "", reg_list, (S) ? "^" : "");
 
 	return ERROR_OK;
