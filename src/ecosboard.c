@@ -249,11 +249,21 @@ int zy1000_configuration_output_handler_log(struct command_context *context,
 }
 
 #ifdef CYGPKG_PROFILE_GPROF
+//extern int64_t totaltime;
 
-int eCosBoard_handle_eCosBoard_profile_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+static int zylinjtag_Jim_Command_profile(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
 {
-	command_print(cmd_ctx, "Profiling started");
-	start_profile();
+	if ((argc == 2) && (strcmp(Jim_GetString(argv[1], NULL), "stats")==0))
+	{
+//		profile_off();
+		//LOG_USER("Stats %dms sleeping in select()", (int)totaltime);
+	} else
+	{
+		LOG_USER("Profiling started");
+		start_profile();
+		//totaltime = 0;
+	}
 	return ERROR_OK;
 }
 
@@ -1079,8 +1089,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 #ifdef CYGPKG_PROFILE_GPROF
-	COMMAND_REGISTER(cmd_ctx, NULL, "ecosboard_profile", eCosBoard_handle_eCosBoard_profile_command,
-			COMMAND_ANY, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "zy1000_profile", zylinjtag_Jim_Command_profile,
+			NULL, NULL);
 #endif
 
 	Jim_CreateCommand(httpstate.jim_interp, "uart", zylinjtag_Jim_Command_uart, NULL, NULL);
