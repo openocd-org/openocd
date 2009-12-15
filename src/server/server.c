@@ -292,9 +292,10 @@ int server_loop(struct command_context *command_context)
 {
 	struct service *service;
 
+	bool poll = true;
+
 	/* used in select() */
 	fd_set read_fds;
-	struct timeval tv;
 	int fd_max;
 
 	/* used in accept() */
@@ -304,10 +305,6 @@ int server_loop(struct command_context *command_context)
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
-
-	/* do regular tasks after at most 10ms */
-	tv.tv_sec = 0;
-	tv.tv_usec = 10000;
 
 	while (!shutdown_openocd)
 	{
@@ -351,12 +348,24 @@ int server_loop(struct command_context *command_context)
 #endif
 #endif
 
-		openocd_sleep_prelude();
-		kept_alive();
-
-		/* Only while we're sleeping we'll let others run */
-		retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
-		openocd_sleep_postlude();
+		struct timeval tv;
+		tv.tv_sec = 0;
+		if (poll)
+		{
+			/* we're just polling this iteration, this is faster on embedded
+			 * hosts */
+			tv.tv_usec = 0;
+			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
+		} else
+		{
+			/* Every 100ms */
+			tv.tv_usec = 100000;
+			/* Only while we're sleeping we'll let others run */
+			openocd_sleep_prelude();
+			kept_alive();
+			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
+			openocd_sleep_postlude();
+		}
 
 		if (retval == -1)
 		{
@@ -385,15 +394,20 @@ int server_loop(struct command_context *command_context)
 #endif
 		}
 
-		target_call_timer_callbacks();
-		process_jim_events(command_context);
-
 		if (retval == 0)
 		{
-			/* do regular tasks after at most 100ms */
-			tv.tv_sec = 0;
-			tv.tv_usec = 10000;
+			/* We only execute these callbacks when there was nothing to do or we timed out */
+			target_call_timer_callbacks();
+			process_jim_events(command_context);
+
 			FD_ZERO(&read_fds); /* eCos leaves read_fds unchanged in this case!  */
+
+			/* We timed out/there was nothing to do, timeout rather than poll next time */
+			poll = false;
+		} else
+		{
+			/* There was something to do, next time we'll just poll */
+			poll = true;
 		}
 
 		for (service = services; service; service = service->next)
