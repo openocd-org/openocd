@@ -7,9 +7,9 @@ METASOURCES = AUTO
 noinst_LTLIBRARIES = libhelper.la
 
 if ECOSBOARD
-CONFIGFILES =
+CONFIGFILES = time_support_ecos.c
 else
-CONFIGFILES = options.c jim.c jim-eventloop.c
+CONFIGFILES = options.c jim.c jim-eventloop.c time_support_common.c
 endif
 
 

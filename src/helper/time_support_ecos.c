@@ -29,71 +29,15 @@
 
 #include "time_support.h"
 
-/* calculate difference between two struct timeval values */
-int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
+#include <cyg/kernel/kapi.h>
+
+int64_t timeval_ms()
 {
-	if (x->tv_usec < y->tv_usec)
-	{
-		int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
-		y->tv_usec -= 1000000 * nsec;
-		y->tv_sec += nsec;
-	}
-	if (x->tv_usec - y->tv_usec > 1000000) {
-		int nsec = (x->tv_usec - y->tv_usec) / 1000000;
-		y->tv_usec += 1000000 * nsec;
-		y->tv_sec -= nsec;
-	}
-
-	result->tv_sec = x->tv_sec - y->tv_sec;
-	result->tv_usec = x->tv_usec - y->tv_usec;
-
-	/* Return 1 if result is negative. */
-	return x->tv_sec < y->tv_sec;
-}
-
-/* add two struct timeval values */
-int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y)
-{
-	memcpy(result, x, sizeof(struct timeval));
-	return timeval_add_time(result, y->tv_sec, y->tv_usec);
-}
-
-int timeval_add_time(struct timeval *result, long sec, long usec)
-{
-	result->tv_sec += sec;
-	result->tv_usec += usec;
-
-	while (result->tv_usec > 1000000)
-	{
-		result->tv_usec -= 1000000;
-		result->tv_sec++;
-	}
-
-	return 0;
-}
-
-int duration_start(struct duration *duration)
-{
-	return gettimeofday(&duration->start, NULL);
-}
-
-int duration_measure(struct duration *duration)
-{
-	struct timeval end;
-	int retval = gettimeofday(&end, NULL);
-	if (0 == retval)
-		timeval_subtract(&duration->elapsed, &end, &duration->start);
-	return retval;
-}
-
-float duration_elapsed(struct duration *duration)
-{
-	float t = duration->elapsed.tv_sec;
-	t += (float)duration->elapsed.tv_usec / 1000000.0;
-	return t;
-}
-
-float duration_kbps(struct duration *duration, size_t count)
-{
-	return count / (1024.0 * duration_elapsed(duration));
+	/* Faster/less noisy implementation of getting ms when
+	 * profiling
+	 */
+	static const int ms_per_tick =
+			(CYGNUM_HAL_RTC_NUMERATOR / CYGNUM_HAL_RTC_DENOMINATOR) / 1000000;
+	cyg_tick_count_t cur_time = cyg_current_time();
+	return ((int)cur_time) * ms_per_tick;
 }
