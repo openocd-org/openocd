@@ -32,6 +32,7 @@
 #include <openocd.h>
 
 #include <helper/time_support.h>
+
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,31 +54,12 @@
 #include <cyg/athttpd/cgi.h>
 #include <cyg/athttpd/forms.h>
 #include <cyg/discover/discover.h>
-#include <cyg/hal/hal_diag.h>
-#include <cyg/kernel/kapi.h>
-#include <cyg/io/serialio.h>
 #include <cyg/io/io.h>
+#include <cyg/io/serialio.h>
 #include <netinet/tcp.h>
+#include <cyg/hal/hal_diag.h>
+
 #include "rom.h"
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <ifaddrs.h>
-#include <string.h>
-
-#include <unistd.h>
-#include <stdio.h>
-
-#include <openocd.h>
 
 #ifdef CYGPKG_HAL_NIOS2
 #define ZY1000_SER_DEV "/dev/uart_0"
