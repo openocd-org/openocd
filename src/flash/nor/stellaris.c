@@ -345,8 +345,8 @@ static uint32_t stellaris_get_flash_status(struct flash_bank *bank)
 	return fmc;
 }
 
-/* Setup the timimg registers */
-static void stellaris_set_flash_mode(struct flash_bank *bank,int mode)
+/* Set the flash timimg register to match current clocking */
+static void stellaris_set_flash_timing(struct flash_bank *bank)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -471,9 +471,6 @@ static void stellaris_read_clock_info(struct flash_bank *bank)
 		stellaris_info->mck_freq = mainfreq/(1 + sysdiv);
 	else
 		stellaris_info->mck_freq = mainfreq;
-
-	/* Forget old flash timing */
-	stellaris_set_flash_mode(bank, 0);
 }
 
 #if 0
@@ -714,9 +711,9 @@ static int stellaris_erase(struct flash_bank *bank, int first, int last)
 		return stellaris_mass_erase(bank);
 	}
 
-	/* Configure the flash controller timing */
+	/* Refresh flash controller timing */
 	stellaris_read_clock_info(bank);
-	stellaris_set_flash_mode(bank,0);
+	stellaris_set_flash_timing(bank);
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
@@ -791,9 +788,9 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	/* Configure the flash controller timing */
+	/* Refresh flash controller timing */
 	stellaris_read_clock_info(bank);
-	stellaris_set_flash_mode(bank, 0);
+	stellaris_set_flash_timing(bank);
 
 	/* convert from pages to lockregions */
 	first /= 2;
@@ -1011,9 +1008,9 @@ static int stellaris_write(struct flash_bank *bank, uint8_t *buffer, uint32_t of
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 
-	/* Configure the flash controller timing */
+	/* Refresh flash controller timing */
 	stellaris_read_clock_info(bank);
-	stellaris_set_flash_mode(bank, 0);
+	stellaris_set_flash_timing(bank);
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
@@ -1156,9 +1153,9 @@ static int stellaris_mass_erase(struct flash_bank *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	/* Configure the flash controller timing */
+	/* Refresh flash controller timing */
 	stellaris_read_clock_info(bank);
-	stellaris_set_flash_mode(bank, 0);
+	stellaris_set_flash_timing(bank);
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
