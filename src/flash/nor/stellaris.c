@@ -553,6 +553,11 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	stellaris_info->pagesize = 1024;
 	stellaris_info->pages_in_lockregion = 2;
 
+	/* REVISIT for at least Tempest parts, read NVMSTAT.FWB too.
+	 * That exposes a 32-word Flash Write Buffer ... enabling
+	 * writes of more than one word at a time.
+	 */
+
 	return ERROR_OK;
 }
 
@@ -640,6 +645,10 @@ static int stellaris_erase(struct flash_bank *bank, int first, int last)
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
 
+	/* REVISIT this clobbers state set by any halted firmware ...
+	 * it might want to process those IRQs.
+	 */
+
 	for (banknr = first; banknr <= last; banknr++)
 	{
 		/* Address is first word in page */
@@ -725,6 +734,10 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
+
+	/* REVISIT this clobbers state set by any halted firmware ...
+	 * it might want to process those IRQs.
+	 */
 
 	LOG_DEBUG("fmppe 0x%" PRIx32 "",fmppe);
 	target_write_u32(target, SCB_BASE | FMPPE, fmppe);
@@ -921,6 +934,10 @@ static int stellaris_write(struct flash_bank *bank, uint8_t *buffer, uint32_t of
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
 
+	/* REVISIT this clobbers state set by any halted firmware ...
+	 * it might want to process those IRQs.
+	 */
+
 	/* multiple words to be programmed? */
 	if (words_remaining > 0)
 	{
@@ -1067,6 +1084,10 @@ static int stellaris_mass_erase(struct flash_bank *bank)
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
+
+	/* REVISIT this clobbers state set by any halted firmware ...
+	 * it might want to process those IRQs.
+	 */
 
 	target_write_u32(target, FLASH_FMA, 0);
 	target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);

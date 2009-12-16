@@ -53,18 +53,19 @@ struct stellaris_flash_bank
 
 /* STELLARIS control registers */
 #define SCB_BASE	0x400FE000
-#define	DID0		0x000
-#define	DID1		0x004
-#define	DC0			0x008
-#define	DC1			0x010
-#define	DC2			0x014
-#define	DC3			0x018
-#define	DC4			0x01C
+#define DID0		0x000
+#define DID1		0x004
+#define DC0			0x008
+#define DC1			0x010
+#define DC2			0x014
+#define DC3			0x018
+#define DC4			0x01C
 
-#define	RIS			0x050
-#define	RCC			0x060
-#define	PLLCFG		0x064
-#define	RCC2		0x070
+#define RIS			0x050
+#define RCC			0x060
+#define PLLCFG		0x064
+#define RCC2		0x070
+#define NVMSTAT		0x1a0
 
 /* "legacy" flash memory protection registers (64KB max) */
 #define FMPRE		0x130
