@@ -37,7 +37,6 @@
 #define DID0_VER(did0) ((did0 >> 28)&0x07)
 
 static int stellaris_read_part_info(struct flash_bank *bank);
-static uint32_t stellaris_get_flash_status(struct flash_bank *bank);
 
 static int stellaris_mass_erase(struct flash_bank *bank);
 
@@ -335,16 +334,6 @@ static int stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 *	chip identification and status                                         *
 ***************************************************************************/
 
-static uint32_t stellaris_get_flash_status(struct flash_bank *bank)
-{
-	struct target *target = bank->target;
-	uint32_t fmc;
-
-	target_read_u32(target, FLASH_CONTROL_BASE | FLASH_FMC, &fmc);
-
-	return fmc;
-}
-
 /* Set the flash timimg register to match current clocking */
 static void stellaris_set_flash_timing(struct flash_bank *bank)
 {
@@ -473,48 +462,12 @@ static void stellaris_read_clock_info(struct flash_bank *bank)
 		stellaris_info->mck_freq = mainfreq;
 }
 
-#if 0
-static uint32_t stellaris_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout)
-{
-	uint32_t status;
-
-	/* Stellaris waits for cmdbit to clear */
-	while (((status = stellaris_get_flash_status(bank)) & waitbits) && (timeout-- > 0))
-	{
-		LOG_DEBUG("status: 0x%x", status);
-		alive_sleep(1);
-	}
-
-	/* Flash errors are reflected in the FLASH_CRIS register */
-
-	return status;
-}
-
-/* Send one command to the flash controller */
-static int stellaris_flash_command(struct flash_bank *bank,uint8_t cmd,uint16_t pagen)
-{
-	uint32_t fmc;
-	struct target *target = bank->target;
-
-	fmc = FMC_WRKEY | cmd;
-	target_write_u32(target, FLASH_CONTROL_BASE | FLASH_FMC, fmc);
-	LOG_DEBUG("Flash command: 0x%x", fmc);
-
-	if (stellaris_wait_status_busy(bank, cmd, 100))
-	{
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	return ERROR_OK;
-}
-#endif
-
 /* Read device id register, main clock frequency register and fill in driver info structure */
 static int stellaris_read_part_info(struct flash_bank *bank)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t did0, did1, ver, fam, status;
+	uint32_t did0, did1, ver, fam;
 	int i;
 
 	/* Read and parse chip identification register */
@@ -617,8 +570,6 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 
 	/* Read main and master clock freqency register */
 	stellaris_read_clock_info(bank);
-
-	status = stellaris_get_flash_status(bank);
 
 	return ERROR_OK;
 }
