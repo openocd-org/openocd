@@ -2592,13 +2592,15 @@ debugging targets.)
 Here's what the scan chain might look like for a chip more than one TAP:
 
 @verbatim
-   TapName            Enabled IdCode     Expected   IrLen IrCap IrMask Instr
--- ------------------ ------- ---------- ---------- ----- ----- ------ -----
- 0 omap5912.dsp          Y    0x03df1d81 0x03df1d81 38    0     0      0x...
- 1 omap5912.arm          Y    0x0692602f 0x0692602f 4     0x1   0      0xc
- 2 omap5912.unknown      Y    0x00000000 0x00000000 8     0     0      0xff
+   TapName            Enabled IdCode     Expected   IrLen IrCap IrMask
+-- ------------------ ------- ---------- ---------- ----- ----- ------
+ 0 omap5912.dsp          Y    0x03df1d81 0x03df1d81    38 0x01  0x03
+ 1 omap5912.arm          Y    0x0692602f 0x0692602f     4 0x01  0x0f
+ 2 omap5912.unknown      Y    0x00000000 0x00000000     8 0x01  0x03
 @end verbatim
 
+OpenOCD can detect some of that information, but not all
+of it.  @xref{Autoprobing}.
 Unfortunately those TAPs can't always be autoconfigured,
 because not all devices provide good support for that.
 JTAG doesn't require supporting IDCODE instructions, and
@@ -2659,8 +2661,6 @@ The set of TAPs listed by this command is fixed by
 exiting the OpenOCD configuration stage,
 but systems with a JTAG router can
 enable or disable TAPs dynamically.
-In addition to the enable/disable status, the contents of
-each TAP's instruction register can also change.
 @end deffn
 
 @c FIXME!  "jtag cget" should be able to return all TAP

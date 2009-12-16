@@ -1021,11 +1021,13 @@ COMMAND_HANDLER(handle_scan_chain_command)
 	char expected_id[12];
 
 	tap = jtag_all_taps();
-	command_print(CMD_CTX, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
-	command_print(CMD_CTX, "---|--------------------|---------|------------|------------|------|------|------|---------");
+	command_print(CMD_CTX,
+"   TapName             Enabled  IdCode     Expected   IrLen IrCap IrMask");
+	command_print(CMD_CTX,
+"-- ------------------- -------- ---------- ---------- ----- ----- ------");
 
 	while (tap) {
-		uint32_t expected, expected_mask, cur_instr, ii;
+		uint32_t expected, expected_mask, ii;
 
 		snprintf(expected_id, sizeof expected_id, "0x%08x",
 				(unsigned)((tap->expected_ids_cnt > 0)
@@ -1036,10 +1038,9 @@ COMMAND_HANDLER(handle_scan_chain_command)
 
 		expected = buf_get_u32(tap->expected, 0, tap->ir_length);
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
-		cur_instr = buf_get_u32(tap->cur_instr, 0, tap->ir_length);
 
 		command_print(CMD_CTX,
-	"%2d | %-18s |    %c    | 0x%08x | %s | 0x%02x | 0x%02x | 0x%02x | 0x%02x",
+	"%2d %-18s     %c     0x%08x %s %5d 0x%02x  0x%02x",
 					  tap->abs_chain_position,
 					  tap->dotted_name,
 					  tap->enabled ? 'Y' : 'n',
@@ -1047,8 +1048,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 					  expected_id,
 					  (unsigned int)(tap->ir_length),
 					  (unsigned int)(expected),
-					  (unsigned int)(expected_mask),
-					  (unsigned int)(cur_instr));
+					  (unsigned int)(expected_mask));
 
 		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
 			snprintf(expected_id, sizeof expected_id, "0x%08x",
@@ -1057,7 +1057,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 				expected_id[2] = '*';
 
 			command_print(CMD_CTX,
-	"   |                    |         |            | %s |      |      |      |         ",
+	"                                           %s",
 						  expected_id);
 		}
 
