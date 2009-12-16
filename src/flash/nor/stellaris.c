@@ -36,8 +36,7 @@
 
 #define DID0_VER(did0) ((did0 >> 28)&0x07)
 
-static int stellaris_read_part_info(struct flash_bank *bank);
-
+static void stellaris_read_clock_info(struct flash_bank *bank);
 static int stellaris_mass_erase(struct flash_bank *bank);
 
 static struct {
@@ -261,15 +260,11 @@ static int stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 	int printed, device_class;
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 
-	stellaris_read_part_info(bank);
-
 	if (stellaris_info->did1 == 0)
-	{
-		printed = snprintf(buf, buf_size, "Cannot identify target as a Stellaris\n");
-		buf += printed;
-		buf_size -= printed;
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
+		return ERROR_FLASH_BANK_NOT_PROBED;
+
+	/* Read main and master clock freqency register */
+	stellaris_read_clock_info(bank);
 
 	if (DID0_VER(stellaris_info->did0) > 0)
 	{
@@ -495,7 +490,8 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	fam = (did1 >> 24) & 0xF;
 	if (((ver != 0) && (ver != 1)) || (fam != 0))
 	{
-		LOG_WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
+		LOG_WARNING("Unknown did1 version/family.");
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	/* For Sandstorm, Fury, DustDevil:  current data sheets say IOSC
@@ -535,9 +531,10 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 		default:
 			LOG_WARNING("Unknown did0 class");
 		}
-	default:
 		break;
+	default:
 		LOG_WARNING("Unknown did0 version");
+		break;
 	}
 
 	for (i = 0; StellarisParts[i].partno; i++)
@@ -554,22 +551,7 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	stellaris_info->num_lockbits = 1 + (stellaris_info->dc0 & 0xFFFF);
 	stellaris_info->num_pages = 2 *(1 + (stellaris_info->dc0 & 0xFFFF));
 	stellaris_info->pagesize = 1024;
-	bank->size = 1024 * stellaris_info->num_pages;
 	stellaris_info->pages_in_lockregion = 2;
-
-	/* provide this for the benefit of the higher flash driver layers */
-	bank->num_sectors = stellaris_info->num_pages;
-	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-	for (i = 0; i < bank->num_sectors; i++)
-	{
-		bank->sectors[i].offset = i * stellaris_info->pagesize;
-		bank->sectors[i].size = stellaris_info->pagesize;
-		bank->sectors[i].is_erased = -1;
-		bank->sectors[i].is_protected = -1;
-	}
-
-	/* Read main and master clock freqency register */
-	stellaris_read_clock_info(bank);
 
 	return ERROR_OK;
 }
@@ -586,11 +568,7 @@ static int stellaris_protect_check(struct flash_bank *bank)
 	unsigned page;
 
 	if (stellaris->did1 == 0)
-	{
-		status = stellaris_read_part_info(bank);
-		if (status < 0)
-			return status;
-	}
+		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	for (i = 0; i < (unsigned) bank->num_sectors; i++)
 		bank->sectors[i].is_protected = -1;
@@ -642,15 +620,7 @@ static int stellaris_erase(struct flash_bank *bank, int first, int last)
 	}
 
 	if (stellaris_info->did1 == 0)
-	{
-		stellaris_read_part_info(bank);
-	}
-
-	if (stellaris_info->did1 == 0)
-	{
-		LOG_WARNING("Cannot identify target as Stellaris");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
+		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if ((first < 0) || (last < first) || (last >= (int)stellaris_info->num_pages))
 	{
@@ -719,6 +689,9 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
+	if (stellaris_info->did1 == 0)
+		return ERROR_FLASH_BANK_NOT_PROBED;
+
 	/* lockregions are 2 pages ... must protect [even..odd] */
 	if ((first < 0) || (first & 1)
 			|| (last < first) || !(last & 1)
@@ -726,17 +699,6 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	{
 		LOG_ERROR("Can't protect unaligned or out-of-range sectors.");
 		return ERROR_FLASH_SECTOR_INVALID;
-	}
-
-	if (stellaris_info->did1 == 0)
-	{
-		stellaris_read_part_info(bank);
-	}
-
-	if (stellaris_info->did1 == 0)
-	{
-		LOG_WARNING("Cannot identify target as an Stellaris MCU");
-		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	/* Refresh flash controller timing */
@@ -940,15 +902,7 @@ static int stellaris_write(struct flash_bank *bank, uint8_t *buffer, uint32_t of
 			bank, buffer, offset, count);
 
 	if (stellaris_info->did1 == 0)
-	{
-		stellaris_read_part_info(bank);
-	}
-
-	if (stellaris_info->did1 == 0)
-	{
-		LOG_WARNING("Cannot identify target as a Stellaris processor");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
+		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if (offset & 0x3)
 	{
@@ -1056,26 +1010,36 @@ static int stellaris_write(struct flash_bank *bank, uint8_t *buffer, uint32_t of
 
 static int stellaris_probe(struct flash_bank *bank)
 {
-	/* we can't probe on an stellaris
-	 * if this is an stellaris, it has the configured flash
-	 */
+	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
+	int retval;
 
-	if (bank->target->state != TARGET_HALTED)
+	/* If this is a stellaris chip, it has flash; probe() is just
+	 * to figure out how much is present.  Only do it once.
+	 */
+	if (stellaris_info->did1 != 0)
+		return ERROR_OK;
+
+	/* stellaris_read_part_info() already handled error checking and
+	 * reporting.  Note that it doesn't write, so we don't care about
+	 * whether the target is halted or not.
+	 */
+	retval = stellaris_read_part_info(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* provide this for the benefit of the NOR flash framework */
+	bank->size = 1024 * stellaris_info->num_pages;
+	bank->num_sectors = stellaris_info->num_pages;
+	bank->sectors = calloc(bank->num_sectors, sizeof(struct flash_sector));
+	for (int i = 0; i < bank->num_sectors; i++)
 	{
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
+		bank->sectors[i].offset = i * stellaris_info->pagesize;
+		bank->sectors[i].size = stellaris_info->pagesize;
+		bank->sectors[i].is_erased = -1;
+		bank->sectors[i].is_protected = -1;
 	}
 
-	/* stellaris_read_part_info() already takes care about error checking and reporting */
-	return stellaris_read_part_info(bank);
-}
-
-static int stellaris_auto_probe(struct flash_bank *bank)
-{
-	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
-	if (stellaris_info->did1)
-		return ERROR_OK;
-	return stellaris_probe(bank);
+	return retval;
 }
 
 static int stellaris_mass_erase(struct flash_bank *bank)
@@ -1094,15 +1058,7 @@ static int stellaris_mass_erase(struct flash_bank *bank)
 	}
 
 	if (stellaris_info->did1 == 0)
-	{
-		stellaris_read_part_info(bank);
-	}
-
-	if (stellaris_info->did1 == 0)
-	{
-		LOG_WARNING("Cannot identify target as Stellaris");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
+		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	/* Refresh flash controller timing */
 	stellaris_read_clock_info(bank);
@@ -1198,7 +1154,7 @@ struct flash_driver stellaris_flash = {
 	.protect = stellaris_protect,
 	.write = stellaris_write,
 	.probe = stellaris_probe,
-	.auto_probe = stellaris_auto_probe,
+	.auto_probe = stellaris_probe,
 	.erase_check = default_flash_mem_blank_check,
 	.protect_check = stellaris_protect_check,
 	.info = stellaris_info,
