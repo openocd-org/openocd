@@ -22,8 +22,11 @@
 #ifndef MIPS32_PRACC_H
 #define MIPS32_PRACC_H
 
-#include "mips_ejtag.h"
+#include <target/mips32.h>
+#include <target/mips_ejtag.h>
 
+#define MIPS32_PRACC_FASTDATA_AREA		0xFF200000
+#define MIPS32_PRACC_FASTDATA_SIZE		16
 #define MIPS32_PRACC_TEXT			0xFF200200
 //#define MIPS32_PRACC_STACK			0xFF2FFFFC
 #define MIPS32_PRACC_STACK			0xFF204000
@@ -32,6 +35,7 @@
 #define MIPS32_PRACC_PARAM_OUT		(MIPS32_PRACC_PARAM_IN + MIPS32_PRACC_PARAM_IN_SIZE)
 #define MIPS32_PRACC_PARAM_OUT_SIZE	0x1000
 
+#define MIPS32_FASTDATA_HANDLER_SIZE	0x80
 #define UPPER16(uint32_t) (uint32_t >> 16)
 #define LOWER16(uint32_t) (uint32_t & 0xFFFF)
 #define NEG16(v) (((~(v)) + 1) & 0xFFFF)
@@ -41,6 +45,8 @@ int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
 int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
+int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_area *source,
+		int write, uint32_t addr, int count, uint32_t *buf);
 
 int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint8_t *buf);

@@ -4,6 +4,8 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2009 by David N. Claffey <dnclaffey@gmail.com>          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -68,7 +70,6 @@ OpenOCD is used as a flash programmer or as a debug tool.
 
 Nico Coesel
 */
-
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -160,7 +161,6 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 
 	jtag_add_clocks(5);
 	jtag_execute_queue();
-
 
 	return ERROR_OK;
 }
@@ -254,7 +254,6 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
 
 			if ((retval = mips32_pracc_exec_read(&ctx, address)) != ERROR_OK)
 				return retval;
-
 		}
 
 		if (cycle == 0)
@@ -930,6 +929,152 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 
 	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
 		0, NULL, 38, regs, 1);
+
+	return retval;
+}
+
+/* fastdata upload/download requires an initialized working area
+ * to load the download code; it should not be called otherwise
+ * fetch order from the fastdata area
+ * 1. start addr
+ * 2. end addr
+ * 3. data ...
+ */
+int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_area *source,
+								int write, uint32_t addr, int count, uint32_t *buf)
+{
+	uint32_t handler_code[] = {
+		/* caution when editing, table is modified below */
+		/* r15 points to the start of this code */
+		MIPS32_SW(8,MIPS32_FASTDATA_HANDLER_SIZE - 4,15),
+		MIPS32_SW(9,MIPS32_FASTDATA_HANDLER_SIZE - 8,15),
+		MIPS32_SW(10,MIPS32_FASTDATA_HANDLER_SIZE - 12,15),
+		MIPS32_SW(11,MIPS32_FASTDATA_HANDLER_SIZE - 16,15),
+		/* start of fastdata area in t0 */
+		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_FASTDATA_AREA)),
+		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_FASTDATA_AREA)),
+		MIPS32_LW(9,0,8),								/* start addr in t1 */
+		MIPS32_LW(10,0,8),								/* end addr to t2 */
+														/* loop: */
+		/* 8 */ MIPS32_LW(11,0,0),						/* lw t3,[t8 | r9] */
+		/* 9 */ MIPS32_SW(11,0,0),						/* sw t3,[r9 | r8] */
+		MIPS32_BNE(10,9,NEG16(3)),						/* bne $t2,t1,loop */
+		MIPS32_ADDI(9,9,4),								/* addi t1,t1,4 */
+
+		MIPS32_LW(8,MIPS32_FASTDATA_HANDLER_SIZE - 4,15),
+		MIPS32_LW(9,MIPS32_FASTDATA_HANDLER_SIZE - 8,15),
+		MIPS32_LW(10,MIPS32_FASTDATA_HANDLER_SIZE - 12,15),
+		MIPS32_LW(11,MIPS32_FASTDATA_HANDLER_SIZE - 16,15),
+
+		MIPS32_LUI(15,UPPER16(MIPS32_PRACC_TEXT)),
+		MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_TEXT)),
+		MIPS32_JR(15),									/* jr start */
+		MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
+		MIPS32_NOP,
+	};
+
+	uint32_t jmp_code[] = {
+		MIPS32_MTC0(15,31,0),			/* move $15 to COP0 DeSave */
+		/* 1 */ MIPS32_LUI(15,0),		/* addr of working area added below */
+		/* 2 */ MIPS32_ORI(15,15,0),	/* addr of working area added below */
+		MIPS32_JR(15),					/* jump to ram program */
+		MIPS32_NOP,
+	};
+
+#define JMP_CODE_SIZE (sizeof(jmp_code)/sizeof(jmp_code[0]))
+#define HANDLER_CODE_SIZE sizeof(handler_code)/sizeof(handler_code[0])
+
+	int retval, i;
+	uint32_t val, ejtag_ctrl, address;
+
+	if (source->size < MIPS32_FASTDATA_HANDLER_SIZE)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	if (write)
+	{
+		handler_code[8] = MIPS32_LW(11,0,8);	/* load data from probe at fastdata area */
+		handler_code[9] = MIPS32_SW(11,0,9);	/* store data to RAM @ r9 */
+	}
+	else
+	{
+		handler_code[8] = MIPS32_LW(11,0,9);	/* load data from RAM @ r9 */
+		handler_code[9] = MIPS32_SW(11,0,8);	/* store data to probe at fastdata area */
+	}
+
+	/* write program into RAM */
+	mips32_pracc_write_mem32(ejtag_info, source->address, HANDLER_CODE_SIZE, handler_code);
+
+	/* quick verify RAM is working */
+	mips32_pracc_read_u32(ejtag_info, source->address, &val);
+	if (val != handler_code[0])
+	{
+		LOG_ERROR("fastdata handler verify failed\n");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	LOG_INFO("%s using 0x%.8x for write handler\n", __func__, source->address);
+
+	jmp_code[1] |= UPPER16(source->address);
+	jmp_code[2] |= LOWER16(source->address);
+
+	for (i = 0; i < (int) JMP_CODE_SIZE; i++)
+	{
+		if ((retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl)) != ERROR_OK)
+			return retval;
+
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+		mips_ejtag_drscan_32(ejtag_info, &jmp_code[i]);
+
+		/* Clear the access pending bit (let the processor eat!) */
+
+		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	}
+
+	if ((retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl)) != ERROR_OK)
+		return retval;
+
+	/* next fetch to dmseg should be in FASTDATA_AREA, check */
+	address = 0;
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_drscan_32(ejtag_info, &address);
+
+	if (address != MIPS32_PRACC_FASTDATA_AREA)
+		return ERROR_FAIL;
+
+	/* Send the load start address */
+	val = addr;
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA, NULL);
+	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
+
+	/* Send the load end address */
+	val = addr + (count - 1) * 4;
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA, NULL);
+	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
+
+	for (i = 0; i < count; i++)
+	{
+		/* Send the data out using fastdata (clears the access pending bit) */
+		if ((retval = mips_ejtag_fastdata_scan(ejtag_info, write, buf++)) != ERROR_OK)
+			return retval;
+	}
+
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		LOG_ERROR("fastdata load failed");
+		return retval;
+	}
+
+	if ((retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl)) != ERROR_OK)
+		return retval;
+
+	address = 0;
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_drscan_32(ejtag_info, &address);
+
+	if (address != MIPS32_PRACC_TEXT)
+		LOG_ERROR("mini program did not return to start\n");
 
 	return retval;
 }

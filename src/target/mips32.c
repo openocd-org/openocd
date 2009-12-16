@@ -29,7 +29,6 @@
 #include "mips32.h"
 #include "register.h"
 
-
 char* mips32_core_reg_list[] =
 {
 	"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",

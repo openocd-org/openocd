@@ -4,6 +4,8 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2009 by David N. Claffey <dnclaffey@gmail.com>          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -283,6 +285,45 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 
 	/* set initial state for ejtag control reg */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
+
+	return ERROR_OK;
+}
+
+int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write, uint32_t *data)
+{
+	struct jtag_tap *tap;
+	tap = ejtag_info->tap;
+
+	if (tap == NULL)
+		return ERROR_FAIL;
+
+	struct scan_field fields[2];
+	uint8_t spracc = 0;
+	uint8_t t[4] = {0, 0, 0, 0};
+
+	/* fastdata 1-bit register */
+	fields[0].tap = tap;
+	fields[0].num_bits = 1;
+	fields[0].out_value = &spracc;
+	fields[0].in_value = NULL;
+
+	/* processor access data register 32 bit */
+	fields[1].tap = tap;
+	fields[1].num_bits = 32;
+	fields[1].out_value = t;
+
+	if (write)
+	{
+		fields[1].in_value = NULL;
+		buf_set_u32(t, 0, 32, *data);
+	}
+	else
+	{
+		fields[1].in_value = (uint8_t *) data;
+	}
+
+	jtag_add_dr_scan(2, fields, jtag_get_end_state());
+	keep_alive();
 
 	return ERROR_OK;
 }

@@ -118,6 +118,7 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info);
 int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode);
 int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode);
 int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data);
+int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write, uint32_t *data);
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info);
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step);

@@ -4,6 +4,8 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2009 by David N. Claffey <dnclaffey@gmail.com>          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -29,7 +31,6 @@
 #include "mips32_dmaacc.h"
 #include "target_type.h"
 #include "register.h"
-
 
 /* cli handling */
 
@@ -962,7 +963,49 @@ int mips_m4k_examine(struct target *target)
 
 int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
-	return mips_m4k_write_memory(target, address, 4, count, buffer);
+	struct mips32_common *mips32 = target->arch_info;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+	struct working_area *source;
+	int retval;
+	int write = 1;
+
+	LOG_DEBUG("address: 0x%8.8x, count: 0x%8.8x", address, count);
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* check alignment */
+	if (address & 0x3u)
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+
+	/* Get memory for block write handler */
+	retval = target_alloc_working_area(target, MIPS32_FASTDATA_HANDLER_SIZE, &source);
+	if (retval != ERROR_OK)
+	{
+		LOG_WARNING("No working area available, falling back to non-bulk write");
+		return mips_m4k_write_memory(target, address, 4, count, buffer);
+	}
+
+	/* TAP data register is loaded LSB first (little endian) */
+	if (target->endianness == TARGET_BIG_ENDIAN)
+	{
+		uint32_t i, t32;
+		for(i = 0; i < (count*4); i+=4)
+		{
+			t32 = be_to_h_u32((uint8_t *) &buffer[i]);
+			h_u32_to_le(&buffer[i], t32);
+		}
+	}
+
+	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write, address, count, (uint32_t *) buffer);
+
+	if (source)
+		target_free_working_area(target, source);
+
+	return retval;
 }
 
 int mips_m4k_checksum_memory(struct target *target, uint32_t address, uint32_t size, uint32_t *checksum)

@@ -77,6 +77,7 @@ struct mips32_core_reg
 #define MIPS32_OP_ADDI	0x08
 #define MIPS32_OP_AND	0x24
 #define MIPS32_OP_COP0	0x10
+#define MIPS32_OP_JR	0x08
 #define MIPS32_OP_LUI	0x0F
 #define MIPS32_OP_LW	0x23
 #define MIPS32_OP_LBU	0x24
@@ -103,6 +104,7 @@ struct mips32_core_reg
 #define MIPS32_B(off)				MIPS32_BEQ(0, 0, off)
 #define MIPS32_BEQ(src,tar,off)		MIPS32_I_INST(MIPS32_OP_BEQ, src, tar, off)
 #define MIPS32_BNE(src,tar,off)		MIPS32_I_INST(MIPS32_OP_BNE, src, tar, off)
+#define MIPS32_JR(reg)				MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_JR)
 #define MIPS32_MFC0(gpr, cpr, sel)	MIPS32_R_INST(MIPS32_OP_COP0, MIPS32_COP0_MF, gpr, cpr, 0, sel)
 #define MIPS32_MTC0(gpr,cpr, sel)	MIPS32_R_INST(MIPS32_OP_COP0, MIPS32_COP0_MT, gpr, cpr, 0, sel)
 #define MIPS32_LBU(reg, off, base)	MIPS32_I_INST(MIPS32_OP_LBU, base, reg, off)
