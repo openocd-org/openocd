@@ -424,7 +424,7 @@ COMMAND_HANDLER(parport_handle_parport_port_command)
 		}
 	}
 
-	command_print(CMD_CTX, "parport port = %u", parport_port);
+	command_print(CMD_CTX, "parport port = 0x%" PRIx16 "", parport_port);
 
 	return ERROR_OK;
 }
