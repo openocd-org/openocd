@@ -768,11 +768,31 @@ int nand_page_command(struct nand_device *nand, uint32_t page,
 	return ERROR_OK;
 }
 
+int nand_read_data_page(struct nand_device *nand, uint8_t *data, uint32_t size)
+{
+	int retval = ERROR_NAND_NO_BUFFER;
+
+	if (nand->controller->read_block_data != NULL)
+		retval = (nand->controller->read_block_data)(nand, data, size);
+
+	if (ERROR_NAND_NO_BUFFER == retval) {
+		uint32_t i;
+		int incr = (nand->device->options & NAND_BUSWIDTH_16) ? 2 : 1;
+
+		retval = ERROR_OK;
+		for (i = 0; retval == ERROR_OK && i < size; i += incr) {
+			retval = nand->controller->read_data(nand, data);
+			data += incr;
+		}
+	}
+
+	return retval;
+}
+
 int nand_read_page_raw(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size,
 		uint8_t *oob, uint32_t oob_size)
 {
-	uint32_t i;
 	int retval;
 
 	retval = nand_page_command(nand, page, NAND_CMD_READ0, !data);
@@ -780,52 +800,10 @@ int nand_read_page_raw(struct nand_device *nand, uint32_t page,
 		return retval;
 
 	if (data)
-	{
-		if (nand->controller->read_block_data != NULL)
-			(nand->controller->read_block_data)(nand, data, data_size);
-		else
-		{
-			for (i = 0; i < data_size;)
-			{
-				if (nand->device->options & NAND_BUSWIDTH_16)
-				{
-					nand->controller->read_data(nand, data);
-					data += 2;
-					i += 2;
-				}
-				else
-				{
-					nand->controller->read_data(nand, data);
-					data += 1;
-					i += 1;
-				}
-			}
-		}
-	}
+		nand_read_data_page(nand, data, data_size);
 
 	if (oob)
-	{
-		if (nand->controller->read_block_data != NULL)
-			(nand->controller->read_block_data)(nand, oob, oob_size);
-		else
-		{
-			for (i = 0; i < oob_size;)
-			{
-				if (nand->device->options & NAND_BUSWIDTH_16)
-				{
-					nand->controller->read_data(nand, oob);
-					oob += 2;
-					i += 2;
-				}
-				else
-				{
-					nand->controller->read_data(nand, oob);
-					oob += 1;
-					i += 1;
-				}
-			}
-		}
-	}
+		nand_read_data_page(nand, oob, oob_size);
 
 	return ERROR_OK;
 }
