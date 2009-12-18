@@ -547,7 +547,7 @@ int dsp563xx_halt(struct target *target)
 		LOG_DEBUG("%02X", jtag_status);
 		dsp563xx_once_reg_read(target->tap, DSP563XX_ONCE_OSCR,
 				       &once_status);
-		LOG_DEBUG("%02X", once_status);
+		LOG_DEBUG("%02X", (unsigned) once_status);
 	}
 
 	LOG_DEBUG("target->state: %s", target_state_name(target));
@@ -606,7 +606,7 @@ int dsp563xx_step(struct target *target, int current, uint32_t address,
 		return ERROR_OK;
 	}
 
-	LOG_DEBUG("%s %08X %08X", __FUNCTION__, current, address);
+	LOG_DEBUG("%s %08X %08X", __FUNCTION__, current, (unsigned) address);
 
 	dsp563xx_jtag_debug_request(target);
 
@@ -666,13 +666,13 @@ int dsp563xx_step(struct target *target, int current, uint32_t address,
 
 			dsp563xx_once_reg_read(target->tap, DSP563XX_ONCE_OPABFR,
 					       &dr_in);
-			LOG_DEBUG("%08X", dr_in);
+			LOG_DEBUG("%08X", (unsigned) dr_in);
 			dsp563xx_once_reg_read(target->tap, DSP563XX_ONCE_OPABDR,
 					       &dr_in);
-			LOG_DEBUG("%08X", dr_in);
+			LOG_DEBUG("%08X", (unsigned) dr_in);
 			dsp563xx_once_reg_read(target->tap, DSP563XX_ONCE_OPABEX,
 					       &dr_in);
-			LOG_DEBUG("%08X", dr_in);
+			LOG_DEBUG("%08X", (unsigned) dr_in);
 
 			/* reset trace mode */
 			dsp563xx_once_reg_write(target->tap, DSP563XX_ONCE_OSCR,
