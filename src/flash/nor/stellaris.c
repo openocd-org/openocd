@@ -826,10 +826,10 @@ static int stellaris_write_block(struct flash_bank *bank,
 	int retval = ERROR_OK;
 
 	/* power of two, and multiple of word size */
-	static const unsigned buf_min = 32;
+	static const unsigned buf_min = 128;
 
 	/* for small buffers it's faster not to download an algorithm */
-	if (wcount < buf_min)
+	if (wcount * 4 < buf_min)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " wcount=%08" PRIx32 "",
@@ -843,11 +843,8 @@ static int stellaris_write_block(struct flash_bank *bank,
 	};
 
 	/* plus a buffer big enough for this data */
-	if (wcount < buffer_size) {
-		buffer_size = wcount;
-		buffer_size += buf_min - 1;
-		buffer_size &= ~(buf_min - 1);
-	}
+	if (wcount * 4 < buffer_size)
+		buffer_size = wcount * 4;
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
