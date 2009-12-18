@@ -534,14 +534,16 @@ COMMAND_HANDLER(handle_flash_fill_command)
 
 	for (wrote = 0; wrote < (count*wordsize); wrote += cur_size)
 	{
-		cur_size = MIN((count*wordsize - wrote), sizeof(chunk));
 		struct flash_bank *bank;
+
 		bank = get_flash_bank_by_addr(target, address);
 		if (bank == NULL)
 		{
 			retval = ERROR_FAIL;
 			goto done;
 		}
+
+		cur_size = MIN((count * wordsize - wrote), chunksize);
 		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
 		if (err != ERROR_OK)
 		{
@@ -576,7 +578,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 				duration_elapsed(&bench), duration_kbps(&bench, wrote));
 	}
 
-	done:
+done:
 	free(readback);
 	free(chunk);
 
