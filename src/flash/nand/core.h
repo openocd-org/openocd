@@ -212,6 +212,10 @@ int nand_page_command(struct nand_device *nand, uint32_t page,
 		uint8_t cmd, bool oob_only);
 
 int nand_read_data_page(struct nand_device *nand, uint8_t *data, uint32_t size);
+int nand_write_data_page(struct nand_device *nand,
+		uint8_t *data, uint32_t size);
+
+int nand_write_finish(struct nand_device *nand);
 
 int nand_read_page_raw(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);

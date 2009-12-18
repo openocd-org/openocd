@@ -675,7 +675,9 @@ static int nand_write_plain(struct nand_device *nand, uint32_t address, uint8_t 
 }
 #endif
 
-int nand_write_page(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+int nand_write_page(struct nand_device *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size,
+		uint8_t *oob, uint32_t oob_size)
 {
 	uint32_t block;
 
@@ -808,65 +810,40 @@ int nand_read_page_raw(struct nand_device *nand, uint32_t page,
 	return ERROR_OK;
 }
 
-int nand_write_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+int nand_write_data_page(struct nand_device *nand, uint8_t *data, uint32_t size)
 {
-	uint32_t i;
+	int retval = ERROR_NAND_NO_BUFFER;
+
+	if (nand->controller->write_block_data != NULL)
+		retval = (nand->controller->write_block_data)(nand, data, size);
+
+	if (ERROR_NAND_NO_BUFFER == retval) {
+		bool is16bit = nand->device->options & NAND_BUSWIDTH_16;
+		uint32_t incr = is16bit ? 2 : 1;
+		uint16_t write_data;
+		uint32_t i;
+
+		for (i = 0; i < size; i += incr) {
+			if (is16bit)
+				write_data = le_to_h_u16(data);
+			else
+				write_data = *data;
+
+			retval = nand->controller->write_data(nand, write_data);
+			if (ERROR_OK != retval)
+				break;
+
+			data += incr;
+		}
+	}
+
+	return retval;
+}
+
+int nand_write_finish(struct nand_device *nand)
+{
 	int retval;
 	uint8_t status;
-
-	retval = nand_page_command(nand, page, NAND_CMD_SEQIN, !data);
-	if (ERROR_OK != retval)
-		return retval;
-
-	if (data)
-	{
-		if (nand->controller->write_block_data != NULL)
-			(nand->controller->write_block_data)(nand, data, data_size);
-		else
-		{
-			for (i = 0; i < data_size;)
-			{
-				if (nand->device->options & NAND_BUSWIDTH_16)
-				{
-					uint16_t data_buf = le_to_h_u16(data);
-					nand->controller->write_data(nand, data_buf);
-					data += 2;
-					i += 2;
-				}
-				else
-				{
-					nand->controller->write_data(nand, *data);
-					data += 1;
-					i += 1;
-				}
-			}
-		}
-	}
-
-	if (oob)
-	{
-		if (nand->controller->write_block_data != NULL)
-			(nand->controller->write_block_data)(nand, oob, oob_size);
-		else
-		{
-			for (i = 0; i < oob_size;)
-			{
-				if (nand->device->options & NAND_BUSWIDTH_16)
-				{
-					uint16_t oob_buf = le_to_h_u16(data);
-					nand->controller->write_data(nand, oob_buf);
-					oob += 2;
-					i += 2;
-				}
-				else
-				{
-					nand->controller->write_data(nand, *oob);
-					oob += 1;
-					i += 1;
-				}
-			}
-		}
-	}
 
 	nand->controller->command(nand, NAND_CMD_PAGEPROG);
 
@@ -876,18 +853,47 @@ int nand_write_page_raw(struct nand_device *nand, uint32_t page, uint8_t *data, 
 	if (!retval)
 		return ERROR_NAND_OPERATION_TIMEOUT;
 
-	if ((retval = nand_read_status(nand, &status)) != ERROR_OK)
-	{
+	retval = nand_read_status(nand, &status);
+	if (ERROR_OK != retval) {
 		LOG_ERROR("couldn't read status");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	if (status & NAND_STATUS_FAIL)
-	{
-		LOG_ERROR("write operation didn't pass, status: 0x%2.2x", status);
+	if (status & NAND_STATUS_FAIL) {
+		LOG_ERROR("write operation didn't pass, status: 0x%2.2x",
+				status);
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
 	return ERROR_OK;
+}
+
+int nand_write_page_raw(struct nand_device *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size,
+		uint8_t *oob, uint32_t oob_size)
+{
+	int retval;
+
+	retval = nand_page_command(nand, page, NAND_CMD_SEQIN, !data);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (data) {
+		retval = nand_write_data_page(nand, data, data_size);
+		if (ERROR_OK != retval) {
+			LOG_ERROR("Unable to write data to NAND device");
+			return retval;
+		}
+	}
+
+	if (oob) {
+		retval = nand_write_data_page(nand, oob, oob_size);
+		if (ERROR_OK != retval) {
+			LOG_ERROR("Unable to write OOB data to NAND device");
+			return retval;
+		}
+	}
+
+	return nand_write_finish(nand);
 }
 
