@@ -748,6 +748,8 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	/* Write commit command */
 	/* REVISIT safety check, since this cannot be undone
 	 * except by the "Recover a locked device" procedure.
+	 * REVISIT DustDevil-A0 parts have an erratum making FMPPE commits
+	 * inadvisable ... it makes future mass erase operations fail.
 	 */
 	LOG_WARNING("Flash protection cannot be removed once commited, commit is NOT executed !");
 	/* target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_COMT); */
@@ -823,36 +825,46 @@ static int stellaris_write_block(struct flash_bank *bank,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
+	/* power of two, and multiple of word size */
+	static const unsigned buf_min = 32;
+
+	/* for small buffers it's faster not to download an algorithm */
+	if (wcount < buf_min)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
 	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " wcount=%08" PRIx32 "",
 			bank, buffer, offset, wcount);
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(stellaris_write_code), &write_algorithm) != ERROR_OK)
 	{
-		LOG_WARNING("no working area available, can't do block memory writes");
+		LOG_DEBUG("no working area for block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, write_algorithm->address,
-			sizeof(stellaris_write_code),
-			(uint8_t *) stellaris_write_code);
+	/* plus a buffer big enough for this data */
+	if (wcount < buffer_size) {
+		buffer_size = wcount;
+		buffer_size += buf_min - 1;
+		buffer_size &= ~(buf_min - 1);
+	}
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
 	{
-		LOG_DEBUG("called target_alloc_working_area(target=%p buffer_size=%08" PRIx32 " source=%p)",
-				target, buffer_size, source);
 		buffer_size /= 2;
-		if (buffer_size <= 256)
+		if (buffer_size <= buf_min)
 		{
-			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
-			if (write_algorithm)
-				target_free_working_area(target, write_algorithm);
-
-			LOG_WARNING("no large enough working area available, can't do block memory writes");
+			target_free_working_area(target, write_algorithm);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
+		LOG_DEBUG("retry target_alloc_working_area(%s, size=%u)",
+				target_name(target), (unsigned) buffer_size);
 	};
+
+	retval = target_write_buffer(target, write_algorithm->address,
+			sizeof(stellaris_write_code),
+			(uint8_t *) stellaris_write_code);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
@@ -870,11 +882,20 @@ static int stellaris_write_block(struct flash_bank *bank,
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, 4*thisrun_count);
-		LOG_INFO("Algorithm flash write %" PRIi32 " words to 0x%" PRIx32 ", %" PRIi32 " remaining", thisrun_count, address, (wcount - thisrun_count));
-		LOG_DEBUG("Algorithm flash write %" PRIi32 " words to 0x%" PRIx32 ", %" PRIi32 " remaining", thisrun_count, address, (wcount - thisrun_count));
-		if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
+		LOG_DEBUG("Algorithm flash write %u words to 0x%" PRIx32
+				", %u remaining",
+				(unsigned) thisrun_count, address,
+				(unsigned) (wcount - thisrun_count));
+		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
+				write_algorithm->address,
+				write_algorithm->address +
+					sizeof(stellaris_write_code) - 10,
+				10000, &armv7m_info);
+		if (retval != ERROR_OK)
 		{
-			LOG_ERROR("error executing stellaris flash write algorithm");
+			LOG_ERROR("error %d executing stellaris "
+					"flash write algorithm",
+					retval);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -883,6 +904,10 @@ static int stellaris_write_block(struct flash_bank *bank,
 		address += thisrun_count * 4;
 		wcount -= thisrun_count;
 	}
+
+	/* REVISIT we could speed up writing multi-section images by
+	 * not freeing the initialized write_algorithm this way.
+	 */
 
 	target_free_working_area(target, write_algorithm);
 	target_free_working_area(target, source);
@@ -942,13 +967,13 @@ static int stellaris_write(struct flash_bank *bank, uint8_t *buffer, uint32_t of
 	if (words_remaining > 0)
 	{
 		/* try using a block write */
-		if ((retval = stellaris_write_block(bank, buffer, offset, words_remaining)) != ERROR_OK)
+		retval = stellaris_write_block(bank, buffer, offset,
+				words_remaining);
+		if (retval != ERROR_OK)
 		{
 			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			{
-				/* if block write failed (no sufficient working area),
-				 * we use normal (slow) single dword accesses */
-				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
+				LOG_DEBUG("writing flash word-at-a-time");
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
