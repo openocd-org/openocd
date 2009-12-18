@@ -1905,7 +1905,13 @@ static int xscale_read_memory(struct target *target, uint32_t address,
 static int xscale_read_phys_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	/** \todo: provide a non-stub implementtion of this routine. */
+	struct xscale_common *xscale = target_to_xscale(target);
+
+	/* with MMU inactive, there are only physical addresses */
+	if (!xscale->armv4_5_mmu.mmu_enabled)
+		return xscale_read_memory(target, address, size, count, buffer);
+
+	/** \todo: provide a non-stub implementation of this routine. */
 	LOG_ERROR("%s: %s is not implemented.  Disable MMU?",
 			target_name(target), __func__);
 	return ERROR_FAIL;
@@ -1992,7 +1998,13 @@ static int xscale_write_memory(struct target *target, uint32_t address,
 static int xscale_write_phys_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	/** \todo: provide a non-stub implementtion of this routine. */
+	struct xscale_common *xscale = target_to_xscale(target);
+
+	/* with MMU inactive, there are only physical addresses */
+	if (!xscale->armv4_5_mmu.mmu_enabled)
+		return xscale_read_memory(target, address, size, count, buffer);
+
+	/** \todo: provide a non-stub implementation of this routine. */
 	LOG_ERROR("%s: %s is not implemented.  Disable MMU?",
 			target_name(target), __func__);
 	return ERROR_FAIL;
