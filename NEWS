@@ -39,6 +39,8 @@ Flash Layer:
 		- <bank_name>: reference the bank with its defined name
 		- <driver_name>[.N]: reference the driver's Nth bank
 	New 'nand verify' command to check bank against an image file.
+	The "flash erase_address" command now rejects partial sectors;
+		previously it would silently erase extra data.
 
 Board, Target, and Interface Configuration Scripts:
 	ARM9

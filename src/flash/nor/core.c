@@ -279,11 +279,13 @@ int default_flash_blank_check(struct flash_bank *bank)
 
 	return ERROR_OK;
 }
+
 /* erase given flash region, selects proper bank according to target and address */
 static int flash_iterate_address_range(struct target *target, uint32_t addr, uint32_t length,
 		int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
+	uint32_t last_addr = addr + length;	/* first address AFTER end */
 	int first = -1;
 	int last = -1;
 	int i;
@@ -306,26 +308,52 @@ static int flash_iterate_address_range(struct target *target, uint32_t addr, uin
 		return callback(c, 0, c->num_sectors - 1);
 	}
 
-	/* check whether it fits */
+	/* check whether it all fits in this bank */
 	if (addr + length - 1 > c->base + c->size - 1)
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+
+	/** @todo: handle erasures that cross into adjacent banks */
 
 	addr -= c->base;
 
 	for (i = 0; i < c->num_sectors; i++)
 	{
-		/* check whether sector overlaps with the given range and is not yet erased */
-		if (addr < c->sectors[i].offset + c->sectors[i].size && addr + length > c->sectors[i].offset && c->sectors[i].is_erased != 1) {
-			/* if first is not set yet then this is the first sector */
-			if (first == -1)
+		struct flash_sector *f = c->sectors + i;
+
+		/* start only on a sector boundary */
+		if (first < 0) {
+			/* is this the first sector? */
+			if (addr == f->offset)
 				first = i;
-			last = i; /* and it is the last one so far in any case */
+			else if (addr < f->offset)
+				break;
 		}
+
+		/* is this (also?) the last sector? */
+		if (last_addr == f->offset + f->size) {
+			last = i;
+			break;
+		}
+
+		/* MUST finish on a sector boundary */
+		if (last_addr <= f->offset)
+			break;
 	}
 
-	if (first == -1 || last == -1)
-		return ERROR_OK;
+	/* invalid start or end address? */
+	if (first == -1 || last == -1) {
+		LOG_ERROR("address range 0x%8.8x .. 0x%8.8x "
+				"is not sector-aligned",
+				(unsigned) c->base + addr,
+				(unsigned) last_addr - 1);
+		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+	}
 
+	/* The NOR driver may trim this range down, based on
+	 * whether or not a given sector is already erased.
+	 *
+	 * REVISIT should *we* trim it... ?
+	 */
 	return callback(c, first, last);
 }
 
