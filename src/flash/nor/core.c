@@ -281,7 +281,8 @@ int default_flash_blank_check(struct flash_bank *bank)
 }
 
 /* erase given flash region, selects proper bank according to target and address */
-static int flash_iterate_address_range(struct target *target, uint32_t addr, uint32_t length,
+static int flash_iterate_address_range(struct target *target,
+		uint32_t addr, uint32_t length,
 		int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
@@ -344,8 +345,8 @@ static int flash_iterate_address_range(struct target *target, uint32_t addr, uin
 	if (first == -1 || last == -1) {
 		LOG_ERROR("address range 0x%8.8x .. 0x%8.8x "
 				"is not sector-aligned",
-				(unsigned) c->base + addr,
-				(unsigned) last_addr - 1);
+				(unsigned) (c->base + addr),
+				(unsigned) (last_addr - 1));
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -357,7 +358,8 @@ static int flash_iterate_address_range(struct target *target, uint32_t addr, uin
 	return callback(c, first, last);
 }
 
-int flash_erase_address_range(struct target *target, uint32_t addr, uint32_t length)
+int flash_erase_address_range(struct target *target,
+		uint32_t addr, uint32_t length)
 {
 	return flash_iterate_address_range(target,
 			addr, length, &flash_driver_erase);
