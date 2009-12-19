@@ -579,9 +579,9 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 		free(etm_ctx->trace_data);
 	}
 
-	if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
+	if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
 		etm_ctx->trace_depth = num_frames * 3;
-	else if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
+	else if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
 		etm_ctx->trace_depth = num_frames * 2;
 	else
 		etm_ctx->trace_depth = num_frames;
@@ -590,7 +590,7 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 
 	for (i = 0, j = 0; i < num_frames; i++)
 	{
-		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
+		if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
 		{
 			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
@@ -636,7 +636,7 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 
 			j += 3;
 		}
-		else if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
+		else if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
 		{
 			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
@@ -699,9 +699,9 @@ static int etb_start_capture(struct etm_context *etm_ctx)
 	uint32_t etb_ctrl_value = 0x1;
 	uint32_t trigger_count;
 
-	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
+	if ((etm_ctx->control & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
 	{
-		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_8BIT)
+		if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) != ETM_PORT_8BIT)
 		{
 			LOG_ERROR("ETB can't run in demultiplexed mode with a 4 or 16 bit port");
 			return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
@@ -709,7 +709,7 @@ static int etb_start_capture(struct etm_context *etm_ctx)
 		etb_ctrl_value |= 0x2;
 	}
 
-	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_MUXED) {
+	if ((etm_ctx->control & ETM_PORT_MODE_MASK) == ETM_PORT_MUXED) {
 		LOG_ERROR("ETB: can't run in multiplexed mode");
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	}

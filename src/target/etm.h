@@ -78,9 +78,20 @@ struct etm_reg
 	struct arm_jtag *jtag_info;
 };
 
-typedef enum
+/* Subset of ETM_CTRL bit assignments.  Many of these
+ * control the configuration of trace output, which
+ * hooks up either to ETB or to an external device.
+ *
+ * NOTE that these have evolved since the ~v1.3 defns ...
+ */
+enum
 {
-	/* Port width */
+	ETM_CTRL_POWERDOWN	= (1 << 0),
+	ETM_CTRL_MONITOR_CPRT	= (1 << 1),
+
+	// bits 3:2 == trace type (ETMV1_TRACE_* << 2)
+
+	/* Port width (bits 21 and 6:4) */
 	ETM_PORT_4BIT		= 0x00,
 	ETM_PORT_8BIT		= 0x10,
 	ETM_PORT_16BIT		= 0x20,
@@ -91,18 +102,32 @@ typedef enum
 	ETM_PORT_1BIT		= 0x00 | (1 << 21),
 	ETM_PORT_2BIT		= 0x10 | (1 << 21),
 	ETM_PORT_WIDTH_MASK	= 0x70 | (1 << 21),
-	/* Port modes */
-	ETM_PORT_NORMAL    = 0x00000,
-	ETM_PORT_MUXED     = 0x10000,
-	ETM_PORT_DEMUXED   = 0x20000,
-	ETM_PORT_MODE_MASK = 0x30000,
-	/* Clocking modes */
-	ETM_PORT_FULL_CLOCK = 0x0000,
-	ETM_PORT_HALF_CLOCK = 0x1000,
-	ETM_PORT_CLOCK_MASK = 0x1000,
-} etm_portmode_t;
 
-typedef enum
+	ETM_CTRL_FIFOFULL_STALL	= (1 << 7),
+	ETM_CTRL_BRANCH_OUTPUT	= (1 << 8),
+	ETM_CTRL_DBGRQ		= (1 << 9),
+	ETM_CTRL_ETM_PROG	= (1 << 10),
+	ETM_CTRL_ETMEN		= (1 << 11),
+	ETM_CTRL_CYCLE_ACCURATE	= (1 << 12),
+
+	/* Clocking modes -- up to v2.1, bit 13 */
+	ETM_PORT_FULL_CLOCK	= (0 << 13),
+	ETM_PORT_HALF_CLOCK	= (1 << 13),
+	ETM_PORT_CLOCK_MASK	= (1 << 13),
+
+	// bits 15:14 == context ID size used in tracing
+	// ETMV1_CONTEXTID_* << 8
+
+	/* Port modes -- bits 17:16, tied to clocking mode */
+	ETM_PORT_NORMAL		= (0 << 16),
+	ETM_PORT_MUXED		= (1 << 16),
+	ETM_PORT_DEMUXED	= (2 << 16),
+	ETM_PORT_MODE_MASK	= (3 << 16),
+
+	// bits 31:18 defined in v3.0 and later (e.g. ARM11+)
+};
+
+enum
 {
 	/* Data trace */
 	ETMV1_TRACE_NONE	 = 0x00,
@@ -118,7 +143,7 @@ typedef enum
 	/* Misc */
 	ETMV1_CYCLE_ACCURATE = 0x100,
 	ETMV1_BRANCH_OUTPUT = 0x200
-} etmv1_tracemode_t;
+};
 
 /* forward-declare ETM context */
 struct etm_context;
@@ -161,8 +186,8 @@ struct etm_context
 	trace_status_t capture_status;	/* current state of capture run */
 	struct etmv1_trace_data *trace_data;	/* trace data */
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
-	etm_portmode_t portmode;	/* normal, multiplexed or demultiplexed */
-	etmv1_tracemode_t tracemode;	/* type of info trace contains */
+	uint32_t control;	/* shadow of ETM_CTRL */
+	uint32_t tracemode;	/* type of info trace contains */
 	int /*arm_state*/ core_state;	/* current core state */
 	struct image *image;		/* source for target opcodes */
 	uint32_t pipe_index;		/* current trace cycle */

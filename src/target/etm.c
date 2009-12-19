@@ -435,10 +435,10 @@ int etm_setup(struct target *target)
 
 	/* initialize some ETM control register settings */
 	etm_get_reg(etm_ctrl_reg);
-	etm_ctrl_value = buf_get_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size);
+	etm_ctrl_value = buf_get_u32(etm_ctrl_reg->value, 0, 32);
 
 	/* clear the ETM powerdown bit (0) */
-	etm_ctrl_value &= ~0x1;
+	etm_ctrl_value &= ~ETM_CTRL_POWERDOWN;
 
 	/* configure port width (21,6:4), mode (13,17:16) and
 	 * for older modules clocking (13)
@@ -447,9 +447,9 @@ int etm_setup(struct target *target)
 			& ~ETM_PORT_WIDTH_MASK
 			& ~ETM_PORT_MODE_MASK
 			& ~ETM_PORT_CLOCK_MASK)
-		| etm_ctx->portmode;
+		| etm_ctx->control;
 
-	buf_set_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size, etm_ctrl_value);
+	buf_set_u32(etm_ctrl_reg->value, 0, 32, etm_ctrl_value);
 	etm_store_reg(etm_ctrl_reg);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -727,7 +727,8 @@ static int etmv1_next_packet(struct etm_context *ctx, uint8_t *packet, int apo)
 			continue;
 		}
 
-		if ((ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_16BIT)
+		/* FIXME there are more port widths than these... */
+		if ((ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_16BIT)
 		{
 			if (ctx->data_half == 0)
 			{
@@ -741,7 +742,7 @@ static int etmv1_next_packet(struct etm_context *ctx, uint8_t *packet, int apo)
 				ctx->data_index++;
 			}
 		}
-		else if ((ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
+		else if ((ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
 		{
 			*packet = ctx->trace_data[ctx->data_index].packet & 0xff;
 			ctx->data_index++;
@@ -1171,9 +1172,9 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 }
 
 static COMMAND_HELPER(handle_etm_tracemode_command_update,
-		etmv1_tracemode_t *mode)
+		uint32_t *mode)
 {
-	etmv1_tracemode_t tracemode;
+	uint32_t tracemode;
 
 	/* what parts of data access are traced? */
 	if (strcmp(CMD_ARGV[0], "none") == 0)
@@ -1218,6 +1219,7 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 
 	bool etmv1_branch_output;
 	COMMAND_PARSE_ENABLE(CMD_ARGV[3], etmv1_branch_output);
+	if (etmv1_branch_output)
 		tracemode |= ETMV1_BRANCH_OUTPUT;
 
 	/* IGNORED:
@@ -1247,7 +1249,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		return ERROR_FAIL;
 	}
 
-	etmv1_tracemode_t tracemode = etm->tracemode;
+	uint32_t tracemode = etm->tracemode;
 
 	switch (CMD_ARGC)
 	{
@@ -1356,7 +1358,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 {
 	struct target *target;
 	struct arm *arm;
-	etm_portmode_t portmode = 0x0;
+	uint32_t portmode = 0x0;
 	struct etm_context *etm_ctx;
 	int i;
 
@@ -1495,7 +1497,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 
 	etm_ctx->target = target;
 	etm_ctx->trace_data = NULL;
-	etm_ctx->portmode = portmode;
+	etm_ctx->control = portmode;
 	etm_ctx->core_state = ARM_STATE_ARM;
 
 	arm->etm = etm_ctx;
@@ -1822,7 +1824,7 @@ COMMAND_HANDLER(handle_etm_dump_command)
 	}
 
 	fileio_write_u32(&file, etm_ctx->capture_status);
-	fileio_write_u32(&file, etm_ctx->portmode);
+	fileio_write_u32(&file, etm_ctx->control);
 	fileio_write_u32(&file, etm_ctx->tracemode);
 	fileio_write_u32(&file, etm_ctx->trace_depth);
 
@@ -1894,7 +1896,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 	{
 	  uint32_t tmp;
 	  fileio_read_u32(&file, &tmp); etm_ctx->capture_status = tmp;
-	  fileio_read_u32(&file, &tmp); etm_ctx->portmode = tmp;
+	  fileio_read_u32(&file, &tmp); etm_ctx->control = tmp;
 	  fileio_read_u32(&file, &tmp); etm_ctx->tracemode = tmp;
 	  fileio_read_u32(&file, &etm_ctx->trace_depth);
 	}
