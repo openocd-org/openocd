@@ -60,6 +60,8 @@ Documentation:
 
 Build and Release:
 	Use --enable-doxygen-pdf to build PDF developer documentation.
+	Consider upgrading to libftdi 0.17 if you use that library; it
+		includes bugfixes which improve FT2232H support.
 
 For more details about what has changed since the last release,
 see the git repository history.  With gitweb, you can browse that
