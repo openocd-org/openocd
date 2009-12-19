@@ -89,7 +89,10 @@ enum
 	ETM_CTRL_POWERDOWN	= (1 << 0),
 	ETM_CTRL_MONITOR_CPRT	= (1 << 1),
 
-	// bits 3:2 == trace type (ETMV1_TRACE_* << 2)
+	/* bits 3:2 == trace type */
+	ETM_CTRL_TRACE_DATA	= (1 << 2),
+	ETM_CTRL_TRACE_ADDR	= (2 << 2),
+	ETM_CTRL_TRACE_MASK	= (3 << 2),
 
 	/* Port width (bits 21 and 6:4) */
 	ETM_PORT_4BIT		= 0x00,
@@ -116,7 +119,11 @@ enum
 	ETM_PORT_CLOCK_MASK	= (1 << 13),
 
 	// bits 15:14 == context ID size used in tracing
-	// ETMV1_CONTEXTID_* << 8
+	ETM_CTRL_CONTEXTID_NONE	= (0 << 14),
+	ETM_CTRL_CONTEXTID_8	= (1 << 14),
+	ETM_CTRL_CONTEXTID_16	= (2 << 14),
+	ETM_CTRL_CONTEXTID_32	= (3 << 14),
+	ETM_CTRL_CONTEXTID_MASK	= (3 << 14),
 
 	/* Port modes -- bits 17:16, tied to clocking mode */
 	ETM_PORT_NORMAL		= (0 << 16),
@@ -125,24 +132,6 @@ enum
 	ETM_PORT_MODE_MASK	= (3 << 16),
 
 	// bits 31:18 defined in v3.0 and later (e.g. ARM11+)
-};
-
-enum
-{
-	/* Data trace */
-	ETMV1_TRACE_NONE	 = 0x00,
-	ETMV1_TRACE_DATA     = 0x01,
-	ETMV1_TRACE_ADDR     = 0x02,
-	ETMV1_TRACE_MASK     = 0x03,
-	/* ContextID */
-	ETMV1_CONTEXTID_NONE = 0x00,
-	ETMV1_CONTEXTID_8    = 0x10,
-	ETMV1_CONTEXTID_16   = 0x20,
-	ETMV1_CONTEXTID_32   = 0x30,
-	ETMV1_CONTEXTID_MASK = 0x30,
-	/* Misc */
-	ETMV1_CYCLE_ACCURATE = 0x100,
-	ETMV1_BRANCH_OUTPUT = 0x200
 };
 
 /* forward-declare ETM context */
@@ -187,7 +176,6 @@ struct etm_context
 	struct etmv1_trace_data *trace_data;	/* trace data */
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
 	uint32_t control;	/* shadow of ETM_CTRL */
-	uint32_t tracemode;	/* type of info trace contains */
 	int /*arm_state*/ core_state;	/* current core state */
 	struct image *image;		/* source for target opcodes */
 	uint32_t pipe_index;		/* current trace cycle */

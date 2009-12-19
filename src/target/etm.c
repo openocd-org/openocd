@@ -1059,7 +1059,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 				ctx->data_half = old_data_half;
 			}
 
-			if (ctx->tracemode & ETMV1_TRACE_ADDR)
+			if (ctx->control & ETM_CTRL_TRACE_ADDR)
 			{
 				uint8_t packet;
 				int shift = 0;
@@ -1081,7 +1081,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 				}
 			}
 
-			if (ctx->tracemode & ETMV1_TRACE_DATA)
+			if (ctx->control & ETM_CTRL_TRACE_DATA)
 			{
 				if ((instruction.type == ARM_LDM) || (instruction.type == ARM_STM))
 				{
@@ -1141,7 +1141,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 			/* if the trace was captured with cycle accurate tracing enabled,
 			 * output the number of cycles since the last executed instruction
 			 */
-			if (ctx->tracemode & ETMV1_CYCLE_ACCURATE)
+			if (ctx->control & ETM_CTRL_CYCLE_ACCURATE)
 			{
 				snprintf(cycles_text, 32, " (%i %s)",
 					 (int)cycles,
@@ -1178,13 +1178,13 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 
 	/* what parts of data access are traced? */
 	if (strcmp(CMD_ARGV[0], "none") == 0)
-		tracemode = ETMV1_TRACE_NONE;
+		tracemode = 0;
 	else if (strcmp(CMD_ARGV[0], "data") == 0)
-		tracemode = ETMV1_TRACE_DATA;
+		tracemode = ETM_CTRL_TRACE_DATA;
 	else if (strcmp(CMD_ARGV[0], "address") == 0)
-		tracemode = ETMV1_TRACE_ADDR;
+		tracemode = ETM_CTRL_TRACE_ADDR;
 	else if (strcmp(CMD_ARGV[0], "all") == 0)
-		tracemode = ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR;
+		tracemode = ETM_CTRL_TRACE_DATA | ETM_CTRL_TRACE_ADDR;
 	else
 	{
 		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[0]);
@@ -1196,16 +1196,16 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 	switch (context_id)
 	{
 	case 0:
-		tracemode |= ETMV1_CONTEXTID_NONE;
+		tracemode |= ETM_CTRL_CONTEXTID_NONE;
 		break;
 	case 8:
-		tracemode |= ETMV1_CONTEXTID_8;
+		tracemode |= ETM_CTRL_CONTEXTID_8;
 		break;
 	case 16:
-		tracemode |= ETMV1_CONTEXTID_16;
+		tracemode |= ETM_CTRL_CONTEXTID_16;
 		break;
 	case 32:
-		tracemode |= ETMV1_CONTEXTID_32;
+		tracemode |= ETM_CTRL_CONTEXTID_32;
 		break;
 	default:
 		command_print(CMD_CTX, "invalid option '%s'", CMD_ARGV[1]);
@@ -1215,12 +1215,12 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 	bool etmv1_cycle_accurate;
 	COMMAND_PARSE_ENABLE(CMD_ARGV[2], etmv1_cycle_accurate);
 	if (etmv1_cycle_accurate)
-		tracemode |= ETMV1_CYCLE_ACCURATE;
+		tracemode |= ETM_CTRL_CYCLE_ACCURATE;
 
 	bool etmv1_branch_output;
 	COMMAND_PARSE_ENABLE(CMD_ARGV[3], etmv1_branch_output);
 	if (etmv1_branch_output)
-		tracemode |= ETMV1_BRANCH_OUTPUT;
+		tracemode |= ETM_CTRL_BRANCH_OUTPUT;
 
 	/* IGNORED:
 	 *  - CPRT tracing (coprocessor register transfers)
@@ -1249,7 +1249,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		return ERROR_FAIL;
 	}
 
-	uint32_t tracemode = etm->tracemode;
+	uint32_t tracemode = etm->control;
 
 	switch (CMD_ARGC)
 	{
@@ -1272,39 +1272,39 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 
 	command_print(CMD_CTX, "current tracemode configuration:");
 
-	switch (tracemode & ETMV1_TRACE_MASK)
+	switch (tracemode & ETM_CTRL_TRACE_MASK)
 	{
-		case ETMV1_TRACE_NONE:
+		default:
 			command_print(CMD_CTX, "data tracing: none");
 			break;
-		case ETMV1_TRACE_DATA:
+		case ETM_CTRL_TRACE_DATA:
 			command_print(CMD_CTX, "data tracing: data only");
 			break;
-		case ETMV1_TRACE_ADDR:
+		case ETM_CTRL_TRACE_ADDR:
 			command_print(CMD_CTX, "data tracing: address only");
 			break;
-		case ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR:
+		case ETM_CTRL_TRACE_DATA | ETM_CTRL_TRACE_ADDR:
 			command_print(CMD_CTX, "data tracing: address and data");
 			break;
 	}
 
-	switch (tracemode & ETMV1_CONTEXTID_MASK)
+	switch (tracemode & ETM_CTRL_CONTEXTID_MASK)
 	{
-		case ETMV1_CONTEXTID_NONE:
+		case ETM_CTRL_CONTEXTID_NONE:
 			command_print(CMD_CTX, "contextid tracing: none");
 			break;
-		case ETMV1_CONTEXTID_8:
+		case ETM_CTRL_CONTEXTID_8:
 			command_print(CMD_CTX, "contextid tracing: 8 bit");
 			break;
-		case ETMV1_CONTEXTID_16:
+		case ETM_CTRL_CONTEXTID_16:
 			command_print(CMD_CTX, "contextid tracing: 16 bit");
 			break;
-		case ETMV1_CONTEXTID_32:
+		case ETM_CTRL_CONTEXTID_32:
 			command_print(CMD_CTX, "contextid tracing: 32 bit");
 			break;
 	}
 
-	if (tracemode & ETMV1_CYCLE_ACCURATE)
+	if (tracemode & ETM_CTRL_CYCLE_ACCURATE)
 	{
 		command_print(CMD_CTX, "cycle-accurate tracing enabled");
 	}
@@ -1313,7 +1313,7 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		command_print(CMD_CTX, "cycle-accurate tracing disabled");
 	}
 
-	if (tracemode & ETMV1_BRANCH_OUTPUT)
+	if (tracemode & ETM_CTRL_BRANCH_OUTPUT)
 	{
 		command_print(CMD_CTX, "full branch address output enabled");
 	}
@@ -1322,8 +1322,15 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		command_print(CMD_CTX, "full branch address output disabled");
 	}
 
+#define TRACEMODE_MASK ( \
+	  ETM_CTRL_CONTEXTID_MASK \
+	| ETM_CTRL_BRANCH_OUTPUT \
+	| ETM_CTRL_CYCLE_ACCURATE \
+	| ETM_CTRL_TRACE_MASK \
+	)
+
 	/* only update ETM_CTRL register if tracemode changed */
-	if (etm->tracemode != tracemode)
+	if ((etm->control & TRACEMODE_MASK) != tracemode)
 	{
 		struct reg *etm_ctrl_reg;
 
@@ -1333,13 +1340,11 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 
 		etm_get_reg(etm_ctrl_reg);
 
-		buf_set_u32(etm_ctrl_reg->value, 2, 2, tracemode & ETMV1_TRACE_MASK);
-		buf_set_u32(etm_ctrl_reg->value, 14, 2, (tracemode & ETMV1_CONTEXTID_MASK) >> 4);
-		buf_set_u32(etm_ctrl_reg->value, 12, 1, (tracemode & ETMV1_CYCLE_ACCURATE) >> 8);
-		buf_set_u32(etm_ctrl_reg->value, 8, 1, (tracemode & ETMV1_BRANCH_OUTPUT) >> 9);
-		etm_store_reg(etm_ctrl_reg);
+		etm->control &= ~TRACEMODE_MASK;
+		etm->control |= tracemode & TRACEMODE_MASK;
 
-		etm->tracemode = tracemode;
+		buf_set_u32(etm_ctrl_reg->value, 0, 32, etm->control);
+		etm_store_reg(etm_ctrl_reg);
 
 		/* invalidate old trace data */
 		etm->capture_status = TRACE_IDLE;
@@ -1350,6 +1355,8 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		}
 		etm->trace_depth = 0;
 	}
+
+#undef TRACEMODE_MASK
 
 	return ERROR_OK;
 }
@@ -1825,7 +1832,6 @@ COMMAND_HANDLER(handle_etm_dump_command)
 
 	fileio_write_u32(&file, etm_ctx->capture_status);
 	fileio_write_u32(&file, etm_ctx->control);
-	fileio_write_u32(&file, etm_ctx->tracemode);
 	fileio_write_u32(&file, etm_ctx->trace_depth);
 
 	for (i = 0; i < etm_ctx->trace_depth; i++)
@@ -1897,7 +1903,6 @@ COMMAND_HANDLER(handle_etm_load_command)
 	  uint32_t tmp;
 	  fileio_read_u32(&file, &tmp); etm_ctx->capture_status = tmp;
 	  fileio_read_u32(&file, &tmp); etm_ctx->control = tmp;
-	  fileio_read_u32(&file, &tmp); etm_ctx->tracemode = tmp;
 	  fileio_read_u32(&file, &etm_ctx->trace_depth);
 	}
 	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
