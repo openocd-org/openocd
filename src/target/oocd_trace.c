@@ -238,21 +238,21 @@ static int oocd_trace_start_capture(struct etm_context *etm_ctx)
 	uint32_t control = 0x1;	/* 0x1: enabled */
 	uint32_t trigger_count;
 
-	if (((etm_ctx->portmode & ETM_PORT_MODE_MASK) != ETM_PORT_NORMAL)
-		|| ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT))
+	if (((etm_ctx->control & ETM_PORT_MODE_MASK) != ETM_PORT_NORMAL)
+		|| ((etm_ctx->control & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT))
 	{
 		LOG_DEBUG("OpenOCD + trace only supports normal 4-bit ETM mode");
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	}
 
-	if ((etm_ctx->portmode & ETM_PORT_CLOCK_MASK) == ETM_PORT_HALF_CLOCK)
+	if ((etm_ctx->control & ETM_PORT_CLOCK_MASK) == ETM_PORT_HALF_CLOCK)
 	{
 		control |= 0x2;	/* half rate clock, capture at twice the clock rate */
 	}
 
 	/* OpenOCD + trace holds up to 16 million samples,
 	 * but trigger counts is set in multiples of 16 */
-	trigger_count = (1048576 * etm_ctx->trigger_percent) / 100;
+	trigger_count = (1048576 * /* trigger_percent */ 50) / 100;
 
 	/* capturing always starts at address zero */
 	oocd_trace_write_reg(oocd_trace, OOCD_TRACE_ADDRESS, 0x0);
