@@ -34,6 +34,7 @@ Target Layer:
 		- Exposed DWT registers like cycle counter
 	ETM, ETB
 		- "trigger_percent" command moved ETM --> ETB
+		- "etm trigger_debug" command added
 
 Flash Layer:
 	'flash bank' and 'nand device' take <bank_name> as first argument.

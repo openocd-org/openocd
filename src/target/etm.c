@@ -446,11 +446,14 @@ int etm_setup(struct target *target)
 	etm_ctrl_value = (etm_ctrl_value
 			& ~ETM_PORT_WIDTH_MASK
 			& ~ETM_PORT_MODE_MASK
+			& ~ETM_CTRL_DBGRQ
 			& ~ETM_PORT_CLOCK_MASK)
 		| etm_ctx->control;
 
 	buf_set_u32(etm_ctrl_reg->value, 0, 32, etm_ctrl_value);
 	etm_store_reg(etm_ctrl_reg);
+
+	etm_ctx->control = etm_ctrl_value;
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
@@ -1338,8 +1341,6 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 		if (!etm_ctrl_reg)
 			return ERROR_FAIL;
 
-		etm_get_reg(etm_ctrl_reg);
-
 		etm->control &= ~TRACEMODE_MASK;
 		etm->control |= tracemode & TRACEMODE_MASK;
 
@@ -2016,6 +2017,56 @@ COMMAND_HANDLER(handle_etm_stop_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_etm_trigger_debug_command)
+{
+	struct target *target;
+	struct arm *arm;
+	struct etm_context *etm;
+
+	target = get_current_target(CMD_CTX);
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
+	{
+		command_print(CMD_CTX, "ETM: %s isn't an ARM",
+				target_name(target));
+		return ERROR_FAIL;
+	}
+
+	etm = arm->etm;
+	if (!etm)
+	{
+		command_print(CMD_CTX, "ETM: no ETM configured for %s",
+				target_name(target));
+		return ERROR_FAIL;
+	}
+
+	if (CMD_ARGC == 1) {
+		struct reg *etm_ctrl_reg;
+		bool dbgrq;
+
+		etm_ctrl_reg = etm_reg_lookup(etm, ETM_CTRL);
+		if (!etm_ctrl_reg)
+			return ERROR_FAIL;
+
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], dbgrq);
+		if (dbgrq)
+			etm->control |= ETM_CTRL_DBGRQ;
+		else
+			etm->control &= ~ETM_CTRL_DBGRQ;
+
+		/* etm->control will be written to hardware
+		 * the next time an "etm start" is issued.
+		 */
+		buf_set_u32(etm_ctrl_reg->value, 0, 32, etm->control);
+	}
+
+	command_print(CMD_CTX, "ETM: %s debug halt",
+			(etm->control & ETM_CTRL_DBGRQ)
+				? "triggers"
+				: "does not trigger");
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(handle_etm_analyze_command)
 {
 	struct target *target;
@@ -2112,10 +2163,17 @@ static const struct command_registration etm_exec_command_handlers[] = {
 		.help = "stop ETM trace collection",
 	},
 	{
-		.name = "analyze",
-		.handler = &handle_etm_analyze_command,
+		.name = "trigger_debug",
+		.handler = handle_etm_trigger_debug_command,
 		.mode = COMMAND_EXEC,
-		.help = "anaylze collected ETM trace",
+		.help = "enable/disable debug entry on trigger",
+		.usage = "(enable | disable)",
+	},
+	{
+		.name = "analyze",
+		.handler = handle_etm_analyze_command,
+		.mode = COMMAND_EXEC,
+		.help = "analyze collected ETM trace",
 	},
 	{
 		.name = "image",

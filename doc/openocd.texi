@@ -5512,6 +5512,17 @@ trace stream without an image of the code.
 @end itemize
 @end deffn
 
+@deffn Command {etm trigger_debug} (@option{enable}|@option{disable})
+Displays whether ETM triggering debug entry (like a breakpoint) is
+enabled or disabled, after optionally modifying that configuration.
+The default behaviour is @option{disable}.
+Any change takes effect after the next @command{etm start}.
+
+By using script commands to configure ETM registers, you can make the
+processor enter debug state automatically when certain conditions,
+more complex than supported by the breakpoint hardware, happen.
+@end deffn
+
 @subsection ETM Trace Operation
 
 After setting up the ETM, you can use it to collect data.
