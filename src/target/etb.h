@@ -44,6 +44,9 @@ struct etb
 	/* ETB parameters */
 	uint32_t ram_depth;
 	uint32_t ram_width;
+
+	/** how much trace buffer to fill after trigger */
+	unsigned trigger_percent;
 };
 
 struct etb_reg

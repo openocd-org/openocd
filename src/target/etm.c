@@ -1494,7 +1494,6 @@ COMMAND_HANDLER(handle_etm_config_command)
 	}
 
 	etm_ctx->target = target;
-	etm_ctx->trigger_percent = 50;
 	etm_ctx->trace_data = NULL;
 	etm_ctx->portmode = portmode;
 	etm_ctx->core_state = ARM_STATE_ARM;
@@ -1923,47 +1922,6 @@ COMMAND_HANDLER(handle_etm_load_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_etm_trigger_percent_command)
-{
-	struct target *target;
-	struct arm *arm;
-	struct etm_context *etm_ctx;
-
-	target = get_current_target(CMD_CTX);
-	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
-		command_print(CMD_CTX, "ETM: current target isn't an ARM");
-		return ERROR_FAIL;
-	}
-
-	etm_ctx = arm->etm;
-	if (!etm_ctx)
-	{
-		command_print(CMD_CTX, "current target doesn't have an ETM configured");
-		return ERROR_FAIL;
-	}
-
-	if (CMD_ARGC > 0)
-	{
-		uint32_t new_value;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], new_value);
-
-		if ((new_value < 2) || (new_value > 100))
-		{
-			command_print(CMD_CTX, "valid settings are 2%% to 100%%");
-		}
-		else
-		{
-			etm_ctx->trigger_percent = new_value;
-		}
-	}
-
-	command_print(CMD_CTX, "%i percent of the tracebuffer reserved for after the trigger", ((int)(etm_ctx->trigger_percent)));
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(handle_etm_start_command)
 {
 	struct target *target;
@@ -2127,13 +2085,6 @@ static const struct command_registration etm_exec_command_handlers[] = {
 		.handler = &handle_etm_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display info about the current target's ETM",
-	},
-	{
-		.name = "trigger_percent",
-		.handler = &handle_etm_trigger_percent_command,
-		.mode = COMMAND_EXEC,
-		.help = "amount (<percent>) of trace buffer "
-			"to be filled after the trigger occured",
 	},
 	{
 		.name = "status",

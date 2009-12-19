@@ -158,7 +158,6 @@ struct etm_context
 	struct reg_cache *reg_cache;		/* ETM register cache */
 	struct etm_capture_driver *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;	/* capture driver private data */
-	uint32_t trigger_percent;	/* how much trace buffer to fill after trigger */
 	trace_status_t capture_status;	/* current state of capture run */
 	struct etmv1_trace_data *trace_data;	/* trace data */
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */

@@ -402,12 +402,63 @@ COMMAND_HANDLER(handle_etb_config_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_etb_trigger_percent_command)
+{
+	struct target *target;
+	struct arm *arm;
+	struct etm_context *etm;
+	struct etb *etb;
+
+	target = get_current_target(CMD_CTX);
+	arm = target_to_arm(target);
+	if (!is_arm(arm))
+	{
+		command_print(CMD_CTX, "ETB: current target isn't an ARM");
+		return ERROR_FAIL;
+	}
+
+	etm = arm->etm;
+	if (!etm) {
+		command_print(CMD_CTX, "ETB: target has no ETM configured");
+		return ERROR_FAIL;
+	}
+	if (etm->capture_driver != &etb_capture_driver) {
+		command_print(CMD_CTX, "ETB: target not using ETB");
+		return ERROR_FAIL;
+	}
+	etb = arm->etm->capture_driver_priv;
+
+	if (CMD_ARGC > 0) {
+		uint32_t new_value;
+
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], new_value);
+		if ((new_value < 2) || (new_value > 100))
+			command_print(CMD_CTX,
+				"valid percentages are 2%% to 100%%");
+		else
+			etb->trigger_percent = (unsigned) new_value;
+	}
+
+	command_print(CMD_CTX, "%d percent of tracebuffer fills after trigger",
+			etb->trigger_percent);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration etb_config_command_handlers[] = {
 	{
 		.name = "config",
 		.handler = &handle_etb_config_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "<target> <tap>",
+		.usage = "target tap",
+	},
+	{
+		.name = "trigger_percent",
+		.handler = &handle_etb_trigger_percent_command,
+		.mode = COMMAND_EXEC,
+		.help = "percent of trace buffer to be filled "
+			"after the trigger occurs",
+		.usage = "[percent]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -434,6 +485,8 @@ static int etb_init(struct etm_context *etm_ctx)
 
 	etb->ram_depth = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_DEPTH].value, 0, 32);
 	etb->ram_width = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WIDTH].value, 0, 32);
+
+	etb->trigger_percent = 50;
 
 	return ERROR_OK;
 }
@@ -661,7 +714,7 @@ static int etb_start_capture(struct etm_context *etm_ctx)
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	}
 
-	trigger_count = (etb->ram_depth * etm_ctx->trigger_percent) / 100;
+	trigger_count = (etb->ram_depth * etb->trigger_percent) / 100;
 
 	etb_write_reg(&etb->reg_cache->reg_list[ETB_TRIGGER_COUNTER], trigger_count);
 	etb_write_reg(&etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER], 0x0);

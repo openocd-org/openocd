@@ -5512,28 +5512,6 @@ trace stream without an image of the code.
 @end itemize
 @end deffn
 
-@deffn Command {etm trigger_percent} [percent]
-This displays, or optionally changes, the trace port driver's
-behavior after the ETM's configured @emph{trigger} event fires.
-It controls how much more trace data is saved after the (single)
-trace trigger becomes active.
-
-@itemize
-@item The default corresponds to @emph{trace around} usage,
-recording 50 percent data before the event and the rest
-afterwards.
-@item The minimum value of @var{percent} is 2 percent,
-recording almost exclusively data before the trigger.
-Such extreme @emph{trace before} usage can help figure out
-what caused that event to happen.
-@item The maximum value of @var{percent} is 100 percent,
-recording data almost exclusively after the event.
-This extreme @emph{trace after} usage might help sort out
-how the event caused trouble.
-@end itemize
-@c REVISIT allow "break" too -- enter debug mode.
-@end deffn
-
 @subsection ETM Trace Operation
 
 After setting up the ETM, you can use it to collect data.
@@ -5617,6 +5595,28 @@ to use on-chip ETB memory.
 Associates the ETM for @var{target} with the ETB at @var{etb_tap}.
 You can see the ETB registers using the @command{reg} command.
 @end deffn
+@deffn Command {etb trigger_percent} [percent]
+This displays, or optionally changes, ETB behavior after the
+ETM's configured @emph{trigger} event fires.
+It controls how much more trace data is saved after the (single)
+trace trigger becomes active.
+
+@itemize
+@item The default corresponds to @emph{trace around} usage,
+recording 50 percent data before the event and the rest
+afterwards.
+@item The minimum value of @var{percent} is 2 percent,
+recording almost exclusively data before the trigger.
+Such extreme @emph{trace before} usage can help figure out
+what caused that event to happen.
+@item The maximum value of @var{percent} is 100 percent,
+recording data almost exclusively after the event.
+This extreme @emph{trace after} usage might help sort out
+how the event caused trouble.
+@end itemize
+@c REVISIT allow "break" too -- enter debug mode.
+@end deffn
+
 @end deffn
 
 @deffn {Trace Port Driver} oocd_trace
