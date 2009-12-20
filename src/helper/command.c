@@ -860,13 +860,13 @@ static COMMAND_HELPER(command_help_find, struct command *head,
 }
 
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
-		bool show_help);
+		bool show_help, const char *match);
 
 static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n,
-		bool show_help)
+		bool show_help, const char *match)
 {
 	for (struct command *c = head; NULL != c; c = c->next)
-		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help);
+		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help, match);
 	return ERROR_OK;
 }
 
@@ -899,7 +899,7 @@ static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
 	}
 }
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
-		bool show_help)
+		bool show_help, const char *match)
 {
 	if (!command_can_run(CMD_CTX, c))
 		return ERROR_OK;
@@ -908,18 +908,30 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 	if (NULL == cmd_name)
 		return -ENOMEM;
 
-	command_help_show_indent(n);
-	LOG_USER_N("%s", cmd_name);
+	/* If the match string occurs anywhere, we print out
+	 * stuff for this command. */
+	bool is_match = (strstr(cmd_name, match) != NULL) ||
+	((c->usage != NULL) && (strstr(c->usage, match) != NULL)) ||
+	((c->help != NULL) && (strstr(c->help, match) != NULL));
+	
+	if (is_match)
+	{
+		command_help_show_indent(n);
+		LOG_USER_N("%s", cmd_name);
+	}
 	free(cmd_name);
 
-	if (c->usage) {
-		LOG_USER_N(" ");
-		command_help_show_wrap(c->usage, 0, n + 5);
+	if (is_match)
+	{
+		if (c->usage) {
+			LOG_USER_N(" ");
+			command_help_show_wrap(c->usage, 0, n + 5);
+		}
+		else
+			LOG_USER_N("\n");
 	}
-	else
-		LOG_USER_N("\n");
 
-	if (show_help)
+	if (is_match && show_help)
 	{
 		const char *stage_msg;
 		switch (c->mode) {
@@ -942,7 +954,7 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 		return ERROR_OK;
 
 	return CALL_COMMAND_HANDLER(command_help_show_list,
-			c->children, n, show_help);
+			c->children, n, show_help, match);
 }
 COMMAND_HANDLER(handle_help_command)
 {
@@ -950,14 +962,15 @@ COMMAND_HANDLER(handle_help_command)
 
 	struct command *c = CMD_CTX->commands;
 
-	if (0 == CMD_ARGC)
-		return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, full);
-
-	int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
-	if (ERROR_OK != retval)
-		return retval;
-
-	return CALL_COMMAND_HANDLER(command_help_show, c, 0, full);
+	const char *match = "";
+	if (CMD_ARGC == 0)
+		match = "";
+	else if (CMD_ARGC == 1)
+		match = CMD_ARGV[0]; 
+	else
+		return ERROR_COMMAND_SYNTAX_ERROR;
+		
+	return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, full, match);
 }
 
 static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
@@ -974,6 +987,7 @@ static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
 	*out = c;
 	return command_unknown_find(--argc, ++argv, (*out)->children, out, false);
 }
+
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
