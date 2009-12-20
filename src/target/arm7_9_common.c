@@ -889,33 +889,10 @@ int arm7_9_poll(struct target *target)
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
-			int check_pc = 0;
-			if (target->state == TARGET_RESET)
-			{
-				if (target->reset_halt)
-				{
-					enum reset_types jtag_reset_config = jtag_get_reset_config();
-					if ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0)
-					{
-						check_pc = 1;
-					}
-				}
-			}
-
 			target->state = TARGET_HALTED;
 
 			if ((retval = arm7_9_debug_entry(target)) != ERROR_OK)
 				return retval;
-
-			if (check_pc)
-			{
-				struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
-				uint32_t t=*((uint32_t *)reg->value);
-				if (t != 0)
-				{
-					LOG_ERROR("PC was not 0. Does this target need srst_pulls_trst?");
-				}
-			}
 
 			if (arm_semihosting(target, &retval) != 0)
 				return retval;
