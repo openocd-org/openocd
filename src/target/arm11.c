@@ -6,6 +6,8 @@
  *                                                                         *
  *   Copyright (C) 2008 Georg Acher <acher@in.tum.de>                      *
  *                                                                         *
+ *   Copyright (C) 2009 David Brownell                                     *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -1209,20 +1211,24 @@ static int arm11_examine(struct target *target)
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	switch (device_id & 0x0FFFF000)
+	/* assume the manufacturer id is ok; check the part # */
+	switch ((device_id >> 12) & 0xFFFF)
 	{
-	case 0x07B36000:
+	case 0x7B36:
 		type = "ARM1136";
 		break;
-	case 0x07B56000:
+	case 0x7B37:
+		type = "ARM11 MPCore";
+		break;
+	case 0x7B56:
 		type = "ARM1156";
 		break;
-	case 0x07B76000:
+	case 0x7B76:
 		arm11->arm.core_type = ARM_MODE_MON;
 		type = "ARM1176";
 		break;
 	default:
-		LOG_ERROR("'target arm11' expects IDCODE 0x*7B*7****");
+		LOG_ERROR("unexpected ARM11 ID code");
 		return ERROR_FAIL;
 	}
 	LOG_INFO("found %s", type);
