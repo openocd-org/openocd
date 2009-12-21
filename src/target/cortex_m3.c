@@ -42,6 +42,10 @@
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
+ *
+ * Although there are some workarounds for errata seen only in r0p0
+ * silicon, such old parts are hard to find and thus not much tested
+ * any longer.
  */
 
 
@@ -138,6 +142,7 @@ static int cortex_m3_clear_halt(struct target *target)
 
 	/* Read Debug Fault Status Register */
 	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+
 	/* Clear Debug Fault Status */
 	mem_ap_write_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
 	LOG_DEBUG(" NVIC_DFSR 0x%" PRIx32 "", cortex_m3->nvic_dfsr);
@@ -154,10 +159,15 @@ static int cortex_m3_single_step_core(struct target *target)
 	/* backup dhcsr reg */
 	dhcsr_save = cortex_m3->dcb_dhcsr;
 
-	/* mask interrupts if not done already */
+	/* Mask interrupts before clearing halt, if done already.  This avoids
+	 * Erratum 377497 (fixed in r1p0) where setting MASKINTS while clearing
+	 * HALT can put the core into an unknown state.
+	 */
 	if (!(cortex_m3->dcb_dhcsr & C_MASKINTS))
-		mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
-	mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
+		mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
+				DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
+	mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
+				DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
 	LOG_DEBUG(" ");
 
 	/* restore dhcsr reg */
@@ -176,10 +186,11 @@ static int cortex_m3_endreset_event(struct target *target)
 	struct cortex_m3_fp_comparator *fp_list = cortex_m3->fp_comparator_list;
 	struct cortex_m3_dwt_comparator *dwt_list = cortex_m3->dwt_comparator_list;
 
+	/* FIXME handling of DEMCR clobbers vector_catch config ... */
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
 	LOG_DEBUG("DCB_DEMCR = 0x%8.8" PRIx32 "",dcb_demcr);
 
-	/* this regsiter is used for emulated dcc channel */
+	/* this register is used for emulated dcc channel */
 	mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
 
 	/* Enable debug requests */
@@ -190,10 +201,25 @@ static int cortex_m3_endreset_event(struct target *target)
 	/* clear any interrupt masking */
 	cortex_m3_write_debug_halt_mask(target, 0, C_MASKINTS);
 
-	/* Enable trace and dwt */
+	/* Enable trace and DWT; trap hard and bus faults.
+	 *
+	 * REVISIT why trap those two?  And why trash the vector_catch
+	 * config, instead of preserving it?  Catching HARDERR and BUSERR
+	 * will interfere with code that handles those itself...
+	 */
 	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
-	/* Monitor bus faults */
+
+	/* Monitor bus faults as such (instead of as generic HARDERR), but
+	 * leave memory management and usage faults disabled.
+	 *
+	 * REVISIT setting BUSFAULTENA interferes with code which relies
+	 * on the default setting.  Why do it?
+	 */
 	mem_ap_write_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA);
+
+	/* Paranoia: evidently some (early?) chips don't preserve all the
+	 * debug state (including FBP, DWT, etc) across reset...
+	 */
 
 	/* Enable FPB */
 	target_write_u32(target, FP_CTRL, 3);
@@ -308,6 +334,7 @@ static int cortex_m3_debug_entry(struct target *target)
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+	struct reg *r;
 
 	LOG_DEBUG(" ");
 
@@ -327,7 +354,8 @@ static int cortex_m3_debug_entry(struct target *target)
 			armv7m->read_core_reg(target, i);
 	}
 
-	xPSR = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32);
+	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
+	xPSR = buf_get_u32(r->value, 0, 32);
 
 #ifdef ARMV7_GDB_HACKS
 	/* FIXME this breaks on scan chains with more than one Cortex-M3.
@@ -336,14 +364,14 @@ static int cortex_m3_debug_entry(struct target *target)
 	/* copy real xpsr reg for gdb, setting thumb bit */
 	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 0, 32, xPSR);
 	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 5, 1, 1);
-	armv7m_gdb_dummy_cpsr_reg.valid = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
-	armv7m_gdb_dummy_cpsr_reg.dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty;
+	armv7m_gdb_dummy_cpsr_reg.valid = r->valid;
+	armv7m_gdb_dummy_cpsr_reg.dirty = r->dirty;
 #endif
 
 	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
 	if (xPSR & 0xf00)
 	{
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
+		r->dirty = r->valid;
 		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR &~ 0xff);
 	}
 
@@ -355,7 +383,8 @@ static int cortex_m3_debug_entry(struct target *target)
 	}
 	else
 	{
-		armv7m->core_mode = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 1);
+		armv7m->core_mode = buf_get_u32(armv7m->core_cache
+				->reg_list[ARMV7M_CONTROL].value, 0, 1);
 		armv7m->exception_number = 0;
 	}
 
@@ -404,8 +433,11 @@ static int cortex_m3_poll(struct target *target)
 
 	if (target->state == TARGET_RESET)
 	{
-		/* Cannot switch context while running so endreset is called with target->state == TARGET_RESET */
-		LOG_DEBUG("Exit from reset with dcb_dhcsr 0x%" PRIx32 "", cortex_m3->dcb_dhcsr);
+		/* Cannot switch context while running so endreset is
+		 * called with target->state == TARGET_RESET
+		 */
+		LOG_DEBUG("Exit from reset with dcb_dhcsr 0x%" PRIx32,
+				cortex_m3->dcb_dhcsr);
 		cortex_m3_endreset_event(target);
 		target->state = TARGET_RUNNING;
 		prev_target_state = TARGET_RUNNING;
@@ -498,11 +530,13 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
-	/* Enter debug state on reset, cf. end_reset_event() */
-	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+	/* Enter debug state on reset; see end_reset_event() */
+	mem_ap_write_u32(swjdp, DCB_DEMCR,
+			TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 
-	/* Request a reset */
-	mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_VECTRESET);
+	/* Request a core-only reset */
+	mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
+			AIRCR_VECTKEY | AIRCR_VECTRESET);
 	target->state = TARGET_RESET;
 
 	/* registers are now invalid */
@@ -513,15 +547,23 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 		retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
 		if (retval == ERROR_OK)
 		{
-			mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-			if ((dcb_dhcsr & S_HALT) && (cortex_m3->nvic_dfsr & DFSR_VCATCH))
+			mem_ap_read_atomic_u32(swjdp, NVIC_DFSR,
+					&cortex_m3->nvic_dfsr);
+			if ((dcb_dhcsr & S_HALT)
+					&& (cortex_m3->nvic_dfsr & DFSR_VCATCH))
 			{
-				LOG_DEBUG("system reset-halted, dcb_dhcsr 0x%" PRIx32 ", nvic_dfsr 0x%" PRIx32 "", dcb_dhcsr, cortex_m3->nvic_dfsr);
+				LOG_DEBUG("system reset-halted, DHCSR 0x%08x, "
+					"DFSR 0x%08x",
+					(unsigned) dcb_dhcsr,
+					(unsigned) cortex_m3->nvic_dfsr);
 				cortex_m3_poll(target);
+				/* FIXME restore user's vector catch config */
 				return ERROR_OK;
 			}
 			else
-				LOG_DEBUG("waiting for system reset-halt, dcb_dhcsr 0x%" PRIx32 ", %i ms", dcb_dhcsr, timeout);
+				LOG_DEBUG("waiting for system reset-halt, "
+					"DHCSR 0x%08x, %d ms",
+					(unsigned) dcb_dhcsr, timeout);
 		}
 		timeout++;
 		alive_sleep(1);
@@ -549,6 +591,7 @@ static int cortex_m3_resume(struct target *target, int current,
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct breakpoint *breakpoint = NULL;
 	uint32_t resume_pc;
+	struct reg *r;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -565,30 +608,40 @@ static int cortex_m3_resume(struct target *target, int current,
 
 	if (debug_execution)
 	{
+		r = armv7m->core_cache->reg_list + ARMV7M_PRIMASK;
+
 		/* Disable interrupts */
-		/* We disable interrupts in the PRIMASK register instead of masking with C_MASKINTS,
-		 * This is probably the same issue as Cortex-M3 Errata	377493:
-		 * C_MASKINTS in parallel with disabled interrupts can cause local faults to not be taken. */
-		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
-		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = 1;
+		/* We disable interrupts in the PRIMASK register instead of
+		 * masking with C_MASKINTS.  This is probably the same issue
+		 * as Cortex-M3 Erratum 377493 (fixed in r1p0):  C_MASKINTS
+		 * in parallel with disabled interrupts can cause local faults
+		 * to not be taken.
+		 *
+		 * REVISIT this clearly breaks non-debug execution, since the
+		 * PRIMASK register state isn't saved/restored...  workaround
+		 * by never resuming app code after debug execution.
+		 */
+		buf_set_u32(r->value, 0, 1, 1);
+		r->dirty = true;
+		r->valid = true;
 
 		/* Make sure we are in Thumb mode */
-		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32,
-			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32) | (1 << 24));
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = 1;
+		r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
+		buf_set_u32(r->value, 24, 1, 1);
+		r->dirty = true;
+		r->valid = true;
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
+	r = armv7m->core_cache->reg_list + 15;
 	if (!current)
 	{
-		buf_set_u32(armv7m->core_cache->reg_list[15].value, 0, 32, address);
-		armv7m->core_cache->reg_list[15].dirty = 1;
-		armv7m->core_cache->reg_list[15].valid = 1;
+		buf_set_u32(r->value, 0, 32, address);
+		r->dirty = true;
+		r->valid = true;
 	}
 
-	resume_pc = buf_get_u32(armv7m->core_cache->reg_list[15].value, 0, 32);
+	resume_pc = buf_get_u32(r->value, 0, 32);
 
 	armv7m_restore_context(target);
 
@@ -639,6 +692,7 @@ static int cortex_m3_step(struct target *target, int current,
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	struct breakpoint *breakpoint = NULL;
+	struct reg *pc = armv7m->core_cache->reg_list + 15;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -648,13 +702,12 @@ static int cortex_m3_step(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(cortex_m3->armv7m.core_cache->reg_list[15].value,
-				0, 32, address);
+		buf_set_u32(pc->value, 0, 32, address);
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints) {
-		breakpoint = breakpoint_find(target, buf_get_u32(armv7m
-				->core_cache->reg_list[15].value, 0, 32));
+		breakpoint = breakpoint_find(target,
+				buf_get_u32(pc->value, 0, 32));
 		if (breakpoint)
 			cortex_m3_unset_breakpoint(target, breakpoint);
 	}
@@ -675,12 +728,16 @@ static int cortex_m3_step(struct target *target, int current,
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
 
-	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32 " nvic_icsr = 0x%" PRIx32 "", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32
+			" nvic_icsr = 0x%" PRIx32,
+			cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 
 	cortex_m3_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32 " nvic_icsr = 0x%" PRIx32 "", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32
+			" nvic_icsr = 0x%" PRIx32,
+			cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 	return ERROR_OK;
 }
 
@@ -714,7 +771,8 @@ static int cortex_m3_assert_reset(struct target *target)
 	{
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
-			mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT);
+			mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
+					DBGKEY | C_DEBUGEN | C_HALT);
 
 		/* clear any debug flags before resuming */
 		cortex_m3_clear_halt(target);
@@ -723,12 +781,14 @@ static int cortex_m3_assert_reset(struct target *target)
 		cortex_m3_write_debug_halt_mask(target, 0, C_HALT);
 
 		/* Enter debug state on reset, cf. end_reset_event() */
-		mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
+		mem_ap_write_u32(swjdp, DCB_DEMCR,
+				TRCENA | VC_HARDERR | VC_BUSERR);
 	}
 	else
 	{
 		/* Enter debug state on reset, cf. end_reset_event() */
-		mem_ap_write_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+		mem_ap_write_atomic_u32(swjdp, DCB_DEMCR,
+				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	}
 
 	/*
@@ -1311,8 +1371,11 @@ static int cortex_m3_store_core_reg_u32(struct target *target,
 		retval = cortexm3_dap_write_coreregister_u32(swjdp, value, num);
 		if (retval != ERROR_OK)
 		{
+			struct reg *r;
+
 			LOG_ERROR("JTAG failure %i", retval);
-			armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
+			r = armv7m->core_cache->reg_list + num;
+			r->dirty = r->valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
@@ -1455,6 +1518,9 @@ struct dwt_reg {
 
 static struct dwt_reg dwt_base_regs[] = {
 	{ DWT_CTRL, "dwt_ctrl", 32, },
+	/* NOTE that Erratum 532314 (fixed r2p0) affects CYCCNT:  it wrongly
+	 * increments while the core is asleep.
+	 */
 	{ DWT_CYCCNT, "dwt_cyccnt", 32, },
 	/* plus some 8 bit counters, useful for profiling with TPIU */
 };
