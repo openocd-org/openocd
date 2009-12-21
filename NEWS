@@ -35,6 +35,7 @@ Target Layer:
 	ETM, ETB
 		- "trigger_percent" command moved ETM --> ETB
 		- "etm trigger_debug" command added
+	Freescale DSP563xx cores (partial support)
 
 Flash Layer:
 	'flash bank' and 'nand device' take <bank_name> as first argument.
@@ -44,6 +45,7 @@ Flash Layer:
 	New 'nand verify' command to check bank against an image file.
 	The "flash erase_address" command now rejects partial sectors;
 		previously it would silently erase extra data.
+	New at91sam9 NAND controller driver.
 
 Board, Target, and Interface Configuration Scripts:
 	ARM9

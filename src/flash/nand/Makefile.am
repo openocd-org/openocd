@@ -30,8 +30,10 @@ NAND_DRIVERS = \
 noinst_HEADERS = \
 	arm_io.h \
 	core.h \
-	lpc3180.h \
 	driver.h \
+	fileio.h \
+	imp.h \
+	lpc3180.h \
 	mx3.h \
 	s3c24xx.h \
 	s3c24xx_regs.h
