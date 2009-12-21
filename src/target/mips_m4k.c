@@ -993,14 +993,14 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	if (target->endianness == TARGET_BIG_ENDIAN)
 	{
 		uint32_t i, t32;
-		for(i = 0; i < (count*4); i+=4)
+		for(i = 0; i < (count * 4); i += 4)
 		{
 			t32 = be_to_h_u32((uint8_t *) &buffer[i]);
 			h_u32_to_le(&buffer[i], t32);
 		}
 	}
 
-	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write, address, count, (uint32_t *) buffer);
+	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write, address, count, (uint32_t*) buffer);
 
 	if (source)
 		target_free_working_area(target, source);

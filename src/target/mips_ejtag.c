@@ -139,10 +139,8 @@ int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 			MIPS32_MFC0(1,23,0),			/* move COP0 Debug to $1 */
 			MIPS32_ORI(1,1,0x0100),			/* set SSt bit in debug reg */
 			MIPS32_MTC0(1,23,0),			/* move $1 to COP0 Debug */
+			MIPS32_B(NEG16(5)),
 			MIPS32_MFC0(1,31,0),			/* move COP0 DeSave to $1 */
-			MIPS32_NOP,
-			MIPS32_B(NEG16(7)),
-			MIPS32_NOP,
 	};
 
 	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
@@ -165,10 +163,8 @@ int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 			MIPS32_MTC0(1,23,0),							/* move $1 to COP0 Debug */
 			MIPS32_LW(2,0,15),
 			MIPS32_LW(1,0,15),
+			MIPS32_B(NEG16(13)),
 			MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
-			MIPS32_NOP,
-			MIPS32_B(NEG16(15)),
-			MIPS32_NOP,
 	};
 
 	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
@@ -230,10 +226,8 @@ int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 			MIPS32_SW(2,0,1),
 			MIPS32_LW(2,0,15),
 			MIPS32_LW(1,0,15),
+			MIPS32_B(NEG16(12)),
 			MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
-			MIPS32_NOP,
-			MIPS32_B(NEG16(14)),
-			MIPS32_NOP,
 	};
 
 	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
