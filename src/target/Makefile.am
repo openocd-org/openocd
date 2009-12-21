@@ -105,6 +105,7 @@ noinst_HEADERS = \
 	arm_jtag.h \
 	arm_adi_v5.h \
 	arm_disassembler.h \
+	arm_opcodes.h \
 	arm_simulator.h \
 	arm_semihosting.h \
 	arm7_9_common.h \
