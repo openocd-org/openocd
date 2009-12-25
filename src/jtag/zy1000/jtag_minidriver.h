@@ -50,7 +50,7 @@ static __inline__ void waitQueue(void)
 //	waitIdle();
 }
 
-static void sampleShiftRegister(void)
+static __inline__ void sampleShiftRegister(void)
 {
 #if 0
 	cyg_uint32 dummy;
@@ -59,8 +59,7 @@ static void sampleShiftRegister(void)
 #endif
 }
 
-/* -O3 will inline this for us */
-static void setCurrentState(enum tap_state state)
+static __inline__ void setCurrentState(enum tap_state state)
 {
 	cyg_uint32 a;
 	a = state;
