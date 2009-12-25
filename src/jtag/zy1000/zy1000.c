@@ -55,6 +55,11 @@
 
 #include <time.h>
 
+#ifdef CYGPKG_HAL_NIOS2
+#include <cyg/hal/io.h>
+#include <cyg/firmwareutil/firmwareutil.h>
+#endif
+
 #define ZYLIN_VERSION GIT_ZY1000_VERSION
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
@@ -322,33 +327,57 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 
 
 #ifdef CYGPKG_HAL_NIOS2
+
+
+struct info_forward
+{
+	void *data;
+	struct cyg_upgrade_info *upgraded_file;
+};
+
+static void report_info(void *data, const char * format, va_list args)
+{
+	char *s = alloc_vprintf(format, args);
+	LOG_USER_N("%s", s);
+	free(s);
+}
+
+struct cyg_upgrade_info firmware_info =
+{
+		(cyg_uint8 *)0x84000000,
+		"/ram/firmware.phi",
+		"Firmware",
+		0x0300000,
+		0x1f00000 -
+		0x0300000,
+		"ZylinNiosFirmware\n",
+		report_info,
+};
+
 static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 2)
 		return JIM_ERR;
 
 	int length;
-	int stat;
 	const char *str = Jim_GetString(argv[1], &length);
 
-	/* BUG!!!! skip header! */
-	void *firmware_address=0x4000000;
-	int firmware_length=0x100000;
-
-	if (length>firmware_length)
+	/* */
+	int tmpFile;
+	if ((tmpFile = open(firmware_info.file, O_RDWR | O_CREAT | O_TRUNC)) <= 0)
+	{
+		return JIM_ERR;
+	}
+	bool success;
+	success = write(tmpFile, str, length) == length;
+	close(tmpFile);
+	if (!success)
 		return JIM_ERR;
 
-	void *err_addr;
+	if (!cyg_firmware_upgrade(NULL, firmware_info))
+		return JIM_ERR;
 
-    if ((stat = flash_erase((void *)firmware_address, firmware_length, (void **)&err_addr)) != 0)
-    {
-    	return JIM_ERR;
-    }
-
-    if ((stat = flash_program(firmware_address, str, length, (void **)&err_addr)) != 0)
-    	return JIM_ERR;
-
-    return JIM_OK;
+	return JIM_OK;
 }
 #endif
 
