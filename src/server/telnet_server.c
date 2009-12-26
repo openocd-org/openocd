@@ -195,8 +195,8 @@ void telnet_clear_line(struct connection *connection, struct telnet_connection *
 int telnet_input(struct connection *connection)
 {
 	int bytes_read;
-	char buffer[TELNET_BUFFER_SIZE];
-	char *buf_p;
+	unsigned char buffer[TELNET_BUFFER_SIZE];
+	unsigned char *buf_p;
 	struct telnet_connection *t_con = connection->priv;
 	struct command_context *command_context = connection->cmd_ctx;
 
@@ -216,7 +216,7 @@ int telnet_input(struct connection *connection)
 		switch (t_con->state)
 		{
 			case TELNET_STATE_DATA:
-				if (*buf_p == '\xff')
+				if (*buf_p == 0xff)
 				{
 					t_con->state = TELNET_STATE_IAC;
 				}
@@ -395,16 +395,16 @@ int telnet_input(struct connection *connection)
 			case TELNET_STATE_IAC:
 				switch (*buf_p)
 				{
-					case '\xfe':
+					case 0xfe:
 						t_con->state = TELNET_STATE_DONT;
 						break;
-					case '\xfd':
+					case 0xfd:
 						t_con->state = TELNET_STATE_DO;
 						break;
-					case '\xfc':
+					case 0xfc:
 						t_con->state = TELNET_STATE_WONT;
 						break;
-					case '\xfb':
+					case 0xfb:
 						t_con->state = TELNET_STATE_WILL;
 						break;
 				}

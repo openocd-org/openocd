@@ -88,7 +88,7 @@ static int tcl_input(struct connection *connection)
 	const char *result;
 	int reslen;
 	struct tcl_connection *tclc;
-	char in[256];
+	unsigned char in[256];
 
 	rlen = read_socket(connection->fd, &in, sizeof(in));
 	if (rlen <= 0) {

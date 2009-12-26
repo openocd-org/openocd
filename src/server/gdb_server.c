@@ -943,7 +943,7 @@ void gdb_str_to_target(struct target *target, char *tstr, struct reg *reg)
 	}
 }
 
-static int hextoint(char c)
+static int hextoint(int c)
 {
 	if (c>='0'&&c<='9')
 	{

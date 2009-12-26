@@ -470,7 +470,8 @@ free_all:
 #define SVFP_CMD_INC_CNT			1024
 static int svf_read_command_from_file(int fd)
 {
-	char ch, *tmp_buffer = NULL;
+	unsigned char ch;
+	char *tmp_buffer = NULL;
 	int cmd_pos = 0, cmd_ok = 0, slash = 0, comment = 0;
 
 	while (!cmd_ok && (read(fd, &ch, 1) > 0))

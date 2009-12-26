@@ -1345,7 +1345,8 @@ COMMAND_HANDLER(mg_bank_cmd)
 	char *str;
 	mflash_bank->rst_pin.num = strtoul(CMD_ARGV[2], &str, 0);
 	if (*str)
-		mflash_bank->rst_pin.port[0] = (uint16_t)tolower(str[0]);
+		mflash_bank->rst_pin.port[0] = (uint16_t)
+				tolower((unsigned)str[0]);
 
 	mflash_bank->target = target;
 
