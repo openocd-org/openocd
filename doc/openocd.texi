@@ -310,6 +310,25 @@ chips are starting to become available in JTAG adapters.
 @* Link @url{http://www.hitex.com/index.php?id=cortino}
 @end itemize
 
+@section USB-JTAG / Altera USB-Blaster compatibles
+
+These devices also show up as FTDI devices, but are not
+protocol-compatible with the FT2232 devices. They are, however,
+protocol-compatible among themselves.  USB-JTAG devices typically consist
+of a FT245 followed by a CPLD that understands a particular protocol,
+or emulate this protocol using some other hardware.
+
+They may appear under different USB VID/PID depending on the particular
+product.  The driver can be configured to search for any VID/PID pair
+(see the section on driver commands).
+
+@itemize
+@item @b{USB-JTAG} Kolja Waschk's USB Blaster-compatible adapter
+@* Link: @url{http://www.ixo.de/info/usb_jtag/}
+@item @b{Altera USB-Blaster}
+@* Link: @url{http://www.altera.com/literature/ug/ug_usb_blstr.pdf}
+@end itemize
+
 @section USB JLINK based
 There are several OEM versions of the Segger @b{JLINK} adapter. It is
 an example of a micro controller based JTAG adapter, it uses an
@@ -1987,6 +2006,46 @@ ft2232_device_desc "Turtelizer JTAG/RS232 Adapter"
 ft2232_layout turtelizer2
 ft2232_vid_pid 0x0403 0xbdc8
 @end example
+@end deffn
+
+@deffn {Interface Driver} {usb_blaster}
+USB JTAG/USB-Blaster compatibles over one of the userspace libraries
+for FTDI chips.  These interfaces have several commands, used to
+configure the driver before initializing the JTAG scan chain:
+
+@deffn {Config Command} {usb_blaster_device_desc} description
+Provides the USB device description (the @emph{iProduct string})
+of the FTDI FT245 device. If not
+specified, the FTDI default value is used. This setting is only valid
+if compiled with FTD2XX support.
+@end deffn
+
+@deffn {Config Command} {usb_blaster_vid_pid} vid pid
+The vendor ID and product ID of the FTDI FT245 device. If not specified,
+default values are used.
+Currently, only one @var{vid}, @var{pid} pair may be given, e.g. for
+Altera USB-Blaster (default):
+@example
+ft2232_vid_pid 0x09FB 0x6001
+@end example
+The following VID/PID is for Kolja Waschk's USB JTAG:
+@example
+ft2232_vid_pid 0x16C0 0x06AD
+@end example
+@end deffn
+
+@deffn {Command} {usb_blaster} (@option{pin6}|@option{pin8}) (@option{0}|@option{1})
+Sets the state of the unused GPIO pins on USB-Blasters (pins 6 and 8 on the
+female JTAG header). These pins can be used as SRST and/or TRST provided the
+appropriate connections are made on the target board.
+
+For example, to use pin 6 as SRST (as with an AVR board):
+@example
+$_TARGETNAME configure -event reset-assert \
+      "usb_blaster pin6 1; wait 1; usb_blaster pin6 0"
+@end example
+@end deffn
+
 @end deffn
 
 @deffn {Interface Driver} {gw16012}

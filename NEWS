@@ -5,6 +5,7 @@ and other issues not mentioned here.
 
 JTAG Layer:
 	Support KT-Link JTAG adapter.
+	Support USB-JTAG, Altera USB-Blaster and compatibles.
 
 Boundary Scan:
 Target Layer:

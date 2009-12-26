@@ -392,6 +392,14 @@ AC_ARG_ENABLE(ft2232_ftd2xx,
   AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]),
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
 
+AC_ARG_ENABLE(usb_blaster_libftdi,
+  AS_HELP_STRING([--enable-usb_blaster_libftdi], [Enable building support for the Altera USB-Blaster using the libftdi driver, opensource alternate of FTD2XX]),
+  [build_usb_blaster_libftdi=$enableval], [build_usb_blaster_libftdi=no])
+
+AC_ARG_ENABLE(usb_blaster_ftd2xx,
+  AS_HELP_STRING([--enable-usb_blaster_ftd2xx], [Enable building support for the Altera USB-Blaster using the FTD2XX driver from ftdichip.com]),
+  [build_usb_blaster_ftd2xx=$enableval], [build_usb_blaster_ftd2xx=no])
+
 AC_ARG_ENABLE(amtjtagaccel,
   AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]),
   [build_amtjtagaccel=$enableval], [build_amtjtagaccel=no])
@@ -651,6 +659,20 @@ else
   AC_DEFINE(BUILD_FT2232_FTD2XX, 0, [0 if you don't want ftd2xx ft2232.])
 fi
 
+if test $build_usb_blaster_libftdi = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_USB_BLASTER_LIBFTDI, 1, [1 if you want libftdi usb_blaster.])
+else
+  AC_DEFINE(BUILD_USB_BLASTER_LIBFTDI, 0, [0 if you don't want libftdi usb_blaster.])
+fi
+
+if test $build_usb_blaster_ftd2xx = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_USB_BLASTER_FTD2XX, 1, [1 if you want ftd2xx usb_blaster.])
+else
+  AC_DEFINE(BUILD_USB_BLASTER_FTD2XX, 0, [0 if you don't want ftd2xx usb_blaster.])
+fi
+
 if test $build_amtjtagaccel = yes; then
   AC_DEFINE(BUILD_AMTJTAGACCEL, 1, [1 if you want the Amontec JTAG-Accelerator driver.])
 else
@@ -727,7 +749,7 @@ then
   AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
 fi
 
-if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
+if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes -o $build_usb_blaster_ftd2xx = yes ; then
   AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
 
   # if we are given a zipdir...
@@ -1001,6 +1023,8 @@ AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
 AM_CONDITIONAL(BITBANG, test $build_bitbang = yes)
 AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)
 AM_CONDITIONAL(FT2232_DRIVER, test $build_ft2232_ftd2xx = yes -o $build_ft2232_libftdi = yes)
+AM_CONDITIONAL(USB_BLASTER_LIBFTDI, test $build_usb_blaster_libftdi = yes)
+AM_CONDITIONAL(USB_BLASTER_DRIVER, test $build_usb_blaster_ftd2xx = yes -o $build_usb_blaster_libftdi = yes)
 AM_CONDITIONAL(AMTJTAGACCEL, test $build_amtjtagaccel = yes)
 AM_CONDITIONAL(GW16012, test $build_gw16012 = yes)
 AM_CONDITIONAL(PRESTO_LIBFTDI, test $build_presto_libftdi = yes)

@@ -60,10 +60,14 @@ endif
 if FT2232_LIBFTDI
 FTDI2232LIB = -lftdi -lusb
 else
+if USB_BLASTER_LIBFTDI
+FTDI2232LIB = -lftdi -lusb
+else
 if PRESTO_LIBFTDI
 FTDI2232LIB = -lftdi -lusb
 else
 FTDI2232LIB =
+endif
 endif
 endif
 

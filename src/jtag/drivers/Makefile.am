@@ -28,6 +28,9 @@ endif
 if FT2232_DRIVER
 DRIVERFILES += ft2232.c
 endif
+if USB_BLASTER_DRIVER
+DRIVERFILES += usb_blaster.c
+endif
 if AMTJTAGACCEL
 DRIVERFILES += amt_jtagaccel.c
 endif
