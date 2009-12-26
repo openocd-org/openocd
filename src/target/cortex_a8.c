@@ -1686,6 +1686,7 @@ struct target_type cortexa8_target = {
 	.deassert_reset = cortex_a8_deassert_reset,
 	.soft_reset_halt = NULL,
 
+	/* REVISIT allow exporting VFP3 registers ... */
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = cortex_a8_read_memory,

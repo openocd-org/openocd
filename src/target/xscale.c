@@ -3731,6 +3731,7 @@ struct target_type xscale_target =
 	.deassert_reset = xscale_deassert_reset,
 	.soft_reset_halt = NULL,
 
+	/* REVISIT on some cores, allow exporting iwmmxt registers ... */
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = xscale_read_memory,
