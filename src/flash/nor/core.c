@@ -401,7 +401,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 	}
 
 	/* allocate padding array */
-	padding = malloc(image->num_sections * sizeof(padding));
+	padding = calloc(image->num_sections, sizeof(*padding));
 
 	/* loop until we reach end of the image */
 	while (section < image->num_sections)
