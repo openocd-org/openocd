@@ -1805,6 +1805,7 @@ allows background polling to be enabled and disabled.
 
 You could use this from the TCL command shell, or
 from GDB using @command{monitor poll} command.
+Leave background polling enabled while you're using GDB.
 @example
 > poll
 background polling: on
@@ -6572,8 +6573,8 @@ if that's the tool chain used to compile your code.
 @cindex Connecting to GDB
 Use GDB 6.7 or newer with OpenOCD if you run into trouble. For
 instance GDB 6.3 has a known bug that produces bogus memory access
-errors, which has since been fixed: look up 1836 in
-@url{http://sourceware.org/cgi-bin/gnatsweb.pl?database=gdb}
+errors, which has since been fixed; see
+@url{http://osdir.com/ml/gdb.bugs.discuss/2004-12/msg00018.html}
 
 OpenOCD can communicate with GDB in two ways:
 
@@ -6596,6 +6597,38 @@ session.
 
 To list the available OpenOCD commands type @command{monitor help} on the
 GDB command line.
+
+@section Sample GDB session startup
+
+With the remote protocol, GDB sessions start a little differently
+than they do when you're debugging locally.
+Here's an examples showing how to start a debug session with a
+small ARM program.
+In this case the program was linked to be loaded into SRAM on a Cortex-M3.
+Most programs would be written into flash (address 0) and run from there.
+
+@example
+$ arm-none-eabi-gdb example.elf
+(gdb) target remote localhost:3333
+Remote debugging using localhost:3333
+...
+(gdb) monitor reset halt
+...
+(gdb) load
+Loading section .vectors, size 0x100 lma 0x20000000
+Loading section .text, size 0x5a0 lma 0x20000100
+Loading section .data, size 0x18 lma 0x200006a0
+Start address 0x2000061c, load size 1720
+Transfer rate: 22 KB/sec, 573 bytes/write.
+(gdb) continue
+Continuing.
+...
+@end example
+
+You could then interrupt the GDB session to make the program break,
+type @command{where} to show the stack, @command{list} to show the
+code around the program counter, @command{step} through code,
+set breakpoints or watchpoints, and so on.
 
 @section Configuring GDB for OpenOCD
 
