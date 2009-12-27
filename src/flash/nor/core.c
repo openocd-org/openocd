@@ -439,9 +439,26 @@ int flash_write_unlock(struct target *target, struct image *image,
 		{
 			if (image->sections[section_last + 1].base_address < (run_address + run_size))
 			{
-				LOG_DEBUG("section %d out of order(very slightly surprising, but supported)", section_last + 1);
+				LOG_DEBUG("section %d out of order "
+						"(surprising, but supported)",
+						section_last + 1);
+				/* REVISIT this can break with autoerase ...
+				 * clobbering data after it's written.
+				 */
 				break;
 			}
+
+			/* REVISIT This needlessly touches sectors BETWEEN the
+			 * sections it's writing.  Without auto erase, it just
+			 * writes ones; unlikely to destroy data.
+			 *
+			 * With auto erase enabled, data in those sectors will
+			 * be needlessly destroyed; and some of the limited
+			 * number of flash erase cycles will be wasted...
+			 *
+			 * In both cases, the extra writes slow things down.
+			 */
+
 			/* if we have multiple sections within our image, flash programming could fail due to alignment issues
 			 * attempt to rebuild a consecutive buffer for the flash loader */
 			pad_bytes = (image->sections[section_last + 1].base_address) - (run_address + run_size);
@@ -450,7 +467,6 @@ int flash_write_unlock(struct target *target, struct image *image,
 			padding[section_last] = pad_bytes;
 			run_size += image->sections[++section_last].size;
 			run_size += pad_bytes;
-			padding[section_last] = 0;
 
 			LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
 		}
@@ -458,9 +474,33 @@ int flash_write_unlock(struct target *target, struct image *image,
 		/* fit the run into bank constraints */
 		if (run_address + run_size - 1 > c->base + c->size - 1)
 		{
+			/* REVISIT isn't this superfluous, given the while()
+			 * loop conditions above??
+			 */
 			LOG_WARNING("writing %d bytes only - as image section is %d bytes and bank is only %d bytes", \
 				    (int)(c->base + c->size - run_address), (int)(run_size), (int)(c->size));
 			run_size = c->base + c->size - run_address;
+		}
+
+		/* If we're applying any sector automagic, then pad this
+		 * (maybe-combined) segment to the end of its last sector.
+		 */
+		if (unlock || erase) {
+			int sector;
+			uint32_t offset_start = run_address - c->base;
+			uint32_t offset_end = offset_start + run_size;
+			uint32_t end = offset_end, delta;
+
+			for (sector = 0; sector < c->num_sectors; sector++) {
+				end = c->sectors[sector].offset
+						+ c->sectors[sector].size;
+				if (offset_end <= end)
+					break;
+			}
+
+			delta = end - offset_end;
+			padding[section_last] += delta;
+			run_size += delta;
 		}
 
 		/* allocate buffer */

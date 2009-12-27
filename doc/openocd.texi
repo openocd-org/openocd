@@ -3857,8 +3857,29 @@ explicitly as @option{bin} (binary), @option{ihex} (Intel hex),
 The relevant flash sectors will be erased prior to programming
 if the @option{erase} parameter is given. If @option{unlock} is
 provided, then the flash banks are unlocked before erase and
-program. The flash bank to use is inferred from the @var{address} of
-each image segment.
+program. The flash bank to use is inferred from the address of
+each image section.
+
+@quotation Warning
+Be careful using the @option{erase} flag when the flash is holding
+data you want to preserve.
+Portions of the flash outside those described in the image's
+sections might be erased with no notice.
+@itemize
+@item
+When a section of the image being written does not fill out all the
+sectors it uses, the unwritten parts of those sectors are necessarily
+also erased, because sectors can't be partially erased.
+@item
+Data stored in sector "holes" between image sections are also affected.
+For example, "@command{flash write_image erase ...}" of an image with
+one byte at the beginning of a flash bank and one byte at the end
+erases the entire bank -- not just the two sectors being written.
+@end itemize
+Also, when flash protection is important, you must re-apply it after
+it has been removed by the @option{unlock} flag.
+@end quotation
+
 @end deffn
 
 @section Other Flash commands
