@@ -52,6 +52,9 @@ Board, Target, and Interface Configuration Scripts:
 	ARM9
 		- ETM and ETB hookup for iMX2* targets
 	Add $HOME/.openocd to the search path.
+	Handle Rev C of LM3S811 eval boards.
+		- use "luminary-lm3s811.cfg" for older boards
+		- use "luminary.cfg" for RevC and newer
 
 Core Jim/TCL Scripting:
 	New 'usage' command to provide terse command help.

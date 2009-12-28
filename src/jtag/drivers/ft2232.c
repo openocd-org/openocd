@@ -2182,6 +2182,11 @@ static int usbjtag_init(void)
 	}
 	else if (strcmp(ft2232_layout, "evb_lm3s811") == 0)
 	{
+		/* There are multiple revisions of LM3S811 eval boards:
+		 * - Rev B (and older?) boards have no SWO trace support.
+		 * - Rev C boards add ADBUS_6 DBG_ENn and BDBUS_4 SWO_EN;
+		 *   they should use the "luminary_icdi" layout instead.
+		 */
 		nTRST = 0x0;
 		nTRSTnOE = 0x00;
 		nSRST = 0x20;
@@ -2191,6 +2196,9 @@ static int usbjtag_init(void)
 	}
 	else if (strcmp(ft2232_layout, "luminary_icdi") == 0)
 	{
+		/* Most Luminary eval boards support SWO trace output,
+		 * and should use this "luminary_icdi" layout.
+		 */
 		nTRST = 0x0;
 		nTRSTnOE = 0x00;
 		nSRST = 0x20;

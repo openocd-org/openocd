@@ -288,10 +288,17 @@ chips are starting to become available in JTAG adapters.
 @* See: @url{http://www.oocdlink.com} By Joern Kaipf
 @item @b{signalyzer}
 @* See: @url{http://www.signalyzer.com}
-@item @b{evb_lm3s811}
-@* See: @url{http://www.luminarymicro.com} - The Stellaris LM3S811 eval board has an FTD2232C chip built in.
-@item @b{luminary_icdi}
-@* See: @url{http://www.luminarymicro.com} - Luminary In-Circuit Debug Interface (ICDI) Board, included in the Stellaris LM3S9B90 and LM3S9B92 Evaluation Kits.
+@item @b{Stellaris Eval Boards}
+@* See: @url{http://www.luminarymicro.com} - The Stellaris eval boards
+bundle FT2232-based JTAG and SWD support, which can be used to debug
+the Stellaris chips.  Using separate JTAG adapters is optional.
+These boards can also be used as JTAG adapters to other target boards,
+disabling the Stellaris chip.
+@item @b{Luminary ICDI}
+@* See: @url{http://www.luminarymicro.com} - Luminary In-Circuit Debug
+Interface (ICDI) Boards are included in Stellaris LM3S9B90 and LM3S9B92
+Evaluation Kits.  Like the non-detachable FT2232 support on the other
+Stellaris eval boards, they can be used to debug other target boards.
 @item @b{olimex-jtag}
 @* See: @url{http://www.olimex.com}
 @item @b{flyswatter}
@@ -1962,7 +1969,12 @@ Currently valid layout @var{name} values include:
 @item @b{evb_lm3s811} Luminary Micro EVB_LM3S811 as a JTAG interface,
 either for the local Cortex-M3 (SRST only)
 or in a passthrough mode (neither SRST nor TRST)
-@item @b{luminary_icdi} Luminary In-Circuit Debug Interface (ICDI) Board
+This layout can not support the SWO trace mechanism, and should be
+used only for older boards (before rev C).
+@item @b{luminary_icdi} This layout should be used with most Luminary
+eval boards, including Rev C LM3S811 eval boards and the eponymous
+ICDI boards, to debug either the local Cortex-M3 or in passthrough mode
+to debug some other target.  It can support the SWO trace mechanism.
 @item @b{flyswatter} Tin Can Tools Flyswatter
 @item @b{icebear} ICEbear JTAG adapter from Section 5
 @item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
