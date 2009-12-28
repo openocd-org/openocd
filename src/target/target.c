@@ -2488,7 +2488,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX,
-				"dumped %zu bytes in %fs (%0.3f kb/s)", fileio.size,
+				"dumped %ld bytes in %fs (%0.3f kb/s)", (long)fileio.size,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
 
