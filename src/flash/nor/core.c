@@ -316,6 +316,7 @@ static int flash_iterate_address_range(struct target *target,
 	/** @todo: handle erasures that cross into adjacent banks */
 
 	addr -= c->base;
+	last_addr -= c->base;
 
 	for (i = 0; i < c->num_sectors; i++)
 	{
