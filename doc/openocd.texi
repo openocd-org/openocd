@@ -3757,14 +3757,14 @@ Use it in board specific configuration files, not interactively.
 @comment the REAL name for this command is "ocd_flash_banks"
 @comment less confusing would be:  "flash list" (like "nand list")
 @deffn Command {flash banks}
-Prints a one-line summary of each device that was 
+Prints a one-line summary of each device that was
 declared using @command{flash bank}, numbered from zero.
 Note that this is the @emph{plural} form;
 the @emph{singular} form is a very different command.
 @end deffn
 
 @deffn Command {flash list}
-Retrieves a list of associative arrays for each device that was 
+Retrieves a list of associative arrays for each device that was
 declared using @command{flash bank}, numbered from zero.
 This returned list can be manipulated easily from within scripts.
 @end deffn
@@ -4914,28 +4914,28 @@ nand device $NANDFLASH at91sam9 $CHIPNAME 0x40000000 0xfffffe800
 @end example
 AT91SAM9 chips support single-bit ECC hardware. The @code{write_page} and
 @code{read_page} methods are used to utilize the ECC hardware unless they are
-disabled by using the @command{nand raw_access} command.  There are four 
+disabled by using the @command{nand raw_access} command.  There are four
 additional commands that are needed to fully configure the AT91SAM9 NAND
 controller.  Two are optional; most boards use the same wiring for ALE/CLE:
 @deffn Command {at91sam9 cle} num addr_line
-Configure the address line used for latching commands.  The @var{num} 
+Configure the address line used for latching commands.  The @var{num}
 parameter is the value shown by @command{nand list}.
 @end deffn
 @deffn Command {at91sam9 ale} num addr_line
-Configure the address line used for latching addresses.  The @var{num} 
+Configure the address line used for latching addresses.  The @var{num}
 parameter is the value shown by @command{nand list}.
 @end deffn
 
-For the next two commands, it is assumed that the pins have already been 
+For the next two commands, it is assumed that the pins have already been
 properly configured for input or output.
 @deffn Command {at91sam9 rdy_busy} num pio_base_addr pin
-Configure the RDY/nBUSY input from the NAND device.  The @var{num} 
-parameter is the value shown by @command{nand list}.  @var{pio_base_addr} 
+Configure the RDY/nBUSY input from the NAND device.  The @var{num}
+parameter is the value shown by @command{nand list}.  @var{pio_base_addr}
 is the base address of the PIO controller and @var{pin} is the pin number.
 @end deffn
 @deffn Command {at91sam9 ce} num pio_base_addr pin
-Configure the chip enable input to the NAND device.  The @var{num} 
-parameter is the value shown by @command{nand list}.  @var{pio_base_addr} 
+Configure the chip enable input to the NAND device.  The @var{num}
+parameter is the value shown by @command{nand list}.  @var{pio_base_addr}
 is the base address of the PIO controller and @var{pin} is the pin number.
 @end deffn
 @end deffn
@@ -5824,7 +5824,7 @@ and using the MCR instruction.
 an ARM register.)
 @end deffn
 
-@deffn Command {arm mrc} pX coproc op1 CRn CRm op2 
+@deffn Command {arm mrc} pX coproc op1 CRn CRm op2
 Read a coprocessor @var{pX} register passing parameters @var{CRn},
 @var{CRm}, opcodes @var{opc1} and @var{opc2},
 and the MRC instruction.
@@ -5843,7 +5843,7 @@ core mode if necessary.
 @cindex ARMv5
 
 The ARMv4 and ARMv5 architectures are widely used in embedded systems,
-and introduced core parts of the instruction set in use today. 
+and introduced core parts of the instruction set in use today.
 That includes the Thumb instruction set, introduced in the ARMv4T
 variant.
 

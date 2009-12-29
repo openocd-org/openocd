@@ -399,7 +399,7 @@ affect its behavior:
 
 @section releasetutorial Release Tutorials
 
-This section should contain a brief tutorial for using the Release 
+This section should contain a brief tutorial for using the Release
 Script to perform release tasks, but the new script needs to be
 used for 0.3.0.
 

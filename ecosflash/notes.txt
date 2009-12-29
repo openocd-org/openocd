@@ -1,4 +1,4 @@
-Some of these binaries are build & linked using eCos. 
+Some of these binaries are build & linked using eCos.
 
 For source for the flash drivers, see:
 

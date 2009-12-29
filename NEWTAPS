@@ -30,7 +30,7 @@ Version Number Changes:
   not a big deal.  Please do report this information.  We'd like to
   know about it.
 
-  For example 
+  For example
 
 Error:  ERROR: Tap: s3c4510.cpu - Expected id: 0x3f0f0f0f, Got: 0x1f0f0f0f
 Error:  ERROR: expected: mfg: 0x787, part: 0xf0f0, ver: 0x3
@@ -39,7 +39,7 @@ Error:  ERROR:      got: mfg: 0x787, part: 0xf0f0, ver: 0x1
 ========================================
 
 Updating the Tap ID number your self
- 
+
   Why do this? You just want the warning to go away.  And don't want
   to update your version/instance of OpenOCD.
 
@@ -79,11 +79,11 @@ Examples:
     0x3f0f0f0f - is a newer ARM7TDMI
     0x3ba00477 - is an ARM cortex M3
 
-Some chips have multiple JTAG taps - be sure to list 
+Some chips have multiple JTAG taps - be sure to list
 each one individually - ORDER is important!
 
 ========================================
-B) The maker of the part 
+B) The maker of the part
 
 Examples:
     Xilinx, Atmel, ST Micro Systems, Freescale
@@ -94,7 +94,7 @@ C) The family of parts it belongs to
 Examples:
    "NXP LPC Series"
    "Atmel SAM7 Series"
-   
+
 ========================================
 
 D) The actual part number on the package
@@ -121,7 +121,7 @@ For example: A consumer GPS unit or a cellphone
         ie: Olimex, LogicPD, Freescale(eval board)
 
 ========================================
-	 
+
 (G)   Identifying information on the board.
 
       Not good:   "iar red ST eval board"

@@ -32,7 +32,7 @@ in response to feedback.
 Add yourself to the GPL copyright for non-trivial changes.
 
 To create a patch from the command line:
-@code 
+@code
 	git diff >mypatch.txt
 @endcode
 

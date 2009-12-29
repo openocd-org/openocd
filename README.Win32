@@ -27,8 +27,8 @@ based JTAG debuggers.
 
 	http://sourceforge.net/projects/libusb-win32/
 
-You need to download the libusb-win32-device-bin-0.1.12.2.tar.gz 
-package.  Extract this file into a temp directory. 
+You need to download the libusb-win32-device-bin-0.1.12.2.tar.gz
+package.  Extract this file into a temp directory.
 
 Copy the file libusb-win32-device-bin-0.1.12.2\include\usb.h
 to your MinGW include directory.
@@ -59,10 +59,10 @@ released source tarball or the git tree.
 If you are using the git tree, the following are the instructions from
 README.mingw. You will need to have the cmake utility installed.
 
-- Edit Toolchain-mingw32.cmake to point to the correct MinGW 
+- Edit Toolchain-mingw32.cmake to point to the correct MinGW
   installation.
 - Create a build directory like "mkdir build-win32", e.g in ../libftdi/
-- cd into that directory and run  
+- cd into that directory and run
   "cmake -DCMAKE_TOOLCHAIN_FILE=../Toolchain-mingw32.cmake .."
 - Copy src/ftdi.h to your MinGW include directory.
 - Copy build-win32/src/*.a to your MinGW lib directory.

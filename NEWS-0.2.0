@@ -9,7 +9,7 @@ must past stricter value checks, and many more error conditions have
 been handled correctly.  These efforts helped to make the 0.2.0 release
 more stable and robust, though some changes may expose latent bugs in
 your existing configuration scripts.
- 
+
 This release does not maintain backward compatibility in all respects,
 so some target or configuration scripts may need to be updated.  In some
 cases, you may also see warnings; resolve those, because they indicate
@@ -20,7 +20,7 @@ The following areas of OpenOCD functionality changed in this release:
 JTAG Layer:
 - Improves modularity: core, TCL, driver commands, and interface have
   been separated, encapsulated, and documented for developers.  Mostly.
-- Improves JTAG TAP transition tables: 
+- Improves JTAG TAP transition tables:
    * Makes TAP paths variable length, rather than being fixed at 7 steps.
    * Fixes problems with some targets that did not like longer paths.
 - Improves JTAG driver/minidriver modularity and encapsulation.

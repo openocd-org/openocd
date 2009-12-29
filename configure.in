@@ -559,7 +559,7 @@ case $host in
       AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
     fi
     parport_use_giveio=yes
-    
+
     CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO"
 
     AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])

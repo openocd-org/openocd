@@ -22,7 +22,7 @@ that may be important.
 - If the report is for a regression:
   - Include logs for both working and broken versions.
   - Find the precise version that caused the regression by binary search.
-    You can use "git bisect" to expedite this binary search:  
+    You can use "git bisect" to expedite this binary search:
     http://www.kernel.org/pub/software/scm/git/docs/git-bisect.html
 
 If possible, please develop and attach a patch that helps to expose or
@@ -36,7 +36,7 @@ in total.
 @section bugscrashdump Obtaining Crash Backtraces
 
 If OpenOCD is crashing, there are two very effective things you can do to
-improve your chances of getting help on the development mailing list. 
+improve your chances of getting help on the development mailing list.
 
 Try to reproduce the problem using the dummy JTAG interface to allow other developers to replicate
 your problem robustly and use GDB to get a trace:@par

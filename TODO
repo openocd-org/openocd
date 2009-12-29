@@ -27,8 +27,8 @@ This section provides possible things to improve with OpenOCD's TCL support.
   parameters.  Currently variables assigned through one such parameter
   command/script are unset before the next one is invoked.
 
-- Isolate all TCL command support: 
-  - Pure C CLI implementations using --disable-builtin-tcl. 
+- Isolate all TCL command support:
+  - Pure C CLI implementations using --disable-builtin-tcl.
     - Allow developers to build new dongles using OpenOCD's JTAG core.
     - At first, provide only low-level JTAG support; target layer and
       above rely heavily on scripting event mechanisms.
@@ -112,7 +112,7 @@ TCP/IP packets handled by the server.
 
 @section thelistswd Serial Wire Debug
 
-- implement Serial Wire Debug interface 
+- implement Serial Wire Debug interface
 
 @section thelistbs Boundary Scan Support
 
@@ -163,7 +163,7 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   use hardware stepping if available.
   - mdb can return garbage data if read byte operation fails for
   a memory region(16 & 32 byte access modes may be supported). Is this
-  a bug in the .MX31 PDK init script? Try on i.MX31 PDK: 
+  a bug in the .MX31 PDK init script? Try on i.MX31 PDK:
   mdw 0xb80005f0 0x8, mdh 0xb80005f0 0x10, mdb 0xb80005f0 0x20. mdb returns
   garabage.
   - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
@@ -197,8 +197,8 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
 
 @section thelistsvf SVF/XSVF
 
-- develop SVF unit tests 
-- develop XSVF unit tests 
+- develop SVF unit tests
+- develop XSVF unit tests
 
 @section thelistflash Flash Support
 
@@ -328,7 +328,7 @@ at the bottom of the list below.  Example, on amd64:
   from unaligned memory addresses
 - libopenocd support: @par
     https://lists.berlios.de/pipermail/openocd-development/2009-May/006405.html
-- review and clean up interface/target/flash APIs 
+- review and clean up interface/target/flash APIs
 
 The following strategic tasks will require ambition, knowledge, and time
 to complete:

@@ -7,7 +7,7 @@ tcl with embedded html.
 
 sh build.sh
 
-xalan.jar can be gotten from apache.org. 
+xalan.jar can be gotten from apache.org.
 
 
 2. libmicrohttpd is a bit tricky to build under Cygwin:

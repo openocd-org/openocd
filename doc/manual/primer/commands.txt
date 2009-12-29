@@ -55,7 +55,7 @@ static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 @endcode
 
 Of course, you may also call other macros or functions, but that extends
-beyond the scope of this tutorial on writing commands. 
+beyond the scope of this tutorial on writing commands.
 
 @section primercmdreg Command Registration
 

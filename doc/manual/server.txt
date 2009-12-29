@@ -320,6 +320,6 @@ openocd -s /usr/local/share/openocd -f httpd/httpd.tcl -f interface/dummy.cfg -f
 
 Navigate to: http://localhost:8888/
 
- 
+
 
  */
