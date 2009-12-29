@@ -62,6 +62,7 @@
 #include "rom.h"
 
 #ifdef CYGPKG_HAL_NIOS2
+#include <cyg/hal/io.h>
 #define ZY1000_SER_DEV "/dev/uart_0"
 #else
 #define ZY1000_SER_DEV "/dev/ser0"
@@ -145,7 +146,14 @@ static void zylinjtag_reboot(cyg_addrword_t data)
 	diag_printf("Unmounting /config..\n");
 	umount("/config");
 	diag_printf("Rebooting..\n");
+#ifdef CYGPKG_HAL_NIOS2
+	/* This will reboot & reconfigure the FPGA from the bootloader
+	 * and on.
+	 */
+	IOWR(REMOTE_UPDATE_BASE, 0x20, 0x1);
+#else
 	HAL_PLATFORM_RESET();
+#endif
 }
 static cyg_thread zylinjtag_thread_object;
 static cyg_handle_t zylinjtag_thread_handle;
