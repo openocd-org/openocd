@@ -1097,7 +1097,7 @@ int main(int argc, char *argv[])
 			NULL, NULL);
 #endif
 
-	Jim_CreateCommand(httpstate.jim_interp, "uart", zylinjtag_Jim_Command_uart, NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "zy1000_uart", zylinjtag_Jim_Command_uart, NULL, NULL);
 
 
 	log_init();
