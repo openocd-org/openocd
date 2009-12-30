@@ -834,6 +834,12 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	struct reg *vector_catch;
 	uint32_t vector_catch_value;
 
+	if (!target_was_examined(target))
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
 	/* it's uncommon, but some ARM7 chips can support this */
 	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC
 			|| !arm7_9->has_vector_catch) {
