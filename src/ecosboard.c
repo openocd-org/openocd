@@ -995,6 +995,20 @@ int main(int argc, char *argv[])
 
 	copydir("/rom", "/ram/cgi");
 
+#ifdef CYGPKG_HAL_NIOS2
+	cyg_flashaddr_t err_address;
+#define UNCACHED_EXT_FLASH_BASE (0x80000000 + EXT_FLASH_BASE)
+	/* The revc flash is locked upon reset, unlock it */
+#ifdef CYGHWR_IO_FLASH_BLOCK_LOCKING
+	if ((err = flash_unlock((void *) UNCACHED_EXT_FLASH_BASE, EXT_FLASH_SPAN,
+			(void **) &err_address)) != 0)
+	{
+		diag_printf("Error: could not unlock flash\n");
+	}
+#endif
+#endif
+
+
 	err = mount("/dev/flash1", "/config", "jffs2");
 	if (err < 0)
 	{
