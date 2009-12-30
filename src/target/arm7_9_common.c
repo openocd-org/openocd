@@ -2797,6 +2797,12 @@ COMMAND_HANDLER(handle_arm7_9_semihosting_command)
 
 		COMMAND_PARSE_ENABLE(CMD_ARGV[0], semihosting);
 
+		if (!target_was_examined(target))
+		{
+			LOG_ERROR("Target not examined yet");
+			return ERROR_FAIL;
+		}
+
 		if (arm7_9->has_vector_catch) {
 			struct reg *vector_catch = &arm7_9->eice_cache
 					->reg_list[EICE_VEC_CATCH];
