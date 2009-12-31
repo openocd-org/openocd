@@ -960,18 +960,45 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 COMMAND_HANDLER(handle_help_command)
 {
 	bool full = strcmp(CMD_NAME, "help") == 0;
-
+	int retval;
 	struct command *c = CMD_CTX->commands;
+	char *match = NULL;
 
-	const char *match = "";
 	if (CMD_ARGC == 0)
 		match = "";
-	else if (CMD_ARGC == 1)
-		match = CMD_ARGV[0]; 
-	else
+	else if (CMD_ARGC >= 1) {
+		unsigned i;
+
+		for (i = 0; i < CMD_ARGC; ++i) {
+			if (NULL != match) {
+				char *prev = match;
+
+				match = alloc_printf("%s %s", match,
+						CMD_ARGV[i]);
+				free(prev);
+				if (NULL == match) {
+					LOG_ERROR("unable to build "
+							"search string");
+					return -ENOMEM;
+				}
+			} else {
+				match = alloc_printf("%s", CMD_ARGV[i]);
+				if (NULL == match) {
+					LOG_ERROR("unable to build "
+							"search string");
+					return -ENOMEM;
+				}
+			}
+		}
+	} else
 		return ERROR_COMMAND_SYNTAX_ERROR;
-		
-	return CALL_COMMAND_HANDLER(command_help_show_list, c, 0, full, match);
+
+	retval = CALL_COMMAND_HANDLER(command_help_show_list,
+			c, 0, full, match);
+
+	if (CMD_ARGC >= 1)
+		free(match);
+	return retval;
 }
 
 static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
