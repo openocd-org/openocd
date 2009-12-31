@@ -152,7 +152,11 @@ PDF form is likewise published at:
 
 @section OpenOCD User's Forum
 
-There is an OpenOCD forum (phpBB) hosted by SparkFun:
+There is an OpenOCD forum (phpBB) hosted by SparkFun,
+which might be helpful to you.  Note that if you want
+anything to come to the attention of developers, you
+should post it to the OpenOCD Developer Mailing List
+instead of this forum.
 
 @uref{http://forum.sparkfun.com/viewforum.php?f=18}
 
