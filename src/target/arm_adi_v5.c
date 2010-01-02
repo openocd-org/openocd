@@ -7,7 +7,7 @@
  *                                                                         *
  *   Copyright (C) 2009 by Oyvind Harboe                                   *
  *   oyvind.harboe@zylin.com                                               *
- *																		   *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -23,16 +23,34 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-/***************************************************************************
- *                                                                         *
- * This file implements support for the ARM Debug Interface v5  (ADI_V5)   *
- *                                                                         *
- * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031A  *
- *                                                                         *
- * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316D                               *
- * Cortex-M3(tm) TRM, ARM DDI 0337G                                        *
- *                                                                         *
-***************************************************************************/
+
+/**
+ * @file
+ * This file implements support for the ARM Debug Interface version 5 (ADIv5)
+ * debugging architecture.  Compared with previous versions, this includes
+ * a low pin-count Serial Wire Debug (SWD) alternative to JTAG for message
+ * transport, and focusses on memory mapped resources as defined by the
+ * CoreSight architecture.
+ *
+ * A key concept in ADIv5 is the Debug Access Port, or DAP.  A DAP has two
+ * basic components:  a Debug Port (DP) transporting messages to and from a
+ * debugger, and an Access Port (AP) accessing resources.  Three types of DP
+ * are defined.  One uses only JTAG for communication, and is called JTAG-DP.
+ * One uses only SWD for communication, and is called SW-DP.  The third can
+ * use either SWD or JTAG, and is called SWJ-DP.  The most common type of AP
+ * is used to access memory mapped resources and is called a MEM-AP.  Also a
+ * JTAG-AP is also defined, bridging to JTAG resources; those are uncommon.
+ */
+
+/*
+ * Relevant specifications from ARM include:
+ *
+ * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031A
+ * CoreSight(tm) v1.0 Architecture Specification            ARM IHI 0029B
+ *
+ * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316D
+ * Cortex-M3(tm) TRM, ARM DDI 0337G
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -950,6 +968,13 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, u
 	return retval;
 }
 
+/**
+ * Initialize a DAP.
+ *
+ * @todo Rename this.  We also need an initialization scheme which account
+ * for SWD transports not just JTAG; that will need to address differences
+ * in layering.  (JTAG is useful without any debug target; but not SWD.)
+ */
 int ahbap_debugport_init(struct swjdp_common *swjdp)
 {
 	uint32_t idreg, romaddr, dummy;
@@ -959,9 +984,17 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 
 	LOG_DEBUG(" ");
 
+	/* Default MEM-AP setup.
+	 *
+	 * REVISIT AP #0 may be an inappropriate default for this.
+	 * Should we probe, or receve a hint from the caller?
+	 * Presumably we can ignore the possibility of multiple APs.
+	 */
 	swjdp->apsel = 0;
 	swjdp->ap_csw_value = -1;
 	swjdp->ap_tar_value = -1;
+
+	/* DP initialization */
 	swjdp->trans_mode = TRANS_MODE_ATOMIC;
 	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
 	dap_dp_write_reg(swjdp, SSTICKYERR, DP_CTRL_STAT);
@@ -999,8 +1032,14 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	dap_dp_write_reg(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
 	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
 
-	dap_ap_read_reg_u32(swjdp, 0xFC, &idreg);
-	dap_ap_read_reg_u32(swjdp, 0xF8, &romaddr);
+	/*
+	 * REVISIT this isn't actually *initializing* anything in an AP,
+	 * and doesn't care if it's a MEM-AP at all (much less AHB-AP).
+	 * Should it?  If the ROM address is valid, is this the right
+	 * place to scan the table and do any topology detection?
+	 */
+	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &idreg);
+	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &romaddr);
 
 	LOG_DEBUG("AHB-AP ID Register 0x%" PRIx32 ", Debug ROM Address 0x%" PRIx32 "", idreg, romaddr);
 
@@ -1035,8 +1074,8 @@ int dap_info_command(struct command_context *cmd_ctx, struct swjdp_common *swjdp
 
 	apselold = swjdp->apsel;
 	dap_ap_select(swjdp, apsel);
-	dap_ap_read_reg_u32(swjdp, 0xF8, &dbgbase);
-	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &dbgbase);
+	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
 	swjdp_transaction_endcheck(swjdp);
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
@@ -1387,7 +1426,7 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apsel);
 
-	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
+	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &baseaddr);
 	retval = swjdp_transaction_endcheck(swjdp);
 	command_print(CMD_CTX, "0x%8.8" PRIx32, baseaddr);
 
@@ -1436,7 +1475,7 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 	}
 
 	dap_ap_select(swjdp, apsel);
-	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
 	retval = swjdp_transaction_endcheck(swjdp);
 	command_print(CMD_CTX, "ap %" PRIi32 " selected, identification register 0x%8.8" PRIx32,
 			apsel, apid);
@@ -1464,7 +1503,7 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apsel);
 
-	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
 	retval = swjdp_transaction_endcheck(swjdp);
 	command_print(CMD_CTX, "0x%8.8" PRIx32, apid);
 	if (apselsave != apsel)
