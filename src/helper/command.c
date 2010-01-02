@@ -580,6 +580,7 @@ static int run_command(struct command_context *context,
 
 	struct command_invocation cmd = {
 			.ctx = context,
+			.current = c,
 			.name = c->name,
 			.argc = num_words - 1,
 			.argv = words + 1,
