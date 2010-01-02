@@ -914,7 +914,7 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 	bool is_match = (strstr(cmd_name, match) != NULL) ||
 	((c->usage != NULL) && (strstr(c->usage, match) != NULL)) ||
 	((c->help != NULL) && (strstr(c->help, match) != NULL));
-	
+
 	if (is_match)
 	{
 		command_help_show_indent(n);
@@ -934,15 +934,27 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 
 	if (is_match && show_help)
 	{
-		const char *stage_msg;
-		switch (c->mode) {
-		case COMMAND_CONFIG: stage_msg = "CONFIG"; break;
-		case COMMAND_EXEC: stage_msg = "EXEC"; break;
-		case COMMAND_ANY: stage_msg = "CONFIG or EXEC"; break;
-		default: stage_msg = "***UNKNOWN***"; break;
-		}
-		char *msg = alloc_printf("%s%sValid Modes: %s",
-			c->help ? : "", c->help ? "  " : "", stage_msg);
+		char *msg;
+
+		/* Normal commands are runtime-only; highlight exceptions */
+		if (c->mode != COMMAND_EXEC) {
+			const char *stage_msg = "";
+
+			switch (c->mode) {
+			case COMMAND_CONFIG:
+				stage_msg = " (configuration command)";
+				break;
+			case COMMAND_ANY:
+				stage_msg = " (command valid any time)";
+				break;
+			default:
+				stage_msg = " (?mode error?)";
+				break;
+			}
+			msg = alloc_printf("%s%s", c->help ? : "", stage_msg);
+		} else
+			msg = alloc_printf("%s", c->help ? : "");
+
 		if (NULL != msg)
 		{
 			command_help_show_wrap(msg, n + 3, n + 3);

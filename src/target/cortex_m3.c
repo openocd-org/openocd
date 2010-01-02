@@ -2003,7 +2003,7 @@ static const struct command_registration cortex_m3_command_handlers[] = {
 	},
 	{
 		.name = "cortex_m3",
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_EXEC,
 		.help = "Cortex-M3 command group",
 		.chain = cortex_m3_exec_command_handlers,
 	},

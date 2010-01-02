@@ -4866,7 +4866,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "fast_load",
 		.handler = &handle_fast_load_command,
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_EXEC,
 		.help = "loads active fast load image to current target "
 			"- mainly for profiling purposes",
 	},

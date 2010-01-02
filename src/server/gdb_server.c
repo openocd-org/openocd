@@ -2272,6 +2272,7 @@ static int gdb_target_start(struct target *target, uint16_t port)
 	return ERROR_OK;
 }
 
+/* FIXME static */
 int gdb_target_add_one(struct target *target)
 {
 	if (gdb_port == 0 && server_use_pipes == 0)
@@ -2420,7 +2421,7 @@ static const struct command_registration gdb_command_handlers[] = {
 	{
 		.name = "gdb_port",
 		.handler = &handle_gdb_port_command,
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_CONFIG,
 		.help = "daemon configuration command gdb_port",
 		.usage = "<port>",
 	},

@@ -177,7 +177,7 @@ static const struct command_registration trace_exec_command_handlers[] = {
 static const struct command_registration trace_command_handlers[] = {
 	{
 		.name = "trace",
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_EXEC,
 		.help = "trace command group",
 		.chain = trace_exec_command_handlers,
 	},

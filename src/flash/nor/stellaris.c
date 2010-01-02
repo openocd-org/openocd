@@ -1182,7 +1182,7 @@ static const struct command_registration stellaris_exec_command_handlers[] = {
 static const struct command_registration stellaris_command_handlers[] = {
 	{
 		.name = "stellaris",
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_EXEC,
 		.help = "Stellaris flash command group",
 		.chain = stellaris_exec_command_handlers,
 	},

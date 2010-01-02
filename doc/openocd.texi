@@ -1630,9 +1630,14 @@ supported.
 When the OpenOCD server process starts up, it enters a
 @emph{configuration stage} which is the only time that
 certain commands, @emph{configuration commands}, may be issued.
+Normally, configuration commands are only available
+inside startup scripts.
+
 In this manual, the definition of a configuration command is
 presented as a @emph{Config Command}, not as a @emph{Command}
 which may be issued interactively.
+The runtime @command{help} command also highlights configuration
+commands, and those which may be issued at any time.
 
 Those configuration commands include declaration of TAPs,
 flash banks,
@@ -5093,13 +5098,15 @@ port is 5555.
 Exits the current telnet session.
 @end deffn
 
-@c note EXTREMELY ANNOYING word wrap at column 75
-@c even when lines are e.g. 100+ columns ...
-@c coded in startup.tcl
 @deffn {Command} help [string]
 With no parameters, prints help text for all commands.
 Otherwise, prints each helptext containing @var{string}.
 Not every command provides helptext.
+
+Configuration commands, and commands valid at any time, are
+explicitly noted in parenthesis.
+In most cases, no such restriction is listed; this indicates commands
+which are only available after the configuration stage has completed.
 @end deffn
 
 @deffn Command sleep msec [@option{busy}]
