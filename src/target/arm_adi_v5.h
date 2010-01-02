@@ -32,8 +32,11 @@
 
 #include "arm_jtag.h"
 
-#define DAP_IR_DPACC	0xA
-#define DAP_IR_APACC	0xB
+/* JTAG instructions/registers for JTAG-DP and SWJ-DP */
+#define JTAG_DP_ABORT		0x8
+#define JTAG_DP_DPACC		0xA
+#define JTAG_DP_APACC		0xB
+#define JTAG_DP_IDCODE		0xE
 
 #define DPAP_WRITE		0
 #define DPAP_READ		1
