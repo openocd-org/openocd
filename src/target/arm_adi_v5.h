@@ -134,20 +134,16 @@ static inline uint8_t dap_ap_get_select(struct swjdp_common *swjdp)
 	return (uint8_t)(swjdp ->apsel >> 24);
 }
 
-/* Internal functions used in the module, partial transactions, use with caution */
-int dap_dp_write_reg(struct swjdp_common *swjdp, uint32_t value, uint8_t reg_addr);
-/* int swjdp_write_apacc(struct swjdp_common *swjdp, uint32_t value, uint8_t reg_addr); */
-int dap_dp_read_reg(struct swjdp_common *swjdp, uint32_t *value, uint8_t reg_addr);
-/* int swjdp_read_apacc(struct swjdp_common *swjdp, uint32_t *value, uint8_t reg_addr); */
-int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar);
+/* Queued transactions -- use with care */
+int dap_setup_accessport(struct swjdp_common *swjdp,
+		uint32_t csw, uint32_t tar);
 int dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel);
+int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
+		uint32_t addr, uint32_t value);
+int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
+		uint32_t addr, uint32_t *value);
 
-int dap_ap_write_reg(struct swjdp_common *swjdp, uint32_t addr, uint8_t* out_buf);
-int dap_ap_write_reg_u32(struct swjdp_common *swjdp, uint32_t addr, uint32_t value);
-int dap_ap_read_reg(struct swjdp_common *swjdp, uint32_t addr, uint8_t *in_buf);
-int dap_ap_read_reg_u32(struct swjdp_common *swjdp, uint32_t addr, uint32_t *value);
-
-/* External interface, partial operations must be completed with swjdp_transaction_endcheck() */
+/* Queued transactions must be completed with swjdp_transaction_endcheck() */
 int swjdp_transaction_endcheck(struct swjdp_common *swjdp);
 
 /* MEM-AP memory mapped bus single uint32_t register transfers, without endcheck */

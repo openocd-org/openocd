@@ -89,7 +89,9 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
 ***************************************************************************/
 
 /* Scan out and in from target ordered uint8_t buffers */
-int adi_jtag_dp_scan(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
+static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
+		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
+		uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
 {
 	struct arm_jtag *jtag_info = swjdp->jtag_info;
 	struct scan_field fields[2];
@@ -119,7 +121,9 @@ int adi_jtag_dp_scan(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr
 }
 
 /* Scan out and in from host ordered uint32_t variables */
-int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue, uint8_t *ack)
+static int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp,
+		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
+		uint32_t outvalue, uint32_t *invalue, uint8_t *ack)
 {
 	struct arm_jtag *jtag_info = swjdp->jtag_info;
 	struct scan_field fields[2];
@@ -161,7 +165,9 @@ int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_
 }
 
 /* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */
-int scan_inout_check(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint8_t *outvalue, uint8_t *invalue)
+static int scan_inout_check(struct swjdp_common *swjdp,
+		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
+		uint8_t *outvalue, uint8_t *invalue)
 {
 	adi_jtag_dp_scan(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
 
@@ -179,7 +185,9 @@ int scan_inout_check(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr
 	return ERROR_OK;
 }
 
-int scan_inout_check_u32(struct swjdp_common *swjdp, uint8_t instr, uint8_t reg_addr, uint8_t RnW, uint32_t outvalue, uint32_t *invalue)
+static int scan_inout_check_u32(struct swjdp_common *swjdp,
+		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
+		uint32_t outvalue, uint32_t *invalue)
 {
 	adi_jtag_dp_scan_u32(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
 
@@ -305,12 +313,14 @@ int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
  *                                                                         *
 ***************************************************************************/
 
-int dap_dp_write_reg(struct swjdp_common *swjdp, uint32_t value, uint8_t reg_addr)
+static int dap_dp_write_reg(struct swjdp_common *swjdp,
+		uint32_t value, uint8_t reg_addr)
 {
 	return scan_inout_check_u32(swjdp, DAP_IR_DPACC, reg_addr, DPAP_WRITE, value, NULL);
 }
 
-int dap_dp_read_reg(struct swjdp_common *swjdp, uint32_t *value, uint8_t reg_addr)
+static int dap_dp_read_reg(struct swjdp_common *swjdp,
+		uint32_t *value, uint8_t reg_addr)
 {
 	return scan_inout_check_u32(swjdp, DAP_IR_DPACC, reg_addr, DPAP_READ, 0, value);
 }
@@ -332,7 +342,7 @@ int dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
 	return ERROR_OK;
 }
 
-int dap_dp_bankselect(struct swjdp_common *swjdp,uint32_t ap_reg)
+static int dap_dp_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
 {
 	uint32_t select;
 	select = (ap_reg & 0x000000F0);
@@ -346,7 +356,8 @@ int dap_dp_bankselect(struct swjdp_common *swjdp,uint32_t ap_reg)
 	return ERROR_OK;
 }
 
-int dap_ap_write_reg(struct swjdp_common *swjdp, uint32_t reg_addr, uint8_t* out_value_buf)
+static int dap_ap_write_reg(struct swjdp_common *swjdp,
+		uint32_t reg_addr, uint8_t *out_value_buf)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
 	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
@@ -354,13 +365,6 @@ int dap_ap_write_reg(struct swjdp_common *swjdp, uint32_t reg_addr, uint8_t* out
 	return ERROR_OK;
 }
 
-int dap_ap_read_reg(struct swjdp_common *swjdp, uint32_t reg_addr, uint8_t *in_value_buf)
-{
-	dap_dp_bankselect(swjdp, reg_addr);
-	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_READ, 0, in_value_buf);
-
-	return ERROR_OK;
-}
 int dap_ap_write_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t value)
 {
 	uint8_t out_value_buf[4];
@@ -534,7 +538,8 @@ int mem_ap_write_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 	return retval;
 }
 
-int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+static int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp,
+		uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -630,7 +635,8 @@ int mem_ap_write_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 	return retval;
 }
 
-int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+static int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp,
+		uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -800,7 +806,8 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 	return retval;
 }
 
-int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+static int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp,
+		uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
@@ -895,7 +902,8 @@ int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
  * The solution is to arrange for a large out/in scan in this loop and
  * and convert data afterwards.
  */
-int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+static int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp,
+		uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
