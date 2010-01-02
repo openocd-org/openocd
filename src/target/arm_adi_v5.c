@@ -1075,7 +1075,7 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 int dap_info_command(struct command_context *cmd_ctx, struct swjdp_common *swjdp, int apsel)
 {
 
-	uint32_t dbgbase,apid;
+	uint32_t dbgbase, apid;
 	int romtable_present = 0;
 	uint8_t mem_ap;
 	uint32_t apselold;
@@ -1087,25 +1087,31 @@ int dap_info_command(struct command_context *cmd_ctx, struct swjdp_common *swjdp
 	swjdp_transaction_endcheck(swjdp);
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
-	command_print(cmd_ctx, "ap identification register 0x%8.8" PRIx32 "", apid);
+	command_print(cmd_ctx, "AP ID register 0x%8.8" PRIx32, apid);
 	if (apid)
 	{
 		switch (apid&0x0F)
 		{
 			case 0:
-				command_print(cmd_ctx, "\tType is jtag-ap");
+				command_print(cmd_ctx, "\tType is JTAG-AP");
 				break;
 			case 1:
-				command_print(cmd_ctx, "\tType is mem-ap AHB");
+				command_print(cmd_ctx, "\tType is MEM-AP AHB");
 				break;
 			case 2:
-				command_print(cmd_ctx, "\tType is mem-ap APB");
+				command_print(cmd_ctx, "\tType is MEM-AP APB");
 				break;
 			default:
-				command_print(cmd_ctx, "\tUnknown AP-type");
-			break;
+				command_print(cmd_ctx, "\tUnknown AP type");
+				break;
 		}
-		command_print(cmd_ctx, "ap debugbase 0x%8.8" PRIx32 "", dbgbase);
+
+		/* NOTE: a MEM-AP may have a single CoreSight component that's
+		 * not a ROM table ... or have no such components at all.
+		 */
+		if (mem_ap)
+			command_print(cmd_ctx, "AP BASE 0x%8.8" PRIx32,
+					dbgbase);
 	}
 	else
 	{
