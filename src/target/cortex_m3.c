@@ -42,6 +42,9 @@
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
+ * Some differences:  M0/M1 doesn't have FBP remapping or the
+ * DWT tracing/profiling support.  (So the cycle counter will
+ * not be usable; the other stuff isn't currently used here.)
  *
  * Although there are some workarounds for errata seen only in r0p0
  * silicon, such old parts are hard to find and thus not much tested
@@ -579,7 +582,7 @@ static void cortex_m3_enable_breakpoints(struct target *target)
 	/* set any pending breakpoints */
 	while (breakpoint)
 	{
-		if (breakpoint->set == 0)
+		if (!breakpoint->set)
 			cortex_m3_set_breakpoint(target, breakpoint);
 		breakpoint = breakpoint->next;
 	}
@@ -936,16 +939,25 @@ cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	else if (breakpoint->type == BKPT_SOFT)
 	{
 		uint8_t code[4];
+
+		/* NOTE: on ARMv6-M and ARMv7-M, BKPT(0xab) is used for
+		 * semihosting; don't use that.  Otherwise the BKPT
+		 * parameter is arbitrary.
+		 */
 		buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
-		if ((retval = target_read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
-		{
+		retval = target_read_memory(target,
+				breakpoint->address & 0xFFFFFFFE,
+				breakpoint->length, 1,
+				breakpoint->orig_instr);
+		if (retval != ERROR_OK)
 			return retval;
-		}
-		if ((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code)) != ERROR_OK)
-		{
+		retval = target_write_memory(target,
+				breakpoint->address & 0xFFFFFFFE,
+				breakpoint->length, 1,
+				code);
+		if (retval != ERROR_OK)
 			return retval;
-		}
-		breakpoint->set = 0x11; /* Any nice value but 0 */
+		breakpoint->set = true;
 	}
 
 	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
@@ -1008,7 +1020,7 @@ cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 			}
 		}
 	}
-	breakpoint->set = 0;
+	breakpoint->set = false;
 
 	return ERROR_OK;
 }
@@ -1187,7 +1199,7 @@ cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 	target_write_u32(target, comparator->dwt_comparator_address + 8,
 			comparator->function);
 
-	watchpoint->set = 0;
+	watchpoint->set = false;
 
 	return ERROR_OK;
 }
@@ -1273,7 +1285,7 @@ static void cortex_m3_enable_watchpoints(struct target *target)
 	/* set any pending watchpoints */
 	while (watchpoint)
 	{
-		if (watchpoint->set == 0)
+		if (!watchpoint->set)
 			cortex_m3_set_watchpoint(target, watchpoint);
 		watchpoint = watchpoint->next;
 	}
@@ -1647,7 +1659,8 @@ static int cortex_m3_examine(struct target *target)
 			return retval;
 
 		if (((cpuid >> 4) & 0xc3f) == 0xc23)
-			LOG_DEBUG("CORTEX-M3 processor detected");
+			LOG_DEBUG("Cortex-M3 r%dp%d processor detected",
+				(cpuid >> 20) & 0xf, (cpuid >> 0) & 0xf);
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
 		/* NOTE: FPB and DWT are both optional. */
