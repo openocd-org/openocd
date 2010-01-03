@@ -577,7 +577,7 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
 		.usage = "<port_num>",
 	},
 	{
-		.name = "parport_port",
+		.name = "rtck",
 		.handler = &amt_jtagaccel_handle_rtck_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable RTCK",
