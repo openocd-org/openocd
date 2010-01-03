@@ -55,13 +55,41 @@ static int rtck_enabled = 0;
 #if PARPORT_USE_PPDEV == 1
 static int device_handle;
 
-static int addr_mode = IEEE1284_MODE_EPP | IEEE1284_ADDR ;
-#define AMT_AW(val)	do { ioctl(device_handle, PPSETMODE, &addr_mode); write(device_handle, &val, 1); } while (0)
-#define AMT_AR(val)	do { ioctl(device_handle, PPSETMODE, &addr_mode); read(device_handle, &val, 1); } while (0)
+static const int addr_mode = IEEE1284_MODE_EPP | IEEE1284_ADDR;
 
-static int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA ;
-#define AMT_DW(val)	do { ioctl(device_handle, PPSETMODE, &data_mode); write(device_handle, &val, 1); } while (0)
-#define AMT_DR(val)	do { ioctl(device_handle, PPSETMODE, &data_mode); read(device_handle, &val, 1); } while (0)
+/* FIXME do something sane when these ioctl/read/write calls fail. */
+
+#define AMT_AW(val) \
+	do { \
+		int __retval; \
+		\
+		__retval = ioctl(device_handle, PPSETMODE, &addr_mode); \
+		__retval = write(device_handle, &val, 1); \
+	} while (0)
+#define AMT_AR(val) \
+	do { \
+		int __retval; \
+		\
+		__retval = ioctl(device_handle, PPSETMODE, &addr_mode); \
+		__retval = read(device_handle, &val, 1); \
+	} while (0)
+
+static const int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA;
+
+#define AMT_DW(val) \
+	do { \
+		int __retval; \
+		\
+		__retval = ioctl(device_handle, PPSETMODE, &data_mode); \
+		__retval = write(device_handle, &val, 1); \
+	} while (0)
+#define AMT_DR(val) \
+	do { \
+		int __retval; \
+		\
+		__retval = ioctl(device_handle, PPSETMODE, &data_mode); \
+		__retval = read(device_handle, &val, 1); \
+	} while (0)
 
 #else
 
@@ -559,10 +587,11 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
 };
 
 struct jtag_interface amt_jtagaccel_interface = {
-		.name = "amt_jtagaccel",
-		.commands = amtjtagaccel_command_handlers,
-		.init = &amt_jtagaccel_init,
-		.quit = &amt_jtagaccel_quit,
-		.speed = &amt_jtagaccel_speed,
-		.execute_queue = &amt_jtagaccel_execute_queue,
-	};
+	.name = "amt_jtagaccel",
+	.commands = amtjtagaccel_command_handlers,
+
+	.init = amt_jtagaccel_init,
+	.quit = amt_jtagaccel_quit,
+	.speed = amt_jtagaccel_speed,
+	.execute_queue = amt_jtagaccel_execute_queue,
+};
