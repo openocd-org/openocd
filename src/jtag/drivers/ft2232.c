@@ -33,7 +33,7 @@
  * popular low cost JTAG debug solutions.  Many FT2232 based JTAG adapters
  * are discrete, but development boards may integrate them as alternatives
  * to more capable (and expensive) third party JTAG pods.  Since JTAG uses
- * only one of the two parts on these devices, on integrated boards the
+ * only one of the two ports on these devices, on integrated boards the
  * second port often serves as a USB-to-serial adapter for the target's
  * console UART even when the JTAG port is not in use.  (Systems which
  * support ARM's SWD in addition to JTAG, or instead of it, may use that
