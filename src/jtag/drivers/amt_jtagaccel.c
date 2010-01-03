@@ -22,8 +22,6 @@
 #endif
 
 #include <jtag/interface.h>
-#include <jtag/commands.h>
-
 
 #if PARPORT_USE_PPDEV == 1
 #include <linux/parport.h>
@@ -40,6 +38,15 @@
 #include <windows.h>
 #endif
 #endif
+
+/**
+ * @file
+ * Support the Amontec Chameleon POD with JTAG Accelerator support.
+ * This is a parallel port JTAG adapter with a CPLD between the
+ * parallel port and the JTAG connection.  VHDL code running in the
+ * CPLD significantly accelerates JTAG operations compared to the
+ * bitbanging "Wiggler" style of most parallel port adapters.
+ */
 
 /* configuration */
 static uint16_t amt_jtagaccel_port;
@@ -573,15 +580,21 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
 		.name = "parport_port",
 		.handler = &amt_jtagaccel_handle_parport_port_command,
 		.mode = COMMAND_CONFIG,
-		.help = "configure the parallel port to use",
-		.usage = "<port_num>",
+		.help = "configure or display the parallel port to use",
+		.usage = "[port_num]",
 	},
 	{
+		/**
+		 * @todo Remove this "rtck" command; just use the standard
+		 * mechanism to enable/disable adaptive clocking.  First
+		 * implement the standard mechanism and deprecate "rtck";
+		 * after a year or so, it'll be safe to remove this.
+		 */
 		.name = "rtck",
 		.handler = &amt_jtagaccel_handle_rtck_command,
 		.mode = COMMAND_CONFIG,
-		.help = "enable RTCK",
-		.usage = "<enable|disable>",
+		.help = "configure or display RTCK support",
+		.usage = "[enable|disable]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
