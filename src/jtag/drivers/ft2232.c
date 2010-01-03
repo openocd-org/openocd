@@ -27,13 +27,40 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
-/* This code uses information contained in the MPSSE specification which was
+/**
+ * @file
+ * JTAG adapters based on the FT2232 full and high speed USB parts are
+ * popular low cost JTAG debug solutions.  Many FT2232 based JTAG adapters
+ * are discrete, but development boards may integrate them as alternatives
+ * to more capable (and expensive) third party JTAG pods.  Since JTAG uses
+ * only one of the two parts on these devices, on integrated boards the
+ * second port often serves as a USB-to-serial adapter for the target's
+ * console UART even when the JTAG port is not in use.  (Systems which
+ * support ARM's SWD in addition to JTAG, or instead of it, may use that
+ * second port for reading SWV trace data.)
+ *
+ * FT2232 based JTAG adapters are "dumb" not "smart", because most JTAG
+ * request/response interactions involve round trips over the USB link.
+ * A "smart" JTAG adapter has intelligence close to the scan chain, so it
+ * can for example poll quickly for a status change (usually taking on the
+ * order of microseconds not milliseconds) before beginning a queued
+ * transaction which require the previous one to have completed.
+ *
+ * There are dozens of adapters of this type, differing in details which
+ * this driver needs to understand.  Those "layout" details are required
+ * as part of FT2232 driver configuration.
+ *
+ * This code uses information contained in the MPSSE specification which was
  * found here:
  * http://www.ftdichip.com/Documents/AppNotes/AN2232C-01_MPSSE_Cmnd.pdf
  * Hereafter this is called the "MPSSE Spec".
  *
  * The datasheet for the ftdichip.com's FT2232D part is here:
  * http://www.ftdichip.com/Documents/DataSheets/DS_FT2232D.pdf
+ *
+ * Also note the issue with code 0x4b (clock data to TMS) noted in
+ * http://developer.intra2net.com/mailarchive/html/libftdi/2009/msg00292.html
+ * which can affect longer JTAG state paths.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,7 +69,6 @@
 
 /* project specific includes */
 #include <jtag/interface.h>
-#include <jtag/commands.h>
 #include <helper/time_support.h>
 
 #if IS_CYGWIN == 1
@@ -3983,14 +4009,14 @@ static const struct command_registration ft2232_command_handlers[] = {
 		.handler = &ft2232_handle_device_desc_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB device description of the FTDI FT2232 device",
-		.usage = "<description>",
+		.usage = "description_string",
 	},
 	{
 		.name = "ft2232_serial",
 		.handler = &ft2232_handle_serial_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the serial number of the FTDI FT2232 device",
-		.usage = "<serial#>",
+		.usage = "serial_string",
 	},
 	{
 		.name = "ft2232_layout",
@@ -3998,21 +4024,21 @@ static const struct command_registration ft2232_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the layout of the FT2232 GPIO signals used "
 			"to control output-enables and reset signals",
-		.usage = "<layout>",
+		.usage = "layout_name",
 	},
 	{
 		.name = "ft2232_vid_pid",
 		.handler = &ft2232_handle_vid_pid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "the vendor ID and product ID of the FTDI FT2232 device",
-		.usage = "<vid> <pid> [...]",
+		.usage = "(vid pid)* ",
 	},
 	{
 		.name = "ft2232_latency",
 		.handler = &ft2232_handle_latency_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the FT2232 latency timer to a new value",
-		.usage = "<vid> <pid> [...]",
+		.usage = "value",
 	},
 	COMMAND_REGISTRATION_DONE
 };
