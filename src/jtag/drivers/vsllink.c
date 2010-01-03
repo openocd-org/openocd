@@ -1891,13 +1891,13 @@ static const struct command_registration vsllink_command_handlers[] = {
 };
 
 struct jtag_interface vsllink_interface = {
-		.name = "vsllink",
-		.commands = vsllink_command_handlers,
+	.name = "vsllink",
+	.commands = vsllink_command_handlers,
 
-		.init = &vsllink_init,
-		.quit = &vsllink_quit,
-		.khz = &vsllink_khz,
-		.speed = &vsllink_speed,
-		.speed_div = &vsllink_speed_div,
-		.execute_queue = &vsllink_execute_queue,
-	};
+	.init = vsllink_init,
+	.quit = vsllink_quit,
+	.khz = vsllink_khz,
+	.speed = vsllink_speed,
+	.speed_div = vsllink_speed_div,
+	.execute_queue = vsllink_execute_queue,
+};

@@ -786,15 +786,13 @@ static int presto_jtag_quit(void)
 }
 
 struct jtag_interface presto_interface = {
-		.name = "presto",
+	.name = "presto",
+	.commands = presto_command_handlers,
 
-		.commands = presto_command_handlers,
-
-		.execute_queue = &bitq_execute_queue,
-		.speed = &presto_jtag_speed,
-		.khz = &presto_jtag_khz,
-		.speed_div = &presto_jtag_speed_div,
-
-		.init = &presto_jtag_init,
-		.quit = &presto_jtag_quit,
-	};
+	.execute_queue = bitq_execute_queue,
+	.speed = presto_jtag_speed,
+	.khz = presto_jtag_khz,
+	.speed_div = presto_jtag_speed_div,
+	.init = presto_jtag_init,
+	.quit = presto_jtag_quit,
+};

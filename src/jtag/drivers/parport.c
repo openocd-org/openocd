@@ -517,16 +517,13 @@ static const struct command_registration parport_command_handlers[] = {
 };
 
 struct jtag_interface parport_interface = {
-		.name = "parport",
+	.name = "parport",
+	.commands = parport_command_handlers,
 
-		.commands = parport_command_handlers,
-
-		.init = &parport_init,
-		.quit = &parport_quit,
-
-		.khz = &parport_khz,
-		.speed_div = &parport_speed_div,
-		.speed = &parport_speed,
-
-		.execute_queue = &bitbang_execute_queue,
-	};
+	.init = parport_init,
+	.quit = parport_quit,
+	.khz = parport_khz,
+	.speed_div = parport_speed_div,
+	.speed = parport_speed,
+	.execute_queue = bitbang_execute_queue,
+};

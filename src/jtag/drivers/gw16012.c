@@ -574,10 +574,11 @@ static const struct command_registration gw16012_command_handlers[] = {
 };
 
 struct jtag_interface gw16012_interface = {
-		.name = "gw16012",
-		.commands = gw16012_command_handlers,
-		.init = &gw16012_init,
-		.quit = &gw16012_quit,
-		.speed = &gw16012_speed,
-		.execute_queue = &gw16012_execute_queue,
-	};
+	.name = "gw16012",
+	.commands = gw16012_command_handlers,
+
+	.init = gw16012_init,
+	.quit = gw16012_quit,
+	.speed = gw16012_speed,
+	.execute_queue = gw16012_execute_queue,
+};

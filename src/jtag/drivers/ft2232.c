@@ -4018,12 +4018,13 @@ static const struct command_registration ft2232_command_handlers[] = {
 };
 
 struct jtag_interface ft2232_interface = {
-		.name = "ft2232",
-		.commands = ft2232_command_handlers,
-		.init = &ft2232_init,
-		.quit = &ft2232_quit,
-		.speed = &ft2232_speed,
-		.speed_div = &ft2232_speed_div,
-		.khz = &ft2232_khz,
-		.execute_queue = &ft2232_execute_queue,
-	};
+	.name = "ft2232",
+	.commands = ft2232_command_handlers,
+
+	.init = ft2232_init,
+	.quit = ft2232_quit,
+	.speed = ft2232_speed,
+	.speed_div = ft2232_speed_div,
+	.khz = ft2232_khz,
+	.execute_queue = ft2232_execute_queue,
+};

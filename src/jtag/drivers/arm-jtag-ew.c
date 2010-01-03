@@ -513,17 +513,15 @@ static const struct command_registration armjtagew_command_handlers[] = {
 };
 
 struct jtag_interface armjtagew_interface = {
-		.name = "arm-jtag-ew",
+	.name = "arm-jtag-ew",
+	.commands = armjtagew_command_handlers,
 
-		.commands = armjtagew_command_handlers,
-
-		.execute_queue = &armjtagew_execute_queue,
-		.speed = &armjtagew_speed,
-		.khz = &armjtagew_khz,
-
-		.init = &armjtagew_init,
-		.quit = &armjtagew_quit,
-	};
+	.execute_queue = armjtagew_execute_queue,
+	.speed = armjtagew_speed,
+	.khz = armjtagew_khz,
+	.init = armjtagew_init,
+	.quit = armjtagew_quit,
+};
 
 /***************************************************************************/
 /* ARM-JTAG-EW tap functions */

@@ -645,18 +645,16 @@ static const struct command_registration jlink_command_handlers[] = {
 };
 
 struct jtag_interface jlink_interface = {
-		.name = "jlink",
+	.name = "jlink",
+	.commands = jlink_command_handlers,
 
-		.commands = jlink_command_handlers,
-
-		.execute_queue = &jlink_execute_queue,
-		.speed = &jlink_speed,
-		.speed_div = &jlink_speed_div,
-		.khz = &jlink_khz,
-
-		.init = &jlink_init,
-		.quit = &jlink_quit,
-	};
+	.execute_queue = jlink_execute_queue,
+	.speed = jlink_speed,
+	.speed_div = jlink_speed_div,
+	.khz = jlink_khz,
+	.init = jlink_init,
+	.quit = jlink_quit,
+};
 
 /***************************************************************************/
 /* J-Link tap functions */
