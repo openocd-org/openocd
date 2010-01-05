@@ -215,7 +215,10 @@ int interface_jtag_add_dr_scan(int in_num_fields, const struct scan_field *in_fi
 
 		if (!tap->bypass)
 		{
-			struct scan_field * start_field = field;	/* keep initial position for assert() */
+#ifndef NDEBUG
+			/* remember initial position for assert() */
+			struct scan_field *start_field = field;
+#endif /* NDEBUG */
 
 			for (int j = 0; j < in_num_fields; j++)
 			{
