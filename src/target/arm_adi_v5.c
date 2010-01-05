@@ -195,8 +195,12 @@ static int scan_inout_check_u32(struct swjdp_common *swjdp,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint32_t outvalue, uint32_t *invalue)
 {
+	/* Issue the read or write */
 	adi_jtag_dp_scan_u32(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
 
+	/* For reads,  collect posted value; RDBUFF has no other effect.
+	 * Assumes read gets acked with OK/FAULT, and CTRL_STAT says "OK".
+	 */
 	if ((RnW == DPAP_READ) && (invalue != NULL))
 		adi_jtag_dp_scan_u32(swjdp, JTAG_DP_DPACC,
 				DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
@@ -235,6 +239,9 @@ int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
 	/* Why??? second time it works??? */
 #endif
 
+	/* Post CTRL/STAT read; discard any previous posted read value
+	 * but collect its ACK status.
+	 */
 	scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 			DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -787,13 +794,18 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 				DPAP_READ, 0, NULL, NULL);
 		for (readcount = 0; readcount < blocksize - 1; readcount++)
 		{
-			/* Scan out read instruction and scan in previous value */
+			/* Scan out next read; scan in posted value for the
+			 * previous one.  Assumes read is acked "OK/FAULT",
+			 * and CTRL_STAT says that meant "OK".
+			 */
 			adi_jtag_dp_scan(swjdp, JTAG_DP_APACC, AP_REG_DRW,
 					DPAP_READ, 0, buffer + 4 * readcount,
 					&swjdp->ack);
 		}
 
-		/* Scan in last value */
+		/* Scan in last posted value; RDBUFF has no other effect,
+		 * assuming ack is OK/FAULT and CTRL_STAT says "OK".
+		 */
 		adi_jtag_dp_scan(swjdp, JTAG_DP_DPACC, DP_RDBUFF,
 				DPAP_READ, 0, buffer + 4 * readcount,
 				&swjdp->ack);
