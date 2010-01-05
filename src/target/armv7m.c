@@ -731,7 +731,12 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apsel);
 
-	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
+	/* NOTE:  assumes we're talking to a MEM-AP, which
+	 * has a base address.  There are other kinds of AP,
+	 * though they're not common for now.  This should
+	 * use the ID register to verify it's a MEM-AP.
+	 */
+	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &baseaddr);
 	retval = swjdp_transaction_endcheck(swjdp);
 	command_print(CMD_CTX, "0x%8.8" PRIx32 "", baseaddr);
 
