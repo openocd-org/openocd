@@ -38,6 +38,10 @@
 #define JTAG_DP_APACC		0xB
 #define JTAG_DP_IDCODE		0xE
 
+/* three-bit ACK values for DPACC and APACC reads */
+#define JTAG_ACK_OK_FAULT	0x2
+#define JTAG_ACK_WAIT		0x1
+
 #define DPAP_WRITE		0
 #define DPAP_READ		1
 

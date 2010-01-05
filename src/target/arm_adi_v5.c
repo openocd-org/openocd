@@ -249,12 +249,14 @@ int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
 
 	swjdp->ack = swjdp->ack & 0x7;
 
-	if (swjdp->ack != 2)
+	/* common code path avoids calling timeval_ms() */
+	if (swjdp->ack != JTAG_ACK_OK_FAULT)
 	{
 		long long then = timeval_ms();
-		while (swjdp->ack != 2)
+
+		while (swjdp->ack != JTAG_ACK_OK_FAULT)
 		{
-			if (swjdp->ack == 1)
+			if (swjdp->ack == JTAG_ACK_WAIT)
 			{
 				if ((timeval_ms()-then) > 1000)
 				{
@@ -280,9 +282,6 @@ int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
 				return retval;
 			swjdp->ack = swjdp->ack & 0x7;
 		}
-	} else
-	{
-		/* common code path avoids fn to timeval_ms() */
 	}
 
 	/* Check for STICKYERR and STICKYORUN */
