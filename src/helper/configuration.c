@@ -115,8 +115,10 @@ int parse_config_file(struct command_context *cmd_ctx)
 	int retval;
 	char **cfg;
 
-	if (!config_file_names)
-		add_config_command ("script openocd.cfg");
+	if (!config_file_names) {
+		command_run_line(cmd_ctx, "script openocd.cfg");
+		return ERROR_OK;
+	}
 
 	cfg = config_file_names;
 
