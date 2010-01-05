@@ -2421,8 +2421,9 @@ static const struct command_registration gdb_command_handlers[] = {
 	{
 		.name = "gdb_port",
 		.handler = &handle_gdb_port_command,
-		.mode = COMMAND_CONFIG,
-		.help = "daemon configuration command gdb_port",
+		.mode = COMMAND_ANY,
+		.help = "daemon configuration command gdb_port. No arguments reports "
+				"GDB port.",
 		.usage = "<port>",
 	},
 	{
