@@ -968,15 +968,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	/* write program into RAM */
 	mips32_pracc_write_mem32(ejtag_info, source->address, ARRAY_SIZE(handler_code), handler_code);
 
-	/* quick verify RAM is working */
-	mips32_pracc_read_u32(ejtag_info, source->address, &val);
-	if (val != handler_code[0])
-	{
-		LOG_ERROR("fastdata handler verify failed\n");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	LOG_INFO("%s using 0x%.8x for write handler\n", __func__, source->address);
+	LOG_DEBUG("%s using 0x%.8x for write handler\n", __func__, source->address);
 
 	jmp_code[1] |= UPPER16(source->address);
 	jmp_code[2] |= LOWER16(source->address);
