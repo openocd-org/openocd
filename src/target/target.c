@@ -45,8 +45,10 @@
 #include "image.h"
 
 
-static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
-static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv);
+static int target_array2mem(Jim_Interp *interp, struct target *target,
+		int argc, Jim_Obj *const *argv);
+static int target_mem2array(Jim_Interp *interp, struct target *target,
+		int argc, Jim_Obj *const *argv);
 
 /* targets */
 extern struct target_type arm7tdmi_target;
@@ -2960,7 +2962,8 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 	fclose(f);
 }
 
-/* profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC */
+/* profiling samples the CPU PC as quickly as OpenOCD is able,
+ * which will be used as a random sampling of PC */
 COMMAND_HANDLER(handle_profile_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -2975,6 +2978,12 @@ COMMAND_HANDLER(handle_profile_command)
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], offset);
 
 	timeval_add_time(&timeout, offset, 0);
+
+	/**
+	 * @todo: Some cores let us sample the PC without the
+	 * annoying halt/resume step; for example, ARMv7 PCSR.
+	 * Provide a way to use that more efficient mechanism.
+	 */
 
 	command_print(CMD_CTX, "Starting profiling. Halting and resuming the target as often as we can...");
 
@@ -3287,7 +3296,9 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	return target_array2mem(interp,target, argc-1, argv + 1);
 }
-static int target_array2mem(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv)
+
+static int target_array2mem(Jim_Interp *interp, struct target *target,
+		int argc, Jim_Obj *const *argv)
 {
 	long l;
 	uint32_t width;
@@ -3789,11 +3800,13 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 	return JIM_OK;
 }
 
-static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int
+jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	Jim_GetOptInfo goi;
+
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
-	goi.isconfigure = strcmp(Jim_GetString(argv[0], NULL), "configure") == 0;
+	goi.isconfigure = !strcmp(Jim_GetString(argv[0], NULL), "configure");
 	int need_args = 1 + goi.isconfigure;
 	if (goi.argc < need_args)
 	{
@@ -3988,13 +4001,15 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-static int jim_target_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_target_mem2array(Jim_Interp *interp,
+		int argc, Jim_Obj *const *argv)
 {
 	struct target *target = Jim_CmdPrivData(interp);
 	return target_mem2array(interp, target, argc - 1, argv + 1);
 }
 
-static int jim_target_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_target_array2mem(Jim_Interp *interp,
+		int argc, Jim_Obj *const *argv)
 {
 	struct target *target = Jim_CmdPrivData(interp);
 	return target_array2mem(interp, target, argc - 1, argv + 1);
@@ -4219,108 +4234,123 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "configure",
 		.mode = COMMAND_CONFIG,
-		.jim_handler = &jim_target_configure,
-		.usage = "[<target_options> ...]",
+		.jim_handler = jim_target_configure,
 		.help  = "configure a new target for use",
+		.usage = "[target_attribute ...]",
 	},
 	{
 		.name = "cget",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_configure,
-		.usage = "<target_type> [<target_options> ...]",
-		.help  = "configure a new target for use",
+		.jim_handler = jim_target_configure,
+		.help  = "returns the specified target attribute",
+		.usage = "target_attribute",
 	},
 	{
 		.name = "mww",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_mw,
-		.usage = "<address> <data> [<count>]",
+		.jim_handler = jim_target_mw,
 		.help = "Write 32-bit word(s) to target memory",
+		.usage = "address data [count]",
 	},
 	{
 		.name = "mwh",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_mw,
-		.usage = "<address> <data> [<count>]",
+		.jim_handler = jim_target_mw,
 		.help = "Write 16-bit half-word(s) to target memory",
+		.usage = "address data [count]",
 	},
 	{
 		.name = "mwb",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_mw,
-		.usage = "<address> <data> [<count>]",
+		.jim_handler = jim_target_mw,
 		.help = "Write byte(s) to target memory",
+		.usage = "address data [count]",
 	},
 	{
 		.name = "mdw",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_md,
-		.usage = "<address> [<count>]",
+		.jim_handler = jim_target_md,
 		.help = "Display target memory as 32-bit words",
+		.usage = "address [count]",
 	},
 	{
 		.name = "mdh",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_md,
-		.usage = "<address> [<count>]",
+		.jim_handler = jim_target_md,
 		.help = "Display target memory as 16-bit half-words",
+		.usage = "address [count]",
 	},
 	{
 		.name = "mdb",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_md,
-		.usage = "<address> [<count>]",
+		.jim_handler = jim_target_md,
 		.help = "Display target memory as 8-bit bytes",
+		.usage = "address [count]",
 	},
 	{
 		.name = "array2mem",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_array2mem,
+		.jim_handler = jim_target_array2mem,
+		.help = "Writes Tcl array of 8/16/32 bit numbers "
+			"to target memory",
+		.usage = "arrayname bitwidth address count",
 	},
 	{
 		.name = "mem2array",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_mem2array,
+		.jim_handler = jim_target_mem2array,
+		.help = "Loads Tcl array of 8/16/32 bit numbers "
+			"from target memory",
+		.usage = "arrayname bitwidth address count",
 	},
 	{
 		.name = "eventlist",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_event_list,
+		.jim_handler = jim_target_event_list,
+		.help = "displays a table of events defined for this target",
 	},
 	{
 		.name = "curstate",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_current_state,
+		.jim_handler = jim_target_current_state,
+		.help = "displays the current state of this target",
 	},
 	{
 		.name = "arp_examine",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_examine,
+		.jim_handler = jim_target_examine,
+		.help = "used internally for reset processing",
 	},
 	{
 		.name = "arp_poll",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_poll,
+		.jim_handler = jim_target_poll,
+		.help = "used internally for reset processing",
 	},
 	{
 		.name = "arp_reset",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_reset,
+		.jim_handler = jim_target_reset,
+		.help = "used internally for reset processing",
 	},
 	{
 		.name = "arp_halt",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_halt,
+		.jim_handler = jim_target_halt,
+		.help = "used internally for reset processing",
 	},
 	{
 		.name = "arp_waitstate",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_wait_state,
+		.jim_handler = jim_target_wait_state,
+		.help = "used internally for reset processing",
 	},
 	{
 		.name = "invoke-event",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_target_invoke_event,
+		.jim_handler = jim_target_invoke_event,
+		.help = "invoke handler for specified event",
+		.usage = "event_name",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -4472,7 +4502,7 @@ static int target_create(Jim_GetOptInfo *goi)
 		}
 		*tpp = target;
 	}
-	
+
 	/* now - create the new target name command */
 	const const struct command_registration target_subcommands[] = {
 		{
@@ -4615,50 +4645,53 @@ static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "init",
 		.mode = COMMAND_CONFIG,
-		.handler = &handle_target_init_command,
+		.handler = handle_target_init_command,
 		.help = "initialize targets",
 	},
 	{
 		.name = "create",
+		/* REVISIT this should be COMMAND_CONFIG ... */
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_create,
-		.usage = "<name> <type> ...",
-		.help = "Returns the currently selected target",
+		.jim_handler = jim_target_create,
+		.usage = "name type '-chain-position' name [options ...]",
+		.help = "Creates and selects a new target",
 	},
 	{
 		.name = "current",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_current,
+		.jim_handler = jim_target_current,
 		.help = "Returns the currently selected target",
 	},
 	{
 		.name = "types",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_types,
-		.help = "Returns the available target types as a list of strings",
+		.jim_handler = jim_target_types,
+		.help = "Returns the available target types as "
+				"a list of strings",
 	},
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_names,
+		.jim_handler = jim_target_names,
 		.help = "Returns the names of all targets as a list of strings",
 	},
 	{
 		.name = "number",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_number,
-		.usage = "<number>",
-		.help = "Returns the name of target <n>",
+		.jim_handler = jim_target_number,
+		.usage = "number",
+		.help = "Returns the name of the numbered target "
+			"(DEPRECATED)",
 	},
 	{
 		.name = "count",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_target_count,
-		.help = "Returns the number of targets as an integer",
+		.jim_handler = jim_target_count,
+		.help = "Returns the number of targets as an integer "
+			"(DEPRECATED)",
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
 
 struct FastLoad
 {
@@ -4833,11 +4866,11 @@ COMMAND_HANDLER(handle_fast_load_command)
 static const struct command_registration target_command_handlers[] = {
 	{
 		.name = "targets",
-		.handler = &handle_targets_command,
+		.handler = handle_targets_command,
 		.mode = COMMAND_ANY,
-		.help = "change current command line target (one parameter) "
-			"or list targets (no parameters)",
-		.usage = "[<new_current_target>]",
+		.help = "change current default target (one parameter) "
+			"or prints table of all targets (no parameters)",
+		.usage = "[target]",
 	},
 	{
 		.name = "target",
@@ -4857,69 +4890,75 @@ int target_register_commands(struct command_context *cmd_ctx)
 static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "fast_load_image",
-		.handler = &handle_fast_load_image_command,
+		.handler = handle_fast_load_image_command,
 		.mode = COMMAND_ANY,
-		.help = "Load image into memory, mainly for profiling purposes",
-		.usage = "<file> <address> ['bin'|'ihex'|'elf'|'s19'] "
-			"[min_address] [max_length]",
+		.help = "Load image into server memory for later use by "
+			"fast_load; primarily for profiling",
+		.usage = "filename address ['bin'|'ihex'|'elf'|'s19'] "
+			"[min_address [max_length]]",
 	},
 	{
 		.name = "fast_load",
-		.handler = &handle_fast_load_command,
+		.handler = handle_fast_load_command,
 		.mode = COMMAND_EXEC,
 		.help = "loads active fast load image to current target "
 			"- mainly for profiling purposes",
 	},
 	{
 		.name = "profile",
-		.handler = &handle_profile_command,
+		.handler = handle_profile_command,
 		.mode = COMMAND_EXEC,
 		.help = "profiling samples the CPU PC",
 	},
 	/** @todo don't register virt2phys() unless target supports it */
 	{
 		.name = "virt2phys",
-		.handler = &handle_virt2phys_command,
+		.handler = handle_virt2phys_command,
 		.mode = COMMAND_ANY,
 		.help = "translate a virtual address into a physical address",
+		.usage = "virual_address",
 	},
-
 	{
 		.name = "reg",
-		.handler = &handle_reg_command,
+		.handler = handle_reg_command,
 		.mode = COMMAND_EXEC,
-		.help = "display or set a register",
+		.help = "display or set a register; with no arguments, "
+			"displays all registers and their values",
+		.usage = "[(register_name|register_number) [value]]",
 	},
-
 	{
 		.name = "poll",
-		.handler = &handle_poll_command,
+		.handler = handle_poll_command,
 		.mode = COMMAND_EXEC,
-		.help = "poll target state",
+		.help = "poll target state; or reconfigure background polling",
+		.usage = "['on'|'off']",
 	},
 	{
 		.name = "wait_halt",
-		.handler = &handle_wait_halt_command,
+		.handler = handle_wait_halt_command,
 		.mode = COMMAND_EXEC,
-		.help = "wait for target halt",
-		.usage = "[time (s)]",
+		.help = "wait up to the specified number of milliseconds "
+			"(default 5) for a previously requested halt",
+		.usage = "[milliseconds]",
 	},
 	{
 		.name = "halt",
-		.handler = &handle_halt_command,
+		.handler = handle_halt_command,
 		.mode = COMMAND_EXEC,
-		.help = "halt target",
+		.help = "request target to halt, then wait up to the specified"
+			"number of milliseconds (default 5) for it to complete",
+		.usage = "[milliseconds]",
 	},
 	{
 		.name = "resume",
-		.handler = &handle_resume_command,
+		.handler = handle_resume_command,
 		.mode = COMMAND_EXEC,
-		.help = "resume target",
-		.usage = "[<address>]",
+		.help =	"resume target execution from current PC or address",
+		.usage = "[address]",
 	},
 	{
 		.name = "reset",
-		.handler = &handle_reset_command,
+		.handler = handle_reset_command,
 		.mode = COMMAND_EXEC,
 		.usage = "[run|halt|init]",
 		.help = "Reset all targets into the specified mode."
@@ -4927,133 +4966,127 @@ static const struct command_registration target_exec_command_handlers[] = {
 	},
 	{
 		.name = "soft_reset_halt",
-		.handler = &handle_soft_reset_halt_command,
+		.handler = handle_soft_reset_halt_command,
 		.mode = COMMAND_EXEC,
 		.help = "halt the target and do a soft reset",
 	},
 	{
-
 		.name = "step",
-		.handler = &handle_step_command,
+		.handler = handle_step_command,
 		.mode = COMMAND_EXEC,
-		.help =	"step one instruction from current PC or [addr]",
-		.usage = "[<address>]",
+		.help =	"step one instruction from current PC or address",
+		.usage = "[address]",
 	},
 	{
-
 		.name = "mdw",
-		.handler = &handle_md_command,
+		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
 		.help = "display memory words",
-		.usage = "[phys] <addr> [count]",
+		.usage = "['phys'] address [count]",
 	},
 	{
 		.name = "mdh",
-		.handler = &handle_md_command,
+		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
 		.help = "display memory half-words",
-		.usage = "[phys] <addr> [count]",
+		.usage = "['phys'] address [count]",
 	},
 	{
 		.name = "mdb",
-		.handler = &handle_md_command,
+		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
 		.help = "display memory bytes",
-		.usage = "[phys] <addr> [count]",
+		.usage = "['phys'] address [count]",
 	},
 	{
-
 		.name = "mww",
-		.handler = &handle_mw_command,
+		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
 		.help = "write memory word",
-		.usage = "[phys]  <addr> <value> [count]",
+		.usage = "['phys'] address value [count]",
 	},
 	{
 		.name = "mwh",
-		.handler = &handle_mw_command,
+		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
 		.help = "write memory half-word",
-		.usage = "[phys] <addr> <value> [count]",
+		.usage = "['phys'] address value [count]",
 	},
 	{
 		.name = "mwb",
-		.handler = &handle_mw_command,
+		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
 		.help = "write memory byte",
-		.usage = "[phys] <addr> <value> [count]",
+		.usage = "['phys'] address value [count]",
 	},
 	{
-
 		.name = "bp",
-		.handler = &handle_bp_command,
+		.handler = handle_bp_command,
 		.mode = COMMAND_EXEC,
-		.help = "list or set breakpoint",
-		.usage = "[<address> <length> [hw]]",
+		.help = "list or set hardware or software breakpoint",
+		.usage = "[address length ['hw']]",
 	},
 	{
 		.name = "rbp",
-		.handler = &handle_rbp_command,
+		.handler = handle_rbp_command,
 		.mode = COMMAND_EXEC,
 		.help = "remove breakpoint",
-		.usage = "<address>",
+		.usage = "address",
 	},
 	{
-
 		.name = "wp",
-		.handler = &handle_wp_command,
+		.handler = handle_wp_command,
 		.mode = COMMAND_EXEC,
-		.help = "list or set watchpoint",
-		.usage = "[<address> <length> <r/w/a> [value] [mask]]",
+		.help = "list (no params) or create watchpoints",
+		.usage = "[address length [('r'|'w'|'a') value [mask]]]",
 	},
 	{
 		.name = "rwp",
-		.handler = &handle_rwp_command,
+		.handler = handle_rwp_command,
 		.mode = COMMAND_EXEC,
 		.help = "remove watchpoint",
-		.usage = "<address>",
-
+		.usage = "address",
 	},
 	{
 		.name = "load_image",
-		.handler = &handle_load_image_command,
+		.handler = handle_load_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<file> <address> ['bin'|'ihex'|'elf'|'s19'] "
+		.usage = "filename address ['bin'|'ihex'|'elf'|'s19'] "
 			"[min_address] [max_length]",
 	},
 	{
 		.name = "dump_image",
-		.handler = &handle_dump_image_command,
+		.handler = handle_dump_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<file> <address> <size>",
+		.usage = "filename address size",
 	},
 	{
 		.name = "verify_image",
-		.handler = &handle_verify_image_command,
+		.handler = handle_verify_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<file> [offset] [type]",
+		.usage = "filename [offset [type]]",
 	},
 	{
 		.name = "test_image",
-		.handler = &handle_test_image_command,
+		.handler = handle_test_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<file> [offset] [type]",
+		.usage = "filename [offset [type]]",
 	},
 	{
 		.name = "ocd_mem2array",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_mem2array,
-		.help = "read memory and return as a TCL array "
+		.jim_handler = jim_mem2array,
+		.help = "read 8/16/32 bit memory and return as a TCL array "
 			"for script processing",
-		.usage = "<arrayname> <width=32|16|8> <address> <count>",
+		.usage = "arrayname bitwidth address count",
 	},
 	{
 		.name = "ocd_array2mem",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_array2mem,
+		.jim_handler = jim_array2mem,
 		.help = "convert a TCL array to memory locations "
-			"and write the values",
-		.usage = "<arrayname> <width=32|16|8> <address> <count>",
+			"and write the 8/16/32 bit values",
+		.usage = "arrayname bitwidth address count",
 	},
 	COMMAND_REGISTRATION_DONE
 };

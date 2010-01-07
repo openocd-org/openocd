@@ -159,18 +159,18 @@ COMMAND_HANDLER(handle_trace_history_command)
 static const struct command_registration trace_exec_command_handlers[] = {
 	{
 		.name = "history",
-		.handler = &handle_trace_history_command,
+		.handler = handle_trace_history_command,
 		.mode = COMMAND_EXEC,
-		.help = "display trace history, clear history or set [size]",
-		.usage = "[clear|<size>]",
+		.help = "display trace history, clear history or set size",
+		.usage = "['clear'|size]",
 	},
 	{
 		.name = "point",
-		.handler = &handle_trace_point_command,
+		.handler = handle_trace_point_command,
 		.mode = COMMAND_EXEC,
 		.help = "display trace points, clear list of trace points, "
-			"or add new tracepoint at [address]",
-		.usage = "[clear|<address>]",
+			"or add new tracepoint at address",
+		.usage = "['clear'|address]",
 	},
 	COMMAND_REGISTRATION_DONE
 };

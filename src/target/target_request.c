@@ -303,10 +303,10 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 static const struct command_registration target_req_exec_command_handlers[] = {
 	{
 		.name = "debugmsgs",
-		.handler = &handle_target_request_debugmsgs_command,
+		.handler = handle_target_request_debugmsgs_command,
 		.mode = COMMAND_EXEC,
-		.help = "set reception of debug messages from target",
-		.usage = "(enable|disable)",
+		.help = "display and/or modify reception of debug messages from target",
+		.usage = "['enable'|'charmsg'|'disable']",
 	},
 	COMMAND_REGISTRATION_DONE
 };
