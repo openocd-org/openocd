@@ -1004,7 +1004,7 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	if (retval != ERROR_OK)
 	{
 		/* FASTDATA access failed, try normal memory write */
-		LOG_WARNING("Fastdata access Failed, falling back to non-bulk write");
+		LOG_DEBUG("Fastdata access Failed, falling back to non-bulk write");
 		retval = mips_m4k_write_memory(target, address, 4, count, buffer);
 	}
 
