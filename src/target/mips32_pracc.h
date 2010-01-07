@@ -27,17 +27,17 @@
 
 #define MIPS32_PRACC_FASTDATA_AREA		0xFF200000
 #define MIPS32_PRACC_FASTDATA_SIZE		16
-#define MIPS32_PRACC_TEXT			0xFF200200
-#define MIPS32_PRACC_STACK			0xFF204000
-#define MIPS32_PRACC_PARAM_IN		0xFF201000
-#define MIPS32_PRACC_PARAM_IN_SIZE	0x1000
-#define MIPS32_PRACC_PARAM_OUT		(MIPS32_PRACC_PARAM_IN + MIPS32_PRACC_PARAM_IN_SIZE)
-#define MIPS32_PRACC_PARAM_OUT_SIZE	0x1000
+#define MIPS32_PRACC_TEXT				0xFF200200
+#define MIPS32_PRACC_STACK				0xFF204000
+#define MIPS32_PRACC_PARAM_IN			0xFF201000
+#define MIPS32_PRACC_PARAM_IN_SIZE		0x1000
+#define MIPS32_PRACC_PARAM_OUT			(MIPS32_PRACC_PARAM_IN + MIPS32_PRACC_PARAM_IN_SIZE)
+#define MIPS32_PRACC_PARAM_OUT_SIZE		0x1000
 
 #define MIPS32_FASTDATA_HANDLER_SIZE	0x80
-#define UPPER16(uint32_t) (uint32_t >> 16)
-#define LOWER16(uint32_t) (uint32_t & 0xFFFF)
-#define NEG16(v) (((~(v)) + 1) & 0xFFFF)
+#define UPPER16(uint32_t) 				(uint32_t >> 16)
+#define LOWER16(uint32_t) 				(uint32_t & 0xFFFF)
+#define NEG16(v) 						(((~(v)) + 1) & 0xFFFF)
 /*#define NEG18(v) (((~(v)) + 1) & 0x3FFFF)*/
 
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,

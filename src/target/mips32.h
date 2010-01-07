@@ -123,7 +123,7 @@ struct mips32_core_reg
 /* ejtag specific instructions */
 #define MIPS32_DRET					0x4200001F
 #define MIPS32_SDBBP				0x7000003F
-#define MIPS16_SDBBP 				0xE801
+#define MIPS16_SDBBP				0xE801
 
 int mips32_arch_state(struct target *target);
 

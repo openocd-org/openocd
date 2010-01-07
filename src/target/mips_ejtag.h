@@ -96,11 +96,11 @@
 #define EJTAG_IBA1				0xFF301100
 #define EJTAG_DBS				0xFF302000
 #define EJTAG_DBA1				0xFF302100
-#define		EJTAG_DBCn_NOSB				(1 << 13)
-#define		EJTAG_DBCn_NOLB				(1 << 12)
-#define		EJTAG_DBCn_BLM_MASK			0xff
-#define		EJTAG_DBCn_BLM_SHIFT		4
-#define		EJTAG_DBCn_BE				(1 << 0)
+#define	EJTAG_DBCn_NOSB			(1 << 13)
+#define	EJTAG_DBCn_NOLB			(1 << 12)
+#define	EJTAG_DBCn_BLM_MASK		0xff
+#define	EJTAG_DBCn_BLM_SHIFT	4
+#define	EJTAG_DBCn_BE			(1 << 0)
 
 struct mips_ejtag
 {
