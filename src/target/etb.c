@@ -447,17 +447,21 @@ COMMAND_HANDLER(handle_etb_trigger_percent_command)
 
 static const struct command_registration etb_config_command_handlers[] = {
 	{
+		/* NOTE:  with ADIv5, ETBs are accessed using DAP operations,
+		 * possibly over SWD, not through separate TAPs...
+		 */
 		.name = "config",
-		.handler = &handle_etb_config_command,
+		.handler = handle_etb_config_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Associate ETB with target and JTAG TAP.",
 		.usage = "target tap",
 	},
 	{
 		.name = "trigger_percent",
-		.handler = &handle_etb_trigger_percent_command,
+		.handler = handle_etb_trigger_percent_command,
 		.mode = COMMAND_EXEC,
-		.help = "percent of trace buffer to be filled "
-			"after the trigger occurs",
+		.help = "Set percent of trace buffer to be filled "
+			"after the trigger occurs (2..100).",
 		.usage = "[percent]",
 	},
 	COMMAND_REGISTRATION_DONE

@@ -61,9 +61,9 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 static const struct command_registration etm_dummy_config_command_handlers[] = {
 	{
 		.name = "config",
-		.handler = &handle_etm_dummy_config_command,
+		.handler = handle_etm_dummy_config_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "<target>",
+		.usage = "target",
 	},
 	COMMAND_REGISTRATION_DONE
 };

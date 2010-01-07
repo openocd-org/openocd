@@ -1259,12 +1259,16 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	case 0:
 		break;
 	case 4:
-		CALL_COMMAND_HANDLER(handle_etm_tracemode_command_update, &tracemode);
+		CALL_COMMAND_HANDLER(handle_etm_tracemode_command_update,
+				&tracemode);
 		break;
 	default:
-		command_print(CMD_CTX, "usage: configure trace mode "
-				"<none | data | address | all> "
-				"<context id bits> <cycle accurate> <branch output>");
+		command_print(CMD_CTX, "usage: tracemode "
+				"('none'|'data'|'address'|'all') "
+				"context_id_bits "
+				"('enable'|'disable') "
+				"('enable'|'disable')"
+				);
 		return ERROR_FAIL;
 	}
 
@@ -2112,11 +2116,16 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 
 static const struct command_registration etm_config_command_handlers[] = {
 	{
+		/* NOTE:  with ADIv5, ETMs are accessed by DAP operations,
+		 * possibly over SWD, not JTAG scanchain 6 of 'target'.
+		 *
+		 * Also, these parameters don't match ETM v3+ modules...
+		 */
 		.name = "config",
-		.handler = &handle_etm_config_command,
+		.handler = handle_etm_config_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "<target> <port_width> <port_mode> "
-			"<clocking> <capture_driver>",
+		.help = "Set up ETM output port.",
+		.usage = "target port_width port_mode clocking capture_driver",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -2132,33 +2141,36 @@ const struct command_registration etm_command_handlers[] = {
 
 static const struct command_registration etm_exec_command_handlers[] = {
 	{
-		.name = "tracemode", handle_etm_tracemode_command,
+		.name = "tracemode",
+		.handler = handle_etm_tracemode_command,
 		.mode = COMMAND_EXEC,
 		.help = "configure/display trace mode",
-		.usage = "<none | data | address | all> "
-			"<context_id_bits> <cycle_accurate> <branch_output>",
+		.usage = "('none'|'data'|'address'|'all') "
+			"context_id_bits "
+			"['enable'|'disable'] "
+			"['enable'|'disable']",
 	},
 	{
 		.name = "info",
-		.handler = &handle_etm_info_command,
+		.handler = handle_etm_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display info about the current target's ETM",
 	},
 	{
 		.name = "status",
-		.handler = &handle_etm_status_command,
+		.handler = handle_etm_status_command,
 		.mode = COMMAND_EXEC,
 		.help = "display current target's ETM status",
 	},
 	{
 		.name = "start",
-		.handler = &handle_etm_start_command,
+		.handler = handle_etm_start_command,
 		.mode = COMMAND_EXEC,
 		.help = "start ETM trace collection",
 	},
 	{
 		.name = "stop",
-		.handler = &handle_etm_stop_command,
+		.handler = handle_etm_stop_command,
 		.mode = COMMAND_EXEC,
 		.help = "stop ETM trace collection",
 	},
@@ -2167,7 +2179,7 @@ static const struct command_registration etm_exec_command_handlers[] = {
 		.handler = handle_etm_trigger_debug_command,
 		.mode = COMMAND_EXEC,
 		.help = "enable/disable debug entry on trigger",
-		.usage = "(enable | disable)",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "analyze",
@@ -2177,19 +2189,21 @@ static const struct command_registration etm_exec_command_handlers[] = {
 	},
 	{
 		.name = "image",
-		.handler = &handle_etm_image_command,
+		.handler = handle_etm_image_command,
 		.mode = COMMAND_EXEC,
-		.help = "load image from <file> [base address]",
+		.help = "load image from file with optional offset",
+		.usage = "filename [offset]",
 	},
 	{
 		.name = "dump",
-		.handler = &handle_etm_dump_command,
+		.handler = handle_etm_dump_command,
 		.mode = COMMAND_EXEC,
-		.help = "dump captured trace data <file>",
+		.help = "dump captured trace data to file",
+		.usage = "filename",
 	},
 	{
 		.name = "load",
-		.handler = &handle_etm_load_command,
+		.handler = handle_etm_load_command,
 		.mode = COMMAND_EXEC,
 		.help = "load trace data for analysis <file>",
 	},

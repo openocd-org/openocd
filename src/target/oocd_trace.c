@@ -398,13 +398,13 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 static const struct command_registration oocd_trace_all_command_handlers[] = {
 	{
 		.name = "config",
-		.handler = &handle_oocd_trace_config_command,
+		.handler = handle_oocd_trace_config_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "<target>",
+		.usage = "target",
 	},
 	{
 		.name = "status",
-		.handler = &handle_oocd_trace_status_command,
+		.handler = handle_oocd_trace_status_command,
 		.mode = COMMAND_EXEC,
 		.help = "display OpenOCD + trace status",
 	},
