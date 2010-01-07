@@ -101,6 +101,10 @@ static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
 	/* Add specified number of tck clocks before accessing memory bus */
+
+	/* REVISIT these TCK cycles should be *AFTER*  updating APACC, since
+	 * they provide more time for the (MEM) AP to complete the read ...
+	 */
 	if ((instr == JTAG_DP_APACC)
 			&& ((reg_addr == AP_REG_DRW)
 				|| ((reg_addr & 0xF0) == AP_REG_BD0))
@@ -137,6 +141,10 @@ static int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp,
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
 	/* Add specified number of tck clocks before accessing memory bus */
+
+	/* REVISIT these TCK cycles should be *AFTER*  updating APACC, since
+	 * they provide more time for the (MEM) AP to complete the read ...
+	 */
 	if ((instr == JTAG_DP_APACC)
 			&& ((reg_addr == AP_REG_DRW)
 				|| ((reg_addr & 0xF0) == AP_REG_BD0))

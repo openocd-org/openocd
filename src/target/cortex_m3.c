@@ -1989,24 +1989,24 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 static const struct command_registration cortex_m3_exec_command_handlers[] = {
 	{
 		.name = "disassemble",
-		.handler = &handle_cortex_m3_disassemble_command,
+		.handler = handle_cortex_m3_disassemble_command,
 		.mode = COMMAND_EXEC,
 		.help = "disassemble Thumb2 instructions",
-		.usage = "<address> [<count>]",
+		.usage = "address [count]",
 	},
 	{
 		.name = "maskisr",
-		.handler = &handle_cortex_m3_mask_interrupts_command,
+		.handler = handle_cortex_m3_mask_interrupts_command,
 		.mode = COMMAND_EXEC,
 		.help = "mask cortex_m3 interrupts",
 		.usage = "['on'|'off']",
 	},
 	{
 		.name = "vector_catch",
-		.handler = &handle_cortex_m3_vector_catch_command,
+		.handler = handle_cortex_m3_vector_catch_command,
 		.mode = COMMAND_EXEC,
-		.help = "catch hardware vectors",
-		.usage = "['all'|'none'|<list>]",
+		.help = "configure hardware vectors to trigger debug entry",
+		.usage = "['all'|'none'|('bus_err'|'chk_err'|...)*]",
 	},
 	COMMAND_REGISTRATION_DONE
 };

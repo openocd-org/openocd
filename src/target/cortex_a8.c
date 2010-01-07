@@ -1642,13 +1642,13 @@ COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 static const struct command_registration cortex_a8_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
-		.handler = &cortex_a8_handle_cache_info_command,
+		.handler = cortex_a8_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display information about target caches",
 	},
 	{
 		.name = "dbginit",
-		.handler = &cortex_a8_handle_dbginit_command,
+		.handler = cortex_a8_handle_dbginit_command,
 		.mode = COMMAND_EXEC,
 		.help = "Initialize core debug",
 	},

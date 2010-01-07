@@ -174,40 +174,49 @@ COMMAND_HANDLER(handle_dap_info_command)
 	return dap_info_command(CMD_CTX, swjdp, apsel);
 }
 
+/* FIXME this table should be part of generic DAP support, and
+ * be shared by the ARMv7-A/R and ARMv7-M support ...
+ */
 static const struct command_registration armv7a_exec_command_handlers[] = {
 	{
 		.name = "info",
-		.handler = &handle_dap_info_command,
+		.handler = handle_dap_info_command,
 		.mode = COMMAND_EXEC,
-		.help = "dap info for ap [num], "
-			"default currently selected AP",
+		.help = "display ROM table for MEM-AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
 	},
 	{
 		.name = "apsel",
-		.handler = &handle_dap_apsel_command,
+		.handler = handle_dap_apsel_command,
 		.mode = COMMAND_EXEC,
-		.help = "select a different AP [num] (default 0)",
+		.help = "Set the currently selected AP (default 0) "
+			"and display the result",
+		.usage = "[ap_num]",
 	},
 	{
 		.name = "apid",
-		.handler = &handle_dap_apid_command,
+		.handler = handle_dap_apid_command,
 		.mode = COMMAND_EXEC,
-		.help = "return id reg from AP [num], "
-			"default currently selected AP",
+		.help = "return ID register from AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
 	},
 	{
 		.name = "baseaddr",
-		.handler = &handle_dap_baseaddr_command,
+		.handler = handle_dap_baseaddr_command,
 		.mode = COMMAND_EXEC,
-		.help = "return debug base address from AP [num], "
-			"default currently selected AP",
+		.help = "return debug base address from MEM-AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
 	},
 	{
 		.name = "memaccess",
-		.handler = &handle_dap_memaccess_command,
+		.handler = handle_dap_memaccess_command,
 		.mode = COMMAND_EXEC,
-		.help = "set/get number of extra tck for mem-ap memory "
+		.help = "set/get number of extra tck for MEM-AP memory "
 			"bus access [0-255]",
+		.usage = "[cycles]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
