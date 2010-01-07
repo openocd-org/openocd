@@ -3607,94 +3607,101 @@ COMMAND_HANDLER(xscale_handle_cp15)
 static const struct command_registration xscale_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
-		.handler = &xscale_handle_cache_info_command,
-		.mode = COMMAND_EXEC, NULL,
+		.handler = xscale_handle_cache_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display information about CPU caches",
 	},
-
 	{
 		.name = "mmu",
-		.handler = &xscale_handle_mmu_command,
+		.handler = xscale_handle_mmu_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[enable|disable]",
 		.help = "enable or disable the MMU",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "icache",
-		.handler = &xscale_handle_idcache_command,
+		.handler = xscale_handle_idcache_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[enable|disable]",
-		.help = "enable or disable the ICache",
+		.help = "display ICache state, optionally enabling or "
+			"disabling it",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "dcache",
-		.handler = &xscale_handle_idcache_command,
+		.handler = xscale_handle_idcache_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[enable|disable]",
-		.help = "enable or disable the DCache",
+		.help = "display DCache state, optionally enabling or "
+			"disabling it",
+		.usage = "['enable'|'disable']",
 	},
-
 	{
 		.name = "vector_catch",
-		.handler = &xscale_handle_vector_catch_command,
+		.handler = xscale_handle_vector_catch_command,
 		.mode = COMMAND_EXEC,
-		.help = "mask of vectors that should be caught",
-		.usage = "[<mask>]",
+		.help = "set or display 8-bit mask of vectors "
+			"that should trigger debug entry",
+		.usage = "[mask]",
 	},
 	{
 		.name = "vector_table",
-		.handler = &xscale_handle_vector_table_command,
+		.handler = xscale_handle_vector_table_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<high|low> <index> <code>",
-		.help = "set static code for exception handler entry",
+		.help = "set vector table entry in mini-ICache, "
+			"or display current tables",
+		.usage = "[('high'|'low') index code]",
 	},
-
 	{
 		.name = "trace_buffer",
-		.handler = &xscale_handle_trace_buffer_command,
+		.handler = xscale_handle_trace_buffer_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<enable | disable> [fill [n]|wrap]",
+		.help = "display trace buffer status, enable or disable "
+			"tracing, and optionally reconfigure trace mode",
+		.usage = "['enable'|'disable' ['fill' number|'wrap']]",
 	},
 	{
 		.name = "dump_trace",
-		.handler = &xscale_handle_dump_trace_command,
+		.handler = xscale_handle_dump_trace_command,
 		.mode = COMMAND_EXEC,
-		.help = "dump content of trace buffer to <file>",
-		.usage = "<file>",
+		.help = "dump content of trace buffer to file",
+		.usage = "filename",
 	},
 	{
 		.name = "analyze_trace",
-		.handler = &xscale_handle_analyze_trace_buffer_command,
+		.handler = xscale_handle_analyze_trace_buffer_command,
 		.mode = COMMAND_EXEC,
 		.help = "analyze content of trace buffer",
+		.usage = "",
 	},
 	{
 		.name = "trace_image",
-		.handler = &xscale_handle_trace_image_command,
-		COMMAND_EXEC,
-		.help = "load image from <file> [base address]",
-		.usage = "<file> [address] [type]",
+		.handler = xscale_handle_trace_image_command,
+		.mode = COMMAND_EXEC,
+		.help = "load image from file to address (default 0)",
+		.usage = "filename [offset [filetype]]",
 	},
-
 	{
 		.name = "cp15",
-		.handler = &xscale_handle_cp15,
+		.handler = xscale_handle_cp15,
 		.mode = COMMAND_EXEC,
-		.help = "access coproc 15",
-		.usage = "<register> [value]",
+		.help = "Read or write coprocessor 15 register.",
+		.usage = "register [value]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
 static const struct command_registration xscale_any_command_handlers[] = {
 	{
 		.name = "debug_handler",
-		.handler = &xscale_handle_debug_handler_command,
+		.handler = xscale_handle_debug_handler_command,
 		.mode = COMMAND_ANY,
-		.usage = "<target#> <address>",
+		.help = "Change address used for debug handler.",
+		.usage = "target address",
 	},
 	{
 		.name = "cache_clean_address",
-		.handler = &xscale_handle_cache_clean_address_command,
+		.handler = xscale_handle_cache_clean_address_command,
 		.mode = COMMAND_ANY,
+		.help = "Change address used for cleaning data cache.",
+		.usage = "address",
 	},
 	{
 		.chain = xscale_exec_command_handlers,
