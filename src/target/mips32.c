@@ -38,6 +38,11 @@ char* mips32_core_reg_list[] =
 	"status", "lo", "hi", "badvaddr", "cause", "pc"
 };
 
+const char *mips_isa_strings[] =
+{
+	"MIPS32", "MIPS16e"
+};
+
 struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 {
 	{0, NULL, NULL},
@@ -103,7 +108,7 @@ int mips32_get_core_reg(struct reg *reg)
 	int retval;
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
 	struct target *target = mips32_reg->target;
-	struct mips32_common *mips32_target = target->arch_info;
+	struct mips32_common *mips32_target = target_to_mips32(target);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -139,7 +144,7 @@ int mips32_read_core_reg(struct target *target, int num)
 	struct mips32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -159,7 +164,7 @@ int mips32_write_core_reg(struct target *target, int num)
 	struct mips32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
@@ -177,7 +182,7 @@ int mips32_write_core_reg(struct target *target, int num)
 int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 	int i;
 
 	/* include floating point registers */
@@ -203,7 +208,7 @@ int mips32_save_context(struct target *target)
 	int i;
 
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 	/* read core registers */
@@ -225,7 +230,7 @@ int mips32_restore_context(struct target *target)
 	int i;
 
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
@@ -244,15 +249,10 @@ int mips32_restore_context(struct target *target)
 
 int mips32_arch_state(struct target *target)
 {
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 
-	if (mips32->common_magic != MIPS32_COMMON_MAGIC)
-	{
-		LOG_ERROR("BUG: called for a non-MIPS32 target");
-		return ERROR_FAIL;
-	}
-
-	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",
+	LOG_USER("target halted in %s mode due to %s, pc: 0x%8.8" PRIx32 "",
+		mips_isa_strings[mips32->isa_mode],
 		debug_reason_name(target),
 		buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32));
 
@@ -267,7 +267,7 @@ static const struct reg_arch_type mips32_reg_type = {
 struct reg_cache *mips32_build_reg_cache(struct target *target)
 {
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 
 	int num_regs = MIPS32NUMCOREREGS;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
@@ -327,7 +327,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params, struct mem_p
 
 int mips32_examine(struct target *target)
 {
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 
 	if (!target_was_examined(target))
 	{
@@ -347,7 +347,7 @@ int mips32_examine(struct target *target)
 int mips32_configure_break_unit(struct target *target)
 {
 	/* get pointers to arch-specific information */
-	struct mips32_common *mips32 = target->arch_info;
+	struct mips32_common *mips32 = target_to_mips32(target);
 	int retval;
 	uint32_t dcr, bpinfo;
 	int i;
@@ -359,7 +359,7 @@ int mips32_configure_break_unit(struct target *target)
 	if ((retval = target_read_u32(target, EJTAG_DCR, &dcr)) != ERROR_OK)
 		return retval;
 
-	if (dcr & (1 << 16))
+	if (dcr & EJTAG_DCR_IB)
 	{
 		/* get number of inst breakpoints */
 		if ((retval = target_read_u32(target, EJTAG_IBS, &bpinfo)) != ERROR_OK)
@@ -378,7 +378,7 @@ int mips32_configure_break_unit(struct target *target)
 			return retval;
 	}
 
-	if (dcr & (1 << 17))
+	if (dcr & EJTAG_DCR_DB)
 	{
 		/* get number of data breakpoints */
 		if ((retval = target_read_u32(target, EJTAG_DBS, &bpinfo)) != ERROR_OK)
@@ -416,19 +416,19 @@ int mips32_enable_interrupts(struct target *target, int enable)
 
 	if (enable)
 	{
-		if (!(dcr & (1 << 4)))
+		if (!(dcr & EJTAG_DCR_INTE))
 		{
 			/* enable interrupts */
-			dcr |= (1 << 4);
+			dcr |= EJTAG_DCR_INTE;
 			update = 1;
 		}
 	}
 	else
 	{
-		if (dcr & (1 << 4))
+		if (dcr & EJTAG_DCR_INTE)
 		{
 			/* disable interrupts */
-			dcr &= ~(1 << 4);
+			dcr &= ~EJTAG_DCR_INTE;
 			update = 1;
 		}
 	}

@@ -40,7 +40,7 @@
 #define EJTAG_INST_TCBDATA		0x12
 #define EJTAG_INST_BYPASS		0xFF
 
-/* debug control register bits ECR */
+/* ejtag control register bits ECR */
 #define EJTAG_CTRL_TOF			(1 << 1)
 #define EJTAG_CTRL_TIF			(1 << 2)
 #define EJTAG_CTRL_BRKST		(1 << 3)
@@ -87,11 +87,20 @@
 #define EJTAG_DEBUG_DBD			(1 << 31)
 
 /* implementaion register bits */
+#define EJTAG_IMP_R3K			(1 << 28)
+#define EJTAG_IMP_DINT			(1 << 24)
 #define EJTAG_IMP_NODMA			(1 << 14)
 #define EJTAG_IMP_MIPS16		(1 << 16)
+#define EJTAG_DCR_MIPS64		(1 << 0)
+
+/* Debug Control Register DCR */
+#define EJTAG_DCR				0xFF300000
+#define EJTAG_DCR_ENM			(1 << 29)
+#define EJTAG_DCR_DB			(1 << 17)
+#define EJTAG_DCR_IB			(1 << 16)
+#define EJTAG_DCR_INTE			(1 << 4)
 
 /* breakpoint support */
-#define EJTAG_DCR				0xFF300000
 #define EJTAG_IBS				0xFF301000
 #define EJTAG_IBA1				0xFF301100
 #define EJTAG_DBS				0xFF302000
@@ -107,7 +116,6 @@ struct mips_ejtag
 	struct jtag_tap *tap;
 	uint32_t impcode;
 	uint32_t idcode;
-	/*int use_dma;*/
 	uint32_t ejtag_ctrl;
 };
 

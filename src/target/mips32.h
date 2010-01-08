@@ -26,7 +26,6 @@
 #include "target.h"
 #include "mips32_pracc.h"
 
-
 #define MIPS32_COMMON_MAGIC		0xB320B320
 
 /* offsets into mips32 core register cache */
@@ -36,10 +35,17 @@ enum
 	MIPS32NUMCOREREGS
 };
 
+enum mips32_isa_mode
+{
+	MIPS32_ISA_MIPS32 = 0,
+	MIPS32_ISA_MIPS16E = 1,
+};
+
+extern const char *mips_isa_strings[];
+
 struct mips32_comparator
 {
 	int used;
-	//int type;
 	uint32_t bp_value;
 	uint32_t reg_address;
 };
@@ -51,6 +57,7 @@ struct mips32_common
 	struct reg_cache *core_cache;
 	struct mips_ejtag ejtag_info;
 	uint32_t core_regs[MIPS32NUMCOREREGS];
+	enum mips32_isa_mode isa_mode;
 
 	int bp_scanned;
 	int num_inst_bpoints;
@@ -64,6 +71,12 @@ struct mips32_common
 	int (*read_core_reg)(struct target *target, int num);
 	int (*write_core_reg)(struct target *target, int num);
 };
+
+static inline struct mips32_common *
+target_to_mips32(struct target *target)
+{
+	return target->arch_info;
+}
 
 struct mips32_core_reg
 {

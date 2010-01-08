@@ -264,16 +264,15 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 			break;
 	}
 	LOG_DEBUG("EJTAG: features:%s%s%s%s%s%s%s",
-		ejtag_info->impcode & (1 << 28) ? " R3k":    " R4k",
-		ejtag_info->impcode & (1 << 24) ? " DINT":   "",
-		ejtag_info->impcode & (1 << 22) ? " ASID_8": "",
-		ejtag_info->impcode & (1 << 21) ? " ASID_6": "",
-		ejtag_info->impcode & (1 << 16) ? " MIPS16": "",
-		ejtag_info->impcode & (1 << 14) ? " noDMA":  " DMA",
-		ejtag_info->impcode & (1 << 0)  ? " MIPS64": " MIPS32"
-);
+		ejtag_info->impcode & EJTAG_IMP_R3K ? " R3k" : " R4k",
+		ejtag_info->impcode & EJTAG_IMP_DINT ? " DINT" : "",
+		ejtag_info->impcode & (1 << 22) ? " ASID_8" : "",
+		ejtag_info->impcode & (1 << 21) ? " ASID_6" : "",
+		ejtag_info->impcode & EJTAG_IMP_MIPS16 ? " MIPS16" : "",
+		ejtag_info->impcode & EJTAG_IMP_NODMA ? " noDMA" : " DMA",
+		ejtag_info->impcode & EJTAG_DCR_MIPS64  ? " MIPS64" : " MIPS32");
 
-	if ((ejtag_info->impcode & (1 << 14)) == 0)
+	if ((ejtag_info->impcode & EJTAG_IMP_NODMA) == 0)
 		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");
 
 	/* set initial state for ejtag control reg */

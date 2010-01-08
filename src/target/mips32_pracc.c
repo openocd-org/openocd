@@ -810,7 +810,7 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 		MIPS32_LW(2,36*4,1),							/* lw $2,36*4($1) */
 		MIPS32_MTC0(2,13,0),							/* move $2 to cause*/
 		MIPS32_LW(2,37*4,1),							/* lw $2,37*4($1) */
-		MIPS32_MTC0(2,24,0),							/* move $2 to pc */
+		MIPS32_MTC0(2,24,0),							/* move $2 to depc (pc) */
 
 		MIPS32_LW(2,2*4,1),								/* lw $2,2*4($1) */
 		MIPS32_LW(1,0,15),								/* lw $1,($15) */
@@ -884,7 +884,7 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 		MIPS32_SW(2,35*4,1),							/* sw $2,35*4($1) */
 		MIPS32_MFC0(2,13,0),							/* move cause to $2 */
 		MIPS32_SW(2,36*4,1),							/* sw $2,36*4($1) */
-		MIPS32_MFC0(2,24,0),							/* move pc to $2 */
+		MIPS32_MFC0(2,24,0),							/* move depc (pc) to $2 */
 		MIPS32_SW(2,37*4,1),							/* sw $2,37*4($1) */
 
 		MIPS32_LW(2,0,15),								/* lw $2,($15) */
