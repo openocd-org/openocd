@@ -1384,35 +1384,39 @@ static int arm920t_mcr(struct target *target, int cpnum,
 static const struct command_registration arm920t_exec_command_handlers[] = {
 	{
 		.name = "cp15",
-		.handler = &arm920t_handle_cp15_command,
+		.handler = arm920t_handle_cp15_command,
 		.mode = COMMAND_EXEC,
 		.help = "display/modify cp15 register",
-		.usage = "<num> [value]",
+		.usage = "regnum [value]",
 	},
 	{
 		.name = "cp15i",
-		.handler = &arm920t_handle_cp15i_command,
+		.handler = arm920t_handle_cp15i_command,
 		.mode = COMMAND_EXEC,
-		.help = "display/modify cp15 (interpreted access)",
-		.usage = "<opcode> [value] [address]",
+		/* prefer using less error-prone "arm mcr" or "arm mrc" */
+		.help = "display/modify cp15 register using ARM opcode"
+			" (DEPRECATED)",
+		.usage = "instruction [value [address]]",
 	},
 	{
 		.name = "cache_info",
-		.handler = &arm920t_handle_cache_info_command,
+		.handler = arm920t_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display information about target caches",
 	},
 	{
 		.name = "read_cache",
-		.handler = &arm920t_handle_read_cache_command,
+		.handler = arm920t_handle_read_cache_command,
 		.mode = COMMAND_EXEC,
-		.help = "display I/D cache content",
+		.help = "dump I/D cache content to file",
+		.usage = "filename",
 	},
 	{
 		.name = "read_mmu",
-		.handler = &arm920t_handle_read_mmu_command,
+		.handler = arm920t_handle_read_mmu_command,
 		.mode = COMMAND_EXEC,
-		.help = "display I/D mmu content",
+		.help = "dump I/D mmu content to file",
+		.usage = "filename",
 	},
 	COMMAND_REGISTRATION_DONE
 };
