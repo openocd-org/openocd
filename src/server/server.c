@@ -563,9 +563,11 @@ int server_quit(void)
 /* tell the server we want to shut down */
 COMMAND_HANDLER(handle_shutdown_command)
 {
+	LOG_USER("shutdown command invoked");
+
 	shutdown_openocd = 1;
 
-	return ERROR_COMMAND_CLOSE_CONNECTION;
+	return ERROR_OK;
 }
 
 static const struct command_registration server_command_handlers[] = {
