@@ -6030,6 +6030,10 @@ and ARM9 commands.
 @deffn Command {arm966e cp15} regnum [value]
 Display cp15 register @var{regnum};
 else if a @var{value} is provided, that value is written to that register.
+The six bit @var{regnum} values are bits 37..32 from table 7-2 of the
+ARM966E-S TRM.
+There is no current control over bits 31..30 from that table,
+as required for BIST support.
 @end deffn
 
 @subsection XScale specific commands

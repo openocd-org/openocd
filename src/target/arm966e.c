@@ -68,6 +68,13 @@ static int arm966e_verify_pointer(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+/*
+ * REVISIT:  The "read_cp15" and "write_cp15" commands could hook up
+ * to eventual mrc() and mcr() routines ... the reg_addr values being
+ * constructed (for CP15 only) from Opcode_1, Opcode_2, and CRn values.
+ * See section 7.3 of the ARM966E-S TRM.
+ */
+
 static int arm966e_read_cp15(struct target *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
@@ -86,6 +93,9 @@ static int arm966e_read_cp15(struct target *target, int reg_addr, uint32_t *valu
 
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
+	/* REVISIT: table 7-2 shows that bits 31-31 need to be
+	 * specified for accessing BIST registers ...
+	 */
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
 
@@ -227,7 +237,7 @@ static const struct command_registration arm966e_exec_command_handlers[] = {
 		.name = "cp15",
 		.handler = arm966e_handle_cp15_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<opcode> [value]",
+		.usage = "regnum [value]",
 		.help = "display/modify cp15 register",
 	},
 	COMMAND_REGISTRATION_DONE
