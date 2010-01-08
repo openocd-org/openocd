@@ -6105,7 +6105,7 @@ else if a @var{value} is provided, that value is written to that register.
 Changes the address used for the specified target's debug handler.
 @end deffn
 
-@deffn Command {xscale dcache} (@option{enable}|@option{disable})
+@deffn Command {xscale dcache} [@option{enable}|@option{disable}]
 Enables or disable the CPU's data cache.
 @end deffn
 
@@ -6113,17 +6113,18 @@ Enables or disable the CPU's data cache.
 Dumps the raw contents of the trace buffer to @file{filename}.
 @end deffn
 
-@deffn Command {xscale icache} (@option{enable}|@option{disable})
+@deffn Command {xscale icache} [@option{enable}|@option{disable}]
 Enables or disable the CPU's instruction cache.
 @end deffn
 
-@deffn Command {xscale mmu} (@option{enable}|@option{disable})
+@deffn Command {xscale mmu} [@option{enable}|@option{disable}]
 Enables or disable the CPU's memory management unit.
 @end deffn
 
-@deffn Command {xscale trace_buffer} (@option{enable}|@option{disable}) [@option{fill} [n] | @option{wrap}]
-Enables or disables the trace buffer,
-and controls how it is emptied.
+@deffn Command {xscale trace_buffer} [@option{enable}|@option{disable} [@option{fill} [n] | @option{wrap}]]
+Displays the trace buffer status, after optionally
+enabling or disabling the trace buffer
+and modifying how it is emptied.
 @end deffn
 
 @deffn Command {xscale trace_image} filename [offset [type]]
@@ -6155,7 +6156,7 @@ The mask bits correspond with bit 16..23 in the DCSR:
 @end deffn
 
 @anchor{xscale vector_table}
-@deffn Command {xscale vector_table} [<low|high> <index> <value>]
+@deffn Command {xscale vector_table} [(@option{low}|@option{high}) index value]
 @cindex vector_table
 
 Set an entry in the mini-IC vector table. There are two tables: one for
