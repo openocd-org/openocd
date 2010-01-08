@@ -1318,17 +1318,20 @@ COMMAND_HANDLER(arm11_handle_vcr)
 static const struct command_registration arm11_mw_command_handlers[] = {
 	{
 		.name = "burst",
-		.handler = &arm11_handle_bool_memwrite_burst,
+		.handler = arm11_handle_bool_memwrite_burst,
 		.mode = COMMAND_ANY,
-		.help = "Enable/Disable potentially risky fast burst mode"
-			" (default: enabled)",
+		.help = "Display or modify flag controlling potentially "
+			"risky fast burst mode (default: enabled)",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "error_fatal",
-		.handler = &arm11_handle_bool_memwrite_error_fatal,
+		.handler = arm11_handle_bool_memwrite_error_fatal,
 		.mode = COMMAND_ANY,
-		.help = "Terminate program if transfer error was found"
+		.help = "Display or modify flag controlling transfer "
+			"termination on transfer errors"
 			" (default: enabled)",
+		.usage = "['enable'|'disable']",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1338,11 +1341,11 @@ static const struct command_registration arm11_any_command_handlers[] = {
 		 * simulate + breakpoint implementation is broken.
 		 * TEMPORARY! NOT DOCUMENTED! */
 		.name = "hardware_step",
-		.handler = &arm11_handle_bool_hardware_step,
+		.handler = arm11_handle_bool_hardware_step,
 		.mode = COMMAND_ANY,
 		.help = "DEBUG ONLY - Hardware single stepping"
 			" (default: disabled)",
-		.usage = "(enable|disable)",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "memwrite",
@@ -1352,16 +1355,18 @@ static const struct command_registration arm11_any_command_handlers[] = {
 	},
 	{
 		.name = "step_irq_enable",
-		.handler = &arm11_handle_bool_step_irq_enable,
+		.handler = arm11_handle_bool_step_irq_enable,
 		.mode = COMMAND_ANY,
-		.help = "Enable interrupts while stepping"
-			" (default: disabled)",
+		.help = "Display or modify flag controlling interrupt "
+			"enable while stepping (default: disabled)",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "vcr",
-		.handler = &arm11_handle_vcr,
+		.handler = arm11_handle_vcr,
 		.mode = COMMAND_ANY,
-		.help = "Control (Interrupt) Vector Catch Register",
+		.help = "Display or modify Vector Catch Register",
+		.usage = "[value]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
