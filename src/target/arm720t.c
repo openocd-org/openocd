@@ -516,8 +516,10 @@ static const struct command_registration arm720t_exec_command_handlers[] = {
 		.name = "cp15",
 		.handler = arm720t_handle_cp15_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<opcode> [value]",
-		.help = "display/modify cp15 register",
+		/* prefer using less error-prone "arm mcr" or "arm mrc" */
+		.help = "display/modify cp15 register using ARM opcode"
+			" (DEPRECATED)",
+		.usage = "instruction [value]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
