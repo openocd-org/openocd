@@ -2864,32 +2864,32 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 static const struct command_registration arm7_9_any_command_handlers[] = {
 	{
 		"dbgrq",
-		.handler = &handle_arm7_9_dbgrq_command,
+		.handler = handle_arm7_9_dbgrq_command,
 		.mode = COMMAND_ANY,
-		.usage = "<enable|disable>",
+		.usage = "['enable'|'disable']",
 		.help = "use EmbeddedICE dbgrq instead of breakpoint "
 			"for target halt requests",
 	},
 	{
 		"fast_memory_access",
-		.handler = &handle_arm7_9_fast_memory_access_command,
+		.handler = handle_arm7_9_fast_memory_access_command,
 		.mode = COMMAND_ANY,
-		.usage = "<enable|disable>",
+		.usage = "['enable'|'disable']",
 		.help = "use fast memory accesses instead of slower "
 			"but potentially safer accesses",
 	},
 	{
 		"dcc_downloads",
-		.handler = &handle_arm7_9_dcc_downloads_command,
+		.handler = handle_arm7_9_dcc_downloads_command,
 		.mode = COMMAND_ANY,
-		.usage = "<enable | disable>",
+		.usage = "['enable'|'disable']",
 		.help = "use DCC downloads for larger memory writes",
 	},
 	{
 		"semihosting",
-		.handler = &handle_arm7_9_semihosting_command,
+		.handler = handle_arm7_9_semihosting_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<enable | disable>",
+		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting operations",
 	},
 	COMMAND_REGISTRATION_DONE

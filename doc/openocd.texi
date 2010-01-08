@@ -2501,7 +2501,7 @@ signal implementations.
 The default behaviour if no option given is @option{separate},
 indicating everything behaves normally.
 @option{srst_pulls_trst} states that the
-test logic is reset together with the reset of the system (e.g. Philips
+test logic is reset together with the reset of the system (e.g. NXP
 LPC2000, "broken" board layout), @option{trst_pulls_srst} says that
 the system is reset together with the test logic (only hypothetical, I
 haven't seen hardware with such a bug, and can be worked around).
@@ -5867,26 +5867,36 @@ ARM9TDMI, ARM920T or ARM926EJ-S.
 They are available in addition to the ARM commands,
 and any other core-specific commands that may be available.
 
-@deffn Command {arm7_9 dbgrq} (@option{enable}|@option{disable})
-Control use of the EmbeddedIce DBGRQ signal to force entry into debug mode,
-instead of breakpoints.  This should be
-safe for all but ARM7TDMI--S cores (like Philips LPC).
+@deffn Command {arm7_9 dbgrq} [@option{enable}|@option{disable}]
+Displays the value of the flag controlling use of the
+the EmbeddedIce DBGRQ signal to force entry into debug mode,
+instead of breakpoints.
+If a boolean parameter is provided, first assigns that flag.
+
+This should be
+safe for all but ARM7TDMI-S cores (like NXP LPC).
 This feature is enabled by default on most ARM9 cores,
 including ARM9TDMI, ARM920T, and ARM926EJ-S.
 @end deffn
 
-@deffn Command {arm7_9 dcc_downloads} (@option{enable}|@option{disable})
+@deffn Command {arm7_9 dcc_downloads} [@option{enable}|@option{disable}]
 @cindex DCC
-Control the use of the debug communications channel (DCC) to write larger (>128 byte)
-amounts of memory. DCC downloads offer a huge speed increase, but might be
+Displays the value of the flag controlling use of the debug communications
+channel (DCC) to write larger (>128 byte) amounts of memory.
+If a boolean parameter is provided, first assigns that flag.
+
+DCC downloads offer a huge speed increase, but might be
 unsafe, especially with targets running at very low speeds. This command was introduced
 with OpenOCD rev. 60, and requires a few bytes of working area.
 @end deffn
 
 @anchor{arm7_9 fast_memory_access}
-@deffn Command {arm7_9 fast_memory_access} (@option{enable}|@option{disable})
-Enable or disable memory writes and reads that don't check completion of
-the operation. This provides a huge speed increase, especially with USB JTAG
+@deffn Command {arm7_9 fast_memory_access} [@option{enable}|@option{disable}]
+Displays the value of the flag controlling use of memory writes and reads
+that don't check completion of the operation.
+If a boolean parameter is provided, first assigns that flag.
+
+This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at very low
 speeds, like the 32kHz startup clock of an AT91RM9200.
 @end deffn
