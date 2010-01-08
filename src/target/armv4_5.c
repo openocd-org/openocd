@@ -928,22 +928,22 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "reg",
-		.handler = &handle_armv4_5_reg_command,
+		.handler = handle_armv4_5_reg_command,
 		.mode = COMMAND_EXEC,
 		.help = "display ARM core registers",
 	},
 	{
 		.name = "core_state",
-		.handler = &handle_armv4_5_core_state_command,
+		.handler = handle_armv4_5_core_state_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<arm | thumb>",
+		.usage = "['arm'|'thumb']",
 		.help = "display/change ARM core state",
 	},
 	{
 		.name = "disassemble",
-		.handler = &handle_armv4_5_disassemble_command,
+		.handler = handle_armv4_5_disassemble_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<address> [<count> ['thumb']]",
+		.usage = "address [count ['thumb']]",
 		.help = "disassemble instructions ",
 	},
 	{

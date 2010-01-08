@@ -757,7 +757,7 @@ static int arm926ejs_mmu(struct target *target, int *enabled)
 static const struct command_registration arm926ejs_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
-		.handler = &arm926ejs_handle_cache_info_command,
+		.handler = arm926ejs_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display information about target caches",
 

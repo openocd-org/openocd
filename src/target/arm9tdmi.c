@@ -918,7 +918,9 @@ static const struct command_registration arm9tdmi_exec_command_handlers[] = {
 		.name = "vector_catch",
 		.handler = handle_arm9tdmi_catch_vectors_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[all|none|reset|undef|swi|pabt|dabt|irq|fiq] ...",
+		.help = "Display, after optionally updating, configuration "
+			"of vector catch unit.",
+		.usage = "[all|none|(reset|undef|swi|pabt|dabt|irq|fiq)*]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
