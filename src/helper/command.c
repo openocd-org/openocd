@@ -1087,6 +1087,7 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct command_context *cmd_ctx = current_command_context(interp);
 	enum command_mode mode;
+
 	if (argc > 1)
 	{
 		struct command *c = cmd_ctx->commands;
@@ -1223,7 +1224,7 @@ COMMAND_HANDLER(handle_help_add_command)
 	return help_add_command(CMD_CTX, c, cmd_name, help, usage);
 }
 
-/* sleep command sleeps for <n> miliseconds
+/* sleep command sleeps for <n> milliseconds
  * this is useful in target startup scripts
  */
 COMMAND_HANDLER(handle_sleep_command)
@@ -1263,19 +1264,22 @@ static const struct command_registration command_subcommand_handlers[] = {
 	{
 		.name = "mode",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_command_mode,
-		.usage = "[<name> ...]",
+		.jim_handler = jim_command_mode,
+		.usage = "[command_name ...]",
 		.help = "Returns the command modes allowed by a  command:"
 			"'any', 'config', or 'exec'.  If no command is"
-			"specified, returns the current command mode.",
+			"specified, returns the current command mode.  "
+			"Returns 'unknown' if an unknown command is given. "
+			"Command can be multiple tokens.",
 	},
 	{
 		.name = "type",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_command_type,
-		.usage = "<name> ...",
+		.jim_handler = jim_command_type,
+		.usage = "command_name [...]",
 		.help = "Returns the type of built-in command:"
-			"'native', 'simple', 'group', or 'unknown'",
+			"'native', 'simple', 'group', or 'unknown'. "
+			"Command can be multiple tokens.",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1283,39 +1287,43 @@ static const struct command_registration command_subcommand_handlers[] = {
 static const struct command_registration command_builtin_handlers[] = {
 	{
 		.name = "add_help_text",
-		.handler = &handle_help_add_command,
+		.handler = handle_help_add_command,
 		.mode = COMMAND_ANY,
-		.help = "add new command help text",
-		.usage = "<command> [...] <help_text>]",
+		.help = "Add new command help text; "
+			"Command can be multiple tokens.",
+		.usage = "command_name helptext_string",
 	},
 	{
 		.name = "add_usage_text",
-		.handler = &handle_help_add_command,
+		.handler = handle_help_add_command,
 		.mode = COMMAND_ANY,
-		.help = "add new command usage text",
-		.usage = "<command> [...] <usage_text>]",
+		.help = "Add new command usage text; "
+			"command can be multiple tokens.",
+		.usage = "command_name usage_string",
 	},
 	{
 		.name = "sleep",
-		.handler = &handle_sleep_command,
+		.handler = handle_sleep_command,
 		.mode = COMMAND_ANY,
-		.help = "sleep for n milliseconds.  "
-			"\"busy\" will busy wait",
-		.usage = "<n> [busy]",
+		.help = "Sleep for specified number of milliseconds.  "
+			"\"busy\" will busy wait instead (avoid this).",
+		.usage = "milliseconds ['busy']",
 	},
 	{
 		.name = "help",
-		.handler = &handle_help_command,
+		.handler = handle_help_command,
 		.mode = COMMAND_ANY,
-		.help = "show full command help",
-		.usage = "[<command> ...]",
+		.help = "Show full command help; "
+			"command can be multiple tokens.",
+		.usage = "[command_name]",
 	},
 	{
 		.name = "usage",
-		.handler = &handle_help_command,
+		.handler = handle_help_command,
 		.mode = COMMAND_ANY,
-		.help = "show basic command usage",
-		.usage = "[<command> ...]",
+		.help = "Show basic command usage; "
+			"command can be multiple tokens.",
+		.usage = "[command_name]",
 	},
 	{
 		.name = "command",

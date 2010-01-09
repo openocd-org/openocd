@@ -191,6 +191,7 @@ COMMAND_HANDLER(handle_append_command)
 
 	int retval = ERROR_FAIL;
 	FILE *config_file = NULL;
+
 	config_file = fopen(CMD_ARGV[0], "a");
 	if (config_file != NULL)
 	{
@@ -199,7 +200,8 @@ COMMAND_HANDLER(handle_append_command)
 		unsigned i;
 		for (i = 1; i < CMD_ARGC; i++)
 		{
-			if (fwrite(CMD_ARGV[i], 1, strlen(CMD_ARGV[i]), config_file) != strlen(CMD_ARGV[i]))
+			if (fwrite(CMD_ARGV[i], 1, strlen(CMD_ARGV[i]),
+					config_file) != strlen(CMD_ARGV[i]))
 				break;
 			if (i != CMD_ARGC - 1)
 			{
@@ -208,9 +210,8 @@ COMMAND_HANDLER(handle_append_command)
 			}
 		}
 		if ((i == CMD_ARGC) && (fwrite("\n", 1, 1, config_file) == 1))
-		{
 			retval = ERROR_OK;
-		}
+
 		fclose(config_file);
 	}
 
@@ -619,76 +620,86 @@ static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 static const struct command_registration ioutil_command_handlers[] = {
 	{
 		.name = "cat",
-		.handler = &handle_cat_command,
+		.handler = handle_cat_command,
 		.mode = COMMAND_ANY,
-		.help = "display file content",
-		.usage= "<file_name>",
+		.help = "display text file content",
+		.usage= "file_name",
 	},
 	{
 		.name = "trunc",
-		.handler = &handle_trunc_command,
+		.handler = handle_trunc_command,
 		.mode = COMMAND_ANY,
-		.help = "truncate a file 0 size",
-		.usage= "<file_name>",
+		.help = "truncate a file to zero length",
+		.usage= "file_name",
 	},
 	{
 		.name = "cp",
-		.handler = &handle_cp_command,
+		.handler = handle_cp_command,
 		.mode = COMMAND_ANY,
 		.help = "copy a file",
-		.usage = "<src> <dst>",
+		.usage = "src_file_name dst_file_name",
 	},
 	{
 		.name = "append_file",
-		.handler = &handle_append_command,
+		.handler = handle_append_command,
 		.mode = COMMAND_ANY,
 		.help = "append a variable number of strings to a file",
-		.usage= "<file_name> [<string> ...]",
+		.usage= "file_name [string ...]",
 	},
 	{
 		.name = "meminfo",
-		.handler = &handle_meminfo_command,
+		.handler = handle_meminfo_command,
 		.mode = COMMAND_ANY,
-		.help = "display available ram memory",
+		.help = "display free heap space",
 	},
 	{
 		.name = "rm",
 		.mode = COMMAND_ANY,
-		.handler = &handle_rm_command,
-		.help = "remove a file",
-		.usage = "<file>",
+		.handler = handle_rm_command,
+		.help = "remove a directory or file",
+		.usage = "file_name",
 	},
+
+	/*
+	 * REVISIT shouldn't most, or all, these zylinjtag_*()
+	 * entries be #ifdef ZY1000?  If not, why so they have
+	 * those names?
+	 *
+	 * Peek and poke are security holes -- they manipulate
+	 * server-internal addresses.
+	 */
+
 	// jim handlers
 	{
 		.name = "peek",
 		.mode = COMMAND_ANY,
-		.jim_handler = &zylinjtag_Jim_Command_peek,
+		.jim_handler = zylinjtag_Jim_Command_peek,
 		.help = "peek at a memory address",
-		.usage = "<addr>",
+		.usage = "address",
 	},
 	{
 		.name = "poke",
 		.mode = COMMAND_ANY,
-		.jim_handler = &zylinjtag_Jim_Command_poke,
+		.jim_handler = zylinjtag_Jim_Command_poke,
 		.help = "poke at a memory address",
-		.usage = "<addr> <value>",
+		.usage = "address value",
 	},
 	{
 		.name = "ls",
 		.mode = COMMAND_ANY,
-		.jim_handler = &zylinjtag_Jim_Command_ls,
+		.jim_handler = zylinjtag_Jim_Command_ls,
 		.help = "show a listing of files",
-		.usage = "<dir>",
+		.usage = "dirname",
 	},
 	{
 		.name = "mac",
 		.mode = COMMAND_ANY,
-		.jim_handler = &zylinjtag_Jim_Command_mac,
+		.jim_handler = zylinjtag_Jim_Command_mac,
 		.help = "show MAC address",
 	},
 	{
 		.name = "ip",
-		.jim_handler = &zylinjtag_Jim_Command_ip,
+		.jim_handler = zylinjtag_Jim_Command_ip,
 		.mode = COMMAND_ANY,
 		.help = "show IP address",
 	},

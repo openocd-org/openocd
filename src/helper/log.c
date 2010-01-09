@@ -286,13 +286,16 @@ COMMAND_HANDLER(handle_debug_level_command)
 
 	if (debug_level >= LOG_LVL_DEBUG && server_use_pipes == 1)
 	{
-		/* if we are enabling debug info then we need to write to a log file
-		 * otherwise the pipe will get full and cause issues with gdb */
+		/* if we are enabling debug info then we need to write to a
+		 * log file otherwise the pipe will get full and cause issues
+		 * with gdb
+		 */
 		FILE* file = fopen("openocd.log", "w");
 		if (file)
 		{
 			log_output = file;
-			LOG_WARNING("enabling log output as we are using pipes");
+			LOG_WARNING("enabling logfile output because "
+				"we are using pipes to talk to GDB.");
 		}
 	}
 
@@ -319,17 +322,19 @@ COMMAND_HANDLER(handle_log_output_command)
 static struct command_registration log_command_handlers[] = {
 	{
 		.name = "log_output",
-		.handler = &handle_log_output_command,
+		.handler = handle_log_output_command,
 		.mode = COMMAND_ANY,
 		.help = "redirect logging to a file (default: stderr)",
-		.usage = "<file_name>",
+		.usage = "file_name",
 	},
 	{
 		.name = "debug_level",
-		.handler = &handle_debug_level_command,
+		.handler = handle_debug_level_command,
 		.mode = COMMAND_ANY,
-		.help = "sets the verbosity level of debugging output",
-		.usage = "<level:0-3>",
+		.help = "Sets the verbosity level of debugging output. "
+			"0 shows errors only; 1 adds warnings; "
+			"2 (default) adds other info; 3 adds debugging.",
+		.usage = "number",
 	},
 	COMMAND_REGISTRATION_DONE
 };
