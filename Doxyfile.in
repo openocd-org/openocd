@@ -567,7 +567,7 @@ WARN_LOGFILE           =
 INPUT                  = @srcdir@/doc/manual \
                          @srcdir@/TODO \
                          @srcdir@/BUGS \
-                         @srcdir@/PATCHES \
+                         @srcdir@/PATCHES.txt \
                          @srcdir@/src \
                          @srcdir@/config.h
 

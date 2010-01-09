@@ -223,7 +223,7 @@ communication between developers:
 @uref{https://lists.berlios.de/mailman/listinfo/openocd-development}
 
 Discuss and submit patches to this list.
-The @file{PATCHES} file contains basic information about how
+The @file{PATCHES.txt} file contains basic information about how
 to prepare patches.
 
 

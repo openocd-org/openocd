@@ -8,6 +8,7 @@ JTAG Layer:
 	Support USB-JTAG, Altera USB-Blaster and compatibles.
 
 Boundary Scan:
+
 Target Layer:
 	General
 		- new "reset-assert" event, for systems without SRST
@@ -36,6 +37,8 @@ Target Layer:
 	ETM, ETB
 		- "trigger_percent" command moved ETM --> ETB
 		- "etm trigger_debug" command added
+	MIPS
+		- use fastdata writes
 	Freescale DSP563xx cores (partial support)
 
 Flash Layer:
@@ -81,4 +84,4 @@ For older NEWS, see the NEWS files associated with each release
 
 For more information about contributing test reports, bug fixes, or new
 features and device support, please read the new Developer Manual (or
-the BUGS and PATCHES files in the source archive).
+the BUGS and PATCHES.txt files in the source archive).

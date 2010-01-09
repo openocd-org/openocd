@@ -205,7 +205,7 @@ For older NEWS, see the NEWS files associated with each release
 
 For more information about contributing test reports, bug fixes, or new
 features and device support, please read the new Developer Manual (or
-the BUGS and PATCHES files in the source archive).
+the BUGS and PATCHES.txt files in the source archive).
 NEWS
 	git add NEWS
 

@@ -26,8 +26,8 @@ that may be important.
     http://www.kernel.org/pub/software/scm/git/docs/git-bisect.html
 
 If possible, please develop and attach a patch that helps to expose or
-solve the reported problem.  See the PATCHES file for more information
-for that process.
+solve the reported problem.  See the PATCHES.txt file for information
+about that process.
 
 Attach all files directly to your posting.  The mailing list knows to
 transform attachments to links, but attachments must be less than 300KB

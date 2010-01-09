@@ -66,6 +66,9 @@ stamp-vti
 INSTALL
 NOTES
 
+# coexist with quilt
+patches
+
 # Eclipse stuff
 .project
 .cproject
