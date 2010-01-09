@@ -762,7 +762,7 @@ COMMAND_HANDLER(mg_write_cmd)
 	return ERROR_OK;
 
 mg_write_cmd_err:
- 	free(buffer);
+	free(buffer);
 	fileio_close(&fileio);
 
 	return ret;
@@ -829,7 +829,7 @@ COMMAND_HANDLER(mg_dump_cmd)
 	return ERROR_OK;
 
 mg_dump_cmd_err:
- 	free(buffer);
+	free(buffer);
 	fileio_close(&fileio);
 
 	return ret;
@@ -1271,30 +1271,33 @@ COMMAND_HANDLER(mg_config_cmd)
 static const struct command_registration mflash_exec_command_handlers[] = {
 	{
 		.name = "probe",
-		.handler = &mg_probe_cmd,
+		.handler = mg_probe_cmd,
 		.mode = COMMAND_EXEC,
 		.help = "Detect bank configuration information",
 	},
 	{
 		.name = "write",
-		.handler = &mg_write_cmd,
+		.handler = mg_write_cmd,
 		.mode = COMMAND_EXEC,
-		.usage = "<num> <file> <address>",
-		.help = "Write a file at the specified address",
+		/* FIXME bank_num is unused */
+		.usage = "bank_num filename address",
+		.help = "Write binary file at the specified address.",
 	},
 	{
 		.name = "dump",
-		.handler = &mg_dump_cmd,
+		.handler = mg_dump_cmd,
 		.mode = COMMAND_EXEC,
-		.usage = "<num> <file> <address> <size>",
-		.help = "Dump to a file from the specified address",
+		/* FIXME bank_num is unused */
+		.usage = "bank_num filename address size",
+		.help = "Write specified number of bytes from a binary file "
+			"to the specified, address.",
 	},
 	{
 		.name = "config",
-		.handler = &mg_config_cmd,
+		.handler = mg_config_cmd,
 		.mode = COMMAND_EXEC,
-		.usage = "<num> <stage>",
-		.help = "Dump to a file from the specified address",
+		.help = "Configure MFLASH options.",
+		.usage = "('boot'|'storage'|'pll' frequency)",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1367,15 +1370,15 @@ COMMAND_HANDLER(mg_bank_cmd)
 static const struct command_registration mflash_config_command_handlers[] = {
 	{
 		.name = "bank",
-		.handler = &mg_bank_cmd,
+		.handler = mg_bank_cmd,
 		.mode = COMMAND_CONFIG,
 		.help = "configure a mflash device bank",
-		.usage = "<soc> <base> <RST pin> <target #>",
+		.usage = "soc_type base_addr pin_id target",
 	},
 	{
 		.name = "init",
 		.mode = COMMAND_CONFIG,
-		.handler = &handle_mflash_init_command,
+		.handler = handle_mflash_init_command,
 		.help = "initialize mflash devices",
 	},
 	COMMAND_REGISTRATION_DONE
