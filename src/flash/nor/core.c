@@ -449,9 +449,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 				break;
 			}
 
-			/* REVISIT This needlessly touches sectors BETWEEN the
+			/* FIXME This needlessly touches sectors BETWEEN the
 			 * sections it's writing.  Without auto erase, it just
-			 * writes ones; unlikely to destroy data.
+			 * writes ones.  That WILL INVALIDATE data in cases
+			 * like Stellaris Tempest chips, corrupting internal
+			 * ECC codes; and at least FreeScale suggests issues
+			 * with that approach (in HC11 documentation).
 			 *
 			 * With auto erase enabled, data in those sectors will
 			 * be needlessly destroyed; and some of the limited

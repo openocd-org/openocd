@@ -209,6 +209,12 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   - ocl
   - str9xpec
 
+- Don't expect writing all-ones to be a safe way to write without
+  changing bit values.  Minimally it loses on flash modules with
+  internal ECC, where it may change the ECC.
+  - NOR flash_write_unlock() does that between sectors
+  - there may be other cases too
+
 @subsection thelistflashcfi CFI
 
 - finish implementing bus width/chip width handling (suggested by NC)
