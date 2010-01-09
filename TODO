@@ -215,6 +215,10 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   - NOR flash_write_unlock() does that between sectors
   - there may be other cases too
 
+- Make sure all commands accept either a bank name or a bank number,
+  and be sure both identifiers show up in "flash banks" and "nand list".
+  Right now the user-friendly names are pretty much hidden...
+
 @subsection thelistflashcfi CFI
 
 - finish implementing bus width/chip width handling (suggested by NC)

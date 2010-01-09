@@ -2288,7 +2288,7 @@ COMMAND_HANDLER(sam3_handle_info_command)
 			return ERROR_FAIL;
 		}
 	}
-	// above garentees the "chip details" structure is valid
+	// above guarantees the "chip details" structure is valid
 	// and thus, bank private areas are valid
 	// and we have a SAM3 chip, what a concept!
 
@@ -2386,7 +2386,7 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 
 	if (0 == strcmp("show", CMD_ARGV[0])) {
 		if (who == -1) {
-		showall:
+showall:
 			r = ERROR_OK;
 			for (x = 0 ; x < pChip->details.n_gpnvms ; x++) {
 				r = FLASHD_GetGPNVM(&(pChip->details.bank[0]), x, &v);
@@ -2466,24 +2466,27 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 static const struct command_registration at91sam3_exec_command_handlers[] = {
 	{
 		.name = "gpnvm",
-		.handler = &sam3_handle_gpnvm_command,
+		.handler = sam3_handle_gpnvm_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[(set|clear) [<bit_id>]]",
-		.help = "Without arguments, shows the gpnvm register; "
-			"otherwise, sets or clear the specified bit.",
+		.usage = "[('clr'|'set'|'show') bitnum]",
+		.help = "Without arguments, shows all bits in the gpnvm "
+			"register.  Otherwise, clears, sets, or shows one "
+			"General Purpose Non-Volatile Memory (gpnvm) bit.",
 	},
 	{
 		.name = "info",
-		.handler = &sam3_handle_info_command,
+		.handler = sam3_handle_info_command,
 		.mode = COMMAND_EXEC,
-		.help = "print information about the current sam3 chip",
+		.help = "Print information about the current at91sam3 chip"
+			"and its flash configuration.",
 	},
 	{
 		.name = "slowclk",
-		.handler = &sam3_handle_slowclk_command,
+		.handler = sam3_handle_slowclk_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<value>",
-		.help = "set the slowclock frequency (default 32768hz)",
+		.usage = "[clock_hz]",
+		.help = "Display or set the slowclock frequency "
+			"(default 32768 Hz).",
 	},
 	COMMAND_REGISTRATION_DONE
 };

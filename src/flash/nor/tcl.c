@@ -654,89 +654,99 @@ void flash_set_dirty(void)
 static const struct command_registration flash_exec_command_handlers[] = {
 	{
 		.name = "probe",
-		.handler = &handle_flash_probe_command,
+		.handler = handle_flash_probe_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "identify flash bank",
+		.usage = "bank_id",
+		.help = "Identify a flash bank.",
 	},
 	{
 		.name = "info",
-		.handler = &handle_flash_info_command,
+		.handler = handle_flash_info_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "print bank information",
+		.usage = "bank_id",
+		.help = "Print information about a flash bank.",
 	},
 	{
 		.name = "erase_check",
-		.handler = &handle_flash_erase_check_command,
+		.handler = handle_flash_erase_check_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "check erase state of sectors",
+		.usage = "bank_id",
+		.help = "Check erase state of all blocks in a "
+			"flash bank.",
 	},
 	{
 		.name = "protect_check",
-		.handler = &handle_flash_protect_check_command,
+		.handler = handle_flash_protect_check_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "check protection state of sectors",
+		.usage = "bank_id",
+		.help = "Check protection state of all blocks in a "
+			"flash bank.",
 	},
 	{
 		.name = "erase_sector",
-		.handler = &handle_flash_erase_command,
+		.handler = handle_flash_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <first> <last>",
-		.help = "erase sectors",
+		.usage = "bank_id first_sector_num last_sector_num",
+		.help = "Erase a range of sectors in a flash bank.",
 	},
 	{
 		.name = "erase_address",
-		.handler = &handle_flash_erase_address_command,
+		.handler = handle_flash_erase_address_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<address> <length>",
-		.help = "erase address range",
-
+		.usage = "address length",
+		.help = "Erase flash blocks starting at address "
+			"and continuing for length bytes.",
 	},
 	{
 		.name = "fillw",
-		.handler = &handle_flash_fill_command,
+		.handler = handle_flash_fill_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<address> <word_pattern> <count>",
-		.help = "fill with pattern (no autoerase)",
+		.usage = "address value n",
+		.help = "Fill n words with 32-bit value, starting at "
+			"word address.  (No autoerase.)",
 	},
 	{
 		.name = "fillh",
-		.handler = &handle_flash_fill_command,
+		.handler = handle_flash_fill_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<address> <halfword_pattern> <count>",
-		.help = "fill with pattern",
+		.usage = "address value n",
+		.help = "Fill n halfwords with 16-bit value, starting at "
+			"word address.  (No autoerase.)",
 	},
 	{
 		.name = "fillb",
-		.handler = &handle_flash_fill_command,
+		.handler = handle_flash_fill_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<address> <byte_pattern> <count>",
-		.help = "fill with pattern",
-
+		.usage = "address value n",
+		.help = "Fill n bytes with 8-bit value, starting at "
+			"word address.  (No autoerase.)",
 	},
 	{
 		.name = "write_bank",
-		.handler = &handle_flash_write_bank_command,
+		.handler = handle_flash_write_bank_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <file> <offset>",
-		.help = "write binary data",
+		.usage = "bank_id filename offset",
+		.help = "Write binary data from file to flash bank, "
+			"starting at specified byte offset from the "
+			"beginning of the bank.",
 	},
 	{
 		.name = "write_image",
-		.handler = &handle_flash_write_image_command,
+		.handler = handle_flash_write_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[erase] [unlock] <file> [offset] [type]",
-		.help = "write an image to flash"
+		.usage = "[erase] [unlock] filename [offset [file_type]]",
+		.help = "Write an image to flash.  Optionally first unprotect "
+			"and/or erase the region to be used.  Allow optional "
+			"offset from beginning of bank (defaults to zero)",
 	},
 	{
 		.name = "protect",
-		.handler = &handle_flash_protect_command,
+		.handler = handle_flash_protect_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <first> <last> <on | off>",
-		.help = "set protection of sectors",
+		.usage = "bank_id first_sector [last_sector|'last'] "
+			"('on'|'off')",
+		.help = "Turn protection on or off for a range of sectors "
+			"in a given flash bank.",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -893,8 +903,8 @@ static const struct command_registration flash_config_command_handlers[] = {
 		.name = "bank",
 		.handler = &handle_flash_bank_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "<name> <driver> <base> <size> "
-			"<chip_width> <bus_width> <target> "
+		.usage = "bank_id driver_name base_address size_bytes "
+			"chip_width_bytes bus_width_bytes target "
 			"[driver_options ...]",
 		.help = "Define a new bank with the given name, "
 			"using the specified NOR flash driver.",
@@ -903,19 +913,19 @@ static const struct command_registration flash_config_command_handlers[] = {
 		.name = "init",
 		.mode = COMMAND_CONFIG,
 		.handler = &handle_flash_init_command,
-		.help = "initialize flash devices",
+		.help = "Initialize flash devices.",
 	},
 	{
 		.name = "banks",
 		.mode = COMMAND_ANY,
 		.handler = &handle_flash_banks_command,
-		.help = "return readable information about the flash banks",
+		.help = "Display table with information about flash banks.",
 	},
 	{
 		.name = "list",
 		.mode = COMMAND_ANY,
 		.jim_handler = &jim_flash_list,
-		.help = "returns a list of details about the flash banks",
+		.help = "Returns a list of details about the flash banks.",
 	},
 	COMMAND_REGISTRATION_DONE
 };

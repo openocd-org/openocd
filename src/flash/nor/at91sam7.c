@@ -1182,10 +1182,11 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 static const struct command_registration at91sam7_exec_command_handlers[] = {
 	{
 		.name = "gpnvm",
-		.handler = &at91sam7_handle_gpnvm_command,
+		.handler = at91sam7_handle_gpnvm_command,
 		.mode = COMMAND_EXEC,
-		.usage = "gpnvm <bit> set | clear, "
-			"set or clear one gpnvm bit",
+		.help = "set or clear one General Purpose Non-Volatile Memory "
+			"(gpnvm) bit",
+		.usage = "bitnum ('set'|'clear')",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1200,15 +1201,15 @@ static const struct command_registration at91sam7_command_handlers[] = {
 };
 
 struct flash_driver at91sam7_flash = {
-		.name = "at91sam7",
-		.commands = at91sam7_command_handlers,
-		.flash_bank_command = &at91sam7_flash_bank_command,
-		.erase = &at91sam7_erase,
-		.protect = &at91sam7_protect,
-		.write = &at91sam7_write,
-		.probe = &at91sam7_probe,
-		.auto_probe = &at91sam7_probe,
-		.erase_check = &at91sam7_erase_check,
-		.protect_check = &at91sam7_protect_check,
-		.info = &at91sam7_info,
-	};
+	.name = "at91sam7",
+	.commands = at91sam7_command_handlers,
+	.flash_bank_command = at91sam7_flash_bank_command,
+	.erase = at91sam7_erase,
+	.protect = at91sam7_protect,
+	.write = at91sam7_write,
+	.probe = at91sam7_probe,
+	.auto_probe = at91sam7_probe,
+	.erase_check = at91sam7_erase_check,
+	.protect_check = at91sam7_protect_check,
+	.info = at91sam7_info,
+};

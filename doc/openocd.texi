@@ -3737,7 +3737,7 @@ see the driver-specific documentation.
 
 @itemize @bullet
 @item @var{name} ... may be used to reference the flash bank
-in other flash commands.
+in other flash commands.  A number is also available.
 @item @var{driver} ... identifies the controller driver
 associated with the flash bank being declared.
 This is usually @code{cfi} for external flash, or else
@@ -4103,7 +4103,7 @@ plane (of up to 256KB), and it will be used automatically when you issue
 @command{flash erase_sector} or @command{flash erase_address} commands.
 
 @deffn Command {at91sam7 gpnvm} bitnum (@option{set}|@option{clear})
-Set or clear a ``General Purpose Non-Volatle Memory'' (GPNVM)
+Set or clear a ``General Purpose Non-Volatile Memory'' (GPNVM)
 bit for the processor.   Each processor has a number of such bits,
 used for controlling features such as brownout detection (so they
 are not truly general purpose).

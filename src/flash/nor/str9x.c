@@ -679,11 +679,12 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 
 static const struct command_registration str9x_config_command_handlers[] = {
 	{
-		.name = "disable_jtag",
+		.name = "flash_config",
 		.handler = &str9x_handle_flash_config_command,
 		.mode = COMMAND_EXEC,
-		.help = "configure str9x flash controller",
-		.usage = "<bank_id> <BBSR> <NBBSR> <BBADR> <NBBADR>",
+		.help = "Configure str9x flash controller, prior to "
+			"programming the flash.",
+		.usage = "bank_id BBSR NBBSR BBADR NBBADR",
 	},
 	COMMAND_REGISTRATION_DONE
 };

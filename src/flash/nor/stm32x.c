@@ -1066,29 +1066,36 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	/* REVISIT: ignores some options which we will display...
+	 * and doesn't insist on the specified syntax.
+	 */
+
+	/* OPT_RDWDGSW */
 	if (strcmp(CMD_ARGV[1], "SWWDG") == 0)
 	{
 		optionbyte |= (1 << 0);
 	}
-	else
+	else	/* REVISIT must be "HWWDG" then ... */
 	{
 		optionbyte &= ~(1 << 0);
 	}
 
+	/* OPT_RDRSTSTDBY */
 	if (strcmp(CMD_ARGV[2], "NORSTSTNDBY") == 0)
 	{
 		optionbyte |= (1 << 1);
 	}
-	else
+	else	/* REVISIT must be "RSTSTNDBY" then ... */
 	{
 		optionbyte &= ~(1 << 1);
 	}
 
+	/* OPT_RDRSTSTOP */
 	if (strcmp(CMD_ARGV[3], "NORSTSTOP") == 0)
 	{
 		optionbyte |= (1 << 2);
 	}
-	else
+	else	/* REVISIT must be "RSTSTOP" then ... */
 	{
 		optionbyte &= ~(1 << 2);
 	}
@@ -1188,36 +1195,38 @@ static const struct command_registration stm32x_exec_command_handlers[] = {
 		.name = "lock",
 		.handler = &stm32x_handle_lock_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "lock device",
+		.usage = "bank_id",
+		.help = "Lock entire flash device.",
 	},
 	{
 		.name = "unlock",
 		.handler = &stm32x_handle_unlock_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "unlock protected device",
+		.usage = "bank_id",
+		.help = "Unlock entire protected flash device.",
 	},
 	{
 		.name = "mass_erase",
 		.handler = &stm32x_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "mass erase device",
+		.usage = "bank_id",
+		.help = "Erase entire flash device.",
 	},
 	{
 		.name = "options_read",
 		.handler = &stm32x_handle_options_read_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "read device option bytes",
+		.usage = "bank_id",
+		.help = "Read and display device option byte.",
 	},
 	{
 		.name = "options_write",
 		.handler = &stm32x_handle_options_write_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <SWWDG | HWWDG> <RSTSTNDBY | NORSTSTNDBY> <RSTSTOP | NORSTSTOP>",
-		.help = "write device option bytes",
+		.usage = "bank_id ('SWWDG'|'HWWDG') "
+			"('RSTSTNDBY'|'NORSTSTNDBY') "
+			"('RSTSTOP'|'NORSTSTOP')",
+		.help = "Replace bits in device option byte.",
 	},
 	COMMAND_REGISTRATION_DONE
 };

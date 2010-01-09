@@ -953,43 +953,47 @@ static const struct command_registration lpc2900_exec_command_handlers[] = {
 		.name = "signature",
 		.handler = &lpc2900_handle_signature_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank>",
-		.help = "print device signature of flash bank",
+		.usage = "bank_id",
+		.help = "Calculate and display signature of flash bank.",
 	},
 	{
 		.name = "read_custom",
 		.handler = &lpc2900_handle_read_custom_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <filename>",
-		.help = "read customer information from index sector to file",
+		.usage = "bank_id filename",
+		.help = "Copies 912 bytes of customer information "
+			"from index sector into file.",
 	},
 	{
 		.name = "password",
 		.handler = &lpc2900_handle_password_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <password>",
-		.help = "enter password to enable 'dangerous' options",
+		.usage = "bank_id password",
+		.help = "Enter fixed password to enable 'dangerous' options.",
 	},
 	{
 		.name = "write_custom",
 		.handler = &lpc2900_handle_write_custom_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <filename> [<type>]",
-		.help = "write customer info from file to index sector",
+		.usage = "bank_id filename ('bin'|'ihex'|'elf'|'s19')",
+		.help = "Copies 912 bytes of customer info from file "
+			"to index sector.",
 	},
 	{
 		.name = "secure_sector",
 		.handler = &lpc2900_handle_secure_sector_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <first> <last>",
-		.help = "activate sector security for a range of sectors",
+		.usage = "bank_id first_sector last_sector",
+		.help = "Activate sector security for a range of sectors.  "
+			"It will be effective after a power cycle.",
 	},
 	{
 		.name = "secure_jtag",
 		.handler = &lpc2900_handle_secure_jtag_command,
 		.mode = COMMAND_EXEC,
-		.usage = "<bank> <level>",
-		.help = "activate JTAG security",
+		.usage = "bank_id",
+		.help = "Disable the JTAG port.  "
+			"It will be effective after a power cycle.",
 	},
 	COMMAND_REGISTRATION_DONE
 };
