@@ -2412,7 +2412,7 @@ COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 static const struct command_registration gdb_command_handlers[] = {
 	{
 		.name = "gdb_sync",
-		.handler = &handle_gdb_sync_command,
+		.handler = handle_gdb_sync_command,
 		.mode = COMMAND_ANY,
 		.help = "next stepi will return immediately allowing "
 			"GDB to fetch register state without affecting "
@@ -2420,40 +2420,41 @@ static const struct command_registration gdb_command_handlers[] = {
 	},
 	{
 		.name = "gdb_port",
-		.handler = &handle_gdb_port_command,
+		.handler = handle_gdb_port_command,
 		.mode = COMMAND_ANY,
-		.help = "daemon configuration command gdb_port. No arguments reports "
-				"GDB port.",
-		.usage = "<port>",
+		.help = "Display or specify base port on which to listen "
+			"for incoming GDB connections.  "
+			"No arguments reports GDB port; zero disables.",
+		.usage = "[port_num]",
 	},
 	{
 		.name = "gdb_memory_map",
-		.handler = &handle_gdb_memory_map_command,
+		.handler = handle_gdb_memory_map_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable memory map",
-		.usage = "enable|disable"
+		.usage = "('enable'|'disable')"
 	},
 	{
 		.name = "gdb_flash_program",
-		.handler = &handle_gdb_flash_program_command,
+		.handler = handle_gdb_flash_program_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable flash program",
-		.usage = "enable|disable"
+		.usage = "('enable'|'disable')"
 	},
 	{
 		.name = "gdb_report_data_abort",
-		.handler = &handle_gdb_report_data_abort_command,
+		.handler = handle_gdb_report_data_abort_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable reporting data aborts",
-		.usage = "enable|disable"
+		.usage = "('enable'|'disable')"
 	},
 	{
 		.name = "gdb_breakpoint_override",
-		.handler = &handle_gdb_breakpoint_override_command,
+		.handler = handle_gdb_breakpoint_override_command,
 		.mode = COMMAND_EXEC,
-		.help = "force type of breakpoint "
-			"used by gdb 'break' commands.",
-		.usage = "hard|soft|disable",
+		.help = "Display or specify type of breakpoint "
+			"to be used by gdb 'break' commands.",
+		.usage = "('hard'|'soft'|'disable')"
 	},
 	COMMAND_REGISTRATION_DONE
 };

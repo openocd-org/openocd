@@ -619,17 +619,18 @@ COMMAND_HANDLER(handle_exit_command)
 static const struct command_registration telnet_command_handlers[] = {
 	{
 		.name = "exit",
-		.handler = &handle_exit_command,
+		.handler = handle_exit_command,
 		.mode = COMMAND_EXEC,
 		.help = "exit telnet session",
 	},
 	{
 		.name = "telnet_port",
-		.handler = &handle_telnet_port_command,
+		.handler = handle_telnet_port_command,
 		.mode = COMMAND_ANY,
-		.help = "port on which to listen "
-			"for incoming telnet connections",
-		.usage = "<port>",
+		.help = "Specify port on which to listen "
+			"for incoming telnet connections.  "
+			"No arguments reports telnet port; zero disables.",
+		.usage = "[port_num]",
 	},
 	COMMAND_REGISTRATION_DONE
 };

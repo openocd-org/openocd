@@ -1721,17 +1721,17 @@ In such cases, just specify the relevant port number as zero.
 If you disable all access through TCP/IP, you will need to
 use the command line @option{-pipe} option.
 
-@deffn {Command} gdb_port (number)
+@deffn {Command} gdb_port [number]
 @cindex GDB server
 Specify or query the first port used for incoming GDB connections.
 The GDB port for the
 first target will be gdb_port, the second target will listen on gdb_port + 1, and so on.
 When not specified during the configuration stage,
 the port @var{number} defaults to 3333.
-When specified as zero, this port is not activated.
+When specified as zero, GDB remote access ports are not activated.
 @end deffn
 
-@deffn {Command} tcl_port (number)
+@deffn {Command} tcl_port [number]
 Specify or query the port used for a simplified RPC
 connection that can be used by clients to issue TCL commands and get the
 output from the Tcl engine.
@@ -1741,7 +1741,7 @@ the port @var{number} defaults to 6666.
 When specified as zero, this port is not activated.
 @end deffn
 
-@deffn {Command} telnet_port (number)
+@deffn {Command} telnet_port [number]
 Specify or query the
 port on which to listen for incoming telnet connections.
 This port is intended for interaction with one human through TCL commands.

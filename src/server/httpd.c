@@ -118,11 +118,11 @@ static int httpd_Jim_Command_writeform(Jim_Interp *interp, int argc,
 	// Find length
 	const char *data;
 	int actual;
-
 	int retcode;
-
-	const char *script = alloc_printf("set dummy_val $httppostdata(%s); set dummy_val",
+	const char *script = alloc_printf(
+			"set dummy_val $httppostdata(%s); set dummy_val",
 			name);
+
 	retcode = Jim_Eval_Named(interp, script, __FILE__, __LINE__);
 	free((void *) script);
 	if (retcode != JIM_OK)
@@ -154,27 +154,25 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
                                    int argc,
                                    Jim_Obj *const *argv)
 {
-    if (argc != 2)
-    {
-        Jim_WrongNumArgs(interp, 1, argv, "method ?CMD_ARGV ...?");
-        return JIM_ERR;
-    }
-    char *name = (char*)Jim_GetString(argv[1], NULL);
+	if (argc != 2)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "method ?CMD_ARGV ...?");
+		return JIM_ERR;
+	}
 
+	char *name = (char*)Jim_GetString(argv[1], NULL);
+	const char *script = alloc_printf(
+		"set dummy_val $httppostdata(%s); set dummy_val",
+		name);
+	int retcode = Jim_Eval_Named(interp, script, __FILE__, __LINE__);
 
-    const char *script = alloc_printf("set dummy_val $httppostdata(%s); set dummy_val",
-    			name);
-    	int retcode = Jim_Eval_Named(interp, script, __FILE__, __LINE__);
-    	free((void *) script);
-    	if (retcode != JIM_OK)
-    	{
-    	    Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-    	} else
-    	{
-    	    Jim_SetResult(interp, Jim_GetResult(interp));
-    	}
+	free((void *) script);
+	if (retcode != JIM_OK)
+		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+	else
+		Jim_SetResult(interp, Jim_GetResult(interp));
 
-    return JIM_OK;
+	return JIM_OK;
 }
 
 struct httpd_request
@@ -467,16 +465,16 @@ static struct MHD_Daemon * d;
 static const struct command_registration httpd_command_handlers[] = {
 	{
 		.name = "formfetch",
-		.jim_handler = &httpd_Jim_Command_formfetch,
+		.jim_handler = httpd_Jim_Command_formfetch,
 		.mode = COMMAND_EXEC,
-		.usage = "<parameter_name>",
+		.usage = "parameter_name",
 		.help = "Reads a posted form value.",
 	},
 	{
 		.name = "writeform",
-		.jim_handler = &httpd_Jim_Command_writeform,
+		.jim_handler = httpd_Jim_Command_writeform,
 		.mode = COMMAND_EXEC,
-		.usage = "<parameter_name> <file>",
+		.usage = "parameter_name filename",
 		.help = "Writes a form value to a file.",
 	},
 	COMMAND_REGISTRATION_DONE

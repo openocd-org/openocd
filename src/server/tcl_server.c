@@ -181,11 +181,12 @@ COMMAND_HANDLER(handle_tcl_port_command)
 static const struct command_registration tcl_command_handlers[] = {
 	{
 		.name = "tcl_port",
-		.handler = &handle_tcl_port_command,
+		.handler = handle_tcl_port_command,
 		.mode = COMMAND_CONFIG,
-		.help = "port on which to listen "
-			"for incoming TCL syntax",
-		.usage = "<port>",
+		.help = "Specify port on which to listen "
+			"for incoming Tcl syntax.  "
+			"No arguments reports Tcl port; zero disables.",
+		.usage = "[port_num]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
