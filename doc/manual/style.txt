@@ -308,7 +308,7 @@ For technical reference material:
    - Else it's a "Config Command" if it must be used before the
      configuration stage completes.
    - For a "Driver", list its name.
-   - Use BNF style regular expressions to define parameters:
+   - Use EBNF style regular expressions to define parameters:
      brackets around zero-or-one choices, parentheses around
      exactly-one choices.
    - Use \@option, \@file, \@var and other mechanisms where appropriate.

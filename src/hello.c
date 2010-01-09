@@ -58,14 +58,14 @@ static const struct command_registration foo_command_handlers[] = {
 		.name = "bar",
 		.handler = &handle_foo_command,
 		.mode = COMMAND_ANY,
-		.usage = "<address> [enable|disable]",
+		.usage = "address ['enable'|'disable']",
 		.help = "an example command",
 	},
 	{
 		.name = "baz",
 		.handler = &handle_foo_command,
 		.mode = COMMAND_ANY,
-		.usage = "<address> [enable|disable]",
+		.usage = "address ['enable'|'disable']",
 		.help = "a sample command",
 	},
 	{
@@ -107,10 +107,10 @@ COMMAND_HANDLER(handle_hello_command)
 const struct command_registration hello_command_handlers[] = {
 	{
 		.name = "hello",
-		.handler = &handle_hello_command,
+		.handler = handle_hello_command,
 		.mode = COMMAND_ANY,
 		.help = "prints a warm welcome",
-		.usage = "[<name>]",
+		.usage = "[name]",
 	},
 	{
 		.name = "foo",

@@ -68,9 +68,9 @@ static const struct command_registration hello_command_handlers[] = {
 	{
 		.name = "hello",
 		.mode = COMMAND_ANY,
-		.handler = &handle_hello_command,
-		.help = "print a warm greetings",
-		.usage = "[<name>]",
+		.handler = handle_hello_command,
+		.help = "print a warm greeting",
+		.usage = "[name]",
 	},
 	{
 		.chain = foo_command_handlers,
@@ -84,7 +84,12 @@ int hello_register_commands(struct command_context_s *cmd_ctx)
 }
 @endcode
 
-That's it!  The command should now be registered and avaiable to scripts.
+Note that the "usage" text should use the same EBNF that's found
+in the User's Guide:  literals in 'single quotes', sequences of
+optional parameters in [square brackets], and alternatives in
+(parentheses|with|vertical bars), and so forth.  No angle brackets.
+
+That's it!  The command should now be registered and available to scripts.
 
 @section primercmdchain Command Chaining
 
