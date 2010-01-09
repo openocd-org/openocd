@@ -237,9 +237,9 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 	{
 		.name = "read_stat",
 		.mode = COMMAND_EXEC,
-		.handler = &virtex2_handle_read_stat_command,
+		.handler = virtex2_handle_read_stat_command,
 		.help = "read status register",
-		.usage = "<device_id>",
+		.usage = "pld_num",
 	},
 	COMMAND_REGISTRATION_DONE
 };

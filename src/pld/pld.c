@@ -76,7 +76,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 			/* register pld specific commands */
 			int retval;
 			if (pld_drivers[i]->commands) {
-				retval = register_commands(CMD_CTX, NULL, 
+				retval = register_commands(CMD_CTX, NULL,
 						pld_drivers[i]->commands);
 				if (ERROR_OK != retval)
 				{
@@ -89,10 +89,12 @@ COMMAND_HANDLER(handle_pld_device_command)
 			c->driver = pld_drivers[i];
 			c->next = NULL;
 
-			retval = CALL_COMMAND_HANDLER(pld_drivers[i]->pld_device_command, c);
+			retval = CALL_COMMAND_HANDLER(
+					pld_drivers[i]->pld_device_command, c);
 			if (ERROR_OK != retval)
 			{
-				LOG_ERROR("'%s' driver rejected pld device", CMD_ARGV[0]);
+				LOG_ERROR("'%s' driver rejected pld device",
+						CMD_ARGV[0]);
 				free(c);
 				return ERROR_OK;
 			}
@@ -191,16 +193,16 @@ COMMAND_HANDLER(handle_pld_load_command)
 static const struct command_registration pld_exec_command_handlers[] = {
 	{
 		.name = "devices",
-		.handler = &handle_pld_devices_command,
+		.handler = handle_pld_devices_command,
 		.mode = COMMAND_EXEC,
 		.help = "list configured pld devices",
 	},
 	{
 		.name = "load",
-		.handler = &handle_pld_load_command,
+		.handler = handle_pld_load_command,
 		.mode = COMMAND_EXEC,
 		.help = "load configuration file into PLD",
-		.usage = "<device#> <file>",
+		.usage = "pld_num filename",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -234,14 +236,14 @@ static const struct command_registration pld_config_command_handlers[] = {
 	{
 		.name = "device",
 		.mode = COMMAND_CONFIG,
-		.handler = &handle_pld_device_command,
+		.handler = handle_pld_device_command,
 		.help = "configure a PLD device",
-		.usage = "<driver> ...",
+		.usage = "driver_name [driver_args ... ]",
 	},
 	{
 		.name = "init",
 		.mode = COMMAND_CONFIG,
-		.handler = &handle_pld_init_command,
+		.handler = handle_pld_init_command,
 		.help = "initialize PLD devices",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -251,7 +253,6 @@ static const struct command_registration pld_command_handler[] = {
 		.name = "pld",
 		.mode = COMMAND_ANY,
 		.help = "programmable logic device commands",
-
 		.chain = pld_config_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
