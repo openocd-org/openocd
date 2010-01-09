@@ -1361,7 +1361,7 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 	HostOs = "winxx";
 #elif defined(__linux__)
 	HostOs = "linux";
-#elif defined(__DARWIN__)
+#elif defined(__APPLE__) || defined(__DARWIN__)
 	HostOs = "darwin";
 #elif defined(__CYGWIN__)
 	HostOs = "cygwin";
@@ -1370,7 +1370,7 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 #elif defined(__ECOS)
 	HostOs = "ecos";
 #else
-#warn unrecognized host OS...
+#warning "Unrecognized host OS..."
 	HostOs = "other";
 #endif
 	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS",
