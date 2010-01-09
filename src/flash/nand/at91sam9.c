@@ -697,28 +697,30 @@ static const struct command_registration at91sam9_sub_command_handlers[] = {
 		.handler = handle_at91sam9_cle_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set command latch enable address line (default is 22)",
-		.usage = "<device_id> <address_line>",
+		.usage = "bank_id address_line",
 	},
 	{
 		.name = "ale",
 		.handler = handle_at91sam9_ale_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set address latch enable address line (default is 21)",
-		.usage = "<device_id> <address_line>",
+		.usage = "bank_id address_line",
 	},
 	{
 		.name = "rdy_busy",
 		.handler = handle_at91sam9_rdy_busy_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the input pin connected to RDY/~BUSY signal (no default)",
-		.usage = "<device_id> <base_pioc> <pin_num>",
+		.help = "set the GPIO input pin connected to "
+			"the RDY/~BUSY signal (no default)",
+		.usage = "bank_id pio_base_addr pin_num",
 	},
 	{
 		.name = "ce",
 		.handler = handle_at91sam9_ce_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the output pin connected to chip enable signal (no default)",
-		.usage = "<device_id> <base_pioc> <pin_num>",
+		.help = "set the GPIO output pin connected to "
+			"the chip enable signal (no default)",
+		.usage = "bank_id pio_base_addr pin_num",
 	},
 	COMMAND_REGISTRATION_DONE
 };

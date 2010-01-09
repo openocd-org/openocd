@@ -878,10 +878,10 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 static const struct command_registration lpc3180_exec_command_handlers[] = {
 	{
 		.name = "select",
-		.handler = &handle_lpc3180_select_command,
+		.handler = handle_lpc3180_select_command,
 		.mode = COMMAND_EXEC,
-		.help = "select <'mlc'|'slc'> controller (default is mlc)",
-		.usage = "<device_id> (mlc|slc)",
+		.help = "select MLC or SLC controller (default is MLC)",
+		.usage = "bank_id ['mlc'|'slc']",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -896,17 +896,17 @@ static const struct command_registration lpc3180_command_handler[] = {
 };
 
 struct nand_flash_controller lpc3180_nand_controller = {
-		.name = "lpc3180",
-		.commands = lpc3180_command_handler,
-		.nand_device_command = lpc3180_nand_device_command,
-		.init = lpc3180_init,
-		.reset = lpc3180_reset,
-		.command = lpc3180_command,
-		.address = lpc3180_address,
-		.write_data = lpc3180_write_data,
-		.read_data = lpc3180_read_data,
-		.write_page = lpc3180_write_page,
-		.read_page = lpc3180_read_page,
-		.controller_ready = lpc3180_controller_ready,
-		.nand_ready = lpc3180_nand_ready,
-	};
+	.name = "lpc3180",
+	.commands = lpc3180_command_handler,
+	.nand_device_command = lpc3180_nand_device_command,
+	.init = lpc3180_init,
+	.reset = lpc3180_reset,
+	.command = lpc3180_command,
+	.address = lpc3180_address,
+	.write_data = lpc3180_write_data,
+	.read_data = lpc3180_read_data,
+	.write_page = lpc3180_write_page,
+	.read_page = lpc3180_read_page,
+	.controller_ready = lpc3180_controller_ready,
+	.nand_ready = lpc3180_nand_ready,
+};

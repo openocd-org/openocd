@@ -4673,7 +4673,7 @@ NAND chips must be declared in configuration scripts,
 plus some additional configuration that's done after
 OpenOCD has initialized.
 
-@deffn {Config Command} {nand device} name controller target [configparams...]
+@deffn {Config Command} {nand device} name driver target [configparams...]
 Declares a NAND device, which can be read and written to
 after it has been configured through @command{nand probe}.
 In OpenOCD, devices are single chips; this is unlike some
@@ -4688,8 +4688,8 @@ configuration files, not interactively.
 
 @itemize @bullet
 @item @var{name} ... may be used to reference the NAND bank
-in other commands.
-@item @var{controller} ... identifies the controller driver
+in most other NAND commands.  A number is also available.
+@item @var{driver} ... identifies the NAND controller driver
 associated with the NAND device being declared.
 @xref{NAND Driver List}.
 @item @var{target} ... names the target used when issuing
