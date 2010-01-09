@@ -1053,13 +1053,13 @@ COMMAND_HANDLER(handle_xsvf_command)
 static const struct command_registration xsvf_command_handlers[] = {
 	{
 		.name = "xsvf",
-		.handler = &handle_xsvf_command,
+		.handler = handle_xsvf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a XSVF file.  If 'virt2' is given, xruntest "
 			"counts are interpreted as TCK cycles rather than "
 			"as microseconds.  Without the 'quiet' option, all "
 			"comments, retries, and mismatches will be reported.",
-		.usage = "<file> [virt2] [quiet]",
+		.usage = "(tapname|'plain') filename ['virt2'] ['quiet']",
 	},
 	COMMAND_REGISTRATION_DONE
 };

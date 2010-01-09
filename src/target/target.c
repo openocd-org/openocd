@@ -4916,7 +4916,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_virt2phys_command,
 		.mode = COMMAND_ANY,
 		.help = "translate a virtual address into a physical address",
-		.usage = "virual_address",
+		.usage = "virtual_address",
 	},
 	{
 		.name = "reg",

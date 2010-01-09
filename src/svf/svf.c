@@ -1461,10 +1461,10 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 static const struct command_registration svf_command_handlers[] = {
 	{
 		.name = "svf",
-		.handler = &handle_svf_command,
+		.handler = handle_svf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a SVF file.",
-		.usage = "<file>",
+		.usage = "filename ['quiet']",
 	},
 	COMMAND_REGISTRATION_DONE
 };
