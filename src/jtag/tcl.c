@@ -269,26 +269,39 @@ static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const 
 	return JIM_OK;
 }
 
+/* REVISIT Just what about these should "move" ... ?
+ * These registrations, into the main JTAG table?
+ *
+ * There's a minor compatibility issue, these all show up twice;
+ * that's not desirable:
+ *  - jtag drscan ... NOT DOCUMENTED!
+ *  - drscan ...
+ *
+ * The "irscan" command (for example) doesn't show twice.
+ */
 static const struct command_registration jtag_command_handlers_to_move[] = {
 	{
 		.name = "drscan",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &Jim_Command_drscan,
-		.help = "execute DR scan <device> "
-			"<num_bits> <value> <num_bits1> <value2> ...",
+		.jim_handler = Jim_Command_drscan,
+		.help = "Execute Data Register (DR) scan for one TAP.  "
+			"Other TAPs must be in BYPASS mode.",
+		.usage = "tap_name [num_bits value]* ['-endstate' state_name]",
 	},
 	{
 		.name = "flush_count",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &Jim_Command_flush_count,
-		.help = "returns number of times the JTAG queue has been flushed",
+		.jim_handler = Jim_Command_flush_count,
+		.help = "Returns the number of times the JTAG queue "
+			"has been flushed.",
 	},
 	{
 		.name = "pathmove",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &Jim_Command_pathmove,
-		.usage = "<state1>,<state2>,<state3>... ",
-		.help = "move JTAG to state1 then to state2, state3, etc.",
+		.jim_handler = Jim_Command_pathmove,
+		.usage = "start_state state1 [state2 [state3 ...]]",
+		.help = "Move JTAG state machine from current state "
+			"(start_state) to state1, then state2, state3, etc.",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -658,7 +671,8 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 	}
 }
 
-static int jim_jtag_interface(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int
+jim_jtag_interface(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
@@ -845,73 +859,88 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "init",
 		.mode = COMMAND_ANY,
-		.handler = &handle_jtag_init_command,
+		.handler = handle_jtag_init_command,
 		.help = "initialize jtag scan chain",
 	},
 	{
 		.name = "interface",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_jtag_interface,
-		.help = "Returns the selected interface",
+		.jim_handler = jim_jtag_interface,
+		.help = "Returns the name of the currently selected interface.",
 	},
 	{
 		.name = "arp_init",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_jtag_arp_init,
+		.jim_handler = jim_jtag_arp_init,
+		.help = "Validates JTAG scan chain against the list of "
+			"declared TAPs using just the four standard JTAG "
+			"signals.",
 	},
 	{
 		.name = "arp_init-reset",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_jtag_arp_init_reset,
+		.jim_handler = jim_jtag_arp_init_reset,
+		.help = "Uses TRST and SRST to try resetting everything on "
+			"the JTAG scan chain, then performs 'jtag arp_init'."
 	},
 	{
 		.name = "newtap",
 		.mode = COMMAND_CONFIG,
-		.jim_handler = &jim_jtag_newtap,
-		.help = "Create a new TAP instance",
-		.usage = "<name> <type> -irlen <count> [-ircapture <count>] "
-			"[-irmask <count>] [-enable|-disable]",
+		.jim_handler = jim_jtag_newtap,
+		.help = "Create a new TAP instance named basename.tap_type, "
+			"and appends it to the scan chain.",
+		.usage = "basename tap_type '-irlen' count "
+			"['-enable'|'-disable'] "
+			"['-expected_id' number] "
+			"['-ignore-version'] "
+			"['-ircapture' number] "
+			"['-mask' number] ",
 	},
 	{
 		.name = "tapisenabled",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_jtag_tap_enabler,
-		.help = "Returns a integer indicating TAP state (0/1)",
-		.usage = "<name>",
+		.jim_handler = jim_jtag_tap_enabler,
+		.help = "Returns a Tcl boolean (0/1) indicating whether "
+			"the TAP is enabled (1) or not (0).",
+		.usage = "tap_name",
 	},
 	{
 		.name = "tapenable",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_jtag_tap_enabler,
-		.help = "Enable the specified TAP",
-		.usage = "<name>",
+		.jim_handler = jim_jtag_tap_enabler,
+		.help = "Try to enable the specified TAP using the "
+			"'tap-enable' TAP event.",
+		.usage = "tap_name",
 	},
 	{
 		.name = "tapdisable",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_jtag_tap_enabler,
-		.help = "Enable the specified TAP",
-		.usage = "<name>",
+		.jim_handler = jim_jtag_tap_enabler,
+		.help = "Try to disable the specified TAP using the "
+			"'tap-disable' TAP event.",
+		.usage = "tap_name",
 	},
 	{
 		.name = "configure",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_jtag_configure,
-		.help = "Enable the specified TAP",
-		.usage = "<name> [<key> <value> ...]",
+		.jim_handler = jim_jtag_configure,
+		.help = "Provide a Tcl handler for the specified "
+			"TAP event.",
+		.usage = "tap_name '-event' event_name handler",
 	},
 	{
 		.name = "cget",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_jtag_configure,
-		.help = "Enable the specified TAP",
-		.usage = "<name> [<key> <value> ...]",
+		.jim_handler = jim_jtag_configure,
+		.help = "Return any Tcl handler for the specified "
+			"TAP event.",
+		.usage = "tap_name '-event' event_name",
 	},
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_jtag_names,
-		.help = "Returns list of all JTAG tap names",
+		.jim_handler = jim_jtag_names,
+		.help = "Returns list of all JTAG tap names.",
 	},
 	{
 		.chain = jtag_command_handlers_to_move,
@@ -1574,34 +1603,38 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 static const struct command_registration jtag_command_handlers[] = {
 	{
 		.name = "interface",
-		.handler = &handle_interface_command,
+		.handler = handle_interface_command,
 		.mode = COMMAND_CONFIG,
-		.help = "select a JTAG interface",
-		.usage = "<driver_name>",
+		.help = "Select a JTAG interface",
+		.usage = "driver_name",
 	},
 	{
 		.name = "interface_list",
-		.handler = &handle_interface_list_command,
+		.handler = handle_interface_list_command,
 		.mode = COMMAND_ANY,
-		.help = "list all built-in interfaces",
+		.help = "List all built-in interfaces",
 	},
 	{
 		.name = "jtag_khz",
-		.handler = &handle_jtag_khz_command,
+		.handler = handle_jtag_khz_command,
 		.mode = COMMAND_ANY,
-		.help = "set maximum jtag speed (if supported)",
-		.usage = "<khz:0=rtck>",
+		.help = "With an argument, change to the specified maximum "
+			"jtag speed.  Pass 0 to require adaptive clocking. "
+			"With or without argument, display current setting.",
+		.usage = "[khz]",
 	},
 	{
 		.name = "jtag_rclk",
-		.handler = &handle_jtag_rclk_command,
+		.handler = handle_jtag_rclk_command,
 		.mode = COMMAND_ANY,
-		.help = "set JTAG speed to RCLK or use fallback speed",
-		.usage = "<fallback_speed_khz>",
+		.help = "With an argument, change to to use adaptive clocking "
+			"if possible; else to use the fallback speed.  "
+			"With or without argument, display current setting.",
+		.usage = "[fallback_speed_khz]",
 	},
 	{
 		.name = "reset_config",
-		.handler = &handle_reset_config_command,
+		.handler = handle_reset_config_command,
 		.mode = COMMAND_ANY,
 		.help = "configure JTAG reset behavior",
 		.usage = "[none|trst_only|srst_only|trst_and_srst] "
@@ -1612,79 +1645,87 @@ static const struct command_registration jtag_command_handlers[] = {
 	},
 	{
 		.name = "jtag_nsrst_delay",
-		.handler = &handle_jtag_nsrst_delay_command,
+		.handler = handle_jtag_nsrst_delay_command,
 		.mode = COMMAND_ANY,
 		.help = "delay after deasserting srst in ms",
-		.usage = "<ms>",
+		.usage = "[milliseconds]",
 	},
 	{
 		.name = "jtag_ntrst_delay",
-		.handler = &handle_jtag_ntrst_delay_command,
+		.handler = handle_jtag_ntrst_delay_command,
 		.mode = COMMAND_ANY,
 		.help = "delay after deasserting trst in ms",
-		.usage = "<ms>"
+		.usage = "[milliseconds]",
 	},
 	{
 		.name = "jtag_nsrst_assert_width",
-		.handler = &handle_jtag_nsrst_assert_width_command,
+		.handler = handle_jtag_nsrst_assert_width_command,
 		.mode = COMMAND_ANY,
 		.help = "delay after asserting srst in ms",
-		.usage = "<ms>"
+		.usage = "[milliseconds]",
 	},
 	{
 		.name = "jtag_ntrst_assert_width",
-		.handler = &handle_jtag_ntrst_assert_width_command,
+		.handler = handle_jtag_ntrst_assert_width_command,
 		.mode = COMMAND_ANY,
 		.help = "delay after asserting trst in ms",
-		.usage = "<ms>"
+		.usage = "[milliseconds]",
 	},
 	{
 		.name = "scan_chain",
-		.handler = &handle_scan_chain_command,
+		.handler = handle_scan_chain_command,
 		.mode = COMMAND_EXEC,
 		.help = "print current scan chain configuration",
 	},
 	{
 		.name = "jtag_reset",
-		.handler = &handle_jtag_reset_command,
+		.handler = handle_jtag_reset_command,
 		.mode = COMMAND_EXEC,
-		.help = "toggle reset lines",
-		.usage = "<trst> <srst>",
+		.help = "Set reset line values.  Value '1' is active, "
+			"value '0' is inactive.",
+		.usage = "trst_active srst_active",
 	},
 	{
 		.name = "runtest",
-		.handler = &handle_runtest_command,
+		.handler = handle_runtest_command,
 		.mode = COMMAND_EXEC,
-		.help = "move to Run-Test/Idle, and execute <num_cycles>",
-		.usage = "<num_cycles>"
+		.help = "Move to Run-Test/Idle, and issue TCK for num_cycles.",
+		.usage = "num_cycles"
 	},
 	{
 		.name = "irscan",
-		.handler = &handle_irscan_command,
+		.handler = handle_irscan_command,
 		.mode = COMMAND_EXEC,
-		.help = "execute IR scan",
-		.usage = "<device> <instr> [dev2] [instr2] ...",
+		.help = "Execute Instruction Register (DR) scan.  The "
+			"specified opcodes are put into each TAP's IR, "
+			"and other TAPs are put in BYPASS.",
+		.usage = "[tap_name instruction]* ['-endstate' state_name]",
 	},
 	{
 		.name = "verify_ircapture",
-		.handler = &handle_verify_ircapture_command,
+		.handler = handle_verify_ircapture_command,
 		.mode = COMMAND_ANY,
-		.help = "verify value captured during Capture-IR",
-		.usage = "<enable | disable>",
+		.help = "Display or assign flag controlling whether to "
+			"verify values captured during Capture-IR.",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "verify_jtag",
-		.handler = &handle_verify_jtag_command,
+		.handler = handle_verify_jtag_command,
 		.mode = COMMAND_ANY,
-		.help = "verify value capture",
-		.usage = "<enable | disable>",
+		.help = "Display or assign flag controlling whether to "
+			"verify values captured during IR and DR scans.",
+		.usage = "['enable'|'disable']",
 	},
 	{
 		.name = "tms_sequence",
-		.handler = &handle_tms_sequence_command,
+		.handler = handle_tms_sequence_command,
 		.mode = COMMAND_ANY,
-		.help = "choose short(default) or long tms_sequence",
-		.usage = "<short | long>",
+		.help = "Display or change what style TMS sequences to use "
+			"for JTAG state transitions:  short (default) or "
+			"long.  Only for working around JTAG bugs.",
+			/* Specifically for working around DRIVER bugs... */
+		.usage = "['short'|'long']",
 	},
 	{
 		.name = "jtag",
