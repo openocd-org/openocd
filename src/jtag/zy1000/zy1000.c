@@ -832,29 +832,32 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 static const struct command_registration zy1000_commands[] = {
 	{
 		.name = "power",
-		.handler = &handle_power_command,
+		.handler = handle_power_command,
 		.mode = COMMAND_ANY,
-		.help = "turn power switch to target on/off. No arguments - print status.",
-		.usage = "power <on/off>",
+		.help = "Turn power switch to target on/off. "
+			"With no arguments, prints status.",
+		.usage = "('on'|'off)",
 	},
 	{
 		.name = "zy1000_version",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_zy1000_version,
-		.help = "print version info for zy1000",
+		.jim_handler = jim_zy1000_version,
+		.help = "Print version info for zy1000.",
+		.usage = "['openocd'|'zy1000'|'date'|'time'|'pcb'|'fpga']",
 	},
 	{
 		.name = "powerstatus",
 		.mode = COMMAND_ANY,
-		.jim_handler = & zylinjtag_Jim_Command_powerstatus,
-		.help = "print power status of target",
+		.jim_handler = zylinjtag_Jim_Command_powerstatus,
+		.help = "Returns power status of target",
 	},
 #ifdef CYGPKG_HAL_NIOS2
 	{
 		.name = "updatezy1000firmware",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_zy1000_writefirmware,
+		.jim_handler = jim_zy1000_writefirmware,
 		.help = "writes firmware to flash",
+		/* .usage = "some_string", */
 	},
 #endif
 	COMMAND_REGISTRATION_DONE
