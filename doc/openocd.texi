@@ -6913,11 +6913,12 @@ variables. JimTCL, as implemented in OpenOCD creates $ocd_HOSTOS which
 holds one of the following values:
 
 @itemize @bullet
-@item @b{winxx}    Built using Microsoft Visual Studio
-@item @b{linux}    Linux is the underlying operating sytem
-@item @b{darwin}   Darwin (mac-os) is the underlying operating sytem.
 @item @b{cygwin}   Running under Cygwin
+@item @b{darwin}   Darwin (Mac-OS) is the underlying operating sytem.
+@item @b{freebsd}  Running under FreeBSD
+@item @b{linux}    Linux is the underlying operating sytem
 @item @b{mingw32}  Running under MingW32
+@item @b{winxx}    Built using Microsoft Visual Studio
 @item @b{other}    Unknown, none of the above.
 @end itemize
 

@@ -1358,6 +1358,7 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 #endif
 	context->interp = interp;
 
+	/* Stick to lowercase for HostOS strings. */
 #if defined(_MSC_VER)
 	/* WinXX - is generic, the forward
 	 * looking problem is this:
@@ -1377,6 +1378,8 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 	HostOs = "mingw32";
 #elif defined(__ECOS)
 	HostOs = "ecos";
+#elif defined(__FreeBSD__)
+	HostOs = "freebsd";
 #else
 #warning "Unrecognized host OS..."
 	HostOs = "other";
