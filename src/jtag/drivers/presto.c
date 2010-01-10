@@ -19,7 +19,8 @@
  ***************************************************************************/
 
 /**
- * @file Holds driver for PRESTO programmer from ASIX.
+ * @file
+ * Holds driver for PRESTO programmer from ASIX.
  * http://tools.asix.net/prg_presto.htm
  */
 #ifdef HAVE_CONFIG_H
