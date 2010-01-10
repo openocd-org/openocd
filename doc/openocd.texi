@@ -2073,9 +2073,11 @@ $_TARGETNAME configure -event reset-assert \
 Gateworks GW16012 JTAG programmer.
 This has one driver-specific command:
 
-@deffn {Config Command} {parport_port} number
-Specifies either the address of the I/O port (default: 0x378 for LPT1) or
-the number of the @file{/dev/parport} device.
+@deffn {Config Command} {parport_port} [port_number]
+Display either the address of the I/O port
+(default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
+If a parameter is provided, first switch to use that port.
+This is a write-once setting.
 @end deffn
 @end deffn
 
@@ -2094,7 +2096,8 @@ These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
 @deffn {Config Command} {parport_cable} name
-The layout of the parallel port cable used to connect to the target.
+Set the layout of the parallel port cable used to connect to the target.
+This is a write-once setting.
 Currently valid cable @var{name} values include:
 
 @itemize @minus
@@ -2122,9 +2125,11 @@ several clones, such as the Olimex ARM-JTAG
 @end itemize
 @end deffn
 
-@deffn {Config Command} {parport_port} number
-Either the address of the I/O port (default: 0x378 for LPT1) or the number of
-the @file{/dev/parport} device
+@deffn {Config Command} {parport_port} [port_number]
+Display either the address of the I/O port
+(default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
+If a parameter is provided, first switch to use that port.
+This is a write-once setting.
 
 When using PPDEV to access the parallel port, use the number of the parallel port:
 @option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
@@ -2167,25 +2172,26 @@ match for the jtag_khz rate you specified; be conservative.
 @end quotation
 @end deffn
 
-@deffn {Config Command} {parport_write_on_exit} (on|off)
+@deffn {Config Command} {parport_write_on_exit} (@option{on}|@option{off})
 This will configure the parallel driver to write a known
-cable-specific value to the parallel interface on exiting OpenOCD
+cable-specific value to the parallel interface on exiting OpenOCD.
 @end deffn
 
 For example, the interface configuration file for a
-classic ``Wiggler'' cable might look something like this:
+classic ``Wiggler'' cable on LPT2 might look something like this:
 
 @example
 interface parport
-parport_port 0xc8b8
+parport_port 0x278
 parport_cable wiggler
 @end example
 @end deffn
 
 @deffn {Interface Driver} {presto}
 ASIX PRESTO USB JTAG programmer.
-@c command:	presto_serial str
-@c     sets serial number
+@deffn {Config Command} {presto_serial} serial_string
+Configures the USB serial number of the Presto device to use.
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {rlink}
