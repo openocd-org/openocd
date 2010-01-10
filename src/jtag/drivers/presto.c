@@ -17,6 +17,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+/**
+ * @file Holds driver for PRESTO programmer from ASIX.
+ * http://tools.asix.net/prg_presto.htm
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -742,10 +747,10 @@ COMMAND_HANDLER(presto_handle_serial_command)
 static const struct command_registration presto_command_handlers[] = {
 	{
 		.name = "presto_serial",
-		.handler = &presto_handle_serial_command,
+		.handler = presto_handle_serial_command,
 		.mode = COMMAND_CONFIG,
-		.help = "configure serial port",
-		.usage = "<devname>",
+		.help = "Configure USB serial number of Presto device.",
+		.usage = "serial_string",
 	},
 	COMMAND_REGISTRATION_DONE
 };

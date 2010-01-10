@@ -437,9 +437,12 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 	/* only if the cable name wasn't overwritten by cmdline */
 	if (parport_cable == 0)
 	{
+		/* REVISIT first verify that it's listed in cables[] ... */
 		parport_cable = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
 		strcpy(parport_cable, CMD_ARGV[0]);
 	}
+
+	/* REVISIT it's probably worth returning the current value ... */
 
 	return ERROR_OK;
 }
@@ -484,34 +487,37 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 static const struct command_registration parport_command_handlers[] = {
 	{
 		.name = "parport_port",
-		.handler = &parport_handle_parport_port_command,
+		.handler = parport_handle_parport_port_command,
 		.mode = COMMAND_CONFIG,
-		.help = "either the address of the I/O port "
-			"or the number of the '/dev/parport' device",
-		.usage = "[<port|devname>]",
+		.help = "Display the address of the I/O port (e.g. 0x378) "
+			"or the number of the '/dev/parport' device used.  "
+			"If a parameter is provided, first change that port.",
+		.usage = "[port_number]",
 	},
 	{
 		.name = "parport_cable",
-		.handler = &parport_handle_parport_cable_command,
+		.handler = parport_handle_parport_cable_command,
 		.mode = COMMAND_CONFIG,
-		.help = "the layout of the parallel port cable "
-			"used to connect to the target",
-		.usage = "[<layout>]",
+		.help = "Set the layout of the parallel port cable "
+			"used to connect to the target.",
+		/* REVISIT there's no way to list layouts we know ... */
+		.usage = "[layout]",
 	},
 	{
 		.name = "parport_write_on_exit",
-		.handler = &parport_handle_write_on_exit_command,
+		.handler = parport_handle_write_on_exit_command,
 		.mode = COMMAND_CONFIG,
-		.help = "configure the parallel driver to write "
-			"a known value to the parallel interface",
-		.usage = "[<on|off>]",
+		.help = "Configure the parallel driver to write "
+			"a known value to the parallel interface on exit.",
+		.usage = "('on'|'off')",
 	},
 	{
 		.name = "parport_toggling_time",
-		.handler = &parport_handle_parport_toggling_time_command,
+		.handler = parport_handle_parport_toggling_time_command,
 		.mode = COMMAND_CONFIG,
-		.help = "time <ns> it takes for the hardware to toggle TCK",
-		.usage = "[<ns>]",
+		.help = "Displays or assigns how many nanoseconds it "
+			"takes for the hardware to toggle TCK.",
+		.usage = "[nanoseconds]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
