@@ -565,10 +565,12 @@ COMMAND_HANDLER(gw16012_handle_parport_port_command)
 static const struct command_registration gw16012_command_handlers[] = {
 	{
 		.name = "parport_port",
-		.handler = &gw16012_handle_parport_port_command,
+		.handler = gw16012_handle_parport_port_command,
 		.mode = COMMAND_CONFIG,
-		.help = "configure the parallel port to use",
-		.usage = "<port_num>",
+		.help = "Display the address of the I/O port (e.g. 0x378) "
+			"or the number of the '/dev/parport' device used.  "
+			"If a parameter is provided, first change that port.",
+		.usage = "[port_number]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
