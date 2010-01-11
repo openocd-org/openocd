@@ -5041,7 +5041,8 @@ change any behavior.
 @deffnx {NAND Driver} s3c2412
 @deffnx {NAND Driver} s3c2440
 @deffnx {NAND Driver} s3c2443
-These S3C24xx family controllers don't have any special
+@deffnx {NAND Driver} s3c6400
+These S3C family controllers don't have any special
 @command{nand device} options, and don't define any
 specialized commands.
 At this writing, their drivers don't include @code{write_page}
