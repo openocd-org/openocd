@@ -213,6 +213,13 @@ struct target_type
 
 	int (*mmu)(struct target *target, int *enabled);
 
+	/* after reset is complete, the target can check if things are properly set up.
+	 *
+	 * This can be used to check if e.g. DCC memory writes have been enabled for
+	 * arm7/9 targets, which they really should except in the most contrived
+	 * circumstances.
+	 */
+	int (*check_reset)(struct target *target);
 };
 
 #endif // TARGET_TYPE_H

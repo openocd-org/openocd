@@ -477,6 +477,11 @@ int target_process_reset(struct command_context *cmd_ctx, enum target_reset_mode
 	/* We want any events to be processed before the prompt */
 	retval = target_call_timer_callbacks_now();
 
+	struct target *target;
+	for (target = all_targets; target; target = target->next) {
+		target->type->check_reset(target);
+	}
+
 	return retval;
 }
 
@@ -496,6 +501,12 @@ static int no_mmu(struct target *target, int *enabled)
 static int default_examine(struct target *target)
 {
 	target_set_examined(target);
+	return ERROR_OK;
+}
+
+/* no check by default */
+static int default_check_reset(struct target *target)
+{
 	return ERROR_OK;
 }
 
@@ -707,6 +718,9 @@ static int target_init_one(struct command_context *cmd_ctx,
 	struct target_type *type = target->type;
 	if (type->examine == NULL)
 		type->examine = default_examine;
+
+	if (type->check_reset== NULL)
+		type->check_reset = default_check_reset;
 
 	int retval = type->init_target(cmd_ctx, target);
 	if (ERROR_OK != retval)
@@ -4887,6 +4901,20 @@ int target_register_commands(struct command_context *cmd_ctx)
 	return register_commands(cmd_ctx, NULL, target_command_handlers);
 }
 
+static bool target_reset_nag = true;
+
+bool get_target_reset_nag(void)
+{
+	return target_reset_nag;
+}
+
+COMMAND_HANDLER(handle_target_reset_nag)
+{
+	return CALL_COMMAND_HANDLER(handle_command_parse_bool,
+			&target_reset_nag, "Nag after each reset about options to improve "
+			"performance");
+}
+
 static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "fast_load_image",
@@ -5087,6 +5115,14 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.help = "convert a TCL array to memory locations "
 			"and write the 8/16/32 bit values",
 		.usage = "arrayname bitwidth address count",
+	},
+	{
+		.name = "reset_nag",
+		.handler = handle_target_reset_nag,
+		.mode = COMMAND_ANY,
+		.help = "Nag after each reset about options that could have been "
+				"enabled to improve performance. ",
+		.usage = "['enable'|'disable']",
 	},
 	COMMAND_REGISTRATION_DONE
 };

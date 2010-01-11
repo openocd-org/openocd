@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
+ *   Copyright (C) 2007-9 Øyvind Harboe                                    *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -482,5 +482,7 @@ void target_all_handle_event(enum target_event e);
 #define ERROR_TARGET_NOT_EXAMINED (-311)
 
 const char *target_strerror_safe(int err);
+
+extern bool get_target_reset_nag(void);
 
 #endif /* TARGET_H */
