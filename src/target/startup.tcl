@@ -41,7 +41,7 @@ proc ocd_process_reset_inner { MODE } {
 		set halt 0;
 	}
 	if { $halt < 0 } {
-		return -error "Invalid mode: $MODE, must be one of: halt, init, or run";
+		return -code error "Invalid mode: $MODE, must be one of: halt, init, or run";
 	}
 
 	# Target event handlers *might* change which TAPs are enabled
@@ -119,7 +119,7 @@ proc ocd_process_reset_inner { MODE } {
 			set s [$t curstate]
 
 			if { 0 != [string compare $s "halted" ] } {
-				return -error [format "TARGET: %s - Not halted" $t]
+				return -code error [format "TARGET: %s - Not halted" $t]
 			}
 		}
 	}
