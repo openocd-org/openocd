@@ -132,6 +132,13 @@ static int zy1000_power_dropout(int *dropout)
 void zy1000_reset(int trst, int srst)
 {
 	LOG_DEBUG("zy1000 trst=%d, srst=%d", trst, srst);
+
+	/* flush the JTAG FIFO. Not flushing the queue before messing with
+	 * reset has such interesting bugs as causing hard to reproduce
+	 * RCLK bugs as RCLK will stop responding when TRST is asserted
+	 */
+	waitIdle();
+
 	if (!srst)
 	{
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x00000001);
@@ -156,7 +163,6 @@ void zy1000_reset(int trst, int srst)
 
 	if (trst||(srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 	{
-		waitIdle();
 		/* we're now in the RESET state until trst is deasserted */
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_RESET);
 	} else
