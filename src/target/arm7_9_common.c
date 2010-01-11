@@ -2732,6 +2732,8 @@ int arm7_9_check_reset(struct target *target)
 	{
 		LOG_WARNING("NOTE! DCC downloads have not been enabled, defaulting to slow memory writes. Type 'help dcc'.");
 	}
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)

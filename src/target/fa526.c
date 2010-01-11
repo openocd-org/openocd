@@ -390,4 +390,5 @@ struct target_type fa526_target =
 	.target_create = fa526_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm7_9_examine,
+	.check_reset = arm7_9_check_reset,
 };
