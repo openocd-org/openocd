@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -2721,6 +2721,17 @@ int arm7_9_examine(struct target *target)
 	if (retval == ERROR_OK && arm7_9->armv4_5_common.etm)
 		retval = etm_setup(target);
 	return retval;
+}
+
+
+int arm7_9_check_reset(struct target *target)
+{
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+
+	if (get_target_reset_nag() && !arm7_9->dcc_downloads)
+	{
+		LOG_WARNING("NOTE! DCC downloads have not been enabled, defaulting to slow memory writes. Type 'help dcc'.");
+	}
 }
 
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
