@@ -623,7 +623,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	if (pTap->ir_length != 0)
 	{
 		jtag_tap_init(pTap);
-		return ERROR_OK;
+		return JIM_OK;
 	}
 
 	Jim_SetResult_sprintf(goi->interp,
