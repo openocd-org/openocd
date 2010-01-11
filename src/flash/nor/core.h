@@ -24,6 +24,11 @@
 
 #include <flash/common.h>
 
+/**
+ * @file
+ * Upper level NOR flash interfaces.
+ */
+
 struct image;
 
 #define FLASH_MAX_ERROR_STR	(128)

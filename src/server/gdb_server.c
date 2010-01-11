@@ -37,6 +37,15 @@
 #include <jtag/jtag.h>
 
 
+/**
+ * @file
+ * GDB server implementation.
+ *
+ * This implements the GDB Remote Serial Protocol, over TCP connections,
+ * giving GDB access to the JTAG or other hardware debugging facilities
+ * found in most modern embedded processors.
+ */
+
 /* private connection data for GDB */
 struct gdb_connection
 {
@@ -68,7 +77,7 @@ static enum breakpoint_type gdb_breakpoint_override_type;
 extern int gdb_error(struct connection *connection, int retval);
 static unsigned short gdb_port = 3333;
 static unsigned short gdb_port_next = 0;
-static const char *DIGITS = "0123456789abcdef";
+static const char DIGITS[16] = "0123456789abcdef";
 
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);

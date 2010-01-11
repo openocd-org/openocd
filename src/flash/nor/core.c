@@ -29,6 +29,13 @@
 #include <target/image.h>
 
 
+/**
+ * @file
+ * Upper level of NOR flash framework.
+ * The lower level interfaces are to drivers.  These upper level ones
+ * primarily support access from Tcl scripts or from GDB.
+ */
+
 struct flash_bank *flash_banks;
 
 int flash_driver_erase(struct flash_bank *bank, int first, int last)

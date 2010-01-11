@@ -26,6 +26,11 @@
 #include <helper/time_support.h>
 #include <target/image.h>
 
+/**
+ * @file
+ * Implements Tcl commands used to access NOR flash facilities.
+ */
+
 COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 		struct flash_bank **bank)
 {
