@@ -349,7 +349,7 @@ static int register_command_handler(struct command_context *cmd_ctx,
 	if (NULL == override_name)
 		return JIM_ERR;
 
-	retval = Jim_Eval_Named(interp, override_name, __FILE__, __LINE__);
+	retval = Jim_Eval_Named(interp, override_name, __THIS__FILE__ , __LINE__);
 	free((void *)override_name);
 
 	return retval;
