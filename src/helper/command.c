@@ -108,10 +108,15 @@ static int command_retval_set(Jim_Interp *interp, int retval)
 
 extern struct command_context *global_cmd_ctx;
 
+/* dump a single line to the log for the command.
+ * Do nothing in case we are not at debug level 3 */
 void script_debug(Jim_Interp *interp, const char *name,
 		unsigned argc, Jim_Obj *const *argv)
 {
-	LOG_DEBUG("command - %s", name);
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+
+	char * dbg = alloc_printf("command - %s", name);
 	for (unsigned i = 0; i < argc; i++)
 	{
 		int len;
@@ -121,8 +126,12 @@ void script_debug(Jim_Interp *interp, const char *name,
 		if (*w == '#')
 			break;
 
-		LOG_DEBUG("%s - argv[%d]=%s", name, i, w);
+		char * t = alloc_printf("%s %s", dbg, w);
+		free (dbg);
+		dbg = t;
 	}
+	LOG_DEBUG("%s", dbg);
+	free(dbg);
 }
 
 static void script_command_args_free(const char **words, unsigned nwords)
