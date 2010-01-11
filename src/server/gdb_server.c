@@ -1423,7 +1423,7 @@ int gdb_breakpoint_watchpoint_packet(struct connection *connection, struct targe
 {
 	int type;
 	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
-	enum watchpoint_rw wp_type;
+	enum watchpoint_rw wp_type = WPT_READ /* dummy init to avoid warning */;
 	uint32_t address;
 	uint32_t size;
 	char *separator;
@@ -1443,6 +1443,12 @@ int gdb_breakpoint_watchpoint_packet(struct connection *connection, struct targe
 		wp_type = WPT_READ;
 	else if (type == 4) /* access watchpoint */
 		wp_type = WPT_ACCESS;
+	else
+	{
+		LOG_ERROR("invalid gdb watch/breakpoint type(%d), dropping connection", type);
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
+
 
 	if (gdb_breakpoint_override && ((bp_type == BKPT_SOFT)||(bp_type == BKPT_HARD)))
 	{
@@ -1493,7 +1499,7 @@ int gdb_breakpoint_watchpoint_packet(struct connection *connection, struct targe
 		{
 			if (packet[0] == 'Z')
 			{
-				if ((retval = watchpoint_add(target, address, size, type-2, 0, 0xffffffffu)) != ERROR_OK)
+				if ((retval = watchpoint_add(target, address, size, wp_type, 0, 0xffffffffu)) != ERROR_OK)
 				{
 					if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 						return retval;
