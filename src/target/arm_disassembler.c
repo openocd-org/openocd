@@ -3247,7 +3247,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 	case 0x0c:
 		/* move constant to top 16 bits of register */
 		immed |= (opcode >> 4) & 0xf000;
-		sprintf(cp, "MOVT\tr%d, #%d\t; %#4.4x", rn, immed, immed);
+		sprintf(cp, "MOVT\tr%d, #%d\t; %#4.4x", rd, immed, immed);
 		return ERROR_OK;
 	case 0x10:
 	case 0x12:
