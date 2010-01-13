@@ -34,6 +34,8 @@ Target Layer:
 		- watchpoint support
 	Cortex-M3
 		- Exposed DWT registers like cycle counter
+		- vector_catch settings not clobbered by resets
+		- no longer interferes with firmware's fault handling
 	ETM, ETB
 		- "trigger_percent" command moved ETM --> ETB
 		- "etm trigger_debug" command added

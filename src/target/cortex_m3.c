@@ -185,11 +185,12 @@ static int cortex_m3_endreset_event(struct target *target)
 	int i;
 	uint32_t dcb_demcr;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
+	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &cortex_m3->armv7m.swjdp_info;
 	struct cortex_m3_fp_comparator *fp_list = cortex_m3->fp_comparator_list;
 	struct cortex_m3_dwt_comparator *dwt_list = cortex_m3->dwt_comparator_list;
 
-	/* FIXME handling of DEMCR clobbers vector_catch config ... */
+	/* REVISIT The four debug monitor bits are currently ignored... */
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
 	LOG_DEBUG("DCB_DEMCR = 0x%8.8" PRIx32 "",dcb_demcr);
 
@@ -204,21 +205,14 @@ static int cortex_m3_endreset_event(struct target *target)
 	/* clear any interrupt masking */
 	cortex_m3_write_debug_halt_mask(target, 0, C_MASKINTS);
 
-	/* Enable trace and DWT; trap hard and bus faults.
+	/* Enable features controlled by ITM and DWT blocks, and catch only
+	 * the vectors we were told to pay attention to.
 	 *
-	 * REVISIT why trap those two?  And why trash the vector_catch
-	 * config, instead of preserving it?  Catching HARDERR and BUSERR
-	 * will interfere with code that handles those itself...
+	 * Target firmware is responsible for all fault handling policy
+	 * choices *EXCEPT* explicitly scripted overrides like "vector_catch"
+	 * or manual updates to the NVIC SHCSR and CCR registers.
 	 */
-	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
-
-	/* Monitor bus faults as such (instead of as generic HARDERR), but
-	 * leave memory management and usage faults disabled.
-	 *
-	 * REVISIT setting BUSFAULTENA interferes with code which relies
-	 * on the default setting.  Why do it?
-	 */
-	mem_ap_write_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA);
+	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | armv7m->demcr);
 
 	/* Paranoia: evidently some (early?) chips don't preserve all the
 	 * debug state (including FBP, DWT, etc) across reset...
@@ -533,7 +527,7 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
-	/* Enter debug state on reset; see end_reset_event() */
+	/* Enter debug state on reset; restore DEMCR in endreset_event() */
 	mem_ap_write_u32(swjdp, DCB_DEMCR,
 			TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 
@@ -782,14 +776,15 @@ static int cortex_m3_assert_reset(struct target *target)
 
 		/* clear C_HALT in dhcsr reg */
 		cortex_m3_write_debug_halt_mask(target, 0, C_HALT);
-
-		/* Enter debug state on reset, cf. end_reset_event() */
-		mem_ap_write_u32(swjdp, DCB_DEMCR,
-				TRCENA | VC_HARDERR | VC_BUSERR);
 	}
 	else
 	{
-		/* Enter debug state on reset, cf. end_reset_event() */
+		/* Halt in debug on reset; endreset_event() restores DEMCR.
+		 *
+		 * REVISIT catching BUSERR presumably helps to defend against
+		 * bad vector table entries.  Should this include MMERR or
+		 * other flags too?
+		 */
 		mem_ap_write_atomic_u32(swjdp, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	}
@@ -1938,12 +1933,20 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 			}
 		}
 write:
+		/* For now, armv7m->demcr only stores vector catch flags. */
+		armv7m->demcr = catch;
+
 		demcr &= ~0xffff;
 		demcr |= catch;
 
-		/* write, but don't assume it stuck */
+		/* write, but don't assume it stuck (why not??) */
 		mem_ap_write_u32(swjdp, DCB_DEMCR, demcr);
 		mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
+
+		/* FIXME be sure to clear DEMCR on clean server shutdown.
+		 * Otherwise the vector catch hardware could fire when there's
+		 * no debugger hooked up, causing much confusion...
+		 */
 	}
 
 	for (unsigned i = 0; i < ARRAY_SIZE(vec_ids); i++)
