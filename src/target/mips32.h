@@ -85,6 +85,12 @@ struct mips32_core_reg
 	struct mips32_common *mips32_common;
 };
 
+struct mips32_algorithm
+{
+	int common_magic;
+	enum mips32_isa_mode isa_mode;
+};
+
 #define MIPS32_OP_BEQ	0x04
 #define MIPS32_OP_BNE	0x05
 #define MIPS32_OP_ADDI	0x08
@@ -164,5 +170,9 @@ int mips32_register_commands(struct command_context *cmd_ctx);
 
 int mips32_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
+int mips32_checksum_memory(struct target *target, uint32_t address,
+		uint32_t count, uint32_t* checksum);
+int mips32_blank_check_memory(struct target *target,
+		uint32_t address, uint32_t count, uint32_t* blank);
 
 #endif	/*MIPS32_H*/

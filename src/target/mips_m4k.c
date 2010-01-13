@@ -32,61 +32,6 @@
 #include "target_type.h"
 #include "register.h"
 
-/* cli handling */
-
-/* forward declarations */
-int mips_m4k_poll(struct target *target);
-int mips_m4k_halt(struct target *target);
-int mips_m4k_soft_reset_halt(struct target *target);
-int mips_m4k_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-int mips_m4k_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
-int mips_m4k_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target);
-int mips_m4k_target_create(struct target *target, Jim_Interp *interp);
-
-int mips_m4k_examine(struct target *target);
-int mips_m4k_assert_reset(struct target *target);
-int mips_m4k_deassert_reset(struct target *target);
-int mips_m4k_checksum_memory(struct target *target, uint32_t address, uint32_t size, uint32_t *checksum);
-
-struct target_type mips_m4k_target =
-{
-	.name = "mips_m4k",
-
-	.poll = mips_m4k_poll,
-	.arch_state = mips32_arch_state,
-
-	.target_request_data = NULL,
-
-	.halt = mips_m4k_halt,
-	.resume = mips_m4k_resume,
-	.step = mips_m4k_step,
-
-	.assert_reset = mips_m4k_assert_reset,
-	.deassert_reset = mips_m4k_deassert_reset,
-	.soft_reset_halt = mips_m4k_soft_reset_halt,
-
-	.get_gdb_reg_list = mips32_get_gdb_reg_list,
-
-	.read_memory = mips_m4k_read_memory,
-	.write_memory = mips_m4k_write_memory,
-	.bulk_write_memory = mips_m4k_bulk_write_memory,
-	.checksum_memory = mips_m4k_checksum_memory,
-	.blank_check_memory = NULL,
-
-	.run_algorithm = mips32_run_algorithm,
-
-	.add_breakpoint = mips_m4k_add_breakpoint,
-	.remove_breakpoint = mips_m4k_remove_breakpoint,
-	.add_watchpoint = mips_m4k_add_watchpoint,
-	.remove_watchpoint = mips_m4k_remove_watchpoint,
-
-	.target_create = mips_m4k_target_create,
-	.init_target = mips_m4k_init_target,
-	.examine = mips_m4k_examine,
-};
-
 int mips_m4k_examine_debug_reason(struct target *target)
 {
 	uint32_t break_status;
@@ -148,13 +93,8 @@ int mips_m4k_debug_entry(struct target *target)
 	/* default to mips32 isa, it will be changed below if required */
 	mips32->isa_mode = MIPS32_ISA_MIPS32;
 
-	if (ejtag_info->impcode & EJTAG_IMP_MIPS16)
-	{
-		if (buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32) & 0x01)
-		{
-			/* core is running mips16e isa */
-			mips32->isa_mode = MIPS32_ISA_MIPS16E;
-		}
+	if (ejtag_info->impcode & EJTAG_IMP_MIPS16) {
+		mips32->isa_mode = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1);
 	}
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 ", target->state: %s",
@@ -396,6 +336,10 @@ int mips_m4k_resume(struct target *target, int current, uint32_t address, int ha
 		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
 	}
 
+	if (ejtag_info->impcode & EJTAG_IMP_MIPS16) {
+		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1, mips32->isa_mode);
+	}
+
 	resume_pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
 
 	mips32_restore_context(target);
@@ -457,9 +401,12 @@ int mips_m4k_step(struct target *target, int current, uint32_t address, int hand
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
 
 	/* the front-end may request us not to handle breakpoints */
-	if (handle_breakpoints)
-		if ((breakpoint = breakpoint_find(target, buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32))))
+	if (handle_breakpoints) {
+		breakpoint = breakpoint_find(target,
+				buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32));
+		if (breakpoint)
 			mips_m4k_unset_breakpoint(target, breakpoint);
+	}
 
 	/* restore context */
 	mips32_restore_context(target);
@@ -545,7 +492,8 @@ int mips_m4k_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		{
 			uint32_t verify = 0xffffffff;
 
-			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1,
+					breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -568,7 +516,8 @@ int mips_m4k_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		{
 			uint16_t verify = 0xffff;
 
-			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1,
+					breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -633,13 +582,15 @@ int mips_m4k_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 			uint32_t current_instr;
 
 			/* check that user program has not modified breakpoint instruction */
-			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (uint8_t*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 4, 1,
+					(uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 			if (current_instr == MIPS32_SDBBP)
 			{
-				if ((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if ((retval = target_write_memory(target, breakpoint->address, 4, 1,
+						breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -650,14 +601,16 @@ int mips_m4k_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 			uint16_t current_instr;
 
 			/* check that user program has not modified breakpoint instruction */
-			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (uint8_t*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 2, 1,
+					(uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 
 			if (current_instr == MIPS16_SDBBP)
 			{
-				if ((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if ((retval = target_write_memory(target, breakpoint->address, 2, 1,
+						breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -886,12 +839,14 @@ int mips_m4k_read_memory(struct target *target, uint32_t address, uint32_t size,
 	return ERROR_OK;
 }
 
-int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size,
+		uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+			address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -920,7 +875,8 @@ int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_init_arch_info(struct target *target, struct mips_m4k_common *mips_m4k, struct jtag_tap *tap)
+int mips_m4k_init_arch_info(struct target *target, struct mips_m4k_common *mips_m4k,
+		struct jtag_tap *tap)
 {
 	struct mips32_common *mips32 = &mips_m4k->mips32_common;
 
@@ -973,7 +929,8 @@ int mips_m4k_examine(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
+int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+		uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -1012,7 +969,8 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 		}
 	}
 
-	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write, address, count, (uint32_t*) buffer);
+	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write, address,
+			count, (uint32_t*) buffer);
 	if (retval != ERROR_OK)
 	{
 		/* FASTDATA access failed, try normal memory write */
@@ -1026,7 +984,39 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	return retval;
 }
 
-int mips_m4k_checksum_memory(struct target *target, uint32_t address, uint32_t size, uint32_t *checksum)
+struct target_type mips_m4k_target =
 {
-	return ERROR_FAIL; /* use bulk read method */
-}
+	.name = "mips_m4k",
+
+	.poll = mips_m4k_poll,
+	.arch_state = mips32_arch_state,
+
+	.target_request_data = NULL,
+
+	.halt = mips_m4k_halt,
+	.resume = mips_m4k_resume,
+	.step = mips_m4k_step,
+
+	.assert_reset = mips_m4k_assert_reset,
+	.deassert_reset = mips_m4k_deassert_reset,
+	.soft_reset_halt = mips_m4k_soft_reset_halt,
+
+	.get_gdb_reg_list = mips32_get_gdb_reg_list,
+
+	.read_memory = mips_m4k_read_memory,
+	.write_memory = mips_m4k_write_memory,
+	.bulk_write_memory = mips_m4k_bulk_write_memory,
+	.checksum_memory = mips32_checksum_memory,
+	.blank_check_memory = mips32_blank_check_memory,
+
+	.run_algorithm = mips32_run_algorithm,
+
+	.add_breakpoint = mips_m4k_add_breakpoint,
+	.remove_breakpoint = mips_m4k_remove_breakpoint,
+	.add_watchpoint = mips_m4k_add_watchpoint,
+	.remove_watchpoint = mips_m4k_remove_watchpoint,
+
+	.target_create = mips_m4k_target_create,
+	.init_target = mips_m4k_init_target,
+	.examine = mips_m4k_examine,
+};

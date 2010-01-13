@@ -27,6 +27,8 @@
 #endif
 
 #include "mips32.h"
+#include "breakpoints.h"
+#include "algorithm.h"
 #include "register.h"
 
 char* mips32_core_reg_list[] =
@@ -319,9 +321,168 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 	return ERROR_OK;
 }
 
-int mips32_run_algorithm(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+/* run to exit point. return error if exit point was not reached. */
+static int mips32_run_and_wait(struct target *target, uint32_t entry_point,
+		int timeout_ms, uint32_t exit_point, struct mips32_common *mips32)
 {
-	/*TODO*/
+	uint32_t pc;
+	int retval;
+	/* This code relies on the target specific  resume() and  poll()->debug_entry()
+	 * sequence to write register values to the processor and the read them back */
+	if ((retval = target_resume(target, 0, entry_point, 0, 1)) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
+	/* If the target fails to halt due to the breakpoint, force a halt */
+	if (retval != ERROR_OK || target->state != TARGET_HALTED)
+	{
+		if ((retval = target_halt(target)) != ERROR_OK)
+			return retval;
+		if ((retval = target_wait_state(target, TARGET_HALTED, 500)) != ERROR_OK)
+		{
+			return retval;
+		}
+		return ERROR_TARGET_TIMEOUT;
+	}
+
+	pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
+	if (pc != exit_point)
+	{
+		LOG_DEBUG("failed algoritm halted at 0x%" PRIx32 " ", pc);
+		return ERROR_TARGET_TIMEOUT;
+	}
+
+	return ERROR_OK;
+}
+
+int mips32_run_algorithm(struct target *target, int num_mem_params,
+		struct mem_param *mem_params, int num_reg_params,
+		struct reg_param *reg_params, uint32_t entry_point,
+		uint32_t exit_point, int timeout_ms, void *arch_info)
+{
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips32_algorithm *mips32_algorithm_info = arch_info;
+	enum mips32_isa_mode isa_mode = mips32->isa_mode;
+
+	uint32_t context[MIPS32NUMCOREREGS];
+	int i;
+	int retval = ERROR_OK;
+
+	LOG_DEBUG("Running algorithm");
+
+	/* NOTE: mips32_run_algorithm requires that each algorithm uses a software breakpoint
+	 * at the exit point */
+
+	if (mips32->common_magic != MIPS32_COMMON_MAGIC)
+	{
+		LOG_ERROR("current target isn't a MIPS32 target");
+		return ERROR_TARGET_INVALID;
+	}
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* refresh core register cache */
+	for (unsigned i = 0; i < MIPS32NUMCOREREGS; i++)
+	{
+		if (!mips32->core_cache->reg_list[i].valid)
+			mips32->read_core_reg(target, i);
+		context[i] = buf_get_u32(mips32->core_cache->reg_list[i].value, 0, 32);
+	}
+
+	for (i = 0; i < num_mem_params; i++)
+	{
+		if ((retval = target_write_buffer(target, mem_params[i].address,
+				mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+		{
+			return retval;
+		}
+	}
+
+	for (int i = 0; i < num_reg_params; i++)
+	{
+		struct reg *reg = register_get_by_name(mips32->core_cache, reg_params[i].reg_name, 0);
+
+		if (!reg)
+		{
+			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			return ERROR_INVALID_ARGUMENTS;
+		}
+
+		if (reg->size != reg_params[i].size)
+		{
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size",
+					reg_params[i].reg_name);
+			return ERROR_INVALID_ARGUMENTS;
+		}
+
+		mips32_set_core_reg(reg, reg_params[i].value);
+	}
+
+	mips32->isa_mode = mips32_algorithm_info->isa_mode;
+
+	retval = mips32_run_and_wait(target, entry_point, timeout_ms, exit_point, mips32);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	for (i = 0; i < num_mem_params; i++)
+	{
+		if (mem_params[i].direction != PARAM_OUT)
+		{
+			if ((retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size,
+					mem_params[i].value)) != ERROR_OK)
+			{
+				return retval;
+			}
+		}
+	}
+
+	for (i = 0; i < num_reg_params; i++)
+	{
+		if (reg_params[i].direction != PARAM_OUT)
+		{
+			struct reg *reg = register_get_by_name(mips32->core_cache, reg_params[i].reg_name, 0);
+			if (!reg)
+			{
+				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				return ERROR_INVALID_ARGUMENTS;
+			}
+
+			if (reg->size != reg_params[i].size)
+			{
+				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size",
+						reg_params[i].reg_name);
+				return ERROR_INVALID_ARGUMENTS;
+			}
+
+			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
+		}
+	}
+
+	/* restore everything we saved before */
+	for (i = 0; i < MIPS32NUMCOREREGS; i++)
+	{
+		uint32_t regvalue;
+		regvalue = buf_get_u32(mips32->core_cache->reg_list[i].value, 0, 32);
+		if (regvalue != context[i])
+		{
+			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
+				mips32->core_cache->reg_list[i].name, context[i]);
+			buf_set_u32(mips32->core_cache->reg_list[i].value,
+					0, 32, context[i]);
+			mips32->core_cache->reg_list[i].valid = 1;
+			mips32->core_cache->reg_list[i].dirty = 1;
+		}
+	}
+
+	mips32->isa_mode = isa_mode;
+
 	return ERROR_OK;
 }
 
@@ -397,7 +558,8 @@ int mips32_configure_break_unit(struct target *target)
 			return retval;
 	}
 
-	LOG_DEBUG("DCR 0x%" PRIx32 " numinst %i numdata %i", dcr, mips32->num_inst_bpoints, mips32->num_data_bpoints);
+	LOG_DEBUG("DCR 0x%" PRIx32 " numinst %i numdata %i", dcr, mips32->num_inst_bpoints,
+			mips32->num_data_bpoints);
 
 	mips32->bp_scanned = 1;
 
@@ -438,6 +600,153 @@ int mips32_enable_interrupts(struct target *target, int enable)
 		if ((retval = target_write_u32(target, EJTAG_DCR, dcr)) != ERROR_OK)
 			return retval;
 	}
+
+	return ERROR_OK;
+}
+
+int mips32_checksum_memory(struct target *target, uint32_t address,
+		uint32_t count, uint32_t* checksum)
+{
+	struct working_area *crc_algorithm;
+	struct reg_param reg_params[2];
+	struct mips32_algorithm mips32_info;
+	int retval;
+	uint32_t i;
+
+	static const uint32_t mips_crc_code[] =
+	{
+		0x248C0000,		/* addiu 	$t4, $a0, 0 */
+		0x24AA0000,		/* addiu	$t2, $a1, 0 */
+		0x2404FFFF,		/* addiu	$a0, $zero, 0xffffffff */
+		0x10000010,		/* beq		$zero, $zero, ncomp */
+		0x240B0000,		/* addiu	$t3, $zero, 0 */
+						/* nbyte: */
+		0x81850000,		/* lb		$a1, ($t4) */
+		0x218C0001,		/* addi		$t4, $t4, 1 */
+		0x00052E00,		/* sll		$a1, $a1, 24 */
+		0x3C0204C1,		/* lui		$v0, 0x04c1 */
+		0x00852026,		/* xor		$a0, $a0, $a1 */
+		0x34471DB7,		/* ori		$a3, $v0, 0x1db7 */
+		0x00003021,		/* addu		$a2, $zero, $zero */
+						/* loop: */
+		0x00044040,		/* sll		$t0, $a0, 1 */
+		0x24C60001,		/* addiu	$a2, $a2, 1 */
+		0x28840000,		/* slti		$a0, $a0, 0 */
+		0x01074826,		/* xor		$t1, $t0, $a3 */
+		0x0124400B,		/* movn		$t0, $t1, $a0 */
+		0x28C30008,		/* slti		$v1, $a2, 8 */
+		0x1460FFF9,		/* bne		$v1, $zero, loop */
+		0x01002021,		/* addu		$a0, $t0, $zero */
+						/* ncomp: */
+		0x154BFFF0,		/* bne		$t2, $t3, nbyte */
+		0x256B0001,		/* addiu	$t3, $t3, 1 */
+		0x7000003F,		/* sdbbp */
+	};
+
+	/* make sure we have a working area */
+	if (target_alloc_working_area(target, sizeof(mips_crc_code), &crc_algorithm) != ERROR_OK)
+	{
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* convert flash writing code into a buffer in target endianness */
+	for (i = 0; i < ARRAY_SIZE(mips_crc_code); i++)
+		target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), mips_crc_code[i]);
+
+	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
+	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
+
+	init_reg_param(&reg_params[0], "a0", 32, PARAM_IN_OUT);
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+
+	init_reg_param(&reg_params[1], "a1", 32, PARAM_OUT);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+
+	if ((retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
+			crc_algorithm->address, crc_algorithm->address + (sizeof(mips_crc_code)-4), 10000,
+			&mips32_info)) != ERROR_OK)
+	{
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		target_free_working_area(target, crc_algorithm);
+		return 0;
+	}
+
+	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+
+	target_free_working_area(target, crc_algorithm);
+
+	return ERROR_OK;
+}
+
+/** Checks whether a memory region is zeroed. */
+int mips32_blank_check_memory(struct target *target,
+		uint32_t address, uint32_t count, uint32_t* blank)
+{
+	struct working_area *erase_check_algorithm;
+	struct reg_param reg_params[3];
+	struct mips32_algorithm mips32_info;
+	int retval;
+	uint32_t i;
+
+	static const uint32_t erase_check_code[] =
+	{
+						/* nbyte: */
+		0x80880000,		/* lb		$t0, ($a0) */
+		0x00C83024,		/* and		$a2, $a2, $t0 */
+		0x24A5FFFF,		/* addiu	$a1, $a1, -1 */
+		0x14A0FFFC,		/* bne		$a1, $zero, nbyte */
+		0x24840001,		/* addiu	$a0, $a0, 1 */
+		0x7000003F		/* sdbbp */
+	};
+
+	/* make sure we have a working area */
+	if (target_alloc_working_area(target, sizeof(erase_check_code), &erase_check_algorithm) != ERROR_OK)
+	{
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* convert flash writing code into a buffer in target endianness */
+	for (i = 0; i < ARRAY_SIZE(erase_check_code); i++)
+	{
+		target_write_u32(target, erase_check_algorithm->address + i*sizeof(uint32_t),
+				erase_check_code[i]);
+	}
+
+	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
+	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
+
+	init_reg_param(&reg_params[0], "a0", 32, PARAM_OUT);
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+
+	init_reg_param(&reg_params[1], "a1", 32, PARAM_OUT);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+
+	init_reg_param(&reg_params[2], "a2", 32, PARAM_IN_OUT);
+	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+
+	if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
+			erase_check_algorithm->address,
+			erase_check_algorithm->address + (sizeof(erase_check_code)-2),
+			10000, &mips32_info)) != ERROR_OK)
+	{
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		destroy_reg_param(&reg_params[2]);
+		target_free_working_area(target, erase_check_algorithm);
+		return 0;
+	}
+
+	*blank = buf_get_u32(reg_params[2].value, 0, 32);
+
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
+
+	target_free_working_area(target, erase_check_algorithm);
 
 	return ERROR_OK;
 }

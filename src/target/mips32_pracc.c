@@ -206,7 +206,8 @@ static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t ad
 	return ERROR_OK;
 }
 
-int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_t *code, int num_param_in, uint32_t *param_in, int num_param_out, uint32_t *param_out, int cycle)
+int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_t *code,
+		int num_param_in, uint32_t *param_in, int num_param_out, uint32_t *param_out, int cycle)
 {
 	uint32_t ejtag_ctrl;
 	uint32_t address, data;
