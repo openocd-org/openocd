@@ -944,13 +944,15 @@ int arm7_9_assert_reset(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
+	bool use_event = false;
 
 	LOG_DEBUG("target->state: %s",
 		  target_state_name(target));
 
-	if (!(jtag_reset_config & RESET_HAS_SRST))
-	{
-		LOG_ERROR("Can't assert SRST");
+	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT))
+		use_event = true;
+	else if (!(jtag_reset_config & RESET_HAS_SRST)) {
+		LOG_ERROR("%s: how to reset?", target_name(target));
 		return ERROR_FAIL;
 	}
 
@@ -965,7 +967,8 @@ int arm7_9_assert_reset(struct target *target)
 	 */
 	bool srst_asserted = false;
 
-	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0)
+	if (!use_event
+			&& !(jtag_reset_config & RESET_SRST_PULLS_TRST)
 			&& (jtag_reset_config & RESET_SRST_NO_GATING))
 	{
 		jtag_add_reset(0, 1);
@@ -1015,22 +1018,28 @@ int arm7_9_assert_reset(struct target *target)
 		}
 	}
 
-	/* here we should issue an SRST only, but we may have to assert TRST as well */
-	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
-	{
-		jtag_add_reset(1, 1);
-	} else if (!srst_asserted)
-	{
-		jtag_add_reset(0, 1);
+	if (use_event) {
+		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
+	} else {
+		/* If we use SRST ... we'd like to issue just SRST, but the
+		 * board or chip may be set up so we have to assert TRST as
+		 * well.  On some chips that combination is equivalent to a
+		 * power-up reset, and generally clobbers EICE state.
+		 */
+		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
+			jtag_add_reset(1, 1);
+		else if (!srst_asserted)
+			jtag_add_reset(0, 1);
+		jtag_add_sleep(50000);
 	}
 
 	target->state = TARGET_RESET;
-	jtag_add_sleep(50000);
-
 	register_cache_invalidate(arm7_9->armv4_5_common.core_cache);
 
+	/* REVISIT why isn't standard debug entry logic sufficient?? */
 	if (target->reset_halt
-			&& !(jtag_reset_config & RESET_SRST_PULLS_TRST))
+			&& (!(jtag_reset_config & RESET_SRST_PULLS_TRST)
+				|| use_event))
 	{
 		/* debug entry was prepared above */
 		target->debug_reason = DBG_REASON_DBGRQ;
