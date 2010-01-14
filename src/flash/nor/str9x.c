@@ -230,17 +230,9 @@ static int str9x_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* Check if we erase whole bank */
-	if ((first == 0) && (last == (bank->num_sectors - 1)))
-	{
-		/* Optimize to run erase bank command instead of sector */
-		erase_cmd = 0x80;
-	}
-	else
-	{
-		/* Erase sector command */
-		erase_cmd = 0x20;
-	}
+	/*A slower but stable way of erasing*/
+	/* Erase sector command */
+	erase_cmd = 0x20;
 
 	for (i = first; i <= last; i++)
 	{
@@ -296,10 +288,6 @@ static int str9x_erase(struct flash_bank *bank, int first, int last)
 			LOG_ERROR("error erasing flash bank, status: 0x%x", status);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-
-		/* If we ran erase bank command, we are finished */
-		if (erase_cmd == 0x80)
-			break;
 	}
 
 	for (i = first; i <= last; i++)
