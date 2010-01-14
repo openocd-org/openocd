@@ -525,8 +525,8 @@ int jtag_add_statemove(tap_state_t goal_state);
  * to @a endstate (unless it is also TAP_IDLE).
  *
  * @param num_cycles Number of cycles in TAP_IDLE state.  This argument
- * 	may be 0, in which case this routine will navigate to @a endstate
- * 	via TAP_IDLE.
+ *	may be 0, in which case this routine will navigate to @a endstate
+ *	via TAP_IDLE.
  * @param endstate The final state.
  */
 void jtag_add_runtest(int num_cycles, tap_state_t endstate);
@@ -563,23 +563,22 @@ void jtag_add_reset(int req_tlr_or_trst, int srst);
  * Set a global variable to \a state if \a state != TAP_INVALID.
  *
  * Return the value of the global variable.
- *
- **/
+ */
 tap_state_t jtag_set_end_state(tap_state_t state);
+
 /**
  * Function jtag_get_end_state
  *
  * Return the value of the global variable for end state
- *
- **/
+ */
 tap_state_t jtag_get_end_state(void);
+
 void jtag_add_sleep(uint32_t us);
 
-
 /**
- * Function jtag_add_stable_clocks
+ * Function jtag_add_clocks
  * first checks that the state in which the clocks are to be issued is
- * stable, then queues up clock_count clocks for transmission.
+ * stable, then queues up num_cycles clocks for transmission.
  */
 void jtag_add_clocks(int num_cycles);
 
