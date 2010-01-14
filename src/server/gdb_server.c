@@ -1928,9 +1928,19 @@ int gdb_v_packet(struct connection *connection, struct target *target, char *pac
 		flash_set_dirty();
 
 		/* perform any target specific operations before the erase */
-		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_START);
-		result = flash_erase_address_range(gdb_service->target, addr, length);
-		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_END);
+		target_call_event_callbacks(gdb_service->target,
+				TARGET_EVENT_GDB_FLASH_ERASE_START);
+
+		/* vFlashErase:addr,length messages require region start and
+		 * end to be "block" aligned ... if padding is ever needed,
+		 * GDB will have become dangerously confused.
+		 */
+		result = flash_erase_address_range(gdb_service->target,
+				false, addr, length);
+
+		/* perform any target specific operations after the erase */
+		target_call_event_callbacks(gdb_service->target,
+				TARGET_EVENT_GDB_FLASH_ERASE_END);
 
 		/* perform erase */
 		if (result != ERROR_OK)

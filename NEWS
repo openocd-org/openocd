@@ -50,7 +50,9 @@ Flash Layer:
 		- <driver_name>[.N]: reference the driver's Nth bank
 	New 'nand verify' command to check bank against an image file.
 	The "flash erase_address" command now rejects partial sectors;
-		previously it would silently erase extra data.
+		previously it would silently erase extra data.  If you
+		want to erase the rest of the first and/or last sectors
+		instead of failing, you must pass an explicit "pad" flag.
 	New at91sam9 NAND controller driver.
 
 Board, Target, and Interface Configuration Scripts:

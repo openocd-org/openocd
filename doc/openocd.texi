@@ -3841,8 +3841,12 @@ specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash erase_address} address length
+@deffn Command {flash erase_address} [@option{pad}] address length
 Erase sectors starting at @var{address} for @var{length} bytes.
+Unless @option{pad} is specified, @math{address} must begin a
+flash sector, and @math{address + length - 1} must end a sector.
+Specifying @option{pad} erases extra data at the beginning and/or
+end of the specified region, as needed to erase only full sectors.
 The flash bank to use is inferred from the @var{address}, and
 the specified length must stay within that bank.
 As a special case, when @var{length} is zero and @var{address} is

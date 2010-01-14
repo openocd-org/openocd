@@ -287,9 +287,22 @@ int default_flash_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-/* erase given flash region, selects proper bank according to target and address */
+/* Manipulate given flash region, selecting the bank according to target
+ * and address.  Maps an address range to a set of sectors, and issues
+ * the callback() on that set ... e.g. to erase or unprotect its members.
+ *
+ * (Note a current bad assumption:  that protection operates on the same
+ * size sectors as erase operations use.)
+ *
+ * The "pad_reason" parameter is a kind of boolean:  when it's NULL, the
+ * range must fit those sectors exactly.  This is clearly safe; it can't
+ * erase data which the caller said to leave alone, for example.  If it's
+ * non-NULL, rather than failing, extra data in the first and/or last
+ * sectors will be added to the range, and that reason string is used when
+ * warning about those additions.
+ */
 static int flash_iterate_address_range(struct target *target,
-		uint32_t addr, uint32_t length,
+		char *pad_reason, uint32_t addr, uint32_t length,
 		int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
@@ -328,18 +341,53 @@ static int flash_iterate_address_range(struct target *target,
 	for (i = 0; i < c->num_sectors; i++)
 	{
 		struct flash_sector *f = c->sectors + i;
+		uint32_t end = f->offset + f->size;
 
 		/* start only on a sector boundary */
 		if (first < 0) {
+			/* scanned past the first sector? */
+			if (addr < f->offset)
+				break;
+
 			/* is this the first sector? */
 			if (addr == f->offset)
 				first = i;
-			else if (addr < f->offset)
-				break;
+
+			/* Does this need head-padding?  If so, pad and warn;
+			 * or else force an error.
+			 *
+			 * Such padding can make trouble, since *WE* can't
+			 * ever know if that data was in use.  The warning
+			 * should help users sort out messes later.
+			 */
+			else if (addr < end && pad_reason) {
+				/* FIXME say how many bytes (e.g. 80 KB) */
+				LOG_WARNING("Adding extra %s range, "
+						"%#8.8x to %#8.8x",
+					pad_reason,
+					(unsigned) f->offset,
+					(unsigned) addr - 1);
+				first = i;
+			} else
+				continue;
 		}
 
 		/* is this (also?) the last sector? */
-		if (last_addr == f->offset + f->size) {
+		if (last_addr == end) {
+			last = i;
+			break;
+		}
+
+		/* Does this need tail-padding?  If so, pad and warn;
+		 * or else force an error.
+		 */
+		if (last_addr < end && pad_reason) {
+			/* FIXME say how many bytes (e.g. 80 KB) */
+			LOG_WARNING("Adding extra %s range, "
+					"%#8.8x to %#8.8x",
+				pad_reason,
+				(unsigned) last_addr,
+				(unsigned) end - 1);
 			last = i;
 			break;
 		}
@@ -358,18 +406,17 @@ static int flash_iterate_address_range(struct target *target,
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	/* The NOR driver may trim this range down, based on
-	 * whether or not a given sector is already erased.
-	 *
-	 * REVISIT should *we* trim it... ?
+	/* The NOR driver may trim this range down, based on what
+	 * sectors are already erased/unprotected.  GDB currently
+	 * blocks such optimizations.
 	 */
 	return callback(c, first, last);
 }
 
 int flash_erase_address_range(struct target *target,
-		uint32_t addr, uint32_t length)
+		bool pad, uint32_t addr, uint32_t length)
 {
-	return flash_iterate_address_range(target,
+	return flash_iterate_address_range(target, pad ? "erase" : NULL,
 			addr, length, &flash_driver_erase);
 }
 
@@ -380,7 +427,11 @@ static int flash_driver_unprotect(struct flash_bank *bank, int first, int last)
 
 static int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t length)
 {
-	return flash_iterate_address_range(target,
+	/* By default, pad to sector boundaries ... the real issue here
+	 * is that our (only) caller *permanently* removes protection,
+	 * and doesn't restore it.
+	 */
+	return flash_iterate_address_range(target, "unprotect",
 			addr, length, &flash_driver_unprotect);
 }
 
@@ -393,6 +444,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 	uint32_t section_offset;
 	struct flash_bank *c;
 	int *padding;
+
+	/* REVISIT do_pad should perhaps just be another parameter.
+	 * GDB wouldn't ever need it, since it erases separately.
+	 * But "flash write_image" commands might want that option.
+	 */
+	bool do_pad = false;
 
 	section = 0;
 	section_offset = 0;
@@ -470,7 +527,8 @@ int flash_write_unlock(struct target *target, struct image *image,
 			 * In both cases, the extra writes slow things down.
 			 */
 
-			/* if we have multiple sections within our image, flash programming could fail due to alignment issues
+			/* if we have multiple sections within our image,
+			 * flash programming could fail due to alignment issues
 			 * attempt to rebuild a consecutive buffer for the flash loader */
 			pad_bytes = (image->sections[section_last + 1].base_address) - (run_address + run_size);
 			if ((run_address + run_size + pad_bytes) > (c->base + c->size))
@@ -560,7 +618,8 @@ int flash_write_unlock(struct target *target, struct image *image,
 			if (erase)
 			{
 				/* calculate and erase sectors */
-				retval = flash_erase_address_range(target, run_address, run_size);
+				retval = flash_erase_address_range(target,
+						do_pad, run_address, run_size);
 			}
 		}
 

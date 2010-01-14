@@ -102,10 +102,14 @@ int flash_init_drivers(struct command_context *cmd_ctx);
 
 /**
  * Erases @a length bytes in the @a target flash, starting at @a addr.
+ * The range @a addr to @a addr + @a length - 1 must be strictly
+ * sector aligned, unless @a pad is true.  Setting @a pad true extends
+ * the range, at beginning and/or end, if needed for sector alignment.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
 int flash_erase_address_range(struct target *target,
-		uint32_t addr, uint32_t length);
+		bool pad, uint32_t addr, uint32_t length);
+
 /**
  * Writes @a image into the @a target flash.  The @a written parameter
  * will contain the
