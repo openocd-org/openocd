@@ -88,7 +88,24 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
  *                                                                         *
 ***************************************************************************/
 
-/* Scan out and in from target ordered uint8_t buffers */
+/**
+ * Scan DPACC or APACC using target ordered uint8_t buffers.  No endianness
+ * conversions are performed.  See section 4.4.3 of the ADIv5 spec, which
+ * discusses operations which access these registers.
+ *
+ * Note that only one scan is performed.  If RnW is set, a separate scan
+ * will be needed to collect the data which was read; the "invalue" collects
+ * the posted result of a preceding operation, not the current one.
+ *
+ * @param swjdp the DAP
+ * @param instr JTAG_DP_APACC (AP access) or JTAG_DP_DPACC (DP access)
+ * @param reg_addr two significant bits; A[3:2]; for APACC access, the
+ *	SELECT register has more addressing bits.
+ * @param RnW false iff outvalue will be written to the DP or AP
+ * @param outvalue points to a 32-bit (little-endian) integer
+ * @param invalue NULL, or points to a 32-bit (little-endian) integer
+ * @param ack points to where the three bit JTAG_ACK_* code will be stored
+ */
 static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
@@ -104,6 +121,7 @@ static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 
 	/* REVISIT these TCK cycles should be *AFTER*  updating APACC, since
 	 * they provide more time for the (MEM) AP to complete the read ...
+	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5 spec.
 	 */
 	if ((instr == JTAG_DP_APACC)
 			&& ((reg_addr == AP_REG_DRW)
@@ -111,11 +129,19 @@ static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 			&& (swjdp->memaccess_tck != 0))
 		jtag_add_runtest(swjdp->memaccess_tck, jtag_set_end_state(TAP_IDLE));
 
+	/* Scan out a read or write operation using some DP or AP register.
+	 * For APACC access with any sticky error flag set, this is discarded.
+	 */
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
 	fields[0].in_value = ack;
+
+	/* NOTE: if we receive JTAG_ACK_WAIT, the previous operation did not
+	 * complete; data we write is discarded, data we read is unpredictable.
+	 * When overrun detect is active, STICKYORUN is set.
+	 */
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
