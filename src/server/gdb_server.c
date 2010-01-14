@@ -2476,7 +2476,7 @@ static const struct command_registration gdb_command_handlers[] = {
 	{
 		.name = "gdb_breakpoint_override",
 		.handler = handle_gdb_breakpoint_override_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.help = "Display or specify type of breakpoint "
 			"to be used by gdb 'break' commands.",
 		.usage = "('hard'|'soft'|'disable')"
