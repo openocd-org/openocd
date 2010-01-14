@@ -942,6 +942,33 @@ handling issues like:
 
 @itemize @bullet
 
+@item @b{Watchdog Timers}...
+Watchog timers are typically used to automatically reset systems if
+some application task doesn't periodically reset the timer.  (The
+assumption is that the system has locked up if the task can't run.)
+When a JTAG debugger halts the system, that task won't be able to run
+and reset the timer ... potentially causing resets in the middle of
+your debug sessions.
+
+It's rarely a good idea to disable such watchdogs, since their usage
+needs to be debugged just like all other parts of your firmware.
+That might however be your only option.
+
+Look instead for chip-specific ways to stop the watchdog from counting
+while the system is in a debug halt state.  It may be simplest to set
+that non-counting mode in your debugger startup scripts.  You may however
+need a different approach when, for example, a motor could be physically
+damaged by firmware remaining inactive in a debug halt state.  That might
+involve a type of firmware mode where that "non-counting" mode is disabled
+at the beginning then re-enabled at the end; a watchdog reset might fire
+and complicate the debug session, but hardware (or people) would be
+protected.@footnote{Note that many systems support a "monitor mode" debug
+that is a somewhat cleaner way to address such issues.  You can think of
+it as only halting part of the system, maybe just one task,
+instead of the whole thing.
+At this writing, January 2010, OpenOCD based debugging does not support
+monitor mode debug, only "halt mode" debug.}
+
 @item @b{ARM Semihosting}...
 @cindex ARM semihosting
 When linked with a special runtime library provided with many
@@ -964,7 +991,12 @@ via the @code{WFI} instruction (or its coprocessor equivalent, before ARMv7).
 
 You may want to @emph{disable that instruction} in source code,
 or otherwise prevent using that state,
-to ensure you can get JTAG access at any time.
+to ensure you can get JTAG access at any time.@footnote{As a more
+polite alternative, some processors have special debug-oriented
+registers which can be used to change various features including
+how the low power states are clocked while debugging.
+The STM32 DBGMCU_CR register is an example; at the cost of extra
+power consumption, JTAG can be used during low power states.}
 For example, the OpenOCD @command{halt} command may not
 work for an idle processor otherwise.
 
@@ -6699,8 +6731,10 @@ to debug remote targets.
 Setting up GDB to work with OpenOCD can involve several components:
 
 @itemize
-@item OpenOCD itself may need to be configured.  @xref{GDB Configuration}.
-@item GDB itself may need configuration, as shown in this chapter.
+@item The OpenOCD server support for GDB may need to be configured.
+@xref{GDB Configuration}.
+@item GDB's support for OpenOCD may need configuration,
+as shown in this chapter.
 @item If you have a GUI environment like Eclipse,
 that also will probably need to be configured.
 @end itemize
@@ -6802,6 +6836,24 @@ set remote hardware-watchpoint-limit 4
 With that particular hardware (Cortex-M3) the hardware breakpoints
 only work for code running from flash memory.  Most other ARM systems
 do not have such restrictions.
+
+Another example of useful GDB configuration came from a user who
+found that single stepping his Cortex-M3 didn't work well with IRQs
+and an RTOS until he told GDB to disable the IRQs while stepping:
+
+@example
+define hook-step
+mon cortex_m3 maskisr on
+end
+define hookpost-step
+mon cortex_m3 maskisr off
+end
+@end example
+
+Rather than typing such commands interactively, you may prefer to
+save them in a file and have GDB execute them as it starts, perhaps
+using a @file{.gdbinit} in your project directory or starting GDB
+using @command{gdb -x filename}.
 
 @section Programming using GDB
 @cindex Programming using GDB
@@ -6947,36 +6999,48 @@ is jim, not real tcl).
 
 In digital circuit design it is often refered to as ``clock
 synchronisation'' the JTAG interface uses one clock (TCK or TCLK)
-operating at some speed, your target is operating at another.  The two
-clocks are not synchronised, they are ``asynchronous''
+operating at some speed, your CPU target is operating at another.
+The two clocks are not synchronised, they are ``asynchronous''
 
-In order for the two to work together they must be synchronised. Otherwise
-the two systems will get out of sync with each other and nothing will
-work. There are 2 basic options:
+In order for the two to work together they must be synchronised
+well enough to work; JTAG can't go ten times faster than the CPU,
+for example.  There are 2 basic options:
 @enumerate
 @item
-Use a special circuit.
+Use a special "adaptive clocking" circuit to change the JTAG
+clock rate to match what the CPU currently supports.
 @item
-One clock must be some multiple slower than the other.
+The JTAG clock must be fixed at some speed that's enough slower than
+the CPU clock that all TMS and TDI transitions can be detected.
 @end enumerate
 
 @b{Does this really matter?} For some chips and some situations, this
-is a non-issue (i.e.: A 500MHz ARM926) but for others - for example some
-Atmel SAM7 and SAM9 chips start operation from reset at 32kHz -
-program/enable the oscillators and eventually the main clock. It is in
-those critical times you must slow the JTAG clock to sometimes 1 to
-4kHz.
+is a non-issue, like a 500MHz ARM926 with a 5 MHz JTAG link;
+the CPU has no difficulty keeping up with JTAG.
+Startup sequences are often problematic though, as are other
+situations where the CPU clock rate changes (perhaps to save
+power).
 
-Imagine debugging a 500MHz ARM926 hand held battery powered device
-that ``deep sleeps'' at 32kHz between every keystroke. It can be
-painful.
+For example, Atmel AT91SAM chips start operation from reset with
+a 32kHz system clock.  Boot firmware may activate the main oscillator
+and PLL before switching to a faster clock (perhaps that 500 MHz
+ARM926 scenario).
+If you're using JTAG to debug that startup sequence, you must slow
+the JTAG clock to sometimes 1 to 4kHz.  After startup completes,
+JTAG can use a faster clock.
+
+Consider also debugging a 500MHz ARM926 hand held battery powered
+device that enters a low power ``deep sleep'' mode, at 32kHz CPU
+clock, between keystrokes unless it has work to do.   When would
+that 5 MHz JTAG clock be usable?
 
 @b{Solution #1 - A special circuit}
 
-In order to make use of this, your JTAG dongle must support the RTCK
+In order to make use of this,
+both your CPU and your JTAG dongle must support the RTCK
 feature. Not all dongles support this - keep reading!
 
-The RTCK signal often found in some ARM chips is used to help with
+The RTCK ("Return TCK") signal in some ARM chips is used to help with
 this problem. ARM has a good description of the problem described at
 this link: @url{http://www.arm.com/support/faqdev/4170.html} [checked
 28/nov/2008]. Link title: ``How does the JTAG synchronisation logic
@@ -7013,8 +7077,9 @@ ARM11 cores use an 8:1 division.
 Note: Many FTDI2232C based JTAG dongles are limited to 6MHz.
 
 You can still debug the 'low power' situations - you just need to
-manually adjust the clock speed at every step. While painful and
-tedious, it is not always practical.
+either use a fixed and very slow JTAG clock rate ... or else
+manually adjust the clock speed at every step. (Adjusting is painful
+and tedious, and is not always practical.)
 
 It is however easy to ``code your way around it'' - i.e.: Cheat a little,
 have a special debug mode in your application that does a ``high power
