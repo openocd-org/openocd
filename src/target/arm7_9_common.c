@@ -11,6 +11,8 @@
  *   Copyright (C) 2008 by Hongtao Zheng                                   *
  *   hontor@126.com                                                        *
  *                                                                         *
+ *   Copyright (C) 2009 by David Brownell                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -941,11 +943,11 @@ int arm7_9_poll(struct target *target)
 int arm7_9_assert_reset(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	LOG_DEBUG("target->state: %s",
 		  target_state_name(target));
 
-	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("Can't assert SRST");
@@ -973,28 +975,43 @@ int arm7_9_assert_reset(struct target *target)
 	if (target->reset_halt)
 	{
 		/*
-		 * Some targets do not support communication while SRST is asserted. We need to
-		 * set up the reset vector catch here.
+		 * For targets that don't support communication while SRST is
+		 * asserted, we need to set up the reset vector catch first.
 		 *
-		 * If TRST is asserted, then these settings will be reset anyway, so setting them
-		 * here is harmless.
+		 * When we use TRST+SRST and that's equivalent to a power-up
+		 * reset, these settings may well be reset anyway; so setting
+		 * them here won't matter.
 		 */
 		if (arm7_9->has_vector_catch)
 		{
-			/* program vector catch register to catch reset vector */
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0x1);
+			/* program vector catch register to catch reset */
+			embeddedice_write_reg(&arm7_9->eice_cache
+					->reg_list[EICE_VEC_CATCH], 0x1);
 
-			/* extra runtest added as issues were found with certain ARM9 cores (maybe more) - AT91SAM9260 and STR9 */
+			/* extra runtest added as issues were found with
+			 * certain ARM9 cores (maybe more) - AT91SAM9260
+			 * and STR9
+			 */
 			jtag_add_runtest(1, jtag_get_end_state());
 		}
 		else
 		{
-			/* program watchpoint unit to match on reset vector address */
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], 0x0);
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0x3);
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0xffffffff);
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
+			/* program watchpoint unit to match on reset vector
+			 * address
+			 */
+			embeddedice_write_reg(&arm7_9->eice_cache
+					->reg_list[EICE_W0_ADDR_VALUE], 0x0);
+			embeddedice_write_reg(&arm7_9->eice_cache
+					->reg_list[EICE_W0_ADDR_MASK], 0x3);
+			embeddedice_write_reg(&arm7_9->eice_cache
+					->reg_list[EICE_W0_DATA_MASK],
+						0xffffffff);
+			embeddedice_write_reg(&arm7_9->eice_cache
+					->reg_list[EICE_W0_CONTROL_VALUE],
+						EICE_W_CTRL_ENABLE);
+			embeddedice_write_reg(&arm7_9->eice_cache
+					->reg_list[EICE_W0_CONTROL_MASK],
+						~EICE_W_CTRL_nOPC & 0xff);
 		}
 	}
 
@@ -1012,9 +1029,10 @@ int arm7_9_assert_reset(struct target *target)
 
 	register_cache_invalidate(arm7_9->armv4_5_common.core_cache);
 
-	if ((target->reset_halt) && ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0))
+	if (target->reset_halt
+			&& !(jtag_reset_config & RESET_SRST_PULLS_TRST))
 	{
-		/* debug entry was already prepared in arm7_9_assert_reset() */
+		/* debug entry was prepared above */
 		target->debug_reason = DBG_REASON_DBGRQ;
 	}
 
