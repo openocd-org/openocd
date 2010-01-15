@@ -341,13 +341,21 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	if (retval != ERROR_OK)
 		goto done;
 
-	/* enable/disable hardware breakpoints */
-	for (unsigned i = 0; i < dpm->nbp; i++) {
-		struct dpm_bp *dbp = dpm->dbp + i;
-		struct breakpoint *bp = dbp->bp;
+	/* If we're managing hardware breakpoints for this core, enable
+	 * or disable them as requested.
+	 *
+	 * REVISIT We don't yet manage them for ANY cores.  Eventually
+	 * we should be able to assume we handle them; but until then,
+	 * cope with the hand-crafted breakpoint code.
+	 */
+	if (0) {
+		for (unsigned i = 0; i < dpm->nbp; i++) {
+			struct dpm_bp *dbp = dpm->dbp + i;
+			struct breakpoint *bp = dbp->bp;
 
-		retval = dpm_maybe_update_bpwp(dpm, bpwp, &dbp->bpwp,
-				bp ? &bp->set : NULL);
+			retval = dpm_maybe_update_bpwp(dpm, bpwp, &dbp->bpwp,
+					bp ? &bp->set : NULL);
+		}
 	}
 
 	/* enable/disable watchpoints */
