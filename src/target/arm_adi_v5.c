@@ -305,8 +305,9 @@ int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
 			}
 			else
 			{
-				LOG_WARNING("Invalid ACK "
-						"in JTAG-DP transaction");
+				LOG_WARNING("Invalid ACK %#x"
+						"in JTAG-DP transaction",
+						swjdp->ack);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
