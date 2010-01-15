@@ -54,6 +54,7 @@ Flash Layer:
 		want to erase the rest of the first and/or last sectors
 		instead of failing, you must pass an explicit "pad" flag.
 	New at91sam9 NAND controller driver.
+	New s3c64xx NAND controller driver.
 
 Board, Target, and Interface Configuration Scripts:
 	ARM9
