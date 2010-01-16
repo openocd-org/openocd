@@ -500,9 +500,10 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 
-		if (oob && (oob_size > 6))
+		if (oob && (oob_size > 24))
 		{
-			LOG_ERROR("LPC3180 MLC controller can't write more than 6 bytes of OOB data");
+			LOG_ERROR("LPC3180 MLC controller can't write more "
+				"than 6 bytes for each quarter's OOB data");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 
@@ -559,10 +560,10 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 				data += thisrun_data_size;
 			}
 
-			memset(oob_buffer, 0xff, (nand->page_size == 512) ? 6 : 24);
+			memset(oob_buffer, 0xff, 6);
 			if (oob)
 			{
-				memcpy(page_buffer, oob, thisrun_oob_size);
+				memcpy(oob_buffer, oob, thisrun_oob_size);
 				oob_size -= thisrun_oob_size;
 				oob += thisrun_oob_size;
 			}
@@ -570,8 +571,10 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 			/* write MLC_ECC_ENC_REG to start encode cycle */
 			target_write_u32(target, 0x200b8008, 0x0);
 
-			target_write_memory(target, 0x200a8000, 4, 128, page_buffer + (quarter * 512));
-			target_write_memory(target, 0x200a8000, 1, 6, oob_buffer + (quarter * 6));
+			target_write_memory(target, 0x200a8000,
+					4, 128, page_buffer);
+			target_write_memory(target, 0x200a8000,
+					1, 6, oob_buffer);
 
 			/* write MLC_ECC_AUTO_ENC_REG to start auto encode */
 			target_write_u32(target, 0x200b8010, 0x0);
@@ -760,7 +763,6 @@ static int lpc3180_controller_ready(struct nand_device *nand, int timeout)
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
 	struct target *target = lpc3180_info->target;
-	uint8_t status = 0x0;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -768,20 +770,35 @@ static int lpc3180_controller_ready(struct nand_device *nand, int timeout)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
+	LOG_DEBUG("lpc3180_controller_ready count start=%d", timeout);
+
 	do
 	{
 		if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 		{
+			uint8_t status;
+
 			/* Read MLC_ISR, wait for controller to become ready */
 			target_read_u8(target, 0x200b8048, &status);
 
-			if (status & 2)
+			if (status & 2) {
+				LOG_DEBUG("lpc3180_controller_ready count=%d",
+						timeout);
 				return 1;
+			}
 		}
 		else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 		{
-			/* we pretend that the SLC controller is always ready */
-			return 1;
+			uint32_t status;
+
+			/* Read SLC_STAT and check READY bit */
+			target_read_u32(target, 0x20020018, &status);
+
+			if (status & 1) {
+				LOG_DEBUG("lpc3180_controller_ready count=%d",
+						timeout);
+				return 1;
+			}
 		}
 
 		alive_sleep(1);
@@ -801,6 +818,8 @@ static int lpc3180_nand_ready(struct nand_device *nand, int timeout)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
+	LOG_DEBUG("lpc3180_nand_ready count start=%d", timeout);
+
 	do
 	{
 		if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -810,8 +829,11 @@ static int lpc3180_nand_ready(struct nand_device *nand, int timeout)
 			/* Read MLC_ISR, wait for NAND flash device to become ready */
 			target_read_u8(target, 0x200b8048, &status);
 
-			if (status & 1)
+			if (status & 1) {
+				LOG_DEBUG("lpc3180_nand_ready count end=%d",
+						timeout);
 				return 1;
+			}
 		}
 		else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 		{
@@ -820,8 +842,11 @@ static int lpc3180_nand_ready(struct nand_device *nand, int timeout)
 			/* Read SLC_STAT and check READY bit */
 			target_read_u32(target, 0x20020018, &status);
 
-			if (status & 1)
+			if (status & 1) {
+				LOG_DEBUG("lpc3180_nand_ready count end=%d",
+						timeout);
 				return 1;
+			}
 		}
 
 		alive_sleep(1);
@@ -844,7 +869,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	}
 
 	unsigned num;
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], num);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand)
 	{
