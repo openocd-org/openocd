@@ -504,27 +504,49 @@ static int svf_read_command_from_file(int fd)
 		default:
 			if (!comment)
 			{
-				if (cmd_pos >= svf_command_buffer_size - 1)
+				/* The parsing code currently expects a space
+				 * before parentheses -- "TDI (123)".  Also a
+				 * space afterwards -- "TDI (123) TDO(456)".
+				 * But such spaces are optional... instead of
+				 * parser updates, cope with that by adding the
+				 * spaces as needed.
+				 *
+				 * Ensure there are 3 bytes available, for:
+				 *  - current character
+				 *  - added space.
+				 *  - terminating NUL ('\0')
+				 */
+				if ((cmd_pos + 2) >= svf_command_buffer_size)
 				{
-					tmp_buffer = (char*)malloc(svf_command_buffer_size + SVFP_CMD_INC_CNT);		// 1 more byte for '\0'
+					/* REVISIT use realloc(); simpler */
+					tmp_buffer = malloc(
+							svf_command_buffer_size
+							+ SVFP_CMD_INC_CNT);
 					if (NULL == tmp_buffer)
 					{
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
 					}
 					if (svf_command_buffer_size > 0)
-					{
-						memcpy(tmp_buffer, svf_command_buffer, svf_command_buffer_size);
-					}
+						memcpy(tmp_buffer,
+							svf_command_buffer,
+							svf_command_buffer_size);
 					if (svf_command_buffer != NULL)
-					{
 						free(svf_command_buffer);
-					}
 					svf_command_buffer = tmp_buffer;
 					svf_command_buffer_size += SVFP_CMD_INC_CNT;
 					tmp_buffer = NULL;
 				}
+
+				/* insert a space before '(' */
+				if ('(' == ch)
+					svf_command_buffer[cmd_pos++] = ' ';
+
 				svf_command_buffer[cmd_pos++] = (char)toupper(ch);
+
+				/* insert a space after ')' */
+				if (')' == ch)
+					svf_command_buffer[cmd_pos++] = ' ';
 			}
 			break;
 		}
