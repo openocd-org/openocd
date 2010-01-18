@@ -1674,7 +1674,7 @@ static const struct command_registration jtag_command_handlers[] = {
 	{
 		.name = "scan_chain",
 		.handler = handle_scan_chain_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.help = "print current scan chain configuration",
 	},
 	{
