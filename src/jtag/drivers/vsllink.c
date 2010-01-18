@@ -476,6 +476,9 @@ static int vsllink_init(void)
 	}
 	VSLLINK_USB_TIMEOUT = to_tmp;
 
+	/* Some older firmware versions sometimes fail if the
+	 * voltage isn't read first.
+	 */
 	vsllink_simple_command(0x01);
 	result = vsllink_usb_read(vsllink_handle);
 	if (result != 2)
