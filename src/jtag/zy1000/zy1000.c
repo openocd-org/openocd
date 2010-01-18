@@ -199,6 +199,9 @@ void zy1000_reset(int trst, int srst)
 
 int zy1000_speed(int speed)
 {
+	/* flush JTAG master FIFO before setting speed */
+	waitIdle();
+
 	if (speed == 0)
 	{
 		/*0 means RCLK*/
