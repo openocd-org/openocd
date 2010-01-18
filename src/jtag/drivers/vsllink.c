@@ -476,6 +476,14 @@ static int vsllink_init(void)
 	}
 	VSLLINK_USB_TIMEOUT = to_tmp;
 
+	vsllink_simple_command(0x01);
+	result = vsllink_usb_read(vsllink_handle);
+	if (result != 2)
+		LOG_WARNING("Fail to get target voltage");
+	else
+		LOG_INFO("Target runs at %d mV", vsllink_usb_in_buffer[0]
+				+ (vsllink_usb_in_buffer[1] << 8));
+
 	// connect to vsllink
 	vsllink_connect();
 	// initialize function pointers
