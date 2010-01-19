@@ -956,7 +956,11 @@ int main(int argc, char *argv[])
 
 	diag_init_putc(_zylinjtag_diag_write_char);
 	// We want this in the log.
-	diag_printf("Zylin ZY1000.\n");
+#ifdef CYGPKG_HAL_NIOS2
+	diag_printf("Zylin ZY1000 PCB revc.\n");
+#else
+	diag_printf("Zylin ZY1000 PCB revb.\n");
+#endif
 
 	err = mount("", "/ram", "ramfs");
 	if (err < 0)
