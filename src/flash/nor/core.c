@@ -408,7 +408,7 @@ static int flash_iterate_address_range(struct target *target,
 		LOG_ERROR("address range 0x%8.8x .. 0x%8.8x "
 				"is not sector-aligned",
 				(unsigned) (c->base + addr),
-				(unsigned) (last_addr - 1));
+				(unsigned) (c->base + last_addr - 1));
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
