@@ -324,14 +324,20 @@ static int flash_iterate_address_range(struct target *target,
 	{
 		/* special case, erase whole bank when length is zero */
 		if (addr != c->base)
+		{
+			LOG_ERROR("Whole bank access must start at beginning of bank.");
 			return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+		}
 
 		return callback(c, 0, c->num_sectors - 1);
 	}
 
 	/* check whether it all fits in this bank */
 	if (addr + length - 1 > c->base + c->size - 1)
+	{
+		LOG_ERROR("Flash access does not fit into bank.");
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+	}
 
 	/** @todo: handle erasures that cross into adjacent banks */
 
