@@ -171,6 +171,8 @@ int armv7m_checksum_memory(struct target *target,
 int armv7m_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t* blank);
 
+int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found);
+
 extern const struct command_registration armv7m_command_handlers[];
 
 #endif /* ARMV7M_H */

@@ -638,6 +638,16 @@ static int cortex_m3_resume(struct target *target, int current,
 		r->valid = true;
 	}
 
+	/* if we halted last time due to a bkpt instruction
+	 * then we have to manually step over it, otherwise
+	 * the core will break again */
+
+	if (!breakpoint_find(target, buf_get_u32(r->value, 0, 32))
+			&& !debug_execution)
+	{
+		armv7m_maybe_skip_bkpt_inst(target, NULL);
+	}
+
 	resume_pc = buf_get_u32(r->value, 0, 32);
 
 	armv7m_restore_context(target);
@@ -690,6 +700,7 @@ static int cortex_m3_step(struct target *target, int current,
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	struct breakpoint *breakpoint = NULL;
 	struct reg *pc = armv7m->core_cache->reg_list + 15;
+	bool bkpt_inst_found = false;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -709,14 +720,23 @@ static int cortex_m3_step(struct target *target, int current,
 			cortex_m3_unset_breakpoint(target, breakpoint);
 	}
 
+	armv7m_maybe_skip_bkpt_inst(target, &bkpt_inst_found);
+
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	armv7m_restore_context(target);
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
-	/* set step and clear halt */
-	cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+	/* if no bkpt instruction is found at pc then we can perform
+	 * a normal step, otherwise we have to manually step over the bkpt
+	 * instruction - as such simulate a step */
+	if (bkpt_inst_found == false)
+	{
+		/* set step and clear halt */
+		cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+	}
+
 	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 
 	/* registers are now invalid */
@@ -735,6 +755,7 @@ static int cortex_m3_step(struct target *target, int current,
 	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32
 			" nvic_icsr = 0x%" PRIx32,
 			cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+
 	return ERROR_OK;
 }
 

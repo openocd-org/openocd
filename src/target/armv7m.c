@@ -694,6 +694,44 @@ int armv7m_blank_check_memory(struct target *target,
 	return ERROR_OK;
 }
 
+int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct reg *r = armv7m->core_cache->reg_list + 15;
+	bool result = false;
+
+
+	/* if we halted last time due to a bkpt instruction
+	 * then we have to manually step over it, otherwise
+	 * the core will break again */
+
+	if (target->debug_reason == DBG_REASON_BREAKPOINT)
+	{
+		uint16_t op;
+		uint32_t pc = buf_get_u32(r->value, 0, 32);
+
+		pc &= ~1;
+		if (target_read_u16(target, pc, &op) == ERROR_OK)
+		{
+			if ((op & 0xFF00) == 0xBE00)
+			{
+				pc = buf_get_u32(r->value, 0, 32) + 2;
+				buf_set_u32(r->value, 0, 32, pc);
+				r->dirty = true;
+				r->valid = true;
+				result = true;
+				LOG_DEBUG("Skipping over BKPT instruction");
+			}
+		}
+	}
+
+	if (inst_found) {
+		*inst_found = result;
+	}
+
+	return ERROR_OK;
+}
+
 /*--------------------------------------------------------------------------*/
 
 /*
