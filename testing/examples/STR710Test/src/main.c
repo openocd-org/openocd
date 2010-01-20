@@ -41,6 +41,20 @@
  */
 #include "typedefs.h"
 
+/* Increase the size of this dummy global data to create a larger ROM image */
+static const char test[] =
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa"
+		"ljasdfljkasdfljsaflsjadflksjadflksjadfasdfsadfsa";
+
+
+
 /*=========================================================================*/
 /*  DEFINE: All Structures and Common Constants                            */
 /*=========================================================================*/
