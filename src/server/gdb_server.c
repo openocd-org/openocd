@@ -2212,12 +2212,13 @@ static int gdb_input_inner(struct connection *connection)
 						log_add_callback(gdb_log_callback, connection);
 
 						bool nostep = false;
+						bool already_running = false;
 						if (target->state == TARGET_RUNNING)
 						{
-							LOG_WARNING("The target is already running. Halt target before stepi/continue.");
-							retval = target_halt(target);
-							if (retval == ERROR_OK)
-								retval = target_wait_state(target, TARGET_HALTED, 100);
+							LOG_WARNING("WARNING! The target is already running. "
+									"All changes GDB did to registers will be discarded! "
+									"Waiting for target to halt.");
+							already_running = true;
 						} else if (target->state != TARGET_HALTED)
 						{
 							LOG_WARNING("The target is not in the halted nor running stated, stepi/continue ignored.");
@@ -2233,7 +2234,7 @@ static int gdb_input_inner(struct connection *connection)
 						}
 						gdb_con->sync = false;
 
-						if ((retval!=ERROR_OK) || nostep)
+						if ((retval!=ERROR_OK) || (!already_running && nostep))
 						{
 							/* Either the target isn't in the halted state, then we can't
 							 * step/continue. This might be early setup, etc.
@@ -2253,11 +2254,15 @@ static int gdb_input_inner(struct connection *connection)
 							 */
 							gdb_con->frontend_state = TARGET_RUNNING;
 							target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
-							int retval = gdb_step_continue_packet(connection, target, packet, packet_size);
-							if (retval != ERROR_OK)
+
+							if (!already_running)
 							{
-								/* we'll never receive a halted condition... issue a false one.. */
-								gdb_frontend_halted(target, connection);
+								int retval = gdb_step_continue_packet(connection, target, packet, packet_size);
+								if (retval != ERROR_OK)
+								{
+									/* we'll never receive a halted condition... issue a false one.. */
+									gdb_frontend_halted(target, connection);
+								}
 							}
 						}
 					}
