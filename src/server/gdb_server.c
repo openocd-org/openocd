@@ -1613,22 +1613,6 @@ static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len
 	return 0;
 }
 
-static int gdb_calc_blocksize(struct flash_bank *bank)
-{
-	uint32_t i;
-	uint32_t block_size = 0xffffffff;
-
-	/* loop through all sectors and return smallest sector size */
-
-	for (i = 0; i < (uint32_t)bank->num_sectors; i++)
-	{
-		if (bank->sectors[i].size < block_size)
-			block_size = bank->sectors[i].size;
-	}
-
-	return block_size;
-}
-
 static int compare_bank (const void * a, const void * b)
 {
 	struct flash_bank *b1, *b2;
@@ -1666,7 +1650,6 @@ static int gdb_memory_map(struct connection *connection,
 	int offset;
 	int length;
 	char *separator;
-	int blocksize;
 	uint32_t ram_start = 0;
 	int i;
 
@@ -1683,6 +1666,7 @@ static int gdb_memory_map(struct connection *connection,
 	 * it has no concept of non-cacheable read/write memory (i/o etc).
 	 *
 	 * FIXME Most non-flash addresses are *NOT* RAM!  Don't lie.
+	 * Current versions of GDB assume unlisted addresses are RAM...
 	 */
 	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
 
@@ -1701,29 +1685,60 @@ static int gdb_memory_map(struct connection *connection,
 			compare_bank);
 
 	for (i = 0; i < flash_get_bank_count(); i++) {
+		int j;
+		unsigned sector_size = 0;
+		uint32_t start, end;
+
 		p = banks[i];
+		start = p->base;
+		end = p->base + p->size;
 
 		if (ram_start < p->base)
 			xml_printf(&retval, &xml, &pos, &size,
 				"<memory type=\"ram\" start=\"0x%x\" "
 					"length=\"0x%x\"/>\n",
-				ram_start, p->base-ram_start);
+				ram_start, p->base - ram_start);
 
-		/* If device has uneven sector sizes, eg. str7, lpc
-		 * we pass the smallest sector size to gdb memory map
-		 *
-		 * FIXME Don't lie about flash regions with different
-		 * sector sizes; just tell GDB about each region as
-		 * if it were a separate flash device.
+		/* Report adjacent groups of same-size sectors.  So for
+		 * example top boot CFI flash will list an initial region
+		 * with several large sectors (maybe 128KB) and several
+		 * smaller ones at the end (maybe 32KB).  STR7 will have
+		 * regions with 8KB, 32KB, and 64KB sectors; etc.
 		 */
-		blocksize = gdb_calc_blocksize(p);
+		for (j = 0; j < p->num_sectors; j++) {
+			unsigned group_len;
 
-		xml_printf(&retval, &xml, &pos, &size,
-			"<memory type=\"flash\" start=\"0x%x\" "
-				"length=\"0x%x\">\n" \
-			"<property name=\"blocksize\">0x%x</property>\n" \
-			"</memory>\n", \
-			p->base, p->size, blocksize);
+			/* Maybe start a new group of sectors. */
+			if (sector_size == 0) {
+				start = p->base + p->sectors[j].offset;
+				xml_printf(&retval, &xml, &pos, &size,
+					"<memory type=\"flash\" "
+						"start=\"0x%x\" ",
+					start);
+				sector_size = p->sectors[j].size;
+			}
+
+			/* Does this finish a group of sectors?
+			 * If not, continue an already-started group.
+			 */
+			if (j == p->num_sectors -1)
+				group_len = (p->base + p->size) - start;
+			else if (p->sectors[j + 1].size != sector_size)
+				group_len = p->base + p->sectors[j + 1].offset
+						- start;
+			else
+				continue;
+
+			xml_printf(&retval, &xml, &pos, &size,
+				"length=\"0x%x\">\n"
+				"<property name=\"blocksize\">"
+					"0x%x</property>\n"
+				"</memory>\n",
+				group_len,
+				sector_size);
+			sector_size = 0;
+		}
+
 		ram_start = p->base + p->size;
 	}
 
