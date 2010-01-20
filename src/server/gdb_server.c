@@ -1647,8 +1647,120 @@ static int compare_bank (const void * a, const void * b)
 	}
 }
 
-static int gdb_query_packet(struct connection *connection,
+static int gdb_memory_map(struct connection *connection,
 		struct target *target, char *packet, int packet_size)
+{
+	/* We get away with only specifying flash here. Regions that are not
+	 * specified are treated as if we provided no memory map(if not we
+	 * could detect the holes and mark them as RAM).
+	 * Normally we only execute this code once, but no big deal if we
+	 * have to regenerate it a couple of times.
+	 */
+
+	struct flash_bank *p;
+	char *xml = NULL;
+	int size = 0;
+	int pos = 0;
+	int retval = ERROR_OK;
+	struct flash_bank **banks;
+	int offset;
+	int length;
+	char *separator;
+	int blocksize;
+	uint32_t ram_start = 0;
+	int i;
+
+	/* skip command character */
+	packet += 23;
+
+	offset = strtoul(packet, &separator, 16);
+	length = strtoul(separator + 1, &separator, 16);
+
+	xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
+
+	/* Sort banks in ascending order.  We need to report non-flash
+	 * memory as ram (or rather read/write) by default for GDB, since
+	 * it has no concept of non-cacheable read/write memory (i/o etc).
+	 *
+	 * FIXME Most non-flash addresses are *NOT* RAM!  Don't lie.
+	 */
+	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
+
+	for (i = 0; i < flash_get_bank_count(); i++) {
+		p = get_flash_bank_by_num(i);
+		if (p == NULL) {
+			free(banks);
+			retval = ERROR_FAIL;
+			gdb_send_error(connection, retval);
+			return retval;
+		}
+		banks[i] = p;
+	}
+
+	qsort(banks, flash_get_bank_count(), sizeof(struct flash_bank *),
+			compare_bank);
+
+	for (i = 0; i < flash_get_bank_count(); i++) {
+		p = banks[i];
+
+		if (ram_start < p->base)
+			xml_printf(&retval, &xml, &pos, &size,
+				"<memory type=\"ram\" start=\"0x%x\" "
+					"length=\"0x%x\"/>\n",
+				ram_start, p->base-ram_start);
+
+		/* If device has uneven sector sizes, eg. str7, lpc
+		 * we pass the smallest sector size to gdb memory map
+		 *
+		 * FIXME Don't lie about flash regions with different
+		 * sector sizes; just tell GDB about each region as
+		 * if it were a separate flash device.
+		 */
+		blocksize = gdb_calc_blocksize(p);
+
+		xml_printf(&retval, &xml, &pos, &size,
+			"<memory type=\"flash\" start=\"0x%x\" "
+				"length=\"0x%x\">\n" \
+			"<property name=\"blocksize\">0x%x</property>\n" \
+			"</memory>\n", \
+			p->base, p->size, blocksize);
+		ram_start = p->base + p->size;
+	}
+
+	if (ram_start != 0)
+		xml_printf(&retval, &xml, &pos, &size,
+			"<memory type=\"ram\" start=\"0x%x\" "
+				"length=\"0x%x\"/>\n",
+			ram_start, 0-ram_start);
+	/* ELSE a flash chip could be at the very end of the 32 bit address
+	 * space, in which case ram_start will be precisely 0
+	 */
+
+	free(banks);
+	banks = NULL;
+
+	xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
+
+	if (retval != ERROR_OK) {
+		gdb_send_error(connection, retval);
+		return retval;
+	}
+
+	if (offset + length > pos)
+		length = pos - offset;
+
+	char *t = malloc(length + 1);
+	t[0] = 'l';
+	memcpy(t + 1, xml + offset, length);
+	gdb_put_packet(connection, t, length + 1);
+
+	free(t);
+	free(xml);
+	return ERROR_OK;
+}
+
+static int gdb_query_packet(struct connection *connection,
+	struct target *target, char *packet, int packet_size)
 {
 	struct command_context *cmd_ctx = connection->cmd_ctx;
 	struct gdb_connection *gdb_connection = connection->priv;
@@ -1747,112 +1859,9 @@ static int gdb_query_packet(struct connection *connection,
 
 		return ERROR_OK;
 	}
-	else if (strstr(packet, "qXfer:memory-map:read::") && (flash_get_bank_count() > 0))
-	{
-		/* We get away with only specifying flash here. Regions that are not
-		 * specified are treated as if we provided no memory map(if not we
-		 * could detect the holes and mark them as RAM).
-		 * Normally we only execute this code once, but no big deal if we
-		 * have to regenerate it a couple of times. */
-
-		struct flash_bank *p;
-		char *xml = NULL;
-		int size = 0;
-		int pos = 0;
-		int retval = ERROR_OK;
-
-		int offset;
-		int length;
-		char *separator;
-		int blocksize;
-
-		/* skip command character */
-		packet += 23;
-
-		offset = strtoul(packet, &separator, 16);
-		length = strtoul(separator + 1, &separator, 16);
-
-		xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
-
-		/*
-		sort banks in ascending order, we need to make non-flash memory be ram(or rather
-		read/write) by default for GDB.
-		GDB does not have a concept of non-cacheable read/write memory.
-		 */
-		struct flash_bank **banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
-		int i;
-
-		for (i = 0; i < flash_get_bank_count(); i++)
-		{
-			p = get_flash_bank_by_num(i);
-			if (p == NULL)
-			{
-				free(banks);
-				retval = ERROR_FAIL;
-				gdb_send_error(connection, retval);
-				return retval;
-			}
-			banks[i]=p;
-		}
-
-		qsort(banks, flash_get_bank_count(), sizeof(struct flash_bank *), compare_bank);
-
-		uint32_t ram_start = 0;
-		for (i = 0; i < flash_get_bank_count(); i++)
-		{
-			p = banks[i];
-
-			if (ram_start < p->base)
-			{
-				xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
-					ram_start, p->base-ram_start);
-			}
-
-			/* if device has uneven sector sizes, eg. str7, lpc
-			 * we pass the smallest sector size to gdb memory map */
-			blocksize = gdb_calc_blocksize(p);
-
-			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"flash\" start=\"0x%x\" length=\"0x%x\">\n" \
-				"<property name=\"blocksize\">0x%x</property>\n" \
-				"</memory>\n", \
-				p->base, p->size, blocksize);
-			ram_start = p->base + p->size;
-		}
-		if (ram_start != 0)
-		{
-			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
-				ram_start, 0-ram_start);
-		} else
-		{
-			/* a flash chip could be at the very end of the 32 bit address space, in which case
-			ram_start will be precisely 0 */
-		}
-
-		free(banks);
-		banks = NULL;
-
-		xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
-
-		if (retval != ERROR_OK)
-		{
-			gdb_send_error(connection, retval);
-			return retval;
-		}
-
-		if (offset + length > pos)
-		{
-			length = pos - offset;
-		}
-
-		char *t = malloc(length + 1);
-		t[0] = 'l';
-		memcpy(t + 1, xml + offset, length);
-		gdb_put_packet(connection, t, length + 1);
-
-		free(t);
-		free(xml);
-		return ERROR_OK;
-	}
+	else if (strstr(packet, "qXfer:memory-map:read::")
+			&& (flash_get_bank_count() > 0))
+		return gdb_memory_map(connection, target, packet, packet_size);
 	else if (strstr(packet, "qXfer:features:read:"))
 	{
 		char *xml = NULL;
