@@ -2760,6 +2760,16 @@ int arm7_9_check_reset(struct target *target)
 		LOG_WARNING("NOTE! DCC downloads have not been enabled, defaulting to slow memory writes. Type 'help dcc'.");
 	}
 
+	if (get_target_reset_nag() && (target->working_area_size == 0))
+	{
+		LOG_WARNING("NOTE! Severe performance degradation without working memory enabled.");
+	}
+
+	if (get_target_reset_nag() && !arm7_9->fast_memory_access)
+	{
+		LOG_WARNING("NOTE! Severe performance degradation without fast memory access enabled. Type 'help fast'.");
+	}
+
 	return ERROR_OK;
 }
 
