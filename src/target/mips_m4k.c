@@ -981,7 +981,7 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	int retval;
 	int write = 1;
 
-	LOG_DEBUG("address: 0x%8.8x, count: 0x%8.8x", address, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, count);
 
 	if (target->state != TARGET_HALTED)
 	{
