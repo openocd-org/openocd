@@ -42,22 +42,42 @@
 #define JTAG_ACK_OK_FAULT	0x2
 #define JTAG_ACK_WAIT		0x1
 
+/* three-bit ACK values for SWD access (sent LSB first) */
+#define SWD_ACK_OK		0x4
+#define SWD_ACK_WAIT		0x2
+#define SWD_ACK_FAULT		0x1
+
 #define DPAP_WRITE		0
 #define DPAP_READ		1
 
-/* A[3:0] for DP registers (for JTAG, stored in DPACC) */
-#define DP_ZERO			0
-#define DP_CTRL_STAT	0x4
-#define DP_SELECT		0x8
-#define DP_RDBUFF		0xC
+/* A[3:0] for DP registers; A[1:0] are always zero.
+ * - JTAG accesses all of these via JTAG_DP_DPACC, except for
+ *   IDCODE (JTAG_DP_IDCODE) and ABORT (JTAG_DP_ABORT).
+ * - SWD accesses these directly, sometimes needing SELECT.CTRLSEL
+ */
+#define DP_IDCODE		0		/* SWD: read */
+#define DP_ABORT		0		/* SWD: write */
+#define DP_CTRL_STAT		0x4		/* r/w */
+#define DP_WCR			0x4		/* SWD: r/w (mux CTRLSEL) */
+#define DP_RESEND		0x8		/* SWD: read */
+#define DP_SELECT		0x8		/* JTAG: r/w; SWD: write */
+#define DP_RDBUFF		0xC		/* read-only */
+
+/* Fields of the DP's AP ABORT register */
+#define DAPABORT		(1 << 0)
+#define STKCMPCLR		(1 << 1)	/* SWD-only */
+#define STKERRCLR		(1 << 2)	/* SWD-only */
+#define WDERRCLR		(1 << 3)	/* SWD-only */
+#define ORUNERRCLR		(1 << 4)	/* SWD-only */
 
 /* Fields of the DP's CTRL/STAT register */
 #define CORUNDETECT		(1 << 0)
 #define SSTICKYORUN		(1 << 1)
 /* 3:2 - transaction mode (e.g. pushed compare) */
+#define SSTICKYCMP		(1 << 4)
 #define SSTICKYERR		(1 << 5)
-#define READOK			(1 << 6)
-#define WDATAERR		(1 << 7)
+#define READOK			(1 << 6)	/* SWD-only */
+#define WDATAERR		(1 << 7)	/* SWD-only */
 /* 11:8 - mask lanes for pushed compare or verify ops */
 /* 21:12 - transaction counter */
 #define CDBGRSTREQ		(1 << 26)
