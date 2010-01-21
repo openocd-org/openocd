@@ -2170,7 +2170,7 @@ static void handle_md_output(struct command_context *cmd_ctx,
 	const char *value_fmt;
 	switch (size) {
 	case 4: value_fmt = "%8.8x "; break;
-	case 2: value_fmt = "%4.2x "; break;
+	case 2: value_fmt = "%4.4x "; break;
 	case 1: value_fmt = "%2.2x "; break;
 	default:
 		/* "can't happen", caller checked */
