@@ -62,7 +62,6 @@ int telnet_prompt(struct connection *connection)
 {
 	struct telnet_connection *t_con = connection->priv;
 
-	telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
 	return telnet_write(connection, t_con->prompt, strlen(t_con->prompt));
 }
 
@@ -116,10 +115,12 @@ void telnet_log_callback(void *priv, const char *file, unsigned line,
 	}
 
 	/* clear the command line */
-	telnet_write(connection, "\r", 1);
+	for (i = strlen(t_con->prompt) + t_con->line_size; i > 0; i -= 16)
+		telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", i > 16 ? 16 : i);
 	for (i = strlen(t_con->prompt) + t_con->line_size; i > 0; i -= 16)
 		telnet_write(connection, "                ", i > 16 ? 16 : i);
-	telnet_write(connection, "\r", 1);
+	for (i = strlen(t_con->prompt) + t_con->line_size; i > 0; i -= 16)
+		telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", i > 16 ? 16 : i);
 
 	/* output the message */
 	telnet_outputline(connection, string);
@@ -160,6 +161,7 @@ int telnet_new_connection(struct connection *connection)
 		telnet_write(connection, "\r\n", 2);
 	}
 
+	telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
 	telnet_prompt(connection);
 
 	/* initialize history */
@@ -331,6 +333,7 @@ int telnet_input(struct connection *connection)
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 								return ERROR_SERVER_REMOTE_CLOSED;
 
+							telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
 							retval = telnet_prompt(connection);
 							if (retval == ERROR_SERVER_REMOTE_CLOSED)
 								return ERROR_SERVER_REMOTE_CLOSED;
