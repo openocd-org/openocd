@@ -172,6 +172,7 @@ static inline void h_u16_to_be(uint8_t* buf, int val)
 #define SCNx32 "x"
 #define PRIi32 "i"
 #define PRIu32 "u"
+#define PRId8 PRId32
 
 typedef CYG_ADDRWORD intptr_t;
 typedef int64_t intmax_t;
