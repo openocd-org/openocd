@@ -1767,6 +1767,7 @@ static int handle_target(void *priv)
 		int did_something = 0;
 		if (runSrstAsserted)
 		{
+			LOG_INFO("Waking up GDB, srst asserted detected.");
 			target_call_event_callbacks_all(TARGET_EVENT_GDB_HALT);
 			Jim_Eval(interp, "srst_asserted");
 			did_something = 1;
@@ -1778,6 +1779,7 @@ static int handle_target(void *priv)
 		}
 		if (runPowerDropout)
 		{
+			LOG_INFO("Waking up GDB, power dropout detected.");
 			target_call_event_callbacks_all(TARGET_EVENT_GDB_HALT);
 			Jim_Eval(interp, "power_dropout");
 			did_something = 1;
@@ -1820,6 +1822,14 @@ static int handle_target(void *priv)
 			/* polling may fail silently until the target has been examined */
 			if ((retval = target_poll(target)) != ERROR_OK)
 			{
+				/* FIX!!!!! If we add a LOG_INFO() here to output a line in GDB
+				 * *why* we are aborting GDB, then we'll spam telnet when the
+				 * poll is failing persistently.
+				 *
+				 * If we could implement an event that detected the
+				 * target going from non-pollable to pollable, we could issue
+				 * an error only upon the transition.
+				 */
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				return retval;
 			}
