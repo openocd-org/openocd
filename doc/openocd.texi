@@ -23,7 +23,7 @@ of the Open On-Chip Debugger (OpenOCD).
 @item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
 @item Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
-@item Copyright @copyright{} 2009 David Brownell
+@item Copyright @copyright{} 2009-2010 David Brownell
 @end itemize
 
 @quotation
@@ -1026,6 +1026,86 @@ various kinds of message.
 @xref{Software Debug Messages and Tracing}.
 
 @end itemize
+
+@section Target Hardware Setup
+
+Chip vendors often provide software development boards which
+are highly configurable, so that they can support all options
+that product boards may require.  @emph{Make sure that any
+jumpers or switches match the system configuration you are
+working with.}
+
+Common issues include:
+
+@itemize @bullet
+
+@item @b{JTAG setup} ...
+Boards may support more than one JTAG configuration.
+Examples include jumpers controlling pullups versus pulldowns
+on the nTRST and/or nSRST signals, and choice of connectors
+(e.g. which of two headers on the base board,
+or one from a daughtercard).
+For some Texas Instruments boards, you may need to jumper the
+EMU0 and EMU1 signals (which OpenOCD won't currently control).
+
+@item @b{Boot Modes} ...
+Complex chips often support multiple boot modes, controlled
+by external jumpers.  Make sure this is set up correctly.
+For example many i.MX boards from NXP need to be jumpered
+to "ATX mode" to start booting using the on-chip ROM, when
+using second stage bootloader code stored in a NAND flash chip.
+
+Such explicit configuration is common, and not limited to
+booting from NAND.  You might also need to set jumpers to
+start booting using code loaded from an MMC/SD card; external
+SPI flash; Ethernet, UART, or USB links; NOR flash; OneNAND
+flash; some external host; or various other sources.
+
+
+@item @b{Memory Addressing} ...
+Boards which support multiple boot modes may also have jumpers
+to configure memory addressing.  One board, for example, jumpers
+external chipselect 0 (used for booting) to address either
+a large SRAM (which must be pre-loaded via JTAG), NOR flash,
+or NAND flash.  When it's jumpered to address NAND flash, that
+board must also be told to start booting from on-chip ROM.
+
+Your @file{board.cfg} file may also need to be told this jumper
+configuration, so that it can know whether to declare NOR flash
+using @command{flash bank} or instead declare NAND flash with
+@command{nand device}; and likewise which probe to perform in
+its @code{reset-init} handler.
+
+A closely related issue is bus width.  Jumpers might need to
+distinguish between 8 bit or 16 bit bus access for the flash
+used to start booting.
+
+@item @b{Peripheral Access} ...
+Development boards generally provide access to every peripheral
+on the chip, sometimes in multiple modes (such as by providing
+multiple audio codec chips).
+This interacts with software
+configuration of pin multiplexing, where for example a
+given pin may be routed either to the MMC/SD controller
+or the GPIO controller.  It also often interacts with
+configuration jumpers.  One jumper may be used to route
+signals to an MMC/SD card slot or an expansion bus (which
+might in turn affect booting); others might control which
+audio or video codecs are used.
+
+@end itemize
+
+Plus you should of course have @code{reset-init} event handlers
+which set up the hardware to match that jumper configuration.
+That includes in particular any oscillator or PLL used to clock
+the CPU, and any memory controllers needed to access external
+memory and peripherals.  Without such handlers, you won't be
+able to access those resources without working target firmware
+which can do that setup ... this can be awkward when you're
+trying to debug that target firmware.  Even if there's a ROM
+bootloader which handles a few issues, it rarely provides full
+access to all board-specific capabilities.
+
 
 @node Config File Guidelines
 @chapter Config File Guidelines
