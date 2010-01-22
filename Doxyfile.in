@@ -384,7 +384,7 @@ HIDE_SCOPE_NAMES       = NO
 # will put a list of the files that are included by a file in the documentation
 # of that file.
 
-SHOW_INCLUDE_FILES     = YES
+SHOW_INCLUDE_FILES     = NO
 
 # If the INLINE_INFO tag is set to YES (the default) then a tag [inline]
 # is inserted in the documentation for inline members.
@@ -403,7 +403,7 @@ SORT_MEMBER_DOCS       = YES
 # by member name. If set to NO (the default) the members will appear in
 # declaration order.
 
-SORT_BRIEF_DOCS        = NO
+SORT_BRIEF_DOCS        = YES
 
 # If the SORT_GROUP_NAMES tag is set to YES then doxygen will sort the
 # hierarchy of group names into alphabetical order. If set to NO (the default)
@@ -692,13 +692,13 @@ SOURCE_BROWSER         = YES
 # Setting the INLINE_SOURCES tag to YES will include the body
 # of functions and classes directly in the documentation.
 
-INLINE_SOURCES         = YES
+INLINE_SOURCES         = NO
 
 # Setting the STRIP_CODE_COMMENTS tag to YES (the default) will instruct
 # doxygen to hide any special comment blocks from generated source code
 # fragments. Normal C and C++ comments will always remain visible.
 
-STRIP_CODE_COMMENTS    = NO
+STRIP_CODE_COMMENTS    = YES
 
 # If the REFERENCED_BY_RELATION tag is set to YES 
 # then for each documented function all documented

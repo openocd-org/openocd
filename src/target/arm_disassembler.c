@@ -50,6 +50,7 @@
  *       except as coprocessor 10/11 operations
  *     * Most ARM instructions through ARMv6 are decoded, but some
  *       of the post-ARMv4 opcodes may not be handled yet
+ *		CPS, SDIV, UDIV, LDREX*, STREX*, QASX, ...
  *     * NEON instructions are not understood (ARMv7-A)
  *
  *  - Thumb/Thumb2 decoding

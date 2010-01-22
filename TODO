@@ -142,6 +142,8 @@ Once the above are completed:
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - regression: "reset halt" between 729(works) and 788(fails): @par
 https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
+- registers
+  - add flush-value operation, call them all on resume/reset
 - mcr/mrc target->type support
   - missing from ARM920t, ARM966e, XScale.
   It's possible that the current syntax is unable to support read-modify-write
@@ -170,10 +172,18 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
 - Thumb2 single stepping: ARM1156T2 needs simulator support
 - Cortex A8 support (ML)
   - add target implementation (ML)
+- Cortex M3 support
+  - when stepping, only write dirtied registers (be faster)
+  - when connecting to halted core, fetch registers (startup is quirky)
 - Generic ARM run_algorithm() interface
   - tagged struct wrapping ARM instructions and metadata
   - not revision-specific (current: ARMv4+ARMv5 -or- ARMv6 -or- ARMv7)
   - usable with at least arm_nandwrite() and generic CFI drivers
+- ETM
+  - don't show FIFOFULL registers if they're not supported
+  - use comparators to get more breakpoints and watchpoints
+  - add "etm drivers" command
+  - trace driver init() via examine() paths only, not setup()/reset
 - MC1322x support (JW/DE?)
   - integrate and test support from JW (and DE?)
   - get working with a known good interface (i.e. not today's jlink)
@@ -356,9 +366,11 @@ to complete:
 - Develop milestone and release guidelines, processes, and scripts.
 - Develop "style" guidelines (and scripts) for maintainers:
   - reviewing patches
-  - committing to Subversion
-- Review The Guide for OpenOCD Users for documentation errors or omissions
-- Update The Manual for OpenOCD Developers:
+  - committing to git
+- Review Users' Guide for documentation errors or omissions
+  - "capture" and "ocd_find" commands
+  - "ocd_" prefix on various stuff
+- Update Developer's Manual (doxygen output)
   - Add documentation describing the architecture of each module
   - Provide more Technical Primers to bootstrap contributor knowledge
 
