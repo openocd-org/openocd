@@ -192,6 +192,11 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 	reg_cache->reg_list = reg_list;
 	reg_cache->num_regs = num_regs;
 
+	/* FIXME the second watchpoint unit on Feroceon and Dragonite
+	 * seems not to work ... we should have a way to not set up
+	 * its four registers here!
+	 */
+
 	/* set up registers */
 	for (i = 0; i < num_regs; i++)
 	{
@@ -290,8 +295,10 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 				buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 
-	LOG_INFO("%s: hardware has 2 breakpoints or watchpoints",
-			target_name(target));
+	/* On Feroceon and Dragonite the second unit is seemingly missing. */
+	LOG_INFO("%s: hardware has %d breakpoint/watchpoint unit%s",
+			target_name(target), arm7_9->wp_available_max,
+			(arm7_9->wp_available_max != 1) ? "s" : "");
 
 	return reg_cache;
 }
