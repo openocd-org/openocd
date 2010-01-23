@@ -13,25 +13,29 @@ Target Layer:
 	General
 		- new "reset-assert" event, for systems without SRST
 	ARM
+		- supports "reset-assert" event (except on Cortex-M3)
 		- renamed "armv4_5" command prefix as "arm"
 		- recognize TrustZone "Secure Monitor" mode
 		- "arm regs" command output changed
 		- register names use "sp" not "r13"
 		- add top-level "mcr" and "mrc" commands, replacing
 		  various core-specific operations
-		- basic semihosting support
+		- basic semihosting support (ARM7/ARM9 only, for now)
 	ARM11
-		- Preliminary ETM and ETB hookup
-		- accelerated "flash erase_check"
-		- accelerated GDB memory checksum
-		- support "arm regs" command
-		- can access all core modes and registers
-		- watchpoint support
+		- Should act much more like other ARM cores:
+		   * Preliminary ETM and ETB hookup
+		   * accelerated "flash erase_check"
+		   * accelerated GDB memory checksum
+		   * support "arm regs" command
+		   * can access all core modes and registers
+		   * watchpoint support
+		- Shares some core debug code with Cortex-A8
 	Cortex-A8
-		- support "arm regs" command
-		- can access all core modes and registers
-		- supports "reset-assert" event (used on OMAP3530)
-		- watchpoint support
+		- Should act much more like other ARM cores:
+		   * support "arm regs" command
+		   * can access all core modes and registers
+		   * watchpoint support
+		- Shares some core debug code with ARM11
 	Cortex-M3
 		- Exposed DWT registers like cycle counter
 		- vector_catch settings not clobbered by resets
