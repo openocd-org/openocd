@@ -498,12 +498,9 @@ static int arm11_resume(struct target *target, int current,
 	if (!debug_execution)
 		target_free_all_working_areas(target);
 
-	/* Set up breakpoints */
-	if (handle_breakpoints)
-	{
-		/* check if one matches PC and step over it if necessary */
-
-		struct breakpoint *	bp;
+	/* Should we skip over breakpoints matching the PC? */
+	if (handle_breakpoints) {
+		struct breakpoint *bp;
 
 		for (bp = target->breakpoints; bp; bp = bp->next)
 		{
@@ -514,9 +511,11 @@ static int arm11_resume(struct target *target, int current,
 				break;
 			}
 		}
+	}
 
-		/* set all breakpoints */
-
+	/* activate all breakpoints */
+	if (true) {
+		struct breakpoint *bp;
 		unsigned brp_num = 0;
 
 		for (bp = target->breakpoints; bp; bp = bp->next)
@@ -542,7 +541,8 @@ static int arm11_resume(struct target *target, int current,
 			arm11_sc7_set_vcr(arm11, arm11_vcr);
 	}
 
-	arm11_leave_debug_state(arm11, handle_breakpoints);
+	/* activate all watchpoints and breakpoints */
+	arm11_leave_debug_state(arm11, true);
 
 	arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
@@ -953,6 +953,7 @@ static int arm11_write_memory_inner(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* load r0 with buffer address */
 	/* MRC p14,0,r0,c0,c5,0 */
 	retval = arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
 	if (retval != ERROR_OK)
@@ -975,11 +976,13 @@ static int arm11_write_memory_inner(struct target *target,
 
 			for (size_t i = 0; i < count; i++)
 			{
+				/* load r1 from DCC with byte data */
 				/* MRC p14,0,r1,c0,c5,0 */
 				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
 				if (retval != ERROR_OK)
 					return retval;
 
+				/* write r1 to memory */
 				/* strb    r1, [r0], #1 */
 				/* strb    r1, [r0] */
 				retval = arm11_run_instr_no_data1(arm11,
@@ -1002,11 +1005,13 @@ static int arm11_write_memory_inner(struct target *target,
 				uint16_t value;
 				memcpy(&value, buffer + i * sizeof(uint16_t), sizeof(uint16_t));
 
+				/* load r1 from DCC with halfword data */
 				/* MRC p14,0,r1,c0,c5,0 */
 				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
 				if (retval != ERROR_OK)
 					return retval;
 
+				/* write r1 to memory */
 				/* strh    r1, [r0], #2 */
 				/* strh    r1, [r0] */
 				retval = arm11_run_instr_no_data1(arm11,
@@ -1021,6 +1026,7 @@ static int arm11_write_memory_inner(struct target *target,
 		}
 
 	case 4: {
+		/* stream word data through DCC directly to memory */
 		/* increment:		STC p14,c5,[R0],#4 */
 		/* no increment:	STC p14,c5,[R0]*/
 		uint32_t instr = !no_increment ? 0xeca05e01 : 0xed805e00;
