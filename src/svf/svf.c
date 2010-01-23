@@ -500,7 +500,9 @@ static int svf_read_command_from_file(int fd)
 		case '\r':
 			slash = 0;
 			comment = 0;
-			break;
+			/* Don't save '\r' and '\n' if no data is parsed */
+			if (!cmd_pos)
+				break;
 		default:
 			if (!comment)
 			{
@@ -565,25 +567,30 @@ static int svf_read_command_from_file(int fd)
 
 static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_argu)
 {
-	int pos = 0, num = 0, space_found = 1;
+	int pos = 0, num = 0, space_found = 1, in_bracket = 0;
 
 	while (pos < len)
 	{
 		switch (str[pos])
 		{
-		case '\n':
-		case '\r':
 		case '!':
 		case '/':
 			LOG_ERROR("fail to parse svf command");
 			return ERROR_FAIL;
-			break;
-		case ' ':
-			space_found = 1;
-			str[pos] = '\0';
-			break;
+		case '(':
+			in_bracket = 1;
+			goto parse_char;
+		case ')':
+			in_bracket = 0;
+			goto parse_char;
 		default:
-			if (space_found)
+parse_char:
+			if (!in_bracket && isspace(str[pos]))
+			{
+				space_found = 1;
+				str[pos] = '\0';
+			}
+			else if (space_found)
 			{
 				argus[num++] = &str[pos];
 				space_found = 0;
@@ -651,6 +658,7 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 		return ERROR_FAIL;
 	}
 
+	/* fill from LSB (end of str) to MSB (beginning of str) */
 	for (i = 0; i < str_hbyte_len; i++)
 	{
 		ch = 0;
@@ -658,7 +666,13 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 		{
 			ch = str[--str_len];
 
-			if (!isblank(ch))
+			/* Skip whitespace.  The SVF specification (rev E) is
+			 * deficient in terms of basic lexical issues like
+			 * where whitespace is allowed.  Long bitstrings may
+			 * require line ends for correctness, since there is
+			 * a hard limit on line length.
+			 */
+			if (!isspace(ch))
 			{
 				if ((ch >= '0') && (ch <= '9'))
 				{
@@ -694,11 +708,12 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 		}
 	}
 
-	// consume optional leading '0' characters
-	while (str_len > 0 && str[str_len - 1] == '0')
+	/* consume optional leading '0' MSBs or whitespace */
+	while (str_len > 0 && ((str[str_len - 1] == '0')
+				|| isspace(str[str_len - 1])))
 		str_len--;
 
-	// check valid
+	/* check validity: we must have consumed everything */
 	if (str_len > 0 || (ch & ~((2 << ((bit_len - 1) % 4)) - 1)) != 0)
 	{
 		LOG_ERROR("value execeeds length");
