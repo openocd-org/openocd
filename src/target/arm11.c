@@ -64,10 +64,10 @@ static int arm11_step(struct target *target, int current,
 static int arm11_check_init(struct arm11_common *arm11)
 {
 	CHECK_RETVAL(arm11_read_DSCR(arm11));
-	LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 
 	if (!(arm11->dscr & DSCR_HALT_DBG_MODE))
 	{
+		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 		LOG_DEBUG("Bringing target into debug mode");
 
 		arm11->dscr |= DSCR_HALT_DBG_MODE;

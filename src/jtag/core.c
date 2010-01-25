@@ -530,10 +530,12 @@ int jtag_add_statemove(tap_state_t goal_state)
 {
 	tap_state_t cur_state = cmd_queue_cur_state;
 
-	LOG_DEBUG("cur_state=%s goal_state=%s",
-		tap_state_name(cur_state),
-		tap_state_name(goal_state));
-
+	if (goal_state != cur_state)
+	{
+		LOG_DEBUG("cur_state=%s goal_state=%s",
+			tap_state_name(cur_state),
+			tap_state_name(goal_state));
+	}
 
 	/* If goal is RESET, be paranoid and force that that transition
 	 * (e.g. five TCK cycles, TMS high).  Else trust "cur_state".
