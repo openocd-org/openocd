@@ -1461,7 +1461,8 @@ static int cortex_a8_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid;
 
-	LOG_DEBUG("TODO");
+	/* stop assuming this is an OMAP! */
+	LOG_DEBUG("TODO - autoconfigure");
 
 	/* Here we shall insert a proper ROM Table scan */
 	armv7a->debug_base = OMAP3530_DEBUG_BASE;
@@ -1474,28 +1475,28 @@ static int cortex_a8_examine_first(struct target *target)
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_CPUID, &cpuid)) != ERROR_OK)
 	{
-		LOG_DEBUG("Examine failed");
+		LOG_DEBUG("Examine %s failed", "CPUID");
 		return retval;
 	}
 
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_CTYPR, &ctypr)) != ERROR_OK)
 	{
-		LOG_DEBUG("Examine failed");
+		LOG_DEBUG("Examine %s failed", "CTYPR");
 		return retval;
 	}
 
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_TTYPR, &ttypr)) != ERROR_OK)
 	{
-		LOG_DEBUG("Examine failed");
+		LOG_DEBUG("Examine %s failed", "TTYPR");
 		return retval;
 	}
 
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DIDR, &didr)) != ERROR_OK)
 	{
-		LOG_DEBUG("Examine failed");
+		LOG_DEBUG("Examine %s failed", "DIDR");
 		return retval;
 	}
 
