@@ -416,6 +416,21 @@ static int cortex_m3_poll(struct target *target)
 		return retval;
 	}
 
+	/* Recover from lockup.  See ARMv7-M architecture spec,
+	 * section B1.5.15 "Unrecoverable exception cases".
+	 *
+	 * REVISIT Is there a better way to report and handle this?
+	 */
+	if (cortex_m3->dcb_dhcsr & S_LOCKUP) {
+		LOG_WARNING("%s -- clearing lockup after double fault",
+				target_name(target));
+		cortex_m3_write_debug_halt_mask(target, C_HALT, 0);
+		target->debug_reason = DBG_REASON_DBGRQ;
+
+		/* refresh status bits */
+		mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	}
+
 	if (cortex_m3->dcb_dhcsr & S_RESET_ST)
 	{
 		/* check if still in reset */
