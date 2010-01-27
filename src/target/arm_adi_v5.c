@@ -305,7 +305,7 @@ int swjdp_transaction_endcheck(struct swjdp_common *swjdp)
 			}
 			else
 			{
-				LOG_WARNING("Invalid ACK %#x"
+				LOG_WARNING("Invalid ACK %#x "
 						"in JTAG-DP transaction",
 						swjdp->ack);
 				return ERROR_JTAG_DEVICE_ERROR;
@@ -1058,6 +1058,7 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, u
  * @todo Rename this.  We also need an initialization scheme which account
  * for SWD transports not just JTAG; that will need to address differences
  * in layering.  (JTAG is useful without any debug target; but not SWD.)
+ * And this may not even use an AHB-AP ... e.g. DAP-Lite uses an APB-AP.
  */
 int ahbap_debugport_init(struct swjdp_common *swjdp)
 {
@@ -1125,7 +1126,9 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &idreg);
 	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &romaddr);
 
-	LOG_DEBUG("AHB-AP ID Register 0x%" PRIx32 ", Debug ROM Address 0x%" PRIx32 "", idreg, romaddr);
+	LOG_DEBUG("MEM-AP #%d ID Register 0x%" PRIx32
+		", Debug ROM Address 0x%" PRIx32,
+		swjdp->apsel, idreg, romaddr);
 
 	return ERROR_OK;
 }
