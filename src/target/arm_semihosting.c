@@ -230,18 +230,14 @@ static int do_semihosting(struct target *target)
 			return retval;
 		else {
 			int fd = target_buffer_get_u32(target, params+0);
-			off_t cur = lseek(fd, 0, SEEK_CUR);
-			if (cur == (off_t)-1) {
+			struct stat buf;
+			result = fstat(fd, &buf);
+			if (result == -1) {
 				armv4_5->semihosting_errno = errno;
 				result = -1;
 				break;
 			}
-			result = lseek(fd, 0, SEEK_END);
-			armv4_5->semihosting_errno = errno;
-			if (lseek(fd, cur, SEEK_SET) == (off_t)-1) {
-				armv4_5->semihosting_errno = errno;
-				result = -1;
-			}
+			result = buf.st_size;
 		}
 		break;
 
