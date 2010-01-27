@@ -585,7 +585,7 @@ static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_ar
 			goto parse_char;
 		default:
 parse_char:
-			if (!in_bracket && isspace(str[pos]))
+			if (!in_bracket && isspace((int) str[pos]))
 			{
 				space_found = 1;
 				str[pos] = '\0';
@@ -710,7 +710,7 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 
 	/* consume optional leading '0' MSBs or whitespace */
 	while (str_len > 0 && ((str[str_len - 1] == '0')
-				|| isspace(str[str_len - 1])))
+				|| isspace((int) str[str_len - 1])))
 		str_len--;
 
 	/* check validity: we must have consumed everything */
