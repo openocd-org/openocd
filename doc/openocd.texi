@@ -513,9 +513,10 @@ bash$ openocd --help
 --pipe       | -p       use pipes when talking to gdb
 @end verbatim
 
-By default OpenOCD reads the configuration file @file{openocd.cfg}.
-To specify a different (or multiple)
-configuration file, you can use the @option{-f} option. For example:
+If you don't give any @option{-f} or @option{-c} options,
+OpenOCD tries to read the configuration file @file{openocd.cfg}.
+To specify one or more different
+configuration files, use @option{-f} options. For example:
 
 @example
 openocd -f config1.cfg -f config2.cfg -f config3.cfg

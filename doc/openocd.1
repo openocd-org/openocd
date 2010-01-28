@@ -22,19 +22,23 @@ please check the \fIopenocd\fR info page for the complete list.
 .SH "OPTIONS"
 .TP
 .B "\-f, \-\-file <filename>"
-Use configuration file
-.BR <filename> .
+This is a shortcut for a \fB\-c "[script \fI<filename>\fB]"\fR
+command, using a search path to load the configuration file
+.IR <filename> .
 In order to specify multiple config files, you can use multiple
 .B \-\-file
-arguments. If this option is omitted, the config file
+arguments. If no such \fB\-c\fR
+options are included, the first config file
 .B openocd.cfg
-in the current working directory will be used.
+in the search path will be used.
 .TP
 .B "\-s, \-\-search <dirname>"
-Search for config files and scripts in the directory
-.BR <dirname> .
-If this option is omitted, OpenOCD searches for config files and scripts
-in the current directory.
+Add
+.I <dirname>
+to the search path used for config files and scripts.
+The search path begins with the current directory,
+then includes these additional directories before other
+components such as the standard OpenOCD script libraries.
 .TP
 .B "\-d, \-\-debug <debuglevel>"
 Set debug level. Possible values are:
@@ -52,13 +56,17 @@ The default level is
 .TP
 .B "\-l, \-\-log_output <filename>"
 Redirect log output to the file
-.BR <filename> .
+.IR <filename> .
 Per default the log output is printed on
 .BR stderr .
 .TP
 .B "\-c, \-\-command <cmd>"
-Run the command
-.BR <cmd> .
+Add the command
+.I <cmd>
+to a list of commands executed on server startup.
+Note that you will need to explicitly invoke
+.I init
+if the command requires access to a target or flash.
 .TP
 .B "\-p, \-\-pipe"
 Use pipes when talking to gdb.
