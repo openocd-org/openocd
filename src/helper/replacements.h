@@ -40,6 +40,12 @@
 #define ENOTSUP 134		/* Not supported */
 #endif
 
+/* for systems that do not support O_BINARY
+ * linux being one of them */
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #ifndef HAVE_SYS_TIME_H
 
 #ifndef _TIMEVAL_DEFINED

@@ -2,6 +2,9 @@
  *   Copyright (C) 2009 by Marvell Technology Group Ltd.                   *
  *   Written by Nicolas Pitre <nico@marvell.com>                           *
  *                                                                         *
+ *   Copyright (C) 2010 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -41,6 +44,20 @@
 #include <helper/binarybuffer.h>
 #include <helper/log.h>
 
+static int open_modeflags[12] = {
+	O_RDONLY,
+	O_RDONLY | O_BINARY,
+	O_RDWR,
+	O_RDWR | O_BINARY,
+	O_WRONLY | O_CREAT | O_TRUNC,
+	O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+	O_RDWR | O_CREAT | O_TRUNC,
+	O_RDWR | O_CREAT | O_TRUNC | O_BINARY,
+	O_WRONLY | O_CREAT | O_APPEND,
+	O_WRONLY | O_CREAT | O_APPEND | O_BINARY,
+	O_RDWR | O_CREAT | O_APPEND,
+	O_RDWR | O_CREAT | O_APPEND | O_BINARY
+};
 
 static int do_semihosting(struct target *target)
 {
@@ -72,28 +89,21 @@ static int do_semihosting(struct target *target)
 			uint32_t l = target_buffer_get_u32(target, params+8);
 			if (l <= 255 && m <= 11) {
 				uint8_t fn[256];
-				int mode;
 				retval = target_read_memory(target, a, 1, l, fn);
 				if (retval != ERROR_OK)
 					return retval;
 				fn[l] = 0;
-				if (m & 0x2)
-					mode = O_RDWR;
-				else if (m & 0xc)
-					mode = O_WRONLY;
-				else
-					mode = O_RDONLY;
-				if (m >= 8)
-					mode |= O_CREAT|O_APPEND;
-				else if (m >= 4)
-					mode |= O_CREAT|O_TRUNC;
 				if (strcmp((char *)fn, ":tt") == 0) {
-					if ((mode & 3) == 0)
-						result = dup(0);
+					if (m < 4)
+						result = dup(STDIN_FILENO);
 					else
-						result = dup(1);
-				} else
-					result = open((char *)fn, mode);
+						result = dup(STDOUT_FILENO);
+				} else {
+					/* cygwin requires the permission setting
+					 * otherwise it will fail to reopen a previously
+					 * written file */
+					result = open((char *)fn, open_modeflags[m], 0644);
+				}
 				armv4_5->semihosting_errno =  errno;
 			} else {
 				result = -1;
