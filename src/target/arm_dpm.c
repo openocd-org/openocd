@@ -35,6 +35,12 @@
  * Implements various ARM DPM operations using architectural debug registers.
  * These routines layer over core-specific communication methods to cope with
  * implementation differences between cores like ARM1136 and Cortex-A8.
+ *
+ * The "Debug Programmers' Model" (DPM) for ARMv6 and ARMv7 is defined by
+ * Part C (Debug Architecture) of the ARM Architecture Reference Manual,
+ * ARMv7-A and ARMv7-R edition (ARM DDI 0406B).  In OpenOCD, DPM operations
+ * are abstracted through internal programming interfaces to share code and
+ * to minimize needless differences in debug behavior between cores.
  */
 
 /*----------------------------------------------------------------------*/
