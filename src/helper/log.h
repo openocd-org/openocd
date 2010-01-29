@@ -111,7 +111,12 @@ extern int debug_level;
 #define LOG_LEVEL_IS(FOO)  ((debug_level) >= (FOO))
 
 #define LOG_DEBUG(expr ...) \
-		((debug_level >= LOG_LVL_DEBUG) ? log_printf_lf (LOG_LVL_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr) , 0 : 0)
+		do { \
+			if (debug_level >= LOG_LVL_DEBUG) \
+				log_printf_lf(LOG_LVL_DEBUG, \
+					__FILE__, __LINE__, __func__, \
+					expr); \
+		} while (0)
 
 #define LOG_INFO(expr ...) \
 		log_printf_lf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)

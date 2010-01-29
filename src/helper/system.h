@@ -85,4 +85,9 @@
 #include <fcntl.h>
 #endif
 
+#ifndef true
+#define true	1
+#define false	0
+#endif
+
 #endif // SYSTEM_H
