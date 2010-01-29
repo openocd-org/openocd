@@ -2618,14 +2618,14 @@ static int cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 }
 
 struct flash_driver cfi_flash = {
-		.name = "cfi",
-		.flash_bank_command = &cfi_flash_bank_command,
-		.erase = &cfi_erase,
-		.protect = &cfi_protect,
-		.write = &cfi_write,
-		.probe = &cfi_probe,
-		.auto_probe = &cfi_auto_probe,
-		.erase_check = &default_flash_blank_check,
-		.protect_check = &cfi_protect_check,
-		.info = &cfi_info,
-	};
+	.name = "cfi",
+	.flash_bank_command = cfi_flash_bank_command,
+	.erase = cfi_erase,
+	.protect = cfi_protect,
+	.write = cfi_write,
+	.probe = cfi_probe,
+	.auto_probe = cfi_auto_probe,
+	.erase_check = default_flash_blank_check,
+	.protect_check = cfi_protect_check,
+	.info = cfi_info,
+};

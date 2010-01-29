@@ -412,14 +412,14 @@ static int aduc702x_check_flash_completion(struct target* target, unsigned int t
 }
 
 struct flash_driver aduc702x_flash = {
-		.name = "aduc702x",
-		.flash_bank_command = &aduc702x_flash_bank_command,
-		.erase = &aduc702x_erase,
-		.protect = &aduc702x_protect,
-		.write = &aduc702x_write,
-		.probe = &aduc702x_probe,
-		.auto_probe = &aduc702x_probe,
-		.erase_check = &default_flash_blank_check,
-		.protect_check = &aduc702x_protect_check,
-		.info = &aduc702x_info
-	};
+	.name = "aduc702x",
+	.flash_bank_command = aduc702x_flash_bank_command,
+	.erase = aduc702x_erase,
+	.protect = aduc702x_protect,
+	.write = aduc702x_write,
+	.probe = aduc702x_probe,
+	.auto_probe = aduc702x_probe,
+	.erase_check = default_flash_blank_check,
+	.protect_check = aduc702x_protect_check,
+	.info = aduc702x_info
+};

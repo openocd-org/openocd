@@ -924,7 +924,7 @@ COMMAND_HANDLER(handle_flash_init_command)
 static const struct command_registration flash_config_command_handlers[] = {
 	{
 		.name = "bank",
-		.handler = &handle_flash_bank_command,
+		.handler = handle_flash_bank_command,
 		.mode = COMMAND_CONFIG,
 		.usage = "bank_id driver_name base_address size_bytes "
 			"chip_width_bytes bus_width_bytes target "
@@ -935,19 +935,19 @@ static const struct command_registration flash_config_command_handlers[] = {
 	{
 		.name = "init",
 		.mode = COMMAND_CONFIG,
-		.handler = &handle_flash_init_command,
+		.handler = handle_flash_init_command,
 		.help = "Initialize flash devices.",
 	},
 	{
 		.name = "banks",
 		.mode = COMMAND_ANY,
-		.handler = &handle_flash_banks_command,
+		.handler = handle_flash_banks_command,
 		.help = "Display table with information about flash banks.",
 	},
 	{
 		.name = "list",
 		.mode = COMMAND_ANY,
-		.jim_handler = &jim_flash_list,
+		.jim_handler = jim_flash_list,
 		.help = "Returns a list of details about the flash banks.",
 	},
 	COMMAND_REGISTRATION_DONE

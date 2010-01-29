@@ -821,19 +821,19 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 static const struct command_registration tms470_any_command_handlers[] = {
 	{
 		.name = "flash_keyset",
-		.handler = &tms470_handle_flash_keyset_command,
+		.handler = tms470_handle_flash_keyset_command,
 		.mode = COMMAND_ANY,
 		.help = "tms470 flash_keyset <key0> <key1> <key2> <key3>",
 	},
 	{
 		.name = "osc_megahertz",
-		.handler = &tms470_handle_osc_megahertz_command,
+		.handler = tms470_handle_osc_megahertz_command,
 		.mode = COMMAND_ANY,
 		.help = "tms470 osc_megahertz <MHz>",
 	},
 	{
 		.name = "plldis",
-		.handler = &tms470_handle_plldis_command,
+		.handler = tms470_handle_plldis_command,
 		.mode = COMMAND_ANY,
 		.help = "tms470 plldis <0/1>",
 	},
@@ -1258,15 +1258,15 @@ FLASH_BANK_COMMAND_HANDLER(tms470_flash_bank_command)
 }
 
 struct flash_driver tms470_flash = {
-		.name = "tms470",
-		.commands = tms470_command_handlers,
-		.flash_bank_command = &tms470_flash_bank_command,
-		.erase = &tms470_erase,
-		.protect = &tms470_protect,
-		.write = &tms470_write,
-		.probe = &tms470_probe,
-		.auto_probe = &tms470_auto_probe,
-		.erase_check = &tms470_erase_check,
-		.protect_check = &tms470_protect_check,
-		.info = &tms470_info,
-	};
+	.name = "tms470",
+	.commands = tms470_command_handlers,
+	.flash_bank_command = tms470_flash_bank_command,
+	.erase = tms470_erase,
+	.protect = tms470_protect,
+	.write = tms470_write,
+	.probe = tms470_probe,
+	.auto_probe = tms470_auto_probe,
+	.erase_check = tms470_erase_check,
+	.protect_check = tms470_protect_check,
+	.info = tms470_info,
+};

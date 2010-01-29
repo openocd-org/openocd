@@ -473,14 +473,14 @@ static int lpc288x_protect(struct flash_bank *bank, int set, int first, int last
 }
 
 struct flash_driver lpc288x_flash = {
-		.name = "lpc288x",
-		.flash_bank_command = &lpc288x_flash_bank_command,
-		.erase = &lpc288x_erase,
-		.protect = &lpc288x_protect,
-		.write = &lpc288x_write,
-		.probe = &lpc288x_probe,
-		.auto_probe = &lpc288x_probe,
-		.erase_check = &lpc288x_erase_check,
-		.protect_check = &lpc288x_protect_check,
-		.info = &lpc288x_info,
-	};
+	.name = "lpc288x",
+	.flash_bank_command = lpc288x_flash_bank_command,
+	.erase = lpc288x_erase,
+	.protect = lpc288x_protect,
+	.write = lpc288x_write,
+	.probe = lpc288x_probe,
+	.auto_probe = lpc288x_probe,
+	.erase_check = lpc288x_erase_check,
+	.protect_check = lpc288x_protect_check,
+	.info = lpc288x_info,
+};

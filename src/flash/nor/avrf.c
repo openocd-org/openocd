@@ -452,7 +452,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 static const struct command_registration avrf_exec_command_handlers[] = {
 	{
 		.name = "mass_erase",
-		.handler = &avrf_handle_mass_erase_command,
+		.handler = avrf_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
 		.help = "erase entire device",
 	},
@@ -469,15 +469,15 @@ static const struct command_registration avrf_command_handlers[] = {
 };
 
 struct flash_driver avr_flash = {
-		.name = "avr",
-		.commands = avrf_command_handlers,
-		.flash_bank_command = &avrf_flash_bank_command,
-		.erase = &avrf_erase,
-		.protect = &avrf_protect,
-		.write = &avrf_write,
-		.probe = &avrf_probe,
-		.auto_probe = &avrf_auto_probe,
-		.erase_check = &default_flash_mem_blank_check,
-		.protect_check = &avrf_protect_check,
-		.info = &avrf_info,
-	};
+	.name = "avr",
+	.commands = avrf_command_handlers,
+	.flash_bank_command = avrf_flash_bank_command,
+	.erase = avrf_erase,
+	.protect = avrf_protect,
+	.write = avrf_write,
+	.probe = avrf_probe,
+	.auto_probe = avrf_auto_probe,
+	.erase_check = default_flash_mem_blank_check,
+	.protect_check = avrf_protect_check,
+	.info = avrf_info,
+};

@@ -783,7 +783,7 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 static const struct command_registration lpc2000_exec_command_handlers[] = {
 	{
 		.name = "part_id",
-		.handler = &lpc2000_handle_part_id_command,
+		.handler = lpc2000_handle_part_id_command,
 		.mode = COMMAND_EXEC,
 		.help = "print part id of lpc2000 flash bank <num>",
 	},
@@ -800,17 +800,15 @@ static const struct command_registration lpc2000_command_handlers[] = {
 };
 
 struct flash_driver lpc2000_flash = {
-		.name = "lpc2000",
-		.commands = lpc2000_command_handlers,
-		.flash_bank_command = &lpc2000_flash_bank_command,
-		.erase = &lpc2000_erase,
-		.protect = &lpc2000_protect,
-		.write = &lpc2000_write,
-		.probe = &lpc2000_probe,
-		.auto_probe = &lpc2000_probe,
-		.erase_check = &lpc2000_erase_check,
-		.protect_check = &lpc2000_protect_check,
-		.info = &lpc2000_info,
-	};
-
-
+	.name = "lpc2000",
+	.commands = lpc2000_command_handlers,
+	.flash_bank_command = lpc2000_flash_bank_command,
+	.erase = lpc2000_erase,
+	.protect = lpc2000_protect,
+	.write = lpc2000_write,
+	.probe = lpc2000_probe,
+	.auto_probe = lpc2000_probe,
+	.erase_check = lpc2000_erase_check,
+	.protect_check = lpc2000_protect_check,
+	.info = lpc2000_info,
+};

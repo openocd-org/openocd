@@ -135,15 +135,15 @@ static const struct command_registration faux_command_handlers[] = {
 };
 
 struct flash_driver faux_flash = {
-		.name = "faux",
-		.commands = faux_command_handlers,
-		.flash_bank_command = &faux_flash_bank_command,
-		.erase = &faux_erase,
-		.protect = &faux_protect,
-		.write = &faux_write,
-		.probe = &faux_probe,
-		.auto_probe = &faux_probe,
-		.erase_check = &default_flash_blank_check,
-		.protect_check = &faux_protect_check,
-		.info = &faux_info
-	};
+	.name = "faux",
+	.commands = faux_command_handlers,
+	.flash_bank_command = faux_flash_bank_command,
+	.erase = faux_erase,
+	.protect = faux_protect,
+	.write = faux_write,
+	.probe = faux_probe,
+	.auto_probe = faux_probe,
+	.erase_check = default_flash_blank_check,
+	.protect_check = faux_protect_check,
+	.info = faux_info
+};

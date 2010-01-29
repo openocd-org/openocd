@@ -1173,7 +1173,7 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 static const struct command_registration stellaris_exec_command_handlers[] = {
 	{
 		.name = "mass_erase",
-		.handler = &stellaris_handle_mass_erase_command,
+		.handler = stellaris_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
 		.help = "erase entire device",
 	},

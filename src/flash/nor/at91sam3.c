@@ -2501,15 +2501,15 @@ static const struct command_registration at91sam3_command_handlers[] = {
 };
 
 struct flash_driver at91sam3_flash = {
-		.name = "at91sam3",
-		.commands = at91sam3_command_handlers,
-		.flash_bank_command = &sam3_flash_bank_command,
-		.erase = &sam3_erase,
-		.protect = &sam3_protect,
-		.write = &sam3_write,
-		.probe = &sam3_probe,
-		.auto_probe = &sam3_auto_probe,
-		.erase_check = &sam3_erase_check,
-		.protect_check = &sam3_protect_check,
-		.info = &sam3_info,
-	};
+	.name = "at91sam3",
+	.commands = at91sam3_command_handlers,
+	.flash_bank_command = sam3_flash_bank_command,
+	.erase = sam3_erase,
+	.protect = sam3_protect,
+	.write = sam3_write,
+	.probe = sam3_probe,
+	.auto_probe = sam3_auto_probe,
+	.erase_check = sam3_erase_check,
+	.protect_check = sam3_protect_check,
+	.info = sam3_info,
+};

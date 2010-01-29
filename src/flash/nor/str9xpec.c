@@ -1244,15 +1244,15 @@ static const struct command_registration str9xpec_command_handlers[] = {
 };
 
 struct flash_driver str9xpec_flash = {
-		.name = "str9xpec",
-		.commands = str9xpec_command_handlers,
-		.flash_bank_command = &str9xpec_flash_bank_command,
-		.erase = &str9xpec_erase,
-		.protect = &str9xpec_protect,
-		.write = &str9xpec_write,
-		.probe = &str9xpec_probe,
-		.auto_probe = &str9xpec_probe,
-		.erase_check = &str9xpec_erase_check,
-		.protect_check = &str9xpec_protect_check,
-		.info = &str9xpec_info,
-	};
+	.name = "str9xpec",
+	.commands = str9xpec_command_handlers,
+	.flash_bank_command = str9xpec_flash_bank_command,
+	.erase = str9xpec_erase,
+	.protect = str9xpec_protect,
+	.write = str9xpec_write,
+	.probe = str9xpec_probe,
+	.auto_probe = str9xpec_probe,
+	.erase_check = str9xpec_erase_check,
+	.protect_check = str9xpec_protect_check,
+	.info = str9xpec_info,
+};

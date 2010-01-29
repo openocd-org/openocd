@@ -1193,35 +1193,35 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 static const struct command_registration stm32x_exec_command_handlers[] = {
 	{
 		.name = "lock",
-		.handler = &stm32x_handle_lock_command,
+		.handler = stm32x_handle_lock_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Lock entire flash device.",
 	},
 	{
 		.name = "unlock",
-		.handler = &stm32x_handle_unlock_command,
+		.handler = stm32x_handle_unlock_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Unlock entire protected flash device.",
 	},
 	{
 		.name = "mass_erase",
-		.handler = &stm32x_handle_mass_erase_command,
+		.handler = stm32x_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Erase entire flash device.",
 	},
 	{
 		.name = "options_read",
-		.handler = &stm32x_handle_options_read_command,
+		.handler = stm32x_handle_options_read_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Read and display device option byte.",
 	},
 	{
 		.name = "options_write",
-		.handler = &stm32x_handle_options_write_command,
+		.handler = stm32x_handle_options_write_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id ('SWWDG'|'HWWDG') "
 			"('RSTSTNDBY'|'NORSTSTNDBY') "
@@ -1241,15 +1241,15 @@ static const struct command_registration stm32x_command_handlers[] = {
 };
 
 struct flash_driver stm32x_flash = {
-		.name = "stm32x",
-		.commands = stm32x_command_handlers,
-		.flash_bank_command = &stm32x_flash_bank_command,
-		.erase = &stm32x_erase,
-		.protect = &stm32x_protect,
-		.write = &stm32x_write,
-		.probe = &stm32x_probe,
-		.auto_probe = &stm32x_auto_probe,
-		.erase_check = &default_flash_mem_blank_check,
-		.protect_check = &stm32x_protect_check,
-		.info = &stm32x_info,
-	};
+	.name = "stm32x",
+	.commands = stm32x_command_handlers,
+	.flash_bank_command = stm32x_flash_bank_command,
+	.erase = stm32x_erase,
+	.protect = stm32x_protect,
+	.write = stm32x_write,
+	.probe = stm32x_probe,
+	.auto_probe = stm32x_auto_probe,
+	.erase_check = default_flash_mem_blank_check,
+	.protect_check = stm32x_protect_check,
+	.info = stm32x_info,
+};

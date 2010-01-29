@@ -676,7 +676,7 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 static const struct command_registration str7x_exec_command_handlers[] = {
 	{
 		.name = "disable_jtag",
-		.handler = &str7x_handle_disable_jtag_command,
+		.handler = str7x_handle_disable_jtag_command,
 		.mode = COMMAND_EXEC,
 		.help = "disable jtag access",
 	},
@@ -693,15 +693,15 @@ static const struct command_registration str7x_command_handlers[] = {
 };
 
 struct flash_driver str7x_flash = {
-		.name = "str7x",
-		.commands = str7x_command_handlers,
-		.flash_bank_command = &str7x_flash_bank_command,
-		.erase = &str7x_erase,
-		.protect = &str7x_protect,
-		.write = &str7x_write,
-		.probe = &str7x_probe,
-		.auto_probe = &str7x_probe,
-		.erase_check = &default_flash_blank_check,
-		.protect_check = &str7x_protect_check,
-		.info = &str7x_info,
-	};
+	.name = "str7x",
+	.commands = str7x_command_handlers,
+	.flash_bank_command = str7x_flash_bank_command,
+	.erase = str7x_erase,
+	.protect = str7x_protect,
+	.write = str7x_write,
+	.probe = str7x_probe,
+	.auto_probe = str7x_probe,
+	.erase_check = default_flash_blank_check,
+	.protect_check = str7x_protect_check,
+	.info = str7x_info,
+};

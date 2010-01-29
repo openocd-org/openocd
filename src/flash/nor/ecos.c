@@ -431,14 +431,14 @@ static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx, char 
 #endif
 
 struct flash_driver ecosflash_flash = {
-		.name = "ecosflash",
-		.flash_bank_command = &ecosflash_flash_bank_command,
-		.erase = &ecosflash_erase,
-		.protect = &ecosflash_protect,
-		.write = &ecosflash_write,
-		.probe = &ecosflash_probe,
-		.auto_probe = &ecosflash_probe,
-		.erase_check = &default_flash_blank_check,
-		.protect_check = &ecosflash_protect_check,
-		.info = &ecosflash_info
-	};
+	.name = "ecosflash",
+	.flash_bank_command = ecosflash_flash_bank_command,
+	.erase = ecosflash_erase,
+	.protect = ecosflash_protect,
+	.write = ecosflash_write,
+	.probe = ecosflash_probe,
+	.auto_probe = ecosflash_probe,
+	.erase_check = default_flash_blank_check,
+	.protect_check = ecosflash_protect_check,
+	.info = ecosflash_info
+};

@@ -886,13 +886,13 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 static const struct command_registration pic32mx_exec_command_handlers[] = {
 	{
 		.name = "chip_erase",
-		.handler = &pic32mx_handle_chip_erase_command,
+		.handler = pic32mx_handle_chip_erase_command,
 		.mode = COMMAND_EXEC,
 		.help = "erase device",
 	},
 	{
 		.name = "pgm_word",
-		.handler = &pic32mx_handle_pgm_word_command,
+		.handler = pic32mx_handle_pgm_word_command,
 		.mode = COMMAND_EXEC,
 		.help = "program a word",
 	},
@@ -909,15 +909,15 @@ static const struct command_registration pic32mx_command_handlers[] = {
 };
 
 struct flash_driver pic32mx_flash = {
-		.name = "pic32mx",
-		.commands = pic32mx_command_handlers,
-		.flash_bank_command = &pic32mx_flash_bank_command,
-		.erase = &pic32mx_erase,
-		.protect = &pic32mx_protect,
-		.write = &pic32mx_write,
-		.probe = &pic32mx_probe,
-		.auto_probe = &pic32mx_auto_probe,
-		.erase_check = &default_flash_mem_blank_check,
-		.protect_check = &pic32mx_protect_check,
-		.info = &pic32mx_info,
-	};
+	.name = "pic32mx",
+	.commands = pic32mx_command_handlers,
+	.flash_bank_command = pic32mx_flash_bank_command,
+	.erase = pic32mx_erase,
+	.protect = pic32mx_protect,
+	.write = pic32mx_write,
+	.probe = pic32mx_probe,
+	.auto_probe = pic32mx_auto_probe,
+	.erase_check = default_flash_mem_blank_check,
+	.protect_check = pic32mx_protect_check,
+	.info = pic32mx_info,
+};

@@ -348,14 +348,14 @@ static int ocl_auto_probe(struct flash_bank *bank)
 }
 
 struct flash_driver ocl_flash = {
-		.name = "ocl",
-		.flash_bank_command = &ocl_flash_bank_command,
-		.erase = &ocl_erase,
-		.protect = &ocl_protect,
-		.write = &ocl_write,
-		.probe = &ocl_probe,
-		.erase_check = &ocl_erase_check,
-		.protect_check = &ocl_protect_check,
-		.info = &ocl_info,
-		.auto_probe = &ocl_auto_probe,
-	};
+	.name = "ocl",
+	.flash_bank_command = ocl_flash_bank_command,
+	.erase = ocl_erase,
+	.protect = ocl_protect,
+	.write = ocl_write,
+	.probe = ocl_probe,
+	.erase_check = ocl_erase_check,
+	.protect_check = ocl_protect_check,
+	.info = ocl_info,
+	.auto_probe = ocl_auto_probe,
+};

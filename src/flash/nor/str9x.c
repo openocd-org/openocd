@@ -668,7 +668,7 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 static const struct command_registration str9x_config_command_handlers[] = {
 	{
 		.name = "flash_config",
-		.handler = &str9x_handle_flash_config_command,
+		.handler = str9x_handle_flash_config_command,
 		.mode = COMMAND_EXEC,
 		.help = "Configure str9x flash controller, prior to "
 			"programming the flash.",
@@ -687,15 +687,15 @@ static const struct command_registration str9x_command_handlers[] = {
 };
 
 struct flash_driver str9x_flash = {
-		.name = "str9x",
-		.commands = str9x_command_handlers,
-		.flash_bank_command = &str9x_flash_bank_command,
-		.erase = &str9x_erase,
-		.protect = &str9x_protect,
-		.write = &str9x_write,
-		.probe = &str9x_probe,
-		.auto_probe = &str9x_probe,
-		.erase_check = &default_flash_blank_check,
-		.protect_check = &str9x_protect_check,
-		.info = &str9x_info,
-	};
+	.name = "str9x",
+	.commands = str9x_command_handlers,
+	.flash_bank_command = str9x_flash_bank_command,
+	.erase = str9x_erase,
+	.protect = str9x_protect,
+	.write = str9x_write,
+	.probe = str9x_probe,
+	.auto_probe = str9x_probe,
+	.erase_check = default_flash_blank_check,
+	.protect_check = str9x_protect_check,
+	.info = str9x_info,
+};
