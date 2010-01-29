@@ -751,37 +751,8 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
-	uint32_t apsel, apselsave, baseaddr;
-	int retval;
 
-	apselsave = swjdp->apsel;
-	switch (CMD_ARGC) {
-	case 0:
-		apsel = swjdp->apsel;
-		break;
-	case 1:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
-		break;
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	if (apselsave != apsel)
-		dap_ap_select(swjdp, apsel);
-
-	/* NOTE:  assumes we're talking to a MEM-AP, which
-	 * has a base address.  There are other kinds of AP,
-	 * though they're not common for now.  This should
-	 * use the ID register to verify it's a MEM-AP.
-	 */
-	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &baseaddr);
-	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(CMD_CTX, "0x%8.8" PRIx32 "", baseaddr);
-
-	if (apselsave != apsel)
-		dap_ap_select(swjdp, apselsave);
-
-	return retval;
+	return CALL_COMMAND_HANDLER(dap_baseaddr_command, swjdp);
 }
 
 /*
