@@ -43,6 +43,7 @@
 #include "arm_semihosting.h"
 #include <helper/binarybuffer.h>
 #include <helper/log.h>
+#include <sys/stat.h>
 
 static int open_modeflags[12] = {
 	O_RDONLY,
