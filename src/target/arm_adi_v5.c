@@ -334,7 +334,10 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 		{
 			uint32_t mem_ap_csw, mem_ap_tar;
 
-			/* Maybe print information about last MEM-AP access */
+			/* Maybe print information about last intended
+			 * MEM-AP access; but not if autoincrementing.
+			 * *Real* CSW and TAR values are always shown.
+			 */
 			if (swjdp->ap_tar_value != (uint32_t) -1)
 				LOG_DEBUG("MEM-AP Cached values: "
 					"ap_bank 0x%" PRIx32
@@ -343,8 +346,6 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 					swjdp->dp_select_value,
 					swjdp->ap_csw_value,
 					swjdp->ap_tar_value);
-			else
-				LOG_ERROR("Invalid MEM-AP TAR cache!");
 
 			if (ctrlstat & SSTICKYORUN)
 				LOG_ERROR("JTAG-DP OVERRUN - check clock, "
@@ -463,12 +464,21 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t 
 	return ERROR_OK;
 }
 
-/***************************************************************************
- *                                                                         *
- * AHB-AP access to memory and system registers on AHB bus                 *
- *                                                                         *
-***************************************************************************/
-
+/**
+ * Set up transfer parameters for the currently selected MEM-AP.
+ * Subsequent transfers using registers like AP_REG_DRW or AP_REG_BD2
+ * initiate data reads or writes using memory or peripheral addresses.
+ * If the CSW is configured for it, the TAR may be automatically
+ * incremented after each transfer.
+ *
+ * @todo Rename to reflect it being specifically a MEM-AP function.
+ *
+ * @param swjdp The DAP connected to the MEM-AP.
+ * @param csw MEM-AP Control/Status Word (CSW) register to assign.  If this
+ *	matches the cached value, the register is not changed.
+ * @param tar MEM-AP Transfer Address Register (TAR) to assign.  If this
+ *	matches the cached address, the register is not changed.
+ */
 int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 {
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
@@ -484,11 +494,9 @@ int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 		dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar);
 		swjdp->ap_tar_value = tar;
 	}
+	/* Disable TAR cache when autoincrementing */
 	if (csw & CSW_ADDRINC_MASK)
-	{
-		/* Do not cache TAR value when autoincrementing */
 		swjdp->ap_tar_value = -1;
-	}
 	return ERROR_OK;
 }
 
