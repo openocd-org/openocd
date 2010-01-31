@@ -641,9 +641,12 @@ static int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp,
 
 			if (nbytes < 4)
 			{
-				if (mem_ap_write_buf_u16(swjdp, buffer, nbytes, address) != ERROR_OK)
+				if (mem_ap_write_buf_u16(swjdp, buffer,
+						nbytes, address) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+					LOG_WARNING("Block write error address "
+						"0x%" PRIx32 ", count 0x%x",
+						address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 
@@ -665,7 +668,9 @@ static int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp,
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 				if (jtagdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+					LOG_WARNING("Block write error address "
+						"0x%" PRIx32 ", count 0x%x",
+						address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -736,7 +741,9 @@ static int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp,
 			{
 				if (mem_ap_write_buf_u8(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+					LOG_WARNING("Block write error address "
+						"0x%" PRIx32 ", count 0x%x",
+						address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 
@@ -758,7 +765,9 @@ static int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp,
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 				if (jtagdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+					LOG_WARNING("Block write error address "
+						"0x%" PRIx32 ", count 0x%x",
+						address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
