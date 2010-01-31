@@ -30,8 +30,18 @@ proc init_reset { mode } {
 # documented nor supported except on ZY1000.
 
 proc power_restore {} {
-	puts "Sensed power restore."
+	puts "Sensed power restore, running reset init and halting GDB."
 	reset init
+	
+	# Halt GDB so user can deal with a detected power restore.
+	#
+	# After GDB is halted, then output is no longer forwarded
+	# to the GDB console.
+	set targets [target names]	
+	foreach t $targets {
+		# New event script.
+		$t invoke-event arp_halt_gdb
+	}	
 }
 
 add_help_text power_restore "Overridable procedure run when power restore is detected. Runs 'reset init' by default."
@@ -46,9 +56,20 @@ proc power_dropout {} {
 # documented nor supported except on ZY1000.
 
 proc srst_deasserted {} {
-	puts "Sensed nSRST deasserted."
+	puts "Sensed nSRST deasserted, running reset init and halting GDB."
 	reset init
+
+	# Halt GDB so user can deal with a detected reset.
+	#
+	# After GDB is halted, then output is no longer forwarded
+	# to the GDB console.
+	set targets [target names]	
+	foreach t $targets {
+		# New event script.
+		$t invoke-event arp_halt_gdb
+	}		
 }
+
 add_help_text srst_deasserted "Overridable procedure run when srst deassert is detected. Runs 'reset init' by default."
 
 proc srst_asserted {} {

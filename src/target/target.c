@@ -1739,15 +1739,6 @@ static int sense_handler(void)
 	return ERROR_OK;
 }
 
-static void target_call_event_callbacks_all(enum target_event e) {
-	struct target *target;
-	target = all_targets;
-	while (target) {
-		target_call_event_callbacks(target, e);
-		target = target->next;
-	}
-}
-
 /* process target state changes */
 static int handle_target(void *priv)
 {
@@ -1767,8 +1758,7 @@ static int handle_target(void *priv)
 		int did_something = 0;
 		if (runSrstAsserted)
 		{
-			LOG_INFO("Waking up GDB, srst asserted detected.");
-			target_call_event_callbacks_all(TARGET_EVENT_GDB_HALT);
+			LOG_INFO("srst asserted detected, running srst_asserted proc.");
 			Jim_Eval(interp, "srst_asserted");
 			did_something = 1;
 		}
@@ -1779,8 +1769,7 @@ static int handle_target(void *priv)
 		}
 		if (runPowerDropout)
 		{
-			LOG_INFO("Waking up GDB, power dropout detected.");
-			target_call_event_callbacks_all(TARGET_EVENT_GDB_HALT);
+			LOG_INFO("Power dropout detected, running power_dropout proc.");
 			Jim_Eval(interp, "power_dropout");
 			did_something = 1;
 		}
@@ -4065,6 +4054,21 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	return JIM_OK;
 }
 
+static int jim_target_halt_gdb(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
+		return JIM_ERR;
+	}
+	struct target *target = Jim_CmdPrivData(interp);
+
+	if (target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT) != ERROR_OK)
+		return JIM_ERR;
+
+	return JIM_OK;
+}
+
 static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 1)
@@ -4344,6 +4348,12 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine,
 		.help = "used internally for reset processing",
+	},
+	{
+		.name = "arp_halt_gdb",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_target_halt_gdb,
+		.help = "used internally for reset processing to halt GDB",
 	},
 	{
 		.name = "arp_poll",
