@@ -8,6 +8,8 @@
  *   Copyright (C) 2009 by Oyvind Harboe                                   *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2009-2010 by David Brownell                             *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -1164,13 +1166,18 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-int dap_info_command(struct command_context *cmd_ctx, struct swjdp_common *swjdp, int apsel)
+int dap_info_command(struct command_context *cmd_ctx,
+		struct swjdp_common *swjdp, int apsel)
 {
 
 	uint32_t dbgbase, apid;
 	int romtable_present = 0;
 	uint8_t mem_ap;
 	uint32_t apselold;
+
+	/* AP address is in bits 31:24 of DP_SELECT */
+	if (apsel >= 256)
+		return ERROR_INVALID_ARGUMENTS;
 
 	apselold = swjdp->apsel;
 	dap_ap_select(swjdp, apsel);
@@ -1524,6 +1531,9 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
+		/* AP address is in bits 31:24 of DP_SELECT */
+		if (apsel >= 256)
+			return ERROR_INVALID_ARGUMENTS;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1580,6 +1590,9 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
+		/* AP address is in bits 31:24 of DP_SELECT */
+		if (apsel >= 256)
+			return ERROR_INVALID_ARGUMENTS;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1606,6 +1619,9 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
+		/* AP address is in bits 31:24 of DP_SELECT */
+		if (apsel >= 256)
+			return ERROR_INVALID_ARGUMENTS;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
