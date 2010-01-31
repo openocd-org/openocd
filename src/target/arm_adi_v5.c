@@ -321,27 +321,34 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 		}
 	}
 
+	/* REVISIT also STICKYCMP, for pushed comparisons (nyet used) */
+
 	/* Check for STICKYERR and STICKYORUN */
 	if (ctrlstat & (SSTICKYORUN | SSTICKYERR))
 	{
 		LOG_DEBUG("jtag-dp: CTRL/STAT error, 0x%" PRIx32, ctrlstat);
 		/* Check power to debug regions */
 		if ((ctrlstat & 0xf0000000) != 0xf0000000)
-		{
 			 ahbap_debugport_init(swjdp);
-		}
 		else
 		{
 			uint32_t mem_ap_csw, mem_ap_tar;
 
-			/* Print information about last AHBAP access */
-			LOG_ERROR("AHBAP Cached values: dp_select 0x%" PRIx32
-				", ap_csw 0x%" PRIx32 ", ap_tar 0x%" PRIx32,
-				swjdp->dp_select_value, swjdp->ap_csw_value,
-				swjdp->ap_tar_value);
+			/* Maybe print information about last MEM-AP access */
+			if (swjdp->ap_tar_value != (uint32_t) -1)
+				LOG_DEBUG("MEM-AP Cached values: "
+					"ap_bank 0x%" PRIx32
+					", ap_csw 0x%" PRIx32
+					", ap_tar 0x%" PRIx32,
+					swjdp->dp_select_value,
+					swjdp->ap_csw_value,
+					swjdp->ap_tar_value);
+			else
+				LOG_ERROR("Invalid MEM-AP TAR cache!");
+
 			if (ctrlstat & SSTICKYORUN)
-				LOG_ERROR("JTAG-DP OVERRUN - "
-					"check clock or reduce jtag speed");
+				LOG_ERROR("JTAG-DP OVERRUN - check clock, "
+					"memaccess, or reduce jtag speed");
 
 			if (ctrlstat & SSTICKYERR)
 				LOG_ERROR("JTAG-DP STICKY ERROR");
