@@ -4033,17 +4033,14 @@ it has been removed by the @option{unlock} flag.
 Check erase state of sectors in flash bank @var{num},
 and display that status.
 The @var{num} parameter is a value shown by @command{flash banks}.
-This is the only operation that
-updates the erase state information displayed by @option{flash info}. That means you have
-to issue a @command{flash erase_check} command after erasing or programming the device
-to get updated information.
-(Code execution may have invalidated any state records kept by OpenOCD.)
 @end deffn
 
 @deffn Command {flash info} num
 Print info about flash bank @var{num}
 The @var{num} parameter is a value shown by @command{flash banks}.
-The information includes per-sector protect status.
+The information includes per-sector protect status, which may be
+incorrect (outdated) unless you first issue a
+@command{flash protect_check num} command.
 @end deffn
 
 @anchor{flash protect}
@@ -4060,6 +4057,8 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 Check protection state of sectors in flash bank @var{num}.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @comment @option{flash erase_sector} using the same syntax.
+This updates the protection information displayed by @option{flash info}.
+(Code execution may have invalidated any state records kept by OpenOCD.)
 @end deffn
 
 @anchor{Flash Driver List}
