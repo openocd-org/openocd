@@ -190,7 +190,7 @@ static int do_semihosting(struct target *target)
 			} else {
 				result = read(fd, buf, l);
 				armv4_5->semihosting_errno = errno;
-				if (result > 0) {
+				if (result >= 0) {
 					retval = target_write_buffer(target, a, result, buf);
 					if (retval != ERROR_OK) {
 						free(buf);
