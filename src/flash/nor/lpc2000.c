@@ -267,7 +267,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 				target_buffer_set_u32(target, jump_gate,
 						ARMV4_5_T_BX(12));
 				target_buffer_set_u32(target, jump_gate + 4,
-						ARMV4_5_T_B(0xfffffe));
+						ARMV5_T_BKPT(0));
 				break;
 			case lpc2000_v1:
 			case lpc2000_v2:

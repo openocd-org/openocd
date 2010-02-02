@@ -338,6 +338,9 @@ int armv7m_run_algorithm(struct target *target,
 	int retval = ERROR_OK;
 	uint32_t context[ARMV7M_NUM_REGS];
 
+	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
+	 * at the exit point */
+
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
 	{
 		LOG_ERROR("current target isn't an ARMV7M target");
@@ -395,21 +398,7 @@ int armv7m_run_algorithm(struct target *target,
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
 	}
 
-	/* REVISIT speed things up (3% or so in one case) by requiring
-	 * algorithms to include a BKPT instruction at each exit point.
-	 * This eliminates overheads of adding/removing a breakpoint.
-	 */
-
-	/* ARMV7M always runs in Thumb state */
-	if ((retval = breakpoint_add(target, exit_point, 2, BKPT_SOFT)) != ERROR_OK)
-	{
-		LOG_ERROR("can't add breakpoint to finish algorithm execution");
-		return ERROR_TARGET_FAILURE;
-	}
-
 	retval = armv7m_run_and_wait(target, entry_point, timeout_ms, exit_point, armv7m);
-
-	breakpoint_remove(target, exit_point);
 
 	if (retval != ERROR_OK)
 	{
@@ -594,8 +583,7 @@ int armv7m_checksum_memory(struct target *target,
 								/* ncomp: */
 		0x429C,					/* cmp	r4, r3 */
 		0xD1E9,					/* bne	nbyte */
-								/* end: */
-		0xE7FE,					/* b	end */
+		0xBE00,     			/* bkpt #0 */
 		0x1DB7, 0x04C1			/* CRC32XOR:	.word 0x04C11DB7 */
 	};
 
@@ -659,8 +647,7 @@ int armv7m_blank_check_memory(struct target *target,
 		0xEA02, 0x0203,		/* and  r2, r2, r3 */
 		0x3901,				/* subs	r1, r1, #1 */
 		0xD1F9,				/* bne	loop */
-		/* end: */
-		0xE7FE,				/* b	end */
+		0xBE00,     		/* bkpt #0 */
 	};
 
 	/* make sure we have a working area */

@@ -805,8 +805,7 @@ static const uint8_t stellaris_write_code[] =
 	0x04,0x36,			/* adds	r6, r6, #4 */
 	0x96,0x42,			/* cmp	r6, r2 */
 	0xF4,0xD1,			/* bne	mainloop */
-						/* exit: */
-	0xFE,0xE7,			/* b exit */
+	0x00,0xBE,     		/* bkpt #0 */
 /* pFLASH_CTRL_BASE: */
 	0x00,0xD0,0x0F,0x40,	/* .word	0x400FD000 */
 /* FLASHWRITECMD: */

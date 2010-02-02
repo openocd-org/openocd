@@ -459,8 +459,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t
 		0x01, 0xD1,					/* bne	exit */
 		0x01, 0x3A,					/* subs	r2, r2, #1 */
 		0xED, 0xD1,					/* bne	write */
-									/* exit: */
-		0xFE, 0xE7,					/* b exit */
+		0x00, 0xBE,     			/* bkpt #0 */
 		0x10, 0x20, 0x02, 0x40,		/* STM32_FLASH_CR:	.word 0x40022010 */
 		0x0C, 0x20, 0x02, 0x40		/* STM32_FLASH_SR:	.word 0x4002200C */
 	};

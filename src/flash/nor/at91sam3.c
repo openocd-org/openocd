@@ -2046,9 +2046,7 @@ sam3_page_write_opcodes[] = {
 	0x10,0xf0,0x01,0x0f,
 	//  41 0024 FBD0     		beq	.L4
 	0xfb,0xd0,
-	//  42              	.done:
-	//  43 0026 FEE7     		b	.done
-	0xfe,0xe7
+	0x00,0xBE     				/* bkpt #0 */
 };
 
 
