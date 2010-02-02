@@ -93,7 +93,10 @@ static int str7x_build_block_list(struct flash_bank *bank)
 		bank->sectors[num_sectors].offset = mem_layout_str7bank0[i].sector_start;
 		bank->sectors[num_sectors].size = mem_layout_str7bank0[i].sector_size;
 		bank->sectors[num_sectors].is_erased = -1;
-		bank->sectors[num_sectors].is_protected = 1;
+		/* the reset_init handler marks all the sectors unprotected,
+		 * matching hardware after reset; keep the driver in sync
+		 */
+		bank->sectors[num_sectors].is_protected = 0;
 		str7x_info->sector_bits[num_sectors++] = mem_layout_str7bank0[i].sector_bit;
 	}
 
@@ -102,7 +105,10 @@ static int str7x_build_block_list(struct flash_bank *bank)
 		bank->sectors[num_sectors].offset = mem_layout_str7bank1[i].sector_start;
 		bank->sectors[num_sectors].size = mem_layout_str7bank1[i].sector_size;
 		bank->sectors[num_sectors].is_erased = -1;
-		bank->sectors[num_sectors].is_protected = 1;
+		/* the reset_init handler marks all the sectors unprotected,
+		 * matching hardware after reset; keep the driver in sync
+		 */
+		bank->sectors[num_sectors].is_protected = 0;
 		str7x_info->sector_bits[num_sectors++] = mem_layout_str7bank1[i].sector_bit;
 	}
 
@@ -600,6 +606,12 @@ COMMAND_HANDLER(str7x_handle_part_id_command)
 static int str7x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str7x flash driver info");
+	/* STR7x flash doesn't support sector protection interrogation.
+	 * FLASH_NVWPAR acts as a write only register; its read value
+	 * doesn't reflect the actual protection state of the sectors.
+	 */
+	LOG_WARNING("STR7x flash lock information might not be correct "
+			"due to hardware limitations.");
 	return ERROR_OK;
 }
 
