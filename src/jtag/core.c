@@ -1623,6 +1623,13 @@ bool jtag_will_verify_capture_ir()
 
 int jtag_power_dropout(int *dropout)
 {
+	if (jtag == NULL)
+	{
+		/* TODO: as the jtag interface is not valid all
+		 * we can do at the moment is exit OpenOCD */
+		LOG_ERROR("No Valid JTAG Interface Configured.");
+		exit(-1);
+	}
 	return jtag->power_dropout(dropout);
 }
 
