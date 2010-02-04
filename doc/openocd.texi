@@ -60,7 +60,7 @@ Free Documentation License''.
 
 @menu
 * About::                            About OpenOCD
-* Developers::                       OpenOCD Developers
+* Developers::                       OpenOCD Developer Resources
 * JTAG Hardware Dongles::            JTAG Hardware Dongles
 * About JIM-Tcl::                    About JIM-Tcl
 * Running::                          Running OpenOCD
@@ -225,6 +225,13 @@ communication between developers:
 Discuss and submit patches to this list.
 The @file{PATCHES.txt} file contains basic information about how
 to prepare patches.
+
+@section OpenOCD Bug Database
+
+During the 0.4.x release cycle the OpenOCD project team began
+using Trac for its bug database:
+
+@uref{https://sourceforge.net/apps/trac/openocd}
 
 
 @node JTAG Hardware Dongles
