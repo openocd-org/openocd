@@ -375,7 +375,10 @@ struct command* register_command(struct command_context *context,
 	struct command *c = command_find(*head, name);
 	if (NULL != c)
 	{
-		LOG_ERROR("command '%s' is already registered in '%s' context",
+		/* TODO: originally we treated attempting to register a cmd twice as an error
+		 * Sometimes we need this behaviour, such as with flash banks.
+		 * http://www.mail-archive.com/openocd-development@lists.berlios.de/msg11152.html */
+		LOG_DEBUG("command '%s' is already registered in '%s' context",
 				name, parent ? parent->name : "<global>");
 		return c;
 	}
