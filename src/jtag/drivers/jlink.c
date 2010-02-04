@@ -29,6 +29,10 @@
 #include <jtag/commands.h>
 #include "usb_common.h"
 
+/* See Segger's public documentation:
+ *	Reference manual for J-Link USB Protocol
+ *	Document RM08001-R6 Date: June 16, 2009
+ */
 
 #define VID 0x1366
 #define PID 0x0101
