@@ -538,7 +538,7 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 /** Sets up target as a generic ARMv7-M core */
 int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 {
-	/* register arch-specific functions */
+	armv7m->common_magic = ARMV7M_COMMON_MAGIC;
 
 	target->arch_info = armv7m;
 	armv7m->read_core_reg = armv7m_read_core_reg;
@@ -737,8 +737,6 @@ int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
 /*
  * Only stuff below this line should need to verify that its target
  * is an ARMv7-M node.
- *
- * FIXME yet none of it _does_ verify target types yet!
  */
 
 
@@ -751,6 +749,11 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+
+	if (!is_armv7m(armv7m)) {
+		command_print(CMD_CTX, "current target isn't an ARM7-M");
+		return ERROR_TARGET_INVALID;
+	}
 
 	return CALL_COMMAND_HANDLER(dap_baseaddr_command, swjdp);
 }
@@ -765,6 +768,11 @@ COMMAND_HANDLER(handle_dap_apid_command)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
+	if (!is_armv7m(armv7m)) {
+		command_print(CMD_CTX, "current target isn't an ARM7-M");
+		return ERROR_TARGET_INVALID;
+	}
+
 	return CALL_COMMAND_HANDLER(dap_apid_command, swjdp);
 }
 
@@ -774,6 +782,11 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 
+	if (!is_armv7m(armv7m)) {
+		command_print(CMD_CTX, "current target isn't an ARM7-M");
+		return ERROR_TARGET_INVALID;
+	}
+
 	return CALL_COMMAND_HANDLER(dap_apsel_command, swjdp);
 }
 
@@ -782,6 +795,11 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+
+	if (!is_armv7m(armv7m)) {
+		command_print(CMD_CTX, "current target isn't an ARM7-M");
+		return ERROR_TARGET_INVALID;
+	}
 
 	return CALL_COMMAND_HANDLER(dap_memaccess_command, swjdp);
 }
@@ -793,6 +811,11 @@ COMMAND_HANDLER(handle_dap_info_command)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
+
+	if (!is_armv7m(armv7m)) {
+		command_print(CMD_CTX, "current target isn't an ARM7-M");
+		return ERROR_TARGET_INVALID;
+	}
 
 	switch (CMD_ARGC) {
 	case 0:

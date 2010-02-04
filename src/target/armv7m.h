@@ -131,6 +131,11 @@ target_to_armv7m(struct target *target)
 	return target->arch_info;
 }
 
+static inline bool is_armv7m(struct armv7m_common *armv7m)
+{
+	return armv7m->common_magic == ARMV7M_COMMON_MAGIC;
+}
+
 struct armv7m_algorithm
 {
 	int common_magic;
