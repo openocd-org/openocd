@@ -847,7 +847,7 @@ static int zylinjtag_Jim_Command_uart(Jim_Interp *interp, int argc,
 	static int current_baud = 38400;
 	if (argc == 1)
 	{
-		command_print(cmd_ctx, "%d", current_baud);
+		Jim_SetResult(interp, Jim_NewIntObj(interp, current_baud));
 		return JIM_OK;
 	}
 	else if (argc != 2)
@@ -883,8 +883,8 @@ static int zylinjtag_Jim_Command_uart(Jim_Interp *interp, int argc,
 		baud = CYGNUM_SERIAL_BAUD_230400;
 		break;
 	default:
-		command_print(cmd_ctx, "unsupported baudrate");
-		return ERROR_INVALID_ARGUMENTS;
+		Jim_SetResult(interp, Jim_NewStringObj(interp, "unsupported baudrate", -1));
+		return JIM_ERR;
 	}
 
 	cyg_serial_info_t buf;
@@ -897,7 +897,7 @@ static int zylinjtag_Jim_Command_uart(Jim_Interp *interp, int argc,
 	err = cyg_io_lookup(ZY1000_SER_DEV, &serial_handle);
 	if (err != ENOERR)
 	{
-		LOG_ERROR("Could not open serial port\n");
+		Jim_SetResult(interp, Jim_NewStringObj(interp, "Could not open serial port", -1));
 		return JIM_ERR;
 	}
 
@@ -907,7 +907,7 @@ static int zylinjtag_Jim_Command_uart(Jim_Interp *interp, int argc,
 			&len);
 	if (err != ENOERR)
 	{
-		LOG_ERROR("Failed to get serial port settings %d", err);
+		Jim_SetResult(interp, Jim_NewStringObj(interp, "Failed to get serial port settings", -1));
 		return JIM_ERR;
 	}
 	buf.baud = baud;
@@ -916,7 +916,7 @@ static int zylinjtag_Jim_Command_uart(Jim_Interp *interp, int argc,
 			&len);
 	if (err != ENOERR)
 	{
-		LOG_ERROR("Failed to set serial port settings %d", err);
+		Jim_SetResult(interp, Jim_NewStringObj(interp, "Failed to set serial port settings", -1));
 		return JIM_ERR;
 	}
 
