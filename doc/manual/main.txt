@@ -1,6 +1,6 @@
-/** @mainpage OpenOCD Reference Manual
+/** @mainpage OpenOCD Developer's Guide
 
-Welcome to the OpenOCD Reference Manual -- the developer's resource for
+Welcome to the OpenOCD Developer's Guide -- the developer's resource for
 learning about the internal architecture of the OpenOCD project. @par
 
 In addition, this document contains the tactical and strategic plans
