@@ -42,6 +42,12 @@
  * use either SWD or JTAG, and is called SWJ-DP.  The most common type of AP
  * is used to access memory mapped resources and is called a MEM-AP.  Also a
  * JTAG-AP is also defined, bridging to JTAG resources; those are uncommon.
+ *
+ * @todo Remove modality (queued/nonqueued, via DAP trans_mode) from all
+ * procedure interfaces.  Modal programming interfaces are very error prone.
+ * Procedures should be either queued, or synchronous.  Otherwise input
+ * and output constraints are context-sensitive, and it's hard to know
+ * what a block of code will do just by reading it.
  */
 
 /*
@@ -402,7 +408,16 @@ static int dap_dp_read_reg(struct swjdp_common *swjdp,
 			reg_addr, DPAP_READ, 0, value);
 }
 
-int dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
+/**
+ * Select one of the APs connected to the specified DAP.  The
+ * selection is implicitly used with future AP transactions.
+ * This is a NOP if the specified AP is already selected.
+ *
+ * @param swjdp The DAP
+ * @param apsel Number of the AP to (implicitly) use with further
+ *	transactions.  This normally identifies a MEM-AP.
+ */
+void dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
 {
 	uint32_t select;
 	select = (apsel << 24) & 0xFF000000;
@@ -415,8 +430,6 @@ int dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
 		swjdp->ap_csw_value = -1;
 		swjdp->ap_tar_value = -1;
 	}
-
-	return ERROR_OK;
 }
 
 static int dap_dp_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
@@ -430,6 +443,7 @@ static int dap_dp_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
 		swjdp->dp_select_value = select;
 	}
 
+	/* FIXME return any fault code from write() call */
 	return ERROR_OK;
 }
 
@@ -440,10 +454,25 @@ static int dap_ap_write_reg(struct swjdp_common *swjdp,
 	scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_WRITE, out_value_buf, NULL);
 
+	/* FIXME return fault code from above calls */
 	return ERROR_OK;
 }
 
-int dap_ap_write_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t value)
+/**
+ * Write an AP register value.
+ * This is synchronous iff the mode is set to ATOMIC, in which
+ * case any queued transactions are flushed.
+ *
+ * @param swjdp The DAP whose currently selected AP will be written.
+ * @param reg_addr Eight bit AP register address.
+ * @param value Word to be written at reg_addr
+ *
+ * @return In synchronous mode: ERROR_OK for success, and the register holds
+ * the specified value; else a fault code.  In asynchronous mode, a status
+ * code reflecting whether the transaction was properly queued.
+ */
+int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
+		uint32_t reg_addr, uint32_t value)
 {
 	uint8_t out_value_buf[4];
 
@@ -452,20 +481,39 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t
 	scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_WRITE, out_value_buf, NULL);
 
+	/* FIXME return any fault code from above calls */
 	return ERROR_OK;
 }
 
-int dap_ap_read_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t *value)
+/**
+ * Read an AP register value.
+ * This is synchronous iff the mode is set to ATOMIC, in which
+ * case any queued transactions are flushed.
+ *
+ * @param swjdp The DAP whose currently selected AP will be read.
+ * @param reg_addr Eight bit AP register address.
+ * @param value Points to where the 32-bit (little-endian) word will be stored.
+ *
+ * @return In synchronous mode: ERROR_OK for success, and *value holds
+ * the specified value; else a fault code.  In asynchronous mode, a status
+ * code reflecting whether the transaction was properly queued.
+ */
+int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
+		uint32_t reg_addr, uint32_t *value)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
 	scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_READ, 0, value);
 
+	/* FIXME return any fault code from above calls */
 	return ERROR_OK;
 }
 
 /**
  * Set up transfer parameters for the currently selected MEM-AP.
+ * This is synchronous iff the mode is set to ATOMIC, in which
+ * case any queued transactions are flushed.
+ *
  * Subsequent transfers using registers like AP_REG_DRW or AP_REG_BD2
  * initiate data reads or writes using memory or peripheral addresses.
  * If the CSW is configured for it, the TAR may be automatically
@@ -478,6 +526,10 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp, uint32_t reg_addr, uint32_t 
  *	matches the cached value, the register is not changed.
  * @param tar MEM-AP Transfer Address Register (TAR) to assign.  If this
  *	matches the cached address, the register is not changed.
+ *
+ * @return In synchronous mode: ERROR_OK for success, and the AP is set
+ * up as requested else a fault code.  In asynchronous mode, a status
+ * code reflecting whether the transaction was properly queued.
  */
 int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 {
@@ -485,12 +537,14 @@ int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 	if (csw != swjdp->ap_csw_value)
 	{
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
+		/* FIXME if this call fails, fail this procedure! */
 		dap_ap_write_reg_u32(swjdp, AP_REG_CSW, csw);
 		swjdp->ap_csw_value = csw;
 	}
 	if (tar != swjdp->ap_tar_value)
 	{
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
+		/* FIXME if this call fails, fail this procedure! */
 		dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar);
 		swjdp->ap_tar_value = tar;
 	}
@@ -500,51 +554,97 @@ int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 	return ERROR_OK;
 }
 
-/*****************************************************************************
-*                                                                            *
-* mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value)      *
-*                                                                            *
-* Read a uint32_t value from memory or system register                            *
-* Functionally equivalent to target_read_u32(target, address, uint32_t *value),   *
-* but with less overhead                                                     *
-*****************************************************************************/
-int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value)
+/**
+ * Asynchronous (queued) read of a word from memory or a system register.
+ *
+ * @param swjdp The DAP connected to the MEM-AP performing the read.
+ * @param address Address of the 32-bit word to read; it must be
+ *	readable by the currently selected MEM-AP.
+ * @param value points to where the word will be stored when the
+ *	transaction queue is flushed (assuming no errors).
+ *
+ * @return ERROR_OK for success.  Otherwise a fault code.
+ */
+int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address,
+		uint32_t *value)
 {
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
-	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, address & 0xFFFFFFF0);
+	/* Use banked addressing (REG_BDx) to avoid some link traffic
+	 * (updating TAR) when reading several consecutive addresses.
+	 */
+	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
+			address & 0xFFFFFFF0);
 	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
 
+	/* FIXME return any fault code from above calls */
 	return ERROR_OK;
 }
 
-int mem_ap_read_atomic_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value)
+/**
+ * Synchronous read of a word from memory or a system register.
+ * As a side effect, this flushes any queued transactions.
+ *
+ * @param swjdp The DAP connected to the MEM-AP performing the read.
+ * @param address Address of the 32-bit word to read; it must be
+ *	readable by the currently selected MEM-AP.
+ * @param value points to where the result will be stored.
+ *
+ * @return ERROR_OK for success; *value holds the result.
+ * Otherwise a fault code.
+ */
+int mem_ap_read_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
+		uint32_t *value)
 {
 	mem_ap_read_u32(swjdp, address, value);
+	/* FIXME return any fault code from above call */
 
 	return jtagdp_transaction_endcheck(swjdp);
 }
 
-/*****************************************************************************
-*                                                                            *
-* mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value)      *
-*                                                                            *
-* Write a uint32_t value to memory or memory mapped register                              *
-*                                                                            *
-*****************************************************************************/
-int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value)
+/**
+ * Asynchronous (queued) write of a word to memory or a system register.
+ *
+ * @param swjdp The DAP connected to the MEM-AP.
+ * @param address Address to be written; it must be writable by
+ *	the currently selected MEM-AP.
+ * @param value Word that will be written to the address when transaction
+ *	queue is flushed (assuming no errors).
+ *
+ * @return ERROR_OK for success.  Otherwise a fault code.
+ */
+int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address,
+		uint32_t value)
 {
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
-	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, address & 0xFFFFFFF0);
+	/* Use banked addressing (REG_BDx) to avoid some link traffic
+	 * (updating TAR) when writing several consecutive addresses.
+	 */
+	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
+			address & 0xFFFFFFF0);
 	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
 
+	/* FIXME return any fault code from above calls */
 	return ERROR_OK;
 }
 
-int mem_ap_write_atomic_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value)
+/**
+ * Synchronous write of a word to memory or a system register.
+ * As a side effect, this flushes any queued transactions.
+ *
+ * @param swjdp The DAP connected to the MEM-AP.
+ * @param address Address to be written; it must be writable by
+ *	the currently selected MEM-AP.
+ * @param value Word that will be written.
+ *
+ * @return ERROR_OK for success; the data was written.  Otherwise a fault code.
+ */
+int mem_ap_write_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
+		uint32_t value)
 {
 	mem_ap_write_u32(swjdp, address, value);
+	/* FIXME return any fault code from above call */
 
 	return jtagdp_transaction_endcheck(swjdp);
 }
@@ -1083,7 +1183,11 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, u
 }
 
 /**
- * Initialize a DAP.
+ * Initialize a DAP.  This sets up the power domains, prepares the DP
+ * for further use, and arranges to use AP #0 for all AP operations
+ * until dap_ap-select() changes that policy.
+ *
+ * @param swjdp The DAP being initialized.
  *
  * @todo Rename this.  We also need an initialization scheme which account
  * for SWD transports not just JTAG; that will need to address differences

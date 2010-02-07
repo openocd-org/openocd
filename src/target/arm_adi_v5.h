@@ -155,16 +155,18 @@ struct swjdp_common
 
 };
 
-/* Accessor function for currently selected DAP-AP number */
+/** Accessor for currently selected DAP-AP number (0..255) */
 static inline uint8_t dap_ap_get_select(struct swjdp_common *swjdp)
 {
 	return (uint8_t)(swjdp ->apsel >> 24);
 }
 
-/* Queued transactions -- use with care */
+/* AP selection applies to future AP transactions */
+void dap_ap_select(struct swjdp_common *dap,uint8_t apsel);
+
+/* AP transactions ... synchronous given TRANS_MODE_ATOMIC */
 int dap_setup_accessport(struct swjdp_common *swjdp,
 		uint32_t csw, uint32_t tar);
-int dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel);
 int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 		uint32_t addr, uint32_t value);
 int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
@@ -173,11 +175,11 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 /* Queued JTAG ops must be completed with jtagdp_transaction_endcheck() */
 int jtagdp_transaction_endcheck(struct swjdp_common *swjdp);
 
-/* MEM-AP memory mapped bus single uint32_t register transfers, without endcheck */
+/* Queued MEM-AP memory mapped single word transfers */
 int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value);
 int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value);
 
-/* MEM-AP memory mapped bus transfers, single registers, complete transactions */
+/* Synchronous MEM-AP memory mapped single word transfers */
 int mem_ap_read_atomic_u32(struct swjdp_common *swjdp,
 		uint32_t address, uint32_t *value);
 int mem_ap_write_atomic_u32(struct swjdp_common *swjdp,
