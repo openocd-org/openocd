@@ -650,22 +650,29 @@ int interface_jtag_add_dr_scan(int num_fields, const struct scan_field *fields, 
 
 		for (j = 0; j < num_fields; j++)
 		{
+			/* Find a range of fields to write to this tap */
 			if (tap == fields[j].tap)
 			{
 				found = 1;
+				int i;
+				for (i = j + 1; i < num_fields; i++)
+				{
+					if (tap != fields[j].tap)
+					{
+						break;
+					}
+				}
 
-				scanFields(1, fields+j, TAP_DRSHIFT, pause);
+				scanFields(i - j, fields + j, TAP_DRSHIFT, pause);
+
+				j = i;
 			}
 		}
+
 		if (!found)
 		{
-			struct scan_field tmp;
-			/* program the scan field to 1 bit length, and ignore it's value */
-			tmp.num_bits = 1;
-			tmp.out_value = NULL;
-			tmp.in_value = NULL;
-
-			scanFields(1, &tmp, TAP_DRSHIFT, pause);
+			/* Shift out a 0 for disabled tap's */
+			shiftValueInner(TAP_DRSHIFT, pause?TAP_DRPAUSE:TAP_DRSHIFT, 1, 0);
 		}
 		else
 		{
