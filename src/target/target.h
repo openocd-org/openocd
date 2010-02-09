@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007-9 Øyvind Harboe                                    *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -371,7 +371,18 @@ int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 /**
  * Write @a count items of @a size bytes to the memory of @a target at
- * the @a address given.
+ * the @a address given. @a address must be aligned to @a size
+ * in target memory.
+ *
+ * The endianness is the same in the host and target memory for this
+ * function.
+ *
+ * \todo TODO:
+ * Really @a buffer should have been defined as "const void *" and
+ * @a buffer should have been aligned to @a size in the host memory.
+ *
+ * This is not enforced via e.g. assert's today and e.g. the
+ * target_write_buffer fn breaks this assumption.
  *
  * This routine is wrapper for target->type->write_memory.
  */
