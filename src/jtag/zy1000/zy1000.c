@@ -845,6 +845,14 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 }
 
 
+int arm11_run_instr_data_to_core_noack_inner_default(struct arm11_common * arm11, uint32_t opcode, uint32_t * data, size_t count);
+
+int arm11_run_instr_data_to_core_noack_inner(struct arm11_common * arm11, uint32_t opcode, uint32_t * data, size_t count)
+{
+	return arm11_run_instr_data_to_core_noack_inner_default(arm11, opcode, data, count);
+}
+
+
 static const struct command_registration zy1000_commands[] = {
 	{
 		.name = "power",

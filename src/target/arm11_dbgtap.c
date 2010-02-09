@@ -569,7 +569,90 @@ static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
+/* This inner loop can be implemented by the minidriver, oftentimes in hardware... The
+ * minidriver can call the default implementation as a fallback or implement it
+ * from scratch.
+ */
+int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count)
+{
+	struct scan_field	chain5_fields[3];
 
+	chain5_fields[0].tap			= tap;
+	chain5_fields[0].num_bits		= 32;
+	chain5_fields[0].out_value		= NULL; /*&Data*/
+	chain5_fields[0].in_value		= NULL;
+
+	chain5_fields[1].tap			= tap;
+	chain5_fields[1].num_bits		= 1;
+	chain5_fields[1].out_value		= NULL;
+	chain5_fields[1].in_value		= NULL; /*&Ready*/
+
+	chain5_fields[2].tap			= tap;
+	chain5_fields[2].num_bits		= 1;
+	chain5_fields[2].out_value		= NULL;
+	chain5_fields[2].in_value		= NULL;
+
+	uint8_t			*Readies;
+	unsigned readiesNum = count;
+	unsigned bytes = sizeof(*Readies)*readiesNum;
+
+	Readies = (uint8_t *) malloc(bytes);
+	if (Readies == NULL)
+	{
+		LOG_ERROR("Out of memory allocating %u bytes", bytes);
+		return ERROR_FAIL;
+	}
+
+	uint8_t	*		ReadyPos			= Readies;
+	while (count--)
+	{
+		chain5_fields[0].out_value	= (void *)(data++);
+		chain5_fields[1].in_value	= ReadyPos++;
+
+		if (count > 0)
+		{
+			jtag_add_dr_scan(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+			jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
+				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
+		} else
+		{
+			jtag_add_dr_scan(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_IDLE);
+		}
+	}
+
+	int retval = jtag_execute_queue();
+	if (retval == ERROR_OK)
+	{
+		unsigned error_count = 0;
+
+		for (size_t i = 0; i < readiesNum; i++)
+		{
+			if (Readies[i] != 1)
+			{
+				error_count++;
+			}
+		}
+
+		if (error_count > 0 )
+		{
+			LOG_ERROR("%u words out of %u not transferred",
+				error_count, readiesNum);
+			retval = ERROR_FAIL;
+		}
+	}
+	free(Readies);
+
+	return retval;
+}
+
+int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count);
+
+#ifndef HAVE_JTAG_MINIDRIVER_H
+int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count)
+{
+	return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
+}
+#endif
 
 /** Execute one instruction via ITR repeatedly while
  *  passing data to the core via DTR on each execution.
@@ -598,69 +681,33 @@ int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opc
 
 	arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
+	int retval = arm11_run_instr_data_to_core_noack_inner(arm11->arm.target->tap, opcode, data, count);
+
+	if (retval != ERROR_FAIL)
+		return retval;
+
+	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
+
 	struct scan_field	chain5_fields[3];
 
 	arm11_setup_field(arm11, 32,    NULL/*&Data*/,  NULL,				chain5_fields + 0);
 	arm11_setup_field(arm11,  1,    NULL,			NULL /*&Ready*/,	chain5_fields + 1);
 	arm11_setup_field(arm11,  1,    NULL,			NULL,				chain5_fields + 2);
 
-	uint8_t			*Readies;
-	unsigned readiesNum = count + 1;
-	unsigned bytes = sizeof(*Readies)*readiesNum;
-
-	Readies = (uint8_t *) malloc(bytes);
-	if (Readies == NULL)
-	{
-		LOG_ERROR("Out of memory allocating %u bytes", bytes);
-		return ERROR_FAIL;
-	}
-
-	uint8_t	*		ReadyPos			= Readies;
-
-	while (count--)
-	{
-		chain5_fields[0].out_value	= (void *)(data++);
-		chain5_fields[1].in_value	= ReadyPos++;
-
-		if (count)
-		{
-			jtag_add_dr_scan(ARRAY_SIZE(chain5_fields), chain5_fields, jtag_set_end_state(TAP_DRPAUSE));
-			jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
-				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
-		}
-		else
-		{
-			jtag_add_dr_scan(ARRAY_SIZE(chain5_fields), chain5_fields, jtag_set_end_state(TAP_IDLE));
-		}
-	}
-
-	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
-
-	chain5_fields[0].out_value	= 0;
-	chain5_fields[1].in_value   = ReadyPos++;
+	uint8_t ready_flag;
+	chain5_fields[1].in_value   = &ready_flag;
 
 	arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
-	int retval = jtag_execute_queue();
+	retval = jtag_execute_queue();
 	if (retval == ERROR_OK)
 	{
-		unsigned error_count = 0;
-
-		for (size_t i = 0; i < readiesNum; i++)
+		if (ready_flag != 1)
 		{
-			if (Readies[i] != 1)
-			{
-				error_count++;
-			}
+			LOG_ERROR("last word not transferred");
+			retval = ERROR_FAIL;
 		}
-
-		if (error_count > 0 )
-			LOG_ERROR("%u words out of %u not transferred",
-				error_count, readiesNum);
-
 	}
-
-	free(Readies);
 
 	return retval;
 }
