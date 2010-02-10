@@ -1447,7 +1447,8 @@ Adaptive clocking provides a partial workaround, but a more complete
 solution just avoids using that instruction with JTAG debuggers.
 @end quotation
 
-If the board supports adaptive clocking, use the @command{jtag_rclk}
+If both the chip and the board support adaptive clocking,
+use the @command{jtag_rclk}
 command, in case your board is used with JTAG adapter which
 also supports it.  Otherwise use @command{jtag_khz}.
 Set the slow rate at the beginning of the reset sequence,
@@ -2387,7 +2388,8 @@ However, it introduces delays to synchronize clocks; so it
 may not be the fastest solution.
 
 @b{NOTE:} Script writers should consider using @command{jtag_rclk}
-instead of @command{jtag_khz}.
+instead of @command{jtag_khz}, but only for (ARM) cores and boards
+which support adaptive clocking.
 
 @deffn {Command} jtag_khz max_speed_kHz
 A non-zero speed is in KHZ. Hence: 3000 is 3mhz.
