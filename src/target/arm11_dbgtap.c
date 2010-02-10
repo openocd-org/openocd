@@ -854,7 +854,9 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 			AddressOut	= 0;
 		}
 
-		do
+		/* Timeout here so we don't get stuck. */
+		int i = 0;
+		while (1)
 		{
 			JTAG_DEBUG("SC7 <= c%-3d Data %08x %s",
 					(unsigned) AddressOut,
@@ -866,10 +868,27 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 
 			CHECK_RETVAL(jtag_execute_queue());
 
-			if (!Ready)
-				JTAG_DEBUG("SC7 => !ready");
+			/* 'nRW' is 'Ready' on read out */
+			if (Ready)
+				break;
+
+			long long then = 0;
+
+			if (i == 1000)
+			{
+				then = timeval_ms();
+			}
+			if (i >= 1000)
+			{
+				if ((timeval_ms()-then) > 1000)
+				{
+					LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+					return ERROR_FAIL;
+				}
+			}
+
+			i++;
 		}
-		while (!Ready); /* 'nRW' is 'Ready' on read out */
 
 		if (!nRW)
 			JTAG_DEBUG("SC7 => Data %08x", (unsigned) DataIn);
