@@ -539,6 +539,11 @@ Configuration files and scripts are searched for in
 @end enumerate
 The first found file with a matching file name will be used.
 
+@quotation Note
+Don't try to use configuration script names or paths which
+include the "#" character.  That character begins Tcl comments.  
+@end quotation
+
 @section Simple setup, no customization
 
 In the best case, you can use two scripts from one of the script
@@ -7633,12 +7638,15 @@ in the same basic way.
 @* Example: @b{ source [find FILENAME] }
 @*Remember the parsing rules
 @enumerate
-@item The FIND command is in square brackets.
-@* The FIND command is executed with the parameter FILENAME. It should
-find the full path to the named file. The RESULT is a string, which is
-substituted on the orginal command line.
-@item The command source is executed with the resulting filename.
-@* SOURCE reads a file and executes as a script.
+@item The @command{find} command is in square brackets,
+and is executed with the parameter FILENAME. It should find and return
+the full path to a file with that name; it uses an internal search path.
+The RESULT is a string, which is substituted into the command line in
+place of the bracketed @command{find} command.
+(Don't try to use a FILENAME which includes the "#" character.
+That character begins Tcl comments.)
+@item The @command{source} command is executed with the resulting filename;
+it reads a file and executes as a script.
 @end enumerate
 @subsection format command
 @b{Where:} Generally occurs in numerous places.
