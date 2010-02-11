@@ -915,6 +915,10 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 		return ERROR_FLASH_OPERATION_FAILED;
 
+	command_print(CMD_CTX, "str9xpec write options complete.\n"
+			"INFO: a reset or power cycle is required "
+			"for the new settings to take effect.");
+
 	return ERROR_OK;
 }
 
@@ -1076,6 +1080,10 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 
 	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 		return ERROR_FLASH_OPERATION_FAILED;
+
+	command_print(CMD_CTX, "str9xpec unlocked.\n"
+			"INFO: a reset or power cycle is required "
+			"for the new settings to take effect.");
 
 	return ERROR_OK;
 }
