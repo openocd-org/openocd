@@ -978,7 +978,9 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "stm32x unlocked");
+	command_print(CMD_CTX, "stm32x unlocked.\n"
+			"INFO: a reset or power cycle is required "
+			"for the new settings to take effect.");
 
 	return ERROR_OK;
 }
@@ -1114,7 +1116,9 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "stm32x write options complete");
+	command_print(CMD_CTX, "stm32x write options complete.\n"
+				"INFO: a reset or power cycle is required "
+				"for the new settings to take effect.");
 
 	return ERROR_OK;
 }
