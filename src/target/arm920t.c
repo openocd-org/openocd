@@ -472,9 +472,19 @@ static int arm920_mmu(struct target *target, int *enabled)
 static int arm920_virt2phys(struct target *target,
 		uint32_t virt, uint32_t *phys)
 {
-	/** @todo Implement this!  */
-	LOG_ERROR("%s: not implemented", __func__);
-	return ERROR_FAIL;
+	int type;
+	uint32_t cb;
+	int domain;
+	uint32_t ap;
+	struct arm920t_common *arm920t = target_to_arm920(target);
+
+	uint32_t ret = armv4_5_mmu_translate_va(target, &arm920t->armv4_5_mmu, virt, &type, &cb, &domain, &ap);
+	if (type == -1)
+	{
+		return ret;
+	}
+	*phys = ret;
+	return ERROR_OK;
 }
 
 /** Reads a buffer, in the specified word size, with current MMU settings. */
