@@ -255,11 +255,21 @@ static int arm720_mmu(struct target *target, int *enabled)
 }
 
 static int arm720_virt2phys(struct target *target,
-		uint32_t virt, uint32_t *phys)
+		uint32_t virtual, uint32_t *physical)
 {
-	/** @todo Implement this!  */
-	LOG_ERROR("%s: not implemented", __func__);
-	return ERROR_FAIL;
+	int type;
+	uint32_t cb;
+	int domain;
+	uint32_t ap;
+	struct arm720t_common *arm720t = target_to_arm720(target);
+
+	uint32_t ret = armv4_5_mmu_translate_va(target, &arm720t->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	if (type == -1)
+	{
+		return ret;
+	}
+	*physical = ret;
+	return ERROR_OK;
 }
 
 static int arm720t_read_memory(struct target *target,
