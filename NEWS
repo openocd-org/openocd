@@ -11,6 +11,8 @@ Boundary Scan:
 
 Target Layer:
 	General
+		- Removed commands which have been obsolete for at least
+		  a year (from both documentation and, sometimes, code).
 		- new "reset-assert" event, for systems without SRST
 	ARM
 		- supports "reset-assert" event (except on Cortex-M3)
