@@ -246,6 +246,29 @@ static const struct
 	/* *INDENT-ON* */
 };
 
+static int dsp563xx_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
+			      int *reg_list_size)
+{
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
+	int i;
+
+	if (target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	*reg_list_size = DSP563XX_NUMCOREREGS;
+	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+
+	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
+	{
+		(*reg_list)[i] = &dsp563xx->core_cache->reg_list[i];
+	}
+
+	return ERROR_OK;
+
+}
+
 int dsp563xx_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
@@ -973,6 +996,8 @@ struct target_type dsp563xx_target = {
 	.arch_state = dsp563xx_arch_state,
 
 	.target_request_data = NULL,
+
+	.get_gdb_reg_list = dsp563xx_get_gdb_reg_list,
 
 	.halt = dsp563xx_halt,
 	.resume = dsp563xx_resume,
