@@ -228,7 +228,8 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	}
 	LOG_DEBUG("command registration: complete");
 
-	LOG_OUTPUT(OPENOCD_VERSION "\n");
+	LOG_OUTPUT(OPENOCD_VERSION "\n"
+			"Licensed under GNU GPL v2\n");
 
 	global_cmd_ctx = cmd_ctx;
 
