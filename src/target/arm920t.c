@@ -559,34 +559,120 @@ static int arm920t_write_phys_memory(struct target *target,
 
 
 /** Writes a buffer, in the specified word size, with current MMU settings. */
-int arm920t_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int arm920t_write_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
+	const uint32_t cache_mask = ~0x1f; /* cache line size : 32 byte */
+	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
-		return retval;
-
-	/* This fn is used to write breakpoints, so we need to make sure
-	 * that the data cache is flushed and the instruction cache is
-	 * invalidated
-	 */
-	if (((size == 4) || (size == 2)) && (count == 1))
+	/* FIX!!!! this should be cleaned up and made much more general. The
+	 * plan is to write up and test on arm920t specifically and
+	 * then generalize and clean up afterwards. */
+	if (arm920t->armv4_5_mmu.mmu_enabled && (count == 1) && ((size==2) || (size==4)))
 	{
-		struct arm920t_common *arm920t = target_to_arm920(target);
+		/* special case the handling of single word writes to bypass MMU
+		 * to allow implementation of breakpoints in memory marked read only
+		 * by MMU */
+		int type;
+		uint32_t cb;
+		int domain;
+		uint32_t ap;
+		uint32_t pa;
+
+		/*
+		 * We need physical address and cb
+		 */
+		pa = armv4_5_mmu_translate_va(target, &arm920t->armv4_5_mmu, address, &type, &cb, &domain, &ap);
+		if (type == -1)
+		{
+			return pa;
+		}
 
 		if (arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		{
-			LOG_DEBUG("D-Cache enabled, flush and invalidate cache line");
-			/* MCR p15,0,Rd,c7,c10,2 */
-			retval = arm920t_write_cp15_interpreted(target, 0xee070f5e, 0x0, address);
+			if (cb & 0x1)
+			{
+				LOG_DEBUG("D-Cache buffered, drain write buffer");
+				/*
+				 * Buffered ?
+				 * Drain write buffer - MCR p15,0,Rd,c7,c10,4
+				 */
+
+				retval = arm920t_write_cp15_interpreted(target, ARMV4_5_MCR(15, 0, 0, 7, 10, 4), 0x0, 0);
+				if (retval != ERROR_OK)
+					return retval;
+			}
+
+			if (cb == 0x3)
+			{
+				/*
+				 * Write back memory ? -> clean cache
+				 *
+				 * There is no way for cleaning a data cache line using
+				 * cp15 scan chain, so copy the full cache line from
+				 * cache to physical memory.
+				 */
+				uint8_t data[32];
+
+				LOG_DEBUG("D-Cache in 'write back' mode, flush cache line");
+
+				retval = target_read_memory(target, address & cache_mask, 1, sizeof(data), &data[0]);
+				if (retval != ERROR_OK)
+					return retval;
+
+				retval = armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu, pa & cache_mask, 1, sizeof(data), &data[0]);
+				if (retval != ERROR_OK)
+					return retval;
+			}
+
+			/* Cached ? */
+			if (cb & 0x2)
+			{
+				/*
+				 * Cached ? -> Invalidate data cache using MVA
+				 *
+				 * MCR p15,0,Rd,c7,c6,1
+				 */
+				LOG_DEBUG("D-Cache enabled, invalidate cache line");
+
+				retval = arm920t_write_cp15_interpreted(target, ARMV4_5_MCR(15, 0, 0, 7, 6, 1), 0x0, address & cache_mask);
+				if (retval != ERROR_OK)
+					return retval;
+			}
+		}
+
+		/* write directly to physical memory bypassing any read only MMU bits, etc. */
+		retval = armv4_5_mmu_write_physical(target, &arm920t->armv4_5_mmu, pa, size, count, buffer);
+		if (retval != ERROR_OK)
+			return retval;
+	} else
+	{
+		if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
+			return retval;
+	}
+
+	/* If ICache is enabled, we have to invalidate affected ICache lines
+	 * the DCache is forced to write-through, so we don't have to clean it here
+	 */
+	if (arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
+	{
+		if (count <= 1)
+		{
+			/* invalidate ICache single entry with MVA
+			 * 	ee070f35 	mcr	15, 0, r0, cr7, cr5, {1}
+			 */
+			LOG_DEBUG("I-Cache enabled, invalidating affected I-Cache line");
+			retval = arm920t_write_cp15_interpreted(target, ARMV4_5_MCR(15, 0, 0, 7, 5, 1), 0x0, address & cache_mask);
 			if (retval != ERROR_OK)
 				return retval;
 		}
-
-		if (arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
+		else
 		{
-			LOG_DEBUG("I-Cache enabled, invalidating affected I-Cache line");
-			retval = arm920t_write_cp15_interpreted(target, 0xee070f35, 0x0, address);
+			/* invalidate ICache
+			 *   8:	ee070f15 	mcr	15, 0, r0, cr7, cr5, {0}
+			 * */
+			retval = arm920t_write_cp15_interpreted(target, ARMV4_5_MCR(15, 0, 0, 7, 5, 0), 0x0, 0x0);
 			if (retval != ERROR_OK)
 				return retval;
 		}
