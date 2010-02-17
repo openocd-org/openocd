@@ -42,7 +42,8 @@
  *   6 ... ETM9
  *   15 ... access coprocessor 15, "physical" or "interpreted" modes
  *	"interpreted" works with a few actual MRC/MCR instructions
- *	"physical" provides register-like behaviors.
+ *	"physical" provides register-like behaviors.  Section 9.6.7
+ *	covers these details.
  *
  * The ARM922T is similar, but with smaller caches (8K each, vs 16K).
  */
@@ -51,7 +52,32 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
+/* Table 9-8 shows scan chain 15 format during physical access mode, using a
+ * dedicated 6-bit address space (encoded in bits 33:38).  Writes use one
+ * JTAG scan, while reads use two.
+ *
+ * Table 9-9 lists the thirteen registers which support physical access.
+ * ARM920T_CP15_PHYS_ADDR() constructs the 6-bit reg_addr parameter passed
+ * to arm920t_read_cp15_physical() and arm920t_write_cp15_physical().
+ *
+ *  x == bit[38]
+ *  y == bits[37:34]
+ *  z == bit[33]
+ */
 #define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
+
+/* Registers supporting physical Read access (from table 9-9) */
+#define CP15PHYS_CACHETYPE	ARM920T_CP15_PHYS_ADDR(0, 0x0, 1)
+#define CP15PHYS_ICACHE_IDX	ARM920T_CP15_PHYS_ADDR(1, 0xd, 1)
+#define CP15PHYS_DCACHE_IDX	ARM920T_CP15_PHYS_ADDR(1, 0xe, 1)
+/* NOTE: several more registers support only physical read access */
+
+/* Registers supporting physical Read/Write access (from table 9-9) */
+#define CP15PHYS_CTRL		ARM920T_CP15_PHYS_ADDR(0, 0x1, 0)
+#define CP15PHYS_PID		ARM920T_CP15_PHYS_ADDR(0, 0xd, 0)
+#define CP15PHYS_TESTSTATE	ARM920T_CP15_PHYS_ADDR(0, 0xf, 0)
+#define CP15PHYS_ICACHE		ARM920T_CP15_PHYS_ADDR(1, 0x1, 1)
+#define CP15PHYS_DCACHE		ARM920T_CP15_PHYS_ADDR(1, 0x2, 1)
 
 static int arm920t_read_cp15_physical(struct target *target,
 		int reg_addr, uint32_t *value)
@@ -153,6 +179,13 @@ static int arm920t_write_cp15_physical(struct target *target,
 	return ERROR_OK;
 }
 
+/* See table 9-10 for scan chain 15 format during interpreted access mode.
+ * If the TESTSTATE register is set for interpreted access, certain CP15
+ * MRC and MCR instructions may be executed through scan chain 15.
+ *
+ * Tables 9-11, 9-12, and 9-13 show which MRC and MCR instructions can be
+ * executed using scan chain 15 interpreted mode.
+ */
 static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 		uint32_t arm_opcode)
 {
@@ -225,17 +258,17 @@ static int arm920t_read_cp15_interpreted(struct target *target,
 
 	/* read-modify-write CP15 test state register
 	* to enable interpreted access mode */
-	arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
+	arm920t_read_cp15_physical(target, CP15PHYS_TESTSTATE, &cp15c15);
 	jtag_execute_queue();
 	cp15c15 |= 1;	/* set interpret mode */
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* execute CP15 instruction and ARM load (reading from coprocessor) */
 	arm920t_execute_cp15(target, cp15_opcode, ARMV4_5_LDR(0, 1));
 
 	/* disable interpreted access mode */
 	cp15c15 &= ~1U;	/* clear interpret mode */
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* retrieve value from R0 */
 	regs_p[0] = value;
@@ -271,17 +304,17 @@ int arm920t_write_cp15_interpreted(struct target *target,
 
 	/* read-modify-write CP15 test state register
 	* to enable interpreted access mode */
-	arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
+	arm920t_read_cp15_physical(target, CP15PHYS_TESTSTATE, &cp15c15);
 	jtag_execute_queue();
 	cp15c15 |= 1;	/* set interpret mode */
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* execute CP15 instruction and ARM store (writing to coprocessor) */
 	arm920t_execute_cp15(target, cp15_opcode, ARMV4_5_STR(0, 1));
 
 	/* disable interpreted access mode */
 	cp15c15 &= ~1U;	/* set interpret mode */
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	LOG_DEBUG("cp15_opcode: %8.8x, value: %8.8x, address: %8.8x", cp15_opcode, value, address);
@@ -314,7 +347,7 @@ void arm920t_disable_mmu_caches(struct target *target, int mmu, int d_u_cache, i
 	uint32_t cp15_control;
 
 	/* read cp15 control register */
-	arm920t_read_cp15_physical(target, 0x2, &cp15_control);
+	arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_control);
 	jtag_execute_queue();
 
 	if (mmu)
@@ -326,7 +359,7 @@ void arm920t_disable_mmu_caches(struct target *target, int mmu, int d_u_cache, i
 	if (i_cache)
 		cp15_control &= ~0x1000U;
 
-	arm920t_write_cp15_physical(target, 0x2, cp15_control);
+	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
 }
 
 // EXPORTED to FA256
@@ -335,7 +368,7 @@ void arm920t_enable_mmu_caches(struct target *target, int mmu, int d_u_cache, in
 	uint32_t cp15_control;
 
 	/* read cp15 control register */
-	arm920t_read_cp15_physical(target, 0x2, &cp15_control);
+	arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_control);
 	jtag_execute_queue();
 
 	if (mmu)
@@ -347,7 +380,7 @@ void arm920t_enable_mmu_caches(struct target *target, int mmu, int d_u_cache, in
 	if (i_cache)
 		cp15_control |= 0x1000U;
 
-	arm920t_write_cp15_physical(target, 0x2, cp15_control);
+	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
 }
 
 // EXPORTED to FA256
@@ -357,7 +390,8 @@ void arm920t_post_debug_entry(struct target *target)
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
 	/* examine cp15 control reg */
-	arm920t_read_cp15_physical(target, 0x2, &arm920t->cp15_control_reg);
+	arm920t_read_cp15_physical(target,
+			CP15PHYS_CTRL, &arm920t->cp15_control_reg);
 	jtag_execute_queue();
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm920t->cp15_control_reg);
 
@@ -365,7 +399,8 @@ void arm920t_post_debug_entry(struct target *target)
 	{
 		uint32_t cache_type_reg;
 		/* identify caches */
-		arm920t_read_cp15_physical(target, 0x1, &cache_type_reg);
+		arm920t_read_cp15_physical(target,
+				CP15PHYS_CACHETYPE, &cache_type_reg);
 		jtag_execute_queue();
 		armv4_5_identify_cache(cache_type_reg, &arm920t->armv4_5_mmu.armv4_5_cache);
 	}
@@ -387,10 +422,12 @@ void arm920t_post_debug_entry(struct target *target)
 	{
 		/* read-modify-write CP15 test state register
 		 * to disable I/D-cache linefills */
-		arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
+		arm920t_read_cp15_physical(target,
+				CP15PHYS_TESTSTATE, &cp15c15);
 		jtag_execute_queue();
 		cp15c15 |= 0x600;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 	}
 }
 
@@ -410,10 +447,12 @@ void arm920t_pre_restore_context(struct target *target)
 	* to reenable I/D-cache linefills */
 	if (arm920t->preserve_cache)
 	{
-		arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
+		arm920t_read_cp15_physical(target,
+				CP15PHYS_TESTSTATE, &cp15c15);
 		jtag_execute_queue();
 		cp15c15 &= ~0x600U;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 	}
 }
 
@@ -720,17 +759,17 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 		regs_p[i] = &regs[i];
 
 	/* disable MMU and Caches */
-	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
+	arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_ctrl);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		return retval;
 	}
 	cp15_ctrl_saved = cp15_ctrl;
 	cp15_ctrl &= ~(ARMV4_5_MMU_ENABLED | ARMV4_5_D_U_CACHE_ENABLED | ARMV4_5_I_CACHE_ENABLED);
-	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl);
+	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_ctrl);
 
 	/* read CP15 test state register */
-	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), &cp15c15);
+	arm920t_read_cp15_physical(target, CP15PHYS_TESTSTATE, &cp15c15);
 	jtag_execute_queue();
 
 	/* read DCache content */
@@ -747,17 +786,20 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* D CAM Read, loads current victim into C15.C.D.Ind */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,6,2), ARMV4_5_LDR(1, 0));
 
 		/* read current victim */
-		arm920t_read_cp15_physical(target, 0x3d, &C15_C_D_Ind);
+		arm920t_read_cp15_physical(target,
+				CP15PHYS_DCACHE_IDX, &C15_C_D_Ind);
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		for (index = 0; index < 64; index++)
 		{
@@ -767,7 +809,8 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 			/* set interpret mode */
 			cp15c15 |= 0x1;
-			arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+			arm920t_write_cp15_physical(target,
+					CP15PHYS_TESTSTATE, cp15c15);
 
 			/* Write DCache victim */
 			arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,0), ARMV4_5_LDR(1, 0));
@@ -780,7 +823,8 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 			/* clear interpret mode */
 			cp15c15 &= ~0x1;
-			arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+			arm920t_write_cp15_physical(target,
+					CP15PHYS_TESTSTATE, cp15c15);
 
 			/* read D RAM and CAM content */
 			arm9tdmi_read_core_regs(target, 0x3fe, regs_p);
@@ -809,14 +853,16 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* Write DCache victim */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,0), ARMV4_5_LDR(1, 0));
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 	}
 
 	/* read ICache content */
@@ -833,17 +879,20 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* I CAM Read, loads current victim into C15.C.I.Ind */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,5,2), ARMV4_5_LDR(1, 0));
 
 		/* read current victim */
-		arm920t_read_cp15_physical(target, 0x3b, &C15_C_I_Ind);
+		arm920t_read_cp15_physical(target, CP15PHYS_ICACHE_IDX,
+				&C15_C_I_Ind);
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		for (index = 0; index < 64; index++)
 		{
@@ -853,7 +902,8 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 			/* set interpret mode */
 			cp15c15 |= 0x1;
-			arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+			arm920t_write_cp15_physical(target,
+					CP15PHYS_TESTSTATE, cp15c15);
 
 			/* Write ICache victim */
 			arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,1), ARMV4_5_LDR(1, 0));
@@ -866,7 +916,8 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 			/* clear interpret mode */
 			cp15c15 &= ~0x1;
-			arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+			arm920t_write_cp15_physical(target,
+					CP15PHYS_TESTSTATE, cp15c15);
 
 			/* read I RAM and CAM content */
 			arm9tdmi_read_core_regs(target, 0x3fe, regs_p);
@@ -894,18 +945,20 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* Write ICache victim */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,1), ARMV4_5_LDR(1, 0));
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 	}
 
 	/* restore CP15 MMU and Cache settings */
-	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl_saved);
+	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_ctrl_saved);
 
 	command_print(CMD_CTX, "cache content successfully output to %s", CMD_ARGV[0]);
 
@@ -972,17 +1025,17 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 		regs_p[i] = &regs[i];
 
 	/* disable MMU and Caches */
-	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
+	arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_ctrl);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		return retval;
 	}
 	cp15_ctrl_saved = cp15_ctrl;
 	cp15_ctrl &= ~(ARMV4_5_MMU_ENABLED | ARMV4_5_D_U_CACHE_ENABLED | ARMV4_5_I_CACHE_ENABLED);
-	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl);
+	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_ctrl);
 
 	/* read CP15 test state register */
-	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), &cp15c15);
+	arm920t_read_cp15_physical(target, CP15PHYS_TESTSTATE, &cp15c15);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		return retval;
@@ -993,14 +1046,14 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 	/* set interpret mode */
 	cp15c15 |= 0x1;
-	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* Read D TLB lockdown */
 	arm920t_execute_cp15(target, ARMV4_5_MRC(15,0,0,10,0,0), ARMV4_5_LDR(1, 0));
 
 	/* clear interpret mode */
 	cp15c15 &= ~0x1;
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* read D TLB lockdown stored to r1 */
 	arm9tdmi_read_core_regs(target, 0x2, regs_p);
@@ -1019,7 +1072,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* Write D TLB lockdown */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,0), ARMV4_5_STR(1, 0));
@@ -1029,7 +1083,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* read D TLB CAM content stored to r2-r9 */
 		arm9tdmi_read_core_regs(target, 0x3fc, regs_p);
@@ -1051,7 +1106,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* Write D TLB lockdown */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,0), ARMV4_5_STR(1, 0));
@@ -1064,7 +1120,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* read D TLB RAM content stored to r2 and r3 */
 		arm9tdmi_read_core_regs(target, 0xc, regs_p);
@@ -1089,14 +1146,14 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 	/* set interpret mode */
 	cp15c15 |= 0x1;
-	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* Read I TLB lockdown */
 	arm920t_execute_cp15(target, ARMV4_5_MRC(15,0,0,10,0,1), ARMV4_5_LDR(1, 0));
 
 	/* clear interpret mode */
 	cp15c15 &= ~0x1;
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	arm920t_write_cp15_physical(target, CP15PHYS_TESTSTATE, cp15c15);
 
 	/* read I TLB lockdown stored to r1 */
 	arm9tdmi_read_core_regs(target, 0x2, regs_p);
@@ -1115,7 +1172,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* Write I TLB lockdown */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,1), ARMV4_5_STR(1, 0));
@@ -1125,7 +1183,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* read I TLB CAM content stored to r2-r9 */
 		arm9tdmi_read_core_regs(target, 0x3fc, regs_p);
@@ -1147,7 +1206,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* set interpret mode */
 		cp15c15 |= 0x1;
-		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* Write I TLB lockdown */
 		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,1), ARMV4_5_STR(1, 0));
@@ -1160,7 +1220,8 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 		/* clear interpret mode */
 		cp15c15 &= ~0x1;
-		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		arm920t_write_cp15_physical(target,
+				CP15PHYS_TESTSTATE, cp15c15);
 
 		/* read I TLB RAM content stored to r2 and r3 */
 		arm9tdmi_read_core_regs(target, 0xc, regs_p);
@@ -1181,7 +1242,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,1), ARMV4_5_STR(1, 0));
 
 	/* restore CP15 MMU and Cache settings */
-	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl_saved);
+	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_ctrl_saved);
 
 	/* output data to file */
 	fprintf(output, "D TLB content:\n");
