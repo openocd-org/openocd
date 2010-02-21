@@ -44,15 +44,6 @@
 #endif
 
 
-/* FIXME none of these flags should be global to all ARM11 cores!
- * Most of them shouldn't exist at all, once the code works...
- */
-static bool arm11_config_memwrite_burst = true;
-static bool arm11_config_memwrite_error_fatal = true;
-static uint32_t arm11_vcr = 0;
-static bool arm11_config_step_irq_enable = false;
-static bool arm11_config_hardware_step = false;
-
 static int arm11_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints);
 
@@ -537,8 +528,8 @@ static int arm11_resume(struct target *target, int current,
 			brp_num++;
 		}
 
-		if (arm11_vcr)
-			arm11_sc7_set_vcr(arm11, arm11_vcr);
+		if (arm11->vcr)
+			arm11_sc7_set_vcr(arm11, arm11->vcr);
 	}
 
 	/* activate all watchpoints and breakpoints */
@@ -646,7 +637,7 @@ static int arm11_step(struct target *target, int current,
 		brp[1].write	= 1;
 		brp[1].address	= ARM11_SC7_BCR0;
 
-		if (arm11_config_hardware_step)
+		if (arm11->hardware_step)
 		{
 			/* Hardware single stepping ("instruction address
 			 * mismatch") is used if enabled.  It's not quite
@@ -690,7 +681,7 @@ static int arm11_step(struct target *target, int current,
 		/* resume */
 
 
-		if (arm11_config_step_irq_enable)
+		if (arm11->step_irq_enable)
 			/* this disable should be redundant ... */
 			arm11->dscr &= ~DSCR_INT_DIS;
 		else
@@ -756,8 +747,8 @@ static int arm11_assert_reset(struct target *target)
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	/* optionally catch reset vector */
-	if (target->reset_halt && !(arm11_vcr & 1))
-		arm11_sc7_set_vcr(arm11, arm11_vcr | 1);
+	if (target->reset_halt && !(arm11->vcr & 1))
+		arm11_sc7_set_vcr(arm11, arm11->vcr | 1);
 
 	/* Issue some kind of warm reset. */
 	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
@@ -816,8 +807,8 @@ static int arm11_deassert_reset(struct target *target)
 	}
 
 	/* maybe restore vector catch config */
-	if (target->reset_halt && !(arm11_vcr & 1))
-		arm11_sc7_set_vcr(arm11, arm11_vcr);
+	if (target->reset_halt && !(arm11->vcr & 1))
+		arm11_sc7_set_vcr(arm11, arm11->vcr);
 
 	return ERROR_OK;
 }
@@ -966,7 +957,7 @@ static int arm11_write_memory_inner(struct target *target,
 	 * now exercise both burst and non-burst code paths with the
 	 * default settings, increasing code coverage.
 	 */
-	bool burst = arm11_config_memwrite_burst && (count > 1);
+	bool burst = arm11->memwrite_burst && (count > 1);
 
 	switch (size)
 	{
@@ -1071,7 +1062,7 @@ static int arm11_write_memory_inner(struct target *target,
 			if (burst)
 				LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
 
-			if (arm11_config_memwrite_error_fatal)
+			if (arm11->memwrite_error_fatal)
 				return ERROR_FAIL;
 		}
 	}
@@ -1171,6 +1162,9 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 	arm11->jtag_info.cur_scan_chain = ~0;	/* invalid/unknown */
 	arm11->jtag_info.intest_instr = ARM11_INTEST;
 
+	arm11->memwrite_burst = true;
+	arm11->memwrite_error_fatal = true;
+
 	return ERROR_OK;
 }
 
@@ -1231,6 +1225,7 @@ static int arm11_examine(struct target *target)
 		break;
 	case 0x7B76:
 		arm11->arm.core_type = ARM_MODE_MON;
+		/* NOTE: could default arm11->hardware_step to true */
 		type = "ARM1176";
 		break;
 	default:
@@ -1286,38 +1281,41 @@ static int arm11_examine(struct target *target)
 }
 
 
-/* FIXME all these BOOL_WRAPPER things should be modifying
- * per-instance state, not shared state; ditto the vector
- * catch register support.  Scan chains with multiple cores
- * should be able to say "work with this core like this,
- * that core like that".  Example, ARM11 MPCore ...
- */
-
 #define ARM11_BOOL_WRAPPER(name, print_name)	\
-		COMMAND_HANDLER(arm11_handle_bool_##name) \
-		{ \
-			return CALL_COMMAND_HANDLER(handle_command_parse_bool, \
-					&arm11_config_##name, print_name); \
-		}
+	COMMAND_HANDLER(arm11_handle_bool_##name) \
+	{ \
+		struct target *target = get_current_target(CMD_CTX); \
+		struct arm11_common *arm11 = target_to_arm11(target); \
+		\
+		return CALL_COMMAND_HANDLER(handle_command_parse_bool, \
+				&arm11->name, print_name); \
+	}
 
 ARM11_BOOL_WRAPPER(memwrite_burst, "memory write burst mode")
 ARM11_BOOL_WRAPPER(memwrite_error_fatal, "fatal error mode for memory writes")
 ARM11_BOOL_WRAPPER(step_irq_enable, "IRQs while stepping")
 ARM11_BOOL_WRAPPER(hardware_step, "hardware single step")
 
+/* REVISIT handle the VCR bits like other ARMs:  use symbols for
+ * input and output values.
+ */
+
 COMMAND_HANDLER(arm11_handle_vcr)
 {
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm11_common *arm11 = target_to_arm11(target);
+
 	switch (CMD_ARGC) {
 	case 0:
 		break;
 	case 1:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11_vcr);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11->vcr);
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	LOG_INFO("VCR 0x%08" PRIx32 "", arm11_vcr);
+	LOG_INFO("VCR 0x%08" PRIx32 "", arm11->vcr);
 	return ERROR_OK;
 }
 
@@ -1376,6 +1374,7 @@ static const struct command_registration arm11_any_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration arm11_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,

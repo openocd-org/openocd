@@ -69,6 +69,18 @@ struct arm11_common
 
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
+	/* Per-core configurable options.
+	 * NOTE that several of these boolean options should not exist
+	 * once the relevant code is known to work correctly.
+	 */
+	bool memwrite_burst;
+	bool memwrite_error_fatal;
+	bool step_irq_enable;
+	bool hardware_step;
+
+	/** Configured Vector Catch Register settings. */
+	uint32_t vcr;
+
 	struct arm_jtag jtag_info;
 };
 
