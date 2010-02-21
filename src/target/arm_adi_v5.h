@@ -118,13 +118,6 @@
 #define CSW_MASTER_DEBUG	(1 << 29)		/* ? */
 #define CSW_DBGSWENABLE		(1 << 31)
 
-/* transaction mode */
-#define TRANS_MODE_NONE			0
-/* Transaction waits for previous to complete */
-#define TRANS_MODE_ATOMIC		1
-/* Freerunning transactions with delays and overrun checking */
-#define TRANS_MODE_COMPOSITE	2
-
 /**
  * This represents an ARM Debug Interface (v5) Debug Access Port (DAP).
  * A DAP has two types of component:  one Debug Port (DP), which is a
@@ -170,9 +163,8 @@ struct swjdp_common
 	uint32_t ap_tar_value;
 
 	/* information about current pending SWjDP-AHBAP transaction */
-	uint8_t  trans_mode;
-	uint8_t  trans_rw;
 	uint8_t  ack;
+
 	/**
 	 * Configures how many extra tck clocks are added after starting a
 	 * MEM-AP access before we try to read its status (and/or result).
@@ -192,7 +184,7 @@ static inline uint8_t dap_ap_get_select(struct swjdp_common *swjdp)
 /* AP selection applies to future AP transactions */
 void dap_ap_select(struct swjdp_common *dap,uint8_t apsel);
 
-/* AP transactions ... synchronous given TRANS_MODE_ATOMIC */
+/* Queued AP transactions */
 int dap_setup_accessport(struct swjdp_common *swjdp,
 		uint32_t csw, uint32_t tar);
 int dap_ap_write_reg_u32(struct swjdp_common *swjdp,

@@ -43,11 +43,16 @@
  * is used to access memory mapped resources and is called a MEM-AP.  Also a
  * JTAG-AP is also defined, bridging to JTAG resources; those are uncommon.
  *
- * @todo Remove modality (queued/nonqueued, via DAP trans_mode) from all
- * procedure interfaces.  Modal programming interfaces are very error prone.
- * Procedures should be either queued, or synchronous.  Otherwise input
- * and output constraints are context-sensitive, and it's hard to know
- * what a block of code will do just by reading it.
+ * This programming interface allows DAP pipelined operations through a
+ * transaction queue.  This primarily affects AP operations (such as using
+ * a MEM-AP to access memory or registers).  If the current transaction has
+ * not finished by the time the next one must begin, and the ORUNDETECT bit
+ * is set in the DP_CTRL_STAT register, the SSTICKYORUN status is set and
+ * further AP operations will fail.  There are two basic methods to avoid
+ * such overrun errors.  One involves polling for status instead of using
+ * transaction piplining.  The other involves adding delays to ensure the
+ * AP has enough time to complete one operation before starting the next
+ * one.  (For JTAG these delays are controlled by memaccess_tck.)
  */
 
 /*
@@ -66,17 +71,6 @@
 
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
-
-/*
- * Transaction Mode:
- * swjdp->trans_mode = TRANS_MODE_COMPOSITE;
- * Uses Overrun checking mode and does not do actual JTAG send/receive or transaction
- * result checking until swjdp_end_transaction()
- * This must be done before using or deallocating any return variables.
- * swjdp->trans_mode == TRANS_MODE_ATOMIC
- * All reads and writes to the AHB bus are checked for valid completion, and return values
- * are immediatley available.
-*/
 
 
 /* ARM ADI Specification requires at least 10 bits used for TAR autoincrement  */
@@ -191,47 +185,32 @@ static int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp,
 /**
  * Utility to write AP registers.
  */
-static int ap_write_check(struct swjdp_common *dap,
+static inline int ap_write_check(struct swjdp_common *dap,
 		uint8_t reg_addr, uint8_t *outvalue)
 {
-	adi_jtag_dp_scan(dap, JTAG_DP_APACC, reg_addr, DPAP_WRITE,
+	return adi_jtag_dp_scan(dap, JTAG_DP_APACC, reg_addr, DPAP_WRITE,
 			outvalue, NULL, NULL);
-
-	/* REVISIT except in dap_setup_accessport() almost all call paths
-	 * set up COMPOSITE.  Probably worth just inlining the scan...
-	 */
-
-	/* In TRANS_MODE_ATOMIC all JTAG_DP_APACC transactions wait for
-	 * ack = OK/FAULT and the check CTRL_STAT
-	 */
-	if (dap->trans_mode == TRANS_MODE_ATOMIC)
-		return jtagdp_transaction_endcheck(dap);
-
-	return ERROR_OK;
 }
 
 static int scan_inout_check_u32(struct swjdp_common *swjdp,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint32_t outvalue, uint32_t *invalue)
 {
+	int retval;
+
 	/* Issue the read or write */
-	adi_jtag_dp_scan_u32(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
+	retval = adi_jtag_dp_scan_u32(swjdp, instr, reg_addr,
+			RnW, outvalue, NULL, NULL);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* For reads,  collect posted value; RDBUFF has no other effect.
 	 * Assumes read gets acked with OK/FAULT, and CTRL_STAT says "OK".
 	 */
 	if ((RnW == DPAP_READ) && (invalue != NULL))
-		adi_jtag_dp_scan_u32(swjdp, JTAG_DP_DPACC,
+		retval = adi_jtag_dp_scan_u32(swjdp, JTAG_DP_DPACC,
 				DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
-
-	/* In TRANS_MODE_ATOMIC all JTAG_DP_APACC transactions wait for
-	 * ack = OK/FAULT and then check CTRL_STAT
-	 */
-	if ((instr == JTAG_DP_APACC)
-			&& (swjdp->trans_mode == TRANS_MODE_ATOMIC))
-		return jtagdp_transaction_endcheck(swjdp);
-
-	return ERROR_OK;
+	return retval;
 }
 
 int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
@@ -437,17 +416,13 @@ static int dap_ap_write_reg(struct swjdp_common *swjdp,
 }
 
 /**
- * Write an AP register value.
- * This is synchronous iff the mode is set to ATOMIC, in which
- * case any queued transactions are flushed.
+ * Asynchronous (queued) AP register write.
  *
  * @param swjdp The DAP whose currently selected AP will be written.
  * @param reg_addr Eight bit AP register address.
  * @param value Word to be written at reg_addr
  *
- * @return In synchronous mode: ERROR_OK for success, and the register holds
- * the specified value; else a fault code.  In asynchronous mode, a status
- * code reflecting whether the transaction was properly queued.
+ * @return ERROR_OK if the transaction was properly queued, else a fault code.
  */
 int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint32_t value)
@@ -460,17 +435,13 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 }
 
 /**
- * Read an AP register value.
- * This is synchronous iff the mode is set to ATOMIC, in which
- * case any queued transactions are flushed.
+ * Asynchronous (queued) AP register eread.
  *
  * @param swjdp The DAP whose currently selected AP will be read.
  * @param reg_addr Eight bit AP register address.
  * @param value Points to where the 32-bit (little-endian) word will be stored.
  *
- * @return In synchronous mode: ERROR_OK for success, and *value holds
- * the specified value; else a fault code.  In asynchronous mode, a status
- * code reflecting whether the transaction was properly queued.
+ * @return ERROR_OK if the transaction was properly queued, else a fault code.
  */
 int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint32_t *value)
@@ -486,9 +457,8 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 }
 
 /**
- * Set up transfer parameters for the currently selected MEM-AP.
- * This is synchronous iff the mode is set to ATOMIC, in which
- * case any queued transactions are flushed.
+ * Queue transactions setting up transfer parameters for the
+ * currently selected MEM-AP.
  *
  * Subsequent transfers using registers like AP_REG_DRW or AP_REG_BD2
  * initiate data reads or writes using memory or peripheral addresses.
@@ -503,9 +473,7 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
  * @param tar MEM-AP Transfer Address Register (TAR) to assign.  If this
  *	matches the cached address, the register is not changed.
  *
- * @return In synchronous mode: ERROR_OK for success, and the AP is set
- * up as requested else a fault code.  In asynchronous mode, a status
- * code reflecting whether the transaction was properly queued.
+ * @return ERROR_OK if the transaction was properly queued, else a fault code.
  */
 int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 {
@@ -549,8 +517,6 @@ int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
@@ -603,8 +569,6 @@ int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address,
 {
 	int retval;
 
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
@@ -651,8 +615,6 @@ int mem_ap_write_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
 	uint8_t* pBuffer = buffer;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	count >>= 2;
 	wcount = count;
@@ -720,8 +682,6 @@ static int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp,
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	wcount = count >> 1;
 
@@ -799,8 +759,6 @@ int mem_ap_write_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 	if (count >= 4)
 		return mem_ap_write_buf_packed_u16(swjdp, buffer, count, address);
 
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
@@ -822,8 +780,6 @@ static int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp,
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	wcount = count;
 
@@ -896,8 +852,6 @@ int mem_ap_write_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 	if (count >= 4)
 		return mem_ap_write_buf_packed_u8(swjdp, buffer, count, address);
 
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
@@ -924,8 +878,6 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
 	uint8_t* pBuffer = buffer;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	count >>= 2;
 	wcount = count;
@@ -1009,8 +961,6 @@ static int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp,
 	int retval = ERROR_OK;
 	int wcount, blocksize, readcount, i;
 
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-
 	wcount = count >> 1;
 
 	while (wcount > 0)
@@ -1063,8 +1013,6 @@ int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 	if (count >= 4)
 		return mem_ap_read_buf_packed_u16(swjdp, buffer, count, address);
 
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
@@ -1104,8 +1052,6 @@ static int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp,
 	uint32_t invalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, readcount, i;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	wcount = count;
 
@@ -1156,8 +1102,6 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, u
 	if (count >= 4)
 		return mem_ap_read_buf_packed_u8(swjdp, buffer, count, address);
 
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
@@ -1203,7 +1147,6 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	dap_ap_select(swjdp, 0);
 
 	/* DP initialization */
-	swjdp->trans_mode = TRANS_MODE_ATOMIC;
 	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
 	dap_dp_write_reg(swjdp, SSTICKYERR, DP_CTRL_STAT);
 	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
