@@ -188,23 +188,24 @@ static int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp,
 	return retval;
 }
 
-/* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */
-static int scan_inout_check(struct swjdp_common *swjdp,
-		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
-		uint8_t *outvalue, uint8_t *invalue)
+/**
+ * Utility to write AP registers.
+ */
+static int ap_write_check(struct swjdp_common *dap,
+		uint8_t reg_addr, uint8_t *outvalue)
 {
-	adi_jtag_dp_scan(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
+	adi_jtag_dp_scan(dap, JTAG_DP_APACC, reg_addr, DPAP_WRITE,
+			outvalue, NULL, NULL);
 
-	if ((RnW == DPAP_READ) && (invalue != NULL))
-		adi_jtag_dp_scan(swjdp, JTAG_DP_DPACC,
-				DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
+	/* REVISIT except in dap_setup_accessport() almost all call paths
+	 * set up COMPOSITE.  Probably worth just inlining the scan...
+	 */
 
 	/* In TRANS_MODE_ATOMIC all JTAG_DP_APACC transactions wait for
 	 * ack = OK/FAULT and the check CTRL_STAT
 	 */
-	if ((instr == JTAG_DP_APACC)
-			&& (swjdp->trans_mode == TRANS_MODE_ATOMIC))
-		return jtagdp_transaction_endcheck(swjdp);
+	if (dap->trans_mode == TRANS_MODE_ATOMIC)
+		return jtagdp_transaction_endcheck(dap);
 
 	return ERROR_OK;
 }
@@ -432,8 +433,7 @@ static int dap_ap_write_reg(struct swjdp_common *swjdp,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
-			DPAP_WRITE, out_value_buf, NULL);
+	return ap_write_check(swjdp, reg_addr, out_value_buf);
 }
 
 /**
