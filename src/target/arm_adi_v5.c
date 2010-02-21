@@ -119,18 +119,6 @@ static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
-	/* Add specified number of tck clocks before accessing memory bus */
-
-	/* REVISIT these TCK cycles should be *AFTER*  updating APACC, since
-	 * they provide more time for the (MEM) AP to complete the read ...
-	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5 spec.
-	 */
-	if ((instr == JTAG_DP_APACC)
-			&& ((reg_addr == AP_REG_DRW)
-				|| ((reg_addr & 0xF0) == AP_REG_BD0))
-			&& (swjdp->memaccess_tck != 0))
-		jtag_add_runtest(swjdp->memaccess_tck, jtag_set_end_state(TAP_IDLE));
-
 	/* Scan out a read or write operation using some DP or AP register.
 	 * For APACC access with any sticky error flag set, this is discarded.
 	 */
@@ -151,6 +139,18 @@ static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 	fields[1].in_value = invalue;
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
+
+	/* Add specified number of tck clocks after starting memory bus
+	 * access, giving the hardware time to complete the access.
+	 * They provide more time for the (MEM) AP to complete the read ...
+	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5 spec.
+	 */
+	if ((instr == JTAG_DP_APACC)
+			&& ((reg_addr == AP_REG_DRW)
+				|| ((reg_addr & 0xF0) == AP_REG_BD0))
+			&& (swjdp->memaccess_tck != 0))
+		jtag_add_runtest(swjdp->memaccess_tck,
+				jtag_set_end_state(TAP_IDLE));
 
 	return jtag_get_error();
 }
