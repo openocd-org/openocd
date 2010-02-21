@@ -323,6 +323,24 @@ static int cortex_m3_examine_exception_reason(struct target *target)
 	return ERROR_OK;
 }
 
+/* PSP is used in some thread modes */
+static const int armv7m_psp_reg_map[17] = {
+	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
+	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
+	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
+	ARMV7M_R12, ARMV7M_PSP, ARMV7M_R14, ARMV7M_PC,
+	ARMV7M_xPSR,
+};
+
+/* MSP is used in handler and some thread modes */
+static const int armv7m_msp_reg_map[17] = {
+	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
+	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
+	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
+	ARMV7M_R12, ARMV7M_MSP, ARMV7M_R14, ARMV7M_PC,
+	ARMV7M_xPSR,
+};
+
 static int cortex_m3_debug_entry(struct target *target)
 {
 	int i;
@@ -330,6 +348,7 @@ static int cortex_m3_debug_entry(struct target *target)
 	int retval;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
+	struct arm *arm = &armv7m->arm;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	struct reg *r;
 
@@ -377,11 +396,27 @@ static int cortex_m3_debug_entry(struct target *target)
 	{
 		armv7m->core_mode = ARMV7M_MODE_HANDLER;
 		armv7m->exception_number = (xPSR & 0x1FF);
+
+		arm->core_mode = ARM_MODE_HANDLER;
+		arm->map = armv7m_msp_reg_map;
 	}
 	else
 	{
-		armv7m->core_mode = buf_get_u32(armv7m->core_cache
-				->reg_list[ARMV7M_CONTROL].value, 0, 1);
+		unsigned control = buf_get_u32(armv7m->core_cache
+				->reg_list[ARMV7M_CONTROL].value, 0, 2);
+
+		/* is this thread privileged? */
+		armv7m->core_mode = control & 1;
+		arm->core_mode = armv7m->core_mode
+				? ARM_MODE_USER_THREAD
+				: ARM_MODE_THREAD;
+
+		/* which stack is it using? */
+		if (control & 2)
+			arm->map = armv7m_psp_reg_map;
+		else
+			arm->map = armv7m_msp_reg_map;
+
 		armv7m->exception_number = 0;
 	}
 

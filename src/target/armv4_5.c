@@ -1426,10 +1426,12 @@ int arm_init_arch_info(struct target *target, struct arm *armv4_5)
 	armv4_5->target = target;
 
 	armv4_5->common_magic = ARM_COMMON_MAGIC;
-	arm_set_cpsr(armv4_5, ARM_MODE_USR);
 
 	/* core_type may be overridden by subtype logic */
-	armv4_5->core_type = ARM_MODE_ANY;
+	if (armv4_5->core_type != ARM_MODE_THREAD) {
+		armv4_5->core_type = ARM_MODE_ANY;
+		arm_set_cpsr(armv4_5, ARM_MODE_USR);
+	}
 
 	/* default full_context() has no core-specific optimizations */
 	if (!armv4_5->full_context && armv4_5->read_core_reg)

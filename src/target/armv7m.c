@@ -473,6 +473,7 @@ int armv7m_run_algorithm(struct target *target,
 int armv7m_arch_state(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct arm *arm = &armv7m->arm;
 	uint32_t ctrl, sp;
 
 	ctrl = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
@@ -483,7 +484,7 @@ int armv7m_arch_state(struct target *target)
 		debug_reason_name(target),
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
-		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32),
+		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_PC].value, 0, 32),
 		(ctrl & 0x02) ? 'p' : 'm',
 		sp);
@@ -499,6 +500,7 @@ static const struct reg_arch_type armv7m_reg_type = {
 struct reg_cache *armv7m_build_reg_cache(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct arm *arm = &armv7m->arm;
 	int num_regs = ARMV7M_NUM_REGS;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
@@ -532,19 +534,28 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 		reg_list[i].arch_info = &arch_info[i];
 	}
 
+	arm->cpsr = reg_list + ARMV7M_xPSR;
+	arm->core_cache = cache;
 	return cache;
 }
 
 /** Sets up target as a generic ARMv7-M core */
 int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 {
+	struct arm *arm = &armv7m->arm;
+
 	armv7m->common_magic = ARMV7M_COMMON_MAGIC;
 
-	target->arch_info = armv7m;
+	arm->core_type = ARM_MODE_THREAD;
+	arm->arch_info = armv7m;
+
+	/* FIXME remove v7m-specific r/w core_reg functions;
+	 * use the generic ARM core support..
+	 */
 	armv7m->read_core_reg = armv7m_read_core_reg;
 	armv7m->write_core_reg = armv7m_write_core_reg;
 
-	return ERROR_OK;
+	return arm_init_arch_info(target, arm);
 }
 
 /** Generates a CRC32 checksum of a memory region. */

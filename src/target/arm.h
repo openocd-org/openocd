@@ -40,9 +40,17 @@
  */
 
 /**
- * These numbers match the five low bits of the *PSR registers on
+ * Represent state of an ARM core.
+ *
+ * Most numbers match the five low bits of the *PSR registers on
  * "classic ARM" processors, which build on the ARMv4 processor
  * modes and register set.
+ *
+ * ARM_MODE_ANY is a magic value, often used as a wildcard.
+ *
+ * Only the microcontroller cores (ARMv6-M, ARMv7-M) support ARM_MODE_THREAD,
+ * ARM_MODE_USER_THREAD, and ARM_MODE_HANDLER.  Those are the only modes
+ * they support.
  */
 enum arm_mode {
 	ARM_MODE_USR = 16,
@@ -53,6 +61,11 @@ enum arm_mode {
 	ARM_MODE_MON = 26,
 	ARM_MODE_UND = 27,
 	ARM_MODE_SYS = 31,
+
+	ARM_MODE_THREAD,
+	ARM_MODE_USER_THREAD,
+	ARM_MODE_HANDLER,
+
 	ARM_MODE_ANY = -1
 };
 
@@ -96,6 +109,8 @@ struct arm {
 	 * ARM_MODE_ANY indicates the standard set of 37 registers,
 	 * seen on for example ARM7TDMI cores.  ARM_MODE_MON indicates three
 	 * more registers are shadowed, for "Secure Monitor" mode.
+	 * ARM_MODE_THREAD indicates a microcontroller profile core,
+	 * which only shadows SP.
 	 */
 	enum arm_mode core_type;
 

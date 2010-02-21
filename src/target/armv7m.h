@@ -100,6 +100,8 @@ enum
 
 struct armv7m_common
 {
+	struct arm	arm;
+
 	int common_magic;
 	struct reg_cache *core_cache;
 	enum armv7m_mode core_mode;
@@ -128,7 +130,7 @@ struct armv7m_common
 static inline struct armv7m_common *
 target_to_armv7m(struct target *target)
 {
-	return target->arch_info;
+	return container_of(target->arch_info, struct armv7m_common, arm);
 }
 
 static inline bool is_armv7m(struct armv7m_common *armv7m)
