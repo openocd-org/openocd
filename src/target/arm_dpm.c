@@ -453,8 +453,8 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
 	arm->cpsr->dirty = false;
 
-	retval = dpm_write_reg(dpm, &cache->reg_list[15], 15);
-	cache->reg_list[15].dirty = false;
+	retval = dpm_write_reg(dpm, arm->pc, 15);
+	arm->pc->dirty = false;
 
 	/* flush R0 -- it's *very* dirty by now */
 	retval = dpm_write_reg(dpm, &cache->reg_list[0], 0);

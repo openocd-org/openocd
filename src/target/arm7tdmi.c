@@ -598,7 +598,8 @@ static void arm7tdmi_branch_resume_thumb(struct target *target)
 	/* fetch NOP, LDM in EXECUTE stage (1st cycle) */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	/* nothing fetched, LDM in EXECUTE stage (2nd cycle) */
-	arm7tdmi_clock_out(jtag_info, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) | 1, NULL, 0);
+	arm7tdmi_clock_out(jtag_info,
+			buf_get_u32(armv4_5->pc->value, 0, 32) | 1, NULL, 0);
 	/* nothing fetched, LDM in EXECUTE stage (3rd cycle) */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 

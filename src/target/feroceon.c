@@ -337,7 +337,7 @@ void feroceon_branch_resume_thumb(struct target *target)
 	struct arm7_9_common *arm7_9 = armv4_5->arch_info;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	uint32_t r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
-	uint32_t pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	uint32_t pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -519,7 +519,7 @@ int feroceon_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 	/* backup clobbered processor state */
 	for (i = 0; i <= 5; i++)
 		save[i] = buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32);
-	save[i] = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	save[i] = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	/* set up target address in r0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, address);
@@ -572,9 +572,9 @@ int feroceon_bulk_write_memory(struct target *target, uint32_t address, uint32_t
 		armv4_5->core_cache->reg_list[i].valid = 1;
 		armv4_5->core_cache->reg_list[i].dirty = 1;
 	}
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, save[i]);
-	armv4_5->core_cache->reg_list[15].valid = 1;
-	armv4_5->core_cache->reg_list[15].dirty = 1;
+	buf_set_u32(armv4_5->pc->value, 0, 32, save[i]);
+	armv4_5->pc->valid = 1;
+	armv4_5->pc->dirty = 1;
 	armv4_5->core_state = core_state;
 
 	return retval;

@@ -393,8 +393,8 @@ static int do_semihosting(struct target *target)
 	armv4_5->core_cache->reg_list[0].dirty = 1;
 
 	/* LR --> PC */
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, lr);
-	armv4_5->core_cache->reg_list[15].dirty = 1;
+	buf_set_u32(armv4_5->pc->value, 0, 32, lr);
+	armv4_5->pc->dirty = 1;
 
 	/* saved PSR --> current PSR */
 	buf_set_u32(armv4_5->cpsr->value, 0, 32, spsr);
@@ -429,7 +429,7 @@ int arm_semihosting(struct target *target, int *retval)
 		return 0;
 
 	/* Check for PC == 0x00000008 or 0xffff0008: Supervisor Call vector. */
-	r = arm->core_cache->reg_list + 15;
+	r = arm->pc;
 	pc = buf_get_u32(r->value, 0, 32);
 	if (pc != 0x00000008 && pc != 0xffff0008)
 		return 0;

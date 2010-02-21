@@ -1235,9 +1235,9 @@ int arm7_9_soft_reset_halt(struct target *target)
 	armv4_5->cpsr->dirty = 1;
 
 	/* start fetching from 0x0 */
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
-	armv4_5->core_cache->reg_list[15].dirty = 1;
-	armv4_5->core_cache->reg_list[15].valid = 1;
+	buf_set_u32(armv4_5->pc->value, 0, 32, 0x0);
+	armv4_5->pc->dirty = 1;
+	armv4_5->pc->valid = 1;
 
 	/* reset registers */
 	for (i = 0; i <= 14; i++)
@@ -1721,9 +1721,10 @@ int arm7_9_restore_context(struct target *target)
 	}
 
 	/* restore PC */
-	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	arm7_9->write_pc(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	armv4_5->core_cache->reg_list[15].dirty = 0;
+	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32,
+			buf_get_u32(armv4_5->pc->value, 0, 32));
+	arm7_9->write_pc(target, buf_get_u32(armv4_5->pc->value, 0, 32));
+	armv4_5->pc->dirty = 0;
 
 	if (arm7_9->post_restore_context)
 		arm7_9->post_restore_context(target);
@@ -1815,15 +1816,17 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
+		buf_set_u32(armv4_5->pc->value, 0, 32, address);
 
 	uint32_t current_pc;
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
-		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
+		breakpoint = breakpoint_find(target,
+				buf_get_u32(armv4_5->pc->value, 0, 32));
+		if (breakpoint != NULL)
 		{
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (id: %d)", breakpoint->address, breakpoint->unique_id );
 			if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
@@ -1881,7 +1884,8 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 			}
 
 			arm7_9_debug_entry(target);
-			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32,
+					buf_get_u32(armv4_5->pc->value, 0, 32));
 
 			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			if ((retval = arm7_9_set_breakpoint(target, breakpoint)) != ERROR_OK)
@@ -1957,7 +1961,7 @@ void arm7_9_enable_eice_step(struct target *target, uint32_t next_pc)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	uint32_t current_pc;
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	if (next_pc != current_pc)
 	{
@@ -2019,18 +2023,18 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
+		buf_set_u32(armv4_5->pc->value, 0, 32, address);
 
-	uint32_t current_pc;
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	uint32_t current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
-		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
-			if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
-			{
-				return retval;
-			}
+		breakpoint = breakpoint_find(target, current_pc);
+	if (breakpoint != NULL) {
+		retval = arm7_9_unset_breakpoint(target, breakpoint);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 

@@ -577,6 +577,7 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		cache->num_regs++;
 	}
 
+	arm->pc = reg_list + 15;
 	arm->cpsr = reg_list + ARMV4_5_CPSR;
 	arm->core_cache = cache;
 	return cache;
@@ -598,8 +599,7 @@ int arm_arch_state(struct target *target)
 			debug_reason_name(target),
 			arm_mode_name(armv4_5->core_mode),
 			buf_get_u32(armv4_5->cpsr->value, 0, 32),
-			buf_get_u32(armv4_5->core_cache->reg_list[15].value,
-					0, 32),
+			buf_get_u32(armv4_5->pc->value, 0, 32),
 			armv4_5->is_semihosting ? ", semihosting" : "");
 
 	return ERROR_OK;
@@ -1018,11 +1018,10 @@ static int armv4_5_run_algorithm_completion(struct target *target, uint32_t exit
 	}
 
 	/* fast exit: ARMv5+ code can use BKPT */
-	if (exit_point && buf_get_u32(armv4_5->core_cache->reg_list[15].value,
-				0, 32) != exit_point)
+	if (exit_point && buf_get_u32(armv4_5->pc->value, 0, 32) != exit_point)
 	{
 		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4" PRIx32 "",
-			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+			buf_get_u32(armv4_5->pc->value, 0, 32));
 		return ERROR_TARGET_TIMEOUT;
 	}
 

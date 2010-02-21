@@ -427,7 +427,7 @@ static int cortex_m3_debug_entry(struct target *target)
 
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
 		armv7m_mode_strings[armv7m->core_mode],
-		*(uint32_t*)(armv7m->core_cache->reg_list[15].value),
+		*(uint32_t*)(arm->pc->value),
 		target_state_name(target));
 
 	if (armv7m->post_debug_entry)
@@ -680,7 +680,7 @@ static int cortex_m3_resume(struct target *target, int current,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	r = armv7m->core_cache->reg_list + 15;
+	r = armv7m->arm.pc;
 	if (!current)
 	{
 		buf_set_u32(r->value, 0, 32, address);
@@ -749,7 +749,7 @@ static int cortex_m3_step(struct target *target, int current,
 	struct armv7m_common *armv7m = &cortex_m3->armv7m;
 	struct swjdp_common *swjdp = &armv7m->swjdp_info;
 	struct breakpoint *breakpoint = NULL;
-	struct reg *pc = armv7m->core_cache->reg_list + 15;
+	struct reg *pc = armv7m->arm.pc;
 	bool bkpt_inst_found = false;
 
 	if (target->state != TARGET_HALTED)

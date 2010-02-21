@@ -282,7 +282,7 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int 
 
 	/* ARMV7M is always in thumb mode, try to make GDB understand this
 	 * if it does not support this arch */
-	*((char*)armv7m->core_cache->reg_list[15].value) |= 1;
+	*((char*)armv7m->arm.pc->value) |= 1;
 #else
 	(*reg_list)[25] = &armv7m->core_cache->reg_list[ARMV7M_xPSR];
 #endif
@@ -485,7 +485,7 @@ int armv7m_arch_state(struct target *target)
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
 		buf_get_u32(arm->cpsr->value, 0, 32),
-		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_PC].value, 0, 32),
+		buf_get_u32(arm->pc->value, 0, 32),
 		(ctrl & 0x02) ? 'p' : 'm',
 		sp);
 
@@ -535,6 +535,7 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	}
 
 	arm->cpsr = reg_list + ARMV7M_xPSR;
+	arm->pc = reg_list + ARMV7M_PC;
 	arm->core_cache = cache;
 	return cache;
 }
@@ -708,7 +709,7 @@ int armv7m_blank_check_memory(struct target *target,
 int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct reg *r = armv7m->core_cache->reg_list + 15;
+	struct reg *r = armv7m->arm.pc;
 	bool result = false;
 
 

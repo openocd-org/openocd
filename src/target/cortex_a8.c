@@ -695,9 +695,7 @@ static int cortex_a8_resume(struct target *target, int current,
 #endif
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	resume_pc = buf_get_u32(
-			armv4_5->core_cache->reg_list[15].value,
-			0, 32);
+	resume_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 	if (!current)
 		resume_pc = address;
 
@@ -721,10 +719,9 @@ static int cortex_a8_resume(struct target *target, int current,
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value,
-			0, 32, resume_pc);
-	armv4_5->core_cache->reg_list[15].dirty = 1;
-	armv4_5->core_cache->reg_list[15].valid = 1;
+	buf_set_u32(armv4_5->pc->value, 0, 32, resume_pc);
+	armv4_5->pc->dirty = 1;
+	armv4_5->pc->valid = 1;
 
 	cortex_a8_restore_context(target, handle_breakpoints);
 
@@ -869,7 +866,7 @@ static int cortex_a8_debug_entry(struct target *target)
 			regfile[ARM_PC] -= 8;
 		}
 
-		reg = armv4_5->core_cache->reg_list + 15;
+		reg = armv4_5->pc;
 		buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
 		reg->dirty = reg->valid;
 	}
@@ -952,7 +949,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	r = armv4_5->core_cache->reg_list + 15;
+	r = armv4_5->pc;
 	if (!current)
 	{
 		buf_set_u32(r->value, 0, 32, address);

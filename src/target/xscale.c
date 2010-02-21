@@ -941,9 +941,9 @@ static int xscale_debug_entry(struct target *target)
 	LOG_DEBUG("r0: 0x%8.8" PRIx32 "", buffer[0]);
 
 	/* move pc from buffer to register cache */
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, buffer[1]);
-	armv4_5->core_cache->reg_list[15].dirty = 1;
-	armv4_5->core_cache->reg_list[15].valid = 1;
+	buf_set_u32(armv4_5->pc->value, 0, 32, buffer[1]);
+	armv4_5->pc->dirty = 1;
+	armv4_5->pc->valid = 1;
 	LOG_DEBUG("pc: 0x%8.8" PRIx32 "", buffer[1]);
 
 	/* move data from buffer to register cache */
@@ -995,7 +995,7 @@ static int xscale_debug_entry(struct target *target)
 	moe = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 2, 3);
 
 	/* stored PC (for calculating fixup) */
-	pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	switch (moe)
 	{
@@ -1042,7 +1042,7 @@ static int xscale_debug_entry(struct target *target)
 	}
 
 	/* apply PC fixup */
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, pc);
+	buf_set_u32(armv4_5->pc->value, 0, 32, pc);
 
 	/* on the first debug entry, identify cache type */
 	if (xscale->armv4_5_mmu.armv4_5_cache.ctype == -1)
@@ -1212,21 +1212,23 @@ static int xscale_resume(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
+		buf_set_u32(armv4_5->pc->value, 0, 32, address);
 
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	/* if we're at the reset vector, we have to simulate the branch */
 	if (current_pc == 0x0)
 	{
 		arm_simulate_step(target, NULL);
-		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+		current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 	}
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
-		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
+		breakpoint = breakpoint_find(target,
+				buf_get_u32(armv4_5->pc->value, 0, 32));
+		if (breakpoint != NULL)
 		{
 			uint32_t next_pc;
 
@@ -1272,8 +1274,10 @@ static int xscale_resume(struct target *target, int current,
 			}
 
 			/* send PC */
-			xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-			LOG_DEBUG("writing PC with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+			xscale_send_u32(target,
+					buf_get_u32(armv4_5->pc->value, 0, 32));
+			LOG_DEBUG("writing PC with value 0x%8.8" PRIx32,
+					buf_get_u32(armv4_5->pc->value, 0, 32));
 
 			/* wait for and process debug entry */
 			xscale_debug_entry(target);
@@ -1316,8 +1320,9 @@ static int xscale_resume(struct target *target, int current,
 	}
 
 	/* send PC */
-	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+	xscale_send_u32(target, buf_get_u32(armv4_5->pc->value, 0, 32));
+	LOG_DEBUG("wrote PC with value 0x%8.8" PRIx32,
+			buf_get_u32(armv4_5->pc->value, 0, 32));
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
@@ -1354,7 +1359,7 @@ static int xscale_step_inner(struct target *target, int current,
 	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
 	{
 		uint32_t current_opcode, current_pc;
-		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+		current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 		target_read_u32(target, current_pc, &current_opcode);
 		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
@@ -1399,9 +1404,12 @@ static int xscale_step_inner(struct target *target, int current,
 	}
 
 	/* send PC */
-	if ((retval = xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))) != ERROR_OK)
+	retval = xscale_send_u32(target,
+			buf_get_u32(armv4_5->pc->value, 0, 32));
+	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+	LOG_DEBUG("wrote PC with value 0x%8.8" PRIx32,
+			buf_get_u32(armv4_5->pc->value, 0, 32));
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
@@ -1425,7 +1433,7 @@ static int xscale_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	struct arm *armv4_5 = target_to_arm(target);
-	struct breakpoint *breakpoint = target->breakpoints;
+	struct breakpoint *breakpoint = NULL;
 
 	uint32_t current_pc;
 	int retval;
@@ -1438,16 +1446,16 @@ static int xscale_step(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
+		buf_set_u32(armv4_5->pc->value, 0, 32, address);
 
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 	/* if we're at the reset vector, we have to simulate the step */
 	if (current_pc == 0x0)
 	{
 		if ((retval = arm_simulate_step(target, NULL)) != ERROR_OK)
 			return retval;
-		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+		current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 
 		target->debug_reason = DBG_REASON_SINGLESTEP;
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -1457,11 +1465,13 @@ static int xscale_step(struct target *target, int current,
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
-		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
-		{
-			if ((retval = xscale_unset_breakpoint(target, breakpoint)) != ERROR_OK)
-				return retval;
-		}
+		breakpoint = breakpoint_find(target,
+				buf_get_u32(armv4_5->pc->value, 0, 32));
+	if (breakpoint != NULL) {
+		retval = xscale_unset_breakpoint(target, breakpoint);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	retval = xscale_step_inner(target, current, address, handle_breakpoints);
 
@@ -2568,7 +2578,8 @@ static int xscale_read_trace(struct target *target)
 	(*trace_data_p)->next = NULL;
 	(*trace_data_p)->chkpt0 = trace_buffer[256];
 	(*trace_data_p)->chkpt1 = trace_buffer[257];
-	(*trace_data_p)->last_instruction = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	(*trace_data_p)->last_instruction =
+			buf_get_u32(armv4_5->pc->value, 0, 32);
 	(*trace_data_p)->entries = malloc(sizeof(struct xscale_trace_entry) * (256 - j));
 	(*trace_data_p)->depth = 256 - j;
 
@@ -3375,7 +3386,8 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		/* if we enable the trace buffer in fill-once
 		 * mode we know the address of the first instruction */
 		xscale->trace.pc_ok = 1;
-		xscale->trace.current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+		xscale->trace.current_pc =
+				buf_get_u32(armv4_5->pc->value, 0, 32);
 	}
 	else
 	{

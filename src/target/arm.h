@@ -95,6 +95,9 @@ struct arm {
 	int common_magic;
 	struct reg_cache *core_cache;
 
+	/** Handle to the PC; valid in all core modes. */
+	struct reg *pc;
+
 	/** Handle to the CPSR; valid in all core modes. */
 	struct reg *cpsr;
 
