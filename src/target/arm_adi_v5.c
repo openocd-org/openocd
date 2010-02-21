@@ -158,58 +158,34 @@ static int adi_jtag_dp_scan(struct swjdp_common *swjdp,
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
-	return ERROR_OK;
+	return jtag_get_error();
 }
 
-/* Scan out and in from host ordered uint32_t variables */
+/**
+ * Scan DPACC or APACC out and in from host ordered uint32_t buffers.
+ * This is exactly like adi_jtag_dp_scan(), except that endianness
+ * conversions are performed (so the types of invalue and outvalue
+ * must be different).
+ */
 static int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint32_t outvalue, uint32_t *invalue, uint8_t *ack)
 {
-	struct arm_jtag *jtag_info = swjdp->jtag_info;
-	struct scan_field fields[2];
 	uint8_t out_value_buf[4];
-	uint8_t out_addr_buf;
+	int retval;
 
-	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_set_instr(jtag_info, instr, NULL);
-
-	/* Add specified number of tck clocks before accessing memory bus */
-
-	/* REVISIT these TCK cycles should be *AFTER*  updating APACC, since
-	 * they provide more time for the (MEM) AP to complete the read ...
-	 */
-	if ((instr == JTAG_DP_APACC)
-			&& ((reg_addr == AP_REG_DRW)
-				|| ((reg_addr & 0xF0) == AP_REG_BD0))
-			&& (swjdp->memaccess_tck != 0))
-		jtag_add_runtest(swjdp->memaccess_tck, jtag_set_end_state(TAP_IDLE));
-
-	fields[0].tap = jtag_info->tap;
-	fields[0].num_bits = 3;
-	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
-	fields[0].out_value = &out_addr_buf;
-	fields[0].in_value = ack;
-
-	fields[1].tap = jtag_info->tap;
-	fields[1].num_bits = 32;
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
-	fields[1].out_value = out_value_buf;
-	fields[1].in_value = NULL;
+
+	retval = adi_jtag_dp_scan(swjdp, instr, reg_addr, RnW,
+			out_value_buf, (uint8_t *)invalue, ack);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (invalue)
-	{
-		fields[1].in_value = (uint8_t *)invalue;
-		jtag_add_dr_scan(2, fields, jtag_get_end_state());
+		jtag_add_callback(arm_le_to_h_u32,
+				(jtag_callback_data_t) invalue);
 
-		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t) invalue);
-	} else
-	{
-
-		jtag_add_dr_scan(2, fields, jtag_get_end_state());
-	}
-
-	return ERROR_OK;
+	return retval;
 }
 
 /* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */
