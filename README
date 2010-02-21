@@ -64,8 +64,8 @@ you can build the in-tree documentation.
 Installing OpenOCD
 ==================
 
-On Linux, you may have permissions problems to address.  The best
-way to do this is to use the contrib/udev.rules file.  It probably
+On Linux, you may have permissions problems to address.  The best way
+to do this is to use the contrib/openocd.udev rules file.  It probably
 belongs somewhere in /etc/udev/rules.d, but consult your operating
 system documentation to be sure.  In particular, make sure that it
 matches the syntax used by your operating system's version of udev.

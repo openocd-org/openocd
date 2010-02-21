@@ -506,6 +506,14 @@ as Tcl scripts, from a @file{startup.tcl} file internal to the server.
 @cindex logfile
 @cindex directory search
 
+Properly installing OpenOCD sets up your operating system to grant it access
+to the JTAG adapters.  On Linux, this usually involves installing a file
+in @file{/etc/udev/rules.d,} so OpenOCD has permissions.  MS-Windows needs
+complex and confusing driver configuration for every peripheral.  Such issues
+are unique to each operating system, and are not detailed in this User's Guide.
+
+Then later you will invoke the OpenOCD server, with various options to
+tell it how each debug session should work.
 The @option{--help} option shows:
 @verbatim
 bash$ openocd --help
@@ -1983,6 +1991,10 @@ MMU: disabled, D-Cache: disabled, I-Cache: enabled
 @chapter Interface - Dongle Configuration
 @cindex config file, interface
 @cindex interface config file
+
+Correctly installing OpenOCD includes making your operating system give
+OpenOCD access to JTAG adapters.  Once that has been done, Tcl commands
+are used to select which one is used, and to configure how it is used.
 
 JTAG Adapters/Interfaces/Dongles are normally configured
 through commands in an interface configuration
