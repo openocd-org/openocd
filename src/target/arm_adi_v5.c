@@ -450,12 +450,14 @@ static int dap_ap_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
 static int dap_ap_write_reg(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint8_t *out_value_buf)
 {
-	dap_ap_bankselect(swjdp, reg_addr);
-	scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
-			DPAP_WRITE, out_value_buf, NULL);
+	int retval;
 
-	/* FIXME return fault code from above calls */
-	return ERROR_OK;
+	retval = dap_ap_bankselect(swjdp, reg_addr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
+			DPAP_WRITE, out_value_buf, NULL);
 }
 
 /**
@@ -477,12 +479,8 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 	uint8_t out_value_buf[4];
 
 	buf_set_u32(out_value_buf, 0, 32, value);
-	dap_ap_bankselect(swjdp, reg_addr);
-	scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
-			DPAP_WRITE, out_value_buf, NULL);
-
-	/* FIXME return any fault code from above calls */
-	return ERROR_OK;
+	return dap_ap_write_reg(swjdp,
+			reg_addr, out_value_buf);
 }
 
 /**
@@ -501,12 +499,14 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint32_t *value)
 {
-	dap_ap_bankselect(swjdp, reg_addr);
-	scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
-			DPAP_READ, 0, value);
+	int retval;
 
-	/* FIXME return any fault code from above calls */
-	return ERROR_OK;
+	retval = dap_ap_bankselect(swjdp, reg_addr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
+			DPAP_READ, 0, value);
 }
 
 /**
@@ -533,19 +533,23 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
  */
 int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 {
+	int retval;
+
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
 	if (csw != swjdp->ap_csw_value)
 	{
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		/* FIXME if this call fails, fail this procedure! */
-		dap_ap_write_reg_u32(swjdp, AP_REG_CSW, csw);
+		retval = dap_ap_write_reg_u32(swjdp, AP_REG_CSW, csw);
+		if (retval != ERROR_OK)
+			return retval;
 		swjdp->ap_csw_value = csw;
 	}
 	if (tar != swjdp->ap_tar_value)
 	{
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		/* FIXME if this call fails, fail this procedure! */
-		dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar);
+		retval = dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar);
+		if (retval != ERROR_OK)
+			return retval;
 		swjdp->ap_tar_value = tar;
 	}
 	/* Disable TAR cache when autoincrementing */
@@ -568,17 +572,19 @@ int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address,
 		uint32_t *value)
 {
+	int retval;
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
-	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
-	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
+	if (retval != ERROR_OK)
+		return retval;
 
-	/* FIXME return any fault code from above calls */
-	return ERROR_OK;
+	return dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
 }
 
 /**
@@ -596,8 +602,11 @@ int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address,
 int mem_ap_read_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
 		uint32_t *value)
 {
-	mem_ap_read_u32(swjdp, address, value);
-	/* FIXME return any fault code from above call */
+	int retval;
+
+	retval = mem_ap_read_u32(swjdp, address, value);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return jtagdp_transaction_endcheck(swjdp);
 }
@@ -616,17 +625,20 @@ int mem_ap_read_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
 int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address,
 		uint32_t value)
 {
+	int retval;
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
-	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
+	if (retval != ERROR_OK)
+		return retval;
 
-	/* FIXME return any fault code from above calls */
-	return ERROR_OK;
+	return dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC),
+			value);
 }
 
 /**
@@ -643,8 +655,10 @@ int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address,
 int mem_ap_write_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
 		uint32_t value)
 {
-	mem_ap_write_u32(swjdp, address, value);
-	/* FIXME return any fault code from above call */
+	int retval = mem_ap_write_u32(swjdp, address, value);
+
+	if (retval != ERROR_OK)
+		return retval;
 
 	return jtagdp_transaction_endcheck(swjdp);
 }
