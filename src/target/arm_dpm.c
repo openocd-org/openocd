@@ -320,13 +320,16 @@ static int dpm_maybe_update_bpwp(struct arm_dpm *dpm, bool bpwp,
 				xp->address, xp->control);
 
 	if (retval != ERROR_OK)
-		LOG_ERROR("%s: can't %s HW bp/wp %d",
+		LOG_ERROR("%s: can't %s HW %spoint %d",
 				disable ? "disable" : "enable",
 				target_name(dpm->arm->target),
-				xp->number);
+				(xp->number < 16) ? "break" : "watch",
+				xp->number & 0xf);
 done:
 	return retval;
 }
+
+static int dpm_add_breakpoint(struct target *target, struct breakpoint *bp);
 
 /**
  * Writes all modified core registers for all processor modes.  In normal
@@ -354,7 +357,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * we should be able to assume we handle them; but until then,
 	 * cope with the hand-crafted breakpoint code.
 	 */
-	if (0) {
+	if (arm->target->type->add_breakpoint == dpm_add_breakpoint) {
 		for (unsigned i = 0; i < dpm->nbp; i++) {
 			struct dpm_bp *dbp = dpm->dbp + i;
 			struct breakpoint *bp = dbp->bp;
@@ -665,43 +668,26 @@ done:
  * fact isn't currently leveraged.
  */
 
-static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
-		struct watchpoint *wp)
+static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
+		uint32_t addr, uint32_t length)
 {
-	uint32_t addr = wp->address;
 	uint32_t control;
-
-	/* this hardware doesn't support data value matching or masking */
-	if (wp->value || wp->mask != ~(uint32_t)0) {
-		LOG_DEBUG("watchpoint values and masking not supported");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
 
 	control = (1 << 0)	/* enable */
 		| (3 << 1);	/* both user and privileged access */
 
-	switch (wp->rw) {
-	case WPT_READ:
-		control |= 1 << 3;
-		break;
-	case WPT_WRITE:
-		control |= 2 << 3;
-		break;
-	case WPT_ACCESS:
-		control |= 3 << 3;
-		break;
-	}
-
 	/* Match 1, 2, or all 4 byte addresses in this word.
 	 *
-	 * FIXME:  v7 hardware allows lengths up to 2 GB, and has eight
-	 * byte address select bits.  Support larger wp->length, if addr
-	 * is suitably aligned.
+	 * FIXME:  v7 hardware allows lengths up to 2 GB for BP and WP.
+	 * Support larger length, when addr is suitably aligned.  In
+	 * particular, allow watchpoints on 8 byte "double" values.
+	 *
+	 * REVISIT allow watchpoints on unaligned 2-bit values; and on
+	 * v7 hardware, unaligned 4-byte ones too.
 	 */
-	switch (wp->length) {
+	switch (length) {
 	case 1:
 		control |= (1 << (addr & 3)) << 5;
-		addr &= ~3;
 		break;
 	case 2:
 		/* require 2-byte alignment */
@@ -718,26 +704,110 @@ static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
 		}
 		/* FALL THROUGH */
 	default:
-		LOG_DEBUG("bad watchpoint length or alignment");
+		LOG_ERROR("unsupported {break,watch}point length/alignment");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	/* other control bits:
-	 * bits 9:12 == 0 ... only checking up to four byte addresses (v7 only)
+	/* other shared control bits:
 	 * bits 15:14 == 0 ... both secure and nonsecure states (v6.1+ only)
 	 * bit 20 == 0 ... not linked to a context ID
 	 * bit 28:24 == 0 ... not ignoring N LSBs (v7 only)
 	 */
 
-	dpm->dwp[index].wp = wp;
-	dpm->dwp[index].bpwp.address = addr & ~3;
-	dpm->dwp[index].bpwp.control = control;
-	dpm->dwp[index].bpwp.dirty = true;
+	xp->address = addr & ~3;
+	xp->control = control;
+	xp->dirty = true;
+
+	LOG_DEBUG("BPWP: addr %8.8x, control %x, number %d",
+			xp->address, control, xp->number);
 
 	/* hardware is updated in write_dirty_registers() */
 	return ERROR_OK;
 }
 
+static int dpm_add_breakpoint(struct target *target, struct breakpoint *bp)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	if (bp->length < 2)
+		return ERROR_INVALID_ARGUMENTS;
+	if (!dpm->bpwp_enable)
+		return retval;
+
+	/* FIXME we need a generic solution for software breakpoints. */
+	if (bp->type == BKPT_SOFT)
+		LOG_DEBUG("using HW bkpt, not SW...");
+
+	for (unsigned i = 0; i < dpm->nbp; i++) {
+		if (!dpm->dbp[i].bp) {
+			retval = dpm_bpwp_setup(dpm, &dpm->dbp[i].bpwp,
+					bp->address, bp->length);
+			if (retval == ERROR_OK)
+				dpm->dbp[i].bp = bp;
+			break;
+		}
+	}
+
+	return retval;
+}
+
+static int dpm_remove_breakpoint(struct target *target, struct breakpoint *bp)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval = ERROR_INVALID_ARGUMENTS;
+
+	for (unsigned i = 0; i < dpm->nbp; i++) {
+		if (dpm->dbp[i].bp == bp) {
+			dpm->dbp[i].bp = NULL;
+			dpm->dbp[i].bpwp.dirty = true;
+
+			/* hardware is updated in write_dirty_registers() */
+			retval = ERROR_OK;
+			break;
+		}
+	}
+
+	return retval;
+}
+
+static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
+		struct watchpoint *wp)
+{
+	int retval;
+	struct dpm_wp *dwp = dpm->dwp + index;
+	uint32_t control;
+
+	/* this hardware doesn't support data value matching or masking */
+	if (wp->value || wp->mask != ~(uint32_t)0) {
+		LOG_DEBUG("watchpoint values and masking not supported");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	retval = dpm_bpwp_setup(dpm, &dwp->bpwp, wp->address, wp->length);
+	if (retval != ERROR_OK)
+		return retval;
+
+	control = dwp->bpwp.control;
+	switch (wp->rw) {
+	case WPT_READ:
+		control |= 1 << 3;
+		break;
+	case WPT_WRITE:
+		control |= 2 << 3;
+		break;
+	case WPT_ACCESS:
+		control |= 3 << 3;
+		break;
+	}
+	dwp->bpwp.control = control;
+
+	dpm->dwp[index].wp = wp;
+
+	return retval;
+}
 
 static int dpm_add_watchpoint(struct target *target, struct watchpoint *wp)
 {
@@ -865,11 +935,16 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 	arm->mrc = dpm_mrc;
 	arm->mcr = dpm_mcr;
 
-	/* breakpoint and watchpoint setup */
+	/* breakpoint setup -- optional until it works everywhere */
+	if (!target->type->add_breakpoint) {
+		target->type->add_breakpoint = dpm_add_breakpoint;
+		target->type->remove_breakpoint = dpm_remove_breakpoint;
+	}
+
+	/* watchpoint setup */
 	target->type->add_watchpoint = dpm_add_watchpoint;
 	target->type->remove_watchpoint = dpm_remove_watchpoint;
 
-	/* FIXME add breakpoint support */
 	/* FIXME add vector catch support */
 
 	dpm->nbp = 1 + ((dpm->didr >> 24) & 0xf);
