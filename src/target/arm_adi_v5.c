@@ -349,7 +349,7 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 					"ap_bank 0x%" PRIx32
 					", ap_csw 0x%" PRIx32
 					", ap_tar 0x%" PRIx32,
-					swjdp->dp_select_value,
+					swjdp->ap_bank_value,
 					swjdp->ap_csw_value,
 					swjdp->ap_tar_value);
 
@@ -419,38 +419,38 @@ static int dap_dp_read_reg(struct swjdp_common *swjdp,
  */
 void dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
 {
-	uint32_t select;
-	select = (apsel << 24) & 0xFF000000;
+	uint32_t select = (apsel << 24) & 0xFF000000;
 
 	if (select != swjdp->apsel)
 	{
 		swjdp->apsel = select;
-		/* Switching AP invalidates cached values */
-		swjdp->dp_select_value = -1;
+		/* Switching AP invalidates cached values.
+		 * Values MUST BE UPDATED BEFORE AP ACCESS.
+		 */
+		swjdp->ap_bank_value = -1;
 		swjdp->ap_csw_value = -1;
 		swjdp->ap_tar_value = -1;
 	}
 }
 
-static int dap_dp_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
+/** Select the AP register bank matching bits 7:4 of ap_reg. */
+static int dap_ap_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
 {
-	uint32_t select;
-	select = (ap_reg & 0x000000F0);
+	uint32_t select = (ap_reg & 0x000000F0);
 
-	if (select != swjdp->dp_select_value)
+	if (select != swjdp->ap_bank_value)
 	{
-		dap_dp_write_reg(swjdp, select | swjdp->apsel, DP_SELECT);
-		swjdp->dp_select_value = select;
-	}
-
-	/* FIXME return any fault code from write() call */
-	return ERROR_OK;
+		swjdp->ap_bank_value = select;
+		select |= swjdp->apsel;
+		return dap_dp_write_reg(swjdp, select, DP_SELECT);
+	} else
+		return ERROR_OK;
 }
 
 static int dap_ap_write_reg(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint8_t *out_value_buf)
 {
-	dap_dp_bankselect(swjdp, reg_addr);
+	dap_ap_bankselect(swjdp, reg_addr);
 	scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_WRITE, out_value_buf, NULL);
 
@@ -477,7 +477,7 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 	uint8_t out_value_buf[4];
 
 	buf_set_u32(out_value_buf, 0, 32, value);
-	dap_dp_bankselect(swjdp, reg_addr);
+	dap_ap_bankselect(swjdp, reg_addr);
 	scan_inout_check(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_WRITE, out_value_buf, NULL);
 
@@ -501,7 +501,7 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint32_t *value)
 {
-	dap_dp_bankselect(swjdp, reg_addr);
+	dap_ap_bankselect(swjdp, reg_addr);
 	scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_READ, 0, value);
 
@@ -1206,12 +1206,11 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	/* Default MEM-AP setup.
 	 *
 	 * REVISIT AP #0 may be an inappropriate default for this.
-	 * Should we probe, or receve a hint from the caller?
+	 * Should we probe, or take a hint from the caller?
 	 * Presumably we can ignore the possibility of multiple APs.
 	 */
-	swjdp->apsel = 0;
-	swjdp->ap_csw_value = -1;
-	swjdp->ap_tar_value = -1;
+	swjdp->apsel = !0;
+	dap_ap_select(swjdp, 0);
 
 	/* DP initialization */
 	swjdp->trans_mode = TRANS_MODE_ATOMIC;

@@ -53,7 +53,9 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 		uint32_t value, int regnum);
 /*
  * FIXME do topology discovery using the ROM; don't
- * assume this is an OMAP3.
+ * assume this is an OMAP3.   Also, allow for multiple ARMv7-A
+ * cores, with different AP numbering ... don't use a #define
+ * for these numbers, use per-core armv7a state.
  */
 #define swjdp_memoryap 0
 #define swjdp_debugap 1
@@ -1570,9 +1572,7 @@ static int cortex_a8_init_arch_info(struct target *target,
 	cortex_a8->jtag_info.tap = tap;
 	cortex_a8->jtag_info.scann_size = 4;
 
-	swjdp->dp_select_value = -1;
-	swjdp->ap_csw_value = -1;
-	swjdp->ap_tar_value = -1;
+	/* Leave (only) generic DAP stuff for debugport_init() */
 	swjdp->jtag_info = &cortex_a8->jtag_info;
 	swjdp->memaccess_tck = 80;
 

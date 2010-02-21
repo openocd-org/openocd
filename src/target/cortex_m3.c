@@ -1848,12 +1848,11 @@ static int cortex_m3_init_arch_info(struct target *target,
 	cortex_m3->jtag_info.tap = tap;
 	cortex_m3->jtag_info.scann_size = 4;
 
-	armv7m->swjdp_info.dp_select_value = -1;
-	armv7m->swjdp_info.ap_csw_value = -1;
-	armv7m->swjdp_info.ap_tar_value = -1;
+	/* Leave (only) generic DAP stuff for debugport_init(); */
 	armv7m->swjdp_info.jtag_info = &cortex_m3->jtag_info;
 	armv7m->swjdp_info.memaccess_tck = 8;
-	armv7m->swjdp_info.tar_autoincr_block = (1 << 12);	/* Cortex-M3 has 4096 bytes autoincrement range */
+	/* Cortex-M3 has 4096 bytes autoincrement range */
+	armv7m->swjdp_info.tar_autoincr_block = (1 << 12);
 
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m3_examine_debug_reason;

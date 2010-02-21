@@ -138,17 +138,45 @@ struct swjdp_common
 	struct arm_jtag *jtag_info;
 	/* Control config */
 	uint32_t dp_ctrl_stat;
-	/* Support for several AP's in one DAP */
+
+	/**
+	 * Cache for DP_SELECT bits identifying the current AP.  A DAP may
+	 * connect to multiple APs, such as one MEM-AP for general access,
+	 * another reserved for accessing debug modules, and a JTAG-DP.
+	 * "-1" indicates no cached value.
+	 */
 	uint32_t apsel;
-	/* Register select cache */
-	uint32_t dp_select_value;
+
+	/**
+	 * Cache for DP_SELECT bits identifying the current four-word AP
+	 * register bank.  This caches AP register addresss bits 7:4; JTAG
+	 * and SWD access primitves pass address bits 3:2; bits 1:0 are zero.
+	 * "-1" indicates no cached value.
+	 */
+	uint32_t ap_bank_value;
+
+	/**
+	 * Cache for (MEM-AP) AP_REG_CSW register value.  This is written to
+	 * configure an access mode, such as autoincrementing AP_REG_TAR during
+	 * word access.  "-1" indicates no cached value.
+	 */
 	uint32_t ap_csw_value;
+
+	/**
+	 * Cache for (MEM-AP) AP_REG_TAR register value This is written to
+	 * configure the address being read or written
+	 * "-1" indicates no cached value.
+	 */
 	uint32_t ap_tar_value;
+
 	/* information about current pending SWjDP-AHBAP transaction */
 	uint8_t  trans_mode;
 	uint8_t  trans_rw;
 	uint8_t  ack;
-	/* extra tck clocks for memory bus access */
+	/**
+	 * Configures how many extra tck clocks are added after starting a
+	 * MEM-AP access before we try to read its status (and/or result).
+	 */
 	uint32_t	memaccess_tck;
 	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
 	uint32_t tar_autoincr_block;
