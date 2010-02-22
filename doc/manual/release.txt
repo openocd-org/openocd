@@ -84,8 +84,8 @@ the minor version will @a also be zero (<code>y = 0, z = 0</code>).
 After these required numeric components, release version strings
 may contain tags such as as <em>-rc1</em> or <em>-rc2</em>.
 These 'rc' tags indicate "release candidate" versions of the package.
-Like the major/minor/micro numbers, these tags will be manipulated
-by the automated release process.
+Like major/minor/micro numbers, these are updated
+as part of the release process.
 
 The release process includes version number manipulations to the tree
 being released, ensuring that all numbers are incremented (or rolled
@@ -277,22 +277,34 @@ support; the Release Manager isn't the only participant.
 
 The following steps should be followed to produce each release:
 
--# Produce final patches to mainline (or a release branch).  Nobody
-   except the RM should be committing anything.
-  -# Finalize @c NEWS file to describe the changes in the release
+-# Produce final patches using a local clone of mainline.  Nobody
+   except the RM should be committing anything.  <em>Everyone with commit
+   privileges needs to know and agree to this in advance!</em>  Even the RM
+   only commits a handful of updates as part of the release process
+   itself ... to files which are part of the version identification scheme
+   or release process; and to create the version tag; and then to open the
+   merge window for the next release cycle.
+  -# Finalize @c the NEWS file to describe the changes in the release
     - This file is used to automatically post "blurbs" about the project.
-    - This material should be produced during the development cycle.
-    - Add a new item for each @c NEWS-worthy contribution, when committed.
+    - This material should have been produced during the development cycle,
+      by adding items for each @c NEWS-worthy contribution, when committed
+      during the merge window.  (One part of closing the merge window, by
+      opening the RC phase of the release, is the commitment to hold all
+      further such contributions until the next merge window opens.)
+    - The RM should make sure nothing important was omitted, as part of
+      the RC1 cycle.  From then on, no more updates to NEWS content should
+      be needed (except to seed the process for the next release, or maybe
+      if a significant and longstanding bug is fixed late in the RC phase).
   -# Bump library version if our API changed (not yet required)
   -# Update and commit the final package version in @c configure.in:
-     <code>tools/release/version.sh</code> may help ensure the versions
-     are named consistently:
+     (The <code>tools/release/version.sh</code> script might help ensure
+     the versions are named properly.):
     -# Remove @c -dev tag.
-    -# Update the @c -rc tag:
+    -# Update any @c -rc tag:
       - If producing the final release from an -rc series, remove it
       - If producing the first RC in a series, add rc1
       - If producing the next RC in a series, bump the rc number
-    -# Commit that version change.
+    -# Commit that version change, with a good descriptive comment.
   -# Create a git tag for the final commit, with a tag name matching
      the version string in <code>configure.in</code> (including <em>-rcN</em>
      where relevant):
@@ -301,49 +313,92 @@ PACKAGE_VERSION="x.y.z"
 PACKAGE_TAG="v${PACKAGE_VERSION}"
 git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
 @endverbatim
--# Prepare to resume normal development on mainline (major or minor release)
-  - Update the version label
+  -# Do not push those changes to mainline yet; only builds using the
+     source archives you will be creating should ever be labeled as
+     official releases (with no "-dev" suffix).  Since mainline is a
+     development tree, these will be pushed later, as part of opening
+     the merge window for the next release cycle (restoring the "-dev"
+     suffix for that next release.)  Those version and tag updates are
+     the last ones to be included in the release being made.
+-# Produce the release files, using the local clone of the source
+  tree which holds the release's tag and updated version in
+  @c configure.in ... this is used only to produce the release, and
+  all files should already be properly checked out.
+  -# Run <code>tools/release.sh package</code> to produce the
+	source archives.  This automatically bootstraps and
+	configures the process.
+  -# Run <code>tools/release.sh stage</code> to create an @c archives
+	directory with the release data, including MD5 and SHA1
+	checksum files (which are used with Berlios).
+  -# Sanity check at least one of those archives, by extracting and
+     configuring its contents, using them to build a copy of OpenOCD,
+     and verifying that the result prints the correct release version
+     in its startup banner.  (For example,
+     "configure --enable-ft2232_libftdi --enable-parport"
+     then "make" and run "src/openocd -v" as a sanity check.)
+  -# Run <code>make docs</code> to create the
+     documentation which will be published.
+-# Upload packages and post announcements of their availability:
+  -# Release packages into files section of project sites:
+    - SF.net:
+     -# Under "Project Admin", use the "File Manager"
+     -# Create a new folder under "openocd" named "${PACKAGE_VERSION}"
+     -# Upload the @c NEWS file and mark it as the release notes.
+     -# Upload the three source archive files, using the Web interface,
+     	into that folder.  Verify the upload worked OK by checking the
+	MD5 and SHA1 checksums computed by SourceForge against the
+	versions created as part of staging the release.
+     -# Also upload doc/openocd.pdf (the User's Guide) so the version
+        matching each release will be easily available.
+     -# Select each file in the release, and use the property panel
+        to set its type and select the right release notes.
+       - .tar.bz2: Linux, Mac
+       - .tar.gz: BSD, Solaris, Others
+       - .zip: Windows
+       - For openocd.pdf just associate it with the right release notes.
+     -# Create an SF.net project news update.
+    - Berlios:
+     -# Provide @c NEWS file, as requested.
+     -# Upload the release files via FTP to ftp://ftp.berlios.de/incoming/
+     -# Edit descriptions for each file (one at a time)  Note that Berlios
+	does not automatically checksum files, and it uses a very old
+	version of the SourceForge code with user interface issues.
+     -# Click button to send E-mail Release Notice.
+  -# Depending on how paranoid you're feeling today, verify the images by
+     downloading them from the websites and making sure there are no
+     differences between the downloaded copies and your originals.
+  -# Publish User's and Developer's Guides to the project web sites:
+     -# Use SCP to update the SF.net web site with PDF and HTML for the
+          User's Guide, and HTML for the developer's guide ... you can
+	  instantiate a shell.sourceforge.net instance and set up symlinks
+	  from your home directory, to simplify this process.
+     -# (How to update the Berlios web site with the same data?)
+  -# Post announcement e-mail to the openocd-development list.
+  -# optionally:
+     -# Post an update on the Berlios blog (if it lets you)
+     -# Announce updates on freshmeat.net and other trackers.
+     -# Submit updates to news feeds (e.g. Digg, Reddit, etc.).
+-# Resume normal development on mainline, by opening the merge window for
+  the next major or minor release cycle.  (You might want to do this
+  before all the release bits are fully published.)
+  - Update the version label in the @c configure.in file:
      - Restore @c -dev version tag.
      - For a new minor release cycle, increment the release's minor number
      - For a new major release cycle, increment the release's major number
        and zero its minor number
   - Archive @c NEWS file as "<code>doc/news/NEWS-${PACKAGE_VERSION}</code>".
   - Create a new @c NEWS file for the next release
-  - Commit those changes, and push the commit and the release tag
-    to mainline.
--# Produce the package source archives:
-  -# <em>Start with a new clone of the source tree</em>, with the
-     release's tag.  This is used only for producing these packages.
-  -# Checkout the appropriate tag:
-<code>git checkout "${PACKAGE_VERSION}"</code>
-  -# @c bootstrap, @c configure, and @c make the package.
-  -# Run <code>make distcheck</code> to produce the distribution archives.
-  -# Run <code>make maintainer-clean</code> verify the repository is empty.
-  -# Create signature files using @c md5sum, @c sha1sum, etc.
--# Publish documentation for the release:
-  - Allow users to access the documentation for each of our releases.
-  - Place static copies of the following files on the project website:
-    - @c NEWS: to provide a blurb for each release
-    - User's Guide, Developer Manual: to allow easy on-line viewing
--# Upload packages and post announcements of their availability:
-  -# Release packages into files section of project sites:
-    - SF.net:
-     -# Create a new folder named "${PACKAGE_VERSION}"
-     -# Select new folder as the target for uploads.
-     -# Upload files via Web interface into new
-     -# Set platform types for each archive:
-       - .tar.bz2: Linux, Mac
-       - .tar.gz: BSD, Solaris, Others
-       - .zip: Windows
-    - Berlios:
-     -# Create the new release for the new version.
-     -# Provide @c NEWS file, as requested.
-     -# Upload files via FTP to ftp://ftp.berlios.de/incoming/
-     -# Edit descriptions for each file.
-     -# Click button to send E-mail Release Notice.
-  -# Post announcement e-mail to the openocd-development list.
-  -# Announce updates on freshmeat.net and other trackers.
-  -# Submit big updates to news feeds (e.g. Digg, Reddit, etc.).
+  - Commit those changes.
+  - Push all the updates to mainline.
+     - Last updates for the release, including the release tag (you
+       will need to "git push --tags").
+     - Updates opening the merge window
+  - At this point, it's OK for commiters to start pushing changes
+    which have been held off until the next release.  (Any bugfixes to
+    this release will be against a bug-fix release branch starting from
+    the commit you tagged as this release, not mainline.)
+  - Announce to the openocd-development list.  Ideally, you will also
+    be able to say who is managing the next release cycle.
 
 To start a bug-fix release branch:
 -# Create a new branch, starting from a major or
