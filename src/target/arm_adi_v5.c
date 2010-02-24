@@ -185,14 +185,14 @@ static int adi_jtag_dp_scan_u32(struct swjdp_common *swjdp,
 /**
  * Utility to write AP registers.
  */
-static inline int ap_write_check(struct swjdp_common *dap,
+static inline int adi_jtag_ap_write_check(struct swjdp_common *dap,
 		uint8_t reg_addr, uint8_t *outvalue)
 {
 	return adi_jtag_dp_scan(dap, JTAG_DP_APACC, reg_addr, DPAP_WRITE,
 			outvalue, NULL, NULL);
 }
 
-static int scan_inout_check_u32(struct swjdp_common *swjdp,
+static int adi_jtag_scan_inout_check_u32(struct swjdp_common *swjdp,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint32_t outvalue, uint32_t *invalue)
 {
@@ -222,7 +222,7 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 
 #if 0
 	/* Danger!!!! BROKEN!!!! */
-	scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+	adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 			DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here????
 	R956 introduced the check on return value here and now Michael Schwingen reports
@@ -240,7 +240,7 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 	/* Post CTRL/STAT read; discard any previous posted read value
 	 * but collect its ACK status.
 	 */
-	scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+	adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 			DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
@@ -275,7 +275,7 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
-			scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+			adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if ((retval = jtag_execute_queue()) != ERROR_OK)
 				return retval;
@@ -317,11 +317,11 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 				LOG_ERROR("JTAG-DP STICKY ERROR");
 
 			/* Clear Sticky Error Bits */
-			scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+			adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_WRITE,
 					swjdp->dp_ctrl_stat | SSTICKYORUN
 						| SSTICKYERR, NULL);
-			scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+			adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if ((retval = jtag_execute_queue()) != ERROR_OK)
 				return retval;
@@ -353,14 +353,14 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 static int dap_dp_write_reg(struct swjdp_common *swjdp,
 		uint32_t value, uint8_t reg_addr)
 {
-	return scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+	return adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 			reg_addr, DPAP_WRITE, value, NULL);
 }
 
 static int dap_dp_read_reg(struct swjdp_common *swjdp,
 		uint32_t *value, uint8_t reg_addr)
 {
-	return scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
+	return adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 			reg_addr, DPAP_READ, 0, value);
 }
 
@@ -412,7 +412,7 @@ static int dap_ap_write_reg(struct swjdp_common *swjdp,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return ap_write_check(swjdp, reg_addr, out_value_buf);
+	return adi_jtag_ap_write_check(swjdp, reg_addr, out_value_buf);
 }
 
 /**
@@ -452,7 +452,7 @@ int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
+	return adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
 			DPAP_READ, 0, value);
 }
 
