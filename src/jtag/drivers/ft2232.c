@@ -145,6 +145,7 @@ struct ft2232_layout {
 	int (*init)(void);
 	void (*reset)(int trst, int srst);
 	void (*blink)(void);
+	int channel;
 };
 
 /* init procedures for supported layouts */
@@ -2062,7 +2063,7 @@ static int ft2232_purge_ftd2xx(void)
 #endif /* BUILD_FT2232_FTD2XX == 1 */
 
 #if BUILD_FT2232_LIBFTDI == 1
-static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_more)
+static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_more, int channel)
 {
 	uint8_t latency_timer;
 
@@ -2072,7 +2073,10 @@ static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_mo
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
-	if (ftdi_set_interface(&ftdic, INTERFACE_A) < 0)
+	/* default to INTERFACE_A */
+	if(channel == INTERFACE_ANY) { channel = INTERFACE_A; }
+
+	if (ftdi_set_interface(&ftdic, channel) < 0)
 	{
 		LOG_ERROR("unable to select FT2232 channel A: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
@@ -2197,7 +2201,7 @@ static int ft2232_init(void)
 				more, &try_more);
 #elif BUILD_FT2232_LIBFTDI == 1
 		retval = ft2232_init_libftdi(ft2232_vid[i], ft2232_pid[i],
-				more, &try_more);
+					     more, &try_more, cur_layout->channel);
 #endif
 		if (retval >= 0)
 			break;
