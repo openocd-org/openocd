@@ -866,14 +866,16 @@ int mem_ap_write_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 	return retval;
 }
 
-/*********************************************************************************
-*                                                                                *
-* mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)  *
-*                                                                                *
-* Read block fast in target order (little endian) into a buffer                  *
-*                                                                                *
-**********************************************************************************/
-int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+/**
+ * Synchronously read a block of 32-bit words into a buffer
+ * @param swjdp The DAP connected to the MEM-AP.
+ * @param buffer where the words will be stored (in host byte order).
+ * @param count How many words to read.
+ * @param address Memory address from which to read words; all the
+ *	words must be readable by the currently selected MEM-AP.
+ */
+int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer,
+		int count, uint32_t address)
 {
 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
@@ -884,8 +886,12 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 
 	while (wcount > 0)
 	{
-		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
+		/* Adjust to read blocks within boundaries aligned to the
+		 * TAR autoincrement size (at least 2^10).  Autoincrement
+		 * mode avoids an extra per-word roundtrip to update TAR.
+		 */
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block,
+				address);
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -893,7 +899,8 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
+		dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE,
+				address);
 
 		/* Scan out first read */
 		adi_jtag_dp_scan(swjdp, JTAG_DP_APACC, AP_REG_DRW,
@@ -928,7 +935,8 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 
 		if (errorcount > 1)
 		{
-			LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+			LOG_WARNING("Block read error address 0x%" PRIx32
+				", count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -944,7 +952,8 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 
 			for (i = 0; i < 4; i++)
 			{
-				*((uint8_t*)pBuffer) = (data >> 8 * (adr & 0x3));
+				*((uint8_t*)pBuffer) =
+						(data >> 8 * (adr & 0x3));
 				pBuffer++;
 				adr++;
 			}
@@ -1005,7 +1014,16 @@ static int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp,
 	return retval;
 }
 
-int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+/**
+ * Synchronously read a block of 16-bit halfwords into a buffer
+ * @param swjdp The DAP connected to the MEM-AP.
+ * @param buffer where the halfwords will be stored (in host byte order).
+ * @param count How many halfwords to read.
+ * @param address Memory address from which to read words; all the
+ *	words must be readable by the currently selected MEM-AP.
+ */
+int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer,
+		int count, uint32_t address)
 {
 	uint32_t invalue, i;
 	int retval = ERROR_OK;
@@ -1094,7 +1112,16 @@ static int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp,
 	return retval;
 }
 
-int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, uint32_t address)
+/**
+ * Synchronously read a block of bytes into a buffer
+ * @param swjdp The DAP connected to the MEM-AP.
+ * @param buffer where the bytes will be stored.
+ * @param count How many bytes to read.
+ * @param address Memory address from which to read data; all the
+ *	data must be readable by the currently selected MEM-AP.
+ */
+int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer,
+		int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
