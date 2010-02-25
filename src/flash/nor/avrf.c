@@ -52,8 +52,11 @@
 
 struct avrf_type avft_chips_info[] =
 {
-//	 name,			chip_id,	flash_page_size,	flash_page_num,	eeprom_page_size,	eeprom_page_num
-	{"atmega128",	0x9702,		256,				512,			8,					512},
+/*	name, chip_id,	flash_page_size, flash_page_num,
+ *			eeprom_page_size, eeprom_page_num
+ */
+	{"atmega128",	0x9702, 256, 512, 8, 512},
+	{"at90can128",	0x9781, 256, 512, 8, 512},
 };
 
 int avr_jtag_sendinstr(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out);
@@ -200,8 +203,27 @@ FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 
 static int avrf_erase(struct flash_bank *bank, int first, int last)
 {
-	LOG_INFO("%s", __FUNCTION__);
-	return ERROR_OK;
+	struct target *target = bank->target;
+	struct avr_common *avr = target->arch_info;
+	int status;
+
+	LOG_DEBUG("%s", __FUNCTION__);
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	status = avr_jtagprg_enterprogmode(avr);
+	if (status != ERROR_OK)
+		return status;
+
+	status = avr_jtagprg_chiperase(avr);
+	if (status != ERROR_OK)
+		return status;
+
+	return avr_jtagprg_leaveprogmode(avr);
 }
 
 static int avrf_protect(struct flash_bank *bank, int set, int first, int last)
