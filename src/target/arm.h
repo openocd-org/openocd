@@ -132,6 +132,8 @@ struct arm {
 	/** Value to be returned by semihosting SYS_ERRNO request. */
 	int semihosting_errno;
 
+	int (*setup_semihosting)(struct target *target, int enable);
+
 	/** Backpointer to the target. */
 	struct target *target;
 

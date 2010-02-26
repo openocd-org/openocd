@@ -6021,6 +6021,18 @@ Display a table of all banked core registers, fetching the current value from ev
 core mode if necessary.
 @end deffn
 
+@deffn Command {arm semihosting} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Display status of semihosting, after optionally changing that status.
+
+Semihosting allows for code executing on an ARM target to use the
+I/O facilities on the host computer i.e. the system where OpenOCD
+is running. The target application must be linked against a library
+implementing the ARM semihosting convention that forwards operation
+requests by using a special SVC instruction that is trapped at the
+Supervisor Call vector by OpenOCD.
+@end deffn
+
 @section ARMv4 and ARMv5 Architecture
 @cindex ARMv4
 @cindex ARMv5
@@ -6071,18 +6083,6 @@ If a boolean parameter is provided, first assigns that flag.
 This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at very low
 speeds, like the 32kHz startup clock of an AT91RM9200.
-@end deffn
-
-@deffn Command {arm7_9 semihosting} [@option{enable}|@option{disable}]
-@cindex ARM semihosting
-Display status of semihosting, after optionally changing that status.
-
-Semihosting allows for code executing on an ARM target to use the
-I/O facilities on the host computer i.e. the system where OpenOCD
-is running. The target application must be linked against a library
-implementing the ARM semihosting convention that forwards operation
-requests by using a special SVC instruction that is trapped at the
-Supervisor Call vector by OpenOCD.
 @end deffn
 
 @subsection ARM720T specific commands

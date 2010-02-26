@@ -951,6 +951,49 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
+COMMAND_HANDLER(handle_arm_semihosting_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target ? target_to_arm(target) : NULL;
+
+	if (!is_arm(arm)) {
+		command_print(CMD_CTX, "current target isn't an ARM");
+		return ERROR_FAIL;
+	}
+
+	if (!arm->setup_semihosting)
+	{
+		command_print(CMD_CTX, "semihosting not supported for current target");
+	}
+
+	if (CMD_ARGC > 0)
+	{
+		int semihosting;
+
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], semihosting);
+
+		if (!target_was_examined(target))
+		{
+			LOG_ERROR("Target not examined yet");
+			return ERROR_FAIL;
+		}
+
+		if (arm->setup_semihosting(target, semihosting) != ERROR_OK) {
+			LOG_ERROR("Failed to Configure semihosting");
+			return ERROR_FAIL;
+		}
+
+		/* FIXME never let that "catch" be dropped! */
+		arm->is_semihosting = semihosting;
+	}
+
+	command_print(CMD_CTX, "semihosting is %s",
+			arm->is_semihosting
+			? "enabled" : "disabled");
+
+	return ERROR_OK;
+}
+
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "reg",
@@ -984,6 +1027,13 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.jim_handler = &jim_mcrmrc,
 		.help = "read coprocessor register",
 		.usage = "cpnum op1 CRn op2 CRm",
+	},
+	{
+		"semihosting",
+		.handler = handle_arm_semihosting_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable']",
+		.help = "activate support for semihosting operations",
 	},
 
 	COMMAND_REGISTRATION_DONE
