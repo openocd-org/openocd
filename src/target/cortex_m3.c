@@ -38,7 +38,7 @@
 #include "arm_disassembler.h"
 #include "register.h"
 #include "arm_opcodes.h"
-
+#include "arm_semihosting.h"
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
@@ -493,6 +493,9 @@ static int cortex_m3_poll(struct target *target)
 		if ((prev_target_state == TARGET_RUNNING) || (prev_target_state == TARGET_RESET))
 		{
 			if ((retval = cortex_m3_debug_entry(target)) != ERROR_OK)
+				return retval;
+
+			if (arm_semihosting(target, &retval) != 0)
 				return retval;
 
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);

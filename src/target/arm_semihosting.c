@@ -39,6 +39,9 @@
 
 #include "arm.h"
 #include "armv4_5.h"
+#include "arm7_9_common.h"
+#include "armv7m.h"
+#include "cortex_m3.h"
 #include "register.h"
 #include "arm_semihosting.h"
 #include <helper/binarybuffer.h>
@@ -62,13 +65,18 @@ static int open_modeflags[12] = {
 
 static int do_semihosting(struct target *target)
 {
-	struct arm *armv4_5 = target_to_arm(target);
-	uint32_t r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
-	uint32_t r1 = buf_get_u32(armv4_5->core_cache->reg_list[1].value, 0, 32);
-	uint32_t lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, ARM_MODE_SVC, 14).value, 0, 32);
-	uint32_t spsr = buf_get_u32(armv4_5->spsr->value, 0, 32);;
+	struct arm *arm = target_to_arm(target);
+	uint32_t r0 = buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32);
+	uint32_t r1 = buf_get_u32(arm->core_cache->reg_list[1].value, 0, 32);
+	uint32_t lr, spsr;
 	uint8_t params[16];
 	int retval, result;
+
+	if (is_arm7_9(target_to_arm7_9(target)))
+	{
+		lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache, ARM_MODE_SVC, 14).value, 0, 32);
+		spsr = buf_get_u32(arm->spsr->value, 0, 32);;
+	}
 
 	/*
 	 * TODO: lots of security issues are not considered yet, such as:
@@ -105,10 +113,10 @@ static int do_semihosting(struct target *target)
 					 * written file */
 					result = open((char *)fn, open_modeflags[m], 0644);
 				}
-				armv4_5->semihosting_errno =  errno;
+				arm->semihosting_errno =  errno;
 			} else {
 				result = -1;
-				armv4_5->semihosting_errno = EINVAL;
+				arm->semihosting_errno = EINVAL;
 			}
 		}
 		break;
@@ -120,7 +128,7 @@ static int do_semihosting(struct target *target)
 		else {
 			int fd = target_buffer_get_u32(target, params+0);
 			result = close(fd);
-			armv4_5->semihosting_errno = errno;
+			arm->semihosting_errno = errno;
 		}
 		break;
 
@@ -159,7 +167,7 @@ static int do_semihosting(struct target *target)
 			uint8_t *buf = malloc(l);
 			if (!buf) {
 				result = -1;
-				armv4_5->semihosting_errno = ENOMEM;
+				arm->semihosting_errno = ENOMEM;
 			} else {
 				retval = target_read_buffer(target, a, l, buf);
 				if (retval != ERROR_OK) {
@@ -167,7 +175,7 @@ static int do_semihosting(struct target *target)
 					return retval;
 				}
 				result = write(fd, buf, l);
-				armv4_5->semihosting_errno = errno;
+				arm->semihosting_errno = errno;
 				if (result >= 0)
 					result = l - result;
 				free(buf);
@@ -186,10 +194,10 @@ static int do_semihosting(struct target *target)
 			uint8_t *buf = malloc(l);
 			if (!buf) {
 				result = -1;
-				armv4_5->semihosting_errno = ENOMEM;
+				arm->semihosting_errno = ENOMEM;
 			} else {
 				result = read(fd, buf, l);
-				armv4_5->semihosting_errno = errno;
+				arm->semihosting_errno = errno;
 				if (result >= 0) {
 					retval = target_write_buffer(target, a, result, buf);
 					if (retval != ERROR_OK) {
@@ -229,7 +237,7 @@ static int do_semihosting(struct target *target)
 			int fd = target_buffer_get_u32(target, params+0);
 			off_t pos = target_buffer_get_u32(target, params+4);
 			result = lseek(fd, pos, SEEK_SET);
-			armv4_5->semihosting_errno = errno;
+			arm->semihosting_errno = errno;
 			if (result == pos)
 				result = 0;
 		}
@@ -244,7 +252,7 @@ static int do_semihosting(struct target *target)
 			struct stat buf;
 			result = fstat(fd, &buf);
 			if (result == -1) {
-				armv4_5->semihosting_errno = errno;
+				arm->semihosting_errno = errno;
 				result = -1;
 				break;
 			}
@@ -266,10 +274,10 @@ static int do_semihosting(struct target *target)
 					return retval;
 				fn[l] = 0;
 				result = remove((char *)fn);
-				armv4_5->semihosting_errno =  errno;
+				arm->semihosting_errno =  errno;
 			} else {
 				result = -1;
-				armv4_5->semihosting_errno = EINVAL;
+				arm->semihosting_errno = EINVAL;
 			}
 		}
 		break;
@@ -294,10 +302,10 @@ static int do_semihosting(struct target *target)
 				fn1[l1] = 0;
 				fn2[l2] = 0;
 				result = rename((char *)fn1, (char *)fn2);
-				armv4_5->semihosting_errno =  errno;
+				arm->semihosting_errno =  errno;
 			} else {
 				result = -1;
-				armv4_5->semihosting_errno = EINVAL;
+				arm->semihosting_errno = EINVAL;
 			}
 		}
 		break;
@@ -307,7 +315,7 @@ static int do_semihosting(struct target *target)
 		break;
 
 	case 0x13:	/* SYS_ERRNO */
-		result = armv4_5->semihosting_errno;
+		result = arm->semihosting_errno;
 		break;
 
 	case 0x15:	/* SYS_GET_CMDLINE */
@@ -383,25 +391,37 @@ static int do_semihosting(struct target *target)
 		fprintf(stderr, "semihosting: unsupported call %#x\n",
 				(unsigned) r0);
 		result = -1;
-		armv4_5->semihosting_errno = ENOTSUP;
+		arm->semihosting_errno = ENOTSUP;
 	}
 
 	/* resume execution to the original mode */
 
-	/* return value in R0 */
-	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, result);
-	armv4_5->core_cache->reg_list[0].dirty = 1;
+	if (is_arm7_9(target_to_arm7_9(target)))
+	{
+		/* return value in R0 */
+		buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, result);
+		arm->core_cache->reg_list[0].dirty = 1;
 
-	/* LR --> PC */
-	buf_set_u32(armv4_5->pc->value, 0, 32, lr);
-	armv4_5->pc->dirty = 1;
+		/* LR --> PC */
+		buf_set_u32(arm->core_cache->reg_list[15].value, 0, 32, lr);
+		arm->core_cache->reg_list[15].dirty = 1;
 
-	/* saved PSR --> current PSR */
-	buf_set_u32(armv4_5->cpsr->value, 0, 32, spsr);
-	armv4_5->cpsr->dirty = 1;
-	armv4_5->core_mode = spsr & 0x1f;
-	if (spsr & 0x20)
-		armv4_5->core_state = ARM_STATE_THUMB;
+		/* saved PSR --> current PSR */
+		buf_set_u32(arm->cpsr->value, 0, 32, spsr);
+		arm->cpsr->dirty = 1;
+		arm->core_mode = spsr & 0x1f;
+		if (spsr & 0x20)
+			arm->core_state = ARM_STATE_THUMB;
+	}
+	else
+	{
+		/* resume execution, this will be pc+2 to skip over the
+		 * bkpt instruction */
+
+		/* return result in R0 */
+		buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, result);
+		arm->core_cache->reg_list[0].dirty = 1;
+	}
 
 	return target_resume(target, 1, 0, 0, 0);
 }
@@ -425,59 +445,89 @@ int arm_semihosting(struct target *target, int *retval)
 	uint32_t pc, lr, spsr;
 	struct reg *r;
 
-	if (!arm->is_semihosting || arm->core_mode != ARM_MODE_SVC)
+	if (!arm->is_semihosting)
 		return 0;
 
-	/* Check for PC == 0x00000008 or 0xffff0008: Supervisor Call vector. */
-	r = arm->pc;
-	pc = buf_get_u32(r->value, 0, 32);
-	if (pc != 0x00000008 && pc != 0xffff0008)
-		return 0;
+	if (is_arm7_9(target_to_arm7_9(target)))
+	{
+		if (arm->core_mode != ARM_MODE_SVC)
+			return 0;
 
-	r = arm_reg_current(arm, 14);
-	lr = buf_get_u32(r->value, 0, 32);
+		/* Check for PC == 0x00000008 or 0xffff0008: Supervisor Call vector. */
+		r = arm->pc;
+		pc = buf_get_u32(r->value, 0, 32);
+		if (pc != 0x00000008 && pc != 0xffff0008)
+			return 0;
 
-	/* Core-specific code should make sure SPSR is retrieved
-	 * when the above checks pass...
-	 */
-	if (!arm->spsr->valid) {
-		LOG_ERROR("SPSR not valid!");
-		*retval = ERROR_FAIL;
-		return 1;
+		r = arm_reg_current(arm, 14);
+		lr = buf_get_u32(r->value, 0, 32);
+
+		/* Core-specific code should make sure SPSR is retrieved
+		 * when the above checks pass...
+		 */
+		if (!arm->spsr->valid) {
+			LOG_ERROR("SPSR not valid!");
+			*retval = ERROR_FAIL;
+			return 1;
+		}
+
+		spsr = buf_get_u32(arm->spsr->value, 0, 32);
+
+		/* check instruction that triggered this trap */
+		if (spsr & (1 << 5)) {
+			/* was in Thumb (or ThumbEE) mode */
+			uint8_t insn_buf[2];
+			uint16_t insn;
+
+			*retval = target_read_memory(target, lr-2, 2, 1, insn_buf);
+			if (*retval != ERROR_OK)
+				return 1;
+			insn = target_buffer_get_u16(target, insn_buf);
+
+			/* SVC 0xab */
+			if (insn != 0xDFAB)
+				return 0;
+		} else if (spsr & (1 << 24)) {
+			/* was in Jazelle mode */
+			return 0;
+		} else {
+			/* was in ARM mode */
+			uint8_t insn_buf[4];
+			uint32_t insn;
+
+			*retval = target_read_memory(target, lr-4, 4, 1, insn_buf);
+			if (*retval != ERROR_OK)
+				return 1;
+			insn = target_buffer_get_u32(target, insn_buf);
+
+			/* SVC 0x123456 */
+			if (insn != 0xEF123456)
+				return 0;
+		}
 	}
-
-	spsr = buf_get_u32(arm->spsr->value, 0, 32);
-
-	/* check instruction that triggered this trap */
-	if (spsr & (1 << 5)) {
-		/* was in Thumb (or ThumbEE) mode */
-		uint8_t insn_buf[2];
+	else if (is_armv7m(target_to_armv7m(target)))
+	{
 		uint16_t insn;
 
-		*retval = target_read_memory(target, lr-2, 2, 1, insn_buf);
+		if (target->debug_reason != DBG_REASON_BREAKPOINT)
+			return 0;
+
+		r = arm->pc;
+		pc = buf_get_u32(r->value, 0, 32);
+
+		pc &= ~1;
+		*retval = target_read_u16(target, pc, &insn);
 		if (*retval != ERROR_OK)
 			return 1;
-		insn = target_buffer_get_u16(target, insn_buf);
 
-		/* SVC 0xab */
-		if (insn != 0xDFAB)
+		/* bkpt 0xAB */
+		if (insn != 0xBEAB)
 			return 0;
-	} else if (spsr & (1 << 24)) {
-		/* was in Jazelle mode */
+	}
+	else
+	{
+		LOG_ERROR("Unsupported semi-hosting Target");
 		return 0;
-	} else {
-		/* was in ARM mode */
-		uint8_t insn_buf[4];
-		uint32_t insn;
-
-		*retval = target_read_memory(target, lr-4, 4, 1, insn_buf);
-		if (*retval != ERROR_OK)
-			return 1;
-		insn = target_buffer_get_u32(target, insn_buf);
-
-		/* SVC 0x123456 */
-		if (insn != 0xEF123456)
-			return 0;
 	}
 
 	*retval = do_semihosting(target);

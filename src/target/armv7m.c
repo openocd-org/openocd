@@ -469,14 +469,15 @@ int armv7m_arch_state(struct target *target)
 	sp = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_R13].value, 0, 32);
 
 	LOG_USER("target halted due to %s, current mode: %s %s\n"
-		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32,
+		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32 "%s",
 		debug_reason_name(target),
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u32(arm->pc->value, 0, 32),
 		(ctrl & 0x02) ? 'p' : 'm',
-		sp);
+		sp,
+		arm->is_semihosting ? ", semihosting" : "");
 
 	return ERROR_OK;
 }
@@ -529,6 +530,12 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	return cache;
 }
 
+int armv7m_setup_semihosting(struct target *target, int enable)
+{
+	/* nothing todo for armv7m */
+	return ERROR_OK;
+}
+
 /** Sets up target as a generic ARMv7-M core */
 int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 {
@@ -538,6 +545,7 @@ int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 
 	arm->core_type = ARM_MODE_THREAD;
 	arm->arch_info = armv7m;
+	arm->setup_semihosting = armv7m_setup_semihosting;
 
 	/* FIXME remove v7m-specific r/w core_reg functions;
 	 * use the generic ARM core support..
