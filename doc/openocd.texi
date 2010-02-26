@@ -6427,12 +6427,6 @@ If @var{value} is defined, first assigns that.
 @subsection Cortex-M3 specific commands
 @cindex Cortex-M3
 
-@deffn Command {cortex_m3 disassemble} address [count]
-@cindex disassemble
-Disassembles @var{count} Thumb2 instructions starting at @var{address}.
-If @var{count} is not specified, a single instruction is disassembled.
-@end deffn
-
 @deffn Command {cortex_m3 maskisr} (@option{on}|@option{off})
 Control masking (disabling) interrupts during target step/resume.
 @end deffn

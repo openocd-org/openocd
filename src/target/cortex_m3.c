@@ -1899,50 +1899,6 @@ static int cortex_m3_verify_pointer(struct command_context *cmd_ctx,
  * cortexm3_target structure, which is only used with CM3 targets.
  */
 
-/*
- * REVISIT Thumb2 disassembly should work for all ARMv7 cores, as well
- * as at least ARM-1156T2.  The interesting thing about Cortex-M is
- * that *only* Thumb2 disassembly matters.  There are also some small
- * additions to Thumb2 that are specific to ARMv7-M.
- */
-COMMAND_HANDLER(handle_cortex_m3_disassemble_command)
-{
-	int retval;
-	struct target *target = get_current_target(CMD_CTX);
-	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
-	uint32_t address;
-	unsigned long count = 1;
-	struct arm_instruction cur_instruction;
-
-	retval = cortex_m3_verify_pointer(CMD_CTX, cortex_m3);
-	if (retval != ERROR_OK)
-		return retval;
-
-	errno = 0;
-	switch (CMD_ARGC) {
-	case 2:
-		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[1], count);
-		/* FALL THROUGH */
-	case 1:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
-		break;
-	default:
-		command_print(CMD_CTX,
-			"usage: cortex_m3 disassemble <address> [<count>]");
-		return ERROR_OK;
-	}
-
-	while (count--) {
-		retval = thumb2_opcode(target, address, &cur_instruction);
-		if (retval != ERROR_OK)
-			return retval;
-		command_print(CMD_CTX, "%s", cur_instruction.text);
-		address += cur_instruction.instruction_size;
-	}
-
-	return ERROR_OK;
-}
-
 static const struct {
 	char name[10];
 	unsigned mask;
@@ -2056,13 +2012,6 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 }
 
 static const struct command_registration cortex_m3_exec_command_handlers[] = {
-	{
-		.name = "disassemble",
-		.handler = handle_cortex_m3_disassemble_command,
-		.mode = COMMAND_EXEC,
-		.help = "disassemble Thumb2 instructions",
-		.usage = "address [count]",
-	},
 	{
 		.name = "maskisr",
 		.handler = handle_cortex_m3_mask_interrupts_command,
