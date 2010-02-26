@@ -878,6 +878,9 @@ static const struct command_registration armv7m_exec_command_handlers[] = {
 };
 const struct command_registration armv7m_command_handlers[] = {
 	{
+		.chain = arm_command_handlers,
+	},
+	{
 		.name = "dap",
 		.mode = COMMAND_EXEC,
 		.help = "Cortex DAP command group",

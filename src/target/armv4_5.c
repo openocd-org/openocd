@@ -627,6 +627,12 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 		return ERROR_FAIL;
 	}
 
+	if (armv4_5->core_type != ARM_MODE_ANY)
+	{
+		command_print(CMD_CTX, "Microcontroller Profile not supported - use standard reg cmd");
+		return ERROR_OK;
+	}
+
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 
@@ -706,6 +712,13 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 		return ERROR_FAIL;
 	}
 
+	if (armv4_5->core_type == ARM_MODE_THREAD)
+	{
+		/* armv7m not supported */
+		command_print(CMD_CTX, "Unsupported Command");
+		return ERROR_OK;
+	}
+
 	if (CMD_ARGC > 0)
 	{
 		if (strcmp(CMD_ARGV[0], "arm") == 0)
@@ -723,7 +736,7 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_armv4_5_disassemble_command)
+COMMAND_HANDLER(handle_arm_disassemble_command)
 {
 	int retval = ERROR_OK;
 	struct target *target = get_current_target(CMD_CTX);
@@ -735,6 +748,12 @@ COMMAND_HANDLER(handle_armv4_5_disassemble_command)
 	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
+	}
+
+	if (arm->core_type == ARM_MODE_THREAD)
+	{
+		/* armv7m is always thumb mode */
+		thumb = 1;
 	}
 
 	switch (CMD_ARGC) {
@@ -819,6 +838,13 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (!is_arm(arm)) {
 		LOG_ERROR("%s: not an ARM", target_name(target));
 		return JIM_ERR;
+	}
+
+	if (arm->core_type == ARM_MODE_THREAD)
+	{
+		/* armv7m not supported */
+		LOG_ERROR("Unsupported Command");
+		return ERROR_OK;
 	}
 
 	if ((argc < 6) || (argc > 7)) {
@@ -941,7 +967,7 @@ static const struct command_registration arm_exec_command_handlers[] = {
 	},
 	{
 		.name = "disassemble",
-		.handler = handle_armv4_5_disassemble_command,
+		.handler = handle_arm_disassemble_command,
 		.mode = COMMAND_EXEC,
 		.usage = "address [count ['thumb']]",
 		.help = "disassemble instructions ",
