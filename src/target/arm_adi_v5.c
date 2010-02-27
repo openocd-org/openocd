@@ -1716,3 +1716,116 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 
 	return retval;
 }
+
+/*
+ * This represents the bits which must be sent out on TMS/SWDIO to
+ * switch a DAP implemented using an SWJ-DP module into SWD mode.
+ * These bits are stored (and transmitted) LSB-first.
+ *
+ * See the DAP-Lite specification, section 2.2.5 for information
+ * about making the debug link select SWD or JTAG.  (Similar info
+ * is in a few other ARM documents.)
+ */
+static const uint8_t jtag2swd_bitseq[] = {
+	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
+	 * putting both JTAG and SWD logic into reset state.
+	 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	/* Switching sequence enables SWD and disables JTAG
+	 * NOTE: bits in the DP's IDCODE may expose the need for
+	 * an old/deprecated sequence (0xb6 0xed).
+	 */
+	0x9e, 0xe7,
+	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
+	 * putting both JTAG and SWD logic into reset state.
+	 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+};
+
+/**
+ * Put the debug link into SWD mode, if the target supports it.
+ * The link's initial mode may be either JTAG (for example,
+ * with SWJ-DP after reset) or SWD.
+ *
+ * @param target Enters SWD mode (if possible).
+ *
+ * Note that targets using the JTAG-DP do not support SWD, and that
+ * some targets which could otherwise support it may have have been
+ * configured to disable SWD signaling
+ *
+ * @return ERROR_OK or else a fault code.
+ */
+int dap_to_swd(struct target *target)
+{
+	int retval;
+
+	LOG_DEBUG("Enter SWD mode");
+
+	/* REVISIT it's nasty to need to make calls to a "jtag"
+	 * subsystem if the link isn't in JTAG mode...
+	 */
+
+	retval =  jtag_add_tms_seq(8 * sizeof(jtag2swd_bitseq),
+			jtag2swd_bitseq, TAP_INVALID);
+	if (retval == ERROR_OK)
+		retval = jtag_execute_queue();
+
+	/* REVISIT set up the DAP's ops vector for SWD mode. */
+
+	return retval;
+}
+
+/**
+ * This represents the bits which must be sent out on TMS/SWDIO to
+ * switch a DAP implemented using an SWJ-DP module into JTAG mode.
+ * These bits are stored (and transmitted) LSB-first.
+ *
+ * These bits are stored (and transmitted) LSB-first.
+ */
+static const uint8_t swd2jtag_bitseq[] = {
+	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
+	 * putting both JTAG and SWD logic into reset state.
+	 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	/* Switching equence disables SWD and enables JTAG
+	 * NOTE: bits in the DP's IDCODE can expose the need for
+	 * the old/deprecated sequence (0xae 0xde).
+	 */
+	0x3c, 0xe7,
+	/* At least 50 TCK/SWCLK cycles with TMS/SWDIO high,
+	 * putting both JTAG and SWD logic into reset state.
+	 * NOTE:  some docs say "at least 5".
+	 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+};
+
+/** Put the debug link into JTAG mode, if the target supports it.
+ * The link's initial mode may be either SWD or JTAG.
+ *
+ * @param target Enters JTAG mode (if possible).
+ *
+ * Note that targets implemented with SW-DP do not support JTAG, and
+ * that some targets which could otherwise support it may have been
+ * configured to disable JTAG signaling
+ *
+ * @return ERROR_OK or else a fault code.
+ */
+int dap_to_jtag(struct target *target)
+{
+	int retval;
+
+	LOG_DEBUG("Enter JTAG mode");
+
+	/* REVISIT it's nasty to need to make calls to a "jtag"
+	 * subsystem if the link isn't in JTAG mode...
+	 */
+
+	retval = jtag_add_tms_seq(8 * sizeof(swd2jtag_bitseq),
+			swd2jtag_bitseq, TAP_RESET);
+	if (retval == ERROR_OK)
+		retval = jtag_execute_queue();
+
+	/* REVISIT set up the DAP's ops vector for JTAG mode. */
+
+	return retval;
+}

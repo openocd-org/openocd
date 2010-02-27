@@ -235,4 +235,12 @@ DAP_COMMAND_HANDLER(dap_memaccess_command);
 DAP_COMMAND_HANDLER(dap_apsel_command);
 DAP_COMMAND_HANDLER(dap_apid_command);
 
+struct target;
+
+/* Put debug link into SWD mode */
+int dap_to_swd(struct target *target);
+
+/* Put debug link into JTAG mode */
+int dap_to_jtag(struct target *target);
+
 #endif
