@@ -10,6 +10,12 @@ Boundary Scan:
 Target Layer:
 
 Flash Layer:
+	New "stellaris recover" command, implements the procedure
+		to recover locked devices (restoring non-volatile
+		state to the factory defaults, including erasing
+		the flash and its protection bits, and possibly
+		re-enabling hardware debugging).
+
 
 Board, Target, and Interface Configuration Scripts:
 

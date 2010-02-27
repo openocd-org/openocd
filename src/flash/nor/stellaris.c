@@ -1170,12 +1170,78 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 	return ERROR_OK;
 }
 
+/**
+ * Perform the Stellaris "Recovering a 'Locked' Device procedure.
+ * This performs a mass erase and then restores all nonvolatile registers
+ * (including USER_* registers and flash lock bits) to their defaults.
+ * Accordingly, flash can be reprogrammed, and JTAG can be used.
+ *
+ * NOTE that DustDevil parts (at least rev A0 silicon) have errata which
+ * can affect this operation if flash protection has been enabled.
+ */
+COMMAND_HANDLER(stellaris_handle_recover_command)
+{
+	struct flash_bank *bank;
+	int retval;
+
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* REVISIT ... it may be worth sanity checking that the AP is
+	 * inactive before we start.  ARM documents that switching a DP's
+	 * mode while it's active can cause fault modes that need a power
+	 * cycle to recover.
+	 */
+
+	/* assert SRST */
+	if (!(jtag_get_reset_config() & RESET_HAS_SRST)) {
+		LOG_ERROR("Can't recover Stellaris flash without SRST");
+		return ERROR_FAIL;
+	}
+	jtag_add_reset(0, 1);
+
+	for (int i = 0; i < 5; i++) {
+		retval = dap_to_swd(bank->target);
+		if (retval != ERROR_OK)
+			goto done;
+
+		retval = dap_to_jtag(bank->target);
+		if (retval != ERROR_OK)
+			goto done;
+	}
+
+	/* de-assert SRST */
+	jtag_add_reset(0, 0);
+	retval = jtag_execute_queue();
+
+	/* wait 400+ msec ... OK, "1+ second" is simpler */
+	sleep(1);
+
+	/* USER INTERVENTION required for the power cycle
+	 * Restarting OpenOCD is likely needed because of mode switching.
+	 */
+	LOG_INFO("USER ACTION:  "
+		"power cycle Stellaris chip, then restart OpenOCD.");
+
+done:
+	return retval;
+}
+
 static const struct command_registration stellaris_exec_command_handlers[] = {
 	{
 		.name = "mass_erase",
 		.handler = stellaris_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
 		.help = "erase entire device",
+	},
+	{
+		.name = "recover",
+		.handler = stellaris_handle_recover_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "recover locked device",
 	},
 	COMMAND_REGISTRATION_DONE
 };

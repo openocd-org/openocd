@@ -4497,6 +4497,21 @@ flash bank stellaris 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn Command {stellaris recover bank_id}
+Performs the @emph{Recovering a "Locked" Device} procedure to
+restore the flash specified by @var{bank_id} and its associated
+nonvolatile registers to their factory default values (erased).
+This is the only way to remove flash protection or re-enable
+debugging if that capability has been disabled.
+
+Note that the final "power cycle the chip" step in this procedure
+must be performed by hand, since OpenOCD can't do it.
+@quotation Warning
+if more than one Stellaris chip is connected, the procedure is
+applied to all of them.
+@end quotation
+@end deffn
+
 @deffn {Flash Driver} stm32x
 All members of the STM32 microcontroller family from ST Microelectronics
 include internal flash and use ARM Cortex M3 cores.
