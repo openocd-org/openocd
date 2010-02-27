@@ -575,6 +575,8 @@ tap_state_t jtag_get_end_state(void);
 
 void jtag_add_sleep(uint32_t us);
 
+int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state t);
+
 /**
  * Function jtag_add_clocks
  * first checks that the state in which the clocks are to be issued is
@@ -693,7 +695,7 @@ int jtag_error_clear(void);
 /**
  * Return true if it's safe for a background polling task to access the
  * JTAG scan chain.  Polling may be explicitly disallowed, and is also
- * unsafe while nTRST is active or the JTAG clock is gated off.,
+ * unsafe while nTRST is active or the JTAG clock is gated off.
  */
 bool is_jtag_poll_safe(void);
 

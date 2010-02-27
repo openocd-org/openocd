@@ -488,6 +488,35 @@ void jtag_add_tlr(void)
 	jtag_notify_event(JTAG_TRST_ASSERTED);
 }
 
+/**
+ * If supported by the underlying adapter, this clocks a raw bit sequence
+ * onto TMS for switching betwen JTAG and SWD modes.
+ *
+ * DO NOT use this to bypass the integrity checks and logging provided
+ * by the jtag_add_pathmove() and jtag_add_statemove() calls.
+ *
+ * @param nbits How many bits to clock out.
+ * @param seq The bit sequence.  The LSB is bit 0 of seq[0].
+ * @param state The JTAG tap state to record on completion.  Use
+ *	TAP_INVALID to represent being in in SWD mode.
+ *
+ * @todo Update naming conventions to stop assuming everything is JTAG.
+ */
+int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
+{
+	int retval;
+
+	if (!(jtag->supported & DEBUG_CAP_TMS_SEQ))
+		return ERROR_JTAG_NOT_IMPLEMENTED;
+
+	jtag_checks();
+	cmd_queue_cur_state = state;
+
+	retval = interface_add_tms_seq(nbits, seq);
+	jtag_set_error(retval);
+	return retval;
+}
+
 void jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	tap_state_t cur_state = cmd_queue_cur_state;

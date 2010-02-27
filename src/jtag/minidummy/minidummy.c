@@ -147,6 +147,13 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	return ERROR_OK;
 }
 
+int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
 	int i;

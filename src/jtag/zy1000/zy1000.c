@@ -804,7 +804,16 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	return ERROR_OK;
 }
 
-
+int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq)
+{
+	/* FIXME just implement this, like pathmove but without
+	 * JTAG-specific state transition checking.  Then update
+	 * zy1000_interface to report that it's supported.
+	 *
+	 * Eventually interface_jtag_add_pathmove() could vanish.
+	 */
+	return ERROR_JTAG_NOT_IMPLEMENTED;
+}
 
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {

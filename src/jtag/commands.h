@@ -99,18 +99,38 @@ struct sleep_command {
 };
 
 /**
+ * Encapsulates a series of bits to be clocked out, affecting state
+ * and mode of the interface.
+ *
+ * In JTAG mode these are clocked out on TMS, using TCK.  They may be
+ * used for link resets, transitioning between JTAG and SWD modes, or
+ * to implement JTAG state machine transitions (implementing pathmove
+ * or statemove operations).
+ *
+ * In SWD mode these are clocked out on SWDIO, using SWCLK, and are
+ * used for link resets and transitioning between SWD and JTAG modes.
+ */
+struct tms_command {
+	/** How many bits should be clocked out. */
+	unsigned	num_bits;
+	/** The bits to clock out; the LSB is bit 0 of bits[0].  */
+	const uint8_t		*bits;
+};
+
+/**
  * Defines a container type that hold a pointer to a JTAG command
  * structure of any defined type.
  */
 union jtag_command_container {
-	struct scan_command*         scan;
-	struct statemove_command*    statemove;
-	struct pathmove_command*     pathmove;
-	struct runtest_command*      runtest;
-	struct stableclocks_command* stableclocks;
-	struct reset_command*        reset;
-	struct end_state_command*    end_state;
-	struct sleep_command* sleep;
+	struct scan_command		*scan;
+	struct statemove_command	*statemove;
+	struct pathmove_command		*pathmove;
+	struct runtest_command		*runtest;
+	struct stableclocks_command	*stableclocks;
+	struct reset_command		*reset;
+	struct end_state_command	*end_state;
+	struct sleep_command		*sleep;
+	struct tms_command		*tms;
 };
 
 /**
@@ -124,7 +144,8 @@ enum jtag_command_type {
 	JTAG_RESET        = 4,
 	JTAG_PATHMOVE     = 6,
 	JTAG_SLEEP        = 7,
-	JTAG_STABLECLOCKS = 8
+	JTAG_STABLECLOCKS = 8,
+	JTAG_TMS          = 9,
 };
 
 struct jtag_command {

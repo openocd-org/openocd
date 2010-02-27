@@ -388,6 +388,31 @@ int interface_jtag_add_tlr(void)
 	return ERROR_OK;
 }
 
+int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq)
+{
+	struct jtag_command *cmd;
+
+	cmd = cmd_queue_alloc(sizeof(struct jtag_command));
+	if (cmd == NULL)
+		return ERROR_FAIL;
+
+	cmd->type = JTAG_TMS;
+	cmd->cmd.tms = cmd_queue_alloc(sizeof(*cmd->cmd.tms));
+	if (!cmd->cmd.tms)
+		return ERROR_FAIL;
+
+	/* copy the bits; our caller doesn't guarantee they'll persist */
+	cmd->cmd.tms->num_bits = num_bits;
+	cmd->cmd.tms->bits = buf_cpy(seq,
+			cmd_queue_alloc(DIV_ROUND_UP(num_bits, 8)), num_bits);
+	if (!cmd->cmd.tms->bits)
+		return ERROR_FAIL;
+
+	jtag_queue_command(cmd);
+
+	return ERROR_OK;
+}
+
 int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	/* allocate memory for a new list member */
