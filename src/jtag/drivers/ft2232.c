@@ -1678,6 +1678,72 @@ static int ft2232_execute_statemove(struct jtag_command *cmd)
 	return retval;
 }
 
+/**
+ * Clock a bunch of TMS (or SWDIO) transitions, to change the JTAG
+ * (or SWD) state machine.
+ */
+static int ft2232_execute_tms(struct jtag_command *cmd)
+{
+	int		retval = ERROR_OK;
+	unsigned	num_bits = cmd->cmd.tms->num_bits;
+	const uint8_t	*bits = cmd->cmd.tms->bits;
+	unsigned	count;
+
+	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
+
+	/* only send the maximum buffer size that FT2232C can handle */
+	count = 3 * DIV_ROUND_UP(num_bits, 4);
+	if (ft2232_buffer_size + 3*count + 1 > FT2232_BUFFER_SIZE) {
+		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+			retval = ERROR_JTAG_QUEUE_FAILED;
+
+		require_send = 0;
+		first_unsent = cmd;
+	}
+
+	/* Shift out in batches of at most 6 bits; there's a report of an
+	 * FT2232 bug in this area, where shifting exactly 7 bits can make
+	 * problems with TMS signaling for the last clock cycle:
+	 *
+	 *    http://developer.intra2net.com/mailarchive/html/
+	 *		libftdi/2009/msg00292.html
+	 *
+	 * Command 0x4b is: "Clock Data to TMS/CS Pin (no Read)"
+	 *
+	 * Note that pathmoves in JTAG are not often seven bits, so that
+	 * isn't a particularly likely situation outside of "special"
+	 * signaling such as switching between JTAG and SWD modes.
+	 */
+	while (num_bits) {
+		if (num_bits <= 6) {
+			buffer_write(0x4b);
+			buffer_write(num_bits - 1);
+			buffer_write(*bits & 0x3f);
+			break;
+		}
+
+		/* Yes, this is lazy ... we COULD shift out more data
+		 * bits per operation, but doing it in nybbles is easy
+		 */
+		buffer_write(0x4b);
+		buffer_write(3);
+		buffer_write(*bits & 0xf);
+		num_bits -= 4;
+
+		count  = (num_bits > 4) ? 4 : num_bits;
+
+		buffer_write(0x4b);
+		buffer_write(count - 1);
+		buffer_write((*bits >> 4) & 0xf);
+		num_bits -= count;
+
+		bits++;
+	}
+
+	require_send = 1;
+	return retval;
+}
+
 static int ft2232_execute_pathmove(struct jtag_command *cmd)
 {
 	int	predicted_size = 0;
@@ -1830,7 +1896,6 @@ static int ft2232_execute_stableclocks(struct jtag_command *cmd)
 static int ft2232_execute_command(struct jtag_command *cmd)
 {
 	int retval;
-	retval = ERROR_OK;
 
 	switch (cmd->type)
 	{
@@ -1841,9 +1906,13 @@ static int ft2232_execute_command(struct jtag_command *cmd)
 	case JTAG_SCAN:		retval = ft2232_execute_scan(cmd); break;
 	case JTAG_SLEEP:	retval = ft2232_execute_sleep(cmd); break;
 	case JTAG_STABLECLOCKS:	retval = ft2232_execute_stableclocks(cmd); break;
+	case JTAG_TMS:
+		retval = ft2232_execute_tms(cmd);
+		break;
 	default:
 		LOG_ERROR("BUG: unknown JTAG command type encountered");
-		exit(-1);
+		retval = ERROR_JTAG_QUEUE_FAILED;
+		break;
 	}
 	return retval;
 }
@@ -4108,6 +4177,7 @@ static const struct command_registration ft2232_command_handlers[] = {
 
 struct jtag_interface ft2232_interface = {
 	.name = "ft2232",
+	.supported = DEBUG_CAP_TMS_SEQ,
 	.commands = ft2232_command_handlers,
 
 	.init = ft2232_init,
