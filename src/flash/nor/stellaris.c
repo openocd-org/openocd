@@ -1215,7 +1215,7 @@ COMMAND_HANDLER(stellaris_handle_recover_command)
 	retval = jtag_execute_queue();
 
 	/* wait 400+ msec ... OK, "1+ second" is simpler */
-	sleep(1);
+	usleep(1000);
 
 	/* USER INTERVENTION required for the power cycle
 	 * Restarting OpenOCD is likely needed because of mode switching.
