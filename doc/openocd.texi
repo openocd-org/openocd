@@ -2131,6 +2131,7 @@ to debug some other target.  It can support the SWO trace mechanism.
 @item @b{oocdlink} OOCDLink
 @c oocdlink ~= jtagkey_prototype_v1
 @item @b{redbee-econotag} Integrated with a Redbee development board.
+@item @b{redbee-usb} Integrated with a Redbee USB-stick development board.
 @item @b{sheevaplug} Marvell Sheevaplug development kit
 @item @b{signalyzer} Xverve Signalyzer
 @item @b{stm32stick} Hitex STM32 Performance Stick

@@ -269,6 +269,11 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.init = redbee_init,
 		.reset = redbee_reset,
 	},
+	{ .name = "redbee-usb",
+		.init = redbee_init,
+	        .reset = redbee_reset,
+    	        .channel = INTERFACE_B,
+	},
 	{ .name = NULL, /* END OF TABLE */ },
 };
 
