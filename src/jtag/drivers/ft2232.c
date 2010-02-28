@@ -86,6 +86,16 @@
 /* FT2232 access library includes */
 #if BUILD_FT2232_FTD2XX == 1
 #include <ftd2xx.h>
+
+enum ftdi_interface
+{
+    INTERFACE_ANY = 0,
+    INTERFACE_A   = 1,
+    INTERFACE_B   = 2,
+    INTERFACE_C   = 3,
+    INTERFACE_D   = 4
+};
+
 #elif BUILD_FT2232_LIBFTDI == 1
 #include <ftdi.h>
 #endif
