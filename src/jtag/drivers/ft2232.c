@@ -162,6 +162,7 @@ static int icebear_jtag_init(void);
 static int cortino_jtag_init(void);
 static int signalyzer_h_init(void);
 static int ktlink_init(void);
+static int redbee_init(void);
 
 /* reset procedures for supported layouts */
 static void usbjtag_reset(int trst, int srst);
@@ -176,6 +177,7 @@ static void sheevaplug_reset(int trst, int srst);
 static void icebear_jtag_reset(int trst, int srst);
 static void signalyzer_h_reset(int trst, int srst);
 static void ktlink_reset(int trst, int srst);
+static void redbee_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 static void olimex_jtag_blink(void);
@@ -262,6 +264,10 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.init = ktlink_init,
 		.reset = ktlink_reset,
 		.blink = ktlink_blink
+	},
+	{ .name = "redbee-econotag",
+		.init = redbee_init,
+		.reset = redbee_reset,
 	},
 	{ .name = NULL, /* END OF TABLE */ },
 };
@@ -1577,6 +1583,36 @@ static void sheevaplug_reset(int trst, int srst)
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
+static void redbee_reset(int trst, int srst)
+{
+	if (trst == 1)
+	{
+		tap_set_state(TAP_RESET);
+		high_output &= ~nTRST;
+	}
+	else if (trst == 0)
+	{
+		high_output |= nTRST;
+	}
+
+	if (srst == 1)
+	{
+		high_output &= ~nSRST;
+	}
+	else if (srst == 0)
+	{
+		high_output |= nSRST;
+	}
+
+	/* command "set data bits low byte" */
+	buffer_write(0x82);
+	buffer_write(high_output);
+	buffer_write(high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, "
+			"high_direction: 0x%2.2x", trst, srst, high_output,
+			high_direction);
+}
+
 static int ft2232_execute_runtest(struct jtag_command *cmd)
 {
 	int retval;
@@ -2472,6 +2508,73 @@ static int axm0432_jtag_init(void)
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Dicarlo' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static int redbee_init(void)
+{
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+
+	low_output    = 0x08;
+	low_direction = 0x2b;
+
+	/* initialize low byte for jtag */
+	/* command "set data bits low byte" */
+	buf[0] = 0x80;
+	/* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction;
+	/* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
+	buf[1] = low_output;
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK)
+			|| (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	nTRST    = 0x08;
+	nTRSTnOE = 0x0;     /* No output enable for TRST*/
+	nSRST    = 0x04;
+	nSRSTnOE = 0x0;     /* No output enable for SRST*/
+
+	high_output    = 0x0;
+	high_direction = 0x0c;
+
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+	{
+		LOG_ERROR("can't set nTRSTOE to push-pull on redbee");
+	}
+	else
+	{
+		high_output |= nTRST;
+	}
+
+	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+	{
+		LOG_ERROR("can't set nSRST to push-pull on redbee");
+	}
+	else
+	{
+		high_output |= nSRST;
+	}
+
+	/* initialize high port */
+	buf[0] = 0x82;              /* command "set data bits high byte" */
+	buf[1] = high_output;       /* value */
+	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK)
+			|| (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
