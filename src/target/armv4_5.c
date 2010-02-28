@@ -840,13 +840,6 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	if (arm->core_type == ARM_MODE_THREAD)
-	{
-		/* armv7m not supported */
-		LOG_ERROR("Unsupported Command");
-		return ERROR_OK;
-	}
-
 	if ((argc < 6) || (argc > 7)) {
 		/* FIXME use the command name to verify # params... */
 		LOG_ERROR("%s: wrong number of arguments", __func__);
