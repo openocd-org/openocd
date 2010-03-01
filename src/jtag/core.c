@@ -512,7 +512,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
 	jtag_checks();
 	cmd_queue_cur_state = state;
 
-	retval = interface_add_tms_seq(nbits, seq);
+	retval = interface_add_tms_seq(nbits, seq, state);
 	jtag_set_error(retval);
 	return retval;
 }

@@ -147,7 +147,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	return ERROR_OK;
 }
 
-int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq)
+int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state state)
 {
 	/* synchronously do the operation here */
 
