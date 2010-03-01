@@ -68,15 +68,8 @@ static int do_semihosting(struct target *target)
 	struct arm *arm = target_to_arm(target);
 	uint32_t r0 = buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32);
 	uint32_t r1 = buf_get_u32(arm->core_cache->reg_list[1].value, 0, 32);
-	uint32_t lr, spsr;
 	uint8_t params[16];
 	int retval, result;
-
-	if (is_arm7_9(target_to_arm7_9(target)))
-	{
-		lr = buf_get_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache, ARM_MODE_SVC, 14).value, 0, 32);
-		spsr = buf_get_u32(arm->spsr->value, 0, 32);;
-	}
 
 	/*
 	 * TODO: lots of security issues are not considered yet, such as:
@@ -396,22 +389,35 @@ static int do_semihosting(struct target *target)
 
 	/* resume execution to the original mode */
 
+	/* REVISIT this looks wrong ... ARM11 and Cortex-A8
+	 * should work this way at least sometimes.
+	 */
 	if (is_arm7_9(target_to_arm7_9(target)))
 	{
+		uint32_t spsr;
+
 		/* return value in R0 */
 		buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, result);
 		arm->core_cache->reg_list[0].dirty = 1;
 
 		/* LR --> PC */
-		buf_set_u32(arm->core_cache->reg_list[15].value, 0, 32, lr);
+		buf_set_u32(arm->core_cache->reg_list[15].value, 0, 32,
+			buf_get_u32(arm_reg_current(arm,14)->value, 0, 32));
 		arm->core_cache->reg_list[15].dirty = 1;
 
 		/* saved PSR --> current PSR */
+		spsr = buf_get_u32(arm->spsr->value, 0, 32);
+
+		/* REVISIT should this be arm_set_cpsr(arm, spsr)
+		 * instead of a partially unrolled version?
+		 */
+
 		buf_set_u32(arm->cpsr->value, 0, 32, spsr);
 		arm->cpsr->dirty = 1;
 		arm->core_mode = spsr & 0x1f;
 		if (spsr & 0x20)
 			arm->core_state = ARM_STATE_THUMB;
+
 	}
 	else
 	{
