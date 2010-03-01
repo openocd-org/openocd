@@ -608,15 +608,9 @@ int interface_jtag_add_ir_scan(int num_fields, const struct scan_field *fields, 
 		if (!found)
 		{
 			/* if a device isn't listed, set it to BYPASS */
-			uint8_t ones[]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+			assert(scan_size <= 32);
+			shiftValueInner(TAP_IRSHIFT, pause?TAP_IRPAUSE:TAP_IRSHIFT, scan_size, 0xffffffff);
 
-			struct scan_field tmp;
-			memset(&tmp, 0, sizeof(tmp));
-			tmp.out_value = ones;
-			tmp.num_bits = scan_size;
-			scanFields(1, &tmp, TAP_IRSHIFT, pause);
-			/* update device information */
-			buf_cpy(tmp.out_value, tap->cur_instr, scan_size);
 			tap->bypass = 1;
 		}
 	}
