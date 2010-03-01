@@ -64,12 +64,10 @@ static int arm720t_scan_cp15(struct target *target,
 		return retval;
 	}
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &instruction_buf;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = out_buf;
 	fields[1].in_value = NULL;
@@ -77,11 +75,11 @@ static int arm720t_scan_cp15(struct target *target,
 	if (in)
 	{
 		fields[1].in_value = (uint8_t *)in;
-		jtag_add_dr_scan(2, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 2, fields, jtag_get_end_state());
 		jtag_add_callback(arm7flip32, (jtag_callback_data_t)in);
 	} else
 	{
-		jtag_add_dr_scan(2, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 2, fields, jtag_get_end_state());
 	}
 
 	if (clock)

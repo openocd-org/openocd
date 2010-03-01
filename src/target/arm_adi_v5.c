@@ -123,7 +123,6 @@ static int adi_jtag_dp_scan(struct adiv5_dap *swjdp,
 	/* Scan out a read or write operation using some DP or AP register.
 	 * For APACC access with any sticky error flag set, this is discarded.
 	 */
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
@@ -134,12 +133,11 @@ static int adi_jtag_dp_scan(struct adiv5_dap *swjdp,
 	 * When overrun detect is active, STICKYORUN is set.
 	 */
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = outvalue;
 	fields[1].in_value = invalue;
 
-	jtag_add_dr_scan(2, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 2, fields, jtag_get_end_state());
 
 	/* Add specified number of tck clocks after starting memory bus
 	 * access, giving the hardware time to complete the access.
@@ -1132,12 +1130,11 @@ static int jtag_idcode_q_read(struct adiv5_dap *dap,
 	if (retval != ERROR_OK)
 		return retval;
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = (void *) data;
 
-	jtag_add_dr_scan(1, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 1, fields, jtag_get_end_state());
 	retval = jtag_get_error();
 	if (retval != ERROR_OK)
 		return retval;

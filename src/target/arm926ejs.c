@@ -70,28 +70,23 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = (uint8_t *)value;
 
-
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
 	fields[1].in_value = &access;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
 	fields[2].in_value = NULL;
 
-	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(4, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
 
 	long long then = timeval_ms();
 
@@ -100,7 +95,7 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
 
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)value);
 
@@ -164,27 +159,23 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
 	fields[1].in_value = &access;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
 	fields[2].in_value = NULL;
 
-	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(4, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
 
 	long long then = timeval_ms();
 
@@ -193,7 +184,7 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;

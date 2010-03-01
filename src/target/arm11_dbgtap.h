@@ -30,7 +30,7 @@ int arm11_run_instr_data_from_core_via_r0(struct arm11_common *arm11,
 int arm11_run_instr_data_to_core_via_r0(struct arm11_common *arm11,
 		uint32_t opcode, uint32_t data);
 
-void arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields,
+void arm11_add_dr_scan_vc(struct jtag_tap *tap, int num_fields, struct scan_field *fields,
 		tap_state_t state);
 
 /**

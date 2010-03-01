@@ -123,7 +123,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 1);
 		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 2);
 
-		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
 	}
 
@@ -317,7 +317,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 		arm11_setup_field(arm11,  1, &Ready,	NULL, chain5_fields + 1);
 		arm11_setup_field(arm11,  1, &Valid,	NULL, chain5_fields + 2);
 
-		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 
 	/* now processor is ready to RESTART */
@@ -1194,7 +1194,7 @@ static int arm11_examine(struct target *target)
 
 	arm11_setup_field(arm11, 32, NULL, &device_id, &idcode_field);
 
-	arm11_add_dr_scan_vc(1, &idcode_field, TAP_DRPAUSE);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, 1, &idcode_field, TAP_DRPAUSE);
 
 	/* check DIDR */
 
@@ -1207,7 +1207,7 @@ static int arm11_examine(struct target *target)
 	arm11_setup_field(arm11, 32, NULL, &didr, chain0_fields + 0);
 	arm11_setup_field(arm11,  8, NULL, &implementor, chain0_fields + 1);
 
-	arm11_add_dr_scan_vc(ARRAY_SIZE(chain0_fields), chain0_fields, TAP_IDLE);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain0_fields), chain0_fields, TAP_IDLE);
 
 	CHECK_RETVAL(jtag_execute_queue());
 

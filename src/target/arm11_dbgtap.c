@@ -49,13 +49,13 @@ static const tap_state_t arm11_move_pi_to_si_via_ci[] =
 
 
 /* REVISIT no error handling here! */
-static void arm11_add_ir_scan_vc(int num_fields, struct scan_field *fields,
+static void arm11_add_ir_scan_vc(struct jtag_tap *tap, int num_fields, struct scan_field *fields,
 		tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_IRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
 
-	jtag_add_ir_scan(num_fields, fields, state);
+	jtag_add_ir_scan(tap, num_fields, fields, state);
 }
 
 static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
@@ -64,13 +64,13 @@ static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
 };
 
 /* REVISIT no error handling here! */
-void arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields,
+void arm11_add_dr_scan_vc(struct jtag_tap *tap, int num_fields, struct scan_field *fields,
 		tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_DRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
 
-	jtag_add_dr_scan(num_fields, fields, state);
+	jtag_add_dr_scan(tap, num_fields, fields, state);
 }
 
 
@@ -87,7 +87,6 @@ void arm11_add_dr_scan_vc(int num_fields, struct scan_field *fields,
 void arm11_setup_field(struct arm11_common *arm11, int num_bits,
 		void *out_data, void *in_data, struct scan_field *field)
 {
-	field->tap			= arm11->arm.target->tap;
 	field->num_bits			= num_bits;
 	field->out_value		= out_data;
 	field->in_value			= in_data;
@@ -150,7 +149,7 @@ void arm11_add_IR(struct arm11_common * arm11, uint8_t instr, tap_state_t state)
 
 	arm11_setup_field(arm11, 5, &instr, NULL, &field);
 
-	arm11_add_ir_scan_vc(1, &field, state == ARM11_TAP_DEFAULT ? TAP_IRPAUSE : state);
+	arm11_add_ir_scan_vc(arm11->arm.target->tap, 1, &field, state == ARM11_TAP_DEFAULT ? TAP_IRPAUSE : state);
 }
 
 /** Verify data shifted out from Scan Chain Register (SCREG). */
@@ -214,7 +213,7 @@ int arm11_add_debug_SCAN_N(struct arm11_common *arm11,
 	uint8_t tmp[1];
 	arm11_setup_field(arm11, 5, &chain, &tmp, &field);
 
-	arm11_add_dr_scan_vc(1, &field, state == ARM11_TAP_DEFAULT ? TAP_DRPAUSE : state);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, 1, &field, state == ARM11_TAP_DEFAULT ? TAP_DRPAUSE : state);
 
 	jtag_execute_queue_noclear();
 
@@ -253,7 +252,7 @@ static void arm11_add_debug_INST(struct arm11_common * arm11,
 	arm11_setup_field(arm11, 32,    &inst,	NULL, itr + 0);
 	arm11_setup_field(arm11, 1,	    NULL,	flag, itr + 1);
 
-	arm11_add_dr_scan_vc(ARRAY_SIZE(itr), itr, state);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(itr), itr, state);
 }
 
 /**
@@ -281,7 +280,7 @@ int arm11_read_DSCR(struct arm11_common *arm11)
 
 	arm11_setup_field(arm11, 32, NULL, &dscr, &chain1_field);
 
-	arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, 1, &chain1_field, TAP_DRPAUSE);
 
 	CHECK_RETVAL(jtag_execute_queue());
 
@@ -317,7 +316,7 @@ int arm11_write_DSCR(struct arm11_common * arm11, uint32_t dscr)
 
 	arm11_setup_field(arm11, 32, &dscr, NULL, &chain1_field);
 
-	arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, 1, &chain1_field, TAP_DRPAUSE);
 
 	CHECK_RETVAL(jtag_execute_queue());
 
@@ -483,7 +482,7 @@ int arm11_run_instr_data_to_core(struct arm11_common * arm11, uint32_t opcode, u
 		{
 			Data	    = *data;
 
-			arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, jtag_set_end_state(TAP_IDLE));
+			arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, jtag_set_end_state(TAP_IDLE));
 
 			CHECK_RETVAL(jtag_execute_queue());
 
@@ -518,7 +517,7 @@ int arm11_run_instr_data_to_core(struct arm11_common * arm11, uint32_t opcode, u
 	{
 		Data	    = 0;
 
-		arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
 		CHECK_RETVAL(jtag_execute_queue());
 
@@ -577,17 +576,14 @@ int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap * tap, uint
 {
 	struct scan_field	chain5_fields[3];
 
-	chain5_fields[0].tap			= tap;
 	chain5_fields[0].num_bits		= 32;
 	chain5_fields[0].out_value		= NULL; /*&Data*/
 	chain5_fields[0].in_value		= NULL;
 
-	chain5_fields[1].tap			= tap;
 	chain5_fields[1].num_bits		= 1;
 	chain5_fields[1].out_value		= NULL;
 	chain5_fields[1].in_value		= NULL; /*&Ready*/
 
-	chain5_fields[2].tap			= tap;
 	chain5_fields[2].num_bits		= 1;
 	chain5_fields[2].out_value		= NULL;
 	chain5_fields[2].in_value		= NULL;
@@ -611,12 +607,12 @@ int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap * tap, uint
 
 		if (count > 0)
 		{
-			jtag_add_dr_scan(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+			jtag_add_dr_scan(tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 			jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
 				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
 		} else
 		{
-			jtag_add_dr_scan(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_IDLE);
+			jtag_add_dr_scan(tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_IDLE);
 		}
 	}
 
@@ -697,7 +693,7 @@ int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opc
 	uint8_t ready_flag;
 	chain5_fields[1].in_value   = &ready_flag;
 
-	arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
 	retval = jtag_execute_queue();
 	if (retval == ERROR_OK)
@@ -770,7 +766,7 @@ int arm11_run_instr_data_from_core(struct arm11_common * arm11, uint32_t opcode,
 		int i = 0;
 		do
 		{
-			arm11_add_dr_scan_vc(ARRAY_SIZE(chain5_fields), chain5_fields, count ? TAP_IDLE : TAP_DRPAUSE);
+			arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, count ? TAP_IDLE : TAP_DRPAUSE);
 
 			CHECK_RETVAL(jtag_execute_queue());
 
@@ -910,7 +906,7 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 					(unsigned) DataOut,
 					nRW ? "write" : "read");
 
-			arm11_add_dr_scan_vc(ARRAY_SIZE(chain7_fields),
+			arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain7_fields),
 					chain7_fields, TAP_DRPAUSE);
 
 			CHECK_RETVAL(jtag_execute_queue());

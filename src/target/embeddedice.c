@@ -349,7 +349,6 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 
 	/* bits 31:0 -- data (ignored here) */
-	fields[0].tap = ice_reg->jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].in_value = NULL;
@@ -357,7 +356,6 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[0].check_mask = NULL;
 
 	/* bits 36:32 -- register */
-	fields[1].tap = ice_reg->jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	fields[1].out_value[0] = reg_addr;
@@ -366,7 +364,6 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[1].check_mask = NULL;
 
 	/* bit 37 -- 0/read */
-	fields[2].tap = ice_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	fields[2].out_value[0] = 0;
@@ -375,7 +372,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[2].check_mask = NULL;
 
 	/* traverse Update-DR, setting address for the next read */
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(ice_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
 
 	/* bits 31:0 -- the data we're reading (and maybe checking) */
 	fields[0].in_value = reg->value;
@@ -389,7 +386,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[1].out_value[0] = eice_regs[EICE_COMMS_CTRL].addr;
 
 	/* traverse Update-DR, reading but with no other side effects */
-	jtag_add_dr_scan_check(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan_check(ice_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
 
 	return ERROR_OK;
 }
@@ -412,24 +409,21 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	fields[1].out_value[0] = eice_regs[EICE_COMMS_DATA].addr;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 
 	while (size > 0)
 	{
@@ -440,7 +434,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 			fields[1].out_value[0] = eice_regs[EICE_COMMS_CTRL].addr;
 
 		fields[0].in_value = (uint8_t *)data;
-		jtag_add_dr_scan(3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)data);
 
 		data++;
@@ -533,18 +527,15 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = field0_out;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	fields[1].out_value[0] = eice_regs[EICE_COMMS_DATA].addr;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	fields[2].out_value[0] = 1;
@@ -554,7 +545,7 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 	while (size > 0)
 	{
 		buf_set_u32(fields[0].out_value, 0, 32, *data);
-		jtag_add_dr_scan(3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 
 		data++;
 		size--;
@@ -589,27 +580,24 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = field0_in;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	fields[1].out_value[0] = eice_regs[EICE_COMMS_DATA].addr;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 	gettimeofday(&lap, NULL);
 	do {
-		jtag_add_dr_scan(3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 

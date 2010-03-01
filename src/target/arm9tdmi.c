@@ -89,17 +89,14 @@ int arm9tdmi_examine_debug_reason(struct target *target)
 
 		jtag_set_end_state(TAP_DRPAUSE);
 
-		fields[0].tap = arm7_9->jtag_info.tap;
 		fields[0].num_bits = 32;
 		fields[0].out_value = NULL;
 		fields[0].in_value = databus;
 
-		fields[1].tap = arm7_9->jtag_info.tap;
 		fields[1].num_bits = 3;
 		fields[1].out_value = NULL;
 		fields[1].in_value = &debug_reason;
 
-		fields[2].tap = arm7_9->jtag_info.tap;
 		fields[2].num_bits = 32;
 		fields[2].out_value = NULL;
 		fields[2].in_value = instructionbus;
@@ -110,7 +107,7 @@ int arm9tdmi_examine_debug_reason(struct target *target)
 		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
-		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(arm7_9->jtag_info.tap, 3, fields, jtag_set_end_state(TAP_DRPAUSE));
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
@@ -123,7 +120,7 @@ int arm9tdmi_examine_debug_reason(struct target *target)
 		fields[2].in_value = NULL;
 		fields[2].out_value = instructionbus;
 
-		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(arm7_9->jtag_info.tap, 3, fields, jtag_set_end_state(TAP_DRPAUSE));
 
 		if (debug_reason & 0x4)
 			if (debug_reason & 0x2)
@@ -165,17 +162,14 @@ int arm9tdmi_clock_out(struct arm_jtag *jtag_info, uint32_t instr,
 
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = &sysspeed_buf;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = instr_buf;
 	fields[2].in_value = NULL;
@@ -183,13 +177,13 @@ int arm9tdmi_clock_out(struct arm_jtag *jtag_info, uint32_t instr,
 	if (in)
 	{
 		fields[0].in_value = (uint8_t *)in;
-		jtag_add_dr_scan(3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
 	}
 	else
 	{
-		jtag_add_dr_scan(3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 	}
 
 	jtag_add_runtest(0, jtag_get_end_state());
@@ -227,22 +221,19 @@ int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = (uint8_t *)in;
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 
 	jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
 
@@ -297,22 +288,19 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	jtag_alloc_in_value32(&fields[0]);
 
-	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
 	fields[1].in_value = NULL;
 
-	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
 
 	jtag_add_callback4(arm9endianness, (jtag_callback_data_t)in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[0].in_value);
 

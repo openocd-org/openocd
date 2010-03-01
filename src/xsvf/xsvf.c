@@ -476,7 +476,6 @@ COMMAND_HANDLER(handle_xsvf_command)
 							LOG_USER("%s mismatch, xsdrsize=%d retry=%d", op_name, xsdrsize, attempt);
 					}
 
-					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
 					field.in_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
@@ -484,7 +483,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
 					else
-						jtag_add_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
+						jtag_add_dr_scan(tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
 
 					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
 
@@ -694,7 +693,6 @@ COMMAND_HANDLER(handle_xsvf_command)
 				{
 					struct scan_field field;
 
-					field.tap = tap;
 					field.num_bits = bitcount;
 					field.out_value = ir_buf;
 
@@ -706,7 +704,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					if (tap == NULL)
 						jtag_add_plain_ir_scan(1, &field, my_end_state);
 					else
-						jtag_add_ir_scan(1, &field, my_end_state);
+						jtag_add_ir_scan(tap, 1, &field, my_end_state);
 
 					if (xruntest)
 					{
@@ -930,7 +928,6 @@ COMMAND_HANDLER(handle_xsvf_command)
 					jtag_add_clocks(loop_clocks);
 					jtag_add_sleep(loop_usecs);
 
-					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
 					field.in_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
@@ -941,7 +938,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
 					else
-						jtag_add_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
+						jtag_add_dr_scan(tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
 
 					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
 

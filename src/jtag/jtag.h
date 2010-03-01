@@ -109,9 +109,6 @@ extern tap_state_t cmd_queue_cur_state;
  * The allocated, modified, and intmp fields are internal work space.
  */
 struct scan_field {
-	/// A pointer to the tap structure to which this field refers.
-	struct jtag_tap* tap;
-
 	/// The number of bits this field specifies (up to 32)
 	int num_bits;
 	/// A pointer to value to be scanned into the device
@@ -353,13 +350,13 @@ int jtag_init_inner(struct command_context *cmd_ctx);
  * subsequent DR SCANs.
  *
  */
-void jtag_add_ir_scan(int num_fields,
+void jtag_add_ir_scan(struct jtag_tap* tap, int num_fields,
 		struct scan_field* fields, tap_state_t endstate);
 /**
  * The same as jtag_add_ir_scan except no verification is performed out
  * the output values.
  */
-void jtag_add_ir_scan_noverify(int num_fields,
+void jtag_add_ir_scan_noverify(struct jtag_tap* tap, int num_fields,
 		const struct scan_field *fields, tap_state_t state);
 /**
  * Duplicate the scan fields passed into the function into an IR SCAN
@@ -387,10 +384,10 @@ void jtag_alloc_in_value32(struct scan_field *field);
  * specified there.  For bypassed TAPs, the function generates a dummy
  * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
  */
-void jtag_add_dr_scan(int num_fields,
+void jtag_add_dr_scan(struct jtag_tap* tap, int num_fields,
 		const struct scan_field* fields, tap_state_t endstate);
 /// A version of jtag_add_dr_scan() that uses the check_value/mask fields
-void jtag_add_dr_scan_check(int num_fields,
+void jtag_add_dr_scan_check(struct jtag_tap* tap, int num_fields,
 		struct scan_field* fields, tap_state_t endstate);
 /**
  * Duplicate the scan fields passed into the function into a DR SCAN

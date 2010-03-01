@@ -574,38 +574,28 @@ static __inline void scanFields(int num_fields, const struct scan_field *fields,
 	}
 }
 
-int interface_jtag_add_ir_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_ir_scan(struct jtag_tap *active, int num_fields, const struct scan_field *fields, tap_state_t state)
 {
-
-	int j;
 	int scan_size = 0;
 	struct jtag_tap *tap, *nextTap;
+
+	assert(num_fields == 1);
+
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
-		int pause = (nextTap==NULL);
-
-		int found = 0;
-
+		bool pause = (nextTap==NULL);
 		scan_size = tap->ir_length;
 
 		/* search the list */
-		for (j = 0; j < num_fields; j++)
+		if (tap == active)
 		{
-			if (tap == fields[j].tap)
-			{
-				found = 1;
+			scanFields(num_fields, fields, TAP_IRSHIFT, pause);
+			/* update device information */
+			buf_cpy(fields[0].out_value, tap->cur_instr, scan_size);
 
-				scanFields(1, fields + j, TAP_IRSHIFT, pause);
-				/* update device information */
-				buf_cpy(fields[j].out_value, tap->cur_instr, scan_size);
-
-				tap->bypass = 0;
-				break;
-			}
-		}
-
-		if (!found)
+			tap->bypass = 0;
+		} else
 		{
 			/* if a device isn't listed, set it to BYPASS */
 			assert(scan_size <= 32);
@@ -631,45 +621,25 @@ int interface_jtag_add_plain_ir_scan(int num_fields, const struct scan_field *fi
 	return ERROR_OK;
 }
 
-int interface_jtag_add_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_dr_scan(struct jtag_tap *active, int num_fields, const struct scan_field *fields, tap_state_t state)
 {
-
-	int j;
 	struct jtag_tap *tap, *nextTap;
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
-		int found = 0;
-		int pause = (nextTap==NULL);
+		bool pause = (nextTap==NULL);
 
-		for (j = 0; j < num_fields; j++)
+		/* Find a range of fields to write to this tap */
+		if (tap == active)
 		{
-			/* Find a range of fields to write to this tap */
-			if (tap == fields[j].tap)
-			{
-				found = 1;
-				int i;
-				for (i = j + 1; i < num_fields; i++)
-				{
-					if (tap != fields[j].tap)
-					{
-						break;
-					}
-				}
+			assert(!tap->bypass);
 
-				scanFields(i - j, fields + j, TAP_DRSHIFT, pause);
-
-				j = i;
-			}
-		}
-
-		if (!found)
+			scanFields(num_fields, fields, TAP_DRSHIFT, pause);
+		} else
 		{
 			/* Shift out a 0 for disabled tap's */
+			assert(tap->bypass);
 			shiftValueInner(TAP_DRSHIFT, pause?TAP_DRPAUSE:TAP_DRSHIFT, 1, 0);
-		}
-		else
-		{
 		}
 	}
 	gotoEndState(state);
@@ -683,14 +653,11 @@ int interface_jtag_add_plain_dr_scan(int num_fields, const struct scan_field *fi
 	return ERROR_OK;
 }
 
-
 int interface_jtag_add_tlr()
 {
 	setCurrentState(TAP_RESET);
 	return ERROR_OK;
 }
-
-
 
 
 int interface_jtag_add_reset(int req_trst, int req_srst)
@@ -736,7 +703,6 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 	waitIdle();
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, state);
 #endif
-
 
 	return ERROR_OK;
 }

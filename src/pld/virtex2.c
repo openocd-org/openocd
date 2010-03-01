@@ -35,13 +35,12 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 	{
 		struct scan_field field;
 
-		field.tap = tap;
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(1, &field, jtag_set_end_state(TAP_IDLE));
+		jtag_add_ir_scan(tap, 1, &field, jtag_set_end_state(TAP_IDLE));
 
 		free(field.out_value);
 	}
@@ -59,7 +58,6 @@ static int virtex2_send_32(struct pld_device *pld_device,
 
 	values = malloc(num_words * 4);
 
-	scan_field.tap = virtex2_info->tap;
 	scan_field.num_bits = num_words * 32;
 	scan_field.out_value = values;
 	scan_field.in_value = NULL;
@@ -69,7 +67,7 @@ static int virtex2_send_32(struct pld_device *pld_device,
 
 	virtex2_set_instr(virtex2_info->tap, 0x5); /* CFG_IN */
 
-	jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
+	jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
 	free(values);
 
@@ -88,7 +86,6 @@ static int virtex2_receive_32(struct pld_device *pld_device,
 	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
 	struct scan_field scan_field;
 
-	scan_field.tap = virtex2_info->tap;
 	scan_field.num_bits = 32;
 	scan_field.out_value = NULL;
 	scan_field.in_value = NULL;
@@ -99,7 +96,7 @@ static int virtex2_receive_32(struct pld_device *pld_device,
 	{
 		scan_field.in_value = (uint8_t *)words;
 
-		jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
 		jtag_add_callback(virtexflip32, (jtag_callback_data_t)words);
 
@@ -139,7 +136,6 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	unsigned int i;
 	struct scan_field field;
 
-	field.tap = virtex2_info->tap;
 	field.in_value = NULL;
 
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)
@@ -159,7 +155,7 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	field.num_bits = bit_file.length * 8;
 	field.out_value = bit_file.data;
 
-	jtag_add_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
+	jtag_add_dr_scan(virtex2_info->tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
 	jtag_execute_queue();
 
 	jtag_add_tlr();

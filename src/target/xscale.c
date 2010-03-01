@@ -169,12 +169,11 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 		uint8_t scratch[4];
 
 		memset(&field, 0, sizeof field);
-		field.tap = tap;
 		field.num_bits = tap->ir_length;
 		field.out_value = scratch;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
-		jtag_add_ir_scan(1, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, 1, &field, jtag_get_end_state());
 	}
 
 	return ERROR_OK;
@@ -201,23 +200,20 @@ static int xscale_read_dcsr(struct target *target)
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
 	uint8_t tmp;
 	fields[0].in_value = &tmp;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 
-	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	uint8_t tmp2;
 	fields[2].in_value = &tmp2;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(target->tap, 3, fields, jtag_get_end_state());
 
 	jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
 	jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
@@ -240,7 +236,7 @@ static int xscale_read_dcsr(struct target *target)
 
 	jtag_set_end_state(TAP_IDLE);
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(target->tap, 3, fields, jtag_get_end_state());
 
 	/* DANGER!!! this must be here. It will make sure that the arguments
 	 * to jtag_set_check_value() does not go out of scope! */
@@ -279,15 +275,12 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].check_value = &field0_check_value;
 	fields[0].check_mask = &field0_check_mask;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 
-	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].check_value = &field2_check_value;
 	fields[2].check_mask = &field2_check_mask;
@@ -311,7 +304,7 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 
 			fields[1].in_value = (uint8_t *)(field1 + i);
 
-			jtag_add_dr_scan_check(3, fields, jtag_set_end_state(TAP_IDLE));
+			jtag_add_dr_scan_check(target->tap, 3, fields, jtag_set_end_state(TAP_IDLE));
 
 			jtag_add_callback(xscale_getbuf, (jtag_callback_data_t)(field1 + i));
 
@@ -392,15 +385,12 @@ static int xscale_read_tx(struct target *target, int consume)
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].in_value = &field0_in;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_TX].value;
 
-	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	uint8_t tmp;
 	fields[2].in_value = &tmp;
@@ -421,7 +411,7 @@ static int xscale_read_tx(struct target *target, int consume)
 			jtag_add_pathmove(ARRAY_SIZE(noconsume_path), noconsume_path);
 		}
 
-		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
+		jtag_add_dr_scan(target->tap, 3, fields, jtag_set_end_state(TAP_IDLE));
 
 		jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
 		jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
@@ -480,16 +470,13 @@ static int xscale_write_rx(struct target *target)
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
 	fields[0].in_value = &field0_in;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
 
-	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	uint8_t tmp;
@@ -502,7 +489,7 @@ static int xscale_write_rx(struct target *target)
 	LOG_DEBUG("polling RX");
 	for (;;)
 	{
-		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
+		jtag_add_dr_scan(target->tap, 3, fields, jtag_set_end_state(TAP_IDLE));
 
 		jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
 		jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
@@ -534,7 +521,7 @@ static int xscale_write_rx(struct target *target)
 
 	/* set rx_valid */
 	field2 = 0x1;
-	jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
+	jtag_add_dr_scan(target->tap, 3, fields, jtag_set_end_state(TAP_IDLE));
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -646,23 +633,20 @@ static int xscale_write_dcsr(struct target *target, int hold_rst, int ext_dbg_br
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
 	uint8_t tmp;
 	fields[0].in_value = &tmp;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 
-	fields[2].tap = target->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	uint8_t tmp2;
 	fields[2].in_value = &tmp2;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(target->tap, 3, fields, jtag_get_end_state());
 
 	jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
 	jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
@@ -717,15 +701,13 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
 
-	jtag_add_dr_scan(2, fields, jtag_get_end_state());
+	jtag_add_dr_scan(target->tap, 2, fields, jtag_get_end_state());
 
 	/* rest of packet is a cacheline: 8 instructions, with parity */
 	fields[0].num_bits = 32;
@@ -742,7 +724,7 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 		memcpy(&value, packet, sizeof(uint32_t));
 		cmd = parity(value);
 
-		jtag_add_dr_scan(2, fields, jtag_get_end_state());
+		jtag_add_dr_scan(target->tap, 2, fields, jtag_get_end_state());
 	}
 
 	return jtag_execute_queue();
@@ -767,15 +749,13 @@ static int xscale_invalidate_ic_line(struct target *target, uint32_t va)
 
 	memset(&fields, 0, sizeof fields);
 
-	fields[0].tap = target->tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
 
-	fields[1].tap = target->tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
 
-	jtag_add_dr_scan(2, fields, jtag_get_end_state());
+	jtag_add_dr_scan(target->tap, 2, fields, jtag_get_end_state());
 
 	return ERROR_OK;
 }

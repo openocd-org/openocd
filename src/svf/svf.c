@@ -216,8 +216,6 @@ static char *svf_command_buffer = NULL;
 static int svf_command_buffer_size = 0;
 static int svf_line_number = 1;
 
-static struct jtag_tap *tap = NULL;
-
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT	(4 * 1024)
 static uint8_t *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
 static int svf_buffer_index = 0, svf_buffer_size = 0;
@@ -1082,7 +1080,6 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			{
 				svf_add_check_para(0, svf_buffer_index, i);
 			}
-			field.tap = tap;
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
@@ -1178,7 +1175,6 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			{
 				svf_add_check_para(0, svf_buffer_index, i);
 			}
-			field.tap = tap;
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];

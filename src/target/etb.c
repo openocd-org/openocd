@@ -54,14 +54,13 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 	{
 		struct scan_field field;
 
-		field.tap = tap;
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(1, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, 1, &field, jtag_get_end_state());
 
 		free(field.out_value);
 	}
@@ -75,7 +74,6 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 	{
 		struct scan_field field;
 
-		field.tap = etb->tap;
 		field.num_bits = 5;
 		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
@@ -84,7 +82,7 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
-		jtag_add_dr_scan(1, &field, jtag_get_end_state());
+		jtag_add_dr_scan(etb->tap, 1, &field, jtag_get_end_state());
 
 		etb->cur_scan_chain = new_scan_chain;
 
@@ -179,24 +177,21 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	etb_scann(etb, 0x0);
 	etb_set_instr(etb, 0xc);
 
-	fields[0].tap = etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
 
-	fields[1].tap = etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, 4);
 	fields[1].in_value = NULL;
 
-	fields[2].tap = etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(etb->tap, 3, fields, jtag_get_end_state());
 
 	for (i = 0; i < num_frames; i++)
 	{
@@ -210,7 +205,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
 		fields[0].in_value = (uint8_t *)(data + i);
-		jtag_add_dr_scan(3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(etb->tap, 3, fields, jtag_get_end_state());
 
 		jtag_add_callback(etb_getbuf, (jtag_callback_data_t)(data + i));
 	}
@@ -236,14 +231,12 @@ static int etb_read_reg_w_check(struct reg *reg,
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 
-	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].in_value = NULL;
 	fields[0].check_value = NULL;
 	fields[0].check_mask = NULL;
 
-	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
@@ -251,7 +244,6 @@ static int etb_read_reg_w_check(struct reg *reg,
 	fields[1].check_value = NULL;
 	fields[1].check_mask = NULL;
 
-	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -259,7 +251,7 @@ static int etb_read_reg_w_check(struct reg *reg,
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
 
-	jtag_add_dr_scan(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(etb_reg->etb->tap, 3, fields, jtag_get_end_state());
 
 	/* read the identification register in the second run, to make sure we
 	 * don't read the ETB data register twice, skipping every second entry
@@ -269,7 +261,7 @@ static int etb_read_reg_w_check(struct reg *reg,
 	fields[0].check_value = check_value;
 	fields[0].check_mask = check_mask;
 
-	jtag_add_dr_scan_check(3, fields, jtag_get_end_state());
+	jtag_add_dr_scan_check(etb_reg->etb->tap, 3, fields, jtag_get_end_state());
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -322,19 +314,16 @@ static int etb_write_reg(struct reg *reg, uint32_t value)
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 
-	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = malloc(4);
 	buf_set_u32(fields[0].out_value, 0, 32, value);
 	fields[0].in_value = NULL;
 
-	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
 
-	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 1);

@@ -865,7 +865,6 @@ int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8_t * ir_out,
 	{
 		struct scan_field field[1];
 
-		field[0].tap = tap;
 		field[0].num_bits = tap->ir_length;
 		field[0].out_value = ir_out;
 		field[0].in_value = ir_in;
@@ -888,7 +887,6 @@ int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t * dr_in, uint8_t * dr_out,
 	{
 		struct scan_field field[1];
 
-		field[0].tap = tap;
 		field[0].num_bits = dr_len;
 		field[0].out_value = dr_out;
 		field[0].in_value = dr_in;

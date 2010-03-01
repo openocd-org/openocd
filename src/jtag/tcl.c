@@ -175,7 +175,6 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		Jim_GetLong(interp, args[i], &bits);
 		str = Jim_GetString(args[i + 1], &len);
 
-		fields[field_count].tap = tap;
 		fields[field_count].num_bits = bits;
 		fields[field_count].out_value = malloc(DIV_ROUND_UP(bits, 8));
 		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
@@ -183,7 +182,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		field_count++;
 	}
 
-	jtag_add_dr_scan(num_fields, fields, endstate);
+	jtag_add_dr_scan(tap, num_fields, fields, endstate);
 
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
@@ -1462,7 +1461,7 @@ COMMAND_HANDLER(handle_irscan_command)
 {
 	int i;
 	struct scan_field *fields;
-	struct jtag_tap *tap;
+	struct jtag_tap *tap = NULL;
 	tap_state_t endstate;
 
 	if ((CMD_ARGC < 2) || (CMD_ARGC % 2))
@@ -1510,7 +1509,6 @@ COMMAND_HANDLER(handle_irscan_command)
 			return ERROR_FAIL;
 		}
 		int field_size = tap->ir_length;
-		fields[i].tap = tap;
 		fields[i].num_bits = field_size;
 		fields[i].out_value = malloc(DIV_ROUND_UP(field_size, 8));
 
@@ -1523,7 +1521,7 @@ COMMAND_HANDLER(handle_irscan_command)
 	}
 
 	/* did we have an endstate? */
-	jtag_add_ir_scan(num_fields, fields, endstate);
+	jtag_add_ir_scan(tap, num_fields, fields, endstate);
 
 	retval = jtag_execute_queue();
 
