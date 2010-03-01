@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2009 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2010 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -763,17 +763,51 @@ int interface_jtag_add_sleep(uint32_t us)
 	return ERROR_OK;
 }
 
+int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state state)
+{
+	/*wait for the fifo to be empty*/
+	waitIdle();
+
+	for (unsigned i = 0; i < num_bits; i++)
+	{
+		int tms;
+
+		if (((seq[i/8] >> (i % 8)) & 1) == 0)
+		{
+			tms = 0;
+		}
+		else
+		{
+			tms = 1;
+		}
+
+		waitIdle();
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, tms);
+	}
+
+	waitIdle();
+	if (state != TAP_INVALID)
+	{
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, state);
+	} else
+	{
+		/* this would be normal if we are switching to SWD mode */
+	}
+	return ERROR_OK;
+}
+
 int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	int state_count;
 	int tms = 0;
 
-	/*wait for the fifo to be empty*/
-	waitIdle();
-
 	state_count = 0;
 
 	tap_state_t cur_state = cmd_queue_cur_state;
+
+	uint8_t seq[16];
+	memset(seq, 0, sizeof(seq));
+	assert(num_states < (sizeof(seq) * 8));
 
 	while (num_states)
 	{
@@ -791,28 +825,14 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 			exit(-1);
 		}
 
-		waitIdle();
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28,  tms);
+		seq[state_count/8] = seq[state_count/8] | (tms << (state_count % 8));
 
 		cur_state = path[state_count];
 		state_count++;
 		num_states--;
 	}
 
-	waitIdle();
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0x20,  cur_state);
-	return ERROR_OK;
-}
-
-int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq)
-{
-	/* FIXME just implement this, like pathmove but without
-	 * JTAG-specific state transition checking.  Then update
-	 * zy1000_interface to report that it's supported.
-	 *
-	 * Eventually interface_jtag_add_pathmove() could vanish.
-	 */
-	return ERROR_JTAG_NOT_IMPLEMENTED;
+	return interface_add_tms_seq(state_count, seq, cur_state);
 }
 
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
@@ -963,6 +983,7 @@ static const struct command_registration zy1000_commands[] = {
 struct jtag_interface zy1000_interface =
 {
 	.name = "ZY1000",
+	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = NULL,
 	.speed = zy1000_speed,
 	.commands = zy1000_commands,
