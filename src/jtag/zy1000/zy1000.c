@@ -888,56 +888,85 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 	 * with unaligned uint32_t * pointers... */
 	const uint8_t *t = (const uint8_t *)data;
 
-	while (count--)
+
+	/* bypass bits before and after */
+	int pre_bits = 0;
+	int post_bits = 0;
+
+	bool found = false;
+	struct jtag_tap *cur_tap, *nextTap;
+	for (cur_tap = jtag_tap_next_enabled(NULL); cur_tap!= NULL; cur_tap = nextTap)
 	{
-		values[0] = *t++;
-		values[0] |= (*t++<<8);
-		values[0] |= (*t++<<16);
-		values[0] |= (*t++<<24);
-
-		if (count > 0)
+		nextTap = jtag_tap_next_enabled(cur_tap);
+		if (cur_tap == tap)
 		{
-			jtag_add_dr_out(tap,
-				2,
-				bits,
-				values,
-				TAP_DRPAUSE);
-
-#if 1
-			/* copy & paste from arm11_dbgtap.c */
-			//TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
-
-			waitIdle();
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-			waitIdle();
-			ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT);
-#else
-			static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
-			{
-				TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
-			};
-
-			jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
-				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
-#endif
+			found = true;
 		} else
 		{
-			/* This will happen on the last iteration updating the current tap state
-			 * so we don't have to track it during the common code path */
-			jtag_add_dr_out(tap,
-				2,
-				bits,
-				values,
-				TAP_IDLE);
+			if (found)
+			{
+				post_bits++;
+			} else
+			{
+				pre_bits++;
+			}
 		}
 	}
+
+	post_bits+=2;
+
+
+	while (--count > 0)
+	{
+		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
+
+		uint32_t value;
+		value = *t++;
+		value |= (*t++<<8);
+		value |= (*t++<<16);
+		value |= (*t++<<24);
+
+		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, value);
+		shiftValueInner(TAP_DRSHIFT, TAP_DRPAUSE, post_bits, 0);
+
+#if 1
+		/* copy & paste from arm11_dbgtap.c */
+		//TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
+
+		waitIdle();
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+		/* we don't have to wait for the queue to empty here. waitIdle();	 */
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT);
+#else
+		static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
+		{
+			TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
+		};
+
+		jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
+			arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
+#endif
+	}
+
+	values[0] = *t++;
+	values[0] |= (*t++<<8);
+	values[0] |= (*t++<<16);
+	values[0] |= (*t++<<24);
+
+	/* This will happen on the last iteration updating the current tap state
+	 * so we don't have to track it during the common code path */
+	jtag_add_dr_out(tap,
+		2,
+		bits,
+		values,
+		TAP_IDLE);
 
 	return jtag_execute_queue();
 #endif
