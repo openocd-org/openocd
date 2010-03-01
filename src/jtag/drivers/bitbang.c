@@ -91,6 +91,31 @@ static void bitbang_state_move(int skip)
 	tap_set_state(tap_get_end_state());
 }
 
+
+/**
+ * Clock a bunch of TMS (or SWDIO) transitions, to change the JTAG
+ * (or SWD) state machine.
+ */
+static int bitbang_execute_tms(struct jtag_command *cmd)
+{
+	unsigned	num_bits = cmd->cmd.tms->num_bits;
+	const uint8_t	*bits = cmd->cmd.tms->bits;
+
+	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
+
+	int tms = 0;
+	for (unsigned i = 0; i < num_bits; i++)
+	{
+		tms = ((bits[i/8] >> (i % 8)) & 1);
+		bitbang_interface->write(0, tms, 0);
+		bitbang_interface->write(1, tms, 0);
+	}
+	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
+
+	return ERROR_OK;
+}
+
+
 static void bitbang_path_move(struct pathmove_command *cmd)
 {
 	int num_states = cmd->num_states;
@@ -311,6 +336,9 @@ int bitbang_execute_queue(void)
 				LOG_DEBUG("sleep %" PRIi32, cmd->cmd.sleep->us);
 #endif
 				jtag_sleep(cmd->cmd.sleep->us);
+				break;
+			case JTAG_TMS:
+				retval = bitbang_execute_tms(cmd);
 				break;
 			default:
 				LOG_ERROR("BUG: unknown JTAG command type encountered");

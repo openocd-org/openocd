@@ -126,6 +126,7 @@ struct jtag_interface at91rm9200_interface =
 {
 	.name = "at91rm9200",
 
+	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
 
 	.speed = at91rm9200_speed,

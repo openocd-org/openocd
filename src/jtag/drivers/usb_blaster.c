@@ -580,6 +580,7 @@ static const struct command_registration usb_blaster_command_handlers[] = {
 struct jtag_interface usb_blaster_interface = {
 	.name = "usb_blaster",
 	.commands = usb_blaster_command_handlers,
+	.supported = DEBUG_CAP_TMS_SEQ,
 
 	.execute_queue = bitbang_execute_queue,
 

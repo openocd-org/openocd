@@ -164,6 +164,7 @@ static const struct command_registration dummy_command_handlers[] = {
 struct jtag_interface dummy_interface = {
 		.name = "dummy",
 
+		.supported = DEBUG_CAP_TMS_SEQ,
 		.commands = dummy_command_handlers,
 
 		.execute_queue = &bitbang_execute_queue,

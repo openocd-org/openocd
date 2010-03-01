@@ -57,6 +57,7 @@ struct jtag_interface ep93xx_interface =
 {
 	.name = "ep93xx",
 
+	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
 
 	.speed = ep93xx_speed,
