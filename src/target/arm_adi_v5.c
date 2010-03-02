@@ -1530,10 +1530,6 @@ int dap_info_command(struct command_context *cmd_ctx,
 					type = "TI DAPCTL";
 					full = "";
 					break;
-				case 0x4e0:
-					type = "Cortex-M3 ETM";
-					full = "(Embedded Trace)";
-					break;
 				case 0x906:
 					type = "Coresight CTI";
 					full = "(Cross Trigger)";
@@ -1565,6 +1561,10 @@ int dap_info_command(struct command_context *cmd_ctx,
 				case 0x923:
 					type = "Cortex-M3 TPIU";
 					full = "(Trace Port Interface Unit)";
+					break;
+				case 0x924:
+					type = "Cortex-M3 ETM";
+					full = "(Embedded Trace)";
 					break;
 				case 0xc08:
 					type = "Cortex-A8 Debug";
