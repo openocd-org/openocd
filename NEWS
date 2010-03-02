@@ -18,6 +18,7 @@ Flash Layer:
 
 
 Board, Target, and Interface Configuration Scripts:
+	Support IAR LPC1768 kickstart board (by Olimex)
 
 Core Jim/TCL Scripting:
 

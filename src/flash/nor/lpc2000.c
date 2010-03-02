@@ -33,7 +33,15 @@
 #include <target/armv7m.h>
 
 
-/* flash programming support for NXP LPC17xx and LPC2xxx devices
+/**
+ * @file
+ * flash programming support for NXP LPC17xx and LPC2xxx devices.
+ *
+ * @todo Provide a way to update CCLK after declaring the flash bank.
+ * The value which is correct after chip reset will rarely still work
+ * right after the clocks switch to use the PLL (e.g. 4MHz --> 100 MHz).
+ */
+/*
  * currently supported devices:
  * variant 1 (lpc2000_v1):
  * - 2104 | 5 | 6
