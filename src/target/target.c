@@ -424,6 +424,36 @@ int target_halt(struct target *target)
 	return ERROR_OK;
 }
 
+/**
+ * Make the target (re)start executing using its saved execution
+ * context (possibly with some modifications).
+ *
+ * @param target Which target should start executing.
+ * @param current True to use the target's saved program counter instead
+ *	of the address parameter
+ * @param address Optionally used as the program counter.
+ * @param handle_breakpoints True iff breakpoints at the resumption PC
+ *	should be skipped.  (For example, maybe execution was stopped by
+ *	such a breakpoint, in which case it would be counterprodutive to
+ *	let it re-trigger.
+ * @param debug_execution False if all working areas allocated by OpenOCD
+ *	should be released and/or restored to their original contents.
+ *	(This would for example be true to run some downloaded "helper"
+ *	algorithm code, which resides in one such working buffer and uses
+ *	another for data storage.)
+ *
+ * @todo Resolve the ambiguity about what the "debug_execution" flag
+ * signifies.  For example, Target implementations don't agree on how
+ * it relates to invalidation of the register cache, or to whether
+ * breakpoints and watchpoints should be enabled.  (It would seem wrong
+ * to enable breakpoints when running downloaded "helper" algorithms
+ * (debug_execution true), since the breakpoints would be set to match
+ * target firmware being debugged, not the helper algorithm.... and
+ * enabling them could cause such helpers to malfunction (for example,
+ * by overwriting data with a breakpoint instruction.  On the other
+ * hand the infrastructure for running such helpers might use this
+ * procedure but rely on hardware breakpoint to detect termination.)
+ */
 int target_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval;
@@ -435,9 +465,9 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 		return ERROR_FAIL;
 	}
 
-	/* note that resume *must* be asynchronous. The CPU can halt before we poll. The CPU can
-	 * even halt at the current PC as a result of a software breakpoint being inserted by (a bug?)
-	 * the application.
+	/* note that resume *must* be asynchronous. The CPU can halt before
+	 * we poll. The CPU can even halt at the current PC as a result of
+	 * a software breakpoint being inserted by (a bug?) the application.
 	 */
 	if ((retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution)) != ERROR_OK)
 		return retval;
