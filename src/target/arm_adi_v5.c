@@ -350,25 +350,6 @@ static int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
  *                                                                         *
 ***************************************************************************/
 
-/* FIXME remove dap_dp_{read,write}_reg() ... these should become the
- * bodies of the JTAG implementations of dap_queue_dp_{read,write}() and
- * callers should switch over to the transport-neutral calls.
- */
-
-static int dap_dp_write_reg(struct swjdp_common *swjdp,
-		uint32_t value, uint8_t reg_addr)
-{
-	return adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
-			reg_addr, DPAP_WRITE, value, NULL);
-}
-
-static int dap_dp_read_reg(struct swjdp_common *swjdp,
-		uint32_t *value, uint8_t reg_addr)
-{
-	return adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
-			reg_addr, DPAP_READ, 0, value);
-}
-
 /**
  * Select one of the APs connected to the specified DAP.  The
  * selection is implicitly used with future AP transactions.
@@ -403,7 +384,7 @@ static int dap_ap_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
 	{
 		swjdp->ap_bank_value = select;
 		select |= swjdp->apsel;
-		return dap_dp_write_reg(swjdp, select, DP_SELECT);
+		return dap_queue_dp_write(swjdp, DP_SELECT, select);
 	} else
 		return ERROR_OK;
 }
@@ -1207,13 +1188,15 @@ static int jtag_idcode_q_read(struct swjdp_common *dap,
 static int jtag_dp_q_read(struct swjdp_common *dap, unsigned reg,
 		uint32_t *data)
 {
-	return dap_dp_read_reg(dap, data, reg);
+	return adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
+			reg, DPAP_READ, 0, data);
 }
 
 static int jtag_dp_q_write(struct swjdp_common *dap, unsigned reg,
 		uint32_t data)
 {
-	return dap_dp_write_reg(dap, data, reg);
+	return adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
+			reg, DPAP_WRITE, data, NULL);
 }
 
 static int jtag_ap_q_bankselect(struct swjdp_common *dap, unsigned reg)
@@ -1307,14 +1290,27 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	dap_ap_select(swjdp, 0);
 
 	/* DP initialization */
-	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
-	dap_dp_write_reg(swjdp, SSTICKYERR, DP_CTRL_STAT);
-	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
+
+	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_dp_write(swjdp, DP_CTRL_STAT, SSTICKYERR);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	if (retval != ERROR_OK)
+		return retval;
 
 	swjdp->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+	retval = dap_queue_dp_write(swjdp, DP_CTRL_STAT, swjdp->dp_ctrl_stat);
+	if (retval != ERROR_OK)
+		return retval;
 
-	dap_dp_write_reg(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
-	dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
+	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &ctrlstat);
+	if (retval != ERROR_OK)
+		return retval;
 	if ((retval = dap_run(swjdp)) != ERROR_OK)
 		return retval;
 
@@ -1322,7 +1318,9 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	while (!(ctrlstat & CDBGPWRUPACK) && (cnt++ < 10))
 	{
 		LOG_DEBUG("DAP: wait CDBGPWRUPACK");
-		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
+		retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &ctrlstat);
+		if (retval != ERROR_OK)
+			return retval;
 		if ((retval = dap_run(swjdp)) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
@@ -1331,17 +1329,25 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	while (!(ctrlstat & CSYSPWRUPACK) && (cnt++ < 10))
 	{
 		LOG_DEBUG("DAP: wait CSYSPWRUPACK");
-		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
+		retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &ctrlstat);
+		if (retval != ERROR_OK)
+			return retval;
 		if ((retval = dap_run(swjdp)) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
 
-	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
+	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	if (retval != ERROR_OK)
+		return retval;
 	/* With debug power on we can activate OVERRUN checking */
 	swjdp->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
-	dap_dp_write_reg(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
-	dap_dp_read_reg(swjdp, &dummy, DP_CTRL_STAT);
+	retval = dap_queue_dp_write(swjdp, DP_CTRL_STAT, swjdp->dp_ctrl_stat);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/*
 	 * REVISIT this isn't actually *initializing* anything in an AP,
