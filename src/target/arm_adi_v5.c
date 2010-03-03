@@ -328,8 +328,16 @@ static int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 
 			LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
 
-			dap_ap_read_reg_u32(swjdp, AP_REG_CSW, &mem_ap_csw);
-			dap_ap_read_reg_u32(swjdp, AP_REG_TAR, &mem_ap_tar);
+			retval = dap_queue_ap_read(swjdp,
+					AP_REG_CSW, &mem_ap_csw);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = dap_queue_ap_read(swjdp,
+					AP_REG_TAR, &mem_ap_tar);
+			if (retval != ERROR_OK)
+				return retval;
+
 			if ((retval = dap_run(swjdp)) != ERROR_OK)
 				return retval;
 			LOG_ERROR("MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%"
@@ -375,79 +383,6 @@ void dap_ap_select(struct swjdp_common *swjdp,uint8_t apsel)
 	}
 }
 
-/** Select the AP register bank matching bits 7:4 of ap_reg. */
-static int dap_ap_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
-{
-	uint32_t select = (ap_reg & 0x000000F0);
-
-	if (select != swjdp->ap_bank_value)
-	{
-		swjdp->ap_bank_value = select;
-		select |= swjdp->apsel;
-		return dap_queue_dp_write(swjdp, DP_SELECT, select);
-	} else
-		return ERROR_OK;
-}
-
-/* FIXME remove dap_ap_{read,write}_reg() and dap_ap_write_reg_u32()
- * ... these should become the bodies of the JTAG implementations of
- * dap_queue_ap_{read,write}(), then all their current callers should
- * switch over to the transport-neutral calls.
- */
-
-static int dap_ap_write_reg(struct swjdp_common *swjdp,
-		uint32_t reg_addr, uint8_t *out_value_buf)
-{
-	int retval;
-
-	retval = dap_ap_bankselect(swjdp, reg_addr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return adi_jtag_ap_write_check(swjdp, reg_addr, out_value_buf);
-}
-
-/**
- * Asynchronous (queued) AP register write.
- *
- * @param swjdp The DAP whose currently selected AP will be written.
- * @param reg_addr Eight bit AP register address.
- * @param value Word to be written at reg_addr
- *
- * @return ERROR_OK if the transaction was properly queued, else a fault code.
- */
-int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
-		uint32_t reg_addr, uint32_t value)
-{
-	uint8_t out_value_buf[4];
-
-	buf_set_u32(out_value_buf, 0, 32, value);
-	return dap_ap_write_reg(swjdp,
-			reg_addr, out_value_buf);
-}
-
-/**
- * Asynchronous (queued) AP register eread.
- *
- * @param swjdp The DAP whose currently selected AP will be read.
- * @param reg_addr Eight bit AP register address.
- * @param value Points to where the 32-bit (little-endian) word will be stored.
- *
- * @return ERROR_OK if the transaction was properly queued, else a fault code.
- */
-int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
-		uint32_t reg_addr, uint32_t *value)
-{
-	int retval;
-
-	retval = dap_ap_bankselect(swjdp, reg_addr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_APACC, reg_addr,
-			DPAP_READ, 0, value);
-}
-
 /**
  * Queue transactions setting up transfer parameters for the
  * currently selected MEM-AP.
@@ -475,7 +410,7 @@ int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 	if (csw != swjdp->ap_csw_value)
 	{
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		retval = dap_ap_write_reg_u32(swjdp, AP_REG_CSW, csw);
+		retval = dap_queue_ap_write(swjdp, AP_REG_CSW, csw);
 		if (retval != ERROR_OK)
 			return retval;
 		swjdp->ap_csw_value = csw;
@@ -483,7 +418,7 @@ int dap_setup_accessport(struct swjdp_common *swjdp, uint32_t csw, uint32_t tar)
 	if (tar != swjdp->ap_tar_value)
 	{
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		retval = dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar);
+		retval = dap_queue_ap_write(swjdp, AP_REG_TAR, tar);
 		if (retval != ERROR_OK)
 			return retval;
 		swjdp->ap_tar_value = tar;
@@ -518,7 +453,7 @@ int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
+	return dap_queue_ap_read(swjdp, AP_REG_BD0 | (address & 0xC), value);
 }
 
 /**
@@ -569,7 +504,7 @@ int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC),
+	return dap_queue_ap_write(swjdp, AP_REG_BD0 | (address & 0xC),
 			value);
 }
 
@@ -645,7 +580,10 @@ int mem_ap_write_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 
 		for (writecount = 0; writecount < blocksize; writecount++)
 		{
-			dap_ap_write_reg(swjdp, AP_REG_DRW, buffer + 4 * writecount);
+			retval = dap_queue_ap_write(swjdp, AP_REG_DRW,
+				*(uint32_t *) (buffer + 4 * writecount));
+			if (retval != ERROR_OK)
+				break;
 		}
 
 		if (dap_run(swjdp) == ERROR_OK)
@@ -725,7 +663,11 @@ static int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp,
 				}
 
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
-				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
+				retval = dap_queue_ap_write(swjdp,
+						AP_REG_DRW, outvalue);
+				if (retval != ERROR_OK)
+					break;
+
 				if (dap_run(swjdp) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
@@ -759,7 +701,10 @@ int mem_ap_write_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 		uint16_t svalue;
 		memcpy(&svalue, buffer, sizeof(uint16_t));
 		uint32_t outvalue = (uint32_t)svalue << 8 * (address & 0x3);
-		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
+		retval = dap_queue_ap_write(swjdp, AP_REG_DRW, outvalue);
+		if (retval != ERROR_OK)
+			break;
+
 		retval = dap_run(swjdp);
 		if (retval != ERROR_OK)
 			break;
@@ -822,7 +767,11 @@ static int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp,
 				}
 
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
-				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
+				retval = dap_queue_ap_write(swjdp,
+						AP_REG_DRW, outvalue);
+				if (retval != ERROR_OK)
+					break;
+
 				if (dap_run(swjdp) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
@@ -854,7 +803,10 @@ int mem_ap_write_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
 		uint32_t outvalue = (uint32_t)*buffer << 8 * (address & 0x3);
-		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
+		retval = dap_queue_ap_write(swjdp, AP_REG_DRW, outvalue);
+		if (retval != ERROR_OK)
+			break;
+
 		retval = dap_run(swjdp);
 		if (retval != ERROR_OK)
 			break;
@@ -902,6 +854,13 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer,
 
 		dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE,
 				address);
+
+		/* FIXME remove these three calls to adi_jtag_dp_scan(),
+		 * so this routine becomes transport-neutral.  Be careful
+		 * not to cause performance problems with JTAG; would it
+		 * suffice to loop over dap_queue_ap_read(), or would that
+		 * be slower when JTAG is the chosen transport?
+		 */
 
 		/* Scan out first read */
 		adi_jtag_dp_scan(swjdp, JTAG_DP_APACC, AP_REG_DRW,
@@ -992,7 +951,7 @@ static int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp,
 
 		do
 		{
-			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
+			retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
 			if (dap_run(swjdp) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
@@ -1037,7 +996,10 @@ int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer,
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
+		retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
+		if (retval != ERROR_OK)
+			break;
+
 		retval = dap_run(swjdp);
 		if (retval != ERROR_OK)
 			break;
@@ -1094,7 +1056,7 @@ static int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp,
 
 		do
 		{
-			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
+			retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
 			if (dap_run(swjdp) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
@@ -1139,7 +1101,7 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer,
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
-		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
+		retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
 		retval = dap_run(swjdp);
 		if (retval != ERROR_OK)
 			break;
@@ -1199,6 +1161,7 @@ static int jtag_dp_q_write(struct swjdp_common *dap, unsigned reg,
 			reg, DPAP_WRITE, data, NULL);
 }
 
+/** Select the AP register bank matching bits 7:4 of reg. */
 static int jtag_ap_q_bankselect(struct swjdp_common *dap, unsigned reg)
 {
 	uint32_t select = reg & 0x000000F0;
@@ -1219,17 +1182,23 @@ static int jtag_ap_q_read(struct swjdp_common *dap, unsigned reg,
 
 	if (retval != ERROR_OK)
 		return retval;
-	return dap_ap_read_reg_u32(dap, reg, data);
+
+	return adi_jtag_scan_inout_check_u32(dap, JTAG_DP_APACC, reg,
+			DPAP_READ, 0, data);
 }
 
 static int jtag_ap_q_write(struct swjdp_common *dap, unsigned reg,
 		uint32_t data)
 {
-	int retval = jtag_ap_q_bankselect(dap, reg);
+	uint8_t out_value_buf[4];
 
+	int retval = jtag_ap_q_bankselect(dap, reg);
 	if (retval != ERROR_OK)
 		return retval;
-	return dap_ap_write_reg_u32(dap, reg, data);
+
+	buf_set_u32(out_value_buf, 0, 32, data);
+
+	return adi_jtag_ap_write_check(dap, reg, out_value_buf);
 }
 
 static int jtag_ap_q_abort(struct swjdp_common *dap, uint8_t *ack)
@@ -1355,8 +1324,8 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	 * Should it?  If the ROM address is valid, is this the right
 	 * place to scan the table and do any topology detection?
 	 */
-	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &idreg);
-	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &romaddr);
+	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &idreg);
+	retval = dap_queue_ap_read(swjdp, AP_REG_BASE, &romaddr);
 
 	LOG_DEBUG("MEM-AP #%d ID Register 0x%" PRIx32
 		", Debug ROM Address 0x%" PRIx32,
@@ -1398,8 +1367,8 @@ int dap_info_command(struct command_context *cmd_ctx,
 
 	apselold = swjdp->apsel;
 	dap_ap_select(swjdp, apsel);
-	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &dbgbase);
-	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(swjdp, AP_REG_BASE, &dbgbase);
+	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &apid);
 	retval = dap_run(swjdp);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1770,7 +1739,7 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 	 * though they're not common for now.  This should
 	 * use the ID register to verify it's a MEM-AP.
 	 */
-	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &baseaddr);
+	retval = dap_queue_ap_read(swjdp, AP_REG_BASE, &baseaddr);
 	retval = dap_run(swjdp);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1825,7 +1794,7 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 	}
 
 	dap_ap_select(swjdp, apsel);
-	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &apid);
 	retval = dap_run(swjdp);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1859,7 +1828,7 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apsel);
 
-	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &apid);
 	retval = dap_run(swjdp);
 	if (retval != ERROR_OK)
 		return retval;

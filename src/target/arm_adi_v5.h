@@ -350,10 +350,6 @@ void dap_ap_select(struct swjdp_common *dap,uint8_t apsel);
 /* Queued AP transactions */
 int dap_setup_accessport(struct swjdp_common *swjdp,
 		uint32_t csw, uint32_t tar);
-int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
-		uint32_t addr, uint32_t value);
-int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
-		uint32_t addr, uint32_t *value);
 
 /* Queued MEM-AP memory mapped single word transfers */
 int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value);

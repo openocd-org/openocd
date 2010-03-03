@@ -72,13 +72,19 @@ static int cortexm3_dap_read_coreregister_u32(struct swjdp_common *swjdp,
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRSR, regnum); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum);
+	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* mem_ap_read_u32(swjdp, DCB_DCRDR, value); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
-	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
+	retval = dap_queue_ap_read(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = dap_run(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* restore DCB_DCRDR - this needs to be in a seperate
 	 * transaction otherwise the emulated DCC channel breaks */
@@ -101,11 +107,13 @@ static int cortexm3_dap_write_coreregister_u32(struct swjdp_common *swjdp,
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRDR, core_regs[i]); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
+	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
+	// XXX check retval
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR);
+	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR);
+	// XXX check retval
 
 	retval = dap_run(swjdp);
 
