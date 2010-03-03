@@ -693,8 +693,8 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 
 	if (!set)
 	{
-		LOG_ERROR("Can't unprotect write-protected pages.");
-		/* except by the "recover locked device" procedure ... */
+		LOG_ERROR("Hardware doesn't suppport page-level unprotect. "
+			"Try the 'recover' command.");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -706,7 +706,7 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 			|| (last < first) || !(last & 1)
 			|| (last >= 2 * stellaris_info->num_lockbits))
 	{
-		LOG_ERROR("Can't protect unaligned or out-of-range sectors.");
+		LOG_ERROR("Can't protect unaligned or out-of-range pages.");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -1240,7 +1240,7 @@ static const struct command_registration stellaris_exec_command_handlers[] = {
 		.handler = stellaris_handle_recover_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
-		.help = "recover locked device",
+		.help = "recover (and erase) locked device",
 	},
 	COMMAND_REGISTRATION_DONE
 };
