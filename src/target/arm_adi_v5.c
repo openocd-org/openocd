@@ -213,7 +213,7 @@ static int adi_jtag_scan_inout_check_u32(struct swjdp_common *swjdp,
 	return retval;
 }
 
-int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
+static int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 {
 	int retval;
 	uint32_t ctrlstat;
@@ -277,7 +277,7 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 
 			adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			if ((retval = dap_run(swjdp)) != ERROR_OK)
 				return retval;
 			swjdp->ack = swjdp->ack & 0x7;
 		}
@@ -323,20 +323,20 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
 						| SSTICKYERR, NULL);
 			adi_jtag_scan_inout_check_u32(swjdp, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			if ((retval = dap_run(swjdp)) != ERROR_OK)
 				return retval;
 
 			LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
 
 			dap_ap_read_reg_u32(swjdp, AP_REG_CSW, &mem_ap_csw);
 			dap_ap_read_reg_u32(swjdp, AP_REG_TAR, &mem_ap_tar);
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			if ((retval = dap_run(swjdp)) != ERROR_OK)
 				return retval;
 			LOG_ERROR("MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%"
 					PRIx32, mem_ap_csw, mem_ap_tar);
 
 		}
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = dap_run(swjdp)) != ERROR_OK)
 			return retval;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
@@ -561,7 +561,7 @@ int mem_ap_read_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return jtagdp_transaction_endcheck(swjdp);
+	return dap_run(swjdp);
 }
 
 /**
@@ -611,7 +611,7 @@ int mem_ap_write_atomic_u32(struct swjdp_common *swjdp, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return jtagdp_transaction_endcheck(swjdp);
+	return dap_run(swjdp);
 }
 
 /*****************************************************************************
@@ -667,7 +667,7 @@ int mem_ap_write_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 			dap_ap_write_reg(swjdp, AP_REG_DRW, buffer + 4 * writecount);
 		}
 
-		if (jtagdp_transaction_endcheck(swjdp) == ERROR_OK)
+		if (dap_run(swjdp) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
 			address = address + 4 * blocksize;
@@ -681,6 +681,7 @@ int mem_ap_write_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 		if (errorcount > 1)
 		{
 			LOG_WARNING("Block write error address 0x%" PRIx32 ", wcount 0x%x", address, wcount);
+			/* REVISIT return the *actual* fault code */
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -744,11 +745,12 @@ static int mem_ap_write_buf_packed_u16(struct swjdp_common *swjdp,
 
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
-				if (jtagdp_transaction_endcheck(swjdp) != ERROR_OK)
+				if (dap_run(swjdp) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
 						address, count);
+					/* REVISIT return *actual* fault code */
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -777,7 +779,10 @@ int mem_ap_write_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer, int count,
 		memcpy(&svalue, buffer, sizeof(uint16_t));
 		uint32_t outvalue = (uint32_t)svalue << 8 * (address & 0x3);
 		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
-		retval = jtagdp_transaction_endcheck(swjdp);
+		retval = dap_run(swjdp);
+		if (retval != ERROR_OK)
+			break;
+
 		count -= 2;
 		address += 2;
 		buffer += 2;
@@ -837,11 +842,12 @@ static int mem_ap_write_buf_packed_u8(struct swjdp_common *swjdp,
 
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
-				if (jtagdp_transaction_endcheck(swjdp) != ERROR_OK)
+				if (dap_run(swjdp) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
 						address, count);
+					/* REVISIT return *actual* fault code */
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -868,7 +874,10 @@ int mem_ap_write_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer, int count, 
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
 		uint32_t outvalue = (uint32_t)*buffer << 8 * (address & 0x3);
 		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
-		retval = jtagdp_transaction_endcheck(swjdp);
+		retval = dap_run(swjdp);
+		if (retval != ERROR_OK)
+			break;
+
 		count--;
 		address++;
 		buffer++;
@@ -933,7 +942,7 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer,
 		adi_jtag_dp_scan(swjdp, JTAG_DP_DPACC, DP_RDBUFF,
 				DPAP_READ, 0, buffer + 4 * readcount,
 				&swjdp->ack);
-		if (jtagdp_transaction_endcheck(swjdp) == ERROR_OK)
+		if (dap_run(swjdp) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
 			address += 4 * blocksize;
@@ -948,6 +957,7 @@ int mem_ap_read_buf_u32(struct swjdp_common *swjdp, uint8_t *buffer,
 		{
 			LOG_WARNING("Block read error address 0x%" PRIx32
 				", count 0x%x", address, count);
+			/* REVISIT return the *actual* fault code */
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -1002,9 +1012,10 @@ static int mem_ap_read_buf_packed_u16(struct swjdp_common *swjdp,
 		do
 		{
 			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
-			if (jtagdp_transaction_endcheck(swjdp) != ERROR_OK)
+			if (dap_run(swjdp) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+				/* REVISIT return the *actual* fault code */
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
@@ -1046,7 +1057,10 @@ int mem_ap_read_buf_u16(struct swjdp_common *swjdp, uint8_t *buffer,
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
 		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
-		retval = jtagdp_transaction_endcheck(swjdp);
+		retval = dap_run(swjdp);
+		if (retval != ERROR_OK)
+			break;
+
 		if (address & 0x1)
 		{
 			for (i = 0; i < 2; i++)
@@ -1100,9 +1114,10 @@ static int mem_ap_read_buf_packed_u8(struct swjdp_common *swjdp,
 		do
 		{
 			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
-			if (jtagdp_transaction_endcheck(swjdp) != ERROR_OK)
+			if (dap_run(swjdp) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
+				/* REVISIT return the *actual* fault code */
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
@@ -1144,7 +1159,10 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer,
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
 		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
-		retval = jtagdp_transaction_endcheck(swjdp);
+		retval = dap_run(swjdp);
+		if (retval != ERROR_OK)
+			break;
+
 		*((uint8_t*)buffer) = (invalue >> 8 * (address & 0x3));
 		count--;
 		address++;
@@ -1297,7 +1315,7 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 
 	dap_dp_write_reg(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
 	dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	if ((retval = dap_run(swjdp)) != ERROR_OK)
 		return retval;
 
 	/* Check that we have debug power domains activated */
@@ -1305,7 +1323,7 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	{
 		LOG_DEBUG("DAP: wait CDBGPWRUPACK");
 		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = dap_run(swjdp)) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
@@ -1314,7 +1332,7 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	{
 		LOG_DEBUG("DAP: wait CSYSPWRUPACK");
 		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = dap_run(swjdp)) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
@@ -1362,7 +1380,7 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 int dap_info_command(struct command_context *cmd_ctx,
 		struct swjdp_common *swjdp, int apsel)
 {
-
+	int retval;
 	uint32_t dbgbase, apid;
 	int romtable_present = 0;
 	uint8_t mem_ap;
@@ -1376,7 +1394,10 @@ int dap_info_command(struct command_context *cmd_ctx,
 	dap_ap_select(swjdp, apsel);
 	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &dbgbase);
 	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
-	jtagdp_transaction_endcheck(swjdp);
+	retval = dap_run(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
 	command_print(cmd_ctx, "AP ID register 0x%8.8" PRIx32, apid);
@@ -1428,7 +1449,10 @@ int dap_info_command(struct command_context *cmd_ctx,
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
-		jtagdp_transaction_endcheck(swjdp);
+		retval = dap_run(swjdp);
+		if (retval != ERROR_OK)
+			return retval;
+
 		if (!is_dap_cid_ok(cid3, cid2, cid1, cid0))
 			command_print(cmd_ctx, "\tCID3 0x%2.2" PRIx32
 					", CID2 0x%2.2" PRIx32
@@ -1741,7 +1765,10 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 	 * use the ID register to verify it's a MEM-AP.
 	 */
 	dap_ap_read_reg_u32(swjdp, AP_REG_BASE, &baseaddr);
-	retval = jtagdp_transaction_endcheck(swjdp);
+	retval = dap_run(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
+
 	command_print(CMD_CTX, "0x%8.8" PRIx32, baseaddr);
 
 	if (apselsave != apsel)
@@ -1793,7 +1820,10 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 
 	dap_ap_select(swjdp, apsel);
 	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
-	retval = jtagdp_transaction_endcheck(swjdp);
+	retval = dap_run(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
+
 	command_print(CMD_CTX, "ap %" PRIi32 " selected, identification register 0x%8.8" PRIx32,
 			apsel, apid);
 
@@ -1824,7 +1854,10 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 		dap_ap_select(swjdp, apsel);
 
 	dap_ap_read_reg_u32(swjdp, AP_REG_IDR, &apid);
-	retval = jtagdp_transaction_endcheck(swjdp);
+	retval = dap_run(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
+
 	command_print(CMD_CTX, "0x%8.8" PRIx32, apid);
 	if (apselsave != apsel)
 		dap_ap_select(swjdp, apselsave);

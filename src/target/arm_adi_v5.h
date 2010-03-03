@@ -355,9 +355,6 @@ int dap_ap_write_reg_u32(struct swjdp_common *swjdp,
 int dap_ap_read_reg_u32(struct swjdp_common *swjdp,
 		uint32_t addr, uint32_t *value);
 
-/* Queued JTAG ops must be completed with jtagdp_transaction_endcheck() */
-int jtagdp_transaction_endcheck(struct swjdp_common *swjdp);
-
 /* Queued MEM-AP memory mapped single word transfers */
 int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value);
 int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value);
