@@ -124,10 +124,22 @@
  * transport agent; and at least one Access Port (AP), controlling
  * resource access.  Most common is a MEM-AP, for memory access.
  *
+ * There are two basic DP transports: JTAG, and ARM's low pin-count SWD.
+ * Accordingly, this interface is responsible for hiding the transport
+ * differences so upper layer code can largely ignore them.
+ *
+ * When the chip is implemented with JTAG-DP or SW-DP, the transport is
+ * fixed as JTAG or SWD, respectively.  Chips incorporating SWJ-DP permit
+ * a choice made at board design time (by only using the SWD pins), or
+ * as part of setting up a debug session (if all the dual-role JTAG/SWD
+ * signals are available).
+ *
  * @todo Rename "swjdp_common" as "dap".  Use of SWJ-DP is optional!
  */
 struct swjdp_common
 {
+	const struct dap_ops *ops;
+
 	struct arm_jtag *jtag_info;
 	/* Control config */
 	uint32_t dp_ctrl_stat;
@@ -174,6 +186,157 @@ struct swjdp_common
 	uint32_t tar_autoincr_block;
 
 };
+
+/**
+ * Transport-neutral representation of queued DAP transactions, supporting
+ * both JTAG and SWD transports.  All submitted transactions are logically
+ * queued, until the queue is executed by run().  Some implementations might
+ * execute transactions as soon as they're submitted, but no status is made
+ * availablue until run().
+ */
+struct dap_ops {
+	/** If the DAP transport isn't SWD, it must be JTAG.  Upper level
+	 * code may need to care about the difference in some cases.
+	 */
+	bool	is_swd;
+
+	/** Reads the DAP's IDCODe register. */
+	int (*queue_idcode_read)(struct swjdp_common *dap,
+			uint8_t *ack, uint32_t *data);
+
+	/** DP register read. */
+	int (*queue_dp_read)(struct swjdp_common *dap, unsigned reg,
+			uint32_t *data);
+	/** DP register write. */
+	int (*queue_dp_write)(struct swjdp_common *dap, unsigned reg,
+			uint32_t data);
+
+	/** AP register read. */
+	int (*queue_ap_read)(struct swjdp_common *dap, unsigned reg,
+			uint32_t *data);
+	/** AP register write. */
+	int (*queue_ap_write)(struct swjdp_common *dap, unsigned reg,
+			uint32_t data);
+	/** AP operation abort. */
+	int (*queue_ap_abort)(struct swjdp_common *dap, uint8_t *ack);
+
+	/** Executes all queued DAP operations. */
+	int (*run)(struct swjdp_common *dap);
+};
+
+/**
+ * Queue an IDCODE register read.  This is primarily useful for SWD
+ * transports, where it is required as part of link initialization.
+ * (For JTAG, this register is read as part of scan chain setup.)
+ *
+ * @param dap The DAP used for reading.
+ * @param ack Pointer to where transaction status will be stored.
+ * @param data Pointer saying where to store the IDCODE value.
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_queue_idcode_read(struct swjdp_common *dap,
+		uint8_t *ack, uint32_t *data)
+{
+	return dap->ops->queue_idcode_read(dap, ack, data);
+}
+
+/**
+ * Queue a DP register read.
+ * Note that not all DP registers are readable; also, that JTAG and SWD
+ * have slight differences in DP register support.
+ *
+ * @param dap The DAP used for reading.
+ * @param reg The two-bit number of the DP register being read.
+ * @param data Pointer saying where to store the register's value
+ * 	(in host endianness).
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_queue_dp_read(struct swjdp_common *dap,
+		unsigned reg, uint32_t *data)
+{
+	return dap->ops->queue_dp_read(dap, reg, data);
+}
+
+/**
+ * Queue a DP register write.
+ * Note that not all DP registers are writable; also, that JTAG and SWD
+ * have slight differences in DP register support.
+ *
+ * @param dap The DAP used for writing.
+ * @param reg The two-bit number of the DP register being written.
+ * @param data Value being written (host endianness)
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_queue_dp_write(struct swjdp_common *dap,
+		unsigned reg, uint32_t data)
+{
+	return dap->ops->queue_dp_write(dap, reg, data);
+}
+
+/**
+ * Queue an AP register read.
+ *
+ * @param dap The DAP used for reading.
+ * @param reg The number of the AP register being read.
+ * @param data Pointer saying where to store the register's value
+ * 	(in host endianness).
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_queue_ap_read(struct swjdp_common *dap,
+		unsigned reg, uint32_t *data)
+{
+	return dap->ops->queue_ap_read(dap, reg, data);
+}
+
+/**
+ * Queue an AP register write.
+ *
+ * @param dap The DAP used for writing.
+ * @param reg The number of the AP register being written.
+ * @param data Value being written (host endianness)
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_queue_ap_write(struct swjdp_common *dap,
+		unsigned reg, uint32_t data)
+{
+	return dap->ops->queue_ap_write(dap, reg, data);
+}
+
+/**
+ * Queue an AP abort operation.  The current AP transaction is aborted,
+ * including any update of the transaction counter.  The AP is left in
+ * an unknown state (so it must be re-initialized).  For use only after
+ * the AP has reported WAIT status for an extended period.
+ *
+ * @param dap The DAP used for writing.
+ * @param ack Pointer to where transaction status will be stored.
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_queue_ap_abort(struct swjdp_common *dap, uint8_t *ack)
+{
+	return dap->ops->queue_ap_abort(dap, ack);
+}
+
+/**
+ * Perform all queued DAP operations, and clear any errors posted in the
+ * CTRL_STAT register when they are done.  Note that if more than one AP
+ * operation will be queued, one of the first operations in the queue
+ * should probably enable CORUNDETECT in the CTRL/STAT register.
+ *
+ * @param dap The DAP used.
+ *
+ * @return ERROR_OK for success, else a fault code.
+ */
+static inline int dap_run(struct swjdp_common *dap)
+{
+	return dap->ops->run(dap);
+}
 
 /** Accessor for currently selected DAP-AP number (0..255) */
 static inline uint8_t dap_ap_get_select(struct swjdp_common *swjdp)

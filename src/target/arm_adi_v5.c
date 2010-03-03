@@ -350,6 +350,11 @@ int jtagdp_transaction_endcheck(struct swjdp_common *swjdp)
  *                                                                         *
 ***************************************************************************/
 
+/* FIXME remove dap_dp_{read,write}_reg() ... these should become the
+ * bodies of the JTAG implementations of dap_queue_dp_{read,write}() and
+ * callers should switch over to the transport-neutral calls.
+ */
+
 static int dap_dp_write_reg(struct swjdp_common *swjdp,
 		uint32_t value, uint8_t reg_addr)
 {
@@ -402,6 +407,12 @@ static int dap_ap_bankselect(struct swjdp_common *swjdp, uint32_t ap_reg)
 	} else
 		return ERROR_OK;
 }
+
+/* FIXME remove dap_ap_{read,write}_reg() and dap_ap_write_reg_u32()
+ * ... these should become the bodies of the JTAG implementations of
+ * dap_queue_ap_{read,write}(), then all their current callers should
+ * switch over to the transport-neutral calls.
+ */
 
 static int dap_ap_write_reg(struct swjdp_common *swjdp,
 		uint32_t reg_addr, uint8_t *out_value_buf)
@@ -1143,6 +1154,107 @@ int mem_ap_read_buf_u8(struct swjdp_common *swjdp, uint8_t *buffer,
 	return retval;
 }
 
+/*--------------------------------------------------------------------------*/
+
+static int jtag_idcode_q_read(struct swjdp_common *dap,
+		uint8_t *ack, uint32_t *data)
+{
+	struct arm_jtag *jtag_info = dap->jtag_info;
+	int retval;
+	struct scan_field fields[1];
+
+	jtag_set_end_state(TAP_IDLE);
+
+	/* This is a standard JTAG operation -- no DAP tweakage */
+	retval = arm_jtag_set_instr(jtag_info, JTAG_DP_IDCODE, NULL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	fields[0].tap = jtag_info->tap;
+	fields[0].num_bits = 32;
+	fields[0].out_value = NULL;
+	fields[0].in_value = (void *) data;
+
+	jtag_add_dr_scan(1, fields, jtag_get_end_state());
+	retval = jtag_get_error();
+	if (retval != ERROR_OK)
+		return retval;
+
+	jtag_add_callback(arm_le_to_h_u32,
+			(jtag_callback_data_t) data);
+
+	return retval;
+}
+
+static int jtag_dp_q_read(struct swjdp_common *dap, unsigned reg,
+		uint32_t *data)
+{
+	return dap_dp_read_reg(dap, data, reg);
+}
+
+static int jtag_dp_q_write(struct swjdp_common *dap, unsigned reg,
+		uint32_t data)
+{
+	return dap_dp_write_reg(dap, data, reg);
+}
+
+static int jtag_ap_q_bankselect(struct swjdp_common *dap, unsigned reg)
+{
+	uint32_t select = reg & 0x000000F0;
+
+	if (select == dap->ap_bank_value)
+		return ERROR_OK;
+	dap->ap_bank_value = select;
+
+	select |= dap->apsel;
+
+	return jtag_dp_q_write(dap, DP_SELECT, select);
+}
+
+static int jtag_ap_q_read(struct swjdp_common *dap, unsigned reg,
+		uint32_t *data)
+{
+	int retval = jtag_ap_q_bankselect(dap, reg);
+
+	if (retval != ERROR_OK)
+		return retval;
+	return dap_ap_read_reg_u32(dap, reg, data);
+}
+
+static int jtag_ap_q_write(struct swjdp_common *dap, unsigned reg,
+		uint32_t data)
+{
+	int retval = jtag_ap_q_bankselect(dap, reg);
+
+	if (retval != ERROR_OK)
+		return retval;
+	return dap_ap_write_reg_u32(dap, reg, data);
+}
+
+static int jtag_ap_q_abort(struct swjdp_common *dap, uint8_t *ack)
+{
+	/* for JTAG, this is the only valid ABORT register operation */
+	return adi_jtag_dp_scan_u32(dap, JTAG_DP_ABORT,
+			0, DPAP_WRITE, 1, NULL, ack);
+}
+
+static int jtag_dp_run(struct swjdp_common *dap)
+{
+	return jtagdp_transaction_endcheck(dap);
+}
+
+static const struct dap_ops jtag_dp_ops = {
+	.queue_idcode_read =	jtag_idcode_q_read,
+	.queue_dp_read =	jtag_dp_q_read,
+	.queue_dp_write =	jtag_dp_q_write,
+	.queue_ap_read =	jtag_ap_q_read,
+	.queue_ap_write =	jtag_ap_q_write,
+	.queue_ap_abort =	jtag_ap_q_abort,
+	.run =			jtag_dp_run,
+};
+
+/*--------------------------------------------------------------------------*/
+
 /**
  * Initialize a DAP.  This sets up the power domains, prepares the DP
  * for further use, and arranges to use AP #0 for all AP operations
@@ -1163,6 +1275,9 @@ int ahbap_debugport_init(struct swjdp_common *swjdp)
 	int retval;
 
 	LOG_DEBUG(" ");
+
+	/* JTAG-DP or SWJ-DP, in JTAG mode */
+	swjdp->ops = &jtag_dp_ops;
 
 	/* Default MEM-AP setup.
 	 *
