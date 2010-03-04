@@ -350,13 +350,13 @@ int jtag_init_inner(struct command_context *cmd_ctx);
  * subsequent DR SCANs.
  *
  */
-void jtag_add_ir_scan(struct jtag_tap* tap, int num_fields,
+void jtag_add_ir_scan(struct jtag_tap* tap,
 		struct scan_field* fields, tap_state_t endstate);
 /**
  * The same as jtag_add_ir_scan except no verification is performed out
  * the output values.
  */
-void jtag_add_ir_scan_noverify(struct jtag_tap* tap, int num_fields,
+void jtag_add_ir_scan_noverify(struct jtag_tap* tap,
 		const struct scan_field *fields, tap_state_t state);
 /**
  * Duplicate the scan fields passed into the function into an IR SCAN

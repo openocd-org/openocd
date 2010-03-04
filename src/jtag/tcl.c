@@ -1490,6 +1490,15 @@ COMMAND_HANDLER(handle_irscan_command)
 	}
 
 	int num_fields = CMD_ARGC / 2;
+	if (num_fields > 1)
+	{
+		/* we really should be looking at plain_ir_scan if we want
+		 * anything more fancy.
+		 */
+		LOG_ERROR("Specify a single value for tap");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
 	size_t fields_len = sizeof(struct scan_field) * num_fields;
 	fields = malloc(fields_len);
 	memset(fields, 0, fields_len);
@@ -1521,7 +1530,7 @@ COMMAND_HANDLER(handle_irscan_command)
 	}
 
 	/* did we have an endstate? */
-	jtag_add_ir_scan(tap, num_fields, fields, endstate);
+	jtag_add_ir_scan(tap, fields, endstate);
 
 	retval = jtag_execute_queue();
 

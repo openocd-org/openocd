@@ -173,7 +173,7 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 		field.out_value = scratch;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
-		jtag_add_ir_scan(tap, 1, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
 	}
 
 	return ERROR_OK;

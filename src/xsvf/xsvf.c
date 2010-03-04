@@ -704,7 +704,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					if (tap == NULL)
 						jtag_add_plain_ir_scan(1, &field, my_end_state);
 					else
-						jtag_add_ir_scan(tap, 1, &field, my_end_state);
+						jtag_add_ir_scan(tap, &field, my_end_state);
 
 					if (xruntest)
 					{

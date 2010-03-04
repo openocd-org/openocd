@@ -45,13 +45,13 @@ int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  vo
 
 	if (no_verify_capture == NULL)
 	{
-		jtag_add_ir_scan(tap, 1, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
 	} else
 	{
 		/* FIX!!!! this is a kludge!!! arm926ejs.c should reimplement this arm_jtag_set_instr to
 		 * have special verification code.
 		 */
-		jtag_add_ir_scan_noverify(tap, 1, &field, jtag_get_end_state());
+		jtag_add_ir_scan_noverify(tap, &field, jtag_get_end_state());
 	}
 
 	return ERROR_OK;

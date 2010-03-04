@@ -74,7 +74,7 @@ static void cmd_queue_scan_field_clone(struct scan_field * dst, const struct sca
  * see jtag_add_ir_scan()
  *
  */
-int interface_jtag_add_ir_scan(struct jtag_tap* active, int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
+int interface_jtag_add_ir_scan(struct jtag_tap* active, const struct scan_field *in_fields, tap_state_t state)
 {
 	size_t num_taps = jtag_tap_count_enabled();
 
@@ -106,8 +106,7 @@ int interface_jtag_add_ir_scan(struct jtag_tap* active, int in_num_fields, const
 			/* if TAP is listed in input fields, copy the value */
 			tap->bypass = 0;
 
-			for (int j = 0; j < in_num_fields; j++)
-				cmd_queue_scan_field_clone(field, in_fields + j);
+			cmd_queue_scan_field_clone(field, in_fields);
 		} else
 		{
 			/* if a TAP isn't listed in input fields, set it to BYPASS */

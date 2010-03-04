@@ -574,12 +574,10 @@ static __inline void scanFields(int num_fields, const struct scan_field *fields,
 	}
 }
 
-int interface_jtag_add_ir_scan(struct jtag_tap *active, int num_fields, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field *fields, tap_state_t state)
 {
 	int scan_size = 0;
 	struct jtag_tap *tap, *nextTap;
-
-	assert(num_fields == 1);
 
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
@@ -590,7 +588,7 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, int num_fields, const st
 		/* search the list */
 		if (tap == active)
 		{
-			scanFields(num_fields, fields, TAP_IRSHIFT, pause);
+			scanFields(1, fields, TAP_IRSHIFT, pause);
 			/* update device information */
 			buf_cpy(fields[0].out_value, tap->cur_instr, scan_size);
 

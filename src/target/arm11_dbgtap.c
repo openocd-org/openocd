@@ -49,13 +49,13 @@ static const tap_state_t arm11_move_pi_to_si_via_ci[] =
 
 
 /* REVISIT no error handling here! */
-static void arm11_add_ir_scan_vc(struct jtag_tap *tap, int num_fields, struct scan_field *fields,
+static void arm11_add_ir_scan_vc(struct jtag_tap *tap, struct scan_field *fields,
 		tap_state_t state)
 {
 	if (cmd_queue_cur_state == TAP_IRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
 
-	jtag_add_ir_scan(tap, num_fields, fields, state);
+	jtag_add_ir_scan(tap, fields, state);
 }
 
 static const tap_state_t arm11_move_pd_to_sd_via_cd[] =
@@ -149,7 +149,7 @@ void arm11_add_IR(struct arm11_common * arm11, uint8_t instr, tap_state_t state)
 
 	arm11_setup_field(arm11, 5, &instr, NULL, &field);
 
-	arm11_add_ir_scan_vc(arm11->arm.target->tap, 1, &field, state == ARM11_TAP_DEFAULT ? TAP_IRPAUSE : state);
+	arm11_add_ir_scan_vc(arm11->arm.target->tap, &field, state == ARM11_TAP_DEFAULT ? TAP_IRPAUSE : state);
 }
 
 /** Verify data shifted out from Scan Chain Register (SCREG). */

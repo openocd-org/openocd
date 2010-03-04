@@ -60,7 +60,7 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(tap, 1, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
 
 		free(field.out_value);
 	}

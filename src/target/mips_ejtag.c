@@ -46,7 +46,7 @@ int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr, void *del
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(tap, 1, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
 	}
 
 	return ERROR_OK;

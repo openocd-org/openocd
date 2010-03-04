@@ -40,7 +40,7 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(tap, 1, &field, jtag_set_end_state(TAP_IDLE));
+		jtag_add_ir_scan(tap, &field, jtag_set_end_state(TAP_IDLE));
 
 		free(field.out_value);
 	}

@@ -42,7 +42,8 @@
 /// The number of JTAG queue flushes (for profiling and debugging purposes).
 static int jtag_flush_queue_count;
 
-static void jtag_add_scan_check(struct jtag_tap *active, void (*jtag_add_scan)(struct jtag_tap *active, int in_num_fields, const struct scan_field *in_fields, tap_state_t state),
+static void jtag_add_scan_check(struct jtag_tap *active,
+		void (*jtag_add_scan)(struct jtag_tap *active, int in_num_fields, const struct scan_field *in_fields, tap_state_t state),
 		int in_num_fields, struct scan_field *in_fields, tap_state_t state);
 
 /**
@@ -352,17 +353,22 @@ void jtag_alloc_in_value32(struct scan_field *field)
 	interface_jtag_alloc_in_value32(field);
 }
 
-void jtag_add_ir_scan_noverify(struct jtag_tap *active, int in_count, const struct scan_field *in_fields,
+void jtag_add_ir_scan_noverify(struct jtag_tap *active, const struct scan_field *in_fields,
 		tap_state_t state)
 {
 	jtag_prelude(state);
 
-	int retval = interface_jtag_add_ir_scan(active, in_count, in_fields, state);
+	int retval = interface_jtag_add_ir_scan(active, in_fields, state);
 	jtag_set_error(retval);
 }
 
+static void jtag_add_ir_scan_noverify_callback(struct jtag_tap *active, int dummy, const struct scan_field *in_fields,
+		tap_state_t state)
+{
+	jtag_add_ir_scan_noverify(active, in_fields, state);
+}
 
-void jtag_add_ir_scan(struct jtag_tap *active, int in_num_fields, struct scan_field *in_fields, tap_state_t state)
+void jtag_add_ir_scan(struct jtag_tap *active, struct scan_field *in_fields, tap_state_t state)
 {
 	assert(state != TAP_RESET);
 
@@ -370,18 +376,15 @@ void jtag_add_ir_scan(struct jtag_tap *active, int in_num_fields, struct scan_fi
 	{
 		/* 8 x 32 bit id's is enough for all invocations */
 
-		for (int j = 0; j < in_num_fields; j++)
-		{
-			/* if we are to run a verification of the ir scan, we need to get the input back.
-			 * We may have to allocate space if the caller didn't ask for the input back.
-			 */
-			in_fields[j].check_value = active->expected;
-			in_fields[j].check_mask = active->expected_mask;
-		}
-		jtag_add_scan_check(active, jtag_add_ir_scan_noverify, in_num_fields, in_fields, state);
+		/* if we are to run a verification of the ir scan, we need to get the input back.
+		 * We may have to allocate space if the caller didn't ask for the input back.
+		 */
+		in_fields->check_value = active->expected;
+		in_fields->check_mask = active->expected_mask;
+		jtag_add_scan_check(active, jtag_add_ir_scan_noverify_callback, 1, in_fields, state);
 	} else
 	{
-		jtag_add_ir_scan_noverify(active, in_num_fields, in_fields, state);
+		jtag_add_ir_scan_noverify(active, in_fields, state);
 	}
 }
 
