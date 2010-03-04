@@ -657,3 +657,34 @@ int flash_write(struct target *target, struct image *image,
 {
 	return flash_write_unlock(target, image, written, erase, false);
 }
+
+/**
+ * Invalidates cached flash state which a target can change as it runs.
+ *
+ * @param target The target being resumed
+ *
+ * OpenOCD caches some flash state for brief periods.  For example, a sector
+ * that is protected must be unprotected before OpenOCD tries to write it,
+ * Also, a sector that's not erased must be erased before it's written.
+ *
+ * As a rule, OpenOCD and target firmware can both modify the flash, so when
+ * a target starts running, OpenOCD needs to invalidate its cached state.
+ */
+void nor_resume(struct target *target)
+{
+	struct flash_bank *bank;
+
+	for (bank = flash_banks; bank; bank = bank->next) {
+		int i;
+
+		if (bank->target != target)
+			continue;
+
+		for (i = 0; i < bank->num_sectors; i++) {
+			struct flash_sector *sector = bank->sectors + i;
+
+			sector->is_erased = -1;
+			sector->is_protected = -1;
+		}
+	}
+}

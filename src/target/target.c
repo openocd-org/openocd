@@ -35,6 +35,7 @@
 
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
+#include <flash/nor/core.h>
 
 #include "target.h"
 #include "target_type.h"
@@ -472,6 +473,14 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 	if ((retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution)) != ERROR_OK)
 		return retval;
 
+	/* Invalidate any cached protect/erase/... flash status, since
+	 * almost all targets will now be able modify the flash by
+	 * themselves.  We want flash drivers and infrastructure to
+	 * be able to rely on (non-invalidated) cached state.
+	 *
+	 * REVISIT do the same for NAND ; maybe other flash flavors too...
+	 */
+	nor_resume(target);
 	return retval;
 }
 

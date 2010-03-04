@@ -122,6 +122,10 @@ int flash_erase_address_range(struct target *target,
  */
 int flash_write(struct target *target,
 		struct image *image, uint32_t *written, int erase);
+
+/* invalidate cached state (targets may modify their own flash) */
+void nor_resume(struct target *target);
+
 /**
  * Forces targets to re-examine their erase/protection state.
  * This routine must be called when the system may modify the status.
