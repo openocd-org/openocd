@@ -48,12 +48,14 @@
 #include <target/embeddedice.h>
 #include <jtag/minidriver.h>
 #include <jtag/interface.h>
+#include <time.h>
+
+
+#if BUILD_ECOSBOARD
 #include "zy1000_version.h"
 
 #include <cyg/hal/hal_io.h>             // low level i/o
 #include <cyg/hal/hal_diag.h>
-
-#include <time.h>
 
 #ifdef CYGPKG_HAL_NIOS2
 #include <cyg/hal/io.h>
@@ -66,6 +68,7 @@
 #define ZYLIN_OPENOCD GIT_OPENOCD_VERSION
 #define ZYLIN_OPENOCD_VERSION "ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE
 
+#endif
 
 static int zy1000_khz(int khz, int *jtag_speed)
 {
@@ -96,7 +99,7 @@ static int zy1000_speed_div(int speed, int *khz)
 
 static bool readPowerDropout(void)
 {
-	cyg_uint32 state;
+	uint32_t state;
 	// sample and clear power dropout
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x80);
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, state);
@@ -108,7 +111,7 @@ static bool readPowerDropout(void)
 
 static bool readSRST(void)
 {
-	cyg_uint32 state;
+	uint32_t state;
 	// sample and clear SRST sensing
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000040);
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, state);
@@ -260,6 +263,7 @@ COMMAND_HANDLER(handle_power_command)
 }
 
 
+#if BUILD_ECOSBOARD
 /* Give TELNET a way to find out what version this is */
 static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
@@ -308,7 +312,7 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 			 * and actual FPGA
 			 */
 			static char *fpga_id = "0x12345678 0x12345678 0x12345678 0x12345678";
-			cyg_uint32 id, timestamp;
+			uint32_t id, timestamp;
 			HAL_READ_UINT32(SYSID_BASE, id);
 			HAL_READ_UINT32(SYSID_BASE+4, timestamp);
 			sprintf(fpga_id, "0x%08x 0x%08x 0x%08x 0x%08x", id, timestamp, SYSID_ID, SYSID_TIMESTAMP);
@@ -333,7 +337,7 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 
 	return JIM_OK;
 }
-
+#endif
 
 #ifdef CYGPKG_HAL_NIOS2
 
@@ -353,7 +357,7 @@ static void report_info(void *data, const char * format, va_list args)
 
 struct cyg_upgrade_info firmware_info =
 {
-		(cyg_uint8 *)0x84000000,
+		(uint8_t *)0x84000000,
 		"/ram/firmware.phi",
 		"Firmware",
 		0x0300000,
@@ -401,7 +405,7 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 		return JIM_ERR;
 	}
 
-	cyg_uint32 status;
+	uint32_t status;
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, status);
 
 	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80) != 0));
@@ -414,7 +418,9 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 
 int zy1000_init(void)
 {
+#if BUILD_ECOSBOARD
 	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
+#endif
 
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30); // Turn on LED1 & LED2
 
@@ -438,7 +444,7 @@ int zy1000_quit(void)
 
 int interface_jtag_execute_queue(void)
 {
-	cyg_uint32 empty;
+	uint32_t empty;
 
 	waitIdle();
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
@@ -460,18 +466,18 @@ int interface_jtag_execute_queue(void)
 
 
 
-static cyg_uint32 getShiftValue(void)
+static uint32_t getShiftValue(void)
 {
-	cyg_uint32 value;
+	uint32_t value;
 	waitIdle();
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x", value));
 	return value;
 }
 #if 0
-static cyg_uint32 getShiftValueFlip(void)
+static uint32_t getShiftValueFlip(void)
 {
-	cyg_uint32 value;
+	uint32_t value;
 	waitIdle();
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x18, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x (flipped)", value));
@@ -480,10 +486,10 @@ static cyg_uint32 getShiftValueFlip(void)
 #endif
 
 #if 0
-static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endState, int repeat, cyg_uint32 value)
+static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endState, int repeat, uint32_t value)
 {
 	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", tap_state_name(state), tap_state_name(endState), repeat, value));
-	cyg_uint32 a,b;
+	uint32_t a,b;
 	a = state;
 	b = endState;
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value);
@@ -511,7 +517,7 @@ static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int n
 
 		// we have (num_bits + 7)/8 bytes of bits to toggle out.
 		// bits are pushed out LSB to MSB
-		cyg_uint32 value;
+		uint32_t value;
 		value = 0;
 		if (out_value != NULL)
 		{
@@ -953,6 +959,7 @@ static const struct command_registration zy1000_commands[] = {
 			"With no arguments, prints status.",
 		.usage = "('on'|'off)",
 	},
+#if BUILD_ECOSBOARD
 	{
 		.name = "zy1000_version",
 		.mode = COMMAND_ANY,
@@ -960,6 +967,7 @@ static const struct command_registration zy1000_commands[] = {
 		.help = "Print version info for zy1000.",
 		.usage = "['openocd'|'zy1000'|'date'|'time'|'pcb'|'fpga']",
 	},
+#endif
 	{
 		.name = "powerstatus",
 		.mode = COMMAND_ANY,

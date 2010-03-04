@@ -17,14 +17,14 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#include <cyg/hal/hal_io.h>             // low level i/o
-#include <cyg/hal/hal_intr.h>             // low level i/o
-
-//#define VERBOSE(a) a
-#define VERBOSE(a)
-
 /* used to test manual mode */
 #define TEST_MANUAL() 0
+#define VERBOSE(a)
+
+#if BUILD_ECOSBOARD
+
+#include <cyg/hal/hal_io.h>             // low level i/o
+#include <cyg/hal/hal_intr.h>             // low level i/o
 
 #if 0
 int  diag_printf(const char *fmt, ...);
@@ -35,10 +35,20 @@ int  diag_printf(const char *fmt, ...);
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b)
 #endif
 
+#else
+
+/* redirect this to TCP/IP */
+#define ZY1000_PEEK(a, b) b = 1;
+#define ZY1000_POKE(a, b)
+
+#endif
+
+
+
 // FIFO empty?
 static __inline__ void waitIdle(void)
 {
-	cyg_uint32 empty;
+	uint32_t empty;
 	do
 	{
 		ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
@@ -53,7 +63,7 @@ static __inline__ void waitQueue(void)
 static __inline__ void sampleShiftRegister(void)
 {
 #if 0
-	cyg_uint32 dummy;
+	uint32_t dummy;
 	waitIdle();
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, dummy);
 #endif
@@ -61,7 +71,7 @@ static __inline__ void sampleShiftRegister(void)
 
 static __inline__ void setCurrentState(enum tap_state state)
 {
-	cyg_uint32 a;
+	uint32_t a;
 	a = state;
 	int repeat = 0;
 	if (state == TAP_RESET)
@@ -82,9 +92,9 @@ static __inline__ void setCurrentState(enum tap_state state)
  * Enter state and cause repeat transitions *out* of that state. So if the endState != state, then
  * the transition from state to endState counts as a transition out of state.
  */
-static __inline__ void shiftValueInner(const enum tap_state state, const enum tap_state endState, int repeat, cyg_uint32 value)
+static __inline__ void shiftValueInner(const enum tap_state state, const enum tap_state endState, int repeat, uint32_t value)
 {
-	cyg_uint32 a,b;
+	uint32_t a,b;
 	a = state;
 	b = endState;
 	waitQueue();
