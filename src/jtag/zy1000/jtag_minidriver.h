@@ -38,8 +38,11 @@ int  diag_printf(const char *fmt, ...);
 #else
 
 /* redirect this to TCP/IP */
-#define ZY1000_PEEK(a, b) b = 1;
-#define ZY1000_POKE(a, b)
+#define ZY1000_JTAG_BASE 0
+extern void zy1000_tcpout(uint32_t address, uint32_t data);
+extern uint32_t zy1000_tcpin(uint32_t address);
+#define ZY1000_PEEK(a, b) b=zy1000_tcpin(a)
+#define ZY1000_POKE(a, b) zy1000_tcpout(a, b)
 
 #endif
 

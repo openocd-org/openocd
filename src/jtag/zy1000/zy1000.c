@@ -50,6 +50,7 @@
 #include <jtag/interface.h>
 #include <time.h>
 
+#include <netinet/tcp.h>
 
 #if BUILD_ECOSBOARD
 #include "zy1000_version.h"
@@ -262,6 +263,18 @@ COMMAND_HANDLER(handle_power_command)
 	return ERROR_OK;
 }
 
+#if !BUILD_ECOSBOARD
+static char *tcp_server = "notspecified";
+static int jim_zy1000_server(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 2)
+		return JIM_ERR;
+
+	tcp_server = strdup(Jim_GetString(argv[1], NULL));
+
+	return JIM_OK;
+}
+#endif
 
 #if BUILD_ECOSBOARD
 /* Give TELNET a way to find out what version this is */
@@ -414,25 +427,6 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 }
 
 
-
-
-int zy1000_init(void)
-{
-#if BUILD_ECOSBOARD
-	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
-#endif
-
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30); // Turn on LED1 & LED2
-
-	setPower(true); // on by default
-
-
-	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
-	zy1000_reset(0, 0);
-	zy1000_speed(jtag_get_speed());
-
-	return ERROR_OK;
-}
 
 int zy1000_quit(void)
 {
@@ -710,12 +704,6 @@ int interface_jtag_add_clocks(int num_cycles)
 	return zy1000_jtag_add_clocks(num_cycles, cmd_queue_cur_state, cmd_queue_cur_state);
 }
 
-int interface_jtag_add_sleep(uint32_t us)
-{
-	jtag_sleep(us);
-	return ERROR_OK;
-}
-
 int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state state)
 {
 	/*wait for the fifo to be empty*/
@@ -967,6 +955,14 @@ static const struct command_registration zy1000_commands[] = {
 		.help = "Print version info for zy1000.",
 		.usage = "['openocd'|'zy1000'|'date'|'time'|'pcb'|'fpga']",
 	},
+#else
+	{
+		.name = "zy1000_server",
+		.mode = COMMAND_ANY,
+		.jim_handler = jim_zy1000_server,
+		.help = "Tcpip address for ZY1000 server.",
+		.usage = "address",
+	},
 #endif
 	{
 		.name = "powerstatus",
@@ -985,6 +981,320 @@ static const struct command_registration zy1000_commands[] = {
 #endif
 	COMMAND_REGISTRATION_DONE
 };
+
+
+static int tcp_ip = -1;
+
+/* Write large packets if we can */
+static size_t out_pos;
+static uint8_t out_buffer[16384];
+static size_t in_pos;
+static size_t in_write;
+static uint8_t in_buffer[16384];
+
+static bool flush_writes(void)
+{
+	bool ok = (write(tcp_ip, out_buffer, out_pos) == (int)out_pos);
+	out_pos = 0;
+	return ok;
+}
+
+static bool writeLong(uint32_t l)
+{
+	int i;
+	for (i = 0; i < 4; i++)
+	{
+		uint8_t c = (l >> (i*8))&0xff;
+		out_buffer[out_pos++] = c;
+		if (out_pos >= sizeof(out_buffer))
+		{
+			if (!flush_writes())
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+static bool readLong(uint32_t *out_data)
+{
+	if (out_pos > 0)
+	{
+		if (!flush_writes())
+		{
+			return false;
+		}
+	}
+
+	uint32_t data = 0;
+	int i;
+	for (i = 0; i < 4; i++)
+	{
+		uint8_t c;
+		if (in_pos == in_write)
+		{
+			/* read more */
+			int t;
+			t = read(tcp_ip, in_buffer, sizeof(in_buffer));
+			if (t < 1)
+			{
+				return false;
+			}
+			in_write = (size_t) t;
+			in_pos = 0;
+		}
+		c = in_buffer[in_pos++];
+
+		data |= (c << (i*8));
+	}
+	*out_data = data;
+	return true;
+}
+
+enum ZY1000_CMD
+{
+	ZY1000_CMD_POKE = 0x0,
+	ZY1000_CMD_PEEK = 0x8,
+	ZY1000_CMD_SLEEP = 0x1,
+};
+
+
+#if !BUILD_ECOSBOARD
+
+#include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
+#include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
+
+/* We initialize this late since we need to know the server address
+ * first.
+ */
+static void tcpip_open(void)
+{
+	if (tcp_ip >= 0)
+		return;
+
+	struct sockaddr_in echoServAddr; /* Echo server address */
+
+	/* Create a reliable, stream socket using TCP */
+	if ((tcp_ip = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+	{
+		fprintf(stderr, "Failed to connect to zy1000 server\n");
+		exit(-1);
+	}
+
+	/* Construct the server address structure */
+	memset(&echoServAddr, 0, sizeof(echoServAddr)); /* Zero out structure */
+	echoServAddr.sin_family = AF_INET; /* Internet address family */
+	echoServAddr.sin_addr.s_addr = inet_addr(tcp_server); /* Server IP address */
+	echoServAddr.sin_port = htons(7777); /* Server port */
+
+	/* Establish the connection to the echo server */
+	if (connect(tcp_ip, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
+	{
+		fprintf(stderr, "Failed to connect to zy1000 server\n");
+		exit(-1);
+	}
+
+	int flag = 1;
+	setsockopt(tcp_ip,	/* socket affected */
+			IPPROTO_TCP,		/* set option at TCP level */
+			TCP_NODELAY,		/* name of option */
+			(char *)&flag,		/* the cast is historical cruft */
+			sizeof(int));		/* length of option value */
+
+}
+
+
+/* send a poke */
+void zy1000_tcpout(uint32_t address, uint32_t data)
+{
+	tcpip_open();
+	if (!writeLong((ZY1000_CMD_POKE << 24) | address)||
+			!writeLong(data))
+	{
+		fprintf(stderr, "Could not write to zy1000 server\n");
+		exit(-1);
+	}
+}
+
+uint32_t zy1000_tcpin(uint32_t address)
+{
+	tcpip_open();
+	uint32_t data;
+	if (!writeLong((ZY1000_CMD_PEEK << 24) | address)||
+			!readLong(&data))
+	{
+		fprintf(stderr, "Could not read from zy1000 server\n");
+		exit(-1);
+	}
+	return data;
+}
+
+int interface_jtag_add_sleep(uint32_t us)
+{
+	tcpip_open();
+	if (!writeLong((ZY1000_CMD_SLEEP << 24))||
+			!writeLong(us))
+	{
+		fprintf(stderr, "Could not read from zy1000 server\n");
+		exit(-1);
+	}
+	return ERROR_OK;
+}
+
+
+#endif
+
+#if BUILD_ECOSBOARD
+static char tcpip_stack[2048];
+
+static cyg_thread tcpip_thread_object;
+static cyg_handle_t tcpip_thread_handle;
+
+/* Infinite loop peeking & poking */
+static void tcpipserver(void)
+{
+	for (;;)
+	{
+		uint32_t address;
+		if (!readLong(&address))
+			return;
+		enum ZY1000_CMD c = (address >> 24) & 0xff;
+		address &= 0xffffff;
+		switch (c)
+		{
+			case ZY1000_CMD_POKE:
+			{
+				uint32_t data;
+				if (!readLong(&data))
+					return;
+				address &= ~0x80000000;
+				ZY1000_POKE(address + ZY1000_JTAG_BASE, data);
+				break;
+			}
+			case ZY1000_CMD_PEEK:
+			{
+				uint32_t data;
+				ZY1000_PEEK(address + ZY1000_JTAG_BASE, data);
+				if (!writeLong(data))
+					return;
+				break;
+			}
+			case ZY1000_CMD_SLEEP:
+			{
+				uint32_t data;
+				if (!readLong(&data))
+					return;
+				jtag_sleep(data);
+				break;
+			}
+			default:
+				return;
+		}
+	}
+}
+
+
+static void tcpip_server(cyg_addrword_t data)
+{
+	int so_reuseaddr_option = 1;
+
+	int fd;
+	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	{
+		LOG_ERROR("error creating socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*) &so_reuseaddr_option,
+			sizeof(int));
+
+	struct sockaddr_in sin;
+	unsigned int address_size;
+	address_size = sizeof(sin);
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = INADDR_ANY;
+	sin.sin_port = htons(7777);
+
+	if (bind(fd, (struct sockaddr *) &sin, sizeof(sin)) == -1)
+	{
+		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+	if (listen(fd, 1) == -1)
+	{
+		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+
+	for (;;)
+	{
+		tcp_ip = accept(fd, (struct sockaddr *) &sin, &address_size);
+		if (tcp_ip < 0)
+		{
+			continue;
+		}
+
+		int flag = 1;
+		setsockopt(tcp_ip,	/* socket affected */
+				IPPROTO_TCP,		/* set option at TCP level */
+				TCP_NODELAY,		/* name of option */
+				(char *)&flag,		/* the cast is historical cruft */
+				sizeof(int));		/* length of option value */
+
+		bool save_poll = jtag_poll_get_enabled();
+
+		/* polling will screw up the "connection" */
+		jtag_poll_set_enabled(false);
+
+		tcpipserver();
+
+		jtag_poll_set_enabled(save_poll);
+
+		close(tcp_ip);
+
+	}
+	close(fd);
+
+}
+
+int interface_jtag_add_sleep(uint32_t us)
+{
+	jtag_sleep(us);
+	return ERROR_OK;
+}
+
+#endif
+
+
+int zy1000_init(void)
+{
+#if BUILD_ECOSBOARD
+	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
+#endif
+
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30); // Turn on LED1 & LED2
+
+	setPower(true); // on by default
+
+
+	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
+	zy1000_reset(0, 0);
+	zy1000_speed(jtag_get_speed());
+
+
+#if BUILD_ECOSBOARD
+	cyg_thread_create(1, tcpip_server, (cyg_addrword_t) 0, "tcip/ip server",
+			(void *) tcpip_stack, sizeof(tcpip_stack),
+			&tcpip_thread_handle, &tcpip_thread_object);
+	cyg_thread_resume(tcpip_thread_handle);
+#endif
+
+	return ERROR_OK;
+}
 
 
 
