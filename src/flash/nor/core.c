@@ -54,6 +54,63 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last)
 int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int retval;
+	bool updated = false;
+
+	/* NOTE: "first == last" means protect just that sector */
+
+	/* callers may not supply illegal parameters ... */
+	if (first < 0 || first > last || last >= bank->num_sectors)
+		return ERROR_FAIL;
+
+	/* force "set" to 0/1 */
+	set = !!set;
+
+	/*
+	 * Filter out what trivial nonsense we can, so drivers don't have to.
+	 *
+	 * Don't tell drivers to change to the current state...  it's needless,
+	 * and reducing the amount of work to be done (potentially to nothing)
+	 * speeds at least some things up.
+	 */
+scan:
+	for (int i = first; i < last; i++) {
+		struct flash_sector *sector = bank->sectors + i;
+
+		/* Only filter requests to protect the already-protected, or
+		 * to unprotect the already-unprotected.  Changing from the
+		 * unknown state (-1) to a known one is unwise but allowed;
+		 * protection status is best checked first.
+		 */
+		if (sector->is_protected != set)
+			continue;
+
+		/* Shrink this range of sectors from the start; don't overrun
+		 * the end.  Also shrink from the end; don't overun the start.
+		 *
+		 * REVISIT we could handle discontiguous regions by issuing
+		 * more than one driver request.  How much would that matter?
+		 */
+		if (i == first) {
+			updated = true;
+			first++;
+		} else if (i == last) {
+			updated = true;
+			last--;
+		}
+	}
+
+	/* updating the range affects the tests in the scan loop above; so
+	 * re-scan, to make sure we didn't miss anything.
+	 */
+	if (updated) {
+		updated = false;
+		goto scan;
+	}
+
+	/* Single sector, already protected?  Nothing to do! */
+	if (first == last)
+		return ERROR_OK;
+
 
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
