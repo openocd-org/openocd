@@ -755,7 +755,7 @@ COMMAND_HANDLER(handle_dap_baseaddr_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+	struct adiv5_dap *swjdp = &armv7m->swjdp_info;
 
 	if (!is_armv7m(armv7m)) {
 		command_print(CMD_CTX, "current target isn't an ARM7-M");
@@ -773,7 +773,7 @@ COMMAND_HANDLER(handle_dap_apid_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+	struct adiv5_dap *swjdp = &armv7m->swjdp_info;
 
 	if (!is_armv7m(armv7m)) {
 		command_print(CMD_CTX, "current target isn't an ARM7-M");
@@ -787,7 +787,7 @@ COMMAND_HANDLER(handle_dap_apsel_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+	struct adiv5_dap *swjdp = &armv7m->swjdp_info;
 
 	if (!is_armv7m(armv7m)) {
 		command_print(CMD_CTX, "current target isn't an ARM7-M");
@@ -801,7 +801,7 @@ COMMAND_HANDLER(handle_dap_memaccess_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+	struct adiv5_dap *swjdp = &armv7m->swjdp_info;
 
 	if (!is_armv7m(armv7m)) {
 		command_print(CMD_CTX, "current target isn't an ARM7-M");
@@ -816,7 +816,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct swjdp_common *swjdp = &armv7m->swjdp_info;
+	struct adiv5_dap *swjdp = &armv7m->swjdp_info;
 	uint32_t apsel;
 
 	if (!is_armv7m(armv7m)) {

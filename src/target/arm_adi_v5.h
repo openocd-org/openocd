@@ -133,10 +133,8 @@
  * a choice made at board design time (by only using the SWD pins), or
  * as part of setting up a debug session (if all the dual-role JTAG/SWD
  * signals are available).
- *
- * @todo Rename "swjdp_common" as "dap".  Use of SWJ-DP is optional!
  */
-struct swjdp_common
+struct adiv5_dap
 {
 	const struct dap_ops *ops;
 
@@ -201,27 +199,27 @@ struct dap_ops {
 	bool	is_swd;
 
 	/** Reads the DAP's IDCODe register. */
-	int (*queue_idcode_read)(struct swjdp_common *dap,
+	int (*queue_idcode_read)(struct adiv5_dap *dap,
 			uint8_t *ack, uint32_t *data);
 
 	/** DP register read. */
-	int (*queue_dp_read)(struct swjdp_common *dap, unsigned reg,
+	int (*queue_dp_read)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t *data);
 	/** DP register write. */
-	int (*queue_dp_write)(struct swjdp_common *dap, unsigned reg,
+	int (*queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t data);
 
 	/** AP register read. */
-	int (*queue_ap_read)(struct swjdp_common *dap, unsigned reg,
+	int (*queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t *data);
 	/** AP register write. */
-	int (*queue_ap_write)(struct swjdp_common *dap, unsigned reg,
+	int (*queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t data);
 	/** AP operation abort. */
-	int (*queue_ap_abort)(struct swjdp_common *dap, uint8_t *ack);
+	int (*queue_ap_abort)(struct adiv5_dap *dap, uint8_t *ack);
 
 	/** Executes all queued DAP operations. */
-	int (*run)(struct swjdp_common *dap);
+	int (*run)(struct adiv5_dap *dap);
 };
 
 /**
@@ -235,7 +233,7 @@ struct dap_ops {
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_idcode_read(struct swjdp_common *dap,
+static inline int dap_queue_idcode_read(struct adiv5_dap *dap,
 		uint8_t *ack, uint32_t *data)
 {
 	return dap->ops->queue_idcode_read(dap, ack, data);
@@ -253,7 +251,7 @@ static inline int dap_queue_idcode_read(struct swjdp_common *dap,
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_dp_read(struct swjdp_common *dap,
+static inline int dap_queue_dp_read(struct adiv5_dap *dap,
 		unsigned reg, uint32_t *data)
 {
 	return dap->ops->queue_dp_read(dap, reg, data);
@@ -270,7 +268,7 @@ static inline int dap_queue_dp_read(struct swjdp_common *dap,
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_dp_write(struct swjdp_common *dap,
+static inline int dap_queue_dp_write(struct adiv5_dap *dap,
 		unsigned reg, uint32_t data)
 {
 	return dap->ops->queue_dp_write(dap, reg, data);
@@ -286,7 +284,7 @@ static inline int dap_queue_dp_write(struct swjdp_common *dap,
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_ap_read(struct swjdp_common *dap,
+static inline int dap_queue_ap_read(struct adiv5_dap *dap,
 		unsigned reg, uint32_t *data)
 {
 	return dap->ops->queue_ap_read(dap, reg, data);
@@ -301,7 +299,7 @@ static inline int dap_queue_ap_read(struct swjdp_common *dap,
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_ap_write(struct swjdp_common *dap,
+static inline int dap_queue_ap_write(struct adiv5_dap *dap,
 		unsigned reg, uint32_t data)
 {
 	return dap->ops->queue_ap_write(dap, reg, data);
@@ -318,7 +316,7 @@ static inline int dap_queue_ap_write(struct swjdp_common *dap,
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_ap_abort(struct swjdp_common *dap, uint8_t *ack)
+static inline int dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 {
 	return dap->ops->queue_ap_abort(dap, ack);
 }
@@ -333,59 +331,59 @@ static inline int dap_queue_ap_abort(struct swjdp_common *dap, uint8_t *ack)
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_run(struct swjdp_common *dap)
+static inline int dap_run(struct adiv5_dap *dap)
 {
 	return dap->ops->run(dap);
 }
 
 /** Accessor for currently selected DAP-AP number (0..255) */
-static inline uint8_t dap_ap_get_select(struct swjdp_common *swjdp)
+static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
 {
 	return (uint8_t)(swjdp ->apsel >> 24);
 }
 
 /* AP selection applies to future AP transactions */
-void dap_ap_select(struct swjdp_common *dap,uint8_t apsel);
+void dap_ap_select(struct adiv5_dap *dap,uint8_t apsel);
 
 /* Queued AP transactions */
-int dap_setup_accessport(struct swjdp_common *swjdp,
+int dap_setup_accessport(struct adiv5_dap *swjdp,
 		uint32_t csw, uint32_t tar);
 
 /* Queued MEM-AP memory mapped single word transfers */
-int mem_ap_read_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t *value);
-int mem_ap_write_u32(struct swjdp_common *swjdp, uint32_t address, uint32_t value);
+int mem_ap_read_u32(struct adiv5_dap *swjdp, uint32_t address, uint32_t *value);
+int mem_ap_write_u32(struct adiv5_dap *swjdp, uint32_t address, uint32_t value);
 
 /* Synchronous MEM-AP memory mapped single word transfers */
-int mem_ap_read_atomic_u32(struct swjdp_common *swjdp,
+int mem_ap_read_atomic_u32(struct adiv5_dap *swjdp,
 		uint32_t address, uint32_t *value);
-int mem_ap_write_atomic_u32(struct swjdp_common *swjdp,
+int mem_ap_write_atomic_u32(struct adiv5_dap *swjdp,
 		uint32_t address, uint32_t value);
 
 /* MEM-AP memory mapped bus block transfers */
-int mem_ap_read_buf_u8(struct swjdp_common *swjdp,
+int mem_ap_read_buf_u8(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
-int mem_ap_read_buf_u16(struct swjdp_common *swjdp,
+int mem_ap_read_buf_u16(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
-int mem_ap_read_buf_u32(struct swjdp_common *swjdp,
+int mem_ap_read_buf_u32(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
 
-int mem_ap_write_buf_u8(struct swjdp_common *swjdp,
+int mem_ap_write_buf_u8(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
-int mem_ap_write_buf_u16(struct swjdp_common *swjdp,
+int mem_ap_write_buf_u16(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
-int mem_ap_write_buf_u32(struct swjdp_common *swjdp,
+int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
 
 /* Initialisation of the debug system, power domains and registers */
-int ahbap_debugport_init(struct swjdp_common *swjdp);
+int ahbap_debugport_init(struct adiv5_dap *swjdp);
 
 
 /* Commands for user dap access */
 int dap_info_command(struct command_context *cmd_ctx,
-		struct swjdp_common *swjdp, int apsel);
+		struct adiv5_dap *swjdp, int apsel);
 
 #define DAP_COMMAND_HANDLER(name) \
-		COMMAND_HELPER(name, struct swjdp_common *swjdp)
+		COMMAND_HELPER(name, struct adiv5_dap *swjdp)
 DAP_COMMAND_HANDLER(dap_baseaddr_command);
 DAP_COMMAND_HANDLER(dap_memaccess_command);
 DAP_COMMAND_HANDLER(dap_apsel_command);

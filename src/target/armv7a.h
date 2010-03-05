@@ -51,7 +51,7 @@ struct armv7a_common
 	struct reg_cache *core_cache;
 
 	/* arm adp debug port */
-	struct swjdp_common swjdp_info;
+	struct adiv5_dap swjdp_info;
 
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
