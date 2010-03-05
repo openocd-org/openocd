@@ -317,7 +317,7 @@ The libftdi source code can be download from the following website:
 
 For both Linux and Windows, both libusb and libftdi must be built and
 installed.  To use the newer FT2232H chips, supporting RTCK and USB high
-speed (480 Mbps), you need libftdi version 0.16 or newer.  Many Linux
+speed (480 Mbps), use libftdi version 0.17 or newer.  Many Linux
 distributions provide suitable packages for these libraries.
 
 For Windows, libftdi is supported with versions 0.14 and later.
