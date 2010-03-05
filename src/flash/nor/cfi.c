@@ -361,7 +361,7 @@ static int cfi_read_intel_pri_ext(struct flash_bank *bank)
 	pri_ext->vcc_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xc);
 	pri_ext->vpp_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xd);
 
-	LOG_DEBUG("Vcc opt: %1.1x.%1.1x, Vpp opt: %1.1x.%1.1x",
+	LOG_DEBUG("Vcc opt: %x.%x, Vpp opt: %u.%x",
 		  (pri_ext->vcc_optimal & 0xf0) >> 4, pri_ext->vcc_optimal & 0x0f,
 		  (pri_ext->vpp_optimal & 0xf0) >> 4, pri_ext->vpp_optimal & 0x0f);
 
@@ -431,7 +431,7 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 	LOG_DEBUG("Burst Mode: 0x%x, Page Mode: 0x%x, ", pri_ext->BurstMode, pri_ext->PageMode);
 
 
-	LOG_DEBUG("Vpp min: %2.2d.%1.1d, Vpp max: %2.2d.%1.1x",
+	LOG_DEBUG("Vpp min: %u.%x, Vpp max: %u.%x",
 		  (pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
 		  (pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
 
@@ -554,7 +554,7 @@ static int cfi_spansion_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "VppMin: %2.2d.%1.1x, VppMax: %2.2d.%1.1x\n",
+	printed = snprintf(buf, buf_size, "VppMin: %u.%x, VppMax: %u.%x\n",
 		(pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
 		(pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
 
@@ -579,7 +579,7 @@ static int cfi_intel_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "Vcc opt: %1.1x.%1.1x, Vpp opt: %1.1x.%1.1x\n",
+	printed = snprintf(buf, buf_size, "Vcc opt: %x.%x, Vpp opt: %u.%x\n",
 		(pri_ext->vcc_optimal & 0xf0) >> 4, pri_ext->vcc_optimal & 0x0f,
 		(pri_ext->vpp_optimal & 0xf0) >> 4, pri_ext->vpp_optimal & 0x0f);
 	buf += printed;
@@ -2285,7 +2285,7 @@ static int cfi_probe(struct flash_bank *bank)
 		cfi_info->block_erase_timeout_max = cfi_query_u8(bank, 0, 0x25);
 		cfi_info->chip_erase_timeout_max = cfi_query_u8(bank, 0, 0x26);
 
-		LOG_DEBUG("Vcc min: %1.1x.%1.1x, Vcc max: %1.1x.%1.1x, Vpp min: %1.1x.%1.1x, Vpp max: %1.1x.%1.1x",
+		LOG_DEBUG("Vcc min: %x.%x, Vcc max: %x.%x, Vpp min: %u.%x, Vpp max: %u.%x",
 			(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
 			(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
 			(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
@@ -2568,7 +2568,7 @@ static int cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-		printed = snprintf(buf, buf_size, "Vcc min: %1.1x.%1.1x, Vcc max: %1.1x.%1.1x, Vpp min: %1.1x.%1.1x, Vpp max: %1.1x.%1.1x\n",
+		printed = snprintf(buf, buf_size, "Vcc min: %x.%x, Vcc max: %x.%x, Vpp min: %u.%x, Vpp max: %u.%x\n",
 		                   (cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
 	(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
 	(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
