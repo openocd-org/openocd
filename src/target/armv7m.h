@@ -106,7 +106,7 @@ struct armv7m_common
 	struct reg_cache *core_cache;
 	enum armv7m_mode core_mode;
 	int exception_number;
-	struct adiv5_dap swjdp_info;
+	struct adiv5_dap dap;
 
 	uint32_t demcr;
 

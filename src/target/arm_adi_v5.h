@@ -378,17 +378,6 @@ int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
 int ahbap_debugport_init(struct adiv5_dap *swjdp);
 
 
-/* Commands for user dap access */
-int dap_info_command(struct command_context *cmd_ctx,
-		struct adiv5_dap *swjdp, int apsel);
-
-#define DAP_COMMAND_HANDLER(name) \
-		COMMAND_HELPER(name, struct adiv5_dap *swjdp)
-DAP_COMMAND_HANDLER(dap_baseaddr_command);
-DAP_COMMAND_HANDLER(dap_memaccess_command);
-DAP_COMMAND_HANDLER(dap_apsel_command);
-DAP_COMMAND_HANDLER(dap_apid_command);
-
 struct target;
 
 /* Put debug link into SWD mode */
@@ -396,5 +385,7 @@ int dap_to_swd(struct target *target);
 
 /* Put debug link into JTAG mode */
 int dap_to_jtag(struct target *target);
+
+extern const struct command_registration dap_command_handlers[];
 
 #endif

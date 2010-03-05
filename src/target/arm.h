@@ -167,6 +167,12 @@ struct arm {
 			uint32_t value);
 
 	void *arch_info;
+
+	/** For targets conforming to ARM Debug Interface v5,
+	 * this handle references the Debug Access Port (DAP)
+	 * used to make requests to the target.
+	 */
+	struct adiv5_dap *dap;
 };
 
 /** Convert target handle to generic ARM target state handle. */

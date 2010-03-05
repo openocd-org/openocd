@@ -69,6 +69,7 @@
 #include "config.h"
 #endif
 
+#include "arm.h"
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
 
@@ -1352,7 +1353,7 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-int dap_info_command(struct command_context *cmd_ctx,
+static int dap_info_command(struct command_context *cmd_ctx,
 		struct adiv5_dap *swjdp, int apsel)
 {
 	int retval;
@@ -1711,15 +1712,40 @@ int dap_info_command(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-DAP_COMMAND_HANDLER(dap_baseaddr_command)
+COMMAND_HANDLER(handle_dap_info_command)
 {
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+	uint32_t apsel;
+
+	switch (CMD_ARGC) {
+	case 0:
+		apsel = dap->apsel;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return dap_info_command(CMD_CTX, dap, apsel);
+}
+
+COMMAND_HANDLER(dap_baseaddr_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+
 	uint32_t apsel, apselsave, baseaddr;
 	int retval;
 
-	apselsave = swjdp->apsel;
+	apselsave = dap->apsel;
 	switch (CMD_ARGC) {
 	case 0:
-		apsel = swjdp->apsel;
+		apsel = dap->apsel;
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
@@ -1732,33 +1758,37 @@ DAP_COMMAND_HANDLER(dap_baseaddr_command)
 	}
 
 	if (apselsave != apsel)
-		dap_ap_select(swjdp, apsel);
+		dap_ap_select(dap, apsel);
 
 	/* NOTE:  assumes we're talking to a MEM-AP, which
 	 * has a base address.  There are other kinds of AP,
 	 * though they're not common for now.  This should
 	 * use the ID register to verify it's a MEM-AP.
 	 */
-	retval = dap_queue_ap_read(swjdp, AP_REG_BASE, &baseaddr);
-	retval = dap_run(swjdp);
+	retval = dap_queue_ap_read(dap, AP_REG_BASE, &baseaddr);
+	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
 	command_print(CMD_CTX, "0x%8.8" PRIx32, baseaddr);
 
 	if (apselsave != apsel)
-		dap_ap_select(swjdp, apselsave);
+		dap_ap_select(dap, apselsave);
 
 	return retval;
 }
 
-DAP_COMMAND_HANDLER(dap_memaccess_command)
+COMMAND_HANDLER(dap_memaccess_command)
 {
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+
 	uint32_t memaccess_tck;
 
 	switch (CMD_ARGC) {
 	case 0:
-		memaccess_tck = swjdp->memaccess_tck;
+		memaccess_tck = dap->memaccess_tck;
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], memaccess_tck);
@@ -1766,16 +1796,20 @@ DAP_COMMAND_HANDLER(dap_memaccess_command)
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	swjdp->memaccess_tck = memaccess_tck;
+	dap->memaccess_tck = memaccess_tck;
 
 	command_print(CMD_CTX, "memory bus access delay set to %" PRIi32 " tck",
-			swjdp->memaccess_tck);
+			dap->memaccess_tck);
 
 	return ERROR_OK;
 }
 
-DAP_COMMAND_HANDLER(dap_apsel_command)
+COMMAND_HANDLER(dap_apsel_command)
 {
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+
 	uint32_t apsel, apid;
 	int retval;
 
@@ -1793,9 +1827,9 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	dap_ap_select(swjdp, apsel);
-	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &apid);
-	retval = dap_run(swjdp);
+	dap_ap_select(dap, apsel);
+	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1805,15 +1839,19 @@ DAP_COMMAND_HANDLER(dap_apsel_command)
 	return retval;
 }
 
-DAP_COMMAND_HANDLER(dap_apid_command)
+COMMAND_HANDLER(dap_apid_command)
 {
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+
 	uint32_t apsel, apselsave, apid;
 	int retval;
 
-	apselsave = swjdp->apsel;
+	apselsave = dap->apsel;
 	switch (CMD_ARGC) {
 	case 0:
-		apsel = swjdp->apsel;
+		apsel = dap->apsel;
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
@@ -1826,19 +1864,74 @@ DAP_COMMAND_HANDLER(dap_apid_command)
 	}
 
 	if (apselsave != apsel)
-		dap_ap_select(swjdp, apsel);
+		dap_ap_select(dap, apsel);
 
-	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &apid);
-	retval = dap_run(swjdp);
+	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
 	command_print(CMD_CTX, "0x%8.8" PRIx32, apid);
 	if (apselsave != apsel)
-		dap_ap_select(swjdp, apselsave);
+		dap_ap_select(dap, apselsave);
 
 	return retval;
 }
+
+static const struct command_registration dap_commands[] = {
+	{
+		.name = "info",
+		.handler = handle_dap_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display ROM table for MEM-AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "apsel",
+		.handler = dap_apsel_command,
+		.mode = COMMAND_EXEC,
+		.help = "Set the currently selected AP (default 0) "
+			"and display the result",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "apid",
+		.handler = dap_apid_command,
+		.mode = COMMAND_EXEC,
+		.help = "return ID register from AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "baseaddr",
+		.handler = dap_baseaddr_command,
+		.mode = COMMAND_EXEC,
+		.help = "return debug base address from MEM-AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "memaccess",
+		.handler = dap_memaccess_command,
+		.mode = COMMAND_EXEC,
+		.help = "set/get number of extra tck for MEM-AP memory "
+			"bus access [0-255]",
+		.usage = "[cycles]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration dap_command_handlers[] = {
+	{
+		.name = "dap",
+		.mode = COMMAND_EXEC,
+		.help = "DAP command group",
+		.chain = dap_commands,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 
 /*
  * This represents the bits which must be sent out on TMS/SWDIO to
