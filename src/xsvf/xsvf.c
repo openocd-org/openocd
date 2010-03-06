@@ -481,7 +481,8 @@ COMMAND_HANDLER(handle_xsvf_command)
 					field.in_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 
 					if (tap == NULL)
-						jtag_add_plain_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
+						jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value,
+								jtag_set_end_state(TAP_DRPAUSE));
 					else
 						jtag_add_dr_scan(tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
 
@@ -702,7 +703,8 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 
 					if (tap == NULL)
-						jtag_add_plain_ir_scan(1, &field, my_end_state);
+						jtag_add_plain_ir_scan(field.num_bits,
+								field.out_value, field.in_value, my_end_state);
 					else
 						jtag_add_ir_scan(tap, &field, my_end_state);
 
@@ -936,7 +938,8 @@ COMMAND_HANDLER(handle_xsvf_command)
 						LOG_USER("LSDR retry %d", attempt);
 
 					if (tap == NULL)
-						jtag_add_plain_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
+						jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value,
+								jtag_set_end_state(TAP_DRPAUSE));
 					else
 						jtag_add_dr_scan(tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
 

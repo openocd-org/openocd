@@ -53,14 +53,14 @@ int interface_jtag_add_ir_scan(struct jtag_tap* active,
 		const struct scan_field* fields,
 		tap_state_t endstate);
 int interface_jtag_add_plain_ir_scan(
-		int num_fields, const struct scan_field* fields,
+		int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
 		tap_state_t endstate);
 
 int interface_jtag_add_dr_scan(struct jtag_tap* active,
 		int num_fields, const struct scan_field* fields,
 		tap_state_t endstate);
 int interface_jtag_add_plain_dr_scan(
-		int num_fields, const struct scan_field* fields,
+		int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
 		tap_state_t endstate);
 
 int interface_jtag_add_tlr(void);

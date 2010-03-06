@@ -611,9 +611,14 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field 
 
 
 
-int interface_jtag_add_plain_ir_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
 {
-	scanFields(num_fields, fields, TAP_IRSHIFT, 1);
+	struct scan_field field;
+	field.num_bits	= num_bits;
+	field.out_value	= out_bits;
+	field.in_value	= in_bits;
+
+	scanFields(1, &field, TAP_IRSHIFT, 1);
 	gotoEndState(state);
 
 	return ERROR_OK;
@@ -644,9 +649,14 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int num_fields, const st
 	return ERROR_OK;
 }
 
-int interface_jtag_add_plain_dr_scan(int num_fields, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
 {
-	scanFields(num_fields, fields, TAP_DRSHIFT, 1);
+	struct scan_field field;
+	field.num_bits	= num_bits;
+	field.out_value	= out_bits;
+	field.in_value	= in_bits;
+
+	scanFields(1, &field, TAP_DRSHIFT, 1);
 	gotoEndState(state);
 	return ERROR_OK;
 }

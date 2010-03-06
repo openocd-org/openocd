@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
@@ -128,35 +128,6 @@ int interface_jtag_add_ir_scan(struct jtag_tap* active, const struct scan_field 
 
 	return ERROR_OK;
 }
-
-/**
- * see jtag_add_plain_ir_scan()
- *
- */
-int interface_jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
-{
-
-	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
-	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
-	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
-
-	jtag_queue_command(cmd);
-
-	cmd->type				= JTAG_SCAN;
-	cmd->cmd.scan			= scan;
-
-	scan->ir_scan			= true;
-	scan->num_fields		= in_num_fields;
-	scan->fields			= out_fields;
-	scan->end_state			= state;
-
-	for (int i = 0; i < in_num_fields; i++)
-		cmd_queue_scan_field_clone(out_fields + i, in_fields + i);
-
-	return ERROR_OK;
-}
-
-
 
 /**
  * see jtag_add_dr_scan()
@@ -324,30 +295,38 @@ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 	assert(target_tap_match);	/* target_tap should be enabled and not bypassed */
 }
 
-/**
- * see jtag_add_plain_dr_scan()
- *
- */
-int interface_jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_fields, tap_state_t state)
+static int jtag_add_plain_scan(int num_bits, const uint8_t *out_bits,
+		uint8_t *in_bits, tap_state_t state, bool ir_scan)
 {
 	struct jtag_command * cmd		= cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command * scan		= cmd_queue_alloc(sizeof(struct scan_command));
-	struct scan_field * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(struct scan_field));
+	struct scan_field * out_fields	= cmd_queue_alloc(sizeof(struct scan_field));
 
 	jtag_queue_command(cmd);
 
 	cmd->type				= JTAG_SCAN;
 	cmd->cmd.scan			= scan;
 
-	scan->ir_scan			= false;
-	scan->num_fields		= in_num_fields;
+	scan->ir_scan			= ir_scan;
+	scan->num_fields		= 1;
 	scan->fields			= out_fields;
 	scan->end_state			= state;
 
-	for (int i = 0; i < in_num_fields; i++)
-		cmd_queue_scan_field_clone(out_fields + i, in_fields + i);
+	out_fields->num_bits	= num_bits;
+	out_fields->out_value	= buf_cpy(out_bits, cmd_queue_alloc(DIV_ROUND_UP(num_bits, 8)), num_bits);
+	out_fields->in_value	= in_bits;
 
 	return ERROR_OK;
+}
+
+int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
+{
+	return jtag_add_plain_scan(num_bits, out_bits, in_bits, state, false);
+}
+
+int interface_jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
+{
+	return jtag_add_plain_scan(num_bits, out_bits, in_bits, state, true);
 }
 
 int interface_jtag_add_tlr(void)

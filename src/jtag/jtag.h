@@ -359,12 +359,12 @@ void jtag_add_ir_scan(struct jtag_tap* tap,
 void jtag_add_ir_scan_noverify(struct jtag_tap* tap,
 		const struct scan_field *fields, tap_state_t state);
 /**
- * Duplicate the scan fields passed into the function into an IR SCAN
- * command.  This function assumes that the caller handles extra fields
- * for bypassed TAPs.
+ * Scan out the bits in ir scan mode.
+ *
+ * If in_bits == NULL, discard incoming bits.
  */
-void jtag_add_plain_ir_scan(int num_fields,
-		const struct scan_field* fields, tap_state_t endstate);
+void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
+		tap_state_t endstate);
 
 
 /**
@@ -390,12 +390,12 @@ void jtag_add_dr_scan(struct jtag_tap* tap, int num_fields,
 void jtag_add_dr_scan_check(struct jtag_tap* tap, int num_fields,
 		struct scan_field* fields, tap_state_t endstate);
 /**
- * Duplicate the scan fields passed into the function into a DR SCAN
- * command.  Unlike jtag_add_dr_scan(), this function assumes that the
- * caller handles extra fields for bypassed TAPs.
+ * Scan out the bits in ir scan mode.
+ *
+ * If in_bits == NULL, discard incoming bits.
  */
-void jtag_add_plain_dr_scan(int num_fields,
-		const struct scan_field* fields, tap_state_t endstate);
+void jtag_add_plain_dr_scan(int num_bits,
+		const uint8_t *out_bits, uint8_t *in_bits, tap_state_t endstate);
 
 /**
  * Defines the type of data passed to the jtag_callback_t interface.

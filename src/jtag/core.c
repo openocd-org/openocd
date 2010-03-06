@@ -388,15 +388,16 @@ void jtag_add_ir_scan(struct jtag_tap *active, struct scan_field *in_fields, tap
 	}
 }
 
-void jtag_add_plain_ir_scan(int in_num_fields, const struct scan_field *in_fields,
+void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
 		tap_state_t state)
 {
+	assert(out_bits != NULL);
 	assert(state != TAP_RESET);
 
 	jtag_prelude(state);
 
 	int retval = interface_jtag_add_plain_ir_scan(
-			in_num_fields, in_fields, state);
+			num_bits, out_bits, in_bits, state);
 	jtag_set_error(retval);
 }
 
@@ -469,15 +470,16 @@ void jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields, const struct s
 	jtag_set_error(retval);
 }
 
-void jtag_add_plain_dr_scan(int in_num_fields, const struct scan_field *in_fields,
+void jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
 		tap_state_t state)
 {
+	assert(out_bits != NULL);
 	assert(state != TAP_RESET);
 
 	jtag_prelude(state);
 
 	int retval;
-	retval = interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, state);
+	retval = interface_jtag_add_plain_dr_scan(num_bits, out_bits, in_bits, state);
 	jtag_set_error(retval);
 }
 
@@ -906,7 +908,7 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 	for (unsigned i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
 		buf_set_u32(idcode_buffer, i * 32, 32, END_OF_CHAIN_FLAG);
 
-	jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
+	jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value, TAP_DRPAUSE);
 	jtag_add_tlr();
 	return jtag_execute_queue();
 }
@@ -1207,7 +1209,7 @@ static int jtag_validate_ircapture(void)
 	field.out_value = ir_test;
 	field.in_value = ir_test;
 
-	jtag_add_plain_ir_scan(1, &field, TAP_IDLE);
+	jtag_add_plain_ir_scan(field.num_bits, field.out_value, field.in_value, TAP_IDLE);
 
 	LOG_DEBUG("IR capture validation scan");
 	retval = jtag_execute_queue();

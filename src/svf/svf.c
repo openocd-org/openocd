@@ -1084,7 +1084,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
 			/* NOTE:  doesn't use SVF-specified state paths */
-			jtag_add_plain_dr_scan(1, &field, svf_para.dr_end_state);
+			jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value, svf_para.dr_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
 		}
@@ -1179,7 +1179,8 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
 			/* NOTE:  doesn't use SVF-specified state paths */
-			jtag_add_plain_ir_scan(1, &field, svf_para.ir_end_state);
+			jtag_add_plain_ir_scan(field.num_bits, field.out_value, field.in_value,
+					svf_para.ir_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
 		}
