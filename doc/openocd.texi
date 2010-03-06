@@ -61,13 +61,13 @@ Free Documentation License''.
 @menu
 * About::                            About OpenOCD
 * Developers::                       OpenOCD Developer Resources
-* JTAG Hardware Dongles::            JTAG Hardware Dongles
+* Debug Adapter Hardware::           Debug Adapter Hardware
 * About JIM-Tcl::                    About JIM-Tcl
 * Running::                          Running OpenOCD
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
 * Daemon Configuration::             Daemon Configuration
-* Interface - Dongle Configuration:: Interface - Dongle Configuration
+* Debug Adapter Configuration:: Debug Adapter Configuration
 * Reset Configuration::              Reset Configuration
 * TAP Declaration::                  TAP Declaration
 * CPU Configuration::                CPU Configuration
@@ -111,15 +111,47 @@ The Open On-Chip Debugger (OpenOCD) aims to provide debugging,
 in-system programming and boundary-scan testing for embedded target
 devices.
 
-@b{JTAG:} OpenOCD uses a ``hardware interface dongle'' to communicate
-with the JTAG (IEEE 1149.1) compliant TAPs on your target board.
+It does so with the assistance of a @dfn{debug adapter}, which is
+a small hardware module which helps provide the right kind of
+electrical signaling to the target being debugged.  These are
+required since the debug host (on which OpenOCD runs) won't
+usually have native support for such signaling, or the connector
+needed to hook up to the target.
+
+Such debug adapters support one or more @dfn{transport} protocols,
+each of which involves different electrical signaling (and uses
+different messaging protocols on top of that signaling).  There
+are many types of debug adapter, and little uniformity in what
+they are called.  (There are also product naming differences.)
+
+These adapters are sometimes packaged as discrete dongles. which
+may generically be called @dfn{hardware interface dongles}.
+Some development boards also integrate them directly, which may
+let the development board can be directly connected to the debug
+host over USB (and sometimes also to power it over USB).
+
+For example, a @dfn{JTAG Adapter} supports JTAG
+signaling, and is used to communicate
+with JTAG (IEEE 1149.1) compliant TAPs on your target board.
 A @dfn{TAP} is a ``Test Access Port'', a module which processes
 special instructions and data.  TAPs are daisy-chained within and
-between chips and boards.
+between chips and boards.  JTAG supports debugging and boundary
+scan operations.
+
+There are also @dfn{SWD Adapters} that support Serial Wire Debug (SWD)
+signaling to communicate with some newer ARM cores, as well as debug
+adapters which support both JTAG and SWD transports.  SWD only supports
+debugging, whereas JTAG also supports boundary scan operations.
+
+For some chips, there are also @dfn{Programming Adapters} supporting
+special transports used only to write code to flash memory, without
+support for on-chip debugging or boundary scan.
+(At this writing, OpenOCD does not support such non-debug adapters.)
+
 
 @b{Dongles:} OpenOCD currently supports many types of hardware dongles: USB
 based, parallel port based, and other standalone boxes that run
-OpenOCD internally. @xref{JTAG Hardware Dongles}.
+OpenOCD internally. @xref{Debug Adapter Hardware}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
 ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
@@ -234,8 +266,8 @@ using Trac for its bug database:
 @uref{https://sourceforge.net/apps/trac/openocd}
 
 
-@node JTAG Hardware Dongles
-@chapter JTAG Hardware Dongles
+@node Debug Adapter Hardware
+@chapter Debug Adapter Hardware
 @cindex dongles
 @cindex FTDI
 @cindex wiggler
@@ -247,9 +279,9 @@ using Trac for its bug database:
 Defined: @b{dongle}: A small device that plugins into a computer and serves as
 an adapter .... [snip]
 
-In the OpenOCD case, this generally refers to @b{a small adapater} one
-attaches to your computer via USB or the Parallel Printer Port.  The
-execption being the Zylin ZY1000 which is a small box you attach via
+In the OpenOCD case, this generally refers to @b{a small adapter} that
+attaches to your computer via USB or the Parallel Printer Port.  One
+exception is the Zylin ZY1000, packaged as a small box you attach via
 an ethernet cable. The Zylin ZY1000 has the advantage that it does not
 require any drivers to be installed on the developer PC. It also has
 a built in web interface. It supports RTCK/RCLK or adaptive clocking
@@ -261,6 +293,9 @@ and has a built in relay to power cycle targets remotely.
 There are several things you should keep in mind when choosing a dongle.
 
 @enumerate
+@item @b{Transport} Does it support the kind of communication that you need?
+OpenOCD focusses mostly on JTAG.  Your version may also support
+other ways to communicate with target devices.
 @item @b{Voltage} What voltage is your target - 1.8, 2.8, 3.3, or 5V?
 Does your dongle support it?  You might need a level converter.
 @item @b{Pinout} What pinout does your target board use?
@@ -268,7 +303,8 @@ Does your dongle support it?  You may be able to use jumper
 wires, or an "octopus" connector, to convert pinouts.
 @item @b{Connection} Does your computer have the USB, printer, or
 Ethernet port needed?
-@item @b{RTCK} Do you require RTCK? Also known as ``adaptive clocking''
+@item @b{RTCK} Do you expect to use it with ARM chips and boards with
+RTCK support? Also known as ``adaptive clocking''
 @end enumerate
 
 @section Stand alone Systems
@@ -286,7 +322,17 @@ on a chip from ``Future Technology Devices International'' (FTDI)
 known as the FTDI FT2232; this is a USB full speed (12 Mbps) chip.
 See: @url{http://www.ftdichip.com} for more information.
 In summer 2009, USB high speed (480 Mbps) versions of these FTDI
-chips are starting to become available in JTAG adapters.
+chips are starting to become available in JTAG adapters.  (Adapters
+using those high speed FT2232H chips may support adaptive clocking.)
+
+The FT2232 chips are flexible enough to support some other
+transport options, such as SWD or the SPI variants used to
+program some chips. They have two communications channels,
+and one can be used for a UART adapter at the same time the
+other one is used to provide a debug adapter.
+
+Also, some development boards integrate an FT2232 chip to serve as
+a built-in low coast debug adapter and usb-to-serial solution.
 
 @itemize @bullet
 @item @b{usbjtag}
@@ -303,11 +349,11 @@ chips are starting to become available in JTAG adapters.
 @* See: @url{http://www.luminarymicro.com} - The Stellaris eval boards
 bundle FT2232-based JTAG and SWD support, which can be used to debug
 the Stellaris chips.  Using separate JTAG adapters is optional.
-These boards can also be used as JTAG adapters to other target boards,
-disabling the Stellaris chip.
+These boards can also be used in a "pass through" mode as JTAG adapters
+to other target boards, disabling the Stellaris chip.
 @item @b{Luminary ICDI}
 @* See: @url{http://www.luminarymicro.com} - Luminary In-Circuit Debug
-Interface (ICDI) Boards are included in Stellaris LM3S9B90 and LM3S9B92
+Interface (ICDI) Boards are included in Stellaris LM3S9B9x
 Evaluation Kits.  Like the non-detachable FT2232 support on the other
 Stellaris eval boards, they can be used to debug other target boards.
 @item @b{olimex-jtag}
@@ -507,7 +553,7 @@ as Tcl scripts, from a @file{startup.tcl} file internal to the server.
 @cindex directory search
 
 Properly installing OpenOCD sets up your operating system to grant it access
-to the JTAG adapters.  On Linux, this usually involves installing a file
+to the debug adapters.  On Linux, this usually involves installing a file
 in @file{/etc/udev/rules.d,} so OpenOCD has permissions.  MS-Windows needs
 complex and confusing driver configuration for every peripheral.  Such issues
 are unique to each operating system, and are not detailed in this User's Guide.
@@ -798,7 +844,7 @@ Three main types of non-user configuration file each have their
 own subdirectory in the @file{scripts} directory:
 
 @enumerate
-@item @b{interface} -- one for each kind of JTAG adapter/dongle
+@item @b{interface} -- one for each different debug adapter;
 @item @b{board} -- one for each different board
 @item @b{target} -- the chips which integrate CPUs and other JTAG TAPs
 @end enumerate
@@ -823,7 +869,8 @@ the board differences are encapsulated by application code.
 @item Maybe you don't know yet what your board looks like to JTAG.
 Once you know the @file{interface.cfg} file to use, you may
 need help from OpenOCD to discover what's on the board.
-Once you find the TAPs, you can just search for appropriate
+Once you find the JTAG TAPs, you can just search for appropriate
+target and board
 configuration files ... or write your own, from the bottom up.
 @xref{Autoprobing}.
 
@@ -849,7 +896,7 @@ will help support users of any board using that chip.
 @item
 You may may need to write some C code.
 It may be as simple as a supporting a new ft2232 or parport
-based dongle; a bit more involved, like a NAND or NOR flash
+based adapter; a bit more involved, like a NAND or NOR flash
 controller driver; or a big piece of work like supporting
 a new chip architecture.
 @end itemize
@@ -1141,7 +1188,8 @@ with files including the ones listed here.
 Use them as-is where you can; or as models for new files.
 @itemize @bullet
 @item @file{interface} ...
-think JTAG Dongle. Files that configure JTAG adapters go here.
+These are for debug adapters.
+Files that configure JTAG adapters go here.
 @example
 $ ls interface
 arm-jtag-ew.cfg          hitex_str9-comstick.cfg  oocdlink.cfg
@@ -1252,13 +1300,15 @@ should be able to source one of these files with a command like this:
 source [find interface/FOOBAR.cfg]
 @end example
 
-A preconfigured interface file should exist for every interface in use
-today, that said, perhaps some interfaces have only been used by the
-sole developer who created it.
+A preconfigured interface file should exist for every debug adapter
+in use today with OpenOCD.
+That said, perhaps some of these config files
+have only been used by the developer who created it.
 
 A separate chapter gives information about how to set these up.
-@xref{Interface - Dongle Configuration}.
-Read the OpenOCD source code if you have a new kind of hardware interface
+@xref{Debug Adapter Configuration}.
+Read the OpenOCD source code (and Developer's GUide)
+if you have a new kind of hardware interface
 and need to provide a driver for it.
 
 @section Board Config Files
@@ -1987,16 +2037,26 @@ MMU: disabled, D-Cache: disabled, I-Cache: enabled
 @end example
 @end deffn
 
-@node Interface - Dongle Configuration
-@chapter Interface - Dongle Configuration
+@node Debug Adapter Configuration
+@chapter Debug Adapter Configuration
 @cindex config file, interface
 @cindex interface config file
 
 Correctly installing OpenOCD includes making your operating system give
-OpenOCD access to JTAG adapters.  Once that has been done, Tcl commands
+OpenOCD access to debug adapters.  Once that has been done, Tcl commands
 are used to select which one is used, and to configure how it is used.
 
-JTAG Adapters/Interfaces/Dongles are normally configured
+@quotation Note
+Because OpenOCD started out with a focus purely on JTAG, you may find
+places where it wrongly presumes JTAG is the only transport protocol
+in use.  Be aware that recent versions of OpenOCD are removing that
+limitation.  JTAG remains more functional than most other transports.
+Other transports do not support boundary scan operations, or may be
+specific to a given chip vendor.  Some might be usable only for
+programming flash memory, instead of also for debugging.
+@end quotation
+
+Debug Adapters/Interfaces/Dongles are normally configured
 through commands in an interface configuration
 file which is sourced by your @file{openocd.cfg} file, or
 through a command line @option{-f interface/....cfg} option.
@@ -2019,9 +2079,9 @@ Most adapters need a bit more configuration than that.
 
 @section Interface Configuration
 
-The interface command tells OpenOCD what type of JTAG dongle you are
-using. Depending on the type of dongle, you may need to have one or
-more additional commands.
+The interface command tells OpenOCD what type of debug adapter you are
+using. Depending on the type of adapter, you may need to use one or
+more additional commands to further identify or configure the adapter.
 
 @deffn {Config Command} {interface} name
 Use the interface driver @var{name} to connect to the
@@ -7161,8 +7221,8 @@ that 5 MHz JTAG clock be usable?
 @b{Solution #1 - A special circuit}
 
 In order to make use of this,
-both your CPU and your JTAG dongle must support the RTCK
-feature. Not all dongles support this - keep reading!
+your CPU, board, and JTAG adapter must all support the RTCK
+feature. Not all of them support this; keep reading!
 
 The RTCK ("Return TCK") signal in some ARM chips is used to help with
 this problem. ARM has a good description of the problem described at
@@ -7198,7 +7258,9 @@ depending on the chips on your board.
 ARM11 cores use an 8:1 division.
 @b{Xilinx rule of thumb} is 1/12 the clock speed.
 
-Note: Many FTDI2232C based JTAG dongles are limited to 6MHz.
+Note: most full speed FT2232 based JTAG adapters are limited to a
+maximum of 6MHz.  The ones using USB high speed chips (FT2232H)
+often support faster clock rates (and adaptive clocking).
 
 You can still debug the 'low power' situations - you just need to
 either use a fixed and very slow JTAG clock rate ... or else

@@ -207,7 +207,7 @@ upon it, sometimes that is the only scheme available.
 
 As a small group of developers, supporting all the platforms and
 targets in the debugger will be difficult, as there are enough problem
-with the plethora of Dongles, Chips, and different target boards.
+with the plethora of Adapters, Chips, and different target boards.
 Yes, the TCL interface might be suitable, but it has not received much
 love or attention.  Perhaps it will after you read and understand this.
 
@@ -235,7 +235,7 @@ different host-side GDB..
 Sure - a <em>man on a mission</em> can make that work.  The GUI might be
 libopenocd + Perl/TK, or maybe an Eclipse Plug-in.
 That is a development support nightmare for reasons described
-above. We have enough support problems as it is with targets, dongles,
+above. We have enough support problems as it is with targets, adapters,
 etc.
 
 @section serverdocshttpbg HTTP Server Background
@@ -270,8 +270,8 @@ every peripheral register on the target platform.
 
 That also is transportable, regardless of the OpenOCD host
 platform: Linux/X86, Linux/ARM, FreeBSD, Cygwin, MingW, or MacOSX.
-You could even port OpenOCD to an Google Android and use it as a
-bit-bang dongle JTAG serving web pages.
+You could even port OpenOCD to an Android system and use it as a
+bit-banging JTAG Adapter serving web pages.
 
 @subsection serverdocshtmladv Advanced HTML Pages
 
