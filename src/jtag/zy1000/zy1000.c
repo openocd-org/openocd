@@ -803,39 +803,64 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	return interface_add_tms_seq(state_count, seq, cur_state);
 }
 
-void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
+static void jtag_pre_post_bits(struct jtag_tap *tap, int *pre, int *post)
 {
-//	static int const reg_addr = 0x5;
-	tap_state_t end_state = jtag_get_end_state();
-	if (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL)
+	/* bypass bits before and after */
+	int pre_bits = 0;
+	int post_bits = 0;
+
+	bool found = false;
+	struct jtag_tap *cur_tap, *nextTap;
+	for (cur_tap = jtag_tap_next_enabled(NULL); cur_tap!= NULL; cur_tap = nextTap)
 	{
-		/* better performance via code duplication */
-		if (little)
+		nextTap = jtag_tap_next_enabled(cur_tap);
+		if (cur_tap == tap)
 		{
-			int i;
-			for (i = 0; i < count; i++)
-			{
-				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 1));
-				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr | (1 << 5));
-				buffer += 4;
-			}
+			found = true;
 		} else
 		{
-			int i;
-			for (i = 0; i < count; i++)
+			if (found)
 			{
-				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 0));
-				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr | (1 << 5));
-				buffer += 4;
+				post_bits++;
+			} else
+			{
+				pre_bits++;
 			}
 		}
 	}
-	else
+	*pre = pre_bits;
+	*post = post_bits;
+}
+
+void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
+{
+
+	int pre_bits;
+	int post_bits;
+	jtag_pre_post_bits(tap, &pre_bits, &post_bits);
+
+	if ((pre_bits > 32) || (post_bits > 32))
 	{
 		int i;
 		for (i = 0; i < count; i++)
 		{
 			embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
+			buffer += 4;
+		}
+	} else
+	{
+		tap_state_t end_state = jtag_get_end_state();
+		tap_state_t shift_end_state;
+		if (post_bits == 0)
+			shift_end_state = end_state;
+
+		int i;
+		for (i = 0; i < count; i++)
+		{
+			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
+			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, little));
+			shiftValueInner(TAP_DRSHIFT, shift_end_state, 6, reg_addr | (1 << 5));
+			shiftValueInner(shift_end_state, end_state, post_bits, 0);
 			buffer += 4;
 		}
 	}
@@ -858,8 +883,9 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 
 
 	/* bypass bits before and after */
-	int pre_bits = 0;
-	int post_bits = 0;
+	int pre_bits;
+	int post_bits;
+	jtag_pre_post_bits(tap, &pre_bits, &post_bits);
 
 	bool found = false;
 	struct jtag_tap *cur_tap, *nextTap;
@@ -895,6 +921,7 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 		value |= (*t++<<24);
 
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, value);
+		/* minimum 2 bits */
 		shiftValueInner(TAP_DRSHIFT, TAP_DRPAUSE, post_bits, 0);
 
 #if 1
