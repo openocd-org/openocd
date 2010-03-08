@@ -316,18 +316,19 @@ static int str7x_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
+		uint32_t offset, uint32_t count)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t buffer_size = 8192;
+	uint32_t buffer_size = 32768;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[6];
 	struct arm_algorithm armv4_5_info;
 	int retval = ERROR_OK;
 
-	uint32_t str7x_flash_write_code[] = {
+	static const uint32_t str7x_flash_write_code[] = {
 					/* write:				*/
 		0xe3a04201, /*	mov r4, #0x10000000	*/
 		0xe5824000, /*	str r4, [r2, #0x0]	*/
@@ -354,13 +355,16 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t 
 	};
 
 	/* flash write code */
-	if (target_alloc_working_area(target, 4 * 20, &str7x_info->write_algorithm) != ERROR_OK)
+	if (target_alloc_working_area(target, sizeof(str7x_flash_write_code),
+			&str7x_info->write_algorithm) != ERROR_OK)
 	{
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, str7x_info->write_algorithm->address, 20 * 4, (uint8_t*)str7x_flash_write_code);
+	target_write_buffer(target, str7x_info->write_algorithm->address,
+			sizeof(str7x_flash_write_code),
+			(uint8_t*)str7x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -368,7 +372,8 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t 
 		buffer_size /= 2;
 		if (buffer_size <= 256)
 		{
-			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
+			/* if we already allocated the writing code, but failed to get a
+			 * buffer, free the algorithm */
 			if (str7x_info->write_algorithm)
 				target_free_working_area(target, str7x_info->write_algorithm);
 
@@ -400,7 +405,10 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t 
 		buf_set_u32(reg_params[3].value, 0, 32, thisrun_count);
 		buf_set_u32(reg_params[5].value, 0, 32, str7x_info->busy_bits);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 6, reg_params, str7x_info->write_algorithm->address, str7x_info->write_algorithm->address + (19 * 4), 10000, &armv4_5_info)) != ERROR_OK)
+		if ((retval = target_run_algorithm(target, 0, NULL, 6, reg_params,
+				str7x_info->write_algorithm->address,
+				str7x_info->write_algorithm->address + (sizeof(str7x_flash_write_code) - 4),
+				10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing str7x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
@@ -431,7 +439,8 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t 
 	return retval;
 }
 
-static int str7x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
+		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
@@ -482,7 +491,8 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset
 	if (dwords_remaining > 0)
 	{
 		/* try using a block write */
-		if ((retval = str7x_write_block(bank, buffer, offset, dwords_remaining)) != ERROR_OK)
+		if ((retval = str7x_write_block(bank, buffer, offset,
+				dwords_remaining)) != ERROR_OK)
 		{
 			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			{
@@ -517,11 +527,13 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 
 		/* data word 1 */
-		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, buffer + bytes_written);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0),
+				4, 1, buffer + bytes_written);
 		bytes_written += 4;
 
 		/* data word 2 */
-		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, buffer + bytes_written);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1),
+				4, 1, buffer + bytes_written);
 		bytes_written += 4;
 
 		/* start programming cycle */
@@ -564,11 +576,13 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 
 		/* data word 1 */
-		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, last_dword);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0),
+				4, 1, last_dword);
 		bytes_written += 4;
 
 		/* data word 2 */
-		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, last_dword + 4);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1),
+				4, 1, last_dword + 4);
 		bytes_written += 4;
 
 		/* start programming cycle */
@@ -677,7 +691,8 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 		flash_cmd = FLASH_SPR;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), 0x4010DFBC);
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), ~(1 << (15 + ProtectionLevel)));
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0),
+				~(1 << (15 + ProtectionLevel)));
 		flash_cmd = FLASH_SPR | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 	}
@@ -694,6 +709,7 @@ static const struct command_registration str7x_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration str7x_command_handlers[] = {
 	{
 		.name = "str7x",
