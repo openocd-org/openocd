@@ -188,7 +188,7 @@ static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32
         r6 - set to 2, used to write flash command
 
         */
-        uint32_t aduc702x_flash_write_code[] = {
+        static const uint32_t aduc702x_flash_write_code[] = {
         //<_start>:
                 0xe3a05008,	// mov	r5, #8	; 0x8
                 0xe5845004,	// str	r5, [r4, #4]
