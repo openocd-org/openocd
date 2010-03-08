@@ -64,6 +64,9 @@ endif
 if ARMJTAGEW
 DRIVERFILES += arm-jtag-ew.c
 endif
+if BUSPIRATE
+DRIVERFILES += buspirate.c
+endif
 
 noinst_HEADERS = \
 	bitbang.h \

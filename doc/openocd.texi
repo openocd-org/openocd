@@ -432,6 +432,9 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 
 @item @b{ARM-JTAG-EW}
 @* Link: @url{http://www.olimex.com/dev/arm-jtag-ew.html}
+
+@item @b{Buspirate}
+@* Link: @url{http://dangerousprototypes.com/bus-pirate-manual/}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based

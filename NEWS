@@ -4,6 +4,7 @@ history for details about what changed, including bugfixes
 and other issues not mentioned here.
 
 JTAG Layer:
+	New driver for "Bus Pirate"
 
 Boundary Scan:
 
