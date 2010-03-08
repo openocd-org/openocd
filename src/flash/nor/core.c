@@ -73,7 +73,7 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	 * speeds at least some things up.
 	 */
 scan:
-	for (int i = first; i < last; i++) {
+	for (int i = first; i <= last; i++) {
 		struct flash_sector *sector = bank->sectors + i;
 
 		/* Only filter requests to protect the already-protected, or
@@ -108,7 +108,7 @@ scan:
 	}
 
 	/* Single sector, already protected?  Nothing to do! */
-	if (first == last)
+	if (first > last)
 		return ERROR_OK;
 
 
