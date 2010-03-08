@@ -362,9 +362,11 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first && (first % stm32x_info->ppage_size)) || ((last + 1) && (last + 1) % stm32x_info->ppage_size))
+	if ((first && (first % stm32x_info->ppage_size)) || ((last + 1) &&
+			(last + 1) % stm32x_info->ppage_size))
 	{
-		LOG_WARNING("Error: start and end sectors must be on a %d sector boundary", stm32x_info->ppage_size);
+		LOG_WARNING("Error: start and end sectors must be on a %d sector boundary",
+				stm32x_info->ppage_size);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -432,7 +434,8 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 	return stm32x_write_options(bank);
 }
 
-static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
+		uint32_t offset, uint32_t count)
 {
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -443,7 +446,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	uint8_t stm32x_flash_write_code[] = {
+	static const uint8_t stm32x_flash_write_code[] = {
 									/* write: */
 		0xDF, 0xF8, 0x24, 0x40,		/* ldr	r4, STM32_FLASH_CR */
 		0x09, 0x4D,					/* ldr	r5, STM32_FLASH_SR */
@@ -465,13 +468,16 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t
 	};
 
 	/* flash write code */
-	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code), &stm32x_info->write_algorithm) != ERROR_OK)
+	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code),
+			&stm32x_info->write_algorithm) != ERROR_OK)
 	{
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	if ((retval = target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code)) != ERROR_OK)
+	if ((retval = target_write_buffer(target, stm32x_info->write_algorithm->address,
+			sizeof(stm32x_flash_write_code),
+			(uint8_t*)stm32x_flash_write_code)) != ERROR_OK)
 		return retval;
 
 	/* memory buffer */
@@ -480,7 +486,8 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t
 		buffer_size /= 2;
 		if (buffer_size <= 256)
 		{
-			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
+			/* if we already allocated the writing code, but failed to get a
+			 * buffer, free the algorithm */
 			if (stm32x_info->write_algorithm)
 				target_free_working_area(target, stm32x_info->write_algorithm);
 
@@ -499,17 +506,21 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t
 
 	while (count > 0)
 	{
-		uint32_t thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
+		uint32_t thisrun_count = (count > (buffer_size / 2)) ?
+				(buffer_size / 2) : count;
 
-		if ((retval = target_write_buffer(target, source->address, thisrun_count * 2, buffer)) != ERROR_OK)
+		if ((retval = target_write_buffer(target, source->address,
+				thisrun_count * 2, buffer)) != ERROR_OK)
 			break;
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params, stm32x_info->write_algorithm->address, \
-				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10), 10000, &armv7m_info)) != ERROR_OK)
+		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
+				stm32x_info->write_algorithm->address,
+				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10),
+				10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stm32x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
@@ -550,7 +561,8 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t
 	return retval;
 }
 
-static int stm32x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
+		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	uint32_t words_remaining = (count / 2);
@@ -1269,6 +1281,7 @@ static const struct command_registration stm32x_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration stm32x_command_handlers[] = {
 	{
 		.name = "stm32x",
