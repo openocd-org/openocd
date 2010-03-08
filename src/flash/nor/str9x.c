@@ -340,14 +340,14 @@ static int str9x_write_block(struct flash_bank *bank,
 {
 	struct str9x_flash_bank *str9x_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t buffer_size = 8192;
+	uint32_t buffer_size = 32768;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[4];
 	struct arm_algorithm armv4_5_info;
 	int retval = ERROR_OK;
 
-	uint32_t str9x_flash_write_code[] = {
+	static const uint32_t str9x_flash_write_code[] = {
 					/* write:				*/
 		0xe3c14003,	/*	bic	r4, r1, #3		*/
 		0xe3a03040,	/*	mov	r3, #0x40		*/
@@ -373,13 +373,16 @@ static int str9x_write_block(struct flash_bank *bank,
 	};
 
 	/* flash write code */
-	if (target_alloc_working_area(target, 4 * 19, &str9x_info->write_algorithm) != ERROR_OK)
+	if (target_alloc_working_area(target, sizeof(str9x_flash_write_code),
+			&str9x_info->write_algorithm) != ERROR_OK)
 	{
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, str9x_info->write_algorithm->address, 19 * 4, (uint8_t*)str9x_flash_write_code);
+	target_write_buffer(target, str9x_info->write_algorithm->address,
+			sizeof(str9x_flash_write_code),
+			(uint8_t*)str9x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -387,7 +390,8 @@ static int str9x_write_block(struct flash_bank *bank,
 		buffer_size /= 2;
 		if (buffer_size <= 256)
 		{
-			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
+			/* if we already allocated the writing code, but failed to get a
+			 * buffer, free the algorithm */
 			if (str9x_info->write_algorithm)
 				target_free_working_area(target, str9x_info->write_algorithm);
 
@@ -415,7 +419,10 @@ static int str9x_write_block(struct flash_bank *bank,
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params, str9x_info->write_algorithm->address, str9x_info->write_algorithm->address + (18 * 4), 10000, &armv4_5_info)) != ERROR_OK)
+		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
+				str9x_info->write_algorithm->address,
+				str9x_info->write_algorithm->address + (sizeof(str9x_flash_write_code) - 4),
+				10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing str9x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
@@ -676,6 +683,7 @@ static const struct command_registration str9x_config_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration str9x_command_handlers[] = {
 	{
 		.name = "str9x",

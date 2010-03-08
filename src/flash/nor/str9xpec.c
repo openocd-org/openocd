@@ -551,7 +551,8 @@ static int str9xpec_set_address(struct flash_bank *bank, uint8_t sector)
 	return ERROR_OK;
 }
 
-static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer,
+		uint32_t offset, uint32_t count)
 {
 	struct str9xpec_flash_controller *str9xpec_info = bank->driver_priv;
 	uint32_t dwords_remaining = (count / 8);
@@ -619,7 +620,8 @@ static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 	{
 		str9xpec_set_address(bank, str9xpec_info->sector_bits[i]);
 
-		dwords_remaining = dwords_remaining < (bank->sectors[i].size/8) ? dwords_remaining : (bank->sectors[i].size/8);
+		dwords_remaining = dwords_remaining < (bank->sectors[i].size/8)
+				? dwords_remaining : (bank->sectors[i].size/8);
 
 		while (dwords_remaining > 0)
 		{
@@ -1226,6 +1228,7 @@ static const struct command_registration str9xpec_config_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration str9xpec_command_handlers[] = {
 	{
 		.name = "str9xpec",
