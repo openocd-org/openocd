@@ -29,26 +29,12 @@
 struct pic32mx_flash_bank
 {
 	struct working_area *write_algorithm;
-	int devid;
-	int ppage_size;
 	int probed;
 };
 
 #define PIC32MX_MANUF_ID	0x029
 
 /* pic32mx memory locations */
-
-#define PIC32MX_KUSEG_PGM_FLASH		0x7D000000
-#define PIC32MX_KUSEG_RAM			0x7F000000
-
-#define PIC32MX_KSEG0_RAM			0x80000000
-#define PIC32MX_KSEG0_PGM_FLASH		0x9D000000
-#define PIC32MX_KSEG0_BOOT_FLASH	0x9FC00000
-
-#define PIC32MX_KSEG1_RAM			0xA0000000
-#define PIC32MX_KSEG1_PGM_FLASH		0xBD000000
-#define PIC32MX_KSEG1_PERIPHERAL	0xBF800000
-#define PIC32MX_KSEG1_BOOT_FLASH	0xBFC00000
 
 #define PIC32MX_PHYS_RAM			0x00000000
 #define PIC32MX_PHYS_PGM_FLASH		0x1D000000
@@ -59,18 +45,20 @@ struct pic32mx_flash_bank
  * Translate Virtual and Physical addresses.
  * Note: These macros only work for KSEG0/KSEG1 addresses.
  */
-#define KS1Virt2Phys(vaddr)			((vaddr)-0xA0000000)
-#define Phys2KS1Virt(paddr)			((paddr) + 0xA0000000)
-#define KS0Virt2Phys(vaddr)			((vaddr)-0x80000000)
-#define Phys2KS0Virt(paddr)			((paddr) + 0x80000000)
+
+#define Virt2Phys(v) 	((v) & 0x1FFFFFFF)
 
 /* pic32mx configuration register locations */
 
 #define PIC32MX_DEVCFG0		0xBFC02FFC
 #define PIC32MX_DEVCFG1		0xBFC02FF8
 #define PIC32MX_DEVCFG2		0xBFC02FF4
-#define PIC32MX_DEVCFG3		0XBFC02FF0
+#define PIC32MX_DEVCFG3		0xBFC02FF0
 #define PIC32MX_DEVID		0xBF80F220
+
+#define PIC32MX_BMXPFMSZ	0xBF882060
+#define PIC32MX_BMXBOOTSZ	0xBF882070
+#define PIC32MX_BMXDRMSZ	0xBF882040
 
 /* pic32mx flash controller register locations */
 
@@ -101,11 +89,6 @@ struct pic32mx_flash_bank
 
 #define NVMKEY1			0xAA996655
 #define NVMKEY2			0x556699AA
-
-struct pic32mx_mem_layout {
-	uint32_t sector_start;
-	uint32_t sector_size;
-};
 
 #endif /* PIC32MX_H */
 

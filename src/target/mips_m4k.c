@@ -914,7 +914,7 @@ int mips_m4k_examine(struct target *target)
 		{
 			/* we are using a pic32mx so select ejtag port
 			 * as it is not selected by default */
-			mips_ejtag_set_instr(ejtag_info, 0x05, NULL);
+			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP, NULL);
 			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
 		}
 	}

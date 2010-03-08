@@ -40,6 +40,10 @@
 #define EJTAG_INST_TCBDATA		0x12
 #define EJTAG_INST_BYPASS		0xFF
 
+/* microchip PIC32MX specific instructions */
+#define MTAP_SW_MTAP			0x04
+#define MTAP_SW_ETAP			0x05
+
 /* ejtag control register bits ECR */
 #define EJTAG_CTRL_TOF			(1 << 1)
 #define EJTAG_CTRL_TIF			(1 << 2)
