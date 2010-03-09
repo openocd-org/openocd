@@ -202,7 +202,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 
 	/* register subsystem commands */
 	typedef int (*command_registrant_t)(struct command_context *cmd_ctx);
-	command_registrant_t command_registrants[] = {
+	static const command_registrant_t command_registrants[] = {
 		&openocd_register_commands,
 		&server_register_commands,
 		&gdb_register_commands,
