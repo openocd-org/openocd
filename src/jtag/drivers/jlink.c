@@ -62,10 +62,10 @@ static uint8_t usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
 static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 
 /* Constants for JLink command */
-#define EMU_CMD_VERSION		0x01
+#define EMU_CMD_VERSION			0x01
 #define EMU_CMD_SET_SPEED		0x05
 #define EMU_CMD_GET_STATE		0x07
-#define EMU_CMD_HW_CLOCK			0xc8
+#define EMU_CMD_HW_CLOCK		0xc8
 #define EMU_CMD_HW_TMS0			0xc9
 #define EMU_CMD_HW_TMS1			0xca
 #define EMU_CMD_HW_JTAG2		0xce
@@ -90,7 +90,8 @@ static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
 static void jlink_path_move(int num_states, tap_state_t *path);
 static void jlink_runtest(int num_cycles);
-static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
+static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
+		int scan_size, struct scan_command *command);
 static void jlink_reset(int trst, int srst);
 static void jlink_simple_command(uint8_t command);
 static int jlink_get_status(void);
@@ -100,7 +101,8 @@ static void jlink_tap_init(void);
 static int jlink_tap_execute(void);
 static void jlink_tap_ensure_space(int scans, int bits);
 static void jlink_tap_append_step(int tms, int tdi);
-static void jlink_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command);
+static void jlink_tap_append_scan(int length, uint8_t *buffer,
+		struct scan_command *command);
 
 /* Jlink lowlevel functions */
 struct jlink {
@@ -276,18 +278,26 @@ static int jlink_init(void)
 
 	if (jlink_handle == 0)
 	{
-		LOG_ERROR("Cannot find jlink Interface! Please check connection and permissions.");
+		LOG_ERROR("Cannot find jlink Interface! Please check "
+				"connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	/*
-	 *  The next three instructions were added after discovering a problem while using an oscilloscope.  For the V8
-	 *	SAM-ICE dongle (and likely other j-link device variants), the reset line to the target microprocessor was found to
-	 *	cycle only intermittently during emulator startup (even after encountering the downstream reset instruction later
-	 *	in the code).  This was found to create two issues:  1) In general it is a bad practice to not reset a CPU to a known
-	 *	state when starting an emulator and 2) something critical happens inside the dongle when it does the first read
-	 *	following a new USB session.  Keeping the processor in reset during the first read collecting version information
-	 *	seems to prevent errant "J-Link command EMU_CMD_VERSION failed" issues.
+	 * The next three instructions were added after discovering a problem
+	 * while using an oscilloscope.
+	 * For the V8 SAM-ICE dongle (and likely other j-link device variants),
+	 * the reset line to the target microprocessor was found to cycle only
+	 * intermittently during emulator startup (even after encountering the
+	 * downstream reset instruction later in the code).
+	 * This was found to create two issues:
+	 * 1) In general it is a bad practice to not reset a CPU to a known
+	 * state when starting an emulator and
+	 * 2) something critical happens inside the dongle when it does the
+	 * first read following a new USB session.
+	 * Keeping the processor in reset during the first read collecting
+	 * version information seems to prevent errant
+	 * "J-Link command EMU_CMD_VERSION failed" issues.
 	 */
 
 	LOG_INFO("J-Link initialization started / target CPU reset initiated");
@@ -375,7 +385,8 @@ static void jlink_path_move(int num_states, tap_state_t *path)
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(path[i]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
+					tap_state_name(tap_get_state()), tap_state_name(path[i]));
 			exit(-1);
 		}
 
@@ -415,7 +426,8 @@ static void jlink_runtest(int num_cycles)
 	}
 }
 
-static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command)
+static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
+		int scan_size, struct scan_command *command)
 {
 	tap_state_t saved_end_state;
 
@@ -500,13 +512,13 @@ static int jlink_get_status(void)
 	}
 
 	int vref = usb_in_buffer[0] + (usb_in_buffer[1] << 8);
-	LOG_INFO("Vref = %d.%d TCK = %d TDI = %d TDO = %d TMS = %d SRST = %d TRST = %d\n", \
+	LOG_INFO("Vref = %d.%d TCK = %d TDI = %d TDO = %d TMS = %d SRST = %d TRST = %d", \
 		vref / 1000, vref % 1000, \
 		usb_in_buffer[2], usb_in_buffer[3], usb_in_buffer[4], \
 		usb_in_buffer[5], usb_in_buffer[6], usb_in_buffer[7]);
 
 	if (vref < 1500)
-		LOG_ERROR("Vref too low. Check Target Power\n");
+		LOG_ERROR("Vref too low. Check Target Power");
 
 	return ERROR_OK;
 }
@@ -523,7 +535,7 @@ static int jlink_get_version_info(void)
 	result = jlink_usb_read(jlink_handle, 2);
 	if (2 != result)
 	{
-		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)\n", result);
+		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)", result);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -537,7 +549,7 @@ static int jlink_get_version_info(void)
 	result = jlink_usb_read(jlink_handle, len);
 	if (result != len)
 	{
-		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)\n", result);
+		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)", result);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -550,7 +562,7 @@ static int jlink_get_version_info(void)
 	result = jlink_usb_read(jlink_handle, 4);
 	if (4 != result)
 	{
-		LOG_ERROR("J-Link command EMU_CMD_GET_CAPS failed (%d)\n", result);
+		LOG_ERROR("J-Link command EMU_CMD_GET_CAPS failed (%d)", result);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -565,7 +577,7 @@ static int jlink_get_version_info(void)
 		result = jlink_usb_read(jlink_handle, 4);
 		if (4 != result)
 		{
-			LOG_ERROR("J-Link command EMU_CMD_GET_HW_VERSION failed (%d)\n", result);
+			LOG_ERROR("J-Link command EMU_CMD_GET_HW_VERSION failed (%d)", result);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
@@ -585,7 +597,7 @@ static int jlink_get_version_info(void)
 		result = jlink_usb_read(jlink_handle, 4);
 		if (4 != result)
 		{
-			LOG_ERROR("J-Link command EMU_CMD_GET_MAX_MEM_BLOCK failed (%d)\n", result);
+			LOG_ERROR("J-Link command EMU_CMD_GET_MAX_MEM_BLOCK failed (%d)", result);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
@@ -731,7 +743,8 @@ static void jlink_tap_append_step(int tms, int tdi)
 	tap_length++;
 }
 
-static void jlink_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command)
+static void jlink_tap_append_scan(int length, uint8_t *buffer,
+		struct scan_command *command)
 {
 	struct pending_scan_result *pending_scan_result =
 		&pending_scan_results_buffer[pending_scan_results_length];
@@ -767,7 +780,7 @@ static int jlink_tap_execute(void)
 	 * WARNING: This will interfere with tap state counting. */
 	while ((DIV_ROUND_UP(tap_length, 8) % 64) == 0)
 	{
-		jlink_tap_append_step((tap_get_state() == TAP_RESET)?1:0, 0);
+		jlink_tap_append_step((tap_get_state() == TAP_RESET) ? 1 : 0, 0);
 	}
 
 	// number of full bytes (plus one if some would be left over)
@@ -787,7 +800,8 @@ static int jlink_tap_execute(void)
 	result = jlink_usb_message(jlink_handle, 4 + 2 * byte_length, byte_length);
 	if (result != byte_length)
 	{
-		LOG_ERROR("jlink_tap_execute, wrong result %d (expected %d)", result, byte_length);
+		LOG_ERROR("jlink_tap_execute, wrong result %d (expected %d)",
+				result, byte_length);
 		jlink_tap_init();
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
@@ -942,7 +956,8 @@ static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length)
 		result2 = jlink_usb_read_emu_result(jlink);
 		if (1 != result2)
 		{
-			LOG_ERROR("jlink_usb_read_emu_result retried requested = 1, result=%d, in_length=%i", result2,in_length);
+			LOG_ERROR("jlink_usb_read_emu_result retried requested = 1, "
+					"result=%d, in_length=%i", result2, in_length);
 			/* Try again once, should only happen if (in_length%64 == 0) */
 			result2 = jlink_usb_read_emu_result(jlink);
 			if (1 != result2)
@@ -971,7 +986,8 @@ static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length)
 	return result;
 }
 
-/* calls the given usb_bulk_* function, allowing for the data to trickle in with some timeouts  */
+/* calls the given usb_bulk_* function, allowing for the data to
+ * trickle in with some timeouts  */
 static int usb_bulk_with_retries(
 		int (*f)(usb_dev_handle *, int, char *, int, int),
 		usb_dev_handle *dev, int ep,
@@ -1018,14 +1034,16 @@ static int jlink_usb_write(struct jlink *jlink, int out_length)
 
 	if (out_length > JLINK_OUT_BUFFER_SIZE)
 	{
-		LOG_ERROR("jlink_write illegal out_length=%d (max=%d)", out_length, JLINK_OUT_BUFFER_SIZE);
+		LOG_ERROR("jlink_write illegal out_length=%d (max=%d)",
+				out_length, JLINK_OUT_BUFFER_SIZE);
 		return -1;
 	}
 
 	result = usb_bulk_write_ex(jlink->usb_handle, jlink_write_ep,
 		(char *)usb_out_buffer, out_length, JLINK_USB_TIMEOUT);
 
-	DEBUG_JTAG_IO("jlink_usb_write, out_length = %d, result = %d", out_length, result);
+	DEBUG_JTAG_IO("jlink_usb_write, out_length = %d, result = %d",
+			out_length, result);
 
 #ifdef _DEBUG_USB_COMMS_
 	jlink_debug_buffer(usb_out_buffer, out_length);
@@ -1084,4 +1102,3 @@ static void jlink_debug_buffer(uint8_t *buffer, int length)
 	}
 }
 #endif
-
