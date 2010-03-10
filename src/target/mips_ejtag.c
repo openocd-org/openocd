@@ -129,7 +129,7 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 
 int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 {
-	uint32_t code[] = {
+	static const uint32_t code[] = {
 			MIPS32_MTC0(1,31,0),			/* move $1 to COP0 DeSave */
 			MIPS32_MFC0(1,23,0),			/* move COP0 Debug to $1 */
 			MIPS32_ORI(1,1,0x0100),			/* set SSt bit in debug reg */
@@ -145,7 +145,7 @@ int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 }
 int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 {
-	uint32_t code[] = {
+	static const uint32_t code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
 			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
 			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
@@ -209,7 +209,7 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 {
 	/* read ejtag ECR */
-	uint32_t code[] = {
+	static const uint32_t code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
 			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
 			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
