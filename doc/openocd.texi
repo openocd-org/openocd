@@ -6641,6 +6641,8 @@ the order of TAP state transitions.
 If you're not debugging OpenOCD internals, or bringing up a
 new JTAG adapter or a new type of TAP device (like a CPU or
 JTAG router), you probably won't need to use these commands.
+In a debug session that doesn't use JTAG for its transport protocol,
+these commands are not available.
 
 @deffn Command {drscan} tap [numbits value]+ [@option{-endstate} tap_state]
 Loads the data register of @var{tap} with a series of bit fields
@@ -6831,6 +6833,7 @@ OpenOCD also includes some boundary scan commands.
 
 The Serial Vector Format, better known as @dfn{SVF}, is a
 way to represent JTAG test patterns in text files.
+In a debug session using JTAG for its transport protocol,
 OpenOCD supports running such test files.
 
 @deffn Command {svf} filename [@option{quiet}]
@@ -6847,6 +6850,7 @@ each command is logged before it is executed.
 The Xilinx Serial Vector Format, better known as @dfn{XSVF}, is a
 binary representation of SVF which is optimized for use with
 Xilinx devices.
+In a debug session using JTAG for its transport protocol,
 OpenOCD supports running such test files.
 
 @quotation Important

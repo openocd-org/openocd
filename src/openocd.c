@@ -29,6 +29,7 @@
 #endif
 
 #include "openocd.h"
+#include <jtag/driver.h>
 #include <jtag/jtag.h>
 #include <helper/ioutil.h>
 #include <helper/configuration.h>
@@ -207,6 +208,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&server_register_commands,
 		&gdb_register_commands,
 		&log_register_commands,
+		&interface_register_commands,
 		&jtag_register_commands,
 		&xsvf_register_commands,
 		&svf_register_commands,

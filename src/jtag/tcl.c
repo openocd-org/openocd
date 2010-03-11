@@ -985,7 +985,7 @@ COMMAND_HANDLER(handle_interface_list_command)
 	if (strcmp(CMD_NAME, "interface_list") == 0 && CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "The following JTAG interfaces are available:");
+	command_print(CMD_CTX, "The following debug interfaces are available:");
 	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
 	{
 		const char *name = jtag_interfaces[i]->name;
@@ -1038,7 +1038,7 @@ COMMAND_HANDLER(handle_interface_command)
 	/* no valid interface was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in interfaces
 	 */
-	LOG_ERROR("The specified JTAG interface was not found (%s)", CMD_ARGV[0]);
+	LOG_ERROR("The specified debug interface was not found (%s)", CMD_ARGV[0]);
 	CALL_COMMAND_HANDLER(handle_interface_list_command);
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
@@ -1607,20 +1607,35 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration jtag_command_handlers[] = {
+static const struct command_registration interface_command_handlers[] = {
 	{
 		.name = "interface",
 		.handler = handle_interface_command,
 		.mode = COMMAND_CONFIG,
-		.help = "Select a JTAG interface",
+		.help = "Select a debug adapter interface (driver)",
 		.usage = "driver_name",
 	},
 	{
 		.name = "interface_list",
 		.handler = handle_interface_list_command,
 		.mode = COMMAND_ANY,
-		.help = "List all built-in interfaces",
+		.help = "List all built-in debug adapter interfaces (drivers)",
 	},
+	COMMAND_REGISTRATION_DONE
+};
+
+/**
+ * Register the commands which deal with arbitrary debug adapter drivers.
+ *
+ * @todo Remove internal assumptions that all debug adapters use JTAG for
+ * transport.  Various types and data structures are not named generically.
+ */
+int interface_register_commands(struct command_context *ctx)
+{
+	return register_commands(ctx, NULL, interface_command_handlers);
+}
+
+static const struct command_registration jtag_command_handlers[] = {
 	{
 		.name = "jtag_khz",
 		.handler = handle_jtag_khz_command,
@@ -1746,6 +1761,7 @@ static const struct command_registration jtag_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 int jtag_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, jtag_command_handlers);
