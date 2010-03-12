@@ -3197,9 +3197,9 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 		return ERROR_OK;
 	}
 
-	bool icache;
-	COMMAND_PARSE_BOOL(CMD_NAME, icache, "icache", "dcache");
-
+	bool icache = false;
+	if (strcmp(CMD_NAME, "icache") == 0)
+		icache = true;
 	if (CMD_ARGC >= 1)
 	{
 		bool enable;
