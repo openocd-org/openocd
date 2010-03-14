@@ -141,7 +141,6 @@ static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd);
 static char *       ft2232_device_desc_A = NULL;
 static char*        ft2232_device_desc = NULL;
 static char*        ft2232_serial  = NULL;
-static char*        ft2232_layout  = NULL;
 static uint8_t		ft2232_latency = 2;
 static unsigned		ft2232_max_tck = FTDI_2232C_MAX_TCK;
 
@@ -289,7 +288,9 @@ static const struct ft2232_layout  ft2232_layouts[] =
 
 static uint8_t                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
 
+/** the layout being used with this debug session */
 static const struct ft2232_layout *layout;
+
 static uint8_t                  low_output     = 0x0;
 static uint8_t                  low_direction  = 0x0;
 static uint8_t                  high_output    = 0x0;
@@ -2020,7 +2021,12 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 	char*	openex_string = NULL;
 	uint8_t	latency_timer;
 
-	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)", ft2232_layout, vid, pid);
+	if ((layout == NULL) {
+		LOG_WARNING("No ft2232 layout specified'");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)", layout->name, vid, pid);
 
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
@@ -2187,8 +2193,13 @@ static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_mo
 {
 	uint8_t latency_timer;
 
+	if (layout == NULL) {
+		LOG_WARNING("No ft2232 layout specified'");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
 	LOG_DEBUG("'ft2232' interface using libftdi with '%s' layout (%4.4x:%4.4x)",
-			ft2232_layout, vid, pid);
+			layout->name, vid, pid);
 
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
@@ -2268,8 +2279,6 @@ static int ft2232_init(void)
 	uint8_t  buf[1];
 	int retval;
 	uint32_t bytes_written;
-	const struct ft2232_layout* cur_layout = ft2232_layouts;
-	int i;
 
 	if (tap_get_tms_path_len(TAP_IRPAUSE,TAP_IRPAUSE) == 7)
 	{
@@ -2280,29 +2289,12 @@ static int ft2232_init(void)
 		LOG_DEBUG("ft2232 interface using shortest path jtag state transitions");
 
 	}
-	if ((ft2232_layout == NULL) || (ft2232_layout[0] == 0))
-	{
-		ft2232_layout = "usbjtag";
-		LOG_WARNING("No ft2232 layout specified, using default 'usbjtag'");
-	}
-
-	while (cur_layout->name)
-	{
-		if (strcmp(cur_layout->name, ft2232_layout) == 0)
-		{
-			layout = cur_layout;
-			break;
-		}
-		cur_layout++;
-	}
-
-	if (!layout)
-	{
-		LOG_ERROR("No matching layout found for %s", ft2232_layout);
+	if (layout == NULL) {
+		LOG_WARNING("No ft2232 layout specified'");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (i = 0; 1; i++)
+	for (int i = 0; 1; i++)
 	{
 		/*
 		 * "more indicates that there are more IDs to try, so we should
@@ -2321,7 +2313,7 @@ static int ft2232_init(void)
 				more, &try_more);
 #elif BUILD_FT2232_LIBFTDI == 1
 		retval = ft2232_init_libftdi(ft2232_vid[i], ft2232_pid[i],
-					     more, &try_more, cur_layout->channel);
+					     more, &try_more, layout->channel);
 #endif
 		if (retval >= 0)
 			break;
@@ -2371,6 +2363,7 @@ static int usbjtag_init(void)
 {
 	uint8_t  buf[3];
 	uint32_t bytes_written;
+	char *ft2232_layout = layout->name;
 
 	low_output    = 0x08;
 	low_direction = 0x0b;
@@ -3131,13 +3124,28 @@ COMMAND_HANDLER(ft2232_handle_serial_command)
 
 COMMAND_HANDLER(ft2232_handle_layout_command)
 {
-	if (CMD_ARGC == 0)
-		return ERROR_OK;
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Need exactly one argument to ft2232_layout");
+		return ERROR_FAIL;
+	}
 
-	ft2232_layout = malloc(strlen(CMD_ARGV[0]) + 1);
-	strcpy(ft2232_layout, CMD_ARGV[0]);
+	if (layout) {
+		LOG_ERROR("already specified ft2232_layout %s",
+				layout->name);
+		return (strcmp(layout->name, CMD_ARGV[0]) != 0)
+				? ERROR_FAIL
+				: ERROR_OK;
+	}
 
-	return ERROR_OK;
+	for (const struct ft2232_layout *l = ft2232_layouts; l->name; l++) {
+		if (strcmp(l->name, CMD_ARGV[0]) == 0) {
+			layout = l;
+			return ERROR_OK;
+		}
+	}
+
+	LOG_ERROR("No FT2232 layout '%s' found", CMD_ARGV[0]);
+	return ERROR_FAIL;
 }
 
 COMMAND_HANDLER(ft2232_handle_vid_pid_command)
