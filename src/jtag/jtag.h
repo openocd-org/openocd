@@ -305,14 +305,11 @@ void jtag_set_verify_capture_ir(bool enable);
 /// @returns True if IR scan verification will be performed.
 bool jtag_will_verify_capture_ir(void);
 
-/**
- * Initialize interface upon startup.  Return a successful no-op upon
- * subsequent invocations.
- */
-int  jtag_interface_init(struct command_context* cmd_ctx);
+/** Initialize debug adapter upon startup.  */
+int  adapter_init(struct command_context* cmd_ctx);
 
-/// Shutdown the JTAG interface upon program exit.
-int  jtag_interface_quit(void);
+/// Shutdown the debug adapter upon program exit.
+int  adapter_quit(void);
 
 /**
  * Initialize JTAG chain using only a RESET reset. If init fails,

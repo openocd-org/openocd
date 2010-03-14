@@ -1346,7 +1346,11 @@ void jtag_tap_free(struct jtag_tap *tap)
 	free(tap);
 }
 
-int jtag_interface_init(struct command_context *cmd_ctx)
+/**
+ * Do low-level setup like initializing registers, output signals,
+ * and clocking.
+ */
+int adapter_init(struct command_context *cmd_ctx)
 {
 	if (jtag)
 		return ERROR_OK;
@@ -1354,7 +1358,8 @@ int jtag_interface_init(struct command_context *cmd_ctx)
 	if (!jtag_interface)
 	{
 		/* nothing was previously specified by "interface" command */
-		LOG_ERROR("JTAG interface has to be specified, see \"interface\" command");
+		LOG_ERROR("Debug Adapter has to be specified, "
+			"see \"interface\" command");
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
 
@@ -1369,9 +1374,10 @@ int jtag_interface_init(struct command_context *cmd_ctx)
 	int actual_khz = requested_khz;
 	int retval = jtag_get_speed_readable(&actual_khz);
 	if (ERROR_OK != retval)
-		LOG_INFO("interface specific clock speed value %d", jtag_get_speed());
+		LOG_INFO("adapter-specific clock speed value %d", jtag_get_speed());
 	else if (actual_khz)
 	{
+		/* Adaptive clocking -- JTAG-specific */
 		if ((CLOCK_MODE_RCLK == clock_mode)
 			|| ((CLOCK_MODE_KHZ == clock_mode) && !requested_khz))
 		{
@@ -1459,7 +1465,7 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 	return ERROR_OK;
 }
 
-int jtag_interface_quit(void)
+int adapter_quit(void)
 {
 	if (!jtag || !jtag->quit)
 		return ERROR_OK;
@@ -1477,7 +1483,7 @@ int jtag_init_reset(struct command_context *cmd_ctx)
 {
 	int retval;
 
-	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
+	if ((retval = adapter_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
 	LOG_DEBUG("Initializing with hard TRST+SRST reset");
@@ -1531,7 +1537,7 @@ int jtag_init(struct command_context *cmd_ctx)
 {
 	int retval;
 
-	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
+	if ((retval = adapter_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
 	/* guard against oddball hardware: force resets to be inactive */

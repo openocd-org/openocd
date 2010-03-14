@@ -1430,7 +1430,7 @@ COMMAND_HANDLER(handle_jtag_reset_command)
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (jtag_interface_init(CMD_CTX) != ERROR_OK)
+	if (adapter_init(CMD_CTX) != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
 	jtag_add_reset(trst, srst);

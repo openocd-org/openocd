@@ -115,12 +115,12 @@ COMMAND_HANDLER(handle_init_command)
 	if (ERROR_OK != retval)
 		return ERROR_FAIL;
 
-	if ((retval = jtag_interface_init(CMD_CTX)) != ERROR_OK)
+	if ((retval = adapter_init(CMD_CTX)) != ERROR_OK)
 	{
-		/* we must be able to set up the jtag interface */
+		/* we must be able to set up the debug adapter */
 		return retval;
 	}
-	LOG_DEBUG("jtag interface init complete");
+	LOG_DEBUG("Debug Adapter init complete");
 
 	/* Try to initialize & examine the JTAG chain at this point,
 	 * but continue startup regardless.  Note that platforms
@@ -297,7 +297,7 @@ int openocd_main(int argc, char *argv[])
 	/* free commandline interface */
 	command_done(cmd_ctx);
 
-	jtag_interface_quit();
+	adapter_quit();
 
 	return ret;
 }
