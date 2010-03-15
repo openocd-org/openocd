@@ -2643,7 +2643,7 @@ needing to cope with both architecture and board specific constraints.
 
 @section Commands for Handling Resets
 
-@deffn {Command} jtag_nsrst_assert_width milliseconds
+@deffn {Command} adapter_nsrst_assert_width milliseconds
 Minimum amount of time (in milliseconds) OpenOCD should wait
 after asserting nSRST (active-low system reset) before
 allowing it to be deasserted.

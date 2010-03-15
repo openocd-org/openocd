@@ -84,4 +84,6 @@ proc srst_asserted {} {
 #
 proc jtag_khz args { eval adapter_khz $args }
 proc jtag_nsrst_delay args { eval adapter_nsrst_delay $args }
+proc jtag_nsrst_assert_width args { eval adapter_nsrst_assert_width $args }
+
 # END MIGRATION AIDS

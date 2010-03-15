@@ -1321,7 +1321,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
+COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1332,7 +1332,7 @@ COMMAND_HANDLER(handle_jtag_nsrst_assert_width_command)
 
 		jtag_set_nsrst_assert_width(delay);
 	}
-	command_print(CMD_CTX, "jtag_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	command_print(CMD_CTX, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
 	return ERROR_OK;
 }
 
@@ -1619,10 +1619,17 @@ static const struct command_registration interface_command_handlers[] = {
 		.usage = "[khz]",
 	},
 	{
+		.name = "adapter_nsrst_assert_width",
+		.handler = handle_adapter_nsrst_assert_width_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after asserting SRST in ms",
+		.usage = "[milliseconds]",
+	},
+	{
 		.name = "adapter_nsrst_delay",
 		.handler = handle_adapter_nsrst_delay_command,
 		.mode = COMMAND_ANY,
-		.help = "delay after deasserting srst in ms",
+		.help = "delay after deasserting SRST in ms",
 		.usage = "[milliseconds]",
 	},
 	{
@@ -1678,13 +1685,6 @@ static const struct command_registration jtag_command_handlers[] = {
 		.handler = handle_jtag_ntrst_delay_command,
 		.mode = COMMAND_ANY,
 		.help = "delay after deasserting trst in ms",
-		.usage = "[milliseconds]",
-	},
-	{
-		.name = "jtag_nsrst_assert_width",
-		.handler = handle_jtag_nsrst_assert_width_command,
-		.mode = COMMAND_ANY,
-		.help = "delay after asserting srst in ms",
 		.usage = "[milliseconds]",
 	},
 	{

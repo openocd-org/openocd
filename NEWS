@@ -11,6 +11,7 @@ JTAG Layer:
 	   will not be around forever.
 	   	jtag_khz	... is now adapter_khz
 		jtag_nsrst_delay ... is now adapter_nsrst_delay
+		jtag_nsrst_assert_width ... is now adapter_nsrst_assert_width
 
 Boundary Scan:
 
