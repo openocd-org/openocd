@@ -680,7 +680,7 @@ static struct bitq_interface presto_bitq = {
 
 /* -------------------------------------------------------------------------- */
 
-static int presto_jtag_khz(int khz, int *jtag_speed)
+static int presto_adapter_khz(int khz, int *jtag_speed)
 {
 	if (khz < 0)
 	{
@@ -797,7 +797,7 @@ struct jtag_interface presto_interface = {
 
 	.execute_queue = bitq_execute_queue,
 	.speed = presto_jtag_speed,
-	.khz = presto_jtag_khz,
+	.khz = presto_adapter_khz,
 	.speed_div = presto_jtag_speed_div,
 	.init = presto_jtag_init,
 	.quit = presto_jtag_quit,

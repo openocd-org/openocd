@@ -1556,7 +1556,7 @@ unsigned jtag_get_speed_khz(void)
 	return speed_khz;
 }
 
-static int jtag_khz_to_speed(unsigned khz, int* speed)
+static int adapter_khz_to_speed(unsigned khz, int* speed)
 {
 	LOG_DEBUG("convert khz to interface specific speed value");
 	speed_khz = khz;
@@ -1576,11 +1576,11 @@ static int jtag_khz_to_speed(unsigned khz, int* speed)
 
 static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int* speed)
 {
-	int retval = jtag_khz_to_speed(0, speed);
+	int retval = adapter_khz_to_speed(0, speed);
 	if ((ERROR_OK != retval) && fallback_speed_khz)
 	{
 		LOG_DEBUG("trying fallback speed...");
-		retval = jtag_khz_to_speed(fallback_speed_khz, speed);
+		retval = adapter_khz_to_speed(fallback_speed_khz, speed);
 	}
 	return retval;
 }
@@ -1598,7 +1598,7 @@ int jtag_config_khz(unsigned khz)
 	LOG_DEBUG("handle jtag khz");
 	clock_mode = CLOCK_MODE_KHZ;
 	int speed = 0;
-	int retval = jtag_khz_to_speed(khz, &speed);
+	int retval = adapter_khz_to_speed(khz, &speed);
 	return (ERROR_OK != retval) ? retval : jtag_set_speed(speed);
 }
 
@@ -1621,7 +1621,7 @@ int jtag_get_speed(void)
 			speed = jtag_speed;
 			break;
 		case CLOCK_MODE_KHZ:
-			jtag_khz_to_speed(jtag_get_speed_khz(), &speed);
+			adapter_khz_to_speed(jtag_get_speed_khz(), &speed);
 			break;
 		case CLOCK_MODE_RCLK:
 			jtag_rclk_to_speed(rclk_fallback_speed_khz, &speed);

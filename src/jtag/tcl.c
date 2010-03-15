@@ -1351,7 +1351,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_jtag_khz_command)
+COMMAND_HANDLER(handle_adapter_khz_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1609,6 +1609,16 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 
 static const struct command_registration interface_command_handlers[] = {
 	{
+		.name = "adapter_khz",
+		.handler = handle_adapter_khz_command,
+		.mode = COMMAND_ANY,
+		.help = "With an argument, change to the specified maximum "
+			"jtag speed.  For JTAG, 0 KHz signifies adaptive "
+			" clocking. "
+			"With or without argument, display current setting.",
+		.usage = "[khz]",
+	},
+	{
 		.name = "interface",
 		.handler = handle_interface_command,
 		.mode = COMMAND_CONFIG,
@@ -1636,15 +1646,6 @@ int interface_register_commands(struct command_context *ctx)
 }
 
 static const struct command_registration jtag_command_handlers[] = {
-	{
-		.name = "jtag_khz",
-		.handler = handle_jtag_khz_command,
-		.mode = COMMAND_ANY,
-		.help = "With an argument, change to the specified maximum "
-			"jtag speed.  Pass 0 to require adaptive clocking. "
-			"With or without argument, display current setting.",
-		.usage = "[khz]",
-	},
 	{
 		.name = "jtag_rclk",
 		.handler = handle_jtag_rclk_command,

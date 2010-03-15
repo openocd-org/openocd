@@ -75,3 +75,12 @@ add_help_text srst_deasserted "Overridable procedure run when srst deassert is d
 proc srst_asserted {} {
 	puts "Sensed nSRST asserted."
 }
+
+# BEGIN MIGRATION AIDS ...  these adapter operations originally had
+# JTAG-specific names despite the fact that the operations were not
+# specific to JTAG.
+#
+# FIXME phase these aids out after about April 2011
+#
+proc jtag_khz args { eval adapter_khz $args }
+# END MIGRATION AIDS

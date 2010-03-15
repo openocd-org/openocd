@@ -5,6 +5,11 @@ and other issues not mentioned here.
 
 JTAG Layer:
 	New driver for "Bus Pirate"
+	Rename various commands so they're not JTAG-specific
+	   There are migration procedures for these, but you should
+	   convert your scripts to the new names, since those procedures
+	   will not be around forever.
+	   	jtag_khz	... is now adapter_khz
 
 Boundary Scan:
 

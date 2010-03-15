@@ -880,7 +880,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			// TODO: set jtag speed to
 			if (svf_para.frequency > 0)
 			{
-				command_run_linef(cmd_ctx, "jtag_khz %d", (int)svf_para.frequency / 1000);
+				command_run_linef(cmd_ctx, "adapter_khz %d", (int)svf_para.frequency / 1000);
 				LOG_DEBUG("\tfrequency = %f", svf_para.frequency);
 			}
 		}
