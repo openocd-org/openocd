@@ -1645,6 +1645,17 @@ static const struct command_registration interface_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "List all built-in debug adapter interfaces (drivers)",
 	},
+	{
+		.name = "reset_config",
+		.handler = handle_reset_config_command,
+		.mode = COMMAND_ANY,
+		.help = "configure adapter reset behavior",
+		.usage = "[none|trst_only|srst_only|trst_and_srst] "
+			"[srst_pulls_trst|trst_pulls_srst|combined|separate] "
+			"[srst_gates_jtag|srst_nogate] "
+			"[trst_push_pull|trst_open_drain] "
+			"[srst_push_pull|srst_open_drain]",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1668,17 +1679,6 @@ static const struct command_registration jtag_command_handlers[] = {
 			"if possible; else to use the fallback speed.  "
 			"With or without argument, display current setting.",
 		.usage = "[fallback_speed_khz]",
-	},
-	{
-		.name = "reset_config",
-		.handler = handle_reset_config_command,
-		.mode = COMMAND_ANY,
-		.help = "configure JTAG reset behavior",
-		.usage = "[none|trst_only|srst_only|trst_and_srst] "
-			"[srst_pulls_trst|trst_pulls_srst|combined|separate] "
-			"[srst_gates_jtag|srst_nogate] "
-			"[trst_push_pull|trst_open_drain] "
-			"[srst_push_pull|srst_open_drain]",
 	},
 	{
 		.name = "jtag_ntrst_delay",
