@@ -3419,7 +3419,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 	if (CMD_ARGC >= 2)
 	{
 		xscale->trace.image->base_address_set = 1;
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], xscale->trace.image->base_address);
+		COMMAND_PARSE_NUMBER(llong, CMD_ARGV[1], xscale->trace.image->base_address);
 	}
 	else
 	{

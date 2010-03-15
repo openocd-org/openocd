@@ -434,7 +434,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 	if (CMD_ARGC >= 2)
 	{
 		image.base_address_set = 1;
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], image.base_address);
+		COMMAND_PARSE_NUMBER(llong, CMD_ARGV[1], image.base_address);
 	}
 	else
 	{
