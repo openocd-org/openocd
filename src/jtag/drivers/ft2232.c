@@ -2021,7 +2021,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 	char*	openex_string = NULL;
 	uint8_t	latency_timer;
 
-	if ((layout == NULL) {
+	if (layout == NULL) {
 		LOG_WARNING("No ft2232 layout specified'");
 		return ERROR_JTAG_INIT_FAILED;
 	}
