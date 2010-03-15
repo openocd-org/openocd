@@ -2603,7 +2603,7 @@ stops issuing the reset.  For example, there may be chip or board
 requirements that all reset pulses last for at least a
 certain amount of time; and reset buttons commonly have
 hardware debouncing.
-Use the @command{jtag_nsrst_delay} and @command{jtag_ntrst_delay}
+Use the @command{adapter_nsrst_delay} and @command{jtag_ntrst_delay}
 commands to say when extra delays are needed.
 
 @item @emph{Drive type} ... Reset lines often have a pullup
@@ -2649,7 +2649,7 @@ after asserting nSRST (active-low system reset) before
 allowing it to be deasserted.
 @end deffn
 
-@deffn {Command} jtag_nsrst_delay milliseconds
+@deffn {Command} adapter_nsrst_delay milliseconds
 How long (in milliseconds) OpenOCD should wait after deasserting
 nSRST (active-low system reset) before starting new JTAG operations.
 When a board has a reset button connected to SRST line it will

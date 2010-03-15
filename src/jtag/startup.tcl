@@ -83,4 +83,5 @@ proc srst_asserted {} {
 # FIXME phase these aids out after about April 2011
 #
 proc jtag_khz args { eval adapter_khz $args }
+proc jtag_nsrst_delay args { eval adapter_nsrst_delay $args }
 # END MIGRATION AIDS

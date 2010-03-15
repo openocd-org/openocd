@@ -93,7 +93,7 @@ static bool jtag_verify_capture_ir = true;
 static int jtag_verify = 1;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines deasserted (in ms) */
-static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
+static int adapter_nsrst_delay = 0; /* default to no nSRST delay */
 static int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 static int jtag_nsrst_assert_width = 0; /* width of assertion */
 static int jtag_ntrst_assert_width = 0; /* width of assertion */
@@ -704,8 +704,8 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		}
 		else {
 			LOG_DEBUG("SRST line released");
-			if (jtag_nsrst_delay)
-				jtag_add_sleep(jtag_nsrst_delay * 1000);
+			if (adapter_nsrst_delay)
+				jtag_add_sleep(adapter_nsrst_delay * 1000);
 		}
 	}
 
@@ -1696,11 +1696,11 @@ int jtag_get_srst(void)
 
 void jtag_set_nsrst_delay(unsigned delay)
 {
-	jtag_nsrst_delay = delay;
+	adapter_nsrst_delay = delay;
 }
 unsigned jtag_get_nsrst_delay(void)
 {
-	return jtag_nsrst_delay;
+	return adapter_nsrst_delay;
 }
 void jtag_set_ntrst_delay(unsigned delay)
 {

@@ -1291,7 +1291,7 @@ next:
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
+COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1302,7 +1302,7 @@ COMMAND_HANDLER(handle_jtag_nsrst_delay_command)
 
 		jtag_set_nsrst_delay(delay);
 	}
-	command_print(CMD_CTX, "jtag_nsrst_delay: %u", jtag_get_nsrst_delay());
+	command_print(CMD_CTX, "adapter_nsrst_delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
 
@@ -1619,6 +1619,13 @@ static const struct command_registration interface_command_handlers[] = {
 		.usage = "[khz]",
 	},
 	{
+		.name = "adapter_nsrst_delay",
+		.handler = handle_adapter_nsrst_delay_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after deasserting srst in ms",
+		.usage = "[milliseconds]",
+	},
+	{
 		.name = "interface",
 		.handler = handle_interface_command,
 		.mode = COMMAND_CONFIG,
@@ -1665,13 +1672,6 @@ static const struct command_registration jtag_command_handlers[] = {
 			"[srst_gates_jtag|srst_nogate] "
 			"[trst_push_pull|trst_open_drain] "
 			"[srst_push_pull|srst_open_drain]",
-	},
-	{
-		.name = "jtag_nsrst_delay",
-		.handler = handle_jtag_nsrst_delay_command,
-		.mode = COMMAND_ANY,
-		.help = "delay after deasserting srst in ms",
-		.usage = "[milliseconds]",
 	},
 	{
 		.name = "jtag_ntrst_delay",

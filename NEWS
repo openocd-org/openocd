@@ -10,6 +10,7 @@ JTAG Layer:
 	   convert your scripts to the new names, since those procedures
 	   will not be around forever.
 	   	jtag_khz	... is now adapter_khz
+		jtag_nsrst_delay ... is now adapter_nsrst_delay
 
 Boundary Scan:
 
