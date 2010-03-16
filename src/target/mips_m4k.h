@@ -32,6 +32,7 @@ struct target;
 struct mips_m4k_common
 {
 	int common_magic;
+	bool is_pic32mx;
 	struct mips32_common mips32;
 };
 

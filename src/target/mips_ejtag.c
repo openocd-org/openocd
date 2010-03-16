@@ -127,6 +127,37 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 	return ERROR_OK;
 }
 
+int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
+{
+	struct jtag_tap *tap;
+	tap  = ejtag_info->tap;
+
+	if (tap == NULL)
+		return ERROR_FAIL;
+	struct scan_field field;
+	uint8_t t[4], r[4];
+	int retval;
+
+	field.num_bits = 8;
+	field.out_value = t;
+	buf_set_u32(field.out_value, 0, field.num_bits, *data);
+	field.in_value = r;
+
+	jtag_add_dr_scan(tap, 1, &field, jtag_get_end_state());
+
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		LOG_ERROR("register read failed");
+		return retval;
+	}
+
+	*data = buf_get_u32(field.in_value, 0, 32);
+
+	keep_alive();
+
+	return ERROR_OK;
+}
+
 int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 {
 	static const uint32_t code[] = {

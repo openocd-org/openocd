@@ -250,11 +250,30 @@ int mips_m4k_assert_reset(struct target *target)
 	}
 	else
 	{
+		if (mips_m4k->is_pic32mx)
+		{
+			uint32_t mchip_cmd;
+
+			LOG_DEBUG("Using MTAP reset to reset processor...");
+
+			/* use microchip specific MTAP reset */
+			mips_ejtag_set_instr(ejtag_info, MTAP_SW_MTAP, NULL);
+			mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND, NULL);
+
+			mchip_cmd = MCHP_ASERT_RST;
+			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+			mchip_cmd = MCHP_DE_ASSERT_RST;
+			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP, NULL);
+		}
+		else
+		{
 			/* use ejtag reset - not supported by all cores */
 			uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 			LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 			mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+		}
 	}
 
 	target->state = TARGET_RESET;
@@ -878,7 +897,7 @@ int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target)
 int mips_m4k_init_arch_info(struct target *target, struct mips_m4k_common *mips_m4k,
 		struct jtag_tap *tap)
 {
-	struct mips32_common *mips32 = &mips_m4k->mips32_common;
+	struct mips32_common *mips32 = &mips_m4k->mips32;
 
 	mips_m4k->common_magic = MIPSM4K_COMMON_MAGIC;
 
@@ -901,8 +920,8 @@ int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
 int mips_m4k_examine(struct target *target)
 {
 	int retval;
-	struct mips32_common *mips32 = target_to_mips32(target);
-	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
+	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
 	uint32_t idcode = 0;
 
 	if (!target_was_examined(target))
@@ -916,6 +935,7 @@ int mips_m4k_examine(struct target *target)
 			 * as it is not selected by default */
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP, NULL);
 			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
+			mips_m4k->is_pic32mx = true;
 		}
 	}
 

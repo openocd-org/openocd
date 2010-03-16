@@ -43,6 +43,11 @@
 /* microchip PIC32MX specific instructions */
 #define MTAP_SW_MTAP			0x04
 #define MTAP_SW_ETAP			0x05
+#define MTAP_COMMAND			0x07
+
+/* microchip specific cmds */
+#define MCHP_ASERT_RST			0xd1
+#define MCHP_DE_ASSERT_RST		0xd0
 
 /* ejtag control register bits ECR */
 #define EJTAG_CTRL_TOF			(1 << 1)
@@ -130,6 +135,7 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info);
 int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode);
 int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode);
 int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data);
+int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data);
 int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write, uint32_t *data);
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info);
