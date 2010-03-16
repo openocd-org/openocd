@@ -787,7 +787,6 @@ int arm9tdmi_init_arch_info(struct target *target,
 	arm7_9->post_debug_entry = NULL;
 
 	arm7_9->pre_restore_context = NULL;
-	arm7_9->post_restore_context = NULL;
 
 	/* initialize arch-specific breakpoint handling */
 	arm7_9->arm_bkpt = 0xdeeedeee;

@@ -1726,9 +1726,6 @@ int arm7_9_restore_context(struct target *target)
 	arm7_9->write_pc(target, buf_get_u32(armv4_5->pc->value, 0, 32));
 	armv4_5->pc->dirty = 0;
 
-	if (arm7_9->post_restore_context)
-		arm7_9->post_restore_context(target);
-
 	return ERROR_OK;
 }
 

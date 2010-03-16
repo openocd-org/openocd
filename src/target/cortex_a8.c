@@ -1020,9 +1020,6 @@ static int cortex_a8_restore_context(struct target *target, bool bpwp)
 
 	arm_dpm_write_dirty_registers(&armv7a->dpm, bpwp);
 
-	if (armv7a->post_restore_context)
-		armv7a->post_restore_context(target);
-
 	return ERROR_OK;
 }
 
@@ -1589,7 +1586,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 	armv7a->post_debug_entry = cortex_a8_post_debug_entry;
 
 	armv7a->pre_restore_context = NULL;
-	armv7a->post_restore_context = NULL;
 	armv7a->armv4_5_mmu.armv4_5_cache.ctype = -1;
 //	armv7a->armv4_5_mmu.get_ttb = armv7a_get_ttb;
 	armv7a->armv4_5_mmu.read_memory = cortex_a8_read_memory;

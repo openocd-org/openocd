@@ -65,8 +65,6 @@ struct armv7a_common
 	void (*post_debug_entry)(struct target *target);
 
 	void (*pre_restore_context)(struct target *target);
-	void (*post_restore_context)(struct target *target);
-
 };
 
 static inline struct armv7a_common *

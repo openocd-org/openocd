@@ -1876,7 +1876,6 @@ static int cortex_m3_init_arch_info(struct target *target,
 	armv7m->post_debug_entry = NULL;
 
 	armv7m->pre_restore_context = NULL;
-	armv7m->post_restore_context = NULL;
 
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m3_store_core_reg_u32;

@@ -139,9 +139,6 @@ int armv7m_restore_context(struct target *target)
 		}
 	}
 
-	if (armv7m->post_restore_context)
-		armv7m->post_restore_context(target);
-
 	return ERROR_OK;
 }
 

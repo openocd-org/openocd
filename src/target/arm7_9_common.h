@@ -103,9 +103,6 @@ struct arm7_9_common
 	void (*post_debug_entry)(struct target *target); /**< Callback function called after entering debug mode */
 
 	void (*pre_restore_context)(struct target *target); /**< Callback function called before restoring the processor context */
-	void (*post_restore_context)(struct target *target); /**< Callback function called after restoring the processor context */
-
-
 };
 
 static inline struct arm7_9_common *
