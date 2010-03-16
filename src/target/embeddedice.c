@@ -372,7 +372,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[2].check_mask = NULL;
 
 	/* traverse Update-DR, setting address for the next read */
-	jtag_add_dr_scan(ice_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(ice_reg->jtag_info->tap, 3, fields, TAP_IDLE);
 
 	/* bits 31:0 -- the data we're reading (and maybe checking) */
 	fields[0].in_value = reg->value;
@@ -386,7 +386,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	fields[1].out_value[0] = eice_regs[EICE_COMMS_CTRL].addr;
 
 	/* traverse Update-DR, reading but with no other side effects */
-	jtag_add_dr_scan_check(ice_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan_check(ice_reg->jtag_info->tap, 3, fields, TAP_IDLE);
 
 	return ERROR_OK;
 }
@@ -423,7 +423,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 
 	while (size > 0)
 	{
@@ -434,7 +434,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 			fields[1].out_value[0] = eice_regs[EICE_COMMS_CTRL].addr;
 
 		fields[0].in_value = (uint8_t *)data;
-		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)data);
 
 		data++;
@@ -545,7 +545,7 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 	while (size > 0)
 	{
 		buf_set_u32(fields[0].out_value, 0, 32, *data);
-		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 
 		data++;
 		size--;
@@ -594,10 +594,10 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	fields[2].out_value[0] = 0;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 	gettimeofday(&lap, NULL);
 	do {
-		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 

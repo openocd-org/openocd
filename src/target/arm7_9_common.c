@@ -1750,7 +1750,7 @@ int arm7_9_restart_core(struct target *target)
 	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 
-	jtag_add_runtest(1, jtag_set_end_state(TAP_IDLE));
+	jtag_add_runtest(1, TAP_IDLE);
 	return jtag_execute_queue();
 }
 

@@ -75,15 +75,15 @@ static int arm720t_scan_cp15(struct target *target,
 	if (in)
 	{
 		fields[1].in_value = (uint8_t *)in;
-		jtag_add_dr_scan(jtag_info->tap, 2, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
 		jtag_add_callback(arm7flip32, (jtag_callback_data_t)in);
 	} else
 	{
-		jtag_add_dr_scan(jtag_info->tap, 2, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
 	}
 
 	if (clock)
-		jtag_add_runtest(0, jtag_get_end_state());
+		jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	if ((retval = jtag_execute_queue()) != ERROR_OK)

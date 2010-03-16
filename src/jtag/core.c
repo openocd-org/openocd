@@ -743,7 +743,8 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	}
 }
 
-tap_state_t jtag_set_end_state(tap_state_t state)
+/* DEPRECATED! store such global state outside JTAG layer */
+void jtag_set_end_state(tap_state_t state)
 {
 	if ((state == TAP_DRSHIFT)||(state == TAP_IRSHIFT))
 	{
@@ -752,9 +753,9 @@ tap_state_t jtag_set_end_state(tap_state_t state)
 
 	if (state != TAP_INVALID)
 		cmd_queue_end_state = state;
-	return cmd_queue_end_state;
 }
 
+/* DEPRECATED! store such global state outside JTAG layer */
 tap_state_t jtag_get_end_state(void)
 {
 	return cmd_queue_end_state;

@@ -101,9 +101,9 @@ int feroceon_dummy_clock_out(struct arm_jtag *jtag_info, uint32_t instr)
 	fields[2].out_value = instr_buf;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 
-	/* no jtag_add_runtest(0, jtag_get_end_state()) here */
+	/* no jtag_add_runtest(0, TAP_DRPAUSE) here */
 
 	return ERROR_OK;
 }

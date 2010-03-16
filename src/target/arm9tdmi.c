@@ -107,7 +107,7 @@ int arm9tdmi_examine_debug_reason(struct target *target)
 		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
-		jtag_add_dr_scan(arm7_9->jtag_info.tap, 3, fields, jtag_set_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(arm7_9->jtag_info.tap, 3, fields, TAP_DRPAUSE);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
@@ -120,7 +120,7 @@ int arm9tdmi_examine_debug_reason(struct target *target)
 		fields[2].in_value = NULL;
 		fields[2].out_value = instructionbus;
 
-		jtag_add_dr_scan(arm7_9->jtag_info.tap, 3, fields, jtag_set_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(arm7_9->jtag_info.tap, 3, fields, TAP_DRPAUSE);
 
 		if (debug_reason & 0x4)
 			if (debug_reason & 0x2)
@@ -177,13 +177,13 @@ int arm9tdmi_clock_out(struct arm_jtag *jtag_info, uint32_t instr,
 	if (in)
 	{
 		fields[0].in_value = (uint8_t *)in;
-		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
 	}
 	else
 	{
-		jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 	}
 
 	jtag_add_runtest(0, jtag_get_end_state());
@@ -233,11 +233,11 @@ int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 
 	jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
 
-	jtag_add_runtest(0, jtag_get_end_state());
+	jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
@@ -300,11 +300,11 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 
 	jtag_add_callback4(arm9endianness, (jtag_callback_data_t)in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[0].in_value);
 
-	jtag_add_runtest(0, jtag_get_end_state());
+	jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{

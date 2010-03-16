@@ -191,7 +191,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(etb->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(etb->tap, 3, fields, TAP_IDLE);
 
 	for (i = 0; i < num_frames; i++)
 	{
@@ -205,7 +205,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
 		fields[0].in_value = (uint8_t *)(data + i);
-		jtag_add_dr_scan(etb->tap, 3, fields, jtag_get_end_state());
+		jtag_add_dr_scan(etb->tap, 3, fields, TAP_IDLE);
 
 		jtag_add_callback(etb_getbuf, (jtag_callback_data_t)(data + i));
 	}
@@ -251,7 +251,7 @@ static int etb_read_reg_w_check(struct reg *reg,
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
 
-	jtag_add_dr_scan(etb_reg->etb->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(etb_reg->etb->tap, 3, fields, TAP_IDLE);
 
 	/* read the identification register in the second run, to make sure we
 	 * don't read the ETB data register twice, skipping every second entry
@@ -261,7 +261,7 @@ static int etb_read_reg_w_check(struct reg *reg,
 	fields[0].check_value = check_value;
 	fields[0].check_mask = check_mask;
 
-	jtag_add_dr_scan_check(etb_reg->etb->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan_check(etb_reg->etb->tap, 3, fields, TAP_IDLE);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);

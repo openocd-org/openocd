@@ -482,9 +482,9 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value,
-								jtag_set_end_state(TAP_DRPAUSE));
+								TAP_DRPAUSE);
 					else
-						jtag_add_dr_scan(tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
+						jtag_add_dr_scan(tap, 1, &field, TAP_DRPAUSE);
 
 					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
 
@@ -939,9 +939,9 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value,
-								jtag_set_end_state(TAP_DRPAUSE));
+								TAP_DRPAUSE);
 					else
-						jtag_add_dr_scan(tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
+						jtag_add_dr_scan(tap, 1, &field, TAP_DRPAUSE);
 
 					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
 

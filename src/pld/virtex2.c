@@ -40,7 +40,7 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(tap, &field, jtag_set_end_state(TAP_IDLE));
+		jtag_add_ir_scan(tap, &field, TAP_IDLE);
 
 		free(field.out_value);
 	}
@@ -67,7 +67,7 @@ static int virtex2_send_32(struct pld_device *pld_device,
 
 	virtex2_set_instr(virtex2_info->tap, 0x5); /* CFG_IN */
 
-	jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
+	jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, TAP_DRPAUSE);
 
 	free(values);
 
@@ -96,7 +96,7 @@ static int virtex2_receive_32(struct pld_device *pld_device,
 	{
 		scan_field.in_value = (uint8_t *)words;
 
-		jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, TAP_DRPAUSE);
 
 		jtag_add_callback(virtexflip32, (jtag_callback_data_t)words);
 
@@ -155,18 +155,18 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	field.num_bits = bit_file.length * 8;
 	field.out_value = bit_file.data;
 
-	jtag_add_dr_scan(virtex2_info->tap, 1, &field, jtag_set_end_state(TAP_DRPAUSE));
+	jtag_add_dr_scan(virtex2_info->tap, 1, &field, TAP_DRPAUSE);
 	jtag_execute_queue();
 
 	jtag_add_tlr();
 
 	jtag_set_end_state(TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
-	jtag_add_runtest(13, jtag_set_end_state(TAP_IDLE));
+	jtag_add_runtest(13, TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
-	jtag_add_runtest(13, jtag_set_end_state(TAP_IDLE));
+	jtag_add_runtest(13, TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	jtag_execute_queue();
 

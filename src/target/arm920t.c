@@ -111,11 +111,11 @@ static int arm920t_read_cp15_physical(struct target *target,
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
 
 	fields[1].in_value = (uint8_t *)value;
 
-	jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
 
 	jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)value);
 
@@ -162,7 +162,7 @@ static int arm920t_write_cp15_physical(struct target *target,
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
@@ -214,7 +214,7 @@ static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 4, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
 
 	arm9tdmi_clock_out(jtag_info, arm_opcode, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);

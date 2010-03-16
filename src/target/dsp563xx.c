@@ -863,8 +863,7 @@ int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8_t * ir_out,
 	}
 
 	{
-		jtag_add_plain_ir_scan(tap->ir_length, ir_out, ir_in,
-				       jtag_set_end_state(TAP_IDLE));
+		jtag_add_plain_ir_scan(tap->ir_length, ir_out, ir_in, TAP_IDLE);
 	}
 
 	return ERROR_OK;
@@ -880,8 +879,7 @@ int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t * dr_in, uint8_t * dr_out,
 	}
 
 	{
-		jtag_add_plain_dr_scan(dr_len, dr_out, dr_in,
-				       jtag_set_end_state(TAP_IDLE));
+		jtag_add_plain_dr_scan(dr_len, dr_out, dr_in, TAP_IDLE);
 	}
 
 	return ERROR_OK;

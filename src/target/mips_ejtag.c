@@ -64,7 +64,7 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 	field.out_value = NULL;
 	field.in_value = (void*)idcode;
 
-	jtag_add_dr_scan(ejtag_info->tap, 1, &field, jtag_get_end_state());
+	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
 
 	if (jtag_execute_queue() != ERROR_OK)
 	{
@@ -86,7 +86,7 @@ int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
 	field.out_value = NULL;
 	field.in_value = (void*)impcode;
 
-	jtag_add_dr_scan(ejtag_info->tap, 1, &field, jtag_get_end_state());
+	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
 
 	if (jtag_execute_queue() != ERROR_OK)
 	{

@@ -482,7 +482,7 @@ int arm11_run_instr_data_to_core(struct arm11_common * arm11, uint32_t opcode, u
 		{
 			Data	    = *data;
 
-			arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, jtag_set_end_state(TAP_IDLE));
+			arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_IDLE);
 
 			CHECK_RETVAL(jtag_execute_queue());
 

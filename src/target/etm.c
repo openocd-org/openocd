@@ -528,13 +528,13 @@ static int etm_read_reg_w_check(struct reg *reg,
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
 
-	jtag_add_dr_scan(etm_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(etm_reg->jtag_info->tap, 3, fields, TAP_IDLE);
 
 	fields[0].in_value = reg->value;
 	fields[0].check_value = check_value;
 	fields[0].check_mask = check_mask;
 
-	jtag_add_dr_scan_check(etm_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan_check(etm_reg->jtag_info->tap, 3, fields, TAP_IDLE);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -609,7 +609,7 @@ static int etm_write_reg(struct reg *reg, uint32_t value)
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(etm_reg->jtag_info->tap, 3, fields, jtag_get_end_state());
+	jtag_add_dr_scan(etm_reg->jtag_info->tap, 3, fields, TAP_IDLE);
 
 	return ERROR_OK;
 }

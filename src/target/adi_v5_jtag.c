@@ -107,7 +107,7 @@ int adi_jtag_dp_scan(struct adiv5_dap *swjdp,
 	fields[1].out_value = outvalue;
 	fields[1].in_value = invalue;
 
-	jtag_add_dr_scan(jtag_info->tap, 2, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
 
 	/* Add specified number of tck clocks after starting memory bus
 	 * access, giving the hardware time to complete the access.
@@ -119,7 +119,7 @@ int adi_jtag_dp_scan(struct adiv5_dap *swjdp,
 				|| ((reg_addr & 0xF0) == AP_REG_BD0))
 			&& (swjdp->memaccess_tck != 0))
 		jtag_add_runtest(swjdp->memaccess_tck,
-				jtag_set_end_state(TAP_IDLE));
+				TAP_IDLE);
 
 	return jtag_get_error();
 }
@@ -341,7 +341,7 @@ static int jtag_idcode_q_read(struct adiv5_dap *dap,
 	fields[0].out_value = NULL;
 	fields[0].in_value = (void *) data;
 
-	jtag_add_dr_scan(jtag_info->tap, 1, fields, jtag_get_end_state());
+	jtag_add_dr_scan(jtag_info->tap, 1, fields, TAP_IDLE);
 	retval = jtag_get_error();
 	if (retval != ERROR_OK)
 		return retval;
