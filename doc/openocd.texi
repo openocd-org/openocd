@@ -3453,14 +3453,6 @@ be detected and the normal reset behaviour used.
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
 @item @code{mips_m4k} -- a MIPS core.  This supports one variant:
-@itemize @minus
-@item @code{ejtag_srst} ... Use this when debugging targets that do not
-provide a functional SRST line on the EJTAG connector.  This causes
-OpenOCD to instead use an EJTAG software reset command to reset the
-processor.
-You still need to enable @option{srst} on the @command{reset_config}
-command to enable OpenOCD hardware reset functionality.
-@end itemize
 @item @code{xscale} -- this is actually an architecture,
 not a CPU type.  It is based on the ARMv5 architecture.
 There are several variants defined:

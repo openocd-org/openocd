@@ -32,14 +32,14 @@ struct target;
 struct mips_m4k_common
 {
 	int common_magic;
-	struct mips32_common mips32_common;
+	struct mips32_common mips32;
 };
 
 static inline struct mips_m4k_common *
 target_to_m4k(struct target *target)
 {
 	return container_of(target->arch_info,
-			struct mips_m4k_common, mips32_common);
+			struct mips_m4k_common, mips32);
 }
 
 int mips_m4k_bulk_write_memory(struct target *target,

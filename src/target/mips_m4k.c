@@ -212,18 +212,17 @@ int mips_m4k_halt(struct target *target)
 
 int mips_m4k_assert_reset(struct target *target)
 {
-	struct mips32_common *mips32 = target_to_mips32(target);
-	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
+	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
+	int assert_srst = 1;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
 	if (!(jtag_reset_config & RESET_HAS_SRST))
-	{
-		LOG_ERROR("Can't assert SRST");
-		return ERROR_FAIL;
-	}
+		assert_srst = 0;
 
 	if (target->reset_halt)
 	{
@@ -237,14 +236,7 @@ int mips_m4k_assert_reset(struct target *target)
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
 	}
 
-	if (strcmp(target->variant, "ejtag_srst") == 0)
-	{
-		uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
-		LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	}
-	else
+	if (assert_srst)
 	{
 		/* here we should issue a srst only, but we may have to assert trst as well */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
@@ -256,11 +248,19 @@ int mips_m4k_assert_reset(struct target *target)
 			jtag_add_reset(0, 1);
 		}
 	}
+	else
+	{
+			/* use ejtag reset - not supported by all cores */
+			uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
+			LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
+			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+			mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	}
 
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
-	register_cache_invalidate(mips32->core_cache);
+	register_cache_invalidate(mips_m4k->mips32.core_cache);
 
 	if (target->reset_halt)
 	{
