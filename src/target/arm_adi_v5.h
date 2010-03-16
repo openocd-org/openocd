@@ -32,15 +32,11 @@
 
 #include "arm_jtag.h"
 
-/* JTAG instructions/registers for JTAG-DP and SWJ-DP */
-#define JTAG_DP_ABORT		0x8
+/* FIXME remove these JTAG-specific decls when mem_ap_read_buf_u32()
+ * is no longer JTAG-specific
+ */
 #define JTAG_DP_DPACC		0xA
 #define JTAG_DP_APACC		0xB
-#define JTAG_DP_IDCODE		0xE
-
-/* three-bit ACK values for DPACC and APACC reads */
-#define JTAG_ACK_OK_FAULT	0x2
-#define JTAG_ACK_WAIT		0x1
 
 /* three-bit ACK values for SWD access (sent LSB first) */
 #define SWD_ACK_OK		0x4

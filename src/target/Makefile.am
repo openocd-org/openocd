@@ -83,6 +83,8 @@ ARM_DEBUG_SRC = \
 	arm_simulator.c \
 	arm_semihosting.c \
 	arm_adi_v5.c \
+ 	adi_v5_jtag.c \
+	adi_v5_swd.c \
 	embeddedice.c \
 	trace.c \
 	etb.c \
