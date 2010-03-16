@@ -32,6 +32,7 @@ struct lpc3180_nand_controller
 	struct target *target;
 	int osc_freq;
 	enum lpc3180_selected_controller selected_controller;
+	int is_bulk;
 	int sw_write_protection;
 	uint32_t sw_wp_lower_bound;
 	uint32_t sw_wp_upper_bound;

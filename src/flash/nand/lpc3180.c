@@ -1,6 +1,9 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
+ *
+ *   Copyright (C) 2010 richard vegh <vegh.ricsi@gmail.com>                *
+ *   Copyright (C) 2010 Oyvind Harboe <oyvind.harboe@zylin.com>            *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,6 +31,13 @@
 
 static int lpc3180_reset(struct nand_device *nand);
 static int lpc3180_controller_ready(struct nand_device *nand, int timeout);
+static int lpc3180_tc_ready(struct nand_device *nand, int timeout);
+
+
+#define ECC_OFFS   0x120
+#define SPARE_OFFS 0x140
+#define DATA_OFFS   0x200
+
 
 /* nand device lpc3180 <target#> <oscillator_frequency>
  */
@@ -253,8 +263,21 @@ static int lpc3180_init(struct nand_device *nand)
 		/* FLASHCLK_CTRL = 0x05 (enable clock for SLC flash controller) */
 		target_write_u32(target, 0x400040c8, 0x05);
 
-		/* SLC_CFG = 0x (Force nCE assert, ECC enabled, WIDTH = bus_width) */
-		target_write_u32(target, 0x20020014, 0x28 | (bus_width == 16) ? 1 : 0);
+		/* after reset set other registers of SLC so reset calling is here at the begining*/
+		lpc3180_reset(nand);
+
+		/* SLC_CFG = 0x (Force nCE assert, DMA ECC enabled, ECC enabled, DMA burst enabled, DMA read from SLC, WIDTH = bus_width) */
+		target_write_u32(target, 0x20020014, 0x3e | (bus_width == 16) ? 1 : 0);
+
+		/* SLC_IEN = 3 (INT_RDY_EN = 1) ,(INT_TC_STAT = 1) */
+		target_write_u32(target, 0x20020020, 0x03);
+
+		/* DMA configuration */
+		/* DMACLK_CTRL = 0x01 (enable clock for DMA controller) */
+		target_write_u32(target, 0x400040e8, 0x01);
+		/* DMACConfig = DMA enabled*/
+		target_write_u32(target, 0x31000030, 0x01);
+            
 
 		/* calculate NAND controller timings */
 		cycle = lpc3180_cycle_time(lpc3180_info);
@@ -270,7 +293,6 @@ static int lpc3180_init(struct nand_device *nand)
 			((r_width & 0xf) << 8) | ((r_rdy & 0xf) << 12) |  ((w_setup & 0xf) << 16) |
 			((w_hold & 0xf) << 20) | ((w_width & 0xf) << 24) | ((w_rdy & 0xf) << 28));
 
-		lpc3180_reset(nand);
 	}
 
 	return ERROR_OK;
@@ -476,6 +498,7 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 	struct target *target = lpc3180_info->target;
 	int retval;
 	uint8_t status;
+	uint8_t *page_buffer;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -490,7 +513,6 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 	{
-		uint8_t *page_buffer;
 		uint8_t *oob_buffer;
 		int quarter, num_quarters;
 
@@ -606,8 +628,202 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 	{
+    
+               /**********************************************************************
+               *     Write both SLC NAND flash page main area and spare area.
+               *     Small page -
+               *      ------------------------------------------
+               *     |    512 bytes main   |   16 bytes spare   |
+               *      ------------------------------------------
+               *     Large page -
+               *      ------------------------------------------
+               *     |   2048 bytes main   |   64 bytes spare   |
+               *      ------------------------------------------
+               *     If DMA & ECC enabled, then the ECC generated for the 1st 256-byte
+               *     data is written to the 3rd word of the spare area. The ECC
+               *     generated for the 2nd 256-byte data is written to the 4th word
+               *     of the spare area. The ECC generated for the 3rd 256-byte data is
+               *     written to the 7th word of the spare area. The ECC generated
+               *     for the 4th 256-byte data is written to the 8th word of the
+               *     spare area and so on.
+               *
+               **********************************************************************/
+        
+               int retval,i=0,target_mem_base;
+               uint8_t *ecc_flash_buffer;
+               struct working_area *pworking_area;
+    
+  
+                if(lpc3180_info->is_bulk){
+
+                    if (!data && oob){
+                        /*if oob only mode is active original method is used as SLC controller hangs during DMA interworking. Anyway the code supports the oob only mode below. */
 		return nand_write_page_raw(nand, page, data, data_size, oob, oob_size);
 	}
+                    retval = nand_page_command(nand, page, NAND_CMD_SEQIN, !data);
+                    if (ERROR_OK != retval)
+                        return retval;
+    
+                    /* allocate a working area */
+                    if (target->working_area_size < (uint32_t) nand->page_size + 0x200){
+                        LOG_ERROR("Reserve at least 0x%x physical target working area",nand->page_size + 0x200);
+                        return ERROR_FLASH_OPERATION_FAILED;
+                    }
+                    if (target->working_area_phys%4){
+                        LOG_ERROR("Reserve the physical target working area at word boundary");
+                        return ERROR_FLASH_OPERATION_FAILED;
+                    }
+                    if (target_alloc_working_area(target, target->working_area_size, &pworking_area) != ERROR_OK)
+                    {
+                        LOG_ERROR("no working area specified, can't read LPC internal flash");
+                        return ERROR_FLASH_OPERATION_FAILED;
+                    }
+                    target_mem_base = target->working_area_phys;
+        
+    
+                    if (nand->page_size == 2048)
+                    {
+                        page_buffer = malloc(2048);
+                    }
+                    else
+                    {
+                        page_buffer = malloc(512);
+                    }
+                    
+                    ecc_flash_buffer = malloc(64);
+                    
+                    /* SLC_CFG = 0x (Force nCE assert, DMA ECC enabled, ECC enabled, DMA burst enabled, DMA write to SLC, WIDTH = bus_width) */
+                    target_write_u32(target, 0x20020014, 0x3c);
+    
+                    if( data && !oob){
+                        /* set DMA LLI-s in target memory and in DMA*/
+                        for(i=0;i<nand->page_size/0x100;i++){
+        
+                            int tmp;
+                            /* -------LLI for 256 byte block---------*/
+                            /* DMACC0SrcAddr = SRAM */
+                            target_write_u32(target,target_mem_base+0+i*32,target_mem_base+DATA_OFFS+i*256 );
+                            if(i==0) target_write_u32(target,0x31000100,target_mem_base+DATA_OFFS );
+                            /* DMACCxDestAddr = SLC_DMA_DATA */
+                            target_write_u32(target,target_mem_base+4+i*32,0x20020038 );
+                            if(i==0)  target_write_u32(target,0x31000104,0x20020038 );
+                            /* DMACCxLLI = next element */
+                            tmp = (target_mem_base+(1+i*2)*16)&0xfffffffc;
+                            target_write_u32(target,target_mem_base+8+i*32, tmp );
+                            if(i==0) target_write_u32(target,0x31000108, tmp );
+                            /* DMACCxControl =  TransferSize =64, Source burst size =16, Destination burst size = 16, Source transfer width = 32 bit, 
+                            Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 1,
+                            Destination increment = 0, Terminal count interrupt enable bit = 0*/       
+                            target_write_u32(target,target_mem_base+12+i*32,0x40 | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 1<<26 | 0<<27| 0<<31);
+                            if(i==0) target_write_u32(target,0x3100010c,0x40 | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 1<<26 | 0<<27| 0<<31);
+        
+                            /* -------LLI for 3 byte ECC---------*/
+                            /* DMACC0SrcAddr = SLC_ECC*/
+                            target_write_u32(target,target_mem_base+16+i*32,0x20020034 );
+                            /* DMACCxDestAddr = SRAM */
+                            target_write_u32(target,target_mem_base+20+i*32,target_mem_base+SPARE_OFFS+8+16*(i>>1)+(i%2)*4 );
+                            /* DMACCxLLI = next element */
+                                tmp = (target_mem_base+(2+i*2)*16)&0xfffffffc;
+                            target_write_u32(target,target_mem_base+24+i*32, tmp );
+                            /* DMACCxControl =  TransferSize =1, Source burst size =4, Destination burst size = 4, Source transfer width = 32 bit, 
+                            Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 0,
+                            Destination increment = 1, Terminal count interrupt enable bit = 0*/       
+                            target_write_u32(target,target_mem_base+28+i*32,0x01 | 1<<12 | 1<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 0<<26 | 1<<27| 0<<31);
+                        }
+                    }
+                    else if (data && oob){
+                        /* -------LLI for 512 or 2048 bytes page---------*/
+                        /* DMACC0SrcAddr = SRAM */
+                        target_write_u32(target,target_mem_base,target_mem_base+DATA_OFFS );
+                        target_write_u32(target,0x31000100,target_mem_base+DATA_OFFS );
+                        /* DMACCxDestAddr = SLC_DMA_DATA */
+                        target_write_u32(target,target_mem_base+4,0x20020038 );
+                        target_write_u32(target,0x31000104,0x20020038 );
+                        /* DMACCxLLI = next element */
+                        target_write_u32(target,target_mem_base+8, (target_mem_base+32)&0xfffffffc );
+                        target_write_u32(target,0x31000108, (target_mem_base+32)&0xfffffffc );
+                        /* DMACCxControl =  TransferSize =512 or 128, Source burst size =16, Destination burst size = 16, Source transfer width = 32 bit, 
+                        Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 1,
+                        Destination increment = 0, Terminal count interrupt enable bit = 0*/       
+                        target_write_u32(target,target_mem_base+12,(nand->page_size==2048?512:128) | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 1<<26 | 0<<27| 0<<31);
+                        target_write_u32(target,0x3100010c,(nand->page_size==2048?512:128) | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 1<<26 | 0<<27| 0<<31);
+                        i = 1;
+                    }
+                    else if (!data && oob){
+                        i = 0;
+                    }
+    
+                    /* -------LLI for spare area---------*/
+                    /* DMACC0SrcAddr = SRAM*/
+                    target_write_u32(target,target_mem_base+0+i*32,target_mem_base+SPARE_OFFS );
+                    if(i==0) target_write_u32(target,0x31000100,target_mem_base+SPARE_OFFS );
+                    /* DMACCxDestAddr = SLC_DMA_DATA */
+                    target_write_u32(target,target_mem_base+4+i*32,0x20020038 );
+                    if(i==0) target_write_u32(target,0x31000104,0x20020038 );
+                    /* DMACCxLLI = next element = NULL */
+                    target_write_u32(target,target_mem_base+8+i*32, 0 );
+                    if(i==0) target_write_u32(target,0x31000108,0 );
+                    /* DMACCxControl =  TransferSize =16 for large page or 4 for small page, Source burst size =16, Destination burst size = 16, Source transfer width = 32 bit, 
+                    Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 1,
+                    Destination increment = 0, Terminal count interrupt enable bit = 0*/       
+                    target_write_u32(target,target_mem_base+12+i*32, (nand->page_size==2048?0x10:0x04) | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 1<<26 | 0<<27| 0<<31);
+                    if(i==0) target_write_u32(target,0x3100010c,(nand->page_size==2048?0x10:0x04) | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 1<<26 | 0<<27| 0<<31 );
+
+
+
+                    memset(ecc_flash_buffer, 0xff, 64);
+                    if( oob ){
+                        memcpy(ecc_flash_buffer,oob, oob_size);
+                    }
+                    target_write_memory(target, target_mem_base+SPARE_OFFS, 4, 16, ecc_flash_buffer);
+                    
+                    if (data){
+                        memset(page_buffer, 0xff, nand->page_size == 2048?2048:512);
+                        memcpy(page_buffer,data, data_size);
+                        target_write_memory(target, target_mem_base+DATA_OFFS, 4, nand->page_size == 2048?512:128, page_buffer);
+                    }
+
+                    free(page_buffer);
+                    free(ecc_flash_buffer);
+
+                    /* Enable DMA after channel set up ! 
+                        LLI only works when DMA is the flow controller!
+                    */
+                    /* DMACCxConfig= E=1, SrcPeripheral = 1 (SLC), DestPeripheral = 1 (SLC), FlowCntrl = 2 (Pher -> Mem, DMA), IE = 0, ITC = 0, L= 0, H=0*/
+                    target_write_u32(target,0x31000110,   1 | 1<<1 | 1<<6 | 2<<11 | 0<<14 | 0<<15 | 0<<16 | 0<<18);
+    
+    
+                            
+                     /* SLC_CTRL = 3 (START DMA), ECC_CLEAR */
+                     target_write_u32(target, 0x20020010, 0x3);
+    
+                    /* SLC_ICR = 2, INT_TC_CLR, clear pending TC*/
+                     target_write_u32(target, 0x20020028, 2);
+    
+                    /* SLC_TC */
+                    if (!data && oob)
+                       target_write_u32(target, 0x20020030,  (nand->page_size==2048?0x10:0x04));
+                    else
+                       target_write_u32(target, 0x20020030,  (nand->page_size==2048?0x840:0x210));
+
+                    nand_write_finish(nand);
+
+                    
+                    if (!lpc3180_tc_ready(nand, 1000))
+                    {
+                        LOG_ERROR("timeout while waiting for completion of DMA");
+                        return ERROR_NAND_OPERATION_FAILED;
+                    }
+
+                target_free_working_area(target,pworking_area);
+
+                LOG_INFO("Page =  0x%x was written.",page);
+    
+                }
+                else
+                    return nand_write_page_raw(nand, page, data, data_size, oob, oob_size);
+        }
+
 
 	return ERROR_OK;
 }
@@ -616,6 +832,7 @@ static int lpc3180_read_page(struct nand_device *nand, uint32_t page, uint8_t *d
 {
 	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
 	struct target *target = lpc3180_info->target;
+	uint8_t *page_buffer;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -630,7 +847,6 @@ static int lpc3180_read_page(struct nand_device *nand, uint32_t page, uint8_t *d
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 	{
-		uint8_t *page_buffer;
 		uint8_t *oob_buffer;
 		uint32_t page_bytes_done = 0;
 		uint32_t oob_bytes_done = 0;
@@ -753,6 +969,174 @@ static int lpc3180_read_page(struct nand_device *nand, uint32_t page, uint8_t *d
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 	{
+
+           /**********************************************************************
+           *     Read both SLC NAND flash page main area and spare area.
+           *     Small page -
+           *      ------------------------------------------
+           *     |    512 bytes main   |   16 bytes spare   |
+           *      ------------------------------------------
+           *     Large page -
+           *      ------------------------------------------
+           *     |   2048 bytes main   |   64 bytes spare   |
+           *      ------------------------------------------
+           *     If DMA & ECC enabled, then the ECC generated for the 1st 256-byte
+           *     data is compared with the 3rd word of the spare area. The ECC
+           *     generated for the 2nd 256-byte data is compared with the 4th word
+           *     of the spare area. The ECC generated for the 3rd 256-byte data is
+           *     compared with the 7th word of the spare area. The ECC generated
+           *     for the 4th 256-byte data is compared with the 8th word of the
+           *     spare area and so on.
+           *
+           **********************************************************************/
+    
+           int retval,i,target_mem_base;
+           uint8_t *ecc_hw_buffer;
+           uint8_t *ecc_flash_buffer;
+           struct working_area *pworking_area;
+
+           if(lpc3180_info->is_bulk){
+
+                /* read always the data and also oob areas*/
+                
+                retval = nand_page_command(nand, page, NAND_CMD_READ0, 0);
+                if (ERROR_OK != retval)
+                	return retval;
+
+                /* allocate a working area */
+                if (target->working_area_size < (uint32_t) nand->page_size + 0x200){
+                    LOG_ERROR("Reserve at least 0x%x physical target working area",nand->page_size + 0x200);
+                    return ERROR_FLASH_OPERATION_FAILED;
+                }
+                if (target->working_area_phys%4){
+                    LOG_ERROR("Reserve the physical target working area at word boundary");
+                    return ERROR_FLASH_OPERATION_FAILED;
+                }
+                if (target_alloc_working_area(target, target->working_area_size, &pworking_area) != ERROR_OK)
+                {
+                    LOG_ERROR("no working area specified, can't read LPC internal flash");
+                    return ERROR_FLASH_OPERATION_FAILED;
+                }
+                target_mem_base = target->working_area_phys;
+
+                if (nand->page_size == 2048)
+                {
+                    page_buffer = malloc(2048);
+                }
+                else
+                {
+                    page_buffer = malloc(512);
+                }
+                
+                ecc_hw_buffer = malloc(32);
+                ecc_flash_buffer = malloc(64);
+                
+                /* SLC_CFG = 0x (Force nCE assert, DMA ECC enabled, ECC enabled, DMA burst enabled, DMA read from SLC, WIDTH = bus_width) */
+                target_write_u32(target, 0x20020014, 0x3e);
+
+                /* set DMA LLI-s in target memory and in DMA*/
+                for(i=0;i<nand->page_size/0x100;i++){
+                    int tmp;
+                    /* -------LLI for 256 byte block---------*/
+                    /* DMACC0SrcAddr = SLC_DMA_DATA*/
+                    target_write_u32(target,target_mem_base+0+i*32,0x20020038 );
+                    if(i==0) target_write_u32(target,0x31000100,0x20020038 );
+                    /* DMACCxDestAddr = SRAM */
+                    target_write_u32(target,target_mem_base+4+i*32,target_mem_base+DATA_OFFS+i*256 );
+                    if(i==0)  target_write_u32(target,0x31000104,target_mem_base+DATA_OFFS );
+                    /* DMACCxLLI = next element */
+                    tmp = (target_mem_base+(1+i*2)*16)&0xfffffffc;
+                    target_write_u32(target,target_mem_base+8+i*32, tmp );
+                    if(i==0) target_write_u32(target,0x31000108, tmp );
+                    /* DMACCxControl =  TransferSize =64, Source burst size =16, Destination burst size = 16, Source transfer width = 32 bit, 
+                    Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 0,
+                    Destination increment = 1, Terminal count interrupt enable bit = 0*/       
+                    target_write_u32(target,target_mem_base+12+i*32,0x40 | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 0<<26 | 1<<27| 0<<31);
+                    if(i==0) target_write_u32(target,0x3100010c,0x40 | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 0<<26 | 1<<27| 0<<31);
+
+                    /* -------LLI for 3 byte ECC---------*/
+                    /* DMACC0SrcAddr = SLC_ECC*/
+                    target_write_u32(target,target_mem_base+16+i*32,0x20020034 );
+                    /* DMACCxDestAddr = SRAM */
+                    target_write_u32(target,target_mem_base+20+i*32,target_mem_base+ECC_OFFS+i*4 );
+                    /* DMACCxLLI = next element */
+                    tmp = (target_mem_base+(2+i*2)*16)&0xfffffffc;
+                    target_write_u32(target,target_mem_base+24+i*32, tmp );
+                    /* DMACCxControl =  TransferSize =1, Source burst size =4, Destination burst size = 4, Source transfer width = 32 bit, 
+                    Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 0,
+                    Destination increment = 1, Terminal count interrupt enable bit = 0*/       
+                    target_write_u32(target,target_mem_base+28+i*32,0x01 | 1<<12 | 1<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 0<<26 | 1<<27| 0<<31);
+
+
+                }
+
+                /* -------LLI for spare area---------*/
+                /* DMACC0SrcAddr = SLC_DMA_DATA*/
+                target_write_u32(target,target_mem_base+0+i*32,0x20020038 );
+                /* DMACCxDestAddr = SRAM */
+                target_write_u32(target,target_mem_base+4+i*32,target_mem_base+SPARE_OFFS );
+                /* DMACCxLLI = next element = NULL */
+                target_write_u32(target,target_mem_base+8+i*32, 0 );
+                /* DMACCxControl =  TransferSize =16 for large page or 4 for small page, Source burst size =16, Destination burst size = 16, Source transfer width = 32 bit, 
+                Destination transfer width = 32 bit, Source AHB master select = M0, Destination AHB master select = M0, Source increment = 0,
+                Destination increment = 1, Terminal count interrupt enable bit = 0*/       
+                target_write_u32(target,target_mem_base+12+i*32, (nand->page_size==2048?0x10:0x04) | 3<<12 | 3<<15 | 2<<18 | 2<<21 | 0<<24 | 0<<25 | 0<<26 | 1<<27| 0<<31);
+                
+                /* Enable DMA after channel set up ! 
+                    LLI only works when DMA is the flow controller!
+                */
+                /* DMACCxConfig= E=1, SrcPeripheral = 1 (SLC), DestPeripheral = 1 (SLC), FlowCntrl = 2 (Pher-> Mem, DMA), IE = 0, ITC = 0, L= 0, H=0*/
+                target_write_u32(target,0x31000110,   1 | 1<<1 | 1<<6 |  2<<11 | 0<<14 | 0<<15 | 0<<16 | 0<<18);
+
+                        
+                 /* SLC_CTRL = 3 (START DMA), ECC_CLEAR */
+                target_write_u32(target, 0x20020010, 0x3);
+
+                /* SLC_ICR = 2, INT_TC_CLR, clear pending TC*/
+                target_write_u32(target, 0x20020028, 2);
+
+                /* SLC_TC */
+                target_write_u32(target, 0x20020030,  (nand->page_size==2048?0x840:0x210));
+                
+                if (!lpc3180_tc_ready(nand, 1000))
+                {
+                    LOG_ERROR("timeout while waiting for completion of DMA");
+                    free(page_buffer);
+                    free(ecc_hw_buffer);
+                    free(ecc_flash_buffer);
+                    target_free_working_area(target,pworking_area);
+                    return ERROR_NAND_OPERATION_FAILED;
+                }
+
+                if (data){
+                    target_read_memory(target, target_mem_base+DATA_OFFS, 4, nand->page_size == 2048?512:128, page_buffer);
+                    memcpy(data, page_buffer, data_size);
+
+                    LOG_INFO("Page =  0x%x was read.",page);
+
+                    /* check hw generated ECC for each 256 bytes block with the saved ECC in flash spare area*/
+                    int idx = nand->page_size/0x200 ;
+                    target_read_memory(target, target_mem_base+SPARE_OFFS, 4, 16, ecc_flash_buffer);
+                    target_read_memory(target, target_mem_base+ECC_OFFS, 4, 8, ecc_hw_buffer);
+                    for(i=0;i<idx;i++){
+                        if( (0x00ffffff&*(uint32_t *)(ecc_hw_buffer+i*8)) != (0x00ffffff&*(uint32_t *)(ecc_flash_buffer+8+i*16)) )
+                            LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%x",i*2+1,page);
+                        if( (0x00ffffff&*(uint32_t *)(ecc_hw_buffer+4+i*8)) != (0x00ffffff&*(uint32_t *)(ecc_flash_buffer+12+i*16)) )
+                            LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%x",i*2+2,page);
+                    }                
+                }
+
+                if (oob)
+                    memcpy(oob, ecc_flash_buffer, oob_size);
+                
+                free(page_buffer);
+                free(ecc_hw_buffer);
+                free(ecc_flash_buffer);
+
+                target_free_working_area(target,pworking_area);
+
+            }
+            else
 		return nand_read_page_raw(nand, page, data, data_size, oob, oob_size);
 	}
 
@@ -855,6 +1239,42 @@ static int lpc3180_nand_ready(struct nand_device *nand, int timeout)
 	return 0;
 }
 
+static int lpc3180_tc_ready(struct nand_device *nand, int timeout)
+{
+	struct lpc3180_nand_controller *lpc3180_info = nand->controller_priv;
+	struct target *target = lpc3180_info->target;
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
+		return ERROR_NAND_OPERATION_FAILED;
+	}
+
+      LOG_DEBUG("lpc3180_tc_ready count start=%d", 
+                          timeout);
+
+	do
+	{
+		if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
+		{
+                   uint32_t status = 0x0;
+			/* Read SLC_INT_STAT and check INT_TC_STAT bit */
+			target_read_u32(target, 0x2002001c, &status);
+
+			if (status & 2){
+                        LOG_DEBUG("lpc3180_tc_ready count=%d",
+                                            timeout);
+                        return 1;
+                    }
+		}
+
+		alive_sleep(1);
+	} while (timeout-- > 0);
+
+	return 0;
+}
+
+
 COMMAND_HANDLER(handle_lpc3180_select_command)
 {
 	struct lpc3180_nand_controller *lpc3180_info = NULL;
@@ -863,7 +1283,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 		"no", "mlc", "slc"
 	};
 
-	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
+	if ((CMD_ARGC < 1) || (CMD_ARGC > 3))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -879,7 +1299,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 
 	lpc3180_info = nand->controller_priv;
 
-	if (CMD_ARGC == 2)
+	if (CMD_ARGC >= 2)
 	{
 		if (strcmp(CMD_ARGV[1], "mlc") == 0)
 		{
@@ -888,6 +1308,12 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 		else if (strcmp(CMD_ARGV[1], "slc") == 0)
 		{
 			lpc3180_info->selected_controller = LPC3180_SLC_CONTROLLER;
+                   if (CMD_ARGC == 3 && strcmp(CMD_ARGV[2], "bulk") == 0){
+                        lpc3180_info->is_bulk = 1;
+                   }
+                   else{
+                        lpc3180_info->is_bulk = 0;
+                   }
 		}
 		else
 		{
@@ -895,7 +1321,12 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 		}
 	}
 
+      if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 	command_print(CMD_CTX, "%s controller selected", selected[lpc3180_info->selected_controller]);
+      else{
+            command_print(CMD_CTX, lpc3180_info->is_bulk?"%s controller selected bulk mode is avaliable":"%s controller selected bulk mode is not avaliable", selected[lpc3180_info->selected_controller]);
+      }
+ 
 
 	return ERROR_OK;
 }
@@ -905,8 +1336,8 @@ static const struct command_registration lpc3180_exec_command_handlers[] = {
 		.name = "select",
 		.handler = handle_lpc3180_select_command,
 		.mode = COMMAND_EXEC,
-		.help = "select MLC or SLC controller (default is MLC)",
-		.usage = "bank_id ['mlc'|'slc']",
+		.help = "select MLC or SLC controller (default is MLC), SLC can be set to bulk mode",
+		.usage = "bank_id ['mlc'|'slc' ['bulk'] ]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
