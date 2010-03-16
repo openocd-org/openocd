@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -61,7 +61,12 @@ struct gdb_connection
 	bool sync; 	/* set flag to true if you want the next stepi to return immediately.
 	               allowing GDB to pick up a fresh set of register values from the target
 	               without modifying the target state. */
-
+	/* We delay reporting memory write errors until next step/continue or memory
+	 * write. This improves performance of gdb load significantly as the GDB packet
+	 * can be replied immediately and a new GDB packet will be ready without delay
+	 * (ca. 10% or so...).
+	 */
+	bool mem_write_error;
 };
 
 
@@ -821,6 +826,7 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->busy = 0;
 	gdb_connection->noack_mode = 0;
 	gdb_connection->sync = true;
+	gdb_connection->mem_write_error = false;
 
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -1361,7 +1367,7 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	uint32_t addr = 0;
 	uint32_t len = 0;
 
-	int retval;
+	int retval = ERROR_OK;
 
 	/* skip command character */
 	packet++;
@@ -1382,14 +1388,18 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	retval = ERROR_OK;
-	if (len)
-	{
-		LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
+	struct gdb_connection *gdb_connection = connection->priv;
 
-		retval = target_write_buffer(target, addr, len, (uint8_t*)separator);
+	if (gdb_connection->mem_write_error)
+	{
+		retval = ERROR_FAIL;
+		/* now that we have reported the memory write error, we can clear the condition */
+		gdb_connection->mem_write_error = false;
 	}
 
+	/* By replying the packet *immediately* GDB will send us a new packet
+	 * while we write the last one to the target.
+	 */
 	if (retval == ERROR_OK)
 	{
 		gdb_put_packet(connection, "OK", 2);
@@ -1398,6 +1408,17 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	{
 		if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 			return retval;
+	}
+
+	if (len)
+	{
+		LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
+
+		retval = target_write_buffer(target, addr, len, (uint8_t*)separator);
+		if (retval != ERROR_OK)
+		{
+			gdb_connection->mem_write_error = true;
+		}
 	}
 
 	return ERROR_OK;
@@ -2210,6 +2231,14 @@ static int gdb_input_inner(struct connection *connection)
 
 						struct gdb_connection *gdb_con = connection->priv;
 						log_add_callback(gdb_log_callback, connection);
+
+						if (gdb_con->mem_write_error)
+						{
+							LOG_ERROR("Memory write failure!");
+
+							/* now that we have reported the memory write error, we can clear the condition */
+							gdb_con->mem_write_error = false;
+						}
 
 						bool nostep = false;
 						bool already_running = false;
