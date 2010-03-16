@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008, Duane Ellis                                       *
@@ -2294,6 +2294,74 @@ COMMAND_HANDLER(handle_md_command)
 	return retval;
 }
 
+typedef int (*target_write_fn)(struct target *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+
+static int target_write_memory_fast(struct target *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	return target_write_buffer(target, address, size * count, buffer);
+}
+
+static int target_fill_mem(struct target *target,
+		uint32_t address,
+		target_write_fn fn,
+		unsigned data_size,
+		/* value */
+		uint32_t b,
+		/* count */
+		unsigned c)
+{
+	/* We have to write in reasonably large chunks to be able
+	 * to fill large memory areas with any sane speed */
+	const unsigned chunk_size = 16384;
+	uint8_t *target_buf = malloc(chunk_size * data_size);
+	if (target_buf == NULL)
+	{
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	for (unsigned i = 0; i < chunk_size; i ++)
+	{
+		switch (data_size)
+		{
+		case 4:
+			target_buffer_set_u32(target, target_buf + i*data_size, b);
+			break;
+		case 2:
+			target_buffer_set_u16(target, target_buf + i*data_size, b);
+			break;
+		case 1:
+			target_buffer_set_u8(target, target_buf + i*data_size, b);
+			break;
+		default:
+			exit(-1);
+		}
+	}
+
+	int retval = ERROR_OK;
+
+	for (unsigned x = 0; x < c; x += chunk_size)
+	{
+		unsigned current;
+		current = c - x;
+		if (current > chunk_size)
+		{
+			current = chunk_size;
+		}
+		int retval = fn(target, address + x * data_size, data_size, current, target_buf);
+		if (retval != ERROR_OK)
+		{
+			break;
+		}
+	}
+	free(target_buf);
+
+	return retval;
+}
+
+
 COMMAND_HANDLER(handle_mw_command)
 {
 	if (CMD_ARGC < 2)
@@ -2301,8 +2369,7 @@ COMMAND_HANDLER(handle_mw_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	bool physical=strcmp(CMD_ARGV[0], "phys")==0;
-	int (*fn)(struct target *target,
-			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	target_write_fn fn;
 	if (physical)
 	{
 		CMD_ARGC--;
@@ -2310,7 +2377,7 @@ COMMAND_HANDLER(handle_mw_command)
 		fn=target_write_phys_memory;
 	} else
 	{
-		fn=target_write_memory;
+		fn = target_write_memory_fast;
 	}
 	if ((CMD_ARGC < 2) || (CMD_ARGC > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2327,35 +2394,22 @@ COMMAND_HANDLER(handle_mw_command)
 
 	struct target *target = get_current_target(CMD_CTX);
 	unsigned wordsize;
-	uint8_t value_buf[4];
 	switch (CMD_NAME[2])
 	{
 		case 'w':
 			wordsize = 4;
-			target_buffer_set_u32(target, value_buf, value);
 			break;
 		case 'h':
 			wordsize = 2;
-			target_buffer_set_u16(target, value_buf, value);
 			break;
 		case 'b':
 			wordsize = 1;
-			value_buf[0] = value;
 			break;
 		default:
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	for (unsigned i = 0; i < count; i++)
-	{
-		int retval = fn(target,
-				address + i * wordsize, wordsize, 1, value_buf);
-		if (ERROR_OK != retval)
-			return retval;
-		keep_alive();
-	}
 
-	return ERROR_OK;
-
+	return target_fill_mem(target, address, fn, wordsize, value, count);
 }
 
 static COMMAND_HELPER(parse_load_image_command_CMD_ARGV, struct image *image,
@@ -3909,36 +3963,21 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 
 	struct target *target = Jim_CmdPrivData(goi.interp);
-	uint8_t  target_buf[32];
+	unsigned data_size;
 	if (strcasecmp(cmd_name, "mww") == 0) {
-		target_buffer_set_u32(target, target_buf, b);
-		b = 4;
+		data_size = 4;
 	}
 	else if (strcasecmp(cmd_name, "mwh") == 0) {
-		target_buffer_set_u16(target, target_buf, b);
-		b = 2;
+		data_size = 2;
 	}
 	else if (strcasecmp(cmd_name, "mwb") == 0) {
-		target_buffer_set_u8(target, target_buf, b);
-		b = 1;
+		data_size = 1;
 	} else {
 		LOG_ERROR("command '%s' unknown: ", cmd_name);
 		return JIM_ERR;
 	}
 
-	for (jim_wide x = 0; x < c; x++)
-	{
-		e = target_write_memory(target, a, b, 1, target_buf);
-		if (e != ERROR_OK)
-		{
-			Jim_SetResult_sprintf(interp,
-					"Error writing @ 0x%08x: %d\n", (int)(a), e);
-			return JIM_ERR;
-		}
-		/* b = width */
-		a = a + b;
-	}
-	return JIM_OK;
+	return (target_fill_mem(target, a, target_write_memory_fast, data_size, b, c) == ERROR_OK) ? JIM_OK : JIM_ERR;
 }
 
 static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
