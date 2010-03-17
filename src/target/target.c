@@ -3879,12 +3879,16 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
 
-	if (goi.argc != 2 && goi.argc != 3)
+	/* danger! goi.argc will be modified below! */
+	argc = goi.argc;
+
+	if (argc != 2 && argc != 3)
 	{
 		Jim_SetResult_sprintf(goi.interp,
 				"usage: %s <address> <data> [<count>]", cmd_name);
 		return JIM_ERR;
 	}
+
 
 	jim_wide a;
 	int e = Jim_GetOpt_Wide(&goi, &a);
@@ -3897,7 +3901,7 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return e;
 
 	jim_wide c = 1;
-	if (goi.argc == 3)
+	if (argc == 3)
 	{
 		e = Jim_GetOpt_Wide(&goi, &c);
 		if (e != JIM_OK)
@@ -3944,7 +3948,10 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
 
-	if ((goi.argc == 2) || (goi.argc == 3))
+	/* danger! goi.argc will be modified below! */
+	argc = goi.argc;
+
+	if ((argc != 1) && (argc != 2))
 	{
 		Jim_SetResult_sprintf(goi.interp,
 				"usage: %s <address> [<count>]", cmd_name);
@@ -3957,7 +3964,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 	jim_wide c;
-	if (goi.argc) {
+	if (argc == 2) {
 		e = Jim_GetOpt_Wide(&goi, &c);
 		if (e != JIM_OK) {
 			return JIM_ERR;
@@ -3999,7 +4006,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		case 4:
 			for (x = 0; x < 16 && x < y; x += 4)
 			{
-				z = target_buffer_get_u32(target, &(target_buf[ x * 4 ]));
+				z = target_buffer_get_u32(target, &(target_buf[ x ]));
 				Jim_fprintf(interp, interp->cookie_stdout, "%08x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 4) {
@@ -4009,7 +4016,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		case 2:
 			for (x = 0; x < 16 && x < y; x += 2)
 			{
-				z = target_buffer_get_u16(target, &(target_buf[ x * 2 ]));
+				z = target_buffer_get_u16(target, &(target_buf[ x ]));
 				Jim_fprintf(interp, interp->cookie_stdout, "%04x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 2) {
@@ -4019,7 +4026,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		case 1:
 		default:
 			for (x = 0 ; (x < 16) && (x < y) ; x += 1) {
-				z = target_buffer_get_u8(target, &(target_buf[ x * 4 ]));
+				z = target_buffer_get_u8(target, &(target_buf[ x ]));
 				Jim_fprintf(interp, interp->cookie_stdout, "%02x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 1) {
