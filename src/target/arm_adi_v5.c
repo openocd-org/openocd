@@ -1597,36 +1597,3 @@ static const uint8_t jtag2swd_bitseq[] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 };
 
-/**
- * Put the debug link into SWD mode, if the target supports it.
- * The link's initial mode may be either JTAG (for example,
- * with SWJ-DP after reset) or SWD.
- *
- * @param target Enters SWD mode (if possible).
- *
- * Note that targets using the JTAG-DP do not support SWD, and that
- * some targets which could otherwise support it may have have been
- * configured to disable SWD signaling
- *
- * @return ERROR_OK or else a fault code.
- */
-int dap_to_swd(struct target *target)
-{
-	int retval;
-
-	LOG_DEBUG("Enter SWD mode");
-
-	/* REVISIT it's nasty to need to make calls to a "jtag"
-	 * subsystem if the link isn't in JTAG mode...
-	 */
-
-	retval =  jtag_add_tms_seq(8 * sizeof(jtag2swd_bitseq),
-			jtag2swd_bitseq, TAP_INVALID);
-	if (retval == ERROR_OK)
-		retval = jtag_execute_queue();
-
-	/* REVISIT set up the DAP's ops vector for SWD mode. */
-
-	return retval;
-}
-
