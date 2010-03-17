@@ -2355,6 +2355,8 @@ static int target_fill_mem(struct target *target,
 		{
 			break;
 		}
+		/* avoid GDB timeouts */
+		keep_alive();
 	}
 	free(target_buf);
 
