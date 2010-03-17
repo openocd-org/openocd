@@ -135,7 +135,7 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 	if (tap == NULL)
 		return ERROR_FAIL;
 	struct scan_field field;
-	uint8_t t[4], r[4];
+	uint8_t t[4] = {0, 0, 0, 0}, r[4];
 	int retval;
 
 	field.num_bits = 8;
