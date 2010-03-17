@@ -113,7 +113,7 @@ int mips_m4k_poll(struct target *target)
 
 	/* read ejtag control reg */
 	jtag_set_end_state(TAP_IDLE);
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* clear this bit before handling polling
@@ -125,7 +125,7 @@ int mips_m4k_poll(struct target *target)
 		jtag_set_end_state(TAP_IDLE);
 		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_ROCC;
 
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		LOG_DEBUG("Reset Detected");
 	}
@@ -136,7 +136,7 @@ int mips_m4k_poll(struct target *target)
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
 			jtag_set_end_state(TAP_IDLE);
-			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
+			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
 
 			target->state = TARGET_HALTED;
 
@@ -228,12 +228,12 @@ int mips_m4k_assert_reset(struct target *target)
 	{
 		/* use hardware to catch reset */
 		jtag_set_end_state(TAP_IDLE);
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_EJTAGBOOT, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_EJTAGBOOT);
 	}
 	else
 	{
 		jtag_set_end_state(TAP_IDLE);
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
 	}
 
 	if (assert_srst)
@@ -257,21 +257,21 @@ int mips_m4k_assert_reset(struct target *target)
 			LOG_DEBUG("Using MTAP reset to reset processor...");
 
 			/* use microchip specific MTAP reset */
-			mips_ejtag_set_instr(ejtag_info, MTAP_SW_MTAP, NULL);
-			mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND, NULL);
+			mips_ejtag_set_instr(ejtag_info, MTAP_SW_MTAP);
+			mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND);
 
 			mchip_cmd = MCHP_ASERT_RST;
 			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
 			mchip_cmd = MCHP_DE_ASSERT_RST;
 			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
-			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP, NULL);
+			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
 		}
 		else
 		{
 			/* use ejtag reset - not supported by all cores */
 			uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 			LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
-			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 			mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		}
 	}
@@ -933,7 +933,7 @@ int mips_m4k_examine(struct target *target)
 		{
 			/* we are using a pic32mx so select ejtag port
 			 * as it is not selected by default */
-			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP, NULL);
+			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
 			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
 			mips_m4k->is_pic32mx = true;
 		}

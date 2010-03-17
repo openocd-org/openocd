@@ -49,11 +49,11 @@ begin_ejtag_dma_read:
 
 	/* Setup Address */
 	v = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Initiate DMA Read & set DSTRT */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DRWN | EJTAG_CTRL_DMA_WORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
@@ -64,11 +64,11 @@ begin_ejtag_dma_read:
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Read Data */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ejtag_info, data);
 
 	/* Clear DMA & Check DERR */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
@@ -95,11 +95,11 @@ begin_ejtag_dma_read_h:
 
 	/* Setup Address */
 	v = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Initiate DMA Read & set DSTRT */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DRWN | EJTAG_CTRL_DMA_HALFWORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
@@ -110,11 +110,11 @@ begin_ejtag_dma_read_h:
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Read Data */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Clear DMA & Check DERR */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
@@ -147,11 +147,11 @@ begin_ejtag_dma_read_b:
 
 	/* Setup Address */
 	v = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Initiate DMA Read & set DSTRT */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DRWN | EJTAG_CTRL_DMA_BYTE | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
@@ -162,11 +162,11 @@ begin_ejtag_dma_read_b:
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Read Data */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Clear DMA & Check DERR */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
@@ -209,16 +209,16 @@ begin_ejtag_dma_write:
 
 	/* Setup Address */
 	v = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Setup Data */
 	v = data;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Initiate DMA Write & set DSTRT */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DMA_WORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
@@ -229,7 +229,7 @@ begin_ejtag_dma_write:
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Clear DMA & Check DERR */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
@@ -260,16 +260,16 @@ begin_ejtag_dma_write_h:
 
 	/* Setup Address */
 	v = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Setup Data */
 	v = data;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Initiate DMA Write & set DSTRT */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DMA_HALFWORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
@@ -280,7 +280,7 @@ begin_ejtag_dma_write_h:
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Clear DMA & Check DERR */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
@@ -312,16 +312,16 @@ begin_ejtag_dma_write_b:
 
 	/*  Setup Address*/
 	v = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Setup Data */
 	v = data;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
 	/* Initiate DMA Write & set DSTRT */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DMA_BYTE | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
@@ -332,7 +332,7 @@ begin_ejtag_dma_write_b:
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Clear DMA & Check DERR */
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl & EJTAG_CTRL_DERR)

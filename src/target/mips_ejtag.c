@@ -28,7 +28,7 @@
 #include "mips32.h"
 #include "mips_ejtag.h"
 
-int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr, void *delete_me_and_submit_patch)
+int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 {
 	struct jtag_tap *tap;
 
@@ -58,7 +58,7 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 
 	jtag_set_end_state(TAP_IDLE);
 
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE);
 
 	field.num_bits = 32;
 	field.out_value = NULL;
@@ -80,7 +80,7 @@ int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
 
 	jtag_set_end_state(TAP_IDLE);
 
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE);
 
 	field.num_bits = 32;
 	field.out_value = NULL;
@@ -210,7 +210,7 @@ int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_ctrl;
 	jtag_set_end_state(TAP_IDLE);
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 
 	/* set debug break bit */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_JTAGBRK;

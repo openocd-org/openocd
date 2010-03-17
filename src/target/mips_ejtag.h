@@ -129,7 +129,7 @@ struct mips_ejtag
 };
 
 int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
-		int new_instr, void *delete_me_and_submit_patch);
+		int new_instr);
 int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info);
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info);
 int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode);

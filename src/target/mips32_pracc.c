@@ -96,7 +96,7 @@ static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 
 	while (1)
 	{
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 		ejtag_ctrl = ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		if (ejtag_ctrl & EJTAG_CTRL_PRACC)
@@ -149,12 +149,12 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 	}
 
 	/* Send the data out */
-	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ctx->ejtag_info, &data);
 
 	/* Clear the access pending bit (let the processor eat!) */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
-	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL);
 	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
 
 	jtag_add_clocks(5);
@@ -169,12 +169,12 @@ static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t ad
 	int offset;
 	struct mips_ejtag *ejtag_info = ctx->ejtag_info;
 
-	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA, NULL);
+	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA);
 	mips_ejtag_drscan_32(ctx->ejtag_info, &data);
 
 	/* Clear access pending bit */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
-	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL, NULL);
+	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL);
 	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
 
 	jtag_add_clocks(5);
@@ -230,7 +230,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
 			return retval;
 
 		address = data = 0;
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 		mips_ejtag_drscan_32(ejtag_info, &address);
 
 		/* Check for read or write */
@@ -979,12 +979,12 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		if ((retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl)) != ERROR_OK)
 			return retval;
 
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 		mips_ejtag_drscan_32(ejtag_info, &jmp_code[i]);
 
 		/* Clear the access pending bit (let the processor eat!) */
 		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	}
 
@@ -993,7 +993,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 
 	/* next fetch to dmseg should be in FASTDATA_AREA, check */
 	address = 0;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &address);
 
 	if (address != MIPS32_PRACC_FASTDATA_AREA)
@@ -1001,12 +1001,12 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 
 	/* Send the load start address */
 	val = addr;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA);
 	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
 
 	/* Send the load end address */
 	val = addr + (count - 1) * 4;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA);
 	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
 
 	for (i = 0; i < count; i++)
@@ -1026,7 +1026,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		return retval;
 
 	address = 0;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	mips_ejtag_drscan_32(ejtag_info, &address);
 
 	if (address != MIPS32_PRACC_TEXT)
