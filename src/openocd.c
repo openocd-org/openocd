@@ -159,6 +159,16 @@ COMMAND_HANDLER(handle_init_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_add_script_search_dir_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	add_script_search_dir(CMD_ARGV[0]);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration openocd_command_handlers[] = {
 	{
 		.name = "version",
@@ -180,6 +190,13 @@ static const struct command_registration openocd_command_handlers[] = {
 			"Changes command mode from CONFIG to EXEC.  "
 			"Unless 'noinit' is called, this command is "
 			"called automatically at the end of startup.",
+
+	},
+	{
+		.name = "add_script_search_dir",
+		.handler = &handle_add_script_search_dir_command,
+		.mode = COMMAND_ANY,
+		.help = "dir to search for config files and scripts",
 
 	},
 	COMMAND_REGISTRATION_DONE
