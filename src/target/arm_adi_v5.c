@@ -96,23 +96,23 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
  * selection is implicitly used with future AP transactions.
  * This is a NOP if the specified AP is already selected.
  *
- * @param swjdp The DAP
+ * @param dap The DAP
  * @param apsel Number of the AP to (implicitly) use with further
  *	transactions.  This normally identifies a MEM-AP.
  */
-void dap_ap_select(struct adiv5_dap *swjdp,uint8_t apsel)
+void dap_ap_select(struct adiv5_dap *dap,uint8_t apsel)
 {
 	uint32_t select = (apsel << 24) & 0xFF000000;
 
-	if (select != swjdp->apsel)
+	if (select != dap->apsel)
 	{
-		swjdp->apsel = select;
+		dap->apsel = select;
 		/* Switching AP invalidates cached values.
 		 * Values MUST BE UPDATED BEFORE AP ACCESS.
 		 */
-		swjdp->ap_bank_value = -1;
-		swjdp->ap_csw_value = -1;
-		swjdp->ap_tar_value = -1;
+		dap->ap_bank_value = -1;
+		dap->ap_csw_value = -1;
+		dap->ap_tar_value = -1;
 	}
 }
 
@@ -127,7 +127,7 @@ void dap_ap_select(struct adiv5_dap *swjdp,uint8_t apsel)
  *
  * @todo Rename to reflect it being specifically a MEM-AP function.
  *
- * @param swjdp The DAP connected to the MEM-AP.
+ * @param dap The DAP connected to the MEM-AP.
  * @param csw MEM-AP Control/Status Word (CSW) register to assign.  If this
  *	matches the cached value, the register is not changed.
  * @param tar MEM-AP Transfer Address Register (TAR) to assign.  If this
@@ -135,37 +135,37 @@ void dap_ap_select(struct adiv5_dap *swjdp,uint8_t apsel)
  *
  * @return ERROR_OK if the transaction was properly queued, else a fault code.
  */
-int dap_setup_accessport(struct adiv5_dap *swjdp, uint32_t csw, uint32_t tar)
+int dap_setup_accessport(struct adiv5_dap *dap, uint32_t csw, uint32_t tar)
 {
 	int retval;
 
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
-	if (csw != swjdp->ap_csw_value)
+	if (csw != dap->ap_csw_value)
 	{
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		retval = dap_queue_ap_write(swjdp, AP_REG_CSW, csw);
+		retval = dap_queue_ap_write(dap, AP_REG_CSW, csw);
 		if (retval != ERROR_OK)
 			return retval;
-		swjdp->ap_csw_value = csw;
+		dap->ap_csw_value = csw;
 	}
-	if (tar != swjdp->ap_tar_value)
+	if (tar != dap->ap_tar_value)
 	{
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		retval = dap_queue_ap_write(swjdp, AP_REG_TAR, tar);
+		retval = dap_queue_ap_write(dap, AP_REG_TAR, tar);
 		if (retval != ERROR_OK)
 			return retval;
-		swjdp->ap_tar_value = tar;
+		dap->ap_tar_value = tar;
 	}
 	/* Disable TAR cache when autoincrementing */
 	if (csw & CSW_ADDRINC_MASK)
-		swjdp->ap_tar_value = -1;
+		dap->ap_tar_value = -1;
 	return ERROR_OK;
 }
 
 /**
  * Asynchronous (queued) read of a word from memory or a system register.
  *
- * @param swjdp The DAP connected to the MEM-AP performing the read.
+ * @param dap The DAP connected to the MEM-AP performing the read.
  * @param address Address of the 32-bit word to read; it must be
  *	readable by the currently selected MEM-AP.
  * @param value points to where the word will be stored when the
@@ -173,7 +173,7 @@ int dap_setup_accessport(struct adiv5_dap *swjdp, uint32_t csw, uint32_t tar)
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-int mem_ap_read_u32(struct adiv5_dap *swjdp, uint32_t address,
+int mem_ap_read_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
@@ -181,19 +181,19 @@ int mem_ap_read_u32(struct adiv5_dap *swjdp, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
-	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_queue_ap_read(swjdp, AP_REG_BD0 | (address & 0xC), value);
+	return dap_queue_ap_read(dap, AP_REG_BD0 | (address & 0xC), value);
 }
 
 /**
  * Synchronous read of a word from memory or a system register.
  * As a side effect, this flushes any queued transactions.
  *
- * @param swjdp The DAP connected to the MEM-AP performing the read.
+ * @param dap The DAP connected to the MEM-AP performing the read.
  * @param address Address of the 32-bit word to read; it must be
  *	readable by the currently selected MEM-AP.
  * @param value points to where the result will be stored.
@@ -201,22 +201,22 @@ int mem_ap_read_u32(struct adiv5_dap *swjdp, uint32_t address,
  * @return ERROR_OK for success; *value holds the result.
  * Otherwise a fault code.
  */
-int mem_ap_read_atomic_u32(struct adiv5_dap *swjdp, uint32_t address,
+int mem_ap_read_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
 
-	retval = mem_ap_read_u32(swjdp, address, value);
+	retval = mem_ap_read_u32(dap, address, value);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_run(swjdp);
+	return dap_run(dap);
 }
 
 /**
  * Asynchronous (queued) write of a word to memory or a system register.
  *
- * @param swjdp The DAP connected to the MEM-AP.
+ * @param dap The DAP connected to the MEM-AP.
  * @param address Address to be written; it must be writable by
  *	the currently selected MEM-AP.
  * @param value Word that will be written to the address when transaction
@@ -224,7 +224,7 @@ int mem_ap_read_atomic_u32(struct adiv5_dap *swjdp, uint32_t address,
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-int mem_ap_write_u32(struct adiv5_dap *swjdp, uint32_t address,
+int mem_ap_write_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t value)
 {
 	int retval;
@@ -232,12 +232,12 @@ int mem_ap_write_u32(struct adiv5_dap *swjdp, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
-	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_queue_ap_write(swjdp, AP_REG_BD0 | (address & 0xC),
+	return dap_queue_ap_write(dap, AP_REG_BD0 | (address & 0xC),
 			value);
 }
 
@@ -245,32 +245,32 @@ int mem_ap_write_u32(struct adiv5_dap *swjdp, uint32_t address,
  * Synchronous write of a word to memory or a system register.
  * As a side effect, this flushes any queued transactions.
  *
- * @param swjdp The DAP connected to the MEM-AP.
+ * @param dap The DAP connected to the MEM-AP.
  * @param address Address to be written; it must be writable by
  *	the currently selected MEM-AP.
  * @param value Word that will be written.
  *
  * @return ERROR_OK for success; the data was written.  Otherwise a fault code.
  */
-int mem_ap_write_atomic_u32(struct adiv5_dap *swjdp, uint32_t address,
+int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t value)
 {
-	int retval = mem_ap_write_u32(swjdp, address, value);
+	int retval = mem_ap_write_u32(dap, address, value);
 
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_run(swjdp);
+	return dap_run(dap);
 }
 
 /*****************************************************************************
 *                                                                            *
-* mem_ap_write_buf(struct adiv5_dap *swjdp, uint8_t *buffer, int count, uint32_t address) *
+* mem_ap_write_buf(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address) *
 *                                                                            *
 * Write a buffer in target order (little endian)                             *
 *                                                                            *
 *****************************************************************************/
-int mem_ap_write_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
 {
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
@@ -301,7 +301,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer, int count, ui
 	while (wcount > 0)
 	{
 		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -309,17 +309,17 @@ int mem_ap_write_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer, int count, ui
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
+		dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
 
 		for (writecount = 0; writecount < blocksize; writecount++)
 		{
-			retval = dap_queue_ap_write(swjdp, AP_REG_DRW,
+			retval = dap_queue_ap_write(dap, AP_REG_DRW,
 				*(uint32_t *) (buffer + 4 * writecount));
 			if (retval != ERROR_OK)
 				break;
 		}
 
-		if (dap_run(swjdp) == ERROR_OK)
+		if (dap_run(dap) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
 			address = address + 4 * blocksize;
@@ -341,7 +341,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer, int count, ui
 	return retval;
 }
 
-static int mem_ap_write_buf_packed_u16(struct adiv5_dap *swjdp,
+static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 		uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
@@ -354,7 +354,7 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *swjdp,
 		int nbytes;
 
 		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
 			blocksize = wcount;
@@ -363,7 +363,7 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *swjdp,
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_PACKED, address);
+		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
 		writecount = blocksize;
 
 		do
@@ -372,7 +372,7 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *swjdp,
 
 			if (nbytes < 4)
 			{
-				if (mem_ap_write_buf_u16(swjdp, buffer,
+				if (mem_ap_write_buf_u16(dap, buffer,
 						nbytes, address) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
@@ -396,12 +396,12 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *swjdp,
 				}
 
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
-				retval = dap_queue_ap_write(swjdp,
+				retval = dap_queue_ap_write(dap,
 						AP_REG_DRW, outvalue);
 				if (retval != ERROR_OK)
 					break;
 
-				if (dap_run(swjdp) != ERROR_OK)
+				if (dap_run(dap) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
@@ -421,24 +421,24 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *swjdp,
 	return retval;
 }
 
-int mem_ap_write_buf_u16(struct adiv5_dap *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u16(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
 	if (count >= 4)
-		return mem_ap_write_buf_packed_u16(swjdp, buffer, count, address);
+		return mem_ap_write_buf_packed_u16(dap, buffer, count, address);
 
 	while (count > 0)
 	{
-		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
+		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
 		uint16_t svalue;
 		memcpy(&svalue, buffer, sizeof(uint16_t));
 		uint32_t outvalue = (uint32_t)svalue << 8 * (address & 0x3);
-		retval = dap_queue_ap_write(swjdp, AP_REG_DRW, outvalue);
+		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
 		if (retval != ERROR_OK)
 			break;
 
-		retval = dap_run(swjdp);
+		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			break;
 
@@ -450,7 +450,7 @@ int mem_ap_write_buf_u16(struct adiv5_dap *swjdp, uint8_t *buffer, int count, ui
 	return retval;
 }
 
-static int mem_ap_write_buf_packed_u8(struct adiv5_dap *swjdp,
+static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 		uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
@@ -463,12 +463,12 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *swjdp,
 		int nbytes;
 
 		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
 			blocksize = wcount;
 
-		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_PACKED, address);
+		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
 		writecount = blocksize;
 
 		do
@@ -477,7 +477,7 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *swjdp,
 
 			if (nbytes < 4)
 			{
-				if (mem_ap_write_buf_u8(swjdp, buffer, nbytes, address) != ERROR_OK)
+				if (mem_ap_write_buf_u8(dap, buffer, nbytes, address) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
@@ -500,12 +500,12 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *swjdp,
 				}
 
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
-				retval = dap_queue_ap_write(swjdp,
+				retval = dap_queue_ap_write(dap,
 						AP_REG_DRW, outvalue);
 				if (retval != ERROR_OK)
 					break;
 
-				if (dap_run(swjdp) != ERROR_OK)
+				if (dap_run(dap) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
@@ -525,22 +525,22 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *swjdp,
 	return retval;
 }
 
-int mem_ap_write_buf_u8(struct adiv5_dap *swjdp, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u8(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
 	if (count >= 4)
-		return mem_ap_write_buf_packed_u8(swjdp, buffer, count, address);
+		return mem_ap_write_buf_packed_u8(dap, buffer, count, address);
 
 	while (count > 0)
 	{
-		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
+		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
 		uint32_t outvalue = (uint32_t)*buffer << 8 * (address & 0x3);
-		retval = dap_queue_ap_write(swjdp, AP_REG_DRW, outvalue);
+		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
 		if (retval != ERROR_OK)
 			break;
 
-		retval = dap_run(swjdp);
+		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			break;
 
@@ -555,19 +555,19 @@ int mem_ap_write_buf_u8(struct adiv5_dap *swjdp, uint8_t *buffer, int count, uin
 /* FIXME don't import ... this is a temporary workaround for the
  * mem_ap_read_buf_u32() mess, until it's no longer JTAG-specific.
  */
-extern int adi_jtag_dp_scan(struct adiv5_dap *swjdp,
+extern int adi_jtag_dp_scan(struct adiv5_dap *dap,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint8_t *outvalue, uint8_t *invalue, uint8_t *ack);
 
 /**
  * Synchronously read a block of 32-bit words into a buffer
- * @param swjdp The DAP connected to the MEM-AP.
+ * @param dap The DAP connected to the MEM-AP.
  * @param buffer where the words will be stored (in host byte order).
  * @param count How many words to read.
  * @param address Memory address from which to read words; all the
  *	words must be readable by the currently selected MEM-AP.
  */
-int mem_ap_read_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer,
+int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		int count, uint32_t address)
 {
 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
@@ -583,7 +583,7 @@ int mem_ap_read_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer,
 		 * TAR autoincrement size (at least 2^10).  Autoincrement
 		 * mode avoids an extra per-word roundtrip to update TAR.
 		 */
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block,
+		blocksize = max_tar_block_size(dap->tar_autoincr_block,
 				address);
 		if (wcount < blocksize)
 			blocksize = wcount;
@@ -592,7 +592,7 @@ int mem_ap_read_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer,
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE,
+		dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE,
 				address);
 
 		/* FIXME remove these three calls to adi_jtag_dp_scan(),
@@ -603,7 +603,7 @@ int mem_ap_read_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer,
 		 */
 
 		/* Scan out first read */
-		adi_jtag_dp_scan(swjdp, JTAG_DP_APACC, AP_REG_DRW,
+		adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
 				DPAP_READ, 0, NULL, NULL);
 		for (readcount = 0; readcount < blocksize - 1; readcount++)
 		{
@@ -611,18 +611,18 @@ int mem_ap_read_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer,
 			 * previous one.  Assumes read is acked "OK/FAULT",
 			 * and CTRL_STAT says that meant "OK".
 			 */
-			adi_jtag_dp_scan(swjdp, JTAG_DP_APACC, AP_REG_DRW,
+			adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
 					DPAP_READ, 0, buffer + 4 * readcount,
-					&swjdp->ack);
+					&dap->ack);
 		}
 
 		/* Scan in last posted value; RDBUFF has no other effect,
 		 * assuming ack is OK/FAULT and CTRL_STAT says "OK".
 		 */
-		adi_jtag_dp_scan(swjdp, JTAG_DP_DPACC, DP_RDBUFF,
+		adi_jtag_dp_scan(dap, JTAG_DP_DPACC, DP_RDBUFF,
 				DPAP_READ, 0, buffer + 4 * readcount,
-				&swjdp->ack);
-		if (dap_run(swjdp) == ERROR_OK)
+				&dap->ack);
+		if (dap_run(dap) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
 			address += 4 * blocksize;
@@ -664,7 +664,7 @@ int mem_ap_read_buf_u32(struct adiv5_dap *swjdp, uint8_t *buffer,
 	return retval;
 }
 
-static int mem_ap_read_buf_packed_u16(struct adiv5_dap *swjdp,
+static int mem_ap_read_buf_packed_u16(struct adiv5_dap *dap,
 		uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
@@ -678,11 +678,11 @@ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *swjdp,
 		int nbytes;
 
 		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 		if (wcount < blocksize)
 			blocksize = wcount;
 
-		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_PACKED, address);
+		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
 
 		/* handle unaligned data at 4k boundary */
 		if (blocksize == 0)
@@ -691,8 +691,8 @@ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *swjdp,
 
 		do
 		{
-			retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
-			if (dap_run(swjdp) != ERROR_OK)
+			retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
+			if (dap_run(dap) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 				/* REVISIT return the *actual* fault code */
@@ -718,29 +718,29 @@ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *swjdp,
 
 /**
  * Synchronously read a block of 16-bit halfwords into a buffer
- * @param swjdp The DAP connected to the MEM-AP.
+ * @param dap The DAP connected to the MEM-AP.
  * @param buffer where the halfwords will be stored (in host byte order).
  * @param count How many halfwords to read.
  * @param address Memory address from which to read words; all the
  *	words must be readable by the currently selected MEM-AP.
  */
-int mem_ap_read_buf_u16(struct adiv5_dap *swjdp, uint8_t *buffer,
+int mem_ap_read_buf_u16(struct adiv5_dap *dap, uint8_t *buffer,
 		int count, uint32_t address)
 {
 	uint32_t invalue, i;
 	int retval = ERROR_OK;
 
 	if (count >= 4)
-		return mem_ap_read_buf_packed_u16(swjdp, buffer, count, address);
+		return mem_ap_read_buf_packed_u16(dap, buffer, count, address);
 
 	while (count > 0)
 	{
-		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
+		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
 		if (retval != ERROR_OK)
 			break;
 
-		retval = dap_run(swjdp);
+		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			break;
 
@@ -772,7 +772,7 @@ int mem_ap_read_buf_u16(struct adiv5_dap *swjdp, uint8_t *buffer,
  * The solution is to arrange for a large out/in scan in this loop and
  * and convert data afterwards.
  */
-static int mem_ap_read_buf_packed_u8(struct adiv5_dap *swjdp,
+static int mem_ap_read_buf_packed_u8(struct adiv5_dap *dap,
 		uint8_t *buffer, int count, uint32_t address)
 {
 	uint32_t invalue;
@@ -786,18 +786,18 @@ static int mem_ap_read_buf_packed_u8(struct adiv5_dap *swjdp,
 		int nbytes;
 
 		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
 			blocksize = wcount;
 
-		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_PACKED, address);
+		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
 		readcount = blocksize;
 
 		do
 		{
-			retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
-			if (dap_run(swjdp) != ERROR_OK)
+			retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
+			if (dap_run(dap) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 				/* REVISIT return the *actual* fault code */
@@ -823,26 +823,26 @@ static int mem_ap_read_buf_packed_u8(struct adiv5_dap *swjdp,
 
 /**
  * Synchronously read a block of bytes into a buffer
- * @param swjdp The DAP connected to the MEM-AP.
+ * @param dap The DAP connected to the MEM-AP.
  * @param buffer where the bytes will be stored.
  * @param count How many bytes to read.
  * @param address Memory address from which to read data; all the
  *	data must be readable by the currently selected MEM-AP.
  */
-int mem_ap_read_buf_u8(struct adiv5_dap *swjdp, uint8_t *buffer,
+int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
 		int count, uint32_t address)
 {
 	uint32_t invalue;
 	int retval = ERROR_OK;
 
 	if (count >= 4)
-		return mem_ap_read_buf_packed_u8(swjdp, buffer, count, address);
+		return mem_ap_read_buf_packed_u8(dap, buffer, count, address);
 
 	while (count > 0)
 	{
-		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
-		retval = dap_queue_ap_read(swjdp, AP_REG_DRW, &invalue);
-		retval = dap_run(swjdp);
+		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
+		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			break;
 
@@ -870,14 +870,14 @@ extern const struct dap_ops jtag_dp_ops;
  * for further use, and arranges to use AP #0 for all AP operations
  * until dap_ap-select() changes that policy.
  *
- * @param swjdp The DAP being initialized.
+ * @param dap The DAP being initialized.
  *
  * @todo Rename this.  We also need an initialization scheme which account
  * for SWD transports not just JTAG; that will need to address differences
  * in layering.  (JTAG is useful without any debug target; but not SWD.)
  * And this may not even use an AHB-AP ... e.g. DAP-Lite uses an APB-AP.
  */
-int ahbap_debugport_init(struct adiv5_dap *swjdp)
+int ahbap_debugport_init(struct adiv5_dap *dap)
 {
 	uint32_t idreg, romaddr, dummy;
 	uint32_t ctrlstat;
@@ -887,7 +887,7 @@ int ahbap_debugport_init(struct adiv5_dap *swjdp)
 	LOG_DEBUG(" ");
 
 	/* JTAG-DP or SWJ-DP, in JTAG mode */
-	swjdp->ops = &jtag_dp_ops;
+	dap->ops = &jtag_dp_ops;
 
 	/* Default MEM-AP setup.
 	 *
@@ -895,42 +895,42 @@ int ahbap_debugport_init(struct adiv5_dap *swjdp)
 	 * Should we probe, or take a hint from the caller?
 	 * Presumably we can ignore the possibility of multiple APs.
 	 */
-	swjdp->apsel = !0;
-	dap_ap_select(swjdp, 0);
+	dap->apsel = !0;
+	dap_ap_select(dap, 0);
 
 	/* DP initialization */
 
-	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_dp_write(swjdp, DP_CTRL_STAT, SSTICKYERR);
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
 	if (retval != ERROR_OK)
 		return retval;
 
-	swjdp->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
-	retval = dap_queue_dp_write(swjdp, DP_CTRL_STAT, swjdp->dp_ctrl_stat);
+	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &ctrlstat);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
 	if (retval != ERROR_OK)
 		return retval;
-	if ((retval = dap_run(swjdp)) != ERROR_OK)
+	if ((retval = dap_run(dap)) != ERROR_OK)
 		return retval;
 
 	/* Check that we have debug power domains activated */
 	while (!(ctrlstat & CDBGPWRUPACK) && (cnt++ < 10))
 	{
 		LOG_DEBUG("DAP: wait CDBGPWRUPACK");
-		retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &ctrlstat);
+		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
 		if (retval != ERROR_OK)
 			return retval;
-		if ((retval = dap_run(swjdp)) != ERROR_OK)
+		if ((retval = dap_run(dap)) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
@@ -938,23 +938,23 @@ int ahbap_debugport_init(struct adiv5_dap *swjdp)
 	while (!(ctrlstat & CSYSPWRUPACK) && (cnt++ < 10))
 	{
 		LOG_DEBUG("DAP: wait CSYSPWRUPACK");
-		retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &ctrlstat);
+		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
 		if (retval != ERROR_OK)
 			return retval;
-		if ((retval = dap_run(swjdp)) != ERROR_OK)
+		if ((retval = dap_run(dap)) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
 
-	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
 	if (retval != ERROR_OK)
 		return retval;
 	/* With debug power on we can activate OVERRUN checking */
-	swjdp->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
-	retval = dap_queue_dp_write(swjdp, DP_CTRL_STAT, swjdp->dp_ctrl_stat);
+	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_queue_dp_read(swjdp, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -964,12 +964,12 @@ int ahbap_debugport_init(struct adiv5_dap *swjdp)
 	 * Should it?  If the ROM address is valid, is this the right
 	 * place to scan the table and do any topology detection?
 	 */
-	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &idreg);
-	retval = dap_queue_ap_read(swjdp, AP_REG_BASE, &romaddr);
+	retval = dap_queue_ap_read(dap, AP_REG_IDR, &idreg);
+	retval = dap_queue_ap_read(dap, AP_REG_BASE, &romaddr);
 
 	LOG_DEBUG("MEM-AP #%d ID Register 0x%" PRIx32
 		", Debug ROM Address 0x%" PRIx32,
-		swjdp->apsel, idreg, romaddr);
+		dap->apsel, idreg, romaddr);
 
 	return ERROR_OK;
 }
@@ -993,7 +993,7 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 }
 
 static int dap_info_command(struct command_context *cmd_ctx,
-		struct adiv5_dap *swjdp, int apsel)
+		struct adiv5_dap *dap, int apsel)
 {
 	int retval;
 	uint32_t dbgbase, apid;
@@ -1005,11 +1005,11 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	if (apsel >= 256)
 		return ERROR_INVALID_ARGUMENTS;
 
-	apselold = swjdp->apsel;
-	dap_ap_select(swjdp, apsel);
-	retval = dap_queue_ap_read(swjdp, AP_REG_BASE, &dbgbase);
-	retval = dap_queue_ap_read(swjdp, AP_REG_IDR, &apid);
-	retval = dap_run(swjdp);
+	apselold = dap->apsel;
+	dap_ap_select(dap, apsel);
+	retval = dap_queue_ap_read(dap, AP_REG_BASE, &dbgbase);
+	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1059,12 +1059,12 @@ static int dap_info_command(struct command_context *cmd_ctx,
 			command_print(cmd_ctx, "\tROM table in legacy format");
 
 		/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
-		retval = dap_run(swjdp);
+		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
+		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
+		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
+		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
+		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
+		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1084,7 +1084,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 		entry_offset = 0;
 		do
 		{
-			mem_ap_read_atomic_u32(swjdp, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
+			mem_ap_read_atomic_u32(dap, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
 			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%" PRIx32 "",entry_offset,romentry);
 			if (romentry&0x01)
 			{
@@ -1096,23 +1096,23 @@ static int dap_info_command(struct command_context *cmd_ctx,
 
 				component_base = (uint32_t)((dbgbase & 0xFFFFF000)
 						+ (int)(romentry & 0xFFFFF000));
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFE0, &c_pid0);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFE4, &c_pid1);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFE8, &c_pid2);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFEC, &c_pid3);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFD0, &c_pid4);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFF0, &c_cid0);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFF4, &c_cid1);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFF8, &c_cid2);
-				mem_ap_read_atomic_u32(swjdp,
+				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFFC, &c_cid3);
 				component_start = component_base - 0x1000*(c_pid4 >> 4);
 
@@ -1130,7 +1130,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 					unsigned minor;
 					char *major = "Reserved", *subtype = "Reserved";
 
-					mem_ap_read_atomic_u32(swjdp,
+					mem_ap_read_atomic_u32(dap,
 							(component_base & 0xfffff000) | 0xfcc,
 							&devtype);
 					minor = (devtype >> 4) & 0x0f;
@@ -1346,7 +1346,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	{
 		command_print(cmd_ctx, "\tNo ROM table present");
 	}
-	dap_ap_select(swjdp, apselold);
+	dap_ap_select(dap, apselold);
 
 	return ERROR_OK;
 }
