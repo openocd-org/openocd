@@ -60,7 +60,7 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, TAP_IDLE);
 
 		free(field.out_value);
 	}
@@ -82,7 +82,7 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
-		jtag_add_dr_scan(etb->tap, 1, &field, jtag_get_end_state());
+		jtag_add_dr_scan(etb->tap, 1, &field, TAP_IDLE);
 
 		etb->cur_scan_chain = new_scan_chain;
 
