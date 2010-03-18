@@ -64,11 +64,11 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 	buf_set_u32(address_buf, 0, 14, address);
 
 	jtag_set_end_state(TAP_IDLE);
-	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
 	{
 		return retval;
 	}
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
@@ -121,7 +121,7 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 	LOG_DEBUG("addr: 0x%x value: %8.8x", address, *value);
 #endif
 
-	arm_jtag_set_instr(jtag_info, 0xc, NULL);
+	arm_jtag_set_instr(jtag_info, 0xc, NULL, TAP_IDLE);
 
 	return ERROR_OK;
 }
@@ -153,11 +153,11 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 	buf_set_u32(value_buf, 0, 32, value);
 
 	jtag_set_end_state(TAP_IDLE);
-	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
 	{
 		return retval;
 	}
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
@@ -207,7 +207,7 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 	LOG_DEBUG("addr: 0x%x value: %8.8x", address, value);
 #endif
 
-	arm_jtag_set_instr(jtag_info, 0xf, NULL);
+	arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
 
 	return ERROR_OK;
 }

@@ -31,7 +31,7 @@
 #define _ARM_JTAG_SCAN_N_CHECK_
 #endif
 
-int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture)
+int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture, tap_state_t end_state)
 {
 	struct jtag_tap *tap;
 	tap = jtag_info->tap;
@@ -45,19 +45,19 @@ int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  vo
 
 	if (no_verify_capture == NULL)
 	{
-		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, end_state);
 	} else
 	{
 		/* FIX!!!! this is a kludge!!! arm926ejs.c should reimplement this arm_jtag_set_instr to
 		 * have special verification code.
 		 */
-		jtag_add_ir_scan_noverify(tap, &field, jtag_get_end_state());
+		jtag_add_ir_scan_noverify(tap, &field, end_state);
 	}
 
 	return ERROR_OK;
 }
 
-int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
+int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state)
 {
 	int retval = ERROR_OK;
 	uint32_t values[1];
@@ -66,7 +66,7 @@ int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
 	values[0]=new_scan_chain;
 	num_bits[0]=jtag_info->scann_size;
 
-	if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL)) != ERROR_OK)
+	if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL, end_state)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -75,7 +75,7 @@ int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
 			1,
 			num_bits,
 			values,
-			jtag_get_end_state());
+			end_state);
 
 	jtag_info->cur_scan_chain = new_scan_chain;
 

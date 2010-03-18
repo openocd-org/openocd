@@ -344,9 +344,9 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	uint8_t field2_out[1];
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(ice_reg->jtag_info, 0x2);
+	arm_jtag_scann(ice_reg->jtag_info, 0x2, TAP_IDLE);
 
-	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
+	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	/* bits 31:0 -- data (ignored here) */
 	fields[0].num_bits = 32;
@@ -406,8 +406,8 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 	uint8_t field2_out[1];
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(jtag_info, 0x2);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+	arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
@@ -491,9 +491,9 @@ void embeddedice_write_reg(struct reg *reg, uint32_t value)
 	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", ice_reg->addr, value);
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(ice_reg->jtag_info, 0x2);
+	arm_jtag_scann(ice_reg->jtag_info, 0x2, TAP_IDLE);
 
-	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
+	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
 	embeddedice_write_reg_inner(ice_reg->jtag_info->tap, reg_addr, value);
@@ -524,8 +524,8 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 	uint8_t field2_out[1];
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(jtag_info, 0x2);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+	arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = field0_out;
@@ -577,8 +577,8 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 		return ERROR_INVALID_ARGUMENTS;
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(jtag_info, 0x2);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+	arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
