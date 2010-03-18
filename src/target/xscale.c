@@ -158,7 +158,7 @@ static int xscale_verify_pointer(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
+static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
 {
 	if (tap == NULL)
 		return ERROR_FAIL;
@@ -173,7 +173,7 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 		field.out_value = scratch;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
-		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, end_state);
 	}
 
 	return ERROR_OK;
@@ -193,7 +193,8 @@ static int xscale_read_dcsr(struct target *target)
 
 	jtag_set_end_state(TAP_DRPAUSE);
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_SELDCSR << xscale->xscale_variant);
+		XSCALE_SELDCSR << xscale->xscale_variant,
+		TAP_DRPAUSE);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
@@ -287,7 +288,8 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_DBGTX << xscale->xscale_variant);
+		XSCALE_DBGTX << xscale->xscale_variant,
+		TAP_IDLE);
 	jtag_add_runtest(1, TAP_IDLE); /* ensures that we're in the TAP_IDLE state as the above could be a no-op */
 
 	/* repeat until all words have been collected */
@@ -370,7 +372,8 @@ static int xscale_read_tx(struct target *target, int consume)
 	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_DBGTX << xscale->xscale_variant);
+		XSCALE_DBGTX << xscale->xscale_variant,
+		TAP_IDLE);
 
 	path[0] = TAP_DRSELECT;
 	path[1] = TAP_DRCAPTURE;
@@ -466,7 +469,8 @@ static int xscale_write_rx(struct target *target)
 	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_DBGRX << xscale->xscale_variant);
+		XSCALE_DBGRX << xscale->xscale_variant,
+		TAP_IDLE);
 
 	memset(&fields, 0, sizeof fields);
 
@@ -544,7 +548,8 @@ static int xscale_send(struct target *target, uint8_t *buffer, int count, int si
 	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_DBGRX << xscale->xscale_variant);
+		XSCALE_DBGRX << xscale->xscale_variant,
+		TAP_IDLE);
 
 	bits[0]=3;
 	t[0]=0;
@@ -626,7 +631,8 @@ static int xscale_write_dcsr(struct target *target, int hold_rst, int ext_dbg_br
 
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_SELDCSR << xscale->xscale_variant);
+		XSCALE_SELDCSR << xscale->xscale_variant,
+		TAP_IDLE);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
@@ -688,7 +694,8 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 	/* LDIC into IR */
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_LDIC << xscale->xscale_variant);
+		XSCALE_LDIC << xscale->xscale_variant,
+		TAP_IDLE);
 
 	/* CMD is b011 to load a cacheline into the Mini ICache.
 	 * Loading into the main ICache is deprecated, and unused.
@@ -739,7 +746,8 @@ static int xscale_invalidate_ic_line(struct target *target, uint32_t va)
 
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_LDIC << xscale->xscale_variant);
+		XSCALE_LDIC << xscale->xscale_variant,
+		TAP_IDLE);
 
 	/* CMD for invalidate IC line b000, bits [6:4] b000 */
 	buf_set_u32(&cmd, 0, 6, 0x0);
@@ -1478,7 +1486,8 @@ static int xscale_assert_reset(struct target *target)
 	 */
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
-		XSCALE_SELDCSR << xscale->xscale_variant);
+		XSCALE_SELDCSR << xscale->xscale_variant,
+		TAP_IDLE);
 
 	/* set Hold reset, Halt mode and Trap Reset */
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
@@ -1486,7 +1495,7 @@ static int xscale_assert_reset(struct target *target)
 	xscale_write_dcsr(target, 1, 0);
 
 	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
-	xscale_jtag_set_instr(target->tap, ~0);
+	xscale_jtag_set_instr(target->tap, ~0, TAP_IDLE);
 	jtag_execute_queue();
 
 	/* assert reset */
