@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -36,9 +36,11 @@ struct arm_jtag
 	uint32_t intest_instr;
 };
 
-int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,  void *no_verify_capture);
+int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,
+		void *no_verify_capture,
+		tap_state_t end_state);
 static inline int arm_jtag_set_instr(struct arm_jtag *jtag_info,
-		uint32_t new_instr, void *no_verify_capture)
+		uint32_t new_instr, void *no_verify_capture, tap_state_t end_state)
 {
 	/* inline most common code path */
 	struct jtag_tap *tap;
@@ -48,7 +50,7 @@ static inline int arm_jtag_set_instr(struct arm_jtag *jtag_info,
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
-		return arm_jtag_set_instr_inner(jtag_info, new_instr, no_verify_capture);
+		return arm_jtag_set_instr_inner(jtag_info, new_instr, no_verify_capture, end_state);
 	}
 
 	return ERROR_OK;
@@ -56,14 +58,14 @@ static inline int arm_jtag_set_instr(struct arm_jtag *jtag_info,
 }
 
 
-int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain);
-static inline int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain)
+int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state);
+static inline int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state)
 {
 	/* inline most common code path */
 	int retval = ERROR_OK;
 	if (jtag_info->cur_scan_chain != new_scan_chain)
 	{
-		return arm_jtag_scann_inner(jtag_info, new_scan_chain);
+		return arm_jtag_scann_inner(jtag_info, new_scan_chain, end_state);
 	}
 
 	return retval;

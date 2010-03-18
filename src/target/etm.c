@@ -505,8 +505,8 @@ static int etm_read_reg_w_check(struct reg *reg,
 	LOG_DEBUG("%s (%u)", r->name, reg_addr);
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(etm_reg->jtag_info, 0x6);
-	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL);
+	arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
+	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
@@ -588,8 +588,8 @@ static int etm_write_reg(struct reg *reg, uint32_t value)
 	LOG_DEBUG("%s (%u): 0x%8.8" PRIx32 "", r->name, reg_addr, value);
 
 	jtag_set_end_state(TAP_IDLE);
-	arm_jtag_scann(etm_reg->jtag_info, 0x6);
-	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL);
+	arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
+	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	fields[0].num_bits = 32;
 	uint8_t tmp1[4];
