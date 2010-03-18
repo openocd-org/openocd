@@ -48,6 +48,8 @@
 /* microchip specific cmds */
 #define MCHP_ASERT_RST			0xd1
 #define MCHP_DE_ASSERT_RST		0xd0
+#define MCHP_ERASE				0xfc
+#define MCHP_STATUS				0x00
 
 /* ejtag control register bits ECR */
 #define EJTAG_CTRL_TOF			(1 << 1)

@@ -31,6 +31,7 @@
 #include "pic32mx.h"
 #include <target/algorithm.h>
 #include <target/mips32.h>
+#include <target/mips_m4k.h>
 
 static const struct pic32mx_devs_s {
 	uint8_t	devid;
@@ -664,12 +665,86 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(pic32mx_handle_unlock_command)
+{
+	uint32_t mchip_cmd;
+	struct target *target = NULL;
+	struct mips_m4k_common *mips_m4k;
+	struct mips_ejtag *ejtag_info;
+	int timeout = 10;
+
+	if (CMD_ARGC < 1)
+	{
+		command_print(CMD_CTX, "pic32mx unlock <bank>");
+		return ERROR_OK;
+	}
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	target = bank->target;
+	mips_m4k = target_to_m4k(target);
+	ejtag_info = &mips_m4k->mips32.ejtag_info;
+
+	/* we have to use the MTAP to perform a full erase */
+	mips_ejtag_set_instr(ejtag_info, MTAP_SW_MTAP);
+	mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND);
+
+	/* first check status of device */
+	mchip_cmd = MCHP_STATUS;
+	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+	if (mchip_cmd & (1 << 7))
+	{
+		/* device is not locked */
+		command_print(CMD_CTX, "pic32mx is already unlocked, erasing anyway");
+	}
+
+	/* unlock/erase device */
+	mchip_cmd = MCHP_ASERT_RST;
+	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+
+	mchip_cmd = MCHP_ERASE;
+	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+
+	do {
+		mchip_cmd = MCHP_STATUS;
+		mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+		if (timeout-- == 0)
+		{
+			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx32 "", mchip_cmd);
+			break;
+		}
+		alive_sleep(1);
+	} while ((mchip_cmd & (1 << 2)) || (!(mchip_cmd & (1 << 3))));
+
+	mchip_cmd = MCHP_DE_ASSERT_RST;
+	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+
+	/* select ejtag tap */
+	mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
+
+	command_print(CMD_CTX, "pic32mx unlocked.\n"
+			"INFO: a reset or power cycle is required "
+			"for the new settings to take effect.");
+
+	return ERROR_OK;
+}
+
 static const struct command_registration pic32mx_exec_command_handlers[] = {
 	{
 		.name = "pgm_word",
 		.handler = pic32mx_handle_pgm_word_command,
 		.mode = COMMAND_EXEC,
 		.help = "program a word",
+	},
+	{
+		.name = "unlock",
+		.handler = pic32mx_handle_unlock_command,
+		.mode = COMMAND_EXEC,
+		.usage = "[bank_id]",
+		.help = "Unlock/Erase entire device.",
 	},
 	COMMAND_REGISTRATION_DONE
 };

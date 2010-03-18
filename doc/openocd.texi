@@ -4523,10 +4523,10 @@ flash bank ocl 0 0 0 0 $_TARGETNAME
 @deffn {Flash Driver} pic32mx
 The PIC32MX microcontrollers are based on the MIPS 4K cores,
 and integrate flash memory.
-@emph{The current implementation is incomplete.}
 
 @example
-flash bank pix32mx 0 0 0 0 $_TARGETNAME
+flash bank pix32mx 0x1fc00000 0 0 0 $_TARGETNAME
+flash bank pix32mx 0x1d000000 0 0 0 $_TARGETNAME
 @end example
 
 @comment numerous *disabled* commands are defined:
@@ -4537,6 +4537,10 @@ Some pic32mx-specific commands are defined:
 @deffn Command {pic32mx pgm_word} address value bank
 Programs the specified 32-bit @var{value} at the given @var{address}
 in the specified chip @var{bank}.
+@end deffn
+@deffn Command {pic32mx unlock} bank
+Unlock and erase specified chip @var{bank}.
+This will remove any Code Protection.
 @end deffn
 @end deffn
 
