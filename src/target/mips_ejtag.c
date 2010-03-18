@@ -46,7 +46,7 @@ int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(tap, &field, jtag_get_end_state());
+		jtag_add_ir_scan(tap, &field, TAP_IDLE);
 	}
 
 	return ERROR_OK;
@@ -112,7 +112,7 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 	buf_set_u32(field.out_value, 0, field.num_bits, *data);
 	field.in_value = r;
 
-	jtag_add_dr_scan(tap, 1, &field, jtag_get_end_state());
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -143,7 +143,7 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 	buf_set_u32(field.out_value, 0, field.num_bits, *data);
 	field.in_value = r;
 
-	jtag_add_dr_scan(tap, 1, &field, jtag_get_end_state());
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -339,7 +339,7 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write, uint32_t 
 		fields[1].in_value = (uint8_t *) data;
 	}
 
-	jtag_add_dr_scan(tap, 2, fields, jtag_get_end_state());
+	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
 	keep_alive();
 
 	return ERROR_OK;
