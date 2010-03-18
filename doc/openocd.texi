@@ -4180,8 +4180,8 @@ To configure two adjacent banks of 16 MBytes each, both sixteen bits (two bytes)
 wide on a sixteen bit bus:
 
 @example
-flash bank cfi 0x00000000 0x01000000 2 2 $_TARGETNAME
-flash bank cfi 0x01000000 0x01000000 2 2 $_TARGETNAME
+flash bank $_FLASHNAME cfi 0x00000000 0x01000000 2 2 $_TARGETNAME
+flash bank $_FLASHNAME cfi 0x01000000 0x01000000 2 2 $_TARGETNAME
 @end example
 
 To configure one bank of 32 MBytes
@@ -4189,7 +4189,7 @@ built from two sixteen bit (two byte) wide parts wired in parallel
 to create a thirty-two bit (four byte) bus with doubled throughput:
 
 @example
-flash bank cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
+flash bank $_FLASHNAME cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
 @end example
 
 @c "cfi part_id" disabled
@@ -4205,7 +4205,7 @@ The setup command only requires the @var{target} argument
 since all devices in this family have the same memory layout.
 
 @example
-flash bank aduc702x 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME aduc702x 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
@@ -4226,9 +4226,9 @@ the following fixed locations:
 
 @example
 # Flash bank 0 - all chips
-flash bank at91sam3 0x00080000 0 1 1 $_TARGETNAME
+flash bank $_FLASHNAME at91sam3 0x00080000 0 1 1 $_TARGETNAME
 # Flash bank 1 - only 256K chips
-flash bank at91sam3 0x00100000 0 1 1 $_TARGETNAME
+flash bank $_FLASHNAME at91sam3 0x00100000 0 1 1 $_TARGETNAME
 @end example
 
 Internally, the AT91SAM3 flash memory is organized as follows.
@@ -4280,7 +4280,7 @@ recognizes a number of these chips using the chip identification
 register, and autoconfigures itself.
 
 @example
-flash bank at91sam7 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME at91sam7 0 0 0 0 $_TARGETNAME
 @end example
 
 For chips which are not recognized by the controller driver, you must
@@ -4367,7 +4367,7 @@ with most tool chains @command{verify_image} will fail.
 LPC flashes don't require the chip and bus width to be specified.
 
 @example
-flash bank lpc2000 0x0 0x7d000 0 0 $_TARGETNAME \
+flash bank $_FLASHNAME lpc2000 0x0 0x7d000 0 0 $_TARGETNAME \
       lpc2000_v2 14765 calc_checksum
 @end example
 
@@ -4385,7 +4385,7 @@ the programming clock rate in Hz.
 LPC flashes don't require the chip and bus width to be specified.
 
 @example
-flash bank lpc288x 0 0 0 0 $_TARGETNAME 12000000
+flash bank $_FLASHNAME lpc288x 0 0 0 0 $_TARGETNAME 12000000
 @end example
 @end deffn
 
@@ -4418,7 +4418,7 @@ and not by the standard @code{flash protect} command.
 
 Example for a 125 MHz clock frequency:
 @example
-flash bank lpc2900 0 0 0 0 $_TARGETNAME 125000
+flash bank $_FLASHNAME lpc2900 0 0 0 0 $_TARGETNAME 125000
 @end example
 
 Some @code{lpc2900}-specific commands are defined. In the following command list,
@@ -4516,7 +4516,7 @@ lpc2900 secure_jtag 0
 @emph{No idea what this is, other than using some arm7/arm9 core.}
 
 @example
-flash bank ocl 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME ocl 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
@@ -4525,8 +4525,8 @@ The PIC32MX microcontrollers are based on the MIPS 4K cores,
 and integrate flash memory.
 
 @example
-flash bank pix32mx 0x1fc00000 0 0 0 $_TARGETNAME
-flash bank pix32mx 0x1d000000 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME pix32mx 0x1fc00000 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME pix32mx 0x1d000000 0 0 0 $_TARGETNAME
 @end example
 
 @comment numerous *disabled* commands are defined:
@@ -4555,7 +4555,7 @@ That seems pointless since the same effect can be had using the
 standard @command{flash erase_address} command.}
 
 @example
-flash bank stellaris 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME stellaris 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
@@ -4581,7 +4581,7 @@ The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
 @example
-flash bank stm32x 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME stm32x 0 0 0 0 $_TARGETNAME
 @end example
 
 Some stm32x-specific commands
@@ -4619,7 +4619,7 @@ The @var{str7x} driver defines one mandatory parameter, @var{variant},
 which is either @code{STR71x}, @code{STR73x} or @code{STR75x}.
 
 @example
-flash bank str7x 0x40000000 0x00040000 0 0 $_TARGETNAME STR71x
+flash bank $_FLASHNAME str7x 0x40000000 0x00040000 0 0 $_TARGETNAME STR71x
 @end example
 
 @deffn Command {str7x disable_jtag} bank
@@ -4635,7 +4635,7 @@ The str9 needs the flash controller to be configured using
 the @command{str9x flash_config} command prior to Flash programming.
 
 @example
-flash bank str9x 0x40000000 0x00040000 0 0 $_TARGETNAME
+flash bank $_FLASHNAME str9x 0x40000000 0x00040000 0 0 $_TARGETNAME
 str9x flash_config 0 4 2 0 0x80000
 @end example
 
@@ -4785,13 +4785,13 @@ Currently, the mflash driver supports s3c2440 and pxa270.
 Example for s3c2440 mflash where @var{RST pin} is GPIO B1:
 
 @example
-mflash bank s3c2440 0x10000000 1b 0
+mflash bank $_FLASHNAME s3c2440 0x10000000 1b 0
 @end example
 
 Example for pxa270 mflash where @var{RST pin} is GPIO 43:
 
 @example
-mflash bank pxa270 0x08000000 43 0
+mflash bank $_FLASHNAME pxa270 0x08000000 43 0
 @end example
 @end deffn
 
@@ -7406,8 +7406,8 @@ has closed the connection to OpenOCD. This might be a GDB issue.
 
 @item @b{LPC2000 Flash} In the configuration file in the section where flash device configurations
 are described, there is a parameter for specifying the clock frequency
-for LPC2000 internal flash devices (e.g.  @option{flash bank lpc2000
-0x0 0x40000 0 0 0 lpc2000_v1 14746 calc_checksum}), which must be
+for LPC2000 internal flash devices (e.g.  @option{flash bank $_FLASHNAME lpc2000
+0x0 0x40000 0 0 $_TARGETNAME lpc2000_v1 14746 calc_checksum}), which must be
 specified in kilohertz. However, I do have a quartz crystal of a
 frequency that contains fractions of kilohertz (e.g. 14,745,600 Hz,
 i.e. 14,745.600 kHz).  Is it possible to specify real numbers for the
