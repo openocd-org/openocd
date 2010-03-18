@@ -104,9 +104,9 @@ static __inline int arm7tdmi_clock_out_inner(struct arm_jtag *jtag_info, uint32_
 			2,
 			arm7tdmi_num_bits,
 			values,
-			jtag_get_end_state());
+			TAP_DRPAUSE);
 
-	jtag_add_runtest(0, jtag_get_end_state());
+	jtag_add_runtest(0, TAP_DRPAUSE);
 
 	return ERROR_OK;
 }

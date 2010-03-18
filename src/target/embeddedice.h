@@ -128,7 +128,7 @@ static __inline__ void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg
 			2,
 			embeddedice_num_bits,
 			values,
-			jtag_get_end_state());
+			TAP_IDLE);
 }
 
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count);

@@ -995,7 +995,7 @@ int arm7_9_assert_reset(struct target *target)
 			 * certain ARM9 cores (maybe more) - AT91SAM9260
 			 * and STR9
 			 */
-			jtag_add_runtest(1, jtag_get_end_state());
+			jtag_add_runtest(1, TAP_IDLE);
 		}
 		else
 		{

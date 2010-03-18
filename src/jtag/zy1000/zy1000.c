@@ -849,7 +849,7 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 		}
 	} else
 	{
-		tap_state_t end_state = jtag_get_end_state();
+		tap_state_t end_state = TAP_IDLE;
 		tap_state_t shift_end_state;
 		if (post_bits == 0)
 			shift_end_state = end_state;

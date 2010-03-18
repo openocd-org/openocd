@@ -186,7 +186,7 @@ int arm9tdmi_clock_out(struct arm_jtag *jtag_info, uint32_t instr,
 		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 	}
 
-	jtag_add_runtest(0, jtag_get_end_state());
+	jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
