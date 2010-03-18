@@ -1572,28 +1572,3 @@ const struct command_registration dap_command_handlers[] = {
 };
 
 
-/*
- * This represents the bits which must be sent out on TMS/SWDIO to
- * switch a DAP implemented using an SWJ-DP module into SWD mode.
- * These bits are stored (and transmitted) LSB-first.
- *
- * See the DAP-Lite specification, section 2.2.5 for information
- * about making the debug link select SWD or JTAG.  (Similar info
- * is in a few other ARM documents.)
- */
-static const uint8_t jtag2swd_bitseq[] = {
-	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
-	 * putting both JTAG and SWD logic into reset state.
-	 */
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	/* Switching sequence enables SWD and disables JTAG
-	 * NOTE: bits in the DP's IDCODE may expose the need for
-	 * an old/deprecated sequence (0xb6 0xed).
-	 */
-	0x9e, 0xe7,
-	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
-	 * putting both JTAG and SWD logic into reset state.
-	 */
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-};
-
