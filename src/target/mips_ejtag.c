@@ -56,8 +56,6 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 {
 	struct scan_field field;
 
-	jtag_set_end_state(TAP_IDLE);
-
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE);
 
 	field.num_bits = 32;
@@ -77,8 +75,6 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
 {
 	struct scan_field field;
-
-	jtag_set_end_state(TAP_IDLE);
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE);
 
@@ -209,7 +205,6 @@ int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step)
 int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_ctrl;
-	jtag_set_end_state(TAP_IDLE);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 
 	/* set debug break bit */

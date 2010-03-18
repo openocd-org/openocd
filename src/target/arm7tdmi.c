@@ -56,8 +56,6 @@ static int arm7tdmi_examine_debug_reason(struct target *target)
 		uint8_t databus[4];
 		uint8_t breakpoint;
 
-		jtag_set_end_state(TAP_DRPAUSE);
-
 		fields[0].num_bits = 1;
 		fields[0].out_value = NULL;
 		fields[0].in_value = &breakpoint;
@@ -119,7 +117,6 @@ static __inline int arm7tdmi_clock_out_inner(struct arm_jtag *jtag_info, uint32_
 static __inline int arm7tdmi_clock_out(struct arm_jtag *jtag_info,
 		uint32_t out, uint32_t *deprecated, int breakpoint)
 {
-	jtag_set_end_state(TAP_DRPAUSE);
 	arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 
@@ -132,7 +129,6 @@ static int arm7tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	int retval = ERROR_OK;
 	struct scan_field fields[2];
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
 	{
 		return retval;
@@ -217,7 +213,6 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	int retval = ERROR_OK;
 	struct scan_field fields[2];
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
 	{
 		return retval;

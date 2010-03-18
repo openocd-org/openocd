@@ -91,7 +91,6 @@ static int arm920t_read_cp15_physical(struct target *target,
 
 	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
-	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
@@ -142,7 +141,6 @@ static int arm920t_write_cp15_physical(struct target *target,
 
 	buf_set_u32(value_buf, 0, 32, value);
 
-	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 
@@ -192,7 +190,6 @@ static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 
 	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
-	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 

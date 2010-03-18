@@ -550,26 +550,6 @@ void jtag_add_runtest(int num_cycles, tap_state_t endstate);
  */
 void jtag_add_reset(int req_tlr_or_trst, int srst);
 
-
-/**
- * DEPRECATED! store such global state outside JTAG layer
- *
- * Function jtag_set_end_state
- *
- * Set a global variable to \a state if \a state != TAP_INVALID.
- *
- */
-void jtag_set_end_state(tap_state_t state);
-
-/**
- * DEPRECATED! store such global state outside JTAG layer
- * 
- * Function jtag_get_end_state
- *
- * Return the value of the global variable for end state
- */
-tap_state_t jtag_get_end_state(void);
-
 void jtag_add_sleep(uint32_t us);
 
 int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state t);

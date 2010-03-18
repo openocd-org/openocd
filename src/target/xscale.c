@@ -191,7 +191,6 @@ static int xscale_read_dcsr(struct target *target)
 	uint8_t field2_check_value = 0x0;
 	uint8_t field2_check_mask = 0x1;
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_SELDCSR << xscale->xscale_variant,
 		TAP_DRPAUSE);
@@ -234,8 +233,6 @@ static int xscale_read_dcsr(struct target *target)
 	field0_check_mask = 0x1;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
-
-	jtag_set_end_state(TAP_IDLE);
 
 	jtag_add_dr_scan(target->tap, 3, fields, TAP_DRPAUSE);
 
@@ -286,7 +283,6 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 	fields[2].check_value = &field2_check_value;
 	fields[2].check_mask = &field2_check_mask;
 
-	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_DBGTX << xscale->xscale_variant,
 		TAP_IDLE);
@@ -368,8 +364,6 @@ static int xscale_read_tx(struct target *target, int consume)
 	uint8_t field0_check_mask = 0x6;
 	uint8_t field2_check_value = 0x0;
 	uint8_t field2_check_mask = 0x1;
-
-	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_DBGTX << xscale->xscale_variant,
@@ -466,8 +460,6 @@ static int xscale_write_rx(struct target *target)
 	uint8_t field2_check_value = 0x0;
 	uint8_t field2_check_mask = 0x1;
 
-	jtag_set_end_state(TAP_IDLE);
-
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_DBGRX << xscale->xscale_variant,
 		TAP_IDLE);
@@ -544,8 +536,6 @@ static int xscale_send(struct target *target, uint8_t *buffer, int count, int si
 	int bits[3];
 	int retval;
 	int done_count = 0;
-
-	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_DBGRX << xscale->xscale_variant,
@@ -629,7 +619,6 @@ static int xscale_write_dcsr(struct target *target, int hold_rst, int ext_dbg_br
 	if (ext_dbg_brk != -1)
 		xscale->external_debug_break = ext_dbg_brk;
 
-	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_SELDCSR << xscale->xscale_variant,
 		TAP_IDLE);
@@ -692,7 +681,6 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32 "", va);
 
 	/* LDIC into IR */
-	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_LDIC << xscale->xscale_variant,
 		TAP_IDLE);
@@ -744,7 +732,6 @@ static int xscale_invalidate_ic_line(struct target *target, uint32_t va)
 	uint8_t cmd;
 	struct scan_field fields[2];
 
-	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_LDIC << xscale->xscale_variant,
 		TAP_IDLE);
@@ -1484,7 +1471,6 @@ static int xscale_assert_reset(struct target *target)
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
 	 */
-	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(target->tap,
 		XSCALE_SELDCSR << xscale->xscale_variant,
 		TAP_IDLE);

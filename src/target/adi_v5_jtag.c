@@ -87,7 +87,6 @@ int adi_jtag_dp_scan(struct adiv5_dap *dap,
 	struct scan_field fields[2];
 	uint8_t out_addr_buf;
 
-	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, instr, NULL, TAP_IDLE);
 
 	/* Scan out a read or write operation using some DP or AP register.
@@ -331,7 +330,6 @@ static int jtag_idcode_q_read(struct adiv5_dap *dap,
 	struct scan_field fields[1];
 
 	/* This is a standard JTAG operation -- no DAP tweakage */
-	jtag_set_end_state(TAP_IDLE);
 	retval = arm_jtag_set_instr(jtag_info, JTAG_DP_IDCODE, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;

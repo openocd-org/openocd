@@ -54,7 +54,6 @@ static int arm720t_scan_cp15(struct target *target,
 
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_DRPAUSE)) != ERROR_OK)
 	{
 		return retval;

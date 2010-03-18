@@ -141,7 +141,6 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)
 		return retval;
 
-	jtag_set_end_state(TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0xb); /* JPROG_B */
 	jtag_execute_queue();
 	jtag_add_sleep(1000);
@@ -160,7 +159,6 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 
 	jtag_add_tlr();
 
-	jtag_set_end_state(TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
 	jtag_add_runtest(13, TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */

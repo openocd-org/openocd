@@ -173,7 +173,6 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	struct scan_field fields[3];
 	int i;
 
-	jtag_set_end_state(TAP_IDLE);
 	etb_scann(etb, 0x0);
 	etb_set_instr(etb, 0xc);
 
@@ -227,7 +226,6 @@ static int etb_read_reg_w_check(struct reg *reg,
 
 	LOG_DEBUG("%i", (int)(etb_reg->addr));
 
-	jtag_set_end_state(TAP_IDLE);
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 
@@ -310,7 +308,6 @@ static int etb_write_reg(struct reg *reg, uint32_t value)
 
 	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", (int)(etb_reg->addr), value);
 
-	jtag_set_end_state(TAP_IDLE);
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 

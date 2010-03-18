@@ -87,8 +87,6 @@ int arm9tdmi_examine_debug_reason(struct target *target)
 		uint8_t instructionbus[4];
 		uint8_t debug_reason;
 
-		jtag_set_end_state(TAP_DRPAUSE);
-
 		fields[0].num_bits = 32;
 		fields[0].out_value = NULL;
 		fields[0].in_value = databus;
@@ -154,7 +152,6 @@ int arm9tdmi_clock_out(struct arm_jtag *jtag_info, uint32_t instr,
 	if (sysspeed)
 		buf_set_u32(&sysspeed_buf, 2, 1, 1);
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
 	{
 		return retval;
@@ -213,7 +210,6 @@ int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	int retval = ERROR_OK;;
 	struct scan_field fields[3];
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
 	{
 		return retval;
@@ -280,7 +276,6 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	int retval = ERROR_OK;
 	struct scan_field fields[3];
 
-	jtag_set_end_state(TAP_DRPAUSE);
 	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
 	{
 		return retval;

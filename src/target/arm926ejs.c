@@ -63,7 +63,6 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 
 	buf_set_u32(address_buf, 0, 14, address);
 
-	jtag_set_end_state(TAP_IDLE);
 	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
 	{
 		return retval;
@@ -152,7 +151,6 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 	buf_set_u32(address_buf, 0, 14, address);
 	buf_set_u32(value_buf, 0, 32, value);
 
-	jtag_set_end_state(TAP_IDLE);
 	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
 	{
 		return retval;

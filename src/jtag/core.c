@@ -86,7 +86,6 @@ static struct jtag_tap *__jtag_all_taps = NULL;
 static unsigned jtag_num_taps = 0;
 
 static enum reset_types jtag_reset_config = RESET_NONE;
-static tap_state_t cmd_queue_end_state = TAP_RESET;
 tap_state_t cmd_queue_cur_state = TAP_RESET;
 
 static bool jtag_verify_capture_ir = true;
@@ -717,7 +716,6 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	 */
 	if (trst_with_tlr) {
 		LOG_DEBUG("JTAG reset with TLR instead of TRST");
-		jtag_set_end_state(TAP_RESET);
 		jtag_add_tlr();
 
 	} else if (jtag_trst != new_trst) {
@@ -741,24 +739,6 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 			jtag_notify_event(JTAG_TRST_ASSERTED);
 		}
 	}
-}
-
-/* DEPRECATED! store such global state outside JTAG layer */
-void jtag_set_end_state(tap_state_t state)
-{
-	if ((state == TAP_DRSHIFT)||(state == TAP_IRSHIFT))
-	{
-		LOG_ERROR("BUG: TAP_DRSHIFT/IRSHIFT can't be end state. Calling code should use a larger scan field");
-	}
-
-	if (state != TAP_INVALID)
-		cmd_queue_end_state = state;
-}
-
-/* DEPRECATED! store such global state outside JTAG layer */
-tap_state_t jtag_get_end_state(void)
-{
-	return cmd_queue_end_state;
 }
 
 void jtag_add_sleep(uint32_t us)
