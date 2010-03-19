@@ -3204,14 +3204,19 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 	{
 		bool enable;
 		COMMAND_PARSE_ENABLE(CMD_ARGV[0], enable);
-		if (enable)
-			xscale_enable_mmu_caches(target, 1, 0, 0);
-		else
-			xscale_disable_mmu_caches(target, 1, 0, 0);
-		if (icache)
+		if (icache) {
 			xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = enable;
-		else
+			if (enable)
+				xscale_enable_mmu_caches(target, 0, 0, 1);
+			else
+				xscale_disable_mmu_caches(target, 0, 0, 1);
+		} else {
 			xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = enable;
+			if (enable)
+				xscale_enable_mmu_caches(target, 0, 1, 0);
+			else
+				xscale_disable_mmu_caches(target, 0, 1, 0);
+		}
 	}
 
 	bool enabled = icache ?
