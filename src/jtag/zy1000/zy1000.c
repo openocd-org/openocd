@@ -775,7 +775,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 	uint8_t seq[16];
 	memset(seq, 0, sizeof(seq));
-	assert(num_states < (sizeof(seq) * 8));
+	assert(num_states < (int)((sizeof(seq) * 8)));
 
 	while (num_states)
 	{
@@ -850,7 +850,7 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 	} else
 	{
 		tap_state_t end_state = TAP_IDLE;
-		tap_state_t shift_end_state;
+		tap_state_t shift_end_state = TAP_DRSHIFT;
 		if (post_bits == 0)
 			shift_end_state = end_state;
 
