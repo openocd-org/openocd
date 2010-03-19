@@ -2,7 +2,7 @@
 *   Copyright (C) 2005 by Dominic Rath                                    *
 *   Dominic.Rath@gmx.de                                                   *
 *                                                                         *
-*   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+*   Copyright (C) 2007-2010 Øyvind Harboe                                 *
 *   oyvind.harboe@zylin.com                                               *
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
@@ -112,7 +112,7 @@ struct scan_field {
 	/// The number of bits this field specifies (up to 32)
 	int num_bits;
 	/// A pointer to value to be scanned into the device
-	uint8_t* out_value;
+	const uint8_t* out_value;
 	/// A pointer to a 32-bit memory location for data scanned out
 	uint8_t* in_value;
 

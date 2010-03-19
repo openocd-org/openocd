@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
@@ -176,9 +176,10 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		str = Jim_GetString(args[i + 1], &len);
 
 		fields[field_count].num_bits = bits;
-		fields[field_count].out_value = malloc(DIV_ROUND_UP(bits, 8));
-		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
-		fields[field_count].in_value = fields[field_count].out_value;
+		void * t = malloc(DIV_ROUND_UP(bits, 8));
+		fields[field_count].out_value = t;
+		str_to_buf(str, len, t, bits, 0);
+		fields[field_count].in_value = t;
 		field_count++;
 	}
 
@@ -200,7 +201,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 		Jim_GetLong(interp, args[i], &bits);
 		str = buf_to_str(fields[field_count].in_value, bits, 16);
-		free(fields[field_count].out_value);
+		free((void *)fields[field_count].out_value);
 
 		Jim_ListAppendElement(interp, list, Jim_NewStringObj(interp, str, strlen(str)));
 		free(str);
@@ -1511,7 +1512,7 @@ COMMAND_HANDLER(handle_irscan_command)
 		{
 			int j;
 			for (j = 0; j < i; j++)
-				free(fields[j].out_value);
+				free((void *)fields[j].out_value);
                         free(fields);
 			command_print(CMD_CTX, "Tap: %s unknown", CMD_ARGV[i*2]);
 
@@ -1525,7 +1526,7 @@ COMMAND_HANDLER(handle_irscan_command)
 		retval = parse_u32(CMD_ARGV[i * 2 + 1], &value);
 		if (ERROR_OK != retval)
 			goto error_return;
-		buf_set_u32(fields[i].out_value, 0, field_size, value);
+		buf_set_u32((void *)fields[i].out_value, 0, field_size, value);
 		fields[i].in_value = NULL;
 	}
 
@@ -1538,7 +1539,7 @@ error_return:
 	for (i = 0; i < num_fields; i++)
 	{
 		if (NULL != fields[i].out_value)
-			free(fields[i].out_value);
+			free((void *)fields[i].out_value);
 	}
 
 	free (fields);

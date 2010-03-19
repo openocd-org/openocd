@@ -55,14 +55,15 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 		struct scan_field field;
 
 		field.num_bits = tap->ir_length;
-		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
-		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
+		void * t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
+		field.out_value = t;
+		buf_set_u32(t, 0, field.num_bits, new_instr);
 
 		field.in_value = NULL;
 
 		jtag_add_ir_scan(tap, &field, TAP_IDLE);
 
-		free(field.out_value);
+		free(t);
 	}
 
 	return ERROR_OK;
@@ -75,8 +76,9 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 		struct scan_field field;
 
 		field.num_bits = 5;
-		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
-		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
+		void * t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
+		field.out_value = t;
+		buf_set_u32(t, 0, field.num_bits, new_scan_chain);
 
 		field.in_value = NULL;
 
@@ -86,7 +88,7 @@ static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 
 		etb->cur_scan_chain = new_scan_chain;
 
-		free(field.out_value);
+		free(t);
 	}
 
 	return ERROR_OK;
@@ -181,13 +183,15 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	fields[0].in_value = NULL;
 
 	fields[1].num_bits = 7;
-	fields[1].out_value = malloc(1);
-	buf_set_u32(fields[1].out_value, 0, 7, 4);
+	uint8_t temp1;
+	fields[1].out_value = &temp1;
+	buf_set_u32(&temp1, 0, 7, 4);
 	fields[1].in_value = NULL;
 
 	fields[2].num_bits = 1;
-	fields[2].out_value = malloc(1);
-	buf_set_u32(fields[2].out_value, 0, 1, 0);
+	uint8_t temp2;
+	fields[2].out_value = &temp2;
+	buf_set_u32(&temp2, 0, 1, 0);
 	fields[2].in_value = NULL;
 
 	jtag_add_dr_scan(etb->tap, 3, fields, TAP_IDLE);
@@ -195,13 +199,13 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	for (i = 0; i < num_frames; i++)
 	{
 		/* ensure nR/W reamins set to read */
-		buf_set_u32(fields[2].out_value, 0, 1, 0);
+		buf_set_u32(&temp2, 0, 1, 0);
 
 		/* address remains set to 0x4 (RAM data) until we read the last frame */
 		if (i < num_frames - 1)
-			buf_set_u32(fields[1].out_value, 0, 7, 4);
+			buf_set_u32(&temp1, 0, 7, 4);
 		else
-			buf_set_u32(fields[1].out_value, 0, 7, 0);
+			buf_set_u32(&temp1, 0, 7, 0);
 
 		fields[0].in_value = (uint8_t *)(data + i);
 		jtag_add_dr_scan(etb->tap, 3, fields, TAP_IDLE);
@@ -210,9 +214,6 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	}
 
 	jtag_execute_queue();
-
-	free(fields[1].out_value);
-	free(fields[2].out_value);
 
 	return ERROR_OK;
 }
@@ -236,15 +237,17 @@ static int etb_read_reg_w_check(struct reg *reg,
 	fields[0].check_mask = NULL;
 
 	fields[1].num_bits = 7;
-	fields[1].out_value = malloc(1);
-	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
+	uint8_t temp1;
+	fields[1].out_value = &temp1;
+	buf_set_u32(&temp1, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
 	fields[1].check_value = NULL;
 	fields[1].check_mask = NULL;
 
 	fields[2].num_bits = 1;
-	fields[2].out_value = malloc(1);
-	buf_set_u32(fields[2].out_value, 0, 1, 0);
+	uint8_t temp2;
+	fields[2].out_value = &temp2;
+	buf_set_u32(&temp2, 0, 1, 0);
 	fields[2].in_value = NULL;
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
@@ -254,15 +257,12 @@ static int etb_read_reg_w_check(struct reg *reg,
 	/* read the identification register in the second run, to make sure we
 	 * don't read the ETB data register twice, skipping every second entry
 	 */
-	buf_set_u32(fields[1].out_value, 0, 7, 0x0);
+	buf_set_u32(&temp1, 0, 7, 0x0);
 	fields[0].in_value = reg->value;
 	fields[0].check_value = check_value;
 	fields[0].check_mask = check_mask;
 
 	jtag_add_dr_scan_check(etb_reg->etb->tap, 3, fields, TAP_IDLE);
-
-	free(fields[1].out_value);
-	free(fields[2].out_value);
 
 	return ERROR_OK;
 }
@@ -312,25 +312,23 @@ static int etb_write_reg(struct reg *reg, uint32_t value)
 	etb_set_instr(etb_reg->etb, 0xc);
 
 	fields[0].num_bits = 32;
-	fields[0].out_value = malloc(4);
-	buf_set_u32(fields[0].out_value, 0, 32, value);
+	uint8_t temp0[4];
+	fields[0].out_value = temp0;
+	buf_set_u32(&temp0, 0, 32, value);
 	fields[0].in_value = NULL;
 
 	fields[1].num_bits = 7;
-	fields[1].out_value = malloc(1);
-	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
+	uint8_t temp1;
+	fields[1].out_value = &temp1;
+	buf_set_u32(&temp1, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
 
 	fields[2].num_bits = 1;
-	fields[2].out_value = malloc(1);
-	buf_set_u32(fields[2].out_value, 0, 1, 1);
+	uint8_t temp2;
+	fields[2].out_value = &temp2;
+	buf_set_u32(&temp2, 0, 1, 1);
 
 	fields[2].in_value = NULL;
-
-	free(fields[0].out_value);
-	free(fields[1].out_value);
-	free(fields[2].out_value);
-
 	return ERROR_OK;
 }
 
