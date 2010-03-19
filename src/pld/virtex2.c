@@ -36,13 +36,14 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 		struct scan_field field;
 
 		field.num_bits = tap->ir_length;
-		field.out_value = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
-		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
+		void * t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
+		field.out_value = t;
+		buf_set_u32(t, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
 		jtag_add_ir_scan(tap, &field, TAP_IDLE);
 
-		free(field.out_value);
+		free(t);
 	}
 
 	return ERROR_OK;

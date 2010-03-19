@@ -171,7 +171,7 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_s
 		memset(&field, 0, sizeof field);
 		field.num_bits = tap->ir_length;
 		field.out_value = scratch;
-		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
+		buf_set_u32(scratch, 0, field.num_bits, new_instr);
 
 		jtag_add_ir_scan(tap, &field, end_state);
 	}

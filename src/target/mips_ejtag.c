@@ -43,7 +43,7 @@ int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 
 		field.num_bits = tap->ir_length;
 		field.out_value = t;
-		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
+		buf_set_u32(t, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
 		jtag_add_ir_scan(tap, &field, TAP_IDLE);
@@ -105,7 +105,7 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 
 	field.num_bits = 32;
 	field.out_value = t;
-	buf_set_u32(field.out_value, 0, field.num_bits, *data);
+	buf_set_u32(t, 0, field.num_bits, *data);
 	field.in_value = r;
 
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
@@ -136,7 +136,7 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 
 	field.num_bits = 8;
 	field.out_value = t;
-	buf_set_u32(field.out_value, 0, field.num_bits, *data);
+	buf_set_u32(t, 0, field.num_bits, *data);
 	field.in_value = r;
 
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
