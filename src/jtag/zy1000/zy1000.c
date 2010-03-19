@@ -492,85 +492,71 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 }
 #endif
 
-static void gotoEndState(tap_state_t end_state)
+// here we shuffle N bits out/in
+static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int num_bits, bool pause, tap_state_t shiftState, tap_state_t end_state)
 {
-	setCurrentState(end_state);
+	tap_state_t pause_state = shiftState;
+	for (int j = 0; j < num_bits; j += 32)
+	{
+		int k = num_bits - j;
+		if (k > 32)
+		{
+			k = 32;
+			/* we have more to shift out */
+		} else if (pause)
+		{
+			/* this was the last to shift out this time */
+			pause_state = end_state;
+		}
+
+		// we have (num_bits + 7)/8 bytes of bits to toggle out.
+		// bits are pushed out LSB to MSB
+		cyg_uint32 value;
+		value = 0;
+		if (out_value != NULL)
+		{
+			for (int l = 0; l < k; l += 8)
+			{
+				value|=out_value[(j + l)/8]<<l;
+			}
+		}
+		/* mask away unused bits for easier debugging */
+		if (k < 32)
+		{
+			value&=~(((uint32_t)0xffffffff) << k);
+		} else
+		{
+			/* Shifting by >= 32 is not defined by the C standard
+			 * and will in fact shift by &0x1f bits on nios */
+		}
+
+		shiftValueInner(shiftState, pause_state, k, value);
+
+		if (in_value != NULL)
+		{
+			// data in, LSB to MSB
+			value = getShiftValue();
+			// we're shifting in data to MSB, shift data to be aligned for returning the value
+			value >>= 32-k;
+
+			for (int l = 0; l < k; l += 8)
+			{
+				in_value[(j + l)/8]=(value >> l)&0xff;
+			}
+		}
+	}
 }
 
-static __inline void scanFields(int num_fields, const struct scan_field *fields, tap_state_t shiftState, int pause)
+static __inline void scanFields(int num_fields, const struct scan_field *fields, tap_state_t shiftState, tap_state_t end_state)
 {
-	int i;
-	int j;
-	int k;
-
-	for (i = 0; i < num_fields; i++)
+	for (int i = 0; i < num_fields; i++)
 	{
-		cyg_uint32 value;
-
-		uint8_t *inBuffer = NULL;
-
-
-		// figure out where to store the input data
-		int num_bits = fields[i].num_bits;
-		if (fields[i].in_value != NULL)
-		{
-			inBuffer = fields[i].in_value;
-		}
-
-		// here we shuffle N bits out/in
-		j = 0;
-		while (j < num_bits)
-		{
-			tap_state_t pause_state;
-			int l;
-			k = num_bits-j;
-			pause_state = (shiftState == TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
-			if (k > 32)
-			{
-				k = 32;
-				/* we have more to shift out */
-			} else if (pause&&(i == num_fields-1))
-			{
-				/* this was the last to shift out this time */
-				pause_state = (shiftState==TAP_DRSHIFT)?TAP_DRPAUSE:TAP_IRPAUSE;
-			}
-
-			// we have (num_bits + 7)/8 bytes of bits to toggle out.
-			// bits are pushed out LSB to MSB
-			value = 0;
-			if (fields[i].out_value != NULL)
-			{
-				for (l = 0; l < k; l += 8)
-				{
-					value|=fields[i].out_value[(j + l)/8]<<l;
-				}
-			}
-			/* mask away unused bits for easier debugging */
-			if (k < 32)
-			{
-				value&=~(((uint32_t)0xffffffff) << k);
-			} else
-			{
-				/* Shifting by >= 32 is not defined by the C standard
-				 * and will in fact shift by &0x1f bits on nios */
-			}
-
-			shiftValueInner(shiftState, pause_state, k, value);
-
-			if (inBuffer != NULL)
-			{
-				// data in, LSB to MSB
-				value = getShiftValue();
-				// we're shifting in data to MSB, shift data to be aligned for returning the value
-				value >>= 32-k;
-
-				for (l = 0; l < k; l += 8)
-				{
-					inBuffer[(j + l)/8]=(value >> l)&0xff;
-				}
-			}
-			j += k;
-		}
+		scanBits(fields[i].out_value,
+				fields[i].in_value,
+				fields[i].num_bits,
+				(i == num_fields-1),
+				shiftState,
+				end_state);
 	}
 }
 
@@ -578,17 +564,21 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field 
 {
 	int scan_size = 0;
 	struct jtag_tap *tap, *nextTap;
+	tap_state_t pause_state = TAP_IRSHIFT;
 
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
-		bool pause = (nextTap==NULL);
+		if (nextTap==NULL)
+		{
+			pause_state = state;
+		}
 		scan_size = tap->ir_length;
 
 		/* search the list */
 		if (tap == active)
 		{
-			scanFields(1, fields, TAP_IRSHIFT, pause);
+			scanFields(1, fields, TAP_IRSHIFT, pause_state);
 			/* update device information */
 			buf_cpy(fields[0].out_value, tap->cur_instr, scan_size);
 
@@ -597,12 +587,11 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field 
 		{
 			/* if a device isn't listed, set it to BYPASS */
 			assert(scan_size <= 32);
-			shiftValueInner(TAP_IRSHIFT, pause?TAP_IRPAUSE:TAP_IRSHIFT, scan_size, 0xffffffff);
+			shiftValueInner(TAP_IRSHIFT, pause_state, scan_size, 0xffffffff);
 
 			tap->bypass = 1;
 		}
 	}
-	gotoEndState(state);
 
 	return ERROR_OK;
 }
@@ -613,51 +602,41 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field 
 
 int interface_jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
 {
-	struct scan_field field;
-	field.num_bits	= num_bits;
-	field.out_value	= out_bits;
-	field.in_value	= in_bits;
-
-	scanFields(1, &field, TAP_IRSHIFT, 1);
-	gotoEndState(state);
-
+	scanBits(out_bits, in_bits, num_bits, true, TAP_IRSHIFT, state);
 	return ERROR_OK;
 }
 
 int interface_jtag_add_dr_scan(struct jtag_tap *active, int num_fields, const struct scan_field *fields, tap_state_t state)
 {
 	struct jtag_tap *tap, *nextTap;
+	tap_state_t pause_state = TAP_DRSHIFT;
 	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
 		nextTap = jtag_tap_next_enabled(tap);
-		bool pause = (nextTap==NULL);
+		if (nextTap==NULL)
+		{
+			pause_state = state;
+		}
 
 		/* Find a range of fields to write to this tap */
 		if (tap == active)
 		{
 			assert(!tap->bypass);
 
-			scanFields(num_fields, fields, TAP_DRSHIFT, pause);
+			scanFields(num_fields, fields, TAP_DRSHIFT, pause_state);
 		} else
 		{
 			/* Shift out a 0 for disabled tap's */
 			assert(tap->bypass);
-			shiftValueInner(TAP_DRSHIFT, pause?TAP_DRPAUSE:TAP_DRSHIFT, 1, 0);
+			shiftValueInner(TAP_DRSHIFT, pause_state, 1, 0);
 		}
 	}
-	gotoEndState(state);
 	return ERROR_OK;
 }
 
 int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
 {
-	struct scan_field field;
-	field.num_bits	= num_bits;
-	field.out_value	= out_bits;
-	field.in_value	= in_bits;
-
-	scanFields(1, &field, TAP_DRSHIFT, 1);
-	gotoEndState(state);
+	scanBits(out_bits, in_bits, num_bits, true, TAP_DRSHIFT, state);
 	return ERROR_OK;
 }
 
