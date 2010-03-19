@@ -32,12 +32,24 @@
  * JTAG adapters based on the FT2232 full and high speed USB parts are
  * popular low cost JTAG debug solutions.  Many FT2232 based JTAG adapters
  * are discrete, but development boards may integrate them as alternatives
- * to more capable (and expensive) third party JTAG pods.  Since JTAG uses
- * only one of the two ports on these devices, on integrated boards the
- * second port often serves as a USB-to-serial adapter for the target's
- * console UART even when the JTAG port is not in use.  (Systems which
- * support ARM's SWD in addition to JTAG, or instead of it, may use that
- * second port for reading SWV trace data.)
+ * to more capable (and expensive) third party JTAG pods.
+ *
+ * JTAG uses only one of the two communications channels ("MPSSE engines")
+ * on these devices.  Adapters based on FT4232 parts have four ports/channels
+ * (A/B/C/D), instead of just two (A/B).
+ *
+ * Especially on development boards integrating one of these chips (as
+ * opposed to discrete pods/dongles), the additional channels can be used
+ * for a variety of purposes, but OpenOCD only uses one channel at a time.
+ *
+ *  - As a USB-to-serial adapter for the target's console UART ...
+ *    which may be able to support ROM boot loaders that load initial
+ *    firmware images to flash (or SRAM).
+ *
+ *  - On systems which support ARM's SWD in addition to JTAG, or instead
+ *    of it, that second port can be used for reading SWV/SWO trace data.
+ *
+ *  - Additional JTAG links, e.g. to a CPLD or * FPGA.
  *
  * FT2232 based JTAG adapters are "dumb" not "smart", because most JTAG
  * request/response interactions involve round trips over the USB link.
