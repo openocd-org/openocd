@@ -2125,7 +2125,7 @@ static int xscale_set_breakpoint(struct target *target,
 			{
 				return retval;
 			}
-			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
+			/* write the bkpt instruction in target endianness (arm7_9->arm_bkpt is host endian) */
 			if ((retval = target_write_u32(target, breakpoint->address, xscale->arm_bkpt)) != ERROR_OK)
 			{
 				return retval;
@@ -2138,13 +2138,18 @@ static int xscale_set_breakpoint(struct target *target,
 			{
 				return retval;
 			}
-			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
+			/* write the bkpt instruction in target endianness (arm7_9->arm_bkpt is host endian) */
 			if ((retval = target_write_u32(target, breakpoint->address, xscale->thumb_bkpt)) != ERROR_OK)
 			{
 				return retval;
 			}
 		}
 		breakpoint->set = 1;
+
+		xscale_send_u32(target, 0x50);   /* clean dcache */
+		xscale_send_u32(target, xscale->cache_clean_address);
+		xscale_send_u32(target, 0x51);   /* invalidate dcache */
+		xscale_send_u32(target, 0x52);   /* invalidate icache and flush fetch buffers */
 	}
 
 	return ERROR_OK;
@@ -2225,6 +2230,11 @@ static int xscale_unset_breakpoint(struct target *target,
 			}
 		}
 		breakpoint->set = 0;
+
+		xscale_send_u32(target, 0x50);   /* clean dcache */
+		xscale_send_u32(target, xscale->cache_clean_address);
+		xscale_send_u32(target, 0x51);   /* invalidate dcache */
+		xscale_send_u32(target, 0x52);   /* invalidate icache and flush fetch buffers */
 	}
 
 	return ERROR_OK;
