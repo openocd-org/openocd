@@ -567,7 +567,11 @@ int arm920t_write_memory(struct target *target, uint32_t address,
 
 	/* FIX!!!! this should be cleaned up and made much more general. The
 	 * plan is to write up and test on arm920t specifically and
-	 * then generalize and clean up afterwards. */
+	 * then generalize and clean up afterwards.
+	 *
+	 * Also it should be moved to the callbacks that handle breakpoints
+	 * specifically and not the generic memory write fn's. See XScale code.
+	 */
 	if (arm920t->armv4_5_mmu.mmu_enabled && (count == 1) &&
 			((size==2) || (size==4)))
 	{
