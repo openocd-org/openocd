@@ -172,6 +172,8 @@ struct ft2232_layout {
 /* init procedures for supported layouts */
 static int usbjtag_init(void);
 static int jtagkey_init(void);
+static int lm3s811_jtag_init(void);
+static int icdi_jtag_init(void);
 static int olimex_jtag_init(void);
 static int flyswatter_init(void);
 static int turtle_init(void);
@@ -181,12 +183,13 @@ static int axm0432_jtag_init(void);
 static int sheevaplug_init(void);
 static int icebear_jtag_init(void);
 static int cortino_jtag_init(void);
+static int signalyzer_init(void);
 static int signalyzer_h_init(void);
 static int ktlink_init(void);
 static int redbee_init(void);
 
 /* reset procedures for supported layouts */
-static void usbjtag_reset(int trst, int srst);
+static void ftx23_reset(int trst, int srst);
 static void jtagkey_reset(int trst, int srst);
 static void olimex_jtag_reset(int trst, int srst);
 static void flyswatter_reset(int trst, int srst);
@@ -211,7 +214,7 @@ static const struct ft2232_layout  ft2232_layouts[] =
 {
 	{ .name = "usbjtag",
 		.init = usbjtag_init,
-		.reset = usbjtag_reset,
+		.reset = ftx23_reset,
 	},
 	{ .name = "jtagkey",
 		.init = jtagkey_init,
@@ -226,16 +229,16 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.reset = jtagkey_reset,
 	},
 	{ .name = "signalyzer",
-		.init = usbjtag_init,
-		.reset = usbjtag_reset,
+		.init = signalyzer_init,
+		.reset = ftx23_reset,
 	},
 	{ .name = "evb_lm3s811",
-		.init = usbjtag_init,
-		.reset = usbjtag_reset,
+		.init = lm3s811_jtag_init,
+		.reset = ftx23_reset,
 	},
 	{ .name = "luminary_icdi",
-		.init = usbjtag_init,
-		.reset = usbjtag_reset,
+		.init = icdi_jtag_init,
+		.reset = ftx23_reset,
 	},
 	{ .name = "olimex-jtag",
 		.init = olimex_jtag_init,
@@ -298,14 +301,23 @@ static const struct ft2232_layout  ft2232_layouts[] =
 	{ .name = NULL, /* END OF TABLE */ },
 };
 
-static uint8_t                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
+/* bitmask used to drive nTRST; usually a GPIOLx signal */
+static uint8_t                  nTRST;
+static uint8_t                  nTRSTnOE;
+/* bitmask used to drive nSRST; usually a GPIOLx signal */
+static uint8_t                  nSRST;
+static uint8_t                  nSRSTnOE;
 
 /** the layout being used with this debug session */
 static const struct ft2232_layout *layout;
 
+/** default bitmask values ddriven on DBUS: TCK/TDI/TDO/TMS and GPIOL(0..4) */
 static uint8_t                  low_output     = 0x0;
+/** default direction bitmask for DBUS: TCK/TDI/TDO/TMS and GPIOL(0..4) */
 static uint8_t                  low_direction  = 0x0;
+/** default value bitmask for CBUS GPIOH(0..4) */
 static uint8_t                  high_output    = 0x0;
+/** default direction bitmask for CBUS GPIOH(0..4) */
 static uint8_t                  high_direction = 0x0;
 
 #if BUILD_FT2232_FTD2XX == 1
@@ -1340,7 +1352,8 @@ static int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 	return predicted_size;
 }
 
-static void usbjtag_reset(int trst, int srst)
+/* semi-generic FT2232/FT4232 reset code */
+static void ftx23_reset(int trst, int srst)
 {
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (trst == 1)
@@ -2371,60 +2384,23 @@ static int ft2232_init(void)
 	return ERROR_OK;
 }
 
-static int usbjtag_init(void)
+/** Updates defaults for DBUS signals:  the four JTAG signals
+ * (TCK, TDI, TDO, TMS) and * the four GPIOL signals.
+ */
+static inline void ftx232_init_head(void)
+{
+	low_output    = 0x08;
+	low_direction = 0x0b;
+}
+
+/** Initializes DBUS signals:  the four JTAG signals (TCK, TDI, TDO, TMS),
+ * the four GPIOL signals.  Initialization covers value and direction,
+ * as customized for each layout.
+ */
+static int ftx232_init_tail(void)
 {
 	uint8_t  buf[3];
 	uint32_t bytes_written;
-	char *ft2232_layout = layout->name;
-
-	low_output    = 0x08;
-	low_direction = 0x0b;
-
-	if (strcmp(ft2232_layout, "usbjtag") == 0)
-	{
-		nTRST    = 0x10;
-		nTRSTnOE = 0x10;
-		nSRST    = 0x40;
-		nSRSTnOE = 0x40;
-	}
-	else if (strcmp(ft2232_layout, "signalyzer") == 0)
-	{
-		nTRST    = 0x10;
-		nTRSTnOE = 0x10;
-		nSRST    = 0x20;
-		nSRSTnOE = 0x20;
-	}
-	else if (strcmp(ft2232_layout, "evb_lm3s811") == 0)
-	{
-		/* There are multiple revisions of LM3S811 eval boards:
-		 * - Rev B (and older?) boards have no SWO trace support.
-		 * - Rev C boards add ADBUS_6 DBG_ENn and BDBUS_4 SWO_EN;
-		 *   they should use the "luminary_icdi" layout instead.
-		 */
-		nTRST = 0x0;
-		nTRSTnOE = 0x00;
-		nSRST = 0x20;
-		nSRSTnOE = 0x20;
-		low_output    = 0x88;
-		low_direction = 0x8b;
-	}
-	else if (strcmp(ft2232_layout, "luminary_icdi") == 0)
-	{
-		/* Most Luminary eval boards support SWO trace output,
-		 * and should use this "luminary_icdi" layout.
-		 */
-		nTRST = 0x0;
-		nTRSTnOE = 0x00;
-		nSRST = 0x20;
-		nSRSTnOE = 0x20;
-		low_output    = 0x88;
-		low_direction = 0xcb;
-	}
-	else
-	{
-		LOG_ERROR("BUG: usbjtag_init called for unknown layout '%s'", ft2232_layout);
-		return ERROR_JTAG_INIT_FAILED;
-	}
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
@@ -2462,6 +2438,69 @@ static int usbjtag_init(void)
 	}
 
 	return ERROR_OK;
+}
+
+static int usbjtag_init(void)
+{
+	/*
+	 * NOTE:  This is now _specific_ to the "usbjtag" layout.
+	 * Don't try cram any more layouts into this.
+	 */
+	ftx232_init_head();
+
+	nTRST    = 0x10;
+	nTRSTnOE = 0x10;
+	nSRST    = 0x40;
+	nSRSTnOE = 0x40;
+
+	return ftx232_init_tail();
+}
+
+static int lm3s811_jtag_init(void)
+{
+	ftx232_init_head();
+
+	/* There are multiple revisions of LM3S811 eval boards:
+	 * - Rev B (and older?) boards have no SWO trace support.
+	 * - Rev C boards add ADBUS_6 DBG_ENn and BDBUS_4 SWO_EN;
+	 *   they should use the "luminary_icdi" layout instead.
+	 */
+	nTRST = 0x0;
+	nTRSTnOE = 0x00;
+	nSRST = 0x20;
+	nSRSTnOE = 0x20;
+	low_output    = 0x88;
+	low_direction = 0x8b;
+
+	return ftx232_init_tail();
+}
+
+static int icdi_jtag_init(void)
+{
+	ftx232_init_head();
+
+	/* Most Luminary eval boards support SWO trace output,
+	 * and should use this "luminary_icdi" layout.
+	 */
+	nTRST = 0x0;
+	nTRSTnOE = 0x00;
+	nSRST = 0x20;
+	nSRSTnOE = 0x20;
+	low_output    = 0x88;
+	low_direction = 0xcb;
+
+	return ftx232_init_tail();
+}
+
+static int signalyzer_init(void)
+{
+	ftx232_init_head();
+
+	nTRST    = 0x10;
+	nTRSTnOE = 0x10;
+	nSRST    = 0x20;
+	nSRSTnOE = 0x20;
+	return ftx232_init_tail();
 }
 
 static int axm0432_jtag_init(void)
