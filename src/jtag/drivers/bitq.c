@@ -226,7 +226,7 @@ void bitq_scan_field(struct scan_field* field, int pause)
 	int bit_cnt;
 	int tdo_req;
 
-	uint8_t* out_ptr;
+	const uint8_t* out_ptr;
 	uint8_t  out_mask;
 
 	if (field->in_value)
