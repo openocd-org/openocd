@@ -40,7 +40,7 @@
 #endif
 
 
-struct service *services = NULL;
+static struct service *services = NULL;
 
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
 static int shutdown_openocd = 0;
@@ -48,7 +48,7 @@ static int shutdown_openocd = 0;
 /* set when using pipes rather than tcp */
 int server_use_pipes = 0;
 
-int add_connection(struct service *service, struct command_context *cmd_ctx)
+static int add_connection(struct service *service, struct command_context *cmd_ctx)
 {
 	socklen_t address_size;
 	struct connection *c, **p;
@@ -112,7 +112,7 @@ int add_connection(struct service *service, struct command_context *cmd_ctx)
 	return ERROR_OK;
 }
 
-int remove_connection(struct service *service, struct connection *connection)
+static int remove_connection(struct service *service, struct connection *connection)
 {
 	struct connection **p = &service->connections;
 	struct connection *c;
@@ -261,7 +261,7 @@ int remove_service(unsigned short port)
 	return ERROR_OK;
 }
 
-int remove_services(void)
+static int remove_services(void)
 {
 	struct service *c = services;
 
