@@ -580,18 +580,6 @@ static int telnet_connection_closed(struct connection *connection)
 	return ERROR_OK;
 }
 
-int telnet_set_prompt(struct connection *connection, char *prompt)
-{
-	struct telnet_connection *t_con = connection->priv;
-
-	if (t_con->prompt != NULL)
-		free(t_con->prompt);
-
-	t_con->prompt = strdup(prompt);
-
-	return ERROR_OK;
-}
-
 int telnet_init(char *banner)
 {
 	struct telnet_service *telnet_service = malloc(sizeof(struct telnet_service));
