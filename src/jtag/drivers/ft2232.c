@@ -2433,7 +2433,7 @@ static int ftx232_init_tail(void)
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
 	{
-		LOG_ERROR("couldn't initialize FT2232 with 'USBJTAG' layout");
+		LOG_ERROR("couldn't initialize FT2232 DBUS");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
