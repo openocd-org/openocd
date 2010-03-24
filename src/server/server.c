@@ -233,34 +233,6 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	return ERROR_OK;
 }
 
-int remove_service(unsigned short port)
-{
-	struct service **p = &services;
-	struct service *c;
-
-	/* find service */
-	while ((c = *p))
-	{
-		if (c->port == port)
-		{
-			if (c->name)
-				free(c->name);
-
-			if (c->priv)
-				free(c->priv);
-
-			/* delete service */
-			*p = c->next;
-			free(c);
-		}
-
-		/* redirect p to next list pointer */
-		p = &(*p)->next;
-	}
-
-	return ERROR_OK;
-}
-
 static int remove_services(void)
 {
 	struct service *c = services;
