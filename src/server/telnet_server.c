@@ -44,7 +44,8 @@ static char *negotiate =
  * we write to it, we will fail. Subsequent write operations will
  * succeed. Shudder!
  */
-int telnet_write(struct connection *connection, const void *data, int len)
+static int telnet_write(struct connection *connection, const void *data,
+		int len)
 {
 	struct telnet_connection *t_con = connection->priv;
 	if (t_con->closed)
@@ -58,14 +59,14 @@ int telnet_write(struct connection *connection, const void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
-int telnet_prompt(struct connection *connection)
+static int telnet_prompt(struct connection *connection)
 {
 	struct telnet_connection *t_con = connection->priv;
 
 	return telnet_write(connection, t_con->prompt, strlen(t_con->prompt));
 }
 
-int telnet_outputline(struct connection *connection, const char *line)
+static int telnet_outputline(struct connection *connection, const char *line)
 {
 	int len;
 
@@ -93,14 +94,14 @@ int telnet_outputline(struct connection *connection, const char *line)
 	return ERROR_OK;
 }
 
-int telnet_output(struct command_context *cmd_ctx, const char* line)
+static int telnet_output(struct command_context *cmd_ctx, const char* line)
 {
 	struct connection *connection = cmd_ctx->output_handler_priv;
 
 	return telnet_outputline(connection, line);
 }
 
-void telnet_log_callback(void *priv, const char *file, unsigned line,
+static void telnet_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string)
 {
 	struct connection *connection = priv;
@@ -132,7 +133,7 @@ void telnet_log_callback(void *priv, const char *file, unsigned line,
 		telnet_write(connection, "\b", 1);
 }
 
-int telnet_new_connection(struct connection *connection)
+static int telnet_new_connection(struct connection *connection)
 {
 	struct telnet_connection *telnet_connection = malloc(sizeof(struct telnet_connection));
 	struct telnet_service *telnet_service = connection->service->priv;
@@ -177,7 +178,8 @@ int telnet_new_connection(struct connection *connection)
 	return ERROR_OK;
 }
 
-void telnet_clear_line(struct connection *connection, struct telnet_connection *t_con)
+static void telnet_clear_line(struct connection *connection,
+		struct telnet_connection *t_con)
 {
 	/* move to end of line */
 	if (t_con->line_cursor < t_con->line_size)
@@ -194,7 +196,7 @@ void telnet_clear_line(struct connection *connection, struct telnet_connection *
 	t_con->line_cursor = 0;
 }
 
-int telnet_input(struct connection *connection)
+static int telnet_input(struct connection *connection)
 {
 	int bytes_read;
 	unsigned char buffer[TELNET_BUFFER_SIZE];
@@ -540,7 +542,7 @@ int telnet_input(struct connection *connection)
 	return ERROR_OK;
 }
 
-int telnet_connection_closed(struct connection *connection)
+static int telnet_connection_closed(struct connection *connection)
 {
 	struct telnet_connection *t_con = connection->priv;
 	int i;
