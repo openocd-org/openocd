@@ -1784,6 +1784,12 @@ static int handle_target(void *priv)
 	Jim_Interp *interp = (Jim_Interp *)priv;
 	int retval = ERROR_OK;
 
+	if (!is_jtag_poll_safe())
+	{
+		/* polling is disabled currently */
+		return ERROR_OK;
+	}
+
 	/* we do not want to recurse here... */
 	static int recursive = 0;
 	if (! recursive)
