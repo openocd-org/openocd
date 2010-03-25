@@ -817,7 +817,7 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
 
                 target_free_working_area(target,pworking_area);
 
-                LOG_INFO("Page =  0x%x was written.",page);
+                LOG_INFO("Page =  0x%" PRIx32 " was written.",page);
     
                 }
                 else
@@ -1112,7 +1112,7 @@ static int lpc3180_read_page(struct nand_device *nand, uint32_t page, uint8_t *d
                     target_read_memory(target, target_mem_base+DATA_OFFS, 4, nand->page_size == 2048?512:128, page_buffer);
                     memcpy(data, page_buffer, data_size);
 
-                    LOG_INFO("Page =  0x%x was read.",page);
+                    LOG_INFO("Page =  0x%" PRIx32 " was read.",page);
 
                     /* check hw generated ECC for each 256 bytes block with the saved ECC in flash spare area*/
                     int idx = nand->page_size/0x200 ;
@@ -1120,9 +1120,9 @@ static int lpc3180_read_page(struct nand_device *nand, uint32_t page, uint8_t *d
                     target_read_memory(target, target_mem_base+ECC_OFFS, 4, 8, ecc_hw_buffer);
                     for(i=0;i<idx;i++){
                         if( (0x00ffffff&*(uint32_t *)(ecc_hw_buffer+i*8)) != (0x00ffffff&*(uint32_t *)(ecc_flash_buffer+8+i*16)) )
-                            LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%x",i*2+1,page);
+                            LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%" PRIx32,i*2+1,page);
                         if( (0x00ffffff&*(uint32_t *)(ecc_hw_buffer+4+i*8)) != (0x00ffffff&*(uint32_t *)(ecc_flash_buffer+12+i*16)) )
-                            LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%x",i*2+2,page);
+                            LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%" PRIx32,i*2+2,page);
                     }                
                 }
 

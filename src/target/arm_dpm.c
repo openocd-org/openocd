@@ -718,7 +718,7 @@ static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
 	xp->control = control;
 	xp->dirty = true;
 
-	LOG_DEBUG("BPWP: addr %8.8x, control %x, number %d",
+	LOG_DEBUG("BPWP: addr %8.8" PRIx32 ", control %" PRIx32 ", number %d",
 			xp->address, control, xp->number);
 
 	/* hardware is updated in write_dirty_registers() */

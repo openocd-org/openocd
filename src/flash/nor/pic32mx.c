@@ -558,7 +558,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 	}
 
-	LOG_INFO("flash size = %dkbytes", num_pages / 1024);
+	LOG_INFO("flash size = %" PRId32 "kbytes", num_pages / 1024);
 
 	/* calculate numbers of pages */
 	num_pages /= page_size;
