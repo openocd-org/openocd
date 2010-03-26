@@ -789,7 +789,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	if (CMD_ARGC < 7)
 	{
 		LOG_ERROR("usage: flash bank <name> <driver> "
-				"<base> <size> <chip_width> <bus_width>");
+				"<base> <size> <chip_width> <bus_width> <target>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	// save bank name and advance arguments for compatibility
