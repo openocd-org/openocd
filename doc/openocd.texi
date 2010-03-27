@@ -2093,12 +2093,12 @@ target.
 @end deffn
 
 @deffn Command {interface_list}
-List the interface drivers that have been built into
+List the debug adapter drivers that have been built into
 the running copy of OpenOCD.
 @end deffn
 
-@deffn Command {jtag interface}
-Returns the name of the interface driver being used.
+@deffn Command {adapter_name}
+Returns the name of the debug adapter driver being used.
 @end deffn
 
 @section Interface Drivers

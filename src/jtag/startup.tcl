@@ -78,7 +78,7 @@ proc srst_asserted {} {
 
 # BEGIN MIGRATION AIDS ...  these adapter operations originally had
 # JTAG-specific names despite the fact that the operations were not
-# specific to JTAG.
+# specific to JTAG, or otherewise had troublesome/misleading names.
 #
 # FIXME phase these aids out after about April 2011
 #

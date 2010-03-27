@@ -6,9 +6,10 @@ and other issues not mentioned here.
 JTAG Layer:
 	New driver for "Bus Pirate"
 	Rename various commands so they're not JTAG-specific
-	   There are migration procedures for these, but you should
+	   There are migration procedures for most of these, but you should
 	   convert your scripts to the new names, since those procedures
 	   will not be around forever.
+		jtag jinterface ... is now adapter_name
 	   	jtag_khz	... is now adapter_khz
 		jtag_nsrst_delay ... is now adapter_nsrst_delay
 		jtag_nsrst_assert_width ... is now adapter_nsrst_assert_width

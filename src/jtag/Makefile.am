@@ -53,6 +53,7 @@ minidriver_imp.h: $(MINIDRIVER_IMP_DIR)/minidriver_imp.h
 
 
 libjtag_la_SOURCES = \
+	adapter.c \
 	core.c \
 	interface.c \
 	interfaces.c \
