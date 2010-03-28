@@ -1206,6 +1206,7 @@ static int xscale_resume(struct target *target, int current,
 		if (breakpoint != NULL)
 		{
 			uint32_t next_pc;
+			int saved_trace_buffer_enabled;
 
 			/* there's a breakpoint at the current PC, we have to step over it */
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
@@ -1225,15 +1226,8 @@ static int xscale_resume(struct target *target, int current,
 			/* restore banked registers */
 			retval = xscale_restore_banked(target);
 
-			/* send resume request (command 0x30 or 0x31)
-			 * clean the trace buffer if it is to be enabled (0x62) */
-			if (xscale->trace.buffer_enabled)
-			{
-				xscale_send_u32(target, 0x62);
-				xscale_send_u32(target, 0x31);
-			}
-			else
-				xscale_send_u32(target, 0x30);
+			/* send resume request */
+			xscale_send_u32(target, 0x30);
 
 			/* send CPSR */
 			xscale_send_u32(target,
@@ -1254,8 +1248,15 @@ static int xscale_resume(struct target *target, int current,
 			LOG_DEBUG("writing PC with value 0x%8.8" PRIx32,
 					buf_get_u32(armv4_5->pc->value, 0, 32));
 
+			/* disable trace data collection in xscale_debug_entry() */
+			saved_trace_buffer_enabled = xscale->trace.buffer_enabled;
+			xscale->trace.buffer_enabled = 0;
+
 			/* wait for and process debug entry */
 			xscale_debug_entry(target);
+
+			/* re-enable trace buffer, if enabled previously */
+			xscale->trace.buffer_enabled = saved_trace_buffer_enabled;
 
 			LOG_DEBUG("disable single-step");
 			xscale_disable_single_step(target);
@@ -1276,6 +1277,12 @@ static int xscale_resume(struct target *target, int current,
 	 * clean the trace buffer if it is to be enabled (0x62) */
 	if (xscale->trace.buffer_enabled)
 	{
+		/* if trace buffer is set to 'fill' mode, save starting pc */
+		if (xscale->trace.buffer_fill > 0)
+		{
+			xscale->trace.pc_ok = 1;
+			xscale->trace.current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
+		}
 		xscale_send_u32(target, 0x62);
 		xscale_send_u32(target, 0x31);
 	}
