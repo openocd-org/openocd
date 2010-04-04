@@ -1165,7 +1165,8 @@ COMMAND_HANDLER(handle_irscan_command)
 		retval = parse_u32(CMD_ARGV[i * 2 + 1], &value);
 		if (ERROR_OK != retval)
 			goto error_return;
-		buf_set_u32((void *)fields[i].out_value, 0, field_size, value);
+void *v = (void *)fields[i].out_value;
+		buf_set_u32(v, 0, field_size, value);
 		fields[i].in_value = NULL;
 	}
 
