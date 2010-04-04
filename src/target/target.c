@@ -629,15 +629,45 @@ static int target_soft_reset_halt_imp(struct target *target)
 	return target->type->soft_reset_halt_imp(target);
 }
 
-static int target_run_algorithm_imp(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
+/**
+ * Downloads a target-specific native code algorithm to the target,
+ * and executes it.  * Note that some targets may need to set up, enable,
+ * and tear down a breakpoint (hard or * soft) to detect algorithm
+ * termination, while others may support  lower overhead schemes where
+ * soft breakpoints embedded in the algorithm automatically terminate the
+ * algorithm.
+ *
+ * @param target used to run the algorithm
+ * @param arch_info target-specific description of the algorithm.
+ */
+int target_run_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_param,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info)
 {
+	int retval = ERROR_FAIL;
+
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
+		goto done;
 	}
-	return target->type->run_algorithm_imp(target, num_mem_params, mem_params, num_reg_params, reg_param, entry_point, exit_point, timeout_ms, arch_info);
+	if (target->type->run_algorithm) {
+		LOG_ERROR("Target type '%s' does not support %s",
+				target_type_name(target), __func__);
+		goto done;
+	}
+
+	retval = target->type->run_algorithm(target,
+			num_mem_params, mem_params,
+			num_reg_params, reg_param,
+			entry_point, exit_point, timeout_ms, arch_info);
+
+done:
+	return retval;
 }
+
 
 int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
@@ -711,17 +741,6 @@ int target_step(struct target *target,
 }
 
 
-int target_run_algorithm(struct target *target,
-		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, struct reg_param *reg_param,
-		uint32_t entry_point, uint32_t exit_point,
-		int timeout_ms, void *arch_info)
-{
-	return target->type->run_algorithm(target,
-			num_mem_params, mem_params, num_reg_params, reg_param,
-			entry_point, exit_point, timeout_ms, arch_info);
-}
-
 /**
  * Reset the @c examined flag for the given target.
  * Pure paranoia -- targets are zeroed on allocation.
@@ -784,9 +803,6 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	type->soft_reset_halt_imp = target->type->soft_reset_halt;
 	type->soft_reset_halt = target_soft_reset_halt_imp;
-
-	type->run_algorithm_imp = target->type->run_algorithm;
-	type->run_algorithm = target_run_algorithm_imp;
 
 	/* Sanity-check MMU support ... stub in what we must, to help
 	 * implement it in stages, but warn if we need to do so.

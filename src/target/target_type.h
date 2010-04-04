@@ -146,8 +146,6 @@ struct target_type
 	 */
 	int (*remove_watchpoint)(struct target *target, struct watchpoint *watchpoint);
 
-	/* target algorithm support */
-	int (*run_algorithm_imp)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 	/**
 	 * Target algorithm support.  Do @b not call this method directly,
 	 * use target_run_algorithm() instead.
