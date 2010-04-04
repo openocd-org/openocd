@@ -658,7 +658,7 @@ int target_run_algorithm(struct target *target,
 		LOG_ERROR("Target not examined yet");
 		goto done;
 	}
-	if (target->type->run_algorithm) {
+	if (!target->type->run_algorithm) {
 		LOG_ERROR("Target type '%s' does not support %s",
 				target_type_name(target), __func__);
 		goto done;
