@@ -117,6 +117,14 @@ struct target
 	 */
 	bool examined;
 
+	/** true iff the  target is currently running a downloaded
+	 *  "algorithm" instetad of arbitrary user code.  OpenOCD code
+	 *  invoking algorithms is trusted to maintain correctness of
+	 *  any cached state (e.g. for flash status), which arbitrary
+	 *  code will have no reason to know about.
+	 */
+	bool running_alg;
+
 	struct target_event_action *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */

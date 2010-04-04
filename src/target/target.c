@@ -478,9 +478,14 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 	 * themselves.  We want flash drivers and infrastructure to
 	 * be able to rely on (non-invalidated) cached state.
 	 *
+	 * For now we require that algorithms provided by OpenOCD are
+	 * used only by code which properly maintains that  cached state.
+	 * state
+	 *
 	 * REVISIT do the same for NAND ; maybe other flash flavors too...
 	 */
-	nor_resume(target);
+		if (!target->running_alg)
+		nor_resume(target);
 	return retval;
 }
 
@@ -659,10 +664,12 @@ int target_run_algorithm(struct target *target,
 		goto done;
 	}
 
+	target->running_alg = true;
 	retval = target->type->run_algorithm(target,
 			num_mem_params, mem_params,
 			num_reg_params, reg_param,
 			entry_point, exit_point, timeout_ms, arch_info);
+	target->running_alg = false;
 
 done:
 	return retval;
