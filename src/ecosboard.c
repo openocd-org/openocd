@@ -101,7 +101,6 @@ char hwaddr[512];
 
 
 extern struct flash_driver *flash_drivers[];
-extern struct target_type *target_types[];
 
 #ifdef CYGPKG_PROFILE_GPROF
 #include <cyg/profile/profile.h>

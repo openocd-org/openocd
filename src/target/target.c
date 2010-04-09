@@ -50,6 +50,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv);
 static int target_mem2array(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv);
+static int target_register_user_commands(struct command_context *cmd_ctx);
 
 /* targets */
 extern struct target_type arm7tdmi_target;
@@ -70,7 +71,7 @@ extern struct target_type avr_target;
 extern struct target_type dsp563xx_target;
 extern struct target_type testee_target;
 
-struct target_type *target_types[] =
+static struct target_type *target_types[] =
 {
 	&arm7tdmi_target,
 	&arm9tdmi_target,
@@ -93,8 +94,8 @@ struct target_type *target_types[] =
 };
 
 struct target *all_targets = NULL;
-struct target_event_callback *target_event_callbacks = NULL;
-struct target_timer_callback *target_timer_callbacks = NULL;
+static struct target_event_callback *target_event_callbacks = NULL;
+static struct target_timer_callback *target_timer_callbacks = NULL;
 
 static const Jim_Nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
@@ -121,7 +122,7 @@ static const Jim_Nvp nvp_error_target[] = {
 	{ .value = -1, .name = NULL }
 };
 
-const char *target_strerror_safe(int err)
+static const char *target_strerror_safe(int err)
 {
 	const Jim_Nvp *n;
 
@@ -282,7 +283,7 @@ uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer)
 }
 
 /* read a uint8_t from a buffer in target memory endianness */
-uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
+static uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
 {
 	return *buffer & 0x0ff;
 }
@@ -306,7 +307,7 @@ void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t valu
 }
 
 /* write a uint8_t to a buffer in target memory endianness */
-void target_buffer_set_u8(struct target *target, uint8_t *buffer, uint8_t value)
+static void target_buffer_set_u8(struct target *target, uint8_t *buffer, uint8_t value)
 {
 	*buffer = value;
 }
@@ -489,7 +490,7 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 	return retval;
 }
 
-int target_process_reset(struct command_context *cmd_ctx, enum target_reset_mode reset_mode)
+static int target_process_reset(struct command_context *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	char buf[100];
 	int retval;
@@ -682,7 +683,7 @@ int target_read_memory(struct target *target,
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
-int target_read_phys_memory(struct target *target,
+static int target_read_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->read_phys_memory(target, address, size, count, buffer);
@@ -694,7 +695,7 @@ int target_write_memory(struct target *target,
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
-int target_write_phys_memory(struct target *target,
+static int target_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->write_phys_memory(target, address, size, count, buffer);
@@ -854,7 +855,7 @@ static int target_init_one(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-int target_init(struct command_context *cmd_ctx)
+static int target_init(struct command_context *cmd_ctx)
 {
 	struct target *target;
 	int retval;
@@ -987,7 +988,7 @@ int target_unregister_event_callback(int (*callback)(struct target *target, enum
 	return ERROR_OK;
 }
 
-int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
+static int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
 	struct target_timer_callback **p = &target_timer_callbacks;
 	struct target_timer_callback *c = target_timer_callbacks;
@@ -1230,7 +1231,7 @@ int target_alloc_working_area(struct target *target, uint32_t size, struct worki
 	return ERROR_OK;
 }
 
-int target_free_working_area_restore(struct target *target, struct working_area *area, int restore)
+static int target_free_working_area_restore(struct target *target, struct working_area *area, int restore)
 {
 	if (area->free)
 		return ERROR_OK;
@@ -1259,7 +1260,7 @@ int target_free_working_area(struct target *target, struct working_area *area)
 /* free resources and restore memory, if restoring memory fails,
  * free up resources anyway
  */
-void target_free_all_working_areas_restore(struct target *target, int restore)
+static void target_free_all_working_areas_restore(struct target *target, int restore)
 {
 	struct working_area *c = target->working_areas;
 
@@ -5262,7 +5263,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-int target_register_user_commands(struct command_context *cmd_ctx)
+static int target_register_user_commands(struct command_context *cmd_ctx)
 {
 	int retval = ERROR_OK;
 	if ((retval = target_request_register_commands(cmd_ctx)) != ERROR_OK)

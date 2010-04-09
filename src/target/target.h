@@ -247,11 +247,7 @@ struct target_timer_callback
 };
 
 int target_register_commands(struct command_context *cmd_ctx);
-int target_register_user_commands(struct command_context *cmd_ctx);
-int target_init(struct command_context *cmd_ctx);
 int target_examine(void);
-int target_process_reset(struct command_context *cmd_ctx,
-		enum target_reset_mode reset_mode);
 
 int target_register_event_callback(
 		int (*callback)(struct target *target,
@@ -273,7 +269,6 @@ int target_call_event_callbacks(struct target *target, enum target_event event);
  */
 int target_register_timer_callback(int (*callback)(void *priv),
 		int time_ms, int periodic, void *priv);
-int target_unregister_timer_callback(int (*callback)(void *priv), void *priv);
 
 int target_call_timer_callbacks(void);
 /**
@@ -458,22 +453,14 @@ const char *target_state_name( struct target *target );
 int target_alloc_working_area(struct target *target,
 		uint32_t size, struct working_area **area);
 int target_free_working_area(struct target *target, struct working_area *area);
-int target_free_working_area_restore(struct target *target,
-		struct working_area *area, int restore);
 void target_free_all_working_areas(struct target *target);
-void target_free_all_working_areas_restore(struct target *target, int restore);
 
 extern struct target *all_targets;
 
-extern struct target_event_callback *target_event_callbacks;
-extern struct target_timer_callback *target_timer_callbacks;
-
 uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer);
 uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer);
-uint8_t  target_buffer_get_u8 (struct target *target, const uint8_t *buffer);
 void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t value);
 void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t value);
-void target_buffer_set_u8 (struct target *target, uint8_t *buffer, uint8_t  value);
 
 int target_read_u32(struct target *target, uint32_t address, uint32_t *value);
 int target_read_u16(struct target *target, uint32_t address, uint16_t *value);
@@ -499,8 +486,6 @@ void target_all_handle_event(enum target_event e);
 #define ERROR_TARGET_TRANSLATION_FAULT	(-309)
 #define ERROR_TARGET_NOT_RUNNING (-310)
 #define ERROR_TARGET_NOT_EXAMINED (-311)
-
-const char *target_strerror_safe(int err);
 
 extern bool get_target_reset_nag(void);
 
