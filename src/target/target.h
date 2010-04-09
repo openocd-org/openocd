@@ -473,7 +473,6 @@ int target_write_u8(struct target *target, uint32_t address, uint8_t value);
 int target_arch_state(struct target *target);
 
 void target_handle_event(struct target *t, enum target_event e);
-void target_all_handle_event(enum target_event e);
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

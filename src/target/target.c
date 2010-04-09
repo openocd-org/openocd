@@ -3580,22 +3580,6 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 	return JIM_OK;
 }
 
-void target_all_handle_event(enum target_event e)
-{
-	struct target *target;
-
-	LOG_DEBUG("**all*targets: event: %d, %s",
-			   (int)e,
-			   Jim_Nvp_value2name_simple(nvp_target_event, e)->name);
-
-	target = all_targets;
-	while (target) {
-		target_handle_event(target, e);
-		target = target->next;
-	}
-}
-
-
 /* FIX? should we propagate errors here rather than printing them
  * and continuing?
  */
