@@ -527,7 +527,7 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	return cache;
 }
 
-int armv7m_setup_semihosting(struct target *target, int enable)
+static int armv7m_setup_semihosting(struct target *target, int enable)
 {
 	/* nothing todo for armv7m */
 	return ERROR_OK;
