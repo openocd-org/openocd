@@ -121,7 +121,7 @@ void* cmd_queue_alloc(size_t size)
 	return t + offset;
 }
 
-void cmd_queue_free(void)
+static void cmd_queue_free(void)
 {
 	struct cmd_queue_page *page = cmd_queue_pages;
 

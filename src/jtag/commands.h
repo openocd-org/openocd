@@ -158,7 +158,6 @@ struct jtag_command {
 extern struct jtag_command* jtag_command_queue;
 
 void* cmd_queue_alloc(size_t size);
-void cmd_queue_free(void);
 
 void jtag_queue_command(struct jtag_command *cmd);
 void jtag_command_queue_reset(void);
