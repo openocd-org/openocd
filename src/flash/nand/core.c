@@ -160,7 +160,14 @@ static struct nand_ecclayout nand_oob_8 = {
 };
 #endif
 
-struct nand_device *get_nand_device_by_name(const char *name)
+/**
+ * Returns the flash bank specified by @a name, which matches the
+ * driver name and a suffix (option) specify the driver-specific
+ * bank number. The suffix consists of the '.' and the driver-specific
+ * bank number: when two davinci banks are defined, then 'davinci.1' refers
+ * to the second (e.g. DM355EVM).
+ */
+static struct nand_device *get_nand_device_by_name(const char *name)
 {
 	unsigned requested = get_flash_name_index(name);
 	unsigned found = 0;
