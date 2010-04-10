@@ -774,7 +774,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int flash_init_drivers(struct command_context *cmd_ctx)
+static int flash_init_drivers(struct command_context *cmd_ctx)
 {
 	if (!flash_bank_list())
 		return ERROR_OK;

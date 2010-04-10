@@ -97,8 +97,6 @@ struct flash_bank
 
 /// Registers the 'flash' subsystem commands
 int flash_register_commands(struct command_context *cmd_ctx);
-/// Initializes the 'flash' subsystem drivers
-int flash_init_drivers(struct command_context *cmd_ctx);
 
 /**
  * Erases @a length bytes in the @a target flash, starting at @a addr.
