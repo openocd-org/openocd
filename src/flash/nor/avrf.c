@@ -50,7 +50,7 @@
 #define AVR_JTAG_REG_ProgrammingCommand_Len			15
 #define AVR_JTAG_REG_FlashDataByte_Len				16
 
-struct avrf_type avft_chips_info[] =
+static struct avrf_type avft_chips_info[] =
 {
 /*	name, chip_id,	flash_page_size, flash_page_num,
  *			eeprom_page_size, eeprom_page_num
