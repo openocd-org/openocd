@@ -51,13 +51,6 @@ int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *
 	return x->tv_sec < y->tv_sec;
 }
 
-/* add two struct timeval values */
-int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y)
-{
-	memcpy(result, x, sizeof(struct timeval));
-	return timeval_add_time(result, y->tv_sec, y->tv_usec);
-}
-
 int timeval_add_time(struct timeval *result, long sec, long usec)
 {
 	result->tv_sec += sec;
