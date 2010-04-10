@@ -343,7 +343,7 @@ static int aduc702x_write_single(struct flash_bank *bank, uint8_t *buffer, uint3
 	return ERROR_OK;
 }
 
-int aduc702x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int aduc702x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 
