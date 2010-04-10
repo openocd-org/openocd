@@ -114,44 +114,6 @@ static void log_forward(const char *file, unsigned line, const char *function, c
 	}
 }
 
-void log_try(void)
-{
-	log_forward_count++;
-}
-
-void log_catch(void)
-{
-	assert(log_forward_count>0);
-	log_forward_count--;
-}
-
-void log_rethrow(void)
-{
-	log_catch();
-	if (log_forward_count==0)
-	{
-		struct store_log_forward *log;
-
-		log = log_head;
-		while (log != NULL)
-		{
-			log_forward(log->file, log->line, log->function, log->string);
-
-			struct store_log_forward *t=log;
-			log = log->next;
-
-			free((void *)t->file);
-			free((void *)t->function);
-			free((void *)t->string);
-			free(t);
-
-		}
-
-		log_head = NULL;
-	}
-}
-
-
 /* The log_puts() serves to somewhat different goals:
  *
  * - logging
