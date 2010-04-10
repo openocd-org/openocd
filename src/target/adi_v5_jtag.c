@@ -429,7 +429,7 @@ const struct dap_ops jtag_dp_ops = {
 };
 
 
-const uint8_t swd2jtag_bitseq[] = {
+static const uint8_t swd2jtag_bitseq[] = {
 	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
 	 * putting both JTAG and SWD logic into reset state.
 	 */
