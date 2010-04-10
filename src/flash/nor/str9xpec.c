@@ -33,7 +33,7 @@ static int str9xpec_erase_area(struct flash_bank *bank, int first, int last);
 static int str9xpec_set_address(struct flash_bank *bank, uint8_t sector);
 static int str9xpec_write_options(struct flash_bank *bank);
 
-int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
+static int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
 {
 	if (tap == NULL) {
 		return ERROR_TARGET_INVALID;
