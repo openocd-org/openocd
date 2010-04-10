@@ -121,8 +121,3 @@ const struct command_registration hello_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
-int hello_register_commands(struct command_context *cmd_ctx)
-{
-	return register_commands(cmd_ctx, NULL, hello_command_handlers);
-}

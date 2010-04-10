@@ -20,11 +20,7 @@
 #ifndef OPENOCD_HELLO_H
 #define OPENOCD_HELLO_H
 
-struct command_context;
 struct command_registration;
-
-/// Register the hello commands in the specified command_context
-int hello_register_commands(struct command_context *cmd_ctx);
 
 /**
  * Export the registration for the hello command group, so it can be
