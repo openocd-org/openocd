@@ -99,9 +99,6 @@ static bool writeLog = true;
 
 char hwaddr[512];
 
-
-extern struct flash_driver *flash_drivers[];
-
 #ifdef CYGPKG_PROFILE_GPROF
 #include <cyg/profile/profile.h>
 

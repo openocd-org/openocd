@@ -44,7 +44,7 @@ extern struct flash_driver faux_flash;
  * The list of built-in flash drivers.
  * @todo Make this dynamically extendable with loadable modules.
  */
-struct flash_driver *flash_drivers[] = {
+static struct flash_driver *flash_drivers[] = {
 	&lpc2000_flash,
 	&lpc288x_flash,
 	&lpc2900_flash,
