@@ -72,7 +72,7 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
+static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
 {
 	struct scan_field field;
 
@@ -154,7 +154,7 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 	return ERROR_OK;
 }
 
-int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
+static int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 {
 	static const uint32_t code[] = {
 			MIPS32_MTC0(1,31,0),			/* move $1 to COP0 DeSave */
@@ -170,7 +170,8 @@ int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 
 	return ERROR_OK;
 }
-int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
+
+static int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 {
 	static const uint32_t code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
