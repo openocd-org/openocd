@@ -217,7 +217,7 @@ enum arm_mode armv4_5_number_to_mode(int number)
 	}
 }
 
-const char *arm_state_strings[] =
+static const char *arm_state_strings[] =
 {
 	"ARM", "Thumb", "Jazelle", "ThumbEE",
 };

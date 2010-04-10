@@ -80,8 +80,6 @@ enum arm_state {
 	ARM_STATE_THUMB_EE,
 };
 
-extern const char *arm_state_strings[];
-
 #define ARM_COMMON_MAGIC 0x0A450A45
 
 /**
