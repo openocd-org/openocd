@@ -26,13 +26,6 @@
 #include "armv4_5_mmu.h"
 
 
-uint32_t armv4mmu_translate_va(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap);
-
-char* armv4_5_mmu_page_type_names[] =
-{
-	"section", "large page", "small page", "tiny page"
-};
-
 uint32_t armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap)
 {
 	uint32_t first_lvl_descriptor = 0x0;
