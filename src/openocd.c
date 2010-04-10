@@ -202,7 +202,7 @@ static const struct command_registration openocd_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int openocd_register_commands(struct command_context *cmd_ctx)
+static int openocd_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, openocd_command_handlers);
 }
