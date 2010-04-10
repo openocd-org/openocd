@@ -244,7 +244,7 @@ static void cfi_intel_clear_status_register(struct flash_bank *bank)
 	cfi_send_command(bank, 0x50, flash_address(bank, 0, 0x0));
 }
 
-uint8_t cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout)
+static uint8_t cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout)
 {
 	uint8_t status;
 
@@ -285,7 +285,7 @@ uint8_t cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout)
 	return status;
 }
 
-int cfi_spansion_wait_status_busy(struct flash_bank *bank, int timeout)
+static int cfi_spansion_wait_status_busy(struct flash_bank *bank, int timeout)
 {
 	uint8_t status, oldstatus;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -1810,7 +1810,7 @@ static int cfi_write_words(struct flash_bank *bank, uint8_t *word, uint32_t word
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct target *target = bank->target;
