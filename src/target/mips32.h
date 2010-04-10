@@ -41,8 +41,6 @@ enum mips32_isa_mode
 	MIPS32_ISA_MIPS16E = 1,
 };
 
-extern const char *mips_isa_strings[];
-
 struct mips32_comparator
 {
 	int used;

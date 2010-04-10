@@ -31,7 +31,7 @@
 #include "algorithm.h"
 #include "register.h"
 
-char* mips32_core_reg_list[] =
+static char* mips32_core_reg_list[] =
 {
 	"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
 	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -40,12 +40,12 @@ char* mips32_core_reg_list[] =
 	"status", "lo", "hi", "badvaddr", "cause", "pc"
 };
 
-const char *mips_isa_strings[] =
+static const char *mips_isa_strings[] =
 {
 	"MIPS32", "MIPS16e"
 };
 
-struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
+static struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 {
 	{0, NULL, NULL},
 	{1, NULL, NULL},
@@ -93,9 +93,9 @@ struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 
 #define MIPS32NUMFPREGS 34 + 18
 
-uint8_t mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
+static uint8_t mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
 
-struct reg mips32_gdb_dummy_fp_reg =
+static struct reg mips32_gdb_dummy_fp_reg =
 {
 	.name = "GDB dummy floating-point register",
 	.value = mips32_gdb_dummy_fp_value,
@@ -105,7 +105,7 @@ struct reg mips32_gdb_dummy_fp_reg =
 	.arch_info = NULL,
 };
 
-int mips32_get_core_reg(struct reg *reg)
+static int mips32_get_core_reg(struct reg *reg)
 {
 	int retval;
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
@@ -122,7 +122,7 @@ int mips32_get_core_reg(struct reg *reg)
 	return retval;
 }
 
-int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
+static int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct mips32_core_reg *mips32_reg = reg->arch_info;
 	struct target *target = mips32_reg->target;
@@ -140,7 +140,7 @@ int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int mips32_read_core_reg(struct target *target, int num)
+static int mips32_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	struct mips32_core_reg *mips_core_reg;
@@ -160,7 +160,7 @@ int mips32_read_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-int mips32_write_core_reg(struct target *target, int num)
+static int mips32_write_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	struct mips32_core_reg *mips_core_reg;
