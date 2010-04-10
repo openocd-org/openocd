@@ -47,6 +47,8 @@
  * core entered debug mode.
  */
 
+static int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf);
+
 /*
  * From:  ARM9E-S TRM, DDI 0165, table C-4 (and similar, for other cores)
  */
@@ -469,7 +471,7 @@ void embeddedice_set_reg(struct reg *reg, uint32_t value)
  * Write an EmbeddedICE register, updating the register cache.
  * Uses embeddedice_set_reg(); not queued.
  */
-int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf)
+static int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 {
 	int retval;
 

@@ -106,7 +106,6 @@ void embeddedice_write_reg(struct reg *reg, uint32_t value);
 void embeddedice_store_reg(struct reg *reg);
 
 void embeddedice_set_reg(struct reg *reg, uint32_t value);
-int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf);
 
 int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);
 int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);
