@@ -43,7 +43,7 @@
  * @param area Pointer to a pointer to a working area to copy code to
  * @return Success or failure of the operation
  */
-int arm_code_to_working_area(struct target *target,
+static int arm_code_to_working_area(struct target *target,
 		const uint32_t *code, unsigned code_size,
 		unsigned additional, struct working_area **area)
 {
