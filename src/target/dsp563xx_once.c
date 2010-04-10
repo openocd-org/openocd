@@ -30,7 +30,7 @@
 #include "dsp563xx_once.h"
 
 /** single word instruction */
-int dsp563xx_once_ir_exec(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
+static int dsp563xx_once_ir_exec(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
 			  uint8_t go, uint8_t ex)
 {
 	dsp563xx_write_dr_u8(tap, 0,
@@ -41,7 +41,7 @@ int dsp563xx_once_ir_exec(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
 }
 
 /** single word instruction */
-int dsp563xx_once_ir_exec_nq(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
+static int dsp563xx_once_ir_exec_nq(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
 			     uint8_t go, uint8_t ex)
 {
 	dsp563xx_write_dr_u8(tap, 0,

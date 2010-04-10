@@ -57,12 +57,6 @@
 #define DSP563XX_ONCE_OPABEX	0x011	/* trace buffer/inc ptr */
 #define DSP563XX_ONCE_NOREG	0x01F	/* no register selected */
 
-/** single word instruction */
-int dsp563xx_once_ir_exec(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
-			  uint8_t go, uint8_t ex);
-/** single word instruction */
-int dsp563xx_once_ir_exec_nq(struct jtag_tap *tap, uint8_t instr, uint8_t rw,
-			     uint8_t go, uint8_t ex);
 /** once read register */
 int dsp563xx_once_reg_read(struct jtag_tap *tap, uint8_t reg, uint32_t * data);
 /** once write register */
