@@ -28,6 +28,19 @@
 
 #include "mips32_dmaacc.h"
 
+static int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint8_t *buf);
+static int mips32_dmaacc_read_mem16(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint16_t *buf);
+static int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint32_t *buf);
+
+static int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint8_t *buf);
+static int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint16_t *buf);
+static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint32_t *buf);
 
 /*
  * The following logic shamelessly cloned from HairyDairyMaid's wrt54g_debrick
@@ -364,7 +377,7 @@ int mips32_dmaacc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+static int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	int i;
 	int	retval;
@@ -377,7 +390,7 @@ int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+static int mips32_dmaacc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	int i;
 	int retval;
@@ -390,7 +403,7 @@ int mips32_dmaacc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+static int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	int i;
 	int retval;
@@ -418,7 +431,7 @@ int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int si
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	int i;
 	int retval;
@@ -431,7 +444,7 @@ int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int 
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+static int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	int i;
 	int retval;
@@ -444,7 +457,7 @@ int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int 
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+static int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	int i;
 	int retval;
