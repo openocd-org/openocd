@@ -206,7 +206,8 @@ static const struct command_registration pld_exec_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-int pld_init(struct command_context *cmd_ctx)
+
+static int pld_init(struct command_context *cmd_ctx)
 {
 	if (!pld_devices)
 		return ERROR_OK;

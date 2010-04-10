@@ -46,8 +46,6 @@ struct pld_device
 
 int pld_register_commands(struct command_context *cmd_ctx);
 
-int pld_init(struct command_context *cmd_ctx);
-
 struct pld_device *get_pld_device_by_num(int num);
 
 #define ERROR_PLD_DEVICE_INVALID	(-1000)
