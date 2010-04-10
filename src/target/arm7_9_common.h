@@ -123,7 +123,6 @@ int arm7_9_poll(struct target *target);
 
 int arm7_9_target_request_data(struct target *target, uint32_t size, uint8_t *buffer);
 
-int arm7_9_setup(struct target *target);
 int arm7_9_assert_reset(struct target *target);
 int arm7_9_deassert_reset(struct target *target);
 int arm7_9_reset_request_halt(struct target *target);
@@ -132,8 +131,6 @@ int arm7_9_soft_reset_halt(struct target *target);
 int arm7_9_prepare_reset_halt(struct target *target);
 
 int arm7_9_halt(struct target *target);
-int arm7_9_full_context(struct target *target);
-int arm7_9_restore_context(struct target *target);
 int arm7_9_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
 int arm7_9_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
 int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);

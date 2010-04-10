@@ -184,7 +184,7 @@ static int arm7_9_set_software_breakpoints(struct arm7_9_common *arm7_9)
  * @param target Pointer to an ARM7/9 target to setup
  * @return Result of clearing the watchpoints on the target
  */
-int arm7_9_setup(struct target *target)
+static int arm7_9_setup(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
@@ -202,7 +202,7 @@ int arm7_9_setup(struct target *target)
  *         queue.  For software breakpoints, this will be the status of the
  *         required memory reads and writes
  */
-int arm7_9_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int retval = ERROR_OK;
@@ -331,7 +331,7 @@ int arm7_9_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
  *         queue.  For software breakpoints, this will be the status of the
  *         required memory reads and writes
  */
-int arm7_9_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int arm7_9_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -506,7 +506,7 @@ int arm7_9_remove_breakpoint(struct target *target, struct breakpoint *breakpoin
  * @return Error status if watchpoint set fails or the result of executing the
  *         JTAG queue
  */
-int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -577,7 +577,7 @@ int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
  * @return Error status while trying to unset the watchpoint or the result of
  *         executing the JTAG queue
  */
-int arm7_9_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int arm7_9_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -729,7 +729,7 @@ int arm7_9_execute_sys_speed(struct target *target)
  * @param target Pointer to the target to issue commands to
  * @return Always ERROR_OK
  */
-int arm7_9_execute_fast_sys_speed(struct target *target)
+static int arm7_9_execute_fast_sys_speed(struct target *target)
 {
 	static int set = 0;
 	static uint8_t check_value[4], check_mask[4];
@@ -804,7 +804,7 @@ int arm7_9_target_request_data(struct target *target, uint32_t size, uint8_t *bu
  * @return ERROR_OK unless there are issues with the JTAG queue or when reading
  *                  from the Embedded ICE unit
  */
-int arm7_9_handle_target_request(void *priv)
+static int arm7_9_handle_target_request(void *priv)
 {
 	int retval = ERROR_OK;
 	struct target *target = priv;
@@ -1095,7 +1095,7 @@ int arm7_9_deassert_reset(struct target *target)
  * @param target Pointer to the ARM7/9 target to have halt cleared
  * @return Always ERROR_OK
  */
-int arm7_9_clear_halt(struct target *target)
+static int arm7_9_clear_halt(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
@@ -1483,7 +1483,7 @@ static int arm7_9_debug_entry(struct target *target)
  * @return Error if the target is not halted, has an invalid core mode, or if
  *         the JTAG queue fails to execute
  */
-int arm7_9_full_context(struct target *target)
+static int arm7_9_full_context(struct target *target)
 {
 	int i;
 	int retval;
@@ -1579,7 +1579,7 @@ int arm7_9_full_context(struct target *target)
  * @return Error status if the target is not halted or the core mode in the
  *         armv4_5 struct is invalid.
  */
-int arm7_9_restore_context(struct target *target)
+static int arm7_9_restore_context(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;
@@ -1735,7 +1735,7 @@ int arm7_9_restore_context(struct target *target)
  * @param target Pointer to the ARM7/9 target to be restarted
  * @return Result of executing the JTAG queue
  */
-int arm7_9_restart_core(struct target *target)
+static int arm7_9_restart_core(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
@@ -1757,7 +1757,7 @@ int arm7_9_restart_core(struct target *target)
  *
  * @param target Pointer to the ARM7/9 target to enable watchpoints on
  */
-void arm7_9_enable_watchpoints(struct target *target)
+static void arm7_9_enable_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -1775,7 +1775,7 @@ void arm7_9_enable_watchpoints(struct target *target)
  *
  * @param target Pointer to the ARM7/9 target to enable breakpoints on
  */
-void arm7_9_enable_breakpoints(struct target *target)
+static void arm7_9_enable_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -2828,7 +2828,7 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 	return ERROR_OK;
 }
 
-int arm7_9_setup_semihosting(struct target *target, int enable)
+static int arm7_9_setup_semihosting(struct target *target, int enable)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
