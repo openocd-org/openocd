@@ -1302,7 +1302,7 @@ static const struct command_registration mflash_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int mflash_init_drivers(struct command_context *cmd_ctx)
+static int mflash_init_drivers(struct command_context *cmd_ctx)
 {
 	if (!mflash_bank)
 		return ERROR_OK;

@@ -142,7 +142,6 @@ struct mflash_bank
 };
 
 int mflash_register_commands(struct command_context *cmd_ctx);
-int mflash_init_drivers(struct command_context *cmd_ctx);
 
 #define MG_MFLASH_SECTOR_SIZE		(0x200)		/* 512Bytes = 2^9 */
 #define MG_MFLASH_SECTOR_SIZE_MASK	(0x200-1)
