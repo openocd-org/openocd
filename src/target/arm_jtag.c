@@ -82,7 +82,7 @@ int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, ta
 	return retval;
 }
 
-int arm_jtag_reset_callback(enum jtag_event event, void *priv)
+static int arm_jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	struct arm_jtag *jtag_info = priv;
 
