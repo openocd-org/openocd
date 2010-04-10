@@ -279,7 +279,7 @@ static int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
  * if the dry_run_pc argument is provided, no state is changed,
  * but the new pc is stored in the variable pointed at by the argument
  */
-int arm_simulate_step_core(struct target *target,
+static int arm_simulate_step_core(struct target *target,
 		uint32_t *dry_run_pc, struct arm_sim_interface *sim)
 {
 	uint32_t current_pc = sim->get_reg(sim, 15);

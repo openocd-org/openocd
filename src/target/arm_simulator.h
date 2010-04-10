@@ -40,8 +40,4 @@ struct arm_sim_interface
 /* armv4_5 version */
 int arm_simulate_step(struct target *target, uint32_t *dry_run_pc);
 
-/* a generic arm simulator. Caller must implement the sim interface */
-int arm_simulate_step_core(struct target *target,
-		uint32_t *dry_run_pc, struct arm_sim_interface *sim);
-
 #endif /* ARM_SIMULATOR_H */
