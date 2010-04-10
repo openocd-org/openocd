@@ -90,6 +90,24 @@ struct mips32_pracc_context
 	struct mips_ejtag *ejtag_info;
 };
 
+static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint8_t *buf);
+static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint16_t *buf);
+static int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint32_t *buf);
+static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info,
+		uint32_t addr, uint32_t *buf);
+
+static int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint8_t *buf);
+static int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint16_t *buf);
+static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int count, uint32_t *buf);
+static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info,
+		uint32_t addr, uint32_t *buf);
+
 static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 {
 	uint32_t ejtag_ctrl;
@@ -284,7 +302,7 @@ int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size
 	return ERROR_OK;
 }
 
-int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+static int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -354,7 +372,7 @@ int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 	return retval;
 }
 
-int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
+static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -387,7 +405,7 @@ int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t
 	return retval;
 }
 
-int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -464,7 +482,7 @@ int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int co
 	return ERROR_OK;
 }
 
-int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -559,7 +577,7 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -608,7 +626,7 @@ int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
+static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -640,7 +658,7 @@ int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+static int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
@@ -698,7 +716,7 @@ int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int c
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+static int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
 {
 	static const uint32_t code[] = {
 															/* start: */
