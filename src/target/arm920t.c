@@ -788,7 +788,7 @@ static int arm920t_mcr(struct target *target, int cpnum,
 		uint32_t CRn, uint32_t CRm,
 		uint32_t value);
 
-int arm920t_init_arch_info(struct target *target,
+static int arm920t_init_arch_info(struct target *target,
 		struct arm920t_common *arm920t, struct jtag_tap *tap)
 {
 	struct arm7_9_common *arm7_9 = &arm920t->arm7_9_common;
