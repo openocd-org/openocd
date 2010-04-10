@@ -512,7 +512,7 @@ static const struct command_registration nand_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-int nand_init(struct command_context *cmd_ctx)
+static int nand_init(struct command_context *cmd_ctx)
 {
 	if (!nand_devices)
 		return ERROR_OK;
@@ -536,12 +536,14 @@ COMMAND_HANDLER(handle_nand_init_command)
 	LOG_DEBUG("Initializing NAND devices...");
 	return nand_init(CMD_CTX);
 }
-int nand_list_walker(struct nand_flash_controller *c, void *x)
+
+static int nand_list_walker(struct nand_flash_controller *c, void *x)
 {
 	struct command_context *cmd_ctx = (struct command_context *)x;
 	command_print(cmd_ctx, "  %s", c->name);
 	return ERROR_OK;
 }
+
 COMMAND_HANDLER(handle_nand_list_drivers)
 {
 	command_print(CMD_CTX, "Available NAND flash controller drivers:");
