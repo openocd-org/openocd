@@ -47,7 +47,7 @@ static const char sram_buffer_bounds_err_msg[] =
 	"trying to access out of SRAM buffer bound (addr=0x%" PRIx32 ")";
 static const char get_status_register_err_msg[] = "can't get NAND status";
 static uint32_t in_sram_address;
-unsigned char sign_of_sequental_byte_read;
+static unsigned char sign_of_sequental_byte_read;
 
 static int test_iomux_settings (struct target * target, uint32_t value,
 				uint32_t mask, const char *text);
