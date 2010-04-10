@@ -29,7 +29,7 @@
                       Internal Support, Helpers
    ---------------------------------------------------------------------- */
 
-const struct flash_sector TMS470R1A256_SECTORS[] = {
+static const struct flash_sector TMS470R1A256_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
 	{0x00002000, 0x00002000, -1, -1},
 	{0x00004000, 0x00002000, -1, -1},
@@ -49,7 +49,7 @@ const struct flash_sector TMS470R1A256_SECTORS[] = {
 #define TMS470R1A256_NUM_SECTORS \
 	ARRAY_SIZE(TMS470R1A256_SECTORS)
 
-const struct flash_sector TMS470R1A288_BANK0_SECTORS[] = {
+static const struct flash_sector TMS470R1A288_BANK0_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
 	{0x00002000, 0x00002000, -1, -1},
 	{0x00004000, 0x00002000, -1, -1},
@@ -59,7 +59,7 @@ const struct flash_sector TMS470R1A288_BANK0_SECTORS[] = {
 #define TMS470R1A288_BANK0_NUM_SECTORS \
 	ARRAY_SIZE(TMS470R1A288_BANK0_SECTORS)
 
-const struct flash_sector TMS470R1A288_BANK1_SECTORS[] = {
+static const struct flash_sector TMS470R1A288_BANK1_SECTORS[] = {
 	{0x00040000, 0x00010000, -1, -1},
 	{0x00050000, 0x00010000, -1, -1},
 	{0x00060000, 0x00010000, -1, -1},
@@ -69,7 +69,7 @@ const struct flash_sector TMS470R1A288_BANK1_SECTORS[] = {
 #define TMS470R1A288_BANK1_NUM_SECTORS \
 	ARRAY_SIZE(TMS470R1A288_BANK1_SECTORS)
 
-const struct flash_sector TMS470R1A384_BANK0_SECTORS[] = {
+static const struct flash_sector TMS470R1A384_BANK0_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
 	{0x00002000, 0x00002000, -1, -1},
 	{0x00004000, 0x00004000, -1, -1},
@@ -85,7 +85,7 @@ const struct flash_sector TMS470R1A384_BANK0_SECTORS[] = {
 #define TMS470R1A384_BANK0_NUM_SECTORS \
 	ARRAY_SIZE(TMS470R1A384_BANK0_SECTORS)
 
-const struct flash_sector TMS470R1A384_BANK1_SECTORS[] = {
+static const struct flash_sector TMS470R1A384_BANK1_SECTORS[] = {
 	{0x00020000, 0x00008000, -1, -1},
 	{0x00028000, 0x00008000, -1, -1},
 	{0x00030000, 0x00008000, -1, -1},
@@ -95,7 +95,7 @@ const struct flash_sector TMS470R1A384_BANK1_SECTORS[] = {
 #define TMS470R1A384_BANK1_NUM_SECTORS \
 	ARRAY_SIZE(TMS470R1A384_BANK1_SECTORS)
 
-const struct flash_sector TMS470R1A384_BANK2_SECTORS[] = {
+static const struct flash_sector TMS470R1A384_BANK2_SECTORS[] = {
 	{0x00040000, 0x00008000, -1, -1},
 	{0x00048000, 0x00008000, -1, -1},
 	{0x00050000, 0x00008000, -1, -1},
@@ -667,7 +667,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 
 /* ---------------------------------------------------------------------- */
 
-int tms470_flash_status(struct flash_bank *bank)
+static int tms470_flash_status(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	int result = ERROR_OK;
