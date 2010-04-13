@@ -67,6 +67,7 @@ struct xscale_trace_data
 	uint32_t chkpt0;
 	uint32_t chkpt1;
 	uint32_t last_instruction;
+	unsigned int num_checkpoints;
 	struct xscale_trace_data *next;
 };
 
@@ -77,8 +78,6 @@ struct xscale_trace
 	struct xscale_trace_data *data;		/* linked list of collected trace data */
 	int buffer_enabled;				/* whether trace buffer is enabled */
 	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */
-	int pc_ok;
-	uint32_t current_pc;
 	enum arm_state core_state;	/* current core state (ARM, Thumb) */
 };
 

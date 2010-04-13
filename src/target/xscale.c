@@ -1277,12 +1277,6 @@ static int xscale_resume(struct target *target, int current,
 	 * clean the trace buffer if it is to be enabled (0x62) */
 	if (xscale->trace.buffer_enabled)
 	{
-		/* if trace buffer is set to 'fill' mode, save starting pc */
-		if (xscale->trace.buffer_fill > 0)
-		{
-			xscale->trace.pc_ok = 1;
-			xscale->trace.current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
-		}
 		xscale_send_u32(target, 0x62);
 		xscale_send_u32(target, 0x31);
 	}
@@ -2521,6 +2515,7 @@ static int xscale_read_trace(struct target *target)
 	uint32_t trace_buffer[258];
 	int is_address[256];
 	int i, j;
+	unsigned int num_checkpoints = 0;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2537,23 +2532,27 @@ static int xscale_read_trace(struct target *target)
 	/* parse buffer backwards to identify address entries */
 	for (i = 255; i >= 0; i--)
 	{
+		/* also count number of checkpointed entries */
+		if ((trace_buffer[i] & 0xe0) == 0xc0)
+			num_checkpoints++;
+
 		is_address[i] = 0;
 		if (((trace_buffer[i] & 0xf0) == 0x90) ||
 			((trace_buffer[i] & 0xf0) == 0xd0))
 		{
-			if (i >= 3)
+			if (i > 0)
 				is_address[--i] = 1;
-			if (i >= 2)
+			if (i > 0)
 				is_address[--i] = 1;
-			if (i >= 1)
+			if (i > 0)
 				is_address[--i] = 1;
-			if (i >= 0)
+			if (i > 0)
 				is_address[--i] = 1;
 		}
 	}
 
 
-	/* search first non-zero entry */
+	/* search first non-zero entry that is not part of an address */
 	for (j = 0; (j < 256) && (trace_buffer[j] == 0) && (!is_address[j]); j++)
 		;
 
@@ -2563,6 +2562,22 @@ static int xscale_read_trace(struct target *target)
 		return ERROR_XSCALE_NO_TRACE_DATA;
 	}
 
+	/* account for possible partial address at buffer start (wrap mode only) */
+	if (is_address[0])
+	{	/* first entry is address; complete set of 4? */
+		i = 1;
+		while (i < 4)
+			if (!is_address[i++])
+				break;
+		if (i < 4)
+			j += i;   /* partial address; can't use it */
+	}
+
+	/* if first valid entry is indirect branch, can't use that either (no address) */
+	if (((trace_buffer[j] & 0xf0) == 0x90) || ((trace_buffer[j] & 0xf0) == 0xd0))
+		j++;
+
+	/* walk linked list to terminating entry */
 	for (trace_data_p = &xscale->trace.data; *trace_data_p; trace_data_p = &(*trace_data_p)->next)
 		;
 
@@ -2574,6 +2589,7 @@ static int xscale_read_trace(struct target *target)
 			buf_get_u32(armv4_5->pc->value, 0, 32);
 	(*trace_data_p)->entries = malloc(sizeof(struct xscale_trace_entry) * (256 - j));
 	(*trace_data_p)->depth = 256 - j;
+	(*trace_data_p)->num_checkpoints = num_checkpoints;
 
 	for (i = j; i < 256; i++)
 	{
@@ -2587,10 +2603,10 @@ static int xscale_read_trace(struct target *target)
 	return ERROR_OK;
 }
 
-static int xscale_read_instruction(struct target *target,
-		struct arm_instruction *instruction)
+static int xscale_read_instruction(struct target *target, uint32_t pc,
+								   struct arm_instruction *instruction)
 {
-	struct xscale_common *xscale = target_to_xscale(target);
+	struct xscale_common *const xscale = target_to_xscale(target);
 	int i;
 	int section = -1;
 	size_t size_read;
@@ -2603,8 +2619,8 @@ static int xscale_read_instruction(struct target *target,
 	/* search for the section the current instruction belongs to */
 	for (i = 0; i < xscale->trace.image->num_sections; i++)
 	{
-		if ((xscale->trace.image->sections[i].base_address <= xscale->trace.current_pc) &&
-			(xscale->trace.image->sections[i].base_address + xscale->trace.image->sections[i].size > xscale->trace.current_pc))
+		if ((xscale->trace.image->sections[i].base_address <= pc) &&
+			(xscale->trace.image->sections[i].base_address + xscale->trace.image->sections[i].size > pc))
 		{
 			section = i;
 			break;
@@ -2621,27 +2637,27 @@ static int xscale_read_instruction(struct target *target,
 	{
 		uint8_t buf[4];
 		if ((retval = image_read_section(xscale->trace.image, section,
-			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
+			pc - xscale->trace.image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
 		{
 			LOG_ERROR("error while reading instruction: %i", retval);
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u32(target, buf);
-		arm_evaluate_opcode(opcode, xscale->trace.current_pc, instruction);
+		arm_evaluate_opcode(opcode, pc, instruction);
 	}
 	else if (xscale->trace.core_state == ARM_STATE_THUMB)
 	{
 		uint8_t buf[2];
 		if ((retval = image_read_section(xscale->trace.image, section,
-			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
+			pc - xscale->trace.image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)
 		{
 			LOG_ERROR("error while reading instruction: %i", retval);
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u16(target, buf);
-		thumb_evaluate_opcode(opcode, xscale->trace.current_pc, instruction);
+		thumb_evaluate_opcode(opcode, pc, instruction);
 	}
 	else
 	{
@@ -2652,207 +2668,234 @@ static int xscale_read_instruction(struct target *target,
 	return ERROR_OK;
 }
 
-static int xscale_branch_address(struct xscale_trace_data *trace_data,
-		int i, uint32_t *target)
+/* Extract address encoded into trace data. 
+ * Write result to address referenced by argument 'target', or 0 if incomplete.  */
+static inline void xscale_branch_address(struct xscale_trace_data *trace_data,
+					 int i, uint32_t *target)
 {
 	/* if there are less than four entries prior to the indirect branch message
 	 * we can't extract the address */
 	if (i < 4)
-	{
-		return -1;
-	}
+		*target = 0;
+	else
+		*target = (trace_data->entries[i-1].data) | (trace_data->entries[i-2].data << 8) |
+			(trace_data->entries[i-3].data << 16) | (trace_data->entries[i-4].data << 24);
+}
 
-	*target = (trace_data->entries[i-1].data) | (trace_data->entries[i-2].data << 8) |
-				(trace_data->entries[i-3].data << 16) | (trace_data->entries[i-4].data << 24);
-
-	return 0;
+static inline void xscale_display_instruction(struct target *target, uint32_t pc,
+											  struct arm_instruction *instruction,
+											  struct command_context *cmd_ctx)
+{
+   int retval = xscale_read_instruction(target, pc, instruction);
+   if (retval == ERROR_OK)
+	  command_print(cmd_ctx, "%s", instruction->text);
+   else
+	  command_print(cmd_ctx, "0x%8.8" PRIx32 "\t<not found in image>", pc);
 }
 
 static int xscale_analyze_trace(struct target *target, struct command_context *cmd_ctx)
 {
-	struct xscale_common *xscale = target_to_xscale(target);
-	int next_pc_ok = 0;
-	uint32_t next_pc = 0x0;
-	struct xscale_trace_data *trace_data = xscale->trace.data;
-	int retval;
+   struct xscale_common *xscale = target_to_xscale(target);
+   struct xscale_trace_data *trace_data = xscale->trace.data;
+   int i, retval;
+   uint32_t breakpoint_pc;
+   struct arm_instruction instruction;
+   uint32_t current_pc = 0;  /* initialized when address determined */
+	
+   if (!xscale->trace.image)
+	  LOG_WARNING("No trace image loaded; use 'xscale trace_image'");
 
-	while (trace_data)
-	{
-		int i, chkpt;
-		int rollover;
-		int branch;
-		int exception;
-		xscale->trace.core_state = ARM_STATE_ARM;
+   /* loop for each trace buffer that was loaded from target */
+   while (trace_data)
+   {
+	  int chkpt = 0;  /* incremented as checkpointed entries found */
+	  int j;
 
-		chkpt = 0;
-		rollover = 0;
+	  /* FIXME: set this to correct mode when trace buffer is first enabled */
+	  xscale->trace.core_state = ARM_STATE_ARM;
 
-		for (i = 0; i < trace_data->depth; i++)
-		{
-			next_pc_ok = 0;
-			branch = 0;
-			exception = 0;
+	  /* loop for each entry in this trace buffer */
+	  for (i = 0; i < trace_data->depth; i++)
+	  {
+		 int exception = 0;
+		 uint32_t chkpt_reg = 0x0;
+		 uint32_t branch_target = 0;
+		 int count;
 
-			if (trace_data->entries[i].type == XSCALE_TRACE_ADDRESS)
-				continue;
+		 /* trace entry type is upper nybble of 'message byte' */
+		 int trace_msg_type = (trace_data->entries[i].data & 0xf0) >> 4;
 
-			switch ((trace_data->entries[i].data & 0xf0) >> 4)
+		 /* Target addresses of indirect branches are written into buffer
+		  * before the message byte representing the branch. Skip past it */
+		 if (trace_data->entries[i].type == XSCALE_TRACE_ADDRESS)
+			continue;
+
+		 switch (trace_msg_type)
+		 {
+			case 0:		/* Exceptions */
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+			   exception = (trace_data->entries[i].data & 0x70) >> 4;
+
+			   /* FIXME: vector table may be at ffff0000 */
+			   branch_target = (trace_data->entries[i].data & 0xf0) >> 2;
+			   break;
+
+			case 8:		/* Direct Branch */
+			   break;
+
+			case 9:		/* Indirect Branch */
+			   xscale_branch_address(trace_data, i, &branch_target);
+			   break;
+
+			case 13:	   /* Checkpointed Indirect Branch */
+			   xscale_branch_address(trace_data, i, &branch_target);
+			   if ((trace_data->num_checkpoints == 2) && (chkpt == 0))
+				  chkpt_reg = trace_data->chkpt1; /* 2 chkpts, this is oldest */
+			   else
+				  chkpt_reg = trace_data->chkpt0; /* 1 chkpt, or 2 and newest */
+
+			   chkpt++;
+			   break;
+
+			case 12:	   /* Checkpointed Direct Branch */
+			   if ((trace_data->num_checkpoints == 2) && (chkpt == 0))
+				  chkpt_reg = trace_data->chkpt1; /* 2 chkpts, this is oldest */
+			   else
+				  chkpt_reg = trace_data->chkpt0; /* 1 chkpt, or 2 and newest */
+
+			   /* if no current_pc, checkpoint will be starting point */
+			   if (current_pc == 0)
+				  branch_target = chkpt_reg;
+
+			   chkpt++;
+			   break;
+
+			case 15:	/* Roll-over */
+			   break;
+
+			default:	/* Reserved */
+			   LOG_WARNING("trace is suspect: invalid trace message byte");
+			   continue;
+
+		 }
+
+		 /* If we don't have the current_pc yet, but we did get the branch target
+		  * (either from the trace buffer on indirect branch, or from a checkpoint reg),
+		  * then we can start displaying instructions at the next iteration, with
+		  * branch_target as the starting point.
+		  */
+		 if (current_pc == 0)
+		 {
+			current_pc = branch_target; /* remains 0 unless branch_target obtained */
+			continue;
+		 }
+
+		 /* We have current_pc.  Read and display the instructions from the image.
+		  * First, display count instructions (lower nybble of message byte). */
+		 count = trace_data->entries[i].data & 0x0f;
+		 for (j = 0; j < count; j++)
+		 {
+			xscale_display_instruction(target, current_pc, &instruction, cmd_ctx);
+			current_pc += xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2;
+		 }
+
+		 /* An additional instruction is implicitly added to count for
+		  * rollover and some exceptions: undef, swi, prefetch abort. */
+		 if ((trace_msg_type == 15) || (exception > 0 && exception < 4))
+		 {
+			xscale_display_instruction(target, current_pc, &instruction, cmd_ctx);
+			current_pc += xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2;
+		 }
+
+		 if (trace_msg_type == 15) /* rollover */
+			continue;
+
+		 if (exception)
+		 {
+			command_print(cmd_ctx, "--- exception %i ---", exception);
+			continue;
+		 }
+			
+		 /* not exception or rollover; next instruction is a branch and is
+		  * not included in the count */
+		 xscale_display_instruction(target, current_pc, &instruction, cmd_ctx);
+
+		 /* for direct branches, extract branch destination from instruction */
+		 if ((trace_msg_type == 8) || (trace_msg_type == 12))
+		 {
+			retval = xscale_read_instruction(target, current_pc, &instruction);
+			if (retval == ERROR_OK)
+			   current_pc = instruction.info.b_bl_bx_blx.target_address;
+			else
+			   current_pc = 0;	/* branch destination unknown */
+
+			/* direct branch w/ checkpoint; can also get from checkpoint reg */
+			if (trace_msg_type == 12)
 			{
-				case 0:		/* Exceptions */
-				case 1:
-				case 2:
-				case 3:
-				case 4:
-				case 5:
-				case 6:
-				case 7:
-					exception = (trace_data->entries[i].data & 0x70) >> 4;
-					next_pc_ok = 1;
-					next_pc = (trace_data->entries[i].data & 0xf0) >> 2;
-					command_print(cmd_ctx, "--- exception %i ---", (trace_data->entries[i].data & 0xf0) >> 4);
-					break;
-				case 8:		/* Direct Branch */
-					branch = 1;
-					break;
-				case 9:		/* Indirect Branch */
-					branch = 1;
-					if (xscale_branch_address(trace_data, i, &next_pc) == 0)
-					{
-						next_pc_ok = 1;
-					}
-					break;
-				case 13:	/* Checkpointed Indirect Branch */
-					if (xscale_branch_address(trace_data, i, &next_pc) == 0)
-					{
-						next_pc_ok = 1;
-						if (((chkpt == 0) && (next_pc != trace_data->chkpt0))
-							|| ((chkpt == 1) && (next_pc != trace_data->chkpt1)))
-							LOG_WARNING("checkpointed indirect branch target address doesn't match checkpoint");
-					}
-					/* explicit fall-through */
-				case 12:	/* Checkpointed Direct Branch */
-					branch = 1;
-					if (chkpt == 0)
-					{
-						next_pc_ok = 1;
-						next_pc = trace_data->chkpt0;
-						chkpt++;
-					}
-					else if (chkpt == 1)
-					{
-						next_pc_ok = 1;
-						next_pc = trace_data->chkpt0;
-						chkpt++;
-					}
-					else
-					{
-						LOG_WARNING("more than two checkpointed branches encountered");
-					}
-					break;
-				case 15:	/* Roll-over */
-					rollover++;
-					continue;
-				default:	/* Reserved */
-					command_print(cmd_ctx, "--- reserved trace message ---");
-					LOG_ERROR("BUG: trace message %i is reserved", (trace_data->entries[i].data & 0xf0) >> 4);
-					return ERROR_OK;
+			   if (current_pc == 0)
+				  current_pc = chkpt_reg;
+			   else if (current_pc != chkpt_reg)  /* sanity check */
+				  LOG_WARNING("trace is suspect: checkpoint register "
+							  "inconsistent with adddress from image");
 			}
 
-			if (xscale->trace.pc_ok)
-			{
-				int executed = (trace_data->entries[i].data & 0xf) + rollover * 16;
-				struct arm_instruction instruction;
+			if (current_pc == 0)
+			   command_print(cmd_ctx, "address unknown");
 
-				if ((exception == 6) || (exception == 7))
-				{
-					/* IRQ or FIQ exception, no instruction executed */
-					executed -= 1;
-				}
+			continue;
+		 }
 
-				while (executed-- >= 0)
-				{
-					if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)
-					{
-						/* can't continue tracing with no image available */
-						if (retval == ERROR_TRACE_IMAGE_UNAVAILABLE)
-						{
-							return retval;
-						}
-						else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE)
-						{
-							/* TODO: handle incomplete images */
-						}
-					}
+		 /* indirect branch; the branch destination was read from trace buffer */
+		 if ((trace_msg_type == 9) || (trace_msg_type == 13))
+		 {
+			current_pc = branch_target;
 
-					/* a precise abort on a load to the PC is included in the incremental
-					 * word count, other instructions causing data aborts are not included
-					 */
-					if ((executed == 0) && (exception == 4)
-						&& ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDM)))
-					{
-						if ((instruction.type == ARM_LDM)
-							&& ((instruction.info.load_store_multiple.register_list & 0x8000) == 0))
-						{
-							executed--;
-						}
-						else if (((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH))
-							&& (instruction.info.load_store.Rd != 15))
-						{
-							executed--;
-						}
-					}
+			/* sanity check (checkpoint reg is redundant) */
+			if ((trace_msg_type == 13) && (chkpt_reg != branch_target))
+			   LOG_WARNING("trace is suspect: checkpoint register "
+						   "inconsistent with address from trace buffer");
+		 }
 
-					/* only the last instruction executed
-					 * (the one that caused the control flow change)
-					 * could be a taken branch
-					 */
-					if (((executed == -1) && (branch == 1)) &&
-						(((instruction.type == ARM_B) ||
-							(instruction.type == ARM_BL) ||
-							(instruction.type == ARM_BLX)) &&
-							(instruction.info.b_bl_bx_blx.target_address != 0xffffffff)))
-					{
-						xscale->trace.current_pc = instruction.info.b_bl_bx_blx.target_address;
-					}
-					else
-					{
-						xscale->trace.current_pc += (xscale->trace.core_state == ARM_STATE_ARM) ? 4 : 2;
-					}
-					command_print(cmd_ctx, "%s", instruction.text);
-				}
+	  } /* END: for (i = 0; i < trace_data->depth; i++) */
 
-				rollover = 0;
-			}
+	  breakpoint_pc = trace_data->last_instruction; /* used below */
+	  trace_data = trace_data->next;
 
-			if (next_pc_ok)
-			{
-				xscale->trace.current_pc = next_pc;
-				xscale->trace.pc_ok = 1;
-			}
-		}
+   } /* END: while (trace_data) */
 
-		for (; xscale->trace.current_pc < trace_data->last_instruction; xscale->trace.current_pc += (xscale->trace.core_state == ARM_STATE_ARM) ? 4 : 2)
-		{
-			struct arm_instruction instruction;
-			if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)
-			{
-				/* can't continue tracing with no image available */
-				if (retval == ERROR_TRACE_IMAGE_UNAVAILABLE)
-				{
-					return retval;
-				}
-				else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE)
-				{
-					/* TODO: handle incomplete images */
-				}
-			}
-			command_print(cmd_ctx, "%s", instruction.text);
-		}
+   /* Finally... display all instructions up to the value of the pc when the
+	* debug break occurred (saved when trace data was collected from target).
+	* This is necessary because the trace only records execution branches and 16
+	* consecutive instructions (rollovers), so last few typically missed.
+	*/
+   if (current_pc == 0)
+	  return ERROR_OK;   /* current_pc was never found */
 
-		trace_data = trace_data->next;
-	}
+   /* how many instructions remaining? */
+   int gap_count = (breakpoint_pc - current_pc) /
+	  (xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2);
 
-	return ERROR_OK;
+   /* should never be negative or over 16, but verify */
+   if (gap_count < 0 || gap_count > 16)
+   {
+	  LOG_WARNING("trace is suspect: excessive gap at end of trace");
+	  return ERROR_OK;  /* bail; large number or negative value no good */
+   }
+
+   /* display remaining instructions */
+   for (i = 0; i < gap_count; i++)
+   {
+	  xscale_display_instruction(target, current_pc, &instruction, cmd_ctx);
+	  current_pc += xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2;
+   }
+
+   return ERROR_OK;
 }
 
 static const struct reg_arch_type xscale_reg_type = {
@@ -3329,7 +3372,6 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
-	struct arm *armv4_5 = &xscale->armv4_5_common;
 	uint32_t dcsr_value;
 	int retval;
 
@@ -3376,20 +3418,6 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 	else if ((CMD_ARGC >= 2) && (strcmp("wrap", CMD_ARGV[1]) == 0))
 	{
 		xscale->trace.buffer_fill = -1;
-	}
-
-	if (xscale->trace.buffer_enabled)
-	{
-		/* if we enable the trace buffer in fill-once
-		 * mode we know the address of the first instruction */
-		xscale->trace.pc_ok = 1;
-		xscale->trace.current_pc =
-				buf_get_u32(armv4_5->pc->value, 0, 32);
-	}
-	else
-	{
-		/* otherwise the address is unknown, and we have no known good PC */
-		xscale->trace.pc_ok = 0;
 	}
 
 	command_print(CMD_CTX, "trace buffer %s (%s)",
