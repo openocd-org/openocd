@@ -72,6 +72,9 @@ struct cortex_a8_common
 	/* Use cortex_a8_read_regs_through_mem for fast register reads */
 	int fast_reg_read;
 
+	/* Flag that helps to resolve what ttb to use: user or kernel */
+	int current_address_mode;
+
 	struct armv7a_common armv7a_common;
 };
 
