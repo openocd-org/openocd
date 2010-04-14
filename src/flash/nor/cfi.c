@@ -598,12 +598,8 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	uint16_t chip_width, bus_width;
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[3], chip_width);
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[4], bus_width);
-
-	if ((chip_width > CFI_MAX_CHIP_WIDTH)
-			|| (bus_width > CFI_MAX_BUS_WIDTH))
+	if ((bank->chip_width > CFI_MAX_CHIP_WIDTH)
+			|| (bank->bus_width > CFI_MAX_BUS_WIDTH))
 	{
 		LOG_ERROR("chip and bus width have to specified in bytes");
 		return ERROR_FLASH_BANK_INVALID;
