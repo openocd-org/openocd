@@ -624,8 +624,18 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
+	/* both widths must:
+	 * - not exceed max value;
+	 * - not be null;
+	 * - be equal to a power of 2.
+	 * bus must be wide enought to hold one chip */
 	if ((bank->chip_width > CFI_MAX_CHIP_WIDTH)
-			|| (bank->bus_width > CFI_MAX_BUS_WIDTH))
+			|| (bank->bus_width > CFI_MAX_BUS_WIDTH)
+			|| (bank->chip_width == 0)
+			|| (bank->bus_width == 0)
+			|| (bank->chip_width & (bank->chip_width - 1))
+			|| (bank->bus_width & (bank->bus_width - 1))
+			|| (bank->chip_width > bank->bus_width))
 	{
 		LOG_ERROR("chip and bus width have to specified in bytes");
 		return ERROR_FLASH_BANK_INVALID;
