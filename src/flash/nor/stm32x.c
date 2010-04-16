@@ -676,12 +676,6 @@ static int stm32x_probe(struct flash_bank *bank)
 	uint32_t device_id;
 	int page_size;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	stm32x_info->probed = 0;
 
 	/* read stm32 device id register */
