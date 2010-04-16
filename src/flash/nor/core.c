@@ -56,7 +56,10 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	int retval;
 	bool updated = false;
 
-	/* NOTE: "first == last" means protect just that sector */
+	/* NOTE: "first == last" means (un?)protect just that sector.
+	 code including Lower level ddrivers may rely on this "first <= last"
+	 * invariant.
+	*/
 
 	/* callers may not supply illegal parameters ... */
 	if (first < 0 || first > last || last >= bank->num_sectors)
@@ -90,10 +93,10 @@ scan:
 		 * REVISIT we could handle discontiguous regions by issuing
 		 * more than one driver request.  How much would that matter?
 		 */
-		if (i == first) {
+		if (i == first && i != last) {
 			updated = true;
 			first++;
-		} else if (i == last) {
+		} else if (i == last && i != first) {
 			updated = true;
 			last--;
 		}
@@ -107,11 +110,19 @@ scan:
 		goto scan;
 	}
 
-	/* Single sector, already protected?  Nothing to do! */
-	if (first > last)
+	/* Single sector, already protected?  Nothing to do!
+	 * We may have trimmed our parameters into this degenerate case.
+	 *
+	 * FIXME repeating the "is_protected==set" test is a giveaway that
+	 * this fast-exit belongs earlier, in the trim-it-down loop; mve.
+	 * */
+	if (first == last && bank->sectors[first].is_protected == set)
 		return ERROR_OK;
 
 
+	/* Note that we don't pass illegal parameters to drivers; any
+	 * trimming just turns one valid range into another one.
+	 */
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
 	{
