@@ -1604,9 +1604,11 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word, uint32_
 	struct target *target = bank->target;
 
 	/* Calculate buffer size and boundary mask */
+	/* buffersize is (buffer size per chip) * (number of chips) */
+	/* bufferwsize is buffersize in words */
 	uint32_t buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
 	uint32_t buffermask = buffersize-1;
-	uint32_t bufferwsize;
+	uint32_t bufferwsize = buffersize / bank->bus_width;
 
 	/* Check for valid range */
 	if (address & buffermask)
@@ -1615,18 +1617,6 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word, uint32_
 			  bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	switch (bank->chip_width)
-	{
-	case 4 : bufferwsize = buffersize / 4; break;
-	case 2 : bufferwsize = buffersize / 2; break;
-	case 1 : bufferwsize = buffersize; break;
-	default:
-		LOG_ERROR("Unsupported chip width %d", bank->chip_width);
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	bufferwsize/=(bank->bus_width / bank->chip_width);
-
 
 	/* Check for valid size */
 	if (wordcount > bufferwsize)
@@ -1733,9 +1723,11 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word, uint
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 
 	/* Calculate buffer size and boundary mask */
+	/* buffersize is (buffer size per chip) * (number of chips) */
+	/* bufferwsize is buffersize in words */
 	uint32_t buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
 	uint32_t buffermask = buffersize-1;
-	uint32_t bufferwsize;
+	uint32_t bufferwsize = buffersize / bank->bus_width;
 
 	/* Check for valid range */
 	if (address & buffermask)
@@ -1743,17 +1735,6 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word, uint
 		LOG_ERROR("Write address at base 0x%" PRIx32 ", address %" PRIx32 " not aligned to 2^%d boundary", bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	switch (bank->chip_width)
-	{
-	case 4 : bufferwsize = buffersize / 4; break;
-	case 2 : bufferwsize = buffersize / 2; break;
-	case 1 : bufferwsize = buffersize; break;
-	default:
-		LOG_ERROR("Unsupported chip width %d", bank->chip_width);
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	bufferwsize/=(bank->bus_width / bank->chip_width);
 
 	/* Check for valid size */
 	if (wordcount > bufferwsize)
@@ -1950,22 +1931,12 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	{
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
-			//adjust buffersize for chip width
+			/* Calculate buffer size and boundary mask */
+			/* buffersize is (buffer size per chip) * (number of chips) */
+			/* bufferwsize is buffersize in words */
 			uint32_t buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
 			uint32_t buffermask = buffersize-1;
-			uint32_t bufferwsize;
-
-			switch (bank->chip_width)
-			{
-			case 4 : bufferwsize = buffersize / 4; break;
-			case 2 : bufferwsize = buffersize / 2; break;
-			case 1 : bufferwsize = buffersize; break;
-			default:
-				LOG_ERROR("Unsupported chip width %d", bank->chip_width);
-				return ERROR_FLASH_OPERATION_FAILED;
-			}
-
-			bufferwsize/=(bank->bus_width / bank->chip_width);
+			uint32_t bufferwsize = buffersize / bank->bus_width;
 
 			/* fall back to memory writes */
 			while (count >= (uint32_t)bank->bus_width)
