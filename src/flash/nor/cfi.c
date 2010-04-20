@@ -1871,6 +1871,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 		for (i = 0; i < align; ++i, ++copy_p)
 		{
 			uint8_t byte;
+			/* FIXME: access flash at bus_width size */
 			if ((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
@@ -1890,6 +1891,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 		for (; (count == 0) && (i < bank->bus_width); ++i, ++copy_p)
 		{
 			uint8_t byte;
+			/* FIXME: access flash at bus_width size */
 			if ((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
@@ -2005,6 +2007,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 		for (; i < bank->bus_width; ++i, ++copy_p)
 		{
 			uint8_t byte;
+			/* FIXME: access flash at bus_width size */
 			if ((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
@@ -2137,10 +2140,12 @@ static int cfi_probe(struct flash_bank *bank)
 	if (bank->chip_width == 1)
 	{
 		uint8_t manufacturer, device_id;
+		/* FIXME: access flash at bus_width size */
 		if ((retval = target_read_u8(target, flash_address(bank, 0, 0x00), &manufacturer)) != ERROR_OK)
 		{
 			return retval;
 		}
+		/* FIXME: access flash at bus_width size */
 		if ((retval = target_read_u8(target, flash_address(bank, 0, 0x01), &device_id)) != ERROR_OK)
 		{
 			return retval;
@@ -2150,10 +2155,12 @@ static int cfi_probe(struct flash_bank *bank)
 	}
 	else if (bank->chip_width == 2)
 	{
+		/* FIXME: access flash at bus_width size */
 		if ((retval = target_read_u16(target, flash_address(bank, 0, 0x00), &cfi_info->manufacturer)) != ERROR_OK)
 		{
 			return retval;
 		}
+		/* FIXME: access flash at bus_width size */
 		if ((retval = target_read_u16(target, flash_address(bank, 0, 0x01), &cfi_info->device_id)) != ERROR_OK)
 		{
 			return retval;
@@ -2543,6 +2550,7 @@ struct flash_driver cfi_flash = {
 	.write = cfi_write,
 	.probe = cfi_probe,
 	.auto_probe = cfi_auto_probe,
+	/* FIXME: access flash at bus_width size */
 	.erase_check = default_flash_blank_check,
 	.protect_check = cfi_protect_check,
 	.info = cfi_info,
