@@ -5671,10 +5671,20 @@ separately.
 @end deffn
 
 @anchor{load_image}
-@deffn Command {load_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
-Load image from file @var{filename} to target memory at @var{address}.
+@deffn Command {load_image} filename address [@option{bin}|@option{ihex}|@option{elf}] @option{min_addr} @option{max_length}]
+Load image from file @var{filename} to target memory offset by @var{address} from its load address. 
 The file format may optionally be specified
-(@option{bin}, @option{ihex}, or @option{elf})
+(@option{bin}, @option{ihex}, or @option{elf}).
+In addition the following arguments may be specifed:
+@var{min_addr} - ignore data below @var{min_addr} (this is w.r.t. to the target's load address + @var{address})
+@var{max_length} - maximum number of bytes to load.
+@example
+proc load_image_bin @{fname foffset address length @} @{
+    # Load data from fname filename at foffset offset to
+    # target at address. Load at most length bytes.
+    load_image $fname [expr $address - $foffset] bin $address $length      
+@}
+@end example
 @end deffn
 
 @deffn Command {test_image} filename [address [@option{bin}|@option{ihex}|@option{elf}]]
