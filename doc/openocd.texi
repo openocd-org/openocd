@@ -3784,7 +3784,8 @@ proc my_attach_proc @{ @} @{
 mychip.cpu configure -event gdb-attach my_attach_proc
 mychip.cpu configure -event gdb-attach @{
     echo "Reset..."
-    reset halt
+    # To make flash probe and gdb load to flash work we need a reset init.
+    reset init
 @}
 @end example
 
@@ -3804,7 +3805,11 @@ The following target events are defined:
 @* Currently not used (goal: when JTAG examine starts)
 @end ignore
 @item @b{gdb-attach}
-@* When GDB connects
+@* When GDB connects. This is before any communication with the target, so this 
+can be used to set up the target so it is possible to probe flash. Probing flash
+is necessary during gdb connect if gdb load is to write the image to flash. Another
+use of the flash memory map is for GDB to automatically hardware/software breakpoints
+depending on whether the breakpoint is in RAM or read only memory.
 @item @b{gdb-detach}
 @* When GDB disconnects
 @item @b{gdb-end}
