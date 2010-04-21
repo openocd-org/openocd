@@ -2266,7 +2266,7 @@ static int xscale_set_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	uint8_t enable = 0;
+	uint32_t enable = 0;
 	struct reg *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	uint32_t dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
@@ -2275,8 +2275,6 @@ static int xscale_set_watchpoint(struct target *target,
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
-	xscale_get_reg(dbcon);
 
 	switch (watchpoint->rw)
 	{
@@ -2291,6 +2289,24 @@ static int xscale_set_watchpoint(struct target *target,
 			break;
 		default:
 			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
+	}
+
+	/* For watchpoint across more than one word, both DBR registers must
+	   be enlisted, with the second used as a mask. */
+	if (watchpoint->length > 4)
+	{
+	   if (xscale->dbr0_used || xscale->dbr1_used) 
+	   {
+		  LOG_ERROR("BUG: sufficient hardware comparators unavailable");
+		  return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	   }
+
+	   /* Write mask value to DBR1, based on the length argument.
+		* Address bits ignored by the comparator are those set in mask. */
+	   xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_DBR1],
+						  watchpoint->length - 1);
+	   xscale->dbr1_used = 1;
+	   enable |= 0x100;			/* DBCON[M] */
 	}
 
 	if (!xscale->dbr0_used)
@@ -2312,7 +2328,7 @@ static int xscale_set_watchpoint(struct target *target,
 	else
 	{
 		LOG_ERROR("BUG: no hardware comparator available");
-		return ERROR_OK;
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	return ERROR_OK;
@@ -2328,13 +2344,30 @@ static int xscale_add_watchpoint(struct target *target,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	if ((watchpoint->length != 1) && (watchpoint->length != 2) && (watchpoint->length != 4))
+	if (watchpoint->value)
+	   LOG_WARNING("xscale does not support value, mask arguments; ignoring");
+
+	/* check that length is a power of two */
+	for (uint32_t len = watchpoint->length; len != 1; len /= 2)
 	{
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	   if (len % 2)
+	   {
+		  LOG_ERROR("xscale requires that watchpoint length is a power of two");
+		  return ERROR_COMMAND_ARGUMENT_INVALID;
+	   }
 	}
 
-	xscale->dbr_available--;
+	if (watchpoint->length == 4) /* single word watchpoint */
+	{
+	   xscale->dbr_available--; /* one DBR reg used */
+	   return ERROR_OK;
+	}
 
+	/* watchpoints across multiple words require both DBR registers */
+	if (xscale->dbr_available < 2)
+	   return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	
+	xscale->dbr_available = 0;
 	return ERROR_OK;
 }
 
@@ -2359,7 +2392,14 @@ static int xscale_unset_watchpoint(struct target *target,
 
 	if (watchpoint->set == 1)
 	{
-		dbcon_value &= ~0x3;
+	   if (watchpoint->length > 4)
+	   {
+		  dbcon_value &= ~0x103; /* clear DBCON[M] as well */
+		  xscale->dbr1_used = 0; /* DBR1 was used for mask */
+	   }
+	   else
+		  dbcon_value &= ~0x3;
+
 		xscale_set_reg_u32(dbcon, dbcon_value);
 		xscale->dbr0_used = 0;
 	}
@@ -2389,6 +2429,9 @@ static int xscale_remove_watchpoint(struct target *target, struct watchpoint *wa
 		xscale_unset_watchpoint(target, watchpoint);
 	}
 
+	if (watchpoint->length > 4)
+	   xscale->dbr_available++;	/* both DBR regs now available */
+	
 	xscale->dbr_available++;
 
 	return ERROR_OK;
