@@ -2105,6 +2105,7 @@ static int cfi_probe(struct flash_bank *bank)
 	uint32_t unlock1 = 0x555;
 	uint32_t unlock2 = 0x2aa;
 	int retval;
+	uint8_t value_buf0[CFI_MAX_BUS_WIDTH], value_buf1[CFI_MAX_BUS_WIDTH];
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -2137,34 +2138,30 @@ static int cfi_probe(struct flash_bank *bank)
 		return retval;
 	}
 
-	if (bank->chip_width == 1)
+	if ((retval = target_read_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, value_buf0)) != ERROR_OK)
 	{
-		uint8_t manufacturer, device_id;
-		/* FIXME: access flash at bus_width size */
-		if ((retval = target_read_u8(target, flash_address(bank, 0, 0x00), &manufacturer)) != ERROR_OK)
-		{
-			return retval;
-		}
-		/* FIXME: access flash at bus_width size */
-		if ((retval = target_read_u8(target, flash_address(bank, 0, 0x01), &device_id)) != ERROR_OK)
-		{
-			return retval;
-		}
-		cfi_info->manufacturer = manufacturer;
-		cfi_info->device_id = device_id;
+		return retval;
 	}
-	else if (bank->chip_width == 2)
+	if ((retval = target_read_memory(target, flash_address(bank, 0, 0x01), bank->bus_width, 1, value_buf1)) != ERROR_OK)
 	{
-		/* FIXME: access flash at bus_width size */
-		if ((retval = target_read_u16(target, flash_address(bank, 0, 0x00), &cfi_info->manufacturer)) != ERROR_OK)
-		{
-			return retval;
-		}
-		/* FIXME: access flash at bus_width size */
-		if ((retval = target_read_u16(target, flash_address(bank, 0, 0x01), &cfi_info->device_id)) != ERROR_OK)
-		{
-			return retval;
-		}
+		return retval;
+	}
+	switch (bank->chip_width) {
+		case 1:
+			cfi_info->manufacturer = *value_buf0;
+			cfi_info->device_id = *value_buf1;
+			break;
+		case 2:
+			cfi_info->manufacturer = target_buffer_get_u16(target, value_buf0);
+			cfi_info->device_id = target_buffer_get_u16(target, value_buf1);
+			break;
+		case 4:
+			cfi_info->manufacturer = target_buffer_get_u32(target, value_buf0);
+			cfi_info->device_id = target_buffer_get_u32(target, value_buf1);
+			break;
+		default:
+			LOG_ERROR("Unsupported bank chipwidth %d, can't probe memory", bank->chip_width);
+			return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	LOG_INFO("Flash Manufacturer/Device: 0x%04x 0x%04x", cfi_info->manufacturer, cfi_info->device_id);
