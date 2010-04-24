@@ -403,9 +403,9 @@ proc flashUBOOT {file} {
     flash erase_sector 0 0 3
     puts "Programming u-boot"
     putsUART0 "Programming u-boot..."
-    memwrite burst enable
+    arm11 memwrite burst enable
     flash write_image $file $EXP_CS0_BASEADDR
-    memwrite burst disable
+    arm11 memwrite burst disable
     putsUART0 "done.\n"
     putsUART0 "Rebooting, please wait!\n"
     reboot

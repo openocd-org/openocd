@@ -325,7 +325,7 @@ proc setupDDR2 {} {
     if {$tmp == "128M"} {
 	configureDDR2regs_128M
     } elseif {$tmp == "256M"} {
-	configureDDR2regs_256B
+	configureDDR2regs_256M
     } else {
 	puts "Don't know how to configure DDR2 setup?"
     }
