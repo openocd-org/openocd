@@ -366,6 +366,23 @@ COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
+{
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (CMD_ARGC == 1)
+	{
+		unsigned width;
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], width);
+
+		jtag_set_nsrst_assert_width(width);
+	}
+	command_print(CMD_CTX, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	return ERROR_OK;
+}
+
+
+
 COMMAND_HANDLER(handle_adapter_khz_command)
 {
 	if (CMD_ARGC > 1)
@@ -418,6 +435,13 @@ static const struct command_registration interface_command_handlers[] = {
 		.handler = handle_adapter_nsrst_delay_command,
 		.mode = COMMAND_ANY,
 		.help = "delay after deasserting SRST in ms",
+		.usage = "[milliseconds]",
+	},
+	{
+		.name = "adapter_nsrst_assert_width",
+		.handler = handle_adapter_nsrst_assert_width_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after asserting SRST in ms",
 		.usage = "[milliseconds]",
 	},
 	{
