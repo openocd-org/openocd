@@ -611,7 +611,8 @@ int flash_write_unlock(struct target *target, struct image *image,
 			run_size += image->sections[++section_last].size;
 			run_size += pad_bytes;
 
-			LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
+			if (pad_bytes > 0)
+				LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
 		}
 
 		/* fit the run into bank constraints */
