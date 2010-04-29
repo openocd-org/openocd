@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>              *
- *   Copyright (C) 2007,2008 Øyvind Harboe <oyvind.harboe@zylin.com>       *
+ *   Copyright (C) 2007-2010 Øyvind Harboe <oyvind.harboe@zylin.com>       *
  *   Copyright (C) 2008 by Spencer Oliver <spen@spen-soft.co.uk>           *
  *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
  *                                                                         *
@@ -519,12 +519,6 @@ int flash_write_unlock(struct target *target, struct image *image,
 	struct flash_bank *c;
 	int *padding;
 
-	/* REVISIT do_pad should perhaps just be another parameter.
-	 * GDB wouldn't ever need it, since it erases separately.
-	 * But "flash write_image" commands might want that option.
-	 */
-	bool do_pad = false;
-
 	section = 0;
 	section_offset = 0;
 
@@ -694,7 +688,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 			{
 				/* calculate and erase sectors */
 				retval = flash_erase_address_range(target,
-						do_pad, run_address, run_size);
+						true, run_address, run_size);
 			}
 		}
 
