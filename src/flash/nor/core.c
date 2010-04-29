@@ -509,6 +509,25 @@ static int flash_unlock_address_range(struct target *target, uint32_t addr, uint
 			addr, length, &flash_driver_unprotect);
 }
 
+static int compare_section (const void * a, const void * b)
+{
+	struct imageection *b1, *b2;
+	b1=*((struct imageection **)a);
+	b2=*((struct imageection **)b);
+
+	if (b1->base_address == b2->base_address)
+	{
+		return 0;
+	} else if (b1->base_address > b2->base_address)
+	{
+		return 1;
+	} else
+	{
+		return -1;
+	}
+}
+
+
 int flash_write_unlock(struct target *target, struct image *image,
 		uint32_t *written, int erase, bool unlock)
 {
@@ -536,6 +555,19 @@ int flash_write_unlock(struct target *target, struct image *image,
 	/* allocate padding array */
 	padding = calloc(image->num_sections, sizeof(*padding));
 
+	/* This fn requires all sections to be in ascending order of addresses,
+	 * whereas an image can have sections out of order. */
+	struct imageection **sections = malloc(sizeof(struct imageection *) *
+			image->num_sections);
+	int i;
+	for (i = 0; i < image->num_sections; i++)
+	{
+		sections[i] = &image->sections[i];
+	}
+
+	qsort(sections, image->num_sections, sizeof(struct imageection *),
+			compare_section);
+
 	/* loop until we reach end of the image */
 	while (section < image->num_sections)
 	{
@@ -543,11 +575,11 @@ int flash_write_unlock(struct target *target, struct image *image,
 		uint8_t *buffer;
 		int section_first;
 		int section_last;
-		uint32_t run_address = image->sections[section].base_address + section_offset;
-		uint32_t run_size = image->sections[section].size - section_offset;
+		uint32_t run_address = sections[section]->base_address + section_offset;
+		uint32_t run_size = sections[section]->size - section_offset;
 		int pad_bytes = 0;
 
-		if (image->sections[section].size ==  0)
+		if (sections[section]->size ==  0)
 		{
 			LOG_WARNING("empty section %d", section);
 			section++;
@@ -570,7 +602,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 		while ((run_address + run_size - 1 < c->base + c->size - 1)
 				&& (section_last + 1 < image->num_sections))
 		{
-			if (image->sections[section_last + 1].base_address < (run_address + run_size))
+			if (sections[section_last + 1]->base_address < (run_address + run_size))
 			{
 				LOG_DEBUG("section %d out of order "
 						"(surprising, but supported)",
@@ -598,11 +630,11 @@ int flash_write_unlock(struct target *target, struct image *image,
 			/* if we have multiple sections within our image,
 			 * flash programming could fail due to alignment issues
 			 * attempt to rebuild a consecutive buffer for the flash loader */
-			pad_bytes = (image->sections[section_last + 1].base_address) - (run_address + run_size);
+			pad_bytes = (sections[section_last + 1]->base_address) - (run_address + run_size);
 			if ((run_address + run_size + pad_bytes) > (c->base + c->size))
 				break;
 			padding[section_last] = pad_bytes;
-			run_size += image->sections[++section_last].size;
+			run_size += sections[++section_last]->size;
 			run_size += pad_bytes;
 
 			if (pad_bytes > 0)
@@ -651,15 +683,21 @@ int flash_write_unlock(struct target *target, struct image *image,
 			size_t size_read;
 
 			size_read = run_size - buffer_size;
-			if (size_read > image->sections[section].size - section_offset)
-			    size_read = image->sections[section].size - section_offset;
+			if (size_read > sections[section]->size - section_offset)
+			    size_read = sections[section]->size - section_offset;
 
-			if ((retval = image_read_section(image, section, section_offset,
+			/* KLUDGE!
+			 *
+			 * #¤%#"%¤% we have to figure out the section # from the sorted
+			 * list of pointers to sections to invoke image_read_section()...
+			 */
+			int t_section_num = (sections[section] - image->sections) / sizeof(struct imageection);
+
+			if ((retval = image_read_section(image, t_section_num, section_offset,
 					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
 			{
 				free(buffer);
-				free(padding);
-				return retval;
+				goto done;
 			}
 
 			/* see if we need to pad the section */
@@ -669,7 +707,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 			buffer_size += size_read;
 			section_offset += size_read;
 
-			if (section_offset >= image->sections[section].size)
+			if (section_offset >= sections[section]->size)
 			{
 				section++;
 				section_offset = 0;
@@ -702,14 +740,17 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 		if (retval != ERROR_OK)
 		{
-			free(padding);
-			return retval; /* abort operation */
+			/* abort operation */
+			goto done;
 		}
 
 		if (written != NULL)
 			*written += run_size; /* add run size to total written counter */
 	}
 
+
+done:
+	free(sections);
 	free(padding);
 
 	return retval;
