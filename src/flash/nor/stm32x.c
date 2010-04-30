@@ -331,7 +331,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 		target_write_u32(target, STM32_FLASH_AR, bank->base + bank->sectors[i].offset);
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PER | FLASH_STRT);
 
-		status = stm32x_wait_status_busy(bank, 10);
+		status = stm32x_wait_status_busy(bank, 100);
 
 		if (status & FLASH_WRPRTERR)
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -1183,7 +1183,7 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 	target_write_u32(target, STM32_FLASH_CR, FLASH_MER);
 	target_write_u32(target, STM32_FLASH_CR, FLASH_MER | FLASH_STRT);
 
-	status = stm32x_wait_status_busy(bank, 10);
+	status = stm32x_wait_status_busy(bank, 100);
 
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
 
