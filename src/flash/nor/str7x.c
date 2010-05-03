@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2010 Øyvind Harboe                                      *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -162,22 +165,88 @@ FLASH_BANK_COMMAND_HANDLER(str7x_flash_bank_command)
 	return ERROR_OK;
 }
 
-static uint32_t str7x_status(struct flash_bank *bank)
+/* wait for flash to become idle or report errors.
+
+   FIX!!! what's the maximum timeout??? The documentation doesn't
+   state any maximum time.... by inspection it seems > 1000ms is to be
+   expected.
+
+   10000ms is long enough that it should cover anything, yet not
+   quite be equivalent to an infinite loop.
+
+ */
+static int str7x_waitbusy(struct flash_bank *bank)
 {
+	int err;
+	int i;
 	struct target *target = bank->target;
-	uint32_t retval;
+	struct str7x_flash_bank *str7x_info = bank->driver_priv;
 
-	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), &retval);
+	for (i = 0 ; i < 10000; i++)
+	{
+		uint32_t retval;
+		err = target_read_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), &retval);
+		if (err != ERROR_OK)
+			return err;
 
-	return retval;
+		if ((retval & str7x_info->busy_bits) == 0)
+			return ERROR_OK;
+
+		alive_sleep(1);
+	}
+	LOG_ERROR("Timed out waiting for str7x flash");
+	return ERROR_FAIL;
 }
 
-static uint32_t str7x_result(struct flash_bank *bank)
+
+static int str7x_result(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	uint32_t retval;
 
-	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
+	int err;
+	err = target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
+	if (err != ERROR_OK)
+		return err;
+
+	if (retval & FLASH_WPF)
+	{
+		LOG_ERROR("str7x hw write protection set");
+		err = ERROR_FAIL;
+	}
+	if (retval & FLASH_RESER)
+	{
+		LOG_ERROR("str7x suspended program erase not resumed");
+		err = ERROR_FAIL;
+	}
+	if (retval & FLASH_10ER)
+	{
+		LOG_ERROR("str7x trying to set bit to 1 when it is already 0");
+		err = ERROR_FAIL;
+	}
+	if (retval & FLASH_PGER)
+	{
+		LOG_ERROR("str7x program error");
+		err = ERROR_FAIL;
+	}
+	if (retval & FLASH_ERER)
+	{
+		LOG_ERROR("str7x erase error");
+		err = ERROR_FAIL;
+	}
+	if (err == ERROR_OK)
+	{
+		if (retval & FLASH_ERR)
+		{
+			/* this should always be set if one of the others are set... */
+			LOG_ERROR("str7x write operation failed / bad setup");
+			err = ERROR_FAIL;
+		}
+	}
+	if (err != ERROR_OK)
+	{
+		LOG_ERROR("FLASH_ER register contents: 0x%" PRIx32, retval);
+	}
 
 	return retval;
 }
@@ -216,8 +285,8 @@ static int str7x_erase(struct flash_bank *bank, int first, int last)
 
 	int i;
 	uint32_t cmd;
-	uint32_t retval;
 	uint32_t sectors = 0;
+	int err;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -233,28 +302,32 @@ static int str7x_erase(struct flash_bank *bank, int first, int last)
 	LOG_DEBUG("sectors: 0x%" PRIx32 "", sectors);
 
 	/* clear FLASH_ER register */
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = FLASH_SER;
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = sectors;
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = FLASH_SER | FLASH_WMS;
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	if (err != ERROR_OK)
+		return err;
 
-	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)) {
-		alive_sleep(1);
-	}
+	err = str7x_waitbusy(bank);
+	if (err != ERROR_OK)
+		return err;
 
-	retval = str7x_result(bank);
-
-	if (retval)
-	{
-		LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%" PRIx32 "", retval);
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
+	err = str7x_result(bank);
+	if (err != ERROR_OK)
+		return err;
 
 	for (i = first; i <= last; i++)
 		bank->sectors[i].is_erased = 1;
@@ -268,7 +341,6 @@ static int str7x_protect(struct flash_bank *bank, int set, int first, int last)
 	struct target *target = bank->target;
 	int i;
 	uint32_t cmd;
-	uint32_t retval;
 	uint32_t protect_blocks;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -286,37 +358,43 @@ static int str7x_protect(struct flash_bank *bank, int set, int first, int last)
 	}
 
 	/* clear FLASH_ER register */
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+	int err;
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = FLASH_SPR;
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = str7x_get_flash_adr(bank, FLASH_NVWPAR);
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), cmd);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = protect_blocks;
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), cmd);
+	if (err != ERROR_OK)
+		return err;
 
 	cmd = FLASH_SPR | FLASH_WMS;
-	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	if (err != ERROR_OK)
+		return err;
 
-	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)) {
-		alive_sleep(1);
-	}
+	err = str7x_waitbusy(bank);
+	if (err != ERROR_OK)
+		return err;
 
-	retval = str7x_result(bank);
-
-	LOG_DEBUG("retval: 0x%8.8" PRIx32 "", retval);
-
-	if (retval & FLASH_ERER)
-		return ERROR_FLASH_SECTOR_NOT_ERASED;
-	else if (retval & FLASH_WPF)
-		return ERROR_FLASH_OPERATION_FAILED;
+	err = str7x_result(bank);
+	if (err != ERROR_OK)
+		return err;
 
 	return ERROR_OK;
 }
 
-static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
+int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
@@ -409,14 +487,12 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 				str7x_info->write_algorithm->address + (sizeof(str7x_flash_write_code) - 4),
 				10000, &armv4_5_info)) != ERROR_OK)
 		{
-			LOG_ERROR("error executing str7x flash write algorithm");
-			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 
 		if (buf_get_u32(reg_params[4].value, 0, 32) != 0x00)
 		{
-			retval = ERROR_FLASH_OPERATION_FAILED;
+			retval = str7x_result(bank);
 			break;
 		}
 
@@ -442,7 +518,6 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
-	struct str7x_flash_bank *str7x_info = bank->driver_priv;
 	uint32_t dwords_remaining = (count / 8);
 	uint32_t bytes_remaining = (count & 0x00000007);
 	uint32_t address = bank->base + offset;
@@ -498,16 +573,7 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
-			}
-			else if (retval == ERROR_FLASH_OPERATION_FAILED)
-			{
-				/* if an error occured, we examine the reason, and quit */
-				retval = str7x_result(bank);
-
-				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
-				return ERROR_FLASH_OPERATION_FAILED;
-			}
-			else
+			} else
 			{
 				return retval;
 			}
@@ -543,17 +609,14 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 		cmd = FLASH_DWPG | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 
-		while (((retval = str7x_status(bank)) & str7x_info->busy_bits))
-		{
-			alive_sleep(1);
-		}
+		int err;
+		err = str7x_waitbusy(bank);
+		if (err != ERROR_OK)
+			return err;
 
-		retval = str7x_result(bank);
-
-		if (retval & FLASH_PGER)
-			return ERROR_FLASH_OPERATION_FAILED;
-		else if (retval & FLASH_WPF)
-			return ERROR_FLASH_OPERATION_FAILED;
+		err = str7x_result(bank);
+		if (err != ERROR_OK)
+			return err;
 
 		dwords_remaining--;
 		address += 8;
@@ -592,17 +655,14 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 		cmd = FLASH_DWPG | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 
-		while (((retval = str7x_status(bank)) & str7x_info->busy_bits))
-		{
-			alive_sleep(1);
-		}
+		int err;
+		err = str7x_waitbusy(bank);
+		if (err != ERROR_OK)
+			return err;
 
-		retval = str7x_result(bank);
-
-		if (retval & FLASH_PGER)
-			return ERROR_FLASH_OPERATION_FAILED;
-		else if (retval & FLASH_WPF)
-			return ERROR_FLASH_OPERATION_FAILED;
+		err = str7x_result(bank);
+		if (err != ERROR_OK)
+			return err;
 	}
 
 	return ERROR_OK;
