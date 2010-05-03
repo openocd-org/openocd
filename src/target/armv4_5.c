@@ -820,11 +820,9 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct arm *arm;
 	int retval;
 
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL) {
-		LOG_ERROR("%s: no command context", __func__);
-		return JIM_ERR;
-	}
+	context = current_command_context(interp);
+	assert( context != NULL);
+
 	target = get_current_target(context);
 	if (target == NULL) {
 		LOG_ERROR("%s: no current target", __func__);

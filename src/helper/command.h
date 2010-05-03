@@ -311,6 +311,10 @@ void command_set_output_handler(struct command_context* context,
 
 int command_context_mode(struct command_context *context, enum command_mode mode);
 
+/* Return the current command context associated with the Jim interpreter or
+ * alternatively the global default command interpreter
+ */
+struct command_context *current_command_context(Jim_Interp *interp);
 /**
  * Creates a new command context using the startup TCL provided and
  * the existing Jim interpreter, if any. If interp == NULL, then command_init

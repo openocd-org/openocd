@@ -3236,12 +3236,9 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct command_context *context;
 	struct target *target;
 
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL)
-	{
-		LOG_ERROR("mem2array: no command context");
-		return JIM_ERR;
-	}
+	context = current_command_context(interp);
+	assert (context != NULL);
+
 	target = get_current_target(context);
 	if (target == NULL)
 	{
@@ -3432,11 +3429,9 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct command_context *context;
 	struct target *target;
 
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL) {
-		LOG_ERROR("array2mem: no command context");
-		return JIM_ERR;
-	}
+	context = current_command_context(interp);
+	assert (context != NULL);
+
 	target = get_current_target(context);
 	if (target == NULL) {
 		LOG_ERROR("array2mem: no current target");
@@ -4318,7 +4313,9 @@ static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *a
  */
 static int jim_target_event_list(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert (cmd_ctx != NULL);
+
 	struct target *target = Jim_CmdPrivData(interp);
 	struct target_event_action *teap = target->event_action;
 	command_print(cmd_ctx, "Event actions for target (%d) %s\n",
@@ -4512,7 +4509,9 @@ static int target_create(Jim_GetOptInfo *goi)
 	struct target *target;
 	struct command_context *cmd_ctx;
 
-	cmd_ctx = Jim_GetAssocData(goi->interp, "context");
+	cmd_ctx = current_command_context(goi->interp);
+	assert (cmd_ctx != NULL);
+
 	if (goi->argc < 3) {
 		Jim_WrongNumArgs(goi->interp, 1, goi->argv, "?name? ?type? ..options...");
 		return JIM_ERR;
@@ -4686,7 +4685,9 @@ static int jim_target_current(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
 		return JIM_ERR;
 	}
-	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert (cmd_ctx != NULL);
+
 	Jim_SetResultString(interp, get_current_target(cmd_ctx)->cmd_name, -1);
 	return JIM_OK;
 }

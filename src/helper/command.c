@@ -167,14 +167,18 @@ static const char **script_command_args_alloc(
 	return words;
 }
 
-static struct command_context *current_command_context(Jim_Interp *interp)
+struct command_context *current_command_context(Jim_Interp *interp)
 {
 	/* grab the command context from the associated data */
 	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
 	if (NULL == cmd_ctx)
 	{
 		/* Tcl can invoke commands directly instead of via command_run_line(). This would
-		 * happen when the Jim Tcl interpreter is provided by eCos.
+		 * happen when the Jim Tcl interpreter is provided by eCos or if we are running
+		 * commands in a startup script.
+		 *
+		 * A telnet or gdb server would provide a non-default command context to
+		 * handle piping of error output, have a separate current target, etc.
 		 */
 		cmd_ctx = global_cmd_ctx;
 	}

@@ -684,7 +684,7 @@ static int jim_jtag_arp_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
 		return JIM_ERR;
 	}
-	struct command_context *context = Jim_GetAssocData(interp, "context");
+	struct command_context *context = current_command_context(interp);
 	int e = jtag_init_inner(context);
 	if (e != ERROR_OK) {
 		Jim_SetResult_sprintf(goi.interp, "error: %d", e);
@@ -701,7 +701,7 @@ static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const 
 		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
 		return JIM_ERR;
 	}
-	struct command_context *context = Jim_GetAssocData(interp, "context");
+	struct command_context *context = current_command_context(interp);
 	int e = jtag_init_reset(context);
 	if (e != ERROR_OK) {
 		Jim_SetResult_sprintf(goi.interp, "error: %d", e);
