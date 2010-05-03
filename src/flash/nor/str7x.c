@@ -355,10 +355,9 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	/* flash write code */
-	if (target_alloc_working_area(target, sizeof(str7x_flash_write_code),
+	if (target_alloc_working_area_try(target, sizeof(str7x_flash_write_code),
 			&str7x_info->write_algorithm) != ERROR_OK)
 	{
-		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
@@ -367,7 +366,7 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			(uint8_t*)str7x_flash_write_code);
 
 	/* memory buffer */
-	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
 		if (buffer_size <= 256)
@@ -499,6 +498,9 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
+			} else
+			{
+				return retval;
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
