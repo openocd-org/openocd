@@ -1111,7 +1111,7 @@ int target_call_timer_callbacks_now(void)
 	return target_call_timer_callbacks_check_time(0);
 }
 
-int target_alloc_working_area(struct target *target, uint32_t size, struct working_area **area)
+int target_alloc_working_area_try(struct target *target, uint32_t size, struct working_area **area)
 {
 	struct working_area *c = target->working_areas;
 	struct working_area *new_wa = NULL;
@@ -1189,8 +1189,6 @@ int target_alloc_working_area(struct target *target, uint32_t size, struct worki
 
 		if (free_size < size)
 		{
-			LOG_WARNING("not enough working area available(requested %u, free %u)",
-				    (unsigned)(size), (unsigned)(free_size));
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 
@@ -1229,6 +1227,19 @@ int target_alloc_working_area(struct target *target, uint32_t size, struct worki
 	new_wa->user = area;
 
 	return ERROR_OK;
+}
+
+int target_alloc_working_area(struct target *target, uint32_t size, struct working_area **area)
+{
+	int retval;
+
+	retval = target_alloc_working_area_try(target, size, area);
+	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+	{
+		LOG_WARNING("not enough working area available(requested %u)", (unsigned)(size));
+	}
+	return retval;
+
 }
 
 static int target_free_working_area_restore(struct target *target, struct working_area *area, int restore)
