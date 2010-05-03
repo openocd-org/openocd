@@ -846,7 +846,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 		buffer_size = wcount * 4;
 
 	/* memory buffer */
-	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
 		if (buffer_size <= buf_min)

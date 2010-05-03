@@ -227,7 +227,7 @@ static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32
 	}
 
 	/* memory buffer */
-	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
 		if (buffer_size <= 256)

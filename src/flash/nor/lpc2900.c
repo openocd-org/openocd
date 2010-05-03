@@ -1288,7 +1288,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 	   reduced size if that fails. */
 	struct working_area *warea;
 	uint32_t buffer_size = lpc2900_info->max_ram_block - 1 * KiB;
-	while( (retval = target_alloc_working_area(target,
+	while( (retval = target_alloc_working_area_try(target,
 	                                           buffer_size + target_code_size,
 	                                           &warea)) != ERROR_OK )
 	{

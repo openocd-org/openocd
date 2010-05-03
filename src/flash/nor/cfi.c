@@ -1116,7 +1116,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 	/* Get a workspace buffer for the data to flash starting with 32k size.
 	   Half size until buffer would be smaller 256 Bytem then fail back */
 	/* FIXME Why 256 bytes, why not 32 bytes (smallest flash write page */
-	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
 		if (buffer_size <= 256)
@@ -1444,7 +1444,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 	}
 	/* the following code still assumes target code is fixed 24*4 bytes */
 
-	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
 		if (buffer_size <= 256)
