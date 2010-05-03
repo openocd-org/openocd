@@ -513,7 +513,7 @@ int server_preinit(void)
 
 int server_init(struct command_context *cmd_ctx)
 {
-	int ret = tcl_init(cmd_ctx);
+	int ret = tcl_init();
 	if (ERROR_OK != ret)
 		return ret;
 

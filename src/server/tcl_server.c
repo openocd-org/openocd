@@ -81,7 +81,7 @@ static int tcl_new_connection(struct connection *connection)
 
 static int tcl_input(struct connection *connection)
 {
-	Jim_Interp *interp = (Jim_Interp *)connection->priv;
+	Jim_Interp *interp = (Jim_Interp *)connection->cmd_ctx->interp;
 	int retval;
 	int i;
 	ssize_t rlen;
@@ -157,7 +157,7 @@ static int tcl_closed(struct connection *connection)
 	return ERROR_OK;
 }
 
-int tcl_init(struct command_context *cmd_ctx)
+int tcl_init(void)
 {
 	int retval;
 
@@ -169,7 +169,7 @@ int tcl_init(struct command_context *cmd_ctx)
 
 	retval = add_service("tcl", CONNECTION_TCP, tcl_port, 1,
 			&tcl_new_connection, &tcl_input,
-			&tcl_closed, cmd_ctx->interp);
+			&tcl_closed, NULL);
 	return retval;
 }
 
