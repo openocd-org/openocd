@@ -602,15 +602,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 		while ((run_address + run_size - 1 < c->base + c->size - 1)
 				&& (section_last + 1 < image->num_sections))
 		{
-			if (sections[section_last + 1]->base_address < (run_address + run_size))
+			/* sections are sorted */
+			assert(sections[section_last + 1]->base_address >= c->base);
+			if (sections[section_last + 1]->base_address >= (c->base + c->size))
 			{
-				LOG_DEBUG("section %d out of order "
-						"(surprising, but supported)",
-						section_last + 1);
-				/* REVISIT this can break with autoerase ...
-				 * clobbering data after it's written.
-				 */
-				break;
+			  /* Done with this bank */
+			  break;
 			}
 
 			/* FIXME This needlessly touches sectors BETWEEN the
@@ -631,8 +628,6 @@ int flash_write_unlock(struct target *target, struct image *image,
 			 * flash programming could fail due to alignment issues
 			 * attempt to rebuild a consecutive buffer for the flash loader */
 			pad_bytes = (sections[section_last + 1]->base_address) - (run_address + run_size);
-			if ((run_address + run_size + pad_bytes) > (c->base + c->size))
-				break;
 			padding[section_last] = pad_bytes;
 			run_size += sections[++section_last]->size;
 			run_size += pad_bytes;
@@ -641,16 +636,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 				LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
 		}
 
-		/* fit the run into bank constraints */
-		if (run_address + run_size - 1 > c->base + c->size - 1)
-		{
-			/* REVISIT isn't this superfluous, given the while()
-			 * loop conditions above??
-			 */
-			LOG_WARNING("writing %d bytes only - as image section is %d bytes and bank is only %d bytes", \
-				    (int)(c->base + c->size - run_address), (int)(run_size), (int)(c->size));
-			run_size = c->base + c->size - run_address;
-		}
+		assert (run_address + run_size - 1 <= c->base + c->size - 1);
 
 		/* If we're applying any sector automagic, then pad this
 		 * (maybe-combined) segment to the end of its last sector.
@@ -691,8 +677,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 			 * #¤%#"%¤% we have to figure out the section # from the sorted
 			 * list of pointers to sections to invoke image_read_section()...
 			 */
-			int t_section_num = (sections[section] - image->sections) / sizeof(struct imageection);
+			intptr_t diff = (intptr_t)sections[section] - (intptr_t)image->sections;
+			int t_section_num = diff / sizeof(struct imageection);
 
+			LOG_DEBUG("image_read_section: section = %d, t_section_num = %d, section_offset = %d, buffer_size = %d, size_read = %d", 
+				 (int)section,
+(int)t_section_num, (int)section_offset, (int)buffer_size, (int)size_read);
 			if ((retval = image_read_section(image, t_section_num, section_offset,
 					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
 			{
