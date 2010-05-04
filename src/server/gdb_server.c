@@ -855,6 +855,26 @@ static int gdb_new_connection(struct connection *connection)
 		gdb_putback_char(connection, initial_ack);
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH);
 
+	if (gdb_use_memory_map)
+	{
+		/* Connect must fail if the memory map can't be set up correctly.
+		 *
+		 * This will cause an auto_probe to be invoked, which is either
+		 * a no-op or it will fail when the target isn't ready(e.g. not halted).
+		 */
+		int i;
+		for (i = 0; i < flash_get_bank_count(); i++)
+		{
+			struct flash_bank *p;
+			retval = get_flash_bank_by_num(i, &p);
+			if (retval != ERROR_OK)
+			{
+				LOG_ERROR("Connect failed. Consider setting up a gdb-attach event for the target to prepare target for GDB connect.");
+				return retval;
+			}
+		}
+	}
+
 	gdb_actual_connections++;
 	LOG_DEBUG("New GDB Connection: %d, Target %s, state: %s",
 		  gdb_actual_connections,
@@ -1692,10 +1712,10 @@ static int gdb_memory_map(struct connection *connection,
 	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
 
 	for (i = 0; i < flash_get_bank_count(); i++) {
-		p = get_flash_bank_by_num(i);
-		if (p == NULL) {
+		retval = get_flash_bank_by_num(i, &p);
+		if (retval != ERROR_OK)
+		{
 			free(banks);
-			retval = ERROR_FAIL;
 			gdb_send_error(connection, retval);
 			return retval;
 		}

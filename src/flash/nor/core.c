@@ -220,22 +220,25 @@ struct flash_bank *get_flash_bank_by_name(const char *name)
 	return NULL;
 }
 
-struct flash_bank *get_flash_bank_by_num(int num)
+int get_flash_bank_by_num(int num, struct flash_bank **bank)
 {
 	struct flash_bank *p = get_flash_bank_by_num_noprobe(num);
 	int retval;
 
 	if (p == NULL)
-		return NULL;
+	{
+		return ERROR_FAIL;
+	}
 
 	retval = p->driver->auto_probe(p);
 
 	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("auto_probe failed %d\n", retval);
-		return NULL;
+		return retval;
 	}
-	return p;
+	*bank = p;
+	return ERROR_OK;
 }
 
 /* lookup flash bank by address */

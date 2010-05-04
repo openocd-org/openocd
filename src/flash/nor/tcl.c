@@ -42,13 +42,7 @@ COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 	unsigned bank_num;
 	COMMAND_PARSE_NUMBER(uint, name, bank_num);
 
-	*bank = get_flash_bank_by_num(bank_num);
-	if (!*bank)
-	{
-		command_print(CMD_CTX, "flash bank '%s' not found", name);
-		return ERROR_INVALID_ARGUMENTS;
-	}
-	return ERROR_OK;
+	return get_flash_bank_by_num(bank_num, bank);
 }
 
 
@@ -310,9 +304,12 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	uint32_t last;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bank_nr);
-	struct flash_bank *p = get_flash_bank_by_num(bank_nr);
-	if (!p)
-		return ERROR_OK;
+
+	struct flash_bank *p;
+	int retval;
+	retval = get_flash_bank_by_num(bank_nr, &p);
+	if (retval != ERROR_OK)
+		return retval;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], first);
 	if (strcmp(CMD_ARGV[2], "last") == 0)
@@ -320,7 +317,6 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	else
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
 
-	int retval;
 	if ((retval = flash_check_sector_parameters(CMD_CTX,
 			first, last, p->num_sectors)) != ERROR_OK)
 		return retval;
@@ -350,9 +346,10 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	uint32_t last;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bank_nr);
-	struct flash_bank *p = get_flash_bank_by_num(bank_nr);
-	if (!p)
-		return ERROR_OK;
+	struct flash_bank *p;
+	int retval = get_flash_bank_by_num(bank_nr, &p);
+	if (retval != ERROR_OK)
+		return retval;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], first);
 	if (strcmp(CMD_ARGV[2], "last") == 0)
@@ -363,7 +360,6 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	bool set;
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[3], set);
 
-	int retval;
 	if ((retval = flash_check_sector_parameters(CMD_CTX,
 			first, last, p->num_sectors)) != ERROR_OK)
 		return retval;

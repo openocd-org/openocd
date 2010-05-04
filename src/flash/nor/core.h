@@ -157,9 +157,10 @@ struct flash_bank *get_flash_bank_by_name(const char *name);
 /**
  * Returns a flash bank by the specified flash_bank_s bank_number, @a num.
  * @param num The flash bank number.
- * @returns A struct flash_bank for flash bank @a num, or NULL
+ * @param bank returned bank if fn returns ERROR_OK
+ * @returns ERROR_OK if successful
  */
-struct flash_bank *get_flash_bank_by_num(int num);
+int get_flash_bank_by_num(int num, struct flash_bank **bank);
 /**
  * Retreives @a bank from a command argument, reporting errors parsing
  * the bank identifier or retreiving the specified bank.  The bank
