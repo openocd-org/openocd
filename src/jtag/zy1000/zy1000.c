@@ -205,6 +205,8 @@ void zy1000_reset(int trst, int srst)
 
 			total = timeval_ms() - start;
 
+			keep_alive();
+
 			if (total > 5000)
 			{
 				LOG_ERROR("SRST took too long to deassert: %dms", (int)total);
