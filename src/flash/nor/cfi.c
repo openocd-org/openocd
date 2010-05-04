@@ -1141,7 +1141,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 	busy_pattern_val  = cfi_command_val(bank, 0x80);
 	error_pattern_val = cfi_command_val(bank, 0x7e);
 
-	LOG_INFO("Using target buffer at 0x%08" PRIx32 " and of size 0x%04" PRIx32, source->address, buffer_size);
+	LOG_DEBUG("Using target buffer at 0x%08" PRIx32 " and of size 0x%04" PRIx32, source->address, buffer_size);
 
 	/* Programming main loop */
 	while (count > 0)
@@ -1162,7 +1162,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 		buf_set_u32(reg_params[5].value, 0, 32, busy_pattern_val);
 		buf_set_u32(reg_params[6].value, 0, 32, error_pattern_val);
 
-		LOG_INFO("Write 0x%04" PRIx32 " bytes to flash at 0x%08" PRIx32 , thisrun_count, address);
+		LOG_DEBUG("Write 0x%04" PRIx32 " bytes to flash at 0x%08" PRIx32 , thisrun_count, address);
 
 		/* Execute algorithm, assume breakpoint for last instruction */
 		retval = target_run_algorithm(target, 0, NULL, 7, reg_params,
