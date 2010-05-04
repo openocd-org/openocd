@@ -498,9 +498,6 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
-			} else
-			{
-				return retval;
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
@@ -509,6 +506,10 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 
 				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
 				return ERROR_FLASH_OPERATION_FAILED;
+			}
+			else
+			{
+				return retval;
 			}
 		}
 		else
