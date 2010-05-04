@@ -49,6 +49,7 @@
 #include <jtag/minidriver.h>
 #include <jtag/interface.h>
 #include <time.h>
+#include <helper/time_support.h>
 
 #include <netinet/tcp.h>
 
@@ -176,28 +177,41 @@ void zy1000_reset(int trst, int srst)
 	}
 
 	/* wait for srst to float back up */
-	if (!srst)
+	if ((!srst && ((jtag_get_reset_config() & RESET_TRST_PULLS_SRST) == 0))||
+		(!srst && !trst && (jtag_get_reset_config() & RESET_TRST_PULLS_SRST)))
 	{
-		int i;
-		for (i = 0; i < 1000; i++)
-		{
+		bool first = true;
+		long long start;
+		long total = 0;
+		for (;;)
+		{	
 			// We don't want to sense our own reset, so we clear here.
 			// There is of course a timing hole where we could loose
 			// a "real" reset.
 			if (!readSRST())
+			{
+				if (total > 1)
+				{
+				  LOG_USER("SRST took %dms to deassert", (int)total);
+				}
 				break;
+			}
 
-			/* wait 1ms */
-			alive_sleep(1);
+			if (first)
+			{
+			    first = false;
+			    start = timeval_ms();
+			}
+
+			total = timeval_ms() - start;
+
+			if (total > 5000)
+			{
+				LOG_ERROR("SRST took too long to deassert: %dms", (int)total);
+			    break;
+			}
 		}
 
-		if (i == 1000)
-		{
-			LOG_USER("SRST didn't deassert after %dms", i);
-		} else if (i > 1)
-		{
-			LOG_USER("SRST took %dms to deassert", i);
-		}
 	}
 }
 
