@@ -2682,6 +2682,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 	}
 
 	image_size = 0x0;
+	int diffs = 0;
 	retval = ERROR_OK;
 	for (i = 0; i < image.num_sections; i++)
 	{
@@ -2716,7 +2717,10 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 				/* failed crc checksum, fall back to a binary compare */
 				uint8_t *data;
 
-				command_print(CMD_CTX, "checksum mismatch - attempting binary compare");
+				if (diffs == 0)
+				{
+					LOG_ERROR("checksum mismatch - attempting binary compare");
+				}
 
 				data = (uint8_t*)malloc(buf_cnt);
 
@@ -2737,22 +2741,22 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 						if (data[t] != buffer[t])
 						{
 							command_print(CMD_CTX,
-										  "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n",
+										  "diff %d address 0x%08x. Was 0x%02x instead of 0x%02x",
+										  diffs,
 										  (unsigned)(t + image.sections[i].base_address),
 										  data[t],
 										  buffer[t]);
-							free(data);
-							free(buffer);
-							retval = ERROR_FAIL;
-							goto done;
+							if (diffs++ >= 127)
+							{
+								command_print(CMD_CTX, "More than 128 errors, the rest are not printed.");
+								free(data);
+								free(buffer);
+								goto done;
+							}
 						}
-						if ((t%16384) == 0)
-						{
-							keep_alive();
-						}
+						keep_alive();
 					}
 				}
-
 				free(data);
 			}
 		} else
@@ -2766,6 +2770,10 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 		image_size += buf_cnt;
 	}
 done:
+	if (diffs > 0)
+	{
+		retval = ERROR_FAIL;
+	}
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "verified %" PRIu32 " bytes "
