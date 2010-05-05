@@ -3,6 +3,7 @@
  *   Dominic.Rath@gmx.de                                                   *
  *   Copyright (C) 2009 Michael Schwingen                                  *
  *   michael@schwingen.org                                                 *
+ *   Copyright (C) 2010 Øyvind Harboe <oyvind.harboe@zylin.com>            *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -887,6 +888,7 @@ static int cfi_protect(struct flash_bank *bank, int set, int first, int last)
 
 	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
 	{
+		LOG_ERROR("Invalid sector range");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -897,14 +899,12 @@ static int cfi_protect(struct flash_bank *bank, int set, int first, int last)
 	{
 		case 1:
 		case 3:
-			cfi_intel_protect(bank, set, first, last);
+			return cfi_intel_protect(bank, set, first, last);
 			break;
 		default:
 			LOG_ERROR("protect: cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
+			return ERROR_FAIL;
 	}
-
-	return ERROR_OK;
 }
 
 /* FIXME Replace this by a simple memcpy() - still unsure about sideeffects */
