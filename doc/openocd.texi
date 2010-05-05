@@ -5671,7 +5671,7 @@ separately.
 @end deffn
 
 @anchor{load_image}
-@deffn Command {load_image} filename address [@option{bin}|@option{ihex}|@option{elf}] @option{min_addr} @option{max_length}]
+@deffn Command {load_image} filename address [[@option{bin}|@option{ihex}|@option{elf}] @option{min_addr} @option{max_length}]
 Load image from file @var{filename} to target memory offset by @var{address} from its load address. 
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf}).
