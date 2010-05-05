@@ -54,74 +54,27 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last)
 int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int retval;
-	bool updated = false;
-
-	/* NOTE: "first == last" means (un?)protect just that sector.
-	 code including Lower level ddrivers may rely on this "first <= last"
-	 * invariant.
-	*/
 
 	/* callers may not supply illegal parameters ... */
 	if (first < 0 || first > last || last >= bank->num_sectors)
+	{
+		LOG_ERROR("illegal sector range");
 		return ERROR_FAIL;
+	}
 
 	/* force "set" to 0/1 */
 	set = !!set;
 
-	/*
-	 * Filter out what trivial nonsense we can, so drivers don't have to.
+	/* DANGER!
 	 *
-	 * Don't tell drivers to change to the current state...  it's needless,
-	 * and reducing the amount of work to be done (potentially to nothing)
-	 * speeds at least some things up.
-	 */
-scan:
-	for (int i = first; i <= last; i++) {
-		struct flash_sector *sector = bank->sectors + i;
-
-		/* Only filter requests to protect the already-protected, or
-		 * to unprotect the already-unprotected.  Changing from the
-		 * unknown state (-1) to a known one is unwise but allowed;
-		 * protection status is best checked first.
-		 */
-		if (sector->is_protected != set)
-			continue;
-
-		/* Shrink this range of sectors from the start; don't overrun
-		 * the end.  Also shrink from the end; don't overun the start.
-		 *
-		 * REVISIT we could handle discontiguous regions by issuing
-		 * more than one driver request.  How much would that matter?
-		 */
-		if (i == first && i != last) {
-			updated = true;
-			first++;
-		} else if (i == last && i != first) {
-			updated = true;
-			last--;
-		}
-	}
-
-	/* updating the range affects the tests in the scan loop above; so
-	 * re-scan, to make sure we didn't miss anything.
-	 */
-	if (updated) {
-		updated = false;
-		goto scan;
-	}
-
-	/* Single sector, already protected?  Nothing to do!
-	 * We may have trimmed our parameters into this degenerate case.
+	 * We must not use any cached information about protection state!!!!
 	 *
-	 * FIXME repeating the "is_protected==set" test is a giveaway that
-	 * this fast-exit belongs earlier, in the trim-it-down loop; mve.
-	 * */
-	if (first == last && bank->sectors[first].is_protected == set)
-		return ERROR_OK;
-
-
-	/* Note that we don't pass illegal parameters to drivers; any
-	 * trimming just turns one valid range into another one.
+	 * There are a million things that could change the protect state:
+	 *
+	 * the target could have reset, power cycled, been hot plugged,
+	 * the application could have run, etc.
+	 *
+	 * Drivers only receive valid sector range.
 	 */
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
@@ -753,35 +706,4 @@ int flash_write(struct target *target, struct image *image,
 		uint32_t *written, int erase)
 {
 	return flash_write_unlock(target, image, written, erase, false);
-}
-
-/**
- * Invalidates cached flash state which a target can change as it runs.
- *
- * @param target The target being resumed
- *
- * OpenOCD caches some flash state for brief periods.  For example, a sector
- * that is protected must be unprotected before OpenOCD tries to write it,
- * Also, a sector that's not erased must be erased before it's written.
- *
- * As a rule, OpenOCD and target firmware can both modify the flash, so when
- * a target starts running, OpenOCD needs to invalidate its cached state.
- */
-void nor_resume(struct target *target)
-{
-	struct flash_bank *bank;
-
-	for (bank = flash_banks; bank; bank = bank->next) {
-		int i;
-
-		if (bank->target != target)
-			continue;
-
-		for (i = 0; i < bank->num_sectors; i++) {
-			struct flash_sector *sector = bank->sectors + i;
-
-			sector->is_erased = -1;
-			sector->is_protected = -1;
-		}
-	}
 }

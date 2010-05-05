@@ -4129,9 +4129,8 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @deffn Command {flash info} num
 Print info about flash bank @var{num}
 The @var{num} parameter is a value shown by @command{flash banks}.
-The information includes per-sector protect status, which may be
-incorrect (outdated) unless you first issue a
-@command{flash protect_check num} command.
+This command will first query the hardware, it does not print cached
+and possibly stale information.
 @end deffn
 
 @anchor{flash protect}
@@ -4142,14 +4141,6 @@ and continuing up to and including @var{last}.
 Providing a @var{last} sector of @option{last}
 specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
-@end deffn
-
-@deffn Command {flash protect_check} num
-Check protection state of sectors in flash bank @var{num}.
-The @var{num} parameter is a value shown by @command{flash banks}.
-@comment @option{flash erase_sector} using the same syntax.
-This updates the protection information displayed by @option{flash info}.
-(Code execution may have invalidated any state records kept by OpenOCD.)
 @end deffn
 
 @anchor{Flash Driver List}

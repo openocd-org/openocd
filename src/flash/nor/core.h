@@ -53,6 +53,10 @@ struct flash_sector
 	 * Indication of protection status: 0 = unprotected/unlocked,
 	 * 1 = protected/locked, other = unknown.  Set by
 	 * @c flash_driver_s::protect_check.
+	 *
+	 * This information must be considered stale immediately.
+	 * A million things could make it stale: power cycle,
+	 * reset of target, code running on target, etc.
 	 */
 	int is_protected;
 };
@@ -123,9 +127,6 @@ int flash_unlock_address_range(struct target *target, uint32_t addr,
  */
 int flash_write(struct target *target,
 		struct image *image, uint32_t *written, int erase);
-
-/* invalidate cached state (targets may modify their own flash) */
-void nor_resume(struct target *target);
 
 /**
  * Forces targets to re-examine their erase/protection state.

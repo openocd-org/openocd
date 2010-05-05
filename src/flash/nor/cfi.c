@@ -852,6 +852,17 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 	 */
 	if ((!set) && (!(pri_ext->feature_support & 0x20)))
 	{
+		/* FIX!!! this code path is broken!!!
+		 *
+		 * The correct approach is:
+		 *
+		 * 1. read out current protection status
+		 *
+		 * 2. override read out protection status w/unprotected.
+		 *
+		 * 3. re-protect what should be protected.
+		 *
+		 */
 		for (i = 0; i < bank->num_sectors; i++)
 		{
 			if (bank->sectors[i].is_protected == 1)

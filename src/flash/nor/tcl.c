@@ -70,6 +70,11 @@ COMMAND_HANDLER(handle_flash_info_command)
 		if ((retval = p->driver->auto_probe(p)) != ERROR_OK)
 			return retval;
 
+		/* We must query the hardware to avoid printing stale information! */
+		retval = p->driver->protect_check(p);
+		if (retval != ERROR_OK)
+			return retval;
+
 		command_print(CMD_CTX,
 			      "#%" PRIi32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", buswidth %i, chipwidth %i",
 			      i,
@@ -264,32 +269,6 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	}
 
 	return retval;
-}
-
-COMMAND_HANDLER(handle_flash_protect_check_command)
-{
-	if (CMD_ARGC != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	struct flash_bank *p;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
-	if (ERROR_OK != retval)
-		return retval;
-
-	if ((retval = p->driver->protect_check(p)) == ERROR_OK)
-	{
-		command_print(CMD_CTX, "successfully checked protect state");
-	}
-	else if (retval == ERROR_FLASH_OPERATION_FAILED)
-	{
-		command_print(CMD_CTX, "checking protection state failed (possibly unsupported) by flash #%s at 0x%8.8" PRIx32, CMD_ARGV[0], p->base);
-	}
-	else
-	{
-		command_print(CMD_CTX, "unknown error when checking protection state of flash bank '#%s' at 0x%8.8" PRIx32, CMD_ARGV[0], p->base);
-	}
-
-	return ERROR_OK;
 }
 
 static int flash_check_sector_parameters(struct command_context *cmd_ctx,
@@ -704,14 +683,6 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Check erase state of all blocks in a "
-			"flash bank.",
-	},
-	{
-		.name = "protect_check",
-		.handler = handle_flash_protect_check_command,
-		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
-		.help = "Check protection state of all blocks in a "
 			"flash bank.",
 	},
 	{
