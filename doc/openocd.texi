@@ -332,7 +332,7 @@ and one can be used for a UART adapter at the same time the
 other one is used to provide a debug adapter.
 
 Also, some development boards integrate an FT2232 chip to serve as
-a built-in low coast debug adapter and usb-to-serial solution.
+a built-in low cost debug adapter and usb-to-serial solution.
 
 @itemize @bullet
 @item @b{usbjtag}
