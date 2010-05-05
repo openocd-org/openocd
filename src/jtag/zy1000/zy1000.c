@@ -434,10 +434,9 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 		return JIM_ERR;
 	}
 
-	uint32_t status;
-	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, status);
+	bool dropout = readPowerDropout();
 
-	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80) != 0));
+	Jim_SetResult(interp, Jim_NewIntObj(interp, dropout));
 
 	return JIM_OK;
 }
