@@ -502,7 +502,7 @@ static int flash_driver_unprotect(struct flash_bank *bank, int first, int last)
 	return flash_driver_protect(bank, 0, first, last);
 }
 
-static int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t length)
+int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t length)
 {
 	/* By default, pad to sector boundaries ... the real issue here
 	 * is that our (only) caller *permanently* removes protection,

@@ -108,6 +108,9 @@ int flash_register_commands(struct command_context *cmd_ctx);
 int flash_erase_address_range(struct target *target,
 		bool pad, uint32_t addr, uint32_t length);
 
+int flash_unlock_address_range(struct target *target, uint32_t addr,
+		uint32_t length);
+
 /**
  * Writes @a image into the @a target flash.  The @a written parameter
  * will contain the

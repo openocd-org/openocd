@@ -194,31 +194,39 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 COMMAND_HANDLER(handle_flash_erase_address_command)
 {
 	struct flash_bank *p;
-	int retval;
+	int retval = ERROR_OK;
 	int address;
 	int length;
 	bool do_pad = false;
+	bool do_unlock = false;
 	struct target *target = get_current_target(CMD_CTX);
 
-	switch (CMD_ARGC) {
-	case 3:
+	while (CMD_ARGC >= 3)
+	{
 		/* Optionally pad out the address range to block/sector
 		 * boundaries.  We can't know if there's data in that part
 		 * of the flash; only do padding if we're told to.
 		 */
-		if (strcmp("pad", CMD_ARGV[0]) != 0)
+		if (strcmp("pad", CMD_ARGV[0]) == 0)
+		{
+			do_pad = true;
+		} else if (strcmp("unlock", CMD_ARGV[0]) == 0)
+		{
+			do_unlock = true;
+		} else
+		{
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		do_pad = true;
+		}
 		CMD_ARGC--;
 		CMD_ARGV++;
-		/* FALL THROUGH */
-	case 2:
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], address);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], length);
-		break;
-	default:
+	}
+	if (CMD_ARGC != 2)
+	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], address);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], length);
 
 	if (length <= 0)
 	{
@@ -238,7 +246,15 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	retval = flash_erase_address_range(target, do_pad, address, length);
+	if (do_unlock)
+	{
+		retval = flash_unlock_address_range(target, address, length);
+	}
+
+	if (retval == ERROR_OK)
+	{
+		retval = flash_erase_address_range(target, do_pad, address, length);
+	}
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
@@ -709,12 +725,15 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "erase_address",
 		.handler = handle_flash_erase_address_command,
 		.mode = COMMAND_EXEC,
-		.usage = "['pad'] address length",
+		.usage = "['pad'] ['unlock'] address length",
 		.help = "Erase flash sectors starting at address and "
 			"continuing for length bytes.  If 'pad' is specified, "
 			"data outside that range may also be erased: the start "
 			"address may be decreased, and length increased, so "
-			"that all of the first and last sectors are erased.",
+			"that all of the first and last sectors are erased. "
+			"If 'unlock' is specified, then the flash is unprotected "
+			"before erasing.",
+
 	},
 	{
 		.name = "fillw",

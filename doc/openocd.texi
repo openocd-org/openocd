@@ -21,7 +21,7 @@ of the Open On-Chip Debugger (OpenOCD).
 @itemize @bullet
 @item Copyright @copyright{} 2008 The OpenOCD Project
 @item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
-@item Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
+@item Copyright @copyright{} 2008-2010 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
 @item Copyright @copyright{} 2009-2010 David Brownell
 @end itemize
@@ -4043,7 +4043,7 @@ specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash erase_address} [@option{pad}] address length
+@deffn Command {flash erase_address} [@option{pad}] [@option{unlock}] address length
 Erase sectors starting at @var{address} for @var{length} bytes.
 Unless @option{pad} is specified, @math{address} must begin a
 flash sector, and @math{address + length - 1} must end a sector.
@@ -4053,6 +4053,8 @@ The flash bank to use is inferred from the @var{address}, and
 the specified length must stay within that bank.
 As a special case, when @var{length} is zero and @var{address} is
 the start of the bank, the whole flash is erased.
+If @option{unlock} is specified, then the flash is unprotected
+before erase starts. 
 @end deffn
 
 @deffn Command {flash fillw} address word length
