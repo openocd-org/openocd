@@ -1232,6 +1232,8 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 		buffer += thisrun_count;
 		address += thisrun_count;
 		count -= thisrun_count;
+
+		keep_alive();
 	}
 
 	/* free up resources */
