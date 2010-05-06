@@ -78,7 +78,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 				(char *)&flag,		/* the cast is historical cruft */
 				sizeof(int));		/* length of option value */
 
-		LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
+		LOG_INFO("accepting '%s' connection from %i", service->name, service->port);
 		if ((retval = service->new_connection(c)) != ERROR_OK)
 		{
 			close_socket(c->fd);
