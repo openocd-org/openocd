@@ -1162,9 +1162,12 @@ int interface_jtag_add_sleep(uint32_t us)
 
 #if BUILD_ECOSBOARD
 static char tcpip_stack[2048];
-
 static cyg_thread tcpip_thread_object;
 static cyg_handle_t tcpip_thread_handle;
+
+static char watchdog_stack[2048];
+static cyg_thread watchdog_thread_object;
+static cyg_handle_t watchdog_thread_handle;
 
 /* Infinite loop peeking & poking */
 static void tcpipserver(void)
@@ -1276,6 +1279,88 @@ static void tcpip_server(cyg_addrword_t data)
 
 }
 
+#ifdef WATCHDOG_BASE
+/* If we connect to port 8888 we must send a char every 10s or the board resets itself */
+static void watchdog_server(cyg_addrword_t data)
+{
+	int so_reuseaddr_option = 1;
+
+	int fd;
+	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	{
+		LOG_ERROR("error creating socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*) &so_reuseaddr_option,
+			sizeof(int));
+
+	struct sockaddr_in sin;
+	unsigned int address_size;
+	address_size = sizeof(sin);
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = INADDR_ANY;
+	sin.sin_port = htons(8888);
+
+	if (bind(fd, (struct sockaddr *) &sin, sizeof(sin)) == -1)
+	{
+		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+	if (listen(fd, 1) == -1)
+	{
+		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+
+	for (;;)
+	{
+		int watchdog_ip = accept(fd, (struct sockaddr *) &sin, &address_size);
+
+		/* Start watchdog, must be reset every 10 seconds. */
+		HAL_WRITE_UINT32(WATCHDOG_BASE + 4, 4);
+
+		if (watchdog_ip < 0)
+		{
+			LOG_ERROR("couldn't open watchdog socket: %s", strerror(errno));
+			exit(-1);
+		}
+
+		int flag = 1;
+		setsockopt(watchdog_ip,	/* socket affected */
+				IPPROTO_TCP,		/* set option at TCP level */
+				TCP_NODELAY,		/* name of option */
+				(char *)&flag,		/* the cast is historical cruft */
+				sizeof(int));		/* length of option value */
+
+
+		char buf;
+		for (;;)
+		{
+			if (read(watchdog_ip, &buf, 1) == 1)
+			{
+				/* Reset timer */
+				HAL_WRITE_UINT32(WATCHDOG_BASE + 8, 0x1234);
+				/* Echo so we can telnet in and see that resetting works */
+				write(watchdog_ip, &buf, 1);
+			} else
+			{
+				/* Stop tickling the watchdog, the CPU will reset in < 10 seconds
+				 * now.
+				 */
+				return;
+			}
+
+		}
+
+		/* Never reached */
+	}
+}
+#endif
+
 int interface_jtag_add_sleep(uint32_t us)
 {
 	jtag_sleep(us);
@@ -1306,6 +1391,12 @@ int zy1000_init(void)
 			(void *) tcpip_stack, sizeof(tcpip_stack),
 			&tcpip_thread_handle, &tcpip_thread_object);
 	cyg_thread_resume(tcpip_thread_handle);
+#ifdef WATCHDOG_BASE
+	cyg_thread_create(1, watchdog_server, (cyg_addrword_t) 0, "watchdog tcip/ip server",
+			(void *) watchdog_stack, sizeof(watchdog_stack),
+			&watchdog_thread_handle, &watchdog_thread_object);
+	cyg_thread_resume(watchdog_thread_handle);
+#endif
 #endif
 
 	return ERROR_OK;
