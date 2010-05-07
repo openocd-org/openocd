@@ -953,40 +953,6 @@ static int cfi_protect(struct flash_bank *bank, int set, int first, int last)
 	}
 }
 
-/* FIXME Replace this by a simple memcpy() - still unsure about sideeffects */
-static void cfi_add_byte(struct flash_bank *bank, uint8_t *word, uint8_t byte)
-{
-	/* struct target *target = bank->target; */
-
-	int i;
-
-	/* NOTE:
-	 * The data to flash must not be changed in endian! We write a bytestrem in
-	 * target byte order already. Only the control and status byte lane of the flash
-	 * WSM is interpreted by the CPU in different ways, when read a uint16_t or uint32_t
-	 * word (data seems to be in the upper or lower byte lane for uint16_t accesses).
-	 */
-
-#if 0
-	if (target->endianness == TARGET_LITTLE_ENDIAN)
-	{
-#endif
-		/* shift bytes */
-		for (i = 0; i < bank->bus_width - 1; i++)
-			word[i] = word[i + 1];
-		word[bank->bus_width - 1] = byte;
-#if 0
-	}
-	else
-	{
-		/* shift bytes */
-		for (i = bank->bus_width - 1; i > 0; i--)
-			word[i] = word[i - 1];
-		word[0] = byte;
-	}
-#endif
-}
-
 /* Convert code image to target endian */
 /* FIXME create general block conversion fcts in target.c?) */
 static void cfi_fix_code_endian(struct target *target, uint8_t *dest, const uint32_t *src, uint32_t count)
@@ -1936,12 +1902,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 				if (fallback)
 				{
 					for (i = 0; i < bank->bus_width; i++)
-						current_word[i] = 0;
-
-					for (i = 0; i < bank->bus_width; i++)
-					{
-						cfi_add_byte(bank, current_word, *buffer++);
-					}
+						current_word[i] = *buffer++;
 
 					retval = cfi_write_word(bank, current_word, write_p);
 					if (retval != ERROR_OK)
