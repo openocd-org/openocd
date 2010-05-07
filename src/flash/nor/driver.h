@@ -75,11 +75,12 @@ struct flash_driver
 	 * CMD_ARGV[2] = baseaddress
 	 * CMD_ARGV[3] = lengthbytes
 	 * CMD_ARGV[4] = chip_width_in bytes
-	 * CMD_ARGV[5] = bus_width_bytes
+	 * CMD_ARGV[5] = bus_width_in_bytes
 	 * CMD_ARGV[6] = driver-specific parameters
 	 * @endcode
 	 *
-	 * For example, CMD_ARGV[4] = 16 bit flash, CMD_ARGV[5] = 32bit bus.
+	 * For example, CMD_ARGV[4] = 2 (for 16 bit flash),
+	 *	CMD_ARGV[5] = 4 (for 32 bit bus).
 	 *
 	 * If extra arguments are provided (@a CMD_ARGC > 6), they will
 	 * start in @a CMD_ARGV[6].  These can be used to implement
