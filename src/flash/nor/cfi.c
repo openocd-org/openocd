@@ -1838,7 +1838,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t address = bank->base + offset;	/* address of first byte to be programmed */
-	uint32_t write_p, copy_p;
+	uint32_t write_p;
 	int align;	/* number of unaligned bytes */
 	int blk_count; /* number of bus_width bytes for block copy */
 	uint8_t current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being programmed */
@@ -1863,46 +1863,18 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	{
 		LOG_INFO("Fixup %d unaligned head bytes", align);
 
-		for (i = 0; i < bank->bus_width; i++)
-			current_word[i] = 0;
-		copy_p = write_p;
+		/* read a complete word from flash */
+		if ((retval = target_read_memory(target, write_p, bank->bus_width, 1, current_word)) != ERROR_OK)
+			return retval;
 
-		/* copy bytes before the first write address */
-		for (i = 0; i < align; ++i, ++copy_p)
-		{
-			uint8_t byte;
-			/* FIXME: access flash at bus_width size */
-			if ((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
-			{
-				return retval;
-			}
-			cfi_add_byte(bank, current_word, byte);
-		}
-
-		/* add bytes from the buffer */
-		for (; (i < bank->bus_width) && (count > 0); i++)
-		{
-			cfi_add_byte(bank, current_word, *buffer++);
-			count--;
-			copy_p++;
-		}
-
-		/* if the buffer is already finished, copy bytes after the last write address */
-		for (; (count == 0) && (i < bank->bus_width); ++i, ++copy_p)
-		{
-			uint8_t byte;
-			/* FIXME: access flash at bus_width size */
-			if ((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
-			{
-				return retval;
-			}
-			cfi_add_byte(bank, current_word, byte);
-		}
+		/* replace only bytes that must be written */
+		for (i = align; (i < bank->bus_width) && (count > 0); i++, count--)
+			current_word[i] = *buffer++;
 
 		retval = cfi_write_word(bank, current_word, write_p);
 		if (retval != ERROR_OK)
 			return retval;
-		write_p = copy_p;
+		write_p += bank->bus_width;
 	}
 
 	/* handle blocks of bus_size aligned bytes */
@@ -1995,25 +1967,14 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	{
 		LOG_INFO("Fixup %" PRId32 " unaligned tail bytes", count);
 
-		copy_p = write_p;
-		for (i = 0; i < bank->bus_width; i++)
-			current_word[i] = 0;
+		/* read a complete word from flash */
+		if ((retval = target_read_memory(target, write_p, bank->bus_width, 1, current_word)) != ERROR_OK)
+			return retval;
 
-		for (i = 0; (i < bank->bus_width) && (count > 0); ++i, ++copy_p)
-		{
-			cfi_add_byte(bank, current_word, *buffer++);
-			count--;
-		}
-		for (; i < bank->bus_width; ++i, ++copy_p)
-		{
-			uint8_t byte;
-			/* FIXME: access flash at bus_width size */
-			if ((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
-			{
-				return retval;
-			}
-			cfi_add_byte(bank, current_word, byte);
-		}
+		/* replace only bytes that must be written */
+		for (i = 0; (i < bank->bus_width) && (count > 0); i++, count--)
+			current_word[i] = *buffer++;
+
 		retval = cfi_write_word(bank, current_word, write_p);
 		if (retval != ERROR_OK)
 			return retval;
