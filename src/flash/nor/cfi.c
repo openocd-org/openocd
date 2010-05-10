@@ -104,7 +104,6 @@ static __inline__ uint32_t flash_address(struct flash_bank *bank, int sector, ui
 		}
 		return bank->base + bank->sectors[sector].offset + offset * bank->bus_width;
 	}
-
 }
 
 static void cfi_command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
@@ -232,6 +231,35 @@ static uint32_t cfi_query_u32(struct flash_bank *bank, int sector, uint32_t offs
 				data[(3 * bank->bus_width) - 1] << 16 | data[(4 * bank->bus_width) - 1] << 24;
 }
 
+static int cfi_reset(struct flash_bank *bank)
+{
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
+	int retval = ERROR_OK;
+
+	if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	if (cfi_info->manufacturer == 0x20 &&
+			(cfi_info->device_id == 0x227E || cfi_info->device_id == 0x7E))
+	{
+		/* Numonix M29W128G is cmd 0xFF intolerant - causes internal undefined state
+		 * so we send an extra 0xF0 reset to fix the bug */
+		if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x00))) != ERROR_OK)
+		{
+			return retval;
+		}
+	}
+
+	return retval;
+}
+
 static void cfi_intel_clear_status_register(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -335,11 +363,7 @@ static int cfi_read_intel_pri_ext(struct flash_bank *bank)
 
 	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I'))
 	{
-		if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
-		{
-			return retval;
-		}
-		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
+		if ((retval = cfi_reset(bank)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -1977,11 +2001,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	}
 
 	/* return to read array mode, so we can read from flash again for padding */
-	if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
-	{
-		return retval;
-	}
-	if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
+	if ((retval = cfi_reset(bank)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -2015,11 +2035,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	}
 
 	/* return to read array mode */
-	if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
-	{
-		return retval;
-	}
-	return cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0));
+	return cfi_reset(bank);
 }
 
 static void cfi_fixup_atmel_reversed_erase_regions(struct flash_bank *bank, void *param)
@@ -2083,11 +2099,7 @@ static int cfi_query_string(struct flash_bank *bank, int address)
 
 	if ((cfi_info->qry[0] != 'Q') || (cfi_info->qry[1] != 'R') || (cfi_info->qry[2] != 'Y'))
 	{
-		if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
-		{
-			return retval;
-		}
-		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
+		if ((retval = cfi_reset(bank)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -2168,11 +2180,7 @@ static int cfi_probe(struct flash_bank *bank)
 
 	LOG_INFO("Flash Manufacturer/Device: 0x%04x 0x%04x", cfi_info->manufacturer, cfi_info->device_id);
 	/* switch back to read array mode */
-	if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x00))) != ERROR_OK)
-	{
-		return retval;
-	}
-	if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x00))) != ERROR_OK)
+	if ((retval = cfi_reset(bank)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -2289,11 +2297,7 @@ static int cfi_probe(struct flash_bank *bank)
 		/* return to read array mode
 		 * we use both reset commands, as some Intel flashes fail to recognize the 0xF0 command
 		 */
-		if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
-		{
-			return retval;
-		}
-		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
+		if ((retval = cfi_reset(bank)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -2376,7 +2380,6 @@ static int cfi_auto_probe(struct flash_bank *bank)
 		return ERROR_OK;
 	return cfi_probe(bank);
 }
-
 
 static int cfi_intel_protect_check(struct flash_bank *bank)
 {
