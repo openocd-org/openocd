@@ -571,7 +571,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		{
 			if (readback[i]!=chunk[i])
 			{
-				LOG_ERROR("Verfication error address 0x%08" PRIx32 ", read back 0x%02x, expected 0x%02x",
+				LOG_ERROR("Verification error address 0x%08" PRIx32 ", read back 0x%02x, expected 0x%02x",
 						  address + wrote + i, readback[i], chunk[i]);
 				retval = ERROR_FAIL;
 				goto done;
