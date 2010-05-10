@@ -377,6 +377,7 @@ static int arm7_9_unset_breakpoint(struct target *target, struct breakpoint *bre
 			{
 				return retval;
 			}
+                        current_instr = target_buffer_get_u32(target, (uint8_t *)&current_instr);
 			if (current_instr == arm7_9->arm_bkpt)
 				if ((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
