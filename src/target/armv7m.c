@@ -615,8 +615,10 @@ int armv7m_checksum_memory(struct target *target,
 	buf_set_u32(reg_params[0].value, 0, 32, address);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
+	int timeout = 20000 * (1 + (count / (1024 * 1024)));
+
 	if ((retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
-		crc_algorithm->address, crc_algorithm->address + (sizeof(cortex_m3_crc_code)-6), 20000, &armv7m_info)) != ERROR_OK)
+		crc_algorithm->address, crc_algorithm->address + (sizeof(cortex_m3_crc_code)-6), timeout, &armv7m_info)) != ERROR_OK)
 	{
 		LOG_ERROR("error executing cortex_m3 crc algorithm");
 		destroy_reg_param(&reg_params[0]);
