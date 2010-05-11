@@ -141,6 +141,7 @@ struct flash_driver faux_flash = {
 	.erase = faux_erase,
 	.protect = faux_protect,
 	.write = faux_write,
+	.read = default_flash_read,
 	.probe = faux_probe,
 	.auto_probe = faux_probe,
 	.erase_check = default_flash_blank_check,

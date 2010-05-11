@@ -766,6 +766,7 @@ struct flash_driver pic32mx_flash = {
 	.erase = pic32mx_erase,
 	.protect = pic32mx_protect,
 	.write = pic32mx_write,
+	.read = default_flash_read,
 	.probe = pic32mx_probe,
 	.auto_probe = pic32mx_auto_probe,
 	.erase_check = default_flash_mem_blank_check,

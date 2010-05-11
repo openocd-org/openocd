@@ -3,6 +3,7 @@
  *   Copyright (C) 2007-2010 Øyvind Harboe <oyvind.harboe@zylin.com>       *
  *   Copyright (C) 2008 by Spencer Oliver <spen@spen-soft.co.uk>           *
  *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
+ *   Copyright (C) 2010 by Antonio Borneo <borneo.antonio@gmail.com>       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -98,6 +99,29 @@ int flash_driver_write(struct flash_bank *bank,
 	}
 
 	return retval;
+}
+
+int flash_driver_read(struct flash_bank *bank,
+		uint8_t *buffer, uint32_t offset, uint32_t count)
+{
+	int retval;
+
+	LOG_DEBUG("call flash_driver_read()");
+
+	retval = bank->driver->read(bank, buffer, offset, count);
+	if (retval != ERROR_OK)
+	{
+		LOG_ERROR("error reading to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32 " (%d)",
+			  bank->base, offset, retval);
+	}
+
+	return retval;
+}
+
+int default_flash_read(struct flash_bank *bank,
+		uint8_t *buffer, uint32_t offset, uint32_t count)
+{
+	return target_read_buffer(bank->target, offset + bank->base, count, buffer);
 }
 
 void flash_bank_add(struct flash_bank *bank)

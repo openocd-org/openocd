@@ -436,6 +436,7 @@ struct flash_driver ecosflash_flash = {
 	.erase = ecosflash_erase,
 	.protect = ecosflash_protect,
 	.write = ecosflash_write,
+	.read = default_flash_read,
 	.probe = ecosflash_probe,
 	.auto_probe = ecosflash_probe,
 	.erase_check = default_flash_blank_check,

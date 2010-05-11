@@ -353,6 +353,7 @@ struct flash_driver ocl_flash = {
 	.erase = ocl_erase,
 	.protect = ocl_protect,
 	.write = ocl_write,
+	.read = default_flash_read,
 	.probe = ocl_probe,
 	.erase_check = ocl_erase_check,
 	.protect_check = ocl_protect_check,

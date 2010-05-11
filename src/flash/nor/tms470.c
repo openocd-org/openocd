@@ -1264,6 +1264,7 @@ struct flash_driver tms470_flash = {
 	.erase = tms470_erase,
 	.protect = tms470_protect,
 	.write = tms470_write,
+	.read = default_flash_read,
 	.probe = tms470_probe,
 	.auto_probe = tms470_auto_probe,
 	.erase_check = tms470_erase_check,

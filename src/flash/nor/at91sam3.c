@@ -2505,6 +2505,7 @@ struct flash_driver at91sam3_flash = {
 	.erase = sam3_erase,
 	.protect = sam3_protect,
 	.write = sam3_write,
+	.read = default_flash_read,
 	.probe = sam3_probe,
 	.auto_probe = sam3_auto_probe,
 	.erase_check = sam3_erase_check,

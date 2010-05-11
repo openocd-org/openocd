@@ -701,6 +701,7 @@ struct flash_driver str9x_flash = {
 	.erase = str9x_erase,
 	.protect = str9x_protect,
 	.write = str9x_write,
+	.read = default_flash_read,
 	.probe = str9x_probe,
 	.auto_probe = str9x_probe,
 	.erase_check = default_flash_blank_check,

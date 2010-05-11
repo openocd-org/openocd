@@ -40,6 +40,8 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last);
 int flash_driver_protect(struct flash_bank *bank, int set, int first, int last);
 int flash_driver_write(struct flash_bank *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t count);
+int flash_driver_read(struct flash_bank *bank,
+		uint8_t *buffer, uint32_t offset, uint32_t count);
 
 /* write (optional verify) an image to flash memory of the given target */
 int flash_write_unlock(struct target *target, struct image *image,

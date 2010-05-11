@@ -1830,6 +1830,7 @@ struct flash_driver lpc2900_flash =
 	.erase              = lpc2900_erase,
 	.protect            = lpc2900_protect,
 	.write              = lpc2900_write,
+	.read               = default_flash_read,
 	.probe              = lpc2900_probe,
 	.auto_probe         = lpc2900_probe,
 	.erase_check        = lpc2900_erase_check,

@@ -559,7 +559,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 			goto done;
 		}
 
-		err = target_read_buffer(target, address + wrote, cur_size, readback);
+		err = flash_driver_read(bank, readback, address - bank->base + wrote, cur_size);
 		if (err != ERROR_OK)
 		{
 			retval = err;

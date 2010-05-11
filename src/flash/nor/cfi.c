@@ -2467,6 +2467,8 @@ struct flash_driver cfi_flash = {
 	.erase = cfi_erase,
 	.protect = cfi_protect,
 	.write = cfi_write,
+	/* FIXME: access flash at bus_width size */
+	.read = default_flash_read,
 	.probe = cfi_probe,
 	.auto_probe = cfi_auto_probe,
 	/* FIXME: access flash at bus_width size */

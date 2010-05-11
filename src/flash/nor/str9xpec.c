@@ -1247,6 +1247,7 @@ struct flash_driver str9xpec_flash = {
 	.erase = str9xpec_erase,
 	.protect = str9xpec_protect,
 	.write = str9xpec_write,
+	.read = default_flash_read,
 	.probe = str9xpec_probe,
 	.auto_probe = str9xpec_probe,
 	.erase_check = str9xpec_erase_check,

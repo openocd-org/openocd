@@ -1207,6 +1207,7 @@ struct flash_driver at91sam7_flash = {
 	.erase = at91sam7_erase,
 	.protect = at91sam7_protect,
 	.write = at91sam7_write,
+	.read = default_flash_read,
 	.probe = at91sam7_probe,
 	.auto_probe = at91sam7_probe,
 	.erase_check = at91sam7_erase_check,

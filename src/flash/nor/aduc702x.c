@@ -417,6 +417,7 @@ struct flash_driver aduc702x_flash = {
 	.erase = aduc702x_erase,
 	.protect = aduc702x_protect,
 	.write = aduc702x_write,
+	.read = default_flash_read,
 	.probe = aduc702x_probe,
 	.auto_probe = aduc702x_probe,
 	.erase_check = default_flash_blank_check,

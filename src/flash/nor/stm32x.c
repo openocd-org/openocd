@@ -1293,6 +1293,7 @@ struct flash_driver stm32x_flash = {
 	.erase = stm32x_erase,
 	.protect = stm32x_protect,
 	.write = stm32x_write,
+	.read = default_flash_read,
 	.probe = stm32x_probe,
 	.auto_probe = stm32x_auto_probe,
 	.erase_check = default_flash_mem_blank_check,

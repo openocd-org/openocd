@@ -814,6 +814,7 @@ struct flash_driver lpc2000_flash = {
 	.erase = lpc2000_erase,
 	.protect = lpc2000_protect,
 	.write = lpc2000_write,
+	.read = default_flash_read,
 	.probe = lpc2000_probe,
 	.auto_probe = lpc2000_probe,
 	.erase_check = lpc2000_erase_check,

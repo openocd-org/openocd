@@ -3,6 +3,7 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe <oyvind.harboe@zylin.com>       *
  *   Copyright (C) 2008 by Spencer Oliver <spen@spen-soft.co.uk>           *
  *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
+ *   Copyright (C) 2010 by Antonio Borneo <borneo.antonio@gmail.com>       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -128,6 +129,20 @@ struct flash_driver
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
 	int (*write)(struct flash_bank *bank,
+			uint8_t *buffer, uint32_t offset, uint32_t count);
+
+	/**
+	 * Read data from the flash. Note CPU address will be
+	 * "bank->base + offset", while the physical address is
+	 * dependent upon current target MMU mappings.
+	 *
+	 * @param bank The bank to read.
+	 * @param buffer The data bytes read.
+	 * @param offset The offset into the chip to read.
+	 * @param count The number of bytes to read.
+	 * @returns ERROR_OK if successful; otherwise, an error code.
+	 */
+	 int (*read)(struct flash_bank *bank,
 			uint8_t *buffer, uint32_t offset, uint32_t count);
 
 	/**

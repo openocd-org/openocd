@@ -478,6 +478,7 @@ struct flash_driver lpc288x_flash = {
 	.erase = lpc288x_erase,
 	.protect = lpc288x_protect,
 	.write = lpc288x_write,
+	.read = default_flash_read,
 	.probe = lpc288x_probe,
 	.auto_probe = lpc288x_probe,
 	.erase_check = lpc288x_erase_check,

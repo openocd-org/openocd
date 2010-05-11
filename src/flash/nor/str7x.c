@@ -790,6 +790,7 @@ struct flash_driver str7x_flash = {
 	.erase = str7x_erase,
 	.protect = str7x_protect,
 	.write = str7x_write,
+	.read = default_flash_read,
 	.probe = str7x_probe,
 	.auto_probe = str7x_probe,
 	.erase_check = default_flash_blank_check,

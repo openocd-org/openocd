@@ -1261,6 +1261,7 @@ struct flash_driver stellaris_flash = {
 	.erase = stellaris_erase,
 	.protect = stellaris_protect,
 	.write = stellaris_write,
+	.read = default_flash_read,
 	.probe = stellaris_probe,
 	.auto_probe = stellaris_probe,
 	.erase_check = default_flash_mem_blank_check,
