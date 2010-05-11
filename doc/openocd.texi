@@ -537,7 +537,7 @@ command interpreter today is a mixture of (newer)
 JIM-Tcl commands, and (older) the orginal command interpreter.
 
 @item @b{Commands}
-@* At the OpenOCD telnet command line (or via the GDB mon command) one
+@* At the OpenOCD telnet command line (or via the GDB monitor command) one
 can type a Tcl for() loop, set variables, etc.
 Some of the commands documented in this guide are implemented
 as Tcl scripts, from a @file{startup.tcl} file internal to the server.
