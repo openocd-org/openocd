@@ -805,8 +805,6 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct cfi_intel_pri_ext *pri_ext = cfi_info->pri_ext;
-	struct target *target = bank->target; /* FIXME: to be removed */
-	uint8_t command[CFI_MAX_BUS_WIDTH]; /* FIXME: to be removed */
 	int retry = 0;
 	int i;
 
@@ -820,16 +818,12 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 
 	for (i = first; i <= last; i++)
 	{
-		cfi_command(bank, 0x60, command); /* FIXME: to be removed */
-		LOG_DEBUG("address: 0x%4.4" PRIx32 ", command: 0x%4.4" PRIx32, flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 		if ((retval = cfi_send_command(bank, 0x60, flash_address(bank, i, 0x0))) != ERROR_OK)
 		{
 			return retval;
 		}
 		if (set)
 		{
-			cfi_command(bank, 0x01, command); /* FIXME: to be removed */
-			LOG_DEBUG("address: 0x%4.4" PRIx32 ", command: 0x%4.4" PRIx32 , flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 			if ((retval = cfi_send_command(bank, 0x01, flash_address(bank, i, 0x0))) != ERROR_OK)
 			{
 				return retval;
@@ -838,8 +832,6 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 		}
 		else
 		{
-			cfi_command(bank, 0xd0, command); /* FIXME: to be removed */
-			LOG_DEBUG("address: 0x%4.4" PRIx32 ", command: 0x%4.4" PRIx32, flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 			if ((retval = cfi_send_command(bank, 0xd0, flash_address(bank, i, 0x0))) != ERROR_OK)
 			{
 				return retval;
