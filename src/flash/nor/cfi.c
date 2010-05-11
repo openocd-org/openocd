@@ -4,6 +4,7 @@
  *   Copyright (C) 2009 Michael Schwingen                                  *
  *   michael@schwingen.org                                                 *
  *   Copyright (C) 2010 Øyvind Harboe <oyvind.harboe@zylin.com>            *
+ *   Copyright (C) 2010 by Antonio Borneo <borneo.antonio@gmail.com>       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -1799,6 +1800,76 @@ static int cfi_write_words(struct flash_bank *bank, uint8_t *word, uint32_t word
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
+static int cfi_read(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+{
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
+	struct target *target = bank->target;
+	uint32_t address = bank->base + offset;
+	uint32_t read_p;
+	int align;	/* number of unaligned bytes */
+	uint8_t current_word[CFI_MAX_BUS_WIDTH];
+	int i;
+	int retval;
+
+	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
+		(int)count, (unsigned)offset);
+
+	if (bank->target->state != TARGET_HALTED)
+	{
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (offset + count > bank->size)
+		return ERROR_FLASH_DST_OUT_OF_BANK;
+
+	if (cfi_info->qry[0] != 'Q')
+		return ERROR_FLASH_BANK_NOT_PROBED;
+
+	/* start at the first byte of the first word (bus_width size) */
+	read_p = address & ~(bank->bus_width - 1);
+	if ((align = address - read_p) != 0)
+	{
+		LOG_INFO("Fixup %d unaligned read head bytes", align);
+
+		/* read a complete word from flash */
+		if ((retval = target_read_memory(target, read_p, bank->bus_width, 1, current_word)) != ERROR_OK)
+			return retval;
+
+		/* take only bytes we need */
+		for (i = align; (i < bank->bus_width) && (count > 0); i++, count--)
+			*buffer++ = current_word[i];
+
+		read_p += bank->bus_width;
+	}
+
+	align = count / bank->bus_width;
+	if (align)
+	{
+		if ((retval = target_read_memory(target, read_p, bank->bus_width, align, buffer)) != ERROR_OK)
+			return retval;
+
+		read_p += align * bank->bus_width;
+		buffer += align * bank->bus_width;
+		count -= align * bank->bus_width;
+	}
+
+	if (count)
+	{
+		LOG_INFO("Fixup %d unaligned read tail bytes", count);
+
+		/* read a complete word from flash */
+		if ((retval = target_read_memory(target, read_p, bank->bus_width, 1, current_word)) != ERROR_OK)
+			return retval;
+
+		/* take only bytes we need */
+		for (i = 0; (i < bank->bus_width) && (count > 0); i++, count--)
+			*buffer++ = current_word[i];
+	}
+
+	return ERROR_OK;
+}
+
 static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -2467,8 +2538,7 @@ struct flash_driver cfi_flash = {
 	.erase = cfi_erase,
 	.protect = cfi_protect,
 	.write = cfi_write,
-	/* FIXME: access flash at bus_width size */
-	.read = default_flash_read,
+	.read = cfi_read,
 	.probe = cfi_probe,
 	.auto_probe = cfi_auto_probe,
 	/* FIXME: access flash at bus_width size */
