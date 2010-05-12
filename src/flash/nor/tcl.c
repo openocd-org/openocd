@@ -49,21 +49,18 @@ COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 COMMAND_HANDLER(handle_flash_info_command)
 {
 	struct flash_bank *p;
-	uint32_t i = 0;
 	int j = 0;
 	int retval;
 
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned bank_nr;
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], bank_nr);
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	if (retval != ERROR_OK)
+		return retval;
 
-	for (p = flash_bank_list(); p; p = p->next, i++)
+	if (p != NULL)
 	{
-		if (i != bank_nr)
-			continue;
-
 		char buf[1024];
 
 		/* attempt auto probe */
@@ -76,8 +73,8 @@ COMMAND_HANDLER(handle_flash_info_command)
 			return retval;
 
 		command_print(CMD_CTX,
-			      "#%" PRIi32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", buswidth %i, chipwidth %i",
-			      i,
+			      "#%" PRIu32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", buswidth %i, chipwidth %i",
+			      p->bank_number,
 			      p->driver->name,
 			      p->base,
 			      p->size,
@@ -115,6 +112,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 
 COMMAND_HANDLER(handle_flash_probe_command)
 {
+	struct flash_bank *p;
 	int retval;
 
 	if (CMD_ARGC != 1)
@@ -122,9 +120,10 @@ COMMAND_HANDLER(handle_flash_probe_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	unsigned bank_nr;
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], bank_nr);
-	struct flash_bank *p = get_flash_bank_by_num_noprobe(bank_nr);
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	if (retval != ERROR_OK)
+		return retval;
+
 	if (p)
 	{
 		if ((retval = p->driver->probe(p)) == ERROR_OK)
@@ -294,15 +293,13 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t bank_nr;
 	uint32_t first;
 	uint32_t last;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bank_nr);
-
 	struct flash_bank *p;
 	int retval;
-	retval = get_flash_bank_by_num(bank_nr, &p);
+
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -325,7 +322,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	{
 		command_print(CMD_CTX, "erased sectors %" PRIu32 " "
 				"through %" PRIu32" on flash bank %" PRIu32 " "
-				"in %fs", first, last, bank_nr, duration_elapsed(&bench));
+				"in %fs", first, last, p->bank_number, duration_elapsed(&bench));
 	}
 
 	return ERROR_OK;
@@ -336,13 +333,13 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	if (CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t bank_nr;
 	uint32_t first;
 	uint32_t last;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bank_nr);
 	struct flash_bank *p;
-	int retval = get_flash_bank_by_num(bank_nr, &p);
+	int retval;
+
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -362,9 +359,9 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	retval = flash_driver_protect(p, set, first, last);
 	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "%s protection for sectors %i "
-				"through %i on flash bank %i",
+				"through %i on flash bank %" PRIu32 "",
 			(set) ? "set" : "cleared", (int) first,
-			(int) last, (int) bank_nr);
+			(int) last, p->bank_number);
 	}
 
 	return ERROR_OK;
@@ -847,8 +844,8 @@ COMMAND_HANDLER(handle_flash_banks_command)
 	unsigned n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++)
 	{
-		LOG_USER("#%u: %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
-			"buswidth %u, chipwidth %u", n,
+		LOG_USER("#%" PRIu32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
+			"buswidth %u, chipwidth %u", p->bank_number,
 			p->driver->name, p->base, p->size,
 			p->bus_width, p->chip_width);
 	}
