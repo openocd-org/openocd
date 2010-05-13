@@ -2560,7 +2560,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "downloaded %" PRIu32 " bytes "
-				"in %fs (%0.3f kb/s)", image_size,
+				"in %fs (%0.3f KiB/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 	}
 
@@ -2626,7 +2626,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX,
-				"dumped %ld bytes in %fs (%0.3f kb/s)", (long)fileio.size,
+				"dumped %ld bytes in %fs (%0.3f KiB/s)", (long)fileio.size,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}
 
@@ -2769,7 +2769,7 @@ done:
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "verified %" PRIu32 " bytes "
-				"in %fs (%0.3f kb/s)", image_size,
+				"in %fs (%0.3f KiB/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 	}
 
@@ -4949,7 +4949,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "Loaded %" PRIu32 " bytes "
-				"in %fs (%0.3f kb/s)", image_size, 
+				"in %fs (%0.3f KiB/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
 
 		command_print(CMD_CTX,

@@ -263,7 +263,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "erased address 0x%8.8x (length %i)"
-				" in %fs (%0.3f kb/s)", address, length,
+				" in %fs (%0.3f KiB/s)", address, length,
 				duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
 
@@ -448,7 +448,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "wrote %" PRIu32 " bytes from file %s "
-				"in %fs (%0.3f kb/s)", written, CMD_ARGV[0],
+				"in %fs (%0.3f KiB/s)", written, CMD_ARGV[0],
 				duration_elapsed(&bench), duration_kbps(&bench, written));
 	}
 
@@ -582,7 +582,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	if (duration_measure(&bench) == ERROR_OK)
 	{
 		command_print(CMD_CTX, "wrote %" PRIu32 " bytes to 0x%8.8" PRIx32
-				" in %fs (%0.3f kb/s)", wrote, address,
+				" in %fs (%0.3f KiB/s)", wrote, address,
 				duration_elapsed(&bench), duration_kbps(&bench, wrote));
 	}
 
@@ -634,7 +634,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "wrote %ld bytes from file %s to flash bank %u"
-				" at offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
+				" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
 				(long)fileio.size, CMD_ARGV[1], p->bank_number, offset,
 				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
 	}

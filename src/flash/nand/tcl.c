@@ -309,7 +309,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 	if (nand_fileio_finish(&s))
 	{
 		command_print(CMD_CTX, "wrote file %s to NAND flash %s up to "
-				"offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
+				"offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
 				CMD_ARGV[1], CMD_ARGV[0], s.address, duration_elapsed(&s.bench),
 				duration_kbps(&s.bench, total_bytes));
 	}
@@ -369,7 +369,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 	if (nand_fileio_finish(&file) == ERROR_OK)
 	{
 		command_print(CMD_CTX, "verified file %s in NAND flash %s "
-				"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f kb/s)",
+				"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
 				CMD_ARGV[1], CMD_ARGV[0], dev.address, duration_elapsed(&file.bench),
 				duration_kbps(&file.bench, dev.size));
 	}
@@ -409,7 +409,7 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 	if (nand_fileio_finish(&s) == ERROR_OK)
 	{
-		command_print(CMD_CTX, "dumped %ld bytes in %fs (%0.3f kb/s)", 
+		command_print(CMD_CTX, "dumped %ld bytes in %fs (%0.3f KiB/s)",
 				(long)s.fileio.size, duration_elapsed(&s.bench),
 				duration_kbps(&s.bench, s.fileio.size));
 	}
