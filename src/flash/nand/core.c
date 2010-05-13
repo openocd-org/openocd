@@ -528,7 +528,7 @@ int nand_erase(struct nand_device *nand, int first_block, int last_block)
 	if (!nand->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 
-	if ((first_block < 0) || (last_block > nand->num_blocks))
+	if ((first_block < 0) || (last_block >= nand->num_blocks))
 		return ERROR_INVALID_ARGUMENTS;
 
 	/* make sure we know if a block is bad before erasing it */
