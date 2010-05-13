@@ -222,8 +222,9 @@ COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 
 int nand_build_bbt(struct nand_device *nand, int first, int last)
 {
-	uint32_t page = 0x0;
+	uint32_t page;
 	int i;
+	int pages_per_block = (nand->erase_size / nand->page_size);
 	uint8_t oob[6];
 
 	if ((first < 0) || (first >= nand->num_blocks))
@@ -232,7 +233,8 @@ int nand_build_bbt(struct nand_device *nand, int first, int last)
 	if ((last >= nand->num_blocks) || (last == -1))
 		last = nand->num_blocks - 1;
 
-	for (i = first; i < last; i++)
+	page = first * pages_per_block;
+	for (i = first; i <= last; i++)
 	{
 		nand_read_page(nand, page, NULL, 0, oob, 6);
 
@@ -248,7 +250,7 @@ int nand_build_bbt(struct nand_device *nand, int first, int last)
 			nand->blocks[i].is_bad = 0;
 		}
 
-		page += (nand->erase_size / nand->page_size);
+		page += pages_per_block;
 	}
 
 	return ERROR_OK;
