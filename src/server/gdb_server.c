@@ -171,6 +171,9 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
 	struct gdb_connection *gdb_con = connection->priv;
 	int retval = ERROR_OK;
 
+#ifdef _DEBUG_GDB_IO_
+	char *debug_buffer;
+#endif
 	for (;;)
 	{
 		if (connection->service->type == CONNECTION_PIPE)
