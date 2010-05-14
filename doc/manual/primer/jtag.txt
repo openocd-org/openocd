@@ -29,7 +29,7 @@ TMS which will select different shift registers.
 
 The first thing you need to do is reset the state machine, because when
 you connect to a chip you do not know what state the controller is in,you need
-to clock TMS as 1, at least 7 times.  This will put you into "Test Logic
+to clock TMS as 1, at least 5 times.  This will put you into "Test Logic
 Reset" State.  Knowing this, you can, once reset, then track what each
 transition on TMS will do, and hence know what state the JTAG state
 machine is in.
@@ -45,9 +45,9 @@ instruction register.
 
 For example, one of the data registers will be known as "bypass" this is
 (usually) a single bit which has no function and is used to bypass the
-chip.  Assume we have 3 identical chips, wired up like the picture
-and each has a 3 bit instruction register, and there are 2 known
-instructions (110 = bypass, 010 = some other function) if we want to use
+chip.  Assume we have 3 identical chips, wired up like the picture(wikipedia)
+and each has a 3 bits instruction register, and there are 2 known
+instructions (110 = bypass, 010 = "some other function") if we want to use
 "some other function", on the second chip in the line, and not change
 the other chips we would do the following transitions.
 
@@ -66,13 +66,13 @@ each chip [110] [010] [110]
 The order is reversed, because we shift out the least significant bit
 first.  Then we transition TMS:
 
-  1 1 1 1 0 0
+  1 1 1 0 0
 
 which puts us in the "Shift DR state".
 
 Now when we clock data onto TDI (again while holding TMS to 0) , the
 data shifts through the data registers, and because of the instruction
-registers we selected (some other function has 8 bits in its data
+registers we selected ("some other function" has 8 bits in its data
 register), our total data register in the chain looks like this:
 
   0 00000000 0
@@ -106,10 +106,6 @@ registers do, so you can actually do something useful.  That's where it
 gets interesting.  But in and of itself, JTAG is actually very simple.
 
 @section primerjtag More Reading
-
-The following link goes to an HTML (or PDF) introduction to JTAG,
-written by one of the original members of the JTAG committee: @par
-http://www.asset-intertech.com/products/boundscan.htm
 
 A separate primer contains information about @subpage primerjtagbs for
 developers that want to extend OpenOCD for such purposes.
