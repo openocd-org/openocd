@@ -2503,26 +2503,29 @@ COMMAND_HANDLER(handle_gdb_port_command)
 
 COMMAND_HANDLER(handle_gdb_memory_map_command)
 {
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_use_memory_map);
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_use_memory_map);
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_gdb_flash_program_command)
 {
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_flash_program);
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_flash_program);
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 {
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_report_data_abort);
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_report_data_abort);
+	return ERROR_OK;
 }
 
 /* gdb_breakpoint_override */
