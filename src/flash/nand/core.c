@@ -226,6 +226,7 @@ int nand_build_bbt(struct nand_device *nand, int first, int last)
 	int i;
 	int pages_per_block = (nand->erase_size / nand->page_size);
 	uint8_t oob[6];
+	int ret;
 
 	if ((first < 0) || (first >= nand->num_blocks))
 		first = 0;
@@ -236,7 +237,9 @@ int nand_build_bbt(struct nand_device *nand, int first, int last)
 	page = first * pages_per_block;
 	for (i = first; i <= last; i++)
 	{
-		nand_read_page(nand, page, NULL, 0, oob, 6);
+		ret = nand_read_page(nand, page, NULL, 0, oob, 6);
+		if (ret != ERROR_OK)
+			return ret;
 
 		if (((nand->device->options & NAND_BUSWIDTH_16) && ((oob[0] & oob[1]) != 0xff))
 			|| (((nand->page_size == 512) && (oob[5] != 0xff)) ||
