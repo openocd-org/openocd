@@ -338,6 +338,27 @@ static void davinci_write_pagecmd(struct nand_device *nand, uint8_t cmd, uint32_
 		target_write_u8(target, info->addr, page >> 24);
 }
 
+static int davinci_seek_column(struct nand_device *nand, uint16_t column)
+{
+	struct davinci_nand *info = nand->controller_priv;
+	struct target *target = info->target;
+
+	/* Random read, we must have issued a page read already */
+	target_write_u8(target, info->cmd, NAND_CMD_RNDOUT);
+
+	target_write_u8(target, info->addr, column);
+
+	if (nand->page_size > 512) {
+		target_write_u8(target, info->addr, column >> 8);
+		target_write_u8(target, info->cmd, NAND_CMD_RNDOUTSTART);
+	}
+
+	if (!davinci_nand_ready(nand, 100))
+		return ERROR_NAND_OPERATION_TIMEOUT;
+
+	return ERROR_OK;
+}
+
 static int davinci_writepage_tail(struct nand_device *nand,
 		uint8_t *oob, uint32_t oob_size)
 {
@@ -599,6 +620,10 @@ static int davinci_write_page_ecc4infix(struct nand_device *nand, uint32_t page,
 static int davinci_read_page_ecc4infix(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
+	int read_size;
+	int want_col, at_col;
+	int ret;
+
 	davinci_write_pagecmd(nand, NAND_CMD_READ0, page);
 
 	/* large page devices need a start command */
@@ -610,18 +635,43 @@ static int davinci_read_page_ecc4infix(struct nand_device *nand, uint32_t page,
 
 	/* NOTE:  not bothering to compute and use ECC data for now */
 
-	do {
-		/* write 512 bytes */
-		davinci_read_block_data(nand, data, 512);
-		data += 512;
-		data_size -= 512;
+	want_col = 0;
+	at_col = 0;
+	while ((data && data_size) || (oob && oob_size)) {
 
-		/* read this "out-of-band" data -- infix */
-		davinci_read_block_data(nand, oob, 16);
-		oob += 16;
-		oob_size -= 16;
-	} while (data_size);
+		if (data && data_size) {
+			if (want_col != at_col) {
+				/* Reads are slow, so seek past them when we can */
+				ret  = davinci_seek_column(nand, want_col);
+				if (ret != ERROR_OK)
+					return ret;
+				at_col = want_col;
+			}
+			/* read 512 bytes or data_size, whichever is smaller*/
+			read_size = data_size > 512 ? 512 : data_size;
+			davinci_read_block_data(nand, data, read_size);
+			data += read_size;
+			data_size -= read_size;
+			at_col += read_size;
+		}
+		want_col += 512;
 
+		if (oob && oob_size) {
+			if (want_col != at_col) {
+				ret  = davinci_seek_column(nand, want_col);
+				if (ret != ERROR_OK)
+					return ret;
+				at_col = want_col;
+			}
+			/* read this "out-of-band" data -- infix */
+			read_size = oob_size > 16 ? 16 : oob_size;
+			davinci_read_block_data(nand, oob, read_size);
+			oob += read_size;
+			oob_size -= read_size;
+			at_col += read_size;
+		}
+		want_col += 16;
+	}
 	return ERROR_OK;
 }
 
