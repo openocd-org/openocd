@@ -139,7 +139,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 	if (f != NULL)
 		file = f + 1;
 
-	if (strchr(string, '\n') != NULL)
+	if (strlen(string) > 0)
 	{
 		if (debug_level >= LOG_LVL_DEBUG)
 		{
@@ -163,17 +163,12 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		{
 			/* if we are using gdb through pipes then we do not want any output
 			 * to the pipe otherwise we get repeated strings */
-			if (strcmp(string, "\n") != 0)
-			{
-				/* print human readable output - but skip empty lines */
-				fprintf(log_output, "%s%s",
-						(level > LOG_LVL_USER)?log_strings[level + 1]:"", string);
-			}
+			fprintf(log_output, "%s%s",
+					(level > LOG_LVL_USER)?log_strings[level + 1]:"", string);
 		}
 	} else
 	{
-		/* only entire lines are logged. Otherwise it's
-		 * single chars intended for the log callbacks. */
+		/* Empty strings are sent to log callbacks to keep e.g. gdbserver alive, here we do nothing. */
 	}
 
 	fflush(log_output);
