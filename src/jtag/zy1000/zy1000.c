@@ -181,7 +181,7 @@ void zy1000_reset(int trst, int srst)
 		(!srst && !trst && (jtag_get_reset_config() & RESET_TRST_PULLS_SRST)))
 	{
 		bool first = true;
-		long long start;
+		long long start = 0;
 		long total = 0;
 		for (;;)
 		{	
