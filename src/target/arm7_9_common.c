@@ -2463,7 +2463,20 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 				if (arm7_9->fast_memory_access)
 					retval = arm7_9_execute_fast_sys_speed(target);
 				else
+				{
 					retval = arm7_9_execute_sys_speed(target);
+
+					/*
+					 * if memory writes are made when the clock is running slow
+					 * (i.e. 32 kHz) which is necessary in some scripts to reconfigure
+					 * processor operations after a "reset halt" or "reset init",
+					 * need to immediately stroke the keep alive or will end up with
+					 * gdb "keep alive not sent error message" problem.
+					 */
+
+					keep_alive();
+				}
+
 				if (retval != ERROR_OK)
 				{
 					return retval;
@@ -2499,7 +2512,20 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 					if (arm7_9->fast_memory_access)
 						retval = arm7_9_execute_fast_sys_speed(target);
 					else
+					{
 						retval = arm7_9_execute_sys_speed(target);
+
+	                                        /*
+        	                                 * if memory writes are made when the clock is running slow
+                	                         * (i.e. 32 kHz) which is necessary in some scripts to reconfigure
+                        	                 * processor operations after a "reset halt" or "reset init",
+                                	         * need to immediately stroke the keep alive or will end up with
+                                	         * gdb "keep alive not sent error message" problem.
+                                        	 */     
+
+                                      		keep_alive();
+					}
+
 					if (retval != ERROR_OK)
 					{
 						return retval;
@@ -2534,7 +2560,20 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 					if (arm7_9->fast_memory_access)
 						retval = arm7_9_execute_fast_sys_speed(target);
 					else
-						retval = arm7_9_execute_sys_speed(target);
+                                        {
+                                                retval = arm7_9_execute_sys_speed(target);
+
+                                                /*
+                                                 * if memory writes are made when the clock is running slow
+                                                 * (i.e. 32 kHz) which is necessary in some scripts to reconfigure
+                                                 * processor operations after a "reset halt" or "reset init",
+                                                 * need to immediately stroke the keep alive or will end up with
+                                                 * gdb "keep alive not sent error message" problem.
+                                                 */
+
+                                                keep_alive();
+                                        }
+
 					if (retval != ERROR_OK)
 					{
 						return retval;
