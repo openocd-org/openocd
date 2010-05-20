@@ -18,6 +18,7 @@ NAND_DRIVERS = \
 	nonce.c \
 	davinci.c \
 	lpc3180.c \
+	mx2.c \
 	mx3.c \
 	orion.c \
 	s3c24xx.c \
@@ -35,6 +36,7 @@ noinst_HEADERS = \
 	fileio.h \
 	imp.h \
 	lpc3180.h \
+	mx2.h \
 	mx3.h \
 	s3c24xx.h \
 	s3c24xx_regs.h
