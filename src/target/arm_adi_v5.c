@@ -967,6 +967,9 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &idreg);
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, &romaddr);
 
+	if ((retval = dap_run(dap)) != ERROR_OK)
+		return retval;
+
 	LOG_DEBUG("MEM-AP #%" PRId32 " ID Register 0x%" PRIx32
 		", Debug ROM Address 0x%" PRIx32,
 		dap->apsel, idreg, romaddr);
