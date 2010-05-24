@@ -28,7 +28,8 @@ NOR_DRIVERS = \
 	str7x.c \
 	str9x.c \
 	str9xpec.c \
-	tms470.c
+	tms470.c \
+	virtual.c
 
 noinst_HEADERS = \
 	at91sam7.h \

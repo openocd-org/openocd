@@ -39,6 +39,7 @@ extern struct flash_driver ocl_flash;
 extern struct flash_driver pic32mx_flash;
 extern struct flash_driver avr_flash;
 extern struct flash_driver faux_flash;
+extern struct flash_driver virtual_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -63,6 +64,7 @@ static struct flash_driver *flash_drivers[] = {
 	&pic32mx_flash,
 	&avr_flash,
 	&faux_flash,
+	&virtual_flash,
 	NULL,
 };
 

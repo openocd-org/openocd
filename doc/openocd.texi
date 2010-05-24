@@ -4672,6 +4672,26 @@ the flash clock.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} virtual
+This is a special driver that maps a previously defined bank to another
+address. All bank settings will be copied from the master physical bank.
+
+The @var{virtual} driver defines one mandatory parameters,
+
+@itemize
+@item @var{master_bank} The bank that this virtual address refers to.
+@end itemize
+
+So in the following example addresses 0xbfc00000 and 0x9fc00000 refer to
+the flash bank defined at address 0x1fc00000. Any cmds executed on
+the virtual banks are actually performed on the physical banks.
+@example
+flash bank $_FLASHNAME pic32mx 0x1fc00000 0 0 0 $_TARGETNAME
+flash bank vbank0 virtual 0xbfc00000 0 0 0 $_TARGETNAME $_FLASHNAME
+flash bank vbank1 virtual 0x9fc00000 0 0 0 $_TARGETNAME $_FLASHNAME
+@end example
+@end deffn
+
 @subsection str9xpec driver
 @cindex str9xpec
 
