@@ -178,7 +178,7 @@ int flash_get_bank_count(void)
 	return i;
 }
 
-struct flash_bank *get_flash_bank_by_name(const char *name)
+struct flash_bank *get_flash_bank_by_name_noprobe(const char *name)
 {
 	unsigned requested = get_flash_name_index(name);
 	unsigned found = 0;
@@ -195,6 +195,26 @@ struct flash_bank *get_flash_bank_by_name(const char *name)
 		return bank;
 	}
 	return NULL;
+}
+
+struct flash_bank *get_flash_bank_by_name(const char *name)
+{
+	struct flash_bank *bank;
+	int retval;
+
+	bank = get_flash_bank_by_name_noprobe(name);
+	if (bank != NULL)
+	{
+		retval = bank->driver->auto_probe(bank);
+
+		if (retval != ERROR_OK)
+		{
+			LOG_ERROR("auto_probe failed %d\n", retval);
+			return NULL;
+		}
+	}
+
+	return bank;
 }
 
 int get_flash_bank_by_num(int num, struct flash_bank **bank)
@@ -660,7 +680,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 			intptr_t diff = (intptr_t)sections[section] - (intptr_t)image->sections;
 			int t_section_num = diff / sizeof(struct imageection);
 
-			LOG_DEBUG("image_read_section: section = %d, t_section_num = %d, section_offset = %d, buffer_size = %d, size_read = %d", 
+			LOG_DEBUG("image_read_section: section = %d, t_section_num = %d, section_offset = %d, buffer_size = %d, size_read = %d",
 				 (int)section,
 (int)t_section_num, (int)section_offset, (int)buffer_size, (int)size_read);
 			if ((retval = image_read_section(image, t_section_num, section_offset,

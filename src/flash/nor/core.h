@@ -170,7 +170,15 @@ int default_flash_mem_blank_check(struct flash_bank *bank);
  */
 struct flash_bank *get_flash_bank_by_name(const char *name);
 /**
- * Returns a flash bank by the specified flash_bank_s bank_number, @a num.
+ * Returns the flash bank specified by @a name, which matches the
+ * driver name and a suffix (option) specify the driver-specific
+ * bank number. The suffix consists of the '.' and the driver-specific
+ * bank number: when two str9x banks are defined, then 'str9x.1' refers
+ * to the second.
+ */
+struct flash_bank *get_flash_bank_by_name_noprobe(const char *name);
+/**
+ * Returns the flash bank like get_flash_bank_by_name(), without probing.
  * @param num The flash bank number.
  * @param bank returned bank if fn returns ERROR_OK
  * @returns ERROR_OK if successful

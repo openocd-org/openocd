@@ -796,7 +796,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	}
 
 	/* check the flash bank name is unique */
-	if (get_flash_bank_by_name(bank_name) != NULL)
+	if (get_flash_bank_by_name_noprobe(bank_name) != NULL)
 	{
 		/* flash bank name already exists  */
 		LOG_ERROR("flash bank name '%s' already exists", bank_name);
