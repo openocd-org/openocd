@@ -27,7 +27,7 @@ static struct flash_bank* virtual_get_master_bank(struct flash_bank *bank)
 {
 	struct flash_bank* master_bank;
 
-	master_bank = get_flash_bank_by_name(bank->driver_priv);
+	master_bank = get_flash_bank_by_name_noprobe(bank->driver_priv);
 	if (master_bank == NULL) {
 		LOG_ERROR("master flash bank '%s' does not exist", (char*)bank->driver_priv);
 	}
@@ -61,7 +61,7 @@ FLASH_BANK_COMMAND_HANDLER(virtual_flash_bank_command)
 
 	/* get the master flash bank */
 	const char *bank_name = CMD_ARGV[6];
-	struct flash_bank *master_bank = get_flash_bank_by_name(bank_name);
+	struct flash_bank *master_bank = get_flash_bank_by_name_noprobe(bank_name);
 
 	if (master_bank == NULL)
 	{
