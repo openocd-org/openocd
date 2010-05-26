@@ -355,8 +355,17 @@ static int cfi_read_intel_pri_ext(struct flash_bank *bank)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	struct cfi_intel_pri_ext *pri_ext = malloc(sizeof(struct cfi_intel_pri_ext));
+	struct cfi_intel_pri_ext *pri_ext;
 
+	if (cfi_info->pri_ext)
+		free(cfi_info->pri_ext);
+
+	pri_ext = malloc(sizeof(struct cfi_intel_pri_ext));
+	if (pri_ext == NULL)
+	{
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 	cfi_info->pri_ext = pri_ext;
 
 	pri_ext->pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
@@ -413,8 +422,17 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 {
 	int retval;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	struct cfi_spansion_pri_ext *pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
+	struct cfi_spansion_pri_ext *pri_ext;
 
+	if (cfi_info->pri_ext)
+		free(cfi_info->pri_ext);
+
+	pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
+	if (pri_ext == NULL)
+	{
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 	cfi_info->pri_ext = pri_ext;
 
 	pri_ext->pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
@@ -476,7 +494,17 @@ static int cfi_read_atmel_pri_ext(struct flash_bank *bank)
 	int retval;
 	struct cfi_atmel_pri_ext atmel_pri_ext;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	struct cfi_spansion_pri_ext *pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
+	struct cfi_spansion_pri_ext *pri_ext;
+
+	if (cfi_info->pri_ext)
+		free(cfi_info->pri_ext);
+
+	pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
+	if (pri_ext == NULL)
+	{
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	/* ATMEL devices use the same CFI primary command set (0x2) as AMD/Spansion,
 	 * but a different primary extended query table.
@@ -644,6 +672,8 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 
 	cfi_info = malloc(sizeof(struct cfi_flash_bank));
 	cfi_info->probed = 0;
+	cfi_info->erase_region_info = 0;
+	cfi_info->pri_ext = NULL;
 	bank->driver_priv = cfi_info;
 
 	cfi_info->write_algorithm = NULL;
@@ -1426,6 +1456,11 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 
 		/* convert bus-width dependent algorithm code to correct endiannes */
 		target_code = malloc(target_code_size);
+		if (target_code == NULL)
+		{
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
 		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
 
 		/* allocate working area */
@@ -2099,6 +2134,16 @@ static int cfi_probe(struct flash_bank *bank)
 	}
 
 	cfi_info->probed = 0;
+	if (bank->sectors)
+	{
+		free(bank->sectors);
+		bank->sectors = NULL;
+	}
+	if(cfi_info->erase_region_info)
+	{
+		free(cfi_info->erase_region_info);
+		cfi_info->erase_region_info = NULL;
+	}
 
 	/* JEDEC standard JESD21C uses 0x5555 and 0x2aaa as unlock addresses,
 	 * while CFI compatible AMD/Spansion flashes use 0x555 and 0x2aa
