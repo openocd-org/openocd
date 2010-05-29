@@ -324,6 +324,12 @@ static int avrf_probe(struct flash_bank *bank)
 
 	if (avr_info != NULL)
 	{
+		if (bank->sectors)
+		{
+			free(bank->sectors);
+			bank->sectors = NULL;
+		}
+
 		// chip found
 		bank->base = 0x00000000;
 		bank->size = (avr_info->flash_page_size * avr_info->flash_page_num);

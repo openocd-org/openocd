@@ -1065,6 +1065,12 @@ static int stellaris_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
+	if (bank->sectors)
+	{
+		free(bank->sectors);
+		bank->sectors = NULL;
+	}
+
 	/* provide this for the benefit of the NOR flash framework */
 	bank->size = 1024 * stellaris_info->num_pages;
 	bank->num_sectors = stellaris_info->num_pages;

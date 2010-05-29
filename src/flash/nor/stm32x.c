@@ -775,6 +775,12 @@ static int stm32x_probe(struct flash_bank *bank)
 	/* calculate numbers of pages */
 	num_pages /= (page_size / 1024);
 
+	if (bank->sectors)
+	{
+		free(bank->sectors);
+		bank->sectors = NULL;
+	}
+
 	bank->base = 0x08000000;
 	bank->size = (num_pages * page_size);
 	bank->num_sectors = num_pages;
