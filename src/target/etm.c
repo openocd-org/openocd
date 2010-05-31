@@ -882,6 +882,11 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 	if (ctx->trace_depth == 0)
 		ctx->capture_driver->read_trace(ctx);
 
+	if (ctx->trace_depth == 0) {
+		command_print(cmd_ctx, "Trace is empty.");
+		return ERROR_OK;
+	}
+
 	/* start at the beginning of the captured trace */
 	ctx->pipe_index = 0;
 	ctx->data_index = 0;
