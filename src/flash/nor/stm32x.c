@@ -1196,13 +1196,13 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 	if (status & FLASH_WRPRTERR)
 	{
 		LOG_ERROR("stm32x device protected");
-		return ERROR_OK;
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (status & FLASH_PGERR)
 	{
 		LOG_ERROR("stm32x device programming failed");
-		return ERROR_OK;
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	return ERROR_OK;
@@ -1223,7 +1223,8 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (stm32x_mass_erase(bank) == ERROR_OK)
+	retval = stm32x_mass_erase(bank);
+	if (retval == ERROR_OK)
 	{
 		/* set all sectors as erased */
 		for (i = 0; i < bank->num_sectors; i++)
@@ -1238,7 +1239,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 		command_print(CMD_CTX, "stm32x mass erase failed");
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 static const struct command_registration stm32x_exec_command_handlers[] = {
