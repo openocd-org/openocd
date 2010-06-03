@@ -13,10 +13,14 @@ JTAG Layer:
 	   	jtag_khz	... is now adapter_khz
 		jtag_nsrst_delay ... is now adapter_nsrst_delay
 		jtag_nsrst_assert_width ... is now adapter_nsrst_assert_width
+	Support Voipac VPACLink JTAG Adapter.
 
 Boundary Scan:
 
 Target Layer:
+	ARM:
+		- basic semihosting support (ARMv7M).
+		- renamed "armv7m" command prefix as "arm"
 	MIPS:
 		- "ejtag_srst" variant removed. The same functionality is
 		  obtained by using "reset_config none".
@@ -31,9 +35,17 @@ Flash Layer:
 		re-enabling hardware debugging).
 	PIC32MX now uses algorithm for flash programming, this
 		has increased the performance by approx 96%.
+	New 'pic32mx unlock' cmd to remove readout protection.
+	New STM32 Value Line Support.
+	New 'virtual' flash driver, used to associate other addresses
+		with a flash bank. See pic32mx.cfg for usage.
+	New iMX27 NAND flash controller driver.
 
 Board, Target, and Interface Configuration Scripts:
 	Support IAR LPC1768 kickstart board (by Olimex)
+	Support Voipac PXA270/PXA270M module.
+	New $PARPORTADDR tcl variable used to change default
+		parallel port address used.
 
 Core Jim/TCL Scripting:
 	New "add_script_search_dir" command, behaviour is the same
