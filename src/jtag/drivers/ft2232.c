@@ -1978,7 +1978,7 @@ static int ft2232_execute_command(struct jtag_command *cmd)
 	{
 	case JTAG_RESET:	retval = ft2232_execute_reset(cmd); break;
 	case JTAG_RUNTEST:	retval = ft2232_execute_runtest(cmd); break;
-	case JTAG_STATEMOVE: retval = ft2232_execute_statemove(cmd); break;
+	case JTAG_TLR_RESET: retval = ft2232_execute_statemove(cmd); break;
 	case JTAG_PATHMOVE:	retval = ft2232_execute_pathmove(cmd); break;
 	case JTAG_SCAN:		retval = ft2232_execute_scan(cmd); break;
 	case JTAG_SLEEP:	retval = ft2232_execute_sleep(cmd); break;

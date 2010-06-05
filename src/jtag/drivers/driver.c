@@ -338,7 +338,7 @@ int interface_jtag_add_tlr(void)
 
 	jtag_queue_command(cmd);
 
-	cmd->type = JTAG_STATEMOVE;
+	cmd->type = JTAG_TLR_RESET;
 
 	cmd->cmd.statemove = cmd_queue_alloc(sizeof(struct statemove_command));
 	cmd->cmd.statemove->end_state = state;

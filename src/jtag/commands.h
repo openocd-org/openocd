@@ -139,7 +139,14 @@ union jtag_command_container {
  */
 enum jtag_command_type {
 	JTAG_SCAN         = 1,
-	JTAG_STATEMOVE    = 2,
+	/* JTAG_TLR_RESET's non-minidriver implementation is a
+	 * vestige from a statemove cmd. The statemove command
+	 * is obsolete and replaced by pathmove.
+	 *
+	 * pathmove does not support reset as one of it's states,
+	 * hence the need for an explicit statemove command.
+	 */
+	JTAG_TLR_RESET    = 2,
 	JTAG_RUNTEST      = 3,
 	JTAG_RESET        = 4,
 	JTAG_PATHMOVE     = 6,

@@ -1398,7 +1398,7 @@ int rlink_execute_queue(void)
 		switch (cmd->type)
 		{
 			case JTAG_RUNTEST:
-			case JTAG_STATEMOVE:
+			case JTAG_TLR_RESET:
 			case JTAG_PATHMOVE:
 			case JTAG_SCAN:
 				break;
@@ -1430,7 +1430,7 @@ int rlink_execute_queue(void)
 					rlink_end_state(cmd->cmd.runtest->end_state);
 				rlink_runtest(cmd->cmd.runtest->num_cycles);
 				break;
-			case JTAG_STATEMOVE:
+			case JTAG_TLR_RESET:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif

@@ -304,7 +304,7 @@ int bitbang_execute_queue(void)
 				bitbang_stableclocks(cmd->cmd.stableclocks->num_cycles);
 				break;
 
-			case JTAG_STATEMOVE:
+			case JTAG_TLR_RESET:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %s", tap_state_name(cmd->cmd.statemove->end_state));
 #endif

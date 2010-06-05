@@ -356,7 +356,7 @@ static int amt_jtagaccel_execute_queue(void)
 				amt_jtagaccel_end_state(cmd->cmd.runtest->end_state);
 				amt_jtagaccel_runtest(cmd->cmd.runtest->num_cycles);
 				break;
-			case JTAG_STATEMOVE:
+			case JTAG_TLR_RESET:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif

@@ -344,7 +344,7 @@ static int gw16012_execute_queue(void)
 				gw16012_end_state(cmd->cmd.runtest->end_state);
 				gw16012_runtest(cmd->cmd.runtest->num_cycles);
 				break;
-			case JTAG_STATEMOVE:
+			case JTAG_TLR_RESET:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif

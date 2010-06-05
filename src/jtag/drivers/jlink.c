@@ -202,7 +202,7 @@ static void jlink_execute_command(struct jtag_command *cmd)
 	switch (cmd->type)
 	{
 	case JTAG_RUNTEST:   jlink_execute_runtest(cmd); break;
-	case JTAG_STATEMOVE: jlink_execute_statemove(cmd); break;
+	case JTAG_TLR_RESET: jlink_execute_statemove(cmd); break;
 	case JTAG_PATHMOVE:  jlink_execute_pathmove(cmd); break;
 	case JTAG_SCAN:      jlink_execute_scan(cmd); break;
 	case JTAG_RESET:     jlink_execute_reset(cmd); break;

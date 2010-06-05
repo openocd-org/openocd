@@ -117,7 +117,7 @@ static int armjtagew_execute_queue(void)
 				armjtagew_runtest(cmd->cmd.runtest->num_cycles);
 				break;
 
-			case JTAG_STATEMOVE:
+			case JTAG_TLR_RESET:
 				DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
 				armjtagew_end_state(cmd->cmd.statemove->end_state);

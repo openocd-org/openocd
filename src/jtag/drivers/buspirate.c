@@ -146,7 +146,7 @@ static int buspirate_execute_queue(void)
 			buspirate_runtest(cmd->cmd.runtest
 					->num_cycles);
 			break;
-		case JTAG_STATEMOVE:
+		case JTAG_TLR_RESET:
 			DEBUG_JTAG_IO("statemove end in %s",
 				tap_state_name(cmd->cmd.statemove
 						->end_state));
