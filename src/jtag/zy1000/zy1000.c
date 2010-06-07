@@ -820,14 +820,35 @@ static void jtag_pre_post_bits(struct jtag_tap *tap, int *pre, int *post)
 	*post = post_bits;
 }
 
+/*
+	static const int embeddedice_num_bits[] = {32, 6};
+	uint32_t values[2];
+
+	values[0] = value;
+	values[1] = (1 << 5) | reg_addr;
+
+	jtag_add_dr_out(tap,
+			2,
+			embeddedice_num_bits,
+			values,
+			TAP_IDLE);
+*/
+
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
-
+#if 0
+	int i;
+	for (i = 0; i < count; i++)
+	{
+		embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
+		buffer += 4;
+	}
+#else
 	int pre_bits;
 	int post_bits;
 	jtag_pre_post_bits(tap, &pre_bits, &post_bits);
 
-	if (pre_bits + post_bits + 6 > 32)
+	if ((pre_bits > 32) || (post_bits + 6 > 32))
 	{
 		int i;
 		for (i = 0; i < count; i++)
@@ -837,18 +858,20 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 		}
 	} else
 	{
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
 		int i;
-		for (i = 0; i < count - 1; i++)
+		for (i = 0; i < count; i++)
 		{
 			/* Fewer pokes means we get to use the FIFO more efficiently */
+			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
 			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, little));
-			shiftValueInner(TAP_DRSHIFT, TAP_IDLE, 6 + post_bits + pre_bits, (reg_addr | (1 << 5)));
+			/* Danger! here we need to exit into the TAP_IDLE state to make
+			 * DCC pick up this value.
+			 */
+			shiftValueInner(TAP_DRSHIFT, TAP_IDLE, 6 + post_bits, (reg_addr | (1 << 5)));
 			buffer += 4;
 		}
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, little));
-		shiftValueInner(TAP_DRSHIFT, TAP_IDLE, 6 + post_bits, (reg_addr | (1 << 5)));
 	}
+#endif
 }
 
 
