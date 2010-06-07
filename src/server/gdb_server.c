@@ -1219,29 +1219,14 @@ static int gdb_set_register_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
+/* No attempt is made to translate the "retval" to
+ * GDB speak. This has to be done at the calling
+ * site as no mapping really exists.
+ */
 static int gdb_error(struct connection *connection, int retval)
 {
-	switch (retval)
-	{
-		case ERROR_TARGET_DATA_ABORT:
-			gdb_send_error(connection, EIO);
-			break;
-		case ERROR_TARGET_TRANSLATION_FAULT:
-			gdb_send_error(connection, EFAULT);
-			break;
-		case ERROR_TARGET_UNALIGNED_ACCESS:
-			gdb_send_error(connection, EFAULT);
-			break;
-		case ERROR_TARGET_NOT_HALTED:
-			gdb_send_error(connection, EFAULT);
-			break;
-		default:
-			/* This could be that the target reset itself. */
-			LOG_ERROR("unexpected error %i", retval);
-			gdb_send_error(connection, EFAULT);
-			break;
-	}
-
+	LOG_DEBUG("Reporting %i to GDB as generic error", retval);
+	gdb_send_error(connection, EFAULT);
 	return ERROR_OK;
 }
 
@@ -1719,7 +1704,7 @@ static int gdb_memory_map(struct connection *connection,
 		if (retval != ERROR_OK)
 		{
 			free(banks);
-			gdb_send_error(connection, retval);
+			gdb_error(connection, retval);
 			return retval;
 		}
 		banks[i] = p;
@@ -1801,7 +1786,7 @@ static int gdb_memory_map(struct connection *connection,
 	xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
 
 	if (retval != ERROR_OK) {
-		gdb_send_error(connection, retval);
+		gdb_error(connection, retval);
 		return retval;
 	}
 
@@ -1952,7 +1937,7 @@ static int gdb_query_packet(struct connection *connection,
 
 		if (retval != ERROR_OK)
 		{
-			gdb_send_error(connection, retval);
+			gdb_error(connection, retval);
 			return retval;
 		}
 
