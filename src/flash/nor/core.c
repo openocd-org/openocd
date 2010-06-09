@@ -636,7 +636,11 @@ int flash_write_unlock(struct target *target, struct image *image,
 				LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
 		}
 
-		assert (run_address + run_size - 1 <= c->base + c->size - 1);
+		if (run_address + run_size - 1 > c->base + c->size - 1)
+		{
+			LOG_ERROR("The image is too big for the flash");
+			return ERROR_FAIL;
+		}
 
 		/* If we're applying any sector automagic, then pad this
 		 * (maybe-combined) segment to the end of its last sector.
