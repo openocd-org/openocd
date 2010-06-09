@@ -199,8 +199,8 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 {
 	struct flash_bank *p;
 	int retval = ERROR_OK;
-	int address;
-	int length;
+	uint32_t address;
+	uint32_t length;
 	bool do_pad = false;
 	bool do_unlock = false;
 	struct target *target = get_current_target(CMD_CTX);
@@ -229,8 +229,8 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], address);
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], length);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 
 	if (length <= 0)
 	{
