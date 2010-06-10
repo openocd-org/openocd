@@ -146,37 +146,45 @@ static int cfi_send_command(struct flash_bank *bank, uint8_t cmd, uint32_t addre
  * flash banks are expected to be made of similar chips
  * the query result should be the same for all
  */
-static uint8_t cfi_query_u8(struct flash_bank *bank, int sector, uint32_t offset)
+static int cfi_query_u8(struct flash_bank *bank, int sector, uint32_t offset, uint8_t *val)
 {
 	struct target *target = bank->target;
 	uint8_t data[CFI_MAX_BUS_WIDTH];
 
-	target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
+	int retval;
+	retval = target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
-		return data[0];
+		*val = data[0];
 	else
-		return data[bank->bus_width - 1];
+		*val = data[bank->bus_width - 1];
+
+	return ERROR_OK;
 }
 
 /* read unsigned 8-bit value from the bank
  * in case of a bank made of multiple chips,
  * the individual values are ORed
  */
-static uint8_t cfi_get_u8(struct flash_bank *bank, int sector, uint32_t offset)
+static int cfi_get_u8(struct flash_bank *bank, int sector, uint32_t offset, uint8_t *val)
 {
 	struct target *target = bank->target;
 	uint8_t data[CFI_MAX_BUS_WIDTH];
 	int i;
 
-	target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
+	int retval;
+	retval = target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 	{
 		for (i = 0; i < bank->bus_width / bank->chip_width; i++)
 			data[0] |= data[i];
 
-		return data[0];
+		*val = data[0];
 	}
 	else
 	{
@@ -184,53 +192,75 @@ static uint8_t cfi_get_u8(struct flash_bank *bank, int sector, uint32_t offset)
 		for (i = 0; i < bank->bus_width / bank->chip_width; i++)
 			value |= data[bank->bus_width - 1 - i];
 
-		return value;
+		*val = value;
 	}
+	return ERROR_OK;
 }
 
-static uint16_t cfi_query_u16(struct flash_bank *bank, int sector, uint32_t offset)
+static int cfi_query_u16(struct flash_bank *bank, int sector, uint32_t offset, uint16_t *val)
 {
 	struct target *target = bank->target;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	uint8_t data[CFI_MAX_BUS_WIDTH * 2];
+	int retval;
 
 	if (cfi_info->x16_as_x8)
 	{
 		uint8_t i;
 		for (i = 0;i < 2;i++)
-			target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
+		{
+			retval = target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
 				&data[i*bank->bus_width]);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+	} else
+	{
+		retval = target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-	else
-		target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
-		return data[0] | data[bank->bus_width] << 8;
+		*val = data[0] | data[bank->bus_width] << 8;
 	else
-		return data[bank->bus_width - 1] | data[(2 * bank->bus_width) - 1] << 8;
+		*val = data[bank->bus_width - 1] | data[(2 * bank->bus_width) - 1] << 8;
+
+	return ERROR_OK;
 }
 
-static uint32_t cfi_query_u32(struct flash_bank *bank, int sector, uint32_t offset)
+static int cfi_query_u32(struct flash_bank *bank, int sector, uint32_t offset, uint32_t *val)
 {
 	struct target *target = bank->target;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	uint8_t data[CFI_MAX_BUS_WIDTH * 4];
+	int retval;
 
 	if (cfi_info->x16_as_x8)
 	{
 		uint8_t i;
 		for (i = 0;i < 4;i++)
-			target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
+		{
+			retval = target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
 				&data[i*bank->bus_width]);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 	}
 	else
-		target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
+	{
+		retval = target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
-		return data[0] | data[bank->bus_width] << 8 | data[bank->bus_width * 2] << 16 | data[bank->bus_width * 3] << 24;
+		*val = data[0] | data[bank->bus_width] << 8 | data[bank->bus_width * 2] << 16 | data[bank->bus_width * 3] << 24;
 	else
-		return data[bank->bus_width - 1] | data[(2* bank->bus_width) - 1] << 8 |
+		*val = data[bank->bus_width - 1] | data[(2* bank->bus_width) - 1] << 8 |
 				data[(3 * bank->bus_width) - 1] << 16 | data[(4 * bank->bus_width) - 1] << 24;
+
+	return ERROR_OK;
 }
 
 static int cfi_reset(struct flash_bank *bank)
@@ -275,13 +305,27 @@ static void cfi_intel_clear_status_register(struct flash_bank *bank)
 	cfi_send_command(bank, 0x50, flash_address(bank, 0, 0x0));
 }
 
-static uint8_t cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout)
+static int cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout, uint8_t *val)
 {
 	uint8_t status;
 
-	while ((!((status = cfi_get_u8(bank, 0, 0x0)) & 0x80)) && (timeout-- > 0))
+	int retval = ERROR_OK;
+
+	for (;;)
 	{
-		LOG_DEBUG("status: 0x%x", status);
+		if (timeout-- < 0)
+		{
+		  LOG_ERROR("timeout while waiting for WSM to become ready");
+		  return ERROR_FAIL;
+		}
+
+		retval = cfi_get_u8(bank, 0, 0x0, &status);
+		if (retval != ERROR_OK)
+			return retval;
+
+		if (status & 0x80)
+			break;
+
 		alive_sleep(1);
 	}
 
@@ -290,11 +334,7 @@ static uint8_t cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout)
 
 	LOG_DEBUG("status: 0x%x", status);
 
-	if ((status & 0x80) != 0x80)
-	{
-		LOG_ERROR("timeout while waiting for WSM to become ready");
-	}
-	else if (status != 0x80)
+	if (status != 0x80)
 	{
 		LOG_ERROR("status register: 0x%x", status);
 		if (status & 0x2)
@@ -311,24 +351,38 @@ static uint8_t cfi_intel_wait_status_busy(struct flash_bank *bank, int timeout)
 			LOG_ERROR("Block Erase Suspended");
 
 		cfi_intel_clear_status_register(bank);
+
+		retval = ERROR_FAIL;
 	}
 
-	return status;
+	*val = status;
+	return retval;
 }
 
 static int cfi_spansion_wait_status_busy(struct flash_bank *bank, int timeout)
 {
 	uint8_t status, oldstatus;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
+	int retval;
 
-	oldstatus = cfi_get_u8(bank, 0, 0x0);
+	retval = cfi_get_u8(bank, 0, 0x0, &oldstatus);
+	if (retval != ERROR_OK)
+		return retval;
 
 	do {
-		status = cfi_get_u8(bank, 0, 0x0);
+		retval = cfi_get_u8(bank, 0, 0x0, &status);
+
+		if (retval != ERROR_OK)
+			return retval;
+
 		if ((status ^ oldstatus) & 0x40) {
 			if (status & cfi_info->status_poll_mask & 0x20) {
-				oldstatus = cfi_get_u8(bank, 0, 0x0);
-				status = cfi_get_u8(bank, 0, 0x0);
+				retval = cfi_get_u8(bank, 0, 0x0, &oldstatus);
+				if (retval != ERROR_OK)
+					return retval;
+				retval = cfi_get_u8(bank, 0, 0x0, &status);
+				if (retval != ERROR_OK)
+					return retval;
 				if ((status ^ oldstatus) & 0x40) {
 					LOG_ERROR("dq5 timeout, status: 0x%x", status);
 					return(ERROR_FLASH_OPERATION_FAILED);
@@ -368,9 +422,15 @@ static int cfi_read_intel_pri_ext(struct flash_bank *bank)
 	}
 	cfi_info->pri_ext = pri_ext;
 
-	pri_ext->pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
-	pri_ext->pri[1] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1);
-	pri_ext->pri[2] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0, &pri_ext->pri[0]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1, &pri_ext->pri[1]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2, &pri_ext->pri[2]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I'))
 	{
@@ -382,36 +442,58 @@ static int cfi_read_intel_pri_ext(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	pri_ext->major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
-	pri_ext->minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3, &pri_ext->major_version);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4, &pri_ext->minor_version);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
 
-	pri_ext->feature_support = cfi_query_u32(bank, 0, cfi_info->pri_addr + 5);
-	pri_ext->suspend_cmd_support = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9);
-	pri_ext->blk_status_reg_mask = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xa);
+	retval = cfi_query_u32(bank, 0, cfi_info->pri_addr + 5, &pri_ext->feature_support);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9, &pri_ext->suspend_cmd_support);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xa, &pri_ext->blk_status_reg_mask);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("feature_support: 0x%" PRIx32 ", suspend_cmd_support: 0x%x, blk_status_reg_mask: 0x%x",
 		  pri_ext->feature_support,
 		  pri_ext->suspend_cmd_support,
 		  pri_ext->blk_status_reg_mask);
 
-	pri_ext->vcc_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xc);
-	pri_ext->vpp_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xd);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xc, &pri_ext->vcc_optimal);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xd, &pri_ext->vpp_optimal);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("Vcc opt: %x.%x, Vpp opt: %u.%x",
 		  (pri_ext->vcc_optimal & 0xf0) >> 4, pri_ext->vcc_optimal & 0x0f,
 		  (pri_ext->vpp_optimal & 0xf0) >> 4, pri_ext->vpp_optimal & 0x0f);
 
-	pri_ext->num_protection_fields = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xe);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xe, &pri_ext->num_protection_fields);
+	if (retval != ERROR_OK)
+		return retval;
 	if (pri_ext->num_protection_fields != 1)
 	{
 		LOG_WARNING("expected one protection register field, but found %i", pri_ext->num_protection_fields);
 	}
 
-	pri_ext->prot_reg_addr = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xf);
-	pri_ext->fact_prot_reg_size = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0x11);
-	pri_ext->user_prot_reg_size = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0x12);
+	retval = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xf, &pri_ext->prot_reg_addr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0x11, &pri_ext->fact_prot_reg_size);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0x12, &pri_ext->user_prot_reg_size);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("protection_fields: %i, prot_reg_addr: 0x%x, factory pre-programmed: %i, user programmable: %i", pri_ext->num_protection_fields, pri_ext->prot_reg_addr, 1 << pri_ext->fact_prot_reg_size, 1 << pri_ext->user_prot_reg_size);
 
@@ -435,9 +517,15 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 	}
 	cfi_info->pri_ext = pri_ext;
 
-	pri_ext->pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
-	pri_ext->pri[1] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1);
-	pri_ext->pri[2] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0, &pri_ext->pri[0]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1, &pri_ext->pri[1]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2, &pri_ext->pri[2]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I'))
 	{
@@ -449,22 +537,48 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	pri_ext->major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
-	pri_ext->minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3, &pri_ext->major_version);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4, &pri_ext->minor_version);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
 
-	pri_ext->SiliconRevision = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5);
-	pri_ext->EraseSuspend    = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6);
-	pri_ext->BlkProt         = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7);
-	pri_ext->TmpBlkUnprotect = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8);
-	pri_ext->BlkProtUnprot   = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9);
-	pri_ext->SimultaneousOps = cfi_query_u8(bank, 0, cfi_info->pri_addr + 10);
-	pri_ext->BurstMode       = cfi_query_u8(bank, 0, cfi_info->pri_addr + 11);
-	pri_ext->PageMode        = cfi_query_u8(bank, 0, cfi_info->pri_addr + 12);
-	pri_ext->VppMin          = cfi_query_u8(bank, 0, cfi_info->pri_addr + 13);
-	pri_ext->VppMax          = cfi_query_u8(bank, 0, cfi_info->pri_addr + 14);
-	pri_ext->TopBottom       = cfi_query_u8(bank, 0, cfi_info->pri_addr + 15);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5, &pri_ext->SiliconRevision);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6, &pri_ext->EraseSuspend);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7, &pri_ext->BlkProt);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8, &pri_ext->TmpBlkUnprotect);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9, &pri_ext->BlkProtUnprot);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 10, &pri_ext->SimultaneousOps);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 11, &pri_ext->BurstMode);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 12, &pri_ext->PageMode);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 13, &pri_ext->VppMin);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 14, &pri_ext->VppMax);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 15, &pri_ext->TopBottom);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("Silicon Revision: 0x%x, Erase Suspend: 0x%x, Block protect: 0x%x", pri_ext->SiliconRevision,
 	      pri_ext->EraseSuspend, pri_ext->BlkProt);
@@ -515,9 +629,15 @@ static int cfi_read_atmel_pri_ext(struct flash_bank *bank)
 
 	cfi_info->pri_ext = pri_ext;
 
-	atmel_pri_ext.pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
-	atmel_pri_ext.pri[1] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1);
-	atmel_pri_ext.pri[2] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0, &atmel_pri_ext.pri[0]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1, &atmel_pri_ext.pri[1]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2, &atmel_pri_ext.pri[2]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if ((atmel_pri_ext.pri[0] != 'P') || (atmel_pri_ext.pri[1] != 'R') || (atmel_pri_ext.pri[2] != 'I'))
 	{
@@ -533,18 +653,30 @@ static int cfi_read_atmel_pri_ext(struct flash_bank *bank)
 	pri_ext->pri[1] = atmel_pri_ext.pri[1];
 	pri_ext->pri[2] = atmel_pri_ext.pri[2];
 
-	atmel_pri_ext.major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
-	atmel_pri_ext.minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3, &atmel_pri_ext.major_version);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4, &atmel_pri_ext.minor_version);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", atmel_pri_ext.pri[0], atmel_pri_ext.pri[1], atmel_pri_ext.pri[2], atmel_pri_ext.major_version, atmel_pri_ext.minor_version);
 
 	pri_ext->major_version = atmel_pri_ext.major_version;
 	pri_ext->minor_version = atmel_pri_ext.minor_version;
 
-	atmel_pri_ext.features = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5);
-	atmel_pri_ext.bottom_boot = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6);
-	atmel_pri_ext.burst_mode = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7);
-	atmel_pri_ext.page_mode = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5, &atmel_pri_ext.features);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6, &atmel_pri_ext.bottom_boot);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7, &atmel_pri_ext.burst_mode);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8, &atmel_pri_ext.page_mode);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("features: 0x%2.2x, bottom_boot: 0x%2.2x, burst_mode: 0x%2.2x, page_mode: 0x%2.2x",
 		atmel_pri_ext.features, atmel_pri_ext.bottom_boot, atmel_pri_ext.burst_mode, atmel_pri_ext.page_mode);
@@ -697,7 +829,7 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	cfi_info->write_algorithm = NULL;
 
 	/* bank wasn't probed yet */
-	cfi_info->qry[0] = -1;
+	cfi_info->qry[0] = 0xff;
 
 	return ERROR_OK;
 }
@@ -722,7 +854,12 @@ static int cfi_intel_erase(struct flash_bank *bank, int first, int last)
 			return retval;
 		}
 
-		if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->block_erase_timeout_typ)) == 0x80)
+		uint8_t status;
+		retval = cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->block_erase_timeout_typ), &status);
+		if (retval != ERROR_OK)
+			return retval;
+
+		if (status == 0x80)
 			bank->sectors[i].is_erased = 1;
 		else
 		{
@@ -873,7 +1010,10 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 		if (!(pri_ext->feature_support & 0x20))
 		{
 			/* Clear lock bits operation may take up to 1.4s */
-			cfi_intel_wait_status_busy(bank, 1400);
+			uint8_t status;
+			retval = cfi_intel_wait_status_busy(bank, 1400, &status);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 		else
 		{
@@ -883,7 +1023,9 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 			{
 				return retval;
 			}
-			block_status = cfi_get_u8(bank, i, 0x2);
+			retval = cfi_get_u8(bank, i, 0x2, &block_status);
+			if (retval != ERROR_OK)
+				return retval;
 
 			if ((block_status & 0x1) != set)
 			{
@@ -892,7 +1034,10 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 				{
 					return retval;
 				}
-				cfi_intel_wait_status_busy(bank, 10);
+				uint8_t status;
+				retval = cfi_intel_wait_status_busy(bank, 10, &status);
+				if (retval != ERROR_OK)
+					return retval;
 
 				if (retry > 10)
 					return ERROR_FLASH_OPERATION_FAILED;
@@ -937,7 +1082,10 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 					return retval;
 				}
 
-				cfi_intel_wait_status_busy(bank, 100);
+				uint8_t status;
+				retval = cfi_intel_wait_status_busy(bank, 100, &status);
+				if (retval != ERROR_OK)
+					return retval;
 			}
 		}
 	}
@@ -1223,7 +1371,8 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer, uint3
 		if (wsm_error)
 		{
 			/* read status register (outputs debug inforation) */
-			cfi_intel_wait_status_busy(bank, 100);
+			uint8_t status;
+			cfi_intel_wait_status_busy(bank, 100, &status);
 			cfi_intel_clear_status_register(bank);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			goto cleanup;
@@ -1268,8 +1417,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 	struct working_area *source;
 	uint32_t buffer_size = 32768;
 	uint32_t status;
-	int retval, retvaltemp;
-	int exit_code = ERROR_OK;
+	int retval = ERROR_OK;
 
 	/* input parameters - */
 	/*	R0 = source address */
@@ -1515,7 +1663,11 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 	{
 		uint32_t thisrun_count = (count > buffer_size) ? buffer_size : count;
 
-		retvaltemp = target_write_buffer(target, source->address, thisrun_count, buffer);
+		retval = target_write_buffer(target, source->address, thisrun_count, buffer);
+		if (retval != ERROR_OK)
+		{
+			break;
+		}
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
@@ -1531,13 +1683,16 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 						     cfi_info->write_algorithm->address,
 						     cfi_info->write_algorithm->address + ((target_code_size) - 4),
 						     10000, &armv4_5_info);
+		if (retval != ERROR_OK)
+		{
+			break;
+		}
 
 		status = buf_get_u32(reg_params[5].value, 0, 32);
-
-		if ((retval != ERROR_OK) || (retvaltemp != ERROR_OK) || status != 0x80)
+		if (status != 0x80)
 		{
-			LOG_DEBUG("status: 0x%" PRIx32 , status);
-			exit_code = ERROR_FLASH_OPERATION_FAILED;
+			LOG_ERROR("flash write block failed status: 0x%" PRIx32 , status);
+			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 
@@ -1559,7 +1714,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer, ui
 	destroy_reg_param(&reg_params[8]);
 	destroy_reg_param(&reg_params[9]);
 
-	return exit_code;
+	return retval;
 }
 
 static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t address)
@@ -1579,7 +1734,9 @@ static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t
 		return retval;
 	}
 
-	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max)) != 0x80)
+	uint8_t status;
+	retval = cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max), &status);
+	if (retval != 0x80)
 	{
 		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
 		{
@@ -1629,7 +1786,11 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word, uint32_
 	{
 		return retval;
 	}
-	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max)) != 0x80)
+	uint8_t status;
+	retval = cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max), &status);
+	if (retval != ERROR_OK)
+		return retval;
+	if (status != 0x80)
 	{
 		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
 		{
@@ -1656,7 +1817,12 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word, uint32_
 	{
 		return retval;
 	}
-	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max)) != 0x80)
+
+	retval = cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max), &status);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (status != 0x80)
 	{
 		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
 		{
@@ -2098,9 +2264,15 @@ static int cfi_query_string(struct flash_bank *bank, int address)
 		return retval;
 	}
 
-	cfi_info->qry[0] = cfi_query_u8(bank, 0, 0x10);
-	cfi_info->qry[1] = cfi_query_u8(bank, 0, 0x11);
-	cfi_info->qry[2] = cfi_query_u8(bank, 0, 0x12);
+	retval = cfi_query_u8(bank, 0, 0x10, &cfi_info->qry[0]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, 0x11, &cfi_info->qry[1]);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cfi_query_u8(bank, 0, 0x12, &cfi_info->qry[2]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("CFI qry returned: 0x%2.2x 0x%2.2x 0x%2.2x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2]);
 
@@ -2236,25 +2408,57 @@ static int cfi_probe(struct flash_bank *bank)
 		if (retval != ERROR_OK)
 			return retval;
 
-		cfi_info->pri_id = cfi_query_u16(bank, 0, 0x13);
-		cfi_info->pri_addr = cfi_query_u16(bank, 0, 0x15);
-		cfi_info->alt_id = cfi_query_u16(bank, 0, 0x17);
-		cfi_info->alt_addr = cfi_query_u16(bank, 0, 0x19);
+		retval = cfi_query_u16(bank, 0, 0x13, &cfi_info->pri_id);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u16(bank, 0, 0x15, &cfi_info->pri_addr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u16(bank, 0, 0x17, &cfi_info->alt_id);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u16(bank, 0, 0x19, &cfi_info->alt_addr);
+		if (retval != ERROR_OK)
+			return retval;
 
 		LOG_DEBUG("qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2], cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
 
-		cfi_info->vcc_min = cfi_query_u8(bank, 0, 0x1b);
-		cfi_info->vcc_max = cfi_query_u8(bank, 0, 0x1c);
-		cfi_info->vpp_min = cfi_query_u8(bank, 0, 0x1d);
-		cfi_info->vpp_max = cfi_query_u8(bank, 0, 0x1e);
-		cfi_info->word_write_timeout_typ = cfi_query_u8(bank, 0, 0x1f);
-		cfi_info->buf_write_timeout_typ = cfi_query_u8(bank, 0, 0x20);
-		cfi_info->block_erase_timeout_typ = cfi_query_u8(bank, 0, 0x21);
-		cfi_info->chip_erase_timeout_typ = cfi_query_u8(bank, 0, 0x22);
-		cfi_info->word_write_timeout_max = cfi_query_u8(bank, 0, 0x23);
-		cfi_info->buf_write_timeout_max = cfi_query_u8(bank, 0, 0x24);
-		cfi_info->block_erase_timeout_max = cfi_query_u8(bank, 0, 0x25);
-		cfi_info->chip_erase_timeout_max = cfi_query_u8(bank, 0, 0x26);
+		retval = cfi_query_u8(bank, 0, 0x1b, &cfi_info->vcc_min);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x1c, &cfi_info->vcc_max);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x1d, &cfi_info->vpp_min);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x1e, &cfi_info->vpp_max);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x1f, &cfi_info->word_write_timeout_typ);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x20, &cfi_info->buf_write_timeout_typ);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x21, &cfi_info->block_erase_timeout_typ);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x22, &cfi_info->chip_erase_timeout_typ);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x23, &cfi_info->word_write_timeout_max);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x24, &cfi_info->buf_write_timeout_max);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x25, &cfi_info->block_erase_timeout_max);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x26, &cfi_info->chip_erase_timeout_max);
+		if (retval != ERROR_OK)
+			return retval;
 
 		LOG_DEBUG("Vcc min: %x.%x, Vcc max: %x.%x, Vpp min: %u.%x, Vpp max: %u.%x",
 			(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
@@ -2268,10 +2472,21 @@ static int cfi_probe(struct flash_bank *bank)
 			(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
 			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
 
-		cfi_info->dev_size = 1 << cfi_query_u8(bank, 0, 0x27);
-		cfi_info->interface_desc = cfi_query_u16(bank, 0, 0x28);
-		cfi_info->max_buf_write_size = cfi_query_u16(bank, 0, 0x2a);
-		cfi_info->num_erase_regions = cfi_query_u8(bank, 0, 0x2c);
+		uint8_t data;
+		retval = 1 << cfi_query_u8(bank, 0, 0x27, &data);
+		if (retval != ERROR_OK)
+			return retval;
+		cfi_info->dev_size = data;
+
+		retval = cfi_query_u16(bank, 0, 0x28, &cfi_info->interface_desc);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u16(bank, 0, 0x2a, &cfi_info->max_buf_write_size);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cfi_query_u8(bank, 0, 0x2c, &cfi_info->num_erase_regions);
+		if (retval != ERROR_OK)
+			return retval;
 
 		LOG_DEBUG("size: 0x%" PRIx32 ", interface desc: %i, max buffer write size: %x", cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
 
@@ -2280,7 +2495,9 @@ static int cfi_probe(struct flash_bank *bank)
 			cfi_info->erase_region_info = malloc(4 * cfi_info->num_erase_regions);
 			for (i = 0; i < cfi_info->num_erase_regions; i++)
 			{
-				cfi_info->erase_region_info[i] = cfi_query_u32(bank, 0, 0x2d + (4 * i));
+				retval = cfi_query_u32(bank, 0, 0x2d + (4 * i), &cfi_info->erase_region_info[i]);
+				if (retval != ERROR_OK)
+					return retval;
 				LOG_DEBUG("erase region[%i]: %" PRIu32 " blocks of size 0x%" PRIx32 "",
 					  i,
 					  (cfi_info->erase_region_info[i] & 0xffff) + 1,
@@ -2417,7 +2634,10 @@ static int cfi_intel_protect_check(struct flash_bank *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		uint8_t block_status = cfi_get_u8(bank, i, 0x2);
+		uint8_t block_status;
+		retval = cfi_get_u8(bank, i, 0x2, &block_status);
+		if (retval != ERROR_OK)
+			return retval;
 
 		if (block_status & 1)
 			bank->sectors[i].is_protected = 1;
@@ -2452,7 +2672,10 @@ static int cfi_spansion_protect_check(struct flash_bank *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		uint8_t block_status = cfi_get_u8(bank, i, 0x2);
+		uint8_t block_status;
+		retval = cfi_get_u8(bank, i, 0x2, &block_status);
+		if (retval != ERROR_OK)
+			return retval;
 
 		if (block_status & 1)
 			bank->sectors[i].is_protected = 1;
@@ -2498,7 +2721,7 @@ static int cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 	int printed;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 
-	if (cfi_info->qry[0] == (char)-1)
+	if (cfi_info->qry[0] == 0xff)
 	{
 		printed = snprintf(buf, buf_size, "\ncfi flash bank not probed yet\n");
 		return ERROR_OK;

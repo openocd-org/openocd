@@ -35,7 +35,7 @@ struct cfi_flash_bank
 	uint16_t manufacturer;
 	uint16_t device_id;
 
-	char qry[3];
+	uint8_t qry[3];
 
 	/* identification string */
 	uint16_t pri_id;
@@ -76,7 +76,7 @@ struct cfi_flash_bank
  */
 struct cfi_intel_pri_ext
 {
-	char pri[3];
+	uint8_t pri[3];
 	uint8_t major_version;
 	uint8_t minor_version;
 	uint32_t feature_support;
