@@ -726,7 +726,10 @@ static int arm926ejs_virt2phys(struct target *target, uint32_t virtual, uint32_t
 	uint32_t ap;
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
-	uint32_t ret = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	uint32_t ret;
+	int retval = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu, virtual, &type, &cb, &domain, &ap, &ret);
+	if (retval != ERROR_OK)
+		return retval;
 	if (type == -1)
 	{
 		return ret;

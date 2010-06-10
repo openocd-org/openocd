@@ -26,15 +26,18 @@
 #include "armv4_5_mmu.h"
 
 
-uint32_t armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap)
+int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap, uint32_t *val)
 {
 	uint32_t first_lvl_descriptor = 0x0;
 	uint32_t second_lvl_descriptor = 0x0;
 	uint32_t ttb = armv4_5_mmu->get_ttb(target);
+	int retval;
 
-	armv4_5_mmu_read_physical(target, armv4_5_mmu,
+	retval = armv4_5_mmu_read_physical(target, armv4_5_mmu,
 		(ttb & 0xffffc000) | ((va & 0xfff00000) >> 18),
 		4, 1, (uint8_t*)&first_lvl_descriptor);
+	if (retval != ERROR_OK)
+	  return retval;
 	first_lvl_descriptor = target_buffer_get_u32(target, (uint8_t*)&first_lvl_descriptor);
 
 	LOG_DEBUG("1st lvl desc: %8.8" PRIx32 "", first_lvl_descriptor);
@@ -62,22 +65,27 @@ uint32_t armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_comm
 		*type = ARMV4_5_SECTION;
 		*cb = (first_lvl_descriptor & 0xc) >> 2;
 		*ap = (first_lvl_descriptor & 0xc00) >> 10;
-		return (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
+		*val = (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
+		return ERROR_OK;
 	}
 
 	if ((first_lvl_descriptor & 0x3) == 1)
 	{
 		/* coarse page table */
-		armv4_5_mmu_read_physical(target, armv4_5_mmu,
+		retval = armv4_5_mmu_read_physical(target, armv4_5_mmu,
 			(first_lvl_descriptor & 0xfffffc00) | ((va & 0x000ff000) >> 10),
 			4, 1, (uint8_t*)&second_lvl_descriptor);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else if ((first_lvl_descriptor & 0x3) == 3)
 	{
 		/* fine page table */
-		armv4_5_mmu_read_physical(target, armv4_5_mmu,
+		retval = armv4_5_mmu_read_physical(target, armv4_5_mmu,
 			(first_lvl_descriptor & 0xfffff000) | ((va & 0x000ffc00) >> 8),
 			4, 1, (uint8_t*)&second_lvl_descriptor);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	second_lvl_descriptor = target_buffer_get_u32(target, (uint8_t*)&second_lvl_descriptor);
@@ -99,7 +107,8 @@ uint32_t armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_comm
 		/* large page descriptor */
 		*type = ARMV4_5_LARGE_PAGE;
 		*ap = (second_lvl_descriptor & 0xff0) >> 4;
-		return (second_lvl_descriptor & 0xffff0000) | (va & 0x0000ffff);
+		*val = (second_lvl_descriptor & 0xffff0000) | (va & 0x0000ffff);
+		return ERROR_OK;
 	}
 
 	if ((second_lvl_descriptor & 0x3) == 2)
@@ -107,7 +116,8 @@ uint32_t armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_comm
 		/* small page descriptor */
 		*type = ARMV4_5_SMALL_PAGE;
 		*ap = (second_lvl_descriptor & 0xff0) >> 4;
-		return (second_lvl_descriptor & 0xfffff000) | (va & 0x00000fff);
+		*val = (second_lvl_descriptor & 0xfffff000) | (va & 0x00000fff);
+		return ERROR_OK;
 	}
 
 	if ((second_lvl_descriptor & 0x3) == 3)
@@ -115,7 +125,8 @@ uint32_t armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_comm
 		/* tiny page descriptor */
 		*type = ARMV4_5_TINY_PAGE;
 		*ap = (second_lvl_descriptor & 0x30) >> 4;
-		return (second_lvl_descriptor & 0xfffffc00) | (va & 0x000003ff);
+		*val = (second_lvl_descriptor & 0xfffffc00) | (va & 0x000003ff);
+		return ERROR_OK;
 	}
 
 	/* should not happen */

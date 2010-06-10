@@ -260,7 +260,10 @@ static int arm720_virt2phys(struct target *target,
 	uint32_t ap;
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
-	uint32_t ret = armv4_5_mmu_translate_va(target, &arm720t->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	uint32_t ret;
+	int retval = armv4_5_mmu_translate_va(target, &arm720t->armv4_5_mmu, virtual, &type, &cb, &domain, &ap, &ret);
+	if (retval != ERROR_OK)
+		return retval;
 	if (type == -1)
 	{
 		return ret;

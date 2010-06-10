@@ -3226,7 +3226,10 @@ static int xscale_virt2phys(struct target *target,
 		return ERROR_TARGET_INVALID;
 	}
 
-	uint32_t ret = armv4_5_mmu_translate_va(target, &xscale->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	uint32_t ret;
+	int retval = armv4_5_mmu_translate_va(target, &xscale->armv4_5_mmu, virtual, &type, &cb, &domain, &ap, &ret);
+	if (retval != ERROR_OK)
+		return retval;
 	if (type == -1)
 	{
 		return ret;
