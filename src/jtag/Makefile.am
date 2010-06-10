@@ -62,6 +62,7 @@ libjtag_la_SOURCES = \
 
 noinst_HEADERS = \
 	commands.h \
+	driver.h \
 	interface.h \
 	interfaces.h \
 	minidriver.h \
