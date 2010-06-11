@@ -168,7 +168,7 @@ int default_flash_mem_blank_check(struct flash_bank *bank);
  * bank number: when two str9x banks are defined, then 'str9x.1' refers
  * to the second.
  */
-struct flash_bank *get_flash_bank_by_name(const char *name);
+int get_flash_bank_by_name(const char *name, struct flash_bank **bank_result);
 /**
  * Returns the flash bank specified by @a name, which matches the
  * driver name and a suffix (option) specify the driver-specific
@@ -206,8 +206,9 @@ struct flash_bank *get_flash_bank_by_num_noprobe(int num);
  * Returns the flash bank located at a specified address.
  * @param target The target, presumed to contain one or more banks.
  * @param addr An address that is within the range of the bank.
+ * @param check return ERROR_OK and result_bank NULL if the bank does not exist
  * @returns The struct flash_bank located at @a addr, or NULL.
  */
-struct flash_bank *get_flash_bank_by_addr(struct target *target, uint32_t addr);
+int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, struct flash_bank **result_bank);
 
 #endif // FLASH_NOR_CORE_H

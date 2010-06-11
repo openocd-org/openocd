@@ -197,7 +197,7 @@ struct flash_bank *get_flash_bank_by_name_noprobe(const char *name)
 	return NULL;
 }
 
-struct flash_bank *get_flash_bank_by_name(const char *name)
+int get_flash_bank_by_name(const char *name, struct flash_bank **bank_result)
 {
 	struct flash_bank *bank;
 	int retval;
@@ -210,11 +210,12 @@ struct flash_bank *get_flash_bank_by_name(const char *name)
 		if (retval != ERROR_OK)
 		{
 			LOG_ERROR("auto_probe failed %d\n", retval);
-			return NULL;
+			return retval;
 		}
 	}
 
-	return bank;
+	*bank_result = bank;
+	return ERROR_OK;
 }
 
 int get_flash_bank_by_num(int num, struct flash_bank **bank)
@@ -238,8 +239,9 @@ int get_flash_bank_by_num(int num, struct flash_bank **bank)
 	return ERROR_OK;
 }
 
-/* lookup flash bank by address */
-struct flash_bank *get_flash_bank_by_addr(struct target *target, uint32_t addr)
+/* lookup flash bank by address, bank not found is success, but
+ * result_bank is set to NULL. */
+int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, struct flash_bank **result_bank)
 {
 	struct flash_bank *c;
 
@@ -252,14 +254,22 @@ struct flash_bank *get_flash_bank_by_addr(struct target *target, uint32_t addr)
 		if (retval != ERROR_OK)
 		{
 			LOG_ERROR("auto_probe failed %d\n", retval);
-			return NULL;
+			return retval;
 		}
 		/* check whether address belongs to this flash bank */
 		if ((addr >= c->base) && (addr <= c->base + (c->size - 1)) && target == c->target)
-			return c;
+		{
+			*result_bank = c;
+			return ERROR_OK;
+		}
 	}
-	LOG_ERROR("No flash at address 0x%08" PRIx32 "\n", addr);
-	return NULL;
+	*result_bank = NULL;
+	if (check)
+	{
+		LOG_ERROR("No flash at address 0x%08" PRIx32 "\n", addr);
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
 }
 
 int default_flash_mem_blank_check(struct flash_bank *bank)
@@ -379,8 +389,9 @@ static int flash_iterate_address_range(struct target *target,
 	int last = -1;
 	int i;
 
-	if ((c = get_flash_bank_by_addr(target, addr)) == NULL)
-		return ERROR_FLASH_DST_OUT_OF_BANK; /* no corresponding bank found */
+	int retval = get_flash_bank_by_addr(target, addr, true, &c);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (c->size == 0 || c->num_sectors == 0)
 	{
@@ -588,7 +599,11 @@ int flash_write_unlock(struct target *target, struct image *image,
 		}
 
 		/* find the corresponding flash bank */
-		if ((c = get_flash_bank_by_addr(target, run_address)) == NULL)
+		int retval;
+		retval = get_flash_bank_by_addr(target, run_address, false, &c);
+		if (retval != ERROR_OK)
+			return retval;
+		if (c == NULL)
 		{
 			section++; /* and skip it */
 			section_offset = 0;

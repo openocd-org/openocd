@@ -35,7 +35,9 @@ COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 		struct flash_bank **bank)
 {
 	const char *name = CMD_ARGV[name_index];
-	*bank = get_flash_bank_by_name(name);
+	int retval = get_flash_bank_by_name(name, bank);
+	if (retval != ERROR_OK)
+		return retval;
 	if (*bank)
 		return ERROR_OK;
 
@@ -238,11 +240,9 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	p = get_flash_bank_by_addr(target, address);
-	if (p == NULL)
-	{
-		return ERROR_FAIL;
-	}
+	retval = get_flash_bank_by_addr(target, address, true, &p);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* We can't know if we did a resume + halt, in which case we no longer know the erased state */
 	flash_set_dirty();
@@ -544,12 +544,9 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	{
 		struct flash_bank *bank;
 
-		bank = get_flash_bank_by_addr(target, address);
-		if (bank == NULL)
-		{
-			retval = ERROR_FAIL;
+		retval = get_flash_bank_by_addr(target, address, true, &bank );
+		if (retval != ERROR_OK)
 			goto done;
-		}
 
 		cur_size = MIN((count * wordsize - wrote), chunksize);
 		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
