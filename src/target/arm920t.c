@@ -711,7 +711,7 @@ int arm920t_write_memory(struct target *target, uint32_t address,
 		}
 	}
 
-	return retval;
+	return ERROR_OK;
 }
 
 // EXPORTED to FA256
