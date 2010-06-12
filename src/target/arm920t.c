@@ -519,10 +519,6 @@ static int arm920_virt2phys(struct target *target,
 			&arm920t->armv4_5_mmu, virt, &type, &cb, &domain, &ap, &ret);
 	if (retval != ERROR_OK)
 		return retval;
-	if (type == -1)
-	{
-		return ret;
-	}
 	*phys = ret;
 	return ERROR_OK;
 }
@@ -596,8 +592,6 @@ int arm920t_write_memory(struct target *target, uint32_t address,
 				address, &type, &cb, &domain, &ap, &pa);
 		if (retval != ERROR_OK)
 			return retval;
-		if (type == -1)
-			return pa;
 
 		if (arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		{

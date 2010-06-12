@@ -44,14 +44,12 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 
 	if ((first_lvl_descriptor & 0x3) == 0)
 	{
-		*type = -1;
 		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
 
 	if (!armv4_5_mmu->has_tiny_pages && ((first_lvl_descriptor & 0x3) == 3))
 	{
-		*type = -1;
 		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
@@ -94,7 +92,6 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 
 	if ((second_lvl_descriptor & 0x3) == 0)
 	{
-		*type = -1;
 		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
@@ -130,7 +127,6 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 	}
 
 	/* should not happen */
-	*type = -1;
 	LOG_ERROR("Address translation failure");
 	return ERROR_TARGET_TRANSLATION_FAULT;
 }

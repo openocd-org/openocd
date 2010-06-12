@@ -3230,10 +3230,6 @@ static int xscale_virt2phys(struct target *target,
 	int retval = armv4_5_mmu_translate_va(target, &xscale->armv4_5_mmu, virtual, &type, &cb, &domain, &ap, &ret);
 	if (retval != ERROR_OK)
 		return retval;
-	if (type == -1)
-	{
-		return ret;
-	}
 	*physical = ret;
 	return ERROR_OK;
 }

@@ -1825,10 +1825,6 @@ static int cortex_a8_virt2phys(struct target *target,
     /* Reset the flag. We don't want someone else to use it by error */
     cortex_a8->current_address_mode = ARM_MODE_ANY;
 
-	if (type == -1)
-	{
-		return ret;
-	}
 	*phys = ret;
 	return ERROR_OK;
 }
