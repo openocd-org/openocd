@@ -1801,7 +1801,6 @@ static int cortex_a8_mmu(struct target *target, int *enabled)
 static int cortex_a8_virt2phys(struct target *target,
 		uint32_t virt, uint32_t *phys)
 {
-	int type;
 	uint32_t cb;
 	int domain;
 	uint32_t ap;
@@ -1819,7 +1818,7 @@ static int cortex_a8_virt2phys(struct target *target,
         cortex_a8->current_address_mode = ARM_MODE_SVC;
 	uint32_t ret;
 	int retval = armv4_5_mmu_translate_va(target,
-			&armv7a->armv4_5_mmu, virt, &type, &cb, &domain, &ap, &ret);
+			&armv7a->armv4_5_mmu, virt, &cb, &domain, &ap, &ret);
 	if (retval != ERROR_OK)
 		return retval;
     /* Reset the flag. We don't want someone else to use it by error */

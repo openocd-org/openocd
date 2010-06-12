@@ -36,15 +36,8 @@ struct armv4_5_mmu_common
 	int mmu_enabled;
 };
 
-enum
-{
-	ARMV4_5_SECTION, ARMV4_5_LARGE_PAGE, ARMV4_5_SMALL_PAGE, ARMV4_5_TINY_PAGE
-};
-
-extern char* armv4_5_page_type_names[];
-
 int armv4_5_mmu_translate_va(struct target *target,
-		struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, int *type,
+		struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va,
 		uint32_t *cb, int *domain, uint32_t *ap, uint32_t *val);
 
 int armv4_5_mmu_read_physical(struct target *target,

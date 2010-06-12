@@ -254,14 +254,14 @@ static int arm720_mmu(struct target *target, int *enabled)
 static int arm720_virt2phys(struct target *target,
 		uint32_t virtual, uint32_t *physical)
 {
-	int type;
 	uint32_t cb;
 	int domain;
 	uint32_t ap;
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	uint32_t ret;
-	int retval = armv4_5_mmu_translate_va(target, &arm720t->armv4_5_mmu, virtual, &type, &cb, &domain, &ap, &ret);
+	int retval = armv4_5_mmu_translate_va(target,
+			&arm720t->armv4_5_mmu, virtual, &cb, &domain, &ap, &ret);
 	if (retval != ERROR_OK)
 		return retval;
 	*physical = ret;
