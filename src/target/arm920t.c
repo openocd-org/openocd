@@ -592,7 +592,7 @@ int arm920t_write_memory(struct target *target, uint32_t address,
 		/*
 		 * We need physical address and cb
 		 */
-		int retval = armv4_5_mmu_translate_va(target, &arm920t->armv4_5_mmu,
+		retval = armv4_5_mmu_translate_va(target, &arm920t->armv4_5_mmu,
 				address, &type, &cb, &domain, &ap, &pa);
 		if (retval != ERROR_OK)
 			return retval;
