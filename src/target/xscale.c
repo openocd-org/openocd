@@ -3217,8 +3217,6 @@ static int xscale_virt2phys(struct target *target,
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t cb;
-	int domain;
-	uint32_t ap;
 
 	if (xscale->common_magic != XSCALE_COMMON_MAGIC) {
 		LOG_ERROR(xscale_not);
@@ -3227,7 +3225,7 @@ static int xscale_virt2phys(struct target *target,
 
 	uint32_t ret;
 	int retval = armv4_5_mmu_translate_va(target, &xscale->armv4_5_mmu,
-			virtual, &cb, &domain, &ap, &ret);
+			virtual, &cb, &ret);
 	if (retval != ERROR_OK)
 		return retval;
 	*physical = ret;

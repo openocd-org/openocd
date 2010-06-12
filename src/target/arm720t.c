@@ -255,13 +255,11 @@ static int arm720_virt2phys(struct target *target,
 		uint32_t virtual, uint32_t *physical)
 {
 	uint32_t cb;
-	int domain;
-	uint32_t ap;
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	uint32_t ret;
 	int retval = armv4_5_mmu_translate_va(target,
-			&arm720t->armv4_5_mmu, virtual, &cb, &domain, &ap, &ret);
+			&arm720t->armv4_5_mmu, virtual, &cb, &ret);
 	if (retval != ERROR_OK)
 		return retval;
 	*physical = ret;

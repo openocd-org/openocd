@@ -38,7 +38,7 @@ struct armv4_5_mmu_common
 
 int armv4_5_mmu_translate_va(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va,
-		uint32_t *cb, int *domain, uint32_t *ap, uint32_t *val);
+		uint32_t *cb, uint32_t *val);
 
 int armv4_5_mmu_read_physical(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu,

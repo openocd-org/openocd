@@ -721,13 +721,11 @@ COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 static int arm926ejs_virt2phys(struct target *target, uint32_t virtual, uint32_t *physical)
 {
 	uint32_t cb;
-	int domain;
-	uint32_t ap;
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
 	uint32_t ret;
 	int retval = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu,
-			virtual, &cb, &domain, &ap, &ret);
+			virtual, &cb, &ret);
 	if (retval != ERROR_OK)
 		return retval;
 	*physical = ret;

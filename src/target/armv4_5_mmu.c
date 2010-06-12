@@ -26,7 +26,7 @@
 #include "armv4_5_mmu.h"
 
 
-int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, uint32_t *cb, int *domain, uint32_t *ap, uint32_t *val)
+int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t va, uint32_t *cb, uint32_t *val)
 {
 	uint32_t first_lvl_descriptor = 0x0;
 	uint32_t second_lvl_descriptor = 0x0;
@@ -54,14 +54,10 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
 
-	/* domain is always specified in bits 8-5 */
-	*domain = (first_lvl_descriptor & 0x1e0) >> 5;
-
 	if ((first_lvl_descriptor & 0x3) == 2)
 	{
 		/* section descriptor */
 		*cb = (first_lvl_descriptor & 0xc) >> 2;
-		*ap = (first_lvl_descriptor & 0xc00) >> 10;
 		*val = (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
 		return ERROR_OK;
 	}
@@ -101,7 +97,6 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 	if ((second_lvl_descriptor & 0x3) == 1)
 	{
 		/* large page descriptor */
-		*ap = (second_lvl_descriptor & 0xff0) >> 4;
 		*val = (second_lvl_descriptor & 0xffff0000) | (va & 0x0000ffff);
 		return ERROR_OK;
 	}
@@ -109,7 +104,6 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 	if ((second_lvl_descriptor & 0x3) == 2)
 	{
 		/* small page descriptor */
-		*ap = (second_lvl_descriptor & 0xff0) >> 4;
 		*val = (second_lvl_descriptor & 0xfffff000) | (va & 0x00000fff);
 		return ERROR_OK;
 	}
@@ -117,7 +111,6 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 	if ((second_lvl_descriptor & 0x3) == 3)
 	{
 		/* tiny page descriptor */
-		*ap = (second_lvl_descriptor & 0x30) >> 4;
 		*val = (second_lvl_descriptor & 0xfffffc00) | (va & 0x000003ff);
 		return ERROR_OK;
 	}

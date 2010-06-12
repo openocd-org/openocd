@@ -1802,8 +1802,6 @@ static int cortex_a8_virt2phys(struct target *target,
 		uint32_t virt, uint32_t *phys)
 {
 	uint32_t cb;
-	int domain;
-	uint32_t ap;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	// struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -1818,7 +1816,7 @@ static int cortex_a8_virt2phys(struct target *target,
         cortex_a8->current_address_mode = ARM_MODE_SVC;
 	uint32_t ret;
 	int retval = armv4_5_mmu_translate_va(target,
-			&armv7a->armv4_5_mmu, virt, &cb, &domain, &ap, &ret);
+			&armv7a->armv4_5_mmu, virt, &cb, &ret);
 	if (retval != ERROR_OK)
 		return retval;
     /* Reset the flag. We don't want someone else to use it by error */

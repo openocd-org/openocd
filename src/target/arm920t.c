@@ -509,13 +509,11 @@ static int arm920_virt2phys(struct target *target,
 		uint32_t virt, uint32_t *phys)
 {
 	uint32_t cb;
-	int domain;
-	uint32_t ap;
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
 	uint32_t ret;
 	int retval = armv4_5_mmu_translate_va(target,
-			&arm920t->armv4_5_mmu, virt, &cb, &domain, &ap, &ret);
+			&arm920t->armv4_5_mmu, virt, &cb, &ret);
 	if (retval != ERROR_OK)
 		return retval;
 	*phys = ret;
@@ -579,15 +577,13 @@ int arm920t_write_memory(struct target *target, uint32_t address,
 		 * by MMU
 		 */
 		uint32_t cb;
-		int domain;
-		uint32_t ap;
 		uint32_t pa;
 
 		/*
 		 * We need physical address and cb
 		 */
 		retval = armv4_5_mmu_translate_va(target, &arm920t->armv4_5_mmu,
-				address, &cb, &domain, &ap, &pa);
+				address, &cb, &pa);
 		if (retval != ERROR_OK)
 			return retval;
 
