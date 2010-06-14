@@ -649,7 +649,7 @@ static int lpc3180_write_page(struct nand_device *nand, uint32_t page, uint8_t *
                *
                **********************************************************************/
         
-               int retval,i=0,target_mem_base;
+               int i=0,target_mem_base;
                uint8_t *ecc_flash_buffer;
                struct working_area *pworking_area;
     

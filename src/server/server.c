@@ -264,7 +264,7 @@ int server_loop(struct command_context *command_context)
 {
 	struct service *service;
 
-	bool poll = true;
+	bool poll_ok = true;
 
 	/* used in select() */
 	fd_set read_fds;
@@ -322,7 +322,7 @@ int server_loop(struct command_context *command_context)
 
 		struct timeval tv;
 		tv.tv_sec = 0;
-		if (poll)
+		if (poll_ok)
 		{
 			/* we're just polling this iteration, this is faster on embedded
 			 * hosts */
@@ -375,11 +375,11 @@ int server_loop(struct command_context *command_context)
 			FD_ZERO(&read_fds); /* eCos leaves read_fds unchanged in this case!  */
 
 			/* We timed out/there was nothing to do, timeout rather than poll next time */
-			poll = false;
+			poll_ok = false;
 		} else
 		{
 			/* There was something to do, next time we'll just poll */
-			poll = true;
+			poll_ok = true;
 		}
 
 		for (service = services; service; service = service->next)

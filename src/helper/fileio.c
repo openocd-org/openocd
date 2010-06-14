@@ -33,24 +33,24 @@
 
 static inline int fileio_open_local(struct fileio *fileio)
 {
-	char access[4];
+	char file_access[4];
 
 	switch (fileio->access)
 	{
 		case FILEIO_READ:
-			strcpy(access, "r");
+			strcpy(file_access, "r");
 			break;
 		case FILEIO_WRITE:
-			strcpy(access, "w");
+			strcpy(file_access, "w");
 			break;
 		case FILEIO_READWRITE:
-			strcpy(access, "w+");
+			strcpy(file_access, "w+");
 			break;
 		case FILEIO_APPEND:
-			strcpy(access, "a");
+			strcpy(file_access, "a");
 			break;
 		case FILEIO_APPENDREAD:
-			strcpy(access, "a+");
+			strcpy(file_access, "a+");
 			break;
 		default:
 			LOG_ERROR("BUG: access neither read, write nor readwrite");
@@ -62,10 +62,10 @@ static inline int fileio_open_local(struct fileio *fileio)
 	if (fileio->type == FILEIO_BINARY)
 #endif
 	{
-		strcat(access, "b");
+		strcat(file_access, "b");
 	}
 
-	if (!(fileio->file = open_file_from_path (fileio->url, access)))
+	if (!(fileio->file = open_file_from_path (fileio->url, file_access)))
 	{
 		LOG_ERROR("couldn't open %s", fileio->url);
 		return ERROR_FILEIO_OPERATION_FAILED;
