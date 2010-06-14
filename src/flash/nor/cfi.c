@@ -979,7 +979,10 @@ static int cfi_intel_protect(struct flash_bank *bank, int set, int first, int la
 	 * instant individual block locking (bit 5).
 	 */
 	if (!(pri_ext->feature_support & 0x28))
+	{
+		LOG_ERROR("lock/unlock not supported on flash");
 		return ERROR_FLASH_OPERATION_FAILED;
+	}
 
 	cfi_intel_clear_status_register(bank);
 
