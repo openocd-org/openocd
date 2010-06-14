@@ -22,8 +22,7 @@ libhelper_la_SOURCES = \
 	command.c \
 	time_support.c \
 	replacements.c \
-	fileio.c \
-	membuf.c
+	fileio.c
 
 if IOUTIL
 libhelper_la_SOURCES += ioutil.c
@@ -44,7 +43,6 @@ noinst_HEADERS = \
 	types.h \
 	log.h \
 	command.h \
-	membuf.h \
 	time_support.h \
 	replacements.h \
 	fileio.h \
