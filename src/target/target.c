@@ -2378,7 +2378,7 @@ static int target_fill_mem(struct target *target,
 		{
 			current = chunk_size;
 		}
-		int retval = fn(target, address + x * data_size, data_size, current, target_buf);
+		retval = fn(target, address + x * data_size, data_size, current, target_buf);
 		if (retval != ERROR_OK)
 		{
 			break;
