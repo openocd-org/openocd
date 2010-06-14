@@ -387,11 +387,11 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
  */
 #define COMMAND_PARSE_NUMBER(type, in, out) \
 	do { \
-		int retval = parse_##type(in, &(out)); \
-		if (ERROR_OK != retval) { \
+		int retval_macro_tmp = parse_##type(in, &(out)); \
+		if (ERROR_OK != retval_macro_tmp) { \
 			command_print(CMD_CTX, stringify(out) \
 				" option value ('%s') is not valid", in); \
-			return retval; \
+			return retval_macro_tmp; \
 		} \
 	} while (0)
 
@@ -404,13 +404,13 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 #define COMMAND_PARSE_BOOL(in, out, on, off) \
 	do { \
 		bool value; \
-		int retval = command_parse_bool_arg(in, &value); \
-		if (ERROR_OK != retval) { \
+		int retval_macro_tmp = command_parse_bool_arg(in, &value); \
+		if (ERROR_OK != retval_macro_tmp) { \
 			command_print(CMD_CTX, stringify(out) \
 				" option value ('%s') is not valid", in); \
 			command_print(CMD_CTX, "  choices are '%s' or '%s'", \
 				on, off); \
-			return retval; \
+			return retval_macro_tmp; \
 		} \
 		out = value; \
 	} while (0)
