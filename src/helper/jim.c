@@ -3039,12 +3039,12 @@ int SetScriptFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
 
     JimParserInit(&parser, scriptText, scriptTextLen, initialLineNumber);
     while (!JimParserEof(&parser)) {
-        char *token;
+        char *token_t;
         int len, type, linenr;
 
         JimParseScript(&parser);
-        token = JimParserGetToken(&parser, &len, &type, &linenr);
-        ScriptObjAddToken(interp, script, token, len, type,
+        token_t = JimParserGetToken(&parser, &len, &type, &linenr);
+        ScriptObjAddToken(interp, script, token_t, len, type,
                 propagateSourceInfo ? script->fileName : NULL,
                 linenr);
     }
@@ -4505,7 +4505,7 @@ void Jim_FreeInterp(Jim_Interp *i)
     /* Check that the live object list is empty, otherwise
      * there is a memory leak. */
     if (i->liveList != NULL) {
-        Jim_Obj *objPtr = i->liveList;
+        objPtr = i->liveList;
 
         Jim_fprintf(i, i->cookie_stdout,JIM_NL "-------------------------------------" JIM_NL);
         Jim_fprintf(i, i->cookie_stdout,"Objects still in the free list:" JIM_NL);
@@ -5170,7 +5170,7 @@ void UpdateStringOfList(struct Jim_Obj *objPtr)
     realLength = 0;
     for (i = 0; i < objPtr->internalRep.listValue.len; i++) {
         int len, qlen;
-        const char *strRep = Jim_GetString(ele[i], &len);
+        strRep = Jim_GetString(ele[i], &len);
         char *q;
 
         switch (quotingType[i]) {
@@ -5745,7 +5745,7 @@ void UpdateStringOfDict(struct Jim_Obj *objPtr)
     realLength = 0;
     for (i = 0; i < objc; i++) {
         int len, qlen;
-        const char *strRep = Jim_GetString(objv[i], &len);
+        strRep = Jim_GetString(objv[i], &len);
         char *q;
 
         switch (quotingType[i]) {
@@ -11030,7 +11030,6 @@ static int Jim_ProcCoreCommand(Jim_Interp *interp, int argc,
 
         /* Check for default arguments and reduce arityMin if necessary */
         while (arityMin > 1) {
-            int len;
             Jim_ListIndex(interp, argv[2], arityMin - 2, &argPtr, JIM_NONE);
             Jim_ListLength(interp, argPtr, &len);
             if (len != 2) {
