@@ -2473,10 +2473,10 @@ static int cfi_probe(struct flash_bank *bank)
 			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
 
 		uint8_t data;
-		retval = 1 << cfi_query_u8(bank, 0, 0x27, &data);
+		retval = cfi_query_u8(bank, 0, 0x27, &data);
 		if (retval != ERROR_OK)
 			return retval;
-		cfi_info->dev_size = data;
+		cfi_info->dev_size = 1 << data;
 
 		retval = cfi_query_u16(bank, 0, 0x28, &cfi_info->interface_desc);
 		if (retval != ERROR_OK)
