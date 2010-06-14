@@ -469,11 +469,12 @@ proc initC100 {} {
     mww $INTC_ARM1_CONTROL_REG 0x1
     # configure clocks
     setupPLL
+    # setupUART0 must be run before setupDDR2 as setupDDR2 uses UART.
+    setupUART0
     # enable cache
     # ? (u-boot does nothing here)
     # DDR2 memory init
     setupDDR2
-    setupUART0
     putsUART0 "C100 initialization complete.\n"
     puts "C100 initialization complete."
 }
