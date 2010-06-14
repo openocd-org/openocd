@@ -2383,8 +2383,6 @@ static int cfi_probe(struct flash_bank *bank)
 	 */
 	if (cfi_info->not_cfi == 0)
 	{
-		int retval;
-
 		/* enter CFI query mode
 		 * according to JEDEC Standard No. 68.01,
 		 * a single bus sequence with address = 0x55, data = 0x98 should put
@@ -2716,7 +2714,7 @@ static int cfi_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int cfi_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	int printed;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -2806,5 +2804,5 @@ struct flash_driver cfi_flash = {
 	/* FIXME: access flash at bus_width size */
 	.erase_check = default_flash_blank_check,
 	.protect_check = cfi_protect_check,
-	.info = cfi_info,
+	.info = get_cfi_info,
 };

@@ -576,7 +576,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		}
 	}
 
-	if (duration_measure(&bench) == ERROR_OK)
+	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK))
 	{
 		command_print(CMD_CTX, "wrote %" PRIu32 " bytes to 0x%8.8" PRIx32
 				" in %fs (%0.3f KiB/s)", wrote, address,

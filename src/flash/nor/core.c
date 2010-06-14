@@ -599,7 +599,6 @@ int flash_write_unlock(struct target *target, struct image *image,
 		}
 
 		/* find the corresponding flash bank */
-		int retval;
 		retval = get_flash_bank_by_addr(target, run_address, false, &c);
 		if (retval != ERROR_OK)
 			return retval;
