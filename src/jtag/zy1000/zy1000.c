@@ -508,7 +508,7 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 #endif
 
 // here we shuffle N bits out/in
-static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int num_bits, bool pause, tap_state_t shiftState, tap_state_t end_state)
+static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int num_bits, bool pause_now, tap_state_t shiftState, tap_state_t end_state)
 {
 	tap_state_t pause_state = shiftState;
 	for (int j = 0; j < num_bits; j += 32)
@@ -518,7 +518,7 @@ static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int n
 		{
 			k = 32;
 			/* we have more to shift out */
-		} else if (pause)
+		} else if (pause_now)
 		{
 			/* this was the last to shift out this time */
 			pause_state = end_state;
