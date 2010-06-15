@@ -951,7 +951,7 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct working_area *source;
 	int retval;
-	int write = 1;
+	int write_t = 1;
 
 	LOG_DEBUG("address: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, count);
 
@@ -984,7 +984,7 @@ int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		}
 	}
 
-	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write, address,
+	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write_t, address,
 			count, (uint32_t*) buffer);
 	if (retval != ERROR_OK)
 	{
