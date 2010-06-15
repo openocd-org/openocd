@@ -304,7 +304,7 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write, uint32_t *data)
+int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_t *data)
 {
 	struct jtag_tap *tap;
 	tap = ejtag_info->tap;
@@ -325,7 +325,7 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write, uint32_t 
 	fields[1].num_bits = 32;
 	fields[1].out_value = t;
 
-	if (write)
+	if (write_t)
 	{
 		fields[1].in_value = NULL;
 		buf_set_u32(t, 0, 32, *data);
