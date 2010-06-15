@@ -366,15 +366,15 @@ static int jtag_dp_q_write(struct adiv5_dap *dap, unsigned reg,
 /** Select the AP register bank matching bits 7:4 of reg. */
 static int jtag_ap_q_bankselect(struct adiv5_dap *dap, unsigned reg)
 {
-	uint32_t select = reg & 0x000000F0;
+	uint32_t select_ap_bank = reg & 0x000000F0;
 
-	if (select == dap->ap_bank_value)
+	if (select_ap_bank == dap->ap_bank_value)
 		return ERROR_OK;
-	dap->ap_bank_value = select;
+	dap->ap_bank_value = select_ap_bank;
 
-	select |= dap->apsel;
+	select_ap_bank |= dap->apsel;
 
-	return jtag_dp_q_write(dap, DP_SELECT, select);
+	return jtag_dp_q_write(dap, DP_SELECT, select_ap_bank);
 }
 
 static int jtag_ap_q_read(struct adiv5_dap *dap, unsigned reg,
