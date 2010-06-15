@@ -467,7 +467,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint32_t cur_size = 0;
 	uint32_t chunk_count;
 	struct target *target = get_current_target(CMD_CTX);
-	uint32_t i;
+	unsigned i;
 	uint32_t wordsize;
 	int retval = ERROR_OK;
 
@@ -563,7 +563,6 @@ COMMAND_HANDLER(handle_flash_fill_command)
 			goto done;
 		}
 
-		unsigned i;
 		for (i = 0; i < cur_size; i++)
 		{
 			if (readback[i]!=chunk[i])
