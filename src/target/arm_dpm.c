@@ -773,11 +773,11 @@ static int dpm_remove_breakpoint(struct target *target, struct breakpoint *bp)
 	return retval;
 }
 
-static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
+static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index_t,
 		struct watchpoint *wp)
 {
 	int retval;
-	struct dpm_wp *dwp = dpm->dwp + index;
+	struct dpm_wp *dwp = dpm->dwp + index_t;
 	uint32_t control;
 
 	/* this hardware doesn't support data value matching or masking */
@@ -804,7 +804,7 @@ static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index,
 	}
 	dwp->bpwp.control = control;
 
-	dpm->dwp[index].wp = wp;
+	dpm->dwp[index_t].wp = wp;
 
 	return retval;
 }
