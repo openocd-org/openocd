@@ -3,7 +3,7 @@
  * Copyright 2005 Salvatore Sanfilippo <antirez@invece.org>
  * Copyright 2005 Clemens Hintze <c.hintze@gmx.net>
  * Copyright 2005 patthoyts - Pat Thoyts <patthoyts@users.sf.net>
- * Copyright 2008,2009 oharboe - √òyvind Harboe - oyvind.harboe@zylin.com
+ * Copyright 2008,2009 oharboe - Åÿyvind Harboe - oyvind.harboe@zylin.com
  * Copyright 2008 Andrew Lunn <andrew@lunn.ch>
  * Copyright 2008 Duane Ellis <openocd@duaneellis.com>
  * Copyright 2008 Uwe Klein <uklein@klein-messgeraete.de>
@@ -11934,26 +11934,7 @@ static int Jim_ScanCoreCommand(Jim_Interp *interp, int argc,
         }
         JimListGetElements(interp, listPtr, &outc, &outVec);
         for (i = 0; i < outc; ++i) {
-            if (Jim_Length(outVec[i]) > 0) {
-                ++count;
-                if (Jim_SetVariable(interp, argv[3 + i], outVec[i]) != JIM_OK)
-                    goto err;
-            }
-        }
-        Jim_FreeNewObj(interp, listPtr);
-        Jim_SetResult(interp, Jim_NewIntObj(interp, count));
-    } else {
-        if (listPtr == (Jim_Obj*)EOF) {
-            Jim_SetResult(interp, Jim_NewListObj(interp, 0, 0));
-            return JIM_OK;
-        }
-        Jim_SetResult(interp, listPtr);
-    }
-    return JIM_OK;
-err:
-    Jim_FreeNewObj(interp, listPtr);
-    return JIM_ERR;
-}
+            if (Jim_Len
 
 /* [error] */
 static int Jim_ErrorCoreCommand(Jim_Interp *interp, int argc,
