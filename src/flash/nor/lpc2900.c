@@ -306,39 +306,39 @@ static uint32_t lpc2900_read_security_status( struct flash_bank *bank )
 	 * a protected sector!
 	 */
 	int sector;
-	int index;
+	int index_t;
 	for( sector = 0; sector < bank->num_sectors; sector++ )
 	{
 		/* Convert logical sector number to physical sector number */
 		if( sector <= 4 )
 		{
-			index = sector + 11;
+			index_t = sector + 11;
 		}
 		else if( sector <= 7 )
 		{
-			index = sector + 27;
+			index_t = sector + 27;
 		}
 		else
 		{
-			index = sector - 8;
+			index_t = sector - 8;
 		}
 
 		bank->sectors[sector].is_protected = -1;
 
 		if (
-		    (iss_secured_field[index][0] == 0x00000000) &&
-		    (iss_secured_field[index][1] == 0x00000000) &&
-		    (iss_secured_field[index][2] == 0x00000000) &&
-		    (iss_secured_field[index][3] == 0x00000000) )
+		    (iss_secured_field[index_t][0] == 0x00000000) &&
+		    (iss_secured_field[index_t][1] == 0x00000000) &&
+		    (iss_secured_field[index_t][2] == 0x00000000) &&
+		    (iss_secured_field[index_t][3] == 0x00000000) )
 		{
 			bank->sectors[sector].is_protected = 1;
 		}
 
 		if (
-		    (iss_secured_field[index][0] == 0xFFFFFFFF) &&
-		    (iss_secured_field[index][1] == 0xFFFFFFFF) &&
-		    (iss_secured_field[index][2] == 0xFFFFFFFF) &&
-		    (iss_secured_field[index][3] == 0xFFFFFFFF) )
+		    (iss_secured_field[index_t][0] == 0xFFFFFFFF) &&
+		    (iss_secured_field[index_t][1] == 0xFFFFFFFF) &&
+		    (iss_secured_field[index_t][2] == 0xFFFFFFFF) &&
+		    (iss_secured_field[index_t][3] == 0xFFFFFFFF) )
 		{
 			bank->sectors[sector].is_protected = 0;
 		}
@@ -507,7 +507,7 @@ static int lpc2900_write_index_page( struct flash_bank *bank,
  * @param clock System clock in Hz
  * @param time Program/erase time in µs
  */
-static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time )
+static uint32_t lpc2900_calc_tr( uint32_t clock_var, uint32_t time_var )
 {
 	/*           ((time[µs]/1e6) * f[Hz]) + 511
 	 * FPTR.TR = -------------------------------
@@ -516,7 +516,7 @@ static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time )
 	 * The result is the
 	 */
 
-	uint32_t tr_val = (uint32_t)((((time / 1e6) * clock) + 511.0) / 512.0);
+	uint32_t tr_val = (uint32_t)((((time_var / 1e6) * clock_var) + 511.0) / 512.0);
 
 	return tr_val;
 }
@@ -1365,7 +1365,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 				this_buffer = buffer;
 
 				/* Make sure we stop at the next secured sector */
-				int sector = start_sector + 1;
+				sector = start_sector + 1;
 				while( sector < bank->num_sectors )
 				{
 					/* Secured? */
