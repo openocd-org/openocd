@@ -98,12 +98,12 @@ static inline int fileio_open_local(struct fileio *fileio)
 	return ERROR_OK;
 }
 
-int fileio_open(struct fileio *fileio, const char *url, enum fileio_access access,	enum fileio_type type)
+int fileio_open(struct fileio *fileio, const char *url, enum fileio_access access_type,	enum fileio_type type)
 {
 	int retval = ERROR_OK;
 
 	fileio->type = type;
-	fileio->access = access;
+	fileio->access = access_type;
 	fileio->url = strdup(url);
 
 	retval = fileio_open_local(fileio);
