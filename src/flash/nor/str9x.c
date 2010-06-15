@@ -564,7 +564,7 @@ static int str9x_write(struct flash_bank *bank,
 	if (bytes_remaining)
 	{
 		uint8_t last_halfword[2] = {0xff, 0xff};
-		int i = 0;
+		i = 0;
 
 		while (bytes_remaining > 0)
 		{
@@ -621,7 +621,7 @@ COMMAND_HANDLER(str9x_handle_part_id_command)
 }
 #endif
 
-static int str9x_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_str9x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str9x flash driver info");
 	return ERROR_OK;
@@ -706,5 +706,5 @@ struct flash_driver str9x_flash = {
 	.auto_probe = str9x_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = str9x_protect_check,
-	.info = str9x_info,
+	.info = get_str9x_info,
 };
