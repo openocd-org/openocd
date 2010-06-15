@@ -388,7 +388,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	/* refresh core register cache */
-	for (unsigned i = 0; i < MIPS32NUMCOREREGS; i++)
+	for (i = 0; i < MIPS32NUMCOREREGS; i++)
 	{
 		if (!mips32->core_cache->reg_list[i].valid)
 			mips32->read_core_reg(target, i);
@@ -404,7 +404,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 		}
 	}
 
-	for (int i = 0; i < num_reg_params; i++)
+	for (i = 0; i < num_reg_params; i++)
 	{
 		struct reg *reg = register_get_by_name(mips32->core_cache, reg_params[i].reg_name, 0);
 
