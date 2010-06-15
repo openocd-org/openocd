@@ -255,7 +255,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	int printed, device_class;
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
@@ -1272,5 +1272,5 @@ struct flash_driver stellaris_flash = {
 	.auto_probe = stellaris_probe,
 	.erase_check = default_flash_mem_blank_check,
 	.protect_check = stellaris_protect_check,
-	.info = stellaris_info,
+	.info = get_stellaris_info,
 };
