@@ -473,7 +473,7 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 	return cortex_a8_read_dcc(a8, data, &dscr);
 }
 
-static int cortex_a8_bpwp_enable(struct arm_dpm *dpm, unsigned index,
+static int cortex_a8_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 		uint32_t addr, uint32_t control)
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
@@ -481,7 +481,7 @@ static int cortex_a8_bpwp_enable(struct arm_dpm *dpm, unsigned index,
 	uint32_t cr = a8->armv7a_common.debug_base;
 	int retval;
 
-	switch (index) {
+	switch (index_t) {
 	case 0 ... 15:		/* breakpoints */
 		vr += CPUDBG_BVR_BASE;
 		cr += CPUDBG_BCR_BASE;
@@ -489,13 +489,13 @@ static int cortex_a8_bpwp_enable(struct arm_dpm *dpm, unsigned index,
 	case 16 ... 31:		/* watchpoints */
 		vr += CPUDBG_WVR_BASE;
 		cr += CPUDBG_WCR_BASE;
-		index -= 16;
+		index_t -= 16;
 		break;
 	default:
 		return ERROR_FAIL;
 	}
-	vr += 4 * index;
-	cr += 4 * index;
+	vr += 4 * index_t;
+	cr += 4 * index_t;
 
 	LOG_DEBUG("A8: bpwp enable, vr %08x cr %08x",
 			(unsigned) vr, (unsigned) cr);
@@ -509,23 +509,23 @@ static int cortex_a8_bpwp_enable(struct arm_dpm *dpm, unsigned index,
 	return retval;
 }
 
-static int cortex_a8_bpwp_disable(struct arm_dpm *dpm, unsigned index)
+static int cortex_a8_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
 	uint32_t cr;
 
-	switch (index) {
+	switch (index_t) {
 	case 0 ... 15:
 		cr = a8->armv7a_common.debug_base + CPUDBG_BCR_BASE;
 		break;
 	case 16 ... 31:
 		cr = a8->armv7a_common.debug_base + CPUDBG_WCR_BASE;
-		index -= 16;
+		index_t -= 16;
 		break;
 	default:
 		return ERROR_FAIL;
 	}
-	cr += 4 * index;
+	cr += 4 * index_t;
 
 	LOG_DEBUG("A8: bpwp disable, cr %08x", (unsigned) cr);
 
