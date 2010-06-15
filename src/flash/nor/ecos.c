@@ -173,7 +173,6 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 	for (i = 0; i < image.num_sections; i++)
 	{
 		void *buffer = malloc(image.sections[i].size);
-		int retval;
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
 			free(buffer);
@@ -305,7 +304,6 @@ static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32
 			t = chunk;
 		}
 
-		int retval;
 		retval = target_write_buffer(target, buffer, t, ((uint8_t *)data) + i);
 		if (retval != ERROR_OK)
 			return retval;
