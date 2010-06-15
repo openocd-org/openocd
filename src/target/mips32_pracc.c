@@ -928,7 +928,7 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
  * 3. data ...
  */
 int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_area *source,
-								int write, uint32_t addr, int count, uint32_t *buf)
+								int write_t, uint32_t addr, int count, uint32_t *buf)
 {
 	uint32_t handler_code[] = {
 		/* caution when editing, table is modified below */
@@ -973,7 +973,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	if (source->size < MIPS32_FASTDATA_HANDLER_SIZE)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	if (write)
+	if (write_t)
 	{
 		handler_code[8] = MIPS32_LW(11,0,8);	/* load data from probe at fastdata area */
 		handler_code[9] = MIPS32_SW(11,0,9);	/* store data to RAM @ r9 */
@@ -1030,7 +1030,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	for (i = 0; i < count; i++)
 	{
 		/* Send the data out using fastdata (clears the access pending bit) */
-		if ((retval = mips_ejtag_fastdata_scan(ejtag_info, write, buf++)) != ERROR_OK)
+		if ((retval = mips_ejtag_fastdata_scan(ejtag_info, write_t, buf++)) != ERROR_OK)
 			return retval;
 	}
 
