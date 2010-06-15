@@ -102,11 +102,11 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
  */
 void dap_ap_select(struct adiv5_dap *dap,uint8_t apsel)
 {
-	uint32_t select = (apsel << 24) & 0xFF000000;
+	uint32_t select_apsel = (apsel << 24) & 0xFF000000;
 
-	if (select != dap->apsel)
+	if (select_apsel != dap->apsel)
 	{
-		dap->apsel = select;
+		dap->apsel = select_apsel;
 		/* Switching AP invalidates cached values.
 		 * Values MUST BE UPDATED BEFORE AP ACCESS.
 		 */
