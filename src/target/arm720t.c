@@ -41,7 +41,7 @@
 #endif
 
 static int arm720t_scan_cp15(struct target *target,
-		uint32_t out, uint32_t *in, int instruction, int clock)
+		uint32_t out, uint32_t *in, int instruction, int clock_arg)
 {
 	int retval;
 	struct arm720t_common *arm720t = target_to_arm720(target);
@@ -81,7 +81,7 @@ static int arm720t_scan_cp15(struct target *target,
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
 	}
 
-	if (clock)
+	if (clock_arg)
 		jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
@@ -93,9 +93,9 @@ static int arm720t_scan_cp15(struct target *target,
 	if (in)
 		LOG_DEBUG("out: %8.8x, in: %8.8x, instruction: %i, clock: %i", out, *in, instruction, clock);
 	else
-		LOG_DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
+		LOG_DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock_arg);
 #else
-		LOG_DEBUG("out: %8.8" PRIx32 ", instruction: %i, clock: %i", out, instruction, clock);
+		LOG_DEBUG("out: %8.8" PRIx32 ", instruction: %i, clock: %i", out, instruction, clock_arg);
 #endif
 
 	return ERROR_OK;
