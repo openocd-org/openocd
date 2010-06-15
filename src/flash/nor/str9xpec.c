@@ -665,7 +665,7 @@ static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer,
 	if (bytes_remaining)
 	{
 		uint8_t last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-		int i = 0;
+		i = 0;
 
 		while (bytes_remaining > 0)
 		{
@@ -762,7 +762,7 @@ static int str9xpec_erase_check(struct flash_bank *bank)
 	return str9xpec_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
-static int str9xpec_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_str9xpec_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str9xpec flash driver info");
 	return ERROR_OK;
@@ -1252,5 +1252,5 @@ struct flash_driver str9xpec_flash = {
 	.auto_probe = str9xpec_probe,
 	.erase_check = str9xpec_erase_check,
 	.protect_check = str9xpec_protect_check,
-	.info = str9xpec_info,
+	.info = get_str9xpec_info,
 };
