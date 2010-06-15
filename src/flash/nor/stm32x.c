@@ -814,7 +814,7 @@ COMMAND_HANDLER(stm32x_handle_part_id_command)
 }
 #endif
 
-static int stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct target *target = bank->target;
 	uint32_t device_id;
@@ -1305,5 +1305,5 @@ struct flash_driver stm32x_flash = {
 	.auto_probe = stm32x_auto_probe,
 	.erase_check = default_flash_mem_blank_check,
 	.protect_check = stm32x_protect_check,
-	.info = stm32x_info,
+	.info = get_stm32x_info,
 };
