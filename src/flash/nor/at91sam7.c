@@ -298,7 +298,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	uint32_t ext_freq;
 	uint32_t bank_size;
 	uint32_t base_address = 0;
-	char *target_name = "Unknown";
+	char *target_name_t = "Unknown";
 
 	at91sam7_info = t_bank->driver_priv;
 
@@ -386,7 +386,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			if (arch == 0x70)
 			{
 				num_nvmbits = 2;
-				target_name = "AT91SAM7S161/16";
+				target_name_t = "AT91SAM7S161/16";
 			}
 			break;
 
@@ -399,12 +399,12 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			if (arch == 0x70)
 			{
 				num_nvmbits = 2;
-				target_name = "AT91SAM7S321/32";
+				target_name_t = "AT91SAM7S321/32";
 			}
 			if (arch == 0x72)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7SE32";
+				target_name_t = "AT91SAM7SE32";
 			}
 			break;
 
@@ -417,7 +417,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			if (arch == 0x70)
 			{
 				num_nvmbits = 2;
-				target_name = "AT91SAM7S64";
+				target_name_t = "AT91SAM7S64";
 			}
 			break;
 
@@ -430,22 +430,22 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			if (arch == 0x70)
 			{
 				num_nvmbits = 2;
-				target_name = "AT91SAM7S128";
+				target_name_t = "AT91SAM7S128";
 			}
 			if (arch == 0x71)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7XC128";
+				target_name_t = "AT91SAM7XC128";
 			}
 			if (arch == 0x72)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7SE128";
+				target_name_t = "AT91SAM7SE128";
 			}
 			if (arch == 0x75)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7X128";
+				target_name_t = "AT91SAM7X128";
 			}
 			break;
 
@@ -458,27 +458,27 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			if (arch == 0x60)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7A3";
+				target_name_t = "AT91SAM7A3";
 			}
 			if (arch == 0x70)
 			{
 				num_nvmbits = 2;
-				target_name = "AT91SAM7S256";
+				target_name_t = "AT91SAM7S256";
 			}
 			if (arch == 0x71)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7XC256";
+				target_name_t = "AT91SAM7XC256";
 			}
 			if (arch == 0x72)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7SE256";
+				target_name_t = "AT91SAM7SE256";
 			}
 			if (arch == 0x75)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7X256";
+				target_name_t = "AT91SAM7X256";
 			}
 			break;
 
@@ -491,22 +491,22 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			if (arch == 0x70)
 			{
 				num_nvmbits = 2;
-				target_name = "AT91SAM7S512";
+				target_name_t = "AT91SAM7S512";
 			}
 			if (arch == 0x71)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7XC512";
+				target_name_t = "AT91SAM7XC512";
 			}
 			if (arch == 0x72)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7SE512";
+				target_name_t = "AT91SAM7SE512";
 			}
 			if (arch == 0x75)
 			{
 				num_nvmbits = 3;
-				target_name = "AT91SAM7X512";
+				target_name_t = "AT91SAM7X512";
 			}
 			break;
 
@@ -517,7 +517,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			break;
 	}
 
-	if (strcmp(target_name, "Unknown") == 0)
+	if (strcmp(target_name_t, "Unknown") == 0)
 	{
 		LOG_ERROR("Target autodetection failed! Please specify target parameters in configuration file");
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -573,7 +573,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 		at91sam7_info->cidr_eproc = (cidr >> 5)&0x0007;
 		at91sam7_info->cidr_version = cidr&0x001F;
 
-		at91sam7_info->target_name  = target_name;
+		at91sam7_info->target_name  = target_name_t;
 		at91sam7_info->flashmode = 0;
 		at91sam7_info->ext_freq = ext_freq;
 		at91sam7_info->num_nvmbits = num_nvmbits;
@@ -731,7 +731,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	uint16_t page_size;
 	uint16_t num_nvmbits;
 
-	char *target_name;
+	char *target_name_t;
 
 	int bnk, sec;
 
@@ -775,8 +775,8 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		return ERROR_OK;
 	}
 
-	target_name = calloc(strlen(CMD_ARGV[7]) + 1, sizeof(char));
-	strcpy(target_name, CMD_ARGV[7]);
+	target_name_t = calloc(strlen(CMD_ARGV[7]) + 1, sizeof(char));
+	strcpy(target_name_t, CMD_ARGV[7]);
 
 	/* calculate bank size  */
 	bank_size = num_sectors * pages_per_sector * page_size;
@@ -816,7 +816,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 
 		at91sam7_info = t_bank->driver_priv;
 
-		at91sam7_info->target_name  = target_name;
+		at91sam7_info->target_name  = target_name_t;
 		at91sam7_info->flashmode = 0;
 		at91sam7_info->ext_freq  = ext_freq;
 		at91sam7_info->num_nvmbits = num_nvmbits;
@@ -1034,7 +1034,7 @@ static int at91sam7_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int at91sam7_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_at91sam7_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	int printed;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
@@ -1212,5 +1212,5 @@ struct flash_driver at91sam7_flash = {
 	.auto_probe = at91sam7_probe,
 	.erase_check = at91sam7_erase_check,
 	.protect_check = at91sam7_protect_check,
-	.info = at91sam7_info,
+	.info = get_at91sam7_info,
 };
