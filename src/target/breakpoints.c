@@ -105,7 +105,7 @@ fail:
 }
 
 /* free up a breakpoint */
-static void breakpoint_free(struct target *target, struct breakpoint *breakpoint_remove)
+static void breakpoint_free(struct target *target, struct breakpoint *breakpoint_to_remove)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
@@ -113,7 +113,7 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 
 	while (breakpoint)
 	{
-		if (breakpoint == breakpoint_remove)
+		if (breakpoint == breakpoint_to_remove)
 			break;
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
@@ -246,7 +246,7 @@ bye:
 	return ERROR_OK;
 }
 
-static void watchpoint_free(struct target *target, struct watchpoint *watchpoint_remove)
+static void watchpoint_free(struct target *target, struct watchpoint *watchpoint_to_remove)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
@@ -254,7 +254,7 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 
 	while (watchpoint)
 	{
-		if (watchpoint == watchpoint_remove)
+		if (watchpoint == watchpoint_to_remove)
 			break;
 		watchpoint_p = &watchpoint->next;
 		watchpoint = watchpoint->next;
