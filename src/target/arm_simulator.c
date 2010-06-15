@@ -364,42 +364,42 @@ static int arm_simulate_step_core(struct target *target,
 	/* branch instructions */
 	if ((instruction.type >= ARM_B) && (instruction.type <= ARM_BLX))
 	{
-		uint32_t target;
+		uint32_t target_address;
 
 		if (instruction.info.b_bl_bx_blx.reg_operand == -1)
 		{
-			target = instruction.info.b_bl_bx_blx.target_address;
+			target_address = instruction.info.b_bl_bx_blx.target_address;
 		}
 		else
 		{
-			target = sim->get_reg_mode(sim, instruction.info.b_bl_bx_blx.reg_operand);
+			target_address = sim->get_reg_mode(sim, instruction.info.b_bl_bx_blx.reg_operand);
 			if (instruction.info.b_bl_bx_blx.reg_operand == 15)
 			{
-				target += 2 * instruction_size;
+				target_address += 2 * instruction_size;
 			}
 		}
 
 		if (dry_run_pc)
 		{
-			*dry_run_pc = target & ~1;
+			*dry_run_pc = target_address & ~1;
 			return ERROR_OK;
 		}
 		else
 		{
 			if (instruction.type == ARM_B)
 			{
-				sim->set_reg(sim, 15, target);
+				sim->set_reg(sim, 15, target_address);
 			}
 			else if (instruction.type == ARM_BL)
 			{
 				uint32_t old_pc = sim->get_reg(sim, 15);
 				int T = (sim->get_state(sim) == ARM_STATE_THUMB);
 				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
-				sim->set_reg(sim, 15, target);
+				sim->set_reg(sim, 15, target_address);
 			}
 			else if (instruction.type == ARM_BX)
 			{
-				if (target & 0x1)
+				if (target_address & 0x1)
 				{
 					sim->set_state(sim, ARM_STATE_THUMB);
 				}
@@ -407,7 +407,7 @@ static int arm_simulate_step_core(struct target *target,
 				{
 					sim->set_state(sim, ARM_STATE_ARM);
 				}
-				sim->set_reg(sim, 15, target & 0xfffffffe);
+				sim->set_reg(sim, 15, target_address & 0xfffffffe);
 			}
 			else if (instruction.type == ARM_BLX)
 			{
@@ -415,7 +415,7 @@ static int arm_simulate_step_core(struct target *target,
 				int T = (sim->get_state(sim) == ARM_STATE_THUMB);
 				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 
-				if (target & 0x1)
+				if (target_address & 0x1)
 				{
 					sim->set_state(sim, ARM_STATE_THUMB);
 				}
@@ -423,7 +423,7 @@ static int arm_simulate_step_core(struct target *target,
 				{
 					sim->set_state(sim, ARM_STATE_ARM);
 				}
-				sim->set_reg(sim, 15, target & 0xfffffffe);
+				sim->set_reg(sim, 15, target_address & 0xfffffffe);
 			}
 
 			return ERROR_OK;
