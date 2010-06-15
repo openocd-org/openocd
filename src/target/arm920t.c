@@ -1,3 +1,4 @@
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -841,7 +842,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	int i;
 	FILE *output;
 	struct arm920t_cache_line d_cache[8][64], i_cache[8][64];
-	int segment, index;
+	int segment, index_t;
 	struct reg *r;
 
 	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
@@ -910,12 +911,12 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 		arm920t_write_cp15_physical(target,
 				CP15PHYS_TESTSTATE, cp15c15);
 
-		for (index = 0; index < 64; index++)
+		for (index_t = 0; index_t < 64; index_t++)
 		{
 			/* Ra:
 			 * r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0)
 			 */
-			regs[0] = 0x0 | (segment << 5) | (index << 26);
+			regs[0] = 0x0 | (segment << 5) | (index_t << 26);
 			arm9tdmi_write_core_regs(target, 0x1, regs);
 
 			/* set interpret mode */
@@ -949,18 +950,18 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 				return retval;
 			}
 
-			d_cache[segment][index].cam = regs[9];
+			d_cache[segment][index_t].cam = regs[9];
 
 			/* mask LFSR[6] */
 			regs[9] &= 0xfffffffe;
 			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8"
 				PRIx32 ", content (%s):\n",
-				segment, index, regs[9],
+				segment, index_t, regs[9],
 				(regs[9] & 0x10) ? "valid" : "invalid");
 
 			for (i = 1; i < 9; i++)
 			{
-				 d_cache[segment][index].data[i] = regs[i];
+				 d_cache[segment][index_t].data[i] = regs[i];
 				 fprintf(output, "%i: 0x%8.8" PRIx32 "\n",
 						i-1, regs[i]);
 			}
@@ -1018,12 +1019,12 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 		arm920t_write_cp15_physical(target,
 				CP15PHYS_TESTSTATE, cp15c15);
 
-		for (index = 0; index < 64; index++)
+		for (index_t = 0; index_t < 64; index_t++)
 		{
 			/* Ra:
 			 * r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0)
 			 */
-			regs[0] = 0x0 | (segment << 5) | (index << 26);
+			regs[0] = 0x0 | (segment << 5) | (index_t << 26);
 			arm9tdmi_write_core_regs(target, 0x1, regs);
 
 			/* set interpret mode */
@@ -1057,18 +1058,18 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 				return retval;
 			}
 
-			i_cache[segment][index].cam = regs[9];
+			i_cache[segment][index_t].cam = regs[9];
 
 			/* mask LFSR[6] */
 			regs[9] &= 0xfffffffe;
 			fprintf(output, "\nsegment: %i, index: %i, "
 				"CAM: 0x%8.8" PRIx32 ", content (%s):\n",
-				segment, index, regs[9],
+				segment, index_t, regs[9],
 				(regs[9] & 0x10) ? "valid" : "invalid");
 
 			for (i = 1; i < 9; i++)
 			{
-				 i_cache[segment][index].data[i] = regs[i];
+				 i_cache[segment][index_t].data[i] = regs[i];
 				 fprintf(output, "%i: 0x%8.8" PRIx32 "\n",
 						i-1, regs[i]);
 			}
