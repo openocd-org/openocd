@@ -3065,8 +3065,8 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 		long long a = address-min;
 		long long b = length-1;
 		long long c = addressSpace-1;
-		int index = (a*b)/c; /* danger!!!! int32 overflows */
-		buckets[index]++;
+		int index_t = (a*b)/c; /* danger!!!! int32 overflows */
+		buckets[index_t]++;
 	}
 
 	/* append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr)) */
@@ -3894,14 +3894,14 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 			break;
 		case TCFG_CHAIN_POSITION:
 			if (goi->isconfigure) {
-				Jim_Obj *o;
+				Jim_Obj *o_t;
 				struct jtag_tap *tap;
 				target_free_all_working_areas(target);
-				e = Jim_GetOpt_Obj(goi, &o);
+				e = Jim_GetOpt_Obj(goi, &o_t);
 				if (e != JIM_OK) {
 					return e;
 				}
-				tap = jtag_tap_by_jim_obj(goi->interp, o);
+				tap = jtag_tap_by_jim_obj(goi->interp, o_t);
 				if (tap == NULL) {
 					return JIM_ERR;
 				}
