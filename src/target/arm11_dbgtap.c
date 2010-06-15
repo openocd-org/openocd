@@ -898,7 +898,7 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 		}
 
 		/* Timeout here so we don't get stuck. */
-		int i = 0;
+		int i_n = 0;
 		while (1)
 		{
 			JTAG_DEBUG("SC7 <= c%-3d Data %08x %s",
@@ -917,11 +917,11 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 
 			long long then = 0;
 
-			if (i == 1000)
+			if (i_n == 1000)
 			{
 				then = timeval_ms();
 			}
-			if (i >= 1000)
+			if (i_n >= 1000)
 			{
 				if ((timeval_ms()-then) > 1000)
 				{
@@ -930,7 +930,7 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
 				}
 			}
 
-			i++;
+			i_n++;
 		}
 
 		if (!nRW)
@@ -1086,7 +1086,7 @@ static int arm11_dpm_instr_read_data_r0(struct arm_dpm *dpm,
  * and watchpoint operations instead of running them right away.  Since we
  * pre-allocated our vector, we don't need to worry about space.
  */
-static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index,
+static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 		uint32_t addr, uint32_t control)
 {
 	struct arm11_common *arm11 = dpm_to_arm11(dpm);
@@ -1104,15 +1104,15 @@ static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index,
 	action[0].value = addr;
 	action[1].value = control;
 
-	switch (index) {
+	switch (index_t) {
 	case 0 ... 15:
-		action[0].address = ARM11_SC7_BVR0 + index;
-		action[1].address = ARM11_SC7_BCR0 + index;
+		action[0].address = ARM11_SC7_BVR0 + index_t;
+		action[1].address = ARM11_SC7_BCR0 + index_t;
 		break;
 	case 16 ... 32:
-		index -= 16;
-		action[0].address = ARM11_SC7_WVR0 + index;
-		action[1].address = ARM11_SC7_WCR0 + index;
+		index_t -= 16;
+		action[0].address = ARM11_SC7_WVR0 + index_t;
+		action[1].address = ARM11_SC7_WCR0 + index_t;
 		break;
 	default:
 		return ERROR_FAIL;
@@ -1123,7 +1123,7 @@ static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index,
 	return ERROR_OK;
 }
 
-static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned index)
+static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 {
 	struct arm11_common *arm11 = dpm_to_arm11(dpm);
 	struct arm11_sc7_action *action;
@@ -1133,13 +1133,13 @@ static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned index)
 	action[0].write = true;
 	action[0].value = 0;
 
-	switch (index) {
+	switch (index_t) {
 	case 0 ... 15:
-		action[0].address = ARM11_SC7_BCR0 + index;
+		action[0].address = ARM11_SC7_BCR0 + index_t;
 		break;
 	case 16 ... 32:
-		index -= 16;
-		action[0].address = ARM11_SC7_WCR0 + index;
+		index_t -= 16;
+		action[0].address = ARM11_SC7_WCR0 + index_t;
 		break;
 	default:
 		return ERROR_FAIL;
