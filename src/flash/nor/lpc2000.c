@@ -594,7 +594,6 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 	if ((offset == 0) && (count >= 0x20) && lpc2000_info->calc_checksum)
 	{
 		uint32_t checksum = 0;
-		int i;
 		for (i = 0; i < 8; i++)
 		{
 			LOG_DEBUG("Vector 0x%2.2x: 0x%8.8" PRIx32, i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
@@ -740,7 +739,7 @@ static int lpc2000_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 
@@ -819,5 +818,5 @@ struct flash_driver lpc2000_flash = {
 	.auto_probe = lpc2000_probe,
 	.erase_check = lpc2000_erase_check,
 	.protect_check = lpc2000_protect_check,
-	.info = lpc2000_info,
+	.info = get_lpc2000_info,
 };
