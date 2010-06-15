@@ -625,7 +625,7 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 	if (bytes_remaining)
 	{
 		uint8_t last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-		int i = 0;
+		i = 0;
 
 		while (bytes_remaining > 0)
 		{
@@ -680,7 +680,7 @@ COMMAND_HANDLER(str7x_handle_part_id_command)
 }
 #endif
 
-static int str7x_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_str7x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str7x flash driver info");
 	/* STR7x flash doesn't support sector protection interrogation.
@@ -795,5 +795,5 @@ struct flash_driver str7x_flash = {
 	.auto_probe = str7x_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = str7x_protect_check,
-	.info = str7x_info,
+	.info = get_str7x_info,
 };
