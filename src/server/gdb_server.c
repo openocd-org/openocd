@@ -2245,7 +2245,6 @@ static int gdb_input_inner(struct connection *connection)
 				case 'c':
 				case 's':
 					{
-						struct gdb_connection *gdb_con = connection->priv;
 						log_add_callback(gdb_log_callback, connection);
 
 						if (gdb_con->mem_write_error)
