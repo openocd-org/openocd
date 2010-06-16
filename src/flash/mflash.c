@@ -209,7 +209,7 @@ static int mg_init_gpio (void)
 	return ret;
 }
 
-static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
+static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time_var)
 {
 	uint8_t status, error;
 	struct target *target = mflash_bank->target;
@@ -220,7 +220,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 	struct duration bench;
 	duration_start(&bench);
 
-	while (time) {
+	while (time_var) {
 
 		ret = target_read_u8(target, mg_task_reg + MG_REG_STATUS, &status);
 		if (ret != ERROR_OK)
@@ -280,7 +280,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 		else
 			LOG_ERROR("mflash: duration measurement failed: %d", ret);
 
-		if (t > time)
+		if (t > time_var)
 			break;
 	}
 
