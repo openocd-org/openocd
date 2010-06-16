@@ -272,7 +272,7 @@ static unsigned svf_get_mask_u32(int bitlen)
 int svf_add_statemove(tap_state_t state_to)
 {
 	tap_state_t state_from = cmd_queue_cur_state;
-	uint8_t index;
+	unsigned index_var;
 
 	/* when resetting, be paranoid and ignore current state */
 	if (state_to == TAP_RESET) {
@@ -280,18 +280,18 @@ int svf_add_statemove(tap_state_t state_to)
 		return ERROR_OK;
 	}
 
-	for (index = 0; index < ARRAY_SIZE(svf_statemoves); index++)
+	for (index_var = 0; index_var < ARRAY_SIZE(svf_statemoves); index_var++)
 	{
-		if ((svf_statemoves[index].from == state_from)
-			&& (svf_statemoves[index].to == state_to))
+		if ((svf_statemoves[index_var].from == state_from)
+			&& (svf_statemoves[index_var].to == state_to))
 		{
 			/* recorded path includes current state ... avoid extra TCKs! */
-			if (svf_statemoves[index].num_of_moves > 1)
-				jtag_add_pathmove(svf_statemoves[index].num_of_moves - 1,
-						svf_statemoves[index].paths + 1);
+			if (svf_statemoves[index_var].num_of_moves > 1)
+				jtag_add_pathmove(svf_statemoves[index_var].num_of_moves - 1,
+						svf_statemoves[index_var].paths + 1);
 			else
-				jtag_add_pathmove(svf_statemoves[index].num_of_moves,
-						svf_statemoves[index].paths);
+				jtag_add_pathmove(svf_statemoves[index_var].num_of_moves,
+						svf_statemoves[index_var].paths);
 			return ERROR_OK;
 		}
 	}
@@ -723,22 +723,22 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 
 static int svf_check_tdo(void)
 {
-	int i, len, index;
+	int i, len, index_var;
 
 	for (i = 0; i < svf_check_tdo_para_index; i++)
 	{
-		index = svf_check_tdo_para[i].buffer_offset;
+		index_var = svf_check_tdo_para[i].buffer_offset;
 		len = svf_check_tdo_para[i].bit_len;
 		if ((svf_check_tdo_para[i].enabled)
-			&& buf_cmp_mask(&svf_tdi_buffer[index], &svf_tdo_buffer[index], &svf_mask_buffer[index], len))
+			&& buf_cmp_mask(&svf_tdi_buffer[index_var], &svf_tdo_buffer[index_var], &svf_mask_buffer[index_var], len))
 		{
 			unsigned bitmask;
 			unsigned received, expected, tapmask;
 			bitmask = svf_get_mask_u32(svf_check_tdo_para[i].bit_len);
 
-			memcpy(&received, svf_tdi_buffer + index, sizeof(unsigned));
-			memcpy(&expected, svf_tdo_buffer + index, sizeof(unsigned));
-			memcpy(&tapmask, svf_mask_buffer + index, sizeof(unsigned));
+			memcpy(&received, svf_tdi_buffer + index_var, sizeof(unsigned));
+			memcpy(&expected, svf_tdo_buffer + index_var, sizeof(unsigned));
+			memcpy(&tapmask, svf_mask_buffer + index_var, sizeof(unsigned));
 			LOG_ERROR("tdo check error at line %d",
 					  svf_check_tdo_para[i].line_num);
 			LOG_ERROR("read = 0x%X, want = 0x%X, mask = 0x%X",
