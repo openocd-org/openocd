@@ -100,7 +100,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	struct arm		*armv4_5 = target->arch_info;
 	struct reg_param	reg_params[3];
 	uint32_t		target_buf;
-	uint32_t		exit = 0;
+	uint32_t		exit_var = 0;
 	int			retval;
 
 	/* Inputs:
@@ -153,11 +153,11 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (armv4_5->is_armv4)
-		exit = nand->copy_area->address + sizeof(code) - 4;
+		exit_var = nand->copy_area->address + sizeof(code) - 4;
 
 	/* use alg to write data from work area to NAND chip */
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			nand->copy_area->address, exit, 1000, &algo);
+			nand->copy_area->address, exit_var, 1000, &algo);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error executing hosted NAND write");
 
@@ -184,7 +184,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	struct arm *armv4_5 = target->arch_info;
 	struct reg_param reg_params[3];
 	uint32_t target_buf;
-	uint32_t exit = 0;
+	uint32_t exit_var = 0;
 	int retval;
 
 	/* Inputs:
@@ -229,11 +229,11 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (armv4_5->is_armv4)
-		exit = nand->copy_area->address + sizeof(code) - 4;
+		exit_var = nand->copy_area->address + sizeof(code) - 4;
 
 	/* use alg to write data from NAND chip to work area */
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			nand->copy_area->address, exit, 1000, &algo);
+			nand->copy_area->address, exit_var, 1000, &algo);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error executing hosted NAND read");
 
