@@ -269,7 +269,6 @@ COMMAND_HANDLER(handle_xsvf_command)
 		 */
 		if (collecting_path) {
 			tap_state_t	mystate;
-			uint8_t		uc;
 
 			switch (opcode) {
 			case XCOMMENT:
@@ -565,7 +564,6 @@ COMMAND_HANDLER(handle_xsvf_command)
 		case XSTATE:
 			{
 				tap_state_t	mystate;
-				uint8_t			uc;
 
 				if (read(xsvf_fd, &uc, 1) < 0)
 				{
