@@ -336,13 +336,14 @@ COMMAND_HANDLER(handle_nand_verify_command)
 
 	while (file.size > 0)
 	{
-		int retval = nand_read_page(nand, dev.address / dev.page_size,
+		retval = nand_read_page(nand, dev.address / dev.page_size,
 				dev.page, dev.page_size, dev.oob, dev.oob_size);
 		if (ERROR_OK != retval)
 		{
 			command_print(CMD_CTX, "reading NAND flash page failed");
 			nand_fileio_cleanup(&dev);
-			return nand_fileio_cleanup(&file);
+			nand_fileio_cleanup(&file);
+			return retval;
 		}
 
 		int bytes_read = nand_fileio_read(nand, &file);
@@ -350,7 +351,8 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		{
 			command_print(CMD_CTX, "error while reading file");
 			nand_fileio_cleanup(&dev);
-			return nand_fileio_cleanup(&file);
+			nand_fileio_cleanup(&file);
+			return ERROR_FAIL;
 		}
 
 		if ((dev.page && memcmp(dev.page, file.page, dev.page_size)) ||
@@ -359,7 +361,8 @@ COMMAND_HANDLER(handle_nand_verify_command)
 			command_print(CMD_CTX, "NAND flash contents differ "
 						"at 0x%8.8" PRIx32, dev.address);
 			nand_fileio_cleanup(&dev);
-			return nand_fileio_cleanup(&file);
+			nand_fileio_cleanup(&file);
+			return ERROR_FAIL;
 		}
 
 		file.size -= bytes_read;
@@ -389,12 +392,13 @@ COMMAND_HANDLER(handle_nand_dump_command)
 	while (s.size > 0)
 	{
 		size_t size_written;
-		int retval = nand_read_page(nand, s.address / nand->page_size,
+		retval = nand_read_page(nand, s.address / nand->page_size,
 				s.page, s.page_size, s.oob, s.oob_size);
 		if (ERROR_OK != retval)
 		{
 			command_print(CMD_CTX, "reading NAND flash page failed");
-			return nand_fileio_cleanup(&s);
+			nand_fileio_cleanup(&s);
+			return retval;
 		}
 
 		if (NULL != s.page)
