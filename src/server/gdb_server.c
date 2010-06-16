@@ -2151,7 +2151,17 @@ static int gdb_input_inner(struct connection *connection)
 	struct gdb_connection *gdb_con = connection->priv;
 	static int extended_protocol = 0;
 
-	/* drain input buffer */
+	/* drain input buffer. If one of the packets fail, then an error
+	 * packet is replied, if applicable.
+	 *
+	 * This loop will terminate and the error code is returned.
+	 *
+	 * The calling fn will check if this error is something that
+	 * can be recovered from, or if the connection must be closed.
+	 *
+	 * If the error is recoverable, this fn is called again to
+	 * drain the rest of the buffer.
+	 */
 	do
 	{
 		packet_size = GDB_BUFFER_SIZE-1;
@@ -2235,8 +2245,6 @@ static int gdb_input_inner(struct connection *connection)
 				case 'c':
 				case 's':
 					{
-						int retval = ERROR_OK;
-
 						struct gdb_connection *gdb_con = connection->priv;
 						log_add_callback(gdb_log_callback, connection);
 
@@ -2271,7 +2279,7 @@ static int gdb_input_inner(struct connection *connection)
 						}
 						gdb_con->sync = false;
 
-						if ((retval!=ERROR_OK) || (!already_running && nostep))
+						if (!already_running && nostep)
 						{
 							/* Either the target isn't in the halted state, then we can't
 							 * step/continue. This might be early setup, etc.
@@ -2294,7 +2302,9 @@ static int gdb_input_inner(struct connection *connection)
 
 							if (!already_running)
 							{
-								int retval = gdb_step_continue_packet(connection, target, packet, packet_size);
+								/* Here we don't want packet processing to stop even if this fails,
+								 * so we use a local variable instead of retval. */
+								retval = gdb_step_continue_packet(connection, target, packet, packet_size);
 								if (retval != ERROR_OK)
 								{
 									/* we'll never receive a halted condition... issue a false one.. */
