@@ -878,101 +878,100 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 
 int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count)
 {
-#if 0
-	int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count);
-	return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
-#else
-	static const int bits[] = {32, 2};
-	uint32_t values[] = {0, 0};
-
-	/* FIX!!!!!! the target_write_memory() API started this nasty problem
-	 * with unaligned uint32_t * pointers... */
-	const uint8_t *t = (const uint8_t *)data;
-
-
 	/* bypass bits before and after */
 	int pre_bits;
 	int post_bits;
 	jtag_pre_post_bits(tap, &pre_bits, &post_bits);
-
-	bool found = false;
-	struct jtag_tap *cur_tap, *nextTap;
-	for (cur_tap = jtag_tap_next_enabled(NULL); cur_tap!= NULL; cur_tap = nextTap)
-	{
-		nextTap = jtag_tap_next_enabled(cur_tap);
-		if (cur_tap == tap)
-		{
-			found = true;
-		} else
-		{
-			if (found)
-			{
-				post_bits++;
-			} else
-			{
-				pre_bits++;
-			}
-		}
-	}
-
 	post_bits+=2;
 
-
-	while (--count > 0)
+	if ((pre_bits > 32) || (post_bits > 32))
 	{
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
+		int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count);
+		return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
+	} else
+	{
+		static const int bits[] = {32, 2};
+		uint32_t values[] = {0, 0};
 
-		uint32_t value;
-		value = *t++;
-		value |= (*t++<<8);
-		value |= (*t++<<16);
-		value |= (*t++<<24);
+		/* FIX!!!!!! the target_write_memory() API started this nasty problem
+		 * with unaligned uint32_t * pointers... */
+		const uint8_t *t = (const uint8_t *)data;
 
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, value);
-		/* minimum 2 bits */
-		shiftValueInner(TAP_DRSHIFT, TAP_DRPAUSE, post_bits, 0);
-
-#if 1
-		/* copy & paste from arm11_dbgtap.c */
-		//TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
-
-		waitIdle();
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
-		/* we don't have to wait for the queue to empty here. waitIdle();	 */
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT);
-#else
-		static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
+		while (--count > 0)
 		{
-			TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
-		};
+#if 1
+			/* Danger! This code doesn't update cmd_queue_cur_state, so
+			 * invoking jtag_add_pathmove() before jtag_add_dr_out() after
+			 * this loop would fail!
+			 */
+			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
 
-		jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
-			arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
+			uint32_t value;
+			value = *t++;
+			value |= (*t++<<8);
+			value |= (*t++<<16);
+			value |= (*t++<<24);
+
+			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, value);
+			/* minimum 2 bits */
+			shiftValueInner(TAP_DRSHIFT, TAP_DRPAUSE, post_bits, 0);
+
+			/* copy & paste from arm11_dbgtap.c */
+			//TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
+			/* KLUDGE! we have to flush the fifo or the Nios CPU locks up.
+			 * This is probably a bug in the Avalon bus(cross clocking bridge?)
+			 * or in the jtag registers module.
+			 */
+			waitIdle();
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 1);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
+			/* we don't have to wait for the queue to empty here */
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT);
+			waitIdle();
+#else
+			static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
+			{
+				TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
+			};
+
+			values[0] = *t++;
+			values[0] |= (*t++<<8);
+			values[0] |= (*t++<<16);
+			values[0] |= (*t++<<24);
+
+			jtag_add_dr_out(tap,
+				2,
+				bits,
+				values,
+				TAP_IDLE);
+
+			jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
+				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
 #endif
+		}
+
+		values[0] = *t++;
+		values[0] |= (*t++<<8);
+		values[0] |= (*t++<<16);
+		values[0] |= (*t++<<24);
+
+		/* This will happen on the last iteration updating cmd_queue_cur_state
+		 * so we don't have to track it during the common code path
+		 */
+		jtag_add_dr_out(tap,
+			2,
+			bits,
+			values,
+			TAP_IDLE);
+
+		return jtag_execute_queue();
 	}
-
-	values[0] = *t++;
-	values[0] |= (*t++<<8);
-	values[0] |= (*t++<<16);
-	values[0] |= (*t++<<24);
-
-	/* This will happen on the last iteration updating the current tap state
-	 * so we don't have to track it during the common code path */
-	jtag_add_dr_out(tap,
-		2,
-		bits,
-		values,
-		TAP_IDLE);
-
-	return jtag_execute_queue();
-#endif
 }
 
 
