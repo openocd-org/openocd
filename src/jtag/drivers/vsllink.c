@@ -699,20 +699,20 @@ static void vsllink_tap_ensure_pending(int scans)
 
 static void vsllink_tap_append_step(int tms, int tdi)
 {
-	int index = tap_length / 8;
+	int index_var = tap_length / 8;
 
 	int bit_index = tap_length % 8;
 	uint8_t bit = 1 << bit_index;
 
 	if (tms)
-		tms_buffer[index] |= bit;
+		tms_buffer[index_var] |= bit;
 	else
-		tms_buffer[index] &= ~bit;
+		tms_buffer[index_var] &= ~bit;
 
 	if (tdi)
-		tdi_buffer[index] |= bit;
+		tdi_buffer[index_var] |= bit;
 	else
-		tdi_buffer[index] &= ~bit;
+		tdi_buffer[index_var] &= ~bit;
 
 	tap_length++;
 
