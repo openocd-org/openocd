@@ -659,11 +659,11 @@ static int armjtagew_tap_execute(void)
 
 		if (result == 0)
 		{
-			int stat;
+			int stat_local;
 
-			stat = (int)buf_get_u32(usb_in_buffer + byte_length, 0, 32);
-			if (stat) {
-				LOG_ERROR("armjtagew_tap_execute, emulator returned error code %d for a CMD_TAP_SHIFT command", stat);
+			stat_local = (int)buf_get_u32(usb_in_buffer + byte_length, 0, 32);
+			if (stat_local) {
+				LOG_ERROR("armjtagew_tap_execute, emulator returned error code %d for a CMD_TAP_SHIFT command", stat_local);
 				return ERROR_JTAG_QUEUE_FAILED;
 			}
 
