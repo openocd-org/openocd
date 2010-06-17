@@ -110,7 +110,7 @@ static usb_dev_handle *pHDev;
 static
 int
 ep1_generic_commandl(
-	usb_dev_handle	*pHDev,
+	usb_dev_handle	*pHDev_param,
 	size_t		length,
 	...
 ) {
@@ -138,7 +138,7 @@ ep1_generic_commandl(
 );
 
 	usb_ret = usb_bulk_write(
-		pHDev,
+		pHDev_param,
 		USB_EP1OUT_ADDR,
 		(char *)usb_buffer, sizeof(usb_buffer),
 		USB_TIMEOUT_MS
@@ -219,7 +219,7 @@ ep1_memory_read(
 static
 ssize_t
 ep1_memory_write(
-	usb_dev_handle	*pHDev,
+	usb_dev_handle	*pHDev_param,
 	uint16_t	addr,
 	size_t		length,
 	uint8_t	const	*buffer
@@ -256,7 +256,7 @@ ep1_memory_write(
 );
 
 			usb_ret = usb_bulk_write(
-			pHDev, USB_EP1OUT_ADDR,
+			pHDev_param, USB_EP1OUT_ADDR,
 			(char *)usb_buffer, sizeof(usb_buffer),
 			USB_TIMEOUT_MS
 );
@@ -324,7 +324,7 @@ static uint8_t dtc_entry_download;
 static
 int
 dtc_load_from_buffer(
-	usb_dev_handle	*pHDev,
+	usb_dev_handle	*pHDev_param,
 	const uint8_t		*buffer,
 	size_t			length
 ) {
@@ -341,7 +341,7 @@ dtc_load_from_buffer(
 
 	/* Stop the DTC before loading anything. */
 	usb_err = ep1_generic_commandl(
-		pHDev, 1,
+		pHDev_param, 1,
 		EP1_CMD_DTC_STOP
 );
 	if (usb_err < 0) return(usb_err);
@@ -375,7 +375,7 @@ dtc_load_from_buffer(
 			case DTCLOAD_LOAD:
 				/* Send the DTC program to ST7 RAM. */
 				usb_err = ep1_memory_write(
-					pHDev,
+					pHDev_param,
 					DTC_LOAD_BUFFER,
 					header->length + 1, buffer
 );
@@ -383,7 +383,7 @@ dtc_load_from_buffer(
 
 				/* Load it into the DTC. */
 				usb_err = ep1_generic_commandl(
-					pHDev, 3,
+					pHDev_param, 3,
 					EP1_CMD_DTC_LOAD,
 						(DTC_LOAD_BUFFER >> 8),
 						DTC_LOAD_BUFFER
@@ -394,7 +394,7 @@ dtc_load_from_buffer(
 
 			case DTCLOAD_RUN:
 				usb_err = ep1_generic_commandl(
-					pHDev, 3,
+					pHDev_param, 3,
 					EP1_CMD_DTC_CALL,
 						buffer[0],
 					EP1_CMD_DTC_WAIT
@@ -409,7 +409,7 @@ dtc_load_from_buffer(
 
 			case DTCLOAD_LUT:
 				usb_err = ep1_memory_write(
-					pHDev,
+					pHDev_param,
 					ST7_USB_BUF_EP0OUT + lut_start,
 					header->length + 1, buffer
 );
@@ -494,7 +494,7 @@ dtc_start_download(void) {
 static
 int
 dtc_run_download(
-	usb_dev_handle	*pHDev,
+	usb_dev_handle	*pHDev_param,
 	uint8_t	*command_buffer,
 	int	command_buffer_size,
 	uint8_t	*reply_buffer,
@@ -507,7 +507,7 @@ dtc_run_download(
 	LOG_DEBUG(": %d/%d\n", command_buffer_size, reply_buffer_size);
 
 	usb_err = usb_bulk_write(
-		pHDev,
+		pHDev_param,
 		USB_EP2OUT_ADDR,
 		(char *)command_buffer, USB_EP2BANK_SIZE,
 		USB_TIMEOUT_MS
@@ -518,7 +518,7 @@ dtc_run_download(
 	/* Wait for DTC to finish running command buffer */
 	for (i = 10;;) {
 		usb_err = ep1_generic_commandl(
-			pHDev, 4,
+			pHDev_param, 4,
 
 			EP1_CMD_MEMORY_READ,
 				DTC_STATUS_POLL_BYTE >> 8,
@@ -528,7 +528,7 @@ dtc_run_download(
 		if (usb_err < 0) return(usb_err);
 
 		usb_err = usb_bulk_read(
-			pHDev,
+			pHDev_param,
 			USB_EP1IN_ADDR,
 			(char *)ep2_buffer, 1,
 			USB_TIMEOUT_MS
@@ -549,7 +549,7 @@ dtc_run_download(
 	if (!reply_buffer) reply_buffer_size = 0;
 	if (reply_buffer_size) {
 		usb_err = usb_bulk_read(
-			pHDev,
+			pHDev_param,
 			USB_EP2IN_ADDR,
 			(char *)ep2_buffer, sizeof(ep2_buffer),
 			USB_TIMEOUT_MS
