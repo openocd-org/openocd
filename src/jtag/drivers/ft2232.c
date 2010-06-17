@@ -480,7 +480,6 @@ static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
 	else
 	{
 		*bytes_written = dw_bytes_written;
-		return ERROR_OK;
 	}
 #elif BUILD_FT2232_LIBFTDI == 1
 	int retval;
@@ -493,9 +492,15 @@ static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
 	else
 	{
 		*bytes_written = retval;
-		return ERROR_OK;
 	}
 #endif
+
+	if (*bytes_written != (uint32_t)size)
+	{
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	return ERROR_OK;
 }
 
 static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
@@ -569,8 +574,9 @@ static int ft2232h_ft4232h_adaptive_clocking(bool enable)
 	LOG_DEBUG("%2.2x", buf);
 
 	uint32_t bytes_written;
-	int retval = ft2232_write(&buf, 1, &bytes_written);
-	if ((ERROR_OK != retval) || (bytes_written != 1))
+	int retval;
+
+	if ((retval = ft2232_write(&buf, sizeof(buf), &bytes_written)) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't write command to %s adaptive clocking"
 			, enable ? "enable" : "disable");
@@ -589,8 +595,8 @@ static int ft2232h_ft4232h_clk_divide_by_5(bool enable)
 {
 	uint32_t bytes_written;
 	uint8_t buf = enable ?  0x8b : 0x8a;
-	int retval = ft2232_write(&buf, 1, &bytes_written);
-	if ((ERROR_OK != retval) || (bytes_written != 1))
+
+	if (ft2232_write(&buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't write command to %s clk divide by 5"
 			, enable ? "enable" : "disable");
@@ -627,7 +633,7 @@ static int ft2232_speed(int speed)
 	buf[2] = (speed >> 8) & 0xff;	/* valueH */
 
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-	if (((retval = ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if ((retval = ft2232_write(buf, sizeof(buf), &bytes_written)) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't set FT2232 TCK speed");
 		return retval;
@@ -737,7 +743,7 @@ static void ft2232_debug_dump_buffer(void)
 
 	for (i = 0; i < ft2232_buffer_size; i++)
 	{
-		line_p += snprintf(line_p, 256 - (line_p - line), "%2.2x ", ft2232_buffer[i]);
+		line_p += snprintf(line_p, sizeof(line) - (line_p - line), "%2.2x ", ft2232_buffer[i]);
 		if (i % 16 == 15)
 		{
 			LOG_DEBUG("%s", line);
@@ -2369,7 +2375,7 @@ static int ft2232_init(void)
 	ft2232_speed(jtag_get_speed());
 
 	buf[0] = 0x85; /* Disconnect TDI/DO to TDO/DI for Loopback */
-	if (((retval = ft2232_write(buf, 1, &bytes_written)) != ERROR_OK) || (bytes_written != 1))
+	if ((retval = ft2232_write(buf, 1, &bytes_written)) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't write to FT2232 to disable loopback");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2431,7 +2437,7 @@ static int ftx232_init_tail(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 DBUS");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2517,7 +2523,7 @@ static int axm0432_jtag_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2564,7 +2570,7 @@ static int axm0432_jtag_init(void)
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Dicarlo' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2590,8 +2596,7 @@ static int redbee_init(void)
 	buf[1] = low_output;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK)
-			|| (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2630,8 +2635,7 @@ static int redbee_init(void)
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK)
-			|| (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2654,7 +2658,7 @@ static int jtagkey_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2713,7 +2717,7 @@ static int jtagkey_init(void)
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2736,7 +2740,7 @@ static int olimex_jtag_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2780,7 +2784,7 @@ static int olimex_jtag_init(void)
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if ((ft2232_write(buf, 3, &bytes_written) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2803,7 +2807,7 @@ static int flyswatter_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE[12]=out, n[ST]srst = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2826,7 +2830,7 @@ static int flyswatter_init(void)
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2849,7 +2853,7 @@ static int turtle_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'turtelizer2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2866,7 +2870,7 @@ static int turtle_init(void)
 	buf[2] = high_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'turtelizer2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2889,7 +2893,7 @@ static int comstick_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'comstick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2909,7 +2913,7 @@ static int comstick_init(void)
 	buf[2] = high_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'comstick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2932,7 +2936,7 @@ static int stm32stick_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2952,7 +2956,7 @@ static int stm32stick_init(void)
 	buf[2] = high_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2975,7 +2979,7 @@ static int sheevaplug_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3003,7 +3007,7 @@ static int sheevaplug_init(void)
 	buf[2] = high_direction;   /* all outputs - xRST */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3026,7 +3030,7 @@ static int cortino_jtag_init(void)
 	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'cortino' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3046,7 +3050,7 @@ static int cortino_jtag_init(void)
 	buf[2] = high_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3341,7 +3345,7 @@ static int icebear_jtag_init(void) {
 	buf[2] = low_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3)) {
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (low)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3356,7 +3360,7 @@ static int icebear_jtag_init(void) {
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3)) {
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (high)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -4003,8 +4007,7 @@ static int signalyzer_h_init(void)
 	buf[1] = low_output;
 	buf[2] = low_direction;
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK)
-			|| (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize Signalyzer-H layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -4018,8 +4021,7 @@ static int signalyzer_h_init(void)
 		buf[1] = high_output;
 		buf[2] = high_direction;
 
-		if ((ft2232_write(buf, 3, &bytes_written) != ERROR_OK)
-				|| (bytes_written != 3))
+		if ((retval = ft2232_write(buf, sizeof(buf), &bytes_written)) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
@@ -4033,8 +4035,7 @@ static int signalyzer_h_init(void)
 		buf[1] = high_output;
 		buf[2] = high_direction;
 
-		if ((ft2232_write(buf, 3, &bytes_written) != ERROR_OK)
-				|| (bytes_written != 3))
+		if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
@@ -4218,7 +4219,7 @@ static int ktlink_init(void)
 	buf[2] = low_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -4256,7 +4257,7 @@ static int ktlink_init(void)
 	buf[2] = high_direction;
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
 		return ERROR_JTAG_INIT_FAILED;
