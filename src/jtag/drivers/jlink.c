@@ -712,9 +712,9 @@ static void jlink_tap_ensure_space(int scans, int bits)
 
 static void jlink_tap_append_step(int tms, int tdi)
 {
-	int index = tap_length / 8;
+	int index_var = tap_length / 8;
 
-	if (index >= JLINK_TAP_BUFFER_SIZE)
+	if (index_var >= JLINK_TAP_BUFFER_SIZE)
 	{
 		LOG_ERROR("jlink_tap_append_step: overflow");
 		*(uint32_t *)0xFFFFFFFF = 0;
@@ -727,18 +727,18 @@ static void jlink_tap_append_step(int tms, int tdi)
 	// we do not pad TMS, so be sure to initialize all bits
 	if (0 == bit_index)
 	{
-		tms_buffer[index] = tdi_buffer[index] = 0;
+		tms_buffer[index_var] = tdi_buffer[index_var] = 0;
 	}
 
 	if (tms)
-		tms_buffer[index] |= bit;
+		tms_buffer[index_var] |= bit;
 	else
-		tms_buffer[index] &= ~bit;
+		tms_buffer[index_var] &= ~bit;
 
 	if (tdi)
-		tdi_buffer[index] |= bit;
+		tdi_buffer[index_var] |= bit;
 	else
-		tdi_buffer[index] &= ~bit;
+		tdi_buffer[index_var] &= ~bit;
 
 	tap_length++;
 }
