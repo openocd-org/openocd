@@ -12291,7 +12291,7 @@ void Jim_PrintErrorMessage(Jim_Interp *interp)
     Jim_fprintf(interp,interp->cookie_stderr, "%s" JIM_NL,
             Jim_GetString(interp->result, NULL));
     Jim_ListLength(interp, interp->stackTrace, &len);
-    for (i = len-3; i >= 0; i-= 3) {
+    for (i = 0; i < len; i += 3) {
         Jim_Obj *objPtr=NULL;
         const char *proc, *file, *line;
 
