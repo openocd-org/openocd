@@ -824,21 +824,21 @@ int
 tap_state_queue_run(void) {
 	int	i;
 	int	bits;
-	uint8_t	byte;
+	uint8_t	byte_param;
 	int	retval;
 
 	retval = 0;
 	if (!tap_state_queue.length) return(retval);
 	bits = 1;
-	byte = 0;
+	byte_param = 0;
 	for (i = tap_state_queue.length; i--;) {
 
-		byte <<= 1;
+		byte_param <<= 1;
 		if (tap_state_queue.buffer & 1) {
-			byte |= 1;
+			byte_param |= 1;
 		}
 		if ((bits >= 8) || !i) {
-			byte <<= (8 - bits);
+			byte_param <<= (8 - bits);
 
 			/* make sure there's room for stop, byte op, and one byte */
 			if (dtc_queue.cmd_index >= (sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))) {
@@ -860,9 +860,9 @@ tap_state_queue_run(void) {
 #endif
 
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-				byte;
+				byte_param;
 
-			byte = 0;
+			byte_param = 0;
 			bits = 1;
 		} else {
 			bits++;
