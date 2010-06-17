@@ -9942,12 +9942,12 @@ noopt:
 
     /* The general purpose implementation of while starts here */
     while (1) {
-        int boolean, retval;
+        int local_boolean, retval;
 
         if ((retval = Jim_GetBoolFromExpr(interp, argv[1],
-                        &boolean)) != JIM_OK)
+                        &local_boolean)) != JIM_OK)
             return retval;
-        if (!boolean) break;
+        if (!local_boolean) break;
         if ((retval = Jim_EvalObj(interp, argv[2])) != JIM_OK) {
             switch (retval) {
             case JIM_BREAK:
@@ -10146,13 +10146,13 @@ evalstart:
     if ((retval = Jim_EvalObj(interp, argv[1])) != JIM_OK)
         return retval;
     while (1) {
-        int boolean;
+        int local_boolean;
 testcond:
         /* Test the condition */
-        if ((retval = Jim_GetBoolFromExpr(interp, argv[2], &boolean))
+        if ((retval = Jim_GetBoolFromExpr(interp, argv[2], &local_boolean))
                 != JIM_OK)
             return retval;
-        if (!boolean) break;
+        if (!local_boolean) break;
         /* Eval body */
         if ((retval = Jim_EvalObj(interp, argv[4])) != JIM_OK) {
             switch (retval) {
@@ -10297,13 +10297,13 @@ static int Jim_LmapCoreCommand(Jim_Interp *interp, int argc,
 static int Jim_IfCoreCommand(Jim_Interp *interp, int argc,
         Jim_Obj *const *argv)
 {
-    int boolean, retval, current = 1, falsebody = 0;
+    int local_boolean, retval, current = 1, falsebody = 0;
     if (argc >= 3) {
         while (1) {
             /* Far not enough arguments given! */
             if (current >= argc) goto err;
             if ((retval = Jim_GetBoolFromExpr(interp,
-                        argv[current++], &boolean))
+                        argv[current++], &local_boolean))
                     != JIM_OK)
                 return retval;
             /* There lacks something, isn't it? */
@@ -10312,7 +10312,7 @@ static int Jim_IfCoreCommand(Jim_Interp *interp, int argc,
                         "then")) current++;
             /* Tsk tsk, no then-clause? */
             if (current >= argc) goto err;
-            if (boolean)
+            if (local_boolean)
                 return Jim_EvalObj(interp, argv[current]);
              /* Ok: no else-clause follows */
             if (++current >= argc) {
