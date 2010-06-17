@@ -1,3 +1,4 @@
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -760,22 +761,22 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 	if (gdb_connection->frontend_state == TARGET_RUNNING)
 	{
 		char sig_reply[4];
-		int signal;
+		int signal_var;
 
 		/* stop forwarding log packets! */
 		log_remove_callback(gdb_log_callback, connection);
 
 		if (gdb_connection->ctrl_c)
 		{
-			signal = 0x2;
+			signal_var = 0x2;
 			gdb_connection->ctrl_c = 0;
 		}
 		else
 		{
-			signal = gdb_last_signal(target);
+			signal_var = gdb_last_signal(target);
 		}
 
-		snprintf(sig_reply, 4, "T%2.2x", signal);
+		snprintf(sig_reply, 4, "T%2.2x", signal_var);
 		gdb_put_packet(connection, sig_reply, 3);
 		gdb_connection->frontend_state = TARGET_HALTED;
 	}
@@ -945,11 +946,11 @@ static int gdb_last_signal_packet(struct connection *connection,
 		struct target *target, char* packet, int packet_size)
 {
 	char sig_reply[4];
-	int signal;
+	int signal_var;
 
-	signal = gdb_last_signal(target);
+	signal_var = gdb_last_signal(target);
 
-	snprintf(sig_reply, 4, "S%2.2x", signal);
+	snprintf(sig_reply, 4, "S%2.2x", signal_var);
 	gdb_put_packet(connection, sig_reply, 3);
 
 	return ERROR_OK;
