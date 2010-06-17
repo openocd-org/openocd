@@ -362,7 +362,7 @@ static int register_command_handler(struct command_context *cmd_ctx,
 	if (NULL == override_name)
 		return JIM_ERR;
 
-	retval = Jim_Eval_Named(interp, override_name, __THIS__FILE__ , __LINE__);
+	retval = Jim_Eval_Named(interp, override_name, 0, 0);
 	free((void *)override_name);
 
 	return retval;
@@ -651,7 +651,7 @@ int command_run_line(struct command_context *context, char *line)
 		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
 		if (retcode == JIM_OK)
 		{
-			retcode = Jim_Eval_Named(interp, line, __THIS__FILE__, __LINE__);
+			retcode = Jim_Eval_Named(interp, line, 0, 0);
 
 			Jim_DeleteAssocData(interp, "retval");
 		}
