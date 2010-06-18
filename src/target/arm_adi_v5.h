@@ -232,6 +232,7 @@ struct dap_ops {
 static inline int dap_queue_idcode_read(struct adiv5_dap *dap,
 		uint8_t *ack, uint32_t *data)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->queue_idcode_read(dap, ack, data);
 }
 
@@ -250,6 +251,7 @@ static inline int dap_queue_idcode_read(struct adiv5_dap *dap,
 static inline int dap_queue_dp_read(struct adiv5_dap *dap,
 		unsigned reg, uint32_t *data)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->queue_dp_read(dap, reg, data);
 }
 
@@ -267,6 +269,7 @@ static inline int dap_queue_dp_read(struct adiv5_dap *dap,
 static inline int dap_queue_dp_write(struct adiv5_dap *dap,
 		unsigned reg, uint32_t data)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->queue_dp_write(dap, reg, data);
 }
 
@@ -283,6 +286,7 @@ static inline int dap_queue_dp_write(struct adiv5_dap *dap,
 static inline int dap_queue_ap_read(struct adiv5_dap *dap,
 		unsigned reg, uint32_t *data)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->queue_ap_read(dap, reg, data);
 }
 
@@ -298,6 +302,7 @@ static inline int dap_queue_ap_read(struct adiv5_dap *dap,
 static inline int dap_queue_ap_write(struct adiv5_dap *dap,
 		unsigned reg, uint32_t data)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->queue_ap_write(dap, reg, data);
 }
 
@@ -314,6 +319,7 @@ static inline int dap_queue_ap_write(struct adiv5_dap *dap,
  */
 static inline int dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->queue_ap_abort(dap, ack);
 }
 
@@ -329,6 +335,7 @@ static inline int dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
  */
 static inline int dap_run(struct adiv5_dap *dap)
 {
+	assert(dap->ops != NULL);
 	return dap->ops->run(dap);
 }
 

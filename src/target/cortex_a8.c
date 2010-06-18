@@ -1839,10 +1839,13 @@ COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
+	if (!target_was_examined(target))
+	{
+		LOG_ERROR("target not examined yet");
+		return ERROR_FAIL;
+	}
 
-	cortex_a8_init_debug_access(target);
-
-	return ERROR_OK;
+	return cortex_a8_init_debug_access(target);
 }
 
 static const struct command_registration cortex_a8_exec_command_handlers[] = {
