@@ -656,12 +656,6 @@ static unsigned int Jim_IntHashFunction(unsigned int key)
     return key;
 }
 
-/* Identity hash function for integer keys */
-unsigned int Jim_IdentityHashFunction(unsigned int key)
-{
-    return key;
-}
-
 /* Generic hash function (we are using to multiply by 9 and add the byte
  * as Tcl) */
 static unsigned int Jim_GenHashFunction(const unsigned char *buf, int len)
@@ -2038,16 +2032,6 @@ static void StringAppendString(Jim_Obj *objPtr, const char *str, int len)
     memcpy(objPtr->bytes + objPtr->length, str, len);
     objPtr->bytes[objPtr->length + len] = '\0';
     objPtr->length += len;
-}
-
-/* Low-level wrapper to append an object. */
-void StringAppendObj(Jim_Obj *objPtr, Jim_Obj *appendObjPtr)
-{
-    int len;
-    const char *str;
-
-    str = Jim_GetString(appendObjPtr, &len);
-    StringAppendString(objPtr, str, len);
 }
 
 /* Higher level API to append strings to objects. */
@@ -4027,14 +4011,6 @@ static unsigned int JimReferencesHTHashFunction(const void *key)
     const jim_wide *widePtr = key;
     unsigned int intValue = (unsigned int) *widePtr;
     return Jim_IntHashFunction(intValue);
-}
-
-unsigned int JimReferencesHTDoubleHashFunction(const void *key)
-{
-    /* Only the least significant bits are used. */
-    const jim_wide *widePtr = key;
-    unsigned int intValue = (unsigned int) *widePtr;
-    return intValue; /* identity function. */
 }
 
 static const void *JimReferencesHTKeyDup(void *privdata, const void *key)
