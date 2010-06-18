@@ -46,30 +46,13 @@
 #define JTAG_INSTR_BYPASS		0x0F
 
 /* forward declarations */
-int dsp563xx_target_create(struct target *target, Jim_Interp * interp);
-int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *target);
-
-int dsp563xx_arch_state(struct target *target);
-int dsp563xx_poll(struct target *target);
-int dsp563xx_halt(struct target *target);
-int dsp563xx_resume(struct target *target, int current, uint32_t address,
-		    int handle_breakpoints, int debug_execution);
-int dsp563xx_step(struct target *target, int current, uint32_t address,
-		  int handle_breakpoints);
-
-int dsp563xx_assert_reset(struct target *target);
-int dsp563xx_deassert_reset(struct target *target);
-int dsp563xx_soft_reset_halt(struct target *target);
+static int dsp563xx_write_ir_u8(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out,
+		int ir_len, int rti);
 
 /* IR and DR functions */
-int dsp563xx_jtag_sendinstr(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out);
+static int dsp563xx_jtag_sendinstr(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out);
 int dsp563xx_jtag_senddat(struct jtag_tap *tap, uint32_t * dr_in, uint32_t dr_out,
 			  int len);
-
-int dsp563xx_read_memory_p(struct target *target, uint32_t address, uint32_t size,
-			   uint32_t count, uint8_t * buffer);
-int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint32_t size,
-			    uint32_t count, uint8_t * buffer);
 
 #define ASM_REG_R_R0	0x607000
 #define ASM_REG_R_R1	0x617000
@@ -269,7 +252,7 @@ static int dsp563xx_get_gdb_reg_list(struct target *target, struct reg **reg_lis
 
 }
 
-int dsp563xx_read_core_reg(struct target *target, int num)
+static int dsp563xx_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	struct dsp563xx_core_reg *dsp563xx_core_reg;
@@ -287,7 +270,7 @@ int dsp563xx_read_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-int dsp563xx_write_core_reg(struct target *target, int num)
+static int dsp563xx_write_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
 	struct dsp563xx_core_reg *dsp563xx_core_reg;
@@ -305,7 +288,7 @@ int dsp563xx_write_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
+static int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
 {
 	struct dsp563xx_common *dsp563xx = calloc(1, sizeof(struct dsp563xx_common));
 
@@ -317,7 +300,7 @@ int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
 	return ERROR_OK;
 }
 
-int dsp563xx_get_core_reg(struct reg *reg)
+static int dsp563xx_get_core_reg(struct reg *reg)
 {
 	int retval = 0;
 
@@ -337,7 +320,7 @@ int dsp563xx_get_core_reg(struct reg *reg)
 	return retval;
 }
 
-int dsp563xx_set_core_reg(struct reg *reg, uint8_t * buf)
+static int dsp563xx_set_core_reg(struct reg *reg, uint8_t * buf)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 
@@ -357,7 +340,7 @@ int dsp563xx_set_core_reg(struct reg *reg, uint8_t * buf)
 	return ERROR_OK;
 }
 
-int dsp563xx_save_context(struct target *target)
+static int dsp563xx_save_context(struct target *target)
 {
 	int i;
 	uint32_t data = 0;
@@ -388,7 +371,7 @@ int dsp563xx_save_context(struct target *target)
 	return ERROR_OK;
 }
 
-int dsp563xx_restore_context(struct target *target)
+static int dsp563xx_restore_context(struct target *target)
 {
 	int i;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
@@ -416,7 +399,7 @@ static const struct reg_arch_type dsp563xx_reg_type = {
 	.set = dsp563xx_set_core_reg,
 };
 
-int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *target)
+static int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *target)
 {
 	/* get pointers to arch-specific information */
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
@@ -459,13 +442,13 @@ int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *target)
 	return ERROR_OK;
 }
 
-int dsp563xx_arch_state(struct target *target)
+static int dsp563xx_arch_state(struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int dsp563xx_jtag_status(struct target *target, uint8_t * status)
+static int dsp563xx_jtag_status(struct target *target, uint8_t * status)
 {
 	uint8_t ir_in;
 
@@ -479,7 +462,7 @@ int dsp563xx_jtag_status(struct target *target, uint8_t * status)
 	return ERROR_OK;
 }
 
-int dsp563xx_jtag_debug_request(struct target *target)
+static int dsp563xx_jtag_debug_request(struct target *target)
 {
 	uint8_t ir_in = 0;
 	uint32_t retry = 0;
@@ -506,7 +489,7 @@ int dsp563xx_jtag_debug_request(struct target *target)
 	return ERROR_OK;
 }
 
-int dsp563xx_poll(struct target *target)
+static int dsp563xx_poll(struct target *target)
 {
 	uint8_t jtag_status;
 	uint32_t once_status;
@@ -537,7 +520,7 @@ int dsp563xx_poll(struct target *target)
 	return ERROR_OK;
 }
 
-int dsp563xx_halt(struct target *target)
+static int dsp563xx_halt(struct target *target)
 {
 	uint8_t jtag_status;
 	uint32_t once_status;
@@ -582,7 +565,7 @@ int dsp563xx_halt(struct target *target)
 
 #define DSP563XX_ASM_CMD_JUMP	0x0AF080
 
-int dsp563xx_resume(struct target *target, int current, uint32_t address,
+static int dsp563xx_resume(struct target *target, int current, uint32_t address,
 		    int handle_breakpoints, int debug_execution)
 {
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
@@ -616,7 +599,7 @@ int dsp563xx_resume(struct target *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
-int dsp563xx_step(struct target *target, int current, uint32_t address,
+static int dsp563xx_step(struct target *target, int current, uint32_t address,
 		  int handle_breakpoints)
 {
 	uint32_t once_status;
@@ -708,7 +691,7 @@ int dsp563xx_step(struct target *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
-int dsp563xx_assert_reset(struct target *target)
+static int dsp563xx_assert_reset(struct target *target)
 {
 	target->state = TARGET_RESET;
 
@@ -716,7 +699,7 @@ int dsp563xx_assert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-int dsp563xx_deassert_reset(struct target *target)
+static int dsp563xx_deassert_reset(struct target *target)
 {
 	target->state = TARGET_RUNNING;
 
@@ -724,7 +707,7 @@ int dsp563xx_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-int dsp563xx_soft_reset_halt(struct target *target)
+static int dsp563xx_soft_reset_halt(struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
@@ -752,7 +735,7 @@ int dsp563xx_soft_reset_halt(struct target *target)
 * 076190		movem             r0,p:(r1)
 *
 */
-int dsp563xx_read_memory_p(struct target *target, uint32_t address,
+static int dsp563xx_read_memory_p(struct target *target, uint32_t address,
 			   uint32_t size, uint32_t count, uint8_t * buffer)
 {
 	uint32_t i, x;
@@ -793,7 +776,7 @@ int dsp563xx_read_memory_p(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint32_t size,
+static int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint32_t size,
 			    uint32_t count, uint8_t * buffer)
 {
 	uint32_t i, x;
@@ -842,13 +825,13 @@ int dsp563xx_jtag_senddat(struct jtag_tap *tap, uint32_t * dr_in, uint32_t dr_ou
 	return dsp563xx_write_dr_u32(tap, dr_in, dr_out, len, 1);
 }
 
-int dsp563xx_jtag_sendinstr(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out)
+static int dsp563xx_jtag_sendinstr(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out)
 {
 	return dsp563xx_write_ir_u8(tap, ir_in, ir_out, DSP563XX_JTAG_INS_LEN, 1);
 }
 
 /* IR and DR functions */
-int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8_t * ir_out,
+static int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8_t * ir_out,
 		      int ir_len, int rti)
 {
 	if (NULL == tap)
@@ -869,7 +852,7 @@ int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8_t * ir_out,
 	return ERROR_OK;
 }
 
-int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t * dr_in, uint8_t * dr_out,
+static int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t * dr_in, uint8_t * dr_out,
 		      int dr_len, int rti)
 {
 	if (NULL == tap)
@@ -885,7 +868,7 @@ int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t * dr_in, uint8_t * dr_out,
 	return ERROR_OK;
 }
 
-int dsp563xx_write_ir_u8(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out,
+static int dsp563xx_write_ir_u8(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out,
 			 int ir_len, int rti)
 {
 	if (ir_len > 8)
