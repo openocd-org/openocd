@@ -68,12 +68,6 @@ static inline struct dsp563xx_common *target_to_dsp563xx(struct target *target)
 
 int dsp563xx_write_dr_u8(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out,
 			 int dr_len, int rti);
-int dsp563xx_write_ir_u16(struct jtag_tap *tap, uint16_t * ir_in, uint16_t ir_out,
-			  int ir_len, int rti);
-int dsp563xx_write_dr_u16(struct jtag_tap *tap, uint16_t * ir_in, uint16_t ir_out,
-			  int dr_len, int rti);
-int dsp563xx_write_ir_u32(struct jtag_tap *tap, uint32_t * ir_in, uint32_t ir_out,
-			  int ir_len, int rti);
 int dsp563xx_write_dr_u32(struct jtag_tap *tap, uint32_t * ir_in, uint32_t ir_out,
 			  int dr_len, int rti);
 
