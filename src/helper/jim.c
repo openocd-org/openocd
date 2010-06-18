@@ -370,7 +370,7 @@ static int JimStringMatch(const char *pattern, int patternLen,
     return 0;
 }
 
-int JimStringCompare(const char *s1, int l1, const char *s2, int l2,
+static int JimStringCompare(const char *s1, int l1, const char *s2, int l2,
         int nocase)
 {
     unsigned char *u1 = (unsigned char*) s1, *u2 = (unsigned char*) s2;
@@ -397,7 +397,7 @@ int JimStringCompare(const char *s1, int l1, const char *s2, int l2,
 /* Search 's1' inside 's2', starting to search from char 'index' of 's2'.
  * The index of the first occurrence of s1 in s2 is returned.
  * If s1 is not found inside s2, -1 is returned. */
-int JimStringFirst(const char *s1, int l1, const char *s2, int l2, int index_t)
+static int JimStringFirst(const char *s1, int l1, const char *s2, int l2, int index_t)
 {
     int i;
 
@@ -412,13 +412,13 @@ int JimStringFirst(const char *s1, int l1, const char *s2, int l2, int index_t)
     return -1;
 }
 
-int Jim_WideToString(char *buf, jim_wide wideValue)
+static int Jim_WideToString(char *buf, jim_wide wideValue)
 {
     const char *fmt = "%" JIM_WIDE_MODIFIER;
     return sprintf(buf, fmt, wideValue);
 }
 
-int Jim_StringToWide(const char *str, jim_wide *widePtr, int base)
+static int Jim_StringToWide(const char *str, jim_wide *widePtr, int base)
 {
     char *endptr;
 
@@ -439,7 +439,7 @@ int Jim_StringToWide(const char *str, jim_wide *widePtr, int base)
     return JIM_OK;
 }
 
-int Jim_StringToIndex(const char *str, int *intPtr)
+static int Jim_StringToIndex(const char *str, int *intPtr)
 {
     char *endptr;
 
@@ -472,7 +472,7 @@ static int JimFormatReference(char *buf, Jim_Reference *refPtr, jim_wide id)
     return JIM_REFERENCE_SPACE;
 }
 
-int Jim_DoubleToString(char *buf, double doubleValue)
+static int Jim_DoubleToString(char *buf, double doubleValue)
 {
     char *s;
     int len;
@@ -496,7 +496,7 @@ int Jim_DoubleToString(char *buf, double doubleValue)
     return len;
 }
 
-int Jim_StringToDouble(const char *str, double *doublePtr)
+static int Jim_StringToDouble(const char *str, double *doublePtr)
 {
     char *endptr;
 
@@ -586,7 +586,7 @@ void Jim_Free(void *ptr) {
     free(ptr);
 }
 
-void *Jim_Realloc(void *ptr, int size)
+static void *Jim_Realloc(void *ptr, int size)
 {
 	/* We allocate zero length arrayes, etc. to use a single orthogonal codepath */
 	if (size == 0)
@@ -606,7 +606,7 @@ char *Jim_StrDup(const char *s)
     return copy;
 }
 
-char *Jim_StrDupLen(const char *s, int l)
+static char *Jim_StrDupLen(const char *s, int l)
 {
     char *copy = Jim_Alloc(l + 1);
 
@@ -645,7 +645,7 @@ static int JimInsertHashEntry(Jim_HashTable *ht, const void *key);
 /* -------------------------- hash functions -------------------------------- */
 
 /* Thomas Wang's 32 bit Mix Function */
-unsigned int Jim_IntHashFunction(unsigned int key)
+static unsigned int Jim_IntHashFunction(unsigned int key)
 {
     key += ~(key << 15);
     key ^=  (key >> 10);
@@ -664,7 +664,7 @@ unsigned int Jim_IdentityHashFunction(unsigned int key)
 
 /* Generic hash function (we are using to multiply by 9 and add the byte
  * as Tcl) */
-unsigned int Jim_GenHashFunction(const unsigned char *buf, int len)
+static unsigned int Jim_GenHashFunction(const unsigned char *buf, int len)
 {
     unsigned int h = 0;
     while (len--)
@@ -1168,7 +1168,7 @@ static char *JimParserGetToken(struct JimParserCtx *pc,
 /* Initialize a parser context.
  * 'prg' is a pointer to the program text, linenr is the line
  * number of the first line contained in the program. */
-void JimParserInit(struct JimParserCtx *pc, const char *prg,
+static void JimParserInit(struct JimParserCtx *pc, const char *prg,
         int len, int linenr)
 {
     pc->prg = prg;
@@ -1706,7 +1706,7 @@ int Jim_ScriptIsComplete(const char *s, int len, char *stateCharPtr)
 static int JimParseListSep(struct JimParserCtx *pc);
 static int JimParseListStr(struct JimParserCtx *pc);
 
-int JimParseList(struct JimParserCtx *pc)
+static int JimParseList(struct JimParserCtx *pc)
 {
     if (pc->len == 0) {
         pc->tstart = pc->tend = pc->p;
@@ -2019,7 +2019,7 @@ Jim_Obj *Jim_NewStringObjNoAlloc(Jim_Interp *interp, char *s, int len)
 
 /* Low-level string append. Use it only against objects
  * of type "string". */
-void StringAppendString(Jim_Obj *objPtr, const char *str, int len)
+static void StringAppendString(Jim_Obj *objPtr, const char *str, int len)
 {
     int needlen;
 
@@ -2132,7 +2132,7 @@ int Jim_StringMatchObj(Jim_Obj *patternObjPtr, Jim_Obj *objPtr,
     return JimStringMatch(pattern, patternLen, string, stringLen, nocase);
 }
 
-int Jim_StringCompareObj(Jim_Obj *firstObjPtr,
+static int Jim_StringCompareObj(Jim_Obj *firstObjPtr,
         Jim_Obj *secondObjPtr, int nocase)
 {
     const char *s1, *s2;
@@ -2579,7 +2579,7 @@ int Jim_CompareStringImmediate(Jim_Interp *interp, Jim_Obj *objPtr,
     }
 }
 
-int qsortCompareStringPointers(const void *a, const void *b)
+static int qsortCompareStringPointers(const void *a, const void *b)
 {
     char * const *sa = (char * const *)a;
     char * const *sb = (char * const *)b;
@@ -3132,7 +3132,7 @@ int SetScriptFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
     return JIM_OK;
 }
 
-ScriptObj *Jim_GetScript(Jim_Interp *interp, Jim_Obj *objPtr)
+static ScriptObj *Jim_GetScript(Jim_Interp *interp, Jim_Obj *objPtr)
 {
     if (objPtr->typePtr != &scriptObjType) {
         SetScriptFromAny(interp, objPtr);
@@ -3899,7 +3899,7 @@ void DupDictSubstInternalRep(Jim_Interp *interp, Jim_Obj *srcPtr,
  * object that is *guaranteed* to be in the form VARNAME(INDEX).
  * The 'index' part is [subst]ituted, and is used to lookup a key inside
  * the [dict]ionary contained in variable VARNAME. */
-Jim_Obj *Jim_ExpandDictSugar(Jim_Interp *interp, Jim_Obj *objPtr)
+static Jim_Obj *Jim_ExpandDictSugar(Jim_Interp *interp, Jim_Obj *objPtr)
 {
     Jim_Obj *varObjPtr, *keyObjPtr, *dictObjPtr, *resObjPtr;
     Jim_Obj *substKeyObjPtr = NULL;
@@ -4021,7 +4021,7 @@ static void JimReferencesHTValDestructor(void *interp, void *val)
     Jim_Free(val);
 }
 
-unsigned int JimReferencesHTHashFunction(const void *key)
+static unsigned int JimReferencesHTHashFunction(const void *key)
 {
     /* Only the least significant bits are used. */
     const jim_wide *widePtr = key;
@@ -4037,7 +4037,7 @@ unsigned int JimReferencesHTDoubleHashFunction(const void *key)
     return intValue; /* identity function. */
 }
 
-const void *JimReferencesHTKeyDup(void *privdata, const void *key)
+static const void *JimReferencesHTKeyDup(void *privdata, const void *key)
 {
     void *copy = Jim_Alloc(sizeof(jim_wide));
     JIM_NOTUSED(privdata);
@@ -4046,7 +4046,7 @@ const void *JimReferencesHTKeyDup(void *privdata, const void *key)
     return copy;
 }
 
-int JimReferencesHTKeyCompare(void *privdata, const void *key1,
+static int JimReferencesHTKeyCompare(void *privdata, const void *key1,
         const void *key2)
 {
     JIM_NOTUSED(privdata);
@@ -4054,7 +4054,7 @@ int JimReferencesHTKeyCompare(void *privdata, const void *key1,
     return memcmp(key1, key2, sizeof(jim_wide)) == 0;
 }
 
-void JimReferencesHTKeyDestructor(void *privdata, const void *key)
+static void JimReferencesHTKeyDestructor(void *privdata, const void *key)
 {
     JIM_NOTUSED(privdata);
 
@@ -4106,7 +4106,7 @@ static int isrefchar(int c)
     return 0;
 }
 
-int SetReferenceFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
+static int SetReferenceFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
 {
     jim_wide wideValue;
     int i, len;
@@ -5106,7 +5106,7 @@ testbrace:
 
 /* Returns the malloc-ed representation of a string
  * using backslash to quote special chars. */
-char *BackslashQuoteString(const char *s, int len, int *qlenPtr)
+static char *BackslashQuoteString(const char *s, int len, int *qlenPtr)
 {
     char *q = Jim_Alloc(len*2 + 1), *p;
 
@@ -5357,7 +5357,7 @@ void ListAppendElement(Jim_Obj *listPtr, Jim_Obj *objPtr)
  *
  * NOTE: this function can be called only against objects
  * with internal type of List. */
-void ListInsertElements(Jim_Obj *listPtr, int index_t, int elemc,
+static void ListInsertElements(Jim_Obj *listPtr, int index_t, int elemc,
         Jim_Obj *const *elemVec)
 {
     int currentLen = listPtr->internalRep.listValue.len;
@@ -5384,7 +5384,7 @@ void ListInsertElements(Jim_Obj *listPtr, int index_t, int elemc,
 
 /* Appends every element of appendListPtr into listPtr.
  * Both have to be of the list type. */
-void ListAppendList(Jim_Obj *listPtr, Jim_Obj *appendListPtr)
+static void ListAppendList(Jim_Obj *listPtr, Jim_Obj *appendListPtr)
 {
     int i, oldLen = listPtr->internalRep.listValue.len;
     int appendLen = appendListPtr->internalRep.listValue.len;
@@ -5590,7 +5590,8 @@ Jim_Obj *Jim_ConcatObj(Jim_Interp *interp, int objc, Jim_Obj *const *objv)
 /* Returns a list composed of the elements in the specified range.
  * first and start are directly accepted as Jim_Objects and
  * processed for the end?-index? case. */
-Jim_Obj *Jim_ListRange(Jim_Interp *interp, Jim_Obj *listObjPtr, Jim_Obj *firstObjPtr, Jim_Obj *lastObjPtr)
+static Jim_Obj *Jim_ListRange(Jim_Interp *interp, Jim_Obj *listObjPtr,
+		Jim_Obj *firstObjPtr, Jim_Obj *lastObjPtr)
 {
     int first, last;
     int len, rangeLen;
@@ -5618,7 +5619,7 @@ static int SetDictFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr);
  *
  * Keys and Values are Jim objects. */
 
-unsigned int JimObjectHTHashFunction(const void *key)
+static unsigned int JimObjectHTHashFunction(const void *key)
 {
     const char *str;
     Jim_Obj *objPtr = (Jim_Obj*) key;
@@ -5629,7 +5630,7 @@ unsigned int JimObjectHTHashFunction(const void *key)
     return h;
 }
 
-int JimObjectHTKeyCompare(void *privdata, const void *key1, const void *key2)
+static int JimObjectHTKeyCompare(void *privdata, const void *key1, const void *key2)
 {
     JIM_NOTUSED(privdata);
 
@@ -5867,7 +5868,7 @@ static void DictAddElement(Jim_Interp *interp, Jim_Obj *objPtr,
 
 /* Add an element, higher-level interface for DictAddElement().
  * If valueObjPtr == NULL, the key is removed if it exists. */
-int Jim_DictAddElement(Jim_Interp *interp, Jim_Obj *objPtr,
+static int Jim_DictAddElement(Jim_Interp *interp, Jim_Obj *objPtr,
         Jim_Obj *keyObjPtr, Jim_Obj *valueObjPtr)
 {
     if (Jim_IsShared(objPtr))
@@ -6282,7 +6283,7 @@ static struct Jim_ExprOperator Jim_ExprOperators[] = {
 #define JIM_EXPR_OPERATORS_NUM \
     (sizeof(Jim_ExprOperators)/sizeof(struct Jim_ExprOperator))
 
-int JimParseExpression(struct JimParserCtx *pc)
+static int JimParseExpression(struct JimParserCtx *pc)
 {
     /* Discard spaces and quoted newline */
     while (*(pc->p) == ' ' ||
@@ -6430,7 +6431,7 @@ int JimParseExprOperator(struct JimParserCtx *pc)
     return JIM_OK;
 }
 
-struct Jim_ExprOperator *JimExprOperatorInfo(const char *opname)
+static struct Jim_ExprOperator *JimExprOperatorInfo(const char *opname)
 {
     int i;
     for (i = 0; i < (signed)JIM_EXPR_OPERATORS_NUM; i++)
@@ -6440,7 +6441,7 @@ struct Jim_ExprOperator *JimExprOperatorInfo(const char *opname)
     return NULL;
 }
 
-struct Jim_ExprOperator *JimExprOperatorInfoByOpcode(int opcode)
+static struct Jim_ExprOperator *JimExprOperatorInfoByOpcode(int opcode)
 {
     int i;
     for (i = 0; i < (signed)JIM_EXPR_OPERATORS_NUM; i++)
@@ -6840,7 +6841,7 @@ err:    /* we jump here on syntax/compile errors. */
     return JIM_ERR;
 }
 
-ExprByteCode *Jim_GetExpression(Jim_Interp *interp, Jim_Obj *objPtr)
+static ExprByteCode *Jim_GetExpression(Jim_Interp *interp, Jim_Obj *objPtr)
 {
     if (objPtr->typePtr != &exprObjType) {
         if (SetExprFromAny(interp, objPtr) != JIM_OK)
@@ -7917,7 +7918,7 @@ const char *dlerror(void)
 }
 #endif /* WIN32 */
 
-int Jim_LoadLibrary(Jim_Interp *interp, const char *pathName)
+static int Jim_LoadLibrary(Jim_Interp *interp, const char *pathName)
 {
     Jim_Obj *libPathObjPtr;
     int prefixc, i;
@@ -7992,7 +7993,7 @@ err:
     return JIM_ERR;
 }
 #else /* JIM_DYNLIB */
-int Jim_LoadLibrary(Jim_Interp *interp, const char *pathName)
+static int Jim_LoadLibrary(Jim_Interp *interp, const char *pathName)
 {
     JIM_NOTUSED(interp);
     JIM_NOTUSED(pathName);
@@ -8532,7 +8533,7 @@ err:
  * (and increments argc by reference accordingly), performing
  * expansion of the list object if 'expand' is non-zero, or
  * just adding objPtr to argv if 'expand' is zero. */
-void Jim_ExpandArgument(Jim_Interp *interp, Jim_Obj ***argv,
+static void Jim_ExpandArgument(Jim_Interp *interp, Jim_Obj ***argv,
         int *argcPtr, int expand, Jim_Obj *objPtr)
 {
     if (!expand) {
@@ -9086,7 +9087,7 @@ static Jim_ObjType substObjType = {
 /* This method takes the string representation of an object
  * as a Tcl string where to perform [subst]itution, and generates
  * the pre-parsed internal representation. */
-int SetSubstFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr, int flags)
+static int SetSubstFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr, int flags)
 {
     int scriptTextLen;
     const char *scriptText = Jim_GetString(objPtr, &scriptTextLen);
@@ -9120,7 +9121,7 @@ int SetSubstFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr, int flags)
     return JIM_OK;
 }
 
-ScriptObj *Jim_GetSubst(Jim_Interp *interp, Jim_Obj *objPtr, int flags)
+static ScriptObj *Jim_GetSubst(Jim_Interp *interp, Jim_Obj *objPtr, int flags)
 {
     struct ScriptObj *script = Jim_GetIntRepPtr(objPtr);
 
