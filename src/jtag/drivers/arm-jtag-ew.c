@@ -568,29 +568,29 @@ static void armjtagew_tap_ensure_space(int scans, int bits)
 static void armjtagew_tap_append_step(int tms, int tdi)
 {
 	last_tms = tms;
-	int index = tap_length / 8;
+	int index_local = tap_length / 8;
 
-	if (index < ARMJTAGEW_TAP_BUFFER_SIZE)
+	if (index_local < ARMJTAGEW_TAP_BUFFER_SIZE)
 	{
 		int bit_index = tap_length % 8;
 		uint8_t bit = 1 << bit_index;
 
 		if (tms)
 		{
-			tms_buffer[index] |= bit;
+			tms_buffer[index_local] |= bit;
 		}
 		else
 		{
-			tms_buffer[index] &= ~bit;
+			tms_buffer[index_local] &= ~bit;
 		}
 
 		if (tdi)
 		{
-			tdi_buffer[index] |= bit;
+			tdi_buffer[index_local] |= bit;
 		}
 		else
 		{
-			tdi_buffer[index] &= ~bit;
+			tdi_buffer[index_local] &= ~bit;
 		}
 
 		tap_length++;
