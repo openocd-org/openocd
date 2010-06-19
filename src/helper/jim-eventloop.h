@@ -64,9 +64,8 @@ typedef void Jim_EventFinalizerProc(Jim_Interp *interp, void *clientData);
 #define JIM_EVENT_FEOF 8
 
 #define JIM_API(x) x
-#define JIM_STATIC
 
-JIM_STATIC int Jim_EventLoopOnLoad(Jim_Interp *interp);
+int Jim_EventLoopOnLoad(Jim_Interp *interp);
 
 /* --- POSIX version of Jim_ProcessEvents, for now the only available --- */
 #define JIM_FILE_EVENTS 1
@@ -74,20 +73,8 @@ JIM_STATIC int Jim_EventLoopOnLoad(Jim_Interp *interp);
 #define JIM_ALL_EVENTS (JIM_FILE_EVENTS | JIM_TIME_EVENTS)
 #define JIM_DONT_WAIT 4
 
-JIM_STATIC void JIM_API(Jim_CreateFileHandler) (Jim_Interp *interp,
-        void *handle, int mask,
-        Jim_FileProc *proc, void *clientData,
-        Jim_EventFinalizerProc *finalizerProc);
-JIM_STATIC void JIM_API(Jim_DeleteFileHandler) (Jim_Interp *interp,
-        void *handle);
-JIM_STATIC jim_wide JIM_API(Jim_CreateTimeHandler) (Jim_Interp *interp,
-        jim_wide milliseconds,
-        Jim_TimeProc *proc, void *clientData,
-        Jim_EventFinalizerProc *finalizerProc);
-JIM_STATIC jim_wide JIM_API(Jim_DeleteTimeHandler) (Jim_Interp *interp, jim_wide id);
-JIM_STATIC int JIM_API(Jim_ProcessEvents) (Jim_Interp *interp, int flags);
+int JIM_API(Jim_ProcessEvents) (Jim_Interp *interp, int flags);
 
-#undef JIM_STATIC
 #undef JIM_API
 
 #ifndef __JIM_EVENTLOOP_CORE__

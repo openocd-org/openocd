@@ -90,7 +90,7 @@ typedef struct Jim_EventLoop {
     Jim_TimeEvent *timeEventHead;
 } Jim_EventLoop;
 
-void Jim_CreateFileHandler(Jim_Interp *interp, void *handle, int mask,
+static void Jim_CreateFileHandler(Jim_Interp *interp, void *handle, int mask,
         Jim_FileProc *proc, void *clientData,
         Jim_EventFinalizerProc *finalizerProc)
 {
@@ -109,7 +109,7 @@ void Jim_CreateFileHandler(Jim_Interp *interp, void *handle, int mask,
 	// fprintf(stderr,"raus\n");
 }
 
-void Jim_DeleteFileHandler(Jim_Interp *interp, void *handle)
+static void Jim_DeleteFileHandler(Jim_Interp *interp, void *handle)
 {
     Jim_FileEvent *fe, *prev = NULL;
     Jim_EventLoop *eventLoop = Jim_GetAssocData(interp, "eventloop");
@@ -152,7 +152,7 @@ static void JimGetTime(long *seconds, long *milliseconds)
     *milliseconds = tv.tv_usec/1000;
 }
 
-jim_wide Jim_CreateTimeHandler(Jim_Interp *interp, jim_wide milliseconds,
+static jim_wide Jim_CreateTimeHandler(Jim_Interp *interp, jim_wide milliseconds,
         Jim_TimeProc *proc, void *clientData,
         Jim_EventFinalizerProc *finalizerProc)
 {
@@ -181,7 +181,7 @@ jim_wide Jim_CreateTimeHandler(Jim_Interp *interp, jim_wide milliseconds,
     return id;
 }
 
-jim_wide Jim_DeleteTimeHandler(Jim_Interp *interp, jim_wide id)
+static jim_wide Jim_DeleteTimeHandler(Jim_Interp *interp, jim_wide id)
 {
     Jim_TimeEvent *te, *prev = NULL;
     Jim_EventLoop *eventLoop = Jim_GetAssocData(interp, "eventloop");
@@ -391,7 +391,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
 }
 /* ---------------------------------------------------------------------- */
 
-void JimELAssocDataDeleProc(Jim_Interp *interp, void *data)
+static void JimELAssocDataDeleProc(Jim_Interp *interp, void *data)
 {
     void *next;
     Jim_FileEvent *fe;
@@ -446,14 +446,14 @@ static int JimELVwaitCommand(Jim_Interp *interp, int argc,
     return JIM_OK;
 }
 
-void JimAfterTimeHandler(Jim_Interp *interp, void *clientData)
+static void JimAfterTimeHandler(Jim_Interp *interp, void *clientData)
 {
     Jim_Obj *objPtr = clientData;
 
     Jim_EvalObjBackground(interp, objPtr);
 }
 
-void JimAfterTimeEventFinalizer(Jim_Interp *interp, void *clientData)
+static void JimAfterTimeEventFinalizer(Jim_Interp *interp, void *clientData)
 {
     Jim_Obj *objPtr = clientData;
 
