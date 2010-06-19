@@ -53,7 +53,6 @@
 #define __JIM_EVENTLOOP_H__
 
 typedef int Jim_FileProc(Jim_Interp *interp, void *clientData, int mask);
-typedef int Jim_SignalProc(Jim_Interp *interp, void *clientData, void *msg);
 typedef void Jim_TimeProc(Jim_Interp *interp, void *clientData);
 typedef void Jim_EventFinalizerProc(Jim_Interp *interp, void *clientData);
 
@@ -63,8 +62,6 @@ typedef void Jim_EventFinalizerProc(Jim_Interp *interp, void *clientData);
 #define JIM_EVENT_EXCEPTION 4
 #define JIM_EVENT_FEOF 8
 
-#define JIM_API(x) x
-
 int Jim_EventLoopOnLoad(Jim_Interp *interp);
 
 /* --- POSIX version of Jim_ProcessEvents, for now the only available --- */
@@ -73,16 +70,6 @@ int Jim_EventLoopOnLoad(Jim_Interp *interp);
 #define JIM_ALL_EVENTS (JIM_FILE_EVENTS | JIM_TIME_EVENTS)
 #define JIM_DONT_WAIT 4
 
-int JIM_API(Jim_ProcessEvents) (Jim_Interp *interp, int flags);
-
-#undef JIM_API
-
-#ifndef __JIM_EVENTLOOP_CORE__
-
-#define JIM_GET_API(name) \
-    Jim_GetApi(interp, "Jim_" #name, ((void *)&Jim_ ## name))
-
-#undef JIM_GET_API
-#endif /* __JIM_EVENTLOOP_CORE__ */
+int Jim_ProcessEvents(Jim_Interp *interp, int flags);
 
 #endif /* __JIM_EVENTLOOP_H__ */
