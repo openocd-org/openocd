@@ -131,16 +131,6 @@ static void Jim_DeleteFileHandler(Jim_Interp *interp, void *handle)
     }
 }
 
-// The same for signals.
-void Jim_CreateSignalHandler(Jim_Interp *interp, int signum,
-        Jim_FileProc *proc, void *clientData,
-        Jim_EventFinalizerProc *finalizerProc)
-{
-}
-void Jim_DeleteSignalHandler(Jim_Interp *interp, int signum)
-{
-}
-
 /* That's another part of this extension that needs to be ported
  * to WIN32. */
 static void JimGetTime(long *seconds, long *milliseconds)
