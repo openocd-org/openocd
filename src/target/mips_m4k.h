@@ -43,19 +43,4 @@ target_to_m4k(struct target *target)
 			struct mips_m4k_common, mips32);
 }
 
-int mips_m4k_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, uint8_t *buffer);
-
-void mips_m4k_enable_breakpoints(struct target *target);
-int mips_m4k_set_breakpoint(struct target *target, struct breakpoint *bp);
-int mips_m4k_unset_breakpoint(struct target *target, struct breakpoint *bp);
-int mips_m4k_add_breakpoint(struct target *target, struct breakpoint *bp);
-int mips_m4k_remove_breakpoint(struct target *target, struct breakpoint *bp);
-
-void mips_m4k_enable_watchpoints(struct target *target);
-int mips_m4k_set_watchpoint(struct target *target, struct watchpoint *wp);
-int mips_m4k_unset_watchpoint(struct target *target, struct watchpoint *wp);
-int mips_m4k_add_watchpoint(struct target *target, struct watchpoint *wp);
-int mips_m4k_remove_watchpoint(struct target *target, struct watchpoint *wp);
-
 #endif	/*MIPS_M4K_H*/

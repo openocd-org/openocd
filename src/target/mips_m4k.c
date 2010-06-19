@@ -32,7 +32,14 @@
 #include "target_type.h"
 #include "register.h"
 
-int mips_m4k_examine_debug_reason(struct target *target)
+static void mips_m4k_enable_breakpoints(struct target *target);
+static void mips_m4k_enable_watchpoints(struct target *target);
+static int mips_m4k_set_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
+static int mips_m4k_unset_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
+
+static int mips_m4k_examine_debug_reason(struct target *target)
 {
 	uint32_t break_status;
 	int retval;
@@ -66,7 +73,7 @@ int mips_m4k_examine_debug_reason(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_debug_entry(struct target *target)
+static int mips_m4k_debug_entry(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -104,7 +111,7 @@ int mips_m4k_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_poll(struct target *target)
+static int mips_m4k_poll(struct target *target)
 {
 	int retval;
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -162,7 +169,7 @@ int mips_m4k_poll(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_halt(struct target *target)
+static int mips_m4k_halt(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -207,7 +214,7 @@ int mips_m4k_halt(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_assert_reset(struct target *target)
+static int mips_m4k_assert_reset(struct target *target)
 {
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
@@ -286,7 +293,7 @@ int mips_m4k_assert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_deassert_reset(struct target *target)
+static int mips_m4k_deassert_reset(struct target *target)
 {
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -297,13 +304,13 @@ int mips_m4k_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_soft_reset_halt(struct target *target)
+static int mips_m4k_soft_reset_halt(struct target *target)
 {
 	/* TODO */
 	return ERROR_OK;
 }
 
-int mips_m4k_single_step_core(struct target *target)
+static int mips_m4k_single_step_core(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -322,7 +329,8 @@ int mips_m4k_single_step_core(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
+static int mips_m4k_resume(struct target *target, int current,
+		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -397,7 +405,8 @@ int mips_m4k_resume(struct target *target, int current, uint32_t address, int ha
 	return ERROR_OK;
 }
 
-int mips_m4k_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
+static int mips_m4k_step(struct target *target, int current,
+		uint32_t address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -452,7 +461,7 @@ int mips_m4k_step(struct target *target, int current, uint32_t address, int hand
 	return ERROR_OK;
 }
 
-void mips_m4k_enable_breakpoints(struct target *target)
+static void mips_m4k_enable_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -465,7 +474,8 @@ void mips_m4k_enable_breakpoints(struct target *target)
 	}
 }
 
-int mips_m4k_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int mips_m4k_set_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips32_comparator * comparator_list = mips32->inst_break_list;
@@ -557,7 +567,8 @@ int mips_m4k_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 	return ERROR_OK;
 }
 
-int mips_m4k_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int mips_m4k_unset_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -636,7 +647,7 @@ int mips_m4k_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 	return ERROR_OK;
 }
 
-int mips_m4k_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int mips_m4k_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 
@@ -656,7 +667,8 @@ int mips_m4k_add_breakpoint(struct target *target, struct breakpoint *breakpoint
 	return ERROR_OK;
 }
 
-int mips_m4k_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
+static int mips_m4k_remove_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -678,7 +690,8 @@ int mips_m4k_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 	return ERROR_OK;
 }
 
-int mips_m4k_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int mips_m4k_set_watchpoint(struct target *target,
+		struct watchpoint *watchpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips32_comparator *comparator_list = mips32->data_break_list;
@@ -745,7 +758,8 @@ int mips_m4k_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 	return ERROR_OK;
 }
 
-int mips_m4k_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int mips_m4k_unset_watchpoint(struct target *target,
+		struct watchpoint *watchpoint)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -771,7 +785,7 @@ int mips_m4k_unset_watchpoint(struct target *target, struct watchpoint *watchpoi
 	return ERROR_OK;
 }
 
-int mips_m4k_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int mips_m4k_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 
@@ -787,7 +801,8 @@ int mips_m4k_add_watchpoint(struct target *target, struct watchpoint *watchpoint
 	return ERROR_OK;
 }
 
-int mips_m4k_remove_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int mips_m4k_remove_watchpoint(struct target *target,
+		struct watchpoint *watchpoint)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -808,7 +823,7 @@ int mips_m4k_remove_watchpoint(struct target *target, struct watchpoint *watchpo
 	return ERROR_OK;
 }
 
-void mips_m4k_enable_watchpoints(struct target *target)
+static void mips_m4k_enable_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -821,7 +836,8 @@ void mips_m4k_enable_watchpoints(struct target *target)
 	}
 }
 
-int mips_m4k_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int mips_m4k_read_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -853,8 +869,8 @@ int mips_m4k_read_memory(struct target *target, uint32_t address, uint32_t size,
 	return ERROR_OK;
 }
 
-int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size,
-		uint32_t count, uint8_t *buffer)
+static int mips_m4k_write_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -882,15 +898,16 @@ int mips_m4k_write_memory(struct target *target, uint32_t address, uint32_t size
 		return mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 }
 
-int mips_m4k_init_target(struct command_context *cmd_ctx, struct target *target)
+static int mips_m4k_init_target(struct command_context *cmd_ctx,
+		struct target *target)
 {
 	mips32_build_reg_cache(target);
 
 	return ERROR_OK;
 }
 
-int mips_m4k_init_arch_info(struct target *target, struct mips_m4k_common *mips_m4k,
-		struct jtag_tap *tap)
+static int mips_m4k_init_arch_info(struct target *target,
+		struct mips_m4k_common *mips_m4k, struct jtag_tap *tap)
 {
 	struct mips32_common *mips32 = &mips_m4k->mips32;
 
@@ -903,7 +920,7 @@ int mips_m4k_init_arch_info(struct target *target, struct mips_m4k_common *mips_
 	return ERROR_OK;
 }
 
-int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
+static int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct mips_m4k_common *mips_m4k = calloc(1, sizeof(struct mips_m4k_common));
 
@@ -912,7 +929,7 @@ int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-int mips_m4k_examine(struct target *target)
+static int mips_m4k_examine(struct target *target)
 {
 	int retval;
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
@@ -944,7 +961,7 @@ int mips_m4k_examine(struct target *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
