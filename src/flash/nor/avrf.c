@@ -59,19 +59,6 @@ static struct avrf_type avft_chips_info[] =
 	{"at90can128",	0x9781, 256, 512, 8, 512},
 };
 
-int avr_jtag_sendinstr(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out);
-int avr_jtag_senddat(struct jtag_tap *tap, uint32_t *dr_in, uint32_t dr_out, int len);
-
-int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
-int mcu_write_dr(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out, int dr_len, int rti);
-int mcu_write_ir_u8(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
-int mcu_write_dr_u8(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
-int mcu_write_ir_u16(struct jtag_tap *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti);
-int mcu_write_dr_u16(struct jtag_tap *tap, uint16_t *ir_in, uint16_t ir_out, int dr_len, int rti);
-int mcu_write_ir_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti);
-int mcu_write_dr_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
-int mcu_execute_queue(void);
-
 /* avr program functions */
 static int avr_jtag_reset(struct avr_common *avr, uint32_t reset)
 {
