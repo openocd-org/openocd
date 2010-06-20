@@ -195,7 +195,7 @@ static int virtual_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-int virtual_blank_check(struct flash_bank *bank)
+static int virtual_blank_check(struct flash_bank *bank)
 {
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
@@ -211,7 +211,7 @@ int virtual_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-int virtual_flash_read(struct flash_bank *bank,
+static int virtual_flash_read(struct flash_bank *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
