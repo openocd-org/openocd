@@ -46,10 +46,6 @@ static int avr_soft_reset_halt(struct target *target);
 static int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
 static int mcu_write_dr(struct jtag_tap *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_len, int rti);
 static int mcu_write_ir_u8(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
-int mcu_write_dr_u8(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
-int mcu_write_ir_u16(struct jtag_tap *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti);
-int mcu_write_dr_u16(struct jtag_tap *tap, uint16_t *ir_in, uint16_t ir_out, int dr_len, int rti);
-int mcu_write_ir_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti);
 static int mcu_write_dr_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
 
 struct target_type avr_target =
@@ -221,58 +217,6 @@ static int mcu_write_ir_u8(struct jtag_tap *tap, uint8_t *ir_in,
 	}
 
 	mcu_write_ir(tap, ir_in, &ir_out, ir_len, rti);
-
-	return ERROR_OK;
-}
-
-int mcu_write_dr_u8(struct jtag_tap *tap, uint8_t *dr_in, uint8_t dr_out, int dr_len, int rti)
-{
-	if (dr_len > 8)
-	{
-		LOG_ERROR("dr_len overflow, maxium is 8");
-		return ERROR_FAIL;
-	}
-
-	mcu_write_dr(tap, dr_in, &dr_out, dr_len, rti);
-
-	return ERROR_OK;
-}
-
-int mcu_write_ir_u16(struct jtag_tap *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti)
-{
-	if (ir_len > 16)
-	{
-		LOG_ERROR("ir_len overflow, maxium is 16");
-		return ERROR_FAIL;
-	}
-
-	mcu_write_ir(tap, (uint8_t*)ir_in, (uint8_t*)&ir_out, ir_len, rti);
-
-	return ERROR_OK;
-}
-
-int mcu_write_dr_u16(struct jtag_tap *tap, uint16_t *dr_in, uint16_t dr_out, int dr_len, int rti)
-{
-	if (dr_len > 16)
-	{
-		LOG_ERROR("dr_len overflow, maxium is 16");
-		return ERROR_FAIL;
-	}
-
-	mcu_write_dr(tap, (uint8_t*)dr_in, (uint8_t*)&dr_out, dr_len, rti);
-
-	return ERROR_OK;
-}
-
-int mcu_write_ir_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti)
-{
-	if (ir_len > 32)
-	{
-		LOG_ERROR("ir_len overflow, maxium is 32");
-		return ERROR_FAIL;
-	}
-
-	mcu_write_ir(tap, (uint8_t*)ir_in, (uint8_t*)&ir_out, ir_len, rti);
 
 	return ERROR_OK;
 }
