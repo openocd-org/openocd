@@ -394,7 +394,7 @@ static int str7x_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct str7x_flash_bank *str7x_info = bank->driver_priv;
