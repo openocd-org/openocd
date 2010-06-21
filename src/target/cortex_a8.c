@@ -39,6 +39,7 @@
 #include "target_request.h"
 #include "target_type.h"
 #include "arm_opcodes.h"
+#include <helper/time_support.h>
 
 static int cortex_a8_poll(struct target *target);
 static int cortex_a8_debug_entry(struct target *target);
@@ -364,13 +365,22 @@ static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
 	int retval;
 
 	/* set up invariant:  INSTR_COMP is set after ever DPM operation */
-	do {
+	long long then = timeval_ms();
+	for (;;)
+	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 				a8->armv7a_common.debug_base + CPUDBG_DSCR,
 				&dscr);
 		if (retval != ERROR_OK)
 			return retval;
-	} while ((dscr & DSCR_INSTR_COMP) == 0);
+		if ((dscr & DSCR_INSTR_COMP) != 0)
+			break;
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for dpm prepare");
+			return ERROR_FAIL;
+		}
+	}
 
 	/* this "should never happen" ... */
 	if (dscr & DSCR_DTR_RX_FULL) {
@@ -668,12 +678,23 @@ static int cortex_a8_halt(struct target *target)
 	if (retval != ERROR_OK)
 		goto out;
 
-	do {
+	long long then = timeval_ms();
+	for (;;)
+	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			goto out;
-	} while ((dscr & DSCR_CORE_HALTED) == 0);
+		if ((dscr & DSCR_CORE_HALTED) != 0)
+		{
+			break;
+		}
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for halt");
+			return ERROR_FAIL;
+		}
+	}
 
 	target->debug_reason = DBG_REASON_DBGRQ;
 
@@ -776,12 +797,21 @@ static int cortex_a8_resume(struct target *target, int current,
 	if (retval != ERROR_OK)
 		return retval;
 
-	do {
+	long long then = timeval_ms();
+	for (;;)
+	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
-	} while ((dscr & DSCR_CORE_RESTARTED) == 0);
+		if ((dscr & DSCR_CORE_RESTARTED) != 0)
+			break;
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for resume");
+			return ERROR_FAIL;
+		}
+	}
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	target->state = TARGET_RUNNING;
