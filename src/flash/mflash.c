@@ -209,7 +209,7 @@ static int mg_init_gpio (void)
 	return ret;
 }
 
-static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time_var)
+static int mg_dsk_wait(mg_io_type_wait wait_local, uint32_t time_var)
 {
 	uint8_t status, error;
 	struct target *target = mflash_bank->target;
@@ -228,10 +228,10 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time_var)
 
 		if (status & mg_io_rbit_status_busy)
 		{
-			if (wait == mg_io_wait_bsy)
+			if (wait_local == mg_io_wait_bsy)
 				return ERROR_OK;
 		} else {
-			switch (wait)
+			switch (wait_local)
 			{
 				case mg_io_wait_not_bsy:
 					return ERROR_OK;
@@ -259,7 +259,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time_var)
 				return ERROR_MG_IO;
 			}
 
-			switch (wait)
+			switch (wait_local)
 			{
 				case mg_io_wait_rdy:
 					if (status & mg_io_rbit_status_ready)
