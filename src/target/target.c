@@ -2135,11 +2135,11 @@ COMMAND_HANDLER(handle_halt_command)
 
 	if (CMD_ARGC == 1)
 	{
-		unsigned wait;
-		retval = parse_uint(CMD_ARGV[0], &wait);
+		unsigned wait_local;
+		retval = parse_uint(CMD_ARGV[0], &wait_local);
 		if (ERROR_OK != retval)
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		if (!wait)
+		if (!wait_local)
 			return ERROR_OK;
 	}
 
