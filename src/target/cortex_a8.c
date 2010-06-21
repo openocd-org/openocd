@@ -88,7 +88,12 @@ static int cortex_a8_init_debug_access(struct target *target)
 	/* The debugport might be uninitialised so try twice */
 	retval = mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_LOCKACCESS, 0xC5ACCE55);
 	if (retval != ERROR_OK)
-		mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_LOCKACCESS, 0xC5ACCE55);
+	{
+		/* try again */
+		retval = mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_LOCKACCESS, 0xC5ACCE55);
+	}
+	if (retval != ERROR_OK)
+		return retval;
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
@@ -363,6 +368,8 @@ static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
 		retval = mem_ap_read_atomic_u32(swjdp,
 				a8->armv7a_common.debug_base + CPUDBG_DSCR,
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	} while ((dscr & DSCR_INSTR_COMP) == 0);
 
 	/* this "should never happen" ... */
@@ -646,20 +653,26 @@ static int cortex_a8_halt(struct target *target)
 	 */
 	retval = mem_ap_write_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DRCR, 0x1);
+	if (retval != ERROR_OK)
+		goto out;
 
 	/*
 	 * enter halting debug mode
 	 */
-	mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		goto out;
+
 	retval = mem_ap_write_atomic_u32(swjdp,
 		armv7a->debug_base + CPUDBG_DSCR, dscr | DSCR_HALT_DBG_MODE);
-
 	if (retval != ERROR_OK)
 		goto out;
 
 	do {
-		mem_ap_read_atomic_u32(swjdp,
+		retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+		if (retval != ERROR_OK)
+			goto out;
 	} while ((dscr & DSCR_CORE_HALTED) == 0);
 
 	target->debug_reason = DBG_REASON_DBGRQ;
@@ -675,6 +688,7 @@ static int cortex_a8_resume(struct target *target, int current,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct adiv5_dap *swjdp = &armv7a->dap;
+	int retval;
 
 //	struct breakpoint *breakpoint = NULL;
 	uint32_t resume_pc, dscr;
@@ -758,11 +772,15 @@ static int cortex_a8_resume(struct target *target, int current,
 	 * REVISIT: for single stepping, we probably want to
 	 * disable IRQs by default, with optional override...
 	 */
-	mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DRCR, 0x2);
+	retval = mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DRCR, 0x2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	do {
-		mem_ap_read_atomic_u32(swjdp,
+		retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	} while ((dscr & DSCR_CORE_RESTARTED) == 0);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
@@ -804,8 +822,10 @@ static int cortex_a8_debug_entry(struct target *target)
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
 
 	/* REVISIT surely we should not re-read DSCR !! */
-	mem_ap_read_atomic_u32(swjdp,
+	retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* REVISIT see A8 TRM 12.11.4 steps 2..3 -- make sure that any
 	 * imprecise data aborts get discarded by issuing a Data
@@ -816,6 +836,8 @@ static int cortex_a8_debug_entry(struct target *target)
 	dscr |= DSCR_ITR_EN;
 	retval = mem_ap_write_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DSCR, dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Examine debug reason */
 	arm_dpm_report_dscr(&armv7a->dpm, cortex_a8->cpudbg_dscr);
@@ -827,6 +849,8 @@ static int cortex_a8_debug_entry(struct target *target)
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_WFAR,
 				&wfar);
+		if (retval != ERROR_OK)
+			return retval;
 		arm_dpm_report_wfar(&armv7a->dpm, wfar);
 	}
 
