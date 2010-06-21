@@ -331,7 +331,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 				else
 					jtag_add_pathmove(pathlen, path);
 
-				result = jtag_get_error();
+				result = jtag_execute_queue();
 				if (result != ERROR_OK) {
 					LOG_ERROR("XSVF: pathmove error %d",
 							result);

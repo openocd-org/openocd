@@ -120,7 +120,7 @@ int adi_jtag_dp_scan(struct adiv5_dap *dap,
 		jtag_add_runtest(dap->memaccess_tck,
 				TAP_IDLE);
 
-	return jtag_get_error();
+	return ERROR_OK;
 }
 
 /**
@@ -343,14 +343,11 @@ static int jtag_idcode_q_read(struct adiv5_dap *dap,
 	fields[0].in_value = (void *) data;
 
 	jtag_add_dr_scan(jtag_info->tap, 1, fields, TAP_IDLE);
-	retval = jtag_get_error();
-	if (retval != ERROR_OK)
-		return retval;
 
 	jtag_add_callback(arm_le_to_h_u32,
 			(jtag_callback_data_t) data);
 
-	return retval;
+	return ERROR_OK;
 }
 
 static int jtag_dp_q_read(struct adiv5_dap *dap, unsigned reg,
