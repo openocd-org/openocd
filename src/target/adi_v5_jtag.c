@@ -259,7 +259,11 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 		LOG_DEBUG("jtag-dp: CTRL/STAT error, 0x%" PRIx32, ctrlstat);
 		/* Check power to debug regions */
 		if ((ctrlstat & 0xf0000000) != 0xf0000000)
-			 ahbap_debugport_init(dap);
+		{
+			retval = ahbap_debugport_init(dap);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 		else
 		{
 			uint32_t mem_ap_csw, mem_ap_tar;
