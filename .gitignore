@@ -73,3 +73,6 @@ patches
 .project
 .cproject
 .settings
+
+# Emacs temp files
+*~
