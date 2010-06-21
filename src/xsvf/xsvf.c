@@ -760,7 +760,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 				   XWAIT <uint8_t wait_state> <uint8_t end_state> <uint32_t usecs>
 				*/
 
-				uint8_t	wait;
+				uint8_t	wait_local;
 				uint8_t	end;
 				uint8_t	delay_buf[4];
 
@@ -768,7 +768,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 				tap_state_t end_state;
 				int	delay;
 
-				if (read(xsvf_fd, &wait, 1) < 0
+				if (read(xsvf_fd, &wait_local, 1) < 0
 				  || read(xsvf_fd, &end, 1) < 0
 				  || read(xsvf_fd, delay_buf, 4) < 0)
 				{
@@ -776,7 +776,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					break;
 				}
 
-				wait_state = xsvf_to_tap(wait);
+				wait_state = xsvf_to_tap(wait_local);
 				end_state  = xsvf_to_tap(end);
 				delay      = be_to_h_u32(delay_buf);
 
@@ -804,14 +804,14 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 				uint8_t  clock_buf[4];
 				uint8_t	usecs_buf[4];
-				uint8_t	wait;
+				uint8_t	wait_local;
 				uint8_t	end;
 				tap_state_t wait_state;
 				tap_state_t end_state;
 				int clock_count;
 				int usecs;
 
-				if (read(xsvf_fd, &wait, 1) < 0
+				if (read(xsvf_fd, &wait_local, 1) < 0
 				 ||  read(xsvf_fd, &end, 1) < 0
 				 ||  read(xsvf_fd, clock_buf, 4) < 0
 				 ||  read(xsvf_fd, usecs_buf, 4) < 0)
@@ -820,7 +820,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 					break;
 				}
 
-				wait_state = xsvf_to_tap(wait);
+				wait_state = xsvf_to_tap(wait_local);
 				end_state  = xsvf_to_tap(end);
 
 				clock_count = be_to_h_u32(clock_buf);
