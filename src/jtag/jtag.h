@@ -661,8 +661,6 @@ void jtag_sleep(uint32_t us);
  * called with a non-zero error code.
  */
 void jtag_set_error(int error);
-/// @returns The current value of jtag_error
-int jtag_get_error(void);
 /**
  * Resets jtag_error to ERROR_OK, returning its previous value.
  * @returns The previous value of @c jtag_error.

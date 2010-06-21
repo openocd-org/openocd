@@ -52,9 +52,9 @@ static void jtag_add_scan_check(struct jtag_tap *active,
  * when an error occurs during processing that should be reported during
  * jtag_execute_queue().
  *
- * Tts value may be checked with jtag_get_error() and cleared with
- * jtag_error_clear().  This value is returned (and cleared) by
- * jtag_execute_queue().
+ * The value is set and cleared, but never read by normal application code.
+ *
+ * This value is returned (and cleared) by jtag_execute_queue().
  */
 static int jtag_error = ERROR_OK;
 
@@ -131,10 +131,7 @@ void jtag_set_error(int error)
 		return;
 	jtag_error = error;
 }
-int jtag_get_error(void)
-{
-	return jtag_error;
-}
+
 int jtag_error_clear(void)
 {
 	int temp = jtag_error;
