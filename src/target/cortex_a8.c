@@ -98,12 +98,15 @@ static int cortex_a8_init_debug_access(struct target *target)
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Enabling of instruction execution in debug mode is done in debug_entry code */
 
 	/* Resync breakpoint registers */
 
 	/* Since this is likley called from init or reset, update targtet state information*/
-	cortex_a8_poll(target);
+	retval = cortex_a8_poll(target);
 
 	return retval;
 }
@@ -1005,6 +1008,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	struct breakpoint *breakpoint = NULL;
 	struct breakpoint stepbreakpoint;
 	struct reg *r;
+	int retval;
 
 	int timeout = 100;
 
@@ -1048,15 +1052,19 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
-	cortex_a8_resume(target, 1, address, 0, 0);
+	retval = cortex_a8_resume(target, 1, address, 0, 0);
+	if (retval != ERROR_OK)
+		return retval;
 
 	while (target->state != TARGET_HALTED)
 	{
-		cortex_a8_poll(target);
+		retval = cortex_a8_poll(target);
+		if (retval != ERROR_OK)
+			return retval;
 		if (--timeout == 0)
 		{
-			LOG_WARNING("timeout waiting for target halt");
-			break;
+			LOG_ERROR("timeout waiting for target halt");
+			return ERROR_FAIL;
 		}
 	}
 
@@ -1313,6 +1321,8 @@ static int cortex_a8_deassert_reset(struct target *target)
 	jtag_add_reset(0, 0);
 
 	retval = cortex_a8_poll(target);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->reset_halt) {
 		if (target->state != TARGET_HALTED) {
