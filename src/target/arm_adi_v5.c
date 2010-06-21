@@ -603,43 +603,47 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		 */
 
 		/* Scan out first read */
-		adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
+		retval = adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
 				DPAP_READ, 0, NULL, NULL);
+		if (retval != ERROR_OK)
+			return retval;
 		for (readcount = 0; readcount < blocksize - 1; readcount++)
 		{
 			/* Scan out next read; scan in posted value for the
 			 * previous one.  Assumes read is acked "OK/FAULT",
 			 * and CTRL_STAT says that meant "OK".
 			 */
-			adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
+			retval = adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
 					DPAP_READ, 0, buffer + 4 * readcount,
 					&dap->ack);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 
 		/* Scan in last posted value; RDBUFF has no other effect,
 		 * assuming ack is OK/FAULT and CTRL_STAT says "OK".
 		 */
-		adi_jtag_dp_scan(dap, JTAG_DP_DPACC, DP_RDBUFF,
+		retval = adi_jtag_dp_scan(dap, JTAG_DP_DPACC, DP_RDBUFF,
 				DPAP_READ, 0, buffer + 4 * readcount,
 				&dap->ack);
-		if (dap_run(dap) == ERROR_OK)
-		{
-			wcount = wcount - blocksize;
-			address += 4 * blocksize;
-			buffer += 4 * blocksize;
-		}
-		else
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = dap_run(dap);
+		if (retval != ERROR_OK)
 		{
 			errorcount++;
+			if (errorcount <= 1)
+			{
+				/* try again */
+				continue;
+			}
+			LOG_WARNING("Block read error address 0x%" PRIx32, address);
+			return retval;
 		}
-
-		if (errorcount > 1)
-		{
-			LOG_WARNING("Block read error address 0x%" PRIx32
-				", count 0x%x", address, count);
-			/* REVISIT return the *actual* fault code */
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
+		wcount = wcount - blocksize;
+		address += 4 * blocksize;
+		buffer += 4 * blocksize;
 	}
 
 	/* if we have an unaligned access - reorder data */
