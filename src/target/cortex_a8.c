@@ -1523,8 +1523,14 @@ static int cortex_a8_examine_first(struct target *target)
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
 	 */
-	ahbap_debugport_init(swjdp);
-	mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_CPUID, &cpuid);
+	retval = ahbap_debugport_init(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_CPUID, &cpuid);
+	if (retval != ERROR_OK)
+		return retval;
+
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
 			armv7a->debug_base + CPUDBG_CPUID, &cpuid)) != ERROR_OK)
 	{
@@ -1559,7 +1565,9 @@ static int cortex_a8_examine_first(struct target *target)
 	LOG_DEBUG("didr = 0x%08" PRIx32, didr);
 
 	armv7a->armv4_5_common.core_type = ARM_MODE_MON;
-	cortex_a8_dpm_setup(cortex_a8, didr);
+	retval = cortex_a8_dpm_setup(cortex_a8, didr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Setup Breakpoint Register Pairs */
 	cortex_a8->brp_num = ((didr >> 24) & 0x0F) + 1;
