@@ -92,6 +92,10 @@ static int cortex_a8_init_debug_access(struct target *target)
 	{
 		/* try again */
 		retval = mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_LOCKACCESS, 0xC5ACCE55);
+		if (retval == ERROR_OK)
+		{
+			LOG_USER("Locking debug access failed on first, but succeeded on second try.");
+		}
 	}
 	if (retval != ERROR_OK)
 		return retval;
