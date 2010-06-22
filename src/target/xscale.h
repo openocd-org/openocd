@@ -176,6 +176,6 @@ enum
 	XSCALE_TXRXCTRL,
 };
 
-#define ERROR_XSCALE_NO_TRACE_DATA	(-1500)
+#define ERROR_XSCALE_NO_TRACE_DATA	(-700)
 
 #endif /* XSCALE_H */
