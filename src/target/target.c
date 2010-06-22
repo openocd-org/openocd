@@ -4021,23 +4021,36 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
 
-	/* danger! goi.argc will be modified below! */
-	argc = goi.argc;
-
-	if ((argc != 1) && (argc != 2))
+	if ((goi.argc < 1) || (goi.argc > 3))
 	{
 		Jim_SetResult_sprintf(goi.interp,
-				"usage: %s <address> [<count>]", cmd_name);
+				"usage: %s [phys] <address> [<count>]", cmd_name);
 		return JIM_ERR;
 	}
 
+	int (*fn)(struct target *target,
+			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	fn=target_read_memory;
+
+	int e;
+	if (strcmp(Jim_GetString(argv[1], NULL), "phys") == 0)
+	{
+		/* consume it */
+		struct Jim_Obj *obj;
+		e = Jim_GetOpt_Obj(&goi, &obj);
+		if (e != JIM_OK)
+			return e;
+
+		fn=target_read_phys_memory;
+	}
+
 	jim_wide a;
-	int e = Jim_GetOpt_Wide(&goi, &a);
+	e = Jim_GetOpt_Wide(&goi, &a);
 	if (e != JIM_OK) {
 		return JIM_ERR;
 	}
 	jim_wide c;
-	if (argc == 2) {
+	if (goi.argc == 1) {
 		e = Jim_GetOpt_Wide(&goi, &c);
 		if (e != JIM_OK) {
 			return JIM_ERR;
@@ -4045,6 +4058,13 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	} else {
 		c = 1;
 	}
+
+	/* all args must be consumed */
+	if (goi.argc != 0)
+	{
+		return JIM_ERR;
+	}
+
 	jim_wide b = 1; /* shut up gcc */
 	if (strcasecmp(cmd_name, "mdw") == 0)
 		b = 4;
@@ -4068,7 +4088,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		if (y > 16) {
 			y = 16;
 		}
-		e = target_read_memory(target, a, b, y / b, target_buf);
+		e = fn(target, a, b, y / b, target_buf);
 		if (e != ERROR_OK) {
 			Jim_SetResult_sprintf(interp, "error reading target @ 0x%08lx", (int)(a));
 			return JIM_ERR;
