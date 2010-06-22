@@ -1381,12 +1381,16 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 {
         int enabled = 0;
         uint32_t virt, phys;
+        int retval;
 
 	/* cortex_a8 handles unaligned memory access */
 
 // ???	dap_ap_select(swjdp, swjdp_memoryap);
         LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address, size, count);
-        cortex_a8_mmu(target, &enabled);
+        retval = cortex_a8_mmu(target, &enabled);
+        if (retval != ERROR_OK)
+        	return retval;
+
         if(enabled)
         {
             virt = address;
@@ -1484,11 +1488,14 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 {
         int enabled = 0;
         uint32_t virt, phys;
+        int retval;
 
 // ???  dap_ap_select(swjdp, swjdp_memoryap);
 
         LOG_DEBUG("Writing memory to address 0x%x; size %d; count %d", address, size, count);
-        cortex_a8_mmu(target, &enabled);
+        retval = cortex_a8_mmu(target, &enabled);
+        if (retval != ERROR_OK)
+        	return retval;
         if(enabled)
         {
             virt = address;
