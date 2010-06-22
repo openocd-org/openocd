@@ -3950,19 +3950,30 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
 
-	/* danger! goi.argc will be modified below! */
-	argc = goi.argc;
-
-	if (argc != 2 && argc != 3)
+	if (goi.argc < 2 || goi.argc > 4)
 	{
 		Jim_SetResult_sprintf(goi.interp,
-				"usage: %s <address> <data> [<count>]", cmd_name);
+				"usage: %s [phys] <address> <data> [<count>]", cmd_name);
 		return JIM_ERR;
 	}
 
+	target_write_fn fn;
+	fn = target_write_memory_fast;
+
+	int e;
+	if (strcmp(Jim_GetString(argv[1], NULL), "phys") == 0)
+	{
+		/* consume it */
+		struct Jim_Obj *obj;
+		e = Jim_GetOpt_Obj(&goi, &obj);
+		if (e != JIM_OK)
+			return e;
+
+		fn = target_write_phys_memory;
+	}
 
 	jim_wide a;
-	int e = Jim_GetOpt_Wide(&goi, &a);
+	e = Jim_GetOpt_Wide(&goi, &a);
 	if (e != JIM_OK)
 		return e;
 
@@ -3972,11 +3983,17 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return e;
 
 	jim_wide c = 1;
-	if (argc == 3)
+	if (goi.argc == 1)
 	{
 		e = Jim_GetOpt_Wide(&goi, &c);
 		if (e != JIM_OK)
 			return e;
+	}
+
+	/* all args must be consumed */
+	if (goi.argc != 0)
+	{
+		return JIM_ERR;
 	}
 
 	struct target *target = Jim_CmdPrivData(goi.interp);
@@ -3994,7 +4011,7 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	return (target_fill_mem(target, a, target_write_memory_fast, data_size, b, c) == ERROR_OK) ? JIM_OK : JIM_ERR;
+	return (target_fill_mem(target, a, fn, data_size, b, c) == ERROR_OK) ? JIM_OK : JIM_ERR;
 }
 
 static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
