@@ -679,7 +679,7 @@ int arm11_run_instr_data_to_core_noack(struct arm11_common * arm11, uint32_t opc
 
 	int retval = arm11_run_instr_data_to_core_noack_inner(arm11->arm.target->tap, opcode, data, count);
 
-	if (retval != ERROR_FAIL)
+	if (retval != ERROR_OK)
 		return retval;
 
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
