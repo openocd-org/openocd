@@ -2,6 +2,10 @@
  *   Copyright (C) 2009 by Duane Ellis                                     *
  *   openocd@duaneellis.com                                                *
  *                                                                         *
+ *   Copyright (C) 2010 by Olaf Lüke (at91sam3s* support)                  *
+ *   olaf@uni-paderborn.de                                                 *
+ *                                                                         *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -63,9 +67,12 @@
 
 #define REG_NAME_WIDTH  (12)
 
+// at91sam3u series (has one or two flash banks)
+#define FLASH_BANK0_BASE_U   0x00080000
+#define FLASH_BANK1_BASE_U   0x00100000
 
-#define FLASH_BANK0_BASE   0x00080000
-#define FLASH_BANK1_BASE   0x00100000
+// at91sam3s series (has always one flash bank)
+#define FLASH_BANK_BASE_S   0x00400000
 
 #define 	AT91C_EFC_FCMD_GETD                 (0x0) // (EFC) Get Flash Descriptor
 #define 	AT91C_EFC_FCMD_WP                   (0x1) // (EFC) Write Page
@@ -254,6 +261,7 @@ get_current_sam3(struct command_context *cmd_ctx)
 
 // these are used to *initialize* the "pChip->details" structure.
 static const struct sam3_chip_details all_sam3_details[] = {
+	// Start at91sam3u* series
 	{
 		.chipid_cidr    = 0x28100960,
 		.name           = "at91sam3u4e",
@@ -284,7 +292,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 0,
-			.base_address = FLASH_BANK0_BASE,
+			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
 			.present = 1,
 			.size_bytes = 128 * 1024,
@@ -299,7 +307,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 1,
-			.base_address = FLASH_BANK1_BASE,
+			.base_address = FLASH_BANK1_BASE_U,
 			.controller_address = 0x400e0a00,
 			.present = 1,
 			.size_bytes = 128 * 1024,
@@ -333,7 +341,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 0,
-			.base_address = FLASH_BANK0_BASE,
+			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
 			.present = 1,
 			.size_bytes = 128 * 1024,
@@ -374,7 +382,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 0,
-			.base_address = FLASH_BANK0_BASE,
+			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
 			.present = 1,
 			.size_bytes =  64 * 1024,
@@ -422,7 +430,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 0,
-			.base_address = FLASH_BANK0_BASE,
+			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
 			.present = 1,
 			.size_bytes = 128 * 1024,
@@ -436,7 +444,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 1,
-			.base_address = FLASH_BANK1_BASE,
+			.base_address = FLASH_BANK1_BASE_U,
 			.controller_address = 0x400e0a00,
 			.present = 1,
 			.size_bytes = 128 * 1024,
@@ -470,7 +478,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 0,
-			.base_address = FLASH_BANK0_BASE,
+			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
 			.present = 1,
 			.size_bytes = 128 * 1024,
@@ -511,7 +519,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pChip  = NULL,
 			.pBank  = NULL,
 			.bank_number = 0,
-			.base_address = FLASH_BANK0_BASE,
+			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
 			.present = 1,
 			.size_bytes =  64 * 1024,
@@ -529,6 +537,300 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		},
 	},
 
+	// Start at91sam3s* series
+
+	// Note: The preliminary at91sam3s datasheet says on page 302
+	// that the flash controller is at address 0x400E0800.
+	// This is _not_ the case, the controller resides at address 0x400e0a0.
+	{
+		.chipid_cidr    = 0x28A00960,
+		.name           = "at91sam3s4c",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 48 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  256 * 1024,
+			.nsectors   =  32,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x28900960,
+		.name           = "at91sam3s4b",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 48 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  256 * 1024,
+			.nsectors   =  32,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x28800960,
+		.name           = "at91sam3s4a",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 48 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  256 * 1024,
+			.nsectors   =  32,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x28AA0760,
+		.name           = "at91sam3s2c",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 32 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  128 * 1024,
+			.nsectors   =  16,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x289A0760,
+		.name           = "at91sam3s2b",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 32 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  128 * 1024,
+			.nsectors   =  16,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x288A0760,
+		.name           = "at91sam3s2a",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 32 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  128 * 1024,
+			.nsectors   =  16,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x28A90560,
+		.name           = "at91sam3s1c",
+		.total_flash_size     = 64 * 1024,
+		.total_sram_size      = 16 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  64 * 1024,
+			.nsectors   =  8,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x28990560,
+		.name           = "at91sam3s1b",
+		.total_flash_size     = 64 * 1024,
+		.total_sram_size      = 16 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  64 * 1024,
+			.nsectors   =  8,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	{
+		.chipid_cidr    = 0x28890560,
+		.name           = "at91sam3s1a",
+		.total_flash_size     = 64 * 1024,
+		.total_sram_size      = 16 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+//		.bank[0] = {
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+
+			.controller_address = 0x400e0a00,
+			.present = 1,
+			.size_bytes =  64 * 1024,
+			.nsectors   =  8,
+			.sector_size = 8192,
+			.page_size   = 256,
+		  },
+//		.bank[1] = {
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
 	// terminate
 	{
 		.chipid_cidr	= 0,
@@ -1648,23 +1950,34 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 
 	switch (bank->base) {
 	default:
-		LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x or 0x%08x)",
+		LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x or 0x%08x \
+			[at91sam3u series] or 0x%08x [at91sam3s series])",
 				  ((unsigned int)(bank->base)),
-				  ((unsigned int)(FLASH_BANK0_BASE)),
-				  ((unsigned int)(FLASH_BANK1_BASE)));
+				  ((unsigned int)(FLASH_BANK0_BASE_U)),
+				  ((unsigned int)(FLASH_BANK1_BASE_U)),
+				  ((unsigned int)(FLASH_BANK_BASE_S)));
 		return ERROR_FAIL;
 		break;
-	case FLASH_BANK0_BASE:
+
+	// at91sam3u series
+	case FLASH_BANK0_BASE_U:
 		bank->driver_priv = &(pChip->details.bank[0]);
 		bank->bank_number = 0;
 		pChip->details.bank[0].pChip = pChip;
 		pChip->details.bank[0].pBank = bank;
 		break;
-	case FLASH_BANK1_BASE:
+	case FLASH_BANK1_BASE_U:
 		bank->driver_priv = &(pChip->details.bank[1]);
 		bank->bank_number = 1;
 		pChip->details.bank[1].pChip = pChip;
 		pChip->details.bank[1].pBank = bank;
+
+	// at91sam3s series
+	case FLASH_BANK_BASE_S:
+		bank->driver_priv = &(pChip->details.bank[0]);
+		bank->bank_number = 0;
+		pChip->details.bank[0].pChip = pChip;
+		pChip->details.bank[0].pBank = bank;
 		break;
 	}
 
