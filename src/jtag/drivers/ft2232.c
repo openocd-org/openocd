@@ -4022,7 +4022,7 @@ static int signalyzer_h_init(void)
 		buf[1] = high_output;
 		buf[2] = high_direction;
 
-		if ((retval = ft2232_write(buf, sizeof(buf), &bytes_written)) != ERROR_OK)
+		if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
