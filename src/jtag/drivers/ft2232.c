@@ -714,23 +714,22 @@ static void ft2232_end_state(tap_state_t state)
 
 static void ft2232_read_scan(enum scan_type type, uint8_t* buffer, int scan_size)
 {
-	int num_bytes = scan_size / 8;
-	int bits_left = scan_size % 8;
-	int cur_byte;
+	int num_bytes = (scan_size + 7) / 8;
+	int bits_left = scan_size;
+	int cur_byte  = 0;
 
-	for (cur_byte = 0; cur_byte < num_bytes; cur_byte++)
+	while (num_bytes-- > 1)
 	{
-		buffer[cur_byte] = buffer_read();
+		buffer[cur_byte++] = buffer_read();
+		bits_left -= 8;
 	}
 
-	/* Manage partial byte left from the clock data in/out instructions, if any */
+	buffer[cur_byte] = 0x0;
+
+	/* There is one more partial byte left from the clock data in/out instructions */
 	if (bits_left > 1)
 	{
 		buffer[cur_byte] = buffer_read() >> 1;
-	}
-	else
-	{
-		buffer[cur_byte] = 0x0;
 	}
 	/* This shift depends on the length of the clock data to tms instruction, insterted at end of the scan, now fixed to a two step transition in ft2232_add_scan */
 	buffer[cur_byte] = (buffer[cur_byte] | (((buffer_read()) << 1) & 0x80)) >> (8 - bits_left);
