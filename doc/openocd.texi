@@ -2425,6 +2425,7 @@ which are not currently documented here.
 
 @deffn {Interface Driver} {ZY1000}
 This is the Zylin ZY1000 JTAG debugger.
+@end deffn
 
 @quotation Note
 This defines some driver-specific commands,
