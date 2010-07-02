@@ -58,6 +58,7 @@ libjtag_la_SOURCES = \
 	interface.c \
 	interfaces.c \
 	tcl.c \
+	transport.c \
 	$(DRIVERFILES)
 
 noinst_HEADERS = \
@@ -67,6 +68,7 @@ noinst_HEADERS = \
 	interfaces.h \
 	minidriver.h \
 	jtag.h \
+	transport.h \
 	minidriver/minidriver_imp.h \
 	minidummy/jtag_minidriver.h
 

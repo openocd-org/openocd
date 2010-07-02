@@ -35,6 +35,7 @@
 #include "minidriver.h"
 #include "interface.h"
 #include "interfaces.h"
+#include "transport.h"
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -90,6 +91,25 @@ static int default_srst_asserted(int *srst_asserted)
 {
 	*srst_asserted = 0; /* by default we can't detect srst asserted */
 	return ERROR_OK;
+}
+
+COMMAND_HANDLER(interface_transport_command)
+{
+	char **transports;
+	int retval;
+
+	retval = CALL_COMMAND_HANDLER(transport_list_parse, &transports);
+	if (retval != ERROR_OK) {
+		return retval;
+
+	retval = allow_transports(CMD_CTX, (const char **)transports);
+	if (retval != ERROR_OK) {
+		for (unsigned i = 0; transports[i]; i++)
+			free(transports[i]);
+		free(transports);
+	}
+	}
+	return retval;
 }
 
 COMMAND_HANDLER(handle_interface_list_command)
@@ -450,6 +470,13 @@ static const struct command_registration interface_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Select a debug adapter interface (driver)",
 		.usage = "driver_name",
+	},
+	{
+		.name = "interface_transports",
+		.handler = interface_transport_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Declare transports the interface supports.",
+		.usage = "transport ... ",
 	},
 	{
 		.name = "interface_list",

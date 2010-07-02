@@ -81,6 +81,7 @@
 
 /* project specific includes */
 #include <jtag/interface.h>
+#include <jtag/transport.h>
 #include <helper/time_support.h>
 
 #if IS_CYGWIN == 1
@@ -167,6 +168,7 @@ struct ft2232_layout {
 	void (*reset)(int trst, int srst);
 	void (*blink)(void);
 	int channel;
+	const char **transports;
 };
 
 /* init procedures for supported layouts */
@@ -210,6 +212,13 @@ static void turtle_jtag_blink(void);
 static void signalyzer_h_blink(void);
 static void ktlink_blink(void);
 
+/* common transport support options */
+static const char *jtag_only[] = { "jtag", NULL };
+
+
+//static const char *jtag_and_swd[] = { "jtag", "swd", NULL };
+#define jtag_and_swd NULL
+
 static const struct ft2232_layout  ft2232_layouts[] =
 {
 	{ .name = "usbjtag",
@@ -235,10 +244,12 @@ static const struct ft2232_layout  ft2232_layouts[] =
 	{ .name = "evb_lm3s811",
 		.init = lm3s811_jtag_init,
 		.reset = ftx23_reset,
+		.transports = jtag_and_swd,
 	},
 	{ .name = "luminary_icdi",
 		.init = icdi_jtag_init,
 		.reset = ftx23_reset,
+		.transports = jtag_and_swd,
 	},
 	{ .name = "olimex-jtag",
 		.init = olimex_jtag_init,
@@ -2393,7 +2404,7 @@ static int ft2232_init(void)
 /** Updates defaults for DBUS signals:  the four JTAG signals
  * (TCK, TDI, TDO, TMS) and * the four GPIOL signals.
  */
-static inline void ftx232_init_head(void)
+static inline void ftx232_dbus_init(void)
 {
 	low_output    = 0x08;
 	low_direction = 0x0b;
@@ -2403,7 +2414,7 @@ static inline void ftx232_init_head(void)
  * the four GPIOL signals.  Initialization covers value and direction,
  * as customized for each layout.
  */
-static int ftx232_init_tail(void)
+static int ftx232_dbus_write(void)
 {
 	uint8_t  buf[3];
 	uint32_t bytes_written;
@@ -2452,19 +2463,19 @@ static int usbjtag_init(void)
 	 * NOTE:  This is now _specific_ to the "usbjtag" layout.
 	 * Don't try cram any more layouts into this.
 	 */
-	ftx232_init_head();
+	ftx232_dbus_init();
 
 	nTRST    = 0x10;
 	nTRSTnOE = 0x10;
 	nSRST    = 0x40;
 	nSRSTnOE = 0x40;
 
-	return ftx232_init_tail();
+	return ftx232_dbus_write();
 }
 
 static int lm3s811_jtag_init(void)
 {
-	ftx232_init_head();
+	ftx232_dbus_init();
 
 	/* There are multiple revisions of LM3S811 eval boards:
 	 * - Rev B (and older?) boards have no SWO trace support.
@@ -2478,12 +2489,12 @@ static int lm3s811_jtag_init(void)
 	low_output    = 0x88;
 	low_direction = 0x8b;
 
-	return ftx232_init_tail();
+	return ftx232_dbus_write();
 }
 
 static int icdi_jtag_init(void)
 {
-	ftx232_init_head();
+	ftx232_dbus_init();
 
 	/* Most Luminary eval boards support SWO trace output,
 	 * and should use this "luminary_icdi" layout.
@@ -2495,18 +2506,18 @@ static int icdi_jtag_init(void)
 	low_output    = 0x88;
 	low_direction = 0xcb;
 
-	return ftx232_init_tail();
+	return ftx232_dbus_write();
 }
 
 static int signalyzer_init(void)
 {
-	ftx232_init_head();
+	ftx232_dbus_init();
 
 	nTRST    = 0x10;
 	nTRSTnOE = 0x10;
 	nSRST    = 0x20;
 	nSRSTnOE = 0x20;
-	return ftx232_init_tail();
+	return ftx232_dbus_write();
 }
 
 static int axm0432_jtag_init(void)
@@ -3195,7 +3206,11 @@ COMMAND_HANDLER(ft2232_handle_layout_command)
 	for (const struct ft2232_layout *l = ft2232_layouts; l->name; l++) {
 		if (strcmp(l->name, CMD_ARGV[0]) == 0) {
 			layout = l;
-			return ERROR_OK;
+			/* This may also select the transport
+			 * if we only suppport one of them.
+			 */
+			return allow_transports(CMD_CTX,
+				l->transports ? : jtag_only);
 		}
 	}
 

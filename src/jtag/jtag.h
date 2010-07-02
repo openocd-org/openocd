@@ -689,4 +689,6 @@ void jtag_poll_set_enabled(bool value);
  * level APIs that are used in inner loops. */
 #include <jtag/minidriver.h>
 
+bool transport_is_jtag(void);
+
 #endif /* JTAG_H */

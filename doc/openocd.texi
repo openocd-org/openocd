@@ -2096,6 +2096,14 @@ target.
 List the debug adapter drivers that have been built into
 the running copy of OpenOCD.
 @end deffn
+@deffn Command {interface transports} transport_name+
+Specifies the transports supported by this debug adapter.
+The adapter driver builds-in similar knowledge; use this only
+when external configuration (such as jumpering) changes what
+the hardware can support.
+@end deffn
+
+
 
 @deffn Command {adapter_name}
 Returns the name of the debug adapter driver being used.
@@ -2428,7 +2436,41 @@ Turn power switch to target on/off.
 No arguments: print status.
 @end deffn
 
+@section Transport Configuration
+As noted earlier, depending on the version of OpenOCD you use,
+and the debug adapter you are using,
+several transports may be available to
+communicate with debug targets (or perhaps to program flash memory).
+@deffn Command {transport list}
+displays the names of the transports supported by this
+version of OpenOCD.
 @end deffn
+
+@deffn Command {transport select} transport_name
+Select which of the supported transports to use in this OpenOCD session.
+The transport must be supported by the debug adapter hardware  and by the
+version of OPenOCD you are using (including the adapter's driver).
+No arguments: print selected transport..
+@end deffn
+
+@subsection JTAG Transport
+JTAG is the original transport supported by OpenOCD, and most
+of the OpenOCD commands support it.
+JTAG transports expose a chain of one or more Test Access Points (TAPs),
+each of which must be explicitly declared.
+JTAG supports both debugging and boundary scan testing.
+Flash programming support is built on top of debug support.
+@subsection SWD ransport
+SWD (Serial Wire Debug) is an ARM-specific transport which exposes one
+Debug Access Point (DAP, which must be explicitly declared.
+(SWD uses fewer signal wires than JTAG.)
+SWD is debug-oriented, and does not support  boundary scan testing.
+Flash programming support is built on top of debug support.
+(Some processors support both JTAG and SWD.)
+@subsection SPI ransport
+The Serial Peripheral Interface (SPI) is a general purpose transport
+which uses four wire signaling.  Some processors use it as part of a
+solution for flash programming.
 
 @anchor{JTAG Speed}
 @section JTAG Speed

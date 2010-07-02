@@ -17,6 +17,9 @@ JTAG Layer:
 
 Boundary Scan:
 
+Transport framework core ... supporting future work for SWD, SPI, and other
+non-JTAG ways to debug targets or program flash.
+
 Target Layer:
 	ARM:
 		- basic semihosting support (ARMv7M).

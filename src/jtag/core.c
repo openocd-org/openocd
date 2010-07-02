@@ -33,11 +33,15 @@
 
 #include "jtag.h"
 #include "interface.h"
+#include "transport.h"
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
 
+/* SVF and XSVF are higher level JTAG command sets (for boundary scan) */
+#include "svf/svf.h"
+#include "xsvf/xsvf.h"
 
 /// The number of JTAG queue flushes (for profiling and debugging purposes).
 static int jtag_flush_queue_count;
@@ -1348,6 +1352,21 @@ int adapter_init(struct command_context *cmd_ctx)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	/* LEGACY SUPPORT ... adapter drivers  must declare what
+	 * transports they allow.  Until they all do so, assume
+	 * the legacy drivers are JTAG-only
+	 */
+	if (!transports_are_declared()) {
+		static const char *jtag_only[] = { "jtag", NULL, };
+		LOG_ERROR("Adapter driver '%s' did not declare "
+			"which transports it allows; assuming"
+			"JTAG-only", jtag->name);
+		int retval = allow_transports(cmd_ctx, jtag_only);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+
 	int requested_khz = jtag_get_speed_khz();
 	int actual_khz = requested_khz;
 	int retval = jtag_get_speed_readable(&actual_khz);
@@ -1705,4 +1724,46 @@ void jtag_set_ntrst_assert_width(unsigned delay)
 unsigned jtag_get_ntrst_assert_width(void)
 {
 	return jtag_ntrst_assert_width;
+}
+
+static int jtag_select(struct command_context *ctx)
+{
+	int retval;
+
+	/* NOTE:  interface init must already have been done.
+	 * That works with only C code ... no Tcl glue required.
+	 */
+
+
+	retval = jtag_register_commands(ctx);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = svf_register_commands(ctx);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	return xsvf_register_commands(ctx);
+}
+
+static struct transport jtag_transport = {
+	.name = "jtag",
+	.select = jtag_select,
+	.init = jtag_init,
+};
+
+static void jtag_constructor(void) __attribute__((constructor));
+static void jtag_constructor(void)
+{
+	transport_register(&jtag_transport);
+}
+
+/** Returns true if the current debug session
+ * is using JTAG as its transport.
+ */
+bool transport_is_jtag(void)
+{
+	return get_current_transport() == &jtag_transport;
 }

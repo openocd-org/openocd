@@ -31,10 +31,9 @@
 #include "openocd.h"
 #include <jtag/driver.h>
 #include <jtag/jtag.h>
+#include <jtag/transport.h>
 #include <helper/ioutil.h>
 #include <helper/configuration.h>
-#include <xsvf/xsvf.h>
-#include <svf/svf.h>
 #include <flash/nor/core.h>
 #include <flash/nand/core.h>
 #include <pld/pld.h>
@@ -120,22 +119,24 @@ COMMAND_HANDLER(handle_init_command)
 		/* we must be able to set up the debug adapter */
 		return retval;
 	}
+
 	LOG_DEBUG("Debug Adapter init complete");
 
-	/* Try to initialize & examine the JTAG chain at this point,
-	 * but continue startup regardless.  Note that platforms
-	 * need to be able to provide JTAG event handlers that use
-	 * a variety of JTAG operations in order to do that...
+	/* "transport init" verifies the expected devices are present;
+	 * for JTAG, it checks the list of configured TAPs against
+	 * what's discoverable, possibly with help from the platform's
+	 * JTAG event handlers.  (which require COMMAND_EXEC)
 	 */
 	command_context_mode(CMD_CTX, COMMAND_EXEC);
-	if (command_run_line(CMD_CTX, "jtag init") == ERROR_OK)
-	{
-		LOG_DEBUG("Examining targets...");
-		if (target_examine() != ERROR_OK)
-			LOG_DEBUG("target examination failed");
-	}
-	else
-		LOG_WARNING("jtag initialization failed; try 'jtag init' again.");
+
+	retval = command_run_line(CMD_CTX, "transport init");
+	if (ERROR_OK != retval)
+		return ERROR_FAIL;
+
+	LOG_DEBUG("Examining targets...");
+	if (target_examine() != ERROR_OK)
+		LOG_DEBUG("target examination failed");
+
 	command_context_mode(CMD_CTX, COMMAND_CONFIG);
 
 	if (command_run_line(CMD_CTX, "flash init") != ERROR_OK)
@@ -227,16 +228,13 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&server_register_commands,
 		&gdb_register_commands,
 		&log_register_commands,
+		&transport_register_commands,
 		&interface_register_commands,
-		&jtag_register_commands,
-		&xsvf_register_commands,
-		&svf_register_commands,
 		&target_register_commands,
 		&flash_register_commands,
 		&nand_register_commands,
 		&pld_register_commands,
 		&mflash_register_commands,
-		NULL
 	};
 	for (unsigned i = 0; NULL != command_registrants[i]; i++)
 	{
