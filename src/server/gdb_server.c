@@ -1682,6 +1682,7 @@ static int gdb_memory_map(struct connection *connection,
 	char *separator;
 	uint32_t ram_start = 0;
 	int i;
+	int target_flash_banks = 0;
 
 	/* skip command character */
 	packet += 23;
@@ -1708,10 +1709,11 @@ static int gdb_memory_map(struct connection *connection,
 			gdb_error(connection, retval);
 			return retval;
 		}
-		banks[i] = p;
+		if(p->target == target)
+			banks[target_flash_banks++] = p;
 	}
 
-	qsort(banks, flash_get_bank_count(), sizeof(struct flash_bank *),
+	qsort(banks, target_flash_banks, sizeof(struct flash_bank *),
 			compare_bank);
 
 	for (i = 0; i < flash_get_bank_count(); i++) {
