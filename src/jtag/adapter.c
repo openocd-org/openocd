@@ -101,13 +101,14 @@ COMMAND_HANDLER(interface_transport_command)
 	retval = CALL_COMMAND_HANDLER(transport_list_parse, &transports);
 	if (retval != ERROR_OK) {
 		return retval;
+	}
 
 	retval = allow_transports(CMD_CTX, (const char **)transports);
+
 	if (retval != ERROR_OK) {
 		for (unsigned i = 0; transports[i]; i++)
 			free(transports[i]);
 		free(transports);
-	}
 	}
 	return retval;
 }
