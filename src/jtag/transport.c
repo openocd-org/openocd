@@ -281,18 +281,17 @@ COMMAND_HANDLER(handle_transport_select)
 		return ERROR_FAIL;
 
 	case 1:			/* "select FOO" */
-		if(strcmp(session->name, CMD_ARGV[0]) == 0) {
+		if ((session!= NULL) && strcmp(session->name, CMD_ARGV[0]) == 0) {
 			/* NOP */
 			LOG_DEBUG("transport '%s' is already selected",
 					CMD_ARGV[0]);
 			return ERROR_OK;
 		} else {
-
-		/* we can't change this session's transport after-the-fact */
-		if (session) {
-			LOG_ERROR("session's transport is already selected.");
-			return ERROR_FAIL;
-		}
+			/* we can't change this session's transport after-the-fact */
+			if (session) {
+				LOG_ERROR("session's transport is already selected.");
+				return ERROR_FAIL;
+			}
 		}
 		break;
 
