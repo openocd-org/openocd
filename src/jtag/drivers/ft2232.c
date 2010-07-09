@@ -3207,7 +3207,7 @@ COMMAND_HANDLER(ft2232_handle_layout_command)
 		if (strcmp(l->name, CMD_ARGV[0]) == 0) {
 			layout = l;
 			/* This may also select the transport
-			 * if we only suppport one of them.
+			 * if we only support one of them.
 			 */
 			return allow_transports(CMD_CTX,
 				l->transports ? : jtag_only);

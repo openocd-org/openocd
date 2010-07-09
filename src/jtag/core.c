@@ -1359,13 +1359,12 @@ int adapter_init(struct command_context *cmd_ctx)
 	if (!transports_are_declared()) {
 		static const char *jtag_only[] = { "jtag", NULL, };
 		LOG_ERROR("Adapter driver '%s' did not declare "
-			"which transports it allows; assuming"
+			"which transports it allows; assuming "
 			"JTAG-only", jtag->name);
 		int retval = allow_transports(cmd_ctx, jtag_only);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-
 
 	int requested_khz = jtag_get_speed_khz();
 	int actual_khz = requested_khz;
@@ -1733,7 +1732,6 @@ static int jtag_select(struct command_context *ctx)
 	/* NOTE:  interface init must already have been done.
 	 * That works with only C code ... no Tcl glue required.
 	 */
-
 
 	retval = jtag_register_commands(ctx);
 
