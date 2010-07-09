@@ -166,6 +166,7 @@ struct jtag_interface dummy_interface = {
 
 		.supported = DEBUG_CAP_TMS_SEQ,
 		.commands = dummy_command_handlers,
+		.transports = jtag_only,
 
 		.execute_queue = &bitbang_execute_queue,
 

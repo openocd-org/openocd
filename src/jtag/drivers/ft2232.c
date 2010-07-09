@@ -168,7 +168,6 @@ struct ft2232_layout {
 	void (*reset)(int trst, int srst);
 	void (*blink)(void);
 	int channel;
-	const char **transports;
 };
 
 /* init procedures for supported layouts */
@@ -213,11 +212,8 @@ static void signalyzer_h_blink(void);
 static void ktlink_blink(void);
 
 /* common transport support options */
-static const char *jtag_only[] = { "jtag", NULL };
-
 
 //static const char *jtag_and_swd[] = { "jtag", "swd", NULL };
-#define jtag_and_swd NULL
 
 static const struct ft2232_layout  ft2232_layouts[] =
 {
@@ -244,12 +240,10 @@ static const struct ft2232_layout  ft2232_layouts[] =
 	{ .name = "evb_lm3s811",
 		.init = lm3s811_jtag_init,
 		.reset = ftx23_reset,
-		.transports = jtag_and_swd,
 	},
 	{ .name = "luminary_icdi",
 		.init = icdi_jtag_init,
 		.reset = ftx23_reset,
-		.transports = jtag_and_swd,
 	},
 	{ .name = "olimex-jtag",
 		.init = olimex_jtag_init,
@@ -3206,11 +3200,7 @@ COMMAND_HANDLER(ft2232_handle_layout_command)
 	for (const struct ft2232_layout *l = ft2232_layouts; l->name; l++) {
 		if (strcmp(l->name, CMD_ARGV[0]) == 0) {
 			layout = l;
-			/* This may also select the transport
-			 * if we only support one of them.
-			 */
-			return allow_transports(CMD_CTX,
-				l->transports ? : jtag_only);
+			return ERROR_OK;
 		}
 	}
 
@@ -4372,6 +4362,7 @@ struct jtag_interface ft2232_interface = {
 	.name = "ft2232",
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.commands = ft2232_command_handlers,
+	.transports = jtag_only,
 
 	.init = ft2232_init,
 	.quit = ft2232_quit,

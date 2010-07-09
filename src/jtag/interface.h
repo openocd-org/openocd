@@ -206,6 +206,9 @@ struct jtag_interface {
 	unsigned supported;
 #define DEBUG_CAP_TMS_SEQ	(1 << 0)
 
+	/** transports supported in C code (NULL terminated vector) */
+	const char **transports;
+
 	/**
 	 * Execute queued commands.
 	 * @returns ERROR_OK on success, or an error code on failure.
@@ -288,5 +291,7 @@ struct jtag_interface {
 	int (*srst_asserted)(int* srst_asserted);
 };
 
+
+extern const char *jtag_only[];
 
 #endif // OPENOCD_JTAG_INTERFACE_H

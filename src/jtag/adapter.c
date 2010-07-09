@@ -93,6 +93,9 @@ static int default_srst_asserted(int *srst_asserted)
 	return ERROR_OK;
 }
 
+const char *jtag_only[] = { "jtag", NULL, };
+
+
 COMMAND_HANDLER(interface_transport_command)
 {
 	char **transports;
@@ -130,6 +133,8 @@ COMMAND_HANDLER(handle_interface_list_command)
 
 COMMAND_HANDLER(handle_interface_command)
 {
+	int retval;
+
 	/* check whether the interface is already configured */
 	if (jtag_interface)
 	{
@@ -148,13 +153,27 @@ COMMAND_HANDLER(handle_interface_command)
 
 		if (NULL != jtag_interfaces[i]->commands)
 		{
-			int retval = register_commands(CMD_CTX, NULL,
+			retval = register_commands(CMD_CTX, NULL,
 					jtag_interfaces[i]->commands);
 			if (ERROR_OK != retval)
 				return retval;
 		}
 
 		jtag_interface = jtag_interfaces[i];
+
+	/* LEGACY SUPPORT ... adapter drivers  must declare what
+	 * transports they allow.  Until they all do so, assume
+	 * the legacy drivers are JTAG-only
+	 */
+	if (!jtag_interface->transports)
+		LOG_WARNING("Adapter driver '%s' did not declare "
+			"which transports it allows; assuming"
+			"legacy JTAG-only", jtag_interface->name);
+		retval = allow_transports(CMD_CTX,
+					jtag_interface->transports
+						? : jtag_only);
+			if (ERROR_OK != retval)
+				return retval;
 
 		if (jtag_interface->khz == NULL)
 			jtag_interface->khz = default_khz;
@@ -171,7 +190,8 @@ COMMAND_HANDLER(handle_interface_command)
 	/* no valid interface was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in interfaces
 	 */
-	LOG_ERROR("The specified debug interface was not found (%s)", CMD_ARGV[0]);
+	LOG_ERROR("The specified debug interface was not found (%s)",
+				CMD_ARGV[0]);
 	CALL_COMMAND_HANDLER(handle_interface_list_command);
 	return ERROR_JTAG_INVALID_INTERFACE;
 }

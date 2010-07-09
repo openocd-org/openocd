@@ -101,6 +101,10 @@ int allow_transports(struct command_context *ctx, const char **vector)
 	 *
 	 * REVISIT should we validate that?  and insist there's
 	 * at least one non-NULL element in that list?
+	 *
+	 * ... allow removals, e.g. external strapping prevents use
+	 * of one transport; C code should be definitive about what
+	 * can be used when all goes well.
 	 */
 	if (allowed_transports != NULL || session) {
 		LOG_ERROR("Can't modify the set of allowed transports.");
@@ -116,6 +120,8 @@ int allow_transports(struct command_context *ctx, const char **vector)
 				vector[0]);
 		return transport_select(ctx, vector [0]);
 	} else {
+		/* guard against user config errors */
+		LOG_WARNING("must select a transport.");
 		while (*vector)
 			LOG_DEBUG("allow transport '%s'", *vector++);
 		return ERROR_OK;
@@ -304,13 +310,14 @@ COMMAND_HANDLER(handle_transport_select)
 	/* Is this transport supported by our debug adapter?
 	 * Example, "JTAG-only" means SWD is not supported.
 	 *
-	 * NOTE:  requires adapter to have been set up, including
-	 * declaring transport via C code or Tcl script.
+	 * NOTE:  requires adapter to have been set up, with
+	 * transports declared via C.
 	 */
 	if (!allowed_transports) {
 		LOG_ERROR("Debug adapter doesn't support any transports?");
 		return ERROR_FAIL;
 	}
+
 	for (unsigned i = 0; allowed_transports[i]; i++) {
 
 		if (strcmp(allowed_transports[i], CMD_ARGV[0]) == 0)
