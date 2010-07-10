@@ -633,24 +633,24 @@ static void buspirate_tap_make_space(int scans, int bits)
 
 static void buspirate_tap_append(int tms, int tdi)
 {
-	int index;
+	int chain_index;
 
 	buspirate_tap_make_space(0, 1);
-	index = tap_chain_index / 8;
+	chain_index = tap_chain_index / 8;
 
-	if (index < BUSPIRATE_BUFFER_SIZE) {
+	if (chain_index < BUSPIRATE_BUFFER_SIZE) {
 		int bit_index = tap_chain_index % 8;
 		uint8_t bit = 1 << bit_index;
 
 		if (tms)
-			tms_chain[index] |= bit;
+			tms_chain[chain_index] |= bit;
 		else
-			tms_chain[index] &= ~bit;
+			tms_chain[chain_index] &= ~bit;
 
 		if (tdi)
-			tdi_chain[index] |= bit;
+			tdi_chain[chain_index] |= bit;
 		else
-			tdi_chain[index] &= ~bit;
+			tdi_chain[chain_index] &= ~bit;
 
 		tap_chain_index++;
 	} else
@@ -832,13 +832,13 @@ static void buspirate_jtag_get_adcs(int fd)
 		((float)c)/155.1515, ((float)d)/155.1515);
 }
 
-static unsigned char buspirate_jtag_command(int buspirate_fd,
+static unsigned char buspirate_jtag_command(int fd,
 		char *cmd, int cmdlen)
 {
 	int res;
 	int len = 0;
 
-	res = buspirate_serial_write(buspirate_fd, cmd, cmdlen);
+	res = buspirate_serial_write(fd, cmd, cmdlen);
 
 	if ((cmd[0] == CMD_UART_SPEED)
 				|| (cmd[0] == CMD_PORT_MODE)
@@ -857,7 +857,7 @@ static unsigned char buspirate_jtag_command(int buspirate_fd,
 		default:
 			LOG_INFO("Wrong !");
 		}
-		res =  buspirate_serial_read(buspirate_fd, cmd, len);
+		res =  buspirate_serial_read(fd, cmd, len);
 		if (res > 0)
 			return (unsigned char)cmd[1];
 		else
@@ -874,8 +874,8 @@ static int buspirate_serial_setspeed(int fd, speed_t speed)
 	struct termios t_opt;
 
 	/* set the serial port parameters */
-	fcntl(buspirate_fd, F_SETFL, 0);
-	tcgetattr(buspirate_fd, &t_opt);
+	fcntl(fd, F_SETFL, 0);
+	tcgetattr(fd, &t_opt);
 	cfsetispeed(&t_opt, speed);
 	cfsetospeed(&t_opt, speed);
 	t_opt.c_cflag |= (CLOCAL | CREAD);
@@ -888,8 +888,8 @@ static int buspirate_serial_setspeed(int fd, speed_t speed)
 	t_opt.c_oflag &= ~OPOST;
 	t_opt.c_cc[VMIN] = 0;
 	t_opt.c_cc[VTIME] = 10;
-	tcflush(buspirate_fd, TCIFLUSH);
-	tcsetattr(buspirate_fd, TCSANOW, &t_opt);
+	tcflush(fd, TCIFLUSH);
+	tcsetattr(fd, TCSANOW, &t_opt);
 
 	return 0;
 }
