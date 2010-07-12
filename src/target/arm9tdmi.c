@@ -912,9 +912,9 @@ const struct command_registration arm9tdmi_command_handlers[] = {
 		.chain = arm7_9_command_handlers,
 	},
 	{
-		.name = "arm9tdmi",
+		.name = "arm9",
 		.mode = COMMAND_ANY,
-		.help = "arm9tdmi command group",
+		.help = "arm9 command group",
 		.chain = arm9tdmi_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
