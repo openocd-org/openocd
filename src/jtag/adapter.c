@@ -167,7 +167,7 @@ COMMAND_HANDLER(handle_interface_command)
 	 */
 	if (!jtag_interface->transports)
 		LOG_WARNING("Adapter driver '%s' did not declare "
-			"which transports it allows; assuming"
+			"which transports it allows; assuming "
 			"legacy JTAG-only", jtag_interface->name);
 		retval = allow_transports(CMD_CTX,
 					jtag_interface->transports
