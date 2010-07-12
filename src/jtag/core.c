@@ -1357,7 +1357,6 @@ int adapter_init(struct command_context *cmd_ctx)
 	 * the legacy drivers are JTAG-only
 	 */
 	if (!transports_are_declared()) {
-		static const char *jtag_only[] = { "jtag", NULL, };
 		LOG_ERROR("Adapter driver '%s' did not declare "
 			"which transports it allows; assuming "
 			"JTAG-only", jtag->name);
