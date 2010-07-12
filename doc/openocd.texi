@@ -2461,14 +2461,14 @@ JTAG transports expose a chain of one or more Test Access Points (TAPs),
 each of which must be explicitly declared.
 JTAG supports both debugging and boundary scan testing.
 Flash programming support is built on top of debug support.
-@subsection SWD ransport
+@subsection SWD Transport
 SWD (Serial Wire Debug) is an ARM-specific transport which exposes one
 Debug Access Point (DAP, which must be explicitly declared.
 (SWD uses fewer signal wires than JTAG.)
 SWD is debug-oriented, and does not support  boundary scan testing.
 Flash programming support is built on top of debug support.
 (Some processors support both JTAG and SWD.)
-@subsection SPI ransport
+@subsection SPI Transport
 The Serial Peripheral Interface (SPI) is a general purpose transport
 which uses four wire signaling.  Some processors use it as part of a
 solution for flash programming.
