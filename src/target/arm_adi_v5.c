@@ -1076,11 +1076,12 @@ static int dap_info_command(struct command_context *cmd_ctx,
 			return retval;
 
 		if (!is_dap_cid_ok(cid3, cid2, cid1, cid0))
-			command_print(cmd_ctx, "\tCID3 0x%2.2" PRIx32
-					", CID2 0x%2.2" PRIx32
-					", CID1 0x%2.2" PRIx32
-					", CID0 0x%2.2" PRIx32,
-					cid3, cid2, cid1, cid0);
+			command_print(cmd_ctx, "\tCID3 0x%2.2x"
+					", CID2 0x%2.2x"
+					", CID1 0x%2.2x"
+					", CID0 0x%2.2x",
+					(unsigned) cid3, (unsigned)cid2,
+					(unsigned) cid1, (unsigned) cid0);
 		if (memtype & 0x01)
 			command_print(cmd_ctx, "\tMEMTYPE system memory present on bus");
 		else
@@ -1104,23 +1105,38 @@ static int dap_info_command(struct command_context *cmd_ctx,
 				component_base = (uint32_t)((dbgbase & 0xFFFFF000)
 						+ (int)(romentry & 0xFFFFF000));
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFE0, &c_pid0);
+						(component_base & 0xFFFFF000)
+							| 0xFE0, &c_pid0);
+				c_pid0 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFE4, &c_pid1);
+						(component_base & 0xFFFFF000)
+							| 0xFE4, &c_pid1);
+				c_pid1 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFE8, &c_pid2);
+						(component_base & 0xFFFFF000)
+							| 0xFE8, &c_pid2);
+				c_pid2 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFEC, &c_pid3);
+						(component_base & 0xFFFFF000)
+							| 0xFEC, &c_pid3);
+				c_pid3 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFD0, &c_pid4);
+						(component_base & 0xFFFFF000)
+							| 0xFD0, &c_pid4);
+				c_pid4 &= 0xff;
+
 				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFF0, &c_cid0);
+				c_cid0 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFF4, &c_cid1);
+				c_cid1 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFF8, &c_cid2);
+				c_cid2 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
 						(component_base & 0xFFFFF000) | 0xFFC, &c_cid3);
+				c_cid3 &= 0xff;
 				component_start = component_base - 0x1000*(c_pid4 >> 4);
 
 				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32
@@ -1243,23 +1259,27 @@ static int dap_info_command(struct command_context *cmd_ctx,
 				}
 
 				if (!is_dap_cid_ok(cid3, cid2, cid1, cid0))
-					command_print(cmd_ctx, "\t\tCID3 0x%2.2" PRIx32
-							", CID2 0x%2.2" PRIx32
-							", CID1 0x%2.2" PRIx32
-							", CID0 0x%2.2" PRIx32,
-							c_cid3, c_cid2, c_cid1, c_cid0);
-				command_print(cmd_ctx, "\t\tPeripheral ID[4..0] = hex "
-						"%2.2x %2.2x %2.2x %2.2x %2.2x",
-						(int) c_pid4,
-						(int) c_pid3, (int) c_pid2,
-						(int) c_pid1, (int) c_pid0);
+					command_print(cmd_ctx,
+						      "\t\tCID3 0%2.2x"
+							", CID2 0%2.2x"
+							", CID1 0%2.2x"
+							", CID0 0%2.2x",
+							(int) c_cid3,
+							(int) c_cid2,
+							(int)c_cid1,
+							(int)c_cid0);
+				command_print(cmd_ctx,
+				"\t\tPeripheral ID[4..0] = hex "
+				"%2.2x %2.2x %2.2x %2.2x %2.2x",
+				(int) c_pid4, (int) c_pid3, (int) c_pid2,
+				(int) c_pid1, (int) c_pid0);
 
 				/* Part number interpretations are from Cortex
 				 * core specs, the CoreSight components TRM
 				 * (ARM DDI 0314H), and ETM specs; also from
 				 * chip observation (e.g. TI SDTI).
 				 */
-				part_num = c_pid0 & 0xff;
+				part_num = (c_pid0 & 0xff);
 				part_num |= (c_pid1 & 0x0f) << 8;
 				switch (part_num) {
 				case 0x000:
