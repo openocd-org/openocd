@@ -369,7 +369,7 @@ static int str9x_write_block(struct flash_bank *bank,
 		0xe2522001,	/*	subs r2, r2, #1		*/
 		0x1affffed,	/*	bne write			*/
 					/* exit:				*/
-		0xeafffffe,	/*	b exit				*/
+		0xe1200070,	/*	bkpt #0				*/
 	};
 
 	/* flash write code */
@@ -421,8 +421,7 @@ static int str9x_write_block(struct flash_bank *bank,
 
 		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
 				str9x_info->write_algorithm->address,
-				str9x_info->write_algorithm->address + (sizeof(str9x_flash_write_code) - 4),
-				10000, &armv4_5_info)) != ERROR_OK)
+				0, 10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing str9x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
