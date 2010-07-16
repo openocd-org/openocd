@@ -58,8 +58,14 @@ static __inline__ void waitIdle(void)
 		ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
 	} while ((empty & 0x100) == 0);
 }
+
+static __inline__ void zy1000_flush_readqueue(void)
+{
+	/* Not used w/hardware fifo */
+}
 #else
 extern void waitIdle(void);
+void zy1000_flush_readqueue(void);
 #endif
 
 static __inline__ void waitQueue(void)
@@ -222,6 +228,6 @@ static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 	}
 }
 
-#define interface_jtag_add_callback(callback, in) callback(in)
-
-#define interface_jtag_add_callback4(callback, in, data1, data2, data3) jtag_set_error(callback(in, data1, data2, data3))
+/* Must flush any read queue before we can invoke callback */
+#define interface_jtag_add_callback(callback, in) {zy1000_flush_readqueue(); callback(in);}
+#define interface_jtag_add_callback4(callback, in, data1, data2, data3) {zy1000_flush_readqueue(); jtag_set_error(callback(in, data1, data2, data3));}

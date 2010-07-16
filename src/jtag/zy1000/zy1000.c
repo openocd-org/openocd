@@ -463,6 +463,11 @@ int interface_jtag_execute_queue(void)
 
 	waitIdle();
 
+	/* We must make sure to write data read back to memory location before we return
+	 * from this fn
+	 */
+	zy1000_flush_readqueue();
+
 	if (zy1000_rclk)
 	{
 		/* Only check for errors when using RCLK to speed up
@@ -487,38 +492,7 @@ int interface_jtag_execute_queue(void)
 
 
 
-
-static uint32_t getShiftValue(void)
-{
-	uint32_t value;
-	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, value);
-	VERBOSE(LOG_INFO("getShiftValue %08x", value));
-	return value;
-}
-#if 0
-static uint32_t getShiftValueFlip(void)
-{
-	uint32_t value;
-	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x18, value);
-	VERBOSE(LOG_INFO("getShiftValue %08x (flipped)", value));
-	return value;
-}
-#endif
-
-#if 0
-static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endState, int repeat, uint32_t value)
-{
-	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", tap_state_name(state), tap_state_name(endState), repeat, value));
-	uint32_t a,b;
-	a = state;
-	b = endState;
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value);
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 15) | (repeat << 8) | (a << 4) | b);
-	VERBOSE(getShiftValueFlip());
-}
-#endif
+static void writeShiftValue(uint8_t *data, int bits);
 
 // here we shuffle N bits out/in
 static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int num_bits, bool pause_now, tap_state_t shiftState, tap_state_t end_state)
@@ -562,15 +536,7 @@ static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int n
 
 		if (in_value != NULL)
 		{
-			// data in, LSB to MSB
-			value = getShiftValue();
-			// we're shifting in data to MSB, shift data to be aligned for returning the value
-			value >>= 32-k;
-
-			for (int l = 0; l < k; l += 8)
-			{
-				in_value[(j + l)/8]=(value >> l)&0xff;
-			}
+			writeShiftValue(in_value + (j/8), k);
 		}
 	}
 }
@@ -1182,11 +1148,12 @@ void waitIdle(void)
 	}
 }
 
-
-
 uint32_t zy1000_tcpin(uint32_t address)
 {
 	tcpip_open();
+
+	zy1000_flush_readqueue();
+
 	uint32_t data;
 	if (!writeLong((ZY1000_CMD_PEEK << 24) | address)||
 			!readLong(&data))
@@ -1209,6 +1176,90 @@ int interface_jtag_add_sleep(uint32_t us)
 	return ERROR_OK;
 }
 
+/* queue a readback */
+#define readqueue_size 16384
+static struct
+{
+	uint8_t *dest;
+	int bits;
+} readqueue[readqueue_size];
+
+static int readqueue_pos = 0;
+
+/* flush the readqueue, this means reading any data that
+ * we're expecting and store them into the final position
+ */
+void zy1000_flush_readqueue(void)
+{
+	if (readqueue_pos == 0)
+	{
+		/* simply debugging by allowing easy breakpoints when there
+		 * is something to do. */
+		return;
+	}
+	int i;
+	tcpip_open();
+	for (i = 0; i < readqueue_pos; i++)
+	{
+		uint32_t value;
+		if (!readLong(&value))
+		{
+			fprintf(stderr, "Could not read from zy1000 server\n");
+			exit(-1);
+		}
+
+		uint8_t *in_value = readqueue[i].dest;
+		int k = readqueue[i].bits;
+
+		// we're shifting in data to MSB, shift data to be aligned for returning the value
+		value >>= 32-k;
+
+		for (int l = 0; l < k; l += 8)
+		{
+			in_value[l/8]=(value >> l)&0xff;
+		}
+	}
+	readqueue_pos = 0;
+}
+
+static void writeShiftValue(uint8_t *data, int bits)
+{
+	waitIdle();
+
+	if (!writeLong((ZY1000_CMD_PEEK << 24) | (ZY1000_JTAG_BASE + 0xc)))
+	{
+		fprintf(stderr, "Could not read from zy1000 server\n");
+		exit(-1);
+	}
+
+	if (readqueue_pos >= readqueue_size)
+	{
+		zy1000_flush_readqueue();
+	}
+
+	readqueue[readqueue_pos].dest = data;
+	readqueue[readqueue_pos].bits = bits;
+	readqueue_pos++;
+}
+
+#else
+
+static void writeShiftValue(uint8_t *data, int bits)
+{
+	uint32_t value;
+	waitIdle();
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, value);
+	VERBOSE(LOG_INFO("getShiftValue %08x", value));
+
+	// data in, LSB to MSB
+	// we're shifting in data to MSB, shift data to be aligned for returning the value
+	value >>= 32 - bits;
+
+	for (int l = 0; l < bits; l += 8)
+	{
+		data[l/8]=(value >> l)&0xff;
+	}
+}
 
 #endif
 
