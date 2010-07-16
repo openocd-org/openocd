@@ -48,6 +48,7 @@ extern uint32_t zy1000_tcpin(uint32_t address);
 
 
 
+#if BUILD_ECOSBOARD
 // FIFO empty?
 static __inline__ void waitIdle(void)
 {
@@ -57,6 +58,9 @@ static __inline__ void waitIdle(void)
 		ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
 	} while ((empty & 0x100) == 0);
 }
+#else
+extern void waitIdle(void);
+#endif
 
 static __inline__ void waitQueue(void)
 {

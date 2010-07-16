@@ -1107,6 +1107,7 @@ enum ZY1000_CMD
 	ZY1000_CMD_POKE = 0x0,
 	ZY1000_CMD_PEEK = 0x8,
 	ZY1000_CMD_SLEEP = 0x1,
+	ZY1000_CMD_WAITIDLE = 2
 };
 
 
@@ -1166,6 +1167,22 @@ void zy1000_tcpout(uint32_t address, uint32_t data)
 		exit(-1);
 	}
 }
+
+/* By sending the wait to the server, we avoid a readback
+ * of status. Radically improves performance for this operation
+ * with long ping times.
+ */
+void waitIdle(void)
+{
+	tcpip_open();
+	if (!writeLong((ZY1000_CMD_WAITIDLE << 24)))
+	{
+		fprintf(stderr, "Could not write to zy1000 server\n");
+		exit(-1);
+	}
+}
+
+
 
 uint32_t zy1000_tcpin(uint32_t address)
 {
@@ -1239,6 +1256,11 @@ static void tcpipserver(void)
 				if (!readLong(&data))
 					return;
 				jtag_sleep(data);
+				break;
+			}
+			case ZY1000_CMD_WAITIDLE:
+			{
+				waitIdle();
 				break;
 			}
 			default:
