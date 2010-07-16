@@ -72,6 +72,10 @@
 
 #endif
 
+
+/* The software needs to check if it's in RCLK mode or not */
+static bool zy1000_rclk = false;
+
 static int zy1000_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0)
@@ -222,11 +226,13 @@ int zy1000_speed(int speed)
 	/* flush JTAG master FIFO before setting speed */
 	waitIdle();
 
+	zy1000_rclk = false;
+
 	if (speed == 0)
 	{
 		/*0 means RCLK*/
-		speed = 0;
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x100);
+		zy1000_rclk = true;
 		LOG_DEBUG("jtag_speed using RCLK");
 	}
 	else
@@ -456,17 +462,24 @@ int interface_jtag_execute_queue(void)
 	uint32_t empty;
 
 	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
-	/* clear JTAG error register */
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x400);
 
-	if ((empty&0x400) != 0)
+	if (zy1000_rclk)
 	{
-		LOG_WARNING("RCLK timeout");
-		/* the error is informative only as we don't want to break the firmware if there
-		 * is a false positive.
+		/* Only check for errors when using RCLK to speed up
+		 * jtag over TCP/IP
 		 */
-//		return ERROR_FAIL;
+		ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
+		/* clear JTAG error register */
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x400);
+
+		if ((empty&0x400) != 0)
+		{
+			LOG_WARNING("RCLK timeout");
+			/* the error is informative only as we don't want to break the firmware if there
+			 * is a false positive.
+			 */
+	//		return ERROR_FAIL;
+		}
 	}
 	return ERROR_OK;
 }
