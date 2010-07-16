@@ -5160,7 +5160,7 @@ be removed in a future release.
 @section Other NAND commands
 @cindex NAND other commands
 
-@deffn Command {nand check_bad_blocks} [offset length]
+@deffn Command {nand check_bad_blocks} num [offset length]
 Checks for manufacturer bad block markers on the specified NAND
 device.  If no parameters are provided, checks the whole
 device; otherwise, starts at the specified @var{offset} and
