@@ -1098,50 +1098,52 @@ static int dap_info_command(struct command_context *cmd_ctx,
 			{
 				uint32_t c_cid0, c_cid1, c_cid2, c_cid3;
 				uint32_t c_pid0, c_pid1, c_pid2, c_pid3, c_pid4;
-				uint32_t component_start, component_base;
+				uint32_t component_base;
 				unsigned part_num;
 				char *type, *full;
 
-				component_base = (uint32_t)((dbgbase & 0xFFFFF000)
-						+ (int)(romentry & 0xFFFFF000));
+				component_base = (dbgbase & 0xFFFFF000)
+						+ (romentry & 0xFFFFF000);
+
+				/* IDs are in last 4K section */
+
+
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000)
-							| 0xFE0, &c_pid0);
+					component_base + 0xFE0, &c_pid0);
 				c_pid0 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000)
-							| 0xFE4, &c_pid1);
+					component_base + 0xFE4, &c_pid1);
 				c_pid1 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000)
-							| 0xFE8, &c_pid2);
+					component_base + 0xFE8, &c_pid2);
 				c_pid2 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000)
-							| 0xFEC, &c_pid3);
+					component_base + 0xFEC, &c_pid3);
 				c_pid3 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000)
-							| 0xFD0, &c_pid4);
+					component_base + 0xFD0, &c_pid4);
 				c_pid4 &= 0xff;
 
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFF0, &c_cid0);
+					component_base + 0xFF0, &c_cid0);
 				c_cid0 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFF4, &c_cid1);
+					component_base + 0xFF4, &c_cid1);
 				c_cid1 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFF8, &c_cid2);
+					component_base + 0xFF8, &c_cid2);
 				c_cid2 &= 0xff;
 				mem_ap_read_atomic_u32(dap,
-						(component_base & 0xFFFFF000) | 0xFFC, &c_cid3);
+					component_base + 0xFFC, &c_cid3);
 				c_cid3 &= 0xff;
-				component_start = component_base - 0x1000*(c_pid4 >> 4);
 
-				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32
-						", start address 0x%" PRIx32,
-						component_base, component_start);
+
+				command_print(cmd_ctx,
+				"\t\tComponent base address 0x%" PRIx32
+					", start address 0x%" PRIx32,
+						component_base,
+				/* component may take multiple 4K pages */
+				component_base - 0x1000*(c_pid4 >> 4));
 				command_print(cmd_ctx, "\t\tComponent class is 0x%x, %s",
 						(int) (c_cid1 >> 4) & 0xf,
 						/* See ARM IHI 0029B Table 3-3 */
