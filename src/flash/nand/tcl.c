@@ -147,7 +147,8 @@ COMMAND_HANDLER(handle_nand_probe_command)
 
 	if ((retval = nand_probe(p)) == ERROR_OK)
 	{
-		command_print(CMD_CTX, "NAND flash device '%s' found", p->device->name);
+		command_print(CMD_CTX, "NAND flash device '%s (%s)' found",
+				p->device->name, p->manufacturer->name);
 	}
 	else if (retval == ERROR_NAND_OPERATION_FAILED)
 	{
