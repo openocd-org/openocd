@@ -49,6 +49,7 @@ Board, Target, and Interface Configuration Scripts:
 	Support Voipac PXA270/PXA270M module.
 	New $PARPORTADDR tcl variable used to change default
 		parallel port address used.
+	Remove lm3s811.cfg; use "stellaris.cfg" instead
 
 Core Jim/TCL Scripting:
 	New "add_script_search_dir" command, behaviour is the same
