@@ -468,6 +468,9 @@ int interface_jtag_execute_queue(void)
 	 */
 	zy1000_flush_readqueue();
 
+	/* and handle any callbacks... */
+	zy1000_flush_callbackqueue();
+
 	if (zy1000_rclk)
 	{
 		/* Only check for errors when using RCLK to speed up
@@ -1220,6 +1223,64 @@ void zy1000_flush_readqueue(void)
 		}
 	}
 	readqueue_pos = 0;
+}
+
+/* By queuing the callback's we avoid flushing the
+read queue until jtag_execute_queue(). This can
+reduce latency dramatically for cases where
+callbacks are used extensively.
+*/
+#define callbackqueue_size 128
+static struct callbackentry
+{
+	jtag_callback_t callback;
+	jtag_callback_data_t data0;
+	jtag_callback_data_t data1;
+	jtag_callback_data_t data2;
+	jtag_callback_data_t data3;
+} callbackqueue[callbackqueue_size];
+
+static int callbackqueue_pos = 0;
+
+void zy1000_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+{
+	if (callbackqueue_pos >= callbackqueue_size)
+	{
+		zy1000_flush_callbackqueue();
+	}
+
+	callbackqueue[callbackqueue_pos].callback = callback;
+	callbackqueue[callbackqueue_pos].data0 = data0;
+	callbackqueue[callbackqueue_pos].data1 = data1;
+	callbackqueue[callbackqueue_pos].data2 = data2;
+	callbackqueue[callbackqueue_pos].data3 = data3;
+	callbackqueue_pos++;
+}
+
+static int zy1000_jtag_convert_to_callback4(jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+{
+	((jtag_callback1_t)data1)(data0);
+	return ERROR_OK;
+}
+
+void zy1000_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0)
+{
+	zy1000_jtag_add_callback4(zy1000_jtag_convert_to_callback4, data0, (jtag_callback_data_t)callback, 0, 0);
+}
+
+void zy1000_flush_callbackqueue(void)
+{
+	/* we have to flush the read queue so we have access to
+	 the data the callbacks will use 
+	*/
+	zy1000_flush_readqueue();
+	int i;
+	for (i = 0; i < callbackqueue_pos; i++)
+	{
+		struct callbackentry *entry = &callbackqueue[i];
+		jtag_set_error(entry->callback(entry->data0, entry->data1, entry->data2, entry->data3));
+	}
+	callbackqueue_pos = 0;
 }
 
 static void writeShiftValue(uint8_t *data, int bits)

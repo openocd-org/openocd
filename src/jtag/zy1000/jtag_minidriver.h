@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2009 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2010 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -63,9 +63,16 @@ static __inline__ void zy1000_flush_readqueue(void)
 {
 	/* Not used w/hardware fifo */
 }
+static __inline__ void zy1000_flush_callbackqueue(void)
+{
+	/* Not used w/hardware fifo */
+}
 #else
 extern void waitIdle(void);
 void zy1000_flush_readqueue(void);
+void zy1000_flush_callbackqueue(void);
+void zy1000_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
+void zy1000_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0);
 #endif
 
 static __inline__ void waitQueue(void)
@@ -228,6 +235,10 @@ static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
 	}
 }
 
-/* Must flush any read queue before we can invoke callback */
-#define interface_jtag_add_callback(callback, in) {zy1000_flush_readqueue(); callback(in);}
-#define interface_jtag_add_callback4(callback, in, data1, data2, data3) {zy1000_flush_readqueue(); jtag_set_error(callback(in, data1, data2, data3));}
+#if BUILD_ECOSBOARD
+#define interface_jtag_add_callback(callback, in) callback(in)
+#define interface_jtag_add_callback4(callback, in, data1, data2, data3) jtag_set_error(callback(in, data1, data2, data3))
+#else
+#define interface_jtag_add_callback(callback, in) zy1000_jtag_add_callback(callback, in)
+#define interface_jtag_add_callback4(callback, in, data1, data2, data3) zy1000_jtag_add_callback4(callback, in, data1, data2, data3)
+#endif
