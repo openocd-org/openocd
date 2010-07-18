@@ -191,7 +191,9 @@ static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t addre
 		return retval;
 
 	dap_ap_select(swjdp, swjdp_memoryap);
-	mem_ap_read_buf_u32(swjdp, (uint8_t *)(&regfile[1]), 4*15, address);
+	retval = mem_ap_read_buf_u32(swjdp, (uint8_t *)(&regfile[1]), 4*15, address);
+	if (retval != ERROR_OK)
+		return retval;
 	dap_ap_select(swjdp, swjdp_debugap);
 
 	return retval;
