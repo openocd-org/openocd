@@ -182,7 +182,10 @@ static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t addre
 
 	cortex_a8_dap_read_coreregister_u32(target, regfile, 0);
 	cortex_a8_dap_write_coreregister_u32(target, address, 0);
-	cortex_a8_exec_opcode(target, ARMV4_5_STMIA(0, 0xFFFE, 0, 0), NULL);
+	retval = cortex_a8_exec_opcode(target, ARMV4_5_STMIA(0, 0xFFFE, 0, 0), NULL);
+	if (retval != ERROR_OK)
+		return retval;
+
 	dap_ap_select(swjdp, swjdp_memoryap);
 	mem_ap_read_buf_u32(swjdp, (uint8_t *)(&regfile[1]), 4*15, address);
 	dap_ap_select(swjdp, swjdp_debugap);
@@ -205,27 +208,37 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 	if (reg < 15)
 	{
 		/* Rn to DCCTX, "MCR p14, 0, Rn, c0, c5, 0"  0xEE00nE15 */
-		cortex_a8_exec_opcode(target,
+		retval = cortex_a8_exec_opcode(target,
 				ARMV4_5_MCR(14, 0, reg, 0, 5, 0),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else if (reg == 15)
 	{
 		/* "MOV r0, r15"; then move r0 to DCCTX */
-		cortex_a8_exec_opcode(target, 0xE1A0000F, &dscr);
-		cortex_a8_exec_opcode(target,
+		retval = cortex_a8_exec_opcode(target, 0xE1A0000F, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_exec_opcode(target,
 				ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else
 	{
 		/* "MRS r0, CPSR" or "MRS r0, SPSR"
 		 * then move r0 to DCCTX
 		 */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRS(0, reg & 1), &dscr);
-		cortex_a8_exec_opcode(target,
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRS(0, reg & 1), &dscr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_exec_opcode(target,
 				ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	/* Wait for DTRRXfull then read DTRRTX */
@@ -264,8 +277,10 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	{
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
 		/* Clear DCCRX with MCR(p14, 0, Rd, c0, c5, 0), opcode  0xEE000E15 */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	if (Rd > 17)
@@ -281,33 +296,47 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	if (Rd < 15)
 	{
 		/* DCCRX to Rn, "MCR p14, 0, Rn, c0, c5, 0", 0xEE00nE15 */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, Rd, 0, 5, 0),
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, Rd, 0, 5, 0),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else if (Rd == 15)
 	{
 		/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15
 		 * then "mov r15, r0"
 		 */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 				&dscr);
-		cortex_a8_exec_opcode(target, 0xE1A0F000, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_exec_opcode(target, 0xE1A0F000, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else
 	{
 		/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15
 		 * then "MSR CPSR_cxsf, r0" or "MSR SPSR_cxsf, r0" (all fields)
 		 */
-		cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 				&dscr);
-		cortex_a8_exec_opcode(target, ARMV4_5_MSR_GP(0, 0xF, Rd & 1),
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_MSR_GP(0, 0xF, Rd & 1),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* "Prefetch flush" after modifying execution status in CPSR */
 		if (Rd == 16)
-			cortex_a8_exec_opcode(target,
+		{
+			retval = cortex_a8_exec_opcode(target,
 					ARMV4_5_MCR(15, 0, 0, 7, 5, 4),
 					&dscr);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 	}
 
 	return retval;
@@ -412,6 +441,8 @@ static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
 				a8->armv7a_common.armv4_5_common.target,
 				ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	return retval;
@@ -452,6 +483,8 @@ static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
 			a8->armv7a_common.armv4_5_common.target,
 			ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 			&dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* then the opcode, taking data from R0 */
 	retval = cortex_a8_exec_opcode(
@@ -485,6 +518,8 @@ static int cortex_a8_instr_read_data_dcc(struct arm_dpm *dpm,
 			a8->armv7a_common.armv4_5_common.target,
 			opcode,
 			&dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return cortex_a8_read_dcc(a8, data, &dscr);
 }
@@ -502,12 +537,16 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 			a8->armv7a_common.armv4_5_common.target,
 			opcode,
 			&dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write R0 to DCC */
 	retval = cortex_a8_exec_opcode(
 			a8->armv7a_common.armv4_5_common.target,
 			ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
 			&dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return cortex_a8_read_dcc(a8, data, &dscr);
 }
