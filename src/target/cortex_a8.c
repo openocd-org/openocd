@@ -180,8 +180,12 @@ static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t addre
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
 
-	cortex_a8_dap_read_coreregister_u32(target, regfile, 0);
-	cortex_a8_dap_write_coreregister_u32(target, address, 0);
+	retval = cortex_a8_dap_read_coreregister_u32(target, regfile, 0);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = cortex_a8_exec_opcode(target, ARMV4_5_STMIA(0, 0xFFFE, 0, 0), NULL);
 	if (retval != ERROR_OK)
 		return retval;
@@ -965,7 +969,9 @@ static int cortex_a8_debug_entry(struct target *target)
 		target_free_working_area(target, regfile_working_area);
 
 		/* read Current PSR */
-		cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
+		retval = cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
+		if (retval != ERROR_OK)
+			return retval;
 		dap_ap_select(swjdp, swjdp_debugap);
 		LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
