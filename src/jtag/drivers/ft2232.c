@@ -318,6 +318,9 @@ static const struct ft2232_layout *layout;
 
 /** default bitmask values ddriven on DBUS: TCK/TDI/TDO/TMS and GPIOL(0..4) */
 static uint8_t                  low_output     = 0x0;
+
+/* note that direction bit == 1 means that signal is an output */
+
 /** default direction bitmask for DBUS: TCK/TDI/TDO/TMS and GPIOL(0..4) */
 static uint8_t                  low_direction  = 0x0;
 /** default value bitmask for CBUS GPIOH(0..4) */
@@ -2492,13 +2495,34 @@ static int icdi_jtag_init(void)
 
 	/* Most Luminary eval boards support SWO trace output,
 	 * and should use this "luminary_icdi" layout.
+	 *
+	 * DBUS 0..3 are used for JTAG as usual.  GPIOs are used
+	 * to switch between JTAG and SWD, or switch the ft2232 UART
+	 * between (i) the target UART or (ii) SWO trace data.
+	 *
+	 * We come up in JTAG mode and may switch to SWD later (with
+	 * SWO/trace option if SWD is active).
+	 *
+	 * DBUS == GPIO-Lx
+	 * CBUS == GPIO-Hx
 	 */
+
+
+#define ICDI_JTAG_EN (1 << 7)		/* ADBUS 7 (a.k.a. DBGMOD) */
+#define ICDI_DBG_ENn (1 << 6)		/* ADBUS 6 */
+#define ICDI_SRST (1 << 5)		/* ADBUS 5 */
+#define ICDI_TDI (1 << 2)		/* ADBUS 2 (INPUT) */
+
+#define ICDI_SWO_EN (1 << 4)		/* BDBUS 4 */
+#define ICDI_TX_SWO (1 << 1)	 	/* BDBUS 1 */
+
 	nTRST = 0x0;
 	nTRSTnOE = 0x00;
-	nSRST = 0x20;
+	nSRST = ICDI_SRST;
 	nSRSTnOE = 0x20;
-	low_output    = 0x88;
-	low_direction = 0xcb;
+
+	low_output    = 0x08 | ICDI_JTAG_EN;
+	low_direction = 0xcb | ICDI_JTAG_EN;
 
 	return ftx232_dbus_write();
 }
