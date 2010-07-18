@@ -468,6 +468,8 @@ static int cortex_a8_instr_write_data_dcc(struct arm_dpm *dpm,
 	uint32_t dscr = DSCR_INSTR_COMP;
 
 	retval = cortex_a8_write_dcc(a8, data);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return cortex_a8_exec_opcode(
 			a8->armv7a_common.armv4_5_common.target,
@@ -483,6 +485,8 @@ static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
 	int retval;
 
 	retval = cortex_a8_write_dcc(a8, data);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
 	retval = cortex_a8_exec_opcode(
@@ -837,7 +841,9 @@ static int cortex_a8_resume(struct target *target, int current,
 	armv4_5->pc->dirty = 1;
 	armv4_5->pc->valid = 1;
 
-	cortex_a8_restore_context(target, handle_breakpoints);
+	retval = cortex_a8_restore_context(target, handle_breakpoints);
+	if (retval != ERROR_OK)
+		return retval;
 
 #if 0
 	/* the front-end may request us not to handle breakpoints */
@@ -965,10 +971,14 @@ static int cortex_a8_debug_entry(struct target *target)
 	else
 	{
 		dap_ap_select(swjdp, swjdp_memoryap);
-		cortex_a8_read_regs_through_mem(target,
+		retval = cortex_a8_read_regs_through_mem(target,
 				regfile_working_area->address, regfile);
 		dap_ap_select(swjdp, swjdp_memoryap);
 		target_free_working_area(target, regfile_working_area);
+		if (retval != ERROR_OK)
+		{
+			return retval;
+		}
 
 		/* read Current PSR */
 		retval = cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
@@ -1156,9 +1166,7 @@ static int cortex_a8_restore_context(struct target *target, bool bpwp)
 	if (armv7a->pre_restore_context)
 		armv7a->pre_restore_context(target);
 
-	arm_dpm_write_dirty_registers(&armv7a->dpm, bpwp);
-
-	return ERROR_OK;
+	return arm_dpm_write_dirty_registers(&armv7a->dpm, bpwp);
 }
 
 
@@ -1204,12 +1212,16 @@ static int cortex_a8_set_breakpoint(struct target *target,
 		brp_list[brp_i].used = 1;
 		brp_list[brp_i].value = (breakpoint->address & 0xFFFFFFFC);
 		brp_list[brp_i].control = control;
-		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].value);
-		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
+		if (retval != ERROR_OK)
+			return retval;
 		LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
 				brp_list[brp_i].control,
 				brp_list[brp_i].value);
@@ -1268,12 +1280,16 @@ static int cortex_a8_unset_breakpoint(struct target *target, struct breakpoint *
 		brp_list[brp_i].used = 0;
 		brp_list[brp_i].value = 0;
 		brp_list[brp_i].control = 0;
-		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
-		cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
 				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].value);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	else
 	{
@@ -1456,7 +1472,10 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
         if(enabled)
         {
             virt = address;
-            cortex_a8_virt2phys(target, virt, &phys);
+            retval = cortex_a8_virt2phys(target, virt, &phys);
+            if (retval != ERROR_OK)
+            	return retval;
+
             LOG_DEBUG("Reading at virtual address. Translating v:0x%x to r:0x%x", virt, phys);
             address = phys;
         }
@@ -1520,6 +1539,8 @@ static int cortex_a8_write_phys_memory(struct target *target,
                                 retval = dpm->instr_write_data_r0(dpm,
                                         ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
                                         cacheline);
+                                if (retval != ERROR_OK)
+                                	return retval;
                         }
                 }
 
@@ -1536,6 +1557,8 @@ static int cortex_a8_write_phys_memory(struct target *target,
                                 retval = dpm->instr_write_data_r0(dpm,
                                         ARMV4_5_MCR(15, 0, 0, 7, 6, 1),
                                         cacheline);
+                                if (retval != ERROR_OK)
+                                	return retval;
                         }
                 }
 
@@ -1561,7 +1584,9 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
         if(enabled)
         {
             virt = address;
-            cortex_a8_virt2phys(target, virt, &phys);
+            retval = cortex_a8_virt2phys(target, virt, &phys);
+            if (retval != ERROR_OK)
+            	return retval;
             LOG_DEBUG("Writing to virtual address. Translating v:0x%x to r:0x%x", virt, phys);
             address = phys;
         }
@@ -1605,6 +1630,7 @@ static int cortex_a8_handle_target_request(void *priv)
 	struct target *target = priv;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
+	int retval;
 
 	if (!target_was_examined(target))
 		return ERROR_OK;
@@ -1616,7 +1642,9 @@ static int cortex_a8_handle_target_request(void *priv)
 		uint8_t data = 0;
 		uint8_t ctrl = 0;
 
-		cortex_a8_dcc_read(swjdp, &data, &ctrl);
+		retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* check if we have data */
 		if (ctrl & (1 << 0))
@@ -1625,11 +1653,17 @@ static int cortex_a8_handle_target_request(void *priv)
 
 			/* we assume target is quick enough */
 			request = data;
-			cortex_a8_dcc_read(swjdp, &data, &ctrl);
+			retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
+			if (retval != ERROR_OK)
+				return retval;
 			request |= (data << 8);
-			cortex_a8_dcc_read(swjdp, &data, &ctrl);
+			retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
+			if (retval != ERROR_OK)
+				return retval;
 			request |= (data << 16);
-			cortex_a8_dcc_read(swjdp, &data, &ctrl);
+			retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
+			if (retval != ERROR_OK)
+				return retval;
 			request |= (data << 24);
 			target_request(target, request);
 		}
@@ -1816,11 +1850,10 @@ static int cortex_a8_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a8_common *cortex_a8 = calloc(1, sizeof(struct cortex_a8_common));
 
-	cortex_a8_init_arch_info(target, cortex_a8, target->tap);
-
-	return ERROR_OK;
+	return cortex_a8_init_arch_info(target, cortex_a8, target->tap);
 }
 
+/* FIX! error propagation missing from this fn */
 static uint32_t cortex_a8_get_ttb(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
@@ -1874,6 +1907,7 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
     return ttb;
 }
 
+/* FIX! error propagation missing from this fn */
 static void cortex_a8_disable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache)
 {
@@ -1903,6 +1937,7 @@ static void cortex_a8_disable_mmu_caches(struct target *target, int mmu,
                     cp15_control);
 }
 
+/* FIX! error propagation missing from this fn */
 static void cortex_a8_enable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache)
 {
