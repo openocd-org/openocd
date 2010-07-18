@@ -109,7 +109,7 @@ static int cortex_a8_init_debug_access(struct target *target)
 
 	/* Resync breakpoint registers */
 
-	/* Since this is likley called from init or reset, update targtet state information*/
+	/* Since this is likely called from init or reset, update target state information*/
 	retval = cortex_a8_poll(target);
 
 	return retval;
@@ -1101,7 +1101,7 @@ static int cortex_a8_restore_context(struct target *target, bool bpwp)
 
 
 /*
- * Cortex-A8 Breakpoint and watchpoint fuctions
+ * Cortex-A8 Breakpoint and watchpoint functions
  */
 
 /* Setup hardware Breakpoint Register Pair */
@@ -1261,7 +1261,7 @@ static int cortex_a8_remove_breakpoint(struct target *target, struct breakpoint 
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 
 #if 0
-/* It is perfectly possible to remove brakpoints while the taget is running */
+/* It is perfectly possible to remove breakpoints while the target is running */
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
@@ -1283,7 +1283,7 @@ static int cortex_a8_remove_breakpoint(struct target *target, struct breakpoint 
 
 
 /*
- * Cortex-A8 Reset fuctions
+ * Cortex-A8 Reset functions
  */
 
 static int cortex_a8_assert_reset(struct target *target)
@@ -1803,7 +1803,7 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
                     2, 0,   /* CRn, CRm */
                     &ttb);
     }
-    /* finaly we don't know whose ttb to use: user or kernel */
+    /* finally we don't know whose ttb to use: user or kernel */
     else
         LOG_ERROR("Don't know how to get ttb for current mode!!!");
 
