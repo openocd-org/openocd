@@ -11,6 +11,9 @@
  *   Copyright (C) 2009 by Dirk Behme                                      *
  *   dirk.behme@gmail.com - copy from cortex_m3                            *
  *                                                                         *
+ *   Copyright (C) 2010 Øyvind Harboe                                      *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -228,6 +231,8 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	retval = mem_ap_read_atomic_u32(swjdp,
@@ -251,6 +256,8 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	/* Check that DCCRX is not full */
 	retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
 	if (dscr & DSCR_DTR_RX_FULL)
 	{
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
@@ -352,10 +359,14 @@ static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data,
 		retval = mem_ap_read_atomic_u32(swjdp,
 				a8->armv7a_common.debug_base + CPUDBG_DSCR,
 				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	retval = mem_ap_read_atomic_u32(swjdp,
 			a8->armv7a_common.debug_base + CPUDBG_DTRTX, data);
+	if (retval != ERROR_OK)
+		return retval;
 	//LOG_DEBUG("read DCC 0x%08" PRIx32, *data);
 
 	if (dscr_p)
