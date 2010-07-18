@@ -147,7 +147,9 @@ static int cortex_a8_exec_opcode(struct target *target,
 		}
 	}
 
-	mem_ap_write_u32(swjdp, armv7a->debug_base + CPUDBG_ITR, opcode);
+	retval = mem_ap_write_u32(swjdp, armv7a->debug_base + CPUDBG_ITR, opcode);
+	if (retval != ERROR_OK)
+		return retval;
 
 	do
 	{
@@ -273,6 +275,8 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	LOG_DEBUG("write DCC 0x%08" PRIx32, value);
 	retval = mem_ap_write_u32(swjdp,
 			armv7a->debug_base + CPUDBG_DTRRX, value);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (Rd < 15)
 	{
