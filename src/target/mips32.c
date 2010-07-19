@@ -348,7 +348,7 @@ static int mips32_run_and_wait(struct target *target, uint32_t entry_point,
 	}
 
 	pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
-	if (pc != exit_point)
+	if (exit_point && (pc != exit_point))
 	{
 		LOG_DEBUG("failed algoritm halted at 0x%" PRIx32 " ", pc);
 		return ERROR_TARGET_TIMEOUT;
