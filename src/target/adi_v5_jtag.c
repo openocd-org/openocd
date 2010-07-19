@@ -86,8 +86,11 @@ int adi_jtag_dp_scan(struct adiv5_dap *dap,
 	struct arm_jtag *jtag_info = dap->jtag_info;
 	struct scan_field fields[2];
 	uint8_t out_addr_buf;
+	int retval;
 
-	arm_jtag_set_instr(jtag_info, instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, instr, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Scan out a read or write operation using some DP or AP register.
 	 * For APACC access with any sticky error flag set, this is discarded.

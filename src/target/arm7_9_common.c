@@ -690,9 +690,13 @@ int arm7_9_execute_sys_speed(struct target *target)
 	/* set RESTART instruction */
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
-		arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		retval = arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-	arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	long long then = timeval_ms();
 	int timeout;
@@ -738,13 +742,18 @@ static int arm7_9_execute_fast_sys_speed(struct target *target)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	int retval;
 
 	/* set RESTART instruction */
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
-		arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		retval = arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-	arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (!set)
 	{
@@ -1744,13 +1753,19 @@ static int arm7_9_restart_core(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
+	int retval;
 
 	/* set RESTART instruction */
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
-		arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+
+		retval = arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-	arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	jtag_add_runtest(1, TAP_IDLE);
 	return jtag_execute_queue();

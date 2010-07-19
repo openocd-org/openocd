@@ -88,7 +88,9 @@ static int arm966e_read_cp15(struct target *target, int reg_addr, uint32_t *valu
 	{
 		return retval;
 	}
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	fields[0].num_bits = 32;
 	/* REVISIT: table 7-2 shows that bits 31-31 need to be
@@ -142,7 +144,9 @@ int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value)
 	{
 		return retval;
 	}
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;

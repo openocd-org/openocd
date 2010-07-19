@@ -89,11 +89,14 @@ static int arm920t_read_cp15_physical(struct target *target,
 	uint8_t access_type_buf = 1;
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 0;
+	int retval;
 
 	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
 	arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	fields[0].num_bits = 1;
 	fields[0].out_value = &access_type_buf;
@@ -137,13 +140,16 @@ static int arm920t_write_cp15_physical(struct target *target,
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 1;
 	uint8_t value_buf[4];
+	int retval;
 
 	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
 	buf_set_u32(value_buf, 0, 32, value);
 
 	arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	fields[0].num_bits = 1;
 	fields[0].out_value = &access_type_buf;
@@ -192,7 +198,9 @@ static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 	jtag_info = &arm920t->arm7_9_common.jtag_info;
 
 	arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	buf_set_u32(cp15_opcode_buf, 0, 32, cp15_opcode);
 

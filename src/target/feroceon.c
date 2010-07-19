@@ -78,6 +78,7 @@ static int feroceon_dummy_clock_out(struct arm_jtag *jtag_info, uint32_t instr)
 	uint8_t out_buf[4];
 	uint8_t instr_buf[4];
 	uint8_t sysspeed_buf = 0x0;
+	int retval;
 
 	/* prepare buffer */
 	buf_set_u32(out_buf, 0, 32, 0);
@@ -86,7 +87,9 @@ static int feroceon_dummy_clock_out(struct arm_jtag *jtag_info, uint32_t instr)
 
 	arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
