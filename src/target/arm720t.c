@@ -154,14 +154,19 @@ static int arm720t_get_ttb(struct target *target, uint32_t *result)
 	return ERROR_OK;
 }
 
-static void arm720t_disable_mmu_caches(struct target *target,
+static int arm720t_disable_mmu_caches(struct target *target,
 		int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	arm720t_read_cp15(target, 0xee110f10, &cp15_control);
-	jtag_execute_queue();
+	retval = arm720t_read_cp15(target, 0xee110f10, &cp15_control);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (mmu)
 		cp15_control &= ~0x1U;
@@ -169,17 +174,23 @@ static void arm720t_disable_mmu_caches(struct target *target,
 	if (d_u_cache || i_cache)
 		cp15_control &= ~0x4U;
 
-	arm720t_write_cp15(target, 0xee010f10, cp15_control);
+	retval = arm720t_write_cp15(target, 0xee010f10, cp15_control);
+	return retval;
 }
 
-static void arm720t_enable_mmu_caches(struct target *target,
+static int arm720t_enable_mmu_caches(struct target *target,
 		int mmu, int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	arm720t_read_cp15(target, 0xee110f10, &cp15_control);
-	jtag_execute_queue();
+	retval = arm720t_read_cp15(target, 0xee110f10, &cp15_control);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (mmu)
 		cp15_control |= 0x1U;
@@ -187,7 +198,8 @@ static void arm720t_enable_mmu_caches(struct target *target,
 	if (d_u_cache || i_cache)
 		cp15_control |= 0x4U;
 
-	arm720t_write_cp15(target, 0xee010f10, cp15_control);
+	retval = arm720t_write_cp15(target, 0xee010f10, cp15_control);
+	return retval;
 }
 
 static void arm720t_post_debug_entry(struct target *target)
@@ -282,12 +294,19 @@ static int arm720t_read_memory(struct target *target,
 
 	/* disable cache, but leave MMU enabled */
 	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-		arm720t_disable_mmu_caches(target, 0, 1, 0);
-
+	{
+		retval = arm720t_disable_mmu_caches(target, 0, 1, 0);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 	retval = arm7_9_read_memory(target, address, size, count, buffer);
 
 	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-		arm720t_enable_mmu_caches(target, 0, 1, 0);
+	{
+		retval = arm720t_enable_mmu_caches(target, 0, 1, 0);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	return retval;
 }
@@ -367,7 +386,9 @@ static int arm720t_soft_reset_halt(struct target *target)
 	armv4_5->pc->dirty = 1;
 	armv4_5->pc->valid = 1;
 
-	arm720t_disable_mmu_caches(target, 1, 1, 1);
+	retval = arm720t_disable_mmu_caches(target, 1, 1, 1);
+	if (retval != ERROR_OK)
+		return retval;
 	arm720t->armv4_5_mmu.mmu_enabled = 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;

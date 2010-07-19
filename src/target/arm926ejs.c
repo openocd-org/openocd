@@ -337,20 +337,27 @@ static int arm926ejs_get_ttb(struct target *target, uint32_t *result)
 	return ERROR_OK;
 }
 
-static void arm926ejs_disable_mmu_caches(struct target *target, int mmu,
+static int arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
-	jtag_execute_queue();
+	retval = arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (mmu)
 	{
 		/* invalidate TLB */
-		arm926ejs->write_cp15(target, 0, 0, 8, 7, 0x0);
+		retval = arm926ejs->write_cp15(target, 0, 0, 8, 7, 0x0);
+		if (retval != ERROR_OK)
+			return retval;
 
 		cp15_control &= ~0x1U;
 	}
@@ -360,17 +367,25 @@ static void arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 		uint32_t debug_override;
 		/* read-modify-write CP15 debug override register
 		 * to enable "test and clean all" */
-		arm926ejs->read_cp15(target, 0, 0, 15, 0, &debug_override);
+		retval = arm926ejs->read_cp15(target, 0, 0, 15, 0, &debug_override);
+		if (retval != ERROR_OK)
+			return retval;
 		debug_override |= 0x80000;
-		arm926ejs->write_cp15(target, 0, 0, 15, 0, debug_override);
+		retval = arm926ejs->write_cp15(target, 0, 0, 15, 0, debug_override);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* clean and invalidate DCache */
-		arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
+		retval = arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* write CP15 debug override register
 		 * to disable "test and clean all" */
 		debug_override &= ~0x80000;
-		arm926ejs->write_cp15(target, 0, 0, 15, 0, debug_override);
+		retval = arm926ejs->write_cp15(target, 0, 0, 15, 0, debug_override);
+		if (retval != ERROR_OK)
+			return retval;
 
 		cp15_control &= ~0x4U;
 	}
@@ -378,23 +393,31 @@ static void arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 	{
 		/* invalidate ICache */
-		arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
+		retval = arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
+		if (retval != ERROR_OK)
+			return retval;
 
 		cp15_control &= ~0x1000U;
 	}
 
-	arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
+	retval = arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
+	return retval;
 }
 
-static void arm926ejs_enable_mmu_caches(struct target *target, int mmu,
+static int arm926ejs_enable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
-	jtag_execute_queue();
+	retval = arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (mmu)
 		cp15_control |= 0x1U;
@@ -405,7 +428,8 @@ static void arm926ejs_enable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 		cp15_control |= 0x1000U;
 
-	arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
+	retval = arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
+	return retval;
 }
 
 static void arm926ejs_post_debug_entry(struct target *target)
@@ -564,7 +588,9 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	armv4_5->pc->dirty = 1;
 	armv4_5->pc->valid = 1;
 
-	arm926ejs_disable_mmu_caches(target, 1, 1, 1);
+	retval = arm926ejs_disable_mmu_caches(target, 1, 1, 1);
+	if (retval != ERROR_OK)
+		return retval;
 	arm926ejs->armv4_5_mmu.mmu_enabled = 0;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;

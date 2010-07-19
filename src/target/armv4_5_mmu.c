@@ -131,14 +131,20 @@ int armv4_5_mmu_read_physical(struct target *target, struct armv4_5_mmu_common *
 		return ERROR_TARGET_NOT_HALTED;
 
 	/* disable MMU and data (or unified) cache */
-	armv4_5_mmu->disable_mmu_caches(target, 1, 1, 0);
+	retval = armv4_5_mmu->disable_mmu_caches(target, 1, 1, 0);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	retval = armv4_5_mmu->read_memory(target, address, size, count, buffer);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	/* reenable MMU / cache */
-	armv4_5_mmu->enable_mmu_caches(target, armv4_5_mmu->mmu_enabled,
+	retval = armv4_5_mmu->enable_mmu_caches(target, armv4_5_mmu->mmu_enabled,
 		armv4_5_mmu->armv4_5_cache.d_u_cache_enabled,
 		armv4_5_mmu->armv4_5_cache.i_cache_enabled);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	return retval;
 }
@@ -151,14 +157,20 @@ int armv4_5_mmu_write_physical(struct target *target, struct armv4_5_mmu_common 
 		return ERROR_TARGET_NOT_HALTED;
 
 	/* disable MMU and data (or unified) cache */
-	armv4_5_mmu->disable_mmu_caches(target, 1, 1, 0);
+	retval = armv4_5_mmu->disable_mmu_caches(target, 1, 1, 0);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	retval = armv4_5_mmu->write_memory(target, address, size, count, buffer);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	/* reenable MMU / cache */
-	armv4_5_mmu->enable_mmu_caches(target, armv4_5_mmu->mmu_enabled,
+	retval = armv4_5_mmu->enable_mmu_caches(target, armv4_5_mmu->mmu_enabled,
 		armv4_5_mmu->armv4_5_cache.d_u_cache_enabled,
 		armv4_5_mmu->armv4_5_cache.i_cache_enabled);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	return retval;
 }

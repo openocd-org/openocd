@@ -2018,14 +2018,17 @@ static int xscale_get_ttb(struct target *target, uint32_t *result)
 	return ERROR_OK;
 }
 
-static void xscale_disable_mmu_caches(struct target *target, int mmu,
+static int xscale_disable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
+	retval = xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
+	if (retval !=ERROR_OK)
+		return retval;
 	cp15_control = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CTRL].value, 0, 32);
 
 	if (mmu)
@@ -2034,11 +2037,17 @@ static void xscale_disable_mmu_caches(struct target *target, int mmu,
 	if (d_u_cache)
 	{
 		/* clean DCache */
-		xscale_send_u32(target, 0x50);
-		xscale_send_u32(target, xscale->cache_clean_address);
+		retval = xscale_send_u32(target, 0x50);
+		if (retval !=ERROR_OK)
+			return retval;
+		retval = xscale_send_u32(target, xscale->cache_clean_address);
+		if (retval !=ERROR_OK)
+			return retval;
 
 		/* invalidate DCache */
-		xscale_send_u32(target, 0x51);
+		retval = xscale_send_u32(target, 0x51);
+		if (retval !=ERROR_OK)
+			return retval;
 
 		cp15_control &= ~0x4U;
 	}
@@ -2046,25 +2055,33 @@ static void xscale_disable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 	{
 		/* invalidate ICache */
-		xscale_send_u32(target, 0x52);
+		retval = xscale_send_u32(target, 0x52);
+		if (retval !=ERROR_OK)
+			return retval;
 		cp15_control &= ~0x1000U;
 	}
 
 	/* write new cp15 control register */
-	xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_CTRL], cp15_control);
+	retval = xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_CTRL], cp15_control);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	/* execute cpwait to ensure outstanding operations complete */
-	xscale_send_u32(target, 0x53);
+	retval = xscale_send_u32(target, 0x53);
+	return retval;
 }
 
-static void xscale_enable_mmu_caches(struct target *target, int mmu,
+static int xscale_enable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
+	retval = xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
+	if (retval !=ERROR_OK)
+		return retval;
 	cp15_control = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CTRL].value, 0, 32);
 
 	if (mmu)
@@ -2077,10 +2094,13 @@ static void xscale_enable_mmu_caches(struct target *target, int mmu,
 		cp15_control |= 0x1000U;
 
 	/* write new cp15 control register */
-	xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_CTRL], cp15_control);
+	retval = xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_CTRL], cp15_control);
+	if (retval !=ERROR_OK)
+		return retval;
 
 	/* execute cpwait to ensure outstanding operations complete */
-	xscale_send_u32(target, 0x53);
+	retval = xscale_send_u32(target, 0x53);
+	return retval;
 }
 
 static int xscale_set_breakpoint(struct target *target,

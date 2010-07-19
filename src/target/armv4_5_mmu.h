@@ -29,8 +29,8 @@ struct armv4_5_mmu_common
 	int (*get_ttb)(struct target *target, uint32_t *result);
 	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	void (*disable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
-	void (*enable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
+	int (*disable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
+	int (*enable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
 	struct armv4_5_cache_common armv4_5_cache;
 	int has_tiny_pages;
 	int mmu_enabled;

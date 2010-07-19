@@ -333,14 +333,19 @@ int arm920t_get_ttb(struct target *target, uint32_t *result)
 }
 
 // EXPORTED to FA256
-void arm920t_disable_mmu_caches(struct target *target, int mmu,
+int arm920t_disable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_control);
-	jtag_execute_queue();
+	retval = arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_control);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (mmu)
 		cp15_control &= ~0x1U;
@@ -351,18 +356,24 @@ void arm920t_disable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 		cp15_control &= ~0x1000U;
 
-	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
+	retval = arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
+	return retval;
 }
 
 // EXPORTED to FA256
-void arm920t_enable_mmu_caches(struct target *target, int mmu,
+int arm920t_enable_mmu_caches(struct target *target, int mmu,
 		int d_u_cache, int i_cache)
 {
 	uint32_t cp15_control;
+	int retval;
 
 	/* read cp15 control register */
-	arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_control);
-	jtag_execute_queue();
+	retval = arm920t_read_cp15_physical(target, CP15PHYS_CTRL, &cp15_control);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (mmu)
 		cp15_control |= 0x1U;
@@ -373,7 +384,8 @@ void arm920t_enable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 		cp15_control |= 0x1000U;
 
-	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
+	retval = arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
+	return retval;
 }
 
 // EXPORTED to FA256

@@ -58,9 +58,9 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 static int cortex_a8_mmu(struct target *target, int *enabled);
 static int cortex_a8_virt2phys(struct target *target,
                 uint32_t virt, uint32_t *phys);
-static void cortex_a8_disable_mmu_caches(struct target *target, int mmu,
+static int cortex_a8_disable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache);
-static void cortex_a8_enable_mmu_caches(struct target *target, int mmu,
+static int cortex_a8_enable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache);
 static int cortex_a8_get_ttb(struct target *target, uint32_t *result);
 
@@ -1916,19 +1916,21 @@ static int cortex_a8_get_ttb(struct target *target, uint32_t *result)
     return ERROR_OK;
 }
 
-/* FIX! error propagation missing from this fn */
-static void cortex_a8_disable_mmu_caches(struct target *target, int mmu,
+static int cortex_a8_disable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache)
 {
     struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
     struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
     uint32_t cp15_control;
+    int retval;
 
     /* read cp15 control register */
-    armv7a->armv4_5_common.mrc(target, 15,
+    retval = armv7a->armv4_5_common.mrc(target, 15,
                     0, 0,   /* op1, op2 */
                     1, 0,   /* CRn, CRm */
                     &cp15_control);
+    if (retval != ERROR_OK)
+    	return retval;
 
 
     if (mmu)
@@ -1940,25 +1942,28 @@ static void cortex_a8_disable_mmu_caches(struct target *target, int mmu,
     if (i_cache)
             cp15_control &= ~0x1000U;
 
-    armv7a->armv4_5_common.mcr(target, 15,
+    retval = armv7a->armv4_5_common.mcr(target, 15,
                     0, 0,   /* op1, op2 */
                     1, 0,   /* CRn, CRm */
                     cp15_control);
+	return retval;
 }
 
-/* FIX! error propagation missing from this fn */
-static void cortex_a8_enable_mmu_caches(struct target *target, int mmu,
+static int cortex_a8_enable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache)
 {
     struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
     struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
     uint32_t cp15_control;
+    int retval;
 
     /* read cp15 control register */
-    armv7a->armv4_5_common.mrc(target, 15,
+    retval = armv7a->armv4_5_common.mrc(target, 15,
                     0, 0,   /* op1, op2 */
                     1, 0,   /* CRn, CRm */
                     &cp15_control);
+    if (retval != ERROR_OK)
+    	return retval;
 
     if (mmu)
             cp15_control |= 0x1U;
@@ -1969,10 +1974,11 @@ static void cortex_a8_enable_mmu_caches(struct target *target, int mmu,
     if (i_cache)
             cp15_control |= 0x1000U;
 
-    armv7a->armv4_5_common.mcr(target, 15,
+    retval = armv7a->armv4_5_common.mcr(target, 15,
                     0, 0,   /* op1, op2 */
                     1, 0,   /* CRn, CRm */
                     cp15_control);
+   	return retval;
 }
 
 
