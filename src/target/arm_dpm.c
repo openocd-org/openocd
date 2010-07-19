@@ -123,6 +123,8 @@ static int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 		cpsr = mode;
 
 	retval = dpm->instr_write_data_r0(dpm, ARMV4_5_MSR_GP(0, 0xf, 0), cpsr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (dpm->instr_cpsr_sync)
 		retval = dpm->instr_cpsr_sync(dpm);
@@ -211,6 +213,8 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV4_5_MSR_GP(0, 0xf, regnum & 1),
 				value);
+		if (retval != ERROR_OK)
+			return retval;
 
 		if (regnum == 16 && dpm->instr_cpsr_sync)
 			retval = dpm->instr_cpsr_sync(dpm);
@@ -364,6 +368,8 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 			retval = dpm_maybe_update_bpwp(dpm, bpwp, &dbp->bpwp,
 					bp ? &bp->set : NULL);
+			if (retval != ERROR_OK)
+				goto done;
 		}
 	}
 
@@ -374,6 +380,8 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 		retval = dpm_maybe_update_bpwp(dpm, bpwp, &dwp->bpwp,
 				wp ? &wp->set : NULL);
+		if (retval != ERROR_OK)
+			goto done;
 	}
 
 	/* NOTE:  writes to breakpoint and watchpoint registers might
@@ -433,7 +441,11 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 				/* REVISIT error checks */
 				if (tmode != ARM_MODE_ANY)
+				{
 					retval = dpm_modeswitch(dpm, tmode);
+					if (retval != ERROR_OK)
+						goto done;
+				}
 			}
 			if (r->mode != mode)
 				continue;
@@ -441,7 +453,8 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 			retval = dpm_write_reg(dpm,
 					&cache->reg_list[i],
 					regnum);
-
+			if (retval != ERROR_OK)
+				goto done;
 		}
 
 	} while (did_write);
@@ -451,13 +464,19 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * defined, and must not write it before CPSR.
 	 */
 	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
+	if (retval != ERROR_OK)
+		goto done;
 	arm->cpsr->dirty = false;
 
 	retval = dpm_write_reg(dpm, arm->pc, 15);
+	if (retval != ERROR_OK)
+		goto done;
 	arm->pc->dirty = false;
 
 	/* flush R0 -- it's *very* dirty by now */
 	retval = dpm_write_reg(dpm, &cache->reg_list[0], 0);
+	if (retval != ERROR_OK)
+		goto done;
 	cache->reg_list[0].dirty = false;
 
 	/* (void) */ dpm->finish(dpm);
@@ -540,6 +559,8 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 	}
 
 	retval = dpm_read_reg(dpm, r, regnum);
+	if (retval != ERROR_OK)
+		goto fail;
 	/* always clean up, regardless of error */
 
 	if (mode != ARM_MODE_ANY)
@@ -636,6 +657,8 @@ static int arm_dpm_full_context(struct target *target)
 
 				/* REVISIT error checks */
 				retval = dpm_modeswitch(dpm, mode);
+				if (retval != ERROR_OK)
+					goto done;
 			}
 			if (r->mode != mode)
 				continue;
@@ -644,7 +667,8 @@ static int arm_dpm_full_context(struct target *target)
 			retval = dpm_read_reg(dpm,
 					&cache->reg_list[i],
 					(r->num == 16) ? 17 : r->num);
-
+			if (retval != ERROR_OK)
+				goto done;
 		}
 
 	} while (did_read);
