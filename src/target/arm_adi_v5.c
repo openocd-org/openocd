@@ -1124,7 +1124,9 @@ static int dap_info_command(struct command_context *cmd_ctx,
 		entry_offset = 0;
 		do
 		{
-			mem_ap_read_atomic_u32(dap, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
+			retval = mem_ap_read_atomic_u32(dap, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
+			if (retval != ERROR_OK)
+				return retval;
 			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%" PRIx32 "",entry_offset,romentry);
 			if (romentry&0x01)
 			{
@@ -1140,33 +1142,51 @@ static int dap_info_command(struct command_context *cmd_ctx,
 				/* IDs are in last 4K section */
 
 
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFE0, &c_pid0);
+				if (retval != ERROR_OK)
+					return retval;
 				c_pid0 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFE4, &c_pid1);
+				if (retval != ERROR_OK)
+					return retval;
 				c_pid1 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFE8, &c_pid2);
+				if (retval != ERROR_OK)
+					return retval;
 				c_pid2 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFEC, &c_pid3);
+				if (retval != ERROR_OK)
+					return retval;
 				c_pid3 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFD0, &c_pid4);
+				if (retval != ERROR_OK)
+					return retval;
 				c_pid4 &= 0xff;
 
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFF0, &c_cid0);
+				if (retval != ERROR_OK)
+					return retval;
 				c_cid0 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFF4, &c_cid1);
+				if (retval != ERROR_OK)
+					return retval;
 				c_cid1 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFF8, &c_cid2);
+				if (retval != ERROR_OK)
+					return retval;
 				c_cid2 &= 0xff;
-				mem_ap_read_atomic_u32(dap,
+				retval = mem_ap_read_atomic_u32(dap,
 					component_base + 0xFFC, &c_cid3);
+				if (retval != ERROR_OK)
+					return retval;
 				c_cid3 &= 0xff;
 
 
@@ -1187,9 +1207,11 @@ static int dap_info_command(struct command_context *cmd_ctx,
 					unsigned minor;
 					char *major = "Reserved", *subtype = "Reserved";
 
-					mem_ap_read_atomic_u32(dap,
+					retval = mem_ap_read_atomic_u32(dap,
 							(component_base & 0xfffff000) | 0xfcc,
 							&devtype);
+					if (retval != ERROR_OK)
+						return retval;
 					minor = (devtype >> 4) & 0x0f;
 					switch (devtype & 0x0f) {
 					case 0:
