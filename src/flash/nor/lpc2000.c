@@ -346,7 +346,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 			init_reg_param(&reg_params[4], "lr", 32, PARAM_OUT);
 			buf_set_u32(reg_params[4].value, 0, 32, (lpc2000_info->iap_working_area->address + 0x04) | 1); /* bit0 of LR = 1 to return in Thumb mode */
 
-			target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv7m_info);
+			target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, 0, 10000, &armv7m_info);
 			break;
 		case lpc2000_v1:
 		case lpc2000_v2:

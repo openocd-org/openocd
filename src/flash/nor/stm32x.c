@@ -519,7 +519,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
 				stm32x_info->write_algorithm->address,
-				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10),
+				0,
 				10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stm32x flash write algorithm");

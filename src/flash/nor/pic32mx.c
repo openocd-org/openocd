@@ -360,7 +360,7 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 		if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 				pic32mx_info->write_algorithm->address,
-				pic32mx_info->write_algorithm->address + (sizeof(pic32mx_flash_write_code) - 76),
+				0,
 				10000, &mips32_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing pic32mx flash write algorithm");

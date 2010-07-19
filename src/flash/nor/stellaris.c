@@ -884,8 +884,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 				(unsigned) (wcount - thisrun_count));
 		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 				write_algorithm->address,
-				write_algorithm->address +
-					sizeof(stellaris_write_code) - 10,
+				0,
 				10000, &armv7m_info);
 		if (retval != ERROR_OK)
 		{
