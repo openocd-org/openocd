@@ -66,7 +66,7 @@ int arm920t_write_memory(struct target *target,
 	uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 void arm920t_post_debug_entry(struct target *target);
 void arm920t_pre_restore_context(struct target *target);
-	uint32_t arm920t_get_ttb(struct target *target);
+int arm920t_get_ttb(struct target *target, uint32_t *result);
 void arm920t_disable_mmu_caches(struct target *target,
 	int mmu, int d_u_cache, int i_cache);
 void arm920t_enable_mmu_caches(struct target *target,

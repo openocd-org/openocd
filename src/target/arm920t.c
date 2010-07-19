@@ -318,7 +318,7 @@ int arm920t_write_cp15_interpreted(struct target *target,
 }
 
 // EXPORTED to FA256
-uint32_t arm920t_get_ttb(struct target *target)
+int arm920t_get_ttb(struct target *target, uint32_t *result)
 {
 	int retval;
 	uint32_t ttb = 0x0;
@@ -328,7 +328,8 @@ uint32_t arm920t_get_ttb(struct target *target)
 			0xeebf0f51, 0x0, &ttb)) != ERROR_OK)
 		return retval;
 
-	return ttb;
+	*result = ttb;
+	return ERROR_OK;
 }
 
 // EXPORTED to FA256

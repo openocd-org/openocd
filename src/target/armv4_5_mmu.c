@@ -30,8 +30,11 @@ int armv4_5_mmu_translate_va(struct target *target, struct armv4_5_mmu_common *a
 {
 	uint32_t first_lvl_descriptor = 0x0;
 	uint32_t second_lvl_descriptor = 0x0;
-	uint32_t ttb = armv4_5_mmu->get_ttb(target);
+	uint32_t ttb;
 	int retval;
+	retval = armv4_5_mmu->get_ttb(target, &ttb);
+	if (retval != ERROR_OK)
+	  return retval;
 
 	retval = armv4_5_mmu_read_physical(target, armv4_5_mmu,
 		(ttb & 0xffffc000) | ((va & 0xfff00000) >> 18),

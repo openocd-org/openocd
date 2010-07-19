@@ -62,7 +62,7 @@ static void cortex_a8_disable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache);
 static void cortex_a8_enable_mmu_caches(struct target *target, int mmu,
                 int d_u_cache, int i_cache);
-static uint32_t cortex_a8_get_ttb(struct target *target);
+static int cortex_a8_get_ttb(struct target *target, uint32_t *result);
 
 
 /*
@@ -1853,8 +1853,7 @@ static int cortex_a8_target_create(struct target *target, Jim_Interp *interp)
 	return cortex_a8_init_arch_info(target, cortex_a8, target->tap);
 }
 
-/* FIX! error propagation missing from this fn */
-static uint32_t cortex_a8_get_ttb(struct target *target)
+static int cortex_a8_get_ttb(struct target *target, uint32_t *result)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
     struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
@@ -1869,6 +1868,8 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
                     0, 1,   /* op1, op2 */
                     2, 0,   /* CRn, CRm */
                     &ttb);
+		if (retval != ERROR_OK)
+			return retval;
     }
     else if(cortex_a8->current_address_mode == ARM_MODE_USR)
     {
@@ -1877,6 +1878,8 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
                     0, 0,   /* op1, op2 */
                     2, 0,   /* CRn, CRm */
                     &ttb);
+		if (retval != ERROR_OK)
+			return retval;
     }
     /* we don't know whose address is: user or kernel
        we assume that if we are in kernel mode then
@@ -1889,6 +1892,8 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
                     0, 1,   /* op1, op2 */
                     2, 0,   /* CRn, CRm */
                     &ttb);
+		if (retval != ERROR_OK)
+			return retval;
     }
     else if(armv7a->armv4_5_common.core_mode == ARM_MODE_USR)
     {
@@ -1897,6 +1902,8 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
                     0, 0,   /* op1, op2 */
                     2, 0,   /* CRn, CRm */
                     &ttb);
+		if (retval != ERROR_OK)
+			return retval;
     }
     /* finally we don't know whose ttb to use: user or kernel */
     else
@@ -1904,7 +1911,9 @@ static uint32_t cortex_a8_get_ttb(struct target *target)
 
     ttb &= 0xffffc000;
 
-    return ttb;
+    *result = ttb;
+
+    return ERROR_OK;
 }
 
 /* FIX! error propagation missing from this fn */

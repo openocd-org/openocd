@@ -2002,15 +2002,20 @@ static int xscale_bulk_write_memory(struct target *target, uint32_t address,
 	return xscale_write_memory(target, address, 4, count, buffer);
 }
 
-static uint32_t xscale_get_ttb(struct target *target)
+static int xscale_get_ttb(struct target *target, uint32_t *result)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t ttb;
+	int retval;
 
-	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_TTB]);
+	retval = xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_TTB]);
+	if (retval != ERROR_OK)
+		return retval;
 	ttb = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_TTB].value, 0, 32);
 
-	return ttb;
+	*result = ttb;
+
+	return ERROR_OK;
 }
 
 static void xscale_disable_mmu_caches(struct target *target, int mmu,

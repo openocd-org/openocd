@@ -323,7 +323,7 @@ static int arm926ejs_examine_debug_reason(struct target *target)
 	return ERROR_OK;
 }
 
-static uint32_t arm926ejs_get_ttb(struct target *target)
+static int arm926ejs_get_ttb(struct target *target, uint32_t *result)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	int retval;
@@ -332,7 +332,9 @@ static uint32_t arm926ejs_get_ttb(struct target *target)
 	if ((retval = arm926ejs->read_cp15(target, 0, 0, 2, 0, &ttb)) != ERROR_OK)
 		return retval;
 
-	return ttb;
+	*result = ttb;
+
+	return ERROR_OK;
 }
 
 static void arm926ejs_disable_mmu_caches(struct target *target, int mmu,

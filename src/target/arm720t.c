@@ -134,16 +134,24 @@ static int arm720t_write_cp15(struct target *target, uint32_t opcode, uint32_t v
 	return ERROR_OK;
 }
 
-static uint32_t arm720t_get_ttb(struct target *target)
+static int arm720t_get_ttb(struct target *target, uint32_t *result)
 {
 	uint32_t ttb = 0x0;
 
-	arm720t_read_cp15(target, 0xee120f10, &ttb);
-	jtag_execute_queue();
+	int retval;
+
+	retval = arm720t_read_cp15(target, 0xee120f10, &ttb);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	ttb &= 0xffffc000;
 
-	return ttb;
+	*result = ttb;
+
+	return ERROR_OK;
 }
 
 static void arm720t_disable_mmu_caches(struct target *target,
