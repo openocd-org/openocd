@@ -211,8 +211,10 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 	/* Post CTRL/STAT read; discard any previous posted read value
 	 * but collect its ACK status.
 	 */
-	adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
+	retval = adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
 			DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+	if (retval != ERROR_OK)
+		return retval;
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
@@ -246,8 +248,10 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
-			adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
+			retval = adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+			if (retval != ERROR_OK)
+				return retval;
 			if ((retval = dap_run(dap)) != ERROR_OK)
 				return retval;
 			dap->ack = dap->ack & 0x7;
@@ -292,12 +296,16 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 				LOG_ERROR("JTAG-DP STICKY ERROR");
 
 			/* Clear Sticky Error Bits */
-			adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
+			retval = adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_WRITE,
 					dap->dp_ctrl_stat | SSTICKYORUN
 						| SSTICKYERR, NULL);
-			adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
+			if (retval != ERROR_OK)
+				return retval;
+			retval = adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+			if (retval != ERROR_OK)
+				return retval;
 			if ((retval = dap_run(dap)) != ERROR_OK)
 				return retval;
 
