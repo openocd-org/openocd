@@ -136,6 +136,7 @@ static int cortex_a8_exec_opcode(struct target *target,
 	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
 
 	/* Wait for InstrCompl bit to be set */
+	long long then = timeval_ms();
 	while ((dscr & DSCR_INSTR_COMP) == 0)
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
@@ -145,12 +146,18 @@ static int cortex_a8_exec_opcode(struct target *target,
 			LOG_ERROR("Could not read DSCR register, opcode = 0x%08" PRIx32, opcode);
 			return retval;
 		}
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for cortex_a8_exec_opcode");
+			return ERROR_FAIL;
+		}
 	}
 
 	retval = mem_ap_write_u32(swjdp, armv7a->debug_base + CPUDBG_ITR, opcode);
 	if (retval != ERROR_OK)
 		return retval;
 
+	then = timeval_ms();
 	do
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
@@ -159,6 +166,11 @@ static int cortex_a8_exec_opcode(struct target *target,
 		{
 			LOG_ERROR("Could not read DSCR register");
 			return retval;
+		}
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for cortex_a8_exec_opcode");
+			return ERROR_FAIL;
 		}
 	}
 	while ((dscr & DSCR_INSTR_COMP) == 0); /* Wait for InstrCompl bit to be set */
@@ -248,12 +260,18 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 	}
 
 	/* Wait for DTRRXfull then read DTRRTX */
+	long long then = timeval_ms();
 	while ((dscr & DSCR_DTR_TX_FULL) == 0)
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for cortex_a8_exec_opcode");
+			return ERROR_FAIL;
+		}
 	}
 
 	retval = mem_ap_read_atomic_u32(swjdp,
@@ -394,12 +412,18 @@ static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data,
 		dscr = *dscr_p;
 
 	/* Wait for DTRRXfull */
+	long long then = timeval_ms();
 	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
 		retval = mem_ap_read_atomic_u32(swjdp,
 				a8->armv7a_common.debug_base + CPUDBG_DSCR,
 				&dscr);
 		if (retval != ERROR_OK)
 			return retval;
+		if (timeval_ms() > then + 1000)
+		{
+			LOG_ERROR("Timeout waiting for read dcc");
+			return ERROR_FAIL;
+		}
 	}
 
 	retval = mem_ap_read_atomic_u32(swjdp,
@@ -1086,8 +1110,6 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	struct reg *r;
 	int retval;
 
-	int timeout = 100;
-
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
@@ -1132,12 +1154,13 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
+	long long then = timeval_ms();
 	while (target->state != TARGET_HALTED)
 	{
 		retval = cortex_a8_poll(target);
 		if (retval != ERROR_OK)
 			return retval;
-		if (--timeout == 0)
+		if (timeval_ms() > then + 1000)
 		{
 			LOG_ERROR("timeout waiting for target halt");
 			return ERROR_FAIL;
@@ -1145,8 +1168,8 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	}
 
 	cortex_a8_unset_breakpoint(target, &stepbreakpoint);
-	if (timeout > 0)
-		target->debug_reason = DBG_REASON_BREAKPOINT;
+
+	target->debug_reason = DBG_REASON_BREAKPOINT;
 
 	if (breakpoint)
 		cortex_a8_set_breakpoint(target, breakpoint, 0);
