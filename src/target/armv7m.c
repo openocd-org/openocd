@@ -313,7 +313,7 @@ static int armv7m_run_and_wait(struct target *target, uint32_t entry_point, int 
 	}
 
 	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
-	if (pc != exit_point)
+	if (exit_point && (pc != exit_point))
 	{
 		LOG_DEBUG("failed algoritm halted at 0x%" PRIx32 " ", pc);
 		return ERROR_TARGET_TIMEOUT;
