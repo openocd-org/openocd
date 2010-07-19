@@ -321,7 +321,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 				break;
 		}
 
-		if (dap_run(dap) == ERROR_OK)
+		if ((retval = dap_run(dap)) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
 			address = address + 4 * blocksize;
@@ -335,8 +335,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 		if (errorcount > 1)
 		{
 			LOG_WARNING("Block write error address 0x%" PRIx32 ", wcount 0x%x", address, wcount);
-			/* REVISIT return the *actual* fault code */
-			return ERROR_JTAG_DEVICE_ERROR;
+			return retval;
 		}
 	}
 
@@ -406,13 +405,12 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 				if (retval != ERROR_OK)
 					break;
 
-				if (dap_run(dap) != ERROR_OK)
+				if ((retval = dap_run(dap)) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
 						address, count);
-					/* REVISIT return *actual* fault code */
-					return ERROR_JTAG_DEVICE_ERROR;
+					return retval;
 				}
 			}
 
@@ -515,13 +513,12 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 				if (retval != ERROR_OK)
 					break;
 
-				if (dap_run(dap) != ERROR_OK)
+				if ((retval = dap_run(dap)) != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
 						address, count);
-					/* REVISIT return *actual* fault code */
-					return ERROR_JTAG_DEVICE_ERROR;
+					return retval;
 				}
 			}
 
@@ -712,11 +709,12 @@ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *dap,
 		do
 		{
 			retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
-			if (dap_run(dap) != ERROR_OK)
+			if (retval != ERROR_OK)
+				return retval;
+			if ((retval = dap_run(dap)) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
-				/* REVISIT return the *actual* fault code */
-				return ERROR_JTAG_DEVICE_ERROR;
+				return retval;
 			}
 
 			nbytes = MIN((readcount << 1), 4);
@@ -821,11 +819,12 @@ static int mem_ap_read_buf_packed_u8(struct adiv5_dap *dap,
 		do
 		{
 			retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
-			if (dap_run(dap) != ERROR_OK)
+			if (retval != ERROR_OK)
+				return retval;
+			if ((retval = dap_run(dap)) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
-				/* REVISIT return the *actual* fault code */
-				return ERROR_JTAG_DEVICE_ERROR;
+				return retval;
 			}
 
 			nbytes = MIN(readcount, 4);
@@ -993,7 +992,11 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	 * place to scan the table and do any topology detection?
 	 */
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &idreg);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, &romaddr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if ((retval = dap_run(dap)) != ERROR_OK)
 		return retval;
@@ -1039,7 +1042,11 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	apselold = dap->apsel;
 	dap_ap_select(dap, apsel);
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, &dbgbase);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1490,6 +1497,8 @@ COMMAND_HANDLER(dap_baseaddr_command)
 	 * use the ID register to verify it's a MEM-AP.
 	 */
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, &baseaddr);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1553,6 +1562,8 @@ COMMAND_HANDLER(dap_apsel_command)
 
 	dap_ap_select(dap, apsel);
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1591,6 +1602,8 @@ COMMAND_HANDLER(dap_apid_command)
 		dap_ap_select(dap, apsel);
 
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
