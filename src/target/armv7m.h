@@ -121,7 +121,7 @@ struct armv7m_common
 	int (*write_core_reg)(struct target *target, unsigned num);
 
 	int (*examine_debug_reason)(struct target *target);
-	void (*post_debug_entry)(struct target *target);
+	int (*post_debug_entry)(struct target *target);
 
 	void (*pre_restore_context)(struct target *target);
 };

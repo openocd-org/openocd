@@ -62,7 +62,7 @@ struct armv7a_common
 	struct armv4_5_mmu_common armv4_5_mmu;
 
 	int (*examine_debug_reason)(struct target *target);
-	void (*post_debug_entry)(struct target *target);
+	int (*post_debug_entry)(struct target *target);
 
 	void (*pre_restore_context)(struct target *target);
 };

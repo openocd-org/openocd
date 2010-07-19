@@ -439,7 +439,7 @@ static int arm11_halt(struct target *target)
 
 	enum target_state old_state	= target->state;
 
-	arm11_debug_entry(arm11);
+	CHECK_RETVAL(arm11_debug_entry(arm11));
 
 	CHECK_RETVAL(
 		target_call_event_callbacks(target,

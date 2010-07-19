@@ -1056,12 +1056,16 @@ static int cortex_a8_debug_entry(struct target *target)
 	/* Are we in an exception handler */
 //	armv4_5->exception_number = 0;
 	if (armv7a->post_debug_entry)
-		armv7a->post_debug_entry(target);
+	{
+		retval = armv7a->post_debug_entry(target);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	return retval;
 }
 
-static void cortex_a8_post_debug_entry(struct target *target)
+static int cortex_a8_post_debug_entry(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
@@ -1072,6 +1076,8 @@ static void cortex_a8_post_debug_entry(struct target *target)
 			0, 0,	/* op1, op2 */
 			1, 0,	/* CRn, CRm */
 			&cortex_a8->cp15_control_reg);
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a8->cp15_control_reg);
 
 	if (armv7a->armv4_5_mmu.armv4_5_cache.ctype == -1)
@@ -1083,6 +1089,8 @@ static void cortex_a8_post_debug_entry(struct target *target)
 				0, 1,	/* op1, op2 */
 				0, 0,	/* CRn, CRm */
 				&cache_type_reg);
+		if (retval != ERROR_OK)
+			return retval;
 		LOG_DEBUG("cp15 cache type: %8.8x", (unsigned) cache_type_reg);
 
 		/* FIXME the armv4_4 cache info DOES NOT APPLY to Cortex-A8 */
@@ -1097,7 +1105,7 @@ static void cortex_a8_post_debug_entry(struct target *target)
 	armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
 			(cortex_a8->cp15_control_reg & 0x1000U) ? 1 : 0;
 
-
+	return ERROR_OK;
 }
 
 static int cortex_a8_step(struct target *target, int current, uint32_t address,

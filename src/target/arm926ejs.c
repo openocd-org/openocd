@@ -432,21 +432,30 @@ static int arm926ejs_enable_mmu_caches(struct target *target, int mmu,
 	return retval;
 }
 
-static void arm926ejs_post_debug_entry(struct target *target)
+static int arm926ejs_post_debug_entry(struct target *target)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
+	int retval;
 
 	/* examine cp15 control reg */
-	arm926ejs->read_cp15(target, 0, 0, 1, 0, &arm926ejs->cp15_control_reg);
-	jtag_execute_queue();
+	retval = arm926ejs->read_cp15(target, 0, 0, 1, 0, &arm926ejs->cp15_control_reg);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm926ejs->cp15_control_reg);
 
 	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
 		uint32_t cache_type_reg;
 		/* identify caches */
-		arm926ejs->read_cp15(target, 0, 1, 0, 0, &cache_type_reg);
-		jtag_execute_queue();
+		retval = arm926ejs->read_cp15(target, 0, 1, 0, 0, &cache_type_reg);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
+			return retval;
 		armv4_5_identify_cache(cache_type_reg, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 	}
 
@@ -455,9 +464,15 @@ static void arm926ejs_post_debug_entry(struct target *target)
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (arm926ejs->cp15_control_reg & 0x1000U) ? 1 : 0;
 
 	/* save i/d fault status and address register */
-	arm926ejs->read_cp15(target, 0, 0, 5, 0, &arm926ejs->d_fsr);
-	arm926ejs->read_cp15(target, 0, 1, 5, 0, &arm926ejs->i_fsr);
-	arm926ejs->read_cp15(target, 0, 0, 6, 0, &arm926ejs->d_far);
+	retval = arm926ejs->read_cp15(target, 0, 0, 5, 0, &arm926ejs->d_fsr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = arm926ejs->read_cp15(target, 0, 1, 5, 0, &arm926ejs->i_fsr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = arm926ejs->read_cp15(target, 0, 0, 6, 0, &arm926ejs->d_far);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("D FSR: 0x%8.8" PRIx32 ", D FAR: 0x%8.8" PRIx32 ", I FSR: 0x%8.8" PRIx32 "",
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);
@@ -466,9 +481,12 @@ static void arm926ejs_post_debug_entry(struct target *target)
 
 	/* read-modify-write CP15 cache debug control register
 	 * to disable I/D-cache linefills and force WT */
-	arm926ejs->read_cp15(target, 7, 0, 15, 0, &cache_dbg_ctrl);
+	retval = arm926ejs->read_cp15(target, 7, 0, 15, 0, &cache_dbg_ctrl);
+	if (retval != ERROR_OK)
+		return retval;
 	cache_dbg_ctrl |= 0x7;
-	arm926ejs->write_cp15(target, 7, 0, 15, 0, cache_dbg_ctrl);
+	retval = arm926ejs->write_cp15(target, 7, 0, 15, 0, cache_dbg_ctrl);
+	return retval;
 }
 
 static void arm926ejs_pre_restore_context(struct target *target)

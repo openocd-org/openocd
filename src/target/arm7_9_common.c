@@ -1470,7 +1470,11 @@ static int arm7_9_debug_entry(struct target *target)
 		return retval;
 
 	if (arm7_9->post_debug_entry)
-		arm7_9->post_debug_entry(target);
+	{
+		retval = arm7_9->post_debug_entry(target);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	return ERROR_OK;
 }
@@ -1878,7 +1882,9 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 				return err;
 			}
 
-			arm7_9_debug_entry(target);
+			retval = arm7_9_debug_entry(target);
+			if (retval != ERROR_OK)
+				return retval;
 			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32,
 					buf_get_u32(armv4_5->pc->value, 0, 32));
 
@@ -2079,7 +2085,9 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 	{
 		target->state = TARGET_UNKNOWN;
 	} else {
-		arm7_9_debug_entry(target);
+		retval = arm7_9_debug_entry(target);
+		if (retval != ERROR_OK)
+			return retval;
 		if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
 		{
 			return retval;

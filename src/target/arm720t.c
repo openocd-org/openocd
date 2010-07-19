@@ -202,13 +202,18 @@ static int arm720t_enable_mmu_caches(struct target *target,
 	return retval;
 }
 
-static void arm720t_post_debug_entry(struct target *target)
+static int arm720t_post_debug_entry(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
+	int retval;
 
 	/* examine cp15 control reg */
-	arm720t_read_cp15(target, 0xee110f10, &arm720t->cp15_control_reg);
-	jtag_execute_queue();
+	retval = arm720t_read_cp15(target, 0xee110f10, &arm720t->cp15_control_reg);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm720t->cp15_control_reg);
 
 	arm720t->armv4_5_mmu.mmu_enabled = (arm720t->cp15_control_reg & 0x1U) ? 1 : 0;
@@ -216,9 +221,14 @@ static void arm720t_post_debug_entry(struct target *target)
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
 	/* save i/d fault status and address register */
-	arm720t_read_cp15(target, 0xee150f10, &arm720t->fsr_reg);
-	arm720t_read_cp15(target, 0xee160f10, &arm720t->far_reg);
-	jtag_execute_queue();
+	retval = arm720t_read_cp15(target, 0xee150f10, &arm720t->fsr_reg);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = arm720t_read_cp15(target, 0xee160f10, &arm720t->far_reg);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	return retval;
 }
 
 static void arm720t_pre_restore_context(struct target *target)

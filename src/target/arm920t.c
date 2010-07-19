@@ -389,24 +389,33 @@ int arm920t_enable_mmu_caches(struct target *target, int mmu,
 }
 
 // EXPORTED to FA256
-void arm920t_post_debug_entry(struct target *target)
+int arm920t_post_debug_entry(struct target *target)
 {
 	uint32_t cp15c15;
 	struct arm920t_common *arm920t = target_to_arm920(target);
+	int retval;
 
 	/* examine cp15 control reg */
-	arm920t_read_cp15_physical(target,
+	retval = arm920t_read_cp15_physical(target,
 			CP15PHYS_CTRL, &arm920t->cp15_control_reg);
-	jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, arm920t->cp15_control_reg);
 
 	if (arm920t->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
 		uint32_t cache_type_reg;
 		/* identify caches */
-		arm920t_read_cp15_physical(target,
+		retval = arm920t_read_cp15_physical(target,
 				CP15PHYS_CACHETYPE, &cache_type_reg);
-		jtag_execute_queue();
+		if (retval != ERROR_OK)
+			return retval;
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
+			return retval;
 		armv4_5_identify_cache(cache_type_reg,
 				&arm920t->armv4_5_mmu.armv4_5_cache);
 	}
@@ -420,10 +429,18 @@ void arm920t_post_debug_entry(struct target *target)
 
 	/* save i/d fault status and address register */
 			/* FIXME use opcode macros */
-	arm920t_read_cp15_interpreted(target, 0xee150f10, 0x0, &arm920t->d_fsr);
-	arm920t_read_cp15_interpreted(target, 0xee150f30, 0x0, &arm920t->i_fsr);
-	arm920t_read_cp15_interpreted(target, 0xee160f10, 0x0, &arm920t->d_far);
-	arm920t_read_cp15_interpreted(target, 0xee160f30, 0x0, &arm920t->i_far);
+	retval = arm920t_read_cp15_interpreted(target, 0xee150f10, 0x0, &arm920t->d_fsr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = arm920t_read_cp15_interpreted(target, 0xee150f30, 0x0, &arm920t->i_fsr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = arm920t_read_cp15_interpreted(target, 0xee160f10, 0x0, &arm920t->d_far);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = arm920t_read_cp15_interpreted(target, 0xee160f30, 0x0, &arm920t->i_far);
+	if (retval != ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("D FSR: 0x%8.8" PRIx32 ", D FAR: 0x%8.8" PRIx32
 		", I FSR: 0x%8.8" PRIx32 ", I FAR: 0x%8.8" PRIx32,
@@ -433,13 +450,20 @@ void arm920t_post_debug_entry(struct target *target)
 	{
 		/* read-modify-write CP15 test state register
 		 * to disable I/D-cache linefills */
-		arm920t_read_cp15_physical(target,
+		retval = arm920t_read_cp15_physical(target,
 				CP15PHYS_TESTSTATE, &cp15c15);
-		jtag_execute_queue();
+		if (retval != ERROR_OK)
+			return retval;
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
+			return retval;
 		cp15c15 |= 0x600;
-		arm920t_write_cp15_physical(target,
+		retval = arm920t_write_cp15_physical(target,
 				CP15PHYS_TESTSTATE, cp15c15);
+		if (retval != ERROR_OK)
+			return retval;
 	}
+	return ERROR_OK;
 }
 
 // EXPORTED to FA256

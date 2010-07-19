@@ -442,7 +442,11 @@ static int cortex_m3_debug_entry(struct target *target)
 		target_state_name(target));
 
 	if (armv7m->post_debug_entry)
-		armv7m->post_debug_entry(target);
+	{
+		retval = armv7m->post_debug_entry(target);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	return ERROR_OK;
 }
@@ -813,7 +817,10 @@ static int cortex_m3_step(struct target *target, int current,
 			" nvic_icsr = 0x%" PRIx32,
 			cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 
-	cortex_m3_debug_entry(target);
+	int retval;
+	retval = cortex_m3_debug_entry(target);
+	if (retval != ERROR_OK)
+		return retval;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
 	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32

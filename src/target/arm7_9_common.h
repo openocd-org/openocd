@@ -100,7 +100,7 @@ struct arm7_9_common
 
 	void (*set_special_dbgrq)(struct target *target); /**< Function for setting DBGRQ if the normal way won't work */
 
-	void (*post_debug_entry)(struct target *target); /**< Callback function called after entering debug mode */
+	int (*post_debug_entry)(struct target *target); /**< Callback function called after entering debug mode */
 
 	void (*pre_restore_context)(struct target *target); /**< Callback function called before restoring the processor context */
 };
