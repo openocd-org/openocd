@@ -166,7 +166,9 @@ static int cortex_m3_clear_halt(struct target *target)
 		return retval;
 
 	/* Clear Debug Fault Status */
-	mem_ap_write_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
+	retval = mem_ap_write_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG(" NVIC_DFSR 0x%" PRIx32 "", cortex_m3->nvic_dfsr);
 
 	return ERROR_OK;
@@ -177,6 +179,7 @@ static int cortex_m3_single_step_core(struct target *target)
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct adiv5_dap *swjdp = &cortex_m3->armv7m.dap;
 	uint32_t dhcsr_save;
+	int retval;
 
 	/* backup dhcsr reg */
 	dhcsr_save = cortex_m3->dcb_dhcsr;
@@ -186,10 +189,16 @@ static int cortex_m3_single_step_core(struct target *target)
 	 * HALT can put the core into an unknown state.
 	 */
 	if (!(cortex_m3->dcb_dhcsr & C_MASKINTS))
-		mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
+	{
+		retval = mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
 				DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
-	mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
+		if (retval != ERROR_OK)
+			return retval;
+	}
+	retval = mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
 				DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG(" ");
 
 	/* restore dhcsr reg */
@@ -217,14 +226,20 @@ static int cortex_m3_endreset_event(struct target *target)
 	LOG_DEBUG("DCB_DEMCR = 0x%8.8" PRIx32 "",dcb_demcr);
 
 	/* this register is used for emulated dcc channel */
-	mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
+	retval = mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Enable debug requests */
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (retval != ERROR_OK)
 		return retval;
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+	{
+		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	/* clear any interrupt masking */
 	cortex_m3_write_debug_halt_mask(target, 0, C_MASKINTS);
@@ -236,31 +251,44 @@ static int cortex_m3_endreset_event(struct target *target)
 	 * choices *EXCEPT* explicitly scripted overrides like "vector_catch"
 	 * or manual updates to the NVIC SHCSR and CCR registers.
 	 */
-	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | armv7m->demcr);
+	retval = mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | armv7m->demcr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Paranoia: evidently some (early?) chips don't preserve all the
 	 * debug state (including FBP, DWT, etc) across reset...
 	 */
 
 	/* Enable FPB */
-	target_write_u32(target, FP_CTRL, 3);
+	retval = target_write_u32(target, FP_CTRL, 3);
+	if (retval != ERROR_OK)
+		return retval;
+
 	cortex_m3->fpb_enabled = 1;
 
 	/* Restore FPB registers */
 	for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
 	{
-		target_write_u32(target, fp_list[i].fpcr_address, fp_list[i].fpcr_value);
+		retval = target_write_u32(target, fp_list[i].fpcr_address, fp_list[i].fpcr_value);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	/* Restore DWT registers */
 	for (i = 0; i < cortex_m3->dwt_num_comp; i++)
 	{
-		target_write_u32(target, dwt_list[i].dwt_comparator_address + 0,
+		retval = target_write_u32(target, dwt_list[i].dwt_comparator_address + 0,
 				dwt_list[i].comp);
-		target_write_u32(target, dwt_list[i].dwt_comparator_address + 4,
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u32(target, dwt_list[i].dwt_comparator_address + 4,
 				dwt_list[i].mask);
-		target_write_u32(target, dwt_list[i].dwt_comparator_address + 8,
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u32(target, dwt_list[i].dwt_comparator_address + 8,
 				dwt_list[i].function);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	retval = dap_run(swjdp);
 	if (retval != ERROR_OK)
@@ -639,12 +667,16 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	int retval, timeout = 0;
 
 	/* Enter debug state on reset; restore DEMCR in endreset_event() */
-	mem_ap_write_u32(swjdp, DCB_DEMCR,
+	retval = mem_ap_write_u32(swjdp, DCB_DEMCR,
 			TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Request a core-only reset */
-	mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
+	retval = mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
 			AIRCR_VECTKEY | AIRCR_VECTRESET);
+	if (retval != ERROR_OK)
+		return retval;
 	target->state = TARGET_RESET;
 
 	/* registers are now invalid */
@@ -902,16 +934,26 @@ static int cortex_m3_assert_reset(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+	{
+		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
+	retval = mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (!target->reset_halt)
 	{
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
-			mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
+		{
+			retval = mem_ap_write_atomic_u32(swjdp, DCB_DHCSR,
 					DBGKEY | C_DEBUGEN | C_HALT);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 
 		/* clear any debug flags before resuming */
 		cortex_m3_clear_halt(target);
@@ -927,8 +969,10 @@ static int cortex_m3_assert_reset(struct target *target)
 		 * bad vector table entries.  Should this include MMERR or
 		 * other flags too?
 		 */
-		mem_ap_write_atomic_u32(swjdp, DCB_DEMCR,
+		retval = mem_ap_write_atomic_u32(swjdp, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	/*
@@ -992,8 +1036,10 @@ static int cortex_m3_assert_reset(struct target *target)
 		 * core, like watchdog timers, if the SoC wires it up
 		 * correctly.  Else VECRESET can reset just the core.
 		 */
-		mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
+		retval = mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
 				AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+		if (retval != ERROR_OK)
+			return retval;
 		LOG_DEBUG("Using Cortex-M3 SYSRESETREQ");
 
 		{
@@ -1834,6 +1880,7 @@ static int cortex_m3_examine(struct target *target)
 static int cortex_m3_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
+	int retval;
 
 	mem_ap_read_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	*ctrl = (uint8_t)dcrdr;
@@ -1846,7 +1893,9 @@ static int cortex_m3_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *
 	if (dcrdr & (1 << 0))
 	{
 		dcrdr = 0;
-		mem_ap_write_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+		retval = mem_ap_write_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	return ERROR_OK;
@@ -2041,7 +2090,9 @@ write:
 		demcr |= catch;
 
 		/* write, but don't assume it stuck (why not??) */
-		mem_ap_write_u32(swjdp, DCB_DEMCR, demcr);
+		retval = mem_ap_write_u32(swjdp, DCB_DEMCR, demcr);
+		if (retval != ERROR_OK)
+			return retval;
 		retval = mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
 		if (retval != ERROR_OK)
 			return retval;

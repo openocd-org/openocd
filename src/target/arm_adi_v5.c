@@ -376,13 +376,14 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 
 			if (nbytes < 4)
 			{
-				if (mem_ap_write_buf_u16(dap, buffer,
-						nbytes, address) != ERROR_OK)
+				retval = mem_ap_write_buf_u16(dap, buffer,
+						nbytes, address);
+				if (retval != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
 						address, count);
-					return ERROR_JTAG_DEVICE_ERROR;
+					return retval;
 				}
 
 				address += nbytes >> 1;
@@ -485,12 +486,13 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 
 			if (nbytes < 4)
 			{
-				if (mem_ap_write_buf_u8(dap, buffer, nbytes, address) != ERROR_OK)
+				retval = mem_ap_write_buf_u8(dap, buffer, nbytes, address);
+				if (retval != ERROR_OK)
 				{
 					LOG_WARNING("Block write error address "
 						"0x%" PRIx32 ", count 0x%x",
 						address, count);
-					return ERROR_JTAG_DEVICE_ERROR;
+					return retval;
 				}
 
 				address += nbytes;
