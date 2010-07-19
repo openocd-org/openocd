@@ -5,7 +5,7 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
- *   Copyright (C) 2009 by Oyvind Harboe                                   *
+ *   Copyright (C) 2009-2010 by Oyvind Harboe                              *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009-2010 by David Brownell                             *
@@ -309,7 +309,9 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
+		if (retval != ERROR_OK)
+			return retval;
 
 		for (writecount = 0; writecount < blocksize; writecount++)
 		{
@@ -363,7 +365,9 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
+		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
+		if (retval != ERROR_OK)
+			return retval;
 		writecount = blocksize;
 
 		do
@@ -430,7 +434,9 @@ int mem_ap_write_buf_u16(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 
 	while (count > 0)
 	{
-		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
+		if (retval != ERROR_OK)
+			return retval;
 		uint16_t svalue;
 		memcpy(&svalue, buffer, sizeof(uint16_t));
 		uint32_t outvalue = (uint32_t)svalue << 8 * (address & 0x3);
@@ -468,7 +474,9 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 		if (wcount < blocksize)
 			blocksize = wcount;
 
-		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
+		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
+		if (retval != ERROR_OK)
+			return retval;
 		writecount = blocksize;
 
 		do
@@ -534,7 +542,9 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, uint8_t *buffer, int count, uint3
 
 	while (count > 0)
 	{
-		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
+		if (retval != ERROR_OK)
+			return retval;
 		uint32_t outvalue = (uint32_t)*buffer << 8 * (address & 0x3);
 		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
 		if (retval != ERROR_OK)
@@ -592,8 +602,10 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		if (blocksize == 0)
 			blocksize = 1;
 
-		dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE,
+		retval = dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE,
 				address);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* FIXME remove these three calls to adi_jtag_dp_scan(),
 		 * so this routine becomes transport-neutral.  Be careful
@@ -686,7 +698,9 @@ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *dap,
 		if (wcount < blocksize)
 			blocksize = wcount;
 
-		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
+		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* handle unaligned data at 4k boundary */
 		if (blocksize == 0)
@@ -739,7 +753,9 @@ int mem_ap_read_buf_u16(struct adiv5_dap *dap, uint8_t *buffer,
 
 	while (count > 0)
 	{
-		dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
+		if (retval != ERROR_OK)
+			return retval;
 		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
 		if (retval != ERROR_OK)
 			break;
@@ -795,7 +811,9 @@ static int mem_ap_read_buf_packed_u8(struct adiv5_dap *dap,
 		if (wcount < blocksize)
 			blocksize = wcount;
 
-		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
+		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
+		if (retval != ERROR_OK)
+			return retval;
 		readcount = blocksize;
 
 		do
@@ -844,8 +862,12 @@ int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
 
 	while (count > 0)
 	{
-		dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
+		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
+		if (retval != ERROR_OK)
+			return retval;
 		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
+		if (retval != ERROR_OK)
+			return retval;
 		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			break;
