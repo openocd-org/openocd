@@ -1088,11 +1088,21 @@ static int dap_info_command(struct command_context *cmd_ctx,
 			command_print(cmd_ctx, "\tROM table in legacy format");
 
 		/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
-		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
-		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
-		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
-		mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
+		retval = mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(dap, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
+		if (retval != ERROR_OK)
+			return retval;
 		retval = dap_run(dap);
 		if (retval != ERROR_OK)
 			return retval;

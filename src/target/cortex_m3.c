@@ -68,7 +68,9 @@ static int cortexm3_dap_read_coreregister_u32(struct adiv5_dap *swjdp,
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we have to save/restore the DCB_DCRDR when used */
 
-	mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+	retval = mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRSR, regnum); */
 	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
@@ -107,7 +109,9 @@ static int cortexm3_dap_write_coreregister_u32(struct adiv5_dap *swjdp,
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we have to save/restore the DCB_DCRDR when used */
 
-	mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+	retval = mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRDR, core_regs[i]); */
 	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
@@ -297,33 +301,51 @@ static int cortex_m3_examine_exception_reason(struct target *target)
 	struct adiv5_dap *swjdp = &armv7m->dap;
 	int retval;
 
-	mem_ap_read_u32(swjdp, NVIC_SHCSR, &shcsr);
+	retval = mem_ap_read_u32(swjdp, NVIC_SHCSR, &shcsr);
+	if (retval != ERROR_OK)
+		return retval;
 	switch (armv7m->exception_number)
 	{
 		case 2:	/* NMI */
 			break;
 		case 3:	/* Hard Fault */
-			mem_ap_read_atomic_u32(swjdp, NVIC_HFSR, &except_sr);
+			retval = mem_ap_read_atomic_u32(swjdp, NVIC_HFSR, &except_sr);
+			if (retval != ERROR_OK)
+				return retval;
 			if (except_sr & 0x40000000)
 			{
-				mem_ap_read_u32(swjdp, NVIC_CFSR, &cfsr);
+				retval = mem_ap_read_u32(swjdp, NVIC_CFSR, &cfsr);
+				if (retval != ERROR_OK)
+					return retval;
 			}
 			break;
 		case 4:	/* Memory Management */
-			mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
-			mem_ap_read_u32(swjdp, NVIC_MMFAR, &except_ar);
+			retval = mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = mem_ap_read_u32(swjdp, NVIC_MMFAR, &except_ar);
+			if (retval != ERROR_OK)
+				return retval;
 			break;
 		case 5:	/* Bus Fault */
-			mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
-			mem_ap_read_u32(swjdp, NVIC_BFAR, &except_ar);
+			retval = mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = mem_ap_read_u32(swjdp, NVIC_BFAR, &except_ar);
+			if (retval != ERROR_OK)
+				return retval;
 			break;
 		case 6:	/* Usage Fault */
-			mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
+			retval = mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
+			if (retval != ERROR_OK)
+				return retval;
 			break;
 		case 11:	/* SVCall */
 			break;
 		case 12:	/* Debug Monitor */
-			mem_ap_read_u32(swjdp, NVIC_DFSR, &except_sr);
+			retval = mem_ap_read_u32(swjdp, NVIC_DFSR, &except_sr);
+			if (retval != ERROR_OK)
+				return retval;
 			break;
 		case 14:	/* PendSV */
 			break;
