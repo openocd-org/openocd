@@ -27,7 +27,8 @@ NAND_DRIVERS = \
 	s3c2440.c \
 	s3c2443.c \
 	s3c6400.c \
-	at91sam9.c
+	at91sam9.c \
+	nuc910.c
 
 noinst_HEADERS = \
 	arm_io.h \
@@ -39,6 +40,7 @@ noinst_HEADERS = \
 	mx2.h \
 	mx3.h \
 	s3c24xx.h \
-	s3c24xx_regs.h
+	s3c24xx_regs.h \
+	nuc910.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
