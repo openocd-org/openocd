@@ -120,7 +120,9 @@ static __inline int arm7tdmi_clock_out(struct arm_jtag *jtag_info,
 		uint32_t out, uint32_t *deprecated, int breakpoint)
 {
 	int retval;
-	arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
+	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;

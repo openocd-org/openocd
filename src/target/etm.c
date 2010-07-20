@@ -505,7 +505,9 @@ static int etm_read_reg_w_check(struct reg *reg,
 
 	LOG_DEBUG("%s (%u)", r->name, reg_addr);
 
-	arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
+	retval = arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -589,7 +591,9 @@ static int etm_write_reg(struct reg *reg, uint32_t value)
 
 	LOG_DEBUG("%s (%u): 0x%8.8" PRIx32 "", r->name, reg_addr, value);
 
-	arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
+	retval = arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
