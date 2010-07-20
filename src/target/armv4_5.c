@@ -1286,16 +1286,17 @@ int armv4_5_run_algorithm(struct target *target, int num_mem_params, struct mem_
 /**
  * Runs ARM code in the target to calculate a CRC32 checksum.
  *
- * \todo On ARMv5+, rely on BKPT termination for reduced overhead.
  */
 int arm_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum)
 {
 	struct working_area *crc_algorithm;
 	struct arm_algorithm armv4_5_info;
+	struct arm *armv4_5 = target_to_arm(target);
 	struct reg_param reg_params[2];
 	int retval;
 	uint32_t i;
+	uint32_t exit_var = 0;
 
 	static const uint32_t arm_crc_code[] = {
 		0xE1A02000,		/* mov		r2, r0 */
@@ -1321,7 +1322,7 @@ int arm_checksum_memory(struct target *target,
 		0xE1540003,		/* cmp		r4, r3 */
 		0x1AFFFFF1,		/* bne		nbyte */
 		/* end: */
-		0xEAFFFFFE,		/* b		end */
+		0xe1200070,		/* bkpt		#0 */
 		/* CRC32XOR: */
 		0x04C11DB7		/* .word 0x04C11DB7 */
 	};
@@ -1353,9 +1354,13 @@ int arm_checksum_memory(struct target *target,
 	/* 20 second timeout/megabyte */
 	int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
+	/* armv4 must exit using a hardware breakpoint */
+	if (armv4_5->is_armv4)
+		exit_var = crc_algorithm->address + sizeof(arm_crc_code) - 8;
+
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
 			crc_algorithm->address,
-			crc_algorithm->address + sizeof(arm_crc_code) - 8,
+			exit_var,
 			timeout, &armv4_5_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("error executing ARM crc algorithm");
@@ -1380,7 +1385,6 @@ int arm_checksum_memory(struct target *target,
  * all ones.  NOR flash which has been erased, and thus may be written,
  * holds all ones.
  *
- * \todo On ARMv5+, rely on BKPT termination for reduced overhead.
  */
 int arm_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *blank)
@@ -1388,8 +1392,10 @@ int arm_blank_check_memory(struct target *target,
 	struct working_area *check_algorithm;
 	struct reg_param reg_params[3];
 	struct arm_algorithm armv4_5_info;
+	struct arm *armv4_5 = target_to_arm(target);
 	int retval;
 	uint32_t i;
+	uint32_t exit_var = 0;
 
 	static const uint32_t check_code[] = {
 		/* loop: */
@@ -1398,7 +1404,7 @@ int arm_blank_check_memory(struct target *target,
 		0xe2511001,		/* subs r1, r1, #1   */
 		0x1afffffb,		/* bne loop          */
 		/* end: */
-		0xeafffffe		/* b end             */
+		0xe1200070,		/* bkpt #0 */
 	};
 
 	/* make sure we have a working area */
@@ -1430,9 +1436,13 @@ int arm_blank_check_memory(struct target *target,
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
 
+	/* armv4 must exit using a hardware breakpoint */
+	if (armv4_5->is_armv4)
+		exit_var = check_algorithm->address + sizeof(check_code) - 4;
+
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			check_algorithm->address,
-			check_algorithm->address + sizeof(check_code) - 4,
+			exit_var,
 			10000, &armv4_5_info);
 	if (retval != ERROR_OK) {
 		destroy_reg_param(&reg_params[0]);
