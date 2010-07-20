@@ -52,8 +52,8 @@ int arm11_sc7_run(struct arm11_common *arm11,
 		struct arm11_sc7_action *actions, size_t count);
 
 /* Mid-level helper functions */
-void arm11_sc7_clear_vbw(struct arm11_common *arm11);
-void arm11_sc7_set_vcr(struct arm11_common *arm11, uint32_t value);
+int arm11_sc7_clear_vbw(struct arm11_common *arm11);
+int arm11_sc7_set_vcr(struct arm11_common *arm11, uint32_t value);
 
 int arm11_read_memory_word(struct arm11_common *arm11,
 		uint32_t address, uint32_t *result);

@@ -62,7 +62,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 		LOG_DEBUG("Bringing target into debug mode");
 
 		arm11->dscr |= DSCR_HALT_DBG_MODE;
-		arm11_write_DSCR(arm11, arm11->dscr);
+		CHECK_RETVAL(arm11_write_DSCR(arm11, arm11->dscr));
 
 		/* add further reset initialization here */
 
@@ -85,7 +85,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 			arm11->arm.target->debug_reason = DBG_REASON_NOTHALTED;
 		}
 
-		arm11_sc7_clear_vbw(arm11);
+		CHECK_RETVAL(arm11_sc7_clear_vbw(arm11));
 	}
 
 	return ERROR_OK;
@@ -133,7 +133,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	 * but not to issue ITRs(?).  The ARMv7 arch spec says it's required
 	 * for executing instructions via ITR.
 	 */
-	arm11_write_DSCR(arm11, DSCR_ITR_EN | arm11->dscr);
+	CHECK_RETVAL(arm11_write_DSCR(arm11, DSCR_ITR_EN | arm11->dscr));
 
 
 	/* From the spec:
@@ -291,14 +291,14 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	/* restore CPSR, PC, and R0 ... after flushing any modified
 	 * registers.
 	 */
-	retval = arm_dpm_write_dirty_registers(&arm11->dpm, bpwp);
+	CHECK_RETVAL(arm_dpm_write_dirty_registers(&arm11->dpm, bpwp));
 
-	retval = arm11_bpwp_flush(arm11);
+	CHECK_RETVAL(arm11_bpwp_flush(arm11));
 
 	register_cache_invalidate(arm11->arm.core_cache);
 
 	/* restore DSCR */
-	arm11_write_DSCR(arm11, arm11->dscr);
+	CHECK_RETVAL(arm11_write_DSCR(arm11, arm11->dscr));
 
 	/* maybe restore rDTR */
 	if (arm11->is_rdtr_saved)
@@ -484,7 +484,7 @@ static int arm11_resume(struct target *target, int current,
 	LOG_DEBUG("RESUME PC %08" PRIx32 "%s", address, !current ? "!" : "");
 
 	/* clear breakpoints/watchpoints and VCR*/
-	arm11_sc7_clear_vbw(arm11);
+	CHECK_RETVAL(arm11_sc7_clear_vbw(arm11));
 
 	if (!debug_execution)
 		target_free_all_working_areas(target);
@@ -520,7 +520,7 @@ static int arm11_resume(struct target *target, int current,
 			brp[1].address	= ARM11_SC7_BCR0 + brp_num;
 			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
 
-			arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp));
+			CHECK_RETVAL(arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp)));
 
 			LOG_DEBUG("Add BP %d at %08" PRIx32, brp_num,
 					bp->address);
@@ -529,11 +529,11 @@ static int arm11_resume(struct target *target, int current,
 		}
 
 		if (arm11->vcr)
-			arm11_sc7_set_vcr(arm11, arm11->vcr);
+			CHECK_RETVAL(arm11_sc7_set_vcr(arm11, arm11->vcr));
 	}
 
 	/* activate all watchpoints and breakpoints */
-	arm11_leave_debug_state(arm11, true);
+	CHECK_RETVAL(arm11_leave_debug_state(arm11, true));
 
 	arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
@@ -725,7 +725,7 @@ static int arm11_step(struct target *target, int current,
 		}
 
 		/* clear breakpoint */
-		arm11_sc7_clear_vbw(arm11);
+		CHECK_RETVAL(arm11_sc7_clear_vbw(arm11));
 
 		/* save state */
 		CHECK_RETVAL(arm11_debug_entry(arm11));
@@ -748,7 +748,7 @@ static int arm11_assert_reset(struct target *target)
 
 	/* optionally catch reset vector */
 	if (target->reset_halt && !(arm11->vcr & 1))
-		arm11_sc7_set_vcr(arm11, arm11->vcr | 1);
+		CHECK_RETVAL(arm11_sc7_set_vcr(arm11, arm11->vcr | 1));
 
 	/* Issue some kind of warm reset. */
 	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
@@ -795,7 +795,7 @@ static int arm11_deassert_reset(struct target *target)
 	 */
 	jtag_add_tlr();
 
-	retval = arm11_poll(target);
+	CHECK_RETVAL(arm11_poll(target));
 
 	if (target->reset_halt) {
 		if (target->state != TARGET_HALTED) {
@@ -808,7 +808,7 @@ static int arm11_deassert_reset(struct target *target)
 
 	/* maybe restore vector catch config */
 	if (target->reset_halt && !(arm11->vcr & 1))
-		arm11_sc7_set_vcr(arm11, arm11->vcr);
+		CHECK_RETVAL(arm11_sc7_set_vcr(arm11, arm11->vcr));
 
 	return ERROR_OK;
 }
@@ -863,12 +863,12 @@ static int arm11_read_memory_inner(struct target *target,
 		{
 			/* ldrb    r1, [r0], #1 */
 			/* ldrb    r1, [r0] */
-			arm11_run_instr_no_data1(arm11,
-					!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000);
+			CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
+					!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000));
 
 			uint32_t res;
 			/* MCR p14,0,R1,c0,c5,0 */
-			arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
+			CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
 
 			*buffer++ = res;
 		}
@@ -882,13 +882,13 @@ static int arm11_read_memory_inner(struct target *target,
 			for (size_t i = 0; i < count; i++)
 			{
 				/* ldrh    r1, [r0], #2 */
-				arm11_run_instr_no_data1(arm11,
-					!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0);
+				CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
+					!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0));
 
 				uint32_t res;
 
 				/* MCR p14,0,R1,c0,c5,0 */
-				arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
+				CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
 
 				uint16_t svalue = res;
 				memcpy(buffer + i * sizeof(uint16_t), &svalue, sizeof(uint16_t));
@@ -905,7 +905,7 @@ static int arm11_read_memory_inner(struct target *target,
 
 		/* LDC p14,c5,[R0],#4 */
 		/* LDC p14,c5,[R0] */
-		arm11_run_instr_data_from_core(arm11, instr, words, count);
+		CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, instr, words, count));
 		break;
 		}
 	}
@@ -1265,14 +1265,14 @@ static int arm11_examine(struct target *target)
 	 * want to know if this core supports Secure Monitor mode.
 	 */
 	if (!target_was_examined(target))
-		retval = arm11_dpm_init(arm11, didr);
+		CHECK_RETVAL(arm11_dpm_init(arm11, didr));
 
 	/* ETM on ARM11 still uses original scanchain 6 access mode */
 	if (arm11->arm.etm && !target_was_examined(target)) {
 		*register_get_last_cache_p(&target->reg_cache) =
 			etm_build_reg_cache(target, &arm11->jtag_info,
 					arm11->arm.etm);
-		retval = etm_setup(target);
+		CHECK_RETVAL(etm_setup(target));
 	}
 
 	target_set_examined(target);

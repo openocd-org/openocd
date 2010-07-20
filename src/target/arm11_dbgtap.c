@@ -964,7 +964,7 @@ int arm11_sc7_run(struct arm11_common * arm11, struct arm11_sc7_action * actions
  * \param arm11		Target state variable.
  *
  */
-void arm11_sc7_clear_vbw(struct arm11_common * arm11)
+int arm11_sc7_clear_vbw(struct arm11_common * arm11)
 {
 	size_t clear_bw_size = arm11->brp + 1;
 	struct arm11_sc7_action		*clear_bw = malloc(sizeof(struct arm11_sc7_action) * clear_bw_size);
@@ -981,9 +981,12 @@ void arm11_sc7_clear_vbw(struct arm11_common * arm11)
 
 	(pos++)->address = ARM11_SC7_VCR;
 
-	arm11_sc7_run(arm11, clear_bw, clear_bw_size);
+	int retval;
+	retval = arm11_sc7_run(arm11, clear_bw, clear_bw_size);
 
 	free (clear_bw);
+
+	return retval;
 }
 
 /** Write VCR register
@@ -991,7 +994,7 @@ void arm11_sc7_clear_vbw(struct arm11_common * arm11)
  * \param arm11		Target state variable.
  * \param value		Value to be written
  */
-void arm11_sc7_set_vcr(struct arm11_common * arm11, uint32_t value)
+int arm11_sc7_set_vcr(struct arm11_common * arm11, uint32_t value)
 {
 	struct arm11_sc7_action		set_vcr;
 
@@ -999,7 +1002,7 @@ void arm11_sc7_set_vcr(struct arm11_common * arm11, uint32_t value)
 	set_vcr.address		= ARM11_SC7_VCR;
 	set_vcr.value		= value;
 
-	arm11_sc7_run(arm11, &set_vcr, 1);
+	return arm11_sc7_run(arm11, &set_vcr, 1);
 }
 
 
