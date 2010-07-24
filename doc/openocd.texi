@@ -2451,7 +2451,7 @@ version of OpenOCD.
 Select which of the supported transports to use in this OpenOCD session.
 The transport must be supported by the debug adapter hardware  and by the
 version of OPenOCD you are using (including the adapter's driver).
-No arguments: print selected transport..
+No arguments: returns name of session's selected transport.
 @end deffn
 
 @subsection JTAG Transport

@@ -46,6 +46,9 @@
 
 #include "transport.h"
 
+extern struct command_context *global_cmd_ctx;
+
+
 /*-----------------------------------------------------------------------*/
 
 /*
@@ -272,39 +275,26 @@ COMMAND_HANDLER(handle_transport_list)
 /**
  * Implements the Tcl "transport select" command, choosing the
  * transport to be used in this debug session from among the
- * set supported by the debug adapter being used.
+ * set supported by the debug adapter being used.  Return value
+ * is scriptable (allowing "if swd then..." etc).
  */
-COMMAND_HANDLER(handle_transport_select)
+static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	int retval = ERROR_OK;;
-
-	switch (CMD_ARGC) {
-	case 0:			/* "select" */
-		if (session) {
-			goto show;
-		}
-		LOG_ERROR("session's transport is not selected.");
-		return ERROR_FAIL;
-
-	case 1:			/* "select FOO" */
-		if ((session!= NULL) && strcmp(session->name, CMD_ARGV[0]) == 0) {
-			/* NOP */
-			LOG_DEBUG("transport '%s' is already selected",
-					CMD_ARGV[0]);
-			return ERROR_OK;
+	switch (argc) {
+	case 1:			/* return/display */
+		if (!session) {
+			LOG_ERROR("session's transport is not selected.");
+			return JIM_ERR;
 		} else {
-			/* we can't change this session's transport after-the-fact */
-			if (session) {
-				LOG_ERROR("session's transport is already selected.");
-				return ERROR_FAIL;
-			}
+			Jim_SetResultString(interp, session->name, -1);
+			return JIM_OK;
 		}
 		break;
-
-	default:		/* select FOO BAR */
-		/* we only select *one* transport per session */
-		LOG_ERROR("may only select one transport!");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	case 2:			/* assign */
+	if (session) {
+		/* can't change session's transport after-the-fact */
+		LOG_ERROR("session's transport is already selected.");
+		return JIM_ERR;
 	}
 
 	/* Is this transport supported by our debug adapter?
@@ -315,24 +305,23 @@ COMMAND_HANDLER(handle_transport_select)
 	 */
 	if (!allowed_transports) {
 		LOG_ERROR("Debug adapter doesn't support any transports?");
-		return ERROR_FAIL;
+		return JIM_ERR;
 	}
 
 	for (unsigned i = 0; allowed_transports[i]; i++) {
 
-		if (strcmp(allowed_transports[i], CMD_ARGV[0]) == 0)
-			return transport_select(CMD_CTX, CMD_ARGV[0]);
+		if (strcmp(allowed_transports[i], argv[0]->bytes) == 0)
+		return transport_select(global_cmd_ctx, argv[0]->bytes);
 	}
 
-	LOG_ERROR("Debug adapter doesn't support '%s' "
-			"transport?", CMD_ARGV[0]);
-	return ERROR_FAIL;
-
-
-show:
-	/* report the current transport selection */
-	command_print(CMD_CTX, "%s", session->name);
-	return retval;
+		LOG_ERROR("Debug adapter doesn't support '%s' "
+			"transport", argv[0]->bytes);
+		return JIM_ERR;
+		break;
+	default:
+		Jim_WrongNumArgs(interp, 1, argv, "[too many parameters]");
+		return JIM_ERR;
+	}
 }
 
 static const struct command_registration transport_commands[] = {
@@ -354,7 +343,7 @@ static const struct command_registration transport_commands[] = {
 	},
 	{
 		.name = "select",
-		.handler = handle_transport_select,
+		.jim_handler = jim_transport_select,
 		.mode = COMMAND_ANY,
 		.help = "Select this session's transport",
 		.usage = "[transport_name]",
