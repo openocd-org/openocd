@@ -1248,7 +1248,31 @@ COMMAND_HANDLER(handle_tms_sequence_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_jtag_flush_queue_sleep)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	int sleep_ms;
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], sleep_ms);
+
+	jtag_set_flush_queue_sleep(sleep_ms);
+
+	return ERROR_OK;
+}
+
+
+
 static const struct command_registration jtag_command_handlers[] = {
+
+	{
+		.name = "jtag_flush_queue_sleep",
+		.handler = handle_jtag_flush_queue_sleep,
+		.mode = COMMAND_ANY,
+		.help = "For debug purposes(simulate long delays of interface) "
+				"to test performance or change in behavior. Default 0ms.",
+		.usage = "[sleep in ms]",
+	},
 	{
 		.name = "jtag_rclk",
 		.handler = handle_jtag_rclk_command,

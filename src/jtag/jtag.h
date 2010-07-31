@@ -311,6 +311,10 @@ int  adapter_init(struct command_context* cmd_ctx);
 /// Shutdown the debug adapter upon program exit.
 int  adapter_quit(void);
 
+/// Set ms to sleep after jtag_execute_queue() flushes queue. Debug
+/// purposes.
+void jtag_set_flush_queue_sleep(int ms);
+
 /**
  * Initialize JTAG chain using only a RESET reset. If init fails,
  * try reset + init.

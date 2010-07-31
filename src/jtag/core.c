@@ -46,6 +46,9 @@
 /// The number of JTAG queue flushes (for profiling and debugging purposes).
 static int jtag_flush_queue_count;
 
+// Sleep this # of ms after flushing the queue
+static int jtag_flush_queue_sleep = 0;
+
 static void jtag_add_scan_check(struct jtag_tap *active,
 		void (*jtag_add_scan)(struct jtag_tap *active, int in_num_fields, const struct scan_field *in_fields, tap_state_t state),
 		int in_num_fields, struct scan_field *in_fields, tap_state_t state);
@@ -128,6 +131,11 @@ static struct jtag_interface *jtag = NULL;
 
 /* configuration */
 struct jtag_interface *jtag_interface = NULL;
+
+void jtag_set_flush_queue_sleep(int ms)
+{
+	jtag_flush_queue_sleep = ms;
+}
 
 void jtag_set_error(int error)
 {
@@ -826,6 +834,15 @@ void jtag_execute_queue_noclear(void)
 {
 	jtag_flush_queue_count++;
 	jtag_set_error(interface_jtag_execute_queue());
+
+	if (jtag_flush_queue_sleep > 0)
+	{
+		/* For debug purposes it can be useful to test performance
+		 * or behavior when delaying after flushing the queue,
+		 * e.g. to simulate long roundtrip times.
+		 */
+		usleep(jtag_flush_queue_sleep * 1000);
+	}
 }
 
 int jtag_get_flush_queue_count(void)
