@@ -22,7 +22,8 @@ libhelper_la_SOURCES = \
 	command.c \
 	time_support.c \
 	replacements.c \
-	fileio.c
+	fileio.c \
+	util.c
 
 if IOUTIL
 libhelper_la_SOURCES += ioutil.c
@@ -40,6 +41,7 @@ noinst_HEADERS = \
 	binarybuffer.h \
 	configuration.h \
 	ioutil.h \
+	util.h \
 	types.h \
 	log.h \
 	command.h \

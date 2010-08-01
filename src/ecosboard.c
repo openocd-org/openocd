@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2009 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2010 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,6 +24,7 @@
 #include <helper/types.h>
 #include <jtag/jtag.h>
 #include <helper/ioutil.h>
+#include <helper/util.h>
 #include <helper/configuration.h>
 
 #include <server/server.h>
@@ -1088,6 +1089,9 @@ int main(int argc, char *argv[])
 	cmd_ctx = setup_command_handler(httpstate.jim_interp);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
+
+	if (util_init(cmd_ctx) != ERROR_OK)
+		return EXIT_FAILURE;
 
 	if (ioutil_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;

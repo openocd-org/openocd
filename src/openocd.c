@@ -33,6 +33,7 @@
 #include <jtag/jtag.h>
 #include <jtag/transport.h>
 #include <helper/ioutil.h>
+#include <helper/util.h>
 #include <helper/configuration.h>
 #include <flash/nor/core.h>
 #include <flash/nand/core.h>
@@ -267,6 +268,9 @@ int openocd_main(int argc, char *argv[])
 	struct command_context *cmd_ctx;
 
 	cmd_ctx = setup_command_handler(NULL);
+
+	if (util_init(cmd_ctx) != ERROR_OK)
+		return EXIT_FAILURE;
 
 	if (ioutil_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
