@@ -1,4 +1,4 @@
-/***************************************************************************
+'n/***************************************************************************
  *   Copyright (C) 2007-2010 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -84,7 +84,33 @@ static int zy1000_khz(int khz, int *jtag_speed)
 	}
 	else
 	{
-		*jtag_speed = 64000/khz;
+		int speed;
+		/* Round speed up to nearest divisor.
+		 *
+		 * E.g. 16000kHz
+		 * (64000 + 15999) / 16000 = 4
+		 * (4 + 1) / 2 = 2
+		 * 2 * 2 = 4
+		 *
+		 * 64000 / 4 = 16000
+		 *
+		 * E.g. 15999
+		 * (64000 + 15998) / 15999 = 5
+		 * (5 + 1) / 2 = 3
+		 * 3 * 2 = 6
+		 *
+		 * 64000 / 6 = 10666
+		 *
+		 */
+		speed = (64000 + (khz -1)) / khz;
+		speed = (speed + 1 ) / 2;
+		speed *= 2;
+		if (speed > 8190)
+		{
+			/* maximum dividend */
+			speed = 8190;
+		}
+		*jtag_speed = speed;
 	}
 	return ERROR_OK;
 }
@@ -243,9 +269,12 @@ int zy1000_speed(int speed)
 			return ERROR_INVALID_ARGUMENTS;
 		}
 
-		LOG_USER("jtag_speed %d => JTAG clk=%f", speed, 64.0/(float)speed);
+		int khz;
+		speed &= ~1;
+		zy1000_speed_div(speed, &khz);
+		LOG_USER("jtag_speed %d => JTAG clk=%d kHz", speed, khz);
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x100);
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x1c, speed&~1);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x1c, speed);
 	}
 	return ERROR_OK;
 }
