@@ -1,4 +1,4 @@
-'n/***************************************************************************
+/***************************************************************************
  *   Copyright (C) 2007-2010 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -62,6 +62,9 @@
 #ifdef CYGPKG_HAL_NIOS2
 #include <cyg/hal/io.h>
 #include <cyg/firmwareutil/firmwareutil.h>
+#define ZYLIN_KHZ 60000
+#else
+#define ZYLIN_KHZ 64000
 #endif
 
 #define ZYLIN_VERSION GIT_ZY1000_VERSION
@@ -70,6 +73,9 @@
 #define ZYLIN_OPENOCD GIT_OPENOCD_VERSION
 #define ZYLIN_OPENOCD_VERSION "ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE
 
+#else
+/* Assume we're connecting to a revc w/60MHz clock. */
+#define ZYLIN_KHZ 60000
 #endif
 
 
@@ -102,7 +108,7 @@ static int zy1000_khz(int khz, int *jtag_speed)
 		 * 64000 / 6 = 10666
 		 *
 		 */
-		speed = (64000 + (khz -1)) / khz;
+		speed = (ZYLIN_KHZ + (khz -1)) / khz;
 		speed = (speed + 1 ) / 2;
 		speed *= 2;
 		if (speed > 8190)
@@ -123,7 +129,7 @@ static int zy1000_speed_div(int speed, int *khz)
 	}
 	else
 	{
-		*khz = 64000/speed;
+		*khz = ZYLIN_KHZ / speed;
 	}
 
 	return ERROR_OK;
@@ -265,7 +271,8 @@ int zy1000_speed(int speed)
 	{
 		if (speed > 8190 || speed < 2)
 		{
-			LOG_USER("valid ZY1000 jtag_speed=[8190,2]. Divisor is 64MHz / even values between 8190-2, i.e. min 7814Hz, max 32MHz");
+			LOG_USER("valid ZY1000 jtag_speed=[8190,2]. With divisor is %dkHz / even values between 8190-2, i.e. min %dHz, max %dMHz",
+					ZYLIN_KHZ, (ZYLIN_KHZ * 1000) / 8190, ZYLIN_KHZ / (2 * 1000));
 			return ERROR_INVALID_ARGUMENTS;
 		}
 
