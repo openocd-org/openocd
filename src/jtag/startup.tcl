@@ -76,6 +76,15 @@ proc srst_asserted {} {
 	puts "Sensed nSRST asserted."
 }
 
+# measure actual JTAG clock
+proc measure_clk {} {
+	set start_time [ms];
+	runtest 10000000; 
+	echo "Running at more than [expr 10000.0 / ([ms]-$start_time)] kHz";
+}
+
+add_help_text measure_clk "Runs a test to measure the JTAG clk. Useful with RCLK / RTCK."
+
 # BEGIN MIGRATION AIDS ...  these adapter operations originally had
 # JTAG-specific names despite the fact that the operations were not
 # specific to JTAG, or otherewise had troublesome/misleading names.
