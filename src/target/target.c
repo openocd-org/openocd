@@ -2703,7 +2703,12 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 		if (verify)
 		{
 			/* calculate checksum of image */
-			image_calculate_checksum(buffer, buf_cnt, &checksum);
+			retval = image_calculate_checksum(buffer, buf_cnt, &checksum);
+			if (retval != ERROR_OK)
+			{
+				free(buffer);
+				break;
+			}
 
 			retval = target_checksum_memory(target, image.sections[i].base_address, buf_cnt, &mem_checksum);
 			if (retval != ERROR_OK)
@@ -2768,6 +2773,10 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 
 		free(buffer);
 		image_size += buf_cnt;
+	}
+	if (diffs > 0)
+	{
+		command_print(CMD_CTX, "No more differences found.");
 	}
 done:
 	if (diffs > 0)
