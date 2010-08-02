@@ -6337,10 +6337,10 @@ handler. However, this means that the complete first cacheline in the
 mini-IC is marked valid, which makes the CPU fetch all exception
 handlers from the mini-IC, ignoring the code in RAM.
 
-OpenOCD currently does not sync the mini-IC entries with the RAM
-contents (which would fail anyway while the target is running), so
-the user must provide appropriate values using the @code{xscale
-vector_table} command.
+To address this situation, OpenOCD provides the @code{xscale
+vector_table} command, which allows the user to explicity write
+individual entries to either the high or low vector table stored in
+the mini-IC.
 
 It is recommended to place a pc-relative indirect branch in the vector
 table, and put the branch destination somewhere in memory. Doing so
@@ -6366,6 +6366,24 @@ _vectors:
         .long real_irq_handler
         .long real_fiq_handler
 @end example
+
+Alternatively, you may choose to keep some or all of the mini-IC
+vector table entries synced with those written to memory by your
+system software.  The mini-IC can not be modified while the processor
+is executing, but for each vector table entry not previously defined
+using the @code{xscale vector_table} command, OpenOCD will copy the
+value from memory to the mini-IC every time execution resumes from a
+halt.  This is done for both high and low vector tables (although the
+table not in use may not be mapped to valid memory, and in this case
+that copy operation will silently fail).  This means that you will
+need to briefly halt execution at some strategic point during system
+start-up; e.g., after the software has initialized the vector table,
+but before exceptions are enabled.  A breakpoint can be used to
+accomplish this once the appropriate location in the start-up code has
+been identified.  A watchpoint over the vector table region is helpful
+in finding the location if you're not sure.  Note that the same
+situation exists any time the vector table is modified by the system
+software.
 
 The debug handler must be placed somewhere in the address space using
 the @code{xscale debug_handler} command.  The allowed locations for the
