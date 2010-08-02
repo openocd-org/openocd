@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2010 by Øyvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -418,7 +418,7 @@ COMMAND_HANDLER(handle_rm_command)
 
 
 static int
-zylinjtag_Jim_Command_ls(Jim_Interp *interp,
+ioutil_Jim_Command_ls(Jim_Interp *interp,
                                    int argc,
 		Jim_Obj * const *argv)
 {
@@ -458,7 +458,7 @@ zylinjtag_Jim_Command_ls(Jim_Interp *interp,
 }
 
 static int
-zylinjtag_Jim_Command_peek(Jim_Interp *interp,
+ioutil_Jim_Command_peek(Jim_Interp *interp,
                                    int argc,
 		Jim_Obj * const *argv)
 {
@@ -480,7 +480,7 @@ zylinjtag_Jim_Command_peek(Jim_Interp *interp,
 }
 
 static int
-zylinjtag_Jim_Command_poke(Jim_Interp *interp,
+ioutil_Jim_Command_poke(Jim_Interp *interp,
                                    int argc,
 		Jim_Obj * const *argv)
 {
@@ -504,7 +504,7 @@ zylinjtag_Jim_Command_poke(Jim_Interp *interp,
 
 
 /* not so pretty code to fish out ip number*/
-static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
+static int ioutil_Jim_Command_ip(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 #if !defined(__CYGWIN__)
@@ -551,7 +551,7 @@ static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
 }
 
 /* not so pretty code to fish out eth0 mac address */
-static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
+static int ioutil_Jim_Command_mac(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 
@@ -661,10 +661,6 @@ static const struct command_registration ioutil_command_handlers[] = {
 	},
 
 	/*
-	 * REVISIT shouldn't most, or all, these zylinjtag_*()
-	 * entries be #ifdef ZY1000?  If not, why so they have
-	 * those names?
-	 *
 	 * Peek and poke are security holes -- they manipulate
 	 * server-internal addresses.
 	 */
@@ -673,33 +669,33 @@ static const struct command_registration ioutil_command_handlers[] = {
 	{
 		.name = "peek",
 		.mode = COMMAND_ANY,
-		.jim_handler = zylinjtag_Jim_Command_peek,
+		.jim_handler = ioutil_Jim_Command_peek,
 		.help = "peek at a memory address",
 		.usage = "address",
 	},
 	{
 		.name = "poke",
 		.mode = COMMAND_ANY,
-		.jim_handler = zylinjtag_Jim_Command_poke,
+		.jim_handler = ioutil_Jim_Command_poke,
 		.help = "poke at a memory address",
 		.usage = "address value",
 	},
 	{
 		.name = "ls",
 		.mode = COMMAND_ANY,
-		.jim_handler = zylinjtag_Jim_Command_ls,
+		.jim_handler = ioutil_Jim_Command_ls,
 		.help = "show a listing of files",
 		.usage = "dirname",
 	},
 	{
 		.name = "mac",
 		.mode = COMMAND_ANY,
-		.jim_handler = zylinjtag_Jim_Command_mac,
+		.jim_handler = ioutil_Jim_Command_mac,
 		.help = "show MAC address",
 	},
 	{
 		.name = "ip",
-		.jim_handler = zylinjtag_Jim_Command_ip,
+		.jim_handler = ioutil_Jim_Command_ip,
 		.mode = COMMAND_ANY,
 		.help = "show IP address",
 	},
