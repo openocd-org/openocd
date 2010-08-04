@@ -303,6 +303,11 @@ static const struct ft2232_layout  ft2232_layouts[] =
 	        .reset = redbee_reset,
     	        .channel = INTERFACE_B,
 	},
+	{ .name = "lisa-l",
+		.init = usbjtag_init,
+		.reset = ftx23_reset,
+		.channel = INTERFACE_B,
+	},
 	{ .name = NULL, /* END OF TABLE */ },
 };
 
