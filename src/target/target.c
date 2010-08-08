@@ -96,6 +96,7 @@ static struct target_type *target_types[] =
 struct target *all_targets = NULL;
 static struct target_event_callback *target_event_callbacks = NULL;
 static struct target_timer_callback *target_timer_callbacks = NULL;
+static const int polling_interval = 100;
 
 static const Jim_Nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
@@ -862,7 +863,7 @@ static int target_init(struct command_context *cmd_ctx)
 		return retval;
 
 	retval = target_register_timer_callback(&handle_target,
-			100, 1, cmd_ctx->interp);
+			polling_interval, 1, cmd_ctx->interp);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1800,6 +1801,9 @@ static int sense_handler(void)
 	return ERROR_OK;
 }
 
+static int backoff_times = 0;
+static int backoff_count = 0;
+
 /* process target state changes */
 static int handle_target(void *priv)
 {
@@ -1862,6 +1866,14 @@ static int handle_target(void *priv)
 		recursive = 0;
 	}
 
+	if (backoff_times > backoff_count)
+	{
+		/* do not poll this time as we failed previously */
+		backoff_count++;
+		return ERROR_OK;
+	}
+	backoff_count = 0;
+
 	/* Poll targets for state changes unless that's globally disabled.
 	 * Skip targets that are currently disabled.
 	 */
@@ -1878,17 +1890,26 @@ static int handle_target(void *priv)
 			/* polling may fail silently until the target has been examined */
 			if ((retval = target_poll(target)) != ERROR_OK)
 			{
-				/* FIX!!!!! If we add a LOG_INFO() here to output a line in GDB
-				 * *why* we are aborting GDB, then we'll spam telnet when the
-				 * poll is failing persistently.
-				 *
-				 * If we could implement an event that detected the
-				 * target going from non-pollable to pollable, we could issue
-				 * an error only upon the transition.
+				/* 100ms polling interval. Increase interval between polling up to 5000ms */
+				if (backoff_times * polling_interval < 5000)
+				{
+					backoff_times *= 2;
+					backoff_times++;
+				}
+				LOG_USER("Polling target failed, GDB will be halted. Polling again in %dms", backoff_times * polling_interval);
+
+				/* Tell GDB to halt the debugger. This allows the user to
+				 * run monitor commands to handle the situation.
 				 */
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				return retval;
 			}
+			/* Since we succeeded, we reset backoff count */
+			if (backoff_times > 0)
+			{
+				LOG_USER("Polling succeeded again");
+			}
+			backoff_times = 0;
 		}
 	}
 
