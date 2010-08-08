@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008,2009 Øyvind Harboe                            *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -73,6 +73,17 @@ struct target_type
 	 *
 	 */
 	int (*assert_reset)(struct target *target);
+	/**
+	 * The implementation is responsible for polling the
+	 * target such that target->state reflects the
+	 * state correctly.
+	 *
+	 * Otherwise the following would fail, as there will not
+	 * be any "poll" invoked inbetween the "reset run" and
+	 * "halt".
+	 *
+	 * reset run; halt
+     */
 	int (*deassert_reset)(struct target *target);
 	int (*soft_reset_halt_imp)(struct target *target);
 	int (*soft_reset_halt)(struct target *target);

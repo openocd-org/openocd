@@ -1074,24 +1074,29 @@ int arm7_9_deassert_reset(struct target *target)
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
 
+	/* In case polling is disabled, we need to examine the
+	 * target and poll here for this target to work correctly.
+	 *
+	 * Otherwise, e.g. halt will fail afterwards with bogus
+	 * error messages as halt will believe that reset is
+	 * still in effect.
+	 */
+	if ((retval = target_examine_one(target)) != ERROR_OK)
+		return retval;
+
+	if ((retval = target_poll(target)) != ERROR_OK)
+	{
+		return retval;
+	}
+
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (target->reset_halt && (jtag_reset_config & RESET_SRST_PULLS_TRST) != 0)
 	{
 		LOG_WARNING("srst pulls trst - can not reset into halted mode. Issuing halt after reset.");
-		/* set up embedded ice registers again */
-		if ((retval = target_examine_one(target)) != ERROR_OK)
-			return retval;
-
-		if ((retval = target_poll(target)) != ERROR_OK)
-		{
-			return retval;
-		}
-
 		if ((retval = target_halt(target)) != ERROR_OK)
 		{
 			return retval;
 		}
-
 	}
 	return retval;
 }
