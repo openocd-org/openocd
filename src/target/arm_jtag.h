@@ -45,8 +45,7 @@ static inline int arm_jtag_set_instr(struct arm_jtag *jtag_info,
 	/* inline most common code path */
 	struct jtag_tap *tap;
 	tap = jtag_info->tap;
-	if (tap == NULL)
-		return ERROR_FAIL;
+	assert (tap != NULL);
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{

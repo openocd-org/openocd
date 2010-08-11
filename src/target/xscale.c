@@ -160,8 +160,7 @@ static int xscale_verify_pointer(struct command_context *cmd_ctx,
 
 static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
 {
-	if (tap == NULL)
-		return ERROR_FAIL;
+	assert (tap != NULL);
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
