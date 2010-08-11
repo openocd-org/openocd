@@ -29,14 +29,14 @@ proc helpC100 {} {
 # mrw: "memory read word", returns value of $reg
 proc mrw {reg} {
     set value ""
-    ocd_mem2array value 32 $reg 1
+    mem2array value 32 $reg 1
     return $value(0)
 }
 
 # read a 64-bit register (memory mapped)
 proc mr64bit {reg} {
     set value ""
-    ocd_mem2array value 32 $reg 2
+    mem2array value 32 $reg 2
     return $value
 }
 
@@ -131,7 +131,7 @@ proc showAmbaClk {} {
     set PLL_CLK_BYPASS	             [regs PLL_CLK_BYPASS]
 
     puts [format "CLKCORE_AHB_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_AHB_CLK_CNTRL [mrw $CLKCORE_AHB_CLK_CNTRL]]
-    ocd_mem2array value 32 $CLKCORE_AHB_CLK_CNTRL 1
+    mem2array value 32 $CLKCORE_AHB_CLK_CNTRL 1
     # see if the PLL is in bypass mode
     set bypass [expr ($value(0) & $PLL_CLK_BYPASS) >> 24 ]
     puts [format "PLL bypass bit: %d" $bypass]
@@ -206,7 +206,7 @@ proc showArmClk {} {
     set PLL_CLK_BYPASS	        [regs PLL_CLK_BYPASS]
 
     puts [format "CLKCORE_ARM_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_ARM_CLK_CNTRL [mrw $CLKCORE_ARM_CLK_CNTRL]]
-    ocd_mem2array value 32 $CLKCORE_ARM_CLK_CNTRL 1
+    mem2array value 32 $CLKCORE_ARM_CLK_CNTRL 1
     # see if the PLL is in bypass mode
     set bypass [expr ($value(0) & $PLL_CLK_BYPASS) >> 24 ]
     puts [format "PLL bypass bit: %d" $bypass]

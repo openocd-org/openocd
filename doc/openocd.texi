@@ -7209,10 +7209,10 @@ Low-level commands are (should be) prefixed with "ocd_", e.g.
 is the low level API upon which @command{flash banks} is implemented.
 
 @itemize @bullet
-@item @b{ocd_mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
+@item @b{mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
 
 Read memory and return as a Tcl array for script processing
-@item @b{ocd_array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
+@item @b{array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
 
 Convert a Tcl array to memory locations and write the values
 @item @b{ocd_flash_banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]

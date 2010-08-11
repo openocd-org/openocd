@@ -5296,7 +5296,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.usage = "filename [offset [type]]",
 	},
 	{
-		.name = "ocd_mem2array",
+		.name = "mem2array",
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_mem2array,
 		.help = "read 8/16/32 bit memory and return as a TCL array "
@@ -5304,7 +5304,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.usage = "arrayname bitwidth address count",
 	},
 	{
-		.name = "ocd_array2mem",
+		.name = "array2mem",
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_array2mem,
 		.help = "convert a TCL array to memory locations "
