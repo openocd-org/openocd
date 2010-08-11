@@ -281,7 +281,10 @@ static int arm920t_read_cp15_interpreted(struct target *target,
 #endif
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	r[0].dirty = 1;
 	r[1].dirty = 1;
@@ -323,7 +326,10 @@ int arm920t_write_cp15_interpreted(struct target *target,
 #endif
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	r[0].dirty = 1;
 	r[1].dirty = 1;
@@ -1154,7 +1160,10 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	fclose(output);
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	/* force writeback of the valid data */
 	r = armv4_5->core_cache->reg_list;
@@ -1481,7 +1490,10 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	fclose(output);
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	/* force writeback of the valid data */
 	r = armv4_5->core_cache->reg_list;

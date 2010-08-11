@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -1518,7 +1518,10 @@ static int arm7_9_full_context(struct target *target)
 	}
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
 	 * SYS shares registers with User, so we don't touch SYS
@@ -1621,7 +1624,10 @@ static int arm7_9_restore_context(struct target *target)
 		arm7_9->pre_restore_context(target);
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
 	 * SYS shares registers with User, so we don't touch SYS

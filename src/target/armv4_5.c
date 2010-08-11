@@ -634,7 +634,10 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	}
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	if (!armv4_5->full_context) {
 		command_print(CMD_CTX, "error: target doesn't support %s",
@@ -1046,7 +1049,10 @@ int arm_get_gdb_reg_list(struct target *target,
 	int i;
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(struct reg*) * (*reg_list_size));
@@ -1127,7 +1133,10 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	}
 
 	if (!is_arm_mode(armv4_5->core_mode))
+	{
+		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
+	}
 
 	/* armv5 and later can terminate with BKPT instruction; less overhead */
 	if (!exit_point && armv4_5->is_armv4)
