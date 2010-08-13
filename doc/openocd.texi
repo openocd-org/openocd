@@ -2259,11 +2259,11 @@ default values are used.
 Currently, only one @var{vid}, @var{pid} pair may be given, e.g. for
 Altera USB-Blaster (default):
 @example
-ft2232_vid_pid 0x09FB 0x6001
+usb_blaster_vid_pid 0x09FB 0x6001
 @end example
 The following VID/PID is for Kolja Waschk's USB JTAG:
 @example
-ft2232_vid_pid 0x16C0 0x06AD
+usb_blaster_vid_pid 0x16C0 0x06AD
 @end example
 @end deffn
 
