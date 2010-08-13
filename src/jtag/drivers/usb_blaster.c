@@ -492,7 +492,7 @@ COMMAND_HANDLER(usb_blaster_handle_vid_pid_command)
 {
 	if (CMD_ARGC > 2)
 	{
-		LOG_WARNING("ignoring extra IDs in ft2232_vid_pid "
+		LOG_WARNING("ignoring extra IDs in usb_blaster_vid_pid "
 					"(maximum is 1 pair)");
 		CMD_ARGC = 2;
 	}
