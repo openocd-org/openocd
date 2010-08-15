@@ -32,6 +32,7 @@ libtarget_la_SOURCES = \
 	$(ARMV6_SRC) \
 	$(ARMV7_SRC) \
 	$(ARM_MISC_SRC) \
+	$(AVR32_SRC) \
 	$(MIPS32_SRC) \
 	avrt.c \
 	dsp563xx.c \
@@ -91,6 +92,12 @@ ARM_DEBUG_SRC = \
 	etm.c \
 	$(OOCD_TRACE_FILES) \
 	etm_dummy.c
+
+AVR32_SRC = \
+	avr32_ap7k.c \
+	avr32_jtag.c \
+	avr32_mem.c \
+	avr32_regs.c
 
 MIPS32_SRC = \
 	mips32.c \
