@@ -22,13 +22,15 @@ non-JTAG ways to debug targets or program flash.
 
 Target Layer:
 	ARM:
-		- basic semihosting support (ARMv7M).
+		- basic semihosting support for ARMv7M.
 		- renamed "armv7m" command prefix as "arm"
 	MIPS:
 		- "ejtag_srst" variant removed. The same functionality is
 		  obtained by using "reset_config none".
 		- added PIC32MX software reset support, this means srst is not
 		  required to be connected anymore.
+	OTHER:
+		- preliminary AVR32 AP7000 support.
 
 Flash Layer:
 	New "stellaris recover" command, implements the procedure
