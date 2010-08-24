@@ -816,7 +816,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t wcount)
 {
 	struct target *target = bank->target;
-	uint32_t buffer_size = 8192;
+	uint32_t buffer_size = 16384;
 	struct working_area *source;
 	struct working_area *write_algorithm;
 	uint32_t address = bank->base + offset;
