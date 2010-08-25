@@ -913,7 +913,7 @@ static int cortex_m3_assert_reset(struct target *target)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct adiv5_dap *swjdp = &cortex_m3->armv7m.dap;
-	int assert_srst = 1;
+	enum cortex_m3_soft_reset_config reset_config = cortex_m3->soft_reset_config;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -925,8 +925,10 @@ static int cortex_m3_assert_reset(struct target *target)
 	 * requiring SRST, getting a SoC reset (or a core-only reset)
 	 * instead of a system reset.
 	 */
-	if (!(jtag_reset_config & RESET_HAS_SRST))
-		assert_srst = 0;
+	if (!(jtag_reset_config & RESET_HAS_SRST) &&
+			(cortex_m3->soft_reset_config == CORTEX_M3_RESET_SRST)) {
+		reset_config = CORTEX_M3_RESET_VECTRESET;
+	}
 
 	/* Enable debug requests */
 	int retval;
@@ -975,49 +977,7 @@ static int cortex_m3_assert_reset(struct target *target)
 			return retval;
 	}
 
-	/*
-	 * When nRST is asserted on most Stellaris devices, it clears some of
-	 * the debug state.  The ARMv7M and Cortex-M3 TRMs say that's wrong;
-	 * and OpenOCD depends on those TRMs.  So we won't use SRST on those
-	 * chips.  (Only power-on reset should affect debug state, beyond a
-	 * few specified bits; not the chip's nRST input, wired to SRST.)
-	 *
-	 * REVISIT current errata specs don't seem to cover this issue.
-	 * Do we have more details than this email?
-	 *   https://lists.berlios.de/pipermail
-	 *	/openocd-development/2008-August/003065.html
-	 */
-	if (strcmp(target->variant, "lm3s") == 0)
-	{
-		/* Check for silicon revisions with the issue. */
-		uint32_t did0;
-
-		if (target_read_u32(target, 0x400fe000, &did0) == ERROR_OK)
-		{
-			switch ((did0 >> 16) & 0xff)
-			{
-				case 0:
-					/* all Sandstorm suffer issue */
-					assert_srst = 0;
-					break;
-
-				case 1:
-				case 3:
-					/* Fury and DustDevil rev A have
-					 * this nRST problem.  It should
-					 * be fixed in rev B silicon.
-					 */
-					if (((did0 >> 8) & 0xff) == 0)
-						assert_srst = 0;
-					break;
-				case 4:
-					/* Tempest should be fine. */
-					break;
-			}
-		}
-	}
-
-	if (assert_srst)
+	if (reset_config == CORTEX_M3_RESET_SRST)
 	{
 		/* default to asserting srst */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
@@ -1032,15 +992,23 @@ static int cortex_m3_assert_reset(struct target *target)
 	else
 	{
 		/* Use a standard Cortex-M3 software reset mechanism.
-		 * SYSRESETREQ will reset SoC peripherals outside the
-		 * core, like watchdog timers, if the SoC wires it up
-		 * correctly.  Else VECRESET can reset just the core.
+		 * We default to using VECRESET as it is supported on all current cores.
+		 * This has the disadvantage of not resetting the peripherals, so a
+		 * reset-init event handler is needed to perform any peripheral resets.
 		 */
 		retval = mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
-				AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+				AIRCR_VECTKEY | ((reset_config == CORTEX_M3_RESET_SYSRESETREQ)
+				? AIRCR_SYSRESETREQ : AIRCR_VECTRESET));
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("Using Cortex-M3 SYSRESETREQ");
+
+		LOG_DEBUG("Using Cortex-M3 %s", (reset_config == CORTEX_M3_RESET_SYSRESETREQ)
+				? "SYSRESETREQ" : "VECTRESET");
+
+		if (reset_config == CORTEX_M3_RESET_VECTRESET) {
+			LOG_WARNING("Only resetting the Cortex-M3 core, use a reset-init event "
+					"handler to reset any peripherals");
+		}
 
 		{
 			/* I do not know why this is necessary, but it
@@ -1969,6 +1937,10 @@ static int cortex_m3_init_arch_info(struct target *target,
 	cortex_m3->jtag_info.tap = tap;
 	cortex_m3->jtag_info.scann_size = 4;
 
+	/* default reset mode is to use srst if fitted
+	 * if not it will use CORTEX_M3_RESET_VECTRESET */
+	cortex_m3->soft_reset_config = CORTEX_M3_RESET_SRST;
+
 	armv7m->arm.dap = &armv7m->dap;
 
 	/* Leave (only) generic DAP stuff for debugport_init(); */
@@ -2143,6 +2115,51 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_cortex_m3_reset_config_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
+	int retval;
+	char *reset_config;
+
+	retval = cortex_m3_verify_pointer(CMD_CTX, cortex_m3);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (CMD_ARGC > 0)
+	{
+		if (strcmp(*CMD_ARGV, "systesetreq") == 0)
+			cortex_m3->soft_reset_config = CORTEX_M3_RESET_SYSRESETREQ;
+		else if (strcmp(*CMD_ARGV, "vectreset") == 0)
+			cortex_m3->soft_reset_config = CORTEX_M3_RESET_VECTRESET;
+		else
+			cortex_m3->soft_reset_config = CORTEX_M3_RESET_SRST;
+	}
+
+	switch (cortex_m3->soft_reset_config)
+	{
+		case CORTEX_M3_RESET_SRST:
+			reset_config = "srst";
+			break;
+
+		case CORTEX_M3_RESET_SYSRESETREQ:
+			reset_config = "sysresetreq";
+			break;
+
+		case CORTEX_M3_RESET_VECTRESET:
+			reset_config = "vectreset";
+			break;
+
+		default:
+			reset_config = "unknown";
+			break;
+	}
+
+	command_print(CMD_CTX, "cortex_m3 reset_config %s", reset_config);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration cortex_m3_exec_command_handlers[] = {
 	{
 		.name = "maskisr",
@@ -2157,6 +2174,13 @@ static const struct command_registration cortex_m3_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "configure hardware vectors to trigger debug entry",
 		.usage = "['all'|'none'|('bus_err'|'chk_err'|...)*]",
+	},
+	{
+		.name = "reset_config",
+		.handler = handle_cortex_m3_reset_config_command,
+		.mode = COMMAND_ANY,
+		.help = "configure software reset handling",
+		.usage = "['srst'|'sysresetreq'|'vectreset']",
 	},
 	COMMAND_REGISTRATION_DONE
 };

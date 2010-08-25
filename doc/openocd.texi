@@ -6592,6 +6592,21 @@ must also be explicitly enabled.
 This finishes by listing the current vector catch configuration.
 @end deffn
 
+@deffn Command {cortex_m3 reset_config} (@option{srst}|@option{sysresetreq}|@option{vectreset})
+Control reset handling. The default @option{srst} is to use srst if fitted,
+otherwise fallback to @option{vectreset}.
+@itemize @minus
+@item @option{srst} use hardware srst if fitted otherwise fallback to @option{vectreset}.
+@item @option{sysresetreq} use NVIC SYSRESETREQ to reset system.
+@item @option{vectreset} use NVIC VECTRESET to reset system.
+@end itemize
+Using @option{vectreset} is a safe option for all current Cortex-M3 cores.
+This however has the disadvantage of only resetting the core, all peripherals
+are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
+the peripherals.
+@xref{Target Events}.
+@end deffn
+
 @anchor{Software Debug Messages and Tracing}
 @section Software Debug Messages and Tracing
 @cindex Linux-ARM DCC support

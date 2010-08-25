@@ -134,6 +134,13 @@ struct cortex_m3_dwt_comparator
 	uint32_t dwt_comparator_address;
 };
 
+enum cortex_m3_soft_reset_config
+{
+	CORTEX_M3_RESET_SRST,
+	CORTEX_M3_RESET_SYSRESETREQ,
+	CORTEX_M3_RESET_VECTRESET,
+};
+
 struct cortex_m3_common
 {
 	int common_magic;
@@ -157,6 +164,8 @@ struct cortex_m3_common
 	int dwt_comp_available;
 	struct cortex_m3_dwt_comparator *dwt_comparator_list;
 	struct reg_cache *dwt_cache;
+
+	enum cortex_m3_soft_reset_config soft_reset_config;
 
 	struct armv7m_common armv7m;
 };
