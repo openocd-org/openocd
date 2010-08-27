@@ -221,7 +221,7 @@ void bitq_runtest(int num_cycles)
 }
 
 
-void bitq_scan_field(struct scan_field* field, int pause)
+void bitq_scan_field(struct scan_field* field, int do_pause)
 {
 	int bit_cnt;
 	int tdo_req;
@@ -240,7 +240,7 @@ void bitq_scan_field(struct scan_field* field, int pause)
 		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--)
 			bitq_io(0, 0, tdo_req);
 
-		bitq_io(pause, 0, tdo_req);
+		bitq_io(do_pause, 0, tdo_req);
 	}
 	else
 	{
@@ -259,10 +259,10 @@ void bitq_scan_field(struct scan_field* field, int pause)
 				out_mask <<= 1;
 		}
 
-		bitq_io(pause, ((*out_ptr) & out_mask) != 0, tdo_req);
+		bitq_io(do_pause, ((*out_ptr) & out_mask) != 0, tdo_req);
 	}
 
-	if (pause)
+	if (do_pause)
 	{
 		bitq_io(0, 0, 0);
 		if (tap_get_state() == TAP_IRSHIFT)
