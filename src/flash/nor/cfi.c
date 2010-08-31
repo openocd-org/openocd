@@ -48,7 +48,7 @@ static struct cfi_unlock_addresses cfi_unlock_addresses[] =
 /* CFI fixups foward declarations */
 static void cfi_fixup_0002_erase_regions(struct flash_bank *flash, void *param);
 static void cfi_fixup_0002_unlock_addresses(struct flash_bank *flash, void *param);
-static void cfi_fixup_atmel_reversed_erase_regions(struct flash_bank *flash, void *param);
+static void cfi_fixup_reversed_erase_regions(struct flash_bank *flash, void *param);
 
 /* fixup after reading cmdset 0002 primary query table */
 static const struct cfi_fixup cfi_0002_fixups[] = {
@@ -57,7 +57,8 @@ static const struct cfi_fixup cfi_0002_fixups[] = {
 	{CFI_MFR_SST, 0x00D6, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x00D7, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x2780, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
-	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_atmel_reversed_erase_regions, NULL},
+	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_reversed_erase_regions, NULL},
+	{CFI_MFR_ST,  0x22C4, cfi_fixup_reversed_erase_regions, NULL}, /* M29W160ET */
    {CFI_MFR_FUJITSU, 0x22ea, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_555_2AA]},
 	{CFI_MFR_FUJITSU, 0x226b, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_AMIC, 0xb31a, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_555_2AA]},
@@ -2214,7 +2215,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	return cfi_reset(bank);
 }
 
-static void cfi_fixup_atmel_reversed_erase_regions(struct flash_bank *bank, void *param)
+static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, void *param)
 {
 	(void) param;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
