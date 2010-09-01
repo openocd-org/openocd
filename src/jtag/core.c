@@ -1445,17 +1445,19 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 	case ERROR_OK:
 		/* complete success */
 		break;
-	case ERROR_JTAG_INIT_SOFT_FAIL:
+	default:
 		/* For backward compatibility reasons, try coping with
 		 * configuration errors involving only ID mismatches.
 		 * We might be able to talk to the devices.
+		 *
+		 * Also the device might be powered down during startup.
+		 *
+		 * After OpenOCD starts, we can try to power on the device
+		 * and run a reset.
 		 */
 		LOG_ERROR("Trying to use configured scan chain anyway...");
 		issue_setup = false;
 		break;
-	default:
-		/* some hard error; already issued diagnostics */
-		return retval;
 	}
 
 	/* Now look at IR values.  Problems here will prevent real
@@ -1466,7 +1468,13 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 	 */
 	retval = jtag_validate_ircapture();
 	if (retval != ERROR_OK)
-		return retval;
+	{
+		/* The target might be powered down. The user
+		 * can power it up and reset it after firing
+		 * up OpenOCD.
+		 */
+		issue_setup = false;
+	}
 
 	if (issue_setup)
 		jtag_notify_event(JTAG_TAP_EVENT_SETUP);
