@@ -901,7 +901,7 @@ static int arm11_read_memory_inner(struct target *target,
 		{
 		uint32_t instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
 		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
-		uint32_t *words = (uint32_t *)buffer;
+		uint32_t *words = (uint32_t *)(void *)buffer;
 
 		/* LDC p14,c5,[R0],#4 */
 		/* LDC p14,c5,[R0] */
@@ -1023,7 +1023,7 @@ static int arm11_write_memory_inner(struct target *target,
 		uint32_t instr = !no_increment ? 0xeca05e01 : 0xed805e00;
 
 		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
-		uint32_t *words = (uint32_t*)buffer;
+		uint32_t *words = (uint32_t*)(void *)buffer;
 
 		/* "burst" here just means trusting each instruction executes
 		 * fully before we run the next one:  per-word roundtrips, to

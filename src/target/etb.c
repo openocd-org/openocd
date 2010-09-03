@@ -166,7 +166,7 @@ static void etb_getbuf(jtag_callback_data_t arg)
 {
 	uint8_t *in = (uint8_t *)arg;
 
-	*((uint32_t *)in) = buf_get_u32(in, 0, 32);
+	*((uint32_t *)arg) = buf_get_u32(in, 0, 32);
 }
 
 

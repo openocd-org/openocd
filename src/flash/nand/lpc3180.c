@@ -1119,9 +1119,9 @@ static int lpc3180_read_page(struct nand_device *nand, uint32_t page, uint8_t *d
                     target_read_memory(target, target_mem_base+SPARE_OFFS, 4, 16, ecc_flash_buffer);
                     target_read_memory(target, target_mem_base+ECC_OFFS, 4, 8, ecc_hw_buffer);
                     for(i=0;i<idx;i++){
-                        if( (0x00ffffff&*(uint32_t *)(ecc_hw_buffer+i*8)) != (0x00ffffff&*(uint32_t *)(ecc_flash_buffer+8+i*16)) )
+                        if( (0x00ffffff&*(uint32_t *)(void *)(ecc_hw_buffer+i*8)) != (0x00ffffff&*(uint32_t *)(void *)(ecc_flash_buffer+8+i*16)) )
                             LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%" PRIx32,i*2+1,page);
-                        if( (0x00ffffff&*(uint32_t *)(ecc_hw_buffer+4+i*8)) != (0x00ffffff&*(uint32_t *)(ecc_flash_buffer+12+i*16)) )
+                        if( (0x00ffffff&*(uint32_t *)(void *)(ecc_hw_buffer+4+i*8)) != (0x00ffffff&*(uint32_t *)(void *)(ecc_flash_buffer+12+i*16)) )
                             LOG_WARNING("ECC mismatch at 256 bytes size block= %d at page= 0x%" PRIx32,i*2+2,page);
                     }                
                 }

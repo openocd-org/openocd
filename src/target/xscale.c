@@ -244,7 +244,7 @@ static int xscale_read_dcsr(struct target *target)
 static void xscale_getbuf(jtag_callback_data_t arg)
 {
 	uint8_t *in = (uint8_t *)arg;
-	*((uint32_t *)in) = buf_get_u32(in, 0, 32);
+	*((uint32_t *)arg) = buf_get_u32(in, 0, 32);
 }
 
 static int xscale_receive(struct target *target, uint32_t *buffer, int num_words)

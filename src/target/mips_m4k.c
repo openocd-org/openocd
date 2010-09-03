@@ -1000,7 +1000,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	}
 
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, source, write_t, address,
-			count, (uint32_t*) buffer);
+			count, (uint32_t*) (void *)buffer);
 	if (retval != ERROR_OK)
 	{
 		/* FASTDATA access failed, try normal memory write */

@@ -77,13 +77,13 @@ int arm_jtag_setup_connection(struct arm_jtag *jtag_info);
 static __inline__ void arm7flip32(jtag_callback_data_t arg)
 {
   uint8_t *in = (uint8_t *)arg;
-  *((uint32_t *)in) = flip_u32(le_to_h_u32(in), 32);
+  *((uint32_t *)arg) = flip_u32(le_to_h_u32(in), 32);
 }
 
 static __inline__ void arm_le_to_h_u32(jtag_callback_data_t arg)
 {
   uint8_t *in = (uint8_t *)arg;
-  *((uint32_t *)in) = le_to_h_u32(in);
+  *((uint32_t *)arg) = le_to_h_u32(in);
 }
 
 

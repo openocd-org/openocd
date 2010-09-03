@@ -112,7 +112,7 @@ int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info,
 	if (addr & 3)
 	{
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
-				addr + i, (uint32_t*)data);
+				addr + i, (uint32_t*)(void *)data);
 
 		if (retval != ERROR_OK)
 			return retval;
@@ -126,7 +126,7 @@ int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info,
 	for (; i < (count & ~3); i+=4)
 	{
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
-				addr + i, (uint32_t*)data);
+				addr + i, (uint32_t*)(void *)data);
 
 		if (retval != ERROR_OK)
 			return retval;
@@ -139,7 +139,7 @@ int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info,
 	if (i < count)
 	{
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
-				addr + i, (uint32_t*)data);
+				addr + i, (uint32_t*)(void *)data);
 
 		if (retval != ERROR_OK)
 			return retval;

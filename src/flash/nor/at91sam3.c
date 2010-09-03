@@ -1702,7 +1702,7 @@ sam3_get_reg_ptr(struct sam3_cfg *pCfg, const struct sam3_reg_list *pList)
 	// By using prototypes - we can detect what would
 	// be casting errors.
 
-	return ((uint32_t *)(((char *)(pCfg)) + pList->struct_offset));
+	return ((uint32_t *)(void *)(((char *)(pCfg)) + pList->struct_offset));
 }
 
 
@@ -1756,7 +1756,7 @@ sam3_GetReg(struct sam3_chip *pChip, uint32_t *goes_here)
 		// calculate where this one go..
 		// it is "possibly" this register.
 
-		pPossible = ((uint32_t *)(((char *)(&(pChip->cfg))) + pReg->struct_offset));
+		pPossible = ((uint32_t *)(void *)(((char *)(&(pChip->cfg))) + pReg->struct_offset));
 
 		// well? Is it this register
 		if (pPossible == goes_here) {

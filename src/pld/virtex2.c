@@ -78,7 +78,7 @@ static int virtex2_send_32(struct pld_device *pld_device,
 static __inline__ void virtexflip32(jtag_callback_data_t arg)
 {
   uint8_t *in = (uint8_t *)arg;
-	*((uint32_t *)in) = flip_u32(le_to_h_u32(in), 32);
+	*((uint32_t *)arg) = flip_u32(le_to_h_u32(in), 32);
 }
 
 static int virtex2_receive_32(struct pld_device *pld_device,

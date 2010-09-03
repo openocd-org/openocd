@@ -1121,7 +1121,7 @@ static int mg_storage_config(void)
 			!= ERROR_OK)
 		return ret;
 
-	mg_gen_ataid((mg_io_type_drv_info *)buff);
+	mg_gen_ataid((mg_io_type_drv_info *)(void *)buff);
 
 	if ((ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_update_stgdrvinfo))
 			!= ERROR_OK)
@@ -1149,7 +1149,7 @@ static int mg_boot_config(void)
 	buff[0] = mg_op_mode_snd;		/* operation mode */
 	buff[1] = MG_UNLOCK_OTP_AREA;
 	buff[2] = 4;				/* boot size */
-	*((uint32_t *)(buff + 4)) = 0;		/* XIP size */
+	*((uint32_t *)(void *)(buff + 4)) = 0;		/* XIP size */
 
 	if ((ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_update_xipinfo))
 			!= ERROR_OK)
