@@ -1277,6 +1277,7 @@ struct Tftp
 	cyg_uint8 *mem;
 	int actual;
 	char *server;
+	int port;
 	char *file;
 };
 
@@ -1333,6 +1334,15 @@ static int tftpfs_open(cyg_mtab_entry *mte, cyg_dir dir, const char *name,
 	strncpy(tftp->server, name, server - name);
 	tftp->server[server - name] = 0;
 
+	tftp->port = 0; /* default port 69 */
+	char *port;
+	port = strchr(tftp->server, ':');
+	if (port != NULL)
+	{
+		tftp->port = atoi(port + 1);
+		*port = 0;
+	}
+
 	tftp->file = strdup(server + 1);
 	if (tftp->file == NULL)
 	{
@@ -1350,7 +1360,7 @@ static int fetchTftp(struct Tftp *tftp)
 	if (!tftp->readFile)
 	{
 		int err;
-		tftp->actual = tftp_client_get(tftp->file, tftp->server, 0, tftp->mem,
+		tftp->actual = tftp_client_get(tftp->file, tftp->server, tftp->port, tftp->mem,
 				tftpMaxSize, TFTP_OCTET, &err);
 
 		if (tftp->actual < 0)
