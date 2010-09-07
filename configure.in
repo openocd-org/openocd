@@ -408,6 +408,10 @@ AC_ARG_ENABLE(ecosboard,
   AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCos based JTAG debugger]),
   [build_ecosboard=$enableval], [build_ecosboard=no])
 
+AC_ARG_ENABLE(zy1000_master,
+  AS_HELP_STRING([--enable-zy1000-master], [Use ZY1000 JTAG master registers]),
+  [build_zy1000_master=$enableval], [build_zy1000_master=no])
+
 AC_ARG_ENABLE(zy1000,
   AS_HELP_STRING([--enable-zy1000], [Enable ZY1000 interface]),
   [build_zy1000=$enableval], [build_zy1000=no])
@@ -624,6 +628,12 @@ if test $build_zy1000 = yes; then
   AC_DEFINE(BUILD_ZY1000, 1, [1 if you want ZY1000.])
 else
   AC_DEFINE(BUILD_ZY1000, 0, [0 if you don't want ZY1000.])
+fi
+
+if test $build_zy1000_master = yes; then
+  AC_DEFINE(BUILD_ZY1000_MASTER, 1, [1 if you want ZY1000 JTAG master registers.])
+else
+  AC_DEFINE(BUILD_ZY1000_MASTER, 0, [0 if you don't want ZY1000 JTAG master registers.])
 fi
 
 if test $build_at91rm9200 = yes; then
@@ -1027,6 +1037,7 @@ AM_CONDITIONAL(GIVEIO, test x$parport_use_giveio = xyes)
 AM_CONDITIONAL(EP93XX, test $build_ep93xx = yes)
 AM_CONDITIONAL(ECOSBOARD, test $build_ecosboard = yes)
 AM_CONDITIONAL(ZY1000, test $build_zy1000 = yes)
+AM_CONDITIONAL(ZY1000_MASTER, test $build_zy1000_master = yes)
 AM_CONDITIONAL(IOUTIL, test $build_ioutil = yes)
 AM_CONDITIONAL(HTTPD, test $build_httpd = yes)
 AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
