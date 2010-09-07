@@ -1634,7 +1634,7 @@ int jtag_config_rclk(unsigned fallback_speed_khz)
 
 int jtag_get_speed(void)
 {
-	int speed;
+	int speed = 0; /* avoid -O3 warning */
 	switch(clock_mode)
 	{
 		case CLOCK_MODE_SPEED:
