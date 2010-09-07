@@ -25,15 +25,8 @@
 
 #include <cyg/hal/hal_io.h>             // low level i/o
 #include <cyg/hal/hal_intr.h>             // low level i/o
-
-#if 0
-int  diag_printf(const char *fmt, ...);
-#define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b); diag_printf("poke 0x%08x,0x%08x\n", a, b)
-#define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b); diag_printf("peek 0x%08x = 0x%08x\n", a, b)
-#else
 #define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b)
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b)
-#endif
 
 #else
 
