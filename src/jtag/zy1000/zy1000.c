@@ -321,7 +321,7 @@ COMMAND_HANDLER(handle_power_command)
 	return ERROR_OK;
 }
 
-#if !BUILD_ECOSBOARD
+#if !BUILD_ZY1000_MASTER
 static char *tcp_server = "notspecified";
 static int jim_zy1000_server(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
@@ -1002,6 +1002,7 @@ static const struct command_registration zy1000_commands[] = {
 			"With no arguments, prints status.",
 		.usage = "('on'|'off)",
 	},
+#if BUILD_ZY1000_MASTER
 #if BUILD_ECOSBOARD
 	{
 		.name = "zy1000_version",
@@ -1010,6 +1011,7 @@ static const struct command_registration zy1000_commands[] = {
 		.help = "Print version info for zy1000.",
 		.usage = "['openocd'|'zy1000'|'date'|'time'|'pcb'|'fpga']",
 	},
+#endif
 #else
 	{
 		.name = "zy1000_server",
@@ -1038,6 +1040,7 @@ static const struct command_registration zy1000_commands[] = {
 };
 
 
+#if !BUILD_ZY1000_MASTER || BUILD_ECOSBOARD
 static int tcp_ip = -1;
 
 /* Write large packets if we can */
@@ -1106,6 +1109,7 @@ static bool readLong(uint32_t *out_data)
 	*out_data = data;
 	return true;
 }
+#endif
 
 enum ZY1000_CMD
 {
@@ -1116,7 +1120,7 @@ enum ZY1000_CMD
 };
 
 
-#if !BUILD_ECOSBOARD
+#if !BUILD_ZY1000_MASTER
 
 #include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
 #include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
@@ -1566,20 +1570,48 @@ static void watchdog_server(cyg_addrword_t data)
 }
 #endif
 
+#endif
+
+#if BUILD_ZY1000_MASTER
 int interface_jtag_add_sleep(uint32_t us)
 {
 	jtag_sleep(us);
 	return ERROR_OK;
 }
-
 #endif
 
+#if BUILD_ZY1000_MASTER && !BUILD_ECOSBOARD
+volatile void *zy1000_jtag_master;
+#include <sys/mman.h>
+#endif
 
 int zy1000_init(void)
 {
 #if BUILD_ECOSBOARD
 	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
+#else
+	int fd;
+ 	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1)
+ 	{
+ 		LOG_ERROR("No access to /dev/mem");
+ 		return ERROR_FAIL;
+ 	}
+#ifndef REGISTERS_BASE
+#define REGISTERS_BASE 0x9002000
+#define REGISTERS_SPAN 128
 #endif
+    
+    zy1000_jtag_master = mmap(0, REGISTERS_SPAN, PROT_READ | PROT_WRITE, MAP_SHARED, fd, REGISTERS_BASE);
+    
+    if(zy1000_jtag_master == (void *) -1) 
+    {
+	    close(fd);
+ 		LOG_ERROR("No access to /dev/mem");
+ 		return ERROR_FAIL;
+    } 
+#endif
+
+
 
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30); // Turn on LED1 & LED2
 
