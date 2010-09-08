@@ -1648,7 +1648,6 @@ int jtag_get_speed(void)
 			break;
 		default:
 			LOG_ERROR("BUG: unknown jtag clock mode");
-			speed = 0;
 			break;
 	}
 	return speed;
