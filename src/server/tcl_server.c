@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008                                                    *
+ *   Copyright (C) 2010 Øyvind Harboe                                      *
+ *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -104,13 +105,6 @@ static int tcl_input(struct connection *connection)
 	/* push as much data into the line as possible */
 	for (i = 0; i < rlen; i++)
 	{
-		if (!isprint(in[i]) && !isspace(in[i]))
-		{
-			/* drop this line */
-			tclc->tc_linedrop = 1;
-			continue;
-		}
-
 		/* buffer the data */
 		tclc->tc_line[tclc->tc_lineoffset] = in[i];
 		if (tclc->tc_lineoffset < TCL_MAX_LINE)
@@ -118,7 +112,11 @@ static int tcl_input(struct connection *connection)
 		else
 			tclc->tc_linedrop = 1;
 
-		if (in[i] != '\n')
+		/* ctrl-z is end of command. When testing from telnet, just
+		 * press ctrl-z a couple of times first to put telnet into the
+		 * mode where it will send 0x1a in response to pressing ctrl-z
+		 */
+		if (in[i] != '\x1a')
 			continue;
 
 		/* process the line */
@@ -131,13 +129,15 @@ static int tcl_input(struct connection *connection)
 		}
 		else {
 			tclc->tc_line[tclc->tc_lineoffset-1] = '\0';
+			LOG_DEBUG("Executing script:\n %s", tclc->tc_line);
 			retval = Jim_Eval_Named(interp, tclc->tc_line, "remote:connection",1);
+			LOG_DEBUG("Result: %d\n %s", retval, Jim_GetString(Jim_GetResult(interp), &reslen));
 			result = Jim_GetString(Jim_GetResult(interp), &reslen);
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)
 				return retval;
-			if (memchr(result, '\n', reslen) == NULL)
-				tcl_output(connection, "\n", 1);
+			/* Always output ctrl-d as end of line to allow multiline results */
+			tcl_output(connection, "\x1a", 1);
 		}
 
 		tclc->tc_lineoffset = 0;
