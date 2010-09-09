@@ -895,7 +895,7 @@ static int xscale_debug_entry(struct target *target)
 	struct arm *armv4_5 = &xscale->armv4_5_common;
 	uint32_t pc;
 	uint32_t buffer[10];
-	int i;
+	unsigned i;
 	int retval;
 	uint32_t moe;
 
@@ -963,6 +963,11 @@ static int xscale_debug_entry(struct target *target)
 		r->dirty = false;
 		r->valid = true;
 	}
+
+	/* mark xscale regs invalid to ensure they are retrieved from the
+	 * debug handler if requested  */
+	for (i = 0; i < xscale->reg_cache->num_regs; i++)
+	   xscale->reg_cache->reg_list[i].valid = 0;
 
 	/* examine debug reason */
 	xscale_read_dcsr(target);
