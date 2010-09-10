@@ -486,7 +486,11 @@ void cfi_fixup_non_cfi(struct flash_bank *bank)
 	cfi_info->max_buf_write_size = non_cfi->max_buf_write_size;
 	cfi_info->status_poll_mask = non_cfi->status_poll_mask;
 	cfi_info->num_erase_regions = non_cfi->num_erase_regions;
-	cfi_info->erase_region_info = non_cfi->erase_region_info;
+	size_t erase_region_info_size = sizeof(*cfi_info->erase_region_info) *
+			cfi_info->num_erase_regions;
+	cfi_info->erase_region_info = malloc(erase_region_info_size);
+	memcpy(cfi_info->erase_region_info,
+			non_cfi->erase_region_info, erase_region_info_size);
 	cfi_info->dev_size = non_cfi->dev_size;
 
 	if (cfi_info->pri_id == 0x2)
