@@ -61,10 +61,3 @@ add_usage_text script "<file>"
 
 #########
 
-# catch any exceptions, capture output and return output
-proc capture_catch {a} {
-	catch {
-		capture {uplevel $a}
-	} result
-	return $result
-}
