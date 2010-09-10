@@ -44,6 +44,7 @@ libopenocd_la_CPPFLAGS += -DRELSTR=\"\"
 else
 libopenocd_la_CPPFLAGS += -DRELSTR=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
 endif
+libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
 
 # add default CPPFLAGS
 libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)

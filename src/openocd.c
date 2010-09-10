@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 Richard Missenden                                  *
@@ -52,15 +52,29 @@
 #define OPENOCD_VERSION \
 		"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
 
-/* Give TELNET a way to find out what version this is */
-COMMAND_HANDLER(handle_version_command)
+/* Give scripts and TELNET a way to find out what version this is */
+static int jim_version_command(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
 {
-	if (CMD_ARGC != 0)
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (argc > 2)
+	{
+		return JIM_ERR;
+	}
+	const char *str = "";
+	char * version_str;
+	version_str = OPENOCD_VERSION;
+	
+	if (argc == 2)
+		str = Jim_GetString(argv[1], NULL);
 
-	command_print(CMD_CTX, OPENOCD_VERSION);
+	if (strcmp("git", str) == 0)
+	{
+		version_str = GITVERSION;
+	} 
+	
+	Jim_SetResult(interp, Jim_NewStringObj(interp, version_str, -1));
 
-	return ERROR_OK;
+	return JIM_OK;
 }
 
 static int log_target_callback_event_handler(struct target *target, enum target_event event, void *priv)
@@ -174,7 +188,7 @@ COMMAND_HANDLER(handle_add_script_search_dir_command)
 static const struct command_registration openocd_command_handlers[] = {
 	{
 		.name = "version",
-		.handler = &handle_version_command,
+		.jim_handler = jim_version_command,
 		.mode = COMMAND_ANY,
 		.help = "show program version",
 	},
