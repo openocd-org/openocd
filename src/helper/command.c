@@ -84,14 +84,36 @@ static struct log_capture_state *command_log_capture_start(Jim_Interp *interp)
 	return state;
 }
 
-static void command_log_capture_finish(struct log_capture_state *state)
+/* Classic openocd commands provide progress output which we
+ * will capture and return as a Tcl return value.
+ *
+ * However, if a non-openocd command has been invoked, then it
+ * makes sense to return the tcl return value from that command.
+ *
+ * The tcl return value is empty for openocd commands that provide
+ * progress output.
+ *
+ * Therefore we set the tcl return value only if we actually
+ * captured output.
+ */
+static void command_log_capture_finish(struct log_capture_state *state) 
 {
 	if (NULL == state)
 		return;
 
 	log_remove_callback(tcl_output, state);
 
-	Jim_SetResult(state->interp, state->output);
+	int length;
+	Jim_GetString(state->output, &length);
+
+	if (length > 0)
+	{
+		Jim_SetResult(state->interp, state->output);
+	} else
+	{
+		/* No output captured, use tcl return value (which could
+		 * be empty too). */
+	}
 	Jim_DecrRefCount(state->interp, state->output);
 
 	free(state);
