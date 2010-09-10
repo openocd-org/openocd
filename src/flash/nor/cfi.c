@@ -805,7 +805,7 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 
 	cfi_info = malloc(sizeof(struct cfi_flash_bank));
 	cfi_info->probed = 0;
-	cfi_info->erase_region_info = 0;
+	cfi_info->erase_region_info = NULL;
 	cfi_info->pri_ext = NULL;
 	bank->driver_priv = cfi_info;
 
@@ -2494,7 +2494,8 @@ static int cfi_probe(struct flash_bank *bank)
 
 		if (cfi_info->num_erase_regions)
 		{
-			cfi_info->erase_region_info = malloc(4 * cfi_info->num_erase_regions);
+			cfi_info->erase_region_info = malloc(sizeof(*cfi_info->erase_region_info)
+					* cfi_info->num_erase_regions);
 			for (i = 0; i < cfi_info->num_erase_regions; i++)
 			{
 				retval = cfi_query_u32(bank, 0, 0x2d + (4 * i), &cfi_info->erase_region_info[i]);
