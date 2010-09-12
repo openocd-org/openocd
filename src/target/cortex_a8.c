@@ -1230,7 +1230,7 @@ static int cortex_a8_set_breakpoint(struct target *target,
 		if (brp_i >= cortex_a8->brp_num)
 		{
 			LOG_ERROR("ERROR Can not find free Breakpoint Register Pair");
-			return ERROR_FAIL;
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		breakpoint->set = brp_i + 1;
 		if (breakpoint->length == 2)
@@ -1360,9 +1360,8 @@ static int cortex_a8_add_breakpoint(struct target *target,
 
 	if (breakpoint->type == BKPT_HARD)
 		cortex_a8->brp_num_available--;
-	cortex_a8_set_breakpoint(target, breakpoint, 0x00); /* Exact match */
 
-	return ERROR_OK;
+	return cortex_a8_set_breakpoint(target, breakpoint, 0x00); /* Exact match */
 }
 
 static int cortex_a8_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)

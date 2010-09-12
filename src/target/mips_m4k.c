@@ -497,7 +497,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		{
 			LOG_ERROR("Can not find free FP Comparator(bpid: %d)",
 					  breakpoint->unique_id );
-			return ERROR_FAIL;
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		breakpoint->set = bp_num + 1;
 		comparator_list[bp_num].used = 1;
@@ -662,9 +662,7 @@ static int mips_m4k_add_breakpoint(struct target *target, struct breakpoint *bre
 		mips32->num_inst_bpoints_avail--;
 	}
 
-	mips_m4k_set_breakpoint(target, breakpoint);
-
-	return ERROR_OK;
+	return mips_m4k_set_breakpoint(target, breakpoint);
 }
 
 static int mips_m4k_remove_breakpoint(struct target *target,

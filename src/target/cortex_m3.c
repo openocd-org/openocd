@@ -1221,9 +1221,8 @@ cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 	if (breakpoint->type == BKPT_HARD)
 		cortex_m3->fp_code_available--;
-	cortex_m3_set_breakpoint(target, breakpoint);
 
-	return ERROR_OK;
+	return cortex_m3_set_breakpoint(target, breakpoint);
 }
 
 static int
