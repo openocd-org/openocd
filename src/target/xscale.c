@@ -1979,6 +1979,7 @@ static int xscale_write_memory(struct target *target, uint32_t address,
 		if ((retval = xscale_send_u32(target, 0x60)) != ERROR_OK)
 			return retval;
 
+		LOG_ERROR("data abort writing memory");
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
@@ -2141,9 +2142,9 @@ static int xscale_set_breakpoint(struct target *target,
 			breakpoint->set = 2;	/* breakpoint set on second breakpoint register */
 		}
 		else
-		{
+		{	/* bug: availability previously verified in xscale_add_breakpoint() */
 			LOG_ERROR("BUG: no hardware comparator available");
-			return ERROR_OK;
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
 	else if (breakpoint->type == BKPT_SOFT)
@@ -2169,7 +2170,7 @@ static int xscale_set_breakpoint(struct target *target,
 				return retval;
 			}
 			/* write the bkpt instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			if ((retval = target_write_u32(target, breakpoint->address, xscale->thumb_bkpt)) != ERROR_OK)
+			if ((retval = target_write_u16(target, breakpoint->address, xscale->thumb_bkpt)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -2207,7 +2208,7 @@ static int xscale_add_breakpoint(struct target *target,
 		xscale->ibcr_available--;
 	}
 
-	return ERROR_OK;
+	return xscale_set_breakpoint(target, breakpoint);
 }
 
 static int xscale_unset_breakpoint(struct target *target,
