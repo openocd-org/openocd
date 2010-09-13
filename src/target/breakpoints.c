@@ -46,7 +46,6 @@ int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enu
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
-	char *reason;
 	int retval;
 	int n;
 
@@ -77,19 +76,9 @@ int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enu
 	(*breakpoint_p)->unique_id = bpwp_unique_id++;
 
 	retval = target_add_breakpoint(target, *breakpoint_p);
-	switch (retval) {
-	case ERROR_OK:
-		break;
-	case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-		reason = "resource not available";
-		goto fail;
-	case ERROR_TARGET_NOT_HALTED:
-		reason = "target running";
-		goto fail;
-	default:
-		reason = "unknown reason";
-fail:
-		LOG_ERROR("can't add breakpoint: %s", reason);
+	if (retval != ERROR_OK)
+	{
+		LOG_ERROR("could not add breakpoint");
 		free((*breakpoint_p)->orig_instr);
 		free(*breakpoint_p);
 		*breakpoint_p = NULL;
@@ -185,7 +174,6 @@ int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
 	int retval;
-	char *reason;
 
 	while (watchpoint)
 	{
@@ -216,21 +204,11 @@ int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
 	(*watchpoint_p)->unique_id = bpwp_unique_id++;
 
 	retval = target_add_watchpoint(target, *watchpoint_p);
-	switch (retval) {
-	case ERROR_OK:
-		break;
-	case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-		reason = "resource not available";
-		goto bye;
-	case ERROR_TARGET_NOT_HALTED:
-		reason = "target running";
-		goto bye;
-	default:
-		reason = "unrecognized error";
-bye:
-		LOG_ERROR("can't add %s watchpoint at 0x%8.8" PRIx32 ", %s",
+	if (retval != ERROR_OK)
+	{
+		LOG_ERROR("can't add %s watchpoint at 0x%8.8" PRIx32,
 			 watchpoint_rw_strings[(*watchpoint_p)->rw],
-			 address, reason);
+			 address);
 		free (*watchpoint_p);
 		*watchpoint_p = NULL;
 		return retval;
