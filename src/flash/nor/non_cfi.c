@@ -230,6 +230,20 @@ static struct non_cfi non_cfi_flashes[] = {
 		}
 	},
 	{
+	.mfr = CFI_MFR_SST,
+ 	    .id = 0x236d,               /* SST39VF6401B */
+ 	    .pri_id = 0x02,
+ 	    .dev_size = 8*MB,
+ 	    .interface_desc = 0x2,      /* x8 or x16 device with nBYTE */
+ 	    .max_buf_write_size = 0x0,
+ 	    .status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+ 	    .num_erase_regions = 1,
+ 	    .erase_region_info =
+ 	    {
+ 	        ERASE_REGION(2048, 4*KB)
+ 	    }
+ 	},
+ 	{
 		.mfr = CFI_MFR_AMD,
 		.id = 0x22ab,				/* AM29F400BB */
 		.pri_id = 0x02,

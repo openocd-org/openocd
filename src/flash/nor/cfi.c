@@ -57,6 +57,7 @@ static const struct cfi_fixup cfi_0002_fixups[] = {
 	{CFI_MFR_SST, 0x00D6, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x00D7, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x2780, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
+	{CFI_MFR_SST, 0x236d, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_555_2AA]},
 	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_reversed_erase_regions, NULL},
 	{CFI_MFR_ST,  0x22C4, cfi_fixup_reversed_erase_regions, NULL}, /* M29W160ET */
    {CFI_MFR_FUJITSU, 0x22ea, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_555_2AA]},
