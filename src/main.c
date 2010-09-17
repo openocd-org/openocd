@@ -35,5 +35,9 @@
 
 int main(int argc, char *argv[])
 {
+	/* disable buffering otherwise piping to logs causes problems work */
+	setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+
 	return openocd_main(argc, argv);
 }
