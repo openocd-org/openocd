@@ -6390,6 +6390,15 @@ the @code{xscale debug_handler} command.  The allowed locations for the
 debug handler are either (0x800 - 0x1fef800) or (0xfe000800 -
 0xfffff800). The default value is 0xfe000800.
 
+XScale has resources to support two hardware breakpoints and two
+watchpoints.  However, the following restrictions on watchpoint
+functionality apply: (1) the value and mask arguments to the @code{wp}
+command are not supported, (2) the watchpoint length must be a
+power of two and not less than four, and can not be greater than the
+watchpoint address, and (3) a watchpoint with a length greater than
+four consumes all the watchpoint hardware resources.  This means that
+at any one time, you can have enabled either two watchpoints with a
+length of four, or one watchpoint with a length greater than four.
 
 These commands are available to XScale based CPUs,
 which are implementations of the ARMv5TE architecture.
