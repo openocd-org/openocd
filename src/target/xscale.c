@@ -2193,13 +2193,13 @@ static int xscale_add_breakpoint(struct target *target,
 
 	if ((breakpoint->type == BKPT_HARD) && (xscale->ibcr_available < 1))
 	{
-		LOG_INFO("no breakpoint unit available for hardware breakpoint");
+		LOG_ERROR("no breakpoint unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	if ((breakpoint->length != 2) && (breakpoint->length != 4))
 	{
-		LOG_INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
+		LOG_ERROR("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -2277,7 +2277,7 @@ static int xscale_remove_breakpoint(struct target *target, struct breakpoint *br
 
 	if (target->state != TARGET_HALTED)
 	{
-		LOG_WARNING("target not halted");
+		LOG_ERROR("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2302,7 +2302,7 @@ static int xscale_set_watchpoint(struct target *target,
 
 	if (target->state != TARGET_HALTED)
 	{
-		LOG_WARNING("target not halted");
+		LOG_ERROR("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2371,7 +2371,8 @@ static int xscale_add_watchpoint(struct target *target,
 
 	if (xscale->dbr_available < 1)
 	{
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	   LOG_ERROR("no more watchpoint registers available");
+	   return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	if (watchpoint->value)
@@ -2395,7 +2396,10 @@ static int xscale_add_watchpoint(struct target *target,
 
 	/* watchpoints across multiple words require both DBR registers */
 	if (xscale->dbr_available < 2)
+	{
+	   LOG_ERROR("insufficient watchpoint registers available");
 	   return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
 	
 	xscale->dbr_available = 0;
 	return ERROR_OK;
@@ -2450,7 +2454,7 @@ static int xscale_remove_watchpoint(struct target *target, struct watchpoint *wa
 
 	if (target->state != TARGET_HALTED)
 	{
-		LOG_WARNING("target not halted");
+		LOG_ERROR("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
