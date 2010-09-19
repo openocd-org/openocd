@@ -2401,6 +2401,13 @@ static int xscale_add_watchpoint(struct target *target,
 	   return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
+	if (watchpoint->length > watchpoint->address)
+	{
+	   LOG_ERROR("xscale does not support watchpoints with length "
+				 "greater than address");
+	   return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+	   
 	xscale->dbr_available = 0;
 	return ERROR_OK;
 }
