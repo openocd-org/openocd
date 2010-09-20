@@ -1,6 +1,6 @@
 SUBDIRS = \
-	helper \
 	jtag \
+	helper \
 	target \
 	flash \
 	svf \
