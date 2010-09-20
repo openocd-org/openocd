@@ -150,16 +150,8 @@ COMMAND_HANDLER(handle_nand_probe_command)
 		command_print(CMD_CTX, "NAND flash device '%s (%s)' found",
 				p->device->name, p->manufacturer->name);
 	}
-	else if (retval == ERROR_NAND_OPERATION_FAILED)
-	{
-		command_print(CMD_CTX, "probing failed for NAND flash device");
-	}
-	else
-	{
-		command_print(CMD_CTX, "unknown error when probing NAND flash device");
-	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_nand_erase_command)
@@ -206,16 +198,8 @@ COMMAND_HANDLER(handle_nand_erase_command)
 				offset, offset + length,
 				CMD_ARGV[0], p->device->name);
 	}
-	else if (retval == ERROR_NAND_OPERATION_FAILED)
-	{
-		command_print(CMD_CTX, "erase failed");
-	}
-	else
-	{
-		command_print(CMD_CTX, "unknown error when erasing NAND flash device");
-	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
@@ -261,18 +245,8 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 		command_print(CMD_CTX, "checked NAND flash device for bad blocks, "
 				"use \"nand info\" command to list blocks");
 	}
-	else if (retval == ERROR_NAND_OPERATION_FAILED)
-	{
-		command_print(CMD_CTX, "error when checking for bad blocks on "
-				"NAND flash device");
-	}
-	else
-	{
-		command_print(CMD_CTX, "unknown error when checking for bad "
-				"blocks on NAND flash device");
-	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_nand_write_command)

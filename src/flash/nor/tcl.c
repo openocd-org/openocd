@@ -132,23 +132,14 @@ COMMAND_HANDLER(handle_flash_probe_command)
 		{
 			command_print(CMD_CTX, "flash '%s' found at 0x%8.8" PRIx32, p->driver->name, p->base);
 		}
-		else if (retval == ERROR_FLASH_BANK_INVALID)
-		{
-			command_print(CMD_CTX, "probing failed for flash bank '#%s' at 0x%8.8" PRIx32,
-						  CMD_ARGV[0], p->base);
-		}
-		else
-		{
-			command_print(CMD_CTX, "unknown error when probing flash bank '#%s' at 0x%8.8" PRIx32,
-						  CMD_ARGV[0], p->base);
-		}
 	}
 	else
 	{
 		command_print(CMD_CTX, "flash bank '#%s' is out of bounds", CMD_ARGV[0]);
+		retval = ERROR_FAIL;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_flash_erase_check_command)
