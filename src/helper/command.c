@@ -36,6 +36,7 @@
 #endif
 
 // @todo the inclusion of target.h here is a layering violation
+#include <jtag/jtag.h>
 #include <target/target.h>
 #include "command.h"
 #include "configuration.h"
@@ -867,6 +868,9 @@ static char* openocd_jim_fgets(char *s, int size, void *cookie)
 	return NULL;
 }
 
+/* Capture progress output and return as tcl return value. If the
+ * progress output was empty, return tcl return value.
+ */
 static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 2)
@@ -874,8 +878,20 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	struct log_capture_state *state = command_log_capture_start(interp);
 
+	/* disable polling during capture. This avoids capturing output
+	 * from polling.
+	 *
+	 * This is necessary in order to avoid accidentially getting a non-empty
+	 * string for tcl fn's.
+	 */
+	bool save_poll = jtag_poll_get_enabled();
+
+	jtag_poll_set_enabled(false);
+
 	const char *str = Jim_GetString(argv[1], NULL);
 	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
+
+	jtag_poll_set_enabled(save_poll);
 
 	command_log_capture_finish(state);
 
