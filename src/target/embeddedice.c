@@ -588,7 +588,10 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	else if (hsbit == EICE_COMM_CTRL_RBIT)
 		hsact = 0;
 	else
+	{
+		LOG_ERROR("Invalid arguments");
 		return ERROR_INVALID_ARGUMENTS;
+	}
 
 	retval = arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
 	if (retval != ERROR_OK)
@@ -625,6 +628,7 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	} while ((uint32_t)((now.tv_sec - lap.tv_sec) * 1000
 			+ (now.tv_usec - lap.tv_usec) / 1000) <= timeout);
 
+	LOG_ERROR("embeddedice handshake timeout");
 	return ERROR_TARGET_TIMEOUT;
 }
 

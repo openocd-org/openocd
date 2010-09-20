@@ -101,8 +101,6 @@ static int ocl_erase(struct flash_bank *bank, int first, int last)
 	/* wait for response, fixed timeout of 1 s */
 	if ((retval = embeddedice_handshake(ocl->jtag_info, EICE_COMM_CTRL_WBIT, 1000) != ERROR_OK))
 	{
-		if (retval == ERROR_TARGET_TIMEOUT)
-			LOG_ERROR("loader not responding");
 		return retval;
 	}
 
@@ -206,8 +204,6 @@ static int ocl_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 		/* wait for response, fixed timeout of 1 s */
 		if ((retval = embeddedice_handshake(ocl->jtag_info, EICE_COMM_CTRL_WBIT, 1000) != ERROR_OK))
 		{
-			if (retval == ERROR_TARGET_TIMEOUT)
-				LOG_ERROR("loader not responding");
 			free(dcc_buffer);
 			return retval;
 		}
@@ -252,8 +248,6 @@ static int ocl_probe(struct flash_bank *bank)
 	/* wait for response, fixed timeout of 1 s */
 	if ((retval = embeddedice_handshake(ocl->jtag_info, EICE_COMM_CTRL_WBIT, 1000) != ERROR_OK))
 	{
-		if (retval == ERROR_TARGET_TIMEOUT)
-			LOG_ERROR("loader not responding");
 		return retval;
 	}
 
