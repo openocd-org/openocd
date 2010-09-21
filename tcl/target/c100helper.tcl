@@ -25,13 +25,7 @@ proc helpC100 {} {
     puts "22) flashUBOOT:        will prgram NOR sectors 0-3 with u-boot.bin"
 }
 
-# mrw,mmw from davinci.cfg
-# mrw: "memory read word", returns value of $reg
-proc mrw {reg} {
-    set value ""
-    mem2array value 32 $reg 1
-    return $value(0)
-}
+source [find mem_helper.tcl]
 
 # read a 64-bit register (memory mapped)
 proc mr64bit {reg} {
@@ -48,14 +42,6 @@ proc mw64bit {reg value} {
     #puts [format "mw64bit(0x%x): 0x%08x%08x" $reg $high $low]
     mww $reg $low
     mww [expr $reg+4] $high
-}
-
-# mmw: "memory modify word", updates value of $reg
-#	$reg <== ((value & ~$clearbits) | $setbits)
-proc mmw {reg setbits clearbits} {
-    set old [mrw $reg]
-    set new [expr ($old & ~$clearbits) | $setbits]
-    mww $reg $new
 }
 
 
