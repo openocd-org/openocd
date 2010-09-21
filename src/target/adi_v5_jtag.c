@@ -191,22 +191,30 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 
 	/* too expensive to call keep_alive() here */
 
-#if 0
-	/* Danger!!!! BROKEN!!!! */
-	adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
-			DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here????
-	R956 introduced the check on return value here and now Michael Schwingen reports
-	that this code no longer works....
-
-	https://lists.berlios.de/pipermail/openocd-development/2008-September/003107.html
-	*/
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_ERROR("BUG: Why does this fail the first time????");
-	}
-	/* Why??? second time it works??? */
-#endif
+	/* Here be dragons!
+	 *
+	 * It is easy to be in a JTAG clock range where the target
+	 * is not operating in a stable fashion. This happens
+	 * for a few reasons:
+	 *
+	 * - the user may construct a simple test case to try to see
+	 * if a higher JTAG clock works to eke out more performance.
+	 * This simple case may pass, but more complex situations can
+	 * fail.
+	 *
+	 * - The mostly works JTAG clock rate and the complete failure
+	 * JTAG clock rate may be as much as 2-4x apart. This seems
+	 * to be especially true on RC oscillator driven parts.
+	 *
+	 * So: even if calling adi_jtag_scan_inout_check_u32() multiple
+	 * times here seems to "make things better here", it is just
+	 * hiding problems with too high a JTAG clock.
+	 *
+	 * Note that even if some parts have RCLK/RTCK, that doesn't
+	 * mean that RCLK/RTCK is the *correct* rate to run the JTAG
+	 * interface at, i.e. RCLK/RTCK rates can be "too high", especially
+	 * before the RC oscillator phase is not yet complete.
+	 */
 
 	/* Post CTRL/STAT read; discard any previous posted read value
 	 * but collect its ACK status.
