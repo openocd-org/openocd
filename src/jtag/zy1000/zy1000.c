@@ -1589,7 +1589,7 @@ int zy1000_init(void)
 {
 #if BUILD_ECOSBOARD
 	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
-#else
+#elif BUILD_ZY1000_MASTER
 	int fd;
  	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1)
  	{
