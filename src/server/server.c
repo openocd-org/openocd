@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -310,16 +310,6 @@ int server_loop(struct command_context *command_context)
 			}
 		}
 
-#ifndef _WIN32
-#if BUILD_ECOSBOARD == 0
-		if (server_use_pipes == 0)
-		{
-			/* add STDIN to read_fds */
-			FD_SET(fileno(stdin), &read_fds);
-		}
-#endif
-#endif
-
 		struct timeval tv;
 		tv.tv_sec = 0;
 		if (poll_ok)
@@ -434,21 +424,7 @@ int server_loop(struct command_context *command_context)
 			}
 		}
 
-#ifndef _WIN32
-#if BUILD_ECOSBOARD == 0
-		/* check for data on stdin if not using pipes */
-		if (server_use_pipes == 0)
-		{
-			if (FD_ISSET(fileno(stdin), &read_fds))
-			{
-				if (getc(stdin) == 'x')
-				{
-					shutdown_openocd = 1;
-				}
-			}
-		}
-#endif
-#else
+#ifdef _WIN32
 		MSG msg;
 		while (PeekMessage(&msg,NULL,0,0,PM_REMOVE))
 		{
