@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -159,7 +159,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 #endif
 					string);
 		}
-		else if (server_use_pipes == 0)
+		else
 		{
 			/* if we are using gdb through pipes then we do not want any output
 			 * to the pipe otherwise we get repeated strings */
@@ -240,21 +240,6 @@ COMMAND_HANDLER(handle_debug_level_command)
 	}
 	else if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	if (debug_level >= LOG_LVL_DEBUG && server_use_pipes == 1)
-	{
-		/* if we are enabling debug info then we need to write to a
-		 * log file otherwise the pipe will get full and cause issues
-		 * with gdb
-		 */
-		FILE* file = fopen("openocd.log", "w");
-		if (file)
-		{
-			log_output = file;
-			LOG_WARNING("enabling logfile output because "
-				"we are using pipes to talk to GDB.");
-		}
-	}
 
 	command_print(CMD_CTX, "debug_level: %i", debug_level);
 
