@@ -83,6 +83,9 @@ int server_loop(struct command_context *command_context);
 
 int server_register_commands(struct command_context *context);
 
+int connection_write(struct connection *connection, const void *data, int len);
+int connection_read(struct connection *connection, void *data, int len);
+
 /**
  * Used by server_loop(), defined in server_stubs.c, httpd.c, or ecosboard.c
  */

@@ -328,7 +328,7 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
-	if (write_socket(connection->fd_out, data, len) == len)
+	if (connection_write(connection, data, len) == len)
 	{
 		return ERROR_OK;
 	}

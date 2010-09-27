@@ -513,6 +513,33 @@ int server_quit(void)
 	return ERROR_OK;
 }
 
+int connection_write(struct connection *connection, const void *data, int len)
+{
+	if (len == 0)
+	{
+		/* successful no-op. Sockets and pipes behave differently here... */
+		return 0;
+	}
+	if (connection->service->type == CONNECTION_TCP)
+	{
+		return write_socket(connection->fd_out, data, len);
+	} else
+	{
+		return write(connection->fd_out, data, len);
+	}
+}
+
+int connection_read(struct connection *connection, void *data, int len)
+{
+	if (connection->service->type == CONNECTION_TCP)
+	{
+		return read_socket(connection->fd, data, len);
+	} else
+	{
+		return read(connection->fd, data, len);
+	}
+}
+
 /* tell the server we want to shut down */
 COMMAND_HANDLER(handle_shutdown_command)
 {

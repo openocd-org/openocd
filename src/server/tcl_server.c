@@ -57,7 +57,7 @@ int tcl_output(struct connection *connection, const void *data, ssize_t len)
 	if (tclc->tc_outerror)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
-	wlen = write_socket(connection->fd, data, len);
+	wlen = connection_write(connection, data, len);
 
 	if (wlen == len)
 		return ERROR_OK;
@@ -92,7 +92,7 @@ static int tcl_input(struct connection *connection)
 	struct tcl_connection *tclc;
 	unsigned char in[256];
 
-	rlen = read_socket(connection->fd, &in, sizeof(in));
+	rlen = connection_read(connection, &in, sizeof(in));
 	if (rlen <= 0) {
 		if (rlen < 0)
 			LOG_ERROR("error during read: %s", strerror(errno));

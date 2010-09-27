@@ -51,7 +51,7 @@ static int telnet_write(struct connection *connection, const void *data,
 	if (t_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
-	if (write_socket(connection->fd_out, data, len) == len)
+	if (connection_write(connection, data, len) == len)
 	{
 		return ERROR_OK;
 	}
@@ -204,7 +204,7 @@ static int telnet_input(struct connection *connection)
 	struct telnet_connection *t_con = connection->priv;
 	struct command_context *command_context = connection->cmd_ctx;
 
-	bytes_read = read_socket(connection->fd, buffer, TELNET_BUFFER_SIZE);
+	bytes_read = connection_read(connection, buffer, TELNET_BUFFER_SIZE);
 
 	if (bytes_read == 0)
 		return ERROR_SERVER_REMOTE_CLOSED;
