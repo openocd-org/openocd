@@ -166,7 +166,7 @@ int tcl_init(void)
 		return ERROR_OK;
 	}
 
-	return add_service_pipe("tcl", tcl_port, 1,
+	return add_service("tcl", tcl_port, 1,
 			&tcl_new_connection, &tcl_input,
 			&tcl_closed, NULL);
 }

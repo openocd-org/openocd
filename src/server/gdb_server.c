@@ -2387,42 +2387,22 @@ static int gdb_input(struct connection *connection)
 	return ERROR_OK;
 }
 
-static int gdb_target_start(struct target *target, uint16_t port)
+static int gdb_target_start(struct target *target, const char *port)
 {
-	bool use_pipes = 0 == port;
 	struct gdb_service *gdb_service = malloc(sizeof(struct gdb_service));
 	if (NULL == gdb_service)
 		return -ENOMEM;
 
 	gdb_service->target = target;
 
-	add_service("gdb", use_pipes ? CONNECTION_PIPE : CONNECTION_TCP,
+	return add_service("gdb",
 			port, 1, &gdb_new_connection, &gdb_input,
 			&gdb_connection_closed, gdb_service);
-
-	const char *name = target_name(target);
-	if (use_pipes)
-		LOG_DEBUG("gdb service for target '%s' using pipes", name);
-	else
-		LOG_DEBUG("gdb service for target '%s' on TCP port %u", name, port);
-	return ERROR_OK;
 }
 
 static int gdb_target_add_one(struct target *target)
 {
-	long portnumber_parsed;
-	/* If we can parse the port number
-	 * then we increment the port number for the next target.
-	 */
-	char *end_parse;
-	portnumber_parsed = strtol(gdb_port_next, &end_parse, 0);
-	if (!*end_parse)
-	{
-		LOG_ERROR("Illegal port number");
-		return ERROR_FAIL;
-	}
-
-	int retval = gdb_target_start(target, portnumber_parsed);
+	int retval = gdb_target_start(target, gdb_port_next);
 	if (retval == ERROR_OK)
 	{
 		long portnumber;

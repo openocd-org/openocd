@@ -2,7 +2,7 @@
  *   Copyright (C) 2004, 2005 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -177,13 +177,9 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 					add_config_command(optarg);
 				}
 				break;
-			case 'p':	/* --pipe | -p */
-#if BUILD_ECOSBOARD == 1
-				/* pipes unsupported on hosted platforms */
-				LOG_WARNING("pipes not supported on this platform");
-#else
-				server_use_pipes = 1;
-#endif
+			case 'p':
+				LOG_WARNING("deprecated option: -p/--pipe. Use '-c \"gdb_port pipe; log_output openocd.log\"' instead.");
+				add_config_command("gdb_port pipe; log_output openocd.log");
 				break;
 		}
 	}
@@ -198,7 +194,6 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 		LOG_OUTPUT("--debug      | -d\tset debug level <0-3>\n");
 		LOG_OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
 		LOG_OUTPUT("--command    | -c\trun <command>\n");
-		LOG_OUTPUT("--pipe       | -p\tuse pipes for gdb communication\n");
 		exit(-1);
 	}
 

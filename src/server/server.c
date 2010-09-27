@@ -45,9 +45,6 @@ static struct service *services = NULL;
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
 static int shutdown_openocd = 0;
 
-/* set when using pipes rather than tcp */
-int server_use_pipes = 0;
-
 static int add_connection(struct service *service, struct command_context *cmd_ctx)
 {
 	socklen_t address_size;
@@ -80,7 +77,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 				(char *)&flag,		/* the cast is historical cruft */
 				sizeof(int));		/* length of option value */
 
-		LOG_INFO("accepting '%s' connection from %i", service->name, service->port);
+		LOG_INFO("accepting '%s' connection from %s", service->name, service->port);
 		if ((retval = service->new_connection(c)) != ERROR_OK)
 		{
 			close_socket(c->fd);
@@ -88,8 +85,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 			free(c);
 			return retval;
 		}
-	}
-	else if (service->type == CONNECTION_PIPE)
+	} else if (service->type == CONNECTION_STDINOUT)
 	{
 		c->fd = service->fd;
 		c->fd_out = fileno(stdout);
@@ -97,10 +93,29 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
 
+		LOG_INFO("accepting '%s' connection from pipe", service->name);
+		if ((retval = service->new_connection(c)) != ERROR_OK)
+		{
+			LOG_ERROR("attempted '%s' connection rejected", service->name);
+			free(c);
+			return retval;
+		}
+	} else if (service->type == CONNECTION_PIPE)
+	{
+		c->fd = service->fd;
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
 
-		LOG_INFO("accepting '%s' connection from pipe", service->name);
+		char * out_file = alloc_printf("%so", service->port);
+		c->fd_out = open(out_file, O_WRONLY);
+		free(out_file);
+		if (c->fd_out == -1)
+		{
+			LOG_ERROR("could not open %s", service->port);
+			exit(1);
+		}
+
+		LOG_INFO("accepting '%s' connection from pipe %s", service->name, service->port);
 		if ((retval = service->new_connection(c)) != ERROR_OK)
 		{
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
@@ -130,7 +145,14 @@ static int remove_connection(struct service *service, struct connection *connect
 		{
 			service->connection_closed(c);
 			if (service->type == CONNECTION_TCP)
+			{
 				close_socket(c->fd);
+			} else if (service->type == CONNECTION_PIPE)
+			{
+				/* The service will listen to the pipe again */
+				c->service->fd = c->fd;
+			}
+
 			command_done(c->cmd_ctx);
 
 			/* delete connection */
@@ -148,7 +170,8 @@ static int remove_connection(struct service *service, struct connection *connect
 	return ERROR_OK;
 }
 
-int add_service(char *name, enum connection_type type, unsigned short port, int max_connections, new_connection_handler_t new_connection_handler, input_handler_t input_handler, connection_closed_handler_t connection_closed_handler, void *priv)
+/* FIX! make service return error instead of invoking exit() */
+int add_service(char *name, const char *port, int max_connections, new_connection_handler_t new_connection_handler, input_handler_t input_handler, connection_closed_handler_t connection_closed_handler, void *priv)
 {
 	struct service *c, **p;
 	int so_reuseaddr_option = 1;
@@ -156,9 +179,8 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	c = malloc(sizeof(struct service));
 
 	c->name = strdup(name);
-	c->type = type;
-	c->port = port;
-	c->max_connections = max_connections;
+	c->port = strdup(port);
+	c->max_connections = 1; /* Only TCP/IP ports can support more than one connection */
 	c->fd = -1;
 	c->connections = NULL;
 	c->new_connection = new_connection_handler;
@@ -166,9 +188,28 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	c->connection_closed = connection_closed_handler;
 	c->priv = priv;
 	c->next = NULL;
-
-	if (type == CONNECTION_TCP)
+	long portnumber;
+	if (strcmp(c->port, "pipe") == 0)
 	{
+		c->type = CONNECTION_STDINOUT;
+	} else
+	{
+		char *end;
+		strtol(c->port, &end, 0);
+		if (!*end && (parse_long(c->port, &portnumber) == ERROR_OK))
+		{
+			c->portnumber = portnumber;
+			c->type = CONNECTION_TCP;
+		} else
+		{
+			c->type = CONNECTION_PIPE;
+		}
+	}
+
+	if (c->type == CONNECTION_TCP)
+	{
+		c->max_connections = max_connections;
+
 		if ((c->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		{
 			LOG_ERROR("error creating socket: %s", strerror(errno));
@@ -182,7 +223,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 		memset(&c->sin, 0, sizeof(c->sin));
 		c->sin.sin_family = AF_INET;
 		c->sin.sin_addr.s_addr = INADDR_ANY;
-		c->sin.sin_port = htons(port);
+		c->sin.sin_port = htons(c->portnumber);
 
 		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1)
 		{
@@ -209,7 +250,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 			exit(-1);
 		}
 	}
-	else if (type == CONNECTION_PIPE)
+	else if (c->type == CONNECTION_STDINOUT)
 	{
 		c->fd = fileno(stdin);
 
@@ -225,10 +266,15 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 		socket_nonblock(c->fd);
 #endif
 	}
-	else
+	else if (c->type == CONNECTION_PIPE)
 	{
-		LOG_ERROR("unknown connection type: %d", type);
-		exit(1);
+		/* Pipe we're reading from */
+		c->fd = open(c->port, O_RDONLY | O_NONBLOCK);
+		if (c->fd == -1)
+		{
+			LOG_ERROR("could not open %s", c->port);
+			exit(1);
+		}
 	}
 
 	/* add to the end of linked list */
@@ -236,29 +282,6 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	*p = c;
 
 	return ERROR_OK;
-}
-
-int add_service_pipe(char *name, const char *port, int max_connections,
-		new_connection_handler_t new_connection_handler, input_handler_t input_handler,
-		connection_closed_handler_t connection_closed_handler, void *priv)
-{
-	enum connection_type type = CONNECTION_TCP;
-	long portnumber;
-	char *end;
-	strtol(port, &end, 0);
-	if (!*end)
-	{
-		if ((parse_long(port, &portnumber) == ERROR_OK) && (portnumber == 0))
-		{
-			type = CONNECTION_PIPE;
-		}
-	} else
-	{
-		LOG_ERROR("Illegal port number %s", port);
-		return ERROR_FAIL;
-	}
-	return add_service(name, type, portnumber, max_connections, new_connection_handler,
-			input_handler, connection_closed_handler, priv);
 }
 
 static int remove_services(void)
@@ -278,6 +301,8 @@ static int remove_services(void)
 			if (c->fd != -1)
 				close(c->fd);
 		}
+		if (c->port)
+			free((void *)c->port);
 
 		if (c->priv)
 			free(c->priv);

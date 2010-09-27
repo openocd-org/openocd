@@ -574,7 +574,6 @@ bash$ openocd --help
 --debug      | -d       set debug level <0-3>
 --log_output | -l       redirect log output to file <name>
 --command    | -c       run <command>
---pipe       | -p       use pipes when talking to gdb
 @end verbatim
 
 If you don't give any @option{-f} or @option{-c} options,
@@ -7052,11 +7051,12 @@ This would cause GDB to connect to the gdbserver on the local pc using port 3333
 @item
 A pipe connection is typically started as follows:
 @example
-target remote | openocd --pipe
+target remote | openocd -c "gdb_port pipe; log_output openocd.log"
 @end example
 This would cause GDB to run OpenOCD and communicate using pipes (stdin/stdout).
 Using this method has the advantage of GDB starting/stopping OpenOCD for the debug
-session.
+session. log_output sends the log output to a file to ensure that the pipe is
+not saturated when using higher debug level outputs.
 @end enumerate
 
 To list the available OpenOCD commands type @command{monitor help} on the

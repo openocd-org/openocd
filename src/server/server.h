@@ -35,7 +35,8 @@
 enum connection_type
 {
 	CONNECTION_TCP,
-	CONNECTION_PIPE
+	CONNECTION_PIPE,
+	CONNECTION_STDINOUT
 };
 
 struct connection
@@ -58,7 +59,8 @@ struct service
 {
 	char *name;
 	enum connection_type type;
-	unsigned short port;
+	const char *port;
+	unsigned short portnumber;
 	int fd;
 	struct sockaddr_in sin;
 	int max_connections;
@@ -70,12 +72,7 @@ struct service
 	struct service *next;
 };
 
-int add_service(char *name, enum connection_type type, unsigned short port,
-		int max_connections, new_connection_handler_t new_connection_handler,
-		input_handler_t in_handler, connection_closed_handler_t close_handler,
-		void *priv);
-
-int add_service_pipe(char *name, const char *port,
+int add_service(char *name, const char *port,
 		int max_connections, new_connection_handler_t new_connection_handler,
 		input_handler_t in_handler, connection_closed_handler_t close_handler,
 		void *priv);
@@ -114,8 +111,6 @@ SERVER_PIPE_COMMAND();
 		COMMAND_HELPER(server_port_command, unsigned short *out)
 
 SERVER_PORT_COMMAND();
-
-extern int server_use_pipes;
 
 #define ERROR_SERVER_REMOTE_CLOSED	(-400)
 #define ERROR_CONNECTION_REJECTED	(-401)
