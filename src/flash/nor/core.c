@@ -601,7 +601,9 @@ int flash_write_unlock(struct target *target, struct image *image,
 		/* find the corresponding flash bank */
 		retval = get_flash_bank_by_addr(target, run_address, false, &c);
 		if (retval != ERROR_OK)
-			return retval;
+		{
+			goto done;
+		}
 		if (c == NULL)
 		{
 			section++; /* and skip it */
@@ -653,7 +655,8 @@ int flash_write_unlock(struct target *target, struct image *image,
 		if (run_address + run_size - 1 > c->base + c->size - 1)
 		{
 			LOG_ERROR("The image is too big for the flash");
-			return ERROR_FAIL;
+			retval = ERROR_FAIL;
+			goto done;
 		}
 
 		/* If we're applying any sector automagic, then pad this
@@ -679,6 +682,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 		/* allocate buffer */
 		buffer = malloc(run_size);
+		if (buffer == NULL)
+		{
+			LOG_ERROR("Out of memory for flash bank buffer");
+			retval = ERROR_FAIL;
+			goto done;
+		}
 		buffer_size = 0;
 
 		/* read sections to the buffer */
