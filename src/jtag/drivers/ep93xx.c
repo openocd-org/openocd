@@ -47,7 +47,6 @@ static void ep93xx_write(int tck, int tms, int tdi);
 static void ep93xx_reset(int trst, int srst);
 
 static int ep93xx_speed(int speed);
-static int ep93xx_register_commands(struct command_context *cmd_ctx);
 static int ep93xx_init(void);
 static int ep93xx_quit(void);
 
@@ -61,7 +60,6 @@ struct jtag_interface ep93xx_interface =
 	.execute_queue = bitbang_execute_queue,
 
 	.speed = ep93xx_speed,
-	.register_commands = ep93xx_register_commands,
 	.init = ep93xx_init,
 	.quit = ep93xx_quit,
 };
@@ -118,12 +116,6 @@ static void ep93xx_reset(int trst, int srst)
 }
 
 static int ep93xx_speed(int speed)
-{
-
-	return ERROR_OK;
-}
-
-static int ep93xx_register_commands(struct command_context *cmd_ctx)
 {
 
 	return ERROR_OK;

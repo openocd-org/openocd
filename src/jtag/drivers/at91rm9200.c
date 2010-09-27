@@ -118,22 +118,8 @@ static void at91rm9200_write(int tck, int tms, int tdi);
 static void at91rm9200_reset(int trst, int srst);
 
 static int at91rm9200_speed(int speed);
-static int at91rm9200_register_commands(struct command_context *cmd_ctx);
 static int at91rm9200_init(void);
 static int at91rm9200_quit(void);
-
-struct jtag_interface at91rm9200_interface =
-{
-	.name = "at91rm9200",
-
-	.supported = DEBUG_CAP_TMS_SEQ,
-	.execute_queue = bitbang_execute_queue,
-
-	.speed = at91rm9200_speed,
-	.register_commands = at91rm9200_register_commands,
-	.init = at91rm9200_init,
-	.quit = at91rm9200_quit,
-};
 
 static struct bitbang_interface at91rm9200_bitbang =
 {
@@ -186,7 +172,7 @@ static int at91rm9200_speed(int speed)
 	return ERROR_OK;
 }
 
-static int at91rm9200_handle_device_command(struct command_context *cmd_ctx, char *cmd, char **CMD_ARGV, int argc)
+COMMAND_HANDLER(at91rm9200_handle_device_command)
 {
 	if (CMD_ARGC == 0)
 		return ERROR_OK;
@@ -208,12 +194,20 @@ static const struct command_registration at91rm9200_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "query armjtagew info",
 	},
+	COMMAND_REGISTRATION_DONE
 };
 
-static int at91rm9200_register_commands(struct command_context *cmd_ctx)
+struct jtag_interface at91rm9200_interface =
 {
-	return register_commands(cmd_ctx, NULL, at91rm9200_command_handlers);
-}
+	.name = "at91rm9200",
+
+	.execute_queue = bitbang_execute_queue,
+
+	.speed = at91rm9200_speed,
+	.commands = at91rm9200_command_handlers,
+	.init = at91rm9200_init,
+	.quit = at91rm9200_quit,
+};
 
 static int at91rm9200_init(void)
 {
