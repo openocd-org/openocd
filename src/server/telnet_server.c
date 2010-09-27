@@ -30,7 +30,7 @@
 #include "telnet_server.h"
 #include <target/target_request.h>
 
-static unsigned short telnet_port = 4444;
+static const char *telnet_port;
 
 static char *negotiate =
 		"\xFF\xFB\x03"		/* IAC WILL Suppress Go Ahead */
@@ -582,18 +582,17 @@ static int telnet_connection_closed(struct connection *connection)
 
 int telnet_init(char *banner)
 {
-	struct telnet_service *telnet_service = malloc(sizeof(struct telnet_service));
-
-	if (telnet_port == 0)
+	if (strcmp(telnet_port, "disabled") == 0)
 	{
-		LOG_INFO("telnet port disabled");
-		free(telnet_service);
+		LOG_INFO("telnet server disabled");
 		return ERROR_OK;
 	}
 
+	struct telnet_service *telnet_service = malloc(sizeof(struct telnet_service));
+
 	telnet_service->banner = banner;
 
-	add_service("telnet", CONNECTION_TCP, telnet_port, 1, telnet_new_connection, telnet_input, telnet_connection_closed, telnet_service);
+	add_service_pipe("telnet", telnet_port, 1, telnet_new_connection, telnet_input, telnet_connection_closed, telnet_service);
 
 	return ERROR_OK;
 }
@@ -601,7 +600,7 @@ int telnet_init(char *banner)
 /* daemon configuration command telnet_port */
 COMMAND_HANDLER(handle_telnet_port_command)
 {
-	return CALL_COMMAND_HANDLER(server_port_command, &telnet_port);
+	return CALL_COMMAND_HANDLER(server_pipe_command, &telnet_port);
 }
 
 COMMAND_HANDLER(handle_exit_command)
@@ -630,5 +629,6 @@ static const struct command_registration telnet_command_handlers[] = {
 
 int telnet_register_commands(struct command_context *cmd_ctx)
 {
+	telnet_port = strdup("4444");
 	return register_commands(cmd_ctx, NULL, telnet_command_handlers);
 }

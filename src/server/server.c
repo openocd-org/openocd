@@ -238,6 +238,29 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	return ERROR_OK;
 }
 
+int add_service_pipe(char *name, const char *port, int max_connections,
+		new_connection_handler_t new_connection_handler, input_handler_t input_handler,
+		connection_closed_handler_t connection_closed_handler, void *priv)
+{
+	enum connection_type type = CONNECTION_TCP;
+	long portnumber;
+	char *end;
+	strtol(port, &end, 0);
+	if (!*end)
+	{
+		if ((parse_long(port, &portnumber) == ERROR_OK) && (portnumber == 0))
+		{
+			type = CONNECTION_PIPE;
+		}
+	} else
+	{
+		LOG_ERROR("Illegal port number %s", port);
+		return ERROR_FAIL;
+	}
+	return add_service(name, type, portnumber, max_connections, new_connection_handler,
+			input_handler, connection_closed_handler, priv);
+}
+
 static int remove_services(void)
 {
 	struct service *c = services;
@@ -249,6 +272,12 @@ static int remove_services(void)
 
 		if (c->name)
 			free(c->name);
+
+		if (c->type == CONNECTION_PIPE)
+		{
+			if (c->fd != -1)
+				close(c->fd);
+		}
 
 		if (c->priv)
 			free(c->priv);
@@ -591,3 +620,23 @@ SERVER_PORT_COMMAND()
 	}
 	return ERROR_OK;
 }
+
+SERVER_PIPE_COMMAND()
+{
+	switch (CMD_ARGC) {
+	case 0:
+		command_print(CMD_CTX, "%s", *out);
+		break;
+	case 1:
+	{
+		const char * t = strdup(CMD_ARGV[0]);
+		free((void *)*out);
+		*out = t;
+		break;
+	}
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	return ERROR_OK;
+}
+

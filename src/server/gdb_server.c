@@ -80,8 +80,8 @@ static int gdb_breakpoint_override;
 static enum breakpoint_type gdb_breakpoint_override_type;
 
 static int gdb_error(struct connection *connection, int retval);
-static unsigned short gdb_port = 3333;
-static unsigned short gdb_port_next = 0;
+static const char *gdb_port;
+static const char *gdb_port_next;
 static const char DIGITS[16] = "0123456789abcdef";
 
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
@@ -2410,32 +2410,37 @@ static int gdb_target_start(struct target *target, uint16_t port)
 
 static int gdb_target_add_one(struct target *target)
 {
-	if (gdb_port == 0 && server_use_pipes == 0)
+	long portnumber_parsed;
+	/* If we can parse the port number
+	 * then we increment the port number for the next target.
+	 */
+	char *end_parse;
+	portnumber_parsed = strtol(gdb_port_next, &end_parse, 0);
+	if (!*end_parse)
 	{
-		LOG_INFO("gdb port disabled");
-		return ERROR_OK;
-	}
-	if (0 == gdb_port_next)
-		gdb_port_next = gdb_port;
-
-	bool use_pipes = server_use_pipes;
-	static bool server_started_with_pipes = false;
-	if (server_started_with_pipes)
-	{
-		LOG_WARNING("gdb service permits one target when using pipes");
-		if (0 == gdb_port)
-			return ERROR_OK;
-
-		use_pipes = false;
+		LOG_ERROR("Illegal port number");
+		return ERROR_FAIL;
 	}
 
-	int e = gdb_target_start(target, use_pipes ? 0 : gdb_port_next);
-	if (ERROR_OK == e)
+	int retval = gdb_target_start(target, portnumber_parsed);
+	if (retval == ERROR_OK)
 	{
-		server_started_with_pipes |= use_pipes;
-		gdb_port_next++;
+		long portnumber;
+		/* If we can parse the port number
+		 * then we increment the port number for the next target.
+		 */
+		char *end;
+		strtol(gdb_port_next, &end, 0);
+		if (!*end)
+		{
+			if (parse_long(gdb_port_next, &portnumber) == ERROR_OK)
+			{
+				free((void *)gdb_port_next);
+				gdb_port_next = alloc_printf("%d", portnumber+1);
+			}
+		}
 	}
-	return e;
+	return retval;
 }
 
 int gdb_target_add_all(struct target *target)
@@ -2480,9 +2485,9 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 /* daemon configuration command gdb_port */
 COMMAND_HANDLER(handle_gdb_port_command)
 {
-	int retval = CALL_COMMAND_HANDLER(server_port_command, &gdb_port);
+	int retval = CALL_COMMAND_HANDLER(server_pipe_command, &gdb_port);
 	if (ERROR_OK == retval)
-		gdb_port_next = gdb_port;
+		gdb_port_next = strdup(gdb_port);
 	return retval;
 }
 
@@ -2599,5 +2604,7 @@ static const struct command_registration gdb_command_handlers[] = {
 
 int gdb_register_commands(struct command_context *cmd_ctx)
 {
+	gdb_port = strdup("3333");
+	gdb_port_next = strdup("3333");
 	return register_commands(cmd_ctx, NULL, gdb_command_handlers);
 }

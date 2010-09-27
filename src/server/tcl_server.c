@@ -35,7 +35,7 @@ struct tcl_connection {
 	int tc_outerror; /* flag an output error */
 };
 
-static unsigned short tcl_port = 6666;
+static const char *tcl_port;
 
 /* handlers */
 static int tcl_new_connection(struct connection *connection);
@@ -160,23 +160,20 @@ static int tcl_closed(struct connection *connection)
 
 int tcl_init(void)
 {
-	int retval;
-
-	if (tcl_port == 0)
+	if (strcmp(tcl_port, "disabled") == 0)
 	{
-		LOG_INFO("tcl port disabled");
+		LOG_INFO("tcl server disabled");
 		return ERROR_OK;
 	}
 
-	retval = add_service("tcl", CONNECTION_TCP, tcl_port, 1,
+	return add_service_pipe("tcl", tcl_port, 1,
 			&tcl_new_connection, &tcl_input,
 			&tcl_closed, NULL);
-	return retval;
 }
 
 COMMAND_HANDLER(handle_tcl_port_command)
 {
-	return CALL_COMMAND_HANDLER(server_port_command, &tcl_port);
+	return CALL_COMMAND_HANDLER(server_pipe_command, &tcl_port);
 }
 
 static const struct command_registration tcl_command_handlers[] = {
@@ -194,5 +191,6 @@ static const struct command_registration tcl_command_handlers[] = {
 
 int tcl_register_commands(struct command_context *cmd_ctx)
 {
+	tcl_port = strdup("6666");
 	return register_commands(cmd_ctx, NULL, tcl_command_handlers);
 }

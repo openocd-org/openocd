@@ -75,6 +75,11 @@ int add_service(char *name, enum connection_type type, unsigned short port,
 		input_handler_t in_handler, connection_closed_handler_t close_handler,
 		void *priv);
 
+int add_service_pipe(char *name, const char *port,
+		int max_connections, new_connection_handler_t new_connection_handler,
+		input_handler_t in_handler, connection_closed_handler_t close_handler,
+		void *priv);
+
 int server_preinit(void);
 int server_init(struct command_context *cmd_ctx);
 int server_quit(void);
@@ -101,6 +106,10 @@ void openocd_sleep_postlude(void);
  * Call server_port like a normal COMMAND_HANDLER with an extra @a out parameter
  * to receive the specified port number.
  */
+#define SERVER_PIPE_COMMAND() \
+		COMMAND_HELPER(server_pipe_command, const char **out)
+SERVER_PIPE_COMMAND();
+
 #define SERVER_PORT_COMMAND() \
 		COMMAND_HELPER(server_port_command, unsigned short *out)
 
