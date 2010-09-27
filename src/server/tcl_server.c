@@ -58,6 +58,7 @@ int tcl_output(struct connection *connection, const void *data, ssize_t len)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
 	wlen = write_socket(connection->fd, data, len);
+
 	if (wlen == len)
 		return ERROR_OK;
 

@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -51,7 +51,7 @@ static int telnet_write(struct connection *connection, const void *data,
 	if (t_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
-	if (write_socket(connection->fd, data, len) == len)
+	if (write_socket(connection->fd_out, data, len) == len)
 	{
 		return ERROR_OK;
 	}

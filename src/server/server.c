@@ -57,6 +57,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 
 	c = malloc(sizeof(struct connection));
 	c->fd = -1;
+	c->fd_out = -1;
 	memset(&c->sin, 0, sizeof(c->sin));
 	c->cmd_ctx = copy_command_context(cmd_ctx);
 	c->service = service;
@@ -69,6 +70,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		address_size = sizeof(c->sin);
 
 		c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
+		c->fd_out = c->fd;
 
 		/* This increases performance dramatically for e.g. GDB load which
 		 * does not have a sliding window protocol. */
@@ -90,6 +92,10 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 	else if (service->type == CONNECTION_PIPE)
 	{
 		c->fd = service->fd;
+		c->fd_out = fileno(stdout);
+
+		/* do not check for new connections again on stdin */
+		service->fd = -1;
 
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
@@ -205,8 +211,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	}
 	else if (type == CONNECTION_PIPE)
 	{
-		/* use stdin */
-		c->fd = STDIN_FILENO;
+		c->fd = fileno(stdin);
 
 #ifdef _WIN32
 		/* for win32 set stdin/stdout to binary mode */
@@ -384,7 +389,7 @@ int server_loop(struct command_context *command_context)
 				}
 				else
 				{
-					if (service->type != CONNECTION_PIPE)
+					if (service->type == CONNECTION_TCP)
 					{
 						struct sockaddr_in sin;
 						socklen_t address_size = sizeof(sin);

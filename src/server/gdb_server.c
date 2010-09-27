@@ -176,7 +176,7 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
 #endif
 	for (;;)
 	{
-		if (connection->service->type == CONNECTION_PIPE)
+		if (connection->service->type != CONNECTION_TCP)
 		{
 			gdb_con->buf_cnt = read(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
 		}
@@ -328,20 +328,9 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
-	if (connection->service->type == CONNECTION_PIPE)
+	if (write_socket(connection->fd_out, data, len) == len)
 	{
-		/* write to stdout */
-		if (write(STDOUT_FILENO, data, len) == len)
-		{
-			return ERROR_OK;
-		}
-	}
-	else
-	{
-		if (write_socket(connection->fd, data, len) == len)
-		{
-			return ERROR_OK;
-		}
+		return ERROR_OK;
 	}
 	gdb_con->closed = 1;
 	return ERROR_SERVER_REMOTE_CLOSED;

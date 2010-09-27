@@ -41,6 +41,7 @@ enum connection_type
 struct connection
 {
 	int fd;
+	int fd_out; /* When using pipes we're writing to a different fd */
 	struct sockaddr_in sin;
 	struct command_context *cmd_ctx;
 	struct service *service;
