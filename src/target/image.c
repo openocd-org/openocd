@@ -147,7 +147,7 @@ static int identify_image_type(struct image *image, const char *type_string, con
 	return ERROR_OK;
 }
 
-static int image_ihex_buffer_complete_inner(struct image *image, char *lpszLine, struct imageection *section)
+static int image_ihex_buffer_complete_inner(struct image *image, char *lpszLine, struct imagesection *section)
 {
 	struct image_ihex *ihex = image->type_private;
 	struct fileio *fileio = &ihex->fileio;
@@ -230,7 +230,7 @@ static int image_ihex_buffer_complete_inner(struct image *image, char *lpszLine,
 			image->num_sections++;
 
 			/* copy section information */
-			image->sections = malloc(sizeof(struct imageection) * image->num_sections);
+			image->sections = malloc(sizeof(struct imagesection) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
 			{
 				image->sections[i].private = section[i].private;
@@ -367,7 +367,7 @@ static int image_ihex_buffer_complete(struct image *image)
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
-	struct imageection *section = malloc(sizeof(struct imageection) * IMAGE_MAX_SECTIONS);
+	struct imagesection *section = malloc(sizeof(struct imagesection) * IMAGE_MAX_SECTIONS);
 	if (section == NULL)
 	{
 		free(lpszLine);
@@ -466,7 +466,7 @@ static int image_elf_read_headers(struct image *image)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 	/* alloc and fill sections array with loadable segments */
-	image->sections = malloc(image->num_sections * sizeof(struct imageection));
+	image->sections = malloc(image->num_sections * sizeof(struct imagesection));
 	for (i = 0,j = 0;i < elf->segment_count;i++)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
@@ -526,7 +526,7 @@ static int image_elf_read_section(struct image *image, int section, uint32_t off
 	return ERROR_OK;
 }
 
-static int image_mot_buffer_complete_inner(struct image *image, char *lpszLine, struct imageection *section)
+static int image_mot_buffer_complete_inner(struct image *image, char *lpszLine, struct imagesection *section)
 {
 	struct image_mot *mot = image->type_private;
 	struct fileio *fileio = &mot->fileio;
@@ -660,7 +660,7 @@ static int image_mot_buffer_complete_inner(struct image *image, char *lpszLine, 
 			image->num_sections++;
 
 			/* copy section information */
-			image->sections = malloc(sizeof(struct imageection) * image->num_sections);
+			image->sections = malloc(sizeof(struct imagesection) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
 			{
 				image->sections[i].private = section[i].private;
@@ -706,7 +706,7 @@ static int image_mot_buffer_complete(struct image *image)
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
-	struct imageection *section = malloc(sizeof(struct imageection) * IMAGE_MAX_SECTIONS);
+	struct imagesection *section = malloc(sizeof(struct imagesection) * IMAGE_MAX_SECTIONS);
 	if (section == NULL)
 	{
 		free(lpszLine);
@@ -745,7 +745,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		}
 
 		image->num_sections = 1;
-		image->sections = malloc(sizeof(struct imageection));
+		image->sections = malloc(sizeof(struct imagesection));
 		image->sections[0].base_address = 0x0;
 		image->sections[0].size = image_binary->fileio.size;
 		image->sections[0].flags = 0;
@@ -798,7 +798,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		struct image_memory *image_memory;
 
 		image->num_sections = 1;
-		image->sections = malloc(sizeof(struct imageection));
+		image->sections = malloc(sizeof(struct imagesection));
 		image->sections[0].base_address = 0x0;
 		image->sections[0].size = 0xffffffff;
 		image->sections[0].flags = 0;
@@ -954,7 +954,7 @@ int image_read_section(struct image *image, int section, uint32_t offset, uint32
 
 int image_add_section(struct image *image, uint32_t base, uint32_t size, int flags, uint8_t *data)
 {
-	struct imageection *section;
+	struct imagesection *section;
 
 	/* only image builder supports adding sections */
 	if (image->type != IMAGE_BUILDER)
@@ -978,7 +978,7 @@ int image_add_section(struct image *image, uint32_t base, uint32_t size, int fla
 
 	/* allocate new section */
 	image->num_sections++;
-	image->sections = realloc(image->sections, sizeof(struct imageection) * image->num_sections);
+	image->sections = realloc(image->sections, sizeof(struct imagesection) * image->num_sections);
 	section = &image->sections[image->num_sections - 1];
 	section->base_address = base;
 	section->size = size;

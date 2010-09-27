@@ -47,7 +47,7 @@ enum image_type
 	IMAGE_BUILDER,	/* when building a new image */
 };
 
-struct imageection
+struct imagesection
 {
 	uint32_t base_address;
 	uint32_t size;
@@ -60,7 +60,7 @@ struct image
 	enum image_type type;		/* image type (plain, ihex, ...) */
 	void *type_private;		/* type private data */
 	int num_sections;		/* number of sections contained in the image */
-	struct imageection *sections;	/* array of sections */
+	struct imagesection *sections;	/* array of sections */
 	int base_address_set;	/* whether the image has a base address set (for relocation purposes) */
 	long long base_address;		/* base address, if one is set */
 	int start_address_set;	/* whether the image has a start address (entry point) associated */

@@ -522,9 +522,9 @@ int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t le
 
 static int compare_section (const void * a, const void * b)
 {
-	struct imageection *b1, *b2;
-	b1=*((struct imageection **)a);
-	b2=*((struct imageection **)b);
+	struct imagesection *b1, *b2;
+	b1=*((struct imagesection **)a);
+	b2=*((struct imagesection **)b);
 
 	if (b1->base_address == b2->base_address)
 	{
@@ -568,7 +568,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 	/* This fn requires all sections to be in ascending order of addresses,
 	 * whereas an image can have sections out of order. */
-	struct imageection **sections = malloc(sizeof(struct imageection *) *
+	struct imagesection **sections = malloc(sizeof(struct imagesection *) *
 			image->num_sections);
 	int i;
 	for (i = 0; i < image->num_sections; i++)
@@ -576,7 +576,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 		sections[i] = &image->sections[i];
 	}
 
-	qsort(sections, image->num_sections, sizeof(struct imageection *),
+	qsort(sections, image->num_sections, sizeof(struct imagesection *),
 			compare_section);
 
 	/* loop until we reach end of the image */
@@ -696,7 +696,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 			 * list of pointers to sections to invoke image_read_section()...
 			 */
 			intptr_t diff = (intptr_t)sections[section] - (intptr_t)image->sections;
-			int t_section_num = diff / sizeof(struct imageection);
+			int t_section_num = diff / sizeof(struct imagesection);
 
 			LOG_DEBUG("image_read_section: section = %d, t_section_num = %d, section_offset = %d, buffer_size = %d, size_read = %d",
 				 (int)section,
