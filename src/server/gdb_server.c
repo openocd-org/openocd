@@ -2545,9 +2545,13 @@ static const struct command_registration gdb_command_handlers[] = {
 		.name = "gdb_port",
 		.handler = handle_gdb_port_command,
 		.mode = COMMAND_ANY,
-		.help = "Display or specify base port on which to listen "
-			"for incoming GDB connections.  "
-			"No arguments reports GDB port; zero disables.",
+		.help = "Normally gdb listens to a TCP/IP port. Each subsequent GDB "
+				"server listens for the next port number after the "
+				"base port number specified. "
+				"No arguments reports GDB port. \"pipe\" means listen to stdin "
+				"output to stdout, an integer is base port number, \"disable\" disables "
+				"port. Any other string is are interpreted as named pipe to listen to. "
+				"Output pipe is the same name as input pipe, but with 'o' appended.",
 		.usage = "[port_num]",
 	},
 	{

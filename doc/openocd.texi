@@ -1910,12 +1910,29 @@ use the command line @option{-pipe} option.
 
 @deffn {Command} gdb_port [number]
 @cindex GDB server
-Specify or query the first port used for incoming GDB connections.
-The GDB port for the
-first target will be gdb_port, the second target will listen on gdb_port + 1, and so on.
+Normally gdb listens to a TCP/IP port, but GDB can also
+communicate via pipes(stdin/out or named pipes). The name
+"gdb_port" stuck because it covers probably more than 90% of
+the normal use cases.
+
+No arguments reports GDB port. "pipe" means listen to stdin 
+output to stdout, an integer is base port number, "disable"
+disables the gdb server.
+
+When using "pipe", also use log_output to redirect the log
+output to a file so as not to flood the stdin/out pipes.
+
+The -p/--pipe option is deprecated and a warning is printed
+as it is equivalent to passing in -c "gdb_port pipe; log_output openocd.log".
+
+Any other string is interpreted as named pipe to listen to. 
+Output pipe is the same name as input pipe, but with 'o' appended,
+e.g. /var/gdb, /var/gdbo.
+				
+The GDB port for the first target will be the base port, the 
+second target will listen on gdb_port + 1, and so on.
 When not specified during the configuration stage,
 the port @var{number} defaults to 3333.
-When specified as zero, GDB remote access ports are not activated.
 @end deffn
 
 @deffn {Command} tcl_port [number]
@@ -1925,7 +1942,7 @@ output from the Tcl engine.
 Intended as a machine interface.
 When not specified during the configuration stage,
 the port @var{number} defaults to 6666.
-When specified as zero, this port is not activated.
+
 @end deffn
 
 @deffn {Command} telnet_port [number]
