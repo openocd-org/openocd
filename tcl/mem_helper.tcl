@@ -3,7 +3,7 @@
 # mrw: "memory read word", returns value of $reg
 proc mrw {reg} {
 	set value ""
-	ocd_mem2array value 32 $reg 1
+	mem2array value 32 $reg 1
 	return $value(0)
 }
 
