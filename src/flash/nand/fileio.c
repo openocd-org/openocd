@@ -180,7 +180,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 		return retval;
 
 	if (!need_size)
-		state->size = state->fileio.size;
+		state->size = fileio_size(&state->fileio);
 
 	*dev = nand;
 

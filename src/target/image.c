@@ -158,7 +158,7 @@ static int image_ihex_buffer_complete_inner(struct image *image, char *lpszLine,
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
 
-	ihex->buffer = malloc(fileio->size >> 1);
+	ihex->buffer = malloc(fileio_size(fileio) >> 1);
 	cooked_bytes = 0x0;
 	image->num_sections = 0;
 	section[image->num_sections].private = &ihex->buffer[cooked_bytes];
@@ -537,7 +537,7 @@ static int image_mot_buffer_complete_inner(struct image *image, char *lpszLine, 
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
 
-	mot->buffer = malloc(fileio->size >> 1);
+	mot->buffer = malloc(fileio_size(fileio) >> 1);
 	cooked_bytes = 0x0;
 	image->num_sections = 0;
 	section[image->num_sections].private = &mot->buffer[cooked_bytes];
@@ -747,7 +747,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		image->num_sections = 1;
 		image->sections = malloc(sizeof(struct imagesection));
 		image->sections[0].base_address = 0x0;
-		image->sections[0].size = image_binary->fileio.size;
+		image->sections[0].size = fileio_size(&image_binary->fileio);
 		image->sections[0].flags = 0;
 	}
 	else if (image->type == IMAGE_IHEX)

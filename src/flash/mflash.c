@@ -726,8 +726,8 @@ COMMAND_HANDLER(mg_write_cmd)
 		return ERROR_FAIL;
 	}
 
-	cnt = fileio.size / MG_FILEIO_CHUNK;
-	res = fileio.size % MG_FILEIO_CHUNK;
+	cnt = fileio_size(&fileio) / MG_FILEIO_CHUNK;
+	res = fileio_size(&fileio) % MG_FILEIO_CHUNK;
 
 	struct duration bench;
 	duration_start(&bench);
@@ -752,8 +752,8 @@ COMMAND_HANDLER(mg_write_cmd)
 	if (duration_measure(&bench) == ERROR_OK)
 	{
 		command_print(CMD_CTX, "wrote %ld bytes from file %s "
-				"in %fs (%0.3f kB/s)", (long)fileio.size, CMD_ARGV[1],
-				duration_elapsed(&bench), duration_kbps(&bench, fileio.size));
+				"in %fs (%0.3f kB/s)", (long)fileio_size(&fileio), CMD_ARGV[1],
+				duration_elapsed(&bench), duration_kbps(&bench, fileio_size(&fileio)));
 	}
 
 	free(buffer);

@@ -46,12 +46,10 @@ enum fileio_access
 	FILEIO_APPENDREAD,	/* open for writing, position at end, allow reading */
 };
 
-struct fileio {
-	const char *url;
-	ssize_t size;
-	enum fileio_type type;
-	enum fileio_access access;
-	FILE *file;
+struct fileio
+{
+	/* The structure is opaque */
+	struct fileio_internal *fp;
 };
 
 int fileio_open(struct fileio *fileio,
@@ -68,6 +66,7 @@ int fileio_write(struct fileio *fileio,
 
 int fileio_read_u32(struct fileio *fileio, uint32_t *data);
 int fileio_write_u32(struct fileio *fileio, uint32_t data);
+int fileio_size(struct fileio *fileio);
 
 #define ERROR_FILEIO_LOCATION_UNKNOWN	(-1200)
 #define ERROR_FILEIO_NOT_FOUND			(-1201)
