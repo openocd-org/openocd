@@ -245,8 +245,18 @@ int fileio_write_u32(struct fileio *fileio_p, uint32_t data)
 	return retval;
 }
 
-int fileio_size(struct fileio *fileio_p)
+/**
+ * FIX!!!!
+ *
+ * For now this can not fail, but that's because a seek was executed
+ * on startup.
+ *
+ * Avoiding the seek on startup opens up for using streams.
+ *
+ */
+int fileio_size(struct fileio *fileio_p, int *size)
 {
 	struct fileio_internal *fileio = fileio_p->fp;
-	return fileio->size;
+	*size = fileio->size;
+	return ERROR_OK;
 }

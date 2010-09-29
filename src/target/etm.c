@@ -1897,7 +1897,15 @@ COMMAND_HANDLER(handle_etm_load_command)
 		return ERROR_FAIL;
 	}
 
-	if (fileio_size(&file) % 4)
+	int filesize;
+	int retval = fileio_size(&file, &filesize);
+	if (retval != ERROR_OK)
+	{
+		fileio_close(&file);
+		return retval;
+	}
+
+	if (filesize % 4)
 	{
 		command_print(CMD_CTX, "size isn't a multiple of 4, no valid trace data");
 		fileio_close(&file);

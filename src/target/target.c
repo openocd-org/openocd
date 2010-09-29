@@ -2648,9 +2648,13 @@ COMMAND_HANDLER(handle_dump_image_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
+		int filesize;
+		retval = fileio_size(&fileio, &filesize);
+		if (retval != ERROR_OK)
+			return retval;
 		command_print(CMD_CTX,
-				"dumped %ld bytes in %fs (%0.3f KiB/s)", (long)fileio_size(&fileio),
-				duration_elapsed(&bench), duration_kbps(&bench, fileio_size(&fileio)));
+				"dumped %ld bytes in %fs (%0.3f KiB/s)", (long)filesize,
+				duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 
 	return retval;

@@ -604,9 +604,23 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 		return ERROR_OK;
 	}
 
-	buffer = malloc(fileio_size(&fileio));
+	int filesize;
+	retval = fileio_size(&fileio, &filesize);
+	if (retval != ERROR_OK)
+	{
+		fileio_close(&fileio);
+		return retval;
+	}
+
+	buffer = malloc(filesize);
+	if (buffer == NULL)
+	{
+		fileio_close(&fileio);
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 	size_t buf_cnt;
-	if (fileio_read(&fileio, fileio_size(&fileio), buffer, &buf_cnt) != ERROR_OK)
+	if (fileio_read(&fileio, filesize, buffer, &buf_cnt) != ERROR_OK)
 	{
 		free(buffer);
 		fileio_close(&fileio);
@@ -622,8 +636,8 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	{
 		command_print(CMD_CTX, "wrote %ld bytes from file %s to flash bank %u"
 				" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-				(long)fileio_size(&fileio), CMD_ARGV[1], p->bank_number, offset,
-				duration_elapsed(&bench), duration_kbps(&bench, fileio_size(&fileio)));
+				(long)filesize, CMD_ARGV[1], p->bank_number, offset,
+				duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 
 	fileio_close(&fileio);

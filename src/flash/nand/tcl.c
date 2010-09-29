@@ -388,9 +388,14 @@ COMMAND_HANDLER(handle_nand_dump_command)
 
 	if (nand_fileio_finish(&s) == ERROR_OK)
 	{
+		int filesize;
+		retval = fileio_size(&s.fileio, &filesize);
+		if (retval != ERROR_OK)
+			return retval;
+
 		command_print(CMD_CTX, "dumped %ld bytes in %fs (%0.3f KiB/s)",
-				(long)fileio_size(&s.fileio), duration_elapsed(&s.bench),
-				duration_kbps(&s.bench, fileio_size(&s.fileio)));
+				(long)filesize, duration_elapsed(&s.bench),
+				duration_kbps(&s.bench, filesize));
 	}
 	return ERROR_OK;
 }
