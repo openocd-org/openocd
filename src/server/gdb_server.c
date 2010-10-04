@@ -2466,8 +2466,10 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 COMMAND_HANDLER(handle_gdb_port_command)
 {
 	int retval = CALL_COMMAND_HANDLER(server_pipe_command, &gdb_port);
-	if (ERROR_OK == retval)
+	if (ERROR_OK == retval) {
+		free((void*)gdb_port_next);
 		gdb_port_next = strdup(gdb_port);
+	}
 	return retval;
 }
 
