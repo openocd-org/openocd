@@ -90,6 +90,11 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		c->fd = service->fd;
 		c->fd_out = fileno(stdout);
 
+#ifdef _WIN32
+		/* we are using stdin/out so ignore ctrl-c under windoze */
+		SetConsoleCtrlHandler(NULL, TRUE);
+#endif
+
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
 
@@ -268,6 +273,12 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 	}
 	else if (c->type == CONNECTION_PIPE)
 	{
+#ifdef _WIN32
+		/* we currenty do not support named pipes under win32
+		 * so exit openocd for now */
+		LOG_ERROR("Named pipes currently not supported under this os");
+		exit(1);
+#else
 		/* Pipe we're reading from */
 		c->fd = open(c->port, O_RDONLY | O_NONBLOCK);
 		if (c->fd == -1)
@@ -275,6 +286,7 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 			LOG_ERROR("could not open %s", c->port);
 			exit(1);
 		}
+#endif
 	}
 
 	/* add to the end of linked list */
@@ -526,16 +538,8 @@ int server_preinit(void)
 		exit(-1);
 	}
 
-	if (server_use_pipes == 0)
-	{
-		/* register ctrl-c handler */
-		SetConsoleCtrlHandler(ControlHandler, TRUE);
-	}
-	else
-	{
-		/* we are using pipes so ignore ctrl-c */
-		SetConsoleCtrlHandler(NULL, TRUE);
-	}
+	/* register ctrl-c handler */
+	SetConsoleCtrlHandler(ControlHandler, TRUE);
 
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
