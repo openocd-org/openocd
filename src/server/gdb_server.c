@@ -2410,7 +2410,7 @@ static int gdb_target_add_one(struct target *target)
 		 * then we increment the port number for the next target.
 		 */
 		char *end;
-		strtol(gdb_port_next, &end, 0);
+		portnumber = strtol(gdb_port_next, &end, 0);
 		if (!*end)
 		{
 			if (parse_long(gdb_port_next, &portnumber) == ERROR_OK)

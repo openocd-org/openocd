@@ -200,7 +200,7 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 	} else
 	{
 		char *end;
-		strtol(c->port, &end, 0);
+		portnumber = strtol(c->port, &end, 0);
 		if (!*end && (parse_long(c->port, &portnumber) == ERROR_OK))
 		{
 			c->portnumber = portnumber;
