@@ -104,13 +104,13 @@ static void add_default_dirs(void)
 
 	const char *home = getenv("HOME");
 
-	if (home) 
+	if (home)
 	{
 		char *path;
 
 		path = alloc_printf("%s/.openocd", home);
 
-		if (path) 
+		if (path)
 	        {
 			add_script_search_dir(path);
 			free(path);
@@ -178,8 +178,10 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 				}
 				break;
 			case 'p':
+				/* to replicate the old syntax this needs to be synchronous
+				 * otherwise the gdb stdin will overflow with the warning message */
+				command_run_line(cmd_ctx, "gdb_port pipe; log_output openocd.log");
 				LOG_WARNING("deprecated option: -p/--pipe. Use '-c \"gdb_port pipe; log_output openocd.log\"' instead.");
-				add_config_command("gdb_port pipe; log_output openocd.log");
 				break;
 		}
 	}
