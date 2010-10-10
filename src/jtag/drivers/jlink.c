@@ -32,6 +32,9 @@
 /* See Segger's public documentation:
  *	Reference manual for J-Link USB Protocol
  *	Document RM08001-R6 Date: June 16, 2009
+ *      (Or newer, with some SWD information).
+ 
+http://www.segger.com/cms/admin/uploads/productDocs/RM08001_JLinkUSBProtocol.pdf
  */
 
 #define VID 0x1366
