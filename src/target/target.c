@@ -505,7 +505,8 @@ static int target_process_reset(struct command_context *cmd_ctx, enum target_res
 	jtag_poll_set_enabled(save_poll);
 
 	if (retval != JIM_OK) {
-		Jim_PrintErrorMessage(cmd_ctx->interp);
+		Jim_MakeErrorMessage(cmd_ctx->interp);
+		command_print(NULL,"%s\n", Jim_GetString(Jim_GetResult(cmd_ctx->interp), NULL));
 		return ERROR_FAIL;
 	}
 
@@ -3627,7 +3628,8 @@ void target_handle_event(struct target *target, enum target_event e)
 					   Jim_GetString(teap->body, NULL));
 			if (Jim_EvalObj(teap->interp, teap->body) != JIM_OK)
 			{
-				Jim_PrintErrorMessage(teap->interp);
+				Jim_MakeErrorMessage(teap->interp);
+				command_print(NULL,"%s\n", Jim_GetString(Jim_GetResult(teap->interp), NULL));
 			}
 		}
 	}
@@ -3709,7 +3711,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 		case TCFG_TYPE:
 			/* not setable */
 			if (goi->isconfigure) {
-				Jim_SetResult_sprintf(goi->interp,
+				Jim_SetResultFormatted(goi->interp,
 						"not settable: %s", n->name);
 				return JIM_ERR;
 			} else {
@@ -3902,7 +3904,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 		case TCFG_VARIANT:
 			if (goi->isconfigure) {
 				if (goi->argc < 1) {
-					Jim_SetResult_sprintf(goi->interp,
+					Jim_SetResultFormatted(goi->interp,
 										   "%s ?STRING?",
 										   n->name);
 					return JIM_ERR;
@@ -3980,7 +3982,7 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	if (goi.argc < 2 || goi.argc > 4)
 	{
-		Jim_SetResult_sprintf(goi.interp,
+		Jim_SetResultFormatted(goi.interp,
 				"usage: %s [phys] <address> <data> [<count>]", cmd_name);
 		return JIM_ERR;
 	}
@@ -4051,7 +4053,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	if ((goi.argc < 1) || (goi.argc > 3))
 	{
-		Jim_SetResult_sprintf(goi.interp,
+		Jim_SetResultFormatted(goi.interp,
 				"usage: %s [phys] <address> [<count>]", cmd_name);
 		return JIM_ERR;
 	}
@@ -4118,40 +4120,42 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 		e = fn(target, a, b, y / b, target_buf);
 		if (e != ERROR_OK) {
-			Jim_SetResult_sprintf(interp, "error reading target @ 0x%08lx", (int)(a));
+			char tmp[10];
+			snprintf(tmp, sizeof(tmp), "%08lx", (long)a);
+			Jim_SetResultFormatted(interp, "error reading target @ 0x%s", tmp);
 			return JIM_ERR;
 		}
 
-		Jim_fprintf(interp, interp->cookie_stdout, "0x%08x ", (int)(a));
+		command_print(NULL, "0x%08x ", (int)(a));
 		switch (b) {
 		case 4:
 			for (x = 0; x < 16 && x < y; x += 4)
 			{
 				z = target_buffer_get_u32(target, &(target_buf[ x ]));
-				Jim_fprintf(interp, interp->cookie_stdout, "%08x ", (int)(z));
+				command_print(NULL, "%08x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 4) {
-				Jim_fprintf(interp, interp->cookie_stdout, "         ");
+				command_print(NULL, "         ");
 			}
 			break;
 		case 2:
 			for (x = 0; x < 16 && x < y; x += 2)
 			{
 				z = target_buffer_get_u16(target, &(target_buf[ x ]));
-				Jim_fprintf(interp, interp->cookie_stdout, "%04x ", (int)(z));
+				command_print(NULL, "%04x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 2) {
-				Jim_fprintf(interp, interp->cookie_stdout, "     ");
+				command_print(NULL, "     ");
 			}
 			break;
 		case 1:
 		default:
 			for (x = 0 ; (x < 16) && (x < y) ; x += 1) {
 				z = target_buffer_get_u8(target, &(target_buf[ x ]));
-				Jim_fprintf(interp, interp->cookie_stdout, "%02x ", (int)(z));
+				command_print(NULL, "%02x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 1) {
-				Jim_fprintf(interp, interp->cookie_stdout, "   ");
+				command_print(NULL, "   ");
 			}
 			break;
 		}
@@ -4173,7 +4177,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		/* terminate */
 		target_buf[16] = 0;
 		/* print - with a newline */
-		Jim_fprintf(interp, interp->cookie_stdout, "%s\n", target_buf);
+		command_print(NULL, "%s\n", target_buf);
 		/* NEXT... */
 		c -= 16;
 		a += 16;
@@ -4197,7 +4201,7 @@ static int jim_target_array2mem(Jim_Interp *interp,
 
 static int jim_target_tap_disabled(Jim_Interp *interp)
 {
-	Jim_SetResult_sprintf(interp, "[TAP is disabled]");
+	Jim_SetResultFormatted(interp, "[TAP is disabled]");
 	return JIM_ERR;
 }
 
@@ -4215,7 +4219,9 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	int e = target->type->examine(target);
 	if (e != ERROR_OK)
 	{
-		Jim_SetResult_sprintf(interp, "examine-fails: %d", e);
+		Jim_Obj *eObj = Jim_NewIntObj(interp, e);
+		Jim_SetResultFormatted(interp, "examine-fails: %#s", eObj);
+		Jim_FreeNewObj(interp, eObj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -4255,7 +4261,9 @@ static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	if (e != ERROR_OK)
 	{
-		Jim_SetResult_sprintf(interp, "poll-fails: %d", e);
+		Jim_Obj *eObj = Jim_NewIntObj(interp, e);
+		Jim_SetResultFormatted(interp, "poll-fails: %#s", eObj);
+		Jim_FreeNewObj(interp, eObj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -4296,7 +4304,7 @@ static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	if (!target->type->assert_reset || !target->type->deassert_reset)
 	{
-		Jim_SetResult_sprintf(interp,
+		Jim_SetResultFormatted(interp,
 				"No target-specific reset for %s",
 				target_name(target));
 		return JIM_ERR;
@@ -4337,7 +4345,7 @@ static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *a
 	if (goi.argc != 2)
 	{
 		const char *cmd_name = Jim_GetString(argv[0], NULL);
-		Jim_SetResult_sprintf(goi.interp,
+		Jim_SetResultFormatted(goi.interp,
 				"%s <state_name> <timeout_in_msec>", cmd_name);
 		return JIM_ERR;
 	}
@@ -4360,10 +4368,12 @@ static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *a
 	e = target_wait_state(target, n->value, a);
 	if (e != ERROR_OK)
 	{
-		Jim_SetResult_sprintf(goi.interp,
-				"target: %s wait %s fails (%d) %s",
+		Jim_Obj *eObj = Jim_NewIntObj(interp, e);
+		Jim_SetResultFormatted(goi.interp,
+				"target: %s wait %s fails (%#s) %s",
 				target_name(target), n->name,
-				e, target_strerror_safe(e));
+				eObj, target_strerror_safe(e));
+		Jim_FreeNewObj(interp, eObj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -4412,7 +4422,7 @@ static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const 
 	if (goi.argc != 1)
 	{
 		const char *cmd_name = Jim_GetString(argv[0], NULL);
-		Jim_SetResult_sprintf(goi.interp, "%s <eventname>", cmd_name);
+		Jim_SetResultFormatted(goi.interp, "%s <eventname>", cmd_name);
 		return JIM_ERR;
 	}
 	Jim_Nvp *n;
@@ -4583,7 +4593,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	cmd = Jim_GetCommand(goi->interp, new_cmd, JIM_ERRMSG);
 	if (cmd) {
 		cp = Jim_GetString(new_cmd, NULL);
-		Jim_SetResult_sprintf(goi->interp, "Command/target: %s Exists", cp);
+		Jim_SetResultFormatted(goi->interp, "Command/target: %s Exists", cp);
 		return JIM_ERR;
 	}
 
@@ -4598,7 +4608,7 @@ static int target_create(Jim_GetOptInfo *goi)
 		}
 	}
 	if (target_types[x] == NULL) {
-		Jim_SetResult_sprintf(goi->interp, "Unknown target type %s, try one of ", cp);
+		Jim_SetResultFormatted(goi->interp, "Unknown target type %s, try one of ", cp);
 		for (x = 0 ; target_types[x] ; x++) {
 			if (target_types[x + 1]) {
 				Jim_AppendStrings(goi->interp,
@@ -4808,7 +4818,7 @@ static int jim_target_number(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	LOG_WARNING("don't use numbers as target identifiers; use names");
 	if (goi.argc != 1)
 	{
-		Jim_SetResult_sprintf(goi.interp, "usage: target number <number>");
+		Jim_SetResultFormatted(goi.interp, "usage: target number <number>");
 		return JIM_ERR;
 	}
 	jim_wide w;
@@ -4825,8 +4835,12 @@ static int jim_target_number(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_SetResultString(goi.interp, target_name(target), -1);
 		return JIM_OK;
 	}
-	Jim_SetResult_sprintf(goi.interp,
-			"Target: number %d does not exist", (int)(w));
+	{
+		Jim_Obj *wObj = Jim_NewIntObj(goi.interp, w);
+		Jim_SetResultFormatted(goi.interp,
+			"Target: number %#s does not exist", wObj);
+		Jim_FreeNewObj(interp, wObj);
+	}
 	return JIM_ERR;
 }
 

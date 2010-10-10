@@ -29,11 +29,10 @@
 #if BUILD_ECOSBOARD
 #include <stdio.h>
 #include <stdarg.h>
-/* Jim is provied by eCos */
-#include <cyg/jimtcl/jim.h>
-#else
-#include <helper/jim.h>
 #endif
+
+#include <jim.h>
+#include <jim-nvp.h>
 
 /* To achieve C99 printf compatibility in MinGW, gnu_printf should be
  * used for __attribute__((format( ... ))), with GCC v4.4 or later

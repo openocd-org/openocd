@@ -27,6 +27,7 @@
 #define TARGET_TYPE_H
 
 #include <helper/types.h>
+#include <jim-nvp.h>
 
 struct target;
 

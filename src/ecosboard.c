@@ -500,6 +500,10 @@ static void zylinjtag_startNetwork(void)
 
 	cyg_httpd_init_tcl_interpreter();
 
+	// Kludge! Why can't I do this from httpd.c??? I get linker errors...
+	// some of that --start/end-group stuff?
+    Jim_InitStaticExtensions(httpstate.jim_interp);
+
 	Jim_CreateCommand(httpstate.jim_interp, "log", zylinjtag_Jim_Command_log,
 			NULL, NULL);
 	Jim_CreateCommand(httpstate.jim_interp, "zy1000_reboot",

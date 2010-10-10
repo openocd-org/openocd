@@ -9,7 +9,7 @@ noinst_LTLIBRARIES = libhelper.la
 if ECOSBOARD
 CONFIGFILES = time_support_ecos.c
 else
-CONFIGFILES = options.c jim.c jim-eventloop.c time_support_common.c
+CONFIGFILES = options.c time_support_common.c
 endif
 
 
@@ -48,8 +48,6 @@ noinst_HEADERS = \
 	time_support.h \
 	replacements.h \
 	fileio.h \
-	jim.h \
-	jim-eventloop.h \
 	system.h \
 	bin2char.c
 

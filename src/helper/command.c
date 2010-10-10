@@ -684,7 +684,8 @@ int command_run_line(struct command_context *context, char *line)
 		if (retval != ERROR_COMMAND_CLOSE_CONNECTION)
 		{
 			/* We do not print the connection closed error message */
-			Jim_PrintErrorMessage(interp);
+			Jim_MakeErrorMessage(interp);
+			LOG_USER_N("%s\n", Jim_GetString(Jim_GetResult(interp), NULL));
 		}
 		if (retval == ERROR_OK)
 		{
@@ -783,89 +784,6 @@ static int jim_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	const char *str = Jim_GetString(argv[1], NULL);
 	LOG_USER("%s", str);
 	return JIM_OK;
-}
-
-static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *cookie)
-{
-	size_t nbytes;
-	const char *ptr;
-	Jim_Interp *interp;
-
-	/* make it a char easier to read code */
-	ptr = _ptr;
-	interp = cookie;
-	nbytes = size * n;
-	if (ptr == NULL || interp == NULL || nbytes == 0) {
-		return 0;
-	}
-
-	/* do we have to chunk it? */
-	if (ptr[nbytes] == 0)
-	{
-		/* no it is a C style string */
-		LOG_USER_N("%s", ptr);
-		return strlen(ptr);
-	}
-	/* GRR we must chunk - not null terminated */
-	while (nbytes) {
-		char chunk[128 + 1];
-		int x;
-
-		x = nbytes;
-		if (x > 128) {
-			x = 128;
-		}
-		/* copy it */
-		memcpy(chunk, ptr, x);
-		/* terminate it */
-		chunk[n] = 0;
-		/* output it */
-		LOG_USER_N("%s", chunk);
-		ptr += x;
-		nbytes -= x;
-	}
-
-	return n;
-}
-
-static size_t openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie)
-{
-	/* TCL wants to read... tell him no */
-	return 0;
-}
-
-static int openocd_jim_vfprintf(void *cookie, const char *fmt, va_list ap)
-{
-	char *cp;
-	int n;
-	Jim_Interp *interp;
-
-	n = -1;
-	interp = cookie;
-	if (interp == NULL)
-		return n;
-
-	cp = alloc_vprintf(fmt, ap);
-	if (cp)
-	{
-		LOG_USER_N("%s", cp);
-		n = strlen(cp);
-		free(cp);
-	}
-	return n;
-}
-
-static int openocd_jim_fflush(void *cookie)
-{
-	/* nothing to flush */
-	return 0;
-}
-
-static char* openocd_jim_fgets(char *s, int size, void *cookie)
-{
-	/* not supported */
-	errno = ENOTSUP;
-	return NULL;
 }
 
 /* Capture progress output and return as tcl return value. If the
@@ -1400,11 +1318,11 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 	/* Create a jim interpreter if we were not handed one */
 	if (interp == NULL)
 	{
-		Jim_InitEmbedded();
 		/* Create an interpreter */
 		interp = Jim_CreateInterp();
 		/* Add all the Jim core commands */
 		Jim_RegisterCoreCommands(interp);
+		Jim_InitStaticExtensions(interp);
 	}
 #endif
 	context->interp = interp;
@@ -1442,26 +1360,14 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
 	Jim_CreateCommand(interp, "capture", jim_capture, NULL, NULL);
 
-	/* Set Jim's STDIO */
-	interp->cookie_stdin = interp;
-	interp->cookie_stdout = interp;
-	interp->cookie_stderr = interp;
-	interp->cb_fwrite = openocd_jim_fwrite;
-	interp->cb_fread = openocd_jim_fread ;
-	interp->cb_vfprintf = openocd_jim_vfprintf;
-	interp->cb_fflush = openocd_jim_fflush;
-	interp->cb_fgets = openocd_jim_fgets;
-
 	register_commands(context, NULL, command_builtin_handlers);
 
-#if !BUILD_ECOSBOARD
-	Jim_EventLoopOnLoad(interp);
-#endif
 	Jim_SetAssocData(interp, "context", NULL, context);
 	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1) == JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD)");
-		Jim_PrintErrorMessage(interp);
+		Jim_MakeErrorMessage(interp);
+		LOG_USER_N("%s", Jim_GetString(Jim_GetResult(interp), NULL));
 		exit(-1);
 	}
 	Jim_DeleteAssocData(interp, "context");

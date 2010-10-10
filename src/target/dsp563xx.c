@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include <helper/jim.h>
+#include <jim.h>
 
 #include "target.h"
 #include "target_type.h"

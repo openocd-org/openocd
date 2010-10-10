@@ -18,7 +18,7 @@ MAINFILE = main.c
 endif
 
 openocd_SOURCES = $(MAINFILE)
-openocd_LDADD = libopenocd.la
+openocd_LDADD = libopenocd.la -ljim
 
 libopenocd_la_SOURCES = \
 	hello.c \
