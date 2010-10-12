@@ -2643,9 +2643,6 @@ COMMAND_HANDLER(handle_dump_image_command)
 		address += this_run_size;
 	}
 
-	if ((retvaltemp = fileio_close(&fileio)) != ERROR_OK)
-		return retvaltemp;
-
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
 		int filesize;
@@ -2656,6 +2653,9 @@ COMMAND_HANDLER(handle_dump_image_command)
 				"dumped %ld bytes in %fs (%0.3f KiB/s)", (long)filesize,
 				duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
+
+	if ((retvaltemp = fileio_close(&fileio)) != ERROR_OK)
+		return retvaltemp;
 
 	return retval;
 }
