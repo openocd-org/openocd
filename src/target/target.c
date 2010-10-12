@@ -2596,33 +2596,25 @@ COMMAND_HANDLER(handle_load_image_command)
 COMMAND_HANDLER(handle_dump_image_command)
 {
 	struct fileio fileio;
-
 	uint8_t buffer[560];
-	int retvaltemp;
-
-
+	int retval, retvaltemp;
+	uint32_t address, size;
+	struct duration bench;
 	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC != 3)
-	{
-		command_print(CMD_CTX, "usage: dump_image <filename> <address> <size>");
-		return ERROR_OK;
-	}
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t address;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], address);
-	uint32_t size;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], size);
 
-	if (fileio_open(&fileio, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
+	retval = fileio_open(&fileio, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY);
+	if (retval != ERROR_OK)
+		return retval;
 
-	struct duration bench;
 	duration_start(&bench);
 
-	int retval = ERROR_OK;
+	retval = ERROR_OK;
 	while (size > 0)
 	{
 		size_t size_written;
