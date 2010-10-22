@@ -111,6 +111,7 @@ static void buspirate_jtag_get_adcs(int);
 static int buspirate_serial_setspeed(int fd, speed_t speed);
 static int buspirate_serial_write(int fd, char *buf, int size);
 static int buspirate_serial_read(int fd, char *buf, int size);
+static void buspirate_serial_close(int fd);
 static void buspirate_print_buffer(char *buf, int size);
 
 static int buspirate_speed(int speed)
@@ -247,6 +248,9 @@ static int buspirate_quit(void)
 
 	buspirate_jtag_set_speed(buspirate_fd, SERIAL_NORMAL);
 	buspirate_jtag_reset(buspirate_fd);
+
+	buspirate_serial_close(buspirate_fd);
+
 	if (buspirate_port) {
 		free(buspirate_port);
 		buspirate_port = NULL;
@@ -939,6 +943,11 @@ static int buspirate_serial_read(int fd, char *buf, int size)
 		LOG_ERROR("Error sending data");
 
 	return len;
+}
+
+static void buspirate_serial_close(int fd)
+{
+	close(fd);
 }
 
 #define LINE_SIZE      81
