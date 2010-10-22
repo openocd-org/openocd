@@ -108,7 +108,8 @@ static void buspirate_jtag_set_feature(int, char, char);
 static void buspirate_jtag_get_adcs(int);
 
 /* low level HW communication interface */
-static int buspirate_serial_setspeed(int fd, speed_t speed);
+static int buspirate_serial_open(char *port);
+static int buspirate_serial_setspeed(int fd, char speed);
 static int buspirate_serial_write(int fd, char *buf, int size);
 static int buspirate_serial_read(int fd, char *buf, int size);
 static void buspirate_serial_close(int fd);
@@ -215,13 +216,13 @@ static int buspirate_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	buspirate_fd = open(buspirate_port, O_RDWR | O_NOCTTY);
+	buspirate_fd = buspirate_serial_open(buspirate_port);
 	if (buspirate_fd == -1) {
 		LOG_ERROR("Could not open serial port.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	buspirate_serial_setspeed(buspirate_fd, B115200);
+	buspirate_serial_setspeed(buspirate_fd, SERIAL_NORMAL);
 
 	buspirate_jtag_enable(buspirate_fd);
 
@@ -770,7 +771,6 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 	int ret;
 	char tmp[2];
 	char ack[2];
-	speed_t baudrate = B115200;
 
 	ack[0] = 0xAA;
 	ack[1] = 0x55;
@@ -780,10 +780,7 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 	buspirate_jtag_command(fd, tmp, 2);
 
 	/* here the adapter changes speed, we need follow */
-	if (speed == SERIAL_FAST)
-		baudrate = B1000000;
-
-	buspirate_serial_setspeed(fd, baudrate);
+	buspirate_serial_setspeed(fd, speed);
 
 	buspirate_serial_write(fd, ack, 2);
 	ret = buspirate_serial_read(fd, tmp, 2);
@@ -873,15 +870,23 @@ static unsigned char buspirate_jtag_command(int fd,
 
 /* low level serial port */
 /* TODO add support for WIN32 and others ! */
-static int buspirate_serial_setspeed(int fd, speed_t speed)
+static int buspirate_serial_open(char *port)
+{
+	int fd;
+	fd = open(buspirate_port, O_RDWR | O_NOCTTY | O_NDELAY);
+	return fd;
+}
+
+static int buspirate_serial_setspeed(int fd, char speed)
 {
 	struct termios t_opt;
+	speed_t baud = (speed == SERIAL_FAST) ? B1000000 : B115200;
 
 	/* set the serial port parameters */
 	fcntl(fd, F_SETFL, 0);
 	tcgetattr(fd, &t_opt);
-	cfsetispeed(&t_opt, speed);
-	cfsetospeed(&t_opt, speed);
+	cfsetispeed(&t_opt, baud);
+	cfsetospeed(&t_opt, baud);
 	t_opt.c_cflag |= (CLOCAL | CREAD);
 	t_opt.c_cflag &= ~PARENB;
 	t_opt.c_cflag &= ~CSTOPB;
