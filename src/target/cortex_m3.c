@@ -2127,7 +2127,7 @@ COMMAND_HANDLER(handle_cortex_m3_reset_config_command)
 
 	if (CMD_ARGC > 0)
 	{
-		if (strcmp(*CMD_ARGV, "systesetreq") == 0)
+		if (strcmp(*CMD_ARGV, "sysresetreq") == 0)
 			cortex_m3->soft_reset_config = CORTEX_M3_RESET_SYSRESETREQ;
 		else if (strcmp(*CMD_ARGV, "vectreset") == 0)
 			cortex_m3->soft_reset_config = CORTEX_M3_RESET_VECTRESET;
