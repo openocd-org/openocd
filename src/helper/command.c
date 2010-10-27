@@ -956,9 +956,6 @@ static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 		bool show_help, const char *match)
 {
-	if (!command_can_run(CMD_CTX, c))
-		return ERROR_OK;
-
 	char *cmd_name = command_name(c, ' ');
 	if (NULL == cmd_name)
 		return -ENOMEM;
