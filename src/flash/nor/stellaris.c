@@ -773,6 +773,8 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	return ERROR_OK;
 }
 
+/* see contib/loaders/flash/stellaris.s for src */
+
 static const uint8_t stellaris_write_code[] =
 {
 /*

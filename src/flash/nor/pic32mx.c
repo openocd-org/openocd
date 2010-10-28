@@ -227,6 +227,8 @@ static int pic32mx_protect(struct flash_bank *bank, int set, int first, int last
 	return ERROR_OK;
 }
 
+/* see contib/loaders/flash/pic32mx.s for src */
+
 static const uint32_t pic32mx_flash_write_code[] = {
 					/* write: */
 	0x3C08AA99,		/* lui $t0, 0xaa99 */

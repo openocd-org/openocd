@@ -562,6 +562,8 @@ int armv7m_checksum_memory(struct target *target,
 	struct reg_param reg_params[2];
 	int retval;
 
+	/* see contib/loaders/checksum/armv7m_crc.s for src */
+
 	static const uint16_t cortex_m3_crc_code[] = {
 		0x4602,					/* mov	r2, r0 */
 		0xF04F, 0x30FF,			/* mov	r0, #0xffffffff */

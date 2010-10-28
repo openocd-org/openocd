@@ -446,6 +446,8 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
+	/* see contib/loaders/flash/stm32x.s for src */
+
 	static const uint8_t stm32x_flash_write_code[] = {
 									/* write: */
 		0xDF, 0xF8, 0x24, 0x40,		/* ldr	r4, STM32_FLASH_CR */
@@ -462,6 +464,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0x01, 0xD1,					/* bne	exit */
 		0x01, 0x3A,					/* subs	r2, r2, #1 */
 		0xED, 0xD1,					/* bne	write */
+									/* exit: */
 		0x00, 0xBE,     			/* bkpt #0 */
 		0x10, 0x20, 0x02, 0x40,		/* STM32_FLASH_CR:	.word 0x40022010 */
 		0x0C, 0x20, 0x02, 0x40		/* STM32_FLASH_SR:	.word 0x4002200C */

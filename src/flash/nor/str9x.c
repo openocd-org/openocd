@@ -364,6 +364,8 @@ static int str9x_write_block(struct flash_bank *bank,
 	struct arm_algorithm armv4_5_info;
 	int retval = ERROR_OK;
 
+	/* see contib/loaders/flash/str9x.s for src */
+
 	static const uint32_t str9x_flash_write_code[] = {
 					/* write:				*/
 		0xe3c14003,	/*	bic	r4, r1, #3		*/

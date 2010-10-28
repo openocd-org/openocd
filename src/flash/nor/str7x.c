@@ -406,6 +406,8 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct arm_algorithm armv4_5_info;
 	int retval = ERROR_OK;
 
+	/* see contib/loaders/flash/str7x.s for src */
+
 	static const uint32_t str7x_flash_write_code[] = {
 					/* write:				*/
 		0xe3a04201, /*	mov r4, #0x10000000	*/

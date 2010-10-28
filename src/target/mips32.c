@@ -613,6 +613,8 @@ int mips32_checksum_memory(struct target *target, uint32_t address,
 	int retval;
 	uint32_t i;
 
+	/* see contib/loaders/checksum/mips32.s for src */
+
 	static const uint32_t mips_crc_code[] =
 	{
 		0x248C0000,		/* addiu 	$t4, $a0, 0 */
