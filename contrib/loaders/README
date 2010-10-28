@@ -1,0 +1,33 @@
+Included in these directories are the src to the various ram loaders used
+within openocd.
+
+** target checksum loaders **
+
+checksum/armv4_5_crc.s :
+ - ARMv4 and ARMv5 checksum loader : see target/arm_crc_code.c:arm_crc_code
+
+checksum/armv7m_crc.s :
+ - ARMv7m checksum loader : see target/armv7m.c:cortex_m3_crc_code
+
+checksum/mips32.s :
+ - MIPS32 checksum loader : see target/mips32.c:mips_crc_code
+
+** target flash loaders **
+
+flash/pic32mx.s :
+ - Microchip PIC32 flash loader : see flash/nor/pic32mx.c:pic32mx_flash_write_code
+
+flash/stellaris.s :
+ - TI Stellaris flash loader : see flash/nor/stellaris.c:stellaris_write_code
+
+flash/stm32x.s :
+ - ST STM32 flash loader : see flash/nor/stm32x.c:stm32x_flash_write_code
+
+flash/str7x.s :
+ - ST STR7 flash loader : see flash/nor/str7x.c:str7x_flash_write_code
+
+flash/str9x.s :
+ - ST STR9 flash loader : see flash/nor/str9x.c:str9x_flash_write_code
+
+Spencer Oliver
+spen@spen-soft.co.uk
