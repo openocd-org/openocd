@@ -26,4 +26,16 @@ automake --gnu --add-missing --copy
 # AM_MAINTAINER_MODE requires --enable-maintainer-mode from everyone using
 # current source snapshots (working from GIT, or some source snapshot, etc)
 # otherwise the documentation will fail to build due to missing version.texi
-echo "Bootstrap complete; you can './configure --enable-maintainer-mode ....'"
+echo "Bootstrap complete. Quick start build instructions:"
+echo "" 
+echo "1. Build Jim Tcl"
+echo ""
+echo "git submodule init"
+echo "git submodule update"
+echo "cd jimtcl"
+echo "./configure --with-jim-ext=nvp"
+echo "make"
+echo "make install"
+echo ""
+echo "2. Configure"
+echo "./configure --enable-maintainer-mode ...."
