@@ -73,7 +73,6 @@ static int cortex_a8_get_ttb(struct target *target, uint32_t *result);
  */
 #define swjdp_memoryap 0
 #define swjdp_debugap 1
-#define OMAP3530_DEBUG_BASE 0x54011000
 
 /*
  * Cortex-A8 Basic debug access, very low level assumes state is saved
@@ -1714,17 +1713,23 @@ static int cortex_a8_examine_first(struct target *target)
 	int i;
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid;
-
-	/* stop assuming this is an OMAP! */
-	LOG_DEBUG("TODO - autoconfigure");
-
-	/* Here we shall insert a proper ROM Table scan */
-	armv7a->debug_base = OMAP3530_DEBUG_BASE;
+	uint32_t dbgbase, apid;
 
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
 	 */
 	retval = ahbap_debugport_init(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Get ROM Table base */
+	retval = dap_get_debugbase(swjdp, 1, &dbgbase, &apid);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Lookup 0x15 -- Processor DAP */
+	retval = dap_lookup_cs_component(swjdp, 1, dbgbase, 0x15,
+					&armv7a->debug_base);
 	if (retval != ERROR_OK)
 		return retval;
 
