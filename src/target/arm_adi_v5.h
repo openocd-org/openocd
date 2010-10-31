@@ -178,7 +178,6 @@ struct adiv5_dap
 	uint32_t	memaccess_tck;
 	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
 	uint32_t tar_autoincr_block;
-
 };
 
 /**
@@ -380,6 +379,9 @@ int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
 /* Initialisation of the debug system, power domains and registers */
 int ahbap_debugport_init(struct adiv5_dap *swjdp);
 
+/* Probe the AP for ROM Table location */
+int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
+			uint32_t *dbgbase, uint32_t *apid);
 
 struct target;
 

@@ -906,7 +906,7 @@ extern const struct dap_ops jtag_dp_ops;
  */
 int ahbap_debugport_init(struct adiv5_dap *dap)
 {
-	uint32_t idreg, romaddr, dummy;
+	uint32_t dummy;
 	uint32_t ctrlstat;
 	int cnt = 0;
 	int retval;
@@ -985,26 +985,6 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/*
-	 * REVISIT this isn't actually *initializing* anything in an AP,
-	 * and doesn't care if it's a MEM-AP at all (much less AHB-AP).
-	 * Should it?  If the ROM address is valid, is this the right
-	 * place to scan the table and do any topology detection?
-	 */
-	retval = dap_queue_ap_read(dap, AP_REG_IDR, &idreg);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = dap_queue_ap_read(dap, AP_REG_BASE, &romaddr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if ((retval = dap_run(dap)) != ERROR_OK)
-		return retval;
-
-	LOG_DEBUG("MEM-AP #%" PRId32 " ID Register 0x%" PRIx32
-		", Debug ROM Address 0x%" PRIx32,
-		dap->apsel, idreg, romaddr);
-
 	return ERROR_OK;
 }
 
@@ -1026,14 +1006,22 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-static int dap_info_command(struct command_context *cmd_ctx,
-		struct adiv5_dap *dap, int apsel)
+struct broken_cpu {
+	uint32_t	dbgbase;
+	uint32_t	apid;
+	uint32_t	correct_dbgbase;
+	char		*model;
+} broken_cpus[] = {
+	{ 0x80000000, 0x04770002, 0x60000000, "imx51" },
+};
+
+int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
+			uint32_t *out_dbgbase, uint32_t *out_apid)
 {
-	int retval;
-	uint32_t dbgbase, apid;
-	int romtable_present = 0;
-	uint8_t mem_ap;
 	uint32_t apselold;
+	int retval;
+	unsigned int i;
+	uint32_t dbgbase, apid;
 
 	/* AP address is in bits 31:24 of DP_SELECT */
 	if (apsel >= 256)
@@ -1041,6 +1029,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 
 	apselold = dap->apsel;
 	dap_ap_select(dap, apsel);
+
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, &dbgbase);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1050,6 +1039,44 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
+
+	/* Some CPUs are messed up, so fixup if needed. */
+	for (i = 0; i < sizeof(broken_cpus)/sizeof(struct broken_cpu); i++)
+		if (broken_cpus[i].dbgbase == dbgbase &&
+			broken_cpus[i].apid == apid) {
+			LOG_WARNING("Found broken CPU (%s), trying to fixup "
+				"ROM Table location from 0x%08x to 0x%08x",
+				broken_cpus[i].model, dbgbase,
+				broken_cpus[i].correct_dbgbase);
+			dbgbase = broken_cpus[i].correct_dbgbase;
+			break;
+		}
+
+	dap_ap_select(dap, apselold);
+
+	/* The asignment happens only here to prevent modification of these
+	 * values before they are certain. */
+	*out_dbgbase = dbgbase;
+	*out_apid = apid;
+
+	return ERROR_OK;
+}
+
+static int dap_info_command(struct command_context *cmd_ctx,
+		struct adiv5_dap *dap, int apsel)
+{
+	int retval;
+	uint32_t dbgbase, apid;
+	int romtable_present = 0;
+	uint8_t mem_ap;
+	uint32_t apselold;
+
+	retval = dap_get_debugbase(dap, apsel, &dbgbase, &apid);
+	if (retval != ERROR_OK)
+		return retval;
+
+	apselold = dap->apsel;
+	dap_ap_select(dap, apsel);
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
