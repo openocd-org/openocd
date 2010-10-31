@@ -383,6 +383,10 @@ int ahbap_debugport_init(struct adiv5_dap *swjdp);
 int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
 			uint32_t *dbgbase, uint32_t *apid);
 
+/* Lookup CoreSight component */
+int dap_lookup_cs_component(struct adiv5_dap *dap, int apsel,
+			uint32_t dbgbase, uint8_t type, uint32_t *addr);
+
 struct target;
 
 /* Put debug link into SWD mode */

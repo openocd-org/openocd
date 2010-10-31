@@ -1062,6 +1062,47 @@ int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
 	return ERROR_OK;
 }
 
+int dap_lookup_cs_component(struct adiv5_dap *dap, int apsel,
+			uint32_t dbgbase, uint8_t type, uint32_t *addr)
+{
+	uint32_t apselold;
+	uint32_t romentry, entry_offset = 0, component_base, devtype;
+	int retval = ERROR_FAIL;
+
+	if (apsel >= 256)
+		return ERROR_INVALID_ARGUMENTS;
+
+	apselold = dap->apsel;
+	dap_ap_select(dap, apsel);
+
+	do
+	{
+		retval = mem_ap_read_atomic_u32(dap, (dbgbase&0xFFFFF000) |
+						entry_offset, &romentry);
+		if (retval != ERROR_OK)
+			return retval;
+
+		component_base = (dbgbase & 0xFFFFF000)
+			+ (romentry & 0xFFFFF000);
+
+		if (romentry & 0x1) {
+			retval = mem_ap_read_atomic_u32(dap,
+					(component_base & 0xfffff000) | 0xfcc,
+					&devtype);
+			if ((devtype & 0xff) == type) {
+				*addr = component_base;
+				retval = ERROR_OK;
+				break;
+			}
+		}
+		entry_offset += 4;
+	} while (romentry > 0);
+
+	dap_ap_select(dap, apselold);
+
+	return retval;
+}
+
 static int dap_info_command(struct command_context *cmd_ctx,
 		struct adiv5_dap *dap, int apsel)
 {
