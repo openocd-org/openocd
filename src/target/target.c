@@ -58,6 +58,7 @@ extern struct target_type arm720t_target;
 extern struct target_type arm9tdmi_target;
 extern struct target_type arm920t_target;
 extern struct target_type arm966e_target;
+extern struct target_type arm946e_target;
 extern struct target_type arm926ejs_target;
 extern struct target_type fa526_target;
 extern struct target_type feroceon_target;
@@ -79,6 +80,7 @@ static struct target_type *target_types[] =
 	&arm920t_target,
 	&arm720t_target,
 	&arm966e_target,
+	&arm946e_target,
 	&arm926ejs_target,
 	&fa526_target,
 	&feroceon_target,

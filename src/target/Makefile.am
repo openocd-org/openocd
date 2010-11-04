@@ -60,6 +60,7 @@ ARM7_9_SRC = \
 	arm9tdmi.c \
 	arm920t.c \
 	arm966e.c \
+	arm946e.c \
 	arm926ejs.c \
 	feroceon.c
 
@@ -124,6 +125,7 @@ noinst_HEADERS = \
 	arm920t.h \
 	arm926ejs.h \
 	arm966e.h \
+	arm946e.h \
 	arm11.h \
 	arm11_dbgtap.h \
 	armv4_5.h \
