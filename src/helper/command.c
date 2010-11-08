@@ -779,9 +779,16 @@ static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 static int jim_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
+	const char *str;
+	str = Jim_GetString(argv[1], NULL);
+	if (argc == 3 && !strcmp(str, "-n"))
+	{
+		str = Jim_GetString(argv[2], NULL);
+		LOG_USER_N("%s", str);
+		return JIM_OK;
+	}
 	if (argc != 2)
 		return JIM_ERR;
-	const char *str = Jim_GetString(argv[1], NULL);
 	LOG_USER("%s", str);
 	return JIM_OK;
 }
