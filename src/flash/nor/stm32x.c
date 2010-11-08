@@ -54,33 +54,56 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	return ERROR_OK;
 }
 
-static uint32_t stm32x_get_flash_status(struct flash_bank *bank)
+static int stm32x_get_flash_status(struct flash_bank *bank, uint32_t *status)
 {
 	struct target *target = bank->target;
-	uint32_t status;
-
-	target_read_u32(target, STM32_FLASH_SR, &status);
-
-	return status;
+	return target_read_u32(target, STM32_FLASH_SR, status);
 }
 
-static uint32_t stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
+static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 {
 	struct target *target = bank->target;
 	uint32_t status;
+	int retval = ERROR_OK;
 
 	/* wait for busy to clear */
-	while (((status = stm32x_get_flash_status(bank)) & FLASH_BSY) && (timeout-- > 0))
+	for (;;)
 	{
+		retval = stm32x_get_flash_status(bank, &status);
+		if (retval != ERROR_OK)
+			return retval;
 		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		if ((status & FLASH_BSY) == 0)
+			break;
+		if (timeout-- <= 0)
+		{
+			LOG_ERROR("timed out waiting for flash");
+			return ERROR_FAIL;
+		}
 		alive_sleep(1);
 	}
+
+	if (status & FLASH_WRPRTERR)
+	{
+		LOG_ERROR("stm32x device protected");
+		retval = ERROR_FAIL;
+	}
+
+	if (status & FLASH_PGERR)
+	{
+		LOG_ERROR("stm32x device programming failed");
+		retval = ERROR_FAIL;
+	}
+
 	/* Clear but report errors */
 	if (status & (FLASH_WRPRTERR | FLASH_PGERR))
 	{
+		/* If this operation fails, we ignore it and report the original
+		 * retval
+		 */
 		target_write_u32(target, STM32_FLASH_SR, FLASH_WRPRTERR | FLASH_PGERR);
 	}
-	return status;
+	return retval;
 }
 
 static int stm32x_read_options(struct flash_bank *bank)
@@ -115,7 +138,6 @@ static int stm32x_erase_options(struct flash_bank *bank)
 {
 	struct stm32x_flash_bank *stm32x_info = NULL;
 	struct target *target = bank->target;
-	uint32_t status;
 
 	stm32x_info = bank->driver_priv;
 
@@ -134,12 +156,9 @@ static int stm32x_erase_options(struct flash_bank *bank)
 	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_OPTWRE);
 	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_STRT | FLASH_OPTWRE);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	int retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* clear readout protection and complementary option bytes
 	 * this will also force a device unlock if set */
@@ -152,7 +171,6 @@ static int stm32x_write_options(struct flash_bank *bank)
 {
 	struct stm32x_flash_bank *stm32x_info = NULL;
 	struct target *target = bank->target;
-	uint32_t status;
 
 	stm32x_info = bank->driver_priv;
 
@@ -170,62 +188,44 @@ static int stm32x_write_options(struct flash_bank *bank)
 	/* write user option byte */
 	target_write_u16(target, STM32_OB_USER, stm32x_info->option_bytes.user_options);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	int retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write protection byte 1 */
 	target_write_u16(target, STM32_OB_WRP0, stm32x_info->option_bytes.protection[0]);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write protection byte 2 */
 	target_write_u16(target, STM32_OB_WRP1, stm32x_info->option_bytes.protection[1]);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write protection byte 3 */
 	target_write_u16(target, STM32_OB_WRP2, stm32x_info->option_bytes.protection[2]);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write protection byte 4 */
 	target_write_u16(target, STM32_OB_WRP3, stm32x_info->option_bytes.protection[3]);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write readout protection bit */
 	target_write_u16(target, STM32_OB_RDP, stm32x_info->option_bytes.RDP);
 
-	status = stm32x_wait_status_busy(bank, 10);
-
-	if (status & FLASH_WRPRTERR)
-		return ERROR_FLASH_OPERATION_FAILED;
-	if (status & FLASH_PGERR)
-		return ERROR_FLASH_OPERATION_FAILED;
+	retval = stm32x_wait_status_busy(bank, 10);
+	if (retval != ERROR_OK)
+		return retval;
 
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
 
@@ -308,7 +308,6 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 {
 	struct target *target = bank->target;
 	int i;
-	uint32_t status;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -331,12 +330,10 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 		target_write_u32(target, STM32_FLASH_AR, bank->base + bank->sectors[i].offset);
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PER | FLASH_STRT);
 
-		status = stm32x_wait_status_busy(bank, 100);
+		int retval = stm32x_wait_status_busy(bank, 100);
+		if (retval != ERROR_OK)
+			return retval;
 
-		if (status & FLASH_WRPRTERR)
-			return ERROR_FLASH_OPERATION_FAILED;
-		if (status & FLASH_PGERR)
-			return ERROR_FLASH_OPERATION_FAILED;
 		bank->sectors[i].is_erased = 1;
 	}
 
@@ -526,7 +523,6 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 				10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stm32x flash write algorithm");
-			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 
@@ -535,7 +531,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			LOG_ERROR("flash memory not erased before writing");
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR, FLASH_PGERR);
-			retval = ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FAIL;
 			break;
 		}
 
@@ -544,7 +540,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			LOG_ERROR("flash memory write protected");
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR, FLASH_WRPRTERR);
-			retval = ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FAIL;
 			break;
 		}
 
@@ -572,7 +568,6 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t bytes_remaining = (count & 0x00000001);
 	uint32_t address = bank->base + offset;
 	uint32_t bytes_written = 0;
-	uint8_t status;
 	int retval;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -603,11 +598,6 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
-			else if (retval == ERROR_FLASH_OPERATION_FAILED)
-			{
-				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
-				return ERROR_FLASH_OPERATION_FAILED;
-			}
 		}
 		else
 		{
@@ -625,18 +615,9 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
 		target_write_u16(target, address, value);
 
-		status = stm32x_wait_status_busy(bank, 5);
-
-		if (status & FLASH_WRPRTERR)
-		{
-			LOG_ERROR("flash memory not erased before writing");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-		if (status & FLASH_PGERR)
-		{
-			LOG_ERROR("flash memory write protected");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
+		retval = stm32x_wait_status_busy(bank, 5);
+		if (retval != ERROR_OK)
+			return retval;
 
 		bytes_written += 2;
 		words_remaining--;
@@ -651,18 +632,9 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
 		target_write_u16(target, address, value);
 
-		status = stm32x_wait_status_busy(bank, 5);
-
-		if (status & FLASH_WRPRTERR)
-		{
-			LOG_ERROR("flash memory not erased before writing");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-		if (status & FLASH_PGERR)
-		{
-			LOG_ERROR("flash memory write protected");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
+		retval = stm32x_wait_status_busy(bank, 5);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
@@ -770,7 +742,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	else
 	{
 		LOG_WARNING("Cannot identify target as a STM32 family.");
-		return ERROR_FLASH_OPERATION_FAILED;
+		return ERROR_FAIL;
 	}
 
 	LOG_INFO("flash size = %dkbytes", num_pages);
@@ -938,7 +910,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	else
 	{
 		snprintf(buf, buf_size, "Cannot identify target as a stm32x\n");
-		return ERROR_FLASH_OPERATION_FAILED;
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
@@ -1176,7 +1148,6 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 static int stm32x_mass_erase(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	uint32_t status;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1192,21 +1163,11 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 	target_write_u32(target, STM32_FLASH_CR, FLASH_MER);
 	target_write_u32(target, STM32_FLASH_CR, FLASH_MER | FLASH_STRT);
 
-	status = stm32x_wait_status_busy(bank, 100);
+	int retval = stm32x_wait_status_busy(bank, 100);
+	if (retval != ERROR_OK)
+		return retval;
 
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
-
-	if (status & FLASH_WRPRTERR)
-	{
-		LOG_ERROR("stm32x device protected");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	if (status & FLASH_PGERR)
-	{
-		LOG_ERROR("stm32x device programming failed");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	return ERROR_OK;
 }
