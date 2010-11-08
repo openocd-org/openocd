@@ -777,19 +777,16 @@ static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-static int jim_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(jim_echo)
 {
-	const char *str;
-	str = Jim_GetString(argv[1], NULL);
-	if (argc == 3 && !strcmp(str, "-n"))
+	if (CMD_ARGC == 2 && !strcmp(CMD_ARGV[0], "-n"))
 	{
-		str = Jim_GetString(argv[2], NULL);
-		LOG_USER_N("%s", str);
+		LOG_USER_N("%s", CMD_ARGV[1]);
 		return JIM_OK;
 	}
-	if (argc != 2)
+	if (CMD_ARGC != 1)
 		return JIM_ERR;
-	LOG_USER("%s", str);
+	LOG_USER("%s", CMD_ARGV[0]);
 	return JIM_OK;
 }
 
@@ -1262,6 +1259,15 @@ static const struct command_registration command_subcommand_handlers[] = {
 
 static const struct command_registration command_builtin_handlers[] = {
 	{
+		.name = "echo",
+		.handler = jim_echo,
+		.mode = COMMAND_ANY,
+		.help = "Logs a message at \"user\" priority. "
+			"Output message to stdout. "
+			"Option \"-n\" suppresses trailing newline",
+		.usage = "[-n] string",
+	},
+	{
 		.name = "add_help_text",
 		.handler = handle_help_add_command,
 		.mode = COMMAND_ANY,
@@ -1364,7 +1370,6 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 			Jim_NewStringObj(interp, HostOs , strlen(HostOs)));
 
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
-	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
 	Jim_CreateCommand(interp, "capture", jim_capture, NULL, NULL);
 
 	register_commands(context, NULL, command_builtin_handlers);

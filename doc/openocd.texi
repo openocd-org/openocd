@@ -5446,9 +5446,10 @@ file (which is normally the server's standard output).
 @xref{Running}.
 @end deffn
 
-@deffn Command echo message
+@deffn Command echo [-n] message
 Logs a message at "user" priority.
 Output @var{message} to stdout.
+Option "-n" suppresses trailing newline.
 @example
 echo "Downloading kernel -- please wait"
 @end example
