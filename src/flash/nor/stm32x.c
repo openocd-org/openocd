@@ -668,6 +668,9 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		}
 	}
 
+	if ((retval != ERROR_OK) && (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE))
+		return retval;
+
 	while (words_remaining > 0)
 	{
 		uint16_t value;
