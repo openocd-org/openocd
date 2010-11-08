@@ -115,7 +115,9 @@ static int stm32x_read_options(struct flash_bank *bank)
 	stm32x_info = bank->driver_priv;
 
 	/* read current option bytes */
-	target_read_u32(target, STM32_FLASH_OBR, &optiondata);
+	int retval = target_read_u32(target, STM32_FLASH_OBR, &optiondata);
+	if (retval != ERROR_OK)
+		return retval;
 
 	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF8 | ((optiondata >> 2) & 0x07);
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
@@ -124,7 +126,9 @@ static int stm32x_read_options(struct flash_bank *bank)
 		LOG_INFO("Device Security Bit Set");
 
 	/* each bit refers to a 4bank protection */
-	target_read_u32(target, STM32_FLASH_WRPR, &optiondata);
+	retval = target_read_u32(target, STM32_FLASH_WRPR, &optiondata);
+	if (retval != ERROR_OK)
+		return retval;
 
 	stm32x_info->option_bytes.protection[0] = (uint16_t)optiondata;
 	stm32x_info->option_bytes.protection[1] = (uint16_t)(optiondata >> 8);
@@ -287,7 +291,9 @@ static int stm32x_protect_check(struct flash_bank *bank)
 
 	/* medium density - each bit refers to a 4bank protection
 	 * high density - each bit refers to a 2bank protection */
-	target_read_u32(target, STM32_FLASH_WRPR, &protection);
+	int retval = target_read_u32(target, STM32_FLASH_WRPR, &protection);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* medium density - each protection bit is for 4 * 1K pages
 	 * high density - each protection bit is for 2 * 2K pages */
@@ -418,7 +424,9 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 
 	/* medium density - each bit refers to a 4bank protection
 	 * high density - each bit refers to a 2bank protection */
-	target_read_u32(target, STM32_FLASH_WRPR, &protection);
+	int retval = target_read_u32(target, STM32_FLASH_WRPR, &protection);
+	if (retval != ERROR_OK)
+		return retval;
 
 	prot_reg[0] = (uint16_t)protection;
 	prot_reg[1] = (uint16_t)(protection >> 8);
@@ -713,12 +721,16 @@ static int stm32x_probe(struct flash_bank *bank)
 	stm32x_info->probed = 0;
 
 	/* read stm32 device id register */
-	target_read_u32(target, 0xE0042000, &device_id);
+	int retval = target_read_u32(target, 0xE0042000, &device_id);
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
-	/* get flash size from target */
-	if (target_read_u16(target, 0x1FFFF7E0, &num_pages) != ERROR_OK)
+	/* get flash size from target. */
+	retval = target_read_u16(target, 0x1FFFF7E0, &num_pages);
+	if (retval != ERROR_OK)
 	{
+		LOG_WARNING("failed reading flash size, default to max target family");
 		/* failed reading flash size, default to max target family */
 		num_pages = 0xffff;
 	}
@@ -855,7 +867,9 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	int printed;
 
 	/* read stm32 device id register */
-	target_read_u32(target, 0xE0042000, &device_id);
+	int retval = target_read_u32(target, 0xE0042000, &device_id);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if ((device_id & 0x7ff) == 0x410)
 	{
@@ -1093,7 +1107,9 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	target_read_u32(target, STM32_FLASH_OBR, &optionbyte);
+	retval = target_read_u32(target, STM32_FLASH_OBR, &optionbyte);
+	if (retval != ERROR_OK)
+		return retval;
 	command_print(CMD_CTX, "Option Byte: 0x%" PRIx32 "", optionbyte);
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_ERROR, 1))
