@@ -145,18 +145,31 @@ static int stm32x_erase_options(struct flash_bank *bank)
 	stm32x_read_options(bank);
 
 	/* unlock flash registers */
-	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	int retval = target_write_u32(target, STM32_FLASH_KEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* unlock option flash registers */
-	target_write_u32(target, STM32_FLASH_OPTKEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_OPTKEYR, KEY2);
+	retval = target_write_u32(target, STM32_FLASH_OPTKEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_OPTKEYR, KEY2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* erase option bytes */
-	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_OPTWRE);
-	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_STRT | FLASH_OPTWRE);
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_OPTWRE);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_STRT | FLASH_OPTWRE);
+	if (retval != ERROR_OK)
+		return retval;
 
-	int retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -175,59 +188,83 @@ static int stm32x_write_options(struct flash_bank *bank)
 	stm32x_info = bank->driver_priv;
 
 	/* unlock flash registers */
-	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	int retval = target_write_u32(target, STM32_FLASH_KEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* unlock option flash registers */
-	target_write_u32(target, STM32_FLASH_OPTKEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_OPTKEYR, KEY2);
+	retval = target_write_u32(target, STM32_FLASH_OPTKEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_OPTKEYR, KEY2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* program option bytes */
-	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTPG | FLASH_OPTWRE);
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_OPTPG | FLASH_OPTWRE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* write user option byte */
-	target_write_u16(target, STM32_OB_USER, stm32x_info->option_bytes.user_options);
+	retval = target_write_u16(target, STM32_OB_USER, stm32x_info->option_bytes.user_options);
+	if (retval != ERROR_OK)
+		return retval;
 
-	int retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write protection byte 1 */
-	target_write_u16(target, STM32_OB_WRP0, stm32x_info->option_bytes.protection[0]);
+	retval = target_write_u16(target, STM32_OB_WRP0, stm32x_info->option_bytes.protection[0]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write protection byte 2 */
-	target_write_u16(target, STM32_OB_WRP1, stm32x_info->option_bytes.protection[1]);
+	retval = target_write_u16(target, STM32_OB_WRP1, stm32x_info->option_bytes.protection[1]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write protection byte 3 */
-	target_write_u16(target, STM32_OB_WRP2, stm32x_info->option_bytes.protection[2]);
+	retval = target_write_u16(target, STM32_OB_WRP2, stm32x_info->option_bytes.protection[2]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write protection byte 4 */
-	target_write_u16(target, STM32_OB_WRP3, stm32x_info->option_bytes.protection[3]);
+	retval = target_write_u16(target, STM32_OB_WRP3, stm32x_info->option_bytes.protection[3]);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write readout protection bit */
-	target_write_u16(target, STM32_OB_RDP, stm32x_info->option_bytes.RDP);
+	retval = target_write_u16(target, STM32_OB_RDP, stm32x_info->option_bytes.RDP);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = stm32x_wait_status_busy(bank, 10);
 	if (retval != ERROR_OK)
 		return retval;
 
-	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -321,23 +358,35 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	}
 
 	/* unlock flash registers */
-	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	int retval = target_write_u32(target, STM32_FLASH_KEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	for (i = first; i <= last; i++)
 	{
-		target_write_u32(target, STM32_FLASH_CR, FLASH_PER);
-		target_write_u32(target, STM32_FLASH_AR, bank->base + bank->sectors[i].offset);
-		target_write_u32(target, STM32_FLASH_CR, FLASH_PER | FLASH_STRT);
+		retval = target_write_u32(target, STM32_FLASH_CR, FLASH_PER);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u32(target, STM32_FLASH_AR, bank->base + bank->sectors[i].offset);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u32(target, STM32_FLASH_CR, FLASH_PER | FLASH_STRT);
+		if (retval != ERROR_OK)
+			return retval;
 
-		int retval = stm32x_wait_status_busy(bank, 100);
+		retval = stm32x_wait_status_busy(bank, 100);
 		if (retval != ERROR_OK)
 			return retval;
 
 		bank->sectors[i].is_erased = 1;
 	}
 
-	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -583,8 +632,12 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	/* unlock flash registers */
-	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* multiple half words (2-byte) to be programmed? */
 	if (words_remaining > 0)
@@ -612,8 +665,12 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		uint16_t value;
 		memcpy(&value, buffer + bytes_written, sizeof(uint16_t));
 
-		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
-		target_write_u16(target, address, value);
+		retval = target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u16(target, address, value);
+		if (retval != ERROR_OK)
+			return retval;
 
 		retval = stm32x_wait_status_busy(bank, 5);
 		if (retval != ERROR_OK)
@@ -629,17 +686,19 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		uint16_t value = 0xffff;
 		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
-		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
-		target_write_u16(target, address, value);
+		retval = target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u16(target, address, value);
+		if (retval != ERROR_OK)
+			return retval;
 
 		retval = stm32x_wait_status_busy(bank, 5);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
-
-	return ERROR_OK;
+	return target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
 }
 
 static int stm32x_probe(struct flash_bank *bank)
@@ -1156,18 +1215,28 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 	}
 
 	/* unlock option flash registers */
-	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
-	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
-
-	/* mass erase flash memory */
-	target_write_u32(target, STM32_FLASH_CR, FLASH_MER);
-	target_write_u32(target, STM32_FLASH_CR, FLASH_MER | FLASH_STRT);
-
-	int retval = stm32x_wait_status_busy(bank, 100);
+	int retval = target_write_u32(target, STM32_FLASH_KEYR, KEY1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY2);
 	if (retval != ERROR_OK)
 		return retval;
 
-	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
+	/* mass erase flash memory */
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_MER);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_MER | FLASH_STRT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32x_wait_status_busy(bank, 100);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
