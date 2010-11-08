@@ -13,7 +13,7 @@ proc show_mmr32_reg { NAME } {
     set a [set [set NAME]]
 
     if ![catch { set v [memread32 $a] } msg ] {
-	puts [format "%15s: (0x%08x): 0x%08x" $NAME $a $v]
+	echo [format "%15s: (0x%08x): 0x%08x" $NAME $a $v]
 
 	# Was a helper defined?
 	set fn show_${NAME}_helper
@@ -43,18 +43,18 @@ proc show_mmr32_bits { NAMES VAL } {
     }
 
     for { set x 24 } { $x >= 0 } { incr x -8 } {
-	puts -nonewline "  "
+	echo -n "  "
 	for { set y 7 } { $y >= 0 } { incr y -1 } {
 	    set s $MYNAMES([expr $x + $y])
-	    puts -nonewline [format "%2d: %-*s | " [expr $x + $y] $w $s ]
+	    echo -n [format "%2d: %-*s | " [expr $x + $y] $w $s ]
 	}
-	puts ""
+	echo ""
 
-	puts -nonewline "  "
+	echo -n "  "
 	for { set y 7 } { $y >= 0 } { incr y -1 } {
-	    puts -nonewline [format "    %d%*s | " [expr !!($VAL & (1 << ($x + $y)))] [expr $w -1] ""]
+	    echo -n [format "    %d%*s | " [expr !!($VAL & (1 << ($x + $y)))] [expr $w -1] ""]
 	}
-	puts ""
+	echo ""
     }
 }
 
@@ -68,5 +68,5 @@ proc show_mmr_bitfield { MSB LSB VAL FIELDNAME FIELDVALUES } {
     } else {
 	set sval ""
     }
-    puts [format "%-15s: %d (0x%0*x) %s" $FIELDNAME $nval $width $nval $sval ]
+    echo [format "%-15s: %d (0x%0*x) %s" $FIELDNAME $nval $width $nval $sval ]
 }

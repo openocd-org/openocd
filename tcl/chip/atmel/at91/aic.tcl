@@ -57,33 +57,33 @@ proc show_AIC { } {
     if [catch { mem2array aaa 32 $AIC_SMR [expr 32 * 4] } msg ] {
 	error [format "%s (%s)" $msg AIC_SMR]
     }
-    puts "AIC_SMR: Mode & Type"
+    echo "AIC_SMR: Mode & Type"
     global AT91C_ID
     for { set x 0 } { $x < 32 } {  } {
-	puts -nonewline "   "
-	puts -nonewline [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n "   "
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
 	incr x
-	puts -nonewline [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
 	incr x
-	puts -nonewline [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
 	incr x
-	puts  [format "%2d: %5s 0x%08x"  $x $AT91C_ID($x) $aaa($x)]
+	echo  [format "%2d: %5s 0x%08x"  $x $AT91C_ID($x) $aaa($x)]
 	incr x
     }
     global AIC_SVR
     if [catch { mem2array aaa 32 $AIC_SVR [expr 32 * 4] } msg ] {
 	error [format "%s (%s)" $msg AIC_SVR]
     }
-    puts "AIC_SVR: Vectors"
+    echo "AIC_SVR: Vectors"
     for { set x 0 } { $x < 32 } {  } {
-	puts -nonewline "   "
-	puts -nonewline [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n "   "
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
 	incr x
-	puts -nonewline [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
 	incr x
-	puts -nonewline [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
 	incr x
-	puts [format "%2d: %5s 0x%08x" $x $AT91C_ID($x) $aaa($x)]
+	echo [format "%2d: %5s 0x%08x" $x $AT91C_ID($x) $aaa($x)]
 	incr x
     }
 

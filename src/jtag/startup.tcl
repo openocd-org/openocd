@@ -30,7 +30,7 @@ proc init_reset { mode } {
 # documented nor supported except on ZY1000.
 
 proc power_restore {} {
-	puts "Sensed power restore, running reset init and halting GDB."
+	echo "Sensed power restore, running reset init and halting GDB."
 	reset init
 	
 	# Halt GDB so user can deal with a detected power restore.
@@ -47,7 +47,7 @@ proc power_restore {} {
 add_help_text power_restore "Overridable procedure run when power restore is detected. Runs 'reset init' by default."
 
 proc power_dropout {} {
-	puts "Sensed power dropout."
+	echo "Sensed power dropout."
 }
 
 #########
@@ -56,7 +56,7 @@ proc power_dropout {} {
 # documented nor supported except on ZY1000.
 
 proc srst_deasserted {} {
-	puts "Sensed nSRST deasserted, running reset init and halting GDB."
+	echo "Sensed nSRST deasserted, running reset init and halting GDB."
 	reset init
 
 	# Halt GDB so user can deal with a detected reset.
@@ -73,7 +73,7 @@ proc srst_deasserted {} {
 add_help_text srst_deasserted "Overridable procedure run when srst deassert is detected. Runs 'reset init' by default."
 
 proc srst_asserted {} {
-	puts "Sensed nSRST asserted."
+	echo "Sensed nSRST asserted."
 }
 
 # measure actual JTAG clock

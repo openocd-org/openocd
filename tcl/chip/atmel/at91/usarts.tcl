@@ -41,9 +41,9 @@ proc show_mmr_USx_MR_helper { NAME ADDR VAL } {
 
     set x [show_normalize_bitfield $VAL 3 0]
     if { $x == 0 } {
-	puts "\tNormal operation"
+	echo "\tNormal operation"
     } else {
-	puts [format "\tNon Normal operation mode: 0x%02x" $x]
+	echo [format "\tNon Normal operation mode: 0x%02x" $x]
     }
 
     set x [show_normalize_bitfield $VAL 11 9]
@@ -61,17 +61,17 @@ proc show_mmr_USx_MR_helper { NAME ADDR VAL } {
 	    }
 	}
     }
-    puts [format "\tParity: %s " $s]
+    echo [format "\tParity: %s " $s]
 
     set x [expr 5 + [show_normalize_bitfield $VAL 7 6]]
-    puts [format "\tDatabits: %d" $x]
+    echo [format "\tDatabits: %d" $x]
 
     set x [show_normalize_bitfield $VAL 13 12]
     switch -exact $x {
-	0 { puts "\tStop bits: 1" }
-	1 { puts "\tStop bits: 1.5" }
-	2 { puts "\tStop bits: 2" }
-	3 { puts "\tStop bits: Illegal/Reserved" }
+	0 { echo "\tStop bits: 1" }
+	1 { echo "\tStop bits: 1.5" }
+	2 { echo "\tStop bits: 2" }
+	3 { echo "\tStop bits: Illegal/Reserved" }
     }
 }
 

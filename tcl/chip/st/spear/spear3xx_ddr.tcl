@@ -23,11 +23,11 @@ proc sp3xx_ddr_init {ddr_type} {
 	mww $ddr_size 0x87654321
 	mww 0x00000000 0x12345678
 	if {[expr [mrw 0x00000000] == 0x12345678 && [mrw $ddr_size] == 0x87654321]} {
-		puts [format \
+		echo [format \
 			"Double chip DDR memory. Total memory size 0x%08x byte" \
 			[expr 2 * $ddr_size]]
 	} else {
-		puts [format \
+		echo [format \
 			"Single chip DDR memory. Memory size 0x%08x byte" \
 			$ddr_size]
 	}

@@ -18,16 +18,16 @@ proc show_RTTC_RTMR_helper { NAME ADDR VAL } {
     # Nasty hack, make this a float by tacking a .0 on the end
     # otherwise, jim makes the value an integer
     set f [expr $AT91C_SLOWOSC_FREQ.0 / $rtpres.0]
-    puts [format "\tPrescale value: 0x%04x (%5d) => %f Hz" $rtpres $rtpres $f]
+    echo [format "\tPrescale value: 0x%04x (%5d) => %f Hz" $rtpres $rtpres $f]
     if { $VAL & $BIT16 } {
-	puts "\tBit16 -> Alarm IRQ Enabled"
+	echo "\tBit16 -> Alarm IRQ Enabled"
     } else {
-	puts "\tBit16 -> Alarm IRQ Disabled"
+	echo "\tBit16 -> Alarm IRQ Disabled"
     }
     if { $VAL & $BIT17 } {
-	puts "\tBit17 -> RTC Inc IRQ Enabled"
+	echo "\tBit17 -> RTC Inc IRQ Enabled"
     } else {
-	puts "\tBit17 -> RTC Inc IRQ Disabled"
+	echo "\tBit17 -> RTC Inc IRQ Disabled"
     }
     # Bit 18 is write only.
 }
@@ -35,14 +35,14 @@ proc show_RTTC_RTMR_helper { NAME ADDR VAL } {
 proc show_RTTC_RTSR_helper { NAME ADDR VAL } {
     global BIT0 BIT1
     if { $VAL & $BIT0 } {
-	puts "\tBit0 -> ALARM PENDING"
+	echo "\tBit0 -> ALARM PENDING"
     } else {
-	puts "\tBit0 -> alarm not pending"
+	echo "\tBit0 -> alarm not pending"
     }
     if { $VAL & $BIT1 } {
-	puts "\tBit0 -> RTINC PENDING"
+	echo "\tBit0 -> RTINC PENDING"
     } else {
-	puts "\tBit0 -> rtinc not pending"
+	echo "\tBit0 -> rtinc not pending"
     }
 }
 

@@ -37,9 +37,9 @@ proc sp_reset_deassert_post {} {
 	set bar(3) \\
 
 	poll on
-	puts "====> Press reset button on the board <===="
+	echo "====> Press reset button on the board <===="
 	for {set i 0} { [sp_is_halted] == 0 } { set i [expr $i + 1]} {
-		puts -nonewline "$bar([expr $i & 3])\r"
+		echo -n "$bar([expr $i & 3])\r"
 		sleep 200
 	}
 

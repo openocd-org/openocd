@@ -1,28 +1,28 @@
 
 proc helpC100 {} {
-    puts "List of useful functions for C100 processor:"
-    puts "1)  reset init:        will set up your Telo board"
-    puts "2)  setupNOR:          will setup NOR access"
-    puts "3)  showNOR:           will show current NOR config registers for 16-bit, 16MB NOR"
-    puts "4)  setupGPIO:         will setup GPIOs for Telo board"
-    puts "5)  showGPIO:          will show current GPIO config registers"
-    puts "6)  highGPIO5:         will set GPIO5=NOR_addr22=1 to access upper 8MB"
-    puts "7)  lowGPIO5:          will set GPIO5=NOR_addr22=0 to access lower 8MB"
-    puts "8)  showAmbaClk:       will show current config registers for Amba Bus Clock"
-    puts "9)  setupAmbaClk:      will setup Amba Bus Clock=165MHz"
-    puts "10) showArmClk:        will show current config registers for Arm Bus Clock"
-    puts "11) setupArmClk:       will setup Amba Bus Clock=450MHz"
-    puts "12) ooma_board_detect: will show which version of Telo you have"
-    puts "13) setupDDR2:         will configure DDR2 controller, you must have PLLs configureg"
-    puts "14) showDDR2:          will show DDR2 config registers"
-    puts "15) showWatchdog:      will show current regster config for watchdog"
-    puts "16) reboot:            will trigger watchdog and reboot Telo (hw reset)"
-    puts "17) bootNOR:           will boot Telo from NOR"
-    puts "18) setupUART0:        will configure UART0 for 115200 8N1, PLLs have to be confiured"
-    puts "19) putcUART0:         will print a character on UART0"
-    puts "20) putsUART0:         will print a string on UART0"
-    puts "21) trainDDR2:          will run DDR2 training program"
-    puts "22) flashUBOOT:        will prgram NOR sectors 0-3 with u-boot.bin"
+    echo "List of useful functions for C100 processor:"
+    echo "1)  reset init:        will set up your Telo board"
+    echo "2)  setupNOR:          will setup NOR access"
+    echo "3)  showNOR:           will show current NOR config registers for 16-bit, 16MB NOR"
+    echo "4)  setupGPIO:         will setup GPIOs for Telo board"
+    echo "5)  showGPIO:          will show current GPIO config registers"
+    echo "6)  highGPIO5:         will set GPIO5=NOR_addr22=1 to access upper 8MB"
+    echo "7)  lowGPIO5:          will set GPIO5=NOR_addr22=0 to access lower 8MB"
+    echo "8)  showAmbaClk:       will show current config registers for Amba Bus Clock"
+    echo "9)  setupAmbaClk:      will setup Amba Bus Clock=165MHz"
+    echo "10) showArmClk:        will show current config registers for Arm Bus Clock"
+    echo "11) setupArmClk:       will setup Amba Bus Clock=450MHz"
+    echo "12) ooma_board_detect: will show which version of Telo you have"
+    echo "13) setupDDR2:         will configure DDR2 controller, you must have PLLs configureg"
+    echo "14) showDDR2:          will show DDR2 config registers"
+    echo "15) showWatchdog:      will show current regster config for watchdog"
+    echo "16) reboot:            will trigger watchdog and reboot Telo (hw reset)"
+    echo "17) bootNOR:           will boot Telo from NOR"
+    echo "18) setupUART0:        will configure UART0 for 115200 8N1, PLLs have to be confiured"
+    echo "19) putcUART0:         will print a character on UART0"
+    echo "20) putsUART0:         will print a string on UART0"
+    echo "21) trainDDR2:          will run DDR2 training program"
+    echo "22) flashUBOOT:        will prgram NOR sectors 0-3 with u-boot.bin"
 }
 
 source [find mem_helper.tcl]
@@ -39,14 +39,14 @@ proc mr64bit {reg} {
 proc mw64bit {reg value} {
     set high [expr $value >> 32]
     set low  [expr $value & 0xffffffff]
-    #puts [format "mw64bit(0x%x): 0x%08x%08x" $reg $high $low]
+    #echo [format "mw64bit(0x%x): 0x%08x%08x" $reg $high $low]
     mww $reg $low
     mww [expr $reg+4] $high
 }
 
 
 proc showNOR {} {
-    puts "This is the current NOR setup"
+    echo "This is the current NOR setup"
     set EX_CSEN_REG	    [regs EX_CSEN_REG ]
     set EX_CS0_SEG_REG	    [regs EX_CS0_SEG_REG ]
     set EX_CS0_CFG_REG	    [regs EX_CS0_CFG_REG ]
@@ -59,23 +59,23 @@ proc showNOR {} {
     set EX_WRFSM_REG	    [regs EX_WRFSM_REG ]
     set EX_RDFSM_REG	    [regs EX_RDFSM_REG ]
 
-    puts [format "EX_CSEN_REG      (0x%x): 0x%x" $EX_CSEN_REG [mrw $EX_CSEN_REG]]
-    puts [format "EX_CS0_SEG_REG   (0x%x): 0x%x" $EX_CS0_SEG_REG [mrw $EX_CS0_SEG_REG]]
-    puts [format "EX_CS0_CFG_REG   (0x%x): 0x%x" $EX_CS0_CFG_REG [mrw $EX_CS0_CFG_REG]]
-    puts [format "EX_CS0_TMG1_REG  (0x%x): 0x%x" $EX_CS0_TMG1_REG [mrw $EX_CS0_TMG1_REG]]
-    puts [format "EX_CS0_TMG2_REG  (0x%x): 0x%x" $EX_CS0_TMG2_REG [mrw $EX_CS0_TMG2_REG]]
-    puts [format "EX_CS0_TMG3_REG  (0x%x): 0x%x" $EX_CS0_TMG3_REG [mrw $EX_CS0_TMG3_REG]]
-    puts [format "EX_CLOCK_DIV_REG (0x%x): 0x%x" $EX_CLOCK_DIV_REG [mrw $EX_CLOCK_DIV_REG]]
-    puts [format "EX_MFSM_REG      (0x%x): 0x%x" $EX_MFSM_REG [mrw $EX_MFSM_REG]]
-    puts [format "EX_CSFSM_REG     (0x%x): 0x%x" $EX_CSFSM_REG [mrw $EX_CSFSM_REG]]
-    puts [format "EX_WRFSM_REG     (0x%x): 0x%x" $EX_WRFSM_REG [mrw $EX_WRFSM_REG]]
-    puts [format "EX_RDFSM_REG     (0x%x): 0x%x" $EX_RDFSM_REG [mrw $EX_RDFSM_REG]]
+    echo [format "EX_CSEN_REG      (0x%x): 0x%x" $EX_CSEN_REG [mrw $EX_CSEN_REG]]
+    echo [format "EX_CS0_SEG_REG   (0x%x): 0x%x" $EX_CS0_SEG_REG [mrw $EX_CS0_SEG_REG]]
+    echo [format "EX_CS0_CFG_REG   (0x%x): 0x%x" $EX_CS0_CFG_REG [mrw $EX_CS0_CFG_REG]]
+    echo [format "EX_CS0_TMG1_REG  (0x%x): 0x%x" $EX_CS0_TMG1_REG [mrw $EX_CS0_TMG1_REG]]
+    echo [format "EX_CS0_TMG2_REG  (0x%x): 0x%x" $EX_CS0_TMG2_REG [mrw $EX_CS0_TMG2_REG]]
+    echo [format "EX_CS0_TMG3_REG  (0x%x): 0x%x" $EX_CS0_TMG3_REG [mrw $EX_CS0_TMG3_REG]]
+    echo [format "EX_CLOCK_DIV_REG (0x%x): 0x%x" $EX_CLOCK_DIV_REG [mrw $EX_CLOCK_DIV_REG]]
+    echo [format "EX_MFSM_REG      (0x%x): 0x%x" $EX_MFSM_REG [mrw $EX_MFSM_REG]]
+    echo [format "EX_CSFSM_REG     (0x%x): 0x%x" $EX_CSFSM_REG [mrw $EX_CSFSM_REG]]
+    echo [format "EX_WRFSM_REG     (0x%x): 0x%x" $EX_WRFSM_REG [mrw $EX_WRFSM_REG]]
+    echo [format "EX_RDFSM_REG     (0x%x): 0x%x" $EX_RDFSM_REG [mrw $EX_RDFSM_REG]]
 }
 
 
 
 proc showGPIO {} {
-    puts "This is the current GPIO register setup"
+    echo "This is the current GPIO register setup"
     # GPIO outputs register
     set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # GPIO Output Enable register
@@ -93,19 +93,19 @@ proc showGPIO {} {
     set GPIO_IOCTRL_REG		    [regs GPIO_IOCTRL_REG]
     set GPIO_DEVID_REG		    [regs GPIO_DEVID_REG]
 
-    puts [format "GPIO_OUTPUT_REG       (0x%x): 0x%x" $GPIO_OUTPUT_REG [mrw $GPIO_OUTPUT_REG]]
-    puts [format "GPIO_OE_REG           (0x%x): 0x%x" $GPIO_OE_REG [mrw $GPIO_OE_REG]]
-    puts [format "GPIO_HI_INT_ENABLE_REG(0x%x): 0x%x" $GPIO_HI_INT_ENABLE_REG [mrw $GPIO_HI_INT_ENABLE_REG]]
-    puts [format "GPIO_LO_INT_ENABLE_REG(0x%x): 0x%x" $GPIO_LO_INT_ENABLE_REG [mrw $GPIO_LO_INT_ENABLE_REG]]
-    puts [format "GPIO_INPUT_REG        (0x%x): 0x%x" $GPIO_INPUT_REG [mrw $GPIO_INPUT_REG]]
-    puts [format "APB_ACCESS_WS_REG     (0x%x): 0x%x" $APB_ACCESS_WS_REG [mrw $APB_ACCESS_WS_REG]]
-    puts [format "MUX_CONF_REG          (0x%x): 0x%x" $MUX_CONF_REG [mrw $MUX_CONF_REG]]
-    puts [format "SYSCONF_REG           (0x%x): 0x%x" $SYSCONF_REG [mrw $SYSCONF_REG]]
-    puts [format "GPIO_ARM_ID_REG       (0x%x): 0x%x" $GPIO_ARM_ID_REG [mrw $GPIO_ARM_ID_REG]]
-    puts [format "GPIO_BOOTSTRAP_REG    (0x%x): 0x%x" $GPIO_BOOTSTRAP_REG [mrw $GPIO_BOOTSTRAP_REG]]
-    puts [format "GPIO_LOCK_REG         (0x%x): 0x%x" $GPIO_LOCK_REG [mrw $GPIO_LOCK_REG]]
-    puts [format "GPIO_IOCTRL_REG       (0x%x): 0x%x" $GPIO_IOCTRL_REG [mrw $GPIO_IOCTRL_REG]]
-    puts [format "GPIO_DEVID_REG        (0x%x): 0x%x" $GPIO_DEVID_REG [mrw $GPIO_DEVID_REG]]
+    echo [format "GPIO_OUTPUT_REG       (0x%x): 0x%x" $GPIO_OUTPUT_REG [mrw $GPIO_OUTPUT_REG]]
+    echo [format "GPIO_OE_REG           (0x%x): 0x%x" $GPIO_OE_REG [mrw $GPIO_OE_REG]]
+    echo [format "GPIO_HI_INT_ENABLE_REG(0x%x): 0x%x" $GPIO_HI_INT_ENABLE_REG [mrw $GPIO_HI_INT_ENABLE_REG]]
+    echo [format "GPIO_LO_INT_ENABLE_REG(0x%x): 0x%x" $GPIO_LO_INT_ENABLE_REG [mrw $GPIO_LO_INT_ENABLE_REG]]
+    echo [format "GPIO_INPUT_REG        (0x%x): 0x%x" $GPIO_INPUT_REG [mrw $GPIO_INPUT_REG]]
+    echo [format "APB_ACCESS_WS_REG     (0x%x): 0x%x" $APB_ACCESS_WS_REG [mrw $APB_ACCESS_WS_REG]]
+    echo [format "MUX_CONF_REG          (0x%x): 0x%x" $MUX_CONF_REG [mrw $MUX_CONF_REG]]
+    echo [format "SYSCONF_REG           (0x%x): 0x%x" $SYSCONF_REG [mrw $SYSCONF_REG]]
+    echo [format "GPIO_ARM_ID_REG       (0x%x): 0x%x" $GPIO_ARM_ID_REG [mrw $GPIO_ARM_ID_REG]]
+    echo [format "GPIO_BOOTSTRAP_REG    (0x%x): 0x%x" $GPIO_BOOTSTRAP_REG [mrw $GPIO_BOOTSTRAP_REG]]
+    echo [format "GPIO_LOCK_REG         (0x%x): 0x%x" $GPIO_LOCK_REG [mrw $GPIO_LOCK_REG]]
+    echo [format "GPIO_IOCTRL_REG       (0x%x): 0x%x" $GPIO_IOCTRL_REG [mrw $GPIO_IOCTRL_REG]]
+    echo [format "GPIO_DEVID_REG        (0x%x): 0x%x" $GPIO_DEVID_REG [mrw $GPIO_DEVID_REG]]
 }
 
 
@@ -116,22 +116,22 @@ proc showAmbaClk {} {
     set CLKCORE_AHB_CLK_CNTRL	     [regs CLKCORE_AHB_CLK_CNTRL]
     set PLL_CLK_BYPASS	             [regs PLL_CLK_BYPASS]
 
-    puts [format "CLKCORE_AHB_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_AHB_CLK_CNTRL [mrw $CLKCORE_AHB_CLK_CNTRL]]
+    echo [format "CLKCORE_AHB_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_AHB_CLK_CNTRL [mrw $CLKCORE_AHB_CLK_CNTRL]]
     mem2array value 32 $CLKCORE_AHB_CLK_CNTRL 1
     # see if the PLL is in bypass mode
     set bypass [expr ($value(0) & $PLL_CLK_BYPASS) >> 24 ]
-    puts [format "PLL bypass bit: %d" $bypass]
+    echo [format "PLL bypass bit: %d" $bypass]
     if {$bypass == 1} {
-	puts [format "Amba Clk is set to REFCLK: %d (MHz)" [expr $CFG_REFCLKFREQ/1000000]]
+	echo [format "Amba Clk is set to REFCLK: %d (MHz)" [expr $CFG_REFCLKFREQ/1000000]]
     } else {
 	# nope, extract x,y,w and compute the PLL output freq.
 	set x [expr ($value(0) & 0x0001F0000) >> 16]
-	puts [format "x: %d" $x]
+	echo [format "x: %d" $x]
 	set y [expr ($value(0) & 0x00000007F)]
-	puts [format "y: %d" $y]
+	echo [format "y: %d" $y]
 	set w [expr ($value(0) & 0x000000300) >> 8]
-	puts [format "w: %d" $w]
-	puts [format "Amba PLL Clk: %d (MHz)" [expr ($CFG_REFCLKFREQ * $y / (($w + 1) * ($x + 1) * 2))/1000000]]
+	echo [format "w: %d" $w]
+	echo [format "Amba PLL Clk: %d (MHz)" [expr ($CFG_REFCLKFREQ * $y / (($w + 1) * ($x + 1) * 2))/1000000]]
     }
 }
 
@@ -154,10 +154,10 @@ proc setupAmbaClk {} {
     set x    [config x_amba]
     set y    [config y_amba]
 
-    puts [format "Setting Amba PLL to lock to %d MHz" [expr $CONFIG_SYS_HZ_CLOCK/1000000]]
-    #puts [format "setupAmbaClk: w= %d" $w]
-    #puts [format "setupAmbaClk: x= %d" $x]
-    #puts [format "setupAmbaClk: y= %d" $y]
+    echo [format "Setting Amba PLL to lock to %d MHz" [expr $CONFIG_SYS_HZ_CLOCK/1000000]]
+    #echo [format "setupAmbaClk: w= %d" $w]
+    #echo [format "setupAmbaClk: x= %d" $x]
+    #echo [format "setupAmbaClk: y= %d" $y]
     # set PLL into BYPASS mode using MUX
     mmw $CLKCORE_AHB_CLK_CNTRL $PLL_CLK_BYPASS 0x0
     # do an internal PLL bypass
@@ -176,7 +176,7 @@ proc setupAmbaClk {} {
     mmw $CLKCORE_AHB_CLK_CNTRL 0x0 0xFFFFFF
     mmw $CLKCORE_AHB_CLK_CNTRL [expr (($x << 16) + ($w << 8) + $y)] 0x0
     # wait for PLL to lock
-    puts "Wating for Amba PLL to lock"
+    echo "Wating for Amba PLL to lock"
     while {[expr [mrw $CLKCORE_PLL_STATUS] & $AHBCLK_PLL_LOCK] == 0} { sleep 1 }
     # remove the internal PLL bypass
     mmw $CLKCORE_AHB_CLK_CNTRL 0x0 $AHB_PLL_BY_CTRL
@@ -191,22 +191,22 @@ proc showArmClk {} {
     set CLKCORE_ARM_CLK_CNTRL	[regs CLKCORE_ARM_CLK_CNTRL]
     set PLL_CLK_BYPASS	        [regs PLL_CLK_BYPASS]
 
-    puts [format "CLKCORE_ARM_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_ARM_CLK_CNTRL [mrw $CLKCORE_ARM_CLK_CNTRL]]
+    echo [format "CLKCORE_ARM_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_ARM_CLK_CNTRL [mrw $CLKCORE_ARM_CLK_CNTRL]]
     mem2array value 32 $CLKCORE_ARM_CLK_CNTRL 1
     # see if the PLL is in bypass mode
     set bypass [expr ($value(0) & $PLL_CLK_BYPASS) >> 24 ]
-    puts [format "PLL bypass bit: %d" $bypass]
+    echo [format "PLL bypass bit: %d" $bypass]
     if {$bypass == 1} {
-	puts [format "Amba Clk is set to REFCLK: %d (MHz)" [expr $CFG_REFCLKFREQ/1000000]]
+	echo [format "Amba Clk is set to REFCLK: %d (MHz)" [expr $CFG_REFCLKFREQ/1000000]]
     } else {
 	# nope, extract x,y,w and compute the PLL output freq.
 	set x [expr ($value(0) & 0x0001F0000) >> 16]
-	puts [format "x: %d" $x]
+	echo [format "x: %d" $x]
 	set y [expr ($value(0) & 0x00000007F)]
-	puts [format "y: %d" $y]
+	echo [format "y: %d" $y]
 	set w [expr ($value(0) & 0x000000300) >> 8]
-	puts [format "w: %d" $w]
-	puts [format "Arm PLL Clk: %d (MHz)" [expr ($CFG_REFCLKFREQ * $y / (($w + 1) * ($x + 1) * 2))/1000000]]
+	echo [format "w: %d" $w]
+	echo [format "Arm PLL Clk: %d (MHz)" [expr ($CFG_REFCLKFREQ * $y / (($w + 1) * ($x + 1) * 2))/1000000]]
     }
 }
 
@@ -228,10 +228,10 @@ proc setupArmClk {} {
     set x    [config x_arm]
     set y    [config y_arm]
 
-    puts [format "Setting Arm PLL to lock to %d MHz" [expr $CFG_ARM_CLOCK/1000000]]
-    #puts [format "setupArmClk: w= %d" $w]
-    #puts [format "setupArmaClk: x= %d" $x]
-    #puts [format "setupArmaClk: y= %d" $y]
+    echo [format "Setting Arm PLL to lock to %d MHz" [expr $CFG_ARM_CLOCK/1000000]]
+    #echo [format "setupArmClk: w= %d" $w]
+    #echo [format "setupArmaClk: x= %d" $x]
+    #echo [format "setupArmaClk: y= %d" $y]
     # set PLL into BYPASS mode using MUX
     mmw $CLKCORE_ARM_CLK_CNTRL $PLL_CLK_BYPASS 0x0
     # do an internal PLL bypass
@@ -250,7 +250,7 @@ proc setupArmClk {} {
     mmw $CLKCORE_ARM_CLK_CNTRL 0x0 0xFFFFFF
     mmw $CLKCORE_ARM_CLK_CNTRL [expr (($x << 16) + ($w << 8) + $y)] 0x0
     # wait for PLL to lock
-    puts "Wating for Amba PLL to lock"
+    echo "Wating for Amba PLL to lock"
     while {[expr [mrw $CLKCORE_PLL_STATUS] & $FCLK_PLL_LOCK] == 0} { sleep 1 }
     # remove the internal PLL bypass
     mmw $CLKCORE_ARM_CLK_CNTRL 0x0 $ARM_PLL_BY_CTRL
@@ -261,14 +261,14 @@ proc setupArmClk {} {
 
 
 proc setupPLL {} {
-    puts "PLLs setup"
+    echo "PLLs setup"
     setupAmbaClk
     setupArmClk
 }
 
 # converted from u-boot/cpu/arm1136/bsp100.c:SoC_mem_init()
 proc setupDDR2 {} {
-    puts "Configuring DDR2"
+    echo "Configuring DDR2"
 
     set MEMORY_BASE_ADDR	    [regs  MEMORY_BASE_ADDR]
     set MEMORY_MAX_ADDR	            [regs  MEMORY_MAX_ADDR]
@@ -289,13 +289,13 @@ proc setupDDR2 {} {
     # ooma_board_detect returns DDR2 memory size
     set tmp [ooma_board_detect]
     if {$tmp == "128M"} {
-	puts "DDR2 size 128MB"
+	echo "DDR2 size 128MB"
 	set ddr_size $DDR_SZ_128M
     } elseif {$tmp == "256M"} {
-	puts "DDR2 size 256MB"
+	echo "DDR2 size 256MB"
 	set ddr_size $DDR_SZ_256M
     } else {
-	puts "Don't know how to handle this DDR2 size?"
+	echo "Don't know how to handle this DDR2 size?"
     }
 
     # Memory setup register
@@ -313,7 +313,7 @@ proc setupDDR2 {} {
     } elseif {$tmp == "256M"} {
 	configureDDR2regs_256M
     } else {
-	puts "Don't know how to configure DDR2 setup?"
+	echo "Don't know how to configure DDR2 setup?"
     }
 }
 
@@ -344,47 +344,47 @@ proc showDDR2 {} {
     set DENALI_CTL_20_DATA    [regs DENALI_CTL_20_DATA]
 
     set tmp [mr64bit $DENALI_CTL_00_DATA]
-    puts [format "DENALI_CTL_00_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_00_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_00_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_00_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_01_DATA]
-    puts [format "DENALI_CTL_01_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_01_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_01_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_01_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_02_DATA]
-    puts [format "DENALI_CTL_02_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_02_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_02_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_02_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_03_DATA]
-    puts [format "DENALI_CTL_03_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_03_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_03_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_03_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_04_DATA]
-    puts [format "DENALI_CTL_04_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_04_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_04_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_04_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_05_DATA]
-    puts [format "DENALI_CTL_05_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_05_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_05_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_05_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_06_DATA]
-    puts [format "DENALI_CTL_06_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_06_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_06_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_06_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_07_DATA]
-    puts [format "DENALI_CTL_07_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_07_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_07_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_07_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_08_DATA]
-    puts [format "DENALI_CTL_08_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_08_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_08_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_08_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_09_DATA]
-    puts [format "DENALI_CTL_09_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_09_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_09_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_09_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_10_DATA]
-    puts [format "DENALI_CTL_10_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_10_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_10_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_10_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_11_DATA]
-    puts [format "DENALI_CTL_11_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_11_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_11_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_11_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_12_DATA]
-    puts [format "DENALI_CTL_12_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_12_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_12_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_12_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_13_DATA]
-    puts [format "DENALI_CTL_13_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_13_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_13_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_13_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_14_DATA]
-    puts [format "DENALI_CTL_14_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_14_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_14_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_14_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_15_DATA]
-    puts [format "DENALI_CTL_15_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_15_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_15_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_15_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_16_DATA]
-    puts [format "DENALI_CTL_16_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_16_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_16_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_16_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_17_DATA]
-    puts [format "DENALI_CTL_17_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_17_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_17_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_17_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_18_DATA]
-    puts [format "DENALI_CTL_18_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_18_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_18_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_18_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_19_DATA]
-    puts [format "DENALI_CTL_19_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_19_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_19_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_19_DATA $tmp(1) $tmp(0)]
     set tmp [mr64bit $DENALI_CTL_20_DATA]
-    puts [format "DENALI_CTL_20_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_20_DATA $tmp(1) $tmp(0)]
+    echo [format "DENALI_CTL_20_DATA   (0x%x): 0x%08x%08x" $DENALI_CTL_20_DATA $tmp(1) $tmp(0)]
 
 }
 
@@ -462,7 +462,7 @@ proc initC100 {} {
     # DDR2 memory init
     setupDDR2
     putsUART0 "C100 initialization complete.\n"
-    puts "C100 initialization complete."
+    echo "C100 initialization complete."
 }
 
 # show current state of watchdog timer
@@ -471,9 +471,9 @@ proc showWatchdog {} {
     set TIMER_WDT_CONTROL	[regs TIMER_WDT_CONTROL]
     set TIMER_WDT_CURRENT_COUNT	[regs TIMER_WDT_CURRENT_COUNT]
 
-    puts [format "TIMER_WDT_HIGH_BOUND    (0x%x): 0x%x" $TIMER_WDT_HIGH_BOUND [mrw $TIMER_WDT_HIGH_BOUND]]
-    puts [format "TIMER_WDT_CONTROL       (0x%x): 0x%x" $TIMER_WDT_CONTROL [mrw $TIMER_WDT_CONTROL]]
-    puts [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]
+    echo [format "TIMER_WDT_HIGH_BOUND    (0x%x): 0x%x" $TIMER_WDT_HIGH_BOUND [mrw $TIMER_WDT_HIGH_BOUND]]
+    echo [format "TIMER_WDT_CONTROL       (0x%x): 0x%x" $TIMER_WDT_CONTROL [mrw $TIMER_WDT_CONTROL]]
+    echo [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]
 }
 
 # converted from u-boot/cpu/arm1136/comcerto/intrrupts.c:void reset_cpu (ulong ignored)
@@ -490,17 +490,17 @@ proc reboot {} {
     # I don't want to miss the high_bound==curr_count condition
     mww $TIMER_WDT_HIGH_BOUND  0xffffff
     mww $TIMER_WDT_CURRENT_COUNT 0x0
-    puts "JTAG speed lowered to 100kHz"
+    echo "JTAG speed lowered to 100kHz"
     adapter_khz 100
     mww $TIMER_WDT_CONTROL 0x1
     # wait until the reset
-    puts -nonewline "Wating for watchdog to trigger..."
+    echo -n "Wating for watchdog to trigger..."
     #while {[mrw $TIMER_WDT_CONTROL] == 1} {
-    #    puts [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]
+    #    echo [format "TIMER_WDT_CURRENT_COUNT (0x%x): 0x%x" $TIMER_WDT_CURRENT_COUNT [mrw $TIMER_WDT_CURRENT_COUNT]]
     #    sleep 1
     #
     #}
     while {[c100.cpu curstate] != "running"} { sleep 1}
-    puts "done."
-    puts [format "Note that C100 is in %s state, type halt to stop" [c100.cpu curstate]]
+    echo "done."
+    echo [format "Note that C100 is in %s state, type halt to stop" [c100.cpu curstate]]
 }

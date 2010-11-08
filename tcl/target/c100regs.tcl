@@ -11,7 +11,7 @@ proc regs {reg} {
 }
 
 proc showreg {reg} {
-    puts [format "0x%x" [dict get [regsC100] $reg ]]
+    echo [format "0x%x" [dict get [regsC100] $reg ]]
 }
 
 proc regsC100 {} {

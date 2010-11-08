@@ -8,7 +8,7 @@ proc config {label} {
 
 # show the value for the param. with label
 proc showconfig {label} {
-    puts [format "0x%x" [dict get [configC100] $label ]]
+    echo [format "0x%x" [dict get [configC100] $label ]]
 }
 
 # Telo board config
@@ -53,7 +53,7 @@ proc setupTelo {} {
 
 
 proc setupNOR {} {
-    puts "Setting up NOR: 16MB, 16-bit wide bus, CS0"
+    echo "Setting up NOR: 16MB, 16-bit wide bus, CS0"
     # this is taken from u-boot/boards/mindspeed/ooma-darwin/board.c:nor_hw_init()
     set EX_CSEN_REG	    [regs EX_CSEN_REG ]
     set EX_CS0_SEG_REG	    [regs EX_CS0_SEG_REG ]
@@ -99,7 +99,7 @@ proc bootNOR {} {
     resume
 }
 proc setupGPIO {} {
-    puts "Setting up GPIO block for Telo"
+    echo "Setting up GPIO block for Telo"
     # This is current setup for Telo (see sch. for details):
     #GPIO0 reset for FXS-FXO IC, leave as input, the IC has internal pullup
     #GPIO1 irq line for FXS-FXO
@@ -117,14 +117,14 @@ proc setupGPIO {} {
 }
 
 proc highGPIO5 {} {
-    puts "GPIO5 high"
+    echo "GPIO5 high"
     set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # set GPIO5=1
     mmw $GPIO_OUTPUT_REG [expr 1 << 5] 0x0
 }
 
 proc lowGPIO5 {} {
-    puts "GPIO5 low"
+    echo "GPIO5 low"
     set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # set GPIO5=0
     mmw $GPIO_OUTPUT_REG 0x0 [expr 1 << 5]
@@ -161,12 +161,12 @@ proc ooma_board_detect {} {
 
     # read the current value of the BOOTSRAP pins
     set tmp [mrw $GPIO_BOOTSTRAP_REG]
-    puts [format "GPIO_BOOTSTRAP_REG  (0x%x): 0x%x" $GPIO_BOOTSTRAP_REG $tmp]
+    echo [format "GPIO_BOOTSTRAP_REG  (0x%x): 0x%x" $GPIO_BOOTSTRAP_REG $tmp]
     # extract the GPBP bits
     set gpbt [expr ($tmp &0x1C00) >> 10 | ($tmp & 0x40) >>3]
 
     # display board ID
-    puts [format "This is %s (0x%x)" [dict get [boardID $gpbt] $gpbt name] $gpbt]
+    echo [format "This is %s (0x%x)" [dict get [boardID $gpbt] $gpbt name] $gpbt]
     # show it on serial console
     putsUART0 [format "This is %s (0x%x)\n" [dict get [boardID $gpbt] $gpbt name] $gpbt]
     # return the ddr2 size, used to configure DDR2 on a given board.
@@ -228,13 +228,13 @@ proc configureDDR2regs_256M {} {
     # start DDRC
     mw64bit $DENALI_CTL_02_DATA [expr $DENALI_CTL_02_VAL | (1 << 32)]
     # wait int_status[2] (DRAM init complete)
-    puts -nonewline "Waiting for DDR2 controller to init..."
+    echo -n "Waiting for DDR2 controller to init..."
     set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
     while { [expr $tmp & 0x040000] == 0 } {
 	sleep 1
 	set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
     }
-    puts "done."
+    echo "done."
 
     # do ddr2 training sequence
     # TBD (for now, if you need it, run trainDDR command)
@@ -296,7 +296,7 @@ proc configureDDR2regs_128M {} {
     # start DDRC
     mw64bit $DENALI_CTL_02_DATA [expr $DENALI_CTL_02_VAL | (1 << 32)]
     # wait int_status[2] (DRAM init complete)
-    puts -nonewline "Waiting for DDR2 controller to init..."
+    echo -n "Waiting for DDR2 controller to init..."
     set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
     while { [expr $tmp & 0x040000] == 0 } {
 	sleep 1
@@ -304,7 +304,7 @@ proc configureDDR2regs_128M {} {
     }
     # This is not necessary
     #mw64bit $DENALI_CTL_11_DATA [expr ($DENALI_CTL_11_VAL  & ~0x00007F0000000000) | ($wr_dqs_shift << 40) ]
-    puts "done."
+    echo "done."
 
     # do ddr2 training sequence
     # TBD (for now, if you need it, run trainDDR command)
@@ -398,10 +398,10 @@ proc flashUBOOT {file} {
     # make sure we are accessing the lower part of NOR
     lowGPIO5
     flash probe 0
-    puts "Erasing sectors 0-3 for uboot"
+    echo "Erasing sectors 0-3 for uboot"
     putsUART0 "Erasing sectors 0-3 for uboot\n"
     flash erase_sector 0 0 3
-    puts "Programming u-boot"
+    echo "Programming u-boot"
     putsUART0 "Programming u-boot..."
     arm11 memwrite burst enable
     flash write_image $file $EXP_CS0_BASEADDR
