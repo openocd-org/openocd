@@ -257,6 +257,18 @@ int target_unregister_event_callback(
 		int (*callback)(struct target *target,
 				enum target_event event, void *priv),
 		void *priv);
+/* Poll the status of the target, detect any error conditions and report them.
+ *
+ * Also note that this fn will clear such error conditions, so a subsequent
+ * invocation will then succeed.
+ *
+ * These error conditions can be "sticky" error conditions. E.g. writing
+ * to memory could be implemented as an open loop and if memory writes
+ * fails, then a note is made of it, the error is sticky, but the memory
+ * write loop still runs to completion. This improves performance in the
+ * normal case as there is no need to verify that every single write succeed,
+ * yet it is possible to detect error condtions.
+ */
 int target_poll(struct target *target);
 int target_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution);
