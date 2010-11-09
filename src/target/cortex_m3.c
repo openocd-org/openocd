@@ -520,7 +520,8 @@ static int cortex_m3_debug_entry(struct target *target)
 
 static int cortex_m3_poll(struct target *target)
 {
-	int retval;
+	int detected_failure = ERROR_OK;
+	int retval = ERROR_OK;
 	enum target_state prev_target_state = target->state;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct adiv5_dap *swjdp = &cortex_m3->armv7m.dap;
@@ -535,14 +536,17 @@ static int cortex_m3_poll(struct target *target)
 
 	/* Recover from lockup.  See ARMv7-M architecture spec,
 	 * section B1.5.15 "Unrecoverable exception cases".
-	 *
-	 * REVISIT Is there a better way to report and handle this?
 	 */
 	if (cortex_m3->dcb_dhcsr & S_LOCKUP) {
-		LOG_WARNING("%s -- clearing lockup after double fault",
+		LOG_ERROR("%s -- clearing lockup after double fault",
 				target_name(target));
 		cortex_m3_write_debug_halt_mask(target, C_HALT, 0);
 		target->debug_reason = DBG_REASON_DBGRQ;
+
+		/* We have to execute the rest (the "finally" equivalent, but
+		 * still throw this exception again).
+		 */
+		detected_failure = ERROR_FAIL;
 
 		/* refresh status bits */
 		retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -610,11 +614,14 @@ static int cortex_m3_poll(struct target *target)
 		if (cortex_m3->dcb_dhcsr & S_RETIRE_ST)
 		{
 			target->state = TARGET_RUNNING;
-			return ERROR_OK;
+			retval = ERROR_OK;
 		}
 	}
 
-	return ERROR_OK;
+	/* Did we detect a failure condition that we cleared? */
+	if (detected_failure != ERROR_OK)
+		retval = detected_failure;
+	return retval;
 }
 
 static int cortex_m3_halt(struct target *target)
