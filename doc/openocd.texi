@@ -4252,6 +4252,33 @@ flash bank $_FLASHNAME cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
 @c "cfi part_id" disabled
 @end deffn
 
+@deffn {Flash Driver} spearsmi
+@cindex SPEAr Serial Memory Interface
+@cindex SMI
+@cindex spearsmi
+All members of SPEAr MPU family from STMicroelectronics include a
+``Serial Memory Interface'' (SMI) controller able to drive external
+SPI flash devices.
+Depending on specific MPU and board configuration, up to 4 external
+flash devices can be connected.
+
+SMI makes the flash content directly accessible in the CPU address
+space; each external device is mapped in a memory bank.
+CPU can directly read data, execute code and boot from SMI banks.
+Normal OpenOCD commands like @command{mdw} can be used to display
+the flash content.
+
+The setup command only requires the @var{base} parameter in order
+to identify the memory bank.
+All other parameters are ignored. Additional information, like
+flash size, are detected automatically.
+
+@example
+flash bank $_FLASHNAME spearsmi 0xf8000000 0 0 0 $_TARGETNAME
+@end example
+
+@end deffn
+
 @subsection Internal Flash (Microcontrollers)
 
 @deffn {Flash Driver} aduc702x

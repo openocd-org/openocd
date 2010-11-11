@@ -23,6 +23,7 @@ NOR_DRIVERS = \
 	non_cfi.c \
 	ocl.c \
 	pic32mx.c \
+	spearsmi.c \
 	stellaris.c \
 	stm32x.c \
 	str7x.c \
@@ -44,6 +45,7 @@ noinst_HEADERS = \
 	non_cfi.h \
 	ocl.h \
 	pic32mx.h \
+	spearsmi.h \
 	stellaris.h \
 	stm32x.h \
 	str7x.h \
