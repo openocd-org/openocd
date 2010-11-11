@@ -101,10 +101,6 @@ libopenocd_la_LIBADD = \
 	$(top_builddir)/src/helper/libhelper.la \
 	$(FTDI2232LIB) $(MINGWLDADD) $(LIBUSB)
 
-if HTTPD
-libopenocd_la_LIBADD += -lmicrohttpd
-endif
-
 STARTUP_TCL_SRCS = \
 	$(srcdir)/helper/startup.tcl \
 	$(srcdir)/jtag/startup.tcl \

@@ -89,11 +89,11 @@ int connection_write(struct connection *connection, const void *data, int len);
 int connection_read(struct connection *connection, void *data, int len);
 
 /**
- * Used by server_loop(), defined in server_stubs.c, httpd.c, or ecosboard.c
+ * Used by server_loop(), defined in server_stubs.c or ecosboard.c
  */
 void openocd_sleep_prelude(void);
 /**
- * Used by server_loop(), defined in server_stubs.c, httpd.c, or ecosboard.c
+ * Used by server_loop(), defined in server_stubs.c or ecosboard.c
  */
 void openocd_sleep_postlude(void);
 

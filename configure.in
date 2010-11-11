@@ -420,10 +420,6 @@ AC_ARG_ENABLE(ioutil,
   AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]),
   [build_ioutil=$enableval], [build_ioutil=no])
 
-AC_ARG_ENABLE(httpd,
-  AS_HELP_STRING([--enable-httpd], [Enable builtin httpd server - useful for standalone OpenOCD implementations]),
-  [build_httpd=$enableval], [build_httpd=no])
-
 case "${host_cpu}" in
   arm*)
     AC_ARG_ENABLE(ep93xx,
@@ -1039,7 +1035,6 @@ AM_CONDITIONAL(ECOSBOARD, test $build_ecosboard = yes)
 AM_CONDITIONAL(ZY1000, test $build_zy1000 = yes)
 AM_CONDITIONAL(ZY1000_MASTER, test $build_zy1000_master = yes)
 AM_CONDITIONAL(IOUTIL, test $build_ioutil = yes)
-AM_CONDITIONAL(HTTPD, test $build_httpd = yes)
 AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
 AM_CONDITIONAL(BITBANG, test $build_bitbang = yes)
 AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)

@@ -42,7 +42,6 @@
 
 #include <server/server.h>
 #include <server/gdb_server.h>
-#include <server/httpd.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -337,9 +336,6 @@ int openocd_main(int argc, char *argv[])
 	if (ret != ERROR_OK)
 		return EXIT_FAILURE;
 
-	if (httpd_start(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
-
 	ret = server_init(cmd_ctx);
 	if (ERROR_OK != ret)
 		return EXIT_FAILURE;
@@ -356,8 +352,6 @@ int openocd_main(int argc, char *argv[])
 		server_loop(cmd_ctx);
 
 	server_quit();
-
-	httpd_stop();
 
 	unregister_all_commands(cmd_ctx, NULL);
 

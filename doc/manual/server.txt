@@ -309,17 +309,3 @@ This section needs to be expanded.
 
  */
 
-/** @page serverhttp OpenOCD HTTP Server API
-
-
-Smoketest:
-
-configure --enable-httpd --enable-dummy --enable-ioutil
-
-openocd -s /usr/local/share/openocd -f httpd/httpd.tcl -f interface/dummy.cfg -f target/lpc2148.cfg
-
-Navigate to: http://localhost:8888/
-
-
-
- */
