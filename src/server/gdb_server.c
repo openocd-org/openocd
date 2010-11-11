@@ -861,7 +861,7 @@ static int gdb_new_connection(struct connection *connection)
 			retval = get_flash_bank_by_num(i, &p);
 			if (retval != ERROR_OK)
 			{
-				LOG_ERROR("Connect failed. Consider setting up a gdb-attach event for the target to prepare target for GDB connect.");
+				LOG_ERROR("Connect failed. Consider setting up a gdb-attach event for the target to prepare target for GDB connect, or use 'gdb_memory_map disable'.");
 				return retval;
 			}
 		}
