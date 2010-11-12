@@ -1,7 +1,4 @@
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_builddir)/src \
-	-DPKGDATADIR=\"$(pkgdatadir)\"
+include $(top_srcdir)/common.mk
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libhelper.la

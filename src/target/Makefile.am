@@ -1,13 +1,10 @@
+include $(top_srcdir)/common.mk
 
 if OOCD_TRACE
 OOCD_TRACE_FILES = oocd_trace.c
 else
 OOCD_TRACE_FILES =
 endif
-
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_builddir)/src
 
 BIN2C		= $(top_builddir)/src/helper/bin2char$(EXEEXT_FOR_BUILD)
 

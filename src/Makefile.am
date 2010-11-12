@@ -1,3 +1,5 @@
+include $(top_srcdir)/common.mk
+
 SUBDIRS = \
 	jtag \
 	helper \
@@ -28,12 +30,6 @@ libopenocd_la_SOURCES = \
 noinst_HEADERS = \
 	hello.h \
 	openocd.h
-
-
-# set the include path found by configure
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/src \
-	-I$(top_builddir)/src
 
 libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
 
