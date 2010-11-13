@@ -19,7 +19,10 @@
  ***************************************************************************/
 
 	.text
-	.arm
+	.syntax unified
+	.thumb
+	.thumb_func
+	.global write
 
 /*
 	r0 - source address
@@ -27,26 +30,27 @@
 	r2 - count (halfword-16bit)
 	r3 - result
 	r4 - temp
-	r5 - temp
 */
 
-write:
-	ldr		r4, STM32_FLASH_CR
-	ldr		r5, STM32_FLASH_SR
-	mov		r3, #1
-	str		r3, [r4, #0]
-	ldrh 	r3, [r0], #2
-	strh 	r3, [r1], #2
-busy:
-	ldr 	r3, [r5, #0]
-	tst 	r3, #0x01
-	beq 	busy
-	tst		r3, #0x14
-	bne		exit
-	subs	r2, r2, #1
-	bne		write
-exit:
-	bkpt	#0
+#define STM32_FLASH_CR_OFFSET	0x10			/* offset of CR register in FLASH struct */
+#define STM32_FLASH_SR_OFFSET	0x0c			/* offset of CR register in FLASH struct */
 
-STM32_FLASH_CR: .word 0x40022010
-STM32_FLASH_SR:	.word 0x4002200C
+write:
+	ldr		r4, STM32_FLASH_BASE
+write_half_word:
+	movs	r3, #0x01
+	str		r3, [r4, #STM32_FLASH_CR_OFFSET]	/* PG (bit0) == 1 => flash programming enabled */
+	ldrh 	r3, [r0], #0x02						/* read one half-word from src, increment ptr */
+	strh 	r3, [r1], #0x02						/* write one half-word from src, increment ptr */
+busy:
+	ldr 	r3, [r4, #STM32_FLASH_SR_OFFSET]
+	tst 	r3, #0x01							/* BSY (bit0) == 1 => operation in progress */
+	beq 	busy								/* wait more... */
+	tst		r3, #0x14							/* PGERR (bit2) == 1 or WRPRTERR (bit4) == 1 => error */
+	bne		exit								/* fail... */
+	subs	r2, r2, #0x01						/* decrement counter */
+	bne		write_half_word						/* write next half-word if anything left */
+exit:
+	bkpt	#0x00
+
+STM32_FLASH_BASE: .word 0x40022000				/* base address of FLASH struct */
