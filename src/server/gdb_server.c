@@ -833,9 +833,6 @@ static int gdb_new_connection(struct connection *connection)
 	breakpoint_clear_target(gdb_service->target);
 	watchpoint_clear_target(gdb_service->target);
 
-	/* register callback to be informed about target events */
-	target_register_event_callback(gdb_target_callback_event_handler, connection);
-
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
 		return retval;
@@ -872,6 +869,13 @@ static int gdb_new_connection(struct connection *connection)
 		  gdb_actual_connections,
 		  target_name(gdb_service->target),
 		  target_state_name(gdb_service->target));
+
+	/* DANGER! If we fail subsequently, we must remove this handler,
+	 * otherwise we occasionally see crashes as the timer can invoke the
+	 * callback fn.
+	 *
+	 * register callback to be informed about target events */
+	target_register_event_callback(gdb_target_callback_event_handler, connection);
 
 	return ERROR_OK;
 }
