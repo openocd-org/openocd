@@ -654,9 +654,13 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 		if (run_address + run_size - 1 > c->base + c->size - 1)
 		{
-			LOG_ERROR("The image is too big for the flash");
-			retval = ERROR_FAIL;
-			goto done;
+			/* If we have more than one flash chip back to back, then we limit
+			 * the current write operation to the current chip.
+			 */
+			LOG_DEBUG("Truncate flash run size to the current flash chip.");
+
+			run_size = c->base + c->size - run_address;
+			assert(run_size > 0);
 		}
 
 		/* If we're applying any sector automagic, then pad this
