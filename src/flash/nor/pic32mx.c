@@ -28,10 +28,74 @@
 #endif
 
 #include "imp.h"
-#include "pic32mx.h"
 #include <target/algorithm.h>
 #include <target/mips32.h>
 #include <target/mips_m4k.h>
+
+
+#define PIC32MX_MANUF_ID	0x029
+
+/* pic32mx memory locations */
+
+#define PIC32MX_PHYS_RAM			0x00000000
+#define PIC32MX_PHYS_PGM_FLASH		0x1D000000
+#define PIC32MX_PHYS_PERIPHERALS	0x1F800000
+#define PIC32MX_PHYS_BOOT_FLASH		0x1FC00000
+
+/*
+ * Translate Virtual and Physical addresses.
+ * Note: These macros only work for KSEG0/KSEG1 addresses.
+ */
+
+#define Virt2Phys(v) 	((v) & 0x1FFFFFFF)
+
+/* pic32mx configuration register locations */
+
+#define PIC32MX_DEVCFG0		0xBFC02FFC
+#define PIC32MX_DEVCFG1		0xBFC02FF8
+#define PIC32MX_DEVCFG2		0xBFC02FF4
+#define PIC32MX_DEVCFG3		0xBFC02FF0
+#define PIC32MX_DEVID		0xBF80F220
+
+#define PIC32MX_BMXPFMSZ	0xBF882060
+#define PIC32MX_BMXBOOTSZ	0xBF882070
+#define PIC32MX_BMXDRMSZ	0xBF882040
+
+/* pic32mx flash controller register locations */
+
+#define PIC32MX_NVMCON		0xBF80F400
+#define PIC32MX_NVMCONCLR	0xBF80F404
+#define PIC32MX_NVMCONSET	0xBF80F408
+#define PIC32MX_NVMCONINV	0xBF80F40C
+#define NVMCON_NVMWR		(1 << 15)
+#define NVMCON_NVMWREN		(1 << 14)
+#define NVMCON_NVMERR		(1 << 13)
+#define NVMCON_LVDERR		(1 << 12)
+#define NVMCON_LVDSTAT		(1 << 11)
+#define NVMCON_OP_PFM_ERASE		0x5
+#define NVMCON_OP_PAGE_ERASE	0x4
+#define NVMCON_OP_ROW_PROG		0x3
+#define NVMCON_OP_WORD_PROG		0x1
+#define NVMCON_OP_NOP			0x0
+
+#define PIC32MX_NVMKEY		0xBF80F410
+#define PIC32MX_NVMADDR		0xBF80F420
+#define PIC32MX_NVMADDRCLR	0xBF80F424
+#define PIC32MX_NVMADDRSET	0xBF80F428
+#define PIC32MX_NVMADDRINV	0xBF80F42C
+#define PIC32MX_NVMDATA		0xBF80F430
+#define PIC32MX_NVMSRCADDR	0xBF80F440
+
+/* flash unlock keys */
+
+#define NVMKEY1			0xAA996655
+#define NVMKEY2			0x556699AA
+
+struct pic32mx_flash_bank
+{
+	struct working_area *write_algorithm;
+	int probed;
+};
 
 static const struct pic32mx_devs_s {
 	uint8_t	devid;

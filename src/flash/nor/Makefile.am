@@ -39,7 +39,6 @@ noinst_HEADERS = \
 	imp.h \
 	non_cfi.h \
 	ocl.h \
-	pic32mx.h \
 	stellaris.h \
 	stm32x.h \
 	str7x.h \
