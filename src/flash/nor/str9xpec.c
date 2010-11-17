@@ -25,9 +25,58 @@
 #endif
 
 #include "imp.h"
-#include "str9xpec.h"
 #include <target/arm7_9_common.h>
 
+
+/* ISC commands */
+
+#define ISC_IDCODE				0xFE
+#define ISC_MFG_READ			0x4C
+#define ISC_CONFIGURATION		0x07
+#define ISC_ENABLE				0x0C
+#define ISC_DISABLE				0x0F
+#define ISC_NOOP				0x10
+#define ISC_ADDRESS_SHIFT		0x11
+#define ISC_CLR_STATUS			0x13
+#define ISC_PROGRAM				0x20
+#define ISC_PROGRAM_SECURITY	0x22
+#define ISC_PROGRAM_UC			0x23
+#define ISC_ERASE				0x30
+#define ISC_READ				0x50
+#define ISC_BLANK_CHECK			0x60
+
+/* ISC_DEFAULT bit definitions */
+
+#define ISC_STATUS_SECURITY		0x40
+#define ISC_STATUS_INT_ERROR	0x30
+#define ISC_STATUS_MODE			0x08
+#define ISC_STATUS_BUSY			0x04
+#define ISC_STATUS_ERROR		0x03
+
+/* Option bytes definitions */
+
+#define STR9XPEC_OPT_CSMAPBIT		48
+#define STR9XPEC_OPT_LVDTHRESBIT	49
+#define STR9XPEC_OPT_LVDSELBIT		50
+#define STR9XPEC_OPT_LVDWARNBIT		51
+#define STR9XPEC_OPT_OTPBIT			63
+
+enum str9xpec_status_codes
+{
+	STR9XPEC_INVALID_COMMAND = 1,
+	STR9XPEC_ISC_SUCCESS = 2,
+	STR9XPEC_ISC_DISABLED = 3,
+	STR9XPEC_ISC_INTFAIL = 32,
+};
+
+struct str9xpec_flash_controller
+{
+	struct jtag_tap *tap;
+	uint32_t *sector_bits;
+	int chain_pos;
+	int isc_enable;
+	uint8_t options[8];
+};
 
 static int str9xpec_erase_area(struct flash_bank *bank, int first, int last);
 static int str9xpec_set_address(struct flash_bank *bank, uint8_t sector);
