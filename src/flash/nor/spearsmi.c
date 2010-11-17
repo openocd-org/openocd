@@ -17,6 +17,16 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+/* SPEAr Serial Memory Interface (SMI) controller is a SPI bus controller
+ * specifically designed for SPI memories.
+ * Only SPI "mode 3" (CPOL=1 and CPHA=1) is supported.
+ * Two working modes are available:
+ * - SW mode: the SPI is controlled by SW. Any custom commands can be sent
+ *   on the bus.
+ * - HW mode: the SPI but is under SMI control. Memory content is directly
+ *   accessible in CPU memory space. CPU can read, write and execute memory
+ *   content. */
+
 /* ATTENTION:
  * To have flash memory mapped in CPU memory space, the SMI controller
  * have to be in "HW mode". This requires following constraints:
@@ -136,6 +146,9 @@ struct flash_device {
 	.size_in_bytes = size   \
 }
 
+/* List below is taken from Linux driver. It is not exhaustive of all the
+ * possible SPI memories, nor exclusive for SMI. Could be shared with
+ * other SPI drivers. */
 static struct flash_device flash_devices[] = {
 	/* name, erase_cmd, device_id, pagesize, sectorsize, size_in_bytes */
 	FLASH_ID("st m25p05",      0xd8, 0x00102020, 0x80,  0x8000,  0x10000),
@@ -217,6 +230,9 @@ static int poll_tff(struct target *target, uint32_t io_base, int timeout)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
+/* Read the status register of the external SPI flash chip.
+ * The operation is triggered by setting SMI_RSR bit.
+ * SMI sends the proper SPI command (0x05) and returns value in SMI_SR */
 static int read_status_reg(struct flash_bank *bank, uint32_t *status)
 {
 	struct target *target = bank->target;
@@ -235,7 +251,6 @@ static int read_status_reg(struct flash_bank *bank, uint32_t *status)
 	/* clear transmit finished flag */
 	SMI_CLEAR_TFF();
 
-	/* Check write enabled */
 	*status = SMI_READ_REG(SMI_SR) & 0x0000ffff;
 
 	/* clean-up SMI_CR2 */
@@ -268,6 +283,9 @@ static int wait_till_ready(struct flash_bank *bank, int timeout)
 	return ERROR_FAIL;
 }
 
+/* Send "write enable" command to SPI flash chip.
+ * The operation is triggered by setting SMI_WE bit, and SMI sends
+ * the proper SPI command (0x06) */
 static int smi_write_enable(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -337,7 +355,7 @@ static int smi_erase_sector(struct flash_bank *bank, int sector)
 	/* clear transmit finished flag */
 	SMI_CLEAR_TFF();
 
-	/* send erase command */
+	/* send SPI command "block erase" */
 	cmd = erase_command(spearsmi_info, bank->sectors[sector].offset);
 	SMI_WRITE_REG(SMI_TR, cmd);
 	SMI_WRITE_REG(SMI_CR2, spearsmi_info->bank_num | SMI_SEND | SMI_TX_LEN_4);
@@ -554,7 +572,7 @@ static int read_flash_id(struct flash_bank *bank, uint32_t *id)
 	/* clear transmit finished flag */
 	SMI_CLEAR_TFF();
 
-	/* Require read flash ID */
+	/* Send SPI command "read ID" */
 	SMI_WRITE_REG(SMI_TR, SMI_READ_ID);
 	SMI_WRITE_REG(SMI_CR2,
 		spearsmi_info->bank_num | SMI_SEND | SMI_RX_LEN_3 | SMI_TX_LEN_1);
@@ -565,7 +583,7 @@ static int read_flash_id(struct flash_bank *bank, uint32_t *id)
 	/* clear transmit finished flag */
 	SMI_CLEAR_TFF();
 
-	/* read ID */
+	/* read ID from Receive Register */
 	*id = SMI_READ_REG(SMI_RR) & 0x00ffffff;
 	return ERROR_OK;
 }
