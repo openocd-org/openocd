@@ -32,7 +32,6 @@
 #endif
 
 #include "imp.h"
-#include "lpc288x.h"
 #include <helper/binarybuffer.h>
 
 
@@ -84,6 +83,19 @@
 
 /* F_CLK_TIME */
 #define FCT_CLK_DIV_MASK    0x0FFF
+
+struct lpc288x_flash_bank
+{
+	uint32_t working_area;
+	uint32_t working_area_size;
+
+	/* chip id register */
+	uint32_t cidr;
+	char * target_name;
+	uint32_t cclk;
+
+	uint32_t sector_size_break;
+};
 
 static uint32_t lpc288x_wait_status_busy(struct flash_bank *bank, int timeout);
 static void lpc288x_load_timer(int erase, struct target *target);
