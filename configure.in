@@ -2,6 +2,7 @@ AC_PREREQ(2.60)
 AC_INIT([openocd], [0.5.0-dev],
   [OpenOCD Mailing List <openocd-development@lists.berlios.de>])
 AC_CONFIG_SRCDIR([src/openocd.c])
+AC_CONFIG_AUX_DIR([.])
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
 AM_MAINTAINER_MODE
@@ -482,6 +483,9 @@ AC_ARG_ENABLE(minidriver_dummy,
   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
 
+AC_ARG_ENABLE(internal-jimtcl,
+  AS_HELP_STRING([--enable-internal-jimtcl], [Enable internal jimtcl]),
+  [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
 
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
@@ -755,6 +759,14 @@ if test $build_buspirate = yes; then
   AC_DEFINE(BUILD_BUSPIRATE, 1, [1 if you want the Buspirate JTAG driver.])
 else
   AC_DEFINE(BUILD_BUSPIRATE, 0, [0 if you don't want the Buspirate JTAG driver.])
+fi
+
+if test "$use_internal_jimtcl" = yes; then
+  if test -f "$srcdir/jimtcl/configure.ac"; then
+    AC_CONFIG_SUBDIRS([jimtcl])
+  else
+    AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
+  fi
 fi
 
 #-- Deal with MingW/Cygwin FTD2XX issues
@@ -1061,6 +1073,8 @@ AM_CONDITIONAL(BITQ, test $build_bitq = yes)
 
 AM_CONDITIONAL(MINIDRIVER, test $build_minidriver = yes)
 AM_CONDITIONAL(MINIDRIVER_DUMMY, test $build_minidriver_dummy = yes)
+
+AM_CONDITIONAL(INTERNAL_JIMTCL, test $use_internal_jimtcl = yes)
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])

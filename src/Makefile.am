@@ -20,7 +20,13 @@ MAINFILE = main.c
 endif
 
 openocd_SOURCES = $(MAINFILE)
-openocd_LDADD = libopenocd.la -ljim
+openocd_LDADD = libopenocd.la
+
+if INTERNAL_JIMTCL
+openocd_LDADD += $(top_builddir)/jimtcl/libjim.a
+else
+openocd_LDADD += -ljim
+endif
 
 libopenocd_la_SOURCES = \
 	hello.c \

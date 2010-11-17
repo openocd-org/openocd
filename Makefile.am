@@ -9,7 +9,13 @@ nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/README \
 	contrib/openocd.udev
 
-SUBDIRS = src doc
+if INTERNAL_JIMTCL
+SUBDIRS = jimtcl
+else
+SUBDIRS =
+endif
+
+SUBDIRS += src doc
 
 EXTRA_DIST = \
 	Doxyfile.in \
