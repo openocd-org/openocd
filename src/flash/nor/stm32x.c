@@ -25,11 +25,84 @@
 #endif
 
 #include "imp.h"
-#include "stm32x.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 
+
+/* stm32x register locations */
+
+#define STM32_FLASH_ACR		0x40022000
+#define STM32_FLASH_KEYR	0x40022004
+#define STM32_FLASH_OPTKEYR	0x40022008
+#define STM32_FLASH_SR		0x4002200C
+#define STM32_FLASH_CR		0x40022010
+#define STM32_FLASH_AR		0x40022014
+#define STM32_FLASH_OBR		0x4002201C
+#define STM32_FLASH_WRPR	0x40022020
+
+/* option byte location */
+
+#define STM32_OB_RDP		0x1FFFF800
+#define STM32_OB_USER		0x1FFFF802
+#define STM32_OB_DATA0		0x1FFFF804
+#define STM32_OB_DATA1		0x1FFFF806
+#define STM32_OB_WRP0		0x1FFFF808
+#define STM32_OB_WRP1		0x1FFFF80A
+#define STM32_OB_WRP2		0x1FFFF80C
+#define STM32_OB_WRP3		0x1FFFF80E
+
+/* FLASH_CR register bits */
+
+#define FLASH_PG		(1 << 0)
+#define FLASH_PER		(1 << 1)
+#define FLASH_MER		(1 << 2)
+#define FLASH_OPTPG		(1 << 4)
+#define FLASH_OPTER		(1 << 5)
+#define FLASH_STRT		(1 << 6)
+#define FLASH_LOCK		(1 << 7)
+#define FLASH_OPTWRE	(1 << 9)
+
+/* FLASH_SR register bits */
+
+#define FLASH_BSY		(1 << 0)
+#define FLASH_PGERR		(1 << 2)
+#define FLASH_WRPRTERR	(1 << 4)
+#define FLASH_EOP		(1 << 5)
+
+/* STM32_FLASH_OBR bit definitions (reading) */
+
+#define OPT_ERROR		0
+#define OPT_READOUT		1
+#define OPT_RDWDGSW		2
+#define OPT_RDRSTSTOP	3
+#define OPT_RDRSTSTDBY	4
+
+/* register unlock keys */
+
+#define KEY1			0x45670123
+#define KEY2			0xCDEF89AB
+
+
+struct stm32x_options
+{
+	uint16_t RDP;
+	uint16_t user_options;
+	uint16_t protection[4];
+};
+
+struct stm32x_flash_bank
+{
+	struct stm32x_options option_bytes;
+	struct working_area *write_algorithm;
+	int ppage_size;
+	int probed;
+};
+
+struct stm32x_mem_layout {
+	uint32_t sector_start;
+	uint32_t sector_size;
+};
 
 static int stm32x_mass_erase(struct flash_bank *bank);
 
