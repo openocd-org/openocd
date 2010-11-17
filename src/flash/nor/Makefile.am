@@ -33,7 +33,6 @@ NOR_DRIVERS = \
 	virtual.c
 
 noinst_HEADERS = \
-	at91sam7.h \
 	avrf.h \
 	core.h \
 	cfi.h \
