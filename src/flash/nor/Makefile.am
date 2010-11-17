@@ -39,7 +39,6 @@ noinst_HEADERS = \
 	imp.h \
 	non_cfi.h \
 	ocl.h \
-	str9x.h \
 	str9xpec.h \
 	tms470.h
 

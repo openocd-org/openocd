@@ -28,10 +28,44 @@
 #endif
 
 #include "imp.h"
-#include "str9x.h"
 #include <target/arm966e.h>
 #include <target/algorithm.h>
 
+
+/* Flash registers */
+
+#define FLASH_BBSR		0x54000000		/* Boot Bank Size Register                */
+#define FLASH_NBBSR		0x54000004		/* Non-Boot Bank Size Register            */
+#define FLASH_BBADR		0x5400000C		/* Boot Bank Base Address Register        */
+#define FLASH_NBBADR	0x54000010		/* Non-Boot Bank Base Address Register    */
+#define FLASH_CR		0x54000018		/* Control Register                       */
+#define FLASH_SR		0x5400001C		/* Status Register                        */
+#define FLASH_BCE5ADDR	0x54000020		/* BC Fifth Entry Target Address Register */
+
+
+struct str9x_flash_bank
+{
+	uint32_t *sector_bits;
+	int variant;
+	int bank1;
+	struct working_area *write_algorithm;
+};
+
+enum str9x_status_codes
+{
+	STR9X_CMD_SUCCESS = 0,
+	STR9X_INVALID_COMMAND = 1,
+	STR9X_SRC_ADDR_ERROR = 2,
+	STR9X_DST_ADDR_ERROR = 3,
+	STR9X_SRC_ADDR_NOT_MAPPED = 4,
+	STR9X_DST_ADDR_NOT_MAPPED = 5,
+	STR9X_COUNT_ERROR = 6,
+	STR9X_INVALID_SECTOR = 7,
+	STR9X_SECTOR_NOT_BLANK = 8,
+	STR9X_SECTOR_NOT_PREPARED = 9,
+	STR9X_COMPARE_ERROR = 10,
+	STR9X_BUSY = 11
+};
 
 static uint32_t bank1start = 0x00080000;
 
