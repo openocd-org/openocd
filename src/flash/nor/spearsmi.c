@@ -39,7 +39,6 @@
 #endif
 
 #include "imp.h"
-#include "spearsmi.h"
 #include <jtag/jtag.h>
 #include <helper/time_support.h>
 
@@ -125,6 +124,14 @@
 #define SMI_CMD_TIMEOUT   (100)
 #define SMI_PROBE_TIMEOUT (100)
 #define SMI_MAX_TIMEOUT  (3000)
+
+struct spearsmi_flash_bank
+{
+	int probed;
+	uint32_t io_base;
+	uint32_t bank_num;
+	struct flash_device *dev;
+};
 
 /* data structure to maintain flash ids from different vendors */
 struct flash_device {
