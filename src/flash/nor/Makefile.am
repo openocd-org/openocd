@@ -37,7 +37,6 @@ noinst_HEADERS = \
 	cfi.h \
 	driver.h \
 	imp.h \
-	lpc2000.h \
 	lpc288x.h \
 	non_cfi.h \
 	ocl.h \
