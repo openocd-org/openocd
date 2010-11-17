@@ -21,13 +21,26 @@
 #include "config.h"
 #endif
 
-#include "tms470.h"
 #include "imp.h"
 
 
 /* ----------------------------------------------------------------------
                       Internal Support, Helpers
    ---------------------------------------------------------------------- */
+
+struct tms470_flash_bank
+{
+	unsigned ordinal;
+
+	/* device identification register */
+	uint32_t device_ident_reg;
+	uint32_t silicon_version;
+	uint32_t technology_family;
+	uint32_t rom_flash;
+	uint32_t part_number;
+	char * part_name;
+
+};
 
 static const struct flash_sector TMS470R1A256_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},

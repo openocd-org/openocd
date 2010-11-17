@@ -38,7 +38,6 @@ noinst_HEADERS = \
 	driver.h \
 	imp.h \
 	non_cfi.h \
-	ocl.h \
-	tms470.h
+	ocl.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
