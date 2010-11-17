@@ -42,8 +42,6 @@
 #include <jtag/jtag.h>
 #include <helper/time_support.h>
 
-#define JTAG_ID_3XX_6XX  (0x07926041)
-
 #define SMI_READ_REG(a) (_SMI_READ_REG(a))
 #define _SMI_READ_REG(a)        	\
 {	                                \
@@ -83,12 +81,6 @@
 #define SMI_CLEAR_TFF()		SMI_WRITE_REG(SMI_SR, ~SMI_TFF)
 
 #define SMI_BANK_SIZE      (0x01000000)
-
-#define SMI_BASE_3XX_6XX   (0xf8000000)
-#define SMI_CFGREG_3XX_6XX (0xfc000000)
-
-/* #define SMI_BASE_13XX      (0xe6000000) */
-/* #define SMI_CFGREG_13XX    (0xea000000) */
 
 #define SMI_CR1 (0x00) /* Control register 1 */
 #define SMI_CR2 (0x04) /* Control register 2 */
@@ -190,6 +182,20 @@ static struct flash_device flash_devices[] = {
 	FLASH_ID("mac 25l3205",    0xd8, 0x001620c2, 0x100, 0x10000, 0x400000),
 	FLASH_ID("mac 25l6405",    0xd8, 0x001720c2, 0x100, 0x10000, 0x800000),
 	FLASH_ID(NULL,             0,    0,          0,     0,       0)
+};
+
+struct spearsmi_target {
+	char *name;
+	uint32_t tap_idcode;
+	uint32_t smi_base;
+	uint32_t io_base;
+};
+
+static struct spearsmi_target target_devices[] = {
+	/* name,          tap_idcode, smi_base,   io_base */
+	{ "SPEAr3xx/6xx", 0x07926041, 0xf8000000, 0xfc000000 },
+	{ "STR75x",       0x4f1f0041, 0x80000000, 0x90000000 },
+	{ NULL,           0,          0,          0 }
 };
 
 FLASH_BANK_COMMAND_HANDLER(spearsmi_flash_bank_command)
@@ -602,44 +608,46 @@ static int spearsmi_probe(struct flash_bank *bank)
 	uint32_t io_base;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
+	struct spearsmi_target *target_device;
 	int retval;
 
 	if (spearsmi_info->probed)
 		free(bank->sectors);
 	spearsmi_info->probed = 0;
 
-	/* check for SPEAr device */
-	switch (target->tap->idcode)
-	{
-		case JTAG_ID_3XX_6XX:
-			/* SPEAr3xx/6xx */
-			spearsmi_info->io_base = SMI_CFGREG_3XX_6XX;
-			switch (bank->base)
-			{
-				case SMI_BASE_3XX_6XX:
-					spearsmi_info->bank_num = SMI_SEL_BANK0;
-					break;
-				case SMI_BASE_3XX_6XX + SMI_BANK_SIZE:
-					spearsmi_info->bank_num = SMI_SEL_BANK1;
-					break;
-				case SMI_BASE_3XX_6XX + 2*SMI_BANK_SIZE:
-					spearsmi_info->bank_num = SMI_SEL_BANK2;
-					break;
-				case SMI_BASE_3XX_6XX + 3*SMI_BANK_SIZE:
-					spearsmi_info->bank_num = SMI_SEL_BANK3;
-					break;
-				default:
-					LOG_ERROR("Invalid base address 0x%" PRIx32, bank->base);
-					return ERROR_FAIL;
-			}
+	for (target_device=target_devices ; target_device->name ; ++target_device)
+		if (target_device->tap_idcode == target->tap->idcode)
 			break;
-
-		default:
-			LOG_ERROR("0x%" PRIx32 " is invalid id for SPEAr device",
+	if (!target_device->name)
+	{
+		LOG_ERROR("Device ID 0x%" PRIx32 " is not known as SMI capable",
 				target->tap->idcode);
+		return ERROR_FAIL;
+	}
+
+	switch (bank->base - target_device->smi_base)
+	{
+		case 0:
+			spearsmi_info->bank_num = SMI_SEL_BANK0;
+			break;
+		case SMI_BANK_SIZE:
+			spearsmi_info->bank_num = SMI_SEL_BANK1;
+			break;
+		case 2*SMI_BANK_SIZE:
+			spearsmi_info->bank_num = SMI_SEL_BANK2;
+			break;
+		case 3*SMI_BANK_SIZE:
+			spearsmi_info->bank_num = SMI_SEL_BANK3;
+			break;
+		default:
+			LOG_ERROR("Invalid SMI base address 0x%" PRIx32, bank->base);
 			return ERROR_FAIL;
 	}
-	io_base = spearsmi_info->io_base;
+	io_base = target_device->io_base;
+	spearsmi_info->io_base = io_base;
+
+	LOG_DEBUG("Valid SMI on device %s at address 0x%" PRIx32,
+		target_device->name, bank->base);
 
 	/* read and decode flash ID; returns in SW mode */
 	retval = read_flash_id(bank, &id);
