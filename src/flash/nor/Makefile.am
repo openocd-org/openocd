@@ -33,7 +33,6 @@ NOR_DRIVERS = \
 	virtual.c
 
 noinst_HEADERS = \
-	avrf.h \
 	core.h \
 	cfi.h \
 	driver.h \

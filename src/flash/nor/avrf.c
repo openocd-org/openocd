@@ -22,7 +22,6 @@
 #endif
 
 #include "imp.h"
-#include "avrf.h"
 #include <target/avrt.h>
 
 
@@ -49,6 +48,22 @@
 #define AVR_JTAG_REG_ProgrammingEnable_Len			16
 #define AVR_JTAG_REG_ProgrammingCommand_Len			15
 #define AVR_JTAG_REG_FlashDataByte_Len				16
+
+struct avrf_type
+{
+	char name[15];
+	uint16_t chip_id;
+	int flash_page_size;
+	int flash_page_num;
+	int eeprom_page_size;
+	int eeprom_page_num;
+};
+
+struct avrf_flash_bank
+{
+	int ppage_size;
+	int probed;
+};
 
 static struct avrf_type avft_chips_info[] =
 {
