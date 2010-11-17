@@ -62,7 +62,6 @@
 
 
 #include "imp.h"
-#include "at91sam3.h"
 #include <helper/time_support.h>
 
 #define REG_NAME_WIDTH  (12)
@@ -98,6 +97,8 @@
 #define  offset_EFC_FSR   8
 #define  offset_EFC_FRR   12
 
+
+struct flash_driver at91sam3_flash;
 
 static float
 _tomhz(uint32_t freq_hz)
