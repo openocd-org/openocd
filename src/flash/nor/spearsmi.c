@@ -647,6 +647,7 @@ static int spearsmi_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
+	spearsmi_info->dev = NULL;
 	for (struct flash_device *p = flash_devices; p->name ; p++)
 		if (p->device_id == id) {
 			spearsmi_info->dev = p;
