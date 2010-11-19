@@ -22,6 +22,6 @@ AC_CONFIG_SUBDIRS([$1])
 
 m4_ifblank([$2], [rm -f $srcdir/$1/configure.gnu],
 [printf "#!/bin/sh
-"\$"SHELL "../$srcdir/$1/configure" $2 "\$"@" > "$srcdir/$1/configure.gnu"
+"\$"SHELL "../$srcdir/$1/configure" $2 \""\$"@"\" > "$srcdir/$1/configure.gnu"
 ])
 ])
