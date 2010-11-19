@@ -4,6 +4,8 @@ AC_INIT([openocd], [0.5.0-dev],
 AC_CONFIG_SRCDIR([src/openocd.c])
 AC_CONFIG_AUX_DIR([.])
 
+m4_include(config_subdir.m4)dnl
+
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
 AM_MAINTAINER_MODE
 
@@ -763,7 +765,7 @@ fi
 
 if test "$use_internal_jimtcl" = yes; then
   if test -f "$srcdir/jimtcl/configure.ac"; then
-    AC_CONFIG_SUBDIRS([jimtcl])
+    AX_CONFIG_SUBDIR_OPTION(jimtcl, --with-jim-ext=nvp)
   else
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
   fi
