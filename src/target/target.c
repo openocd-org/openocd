@@ -4964,9 +4964,10 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	if (image_open(&image, CMD_ARGV[0], (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL) != ERROR_OK)
+	retval = image_open(&image, CMD_ARGV[0], (CMD_ARGC >= 3) ? CMD_ARGV[2] : NULL);
+	if (retval != ERROR_OK)
 	{
-		return ERROR_OK;
+		return retval;
 	}
 
 	image_size = 0x0;
@@ -4975,6 +4976,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	fastload = (struct FastLoad *)malloc(sizeof(struct FastLoad)*image.num_sections);
 	if (fastload == NULL)
 	{
+		command_print(CMD_CTX, "out of memory");
 		image_close(&image);
 		return ERROR_FAIL;
 	}
@@ -4986,6 +4988,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 		{
 			command_print(CMD_CTX, "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
+			retval = ERROR_FAIL;
 			break;
 		}
 
@@ -5021,6 +5024,9 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 			if (fastload[i].data == NULL)
 			{
 				free(buffer);
+				command_print(CMD_CTX, "error allocating buffer for section (%d bytes)",
+							  length);
+				retval = ERROR_FAIL;
 				break;
 			}
 			memcpy(fastload[i].data, buffer + offset, length);
@@ -5075,14 +5081,18 @@ COMMAND_HANDLER(handle_fast_load_command)
 		command_print(CMD_CTX, "Write to 0x%08x, length 0x%08x",
 					  (unsigned int)(fastload[i].address),
 					  (unsigned int)(fastload[i].length));
-		if (retval == ERROR_OK)
+		retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data);
+		if (retval != ERROR_OK)
 		{
-			retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data);
+			break;
 		}
 		size += fastload[i].length;
 	}
-	int after = timeval_ms();
-	command_print(CMD_CTX, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
+	if (retval == ERROR_OK)
+	{
+		int after = timeval_ms();
+		command_print(CMD_CTX, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
+	}
 	return retval;
 }
 
