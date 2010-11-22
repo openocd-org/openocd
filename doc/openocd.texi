@@ -124,7 +124,7 @@ different messaging protocols on top of that signaling).  There
 are many types of debug adapter, and little uniformity in what
 they are called.  (There are also product naming differences.)
 
-These adapters are sometimes packaged as discrete dongles. which
+These adapters are sometimes packaged as discrete dongles, which
 may generically be called @dfn{hardware interface dongles}.
 Some development boards also integrate them directly, which may
 let the development board can be directly connected to the debug
