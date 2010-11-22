@@ -379,7 +379,7 @@ int default_flash_blank_check(struct flash_bank *bank)
  * sectors will be added to the range, and that reason string is used when
  * warning about those additions.
  */
-static int flash_iterate_address_range(struct target *target,
+static int flash_iterate_address_range_inner(struct target *target,
 		char *pad_reason, uint32_t addr, uint32_t length,
 		int (*callback)(struct flash_bank *bank, int first, int last))
 {
@@ -496,6 +496,43 @@ static int flash_iterate_address_range(struct target *target,
 	 * blocks such optimizations.
 	 */
 	return callback(c, first, last);
+}
+
+/* The inner fn only handles a single bank, we could be spanning
+ * multiple chips.
+ */
+static int flash_iterate_address_range(struct target *target,
+		char *pad_reason, uint32_t addr, uint32_t length,
+		int (*callback)(struct flash_bank *bank, int first, int last))
+{
+	struct flash_bank *c;
+	int retval = ERROR_OK;
+
+	/* Danger! zero-length iterations means entire bank! */
+	do
+	{
+		retval = get_flash_bank_by_addr(target, addr, true, &c);
+		if (retval != ERROR_OK)
+			return retval;
+
+		uint32_t cur_length = length;
+		/* check whether it all fits in this bank */
+		if (addr + length - 1 > c->base + c->size - 1)
+		{
+			LOG_DEBUG("iterating over more than one flash bank.");
+			cur_length = c->base + c->size - addr;
+		}
+		retval = flash_iterate_address_range_inner(target,
+				pad_reason, addr, cur_length,
+				callback);
+		if (retval != ERROR_OK)
+			break;
+
+		length -= cur_length;
+		addr += cur_length;
+	} while (length > 0);
+
+	return retval;
 }
 
 int flash_erase_address_range(struct target *target,
