@@ -21,7 +21,7 @@ NOR_DRIVERS = \
 	non_cfi.c \
 	ocl.c \
 	pic32mx.c \
-	spearsmi.c \
+	stmsmi.c \
 	stellaris.c \
 	stm32x.c \
 	str7x.c \
