@@ -17,7 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/* SPEAr Serial Memory Interface (SMI) controller is a SPI bus controller
+/* STM Serial Memory Interface (SMI) controller is a SPI bus controller
  * specifically designed for SPI memories.
  * Only SPI "mode 3" (CPOL=1 and CPHA=1) is supported.
  * Two working modes are available:
@@ -117,7 +117,7 @@
 #define SMI_PROBE_TIMEOUT (100)
 #define SMI_MAX_TIMEOUT  (3000)
 
-struct spearsmi_flash_bank
+struct stmsmi_flash_bank
 {
 	int probed;
 	uint32_t io_base;
@@ -184,41 +184,41 @@ static struct flash_device flash_devices[] = {
 	FLASH_ID(NULL,             0,    0,          0,     0,       0)
 };
 
-struct spearsmi_target {
+struct stmsmi_target {
 	char *name;
 	uint32_t tap_idcode;
 	uint32_t smi_base;
 	uint32_t io_base;
 };
 
-static struct spearsmi_target target_devices[] = {
+static struct stmsmi_target target_devices[] = {
 	/* name,          tap_idcode, smi_base,   io_base */
 	{ "SPEAr3xx/6xx", 0x07926041, 0xf8000000, 0xfc000000 },
 	{ "STR75x",       0x4f1f0041, 0x80000000, 0x90000000 },
 	{ NULL,           0,          0,          0 }
 };
 
-FLASH_BANK_COMMAND_HANDLER(spearsmi_flash_bank_command)
+FLASH_BANK_COMMAND_HANDLER(stmsmi_flash_bank_command)
 {
-	struct spearsmi_flash_bank *spearsmi_info;
+	struct stmsmi_flash_bank *stmsmi_info;
 
 	LOG_DEBUG(__FUNCTION__);
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank spearsmi configuration");
+		LOG_WARNING("incomplete flash_bank stmsmi configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	spearsmi_info = malloc(sizeof(struct spearsmi_flash_bank));
-	if (spearsmi_info == NULL)
+	stmsmi_info = malloc(sizeof(struct stmsmi_flash_bank));
+	if (stmsmi_info == NULL)
 	{
 		LOG_ERROR("not enough memory");
 		return ERROR_FAIL;
 	}
 
-	bank->driver_priv = spearsmi_info;
-	spearsmi_info->probed = 0;
+	bank->driver_priv = stmsmi_info;
+	stmsmi_info->probed = 0;
 
 	return ERROR_OK;
 }
@@ -249,14 +249,14 @@ static int poll_tff(struct target *target, uint32_t io_base, int timeout)
 static int read_status_reg(struct flash_bank *bank, uint32_t *status)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 
 	/* clear transmit finished flag */
 	SMI_CLEAR_TFF();
 
 	/* Read status */
-	SMI_WRITE_REG(SMI_CR2, spearsmi_info->bank_num | SMI_RSR);
+	SMI_WRITE_REG(SMI_CR2, stmsmi_info->bank_num | SMI_RSR);
 
 	/* Poll transmit finished flag */
 	SMI_POLL_TFF(SMI_CMD_TIMEOUT);
@@ -302,8 +302,8 @@ static int wait_till_ready(struct flash_bank *bank, int timeout)
 static int smi_write_enable(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 	uint32_t status;
 	int retval;
 
@@ -314,7 +314,7 @@ static int smi_write_enable(struct flash_bank *bank)
 	SMI_CLEAR_TFF();
 
 	/* Send write enable command */
-	SMI_WRITE_REG(SMI_CR2, spearsmi_info->bank_num | SMI_WE);
+	SMI_WRITE_REG(SMI_CR2, stmsmi_info->bank_num | SMI_WE);
 
 	/* Poll transmit finished flag */
 	SMI_POLL_TFF(SMI_CMD_TIMEOUT);
@@ -334,7 +334,7 @@ static int smi_write_enable(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static uint32_t erase_command(struct spearsmi_flash_bank *spearsmi_info,
+static uint32_t erase_command(struct stmsmi_flash_bank *stmsmi_info,
 	uint32_t offset)
 {
 	union {
@@ -342,7 +342,7 @@ static uint32_t erase_command(struct spearsmi_flash_bank *spearsmi_info,
 		uint8_t x[4];
 	} cmd;
 
-	cmd.x[0] = spearsmi_info->dev->erase_cmd;
+	cmd.x[0] = stmsmi_info->dev->erase_cmd;
 	cmd.x[1] = offset >> 16;
 	cmd.x[2] = offset >> 8;
 	cmd.x[3] = offset;
@@ -353,8 +353,8 @@ static uint32_t erase_command(struct spearsmi_flash_bank *spearsmi_info,
 static int smi_erase_sector(struct flash_bank *bank, int sector)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 	uint32_t cmd;
 	int retval;
 
@@ -369,9 +369,9 @@ static int smi_erase_sector(struct flash_bank *bank, int sector)
 	SMI_CLEAR_TFF();
 
 	/* send SPI command "block erase" */
-	cmd = erase_command(spearsmi_info, bank->sectors[sector].offset);
+	cmd = erase_command(stmsmi_info, bank->sectors[sector].offset);
 	SMI_WRITE_REG(SMI_TR, cmd);
-	SMI_WRITE_REG(SMI_CR2, spearsmi_info->bank_num | SMI_SEND | SMI_TX_LEN_4);
+	SMI_WRITE_REG(SMI_CR2, stmsmi_info->bank_num | SMI_SEND | SMI_TX_LEN_4);
 
 	/* Poll transmit finished flag */
 	SMI_POLL_TFF(SMI_CMD_TIMEOUT);
@@ -384,11 +384,11 @@ static int smi_erase_sector(struct flash_bank *bank, int sector)
 	return ERROR_OK;
 }
 
-static int spearsmi_erase(struct flash_bank *bank, int first, int last)
+static int stmsmi_erase(struct flash_bank *bank, int first, int last)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 	int retval = ERROR_OK;
 	int sector;
 
@@ -406,7 +406,7 @@ static int spearsmi_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
-	if (!(spearsmi_info->probed))
+	if (!(stmsmi_info->probed))
 	{
 		LOG_ERROR("Flash bank not probed");
 		return ERROR_FLASH_BANK_NOT_PROBED;
@@ -434,7 +434,7 @@ static int spearsmi_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int spearsmi_protect(struct flash_bank *bank, int set,
+static int stmsmi_protect(struct flash_bank *bank, int set,
 	int first, int last)
 {
 	int sector;
@@ -448,8 +448,8 @@ static int smi_write_buffer(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t address, uint32_t len)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 	int retval;
 
 	LOG_DEBUG("%s: address=0x%08" PRIx32 " len=0x%08" PRIx32,
@@ -469,12 +469,12 @@ static int smi_write_buffer(struct flash_bank *bank, uint8_t *buffer,
 	return ERROR_OK;
 }
 
-static int spearsmi_write(struct flash_bank *bank, uint8_t *buffer,
+static int stmsmi_write(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 	uint32_t cur_count, page_size, page_offset;
 	int sector;
 	int retval = ERROR_OK;
@@ -488,10 +488,10 @@ static int spearsmi_write(struct flash_bank *bank, uint8_t *buffer,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset + count > spearsmi_info->dev->size_in_bytes)
+	if (offset + count > stmsmi_info->dev->size_in_bytes)
 	{
 		LOG_WARNING("Write pasts end of flash. Extra data discarded.");
-		count = spearsmi_info->dev->size_in_bytes - offset;
+		count = stmsmi_info->dev->size_in_bytes - offset;
 	}
 
 	/* Check sector protection */
@@ -509,7 +509,7 @@ static int spearsmi_write(struct flash_bank *bank, uint8_t *buffer,
 		}
 	}
 
-	page_size = spearsmi_info->dev->pagesize;
+	page_size = stmsmi_info->dev->pagesize;
 
 	/* unaligned buffer head */
 	if (count > 0 && (offset & 3) != 0)
@@ -564,8 +564,8 @@ err:
 static int read_flash_id(struct flash_bank *bank, uint32_t *id)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	uint32_t io_base = spearsmi_info->io_base;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	uint32_t io_base = stmsmi_info->io_base;
 	int retval;
 
 	if (target->state != TARGET_HALTED)
@@ -588,7 +588,7 @@ static int read_flash_id(struct flash_bank *bank, uint32_t *id)
 	/* Send SPI command "read ID" */
 	SMI_WRITE_REG(SMI_TR, SMI_READ_ID);
 	SMI_WRITE_REG(SMI_CR2,
-		spearsmi_info->bank_num | SMI_SEND | SMI_RX_LEN_3 | SMI_TX_LEN_1);
+		stmsmi_info->bank_num | SMI_SEND | SMI_RX_LEN_3 | SMI_TX_LEN_1);
 
 	/* Poll transmit finished flag */
 	SMI_POLL_TFF(SMI_CMD_TIMEOUT);
@@ -601,19 +601,19 @@ static int read_flash_id(struct flash_bank *bank, uint32_t *id)
 	return ERROR_OK;
 }
 
-static int spearsmi_probe(struct flash_bank *bank)
+static int stmsmi_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
 	uint32_t io_base;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
-	struct spearsmi_target *target_device;
+	struct stmsmi_target *target_device;
 	int retval;
 
-	if (spearsmi_info->probed)
+	if (stmsmi_info->probed)
 		free(bank->sectors);
-	spearsmi_info->probed = 0;
+	stmsmi_info->probed = 0;
 
 	for (target_device=target_devices ; target_device->name ; ++target_device)
 		if (target_device->tap_idcode == target->tap->idcode)
@@ -628,23 +628,23 @@ static int spearsmi_probe(struct flash_bank *bank)
 	switch (bank->base - target_device->smi_base)
 	{
 		case 0:
-			spearsmi_info->bank_num = SMI_SEL_BANK0;
+			stmsmi_info->bank_num = SMI_SEL_BANK0;
 			break;
 		case SMI_BANK_SIZE:
-			spearsmi_info->bank_num = SMI_SEL_BANK1;
+			stmsmi_info->bank_num = SMI_SEL_BANK1;
 			break;
 		case 2*SMI_BANK_SIZE:
-			spearsmi_info->bank_num = SMI_SEL_BANK2;
+			stmsmi_info->bank_num = SMI_SEL_BANK2;
 			break;
 		case 3*SMI_BANK_SIZE:
-			spearsmi_info->bank_num = SMI_SEL_BANK3;
+			stmsmi_info->bank_num = SMI_SEL_BANK3;
 			break;
 		default:
 			LOG_ERROR("Invalid SMI base address 0x%" PRIx32, bank->base);
 			return ERROR_FAIL;
 	}
 	io_base = target_device->io_base;
-	spearsmi_info->io_base = io_base;
+	stmsmi_info->io_base = io_base;
 
 	LOG_DEBUG("Valid SMI on device %s at address 0x%" PRIx32,
 		target_device->name, bank->base);
@@ -655,28 +655,28 @@ static int spearsmi_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	spearsmi_info->dev = NULL;
+	stmsmi_info->dev = NULL;
 	for (struct flash_device *p = flash_devices; p->name ; p++)
 		if (p->device_id == id) {
-			spearsmi_info->dev = p;
+			stmsmi_info->dev = p;
 			break;
 		}
 
-	if (!spearsmi_info->dev)
+	if (!stmsmi_info->dev)
 	{
 		LOG_ERROR("Unknown flash device (ID 0x%08" PRIx32 ")", id);
 		return ERROR_FAIL;
 	}
 
 	LOG_INFO("Found flash device \'%s\' (ID 0x%08" PRIx32 ")",
-		spearsmi_info->dev->name, spearsmi_info->dev->device_id);
+		stmsmi_info->dev->name, stmsmi_info->dev->device_id);
 
 	/* Set correct size value */
-	bank->size = spearsmi_info->dev->size_in_bytes;
+	bank->size = stmsmi_info->dev->size_in_bytes;
 
 	/* create and fill sectors array */
 	bank->num_sectors =
-		spearsmi_info->dev->size_in_bytes / spearsmi_info->dev->sectorsize;
+		stmsmi_info->dev->size_in_bytes / stmsmi_info->dev->sectorsize;
 	sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	if (sectors == NULL)
 	{
@@ -686,62 +686,62 @@ static int spearsmi_probe(struct flash_bank *bank)
 
 	for (int sector = 0; sector < bank->num_sectors; sector++)
 	{
-		sectors[sector].offset = sector * spearsmi_info->dev->sectorsize;
-		sectors[sector].size = spearsmi_info->dev->sectorsize;
+		sectors[sector].offset = sector * stmsmi_info->dev->sectorsize;
+		sectors[sector].size = stmsmi_info->dev->sectorsize;
 		sectors[sector].is_erased = -1;
 		sectors[sector].is_protected = 1;
 	}
 
 	bank->sectors = sectors;
-	spearsmi_info->probed = 1;
+	stmsmi_info->probed = 1;
 	return ERROR_OK;
 }
 
-static int spearsmi_auto_probe(struct flash_bank *bank)
+static int stmsmi_auto_probe(struct flash_bank *bank)
 {
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
-	if (spearsmi_info->probed)
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
+	if (stmsmi_info->probed)
 		return ERROR_OK;
-	return spearsmi_probe(bank);
+	return stmsmi_probe(bank);
 }
 
-static int spearsmi_protect_check(struct flash_bank *bank)
+static int stmsmi_protect_check(struct flash_bank *bank)
 {
 	/* Nothing to do. Protection is only handled in SW. */
 	return ERROR_OK;
 }
 
-static int get_spearsmi_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_stmsmi_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	struct spearsmi_flash_bank *spearsmi_info = bank->driver_priv;
+	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
 	int printed;
 
-	if (!(spearsmi_info->probed))
+	if (!(stmsmi_info->probed))
 	{
 		printed = snprintf(buf, buf_size,
-			"\nSPEAr SMI flash bank not probed yet\n");
+			"\nSMI flash bank not probed yet\n");
 		return ERROR_OK;
 	}
 
-	printed = snprintf(buf, buf_size, "\nSPEAr SMI flash information:\n"
+	printed = snprintf(buf, buf_size, "\nSMI flash information:\n"
 		"  Device \'%s\' (ID 0x%08x)\n",
-		spearsmi_info->dev->name, spearsmi_info->dev->device_id);
+		stmsmi_info->dev->name, stmsmi_info->dev->device_id);
 	buf += printed;
 	buf_size -= printed;
 
 	return ERROR_OK;
 }
 
-struct flash_driver spearsmi_flash = {
-	.name = "spearsmi",
-	.flash_bank_command = spearsmi_flash_bank_command,
-	.erase = spearsmi_erase,
-	.protect = spearsmi_protect,
-	.write = spearsmi_write,
+struct flash_driver stmsmi_flash = {
+	.name = "stmsmi",
+	.flash_bank_command = stmsmi_flash_bank_command,
+	.erase = stmsmi_erase,
+	.protect = stmsmi_protect,
+	.write = stmsmi_write,
 	.read = default_flash_read,
-	.probe = spearsmi_probe,
-	.auto_probe = spearsmi_auto_probe,
+	.probe = stmsmi_probe,
+	.auto_probe = stmsmi_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = spearsmi_protect_check,
-	.info = get_spearsmi_info,
+	.protect_check = stmsmi_protect_check,
+	.info = get_stmsmi_info,
 };
