@@ -485,7 +485,7 @@ AC_ARG_ENABLE(minidriver_dummy,
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
 
 AC_ARG_ENABLE(internal-jimtcl,
-  AS_HELP_STRING([--enable-internal-jimtcl], [Enable internal jimtcl]),
+  AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
   [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
 
 build_minidriver=no
