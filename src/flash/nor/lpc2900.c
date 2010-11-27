@@ -132,6 +132,11 @@
 struct lpc2900_flash_bank
 {
 	/**
+	 * This flag is set when the device has been successfully probed.
+	 */
+	bool is_probed;
+
+	/**
 	 * Holds the value read from CHIPID register.
 	 * The driver will not load if the chipid doesn't match the expected
 	 * value of 0x209CE02B of the LPC2900 family. A probe will only be done
@@ -255,7 +260,7 @@ static uint32_t lpc2900_is_ready( struct flash_bank *bank )
 {
 	struct lpc2900_flash_bank *lpc2900_info = bank->driver_priv;
 
-	if( lpc2900_info->chipid != EXPECTED_CHIPID )
+	if( !lpc2900_info->is_probed )
 	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
@@ -512,8 +517,6 @@ static uint32_t lpc2900_calc_tr( uint32_t clock_var, uint32_t time_var )
 	/*           ((time[µs]/1e6) * f[Hz]) + 511
 	 * FPTR.TR = -------------------------------
 	 *                         512
-	 *
-	 * The result is the
 	 */
 
 	uint32_t tr_val = (uint32_t)((((time_var / 1e6) * clock_var) + 511.0) / 512.0);
@@ -1050,6 +1053,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 
 	/* Chip ID will be obtained by probing the device later */
 	lpc2900_info->chipid = 0;
+	lpc2900_info->is_probed = false;
 
 	return ERROR_OK;
 }
@@ -1554,10 +1558,8 @@ static int lpc2900_probe(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* We want to do this only once. Check if we already have a valid CHIPID,
-	 * because then we will have already successfully probed the device.
-	 */
-	if (lpc2900_info->chipid == EXPECTED_CHIPID)
+	/* We want to do this only once. */
+	if (lpc2900_info->is_probed)
 	{
 		return ERROR_OK;
 	}
@@ -1722,6 +1724,8 @@ static int lpc2900_probe(struct flash_bank *bank)
 
 		offset += bank->sectors[i].size;
 	}
+
+	lpc2900_info->is_probed = true;
 
 	/* Read sector security status */
 	if ( lpc2900_read_security_status(bank) != ERROR_OK )
