@@ -189,6 +189,7 @@ static int signalyzer_h_init(void);
 static int ktlink_init(void);
 static int redbee_init(void);
 static int lisa_l_init(void);
+static int flossjtag_init(void);
 
 /* reset procedures for supported layouts */
 static void ftx23_reset(int trst, int srst);
@@ -212,6 +213,7 @@ static void turtle_jtag_blink(void);
 static void signalyzer_h_blink(void);
 static void ktlink_blink(void);
 static void lisa_l_blink(void);
+static void flossjtag_blink(void);
 
 /* common transport support options */
 
@@ -310,6 +312,11 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.reset = ftx23_reset,
 		.blink = lisa_l_blink,
 		.channel = INTERFACE_B,
+	},
+	{ .name = "flossjtag",
+		.init = flossjtag_init,
+		.reset = ftx23_reset,
+		.blink = flossjtag_blink,
 	},
 	{ .name = NULL, /* END OF TABLE */ },
 };
@@ -3134,6 +3141,37 @@ static int lisa_l_init(void)
 
 	return ftx232_dbus_write();
 }
+
+static int flossjtag_init(void)
+{
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+
+	ftx232_dbus_init();
+
+	nTRST    = 0x10;
+	nTRSTnOE = 0x10;
+	nSRST    = 0x40;
+	nSRSTnOE = 0x40;
+
+	high_output = 0x00;
+	high_direction = 0x18;
+
+	/* initialize high port */
+	buf[0] = 0x82; /* command "set data bits high byte" */
+	buf[1] = high_output;
+	buf[2] = high_direction;
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'Floss-JTAG' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ftx232_dbus_write();
+}
+
 static void olimex_jtag_blink(void)
 {
 	/* Olimex ARM-USB-OCD has a LED connected to ACBUS3
@@ -3190,6 +3228,25 @@ static void lisa_l_blink(void)
 {
 	/*
 	 * Lisa/L has two LEDs connected to BCBUS3 and ACBUS4
+	 */
+	if (high_output & 0x10)
+	{
+		high_output = 0x08;
+	}
+	else
+	{
+		high_output = 0x10;
+	}
+
+	buffer_write(0x82);
+	buffer_write(high_output);
+	buffer_write(high_direction);
+}
+
+static void flossjtag_blink(void)
+{
+	/*
+	 * Floss-JTAG has two LEDs connected to ACBUS3 and ACBUS4
 	 */
 	if (high_output & 0x10)
 	{
