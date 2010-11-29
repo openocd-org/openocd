@@ -3113,10 +3113,6 @@ static int lisa_l_init(void)
 	uint8_t  buf[3];
 	uint32_t bytes_written;
 
-	/*
-	 * NOTE:  This is now _specific_ to the "usbjtag" layout.
-	 * Don't try cram any more layouts into this.
-	 */
 	ftx232_dbus_init();
 
 	nTRST    = 0x10;
@@ -3227,7 +3223,7 @@ static void turtle_jtag_blink(void)
 static void lisa_l_blink(void)
 {
 	/*
-	 * Lisa/L has two LEDs connected to BCBUS3 and ACBUS4
+	 * Lisa/L has two LEDs connected to BCBUS3 and BCBUS4
 	 */
 	if (high_output & 0x10)
 	{
