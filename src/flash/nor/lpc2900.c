@@ -1676,7 +1676,11 @@ static int lpc2900_probe(struct flash_bank *bank)
 
 	if ( !found )
 	{
-		LOG_WARNING("Unknown LPC29xx derivative");
+		LOG_WARNING("Unknown LPC29xx derivative"
+		            " (FEATx="
+		            "%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32 ":%08" PRIx32 ")",
+					feat0, feat1, feat2, feat3
+					);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
