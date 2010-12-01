@@ -1638,7 +1638,11 @@ static int lpc2900_probe(struct flash_bank *bank)
 		else if ( package_code == 4 )
 		{
 			/* 144-pin package */
-			if ( (bank->size == 512*KiB) && (feat3 == 0xFFFFFCF0) )
+			if ( (bank->size == 256*KiB) && (feat3 == 0xFFFFFFE9) )
+			{
+				lpc2900_info->target_name = "LPC2926";
+			}
+			else if ( (bank->size == 512*KiB) && (feat3 == 0xFFFFFCF0) )
 			{
 				lpc2900_info->target_name = "LPC2917/01";
 			}
