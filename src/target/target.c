@@ -3077,7 +3077,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 
 	int addressSpace = (max-min + 1);
 
-	static const uint32_t maxBuckets = 256 * 1024; /* maximum buckets. */
+	static const uint32_t maxBuckets = 16 * 1024; /* maximum buckets. */
 	uint32_t length = addressSpace;
 	if (length > maxBuckets)
 	{
@@ -3104,7 +3104,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 	writeLong(f, min); 			/* low_pc */
 	writeLong(f, max);			/* high_pc */
 	writeLong(f, length);		/* # of samples */
-	writeLong(f, 64000000); 	/* 64MHz */
+	writeLong(f, 100); 			/* KLUDGE! We lie, ca. 100Hz best case. */
 	writeString(f, "seconds");
 	for (i = 0; i < (15-strlen("seconds")); i++)
 		writeData(f, &zero, 1);
