@@ -136,7 +136,6 @@ struct cortex_m3_dwt_comparator
 
 enum cortex_m3_soft_reset_config
 {
-	CORTEX_M3_RESET_SRST,
 	CORTEX_M3_RESET_SYSRESETREQ,
 	CORTEX_M3_RESET_VECTRESET,
 };

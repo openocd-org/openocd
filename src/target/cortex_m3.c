@@ -927,16 +927,6 @@ static int cortex_m3_assert_reset(struct target *target)
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
-	/*
-	 * We can reset Cortex-M3 targets using just the NVIC without
-	 * requiring SRST, getting a SoC reset (or a core-only reset)
-	 * instead of a system reset.
-	 */
-	if (!(jtag_reset_config & RESET_HAS_SRST) &&
-			(cortex_m3->soft_reset_config == CORTEX_M3_RESET_SRST)) {
-		reset_config = CORTEX_M3_RESET_VECTRESET;
-	}
-
 	/* Enable debug requests */
 	int retval;
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -984,7 +974,7 @@ static int cortex_m3_assert_reset(struct target *target)
 			return retval;
 	}
 
-	if (reset_config == CORTEX_M3_RESET_SRST)
+	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		/* default to asserting srst */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
@@ -1945,7 +1935,7 @@ static int cortex_m3_init_arch_info(struct target *target,
 
 	/* default reset mode is to use srst if fitted
 	 * if not it will use CORTEX_M3_RESET_VECTRESET */
-	cortex_m3->soft_reset_config = CORTEX_M3_RESET_SRST;
+	cortex_m3->soft_reset_config = CORTEX_M3_RESET_VECTRESET;
 
 	armv7m->arm.dap = &armv7m->dap;
 
@@ -2138,16 +2128,10 @@ COMMAND_HANDLER(handle_cortex_m3_reset_config_command)
 			cortex_m3->soft_reset_config = CORTEX_M3_RESET_SYSRESETREQ;
 		else if (strcmp(*CMD_ARGV, "vectreset") == 0)
 			cortex_m3->soft_reset_config = CORTEX_M3_RESET_VECTRESET;
-		else
-			cortex_m3->soft_reset_config = CORTEX_M3_RESET_SRST;
 	}
 
 	switch (cortex_m3->soft_reset_config)
 	{
-		case CORTEX_M3_RESET_SRST:
-			reset_config = "srst";
-			break;
-
 		case CORTEX_M3_RESET_SYSRESETREQ:
 			reset_config = "sysresetreq";
 			break;
