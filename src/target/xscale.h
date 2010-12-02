@@ -71,13 +71,20 @@ struct xscale_trace_data
 	struct xscale_trace_data *next;
 };
 
+enum trace_mode
+{
+   XSCALE_TRACE_DISABLED,
+   XSCALE_TRACE_FILL,
+   XSCALE_TRACE_WRAP
+};
+
 struct xscale_trace
 {
-	trace_status_t capture_status;	/* current state of capture run */
 	struct image *image;					/* source for target opcodes */
 	struct xscale_trace_data *data;		/* linked list of collected trace data */
-	int buffer_enabled;				/* whether trace buffer is enabled */
-	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */
+	int buffer_fill;				/* maximum number of trace runs to read */
+    int fill_counter;				/* running count during trace collection */
+    enum trace_mode mode;
 	enum arm_state core_state;	/* current core state (ARM, Thumb) */
 };
 

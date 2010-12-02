@@ -1044,21 +1044,20 @@ static int xscale_debug_entry(struct target *target)
 	xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (xscale->cp15_control_reg & 0x1000U) ? 1 : 0;
 
 	/* tracing enabled, read collected trace data */
-	if (xscale->trace.buffer_enabled)
+	if (xscale->trace.mode != XSCALE_TRACE_DISABLED)
 	{
 		xscale_read_trace(target);
-		xscale->trace.buffer_fill--;
 
-		/* resume if we're still collecting trace data */
-		if ((xscale->arch_debug_reason == XSCALE_DBG_REASON_TB_FULL)
-			&& (xscale->trace.buffer_fill > 0))
+		/* Resume if entered debug due to buffer fill and we're still collecting
+		 * trace data.  Note that a debug exception due to trace buffer full
+		 * can only happen in fill mode. */
+		if (xscale->arch_debug_reason == XSCALE_DBG_REASON_TB_FULL)
 		{
+		  if (--xscale->trace.fill_counter > 0)
 			xscale_resume(target, 1, 0x0, 1, 0);
 		}
-		else
-		{
-			xscale->trace.buffer_enabled = 0;
-		}
+		else 	/* entered debug for other reason; reset counter */
+		  xscale->trace.fill_counter = 0;
 	}
 
 	return ERROR_OK;
@@ -1162,6 +1161,20 @@ static void xscale_enable_breakpoints(struct target *target)
 	}
 }
 
+static void xscale_free_trace_data(struct xscale_common *xscale)
+{
+   struct xscale_trace_data *td = xscale->trace.data;
+   while (td)
+   {
+	  struct xscale_trace_data *next_td = td->next;
+	  if (td->entries)
+		 free(td->entries);
+	  free(td);
+	  td = next_td;
+   }
+   xscale->trace.data = NULL;
+}
+
 static int xscale_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
@@ -1210,7 +1223,7 @@ static int xscale_resume(struct target *target, int current,
 		if (breakpoint != NULL)
 		{
 			uint32_t next_pc;
-			int saved_trace_buffer_enabled;
+			enum trace_mode saved_trace_mode;
 
 			/* there's a breakpoint at the current PC, we have to step over it */
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
@@ -1253,14 +1266,14 @@ static int xscale_resume(struct target *target, int current,
 					buf_get_u32(armv4_5->pc->value, 0, 32));
 
 			/* disable trace data collection in xscale_debug_entry() */
-			saved_trace_buffer_enabled = xscale->trace.buffer_enabled;
-			xscale->trace.buffer_enabled = 0;
+			saved_trace_mode = xscale->trace.mode;
+			xscale->trace.mode = XSCALE_TRACE_DISABLED;
 
 			/* wait for and process debug entry */
 			xscale_debug_entry(target);
 
 			/* re-enable trace buffer, if enabled previously */
-			xscale->trace.buffer_enabled = saved_trace_buffer_enabled;
+			xscale->trace.mode = saved_trace_mode;
 
 			LOG_DEBUG("disable single-step");
 			xscale_disable_single_step(target);
@@ -1279,8 +1292,21 @@ static int xscale_resume(struct target *target, int current,
 
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
-	if (xscale->trace.buffer_enabled)
+	if (xscale->trace.mode != XSCALE_TRACE_DISABLED)
 	{
+		if (xscale->trace.mode == XSCALE_TRACE_FILL)
+		{
+		   /* If trace enabled in fill mode and starting collection of new set
+			* of buffers, initialize buffer counter and free previous buffers */
+		   if (xscale->trace.fill_counter == 0)
+		   {
+			  xscale->trace.fill_counter = xscale->trace.buffer_fill;
+			  xscale_free_trace_data(xscale);
+		   }
+		}
+		else	 /* wrap mode; free previous buffer */
+		   xscale_free_trace_data(xscale);
+
 		xscale_send_u32(target, 0x62);
 		xscale_send_u32(target, 0x31);
 	}
@@ -1356,7 +1382,7 @@ static int xscale_step_inner(struct target *target, int current,
 
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
-	if (xscale->trace.buffer_enabled)
+	if (xscale->trace.mode != XSCALE_TRACE_DISABLED)
 	{
 		if ((retval = xscale_send_u32(target, 0x62)) != ERROR_OK)
 			return retval;
@@ -1532,6 +1558,9 @@ static int xscale_deassert_reset(struct target *target)
 		}
 		breakpoint = breakpoint->next;
 	}
+
+	xscale->trace.mode = XSCALE_TRACE_DISABLED;
+	xscale_free_trace_data(xscale);
 
 	register_cache_invalidate(xscale->armv4_5_common.core_cache);
 
@@ -3120,11 +3149,11 @@ static int xscale_init_arch_info(struct target *target,
 
 	xscale->vector_catch = 0x1;
 
-	xscale->trace.capture_status = TRACE_IDLE;
 	xscale->trace.data = NULL;
 	xscale->trace.image = NULL;
-	xscale->trace.buffer_enabled = 0;
+	xscale->trace.mode = XSCALE_TRACE_DISABLED;
 	xscale->trace.buffer_fill = 0;
+	xscale->trace.fill_counter = 0;
 
 	/* prepare ARMv4/5 specific information */
 	armv4_5->arch_info = xscale;
@@ -3466,47 +3495,54 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		return ERROR_OK;
 	}
 
-	if ((CMD_ARGC >= 1) && (strcmp("enable", CMD_ARGV[0]) == 0))
+	if (CMD_ARGC >= 1)
 	{
-		struct xscale_trace_data *td, *next_td;
-		xscale->trace.buffer_enabled = 1;
-
-		/* free old trace data */
-		td = xscale->trace.data;
-		while (td)
-		{
-			next_td = td->next;
-
-			if (td->entries)
-				free(td->entries);
-			free(td);
-			td = next_td;
-		}
-		xscale->trace.data = NULL;
-	}
-	else if ((CMD_ARGC >= 1) && (strcmp("disable", CMD_ARGV[0]) == 0))
-	{
-		xscale->trace.buffer_enabled = 0;
+	   if (strcmp("enable", CMD_ARGV[0]) == 0)
+		  xscale->trace.mode = XSCALE_TRACE_WRAP; /* default */
+	   else if (strcmp("disable", CMD_ARGV[0]) == 0)
+		  xscale->trace.mode = XSCALE_TRACE_DISABLED;
+	   else
+		  return ERROR_INVALID_ARGUMENTS;
 	}
 
-	if ((CMD_ARGC >= 2) && (strcmp("fill", CMD_ARGV[1]) == 0))
+	if (CMD_ARGC >= 2 && xscale->trace.mode != XSCALE_TRACE_DISABLED)
 	{
-		uint32_t fill = 1;
-		if (CMD_ARGC >= 3)
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], fill);
-		xscale->trace.buffer_fill = fill;
+	   if (strcmp("fill", CMD_ARGV[1]) == 0)
+	   {
+		  int buffcount = 1;			/* default */
+		  if (CMD_ARGC >= 3)
+			 COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], buffcount);
+		  if (buffcount < 1)			/* invalid */
+		  {
+			 command_print(CMD_CTX, "fill buffer count must be > 0");
+			 xscale->trace.mode = XSCALE_TRACE_DISABLED;
+			 return ERROR_INVALID_ARGUMENTS;
+		  }
+		  xscale->trace.buffer_fill = buffcount;
+		  xscale->trace.mode = XSCALE_TRACE_FILL;
+	   }
+	   else if (strcmp("wrap", CMD_ARGV[1]) == 0)
+		  xscale->trace.mode = XSCALE_TRACE_WRAP;
+	   else
+	   {
+		  xscale->trace.mode = XSCALE_TRACE_DISABLED;
+		  return ERROR_INVALID_ARGUMENTS;
+	   }
 	}
-	else if ((CMD_ARGC >= 2) && (strcmp("wrap", CMD_ARGV[1]) == 0))
+	
+	if (xscale->trace.mode != XSCALE_TRACE_DISABLED)
 	{
-		xscale->trace.buffer_fill = -1;
+	   char fill_string[12];
+	   sprintf(fill_string, "fill %" PRId32, xscale->trace.buffer_fill); 
+	   command_print(CMD_CTX, "trace buffer enabled (%s)",
+					 (xscale->trace.mode == XSCALE_TRACE_FILL)
+					 ? fill_string : "wrap");
 	}
-
-	command_print(CMD_CTX, "trace buffer %s (%s)",
-		(xscale->trace.buffer_enabled) ? "enabled" : "disabled",
-		(xscale->trace.buffer_fill > 0) ? "fill" : "wrap");
-
+	else
+	   command_print(CMD_CTX, "trace buffer disabled");
+	   
 	dcsr_value = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 0, 32);
-	if (xscale->trace.buffer_fill >= 0)
+	if (xscale->trace.mode == XSCALE_TRACE_FILL)
 		xscale_write_dcsr_sw(target, (dcsr_value & 0xfffffffc) | 2);
 	else
 		xscale_write_dcsr_sw(target, dcsr_value & 0xfffffffc);
@@ -3774,7 +3810,7 @@ static const struct command_registration xscale_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "display trace buffer status, enable or disable "
 			"tracing, and optionally reconfigure trace mode",
-		.usage = "['enable'|'disable' ['fill' number|'wrap']]",
+		.usage = "['enable'|'disable' ['fill' [number]|'wrap']]",
 	},
 	{
 		.name = "dump_trace",
