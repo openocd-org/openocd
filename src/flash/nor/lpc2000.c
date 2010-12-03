@@ -196,9 +196,12 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			case 256 * 1024:
 				bank->num_sectors = 15;
 				break;
-			case 512 * 1024:
 			case 500 * 1024:
 				bank->num_sectors = 27;
+				break;
+			case 512 * 1024:
+			case 504 * 1024:
+				bank->num_sectors = 28;
 				break;
 			default:
 				LOG_ERROR("BUG: unknown bank->size encountered");
@@ -210,7 +213,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		for (i = 0; i < bank->num_sectors; i++)
 		{
-			if ((i >= 0) && (i < 8))
+			if (i < 8)
 			{
 				bank->sectors[i].offset = offset;
 				bank->sectors[i].size = 4 * 1024;
@@ -218,7 +221,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 				bank->sectors[i].is_erased = -1;
 				bank->sectors[i].is_protected = 1;
 			}
-			if ((i >= 8) && (i < 22))
+			else if (i < 22)
 			{
 				bank->sectors[i].offset = offset;
 				bank->sectors[i].size = 32 * 1024;
@@ -226,7 +229,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 				bank->sectors[i].is_erased = -1;
 				bank->sectors[i].is_protected = 1;
 			}
-			if ((i >= 22) && (i < 27))
+			else if (i < 28)
 			{
 				bank->sectors[i].offset = offset;
 				bank->sectors[i].size = 4 * 1024;
