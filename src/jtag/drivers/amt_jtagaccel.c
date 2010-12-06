@@ -191,7 +191,8 @@ static void amt_jtagaccel_state_move(void)
 
 	aw_scan_tms_5 = 0x40 | (tms_scan[0] & 0x1f);
 	AMT_AW(aw_scan_tms_5);
-	int jtag_speed = jtag_get_speed();
+	int retval = jtag_get_speed(&jtag_speed);
+	assert(retval == ERROR_OK);
 	if (jtag_speed > 3 || rtck_enabled)
 		amt_wait_scan_busy();
 
@@ -249,7 +250,9 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 	uint8_t dr_tdo;
 	uint8_t aw_tms_scan;
 	uint8_t tms_scan[2];
-	int jtag_speed = jtag_get_speed();
+	int jtag_speed_var;
+	int retval = jtag_get_speed(&jtag_speed_var);
+	assert(retval == ERROR_OK);
 
 	if (ir_scan)
 		amt_jtagaccel_end_state(TAP_IRSHIFT);
@@ -267,7 +270,7 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 
 		dw_tdi_scan = buf_get_u32(buffer, bit_count, (scan_size - 1) % 8) & 0xff;
 		AMT_DW(dw_tdi_scan);
-		if (jtag_speed > 3 || rtck_enabled)
+		if (jtag_speed_var > 3 || rtck_enabled)
 			amt_wait_scan_busy();
 
 		if ((type == SCAN_IN) || (type == SCAN_IO))
@@ -285,7 +288,7 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 	{
 		dw_tdi_scan = buf_get_u32(buffer, bit_count, 8) & 0xff;
 		AMT_DW(dw_tdi_scan);
-		if (jtag_speed > 3 || rtck_enabled)
+		if (jtag_speed_var > 3 || rtck_enabled)
 			amt_wait_scan_busy();
 
 		if ((type == SCAN_IN) || (type == SCAN_IO))
@@ -302,7 +305,7 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())][1];
 	aw_tms_scan = 0x40 | (tms_scan[0] & 0x1f) | (buf_get_u32(buffer, bit_count, 1) << 5);
 	AMT_AW(aw_tms_scan);
-	if (jtag_speed > 3 || rtck_enabled)
+	if (jtag_speed_var > 3 || rtck_enabled)
 		amt_wait_scan_busy();
 
 	if ((type == SCAN_IN) || (type == SCAN_IO))
@@ -316,7 +319,7 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 	{
 		aw_tms_scan = 0x40 | (tms_scan[1] & 0x1f);
 		AMT_AW(aw_tms_scan);
-		if (jtag_speed > 3 || rtck_enabled)
+		if (jtag_speed_var > 3 || rtck_enabled)
 			amt_wait_scan_busy();
 	}
 	tap_set_state(tap_get_end_state());
@@ -502,7 +505,9 @@ static int amt_jtagaccel_init(void)
 	aw_control_fsm |= 0x04;
 	AMT_AW(aw_control_fsm);
 
-	amt_jtagaccel_speed(jtag_get_speed());
+	int jtag_speed_var;
+	int retval = jtag_get_speed(&jtag_speed_var);
+	amt_jtagaccel_speed(jtag_speed_var);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)

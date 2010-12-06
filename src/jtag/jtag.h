@@ -239,7 +239,7 @@ int jtag_call_event_callbacks(enum jtag_event event);
 
 
 /// @returns The current JTAG speed setting.
-int jtag_get_speed(void);
+int jtag_get_speed(int *speed);
 
 /**
  * Given a @a speed setting, use the interface @c speed_div callback to

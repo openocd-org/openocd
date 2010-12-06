@@ -442,7 +442,11 @@ static int usb_blaster_init(void)
 
 	bitbang_interface = &usb_blaster_bitbang;
 
-	usb_blaster_speed(jtag_get_speed());
+	int jtag_speed_var;
+	int retval = jtag_get_speed(&jtag_speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	usb_blaster_speed(jtag_speed_var);
 
 #if 0
 #if BUILD_USB_BLASTER_FTD2XX == 1

@@ -321,7 +321,11 @@ static int jlink_init(void)
 	jlink_reset(0, 0);
 	jtag_sleep(3000);
 	jlink_tap_init();
-	jlink_speed(jtag_get_speed());
+	int jtag_speed_var;
+	int retval = jtag_get_speed(&jtag_speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	jlink_speed(jtag_speed_var);
 
 	/* v5/6 jlink seems to have an issue if the first tap move
 	 * is not divisible by 8, so we send a TLR on first power up */

@@ -529,7 +529,11 @@ static int gw16012_init(void)
 	gw16012_input(&status_port);
 	gw16012_msb = (status_port & 0x80) ^ 0x80;
 
-	gw16012_speed(jtag_get_speed());
+	int jtag_speed_var;
+	int retval = jtag_get_speed(&jtag_speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	gw16012_speed(jtag_speed_var);
 	gw16012_reset(0, 0);
 
 	return ERROR_OK;

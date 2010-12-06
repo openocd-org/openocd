@@ -1771,7 +1771,11 @@ int rlink_init(void)
 
 	tap_state_queue_init();
 	dtc_queue_init();
-	rlink_speed(jtag_get_speed());
+	int jtag_speed_var;
+	int retval = jtag_get_speed(&jtag_speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	rlink_speed(jtag_speed_var);
 	rlink_reset(0, 0);
 
 	return ERROR_OK;

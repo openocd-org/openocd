@@ -384,7 +384,9 @@ static int parport_init(void)
 
 	bitbang_interface = &parport_bitbang;
 
-	wait_states = jtag_get_speed();
+	int retval = jtag_get_speed(&wait_states);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -475,7 +477,9 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 		}
 
 		parport_toggling_time_ns = ns;
-		wait_states = jtag_get_speed();
+		int retval = jtag_get_speed(&wait_states);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	command_print(CMD_CTX, "parport toggling time = %" PRIu32 " ns",
