@@ -206,21 +206,33 @@ struct svf_check_tdo_para
 static struct svf_check_tdo_para *svf_check_tdo_para = NULL;
 static int svf_check_tdo_para_index = 0;
 
-static int svf_read_command_from_file(int fd);
+static int svf_read_command_from_file(FILE * fd);
 static int svf_check_tdo(void);
 static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len);
 static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str);
 
-static int svf_fd = 0;
+static FILE * svf_fd = NULL;
+static char * svf_read_line = NULL;
+static size_t svf_read_line_size = 0;
 static char *svf_command_buffer = NULL;
-static int svf_command_buffer_size = 0;
+static size_t svf_command_buffer_size = 0;
 static int svf_line_number = 1;
+static int svf_getline (char **lineptr, size_t *n, FILE *stream);
 
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT	(4 * 1024)
 static uint8_t *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
 static int svf_buffer_index = 0, svf_buffer_size = 0;
 static int svf_quiet = 0;
 
+// Targetting particular tap
+static int svf_tap_is_specified = 0;
+static int svf_set_padding(struct svf_xxr_para *para, int len, unsigned char tdi);
+
+// Progress Indicator
+static int svf_progress_enabled = 0;
+static long svf_total_lines = 0;
+static int svf_percentage = 0;
+static int svf_last_printed_percentage = -1;
 
 static void svf_free_xxd_para(struct svf_xxr_para *para)
 {
@@ -301,46 +313,71 @@ int svf_add_statemove(tap_state_t state_to)
 
 COMMAND_HANDLER(handle_svf_command)
 {
-#define SVF_NUM_OF_OPTIONS			1
+#define SVF_MIN_NUM_OF_OPTIONS			1
+#define SVF_MAX_NUM_OF_OPTIONS			5
+#define USAGE [-tap device.tap] <file> [quiet] [progress]
+#define PRINT_USAGE	command_print(CMD_CTX, "svf USAGE")
 	int command_num = 0;
 	int ret = ERROR_OK;
-	long long time_ago;
+	long long time_measure_ms;
+	int time_measure_s, time_measure_m;
 
-	if ((CMD_ARGC < 1) || (CMD_ARGC > (1 + SVF_NUM_OF_OPTIONS)))
+	/* use NULL to indicate a "plain" svf file which accounts for
+	   any additional devices in the scan chain, otherwise the device
+	   that should be affected
+	*/
+	struct jtag_tap *tap = NULL;
+
+	if ((CMD_ARGC < SVF_MIN_NUM_OF_OPTIONS) || (CMD_ARGC > SVF_MAX_NUM_OF_OPTIONS))
 	{
-		command_print(CMD_CTX, "usage: svf <file> [quiet]");
+		PRINT_USAGE;
 		return ERROR_FAIL;
 	}
 
-	// parse variant
+	// parse command line
 	svf_quiet = 0;
-	for (unsigned i = 1; i < CMD_ARGC; i++)
+	for (unsigned int i = 0; i < CMD_ARGC; i++)
 	{
-		if (!strcmp(CMD_ARGV[i], "quiet"))
+		if (strcmp(CMD_ARGV[i], "-tap") == 0)
+		{
+			tap = jtag_tap_by_string(CMD_ARGV[i+1]);
+			if (!tap)
+			{
+				command_print(CMD_CTX, "Tap: %s unknown", CMD_ARGV[i+1]);
+				return ERROR_FAIL;
+			}
+			i++;
+		}
+		else if ((strcmp(CMD_ARGV[i], "quiet") == 0) || (strcmp(CMD_ARGV[i], "-quiet") == 0))
 		{
 			svf_quiet = 1;
 		}
-		else
+		else if ((strcmp(CMD_ARGV[i], "progress") == 0) || (strcmp(CMD_ARGV[i], "-progress") == 0))
 		{
-			LOG_ERROR("unknown variant for svf: %s", CMD_ARGV[i]);
-
+			svf_progress_enabled = 1;
+		}
+		else if ((svf_fd = fopen(CMD_ARGV[i], "r")) == NULL)
+		{
+			int err = errno;
+			PRINT_USAGE;
+			command_print(CMD_CTX, "open(\"%s\"): %s", CMD_ARGV[i], strerror(err));
 			// no need to free anything now
 			return ERROR_FAIL;
 		}
+		else
+		{
+			LOG_USER("svf processing file: \"%s\"", CMD_ARGV[i]);
+		}
 	}
 
-	if ((svf_fd = open(CMD_ARGV[0], O_RDONLY)) < 0)
+	if (svf_fd == NULL)
 	{
-		command_print(CMD_CTX, "file \"%s\" not found", CMD_ARGV[0]);
-
-		// no need to free anything now
+		PRINT_USAGE;
 		return ERROR_FAIL;
 	}
 
-	LOG_USER("svf processing file: \"%s\"", CMD_ARGV[0]);
-
 	// get time
-	time_ago = timeval_ms();
+	time_measure_ms = timeval_ms();
 
 	// init
 	svf_line_number = 1;
@@ -388,8 +425,97 @@ COMMAND_HANDLER(handle_svf_command)
 	// TAP_RESET
 	jtag_add_tlr();
 
+	if (tap)
+	{
+		/* Tap is specified, set header/trailer paddings */
+		int header_ir_len = 0, header_dr_len = 0, trailer_ir_len = 0, trailer_dr_len = 0;
+		struct jtag_tap *check_tap;
+
+		svf_tap_is_specified = 1;
+
+		for (check_tap = jtag_all_taps(); check_tap; check_tap = check_tap->next_tap) {
+			if (check_tap->abs_chain_position < tap->abs_chain_position)
+			{
+				//Header
+				header_ir_len += check_tap->ir_length;
+				header_dr_len ++;
+			}
+			else if (check_tap->abs_chain_position > tap->abs_chain_position)
+			{
+				//Trailer
+				trailer_ir_len += check_tap->ir_length;
+				trailer_dr_len ++;
+			}
+		}
+
+		// HDR %d TDI (0)
+		if (ERROR_OK != svf_set_padding(&svf_para.hdr_para, header_dr_len, 0))
+		{
+			LOG_ERROR("failed to set data header");
+			return ERROR_FAIL;
+		}
+
+		// HIR %d TDI (0xFF)
+		if (ERROR_OK != svf_set_padding(&svf_para.hir_para, header_ir_len, 0xFF))
+		{
+			LOG_ERROR("failed to set instruction header");
+			return ERROR_FAIL;
+		}
+
+		// TDR %d TDI (0)
+		if (ERROR_OK != svf_set_padding(&svf_para.tdr_para, trailer_dr_len, 0))
+		{
+			LOG_ERROR("failed to set data trailer");
+			return ERROR_FAIL;
+		}
+
+		// TIR %d TDI (0xFF)
+		if (ERROR_OK != svf_set_padding(&svf_para.tir_para, trailer_ir_len, 0xFF))
+		{
+			LOG_ERROR("failed to set instruction trailer");
+			return ERROR_FAIL;
+		}
+
+	}
+
+	if (svf_progress_enabled)
+	{
+		// Count total lines in file.
+		while ( ! feof (svf_fd) )
+		 {
+		   svf_getline (&svf_command_buffer, &svf_command_buffer_size, svf_fd);
+		   svf_total_lines++;
+		 }
+		rewind(svf_fd);
+	}
 	while (ERROR_OK == svf_read_command_from_file(svf_fd))
 	{
+		// Log Output
+		if (svf_quiet)
+		{
+			if (svf_progress_enabled)
+			{
+				svf_percentage = ((svf_line_number * 20) / svf_total_lines) * 5;
+				if (svf_last_printed_percentage != svf_percentage)
+				{
+					LOG_USER_N("\r%d%%    ", svf_percentage);
+					svf_last_printed_percentage = svf_percentage;
+				}
+			}
+		}
+		else
+		{
+			if (svf_progress_enabled)
+			{
+				svf_percentage = ((svf_line_number * 20) / svf_total_lines) * 5;
+				LOG_USER_N("%3d%%  %s", svf_percentage, svf_read_line);
+			}
+			else
+			{
+				LOG_USER_N("%s",svf_read_line);
+			}
+		}
+			// Run Command
 		if (ERROR_OK != svf_run_command(CMD_CTX, svf_command_buffer))
 		{
 			LOG_ERROR("fail to run command at line %d", svf_line_number);
@@ -408,11 +534,19 @@ COMMAND_HANDLER(handle_svf_command)
 	}
 
 	// print time
-	command_print(CMD_CTX, "%lld ms used", timeval_ms() - time_ago);
+	time_measure_ms = timeval_ms() - time_measure_ms;
+	time_measure_s = time_measure_ms / 1000;
+	time_measure_ms %= 1000;
+	time_measure_m = time_measure_s / 60;
+	time_measure_s %= 60;
+	if (time_measure_ms < 1000)
+	{
+		command_print(CMD_CTX, "\r\nTime used: %dm%ds%lldms ", time_measure_m, time_measure_s, time_measure_ms);
+	}
 
 free_all:
 
-	close(svf_fd);
+	fclose(svf_fd);
 	svf_fd = 0;
 
 	// free buffers
@@ -465,36 +599,92 @@ free_all:
 	return ret;
 }
 
+static int svf_getline (char **lineptr, size_t *n, FILE *stream)
+{
+#define MIN_CHUNK 16	//Buffer is increased by this size each time as required
+  size_t i = 0;
+
+  if (*lineptr == NULL)
+    {
+      *n = MIN_CHUNK;
+      *lineptr = (char *)malloc (*n);
+      if (!*lineptr)
+        {
+		  return -1;
+        }
+    }
+
+	(*lineptr)[0] = fgetc(stream);
+	while ((*lineptr)[i] != '\n')
+	{
+		(*lineptr)[++i] = fgetc(stream);
+		if (feof(stream))
+		{
+			(*lineptr)[0] = 0;
+			return -1;
+		}
+		if ((i + 2) > *n)
+		{
+			*n += MIN_CHUNK;
+			*lineptr = realloc(*lineptr, *n);
+		}
+	}
+
+	(*lineptr)[++i] = 0;
+
+	return sizeof(*lineptr);
+}
+
 #define SVFP_CMD_INC_CNT			1024
-static int svf_read_command_from_file(int fd)
+static int svf_read_command_from_file(FILE * fd)
 {
 	unsigned char ch;
-	char *tmp_buffer = NULL;
-	int cmd_pos = 0, cmd_ok = 0, slash = 0, comment = 0;
+	int i = 0;
+	size_t cmd_pos = 0;
+	int cmd_ok = 0, slash = 0, comment = 0;
 
-	while (!cmd_ok && (read(fd, &ch, 1) > 0))
+	if (svf_getline (&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+	{
+		return ERROR_FAIL;
+	}
+	svf_line_number++;
+	ch = svf_read_line[0];
+	while (!cmd_ok && (ch != 0))
 	{
 		switch (ch)
 		{
 		case '!':
 			slash = 0;
-			comment = 1;
+			if (svf_getline (&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+			{
+				return ERROR_FAIL;
+			}
+			svf_line_number++;
+			i = -1;
 			break;
 		case '/':
 			if (++slash == 2)
 			{
-				comment = 1;
+				slash = 0;
+				if (svf_getline (&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+				{
+					return ERROR_FAIL;
+				}
+				svf_line_number++;
+				i = -1;
 			}
 			break;
 		case ';':
 			slash = 0;
-			if (!comment)
-			{
-				cmd_ok = 1;
-			}
+			cmd_ok = 1;
 			break;
 		case '\n':
 			svf_line_number++;
+			if (svf_getline (&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+			{
+				return ERROR_FAIL;
+			}
+			i = -1;
 		case '\r':
 			slash = 0;
 			comment = 0;
@@ -502,54 +692,40 @@ static int svf_read_command_from_file(int fd)
 			if (!cmd_pos)
 				break;
 		default:
-			if (!comment)
+			/* The parsing code currently expects a space
+			 * before parentheses -- "TDI (123)".  Also a
+			 * space afterwards -- "TDI (123) TDO(456)".
+			 * But such spaces are optional... instead of
+			 * parser updates, cope with that by adding the
+			 * spaces as needed.
+			 *
+			 * Ensure there are 3 bytes available, for:
+			 *  - current character
+			 *  - added space.
+			 *  - terminating NUL ('\0')
+			 */
+			if ((cmd_pos + 2) >= svf_command_buffer_size)
 			{
-				/* The parsing code currently expects a space
-				 * before parentheses -- "TDI (123)".  Also a
-				 * space afterwards -- "TDI (123) TDO(456)".
-				 * But such spaces are optional... instead of
-				 * parser updates, cope with that by adding the
-				 * spaces as needed.
-				 *
-				 * Ensure there are 3 bytes available, for:
-				 *  - current character
-				 *  - added space.
-				 *  - terminating NUL ('\0')
-				 */
-				if ((cmd_pos + 2) >= svf_command_buffer_size)
+				svf_command_buffer = realloc(svf_command_buffer, (cmd_pos + 2));
+				if (svf_command_buffer == NULL)
 				{
-					/* REVISIT use realloc(); simpler */
-					tmp_buffer = malloc(
-							svf_command_buffer_size
-							+ SVFP_CMD_INC_CNT);
-					if (NULL == tmp_buffer)
-					{
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-					if (svf_command_buffer_size > 0)
-						memcpy(tmp_buffer,
-							svf_command_buffer,
-							svf_command_buffer_size);
-					if (svf_command_buffer != NULL)
-						free(svf_command_buffer);
-					svf_command_buffer = tmp_buffer;
-					svf_command_buffer_size += SVFP_CMD_INC_CNT;
-					tmp_buffer = NULL;
+					LOG_ERROR("not enough memory");
+					return ERROR_FAIL;
 				}
-
-				/* insert a space before '(' */
-				if ('(' == ch)
-					svf_command_buffer[cmd_pos++] = ' ';
-
-				svf_command_buffer[cmd_pos++] = (char)toupper(ch);
-
-				/* insert a space after ')' */
-				if (')' == ch)
-					svf_command_buffer[cmd_pos++] = ' ';
 			}
+
+			/* insert a space before '(' */
+			if ('(' == ch)
+				svf_command_buffer[cmd_pos++] = ' ';
+
+			svf_command_buffer[cmd_pos++] = (char)toupper(ch);
+
+			/* insert a space after ')' */
+			if (')' == ch)
+				svf_command_buffer[cmd_pos++] = ' ';
 			break;
 		}
+		ch = svf_read_line[++i];
 	}
 
 	if (cmd_ok)
@@ -643,6 +819,19 @@ static int svf_adjust_array_length(uint8_t **arr, int orig_bit_len, int new_bit_
 		memset(*arr, 0, new_byte_len);
 	}
 	return ERROR_OK;
+}
+
+static int svf_set_padding(struct svf_xxr_para *para, int len, unsigned char tdi)
+{
+	int error = ERROR_OK;
+	error |= svf_adjust_array_length(&para->tdi, para->len, len);
+	memset(para->tdi, tdi, (len + 7) >> 3);
+	error |= svf_adjust_array_length(&para->tdo, para->len, len);
+	error |= svf_adjust_array_length(&para->mask, para->len, len);
+	para->len = len;
+	para->data_mask = XXR_TDI;
+
+	return error;
 }
 
 static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_len, int bit_len)
@@ -803,11 +992,8 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	struct scan_field field;
 	// for STATE
 	tap_state_t *path = NULL, state;
-
-	if (!svf_quiet)
-	{
-		LOG_USER("%s", svf_command_buffer);
-	}
+	// flag padding commands skipped due to -tap command
+	int padding_command_skipped = 0;
 
 	if (ERROR_OK != svf_parse_cmd_string(cmd_str, strlen(cmd_str), argus, &num_of_argu))
 	{
@@ -886,15 +1072,35 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 		}
 		break;
 	case HDR:
+		if (svf_tap_is_specified)
+		{
+			padding_command_skipped = 1;
+			break;
+		}
 		xxr_para_tmp = &svf_para.hdr_para;
 		goto XXR_common;
 	case HIR:
+		if (svf_tap_is_specified)
+		{
+			padding_command_skipped = 1;
+			break;
+		}
 		xxr_para_tmp = &svf_para.hir_para;
 		goto XXR_common;
 	case TDR:
+		if (svf_tap_is_specified)
+		{
+			padding_command_skipped = 1;
+			break;
+		}
 		xxr_para_tmp = &svf_para.tdr_para;
 		goto XXR_common;
 	case TIR:
+		if (svf_tap_is_specified)
+		{
+			padding_command_skipped = 1;
+			break;
+		}
 		xxr_para_tmp = &svf_para.tir_para;
 		goto XXR_common;
 	case SDR:
@@ -1454,6 +1660,14 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 		break;
 	}
 
+	if (!svf_quiet)
+	{
+		if (padding_command_skipped)
+		{
+			LOG_USER("(Above Padding command skipped, as per -tap argument)");
+		}
+	}
+
 	if (debug_level >= LOG_LVL_DEBUG)
 	{
 		// for convenient debugging, execute tap if possible
@@ -1498,7 +1712,7 @@ static const struct command_registration svf_command_handlers[] = {
 		.handler = handle_svf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a SVF file.",
-		.usage = "filename ['quiet']",
+		.usage = "USAGE",
 	},
 	COMMAND_REGISTRATION_DONE
 };
