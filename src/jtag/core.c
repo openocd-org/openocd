@@ -296,28 +296,24 @@ int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 
 int jtag_unregister_event_callback(jtag_event_handler_t callback, void *priv)
 {
-	struct jtag_event_callback **callbacks_p;
-	struct jtag_event_callback **next;
+	struct jtag_event_callback **p = &jtag_event_callbacks, *temp;
 
 	if (callback == NULL)
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	for (callbacks_p = &jtag_event_callbacks;
-			*callbacks_p != NULL;
-			callbacks_p = next)
+	while (*p)
 	{
-		next = &((*callbacks_p)->next);
-
-		if ((*callbacks_p)->priv != priv)
-			continue;
-
-		if ((*callbacks_p)->callback == callback)
+		if (((*p)->priv != priv) || ((*p)->callback != callback))
 		{
-			free(*callbacks_p);
-			*callbacks_p = *next;
+			p = &(*p)->next;
+			continue;
 		}
+
+		temp = *p;
+		*p = (*p)->next;
+		free(temp);
 	}
 
 	return ERROR_OK;
