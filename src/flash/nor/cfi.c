@@ -1796,7 +1796,7 @@ static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t
 			return retval;
 		}
 
-		LOG_ERROR("couldn't write word at base 0x%" PRIx32 ", address %" PRIx32,
+		LOG_ERROR("couldn't write word at base 0x%" PRIx32 ", address 0x%" PRIx32,
 				bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -1821,7 +1821,7 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word,
 	/* Check for valid range */
 	if (address & buffermask)
 	{
-		LOG_ERROR("Write address at base 0x%" PRIx32 ", address %" PRIx32
+		LOG_ERROR("Write address at base 0x%" PRIx32 ", address 0x%" PRIx32
 				" not aligned to 2^%d boundary",
 				bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1855,7 +1855,7 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word,
 			return retval;
 		}
 
-		LOG_ERROR("couldn't start buffer write operation at base 0x%" PRIx32 ", address %" PRIx32,
+		LOG_ERROR("couldn't start buffer write operation at base 0x%" PRIx32 ", address 0x%" PRIx32,
 				bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -1892,7 +1892,7 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word,
 		}
 
 		LOG_ERROR("Buffer write at base 0x%" PRIx32
-				", address %" PRIx32 " failed.", bank->base, address);
+				", address 0x%" PRIx32 " failed.", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1939,7 +1939,7 @@ static int cfi_spansion_write_word(struct flash_bank *bank, uint8_t *word, uint3
 		}
 
 		LOG_ERROR("couldn't write word at base 0x%" PRIx32
-				", address %" PRIx32 , bank->base, address);
+				", address 0x%" PRIx32 , bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1965,7 +1965,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
 	if (address & buffermask)
 	{
 		LOG_ERROR("Write address at base 0x%" PRIx32
-				", address %" PRIx32 " not aligned to 2^%d boundary",
+				", address 0x%" PRIx32 " not aligned to 2^%d boundary",
 				bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -1978,7 +1978,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	// Unlock
+	/* Unlock */
 	if ((retval = cfi_send_command(bank, 0xaa,
 			flash_address(bank, 0, pri_ext->_unlock1))) != ERROR_OK)
 	{
@@ -1991,7 +1991,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
 		return retval;
 	}
 
-	// Buffer load command
+	/* Buffer load command */
 	if ((retval = cfi_send_command(bank, 0x25, address)) != ERROR_OK)
 	{
 		return retval;
@@ -2026,7 +2026,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
 		}
 
 		LOG_ERROR("couldn't write block at base 0x%" PRIx32
-				", address %" PRIx32 ", size %" PRIx32, bank->base, address, bufferwsize);
+				", address 0x%" PRIx32 ", size 0x%" PRIx32, bank->base, address, bufferwsize);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -2235,7 +2235,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 				int fallback;
 				if ((write_p & 0xff) == 0)
 				{
-					LOG_INFO("Programming at %08" PRIx32 ", count %08"
+					LOG_INFO("Programming at 0x%08" PRIx32 ", count 0x%08"
 							PRIx32 " bytes remaining", write_p, count);
 				}
 				fallback = 1;
@@ -2586,7 +2586,7 @@ static int cfi_probe(struct flash_bank *bank)
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_DEBUG("size: 0x%" PRIx32 ", interface desc: %i, max buffer write size: %x",
+		LOG_DEBUG("size: 0x%" PRIx32 ", interface desc: %i, max buffer write size: 0x%x",
 				cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
 
 		if (cfi_info->num_erase_regions)
@@ -2883,7 +2883,7 @@ static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 		buf_size -= printed;
 
 		printed = snprintf(buf, buf_size, "size: 0x%" PRIx32 ", interface desc: %i, "
-				"max buffer write size: %x\n",
+				"max buffer write size: 0x%x\n",
 				cfi_info->dev_size,
 				cfi_info->interface_desc,
 				1 << cfi_info->max_buf_write_size);
