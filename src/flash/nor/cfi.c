@@ -2558,13 +2558,13 @@ static int cfi_probe(struct flash_bank *bank)
 			(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
 			(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
 
-		LOG_DEBUG("typ. word write timeout: %u, typ. buf write timeout: %u, "
-				"typ. block erase timeout: %u, typ. chip erase timeout: %u",
+		LOG_DEBUG("typ. word write timeout: %u us, typ. buf write timeout: %u us, "
+				"typ. block erase timeout: %u ms, typ. chip erase timeout: %u ms",
 				1 << cfi_info->word_write_timeout_typ, 1 << cfi_info->buf_write_timeout_typ,
 				1 << cfi_info->block_erase_timeout_typ, 1 << cfi_info->chip_erase_timeout_typ);
 
-		LOG_DEBUG("max. word write timeout: %u, max. buf write timeout: %u, "
-				"max. block erase timeout: %u, max. chip erase timeout: %u",
+		LOG_DEBUG("max. word write timeout: %u us, max. buf write timeout: %u us, "
+				"max. block erase timeout: %u ms, max. chip erase timeout: %u ms",
 				(1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
 				(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
 				(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
@@ -2861,8 +2861,10 @@ static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		printed = snprintf(buf, buf_size, "typ. word write timeout: %u, "
-				"typ. buf write timeout: %u, typ. block erase timeout: %u, typ. chip erase timeout: %u\n",
+		printed = snprintf(buf, buf_size, "typ. word write timeout: %u us, "
+				"typ. buf write timeout: %u us, "
+				"typ. block erase timeout: %u ms, "
+				"typ. chip erase timeout: %u ms\n",
 				1 << cfi_info->word_write_timeout_typ,
 				1 << cfi_info->buf_write_timeout_typ,
 				1 << cfi_info->block_erase_timeout_typ,
@@ -2870,8 +2872,9 @@ static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		printed = snprintf(buf, buf_size, "max. word write timeout: %u, "
-				"max. buf write timeout: %u, max. block erase timeout: %u, max. chip erase timeout: %u\n",
+		printed = snprintf(buf, buf_size, "max. word write timeout: %u us, "
+				"max. buf write timeout: %u us, max. "
+				"block erase timeout: %u ms, max. chip erase timeout: %u ms\n",
 				(1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
 				(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
 				(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
