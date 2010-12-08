@@ -477,7 +477,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 		}
 
 		parport_toggling_time_ns = ns;
-		int retval = jtag_get_speed(&wait_states);
+		retval = jtag_get_speed(&wait_states);
 		if (retval != ERROR_OK)
 			return retval;
 	}

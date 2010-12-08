@@ -2396,7 +2396,7 @@ static int ft2232_init(void)
 	}
 
 	int jtag_speed_var;
-	int retval = jtag_get_speed(&jtag_speed_var);
+	retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
 	ft2232_speed(jtag_speed_var);
