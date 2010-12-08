@@ -68,6 +68,12 @@ struct cfi_flash_bank
 
 	void *pri_ext;
 	void *alt_ext;
+
+	/* calculated timeouts */
+	unsigned word_write_timeout;
+	unsigned buf_write_timeout;
+	unsigned block_erase_timeout;
+	unsigned chip_erase_timeout;
 };
 
 /* Intel primary extended query table

@@ -880,8 +880,7 @@ static int cfi_intel_erase(struct flash_bank *bank, int first, int last)
 		}
 
 		uint8_t status;
-		retval = cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->block_erase_timeout_typ),
-				&status);
+		retval = cfi_intel_wait_status_busy(bank, cfi_info->block_erase_timeout, &status);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -947,8 +946,7 @@ static int cfi_spansion_erase(struct flash_bank *bank, int first, int last)
 			return retval;
 		}
 
-		if (cfi_spansion_wait_status_busy(bank,
-				1000 * (1 << cfi_info->block_erase_timeout_typ)) == ERROR_OK)
+		if (cfi_spansion_wait_status_busy(bank, cfi_info->block_erase_timeout) == ERROR_OK)
 		{
 			bank->sectors[i].is_erased = 1;
 		}
@@ -1787,8 +1785,7 @@ static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t
 	}
 
 	uint8_t status;
-	retval = cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max),
-			&status);
+	retval = cfi_intel_wait_status_busy(bank, cfi_info->word_write_timeout, &status);
 	if (retval != 0x80)
 	{
 		if ((retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0))) != ERROR_OK)
@@ -1844,8 +1841,7 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word,
 		return retval;
 	}
 	uint8_t status;
-	retval = cfi_intel_wait_status_busy(bank,
-			1000 * (1 << cfi_info->buf_write_timeout_max), &status);
+	retval = cfi_intel_wait_status_busy(bank, cfi_info->buf_write_timeout, &status);
 	if (retval != ERROR_OK)
 		return retval;
 	if (status != 0x80)
@@ -1878,8 +1874,7 @@ static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word,
 		return retval;
 	}
 
-	retval = cfi_intel_wait_status_busy(bank,
-			1000 * (1 << cfi_info->buf_write_timeout_max), &status);
+	retval = cfi_intel_wait_status_busy(bank, cfi_info->buf_write_timeout, &status);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1930,8 +1925,7 @@ static int cfi_spansion_write_word(struct flash_bank *bank, uint8_t *word, uint3
 		return retval;
 	}
 
-	if (cfi_spansion_wait_status_busy(bank,
-			1000 * (1 << cfi_info->word_write_timeout_max)) != ERROR_OK)
+	if (cfi_spansion_wait_status_busy(bank, cfi_info->word_write_timeout) != ERROR_OK)
 	{
 		if ((retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0))) != ERROR_OK)
 		{
@@ -1998,8 +1992,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
 	}
 
 	/* Write buffer wordcount-1 and data words */
-	if ((retval = cfi_send_command(bank,
-			bufferwsize-1, address)) != ERROR_OK)
+	if ((retval = cfi_send_command(bank, bufferwsize-1, address)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -2016,8 +2009,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
 		return retval;
 	}
 
-	if (cfi_spansion_wait_status_busy(bank,
-			1000 * (1 << cfi_info->word_write_timeout_max)) != ERROR_OK)
+	if (cfi_spansion_wait_status_busy(bank, cfi_info->buf_write_timeout) != ERROR_OK)
 	{
 		if ((retval = cfi_send_command(bank, 0xf0,
 				flash_address(bank, 0, 0x0))) != ERROR_OK)
@@ -2569,6 +2561,21 @@ static int cfi_probe(struct flash_bank *bank)
 				(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
 				(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
 				(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
+
+		/* convert timeouts to real values in ms */
+		cfi_info->word_write_timeout = DIV_ROUND_UP((1 << cfi_info->word_write_timeout_typ) *
+						(1 << cfi_info->word_write_timeout_max), 1000);
+		cfi_info->buf_write_timeout = DIV_ROUND_UP((1 << cfi_info->buf_write_timeout_typ) *
+				(1 << cfi_info->buf_write_timeout_max), 1000);
+		cfi_info->block_erase_timeout = (1 << cfi_info->block_erase_timeout_typ) *
+				(1 << cfi_info->block_erase_timeout_max);
+		cfi_info->chip_erase_timeout = (1 << cfi_info->chip_erase_timeout_typ) *
+				(1 << cfi_info->chip_erase_timeout_max);
+
+		LOG_DEBUG("calculated word write timeout: %u ms, buf write timeout: %u ms, "
+				"block erase timeout: %u ms, chip erase timeout: %u ms",
+				cfi_info->word_write_timeout, cfi_info->buf_write_timeout,
+				cfi_info->block_erase_timeout, cfi_info->chip_erase_timeout);
 
 		uint8_t data;
 		retval = cfi_query_u8(bank, 0, 0x27, &data);
