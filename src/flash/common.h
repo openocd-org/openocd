@@ -25,9 +25,9 @@
  * Parses the optional '.index' portion of a flash bank identifier.
  * @param name The desired driver name, passed by the user.
  * @returns The parsed index request, or 0 if not present.  If the
- * name provides a suffix but it does not parse as an unsigned integer, 
+ * name provides a suffix but it does not parse as an unsigned integer,
  * the routine returns ~0U.  This will prevent further matching.
- */ 
+ */
 unsigned get_flash_name_index(const char *name);
 /**
  * Attempt to match the @c expected name with the @c name of a driver.
@@ -44,5 +44,6 @@ bool flash_driver_name_matches(const char *name, const char *expected);
 #define ERROR_FLASH_BUSY                 (-905)
 #define ERROR_FLASH_SECTOR_NOT_ERASED    (-906)
 #define ERROR_FLASH_BANK_NOT_PROBED      (-907)
+#define ERROR_FLASH_OPER_UNSUPPORTED     (-908)
 
 #endif // FLASH_COMMON_H

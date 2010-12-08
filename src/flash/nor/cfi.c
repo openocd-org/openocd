@@ -2051,6 +2051,13 @@ static int cfi_write_words(struct flash_bank *bank, uint8_t *word,
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 
+	if (cfi_info->buf_write_timeout_typ == 0)
+	{
+		/* buffer writes are not supported */
+		LOG_DEBUG("Buffer Writes Not Supported");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	}
+
 	switch (cfi_info->pri_id)
 	{
 		case 1:
@@ -2241,6 +2248,8 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 						count -= buffersize;
 						fallback = 0;
 					}
+					else if (retval != ERROR_FLASH_OPER_UNSUPPORTED)
+						return retval;
 				}
 				/* try the slow way? */
 				if (fallback)
