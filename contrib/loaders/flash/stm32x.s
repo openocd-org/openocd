@@ -20,6 +20,7 @@
 
 	.text
 	.syntax unified
+	.cpu cortex-m3
 	.thumb
 	.thumb_func
 	.global write

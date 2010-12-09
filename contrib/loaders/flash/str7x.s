@@ -20,6 +20,8 @@
 
 	.text
 	.arm
+	.arch armv4t
+
 	.section .init
 /*
 	r0 source address
