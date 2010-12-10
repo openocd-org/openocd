@@ -1226,6 +1226,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	 * r6: error test pattern
 	 */
 
+	/* see contib/loaders/flash/armv4_5_cfi_intel_32.s for src */
 	static const uint32_t word_32_code[] = {
 		0xe4904004,   /* loop:	ldr r4, [r0], #4 */
 		0xe5813000,   /* 		str r3, [r1] */
@@ -1243,6 +1244,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe    /* done:	b -2 */
 	};
 
+	/* see contib/loaders/flash/armv4_5_cfi_intel_16.s for src */
 	static const uint32_t word_16_code[] = {
 		0xe0d040b2,   /* loop:	ldrh r4, [r0], #2 */
 		0xe1c130b0,   /* 		strh r3, [r1] */
@@ -1260,6 +1262,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe    /* done:	b -2 */
 	};
 
+	/* see contib/loaders/flash/armv4_5_cfi_intel_8.s for src */
 	static const uint32_t word_8_code[] = {
 		0xe4d04001,   /* loop:	ldrb r4, [r0], #1 */
 		0xe5c13000,   /* 		strb r3, [r1] */
@@ -1487,6 +1490,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	/*  R10 = unlock2_addr */
 	/*  R11 = unlock2_cmd */
 
+	/* see contib/loaders/flash/armv4_5_cfi_span_32.s for src */
 	static const uint32_t word_32_code[] = {
 						/* 00008100 <sp_32_code>:		*/
 		0xe4905004,		/* ldr	r5, [r0], #4			*/
@@ -1519,9 +1523,10 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 						/*								*/
 						/* 00008154 <sp_32_done>:		*/
 		0xeafffffe		/* b	8154 <sp_32_done>		*/
-		};
+	};
 
-		static const uint32_t word_16_code[] = {
+	/* see contib/loaders/flash/armv4_5_cfi_span_16.s for src */
+	static const uint32_t word_16_code[] = {
 						/* 00008158 <sp_16_code>:		*/
 		0xe0d050b2,		/* ldrh	r5, [r0], #2			*/
 		0xe1c890b0,		/* strh	r9, [r8]				*/
@@ -1553,9 +1558,10 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 						/* 								*/
 						/* 000081ac <sp_16_done>:		*/
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
-		};
+	};
 
-		static const uint32_t word_16_code_dq7only[] = {
+	/* see contib/loaders/flash/armv4_5_cfi_span_16_dq7.s for src */
+	static const uint32_t word_16_code_dq7only[] = {
 						/* <sp_16_code>:				*/
 		0xe0d050b2,		/* ldrh r5, [r0], #2			*/
 		0xe1c890b0,		/* strh r9, [r8]				*/
@@ -1578,9 +1584,10 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 						/* 								*/
 						/* 000081ac <sp_16_done>:		*/
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
-		};
+	};
 
-		static const uint32_t word_8_code[] = {
+	/* see contib/loaders/flash/armv4_5_cfi_span_8.s for src */
+	static const uint32_t word_8_code[] = {
 						/* 000081b0 <sp_16_code_end>:	*/
 		0xe4d05001,		/* ldrb	r5, [r0], #1			*/
 		0xe5c89000,		/* strb	r9, [r8]				*/
