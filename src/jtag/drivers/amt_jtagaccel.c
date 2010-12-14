@@ -191,6 +191,7 @@ static void amt_jtagaccel_state_move(void)
 
 	aw_scan_tms_5 = 0x40 | (tms_scan[0] & 0x1f);
 	AMT_AW(aw_scan_tms_5);
+        int jtag_speed=0;
 	int retval = jtag_get_speed(&jtag_speed);
 	assert(retval == ERROR_OK);
 	if (jtag_speed > 3 || rtck_enabled)
@@ -507,6 +508,8 @@ static int amt_jtagaccel_init(void)
 
 	int jtag_speed_var;
 	int retval = jtag_get_speed(&jtag_speed_var);
+	if (retval != ERROR_OK)
+          return retval;
 	amt_jtagaccel_speed(jtag_speed_var);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
