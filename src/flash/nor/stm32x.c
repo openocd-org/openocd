@@ -487,12 +487,19 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first && (first % stm32x_info->ppage_size)) || ((last + 1) &&
-			(last + 1) % stm32x_info->ppage_size))
+	if ((first % stm32x_info->ppage_size) != 0)
 	{
-		LOG_WARNING("Error: start and end sectors must be on a %d sector boundary",
+		LOG_WARNING("aligned start protect sector to a %d sector boundary",
 				stm32x_info->ppage_size);
-		return ERROR_FLASH_SECTOR_INVALID;
+		first = first - (first % stm32x_info->ppage_size);
+	}
+	if (((last + 1) % stm32x_info->ppage_size) != 0)
+	{
+		LOG_WARNING("aligned end protect sector to a %d sector boundary",
+				stm32x_info->ppage_size);
+		last++;
+		last = last - (last % stm32x_info->ppage_size);
+		last--;
 	}
 
 	/* medium density - each bit refers to a 4bank protection
