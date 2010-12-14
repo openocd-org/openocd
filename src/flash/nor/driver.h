@@ -105,9 +105,12 @@ struct flash_driver
 
 	/**
 	 * Bank/sector protection routine (target-specific).
-	 * When called, the driver should disable 'flash write' bits (or
-	 * enable 'erase protection' bits) for the given @a bank and @a
-	 * sectors.
+	 *
+	 * When called, the driver should enable/disable protection
+	 * for MINIMUM the range covered by first..last sectors
+	 * inclusive. Some chips have alignment requirements will
+	 * cause the actual range to be protected / unprotected to
+	 * be larger than the first..last range.
 	 *
 	 * @param bank The bank to protect or unprotect.
 	 * @param set If non-zero, enable protection; if 0, disable it.
