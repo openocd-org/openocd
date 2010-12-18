@@ -144,11 +144,6 @@ void script_debug(Jim_Interp *interp, const char *name,
 	{
 		int len;
 		const char *w = Jim_GetString(argv[i], &len);
-
-		/* end of line comment? */
-		if (*w == '#')
-			break;
-
 		char * t = alloc_printf("%s %s", dbg, w);
 		free (dbg);
 		dbg = t;
@@ -175,10 +170,6 @@ static const char **script_command_args_alloc(
 	{
 		int len;
 		const char *w = Jim_GetString(argv[i], &len);
-		/* a comment may end the line early */
-		if (*w == '#')
-			break;
-
 		words[i] = strdup(w);
 		if (words[i] == NULL)
 		{
