@@ -15,34 +15,34 @@
 # - HCLK    = 166 MHz
 # - PCLK    =  83 MHz
 proc sp3xx_clock_default {} {
-	mww 0xfca00000 0x00000002	# set sysclk slow
-	mww 0xfca00014 0x0ffffff8	# set pll timeout to minimum (100us ?!?)
+	mww 0xfca00000 0x00000002	;# set sysclk slow
+	mww 0xfca00014 0x0ffffff8	;# set pll timeout to minimum (100us ?!?)
 
 	# DDRCORE disable to change frequency
 	set val [expr ([mrw 0xfca8002c] & ~0x20000000) | 0x40000000]
 	mww 0xfca8002c $val
-	mww 0xfca8002c $val # Yes, write twice!
+	mww 0xfca8002c $val ;# Yes, write twice!
 
 	# programming PLL1
-	mww 0xfca8000c 0xa600010c	# M=166 P=1 N=12
-	mww 0xfca80008 0x00001c0a	# power down
-	mww 0xfca80008 0x00001c0e	# enable
-	mww 0xfca80008 0x00001c06	# strobe
+	mww 0xfca8000c 0xa600010c	;# M=166 P=1 N=12
+	mww 0xfca80008 0x00001c0a	;# power down
+	mww 0xfca80008 0x00001c0e	;# enable
+	mww 0xfca80008 0x00001c06	;# strobe
 	mww 0xfca80008 0x00001c0e
 	while { [expr [mrw 0xfca80008] & 0x01] == 0x00 } { sleep 1 }
 
 	# programming PLL2
-	mww 0xfca80018 0xa600010c	# M=166, P=1, N=12
-	mww 0xfca80014 0x00001c0a	# power down
-	mww 0xfca80014 0x00001c0e	# enable
-	mww 0xfca80014 0x00001c06	# strobe
+	mww 0xfca80018 0xa600010c	;# M=166, P=1, N=12
+	mww 0xfca80014 0x00001c0a	;# power down
+	mww 0xfca80014 0x00001c0e	;# enable
+	mww 0xfca80014 0x00001c06	;# strobe
 	mww 0xfca80014 0x00001c0e
 	while { [expr [mrw 0xfca80014] & 0x01] == 0x00 } { sleep 1 }
 
-	mww 0xfca80028 0x00000082	# enable plltimeen
-	mww 0xfca80024 0x00000511	# set hclkdiv="/2" & pclkdiv="/2"
+	mww 0xfca80028 0x00000082	;# enable plltimeen
+	mww 0xfca80024 0x00000511	;# set hclkdiv="/2" & pclkdiv="/2"
 
-	mww 0xfca00000 0x00000004	# setting SYSCTL to NORMAL mode
+	mww 0xfca00000 0x00000004	;# setting SYSCTL to NORMAL mode
 	while { [expr [mrw 0xfca00000] & 0x20] != 0x20 } { sleep 1 }
 
 	# Select source of DDR clock
@@ -54,15 +54,15 @@ proc sp3xx_clock_default {} {
 }
 
 proc sp3xx_common_init {} {
-	mww 0xfca8002c 0xfffffff8	# enable clock of all peripherals
-	mww 0xfca80038 0x00000000	# remove reset of all peripherals
+	mww 0xfca8002c 0xfffffff8	;# enable clock of all peripherals
+	mww 0xfca80038 0x00000000	;# remove reset of all peripherals
 
-	mww 0xfca800e4 0x78000008	# COMP1V8_REG
-	mww 0xfca800ec 0x78000008	# COMP3V3_REG
+	mww 0xfca800e4 0x78000008	;# COMP1V8_REG
+	mww 0xfca800ec 0x78000008	;# COMP3V3_REG
 
-	mww 0xfca80050 0x00000001	# Enable clk mem port 1
+	mww 0xfca80050 0x00000001	;# Enable clk mem port 1
 
-	mww 0xfc000000 0x10000f5f	# init SMI and set HW mode
+	mww 0xfc000000 0x10000f5f	;# init SMI and set HW mode
 	mww 0xfc000000 0x00000f5f
 
 	# Initialize Bus Interconnection Matrix
