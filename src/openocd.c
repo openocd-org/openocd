@@ -340,6 +340,10 @@ int openocd_main(int argc, char *argv[])
 	if (ERROR_OK != ret)
 		return EXIT_FAILURE;
 
+	ret = command_run_line(cmd_ctx, "init_targets");
+	if (ERROR_OK != ret)
+		ret = EXIT_FAILURE;
+
 	if (init_at_startup)
 	{
 		ret = command_run_line(cmd_ctx, "init");

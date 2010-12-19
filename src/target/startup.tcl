@@ -151,3 +151,11 @@ proc armv4_5 params {
 	echo "DEPRECATED! use 'arm $params' not 'armv4_5 $params'"
 	arm $params
 }
+
+# Target/chain configuration scripts can either execute commands directly 
+# or define a procedure which is executed once all configuration 
+# scripts have completed.
+#
+# By default(classic) the config scripts will set up the target configuration
+proc init_targets {} {
+}
