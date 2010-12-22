@@ -29,8 +29,8 @@
 	r0 - source address
 	r1 - target address
 	r2 - count (halfword-16bit)
-	r3 - result
-	r4 - temp
+	r3 - sector offet in : result out
+	r4 - flash base
 */
 
 #define STM32_FLASH_CR_OFFSET	0x10			/* offset of CR register in FLASH struct */
@@ -38,6 +38,7 @@
 
 write:
 	ldr		r4, STM32_FLASH_BASE
+	add		r4, r3								/* add offset 0x00 for sector 0 : 0x40 for sector 1 */
 write_half_word:
 	movs	r3, #0x01
 	str		r3, [r4, #STM32_FLASH_CR_OFFSET]	/* PG (bit0) == 1 => flash programming enabled */
