@@ -905,6 +905,34 @@ static int stm32x_probe(struct flash_bank *bank)
 			num_pages = 128;
 		}
 	}
+	else if ((device_id & 0x7ff) == 0x430)
+	{
+		/* xl line density - we have 2k pages
+		 * 2 pages for a protection area */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+
+		/* check for early silicon */
+		if (num_pages == 0xffff)
+		{
+			/* number of sectors may be incorrrect on early silicon */
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
+			num_pages = 1024;
+		}
+
+		/* split reported size into matching bank */
+		if (bank->base != 0x08080000)
+		{
+			/* bank 0 will be fixed 512k */
+			num_pages = 512;
+		}
+		else
+		{
+			num_pages -= 512;
+			/* bank1 also uses a register offset */
+			stm32x_info->register_offset = 0x40;
+		}
+	}
 	else
 	{
 		LOG_WARNING("Cannot identify target as a STM32 family.");
@@ -922,7 +950,6 @@ static int stm32x_probe(struct flash_bank *bank)
 		bank->sectors = NULL;
 	}
 
-	bank->base = 0x08000000;
 	bank->size = (num_pages * page_size);
 	bank->num_sectors = num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
@@ -1068,6 +1095,23 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 			case 0x1001:
 				snprintf(buf, buf_size, "Z");
+				break;
+
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	}
+	else if ((device_id & 0x7ff) == 0x430)
+	{
+		printed = snprintf(buf, buf_size, "stm32x (XL) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+
+		switch (device_id >> 16)
+		{
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
 				break;
 
 			default:
