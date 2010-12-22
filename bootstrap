@@ -26,12 +26,15 @@ automake --gnu --add-missing --copy
 # AM_MAINTAINER_MODE requires --enable-maintainer-mode from everyone using
 # current source snapshots (working from GIT, or some source snapshot, etc)
 # otherwise the documentation will fail to build due to missing version.texi
+
+if [ -n $1 ] || [ $1 != nosubmodule ]
+then
+    echo "Setting up submodules"
+    git submodule init
+    git submodule update
+else
+    echo "Skipping submodule setup"
+fi
+
 echo "Bootstrap complete. Quick start build instructions:"
-echo "" 
-echo "1. Fetch Jim Tcl"
-echo ""
-echo "git submodule init"
-echo "git submodule update"
-echo ""
-echo "2. Configure"
 echo "./configure --enable-maintainer-mode ...."
