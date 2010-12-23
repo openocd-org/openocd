@@ -853,9 +853,9 @@ COMMAND_HANDLER(handle_flash_banks_command)
 	unsigned n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++)
 	{
-		LOG_USER("#%" PRIu32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
+		LOG_USER("#%" PRIu32 " : %s (%s) at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
 			"buswidth %u, chipwidth %u", p->bank_number,
-			p->driver->name, p->base, p->size,
+			p->name, p->driver->name, p->base, p->size,
 			p->bus_width, p->chip_width);
 	}
 	return ERROR_OK;
