@@ -1376,8 +1376,8 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		optionbyte &= ~(1 << 0);
 	}
 
-	/* OPT_RDRSTSTDBY */
-	if (strcmp(CMD_ARGV[2], "NORSTSTNDBY") == 0)
+	/* OPT_RDRSTSTOP */
+	if (strcmp(CMD_ARGV[2], "NORSTSTOP") == 0)
 	{
 		optionbyte |= (1 << 1);
 	}
@@ -1386,8 +1386,8 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		optionbyte &= ~(1 << 1);
 	}
 
-	/* OPT_RDRSTSTOP */
-	if (strcmp(CMD_ARGV[3], "NORSTSTOP") == 0)
+	/* OPT_RDRSTSTDBY */
+	if (strcmp(CMD_ARGV[3], "NORSTSTNDBY") == 0)
 	{
 		optionbyte |= (1 << 2);
 	}
