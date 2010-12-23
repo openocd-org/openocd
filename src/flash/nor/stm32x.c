@@ -843,6 +843,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	uint16_t num_pages;
 	uint32_t device_id;
 	int page_size;
+	uint32_t base_address = 0x08000000;
 
 	stm32x_info->probed = 0;
 	stm32x_info->register_offset = FLASH_OFFSET_B0;
@@ -964,6 +965,7 @@ static int stm32x_probe(struct flash_bank *bank)
 			num_pages -= 512;
 			/* bank1 also uses a register offset */
 			stm32x_info->register_offset = FLASH_OFFSET_B1;
+			base_address = 0x08080000;
 		}
 	}
 	else
@@ -983,6 +985,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		bank->sectors = NULL;
 	}
 
+	bank->base = base_address;
 	bank->size = (num_pages * page_size);
 	bank->num_sectors = num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
