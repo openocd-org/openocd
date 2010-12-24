@@ -1213,7 +1213,7 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	}
 
 	/* mark as used, and return the new (reused) area */
-	new_wa->free = 0;
+	new_wa->free = false;
 	*area = new_wa;
 
 	/* user pointer */
@@ -1247,7 +1247,7 @@ static int target_free_working_area_restore(struct target *target, struct workin
 			return retval;
 	}
 
-	area->free = 1;
+	area->free = true;
 
 	/* mark user pointer invalid */
 	*area->user = NULL;
