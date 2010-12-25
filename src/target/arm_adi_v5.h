@@ -59,6 +59,9 @@
 #define DP_SELECT		0x8		/* JTAG: r/w; SWD: write */
 #define DP_RDBUFF		0xC		/* read-only */
 
+#define WCR_TO_TRN(wcr) (1 + (3 & ((wcr)) >> 8))	/* 1..4 clocks */
+#define WCR_TO_PRESCALE(wcr) (7 & ((wcr)))		/* impl defined */
+
 /* Fields of the DP's AP ABORT register */
 #define DAPABORT		(1 << 0)
 #define STKCMPCLR		(1 << 1)	/* SWD-only */

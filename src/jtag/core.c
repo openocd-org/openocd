@@ -129,6 +129,9 @@ static int jtag_speed = 0;
 
 static struct jtag_interface *jtag = NULL;
 
+
+const struct swd_driver *swd = NULL;
+
 /* configuration */
 struct jtag_interface *jtag_interface = NULL;
 

@@ -2462,6 +2462,7 @@ No arguments: print status.
 @end deffn
 
 @section Transport Configuration
+@cindex Transport
 As noted earlier, depending on the version of OpenOCD you use,
 and the debug adapter you are using,
 several transports may be available to
@@ -2479,6 +2480,7 @@ No arguments: returns name of session's selected transport.
 @end deffn
 
 @subsection JTAG Transport
+@cindex JTAG
 JTAG is the original transport supported by OpenOCD, and most
 of the OpenOCD commands support it.
 JTAG transports expose a chain of one or more Test Access Points (TAPs),
@@ -2486,13 +2488,28 @@ each of which must be explicitly declared.
 JTAG supports both debugging and boundary scan testing.
 Flash programming support is built on top of debug support.
 @subsection SWD Transport
+@cindex SWD
+@cindex Serial Wire Debug
 SWD (Serial Wire Debug) is an ARM-specific transport which exposes one
 Debug Access Point (DAP, which must be explicitly declared.
 (SWD uses fewer signal wires than JTAG.)
 SWD is debug-oriented, and does not support  boundary scan testing.
 Flash programming support is built on top of debug support.
 (Some processors support both JTAG and SWD.)
+@deffn Command {swd newdap} ...
+Declares a single DAP which uses SWD transport.
+Parameters are currently the same as "jtag newtap" but this is
+expected to change.
+@end deffn
+@deffn Command {swd wcr trn prescale}
+Updates TRN (turnaraound delay) and prescaling.fields of the
+Wire Control Register (WCR).
+No parameters: displays current settings.
+@end deffn
+
 @subsection SPI Transport
+@cindex SPI
+@cindex Serial Peripheral Interface
 The Serial Peripheral Interface (SPI) is a general purpose transport
 which uses four wire signaling.  Some processors use it as part of a
 solution for flash programming.

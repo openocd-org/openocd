@@ -209,6 +209,8 @@ struct jtag_interface {
 	/** transports supported in C code (NULL terminated vector) */
 	const char **transports;
 
+	const struct swd_driver *swd;
+
 	/**
 	 * Execute queued commands.
 	 * @returns ERROR_OK on success, or an error code on failure.
@@ -293,5 +295,7 @@ struct jtag_interface {
 
 
 extern const char *jtag_only[];
+
+extern const struct swd_driver *swd;
 
 #endif // OPENOCD_JTAG_INTERFACE_H

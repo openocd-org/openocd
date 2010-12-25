@@ -695,4 +695,6 @@ void jtag_poll_set_enabled(bool value);
 
 bool transport_is_jtag(void);
 
+int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+
 #endif /* JTAG_H */
