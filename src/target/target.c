@@ -4221,9 +4221,6 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	int e = target->type->examine(target);
 	if (e != ERROR_OK)
 	{
-		Jim_Obj *eObj = Jim_NewIntObj(interp, e);
-		Jim_SetResultFormatted(interp, "examine-fails: %#s", eObj);
-		Jim_FreeNewObj(interp, eObj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -4263,9 +4260,6 @@ static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	if (e != ERROR_OK)
 	{
-		Jim_Obj *eObj = Jim_NewIntObj(interp, e);
-		Jim_SetResultFormatted(interp, "poll-fails: %#s", eObj);
-		Jim_FreeNewObj(interp, eObj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
