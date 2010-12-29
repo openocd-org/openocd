@@ -2314,7 +2314,7 @@ COMMAND_HANDLER(handle_md_command)
 
 	bool physical=strcmp(CMD_ARGV[0], "phys")==0;
 	int (*fn)(struct target *target,
-			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+			uint32_t address, uint32_t size_value, uint32_t count, uint8_t *buffer);
 	if (physical)
 	{
 		CMD_ARGC--;

@@ -184,7 +184,7 @@ static uint32_t lpc2900_run_bist128(struct flash_bank *bank,
                                     uint32_t addr_from, uint32_t addr_to,
                                     uint32_t (*signature)[4] );
 static uint32_t lpc2900_address2sector(struct flash_bank *bank, uint32_t offset);
-static uint32_t lpc2900_calc_tr( uint32_t clock, uint32_t time );
+static uint32_t lpc2900_calc_tr(uint32_t clock_var, uint32_t time_var);
 
 
 /***********************  Helper functions  **************************/

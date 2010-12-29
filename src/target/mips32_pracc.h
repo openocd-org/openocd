@@ -45,7 +45,7 @@ int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,
 int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
 int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_area *source,
-		int write, uint32_t addr, int count, uint32_t *buf);
+		int write_t, uint32_t addr, int count, uint32_t *buf);
 
 int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);

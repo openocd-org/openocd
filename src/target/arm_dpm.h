@@ -100,7 +100,7 @@ struct arm_dpm {
 	 * must currently be disabled.  Indices 0..15 are used for
 	 * breakpoints; indices 16..31 are for watchpoints.
 	 */
-	int (*bpwp_enable)(struct arm_dpm *, unsigned index,
+	int (*bpwp_enable)(struct arm_dpm *, unsigned index_value,
 			uint32_t addr, uint32_t control);
 
 	/**
@@ -108,7 +108,7 @@ struct arm_dpm {
 	 * hardware control registers.  Indices are the same ones
 	 * accepted by bpwp_enable().
 	 */
-	int (*bpwp_disable)(struct arm_dpm *, unsigned index);
+	int (*bpwp_disable)(struct arm_dpm *, unsigned index_value);
 
 	/* The breakpoint and watchpoint arrays are private to the
 	 * DPM infrastructure.  There are nbp indices in the dbp

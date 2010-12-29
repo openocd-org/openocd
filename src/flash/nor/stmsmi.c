@@ -202,7 +202,7 @@ FLASH_BANK_COMMAND_HANDLER(stmsmi_flash_bank_command)
 {
 	struct stmsmi_flash_bank *stmsmi_info;
 
-	LOG_DEBUG(__FUNCTION__);
+	LOG_DEBUG("%s", __FUNCTION__);
 
 	if (CMD_ARGC < 6)
 	{
