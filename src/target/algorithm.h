@@ -37,7 +37,7 @@ struct mem_param
 
 struct reg_param
 {
-	char *reg_name;
+	const char *reg_name;
 	uint32_t size;
 	uint8_t *value;
 	enum param_direction direction;

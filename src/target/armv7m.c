@@ -82,7 +82,7 @@ struct reg armv7m_gdb_dummy_cpsr_reg =
  */
 static const struct {
 	unsigned id;
-	char *name;
+	const char *name;
 	unsigned bits;
 } armv7m_regs[] = {
 	{ ARMV7M_R0, "r0", 32 },

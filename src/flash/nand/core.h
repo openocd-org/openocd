@@ -59,7 +59,7 @@ struct nand_ecclayout {
 
 struct nand_device
 {
-	char *name;
+	const char *name;
 	struct nand_flash_controller *controller;
 	void *controller_priv;
 	struct nand_manufacturer *manufacturer;
@@ -91,12 +91,12 @@ enum
 struct nand_manufacturer
 {
 	int id;
-	char *name;
+	const char *name;
 };
 
 struct nand_info
 {
-	char *name;
+	const char *name;
 	int id;
 	int page_size;
 	int chip_size;

@@ -306,7 +306,7 @@ static int remove_services(void)
 		struct service *next = c->next;
 
 		if (c->name)
-			free(c->name);
+			free((void *)c->name);
 
 		if (c->type == CONNECTION_PIPE)
 		{

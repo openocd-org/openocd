@@ -34,7 +34,7 @@ struct mflash_gpio_num
 
 struct mflash_gpio_drv
 {
-	char *name;
+	const char *name;
 	int (*set_gpio_to_output) (struct mflash_gpio_num gpio);
 	int (*set_gpio_output_val) (struct mflash_gpio_num gpio, uint8_t val);
 };

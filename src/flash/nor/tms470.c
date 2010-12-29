@@ -38,7 +38,7 @@ struct tms470_flash_bank
 	uint32_t technology_family;
 	uint32_t rom_flash;
 	uint32_t part_number;
-	char * part_name;
+	const char * part_name;
 
 };
 
@@ -129,7 +129,7 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	uint32_t technology_family;
 	uint32_t rom_flash;
 	uint32_t part_number;
-	char *part_name;
+	const char *part_name;
 
 	/* we shall not rely on the caller in this test, this function allocates memory,
 	   thus and executing the code more than once may cause memory leak */

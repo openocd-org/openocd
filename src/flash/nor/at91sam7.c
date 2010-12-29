@@ -125,7 +125,7 @@ struct at91sam7_flash_bank
 	uint16_t cidr_nvpsiz2;
 	uint16_t cidr_eproc;
 	uint16_t cidr_version;
-	char *target_name;
+	const char *target_name;
 
 	/* flash auto-detection */
 	uint8_t  flash_autodetection;

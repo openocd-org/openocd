@@ -29,7 +29,7 @@ struct pld_device;
 
 struct pld_driver
 {
-	char *name;
+	const char *name;
 	__PLD_DEVICE_COMMAND((*pld_device_command));
 	const struct command_registration *commands;
 	int (*load)(struct pld_device *pld_device, const char *filename);

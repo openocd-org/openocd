@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 {
 	int c;
 	unsigned int n;
-	char *name;
+	const char *name;
 
 	if (argc == 1) {
 		fprintf(stderr, "bin2char <varname>\n");

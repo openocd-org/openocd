@@ -91,7 +91,7 @@ struct lpc288x_flash_bank
 
 	/* chip id register */
 	uint32_t cidr;
-	char * target_name;
+	const char * target_name;
 	uint32_t cclk;
 
 	uint32_t sector_size_break;

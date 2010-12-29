@@ -173,7 +173,7 @@ typedef __COMMAND_HANDLER((*command_handler_t));
 
 struct command
 {
-	char *name;
+	const char *name;
 	const char *help;
 	const char *usage;
 	struct command *parent;

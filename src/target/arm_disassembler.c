@@ -2354,7 +2354,7 @@ static int evaluate_add_sp_pc_thumb(uint16_t opcode,
 	uint8_t Rd = (opcode >> 8) & 0x7;
 	uint8_t Rn;
 	uint32_t SP = opcode & (1 << 11);
-	char *reg_name;
+	const char *reg_name;
 
 	instruction->type = ARM_ADD;
 

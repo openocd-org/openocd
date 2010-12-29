@@ -42,7 +42,7 @@ struct target_type
 	 * Name of this type of target.  Do @b not access this
 	 * field directly, use target_type_name() instead.
 	 */
-	char *name;
+	const char *name;
 
 	/* poll current target status */
 	int (*poll)(struct target *target);

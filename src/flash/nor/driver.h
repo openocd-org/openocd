@@ -54,7 +54,7 @@ struct flash_driver
 	 * Gives a human-readable name of this flash driver,
 	 * This field is used to select and initialize the driver.
 	 */
-	char *name;
+	const char *name;
 
 	/**
 	 * An array of driver-specific commands to register.  When called

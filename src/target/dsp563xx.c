@@ -173,7 +173,7 @@ static int dsp563xx_jtag_sendinstr(struct jtag_tap *tap, uint8_t * ir_in, uint8_
 static const struct
 {
 	unsigned id;
-	char *name;
+	const char *name;
 	unsigned bits;
 	uint32_t r_cmd;
 	uint32_t w_cmd;

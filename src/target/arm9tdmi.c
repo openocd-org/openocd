@@ -60,7 +60,7 @@ enum arm9tdmi_vector_bit
 };
 
 static const struct arm9tdmi_vector {
-	char *name;
+	const char *name;
 	uint32_t value;
 } arm9tdmi_vectors[] = {
 	{"reset", ARM9TDMI_RESET_VECTOR},

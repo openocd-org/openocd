@@ -53,7 +53,7 @@ struct dsp563xx_common
 struct dsp563xx_core_reg
 {
 	uint32_t num;
-	char *name;
+	const char *name;
 	uint32_t size;
 	uint32_t r_cmd;
 	uint32_t w_cmd;

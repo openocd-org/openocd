@@ -74,7 +74,7 @@ struct flash_sector
  */
 struct flash_bank
 {
-	char *name;
+	const char *name;
 
 	struct target *target; /**< Target to which this bank belongs. */
 

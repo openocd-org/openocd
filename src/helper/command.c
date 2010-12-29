@@ -310,7 +310,7 @@ static void command_free(struct command *c)
 	}
 
 	if (c->name)
-		free(c->name);
+		free((void *)c->name);
 	if (c->help)
 		free((void*)c->help);
 	if (c->usage)

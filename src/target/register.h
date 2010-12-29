@@ -27,7 +27,7 @@ struct target;
 
 struct reg
 {
-	char *name;
+	const char *name;
 	void *value;
 	bool dirty;
 	bool valid;
@@ -38,7 +38,7 @@ struct reg
 
 struct reg_cache
 {
-	char *name;
+	const char *name;
 	struct reg_cache *next;
 	struct reg *reg_list;
 	unsigned num_regs;

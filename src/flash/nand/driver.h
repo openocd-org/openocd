@@ -35,7 +35,7 @@ struct nand_device;
 struct nand_flash_controller
 {
 	/** Driver name that is used to select it from configuration files. */
-	char *name;
+	const char *name;
 
     const struct command_registration *commands;
 

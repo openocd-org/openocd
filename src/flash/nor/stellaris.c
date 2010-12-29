@@ -100,7 +100,7 @@ struct stellaris_flash_bank
 	uint32_t dc0;
 	uint32_t dc1;
 
-	char * target_name;
+	const char * target_name;
 
 	uint32_t sramsiz;
 	uint32_t flshsz;
@@ -125,7 +125,7 @@ struct stellaris_flash_bank
 
 static struct {
 	uint32_t partno;
-	char *partname;
+	const char *partname;
 }	StellarisParts[] =
 {
 	{0x0001,"LM3S101"},

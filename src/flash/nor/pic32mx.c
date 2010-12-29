@@ -99,7 +99,7 @@ struct pic32mx_flash_bank
 
 static const struct pic32mx_devs_s {
 	uint8_t	devid;
-	char *name;
+	const char *name;
 } pic32mx_devs[] = {
 	{0x38, "360F512L"},
 	{0x34, "360F256L"},

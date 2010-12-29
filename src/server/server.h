@@ -57,7 +57,7 @@ typedef int (*connection_closed_handler_t)(struct connection *connection);
 
 struct service
 {
-	char *name;
+	const char *name;
 	enum connection_type type;
 	const char *port;
 	unsigned short portnumber;
