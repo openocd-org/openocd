@@ -98,7 +98,7 @@
 #define  offset_EFC_FRR   12
 
 
-struct flash_driver at91sam3_flash;
+extern struct flash_driver at91sam3_flash;
 
 static float
 _tomhz(uint32_t freq_hz)
