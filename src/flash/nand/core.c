@@ -776,6 +776,7 @@ int nand_page_command(struct nand_device *nand, uint32_t page,
 		if (!nand->controller->nand_ready(nand, 100))
 			return ERROR_NAND_OPERATION_TIMEOUT;
 	} else {
+		/* nand_poll_read() cannot be used during nand read */
 		alive_sleep(1);
 	}
 
