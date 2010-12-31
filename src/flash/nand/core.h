@@ -60,6 +60,7 @@ struct nand_ecclayout {
 struct nand_device
 {
 	const char *name;
+	struct target *target;
 	struct nand_flash_controller *controller;
 	void *controller_priv;
 	struct nand_manufacturer *manufacturer;

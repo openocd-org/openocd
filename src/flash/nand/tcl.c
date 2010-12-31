@@ -27,6 +27,7 @@
 #include "core.h"
 #include "imp.h"
 #include "fileio.h"
+#include <target/target.h>
 
 // to be removed
 extern struct nand_device *nand_devices;
@@ -537,16 +538,37 @@ COMMAND_HANDLER(handle_nand_list_drivers)
 static COMMAND_HELPER(create_nand_device, const char *bank_name,
 		struct nand_flash_controller *controller)
 {
+	struct nand_device *c;
+	struct target *target;
+	int retval;
+
+	if (CMD_ARGC < 2)
+	{
+		LOG_ERROR("missing target");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+	target = get_target(CMD_ARGV[1]);
+	if (!target) {
+		LOG_ERROR("invalid target %s", CMD_ARGV[1]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
 	if (NULL != controller->commands)
 	{
-		int retval = register_commands(CMD_CTX, NULL,
+		retval = register_commands(CMD_CTX, NULL,
 				controller->commands);
 		if (ERROR_OK != retval)
 			return retval;
 	}
-	struct nand_device *c = malloc(sizeof(struct nand_device));
+	c = malloc(sizeof(struct nand_device));
+	if (c == NULL)
+	{
+		LOG_ERROR("End of memory");
+		return ERROR_FAIL;
+	}
 
 	c->name = strdup(bank_name);
+	c->target = target;
 	c->controller = controller;
 	c->controller_priv = NULL;
 	c->manufacturer = NULL;
@@ -557,7 +579,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	c->use_raw = 0;
 	c->next = NULL;
 
-	int retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
+	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
 	if (ERROR_OK != retval)
 	{
 		LOG_ERROR("'%s' driver rejected nand flash", controller->name);
