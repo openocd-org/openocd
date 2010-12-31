@@ -33,8 +33,6 @@
 
 struct orion_nand_controller
 {
-	struct target	*target;
-
 	struct arm_nand_data	io;
 
 	uint32_t		cmd;
@@ -53,7 +51,7 @@ struct orion_nand_controller
 static int orion_nand_command(struct nand_device *nand, uint8_t command)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	struct target *target = hw->target;
+	struct target *target = nand->target;
 
 	CHECK_HALTED;
 	target_write_u8(target, hw->cmd, command);
@@ -63,7 +61,7 @@ static int orion_nand_command(struct nand_device *nand, uint8_t command)
 static int orion_nand_address(struct nand_device *nand, uint8_t address)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	struct target *target = hw->target;
+	struct target *target = nand->target;
 
 	CHECK_HALTED;
 	target_write_u8(target, hw->addr, address);
@@ -73,7 +71,7 @@ static int orion_nand_address(struct nand_device *nand, uint8_t address)
 static int orion_nand_read(struct nand_device *nand, void *data)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	struct target *target = hw->target;
+	struct target *target = nand->target;
 
 	CHECK_HALTED;
 	target_read_u8(target, hw->data, data);
@@ -83,7 +81,7 @@ static int orion_nand_read(struct nand_device *nand, void *data)
 static int orion_nand_write(struct nand_device *nand, uint16_t data)
 {
 	struct orion_nand_controller *hw = nand->controller_priv;
-	struct target *target = hw->target;
+	struct target *target = nand->target;
 
 	CHECK_HALTED;
 	target_write_u8(target, hw->data, data);
@@ -134,12 +132,6 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 	}
 
 	nand->controller_priv = hw;
-	hw->target = get_target(CMD_ARGV[1]);
-	if (!hw->target) {
-		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
-		free(hw);
-		return ERROR_NAND_DEVICE_INVALID;
-	}
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], base);
 	cle = 0;
@@ -149,7 +141,7 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 	hw->cmd = base + (1 << cle);
 	hw->addr = base + (1 << ale);
 
-	hw->io.target = hw->target;
+	hw->io.target = nand->target;
 	hw->io.data = hw->data;
 	hw->io.op = ARM_NAND_NONE;
 
