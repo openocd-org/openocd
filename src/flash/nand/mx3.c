@@ -74,12 +74,6 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 
 	nand->controller_priv = mx3_nf_info;
 
-	mx3_nf_info->target = get_target (CMD_ARGV[1]);
-	if (mx3_nf_info->target == NULL)
-	{
-	    LOG_ERROR ("target '%s' not defined", CMD_ARGV[1]);
-	    return ERROR_FAIL;
-	}
 	if (CMD_ARGC < 3)
 	{
 	    LOG_ERROR ("use \"nand device imx31 target noecc|hwecc\"");
@@ -104,7 +98,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 	mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
 	mx3_nf_info->fin = MX3_NF_FIN_NONE;
 	mx3_nf_info->flags.target_little_endian =
-	(mx3_nf_info->target->endianness == TARGET_LITTLE_ENDIAN);
+	(nand->target->endianness == TARGET_LITTLE_ENDIAN);
 	/*
 	* testing host endianess
 	*/
@@ -125,7 +119,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 static int imx31_init (struct nand_device *nand)
 {
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 
 	{
 	/*
@@ -267,8 +261,7 @@ static int imx31_init (struct nand_device *nand)
 
 static int imx31_read_data (struct nand_device *nand, void *data)
 {
-	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 	{
 	/*
 	 * validate target state
@@ -329,7 +322,7 @@ static int imx31_reset (struct nand_device *nand)
 static int imx31_command (struct nand_device *nand, uint8_t command)
 {
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 	{
 	/*
 	 * validate target state
@@ -402,8 +395,7 @@ static int imx31_command (struct nand_device *nand, uint8_t command)
 
 static int imx31_address (struct nand_device *nand, uint8_t address)
 {
-	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 	{
 	/*
 	 * validate target state
@@ -435,8 +427,7 @@ static int imx31_address (struct nand_device *nand, uint8_t address)
 static int imx31_nand_ready (struct nand_device *nand, int tout)
 {
 	uint16_t poll_complete_status;
-	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 
 	{
 	/*
@@ -468,7 +459,7 @@ static int imx31_write_page (struct nand_device *nand, uint32_t page,
 			     uint32_t oob_size)
 {
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 
 	if (data_size % 2)
 	{
@@ -574,8 +565,7 @@ static int imx31_read_page (struct nand_device *nand, uint32_t page,
 			    uint8_t * data, uint32_t data_size, uint8_t * oob,
 			    uint32_t oob_size)
 {
-	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 
 	if (data_size % 2)
 	{
@@ -650,7 +640,7 @@ static int test_iomux_settings (struct target * target, uint32_t address,
 static int initialize_nf_controller (struct nand_device *nand)
 {
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 	/*
 	* resets NAND flash controller in zero time ? I dont know.
 	*/
@@ -778,7 +768,7 @@ static int poll_for_complete_op (struct target * target, const char *text)
 static int validate_target_state (struct nand_device *nand)
 {
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -800,7 +790,7 @@ static int validate_target_state (struct nand_device *nand)
 static int do_data_output (struct nand_device *nand)
 {
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
-	struct target *target = mx3_nf_info->target;
+	struct target *target = nand->target;
 	switch (mx3_nf_info->fin)
 	{
 	    case MX3_NF_FIN_DATAOUT:
