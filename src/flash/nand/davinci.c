@@ -39,8 +39,6 @@ enum ecc {
 };
 
 struct davinci_nand {
-	struct target	*target;
-
 	uint8_t		chipsel;	/* chipselect 0..3 == CS2..CS5 */
 	uint8_t		eccmode;
 
@@ -82,7 +80,7 @@ static int halted(struct target *target, const char *label)
 static int davinci_init(struct nand_device *nand)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint32_t nandfcr;
 
 	if (!halted(target, "init"))
@@ -112,7 +110,7 @@ static int davinci_reset(struct nand_device *nand)
 static int davinci_nand_ready(struct nand_device *nand, int timeout)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint32_t nandfsr;
 
 	/* NOTE: return code is zero/error, else success; not ERROR_* */
@@ -135,7 +133,7 @@ static int davinci_nand_ready(struct nand_device *nand, int timeout)
 static int davinci_command(struct nand_device *nand, uint8_t command)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!halted(target, "command"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -147,7 +145,7 @@ static int davinci_command(struct nand_device *nand, uint8_t command)
 static int davinci_address(struct nand_device *nand, uint8_t address)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!halted(target, "address"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -159,7 +157,7 @@ static int davinci_address(struct nand_device *nand, uint8_t address)
 static int davinci_write_data(struct nand_device *nand, uint16_t data)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!halted(target, "write_data"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -171,7 +169,7 @@ static int davinci_write_data(struct nand_device *nand, uint16_t data)
 static int davinci_read_data(struct nand_device *nand, void *data)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!halted(target, "read_data"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -186,7 +184,7 @@ static int davinci_read_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint32_t nfdata = info->data;
 	uint32_t tmp;
 
@@ -219,7 +217,7 @@ static int davinci_write_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint32_t nfdata = info->data;
 	uint32_t tmp;
 	int status;
@@ -260,7 +258,7 @@ static int davinci_write_page(struct nand_device *nand, uint32_t page,
 
 	if (!nand->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
-	if (!halted(info->target, "write_page"))
+	if (!halted(nand->target, "write_page"))
 		return ERROR_NAND_OPERATION_FAILED;
 
 	/* Always write both data and OOB ... we are not "raw" I/O! */
@@ -309,7 +307,7 @@ static int davinci_read_page(struct nand_device *nand, uint32_t page,
 
 	if (!nand->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
-	if (!halted(info->target, "read_page"))
+	if (!halted(nand->target, "read_page"))
 		return ERROR_NAND_OPERATION_FAILED;
 
 	return info->read_page(nand, page, data, data_size, oob, oob_size);
@@ -318,7 +316,7 @@ static int davinci_read_page(struct nand_device *nand, uint32_t page,
 static void davinci_write_pagecmd(struct nand_device *nand, uint8_t cmd, uint32_t page)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	int page3 = nand->address_cycles - (nand->page_size == 512);
 
 	/* write command ({page,otp}x{read,program} */
@@ -341,7 +339,7 @@ static void davinci_write_pagecmd(struct nand_device *nand, uint8_t cmd, uint32_
 static int davinci_seek_column(struct nand_device *nand, uint16_t column)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	/* Random read, we must have issued a page read already */
 	target_write_u8(target, info->cmd, NAND_CMD_RNDOUT);
@@ -363,7 +361,7 @@ static int davinci_writepage_tail(struct nand_device *nand,
 		uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint8_t status;
 
 	if (oob_size)
@@ -396,7 +394,7 @@ static int davinci_write_page_ecc1(struct nand_device *nand, uint32_t page,
 {
 	unsigned oob_offset;
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	const uint32_t fcr_addr = info->aemif + NANDFCR;
 	const uint32_t ecc1_addr = info->aemif + NANDFECC + (4 * info->chipsel);
 	uint32_t fcr, ecc1;
@@ -484,7 +482,7 @@ static int davinci_write_page_ecc4(struct nand_device *nand, uint32_t page,
 
 	struct davinci_nand *info = nand->controller_priv;
 	const uint8_t *l;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	const uint32_t fcr_addr = info->aemif + NANDFCR;
 	const uint32_t ecc4_addr = info->aemif + NAND4BITECC;
 	uint32_t fcr, ecc4;
@@ -564,7 +562,7 @@ static int davinci_write_page_ecc4infix(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	const uint32_t fcr_addr = info->aemif + NANDFCR;
 	const uint32_t ecc4_addr = info->aemif + NAND4BITECC;
 	uint32_t fcr, ecc4;
@@ -678,7 +676,6 @@ static int davinci_read_page_ecc4infix(struct nand_device *nand, uint32_t page,
 NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 {
 	struct davinci_nand *info;
-	struct target *target;
 	unsigned long chip, aemif;
 	enum ecc eccmode;
 	int chipsel;
@@ -695,12 +692,6 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 		LOG_ERROR("parameters: %s target "
 				"chip_addr hwecc_mode aemif_addr",
 				CMD_ARGV[0]);
-		goto fail;
-	}
-
-	target = get_target(CMD_ARGV[1]);
-	if (!target) {
-		LOG_ERROR("invalid target %s", CMD_ARGV[1]);
 		goto fail;
 	}
 
@@ -749,7 +740,6 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 	if (info == NULL)
 		goto fail;
 
-	info->target = target;
 	info->eccmode = eccmode;
 	info->chipsel = chipsel;
 	info->aemif = aemif;
@@ -759,7 +749,7 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 
 	nand->controller_priv = info;
 
-	info->io.target = target;
+	info->io.target = nand->target;
 	info->io.data = info->data;
 	info->io.op = ARM_NAND_NONE;
 
