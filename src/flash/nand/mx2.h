@@ -113,7 +113,6 @@ struct mx2_nf_flags
 
 struct mx2_nf_controller
 {
-	struct target *target;
 	enum mx_dataout_type optype;
 	enum mx_nf_finalize_action fin;
 	struct mx2_nf_flags flags;

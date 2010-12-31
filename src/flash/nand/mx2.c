@@ -86,11 +86,6 @@ NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 	}
 
 	nand->controller_priv = mx2_nf_info;
-	mx2_nf_info->target = get_target(CMD_ARGV[1]);
-	if (mx2_nf_info->target == NULL) {
-		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
-		return ERROR_FAIL;
-	}
 	if (CMD_ARGC < 3) {
 		LOG_ERROR("use \"nand device imx27 target noecc|hwecc\"");
 		return ERROR_FAIL;
@@ -108,7 +103,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 	mx2_nf_info->optype = MX2_NF_DATAOUT_PAGE;
 	mx2_nf_info->fin = MX2_NF_FIN_NONE;
 	mx2_nf_info->flags.target_little_endian =
-	(mx2_nf_info->target->endianness == TARGET_LITTLE_ENDIAN);
+	(nand->target->endianness == TARGET_LITTLE_ENDIAN);
 	/*
 	 * testing host endianess
 	 */
@@ -123,7 +118,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 static int imx27_init(struct nand_device *nand)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 
 	int validate_target_result;
 	uint16_t buffsize_register_content;
@@ -193,8 +188,7 @@ static int imx27_init(struct nand_device *nand)
 
 static int imx27_read_data(struct nand_device *nand, void *data)
 {
-	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int validate_target_result;
 	int try_data_output_from_nand_chip;
 	/*
@@ -244,7 +238,7 @@ static int imx27_reset(struct nand_device *nand)
 static int imx27_command(struct nand_device *nand, uint8_t command)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int validate_target_result;
 	int poll_result;
 	/*
@@ -313,8 +307,7 @@ static int imx27_command(struct nand_device *nand, uint8_t command)
 
 static int imx27_address(struct nand_device *nand, uint8_t address)
 {
-	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int validate_target_result;
 	int poll_result;
 	/*
@@ -339,8 +332,7 @@ static int imx27_address(struct nand_device *nand, uint8_t address)
 static int imx27_nand_ready(struct nand_device *nand, int tout)
 {
 	uint16_t poll_complete_status;
-	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int validate_target_result;
 
 	/*
@@ -366,7 +358,7 @@ static int imx27_write_page(struct nand_device *nand, uint32_t page,
 			     uint32_t oob_size)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int retval;
 	uint16_t nand_status_content;
 	uint16_t swap1, swap2, new_swap1;
@@ -489,7 +481,7 @@ static int imx27_read_page(struct nand_device *nand, uint32_t page,
 			    uint32_t oob_size)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int retval;
 	uint16_t swap1, swap2, new_swap1;
 	if (data_size % 2) {
@@ -575,7 +567,7 @@ static int imx27_read_page(struct nand_device *nand, uint32_t page,
 static int initialize_nf_controller(struct nand_device *nand)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	uint16_t work_mode;
 	uint16_t temp;
 	/*
@@ -689,7 +681,7 @@ static int poll_for_complete_op(struct target * target, const char *text)
 static int validate_target_state(struct nand_device *nand)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR(target_not_halted_err_msg);
@@ -709,7 +701,7 @@ static int validate_target_state(struct nand_device *nand)
 static int do_data_output(struct nand_device *nand)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
-	struct target *target = mx2_nf_info->target;
+	struct target *target = nand->target;
 	int poll_result;
 	uint16_t ecc_status;
 	switch(mx2_nf_info->fin) {
