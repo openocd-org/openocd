@@ -126,8 +126,3 @@ int s3c24xx_read_data(struct nand_device *nand, void *data)
 	target_read_u8(target, s3c24xx_info->data, data);
 	return ERROR_OK;
 }
-
-int s3c24xx_controller_ready(struct nand_device *nand, int timeout)
-{
-	return 1;
-}

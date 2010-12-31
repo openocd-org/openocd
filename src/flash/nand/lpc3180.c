@@ -1363,6 +1363,5 @@ struct nand_flash_controller lpc3180_nand_controller = {
 	.read_data = lpc3180_read_data,
 	.write_page = lpc3180_write_page,
 	.read_page = lpc3180_read_page,
-	.controller_ready = lpc3180_controller_ready,
 	.nand_ready = lpc3180_nand_ready,
 };

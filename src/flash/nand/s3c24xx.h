@@ -68,8 +68,6 @@ int s3c24xx_address(struct nand_device *nand, uint8_t address);
 int s3c24xx_write_data(struct nand_device *nand, uint16_t data);
 int s3c24xx_read_data(struct nand_device *nand, void *data);
 
-int s3c24xx_controller_ready(struct nand_device *nand, int tout);
-
 #define s3c24xx_write_page NULL
 #define s3c24xx_read_page NULL
 

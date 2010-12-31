@@ -73,7 +73,6 @@ static int do_data_output(struct nand_device *nand);
 
 static int imx27_command(struct nand_device *nand, uint8_t command);
 static int imx27_address(struct nand_device *nand, uint8_t address);
-static int imx27_controller_ready(struct nand_device *nand, int tout);
 
 NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 {
@@ -229,11 +228,6 @@ static int imx27_write_data(struct nand_device *nand, uint16_t data)
 	return ERROR_NAND_OPERATION_FAILED;
 }
 
-static int imx27_nand_ready(struct nand_device *nand, int timeout)
-{
-	return imx27_controller_ready(nand, timeout);
-}
-
 static int imx27_reset(struct nand_device *nand)
 {
 	/*
@@ -342,7 +336,7 @@ static int imx27_address(struct nand_device *nand, uint8_t address)
 	return ERROR_OK;
 }
 
-static int imx27_controller_ready(struct nand_device *nand, int tout)
+static int imx27_nand_ready(struct nand_device *nand, int tout)
 {
 	uint16_t poll_complete_status;
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
@@ -771,6 +765,5 @@ struct nand_flash_controller imx27_nand_flash_controller = {
 	.read_data		= &imx27_read_data,
 	.write_page		= &imx27_write_page,
 	.read_page		= &imx27_read_page,
-	.controller_ready	= &imx27_controller_ready,
 	.nand_ready		= &imx27_nand_ready,
 };

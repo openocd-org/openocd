@@ -118,6 +118,5 @@ struct nand_flash_controller s3c2410_nand_controller = {
 		.read_data = &s3c2410_read_data,
 		.write_page = s3c24xx_write_page,
 		.read_page = s3c24xx_read_page,
-		.controller_ready = &s3c24xx_controller_ready,
 		.nand_ready = &s3c2410_nand_ready,
 	};

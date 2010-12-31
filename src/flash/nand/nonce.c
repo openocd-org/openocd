@@ -52,11 +52,6 @@ static int nonce_nand_reset(struct nand_device *nand)
 	return nonce_nand_command(nand, NAND_CMD_RESET);
 }
 
-static int nonce_nand_controller_ready(struct nand_device *nand, int timeout)
-{
-	return true;
-}
-
 NAND_DEVICE_COMMAND_HANDLER(nonce_nand_device_command)
 {
 	return ERROR_OK;
@@ -79,5 +74,4 @@ struct nand_flash_controller nonce_nand_controller =
 	.read_data		= &nonce_nand_read,
 	.write_data		= &nonce_nand_write,
 	.write_block_data	= &nonce_nand_fast_block_write,
-	.controller_ready	= &nonce_nand_controller_ready,
 };

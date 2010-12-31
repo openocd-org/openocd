@@ -42,9 +42,6 @@ struct nand_flash_controller
 	/** NAND device command called when driver is instantiated during configuration. */
 	__NAND_DEVICE_COMMAND((*nand_device_command));
 
-	/** Register controller specific commands as a TCL interface to the driver. */
-	int (*register_commands)(struct command_context *cmd_ctx);
-
 	/** Initialize the NAND device. */
 	int (*init)(struct nand_device *nand);
 
@@ -74,9 +71,6 @@ struct nand_flash_controller
 
 	/** Read a page from the NAND device. */
 	int (*read_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
-
-	/** Check if the controller is ready for more instructions with timeout. */
-	int (*controller_ready)(struct nand_device *nand, int timeout);
 
 	/** Check if the NAND device is ready for more instructions with timeout. */
 	int (*nand_ready)(struct nand_device *nand, int timeout);

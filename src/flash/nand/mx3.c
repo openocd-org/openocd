@@ -61,7 +61,6 @@ static int do_data_output (struct nand_device *nand);
 
 static int imx31_command (struct nand_device *nand, uint8_t command);
 static int imx31_address (struct nand_device *nand, uint8_t address);
-static int imx31_controller_ready (struct nand_device *nand, int tout);
 
 NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 {
@@ -312,11 +311,6 @@ static int imx31_write_data (struct nand_device *nand, uint16_t data)
 	return ERROR_NAND_OPERATION_FAILED;
 }
 
-static int imx31_nand_ready (struct nand_device *nand, int timeout)
-{
-	return imx31_controller_ready (nand, timeout);
-}
-
 static int imx31_reset (struct nand_device *nand)
 {
 	/*
@@ -438,7 +432,7 @@ static int imx31_address (struct nand_device *nand, uint8_t address)
 	return ERROR_OK;
 }
 
-static int imx31_controller_ready (struct nand_device *nand, int tout)
+static int imx31_nand_ready (struct nand_device *nand, int tout)
 {
 	uint16_t poll_complete_status;
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
@@ -876,6 +870,5 @@ struct nand_flash_controller imx31_nand_flash_controller = {
 		.read_data = &imx31_read_data,
 		.write_page = &imx31_write_page,
 		.read_page = &imx31_read_page,
-		.controller_ready = &imx31_controller_ready,
 		.nand_ready = &imx31_nand_ready,
 	};
