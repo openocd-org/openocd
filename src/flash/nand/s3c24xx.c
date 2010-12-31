@@ -43,13 +43,6 @@ S3C24XX_DEVICE_COMMAND()
 	}
 
 	nand->controller_priv = s3c24xx_info;
-
-	s3c24xx_info->target = get_target(CMD_ARGV[1]);
-	if (s3c24xx_info->target == NULL) {
-		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
 	*info = s3c24xx_info;
 
 	return ERROR_OK;
@@ -58,7 +51,7 @@ S3C24XX_DEVICE_COMMAND()
 int s3c24xx_reset(struct nand_device *nand)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -73,7 +66,7 @@ int s3c24xx_reset(struct nand_device *nand)
 int s3c24xx_command(struct nand_device *nand, uint8_t command)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -88,7 +81,7 @@ int s3c24xx_command(struct nand_device *nand, uint8_t command)
 int s3c24xx_address(struct nand_device *nand, uint8_t address)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -102,7 +95,7 @@ int s3c24xx_address(struct nand_device *nand, uint8_t address)
 int s3c24xx_write_data(struct nand_device *nand, uint16_t data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -116,7 +109,7 @@ int s3c24xx_write_data(struct nand_device *nand, uint16_t data)
 int s3c24xx_read_data(struct nand_device *nand, void *data)
 {
 	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");

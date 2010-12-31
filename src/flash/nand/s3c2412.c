@@ -46,8 +46,7 @@ NAND_DEVICE_COMMAND_HANDLER(s3c2412_nand_device_command)
 
 static int s3c2412_init(struct nand_device *nand)
 {
-	struct s3c24xx_nand_controller *s3c24xx_info = nand->controller_priv;
-	struct target *target = s3c24xx_info->target;
+	struct target *target = nand->target;
 
 	target_write_u32(target, S3C2410_NFCONF,
 			 S3C2440_NFCONF_TACLS(3) |
