@@ -33,14 +33,12 @@
 
 struct nuc910_nand_controller
 {
-	struct target *target;
 	struct arm_nand_data io;
 };
 
 static int validate_target_state(struct nand_device *nand)
 {
-	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -52,8 +50,7 @@ static int validate_target_state(struct nand_device *nand)
 
 static int nuc910_nand_command(struct nand_device *nand, uint8_t command)
 {
-	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 	int result;
 
 	if ((result = validate_target_state(nand)) != ERROR_OK)
@@ -65,8 +62,7 @@ static int nuc910_nand_command(struct nand_device *nand, uint8_t command)
 
 static int nuc910_nand_address(struct nand_device *nand, uint8_t address)
 {
-	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 	int result;
 
 	if ((result = validate_target_state(nand)) != ERROR_OK)
@@ -78,8 +74,7 @@ static int nuc910_nand_address(struct nand_device *nand, uint8_t address)
 
 static int nuc910_nand_read(struct nand_device *nand, void *data)
 {
-	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 	int result;
 
 	if ((result = validate_target_state(nand)) != ERROR_OK)
@@ -91,8 +86,7 @@ static int nuc910_nand_read(struct nand_device *nand, void *data)
 
 static int nuc910_nand_write(struct nand_device *nand, uint16_t data)
 {
-	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 	int result;
 
 	if ((result = validate_target_state(nand)) != ERROR_OK)
@@ -155,8 +149,7 @@ static int nuc910_nand_reset(struct nand_device *nand)
 
 static int nuc910_nand_ready(struct nand_device *nand, int timeout)
 {
-	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 	uint32_t status;
 
 	do {
@@ -181,20 +174,13 @@ NAND_DEVICE_COMMAND_HANDLER(nuc910_nand_device_command)
 	}
 
 	nand->controller_priv = nuc910_nand;
-	nuc910_nand->target = get_target(CMD_ARGV[1]);
-	if (!nuc910_nand->target) {
-		LOG_ERROR("target '%s' not defined", CMD_ARGV[1]);
-		free(nuc910_nand);
-		return ERROR_NAND_DEVICE_INVALID;
-	}
-
 	return ERROR_OK;
 }
 
 static int nuc910_nand_init(struct nand_device *nand)
 {
 	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
-	struct target *target = nuc910_nand->target;
+	struct target *target = nand->target;
 	int bus_width = nand->bus_width ? : 8;
 	int result;
 
