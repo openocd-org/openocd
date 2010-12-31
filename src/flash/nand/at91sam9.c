@@ -38,9 +38,6 @@
  * Representation of a pin on an AT91SAM9 chip.
  */
 struct at91sam9_pin {
-	/** Target this pin is on. */
-	struct target *target;
-
 	/** Address of the PIO controller. */
 	uint32_t pioc;
 
@@ -52,9 +49,6 @@ struct at91sam9_pin {
  * Private data for the controller that is stored in the NAND device structure.
  */
 struct at91sam9_nand {
-	/** Target the NAND is attached to. */
-	struct target *target;
-
 	/** Address of the ECC controller for NAND. */
 	uint32_t ecc;
 
@@ -101,8 +95,7 @@ static int at91sam9_halted(struct target *target, const char *label)
  */
 static int at91sam9_init(struct nand_device *nand)
 {
-	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!at91sam9_halted(target, "init")) {
 		return ERROR_NAND_OPERATION_FAILED;
@@ -117,9 +110,10 @@ static int at91sam9_init(struct nand_device *nand)
  * @param info NAND controller information for controlling NAND device.
  * @return Success or failure of the enabling.
  */
-static int at91sam9_enable(struct at91sam9_nand *info)
+static int at91sam9_enable(struct nand_device *nand)
 {
-	struct target *target = info->target;
+	struct at91sam9_nand *info = nand->controller_priv;
+	struct target *target = nand->target;
 
 	return target_write_u32(target, info->ce.pioc + AT91C_PIOx_CODR, 1 << info->ce.num);
 }
@@ -130,9 +124,10 @@ static int at91sam9_enable(struct at91sam9_nand *info)
  * @param info NAND controller information for controlling NAND device.
  * @return Success or failure of the disabling.
  */
-static int at91sam9_disable(struct at91sam9_nand *info)
+static int at91sam9_disable(struct nand_device *nand)
 {
-	struct target *target = info->target;
+	struct at91sam9_nand *info = nand->controller_priv;
+	struct target *target = nand->target;
 
 	return target_write_u32(target, info->ce.pioc + AT91C_PIOx_SODR, 1 << info->ce.num);
 }
@@ -147,13 +142,13 @@ static int at91sam9_disable(struct at91sam9_nand *info)
 static int at91sam9_command(struct nand_device *nand, uint8_t command)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!at91sam9_halted(target, "command")) {
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	at91sam9_enable(info);
+	at91sam9_enable(nand);
 
 	return target_write_u8(target, info->cmd, command);
 }
@@ -166,13 +161,11 @@ static int at91sam9_command(struct nand_device *nand, uint8_t command)
  */
 static int at91sam9_reset(struct nand_device *nand)
 {
-	struct at91sam9_nand *info = nand->controller_priv;
-
-	if (!at91sam9_halted(info->target, "reset")) {
+	if (!at91sam9_halted(nand->target, "reset")) {
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	return at91sam9_disable(info);
+	return at91sam9_disable(nand);
 }
 
 /**
@@ -185,9 +178,9 @@ static int at91sam9_reset(struct nand_device *nand)
 static int at91sam9_address(struct nand_device *nand, uint8_t address)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
-	if (!at91sam9_halted(info->target, "address")) {
+	if (!at91sam9_halted(nand->target, "address")) {
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
@@ -205,9 +198,9 @@ static int at91sam9_address(struct nand_device *nand, uint8_t address)
 static int at91sam9_read_data(struct nand_device *nand, void *data)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
-	if (!at91sam9_halted(info->target, "read data")) {
+	if (!at91sam9_halted(nand->target, "read data")) {
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
@@ -225,7 +218,7 @@ static int at91sam9_read_data(struct nand_device *nand, void *data)
 static int at91sam9_write_data(struct nand_device *nand, uint16_t data)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 
 	if (!at91sam9_halted(target, "write data")) {
 		return ERROR_NAND_OPERATION_FAILED;
@@ -244,7 +237,7 @@ static int at91sam9_write_data(struct nand_device *nand, uint16_t data)
 static int at91sam9_nand_ready(struct nand_device *nand, int timeout)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint32_t status;
 
 	if (!at91sam9_halted(target, "nand ready")) {
@@ -279,7 +272,7 @@ static int at91sam9_read_block_data(struct nand_device *nand, uint8_t *data, int
 	struct arm_nand_data *io = &info->io;
 	int status;
 
-	if (!at91sam9_halted(info->target, "read block")) {
+	if (!at91sam9_halted(nand->target, "read block")) {
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
@@ -304,7 +297,7 @@ static int at91sam9_write_block_data(struct nand_device *nand, uint8_t *data, in
 	struct arm_nand_data *io = &info->io;
 	int status;
 
-	if (!at91sam9_halted(info->target, "write block")) {
+	if (!at91sam9_halted(nand->target, "write block")) {
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
@@ -381,7 +374,7 @@ static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
 {
 	int retval;
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	uint8_t *oob_data;
 	uint32_t status;
 
@@ -458,7 +451,7 @@ static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
 		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
-	struct target *target = info->target;
+	struct target *target = nand->target;
 	int retval;
 	uint8_t *oob_data = oob;
 	uint32_t parity, nparity;
@@ -517,7 +510,6 @@ static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
  */
 NAND_DEVICE_COMMAND_HANDLER(at91sam9_nand_device_command)
 {
-	struct target *target = NULL;
 	unsigned long chip = 0, ecc = 0;
 	struct at91sam9_nand *info = NULL;
 
@@ -525,12 +517,6 @@ NAND_DEVICE_COMMAND_HANDLER(at91sam9_nand_device_command)
 
 	if (CMD_ARGC < 3 || CMD_ARGC > 4) {
 		LOG_ERROR("parameters: %s target chip_addr", CMD_ARGV[0]);
-		return ERROR_NAND_OPERATION_FAILED;
-	}
-
-	target = get_target(CMD_ARGV[1]);
-	if (!target) {
-		LOG_ERROR("invalid target: %s", CMD_ARGV[1]);
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
@@ -554,14 +540,13 @@ NAND_DEVICE_COMMAND_HANDLER(at91sam9_nand_device_command)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	info->target = target;
 	info->data = chip;
 	info->cmd = chip | (1 << 22);
 	info->addr = chip | (1 << 21);
 	info->ecc = ecc;
 
 	nand->controller_priv = info;
-	info->io.target = target;
+	info->io.target = nand->target;
 	info->io.data = info->data;
 	info->io.op = ARM_NAND_NONE;
 
