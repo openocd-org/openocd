@@ -572,7 +572,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 
 COMMAND_HANDLER(handle_nand_device_command)
 {
-	if (CMD_ARGC < 1)
+	if (CMD_ARGC < 2)
 	{
 		LOG_ERROR("incomplete nand device configuration");
 		return ERROR_FLASH_BANK_INVALID;
