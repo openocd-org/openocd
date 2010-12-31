@@ -29,7 +29,6 @@ enum lpc3180_selected_controller
 
 struct lpc3180_nand_controller
 {
-	struct target *target;
 	int osc_freq;
 	enum lpc3180_selected_controller selected_controller;
 	int is_bulk;
