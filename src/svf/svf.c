@@ -315,8 +315,6 @@ COMMAND_HANDLER(handle_svf_command)
 {
 #define SVF_MIN_NUM_OF_OPTIONS			1
 #define SVF_MAX_NUM_OF_OPTIONS			5
-#define USAGE [-tap device.tap] <file> [quiet] [progress]
-#define PRINT_USAGE	command_print(CMD_CTX, "svf USAGE")
 	int command_num = 0;
 	int ret = ERROR_OK;
 	long long time_measure_ms;
@@ -330,8 +328,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	if ((CMD_ARGC < SVF_MIN_NUM_OF_OPTIONS) || (CMD_ARGC > SVF_MAX_NUM_OF_OPTIONS))
 	{
-		PRINT_USAGE;
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// parse command line
@@ -359,10 +356,9 @@ COMMAND_HANDLER(handle_svf_command)
 		else if ((svf_fd = fopen(CMD_ARGV[i], "r")) == NULL)
 		{
 			int err = errno;
-			PRINT_USAGE;
 			command_print(CMD_CTX, "open(\"%s\"): %s", CMD_ARGV[i], strerror(err));
 			// no need to free anything now
-			return ERROR_FAIL;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		else
 		{
@@ -372,8 +368,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	if (svf_fd == NULL)
 	{
-		PRINT_USAGE;
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// get time
@@ -1712,7 +1707,7 @@ static const struct command_registration svf_command_handlers[] = {
 		.handler = handle_svf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a SVF file.",
-		.usage = "USAGE",
+		.usage = "svf [-tap device.tap] <file> [quiet] [progress]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
