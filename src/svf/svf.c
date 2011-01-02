@@ -1478,47 +1478,45 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			}
 			i += 2;
 		}
-		// calculate run_count
-		if ((0 == run_count) && (min_time > 0))
-		{
-			run_count = min_time * svf_para.frequency;
-		}
+
 		// all parameter should be parsed
 		if (i == num_of_argu)
 		{
-			if (run_count > 0)
-			{
-				// run_state and end_state is checked to be stable state
-				// TODO: do runtest
 #if 1
-				/* FIXME handle statemove failures */
-				int retval;
+			/* FIXME handle statemove failures */
+			int retval;
+			uint32_t min_usec = 1000000 * min_time;
 
-				// enter into run_state if necessary
-				if (cmd_queue_cur_state != svf_para.runtest_run_state)
-				{
-					retval = svf_add_statemove(svf_para.runtest_run_state);
-				}
-
-				// call jtag_add_clocks
-				jtag_add_clocks(run_count);
-
-				// move to end_state if necessary
-				if (svf_para.runtest_end_state != svf_para.runtest_run_state)
-				{
-					retval = svf_add_statemove(svf_para.runtest_end_state);
-				}
-#else
-				if (svf_para.runtest_run_state != TAP_IDLE)
-				{
-					LOG_ERROR("cannot runtest in %s state",
-						tap_state_name(svf_para.runtest_run_state));
-					return ERROR_FAIL;
-				}
-
-				jtag_add_runtest(run_count, svf_para.runtest_end_state);
-#endif
+			// enter into run_state if necessary
+			if (cmd_queue_cur_state != svf_para.runtest_run_state)
+			{
+				retval = svf_add_statemove(svf_para.runtest_run_state);
 			}
+
+			// add clocks and/or min wait
+			if (run_count > 0) {
+				jtag_add_clocks(run_count);
+			}
+
+			if (min_usec > 0) {
+				jtag_add_sleep(min_usec);
+			}
+
+			// move to end_state if necessary
+			if (svf_para.runtest_end_state != svf_para.runtest_run_state)
+			{
+				retval = svf_add_statemove(svf_para.runtest_end_state);
+			}
+#else
+			if (svf_para.runtest_run_state != TAP_IDLE)
+			{
+				LOG_ERROR("cannot runtest in %s state",
+					tap_state_name(svf_para.runtest_run_state));
+				return ERROR_FAIL;
+			}
+
+			jtag_add_runtest(run_count, svf_para.runtest_end_state);
+#endif
 		}
 		else
 		{
