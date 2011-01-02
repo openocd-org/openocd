@@ -1163,8 +1163,8 @@ static int cfi_protect(struct flash_bank *bank, int set, int first, int last)
 			return cfi_intel_protect(bank, set, first, last);
 			break;
 		default:
-			LOG_ERROR("protect: cfi primary command set %i unsupported", cfi_info->pri_id);
-			return ERROR_FAIL;
+			LOG_WARNING("protect: cfi primary command set %i unsupported", cfi_info->pri_id);
+			return ERROR_OK;
 	}
 }
 
