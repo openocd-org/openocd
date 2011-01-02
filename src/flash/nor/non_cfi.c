@@ -477,10 +477,12 @@ void cfi_fixup_non_cfi(struct flash_bank *bank)
 	cfi_info->vcc_max = 0x0;
 	cfi_info->vpp_min = 0x0;
 	cfi_info->vpp_max = 0x0;
-	cfi_info->word_write_timeout_typ = 0x0;
-	cfi_info->buf_write_timeout_typ = 0x0;
-	cfi_info->block_erase_timeout_typ = 0x0;
-	cfi_info->chip_erase_timeout_typ = 0x0;
+	/* these are used for timeouts - use vales that should be long enough
+	   for normal operation. */
+	cfi_info->word_write_timeout_typ = 0x0a;
+	cfi_info->buf_write_timeout_typ = 0x0d;
+	cfi_info->block_erase_timeout_typ = 0x0d;
+	cfi_info->chip_erase_timeout_typ = 0x10;
 	cfi_info->word_write_timeout_max = 0x0;
 	cfi_info->buf_write_timeout_max = 0x0;
 	cfi_info->block_erase_timeout_max = 0x0;

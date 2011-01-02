@@ -2563,39 +2563,6 @@ static int cfi_probe(struct flash_bank *bank)
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_DEBUG("Vcc min: %x.%x, Vcc max: %x.%x, Vpp min: %u.%x, Vpp max: %u.%x",
-			(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
-			(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
-			(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
-			(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
-
-		LOG_DEBUG("typ. word write timeout: %u us, typ. buf write timeout: %u us, "
-				"typ. block erase timeout: %u ms, typ. chip erase timeout: %u ms",
-				1 << cfi_info->word_write_timeout_typ, 1 << cfi_info->buf_write_timeout_typ,
-				1 << cfi_info->block_erase_timeout_typ, 1 << cfi_info->chip_erase_timeout_typ);
-
-		LOG_DEBUG("max. word write timeout: %u us, max. buf write timeout: %u us, "
-				"max. block erase timeout: %u ms, max. chip erase timeout: %u ms",
-				(1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
-				(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
-				(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
-				(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
-
-		/* convert timeouts to real values in ms */
-		cfi_info->word_write_timeout = DIV_ROUND_UP((1 << cfi_info->word_write_timeout_typ) *
-						(1 << cfi_info->word_write_timeout_max), 1000);
-		cfi_info->buf_write_timeout = DIV_ROUND_UP((1 << cfi_info->buf_write_timeout_typ) *
-				(1 << cfi_info->buf_write_timeout_max), 1000);
-		cfi_info->block_erase_timeout = (1 << cfi_info->block_erase_timeout_typ) *
-				(1 << cfi_info->block_erase_timeout_max);
-		cfi_info->chip_erase_timeout = (1 << cfi_info->chip_erase_timeout_typ) *
-				(1 << cfi_info->chip_erase_timeout_max);
-
-		LOG_DEBUG("calculated word write timeout: %u ms, buf write timeout: %u ms, "
-				"block erase timeout: %u ms, chip erase timeout: %u ms",
-				cfi_info->word_write_timeout, cfi_info->buf_write_timeout,
-				cfi_info->block_erase_timeout, cfi_info->chip_erase_timeout);
-
 		uint8_t data;
 		retval = cfi_query_u8(bank, 0, 0x27, &data);
 		if (retval != ERROR_OK)
@@ -2662,6 +2629,39 @@ static int cfi_probe(struct flash_bank *bank)
 			return retval;
 		}
 	} /* end CFI case */
+
+	LOG_DEBUG("Vcc min: %x.%x, Vcc max: %x.%x, Vpp min: %u.%x, Vpp max: %u.%x",
+		(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
+		(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
+		(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
+		(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
+
+	LOG_DEBUG("typ. word write timeout: %u us, typ. buf write timeout: %u us, "
+			"typ. block erase timeout: %u ms, typ. chip erase timeout: %u ms",
+			1 << cfi_info->word_write_timeout_typ, 1 << cfi_info->buf_write_timeout_typ,
+			1 << cfi_info->block_erase_timeout_typ, 1 << cfi_info->chip_erase_timeout_typ);
+
+	LOG_DEBUG("max. word write timeout: %u us, max. buf write timeout: %u us, "
+			"max. block erase timeout: %u ms, max. chip erase timeout: %u ms",
+			(1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
+			(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
+			(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
+			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
+
+	/* convert timeouts to real values in ms */
+	cfi_info->word_write_timeout = DIV_ROUND_UP((1L << cfi_info->word_write_timeout_typ) *
+				(1L << cfi_info->word_write_timeout_max), 1000);
+	cfi_info->buf_write_timeout = DIV_ROUND_UP((1L << cfi_info->buf_write_timeout_typ) *
+				(1L << cfi_info->buf_write_timeout_max), 1000);
+	cfi_info->block_erase_timeout = (1L << cfi_info->block_erase_timeout_typ) *
+				(1L << cfi_info->block_erase_timeout_max);
+	cfi_info->chip_erase_timeout = (1L << cfi_info->chip_erase_timeout_typ) *
+				(1L << cfi_info->chip_erase_timeout_max);
+
+	LOG_DEBUG("calculated word write timeout: %u ms, buf write timeout: %u ms, "
+			"block erase timeout: %u ms, chip erase timeout: %u ms",
+			cfi_info->word_write_timeout, cfi_info->buf_write_timeout,
+			cfi_info->block_erase_timeout, cfi_info->chip_erase_timeout);
 
 	/* apply fixups depending on the primary command set */
 	switch (cfi_info->pri_id)
@@ -2858,77 +2858,74 @@ static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 	}
 
 	if (cfi_info->not_cfi == 0)
-		printed = snprintf(buf, buf_size, "\ncfi information:\n");
+		printed = snprintf(buf, buf_size, "\nCFI flash: ");
 	else
-		printed = snprintf(buf, buf_size, "\nnon-cfi flash:\n");
+		printed = snprintf(buf, buf_size, "\nnon-CFI flash: ");
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "\nmfr: 0x%4.4x, id:0x%4.4x\n",
+	printed = snprintf(buf, buf_size, "mfr: 0x%4.4x, id:0x%4.4x\n\n",
 		cfi_info->manufacturer, cfi_info->device_id);
 	buf += printed;
 	buf_size -= printed;
 
-	if (cfi_info->not_cfi == 0)
+	printed = snprintf(buf, buf_size, "qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: "
+			"0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x\n",
+			cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2],
+			cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
+	buf += printed;
+	buf_size -= printed;
+
+	printed = snprintf(buf, buf_size, "Vcc min: %x.%x, Vcc max: %x.%x, "
+			"Vpp min: %u.%x, Vpp max: %u.%x\n",
+			(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
+			(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
+			(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
+			(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
+	buf += printed;
+	buf_size -= printed;
+
+	printed = snprintf(buf, buf_size, "typ. word write timeout: %u us, "
+			"typ. buf write timeout: %u us, "
+			"typ. block erase timeout: %u ms, "
+			"typ. chip erase timeout: %u ms\n",
+			1 << cfi_info->word_write_timeout_typ,
+			1 << cfi_info->buf_write_timeout_typ,
+			1 << cfi_info->block_erase_timeout_typ,
+			1 << cfi_info->chip_erase_timeout_typ);
+	buf += printed;
+	buf_size -= printed;
+
+	printed = snprintf(buf, buf_size, "max. word write timeout: %u us, "
+			"max. buf write timeout: %u us, max. "
+			"block erase timeout: %u ms, max. chip erase timeout: %u ms\n",
+			(1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
+			(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
+			(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
+			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
+	buf += printed;
+	buf_size -= printed;
+
+	printed = snprintf(buf, buf_size, "size: 0x%" PRIx32 ", interface desc: %i, "
+			"max buffer write size: 0x%x\n",
+			cfi_info->dev_size,
+			cfi_info->interface_desc,
+			1 << cfi_info->max_buf_write_size);
+	buf += printed;
+	buf_size -= printed;
+
+	switch (cfi_info->pri_id)
 	{
-		printed = snprintf(buf, buf_size, "qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: "
-				"0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x\n",
-				cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2],
-				cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
-		buf += printed;
-		buf_size -= printed;
-
-		printed = snprintf(buf, buf_size, "Vcc min: %x.%x, Vcc max: %x.%x, "
-				"Vpp min: %u.%x, Vpp max: %u.%x\n",
-				(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
-				(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
-				(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
-				(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
-		buf += printed;
-		buf_size -= printed;
-
-		printed = snprintf(buf, buf_size, "typ. word write timeout: %u us, "
-				"typ. buf write timeout: %u us, "
-				"typ. block erase timeout: %u ms, "
-				"typ. chip erase timeout: %u ms\n",
-				1 << cfi_info->word_write_timeout_typ,
-				1 << cfi_info->buf_write_timeout_typ,
-				1 << cfi_info->block_erase_timeout_typ,
-				1 << cfi_info->chip_erase_timeout_typ);
-		buf += printed;
-		buf_size -= printed;
-
-		printed = snprintf(buf, buf_size, "max. word write timeout: %u us, "
-				"max. buf write timeout: %u us, max. "
-				"block erase timeout: %u ms, max. chip erase timeout: %u ms\n",
-				(1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
-				(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
-				(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
-				(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
-		buf += printed;
-		buf_size -= printed;
-
-		printed = snprintf(buf, buf_size, "size: 0x%" PRIx32 ", interface desc: %i, "
-				"max buffer write size: 0x%x\n",
-				cfi_info->dev_size,
-				cfi_info->interface_desc,
-				1 << cfi_info->max_buf_write_size);
-		buf += printed;
-		buf_size -= printed;
-
-		switch (cfi_info->pri_id)
-		{
-			case 1:
-			case 3:
-				cfi_intel_info(bank, buf, buf_size);
-				break;
-			case 2:
-				cfi_spansion_info(bank, buf, buf_size);
-				break;
-			default:
-				LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-				break;
-		}
+		case 1:
+		case 3:
+			cfi_intel_info(bank, buf, buf_size);
+			break;
+		case 2:
+			cfi_spansion_info(bank, buf, buf_size);
+			break;
+		default:
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			break;
 	}
 
 	return ERROR_OK;
