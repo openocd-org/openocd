@@ -133,7 +133,7 @@ COMMAND_HANDLER(handle_cat_command)
 	}
 	else
 	{
-		command_print(CMD_CTX, "%s not found %d", CMD_ARGV[0], retval);
+		command_print(CMD_CTX, "%s not found", CMD_ARGV[0]);
 	}
 
 	return ERROR_OK;
@@ -270,7 +270,7 @@ COMMAND_HANDLER(handle_cp_command)
 		command_print(CMD_CTX, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
 	} else
 	{
-		command_print(CMD_CTX, "Failed: %d", retval);
+		command_print(CMD_CTX, "copy failed");
 	}
 
 	if (data != NULL)

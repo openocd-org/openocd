@@ -695,7 +695,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 			retval = jtag_execute_queue();
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("TRST/SRST error %d", retval);
+			LOG_ERROR("TRST/SRST error");
 			return;
 		}
 	}

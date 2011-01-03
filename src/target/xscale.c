@@ -2753,7 +2753,7 @@ static int xscale_read_instruction(struct target *target, uint32_t pc,
 			pc - xscale->trace.image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
 		{
-			LOG_ERROR("error while reading instruction: %i", retval);
+			LOG_ERROR("error while reading instruction");
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u32(target, buf);
@@ -2766,7 +2766,7 @@ static int xscale_read_instruction(struct target *target, uint32_t pc,
 			pc - xscale->trace.image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)
 		{
-			LOG_ERROR("error while reading instruction: %i", retval);
+			LOG_ERROR("error while reading instruction");
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u16(target, buf);

@@ -562,7 +562,7 @@ static int str9x_write(struct flash_bank *bank,
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
-				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
+				LOG_ERROR("flash writing failed");
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}

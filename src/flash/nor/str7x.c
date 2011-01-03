@@ -325,10 +325,6 @@ static int str7x_result(struct flash_bank *bank)
 			err = ERROR_FAIL;
 		}
 	}
-	if (err != ERROR_OK)
-	{
-		LOG_ERROR("FLASH_ER register contents: 0x%" PRIx32, retval);
-	}
 
 	return retval;
 }

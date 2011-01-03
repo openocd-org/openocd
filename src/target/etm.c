@@ -669,7 +669,7 @@ static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction 
 			ctx->current_pc - ctx->image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
 		{
-			LOG_ERROR("error while reading instruction: %i", retval);
+			LOG_ERROR("error while reading instruction");
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u32(ctx->target, buf);
@@ -682,7 +682,7 @@ static int etm_read_instruction(struct etm_context *ctx, struct arm_instruction 
 			ctx->current_pc - ctx->image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)
 		{
-			LOG_ERROR("error while reading instruction: %i", retval);
+			LOG_ERROR("error while reading instruction");
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u16(ctx->target, buf);
@@ -2109,6 +2109,7 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 
 	if ((retval = etmv1_analyze_trace(etm_ctx, CMD_CTX)) != ERROR_OK)
 	{
+		/* FIX! error should be reported inside etmv1_analyze_trace() */
 		switch (retval)
 		{
 			case ERROR_ETM_ANALYSIS_FAILED:
@@ -2121,7 +2122,7 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 				command_print(CMD_CTX, "no image available for trace analysis");
 				break;
 			default:
-				command_print(CMD_CTX, "unknown error: %i", retval);
+				command_print(CMD_CTX, "unknown error");
 		}
 	}
 

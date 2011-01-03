@@ -82,8 +82,8 @@ static  int transport_select(struct command_context *ctx, const char *name)
 			if (retval == ERROR_OK)
 				session = t;
 			else
-				LOG_ERROR("Error %d selecting '%s' as "
-					"transport", retval, t->name);
+				LOG_ERROR("Error selecting '%s' as "
+					"transport", t->name);
 			return retval;
 		}
 	}

@@ -46,7 +46,7 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last)
 	retval = bank->driver->erase(bank, first, last);
 	if (retval != ERROR_OK)
 	{
-		LOG_ERROR("failed erasing sectors %d to %d (%d)", first, last, retval);
+		LOG_ERROR("failed erasing sectors %d to %d", first, last);
 	}
 
 	return retval;
@@ -80,7 +80,7 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
 	{
-		LOG_ERROR("failed setting protection for areas %d to %d (%d)", first, last, retval);
+		LOG_ERROR("failed setting protection for areas %d to %d", first, last);
 	}
 
 	return retval;
@@ -94,8 +94,8 @@ int flash_driver_write(struct flash_bank *bank,
 	retval = bank->driver->write(bank, buffer, offset, count);
 	if (retval != ERROR_OK)
 	{
-		LOG_ERROR("error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32 " (%d)",
-			  bank->base, offset, retval);
+		LOG_ERROR("error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
+			  bank->base, offset);
 	}
 
 	return retval;
@@ -111,8 +111,8 @@ int flash_driver_read(struct flash_bank *bank,
 	retval = bank->driver->read(bank, buffer, offset, count);
 	if (retval != ERROR_OK)
 	{
-		LOG_ERROR("error reading to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32 " (%d)",
-			  bank->base, offset, retval);
+		LOG_ERROR("error reading to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
+			  bank->base, offset);
 	}
 
 	return retval;
@@ -209,7 +209,7 @@ int get_flash_bank_by_name(const char *name, struct flash_bank **bank_result)
 
 		if (retval != ERROR_OK)
 		{
-			LOG_ERROR("auto_probe failed %d\n", retval);
+			LOG_ERROR("auto_probe failed\n");
 			return retval;
 		}
 	}
@@ -232,7 +232,7 @@ int get_flash_bank_by_num(int num, struct flash_bank **bank)
 
 	if (retval != ERROR_OK)
 	{
-		LOG_ERROR("auto_probe failed %d\n", retval);
+		LOG_ERROR("auto_probe failed\n");
 		return retval;
 	}
 	*bank = p;
@@ -253,7 +253,7 @@ int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, str
 
 		if (retval != ERROR_OK)
 		{
-			LOG_ERROR("auto_probe failed %d\n", retval);
+			LOG_ERROR("auto_probe failed\n");
 			return retval;
 		}
 		/* check whether address belongs to this flash bank */

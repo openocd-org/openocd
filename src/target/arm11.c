@@ -175,7 +175,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	 */
 	retval = arm_dpm_read_current_registers(&arm11->dpm);
 	if (retval != ERROR_OK)
-		LOG_ERROR("DPM REG READ -- fail %d", retval);
+		LOG_ERROR("DPM REG READ -- fail");
 
 	retval = arm11_run_instr_data_prepare(arm11);
 	if (retval != ERROR_OK)

@@ -1533,7 +1533,7 @@ static int cortex_m3_store_core_reg_u32(struct target *target,
 		{
 			struct reg *r;
 
-			LOG_ERROR("JTAG failure %i", retval);
+			LOG_ERROR("JTAG failure");
 			r = armv7m->core_cache->reg_list + num;
 			r->dirty = r->valid;
 			return ERROR_JTAG_DEVICE_ERROR;

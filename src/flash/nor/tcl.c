@@ -106,7 +106,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 		retval = p->driver->info(p, buf, sizeof(buf));
 		command_print(CMD_CTX, "%s", buf);
 		if (retval != ERROR_OK)
-			LOG_ERROR("error retrieving flash info (%d)", retval);
+			LOG_ERROR("error retrieving flash info");
 	}
 
 	return ERROR_OK;

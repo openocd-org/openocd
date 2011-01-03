@@ -513,8 +513,8 @@ static int pic32mx_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
-				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
-				return ERROR_FLASH_OPERATION_FAILED;
+				LOG_ERROR("flash writing failed");
+				return retval;
 			}
 		}
 		else
