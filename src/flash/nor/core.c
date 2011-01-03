@@ -209,7 +209,7 @@ int get_flash_bank_by_name(const char *name, struct flash_bank **bank_result)
 
 		if (retval != ERROR_OK)
 		{
-			LOG_ERROR("auto_probe failed\n");
+			LOG_ERROR("auto_probe failed");
 			return retval;
 		}
 	}
@@ -232,7 +232,7 @@ int get_flash_bank_by_num(int num, struct flash_bank **bank)
 
 	if (retval != ERROR_OK)
 	{
-		LOG_ERROR("auto_probe failed\n");
+		LOG_ERROR("auto_probe failed");
 		return retval;
 	}
 	*bank = p;
@@ -253,7 +253,7 @@ int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, str
 
 		if (retval != ERROR_OK)
 		{
-			LOG_ERROR("auto_probe failed\n");
+			LOG_ERROR("auto_probe failed");
 			return retval;
 		}
 		/* check whether address belongs to this flash bank */
@@ -266,7 +266,7 @@ int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, str
 	*result_bank = NULL;
 	if (check)
 	{
-		LOG_ERROR("No flash at address 0x%08" PRIx32 "\n", addr);
+		LOG_ERROR("No flash at address 0x%08" PRIx32, addr);
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;
