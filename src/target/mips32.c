@@ -309,6 +309,7 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
+	mips32->fast_data_area = NULL;
 
 	/* has breakpoint/watchpint unit been scanned */
 	mips32->bp_scanned = 0;

@@ -57,6 +57,9 @@ struct mips32_common
 	uint32_t core_regs[MIPS32NUMCOREREGS];
 	enum mips32_isa_mode isa_mode;
 
+	/* working area for fastdata access */
+	struct working_area *fast_data_area;
+
 	int bp_scanned;
 	int num_inst_bpoints;
 	int num_data_bpoints;

@@ -985,7 +985,12 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	}
 
 	/* write program into RAM */
-	mips32_pracc_write_mem32(ejtag_info, source->address, ARRAY_SIZE(handler_code), handler_code);
+	if (write_t != ejtag_info->fast_access_save)
+	{
+		mips32_pracc_write_mem32(ejtag_info, source->address, ARRAY_SIZE(handler_code), handler_code);
+		/* save previous operation to speed to any consecutive read/writes */
+		ejtag_info->fast_access_save = write_t;
+	}
 
 	LOG_DEBUG("%s using 0x%.8" PRIx32 " for write handler", __func__, source->address);
 

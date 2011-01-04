@@ -300,6 +300,7 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 
 	/* set initial state for ejtag control reg */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
+	ejtag_info->fast_access_save = -1;
 
 	return ERROR_OK;
 }
