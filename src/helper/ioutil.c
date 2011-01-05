@@ -65,19 +65,19 @@ int loadFile(const char *fileName, void **data, size_t *len)
 	pFile = fopen(fileName,"rb");
 	if (pFile == NULL)
 	{
-		LOG_ERROR("Can't open %s\n", fileName);
+		LOG_ERROR("Can't open %s", fileName);
 		return ERROR_FAIL;
 	}
 	if (fseek(pFile, 0, SEEK_END) != 0)
 	{
-		LOG_ERROR("Can't open %s\n", fileName);
+		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
 	long fsize = ftell(pFile);
 	if (fsize == -1)
 	{
-		LOG_ERROR("Can't open %s\n", fileName);
+		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
@@ -85,14 +85,14 @@ int loadFile(const char *fileName, void **data, size_t *len)
 
 	if (fseek(pFile, 0, SEEK_SET) != 0)
 	{
-		LOG_ERROR("Can't open %s\n", fileName);
+		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
 	*data = malloc(*len + 1);
 	if (*data == NULL)
 	{
-		LOG_ERROR("Can't open %s\n", fileName);
+		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
@@ -101,7 +101,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 	{
 		fclose(pFile);
 		free(*data);
-		LOG_ERROR("Can't open %s\n", fileName);
+		LOG_ERROR("Can't open %s", fileName);
 		return ERROR_FAIL;
 	}
 	fclose(pFile);

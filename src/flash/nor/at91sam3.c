@@ -1787,7 +1787,7 @@ sam3_ReadThisReg(struct sam3_chip *pChip, uint32_t *goes_here)
 
 	r = target_read_u32(pChip->target, pReg->address, goes_here);
 	if (r != ERROR_OK) {
-		LOG_ERROR("Cannot read SAM3 register: %s @ 0x%08x, Err: %d\n",
+		LOG_ERROR("Cannot read SAM3 register: %s @ 0x%08x, Err: %d",
 				  pReg->name, (unsigned)(pReg->address), r);
 	}
 	return r;
@@ -1806,7 +1806,7 @@ sam3_ReadAllRegs(struct sam3_chip *pChip)
 		r = sam3_ReadThisReg(pChip,
 								  sam3_get_reg_ptr(&(pChip->cfg), pReg));
 		if (r != ERROR_OK) {
-			LOG_ERROR("Cannot read SAM3 registere: %s @ 0x%08x, Error: %d\n",
+			LOG_ERROR("Cannot read SAM3 registere: %s @ 0x%08x, Error: %d",
 					  pReg->name, ((unsigned)(pReg->address)), r);
 			return r;
 		}
@@ -1869,7 +1869,7 @@ sam3_erase_check(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	if (0 == bank->num_sectors) {
-		LOG_ERROR("Target: not supported/not probed\n");
+		LOG_ERROR("Target: not supported/not probed");
 		return ERROR_FAIL;
 	}
 
@@ -2066,7 +2066,7 @@ _sam3_probe(struct flash_bank *bank, int noise)
 
 	pPrivate = get_sam3_bank_private(bank);
 	if (!pPrivate) {
-		LOG_ERROR("Invalid/unknown bank number\n");
+		LOG_ERROR("Invalid/unknown bank number");
 		return ERROR_FAIL;
 	}
 

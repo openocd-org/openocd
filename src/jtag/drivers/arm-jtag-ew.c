@@ -451,12 +451,12 @@ static int armjtagew_get_status(void)
 
 		if (u_tg < 1500)
 		{
-			LOG_ERROR("Vref too low. Check Target Power\n");
+			LOG_ERROR("Vref too low. Check Target Power");
 		}
 	}
 	else
 	{
-		LOG_ERROR("ARM-JTAG-EW command CMD_GET_TAPHW_STATE failed (%d)\n", result);
+		LOG_ERROR("ARM-JTAG-EW command CMD_GET_TAPHW_STATE failed (%d)", result);
 	}
 
 	return ERROR_OK;
@@ -474,7 +474,7 @@ static int armjtagew_get_version_info(void)
 
 	if (result != 0)
 	{
-		LOG_ERROR("ARM-JTAG-EW command CMD_GET_VERSION failed (%d)\n", result);
+		LOG_ERROR("ARM-JTAG-EW command CMD_GET_VERSION failed (%d)", result);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 

@@ -348,7 +348,7 @@ dtc_load_from_buffer(
 
 	while (length) {
 		if (length < sizeof(*header)) {
-			LOG_ERROR("Malformed DTC image\n");
+			LOG_ERROR("Malformed DTC image");
 			exit(1);
 		}
 
@@ -357,7 +357,7 @@ dtc_load_from_buffer(
 		length -= sizeof(*header);
 
 		if (length < (size_t)header->length + 1) {
-			LOG_ERROR("Malformed DTC image\n");
+			LOG_ERROR("Malformed DTC image");
 			exit(1);
 		}
 
@@ -417,7 +417,7 @@ dtc_load_from_buffer(
 				break;
 
 			default:
-				LOG_ERROR("Invalid DTC image record type: 0x%02x\n", header->type);
+				LOG_ERROR("Invalid DTC image record type: 0x%02x", header->type);
 				exit(1);
 				break;
 		}
@@ -538,7 +538,7 @@ dtc_run_download(
 		if (ep2_buffer[0] & 0x01) break;
 
 		if (!--i) {
-			LOG_ERROR("%s, %d: too many retries waiting for DTC status\n",
+			LOG_ERROR("%s, %d: too many retries waiting for DTC status",
 				__FILE__, __LINE__
 );
 			return(-ETIMEDOUT);
@@ -556,7 +556,7 @@ dtc_run_download(
 );
 
 		if (usb_err < (int)sizeof(ep2_buffer)) {
-			LOG_ERROR("%s, %d: Read of endpoint 2 returned %d\n",
+			LOG_ERROR("%s, %d: Read of endpoint 2 returned %d",
 				__FILE__, __LINE__, usb_err
 );
 			return(usb_err);
@@ -691,7 +691,7 @@ dtc_queue_run(void) {
 			NULL, 0
 );
 		if (usb_err < 0) {
-			LOG_ERROR("dtc_run_download: %s\n", usb_strerror());
+			LOG_ERROR("dtc_run_download: %s", usb_strerror());
 			exit(1);
 		}
 	} else {
@@ -700,7 +700,7 @@ dtc_queue_run(void) {
 			reply_buffer, dtc_queue.reply_index
 );
 		if (usb_err < 0) {
-			LOG_ERROR("dtc_run_download: %s\n", usb_strerror());
+			LOG_ERROR("dtc_run_download: %s", usb_strerror());
 			exit(1);
 		} else {
 			/* process the reply, which empties the reply queue and frees its entries */
@@ -1106,7 +1106,7 @@ rlink_scan(
 	uint8_t			dtc_mask;
 
 	if (scan_size < 1) {
-		LOG_ERROR("scan_size cannot be less than 1 bit\n");
+		LOG_ERROR("scan_size cannot be less than 1 bit");
 		exit(1);
 	}
 
@@ -1230,7 +1230,7 @@ rlink_scan(
 				chunk_bits,
 				cmd
 ) == NULL) {
-				LOG_ERROR("enqueuing DTC reply entry: %s\n", strerror(errno));
+				LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 				exit(1);
 			}
 
@@ -1295,7 +1295,7 @@ rlink_scan(
 			extra_bits,
 			cmd
 ) == NULL) {
-			LOG_ERROR("enqueuing DTC reply entry: %s\n", strerror(errno));
+			LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 			exit(1);
 		}
 
@@ -1353,7 +1353,7 @@ rlink_scan(
 				1,
 				cmd
 ) == NULL) {
-				LOG_ERROR("enqueuing DTC reply entry: %s\n", strerror(errno));
+				LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 				exit(1);
 			}
 
@@ -1503,7 +1503,7 @@ int rlink_speed(int speed)
 	for (i = rlink_speed_table_size; i--;) {
 		if (rlink_speed_table[i].prescaler == speed) {
 			if (dtc_load_from_buffer(pHDev, rlink_speed_table[i].dtc, rlink_speed_table[i].dtc_size) != 0) {
-				LOG_ERROR("An error occurred while trying to load DTC code for speed \"%d\".\n", speed);
+				LOG_ERROR("An error occurred while trying to load DTC code for speed \"%d\".", speed);
 				exit(1);
 			}
 
@@ -1583,12 +1583,12 @@ int rlink_init(void)
 	struct usb_device *dev = usb_device(pHDev);
 	if (dev->descriptor.bNumConfigurations > 1)
 	{
-		LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
+		LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...");
 		return ERROR_FAIL;
 	}
 	if (dev->config->bNumInterfaces > 1)
 	{
-		LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
+		LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...");
 		return ERROR_FAIL;
 	}
 
@@ -1624,7 +1624,7 @@ int rlink_init(void)
 	}
 	if (usb_set_altinterface(pHDev,0) != 0)
 	{
-		LOG_ERROR("Failed to set interface.\n");
+		LOG_ERROR("Failed to set interface.");
 		return ERROR_FAIL;
 	}
 

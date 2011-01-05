@@ -522,42 +522,42 @@ COMMAND_HANDLER(handle_xsvf_command)
 			break;
 
 		case XSETSDRMASKS:
-			LOG_ERROR("unsupported XSETSDRMASKS\n");
+			LOG_ERROR("unsupported XSETSDRMASKS");
 			unsupported = 1;
 			break;
 
 		case XSDRINC:
-			LOG_ERROR("unsupported XSDRINC\n");
+			LOG_ERROR("unsupported XSDRINC");
 			unsupported = 1;
 			break;
 
 		case XSDRB:
-			LOG_ERROR("unsupported XSDRB\n");
+			LOG_ERROR("unsupported XSDRB");
 			unsupported = 1;
 			break;
 
 		case XSDRC:
-			LOG_ERROR("unsupported XSDRC\n");
+			LOG_ERROR("unsupported XSDRC");
 			unsupported = 1;
 			break;
 
 		case XSDRE:
-			LOG_ERROR("unsupported XSDRE\n");
+			LOG_ERROR("unsupported XSDRE");
 			unsupported = 1;
 			break;
 
 		case XSDRTDOB:
-			LOG_ERROR("unsupported XSDRTDOB\n");
+			LOG_ERROR("unsupported XSDRTDOB");
 			unsupported = 1;
 			break;
 
 		case XSDRTDOC:
-			LOG_ERROR("unsupported XSDRTDOC\n");
+			LOG_ERROR("unsupported XSDRTDOC");
 			unsupported = 1;
 			break;
 
 		case XSDRTDOE:
-			LOG_ERROR("unsupported XSDRTDOE\n");
+			LOG_ERROR("unsupported XSDRTDOE");
 			unsupported = 1;
 			break;
 
@@ -993,7 +993,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			break;
 
 		default:
-			LOG_ERROR("unknown xsvf command (0x%02X)\n", uc);
+			LOG_ERROR("unknown xsvf command (0x%02X)", uc);
 			unsupported = 1;
 		}
 

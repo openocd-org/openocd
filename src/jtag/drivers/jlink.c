@@ -514,7 +514,7 @@ static int jlink_get_status(void)
 	result = jlink_usb_read(jlink_handle, 8);
 	if (result != 8)
 	{
-		LOG_ERROR("J-Link command EMU_CMD_GET_STATE failed (%d)\n", result);
+		LOG_ERROR("J-Link command EMU_CMD_GET_STATE failed (%d)", result);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 

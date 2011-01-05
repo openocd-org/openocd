@@ -112,7 +112,7 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 
                 if (aduc702x_check_flash_completion(target, 3500) != ERROR_OK)
 		{
-			LOG_ERROR("mass erase failed\n");
+			LOG_ERROR("mass erase failed");
                         aduc702x_set_write_enable(target, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -132,7 +132,7 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 
                         if (aduc702x_check_flash_completion(target, 50) != ERROR_OK)
                         {
-                                LOG_ERROR("failed to erase sector at address 0x%08lX\n", adr);
+                                LOG_ERROR("failed to erase sector at address 0x%08lX", adr);
                                 aduc702x_set_write_enable(target, 0);
                                 return ERROR_FLASH_SECTOR_NOT_ERASED;
                         }
@@ -330,7 +330,7 @@ static int aduc702x_write_single(struct flash_bank *bank, uint8_t *buffer, uint3
 
                 if (aduc702x_check_flash_completion(target, 1) != ERROR_OK)
                 {
-			LOG_ERROR("single write failed for address 0x%08lX\n", (unsigned long)(offset + x));
+			LOG_ERROR("single write failed for address 0x%08lX", (unsigned long)(offset + x));
                         aduc702x_set_write_enable(target, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}

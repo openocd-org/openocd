@@ -169,7 +169,7 @@ NAND_DEVICE_COMMAND_HANDLER(nuc910_nand_device_command)
 
 	nuc910_nand = calloc(1, sizeof(struct nuc910_nand_controller));
 	if (!nuc910_nand) {
-		LOG_ERROR("no memory for nand controller\n");
+		LOG_ERROR("no memory for nand controller");
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 

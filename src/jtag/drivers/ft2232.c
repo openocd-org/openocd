@@ -2161,7 +2161,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 			if (status == FT_OK)
 			{
-				LOG_ERROR("ListDevices: %lu\n", num_devices);
+				LOG_ERROR("ListDevices: %lu", num_devices);
 				for (i = 0; i < num_devices; i++)
 					LOG_ERROR("%" PRIu32 ": \"%s\"", i, desc_array[i]);
 			}
@@ -2173,7 +2173,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 		}
 		else
 		{
-			LOG_ERROR("ListDevices: NONE\n");
+			LOG_ERROR("ListDevices: NONE");
 		}
 		return ERROR_JTAG_INIT_FAILED;
 	}

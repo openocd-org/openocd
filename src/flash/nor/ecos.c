@@ -264,7 +264,7 @@ static int eCosBoard_erase(struct ecosflash_flash_bank *info, uint32_t address, 
 
 	if (flashErr != 0x0)
 	{
-		LOG_ERROR("Flash erase failed with %d (%s)\n", (int)flashErr, flash_errmsg(flashErr));
+		LOG_ERROR("Flash erase failed with %d (%s)", (int)flashErr, flash_errmsg(flashErr));
 		return ERROR_FAIL;
 	}
 
@@ -322,7 +322,7 @@ static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32
 
 		if (flashErr != 0x0)
 		{
-			LOG_ERROR("Flash prog failed with %d (%s)\n", (int)flashErr, flash_errmsg(flashErr));
+			LOG_ERROR("Flash prog failed with %d (%s)", (int)flashErr, flash_errmsg(flashErr));
 			return ERROR_FAIL;
 		}
 	}

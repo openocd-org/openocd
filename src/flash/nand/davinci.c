@@ -263,7 +263,7 @@ static int davinci_write_page(struct nand_device *nand, uint32_t page,
 
 	/* Always write both data and OOB ... we are not "raw" I/O! */
 	if (!data) {
-		LOG_ERROR("Missing NAND data; try 'nand raw_access enable'\n");
+		LOG_ERROR("Missing NAND data; try 'nand raw_access enable'");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
