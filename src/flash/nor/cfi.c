@@ -29,6 +29,7 @@
 #include "cfi.h"
 #include "non_cfi.h"
 #include <target/arm.h>
+#include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 
@@ -1491,7 +1492,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	/*  R11 = unlock2_cmd */
 
 	/* see contib/loaders/flash/armv4_5_cfi_span_32.s for src */
-	static const uint32_t word_32_code[] = {
+	static const uint32_t armv4_5_word_32_code[] = {
 						/* 00008100 <sp_32_code>:		*/
 		0xe4905004,		/* ldr	r5, [r0], #4			*/
 		0xe5889000,		/* str	r9, [r8]				*/
@@ -1526,7 +1527,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	/* see contib/loaders/flash/armv4_5_cfi_span_16.s for src */
-	static const uint32_t word_16_code[] = {
+	static const uint32_t armv4_5_word_16_code[] = {
 						/* 00008158 <sp_16_code>:		*/
 		0xe0d050b2,		/* ldrh	r5, [r0], #2			*/
 		0xe1c890b0,		/* strh	r9, [r8]				*/
@@ -1560,8 +1561,30 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
 	};
 
+	/* see contib/loaders/flash/armv7m_cfi_span_16.s for src */
+	static const uint32_t armv7m_word_16_code[] = {
+		0x5B02F830,
+		0x9000F8A8,
+		0xB000F8AA,
+		0x3000F8A8,
+		0xBF00800D,
+		0xEA85880E,
+		0x40270706,
+		0xEA16D00A,
+		0xD0F70694,
+		0xEA85880E,
+		0x40270706,
+		0xF04FD002,
+		0xD1070500,
+		0xD0023A01,
+		0x0102F101,
+		0xF04FE7E0,
+		0xE7FF0580,
+		0x0000BE00
+	};
+
 	/* see contib/loaders/flash/armv4_5_cfi_span_16_dq7.s for src */
-	static const uint32_t word_16_code_dq7only[] = {
+	static const uint32_t armv4_5_word_16_code_dq7only[] = {
 						/* <sp_16_code>:				*/
 		0xe0d050b2,		/* ldrh r5, [r0], #2			*/
 		0xe1c890b0,		/* strh r9, [r8]				*/
@@ -1587,7 +1610,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	/* see contib/loaders/flash/armv4_5_cfi_span_8.s for src */
-	static const uint32_t word_8_code[] = {
+	static const uint32_t armv4_5_word_8_code[] = {
 						/* 000081b0 <sp_16_code_end>:	*/
 		0xe4d05001,		/* ldrb	r5, [r0], #1			*/
 		0xe5c89000,		/* strb	r9, [r8]				*/
@@ -1621,9 +1644,18 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe		/* b	8204 <sp_8_done>		*/
 	};
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	if(strcmp("cortex_m3", target_type_name(target)) == 0) /* Cortex-M3 target */
+	{
+		armv4_5_info.common_magic = ARMV7M_COMMON_MAGIC;
+		armv4_5_info.core_mode = ARMV7M_MODE_HANDLER;
+		armv4_5_info.core_state = ARM_STATE_ARM;
+	}
+	else /* right now is only armv4_5 target */
+	{
+		armv4_5_info.common_magic = ARM_COMMON_MAGIC;
+		armv4_5_info.core_mode = ARM_MODE_SVC;
+		armv4_5_info.core_state = ARM_STATE_ARM;
+	}
 
 	int target_code_size;
 	const uint32_t *target_code_src;
@@ -1631,26 +1663,43 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	switch (bank->bus_width)
 	{
 	case 1 :
-		target_code_src = word_8_code;
-		target_code_size = sizeof(word_8_code);
+		if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) /* armv4_5 target */
+		{
+			target_code_src = armv4_5_word_8_code;
+			target_code_size = sizeof(armv4_5_word_8_code);
+		}
 		break;
 	case 2 :
 		/* Check for DQ5 support */
 		if( cfi_info->status_poll_mask & (1 << 5) )
 		{
-			target_code_src = word_16_code;
-			target_code_size = sizeof(word_16_code);
+			if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) /* armv4_5 target */
+			{
+				target_code_src = armv4_5_word_16_code;
+				target_code_size = sizeof(armv4_5_word_16_code);
+			}
+			else if (armv4_5_info.common_magic == ARMV7M_COMMON_MAGIC) /* cortex-m3 target */
+			{
+				target_code_src = armv7m_word_16_code;
+				target_code_size = sizeof(armv7m_word_16_code);
+			}
 		}
 		else
 		{
 			/* No DQ5 support. Use DQ7 DATA# polling only. */
-			target_code_src = word_16_code_dq7only;
-			target_code_size = sizeof(word_16_code_dq7only);
+			if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) // armv4_5 target
+			{
+				target_code_src = armv4_5_word_16_code_dq7only;
+				target_code_size = sizeof(armv4_5_word_16_code_dq7only);
+			}
 		}
 		break;
 	case 4 :
-		target_code_src = word_32_code;
-		target_code_size = sizeof(word_32_code);
+		if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) // armv4_5 target
+		{
+			target_code_src = armv4_5_word_32_code;
+			target_code_size = sizeof(armv4_5_word_32_code);
+		}
 		break;
 	default:
 		LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
