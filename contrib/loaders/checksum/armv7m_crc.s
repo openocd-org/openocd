@@ -26,7 +26,7 @@
 
 	.text
 	.syntax unified
-	.cpu cortex-m3
+	.arch armv7-m
 	.thumb
 	.thumb_func
 	

@@ -21,10 +21,12 @@
  ***************************************************************************/
 
 	.text
-	.arm
-	.arch armv4
+	.syntax unified
+	.arch armv7-m
+	.thumb
+	.thumb_func
 
-	.section .init
+	.align 2
 
 /* input parameters - */
 /*	R0 = source address */
