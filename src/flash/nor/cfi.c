@@ -29,6 +29,7 @@
 #include "cfi.h"
 #include "non_cfi.h"
 #include <target/arm.h>
+#include <target/arm7_9_common.h>
 #include <target/armv7m.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
@@ -1644,17 +1645,22 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe		/* b	8204 <sp_8_done>		*/
 	};
 
-	if(strcmp("cortex_m3", target_type_name(target)) == 0) /* Cortex-M3 target */
+	if (is_armv7m(target_to_armv7m(target))) /* Cortex-M3 target */
 	{
 		armv4_5_info.common_magic = ARMV7M_COMMON_MAGIC;
 		armv4_5_info.core_mode = ARMV7M_MODE_HANDLER;
 		armv4_5_info.core_state = ARM_STATE_ARM;
 	}
-	else /* right now is only armv4_5 target */
+	else if (is_arm7_9(target_to_arm7_9(target)))
 	{
 		armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 		armv4_5_info.core_mode = ARM_MODE_SVC;
 		armv4_5_info.core_state = ARM_STATE_ARM;
+	}
+	else
+	{
+		/* fallback to slow writes */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	int target_code_size;
