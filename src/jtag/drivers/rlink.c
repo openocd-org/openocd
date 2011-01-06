@@ -504,7 +504,7 @@ dtc_run_download(
 	int	usb_err;
 	int	i;
 
-	LOG_DEBUG(": %d/%d\n", command_buffer_size, reply_buffer_size);
+	LOG_DEBUG(": %d/%d", command_buffer_size, reply_buffer_size);
 
 	usb_err = usb_bulk_write(
 		pHDev_param,
@@ -1592,7 +1592,7 @@ int rlink_init(void)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("Opened device, pHDev = %p\n", pHDev);
+	LOG_DEBUG("Opened device, pHDev = %p", pHDev);
 
 	/* usb_set_configuration required under win32 */
 	usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
@@ -1612,7 +1612,7 @@ int rlink_init(void)
 		}
 		else
 		{
-			LOG_DEBUG("interface claimed!\n");
+			LOG_DEBUG("interface claimed!");
 			break;
 		}
 	} while (--retries);
@@ -1658,10 +1658,10 @@ int rlink_init(void)
 		LOG_ERROR("USB read error: %s", usb_strerror());
 		return(ERROR_FAIL);
 	}
-	LOG_DEBUG(INTERFACE_NAME" firmware version: %d.%d.%d\n", reply_buffer[0], reply_buffer[1], reply_buffer[2]);
+	LOG_DEBUG(INTERFACE_NAME" firmware version: %d.%d.%d", reply_buffer[0], reply_buffer[1], reply_buffer[2]);
 
 	if ((reply_buffer[0] != 0) || (reply_buffer[1] != 0) || (reply_buffer[2] != 3)) {
-		LOG_WARNING("The rlink device is not of the version that the developers have played with.  It may or may not work.\n");
+		LOG_WARNING("The rlink device is not of the version that the developers have played with.  It may or may not work.");
 	}
 
 	/* Probe port E for adapter presence */
@@ -1692,7 +1692,7 @@ int rlink_init(void)
 );
 
 	if ((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) != 0) {
-		LOG_WARNING("target detection problem\n");
+		LOG_WARNING("target detection problem");
 	}
 
 	ep1_generic_commandl(
@@ -1718,7 +1718,7 @@ int rlink_init(void)
 
 
 	if ((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) == 0) {
-		LOG_WARNING("target not plugged in\n");
+		LOG_WARNING("target not plugged in");
 	}
 
 	/* float ports A and B */

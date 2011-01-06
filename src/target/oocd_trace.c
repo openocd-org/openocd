@@ -46,7 +46,7 @@ static int oocd_trace_read_reg(struct oocd_trace *oocd_trace, int reg, uint32_t 
 		bytes_to_read -= bytes_read;
 	}
 
-	LOG_DEBUG("reg #%i: 0x%8.8x\n", reg, *value);
+	LOG_DEBUG("reg #%i: 0x%8.8x", reg, *value);
 
 	return ERROR_OK;
 }
@@ -63,7 +63,7 @@ static int oocd_trace_write_reg(struct oocd_trace *oocd_trace, int reg, uint32_t
 	data[4] = (value & 0xff000000) >> 24;
 
 	bytes_written = write(oocd_trace->tty_fd, data, 5);
-	LOG_DEBUG("reg #%i: 0x%8.8x\n", reg, value);
+	LOG_DEBUG("reg #%i: 0x%8.8x", reg, value);
 
 	return ERROR_OK;
 }
@@ -136,7 +136,7 @@ static int oocd_trace_init(struct etm_context *etm_ctx)
 	 * read up any leftover characters to ensure communication is in sync */
 	while ((bytes_read = read(oocd_trace->tty_fd, trash, sizeof(trash))) > 0)
 	{
-		LOG_DEBUG("%zi bytes read\n", bytes_read);
+		LOG_DEBUG("%zi bytes read", bytes_read);
 	};
 
 	return ERROR_OK;

@@ -513,7 +513,7 @@ NAND_DEVICE_COMMAND_HANDLER(at91sam9_nand_device_command)
 	unsigned long chip = 0, ecc = 0;
 	struct at91sam9_nand *info = NULL;
 
-	LOG_DEBUG("AT91SAM9 NAND Device Command\n");
+	LOG_DEBUG("AT91SAM9 NAND Device Command");
 
 	if (CMD_ARGC < 3 || CMD_ARGC > 4) {
 		LOG_ERROR("parameters: %s target chip_addr", CMD_ARGV[0]);

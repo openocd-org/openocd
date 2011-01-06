@@ -121,7 +121,7 @@ static int usb_blaster_buf_write(
 	DWORD dw_bytes_written;
 
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("usb_blaster_buf_write %02X (%d)\n", buf[0], size);
+	LOG_DEBUG("usb_blaster_buf_write %02X (%d)", buf[0], size);
 #endif
 	status = FT_Write(ftdih, buf, size, &dw_bytes_written);
 	if (status != FT_OK)
@@ -135,7 +135,7 @@ static int usb_blaster_buf_write(
 #elif BUILD_USB_BLASTER_LIBFTDI == 1
 	int retval;
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("usb_blaster_buf_write %02X (%d)\n", buf[0], size);
+	LOG_DEBUG("usb_blaster_buf_write %02X (%d)", buf[0], size);
 #endif
 	retval = ftdi_write_data(&ftdic, buf, size);
 	if (retval < 0)
@@ -164,7 +164,7 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("usb_blaster_buf_read %02X (%lu)\n", buf[0], dw_bytes_read);
+	LOG_DEBUG("usb_blaster_buf_read %02X (%lu)", buf[0], dw_bytes_read);
 #endif
 	*bytes_read = dw_bytes_read;
 	return ERROR_OK;
@@ -188,7 +188,7 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 		*bytes_read += retval;
 	}
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("usb_blaster_buf_read %02X (%d)\n", buf[0], *bytes_read);
+	LOG_DEBUG("usb_blaster_buf_read %02X (%d)", buf[0], *bytes_read);
 #endif
 	return ERROR_OK;
 #endif
@@ -267,7 +267,7 @@ static int usb_blaster_read_data(void)
 static void usb_blaster_write(int tck, int tms, int tdi)
 {
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("---- usb_blaster_write(%d,%d,%d)\n", tck, tms, tdi);
+	LOG_DEBUG("---- usb_blaster_write(%d,%d,%d)", tck, tms, tdi);
 #endif
 	out_value &= ~(TCK | TMS | TDI);
 	if (tck)

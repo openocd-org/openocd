@@ -676,7 +676,7 @@ int command_run_line(struct command_context *context, char *line)
 		{
 			/* We do not print the connection closed error message */
 			Jim_MakeErrorMessage(interp);
-			LOG_USER_N("%s\n", Jim_GetString(Jim_GetResult(interp), NULL));
+			LOG_USER("%s", Jim_GetString(Jim_GetResult(interp), NULL));
 		}
 		if (retval == ERROR_OK)
 		{
@@ -706,7 +706,7 @@ int command_run_line(struct command_context *context, char *line)
 				buff[chunk] = 0;
 				LOG_USER_N("%s", buff);
 			}
-			LOG_USER_N("%s", "\n");
+			LOG_USER_N("\n");
 		}
 		retval = ERROR_OK;
 	}
@@ -860,8 +860,7 @@ static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
 		if (next - last < HELP_LINE_WIDTH(n))
 			cp = next;
 		command_help_show_indent(n);
-		LOG_USER_N("%.*s", (int)(cp - last), last);
-		LOG_USER_N("\n");
+		LOG_USER("%.*s", (int)(cp - last), last);
 		last = cp + 1;
 		n = n2;
 	}

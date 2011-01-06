@@ -440,7 +440,7 @@ static int armjtagew_get_status(void)
 	if (result == 0)
 	{
 		unsigned int u_tg = buf_get_u32(usb_in_buffer, 0, 16);
-		LOG_INFO("U_tg = %d mV, U_aux = %d mV, U_tgpwr = %d mV, I_tgpwr = %d mA, D1 = %d, Target power %s %s\n",
+		LOG_INFO("U_tg = %d mV, U_aux = %d mV, U_tgpwr = %d mV, I_tgpwr = %d mA, D1 = %d, Target power %s %s",
 			 (int)(buf_get_u32(usb_in_buffer + 0, 0, 16)),
 			 (int)(buf_get_u32(usb_in_buffer + 2, 0, 16)),
 			 (int)(buf_get_u32(usb_in_buffer + 4, 0, 16)),

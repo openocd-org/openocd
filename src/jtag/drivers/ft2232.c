@@ -2128,7 +2128,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 			} else {
 				/* drat, give the user a meaningfull message.
 				 * telling the use we tried *BOTH* methods. */
-				LOG_WARNING("Unable to open FTDI Device tried: '%s' and '%s'\n",
+				LOG_WARNING("Unable to open FTDI Device tried: '%s' and '%s'",
 							ft2232_device_desc,
 							ft2232_device_desc_A);
 			}

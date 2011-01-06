@@ -93,7 +93,7 @@ int s3c2440_read_block_data(struct nand_device *nand, uint8_t *data, int data_si
 	uint32_t nfdata = s3c24xx_info->data;
 	uint32_t tmp;
 
-	LOG_INFO("%s: reading data: %p, %p, %d\n", __func__, nand, data, data_size);
+	LOG_INFO("%s: reading data: %p, %p, %d", __func__, nand, data, data_size);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");

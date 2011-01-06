@@ -105,7 +105,7 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 
 	/* mass erase */
 	if (((first | last) == 0) || ((first == 0) && (last >= bank->num_sectors))) {
-		LOG_DEBUG("performing mass erase.\n");
+		LOG_DEBUG("performing mass erase.");
 		target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEDAT, 0x3cff);
 		target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEADR, 0xffc3);
 		target_write_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEECON, 0x06);
@@ -117,7 +117,7 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
-		LOG_DEBUG("mass erase successful.\n");
+		LOG_DEBUG("mass erase successful.");
 		return ERROR_OK;
 	} else {
                 unsigned long adr;
@@ -137,7 +137,7 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
                                 return ERROR_FLASH_SECTOR_NOT_ERASED;
                         }
 
-                        LOG_DEBUG("erased sector at address 0x%08lX\n", adr);
+                        LOG_DEBUG("erased sector at address 0x%08lX", adr);
                 }
         }
 
@@ -336,7 +336,7 @@ static int aduc702x_write_single(struct flash_bank *bank, uint8_t *buffer, uint3
 		}
 
 	}
-        LOG_DEBUG("wrote %d bytes at address 0x%08lX\n", (int)count, (unsigned long)(offset + x));
+        LOG_DEBUG("wrote %d bytes at address 0x%08lX", (int)count, (unsigned long)(offset + x));
 
         aduc702x_set_write_enable(target, 0);
 

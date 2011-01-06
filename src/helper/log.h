@@ -113,9 +113,6 @@ extern int debug_level;
 #define LOG_INFO(expr ...) \
 		log_printf_lf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define LOG_INFO_N(expr ...) \
-		log_printf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
-
 #define LOG_WARNING(expr ...) \
 		log_printf_lf (LOG_LVL_WARNING, __FILE__, __LINE__, __FUNCTION__, expr)
 

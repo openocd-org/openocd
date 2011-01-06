@@ -246,7 +246,7 @@ uint32_t arm946e_invalidate_whole_dcache(struct target *target)
 			retval = arm946e_write_cp15(target, 0x3a, cp15_idx);
 			if (retval != ERROR_OK)
 			{
-				LOG_DEBUG("ERROR writing index\n");
+				LOG_DEBUG("ERROR writing index");
 				return retval;
 			}
 
@@ -261,7 +261,7 @@ uint32_t arm946e_invalidate_whole_dcache(struct target *target)
 			retval = arm946e_write_cp15(target, 0x35, 0x1);
 			if (retval != ERROR_OK)
 			{
-				LOG_DEBUG("ERROR cleaning cache line\n");
+				LOG_DEBUG("ERROR cleaning cache line");
 				return retval;
 			}
 
@@ -269,7 +269,7 @@ uint32_t arm946e_invalidate_whole_dcache(struct target *target)
 			retval = arm946e_write_cp15(target, 0x1a, 0x1);
 			if (retval != ERROR_OK)
 			{
-				LOG_DEBUG("ERROR flushing cache line\n");
+				LOG_DEBUG("ERROR flushing cache line");
 				return retval;
 			}
 		}
@@ -291,7 +291,7 @@ uint32_t arm946e_invalidate_whole_icache(struct target *target)
 	retval = arm946e_write_cp15(target, 0x0f, 0x1);
 	if (retval != ERROR_OK)
 	{
-		LOG_DEBUG("ERROR flushing I$\n");
+		LOG_DEBUG("ERROR flushing I$");
 		return retval;
 	}
 
@@ -371,7 +371,7 @@ void arm946e_pre_restore_context(struct target *target)
 		retval = arm946e_write_cp15(target, 0x02, ctr_reg);
 		if (retval != ERROR_OK)
 		{
-			LOG_DEBUG("ERROR enabling cache\n");
+			LOG_DEBUG("ERROR enabling cache");
 		}
 	} /* if preserve_cache */
 }
@@ -421,7 +421,7 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 			retval = arm946e_write_cp15(target, 0x3a, cp15_idx);
 			if (retval != ERROR_OK)
 			{
-				LOG_DEBUG("ERROR writing index\n");
+				LOG_DEBUG("ERROR writing index");
 				return retval;
 			}
 
@@ -439,7 +439,7 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 				retval = arm946e_write_cp15(target, 0x35, 0x1);
 				if (retval != ERROR_OK)
 				{
-					LOG_DEBUG("ERROR cleaning cache line\n");
+					LOG_DEBUG("ERROR cleaning cache line");
 					return retval;
 				}
 
@@ -447,7 +447,7 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 				retval = arm946e_write_cp15(target, 0x1c, 0x1);
 				if (retval != ERROR_OK)
 				{
-					LOG_DEBUG("ERROR flushing cache line\n");
+					LOG_DEBUG("ERROR flushing cache line");
 					return retval;
 				}
 
@@ -480,7 +480,7 @@ uint32_t arm946e_invalidate_icache(struct target *target, uint32_t address,
 			retval = arm946e_write_cp15(target, 0x3a, cp15_idx);
 			if (retval != ERROR_OK)
 			{
-				LOG_DEBUG("ERROR writing index\n");
+				LOG_DEBUG("ERROR writing index");
 				return retval;
 			}
 
@@ -498,7 +498,7 @@ uint32_t arm946e_invalidate_icache(struct target *target, uint32_t address,
 				retval = arm946e_write_cp15(target, 0x1d, 0x0);
 				if (retval != ERROR_OK)
 				{
-					LOG_DEBUG("ERROR flushing cache line\n");
+					LOG_DEBUG("ERROR flushing cache line");
 					return retval;
 				}
 

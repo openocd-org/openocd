@@ -1261,7 +1261,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 
 	/* GPNVM and SECURITY bits apply only for MC_FSR of EFC0 */
 	status = at91sam7_get_flash_status(bank->target, 0);
-	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value %d, status 0x%" PRIx32 " \n", flashcmd, bit, status);
+	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value %d, status 0x%" PRIx32, flashcmd, bit, status);
 
 	/* check protect state */
 	at91sam7_protect_check(bank);

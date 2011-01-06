@@ -655,7 +655,7 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 		if (Jim_EvalObj(jteap->interp, jteap->body) != JIM_OK)
 		{
 			Jim_MakeErrorMessage(jteap->interp);
-			LOG_USER_N("%s\n", Jim_GetString(Jim_GetResult(jteap->interp), NULL));
+			LOG_USER("%s", Jim_GetString(Jim_GetResult(jteap->interp), NULL));
 			continue;
 		}
 

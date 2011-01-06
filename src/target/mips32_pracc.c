@@ -119,7 +119,7 @@ static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		if (ejtag_ctrl & EJTAG_CTRL_PRACC)
 			break;
-		LOG_DEBUG("DEBUGMODULE: No memory access in progress!\n");
+		LOG_DEBUG("DEBUGMODULE: No memory access in progress!");
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 

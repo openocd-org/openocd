@@ -1459,16 +1459,16 @@ sam3_explain_ckgr_mor(struct sam3_chip *pChip)
 	uint32_t rcen;
 
 	v = sam3_reg_fieldname(pChip, "MOSCXTEN", pChip->cfg.CKGR_MOR, 0, 1);
-	LOG_USER_N("(main xtal enabled: %s)\n",
+	LOG_USER("(main xtal enabled: %s)",
 				  _yes_or_no(v));
 	v = sam3_reg_fieldname(pChip, "MOSCXTBY", pChip->cfg.CKGR_MOR, 1, 1);
-	LOG_USER_N("(main osc bypass: %s)\n",
+	LOG_USER("(main osc bypass: %s)",
 				  _yes_or_no(v));
 	rcen = sam3_reg_fieldname(pChip, "MOSCRCEN", pChip->cfg.CKGR_MOR, 2, 1);
-	LOG_USER_N("(onchip RC-OSC enabled: %s)\n",
+	LOG_USER("(onchip RC-OSC enabled: %s)",
 				  _yes_or_no(rcen));
 	v = sam3_reg_fieldname(pChip, "MOSCRCF", pChip->cfg.CKGR_MOR, 4, 3);
-	LOG_USER_N("(onchip RC-OSC freq: %s)\n",
+	LOG_USER("(onchip RC-OSC freq: %s)",
 				  _rc_freq[v]);
 
 	pChip->cfg.rc_freq = 0;
@@ -1489,14 +1489,14 @@ sam3_explain_ckgr_mor(struct sam3_chip *pChip)
 	}
 
 	v = sam3_reg_fieldname(pChip,"MOSCXTST", pChip->cfg.CKGR_MOR, 8, 8);
-	LOG_USER_N("(startup clks, time= %f uSecs)\n",
+	LOG_USER("(startup clks, time= %f uSecs)",
 				  ((float)(v * 1000000)) / ((float)(pChip->cfg.slow_freq)));
 	v = sam3_reg_fieldname(pChip, "MOSCSEL", pChip->cfg.CKGR_MOR, 24, 1);
-	LOG_USER_N("(mainosc source: %s)\n",
+	LOG_USER("(mainosc source: %s)",
 				  v ? "external xtal" : "internal RC");
 
 	v = sam3_reg_fieldname(pChip,"CFDEN", pChip->cfg.CKGR_MOR, 25, 1);
-	LOG_USER_N("(clock failure enabled: %s)\n",
+	LOG_USER("(clock failure enabled: %s)",
 				 _yes_or_no(v));
 }
 
@@ -1513,16 +1513,16 @@ sam3_explain_chipid_cidr(struct sam3_chip *pChip)
 	LOG_USER_N("\n");
 
 	v = sam3_reg_fieldname(pChip, "EPROC", pChip->cfg.CHIPID_CIDR, 5, 3);
-	LOG_USER_N("%s\n", eproc_names[v]);
+	LOG_USER("%s", eproc_names[v]);
 
 	v = sam3_reg_fieldname(pChip, "NVPSIZE", pChip->cfg.CHIPID_CIDR, 8, 4);
-	LOG_USER_N("%s\n", nvpsize[v]);
+	LOG_USER("%s", nvpsize[v]);
 
 	v = sam3_reg_fieldname(pChip, "NVPSIZE2", pChip->cfg.CHIPID_CIDR, 12, 4);
-	LOG_USER_N("%s\n", nvpsize2[v]);
+	LOG_USER("%s", nvpsize2[v]);
 
 	v = sam3_reg_fieldname(pChip, "SRAMSIZE", pChip->cfg.CHIPID_CIDR, 16,4);
-	LOG_USER_N("%s\n", sramsize[ v ]);
+	LOG_USER("%s", sramsize[ v ]);
 
 	v = sam3_reg_fieldname(pChip, "ARCH", pChip->cfg.CHIPID_CIDR, 20, 8);
 	cp = _unknown;
@@ -1533,13 +1533,13 @@ sam3_explain_chipid_cidr(struct sam3_chip *pChip)
 		}
 	}
 
-	LOG_USER_N("%s\n", cp);
+	LOG_USER("%s", cp);
 
 	v = sam3_reg_fieldname(pChip, "NVPTYP", pChip->cfg.CHIPID_CIDR, 28, 3);
-	LOG_USER_N("%s\n", nvptype[ v ]);
+	LOG_USER("%s", nvptype[ v ]);
 
 	v = sam3_reg_fieldname(pChip, "EXTID", pChip->cfg.CHIPID_CIDR, 31, 1);
-	LOG_USER_N("(exists: %s)\n", _yes_or_no(v));
+	LOG_USER("(exists: %s)", _yes_or_no(v));
 }
 
 static void
@@ -1549,14 +1549,14 @@ sam3_explain_ckgr_mcfr(struct sam3_chip *pChip)
 
 
 	v = sam3_reg_fieldname(pChip, "MAINFRDY", pChip->cfg.CKGR_MCFR, 16, 1);
-	LOG_USER_N("(main ready: %s)\n", _yes_or_no(v));
+	LOG_USER("(main ready: %s)", _yes_or_no(v));
 
 	v = sam3_reg_fieldname(pChip, "MAINF", pChip->cfg.CKGR_MCFR, 0, 16);
 
 	v = (v * pChip->cfg.slow_freq) / 16;
 	pChip->cfg.mainosc_freq = v;
 
-	LOG_USER_N("(%3.03f Mhz (%d.%03dkhz slowclk)\n",
+	LOG_USER("(%3.03f Mhz (%d.%03dkhz slowclk)",
 				 _tomhz(v),
 				 pChip->cfg.slow_freq / 1000,
 				 pChip->cfg.slow_freq % 1000);
@@ -1574,12 +1574,12 @@ sam3_explain_ckgr_plla(struct sam3_chip *pChip)
 	LOG_USER_N("\n");
 	pChip->cfg.plla_freq = 0;
 	if (mula == 0) {
-		LOG_USER_N("\tPLLA Freq: (Disabled,mula = 0)\n");
+		LOG_USER("\tPLLA Freq: (Disabled,mula = 0)");
 	} else if (diva == 0) {
-		LOG_USER_N("\tPLLA Freq: (Disabled,diva = 0)\n");
+		LOG_USER("\tPLLA Freq: (Disabled,diva = 0)");
 	} else if (diva == 1) {
 		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula + 1));
-		LOG_USER_N("\tPLLA Freq: %3.03f MHz\n",
+		LOG_USER("\tPLLA Freq: %3.03f MHz",
 					 _tomhz(pChip->cfg.plla_freq));
 	}
 }
@@ -1620,7 +1620,7 @@ sam3_explain_mckr(struct sam3_chip *pChip)
 		break;
 	}
 
-	LOG_USER_N("%s (%3.03f Mhz)\n",
+	LOG_USER("%s (%3.03f Mhz)",
 				  cp,
 				  _tomhz(fin));
 	pres = sam3_reg_fieldname(pChip, "PRES", pChip->cfg.PMC_MCKR, 4, 3);
@@ -1660,14 +1660,14 @@ sam3_explain_mckr(struct sam3_chip *pChip)
 		assert(0);
 		break;
 	}
-	LOG_USER_N("(%s)\n", cp);
+	LOG_USER("(%s)", cp);
 	fin = fin / pdiv;
 	// sam3 has a *SINGLE* clock -
 	// other at91 series parts have divisors for these.
 	pChip->cfg.cpu_freq = fin;
 	pChip->cfg.mclk_freq = fin;
 	pChip->cfg.fclk_freq = fin;
-	LOG_USER_N("\t\tResult CPU Freq: %3.03f\n",
+	LOG_USER("\t\tResult CPU Freq: %3.03f",
 				  _tomhz(fin));
 }
 
@@ -1829,7 +1829,7 @@ sam3_GetInfo(struct sam3_chip *pChip)
 		// display all regs
 		LOG_DEBUG("Start: %s", pReg->name);
 		regval = *sam3_get_reg_ptr(&(pChip->cfg), pReg);
-		LOG_USER_N("%*s: [0x%08x] -> 0x%08x\n",
+		LOG_USER("%*s: [0x%08x] -> 0x%08x",
 					 REG_NAME_WIDTH,
 					 pReg->name,
 					 pReg->address,
@@ -1840,14 +1840,14 @@ sam3_GetInfo(struct sam3_chip *pChip)
 		LOG_DEBUG("End: %s", pReg->name);
 		pReg++;
 	}
-	LOG_USER_N("   rc-osc: %3.03f MHz\n", _tomhz(pChip->cfg.rc_freq));
-	LOG_USER_N("  mainosc: %3.03f MHz\n", _tomhz(pChip->cfg.mainosc_freq));
-	LOG_USER_N("     plla: %3.03f MHz\n", _tomhz(pChip->cfg.plla_freq));
-	LOG_USER_N(" cpu-freq: %3.03f MHz\n", _tomhz(pChip->cfg.cpu_freq));
-	LOG_USER_N("mclk-freq: %3.03f MHz\n", _tomhz(pChip->cfg.mclk_freq));
+	LOG_USER("   rc-osc: %3.03f MHz", _tomhz(pChip->cfg.rc_freq));
+	LOG_USER("  mainosc: %3.03f MHz", _tomhz(pChip->cfg.mainosc_freq));
+	LOG_USER("     plla: %3.03f MHz", _tomhz(pChip->cfg.plla_freq));
+	LOG_USER(" cpu-freq: %3.03f MHz", _tomhz(pChip->cfg.cpu_freq));
+	LOG_USER("mclk-freq: %3.03f MHz", _tomhz(pChip->cfg.mclk_freq));
 
 
-	LOG_USER_N(" UniqueId: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+	LOG_USER(" UniqueId: 0x%08x 0x%08x 0x%08x 0x%08x",
 				  pChip->cfg.unique_id[0],
 				  pChip->cfg.unique_id[1],
 				  pChip->cfg.unique_id[2],
@@ -2007,7 +2007,7 @@ sam3_GetDetails(struct sam3_bank_private *pPrivate)
 		LOG_ERROR("SAM3 ChipID 0x%08x not found in table (perhaps you can this chip?)",
 				  (unsigned int)(pPrivate->pChip->cfg.CHIPID_CIDR));
 		// Help the victim, print details about the chip
-		LOG_INFO_N("SAM3 CHIPID_CIDR: 0x%08x decodes as follows\n",
+		LOG_INFO("SAM3 CHIPID_CIDR: 0x%08x decodes as follows",
 						pPrivate->pChip->cfg.CHIPID_CIDR);
 		sam3_explain_chipid_cidr(pPrivate->pChip);
 		return ERROR_FAIL;
@@ -2588,7 +2588,7 @@ COMMAND_HANDLER(sam3_handle_info_command)
 
 	r = sam3_GetInfo(pChip);
 	if (r != ERROR_OK) {
-		LOG_DEBUG("Sam3Info, Failed %d\n",r);
+		LOG_DEBUG("Sam3Info, Failed %d",r);
 		return r;
 	}
 

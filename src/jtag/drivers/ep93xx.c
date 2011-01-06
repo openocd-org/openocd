@@ -195,8 +195,8 @@ static int ep93xx_init(void)
 	gpio_data_register = gpio_controller + 0x08;
 	gpio_data_direction_register = gpio_controller + 0x18;
 
-	LOG_INFO("gpio_data_register      = %p\n", gpio_data_register);
-	LOG_INFO("gpio_data_direction_reg = %p\n", gpio_data_direction_register);
+	LOG_INFO("gpio_data_register      = %p", gpio_data_register);
+	LOG_INFO("gpio_data_direction_reg = %p", gpio_data_direction_register);
 	/*
 	 * Configure bit 0 (TDO) as an input, and bits 1-5 (TDI, TCK
 	 * TMS, TRST, SRST) as outputs.  Drive TDI and TCK low, and
