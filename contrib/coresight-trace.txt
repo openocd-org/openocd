@@ -1,0 +1,68 @@
++OpenOCD and CoreSight Tracing
++
+Many recent ARM chips  (Using e..g. Cortex-M3 and
+Cortex-M4 cores) support CoreSight debug/trace.
+This note sketches an approach currently planned for those cores
+with OpenOCD.
+
+ This tracing data can help debug and tune ARM software, but not
+all cores support tracing.  Some support more extensive tracing
+other cores with trace support +should be able to use the same
+approach and maybe some of the same analysis code.
+
++the Cortex-M3 is assumed here to be the
++core in use, for simplicity and to reflect current OpenOCD users.
+
+
+This note summarizes a software model to generate, collect, and
+analyze such trace data .  That is not fully implemented as of early
+January 2011, +and thus is not *yet* usable.
++
++
++Some microcontroller cores support a low pin-count Single-wire trace,
+with a mode where +trace data is emitted (usually to a UART.  To use
+this mode, +SWD must be in use.
++At this writing, OpenOCD SWD support is not yet complete either.
+
+(There are also multi-wire trace ports requiring more complex debug
+adapters than OpenOCD currently supports, and offering richer data.
++
++
++* ENABLING involves activating  SWD and (single wire) trace.
++
++current expectations are that OpenOCD itself will handle enabling;
+activating single wire trace involves a debug adapter interaction, and
+collecting that trace data requires particular (re)wiring.
++
++* CONFIGURATION involves setting up ITM  and/or ETM modules to emit the
++desired data from the Cortex core.  (This might include dumping
++event counters printf-style messages; code profiling; and more.  Not all
++cores offer the same trace capabilities.
++
++current expectations are that Tcl scripts will be used to configure these
++modules for the desired tracing, by direct writes to registers.  In some
++cases (as with RTOS event tracking and similar messaging, this might
++be  augmented or replaced by user code running on the ARM core.
++
++COLLECTION involves reading that trace data, probably through UART, and
++saving it in a useful format to analyse  For now, deferred analysis modes
+are assumed, not than real-time or interactive ones.
++
++
++current expectations are to to dump data in text using contrib/itmdump.c
++or derived tools, and to post-process it into reports.  Such reports might
++include program messaging (such as application data streams via ITM, maybe
++using printf type messaging; code coverage analysis or so forth.  Recent
++versions of CMSIS software reserve some ITM codespace for RTOS  event
+tracing and include ITM messaging support.
+Clearly some of that data would be valuable for interactive debugging.
++
++Should someone get ambitious, GUI reports should be possible.  GNU tools
++for simpler reports like gprof may be simpler to support at first.
++In any case, OpenOCD is not currently GUI-oriented.  Accordingly, we now
++expect any such graphics to come from postprocessing.
+
+ measurments for RTOS event timings should also be easy to collect.
++Examples include context and message switch times, as well as times
+for application interactions.
++
