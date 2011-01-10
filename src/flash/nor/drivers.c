@@ -41,6 +41,7 @@ extern struct flash_driver avr_flash;
 extern struct flash_driver faux_flash;
 extern struct flash_driver virtual_flash;
 extern struct flash_driver stmsmi_flash;
+extern struct flash_driver em357_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -67,6 +68,7 @@ static struct flash_driver *flash_drivers[] = {
 	&faux_flash,
 	&virtual_flash,
 	&stmsmi_flash,
+	&em357_flash,
 	NULL,
 };
 
