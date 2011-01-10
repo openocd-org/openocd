@@ -1663,8 +1663,8 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	int target_code_size;
-	const uint32_t *target_code_src;
+	int target_code_size = 0;
+	const uint32_t *target_code_src = NULL;
 
 	switch (bank->bus_width)
 	{
