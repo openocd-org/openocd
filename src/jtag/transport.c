@@ -312,12 +312,12 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 
 	for (unsigned i = 0; allowed_transports[i]; i++) {
 
-		if (strcmp(allowed_transports[i], argv[0]->bytes) == 0)
-		return transport_select(global_cmd_ctx, argv[0]->bytes);
+		if (strcmp(allowed_transports[i], argv[1]->bytes) == 0)
+		return transport_select(global_cmd_ctx, argv[1]->bytes);
 	}
 
 		LOG_ERROR("Debug adapter doesn't support '%s' "
-			"transport", argv[0]->bytes);
+			"transport", argv[1]->bytes);
 		return JIM_ERR;
 		break;
 	default:
