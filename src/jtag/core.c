@@ -216,7 +216,7 @@ void jtag_tap_add(struct jtag_tap *t)
 }
 
 /* returns a pointer to the n-th device in the scan chain */
-static inline struct jtag_tap *jtag_tap_by_position(unsigned n)
+struct jtag_tap *jtag_tap_by_position(unsigned n)
 {
 	struct jtag_tap *t = jtag_all_taps();
 

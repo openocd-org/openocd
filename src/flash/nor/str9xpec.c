@@ -306,7 +306,8 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 
-	str9xpec_info->tap = bank->target->tap;
+	/* The core is the next tap after the flash controller in the chain */
+	str9xpec_info->tap = jtag_tap_by_position(jtag_info->tap->abs_chain_position - 1);
 	str9xpec_info->isc_enable = 0;
 
 	str9xpec_build_block_list(bank);
