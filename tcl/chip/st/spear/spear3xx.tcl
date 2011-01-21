@@ -57,6 +57,9 @@ proc sp3xx_common_init {} {
 	mww 0xfca8002c 0xfffffff8	;# enable clock of all peripherals
 	mww 0xfca80038 0x00000000	;# remove reset of all peripherals
 
+	mww 0xfca80034 0x0000ffff	;# enable all RAS clocks
+	mww 0xfca80040 0x00000000	;# remove all RAS resets
+
 	mww 0xfca800e4 0x78000008	;# COMP1V8_REG
 	mww 0xfca800ec 0x78000008	;# COMP3V3_REG
 

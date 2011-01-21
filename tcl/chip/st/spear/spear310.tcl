@@ -6,8 +6,6 @@
 
 
 proc sp310_init {} {
-	mww 0xfca80034 0x0000ffff	;# enable all RAS clocks
-	mww 0xfca80040 0x00000000	;# remove all RAS resets
 	mww 0xb4000008 0x00002ff4	;# RAS function enable
 
 	mww 0xfca80050 0x00000001	;# Enable clk mem port 1
