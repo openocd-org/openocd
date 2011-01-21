@@ -10,6 +10,8 @@ proc sp310_init {} {
 	mww 0xfca80040 0x00000000	;# remove all RAS resets
 	mww 0xb4000008 0x00002ff4	;# RAS function enable
 
+	mww 0xfca80050 0x00000001	;# Enable clk mem port 1
+
 	mww 0xfca8013c 0x2f7bc210	;# plgpio_pad_drv
 	mww 0xfca80140 0x017bdef6
 }

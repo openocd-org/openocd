@@ -60,8 +60,6 @@ proc sp3xx_common_init {} {
 	mww 0xfca800e4 0x78000008	;# COMP1V8_REG
 	mww 0xfca800ec 0x78000008	;# COMP3V3_REG
 
-	mww 0xfca80050 0x00000001	;# Enable clk mem port 1
-
 	mww 0xfc000000 0x10000f5f	;# init SMI and set HW mode
 	mww 0xfc000000 0x00000f5f
 
