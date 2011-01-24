@@ -76,3 +76,6 @@ patches
 
 # Emacs temp files
 *~
+
+# CScope database files
+*cscope.out
