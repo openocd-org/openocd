@@ -3660,6 +3660,7 @@ enum target_cfg_param {
 	TCFG_WORK_AREA_BACKUP,
 	TCFG_ENDIAN,
 	TCFG_VARIANT,
+	TCFG_COREID,
 	TCFG_CHAIN_POSITION,
 };
 
@@ -3672,6 +3673,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-work-area-backup", .value = TCFG_WORK_AREA_BACKUP },
 	{ .name = "-endian" ,          .value = TCFG_ENDIAN },
 	{ .name = "-variant",          .value = TCFG_VARIANT },
+	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
 
 	{ .name = NULL, .value = -1 }
@@ -3924,6 +3926,23 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 			Jim_SetResultString(goi->interp, target->variant,-1);
 			/* loop for more */
 			break;
+
+		case TCFG_COREID:
+			if (goi->isconfigure) {
+				e = Jim_GetOpt_Wide(goi, &w);
+				if (e != JIM_OK) {
+					return e;
+				}
+				target->coreid = (int)w;
+			} else {
+				if (goi->argc != 0) {
+					goto no_params;
+				}
+			}
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->working_area_size));
+			/* loop for more */
+			break;
+
 		case TCFG_CHAIN_POSITION:
 			if (goi->isconfigure) {
 				Jim_Obj *o_t;
@@ -4633,6 +4652,9 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	/* will be set by "-endian" */
 	target->endianness = TARGET_ENDIAN_UNKNOWN;
+
+	/* default to first core, override with -coreid */
+	target->coreid = 0;
 
 	target->working_area        = 0x0;
 	target->working_area_size   = 0x0;

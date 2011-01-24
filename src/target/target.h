@@ -107,6 +107,7 @@ struct target
 	const char *cmd_name;				/* tcl Name of target */
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;					/* where on the jtag chain is this */
+	int coreid;							/* which device on the TAP? */
 	const char *variant;				/* what variant of this chip is it? */
 
 	/**
