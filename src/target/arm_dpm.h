@@ -143,14 +143,20 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 #define DSCR_CORE_HALTED	(1 << 0)
 #define DSCR_CORE_RESTARTED	(1 << 1)
 #define DSCR_INT_DIS		(1 << 11)
-#define DSCR_ITR_EN		(1 << 13)
+#define DSCR_ITR_EN			(1 << 13)
 #define DSCR_HALT_DBG_MODE	(1 << 14)
 #define DSCR_MON_DBG_MODE	(1 << 15)
 #define DSCR_INSTR_COMP		(1 << 24)
 #define DSCR_DTR_TX_FULL	(1 << 29)
 #define DSCR_DTR_RX_FULL	(1 << 30)
 
-#define DSCR_ENTRY(dscr) (((dscr) >> 2) & 0xf)
+#define DSCR_ENTRY(dscr) 	(((dscr) >> 2) & 0xf)
+#define DSCR_RUN_MODE(dscr)	((dscr) & (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED))
+
+/* DRCR (debug run control register) bits */
+#define DRCR_HALT				(1 << 0)
+#define DRCR_RESTART			(1 << 1)
+#define DRCR_CLEAR_EXCEPTIONS	(1 << 2)
 
 void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dcsr);
 
