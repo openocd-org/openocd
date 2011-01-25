@@ -1464,7 +1464,7 @@ sam3_explain_ckgr_mor(struct sam3_chip *pChip)
 	v = sam3_reg_fieldname(pChip, "MOSCXTBY", pChip->cfg.CKGR_MOR, 1, 1);
 	LOG_USER("(main osc bypass: %s)",
 				  _yes_or_no(v));
-	rcen = sam3_reg_fieldname(pChip, "MOSCRCEN", pChip->cfg.CKGR_MOR, 2, 1);
+	rcen = sam3_reg_fieldname(pChip, "MOSCRCEN", pChip->cfg.CKGR_MOR, 3, 1);
 	LOG_USER("(onchip RC-OSC enabled: %s)",
 				  _yes_or_no(rcen));
 	v = sam3_reg_fieldname(pChip, "MOSCRCF", pChip->cfg.CKGR_MOR, 4, 3);
@@ -1476,6 +1476,7 @@ sam3_explain_ckgr_mor(struct sam3_chip *pChip)
 		switch (v) {
 		default:
 			pChip->cfg.rc_freq = 0;
+			break;
 		case 0:
 			pChip->cfg.rc_freq = 4 * 1000 * 1000;
 			break;
@@ -1628,6 +1629,7 @@ sam3_explain_mckr(struct sam3_chip *pChip)
 	case 0:
 		pdiv = 1;
 		cp = "selected clock";
+		break;
 	case 1:
 		pdiv = 2;
 		cp = "clock/2";
