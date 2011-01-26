@@ -906,7 +906,6 @@ extern const struct dap_ops jtag_dp_ops;
  */
 int ahbap_debugport_init(struct adiv5_dap *dap)
 {
-	uint32_t dummy;
 	uint32_t ctrlstat;
 	int cnt = 0;
 	int retval;
@@ -931,7 +930,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 
 	/* DP initialization */
 
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -939,7 +938,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -977,7 +976,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 		alive_sleep(10);
 	}
 
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 	/* With debug power on we can activate OVERRUN checking */
@@ -985,7 +984,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, &dummy);
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 
