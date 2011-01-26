@@ -190,6 +190,7 @@ static int ktlink_init(void);
 static int redbee_init(void);
 static int lisa_l_init(void);
 static int flossjtag_init(void);
+static int xds100v2_init(void);
 
 /* reset procedures for supported layouts */
 static void ftx23_reset(int trst, int srst);
@@ -205,6 +206,7 @@ static void icebear_jtag_reset(int trst, int srst);
 static void signalyzer_h_reset(int trst, int srst);
 static void ktlink_reset(int trst, int srst);
 static void redbee_reset(int trst, int srst);
+static void xds100v2_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 static void olimex_jtag_blink(void);
@@ -317,6 +319,10 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.init = flossjtag_init,
 		.reset = ftx23_reset,
 		.blink = flossjtag_blink,
+	},
+	{ .name = "xds100v2",
+		.init = xds100v2_init,
+		.reset = xds100v2_reset,
 	},
 	{ .name = NULL, /* END OF TABLE */ },
 };
@@ -1672,6 +1678,36 @@ static void redbee_reset(int trst, int srst)
 	else if (srst == 0)
 	{
 		high_output |= nSRST;
+	}
+
+	/* command "set data bits low byte" */
+	buffer_write(0x82);
+	buffer_write(high_output);
+	buffer_write(high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, "
+			"high_direction: 0x%2.2x", trst, srst, high_output,
+			high_direction);
+}
+
+static void xds100v2_reset(int trst, int srst)
+{
+	if (trst == 1)
+	{
+		tap_set_state(TAP_RESET);
+		high_output &= ~nTRST;
+	}
+	else if (trst == 0)
+	{
+		high_output |= nTRST;
+	}
+
+	if (srst == 1)
+	{
+		high_output |= nSRST;
+	}
+	else if (srst == 0)
+	{
+		high_output &= ~nSRST;
 	}
 
 	/* command "set data bits low byte" */
@@ -3170,6 +3206,64 @@ static int flossjtag_init(void)
 	}
 
 	return ftx232_dbus_write();
+}
+
+static int xds100v2_init(void)
+{
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+
+	low_output    = 0x3A;
+	low_direction = 0x7B;
+
+	/* initialize low byte for jtag */
+	buf[0] = 0x80;          /* command "set data bits low byte" */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE[12]=out, n[ST]srst = out */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	nTRST    = 0x10;
+	nTRSTnOE = 0x0;     /* not output enable for nTRST */
+	nSRST    = 0x00;    /* TODO: SRST is not supported yet */
+	nSRSTnOE = 0x00;    /* no output enable for nSRST */
+
+	high_output    = 0x00;
+	high_direction = 0x59;
+
+	/* initialize high port */
+	buf[0] = 0x82;              /* command "set data bits high byte" */
+	buf[1] = high_output;       /* value */
+	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	high_output    = 0x86;
+	high_direction = 0x59;
+
+	/* initialize high port */
+	buf[0] = 0x82;              /* command "set data bits high byte" */
+	buf[1] = high_output;       /* value */
+	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
 }
 
 static void olimex_jtag_blink(void)
