@@ -1426,8 +1426,9 @@ static int dap_info_command(struct command_context *cmd_ctx,
 
 				/* Part number interpretations are from Cortex
 				 * core specs, the CoreSight components TRM
-				 * (ARM DDI 0314H), and ETM specs; also from
-				 * chip observation (e.g. TI SDTI).
+				 * (ARM DDI 0314H), CoreSight System Design
+				 * Guide (ARM DGI 0012D) and ETM specs; also
+				 * from chip observation (e.g. TI SDTI).
 				 */
 				part_num = (c_pid0 & 0xff);
 				part_num |= (c_pid1 & 0x0f) << 8;
@@ -1495,6 +1496,10 @@ static int dap_info_command(struct command_context *cmd_ctx,
 					break;
 				case 0x924:
 					type = "Cortex-M3 ETM";
+					full = "(Embedded Trace)";
+					break;
+				case 0x930:
+					type = "Cortex-R4 ETM";
 					full = "(Embedded Trace)";
 					break;
 				case 0xc08:
