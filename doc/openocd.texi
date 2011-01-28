@@ -2633,7 +2633,7 @@ with this signal behave exactly like pressing a RESET button.
 @emph{JTAG TAP Reset} ... the @emph{TRST} hardware signal resets
 just the TAP controllers connected to the JTAG adapter.
 Such resets should not be visible to the rest of the system; resetting a
-device's the TAP controller just puts that controller into a known state.
+device's TAP controller just puts that controller into a known state.
 @item
 @emph{Emulation Reset} ... many devices can be reset through JTAG
 commands.  These resets are often distinguishable from system
@@ -2673,7 +2673,7 @@ Use the @command{reset_config} @var{signals} options to say
 when either of those signals is not connected.
 When SRST is not available, your code might not be able to rely
 on controllers having been fully reset during code startup.
-Missing TRST is not a problem, since JTAG level resets can
+Missing TRST is not a problem, since JTAG-level resets can
 be triggered using with TMS signaling.
 
 @item @emph{Signals shorted} ... Sometimes a chip, board, or
