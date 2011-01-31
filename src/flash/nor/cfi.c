@@ -1651,16 +1651,12 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		armv4_5_info.core_mode = ARMV7M_MODE_HANDLER;
 		armv4_5_info.core_state = ARM_STATE_ARM;
 	}
-	else if (is_arm7_9(target_to_arm7_9(target)))
+	else
 	{
+		/* All other ARM CPUs have 32 bit instructions */
 		armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 		armv4_5_info.core_mode = ARM_MODE_SVC;
 		armv4_5_info.core_state = ARM_STATE_ARM;
-	}
-	else
-	{
-		/* fallback to slow writes */
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	int target_code_size = 0;
