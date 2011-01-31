@@ -25,6 +25,7 @@ NOR_DRIVERS = \
 	stmsmi.c \
 	stellaris.c \
 	stm32x.c \
+	stm32f2xxx.c \
 	str7x.c \
 	str9x.c \
 	str9xpec.c \
