@@ -22,7 +22,8 @@ proc ocd_bouncer {name args} {
 		if {[catch {eval $cmd $args}] == 0} {
 			return ""
 		} else {
-			set errmsg "Command handler execution failed"
+			# 'classic' commands output error message as part of progress output
+			set errmsg ""
 		}
 	} else {if {$type == "group"} {
 		catch {eval ocd_usage $name $args}
