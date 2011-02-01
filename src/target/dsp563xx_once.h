@@ -54,9 +54,29 @@
 #define DSP563XX_ONCE_OPABFR	0x00F	/* pab fetch reg */
 #define DSP563XX_ONCE_OPABDR	0x010	/* pab decode reg */
 #define DSP563XX_ONCE_OPABEX	0x011	/* pab exec reg */
-#define DSP563XX_ONCE_OPABEX	0x011	/* trace buffer/inc ptr */
+#define DSP563XX_ONCE_OPABF11	0x012	/* trace buffer/inc ptr */
 #define DSP563XX_ONCE_NOREG	0x01F	/* no register selected */
 
+struct once_reg
+{
+	uint8_t num;
+	uint8_t addr;
+	uint8_t len;
+	const char *name;
+	uint32_t reg;
+};
+
+/** */
+int dsp563xx_once_request_debug(struct jtag_tap *tap, int reset_state);
+/** */
+int dsp563xx_once_target_status(struct jtag_tap *tap);
+
+/** once read registers */
+int dsp563xx_once_read_register(struct jtag_tap *tap, struct once_reg *regs, int len);
+/** once read register */
+int dsp563xx_once_reg_read_ex_nq(struct jtag_tap *tap, uint8_t reg, uint8_t len, uint32_t * data);
+/** once read register */
+int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, uint8_t reg, uint8_t len, uint32_t * data);
 /** once read register */
 int dsp563xx_once_reg_read(struct jtag_tap *tap, uint8_t reg, uint32_t * data);
 /** once write register */
@@ -64,12 +84,10 @@ int dsp563xx_once_reg_write(struct jtag_tap *tap, uint8_t reg, uint32_t data);
 /** single word instruction */
 int dsp563xx_once_execute_sw_ir(struct jtag_tap *tap, uint32_t opcode);
 /** double word instruction */
-int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, uint32_t opcode,
-				uint32_t operand);
+int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, uint32_t opcode, uint32_t operand);
 /** single word instruction */
 int dsp563xx_once_execute_sw_ir_nq(struct jtag_tap *tap, uint32_t opcode);
 /** double word instruction */
-int dsp563xx_once_execute_dw_ir_nq(struct jtag_tap *tap, uint32_t opcode,
-				   uint32_t operand);
+int dsp563xx_once_execute_dw_ir_nq(struct jtag_tap *tap, uint32_t opcode, uint32_t operand);
 
 #endif /* DSP563XX_ONCE_H */

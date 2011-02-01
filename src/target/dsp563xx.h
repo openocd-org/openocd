@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Mathias Kuester                                 *
+ *   Copyright (C) 2009-2011 by Mathias Kuester                            *
  *   mkdorg@users.sourceforge.net                                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,8 +21,10 @@
 #define DSP563XX_H
 
 #include <jtag/jtag.h>
+#include <target/dsp563xx_once.h>
 
-#define DSP563XX_NUMCOREREGS	44
+#define DSP563XX_NUMCOREREGS	54
+#define DSP563XX_NUMONCEREGS	25
 
 struct mcu_jtag
 {
@@ -42,6 +44,7 @@ struct dsp563xx_common
 	struct mcu_jtag jtag_info;
 	struct reg_cache *core_cache;
 	uint32_t core_regs[DSP563XX_NUMCOREREGS];
+	struct once_reg once_regs[DSP563XX_NUMONCEREGS];
 
 	struct dsp563xx_pipeline_context pipeline_context;
 
@@ -55,8 +58,8 @@ struct dsp563xx_core_reg
 	uint32_t num;
 	const char *name;
 	uint32_t size;
-	uint32_t r_cmd;
-	uint32_t w_cmd;
+	uint8_t eame;
+	uint32_t instr_mask;
 	struct target *target;
 	struct dsp563xx_common *dsp563xx_common;
 };
@@ -65,12 +68,5 @@ static inline struct dsp563xx_common *target_to_dsp563xx(struct target *target)
 {
 	return target->arch_info;
 }
-
-int dsp563xx_write_dr_u8(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out,
-			 int dr_len, int rti);
-int dsp563xx_write_dr_u32(struct jtag_tap *tap, uint32_t * ir_in, uint32_t ir_out,
-			  int dr_len, int rti);
-
-int dsp563xx_execute_queue(void);
 
 #endif /* DSP563XX_H */
