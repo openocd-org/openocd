@@ -927,6 +927,16 @@ static int cortex_m3_assert_reset(struct target *target)
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
+	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
+		/* allow scripts to override the reset event */
+
+		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
+		register_cache_invalidate(cortex_m3->armv7m.core_cache);
+		target->state = TARGET_RESET;
+
+		return ERROR_OK;
+	}
+
 	/* Enable debug requests */
 	int retval;
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
