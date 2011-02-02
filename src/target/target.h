@@ -479,8 +479,10 @@ void target_free_all_working_areas(struct target *target);
 extern struct target *all_targets;
 
 uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer);
+uint32_t target_buffer_get_u24(struct target *target, const uint8_t *buffer);
 uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer);
 void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t value);
+void target_buffer_set_u24(struct target *target, uint8_t *buffer, uint32_t value);
 void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t value);
 
 int target_read_u32(struct target *target, uint32_t address, uint32_t *value);

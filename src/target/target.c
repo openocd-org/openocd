@@ -280,6 +280,15 @@ uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer)
 		return be_to_h_u32(buffer);
 }
 
+/* read a uint24_t from a buffer in target memory endianness */
+uint32_t target_buffer_get_u24(struct target *target, const uint8_t *buffer)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		return le_to_h_u24(buffer);
+	else
+		return be_to_h_u24(buffer);
+}
+
 /* read a uint16_t from a buffer in target memory endianness */
 uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer)
 {
@@ -302,6 +311,15 @@ void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t valu
 		h_u32_to_le(buffer, value);
 	else
 		h_u32_to_be(buffer, value);
+}
+
+/* write a uint24_t to a buffer in target memory endianness */
+void target_buffer_set_u24(struct target *target, uint8_t *buffer, uint32_t value)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		h_u24_to_le(buffer, value);
+	else
+		h_u24_to_be(buffer, value);
 }
 
 /* write a uint16_t to a buffer in target memory endianness */
