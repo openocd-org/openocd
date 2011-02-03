@@ -81,9 +81,12 @@ static int cortex_a9_init_debug_access(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
+	uint8_t saved_apsel = dap_ap_get_select(swjdp);
 
 	int retval;
 	uint32_t dummy;
+
+	dap_ap_select(swjdp, swjdp_debugap);
 
 	LOG_DEBUG(" ");
 
@@ -100,12 +103,12 @@ static int cortex_a9_init_debug_access(struct target *target)
 		}
 	}
 	if (retval != ERROR_OK)
-		return retval;
+		goto out;
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_PRSR, &dummy);
 	if (retval != ERROR_OK)
-		return retval;
+		goto out;
 
 	/* Enabling of instruction execution in debug mode is done in debug_entry code */
 
@@ -114,6 +117,8 @@ static int cortex_a9_init_debug_access(struct target *target)
 	/* Since this is likely called from init or reset, update target state information*/
 	retval = cortex_a9_poll(target);
 
+ out:
+	dap_ap_select(swjdp, saved_apsel);
 	return retval;
 }
 
@@ -1129,16 +1134,20 @@ static int cortex_a9_step(struct target *target, int current, uint32_t address,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct adiv5_dap *swjdp = &armv7a->dap;
 	struct breakpoint *breakpoint = NULL;
 	struct breakpoint stepbreakpoint;
 	struct reg *r;
 	int retval;
+	uint8_t saved_apsel = dap_ap_get_select(swjdp);
 
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	dap_ap_select(swjdp, swjdp_debugap);
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	r = armv4_5->pc;
@@ -1176,18 +1185,19 @@ static int cortex_a9_step(struct target *target, int current, uint32_t address,
 
 	retval = cortex_a9_resume(target, 1, address, 0, 0);
 	if (retval != ERROR_OK)
-		return retval;
+		goto out;
 
 	long long then = timeval_ms();
 	while (target->state != TARGET_HALTED)
 	{
 		retval = cortex_a9_poll(target);
 		if (retval != ERROR_OK)
-			return retval;
+			goto out;
 		if (timeval_ms() > then + 1000)
 		{
 			LOG_ERROR("timeout waiting for target halt");
-			return ERROR_FAIL;
+			retval = ERROR_FAIL;
+			goto out;
 		}
 	}
 
@@ -1201,7 +1211,11 @@ static int cortex_a9_step(struct target *target, int current, uint32_t address,
 	if (target->state != TARGET_HALTED)
 		LOG_DEBUG("target stepped");
 
-	return ERROR_OK;
+	retval = ERROR_OK;
+
+ out:
+	dap_ap_select(swjdp, saved_apsel);
+	return retval;
 }
 
 static int cortex_a9_restore_context(struct target *target, bool bpwp)
