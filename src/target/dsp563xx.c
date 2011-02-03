@@ -201,6 +201,7 @@ static const struct
 };
 
 #define REG_NUM_R0	0
+#define REG_NUM_R1	1
 #define REG_NUM_N0	8
 #define REG_NUM_N1	9
 #define REG_NUM_M0	16
@@ -220,6 +221,13 @@ static const struct
 #define REG_NUM_AAR1	51
 #define REG_NUM_AAR2	52
 #define REG_NUM_AAR3	53
+
+enum memory_type
+{
+	MEM_X = 0,
+	MEM_Y = 1,
+	MEM_P = 2,
+};
 
 #define INSTR_JUMP	0x0AF080
 /* Effective Addressing Mode Encoding */
@@ -359,11 +367,11 @@ static int dsp563xx_reg_read_high_io(struct target *target, uint32_t instr_mask,
 		dsp563xx->read_core_reg(target, REG_NUM_R0);
 
 	/* move source memory to r0 */
-	instr = INSTR_MOVEP_REG_HIO(0, 0, EAME_R0, instr_mask);
+	instr = INSTR_MOVEP_REG_HIO(MEM_X, 0, EAME_R0, instr_mask);
 	if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, instr)) != ERROR_OK)
 		return err;
 	/* move r0 to debug register */
-	instr = INSTR_MOVEP_REG_HIO(0, 1, EAME_R0, 0xfffffc);
+	instr = INSTR_MOVEP_REG_HIO(MEM_X, 1, EAME_R0, 0xfffffc);
 	if ((err = dsp563xx_once_execute_sw_ir(target->tap, instr)) != ERROR_OK)
 		return err;
 	/* read debug register */
@@ -389,7 +397,7 @@ static int dsp563xx_reg_write_high_io(struct target *target, uint32_t instr_mask
 	if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x60F400, data)) != ERROR_OK)
 		return err;
 	/* move r0 to destination memory */
-	instr = INSTR_MOVEP_REG_HIO(0, 1, EAME_R0, instr_mask);
+	instr = INSTR_MOVEP_REG_HIO(MEM_X, 1, EAME_R0, instr_mask);
 	if ((err = dsp563xx_once_execute_sw_ir(target->tap, instr)) != ERROR_OK)
 		return err;
 
@@ -404,7 +412,7 @@ static int dsp563xx_reg_read(struct target *target, uint32_t eame, uint32_t * da
 	int err;
 	uint32_t instr;
 
-	instr = INSTR_MOVEP_REG_HIO(0, 1, eame, 0xfffffc);
+	instr = INSTR_MOVEP_REG_HIO(MEM_X, 1, eame, 0xfffffc);
 	if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, instr)) != ERROR_OK)
 		return err;
 	/* nop */
@@ -1114,33 +1122,12 @@ static int dsp563xx_soft_reset_halt(struct target *target)
 	return ERROR_OK;
 }
 
-/*
-* 000000			nop
-* 46F400 AABBCC		move              #$aabbcc,y0
-* 60F400 AABBCC		move              #$aabbcc,r0
-* 467000 AABBCC		move              y0,x:AABBCC
-* 607000 AABBCC		move              r0,x:AABBCC
-
-* 46E000		move              x:(r0),y0
-* 4EE000		move              y:(r0),y0
-* 07E086		move              p:(r0),y0
-
-* 0450B9		move              sr,r0
-* 0446BA		move              omr,y0
-* 0446BC		move              ssh,y0
-* 0446BD		move              ssl,y0
-* 0446BE		move              la,y0
-* 0446BF		move              lc,y0
-*
-* 61F000 AABBCC		move              x:AABBCC,r1
-* 076190		movem             r0,p:(r1)
-*
-*/
-static int dsp563xx_read_memory_p(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
 {
 	int err;
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 	uint32_t i, x;
-	uint32_t data;
+	uint32_t data, move_cmd;
 	uint8_t *b;
 
 	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32, address, size, count);
@@ -1151,41 +1138,68 @@ static int dsp563xx_read_memory_p(struct target *target, uint32_t address, uint3
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	switch (mem_type)
+	{
+		case MEM_X:
+			move_cmd = 0x61d800;
+			break;
+		case MEM_Y:
+			move_cmd = 0x69d800;
+			break;
+		case MEM_P:
+			move_cmd = 0x07d891;
+			break;
+		default:
+			return ERROR_INVALID_ARGUMENTS;
+	}
+
+	/* we use r0 to store temporary data */
+	if (!dsp563xx->core_cache->reg_list[REG_NUM_R0].valid)
+		dsp563xx->read_core_reg(target, REG_NUM_R0);
+	/* we use r1 to store temporary data */
+	if (!dsp563xx->core_cache->reg_list[REG_NUM_R1].valid)
+		dsp563xx->read_core_reg(target, REG_NUM_R1);
+
+	/* r0 is no longer valid on target */
+	dsp563xx->core_cache->reg_list[REG_NUM_R0].dirty = 1;
+	/* r1 is no longer valid on target */
+	dsp563xx->core_cache->reg_list[REG_NUM_R1].dirty = 1;
+
 	x = count;
+	b = buffer;
+
+	if ((err = dsp563xx_once_execute_dw_ir(target->tap, 0x60F400, address)) != ERROR_OK)
+		return err;
 
 	for (i = 0; i < x; i++)
 	{
-		if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x60F400, address + i)) != ERROR_OK)
+		data = 0;
+		if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, move_cmd)) != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, 0x07E086)) != ERROR_OK)
+		if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0x08D13C)) != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x467000, 0xfffffc)) != ERROR_OK)
-			return err;
-		if ((err = jtag_execute_queue()) != ERROR_OK)
-			return err;
-
 		if ((err = dsp563xx_once_reg_read(target->tap, DSP563XX_ONCE_OGDBR, &data)) != ERROR_OK)
 			return err;
+		target_buffer_set_u32(target, b, data);
+		b += 4;
 
-		b = buffer + 4 * i;
-		if (size > 0)
-			*b++ = data >> 0;
-		if (size > 1)
-			*b++ = data >> 8;
-		if (size > 2)
-			*b++ = data >> 16;
-		if (size > 3)
-			*b++ = 0x00;
+		LOG_DEBUG("R: %08X", data);
 	}
 
 	return ERROR_OK;
 }
 
-static int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_read_memory_p(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+{
+	return dsp563xx_read_memory(target, MEM_P, address, size, count, buffer);
+}
+
+static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
 {
 	int err;
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 	uint32_t i, x;
-	uint32_t data;
+	uint32_t data, move_cmd;
 	uint8_t *b;
 
 	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
@@ -1196,36 +1210,259 @@ static int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	switch (mem_type)
+	{
+		case MEM_X:
+			move_cmd = 0x615800;
+			break;
+		case MEM_Y:
+			move_cmd = 0x695800;
+			break;
+		case MEM_P:
+			move_cmd = 0x075891;
+			break;
+		default:
+			return ERROR_INVALID_ARGUMENTS;
+	}
+
+	/* we use r0 to store temporary data */
+	if (!dsp563xx->core_cache->reg_list[REG_NUM_R0].valid)
+		dsp563xx->read_core_reg(target, REG_NUM_R0);
+	/* we use r1 to store temporary data */
+	if (!dsp563xx->core_cache->reg_list[REG_NUM_R1].valid)
+		dsp563xx->read_core_reg(target, REG_NUM_R1);
+
+	/* r0 is no longer valid on target */
+	dsp563xx->core_cache->reg_list[REG_NUM_R0].dirty = 1;
+	/* r1 is no longer valid on target */
+	dsp563xx->core_cache->reg_list[REG_NUM_R1].dirty = 1;
+
 	x = count;
+	b = buffer;
+
+	if ((err = dsp563xx_once_execute_dw_ir(target->tap, 0x60F400, address)) != ERROR_OK)
+		return err;
 
 	for (i = 0; i < x; i++)
 	{
-		b = buffer + 4 * i;
+		data = target_buffer_get_u32(target, b);
+		data &= 0x00ffffff;
 
-		data = 0;
-		if (size > 0)
-			data = *buffer++;
-		if (size > 1)
-			data |= (*buffer++) << 8;
-		if (size > 2)
-			data |= (*buffer++) << 16;
-		if (size > 3)
-			data |= (*buffer++) << 24;
+		LOG_DEBUG("W: %08X", data);
 
-//              LOG_DEBUG("%08X", data);
+		if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x61F400, data)) != ERROR_OK)
+			return err;
+		if ((err = dsp563xx_once_execute_sw_ir(target->tap, move_cmd)) != ERROR_OK)
+			return err;
 
-		if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x61F400, address + i)) != ERROR_OK)
-			return err;
-		if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x60F400, data)) != ERROR_OK)
-			return err;
-		if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, 0x076190)) != ERROR_OK)
-			return err;
-		if ((err = jtag_execute_queue()) != ERROR_OK)
-			return err;
+		b += 4;
 	}
 
 	return ERROR_OK;
 }
+
+static int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+{
+	return dsp563xx_write_memory(target, MEM_P, address, size, count, buffer);
+}
+
+static void handle_md_output(struct command_context *cmd_ctx, struct target *target, uint32_t address, unsigned size, unsigned count, const uint8_t * buffer)
+{
+	const unsigned line_bytecnt = 32;
+	unsigned line_modulo = line_bytecnt / size;
+
+	char output[line_bytecnt * 4 + 1];
+	unsigned output_len = 0;
+
+	const char *value_fmt;
+	switch (size)
+	{
+		case 4:
+			value_fmt = "%8.8x ";
+			break;
+		case 2:
+			value_fmt = "%4.4x ";
+			break;
+		case 1:
+			value_fmt = "%2.2x ";
+			break;
+		default:
+			/* "can't happen", caller checked */
+			LOG_ERROR("invalid memory read size: %u", size);
+			return;
+	}
+
+	for (unsigned i = 0; i < count; i++)
+	{
+		if (i % line_modulo == 0)
+		{
+			output_len += snprintf(output + output_len, sizeof(output) - output_len, "0x%8.8x: ", (unsigned) (address + (i * size)));
+		}
+
+		uint32_t value = 0;
+		const uint8_t *value_ptr = buffer + i * size;
+		switch (size)
+		{
+			case 4:
+				value = target_buffer_get_u32(target, value_ptr);
+				break;
+			case 2:
+				value = target_buffer_get_u16(target, value_ptr);
+				break;
+			case 1:
+				value = *value_ptr;
+		}
+		output_len += snprintf(output + output_len, sizeof(output) - output_len, value_fmt, value);
+
+		if ((i % line_modulo == line_modulo - 1) || (i == count - 1))
+		{
+			command_print(cmd_ctx, "%s", output);
+			output_len = 0;
+		}
+	}
+}
+
+COMMAND_HANDLER(dsp563xx_mem_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	int err = ERROR_OK;
+	int read_mem;
+	uint32_t address = 0;
+	uint32_t count = 1, i;
+	uint32_t pattern = 0;
+	uint32_t mem_type;
+	uint8_t *buffer, *b;
+
+	switch (CMD_NAME[1])
+	{
+		case 'w':
+			read_mem = 0;
+			break;
+		case 'd':
+			read_mem = 1;
+			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	switch (CMD_NAME[3])
+	{
+		case 'x':
+			mem_type = MEM_X;
+			break;
+		case 'y':
+			mem_type = MEM_Y;
+			break;
+		case 'p':
+			mem_type = MEM_P;
+			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (CMD_ARGC > 0)
+	{
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	}
+
+	if (read_mem == 0)
+	{
+		if (CMD_ARGC < 2)
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		if (CMD_ARGC > 1)
+		{
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], pattern);
+		}
+		if (CMD_ARGC > 2)
+		{
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], count);
+		}
+	}
+
+	if (read_mem == 1)
+	{
+		if (CMD_ARGC < 1)
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		if (CMD_ARGC > 1)
+		{
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], count);
+		}
+	}
+
+	buffer = calloc(count, sizeof(uint32_t));
+
+	if (read_mem == 1)
+	{
+		if ((err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t), count, buffer)) == ERROR_OK)
+			handle_md_output(CMD_CTX, target, address, sizeof(uint32_t), count, buffer);
+	}
+	else
+	{
+		b = buffer;
+
+		for (i = 0; i < count; i++)
+		{
+			target_buffer_set_u32(target, b, pattern);
+			b += 4;
+		}
+
+		err = dsp563xx_write_memory(target, mem_type, address, sizeof(uint32_t), count, buffer);
+	}
+
+	free(buffer);
+
+	return err;
+}
+
+static const struct command_registration dsp563xx_command_handlers[] = {
+	{
+	 .name = "mwwx",
+	 .handler = dsp563xx_mem_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "write x memory words",
+	 .usage = "mwwx address value [count]",
+	 },
+	{
+	 .name = "mwwy",
+	 .handler = dsp563xx_mem_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "write y memory words",
+	 .usage = "mwwy address value [count]",
+	 },
+	{
+	 .name = "mwwp",
+	 .handler = dsp563xx_mem_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "write p memory words",
+	 .usage = "mwwp address value [count]",
+	 },
+	{
+	 .name = "mdwx",
+	 .handler = dsp563xx_mem_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "display x memory words",
+	 .usage = "mdwx address [count]",
+	 },
+	{
+	 .name = "mdwy",
+	 .handler = dsp563xx_mem_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "display y memory words",
+	 .usage = "mdwy address [count]",
+	 },
+	{
+	 .name = "mdwp",
+	 .handler = dsp563xx_mem_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "display p memory words",
+	 .usage = "mdwp address [count]",
+	 },
+	COMMAND_REGISTRATION_DONE
+};
 
 /** Holds methods for DSP563XX targets. */
 struct target_type dsp563xx_target = {
@@ -1249,6 +1486,7 @@ struct target_type dsp563xx_target = {
 	.read_memory = dsp563xx_read_memory_p,
 	.write_memory = dsp563xx_write_memory_p,
 
+	.commands = dsp563xx_command_handlers,
 	.target_create = dsp563xx_target_create,
 	.init_target = dsp563xx_init_target,
 };
