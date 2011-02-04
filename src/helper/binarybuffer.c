@@ -133,19 +133,34 @@ void* buf_set_buf(const void *_src, unsigned src_start,
 {
 	const uint8_t *src = _src;
 	uint8_t *dst = _dst;
+	unsigned  sb,db,sq,dq;
 
-	unsigned src_idx = src_start, dst_idx = dst_start;
+	sb = src_start / 8;
+	db = dst_start / 8;
+	sq = src_start % 8;
+	dq = dst_start % 8;
+
 	for (unsigned i = 0; i < len; i++)
 	{
-		if (((src[src_idx / 8] >> (src_idx % 8)) & 1) == 1)
-			dst[dst_idx / 8] |= 1 << (dst_idx % 8);
+		if (((*src >> (sq&7)) & 1) == 1)
+			*dst |= 1 << (dq&7);
 		else
-			dst[dst_idx / 8] &= ~(1 << (dst_idx % 8));
-		dst_idx++;
-		src_idx++;
+			*dst &= ~(1 << (dq&7));
+
+		if ( sq++ == 7 )
+		{
+			sq = 0;
+			src++;
+		}
+
+		if ( dq++ == 7 )
+		{
+			dq = 0;
+			dst++;
+		}
 	}
 
-	return dst;
+	return (uint8_t*)_dst;
 }
 
 uint32_t flip_u32(uint32_t value, unsigned int num)
