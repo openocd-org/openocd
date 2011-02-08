@@ -262,11 +262,6 @@ static int buspirate_quit(void)
 /* openocd command interface */
 COMMAND_HANDLER(buspirate_handle_adc_command)
 {
-	if (CMD_ARGC != 0) {
-		LOG_ERROR("usage: buspirate_adc");
-		return ERROR_OK;
-	}
-
 	if (buspirate_fd == -1)
 		return ERROR_OK;
 
@@ -279,15 +274,17 @@ COMMAND_HANDLER(buspirate_handle_adc_command)
 
 COMMAND_HANDLER(buspirate_handle_vreg_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC < 1) {
 		LOG_ERROR("usage: buspirate_vreg <1|0>");
 		return ERROR_OK;
 	}
 
 	if (atoi(CMD_ARGV[0]) == 1)
 		buspirate_vreg = 1;
-	else
+	else if (atoi(CMD_ARGV[0]) == 0)
 		buspirate_vreg = 0;
+	else
+		LOG_ERROR("usage: buspirate_vreg <1|0>");
 
 	return ERROR_OK;
 
@@ -295,15 +292,17 @@ COMMAND_HANDLER(buspirate_handle_vreg_command)
 
 COMMAND_HANDLER(buspirate_handle_pullup_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC < 1) {
 		LOG_ERROR("usage: buspirate_pullup <1|0>");
 		return ERROR_OK;
 	}
 
 	if (atoi(CMD_ARGV[0]) == 1)
 		buspirate_pullup = 1;
-	else
+	else if (atoi(CMD_ARGV[0]) == 0)
 		buspirate_pullup = 0;
+	else
+		LOG_ERROR("usage: buspirate_pullup <1|0>");
 
 	return ERROR_OK;
 
@@ -311,7 +310,7 @@ COMMAND_HANDLER(buspirate_handle_pullup_command)
 
 COMMAND_HANDLER(buspirate_handle_led_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC < 1) {
 		LOG_ERROR("usage: buspirate_led <1|0>");
 		return ERROR_OK;
 	}
@@ -320,10 +319,12 @@ COMMAND_HANDLER(buspirate_handle_led_command)
 		/* enable led */
 		buspirate_jtag_set_feature(buspirate_fd, FEATURE_LED,
 				ACTION_ENABLE);
-	} else {
+	} else if (atoi(CMD_ARGV[0]) == 0) {
 		/* disable led */
 		buspirate_jtag_set_feature(buspirate_fd, FEATURE_LED,
 				ACTION_DISABLE);
+	} else {
+		LOG_ERROR("usage: buspirate_led <1|0>");
 	}
 
 	return ERROR_OK;
@@ -332,7 +333,7 @@ COMMAND_HANDLER(buspirate_handle_led_command)
 
 COMMAND_HANDLER(buspirate_handle_mode_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC < 1) {
 		LOG_ERROR("usage: buspirate_mode <normal|open-drain>");
 		return ERROR_OK;
 	}
@@ -350,7 +351,7 @@ COMMAND_HANDLER(buspirate_handle_mode_command)
 
 COMMAND_HANDLER(buspirate_handle_speed_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC < 1) {
 		LOG_ERROR("usage: buspirate_speed <normal|fast>");
 		return ERROR_OK;
 	}
@@ -368,12 +369,12 @@ COMMAND_HANDLER(buspirate_handle_speed_command)
 
 COMMAND_HANDLER(buspirate_handle_port_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC < 1) {
 		LOG_ERROR("usage: buspirate_port /dev/ttyUSB0");
 		return ERROR_OK;
 	}
 
-	if (buspirate_port == 0)
+	if (buspirate_port == NULL)
 		buspirate_port = strdup(CMD_ARGV[0]);
 
 	return ERROR_OK;
@@ -718,16 +719,15 @@ static void buspirate_jtag_enable(int fd)
 	while (!done) {
 		ret = buspirate_serial_read(fd, tmp, 4);
 		if (ret != 4) {
-			LOG_ERROR("Buspirate did not respond :"
-				"( restart everything");
+			LOG_ERROR("Buspirate error. Is is binary/"
+				"/OpenOCD support enabled?");
 			exit(-1);
 		}
-		LOG_DEBUG("TUI");
 		if (strncmp(tmp, "BBIO", 4) == 0) {
 			ret = buspirate_serial_read(fd, tmp, 1);
 			if (ret != 1) {
-				LOG_ERROR("Buspirate did not respond well :"
-					"( restart everything");
+				LOG_ERROR("Buspirate did not correctly! "
+					"Do you have correct firmware?");
 				exit(-1);
 			}
 			if (tmp[0] != '1') {
@@ -742,8 +742,8 @@ static void buspirate_jtag_enable(int fd)
 		} else if (strncmp(tmp, "OCD1", 4) == 0)
 			done = 1;
 		else {
-			LOG_ERROR("Buspirate did not respond :"
-				"( restart everything");
+			LOG_ERROR("Buspirate did not correctly! "
+				"Do you have correct firmware?");
 			exit(-1);
 		}
 	}
@@ -763,7 +763,7 @@ static void buspirate_jtag_reset(int fd)
 		tmp[0] = 0x0F; /*  reset BP */
 		buspirate_serial_write(fd, tmp, 1);
 	} else
-		LOG_ERROR("Bad reply :( Please restart manually");
+		LOG_ERROR("Unable to restart buspirate!");
 }
 
 static void buspirate_jtag_set_speed(int fd, char speed)
@@ -785,13 +785,11 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 	buspirate_serial_write(fd, ack, 2);
 	ret = buspirate_serial_read(fd, tmp, 2);
 	if (ret != 2) {
-		LOG_ERROR("Buspirate did not respond :"
-			"( restart everything");
+		LOG_ERROR("Buspirate did not ack speed change");
 		exit(-1);
 	}
 	if ((tmp[0] != CMD_UART_SPEED) || (tmp[1] != speed)) {
-		LOG_ERROR("Buspirate didn't reply as expected :"
-			"( restart everything");
+		LOG_ERROR("Buspirate didn't reply as expected");
 		exit(-1);
 	}
 	LOG_INFO("Buspirate switched to %s mode",
@@ -945,7 +943,7 @@ static int buspirate_serial_read(int fd, char *buf, int size)
 	buspirate_print_buffer(buf, len);
 
 	if (len != size)
-		LOG_ERROR("Error sending data");
+		LOG_ERROR("Error reading data");
 
 	return len;
 }
