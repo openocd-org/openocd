@@ -133,26 +133,40 @@ void* buf_set_buf(const void *_src, unsigned src_start,
 {
 	const uint8_t *src = _src;
 	uint8_t *dst = _dst;
-	unsigned  sb,db,sq,dq;
+	unsigned  i,sb,db,sq,dq, lb,lq;
 
 	sb = src_start / 8;
 	db = dst_start / 8;
 	sq = src_start % 8;
 	dq = dst_start % 8;
+	lb = len / 8;
+	lq = len % 8;
 
-	for (unsigned i = 0; i < len; i++)
+	src += sb;
+	dst += db;
+
+	/* check if both buffers are on byte boundary and
+	 * len is a multiple of 8bit so we can simple copy
+	 * the buffer */
+	if ( (sq == 0) && (dq == 0) &&  (lq == 0) )
+	{
+		for (i = 0; i < lb; i++)
+			*dst++ = *src++;
+		return (uint8_t*)_dst;
+	}
+
+	/* fallback to slow bit copy */
+	for (i = 0; i < len; i++)
 	{
 		if (((*src >> (sq&7)) & 1) == 1)
 			*dst |= 1 << (dq&7);
 		else
 			*dst &= ~(1 << (dq&7));
-
 		if ( sq++ == 7 )
 		{
 			sq = 0;
 			src++;
 		}
-
 		if ( dq++ == 7 )
 		{
 			dq = 0;
