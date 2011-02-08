@@ -299,7 +299,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	if (dscr & DSCR_DTR_RX_FULL)
 	{
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
-		/* Clear DCCRX with MCR(p14, 0, Rd, c0, c5, 0), opcode  0xEE000E15 */
+		/* Clear DCCRX with MRC(p14, 0, Rd, c0, c5, 0), opcode  0xEE100E15 */
 		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 				&dscr);
 		if (retval != ERROR_OK)
@@ -318,7 +318,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 
 	if (Rd < 15)
 	{
-		/* DCCRX to Rn, "MCR p14, 0, Rn, c0, c5, 0", 0xEE00nE15 */
+		/* DCCRX to Rn, "MRC p14, 0, Rn, c0, c5, 0", 0xEE10nE15 */
 		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, Rd, 0, 5, 0),
 				&dscr);
 		if (retval != ERROR_OK)
@@ -326,7 +326,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	}
 	else if (Rd == 15)
 	{
-		/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15
+		/* DCCRX to R0, "MRC p14, 0, R0, c0, c5, 0", 0xEE100E15
 		 * then "mov r15, r0"
 		 */
 		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
@@ -339,7 +339,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	}
 	else
 	{
-		/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15
+		/* DCCRX to R0, "MRC p14, 0, R0, c0, c5, 0", 0xEE100E15
 		 * then "MSR CPSR_cxsf, r0" or "MSR SPSR_cxsf, r0" (all fields)
 		 */
 		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
