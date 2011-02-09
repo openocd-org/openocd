@@ -1492,28 +1492,75 @@ static int cortex_a9_read_phys_memory(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
 	int retval = ERROR_INVALID_ARGUMENTS;
-	uint8_t saved_apsel = dap_ap_get_select(swjdp);
-
-	/* cortex_a9 handles unaligned memory access */
-
-	dap_ap_select(swjdp, swjdp_memoryap);
+	uint8_t apsel = dap_ap_get_select(swjdp);
 
 	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d", address, size, count);
+
 	if (count && buffer) {
-		switch (size) {
-			case 4:
-				retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address);
-				break;
-			case 2:
-				retval = mem_ap_read_buf_u16(swjdp, buffer, 2 * count, address);
-				break;
-			case 1:
-				retval = mem_ap_read_buf_u8(swjdp, buffer, count, address);
-				break;
+
+		if ( apsel == 0) {
+			/* read memory  throug AHB-AP */
+
+			switch (size) {
+				case 4:
+					retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address);
+					break;
+				case 2:
+					retval = mem_ap_read_buf_u16(swjdp, buffer, 2 * count, address);
+					break;
+				case 1:
+					retval = mem_ap_read_buf_u8(swjdp, buffer, count, address);
+					break;
+			}
+
+		} else {
+
+			/* read memory  throug APB-AP */
+
+			uint32_t saved_r0, saved_r1;
+			int nbytes = count * size;
+			uint32_t data;
+
+			/* save registers r0 and r1, we are going to corrupt them  */
+			retval = cortex_a9_dap_read_coreregister_u32(target, &saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a9_dap_read_coreregister_u32(target, &saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a9_dap_write_coreregister_u32(target, address, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			while (nbytes > 0) {
+
+				/* execute instruction LDRB r1, [r0], 1 (0xe4d01001) */
+				retval = cortex_a9_exec_opcode(target, ARMV4_5_LDRB_IP(1, 0) , NULL);
+				if (retval != ERROR_OK)
+						return retval;
+
+				retval = cortex_a9_dap_read_coreregister_u32(target, &data, 1);
+				if (retval != ERROR_OK)
+					return retval;
+
+				*buffer++ = data;
+				--nbytes;
+
+			}
+
+			/* restore corrupted registers r0 and r1 */
+			retval = cortex_a9_dap_write_coreregister_u32(target, saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a9_dap_write_coreregister_u32(target, saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
 		}
 	}
-
-	dap_ap_select(swjdp, saved_apsel);
 
 	return retval;
 }
@@ -1557,22 +1604,73 @@ static int cortex_a9_write_phys_memory(struct target *target,
 	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address, size, count);
 
 	if (count && buffer) {
-		uint8_t saved_apsel = dap_ap_get_select(swjdp);
-		dap_ap_select(swjdp, swjdp_memoryap);
+		uint8_t apsel = dap_ap_get_select(swjdp);
 
-		switch (size) {
-			case 4:
-				retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
-				break;
-			case 2:
-				retval = mem_ap_write_buf_u16(swjdp, buffer, 2 * count, address);
-				break;
-			case 1:
-				retval = mem_ap_write_buf_u8(swjdp, buffer, count, address);
-				break;
+		if ( apsel == 0 ) {
+
+			/* write memory  throug AHB-AP */
+			switch (size) {
+				case 4:
+					retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
+					break;
+				case 2:
+					retval = mem_ap_write_buf_u16(swjdp, buffer, 2 * count, address);
+					break;
+				case 1:
+					retval = mem_ap_write_buf_u8(swjdp, buffer, count, address);
+					break;
+			}
+
+		} else {
+
+			/* read memory  throug APB-AP */
+
+			uint32_t saved_r0, saved_r1;
+			int nbytes = count * size;
+			uint32_t data;
+
+			/* save registers r0 and r1, we are going to corrupt them  */
+			retval = cortex_a9_dap_read_coreregister_u32(target, &saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a9_dap_read_coreregister_u32(target, &saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a9_dap_write_coreregister_u32(target, address, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			while (nbytes > 0) {
+
+				data = *buffer++;
+
+				retval = cortex_a9_dap_write_coreregister_u32(target, data, 1);
+				if (retval != ERROR_OK)
+					return retval;
+
+					/* execute instruction STRB r1, [r0], 1 (0xe4c01001) */
+				retval = cortex_a9_exec_opcode(target, ARMV4_5_STRB_IP(1, 0) , NULL);
+				if (retval != ERROR_OK)
+						return retval;
+
+				--nbytes;
+			}
+
+			/* restore corrupted registers r0 and r1 */
+			retval = cortex_a9_dap_write_coreregister_u32(target, saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a9_dap_write_coreregister_u32(target, saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+			/* we can return here without invalidating D/I-cache because */
+			/* access through APB maintains cache coherency              */
+			return retval;
 		}
-
-		dap_ap_select(swjdp, saved_apsel);
 	}
 
 
