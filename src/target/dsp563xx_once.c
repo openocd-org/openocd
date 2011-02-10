@@ -90,7 +90,7 @@ static inline int dsp563xx_once_ir_exec(struct jtag_tap *tap, uint8_t instr, uin
 }
 
 /** single word instruction */
-static inline inline int dsp563xx_once_ir_exec_nq(struct jtag_tap *tap, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex)
+static inline int dsp563xx_once_ir_exec_nq(struct jtag_tap *tap, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex)
 {
 	return dsp563xx_write_dr_u8(tap, 0, instr | (ex << 5) | (go << 6) | (rw << 7), 8, 0);
 }
