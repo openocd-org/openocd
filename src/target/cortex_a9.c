@@ -1522,6 +1522,12 @@ static int cortex_a9_read_phys_memory(struct target *target,
 			int nbytes = count * size;
 			uint32_t data;
 
+			if (target->state != TARGET_HALTED)
+			{
+				LOG_WARNING("target not halted");
+				return ERROR_TARGET_NOT_HALTED;
+			}
+
 			/* save registers r0 and r1, we are going to corrupt them  */
 			retval = cortex_a9_dap_read_coreregister_u32(target, &saved_r0, 0);
 			if (retval != ERROR_OK)
@@ -1629,6 +1635,12 @@ static int cortex_a9_write_phys_memory(struct target *target,
 			uint32_t saved_r0, saved_r1;
 			int nbytes = count * size;
 			uint32_t data;
+
+			if (target->state != TARGET_HALTED)
+			{
+				LOG_WARNING("target not halted");
+				return ERROR_TARGET_NOT_HALTED;
+			}
 
 			/* save registers r0 and r1, we are going to corrupt them  */
 			retval = cortex_a9_dap_read_coreregister_u32(target, &saved_r0, 0);
