@@ -1521,11 +1521,22 @@ static int cortex_a9_read_phys_memory(struct target *target,
 			uint32_t saved_r0, saved_r1;
 			int nbytes = count * size;
 			uint32_t data;
+			int enabled = 0;
 
 			if (target->state != TARGET_HALTED)
 			{
 				LOG_WARNING("target not halted");
 				return ERROR_TARGET_NOT_HALTED;
+			}
+
+			retval = cortex_a9_mmu(target, &enabled);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (enabled)
+			{
+				LOG_WARNING("Reading physical memory through APB with MMU enabled is not yet implemented");
+				return ERROR_TARGET_FAILURE;
 			}
 
 			/* save registers r0 and r1, we are going to corrupt them  */
@@ -1635,11 +1646,22 @@ static int cortex_a9_write_phys_memory(struct target *target,
 			uint32_t saved_r0, saved_r1;
 			int nbytes = count * size;
 			uint32_t data;
+			int enabled = 0;
 
 			if (target->state != TARGET_HALTED)
 			{
 				LOG_WARNING("target not halted");
 				return ERROR_TARGET_NOT_HALTED;
+			}
+
+			retval = cortex_a9_mmu(target, &enabled);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (enabled)
+			{
+				LOG_WARNING("Writing physical memory through APB with MMU enabled is not yet implemented");
+				return ERROR_TARGET_FAILURE;
 			}
 
 			/* save registers r0 and r1, we are going to corrupt them  */
