@@ -1498,8 +1498,9 @@ static int cortex_a9_read_phys_memory(struct target *target,
 
 	if (count && buffer) {
 
-		if ( apsel == 0) {
-			/* read memory  throug AHB-AP */
+		if ( apsel == swjdp_memoryap ) {
+
+			/* read memory through AHB-AP */
 
 			switch (size) {
 				case 4:
@@ -1515,7 +1516,7 @@ static int cortex_a9_read_phys_memory(struct target *target,
 
 		} else {
 
-			/* read memory  throug APB-AP */
+			/* read memory through APB-AP */
 
 			uint32_t saved_r0, saved_r1;
 			int nbytes = count * size;
@@ -1606,9 +1607,9 @@ static int cortex_a9_write_phys_memory(struct target *target,
 	if (count && buffer) {
 		uint8_t apsel = dap_ap_get_select(swjdp);
 
-		if ( apsel == 0 ) {
+		if ( apsel == swjdp_memoryap ) {
 
-			/* write memory  throug AHB-AP */
+			/* write memory through AHB-AP */
 			switch (size) {
 				case 4:
 					retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
@@ -1623,7 +1624,7 @@ static int cortex_a9_write_phys_memory(struct target *target,
 
 		} else {
 
-			/* read memory  throug APB-AP */
+			/* write memory through APB-AP */
 
 			uint32_t saved_r0, saved_r1;
 			int nbytes = count * size;
