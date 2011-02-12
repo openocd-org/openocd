@@ -393,7 +393,7 @@ int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t apsel,
 int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t apsel,
 		uint32_t address, uint32_t value);
 
-/* MEM-AP memory mapped bus block transfers with selection of ap*/
+/* MEM-AP memory mapped bus block transfers with selection of ap */
 int mem_ap_sel_read_buf_u8(struct adiv5_dap *swjdp, uint8_t apsel,
 		uint8_t *buffer, int count, uint32_t address);
 int mem_ap_sel_read_buf_u16(struct adiv5_dap *swjdp, uint8_t apsel,

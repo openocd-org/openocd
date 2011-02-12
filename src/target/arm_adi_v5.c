@@ -882,6 +882,80 @@ int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
 	return retval;
 }
 
+/*--------------------------------------------------------------------*/
+/*          Wrapping function with selection of AP                    */
+/*--------------------------------------------------------------------*/
+int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint32_t address, uint32_t *value)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_read_u32(swjdp, address, value);
+}
+
+int mem_ap_sel_write_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint32_t address, uint32_t value)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_write_u32(swjdp, address, value);
+}
+
+int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint32_t address, uint32_t *value)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_read_atomic_u32(swjdp, address, value);
+}
+
+int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint32_t address, uint32_t value)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_write_atomic_u32(swjdp, address, value);
+}
+
+int mem_ap_sel_read_buf_u8(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_read_buf_u8(swjdp, buffer, count, address);
+}
+
+int mem_ap_sel_read_buf_u16(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_read_buf_u16(swjdp, buffer, count, address);
+}
+
+int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_read_buf_u32(swjdp, buffer, count, address);
+}
+
+int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_write_buf_u8(swjdp, buffer, count, address);
+}
+
+int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_write_buf_u16(swjdp, buffer, count, address);
+}
+
+int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, apsel);
+	return mem_ap_write_buf_u32(swjdp, buffer, count, address);
+}
+
+
 /*--------------------------------------------------------------------------*/
 
 
