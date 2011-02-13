@@ -2364,6 +2364,46 @@ static int ft2232_purge_libftdi(void)
 
 #endif /* BUILD_FT2232_LIBFTDI == 1 */
 
+static int ft2232_set_data_bits_low_byte( uint8_t value, uint8_t direction )
+{
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+
+	buf[0] = 0x80;		/* command "set data bits low byte" */
+	buf[1] = value;		/* value */
+	buf[2] = direction;	/* direction */
+
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize data bits low byte");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static int ft2232_set_data_bits_high_byte( uint8_t value, uint8_t direction )
+{
+	uint8_t  buf[3];
+	uint32_t bytes_written;
+
+	buf[0] = 0x82;		/* command "set data bits high byte" */
+	buf[1] = value;		/* value */
+	buf[2] = direction;	/* direction */
+
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize data bits high byte");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
 static int ft2232_init(void)
 {
 	uint8_t  buf[1];
@@ -2468,9 +2508,6 @@ static inline void ftx232_dbus_init(void)
  */
 static int ftx232_dbus_write(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
@@ -2495,12 +2532,7 @@ static int ftx232_dbus_write(void)
 	}
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, xRST high) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 DBUS");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2600,19 +2632,11 @@ static int signalyzer_init(void)
 
 static int axm0432_jtag_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x2b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2653,13 +2677,8 @@ static int axm0432_jtag_init(void)
 		high_output |= nSRST;
 	}
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Dicarlo' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2670,22 +2689,11 @@ static int axm0432_jtag_init(void)
 
 static int redbee_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x2b;
 
 	/* initialize low byte for jtag */
-	/* command "set data bits low byte" */
-	buf[0] = 0x80;
-	/* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction;
-	/* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	buf[1] = low_output;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2718,13 +2726,8 @@ static int redbee_init(void)
 		high_output |= nSRST;
 	}
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2735,19 +2738,11 @@ static int redbee_init(void)
 
 static int jtagkey_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2800,13 +2795,8 @@ static int jtagkey_init(void)
 		high_output &= ~nSRST;
 	}
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2817,19 +2807,11 @@ static int jtagkey_init(void)
 
 static int olimex_jtag_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2867,13 +2849,8 @@ static int olimex_jtag_init(void)
 	/* turn red LED on */
 	high_output |= 0x08;
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2884,19 +2861,11 @@ static int olimex_jtag_init(void)
 
 static int flyswatter_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x18;
 	low_direction = 0xfb;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE[12]=out, n[ST]srst = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2913,13 +2882,8 @@ static int flyswatter_init(void)
 	/* turn red LED3 on, LED2 off */
 	high_output |= 0x08;
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2930,19 +2894,11 @@ static int flyswatter_init(void)
 
 static int turtle_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x5b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'turtelizer2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2953,13 +2909,8 @@ static int turtle_init(void)
 	high_output    = 0x00;
 	high_direction = 0x0C;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output;
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'turtelizer2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2970,19 +2921,11 @@ static int turtle_init(void)
 
 static int comstick_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x0b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'comstick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2996,13 +2939,8 @@ static int comstick_init(void)
 	high_output    = 0x03;
 	high_direction = 0x03;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output;
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'comstick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3013,19 +2951,11 @@ static int comstick_init(void)
 
 static int stm32stick_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x88;
 	low_direction = 0x8b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3039,13 +2969,8 @@ static int stm32stick_init(void)
 	high_output    = 0x01;
 	high_direction = 0x03;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output;
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3056,19 +2981,11 @@ static int stm32stick_init(void)
 
 static int sheevaplug_init(void)
 {
-	uint8_t buf[3];
-	uint32_t bytes_written;
-
 	low_output = 0x08;
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80; /* command "set data bits low byte" */
-	buf[1] = low_output; /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3090,13 +3007,8 @@ static int sheevaplug_init(void)
 	high_output |= nSRSTnOE;
 	high_output &= ~nSRST;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output; /* value */
-	buf[2] = high_direction;   /* all outputs - xRST */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3107,19 +3019,11 @@ static int sheevaplug_init(void)
 
 static int cortino_jtag_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x08;
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'cortino' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3133,15 +3037,10 @@ static int cortino_jtag_init(void)
 	high_output    = 0x03;
 	high_direction = 0x03;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output;
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
-		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
+		LOG_ERROR("couldn't initialize FT2232 with 'cortino' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -3150,9 +3049,6 @@ static int cortino_jtag_init(void)
 
 static int lisa_l_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	ftx232_dbus_init();
 
 	nTRST    = 0x10;
@@ -3163,13 +3059,8 @@ static int lisa_l_init(void)
 	high_output = 0x00;
 	high_direction = 0x18;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output;
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'lisa_l' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3180,9 +3071,6 @@ static int lisa_l_init(void)
 
 static int flossjtag_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	ftx232_dbus_init();
 
 	nTRST    = 0x10;
@@ -3193,13 +3081,8 @@ static int flossjtag_init(void)
 	high_output = 0x00;
 	high_direction = 0x18;
 
-	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits high byte" */
-	buf[1] = high_output;
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'Floss-JTAG' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3210,19 +3093,11 @@ static int flossjtag_init(void)
 
 static int xds100v2_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_output    = 0x3A;
 	low_direction = 0x7B;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
-	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE[12]=out, n[ST]srst = out */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3236,13 +3111,8 @@ static int xds100v2_init(void)
 	high_output    = 0x00;
 	high_direction = 0x59;
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3251,13 +3121,8 @@ static int xds100v2_init(void)
 	high_output    = 0x86;
 	high_direction = 0x59;
 
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -3271,16 +3136,7 @@ static void olimex_jtag_blink(void)
 	/* Olimex ARM-USB-OCD has a LED connected to ACBUS3
 	 * ACBUS3 is bit 3 of the GPIOH port
 	 */
-	if (high_output & 0x08)
-	{
-		/* set port pin high */
-		high_output &= 0x07;
-	}
-	else
-	{
-		/* set port pin low */
-		high_output |= 0x08;
-	}
+	high_output ^= 0x08;
 
 	buffer_write(0x82);
 	buffer_write(high_output);
@@ -3564,9 +3420,6 @@ static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd)
  * ADBUS7 -   GND
  */
 static int icebear_jtag_init(void) {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
-
 	low_direction	= 0x0b;	/* output: TCK TDI TMS; input: TDO */
 	low_output	= 0x08;	/* high: TMS; low: TCK TDI */
 	nTRST		= 0x10;
@@ -3585,12 +3438,7 @@ static int icebear_jtag_init(void) {
 	low_output	|= nSRST;
 
 	/* initialize low byte for jtag */
-	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;
-	buf[2] = low_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK) {
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (low)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3598,14 +3446,8 @@ static int icebear_jtag_init(void) {
 	high_output    = 0x0;
 	high_direction = 0x00;
 
-
-	/* initialize high port */
-	buf[0] = 0x82;              /* command "set data bits high byte" */
-	buf[1] = high_output;       /* value */
-	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK) {
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (high)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3802,8 +3644,6 @@ static int signalyzer_h_init(void)
 	char *end_of_desc;
 
 	uint16_t read_buf[12] = { 0 };
-	uint8_t  buf[3];
-	uint32_t bytes_written;
 
 	/* turn on center green led */
 	signalyzer_h_led_set(SIGNALYZER_CHAN_C, SIGNALYZER_LED_GREEN,
@@ -4248,11 +4088,7 @@ static int signalyzer_h_init(void)
 	}
 
 	/* initialize low byte of controller for jtag operation */
-	buf[0] = 0x80;
-	buf[1] = low_output;
-	buf[2] = low_direction;
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize Signalyzer-H layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -4262,11 +4098,7 @@ static int signalyzer_h_init(void)
 	if (ftdi_device == FT_DEVICE_2232H)
 	{
 		/* initialize high byte of controller for jtag operation */
-		buf[0] = 0x82;
-		buf[1] = high_output;
-		buf[2] = high_direction;
-
-		if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+		if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
@@ -4276,11 +4108,7 @@ static int signalyzer_h_init(void)
 	if (ftdi_device == TYPE_2232H)
 	{
 		/* initialize high byte of controller for jtag operation */
-		buf[0] = 0x82;
-		buf[1] = high_output;
-		buf[2] = high_direction;
-
-		if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+		if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
@@ -4451,20 +4279,13 @@ static void signalyzer_h_blink(void)
  *******************************************************************/
 static int ktlink_init(void)
 {
-	uint8_t  buf[3];
-	uint32_t bytes_written;
 	uint8_t  swd_en = 0x20; //0x20 SWD disable, 0x00 SWD enable (ADBUS5)
 
 	low_output    = 0x08 | swd_en; // value; TMS=1,TCK=0,TDI=0,SWD=swd_en
 	low_direction = 0x3B;          // out=1; TCK/TDI/TMS=out,TDO=in,SWD=out,RTCK=in,SRSTIN=in
 
-	// initialize low port
-	buf[0] = 0x80;          // command "set data bits low byte"
-	buf[1] = low_output;
-	buf[2] = low_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize low byte for jtag */
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -4496,13 +4317,8 @@ static int ktlink_init(void)
 		high_output &= ~nSRST;
 	}
 
-	// initialize high port
-	buf[0] = 0x82;              // command "set data bits high byte"
-	buf[1] = high_output;       // value
-	buf[2] = high_direction;
-	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
 		return ERROR_JTAG_INIT_FAILED;
@@ -4548,10 +4364,7 @@ static void ktlink_reset(int trst, int srst)
 static void ktlink_blink(void)
 {
 	/* LED connected to ACBUS7 */
-	if (high_output & 0x80)
-		high_output &= 0x7F;
-	else
-		high_output |= 0x80;
+	high_output ^= 0x80;
 
 	buffer_write(0x82);  // command "set data bits high byte"
 	buffer_write(high_output);
