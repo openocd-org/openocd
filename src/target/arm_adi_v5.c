@@ -100,13 +100,13 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
  * @param apsel Number of the AP to (implicitly) use with further
  *	transactions.  This normally identifies a MEM-AP.
  */
-void dap_ap_select(struct adiv5_dap *dap,uint8_t apsel)
+void dap_ap_select(struct adiv5_dap *dap,uint8_t ap)
 {
-	uint32_t select_apsel = (apsel << 24) & 0xFF000000;
+	uint32_t new_ap = (ap << 24) & 0xFF000000;
 
-	if (select_apsel != dap->apsel)
+	if (new_ap != dap->ap_current)
 	{
-		dap->apsel = select_apsel;
+		dap->ap_current = new_ap;
 		/* Switching AP invalidates cached values.
 		 * Values MUST BE UPDATED BEFORE AP ACCESS.
 		 */
@@ -885,73 +885,73 @@ int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
 /*--------------------------------------------------------------------*/
 /*          Wrapping function with selection of AP                    */
 /*--------------------------------------------------------------------*/
-int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t *value)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_read_u32(swjdp, address, value);
 }
 
-int mem_ap_sel_write_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_write_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t value)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_write_u32(swjdp, address, value);
 }
 
-int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t *value)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_read_atomic_u32(swjdp, address, value);
 }
 
-int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t value)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_write_atomic_u32(swjdp, address, value);
 }
 
-int mem_ap_sel_read_buf_u8(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_read_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_read_buf_u8(swjdp, buffer, count, address);
 }
 
-int mem_ap_sel_read_buf_u16(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_read_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_read_buf_u16(swjdp, buffer, count, address);
 }
 
-int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_read_buf_u32(swjdp, buffer, count, address);
 }
 
-int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u8(swjdp, buffer, count, address);
 }
 
-int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u16(swjdp, buffer, count, address);
 }
 
-int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t apsel,
+int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
-	dap_ap_select(swjdp, apsel);
+	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u32(swjdp, buffer, count, address);
 }
 
@@ -999,7 +999,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	 * Should we probe, or take a hint from the caller?
 	 * Presumably we can ignore the possibility of multiple APs.
 	 */
-	dap->apsel = !0;
+	dap->ap_current = !0;
 	dap_ap_select(dap, 0);
 
 	/* DP initialization */
@@ -1093,20 +1093,20 @@ struct broken_cpu {
 	{ 0x80000000, 0x04770002, 0x1ba00477, 0x60000000, "imx51" },
 };
 
-int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
+int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 			uint32_t *out_dbgbase, uint32_t *out_apid)
 {
-	uint32_t apselold;
+	uint32_t ap_old;
 	int retval;
 	unsigned int i;
 	uint32_t dbgbase, apid, idcode;
 
 	/* AP address is in bits 31:24 of DP_SELECT */
-	if (apsel >= 256)
+	if (ap >= 256)
 		return ERROR_INVALID_ARGUMENTS;
 
-	apselold = dap->apsel;
-	dap_ap_select(dap, apsel);
+	ap_old = dap->ap_current;
+	dap_ap_select(dap, ap);
 
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, &dbgbase);
 	if (retval != ERROR_OK)
@@ -1143,7 +1143,7 @@ int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
 			break;
 		}
 
-	dap_ap_select(dap, apselold);
+	dap_ap_select(dap, ap_old);
 
 	/* The asignment happens only here to prevent modification of these
 	 * values before they are certain. */
@@ -1153,18 +1153,18 @@ int dap_get_debugbase(struct adiv5_dap *dap, int apsel,
 	return ERROR_OK;
 }
 
-int dap_lookup_cs_component(struct adiv5_dap *dap, int apsel,
+int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
 			uint32_t dbgbase, uint8_t type, uint32_t *addr)
 {
-	uint32_t apselold;
+	uint32_t ap_old;
 	uint32_t romentry, entry_offset = 0, component_base, devtype;
 	int retval = ERROR_FAIL;
 
-	if (apsel >= 256)
+	if (ap >= 256)
 		return ERROR_INVALID_ARGUMENTS;
 
-	apselold = dap->apsel;
-	dap_ap_select(dap, apsel);
+	ap_old = dap->ap_current;
+	dap_ap_select(dap, ap);
 
 	do
 	{
@@ -1189,26 +1189,26 @@ int dap_lookup_cs_component(struct adiv5_dap *dap, int apsel,
 		entry_offset += 4;
 	} while (romentry > 0);
 
-	dap_ap_select(dap, apselold);
+	dap_ap_select(dap, ap_old);
 
 	return retval;
 }
 
 static int dap_info_command(struct command_context *cmd_ctx,
-		struct adiv5_dap *dap, int apsel)
+		struct adiv5_dap *dap, int ap)
 {
 	int retval;
 	uint32_t dbgbase, apid;
 	int romtable_present = 0;
 	uint8_t mem_ap;
-	uint32_t apselold;
+	uint32_t ap_old;
 
-	retval = dap_get_debugbase(dap, apsel, &dbgbase, &apid);
+	retval = dap_get_debugbase(dap, ap, &dbgbase, &apid);
 	if (retval != ERROR_OK)
 		return retval;
 
-	apselold = dap->apsel;
-	dap_ap_select(dap, apsel);
+	ap_old = dap->ap_current;
+	dap_ap_select(dap, ap);
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
@@ -1240,7 +1240,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	}
 	else
 	{
-		command_print(cmd_ctx, "No AP found at this apsel 0x%x", apsel);
+		command_print(cmd_ctx, "No AP found at this ap 0x%x", ap);
 	}
 
 	romtable_present = ((mem_ap) && (dbgbase != 0xFFFFFFFF));
@@ -1602,7 +1602,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	{
 		command_print(cmd_ctx, "\tNo ROM table present");
 	}
-	dap_ap_select(dap, apselold);
+	dap_ap_select(dap, ap_old);
 
 	return ERROR_OK;
 }
@@ -1634,10 +1634,9 @@ COMMAND_HANDLER(dap_baseaddr_command)
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
 
-	uint32_t apsel, apselsave, baseaddr;
+	uint32_t apsel, baseaddr;
 	int retval;
 
-	apselsave = dap->apsel;
 	switch (CMD_ARGC) {
 	case 0:
 		apsel = dap->apsel;
@@ -1652,8 +1651,7 @@ COMMAND_HANDLER(dap_baseaddr_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (apselsave != apsel)
-		dap_ap_select(dap, apsel);
+	dap_ap_select(dap, apsel);
 
 	/* NOTE:  assumes we're talking to a MEM-AP, which
 	 * has a base address.  There are other kinds of AP,
@@ -1668,9 +1666,6 @@ COMMAND_HANDLER(dap_baseaddr_command)
 		return retval;
 
 	command_print(CMD_CTX, "0x%8.8" PRIx32, baseaddr);
-
-	if (apselsave != apsel)
-		dap_ap_select(dap, apselsave);
 
 	return retval;
 }
@@ -1724,7 +1719,9 @@ COMMAND_HANDLER(dap_apsel_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
+	dap->apsel = apsel;
 	dap_ap_select(dap, apsel);
+
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1744,10 +1741,9 @@ COMMAND_HANDLER(dap_apid_command)
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
 
-	uint32_t apsel, apselsave, apid;
+	uint32_t apsel, apid;
 	int retval;
 
-	apselsave = dap->apsel;
 	switch (CMD_ARGC) {
 	case 0:
 		apsel = dap->apsel;
@@ -1762,8 +1758,7 @@ COMMAND_HANDLER(dap_apid_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (apselsave != apsel)
-		dap_ap_select(dap, apsel);
+	dap_ap_select(dap, apsel);
 
 	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
 	if (retval != ERROR_OK)
@@ -1773,8 +1768,6 @@ COMMAND_HANDLER(dap_apid_command)
 		return retval;
 
 	command_print(CMD_CTX, "0x%8.8" PRIx32, apid);
-	if (apselsave != apsel)
-		dap_ap_select(dap, apselsave);
 
 	return retval;
 }

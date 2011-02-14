@@ -1462,7 +1462,7 @@ static int cortex_a9_read_phys_memory(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
 	int retval = ERROR_INVALID_ARGUMENTS;
-	uint8_t apsel = dap_ap_get_select(swjdp);
+	uint8_t apsel = swjdp->apsel;
 
 	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d", address, size, count);
 
@@ -1591,15 +1591,16 @@ static int cortex_a9_write_phys_memory(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
 	int retval = ERROR_INVALID_ARGUMENTS;
+	uint8_t apsel = swjdp->apsel;
 
 	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address, size, count);
 
 	if (count && buffer) {
-		uint8_t apsel = dap_ap_get_select(swjdp);
 
 		if ( apsel == swjdp_memoryap ) {
 
 			/* write memory through AHB-AP */
+
 			switch (size) {
 				case 4:
 					retval = mem_ap_sel_write_buf_u32(swjdp, swjdp_memoryap,

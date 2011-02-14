@@ -392,7 +392,7 @@ static int jtag_ap_q_bankselect(struct adiv5_dap *dap, unsigned reg)
 		return ERROR_OK;
 	dap->ap_bank_value = select_ap_bank;
 
-	select_ap_bank |= dap->apsel;
+	select_ap_bank |= dap->ap_current;
 
 	return jtag_dp_q_write(dap, DP_SELECT, select_ap_bank);
 }
