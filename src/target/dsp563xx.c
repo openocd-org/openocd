@@ -29,8 +29,6 @@
 #include "dsp563xx.h"
 #include "dsp563xx_once.h"
 
-//#define DSP563XX_JTAG_INS_LEN         4
-
 #define ASM_REG_W_R0	0x60F400
 #define ASM_REG_W_R1	0x61F400
 #define ASM_REG_W_R2	0x62F400
@@ -1138,9 +1136,16 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	/* we only support 4 byte aligned data */
+	if ( size != 4 )
+	{
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
 	switch (mem_type)
 	{
 		case MEM_X:
+			/* TODO: mark effected queued registers */
 			move_cmd = 0x61d800;
 			break;
 		case MEM_Y:
@@ -1173,17 +1178,30 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 
 	for (i = 0; i < x; i++)
 	{
-		data = 0;
 		if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, move_cmd)) != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0x08D13C)) != ERROR_OK)
+		if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, 0x08D13C)) != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_reg_read(target->tap, DSP563XX_ONCE_OGDBR, &data)) != ERROR_OK)
+		if ((err = dsp563xx_once_reg_read_nq(target->tap, DSP563XX_ONCE_OGDBR, (uint32_t*)b)) != ERROR_OK)
 			return err;
+		b += 4;
+	}
+
+	/* flush the jtag queue */
+	if ((err = jtag_execute_queue()) != ERROR_OK)
+	{
+		return err;
+	}
+
+	/* walk over the buffer and fix target endianness */
+	b = buffer;
+
+	for (i = 0; i < x; i++)
+	{
+		data = *((uint32_t*)b) & 0x00FFFFFF;
+//		LOG_DEBUG("R: %08X", *((uint32_t*)b));
 		target_buffer_set_u32(target, b, data);
 		b += 4;
-
-		LOG_DEBUG("R: %08X", data);
 	}
 
 	return ERROR_OK;
@@ -1208,6 +1226,12 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* we only support 4 byte aligned data */
+	if ( size != 4 )
+	{
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	switch (mem_type)
@@ -1246,16 +1270,22 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	for (i = 0; i < x; i++)
 	{
 		data = target_buffer_get_u32(target, b);
-		data &= 0x00ffffff;
 
-		LOG_DEBUG("W: %08X", data);
+//		LOG_DEBUG("W: %08X", data);
+
+		data &= 0x00ffffff;
 
 		if ((err = dsp563xx_once_execute_dw_ir_nq(target->tap, 0x61F400, data)) != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_execute_sw_ir(target->tap, move_cmd)) != ERROR_OK)
+		if ((err = dsp563xx_once_execute_sw_ir_nq(target->tap, move_cmd)) != ERROR_OK)
 			return err;
-
 		b += 4;
+	}
+
+	/* flush the jtag queue */
+	if ((err = jtag_execute_queue()) != ERROR_OK)
+	{
+		return err;
 	}
 
 	return ERROR_OK;
@@ -1264,6 +1294,11 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 static int dsp563xx_write_memory_p(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
 {
 	return dsp563xx_write_memory(target, MEM_P, address, size, count, buffer);
+}
+
+static int dsp563xx_bulk_write_memory_p(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
+{
+	return dsp563xx_write_memory(target, MEM_P, address, 4, count, buffer);
 }
 
 static void handle_md_output(struct command_context *cmd_ctx, struct target *target, uint32_t address, unsigned size, unsigned count, const uint8_t * buffer)
@@ -1485,6 +1520,7 @@ struct target_type dsp563xx_target = {
 
 	.read_memory = dsp563xx_read_memory_p,
 	.write_memory = dsp563xx_write_memory_p,
+	.bulk_write_memory = dsp563xx_bulk_write_memory_p,
 
 	.commands = dsp563xx_command_handlers,
 	.target_create = dsp563xx_target_create,
