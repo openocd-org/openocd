@@ -92,32 +92,60 @@
 #define ASM_REG_W_AAR2	0xFFFFF7
 #define ASM_REG_W_AAR3	0xFFFFF6
 
+enum once_reg_idx {
+	ONCE_REG_IDX_OSCR=0,
+	ONCE_REG_IDX_OMBC=1,
+	ONCE_REG_IDX_OBCR=2,
+	ONCE_REG_IDX_OMLR0=3,
+	ONCE_REG_IDX_OMLR1=4,
+	ONCE_REG_IDX_OGDBR=5,
+	ONCE_REG_IDX_OPDBR=6,
+	ONCE_REG_IDX_OPILR=7,
+	ONCE_REG_IDX_PDB=8,
+	ONCE_REG_IDX_OTC=9,
+	ONCE_REG_IDX_OPABFR=10,
+	ONCE_REG_IDX_OPABDR=11,
+	ONCE_REG_IDX_OPABEX=12,
+	ONCE_REG_IDX_OPABF0=13,
+	ONCE_REG_IDX_OPABF1=14,
+	ONCE_REG_IDX_OPABF2=15,
+	ONCE_REG_IDX_OPABF3=16,
+	ONCE_REG_IDX_OPABF4=17,
+	ONCE_REG_IDX_OPABF5=18,
+	ONCE_REG_IDX_OPABF6=19,
+	ONCE_REG_IDX_OPABF7=20,
+	ONCE_REG_IDX_OPABF8=21,
+	ONCE_REG_IDX_OPABF9=22,
+	ONCE_REG_IDX_OPABF10=23,
+	ONCE_REG_IDX_OPABF11=24,
+};
+
 static struct once_reg once_regs[] = {
-	{0, 0x00, 24, "OSCR", 0},
-	{1, 0x01, 24, "OMBC", 0},
-	{2, 0x02, 24, "OBCR", 0},
-	{3, 0x05, 24, "OMLR0", 0},
-	{4, 0x06, 24, "OMLR1", 0},
-	{5, 0x09, 24, "OGDBR", 0},
-	{6, 0x0a, 24, "OPDBR", 0},
-	{7, 0x0b, 24, "OPILR", 0},
-	{8, 0x0c, 24, "PDB", 0},
-	{9, 0x0d, 24, "OTC", 0},
-	{10, 0x0f, 24, "OPABFR", 0},
-	{11, 0x10, 24, "OPABDR", 0},
-	{12, 0x11, 24, "OPABEX", 0},
-	{13, 0x12, 25, "OPABF0", 0},
-	{14, 0x12, 25, "OPABF1", 0},
-	{15, 0x12, 25, "OPABF2", 0},
-	{16, 0x12, 25, "OPABF3", 0},
-	{17, 0x12, 25, "OPABF4", 0},
-	{18, 0x12, 25, "OPABF5", 0},
-	{19, 0x12, 25, "OPABF6", 0},
-	{20, 0x12, 25, "OPABF7", 0},
-	{21, 0x12, 25, "OPABF8", 0},
-	{22, 0x12, 25, "OPABF9", 0},
-	{23, 0x12, 25, "OPABF10", 0},
-	{24, 0x12, 25, "OPABF11", 0},
+	{ONCE_REG_IDX_OSCR,    DSP563XX_ONCE_OSCR,    24, "OSCR",    0},
+	{ONCE_REG_IDX_OMBC,    DSP563XX_ONCE_OMBC,    24, "OMBC",    0},
+	{ONCE_REG_IDX_OBCR,    DSP563XX_ONCE_OBCR,    24, "OBCR",    0},
+	{ONCE_REG_IDX_OMLR0,   DSP563XX_ONCE_OMLR0,   24, "OMLR0",   0},
+	{ONCE_REG_IDX_OMLR1,   DSP563XX_ONCE_OMLR1,   24, "OMLR1",   0},
+	{ONCE_REG_IDX_OGDBR,   DSP563XX_ONCE_OGDBR,   24, "OGDBR",   0},
+	{ONCE_REG_IDX_OPDBR,   DSP563XX_ONCE_OPDBR,   24, "OPDBR",   0},
+	{ONCE_REG_IDX_OPILR,   DSP563XX_ONCE_OPILR,   24, "OPILR",   0},
+	{ONCE_REG_IDX_PDB,     DSP563XX_ONCE_PDBGOTO, 24, "PDB",     0},
+	{ONCE_REG_IDX_OTC,     DSP563XX_ONCE_OTC,     24, "OTC",     0},
+	{ONCE_REG_IDX_OPABFR,  DSP563XX_ONCE_OPABFR,  24, "OPABFR",  0},
+	{ONCE_REG_IDX_OPABDR,  DSP563XX_ONCE_OPABDR,  24, "OPABDR",  0},
+	{ONCE_REG_IDX_OPABEX,  DSP563XX_ONCE_OPABEX,  24, "OPABEX",  0},
+	{ONCE_REG_IDX_OPABF0,  DSP563XX_ONCE_OPABF11, 25, "OPABF0",  0},
+	{ONCE_REG_IDX_OPABF1,  DSP563XX_ONCE_OPABF11, 25, "OPABF1",  0},
+	{ONCE_REG_IDX_OPABF2,  DSP563XX_ONCE_OPABF11, 25, "OPABF2",  0},
+	{ONCE_REG_IDX_OPABF3,  DSP563XX_ONCE_OPABF11, 25, "OPABF3",  0},
+	{ONCE_REG_IDX_OPABF4,  DSP563XX_ONCE_OPABF11, 25, "OPABF4",  0},
+	{ONCE_REG_IDX_OPABF5,  DSP563XX_ONCE_OPABF11, 25, "OPABF5",  0},
+	{ONCE_REG_IDX_OPABF6,  DSP563XX_ONCE_OPABF11, 25, "OPABF6",  0},
+	{ONCE_REG_IDX_OPABF7,  DSP563XX_ONCE_OPABF11, 25, "OPABF7",  0},
+	{ONCE_REG_IDX_OPABF8,  DSP563XX_ONCE_OPABF11, 25, "OPABF8",  0},
+	{ONCE_REG_IDX_OPABF9,  DSP563XX_ONCE_OPABF11, 25, "OPABF9",  0},
+	{ONCE_REG_IDX_OPABF10, DSP563XX_ONCE_OPABF11, 25, "OPABF10", 0},
+	{ONCE_REG_IDX_OPABF11, DSP563XX_ONCE_OPABF11, 25, "OPABF11", 0},
 //      {25,0x1f,24,"NRSEL",0},
 };
 
@@ -432,34 +460,40 @@ static int dsp563xx_reg_write(struct target *target, uint32_t instr_mask, uint32
 
 static int dsp563xx_reg_pc_read(struct target *target)
 {
-	int err;
-	uint32_t opabdr, opabex;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	/* pc was changed, nothing todo */
 	if (dsp563xx->core_cache->reg_list[REG_NUM_PC].dirty)
 		return ERROR_OK;
 
-	if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABDR, &opabdr)) != ERROR_OK)
-		return err;
-	if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABEX, &opabex)) != ERROR_OK)
-		return err;
-
 	/* conditional branch check */
-	if (opabdr == opabex)
+	if ( once_regs[ONCE_REG_IDX_OPABDR].reg == once_regs[ONCE_REG_IDX_OPABEX].reg )
 	{
-		/* TODO: check the trace buffer and if a
-		 * conditional branch is detected then decode
-		 * the branch command and add the relative
-		 * address to the current pc
-		 */
-		LOG_DEBUG("%s conditional branch not supported yet", __FUNCTION__);
+		if ( (once_regs[ONCE_REG_IDX_OPABF11].reg & 1) == 0 )
+		{
+			LOG_DEBUG("%s conditional branch not supported yet", __FUNCTION__);
+
+			/* TODO: use disassembly to set correct pc offset */
+			dsp563xx->core_regs[REG_NUM_PC] = (once_regs[ONCE_REG_IDX_OPABF11].reg >> 1) & 0x00FFFFFF;
+		}
+		else
+		{
+			if ( once_regs[ONCE_REG_IDX_OPABEX].reg == once_regs[ONCE_REG_IDX_OPABFR].reg )
+			{
+				dsp563xx->core_regs[REG_NUM_PC] = once_regs[ONCE_REG_IDX_OPABEX].reg;
+			}
+			else
+			{
+				dsp563xx->core_regs[REG_NUM_PC] = once_regs[ONCE_REG_IDX_OPABEX].reg - 1;
+			}
+		}
 	}
 	else
 	{
-		dsp563xx->core_regs[REG_NUM_PC] = opabex;
-		dsp563xx->read_core_reg(target, REG_NUM_PC);
+		dsp563xx->core_regs[REG_NUM_PC] = once_regs[ONCE_REG_IDX_OPABEX].reg;
 	}
+
+	dsp563xx->read_core_reg(target, REG_NUM_PC);
 
 	return ERROR_OK;
 }
@@ -889,7 +923,6 @@ static int dsp563xx_poll(struct target *target)
 static int dsp563xx_halt(struct target *target)
 {
 	int err;
-	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if (target->state == TARGET_HALTED)
 	{
@@ -903,12 +936,6 @@ static int dsp563xx_halt(struct target *target)
 	}
 
 	if ((err = dsp563xx_jtag_debug_request(target)) != ERROR_OK)
-		return err;
-
-	/* store pipeline register */
-	if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPILR, &dsp563xx->pipeline_context.once_opilr)) != ERROR_OK)
-		return err;
-	if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPDBR, &dsp563xx->pipeline_context.once_opdbr)) != ERROR_OK)
 		return err;
 
 	LOG_DEBUG("%s", __FUNCTION__);
@@ -930,11 +957,11 @@ static int dsp563xx_resume(struct target *target, int current, uint32_t address,
 	if (current)
 	{
 		/* restore pipeline registers and go */
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPILR, dsp563xx->pipeline_context.once_opilr)) != ERROR_OK)
+		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, once_regs[ONCE_REG_IDX_OPILR].reg)) != ERROR_OK)
 			return err;
 		if ((err =
 		     dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR | DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
-					     dsp563xx->pipeline_context.once_opdbr)) != ERROR_OK)
+					     once_regs[ONCE_REG_IDX_OPDBR].reg)) != ERROR_OK)
 			return err;
 	}
 	else
@@ -991,11 +1018,11 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 	if (current)
 	{
 		/* restore pipeline registers and go */
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPILR, dsp563xx->pipeline_context.once_opilr)) != ERROR_OK)
+		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, once_regs[ONCE_REG_IDX_OPILR].reg)) != ERROR_OK)
 			return err;
 		if ((err =
 		     dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR | DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
-					     dsp563xx->pipeline_context.once_opdbr)) != ERROR_OK)
+					     once_regs[ONCE_REG_IDX_OPDBR].reg)) != ERROR_OK)
 			return err;
 	}
 	else
@@ -1014,21 +1041,15 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 
 		if (once_status & DSP563XX_ONCE_OSCR_TO)
 		{
-			/* store pipeline register */
-			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPILR, &dsp563xx->pipeline_context.once_opilr)) != ERROR_OK)
-				return err;
-			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPDBR, &dsp563xx->pipeline_context.once_opdbr)) != ERROR_OK)
-				return err;
-
 			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABFR, &dr_in)) != ERROR_OK)
 				return err;
-			LOG_DEBUG("fetch: %08X", (unsigned) dr_in);
+			LOG_DEBUG("fetch: %08X", (unsigned) dr_in&0x00ffffff);
 			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABDR, &dr_in)) != ERROR_OK)
 				return err;
-			LOG_DEBUG("decode: %08X", (unsigned) dr_in);
+			LOG_DEBUG("decode: %08X", (unsigned) dr_in&0x00ffffff);
 			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABEX, &dr_in)) != ERROR_OK)
 				return err;
-			LOG_DEBUG("execute: %08X", (unsigned) dr_in);
+			LOG_DEBUG("execute: %08X", (unsigned) dr_in&0x00ffffff);
 
 			/* reset trace mode */
 			if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, 0x000000)) != ERROR_OK)

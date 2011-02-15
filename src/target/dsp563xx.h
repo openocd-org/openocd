@@ -31,22 +31,12 @@ struct mcu_jtag
 	struct jtag_tap *tap;
 };
 
-struct dsp563xx_pipeline_context
-{
-	/* PIL Register */
-	uint32_t once_opilr;
-	/* PDB Register */
-	uint32_t once_opdbr;
-};
-
 struct dsp563xx_common
 {
 	struct mcu_jtag jtag_info;
 	struct reg_cache *core_cache;
 	uint32_t core_regs[DSP563XX_NUMCOREREGS];
 	struct once_reg once_regs[DSP563XX_NUMONCEREGS];
-
-	struct dsp563xx_pipeline_context pipeline_context;
 
 	/* register cache to processor synchronization */
 	int (*read_core_reg) (struct target * target, int num);
