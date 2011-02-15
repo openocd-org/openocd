@@ -31,6 +31,7 @@
 extern struct nand_flash_controller nonce_nand_controller;
 extern struct nand_flash_controller davinci_nand_controller;
 extern struct nand_flash_controller lpc3180_nand_controller;
+extern struct nand_flash_controller lpc32xx_nand_controller;
 extern struct nand_flash_controller orion_nand_controller;
 extern struct nand_flash_controller s3c2410_nand_controller;
 extern struct nand_flash_controller s3c2412_nand_controller;
@@ -49,6 +50,7 @@ static struct nand_flash_controller *nand_flash_controllers[] =
 	&nonce_nand_controller,
 	&davinci_nand_controller,
 	&lpc3180_nand_controller,
+	&lpc32xx_nand_controller,
 	&orion_nand_controller,
 	&s3c2410_nand_controller,
 	&s3c2412_nand_controller,

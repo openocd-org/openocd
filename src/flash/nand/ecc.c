@@ -120,3 +120,64 @@ int nand_calculate_ecc(struct nand_device *nand, const uint8_t *dat, uint8_t *ec
 
 	return 0;
 }
+
+static inline int countbits(uint32_t byte)
+{
+	int res = 0;
+
+	for (;byte; byte >>= 1)
+		res += byte & 0x01;
+	return res;
+}
+
+/**
+ * nand_correct_data - Detect and correct a 1 bit error for 256 byte block
+ */
+int nand_correct_data(struct nand_device *nand, u_char *dat,
+		      u_char *read_ecc, u_char *calc_ecc)
+{
+	uint8_t s0, s1, s2;
+
+#ifdef NAND_ECC_SMC
+	s0 = calc_ecc[0] ^ read_ecc[0];
+	s1 = calc_ecc[1] ^ read_ecc[1];
+	s2 = calc_ecc[2] ^ read_ecc[2];
+#else
+	s1 = calc_ecc[0] ^ read_ecc[0];
+	s0 = calc_ecc[1] ^ read_ecc[1];
+	s2 = calc_ecc[2] ^ read_ecc[2];
+#endif
+	if ((s0 | s1 | s2) == 0)
+		return 0;
+
+	/* Check for a single bit error */
+	if( ((s0 ^ (s0 >> 1)) & 0x55) == 0x55 &&
+	    ((s1 ^ (s1 >> 1)) & 0x55) == 0x55 &&
+	    ((s2 ^ (s2 >> 1)) & 0x54) == 0x54) {
+
+		uint32_t byteoffs, bitnum;
+
+		byteoffs = (s1 << 0) & 0x80;
+		byteoffs |= (s1 << 1) & 0x40;
+		byteoffs |= (s1 << 2) & 0x20;
+		byteoffs |= (s1 << 3) & 0x10;
+
+		byteoffs |= (s0 >> 4) & 0x08;
+		byteoffs |= (s0 >> 3) & 0x04;
+		byteoffs |= (s0 >> 2) & 0x02;
+		byteoffs |= (s0 >> 1) & 0x01;
+
+		bitnum = (s2 >> 5) & 0x04;
+		bitnum |= (s2 >> 4) & 0x02;
+		bitnum |= (s2 >> 3) & 0x01;
+
+		dat[byteoffs] ^= (1 << bitnum);
+
+		return 1;
+	}
+
+	if(countbits(s0 | ((uint32_t)s1 << 8) | ((uint32_t)s2 <<16)) == 1)
+		return 1;
+
+	return -1;
+}
