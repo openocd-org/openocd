@@ -72,22 +72,16 @@ int dsp563xx_once_request_debug(struct jtag_tap *tap, int reset_state);
 int dsp563xx_once_target_status(struct jtag_tap *tap);
 
 /** once read registers */
-int dsp563xx_once_read_register(struct jtag_tap *tap, struct once_reg *regs, int len);
+int dsp563xx_once_read_register(struct jtag_tap *tap, int flush, struct once_reg *regs, int len);
 /** once read register */
-int dsp563xx_once_reg_read_ex_nq(struct jtag_tap *tap, uint8_t reg, uint8_t len, uint32_t * data);
+int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint8_t len, uint32_t * data);
 /** once read register */
-int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, uint8_t reg, uint8_t len, uint32_t * data);
-/** once read register */
-int dsp563xx_once_reg_read(struct jtag_tap *tap, uint8_t reg, uint32_t * data);
+int dsp563xx_once_reg_read(struct jtag_tap *tap, int flush, uint8_t reg, uint32_t * data);
 /** once write register */
-int dsp563xx_once_reg_write(struct jtag_tap *tap, uint8_t reg, uint32_t data);
+int dsp563xx_once_reg_write(struct jtag_tap *tap, int flush, uint8_t reg, uint32_t data);
 /** single word instruction */
-int dsp563xx_once_execute_sw_ir(struct jtag_tap *tap, uint32_t opcode);
+int dsp563xx_once_execute_sw_ir(struct jtag_tap *tap, int flush, uint32_t opcode);
 /** double word instruction */
-int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, uint32_t opcode, uint32_t operand);
-/** single word instruction */
-int dsp563xx_once_execute_sw_ir_nq(struct jtag_tap *tap, uint32_t opcode);
-/** double word instruction */
-int dsp563xx_once_execute_dw_ir_nq(struct jtag_tap *tap, uint32_t opcode, uint32_t operand);
+int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, int flush, uint32_t opcode, uint32_t operand);
 
 #endif /* DSP563XX_ONCE_H */

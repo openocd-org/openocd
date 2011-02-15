@@ -43,72 +43,41 @@
 #define JTAG_INSTR_DEBUG_REQUEST	0x07
 #define JTAG_INSTR_BYPASS		0x0F
 
+/** */
 static inline int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t * dr_in, uint8_t * dr_out, int dr_len, int rti)
 {
-	if (NULL == tap)
-	{
-		LOG_ERROR("invalid tap");
-		return ERROR_FAIL;
-	}
-
 	jtag_add_plain_dr_scan(dr_len, dr_out, dr_in, TAP_IDLE);
 
 	return ERROR_OK;
 }
 
+/** */
 static inline int dsp563xx_write_dr_u8(struct jtag_tap *tap, uint8_t * dr_in, uint8_t dr_out, int dr_len, int rti)
 {
-	if (dr_len > 8)
-	{
-		LOG_ERROR("dr_len overflow, maxium is 8");
-		return ERROR_FAIL;
-	}
-
 	return dsp563xx_write_dr(tap, dr_in, &dr_out, dr_len, rti);
 }
 
+/** */
 static inline int dsp563xx_write_dr_u32(struct jtag_tap *tap, uint32_t * dr_in, uint32_t dr_out, int dr_len, int rti)
 {
-	if (dr_len > 32)
-	{
-		LOG_ERROR("dr_len overflow, maxium is 32");
-		return ERROR_FAIL;
-	}
-
 	return dsp563xx_write_dr(tap, (uint8_t *) dr_in, (uint8_t *) & dr_out, dr_len, rti);
 }
 
 /** single word instruction */
-static inline int dsp563xx_once_ir_exec(struct jtag_tap *tap, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex)
+static inline int dsp563xx_once_ir_exec(struct jtag_tap *tap, int flush, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex)
 {
 	int err;
 
 	if ((err = dsp563xx_write_dr_u8(tap, 0, instr | (ex << 5) | (go << 6) | (rw << 7), 8, 0)) != ERROR_OK)
 		return err;
-
-	return jtag_execute_queue();
-}
-
-/** single word instruction */
-static inline int dsp563xx_once_ir_exec_nq(struct jtag_tap *tap, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex)
-{
-	return dsp563xx_write_dr_u8(tap, 0, instr | (ex << 5) | (go << 6) | (rw << 7), 8, 0);
+	if ( flush )
+		err = jtag_execute_queue();
+	return err;
 }
 
 /* IR and DR functions */
 static inline int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8_t * ir_out, int ir_len, int rti)
 {
-	if (NULL == tap)
-	{
-		LOG_ERROR("invalid tap");
-		return ERROR_FAIL;
-	}
-	if (ir_len != tap->ir_length)
-	{
-		LOG_ERROR("invalid ir_len");
-		return ERROR_FAIL;
-	}
-
 	jtag_add_plain_ir_scan(tap->ir_length, ir_out, ir_in, TAP_IDLE);
 
 	return ERROR_OK;
@@ -116,12 +85,6 @@ static inline int dsp563xx_write_ir(struct jtag_tap *tap, uint8_t * ir_in, uint8
 
 static inline int dsp563xx_write_ir_u8(struct jtag_tap *tap, uint8_t * ir_in, uint8_t ir_out, int ir_len, int rti)
 {
-	if (ir_len > 8)
-	{
-		LOG_ERROR("ir_len overflow, maxium is 8");
-		return ERROR_FAIL;
-	}
-
 	return dsp563xx_write_ir(tap, ir_in, &ir_out, ir_len, rti);
 }
 
@@ -222,132 +185,98 @@ int dsp563xx_once_request_debug(struct jtag_tap *tap, int reset_state)
 }
 
 /** once read registers */
-int dsp563xx_once_read_register(struct jtag_tap *tap, struct once_reg *regs, int len)
+int dsp563xx_once_read_register(struct jtag_tap *tap, int flush, struct once_reg *regs, int len)
 {
 	int i;
 	int err;
 
 	for (i = 0; i < len; i++)
 	{
-		if ((err = dsp563xx_once_reg_read_ex_nq(tap, regs[i].addr, regs[i].len, &regs[i].reg)) != ERROR_OK)
+		if ((err = dsp563xx_once_reg_read_ex(tap, flush, regs[i].addr, regs[i].len, &regs[i].reg)) != ERROR_OK)
 			return err;
 	}
 
-	return jtag_execute_queue();
-/*
-	for(i=0;i<len;i++)
-	{
-		printf("%08X\n",regs[i].reg);
-	}
-*/
+	if ( flush )
+		err = jtag_execute_queue();
+	return err;
 }
 
-/** once read register */
-int dsp563xx_once_reg_read_ex_nq(struct jtag_tap *tap, uint8_t reg, uint8_t len, uint32_t * data)
+/** once read register with register len */
+int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint8_t len, uint32_t * data)
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, reg, 1, 0, 0)) != ERROR_OK)
-		return err;
-	return dsp563xx_write_dr_u32(tap, data, 0x00, len, 0);
-}
-
-/** once read register */
-int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, uint8_t reg, uint8_t len, uint32_t * data)
-{
-	int err;
-
-	if ((err = dsp563xx_once_ir_exec(tap, reg, 1, 0, 0)) != ERROR_OK)
+	if ((err = dsp563xx_once_ir_exec(tap, 1, reg, 1, 0, 0)) != ERROR_OK)
 		return err;
 	if ((err = dsp563xx_write_dr_u32(tap, data, 0x00, len, 0)) != ERROR_OK)
 		return err;
-	return jtag_execute_queue();
+	if ( flush )
+		err = jtag_execute_queue();
+	return err;
 }
 
 /** once read register */
-int dsp563xx_once_reg_read(struct jtag_tap *tap, uint8_t reg, uint32_t * data)
+int dsp563xx_once_reg_read(struct jtag_tap *tap, int flush, uint8_t reg, uint32_t * data)
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, reg, 1, 0, 0)) != ERROR_OK)
+	if ((err = dsp563xx_once_ir_exec(tap, flush, reg, 1, 0, 0)) != ERROR_OK)
 		return err;
 	if ((err = dsp563xx_write_dr_u32(tap, data, 0x00, 24, 0)) != ERROR_OK)
 		return err;
-	return jtag_execute_queue();
+	if ( flush )
+		err = jtag_execute_queue();
+	return err;
 }
 
 /** once write register */
-int dsp563xx_once_reg_write(struct jtag_tap *tap, uint8_t reg, uint32_t data)
+int dsp563xx_once_reg_write(struct jtag_tap *tap, int flush, uint8_t reg, uint32_t data)
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, reg, 0, 0, 0)) != ERROR_OK)
+	if ((err = dsp563xx_once_ir_exec(tap, flush, reg, 0, 0, 0)) != ERROR_OK)
 		return err;
 	if ((err = dsp563xx_write_dr_u32(tap, 0x00, data, 24, 0)) != ERROR_OK)
 		return err;
-	return jtag_execute_queue();
+	if ( flush )
+		err = jtag_execute_queue();
+	return err;
 }
 
 /** single word instruction */
-int dsp563xx_once_execute_sw_ir(struct jtag_tap *tap, uint32_t opcode)
+int dsp563xx_once_execute_sw_ir(struct jtag_tap *tap, int flush, uint32_t opcode)
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
+	if ((err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
 		return err;
 	if ((err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0)) != ERROR_OK)
 		return err;
-	return jtag_execute_queue();
+	if ( flush )
+		err = jtag_execute_queue();
+	return err;
 }
 
 /** double word instruction */
-int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, uint32_t opcode, uint32_t operand)
+int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, int flush, uint32_t opcode, uint32_t operand)
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, DSP563XX_ONCE_OPDBR, 0, 0, 0)) != ERROR_OK)
+	if ((err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 0, 0)) != ERROR_OK)
 		return err;
 	if ((err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0)) != ERROR_OK)
 		return err;
-	if ((err = jtag_execute_queue()) != ERROR_OK)
-		return err;
+	if ( flush )
+		if ((err = jtag_execute_queue()) != ERROR_OK)
+			return err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
+	if ((err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
 		return err;
 	if ((err = dsp563xx_write_dr_u32(tap, 0, operand, 24, 0)) != ERROR_OK)
 		return err;
-	if ((err = jtag_execute_queue()) != ERROR_OK)
-		return err;
-
-	return ERROR_OK;
-}
-
-/** single word instruction */
-int dsp563xx_once_execute_sw_ir_nq(struct jtag_tap *tap, uint32_t opcode)
-{
-	int err;
-
-	if ((err = dsp563xx_once_ir_exec_nq(tap, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
-		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0)) != ERROR_OK)
-		return err;
-
-	return ERROR_OK;
-}
-
-/** double word instruction */
-int dsp563xx_once_execute_dw_ir_nq(struct jtag_tap *tap, uint32_t opcode, uint32_t operand)
-{
-	int err;
-
-	if ((err = dsp563xx_once_ir_exec_nq(tap, DSP563XX_ONCE_OPDBR, 0, 0, 0)) != ERROR_OK)
-		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0)) != ERROR_OK)
-		return err;
-	if ((err = dsp563xx_once_ir_exec_nq(tap, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
-		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0, operand, 24, 0)) != ERROR_OK)
-		return err;
+	if ( flush )
+		if ((err = jtag_execute_queue()) != ERROR_OK)
+			return err;
 
 	return ERROR_OK;
 }
