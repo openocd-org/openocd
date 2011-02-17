@@ -328,21 +328,6 @@ static int dsp563xx_write_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-static int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
-{
-	struct dsp563xx_common *dsp563xx = calloc(1, sizeof(struct dsp563xx_common));
-
-	if (!dsp563xx)
-		return ERROR_INVALID_ARGUMENTS;
-
-	dsp563xx->jtag_info.tap = target->tap;
-	target->arch_info = dsp563xx;
-	dsp563xx->read_core_reg = dsp563xx_read_core_reg;
-	dsp563xx->write_core_reg = dsp563xx_write_core_reg;
-
-	return ERROR_OK;
-}
-
 static int dsp563xx_get_core_reg(struct reg *reg)
 {
 	struct dsp563xx_core_reg *dsp563xx_reg = reg->arch_info;
@@ -377,6 +362,48 @@ static int dsp563xx_set_core_reg(struct reg *reg, uint8_t * buf)
 	reg->valid = 1;
 
 	return ERROR_OK;
+}
+
+static const struct reg_arch_type dsp563xx_reg_type = {
+	.get = dsp563xx_get_core_reg,
+	.set = dsp563xx_set_core_reg,
+};
+
+static void dsp563xx_build_reg_cache(struct target *target)
+{
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
+
+	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
+	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
+	struct reg *reg_list = malloc(sizeof(struct reg) * DSP563XX_NUMCOREREGS);
+	struct dsp563xx_core_reg *arch_info = malloc(sizeof(struct dsp563xx_core_reg) * DSP563XX_NUMCOREREGS);
+	int i;
+
+	/* Build the process context cache */
+	cache->name = "dsp563xx registers";
+	cache->next = NULL;
+	cache->reg_list = reg_list;
+	cache->num_regs = DSP563XX_NUMCOREREGS;
+	(*cache_p) = cache;
+	dsp563xx->core_cache = cache;
+
+	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
+	{
+		arch_info[i].num = dsp563xx_regs[i].id;
+		arch_info[i].name = dsp563xx_regs[i].name;
+		arch_info[i].size = dsp563xx_regs[i].bits;
+		arch_info[i].eame = dsp563xx_regs[i].eame;
+		arch_info[i].instr_mask = dsp563xx_regs[i].instr_mask;
+		arch_info[i].target = target;
+		arch_info[i].dsp563xx_common = dsp563xx;
+		reg_list[i].name = dsp563xx_regs[i].name;
+		reg_list[i].size = dsp563xx_regs[i].bits;
+		reg_list[i].value = calloc(1, 4);
+		reg_list[i].dirty = 0;
+		reg_list[i].valid = 0;
+		reg_list[i].type = &dsp563xx_reg_type;
+		reg_list[i].arch_info = &arch_info[i];
+	}
 }
 
 static int dsp563xx_read_register(struct target *target, int num, int force);
@@ -747,48 +774,76 @@ static int dsp563xx_restore_context(struct target *target)
 	return err;
 }
 
-static const struct reg_arch_type dsp563xx_reg_type = {
-	.get = dsp563xx_get_core_reg,
-	.set = dsp563xx_set_core_reg,
-};
+static void dsp563xx_invalidate_x_context(struct target *target, uint32_t addr_start, uint32_t addr_end )
+{
+	int i;
+	struct dsp563xx_core_reg *arch_info;
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
+
+	if ( addr_start > ASM_REG_W_IPRC )
+		return;
+	if ( addr_start < ASM_REG_W_AAR3 )
+		return;
+
+	for (i = REG_NUM_IPRC; i < DSP563XX_NUMCOREREGS; i++)
+	{
+		arch_info = dsp563xx->core_cache->reg_list[i].arch_info;
+
+		if ( (arch_info->instr_mask >= addr_start) &&
+		     (arch_info->instr_mask <= addr_end))
+		{
+			dsp563xx->core_cache->reg_list[i].valid = 0;
+			dsp563xx->core_cache->reg_list[i].dirty = 0;
+		}
+	}
+}
+
+static int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
+{
+	struct dsp563xx_common *dsp563xx = calloc(1, sizeof(struct dsp563xx_common));
+
+	if (!dsp563xx)
+		return ERROR_INVALID_ARGUMENTS;
+
+	dsp563xx->jtag_info.tap = target->tap;
+	target->arch_info = dsp563xx;
+	dsp563xx->read_core_reg = dsp563xx_read_core_reg;
+	dsp563xx->write_core_reg = dsp563xx_write_core_reg;
+
+	return ERROR_OK;
+}
 
 static int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *target)
 {
-	/* get pointers to arch-specific information */
-	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
-
-	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	struct reg *reg_list = malloc(sizeof(struct reg) * DSP563XX_NUMCOREREGS);
-	struct dsp563xx_core_reg *arch_info = malloc(sizeof(struct dsp563xx_core_reg) * DSP563XX_NUMCOREREGS);
-	int i;
-
 	LOG_DEBUG("%s", __FUNCTION__);
 
-	/* Build the process context cache */
-	cache->name = "dsp563xx registers";
-	cache->next = NULL;
-	cache->reg_list = reg_list;
-	cache->num_regs = DSP563XX_NUMCOREREGS;
-	(*cache_p) = cache;
-	dsp563xx->core_cache = cache;
+	dsp563xx_build_reg_cache(target);
 
-	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
+	return ERROR_OK;
+}
+
+static int dsp563xx_examine(struct target *target)
+{
+	uint32_t chip;
+
+	if (target->tap->hasidcode == false)
 	{
-		arch_info[i].num = dsp563xx_regs[i].id;
-		arch_info[i].name = dsp563xx_regs[i].name;
-		arch_info[i].size = dsp563xx_regs[i].bits;
-		arch_info[i].eame = dsp563xx_regs[i].eame;
-		arch_info[i].instr_mask = dsp563xx_regs[i].instr_mask;
-		arch_info[i].target = target;
-		arch_info[i].dsp563xx_common = dsp563xx;
-		reg_list[i].name = dsp563xx_regs[i].name;
-		reg_list[i].size = dsp563xx_regs[i].bits;
-		reg_list[i].value = calloc(1, 4);
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
-		reg_list[i].type = &dsp563xx_reg_type;
-		reg_list[i].arch_info = &arch_info[i];
+		LOG_ERROR("no IDCODE present on device");
+
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	if (!target_was_examined(target))
+	{
+		target_set_examined(target);
+
+		/* examine core and chip derivate number */
+		chip = (target->tap->idcode>>12)&0x3ff;
+		/* core number 0 means DSP563XX */
+		if ( ((chip>>5)&0x1f) == 0 )
+			chip += 300;
+
+		LOG_INFO("DSP56%03d device found",chip);
 	}
 
 	return ERROR_OK;
@@ -913,7 +968,7 @@ static int dsp563xx_poll(struct target *target)
 			if ((err = dsp563xx_debug_init(target)) != ERROR_OK)
 				return err;
 
-			LOG_DEBUG("target->state: %s", target_state_name(target));
+			LOG_DEBUG("target->state: %s (%x)", target_state_name(target),once_status);
 		}
 	}
 
@@ -1158,7 +1213,7 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 	}
 
 	/* we only support 4 byte aligned data */
-	if ( size != 4 )
+	if ( (size != 4) || (!count) )
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
@@ -1250,7 +1305,7 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	}
 
 	/* we only support 4 byte aligned data */
-	if ( size != 4 )
+	if ( (size != 4) || (!count) )
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
@@ -1258,6 +1313,8 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	switch (mem_type)
 	{
 		case MEM_X:
+			/* invalidate affected x registers */
+			dsp563xx_invalidate_x_context(target,address,address+count-1);
 			move_cmd = 0x615800;
 			break;
 		case MEM_Y:
@@ -1546,4 +1603,5 @@ struct target_type dsp563xx_target = {
 	.commands = dsp563xx_command_handlers,
 	.target_create = dsp563xx_target_create,
 	.init_target = dsp563xx_init_target,
+	.examine = dsp563xx_examine,
 };
