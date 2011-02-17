@@ -29,6 +29,9 @@
 #include "dsp563xx.h"
 #include "dsp563xx_once.h"
 
+#define JTAG_STATUS_STATIC_MASK		0x03
+#define JTAG_STATUS_STATIC_VALUE	0x01
+
 #define JTAG_STATUS_NORMAL		0x01
 #define JTAG_STATUS_STOPWAIT		0x05
 #define JTAG_STATUS_BUSY		0x09
@@ -100,19 +103,16 @@ int dsp563xx_once_target_status(struct jtag_tap *tap)
 	uint8_t jtag_status;
 
 	if ((err = dsp563xx_jtag_sendinstr(tap, &jtag_status, JTAG_INSTR_ENABLE_ONCE)) != ERROR_OK)
-		return err;
-	if ((err = jtag_execute_queue()) != ERROR_OK)
-		return err;
-
-	if ((jtag_status & 1) != 1)
-	{
 		return TARGET_UNKNOWN;
-	}
+	if ((err = jtag_execute_queue()) != ERROR_OK)
+		return TARGET_UNKNOWN;
+
+	/* verify correct static status pattern */
+	if ( (jtag_status & JTAG_STATUS_STATIC_MASK) != JTAG_STATUS_STATIC_VALUE )
+		return TARGET_UNKNOWN;
 
 	if (jtag_status != JTAG_STATUS_DEBUG)
-	{
 		return TARGET_RUNNING;
-	}
 
 	return TARGET_HALTED;
 }
