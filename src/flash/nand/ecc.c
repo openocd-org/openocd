@@ -121,12 +121,12 @@ int nand_calculate_ecc(struct nand_device *nand, const uint8_t *dat, uint8_t *ec
 	return 0;
 }
 
-static inline int countbits(uint32_t byte)
+static inline int countbits(uint32_t b)
 {
 	int res = 0;
 
-	for (;byte; byte >>= 1)
-		res += byte & 0x01;
+	for (;b; b >>= 1)
+		res += b & 0x01;
 	return res;
 }
 
