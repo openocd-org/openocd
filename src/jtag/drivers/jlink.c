@@ -236,9 +236,9 @@ static int jlink_speed(int speed)
 
 	if (speed > JLINK_MAX_SPEED)
 	{
-		LOG_INFO("Ignoring speed request: %dkHz exceeds %dkHz maximum",
+		LOG_INFO("reduce speed request: %dkHz to %dkHz maximum",
 				speed, JLINK_MAX_SPEED);
-		return ERROR_OK;
+		speed = JLINK_MAX_SPEED;
 	}
 
 	/* check for RTCK setting */
