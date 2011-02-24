@@ -224,19 +224,18 @@ void log_printf_lf(enum log_levels level, const char *file, unsigned line, const
 	va_end(ap);
 }
 
-/* change the current debug level on the fly
- * 0: only ERRORS
- * 1: + WARNINGS
- * 2: + INFORMATIONAL MSGS
- * 3: + DEBUG MSGS
- */
 COMMAND_HANDLER(handle_debug_level_command)
 {
 	if (CMD_ARGC == 1)
 	{
-		unsigned new_level;
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], new_level);
-		debug_level = MIN(new_level, LOG_LVL_DEBUG);
+		int new_level;
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], new_level);
+		if ((debug_level > LOG_LVL_DEBUG) || (new_level < LOG_LVL_SILENT))
+		{
+			LOG_ERROR("level must be between %d and %d", LOG_LVL_SILENT, LOG_LVL_DEBUG);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		debug_level = new_level;
 	}
 	else if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
