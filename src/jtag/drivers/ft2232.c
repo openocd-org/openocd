@@ -373,6 +373,12 @@ static int             require_send;
 	a comment would have been nice.
 */
 
+#if BUILD_FT2232_FTD2XX == 1
+#define FT2232_BUFFER_READ_QUEUE_SIZE	(64*64)
+#else
+#define FT2232_BUFFER_READ_QUEUE_SIZE	(64*4)
+#endif
+
 #define FT2232_BUFFER_SIZE 131072
 
 static uint8_t*             ft2232_buffer = NULL;
@@ -499,7 +505,7 @@ static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
-	DWORD dw_bytes_written;
+	DWORD dw_bytes_written = 0;
 	if ((status = FT_Write(ftdih, buf, size, &dw_bytes_written)) != FT_OK)
 	{
 		*bytes_written = dw_bytes_written;
@@ -2081,12 +2087,20 @@ static int ft2232_execute_queue(void)
 
 	while (cmd)
 	{
+		/* fill the write buffer with the desired command */
 		if (ft2232_execute_command(cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
-		/* Start reading input before FT2232 TX buffer fills up */
+		/* Start reading input before FT2232 TX buffer fills up.
+		 * Sometimes this happens because we don't know the
+		 * length of the last command before we execute it. So
+		 * we simple inform the user.
+		 */
 		cmd = cmd->next;
-		if (ft2232_expect_read > 256)
+
+		if (ft2232_expect_read >= FT2232_BUFFER_READ_QUEUE_SIZE )
 		{
+			if (ft2232_expect_read > (FT2232_BUFFER_READ_QUEUE_SIZE+1) )
+				LOG_WARNING("read buffer size looks to high");
 			if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 			first_unsent = cmd;
