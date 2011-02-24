@@ -40,6 +40,8 @@
 #include <strings.h>
 #endif
 
+#include <helper/time_support.h>
+
 /**
  * @file
  * Holds support for accessing JTAG-specific mechanisms from TCl scripts.
@@ -1266,6 +1268,46 @@ COMMAND_HANDLER(handle_jtag_flush_queue_sleep)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_wait_srst_deassert)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	int timeout_ms;
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], timeout_ms);
+	if ((timeout_ms <= 0) || (timeout_ms > 100000))
+	{
+		LOG_ERROR("Timeout must be an integer between 0 and 100000");
+		return ERROR_FAIL;
+	}
+
+	LOG_USER("Waiting for srst assert + deassert for at most %dms", timeout_ms);
+	int asserted_yet;
+	long long then = timeval_ms();
+	while (jtag_srst_asserted(&asserted_yet) == ERROR_OK)
+	{
+		if ((timeval_ms() - then) > timeout_ms)
+		{
+			LOG_ERROR("Timed out");
+			return ERROR_FAIL;
+		}
+		if (asserted_yet)
+			break;
+	}
+	while (jtag_srst_asserted(&asserted_yet) == ERROR_OK)
+	{
+		if ((timeval_ms() - then) > timeout_ms)
+		{
+			LOG_ERROR("Timed out");
+			return ERROR_FAIL;
+		}
+		if (!asserted_yet)
+			break;
+	}
+
+	return ERROR_OK;
+}
+
 
 
 static const struct command_registration jtag_command_handlers[] = {
@@ -1356,6 +1398,15 @@ static const struct command_registration jtag_command_handlers[] = {
 			"long.  Only for working around JTAG bugs.",
 			/* Specifically for working around DRIVER bugs... */
 		.usage = "['short'|'long']",
+	},
+	{
+		.name = "wait_srst_deassert",
+		.handler = handle_wait_srst_deassert,
+		.mode = COMMAND_ANY,
+		.help = "Wait for an SRST deassert. "
+			"Useful for cases where you need something to happen within ms "
+			"of an srst deassert. Timeout in ms ",
+		.usage = "ms",
 	},
 	{
 		.name = "jtag",
