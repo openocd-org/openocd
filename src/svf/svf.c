@@ -223,6 +223,7 @@ static int svf_getline (char **lineptr, size_t *n, FILE *stream);
 static uint8_t *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
 static int svf_buffer_index = 0, svf_buffer_size = 0;
 static int svf_quiet = 0;
+static int svf_nil = 0;
 
 // Targetting particular tap
 static int svf_tap_is_specified = 0;
@@ -288,6 +289,9 @@ int svf_add_statemove(tap_state_t state_to)
 
 	/* when resetting, be paranoid and ignore current state */
 	if (state_to == TAP_RESET) {
+		if (svf_nil)
+			return ERROR_OK;
+
 		jtag_add_tlr();
 		return ERROR_OK;
 	}
@@ -297,6 +301,10 @@ int svf_add_statemove(tap_state_t state_to)
 		if ((svf_statemoves[index_var].from == state_from)
 			&& (svf_statemoves[index_var].to == state_to))
 		{
+			if (svf_nil)
+			{
+				continue;
+			}
 			/* recorded path includes current state ... avoid extra TCKs! */
 			if (svf_statemoves[index_var].num_of_moves > 1)
 				jtag_add_pathmove(svf_statemoves[index_var].num_of_moves - 1,
@@ -333,6 +341,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	// parse command line
 	svf_quiet = 0;
+	svf_nil = 0;
 	for (unsigned int i = 0; i < CMD_ARGC; i++)
 	{
 		if (strcmp(CMD_ARGV[i], "-tap") == 0)
@@ -348,6 +357,10 @@ COMMAND_HANDLER(handle_svf_command)
 		else if ((strcmp(CMD_ARGV[i], "quiet") == 0) || (strcmp(CMD_ARGV[i], "-quiet") == 0))
 		{
 			svf_quiet = 1;
+		}
+		else if ((strcmp(CMD_ARGV[i], "nil") == 0) || (strcmp(CMD_ARGV[i], "-nil") == 0))
+		{
+			svf_nil = 1;
 		}
 		else if ((strcmp(CMD_ARGV[i], "progress") == 0) || (strcmp(CMD_ARGV[i], "-progress") == 0))
 		{
@@ -417,8 +430,11 @@ COMMAND_HANDLER(handle_svf_command)
 
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
 
-	// TAP_RESET
-	jtag_add_tlr();
+	if (!svf_nil)
+	{
+		// TAP_RESET
+		jtag_add_tlr();
+	}
 
 	if (tap)
 	{
@@ -519,7 +535,8 @@ COMMAND_HANDLER(handle_svf_command)
 		}
 		command_num++;
 	}
-	if (ERROR_OK != jtag_execute_queue())
+
+	if ((!svf_nil) && (ERROR_OK != jtag_execute_queue()))
 	{
 		ret = ERROR_FAIL;
 	}
@@ -956,7 +973,7 @@ static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len)
 
 static int svf_execute_tap(void)
 {
-	if (ERROR_OK != jtag_execute_queue())
+	if ((!svf_nil) && (ERROR_OK != jtag_execute_queue()))
 	{
 		return ERROR_FAIL;
 	}
@@ -1284,8 +1301,11 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
-			/* NOTE:  doesn't use SVF-specified state paths */
-			jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value, svf_para.dr_end_state);
+			if (!svf_nil)
+			{
+				/* NOTE:  doesn't use SVF-specified state paths */
+				jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value, svf_para.dr_end_state);
+			}
 
 			svf_buffer_index += (i + 7) >> 3;
 		}
@@ -1379,9 +1399,12 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
-			/* NOTE:  doesn't use SVF-specified state paths */
-			jtag_add_plain_ir_scan(field.num_bits, field.out_value, field.in_value,
-					svf_para.ir_end_state);
+			if (!svf_nil)
+			{
+				/* NOTE:  doesn't use SVF-specified state paths */
+				jtag_add_plain_ir_scan(field.num_bits, field.out_value, field.in_value,
+						svf_para.ir_end_state);
+			}
 
 			svf_buffer_index += (i + 7) >> 3;
 		}
@@ -1495,11 +1518,13 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 
 			// add clocks and/or min wait
 			if (run_count > 0) {
-				jtag_add_clocks(run_count);
+				if (!svf_nil)
+					jtag_add_clocks(run_count);
 			}
 
 			if (min_usec > 0) {
-				jtag_add_sleep(min_usec);
+				if (!svf_nil)
+					jtag_add_sleep(min_usec);
 			}
 
 			// move to end_state if necessary
@@ -1515,7 +1540,8 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 				return ERROR_FAIL;
 			}
 
-			jtag_add_runtest(run_count, svf_para.runtest_end_state);
+			if (!svf_nil)
+				jtag_add_runtest(run_count, svf_para.runtest_end_state);
 #endif
 		}
 		else
@@ -1558,9 +1584,11 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 					/* FIXME last state MUST be stable! */
 					if (i > 0)
 					{
-						jtag_add_pathmove(i, path);
+						if (!svf_nil)
+							jtag_add_pathmove(i, path);
 					}
-					jtag_add_tlr();
+					if (!svf_nil)
+						jtag_add_tlr();
 					num_of_argu -= i + 1;
 					i = -1;
 				}
@@ -1571,7 +1599,8 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 				if (svf_tap_state_is_stable(path[num_of_argu - 1]))
 				{
 					// last state MUST be stable state
-					jtag_add_pathmove(num_of_argu, path);
+					if (!svf_nil)
+						jtag_add_pathmove(num_of_argu, path);
 					LOG_DEBUG("\tmove to %s by path_move",
 						tap_state_name(path[num_of_argu - 1]));
 				}
@@ -1626,11 +1655,13 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			switch (i_tmp)
 			{
 			case TRST_ON:
-				jtag_add_reset(1, 0);
+				if (!svf_nil)
+					jtag_add_reset(1, 0);
 				break;
 			case TRST_Z:
 			case TRST_OFF:
-				jtag_add_reset(0, 0);
+				if (!svf_nil)
+					jtag_add_reset(0, 0);
 				break;
 			case TRST_ABSENT:
 				break;
@@ -1705,7 +1736,7 @@ static const struct command_registration svf_command_handlers[] = {
 		.handler = handle_svf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a SVF file.",
-		.usage = "svf [-tap device.tap] <file> [quiet] [progress]",
+		.usage = "svf [-tap device.tap] <file> [quiet] [nil] [progress]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
