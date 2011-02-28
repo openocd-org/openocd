@@ -136,6 +136,10 @@ static enum tap_state jlink_last_state = TAP_RESET;
 
 static struct jlink* jlink_handle;
 
+/* pid could be specified at runtime */
+static uint16_t vids[] = { VID, 0 };
+static uint16_t pids[] = { PID, 0 };
+
 /***************************************************************************/
 /* External interface implementation */
 
@@ -621,6 +625,21 @@ static int jlink_get_version_info(void)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(jlink_pid_command)
+{
+	if (CMD_ARGC != 1)
+	{
+		LOG_ERROR("Need exactly one argument to jlink_pid");
+		return ERROR_FAIL;
+	}
+
+	pids[0] = strtoul(CMD_ARGV[0], NULL, 16);
+	pids[1] = 0;
+	vids[1] = 0;
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(jlink_handle_jlink_info_command)
 {
 	if (jlink_get_version_info() == ERROR_OK)
@@ -669,6 +688,12 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "access J-Link HW JTAG command version",
 		.usage = "[2|3]",
+	},
+	{
+		.name = "pid",
+		.handler = &jlink_pid_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the pid of the interface we want to use",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -871,8 +896,6 @@ static struct jlink* jlink_usb_open()
 {
 	usb_init();
 
-	const uint16_t vids[] = { VID, 0 };
-	const uint16_t pids[] = { PID, 0 };
 	struct usb_dev_handle *dev;
 	if (jtag_usb_open(vids, pids, &dev) != ERROR_OK)
 		return NULL;

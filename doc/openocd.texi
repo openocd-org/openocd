@@ -2323,6 +2323,8 @@ Segger jlink USB adapter
 @c     dumps status
 @c command:	jlink hw_jtag (2|3)
 @c     sets version 2 or 3
+@c command:	 jlink pid
+@c     set the pid of the interface we want to use
 @end deffn
 
 @deffn {Interface Driver} {parport}
