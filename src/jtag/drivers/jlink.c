@@ -37,8 +37,14 @@
 http://www.segger.com/cms/admin/uploads/productDocs/RM08001_JLinkUSBProtocol.pdf
  */
 
-#define VID 0x1366
-#define PID 0x0101
+/*
+ * The default pid of the segger is 0x0101
+ * But when you change the USB Address it will also
+ *
+ * pid = ( usb_address > 0x4) ? 0x0101 : (0x101 + usb_address)
+ */
+#define VID 0x1366, 0x1366, 0x1366, 0x1366
+#define PID 0x0101, 0x0102, 0x0103, 0x0104
 
 #define JLINK_WRITE_ENDPOINT	0x02
 #define JLINK_READ_ENDPOINT		0x81
