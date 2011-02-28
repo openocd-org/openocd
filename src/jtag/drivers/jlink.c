@@ -656,19 +656,29 @@ COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration jlink_command_handlers[] = {
+static const struct command_registration jlink_subcommand_handlers[] = {
 	{
-		.name = "jlink_info",
+		.name = "info",
 		.handler = &jlink_handle_jlink_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "show jlink info",
 	},
 	{
-		.name = "jlink_hw_jtag",
+		.name = "hw_jtag",
 		.handler = &jlink_handle_jlink_hw_jtag_command,
 		.mode = COMMAND_EXEC,
 		.help = "access J-Link HW JTAG command version",
 		.usage = "[2|3]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration jlink_command_handlers[] = {
+	{
+		.name = "jlink",
+		.mode = COMMAND_ANY,
+		.help = "perform jlink management",
+		.chain = jlink_subcommand_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
