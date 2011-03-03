@@ -46,6 +46,10 @@
 #include "image.h"
 
 
+static int target_read_buffer_default(struct target *target, uint32_t address,
+		uint32_t size, uint8_t *buffer);
+static int target_write_buffer_default(struct target *target, uint32_t address,
+		uint32_t size, uint8_t *buffer);
 static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv);
 static int target_mem2array(Jim_Interp *interp, struct target *target,
@@ -865,6 +869,13 @@ static int target_init_one(struct command_context *cmd_ctx,
 		type->read_phys_memory = type->read_memory;
 		type->virt2phys = identity_virt2phys;
 	}
+
+	if (target->type->read_buffer == NULL)
+		target->type->read_buffer = target_read_buffer_default;
+
+	if (target->type->write_buffer == NULL)
+		target->type->write_buffer = target_write_buffer_default;
+
 	return ERROR_OK;
 }
 
@@ -1333,7 +1344,6 @@ int target_arch_state(struct target *target)
  */
 int target_write_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
-	int retval;
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x",
 		  (int)size, (unsigned)address);
 
@@ -1355,6 +1365,13 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 				  (unsigned)size);
 		return ERROR_FAIL;
 	}
+
+	return target->type->write_buffer(target, address, size, buffer);
+}
+
+static int target_write_buffer_default(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
+{
+	int retval = ERROR_OK;
 
 	if (((address % 2) == 0) && (size == 2))
 	{
@@ -1406,7 +1423,7 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 			return retval;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 /* Single aligned words are guaranteed to use 16 or 32 bit access
@@ -1415,7 +1432,6 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
  */
 int target_read_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
-	int retval;
 	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
 			  (int)size, (unsigned)address);
 
@@ -1437,6 +1453,13 @@ int target_read_buffer(struct target *target, uint32_t address, uint32_t size, u
 				  size);
 		return ERROR_FAIL;
 	}
+
+	return target->type->read_buffer(target, address, size, buffer);
+}
+
+static int target_read_buffer_default(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
+{
+	int retval = ERROR_OK;
 
 	if (((address % 2) == 0) && (size == 2))
 	{
@@ -3695,7 +3718,6 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-variant",          .value = TCFG_VARIANT },
 	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
-
 	{ .name = NULL, .value = -1 }
 };
 

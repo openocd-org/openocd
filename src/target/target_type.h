@@ -119,6 +119,12 @@ struct target_type
 	 */
 	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
+	/* Default implementation will do some fancy alignment to improve performance, target can override */
+	int (*read_buffer)(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer);
+
+	/* Default implementation will do some fancy alignment to improve performance, target can override */
+	int (*write_buffer)(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer);
+
 	/**
 	 * Write target memory in multiples of 4 bytes, optimized for
 	 * writing large quantities of data.  Do @b not call this
