@@ -172,6 +172,45 @@ static int zy1000_power_dropout(int *dropout)
 	return ERROR_OK;
 }
 
+/* Wait for SRST to assert or deassert */
+static void waitSRST(bool asserted)
+{
+	bool first = true;
+	long long start = 0;
+	long total = 0;
+	const char *mode = asserted ? "assert" : "deassert";
+
+	for (;;)
+	{
+		bool srstAsserted = readSRST();
+		if ( (asserted && srstAsserted) || (!asserted && !srstAsserted) )
+		{
+			if (total > 1)
+			{
+				LOG_USER("SRST took %dms to %s", (int)total, mode);
+			}
+			break;
+		}
+
+		if (first)
+		{
+			first = false;
+			start = timeval_ms();
+		}
+
+		total = timeval_ms() - start;
+
+		keep_alive();
+
+		if (total > 5000)
+		{
+			LOG_ERROR("SRST took too long to %s: %dms", mode, (int)total);
+			break;
+		}
+	}
+}
+
+
 void zy1000_reset(int trst, int srst)
 {
 	LOG_DEBUG("zy1000 trst=%d, srst=%d", trst, srst);
@@ -192,6 +231,8 @@ void zy1000_reset(int trst, int srst)
 		 * idle in TAP_IDLE, reset halt on str912 will fail.
 		 */
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000001);
+
+		waitSRST(true);
 	}
 
 	if (!trst)
@@ -218,40 +259,7 @@ void zy1000_reset(int trst, int srst)
 	if ((!srst && ((jtag_get_reset_config() & RESET_TRST_PULLS_SRST) == 0))||
 		(!srst && !trst && (jtag_get_reset_config() & RESET_TRST_PULLS_SRST)))
 	{
-		bool first = true;
-		long long start = 0;
-		long total = 0;
-		for (;;)
-		{	
-			// We don't want to sense our own reset, so we clear here.
-			// There is of course a timing hole where we could loose
-			// a "real" reset.
-			if (!readSRST())
-			{
-				if (total > 1)
-				{
-				  LOG_USER("SRST took %dms to deassert", (int)total);
-				}
-				break;
-			}
-
-			if (first)
-			{
-			    first = false;
-			    start = timeval_ms();
-			}
-
-			total = timeval_ms() - start;
-
-			keep_alive();
-
-			if (total > 5000)
-			{
-				LOG_ERROR("SRST took too long to deassert: %dms", (int)total);
-			    break;
-			}
-		}
-
+		waitSRST(false);
 	}
 }
 
