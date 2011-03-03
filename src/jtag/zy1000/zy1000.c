@@ -45,6 +45,8 @@
 #include "config.h"
 #endif
 
+#include <pthread.h>
+
 #include <target/embeddedice.h>
 #include <jtag/minidriver.h>
 #include <jtag/interface.h>
@@ -1026,7 +1028,6 @@ static const struct command_registration zy1000_commands[] = {
 };
 
 
-#if !BUILD_ZY1000_MASTER || BUILD_ECOSBOARD
 static int tcp_ip = -1;
 
 /* Write large packets if we can */
@@ -1098,7 +1099,6 @@ static bool readLong(uint32_t *out_data)
 	*out_data = data;
 	return true;
 }
-#endif
 
 enum ZY1000_CMD
 {
@@ -1353,14 +1353,15 @@ static void writeShiftValue(uint8_t *data, int bits)
 
 #endif
 
-#if BUILD_ECOSBOARD
-static char tcpip_stack[2048];
-static cyg_thread tcpip_thread_object;
-static cyg_handle_t tcpip_thread_handle;
+#if BUILD_ZY1000_MASTER
 
+pthread_t thread;
+
+#if BUILD_ECOSBOARD
 static char watchdog_stack[2048];
 static cyg_thread watchdog_thread_object;
 static cyg_handle_t watchdog_thread_handle;
+#endif
 
 /* Infinite loop peeking & poking */
 static void tcpipserver(void)
@@ -1412,7 +1413,7 @@ static void tcpipserver(void)
 }
 
 
-static void tcpip_server(cyg_addrword_t data)
+static void *tcpip_server(void *data)
 {
 	int so_reuseaddr_option = 1;
 
@@ -1474,8 +1475,10 @@ static void tcpip_server(cyg_addrword_t data)
 		close(tcp_ip);
 
 	}
+	/* Never reached actually */
 	close(fd);
 
+	return NULL;
 }
 
 #ifdef WATCHDOG_BASE
@@ -1616,17 +1619,16 @@ int zy1000_init(void)
 		return retval;
 	zy1000_speed(jtag_speed_var);
 
+#if BUILD_ZY1000_MASTER
+	pthread_create(&thread, NULL, tcpip_server, NULL);
 
 #if BUILD_ECOSBOARD
-	cyg_thread_create(1, tcpip_server, (cyg_addrword_t) 0, "tcip/ip server",
-			(void *) tcpip_stack, sizeof(tcpip_stack),
-			&tcpip_thread_handle, &tcpip_thread_object);
-	cyg_thread_resume(tcpip_thread_handle);
 #ifdef WATCHDOG_BASE
 	cyg_thread_create(1, watchdog_server, (cyg_addrword_t) 0, "watchdog tcip/ip server",
 			(void *) watchdog_stack, sizeof(watchdog_stack),
 			&watchdog_thread_handle, &watchdog_thread_object);
 	cyg_thread_resume(watchdog_thread_handle);
+#endif
 #endif
 #endif
 
