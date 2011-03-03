@@ -871,9 +871,16 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 	return ERROR_OK;
 }
 
+/* sleep at least us microseconds. When we sleep more than 1000ms we
+ * do an alive sleep, i.e. keep GDB alive. Note that we could starve
+ * GDB if we slept for <1000ms many times.
+ */
 void jtag_sleep(uint32_t us)
 {
-	alive_sleep(us/1000);
+	if (us < 1000)
+		usleep(us);
+	else
+		alive_sleep((us+999)/1000);
 }
 
 /* Maximum number of enabled JTAG devices we expect in the scan chain,
