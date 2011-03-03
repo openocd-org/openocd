@@ -1063,14 +1063,6 @@ static bool writeLong(uint32_t l)
 
 static bool readLong(uint32_t *out_data)
 {
-	if (out_pos > 0)
-	{
-		if (!flush_writes())
-		{
-			return false;
-		}
-	}
-
 	uint32_t data = 0;
 	int i;
 	for (i = 0; i < 4; i++)
@@ -1078,6 +1070,17 @@ static bool readLong(uint32_t *out_data)
 		uint8_t c;
 		if (in_pos == in_write)
 		{
+			/* If we have some data that we can send, send them before
+			 * we wait for more data
+			 */
+			if (out_pos > 0)
+			{
+				if (!flush_writes())
+				{
+					return false;
+				}
+			}
+
 			/* read more */
 			int t;
 			t = read(tcp_ip, in_buffer, sizeof(in_buffer));
