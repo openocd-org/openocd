@@ -2100,7 +2100,7 @@ static int ft2232_execute_queue(void)
 		if (ft2232_expect_read >= FT2232_BUFFER_READ_QUEUE_SIZE )
 		{
 			if (ft2232_expect_read > (FT2232_BUFFER_READ_QUEUE_SIZE+1) )
-				LOG_WARNING("read buffer size looks to high");
+				LOG_DEBUG("read buffer size looks too high %d/%d",ft2232_expect_read,(FT2232_BUFFER_READ_QUEUE_SIZE+1));
 			if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 			first_unsent = cmd;
