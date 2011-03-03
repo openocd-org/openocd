@@ -1393,7 +1393,8 @@ static void tcpipserver(void)
 				uint32_t data;
 				if (!readLong(&data))
 					return;
-				jtag_sleep(data);
+				/* Wait for some us */
+				usleep(data);
 				break;
 			}
 			case ZY1000_CMD_WAITIDLE:
