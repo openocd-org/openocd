@@ -88,8 +88,73 @@ static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 #define EMU_CMD_GET_HW_VERSION	0xf0
 
 /* bits return from EMU_CMD_GET_CAPS */
+#define EMU_CAP_RESERVED_1		0
 #define EMU_CAP_GET_HW_VERSION		1
+#define EMU_CAP_WRITE_DCC		2
+#define EMU_CAP_ADAPTIVE_CLOCKING	3
+#define EMU_CAP_READ_CONFIG		4
+#define EMU_CAP_WRITE_CONFIG		5
+#define EMU_CAP_TRACE			6
+#define EMU_CAP_WRITE_MEM		7
+#define EMU_CAP_READ_MEM		8
+#define EMU_CAP_SPEED_INFO		9
+#define EMU_CAP_EXEC_CODE		10
 #define EMU_CAP_GET_MAX_BLOCK_SIZE	11
+#define EMU_CAP_GET_HW_INFO		12
+#define EMU_CAP_SET_KS_POWER		13
+#define EMU_CAP_RESET_STOP_TIMED	14
+#define EMU_CAP_RESERVED_2		15
+#define EMU_CAP_MEASURE_RTCK_REACT	16
+#define EMU_CAP_SELECT_IF		17
+#define EMU_CAP_RW_MEM_ARM79		18
+#define EMU_CAP_GET_COUNTERS		19
+#define EMU_CAP_READ_DCC		20
+#define EMU_CAP_GET_CPU_CAPS		21
+#define EMU_CAP_EXEC_CPU_CMD		22
+#define EMU_CAP_SWO			23
+#define EMU_CAP_WRITE_DCC_EX		24
+#define EMU_CAP_UPDATE_FIRMWARE_EX	25
+#define EMU_CAP_FILE_IO			26
+#define EMU_CAP_REGISTER		27
+#define EMU_CAP_INDICATORS		28
+#define EMU_CAP_TEST_NET_SPEED		29
+#define EMU_CAP_RAWTRACE		30
+#define EMU_CAP_RESERVED_3		31
+
+static char *jlink_cap_str[] = {
+	"Always 1.",
+	"Supports command EMU_CMD_GET_HARDWARE_VERSION",
+	"Supports command EMU_CMD_WRITE_DCC",
+	"Supports adaptive clocking",
+	"Supports command EMU_CMD_READ_CONFIG",
+	"Supports command EMU_CMD_WRITE_CONFIG",
+	"Supports trace commands",
+	"Supports command EMU_CMD_WRITE_MEM",
+	"Supports command EMU_CMD_READ_MEM",
+	"Supports command EMU_CMD_GET_SPEED",
+	"Supports command EMU_CMD_CODE_...",
+	"Supports command EMU_CMD_GET_MAX_BLOCK_SIZE",
+	"Supports command EMU_CMD_GET_HW_INFO",
+	"Supports command EMU_CMD_SET_KS_POWER",
+	"Supports command EMU_CMD_HW_RELEASE_RESET_STOP_TIMED",
+	"Reserved",
+	"Supports command EMU_CMD_MEASURE_RTCK_REACT",
+	"Supports command EMU_CMD_HW_SELECT_IF",
+	"Supports command EMU_CMD_READ/WRITE_MEM_ARM79",
+	"Supports command EMU_CMD_GET_COUNTERS",
+	"Supports command EMU_CMD_READ_DCC",
+	"Supports command EMU_CMD_GET_CPU_CAPS",
+	"Supports command EMU_CMD_EXEC_CPU_CMD",
+	"Supports command EMU_CMD_SWO",
+	"Supports command EMU_CMD_WRITE_DCC_EX",
+	"Supports command EMU_CMD_UPDATE_FIRMWARE_EX",
+	"Supports command EMU_CMD_FILE_IO",
+	"Supports command EMU_CMD_REGISTER",
+	"Supports command EMU_CMD_INDICATORS",
+	"Supports command EMU_CMD_TEST_NET_SPEED",
+	"Supports command EMU_CMD_RAWTRACE",
+	"Reserved",
+};
 
 /* max speed 12MHz v5.0 jlink */
 #define JLINK_MAX_SPEED 12000
@@ -139,6 +204,8 @@ static struct jlink* jlink_handle;
 /* pid could be specified at runtime */
 static uint16_t vids[] = { VID, 0 };
 static uint16_t pids[] = { PID, 0 };
+
+static uint32_t jlink_caps;
 
 /***************************************************************************/
 /* External interface implementation */
@@ -540,11 +607,31 @@ static int jlink_get_status(void)
 	return ERROR_OK;
 }
 
+#define jlink_dump_printf(context, expr ...)	\
+	do {					\
+	if (context)				\
+		command_print(context, expr);	\
+	else					\
+		LOG_INFO(expr);			\
+	} while(0);
+
+
+static void jlink_caps_dump(struct command_context *ctx)
+{
+	int i;
+
+	jlink_dump_printf(ctx, "J-Link Capabilities");
+
+	for (i = 1; i < 31; i++)
+		if (jlink_caps & (1 << i))
+			jlink_dump_printf(ctx, "%s", jlink_cap_str[i]);
+}
+
 static int jlink_get_version_info(void)
 {
 	int result;
 	int len;
-	uint32_t jlink_caps, jlink_max_size;
+	uint32_t jlink_max_size;
 
 	/* query hardware version */
 	jlink_simple_command(EMU_CMD_VERSION);
@@ -651,6 +738,13 @@ COMMAND_HANDLER(jlink_handle_jlink_info_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(jlink_handle_jlink_caps_command)
+{
+	jlink_caps_dump(CMD_CTX);
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 {
 	switch (CMD_ARGC) {
@@ -676,6 +770,12 @@ COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 }
 
 static const struct command_registration jlink_subcommand_handlers[] = {
+	{
+		.name = "caps",
+		.handler = &jlink_handle_jlink_caps_command,
+		.mode = COMMAND_EXEC,
+		.help = "show jlink capabilities",
+	},
 	{
 		.name = "info",
 		.handler = &jlink_handle_jlink_info_command,

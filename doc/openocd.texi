@@ -2319,6 +2319,8 @@ This is a write-once setting.
 
 @deffn {Interface Driver} {jlink}
 Segger jlink USB adapter
+@c command:	jlink caps
+@c     dumps jlink capabilities
 @c command:	jlink info
 @c     dumps status
 @c command:	jlink hw_jtag (2|3)
