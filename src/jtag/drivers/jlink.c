@@ -55,10 +55,10 @@ static unsigned int jlink_hw_jtag_version = 2;
 
 #define JLINK_USB_TIMEOUT		1000
 
-// See Section 1.3.2 of the Segger JLink USB protocol manual
+// See Section 3.3.2 of the Segger JLink USB protocol manual
 /* 2048 is the max value we can use here */
-//#define JLINK_TAP_BUFFER_SIZE 2048
-#define JLINK_TAP_BUFFER_SIZE 256
+#define JLINK_TAP_BUFFER_SIZE 2048
+//#define JLINK_TAP_BUFFER_SIZE 256
 //#define JLINK_TAP_BUFFER_SIZE 384
 
 #define JLINK_IN_BUFFER_SIZE			2048
