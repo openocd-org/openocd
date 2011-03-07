@@ -159,6 +159,20 @@ static char *jlink_cap_str[] = {
 /* max speed 12MHz v5.0 jlink */
 #define JLINK_MAX_SPEED 12000
 
+/* J-Link hardware versions */
+#define JLINK_HW_TYPE_JLINK	0
+#define JLINK_HW_TYPE_JTRACE	1
+#define JLINK_HW_TYPE_FLASHER	2
+#define JLINK_HW_TYPE_JLINK_PRO	3
+#define JLINK_HW_TYPE_MAX	4
+
+static char *jlink_hw_type_str[] = {
+	"J-Link",
+	"J-Trace",
+	"Flasher",
+	"J-Link Pro",
+};
+
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
@@ -206,6 +220,7 @@ static uint16_t vids[] = { VID, 0 };
 static uint16_t pids[] = { PID, 0 };
 
 static uint32_t jlink_caps;
+static uint32_t jlink_hw_type;
 
 /***************************************************************************/
 /* External interface implementation */
@@ -687,10 +702,16 @@ static int jlink_get_version_info(void)
 
 		uint32_t jlink_hw_version = buf_get_u32(usb_in_buffer, 0, 32);
 		uint32_t major_revision = (jlink_hw_version / 10000) % 100;
+		jlink_hw_type = (jlink_hw_version / 1000000) % 100;
 		if (major_revision >= 5)
 			jlink_hw_jtag_version = 3;
 
 		LOG_INFO("J-Link hw version %i", (int)jlink_hw_version);
+
+		if (jlink_hw_type >= JLINK_HW_TYPE_MAX)
+			LOG_INFO("J-Link hw type uknown 0x%x", jlink_hw_type);
+		else
+			LOG_INFO("J-Link hw type %s", jlink_hw_type_str[jlink_hw_type]);
 	}
 
 	if (jlink_caps & (1 << EMU_CAP_GET_MAX_BLOCK_SIZE))
