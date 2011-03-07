@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2011 by Jean-Christophe PLAGNIOL-VIILARD                *
+ *   plagnioj@jcrosoft.com                                                 *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -86,6 +89,8 @@ static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 #define EMU_CMD_HW_TRST1		0xdf
 #define EMU_CMD_GET_CAPS		0xe8
 #define EMU_CMD_GET_HW_VERSION	0xf0
+#define EMU_CMD_READ_CONFIG		0xf2
+#define EMU_CMD_WRITE_CONFIG		0xf3
 
 /* bits return from EMU_CMD_GET_CAPS */
 #define EMU_CAP_RESERVED_1		0
@@ -221,6 +226,25 @@ static uint16_t pids[] = { PID, 0 };
 
 static uint32_t jlink_caps;
 static uint32_t jlink_hw_type;
+
+/* 256 byte non-volatile memory */
+struct jlink_config {
+	uint8_t	usb_address;
+	/* 0ffset 0x01 to 0x03 */
+	uint8_t	reserved_1[3];
+	uint32_t kickstart_power_on_jtag_pin_19;
+	/* 0ffset 0x08 to 0x1f */
+	uint8_t reserved_2[24];
+	/* IP only for J-Link Pro */
+	uint8_t ip_address[4];
+	uint8_t subnet_mask[4];
+	/* 0ffset 0x28 to 0x2f */
+	uint8_t reserved_3[8];
+	uint8_t mac_address[6];
+	/* 0ffset 0x36 to 0xff */
+	uint8_t reserved_4[202];
+} __attribute__ ((packed));
+struct jlink_config jlink_cfg;
 
 /***************************************************************************/
 /* External interface implementation */
@@ -642,6 +666,107 @@ static void jlink_caps_dump(struct command_context *ctx)
 			jlink_dump_printf(ctx, "%s", jlink_cap_str[i]);
 }
 
+static void jlink_config_usb_address_dump(struct command_context *ctx, struct jlink_config *cfg)
+{
+	if (!cfg)
+		return;
+
+	jlink_dump_printf(ctx, "USB-Address: 0x%x", cfg->usb_address);
+}
+
+static void jlink_config_kickstart_dump(struct command_context *ctx, struct jlink_config *cfg)
+{
+	if (!cfg)
+		return;
+
+	jlink_dump_printf(ctx, "Kickstart power on JTAG-pin 19: 0x%x",
+		cfg->kickstart_power_on_jtag_pin_19);
+}
+
+static void jlink_config_mac_address_dump(struct command_context *ctx, struct jlink_config *cfg)
+{
+	if (!cfg)
+		return;
+
+	jlink_dump_printf(ctx, "MAC Address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
+		cfg->mac_address[5], cfg->mac_address[4],
+		cfg->mac_address[3], cfg->mac_address[2],
+		cfg->mac_address[1], cfg->mac_address[0]);
+}
+
+static void jlink_config_ip_dump(struct command_context *ctx, struct jlink_config *cfg)
+{
+	if (!cfg)
+		return;
+
+	jlink_dump_printf(ctx, "IP Address: %d.%d.%d.%d",
+		cfg->ip_address[3], cfg->ip_address[2],
+		cfg->ip_address[1], cfg->ip_address[0]);
+	jlink_dump_printf(ctx, "Subnet Mask: %d.%d.%d.%d",
+		cfg->subnet_mask[3], cfg->subnet_mask[2],
+		cfg->subnet_mask[1], cfg->subnet_mask[0]);
+}
+
+static void jlink_config_dump(struct command_context *ctx, struct jlink_config *cfg)
+{
+	if (!cfg)
+		return;
+
+	jlink_dump_printf(ctx, "J-Link configuration");
+	jlink_config_usb_address_dump(ctx, cfg);
+	jlink_config_kickstart_dump(ctx, cfg);
+
+	if (jlink_hw_type == JLINK_HW_TYPE_JLINK_PRO)
+	{
+		jlink_config_ip_dump(ctx, cfg);
+		jlink_config_mac_address_dump(ctx, cfg);
+	}
+}
+
+static int jlink_get_config(struct jlink_config *cfg)
+{
+	int result;
+	int size = sizeof(struct jlink_config);
+
+	jlink_simple_command(EMU_CMD_READ_CONFIG);
+
+	result = jlink_usb_read(jlink_handle, size);
+	if (size != result)
+	{
+		LOG_ERROR("jlink_usb_read failed (requested=%d, result=%d)", size, result);
+		return ERROR_FAIL;
+	}
+
+	memcpy(cfg, usb_in_buffer, size);
+
+	/*
+	 * Section 4.2.4 IN-transaction
+	 * read dummy 0-byte packet
+	 */
+	jlink_usb_read(jlink_handle, 1);
+
+	return ERROR_OK;
+}
+
+static int jlink_set_config(struct jlink_config *cfg)
+{
+	int result;
+	int size = sizeof(struct jlink_config);
+
+	jlink_simple_command(EMU_CMD_WRITE_CONFIG);
+
+	memcpy(usb_out_buffer, cfg, size);
+
+	result = jlink_usb_write(jlink_handle, size);
+	if (result != size)
+	{
+		LOG_ERROR("jlink_usb_write failed (requested=%d, result=%d)", 256, result);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 static int jlink_get_version_info(void)
 {
 	int result;
@@ -730,6 +855,14 @@ static int jlink_get_version_info(void)
 		LOG_INFO("J-Link max mem block %i", (int)jlink_max_size);
 	}
 
+	if (jlink_caps & (1 << EMU_CAP_READ_CONFIG))
+	{
+		if (jlink_get_config(&jlink_cfg) != ERROR_OK)
+			return ERROR_JTAG_DEVICE_ERROR;
+
+		jlink_config_dump(NULL, &jlink_cfg);
+	}
+
 	return ERROR_OK;
 }
 
@@ -790,6 +923,262 @@ COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(jlink_handle_jlink_kickstart_command)
+{
+	uint32_t kickstart;
+
+	if (CMD_ARGC < 1)
+	{
+		jlink_config_kickstart_dump(CMD_CTX, &jlink_cfg);
+		return ERROR_OK;
+	}
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], kickstart);
+
+	jlink_cfg.kickstart_power_on_jtag_pin_19 = kickstart;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_jlink_mac_address_command)
+{
+	uint8_t addr[6];
+	int i;
+	char *e;
+	const char *str;
+
+	if (CMD_ARGC < 1)
+	{
+		jlink_config_mac_address_dump(CMD_CTX, &jlink_cfg);
+		return ERROR_OK;
+	}
+
+	str = CMD_ARGV[0];
+
+	if ((strlen(str) != 17) || (str[2] != ':' || str[5] != ':' || str[8] != ':' ||
+		str[11] != ':' || str[14] != ':'))
+	{
+		command_print(CMD_CTX, "ethaddr miss format ff:ff:ff:ff:ff:ff");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	for (i = 5; i >= 0; i--)
+	{
+		addr[i] = strtoul(str, &e, 16);
+		str = e + 1;
+	}
+
+	if (!(addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]))
+	{
+		command_print(CMD_CTX, "invalid it's zero mac_address");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (!(0x01 & addr[0]))
+	{
+		command_print(CMD_CTX, "invalid it's a multicat mac_address");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	memcpy(jlink_cfg.mac_address, addr, sizeof(addr));
+
+	return ERROR_OK;
+}
+
+static int string_to_ip(const char *s, uint8_t *ip, int *pos)
+{
+	uint8_t lip[4];
+	char *e;
+	const char *s_save = s;
+	int i;
+
+	if (!s)
+		return -EINVAL;
+
+	for (i = 0; i < 4; i++) {
+		lip[i] = strtoul(s, &e, 10);
+
+		if (*e != '.' && i != 3)
+			return -EINVAL;
+
+		s = e + 1;
+	}
+
+	*pos = e - s_save;
+
+	memcpy(ip, lip, sizeof(lip));
+	return ERROR_OK;
+}
+
+static void cpy_ip(uint8_t *dst, uint8_t *src)
+{
+	int i, j;
+
+	for (i = 0, j = 3; i < 4; i++, j--)
+		dst[i] = src[j];
+}
+
+COMMAND_HANDLER(jlink_handle_jlink_ip_command)
+{
+	uint32_t ip_address;
+	uint32_t subnet_mask = 0;
+	int i, len;
+	int ret;
+	uint8_t subnet_bits = 24;
+
+	if (CMD_ARGC < 1)
+	{
+		jlink_config_ip_dump(CMD_CTX, &jlink_cfg);
+		return ERROR_OK;
+	}
+
+	ret = string_to_ip(CMD_ARGV[0], (uint8_t*)&ip_address, &i);
+	if (ret != ERROR_OK)
+		return ret;
+
+	len = strlen(CMD_ARGV[0]);
+
+	/* check for this format A.B.C.D/E */
+
+	if (i < len)
+	{
+		if (CMD_ARGV[0][i] != '/')
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0] + i + 1, subnet_bits);
+	}
+	else
+	{
+		if (CMD_ARGC > 1)
+		{
+			ret = string_to_ip(CMD_ARGV[1], (uint8_t*)&subnet_mask, &i);
+			if (ret != ERROR_OK)
+				return ret;
+		}
+	}
+
+	if (!subnet_mask)
+		subnet_mask = (uint32_t)(subnet_bits < 32 ?
+				((1ULL << subnet_bits) -1) : 0xffffffff);
+
+	cpy_ip(jlink_cfg.ip_address, (uint8_t*)&ip_address);
+	cpy_ip(jlink_cfg.subnet_mask, (uint8_t*)&subnet_mask);
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_jlink_reset_command)
+{
+	memset(&jlink_cfg, 0xff, sizeof(jlink_cfg));
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_jlink_save_command)
+{
+	if (!(jlink_caps & (1 << EMU_CAP_WRITE_CONFIG)))
+	{
+		command_print(CMD_CTX, "J-Link write emulator configuration not supported");
+		return ERROR_OK;
+	}
+
+	command_print(CMD_CTX, "The J-Link need to be unpluged and repluged ta have the config effective");
+	return jlink_set_config(&jlink_cfg);
+}
+
+COMMAND_HANDLER(jlink_handle_jlink_usb_address_command)
+{
+	uint32_t address;
+
+	if (CMD_ARGC < 1)
+	{
+		jlink_config_usb_address_dump(CMD_CTX, &jlink_cfg);
+		return ERROR_OK;
+	}
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+
+	if (address > 0x3 && address != 0xff)
+	{
+		command_print(CMD_CTX, "USB Address must be between 0x00 and 0x03 or 0xff");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	jlink_cfg.usb_address = address;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_jlink_config_command)
+{
+	struct jlink_config cfg;
+	int ret = ERROR_OK;
+
+	if (CMD_ARGC == 0)
+	{
+		if (!(jlink_caps & (1 << EMU_CAP_READ_CONFIG)))
+		{
+			command_print(CMD_CTX, "J-Link read emulator configuration not supported");
+			goto exit;
+		}
+
+		ret = jlink_get_config(&cfg);
+
+		if ( ret != ERROR_OK)
+			command_print(CMD_CTX, "J-Link read emulator configuration failled");
+		else
+			jlink_config_dump(CMD_CTX, &jlink_cfg);
+	}
+
+exit:
+	return ret;
+}
+
+static const struct command_registration jlink_config_subcommand_handlers[] = {
+	{
+		.name = "kickstart",
+		.handler = &jlink_handle_jlink_kickstart_command,
+		.mode = COMMAND_EXEC,
+		.help = "set Kickstart power on JTAG-pin 19.",
+		.usage = "[val]",
+	},
+	{
+		.name = "mac_address",
+		.handler = &jlink_handle_jlink_mac_address_command,
+		.mode = COMMAND_EXEC,
+		.help = "set the MAC Address",
+		.usage = "[ff:ff:ff:ff:ff:ff]",
+	},
+	{
+		.name = "ip",
+		.handler = &jlink_handle_jlink_ip_command,
+		.mode = COMMAND_EXEC,
+		.help = "set the ip address of the J-Link Pro, "
+			"where A.B.C.D is the ip, "
+			"E the bit of the subnet mask, "
+			"F.G.H.I the subnet mask",
+		.usage = "[A.B.C.D[/E] [F.G.H.I]]",
+	},
+	{
+		.name = "reset",
+		.handler = &jlink_handle_jlink_reset_command,
+		.mode = COMMAND_EXEC,
+		.help = "reset the current config",
+	},
+	{
+		.name = "save",
+		.handler = &jlink_handle_jlink_save_command,
+		.mode = COMMAND_EXEC,
+		.help = "save the current config",
+	},
+	{
+		.name = "usb_address",
+		.handler = &jlink_handle_jlink_usb_address_command,
+		.mode = COMMAND_EXEC,
+		.help = "set the USB-Address, "
+			"This will change the product id",
+		.usage = "[0x00 to 0x03 or 0xff]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static const struct command_registration jlink_subcommand_handlers[] = {
 	{
 		.name = "caps",
@@ -809,6 +1198,14 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "access J-Link HW JTAG command version",
 		.usage = "[2|3]",
+	},
+	{
+		.name = "config",
+		.handler = &jlink_handle_jlink_config_command,
+		.mode = COMMAND_EXEC,
+		.help = "access J-Link configuration, "
+			"if no argument this will dump the config",
+		.chain = jlink_config_subcommand_handlers,
 	},
 	{
 		.name = "pid",

@@ -2321,6 +2321,24 @@ This is a write-once setting.
 Segger jlink USB adapter
 @c command:	jlink caps
 @c     dumps jlink capabilities
+@c command:	jlink config
+@c     access J-Link configurationif no argument this will dump the config
+@c command:	jlink config kickstart [val]
+@c     set Kickstart power on JTAG-pin 19.
+@c command:	jlink config mac_address [ff:ff:ff:ff:ff:ff]
+@c     set the MAC Address
+@c command:	jlink config ip [A.B.C.D[/E] [F.G.H.I]]
+@c     set the ip address of the J-Link Pro, "
+@c     where A.B.C.D is the ip,
+@c     E the bit of the subnet mask
+@c     F.G.H.I the subnet mask
+@c command:	jlink config reset
+@c     reset the current config
+@c command:	jlink config save
+@c     save the current config
+@c command:	jlink config usb_address [0x00 to 0x03 or 0xff]
+@c     set the USB-Address,
+@c     This will change the product id
 @c command:	jlink info
 @c     dumps status
 @c command:	jlink hw_jtag (2|3)
