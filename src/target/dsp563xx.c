@@ -1393,7 +1393,7 @@ static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32
 			return err;
 		if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0, 0x08D13C)) != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_reg_read(target->tap, 0, DSP563XX_ONCE_OGDBR, (uint32_t*)b)) != ERROR_OK)
+		if ((err = dsp563xx_once_reg_read(target->tap, 0, DSP563XX_ONCE_OGDBR, (uint32_t*)(void *)b)) != ERROR_OK)
 			return err;
 		b += 4;
 	}
@@ -1409,7 +1409,7 @@ static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32
 
 	for (i = 0; i < x; i++)
 	{
-		data = *((uint32_t*)b) & 0x00FFFFFF;
+		data = buf_get_u32(b, 0, 32) & 0x00FFFFFF;
 //		LOG_DEBUG("R: %08X", *((uint32_t*)b));
 		target_buffer_set_u32(target, b, data);
 		b += 4;
@@ -1466,8 +1466,8 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 
 	for(i=0,i1=0;i<count;i+=2,i1++)
 	{
-		((uint32_t*)buffer)[i] = ((uint32_t*)buffer_y)[i1];
-		((uint32_t*)buffer)[i+1] = ((uint32_t*)buffer_x)[i1];
+		buf_set_u32(buffer + i*sizeof(uint32_t), 0, 32, buf_get_u32(buffer_y+i1*sizeof(uint32_t), 0, 32));
+		buf_set_u32(buffer + (i + 1) *sizeof(uint32_t), 0, 32, buf_get_u32(buffer_x+i1*sizeof(uint32_t), 0, 32));
 	}
 
 	free(buffer_y);
@@ -1587,8 +1587,8 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 
 	for(i=0,i1=0;i<count;i+=2,i1++)
 	{
-		((uint32_t*)buffer_y)[i1] = ((uint32_t*)buffer)[i];
-		((uint32_t*)buffer_x)[i1] = ((uint32_t*)buffer)[i+1];
+		buf_set_u32(buffer_y + i1*sizeof(uint32_t), 0, 32, buf_get_u32(buffer+i*sizeof(uint32_t), 0, 32));
+		buf_set_u32(buffer_x + i1*sizeof(uint32_t), 0, 32, buf_get_u32(buffer+(i+1)*sizeof(uint32_t), 0, 32));
 	}
 
 	err = dsp563xx_write_memory_core(target,MEM_Y,address,size,count/2,buffer_y);
