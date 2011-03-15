@@ -1467,7 +1467,7 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 	for(i=0,i1=0;i<count;i+=2,i1++)
 	{
 		((uint32_t*)buffer)[i] = ((uint32_t*)buffer_y)[i1];
-		((uint32_t*)buffer)[i] = ((uint32_t*)buffer_x)[i1];
+		((uint32_t*)buffer)[i+1] = ((uint32_t*)buffer_x)[i1];
 	}
 
 	free(buffer_y);
