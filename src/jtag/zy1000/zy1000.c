@@ -438,24 +438,10 @@ struct cyg_upgrade_info firmware_info =
 		report_info,
 };
 
+// File written to /ram/firmware.phi before arriving at this fn
 static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	if (argc != 2)
-		return JIM_ERR;
-
-	int length;
-	const char *str = Jim_GetString(argv[1], &length);
-
-	/* */
-	int tmpFile;
-	if ((tmpFile = open(firmware_info.file, O_RDWR | O_CREAT | O_TRUNC)) <= 0)
-	{
-		return JIM_ERR;
-	}
-	bool success;
-	success = write(tmpFile, str, length) == length;
-	close(tmpFile);
-	if (!success)
+	if (argc != 1)
 		return JIM_ERR;
 
 	if (!cyg_firmware_upgrade(NULL, firmware_info))
