@@ -45,7 +45,7 @@ static void buspirate_scan(bool ir_scan, enum scan_type type,
 	uint8_t *buffer, int scan_size, struct scan_command *command);
 
 
-#define CMD_UNKOWN        0x00
+#define CMD_UNKNOWN       0x00
 #define CMD_PORT_MODE     0x01
 #define CMD_FEATURE       0x02
 #define CMD_READ_ADCS     0x03

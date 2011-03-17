@@ -841,7 +841,7 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	 * REVISIT DustDevil-A0 parts have an erratum making FMPPE commits
 	 * inadvisable ... it makes future mass erase operations fail.
 	 */
-	LOG_WARNING("Flash protection cannot be removed once commited, commit is NOT executed !");
+	LOG_WARNING("Flash protection cannot be removed once committed, commit is NOT executed !");
 	/* target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_COMT); */
 
 	/* Wait until erase complete */

@@ -84,7 +84,7 @@ enum target_debug_reason
 	DBG_REASON_UNDEFINED = 6
 };
 
-enum target_endianess
+enum target_endianness
 {
 	TARGET_ENDIAN_UNKNOWN = 0,
 	TARGET_BIG_ENDIAN = 1, TARGET_LITTLE_ENDIAN = 2
@@ -139,7 +139,7 @@ struct target
 	uint32_t backup_working_area;			/* whether the content of the working area has to be preserved */
 	struct working_area *working_areas;/* list of allocated working areas */
 	enum target_debug_reason debug_reason;/* reason why the target entered debug state */
-	enum target_endianess endianness;	/* target endianess */
+	enum target_endianness endianness;	/* target endianness */
 	// also see: target_state_name()
 	enum target_state state;			/* the current backend-state (running, halted, ...) */
 	struct reg_cache *reg_cache;		/* the first register cache of the target (core regs) */

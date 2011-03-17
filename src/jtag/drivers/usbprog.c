@@ -54,7 +54,7 @@ static void usbprog_path_move(struct pathmove_command *cmd);
 static void usbprog_runtest(int num_cycles);
 static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size);
 
-#define UNKOWN_COMMAND	0x00
+#define UNKNOWN_COMMAND	0x00
 #define PORT_DIRECTION	0x01
 #define PORT_SET		0x02
 #define PORT_GET		0x03

@@ -431,7 +431,7 @@ static int image_elf_read_headers(struct image *image)
 	if ((elf->endianness != ELFDATA2LSB)
 		 &&(elf->endianness != ELFDATA2MSB))
 	{
-		LOG_ERROR("invalid ELF file, unknown endianess setting");
+		LOG_ERROR("invalid ELF file, unknown endianness setting");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 

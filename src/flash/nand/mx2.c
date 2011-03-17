@@ -105,7 +105,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 	mx2_nf_info->flags.target_little_endian =
 	(nand->target->endianness == TARGET_LITTLE_ENDIAN);
 	/*
-	 * testing host endianess
+	 * testing host endianness
 	 */
 	x = 1;
 	if (*(char *) &x == 1)

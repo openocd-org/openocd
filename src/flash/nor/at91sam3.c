@@ -2684,7 +2684,7 @@ showall:
 			   (0 == strcmp("clear", CMD_ARGV[0]))) { // quietly accept both
 		r = FLASHD_ClrGPNVM(&(pChip->details.bank[0]), who);
 	} else {
-		command_print(CMD_CTX, "Unkown command: %s", CMD_ARGV[0]);
+		command_print(CMD_CTX, "Unknown command: %s", CMD_ARGV[0]);
 		r = ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return r;

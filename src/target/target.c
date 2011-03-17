@@ -1522,7 +1522,7 @@ int target_checksum_memory(struct target *target, uint32_t address, uint32_t siz
 			return retval;
 		}
 
-		/* convert to target endianess */
+		/* convert to target endianness */
 		for (i = 0; i < (size/sizeof(uint32_t)); i++)
 		{
 			uint32_t target_data;

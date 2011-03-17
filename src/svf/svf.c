@@ -402,7 +402,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	svf_buffer_index = 0;
 	// double the buffer size
-	// in case current command cannot be commited, and next command is a bit scan command
+	// in case current command cannot be committed, and next command is a bit scan command
 	// here is 32K bits for this big scan command, it should be enough
 	// buffer will be reallocated if buffer size is not enough
 	svf_tdi_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
