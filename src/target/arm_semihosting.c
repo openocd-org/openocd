@@ -139,7 +139,7 @@ static int do_semihosting(struct target *target)
 	case 0x04:	/* SYS_WRITE0 */
 		do {
 			unsigned char c;
-			retval = target_read_memory(target, r1, 1, 1, &c);
+			retval = target_read_memory(target, r1++, 1, 1, &c);
 			if (retval != ERROR_OK)
 				return retval;
 			if (!c)
