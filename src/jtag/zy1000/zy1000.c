@@ -1036,6 +1036,8 @@ static const struct command_registration zy1000_commands[] = {
 };
 
 
+#if !BUILD_ZY1000_MASTER
+
 static int tcp_ip = -1;
 
 /* Write large packets if we can */
@@ -1115,9 +1117,6 @@ enum ZY1000_CMD
 	ZY1000_CMD_SLEEP = 0x1,
 	ZY1000_CMD_WAITIDLE = 2
 };
-
-
-#if !BUILD_ZY1000_MASTER
 
 #include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
 #include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
@@ -1363,131 +1362,11 @@ static void writeShiftValue(uint8_t *data, int bits)
 
 #if BUILD_ZY1000_MASTER
 
-pthread_t thread;
-
 #if BUILD_ECOSBOARD
 static char watchdog_stack[2048];
 static cyg_thread watchdog_thread_object;
 static cyg_handle_t watchdog_thread_handle;
 #endif
-
-/* Infinite loop peeking & poking */
-static void tcpipserver(void)
-{
-	for (;;)
-	{
-		uint32_t address;
-		if (!readLong(&address))
-			return;
-		enum ZY1000_CMD c = (address >> 24) & 0xff;
-		address &= 0xffffff;
-		switch (c)
-		{
-			case ZY1000_CMD_POKE:
-			{
-				uint32_t data;
-				if (!readLong(&data))
-					return;
-				address &= ~0x80000000;
-				ZY1000_POKE(address + ZY1000_JTAG_BASE, data);
-				break;
-			}
-			case ZY1000_CMD_PEEK:
-			{
-				uint32_t data;
-				ZY1000_PEEK(address + ZY1000_JTAG_BASE, data);
-				if (!writeLong(data))
-					return;
-				break;
-			}
-			case ZY1000_CMD_SLEEP:
-			{
-				uint32_t data;
-				if (!readLong(&data))
-					return;
-				/* Wait for some us */
-				usleep(data);
-				break;
-			}
-			case ZY1000_CMD_WAITIDLE:
-			{
-				waitIdle();
-				break;
-			}
-			default:
-				return;
-		}
-	}
-}
-
-
-static void *tcpip_server(void *data)
-{
-	int so_reuseaddr_option = 1;
-
-	int fd;
-	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	{
-		LOG_ERROR("error creating socket: %s", strerror(errno));
-		exit(-1);
-	}
-
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*) &so_reuseaddr_option,
-			sizeof(int));
-
-	struct sockaddr_in sin;
-	unsigned int address_size;
-	address_size = sizeof(sin);
-	memset(&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = INADDR_ANY;
-	sin.sin_port = htons(7777);
-
-	if (bind(fd, (struct sockaddr *) &sin, sizeof(sin)) == -1)
-	{
-		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
-		exit(-1);
-	}
-
-	if (listen(fd, 1) == -1)
-	{
-		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
-		exit(-1);
-	}
-
-
-	for (;;)
-	{
-		tcp_ip = accept(fd, (struct sockaddr *) &sin, &address_size);
-		if (tcp_ip < 0)
-		{
-			continue;
-		}
-
-		int flag = 1;
-		setsockopt(tcp_ip,	/* socket affected */
-				IPPROTO_TCP,		/* set option at TCP level */
-				TCP_NODELAY,		/* name of option */
-				(char *)&flag,		/* the cast is historical cruft */
-				sizeof(int));		/* length of option value */
-
-		bool save_poll = jtag_poll_get_enabled();
-
-		/* polling will screw up the "connection" */
-		jtag_poll_set_enabled(false);
-
-		tcpipserver();
-
-		jtag_poll_set_enabled(save_poll);
-
-		close(tcp_ip);
-
-	}
-	/* Never reached actually */
-	close(fd);
-
-	return NULL;
-}
 
 #ifdef WATCHDOG_BASE
 /* If we connect to port 8888 we must send a char every 10s or the board resets itself */
@@ -1628,8 +1507,6 @@ int zy1000_init(void)
 	zy1000_speed(jtag_speed_var);
 
 #if BUILD_ZY1000_MASTER
-	pthread_create(&thread, NULL, tcpip_server, NULL);
-
 #if BUILD_ECOSBOARD
 #ifdef WATCHDOG_BASE
 	cyg_thread_create(1, watchdog_server, (cyg_addrword_t) 0, "watchdog tcip/ip server",
