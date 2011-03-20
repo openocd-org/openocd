@@ -188,7 +188,7 @@ int dsp563xx_once_request_debug(struct jtag_tap *tap, int reset_state)
 int dsp563xx_once_read_register(struct jtag_tap *tap, int flush, struct once_reg *regs, int len)
 {
 	int i;
-	int err;
+	int err = ERROR_OK;
 
 	for (i = 0; i < len; i++)
 	{
