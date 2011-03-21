@@ -70,7 +70,6 @@ extern struct target_type dragonite_target;
 extern struct target_type xscale_target;
 extern struct target_type cortexm3_target;
 extern struct target_type cortexa8_target;
-extern struct target_type cortexa9_target;
 extern struct target_type arm11_target;
 extern struct target_type mips_m4k_target;
 extern struct target_type avr_target;
@@ -93,7 +92,6 @@ static struct target_type *target_types[] =
 	&xscale_target,
 	&cortexm3_target,
 	&cortexa8_target,
-	&cortexa9_target,
 	&arm11_target,
 	&mips_m4k_target,
 	&avr_target,

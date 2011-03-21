@@ -30,6 +30,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  *                                                                         *
  *   Cortex-A8(tm) TRM, ARM DDI 0344H                                      *
+ *   Cortex-A9(tm) TRM, ARM DDI 0407F                                      *
  *                                                                         *
  ***************************************************************************/
 #ifdef HAVE_CONFIG_H
@@ -692,7 +693,7 @@ static int cortex_a8_poll(struct target *target)
 	}
 	cortex_a8->cpudbg_dscr = dscr;
 
-	if ((dscr & 0x3) == 0x3)
+	if (DSCR_RUN_MODE(dscr) == (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED))
 	{
 		if (prev_target_state != TARGET_HALTED)
 		{
@@ -722,7 +723,7 @@ static int cortex_a8_poll(struct target *target)
 			}
 		}
 	}
-	else if ((dscr & 0x3) == 0x2)
+	else if (DSCR_RUN_MODE(dscr) == DSCR_CORE_RESTARTED)
 	{
 		target->state = TARGET_RUNNING;
 	}
@@ -747,7 +748,7 @@ static int cortex_a8_halt(struct target *target)
 	 * and then wait for the core to be halted.
 	 */
 	retval = mem_ap_sel_write_atomic_u32(swjdp, swjdp_debugap,
-			armv7a->debug_base + CPUDBG_DRCR, 0x1);
+			armv7a->debug_base + CPUDBG_DRCR, DRCR_HALT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -870,14 +871,30 @@ static int cortex_a8_resume(struct target *target, int current,
 	}
 
 #endif
-	/* Restart core and wait for it to be started
-	 * NOTE: this clears DSCR_ITR_EN and other bits.
+
+	/*
+	 * Restart core and wait for it to be started.  Clear ITRen and sticky
+	 * exception flags: see ARMv7 ARM, C5.9.
 	 *
 	 * REVISIT: for single stepping, we probably want to
 	 * disable IRQs by default, with optional override...
 	 */
+
+	retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((dscr & DSCR_INSTR_COMP) == 0)
+		LOG_ERROR("DSCR InstrCompl must be set before leaving debug!");
+
 	retval = mem_ap_sel_write_atomic_u32(swjdp, swjdp_debugap,
-			armv7a->debug_base + CPUDBG_DRCR, 0x2);
+		armv7a->debug_base + CPUDBG_DSCR, dscr & ~DSCR_ITR_EN);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = mem_ap_sel_write_atomic_u32(swjdp, swjdp_debugap,
+			armv7a->debug_base + CPUDBG_DRCR, DRCR_RESTART | DRCR_CLEAR_EXCEPTIONS);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1443,32 +1460,101 @@ static int cortex_a8_read_phys_memory(struct target *target,
                 uint32_t address, uint32_t size,
                 uint32_t count, uint8_t *buffer)
 {
-        struct armv7a_common *armv7a = target_to_armv7a(target);
-        struct adiv5_dap *swjdp = &armv7a->dap;
-        int retval = ERROR_INVALID_ARGUMENTS;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = &armv7a->dap;
+	int retval = ERROR_INVALID_ARGUMENTS;
+	uint8_t apsel = swjdp->apsel;
 
-        /* cortex_a8 handles unaligned memory access */
+	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d", address, size, count);
 
-// ???  dap_ap_select(swjdp, swjdp_memoryap);
-        LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d", address, size, count);
-        if (count && buffer) {
-                switch (size) {
-                case 4:
-                        retval = mem_ap_sel_read_buf_u32(swjdp, swjdp_memoryap,
-								buffer, 4 * count, address);
-                        break;
-                case 2:
-                        retval = mem_ap_sel_read_buf_u16(swjdp, swjdp_memoryap,
-								buffer, 2 * count, address);
-                        break;
-                case 1:
-                        retval = mem_ap_sel_read_buf_u8(swjdp, swjdp_memoryap,
-								 buffer, count, address);
-                        break;
-                }
-        }
+	if (count && buffer) {
 
-        return retval;
+		if ( apsel == swjdp_memoryap ) {
+
+			/* read memory through AHB-AP */
+
+			switch (size) {
+				case 4:
+					retval = mem_ap_sel_read_buf_u32(swjdp, swjdp_memoryap,
+							buffer, 4 * count, address);
+					break;
+				case 2:
+					retval = mem_ap_sel_read_buf_u16(swjdp, swjdp_memoryap,
+							buffer, 2 * count, address);
+					break;
+				case 1:
+					retval = mem_ap_sel_read_buf_u8(swjdp, swjdp_memoryap,
+							buffer, count, address);
+					break;
+			}
+
+		} else {
+
+			/* read memory through APB-AP */
+
+			uint32_t saved_r0, saved_r1;
+			int nbytes = count * size;
+			uint32_t data;
+			int enabled = 0;
+
+			if (target->state != TARGET_HALTED)
+			{
+				LOG_WARNING("target not halted");
+				return ERROR_TARGET_NOT_HALTED;
+			}
+
+			retval = cortex_a8_mmu(target, &enabled);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (enabled)
+			{
+				LOG_WARNING("Reading physical memory through APB with MMU enabled is not yet implemented");
+				return ERROR_TARGET_FAILURE;
+			}
+
+			/* save registers r0 and r1, we are going to corrupt them  */
+			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			while (nbytes > 0) {
+
+				/* execute instruction LDRB r1, [r0], 1 (0xe4d01001) */
+				retval = cortex_a8_exec_opcode(target, ARMV4_5_LDRB_IP(1, 0) , NULL);
+				if (retval != ERROR_OK)
+						return retval;
+
+				retval = cortex_a8_dap_read_coreregister_u32(target, &data, 1);
+				if (retval != ERROR_OK)
+					return retval;
+
+				*buffer++ = data;
+				--nbytes;
+
+			}
+
+			/* restore corrupted registers r0 and r1 */
+			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+		}
+	}
+
+	return retval;
 }
 
 static int cortex_a8_read_memory(struct target *target, uint32_t address,
@@ -1480,7 +1566,6 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 
 	/* cortex_a8 handles unaligned memory access */
 
-// ???	dap_ap_select(swjdp, swjdp_memoryap);
         LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address, size, count);
         retval = cortex_a8_mmu(target, &enabled);
         if (retval != ERROR_OK)
@@ -1504,88 +1589,162 @@ static int cortex_a8_write_phys_memory(struct target *target,
                 uint32_t address, uint32_t size,
                 uint32_t count, uint8_t *buffer)
 {
-        struct armv7a_common *armv7a = target_to_armv7a(target);
-        struct adiv5_dap *swjdp = &armv7a->dap;
-        int retval = ERROR_INVALID_ARGUMENTS;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = &armv7a->dap;
+	int retval = ERROR_INVALID_ARGUMENTS;
+	uint8_t apsel = swjdp->apsel;
 
-// ???  dap_ap_select(swjdp, swjdp_memoryap);
+	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address, size, count);
 
-        LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address, size, count);
-        if (count && buffer) {
-                switch (size) {
-                case 4:
-                        retval = mem_ap_sel_write_buf_u32(swjdp, swjdp_memoryap,
-								buffer, 4 * count, address);
-                        break;
-                case 2:
-                        retval = mem_ap_sel_write_buf_u16(swjdp, swjdp_memoryap,
-								buffer, 2 * count, address);
-                        break;
-                case 1:
-                        retval = mem_ap_sel_write_buf_u8(swjdp, swjdp_memoryap,
-								buffer, count, address);
-                        break;
-                }
-        }
+	if (count && buffer) {
 
-        /* REVISIT this op is generic ARMv7-A/R stuff */
-        if (retval == ERROR_OK && target->state == TARGET_HALTED)
-        {
-                struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+		if ( apsel == swjdp_memoryap ) {
 
-                retval = dpm->prepare(dpm);
-                if (retval != ERROR_OK)
-                        return retval;
+			/* write memory through AHB-AP */
 
-                /* The Cache handling will NOT work with MMU active, the
-                 * wrong addresses will be invalidated!
-                 *
-                 * For both ICache and DCache, walk all cache lines in the
-                 * address range. Cortex-A8 has fixed 64 byte line length.
-                 *
-                 * REVISIT per ARMv7, these may trigger watchpoints ...
-                 */
+			switch (size) {
+				case 4:
+					retval = mem_ap_sel_write_buf_u32(swjdp, swjdp_memoryap,
+							buffer, 4 * count, address);
+					break;
+				case 2:
+					retval = mem_ap_sel_write_buf_u16(swjdp, swjdp_memoryap,
+							buffer, 2 * count, address);
+					break;
+				case 1:
+					retval = mem_ap_sel_write_buf_u8(swjdp, swjdp_memoryap,
+							buffer, count, address);
+					break;
+			}
 
-                /* invalidate I-Cache */
-                if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
-                {
-                        /* ICIMVAU - Invalidate Cache single entry
-                         * with MVA to PoU
-                         *      MCR p15, 0, r0, c7, c5, 1
-                         */
-                        for (uint32_t cacheline = address;
-                                        cacheline < address + size * count;
-                                        cacheline += 64) {
-                                retval = dpm->instr_write_data_r0(dpm,
-                                        ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
-                                        cacheline);
-                                if (retval != ERROR_OK)
-                                	return retval;
-                        }
-                }
+		} else {
 
-                /* invalidate D-Cache */
-                if (armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-                {
-                        /* DCIMVAC - Invalidate data Cache line
-                         * with MVA to PoC
-                         *      MCR p15, 0, r0, c7, c6, 1
-                         */
-                        for (uint32_t cacheline = address;
-                                        cacheline < address + size * count;
-                                        cacheline += 64) {
-                                retval = dpm->instr_write_data_r0(dpm,
-                                        ARMV4_5_MCR(15, 0, 0, 7, 6, 1),
-                                        cacheline);
-                                if (retval != ERROR_OK)
-                                	return retval;
-                        }
-                }
+			/* write memory through APB-AP */
 
-                /* (void) */ dpm->finish(dpm);
-        }
+			uint32_t saved_r0, saved_r1;
+			int nbytes = count * size;
+			uint32_t data;
+			int enabled = 0;
 
-        return retval;
+			if (target->state != TARGET_HALTED)
+			{
+				LOG_WARNING("target not halted");
+				return ERROR_TARGET_NOT_HALTED;
+			}
+
+			retval = cortex_a8_mmu(target, &enabled);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (enabled)
+			{
+				LOG_WARNING("Writing physical memory through APB with MMU enabled is not yet implemented");
+				return ERROR_TARGET_FAILURE;
+			}
+
+			/* save registers r0 and r1, we are going to corrupt them  */
+			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			while (nbytes > 0) {
+
+				data = *buffer++;
+
+				retval = cortex_a8_dap_write_coreregister_u32(target, data, 1);
+				if (retval != ERROR_OK)
+					return retval;
+
+					/* execute instruction STRB r1, [r0], 1 (0xe4c01001) */
+				retval = cortex_a8_exec_opcode(target, ARMV4_5_STRB_IP(1, 0) , NULL);
+				if (retval != ERROR_OK)
+						return retval;
+
+				--nbytes;
+			}
+
+			/* restore corrupted registers r0 and r1 */
+			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r0, 0);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r1, 1);
+			if (retval != ERROR_OK)
+				return retval;
+
+			/* we can return here without invalidating D/I-cache because */
+			/* access through APB maintains cache coherency              */
+			return retval;
+		}
+	}
+
+
+	/* REVISIT this op is generic ARMv7-A/R stuff */
+	if (retval == ERROR_OK && target->state == TARGET_HALTED)
+	{
+		struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+
+		retval = dpm->prepare(dpm);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* The Cache handling will NOT work with MMU active, the
+		 * wrong addresses will be invalidated!
+		 *
+		 * For both ICache and DCache, walk all cache lines in the
+		 * address range. Cortex-A8 has fixed 64 byte line length.
+		 *
+		 * REVISIT per ARMv7, these may trigger watchpoints ...
+		 */
+
+		/* invalidate I-Cache */
+		if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
+		{
+			/* ICIMVAU - Invalidate Cache single entry
+			 * with MVA to PoU
+			 *      MCR p15, 0, r0, c7, c5, 1
+			 */
+			for (uint32_t cacheline = address;
+					cacheline < address + size * count;
+					cacheline += 64) {
+				retval = dpm->instr_write_data_r0(dpm,
+						ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
+						cacheline);
+				if (retval != ERROR_OK)
+					return retval;
+			}
+		}
+
+		/* invalidate D-Cache */
+		if (armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
+		{
+			/* DCIMVAC - Invalidate data Cache line
+			 * with MVA to PoC
+			 *      MCR p15, 0, r0, c7, c6, 1
+			 */
+			for (uint32_t cacheline = address;
+					cacheline < address + size * count;
+					cacheline += 64) {
+				retval = dpm->instr_write_data_r0(dpm,
+						ARMV4_5_MCR(15, 0, 0, 7, 6, 1),
+						cacheline);
+				if (retval != ERROR_OK)
+					return retval;
+			}
+		}
+
+		/* (void) */ dpm->finish(dpm);
+	}
+
+	return retval;
 }
 
 static int cortex_a8_write_memory(struct target *target, uint32_t address,
@@ -1594,8 +1753,6 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
         int enabled = 0;
         uint32_t virt, phys;
         int retval;
-
-// ???  dap_ap_select(swjdp, swjdp_memoryap);
 
         LOG_DEBUG("Writing memory to address 0x%x; size %d; count %d", address, size, count);
         retval = cortex_a8_mmu(target, &enabled);
@@ -1723,6 +1880,21 @@ static int cortex_a8_examine_first(struct target *target)
 					&armv7a->debug_base);
 	if (retval != ERROR_OK)
 		return retval;
+
+#if 0
+	/*
+	 * FIXME: assuming omap4430
+	 *
+	 * APB DBGBASE reads 0x80040000, but this points to an empty ROM table.
+	 * 0x80000000 is cpu0 coresight region
+	 */
+	if (target->coreid > 3) {
+		LOG_ERROR("cortex_a8 supports up to 4 cores");
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	armv7a->debug_base = 0x80000000 |
+			((target->coreid & 0x3) << CORTEX_A8_PADDRDBG_CPU_SHIFT);
+#endif
 
 	retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
 			armv7a->debug_base + CPUDBG_CPUID, &cpuid);

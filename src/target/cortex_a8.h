@@ -33,7 +33,6 @@
 
 #define CORTEX_A8_COMMON_MAGIC 0x411fc082
 
-/* See Cortex-A8 TRM section 12.5 */
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
 #define CPUDBG_TTYPR	0xD0C
@@ -42,6 +41,8 @@
 
 #define BRP_NORMAL 0
 #define BRP_CONTEXT 1
+
+#define CORTEX_A8_PADDRDBG_CPU_SHIFT 13
 
 struct cortex_a8_brp
 {

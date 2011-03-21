@@ -73,8 +73,7 @@ ARMV7_SRC = \
 	armv7m.c \
 	cortex_m3.c \
 	armv7a.c \
-	cortex_a8.c \
-	cortex_a9.c
+	cortex_a8.c
 
 ARM_DEBUG_SRC = \
 	arm_dpm.c \
@@ -137,7 +136,6 @@ noinst_HEADERS = \
 	breakpoints.h \
 	cortex_m3.h \
 	cortex_a8.h \
-	cortex_a9.h \
 	embeddedice.h \
 	etb.h \
 	etm.h \
