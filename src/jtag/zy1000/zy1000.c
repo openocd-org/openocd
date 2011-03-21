@@ -618,6 +618,11 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field 
 			assert(scan_size <= 32);
 			shiftValueInner(TAP_IRSHIFT, pause_state, scan_size, 0xffffffff);
 
+			/* Optimization code will check what the cur_instr is set to, so
+			 * we must set it to bypass value.
+			 */
+			buf_set_ones(tap->cur_instr, tap->ir_length);
+
 			tap->bypass = 1;
 		}
 	}
