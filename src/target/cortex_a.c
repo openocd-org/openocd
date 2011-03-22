@@ -38,7 +38,7 @@
 #endif
 
 #include "breakpoints.h"
-#include "cortex_a8.h"
+#include "cortex_a.h"
 #include "register.h"
 #include "target_request.h"
 #include "target_type.h"
