@@ -1091,6 +1091,7 @@ struct broken_cpu {
 	char		*model;
 } broken_cpus[] = {
 	{ 0x80000000, 0x04770002, 0x1ba00477, 0x60000000, "imx51" },
+	{ 0x80040000, 0x04770002, 0x3b95c02f, 0x80000000, "omap4430" },
 };
 
 int dap_get_debugbase(struct adiv5_dap *dap, int ap,
