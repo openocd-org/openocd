@@ -723,6 +723,7 @@ int command_run_linef(struct command_context *context, const char *format, ...)
 	if (string != NULL)
 	{
 		retval = command_run_line(context, string);
+		free(string);
 	}
 	va_end(ap);
 	return retval;
