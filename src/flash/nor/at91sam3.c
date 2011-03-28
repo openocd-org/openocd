@@ -1999,7 +1999,8 @@ sam3_GetDetails(struct sam3_bank_private *pPrivate)
 	LOG_DEBUG("Begin");
 	pDetails = all_sam3_details;
 	while (pDetails->name) {
-		if (pDetails->chipid_cidr == pPrivate->pChip->cfg.CHIPID_CIDR) {
+		// Compare cidr without version bits
+		if (pDetails->chipid_cidr == (pPrivate->pChip->cfg.CHIPID_CIDR & 0xFFFFFFE0)) {
 			break;
 		} else {
 			pDetails++;
