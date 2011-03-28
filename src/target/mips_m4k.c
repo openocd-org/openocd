@@ -421,7 +421,11 @@ static int mips_m4k_step(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
+	{
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
+		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
+		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
+	}
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints) {
