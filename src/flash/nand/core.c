@@ -125,6 +125,8 @@ static struct nand_info nand_flash_ids[] =
 	{"NAND 2GiB 1.8V 16-bit",	0xB5, 0, 2048, 0, LP_OPTIONS16},
 	{"NAND 2GiB 3.3V 16-bit",	0xC5, 0, 2048, 0, LP_OPTIONS16},
 
+	{"NAND 2GiB 3.3V 8-bit",	0x48, 0, 2048, 0, LP_OPTIONS},
+
 	{NULL, 0, 0, 0, 0, 0 }
 };
 
