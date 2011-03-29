@@ -215,7 +215,7 @@ static int lpc32xx_init(struct nand_device *nand)
 	nand->bus_width = bus_width;
 
 	if ((address_cycles != 3) && (address_cycles != 4)) {
-		LOG_ERROR("LPC32xx driver doesn't support %i", address_cycles);
+		LOG_ERROR("LPC32xx driver doesn't support %i address cycles", address_cycles);
 		return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 	}
 
