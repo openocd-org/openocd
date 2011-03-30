@@ -3703,6 +3703,7 @@ enum target_cfg_param {
 	TCFG_VARIANT,
 	TCFG_COREID,
 	TCFG_CHAIN_POSITION,
+	TCFG_DBGBASE,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -3716,6 +3717,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-variant",          .value = TCFG_VARIANT },
 	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
+	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -4005,6 +4007,22 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 			}
 			Jim_SetResultString(goi->interp, target->tap->dotted_name, -1);
 			/* loop for more e*/
+			break;
+		case TCFG_DBGBASE:
+			if (goi->isconfigure) {
+				e = Jim_GetOpt_Wide(goi, &w);
+				if (e != JIM_OK) {
+					return e;
+				}
+				target->dbgbase = (uint32_t)w;
+				target->dbgbase_set = true;
+			} else {
+				if (goi->argc != 0) {
+					goto no_params;
+				}
+			}
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->dbgbase));
+			/* loop for more */
 			break;
 		}
 	} /* while (goi->argc) */

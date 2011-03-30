@@ -155,6 +155,11 @@ struct target
 										 * lots of halted/resumed info when stepping in debugger. */
 	bool halt_issued;					/* did we transition to halted state? */
 	long long halt_issued_time;			/* Note time when halt was issued */
+
+	bool dbgbase_set;					/* By default the debug base is not set */
+	uint32_t dbgbase;					/* Really a Cortex-A specific option, but there is no
+	 	 	 	 	 	 	 	 	 	   system in place to support target specific options
+	 	 	 	 	 	 	 	 	 	   currently. */
 };
 
 /** Returns the instance-specific name of the specified target. */
