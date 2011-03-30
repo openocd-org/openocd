@@ -1,0 +1,49 @@
+Submitting patches to the OpenOCD mailing list:
+
+By the time you have read this, one supposes that 
+you have figured out how to clone the OpenOCD git
+repository.
+
+Below is a basic workflow and specific instructions 
+to get you going with git and patches.
+
+0. Clone the git repository, rather than just
+download the source. 
+
+git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
+
+or if you have problems with the "git:" protocol, use
+the slower http protocol:
+
+git clone http://repo.or.cz/r/openocd.git
+
+1. Set up git with your name and email:
+
+git config --global user.name "John Smith"
+git config --global user.email "john@smith.org"
+
+2. Work on your patches. Split the work into 
+multiple small patches that can be reviewed and
+applied seperately and safely to the OpenOCD
+repository.
+
+while(!done) {
+  work - edit files using your favorite editor.
+  run "git commit -a" to commit all changes. 
+}
+
+TIP! use "git add ." before commit to add new files.
+
+3. Next you need to make sure that your patches
+are on top of the latest stuff on the server and
+that there are no conflicts.
+
+git pull --rebase
+
+4. Generate the patch files. This will generate
+patches for all commits that are on top of
+the latest stuff on the server:
+
+git format-patch origin/master
+
+5. Email the patches to openocd-development@lists.berlios.de  
