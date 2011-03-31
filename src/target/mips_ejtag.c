@@ -261,8 +261,11 @@ int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_version;
+	int retval;
 
-	mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
+	retval = mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_DEBUG("impcode: 0x%8.8" PRIx32 "", ejtag_info->impcode);
 
 	/* get ejtag version */
