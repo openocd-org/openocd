@@ -270,11 +270,11 @@ int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 * Write a buffer in target order (little endian)                             *
 *                                                                            *
 *****************************************************************************/
-int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
-	uint8_t* pBuffer = buffer;
+	const uint8_t* pBuffer = buffer;
 
 	count >>= 2;
 	wcount = count;
@@ -343,7 +343,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 }
 
 static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -424,7 +424,7 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 	return retval;
 }
 
-int mem_ap_write_buf_u16(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
@@ -456,7 +456,7 @@ int mem_ap_write_buf_u16(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 }
 
 static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -532,7 +532,7 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 	return retval;
 }
 
-int mem_ap_write_buf_u8(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
@@ -935,21 +935,21 @@ int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 }
 
 int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u8(swjdp, buffer, count, address);
 }
 
 int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u16(swjdp, buffer, count, address);
 }
 
 int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u32(swjdp, buffer, count, address);

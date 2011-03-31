@@ -925,7 +925,7 @@ static int arm11_read_memory(struct target *target, uint32_t address, uint32_t s
 */
 static int arm11_write_memory_inner(struct target *target,
 		uint32_t address, uint32_t size,
-		uint32_t count, uint8_t *buffer,
+		uint32_t count, const uint8_t *buffer,
 		bool no_increment)
 {
 	int retval;
@@ -1072,7 +1072,7 @@ static int arm11_write_memory_inner(struct target *target,
 
 static int arm11_write_memory(struct target *target,
 		uint32_t address, uint32_t size,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	/* pointer increment matters only for multi-unit writes ...
 	 * not e.g. to a "reset the chip" controller.
@@ -1083,7 +1083,7 @@ static int arm11_write_memory(struct target *target,
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
 static int arm11_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t count, const uint8_t *buffer)
 {
 	if (target->state != TARGET_HALTED)
 	{

@@ -376,11 +376,11 @@ int mem_ap_read_buf_u32(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
 
 int mem_ap_write_buf_u8(struct adiv5_dap *swjdp,
-		uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_write_buf_u16(struct adiv5_dap *swjdp,
-		uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
-		uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address);
 
 
 
@@ -405,11 +405,11 @@ int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address);
 
 int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address);
 
 
 

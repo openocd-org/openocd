@@ -872,7 +872,7 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 }
 
 static int mips_m4k_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -966,7 +966,7 @@ static int mips_m4k_examine(struct target *target)
 }
 
 static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;

@@ -330,7 +330,7 @@ static int arm720t_read_phys_memory(struct target *target,
 }
 
 static int arm720t_write_phys_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
 

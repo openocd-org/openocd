@@ -528,7 +528,7 @@ static int xscale_write_rx(struct target *target)
 }
 
 /* send count elements of size byte to the debug handler */
-static int xscale_send(struct target *target, uint8_t *buffer, int count, int size)
+static int xscale_send(struct target *target, const uint8_t *buffer, int count, int size)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	uint32_t t[3];
@@ -1937,7 +1937,7 @@ static int xscale_read_phys_memory(struct target *target, uint32_t address,
 }
 
 static int xscale_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
@@ -2016,7 +2016,7 @@ static int xscale_write_memory(struct target *target, uint32_t address,
 }
 
 static int xscale_write_phys_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
@@ -2031,7 +2031,7 @@ static int xscale_write_phys_memory(struct target *target, uint32_t address,
 }
 
 static int xscale_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	return xscale_write_memory(target, address, 4, count, buffer);
 }

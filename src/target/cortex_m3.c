@@ -1618,7 +1618,7 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 }
 
 static int cortex_m3_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = &armv7m->dap;
@@ -1642,7 +1642,7 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 }
 
 static int cortex_m3_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }

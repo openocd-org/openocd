@@ -112,25 +112,25 @@ struct target_type
 	 * directly, use target_read_memory() instead.
 	 */
 	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	int (*write_memory_imp)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory_imp)(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 	/**
 	 * Target memory write callback.  Do @b not call this function
 	 * directly, use target_write_memory() instead.
 	 */
-	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 	/* Default implementation will do some fancy alignment to improve performance, target can override */
 	int (*read_buffer)(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer);
 
 	/* Default implementation will do some fancy alignment to improve performance, target can override */
-	int (*write_buffer)(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer);
+	int (*write_buffer)(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer);
 
 	/**
 	 * Write target memory in multiples of 4 bytes, optimized for
 	 * writing large quantities of data.  Do @b not call this
 	 * function directly, use target_bulk_write_memory() instead.
 	 */
-	int (*bulk_write_memory)(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer);
+	int (*bulk_write_memory)(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer);
 
 	int (*checksum_memory)(struct target *target, uint32_t address, uint32_t count, uint32_t* checksum);
 	int (*blank_check_memory)(struct target *target, uint32_t address, uint32_t count, uint32_t* blank);
@@ -225,7 +225,7 @@ struct target_type
 	/*
 	 * same as read_phys_memory, except that it writes...
 	 */
-	int (*write_phys_memory)(struct target *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_phys_memory)(struct target *target, uint32_t phys_address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 	int (*mmu)(struct target *target, int *enabled);
 

@@ -149,7 +149,7 @@ int armv4_5_mmu_read_physical(struct target *target, struct armv4_5_mmu_common *
 	return retval;
 }
 
-int armv4_5_mmu_write_physical(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int armv4_5_mmu_write_physical(struct target *target, struct armv4_5_mmu_common *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	int retval;
 

@@ -515,7 +515,7 @@ static int avr32_ap7k_read_memory(struct target *target, uint32_t address,
 }
 
 static int avr32_ap7k_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
@@ -600,7 +600,7 @@ static int avr32_ap7k_examine(struct target *target)
 }
 
 static int avr32_ap7k_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	LOG_ERROR("%s: implement me", __func__);
 

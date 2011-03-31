@@ -28,7 +28,7 @@ struct armv4_5_mmu_common
 {
 	int (*get_ttb)(struct target *target, uint32_t *result);
 	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 	int (*disable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
 	int (*enable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
 	struct armv4_5_cache_common armv4_5_cache;
@@ -46,7 +46,7 @@ int armv4_5_mmu_read_physical(struct target *target,
 
 int armv4_5_mmu_write_physical(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 enum
 {
