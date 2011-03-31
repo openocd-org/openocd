@@ -146,9 +146,22 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 
 	*data = buf_get_u32(field.in_value, 0, 32);
 
-	keep_alive();
-
 	return ERROR_OK;
+}
+
+void mips_ejtag_drscan_8_out(struct mips_ejtag *ejtag_info, uint8_t data)
+{
+	struct jtag_tap *tap;
+	tap  = ejtag_info->tap;
+	assert(tap != NULL);
+
+	struct scan_field field;
+
+	field.num_bits = 8;
+	field.out_value = &data;
+	field.in_value = NULL;
+
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 }
 
 static int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)

@@ -254,18 +254,14 @@ static int mips_m4k_assert_reset(struct target *target)
 	{
 		if (mips_m4k->is_pic32mx)
 		{
-			uint32_t mchip_cmd;
-
 			LOG_DEBUG("Using MTAP reset to reset processor...");
 
 			/* use microchip specific MTAP reset */
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_MTAP);
 			mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND);
 
-			mchip_cmd = MCHP_ASERT_RST;
-			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
-			mchip_cmd = MCHP_DE_ASSERT_RST;
-			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+			mips_ejtag_drscan_8_out(ejtag_info, MCHP_ASERT_RST);
+			mips_ejtag_drscan_8_out(ejtag_info, MCHP_DE_ASSERT_RST);
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
 		}
 		else

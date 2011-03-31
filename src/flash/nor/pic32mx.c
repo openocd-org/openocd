@@ -774,11 +774,9 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 	}
 
 	/* unlock/erase device */
-	mchip_cmd = MCHP_ASERT_RST;
-	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+	mips_ejtag_drscan_8_out(ejtag_info, MCHP_ASERT_RST);
 
-	mchip_cmd = MCHP_ERASE;
-	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+	mips_ejtag_drscan_8_out(ejtag_info, MCHP_ERASE);
 
 	do {
 		mchip_cmd = MCHP_STATUS;
@@ -791,8 +789,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 		alive_sleep(1);
 	} while ((mchip_cmd & (1 << 2)) || (!(mchip_cmd & (1 << 3))));
 
-	mchip_cmd = MCHP_DE_ASSERT_RST;
-	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+	mips_ejtag_drscan_8_out(ejtag_info, MCHP_DE_ASSERT_RST);
 
 	/* select ejtag tap */
 	mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
