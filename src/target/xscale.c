@@ -2022,7 +2022,7 @@ static int xscale_write_phys_memory(struct target *target, uint32_t address,
 
 	/* with MMU inactive, there are only physical addresses */
 	if (!xscale->armv4_5_mmu.mmu_enabled)
-		return xscale_read_memory(target, address, size, count, buffer);
+		return xscale_write_memory(target, address, size, count, buffer);
 
 	/** \todo: provide a non-stub implementation of this routine. */
 	LOG_ERROR("%s: %s is not implemented.  Disable MMU?",
