@@ -176,9 +176,7 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
 
 	jtag_add_clocks(5);
-	jtag_execute_queue();
-
-	return ERROR_OK;
+	return jtag_execute_queue();
 }
 
 static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t address)
@@ -196,7 +194,7 @@ static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t ad
 	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
 
 	jtag_add_clocks(5);
-	jtag_execute_queue();
+	return jtag_execute_queue();
 
 	if ((address >= MIPS32_PRACC_PARAM_IN)
 		&& (address <= MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4))
