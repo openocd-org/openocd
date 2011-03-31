@@ -131,7 +131,7 @@ struct mips_ejtag
 	int fast_access_save;
 };
 
-int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
+void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
 		int new_instr);
 int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info);
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info);

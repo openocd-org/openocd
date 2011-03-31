@@ -28,13 +28,12 @@
 #include "mips32.h"
 #include "mips_ejtag.h"
 
-int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
+void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 {
 	struct jtag_tap *tap;
 
 	tap = ejtag_info->tap;
-	if (tap == NULL)
-		return ERROR_FAIL;
+	assert(tap != NULL);
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr)
 	{
@@ -48,8 +47,6 @@ int mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 
 		jtag_add_ir_scan(tap, &field, TAP_IDLE);
 	}
-
-	return ERROR_OK;
 }
 
 int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
@@ -98,9 +95,8 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 {
 	struct jtag_tap *tap;
 	tap  = ejtag_info->tap;
+	assert(tap != NULL);
 
-	if (tap == NULL)
-		return ERROR_FAIL;
 	struct scan_field field;
 	uint8_t t[4], r[4];
 	int retval;
@@ -129,9 +125,8 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 {
 	struct jtag_tap *tap;
 	tap  = ejtag_info->tap;
+	assert(tap != NULL);
 
-	if (tap == NULL)
-		return ERROR_FAIL;
 	struct scan_field field;
 	uint8_t t[4] = {0, 0, 0, 0}, r[4];
 	int retval;
@@ -219,7 +214,10 @@ int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32 "", ejtag_ctrl);
 	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
-		LOG_DEBUG("Failed to enter Debug Mode!");
+	{
+		LOG_ERROR("Failed to enter Debug Mode!");
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
@@ -311,9 +309,7 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_
 {
 	struct jtag_tap *tap;
 	tap = ejtag_info->tap;
-
-	if (tap == NULL)
-		return ERROR_FAIL;
+	assert(tap != NULL);
 
 	struct scan_field fields[2];
 	uint8_t spracc = 0;
