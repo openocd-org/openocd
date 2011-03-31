@@ -162,10 +162,8 @@ static int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 			MIPS32_MFC0(1,31,0),			/* move COP0 DeSave to $1 */
 	};
 
-	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
-		0, NULL, 0, NULL, 1);
-
-	return ERROR_OK;
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
+			0, NULL, 0, NULL, 1);
 }
 
 static int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
@@ -187,10 +185,8 @@ static int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 			MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
 	};
 
-	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		0, NULL, 0, NULL, 1);
-
-	return ERROR_OK;
 }
 
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step)
@@ -228,9 +224,7 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 	inst = MIPS32_DRET;
 
 	/* execute our dret instruction */
-	mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
-
-	return ERROR_OK;
+	return mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
 }
 
 int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
@@ -252,10 +246,8 @@ int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 			MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
 	};
 
-	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		0, NULL, 1, debug_reg, 1);
-
-	return ERROR_OK;
 }
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
