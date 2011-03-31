@@ -1004,19 +1004,34 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		ejtag_info->fast_access_save = -1;
 	}
 
+	uint8_t * t = NULL;
+
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN)
 	{
+		t = malloc(count * sizeof(uint32_t));
+		if (t == NULL)
+		{
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+
 		uint32_t i, t32;
 		for(i = 0; i < (count * 4); i += 4)
 		{
 			t32 = be_to_h_u32((uint8_t *) &buffer[i]);
-			h_u32_to_le(&buffer[i], t32);
+			h_u32_to_le(&t[i], t32);
 		}
+
+		buffer = t;
 	}
 
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
 			count, (uint32_t*) (void *)buffer);
+
+	if (t != NULL)
+		free(t);
+
 	if (retval != ERROR_OK)
 	{
 		/* FASTDATA access failed, try normal memory write */
