@@ -301,6 +301,42 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	return cmd_ctx;
 }
 
+static int main2(int argc, char *argv[], struct command_context *cmd_ctx)
+{
+	int ret;
+
+	if (parse_cmdline_args(cmd_ctx, argc, argv) != ERROR_OK)
+		return EXIT_FAILURE;
+
+	if (server_preinit() != ERROR_OK)
+		return EXIT_FAILURE;
+
+	ret = parse_config_file(cmd_ctx);
+	if (ret != ERROR_OK)
+		return EXIT_FAILURE;
+
+	ret = server_init(cmd_ctx);
+	if (ERROR_OK != ret)
+		return EXIT_FAILURE;
+
+	ret = command_run_line(cmd_ctx, "init_targets");
+	if (ERROR_OK != ret)
+		ret = EXIT_FAILURE;
+
+	if (init_at_startup)
+	{
+		ret = command_run_line(cmd_ctx, "init");
+		if (ERROR_OK != ret)
+			return EXIT_FAILURE;
+	}
+
+	server_loop(cmd_ctx);
+
+	server_quit();
+
+	return ret;
+}
+
 /* normally this is the main() function entry, but if OpenOCD is linked
  * into application, then this fn will not be invoked, but rather that
  * application will have it's own implementation of main(). */
@@ -326,36 +362,7 @@ int openocd_main(int argc, char *argv[])
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
-	if (parse_cmdline_args(cmd_ctx, argc, argv) != ERROR_OK)
-		return EXIT_FAILURE;
-
-	if (server_preinit() != ERROR_OK)
-		return EXIT_FAILURE;
-
-	ret = parse_config_file(cmd_ctx);
-	if (ret != ERROR_OK)
-		return EXIT_FAILURE;
-
-	ret = server_init(cmd_ctx);
-	if (ERROR_OK != ret)
-		return EXIT_FAILURE;
-
-	ret = command_run_line(cmd_ctx, "init_targets");
-	if (ERROR_OK != ret)
-		ret = EXIT_FAILURE;
-
-	if (init_at_startup)
-	{
-		ret = command_run_line(cmd_ctx, "init");
-		if (ERROR_OK != ret)
-			ret = EXIT_FAILURE;
-	}
-
-	/* handle network connections */
-	if (ERROR_OK == ret)
-		server_loop(cmd_ctx);
-
-	server_quit();
+	ret = main2(argc, argv, cmd_ctx);
 
 	unregister_all_commands(cmd_ctx, NULL);
 

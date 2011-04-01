@@ -408,7 +408,7 @@ int target_read_memory(struct target *target,
  * This routine is wrapper for target->type->write_memory.
  */
 int target_write_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 /**
  * Write @a count items of 4 bytes to the memory of @a target at
@@ -418,7 +418,7 @@ int target_write_memory(struct target *target,
  * This routine is wrapper for target->type->bulk_write_memory.
  */
 int target_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, uint8_t *buffer);
+		uint32_t address, uint32_t count, const uint8_t *buffer);
 
 /*
  * Write to target memory using the virtual address.
@@ -445,7 +445,7 @@ int target_bulk_write_memory(struct target *target,
  * peripheral registers which do not support byte operations.
  */
 int target_write_buffer(struct target *target,
-		uint32_t address, uint32_t size, uint8_t *buffer);
+		uint32_t address, uint32_t size, const uint8_t *buffer);
 int target_read_buffer(struct target *target,
 		uint32_t address, uint32_t size, uint8_t *buffer);
 int target_checksum_memory(struct target *target,

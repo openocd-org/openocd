@@ -460,7 +460,7 @@ static int feroceon_examine_debug_reason(struct target *target)
 }
 
 static int feroceon_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t count, const uint8_t *buffer)
 {
 	int retval;
 	struct arm *armv4_5 = target->arch_info;

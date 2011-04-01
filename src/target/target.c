@@ -49,7 +49,7 @@
 static int target_read_buffer_default(struct target *target, uint32_t address,
 		uint32_t size, uint8_t *buffer);
 static int target_write_buffer_default(struct target *target, uint32_t address,
-		uint32_t size, uint8_t *buffer);
+		uint32_t size, const uint8_t *buffer);
 static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv);
 static int target_mem2array(Jim_Interp *interp, struct target *target,
@@ -615,7 +615,7 @@ const char *target_type_name(struct target *target)
 	return target->type->name;
 }
 
-static int target_write_memory_imp(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int target_write_memory_imp(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -705,19 +705,19 @@ static int target_read_phys_memory(struct target *target,
 }
 
 int target_write_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
 static int target_write_phys_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	return target->type->write_phys_memory(target, address, size, count, buffer);
 }
 
 int target_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t count, const uint8_t *buffer)
 {
 	return target->type->bulk_write_memory(target, address, count, buffer);
 }
@@ -783,7 +783,7 @@ err_read_phys_memory(struct target *target, uint32_t address,
 
 static int
 err_write_phys_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_FAIL;
@@ -1340,7 +1340,7 @@ int target_arch_state(struct target *target)
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_write_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
+int target_write_buffer(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer)
 {
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x",
 		  (int)size, (unsigned)address);
@@ -1367,7 +1367,7 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 	return target->type->write_buffer(target, address, size, buffer);
 }
 
-static int target_write_buffer_default(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
+static int target_write_buffer_default(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer)
 {
 	int retval = ERROR_OK;
 
@@ -2390,10 +2390,10 @@ COMMAND_HANDLER(handle_md_command)
 }
 
 typedef int (*target_write_fn)(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 static int target_write_memory_fast(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	return target_write_buffer(target, address, size * count, buffer);
 }

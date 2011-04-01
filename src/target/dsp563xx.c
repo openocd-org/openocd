@@ -1482,13 +1482,13 @@ static int dsp563xx_read_memory_default(struct target *target, uint32_t address,
 	return dsp563xx_read_memory(target, dsp563xx_get_default_memory(), address, size, count, buffer);
 }
 
-static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
 {
 	int err;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 	uint32_t i, x;
 	uint32_t data, move_cmd = 0;
-	uint8_t *b;
+	const uint8_t *b;
 
 	LOG_DEBUG("memtype: %d address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", mem_type,address, size, count);
 
@@ -1557,7 +1557,7 @@ static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint3
 	return ERROR_OK;
 }
 
-static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
 {
 	int err;
 	uint32_t i,i1;
@@ -1615,12 +1615,12 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	return ERROR_OK;
 }
 
-static int dsp563xx_write_memory_default(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_write_memory_default(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
 {
 	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, size, count, buffer);
 }
 
-static int dsp563xx_bulk_write_memory_default(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
+static int dsp563xx_bulk_write_memory_default(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer)
 {
 	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, 4, count, buffer);
 }

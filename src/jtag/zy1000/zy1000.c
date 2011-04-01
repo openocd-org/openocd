@@ -853,7 +853,7 @@ static void jtag_pre_post_bits(struct jtag_tap *tap, int *pre, int *post)
 			TAP_IDLE);
 */
 
-void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count)
+void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *buffer, int little, int count)
 {
 #if 0
 	int i;
@@ -895,7 +895,7 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, 
 
 
 
-int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opcode, uint32_t * data, size_t count)
+int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opcode, const uint32_t * data, size_t count)
 {
 	/* bypass bits before and after */
 	int pre_bits;
@@ -905,7 +905,7 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 
 	if ((pre_bits > 32) || (post_bits > 32))
 	{
-		int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *, uint32_t, uint32_t *, size_t);
+		int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *, uint32_t, const uint32_t *, size_t);
 		return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
 	} else
 	{

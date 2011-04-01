@@ -602,7 +602,7 @@ static int arm920t_read_phys_memory(struct target *target,
 
 static int arm920t_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
@@ -613,7 +613,7 @@ static int arm920t_write_phys_memory(struct target *target,
 
 /** Writes a buffer, in the specified word size, with current MMU settings. */
 int arm920t_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	int retval;
 	const uint32_t cache_mask = ~0x1f; /* cache line size : 32 byte */

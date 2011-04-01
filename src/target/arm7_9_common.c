@@ -2431,7 +2431,7 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 	return ERROR_OK;
 }
 
-int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;
@@ -2655,7 +2655,7 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 }
 
 static int dcc_count;
-static uint8_t *dcc_buffer;
+static const uint8_t *dcc_buffer;
 
 static int arm7_9_dcc_completion(struct target *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
@@ -2667,7 +2667,7 @@ static int arm7_9_dcc_completion(struct target *target, uint32_t exit_point, int
 
 	int little = target->endianness == TARGET_LITTLE_ENDIAN;
 	int count = dcc_count;
-	uint8_t *buffer = dcc_buffer;
+	const uint8_t *buffer = dcc_buffer;
 	if (count > 2)
 	{
 		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
@@ -2720,7 +2720,7 @@ static const uint32_t dcc_code[] =
 	0xeafffff9	/*    b   w                   */
 };
 
-int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
+int arm7_9_bulk_write_memory(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer)
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);

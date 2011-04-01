@@ -130,6 +130,6 @@ static __inline__ void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg
 			TAP_IDLE);
 }
 
-void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, uint8_t *buffer, int little, int count);
+void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *buffer, int little, int count);
 
 #endif /* EMBEDDED_ICE_H */

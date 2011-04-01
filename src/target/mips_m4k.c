@@ -254,18 +254,14 @@ static int mips_m4k_assert_reset(struct target *target)
 	{
 		if (mips_m4k->is_pic32mx)
 		{
-			uint32_t mchip_cmd;
-
 			LOG_DEBUG("Using MTAP reset to reset processor...");
 
 			/* use microchip specific MTAP reset */
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_MTAP);
 			mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND);
 
-			mchip_cmd = MCHP_ASERT_RST;
-			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
-			mchip_cmd = MCHP_DE_ASSERT_RST;
-			mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
+			mips_ejtag_drscan_8_out(ejtag_info, MCHP_ASERT_RST);
+			mips_ejtag_drscan_8_out(ejtag_info, MCHP_DE_ASSERT_RST);
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
 		}
 		else
@@ -872,7 +868,7 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 }
 
 static int mips_m4k_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -940,7 +936,9 @@ static int mips_m4k_examine(struct target *target)
 
 	if (!target_was_examined(target))
 	{
-		mips_ejtag_get_idcode(ejtag_info, &idcode);
+		retval = mips_ejtag_get_idcode(ejtag_info, &idcode);
+		if (retval != ERROR_OK)
+			return retval;
 		ejtag_info->idcode = idcode;
 
 		if (((idcode >> 1) & 0x7FF) == 0x29)
@@ -964,7 +962,7 @@ static int mips_m4k_examine(struct target *target)
 }
 
 static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -1002,19 +1000,34 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		ejtag_info->fast_access_save = -1;
 	}
 
+	uint8_t * t = NULL;
+
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN)
 	{
+		t = malloc(count * sizeof(uint32_t));
+		if (t == NULL)
+		{
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+
 		uint32_t i, t32;
 		for(i = 0; i < (count * 4); i += 4)
 		{
 			t32 = be_to_h_u32((uint8_t *) &buffer[i]);
-			h_u32_to_le(&buffer[i], t32);
+			h_u32_to_le(&t[i], t32);
 		}
+
+		buffer = t;
 	}
 
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
 			count, (uint32_t*) (void *)buffer);
+
+	if (t != NULL)
+		free(t);
+
 	if (retval != ERROR_OK)
 	{
 		/* FASTDATA access failed, try normal memory write */

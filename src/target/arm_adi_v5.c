@@ -270,11 +270,11 @@ int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 * Write a buffer in target order (little endian)                             *
 *                                                                            *
 *****************************************************************************/
-int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
-	uint8_t* pBuffer = buffer;
+	const uint8_t* pBuffer = buffer;
 
 	count >>= 2;
 	wcount = count;
@@ -343,7 +343,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 }
 
 static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -424,7 +424,7 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 	return retval;
 }
 
-int mem_ap_write_buf_u16(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
@@ -456,7 +456,7 @@ int mem_ap_write_buf_u16(struct adiv5_dap *dap, uint8_t *buffer, int count, uint
 }
 
 static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
@@ -532,7 +532,7 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 	return retval;
 }
 
-int mem_ap_write_buf_u8(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
 
@@ -935,21 +935,21 @@ int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 }
 
 int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u8(swjdp, buffer, count, address);
 }
 
 int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u16(swjdp, buffer, count, address);
 }
 
 int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
 	return mem_ap_write_buf_u32(swjdp, buffer, count, address);
@@ -1083,23 +1083,11 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-struct broken_cpu {
-	uint32_t	dbgbase;
-	uint32_t	apid;
-	uint32_t	idcode;
-	uint32_t	correct_dbgbase;
-	char		*model;
-} broken_cpus[] = {
-	{ 0x80000000, 0x04770002, 0x1ba00477, 0x60000000, "imx51" },
-	{ 0x80040000, 0x04770002, 0x3b95c02f, 0x80000000, "omap4430" },
-};
-
 int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 			uint32_t *out_dbgbase, uint32_t *out_apid)
 {
 	uint32_t ap_old;
 	int retval;
-	unsigned int i;
 	uint32_t dbgbase, apid, idcode;
 
 	/* AP address is in bits 31:24 of DP_SELECT */
@@ -1130,19 +1118,6 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 	}
 	if (tap == NULL || !tap->hasidcode)
 		return ERROR_OK;
-
-	/* Some CPUs are messed up, so fixup if needed. */
-	for (i = 0; i < sizeof(broken_cpus)/sizeof(struct broken_cpu); i++)
-		if (broken_cpus[i].dbgbase == dbgbase &&
-			broken_cpus[i].apid == apid &&
-			broken_cpus[i].idcode == idcode) {
-			LOG_WARNING("Found broken CPU (%s), trying to fixup "
-				"ROM Table location from 0x%08x to 0x%08x",
-				broken_cpus[i].model, dbgbase,
-				broken_cpus[i].correct_dbgbase);
-			dbgbase = broken_cpus[i].correct_dbgbase;
-			break;
-		}
 
 	dap_ap_select(dap, ap_old);
 

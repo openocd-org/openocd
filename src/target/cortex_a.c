@@ -1587,7 +1587,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 
 static int cortex_a8_write_phys_memory(struct target *target,
                 uint32_t address, uint32_t size,
-                uint32_t count, uint8_t *buffer)
+                uint32_t count, const uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = &armv7a->dap;
@@ -1748,7 +1748,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 }
 
 static int cortex_a8_write_memory(struct target *target, uint32_t address,
-                uint32_t size, uint32_t count, uint8_t *buffer)
+                uint32_t size, uint32_t count, const uint8_t *buffer)
 {
         int enabled = 0;
         uint32_t virt, phys;
@@ -1774,7 +1774,7 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 }
 
 static int cortex_a8_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, uint8_t *buffer)
+		uint32_t count, const uint8_t *buffer)
 {
 	return cortex_a8_write_memory(target, address, 4, count, buffer);
 }

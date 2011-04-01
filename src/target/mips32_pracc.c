@@ -449,7 +449,7 @@ static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr,
 	uint32_t *param_out = malloc(count * sizeof(uint32_t));
 	int i;
 
-//	int retval;
+	int retval = ERROR_OK;
 	int blocksize;
 	int bytesread;
 	uint32_t param_in[2];
@@ -465,7 +465,7 @@ static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr,
 		param_in[0] = addr;
 		param_in[1] = blocksize;
 
-		mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+		retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 			ARRAY_SIZE(param_in), param_in, count, param_out, 1);
 
 //		count -= blocksize;
@@ -480,7 +480,7 @@ static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr,
 
 	free(param_out);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
@@ -526,7 +526,7 @@ static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, 
 	uint32_t *param_out = malloc(count * sizeof(uint32_t));
 	int i;
 
-//	int retval;
+	int retval = ERROR_OK;
 	int blocksize;
 	int bytesread;
 	uint32_t param_in[2];
@@ -542,7 +542,7 @@ static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, 
 		param_in[0] = addr;
 		param_in[1] = blocksize;
 
-		mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+		retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 			ARRAY_SIZE(param_in), param_in, count, param_out, 1);
 
 //		count -= blocksize;
@@ -557,7 +557,7 @@ static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, 
 
 	free(param_out);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
@@ -619,12 +619,13 @@ static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr
 
 	memcpy(&param_in[2], buf, count * sizeof(uint32_t));
 
-	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	int retval;
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
@@ -653,10 +654,8 @@ static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, 
 	param_in[0] = addr;
 	param_in[1] = *buf;
 
-	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		ARRAY_SIZE(param_in), param_in, 0, NULL, 1);
-
-	return ERROR_OK;
 }
 
 static int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
@@ -709,12 +708,13 @@ static int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr
 		param_in[i + 2] = buf[i];
 	}
 
-	mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	int retval;
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
@@ -768,7 +768,7 @@ static int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr,
 		param_in[i + 2] = buf[i];
 	}
 
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		count + 2, param_in, 0, NULL, 1);
 
 	free(param_in);
@@ -840,7 +840,7 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 
 	int retval;
 
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 			MIPS32NUMCOREREGS, regs, 0, NULL, 1);
 
 	return retval;
@@ -915,7 +915,7 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 
 	int retval;
 
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, \
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
 		0, NULL, MIPS32NUMCOREREGS, regs, 1);
 
 	return retval;

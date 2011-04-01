@@ -27,11 +27,11 @@ int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, uint8_t *buffer);
 
 int avr32_jtag_write_memory32(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, uint32_t *buffer);
+		uint32_t addr, int count, const uint32_t *buffer);
 int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, uint16_t *buffer);
+		uint32_t addr, int count, const uint16_t *buffer);
 int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, uint8_t *buffer);
+		uint32_t addr, int count, const uint8_t *buffer);
 
 #endif /* AVR32_MEM */
 

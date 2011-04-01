@@ -637,7 +637,7 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
  * This is an inner loop of the open loop DCC write of data to target
  */
 void embeddedice_write_dcc(struct jtag_tap *tap,
-		int reg_addr, uint8_t *buffer, int little, int count)
+		int reg_addr, const uint8_t *buffer, int little, int count)
 {
 	int i;
 
