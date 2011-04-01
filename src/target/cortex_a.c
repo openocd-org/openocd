@@ -1888,21 +1888,6 @@ static int cortex_a8_examine_first(struct target *target)
 		armv7a->debug_base = target->dbgbase;
 	}
 
-#if 0
-	/*
-	 * FIXME: assuming omap4430
-	 *
-	 * APB DBGBASE reads 0x80040000, but this points to an empty ROM table.
-	 * 0x80000000 is cpu0 coresight region
-	 */
-	if (target->coreid > 3) {
-		LOG_ERROR("cortex_a8 supports up to 4 cores");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-	armv7a->debug_base = 0x80000000 |
-			((target->coreid & 0x3) << CORTEX_A8_PADDRDBG_CPU_SHIFT);
-#endif
-
 	retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
 			armv7a->debug_base + CPUDBG_CPUID, &cpuid);
 	if (retval != ERROR_OK)
