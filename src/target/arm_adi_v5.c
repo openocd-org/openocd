@@ -1083,23 +1083,11 @@ is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t cid0)
 			&& ((cid1 & 0x0f) == 0) && cid0 == 0x0d;
 }
 
-struct broken_cpu {
-	uint32_t	dbgbase;
-	uint32_t	apid;
-	uint32_t	idcode;
-	uint32_t	correct_dbgbase;
-	char		*model;
-} broken_cpus[] = {
-	{ 0x80000000, 0x04770002, 0x1ba00477, 0x60000000, "imx51" },
-	{ 0x80040000, 0x04770002, 0x3b95c02f, 0x80000000, "omap4430" },
-};
-
 int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 			uint32_t *out_dbgbase, uint32_t *out_apid)
 {
 	uint32_t ap_old;
 	int retval;
-	unsigned int i;
 	uint32_t dbgbase, apid, idcode;
 
 	/* AP address is in bits 31:24 of DP_SELECT */
@@ -1130,19 +1118,6 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 	}
 	if (tap == NULL || !tap->hasidcode)
 		return ERROR_OK;
-
-	/* Some CPUs are messed up, so fixup if needed. */
-	for (i = 0; i < sizeof(broken_cpus)/sizeof(struct broken_cpu); i++)
-		if (broken_cpus[i].dbgbase == dbgbase &&
-			broken_cpus[i].apid == apid &&
-			broken_cpus[i].idcode == idcode) {
-			LOG_WARNING("Found broken CPU (%s), trying to fixup "
-				"ROM Table location from 0x%08x to 0x%08x",
-				broken_cpus[i].model, dbgbase,
-				broken_cpus[i].correct_dbgbase);
-			dbgbase = broken_cpus[i].correct_dbgbase;
-			break;
-		}
 
 	dap_ap_select(dap, ap_old);
 
