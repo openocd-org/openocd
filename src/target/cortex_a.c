@@ -1861,7 +1861,6 @@ static int cortex_a8_examine_first(struct target *target)
 	int i;
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid;
-	uint32_t dbgbase;
 
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
@@ -1872,21 +1871,22 @@ static int cortex_a8_examine_first(struct target *target)
 
 	if (!target->dbgbase_set)
 	{
+		uint32_t dbgbase;
 		/* Get ROM Table base */
 		uint32_t apid;
 		retval = dap_get_debugbase(swjdp, 1, &dbgbase, &apid);
 		if (retval != ERROR_OK)
 			return retval;
-	} else
-	{
-		dbgbase = target->dbgbase;
+		/* Lookup 0x15 -- Processor DAP */
+		retval = dap_lookup_cs_component(swjdp, 1, dbgbase, 0x15,
+				&armv7a->debug_base);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-
-	/* Lookup 0x15 -- Processor DAP */
-	retval = dap_lookup_cs_component(swjdp, 1, dbgbase, 0x15,
-					&armv7a->debug_base);
-	if (retval != ERROR_OK)
-		return retval;
+    else
+	{
+		armv7a->debug_base = target->dbgbase;
+	}
 
 #if 0
 	/*
