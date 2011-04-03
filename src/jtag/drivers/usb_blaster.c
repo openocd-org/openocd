@@ -4,6 +4,10 @@
  *     (http://www.ixo.de/info/usb_jtag/).                                 *
  *   Some updates by Anthony Liu (2006).                                   *
  *   Minor updates and cleanup by Catalin Patulea (2009).                  *
+ *   Speed updates by Ali Lown (2011).                                     *
+ *                                                                         *
+ *   Copyright (C) 2011 Ali Lown                                           *
+ *   ali@lown.me.uk                                                        *
  *                                                                         *
  *   Copyright (C) 2009 Catalin Patulea                                    *
  *   cat@vv.carleton.ca                                                    *
@@ -104,8 +108,12 @@ static char *usb_blaster_device_desc;
 static uint16_t usb_blaster_vid = 0x09fb; /* Altera */
 static uint16_t usb_blaster_pid = 0x6001; /* USB-Blaster */
 
-/* last output byte in simple bit banging mode */
+/* last output byte in simple bit banging (legacy) mode */
 static uint8_t out_value;
+/* global output buffer for bit banging */
+#define BUF_LEN 64 //Size of EP1
+static uint8_t out_buffer[BUF_LEN];
+static uint16_t out_count = 0;
 
 #if BUILD_USB_BLASTER_FTD2XX == 1
 static FT_HANDLE ftdih;
@@ -195,8 +203,7 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 }
 
 /* The following code doesn't fully utilize the possibilities of the
- * USB-Blaster. It writes one byte per JTAG pin state change at a time; it
- * doesn't even try to buffer data up to the maximum packet size of 64 bytes.
+ * USB-Blaster. It only buffers data up to the maximum packet size of 64 bytes.
  *
  * Actually, the USB-Blaster offers a byte-shift mode to transmit up to 504 data
  * bits (bidirectional) in a single USB packet. A header byte has to be sent as
@@ -225,8 +232,8 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
  *   Bit 0 (0x01): TCK Output.
  *
  * For transmitting a single data bit, you need to write two bytes. Up to 64
- * bytes can be combined in a single USB packet (but this is not done in the
- * code below). It isn't possible to read a data without transmitting data.
+ * bytes can be combined in a single USB packet.
+ * It isn't possible to read a data without transmitting data.
  */
 
 #define TCK			(1 << 0)
@@ -241,10 +248,22 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 
 #define READ_TDO	(1 << 0)
 
-static void usb_blaster_write_data(void)
+static void usb_blaster_write_databuffer(uint8_t* buf, uint16_t len)
 {
 	uint32_t bytes_written;
-	usb_blaster_buf_write(&out_value, 1, &bytes_written);
+	usb_blaster_buf_write(buf, len, &bytes_written);
+	out_count = 0;
+#ifdef _DEBUG_JTAG_IO_
+	LOG_DEBUG("---- WROTE %d",bytes_written);
+#endif
+}
+
+static void usb_blaster_addtowritebuffer(uint8_t value, bool forcewrite)
+{
+	out_buffer[out_count] = value;
+	out_count += 1;
+	if(out_count == BUF_LEN || forcewrite)
+		usb_blaster_write_databuffer(out_buffer, out_count);
 }
 
 static int usb_blaster_read_data(void)
@@ -253,8 +272,11 @@ static int usb_blaster_read_data(void)
 	uint8_t buf[1];
 	uint32_t bytes_read;
 
+	if(out_count > 0)
+		usb_blaster_write_databuffer(out_buffer, out_count);
+
 	out_value |= READ;
-	usb_blaster_write_data();
+	usb_blaster_addtowritebuffer(out_value, true);
 	out_value &= ~READ;
 
 	status = usb_blaster_buf_read(buf, 1, &bytes_read);
@@ -277,7 +299,7 @@ static void usb_blaster_write(int tck, int tms, int tdi)
 	if (tdi)
 		out_value |= TDI;
 
-	usb_blaster_write_data();
+	usb_blaster_addtowritebuffer(out_value, false);
 }
 
 static int usb_blaster_speed(int speed)
@@ -312,7 +334,8 @@ static void usb_blaster_blink(int state)
 	out_value = 0x00;
 	if(state)
 		out_value |= LED;
-	usb_blaster_write_data();
+
+	usb_blaster_addtowritebuffer(out_value, true);
 }
 
 static struct bitbang_interface usb_blaster_bitbang = {
@@ -478,6 +501,9 @@ static int usb_blaster_init(void)
 
 static int usb_blaster_quit(void)
 {
+	if(out_count > 0)
+		usb_blaster_write_databuffer(out_buffer, out_count);
+
 #if BUILD_USB_BLASTER_FTD2XX == 1
 	FT_STATUS status;
 
@@ -543,12 +569,12 @@ COMMAND_HANDLER(usb_blaster_handle_pin_command)
 		if (state == 0)
 		{
 			out_value &= ~mask;
-			usb_blaster_write_data();
+			usb_blaster_addtowritebuffer(out_value, true);
 		}
 		else if (state == 1)
 		{
 			out_value |= mask;
-			usb_blaster_write_data();
+			usb_blaster_addtowritebuffer(out_value, true);
 		}
 		else
 		{
