@@ -307,10 +307,19 @@ static void usb_blaster_reset(int trst, int srst)
 			trst, srst);
 }
 
+static void usb_blaster_blink(int state)
+{
+	out_value = 0x00;
+	if(state)
+		out_value |= LED;
+	usb_blaster_write_data();
+}
+
 static struct bitbang_interface usb_blaster_bitbang = {
 	.read = usb_blaster_read_data,
 	.write = usb_blaster_write,
 	.reset = usb_blaster_reset,
+	.blink = usb_blaster_blink,
 };
 
 static int usb_blaster_init(void)
