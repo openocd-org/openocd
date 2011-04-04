@@ -188,12 +188,12 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 
 	/* Send the data out */
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA);
-	mips_ejtag_drscan_32(ctx->ejtag_info, &data);
+	mips_ejtag_drscan_32_out(ctx->ejtag_info, data);
 
 	/* Clear the access pending bit (let the processor eat!) */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL);
-	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
+	mips_ejtag_drscan_32_out(ctx->ejtag_info, ejtag_ctrl);
 
 	return jtag_execute_queue();
 }
@@ -213,7 +213,7 @@ static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t ad
 	/* Clear access pending bit */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL);
-	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
+	mips_ejtag_drscan_32_out(ctx->ejtag_info, ejtag_ctrl);
 
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
@@ -1026,12 +1026,12 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 			return retval;
 
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
-		mips_ejtag_drscan_32(ejtag_info, &jmp_code[i]);
+		mips_ejtag_drscan_32_out(ejtag_info, jmp_code[i]);
 
 		/* Clear the access pending bit (let the processor eat!) */
 		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+		mips_ejtag_drscan_32_out(ejtag_info, ejtag_ctrl);
 	}
 
 	if ((retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl)) != ERROR_OK)

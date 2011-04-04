@@ -274,7 +274,7 @@ static int mips_m4k_assert_reset(struct target *target)
 			uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 			LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
-			mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+			mips_ejtag_drscan_32_out(ejtag_info, ejtag_ctrl);
 		}
 	}
 

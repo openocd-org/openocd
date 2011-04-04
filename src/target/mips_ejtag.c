@@ -121,6 +121,21 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 	return ERROR_OK;
 }
 
+void mips_ejtag_drscan_32_out(struct mips_ejtag *ejtag_info, uint32_t data)
+{
+	struct jtag_tap *tap;
+	tap  = ejtag_info->tap;
+	assert(tap != NULL);
+
+	struct scan_field field;
+
+	field.num_bits = 32;
+	field.out_value = (uint8_t *)&data;
+	field.in_value = NULL;
+
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
+}
+
 int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 {
 	struct jtag_tap *tap;
