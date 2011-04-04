@@ -120,7 +120,9 @@ static int mips_m4k_poll(struct target *target)
 
 	/* read ejtag control reg */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
-	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	retval = mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* clear this bit before handling polling
 	 * as after reset registers will read zero */
@@ -131,7 +133,9 @@ static int mips_m4k_poll(struct target *target)
 		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_ROCC;
 
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+		retval = mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+		if (retval != ERROR_OK)
+			return retval;
 		LOG_DEBUG("Reset Detected");
 	}
 
@@ -864,6 +868,28 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 	if (ERROR_OK != retval)
 		return retval;
 
+	/* TAP data register is loaded LSB first (little endian) */
+	if (target->endianness == TARGET_BIG_ENDIAN)
+	{
+		uint32_t i, t32;
+		uint16_t t16;
+
+		for(i = 0; i < (count*size); i += size)
+		{
+			switch(size)
+			{
+				case 4:
+					t32 = le_to_h_u32(&buffer[i]);
+					h_u32_to_be(&buffer[i], t32);
+					break;
+				case 2:
+					t16 = le_to_h_u16(&buffer[i]);
+					h_u16_to_be(&buffer[i], t16);
+					break;
+			}
+		}
+	}
+
 	return ERROR_OK;
 }
 
@@ -889,11 +915,50 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
+	uint8_t * t = NULL;
+
+	/* TAP data register is loaded LSB first (little endian) */
+	if (target->endianness == TARGET_BIG_ENDIAN)
+	{
+		t = malloc(count * sizeof(uint32_t));
+		if (t == NULL)
+		{
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+
+		uint32_t i, t32, t16;
+		for(i = 0; i < (count*size); i += size)
+		{
+			switch(size)
+			{
+				case 4:
+					t32 = be_to_h_u32((uint8_t *) &buffer[i]);
+					h_u32_to_le(&t[i], t32);
+					break;
+				case 2:
+					t16 = be_to_h_u16((uint8_t *) &buffer[i]);
+					h_u16_to_le(&t[i], t16);
+					break;
+			}
+		}
+
+		buffer = t;
+	}
+
 	/* if noDMA off, use DMAACC mode for memory write */
+	int retval;
 	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
-		return mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+		retval = mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 	else
-		return mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (t != NULL)
+		free(t);
+
+	return ERROR_OK;
 }
 
 static int mips_m4k_init_target(struct command_context *cmd_ctx,
@@ -1001,6 +1066,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	}
 
 	uint8_t * t = NULL;
+	const uint8_t *ec_buffer = buffer;	/* endian-corrected buffer */
 
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN)
@@ -1019,11 +1085,11 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 			h_u32_to_le(&t[i], t32);
 		}
 
-		buffer = t;
+		ec_buffer = t;
 	}
 
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
-			count, (uint32_t*) (void *)buffer);
+			count, (uint32_t*) (void *)ec_buffer);
 
 	if (t != NULL)
 		free(t);
