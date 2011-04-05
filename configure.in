@@ -538,7 +538,7 @@ case $host in
     is_win32=yes
     parport_use_ppdev=no
 
-    AC_COMPILE_IFELSE(AC_LANG_PROGRAM([],[return __MINGW32__;]),
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[return __MINGW32__;]])],
       [is_mingw=yes],[is_mingw=no])
     if test $is_mingw = yes; then
       AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
@@ -918,22 +918,17 @@ _CFLAGS=`eval echo $CFLAGS`
 LDFLAGS=$_LDFLAGS
 CFLAGS=$_CFLAGS
 
-AC_RUN_IFELSE([
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include "confdefs.h"
 #if IS_WIN32
 #include "windows.h"
 #endif
 #include <stdio.h>
 #include <ftd2xx.h>
-
-int
-main( int argc, char **argv )
-{
+  ]], [[
   DWORD x;
   FT_GetLibraryVersion( &x );
-  return 0;
-}
-  ], [
+  ]])], [
     AC_MSG_RESULT([Success!])
   ], [
     AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib])
@@ -942,15 +937,16 @@ main( int argc, char **argv )
   ])
 
 AC_MSG_CHECKING([for ftd2xx highspeed device support])
-AC_COMPILE_IFELSE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include "confdefs.h"
 #if IS_WIN32
 #include "windows.h"
 #endif
 #include <stdio.h>
 #include <ftd2xx.h>
+
 DWORD x = FT_DEVICE_4232H;
-    ], [
+    ]], [])], [
       AC_DEFINE(BUILD_FT2232_HIGHSPEED, [1],
         [Support FT2232H/FT4232HS with FTD2XX or libftdi.])
       build_ft2232_highspeed=yes
@@ -982,13 +978,10 @@ if test $build_ft2232_libftdi = yes ; then
   LDFLAGS=$_LDFLAGS
   CFLAGS=$_CFLAGS
 
-  AC_RUN_IFELSE([
+  AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <ftdi.h>
-
-int
-main( int argc, char **argv )
-{
+  ]], [[
   struct ftdi_context *p;
   p = ftdi_new();
   if( p != NULL ){
@@ -997,8 +990,7 @@ main( int argc, char **argv )
       fprintf( stderr, "calling ftdi_new() failed\n");
       return 1;
         }
-}
-    ], [
+    ]])], [
       AC_MSG_RESULT([Success])
     ], [
       AC_MSG_ERROR([Cannot build & run test program using libftdi])
@@ -1007,11 +999,12 @@ main( int argc, char **argv )
     ])
 
 AC_MSG_CHECKING([for libftdi highspeed device support])
-AC_COMPILE_IFELSE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <ftdi.h>
+  ]], [[
 enum ftdi_chip_type x = TYPE_2232H;
-    ], [
+    ]])], [
       AC_DEFINE(BUILD_FT2232_HIGHSPEED, [1],
         [Support FT2232H/FT4232HS with FTD2XX or libftdi.])
       build_ft2232_highspeed=yes
@@ -1079,12 +1072,12 @@ AM_CONDITIONAL(INTERNAL_JIMTCL, test $use_internal_jimtcl = yes)
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
-AC_COMPILE_IFELSE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
-int main(int argc, char **argv) { char **ep = environ; }
-  ], [
+  ]], [[char **ep = environ;]]
+  )], [
     AC_MSG_RESULT([yes])
     has_environ=yes
   ], [
@@ -1092,10 +1085,10 @@ int main(int argc, char **argv) { char **ep = environ; }
 
     # Possibility #2: can environ be found in an available library?
     AC_MSG_CHECKING([for extern environ])
-    AC_LINK_IFELSE([
-extern char **environ;
-int main(int argc, char **argv) { char **ep = environ; }
-      ], [
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+    extern char **environ;
+    ]], [[char **ep = environ;]]
+      )], [
         AC_DEFINE(NEED_ENVIRON_EXTERN, [1], [Must declare 'environ' to use it.])
         has_environ=yes
       ], [
