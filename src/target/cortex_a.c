@@ -1779,28 +1779,6 @@ static int cortex_a8_bulk_write_memory(struct target *target, uint32_t address,
 	return cortex_a8_write_memory(target, address, 4, count, buffer);
 }
 
-static int cortex_a8_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *ctrl)
-{
-#if 0
-	u16 dcrdr;
-
-	mem_ap_read_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
-	*ctrl = (uint8_t)dcrdr;
-	*value = (uint8_t)(dcrdr >> 8);
-
-	LOG_DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
-
-	/* write ack back to software dcc register
-	 * signify we have read data */
-	if (dcrdr & (1 << 0))
-	{
-		dcrdr = 0;
-		mem_ap_write_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
-	}
-#endif
-	return ERROR_OK;
-}
-
 
 static int cortex_a8_handle_target_request(void *priv)
 {
@@ -1816,33 +1794,22 @@ static int cortex_a8_handle_target_request(void *priv)
 
 	if (target->state == TARGET_RUNNING)
 	{
-		uint8_t data = 0;
-		uint8_t ctrl = 0;
-
-		retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
-		if (retval != ERROR_OK)
-			return retval;
+		uint32_t request;
+		uint32_t dscr;
+		retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
+					armv7a->debug_base	+ CPUDBG_DSCR, &dscr);
 
 		/* check if we have data */
-		if (ctrl & (1 << 0))
+		while ((dscr & DSCR_DTR_TX_FULL) && (retval==ERROR_OK))
 		{
-			uint32_t request;
-
-			/* we assume target is quick enough */
-			request = data;
-			retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
-			if (retval != ERROR_OK)
-				return retval;
-			request |= (data << 8);
-			retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
-			if (retval != ERROR_OK)
-				return retval;
-			request |= (data << 16);
-			retval = cortex_a8_dcc_read(swjdp, &data, &ctrl);
-			if (retval != ERROR_OK)
-				return retval;
-			request |= (data << 24);
-			target_request(target, request);
+			retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
+					armv7a->debug_base+ CPUDBG_DTRTX, &request);
+			if (retval == ERROR_OK)
+			{
+				target_request(target, request);
+				retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
+						armv7a->debug_base+ CPUDBG_DSCR, &dscr);
+			}
 		}
 	}
 
