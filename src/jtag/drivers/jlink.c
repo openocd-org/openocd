@@ -214,6 +214,10 @@ static int jlink_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
 static void jlink_debug_buffer(uint8_t *buffer, int length);
+#else
+static inline void jlink_debug_buffer(uint8_t *buffer, int length)
+{
+}
 #endif
 
 static enum tap_state jlink_last_state = TAP_RESET;
@@ -291,9 +295,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 	DEBUG_JTAG_IO("scan input, length = %d", scan_size);
 
-#ifdef _DEBUG_USB_COMMS_
 	jlink_debug_buffer(buffer, (scan_size + 7) / 8);
-#endif
 	type = jtag_scan_type(cmd->cmd.scan);
 	jlink_scan(cmd->cmd.scan->ir_scan,
 			type, buffer, scan_size, cmd->cmd.scan);
@@ -1387,9 +1389,7 @@ static int jlink_tap_execute(void)
 
 		DEBUG_JTAG_IO("pending scan result, length = %d", length);
 
-#ifdef _DEBUG_USB_COMMS_
 		jlink_debug_buffer(buffer, DIV_ROUND_UP(length, 8));
-#endif
 
 		if (jtag_read_buffer(buffer, command) != ERROR_OK)
 		{
@@ -1609,9 +1609,7 @@ static int jlink_usb_write(struct jlink *jlink, int out_length)
 	DEBUG_JTAG_IO("jlink_usb_write, out_length = %d, result = %d",
 			out_length, result);
 
-#ifdef _DEBUG_USB_COMMS_
 	jlink_debug_buffer(usb_out_buffer, out_length);
-#endif
 	return result;
 }
 
@@ -1623,9 +1621,7 @@ static int jlink_usb_read(struct jlink *jlink, int expected_size)
 
 	DEBUG_JTAG_IO("jlink_usb_read, result = %d", result);
 
-#ifdef _DEBUG_USB_COMMS_
 	jlink_debug_buffer(usb_in_buffer, result);
-#endif
 	return result;
 }
 
@@ -1638,9 +1634,7 @@ static int jlink_usb_read_emu_result(struct jlink *jlink)
 
 	DEBUG_JTAG_IO("jlink_usb_read_result, result = %d", result);
 
-#ifdef _DEBUG_USB_COMMS_
 	jlink_debug_buffer(usb_emu_result_buffer, result);
-#endif
 	return result;
 }
 
