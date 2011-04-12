@@ -320,6 +320,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 		/* DCCRX to Rn, "MRC p14, 0, Rn, c0, c5, 0", 0xEE10nE15 */
 		retval = cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, Rd, 0, 5, 0),
 				&dscr);
+	
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1449,6 +1450,94 @@ static int cortex_a8_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
+static int cortex_a8_write_apb_ab_memory(struct target *target,
+                uint32_t address, uint32_t size,
+                uint32_t count, const uint8_t *buffer)
+{
+	int retval = ERROR_INVALID_ARGUMENTS;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	int nbytes = count * size;
+	uint32_t data;
+	struct reg *reg;
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	reg = arm_reg_current(armv4_5, 0);
+	reg->dirty = 1;
+	reg = arm_reg_current(armv4_5, 1);
+	reg->dirty = 1;
+	retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	while (nbytes > 0) {
+		data = *buffer++;
+		retval = cortex_a8_dap_write_coreregister_u32(target, data, 1);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* execute instruction STRB r1, [r0], 1 (0xe4c01001) */
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_STRB_IP(1, 0) , NULL);
+		if (retval != ERROR_OK)
+			return retval;
+		--nbytes;
+	}
+	return retval;
+}
+
+
+static int cortex_a8_read_apb_ab_memory(struct target *target,
+                uint32_t address, uint32_t size,
+                uint32_t count, uint8_t *buffer)
+{
+	int retval = ERROR_INVALID_ARGUMENTS;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	/* read memory through APB-AP */
+	int nbytes = count * size;
+	uint32_t data;
+	struct reg *reg;
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	reg = arm_reg_current(armv4_5, 0);
+	reg->dirty = 1;
+	reg = arm_reg_current(armv4_5, 1);
+	reg->dirty = 1;
+
+	retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	while (nbytes > 0) {
+
+
+		/* execute instruction LDRB r1, [r0], 1 (0xe4d01001) */
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_LDRB_IP(1, 0) , NULL);
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = cortex_a8_dap_read_coreregister_u32(target, &data, 1);
+		if (retval != ERROR_OK)
+			return retval;
+
+		*buffer++ = data;
+		--nbytes;
+
+	}
+	return retval;
+}
+
+
+
 /*
  * Cortex-A8 Memory access
  *
@@ -1464,8 +1553,8 @@ static int cortex_a8_read_phys_memory(struct target *target,
 	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
 	int retval = ERROR_INVALID_ARGUMENTS;
 	uint8_t apsel = swjdp->apsel;
-
-	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d", address, size, count);
+	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d",
+			address, size, count);
 
 	if (count && buffer) {
 
@@ -1474,34 +1563,24 @@ static int cortex_a8_read_phys_memory(struct target *target,
 			/* read memory through AHB-AP */
 
 			switch (size) {
-				case 4:
-					retval = mem_ap_sel_read_buf_u32(swjdp, swjdp_memoryap,
-							buffer, 4 * count, address);
-					break;
-				case 2:
-					retval = mem_ap_sel_read_buf_u16(swjdp, swjdp_memoryap,
-							buffer, 2 * count, address);
-					break;
-				case 1:
-					retval = mem_ap_sel_read_buf_u8(swjdp, swjdp_memoryap,
-							buffer, count, address);
-					break;
+			case 4:
+				retval = mem_ap_sel_read_buf_u32(swjdp, swjdp_memoryap,
+						buffer, 4 * count, address);
+				break;
+			case 2:
+				retval = mem_ap_sel_read_buf_u16(swjdp, swjdp_memoryap,
+						buffer, 2 * count, address);
+				break;
+			case 1:
+				retval = mem_ap_sel_read_buf_u8(swjdp, swjdp_memoryap,
+						buffer, count, address);
+				break;
 			}
 
 		} else {
 
 			/* read memory through APB-AP */
-
-			uint32_t saved_r0, saved_r1;
-			int nbytes = count * size;
-			uint32_t data;
 			int enabled = 0;
-
-			if (target->state != TARGET_HALTED)
-			{
-				LOG_WARNING("target not halted");
-				return ERROR_TARGET_NOT_HALTED;
-			}
 
 			retval = cortex_a8_mmu(target, &enabled);
 			if (retval != ERROR_OK)
@@ -1509,80 +1588,50 @@ static int cortex_a8_read_phys_memory(struct target *target,
 
 			if (enabled)
 			{
-				LOG_WARNING("Reading physical memory through APB with MMU enabled is not yet implemented");
+				LOG_WARNING("Reading physical memory through \
+						APB with MMU enabled is not yet implemented");
 				return ERROR_TARGET_FAILURE;
 			}
-
-			/* save registers r0 and r1, we are going to corrupt them  */
-			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r0, 0);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r1, 1);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
-			if (retval != ERROR_OK)
-				return retval;
-
-			while (nbytes > 0) {
-
-				/* execute instruction LDRB r1, [r0], 1 (0xe4d01001) */
-				retval = cortex_a8_exec_opcode(target, ARMV4_5_LDRB_IP(1, 0) , NULL);
-				if (retval != ERROR_OK)
-						return retval;
-
-				retval = cortex_a8_dap_read_coreregister_u32(target, &data, 1);
-				if (retval != ERROR_OK)
-					return retval;
-
-				*buffer++ = data;
-				--nbytes;
-
-			}
-
-			/* restore corrupted registers r0 and r1 */
-			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r0, 0);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r1, 1);
-			if (retval != ERROR_OK)
-				return retval;
-
+			retval =  cortex_a8_read_apb_ab_memory(target, address, size, count, buffer);
 		}
 	}
-
 	return retval;
 }
 
 static int cortex_a8_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-        int enabled = 0;
-        uint32_t virt, phys;
-        int retval;
+	int enabled = 0;
+	uint32_t virt, phys;
+	int retval;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	uint8_t apsel = swjdp->apsel;
 
 	/* cortex_a8 handles unaligned memory access */
+	LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address,
+			size, count);
+	if (apsel == swjdp_memoryap) {
+		retval = cortex_a8_mmu(target, &enabled);
+		if (retval != ERROR_OK)
+			return retval;
 
-        LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address, size, count);
-        retval = cortex_a8_mmu(target, &enabled);
-        if (retval != ERROR_OK)
-        	return retval;
+		if(enabled)
+		{
+			virt = address;
+			retval = cortex_a8_virt2phys(target, virt, &phys);
+			if (retval != ERROR_OK)
+				return retval;
 
-        if(enabled)
-        {
-            virt = address;
-            retval = cortex_a8_virt2phys(target, virt, &phys);
-            if (retval != ERROR_OK)
-            	return retval;
-
-            LOG_DEBUG("Reading at virtual address. Translating v:0x%x to r:0x%x", virt, phys);
-            address = phys;
-        }
-
-        return cortex_a8_read_phys_memory(target, address, size, count, buffer);
+			LOG_DEBUG("Reading at virtual address. Translating v:0x%x to r:0x%x",
+					virt, phys);
+			address = phys;
+		}
+		retval = cortex_a8_read_phys_memory(target, address, size, count, buffer);
+	} else {
+		retval = cortex_a8_read_apb_ab_memory(target, address, size, count, buffer);
+	}
+	return retval;
 }
 
 static int cortex_a8_write_phys_memory(struct target *target,
@@ -1594,7 +1643,8 @@ static int cortex_a8_write_phys_memory(struct target *target,
 	int retval = ERROR_INVALID_ARGUMENTS;
 	uint8_t apsel = swjdp->apsel;
 
-	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address, size, count);
+	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address,
+			size, count);
 
 	if (count && buffer) {
 
@@ -1620,17 +1670,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 		} else {
 
 			/* write memory through APB-AP */
-
-			uint32_t saved_r0, saved_r1;
-			int nbytes = count * size;
-			uint32_t data;
 			int enabled = 0;
-
-			if (target->state != TARGET_HALTED)
-			{
-				LOG_WARNING("target not halted");
-				return ERROR_TARGET_NOT_HALTED;
-			}
 
 			retval = cortex_a8_mmu(target, &enabled);
 			if (retval != ERROR_OK)
@@ -1638,51 +1678,11 @@ static int cortex_a8_write_phys_memory(struct target *target,
 
 			if (enabled)
 			{
-				LOG_WARNING("Writing physical memory through APB with MMU enabled is not yet implemented");
+				LOG_WARNING("Writing physical memory through APB with MMU" \
+						"enabled is not yet implemented");
 				return ERROR_TARGET_FAILURE;
 			}
-
-			/* save registers r0 and r1, we are going to corrupt them  */
-			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r0, 0);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_read_coreregister_u32(target, &saved_r1, 1);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
-			if (retval != ERROR_OK)
-				return retval;
-
-			while (nbytes > 0) {
-
-				data = *buffer++;
-
-				retval = cortex_a8_dap_write_coreregister_u32(target, data, 1);
-				if (retval != ERROR_OK)
-					return retval;
-
-					/* execute instruction STRB r1, [r0], 1 (0xe4c01001) */
-				retval = cortex_a8_exec_opcode(target, ARMV4_5_STRB_IP(1, 0) , NULL);
-				if (retval != ERROR_OK)
-						return retval;
-
-				--nbytes;
-			}
-
-			/* restore corrupted registers r0 and r1 */
-			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r0, 0);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_write_coreregister_u32(target, saved_r1, 1);
-			if (retval != ERROR_OK)
-				return retval;
-
-			/* we can return here without invalidating D/I-cache because */
-			/* access through APB maintains cache coherency              */
-			return retval;
+			return cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
 		}
 	}
 
@@ -1750,27 +1750,39 @@ static int cortex_a8_write_phys_memory(struct target *target,
 static int cortex_a8_write_memory(struct target *target, uint32_t address,
                 uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-        int enabled = 0;
-        uint32_t virt, phys;
-        int retval;
+	int enabled = 0;
+	uint32_t virt, phys;
+	int retval;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	uint8_t apsel = swjdp->apsel;
+	/* cortex_a8 handles unaligned memory access */
+	LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address,
+			size, count);
+	if (apsel == swjdp_memoryap) {
 
-        LOG_DEBUG("Writing memory to address 0x%x; size %d; count %d", address, size, count);
-        retval = cortex_a8_mmu(target, &enabled);
-        if (retval != ERROR_OK)
-        	return retval;
+		LOG_DEBUG("Writing memory to address 0x%x; size %d; count %d", address, size, count);
+		retval = cortex_a8_mmu(target, &enabled);
+		if (retval != ERROR_OK)
+			return retval;
 
-        if(enabled)
-        {
-            virt = address;
-            retval = cortex_a8_virt2phys(target, virt, &phys);
-            if (retval != ERROR_OK)
-            	return retval;
-            LOG_DEBUG("Writing to virtual address. Translating v:0x%x to r:0x%x", virt, phys);
-            address = phys;
-        }
+		if(enabled)
+		{
+			virt = address;
+			retval = cortex_a8_virt2phys(target, virt, &phys);
+			if (retval != ERROR_OK)
+				return retval;
+			LOG_DEBUG("Writing to virtual address. Translating v:0x%x to r:0x%x", virt, phys);
+			address = phys;
+		}
 
-        return cortex_a8_write_phys_memory(target, address, size, 
-                count, buffer);
+		retval = cortex_a8_write_phys_memory(target, address, size, 
+				count, buffer);
+	}
+	else {
+		retval = cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
+	}
+    return retval;
 }
 
 static int cortex_a8_bulk_write_memory(struct target *target, uint32_t address,
