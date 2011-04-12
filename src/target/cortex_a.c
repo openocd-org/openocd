@@ -1959,6 +1959,11 @@ static int cortex_a8_init_arch_info(struct target *target,
 
 	/* Setup struct cortex_a8_common */
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
+	/*  tap has no dap initialized */
+	if (!tap->dap)
+	{
+	armv7a->armv4_5_common.dap = dap;
+	/* Setup struct cortex_a8_common */
 	armv4_5->arch_info = armv7a;
 
 	/* prepare JTAG information for the new target */
@@ -1971,6 +1976,11 @@ static int cortex_a8_init_arch_info(struct target *target,
 
 	/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 	dap->tar_autoincr_block = (1 << 10);
+	dap->memaccess_tck = 80;
+	tap->dap = dap;
+    }
+	else
+	armv7a->armv4_5_common.dap = tap->dap;
 
 	cortex_a8->fast_reg_read = 0;
 
