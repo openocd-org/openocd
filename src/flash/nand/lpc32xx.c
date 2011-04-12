@@ -227,8 +227,8 @@ static int lpc32xx_init(struct nand_device *nand)
 	/* select MLC controller if none is currently selected */
 	if (lpc32xx_info->selected_controller == LPC32xx_NO_CONTROLLER) {
 		LOG_DEBUG("no LPC32xx NAND flash controller selected, "
-			  "using default 'mlc'");
-		lpc32xx_info->selected_controller = LPC32xx_MLC_CONTROLLER;
+			  "using default 'slc'");
+		lpc32xx_info->selected_controller = LPC32xx_SLC_CONTROLLER;
 	}
 
 	if (lpc32xx_info->selected_controller == LPC32xx_MLC_CONTROLLER) {
