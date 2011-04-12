@@ -454,13 +454,19 @@ static struct non_cfi non_cfi_flashes[] = {
 
 void cfi_fixup_non_cfi(struct flash_bank *bank)
 {
+	unsigned int mask;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct non_cfi *non_cfi = non_cfi_flashes;
+
+	if(cfi_info->x16_as_x8)
+		mask = 0xFF;
+	else
+		mask = 0xFFFF;
 
 	for (non_cfi = non_cfi_flashes; non_cfi->mfr; non_cfi++)
 	{
 		if ((cfi_info->manufacturer == non_cfi->mfr)
-			&& (cfi_info->device_id == non_cfi->id))
+			&& (cfi_info->device_id == (non_cfi->id & mask)))
 		{
 			break;
 		}
