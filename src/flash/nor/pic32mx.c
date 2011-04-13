@@ -32,7 +32,6 @@
 #include <target/mips32.h>
 #include <target/mips_m4k.h>
 
-
 #define PIC32MX_MANUF_ID	0x029
 
 /* pic32mx memory locations */
@@ -97,35 +96,72 @@ struct pic32mx_flash_bank
 	int probed;
 };
 
+/*
+ * DEVID values as per PIC32MX Flash Programming Specification Rev H
+ */
+
 static const struct pic32mx_devs_s {
-	uint8_t	devid;
+	uint32_t devid;
 	const char *name;
 } pic32mx_devs[] = {
-	{0x38, "360F512L"},
-	{0x34, "360F256L"},
-	{0x2D, "340F128L"},
-	{0x2A, "320F128L"},
-	{0x16, "340F512H"},
-	{0x12, "340F256H"},
-	{0x0D, "340F128H"},
-	{0x0A, "320F128H"},
-	{0x06, "320F064H"},
-	{0x02, "320F032H"},
-	{0x07, "795F512L"},
-	{0x0E, "795F512H"},
-	{0x11, "675F512L"},
-	{0x0C, "675F512H"},
-	{0x0F, "575F512L"},
-	{0x09, "575F512H"},
-	{0x17, "575F256H"},
-	{0x78, "460F512L"},
-	{0x74, "460F256L"},
-	{0x6D, "440F128L"},
-	{0x56, "440F512H"},
-	{0x52, "440F256H"},
-	{0x4D, "440F128H"},
-	{0x42, "420F032H"},
-	{0x00, NULL}
+	{0x04A07053, "110F016B"},
+	{0x04A09053, "110F016C"},
+	{0x04A0B053, "110F016D"},
+	{0x04A06053, "120F032B"},
+	{0x04A08053, "120F032C"},
+	{0x04A0A053, "120F032D"},
+	{0x04A01053, "210F016B"},
+	{0x04A03053, "210F016C"},
+	{0x04A05053, "210F016D"},
+	{0x04A00053, "220F032B"},
+	{0x04A02053, "220F032C"},
+	{0x04A04053, "220F032D"},
+	{0x00938053, "360F512L"},
+	{0x00934053, "360F256L"},
+	{0x0092D053, "340F128L"},
+	{0x0092A053, "320F128L"},
+	{0x00916053, "340F512H"},
+	{0x00912053, "340F256H"},
+	{0x0090D053, "340F128H"},
+	{0x0090A053, "320F128H"},
+	{0x00906053, "320F064H"},
+	{0x00902053, "320F032H"},
+	{0x00978053, "460F512L"},
+	{0x00974053, "460F256L"},
+	{0x0096D053, "440F128L"},
+	{0x00952053, "440F256H"},
+	{0x00956053, "440F512H"},
+	{0x0094D053, "440F128H"},
+	{0x00942053, "420F032H"},
+	{0x04307053, "795F512L"},
+	{0x0430E053, "795F512H"},
+	{0x04306053, "775F512L"},
+	{0x0430D053, "775F512H"},
+	{0x04312053, "775F256L"},
+	{0x04303053, "775F256H"},
+	{0x04417053, "764F128L"},
+	{0x0440B053, "764F128H"},
+	{0x04341053, "695F512L"},
+	{0x04325053, "695F512H"},
+	{0x04311053, "675F512L"},
+	{0x0430C053, "675F512H"},
+	{0x04305053, "675F256L"},
+	{0x0430B053, "675F256H"},
+	{0x04413053, "664F128L"},
+	{0x04407053, "664F128H"},
+	{0x04411053, "664F064L"},
+	{0x04405053, "664F064H"},
+	{0x0430F053, "575F512L"},
+	{0x04309053, "575F512H"},
+	{0x04333053, "575F256L"},
+	{0x04317053, "575F256H"},
+	{0x0440F053, "564F128L"},
+	{0x04403053, "564F128H"},
+	{0x0440D053, "564F064L"},
+	{0x04401053, "564F064H"},
+	{0x04400053, "534F064H"},
+	{0x0440C053, "534F064L"},
+	{0x00000000, NULL}
 };
 
 /* flash bank pic32mx <base> <size> 0 0 <target#>
@@ -586,10 +622,10 @@ static int pic32mx_probe(struct flash_bank *bank)
 	pic32mx_info->probed = 0;
 
 	device_id = ejtag_info->idcode;
-	LOG_INFO("device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%02x, ver 0x%02x)",
+	LOG_INFO("device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%04x, ver 0x%02x)",
 			  device_id,
 			  (unsigned)((device_id >> 1) & 0x7ff),
-			  (unsigned)((device_id >> 12) & 0xff),
+			  (unsigned)((device_id >> 12) & 0xffff),
 			  (unsigned)((device_id >> 28) & 0xf));
 
 	if (((device_id >> 1) & 0x7ff) != PIC32MX_MANUF_ID) {
@@ -679,7 +715,7 @@ static int pic32mx_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	for (i = 0; pic32mx_devs[i].name != NULL; i++)
 	{
-		if (pic32mx_devs[i].devid == ((device_id >> 12) & 0xff)) {
+		if (pic32mx_devs[i].devid == (device_id & 0x0fffffff)) {
 			printed = snprintf(buf, buf_size, "PIC32MX%s", pic32mx_devs[i].name);
 			break;
 		}
@@ -691,7 +727,7 @@ static int pic32mx_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	buf += printed;
 	buf_size -= printed;
-	printed = snprintf(buf, buf_size, "  Ver: 0x%02x",
+	printed = snprintf(buf, buf_size, " Ver: 0x%02x",
 			(unsigned)((device_id >> 28) & 0xf));
 
 	return ERROR_OK;
