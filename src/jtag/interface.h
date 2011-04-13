@@ -231,8 +231,14 @@ struct jtag_interface {
 	const struct command_registration *commands;
 
 	/**
-	 * Interface driver must initalize any resources and connect to a
+	 * Interface driver must initialize any resources and connect to a
 	 * JTAG device.
+	 *
+	 * quit() is invoked if and only if init() succeeds. quit() is always
+	 * invoked if init() succeeds. Same as malloc() + free(). Always
+	 * invoke free() if malloc() succeeds and do not invoke free()
+	 * otherwise.
+	 *
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*init)(void);
@@ -240,6 +246,7 @@ struct jtag_interface {
 	/**
 	 * Interface driver must tear down all resources and disconnect from
 	 * the JTAG device.
+	 *
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*quit)(void);

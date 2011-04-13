@@ -1368,12 +1368,13 @@ int adapter_init(struct command_context *cmd_ctx)
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
 
-	jtag = jtag_interface;
-	if (jtag_interface->init() != ERROR_OK)
+	int retval;
+	retval = jtag_interface->init();
+	if (retval != ERROR_OK)
 	{
-		jtag = NULL;
-		return ERROR_JTAG_INIT_FAILED;
+		return retval;
 	}
+	jtag = jtag_interface;
 
 	/* LEGACY SUPPORT ... adapter drivers  must declare what
 	 * transports they allow.  Until they all do so, assume
@@ -1383,7 +1384,7 @@ int adapter_init(struct command_context *cmd_ctx)
 		LOG_ERROR("Adapter driver '%s' did not declare "
 			"which transports it allows; assuming "
 			"JTAG-only", jtag->name);
-		int retval = allow_transports(cmd_ctx, jtag_only);
+		retval = allow_transports(cmd_ctx, jtag_only);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1391,7 +1392,7 @@ int adapter_init(struct command_context *cmd_ctx)
 	int requested_khz = jtag_get_speed_khz();
 	int actual_khz = requested_khz;
 	int jtag_speed_var;
-	int retval = jtag_get_speed(&jtag_speed_var);
+	retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_get_speed_readable(&actual_khz);
