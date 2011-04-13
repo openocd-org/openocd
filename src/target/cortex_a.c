@@ -1450,42 +1450,76 @@ static int cortex_a8_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
+
 static int cortex_a8_write_apb_ab_memory(struct target *target,
                 uint32_t address, uint32_t size,
                 uint32_t count, const uint8_t *buffer)
 {
+
+	/* write memory through APB-AP */
+
 	int retval = ERROR_INVALID_ARGUMENTS;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
-	int nbytes = count * size;
-	uint32_t data;
+	int total_bytes = count * size;
+	int start_byte, nbytes_to_write, i;
 	struct reg *reg;
+	union _data {
+		uint8_t uc_a[4];
+		uint32_t ui;
+	} data;
 
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
 	reg = arm_reg_current(armv4_5, 0);
 	reg->dirty = 1;
 	reg = arm_reg_current(armv4_5, 1);
 	reg->dirty = 1;
-	retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+
+	retval = cortex_a8_dap_write_coreregister_u32(target, address & 0xFFFFFFFC, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
-	while (nbytes > 0) {
-		data = *buffer++;
-		retval = cortex_a8_dap_write_coreregister_u32(target, data, 1);
+	start_byte = address & 0x3;
+
+	while (total_bytes > 0) {
+
+		nbytes_to_write = 4 - start_byte;
+		if (total_bytes < nbytes_to_write)
+			nbytes_to_write = total_bytes; 
+			
+		if ( nbytes_to_write != 4 ) {
+		
+			/* execute instruction LDR r1, [r0] */
+			retval = cortex_a8_exec_opcode(target,  ARMV4_5_LDR(1, 0), NULL);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = cortex_a8_dap_read_coreregister_u32(target, &data.ui, 1);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+	
+		for (i = 0; i < nbytes_to_write; ++i)
+			data.uc_a[i + start_byte] = *buffer++;
+
+		retval = cortex_a8_dap_write_coreregister_u32(target, data.ui, 1);
 		if (retval != ERROR_OK)
 			return retval;
 
-		/* execute instruction STRB r1, [r0], 1 (0xe4c01001) */
-		retval = cortex_a8_exec_opcode(target, ARMV4_5_STRB_IP(1, 0) , NULL);
+		/* execute instruction STRW r1, [r0], 1 (0xe4801004) */
+		retval = cortex_a8_exec_opcode(target, ARMV4_5_STRW_IP(1, 0) , NULL);
 		if (retval != ERROR_OK)
-			return retval;
-		--nbytes;
+				return retval;
+
+		total_bytes -= nbytes_to_write;
+		start_byte = 0;
 	}
+
 	return retval;
 }
 
@@ -1494,13 +1528,19 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
                 uint32_t address, uint32_t size,
                 uint32_t count, uint8_t *buffer)
 {
+
+	/* read memory through APB-AP */
+
 	int retval = ERROR_INVALID_ARGUMENTS;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
-	/* read memory through APB-AP */
-	int nbytes = count * size;
-	uint32_t data;
+	int total_bytes = count * size;
+	int start_byte, nbytes_to_read, i;
 	struct reg *reg;
+	union _data {
+		uint8_t uc_a[4];
+		uint32_t ui;
+	} data;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1513,26 +1553,34 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 	reg = arm_reg_current(armv4_5, 1);
 	reg->dirty = 1;
 
-	retval = cortex_a8_dap_write_coreregister_u32(target, address, 0);
+	retval = cortex_a8_dap_write_coreregister_u32(target, address & 0xFFFFFFFC, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
-	while (nbytes > 0) {
+	start_byte = address & 0x3;
 
+	while (total_bytes > 0) {
 
-		/* execute instruction LDRB r1, [r0], 1 (0xe4d01001) */
-		retval = cortex_a8_exec_opcode(target, ARMV4_5_LDRB_IP(1, 0) , NULL);
+		/* execute instruction LDRW r1, [r0], 4 (0xe4901004)  */
+		retval = cortex_a8_exec_opcode(target,  ARMV4_5_LDRW_IP(1, 0), NULL);
 		if (retval != ERROR_OK)
 			return retval;
 
-		retval = cortex_a8_dap_read_coreregister_u32(target, &data, 1);
+		retval = cortex_a8_dap_read_coreregister_u32(target, &data.ui, 1);
 		if (retval != ERROR_OK)
 			return retval;
 
-		*buffer++ = data;
-		--nbytes;
-
+		nbytes_to_read = 4 - start_byte;
+		if (total_bytes < nbytes_to_read)
+			nbytes_to_read = total_bytes; 
+	
+		for (i = 0; i < nbytes_to_read; ++i)
+			*buffer++ = data.uc_a[i + start_byte];
+			
+		total_bytes -= nbytes_to_read;
+		start_byte = 0;
 	}
+
 	return retval;
 }
 
