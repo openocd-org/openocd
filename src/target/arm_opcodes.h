@@ -86,6 +86,12 @@
 #define ARMV4_5_MSR_IM(Im, Rotate, Field, R) \
 	(0xe320f000 | (Im)  | ((Rotate) << 8) | ((Field) << 16) | ((R) << 22))
 
+/* Load Register Word Immediate Post-Index
+ * Rd: register to load
+ * Rn: base register
+ */
+#define ARMV4_5_LDRW_IP(Rd, Rn)	(0xe4900004 | ((Rd) << 12) | ((Rn) << 16)) 
+	
 /* Load Register Halfword Immediate Post-Index
  * Rd: register to load
  * Rn: base register
@@ -97,6 +103,12 @@
  * Rn: base register
  */
 #define ARMV4_5_LDRB_IP(Rd, Rn)	(0xe4d00001 | ((Rd) << 12) | ((Rn) << 16))
+
+/* Store register Word Immediate Post-Index
+ * Rd: register to store
+ * Rn: base register
+ */
+#define ARMV4_5_STRW_IP(Rd, Rn)	(0xe4800004 | ((Rd) << 12) | ((Rn) << 16)) 
 
 /* Store register Halfword Immediate Post-Index
  * Rd: register to store
