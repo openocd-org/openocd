@@ -8,7 +8,8 @@ SUBDIRS = \
 	svf \
 	xsvf \
 	pld \
-	server
+	server \
+	rtos
 
 lib_LTLIBRARIES = libopenocd.la
 bin_PROGRAMS = openocd
@@ -100,6 +101,7 @@ libopenocd_la_LIBADD = \
 	$(top_builddir)/src/flash/libflash.la \
 	$(top_builddir)/src/target/libtarget.la \
 	$(top_builddir)/src/server/libserver.la \
+	$(top_builddir)/src/rtos/librtos.la \
 	$(top_builddir)/src/helper/libhelper.la \
 	$(FTDI2232LIB) $(MINGWLDADD) $(LIBUSB)
 

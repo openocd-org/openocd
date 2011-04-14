@@ -8,6 +8,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2011 by Broadcom Corporation                            *
+ *   Evan Hunter - ehunter@broadcom.com                                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -160,6 +163,9 @@ struct target
 	uint32_t dbgbase;					/* Really a Cortex-A specific option, but there is no
 	 	 	 	 	 	 	 	 	 	   system in place to support target specific options
 	 	 	 	 	 	 	 	 	 	   currently. */
+	struct rtos *rtos;					/* Instance of Real Time Operating System support */
+	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto" 
+	                                     * and must be detected when symbols are offered */
 };
 
 /** Returns the instance-specific name of the specified target. */

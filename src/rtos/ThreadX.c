@@ -1,0 +1,536 @@
+/***************************************************************************
+ *   Copyright (C) 2011 by Broadcom Corporation                            *
+ *   Evan Hunter - ehunter@broadcom.com                                    *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <helper/time_support.h>
+#include <jtag/jtag.h>
+#include "target/target.h"
+#include "target/target_type.h"
+#include "rtos.h"
+#include "helper/log.h"
+#include "rtos_standard_stackings.h"
+
+
+static int ThreadX_detect_rtos( struct target* target );
+static int ThreadX_create( struct target* target );
+static int ThreadX_update_threads( struct rtos* rtos);
+static int ThreadX_get_thread_reg_list(struct rtos *rtos, long long thread_id, char ** hex_reg_list );
+static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t * symbol_list[]);
+
+
+
+struct ThreadX_thread_state
+{
+	int value;
+	char * desc;
+};
+
+
+struct ThreadX_thread_state ThreadX_thread_states[] =
+{
+    { 0,  "Ready" },
+    { 1,  "Completed" },
+    { 2,  "Terminated" },
+    { 3,  "Suspended" },
+    { 4,  "Sleeping" },
+    { 5,  "Waiting - Queue" },
+    { 6,  "Waiting - Semaphore" },
+    { 7,  "Waiting - Event flag" },
+    { 8,  "Waiting - Memory" },
+    { 9,  "Waiting - Memory" },
+    { 10, "Waiting - I/O" },
+    { 11, "Waiting - Filesystem" },
+    { 12, "Waiting - Network" },
+    { 13, "Waiting - Mutex" },
+};
+
+
+#define THREADX_NUM_STATES (sizeof(ThreadX_thread_states)/sizeof(struct ThreadX_thread_state))
+
+
+struct ThreadX_params
+{
+	char *                               target_name;
+	unsigned char                        pointer_width;
+	unsigned char                        thread_stack_offset;
+	unsigned char                        thread_name_offset;
+	unsigned char                        thread_state_offset;
+	unsigned char                        thread_next_offset;
+	const struct rtos_register_stacking* stacking_info;
+};
+
+const struct ThreadX_params ThreadX_params_list[] =
+{
+		{ "cortex_m3",                       // target_name
+          4,                                 // pointer_width;
+          8,                                 // thread_stack_offset;
+          40,                                // thread_name_offset;
+          48,                                // thread_state_offset;
+          136,                               // thread_next_offset
+          &rtos_standard_Cortex_M3_stacking, // stacking_info
+		}
+
+};
+
+#define THREADX_NUM_PARAMS ((int)(sizeof(ThreadX_params_list)/sizeof(struct ThreadX_params)))
+
+enum ThreadX_symbol_values
+{
+	ThreadX_VAL_tx_thread_current_ptr     = 0,
+	ThreadX_VAL_tx_thread_created_ptr     = 1,
+	ThreadX_VAL_tx_thread_created_count   = 2,
+};
+
+static char* ThreadX_symbol_list[] =
+{
+		"_tx_thread_current_ptr",
+		"_tx_thread_created_ptr",
+		"_tx_thread_created_count",
+		NULL
+};
+
+
+
+#define THREADX_NUM_SYMBOLS (sizeof(ThreadX_symbol_list)/sizeof(char*))
+
+
+const struct rtos_type ThreadX_rtos =
+{
+	.name                      = "ThreadX",
+
+	.detect_rtos               = ThreadX_detect_rtos,
+	.create                    = ThreadX_create,
+	.update_threads            = ThreadX_update_threads,
+	.get_thread_reg_list       = ThreadX_get_thread_reg_list,
+	.get_symbol_list_to_lookup = ThreadX_get_symbol_list_to_lookup,
+
+};
+
+static int ThreadX_update_threads( struct rtos* rtos)
+{
+	int retval;
+	int tasks_found = 0;
+	int thread_list_size = 0;
+	const struct ThreadX_params* param;
+
+	if ( rtos == NULL )
+	{
+		return -1;
+	}
+
+	if (rtos->rtos_specific_params == NULL )
+	{
+		return -3;
+	}
+
+	param = (const struct ThreadX_params*) rtos->rtos_specific_params;
+
+	if ( rtos->symbols == NULL )
+	{
+		LOG_OUTPUT("No symbols for ThreadX\r\n");
+		return -4;
+	}
+
+	if ( rtos->symbols[ThreadX_VAL_tx_thread_created_count].address == 0 )
+	{
+		LOG_OUTPUT("Don't have the number of threads in ThreadX \r\n");
+		return -2;
+	}
+
+
+
+
+
+	// read the number of threads
+	retval = target_read_buffer( rtos->target, rtos->symbols[ThreadX_VAL_tx_thread_created_count].address, 4, (uint8_t *)&thread_list_size);
+
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Could not read ThreadX thread count from target\r\n");
+		return retval;
+	}
+
+
+	// wipe out previous thread details if any
+	if ( rtos->thread_details != NULL )
+	{
+		int j;
+		for( j = 0; j < rtos->thread_count; j++ )
+		{
+			if ( rtos->thread_details[j].display_str != NULL )
+			{
+				free( rtos->thread_details[j].display_str );
+				rtos->thread_details[j].display_str = NULL;
+			}
+			if ( rtos->thread_details[j].thread_name_str != NULL )
+			{
+				free( rtos->thread_details[j].thread_name_str );
+				rtos->thread_details[j].thread_name_str = NULL;
+			}
+			if ( rtos->thread_details[j].extra_info_str != NULL )
+			{
+				free( rtos->thread_details[j].extra_info_str );
+				rtos->thread_details[j].extra_info_str = NULL;
+			}
+		}
+		free( rtos->thread_details );
+		rtos->thread_details = NULL;
+	}
+
+
+	// read the current thread id
+	retval = target_read_buffer( rtos->target, rtos->symbols[ThreadX_VAL_tx_thread_current_ptr].address, 4, (uint8_t *)&rtos->current_thread);
+
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Could not read ThreadX current thread from target\r\n");
+		return retval;
+	}
+
+	if ( ( thread_list_size  == 0 ) || ( rtos->current_thread == 0 ) )
+	{
+		// Either : No RTOS threads - there is always at least the current execution though
+		// OR     : No current thread - all threads suspended - show the current execution of idling
+		char tmp_str[] = "Current Execution";
+		thread_list_size++;
+		tasks_found++;
+		rtos->thread_details = (struct thread_detail*) malloc( sizeof( struct thread_detail ) * thread_list_size );
+		rtos->thread_details->threadid = 1;
+		rtos->thread_details->exists = true;
+		rtos->thread_details->display_str = NULL;
+		rtos->thread_details->extra_info_str = NULL;
+		rtos->thread_details->thread_name_str = (char*) malloc( sizeof(tmp_str) );
+		strcpy( rtos->thread_details->thread_name_str, tmp_str );
+
+
+		if ( thread_list_size == 0 )
+		{
+			rtos->thread_count = 1;
+			return ERROR_OK;
+		}
+	}
+	else
+	{
+		// create space for new thread details
+		rtos->thread_details = (struct thread_detail*) malloc( sizeof( struct thread_detail ) * thread_list_size );
+	}
+
+
+
+	// Read the pointer to the first thread
+	long long thread_ptr = 0;
+	retval = target_read_buffer( rtos->target, rtos->symbols[ThreadX_VAL_tx_thread_created_ptr].address, param->pointer_width, (uint8_t *)&thread_ptr);
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Could not read ThreadX thread location from target\r\n");
+		return retval;
+	}
+
+
+	// loop over all threads
+	long long prev_thread_ptr = 0;
+	while ( ( thread_ptr != prev_thread_ptr ) && ( tasks_found < thread_list_size ) )
+	{
+
+		#define THREADX_THREAD_NAME_STR_SIZE (200)
+	    char tmp_str[THREADX_THREAD_NAME_STR_SIZE];
+		unsigned int i = 0;
+		long long name_ptr = 0;
+
+		// Save the thread pointer
+		rtos->thread_details[tasks_found].threadid = thread_ptr;
+
+
+		// read the name pointer
+		retval = target_read_buffer( rtos->target, thread_ptr + param->thread_name_offset, param->pointer_width, (uint8_t *)&name_ptr);
+		if ( retval != ERROR_OK )
+		{
+			LOG_OUTPUT("Could not read ThreadX thread name pointer from target\r\n");
+			return retval;
+		}
+
+		// Read the thread name
+		retval = target_read_buffer( rtos->target, name_ptr, THREADX_THREAD_NAME_STR_SIZE, (uint8_t *)&tmp_str);
+		if ( retval != ERROR_OK )
+		{
+			LOG_OUTPUT("Error reading thread name from ThreadX target\r\n");
+			return retval;
+		}
+		tmp_str[THREADX_THREAD_NAME_STR_SIZE-1] = '\x00';
+
+		if ( tmp_str[0] == '\x00' )
+		{
+			strcpy(tmp_str,"No Name");
+		}
+
+
+		rtos->thread_details[tasks_found].thread_name_str = (char*)malloc( strlen(tmp_str)+1 );
+		strcpy( rtos->thread_details[tasks_found].thread_name_str, tmp_str );
+
+
+
+		// Read the thread status
+		long long thread_status = 0;
+		retval = target_read_buffer( rtos->target, thread_ptr + param->thread_state_offset, 4, (uint8_t *)&thread_status);
+		if ( retval != ERROR_OK )
+		{
+			LOG_OUTPUT("Error reading thread state from ThreadX target\r\n");
+			return retval;
+		}
+
+		for( i = 0; (i < THREADX_NUM_STATES) && (ThreadX_thread_states[i].value!=thread_status); i++ )
+		{
+		}
+
+
+		char * state_desc;
+		if  (i < THREADX_NUM_STATES)
+		{
+			state_desc = ThreadX_thread_states[i].desc;
+		}
+		else
+		{
+			state_desc = "Unknown state";
+		}
+
+		rtos->thread_details[tasks_found].extra_info_str = (char*)malloc( strlen(state_desc)+1 );
+		strcpy( rtos->thread_details[tasks_found].extra_info_str, state_desc );
+
+		rtos->thread_details[tasks_found].exists = true;
+
+		rtos->thread_details[tasks_found].display_str = NULL;
+
+
+
+
+
+		tasks_found++;
+		prev_thread_ptr = thread_ptr;
+
+		// Get the location of the next thread structure.
+		thread_ptr = 0;
+		retval = target_read_buffer( rtos->target, prev_thread_ptr + param->thread_next_offset, param->pointer_width, (uint8_t *) &thread_ptr );
+		if ( retval != ERROR_OK )
+		{
+			LOG_OUTPUT("Error reading next thread pointer in ThreadX thread list\r\n");
+			return retval;
+		}
+
+	}
+
+	rtos->thread_count = tasks_found;
+
+	return 0;
+}
+
+static int ThreadX_get_thread_reg_list(struct rtos *rtos, long long thread_id, char ** hex_reg_list )
+{
+
+	int retval;
+	const struct ThreadX_params* param;
+
+	*hex_reg_list = NULL;
+
+	if ( rtos == NULL )
+	{
+		return -1;
+	}
+
+	if ( thread_id == 0 )
+	{
+		return -2;
+	}
+
+	if (rtos->rtos_specific_params == NULL )
+	{
+		return -3;
+	}
+
+	param = (const struct ThreadX_params*) rtos->rtos_specific_params;
+
+	// Read the stack pointer
+	long long stack_ptr = 0;
+	retval = target_read_buffer( rtos->target, thread_id + param->thread_stack_offset, param->pointer_width, (uint8_t*)&stack_ptr);
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Error reading stack frame from ThreadX thread\r\n");
+		return retval;
+	}
+
+	return rtos_generic_stack_read( rtos->target, param->stacking_info, stack_ptr, hex_reg_list );
+}
+
+
+
+static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t * symbol_list[])
+{
+	unsigned int i;
+	*symbol_list = (symbol_table_elem_t *) malloc( sizeof( symbol_table_elem_t ) * THREADX_NUM_SYMBOLS );
+
+	for( i = 0; i < THREADX_NUM_SYMBOLS; i++ )
+	{
+		(*symbol_list)[i].symbol_name = ThreadX_symbol_list[i];
+	}
+
+	return 0;
+}
+
+static int ThreadX_detect_rtos( struct target* target )
+{
+	if ( ( target->rtos->symbols != NULL ) &&
+		 ( target->rtos->symbols[ThreadX_VAL_tx_thread_created_ptr].address != 0 ) )
+	{
+		// looks like ThreadX
+		return 1;
+	}
+	return 0;
+}
+
+
+
+#if 0
+
+static int ThreadX_set_current_thread(struct rtos *rtos, threadid_t thread_id)
+{
+	return 0;
+}
+
+
+
+static int ThreadX_get_thread_detail( struct rtos*   rtos, threadid_t   thread_id, struct thread_detail* detail )
+{
+	unsigned int i = 0;
+	int retval;
+
+#define THREADX_THREAD_NAME_STR_SIZE (200)
+	char tmp_str[THREADX_THREAD_NAME_STR_SIZE];
+
+	const struct ThreadX_params* param;
+
+	if ( rtos == NULL )
+	{
+		return -1;
+	}
+
+	if ( thread_id == 0 )
+	{
+		return -2;
+	}
+
+	if (rtos->rtos_specific_params == NULL )
+	{
+		return -3;
+	}
+
+	param = (const struct ThreadX_params*) rtos->rtos_specific_params;
+
+	if ( rtos->symbols == NULL )
+	{
+		LOG_OUTPUT("No symbols for ThreadX\r\n");
+		return -3;
+	}
+
+	detail->threadid = thread_id;
+
+	long long name_ptr = 0;
+	// read the name pointer
+	retval = target_read_buffer( rtos->target, thread_id + param->thread_name_offset, param->pointer_width, (uint8_t *)&name_ptr);
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Could not read ThreadX thread name pointer from target\r\n");
+		return retval;
+	}
+
+	// Read the thread name
+	retval = target_read_buffer( rtos->target, name_ptr, THREADX_THREAD_NAME_STR_SIZE, (uint8_t *)&tmp_str);
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Error reading thread name from ThreadX target\r\n");
+		return retval;
+	}
+	tmp_str[THREADX_THREAD_NAME_STR_SIZE-1] = '\x00';
+
+	if ( tmp_str[0] == '\x00' )
+	{
+		strcpy(tmp_str,"No Name");
+	}
+
+	detail->thread_name_str = (char*)malloc( strlen(tmp_str)+1 );
+
+
+	// Read the thread status
+	long long thread_status = 0;
+	retval = target_read_buffer( rtos->target, thread_id + param->thread_state_offset, 4, (uint8_t *)&thread_status);
+	if ( retval != ERROR_OK )
+	{
+		LOG_OUTPUT("Error reading thread state from ThreadX target\r\n");
+		return retval;
+	}
+
+	for( i = 0; (i < THREADX_NUM_STATES) && (ThreadX_thread_states[i].value!=thread_status); i++ )
+	{
+	}
+
+
+	char * state_desc;
+	if  (i < THREADX_NUM_STATES)
+	{
+		state_desc = ThreadX_thread_states[i].desc;
+	}
+	else
+	{
+		state_desc = "Unknown state";
+	}
+
+	detail->extra_info_str = (char*)malloc( strlen(state_desc)+1 );
+
+	detail->exists = true;
+
+	detail->display_str = NULL;
+
+
+
+
+	return 0;
+}
+
+#endif
+
+static int ThreadX_create( struct target* target )
+{
+	int i = 0;
+	while ( ( i < THREADX_NUM_PARAMS ) && ( 0 != strcmp( ThreadX_params_list[i].target_name, target->type->name ) ) )
+	{
+		i++;
+	}
+	if ( i >= THREADX_NUM_PARAMS )
+	{
+		LOG_OUTPUT("Could not find target in ThreadX compatability list\r\n");
+		return -1;
+	}
+
+	target->rtos->rtos_specific_params = (void*) &ThreadX_params_list[i];
+	target->rtos->current_thread = 0;
+	target->rtos->thread_details = NULL;
+	return 0;
+}

@@ -14,6 +14,9 @@
  *   Copyright (C) 2008 by Rick Altherr                                    *
  *   kc8apf@kc8apf.net>                                                    *
  *                                                                         *
+ *   Copyright (C) 2011 by Broadcom Corporation                            *
+ *   Evan Hunter - ehunter@broadcom.com                                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -44,6 +47,7 @@
 #include "register.h"
 #include "trace.h"
 #include "image.h"
+#include "rtos/rtos.h"
 
 
 static int target_read_buffer_default(struct target *target, uint32_t address,
@@ -3704,6 +3708,7 @@ enum target_cfg_param {
 	TCFG_COREID,
 	TCFG_CHAIN_POSITION,
 	TCFG_DBGBASE,
+	TCFG_RTOS,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -3718,6 +3723,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
+	{ .name = "-rtos",             .value = TCFG_RTOS },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -4022,6 +4028,18 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 				}
 			}
 			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->dbgbase));
+			/* loop for more */
+			break;
+
+		case TCFG_RTOS:
+			/* RTOS */
+			{
+				int result = rtos_create( goi, target );
+				if ( result != JIM_OK )
+				{
+					return result;
+				}
+			}
 			/* loop for more */
 			break;
 		}
@@ -4745,6 +4763,9 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->dbg_msg_enabled = 0;
 
 	target->endianness = TARGET_ENDIAN_UNKNOWN;
+
+	target->rtos = NULL;
+	target->rtos_auto_detect = false;
 
 	/* Do the rest as "configure" options */
 	goi->isconfigure = 1;

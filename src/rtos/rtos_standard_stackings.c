@@ -1,13 +1,4 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
- *   Dominic.Rath@gmx.de                                                   *
- *                                                                         *
- *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
- *   oyvind.harboe@zylin.com                                               *
- *                                                                         *
- *   Copyright (C) 2008 by Spencer Oliver                                  *
- *   spen@spen-soft.co.uk                                                  *
- *                                                                         *
  *   Copyright (C) 2011 by Broadcom Corporation                            *
  *   Evan Hunter - ehunter@broadcom.com                                    *
  *                                                                         *
@@ -26,25 +17,49 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef GDB_SERVER_H
-#define GDB_SERVER_H
 
-struct image;
-#include <target/target.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-#define GDB_BUFFER_SIZE	16384
+#include "rtos.h"
 
-struct gdb_service
-{
-	struct target *target;
+static const struct stack_register_offset rtos_standard_Cortex_M3_stack_offsets [] =
+{ { 0x20, 32 },       // r0
+  { 0x24, 32 },       // r1
+  { 0x28, 32 },       // r2
+  { 0x2c, 32 },       // r3
+  { 0x00, 32 },       // r4
+  { 0x04, 32 },       // r5
+  { 0x08, 32 },       // r6
+  { 0x0c, 32 },       // r7
+  { 0x10, 32 },       // r8
+  { 0x14, 32 },       // r9
+  { 0x18, 32 },       // r10
+  { 0x1c, 32 },       // r11
+  { 0x30, 32 },       // r12
+  { -2,   32 },       // sp
+  { 0x34, 32 },       // lr
+  { 0x38, 32 },       // pc
+  { -1,   96 },       // FPA1
+  { -1,   96 },       // FPA2
+  { -1,   96 },       // FPA3
+  { -1,   96 },       // FPA4
+  { -1,   96 },       // FPA5
+  { -1,   96 },       // FPA6
+  { -1,   96 },       // FPA7
+  { -1,   96 },       // FPA8
+  { -1,   32 },       // FPS
+  { 0x3c, 32 },       // xPSR
 };
 
-int gdb_target_add_all(struct target *target);
-int gdb_register_commands(struct command_context *command_context);
 
-int gdb_put_packet(struct connection *connection, char *buffer, int len);
+const struct rtos_register_stacking rtos_standard_Cortex_M3_stacking =
+{
+          0x40,                                 // stack_registers_size
+          1,                                    // stack_growth_direction
+          26,                                   // num_output_registers
+          rtos_standard_Cortex_M3_stack_offsets // register_offsets
+};
 
-#define ERROR_GDB_BUFFER_TOO_SMALL (-800)
-#define ERROR_GDB_TIMEOUT (-801)
 
-#endif /* GDB_SERVER_H */

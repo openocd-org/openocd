@@ -8,6 +8,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2011 by Broadcom Corporation                            *
+ *   Evan Hunter - ehunter@broadcom.com                                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -35,6 +38,7 @@
 #include "gdb_server.h"
 #include <target/image.h>
 #include <jtag/jtag.h>
+#include "rtos/rtos.h"
 
 
 /**
@@ -479,7 +483,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 	return ERROR_OK;
 }
 
-static int gdb_put_packet(struct connection *connection, char *buffer, int len)
+int gdb_put_packet(struct connection *connection, char *buffer, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = 1;
@@ -767,6 +771,7 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 		snprintf(sig_reply, 4, "T%2.2x", signal_var);
 		gdb_put_packet(connection, sig_reply, 3);
 		gdb_connection->frontend_state = TARGET_HALTED;
+		rtos_update_threads( target );
 	}
 }
 
@@ -1033,6 +1038,12 @@ static int gdb_get_registers_packet(struct connection *connection,
 #ifdef _DEBUG_GDB_IO_
 	LOG_DEBUG("-");
 #endif
+
+	if ( ( target->rtos != NULL ) &&
+		 ( ERROR_FAIL != rtos_get_gdb_reg_list( connection, target, &reg_list, &reg_list_size) ) )
+	{
+		return ERROR_OK;
+	}
 
 	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -2187,16 +2198,23 @@ static int gdb_input_inner(struct connection *connection)
 			retval = ERROR_OK;
 			switch (packet[0])
 			{
-				case 'H':
-					/* Hct... -- set thread
-					 * we don't have threads, send empty reply */
-					gdb_put_packet(connection, NULL, 0);
-					break;
+			    case 'T': // Is thread alive?
+			    	gdb_thread_packet(connection, target, packet, packet_size);
+			    	break;
+			    case 'H': // Set current thread ( 'c' for step and continue, 'g' for all other operations )
+			    	gdb_thread_packet(connection, target, packet, packet_size);
+			    	break;
 				case 'q':
 				case 'Q':
-					retval = gdb_query_packet(connection,
-							target, packet,
-							packet_size);
+					retval = gdb_thread_packet(connection,
+												target, packet,
+												packet_size);
+					if ( retval == GDB_THREAD_PACKET_NOT_CONSUMED )
+					{
+						retval = gdb_query_packet(connection,
+								target, packet,
+								packet_size);
+					}
 					break;
 				case 'g':
 					retval = gdb_get_registers_packet(
