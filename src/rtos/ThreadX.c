@@ -34,7 +34,7 @@
 static int ThreadX_detect_rtos( struct target* target );
 static int ThreadX_create( struct target* target );
 static int ThreadX_update_threads( struct rtos* rtos);
-static int ThreadX_get_thread_reg_list(struct rtos *rtos, long long thread_id, char ** hex_reg_list );
+static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char ** hex_reg_list );
 static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t * symbol_list[]);
 
 
@@ -238,7 +238,7 @@ static int ThreadX_update_threads( struct rtos* rtos)
 
 
 	// Read the pointer to the first thread
-	long long thread_ptr = 0;
+	int64_t thread_ptr = 0;
 	retval = target_read_buffer( rtos->target, rtos->symbols[ThreadX_VAL_tx_thread_created_ptr].address, param->pointer_width, (uint8_t *)&thread_ptr);
 	if ( retval != ERROR_OK )
 	{
@@ -248,14 +248,14 @@ static int ThreadX_update_threads( struct rtos* rtos)
 
 
 	// loop over all threads
-	long long prev_thread_ptr = 0;
+	int64_t prev_thread_ptr = 0;
 	while ( ( thread_ptr != prev_thread_ptr ) && ( tasks_found < thread_list_size ) )
 	{
 
 		#define THREADX_THREAD_NAME_STR_SIZE (200)
 	    char tmp_str[THREADX_THREAD_NAME_STR_SIZE];
 		unsigned int i = 0;
-		long long name_ptr = 0;
+		int64_t name_ptr = 0;
 
 		// Save the thread pointer
 		rtos->thread_details[tasks_found].threadid = thread_ptr;
@@ -290,7 +290,7 @@ static int ThreadX_update_threads( struct rtos* rtos)
 
 
 		// Read the thread status
-		long long thread_status = 0;
+		int64_t thread_status = 0;
 		retval = target_read_buffer( rtos->target, thread_ptr + param->thread_state_offset, 4, (uint8_t *)&thread_status);
 		if ( retval != ERROR_OK )
 		{
@@ -343,7 +343,7 @@ static int ThreadX_update_threads( struct rtos* rtos)
 	return 0;
 }
 
-static int ThreadX_get_thread_reg_list(struct rtos *rtos, long long thread_id, char ** hex_reg_list )
+static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char ** hex_reg_list )
 {
 
 	int retval;
@@ -369,7 +369,7 @@ static int ThreadX_get_thread_reg_list(struct rtos *rtos, long long thread_id, c
 	param = (const struct ThreadX_params*) rtos->rtos_specific_params;
 
 	// Read the stack pointer
-	long long stack_ptr = 0;
+	int64_t stack_ptr = 0;
 	retval = target_read_buffer( rtos->target, thread_id + param->thread_stack_offset, param->pointer_width, (uint8_t*)&stack_ptr);
 	if ( retval != ERROR_OK )
 	{
@@ -452,7 +452,7 @@ static int ThreadX_get_thread_detail( struct rtos*   rtos, threadid_t   thread_i
 
 	detail->threadid = thread_id;
 
-	long long name_ptr = 0;
+	int64_t name_ptr = 0;
 	// read the name pointer
 	retval = target_read_buffer( rtos->target, thread_id + param->thread_name_offset, param->pointer_width, (uint8_t *)&name_ptr);
 	if ( retval != ERROR_OK )
@@ -479,7 +479,7 @@ static int ThreadX_get_thread_detail( struct rtos*   rtos, threadid_t   thread_i
 
 
 	// Read the thread status
-	long long thread_status = 0;
+	int64_t thread_status = 0;
 	retval = target_read_buffer( rtos->target, thread_id + param->thread_state_offset, 4, (uint8_t *)&thread_status);
 	if ( retval != ERROR_OK )
 	{

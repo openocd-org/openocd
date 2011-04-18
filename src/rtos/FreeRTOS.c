@@ -73,7 +73,7 @@ const struct FreeRTOS_params FreeRTOS_params_list[] =
 static int FreeRTOS_detect_rtos( struct target* target );
 static int FreeRTOS_create( struct target* target );
 static int FreeRTOS_update_threads( struct rtos *rtos );
-static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, long long thread_id, char ** hex_reg_list );
+static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char ** hex_reg_list );
 static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t * symbol_list[]);
 
 
@@ -253,7 +253,7 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 		}
 
 		// Read the number of threads in this list
-		long long list_thread_count = 0;
+		int64_t list_thread_count = 0;
 		retval = target_read_buffer( rtos->target, list_of_lists[i], param->thread_count_width, (uint8_t *)&list_thread_count);
 		if ( retval != ERROR_OK )
 		{
@@ -267,8 +267,8 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 		}
 
 		// Read the location of first list item
-		unsigned long long prev_list_elem_ptr = -1;
-		unsigned long long list_elem_ptr = 0;
+		uint64_t prev_list_elem_ptr = -1;
+		uint64_t list_elem_ptr = 0;
 		retval = target_read_buffer( rtos->target, list_of_lists[i] + param->list_next_offset, param->pointer_width, (uint8_t *)&list_elem_ptr);
 		if ( retval != ERROR_OK )
 		{
@@ -345,11 +345,11 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 	return 0;
 }
 
-static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, long long thread_id, char ** hex_reg_list )
+static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char ** hex_reg_list )
 {
 	int retval;
 	const struct FreeRTOS_params* param;
-	long long stack_ptr = 0;
+	int64_t stack_ptr = 0;
 
 
 	*hex_reg_list = NULL;

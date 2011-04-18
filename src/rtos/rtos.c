@@ -29,7 +29,7 @@
 #include "server/gdb_server.h"
 
 
-static long long current_threadid = -1;
+static int64_t current_threadid = -1;
 
 static void hex_to_str( char* dst, char * hex_src );
 static int str_to_hex( char* hex_dst, char* src );
@@ -306,7 +306,7 @@ int gdb_thread_packet(struct connection *connection, struct target *target, char
 			}
 			else
 			{
-				long long value = 0;
+				int64_t value = 0;
 				char * hex_name_str = malloc( strlen(packet));
 				char * name_str;
 				int symbol_num;
@@ -512,11 +512,11 @@ int rtos_get_gdb_reg_list(struct connection *connection, struct target *target, 
 
 
 
-int rtos_generic_stack_read( struct target * target, const struct rtos_register_stacking* stacking, long long stack_ptr, char ** hex_reg_list )
+int rtos_generic_stack_read( struct target * target, const struct rtos_register_stacking* stacking, int64_t stack_ptr, char ** hex_reg_list )
 {
 	int list_size = 0;
 	char * tmp_str_ptr;
-	long long new_stack_ptr;
+	int64_t new_stack_ptr;
 	int i;
 	int retval;
 

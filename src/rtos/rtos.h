@@ -26,8 +26,8 @@
 #include <helper/types.h>
 #include <jim-nvp.h>
 
-typedef long long threadid_t;
-typedef long long symbol_address_t;
+typedef int64_t threadid_t;
+typedef int64_t symbol_address_t;
 
 struct reg;
 
@@ -74,7 +74,7 @@ struct rtos_type
 	int (*detect_rtos)                 ( struct target* target );
 	int (*create)                      ( struct target* target );
 	int (*update_threads)              ( struct rtos*   rtos );
-	int (*get_thread_reg_list)         ( struct rtos *rtos, long long thread_id, char ** hex_reg_list );
+	int (*get_thread_reg_list)         ( struct rtos *rtos, int64_t thread_id, char ** hex_reg_list );
 	int (*get_symbol_list_to_lookup)   (symbol_table_elem_t * symbol_list[] );
 };
 
@@ -97,7 +97,7 @@ struct rtos_register_stacking
 #define GDB_THREAD_PACKET_NOT_CONSUMED (-40)
 
 int rtos_create(Jim_GetOptInfo *goi, struct target * target);
-int rtos_generic_stack_read( struct target * target, const struct rtos_register_stacking* stacking, long long stack_ptr, char ** hex_reg_list );
+int rtos_generic_stack_read( struct target * target, const struct rtos_register_stacking* stacking, int64_t stack_ptr, char ** hex_reg_list );
 int rtos_try_next( struct target * target );
 int gdb_thread_packet(struct connection *connection, struct target *target, char *packet, int packet_size);
 int rtos_get_gdb_reg_list(struct connection *connection, struct target *target, struct reg **reg_list[], int *reg_list_size);
