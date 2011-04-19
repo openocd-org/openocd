@@ -14,6 +14,9 @@
  *   Copyright (C) 2010 Øyvind Harboe                                      *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) ST-Ericsson SA 2011                                     *
+ *   michel.jaouen@stericsson.com : smp minimum support                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -671,7 +674,54 @@ static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 
 	return retval;
 }
+static struct target *get_cortex_a8(struct target *target, int32_t coreid)
+{
+struct target_list *head;
+struct target *curr;
 
+	head = target->head;
+	while(head != (struct target_list*)NULL)
+	{
+		curr = head->target;
+		if ((curr->coreid == coreid) && (curr->state == TARGET_HALTED))
+		{
+        return curr;
+		}
+		head = head->next;
+	}
+   return target;
+}
+static int cortex_a8_halt(struct target *target);
+
+static int cortex_a8_halt_smp(struct target *target)
+{
+	int retval = 0;
+	struct target_list *head;
+	struct target *curr;
+	head = target->head;
+	while(head != (struct target_list*)NULL)
+	{
+		curr = head->target;
+		if ((curr != target) && (curr->state!= TARGET_HALTED))
+		{
+			retval += cortex_a8_halt(curr);
+		}
+		head = head->next;
+	}
+	return retval;
+}
+
+static int update_halt_gdb(struct target *target)
+{
+	int retval = 0;
+	if (target->gdb_service->core[0]==-1)
+	{
+		target->gdb_service->target = target;
+		target->gdb_service->core[0] = target->coreid;
+		retval += cortex_a8_halt_smp(target);
+	}
+	return retval;
+}
 
 /*
  * Cortex-A8 Run control
@@ -685,7 +735,20 @@ static int cortex_a8_poll(struct target *target)
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
 	enum target_state prev_target_state = target->state;
-
+	//  toggle to another core is done by gdb as follow
+	//  maint packet J core_id
+	//  continue
+	//  the next polling trigger an halt event sent to gdb
+	if ((target->state == TARGET_HALTED) && (target->smp) &&
+			(target->gdb_service) &&
+			(target->gdb_service->target==NULL) )
+	{
+		target->gdb_service->target =
+			get_cortex_a8(target, target->gdb_service->core[1]);
+		target_call_event_callbacks(target,
+				TARGET_EVENT_HALTED);
+		return retval;
+	}
 	retval = mem_ap_sel_read_atomic_u32(swjdp, swjdp_debugap,
 			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	if (retval != ERROR_OK)
@@ -707,7 +770,12 @@ static int cortex_a8_poll(struct target *target)
 				retval = cortex_a8_debug_entry(target);
 				if (retval != ERROR_OK)
 					return retval;
-
+				if (target->smp)
+				{
+					retval = update_halt_gdb(target);
+					if (retval != ERROR_OK)
+						return retval;
+				}
 				target_call_event_callbacks(target,
 						TARGET_EVENT_HALTED);
 			}
@@ -718,6 +786,12 @@ static int cortex_a8_poll(struct target *target)
 				retval = cortex_a8_debug_entry(target);
 				if (retval != ERROR_OK)
 					return retval;
+				if (target->smp)
+				{
+					retval = update_halt_gdb(target);
+					if (retval != ERROR_OK)
+						return retval;
+				}
 
 				target_call_event_callbacks(target,
 						TARGET_EVENT_DEBUG_HALTED);
@@ -789,16 +863,13 @@ static int cortex_a8_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int cortex_a8_resume(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+static int cortex_a8_internal_restore(struct target *target, int current,
+		uint32_t *address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
 	int retval;
-
-//	struct breakpoint *breakpoint = NULL;
-	uint32_t resume_pc, dscr;
+	uint32_t resume_pc;
 
 	if (!debug_execution)
 		target_free_all_working_areas(target);
@@ -827,7 +898,9 @@ static int cortex_a8_resume(struct target *target, int current,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	resume_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
 	if (!current)
-		resume_pc = address;
+		resume_pc = *address;
+	else
+		*address = resume_pc;
 
 	/* Make sure that the Armv7 gdb thumb fixups does not
 	 * kill the return address
@@ -856,6 +929,11 @@ static int cortex_a8_resume(struct target *target, int current,
 	retval = cortex_a8_restore_context(target, handle_breakpoints);
 	if (retval != ERROR_OK)
 		return retval;
+    target->debug_reason = DBG_REASON_NOTHALTED;
+	target->state = TARGET_RUNNING;
+
+	/* registers are now invalid */
+	register_cache_invalidate(armv4_5->core_cache);
 
 #if 0
 	/* the front-end may request us not to handle breakpoints */
@@ -872,8 +950,17 @@ static int cortex_a8_resume(struct target *target, int current,
 	}
 
 #endif
+	return retval;
+}
 
-	/*
+static int cortex_a8_internal_restart(struct target *target)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct adiv5_dap *swjdp = armv4_5->dap;
+	int retval;
+	uint32_t dscr;
+/*
 	 * Restart core and wait for it to be started.  Clear ITRen and sticky
 	 * exception flags: see ARMv7 ARM, C5.9.
 	 *
@@ -895,7 +982,8 @@ static int cortex_a8_resume(struct target *target, int current,
 		return retval;
 
 	retval = mem_ap_sel_write_atomic_u32(swjdp, swjdp_debugap,
-			armv7a->debug_base + CPUDBG_DRCR, DRCR_RESTART | DRCR_CLEAR_EXCEPTIONS);
+			armv7a->debug_base + CPUDBG_DRCR, DRCR_RESTART |
+			DRCR_CLEAR_EXCEPTIONS);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -921,17 +1009,64 @@ static int cortex_a8_resume(struct target *target, int current,
 	/* registers are now invalid */
 	register_cache_invalidate(armv4_5->core_cache);
 
+	return ERROR_OK;
+}
+
+static int cortex_a8_restore_smp(struct target *target,int handle_breakpoints)
+{
+	int retval = 0;
+	struct target_list *head;
+	struct target *curr;
+    uint32_t address;
+	head = target->head;
+	while(head != (struct target_list*)NULL)
+	{
+		curr = head->target;
+		if ((curr != target) && (curr->state != TARGET_RUNNING))
+		{
+		/*  resume current address , not in step mode */
+		retval += cortex_a8_internal_restore(curr, 1, &address,
+				handle_breakpoints, 0);
+		  retval += cortex_a8_internal_restart(curr);
+		}
+		head = head->next;
+
+	}
+	return retval;
+}
+
+static int cortex_a8_resume(struct target *target, int current,
+		uint32_t address, int handle_breakpoints, int debug_execution)
+{
+	int retval = 0;
+	/*   dummy resume for smp toggle in order to reduce gdb impact  */
+	if ((target->smp) && (target->gdb_service->core[1]!=-1))
+	{
+		/*   simulate a start and halt of target */
+		target->gdb_service->target = NULL;
+		target->gdb_service->core[0] = target->gdb_service->core[1];
+		/*  fake resume at next poll we play the  target core[1], see poll*/
+		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		return 0;
+	}
+	cortex_a8_internal_restore(target, current, &address, handle_breakpoints, debug_execution);
+	if (target->smp)
+	{   target->gdb_service->core[0] = -1;
+		retval += cortex_a8_restore_smp(target, handle_breakpoints);
+	}
+	cortex_a8_internal_restart(target);
+
 	if (!debug_execution)
 	{
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%" PRIx32, resume_pc);
+		LOG_DEBUG("target resumed at 0x%" PRIx32, address);
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%" PRIx32, resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx32, address);
 	}
 
 	return ERROR_OK;
@@ -1624,7 +1759,6 @@ static int cortex_a8_read_phys_memory(struct target *target,
 						buffer, count, address);
 				break;
 			}
-
 		} else {
 
 			/* read memory through APB-AP */
@@ -1663,6 +1797,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 		retval = cortex_a8_mmu(target, &enabled);
 		if (retval != ERROR_OK)
 			return retval;
+
 
 		if(enabled)
 		{
@@ -2032,7 +2167,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 
 	/* Leave (only) generic DAP stuff for debugport_init() */
 	dap->jtag_info = &cortex_a8->jtag_info;
-	dap->memaccess_tck = 80;
 
 	/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 	dap->tar_autoincr_block = (1 << 10);
@@ -2270,6 +2404,68 @@ COMMAND_HANDLER(cortex_a8_handle_dbginit_command)
 
 	return cortex_a8_init_debug_access(target);
 }
+COMMAND_HANDLER(cortex_a8_handle_smp_off_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+    /* check target is an smp target */
+    struct target_list *head;
+	struct target *curr;
+	head = target->head;
+	target->smp = 0;
+	if (head != (struct target_list*)NULL)
+	{
+		while (head != (struct target_list*)NULL)
+		{
+			curr = head->target;
+			curr->smp = 0;
+			head = head->next;
+		}
+		/*  fixes the target display to the debugger */
+		target->gdb_service->target = target;
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(cortex_a8_handle_smp_on_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct target_list *head;
+	struct target *curr;
+	head = target->head;
+	if (head != (struct target_list*)NULL)
+	{   target->smp=1;
+		while (head != (struct target_list*)NULL)
+		{
+			curr = head->target;
+			curr->smp = 1;
+			head = head->next;
+		}
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(cortex_a8_handle_smp_gdb_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	int retval = ERROR_OK;
+	struct target_list *head;
+	head = target->head;
+	if (head != (struct target_list*)NULL)
+	{
+		if (CMD_ARGC == 1)
+		{
+			int coreid = 0;
+			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);
+			if (ERROR_OK != retval)
+				return retval;
+			target->gdb_service->core[1]=coreid;
+
+		}
+		command_print(CMD_CTX, "gdb coreid  %d -> %d", target->gdb_service->core[0]
+				, target->gdb_service->core[1]);
+	}
+	return ERROR_OK;
+}
 
 static const struct command_registration cortex_a8_exec_command_handlers[] = {
 	{
@@ -2284,6 +2480,25 @@ static const struct command_registration cortex_a8_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Initialize core debug",
 	},
+	{   .name ="smp_off",
+	    .handler = cortex_a8_handle_smp_off_command,
+		.mode = COMMAND_EXEC,
+		.help = "Stop smp handling",
+	},
+	{
+        .name ="smp_on",
+        .handler = cortex_a8_handle_smp_on_command,
+		.mode = COMMAND_EXEC,
+		.help = "Restart smp handling",
+	},
+	{
+        .name ="smp_gdb",
+        .handler = cortex_a8_handle_smp_gdb_command,
+		.mode = COMMAND_EXEC,
+		.help = "display/fix current core played to gdb",
+	},
+
+
 	COMMAND_REGISTRATION_DONE
 };
 static const struct command_registration cortex_a8_command_handlers[] = {
