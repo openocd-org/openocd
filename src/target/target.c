@@ -17,6 +17,9 @@
  *   Copyright (C) 2011 by Broadcom Corporation                            *
  *   Evan Hunter - ehunter@broadcom.com                                    *
  *                                                                         *
+ *   Copyright (C) ST-Ericsson SA 2011                                     *
+ *   michel.jaouen@stericsson.com : smp minimum support                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -729,7 +732,7 @@ int target_bulk_write_memory(struct target *target,
 int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED)&&(breakpoint->type!=BKPT_HARD)) {
 		LOG_WARNING("target %s is not halted", target->cmd_name);
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -3931,6 +3934,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 			/* loop for more e*/
 			break;
 
+
 		case TCFG_ENDIAN:
 			if (goi->isconfigure) {
 				e = Jim_GetOpt_Nvp(goi, nvp_target_endian, &n);
@@ -3981,7 +3985,7 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 				if (e != JIM_OK) {
 					return e;
 				}
-				target->coreid = (int)w;
+				target->coreid = (int32_t)w;
 			} else {
 				if (goi->argc != 0) {
 					goto no_params;
@@ -4893,6 +4897,61 @@ static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
+static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	int i;
+	const char *targetname;
+	int retval,len;
+	struct target *target;
+	struct target_list *head, *curr, *new;
+    curr = (struct target_list*) NULL;
+	head = (struct target_list*) NULL;
+	new = (struct target_list*) NULL;
+
+	retval = 0;
+	LOG_DEBUG("%d",argc);
+	/* argv[1] = target to associate in smp
+	 * argv[2] = target to assoicate in smp 
+	 * argv[3] ...
+	 */
+
+	for(i=1;i<argc;i++)
+	{
+
+		targetname = Jim_GetString(argv[i], &len);
+		target = get_target(targetname);
+		LOG_DEBUG("%s ",targetname);
+		if (target)
+		{
+			new=malloc(sizeof(struct target_list));
+			new->target = target;
+			new->next = (struct target_list*)NULL;
+			if (head == (struct target_list*)NULL)
+			{
+				head = new;
+				curr = head;
+			}
+			else
+			{
+				curr->next = new;
+				curr = new;
+			}
+		}
+	}
+    /*  now parse the list of cpu and put the target in smp mode*/
+	curr=head;
+
+    while(curr!=(struct target_list *)NULL)
+	{
+    target=curr->target;
+	target->smp = 1;
+	target->head = head;
+	curr=curr->next;
+	}
+	return retval; 
+}
+
+
 static int jim_target_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	Jim_GetOptInfo goi;
@@ -5008,6 +5067,14 @@ static const struct command_registration target_subcommand_handlers[] = {
 		.help = "Returns the number of targets as an integer "
 			"(DEPRECATED)",
 	},
+	{
+		.name = "smp",
+		.mode = COMMAND_ANY,
+		.jim_handler = jim_target_smp,
+		.usage = "targetname1 targetname2 ...",
+		.help = "gather several target in a smp list"
+	},
+
 	COMMAND_REGISTRATION_DONE
 };
 

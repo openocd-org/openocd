@@ -11,6 +11,9 @@
  *   Copyright (C) 2011 by Broadcom Corporation                            *
  *   Evan Hunter - ehunter@broadcom.com                                    *
  *                                                                         *
+ *   Copyright (C) ST-Ericsson SA 2011                                     *
+ *   michel.jaouen@stericsson.com : smp minimum support                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -38,7 +41,7 @@ struct breakpoint;
 struct watchpoint;
 struct mem_param;
 struct reg_param;
-
+struct target_list;
 
 /*
  * TARGET_UNKNOWN = 0: we don't know anything about the target yet
@@ -102,6 +105,17 @@ struct working_area
 	struct working_area **user;
 	struct working_area *next;
 };
+ 
+struct gdb_service
+{
+	struct target *target;
+	/*  field for smp display  */
+	/*  element 0 coreid currently displayed ( 1 till n) */
+    /*  element 1 coreid to be displayed at next resume 1 till n 0 means resume
+	 *  all cores
+	  core displayed  */
+	int32_t core[2];
+};
 
 // target_type.h contains the full definitionof struct targe_type
 struct target
@@ -110,7 +124,7 @@ struct target
 	const char *cmd_name;				/* tcl Name of target */
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;					/* where on the jtag chain is this */
-	int coreid;							/* which device on the TAP? */
+	int32_t coreid;							/* which device on the TAP? */
 	const char *variant;				/* what variant of this chip is it? */
 
 	/**
@@ -166,6 +180,20 @@ struct target
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto" 
 	                                     * and must be detected when symbols are offered */
+
+	int smp;								/*  add some target attributes for smp support */
+	struct target_list *head;
+	/*  the gdb service is there in case of smp , we have only one gdb server
+	 *  for all smp target
+	 *  the target attached to the gdb is changing dynamically by changing
+	 *  gdb_service->target pointer */
+	struct gdb_service *gdb_service;
+};
+
+
+struct target_list {
+	struct target *target;
+	struct target_list *next;
 };
 
 /** Returns the instance-specific name of the specified target. */

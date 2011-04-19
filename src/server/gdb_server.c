@@ -11,6 +11,9 @@
  *   Copyright (C) 2011 by Broadcom Corporation                            *
  *   Evan Hunter - ehunter@broadcom.com                                    *
  *                                                                         *
+ *   Copyright (C) ST-Ericsson SA 2011                                     *
+ *   michel.jaouen@stericsson.com : smp minimum support                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -39,6 +42,7 @@
 #include <target/image.h>
 #include <jtag/jtag.h>
 #include "rtos/rtos.h"
+#include "target/smp.h"
 
 
 /**
@@ -62,7 +66,7 @@ struct gdb_connection
 	int closed;
 	int busy;
 	int noack_mode;
-	bool sync; 	/* set flag to true if you want the next stepi to return immediately.
+	bool sync;	/* set flag to true if you want the next stepi to return immediately.
 	               allowing GDB to pick up a fresh set of register values from the target
 	               without modifying the target state. */
 	/* We delay reporting memory write errors until next step/continue or memory
@@ -2360,6 +2364,24 @@ static int gdb_input_inner(struct connection *connection)
 							"ocd_gdb_restart %s",
 							target_name(target));
 					break;
+
+				case 'j':
+				    /*  packet supported only by smp target i.e cortex_a.c*/
+					/* handle smp packet replying coreid played to gbd */
+					gdb_read_smp_packet(
+							connection, target,
+							packet, packet_size);
+					break;
+
+				case 'J':
+					/*  packet supported only by smp target i.e cortex_a.c */
+					/*  handle smp packet setting coreid to be played at next
+					 *  resume to gdb */
+					gdb_write_smp_packet(
+							connection, target,
+							packet, packet_size);
+					break;
+
 				default:
 					/* ignore unknown packets */
 					LOG_DEBUG("ignoring 0x%2.2x packet", packet[0]);
@@ -2411,21 +2433,43 @@ static int gdb_input(struct connection *connection)
 
 static int gdb_target_start(struct target *target, const char *port)
 {
-	struct gdb_service *gdb_service = malloc(sizeof(struct gdb_service));
+
+	struct gdb_service *gdb_service;
+	int ret;
+	gdb_service = malloc(sizeof(struct gdb_service));
+
 	if (NULL == gdb_service)
 		return -ENOMEM;
 
 	gdb_service->target = target;
+	gdb_service->core[0] = -1;
+	gdb_service->core[1] = -1;
+	target->gdb_service = gdb_service;
 
-	return add_service("gdb",
+	ret = add_service("gdb",
 			port, 1, &gdb_new_connection, &gdb_input,
 			&gdb_connection_closed, gdb_service);
+	/* initialialize all targets gdb service with the same pointer */
+	{
+		struct target_list *head;
+		struct target *curr;
+		head = target->head;
+		while(head != (struct target_list*)NULL)
+		{
+			curr = head->target;
+			if (curr != target) curr->gdb_service = gdb_service;
+			head = head->next;	
+		}
+	}
+	return ret;
 }
 
 static int gdb_target_add_one(struct target *target)
 {
+	/*  one gdb instance per smp list */
+	if ((target->smp) && (target->gdb_service)) return ERROR_OK;
 	int retval = gdb_target_start(target, gdb_port_next);
-	if (retval == ERROR_OK)
+	if (retval == ERROR_OK) 
 	{
 		long portnumber;
 		/* If we can parse the port number
