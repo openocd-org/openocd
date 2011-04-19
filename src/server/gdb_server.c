@@ -2363,6 +2363,7 @@ static int gdb_input_inner(struct connection *connection)
 					command_run_linef(connection->cmd_ctx,
 							"ocd_gdb_restart %s",
 							target_name(target));
+					gdb_put_packet(connection, "OK", 2);
 					break;
 
 				case 'j':
