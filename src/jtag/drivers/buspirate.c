@@ -55,6 +55,11 @@ static void buspirate_scan(bool ir_scan, enum scan_type type,
 #define CMD_UART_SPEED    0x07
 #define CMD_JTAG_SPEED    0x08
 
+/* Not all OSes have this speed defined */
+#if !defined(B1000000)
+#define  B1000000 0010010
+#endif
+
 enum {
 	MODE_HIZ = 0,
 	MODE_JTAG = 1,		/* push-pull outputs */
