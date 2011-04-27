@@ -305,14 +305,6 @@ static int cfi_reset(struct flash_bank *bank)
 
 static void cfi_intel_clear_status_register(struct flash_bank *bank)
 {
-	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_ERROR("BUG: attempted to clear status register while target wasn't halted");
-		exit(-1);
-	}
-
 	cfi_send_command(bank, 0x50, flash_address(bank, 0, 0x0));
 }
 
