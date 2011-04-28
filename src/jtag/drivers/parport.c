@@ -384,10 +384,6 @@ static int parport_init(void)
 
 	bitbang_interface = &parport_bitbang;
 
-	int retval = jtag_get_speed(&wait_states);
-	if (retval != ERROR_OK)
-		return retval;
-
 	return ERROR_OK;
 }
 

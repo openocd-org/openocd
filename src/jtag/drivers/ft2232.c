@@ -2485,12 +2485,6 @@ static int ft2232_init(void)
 			return ERROR_JTAG_INIT_FAILED;
 	}
 
-	int jtag_speed_var;
-	retval = jtag_get_speed(&jtag_speed_var);
-	if (retval != ERROR_OK)
-		return retval;
-	ft2232_speed(jtag_speed_var);
-
 	buf[0] = 0x85; /* Disconnect TDI/DO to TDO/DI for Loopback */
 	if ((retval = ft2232_write(buf, 1, &bytes_written)) != ERROR_OK)
 	{

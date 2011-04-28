@@ -124,7 +124,7 @@ static struct jtag_event_callback *jtag_event_callbacks;
 static int speed_khz = 0;
 /* speed to fallback to when RCLK is requested but not supported */
 static int rclk_fallback_speed_khz = 0;
-static enum {CLOCK_MODE_SPEED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
+static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
 static int jtag_speed = 0;
 
 static struct jtag_interface *jtag = NULL;
@@ -1389,10 +1389,20 @@ int adapter_init(struct command_context *cmd_ctx)
 			return retval;
 	}
 
+	if (CLOCK_MODE_UNSELECTED == clock_mode)
+	{
+		LOG_ERROR("An adapter speed is not selected in the init script."
+			" Insert a call to adapter_khz or jtag_rclk to proceed.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
 	int requested_khz = jtag_get_speed_khz();
 	int actual_khz = requested_khz;
 	int jtag_speed_var;
 	retval = jtag_get_speed(&jtag_speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = jtag->speed(jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_get_speed_readable(&actual_khz);
@@ -1647,9 +1657,6 @@ int jtag_get_speed(int *speed)
 {
 	switch(clock_mode)
 	{
-		case CLOCK_MODE_SPEED:
-			*speed = jtag_speed;
-			break;
 		case CLOCK_MODE_KHZ:
 			adapter_khz_to_speed(jtag_get_speed_khz(), speed);
 			break;

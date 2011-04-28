@@ -1505,11 +1505,6 @@ int zy1000_init(void)
 
 	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
-	int jtag_speed_var;
-	int retval = jtag_get_speed(&jtag_speed_var);
-	if (retval != ERROR_OK)
-		return retval;
-	zy1000_speed(jtag_speed_var);
 
 #if BUILD_ZY1000_MASTER
 #if BUILD_ECOSBOARD

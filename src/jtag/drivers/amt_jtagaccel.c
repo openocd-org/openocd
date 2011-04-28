@@ -506,12 +506,6 @@ static int amt_jtagaccel_init(void)
 	aw_control_fsm |= 0x04;
 	AMT_AW(aw_control_fsm);
 
-	int jtag_speed_var;
-	int retval = jtag_get_speed(&jtag_speed_var);
-	if (retval != ERROR_OK)
-          return retval;
-	amt_jtagaccel_speed(jtag_speed_var);
-
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 		aw_control_rst &= ~0x8;
