@@ -110,7 +110,6 @@ int avr32_ap7k_restore_context(struct target *target)
 static int avr32_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
-	struct avr32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
@@ -118,7 +117,6 @@ static int avr32_read_core_reg(struct target *target, int num)
 	if ((num < 0) || (num >= AVR32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
 
-	mips_core_reg = ap7k->core_cache->reg_list[num].arch_info;
 	reg_value = ap7k->core_regs[num];
 	buf_set_u32(ap7k->core_cache->reg_list[num].value, 0, 32, reg_value);
 	ap7k->core_cache->reg_list[num].valid = 1;
@@ -130,7 +128,6 @@ static int avr32_read_core_reg(struct target *target, int num)
 static int avr32_write_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
-	struct avr32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
@@ -139,7 +136,6 @@ static int avr32_write_core_reg(struct target *target, int num)
 		return ERROR_INVALID_ARGUMENTS;
 
 	reg_value = buf_get_u32(ap7k->core_cache->reg_list[num].value, 0, 32);
-	mips_core_reg = ap7k->core_cache->reg_list[num].arch_info;
 	ap7k->core_regs[num] = reg_value;
 	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
 	ap7k->core_cache->reg_list[num].valid = 1;
