@@ -1064,6 +1064,8 @@ static int gdb_get_registers_packet(struct connection *connection,
 
 	for (i = 0; i < reg_list_size; i++)
 	{
+		if (!reg_list[i]->valid)
+			reg_list[i]->type->get(reg_list[i]);
 		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
 		reg_packet_p += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
 	}
@@ -1167,6 +1169,9 @@ static int gdb_get_register_packet(struct connection *connection,
 		LOG_ERROR("gdb requested a non-existing register");
 		exit(-1);
 	}
+
+	if (!reg_list[reg_num]->valid)
+		reg_list[reg_num]->type->get(reg_list[reg_num]);
 
 	reg_packet = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
 
