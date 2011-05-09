@@ -53,6 +53,10 @@ static int cortex_a8_debug_entry(struct target *target);
 static int cortex_a8_restore_context(struct target *target, bool bpwp);
 static int cortex_a8_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint, uint8_t matchmode);
+static int cortex_a8_set_context_breakpoint(struct target *target,
+		struct breakpoint *breakpoint, uint8_t matchmode);
+static int cortex_a8_set_hybrid_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
 static int cortex_a8_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 static int cortex_a8_dap_read_coreregister_u32(struct target *target,
@@ -1422,6 +1426,141 @@ static int cortex_a8_set_breakpoint(struct target *target,
 	return ERROR_OK;
 }
 
+static int cortex_a8_set_context_breakpoint(struct target *target,
+		struct breakpoint *breakpoint, uint8_t matchmode)
+{
+	int retval = ERROR_FAIL;
+	int brp_i=0;
+	uint32_t control;
+	uint8_t byte_addr_select = 0x0F;
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
+	struct cortex_a8_brp * brp_list = cortex_a8->brp_list;
+	
+	if (breakpoint->set)
+	{
+		LOG_WARNING("breakpoint already set");
+		return retval ;
+	}
+	/*check available context BRPs*/
+	while ((brp_list[brp_i].used || (brp_list[brp_i].type!=BRP_CONTEXT)) && (brp_i < cortex_a8->brp_num))
+			brp_i++ ;
+	
+	if (brp_i >= cortex_a8->brp_num)
+	{
+		LOG_ERROR("ERROR Can not find free Breakpoint Register Pair");
+		return ERROR_FAIL;
+	}
+
+	breakpoint->set = brp_i + 1;
+	control = ((matchmode & 0x7) << 20)
+				| (byte_addr_select << 5)
+				| (3 << 1) | 1;
+	brp_list[brp_i].used = 1;
+	brp_list[brp_i].value = (breakpoint->asid);
+	brp_list[brp_i].control = control;
+	retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+			+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn, 
+			brp_list[brp_i].value);
+	if(retval != ERROR_OK)
+		return retval;
+	retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+			+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
+			brp_list[brp_i].control);
+	if(retval != ERROR_OK)
+		return retval;
+	LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
+	brp_list[brp_i].control,
+	brp_list[brp_i].value);
+	return ERROR_OK;
+		
+}
+
+static int cortex_a8_set_hybrid_breakpoint(struct target *target, struct breakpoint *breakpoint)
+{
+	int retval = ERROR_FAIL;
+	int brp_1=0; //holds the contextID pair
+	int brp_2=0; // holds the IVA pair
+	uint32_t control_CTX, control_IVA;
+	uint8_t CTX_byte_addr_select = 0x0F;
+	uint8_t IVA_byte_addr_select = 0x0F;
+	uint8_t CTX_machmode = 0x03;
+	uint8_t IVA_machmode = 0x01;
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
+	struct cortex_a8_brp * brp_list = cortex_a8->brp_list;
+	
+	
+	
+	if (breakpoint->set)
+	{
+		LOG_WARNING("breakpoint already set");
+		return retval ;
+	}
+	/*check available context BRPs*/
+	while ((brp_list[brp_1].used || (brp_list[brp_1].type!=BRP_CONTEXT)) && (brp_1 < cortex_a8->brp_num))
+			brp_1++ ;
+	
+	printf("brp(CTX) found num: %d \n",brp_1);
+	if (brp_1 >= cortex_a8->brp_num)
+	{
+		LOG_ERROR("ERROR Can not find free Breakpoint Register Pair");
+		return ERROR_FAIL;
+	}
+
+	while ((brp_list[brp_2].used || (brp_list[brp_2].type!=BRP_NORMAL)) && (brp_2 < cortex_a8->brp_num))
+			brp_2++ ;
+	
+	printf("brp(IVA) found num: %d \n",brp_2);
+	if (brp_2 >= cortex_a8->brp_num)
+	{
+		LOG_ERROR("ERROR Can not find free Breakpoint Register Pair");
+		return ERROR_FAIL;
+	}
+
+	breakpoint->set = brp_1 + 1;
+	breakpoint->linked_BRP= brp_2;
+	control_CTX = ((CTX_machmode & 0x7) << 20)
+				| (brp_2 << 16)
+				| (0 << 14)
+				| (CTX_byte_addr_select << 5)
+				| (3 << 1) | 1;
+		brp_list[brp_1].used = 1;
+		brp_list[brp_1].value = (breakpoint->asid);
+		brp_list[brp_1].control = control_CTX;
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_1].BRPn, 
+				brp_list[brp_1].value);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_1].BRPn,
+				brp_list[brp_1].control);
+		if( retval != ERROR_OK )
+			return retval;
+
+		control_IVA = ((IVA_machmode & 0x7) << 20)
+				| (brp_1 << 16)
+				| (IVA_byte_addr_select << 5)
+				| (3 << 1) | 1;
+		brp_list[brp_2].used = 1;
+		brp_list[brp_2].value = (breakpoint->address & 0xFFFFFFFC);
+		brp_list[brp_2].control = control_IVA;
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_2].BRPn, 
+				brp_list[brp_2].value);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_2].BRPn,
+				brp_list[brp_2].control);
+		if (retval != ERROR_OK )
+			return retval;
+
+	return ERROR_OK;
+}
+
+
 static int cortex_a8_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval;
@@ -1437,27 +1576,81 @@ static int cortex_a8_unset_breakpoint(struct target *target, struct breakpoint *
 
 	if (breakpoint->type == BKPT_HARD)
 	{
-		int brp_i = breakpoint->set - 1;
-		if ((brp_i < 0) || (brp_i >= cortex_a8->brp_num))
+		if ((breakpoint->address != 0) && (breakpoint->asid != 0))
 		{
-			LOG_DEBUG("Invalid BRP number in breakpoint");
+			int brp_i = breakpoint->set - 1;
+			int brp_j = breakpoint->linked_BRP;
+			if ((brp_i < 0) || (brp_i >= cortex_a8->brp_num))
+			{
+				LOG_DEBUG("Invalid BRP number in breakpoint");
+				return ERROR_OK;
+			}
+			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
+					brp_list[brp_i].control, brp_list[brp_i].value);
+			brp_list[brp_i].used = 0;
+			brp_list[brp_i].value = 0;
+			brp_list[brp_i].control = 0;
+			retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+					+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
+					brp_list[brp_i].control);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+					+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
+					brp_list[brp_i].value);
+			if (retval != ERROR_OK)
+				return retval;						
+			if ((brp_j < 0) || (brp_j >= cortex_a8->brp_num))
+			{
+				LOG_DEBUG("Invalid BRP number in breakpoint");
+				return ERROR_OK;
+			}
+			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_j,
+					brp_list[brp_j].control, brp_list[brp_j].value);
+			brp_list[brp_j].used = 0;
+			brp_list[brp_j].value = 0;
+			brp_list[brp_j].control = 0;
+			retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+					+ CPUDBG_BCR_BASE + 4 * brp_list[brp_j].BRPn,
+					brp_list[brp_j].control);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+					+ CPUDBG_BVR_BASE + 4 * brp_list[brp_j].BRPn,
+					brp_list[brp_j].value);
+			if (retval != ERROR_OK)
+				return retval;
+			breakpoint->linked_BRP = 0;
+			breakpoint->set = 0;
 			return ERROR_OK;
+			
 		}
-		LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
-				brp_list[brp_i].control, brp_list[brp_i].value);
-		brp_list[brp_i].used = 0;
-		brp_list[brp_i].value = 0;
-		brp_list[brp_i].control = 0;
-		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
-				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
-				brp_list[brp_i].control);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
-				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
-				brp_list[brp_i].value);
-		if (retval != ERROR_OK)
-			return retval;
+		else
+		{
+			int brp_i = breakpoint->set - 1;
+			if ((brp_i < 0) || (brp_i >= cortex_a8->brp_num))
+			{
+				LOG_DEBUG("Invalid BRP number in breakpoint");
+				return ERROR_OK;
+			}
+			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
+					brp_list[brp_i].control, brp_list[brp_i].value);
+			brp_list[brp_i].used = 0;
+			brp_list[brp_i].value = 0;
+			brp_list[brp_i].control = 0;
+			retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+					+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
+					brp_list[brp_i].control);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = cortex_a8_dap_write_memap_register_u32(target, armv7a->debug_base
+					+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
+					brp_list[brp_i].value);
+			if (retval != ERROR_OK)
+				return retval;
+			breakpoint->set = 0;
+			return ERROR_OK;
+		}					
 	}
 	else
 	{
@@ -1500,6 +1693,41 @@ static int cortex_a8_add_breakpoint(struct target *target,
 
 	return cortex_a8_set_breakpoint(target, breakpoint, 0x00); /* Exact match */
 }
+
+static int cortex_a8_add_context_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
+{
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+
+	if ((breakpoint->type == BKPT_HARD) && (cortex_a8->brp_num_available < 1))
+	{
+		LOG_INFO("no hardware breakpoint available");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	if (breakpoint->type == BKPT_HARD)
+		cortex_a8->brp_num_available--;
+
+	return cortex_a8_set_context_breakpoint(target, breakpoint, 0x02); /* asid match */
+}
+
+static int cortex_a8_add_hybrid_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
+{
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+
+	if ((breakpoint->type == BKPT_HARD) && (cortex_a8->brp_num_available < 1))
+	{
+		LOG_INFO("no hardware breakpoint available");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	if (breakpoint->type == BKPT_HARD)
+		cortex_a8->brp_num_available--;
+
+	return cortex_a8_set_hybrid_breakpoint(target, breakpoint); /* ??? */
+}
+
 
 static int cortex_a8_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
@@ -2546,6 +2774,8 @@ struct target_type cortexa8_target = {
 	.run_algorithm = armv4_5_run_algorithm,
 
 	.add_breakpoint = cortex_a8_add_breakpoint,
+	.add_context_breakpoint = cortex_a8_add_context_breakpoint,
+	.add_hybrid_breakpoint = cortex_a8_add_hybrid_breakpoint,
 	.remove_breakpoint = cortex_a8_remove_breakpoint,
 	.add_watchpoint = NULL,
 	.remove_watchpoint = NULL,

@@ -38,12 +38,14 @@ enum watchpoint_rw
 struct breakpoint
 {
 	uint32_t address;
+	uint32_t asid;
 	int length;
 	enum breakpoint_type type;
 	int set;
 	uint8_t *orig_instr;
 	struct breakpoint *next;
-	int unique_id;
+	uint32_t unique_id;
+	int linked_BRP; 
 };
 
 struct watchpoint
@@ -61,6 +63,10 @@ struct watchpoint
 void breakpoint_clear_target(struct target *target);
 int breakpoint_add(struct target *target,
 		uint32_t address, uint32_t length, enum breakpoint_type type);
+int context_breakpoint_add(struct target *target,
+		uint32_t asid, uint32_t length, enum breakpoint_type type);
+int hybrid_breakpoint_add(struct target *target,
+		uint32_t address, uint32_t asid, uint32_t length, enum breakpoint_type type);
 void breakpoint_remove(struct target *target, uint32_t address);
 
 struct breakpoint* breakpoint_find(struct target *target, uint32_t address);

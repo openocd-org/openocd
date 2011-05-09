@@ -369,10 +369,25 @@ static inline void target_set_examined(struct target *target)
 int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 /**
+ * Add the @a ContextID breakpoint  for @a target.
+ *
+ * This routine is a wrapper for target->type->add_context_breakpoint.
+ */
+int target_add_context_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
+/**
+ * Add the @a ContextID & IVA breakpoint  for @a target.
+ *
+ * This routine is a wrapper for target->type->add_hybrid_breakpoint.
+ */
+int target_add_hybrid_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
+/**
  * Remove the @a breakpoint for @a target.
  *
  * This routine is a wrapper for target->type->remove_breakpoint.
  */
+
 int target_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 /**

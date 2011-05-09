@@ -772,6 +772,27 @@ int target_add_breakpoint(struct target *target,
 	}
 	return target->type->add_breakpoint(target, breakpoint);
 }
+
+int target_add_context_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	return target->type->add_context_breakpoint(target, breakpoint);
+}
+
+int target_add_hybrid_breakpoint(struct target *target,
+		struct breakpoint *breakpoint)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	return target->type->add_hybrid_breakpoint(target, breakpoint);
+}
+
 int target_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
@@ -2919,7 +2940,7 @@ static int handle_bp_command_list(struct command_context *cmd_ctx)
 		{
 			char* buf = buf_to_str(breakpoint->orig_instr,
 					breakpoint->length, 16);
-			command_print(cmd_ctx, "0x%8.8" PRIx32 ", 0x%x, %i, 0x%s",
+			command_print(cmd_ctx, "IVA breakpoint: 0x%8.8" PRIx32 ", 0x%x, %i, 0x%s",
 					breakpoint->address,
 					breakpoint->length,
 					breakpoint->set, buf);
@@ -2927,9 +2948,22 @@ static int handle_bp_command_list(struct command_context *cmd_ctx)
 		}
 		else
 		{
-			command_print(cmd_ctx, "0x%8.8" PRIx32 ", 0x%x, %i",
-						  breakpoint->address,
-						  breakpoint->length, breakpoint->set);
+			if ((breakpoint->address == 0) && (breakpoint->asid != 0))
+				command_print(cmd_ctx, "Context breakpoint: 0x%8.8" PRIx32 ", 0x%x, %i",
+							breakpoint->asid,
+							breakpoint->length, breakpoint->set);
+			else if ((breakpoint->address != 0) && (breakpoint->asid != 0))
+			{
+				command_print(cmd_ctx, "Hybrid breakpoint(IVA): 0x%8.8" PRIx32 ", 0x%x, %i",
+							breakpoint->address,
+							breakpoint->length, breakpoint->set);
+				command_print(cmd_ctx, "\t|--->linked with ContextID: 0x%8.8" PRIx32,
+							breakpoint->asid);
+			}
+			else
+				command_print(cmd_ctx, "Breakpoint(IVA): 0x%8.8" PRIx32 ", 0x%x, %i",
+							breakpoint->address,
+							breakpoint->length, breakpoint->set);
 		}
 
 		breakpoint = breakpoint->next;
@@ -2938,43 +2972,90 @@ static int handle_bp_command_list(struct command_context *cmd_ctx)
 }
 
 static int handle_bp_command_set(struct command_context *cmd_ctx,
-		uint32_t addr, uint32_t length, int hw)
+		uint32_t addr, uint32_t asid, uint32_t length, int hw)
 {
 	struct target *target = get_current_target(cmd_ctx);
-	int retval = breakpoint_add(target, addr, length, hw);
-	if (ERROR_OK == retval)
-		command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
-	else
-		LOG_ERROR("Failure setting breakpoint");
-	return retval;
+	
+		if (asid == 0)
+		{	int retval = breakpoint_add(target, addr, length, hw);
+			if (ERROR_OK == retval)
+				command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
+			else
+			{
+				LOG_ERROR("Failure setting breakpoint, the same address(IVA) is already used");
+				return retval;
+			}
+		}
+		else if (addr == 0)
+		{
+			int retval = context_breakpoint_add(target, asid, length, hw);
+			if (ERROR_OK == retval)
+				command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
+			else
+			{
+				LOG_ERROR("Failure setting breakpoint, the same address(CONTEXTID) is already used");
+				return retval;
+			}
+		}
+		else
+		{	
+			int retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
+			if(ERROR_OK == retval)
+			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
+			else
+			{
+				LOG_ERROR("Failure setting breakpoint, the same address is already used");
+				return retval;
+			}
+		}
+	return ERROR_OK;
+
+	
 }
 
 COMMAND_HANDLER(handle_bp_command)
 {
-	if (CMD_ARGC == 0)
-		return handle_bp_command_list(CMD_CTX);
-
-	if (CMD_ARGC < 2 || CMD_ARGC > 3)
-	{
-		command_print(CMD_CTX, "usage: bp <address> <length> ['hw']");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
 	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+	uint32_t asid;
 	uint32_t length;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
-
 	int hw = BKPT_SOFT;
-	if (CMD_ARGC == 3)
+	switch(CMD_ARGC)
 	{
-		if (strcmp(CMD_ARGV[2], "hw") == 0)
+		case 0:
+			return handle_bp_command_list(CMD_CTX);
+		case 3:
+
+			if(strcmp(CMD_ARGV[2], "hw") == 0)
+			{
+				hw = BKPT_HARD;
+				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+
+				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
+
+				asid = 0;
+				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+			}
+			else if(strcmp(CMD_ARGV[2], "hw_ctx") == 0)
+			{
+				hw = BKPT_HARD;
+				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], asid);
+				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
+				addr = 0;
+				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+			}
+
+		case 4:
 			hw = BKPT_HARD;
-		else
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], asid);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], length);
+			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+		default:
+			command_print(CMD_CTX, "usage: bp <address> [<asid>]<length> ['hw'|'hw_ctx']");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return handle_bp_command_set(CMD_CTX, addr, length, hw);
+	
 }
 
 COMMAND_HANDLER(handle_rbp_command)
@@ -5467,7 +5548,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_bp_command,
 		.mode = COMMAND_EXEC,
 		.help = "list or set hardware or software breakpoint",
-		.usage = "[address length ['hw']]",
+		.usage = "usage: bp <address> [<asid>]<length> ['hw'|'hw_ctx']",
 	},
 	{
 		.name = "rbp",

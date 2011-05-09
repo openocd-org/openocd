@@ -148,6 +148,8 @@ struct target_type
 	 * Upon GDB connection all breakpoints/watchpoints are cleared.
 	 */
 	int (*add_breakpoint)(struct target *target, struct breakpoint *breakpoint);
+	int (*add_context_breakpoint)(struct target *target, struct breakpoint *breakpoint);
+	int (*add_hybrid_breakpoint)(struct target *target, struct breakpoint *breakpoint);
 
 	/* remove breakpoint. hw will only be updated if the target
 	 * is currently halted.

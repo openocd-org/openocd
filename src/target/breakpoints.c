@@ -72,6 +72,7 @@ int breakpoint_add_internal(struct target *target, uint32_t address, uint32_t le
 
 	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
 	(*breakpoint_p)->address = address;
+	(*breakpoint_p)->asid = 0;
 	(*breakpoint_p)->length = length;
 	(*breakpoint_p)->type = type;
 	(*breakpoint_p)->set = 0;
@@ -107,6 +108,117 @@ fail:
 	return ERROR_OK;
 }
 
+int context_breakpoint_add_internal(struct target *target, uint32_t asid, uint32_t length, enum breakpoint_type type)
+{
+	struct breakpoint *breakpoint = target->breakpoints;
+	struct breakpoint **breakpoint_p = &target->breakpoints;
+	int retval;
+	int n;
+
+	n = 0;
+	while (breakpoint)
+	{
+		n++;
+		if (breakpoint->asid == asid) 
+		{
+			/* FIXME don't assume "same address" means "same
+			 * breakpoint" ... check all the parameters before
+			 * succeeding.
+			 */
+			LOG_DEBUG("Duplicate Breakpoint asid: 0x%08" PRIx32 " (BP %d)",
+					asid, breakpoint->unique_id );
+			return -1;
+		}
+		breakpoint_p = &breakpoint->next;
+		breakpoint = breakpoint->next;
+	}
+
+	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
+	(*breakpoint_p)->address = 0;
+	(*breakpoint_p)->asid = asid;
+	(*breakpoint_p)->length = length;
+	(*breakpoint_p)->type = type;
+	(*breakpoint_p)->set = 0;
+	(*breakpoint_p)->orig_instr = malloc(length);
+	(*breakpoint_p)->next = NULL;
+	(*breakpoint_p)->unique_id = bpwp_unique_id++;
+	retval = target_add_context_breakpoint(target, *breakpoint_p);
+	if (retval != ERROR_OK)
+	{
+		LOG_ERROR("could not add breakpoint");
+		free((*breakpoint_p)->orig_instr);
+		free(*breakpoint_p);
+		*breakpoint_p = NULL;
+		return retval;
+	}
+
+	LOG_DEBUG("added %s Context breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
+			breakpoint_type_strings[(*breakpoint_p)->type],
+			(*breakpoint_p)->asid, (*breakpoint_p)->length,
+			(*breakpoint_p)->unique_id  );
+
+	return ERROR_OK;
+}
+
+int hybrid_breakpoint_add_internal(struct target *target, uint32_t address, uint32_t asid, uint32_t length, enum breakpoint_type type)
+{	
+	struct breakpoint *breakpoint = target->breakpoints;
+	struct breakpoint **breakpoint_p = &target->breakpoints;
+	int retval;
+	int n;
+	n = 0;
+	while (breakpoint)
+	{
+		n++;
+		if ((breakpoint->asid == asid) && (breakpoint->address == address)) {
+			/* FIXME don't assume "same address" means "same
+			 * breakpoint" ... check all the parameters before
+			 * succeeding.
+			 */
+			LOG_DEBUG("Duplicate Hybrid Breakpoint asid: 0x%08" PRIx32 " (BP %d)",
+					asid, breakpoint->unique_id );
+			return -1;
+		}
+		else if ((breakpoint->address == address) && (breakpoint->asid == 0)) 
+		{
+			LOG_DEBUG("Duplicate Breakpoint IVA: 0x%08" PRIx32 " (BP %d)",
+					address, breakpoint->unique_id );
+			return -1;
+			
+		}
+		breakpoint_p = &breakpoint->next;
+		breakpoint = breakpoint->next;
+	}
+	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
+	(*breakpoint_p)->address = address;
+	(*breakpoint_p)->asid = asid;
+	(*breakpoint_p)->length = length;
+	(*breakpoint_p)->type = type;
+	(*breakpoint_p)->set = 0;
+	(*breakpoint_p)->orig_instr = malloc(length);
+	(*breakpoint_p)->next = NULL;
+	(*breakpoint_p)->unique_id = bpwp_unique_id++;
+
+
+	retval = target_add_hybrid_breakpoint(target, *breakpoint_p);
+	if (retval != ERROR_OK)
+	{
+		LOG_ERROR("could not add breakpoint");
+		free((*breakpoint_p)->orig_instr);
+		free(*breakpoint_p);
+		*breakpoint_p = NULL;
+		return retval;
+	}
+	LOG_DEBUG("added %s Hybrid breakpoint at address 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
+			breakpoint_type_strings[(*breakpoint_p)->type],
+			(*breakpoint_p)->address, (*breakpoint_p)->length,
+			(*breakpoint_p)->unique_id  );
+
+	return ERROR_OK;
+}
+
+
+
 int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enum breakpoint_type type)
 {
 
@@ -127,6 +239,50 @@ int retval = ERROR_OK;
 	}
 	else
 	return(breakpoint_add_internal(target, address, length, type));
+
+}
+int context_breakpoint_add(struct target *target, uint32_t asid, uint32_t length, enum breakpoint_type type)
+{
+
+int retval = ERROR_OK;
+    if (target->smp)
+	{
+		struct target_list *head;
+		struct target *curr;
+		head = target->head;
+		while(head != (struct target_list*)NULL)
+		{
+			curr = head->target;
+			retval = context_breakpoint_add_internal(curr, asid,length, type);
+			if (retval != ERROR_OK) return retval;
+			head = head->next;	
+		}
+		return retval;
+	}
+	else
+	return(context_breakpoint_add_internal(target, asid, length, type));
+
+}
+int hybrid_breakpoint_add(struct target *target, uint32_t address, uint32_t asid, uint32_t length, enum breakpoint_type type)
+{
+
+int retval = ERROR_OK;
+    if (target->smp)
+	{
+		struct target_list *head;
+		struct target *curr;
+		head = target->head;
+		while(head != (struct target_list*)NULL)
+		{
+			curr = head->target;
+			retval = hybrid_breakpoint_add_internal(curr, address, asid, length, type);
+			if (retval != ERROR_OK) return retval;
+			head = head->next;	
+		}
+		return retval;
+	}
+	else
+	return(hybrid_breakpoint_add_internal(target, address, asid, length, type));
 
 }
 
@@ -162,7 +318,11 @@ void breakpoint_remove_internal(struct target *target, uint32_t address)
 
 	while (breakpoint)
 	{
-		if (breakpoint->address == address)
+		if ((breakpoint->address == address) && (breakpoint->asid == 0))
+			break;
+		else if ((breakpoint->address == 0) && (breakpoint->asid == address))
+			break;
+		else if ((breakpoint->address == address) && (breakpoint->asid != 0))
 			break;
 		breakpoint = breakpoint->next;
 	}
