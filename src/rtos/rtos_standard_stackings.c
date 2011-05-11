@@ -57,7 +57,7 @@ static const struct stack_register_offset rtos_standard_Cortex_M3_stack_offsets 
 const struct rtos_register_stacking rtos_standard_Cortex_M3_stacking =
 {
           0x40,                                 // stack_registers_size
-          1,                                    // stack_growth_direction
+          -1,                                   // stack_growth_direction
           26,                                   // num_output_registers
           rtos_standard_Cortex_M3_stack_offsets // register_offsets
 };

@@ -533,7 +533,7 @@ int rtos_generic_stack_read( struct target * target, const struct rtos_register_
 	{
 		address -=  stacking->stack_registers_size;
 	}
-	retval = target_read_buffer( target, stack_ptr, stacking->stack_registers_size, stack_data);
+	retval = target_read_buffer( target, address, stacking->stack_registers_size, stack_data);
 	if ( retval != ERROR_OK )
 	{
 		LOG_OUTPUT("Error reading stack frame from FreeRTOS thread\r\n");
@@ -553,7 +553,7 @@ int rtos_generic_stack_read( struct target * target, const struct rtos_register_
 	}
 	*hex_reg_list = (char*)malloc( list_size*2 +1 );
 	tmp_str_ptr = *hex_reg_list;
-	new_stack_ptr = stack_ptr + stacking->stack_growth_direction * stacking->stack_registers_size;
+	new_stack_ptr = stack_ptr - stacking->stack_growth_direction * stacking->stack_registers_size;
 	for( i = 0; i < stacking->num_output_registers; i++ )
 	{
 		int j;
