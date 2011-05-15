@@ -493,7 +493,7 @@ int gdb_thread_packet(struct connection *connection, struct target *target, char
 int rtos_get_gdb_reg_list(struct connection *connection, struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
 	if ( ( target->rtos != NULL ) &&
-		 ( current_threadid != 1 ) &&
+		 ( current_threadid != -1 ) &&
 		 ( current_threadid != 0 ) &&
 		 ( current_threadid != target->rtos->current_thread ) )
 	{
