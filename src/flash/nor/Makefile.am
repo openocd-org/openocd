@@ -30,6 +30,7 @@ NOR_DRIVERS = \
 	str9x.c \
 	str9xpec.c \
 	tms470.c \
+	dsp5680xx_flash.c \
 	virtual.c
 
 noinst_HEADERS = \
