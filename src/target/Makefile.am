@@ -33,7 +33,8 @@ libtarget_la_SOURCES = \
 	$(MIPS32_SRC) \
 	avrt.c \
 	dsp563xx.c \
-	dsp563xx_once.c
+	dsp563xx_once.c \
+	dsp5680xx.c
 
 TARGET_CORE_SRC = \
 	algorithm.c \
@@ -134,6 +135,7 @@ noinst_HEADERS = \
 	avrt.h \
 	dsp563xx.h \
 	dsp563xx_once.h \
+	dsp5680xx.h \
 	breakpoints.h \
 	cortex_m3.h \
 	cortex_a.h \

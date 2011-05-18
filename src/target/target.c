@@ -81,6 +81,7 @@ extern struct target_type arm11_target;
 extern struct target_type mips_m4k_target;
 extern struct target_type avr_target;
 extern struct target_type dsp563xx_target;
+extern struct target_type dsp5680xx_target;
 extern struct target_type testee_target;
 extern struct target_type avr32_ap7k_target;
 
@@ -103,6 +104,7 @@ static struct target_type *target_types[] =
 	&mips_m4k_target,
 	&avr_target,
 	&dsp563xx_target,
+	&dsp5680xx_target,
 	&testee_target,
 	&avr32_ap7k_target,
 	NULL,
