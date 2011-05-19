@@ -124,6 +124,8 @@
 #define DSP5680XX_ONCE_OPABDR   0x13 /* OnCE Program Address Register—Decode cycle (OPABDR) */
 //----------------------------------------------------------------
 
+#define FLUSH_COUNT_WRITE 4095 // This value works, higher values (and lower...) may work as well.
+#define FLUSH_COUNT_FLASH 7 // Waiting for longer queues will cause flashing errors.
 //----------------------------------------------------------------
 // HFM (flash module) Commands (ref:MC56F801xRM.pdf@159)
 //----------------------------------------------------------------
@@ -190,20 +192,15 @@
 #define SIM_CMD_RESET 0x10
 //----------------------------------------------------------------
 
-struct dsp5680xx_common
-{
-//TODO
-};
-
-static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target)
-{
-	return target->arch_info;
-}
-
-struct context
-{
+struct dsp5680xx_common{
+  //TODO
   uint32_t stored_pc;
+  int flush;
 }context;
+
+static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target){
+  return target->arch_info;
+}
 
 int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count);
 

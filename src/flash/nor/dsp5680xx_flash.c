@@ -142,8 +142,8 @@ static int dsp5680xx_flash_write(struct flash_bank *bank, uint8_t *buffer, uint3
 }
 
 static int dsp5680xx_probe(struct flash_bank *bank){
-  //LOG_USER("%s not implemented",__FUNCTION__);
-        return ERROR_OK;
+  LOG_DEBUG("%s not implemented",__FUNCTION__);
+  return ERROR_OK;
 }
 
 static int dsp5680xx_flash_info(struct flash_bank *bank, char *buf, int buf_size){
@@ -197,7 +197,7 @@ struct flash_driver dsp5680xx_flash = {
   .protect = dsp5680xx_flash_protect,
   .write = dsp5680xx_flash_write,
   //.read = default_flash_read,
-  //.probe = dsp5680xx_probe,
+  .probe = dsp5680xx_probe,
   .auto_probe = dsp5680xx_probe,
   .erase_check = dsp5680xx_flash_erase_check,
   .protect_check = dsp5680xx_flash_protect_check,
