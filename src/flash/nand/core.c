@@ -367,7 +367,9 @@ int nand_probe(struct nand_device *nand)
 
 	for (i = 0; nand_flash_ids[i].name; i++)
 	{
-		if (nand_flash_ids[i].id == device_id)
+		if (nand_flash_ids[i].id == device_id &&
+		   (nand_flash_ids[i].mfr_id == manufacturer_id ||
+		    nand_flash_ids[i].mfr_id == 0 ))
 		{
 			nand->device = &nand_flash_ids[i];
 			break;
