@@ -162,7 +162,7 @@ static int dsp5680xx_assert_reset(struct target *target){
   jtag_add_reset(1,0);
   target->state = TARGET_RESET;
   jtag_add_sleep(500);
-  sleep(1);
+  usleep(1000);
   return ERROR_OK;
 }
 
