@@ -38,11 +38,13 @@ static int str_to_hex( char* hex_dst, char* src );
 /* RTOSs */
 extern struct rtos_type FreeRTOS_rtos;
 extern struct rtos_type ThreadX_rtos;
+extern struct rtos_type eCos_rtos;
 
 static struct rtos_type *rtos_types[] =
 {
 	&ThreadX_rtos,
 	&FreeRTOS_rtos,
+	&eCos_rtos,
 	NULL
 };
 
