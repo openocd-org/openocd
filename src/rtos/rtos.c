@@ -453,7 +453,17 @@ int gdb_thread_packet(struct connection *connection, struct target *target, char
 	}
 	else if (strstr(packet, "qC"))
 	{
-		gdb_put_packet(connection, "QC0", 3);
+		if( target->rtos!=NULL )
+		{
+			char buffer[15];
+			int size;
+			size = snprintf(buffer, 15, "QC%08X", (int)target->rtos->current_thread);
+			gdb_put_packet(connection, buffer, size);
+		}
+		else
+		{
+			gdb_put_packet(connection, "QC0", 3);
+		}
 		return ERROR_OK;
 	}
 	else if ( packet[0] == 'T' ) // Is thread alive?
