@@ -135,7 +135,7 @@ static int dsp5680xx_read_core_reg(struct target * target, uint8_t reg_addr, uin
 }
 
 static int dsp5680xx_target_create(struct target *target, Jim_Interp * interp){
-  struct dsp5680xx_common *dsp5680xx = calloc(1, sizeof(struct dsp5680xx_common)); 
+  struct dsp5680xx_common *dsp5680xx = calloc(1, sizeof(struct dsp5680xx_common));
   target->arch_info = dsp5680xx;
   return ERROR_OK;
 }
@@ -153,7 +153,7 @@ static int dsp5680xx_arch_state(struct target *target){
   return ERROR_OK;
 }
 
-int dsp5680xx_target_status(struct target * target, uint8_t * jtag_st, uint16_t * eonce_st){  
+int dsp5680xx_target_status(struct target * target, uint8_t * jtag_st, uint16_t * eonce_st){
   return target->state;
 }
 
@@ -189,7 +189,7 @@ static int dsp5680xx_poll(struct target *target){
 		LOG_WARNING("%s: Failed to put EOnCE in debug mode. Is flash locked?...",__FUNCTION__);
 		return ERROR_TARGET_FAILURE;
       }else{
-		target->state = TARGET_HALTED;   
+		target->state = TARGET_HALTED;
 		return ERROR_OK;
       }
     }
@@ -218,7 +218,7 @@ static int dsp5680xx_poll(struct target *target){
     }
     target->state = TARGET_RUNNING;
     return ERROR_OK;
-  }	  
+  }
   if(jtag_status == JTAG_STATUS_DEAD){
     LOG_ERROR("%s: Cannot communicate with JTAG. Check connection...",__FUNCTION__);
     target->state = TARGET_UNKNOWN;
@@ -287,7 +287,7 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
   int retval;
   uint8_t jtag_status;
   uint16_t eonce_status;
-  
+
   // Verify that EOnCE is enabled (enable it if necessary)
   uint16_t data_read_from_dr = 0;
   retval = eonce_read_status_reg(target,&data_read_from_dr);
@@ -300,7 +300,7 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
     retval = eonce_move_value_to_pc(target,address);
     err_check_propagate(retval);
   }
-  
+
   int retry = 20;
   while(retry-- > 1){
     retval = eonce_exit_debug_mode(target,(uint8_t *)&eonce_status );
@@ -309,7 +309,7 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
 	err_check_propagate(retval);
     if((jtag_status & 0xff) == JTAG_STATUS_NORMAL){
       break;
-    }	
+    }
   }
   if(retry == 0){
     retval = ERROR_TARGET_FAILURE;
@@ -355,7 +355,7 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   // Debug request #1
   retval = dsp5680xx_irscan(target,& instr,& ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
   err_check_propagate(retval);
- 
+
   // Enable EOnCE module
   instr = JTAG_INSTR_ENABLE_ONCE;
   //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
@@ -708,7 +708,7 @@ static int dsp5680xx_read_32_single(struct target * target, uint32_t address, ui
 	err_check_propagate(retval);
     retval = eonce_move_at_r0_to_y1(target);
 	err_check_propagate(retval);
-  } 
+  }
   // Get lower part of data to TX/RX
   retval = eonce_load_TX_RX_to_r0(target);
   err_check_propagate(retval);
@@ -737,7 +737,7 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
   int retval = ERROR_OK;
   int pmem = 1;
   uint16_t tmp_wrd;
-  
+
   retval = dsp5680xx_convert_address(&address, &pmem);
   err_check_propagate(retval);
 
@@ -913,7 +913,7 @@ static int dsp5680xx_write(struct target *target, uint32_t address, uint32_t siz
   int p_mem = 1;
   retval = dsp5680xx_convert_address(&address, &p_mem);
   err_check_propagate(retval);
-  
+
   switch (size){
   case 1:
     retval = dsp5680xx_write_8(target, address, count,(uint8_t *) buffer, p_mem);
@@ -939,12 +939,12 @@ static int dsp5680xx_bulk_write_memory(struct target * target,uint32_t address, 
 
 // Writes to pram at address
 // r3 holds the destination address-> p:(r3)
-// r2 hold 0xf151 to flash a led (probably cannot see it due to high freq.) 
+// r2 hold 0xf151 to flash a led (probably cannot see it due to high freq.)
 // r0 holds TX/RX address.
 //0x00000073  0x8A44FFFE017B         brclr       #1,X:(R0-2),*-2
-//0x00000076  0xE700                 nop         
+//0x00000076  0xE700                 nop
 //0x00000077  0xF514                 move.w      X:(R0),Y0
-//0x00000078  0xE700                 nop         
+//0x00000078  0xE700                 nop
 //0x00000079  0x8563                 move.w      Y0,P:(R3)+
 //0x0000007A  0x84420003             bfchg       #3,X:(R2)
 //0x0000007C  0xA976                 bra         *-9
@@ -1088,7 +1088,7 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
 	err_check_propagate(retval);
 	retval = eonce_rx_upper_data(target,&i);
 	err_check_propagate(retval);
-    if((watchdog--)==1){      
+    if((watchdog--)==1){
 	  retval = ERROR_TARGET_FAILURE;
       err_check(retval,"FM execution did not finish.");
     }
@@ -1142,7 +1142,7 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased){
     retval = dsp5680xx_halt(target);
     err_check_propagate(retval);
   }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Check security
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint8_t protected;
@@ -1152,9 +1152,9 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased){
 	retval = ERROR_TARGET_FAILURE;
 	err_check(retval,"Failed to erase, flash is still protected.");
   }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = eonce_set_hfmdiv(target);
   err_check_propagate(retval);
 
@@ -1182,14 +1182,14 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
     retval = dsp5680xx_halt(target);
 	err_check_propagate(retval);
   }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Reset SIM
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = dsp5680xx_f_SIM_reset(target);
   err_check_propagate(retval);
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Check security
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint8_t protected;
   retval = dsp5680xx_f_protect_check(target,&protected);
   err_check_propagate(retval);
@@ -1197,9 +1197,9 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
 	retval = ERROR_TARGET_FAILURE;
 	err_check(retval,"Cannot flash, security is still enabled.");
   }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = eonce_set_hfmdiv(target);
   err_check_propagate(retval);
 
@@ -1221,7 +1221,7 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
 	  err_check(retval,"pviol and/or accer bits set. HFM command execution error");
     }
     // Verify flash was successfully erased.
-    retval = dsp5680xx_f_erase_check(target,&erased);   
+    retval = dsp5680xx_f_erase_check(target,&erased);
 	err_check_propagate(retval);
 	if(retval == ERROR_OK){
       if (erased)
@@ -1256,10 +1256,10 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
 //                      bfset       #0x10,X:(R2+0x13)               // clear accerr
 //			bra	    hfm_wait		            // loop
 //0x00000073  0x8A460013407D         brclr       #0x40,X:(R2+0x13),*+0
-//0x00000076  0xE700                 nop         
-//0x00000077  0xE700                 nop         
+//0x00000076  0xE700                 nop
+//0x00000077  0xE700                 nop
 //0x00000078  0x8A44FFFE017B         brclr       #1,X:(R0-2),*-2
-//0x0000007B  0xE700                 nop         
+//0x0000007B  0xE700                 nop
 //0x0000007C  0xF514                 move.w      X:(R0),Y0
 //0x0000007D  0x8563                 move.w      Y0,P:(R3)+
 //0x0000007E  0x864600200014         move.w      #0x20,X:(R2+0x14)
@@ -1280,41 +1280,41 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
     retval = dsp5680xx_halt(target);
 	err_check_propagate(retval);
   }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Check if flash is erased
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint8_t erased;
   retval = dsp5680xx_f_erase_check(target,&erased);
   err_check_propagate(retval);
   if(!erased){
 	retval = ERROR_FAIL;
 	err_check(retval,"Flash must be erased before flashing.");
-  }	
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  }
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Download the pgm that flashes.
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint32_t my_favourite_ram_address = 0x8700; // This seems to be a safe address. This one is the one used by codewarrior in 56801x_flash.cfg
   retval = dsp5680xx_write(target, my_favourite_ram_address, 1, pgm_write_pflash_length*2,(uint8_t *) pgm_write_pflash);
   err_check_propagate(retval);
   retval = dsp5680xx_execute_queue();
   err_check_propagate(retval);
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = eonce_set_hfmdiv(target);
   err_check_propagate(retval);
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Setup registers needed by pgm_write_pflash
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = eonce_move_long_to_r3(target,address);  // Destination address to r3
   err_check_propagate(retval);
   eonce_load_TX_RX_high_to_r0(target);  // TX/RX reg address to r0
   err_check_propagate(retval);
   retval = eonce_move_long_to_r2(target,HFM_BASE_ADDR);// FM base address to r2
   err_check_propagate(retval);
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Run flashing program.
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = eonce_move_value_at_r2_disp(target,0x00,HFM_CNFG); // write to HFM_CNFG (lock=0, select bank)
   err_check_propagate(retval);
   retval = eonce_move_value_at_r2_disp(target,0x04,HFM_USTAT);// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
@@ -1342,7 +1342,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   int counter_reset = FLUSH_COUNT_FLASH;
   int counter = counter_reset;
   context.flush = 0;
-  for(uint32_t i=1; (i<count/2)&&(i<HFM_SIZE_REAL); i++){ 
+  for(uint32_t i=1; (i<count/2)&&(i<HFM_SIZE_REAL); i++){
 	if(--counter==0){
 	  context.flush = 1;
 	  counter = counter_reset;
@@ -1365,8 +1365,8 @@ int dsp5680xx_f_unlock(struct target * target){
     LOG_ERROR("Master tap must be enabled to unlock flash.");
     return ERROR_TARGET_FAILURE;
   }
-  uint32_t data_to_shift_in = MASTER_TAP_CMD_FLASH_ERASE;  
-  uint32_t data_shifted_out;  
+  uint32_t data_to_shift_in = MASTER_TAP_CMD_FLASH_ERASE;
+  uint32_t data_shifted_out;
   retval = dsp5680xx_irscan(target,&data_to_shift_in,&data_shifted_out,8);
   err_check_propagate(retval);
   data_to_shift_in = HFM_CLK_DEFAULT;
@@ -1403,7 +1403,7 @@ struct target_type dsp5680xx_target = {
   .write_buffer = dsp5680xx_write_buffer,
   .read_buffer = dsp5680xx_read_buffer,
 
-  .assert_reset = dsp5680xx_assert_reset,  
+  .assert_reset = dsp5680xx_assert_reset,
   .deassert_reset = dsp5680xx_deassert_reset,
   .soft_reset_halt = dsp5680xx_soft_reset_halt,
 
