@@ -97,12 +97,13 @@ struct nand_manufacturer
 
 struct nand_info
 {
-	const char *name;
+	int mfr_id;
 	int id;
 	int page_size;
 	int chip_size;
 	int erase_size;
 	int options;
+	const char *name;
 };
 
 /* Option constants for bizarre disfunctionality and real features
