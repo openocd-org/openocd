@@ -91,6 +91,20 @@ static struct non_cfi non_cfi_flashes[] = {
 		}
 	},
 	{
+		.mfr = CFI_MFR_AMD,		/* Spansion AM29LV040B */
+		.id = 0x4f,
+		.pri_id = 0x02,
+		.dev_size = 512*KB,
+		.interface_desc = 0x0,		/* x8 only device */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(8, 64*KB)
+		}
+	},
+	{
 		.mfr = CFI_MFR_SST,
 		.id = 0x2780,
 		.pri_id = 0x02,
