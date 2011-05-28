@@ -53,8 +53,8 @@ void nand_device_add(struct nand_device *c)
 static struct nand_info nand_flash_ids[] =
 {
 	/* Vendor Specific Entries */
-	{ NAND_MFR_SAMSUNG,	0xD5, 0, 8192, 0, LP_OPTIONS, 		"K9GAG08 2GB NAND 3.3V x8 MLC 2b/cell"},
-	{ NAND_MFR_SAMSUNG,	0xD7, 0, 8192, 0, LP_OPTIONS, 		"K9LBG08/K9HCG08 4/8GB NAND 3.3V x8 MLC 2b/cell"},
+	{ NAND_MFR_SAMSUNG,	0xD5, 8192, 2048, 0x100000, LP_OPTIONS, "K9GAG08 2GB NAND 3.3V x8 MLC 2b/cell"},
+	{ NAND_MFR_SAMSUNG,	0xD7, 8192, 4096, 0x100000, LP_OPTIONS, "K9LBG08 4GB NAND 3.3V x8 MLC 2b/cell"},
 
 	/* start "museum" IDs */
 	{ 0x0,			0x6e, 256, 1, 0x1000, 0,	 	"NAND 1MiB 5V 8-bit"},
