@@ -52,12 +52,13 @@ void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 {
 	struct scan_field field;
+	uint8_t r[4];
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE);
 
 	field.num_bits = 32;
 	field.out_value = NULL;
-	field.in_value = (void*)idcode;
+	field.in_value = r;
 
 	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
 
@@ -67,18 +68,22 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 		LOG_ERROR("register read failed");
 		return retval;
 	}
+
+	*idcode = buf_get_u32(field.in_value, 0, 32);
+
 	return ERROR_OK;
 }
 
 static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
 {
 	struct scan_field field;
+	uint8_t r[4];
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE);
 
 	field.num_bits = 32;
 	field.out_value = NULL;
-	field.in_value = (void*)impcode;
+	field.in_value = r;
 
 	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
 
@@ -88,6 +93,9 @@ static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impco
 		LOG_ERROR("register read failed");
 		return retval;
 	}
+
+	*impcode = buf_get_u32(field.in_value, 0, 32);
+
 	return ERROR_OK;
 }
 
@@ -334,6 +342,8 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_t *data)
 {
 	struct jtag_tap *tap;
+	uint8_t r[4];
+
 	tap = ejtag_info->tap;
 	assert(tap != NULL);
 
@@ -357,10 +367,16 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_
 	}
 	else
 	{
-		fields[1].in_value = (uint8_t *) data;
+		fields[1].in_value = r;
 	}
 
 	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
+
+	if (!write_t)
+	{
+		*data = buf_get_u32(fields[1].in_value, 0, 32);
+	}
+
 	keep_alive();
 
 	return ERROR_OK;
