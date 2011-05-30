@@ -868,25 +868,22 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 	if (ERROR_OK != retval)
 		return retval;
 
-	/* TAP data register is loaded LSB first (little endian) */
-	if (target->endianness == TARGET_BIG_ENDIAN)
+	/* mips32_..._read_mem with size 4/2 returns uint32_t/uint16_t in host */
+	/* endianness, but byte array should represent target endianness       */
+	uint32_t i, t32;
+	uint16_t t16;
+	for(i = 0; i < (count*size); i += size)
 	{
-		uint32_t i, t32;
-		uint16_t t16;
-
-		for(i = 0; i < (count*size); i += size)
+		switch(size)
 		{
-			switch(size)
-			{
-				case 4:
-					t32 = le_to_h_u32(&buffer[i]);
-					h_u32_to_be(&buffer[i], t32);
-					break;
-				case 2:
-					t16 = le_to_h_u16(&buffer[i]);
-					h_u16_to_be(&buffer[i], t16);
-					break;
-			}
+		case 4:
+			t32 = *(uint32_t*)&buffer[i];
+			target_buffer_set_u32(target,&buffer[i], t32);
+			break;
+		case 2:
+			t16 = *(uint16_t*)&buffer[i];
+			target_buffer_set_u16(target,&buffer[i], t16);
+			break;
 		}
 	}
 
@@ -915,36 +912,33 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
+	/* mips32_..._write_mem with size 4/2 requires uint32_t/uint16_t in host */
+	/* endianness, but byte array represents target endianness               */
 	uint8_t * t = NULL;
-
-	/* TAP data register is loaded LSB first (little endian) */
-	if (target->endianness == TARGET_BIG_ENDIAN)
+	t = malloc(count * sizeof(uint32_t));
+	if (t == NULL)
 	{
-		t = malloc(count * sizeof(uint32_t));
-		if (t == NULL)
-		{
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-
-		uint32_t i, t32, t16;
-		for(i = 0; i < (count*size); i += size)
-		{
-			switch(size)
-			{
-				case 4:
-					t32 = be_to_h_u32((uint8_t *) &buffer[i]);
-					h_u32_to_le(&t[i], t32);
-					break;
-				case 2:
-					t16 = be_to_h_u16((uint8_t *) &buffer[i]);
-					h_u16_to_le(&t[i], t16);
-					break;
-			}
-		}
-
-		buffer = t;
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
 	}
+
+ 	uint32_t i, t32;
+	uint16_t t16;
+	for(i = 0; i < (count*size); i += size)
+	{
+		switch(size)
+		{
+		case 4:
+			t32 = target_buffer_get_u32(target,&buffer[i]);
+			*(uint32_t*)&t[i] = t32;
+			break;
+		case 2:
+			t16 = target_buffer_get_u16(target,&buffer[i]);
+			*(uint16_t*)&t[i] = t16;
+			break;
+		}
+	}
+	buffer = t;
 
 	/* if noDMA off, use DMAACC mode for memory write */
 	int retval;
@@ -952,11 +946,12 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 		retval = mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 	else
 		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
-	if (ERROR_OK != retval)
-		return retval;
 
 	if (t != NULL)
 		free(t);
+
+	if (ERROR_OK != retval)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -1065,31 +1060,25 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		ejtag_info->fast_access_save = -1;
 	}
 
+	/* mips32_pracc_fastdata_xfer requires uint32_t in host endianness, */
+	/* but byte array represents target endianness                      */
 	uint8_t * t = NULL;
-	const uint8_t *ec_buffer = buffer;	/* endian-corrected buffer */
-
-	/* TAP data register is loaded LSB first (little endian) */
-	if (target->endianness == TARGET_BIG_ENDIAN)
+	t = malloc(count * sizeof(uint32_t));
+	if (t == NULL)
 	{
-		t = malloc(count * sizeof(uint32_t));
-		if (t == NULL)
-		{
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-
-		uint32_t i, t32;
-		for(i = 0; i < (count * 4); i += 4)
-		{
-			t32 = be_to_h_u32((uint8_t *) &buffer[i]);
-			h_u32_to_le(&t[i], t32);
-		}
-
-		ec_buffer = t;
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
 	}
 
+ 	uint32_t i, t32;
+	for(i = 0; i < (count*4); i += 4)
+	{
+		t32 = target_buffer_get_u32(target,&buffer[i]);
+		*(uint32_t*)&t[i] = t32;
+	}
+	
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
-			count, (uint32_t*) (void *)ec_buffer);
+			count, (uint32_t*) (void *)t);
 
 	if (t != NULL)
 		free(t);

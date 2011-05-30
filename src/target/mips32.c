@@ -559,6 +559,13 @@ int mips32_configure_break_unit(struct target *target)
 			return retval;
 	}
 
+	/* check if target endianness settings matches debug control register */
+	if ( (  (dcr & EJTAG_DCR_ENM) && (target->endianness == TARGET_LITTLE_ENDIAN) ) ||
+		( !(dcr & EJTAG_DCR_ENM) && (target->endianness == TARGET_BIG_ENDIAN)    ) )
+	{
+		LOG_WARNING("DCR endianness settings does not match target settings");
+	}
+
 	LOG_DEBUG("DCR 0x%" PRIx32 " numinst %i numdata %i", dcr, mips32->num_inst_bpoints,
 			mips32->num_data_bpoints);
 
