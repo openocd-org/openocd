@@ -27,13 +27,15 @@ automake --gnu --add-missing --copy
 # current source snapshots (working from GIT, or some source snapshot, etc)
 # otherwise the documentation will fail to build due to missing version.texi
 
-if [ -n $1 ] || [ $1 != nosubmodule ]
-then
+if [ $1 == nosubmodule ]; then
+    echo "Skipping submodule setup"
+elif [ -z $1 ]; then 
     echo "Setting up submodules"
     git submodule init
     git submodule update
 else
-    echo "Skipping submodule setup"
+    echo "Argument to bootstrap is either no argument or nosubmodule"
+    exit 1
 fi
 
 echo "Bootstrap complete. Quick start build instructions:"
