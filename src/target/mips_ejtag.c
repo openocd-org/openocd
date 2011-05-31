@@ -342,7 +342,6 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_t *data)
 {
 	struct jtag_tap *tap;
-	uint8_t r[4];
 
 	tap = ejtag_info->tap;
 	assert(tap != NULL);
@@ -367,15 +366,14 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_
 	}
 	else
 	{
-		fields[1].in_value = r;
+		fields[1].in_value = (void *) data;
 	}
 
 	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
 
-	if (!write_t)
-	{
-		*data = buf_get_u32(fields[1].in_value, 0, 32);
-	}
+	if ( (!write_t) && (data) )
+		jtag_add_callback(mips_le_to_h_u32,
+			(jtag_callback_data_t) data);
 
 	keep_alive();
 
