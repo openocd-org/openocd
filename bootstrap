@@ -1,16 +1,24 @@
-#!/bin/sh -e
+#!/bin/sh
 # Run the autotools bootstrap sequence to create the configure script
 
-# Stop execution as soon as we have an unknown command
+# Abort execution on error
 set -e
 
-if libtoolize --version >/dev/null 2>&1; then
-	libtoolize="libtoolize"
-elif glibtoolize --version >/dev/null 2>&1; then
-	libtoolize="glibtoolize"
+if which libtoolize > /dev/null; then
+    libtoolize="libtoolize"
+elif which glibtoolize >/dev/null; then
+    libtoolize="glibtoolize"
 else
-	echo "libtool is required" >&2
-	exit 1
+    echo "$0: Error: libtool is required" >&2
+    exit 1
+fi
+
+if [ "$1" = "nosubmodule" ]; then
+    SKIP_SUBMODULE=1
+elif [ -n "$1" ]; then
+    echo "$0: Illegal argument $1"
+    echo "USAGE: $0 [nosubmodule]"
+    exit 1
 fi
 
 # bootstrap the autotools
@@ -27,16 +35,13 @@ automake --gnu --add-missing --copy
 # current source snapshots (working from GIT, or some source snapshot, etc)
 # otherwise the documentation will fail to build due to missing version.texi
 
-if [ $1 == nosubmodule ]; then
+if [ -n "$SKIP_SUBMODULE" ]; then
     echo "Skipping submodule setup"
-elif [ -z $1 ]; then 
+else
     echo "Setting up submodules"
     git submodule init
     git submodule update
-else
-    echo "Argument to bootstrap is either no argument or nosubmodule"
-    exit 1
 fi
 
-echo "Bootstrap complete. Quick start build instructions:"
+echo "Bootstrap complete. Quick build instructions:"
 echo "./configure --enable-maintainer-mode ...."
