@@ -716,7 +716,7 @@ static int dsp5680xx_read_32_single(struct target * target, uint32_t address, ui
   uint16_t tmp;
   retval = eonce_rx_upper_data(target,&tmp);
   err_check_propagate(retval);
-  *data_read = (((*data_read)<<16) | tmp);
+  *data_read = ((tmp<<16) | (*data_read));//This enables opencd crc to succeed, even though it's very slow.
   return retval;
 }
 
@@ -973,7 +973,34 @@ static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint3
 }
 
 static int dsp5680xx_checksum_memory(struct target * target, uint32_t address, uint32_t size, uint32_t * checksum){
-  return ERROR_FAIL; //this makes openocd do the crc
+ //TODO implement.
+  //This will make openocd do the work, but it will fail because of the word/byte addressing issues.
+  int retval;
+  struct working_area * crc_algorithm;
+  retval = target_alloc_working_area(target, 20, &crc_algorithm);
+  if(retval != ERROR_OK)
+    return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+  retval = target_free_working_area(target, crc_algorithm);
+  return ERROR_FAIL;
+}
+
+// Data signature algorithm used by the core FM (flash module)
+static int perl_crc(uint16_t * buff16,uint32_t  word_count){
+  uint16_t checksum = 0xffff;
+  uint16_t data,fbmisr;
+  uint32_t i;
+  for(i=0;i<word_count;i++){
+    data = buff16[i];
+    fbmisr = (checksum & 2)>>1 ^ (checksum & 4)>>2 ^ (checksum & 16)>>4 ^ (checksum & 0x8000)>>15;
+    checksum = (data ^ ((checksum << 1) | fbmisr));
+  }
+  i--;
+  for(;!(i&0x80000000);i--){
+    data = buff16[i];
+    fbmisr = (checksum & 2)>>1 ^ (checksum & 4)>>2 ^ (checksum & 16)>>4 ^ (checksum & 0x8000)>>15;
+    checksum = (data ^ ((checksum << 1) | fbmisr));
+  }
+  return checksum;
 }
 
 int dsp5680xx_f_SIM_reset(struct target * target){
@@ -1025,7 +1052,7 @@ int dsp5680xx_f_protect_check(struct target * target, uint8_t * protected) {
   return retval;
 }
 
-static int dsp5680xx_f_execute_command(struct target * target, uint16_t command, uint32_t address, uint16_t * hfm_ustat, int pmem){
+static int dsp5680xx_f_execute_command(struct target * target, uint16_t command, uint32_t address, uint32_t data, uint16_t * hfm_ustat, int pmem){
   int retval;
   retval = eonce_load_TX_RX_high_to_r0(target);
   err_check_propagate(retval);
@@ -1056,6 +1083,8 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
   retval = eonce_move_value_at_r2_disp(target,0x00,HFM_PROT);		// write to HMF_PROT, clear protection
   err_check_propagate(retval);
   retval = eonce_move_value_at_r2_disp(target,0x00,HFM_PROTB);		// write to HMF_PROTB, clear protection
+  err_check_propagate(retval);
+  retval = eonce_move_value_to_y0(target,data);
   err_check_propagate(retval);
   retval = eonce_move_long_to_r3(target,address);			// write to the flash block
   err_check_propagate(retval);
@@ -1125,6 +1154,23 @@ static int eonce_set_hfmdiv(struct target * target){
   return ERROR_OK;
 }
 
+static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint32_t words, uint16_t * signature){
+  int retval;
+  uint16_t hfm_ustat;
+  if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
+    retval = eonce_enter_debug_mode(target,NULL);
+    err_check_propagate(retval);
+  }
+  retval = dsp5680xx_f_execute_command(target,HFM_CALCULATE_DATA_SIGNATURE,address,words,&hfm_ustat,1);
+  err_check_propagate(retval);
+  if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
+    retval = ERROR_TARGET_FAILURE;
+    err_check(retval,"HFM exec error:pviol and/or accer bits set.");
+  }
+  retval = dsp5680xx_read_16_single(target, HFM_BASE_ADDR|HFM_DATA, signature, 0);
+  return retval;
+}
+
 int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased){
   int retval;
   uint16_t hfm_ustat;
@@ -1150,7 +1196,7 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased){
 
   // Check if chip is already erased.
   // Since only mass erase is currently implemented, only the first sector is checked (assuming no code will leave it unused)
-  retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+0*HFM_SECTOR_SIZE,&hfm_ustat,1); // blank check
+  retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+0*HFM_SECTOR_SIZE,0,&hfm_ustat,1); // blank check
   err_check_propagate(retval);
   if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
 	retval = ERROR_TARGET_FAILURE;
@@ -1204,7 +1250,7 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
     // Execute mass erase command.
 	uint16_t hfm_ustat;
 	uint16_t hfm_cmd = HFM_MASS_ERASE;
-    retval = dsp5680xx_f_execute_command(target,hfm_cmd,HFM_FLASH_BASE_ADDR+0*HFM_SECTOR_SIZE,&hfm_ustat,1);
+	retval = dsp5680xx_f_execute_command(target,hfm_cmd,HFM_FLASH_BASE_ADDR+0*HFM_SECTOR_SIZE,0,&hfm_ustat,1);
 	err_check_propagate(retval);
     if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
 	  retval = ERROR_TARGET_FAILURE;
@@ -1332,11 +1378,12 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   int counter_reset = FLUSH_COUNT_FLASH;
   int counter = counter_reset;
   context.flush = 0;
-  for(uint32_t i=1; (i<count/2)&&(i<HFM_SIZE_REAL); i++){
-	if(--counter==0){
-	  context.flush = 1;
-	  counter = counter_reset;
-	}
+  uint32_t i;
+  for(i=1; (i<count/2)&&(i<HFM_SIZE_REAL); i++){
+    if(--counter==0){
+      context.flush = 1;
+      counter = counter_reset;
+    }
     retval = eonce_tx_upper_data(target,buff16[i],&drscan_data);
 	if(retval!=ERROR_OK){
 	  context.flush = 1;
@@ -1345,8 +1392,22 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	context.flush = 0;
   }
   context.flush = 1;
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+  // Verify flash
+  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+  uint16_t signature;
+  uint16_t pc_crc;
+  retval =  dsp5680xx_f_signature(target,address,i,&signature);
+  err_check_propagate(retval);
+  pc_crc = perl_crc(buff16,i);
+  if(pc_crc != signature){
+    retval = ERROR_FAIL;
+    err_check(retval,"Flashed data failed CRC check, flash again!");
+  }
   return retval;
 }
+
+
 
 int dsp5680xx_f_unlock(struct target * target){
   int retval;
