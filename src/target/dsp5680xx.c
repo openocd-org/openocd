@@ -28,7 +28,7 @@
 #include "target_type.h"
 #include "dsp5680xx.h"
 
-#define err_check(retval,err_msg) if(retval != ERROR_OK){LOG_ERROR("%s: %s.",__FUNCTION__,err_msg);return retval;}
+#define err_check(retval,err_msg) if(retval != ERROR_OK){LOG_ERROR("%s: %d %s.",__FUNCTION__,__LINE__,err_msg);return retval;}
 #define err_check_propagate(retval) if(retval!=ERROR_OK){return retval;}
 
 // Forward declarations, could try to optimize this.
@@ -158,16 +158,11 @@ int dsp5680xx_target_status(struct target * target, uint8_t * jtag_st, uint16_t 
 }
 
 static int dsp5680xx_assert_reset(struct target *target){
-  //TODO verify the sleeps are necessary
-  jtag_add_reset(1,0);
   target->state = TARGET_RESET;
-  jtag_add_sleep(500);
-  usleep(1000);
   return ERROR_OK;
 }
 
 static int dsp5680xx_deassert_reset(struct target *target){
-  jtag_add_reset(0,0);
   target->state = TARGET_RUNNING;
   return ERROR_OK;
 }
@@ -179,7 +174,6 @@ static int dsp5680xx_poll(struct target *target){
   uint16_t read_tmp;
   retval = dsp5680xx_jtag_status(target,&jtag_status);
   err_check_propagate(retval);
-  LOG_DEBUG("JTAG 0x%02X",jtag_status);//TODO remove!!
   if (jtag_status == JTAG_STATUS_DEBUG)
     if (target->state != TARGET_HALTED){
       retval = eonce_enter_debug_mode(target,&read_tmp);
@@ -620,16 +614,15 @@ static int eonce_move_value_to_pc(struct target * target, uint32_t value)
 
 static int eonce_load_TX_RX_to_r0(struct target * target)
 {
-  //TODO add error control
   uint32_t obase_addr;
   int retval = dsp5680xx_obase_addr(target,& obase_addr);
-  eonce_move_long_to_r0(target,((MC568013_EONCE_TX_RX_ADDR)+(obase_addr<<16)));
+  err_check_propagate(retval);
+  retval = eonce_move_long_to_r0(target,((MC568013_EONCE_TX_RX_ADDR)+(obase_addr<<16)));
   return retval;
 }
 
 static int eonce_load_TX_RX_high_to_r0(struct target * target)
 {
-  //TODO add error control
   uint32_t obase_addr;
   int retval = dsp5680xx_obase_addr(target,& obase_addr);
   err_check_propagate(retval);
@@ -811,22 +804,19 @@ static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t 
   uint16_t * data_w = (uint16_t *)data;
   uint32_t iter;
 
-  int counter_reset = FLUSH_COUNT_WRITE;
-  int counter = counter_reset;
-
+  int counter = FLUSH_COUNT_WRITE;
   for(iter = 0; iter<count/2; iter++){
-	if(--counter==0){
-	  context.flush = 1;
-	  counter = counter_reset;
-	}
-
+    if(--counter==0){
+      context.flush = 1;
+      counter = FLUSH_COUNT_WRITE;
+    }
     retval = dsp5680xx_write_16_single(target,address+iter,data_w[iter], pmem);
     if(retval != ERROR_OK){
       LOG_ERROR("%s: Could not write to p:0x%04X",__FUNCTION__,address);
-	  context.flush = 1;
+      context.flush = 1;
       return retval;
     }
-	context.flush = 0;
+    context.flush = 0;
   }
   context.flush = 1;
 
@@ -904,7 +894,7 @@ static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t
 
 //TODO doxy
 static int dsp5680xx_write(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer){
-  //TODO Cannot write 32bit to odd address, will write 0x1234567 to as 0x5678 0x0012
+  //TODO Cannot write 32bit to odd address, will write 0x12345678  as 0x5678 0x0012
   if(target->state != TARGET_HALTED){
     LOG_USER("Target must be halted.");
     return ERROR_OK;
