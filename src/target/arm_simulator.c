@@ -666,15 +666,12 @@ static int arm_simulate_step_core(struct target *target,
 		}
 		else
 		{
-			enum arm_mode mode = sim->get_mode(sim);
 			int update_cpsr = 0;
 
 			if (instruction.info.load_store_multiple.S)
 			{
 				if (instruction.info.load_store_multiple.register_list & 0x8000)
 					update_cpsr = 1;
-				else
-					mode = ARM_MODE_USR;
 			}
 
 			for (i = 0; i < 16; i++)
@@ -722,17 +719,11 @@ static int arm_simulate_step_core(struct target *target,
 			uint32_t Rn = sim->get_reg_mode(sim,
 					instruction.info.load_store_multiple.Rn);
 			int bits_set = 0;
-			enum arm_mode mode = sim->get_mode(sim);
 
 			for (i = 0; i < 16; i++)
 			{
 				if (instruction.info.load_store_multiple.register_list & (1 << i))
 					bits_set++;
-			}
-
-			if (instruction.info.load_store_multiple.S)
-			{
-				mode = ARM_MODE_USR;
 			}
 
 			switch (instruction.info.load_store_multiple.addressing_mode)

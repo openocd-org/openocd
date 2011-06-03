@@ -214,15 +214,9 @@ static void usbprog_end_state(tap_state_t state)
 
 static void usbprog_state_move(void)
 {
-	int i = 0, tms = 0;
 	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
-	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	usbprog_jtag_write_tms(usbprog_jtag_handle, (char)tms_scan);
-	for (i = 0; i < tms_count; i++)
-	{
-		tms = (tms_scan >> i) & 1;
-	}
 
 	tap_set_state(tap_get_end_state());
 }
