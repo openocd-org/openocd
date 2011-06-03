@@ -314,15 +314,14 @@ int gdb_thread_packet(struct connection *connection, struct target *target, char
 				int symbol_num;
 
 				char* found = strstr( packet, "qSymbol::" );
-				int numconv;
 				if (0 == found )
 				{
-					numconv =sscanf(packet, "qSymbol:%" SCNx64 ":%s", &value, hex_name_str);
+					sscanf(packet, "qSymbol:%" SCNx64 ":%s", &value, hex_name_str);
 				}
 				else
 				{
 					// No value returned by GDB - symbol was not found
-					numconv =sscanf(packet, "qSymbol::%s", hex_name_str);
+					sscanf(packet, "qSymbol::%s", hex_name_str);
 				}
 				name_str = (char*) malloc( 1+ strlen(hex_name_str) / 2 );
 

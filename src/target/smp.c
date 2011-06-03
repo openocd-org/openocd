@@ -95,7 +95,6 @@ int gdb_write_smp_packet(struct connection *connection,
 {
 	char *separator;
 	int coreid = 0;
-    int retval = ERROR_OK;
 
 	/* skip command character */
 	if (target->smp)
@@ -110,7 +109,8 @@ int gdb_write_smp_packet(struct connection *connection,
 	}
 	else
 	{
-		retval = gdb_put_packet(connection,"E01",3);
+		gdb_put_packet(connection,"E01",3);
 	}
+
 	return ERROR_OK;
 }

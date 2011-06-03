@@ -1731,11 +1731,10 @@ static int gdb_memory_map(struct connection *connection,
 	for (i = 0; i < flash_get_bank_count(); i++) {
 		int j;
 		unsigned sector_size = 0;
-		uint32_t start, end;
+		uint32_t start;
 
 		p = banks[i];
 		start = p->base;
-		end = p->base + p->size;
 
 		if (ram_start < p->base)
 			xml_printf(&retval, &xml, &pos, &size,

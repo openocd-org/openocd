@@ -653,7 +653,7 @@ static int svf_read_command_from_file(FILE * fd)
 	unsigned char ch;
 	int i = 0;
 	size_t cmd_pos = 0;
-	int cmd_ok = 0, slash = 0, comment = 0;
+	int cmd_ok = 0, slash = 0;
 
 	if (svf_getline (&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
 	{
@@ -699,7 +699,6 @@ static int svf_read_command_from_file(FILE * fd)
 			i = -1;
 		case '\r':
 			slash = 0;
-			comment = 0;
 			/* Don't save '\r' and '\n' if no data is parsed */
 			if (!cmd_pos)
 				break;
@@ -1507,13 +1506,12 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 		{
 #if 1
 			/* FIXME handle statemove failures */
-			int retval;
 			uint32_t min_usec = 1000000 * min_time;
 
 			// enter into run_state if necessary
 			if (cmd_queue_cur_state != svf_para.runtest_run_state)
 			{
-				retval = svf_add_statemove(svf_para.runtest_run_state);
+				svf_add_statemove(svf_para.runtest_run_state);
 			}
 
 			// add clocks and/or min wait
@@ -1530,7 +1528,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			// move to end_state if necessary
 			if (svf_para.runtest_end_state != svf_para.runtest_run_state)
 			{
-				retval = svf_add_statemove(svf_para.runtest_end_state);
+				svf_add_statemove(svf_para.runtest_end_state);
 			}
 #else
 			if (svf_para.runtest_run_state != TAP_IDLE)

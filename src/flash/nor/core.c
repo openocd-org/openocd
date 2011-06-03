@@ -621,7 +621,6 @@ int flash_write_unlock(struct target *target, struct image *image,
 	{
 		uint32_t buffer_size;
 		uint8_t *buffer;
-		int section_first;
 		int section_last;
 		uint32_t run_address = sections[section]->base_address + section_offset;
 		uint32_t run_size = sections[section]->size - section_offset;
@@ -649,7 +648,6 @@ int flash_write_unlock(struct target *target, struct image *image,
 		}
 
 		/* collect consecutive sections which fall into the same bank */
-		section_first = section;
 		section_last = section;
 		padding[section] = 0;
 		while ((run_address + run_size - 1 < c->base + c->size - 1)

@@ -143,7 +143,6 @@ static int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 static int mips32_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
-	struct mips32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -151,7 +150,6 @@ static int mips32_read_core_reg(struct target *target, int num)
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
 
-	mips_core_reg = mips32->core_cache->reg_list[num].arch_info;
 	reg_value = mips32->core_regs[num];
 	buf_set_u32(mips32->core_cache->reg_list[num].value, 0, 32, reg_value);
 	mips32->core_cache->reg_list[num].valid = 1;
@@ -163,7 +161,6 @@ static int mips32_read_core_reg(struct target *target, int num)
 static int mips32_write_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
-	struct mips32_core_reg *mips_core_reg;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -172,7 +169,6 @@ static int mips32_write_core_reg(struct target *target, int num)
 		return ERROR_INVALID_ARGUMENTS;
 
 	reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
-	mips_core_reg = mips32->core_cache->reg_list[num].arch_info;
 	mips32->core_regs[num] = reg_value;
 	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
 	mips32->core_cache->reg_list[num].valid = 1;

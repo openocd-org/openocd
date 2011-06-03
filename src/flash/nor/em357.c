@@ -813,7 +813,6 @@ COMMAND_HANDLER(em357_handle_lock_command)
 COMMAND_HANDLER(em357_handle_unlock_command)
 {
 	struct target *target = NULL;
-	struct em357_flash_bank *em357_info = NULL;
 
 	if (CMD_ARGC < 1)
 	{
@@ -825,8 +824,6 @@ COMMAND_HANDLER(em357_handle_unlock_command)
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
-
-	em357_info = bank->driver_priv;
 
 	target = bank->target;
 

@@ -175,7 +175,6 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 COMMAND_HANDLER(virtex2_handle_read_stat_command)
 {
 	struct pld_device *device;
-	struct virtex2_pld_device *virtex2_info;
 	uint32_t status;
 
 	if (CMD_ARGC < 1)
@@ -192,8 +191,6 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 		command_print(CMD_CTX, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
-
-	virtex2_info = device->driver_priv;
 
 	virtex2_read_stat(device, &status);
 

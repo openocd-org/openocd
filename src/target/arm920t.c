@@ -533,15 +533,12 @@ int arm920t_arch_state(struct target *target)
 	};
 
 	struct arm920t_common *arm920t = target_to_arm920(target);
-	struct arm *armv4_5;
 
 	if (arm920t->common_magic != ARM920T_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: %s", arm920_not);
 		return ERROR_TARGET_INVALID;
 	}
-
-	armv4_5 = &arm920t->arm7_9_common.armv4_5_common;
 
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",
@@ -898,7 +895,6 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	uint32_t C15_C_D_Ind, C15_C_I_Ind;
 	int i;
 	FILE *output;
-	struct arm920t_cache_line d_cache[8][64], i_cache[8][64];
 	int segment, index_t;
 	struct reg *r;
 
@@ -1007,8 +1003,6 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 				return retval;
 			}
 
-			d_cache[segment][index_t].cam = regs[9];
-
 			/* mask LFSR[6] */
 			regs[9] &= 0xfffffffe;
 			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8"
@@ -1018,7 +1012,6 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 			for (i = 1; i < 9; i++)
 			{
-				 d_cache[segment][index_t].data[i] = regs[i];
 				 fprintf(output, "%i: 0x%8.8" PRIx32 "\n",
 						i-1, regs[i]);
 			}
@@ -1115,8 +1108,6 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 				return retval;
 			}
 
-			i_cache[segment][index_t].cam = regs[9];
-
 			/* mask LFSR[6] */
 			regs[9] &= 0xfffffffe;
 			fprintf(output, "\nsegment: %i, index: %i, "
@@ -1126,7 +1117,6 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 			for (i = 1; i < 9; i++)
 			{
-				 i_cache[segment][index_t].data[i] = regs[i];
 				 fprintf(output, "%i: 0x%8.8" PRIx32 "\n",
 						i-1, regs[i]);
 			}

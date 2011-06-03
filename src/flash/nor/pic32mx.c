@@ -313,10 +313,7 @@ static int pic32mx_erase(struct flash_bank *bank, int first, int last)
 
 static int pic32mx_protect(struct flash_bank *bank, int set, int first, int last)
 {
-	struct pic32mx_flash_bank *pic32mx_info = NULL;
 	struct target *target = bank->target;
-
-	pic32mx_info = bank->driver_priv;
 
 	if (target->state != TARGET_HALTED)
 	{

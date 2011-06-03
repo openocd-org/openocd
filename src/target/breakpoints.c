@@ -159,13 +159,11 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 void breakpoint_remove_internal(struct target *target, uint32_t address)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
-	struct breakpoint **breakpoint_p = &target->breakpoints;
 
 	while (breakpoint)
 	{
 		if (breakpoint->address == address)
 			break;
-		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
 
@@ -332,13 +330,11 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 void watchpoint_remove(struct target *target, uint32_t address)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
-	struct watchpoint **watchpoint_p = &target->watchpoints;
 
 	while (watchpoint)
 	{
 		if (watchpoint->address == address)
 			break;
-		watchpoint_p = &watchpoint->next;
 		watchpoint = watchpoint->next;
 	}
 

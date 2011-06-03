@@ -1088,7 +1088,7 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 {
 	uint32_t ap_old;
 	int retval;
-	uint32_t dbgbase, apid, idcode;
+	uint32_t dbgbase, apid;
 
 	/* AP address is in bits 31:24 of DP_SELECT */
 	if (ap >= 256)
@@ -1110,10 +1110,8 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 	/* Excavate the device ID code */
 	struct jtag_tap *tap = dap->jtag_info->tap;
 	while (tap != NULL) {
-		if (tap->hasidcode) {
-			idcode = tap->idcode;
+		if (tap->hasidcode)
 			break;
-		}
 		tap = tap->next_tap;
 	}
 	if (tap == NULL || !tap->hasidcode)

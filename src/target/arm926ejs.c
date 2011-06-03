@@ -536,15 +536,12 @@ int arm926ejs_arch_state(struct target *target)
 	};
 
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
-	struct arm *armv4_5;
 
 	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: %s", arm926_not);
 		return ERROR_TARGET_INVALID;
 	}
-
-	armv4_5 = &arm926ejs->arm7_9_common.armv4_5_common;
 
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",

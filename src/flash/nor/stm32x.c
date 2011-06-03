@@ -1217,7 +1217,6 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 COMMAND_HANDLER(stm32x_handle_unlock_command)
 {
 	struct target *target = NULL;
-	struct stm32x_flash_bank *stm32x_info = NULL;
 
 	if (CMD_ARGC < 1)
 	{
@@ -1229,8 +1228,6 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
-
-	stm32x_info = bank->driver_priv;
 
 	target = bank->target;
 

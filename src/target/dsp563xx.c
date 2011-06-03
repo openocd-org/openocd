@@ -349,13 +349,11 @@ static int dsp563xx_get_gdb_reg_list(struct target *target, struct reg **reg_lis
 static int dsp563xx_read_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
-	struct dsp563xx_core_reg *dsp563xx_core_reg;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if ((num < 0) || (num >= DSP563XX_NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
 
-	dsp563xx_core_reg = dsp563xx->core_cache->reg_list[num].arch_info;
 	reg_value = dsp563xx->core_regs[num];
 	buf_set_u32(dsp563xx->core_cache->reg_list[num].value, 0, 32, reg_value);
 	dsp563xx->core_cache->reg_list[num].valid = 1;
@@ -367,14 +365,12 @@ static int dsp563xx_read_core_reg(struct target *target, int num)
 static int dsp563xx_write_core_reg(struct target *target, int num)
 {
 	uint32_t reg_value;
-	struct dsp563xx_core_reg *dsp563xx_core_reg;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if ((num < 0) || (num >= DSP563XX_NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
 
 	reg_value = buf_get_u32(dsp563xx->core_cache->reg_list[num].value, 0, 32);
-	dsp563xx_core_reg = dsp563xx->core_cache->reg_list[num].arch_info;
 	dsp563xx->core_regs[num] = reg_value;
 	dsp563xx->core_cache->reg_list[num].valid = 1;
 	dsp563xx->core_cache->reg_list[num].dirty = 0;
@@ -582,7 +578,7 @@ static int dsp563xx_reg_pc_read(struct target *target)
 static int dsp563xx_reg_ssh_read(struct target *target)
 {
 	int err;
-	uint32_t sp, sc, ep;
+	uint32_t sp;
 	struct dsp563xx_core_reg *arch_info;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
@@ -598,14 +594,14 @@ static int dsp563xx_reg_ssh_read(struct target *target)
 	/* get a valid stack count */
 	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SC, 0)) != ERROR_OK)
 		return err;
-	sc = dsp563xx->core_regs[DSP563XX_REG_IDX_SC];
+
 	if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SC, 0)) != ERROR_OK)
 		return err;
 
 	/* get a valid extended pointer */
 	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_EP, 0)) != ERROR_OK)
 		return err;
-	ep = dsp563xx->core_regs[DSP563XX_REG_IDX_EP];
+
 	if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_EP, 0)) != ERROR_OK)
 		return err;
 
@@ -1060,7 +1056,6 @@ static int dsp563xx_halt(struct target *target)
 static int dsp563xx_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	int err;
-	struct dsp563xx_core_reg *dsp563xx_core_reg;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	/* check if pc was changed and resume want to execute the next address
@@ -1072,7 +1067,6 @@ static int dsp563xx_resume(struct target *target, int current, uint32_t address,
 	if ( current && dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].dirty )
 	{
 		dsp563xx_write_core_reg(target,DSP563XX_REG_IDX_PC);
-		dsp563xx_core_reg = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].arch_info;
 		address = dsp563xx->core_regs[DSP563XX_REG_IDX_PC];
 		current = 0;
 	}
@@ -1112,7 +1106,6 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 	int err;
 	uint32_t once_status;
 	uint32_t dr_in, cnt;
-	struct dsp563xx_core_reg *dsp563xx_core_reg;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if (target->state != TARGET_HALTED)
@@ -1130,7 +1123,6 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 	if ( current && dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].dirty )
 	{
 		dsp563xx_write_core_reg(target,DSP563XX_REG_IDX_PC);
-		dsp563xx_core_reg = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].arch_info;
 		address = dsp563xx->core_regs[DSP563XX_REG_IDX_PC];
 		current = 0;
 	}

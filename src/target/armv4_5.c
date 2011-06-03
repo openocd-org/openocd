@@ -612,7 +612,6 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm *armv4_5 = target_to_arm(target);
-	unsigned num_regs;
 	struct reg *regs;
 
 	if (!is_arm(armv4_5))
@@ -645,7 +644,6 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 		return ERROR_FAIL;
 	}
 
-	num_regs = armv4_5->core_cache->num_regs;
 	regs = armv4_5->core_cache->reg_list;
 
 	for (unsigned mode = 0; mode < ARRAY_SIZE(arm_mode_data); mode++) {

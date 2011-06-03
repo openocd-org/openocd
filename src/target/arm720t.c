@@ -253,14 +253,11 @@ static int arm720t_verify_pointer(struct command_context *cmd_ctx,
 static int arm720t_arch_state(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	struct arm *armv4_5;
 
 	static const char *state[] =
 	{
 		"disabled", "enabled"
 	};
-
-	armv4_5 = &arm720t->arm7_9_common.armv4_5_common;
 
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, Cache: %s",
@@ -466,13 +463,11 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	int retval;
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm720t_common *arm720t = target_to_arm720(target);
-	struct arm_jtag *jtag_info;
 
 	retval = arm720t_verify_pointer(CMD_CTX, arm720t);
 	if (retval != ERROR_OK)
 		return retval;
 
-	jtag_info = &arm720t->arm7_9_common.jtag_info;
 
 	if (target->state != TARGET_HALTED)
 	{

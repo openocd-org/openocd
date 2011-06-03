@@ -383,7 +383,6 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 	uint32_t shift = 0;
 	uint32_t cur_addr = 0x0;
 	uint32_t cp15_idx, set, way, dtag;
-	int nb_idx;
 	uint32_t i = 0;
 	int retval;
 
@@ -403,7 +402,6 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 			shift = csize - 0x3; /* Now 0 = 4KB, 1 = 8KB, ... */
 
 		csize = 1 << (12 + shift);
-		nb_idx = (csize / 32);
 
 		set = (cur_addr >> 5) & 0xff;	/* set field is 8 bits long */
 

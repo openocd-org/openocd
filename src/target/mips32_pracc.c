@@ -473,10 +473,7 @@ static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr,
 
 	int retval = ERROR_OK;
 	int blocksize;
-	int bytesread;
 	uint32_t param_in[2];
-
-	bytesread = 0;
 
 	//while (count > 0)
 	{
@@ -492,7 +489,6 @@ static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr,
 
 //		count -= blocksize;
 //		addr += blocksize;
-//		bytesread += blocksize;
 	}
 
 	for (i = 0; i < count; i++)
@@ -550,10 +546,7 @@ static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, 
 
 	int retval = ERROR_OK;
 	int blocksize;
-	int bytesread;
 	uint32_t param_in[2];
-
-	bytesread = 0;
 
 //	while (count > 0)
 	{
@@ -569,7 +562,6 @@ static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, 
 
 //		count -= blocksize;
 //		addr += blocksize;
-//		bytesread += blocksize;
 	}
 
 	for (i = 0; i < count; i++)

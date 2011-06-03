@@ -497,13 +497,12 @@ static int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 void embeddedice_write_reg(struct reg *reg, uint32_t value)
 {
 	struct embeddedice_reg *ice_reg = reg->arch_info;
-	int retval;
 
 	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", ice_reg->addr, value);
 
-	retval = arm_jtag_scann(ice_reg->jtag_info, 0x2, TAP_IDLE);
+	arm_jtag_scann(ice_reg->jtag_info, 0x2, TAP_IDLE);
 
-	retval = arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
+	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
 	embeddedice_write_reg_inner(ice_reg->jtag_info->tap, reg_addr, value);

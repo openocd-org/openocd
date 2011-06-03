@@ -681,7 +681,6 @@ static int get_str9x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 COMMAND_HANDLER(str9x_handle_flash_config_command)
 {
-	struct str9x_flash_bank *str9x_info;
 	struct target *target = NULL;
 
 	if (CMD_ARGC < 5)
@@ -699,8 +698,6 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], nbbsr);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], bbadr);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], nbbadr);
-
-	str9x_info = bank->driver_priv;
 
 	target = bank->target;
 

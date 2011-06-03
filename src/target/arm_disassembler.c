@@ -300,7 +300,7 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 	else /* LDC or STC */
 	{
 		uint8_t CRd, Rn, offset;
-		uint8_t U, N;
+		uint8_t U;
 		char *mnemonic;
 		char addressing_mode[32];
 
@@ -321,7 +321,6 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 		}
 
 		U = (opcode & 0x00800000) >> 23;
-		N = (opcode & 0x00400000) >> 22;
 
 		/* addressing modes */
 		if ((opcode & 0x01200000) == 0x01000000) /* offset */
