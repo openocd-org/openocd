@@ -110,6 +110,8 @@ struct mips32_algorithm
 #define MIPS32_OP_SH	0x29
 #define MIPS32_OP_SW	0x2B
 #define MIPS32_OP_ORI	0x0D
+#define MIPS32_OP_XOR	0x26
+#define MIPS32_OP_SRL	0x03
 
 #define MIPS32_COP0_MF	0x00
 #define MIPS32_COP0_MT	0x04
@@ -135,10 +137,12 @@ struct mips32_algorithm
 #define MIPS32_MFHI(reg)			MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MFHI)
 #define MIPS32_MTLO(reg)			MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_MTLO)
 #define MIPS32_MTHI(reg)			MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_MTHI)
-#define MIPS32_ORI(src, tar, val)	MIPS32_I_INST(MIPS32_OP_ORI, src, tar, val)
+#define MIPS32_ORI(tar, src, val)	MIPS32_I_INST(MIPS32_OP_ORI, src, tar, val)
 #define MIPS32_SB(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SB, base, reg, off)
 #define MIPS32_SH(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SH, base, reg, off)
 #define MIPS32_SW(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SW, base, reg, off)
+#define MIPS32_XOR(reg, val1, val2)	MIPS32_R_INST(0, val1, val2, reg, 0, MIPS32_OP_XOR)
+#define MIPS32_SRL(reg, src, off)	MIPS32_R_INST(0, 0, src, reg, off, MIPS32_OP_SRL)
 
 /* ejtag specific instructions */
 #define MIPS32_DRET					0x4200001F

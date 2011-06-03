@@ -31,6 +31,7 @@
 #include <target/arm.h>
 #include <target/arm7_9_common.h>
 #include <target/armv7m.h>
+#include <target/mips32.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 
@@ -1278,6 +1279,12 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t target_code_size;
 	int retval = ERROR_OK;
 
+	/*  todo:  if ( (!is_armv7m(target_to_armv7m(target)) && (!is_arm(target_to_arm(target)) ) */
+	if (strncmp(target_type_name(target),"mips_m4k",8) == 0)
+	{
+		LOG_ERROR("Your target has no flash block write support yet.");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
 
 	cfi_intel_clear_status_register(bank);
 
@@ -1450,6 +1457,234 @@ cleanup:
 	destroy_reg_param(&reg_params[4]);
 	destroy_reg_param(&reg_params[5]);
 	destroy_reg_param(&reg_params[6]);
+
+	return retval;
+}
+
+static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffer,
+		uint32_t address, uint32_t count)
+{
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
+	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
+	struct target *target = bank->target;
+	struct reg_param reg_params[10];
+	struct mips32_algorithm mips32_info;
+	struct working_area *source;
+	uint32_t buffer_size = 32768;
+	uint32_t status;
+	int retval = ERROR_OK;
+
+	/* input parameters - */
+	/*	4  A0 = source address */
+	/*	5  A1 = destination address */
+	/*	6  A2 = number of writes */
+	/*	7  A3 = flash write command */
+	/*	8  T0 = constant to mask DQ7 bits (also used for Dq5 with shift) */
+	/* output parameters - */
+	/*	9  T1 = 0x80 ok 0x00 bad */
+	/* temp registers - */
+	/*	10 T2 = value read from flash to test status */
+	/*	11 T3 = holding register */
+	/* unlock registers - */
+	/*  12 T4 = unlock1_addr */
+	/*  13 T5 = unlock1_cmd */
+	/*  14 T6 = unlock2_addr */
+	/*  15 T7 = unlock2_cmd */
+
+	static const uint32_t mips_word_16_code[] = {
+															/* start:	*/
+		MIPS32_LHU(9,0,4),		/* lhu $t1, ($a0)		; out = &saddr				*/
+		MIPS32_ADDI(4,4,2),		/* addi $a0, $a0, 2		; saddr += 2				*/
+		MIPS32_SH(13,0,12),		/* sh $t5, ($t4)		; *fl_unl_addr1 = fl_unl_cmd1		*/
+		MIPS32_SH(15,0,14),		/* sh $t7, ($t6)		; *fl_unl_addr2 = fl_unl_cmd2		*/
+		MIPS32_SH(7,0,12),		/* sh $a3, ($t4)		; *fl_unl_addr1 = fl_write_cmd		*/
+		MIPS32_SH(9,0,5),		/* sh $t1, ($a1)		; *daddr = out				*/
+		MIPS32_NOP,			/* nop									*/
+															/* busy:	*/
+		MIPS32_LHU(10,0,5),		/* lhu $t2, ($a1)		; temp1 = *daddr			*/
+		MIPS32_XOR(11,9,10),		/* xor $t3, $a0, $t2		; temp2 = out ^ temp1;			*/
+		MIPS32_AND(11,8,11),		/* and $t3, $t0, $t3		; temp2 = temp2 & DQ7mask		*/
+		MIPS32_BNE(11,8, 13),		/* bne $t3, $t0, cont		; if (temp2 != DQ7mask) goto cont	*/
+		MIPS32_NOP,			/* nop									*/
+
+		MIPS32_SRL(10,8,2),		/* srl $t2,$t0,2		; temp1 = DQ7mask >> 2			*/
+		MIPS32_AND(11,10,11),		/* and $t3, $t2, $t3		; temp2 = temp2 & temp1			*/
+		MIPS32_BNE(11,10, NEG16(8)),	/* bne $t3, $t2, busy		; if (temp2 != temp1) goto busy		*/
+		MIPS32_NOP,			/* nop									*/
+
+		MIPS32_LHU(10,0,5),		/* lhu $t2, ($a1)		; temp1 = *daddr			*/
+		MIPS32_XOR(11,9,10),		/* xor $t3, $a0, $t2		; temp2 = out ^ temp1;			*/
+		MIPS32_AND(11,8,11),		/* and $t3, $t0, $t3		; temp2 = temp2 & DQ7mask		*/
+		MIPS32_BNE(11,8, 4),		/* bne $t3, $t0, cont		; if (temp2 != DQ7mask) goto cont	*/
+		MIPS32_NOP,			/* nop									*/
+
+		MIPS32_XOR(9,9,9),		/* xor $t1, $t1, $t1		; out = 0				*/
+		MIPS32_BEQ(9,0, 11),		/* beq $t1, $zero, done		; if (out == 0) goto done		*/
+		MIPS32_NOP,			/* nop									*/
+															/* cont:	*/
+		MIPS32_ADDI(6,6,NEG16(1)),	/* addi, $a2, $a2, -1		; numwrites--				*/
+		MIPS32_BNE(6,0, 5),		/* bne $a2, $zero, cont2	; if (numwrite != 0) goto cont2		*/
+		MIPS32_NOP,			/* nop									*/
+		
+		MIPS32_LUI(9,0),		/* lui $t1, 0								*/
+		MIPS32_ORI(9,9,0x80),		/* ori $t1, $t1, 0x80		; out = 0x80				*/
+
+		MIPS32_B(4),			/* b done			; goto done				*/
+		MIPS32_NOP,			/* nop									*/
+															/* cont2:	*/
+		MIPS32_ADDI(5,5,2),		/* addi $a0, $a0, 2		; daddr += 2				*/
+		MIPS32_B(NEG16(33)),		/* b start			; goto start				*/
+		MIPS32_NOP,			/* nop									*/
+															/* done:	*/
+		/*MIPS32_B(NEG16(1)),	*/	/* b done			; goto done				*/
+		MIPS32_SDBBP,			/* sdbbp			; break();				*/
+		/*MIPS32_B(NEG16(33)),	*/	/* b start			; goto start				*/
+		/* MIPS32_NOP, */
+	};
+
+	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
+	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
+
+	int target_code_size = 0;
+	const uint32_t *target_code_src = NULL;
+
+	switch (bank->bus_width)
+	{
+	case 2 :
+		/* Check for DQ5 support */
+		if( cfi_info->status_poll_mask & (1 << 5) )
+		{
+			target_code_src = mips_word_16_code;
+			target_code_size = sizeof(mips_word_16_code);
+		}
+		else
+		{
+			LOG_ERROR("Need DQ5 support");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			//target_code_src = mips_word_16_code_dq7only;
+			//target_code_size = sizeof(mips_word_16_code_dq7only);
+		}
+		break;
+	default:
+		LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* flash write code */
+	if (!cfi_info->write_algorithm)
+	{
+		uint8_t *target_code;
+
+		/* convert bus-width dependent algorithm code to correct endiannes */
+		target_code = malloc(target_code_size);
+		if (target_code == NULL)
+		{
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+
+		/* allocate working area */
+		retval = target_alloc_working_area(target, target_code_size,
+				&cfi_info->write_algorithm);
+		if (retval != ERROR_OK)
+		{
+			free(target_code);
+			return retval;
+		}
+
+		/* write algorithm code to working area */
+		if ((retval = target_write_buffer(target, cfi_info->write_algorithm->address,
+				target_code_size, target_code)) != ERROR_OK)
+		{
+			free(target_code);
+			return retval;
+		}
+
+		free(target_code);
+	}
+	/* the following code still assumes target code is fixed 24*4 bytes */
+
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
+	{
+		buffer_size /= 2;
+		if (buffer_size <= 256)
+		{
+			/* if we already allocated the writing code, but failed to get a
+			 * buffer, free the algorithm */
+			if (cfi_info->write_algorithm)
+				target_free_working_area(target, cfi_info->write_algorithm);
+
+			LOG_WARNING("not enough working area available, can't do block memory writes");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+	};
+
+	init_reg_param(&reg_params[0], "a0", 32, PARAM_OUT);
+	init_reg_param(&reg_params[1], "a1", 32, PARAM_OUT);
+	init_reg_param(&reg_params[2], "a2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "a3", 32, PARAM_OUT);
+	init_reg_param(&reg_params[4], "t0", 32, PARAM_OUT);
+	init_reg_param(&reg_params[5], "t1", 32, PARAM_IN);
+	init_reg_param(&reg_params[6], "t4", 32, PARAM_OUT);
+	init_reg_param(&reg_params[7], "t5", 32, PARAM_OUT);
+	init_reg_param(&reg_params[8], "t6", 32, PARAM_OUT);
+	init_reg_param(&reg_params[9], "t7", 32, PARAM_OUT);
+
+	while (count > 0)
+	{
+		uint32_t thisrun_count = (count > buffer_size) ? buffer_size : count;
+
+		retval = target_write_buffer(target, source->address, thisrun_count, buffer);
+		if (retval != ERROR_OK)
+		{
+			break;
+		}
+
+		buf_set_u32(reg_params[0].value, 0, 32, source->address);
+		buf_set_u32(reg_params[1].value, 0, 32, address);
+		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count / bank->bus_width);
+		buf_set_u32(reg_params[3].value, 0, 32, cfi_command_val(bank, 0xA0));
+		buf_set_u32(reg_params[4].value, 0, 32, cfi_command_val(bank, 0x80));
+		buf_set_u32(reg_params[6].value, 0, 32, flash_address(bank, 0, pri_ext->_unlock1));
+		buf_set_u32(reg_params[7].value, 0, 32, 0xaaaaaaaa);
+		buf_set_u32(reg_params[8].value, 0, 32, flash_address(bank, 0, pri_ext->_unlock2));
+		buf_set_u32(reg_params[9].value, 0, 32, 0x55555555);
+
+		retval = target_run_algorithm(target, 0, NULL, 10, reg_params,
+				cfi_info->write_algorithm->address,
+				cfi_info->write_algorithm->address + ((target_code_size) - 4),
+				10000, &mips32_info);
+		if (retval != ERROR_OK)
+		{
+			break;
+		}
+
+		status = buf_get_u32(reg_params[5].value, 0, 32);
+		if (status != 0x80)
+		{
+			LOG_ERROR("flash write block failed status: 0x%" PRIx32 , status);
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		}
+
+		buffer += thisrun_count;
+		address += thisrun_count;
+		count -= thisrun_count;
+	}
+
+	target_free_all_working_areas(target);
+
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
+	destroy_reg_param(&reg_params[3]);
+	destroy_reg_param(&reg_params[4]);
+	destroy_reg_param(&reg_params[5]);
+	destroy_reg_param(&reg_params[6]);
+	destroy_reg_param(&reg_params[7]);
+	destroy_reg_param(&reg_params[8]);
+	destroy_reg_param(&reg_params[9]);
 
 	return retval;
 }
@@ -1636,6 +1871,11 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 						/* 00008204 <sp_8_done>:		*/
 		0xeafffffe		/* b	8204 <sp_8_done>		*/
 	};
+
+	if (strncmp(target_type_name(target),"mips_m4k",8) == 0)
+	{
+		return cfi_spansion_write_block_mips(bank,buffer,address,count);
+	}
 
 	if (is_armv7m(target_to_armv7m(target))) /* Cortex-M3 target */
 	{
