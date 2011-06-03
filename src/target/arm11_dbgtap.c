@@ -1045,10 +1045,6 @@ static inline struct arm11_common *dpm_to_arm11(struct arm_dpm *dpm)
 
 static int arm11_dpm_prepare(struct arm_dpm *dpm)
 {
-	struct arm11_common *arm11 = dpm_to_arm11(dpm);
-
-	arm11 = container_of(dpm->arm, struct arm11_common, arm);
-
 	return arm11_run_instr_data_prepare(dpm_to_arm11(dpm));
 }
 
