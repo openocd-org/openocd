@@ -1672,7 +1672,7 @@ int jtag_get_speed(int *speed)
 
 int jtag_get_speed_readable(int *khz)
 {
-	int jtag_speed_var;
+	int jtag_speed_var = 0;
 	int retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
