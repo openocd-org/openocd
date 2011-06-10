@@ -246,15 +246,12 @@ static int eonce_read_status_reg(struct target * target, uint16_t * data){
 
 static int dsp5680xx_halt(struct target *target){
   int retval;
-  uint8_t jtag_status;
   uint16_t eonce_status;
   if(target->state == TARGET_HALTED){
     LOG_USER("Target already halted.");
     return ERROR_OK;
   }
   retval = eonce_enter_debug_mode(target,&eonce_status);
-  err_check_propagate(retval);
-  retval = dsp5680xx_jtag_status(target,&jtag_status);
   err_check_propagate(retval);
   retval = eonce_pc_store(target);
   err_check_propagate(retval);
@@ -268,17 +265,7 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
     return ERROR_OK;
   }
   int retval;
-  uint8_t jtag_status;
-  uint16_t eonce_status;
-
-  // Verify that EOnCE is enabled (enable it if necessary)
-  uint16_t data_read_from_dr = 0;
-  retval = eonce_read_status_reg(target,&data_read_from_dr);
-  err_check_propagate(retval);
-  if((data_read_from_dr&DSP5680XX_ONCE_OSCR_DEBUG_M) != DSP5680XX_ONCE_OSCR_DEBUG_M){
-    retval = eonce_enter_debug_mode(target,NULL);
-	err_check_propagate(retval);
-  }
+  uint8_t eonce_status;
   if(!current){
     retval = eonce_move_value_to_pc(target,address);
     err_check_propagate(retval);
@@ -286,21 +273,17 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
 
   int retry = 20;
   while(retry-- > 1){
-    retval = eonce_exit_debug_mode(target,(uint8_t *)&eonce_status );
+    retval = eonce_exit_debug_mode(target,&eonce_status );
 	err_check_propagate(retval);
-    retval = dsp5680xx_jtag_status(target,&jtag_status);
-	err_check_propagate(retval);
-    if((jtag_status & 0xff) == JTAG_STATUS_NORMAL){
+    if(eonce_status == DSP5680XX_ONCE_OSCR_NORMAL_M)
       break;
-    }
   }
   if(retry == 0){
     retval = ERROR_TARGET_FAILURE;
 	err_check(retval,"Failed to resume...");
   }else{
     target->state = TARGET_RUNNING;
-  };
-  LOG_DEBUG("JTAG status: 0x%02X.",jtag_status);
+  }
   LOG_DEBUG("EOnCE status: 0x%02X.",eonce_status);
   return ERROR_OK;
 }
@@ -916,25 +899,12 @@ static int dsp5680xx_bulk_write_memory(struct target * target,uint32_t address, 
   return ERROR_FAIL;
 }
 
-// Writes to pram at address
-// r3 holds the destination address-> p:(r3)
-// r2 hold 0xf151 to flash a led (probably cannot see it due to high freq.)
-// r0 holds TX/RX address.
-//0x00000073  0x8A44FFFE017B         brclr       #1,X:(R0-2),*-2
-//0x00000076  0xE700                 nop
-//0x00000077  0xF514                 move.w      X:(R0),Y0
-//0x00000078  0xE700                 nop
-//0x00000079  0x8563                 move.w      Y0,P:(R3)+
-//0x0000007A  0x84420003             bfchg       #3,X:(R2)
-//0x0000007C  0xA976                 bra         *-9
-uint16_t pgm_write_pram[] = {0x8A44,0xFFFE,0x017D,0xE700,0xF514,0xE700,0x8563,0x8442,0x0003,0xA976};
-uint16_t pgm_write_pram_length = 10;
-
 static int dsp5680xx_write_buffer(struct target * target, uint32_t address, uint32_t size, const uint8_t * buffer){
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // this solution works, but it's slow. it flushes USB all the time.
+  if(target->state != TARGET_HALTED){
+    LOG_USER("Target must be halted.");
+    return ERROR_OK;
+  }
   return dsp5680xx_write(target, address, 1, size, buffer);
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 }
 
 static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint32_t size, uint8_t * buffer){
