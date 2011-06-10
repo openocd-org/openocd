@@ -226,10 +226,11 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target
 /** 
  * Writes to flash memory.
  * Does not check if flash is erased, it's up to the user to erase the flash before running this function.
+ * The flashing algorithm runs from RAM, reading from a register to which this function writes to. The algorithm is open loop, there is no control to verify that the FM read the register before writing the next data. A closed loop approach was much slower, and the current implementation does not fail, and if it did the crc check would detect it, allowing to flash again.
  * 
  * @param target 
  * @param buffer 
- * @param address 
+ * @param address Word addressing.
  * @param count In bytes. 
  * 
  * @return 
@@ -259,7 +260,7 @@ int dsp5680xx_f_erase_check(struct target * target,uint8_t * erased, uint32_t se
 int dsp5680xx_f_erase(struct target * target, int first, int last);
 
 /** 
- * Reads the memory mapped protection register.
+ * Reads the memory mapped protection register. A 1 implies the sector is protected, a 0 implies the sector is not protected.
  * 
  * @param target 
  * @param protected Data read from the protection register.
