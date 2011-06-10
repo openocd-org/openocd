@@ -96,18 +96,10 @@ static int dsp5680xx_flash_protect_check(struct flash_bank *bank){
 static int dsp5680xx_flash_protect(struct flash_bank *bank, int set, int first, int last){
   // This applies security to flash module after next reset, it does not actually apply protection (protection refers to undesired access from the core)
   int retval;
-  if(set){
+  if(set)
     retval = dsp5680xx_f_lock(bank->target);
-    if(retval == ERROR_OK){
-      for(int i = first;i<last;i++)
-	bank->sectors[i].is_protected = 1;
-    }
-  }else{
+  else
     retval = dsp5680xx_f_unlock(bank->target);
-    if(retval == ERROR_OK)
-      for(int i = first;i<last;i++)
-	bank->sectors[i].is_protected = 0;
-  }
   return retval;
 }
 
@@ -140,10 +132,13 @@ static int dsp5680xx_flash_write(struct flash_bank *bank, uint8_t *buffer, uint3
     return ERROR_FAIL;
   }
   retval = dsp5680xx_f_wr(bank->target,  buffer, bank->base + offset/2,  count);
-  if(retval == ERROR_OK)
-    bank->sectors[0].is_erased = 0;
-  else
-    bank->sectors[0].is_erased = -1;
+  uint32_t addr_word;
+  for(addr_word = bank->base + offset/2;addr_word<count/2;addr_word+=(HFM_SECTOR_SIZE/2)){
+    if(retval == ERROR_OK)
+      bank->sectors[addr_word/(HFM_SECTOR_SIZE/2)].is_erased = 0;
+    else
+      bank->sectors[addr_word/(HFM_SECTOR_SIZE/2)].is_erased = -1;
+  }
   return retval;
 }
 
