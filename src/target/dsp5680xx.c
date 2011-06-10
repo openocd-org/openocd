@@ -942,35 +942,13 @@ static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint3
     LOG_USER("Target must be halted.");
     return ERROR_OK;
   }
-  // byte addressing!
-  int retval = ERROR_OK;
-  int pmem = 1;
-  uint16_t tmp_wrd= 0;
-
-  retval = dsp5680xx_convert_address(&address, &pmem);
-  err_check_propagate(retval);
-
-  for (unsigned i=0; i<size; i++)
-    if(!(i%2)){
-      retval = dsp5680xx_read_16_single(target, address + i/2, &tmp_wrd, pmem);
-	  err_check_propagate(retval);
-      //TODO find a better solution. endiannes differs from normal read, otherwise the openocd crc would do weird stuff.
-      buffer[i+1] = (uint8_t) (tmp_wrd>>8);
-      buffer[i] = (uint8_t) (tmp_wrd&0xff);
-   }
-  return retval;
+  // read_buffer is called when the verify_image command is executed.
+  // The "/2" solves the byte/word addressing issue. 
+  return dsp5680xx_read(target,address,2,size/2,buffer);
 }
 
 static int dsp5680xx_checksum_memory(struct target * target, uint32_t address, uint32_t size, uint32_t * checksum){
- //TODO implement.
-  //This will make openocd do the work, but it will fail because of the word/byte addressing issues.
-  int retval;
-  struct working_area * crc_algorithm;
-  retval = target_alloc_working_area(target, 20, &crc_algorithm);
-  if(retval != ERROR_OK)
-    return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-  retval = target_free_working_area(target, crc_algorithm);
-  return ERROR_FAIL;
+  return ERROR_FAIL;// This will make OpenOCD do the read out the data and verify it.
 }
 
 // Data signature algorithm used by the core FM (flash module)
