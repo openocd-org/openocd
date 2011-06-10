@@ -714,7 +714,14 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
   retval = dsp5680xx_convert_address(&address, &pmem);
   err_check_propagate(retval);
 
+  context.flush = 0;
+  int counter = FLUSH_COUNT_READ_WRITE;
+
   for (unsigned i=0; i<count; i++){
+    if(--counter==0){
+      context.flush = 1;
+      counter = FLUSH_COUNT_FLASH;
+    }
     switch (size){
     case 1:
       if(!(i%2)){
@@ -734,7 +741,13 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
       break;
     }
 	err_check_propagate(retval);
+    context.flush = 0;
   }
+  
+  context.flush = 1;
+  retval = dsp5680xx_execute_queue();
+  err_check_propagate(retval);
+  
   return retval;
 }
 
