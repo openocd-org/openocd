@@ -1029,6 +1029,9 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
       err_check(retval,"FM execute command failed.");
     }
   }while (!(i&0x40));				// wait until current command is complete
+
+  context.flush = 0;
+
   retval = eonce_move_value_at_r2_disp(target,0x00,HFM_CNFG);	// write to HFM_CNFG (lock=0, select bank) -- flash_desc.bank&0x03,0x01 == 0x00,0x01 ???
   err_check_propagate(retval);
   retval = eonce_move_value_at_r2_disp(target,0x04,HFM_USTAT);		// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
@@ -1056,6 +1059,11 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
   err_check_propagate(retval);
   retval = eonce_move_value_at_r2_disp(target,0x80,HFM_USTAT);		// start the command
   err_check_propagate(retval);
+
+  context.flush = 1;
+  retval = dsp5680xx_execute_queue();
+  err_check_propagate(retval);
+
   watchdog = 100;
   do{
     retval = eonce_move_at_r2_disp_to_y0(target,HFM_USTAT);	// read HMF_USTAT
@@ -1070,6 +1078,10 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
     }
   }while (!(i&0x40));	    // wait until the command is complete
   *hfm_ustat = i;
+  if (i&HFM_USTAT_MASK_PVIOL_ACCER){
+    retval = ERROR_TARGET_FAILURE;
+    err_check(retval,"pviol and/or accer bits set. HFM command execution error");
+  }
   return ERROR_OK;
 }
 
@@ -1120,10 +1132,6 @@ static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint3
   }
   retval = dsp5680xx_f_execute_command(target,HFM_CALCULATE_DATA_SIGNATURE,address,words,&hfm_ustat,1);
   err_check_propagate(retval);
-  if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
-    retval = ERROR_TARGET_FAILURE;
-    err_check(retval,"HFM exec error:pviol and/or accer bits set.");
-  }
   retval = dsp5680xx_read_16_single(target, HFM_BASE_ADDR|HFM_DATA, signature, 0);
   return retval;
 }
@@ -1138,10 +1146,6 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t se
   // Check if chip is already erased.
   retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+sector*HFM_SECTOR_SIZE/2,0,&hfm_ustat,1); // blank check
   err_check_propagate(retval);
-  if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
-	retval = ERROR_TARGET_FAILURE;
-	err_check(retval,"pviol and/or accer bits set. EraseVerify HFM command execution error");;
-  }
   if(erased!=NULL)
     *erased = (uint8_t)(hfm_ustat&HFM_USTAT_MASK_BLANK);
   return retval;
