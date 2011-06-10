@@ -1230,6 +1230,9 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Setup registers needed by pgm_write_pflash
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+  context.flush = 0;
+
   retval = eonce_move_long_to_r3(target,address);  // Destination address to r3
   err_check_propagate(retval);
   eonce_load_TX_RX_high_to_r0(target);  // TX/RX reg address to r0
@@ -1256,6 +1259,11 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	retval = ERROR_FAIL;
 	err_check(retval,"Cannot handle odd number of words.");
   }
+
+  context.flush = 1;
+  retval = dsp5680xx_execute_queue();
+  err_check_propagate(retval);
+
   uint32_t drscan_data;
   retval = eonce_tx_upper_data(target,buff16[0],&drscan_data);
   err_check_propagate(retval);
