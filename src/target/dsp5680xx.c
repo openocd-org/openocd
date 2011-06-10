@@ -244,17 +244,6 @@ static int eonce_read_status_reg(struct target * target, uint16_t * data){
   return retval;
 }
 
-static int dsp5680xx_obase_addr(struct target * target, uint32_t * addr){
-  // Finds out the default value of the OBASE register address.
-  int retval;
-  uint32_t data_to_shift_into_dr;// just to make jtag happy
-  retval = eonce_instruction_exec(target,DSP5680XX_ONCE_OBASE,1,0,0,NULL);
-  err_check_propagate(retval);
-  retval = dsp5680xx_drscan(target,(uint8_t *)& data_to_shift_into_dr,(uint8_t *) addr, 8);
-  err_check_propagate(retval);
-  return retval;
-}
-
 static int dsp5680xx_halt(struct target *target){
   int retval;
   uint8_t jtag_status;
@@ -614,24 +603,15 @@ static int eonce_move_value_to_pc(struct target * target, uint32_t value)
 
 static int eonce_load_TX_RX_to_r0(struct target * target)
 {
-  uint32_t obase_addr;
-  int retval = dsp5680xx_obase_addr(target,& obase_addr);
-  err_check_propagate(retval);
-  retval = eonce_move_long_to_r0(target,((MC568013_EONCE_TX_RX_ADDR)+(obase_addr<<16)));
+  int retval;
+  retval = eonce_move_long_to_r0(target,((MC568013_EONCE_TX_RX_ADDR)+(MC568013_EONCE_OBASE_ADDR<<16)));
   return retval;
 }
 
 static int eonce_load_TX_RX_high_to_r0(struct target * target)
 {
-  uint32_t obase_addr;
-  int retval = dsp5680xx_obase_addr(target,& obase_addr);
-  err_check_propagate(retval);
-  if(!(obase_addr && 0xff)){
-	LOG_USER("%s: OBASE address read as 0x%04X instead of 0xFF.",__FUNCTION__,obase_addr);
-	return ERROR_FAIL;
-  }
-  eonce_move_long_to_r0(target,((MC568013_EONCE_TX1_RX1_HIGH_ADDR)+(obase_addr<<16)));
-  err_check_propagate(retval);
+  int retval = 0;
+  retval = eonce_move_long_to_r0(target,((MC568013_EONCE_TX1_RX1_HIGH_ADDR)+(MC568013_EONCE_OBASE_ADDR<<16)));
   return retval;
 }
 
@@ -804,11 +784,11 @@ static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t 
   uint16_t * data_w = (uint16_t *)data;
   uint32_t iter;
 
-  int counter = FLUSH_COUNT_WRITE;
+  int counter = FLUSH_COUNT_READ_WRITE;
   for(iter = 0; iter<count/2; iter++){
     if(--counter==0){
       context.flush = 1;
-      counter = FLUSH_COUNT_WRITE;
+      counter = FLUSH_COUNT_READ_WRITE;
     }
     retval = dsp5680xx_write_16_single(target,address+iter,data_w[iter], pmem);
     if(retval != ERROR_OK){
@@ -843,14 +823,12 @@ static int dsp5680xx_write_16(struct target * target, uint32_t address, uint32_t
 	err_check(retval,"Target must be halted.");
   };
   uint32_t iter;
-
-  int counter_reset = FLUSH_COUNT_WRITE;
-  int counter = counter_reset;
+  int counter = FLUSH_COUNT_READ_WRITE;
 
   for(iter = 0; iter<count; iter++){
 	if(--counter==0){
 	  context.flush = 1;
-	  counter = counter_reset;
+      counter = FLUSH_COUNT_READ_WRITE;
 	}
     retval = dsp5680xx_write_16_single(target,address+iter,data[iter], pmem);
     if(retval != ERROR_OK){
@@ -871,14 +849,12 @@ static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t
 	err_check(retval,"Target must be halted.");
   };
   uint32_t iter;
-
-  int counter_reset = FLUSH_COUNT_WRITE;
-  int counter = counter_reset;
+  int counter = FLUSH_COUNT_READ_WRITE;
 
   for(iter = 0; iter<count; iter++){
 	if(--counter==0){
 	  context.flush = 1;
-	  counter = counter_reset;
+      counter = FLUSH_COUNT_READ_WRITE;
 	}
     retval = dsp5680xx_write_32_single(target,address+(iter<<1),data[iter], pmem);
     if(retval != ERROR_OK){
@@ -1026,29 +1002,19 @@ static int dsp5680xx_soft_reset_halt(struct target *target){
   return retval;
 }
 
-int dsp5680xx_f_protect_check(struct target * target, uint8_t * protected) {
-  uint16_t i,j;
+int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected) {
+  uint16_t aux;
   int retval;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = dsp5680xx_halt(target);
 	err_check_propagate(retval);
   }
-  retval = eonce_load_TX_RX_high_to_r0(target);
+  if(protected == NULL){
+    err_check(ERROR_FAIL,"NULL pointer not valid.");
+  }
+  retval = dsp5680xx_read_16_single(target,HFM_BASE_ADDR|HFM_PROT,&aux,0);
   err_check_propagate(retval);
-  retval = eonce_move_value_to_y0(target,0x1234);
-  err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0(target);
-  err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,&i);
-  err_check_propagate(retval);
-  retval = eonce_move_value_to_y0(target,0x4321);
-  err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0(target);
-  err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,&j);
-  err_check_propagate(retval);
-  if(protected!=NULL)
-    *protected = (uint8_t) ((i!=0x1234)||(j!=0x4321));
+  *protected = aux;
   return retval;
 }
 
@@ -1171,32 +1137,15 @@ static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint3
   return retval;
 }
 
-int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased){
+int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t sector){
   int retval;
   uint16_t hfm_ustat;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = dsp5680xx_halt(target);
     err_check_propagate(retval);
   }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // Check security
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  uint8_t protected;
-  retval = dsp5680xx_f_protect_check(target,&protected);
-  err_check_propagate(retval);
-  if(protected){
-	retval = ERROR_TARGET_FAILURE;
-	err_check(retval,"Failed to erase, flash is still protected.");
-  }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // Set hfmdiv
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  retval = eonce_set_hfmdiv(target);
-  err_check_propagate(retval);
-
   // Check if chip is already erased.
-  // Since only mass erase is currently implemented, only the first sector is checked (assuming no code will leave it unused)
-  retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+0*HFM_SECTOR_SIZE,0,&hfm_ustat,1); // blank check
+  retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+sector*HFM_SECTOR_SIZE/2,0,&hfm_ustat,1); // blank check
   err_check_propagate(retval);
   if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
 	retval = ERROR_TARGET_FAILURE;
@@ -1206,17 +1155,25 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased){
     *erased = (uint8_t)(hfm_ustat&HFM_USTAT_MASK_BLANK);
   return retval;
 }
+  
+static int erase_sector(struct target * target, int sector, uint16_t * hfm_ustat){
+  int retval;
+  retval = dsp5680xx_f_execute_command(target,HFM_PAGE_ERASE,HFM_FLASH_BASE_ADDR+sector*HFM_SECTOR_SIZE/2,0,hfm_ustat,1);
+  err_check_propagate(retval);
+  return retval;
+}
+ 
+static int mass_erase(struct target * target, uint16_t * hfm_ustat){
+  int retval;
+  retval = dsp5680xx_f_execute_command(target,HFM_MASS_ERASE,0,0,hfm_ustat,1);
+  return retval;
+}
 
 int dsp5680xx_f_erase(struct target * target, int first, int last){
-  //TODO implement erasing individual sectors.
   int retval;
-  if(first||last){
-	retval = ERROR_FAIL;
-	err_check(retval,"Sector erasing not implemented. Call with first=last=0.");
-  }
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = dsp5680xx_halt(target);
-	err_check_propagate(retval);
+    err_check_propagate(retval);
   }
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Reset SIM
@@ -1224,49 +1181,25 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
   retval = dsp5680xx_f_SIM_reset(target);
   err_check_propagate(retval);
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // Check security
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  uint8_t protected;
-  retval = dsp5680xx_f_protect_check(target,&protected);
-  err_check_propagate(retval);
-  if(protected){
-	retval = ERROR_TARGET_FAILURE;
-	err_check(retval,"Cannot flash, security is still enabled.");
-  }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   retval = eonce_set_hfmdiv(target);
   err_check_propagate(retval);
 
-  // Check if chip is already erased.
-  // Since only mass erase is currently implemented, only the first sector is checked (assuming no code will leave it unused)
-  uint8_t erased;
-  retval = dsp5680xx_f_erase_check(target,&erased);
-  err_check_propagate(retval);
-  if (erased)
-    LOG_USER("Flash blank - mass erase skipped.");
-  else{
-    // Execute mass erase command.
-	uint16_t hfm_ustat;
-	uint16_t hfm_cmd = HFM_MASS_ERASE;
-	retval = dsp5680xx_f_execute_command(target,hfm_cmd,HFM_FLASH_BASE_ADDR+0*HFM_SECTOR_SIZE,0,&hfm_ustat,1);
+  uint16_t hfm_ustat;
+  int do_mass_erase = ((!(first|last)) || ((first==0)&&(last == (HFM_SECTOR_COUNT-1))));
+  if(do_mass_erase){
+    //Mass erase
+    retval = mass_erase(target,&hfm_ustat);
+    err_check_propagate(retval);
+    last = HFM_SECTOR_COUNT-1;
+  }else{
+    for(int i = first;i<=last;i++){
+      retval = erase_sector(target,i,&hfm_ustat);
 	err_check_propagate(retval);
-    if (hfm_ustat&HFM_USTAT_MASK_PVIOL_ACCER){
-	  retval = ERROR_TARGET_FAILURE;
-	  err_check(retval,"pviol and/or accer bits set. HFM command execution error");
-    }
-    // Verify flash was successfully erased.
-    retval = dsp5680xx_f_erase_check(target,&erased);
-	err_check_propagate(retval);
-	if(retval == ERROR_OK){
-      if (erased)
-		LOG_USER("Flash mass erased and checked blank.");
-      else
-		LOG_WARNING("Flash mass erased, but still not blank!");
-    }
   }
-  return retval;
+  }
+  return ERROR_OK;
 }
 
 // Algorithm for programming normal p: flash
@@ -1317,16 +1250,6 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	err_check_propagate(retval);
   }
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // Check if flash is erased
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  uint8_t erased;
-  retval = dsp5680xx_f_erase_check(target,&erased);
-  err_check_propagate(retval);
-  if(!erased){
-	retval = ERROR_FAIL;
-	err_check(retval,"Flash must be erased before flashing.");
-  }
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Download the pgm that flashes.
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint32_t my_favourite_ram_address = 0x8700; // This seems to be a safe address. This one is the one used by codewarrior in 56801x_flash.cfg
@@ -1375,14 +1298,13 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   retval = dsp5680xx_resume(target,0,my_favourite_ram_address,0,0);
   err_check_propagate(retval);
 
-  int counter_reset = FLUSH_COUNT_FLASH;
-  int counter = counter_reset;
+  int counter = FLUSH_COUNT_FLASH;
   context.flush = 0;
   uint32_t i;
-  for(i=1; (i<count/2)&&(i<HFM_SIZE_REAL); i++){
+  for(i=1; (i<count/2)&&(i<HFM_SIZE_WORDS); i++){
     if(--counter==0){
       context.flush = 1;
-      counter = counter_reset;
+      counter = FLUSH_COUNT_FLASH;
     }
     retval = eonce_tx_upper_data(target,buff16[i],&drscan_data);
 	if(retval!=ERROR_OK){

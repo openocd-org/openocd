@@ -41,17 +41,13 @@ struct dsp5680xx_flash_bank {
 };
 
 static int dsp5680xx_build_sector_list(struct flash_bank *bank){
-  //LOG_USER("%s not implemented",__FUNCTION__);
-  //return ERROR_OK;
-
-  // sector size is 512
-  // bank->num_sectors = bank->size / 512; // Bank size is actually 0x2000, but it is set much higher as part of the workaround for byte/word addressing issues.
+  uint32_t offset = HFM_FLASH_BASE_ADDR;
   bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
   int i;
   for (i = 0; i < bank->num_sectors; ++i){
-    bank->sectors[i].offset = 0;// not implemented.
+    bank->sectors[i].offset = i*HFM_SECTOR_SIZE;
     bank->sectors[i].size = HFM_SECTOR_SIZE;
-    //offset += bank->sectors[i].size;
+    offset += bank->sectors[i].size;
     bank->sectors[i].is_erased = -1;
     bank->sectors[i].is_protected = -1;
   }
@@ -67,9 +63,9 @@ FLASH_BANK_COMMAND_HANDLER(dsp5680xx_flash_bank_command){
   nbank = malloc(sizeof(struct dsp5680xx_flash_bank));
 
   bank->base = HFM_FLASH_BASE_ADDR;
-  bank->size = HFM_SIZE; // top 4k not accessible
+  bank->size = HFM_SIZE_BYTES; // top 4k not accessible
   bank->driver_priv = nbank;
-  bank->num_sectors = HFM_SECTOR_COUNT;// This number is anything >0. not really used.
+  bank->num_sectors = HFM_SECTOR_COUNT;
   dsp5680xx_build_sector_list(bank);
 
   return ERROR_OK;
@@ -77,30 +73,40 @@ FLASH_BANK_COMMAND_HANDLER(dsp5680xx_flash_bank_command){
 
 static int dsp5680xx_flash_protect_check(struct flash_bank *bank){
   int retval = ERROR_OK;
-  uint8_t protected = 0; 
-  if(bank->sectors[0].is_protected == -1){
+  uint16_t protected = 0;
     retval = dsp5680xx_f_protect_check(bank->target,&protected);
-    if(retval == ERROR_OK)
-      if(protected)
-	bank->sectors[0].is_protected = 1;
-      else
-	bank->sectors[0].is_protected = 0;
-    else
-      bank->sectors[0].is_protected = -1;
+  if(retval != ERROR_OK){
+    for(int i = 0;i<HFM_SECTOR_COUNT;i++)
+      bank->sectors[i].is_protected = -1;
+    return ERROR_OK;
+  }
+  for(int i = 0;i<HFM_SECTOR_COUNT/2;i++){
+    if(protected & 1){
+      bank->sectors[2*i].is_protected = 1;
+      bank->sectors[2*i+1].is_protected = 1;
+    }else{
+      bank->sectors[2*i].is_protected = 0;
+      bank->sectors[2*i+1].is_protected = 0;
+    }
+    protected = (protected >> 1);
   }
   return retval;
 }
 
 static int dsp5680xx_flash_protect(struct flash_bank *bank, int set, int first, int last){
+  // This applies security to flash module after next reset, it does not actually apply protection (protection refers to undesired access from the core)
   int retval;
   if(set){
     retval = dsp5680xx_f_lock(bank->target);
-    if(retval == ERROR_OK)
-      bank->sectors[0].is_protected = 1;
+    if(retval == ERROR_OK){
+      for(int i = first;i<last;i++)
+	bank->sectors[i].is_protected = 1;
+    }
   }else{    
     retval = dsp5680xx_f_unlock(bank->target);
     if(retval == ERROR_OK)
-      bank->sectors[0].is_protected = 0;
+      for(int i = first;i<last;i++)
+	bank->sectors[i].is_protected = 0;
   }
   return retval;
 }
@@ -167,24 +173,30 @@ static int dsp5680xx_flash_erase(struct flash_bank * bank, int first, int last){
   int retval;
   retval = dsp5680xx_f_erase(bank->target, (uint32_t) first, (uint32_t) last);
   if(retval == ERROR_OK)
-    bank->sectors[0].is_erased = 1;
+    for(int i = first;i<=last;i++)
+      bank->sectors[i].is_erased = 1;
   else
-    bank->sectors[0].is_erased = -1;
+	// If an error occurred unknown status is set even though some sector could have been correctly erased.
+    for(int i = first;i<=last;i++)
+      bank->sectors[i].is_erased = -1;
   return retval;
 }
 
 static int dsp5680xx_flash_erase_check(struct flash_bank * bank){
   int retval = ERROR_OK;
   uint8_t erased = 0;
-  if(bank->sectors[0].is_erased == -1){
-    retval = dsp5680xx_f_erase_check(bank->target,&erased);
+  uint32_t i;
+  for(i=0;i<HFM_SECTOR_COUNT;i++){
+    if(bank->sectors[i].is_erased == -1){
+      retval = dsp5680xx_f_erase_check(bank->target,&erased,i);
     if (retval != ERROR_OK){
-      bank->sectors[0].is_erased = -1;
+	bank->sectors[i].is_erased = -1;
     }else{
       if(erased)
-	bank->sectors[0].is_erased = 1;
+	bank->sectors[i].is_erased = 1;
       else
-	bank->sectors[0].is_erased = 0;
+	bank->sectors[i].is_erased = 0;
+      }
     }
   }
   return retval;

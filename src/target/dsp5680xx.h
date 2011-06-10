@@ -124,8 +124,8 @@
 #define DSP5680XX_ONCE_OPABDR   0x13 /* OnCE Program Address Register—Decode cycle (OPABDR) */
 //----------------------------------------------------------------
 
-#define FLUSH_COUNT_WRITE 4095 // This value works, higher values (and lower...) may work as well.
-#define FLUSH_COUNT_FLASH 7 // Waiting for longer queues will cause flashing errors.
+#define FLUSH_COUNT_READ_WRITE 8192 // This value works, higher values (and lower...) may work as well.
+#define FLUSH_COUNT_FLASH 8192
 //----------------------------------------------------------------
 // HFM (flash module) Commands (ref:MC56F801xRM.pdf@159)
 //----------------------------------------------------------------
@@ -160,12 +160,13 @@
 #define HFM_USTAT_MASK_BLANK 0x4
 #define HFM_USTAT_MASK_PVIOL_ACCER 0x30
 
-#define HFM_CLK_DEFAULT	0x29
+#define HFM_CLK_DEFAULT	0x40
 #define HFM_FLASH_BASE_ADDR 0x0
-#define HFM_SIZE 0x8000 // This is not true for 56F8013, but it is necessary to get the byte/word addressing workaround to actually work.
-#define HFM_SIZE_REAL 0x2000
-#define HFM_SECTOR_SIZE 0x8000 // 512 bytes pages.
-#define HFM_SECTOR_COUNT 1
+#define HFM_SIZE_BYTES 0x4000 // bytes
+#define HFM_SIZE_WORDS 0x2000 // words
+#define HFM_SECTOR_SIZE 0x200 // Size in bytes
+#define HFM_SECTOR_COUNT 0x20
+// A 16K block in pages of 256 words.
 
 #define HFM_LOCK_FLASH 0xE70A
 #define HFM_LOCK_ADDR_L 0x1FF7
@@ -204,9 +205,9 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target
 
 int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count);
 
-int dsp5680xx_f_erase_check(struct target * target,uint8_t * erased);
+int dsp5680xx_f_erase_check(struct target * target,uint8_t * erased, uint32_t sector);
 int dsp5680xx_f_erase(struct target * target, int first, int last);
-int dsp5680xx_f_protect_check(struct target * target, uint8_t * protected);
+int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected);
 int dsp5680xx_f_lock(struct target * target);
 int dsp5680xx_f_unlock(struct target * target);
 
