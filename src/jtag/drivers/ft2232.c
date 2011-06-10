@@ -177,6 +177,7 @@ static int lm3s811_jtag_init(void);
 static int icdi_jtag_init(void);
 static int olimex_jtag_init(void);
 static int flyswatter_init(void);
+static int minimodule_init(void);
 static int turtle_init(void);
 static int comstick_init(void);
 static int stm32stick_init(void);
@@ -197,6 +198,7 @@ static void ftx23_reset(int trst, int srst);
 static void jtagkey_reset(int trst, int srst);
 static void olimex_jtag_reset(int trst, int srst);
 static void flyswatter_reset(int trst, int srst);
+static void minimodule_reset(int trst, int srst);
 static void turtle_reset(int trst, int srst);
 static void comstick_reset(int trst, int srst);
 static void stm32stick_reset(int trst, int srst);
@@ -260,6 +262,10 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.init = flyswatter_init,
 		.reset = flyswatter_reset,
 		.blink = flyswatter_jtag_blink
+	},
+	{ .name = "minimodule",
+		.init = minimodule_init,
+		.reset = minimodule_reset,
 	},
 	{ .name = "turtelizer2",
 		.init = turtle_init,
@@ -1556,6 +1562,24 @@ static void flyswatter_reset(int trst, int srst)
 	else if (srst == 0)
 	{
 		low_output &= ~nSRST;
+	}
+
+	/* command "set data bits low byte" */
+	buffer_write(0x80);
+	buffer_write(low_output);
+	buffer_write(low_direction);
+	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+}
+
+static void minimodule_reset(int trst, int srst)
+{
+	if (srst == 1)
+	{
+		low_output &= ~nSRST;
+	}
+	else if (srst == 0)
+	{
+		low_output |= nSRST;
 	}
 
 	/* command "set data bits low byte" */
@@ -2894,6 +2918,37 @@ static int flyswatter_init(void)
 	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static int minimodule_init(void)
+{
+	low_output    = 0x18;//check if srst should be 1 or 0 initially. (0x08) (flyswatter was 0x18)
+	low_direction = 0xfb;//0xfb;
+
+	/* initialize low byte for jtag */
+	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'minimodule' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	
+
+	nSRST    = 0x20;
+
+	high_output    = 0x00;
+	high_direction = 0x05;
+
+	/* turn red LED3 on, LED2 off */
+	//high_output |= 0x08;
+
+	/* initialize high byte for jtag */
+	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'minimodule' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
