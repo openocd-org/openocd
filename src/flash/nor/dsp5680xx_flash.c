@@ -3,7 +3,7 @@
  *   rodrigorosa.LG@gmail.com                                              *
  *                                                                         *
  *   Based on a file written by:                                           *
- *   Kevin McGuire                                                         * 
+ *   Kevin McGuire                                                         *
  *   Marcel Wijlaars                                                       *
  *   Michael Ashton                                                        *
  *                                                                         *
@@ -102,7 +102,7 @@ static int dsp5680xx_flash_protect(struct flash_bank *bank, int set, int first, 
       for(int i = first;i<last;i++)
 	bank->sectors[i].is_protected = 1;
     }
-  }else{    
+  }else{
     retval = dsp5680xx_f_unlock(bank->target);
     if(retval == ERROR_OK)
       for(int i = first;i<last;i++)

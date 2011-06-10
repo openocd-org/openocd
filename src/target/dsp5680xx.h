@@ -114,13 +114,13 @@
 #define DSP5680XX_ONCE_OPDBR    0x08 /* EOnCE Program Data Bus Register (OPDBR) */
 #define DSP5680XX_ONCE_OTX1     0x09 /* EOnCE Upper Transmit register (OTX1) */
 #define DSP5680XX_ONCE_OPABFR   0x0A /* OnCE Program Address Register—Fetch cycle */
-#define DSP5680XX_ONCE_ORX      0x0B /* EOnCE Receive register (ORX) */ 
+#define DSP5680XX_ONCE_ORX      0x0B /* EOnCE Receive register (ORX) */
 #define DSP5680XX_ONCE_OCNTR_C  0x0C /* Clear OCNTR */
 #define DSP5680XX_ONCE_ORX1     0x0D /* EOnCE Upper Receive register (ORX1) */
 #define DSP5680XX_ONCE_OTBCR    0x0E /* EOnCE Trace Buffer Control Reg (OTBCR) */
 #define DSP5680XX_ONCE_OPABER   0x10 /* OnCE Program Address Register—Execute cycle */
 #define DSP5680XX_ONCE_OPFIFO   0x11 /* OnCE Program address FIFO */
-#define DSP5680XX_ONCE_OBAR1    0x12 /* EOnCE Breakpoint 1 Unit 0 Address Reg.(OBAR1) */ 
+#define DSP5680XX_ONCE_OBAR1    0x12 /* EOnCE Breakpoint 1 Unit 0 Address Reg.(OBAR1) */
 #define DSP5680XX_ONCE_OPABDR   0x13 /* OnCE Program Address Register—Decode cycle (OPABDR) */
 //----------------------------------------------------------------
 
@@ -179,7 +179,7 @@
 //----------------------------------------------------------------
 #define MC568013_EONCE_OBASE_ADDR 0xFF
 // The following are relative to EONCE_OBASE_ADDR (EONCE_OBASE_ADDR<<16 + ...)
-#define MC568013_EONCE_TX_RX_ADDR    0xFFFE // 
+#define MC568013_EONCE_TX_RX_ADDR    0xFFFE //
 #define MC568013_EONCE_TX1_RX1_HIGH_ADDR  0xFFFF // Relative to EONCE_OBASE_ADDR
 #define MC568013_EONCE_OCR 0xFFA0 // Relative to EONCE_OBASE_ADDR
 //----------------------------------------------------------------

@@ -2935,7 +2935,7 @@ static int minimodule_init(void)
 		LOG_ERROR("couldn't initialize FT2232 with 'minimodule' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 
 	nSRST    = 0x20;
 

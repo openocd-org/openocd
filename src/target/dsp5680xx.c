@@ -726,11 +726,11 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
 	err_check_propagate(retval);
     context.flush = 0;
   }
-  
+
   context.flush = 1;
   retval = dsp5680xx_execute_queue();
   err_check_propagate(retval);
-  
+
   return retval;
 }
 
@@ -913,7 +913,7 @@ static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint3
     return ERROR_OK;
   }
   // read_buffer is called when the verify_image command is executed.
-  // The "/2" solves the byte/word addressing issue. 
+  // The "/2" solves the byte/word addressing issue.
   return dsp5680xx_read(target,address,2,size/2,buffer);
 }
 
@@ -1120,14 +1120,14 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t se
     *erased = (uint8_t)(hfm_ustat&HFM_USTAT_MASK_BLANK);
   return retval;
 }
-  
+
 static int erase_sector(struct target * target, int sector, uint16_t * hfm_ustat){
   int retval;
   retval = dsp5680xx_f_execute_command(target,HFM_PAGE_ERASE,HFM_FLASH_BASE_ADDR+sector*HFM_SECTOR_SIZE/2,0,hfm_ustat,1);
   err_check_propagate(retval);
   return retval;
 }
- 
+
 static int mass_erase(struct target * target, uint16_t * hfm_ustat){
   int retval;
   retval = dsp5680xx_f_execute_command(target,HFM_MASS_ERASE,0,0,hfm_ustat,1);
