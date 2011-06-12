@@ -34,6 +34,13 @@ while(!done) {
 
 TIP! use "git add ." before commit to add new files.
 
+--- example comment, notice the short first line w/topic ---
+topic: short comment
+<blank line>
+longer comments over several
+lines...
+-----
+
 3. Next you need to make sure that your patches
 are on top of the latest stuff on the server and
 that there are no conflicts.
