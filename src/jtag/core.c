@@ -33,7 +33,7 @@
 
 #include "jtag.h"
 #include "interface.h"
-#include "transport.h"
+#include <transport/transport.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>

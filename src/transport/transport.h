@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 by David Brownell
+ * Copyright (C) 2011 Tomasz Boleslaw CEDRO (http://www.tomek.cedro.info)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +16,9 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+
+#ifndef TRANSPORT_H
+#define TRANSPORT_H
 
 #include "helper/command.h"
 
@@ -78,3 +82,5 @@ COMMAND_HELPER(transport_list_parse, char ***vector);
 int allow_transports(struct command_context *ctx, const char **vector);
 
 bool transports_are_declared(void);
+
+#endif

@@ -50,7 +50,7 @@
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
 
-#include <jtag/transport.h>
+#include <transport/transport.h>
 #include <jtag/interface.h>
 
 #include <jtag/swd.h>

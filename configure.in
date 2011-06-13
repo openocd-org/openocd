@@ -1167,6 +1167,7 @@ AC_OUTPUT(dnl
     src/helper/Makefile dnl
     src/jtag/Makefile dnl
     src/jtag/drivers/Makefile dnl
+    src/transport/Makefile dnl
     src/xsvf/Makefile dnl
     src/svf/Makefile dnl
     src/target/Makefile dnl

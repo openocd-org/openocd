@@ -35,7 +35,7 @@
 #include "minidriver.h"
 #include "interface.h"
 #include "interfaces.h"
-#include "transport.h"
+#include <transport/transport.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>

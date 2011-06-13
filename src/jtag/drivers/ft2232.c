@@ -81,7 +81,7 @@
 
 /* project specific includes */
 #include <jtag/interface.h>
-#include <jtag/transport.h>
+#include <transport/transport.h>
 #include <helper/time_support.h>
 
 #if IS_CYGWIN == 1

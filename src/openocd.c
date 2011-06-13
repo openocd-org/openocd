@@ -31,7 +31,7 @@
 #include "openocd.h"
 #include <jtag/driver.h>
 #include <jtag/jtag.h>
-#include <jtag/transport.h>
+#include <transport/transport.h>
 #include <helper/ioutil.h>
 #include <helper/util.h>
 #include <helper/configuration.h>
