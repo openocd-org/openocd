@@ -47,8 +47,7 @@
  */
 
 extern struct jtag_interface *jtag_interface;
-
-
+const char *jtag_only[] = { "jtag", NULL };
 
 static int
 jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -92,9 +91,6 @@ static int default_srst_asserted(int *srst_asserted)
 	*srst_asserted = 0; /* by default we can't detect srst asserted */
 	return ERROR_OK;
 }
-
-const char *jtag_only[] = { "jtag", NULL, };
-
 
 COMMAND_HANDLER(interface_transport_command)
 {
@@ -169,9 +165,8 @@ COMMAND_HANDLER(handle_interface_command)
 		LOG_WARNING("Adapter driver '%s' did not declare "
 			"which transports it allows; assuming "
 			"legacy JTAG-only", jtag_interface->name);
-		retval = allow_transports(CMD_CTX,
-					jtag_interface->transports
-						? : jtag_only);
+		retval = allow_transports(CMD_CTX, jtag_interface->transports
+						? jtag_interface->transports : jtag_only);
 			if (ERROR_OK != retval)
 				return retval;
 
