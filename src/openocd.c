@@ -301,7 +301,11 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	return cmd_ctx;
 }
 
-static int main2(int argc, char *argv[], struct command_context *cmd_ctx)
+/** OpenOCD runtime meat that can become single-thread in future. It parse
+ * commandline, reads configuration, sets up the target and starts server loop.
+ * Commandline arguments are passed into this function from openocd_main().
+ */
+static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ctx)
 {
 	int ret;
 
@@ -362,7 +366,8 @@ int openocd_main(int argc, char *argv[])
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
-	ret = main2(argc, argv, cmd_ctx);
+	/* Start the executable meat that can evolve into thread in future. */
+	ret = openocd_thread(argc, argv, cmd_ctx);
 
 	unregister_all_commands(cmd_ctx, NULL);
 
