@@ -157,7 +157,12 @@ noinst_HEADERS = \
 	target_request.h \
 	trace.h \
 	xscale.h \
-	xscale_debug.h
+	xscale_debug.h \
+	smp.h \
+	avr32_ap7k.h \
+	avr32_jtag.h \
+	avr32_mem.h \
+	avr32_regs.h
 
 nobase_dist_pkglib_DATA =
 nobase_dist_pkglib_DATA += ecos/at91eb40a.elf

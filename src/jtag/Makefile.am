@@ -66,7 +66,8 @@ noinst_HEADERS = \
 	minidriver.h \
 	jtag.h \
 	minidriver/minidriver_imp.h \
-	minidummy/jtag_minidriver.h
+	minidummy/jtag_minidriver.h \
+	swd.h
 
 EXTRA_DIST = startup.tcl
 
