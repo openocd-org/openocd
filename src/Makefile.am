@@ -130,7 +130,10 @@ startup_tcl.c: startup.tcl $(BIN2C)
 # add startup_tcl.c to make clean list
 CLEANFILES = startup.tcl startup_tcl.c
 
-
+# we do not want generated file in the dist
+dist-hook:
+	rm -f $(distdir)/startup_tcl.c
+	
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 # The "quick" target builds executables & reinstalls the executables
