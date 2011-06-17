@@ -157,7 +157,6 @@ noinst_HEADERS = \
 	target_request.h \
 	trace.h \
 	xscale.h \
-	xscale_debug.h \
 	smp.h \
 	avr32_ap7k.h \
 	avr32_jtag.h \

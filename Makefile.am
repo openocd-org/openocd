@@ -21,8 +21,14 @@ endif
 SUBDIRS += src doc
 
 EXTRA_DIST = \
+	BUGS \
+	HACKING \
+	NEWTAPS \
+	PATCHES.txt \
+	README.Win32 \
 	Doxyfile.in \
-	tools/logger.pl
+	tools/logger.pl \
+	contrib/loaders
 
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
@@ -77,7 +83,6 @@ install-data-hook:
 
 uninstall-hook:
 	rm -rf $(DESTDIR)$(pkgdatadir)/scripts
-
 
 distclean-local:
 	rm -rf Doxyfile doxygen
