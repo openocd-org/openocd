@@ -1,0 +1,34 @@
+This is the OpenULINK firmware for the Keil ULINK JTAG adapter.
+
+The main components of the Keil ULINK adapter are:
+- Cypress EZ-USB microcontroller: enhanced 8051 CPU + USB core (1.1 Full-Speed)
+- SRAM memory chip
+- Level shifters to support different JTAG signal voltage levels
+- Pin headers for various JTAG pin assignments
+
+This firmware can only be run on the ORIGINAL Keil ULINK adapter, not on the
+newer ULINK2, ULINK-ME or ULINK-PRO, as these adapters are based on different
+hardware.
+
+To compile the firmware, the SDCC compiler package is required. Most Linux
+distributions include SDCC in their official package repositories. The SDCC
+source code can be found at http://sdcc.sourceforge.net/
+Simply type "make hex" in the OpenULINK directory to compile the firmware.
+"make clean" will remove all generated files except the Intel HEX file required
+for downloading the firmware to the ULINK adapter.
+
+Note that the EZ-USB microcontroller does not have on-chip flash, nor does the
+Keil ULINK include on-board memory to store the firmware program of the EZ-USB.
+Instead, upon initial connection of the ULINK adapter to the host PC via USB,
+the EZ-USB core has enough intelligence to act as a stand-alone USB device,
+responding to USB control requests and allowing firmware download via a special
+VENDOR-type control request. Then, the EZ-USB microcontroller simulates a
+disconnect and re-connect to the USB bus. It may take up to two seconds for the
+host to recognize the newly connected device before OpenOCD can proceed to
+execute JTAG commands. This delay is only visible when OpenOCD first uses a
+blank (unconfigured) ULINK device.
+
+Once the user disconnects the ULINK adapter, all its memory contents are lost
+and the firmware download process has to be executed again. This also maintains
+compatibility with the original Keil uVision IDE, which will happily download
+its own firmware image to a blank ULINK adapter.
