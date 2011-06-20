@@ -88,6 +88,9 @@ extern struct jtag_interface vsllink_interface;
 #if BUILD_RLINK == 1
 extern struct jtag_interface rlink_interface;
 #endif
+#if BUILD_ULINK == 1
+extern struct jtag_interface ulink_interface;
+#endif
 #if BUILD_ARMJTAGEW == 1
 extern struct jtag_interface armjtagew_interface;
 #endif
@@ -150,6 +153,9 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_RLINK == 1
 		&rlink_interface,
+#endif
+#if BUILD_ULINK == 1
+		&ulink_interface,
 #endif
 #if BUILD_ARMJTAGEW == 1
 		&armjtagew_interface,
