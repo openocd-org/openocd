@@ -5,6 +5,12 @@ noinst_LTLIBRARIES = libocdjtagdrivers.la
 libocdjtagdrivers_la_SOURCES = \
 	$(DRIVERFILES)
 
+nobase_dist_pkglib_DATA =
+
+ULINK_FIRMWARE = $(srcdir)/OpenULINK
+
+EXTRA_DIST = $(ULINK_FIRMWARE)
+
 DRIVERFILES =
 
 # Standard Driver: common files
@@ -55,6 +61,10 @@ DRIVERFILES += jlink.c
 endif
 if RLINK
 DRIVERFILES += rlink.c rlink_speed_table.c
+endif
+if ULINK
+DRIVERFILES += ulink.c
+nobase_dist_pkglib_DATA += $(ULINK_FIRMWARE)/ulink_firmware.hex
 endif
 if VSLLINK
 DRIVERFILES += vsllink.c
