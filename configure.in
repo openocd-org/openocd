@@ -472,6 +472,10 @@ AC_ARG_ENABLE(rlink,
   AS_HELP_STRING([--enable-rlink], [Enable building support for the Raisonance RLink JTAG Programmer]),
   [build_rlink=$enableval], [build_rlink=no])
 
+AC_ARG_ENABLE(ulink,
+  AS_HELP_STRING([--enable-ulink], [Enable building support for the Keil ULINK JTAG Programmer]),
+  [build_ulink=$enableval], [build_ulink=no])
+
 AC_ARG_ENABLE(arm-jtag-ew,
   AS_HELP_STRING([--enable-arm-jtag-ew], [Enable building support for the Olimex ARM-JTAG-EW Programmer]),
   [build_armjtagew=$enableval], [build_armjtagew=no])
@@ -750,6 +754,12 @@ else
   AC_DEFINE(BUILD_RLINK, 0, [0 if you don't want the RLink JTAG driver.])
 fi
 
+if test $build_ulink = yes; then
+  AC_DEFINE(BUILD_ULINK, 1, [1 if you want the ULINK JTAG driver.])
+else
+  AC_DEFINE(BUILD_ULINK, 0, [0 if you don't want the ULINK JTAG driver.])
+fi
+
 if test $build_armjtagew = yes; then
   AC_DEFINE(BUILD_ARMJTAGEW, 1, [1 if you want the ARM-JTAG-EW JTAG driver.])
 else
@@ -1025,7 +1035,7 @@ fi
 # check for usb.h when a driver will require it
 build_usb=no
 if test $build_jlink = yes -o $build_vsllink = yes -o $build_usbprog = yes -o \
-  $build_rlink = yes -o $build_armjtagew = yes
+  $build_rlink = yes -o $build_ulink = yes -o $build_armjtagew = yes
 then
   AC_CHECK_HEADERS([usb.h],[],
   [AC_MSG_ERROR([usb.h is required to build some OpenOCD driver(s)])])
@@ -1056,6 +1066,7 @@ AM_CONDITIONAL(OOCD_TRACE, test $build_oocd_trace = yes)
 AM_CONDITIONAL(JLINK, test $build_jlink = yes)
 AM_CONDITIONAL(VSLLINK, test $build_vsllink = yes)
 AM_CONDITIONAL(RLINK, test $build_rlink = yes)
+AM_CONDITIONAL(ULINK, test $build_ulink = yes)
 AM_CONDITIONAL(ARMJTAGEW, test $build_armjtagew = yes)
 AM_CONDITIONAL(BUSPIRATE, test $build_buspirate = yes)
 AM_CONDITIONAL(USB, test $build_usb = yes)
