@@ -236,6 +236,8 @@ options may be available there:
                           Programmer
   --enable-rlink          Enable building support for the Raisonance RLink
                           JTAG Programmer
+  --enable-ulink          Enable building support for the Keil ULINK JTAG
+                          Programmer
   --enable-usbprog        Enable building support for the usbprog JTAG
                           Programmer
   --enable-vsllink        Enable building support for the Versaloon-Link JTAG
