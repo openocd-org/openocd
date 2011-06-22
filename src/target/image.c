@@ -396,6 +396,7 @@ static int image_elf_read_headers(struct image *image)
 	size_t read_bytes;
 	uint32_t i,j;
 	int retval;
+	uint32_t nload,load_to_vaddr=0;
 
 	elf->header = malloc(sizeof(Elf32_Ehdr));
 
@@ -471,6 +472,26 @@ static int image_elf_read_headers(struct image *image)
 	for (i = 0;i < elf->segment_count;i++)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
+
+	/**
+	 * some ELF linkers produce binaries with *all* the program header
+	 * p_paddr fields zero (there can be however one loadable segment
+	 * that has valid physical address 0x0).
+	 * If we have such a binary with more than
+	 * one PT_LOAD header, then use p_vaddr instead of p_paddr
+	 * (ARM ELF standard demands p_paddr = 0 anyway, and BFD
+	 * library uses this approach to workaround zero-initialized p_paddrs
+	 * when obtaining lma - look at elf.c of BDF)
+	 */
+	for (nload = 0, i = 0; i < elf->segment_count; i++)
+		if (elf->segments[i].p_paddr != 0)
+			break;
+		else if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_memsz) != 0))
+			++nload;
+
+	if (i >= elf->segment_count && nload > 1)
+		load_to_vaddr = 1;
+
 	/* alloc and fill sections array with loadable segments */
 	image->sections = malloc(image->num_sections * sizeof(struct imagesection));
 	for (i = 0,j = 0;i < elf->segment_count;i++)
@@ -478,7 +499,10 @@ static int image_elf_read_headers(struct image *image)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
 			image->sections[j].size = field32(elf,elf->segments[i].p_filesz);
-			image->sections[j].base_address = field32(elf,elf->segments[i].p_paddr);
+			if (load_to_vaddr)
+				image->sections[j].base_address = field32(elf,elf->segments[i].p_vaddr);
+			else
+				image->sections[j].base_address = field32(elf,elf->segments[i].p_paddr);
 			image->sections[j].private = &elf->segments[i];
 			image->sections[j].flags = field32(elf,elf->segments[i].p_flags);
 			j++;
