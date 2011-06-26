@@ -136,7 +136,7 @@ struct ulink_cmd {
   /** Pointer to corresponding OpenOCD command for post-processing */
   struct jtag_command *cmd_origin;
 
-  struct ulink_cmd *next;    ///< Pointer to next command (linked list)
+  struct ulink_cmd *next;     ///< Pointer to next command (linked list)
 };
 
 typedef struct ulink_cmd ulink_cmd_t;
@@ -919,6 +919,7 @@ int ulink_append_scan_cmd(struct ulink *device, enum scan_type scan_type,
   default:
     LOG_ERROR("BUG: ulink_append_scan_cmd() encountered an unknown scan type");
     ret = ERROR_FAIL;
+    break;
   }
 
   if (ret != ERROR_OK) {
@@ -1091,7 +1092,7 @@ int ulink_append_set_signals_cmd(struct ulink *device, uint8_t low,
   cmd->payload_out[0] = low;
   cmd->payload_out[1] = high;
 
-  return ulink_append_queue(device, cmd);;
+  return ulink_append_queue(device, cmd);
 }
 
 /**
@@ -1265,7 +1266,7 @@ int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd)
   /* Determine scan type (IN/OUT/IO) */
   type = jtag_scan_type(cmd->cmd.scan);
 
-  /* Determine number of scan commands */
+  /* Determine number of scan commands with maximum payload */
   scans_max_payload = scan_size_bytes / 58;
 
   /* Determine size of last shift command */
@@ -1322,7 +1323,7 @@ int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd)
     tms_sequence_resume = tap_get_tms_path(TAP_DRPAUSE, TAP_DRSHIFT);
   }
 
-  /* Generate scan commands with full payload */
+  /* Generate scan commands */
   bytecount = scan_size_bytes;
   while (bytecount > 0) {
     if (bytecount == scan_size_bytes) {
@@ -1618,6 +1619,7 @@ int ulink_post_process_queue(struct ulink *device)
         ret = ERROR_FAIL;
         LOG_ERROR("BUG: ulink_post_process_queue() encountered unknown JTAG "
             "command type");
+        break;
       }
 
       if (ret != ERROR_OK) {
@@ -1673,6 +1675,7 @@ static int ulink_execute_queue(void)
     default:
       ret = ERROR_FAIL;
       LOG_ERROR("BUG: encountered unknown JTAG command type");
+      break;
     }
 
     cmd = cmd->next;
