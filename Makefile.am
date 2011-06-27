@@ -86,7 +86,8 @@ uninstall-hook:
 
 distclean-local:
 	rm -rf Doxyfile doxygen
-
+	rm -f $(srcdir)/jimtcl/configure.gnu
+	
 DISTCLEANFILES = doxygen.log
 
 MAINTAINERCLEANFILES = \
