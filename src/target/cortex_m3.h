@@ -140,6 +140,13 @@ enum cortex_m3_soft_reset_config
 	CORTEX_M3_RESET_VECTRESET,
 };
 
+enum cortex_m3_isrmasking_mode
+{
+	CORTEX_M3_ISRMASK_AUTO,
+	CORTEX_M3_ISRMASK_OFF,
+	CORTEX_M3_ISRMASK_ON,
+};
+
 struct cortex_m3_common
 {
 	int common_magic;
@@ -165,6 +172,8 @@ struct cortex_m3_common
 	struct reg_cache *dwt_cache;
 
 	enum cortex_m3_soft_reset_config soft_reset_config;
+
+	enum cortex_m3_isrmasking_mode isrmasking_mode;
 
 	struct armv7m_common armv7m;
 };
