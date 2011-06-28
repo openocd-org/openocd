@@ -877,11 +877,11 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 		switch(size)
 		{
 		case 4:
-			t32 = *(uint32_t*)&buffer[i];
+			t32 = le_to_h_u32(&buffer[i]);
 			target_buffer_set_u32(target,&buffer[i], t32);
 			break;
 		case 2:
-			t16 = *(uint16_t*)&buffer[i];
+			t16 = le_to_h_u16(&buffer[i]);
 			target_buffer_set_u16(target,&buffer[i], t16);
 			break;
 		}
@@ -930,11 +930,11 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 		{
 		case 4:
 			t32 = target_buffer_get_u32(target,&buffer[i]);
-			*(uint32_t*)&t[i] = t32;
+			h_u32_to_le(&t[i], t32);
 			break;
 		case 2:
 			t16 = target_buffer_get_u16(target,&buffer[i]);
-			*(uint16_t*)&t[i] = t16;
+			h_u16_to_le(&t[i], t16);
 			break;
 		}
 	}
@@ -1074,7 +1074,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	for(i = 0; i < (count*4); i += 4)
 	{
 		t32 = target_buffer_get_u32(target,&buffer[i]);
-		*(uint32_t*)&t[i] = t32;
+		h_u32_to_le(&t[i], t32);
 	}
 	
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
