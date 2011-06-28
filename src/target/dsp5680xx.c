@@ -28,6 +28,9 @@
 #include "target_type.h"
 #include "dsp5680xx.h"
 
+struct dsp5680xx_common dsp5680xx_context;
+
+
 #define err_check(retval,err_msg) if(retval != ERROR_OK){LOG_ERROR("%s: %d %s.",__FUNCTION__,__LINE__,err_msg);return retval;}
 #define err_check_propagate(retval) if(retval!=ERROR_OK){return retval;}
 
@@ -62,7 +65,7 @@ static int dsp5680xx_drscan(struct target * target, uint8_t * data_to_shift_into
   //can i send as many bits as i want?
   //is the casting necessary?
   jtag_add_plain_dr_scan(len,data_to_shift_into_dr,data_shifted_out_of_dr, TAP_IDLE);
-  if(context.flush){
+  if(dsp5680xx_context.flush){
 	retval = dsp5680xx_execute_queue();
 	err_check_propagate(retval);
   }
@@ -94,7 +97,7 @@ static int dsp5680xx_irscan(struct target * target, uint32_t * data_to_shift_int
   //can i send as many bits as i want?
   //is the casting necessary?
   jtag_add_plain_ir_scan(ir_len,(uint8_t *)data_to_shift_into_ir,(uint8_t *)data_shifted_out_of_ir, TAP_IDLE);
-  if(context.flush){
+  if(dsp5680xx_context.flush){
     retval = dsp5680xx_execute_queue();
     err_check_propagate(retval);
   }
@@ -505,7 +508,7 @@ static int eonce_pc_store(struct target * target){
   retval = eonce_rx_lower_data(target,(uint16_t *)&tmp);
   err_check_propagate(retval);
   LOG_USER("PC value: 0x%06X\n",tmp);
-  context.stored_pc = (uint32_t)tmp;
+  dsp5680xx_context.stored_pc = (uint32_t)tmp;
   return ERROR_OK;
 }
 
@@ -516,8 +519,8 @@ static int dsp5680xx_target_create(struct target *target, Jim_Interp * interp){
 }
 
 static int dsp5680xx_init_target(struct command_context *cmd_ctx, struct target *target){
-  context.stored_pc = 0;
-  context.flush = 1;
+  dsp5680xx_context.stored_pc = 0;
+  dsp5680xx_context.flush = 1;
   LOG_DEBUG("target initiated!");
   //TODO core tap must be enabled before running these commands, currently this is done in the .cfg tcl script.
   return ERROR_OK;
@@ -739,12 +742,12 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
   retval = dsp5680xx_convert_address(&address, &pmem);
   err_check_propagate(retval);
 
-  context.flush = 0;
+  dsp5680xx_context.flush = 0;
   int counter = FLUSH_COUNT_READ_WRITE;
 
   for (unsigned i=0; i<count; i++){
     if(--counter==0){
-      context.flush = 1;
+      dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_FLASH;
     }
     switch (size){
@@ -766,10 +769,10 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
       break;
     }
 	err_check_propagate(retval);
-    context.flush = 0;
+    dsp5680xx_context.flush = 0;
   }
 
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
   retval = dsp5680xx_execute_queue();
   err_check_propagate(retval);
 
@@ -823,18 +826,18 @@ static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t 
   int counter = FLUSH_COUNT_READ_WRITE;
   for(iter = 0; iter<count/2; iter++){
     if(--counter==0){
-      context.flush = 1;
+      dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_READ_WRITE;
     }
     retval = dsp5680xx_write_16_single(target,address+iter,data_w[iter], pmem);
     if(retval != ERROR_OK){
       LOG_ERROR("%s: Could not write to p:0x%04X",__FUNCTION__,address);
-      context.flush = 1;
+      dsp5680xx_context.flush = 1;
       return retval;
     }
-    context.flush = 0;
+    dsp5680xx_context.flush = 0;
   }
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
 
   // Only one byte left, let's not overwrite the other byte (mem is 16bit)
   // Need to retrieve the part we do not want to overwrite.
@@ -863,18 +866,18 @@ static int dsp5680xx_write_16(struct target * target, uint32_t address, uint32_t
 
   for(iter = 0; iter<count; iter++){
 	if(--counter==0){
-	  context.flush = 1;
+	  dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_READ_WRITE;
 	}
     retval = dsp5680xx_write_16_single(target,address+iter,data[iter], pmem);
     if(retval != ERROR_OK){
       LOG_ERROR("%s: Could not write to p:0x%04X",__FUNCTION__,address);
-	  context.flush = 1;
+	  dsp5680xx_context.flush = 1;
       return retval;
     }
-	context.flush = 0;
+	dsp5680xx_context.flush = 0;
   }
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
   return retval;
 }
 
@@ -889,18 +892,18 @@ static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t
 
   for(iter = 0; iter<count; iter++){
 	if(--counter==0){
-	  context.flush = 1;
+	  dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_READ_WRITE;
 	}
     retval = dsp5680xx_write_32_single(target,address+(iter<<1),data[iter], pmem);
     if(retval != ERROR_OK){
       LOG_ERROR("%s: Could not write to p:0x%04X",__FUNCTION__,address);
-	  context.flush = 1;
+	  dsp5680xx_context.flush = 1;
       return retval;
     }
-	context.flush = 0;
+	dsp5680xx_context.flush = 0;
   }
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
   return retval;
 }
 
@@ -1104,7 +1107,7 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
     }
   }while (!(i&0x40));				// wait until current command is complete
 
-  context.flush = 0;
+  dsp5680xx_context.flush = 0;
 
   retval = eonce_move_value_at_r2_disp(target,0x00,HFM_CNFG);	// write to HFM_CNFG (lock=0, select bank) -- flash_desc.bank&0x03,0x01 == 0x00,0x01 ???
   err_check_propagate(retval);
@@ -1134,7 +1137,7 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
   retval = eonce_move_value_at_r2_disp(target,0x80,HFM_USTAT);		// start the command
   err_check_propagate(retval);
 
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
   retval = dsp5680xx_execute_queue();
   err_check_propagate(retval);
 
@@ -1371,7 +1374,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   // Setup registers needed by pgm_write_pflash
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-  context.flush = 0;
+  dsp5680xx_context.flush = 0;
 
   retval = eonce_move_long_to_r3(target,address);  // Destination address to r3
   err_check_propagate(retval);
@@ -1400,7 +1403,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	err_check(retval,"Cannot handle odd number of words.");
   }
 
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
   retval = dsp5680xx_execute_queue();
   err_check_propagate(retval);
 
@@ -1412,21 +1415,21 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   err_check_propagate(retval);
 
   int counter = FLUSH_COUNT_FLASH;
-  context.flush = 0;
+  dsp5680xx_context.flush = 0;
   uint32_t i;
   for(i=1; (i<count/2)&&(i<HFM_SIZE_WORDS); i++){
     if(--counter==0){
-      context.flush = 1;
+      dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_FLASH;
     }
     retval = eonce_tx_upper_data(target,buff16[i],&drscan_data);
 	if(retval!=ERROR_OK){
-	  context.flush = 1;
+	  dsp5680xx_context.flush = 1;
 	  err_check_propagate(retval);
 	}
-	context.flush = 0;
+	dsp5680xx_context.flush = 0;
   }
-  context.flush = 1;
+  dsp5680xx_context.flush = 1;
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Verify flash
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --

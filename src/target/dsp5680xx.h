@@ -217,7 +217,9 @@ struct dsp5680xx_common{
   //TODO
   uint32_t stored_pc;
   int flush;
-}context;
+};
+
+extern struct dsp5680xx_common dsp5680xx_context;
 
 static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target){
   return target->arch_info;
