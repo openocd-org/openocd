@@ -51,6 +51,11 @@
  * any longer.
  */
 
+/**
+ * Returns the type of a break point required by address location
+ */
+#define BKPT_TYPE_BY_ADDR(addr) ((addr) < 0x20000000 ? BKPT_HARD : BKPT_SOFT)
+
 
 /* forward declarations */
 static int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
@@ -864,10 +869,11 @@ static int cortex_m3_step(struct target *target, int current,
 	if (!current)
 		buf_set_u32(pc->value, 0, 32, address);
 
+	uint32_t pc_value = buf_get_u32(pc->value, 0, 32);
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints) {
-		breakpoint = breakpoint_find(target,
-				buf_get_u32(pc->value, 0, 32));
+		breakpoint = breakpoint_find(target, pc_value);
 		if (breakpoint)
 			cortex_m3_unset_breakpoint(target, breakpoint);
 	}
@@ -1071,7 +1077,7 @@ cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 	if (cortex_m3->auto_bp_type)
 	{
-		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
+		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
 	}
 
 	if (breakpoint->type == BKPT_HARD)
@@ -1191,7 +1197,7 @@ cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 	if (cortex_m3->auto_bp_type)
 	{
-		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
+		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
 #ifdef ARMV7_GDB_HACKS
 		if (breakpoint->length != 2) {
 			/* XXX Hack: Replace all breakpoints with length != 2 with
@@ -1202,16 +1208,18 @@ cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 #endif
 	}
 
-	if ((breakpoint->type == BKPT_HARD) && (breakpoint->address >= 0x20000000))
-	{
-		LOG_INFO("flash patch comparator requested outside code memory region");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
+	if(breakpoint->type != BKPT_TYPE_BY_ADDR(breakpoint->address)) {
+		if (breakpoint->type == BKPT_HARD)
+		{
+			LOG_INFO("flash patch comparator requested outside code memory region");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
 
-	if ((breakpoint->type == BKPT_SOFT) && (breakpoint->address < 0x20000000))
-	{
-		LOG_INFO("soft breakpoint requested in code (flash) memory region");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		if (breakpoint->type == BKPT_SOFT)
+		{
+			LOG_INFO("soft breakpoint requested in code (flash) memory region");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (cortex_m3->fp_code_available < 1))
@@ -1246,7 +1254,7 @@ cortex_m3_remove_breakpoint(struct target *target, struct breakpoint *breakpoint
 
 	if (cortex_m3->auto_bp_type)
 	{
-		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
+		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
 	}
 
 	if (breakpoint->set)
