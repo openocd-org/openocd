@@ -33,8 +33,10 @@ libtarget_la_SOURCES = \
 	$(MIPS32_SRC) \
 	avrt.c \
 	dsp563xx.c \
-	dsp563xx_once.c \
-	dsp5680xx.c
+	dsp563xx_once.c
+	
+# This file generates warnings, disabled for now, see also target.c
+#	dsp5680xx.c
 
 TARGET_CORE_SRC = \
 	algorithm.c \

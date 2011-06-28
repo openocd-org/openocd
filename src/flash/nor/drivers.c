@@ -43,7 +43,7 @@ extern struct flash_driver faux_flash;
 extern struct flash_driver virtual_flash;
 extern struct flash_driver stmsmi_flash;
 extern struct flash_driver em357_flash;
-extern struct flash_driver dsp5680xx_flash;
+//extern struct flash_driver dsp5680xx_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -72,7 +72,8 @@ static struct flash_driver *flash_drivers[] = {
 	&virtual_flash,
 	&stmsmi_flash,
 	&em357_flash,
-	&dsp5680xx_flash,
+	// Disabled for now, it generates warnings
+	//&dsp5680xx_flash,
 	NULL,
 };
 
