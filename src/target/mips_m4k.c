@@ -616,6 +616,14 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 			{
 				return retval;
 			}
+
+			/**
+			 * target_read_memory() gets us data in _target_ endianess.
+			 * If we want to use this data on the host for comparisons with some macros
+			 * we must first transform it to _host_ endianess using target_buffer_get_u32().
+			 */
+			current_instr = target_buffer_get_u32(target, (uint8_t *)&current_instr);
+
 			if (current_instr == MIPS32_SDBBP)
 			{
 				if ((retval = target_write_memory(target, breakpoint->address, 4, 1,
