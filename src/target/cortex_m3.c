@@ -39,6 +39,7 @@
 #include "register.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
+#include <helper/time_support.h>
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
@@ -858,6 +859,8 @@ static int cortex_m3_step(struct target *target, int current,
 	struct breakpoint *breakpoint = NULL;
 	struct reg *pc = armv7m->arm.pc;
 	bool bkpt_inst_found = false;
+	int retval;
+	bool isr_timed_out = false;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -891,11 +894,79 @@ static int cortex_m3_step(struct target *target, int current,
 	 * instruction - as such simulate a step */
 	if (bkpt_inst_found == false)
 	{
-		/* set step and clear halt */
-		cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+		/* Automatic ISR masking mode off: Just step over the next instruction */
+		if ((cortex_m3->isrmasking_mode != CORTEX_M3_ISRMASK_AUTO))
+		{
+			cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+		}
+		else
+		{
+			/* Process interrupts during stepping in a way they don't interfere
+			 * debugging.
+			 *
+			 * Principle:
+			 *
+			 * Set a temporary break point at the current pc and let the core run
+			 * with interrupts enabled. Pending interrupts get served and we run
+			 * into the breakpoint again afterwards. Then we step over the next
+			 * instruction with interrupts disabled.
+			 *
+			 * If the pending interrupts don't complete within time, we leave the
+			 * core running. This may happen if the interrupts trigger faster
+			 * than the core can process them or the handler doesn't return.
+			 *
+			 * If no more breakpoints are available we simply do a step with
+			 * interrupts enabled.
+			 *
+			 */
+
+			/* Set a temporary break point */
+			retval = breakpoint_add(target, pc_value , 2, BKPT_TYPE_BY_ADDR(pc_value));
+			bool tmp_bp_set = (retval == ERROR_OK);
+
+			/* No more breakpoints left, just do a step */
+			if (!tmp_bp_set)
+			{
+				cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+			}
+			else
+			{
+				/* Start the core */
+				LOG_DEBUG("Starting core to serve pending interrupts");
+				int64_t t_start = timeval_ms();
+				cortex_m3_write_debug_halt_mask(target, 0, C_HALT | C_STEP);
+
+				/* Wait for pending handlers to complete or timeout */
+				do {
+					retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+					if (retval != ERROR_OK)
+					{
+						target->state = TARGET_UNKNOWN;
+						return retval;
+					}
+					isr_timed_out = ((timeval_ms() - t_start) > 500);
+				} while (!((cortex_m3->dcb_dhcsr & S_HALT) || isr_timed_out));
+
+				/* Remove the temporary breakpoint */
+				breakpoint_remove(target, pc_value);
+
+				if (isr_timed_out)
+				{
+					LOG_DEBUG("Interrupt handlers didn't complete within time, "
+							"leaving target running");
+				}
+				else
+				{
+					/* Step over next instruction with interrupts disabled */
+					cortex_m3_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
+					cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+					/* Re-enable interrupts */
+					cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+				}
+			}
+		}
 	}
 
-	int retval;
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -905,6 +976,13 @@ static int cortex_m3_step(struct target *target, int current,
 
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
+
+	if (isr_timed_out) {
+		/* Leave the core running. The user has to stop execution manually. */
+		target->debug_reason = DBG_REASON_NOTHALTED;
+		target->state = TARGET_RUNNING;
+		return ERROR_OK;
+	}
 
 	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32
 			" nvic_icsr = 0x%" PRIx32,
@@ -2104,6 +2182,15 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	int retval;
 
+	static const Jim_Nvp nvp_maskisr_modes[] = {
+		{ .name = "auto", .value = CORTEX_M3_ISRMASK_AUTO },
+		{ .name = "off" , .value = CORTEX_M3_ISRMASK_OFF },
+		{ .name = "on"  , .value = CORTEX_M3_ISRMASK_ON },
+		{ .name = NULL  , .value = -1 },
+	};
+	const Jim_Nvp *n;
+
+
 	retval = cortex_m3_verify_pointer(CMD_CTX, cortex_m3);
 	if (retval != ERROR_OK)
 		return retval;
@@ -2116,15 +2203,26 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 
 	if (CMD_ARGC > 0)
 	{
-		bool enable;
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
-		uint32_t mask_on = C_HALT | (enable ? C_MASKINTS : 0);
-		uint32_t mask_off = enable ? 0 : C_MASKINTS;
-		cortex_m3_write_debug_halt_mask(target, mask_on, mask_off);
+		n = Jim_Nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
+		if (n->name == NULL)
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		cortex_m3->isrmasking_mode = n->value;
+
+
+		if(cortex_m3->isrmasking_mode == CORTEX_M3_ISRMASK_ON)
+		{
+			cortex_m3_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
+		}
+		else
+		{
+			cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+		}
 	}
 
-	command_print(CMD_CTX, "cortex_m3 interrupt mask %s",
-			(cortex_m3->dcb_dhcsr & C_MASKINTS) ? "on" : "off");
+	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, cortex_m3->isrmasking_mode);
+	command_print(CMD_CTX, "cortex_m3 interrupt mask %s", n->name);
 
 	return ERROR_OK;
 }
@@ -2174,7 +2272,7 @@ static const struct command_registration cortex_m3_exec_command_handlers[] = {
 		.handler = handle_cortex_m3_mask_interrupts_command,
 		.mode = COMMAND_EXEC,
 		.help = "mask cortex_m3 interrupts",
-		.usage = "['on'|'off']",
+		.usage = "['auto'|'on'|'off']",
 	},
 	{
 		.name = "vector_catch",
