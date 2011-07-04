@@ -62,8 +62,7 @@
 /** Delay (in microseconds) to wait while EZ-USB performs ReNumeration. */
 #define ULINK_RENUMERATION_DELAY 1500000
 
-/** Location of OpenULINK firmware image. TODO: Provide some way of modifying
- *  this path, maybe in a separate OpenOCD command? */
+/** Default location of OpenULINK firmware image. */
 #define ULINK_FIRMWARE_FILE      PKGLIBDIR "/OpenULINK/ulink_firmware.hex"
 
 /** Maximum size of a single firmware section. Entire EZ-USB code space = 8kB */
@@ -378,8 +377,9 @@ int ulink_load_firmware(struct ulink *device, char *filename)
   ulink_firmware_image.base_address = 0;
   ulink_firmware_image.base_address_set = 0;
 
-  ret = image_open(&ulink_firmware_image, ULINK_FIRMWARE_FILE, "ihex");
+  ret = image_open(&ulink_firmware_image, filename, "ihex");
   if (ret != ERROR_OK) {
+    LOG_ERROR("Could not load firmware image");
     return ret;
   }
 
@@ -1881,10 +1881,44 @@ static int ulink_quit(void)
   return ret;
 }
 
+/**
+ * Set a custom path to ULINK firmware image and force downloading to ULINK.
+ */
+COMMAND_HANDLER(ulink_download_firmware_handler)
+{
+  int ret;
+
+  if (CMD_ARGC != 1) {
+    LOG_ERROR("Need exactly one argument to ulink_download_firmware");
+    return ERROR_FAIL;
+  }
+
+  LOG_INFO("Downloading ULINK firmware image %s", CMD_ARGV[0]);
+
+  /* Download firmware image in CMD_ARGV[0] */
+  ret = ulink_load_firmware_and_renumerate(&ulink_handle, (char *)CMD_ARGV[0],
+      ULINK_RENUMERATION_DELAY);
+
+  return ret;
+}
+
 /*************************** Command Registration **************************/
+
+static const struct command_registration ulink_command_handlers[] = {
+  {
+    .name = "ulink_download_firmware",
+    .handler = &ulink_download_firmware_handler,
+    .mode = COMMAND_EXEC,
+    .help = "download firmware image to ULINK device",
+    .usage = "path/to/ulink_firmware.hex",
+  },
+  COMMAND_REGISTRATION_DONE,
+};
 
 struct jtag_interface ulink_interface = {
   .name = "ulink",
+
+  .commands = ulink_command_handlers,
   .transports = jtag_only,
 
   .execute_queue = ulink_execute_queue,
