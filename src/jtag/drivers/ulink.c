@@ -211,6 +211,7 @@ int ulink_queue_runtest(struct ulink *device, struct jtag_command *cmd);
 int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd);
 int ulink_queue_pathmove(struct ulink *device, struct jtag_command *cmd);
 int ulink_queue_sleep(struct ulink *device, struct jtag_command *cmd);
+int ulink_queue_stableclocks(struct ulink *device, struct jtag_command *cmd);
 
 int ulink_post_process_scan(ulink_cmd_t *ulink_cmd);
 int ulink_post_process_queue(struct ulink *device);
@@ -1552,6 +1553,55 @@ int ulink_queue_sleep(struct ulink *device, struct jtag_command *cmd)
 }
 
 /**
+ * Generate TCK cycles while remaining in a stable state.
+ *
+ * @param device pointer to struct ulink identifying ULINK driver instance.
+ * @param cmd pointer to the command that shall be executed.
+ */
+int ulink_queue_stableclocks(struct ulink *device, struct jtag_command *cmd)
+{
+  int ret;
+  unsigned num_cycles;
+
+  if (!tap_is_state_stable(tap_get_state())) {
+    LOG_ERROR("JTAG_STABLECLOCKS: state not stable");
+    return ERROR_FAIL;
+  }
+
+  num_cycles = cmd->cmd.stableclocks->num_cycles;
+
+  /* TMS stays either high (Test Logic Reset state) or low (all other states) */
+  if (tap_get_state() == TAP_RESET) {
+    ret = ulink_append_set_signals_cmd(device, 0, SIGNAL_TMS);
+  }
+  else {
+    ret = ulink_append_set_signals_cmd(device, SIGNAL_TMS, 0);
+  }
+
+  if (ret != ERROR_OK) {
+    return ret;
+  }
+
+  while (num_cycles > 0) {
+    if (num_cycles > 0xFFFF) {
+      /* OpenULINK CMD_CLOCK_TCK can generate up to 0xFFFF (uint16_t) cycles */
+      ret = ulink_append_clock_tck_cmd(device, 0xFFFF);
+      num_cycles -= 0xFFFF;
+    }
+    else {
+      ret = ulink_append_clock_tck_cmd(device, num_cycles);
+      num_cycles = 0;
+    }
+
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+  }
+
+  return ERROR_OK;
+}
+
+/**
  * Post-process JTAG_SCAN command
  *
  * @param ulink_cmd pointer to OpenULINK command that shall be processed.
@@ -1612,6 +1662,7 @@ int ulink_post_process_queue(struct ulink *device)
       case JTAG_RESET:
       case JTAG_PATHMOVE:
       case JTAG_SLEEP:
+      case JTAG_STABLECLOCKS:
         /* Nothing to do for these commands */
         ret = ERROR_OK;
         break;
@@ -1671,6 +1722,9 @@ static int ulink_execute_queue(void)
       break;
     case JTAG_SLEEP:
       ret = ulink_queue_sleep(ulink_handle, cmd);
+      break;
+    case JTAG_STABLECLOCKS:
+      ret = ulink_queue_stableclocks(ulink_handle, cmd);
       break;
     default:
       ret = ERROR_FAIL;
