@@ -75,7 +75,7 @@
  * offset 1: tms_count                                                      *
  * offset 2: tms_sequence                                                   *
  ****************************************************************************
- * CMD_CLOCK_TCK:                                                           *
+ * CMD_CLOCK_TCK, CMD_SLOW_CLOCK_TCK:                                       *
  *                                                                          *
  * OUT:                                                                     *
  * offset 1: low byte of tck_count                                          *
@@ -108,9 +108,11 @@
  * CMD_CONFIGURE_TCK_FREQ:                                                  *
  *                                                                          *
  * OUT:                                                                     *
- * offset 1: delay value for scan functions                                 *
- * offset 2: delay value for clock_tck function                             *
- * offset 3: delay value for clock_tms function                             *
+ * offset 1: delay value for scan_in function                               *
+ * offset 2: delay value for scan_out function                              *
+ * offset 3: delay value for scan_io function                               *
+ * offset 4: delay value for clock_tck function                             *
+ * offset 5: delay value for clock_tms function                             *
  ****************************************************************************
  * CMD_SET_LEDS:                                                            *
  *                                                                          *
@@ -155,13 +157,14 @@
 #define CMD_CLOCK_TMS           0x20
 #define CMD_SLOW_CLOCK_TMS      0x21
 #define CMD_CLOCK_TCK           0x22
-#define CMD_SLEEP_US            0x23
-#define CMD_SLEEP_MS            0x24
-#define CMD_GET_SIGNALS         0x25
-#define CMD_SET_SIGNALS         0x26
-#define CMD_CONFIGURE_TCK_FREQ  0x27
-#define CMD_SET_LEDS            0x28
-#define CMD_TEST                0x29
+#define CMD_SLOW_CLOCK_TCK      0x23
+#define CMD_SLEEP_US            0x24
+#define CMD_SLEEP_MS            0x25
+#define CMD_GET_SIGNALS         0x26
+#define CMD_SET_SIGNALS         0x27
+#define CMD_CONFIGURE_TCK_FREQ  0x28
+#define CMD_SET_LEDS            0x29
+#define CMD_TEST                0x2A
 
 /* JTAG signal definition for jtag_get_signals() -- Input signals! */
 #define SIGNAL_TDO      (1<<0)

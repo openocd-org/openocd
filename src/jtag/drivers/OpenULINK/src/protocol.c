@@ -121,6 +121,30 @@ bool execute_command(void)
     count |= ((u16)OUT2BUF[cmd_id_index + 2]) << 8;
     jtag_clock_tck(count);
     break;
+  case CMD_SLOW_SCAN_IN:
+    usb_out_bytecount = 5;
+    usb_in_bytecount = OUT2BUF[cmd_id_index + 1];
+    jtag_slow_scan_in(cmd_id_index + 1, payload_index_in);
+    break;
+  case CMD_SLOW_SCAN_OUT:
+    usb_out_bytecount = OUT2BUF[cmd_id_index + 1] + 5;
+    jtag_slow_scan_out(cmd_id_index + 1);
+    break;
+  case CMD_SLOW_SCAN_IO:
+    usb_in_bytecount = OUT2BUF[cmd_id_index + 1];
+    usb_out_bytecount = usb_in_bytecount + 5;
+    jtag_slow_scan_io(cmd_id_index + 1, payload_index_in);
+    break;
+  case CMD_SLOW_CLOCK_TMS:
+    usb_out_bytecount = 2;
+    jtag_slow_clock_tms(OUT2BUF[cmd_id_index + 1], OUT2BUF[cmd_id_index + 2]);
+    break;
+  case CMD_SLOW_CLOCK_TCK:
+    usb_out_bytecount = 2;
+    count = (u16)OUT2BUF[cmd_id_index + 1];
+    count |= ((u16)OUT2BUF[cmd_id_index + 2]) << 8;
+    jtag_slow_clock_tck(count);
+    break;
   case CMD_SLEEP_US:
     usb_out_bytecount = 2;
     count = (u16)OUT2BUF[cmd_id_index + 1];
@@ -143,6 +167,15 @@ bool execute_command(void)
   case CMD_SET_SIGNALS:
     usb_out_bytecount = 2;
     jtag_set_signals(OUT2BUF[cmd_id_index + 1], OUT2BUF[cmd_id_index + 2]);
+    break;
+  case CMD_CONFIGURE_TCK_FREQ:
+    usb_out_bytecount = 5;
+    jtag_configure_tck_delay(
+        OUT2BUF[cmd_id_index + 1],  /* scan_in */
+        OUT2BUF[cmd_id_index + 2],  /* scan_out */
+        OUT2BUF[cmd_id_index + 3],  /* scan_io */
+        OUT2BUF[cmd_id_index + 4],  /* clock_tck */
+        OUT2BUF[cmd_id_index + 5]); /* clock_tms */
     break;
   case CMD_SET_LEDS:
     usb_out_bytecount = 1;
