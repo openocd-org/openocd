@@ -643,7 +643,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 			{
 				return retval;
 			}
-
+			current_instr = target_buffer_get_u16(target, (uint8_t *)&current_instr);
 			if (current_instr == MIPS16_SDBBP)
 			{
 				if ((retval = target_write_memory(target, breakpoint->address, 2, 1,
