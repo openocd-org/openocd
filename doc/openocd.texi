@@ -6720,21 +6720,8 @@ If @var{value} is defined, first assigns that.
 @subsection Cortex-M3 specific commands
 @cindex Cortex-M3
 
-@deffn Command {cortex_m3 maskisr} (@option{auto}|@option{on}|@option{off})
+@deffn Command {cortex_m3 maskisr} (@option{on}|@option{off})
 Control masking (disabling) interrupts during target step/resume.
-
-The @option{auto} option handles interrupts during stepping a way they get
-served but don't disturb the program flow. The step command first allows
-pending interrupt handlers to execute, then disables interrupts and steps over
-the next instruction where the core was halted. After the step interrupts
-are enabled again. If the interrupt handlers don't complete within 500ms,
-the step command leaves with the core running.
-
-Note that a free breakpoint is required for the @option{auto} option. If no
-breakpoint is available at the time of the step, then the step is taken
-with interrupts enabled, i.e. the same way the @option{off} option does.
-
-Default is @option{auto}.
 @end deffn
 
 @deffn Command {cortex_m3 vector_catch} [@option{all}|@option{none}|list]
