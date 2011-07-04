@@ -203,15 +203,15 @@ int ulink_append_led_cmd(struct ulink *device, uint8_t led_state);
 int ulink_append_test_cmd(struct ulink *device);
 
 /* Interface between OpenULINK and OpenOCD */
-int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd);
+static void ulink_set_end_state(tap_state_t endstate);
 int ulink_queue_statemove(struct ulink *device);
-int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd);
-int ulink_queue_runtest(struct ulink *device, struct jtag_command *cmd);
+
+int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd);
 int ulink_queue_tlr_reset(struct ulink *device, struct jtag_command *cmd);
+int ulink_queue_runtest(struct ulink *device, struct jtag_command *cmd);
+int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd);
 int ulink_queue_pathmove(struct ulink *device, struct jtag_command *cmd);
 int ulink_queue_sleep(struct ulink *device, struct jtag_command *cmd);
-
-static void ulink_set_end_state(tap_state_t endstate);
 
 int ulink_post_process_scan(ulink_cmd_t *ulink_cmd);
 int ulink_post_process_queue(struct ulink *device);
@@ -1233,6 +1233,52 @@ int ulink_append_test_cmd(struct ulink *device)
 /******************* Interface between OpenULINK and OpenOCD ******************/
 
 /**
+ * Sets the end state follower (see interface.h) if \a endstate is a stable
+ * state.
+ *
+ * @param endstate the state the end state follower should be set to.
+ */
+static void ulink_set_end_state(tap_state_t endstate)
+{
+  if (tap_is_state_stable(endstate)) {
+    tap_set_end_state(endstate);
+  }
+  else {
+    LOG_ERROR("BUG: %s is not a valid end state", tap_state_name(endstate));
+    exit( EXIT_FAILURE);
+  }
+}
+
+/**
+ * Move from the current TAP state to the current TAP end state.
+ *
+ * @param device pointer to struct ulink identifying ULINK driver instance.
+ * @return on success: ERROR_OK
+ * @return on failure: ERROR_FAIL
+ */
+int ulink_queue_statemove(struct ulink *device)
+{
+  uint8_t tms_sequence, tms_count;
+  int ret;
+
+  if (tap_get_state() == tap_get_end_state()) {
+    /* Do nothing if we are already there */
+    return ERROR_OK;
+  }
+
+  tms_sequence = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+  tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
+
+  ret = ulink_append_clock_tms_cmd(device, tms_count, tms_sequence);
+
+  if (ret == ERROR_OK) {
+    tap_set_state(tap_get_end_state());
+  }
+
+  return ret;
+}
+
+/**
  * Perform a scan operation on a JTAG register.
  *
  * @param device pointer to struct ulink identifying ULINK driver instance.
@@ -1391,78 +1437,24 @@ int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd)
 }
 
 /**
- * Sets the end state follower (see interface.h) if \a endstate is a stable
- * state.
- *
- * @param endstate the state the end state follower should be set to.
- */
-static void ulink_set_end_state(tap_state_t endstate)
-{
-  if (tap_is_state_stable(endstate)) {
-    tap_set_end_state(endstate);
-  }
-  else {
-    LOG_ERROR("BUG: %s is not a valid end state", tap_state_name(endstate));
-    exit( EXIT_FAILURE);
-  }
-}
-
-/**
- * Move from the current TAP state to the current TAP end state.
+ * Move the TAP into the Test Logic Reset state.
  *
  * @param device pointer to struct ulink identifying ULINK driver instance.
- * @return on success: ERROR_OK
- * @return on failure: ERROR_FAIL
- */
-int ulink_queue_statemove(struct ulink *device)
-{
-  uint8_t tms_sequence, tms_count;
-  int ret;
-
-  if (tap_get_state() == tap_get_end_state()) {
-    /* Do nothing if we are already there */
-    return ERROR_OK;
-  }
-
-  tms_sequence = tap_get_tms_path(tap_get_state(), tap_get_end_state());
-  tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
-
-  ret = ulink_append_clock_tms_cmd(device, tms_count, tms_sequence);
-
-  if (ret == ERROR_OK) {
-    tap_set_state(tap_get_end_state());
-  }
-
-  return ret;
-}
-
-/**
- * Execute a JTAG_RESET command
- *
  * @param cmd pointer to the command that shall be executed.
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
-int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd)
+int ulink_queue_tlr_reset(struct ulink *device, struct jtag_command *cmd)
 {
-  uint8_t low = 0, high = 0;
+  int ret;
 
-  if (cmd->cmd.reset->trst) {
+  ret = ulink_append_clock_tms_cmd(device, 5, 0xff);
+
+  if (ret == ERROR_OK) {
     tap_set_state(TAP_RESET);
-    high |= SIGNAL_TRST;
-  }
-  else {
-    low |= SIGNAL_TRST;
   }
 
-  if (cmd->cmd.reset->srst) {
-    high |= SIGNAL_RESET;
-  }
-  else {
-    low |= SIGNAL_RESET;
-  }
-
-  return ulink_append_set_signals_cmd(device, low, high);
+  return ret;
 }
 
 /**
@@ -1502,24 +1494,32 @@ int ulink_queue_runtest(struct ulink *device, struct jtag_command *cmd)
 }
 
 /**
- * Move the TAP into the Test Logic Reset state.
+ * Execute a JTAG_RESET command
  *
- * @param device pointer to struct ulink identifying ULINK driver instance.
  * @param cmd pointer to the command that shall be executed.
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
-int ulink_queue_tlr_reset(struct ulink *device, struct jtag_command *cmd)
+int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd)
 {
-  int ret;
+  uint8_t low = 0, high = 0;
 
-  ret = ulink_append_clock_tms_cmd(device, 5, 0xff);
-
-  if (ret == ERROR_OK) {
+  if (cmd->cmd.reset->trst) {
     tap_set_state(TAP_RESET);
+    high |= SIGNAL_TRST;
+  }
+  else {
+    low |= SIGNAL_TRST;
   }
 
-  return ret;
+  if (cmd->cmd.reset->srst) {
+    high |= SIGNAL_RESET;
+  }
+  else {
+    low |= SIGNAL_RESET;
+  }
+
+  return ulink_append_set_signals_cmd(device, low, high);
 }
 
 /**
@@ -1607,10 +1607,10 @@ int ulink_post_process_queue(struct ulink *device)
       case JTAG_SCAN:
         ret = ulink_post_process_scan(current);
         break;
-      case JTAG_RUNTEST:
       case JTAG_TLR_RESET:
-      case JTAG_PATHMOVE:
+      case JTAG_RUNTEST:
       case JTAG_RESET:
+      case JTAG_PATHMOVE:
       case JTAG_SLEEP:
         /* Nothing to do for these commands */
         ret = ERROR_OK;
@@ -1657,17 +1657,17 @@ static int ulink_execute_queue(void)
     case JTAG_SCAN:
       ret = ulink_queue_scan(ulink_handle, cmd);
       break;
-    case JTAG_RUNTEST:
-      ret = ulink_queue_runtest(ulink_handle, cmd);
-      break;
     case JTAG_TLR_RESET:
       ret = ulink_queue_tlr_reset(ulink_handle, cmd);
       break;
-    case JTAG_PATHMOVE:
-      ret = ulink_queue_pathmove(ulink_handle, cmd);
+    case JTAG_RUNTEST:
+      ret = ulink_queue_runtest(ulink_handle, cmd);
       break;
     case JTAG_RESET:
       ret = ulink_queue_reset(ulink_handle, cmd);
+      break;
+    case JTAG_PATHMOVE:
+      ret = ulink_queue_pathmove(ulink_handle, cmd);
       break;
     case JTAG_SLEEP:
       ret = ulink_queue_sleep(ulink_handle, cmd);
