@@ -1678,6 +1678,10 @@ static int ulink_execute_queue(void)
       break;
     }
 
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+
     cmd = cmd->next;
   }
 
