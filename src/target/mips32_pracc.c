@@ -113,6 +113,11 @@ static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info,
 static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info,
 		uint32_t addr, uint32_t *buf);
 
+static int mips32_pracc_sync_cache(struct mips_ejtag *ejtag_info,
+		uint32_t start_addr, uint32_t end_addr);
+static int mips32_pracc_clean_invalidate_cache(struct mips_ejtag *ejtag_info,
+													uint32_t start_addr, uint32_t end_addr);
+
 static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 {
 	uint32_t ejtag_ctrl;
@@ -663,22 +668,246 @@ int mips32_cp0_write(struct mips_ejtag *ejtag_info,
 	return retval;
 }
 
+/**
+ * \b mips32_pracc_sync_cache
+ *
+ * Synchronize Caches to Make Instruction Writes Effective
+ * (ref. doc. MIPS32 Architecture For Programmers Volume II: The MIPS32 Instruction Set,
+ *  Document Number: MD00086, Revision 2.00, June 9, 2003)
+ *
+ * When the instruction stream is written, the SYNCI instruction should be used
+ * in conjunction with other instructions to make the newly-written instructions effective.
+ *
+ * Explanation :
+ * A program that loads another program into memory is actually writing the D- side cache.
+ * The instructions it has loaded can't be executed until they reach the I-cache.
+ *
+ * After the instructions have been written, the loader should arrange
+ * to write back any containing D-cache line and invalidate any locations
+ * already in the I-cache.
+ *
+ * You can do that with cache instructions, but those instructions are only available in kernel mode,
+ * and a loader writing instructions for the use of its own process need not be privileged software.
+ *
+ * In the latest MIPS32/64 CPUs, MIPS provides the synci instruction,
+ * which does the whole job for a cache-line-sized chunk of the memory you just loaded:
+ * That is, it arranges a D-cache write-back and an I-cache invalidate.
+ *
+ * To employ synci at user level, you need to know the size of a cache line,
+ * and that can be obtained with a rdhwr SYNCI_Step
+ * from one of the standard “hardware registers”.
+ */
+static int mips32_pracc_sync_cache(struct mips_ejtag *ejtag_info,
+											uint32_t start_addr, uint32_t end_addr)
+{
+	static const uint32_t code[] = {
+															/* start: */
+		MIPS32_MTC0(15,31,0),								/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)),			/* $15 = MIPS32_PRACC_STACK */
+		MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
+		MIPS32_SW(8,0,15),									/* sw $8,($15) */
+		MIPS32_SW(9,0,15),									/* sw $9,($15) */
+		MIPS32_SW(10,0,15),									/* sw $10,($15) */
+		MIPS32_SW(11,0,15),									/* sw $11,($15) */
+
+		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
+		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
+		MIPS32_LW(9,0,8),									/* Load write start_addr to $9 */
+		MIPS32_LW(10,4,8),									/* Load write end_addr to $10 */
+
+		MIPS32_RDHWR(11, MIPS32_SYNCI_STEP),				/* $11 = MIPS32_SYNCI_STEP */
+		MIPS32_BEQ(11,0,6),									/* beq $11, $0, end */
+		MIPS32_NOP,
+															/* synci_loop : */
+		MIPS32_SYNCI(0,9),									/* synci 0($9) */
+		MIPS32_SLTU(8,10,9),								/* sltu $8, $10, $9  # $8 = $10 < $9 ? 1 : 0 */
+		MIPS32_BNE(8,0,NEG16(3)),							/* bne $8, $0, synci_loop */
+		MIPS32_ADDU(9, 9, 11),								/* $9 += MIPS32_SYNCI_STEP */
+		MIPS32_SYNC,
+															/* end: */
+		MIPS32_LW(11,0,15),									/* lw $11,($15) */
+		MIPS32_LW(10,0,15),									/* lw $10,($15) */
+		MIPS32_LW(9,0,15),									/* lw $9,($15) */
+		MIPS32_LW(8,0,15),									/* lw $8,($15) */
+		MIPS32_B(NEG16(24)),								/* b start */
+		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
+	};
+
+	/* TODO remove array */
+	uint32_t *param_in = malloc(2 * sizeof(uint32_t));
+	int retval;
+	param_in[0] = start_addr;
+	param_in[1] = end_addr;
+
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 2, param_in, 0, NULL, 1);
+
+	free(param_in);
+
+	return retval;
+}
+
+/**
+ * \b mips32_pracc_clean_invalidate_cache
+ *
+ * Writeback D$ and Invalidate I$
+ * so that the instructions written can be visible to CPU
+ */
+static int mips32_pracc_clean_invalidate_cache(struct mips_ejtag *ejtag_info,
+													uint32_t start_addr, uint32_t end_addr)
+{
+	static const uint32_t code[] = {
+															/* start: */
+		MIPS32_MTC0(15,31,0),								/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)),			/* $15 = MIPS32_PRACC_STACK */
+		MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
+		MIPS32_SW(8,0,15),									/* sw $8,($15) */
+		MIPS32_SW(9,0,15),									/* sw $9,($15) */
+		MIPS32_SW(10,0,15),									/* sw $10,($15) */
+		MIPS32_SW(11,0,15),									/* sw $11,($15) */
+
+		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
+		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
+		MIPS32_LW(9,0,8),									/* Load write start_addr to $9 */
+		MIPS32_LW(10,4,8),									/* Load write end_addr to $10 */
+		MIPS32_LW(11,8,8),									/* Load write clsiz to $11 */
+
+															/* cache_loop: */
+		MIPS32_SLTU(8,10,9),								/* sltu $8, $10, $9  :  $8 <- $10 < $9 ? */
+		MIPS32_BGTZ(8,6),									/* bgtz $8, end */
+		MIPS32_NOP,
+
+		MIPS32_CACHE(MIPS32_CACHE_D_HIT_WRITEBACK,0,9),		/* cache Hit_Writeback_D, 0($9) */
+		MIPS32_CACHE(MIPS32_CACHE_I_HIT_INVALIDATE,0,9),	/* cache Hit_Invalidate_I, 0($9) */
+
+		MIPS32_ADDU(9,9,11),								/* $9 += $11 */
+
+		MIPS32_B(NEG16(7)),									/* b cache_loop */
+		MIPS32_NOP,
+															/* end: */
+		MIPS32_LW(11,0,15),									/* lw $11,($15) */
+		MIPS32_LW(10,0,15),									/* lw $10,($15) */
+		MIPS32_LW(9,0,15),									/* lw $9,($15) */
+		MIPS32_LW(8,0,15),									/* lw $8,($15) */
+		MIPS32_B(NEG16(25)),								/* b start */
+		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
+	};
+
+	/**
+	 * Find cache line size in bytes
+	 */
+	uint32_t conf;
+	uint32_t dl, clsiz;
+
+	mips32_cp0_read(ejtag_info, &conf, 16, 1);
+	dl = (conf & MIPS32_CONFIG1_DL_MASK) >> MIPS32_CONFIG1_DL_SHIFT;
+
+	/* dl encoding : dl=1 => 4 bytes, dl=2 => 8 bytes, etc... */
+	clsiz = 0x2 << dl;
+
+	/* TODO remove array */
+	uint32_t *param_in = malloc(3 * sizeof(uint32_t));
+	int retval;
+	param_in[0] = start_addr;
+	param_in[1] = end_addr;
+	param_in[2] = clsiz;
+
+	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 3, param_in, 0, NULL, 1);
+
+	free(param_in);
+
+	return retval;
+}
+
+
 int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
+	int retval;
+
 	switch (size)
 	{
 		case 1:
-			return mips32_pracc_write_mem8(ejtag_info, addr, count, (uint8_t*)buf);
+			retval = mips32_pracc_write_mem8(ejtag_info, addr, count, (uint8_t*)buf);
+			break;
 		case 2:
-			return mips32_pracc_write_mem16(ejtag_info, addr, count,(uint16_t*)buf);
+			retval = mips32_pracc_write_mem16(ejtag_info, addr, count,(uint16_t*)buf);
+			break;
 		case 4:
 			if (count == 1)
-				return mips32_pracc_write_u32(ejtag_info, addr, (uint32_t*)buf);
+			{
+				retval = mips32_pracc_write_u32(ejtag_info, addr, (uint32_t*)buf);
+			}
 			else
-				return mips32_pracc_write_mem32(ejtag_info, addr, count, (uint32_t*)buf);
+			{
+				retval = mips32_pracc_write_mem32(ejtag_info, addr, count, (uint32_t*)buf);
+			}
+			break;
+		default:
+			retval = ERROR_FAIL;
 	}
 
-	return ERROR_OK;
+	/**
+	 * If we are in the cachable regoion and cache is activated,
+	 * we must clean D$ + invalidate I$ after we did the write,
+	 * so that changes do not continue to live only in D$, but to be
+	 * replicated in I$ also (maybe we wrote the istructions)
+	 */
+	uint32_t conf = 0;
+	int cached = 0;
+
+	mips32_cp0_read(ejtag_info, &conf, 16, 0);
+
+	switch (KSEGX(addr))
+	{
+		case KUSEG:
+			cached = (conf & MIPS32_CONFIG0_KU_MASK) >> MIPS32_CONFIG0_KU_SHIFT;
+			break;
+		case KSEG0 :
+			cached = (conf & MIPS32_CONFIG0_K0_MASK) >> MIPS32_CONFIG0_K0_SHIFT;
+			break;
+		case KSEG1:
+			/* uncachable segment - nothing to do */
+			break;
+		case KSEG2:
+		case KSEG3:
+			cached = (conf & MIPS32_CONFIG0_K23_MASK) >> MIPS32_CONFIG0_K23_SHIFT;
+			break;
+		default:
+			/* what ? */
+			break;
+	}
+
+	/**
+	 * Check cachablitiy bits coherency algorithm -
+	 * is the region cacheable or uncached.
+	 * If cacheable we have to synchronize the cache
+	 */
+	if (cached == 0x3)
+	{
+		uint32_t start_addr, end_addr;
+		uint32_t rel;
+
+		start_addr = addr;
+		end_addr = addr + count * size;
+
+		/** select cache synchronisation mechanism based on Architecture Release */
+		rel = (conf & MIPS32_CONFIG0_AR_MASK) >> MIPS32_CONFIG0_AR_SHIFT;
+		switch (rel)
+		{
+			case MIPS32_ARCH_REL1 :
+				/* MIPS32/64 Release 1 - we must use cache instruction */
+				mips32_pracc_clean_invalidate_cache(ejtag_info, start_addr, end_addr);
+				break;
+			case MIPS32_ARCH_REL2 :
+				/* MIPS32/64 Release 2 - we can use synci instruction */
+				mips32_pracc_sync_cache(ejtag_info, start_addr, end_addr);
+				break;
+			default :
+				/* what ? */
+				break;
+		}
+	}
+
+	return retval;
 }
 
 static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
