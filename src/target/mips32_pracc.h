@@ -4,6 +4,9 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2011 by Drasko DRASKOVIC                                *
+ *   drasko.draskovic@gmail.com                                            *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -35,9 +38,9 @@
 #define MIPS32_PRACC_PARAM_OUT_SIZE		0x1000
 
 #define MIPS32_FASTDATA_HANDLER_SIZE	0x80
-#define UPPER16(uint32_t) 				(uint32_t >> 16)
-#define LOWER16(uint32_t) 				(uint32_t & 0xFFFF)
-#define NEG16(v) 						(((~(v)) + 1) & 0xFFFF)
+#define UPPER16(uint32_t)				(uint32_t >> 16)
+#define LOWER16(uint32_t)				(uint32_t & 0xFFFF)
+#define NEG16(v)						(((~(v)) + 1) & 0xFFFF)
 /*#define NEG18(v) (((~(v)) + 1) & 0x3FFFF)*/
 
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,
@@ -53,5 +56,37 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_t *code,
 		int num_param_in, uint32_t *param_in,
 		int num_param_out, uint32_t *param_out, int cycle);
+
+/**
+ * \b mips32_cp0_read
+ *
+ * Simulates mfc0 ASM instruction (Move From C0),
+ * i.e. implements copro C0 Register read.
+ *
+ * @param[in] ejtag_info
+ * @param[in] val Storage to hold read value
+ * @param[in] cp0_reg Number of copro C0 register we want to read
+ * @param[in] cp0_sel Select for the given C0 register
+ *
+ * @return ERROR_OK on Sucess, ERROR_FAIL otherwise
+ */
+int mips32_cp0_read(struct mips_ejtag *ejtag_info,
+								uint32_t *val, uint32_t cp0_reg, uint32_t cp0_sel);
+
+/**
+ * \b mips32_cp0_write
+ *
+ * Simulates mtc0 ASM instruction (Move To C0),
+ * i.e. implements copro C0 Register read.
+ *
+ * @param[in] ejtag_info
+ * @param[in] val Value to be written
+ * @param[in] cp0_reg Number of copro C0 register we want to write to
+ * @param[in] cp0_sel Select for the given C0 register
+ *
+ * @return ERROR_OK on Sucess, ERROR_FAIL otherwise
+ */
+int mips32_cp0_write(struct mips_ejtag *ejtag_info,
+											uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel);
 
 #endif

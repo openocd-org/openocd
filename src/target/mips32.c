@@ -7,6 +7,9 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2011 by Drasko DRASKOVIC                                *
+ *   drasko.draskovic@gmail.com                                            *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -758,3 +761,106 @@ int mips32_blank_check_memory(struct target *target,
 
 	return ERROR_OK;
 }
+
+static int mips32_verify_pointer(struct command_context *cmd_ctx,
+		struct mips32_common *mips32)
+{
+	if (mips32->common_magic != MIPS32_COMMON_MAGIC) {
+		command_print(cmd_ctx, "target is not an MIPS32");
+		return ERROR_TARGET_INVALID;
+	}
+	return ERROR_OK;
+}
+
+/**
+ * MIPS32 targets expose command interface
+ * to manipulate CP0 registers
+ */
+COMMAND_HANDLER(mips32_handle_cp0_command)
+{
+	int retval;
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+
+
+	retval = mips32_verify_pointer(CMD_CTX, mips32);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target->state != TARGET_HALTED)
+	{
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_OK;
+	}
+
+	/* two or more argument, access a single register/select (write if third argument is given) */
+	if (CMD_ARGC < 2)
+	{
+		command_print(CMD_CTX, "command requires more arguments.");
+	}
+	else
+	{
+		uint32_t cp0_reg, cp0_sel;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+
+		if (CMD_ARGC == 2)
+		{
+			uint32_t value;
+
+			if ((retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel)) != ERROR_OK)
+			{
+				command_print(CMD_CTX,
+						"couldn't access reg %" PRIi32,
+						cp0_reg);
+				return ERROR_OK;
+			}
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
+
+			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+					cp0_reg, cp0_sel, value);
+		}
+		else if (CMD_ARGC == 3)
+		{
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
+			if ((retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel)) != ERROR_OK)
+			{
+				command_print(CMD_CTX,
+						"couldn't access cp0 reg %" PRIi32 ", select %" PRIi32,
+						cp0_reg,  cp0_sel);
+				return ERROR_OK;
+			}
+			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+					cp0_reg, cp0_sel, value);
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static const struct command_registration mips32_exec_command_handlers[] = {
+	{
+		.name = "cp0",
+		.handler = mips32_handle_cp0_command,
+		.mode = COMMAND_EXEC,
+		.usage = "regnum select [value]",
+		.help = "display/modify cp0 register",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration mips32_command_handlers[] = {
+	{
+		.name = "mips32",
+		.mode = COMMAND_ANY,
+		.help = "mips32 command group",
+		.chain = mips32_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+

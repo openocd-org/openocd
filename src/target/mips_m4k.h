@@ -4,6 +4,9 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2011 by Drasko DRASKOVIC                                *
+ *   drasko.draskovic@gmail.com                                            *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -42,5 +45,7 @@ target_to_m4k(struct target *target)
 	return container_of(target->arch_info,
 			struct mips_m4k_common, mips32);
 }
+
+extern const struct command_registration mips_m4k_command_handlers[];
 
 #endif	/*MIPS_M4K_H*/

@@ -4,6 +4,9 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2011 by Drasko DRASKOVIC                                *
+ *   drasko.draskovic@gmail.com                                            *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -148,6 +151,8 @@ struct mips32_algorithm
 #define MIPS32_DRET					0x4200001F
 #define MIPS32_SDBBP				0x7000003F
 #define MIPS16_SDBBP				0xE801
+
+extern const struct command_registration mips32_command_handlers[];
 
 int mips32_arch_state(struct target *target);
 

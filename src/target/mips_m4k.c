@@ -6,6 +6,9 @@
  *                                                                         *
  *   Copyright (C) 2009 by David N. Claffey <dnclaffey@gmail.com>          *
  *                                                                         *
+ *   Copyright (C) 2011 by Drasko DRASKOVIC                                *
+ *   drasko.draskovic@gmail.com                                            *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -1078,13 +1081,13 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		return ERROR_FAIL;
 	}
 
- 	uint32_t i, t32;
+	uint32_t i, t32;
 	for(i = 0; i < (count*4); i += 4)
 	{
 		t32 = target_buffer_get_u32(target,&buffer[i]);
 		h_u32_to_le(&t[i], t32);
 	}
-	
+
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
 			count, (uint32_t*) (void *)t);
 
@@ -1100,6 +1103,106 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 
 	return retval;
 }
+
+static int mips_m4k_verify_pointer(struct command_context *cmd_ctx,
+		struct mips_m4k_common *mips_m4k)
+{
+	if (mips_m4k->common_magic != MIPSM4K_COMMON_MAGIC) {
+		command_print(cmd_ctx, "target is not an MIPS_M4K");
+		return ERROR_TARGET_INVALID;
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(mips_m4k_handle_cp0_command)
+{
+	int retval;
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
+	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
+
+	retval = mips_m4k_verify_pointer(CMD_CTX, mips_m4k);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target->state != TARGET_HALTED)
+	{
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_OK;
+	}
+
+	/* two or more argument, access a single register/select (write if third argument is given) */
+	if (CMD_ARGC < 2)
+	{
+		command_print(CMD_CTX, "command requires more arguments.");
+	}
+	else
+	{
+		uint32_t cp0_reg, cp0_sel;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+
+		if (CMD_ARGC == 2)
+		{
+			uint32_t value;
+
+			if ((retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel)) != ERROR_OK)
+			{
+				command_print(CMD_CTX,
+						"couldn't access reg %" PRIi32,
+						cp0_reg);
+				return ERROR_OK;
+			}
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
+
+			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+					cp0_reg, cp0_sel, value);
+		}
+		else if (CMD_ARGC == 3)
+		{
+			uint32_t value;
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
+			if ((retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel)) != ERROR_OK)
+			{
+				command_print(CMD_CTX,
+						"couldn't access cp0 reg %" PRIi32 ", select %" PRIi32,
+						cp0_reg,  cp0_sel);
+				return ERROR_OK;
+			}
+			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+					cp0_reg, cp0_sel, value);
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static const struct command_registration mips_m4k_exec_command_handlers[] = {
+	{
+		.name = "cp0",
+		.handler = mips_m4k_handle_cp0_command,
+		.mode = COMMAND_EXEC,
+		.usage = "regnum [value]",
+		.help = "display/modify cp0 register",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration mips_m4k_command_handlers[] = {
+	{
+		.chain = mips32_command_handlers,
+	},
+	{
+		.name = "mips_m4k",
+		.mode = COMMAND_ANY,
+		.help = "mips_m4k command group",
+		.chain = mips_m4k_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 struct target_type mips_m4k_target =
 {
@@ -1133,6 +1236,7 @@ struct target_type mips_m4k_target =
 	.add_watchpoint = mips_m4k_add_watchpoint,
 	.remove_watchpoint = mips_m4k_remove_watchpoint,
 
+	.commands = mips_m4k_command_handlers,
 	.target_create = mips_m4k_target_create,
 	.init_target = mips_m4k_init_target,
 	.examine = mips_m4k_examine,
