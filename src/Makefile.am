@@ -45,10 +45,11 @@ libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
 # guess-rev.sh returns either a repository version ID or "-snapshot"
 if RELEASE
 libopenocd_la_CPPFLAGS += -DRELSTR=\"\"
+libopenocd_la_CPPFLAGS += -DGITVERSION=\"\"
 else
 libopenocd_la_CPPFLAGS += -DRELSTR=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
-endif
 libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
+endif
 
 # add default CPPFLAGS
 libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
