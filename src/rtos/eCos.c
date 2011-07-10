@@ -416,7 +416,7 @@ static int eCos_create( struct target* target )
 	}
 	if ( i >= ECOS_NUM_PARAMS )
 	{
-		LOG_OUTPUT("Could not find target in eCos compatability list\r\n");
+		LOG_OUTPUT("Could not find target in eCos compatibility list\r\n");
 		return -1;
 	}
 

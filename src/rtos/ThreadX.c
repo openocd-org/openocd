@@ -525,7 +525,7 @@ static int ThreadX_create( struct target* target )
 	}
 	if ( i >= THREADX_NUM_PARAMS )
 	{
-		LOG_OUTPUT("Could not find target in ThreadX compatability list\r\n");
+		LOG_OUTPUT("Could not find target in ThreadX compatibility list\r\n");
 		return -1;
 	}
 

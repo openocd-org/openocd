@@ -472,7 +472,7 @@ static int FreeRTOS_create( struct target* target )
 	}
 	if ( i >= FREERTOS_NUM_PARAMS )
 	{
-		LOG_OUTPUT("Could not find target in FreeRTOS compatability list\r\n");
+		LOG_OUTPUT("Could not find target in FreeRTOS compatibility list\r\n");
 		return -1;
 	}
 

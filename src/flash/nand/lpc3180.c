@@ -1317,7 +1317,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
       if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 	command_print(CMD_CTX, "%s controller selected", selected[lpc3180_info->selected_controller]);
       else{
-            command_print(CMD_CTX, lpc3180_info->is_bulk?"%s controller selected bulk mode is avaliable":"%s controller selected bulk mode is not avaliable", selected[lpc3180_info->selected_controller]);
+            command_print(CMD_CTX, lpc3180_info->is_bulk?"%s controller selected bulk mode is available":"%s controller selected bulk mode is not available", selected[lpc3180_info->selected_controller]);
       }
  
 
