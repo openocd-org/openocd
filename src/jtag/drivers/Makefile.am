@@ -67,6 +67,12 @@ DRIVERFILES += ulink.c
 nobase_dist_pkglib_DATA += $(ULINK_FIRMWARE)/ulink_firmware.hex
 endif
 if VSLLINK
+DRIVERFILES += versaloon/usbtoxxx/usbtogpio.c
+DRIVERFILES += versaloon/usbtoxxx/usbtojtagraw.c
+DRIVERFILES += versaloon/usbtoxxx/usbtoswd.c
+DRIVERFILES += versaloon/usbtoxxx/usbtopwr.c
+DRIVERFILES += versaloon/usbtoxxx/usbtoxxx.c
+DRIVERFILES += versaloon/versaloon.c
 DRIVERFILES += vsllink.c
 endif
 if ARMJTAGEW
