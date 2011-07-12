@@ -42,6 +42,10 @@
 /* defines internal maximum size for code fragment in cfi_intel_write_block() */
 #define CFI_MAX_INTEL_CODESIZE 256
 
+/* some id-types with specific handling */
+#define AT49BV6416	0x00d6
+#define AT49BV6416T	0x00d2
+
 static struct cfi_unlock_addresses cfi_unlock_addresses[] =
 {
 	[CFI_UNLOCK_555_2AA] = { .unlock1 = 0x555, .unlock2 = 0x2aa },
@@ -700,10 +704,19 @@ static int cfi_read_atmel_pri_ext(struct flash_bank *bank)
 	if (atmel_pri_ext.features & 0x02)
 		pri_ext->EraseSuspend = 2;
 
-	if (atmel_pri_ext.bottom_boot)
-		pri_ext->TopBottom = 2;
-	else
-		pri_ext->TopBottom = 3;
+	/* some chips got it backwards... */
+	if (cfi_info->device_id == AT49BV6416 ||
+	    cfi_info->device_id == AT49BV6416T) {
+		if (atmel_pri_ext.bottom_boot)
+			pri_ext->TopBottom = 3;
+		else
+			pri_ext->TopBottom = 2;
+	} else {
+		if (atmel_pri_ext.bottom_boot)
+			pri_ext->TopBottom = 2;
+		else
+			pri_ext->TopBottom = 3;
+	}
 
 	pri_ext->_unlock1 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock1;
 	pri_ext->_unlock2 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock2;
