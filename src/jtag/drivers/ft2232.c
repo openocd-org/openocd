@@ -515,7 +515,7 @@ static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
 	if ((status = FT_Write(ftdih, buf, size, &dw_bytes_written)) != FT_OK)
 	{
 		*bytes_written = dw_bytes_written;
-		LOG_ERROR("FT_Write returned: %lu", status);
+		LOG_ERROR("FT_Write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	else
@@ -558,7 +558,7 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 					  *bytes_read, &dw_bytes_read)) != FT_OK)
 		{
 			*bytes_read = 0;
-			LOG_ERROR("FT_Read returned: %lu", status);
+			LOG_ERROR("FT_Read returned: %" PRIu32, status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		*bytes_read += dw_bytes_read;
@@ -2215,11 +2215,11 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 		if (more)
 		{
-			LOG_WARNING("unable to open ftdi device (trying more): %lu", status);
+			LOG_WARNING("unable to open ftdi device (trying more): %" PRIu32, status);
 			*try_more = 1;
 			return ERROR_JTAG_INIT_FAILED;
 		}
-		LOG_ERROR("unable to open ftdi device: %lu", status);
+		LOG_ERROR("unable to open ftdi device: %" PRIu32, status);
 		status = FT_ListDevices(&num_devices, NULL, FT_LIST_NUMBER_ONLY);
 		if (status == FT_OK)
 		{
@@ -2235,7 +2235,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 			if (status == FT_OK)
 			{
-				LOG_ERROR("ListDevices: %lu", num_devices);
+				LOG_ERROR("ListDevices: %" PRIu32, num_devices);
 				for (i = 0; i < num_devices; i++)
 					LOG_ERROR("%" PRIu32 ": \"%s\"", i, desc_array[i]);
 			}
@@ -2254,13 +2254,13 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 	if ((status = FT_SetLatencyTimer(ftdih, ft2232_latency)) != FT_OK)
 	{
-		LOG_ERROR("unable to set latency timer: %lu", status);
+		LOG_ERROR("unable to set latency timer: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	if ((status = FT_GetLatencyTimer(ftdih, &latency_timer)) != FT_OK)
 	{
-		LOG_ERROR("unable to get latency timer: %lu", status);
+		LOG_ERROR("unable to get latency timer: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	else
@@ -2270,19 +2270,19 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 	if ((status = FT_SetTimeouts(ftdih, 5000, 5000)) != FT_OK)
 	{
-		LOG_ERROR("unable to set timeouts: %lu", status);
+		LOG_ERROR("unable to set timeouts: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	if ((status = FT_SetBitMode(ftdih, 0x0b, 2)) != FT_OK)
 	{
-		LOG_ERROR("unable to enable bit i/o mode: %lu", status);
+		LOG_ERROR("unable to enable bit i/o mode: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	if ((status = FT_GetDeviceInfo(ftdih, &ftdi_device, &deviceID, SerialNumber, Description, NULL)) != FT_OK)
 	{
-		LOG_ERROR("unable to get FT_GetDeviceInfo: %lu", status);
+		LOG_ERROR("unable to get FT_GetDeviceInfo: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	else
@@ -2292,8 +2292,8 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 		unsigned no_of_known_types = ARRAY_SIZE(type_str) - 1;
 		unsigned type_index = ((unsigned)ftdi_device <= no_of_known_types)
 			? ftdi_device : FT_DEVICE_UNKNOWN;
-		LOG_INFO("device: %lu \"%s\"", ftdi_device, type_str[type_index]);
-		LOG_INFO("deviceID: %lu", deviceID);
+		LOG_INFO("device: %" PRIu32 " \"%s\"", ftdi_device, type_str[type_index]);
+		LOG_INFO("deviceID: %" PRIu32, deviceID);
 		LOG_INFO("SerialNumber: %s", SerialNumber);
 		LOG_INFO("Description: %s", Description);
 	}
@@ -2307,7 +2307,7 @@ static int ft2232_purge_ftd2xx(void)
 
 	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
 	{
-		LOG_ERROR("error purging ftd2xx device: %lu", status);
+		LOG_ERROR("error purging ftd2xx device: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -3628,7 +3628,7 @@ static int signalyzer_h_led_set(unsigned char channel, unsigned char led,
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
 			((uint32_t)(channel << 8) | led))) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3636,7 +3636,7 @@ static int signalyzer_h_led_set(unsigned char channel, unsigned char led,
 			(SIGNALYZER_DATA_BUFFER_ADDR + 1),
 			((uint32_t)(on_time << 8) | off_time))) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3644,14 +3644,14 @@ static int signalyzer_h_led_set(unsigned char channel, unsigned char led,
 			(SIGNALYZER_DATA_BUFFER_ADDR + 2),
 			((uint32_t)cycles))) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
 			SIGNALYZER_COMMAND_LED_SET)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write  returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write  returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3740,7 +3740,7 @@ static int signalyzer_h_init(void)
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
 			SIGNALYZER_COMMAND_VERSION)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3750,7 +3750,7 @@ static int signalyzer_h_init(void)
 			(SIGNALYZER_DATA_BUFFER_ADDR + i),
 			&read_buf[i])) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_read returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_read returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3764,21 +3764,21 @@ static int signalyzer_h_init(void)
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
 			(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1,
 			0x0404)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
 			SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3786,28 +3786,28 @@ static int signalyzer_h_init(void)
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
 			((uint32_t)(signalyzer_h_side << 8) | 0x01))) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if ((status = signalyzer_h_ctrl_write(
 			(SIGNALYZER_DATA_BUFFER_ADDR + 1), 0xA000)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if ((status = signalyzer_h_ctrl_write(
 			(SIGNALYZER_DATA_BUFFER_ADDR + 2), 0x0008)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
 			SIGNALYZER_COMMAND_I2C)) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_write returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3816,7 +3816,7 @@ static int signalyzer_h_init(void)
 	if ((status = signalyzer_h_ctrl_read(SIGNALYZER_COMMAND_ADDR,
 			&read_buf[0])) != FT_OK)
 	{
-		LOG_ERROR("signalyzer_h_ctrl_read returned: %lu", status);
+		LOG_ERROR("signalyzer_h_ctrl_read returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3830,7 +3830,7 @@ static int signalyzer_h_init(void)
 					(SIGNALYZER_DATA_BUFFER_ADDR + i),
 					&read_buf[i])) != FT_OK)
 			{
-				LOG_ERROR("signalyzer_h_ctrl_read returned: %lu",
+				LOG_ERROR("signalyzer_h_ctrl_read returned: %" PRIu32,
 					status);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
@@ -3895,7 +3895,7 @@ static int signalyzer_h_init(void)
 				((uint32_t)(signalyzer_h_side << 8) | 0x01)))
 			!= FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 				status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3903,7 +3903,7 @@ static int signalyzer_h_init(void)
 		if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
 				SIGNALYZER_COMMAND_POWERCONTROL_SET)) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3913,7 +3913,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR,
 				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3922,7 +3922,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000))
 			!= FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3930,7 +3930,7 @@ static int signalyzer_h_init(void)
 		if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
 				SIGNALYZER_COMMAND_GPIO_MODE)) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3940,7 +3940,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR,
 				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3949,7 +3949,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x4040))
 			!= FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -3958,7 +3958,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_COMMAND_ADDR,
 				SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4030,7 +4030,7 @@ static int signalyzer_h_init(void)
 				((uint32_t)(signalyzer_h_side << 8) | 0x01)))
 			!= FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4039,7 +4039,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_COMMAND_ADDR,
 				SIGNALYZER_COMMAND_POWERCONTROL_SET)) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4051,7 +4051,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR,
 				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4060,7 +4060,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0060))
 			!= FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4069,7 +4069,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_COMMAND_ADDR,
 				SIGNALYZER_COMMAND_GPIO_MODE)) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4081,7 +4081,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR,
 				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4090,7 +4090,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000))
 			!= FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -4099,7 +4099,7 @@ static int signalyzer_h_init(void)
 				SIGNALYZER_COMMAND_ADDR,
 				SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
 		{
-			LOG_ERROR("signalyzer_h_ctrl_write returned: %lu",
+			LOG_ERROR("signalyzer_h_ctrl_write returned: %" PRIu32,
 					status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
