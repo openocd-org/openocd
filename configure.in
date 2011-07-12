@@ -873,14 +873,23 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
     AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: ${FTD2XX_H}])
     fi
     CFLAGS="$CFLAGS -I$with_ftd2xx_linux_tardir"
-    FTD2XX_LDFLAGS="-L$with_ftd2xx_linux_tardir"
-    FTD2XX_LIB="-lftd2xx"
-    if test $with_ftd2xx_lib != shared; then
-      # Test #1 - Future proof - if/when ftdichip fixes their distro.
-      # Try it with the simple ".a" suffix.
-      FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a"
-      if test -f "${FTD2XX_LIB}"; then
-        FTD2XX_LDFLAGS="${FTD2XX_LDFLAGS}/static_lib"
+    if test $with_ftd2xx_lib = shared; then
+       FTD2XX_LDFLAGS="-L$with_ftd2xx_linux_tardir"
+       FTD2XX_LIB="-lftd2xx"
+    else
+      # Test #1 - v1.0.x
+      case "$host_cpu" in
+      i?86|x86_32)
+              dir=build/i386;;
+      amd64|x86_64)
+              dir=build/x86_64;;
+      *)
+              dir=none;;
+      esac
+      if test -f "$with_ftd2xx_linux_tardir/$dir/libftd2xx.a"; then
+          FTD2XX_LDFLAGS="-L$with_ftd2xx_linux_tardir/$dir"
+          # Also needs -lrt
+          FTD2XX_LIB="-lftd2xx -lrt"
       else
         # Test Number2.
         # Grr.. perhaps it exists as a version number?
