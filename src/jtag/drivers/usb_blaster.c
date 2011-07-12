@@ -135,7 +135,7 @@ static int usb_blaster_buf_write(
 	if (status != FT_OK)
 	{
 		*bytes_written = dw_bytes_written;
-		LOG_ERROR("FT_Write returned: %lu", status);
+		LOG_ERROR("FT_Write returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	*bytes_written = dw_bytes_written;
@@ -168,11 +168,11 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 	if (status != FT_OK)
 	{
 		*bytes_read = dw_bytes_read;
-		LOG_ERROR("FT_Read returned: %lu", status);
+		LOG_ERROR("FT_Read returned: %" PRIu32, status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("usb_blaster_buf_read %02X (%lu)", buf[0], dw_bytes_read);
+	LOG_DEBUG("usb_blaster_buf_read %02X (%" PRIu32 ")", buf[0], dw_bytes_read);
 #endif
 	*bytes_read = dw_bytes_read;
 	return ERROR_OK;
@@ -384,7 +384,7 @@ static int usb_blaster_init(void)
 	{
 		DWORD num_devices;
 
-		LOG_ERROR("unable to open ftdi device: %lu", status);
+		LOG_ERROR("unable to open ftdi device: %" PRIu32, status);
 		status = FT_ListDevices(&num_devices, NULL,
 				FT_LIST_NUMBER_ONLY);
 		if (status == FT_OK)
@@ -402,7 +402,7 @@ static int usb_blaster_init(void)
 
 			if (status == FT_OK)
 			{
-				LOG_ERROR("ListDevices: %lu", num_devices);
+				LOG_ERROR("ListDevices: %" PRIu32, num_devices);
 				for (i = 0; i < num_devices; i++)
 					LOG_ERROR("%i: %s", i, desc_array[i]);
 			}
@@ -421,14 +421,14 @@ static int usb_blaster_init(void)
 	status = FT_SetLatencyTimer(ftdih, 2);
 	if (status != FT_OK)
 	{
-		LOG_ERROR("unable to set latency timer: %lu", status);
+		LOG_ERROR("unable to set latency timer: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	status = FT_GetLatencyTimer(ftdih, &latency_timer);
 	if (status != FT_OK)
 	{
-		LOG_ERROR("unable to get latency timer: %lu", status);
+		LOG_ERROR("unable to get latency timer: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	LOG_DEBUG("current latency timer: %i", latency_timer);
@@ -436,7 +436,7 @@ static int usb_blaster_init(void)
 	status = FT_SetBitMode(ftdih, 0x00, 0);
 	if (status != FT_OK)
 	{
-		LOG_ERROR("unable to disable bit i/o mode: %lu", status);
+		LOG_ERROR("unable to disable bit i/o mode: %" PRIu32, status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #elif BUILD_USB_BLASTER_LIBFTDI == 1
