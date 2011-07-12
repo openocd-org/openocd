@@ -2260,8 +2260,20 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 	if ((status = FT_GetLatencyTimer(ftdih, &latency_timer)) != FT_OK)
 	{
+		/* ftd2xx 1.04 (linux) has a bug when calling FT_GetLatencyTimer
+		 * so ignore errors if using this driver version */
+		DWORD dw_version;
+		
+		status = FT_GetDriverVersion(ftdih, &dw_version);
 		LOG_ERROR("unable to get latency timer: %" PRIu32, status);
-		return ERROR_JTAG_INIT_FAILED;
+		
+		if ((status == FT_OK) && (dw_version == 0x10004)) {
+			LOG_ERROR("ftd2xx 1.04 detected - this has known issues " \
+					"with FT_GetLatencyTimer, upgrade to a newer version");
+		}
+		else {
+			return ERROR_JTAG_INIT_FAILED;
+		}
 	}
 	else
 	{
