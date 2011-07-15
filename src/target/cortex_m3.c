@@ -2329,6 +2329,8 @@ struct target_type cortexm3_target =
 	.blank_check_memory = armv7m_blank_check_memory,
 
 	.run_algorithm = armv7m_run_algorithm,
+	.start_algorithm = armv7m_start_algorithm,
+	.wait_algorithm = armv7m_wait_algorithm,
 
 	.add_breakpoint = cortex_m3_add_breakpoint,
 	.remove_breakpoint = cortex_m3_remove_breakpoint,
