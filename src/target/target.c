@@ -732,6 +732,81 @@ done:
 	return retval;
 }
 
+/**
+ * Downloads a target-specific native code algorithm to the target,
+ * executes and leaves it running.
+ *
+ * @param target used to run the algorithm
+ * @param arch_info target-specific description of the algorithm.
+ */
+int target_start_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		void *arch_info)
+{
+	int retval = ERROR_FAIL;
+
+	if (!target_was_examined(target))
+	{
+		LOG_ERROR("Target not examined yet");
+		goto done;
+	}
+	if (!target->type->start_algorithm) {
+		LOG_ERROR("Target type '%s' does not support %s",
+				target_type_name(target), __func__);
+		goto done;
+	}
+	if (target->running_alg) {
+		LOG_ERROR("Target is already running an algorithm");
+		goto done;
+	}
+
+	target->running_alg = true;
+	retval = target->type->start_algorithm(target,
+			num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			entry_point, exit_point, arch_info);
+
+done:
+	return retval;
+}
+
+/**
+ * Waits for an algorithm started with target_start_algorithm() to complete.
+ *
+ * @param target used to run the algorithm
+ * @param arch_info target-specific description of the algorithm.
+ */
+int target_wait_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t exit_point, int timeout_ms,
+		void *arch_info)
+{
+	int retval = ERROR_FAIL;
+
+	if (!target->type->wait_algorithm) {
+		LOG_ERROR("Target type '%s' does not support %s",
+				target_type_name(target), __func__);
+		goto done;
+	}
+	if (!target->running_alg) {
+		LOG_ERROR("Target is not running an algorithm");
+		goto done;
+	}
+
+	retval = target->type->wait_algorithm(target,
+			num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			exit_point, timeout_ms, arch_info);
+	if (retval != ERROR_TARGET_TIMEOUT)
+		target->running_alg = false;
+
+done:
+	return retval;
+}
+
 
 int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)

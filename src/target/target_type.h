@@ -171,6 +171,8 @@ struct target_type
 	 * use target_run_algorithm() instead.
 	 */
 	int (*run_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*start_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, void *arch_info);
+	int (*wait_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t exit_point, int timeout_ms, void *arch_info);
 
 	const struct command_registration *commands;
 

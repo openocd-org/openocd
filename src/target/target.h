@@ -432,6 +432,28 @@ int target_run_algorithm(struct target *target,
 		int timeout_ms, void *arch_info);
 
 /**
+ * Starts an algorithm in the background on the @a target given.
+ *
+ * This routine is a wrapper for target->type->start_algorithm.
+ */
+int target_start_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		void *arch_info);
+
+/**
+ * Wait for an algorithm on the @a target given.
+ *
+ * This routine is a wrapper for target->type->wait_algorithm.
+ */
+int target_wait_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t exit_point, int timeout_ms,
+		void *arch_info);
+
+/**
  * Read @a count items of @a size bytes from the memory of @a target at
  * the @a address given.
  *
