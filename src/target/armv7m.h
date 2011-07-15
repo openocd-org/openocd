@@ -142,6 +142,8 @@ struct armv7m_algorithm
 	int common_magic;
 
 	enum armv7m_mode core_mode;
+
+	uint32_t context[ARMV7M_CONTROL + 1]; //ARMV7M_NUM_REGS
 };
 
 struct armv7m_core_reg
@@ -167,6 +169,18 @@ int armv7m_run_algorithm(struct target *target,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
+
+int armv7m_start_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		void *arch_info);
+
+int armv7m_wait_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t exit_point, int timeout_ms,
+		void *arch_info);
 
 int armv7m_invalidate_core_regs(struct target *target);
 

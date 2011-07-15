@@ -287,41 +287,6 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int 
 	return ERROR_OK;
 }
 
-/* run to exit point. return error if exit point was not reached. */
-static int armv7m_run_and_wait(struct target *target, uint32_t entry_point, int timeout_ms, uint32_t exit_point, struct armv7m_common *armv7m)
-{
-	uint32_t pc;
-	int retval;
-	/* This code relies on the target specific  resume() and  poll()->debug_entry()
-	 * sequence to write register values to the processor and the read them back */
-	if ((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
-	{
-		return retval;
-	}
-
-	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
-	/* If the target fails to halt due to the breakpoint, force a halt */
-	if (retval != ERROR_OK || target->state != TARGET_HALTED)
-	{
-		if ((retval = target_halt(target)) != ERROR_OK)
-			return retval;
-		if ((retval = target_wait_state(target, TARGET_HALTED, 500)) != ERROR_OK)
-		{
-			return retval;
-		}
-		return ERROR_TARGET_TIMEOUT;
-	}
-
-	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
-	if (exit_point && (pc != exit_point))
-	{
-		LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 " ", pc);
-		return ERROR_TARGET_TIMEOUT;
-	}
-
-	return ERROR_OK;
-}
-
 /** Runs a Thumb algorithm in the target. */
 int armv7m_run_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
@@ -329,11 +294,35 @@ int armv7m_run_algorithm(struct target *target,
 	uint32_t entry_point, uint32_t exit_point,
 	int timeout_ms, void *arch_info)
 {
+	int retval;
+
+	retval = armv7m_start_algorithm(target,
+			num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			entry_point, exit_point,
+			arch_info);
+
+	if (retval == ERROR_OK)
+		retval = armv7m_wait_algorithm(target,
+				num_mem_params, mem_params,
+				num_reg_params, reg_params,
+				exit_point, timeout_ms,
+				arch_info);
+
+	return retval;
+}
+
+/** Starts a Thumb algorithm in the target. */
+int armv7m_start_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	uint32_t entry_point, uint32_t exit_point,
+	void *arch_info)
+{
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
-	uint32_t context[ARMV7M_NUM_REGS];
 
 	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
@@ -356,11 +345,12 @@ int armv7m_run_algorithm(struct target *target,
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
-		context[i] = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
+		armv7m_algorithm_info->context[i] = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
 	}
 
 	for (int i = 0; i < num_mem_params; i++)
 	{
+		// TODO: Write only out params
 		if ((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
 			return retval;
 	}
@@ -394,12 +384,52 @@ int armv7m_run_algorithm(struct target *target,
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].dirty = 1;
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
 	}
+	armv7m_algorithm_info->core_mode = core_mode;
 
-	retval = armv7m_run_and_wait(target, entry_point, timeout_ms, exit_point, armv7m);
+	retval = target_resume(target, 0, entry_point, 1, 1);
 
-	if (retval != ERROR_OK)
+	return retval;
+}
+
+/** Waits for an algorithm in the target. */
+int armv7m_wait_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	uint32_t exit_point, int timeout_ms,
+	void *arch_info)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
+	int retval = ERROR_OK;
+	uint32_t pc;
+
+	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
+	 * at the exit point */
+
+	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
 	{
-		return retval;
+		LOG_ERROR("current target isn't an ARMV7M target");
+		return ERROR_TARGET_INVALID;
+	}
+
+	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
+	/* If the target fails to halt due to the breakpoint, force a halt */
+	if (retval != ERROR_OK || target->state != TARGET_HALTED)
+	{
+		if ((retval = target_halt(target)) != ERROR_OK)
+			return retval;
+		if ((retval = target_wait_state(target, TARGET_HALTED, 500)) != ERROR_OK)
+		{
+			return retval;
+		}
+		return ERROR_TARGET_TIMEOUT;
+	}
+
+	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
+	if (exit_point && (pc != exit_point))
+	{
+		LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" PRIx32 , pc, exit_point);
+		return ERROR_TARGET_TIMEOUT;
 	}
 
 	/* Read memory values to mem_params[] */
@@ -439,18 +469,18 @@ int armv7m_run_algorithm(struct target *target,
 	{
 		uint32_t regvalue;
 		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
-		if (regvalue != context[i])
+		if (regvalue != armv7m_algorithm_info->context[i])
 		{
 			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
-				armv7m->core_cache->reg_list[i].name, context[i]);
+				armv7m->core_cache->reg_list[i].name, armv7m_algorithm_info->context[i]);
 			buf_set_u32(armv7m->core_cache->reg_list[i].value,
-					0, 32, context[i]);
+					0, 32, armv7m_algorithm_info->context[i]);
 			armv7m->core_cache->reg_list[i].valid = 1;
 			armv7m->core_cache->reg_list[i].dirty = 1;
 		}
 	}
 
-	armv7m->core_mode = core_mode;
+	armv7m->core_mode = armv7m_algorithm_info->core_mode;
 
 	return retval;
 }
