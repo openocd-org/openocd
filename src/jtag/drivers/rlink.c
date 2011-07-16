@@ -702,102 +702,101 @@ dtc_queue_run(void) {
 		if (usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s", usb_strerror());
 			exit(1);
-		} else {
-			/* process the reply, which empties the reply queue and frees its entries */
-			dtc_p = reply_buffer;
-
-			/* The rigamarole with the masks and doing it bit-by-bit is due to the fact that the scan buffer is LSb-first and the DTC code is MSb-first for hardware reasons.   It was that or craft a function to do the reversal, and that wouldn't work with bit-stuffing (supplying extra bits to use mostly byte operations), or any other scheme which would throw the byte alignment off. */
-
-			for (
-					rq_p = dtc_queue.rq_head;
-					rq_p != NULL;
-					rq_p = rq_next
-			) {
-				tdo_p = rq_p->scan.buffer + (rq_p->scan.offset / 8);
-				tdo_mask = 1 << (rq_p->scan.offset % 8);
-
-
-				bit_cnt = rq_p->scan.length;
-				if (bit_cnt >= 8) {
-					/* bytes */
-
-					dtc_mask = 1 << (8 - 1);
-
-					for (
-							;
-							bit_cnt;
-							bit_cnt--
-					) {
-						if (*dtc_p & dtc_mask) {
-							*tdo_p |= tdo_mask;
-						} else {
-							*tdo_p &=~ tdo_mask;
-						}
-
-						dtc_mask >>= 1;
-						if (dtc_mask == 0) {
-							dtc_p++;
-							dtc_mask = 1 << (8 - 1);
-						}
-
-						tdo_mask <<= 1;
-						if (tdo_mask == 0) {
-							tdo_p++;
-							tdo_mask = 1;
-						}
-					}
-				} else {
-					/*  extra bits or last bit */
-
-					x = *dtc_p++;
-					if ((
-							rq_p->scan.type == SCAN_IN
-					) && (
-							rq_p->scan.offset != rq_p->scan.size - 1
-					)) {
-						/* extra bits were sent as a full byte with padding on the end */
-						dtc_mask = 1 << (8 - 1);
-					} else {
-						dtc_mask = 1 << (bit_cnt - 1);
-					}
-
-					for (
-							;
-							bit_cnt;
-							bit_cnt--
-					) {
-						if (x & dtc_mask) {
-							*tdo_p |= tdo_mask;
-						} else {
-							*tdo_p &=~ tdo_mask;
-						}
-
-						dtc_mask >>= 1;
-
-						tdo_mask <<= 1;
-						if (tdo_mask == 0) {
-							tdo_p++;
-							tdo_mask = 1;
-						}
-
-					}
-				}
-
-				if ((rq_p->scan.offset + rq_p->scan.length) >= rq_p->scan.size) {
-					/* feed scan buffer back into openocd and free it */
-					if (jtag_read_buffer(rq_p->scan.buffer, rq_p->cmd->cmd.scan) != ERROR_OK) {
-						retval = ERROR_JTAG_QUEUE_FAILED;
-					}
-					free(rq_p->scan.buffer);
-				}
-
-				rq_next = rq_p->next;
-				free(rq_p);
-			}
-			dtc_queue.rq_head = NULL;
-			dtc_queue.rq_tail = NULL;
 		}
 
+		/* process the reply, which empties the reply queue and frees its entries */
+		dtc_p = reply_buffer;
+
+		/* The rigamarole with the masks and doing it bit-by-bit is due to the fact that the scan buffer is LSb-first and the DTC code is MSb-first for hardware reasons.   It was that or craft a function to do the reversal, and that wouldn't work with bit-stuffing (supplying extra bits to use mostly byte operations), or any other scheme which would throw the byte alignment off. */
+
+		for (
+				rq_p = dtc_queue.rq_head;
+				rq_p != NULL;
+				rq_p = rq_next
+		) {
+			tdo_p = rq_p->scan.buffer + (rq_p->scan.offset / 8);
+			tdo_mask = 1 << (rq_p->scan.offset % 8);
+
+
+			bit_cnt = rq_p->scan.length;
+			if (bit_cnt >= 8) {
+				/* bytes */
+
+				dtc_mask = 1 << (8 - 1);
+
+				for (
+						;
+						bit_cnt;
+						bit_cnt--
+				) {
+					if (*dtc_p & dtc_mask) {
+						*tdo_p |= tdo_mask;
+					} else {
+						*tdo_p &=~ tdo_mask;
+					}
+
+					dtc_mask >>= 1;
+					if (dtc_mask == 0) {
+						dtc_p++;
+						dtc_mask = 1 << (8 - 1);
+					}
+
+					tdo_mask <<= 1;
+					if (tdo_mask == 0) {
+						tdo_p++;
+						tdo_mask = 1;
+					}
+				}
+			} else {
+				/*  extra bits or last bit */
+
+				x = *dtc_p++;
+				if ((
+						rq_p->scan.type == SCAN_IN
+				) && (
+						rq_p->scan.offset != rq_p->scan.size - 1
+				)) {
+					/* extra bits were sent as a full byte with padding on the end */
+					dtc_mask = 1 << (8 - 1);
+				} else {
+					dtc_mask = 1 << (bit_cnt - 1);
+				}
+
+				for (
+						;
+						bit_cnt;
+						bit_cnt--
+				) {
+					if (x & dtc_mask) {
+						*tdo_p |= tdo_mask;
+					} else {
+						*tdo_p &=~ tdo_mask;
+					}
+
+					dtc_mask >>= 1;
+
+					tdo_mask <<= 1;
+					if (tdo_mask == 0) {
+						tdo_p++;
+						tdo_mask = 1;
+					}
+
+				}
+			}
+
+			if ((rq_p->scan.offset + rq_p->scan.length) >= rq_p->scan.size) {
+				/* feed scan buffer back into openocd and free it */
+				if (jtag_read_buffer(rq_p->scan.buffer, rq_p->cmd->cmd.scan) != ERROR_OK) {
+					retval = ERROR_JTAG_QUEUE_FAILED;
+				}
+				free(rq_p->scan.buffer);
+			}
+
+			rq_next = rq_p->next;
+			free(rq_p);
+		}
+		dtc_queue.rq_head = NULL;
+		dtc_queue.rq_tail = NULL;
 	}
 
 
@@ -1333,35 +1332,33 @@ rlink_scan(
 	}
 
 	/* Schedule the last bit into the DTC command buffer */
-	{
-		/* make sure there's room for stop, and bit pair command */
-		if (
-				(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1))
-				||
-				(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
-		) {
-			dtc_queue_run();
+	/* make sure there's room for stop, and bit pair command */
+	if (
+			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1))
+			||
+			(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
+	) {
+		dtc_queue_run();
+	}
+
+	if (type == SCAN_OUT) {
+		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
+				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 0);
+
+	} else {
+		if (dtc_queue_enqueue_reply(
+				type, buffer, scan_size, tdi_bit_offset,
+				1,
+				cmd
+		) == NULL) {
+			LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
+			exit(1);
 		}
 
-		if (type == SCAN_OUT) {
-			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-					DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 0);
+		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
+				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 1);
 
-		} else {
-			if (dtc_queue_enqueue_reply(
-					type, buffer, scan_size, tdi_bit_offset,
-					1,
-					cmd
-			) == NULL) {
-				LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
-				exit(1);
-			}
-
-			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-					DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 1);
-
-			dtc_queue.reply_index++;
-		}
+		dtc_queue.reply_index++;
 	}
 
 	/* Move to pause state */
