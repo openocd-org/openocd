@@ -799,6 +799,24 @@ dtc_queue_run(void) {
 	return(retval);
 }
 
+/* runs the queue if it cannot take reserved_cmd bytes of command data
+ * or reserved_reply bytes of reply data */
+static
+int
+dtc_queue_run_if_full(
+		int reserved_cmd,
+		int reserved_reply
+) {
+	/* reserve one additional byte for the STOP cmd appended during run */
+	if (dtc_queue.cmd_index + reserved_cmd + 1 > USB_EP2BANK_SIZE)
+		return dtc_queue_run();
+
+	if (dtc_queue.reply_index + reserved_reply > USB_EP2IN_SIZE)
+		return dtc_queue_run();
+
+	return ERROR_OK;
+}
+
 static
 int
 tap_state_queue_init(void) {
@@ -829,12 +847,8 @@ tap_state_queue_run(void) {
 		if ((bits >= 8) || !i) {
 			byte_param <<= (8 - bits);
 
-			/* make sure there's room for stop, byte op, and one byte */
-			if (dtc_queue.cmd_index >= (sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))) {
-				dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-						DTC_CMD_STOP;
-				dtc_queue_run();
-			}
+			/* make sure there's room for two cmd bytes */
+			dtc_queue_run_if_full(2, 0);
 
 #ifdef USE_HARDWARE_SHIFTER_FOR_TMS
 			if (bits == 8) {
@@ -1145,12 +1159,9 @@ rlink_scan(
 	if (extra_bits && (type == SCAN_OUT)) {
 		/* Schedule any extra bits into the DTC command buffer, padding as needed */
 		/* For SCAN_OUT, this comes before the full bytes so the (leading) padding bits will fall off the end */
-		/* make sure there's room for stop, byte op, and one byte */
-		if (
-				(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
-		) {
-			dtc_queue_run();
-		}
+
+		/* make sure there's room for two cmd bytes */
+		dtc_queue_run_if_full(2, 0);
 
 		x = 0;
 		dtc_mask = 1 << (extra_bits - 1);
@@ -1177,22 +1188,9 @@ rlink_scan(
 
 	/* Loop scheduling full bytes into the DTC command buffer */
 	while (byte_bits) {
-		if (type == SCAN_IN) {
-			/* make sure there's room for stop and byte op */
-			x = (dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1));
-		} else {
-			/* make sure there's room for stop, byte op, and at least one byte */
-			x = (dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1));
-		}
-
-		if (type != SCAN_OUT) {
-			/* make sure there's room for at least one reply byte */
-			x |= (dtc_queue.reply_index >= USB_EP2IN_SIZE - (1));
-		}
-
-		if (x) {
-			dtc_queue_run();
-		}
+		/* make sure there's room for one (for in scans) or two cmd bytes and
+		 * at least one reply byte for in or inout scans*/
+		dtc_queue_run_if_full(type == SCAN_IN ? 1 : 2, type != SCAN_OUT ? 1 : 0);
 
 		chunk_bits = byte_bits;
 		/* we can only use up to 16 bytes at a time */
@@ -1270,14 +1268,10 @@ rlink_scan(
 
 	if (extra_bits && (type != SCAN_OUT)) {
 		/* Schedule any extra bits into the DTC command buffer */
-		/* make sure there's room for stop, byte op, and one byte */
-		if (
-				(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
-				||
-				(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
-		) {
-			dtc_queue_run();
-		}
+
+		/* make sure there's room for one (for in scans) or two cmd bytes
+		 * and one reply byte */
+		dtc_queue_run_if_full(type == SCAN_IN ? 1 : 2, 1);
 
 		if (dtc_queue_enqueue_reply(
 				type, buffer, scan_size, tdi_bit_offset,
@@ -1322,14 +1316,10 @@ rlink_scan(
 	}
 
 	/* Schedule the last bit into the DTC command buffer */
-	/* make sure there's room for stop, and bit pair command */
-	if (
-			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1))
-			||
-			(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
-	) {
-		dtc_queue_run();
-	}
+
+	/* make sure there's room for one cmd byte and one reply byte
+	 * for in or inout scans*/
+	dtc_queue_run_if_full(1, type == SCAN_OUT ? 0 : 1);
 
 	if (type == SCAN_OUT) {
 		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
