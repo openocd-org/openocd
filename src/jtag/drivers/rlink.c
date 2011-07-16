@@ -504,7 +504,7 @@ dtc_run_download(
 	int	usb_err;
 	int	i;
 
-	LOG_DEBUG(": %d/%d", command_buffer_size, reply_buffer_size);
+	LOG_DEBUG("%d/%d", command_buffer_size, reply_buffer_size);
 
 	usb_err = usb_bulk_write(
 			pHDev_param,
@@ -538,9 +538,7 @@ dtc_run_download(
 		if (ep2_buffer[0] & 0x01) break;
 
 		if (!--i) {
-			LOG_ERROR("%s, %d: too many retries waiting for DTC status",
-					__FILE__, __LINE__
-			);
+			LOG_ERROR("too many retries waiting for DTC status");
 			return(-ETIMEDOUT);
 		}
 	}
@@ -556,8 +554,8 @@ dtc_run_download(
 		);
 
 		if (usb_err < (int)sizeof(ep2_buffer)) {
-			LOG_ERROR("%s, %d: Read of endpoint 2 returned %d",
-					__FILE__, __LINE__, usb_err
+			LOG_ERROR("Read of endpoint 2 returned %d, expected %d",
+					usb_err, reply_buffer_size
 			);
 			return(usb_err);
 		}
@@ -1497,10 +1495,7 @@ int rlink_speed(int speed)
 			}
 
 			if (dtc_start_download() < 0) {
-				LOG_ERROR("%s, %d: starting DTC: %s",
-						__FILE__, __LINE__,
-						usb_strerror()
-				);
+				LOG_ERROR("starting DTC: %s", usb_strerror());
 				exit(1);
 			}
 
