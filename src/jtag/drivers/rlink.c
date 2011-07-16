@@ -110,9 +110,9 @@ static usb_dev_handle *pHDev;
 static
 int
 ep1_generic_commandl(
-	usb_dev_handle	*pHDev_param,
-	size_t		length,
-	...
+		usb_dev_handle	*pHDev_param,
+		size_t		length,
+		...
 ) {
 	uint8_t		usb_buffer[USB_EP1OUT_SIZE];
 	uint8_t		*usb_buffer_p;
@@ -132,17 +132,17 @@ ep1_generic_commandl(
 	}
 
 	memset(
-		usb_buffer_p,
-		0,
-		sizeof(usb_buffer) - (usb_buffer_p - usb_buffer)
-);
+			usb_buffer_p,
+			0,
+			sizeof(usb_buffer) - (usb_buffer_p - usb_buffer)
+	);
 
 	usb_ret = usb_bulk_write(
-		pHDev_param,
-		USB_EP1OUT_ADDR,
-		(char *)usb_buffer, sizeof(usb_buffer),
-		USB_TIMEOUT_MS
-);
+			pHDev_param,
+			USB_EP1OUT_ADDR,
+			(char *)usb_buffer, sizeof(usb_buffer),
+			USB_TIMEOUT_MS
+	);
 
 	return(usb_ret);
 }
@@ -153,10 +153,10 @@ ep1_generic_commandl(
 static
 ssize_t
 ep1_memory_read(
-	usb_dev_handle	*pHDev,
-	uint16_t	addr,
-	size_t		length,
-	uint8_t		*buffer
+		usb_dev_handle	*pHDev,
+		uint16_t	addr,
+		size_t		length,
+		uint8_t		*buffer
 ) {
 	uint8_t		usb_buffer[USB_EP1OUT_SIZE];
 	int		usb_ret;
@@ -165,10 +165,10 @@ ep1_memory_read(
 
 	usb_buffer[0] = EP1_CMD_MEMORY_READ;
 	memset(
-		usb_buffer + 4,
-		0,
-		sizeof(usb_buffer) - 4
-);
+			usb_buffer + 4,
+			0,
+			sizeof(usb_buffer) - 4
+	);
 
 	remain = length;
 	count = 0;
@@ -184,21 +184,21 @@ ep1_memory_read(
 		usb_buffer[2] = addr;
 		usb_buffer[3] = length;
 
-			usb_ret = usb_bulk_write(
-			pHDev, USB_EP1OUT_ADDR,
-			usb_buffer, sizeof(usb_buffer),
-			USB_TIMEOUT_MS
-);
+		usb_ret = usb_bulk_write(
+				pHDev, USB_EP1OUT_ADDR,
+				usb_buffer, sizeof(usb_buffer),
+				USB_TIMEOUT_MS
+		);
 
 		if (usb_ret < sizeof(usb_buffer)) {
 			break;
 		}
 
 		usb_ret = usb_bulk_read(
-			pHDev, USB_EP1IN_ADDR,
-			buffer, length,
-			USB_TIMEOUT_MS
-);
+				pHDev, USB_EP1IN_ADDR,
+				buffer, length,
+				USB_TIMEOUT_MS
+		);
 
 		if (usb_ret < length) {
 			break;
@@ -219,10 +219,10 @@ ep1_memory_read(
 static
 ssize_t
 ep1_memory_write(
-	usb_dev_handle	*pHDev_param,
-	uint16_t	addr,
-	size_t		length,
-	uint8_t	const	*buffer
+		usb_dev_handle	*pHDev_param,
+		uint16_t	addr,
+		size_t		length,
+		uint8_t	const	*buffer
 ) {
 	uint8_t		usb_buffer[USB_EP1OUT_SIZE];
 	int		usb_ret;
@@ -245,21 +245,21 @@ ep1_memory_write(
 		usb_buffer[2] = addr;
 		usb_buffer[3] = length;
 		memcpy(
-			usb_buffer + 4,
-			buffer,
-			length
-);
+				usb_buffer + 4,
+				buffer,
+				length
+		);
 		memset(
-			usb_buffer + 4 + length,
-			0,
-			sizeof(usb_buffer) - 4 - length
-);
+				usb_buffer + 4 + length,
+				0,
+				sizeof(usb_buffer) - 4 - length
+		);
 
-			usb_ret = usb_bulk_write(
-			pHDev_param, USB_EP1OUT_ADDR,
-			(char *)usb_buffer, sizeof(usb_buffer),
-			USB_TIMEOUT_MS
-);
+		usb_ret = usb_bulk_write(
+				pHDev_param, USB_EP1OUT_ADDR,
+				(char *)usb_buffer, sizeof(usb_buffer),
+				USB_TIMEOUT_MS
+		);
 
 		if ((size_t)usb_ret < sizeof(usb_buffer)) {
 			break;
@@ -279,10 +279,10 @@ ep1_memory_write(
 static
 ssize_t
 ep1_memory_writel(
-	usb_dev_handle	*pHDev,
-	uint16_t	addr,
-	size_t		length,
-	...
+		usb_dev_handle	*pHDev,
+		uint16_t	addr,
+		size_t		length,
+		...
 ) {
 	uint8_t		buffer[USB_EP1OUT_SIZE - 4];
 	uint8_t		*buffer_p;
@@ -324,9 +324,9 @@ static uint8_t dtc_entry_download;
 static
 int
 dtc_load_from_buffer(
-	usb_dev_handle	*pHDev_param,
-	const uint8_t		*buffer,
-	size_t			length
+		usb_dev_handle	*pHDev_param,
+		const uint8_t		*buffer,
+		size_t			length
 ) {
 	struct header_s {
 		uint8_t	type;
@@ -341,9 +341,9 @@ dtc_load_from_buffer(
 
 	/* Stop the DTC before loading anything. */
 	usb_err = ep1_generic_commandl(
-		pHDev_param, 1,
-		EP1_CMD_DTC_STOP
-);
+			pHDev_param, 1,
+			EP1_CMD_DTC_STOP
+	);
 	if (usb_err < 0) return(usb_err);
 
 	while (length) {
@@ -362,64 +362,64 @@ dtc_load_from_buffer(
 		}
 
 		switch (header->type) {
-			case DTCLOAD_COMMENT:
-				break;
+		case DTCLOAD_COMMENT:
+			break;
 
-			case DTCLOAD_ENTRY:
-				/* store entry addresses somewhere */
-				if (!strncmp("download", (char *)buffer + 1, 8)) {
-					dtc_entry_download = buffer[0];
-				}
-				break;
+		case DTCLOAD_ENTRY:
+			/* store entry addresses somewhere */
+			if (!strncmp("download", (char *)buffer + 1, 8)) {
+				dtc_entry_download = buffer[0];
+			}
+			break;
 
-			case DTCLOAD_LOAD:
-				/* Send the DTC program to ST7 RAM. */
-				usb_err = ep1_memory_write(
+		case DTCLOAD_LOAD:
+			/* Send the DTC program to ST7 RAM. */
+			usb_err = ep1_memory_write(
 					pHDev_param,
 					DTC_LOAD_BUFFER,
 					header->length + 1, buffer
-);
-				if (usb_err < 0) return(usb_err);
+			);
+			if (usb_err < 0) return(usb_err);
 
-				/* Load it into the DTC. */
-				usb_err = ep1_generic_commandl(
+			/* Load it into the DTC. */
+			usb_err = ep1_generic_commandl(
 					pHDev_param, 3,
 					EP1_CMD_DTC_LOAD,
-						(DTC_LOAD_BUFFER >> 8),
-						DTC_LOAD_BUFFER
-);
-				if (usb_err < 0) return(usb_err);
+					(DTC_LOAD_BUFFER >> 8),
+					DTC_LOAD_BUFFER
+			);
+			if (usb_err < 0) return(usb_err);
 
-				break;
+			break;
 
-			case DTCLOAD_RUN:
-				usb_err = ep1_generic_commandl(
+		case DTCLOAD_RUN:
+			usb_err = ep1_generic_commandl(
 					pHDev_param, 3,
 					EP1_CMD_DTC_CALL,
-						buffer[0],
+					buffer[0],
 					EP1_CMD_DTC_WAIT
-);
-				if (usb_err < 0) return(usb_err);
+			);
+			if (usb_err < 0) return(usb_err);
 
-				break;
+			break;
 
-			case DTCLOAD_LUT_START:
-				lut_start = buffer[0];
-				break;
+		case DTCLOAD_LUT_START:
+			lut_start = buffer[0];
+			break;
 
-			case DTCLOAD_LUT:
-				usb_err = ep1_memory_write(
+		case DTCLOAD_LUT:
+			usb_err = ep1_memory_write(
 					pHDev_param,
 					ST7_USB_BUF_EP0OUT + lut_start,
 					header->length + 1, buffer
-);
-				if (usb_err < 0) return(usb_err);
-				break;
+			);
+			if (usb_err < 0) return(usb_err);
+			break;
 
-			default:
-				LOG_ERROR("Invalid DTC image record type: 0x%02x", header->type);
-				exit(1);
-				break;
+		default:
+			LOG_ERROR("Invalid DTC image record type: 0x%02x", header->type);
+			exit(1);
+			break;
 		}
 
 		buffer += (header->length + 1);
@@ -441,51 +441,51 @@ dtc_start_download(void) {
 
 	/* set up for download mode and make sure EP2 is set up to transmit */
 	usb_err = ep1_generic_commandl(
-		pHDev, 7,
+			pHDev, 7,
 
-		EP1_CMD_DTC_STOP,
-		EP1_CMD_SET_UPLOAD,
-		EP1_CMD_SET_DOWNLOAD,
-		EP1_CMD_MEMORY_READ,	/* read EP2TXR for its data toggle */
+			EP1_CMD_DTC_STOP,
+			EP1_CMD_SET_UPLOAD,
+			EP1_CMD_SET_DOWNLOAD,
+			EP1_CMD_MEMORY_READ,	/* read EP2TXR for its data toggle */
 			ST7_EP2TXR >> 8,
 			ST7_EP2TXR,
 			1
-);
+	);
 	if (usb_err < 0) return(usb_err);
 
 	/* read back ep2txr */
 	usb_err = usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)&ep2txr, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)&ep2txr, 1,
+			USB_TIMEOUT_MS
+	);
 	if (usb_err < 0) return(usb_err);
 
 	usb_err = ep1_generic_commandl(
-		pHDev, 13,
+			pHDev, 13,
 
-		EP1_CMD_MEMORY_WRITE,	/* preinitialize poll byte */
+			EP1_CMD_MEMORY_WRITE,	/* preinitialize poll byte */
 			DTC_STATUS_POLL_BYTE >> 8,
 			DTC_STATUS_POLL_BYTE,
 			1,
 			0x00,
-		EP1_CMD_MEMORY_WRITE,	/* set EP2IN to return data */
+			EP1_CMD_MEMORY_WRITE,	/* set EP2IN to return data */
 			ST7_EP2TXR >> 8,
 			ST7_EP2TXR,
 			1,
 			(ep2txr & ST7_EP2TXR_DTOG_TX) | ST7_EP2TXR_STAT_VALID,
-		EP1_CMD_DTC_CALL,	/* start running the DTC */
+			EP1_CMD_DTC_CALL,	/* start running the DTC */
 			dtc_entry_download,
-		EP1_CMD_DTC_GET_CACHED_STATUS
-);
+			EP1_CMD_DTC_GET_CACHED_STATUS
+	);
 	if (usb_err < 0) return(usb_err);
 
 	/* wait for completion */
 	usb_err = usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)&ep2txr, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)&ep2txr, 1,
+			USB_TIMEOUT_MS
+	);
 
 	return(usb_err);
 }
@@ -494,11 +494,11 @@ dtc_start_download(void) {
 static
 int
 dtc_run_download(
-	usb_dev_handle	*pHDev_param,
-	uint8_t	*command_buffer,
-	int	command_buffer_size,
-	uint8_t	*reply_buffer,
-	int	reply_buffer_size
+		usb_dev_handle	*pHDev_param,
+		uint8_t	*command_buffer,
+		int	command_buffer_size,
+		uint8_t	*reply_buffer,
+		int	reply_buffer_size
 ) {
 	uint8_t	ep2_buffer[USB_EP2IN_SIZE];
 	int	usb_err;
@@ -507,40 +507,40 @@ dtc_run_download(
 	LOG_DEBUG(": %d/%d", command_buffer_size, reply_buffer_size);
 
 	usb_err = usb_bulk_write(
-		pHDev_param,
-		USB_EP2OUT_ADDR,
-		(char *)command_buffer, USB_EP2BANK_SIZE,
-		USB_TIMEOUT_MS
-);
+			pHDev_param,
+			USB_EP2OUT_ADDR,
+			(char *)command_buffer, USB_EP2BANK_SIZE,
+			USB_TIMEOUT_MS
+	);
 	if (usb_err < 0) return(usb_err);
 
 
 	/* Wait for DTC to finish running command buffer */
 	for (i = 10;;) {
 		usb_err = ep1_generic_commandl(
-			pHDev_param, 4,
+				pHDev_param, 4,
 
-			EP1_CMD_MEMORY_READ,
+				EP1_CMD_MEMORY_READ,
 				DTC_STATUS_POLL_BYTE >> 8,
 				DTC_STATUS_POLL_BYTE,
 				1
-);
+		);
 		if (usb_err < 0) return(usb_err);
 
 		usb_err = usb_bulk_read(
-			pHDev_param,
-			USB_EP1IN_ADDR,
-			(char *)ep2_buffer, 1,
-			USB_TIMEOUT_MS
-);
+				pHDev_param,
+				USB_EP1IN_ADDR,
+				(char *)ep2_buffer, 1,
+				USB_TIMEOUT_MS
+		);
 		if (usb_err < 0) return(usb_err);
 
 		if (ep2_buffer[0] & 0x01) break;
 
 		if (!--i) {
 			LOG_ERROR("%s, %d: too many retries waiting for DTC status",
-				__FILE__, __LINE__
-);
+					__FILE__, __LINE__
+			);
 			return(-ETIMEDOUT);
 		}
 	}
@@ -549,16 +549,16 @@ dtc_run_download(
 	if (!reply_buffer) reply_buffer_size = 0;
 	if (reply_buffer_size) {
 		usb_err = usb_bulk_read(
-			pHDev_param,
-			USB_EP2IN_ADDR,
-			(char *)ep2_buffer, sizeof(ep2_buffer),
-			USB_TIMEOUT_MS
-);
+				pHDev_param,
+				USB_EP2IN_ADDR,
+				(char *)ep2_buffer, sizeof(ep2_buffer),
+				USB_TIMEOUT_MS
+		);
 
 		if (usb_err < (int)sizeof(ep2_buffer)) {
 			LOG_ERROR("%s, %d: Read of endpoint 2 returned %d",
-				__FILE__, __LINE__, usb_err
-);
+					__FILE__, __LINE__, usb_err
+			);
 			return(usb_err);
 		}
 
@@ -630,12 +630,12 @@ static
 inline
 struct dtc_reply_queue_entry *
 dtc_queue_enqueue_reply(
-	enum scan_type	type,
-	uint8_t				*buffer,
-	int				size,
-	int				offset,
-	int				length,
-	struct jtag_command	*cmd
+		enum scan_type	type,
+		uint8_t				*buffer,
+		int				size,
+		int				offset,
+		int				length,
+		struct jtag_command	*cmd
 ) {
 	struct dtc_reply_queue_entry	*rq_entry;
 
@@ -664,7 +664,7 @@ dtc_queue_enqueue_reply(
 /*
  * Running the queue means that any pending command buffer is run and any reply data dealt with.  The command buffer is then cleared for subsequent processing.
  * The queue is automatically run by append when it is necessary to get space for the append.
-*/
+ */
 
 static
 int
@@ -687,18 +687,18 @@ dtc_queue_run(void) {
 	/* run the cmd */
 	if (dtc_queue.rq_head == NULL) {
 		usb_err = dtc_run_download(pHDev,
-			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
-			NULL, 0
-);
+				dtc_queue.cmd_buffer, dtc_queue.cmd_index,
+				NULL, 0
+		);
 		if (usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s", usb_strerror());
 			exit(1);
 		}
 	} else {
 		usb_err = dtc_run_download(pHDev,
-			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
-			reply_buffer, dtc_queue.reply_index
-);
+				dtc_queue.cmd_buffer, dtc_queue.cmd_index,
+				reply_buffer, dtc_queue.reply_index
+		);
 		if (usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s", usb_strerror());
 			exit(1);
@@ -709,10 +709,10 @@ dtc_queue_run(void) {
 			/* The rigamarole with the masks and doing it bit-by-bit is due to the fact that the scan buffer is LSb-first and the DTC code is MSb-first for hardware reasons.   It was that or craft a function to do the reversal, and that wouldn't work with bit-stuffing (supplying extra bits to use mostly byte operations), or any other scheme which would throw the byte alignment off. */
 
 			for (
-				rq_p = dtc_queue.rq_head;
-				rq_p != NULL;
-				rq_p = rq_next
-) {
+					rq_p = dtc_queue.rq_head;
+					rq_p != NULL;
+					rq_p = rq_next
+			) {
 				tdo_p = rq_p->scan.buffer + (rq_p->scan.offset / 8);
 				tdo_mask = 1 << (rq_p->scan.offset % 8);
 
@@ -724,10 +724,10 @@ dtc_queue_run(void) {
 					dtc_mask = 1 << (8 - 1);
 
 					for (
-						;
-						bit_cnt;
-						bit_cnt--
-) {
+							;
+							bit_cnt;
+							bit_cnt--
+					) {
 						if (*dtc_p & dtc_mask) {
 							*tdo_p |= tdo_mask;
 						} else {
@@ -751,10 +751,10 @@ dtc_queue_run(void) {
 
 					x = *dtc_p++;
 					if ((
-						rq_p->scan.type == SCAN_IN
-) && (
-						rq_p->scan.offset != rq_p->scan.size - 1
-)) {
+							rq_p->scan.type == SCAN_IN
+					) && (
+							rq_p->scan.offset != rq_p->scan.size - 1
+					)) {
 						/* extra bits were sent as a full byte with padding on the end */
 						dtc_mask = 1 << (8 - 1);
 					} else {
@@ -762,10 +762,10 @@ dtc_queue_run(void) {
 					}
 
 					for (
-						;
-						bit_cnt;
-						bit_cnt--
-) {
+							;
+							bit_cnt;
+							bit_cnt--
+					) {
 						if (x & dtc_mask) {
 							*tdo_p |= tdo_mask;
 						} else {
@@ -786,7 +786,7 @@ dtc_queue_run(void) {
 				if ((rq_p->scan.offset + rq_p->scan.length) >= rq_p->scan.size) {
 					/* feed scan buffer back into openocd and free it */
 					if (jtag_read_buffer(rq_p->scan.buffer, rq_p->cmd->cmd.scan) != ERROR_OK) {
-						 retval = ERROR_JTAG_QUEUE_FAILED;
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					}
 					free(rq_p->scan.buffer);
 				}
@@ -843,24 +843,24 @@ tap_state_queue_run(void) {
 			/* make sure there's room for stop, byte op, and one byte */
 			if (dtc_queue.cmd_index >= (sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))) {
 				dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-					DTC_CMD_STOP;
+						DTC_CMD_STOP;
 				dtc_queue_run();
 			}
 
 #ifdef USE_HARDWARE_SHIFTER_FOR_TMS
 			if (bits == 8) {
 				dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-					DTC_CMD_SHIFT_TMS_BYTES(1);
+						DTC_CMD_SHIFT_TMS_BYTES(1);
 			} else {
 #endif
 				dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-					DTC_CMD_SHIFT_TMS_BITS(bits);
+						DTC_CMD_SHIFT_TMS_BITS(bits);
 #ifdef USE_HARDWARE_SHIFTER_FOR_TMS
 			}
 #endif
 
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-				byte_param;
+					byte_param;
 
 			byte_param = 0;
 			bits = 1;
@@ -878,7 +878,7 @@ tap_state_queue_run(void) {
 static
 int
 tap_state_queue_append(
-	uint8_t	tms
+		uint8_t	tms
 ) {
 	int	retval;
 
@@ -996,22 +996,22 @@ void rlink_reset(int trst, int srst)
 
 	/* Read port A for bit op */
 	usb_err = ep1_generic_commandl(
-		pHDev, 4,
-		EP1_CMD_MEMORY_READ,
+			pHDev, 4,
+			EP1_CMD_MEMORY_READ,
 			ST7_PADR >> 8,
 			ST7_PADR,
 			1
-);
+	);
 	if (usb_err < 0) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 
 	usb_err = usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)&bitmap, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)&bitmap, 1,
+			USB_TIMEOUT_MS
+	);
 	if (usb_err < 1) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
@@ -1026,27 +1026,27 @@ void rlink_reset(int trst, int srst)
 	/* Write port A and read port B for bit op */
 	/* port B has no OR, and we want to emulate open drain on NSRST, so we initialize DR to 0 and assert NSRST by setting DDR to 1. */
 	usb_err = ep1_generic_commandl(
-		pHDev, 9,
-		EP1_CMD_MEMORY_WRITE,
+			pHDev, 9,
+			EP1_CMD_MEMORY_WRITE,
 			ST7_PADR >> 8,
 			ST7_PADR,
 			1,
-		 	bitmap,
-		EP1_CMD_MEMORY_READ,
+			bitmap,
+			EP1_CMD_MEMORY_READ,
 			ST7_PBDDR >> 8,
 			ST7_PBDDR,
 			1
-);
+	);
 	if (usb_err < 0) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 
 	usb_err = usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)&bitmap, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)&bitmap, 1,
+			USB_TIMEOUT_MS
+	);
 	if (usb_err < 1) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
@@ -1060,24 +1060,24 @@ void rlink_reset(int trst, int srst)
 
 	/* write port B and read dummy to ensure completion before returning */
 	usb_err = ep1_generic_commandl(
-		pHDev, 6,
-		EP1_CMD_MEMORY_WRITE,
+			pHDev, 6,
+			EP1_CMD_MEMORY_WRITE,
 			ST7_PBDDR >> 8,
 			ST7_PBDDR,
 			1,
 			bitmap,
-		EP1_CMD_DTC_GET_CACHED_STATUS
-);
+			EP1_CMD_DTC_GET_CACHED_STATUS
+	);
 	if (usb_err < 0) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 
 	usb_err = usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)&bitmap, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)&bitmap, 1,
+			USB_TIMEOUT_MS
+	);
 	if (usb_err < 1) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
@@ -1088,10 +1088,10 @@ void rlink_reset(int trst, int srst)
 static
 int
 rlink_scan(
-	struct jtag_command	*cmd,
-	enum scan_type	type,
-	uint8_t			*buffer,
-	int			scan_size
+		struct jtag_command	*cmd,
+		enum scan_type	type,
+		uint8_t			*buffer,
+		int			scan_size
 ) {
 	bool		ir_scan;
 	tap_state_t	saved_end_state;
@@ -1114,10 +1114,10 @@ rlink_scan(
 
 	/* Move to the proper state before starting to shift TDI/TDO. */
 	if (!(
-		(!ir_scan && (tap_get_state() == TAP_DRSHIFT))
-		||
-		(ir_scan && (tap_get_state() == TAP_IRSHIFT))
-)) {
+			(!ir_scan && (tap_get_state() == TAP_DRSHIFT))
+			||
+			(ir_scan && (tap_get_state() == TAP_IRSHIFT))
+	)) {
 		saved_end_state = tap_get_end_state();
 		rlink_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 		rlink_state_move();
@@ -1158,8 +1158,8 @@ rlink_scan(
 		/* For SCAN_OUT, this comes before the full bytes so the (leading) padding bits will fall off the end */
 		/* make sure there's room for stop, byte op, and one byte */
 		if (
-			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
-) {
+				(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
+		) {
 			dtc_queue_run();
 		}
 
@@ -1181,7 +1181,7 @@ rlink_scan(
 		}
 
 		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-			DTC_CMD_SHIFT_TDI_BYTES(1);
+				DTC_CMD_SHIFT_TDI_BYTES(1);
 
 		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
 	}
@@ -1226,10 +1226,10 @@ rlink_scan(
 
 		if (type != SCAN_OUT) {
 			if (dtc_queue_enqueue_reply(
-				type, buffer, scan_size, tdi_bit_offset,
-				chunk_bits,
-				cmd
-) == NULL) {
+					type, buffer, scan_size, tdi_bit_offset,
+					chunk_bits,
+					cmd
+			) == NULL) {
 				LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 				exit(1);
 			}
@@ -1241,15 +1241,15 @@ rlink_scan(
 		chunk_bytes = chunk_bits / 8;
 
 		switch (type) {
-			case SCAN_IN:
-				x = DTC_CMD_SHIFT_TDO_BYTES(chunk_bytes);
-				break;
-			case SCAN_OUT:
-				x = DTC_CMD_SHIFT_TDI_BYTES(chunk_bytes);
-				break;
-			default:
-				x = DTC_CMD_SHIFT_TDIO_BYTES(chunk_bytes);
-				break;
+		case SCAN_IN:
+			x = DTC_CMD_SHIFT_TDO_BYTES(chunk_bytes);
+			break;
+		case SCAN_OUT:
+			x = DTC_CMD_SHIFT_TDI_BYTES(chunk_bytes);
+			break;
+		default:
+			x = DTC_CMD_SHIFT_TDIO_BYTES(chunk_bytes);
+			break;
 		}
 		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
 
@@ -1283,18 +1283,18 @@ rlink_scan(
 		/* Schedule any extra bits into the DTC command buffer */
 		/* make sure there's room for stop, byte op, and one byte */
 		if (
-			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
-			||
-			(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
-) {
+				(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
+				||
+				(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
+		) {
 			dtc_queue_run();
 		}
 
 		if (dtc_queue_enqueue_reply(
-			type, buffer, scan_size, tdi_bit_offset,
-			extra_bits,
-			cmd
-) == NULL) {
+				type, buffer, scan_size, tdi_bit_offset,
+				extra_bits,
+				cmd
+		) == NULL) {
 			LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 			exit(1);
 		}
@@ -1303,11 +1303,11 @@ rlink_scan(
 
 		if (type == SCAN_IN) {
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-				DTC_CMD_SHIFT_TDO_BYTES(1);
+					DTC_CMD_SHIFT_TDO_BYTES(1);
 
 		} else {
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-				DTC_CMD_SHIFT_TDIO_BITS(extra_bits);
+					DTC_CMD_SHIFT_TDIO_BITS(extra_bits);
 
 			x = 0;
 			dtc_mask = 1 << (8 - 1);
@@ -1336,29 +1336,29 @@ rlink_scan(
 	{
 		/* make sure there's room for stop, and bit pair command */
 		if (
-			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1))
-			||
-			(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
-) {
+				(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1))
+				||
+				(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
+		) {
 			dtc_queue_run();
 		}
 
 		if (type == SCAN_OUT) {
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 0);
+					DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 0);
 
 		} else {
 			if (dtc_queue_enqueue_reply(
-				type, buffer, scan_size, tdi_bit_offset,
-				1,
-				cmd
-) == NULL) {
+					type, buffer, scan_size, tdi_bit_offset,
+					1,
+					cmd
+			) == NULL) {
 				LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 				exit(1);
 			}
 
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
-				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 1);
+					DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 1);
 
 			dtc_queue.reply_index++;
 		}
@@ -1388,83 +1388,83 @@ int rlink_execute_queue(void)
 #ifndef AUTOMATIC_BUSY_LED
 	/* turn LED on */
 	ep1_generic_commandl(pHDev, 2,
-		EP1_CMD_SET_PORTD_LEDS,
-		~(ST7_PD_NBUSY_LED)
-);
+			EP1_CMD_SET_PORTD_LEDS,
+			~(ST7_PD_NBUSY_LED)
+	);
 #endif
 
 	while (cmd)
 	{
 		switch (cmd->type)
 		{
-			case JTAG_RUNTEST:
-			case JTAG_TLR_RESET:
-			case JTAG_PATHMOVE:
-			case JTAG_SCAN:
-				break;
+		case JTAG_RUNTEST:
+		case JTAG_TLR_RESET:
+		case JTAG_PATHMOVE:
+		case JTAG_SCAN:
+			break;
 
-			default:
-				/* some events, such as resets, need a queue flush to ensure consistency */
-				tap_state_queue_run();
-				dtc_queue_run();
-				break;
+		default:
+			/* some events, such as resets, need a queue flush to ensure consistency */
+			tap_state_queue_run();
+			dtc_queue_run();
+			break;
 		}
 
 		switch (cmd->type)
 		{
-			case JTAG_RESET:
+		case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+			LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
-				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
-				{
-					tap_set_state(TAP_RESET);
-				}
-				rlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-				break;
-			case JTAG_RUNTEST:
+			if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
+			{
+				tap_set_state(TAP_RESET);
+			}
+			rlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+			break;
+		case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+			LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
-				if (cmd->cmd.runtest->end_state != -1)
-					rlink_end_state(cmd->cmd.runtest->end_state);
-				rlink_runtest(cmd->cmd.runtest->num_cycles);
-				break;
-			case JTAG_TLR_RESET:
+			if (cmd->cmd.runtest->end_state != -1)
+				rlink_end_state(cmd->cmd.runtest->end_state);
+			rlink_runtest(cmd->cmd.runtest->num_cycles);
+			break;
+		case JTAG_TLR_RESET:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
+			LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
-				if (cmd->cmd.statemove->end_state != -1)
-					rlink_end_state(cmd->cmd.statemove->end_state);
-				rlink_state_move();
-				break;
-			case JTAG_PATHMOVE:
+			if (cmd->cmd.statemove->end_state != -1)
+				rlink_end_state(cmd->cmd.statemove->end_state);
+			rlink_state_move();
+			break;
+		case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+			LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 #endif
-				rlink_path_move(cmd->cmd.pathmove);
-				break;
-			case JTAG_SCAN:
+			rlink_path_move(cmd->cmd.pathmove);
+			break;
+		case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan end in %i",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", cmd->cmd.scan->end_state);
+			LOG_DEBUG("%s scan end in %i",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", cmd->cmd.scan->end_state);
 #endif
-				if (cmd->cmd.scan->end_state != -1)
-					rlink_end_state(cmd->cmd.scan->end_state);
-				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
-				type = jtag_scan_type(cmd->cmd.scan);
-				if (rlink_scan(cmd, type, buffer, scan_size) != ERROR_OK) {
-					retval = ERROR_FAIL;
-				}
-				break;
-			case JTAG_SLEEP:
+			if (cmd->cmd.scan->end_state != -1)
+				rlink_end_state(cmd->cmd.scan->end_state);
+			scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
+			type = jtag_scan_type(cmd->cmd.scan);
+			if (rlink_scan(cmd, type, buffer, scan_size) != ERROR_OK) {
+				retval = ERROR_FAIL;
+			}
+			break;
+		case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
+			LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
-				jtag_sleep(cmd->cmd.sleep->us);
-				break;
-			default:
-				LOG_ERROR("BUG: unknown JTAG command type encountered");
-				exit(-1);
+			jtag_sleep(cmd->cmd.sleep->us);
+			break;
+		default:
+			LOG_ERROR("BUG: unknown JTAG command type encountered");
+			exit(-1);
 		}
 		cmd = cmd->next;
 	}
@@ -1479,9 +1479,9 @@ int rlink_execute_queue(void)
 #ifndef AUTOMATIC_BUSY_LED
 	/* turn LED onff */
 	ep1_generic_commandl(pHDev, 2,
-		EP1_CMD_SET_PORTD_LEDS,
-		~0
-);
+			EP1_CMD_SET_PORTD_LEDS,
+			~0
+	);
 #endif
 
 	return retval;
@@ -1509,9 +1509,9 @@ int rlink_speed(int speed)
 
 			if (dtc_start_download() < 0) {
 				LOG_ERROR("%s, %d: starting DTC: %s",
-					__FILE__, __LINE__,
-					usb_strerror()
-);
+						__FILE__, __LINE__,
+						usb_strerror()
+				);
 				exit(1);
 			}
 
@@ -1526,8 +1526,8 @@ int rlink_speed(int speed)
 
 static
 int rlink_speed_div(
-	int speed,
-	int *khz
+		int speed,
+		int *khz
 ) {
 	int	i;
 
@@ -1545,8 +1545,8 @@ int rlink_speed_div(
 
 static
 int rlink_khz(
-	int khz,
-	int *speed
+		int khz,
+		int *speed
 ) {
 	int	i;
 
@@ -1639,18 +1639,18 @@ int rlink_init(void)
 	 */
 	for (i = 0; i < 5; i++) {
 		j = ep1_generic_commandl(
-			pHDev, 1,
-			EP1_CMD_GET_FWREV
-);
+				pHDev, 1,
+				EP1_CMD_GET_FWREV
+		);
 		if (j < USB_EP1OUT_SIZE) {
 			LOG_ERROR("USB write error: %s", usb_strerror());
 			return(ERROR_FAIL);
 		}
 		j = usb_bulk_read(
-			pHDev, USB_EP1IN_ADDR,
-			(char *)reply_buffer, sizeof(reply_buffer),
-			200
-);
+				pHDev, USB_EP1IN_ADDR,
+				(char *)reply_buffer, sizeof(reply_buffer),
+				200
+		);
 		if (j != -ETIMEDOUT) break;
 	}
 
@@ -1666,55 +1666,55 @@ int rlink_init(void)
 
 	/* Probe port E for adapter presence */
 	ep1_generic_commandl(
-		pHDev, 16,
-		EP1_CMD_MEMORY_WRITE,	/* Drive sense pin with 0 */
+			pHDev, 16,
+			EP1_CMD_MEMORY_WRITE,	/* Drive sense pin with 0 */
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			3,
 			0x00,						/* DR */
 			ST7_PE_ADAPTER_SENSE_OUT,	/* DDR */
 			ST7_PE_ADAPTER_SENSE_OUT,	/* OR */
-		EP1_CMD_MEMORY_READ,	/* Read back */
+			EP1_CMD_MEMORY_READ,	/* Read back */
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			1,
-		EP1_CMD_MEMORY_WRITE,	/* Drive sense pin with 1 */
+			EP1_CMD_MEMORY_WRITE,	/* Drive sense pin with 1 */
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			1,
 			ST7_PE_ADAPTER_SENSE_OUT
-);
+	);
 
 	usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)reply_buffer, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)reply_buffer, 1,
+			USB_TIMEOUT_MS
+	);
 
 	if ((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) != 0) {
 		LOG_WARNING("target detection problem");
 	}
 
 	ep1_generic_commandl(
-		pHDev, 11,
-		EP1_CMD_MEMORY_READ,	/* Read back */
+			pHDev, 11,
+			EP1_CMD_MEMORY_READ,	/* Read back */
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			1,
-		EP1_CMD_MEMORY_WRITE,	/* float port E */
+			EP1_CMD_MEMORY_WRITE,	/* float port E */
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			3,
 			0x00,	/* DR */
 			0x00,	/* DDR */
 			0x00	/* OR */
-);
+	);
 
 	usb_bulk_read(
-		pHDev, USB_EP1IN_ADDR,
-		(char *)reply_buffer, 1,
-		USB_TIMEOUT_MS
-);
+			pHDev, USB_EP1IN_ADDR,
+			(char *)reply_buffer, 1,
+			USB_TIMEOUT_MS
+	);
 
 
 	if ((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) == 0) {
@@ -1723,51 +1723,51 @@ int rlink_init(void)
 
 	/* float ports A and B */
 	ep1_generic_commandl(
-		pHDev, 11,
-		EP1_CMD_MEMORY_WRITE,
+			pHDev, 11,
+			EP1_CMD_MEMORY_WRITE,
 			ST7_PADDR >> 8,
 			ST7_PADDR,
 			2,
 			0x00,
 			0x00,
-		EP1_CMD_MEMORY_WRITE,
+			EP1_CMD_MEMORY_WRITE,
 			ST7_PBDDR >> 8,
 			ST7_PBDDR,
 			1,
 			0x00
-);
+	);
 
 	/* make sure DTC is stopped, set VPP control, set up ports A and B */
 	ep1_generic_commandl(
-		pHDev, 14,
-		EP1_CMD_DTC_STOP,
-		EP1_CMD_SET_PORTD_VPP,
+			pHDev, 14,
+			EP1_CMD_DTC_STOP,
+			EP1_CMD_SET_PORTD_VPP,
 			~(ST7_PD_VPP_SHDN),
-		EP1_CMD_MEMORY_WRITE,
+			EP1_CMD_MEMORY_WRITE,
 			ST7_PADR >> 8,
 			ST7_PADR,
 			2,
 			((~(0)) & (ST7_PA_NTRST)),
-		 	(ST7_PA_NTRST),
-	/* port B has no OR, and we want to emulate open drain on NSRST, so we set DR to 0 here and later assert NSRST by setting DDR bit to 1. */
-		EP1_CMD_MEMORY_WRITE,
+			(ST7_PA_NTRST),
+			/* port B has no OR, and we want to emulate open drain on NSRST, so we set DR to 0 here and later assert NSRST by setting DDR bit to 1. */
+			EP1_CMD_MEMORY_WRITE,
 			ST7_PBDR >> 8,
 			ST7_PBDR,
 			1,
 			0x00
-);
+	);
 
 	/* set LED updating mode and make sure they're unlit */
 	ep1_generic_commandl(
-		pHDev, 3,
+			pHDev, 3,
 #ifdef AUTOMATIC_BUSY_LED
-		EP1_CMD_LEDUE_BUSY,
+			EP1_CMD_LEDUE_BUSY,
 #else
-		EP1_CMD_LEDUE_NONE,
+			EP1_CMD_LEDUE_NONE,
 #endif
-		EP1_CMD_SET_PORTD_LEDS,
+			EP1_CMD_SET_PORTD_LEDS,
 			~0
-);
+	);
 
 	tap_state_queue_init();
 	dtc_queue_init();
@@ -1782,14 +1782,14 @@ int rlink_quit(void)
 {
 	/* stop DTC and make sure LEDs are off */
 	ep1_generic_commandl(
-		pHDev, 6,
-		EP1_CMD_DTC_STOP,
-		EP1_CMD_LEDUE_NONE,
-		EP1_CMD_SET_PORTD_LEDS,
+			pHDev, 6,
+			EP1_CMD_DTC_STOP,
+			EP1_CMD_LEDUE_NONE,
+			EP1_CMD_SET_PORTD_LEDS,
 			~0,
-		EP1_CMD_SET_PORTD_VPP,
+			EP1_CMD_SET_PORTD_VPP,
 			~0
-);
+	);
 
 	usb_release_interface(pHDev,0);
 	usb_close(pHDev);
@@ -1801,11 +1801,11 @@ int rlink_quit(void)
 
 struct jtag_interface rlink_interface =
 {
-	.name = "rlink",
-	.init = rlink_init,
-	.quit = rlink_quit,
-	.speed = rlink_speed,
-	.speed_div = rlink_speed_div,
-	.khz = rlink_khz,
-	.execute_queue = rlink_execute_queue,
+		.name = "rlink",
+		.init = rlink_init,
+		.quit = rlink_quit,
+		.speed = rlink_speed,
+		.speed_div = rlink_speed_div,
+		.khz = rlink_khz,
+		.execute_queue = rlink_execute_queue,
 };
