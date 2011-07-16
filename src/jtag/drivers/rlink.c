@@ -500,7 +500,7 @@ dtc_run_download(
 		uint8_t	*reply_buffer,
 		int	reply_buffer_size
 ) {
-	uint8_t	ep2_buffer[USB_EP2IN_SIZE];
+	char dtc_status;
 	int	usb_err;
 	int	i;
 
@@ -530,12 +530,12 @@ dtc_run_download(
 		usb_err = usb_bulk_read(
 				pHDev_param,
 				USB_EP1IN_ADDR,
-				(char *)ep2_buffer, 1,
+				&dtc_status, 1,
 				USB_TIMEOUT_MS
 		);
 		if (usb_err < 0) return(usb_err);
 
-		if (ep2_buffer[0] & 0x01) break;
+		if (dtc_status & 0x01) break;
 
 		if (!--i) {
 			LOG_ERROR("too many retries waiting for DTC status");
@@ -544,24 +544,20 @@ dtc_run_download(
 	}
 
 
-	if (!reply_buffer) reply_buffer_size = 0;
-	if (reply_buffer_size) {
+	if (reply_buffer && reply_buffer_size) {
 		usb_err = usb_bulk_read(
 				pHDev_param,
 				USB_EP2IN_ADDR,
-				(char *)ep2_buffer, sizeof(ep2_buffer),
+				(char *)reply_buffer, reply_buffer_size,
 				USB_TIMEOUT_MS
 		);
 
-		if (usb_err < (int)sizeof(ep2_buffer)) {
+		if (usb_err < reply_buffer_size) {
 			LOG_ERROR("Read of endpoint 2 returned %d, expected %d",
 					usb_err, reply_buffer_size
 			);
 			return(usb_err);
 		}
-
-		memcpy(reply_buffer, ep2_buffer, reply_buffer_size);
-
 	}
 
 	return(usb_err);
