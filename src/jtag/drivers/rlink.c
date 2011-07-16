@@ -688,26 +688,16 @@ dtc_queue_run(void) {
 
 	dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = DTC_CMD_STOP;
 
-	/* run the cmd */
-	if (dtc_queue.rq_head == NULL) {
-		usb_err = dtc_run_download(pHDev,
-				dtc_queue.cmd_buffer, dtc_queue.cmd_index,
-				NULL, 0
-		);
-		if (usb_err < 0) {
-			LOG_ERROR("dtc_run_download: %s", usb_strerror());
-			exit(1);
-		}
-	} else {
-		usb_err = dtc_run_download(pHDev,
-				dtc_queue.cmd_buffer, dtc_queue.cmd_index,
-				reply_buffer, dtc_queue.reply_index
-		);
-		if (usb_err < 0) {
-			LOG_ERROR("dtc_run_download: %s", usb_strerror());
-			exit(1);
-		}
+	usb_err = dtc_run_download(pHDev,
+			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
+			reply_buffer, dtc_queue.reply_index
+	);
+	if (usb_err < 0) {
+		LOG_ERROR("dtc_run_download: %s", usb_strerror());
+		exit(1);
+	}
 
+	if (dtc_queue.rq_head != NULL) {
 		/* process the reply, which empties the reply queue and frees its entries */
 		dtc_p = reply_buffer;
 
