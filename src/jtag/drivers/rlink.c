@@ -678,6 +678,10 @@ dtc_queue_run(void) {
 	uint8_t			dtc_mask, tdo_mask;
 	uint8_t			reply_buffer[USB_EP2IN_SIZE];
 
+	assert((dtc_queue.rq_head != 0) == (dtc_queue.reply_index > 0));
+	assert(dtc_queue.cmd_index < USB_EP2BANK_SIZE);
+	assert(dtc_queue.reply_index <= USB_EP2IN_SIZE);
+
 	retval = ERROR_OK;
 
 	if (dtc_queue.cmd_index < 1) return(retval);
@@ -806,8 +810,6 @@ dtc_queue_run(void) {
 
 	return(retval);
 }
-
-
 
 static
 int
@@ -1232,6 +1234,7 @@ rlink_scan(
 				LOG_ERROR("enqueuing DTC reply entry: %s", strerror(errno));
 				exit(1);
 			}
+			dtc_queue.reply_index += (chunk_bits + 7) / 8;
 
 			tdi_bit_offset += chunk_bits;
 		}
@@ -1264,7 +1267,6 @@ rlink_scan(
 				dtc_mask >>= 1;
 				if (dtc_mask == 0) {
 					dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
-					dtc_queue.reply_index++;
 					x = 0;
 					dtc_mask = 1 << (8 - 1);
 				}
@@ -1298,6 +1300,8 @@ rlink_scan(
 			exit(1);
 		}
 
+		dtc_queue.reply_index++;
+
 		tdi_bit_offset += extra_bits;
 
 		if (type == SCAN_IN) {
@@ -1327,8 +1331,6 @@ rlink_scan(
 
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
 		}
-
-		dtc_queue.reply_index++;
 	}
 
 	/* Schedule the last bit into the DTC command buffer */
@@ -1355,10 +1357,10 @@ rlink_scan(
 			exit(1);
 		}
 
+		dtc_queue.reply_index++;
+
 		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
 				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 1);
-
-		dtc_queue.reply_index++;
 	}
 
 	/* Move to pause state */
