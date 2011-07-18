@@ -3,7 +3,7 @@
 AUTOMAKE_OPTIONS = gnu 1.6
 
 # make sure we pass the correct jimtcl flags to distcheck
-DISTCHECK_CONFIGURE_FLAGS = --with-jim-ext=nvp --disable-lineedit
+DISTCHECK_CONFIGURE_FLAGS = --with-jim-ext=nvp --disable-lineedit --disable-install-jim
 
 nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/dcc_stdio.c \
