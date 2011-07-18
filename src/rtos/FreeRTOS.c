@@ -244,6 +244,7 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 	list_of_lists[num_lists++] =  rtos->symbols[FreeRTOS_VAL_xDelayedTaskList1].address;
 	list_of_lists[num_lists++] =  rtos->symbols[FreeRTOS_VAL_xDelayedTaskList2].address;
 	list_of_lists[num_lists++] =  rtos->symbols[FreeRTOS_VAL_xPendingReadyList].address;
+	list_of_lists[num_lists++] =  rtos->symbols[FreeRTOS_VAL_xSuspendedTaskList].address;
 	list_of_lists[num_lists++] =  rtos->symbols[FreeRTOS_VAL_xTasksWaitingTermination].address;
 
 
