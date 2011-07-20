@@ -1228,6 +1228,8 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t se
     retval = dsp5680xx_halt(target);
     err_check_propagate(retval);
   }
+  retval = eonce_set_hfmdiv(target);
+  err_check_propagate(retval);
   // Check if chip is already erased.
   retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+sector*HFM_SECTOR_SIZE/2,0,&hfm_ustat,1); // blank check
   err_check_propagate(retval);
