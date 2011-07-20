@@ -742,7 +742,7 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
   for (unsigned i=0; i<count; i++){
     if(--counter==0){
       dsp5680xx_context.flush = 1;
-      counter = FLUSH_COUNT_FLASH;
+      counter = FLUSH_COUNT_READ_WRITE;
     }
     switch (size){
     case 1:
