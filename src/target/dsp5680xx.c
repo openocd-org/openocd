@@ -116,9 +116,9 @@ static int dsp5680xx_jtag_status(struct target *target, uint8_t * status){
   return ERROR_OK;
 }
 
-static int jtag_data_read(struct target * target, uint32_t * data_read, int num_bits){
-  uint32_t bogus_instr;
-  int retval = dsp5680xx_drscan(target,(uint8_t *) & bogus_instr,(uint8_t *) data_read,num_bits);
+static int jtag_data_read(struct target * target, uint8_t * data_read, int num_bits){
+  uint32_t bogus_instr = 0;
+  int retval = dsp5680xx_drscan(target,(uint8_t *) & bogus_instr,data_read,num_bits);
   LOG_DEBUG("Data read (%d bits): 0x%04X",num_bits,*data_read);//TODO remove this or move to jtagio?
   return retval;
 }
@@ -127,9 +127,9 @@ static int jtag_data_read(struct target * target, uint32_t * data_read, int num_
 #define jtag_data_read16(target,data_read) jtag_data_read(target,data_read,16)
 #define jtag_data_read32(target,data_read) jtag_data_read(target,data_read,32)
 
+static uint32_t data_read_dummy;
 static int jtag_data_write(struct target * target, uint32_t instr,int num_bits, uint32_t * data_read){
   int retval;
-  uint32_t data_read_dummy;
   retval = dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & data_read_dummy,num_bits);
   err_check_propagate(retval);
   if(data_read != NULL)
@@ -244,12 +244,12 @@ static int eonce_tx_upper_data(struct target * target, uint16_t data, uint32_t *
  * @param data_read: Returns the data read from the upper OTX register via JTAG.
  * @return: Returns an error code (see error code documentation)
  */
-static int eonce_rx_upper_data(struct target * target, uint16_t * data_read)
+static int eonce_rx_upper_data(struct target * target, uint8_t * data_read)
 {
   int retval;
   retval = eonce_instruction_exec(target,DSP5680XX_ONCE_OTX1,1,0,0,NULL);
   err_check_propagate(retval);
-  retval = jtag_data_read16(target,(uint32_t *)data_read);
+  retval = jtag_data_read16(target,data_read);
   err_check_propagate(retval);
   return retval;
 }
@@ -260,12 +260,12 @@ static int eonce_rx_upper_data(struct target * target, uint16_t * data_read)
  * @param data_read: Returns the data read from the lower OTX register via JTAG.
  * @return: Returns an error code (see error code documentation)
  */
-static int eonce_rx_lower_data(struct target * target,uint16_t * data_read)
+static int eonce_rx_lower_data(struct target * target,uint8_t * data_read)
 {
   int retval;
   retval = eonce_instruction_exec(target,DSP5680XX_ONCE_OTX,1,0,0,NULL);
   err_check_propagate(retval);
-  retval = jtag_data_read16(target,(uint32_t *)data_read);
+  retval = jtag_data_read16(target,data_read);
   err_check_propagate(retval);
   return retval;
 }
@@ -495,7 +495,7 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
  * @return 
  */
 static int eonce_pc_store(struct target * target){
-  uint32_t tmp = 0;
+  uint8_t tmp[2];
   int retval;
   retval = eonce_move_pc_to_r4(target);
   err_check_propagate(retval);
@@ -505,10 +505,10 @@ static int eonce_pc_store(struct target * target){
   err_check_propagate(retval);
   retval = eonce_move_y0_at_r0(target);
   err_check_propagate(retval);
-  retval = eonce_rx_lower_data(target,(uint16_t *)&tmp);
+  retval = eonce_rx_lower_data(target,tmp);
   err_check_propagate(retval);
-  LOG_USER("PC value: 0x%06X\n",tmp);
-  dsp5680xx_context.stored_pc = (uint32_t)tmp;
+  LOG_USER("PC value: 0x%X%X\n",tmp[1],tmp[0]);
+  dsp5680xx_context.stored_pc = (tmp[0]|(tmp[1]<<8));
   return ERROR_OK;
 }
 
@@ -547,7 +547,7 @@ static int dsp5680xx_deassert_reset(struct target *target){
 
 static int dsp5680xx_halt(struct target *target){
   int retval;
-  uint16_t eonce_status;
+  uint16_t eonce_status = 0xbeef;
   if(target->state == TARGET_HALTED){
     LOG_USER("Target already halted.");
     return ERROR_OK;
@@ -672,8 +672,7 @@ static int dsp5680xx_convert_address(uint32_t * address, int * pmem){
   return ERROR_OK;
 }
 
-static int dsp5680xx_read_16_single(struct target * target, uint32_t address, uint16_t * data_read, int r_pmem){
-  //TODO add error control!
+static int dsp5680xx_read_16_single(struct target * target, uint32_t address, uint8_t * data_read, int r_pmem){
   int retval;
   retval = eonce_move_long_to_r0(target,address);
   err_check_propagate(retval);
@@ -689,11 +688,11 @@ static int dsp5680xx_read_16_single(struct target * target, uint32_t address, ui
   // at this point the data i want is at the reg eonce can read
   retval = eonce_rx_lower_data(target,data_read);
   err_check_propagate(retval);
-  LOG_DEBUG("%s: Data read from 0x%06X: 0x%04X",__FUNCTION__, address,*data_read);
+  LOG_DEBUG("%s: Data read from 0x%06X: 0x%02X%02X",__FUNCTION__, address,data_read[1],data_read[0]);
   return retval;
 }
 
-static int dsp5680xx_read_32_single(struct target * target, uint32_t address, uint32_t * data_read, int r_pmem){
+static int dsp5680xx_read_32_single(struct target * target, uint32_t address, uint8_t * data_read, int r_pmem){
   int retval;
   address = (address & 0xFFFFFE);
   // Get data to an intermediate register
@@ -719,12 +718,10 @@ static int dsp5680xx_read_32_single(struct target * target, uint32_t address, ui
   retval = eonce_move_y1_at_r0(target);
   err_check_propagate(retval);
   // at this point the data i want is at the reg eonce can read
-  retval = eonce_rx_lower_data(target,(uint16_t * )data_read);
+  retval = eonce_rx_lower_data(target,data_read);
   err_check_propagate(retval);
-  uint16_t tmp;
-  retval = eonce_rx_upper_data(target,&tmp);
+  retval = eonce_rx_upper_data(target,data_read+2);
   err_check_propagate(retval);
-  *data_read = ((tmp<<16) | (*data_read));//This enables OpenOCD crc to succeed (when it should)
   return retval;
 }
 
@@ -733,11 +730,8 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
     LOG_USER("Target must be halted.");
     return ERROR_OK;
   }
-  uint32_t * buff32 = (uint32_t *) buffer;
-  uint16_t * buff16 = (uint16_t *) buffer;
   int retval = ERROR_OK;
   int pmem = 1;
-  uint16_t tmp_wrd;
 
   retval = dsp5680xx_convert_address(&address, &pmem);
   err_check_propagate(retval);
@@ -753,16 +747,14 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
     switch (size){
     case 1:
       if(!(i%2)){
-		retval = dsp5680xx_read_16_single(target, address + i/2, &tmp_wrd, pmem);
-		buffer[i] = (uint8_t) (tmp_wrd>>8);
-		buffer[i+1] = (uint8_t) (tmp_wrd&0xff);
+		retval = dsp5680xx_read_16_single(target, address + i/2, buffer + i, pmem);
       }
       break;
     case 2:
-      retval = dsp5680xx_read_16_single(target, address + i, buff16 + i, pmem);
+      retval = dsp5680xx_read_16_single(target, address + i, buffer+2*i, pmem);
       break;
     case 4:
-      retval = dsp5680xx_read_32_single(target, address + 2*i, buff32 + i, pmem);
+      retval = dsp5680xx_read_32_single(target, address + 2*i, buffer + 4*i, pmem);
       break;
     default:
       LOG_USER("%s: Invalid read size.",__FUNCTION__);
@@ -814,13 +806,13 @@ static int dsp5680xx_write_32_single(struct target *target, uint32_t address, ui
   return retval;
 }
 
-static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t count, uint8_t * data, int pmem){
+static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t count, const uint8_t * data, int pmem){
   if(target->state != TARGET_HALTED){
     LOG_ERROR("%s: Target must be halted.",__FUNCTION__);
     return ERROR_OK;
   };
   int retval = 0;
-  uint16_t * data_w = (uint16_t *)data;
+  uint16_t data_16;
   uint32_t iter;
 
   int counter = FLUSH_COUNT_READ_WRITE;
@@ -829,7 +821,8 @@ static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t 
       dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_READ_WRITE;
     }
-    retval = dsp5680xx_write_16_single(target,address+iter,data_w[iter], pmem);
+    data_16=(data[2*iter]|(data[2*iter+1]<<8));
+    retval = dsp5680xx_write_16_single(target,address+iter,data_16, pmem);
     if(retval != ERROR_OK){
       LOG_ERROR("%s: Could not write to p:0x%04X",__FUNCTION__,address);
       dsp5680xx_context.flush = 1;
@@ -855,7 +848,7 @@ static int dsp5680xx_write_8(struct target * target, uint32_t address, uint32_t 
   return retval;
 }
 
-static int dsp5680xx_write_16(struct target * target, uint32_t address, uint32_t count, uint16_t * data, int pmem){
+static int dsp5680xx_write_16(struct target * target, uint32_t address, uint32_t count, const uint8_t * data, int pmem){
   int retval = ERROR_OK;
   if(target->state != TARGET_HALTED){
 	retval = ERROR_TARGET_NOT_HALTED;
@@ -881,7 +874,7 @@ static int dsp5680xx_write_16(struct target * target, uint32_t address, uint32_t
   return retval;
 }
 
-static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t count, uint32_t * data, int pmem){
+static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t count, const uint8_t * data, int pmem){
   int retval = ERROR_OK;
   if(target->state != TARGET_HALTED){
 	retval = ERROR_TARGET_NOT_HALTED;
@@ -932,13 +925,13 @@ static int dsp5680xx_write(struct target *target, uint32_t address, uint32_t siz
 
   switch (size){
   case 1:
-    retval = dsp5680xx_write_8(target, address, count,(uint8_t *) buffer, p_mem);
+    retval = dsp5680xx_write_8(target, address, count, buffer, p_mem);
     break;
   case 2:
-    retval = dsp5680xx_write_16(target, address, count, (uint16_t *)buffer, p_mem);
+    retval = dsp5680xx_write_16(target, address, count, buffer, p_mem);
       break;
   case 4:
-    retval = dsp5680xx_write_32(target, address, count, (uint32_t *)buffer, p_mem);
+    retval = dsp5680xx_write_32(target, address, count, buffer, p_mem);
     break;
   default:
 	retval = ERROR_TARGET_DATA_ABORT;
@@ -1004,18 +997,18 @@ static int dsp5680xx_checksum_memory(struct target * target, uint32_t address, u
  * 
  * @return 
  */
-static int perl_crc(uint16_t * buff16,uint32_t  word_count){
+static int perl_crc(uint8_t * buff8,uint32_t  word_count){
   uint16_t checksum = 0xffff;
   uint16_t data,fbmisr;
   uint32_t i;
   for(i=0;i<word_count;i++){
-    data = buff16[i];
+    data = (buff8[2*i]|(buff8[2*i+1]<<8));
     fbmisr = (checksum & 2)>>1 ^ (checksum & 4)>>2 ^ (checksum & 16)>>4 ^ (checksum & 0x8000)>>15;
     checksum = (data ^ ((checksum << 1) | fbmisr));
   }
   i--;
   for(;!(i&0x80000000);i--){
-    data = buff16[i];
+    data = (buff8[2*i]|(buff8[2*i+1]<<8));
     fbmisr = (checksum & 2)>>1 ^ (checksum & 4)>>2 ^ (checksum & 16)>>4 ^ (checksum & 0x8000)>>15;
     checksum = (data ^ ((checksum << 1) | fbmisr));
   }
@@ -1059,7 +1052,6 @@ static int dsp5680xx_soft_reset_halt(struct target *target){
 }
 
 int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected) {
-  uint16_t aux;
   int retval;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = dsp5680xx_halt(target);
@@ -1068,9 +1060,8 @@ int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected) {
   if(protected == NULL){
     err_check(ERROR_FAIL,"NULL pointer not valid.");
   }
-  retval = dsp5680xx_read_16_single(target,HFM_BASE_ADDR|HFM_PROT,&aux,0);
+  retval = dsp5680xx_read_16_single(target,HFM_BASE_ADDR|HFM_PROT,(uint8_t *)protected,0);
   err_check_propagate(retval);
-  *protected = aux;
   return retval;
 }
 
@@ -1092,20 +1083,20 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
   err_check_propagate(retval);
   retval = eonce_move_long_to_r2(target,HFM_BASE_ADDR);
   err_check_propagate(retval);
-  uint16_t i;
+  uint8_t i[2];
   int watchdog = 100;
   do{
     retval = eonce_move_at_r2_disp_to_y0(target,HFM_USTAT);	// read HMF_USTAT
 	err_check_propagate(retval);
     retval = eonce_move_y0_at_r0(target);
 	err_check_propagate(retval);
-    retval = eonce_rx_upper_data(target,&i);
+    retval = eonce_rx_upper_data(target,i);
 	err_check_propagate(retval);
     if((watchdog--)==1){
       retval = ERROR_TARGET_FAILURE;
       err_check(retval,"FM execute command failed.");
     }
-  }while (!(i&0x40));				// wait until current command is complete
+  }while (!(i[0]&0x40));				// wait until current command is complete
 
   dsp5680xx_context.flush = 0;
 
@@ -1147,15 +1138,15 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
 	err_check_propagate(retval);
     retval = eonce_move_y0_at_r0(target);
 	err_check_propagate(retval);
-	retval = eonce_rx_upper_data(target,&i);
+	retval = eonce_rx_upper_data(target,i);
 	err_check_propagate(retval);
     if((watchdog--)==1){
 	  retval = ERROR_TARGET_FAILURE;
       err_check(retval,"FM execution did not finish.");
     }
-  }while (!(i&0x40));	    // wait until the command is complete
-  *hfm_ustat = i;
-  if (i&HFM_USTAT_MASK_PVIOL_ACCER){
+  }while (!(i[0]&0x40));	    // wait until the command is complete
+  *hfm_ustat = ((i[0]<<8)|(i[1]));
+  if (i[0]&HFM_USTAT_MASK_PVIOL_ACCER){
     retval = ERROR_TARGET_FAILURE;
     err_check(retval,"pviol and/or accer bits set. HFM command execution error");
   }
@@ -1170,7 +1161,7 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
  * @return 
  */
 static int eonce_set_hfmdiv(struct target * target){
-  uint16_t i;
+  uint8_t i[2];
   int retval;
   retval = eonce_move_long_to_r2(target,HFM_BASE_ADDR);
   err_check_propagate(retval);
@@ -1180,14 +1171,14 @@ static int eonce_set_hfmdiv(struct target * target){
   err_check_propagate(retval);
   retval = eonce_move_y0_at_r0(target);
   err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,&i);
+  retval = eonce_rx_upper_data(target,i);
   err_check_propagate(retval);
   unsigned int hfm_at_wrong_value = 0;
-  if ((i&0x7f)!=HFM_CLK_DEFAULT) {
-    LOG_DEBUG("HFM CLK divisor contained incorrect value (0x%02X).",i&0x7f);
+  if ((i[0]&0x7f)!=HFM_CLK_DEFAULT) {
+    LOG_DEBUG("HFM CLK divisor contained incorrect value (0x%02X).",i[0]&0x7f);
     hfm_at_wrong_value = 1;
   }else{
-    LOG_DEBUG("HFM CLK divisor was already set to correct value (0x%02X).",i&0x7f);
+    LOG_DEBUG("HFM CLK divisor was already set to correct value (0x%02X).",i[0]&0x7f);
     return ERROR_OK;
   }
   retval = eonce_move_value_at_r2(target,HFM_CLK_DEFAULT);	// write HFM_CLKD
@@ -1196,14 +1187,14 @@ static int eonce_set_hfmdiv(struct target * target){
   err_check_propagate(retval);
   retval = eonce_move_y0_at_r0(target);
   err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,&i);
+  retval = eonce_rx_upper_data(target,i);
   err_check_propagate(retval);
-  if (i!=(0x80|(HFM_CLK_DEFAULT&0x7f))) {
+  if (i[0]!=(0x80|(HFM_CLK_DEFAULT&0x7f))) {
 	retval = ERROR_TARGET_FAILURE;
 	err_check(retval,"Unable to set HFM CLK divisor.");
   }
   if(hfm_at_wrong_value)
-    LOG_DEBUG("HFM CLK divisor set to 0x%02x.",i&0x7f);
+    LOG_DEBUG("HFM CLK divisor set to 0x%02x.",i[0]&0x7f);
   return ERROR_OK;
 }
 
@@ -1226,7 +1217,7 @@ static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint3
   }
   retval = dsp5680xx_f_execute_command(target,HFM_CALCULATE_DATA_SIGNATURE,address,words,&hfm_ustat,1);
   err_check_propagate(retval);
-  retval = dsp5680xx_read_16_single(target, HFM_BASE_ADDR|HFM_DATA, signature, 0);
+  retval = dsp5680xx_read_16_single(target, HFM_BASE_ADDR|HFM_DATA, (uint8_t *)signature, 0);
   return retval;
 }
 
@@ -1352,7 +1343,6 @@ const uint32_t pgm_write_pflash_length = 31;
 
 int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count){
   int retval = ERROR_OK;
-  uint16_t* buff16 = (uint16_t *) buffer;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = eonce_enter_debug_mode(target,NULL);
     err_check_propagate(retval);
@@ -1408,7 +1398,8 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   err_check_propagate(retval);
 
   uint32_t drscan_data;
-  retval = eonce_tx_upper_data(target,buff16[0],&drscan_data);
+  uint16_t tmp = (buffer[0]|(buffer[1]<<8));
+  retval = eonce_tx_upper_data(target,tmp,&drscan_data);
   err_check_propagate(retval);
 
   retval = dsp5680xx_resume(target,0,my_favourite_ram_address,0,0);
@@ -1422,7 +1413,8 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
       dsp5680xx_context.flush = 1;
       counter = FLUSH_COUNT_FLASH;
     }
-    retval = eonce_tx_upper_data(target,buff16[i],&drscan_data);
+    tmp = (buffer[2*i]|(buffer[2*i+1]<<8));
+    retval = eonce_tx_upper_data(target,tmp,&drscan_data);
 	if(retval!=ERROR_OK){
 	  dsp5680xx_context.flush = 1;
 	  err_check_propagate(retval);
@@ -1437,7 +1429,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   uint16_t pc_crc;
   retval =  dsp5680xx_f_signature(target,address,i,&signature);
   err_check_propagate(retval);
-  pc_crc = perl_crc(buff16,i);
+  pc_crc = perl_crc(buffer,i);
   if(pc_crc != signature){
     retval = ERROR_FAIL;
     err_check(retval,"Flashed data failed CRC check, flash again!");
