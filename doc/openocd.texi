@@ -526,7 +526,7 @@ OpenOCD mailing list.
 @item @b{Jim vs. Tcl}
 @* Jim-Tcl is a stripped down version of the well known Tcl language,
 which can be found here: @url{http://www.tcl.tk}. Jim-Tcl has far
-fewer features. Jim-Tcl is a single .C file and a single .H file and
+fewer features. Jim-Tcl is several dozens of .C files and .H files and
 implements the basic Tcl command set. In contrast: Tcl 8.6 is a
 4.2 MB .zip file containing 1540 files. 
 
