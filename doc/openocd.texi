@@ -676,8 +676,6 @@ setting from within a telnet or gdb session using @command{debug_level
 You can redirect all output from the daemon to a file using the
 @option{-l <logfile>} switch.
 
-For details on the @option{-p} option. @xref{Connecting to GDB}.
-
 Note! OpenOCD will launch the GDB & telnet server even if it can not
 establish a connection with the target. In general, it is possible for
 the JTAG controller to be unresponsive until the target is set up
