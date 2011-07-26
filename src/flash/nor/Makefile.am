@@ -30,7 +30,8 @@ NOR_DRIVERS = \
 	str9x.c \
 	str9xpec.c \
 	tms470.c \
-	virtual.c
+	virtual.c \
+	fm3.c
 
 # Disabled for now, it generates warnings
 # dsp5680xx_flash.c 
