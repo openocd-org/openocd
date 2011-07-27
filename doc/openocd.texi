@@ -4882,6 +4882,19 @@ flash bank vbank1 virtual 0x9fc00000 0 0 0 $_TARGETNAME $_FLASHNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} fm3
+All members of the FM3 microcontroller family from Fujitsu
+include internal flash and use ARM Cortex M3 cores.
+The @var{fm3} driver uses the @var{target} parameter to select the
+correct bank config, it can currently be one of the following:
+@code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
+@code{mb9bfxx4.cpu}, @code{mb9bfxx5.cpu} or @code{mb9bfxx6.cpu}.
+	
+@example
+flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @subsection str9xpec driver
 @cindex str9xpec
 
