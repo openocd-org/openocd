@@ -48,8 +48,7 @@
  *
  */
 
-
-/* Danger!!!! The STM32F1xxxx and STM32F2xxxx series actually have
+/* Danger!!!! The STM32F1x and STM32F2x series actually have
  * quite different flash controllers.
  *
  * What's more scary is that the names of the registers and their
@@ -57,7 +56,7 @@
  * can be very different.
  *
  * To reduce testing complexity and dangers of regressions,
- * a seperate file is used for stm32fx2222.
+ * a seperate file is used for stm32fx2x.
  *
  * 1mByte part with 4 x 16, 1 x 64, 7 x 128kBytes sectors
  *
@@ -73,16 +72,16 @@
  * PM0059
  * www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/PROGRAMMING_MANUAL/CD00233952.pdf
  *
- * STM32F1xxx series - notice that this code was copy, pasted and knocked
- * into a stm32f2xxx driver, so in case something has been converted or
+ * STM32F1x series - notice that this code was copy, pasted and knocked
+ * into a stm32f2x driver, so in case something has been converted or
  * bugs haven't been fixed, here are the original manuals:
  *
  * RM0008 - Reference manual
  *
  * RM0042, the Flash programming manual for low-, medium- high-density and
- * connectivity line STM32F10xxx devices
+ * connectivity line STM32F10x devices
  *
- * PM0068, the Flash programming manual for XL-density STM32F10xxx devices.
+ * PM0068, the Flash programming manual for XL-density STM32F10x devices.
  *
  */
 
@@ -683,16 +682,16 @@ static const struct command_registration stm32x_exec_command_handlers[] = {
 
 static const struct command_registration stm32x_command_handlers[] = {
 	{
-		.name = "stm32f2xxx",
+		.name = "stm32f2x",
 		.mode = COMMAND_ANY,
-		.help = "stm32f2xxx flash command group",
+		.help = "stm32f2x flash command group",
 		.chain = stm32x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver stm32xf2xxx_flash = {
-	.name = "stm32f2xxx",
+struct flash_driver stm32f2x_flash = {
+	.name = "stm32f2x",
 	.commands = stm32x_command_handlers,
 	.flash_bank_command = stm32x_flash_bank_command,
 	.erase = stm32x_erase,

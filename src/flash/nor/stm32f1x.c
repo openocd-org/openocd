@@ -1544,16 +1544,16 @@ static const struct command_registration stm32x_exec_command_handlers[] = {
 
 static const struct command_registration stm32x_command_handlers[] = {
 	{
-		.name = "stm32x",
+		.name = "stm32f1x",
 		.mode = COMMAND_ANY,
-		.help = "stm32x flash command group",
+		.help = "stm32f1x flash command group",
 		.chain = stm32x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver stm32x_flash = {
-	.name = "stm32x",
+struct flash_driver stm32f1x_flash = {
+	.name = "stm32f1x",
 	.commands = stm32x_command_handlers,
 	.flash_bank_command = stm32x_flash_bank_command,
 	.erase = stm32x_erase,

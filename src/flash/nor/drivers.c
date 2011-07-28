@@ -32,8 +32,8 @@ extern struct flash_driver str9x_flash;
 extern struct flash_driver aduc702x_flash;
 extern struct flash_driver stellaris_flash;
 extern struct flash_driver str9xpec_flash;
-extern struct flash_driver stm32x_flash;
-extern struct flash_driver stm32xf2xxx_flash;
+extern struct flash_driver stm32f1x_flash;
+extern struct flash_driver stm32f2x_flash;
 extern struct flash_driver tms470_flash;
 extern struct flash_driver ecosflash_flash;
 extern struct flash_driver ocl_flash;
@@ -62,8 +62,8 @@ static struct flash_driver *flash_drivers[] = {
 	&aduc702x_flash,
 	&stellaris_flash,
 	&str9xpec_flash,
-	&stm32x_flash,
-	&stm32xf2xxx_flash,
+	&stm32f1x_flash,
+	&stm32f2x_flash,
 	&tms470_flash,
 	&ecosflash_flash,
 	&ocl_flash,
