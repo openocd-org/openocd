@@ -1277,7 +1277,7 @@ at91sam3u4c.cfg  lm3s9b9x.cfg  samsung_s3c6410.cfg
 at91sam3u4e.cfg  lpc1768.cfg   sharp_lh79532.cfg
 at91sam3uXX.cfg  lpc2103.cfg   smdk6410.cfg
 at91sam7sx.cfg   lpc2124.cfg   smp8634.cfg
-at91sam9260.cfg  lpc2129.cfg   stm32.cfg
+at91sam9260.cfg  lpc2129.cfg   stm32f1x.cfg
 c100.cfg         lpc2148.cfg   str710.cfg
 c100config.tcl   lpc2294.cfg   str730.cfg
 c100helper.tcl   lpc2378.cfg   str750.cfg
@@ -4762,42 +4762,49 @@ applied to all of them.
 @end quotation
 @end deffn
 
-@deffn {Flash Driver} stm32x
-All members of the STM32 microcontroller family from ST Microelectronics
+@deffn {Flash Driver} stm32f1x
+All members of the STM32f1x microcontroller family from ST Microelectronics
 include internal flash and use ARM Cortex M3 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
 @example
-flash bank $_FLASHNAME stm32x 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME stm32f1x 0 0 0 0 $_TARGETNAME
 @end example
 
-Some stm32x-specific commands
-@footnote{Currently there is a @command{stm32x mass_erase} command.
+Some stm32f1x-specific commands
+@footnote{Currently there is a @command{stm32f1x mass_erase} command.
 That seems pointless since the same effect can be had using the
 standard @command{flash erase_address} command.}
 are defined:
 
-@deffn Command {stm32x lock} num
+@deffn Command {stm32f1x lock} num
 Locks the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {stm32x unlock} num
+@deffn Command {stm32f1x unlock} num
 Unlocks the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {stm32x options_read} num
+@deffn Command {stm32f1x options_read} num
 Read and display the stm32 option bytes written by
-the @command{stm32x options_write} command.
+the @command{stm32f1x options_write} command.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {stm32x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP})
+@deffn Command {stm32f1x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP})
 Writes the stm32 option byte with the specified values.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
+@end deffn
+
+@deffn {Flash Driver} stm32f2x
+All members of the STM32f2x microcontroller family from ST Microelectronics
+include internal flash and use ARM Cortex M3 cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
 @end deffn
 
 @deffn {Flash Driver} str7x
