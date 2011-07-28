@@ -3602,14 +3602,7 @@ At this writing, the supported CPU types and variants are:
 (Support for this is preliminary and incomplete.)
 @item @code{cortex_a8} -- this is an ARMv7 core with an MMU
 @item @code{cortex_m3} -- this is an ARMv7 core, supporting only the
-compact Thumb2 instruction set.  It supports one variant:
-@itemize @minus
-@item @code{lm3s} ... Use this when debugging older Stellaris LM3S targets.
-This will cause OpenOCD to use a software reset rather than asserting
-SRST, to avoid a issue with clearing the debug registers.
-This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
-be detected and the normal reset behaviour used.
-@end itemize
+compact Thumb2 instruction set.
 @item @code{dragonite} -- resembles arm966e
 @item @code{dsp563xx} -- implements Freescale's 24-bit DSP.
 (Support for this is still incomplete.)
