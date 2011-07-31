@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2011 by Andreas Fritiofson                              *
+ *   andreas.fritiofson@gmail.com                                          *
+ *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -623,34 +626,45 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t buffer_size = 16384;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
-	struct reg_param reg_params[4];
+	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	/* see contib/loaders/flash/stm32x.s for src */
+	/* see contrib/loaders/flash/stm32f1x.S for src */
 
 	static const uint8_t stm32x_flash_write_code[] = {
-									/* #define STM32_FLASH_CR_OFFSET	0x10 */
-									/* #define STM32_FLASH_SR_OFFSET	0x0C */
-									/* write: */
-		0x08, 0x4c,					/* ldr	r4, STM32_FLASH_BASE */
-		0x1c, 0x44,					/* add	r4, r3 */
-									/* write_half_word: */
-		0x01, 0x23,					/* movs	r3, #0x01 */
-		0x23, 0x61,					/* str	r3, [r4, #STM32_FLASH_CR_OFFSET] */
-		0x30, 0xf8, 0x02, 0x3b,		/* ldrh	r3, [r0], #0x02 */
-		0x21, 0xf8, 0x02, 0x3b,		/* strh	r3, [r1], #0x02 */
-									/* busy: */
-		0xe3, 0x68,					/* ldr	r3, [r4, #STM32_FLASH_SR_OFFSET] */
-		0x13, 0xf0, 0x01, 0x0f,		/* tst	r3, #0x01 */
-		0xfb, 0xd0,					/* beq	busy */
-		0x13, 0xf0, 0x14, 0x0f,		/* tst	r3, #0x14 */
-		0x01, 0xd1,					/* bne	exit */
-		0x01, 0x3a,					/* subs	r2, r2, #0x01 */
-		0xf0, 0xd1,					/* bne	write_half_word */
-									/* exit: */
-		0x00, 0xbe,					/* bkpt	#0x00 */
-		0x00, 0x20, 0x02, 0x40,		/* STM32_FLASH_BASE: .word 0x40022000 */
+		/* #define STM32_FLASH_CR_OFFSET 0x10 */
+		/* #define STM32_FLASH_SR_OFFSET 0x0C */
+		/* wait_fifo: */
+			0x16, 0x68,             /* ldr  	r6, [r2, #0] */
+			0x00, 0x2e,             /* cmp  	r6, #0 */
+			0x1a, 0xd0,             /* beq  	exit */
+			0x55, 0x68,             /* ldr  	r5, [r2, #4] */
+			0xb5, 0x42,             /* cmp  	r5, r6 */
+			0xf9, 0xd0,             /* beq  	wait_fifo */
+			0x01, 0x26,             /* movs 	r6, #1 */
+			0x06, 0x61,             /* str  	r6, [r0, #STM32_FLASH_CR_OFFSET] */
+			0x35, 0xf8, 0x02, 0x6b, /* ldrh 	r6, [r5], #2 */
+			0x24, 0xf8, 0x02, 0x6b, /* strh 	r6, [r4], #2 */
+		/* busy: */
+			0xc6, 0x68,             /* ldr  	r6, [r0, #STM32_FLASH_SR_OFFSET] */
+			0x16, 0xf0, 0x01, 0x0f, /* tst  	r6, #1 */
+			0xfb, 0xd1,             /* bne  	busy */
+			0x16, 0xf0, 0x14, 0x0f, /* tst  	r6, #0x14 */
+			0x07, 0xd1,             /* bne  	error */
+			0x9d, 0x42,             /* cmp  	r5, r3 */
+			0x28, 0xbf,             /* it   	cs */
+			0x02, 0xf1, 0x08, 0x05, /* addcs	r5, r2, #8 */
+			0x55, 0x60,             /* str  	r5, [r2, #4] */
+			0x01, 0x39,             /* subs 	r1, r1, #1 */
+			0x19, 0xb1,             /* cbz  	r1, exit */
+			0xe4, 0xe7,             /* b    	wait_fifo */
+		/* error: */
+			0x00, 0x20,             /* movs 	r0, #0 */
+			0xc2, 0xf8,	0x02, 0x00, /* str  	r0, [r2, #2] */
+		/* exit: */
+			0x30, 0x46,             /* mov  	r0, r6 */
+			0x00, 0xbe,             /* bkpt 	#0 */
 	};
 
 	/* flash write code */
@@ -670,6 +684,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
+		buffer_size &= ~3UL; // Make sure it's 4 byte aligned
 		if (buffer_size <= 256)
 		{
 			/* if we already allocated the writing code, but failed to get a
@@ -682,60 +697,152 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		}
 	};
 
+	/* Set up working area. First word is write pointer, second word is read pointer,
+	 * rest is fifo data area. */
+	uint32_t wp_addr = source->address;
+	uint32_t rp_addr = source->address + 4;
+	uint32_t fifo_start_addr = source->address + 8;
+	uint32_t fifo_end_addr = source->address + source->size;
+
+	uint32_t wp = fifo_start_addr;
+	uint32_t rp = fifo_start_addr;
+
+	retval = target_write_u32(target, wp_addr, wp);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, rp_addr, rp);
+	if (retval != ERROR_OK)
+		return retval;
+
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* flash base (in), status (out) */
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);	/* count (halfword-16bit) */
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);	/* buffer start */
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);	/* buffer end */
+	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN_OUT);	/* target address */
+
+	buf_set_u32(reg_params[0].value, 0, 32, stm32x_info->register_base);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+	buf_set_u32(reg_params[2].value, 0, 32, source->address);
+	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
+	buf_set_u32(reg_params[4].value, 0, 32, address);
+
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
 
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
-	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
-	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN_OUT);
+	/* Start up algorithm on target and let it idle while writing the first chunk */
+	if ((retval = target_start_algorithm(target, 0, NULL, 5, reg_params,
+			stm32x_info->write_algorithm->address,
+			0,
+			&armv7m_info)) != ERROR_OK)
+	{
+		LOG_ERROR("error starting stm32x flash write algorithm");
+		goto cleanup;
+	}
 
 	while (count > 0)
 	{
-		uint32_t thisrun_count = (count > (buffer_size / 2)) ?
-				(buffer_size / 2) : count;
-
-		if ((retval = target_write_buffer(target, source->address,
-				thisrun_count * 2, buffer)) != ERROR_OK)
-			break;
-
-		buf_set_u32(reg_params[0].value, 0, 32, source->address);
-		buf_set_u32(reg_params[1].value, 0, 32, address);
-		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
-		buf_set_u32(reg_params[3].value, 0, 32, stm32x_info->register_base - FLASH_REG_BASE_B0);
-
-		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
-				stm32x_info->write_algorithm->address,
-				0,
-				10000, &armv7m_info)) != ERROR_OK)
+		retval = target_read_u32(target, rp_addr, &rp);
+		if (retval != ERROR_OK)
 		{
-			LOG_ERROR("error executing stm32x flash write algorithm");
+			LOG_ERROR("failed to get read pointer");
 			break;
 		}
 
-		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_PGERR)
+		LOG_DEBUG("count 0x%"PRIx32" wp 0x%"PRIx32" rp 0x%"PRIx32, count, wp, rp);
+
+		if (rp == 0)
+		{
+			LOG_ERROR("flash write algorithm aborted by target");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		}
+
+		if ((rp & 1) || rp < fifo_start_addr || rp >= fifo_end_addr)
+		{
+			LOG_ERROR("corrupted fifo read pointer 0x%"PRIx32, rp);
+			break;
+		}
+
+		/* Count the number of bytes available in the fifo without
+		 * crossing the wrap around. Make sure to not fill it completely,
+		 * because that would make wp == rp and that's the empty condition. */
+		uint32_t thisrun_bytes;
+		if (rp > wp)
+			thisrun_bytes = rp - wp - 2;
+		else if (rp > fifo_start_addr)
+			thisrun_bytes = fifo_end_addr - wp;
+		else
+			thisrun_bytes = fifo_end_addr - wp - 2;
+
+		if (thisrun_bytes == 0)
+		{
+			/* Throttle polling a bit if transfer is (much) faster than flash
+			 * programming. The exact delay shouldn't matter as long as it's
+			 * less than buffer size / flash speed. This is very unlikely to
+			 * run when using high latency connections such as USB. */
+			alive_sleep(10);
+			continue;
+		}
+
+		/* Limit to the amount of data we actually want to write */
+		if (thisrun_bytes > count * 2)
+			thisrun_bytes = count * 2;
+
+		/* Write data to fifo */
+		retval = target_write_buffer(target, wp, thisrun_bytes, buffer);
+		if (retval != ERROR_OK)
+			break;
+
+		/* Update counters and wrap write pointer */
+		buffer += thisrun_bytes;
+		count -= thisrun_bytes / 2;
+		wp += thisrun_bytes;
+		if (wp >= fifo_end_addr)
+			wp = fifo_start_addr;
+
+		/* Store updated write pointer to target */
+		retval = target_write_u32(target, wp_addr, wp);
+		if (retval != ERROR_OK)
+			break;
+	}
+
+	if (retval != ERROR_OK)
+	{
+		/* abort flash write algorithm on target */
+		target_write_u32(target, wp_addr, 0);
+	}
+
+	int retval2;
+	if ((retval2 = target_wait_algorithm(target, 0, NULL, 5, reg_params,
+			0,
+			10000,
+			&armv7m_info)) != ERROR_OK)
+	{
+		LOG_ERROR("error waiting for stm32x flash write algorithm");
+		retval = retval2;
+	}
+
+	if (retval == ERROR_FLASH_OPERATION_FAILED)
+	{
+		LOG_ERROR("flash write failed at address 0x%"PRIx32,
+				buf_get_u32(reg_params[4].value, 0, 32));
+
+		if (buf_get_u32(reg_params[0].value, 0, 32) & FLASH_PGERR)
 		{
 			LOG_ERROR("flash memory not erased before writing");
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR_B0, FLASH_PGERR);
-			retval = ERROR_FAIL;
-			break;
 		}
 
-		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_WRPRTERR)
+		if (buf_get_u32(reg_params[0].value, 0, 32) & FLASH_WRPRTERR)
 		{
 			LOG_ERROR("flash memory write protected");
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR_B0, FLASH_WRPRTERR);
-			retval = ERROR_FAIL;
-			break;
 		}
-
-		buffer += thisrun_count * 2;
-		address += thisrun_count * 2;
-		count -= thisrun_count;
 	}
 
+cleanup:
 	target_free_working_area(target, source);
 	target_free_working_area(target, stm32x_info->write_algorithm);
 
@@ -743,6 +850,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
+	destroy_reg_param(&reg_params[4]);
 
 	return retval;
 }

@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Spencer Oliver                                  *
- *   spen@spen-soft.co.uk                                                  *
+ *   Copyright (C) 2011 by Andreas Fritiofson                              *
+ *   andreas.fritiofson@gmail.com                                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,34 +25,47 @@
 	.thumb_func
 	.global write
 
-/*
-	r0 - source address
-	r1 - target address
-	r2 - count (halfword-16bit)
-	r3 - sector offet in : result out
-	r4 - flash base
-*/
+	/* Params:
+	 * r0 - flash base (in), status (out)
+	 * r1 - count (halfword-16bit)
+	 * r2 - workarea start
+	 * r3 - workarea end
+	 * r4 - target address
+	 * Clobbered:
+	 * r5 - rp
+	 * r6 - wp, tmp
+	 */
 
-#define STM32_FLASH_CR_OFFSET	0x10			/* offset of CR register in FLASH struct */
-#define STM32_FLASH_SR_OFFSET	0x0c			/* offset of CR register in FLASH struct */
+#define STM32_FLASH_CR_OFFSET 0x10 /* offset of CR register from flash reg base */
+#define STM32_FLASH_SR_OFFSET 0x0c /* offset of SR register from flash reg base */
 
-write:
-	ldr		r4, STM32_FLASH_BASE
-	add		r4, r3								/* add offset 0x00 for sector 0 : 0x40 for sector 1 */
-write_half_word:
-	movs	r3, #0x01
-	str		r3, [r4, #STM32_FLASH_CR_OFFSET]	/* PG (bit0) == 1 => flash programming enabled */
-	ldrh 	r3, [r0], #0x02						/* read one half-word from src, increment ptr */
-	strh 	r3, [r1], #0x02						/* write one half-word from src, increment ptr */
+wait_fifo:
+	ldr 	r6, [r2, #0]	/* read wp */
+	cmp 	r6, #0			/* abort if wp == 0 */
+	beq 	exit
+	ldr 	r5, [r2, #4]	/* read rp */
+	cmp 	r5, r6			/* wait until rp != wp */
+	beq 	wait_fifo
+	movs	r6, #1			/* set PG flag to enable flash programming */
+	str 	r6, [r0, #STM32_FLASH_CR_OFFSET]
+	ldrh	r6, [r5], #2	/* "*target_address++ = *rp++" */
+	strh	r6, [r4], #2
 busy:
-	ldr 	r3, [r4, #STM32_FLASH_SR_OFFSET]
-	tst 	r3, #0x01							/* BSY (bit0) == 1 => operation in progress */
-	beq 	busy								/* wait more... */
-	tst		r3, #0x14							/* PGERR (bit2) == 1 or WRPRTERR (bit4) == 1 => error */
-	bne		exit								/* fail... */
-	subs	r2, r2, #0x01						/* decrement counter */
-	bne		write_half_word						/* write next half-word if anything left */
+	ldr 	r6, [r0, #STM32_FLASH_SR_OFFSET]	/* wait until BSY flag is reset */
+	tst 	r6, #1
+	bne 	busy
+	tst 	r6, #0x14		/* check the error bits */
+	bne 	error
+	cmp 	r5, r3			/* wrap rp at end of buffer */
+	it  	cs
+	addcs	r5, r2, #8
+	str 	r5, [r2, #4]	/* store rp */
+	subs	r1, r1, #1		/* decrement halfword count */
+	cbz 	r1, exit		/* loop if not done */
+	b		wait_fifo
+error:
+	movs	r0, #0
+	str 	r0, [r2, #2]	/* set rp = 0 on error */
 exit:
-	bkpt	#0x00
-
-STM32_FLASH_BASE: .word 0x40022000				/* base address of FLASH struct */
+	mov		r0, r6			/* return status in r0 */
+	bkpt	#0
