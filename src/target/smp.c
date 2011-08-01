@@ -79,7 +79,7 @@ int gdb_read_smp_packet(struct connection *connection,
 				hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
 			}
 
-			gdb_put_packet(connection, hex_buffer, len * 2);
+			retval = gdb_put_packet(connection, hex_buffer, len * 2);
 
 			free(hex_buffer);
 		}
@@ -95,6 +95,7 @@ int gdb_write_smp_packet(struct connection *connection,
 {
 	char *separator;
 	int coreid = 0;
+	int retval = ERROR_OK;
 
 	/* skip command character */
 	if (target->smp)
@@ -104,13 +105,13 @@ int gdb_write_smp_packet(struct connection *connection,
 			packet+=2;
 			coreid = strtoul(packet, &separator, 16);
 			target->gdb_service->core[1] = coreid;
-			gdb_put_packet(connection, "OK", 2);
+			retval = gdb_put_packet(connection, "OK", 2);
 		}
 	}
 	else
 	{
-		gdb_put_packet(connection,"E01",3);
+		retval = gdb_put_packet(connection,"E01",3);
 	}
 
-	return ERROR_OK;
+	return retval;
 }

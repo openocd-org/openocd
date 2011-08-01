@@ -304,20 +304,32 @@ static int etb_write_reg(struct reg *reg, uint32_t value)
 {
 	struct etb_reg *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
+	struct scan_field fields[3];
 
 	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", (int)(etb_reg->addr), value);
 
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 
+	fields[0].num_bits = 32;
 	uint8_t temp0[4];
+	fields[0].out_value = temp0;
 	buf_set_u32(&temp0, 0, 32, value);
+	fields[0].in_value = NULL;
 
+	fields[1].num_bits = 7;
 	uint8_t temp1;
+	fields[1].out_value = &temp1;
 	buf_set_u32(&temp1, 0, 7, reg_addr);
+	fields[1].in_value = NULL;
 
+	fields[2].num_bits = 1;
 	uint8_t temp2;
+	fields[2].out_value = &temp2;
 	buf_set_u32(&temp2, 0, 1, 1);
+	fields[2].in_value = NULL;
+
+	jtag_add_dr_scan(etb_reg->etb->tap, 3, fields, TAP_IDLE);
 
 	return ERROR_OK;
 }
