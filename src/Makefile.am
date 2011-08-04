@@ -30,6 +30,10 @@ else
 openocd_LDADD += -ljim
 endif
 
+if ULINK
+openocd_LDADD += -lm
+endif
+
 libopenocd_la_SOURCES = \
 	hello.c \
 	openocd.c \
