@@ -22,6 +22,7 @@
 #include "config.h"
 #endif
 
+#include <math.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <target/image.h>
@@ -94,6 +95,15 @@ enum ulink_payload_direction
   PAYLOAD_DIRECTION_IN
 };
 
+enum ulink_delay_type
+{
+  DELAY_CLOCK_TCK,
+  DELAY_CLOCK_TMS,
+  DELAY_SCAN_IN,
+  DELAY_SCAN_OUT,
+  DELAY_SCAN_IO
+};
+
 /**
  * OpenULINK command (OpenULINK command queue element).
  *
@@ -146,6 +156,12 @@ struct ulink
   struct usb_dev_handle *usb_handle;
   enum ulink_type type;
 
+  int delay_scan_in;         ///< Delay value for SCAN_IN commands
+  int delay_scan_out;        ///< Delay value for SCAN_OUT commands
+  int delay_scan_io;         ///< Delay value for SCAN_IO commands
+  int delay_clock_tck;       ///< Delay value for CLOCK_TMS commands
+  int delay_clock_tms;       ///< Delay value for CLOCK_TCK commands
+
   int commands_in_queue;     ///< Number of commands in queue
   ulink_cmd_t *queue_start;  ///< Pointer to first command in queue
   ulink_cmd_t *queue_end;    ///< Pointer to last command in queue
@@ -196,10 +212,14 @@ int ulink_append_get_signals_cmd(struct ulink *device);
 int ulink_append_set_signals_cmd(struct ulink *device, uint8_t low,
     uint8_t high);
 int ulink_append_sleep_cmd(struct ulink *device, uint32_t us);
-int ulink_append_configure_tck_cmd(struct ulink *device, uint8_t delay_scan,
-    uint8_t delay_tck, uint8_t delay_tms);
+int ulink_append_configure_tck_cmd(struct ulink *device, int delay_scan_in,
+    int delay_scan_out, int delay_scan_io, int delay_tck, int delay_tms);
 int ulink_append_led_cmd(struct ulink *device, uint8_t led_state);
 int ulink_append_test_cmd(struct ulink *device);
+
+/* OpenULINK TCK frequency helper functions */
+int ulink_calculate_delay(enum ulink_delay_type type, long f, int *delay);
+int ulink_calculate_frequency(enum ulink_delay_type type, int delay, long *f);
 
 /* Interface between OpenULINK and OpenOCD */
 static void ulink_set_end_state(tap_state_t endstate);
@@ -781,6 +801,9 @@ const char * ulink_cmd_id_string(uint8_t id)
   case CMD_CLOCK_TCK:
     return "CMD_CLOCK_TCK";
     break;
+  case CMD_SLOW_CLOCK_TCK:
+    return "CMD_SLOW_CLOCK_TCK";
+    break;
   case CMD_SLEEP_US:
     return "CMD_SLEEP_US";
     break;
@@ -903,18 +926,32 @@ int ulink_append_scan_cmd(struct ulink *device, enum scan_type scan_type,
   }
 
   /* Allocate out_payload depending on scan type */
-  // TODO: set command ID depending on interface speed settings (slow scan)
   switch (scan_type) {
   case SCAN_IN:
-    cmd->id = CMD_SCAN_IN;
+    if (device->delay_scan_in < 0) {
+      cmd->id = CMD_SCAN_IN;
+    }
+    else {
+      cmd->id = CMD_SLOW_SCAN_IN;
+    }
     ret = ulink_allocate_payload(cmd, 5, PAYLOAD_DIRECTION_OUT);
     break;
   case SCAN_OUT:
-    cmd->id = CMD_SCAN_OUT;
+    if (device->delay_scan_out < 0) {
+      cmd->id = CMD_SCAN_OUT;
+    }
+    else {
+      cmd->id = CMD_SLOW_SCAN_OUT;
+    }
     ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
     break;
   case SCAN_IO:
-    cmd->id = CMD_SCAN_IO;
+    if (device->delay_scan_io < 0) {
+      cmd->id = CMD_SCAN_IO;
+    }
+    else {
+      cmd->id = CMD_SLOW_SCAN_IO;
+    }
     ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
     break;
   default:
@@ -978,7 +1015,12 @@ int ulink_append_clock_tms_cmd(struct ulink *device, uint8_t count,
     return ERROR_FAIL;
   }
 
-  cmd->id = CMD_CLOCK_TMS;
+  if (device->delay_clock_tms < 0) {
+    cmd->id = CMD_CLOCK_TMS;
+  }
+  else {
+    cmd->id = CMD_SLOW_CLOCK_TMS;
+  }
 
   /* CMD_CLOCK_TMS has two OUT payload bytes and zero IN payload bytes */
   ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_OUT);
@@ -1011,7 +1053,12 @@ int ulink_append_clock_tck_cmd(struct ulink *device, uint16_t count)
     return ERROR_FAIL;
   }
 
-  cmd->id = CMD_CLOCK_TCK;
+  if (device->delay_clock_tck < 0) {
+    cmd->id = CMD_CLOCK_TCK;
+  }
+  else {
+    cmd->id = CMD_SLOW_CLOCK_TCK;
+  }
 
   /* CMD_CLOCK_TCK has two OUT payload bytes and zero IN payload bytes */
   ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_OUT);
@@ -1132,14 +1179,16 @@ int ulink_append_sleep_cmd(struct ulink *device, uint32_t us)
  * Set TCK delay counters
  *
  * @param device pointer to struct ulink identifying ULINK driver instance.
- * @param delay_scan delay count top value in jtag_slow_scan() functions
- * @param delay_tck delay count top value in jtag_clock_tck() function
- * @param delay_tms delay count top value in jtag_slow_clock_tms() function
+ * @param delay_scan_in delay count top value in jtag_slow_scan_in() function.
+ * @param delay_scan_out delay count top value in jtag_slow_scan_out() function.
+ * @param delay_scan_io delay count top value in jtag_slow_scan_io() function.
+ * @param delay_tck delay count top value in jtag_clock_tck() function.
+ * @param delay_tms delay count top value in jtag_slow_clock_tms() function.
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
-int ulink_append_configure_tck_cmd(struct ulink *device, uint8_t delay_scan,
-    uint8_t delay_tck, uint8_t delay_tms)
+int ulink_append_configure_tck_cmd(struct ulink *device, int delay_scan_in,
+    int delay_scan_out, int delay_scan_io, int delay_tck, int delay_tms)
 {
   ulink_cmd_t *cmd = calloc(1, sizeof(ulink_cmd_t));
   int ret;
@@ -1150,16 +1199,47 @@ int ulink_append_configure_tck_cmd(struct ulink *device, uint8_t delay_scan,
 
   cmd->id = CMD_CONFIGURE_TCK_FREQ;
 
-  /* CMD_CONFIGURE_TCK_FREQ has three OUT payload bytes and zero
+  /* CMD_CONFIGURE_TCK_FREQ has five OUT payload bytes and zero
    * IN payload bytes */
-  ret = ulink_allocate_payload(cmd, 3, PAYLOAD_DIRECTION_OUT);
+  ret = ulink_allocate_payload(cmd, 5, PAYLOAD_DIRECTION_OUT);
   if (ret != ERROR_OK) {
     return ret;
   }
 
-  cmd->payload_out[0] = delay_scan;
-  cmd->payload_out[1] = delay_tck;
-  cmd->payload_out[2] = delay_tms;
+  if (delay_scan_in < 0) {
+    cmd->payload_out[0] = 0;
+  }
+  else {
+    cmd->payload_out[0] = (uint8_t)delay_scan_in;
+  }
+
+  if (delay_scan_out < 0) {
+    cmd->payload_out[1] = 0;
+  }
+  else {
+    cmd->payload_out[1] = (uint8_t)delay_scan_out;
+  }
+
+  if (delay_scan_io < 0) {
+    cmd->payload_out[2] = 0;
+  }
+  else {
+    cmd->payload_out[2] = (uint8_t)delay_scan_io;
+  }
+
+  if (delay_tck < 0) {
+    cmd->payload_out[3] = 0;
+  }
+  else {
+    cmd->payload_out[3] = (uint8_t)delay_tck;
+  }
+
+  if (delay_tms < 0) {
+    cmd->payload_out[4] = 0;
+  }
+  else {
+    cmd->payload_out[4] = (uint8_t)delay_tms;
+  }
 
   return ulink_append_queue(device, cmd);
 }
@@ -1229,6 +1309,165 @@ int ulink_append_test_cmd(struct ulink *device)
   cmd->payload_out[0] = 0xAA;
 
   return ulink_append_queue(device, cmd);
+}
+
+/****************** OpenULINK TCK frequency helper functions ******************/
+
+/**
+ * Calculate delay values for a given TCK frequency.
+ *
+ * The OpenULINK firmware uses five different speed values for different
+ * commands. These speed values are calculated in these functions.
+ *
+ * The five different commands which support variable TCK frequency are
+ * implemented twice in the firmware:
+ *   1. Maximum possible frequency without any artificial delay
+ *   2. Variable frequency with artificial linear delay loop
+ *
+ * To set the ULINK to maximum frequency, it is only neccessary to use the
+ * corresponding command IDs. To set the ULINK to a lower frequency, the
+ * delay loop top values have to be calculated first. Then, a
+ * CMD_CONFIGURE_TCK_FREQ command needs to be sent to the ULINK device.
+ *
+ * The delay values are described by linear equations:
+ *    t = k * x + d
+ *    (t = period, k = constant, x = delay value, d = constant)
+ *
+ * Thus, the delay can be calculated as in the following equation:
+ *    x = (t - d) / k
+ *
+ * The constants in these equations have been determined and validated by
+ * measuring the frequency resulting from different delay values.
+ *
+ * @param type for which command to calculate the delay value.
+ * @param f TCK frequency for which to calculate the delay value in Hz.
+ * @param delay where to store resulting delay value.
+ * @return on success: ERROR_OK
+ * @return on failure: ERROR_FAIL
+ */
+int ulink_calculate_delay(enum ulink_delay_type type, long f, int *delay)
+{
+  float t, x, x_ceil;
+
+  /* Calculate period of requested TCK frequency */
+  t = 1.0 / (float)(f);
+
+  switch (type) {
+  case DELAY_CLOCK_TCK:
+    x = (t - (float)(6E-6)) / (float)(4E-6);
+    break;
+  case DELAY_CLOCK_TMS:
+    x = (t - (float)(8.5E-6)) / (float)(4E-6);
+    break;
+  case DELAY_SCAN_IN:
+    x = (t - (float)(8.8308E-6)) / (float)(4E-6);
+    break;
+  case DELAY_SCAN_OUT:
+    x = (t - (float)(1.0527E-5)) / (float)(4E-6);
+    break;
+  case DELAY_SCAN_IO:
+    x = (t - (float)(1.3132E-5)) / (float)(4E-6);
+    break;
+  default:
+    return ERROR_FAIL;
+    break;
+  }
+
+  /* Check if the delay value is negative. This happens when a frequency is
+   * requested that is too high for the delay loop implementation. In this
+   * case, set delay value to zero. */
+  if (x < 0) {
+    x = 0;
+  }
+
+  /* We need to convert the exact delay value to an integer. Therefore, we
+   * round the exact value UP to ensure that the resulting frequency is NOT
+   * higher than the requested frequency. */
+  x_ceil = ceilf(x);
+
+  /* Check if the value is within limits */
+  if (x_ceil > 255) {
+    return ERROR_FAIL;
+  }
+
+  *delay = (int)x_ceil;
+
+  return ERROR_OK;
+}
+
+/**
+ * Calculate frequency for a given delay value.
+ *
+ * Similar to the #ulink_calculate_delay function, this function calculates the
+ * TCK frequency for a given delay value by using linear equations of the form:
+ *    t = k * x + d
+ *    (t = period, k = constant, x = delay value, d = constant)
+ *
+ * @param type for which command to calculate the delay value.
+ * @param delay delay value for which to calculate the resulting TCK frequency.
+ * @param f where to store the resulting TCK frequency.
+ * @return on success: ERROR_OK
+ * @return on failure: ERROR_FAIL
+ */
+int ulink_calculate_frequency(enum ulink_delay_type type, int delay, long *f)
+{
+  float t, f_float, f_rounded;
+
+  if (delay > 255) {
+    return ERROR_FAIL;
+  }
+
+  switch (type) {
+  case DELAY_CLOCK_TCK:
+    if (delay < 0) {
+      t = (float)(2.666E-6);
+    }
+    else {
+      t = (float)(4E-6) * (float)(delay) + (float)(6E-6);
+    }
+    break;
+  case DELAY_CLOCK_TMS:
+    if (delay < 0) {
+      t = (float)(5.666E-6);
+    }
+    else {
+      t = (float)(4E-6) * (float)(delay) + (float)(8.5E-6);
+    }
+    break;
+  case DELAY_SCAN_IN:
+    if (delay < 0) {
+      t = (float)(5.5E-6);
+    }
+    else {
+      t = (float)(4E-6) * (float)(delay) + (float)(8.8308E-6);
+    }
+    break;
+  case DELAY_SCAN_OUT:
+    if (delay < 0) {
+      t = (float)(7.0E-6);
+    }
+    else {
+      t = (float)(4E-6) * (float)(delay) + (float)(1.0527E-5);
+    }
+    break;
+  case DELAY_SCAN_IO:
+    if (delay < 0) {
+      t = (float)(9.926E-6);
+    }
+    else {
+      t = (float)(4E-6) * (float)(delay) + (float)(1.3132E-5);
+    }
+    break;
+  default:
+    return ERROR_FAIL;
+    break;
+  }
+
+  f_float = 1.0 / t;
+  f_rounded = roundf(f_float);
+  *f = (long)f_rounded;
+
+  return ERROR_OK;
 }
 
 /******************* Interface between OpenULINK and OpenOCD ******************/
@@ -1809,26 +2048,108 @@ static int ulink_execute_queue(void)
 /**
  * Set the TCK frequency of the ULINK adapter.
  *
- * @param khz ???
- * @param jtag_speed ???
+ * @param khz desired JTAG TCK frequency.
+ * @param jtag_speed where to store corresponding adapter-specific speed value.
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
 static int ulink_khz(int khz, int *jtag_speed)
 {
+  int ret;
+
   if (khz == 0) {
     LOG_ERROR("RCLK not supported");
     return ERROR_FAIL;
   }
 
-  LOG_INFO("ulink_khz: %i kHz", khz);
-
-  /* ULINK maximum TCK frequency is ~ 150 kHz */
-  if (khz > 150) {
-    return ERROR_FAIL;
+  /* CLOCK_TCK commands are decoupled from others. Therefore, the frequency
+   * setting can be done independently from all other commands. */
+  if (khz >= 375) {
+    ulink_handle->delay_clock_tck = -1;
+  }
+  else {
+    ret = ulink_calculate_delay(DELAY_CLOCK_TCK, khz * 1000,
+        &ulink_handle->delay_clock_tck);
+    if (ret != ERROR_OK) {
+      return ret;
+    }
   }
 
-  *jtag_speed = 0;
+  /* SCAN_{IN,OUT,IO} commands invoke CLOCK_TMS commands. Therefore, if the
+   * requested frequency goes below the maximum frequency for SLOW_CLOCK_TMS
+   * commands, all SCAN commands MUST also use the variable frequency
+   * implementation! */
+  if (khz >= 176) {
+    ulink_handle->delay_clock_tms = -1;
+    ulink_handle->delay_scan_in = -1;
+    ulink_handle->delay_scan_out = -1;
+    ulink_handle->delay_scan_io = -1;
+  }
+  else {
+    ret = ulink_calculate_delay(DELAY_CLOCK_TMS, khz * 1000,
+        &ulink_handle->delay_clock_tms);
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+
+    ret = ulink_calculate_delay(DELAY_SCAN_IN, khz * 1000,
+        &ulink_handle->delay_scan_in);
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+
+    ret = ulink_calculate_delay(DELAY_SCAN_OUT, khz * 1000,
+        &ulink_handle->delay_scan_out);
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+
+    ret = ulink_calculate_delay(DELAY_SCAN_IO, khz * 1000,
+        &ulink_handle->delay_scan_io);
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+  }
+
+#ifdef _DEBUG_JTAG_IO_
+  long f_tck, f_tms, f_scan_in, f_scan_out, f_scan_io;
+
+  ulink_calculate_frequency(DELAY_CLOCK_TCK, ulink_handle->delay_clock_tck,
+      &f_tck);
+  ulink_calculate_frequency(DELAY_CLOCK_TMS, ulink_handle->delay_clock_tms,
+      &f_tms);
+  ulink_calculate_frequency(DELAY_SCAN_IN, ulink_handle->delay_scan_in,
+      &f_scan_in);
+  ulink_calculate_frequency(DELAY_SCAN_OUT, ulink_handle->delay_scan_out,
+      &f_scan_out);
+  ulink_calculate_frequency(DELAY_SCAN_IO, ulink_handle->delay_scan_io,
+      &f_scan_io);
+
+  DEBUG_JTAG_IO("ULINK TCK setup: delay_tck      = %i (%li Hz),",
+      ulink_handle->delay_clock_tck, f_tck);
+  DEBUG_JTAG_IO("                 delay_tms      = %i (%li Hz),",
+      ulink_handle->delay_clock_tms, f_tms);
+  DEBUG_JTAG_IO("                 delay_scan_in  = %i (%li Hz),",
+      ulink_handle->delay_scan_in, f_scan_in);
+  DEBUG_JTAG_IO("                 delay_scan_out = %i (%li Hz),",
+      ulink_handle->delay_scan_out, f_scan_out);
+  DEBUG_JTAG_IO("                 delay_scan_io  = %i (%li Hz),",
+      ulink_handle->delay_scan_io, f_scan_io);
+#endif
+
+  /* Configure the ULINK device with the new delay values */
+  ret = ulink_append_configure_tck_cmd(ulink_handle,
+      ulink_handle->delay_scan_in,
+      ulink_handle->delay_scan_out,
+      ulink_handle->delay_scan_io,
+      ulink_handle->delay_clock_tck,
+      ulink_handle->delay_clock_tms);
+
+  if (ret != ERROR_OK) {
+    return ret;
+  }
+
+  *jtag_speed = khz;
 
   return ERROR_OK;
 }
@@ -1836,30 +2157,38 @@ static int ulink_khz(int khz, int *jtag_speed)
 /**
  * Set the TCK frequency of the ULINK adapter.
  *
- * @param speed ???
+ * Because of the way the TCK frequency is set up in the OpenULINK firmware,
+ * there are five different speed settings. To simplify things, the
+ * adapter-specific speed setting value is identical to the TCK frequency in
+ * khz.
+ *
+ * @param speed desired adapter-specific speed value.
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
 static int ulink_speed(int speed)
 {
-  return ERROR_OK;
+  int dummy;
+
+  return ulink_khz(speed, &dummy);
 }
 
 /**
+ * Convert adapter-specific speed value to corresponding TCK frequency in kHz.
  *
+ * Because of the way the TCK frequency is set up in the OpenULINK firmware,
+ * there are five different speed settings. To simplify things, the
+ * adapter-specific speed setting value is identical to the TCK frequency in
+ * khz.
+ *
+ * @param speed adapter-specific speed value.
+ * @param khz where to store corresponding TCK frequency in kHz.
+ * @return on success: ERROR_OK
+ * @return on failure: ERROR_FAIL
  */
 static int ulink_speed_div(int speed, int *khz)
 {
-  LOG_INFO("ulink_speed_div: %i", speed);
-
-  switch (speed) {
-  case 0:
-    *khz = 150;
-    break;
-  case 1:
-    *khz = 100;
-    break;
-  }
+  *khz = speed;
 
   return ERROR_OK;
 }
