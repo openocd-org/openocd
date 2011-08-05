@@ -726,7 +726,7 @@ static int dsp5680xx_read_32_single(struct target * target, uint32_t address, ui
 static int dsp5680xx_read(struct target * target, uint32_t address, unsigned size, unsigned count, uint8_t * buffer){
   if(target->state != TARGET_HALTED){
     LOG_USER("Target must be halted.");
-    return ERROR_OK;
+    return ERROR_FAIL;
   }
   int retval = ERROR_OK;
   int pmem = 1;
