@@ -199,11 +199,17 @@ int arm11_add_debug_SCAN_N(struct arm11_common *arm11,
 	 * NOTE:  the ITRSEL instruction fakes SCREG changing;
 	 * but leaves its actual value unchanged.
 	 */
+#if 0
+	// FIX!!! the optimization below is broken because we do not
+	// invalidate the cur_scan_chain upon a TRST/TMS. See arm_jtag.c
+	// for example on how to invalidate cur_scan_chain. Tested patches gladly
+	// accepted!
 	if (arm11->jtag_info.cur_scan_chain == chain) {
 		JTAG_DEBUG("SCREG <= %d SKIPPED", chain);
 		return jtag_add_statemove((state == ARM11_TAP_DEFAULT)
 					? TAP_DRPAUSE : state);
 	}
+#endif
 	JTAG_DEBUG("SCREG <= %d", chain);
 
 	arm11_add_IR(arm11, ARM11_SCAN_N, ARM11_TAP_DEFAULT);
