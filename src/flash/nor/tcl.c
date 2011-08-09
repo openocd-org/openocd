@@ -109,7 +109,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 			LOG_ERROR("error retrieving flash info");
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_flash_probe_command)
@@ -185,7 +185,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 			      erase_state);
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_flash_erase_address_command)
@@ -355,7 +355,7 @@ COMMAND_HANDLER(handle_flash_protect_command)
 			(int) last, p->bank_number);
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_flash_write_image_command)
