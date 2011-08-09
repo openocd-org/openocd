@@ -774,11 +774,15 @@ static int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 	if (strcasecmp(cmd_name, "tapisenabled") == 0) {
 		// do nothing, just return the value
 	} else if (strcasecmp(cmd_name, "tapenable") == 0) {
-		if (!jtag_tap_enable(t))
+		if (!jtag_tap_enable(t)){
 			LOG_WARNING("failed to enable tap %s", t->dotted_name);
+                        return JIM_ERR;
+                }
 	} else if (strcasecmp(cmd_name, "tapdisable") == 0) {
-		if (!jtag_tap_disable(t))
+		if (!jtag_tap_disable(t)){
 			LOG_WARNING("failed to disable tap %s", t->dotted_name);
+                        return JIM_ERR;
+                }
 	} else {
 		LOG_ERROR("command '%s' unknown", cmd_name);
 		return JIM_ERR;
