@@ -31,10 +31,8 @@ NOR_DRIVERS = \
 	str9xpec.c \
 	tms470.c \
 	virtual.c \
-	fm3.c
-
-# Disabled for now, it generates warnings
-# dsp5680xx_flash.c 
+	fm3.c \
+	dsp5680xx_flash.c
 
 noinst_HEADERS = \
 	core.h \
