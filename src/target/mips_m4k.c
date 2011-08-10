@@ -870,35 +870,31 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
+	void * t = buffer;
+
 	/* if noDMA off, use DMAACC mode for memory read */
 	int retval;
 	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
-		retval = mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+		retval = mips32_pracc_read_mem(ejtag_info, address, size, count, t);
 	else
-		retval = mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
-	if (ERROR_OK != retval)
-		return retval;
+		retval = mips32_dmaacc_read_mem(ejtag_info, address, size, count, t);
 
 	/* mips32_..._read_mem with size 4/2 returns uint32_t/uint16_t in host */
 	/* endianness, but byte array should represent target endianness       */
-	uint32_t i, t32;
-	uint16_t t16;
-	for(i = 0; i < (count*size); i += size)
+	if (ERROR_OK == retval)
 	{
 		switch(size)
 		{
 		case 4:
-			t32 = le_to_h_u32(&buffer[i]);
-			target_buffer_set_u32(target,&buffer[i], t32);
+			target_buffer_set_u32_array(target,buffer,count,t);
 			break;
 		case 2:
-			t16 = le_to_h_u16(&buffer[i]);
-			target_buffer_set_u16(target,&buffer[i], t16);
+			target_buffer_set_u16_array(target,buffer,count,t);
 			break;
 		}
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int mips_m4k_write_memory(struct target *target, uint32_t address,
@@ -924,35 +920,27 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	/** correct endianess if we have word or hword access */
-	uint8_t *t = NULL;
+	void *t = NULL;
 	if (size > 1)
 	{
 		/* mips32_..._write_mem with size 4/2 requires uint32_t/uint16_t in host */
 		/* endianness, but byte array represents target endianness               */
-		t = malloc(count * sizeof(uint32_t));
+		t = malloc(count * size * sizeof(uint8_t));
 		if (t == NULL)
 		{
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
 
-		uint32_t i, t32;
-		uint16_t t16;
-		for(i = 0; i < (count*size); i += size)
+		switch(size)
 		{
-			switch(size)
-			{
-			case 4:
-				t32 = target_buffer_get_u32(target,&buffer[i]);
-				h_u32_to_le(&t[i], t32);
-				break;
-			case 2:
-				t16 = target_buffer_get_u16(target,&buffer[i]);
-				h_u16_to_le(&t[i], t16);
-				break;
-			}
+		case 4:
+			target_buffer_get_u32_array(target,buffer,count,(uint32_t*)t);
+			break;
+		case 2:
+			target_buffer_get_u16_array(target,buffer,count,(uint16_t*)t);
+			break;
 		}
-
 		buffer = t;
 	}
 
@@ -1078,7 +1066,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 
 	/* mips32_pracc_fastdata_xfer requires uint32_t in host endianness, */
 	/* but byte array represents target endianness                      */
-	uint8_t * t = NULL;
+	uint32_t *t = NULL;
 	t = malloc(count * sizeof(uint32_t));
 	if (t == NULL)
 	{
@@ -1086,15 +1074,10 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 		return ERROR_FAIL;
 	}
 
-	uint32_t i, t32;
-	for(i = 0; i < (count*4); i += 4)
-	{
-		t32 = target_buffer_get_u32(target,&buffer[i]);
-		h_u32_to_le(&t[i], t32);
-	}
+	target_buffer_get_u32_array(target,buffer,count,t);
 
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
-			count, (uint32_t*) (void *)t);
+			count, t);
 
 	if (t != NULL)
 		free(t);
