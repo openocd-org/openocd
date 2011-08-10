@@ -39,6 +39,7 @@
 /* PRESTO access library includes */
 #if BUILD_PRESTO_FTD2XX == 1
 #include <ftd2xx.h>
+#include "ftd2xx_common.h"
 #elif BUILD_PRESTO_LIBFTDI == 1
 #include <ftdi.h>
 #else
@@ -102,7 +103,7 @@ static int presto_write(uint8_t *buf, uint32_t size)
 	DWORD ftbytes;
 	if ((presto->status = FT_Write(presto->handle, buf, size, &ftbytes)) != FT_OK)
 	{
-		LOG_ERROR("FT_Write returned: %lu", presto->status);
+		LOG_ERROR("FT_Write returned: %s", ftd2xx_status_string(presto->status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -132,7 +133,7 @@ static int presto_read(uint8_t* buf, uint32_t size)
 	DWORD ftbytes;
 	if ((presto->status = FT_Read(presto->handle, buf, size, &ftbytes)) != FT_OK)
 	{
-		LOG_ERROR("FT_Read returned: %lu", presto->status);
+		LOG_ERROR("FT_Read returned: %s", ftd2xx_status_string(presto->status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -194,17 +195,17 @@ static int presto_open_ftd2xx(char *req_serial)
 
 	if ((presto->status = FT_ListDevices(&numdevs, NULL, FT_LIST_NUMBER_ONLY)) != FT_OK)
 	{
-		LOG_ERROR("FT_ListDevices failed: %i", (int)presto->status);
+		LOG_ERROR("FT_ListDevices failed: %s", ftd2xx_status_string(presto->status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	LOG_DEBUG("FTDI devices available: %lu", numdevs);
+	LOG_DEBUG("FTDI devices available: %" PRIu32, (uint32_t)numdevs);
 	for (i = 0; i < numdevs; i++)
 	{
 		if ((presto->status = FT_Open(i, &(presto->handle))) != FT_OK)
 		{
 			/* this is not fatal, the device may be legitimately open by other process, hence debug message only */
-			LOG_DEBUG("FT_Open failed: %i", (int)presto->status);
+			LOG_DEBUG("FT_Open failed: %s", ftd2xx_status_string(presto->status));
 			continue;
 		}
 		LOG_DEBUG("FTDI device %i open", (int)i);
@@ -217,7 +218,7 @@ static int presto_open_ftd2xx(char *req_serial)
 				break;
 		}
 		else
-			LOG_DEBUG("FT_GetDeviceInfo failed: %lu", presto->status);
+			LOG_DEBUG("FT_GetDeviceInfo failed: %s", ftd2xx_status_string(presto->status));
 
 		LOG_DEBUG("FTDI device %i does not match, closing", (int)i);
 		FT_Close(presto->handle);
@@ -404,7 +405,7 @@ static int presto_close(void)
 	int result = ERROR_OK;
 
 #if BUILD_PRESTO_FTD2XX == 1
-	unsigned long ftbytes;
+	DWORD ftbytes;
 
 	if (presto->handle == (FT_HANDLE)INVALID_HANDLE_VALUE)
 		return result;
