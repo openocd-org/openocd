@@ -348,6 +348,38 @@ static void target_buffer_set_u8(struct target *target, uint8_t *buffer, uint8_t
 	*buffer = value;
 }
 
+/* write a uint32_t array to a buffer in target memory endianness */
+void target_buffer_get_u32_array(struct target *target, const uint8_t *buffer, uint32_t count, uint32_t *dstbuf)
+{
+	uint32_t i;
+	for(i = 0; i < count; i ++)
+		dstbuf[i] = target_buffer_get_u32(target,&buffer[i*4]);
+}
+
+/* write a uint16_t array to a buffer in target memory endianness */
+void target_buffer_get_u16_array(struct target *target, const uint8_t *buffer, uint32_t count, uint16_t *dstbuf)
+{
+	uint32_t i;
+	for(i = 0; i < count; i ++)
+		dstbuf[i] = target_buffer_get_u16(target,&buffer[i*2]);
+}
+
+/* write a uint32_t array to a buffer in target memory endianness */
+void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, uint32_t *srcbuf)
+{
+	uint32_t i;
+	for(i = 0; i < count; i ++)
+		target_buffer_set_u32(target,&buffer[i*4],srcbuf[i]);
+}
+
+/* write a uint16_t array to a buffer in target memory endianness */
+void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, uint16_t *srcbuf)
+{
+	uint32_t i;
+	for(i = 0; i < count; i ++)
+		target_buffer_set_u16(target,&buffer[i*2],srcbuf[i]);
+}
+
 /* return a pointer to a configured target; id is name or number */
 struct target *get_target(const char *id)
 {

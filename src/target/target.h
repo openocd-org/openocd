@@ -524,6 +524,11 @@ void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t valu
 void target_buffer_set_u24(struct target *target, uint8_t *buffer, uint32_t value);
 void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t value);
 
+void target_buffer_get_u32_array(struct target *target, const uint8_t *buffer, uint32_t count, uint32_t *dstbuf);
+void target_buffer_get_u16_array(struct target *target, const uint8_t *buffer, uint32_t count, uint16_t *dstbuf);
+void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, uint32_t *srcbuf);
+void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, uint16_t *srcbuf);
+
 int target_read_u32(struct target *target, uint32_t address, uint32_t *value);
 int target_read_u16(struct target *target, uint32_t address, uint16_t *value);
 int target_read_u8(struct target *target, uint32_t address, uint8_t *value);
