@@ -870,7 +870,22 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	void * t = buffer;
+	/* since we don't know if buffer is aligned, we allocate new mem that is always aligned */
+	void *t = NULL;
+
+	if (size > 1)
+	{
+		t = malloc(count * size * sizeof(uint8_t));
+		if (t == NULL)
+		{
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+	}
+	else
+	{
+		t = buffer;
+	}
 
 	/* if noDMA off, use DMAACC mode for memory read */
 	int retval;
@@ -893,6 +908,9 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 			break;
 		}
 	}
+
+	if ((size > 1) && (t != NULL))
+		free(t);
 
 	return retval;
 }
