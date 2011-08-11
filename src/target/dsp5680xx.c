@@ -143,7 +143,7 @@ static int jtag_data_write(struct target * target, uint32_t instr,int num_bits, 
 #define jtag_data_write32(target,instr,data_read) jtag_data_write(target,instr,32,data_read)
 
 /** 
- * Executes DSP instruction.
+ * Executes EOnCE instruction.
  * 
  * @param target 
  * @param instr Instruction to execute.
@@ -154,8 +154,7 @@ static int jtag_data_write(struct target * target, uint32_t instr,int num_bits, 
  * 
  * @return 
  */
-
-static int eonce_instruction_exec(struct target * target, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex,uint8_t * eonce_status){
+static int eonce_instruction_exec_single(struct target * target, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex,uint8_t * eonce_status){
   int retval;
   uint32_t dr_out_tmp;
   uint8_t instr_with_flags = instr|(rw<<7)|(go<<6)|(ex<<5);
@@ -166,17 +165,16 @@ static int eonce_instruction_exec(struct target * target, uint8_t instr, uint8_t
   return retval;
 }
 
-///wrappers for parameter conversion between eonce_execute_instruction and eonce_execute_instructionX
-
-#define eonce_execute_instruction_1(target,opcode1,opcode2,opcode3)	 eonce_execute_instruction1(target,opcode1)
-#define eonce_execute_instruction_2(target,opcode1,opcode2,opcode3)	 eonce_execute_instruction2(target,opcode1,opcode2)
-#define eonce_execute_instruction_3(target,opcode1,opcode2,opcode3)	 eonce_execute_instruction3(target,opcode1,opcode2,opcode3)
-#define eonce_execute_instruction(target,words,opcode1,opcode2,opcode3) eonce_execute_instruction_##words(target,opcode1,opcode2,opcode3)
+///wrappers for multi opcode instructions
+#define dsp5680xx_exe_1(target,opcode1,opcode2,opcode3)	 dsp5680xx_exe1(target,opcode1)
+#define dsp5680xx_exe_2(target,opcode1,opcode2,opcode3)	 dsp5680xx_exe2(target,opcode1,opcode2)
+#define dsp5680xx_exe_3(target,opcode1,opcode2,opcode3)	 dsp5680xx_exe3(target,opcode1,opcode2,opcode3)
+#define dsp5680xx_exe_generic(target,words,opcode1,opcode2,opcode3) dsp5680xx_exe_##words(target,opcode1,opcode2,opcode3)
 
 /// Executes one word DSP instruction
-static int eonce_execute_instruction1(struct target * target, uint16_t opcode){
+static int dsp5680xx_exe1(struct target * target, uint16_t opcode){
   int retval;
-  retval = eonce_instruction_exec(target,0x04,0,1,0,NULL);
+  retval = eonce_instruction_exec_single(target,0x04,0,1,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,opcode,NULL);
   err_check_propagate(retval);
@@ -184,13 +182,13 @@ static int eonce_execute_instruction1(struct target * target, uint16_t opcode){
 }
 
 /// Executes two word DSP instruction
-static int eonce_execute_instruction2(struct target * target,uint16_t opcode1, uint16_t opcode2){
+static int dsp5680xx_exe2(struct target * target,uint16_t opcode1, uint16_t opcode2){
   int retval;
-  retval = eonce_instruction_exec(target,0x04,0,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,0x04,0,0,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,opcode1,NULL);
   err_check_propagate(retval);
-  retval = eonce_instruction_exec(target,0x04,0,1,0,NULL);
+  retval = eonce_instruction_exec_single(target,0x04,0,1,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,opcode2,NULL);
   err_check_propagate(retval);
@@ -198,17 +196,17 @@ static int eonce_execute_instruction2(struct target * target,uint16_t opcode1, u
 }
 
 /// Executes three word DSP instruction
-static int eonce_execute_instruction3(struct target * target, uint16_t opcode1,uint16_t opcode2,uint16_t opcode3){
+static int dsp5680xx_exe3(struct target * target, uint16_t opcode1,uint16_t opcode2,uint16_t opcode3){
   int retval;
-  retval = eonce_instruction_exec(target,0x04,0,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,0x04,0,0,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,opcode1,NULL);
   err_check_propagate(retval);
-  retval = eonce_instruction_exec(target,0x04,0,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,0x04,0,0,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,opcode2,NULL);
   err_check_propagate(retval);
-  retval = eonce_instruction_exec(target,0x04,0,1,0,NULL);
+  retval = eonce_instruction_exec_single(target,0x04,0,1,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,opcode3,NULL);
   err_check_propagate(retval);
@@ -225,9 +223,9 @@ static int eonce_execute_instruction3(struct target * target, uint16_t opcode1,u
 */
 
 /// writes data into upper ORx register of the target
-static int eonce_tx_upper_data(struct target * target, uint16_t data, uint32_t * eonce_status_low){
+static int core_tx_upper_data(struct target * target, uint16_t data, uint32_t * eonce_status_low){
   int retval;
-  retval = eonce_instruction_exec(target,DSP5680XX_ONCE_ORX1,0,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,DSP5680XX_ONCE_ORX1,0,0,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_write16(target,data,eonce_status_low);
   err_check_propagate(retval);
@@ -235,7 +233,7 @@ static int eonce_tx_upper_data(struct target * target, uint16_t data, uint32_t *
 }
 
 /// writes data into lower ORx register of the target
-#define eonce_tx_lower_data(target,data) eonce_instruction_exec(target,DSP5680XX_ONCE_ORX,0,0,0,NULL);\
+#define core_tx_lower_data(target,data) eonce_instruction_exec_single(target,DSP5680XX_ONCE_ORX,0,0,0,NULL);\
 								  jtag_data_write16(target,data)
 
 /**
@@ -244,10 +242,10 @@ static int eonce_tx_upper_data(struct target * target, uint16_t data, uint32_t *
  * @param data_read: Returns the data read from the upper OTX register via JTAG.
  * @return: Returns an error code (see error code documentation)
  */
-static int eonce_rx_upper_data(struct target * target, uint8_t * data_read)
+static int core_rx_upper_data(struct target * target, uint8_t * data_read)
 {
   int retval;
-  retval = eonce_instruction_exec(target,DSP5680XX_ONCE_OTX1,1,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,DSP5680XX_ONCE_OTX1,1,0,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_read16(target,data_read);
   err_check_propagate(retval);
@@ -260,10 +258,10 @@ static int eonce_rx_upper_data(struct target * target, uint8_t * data_read)
  * @param data_read: Returns the data read from the lower OTX register via JTAG.
  * @return: Returns an error code (see error code documentation)
  */
-static int eonce_rx_lower_data(struct target * target,uint8_t * data_read)
+static int core_rx_lower_data(struct target * target,uint8_t * data_read)
 {
   int retval;
-  retval = eonce_instruction_exec(target,DSP5680XX_ONCE_OTX,1,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,DSP5680XX_ONCE_OTX,1,0,0,NULL);
   err_check_propagate(retval);
   retval = jtag_data_read16(target,data_read);
   err_check_propagate(retval);
@@ -277,123 +275,123 @@ static int eonce_rx_lower_data(struct target * target,uint8_t * data_read)
  */
 
 /// move.l #value,r0
-#define eonce_move_long_to_r0(target,value)	eonce_execute_instruction(target,3,0xe418,value&0xffff,value>>16)
+#define core_move_long_to_r0(target,value)	dsp5680xx_exe_generic(target,3,0xe418,value&0xffff,value>>16)
 
 /// move.l #value,n
-#define eonce_move_long_to_n(target,value)		eonce_execute_instruction(target,3,0xe41e,value&0xffff,value>>16)
+#define core_move_long_to_n(target,value)		dsp5680xx_exe_generic(target,3,0xe41e,value&0xffff,value>>16)
 
 /// move x:(r0),y0
-#define eonce_move_at_r0_to_y0(target)			eonce_execute_instruction(target,1,0xF514,0,0)
+#define core_move_at_r0_to_y0(target)			dsp5680xx_exe_generic(target,1,0xF514,0,0)
 
 /// move x:(r0),y1
-#define eonce_move_at_r0_to_y1(target)			eonce_execute_instruction(target,1,0xF714,0,0)
+#define core_move_at_r0_to_y1(target)			dsp5680xx_exe_generic(target,1,0xF714,0,0)
 
 /// move.l x:(r0),y
-#define eonce_move_long_at_r0_y(target) eonce_execute_instruction(target,1,0xF734,0,0)
+#define core_move_long_at_r0_y(target) dsp5680xx_exe_generic(target,1,0xF734,0,0)
 
 /// move y0,x:(r0)
-#define eonce_move_y0_at_r0(target)			eonce_execute_instruction(target,1,0xd514,0,0)
+#define core_move_y0_at_r0(target)			dsp5680xx_exe_generic(target,1,0xd514,0,0)
 
 /// bfclr #value,x:(r0)
-#define eonce_bfclr_at_r0(target,value)		eonce_execute_instruction(target,2,0x8040,value,0)
+#define eonce_bfclr_at_r0(target,value)		dsp5680xx_exe_generic(target,2,0x8040,value,0)
 
 /// move #value,y0
-#define eonce_move_value_to_y0(target,value)	eonce_execute_instruction(target,2,0x8745,value,0)
+#define core_move_value_to_y0(target,value)	dsp5680xx_exe_generic(target,2,0x8745,value,0)
 
 /// move.w y0,x:(r0)+
-#define eonce_move_y0_at_r0_inc(target)		eonce_execute_instruction(target,1,0xd500,0,0)
+#define core_move_y0_at_r0_inc(target)		dsp5680xx_exe_generic(target,1,0xd500,0,0)
 
 /// move.w y0,p:(r0)+
-#define eonce_move_y0_at_pr0_inc(target)		eonce_execute_instruction(target,1,0x8560,0,0)
+#define core_move_y0_at_pr0_inc(target)		dsp5680xx_exe_generic(target,1,0x8560,0,0)
 
 /// move.w p:(r0)+,y0
-#define eonce_move_at_pr0_inc_to_y0(target)	eonce_execute_instruction(target,1,0x8568,0,0)
+#define core_move_at_pr0_inc_to_y0(target)	dsp5680xx_exe_generic(target,1,0x8568,0,0)
 
 /// move.w p:(r0)+,y1
-#define eonce_move_at_pr0_inc_to_y1(target)	eonce_execute_instruction(target,1,0x8768,0,0)
+#define core_move_at_pr0_inc_to_y1(target)	dsp5680xx_exe_generic(target,1,0x8768,0,0)
 
 /// move.l #value,r2
-#define eonce_move_long_to_r2(target,value)	eonce_execute_instruction(target,3,0xe41A,value&0xffff,value>>16)
+#define core_move_long_to_r2(target,value)	dsp5680xx_exe_generic(target,3,0xe41A,value&0xffff,value>>16)
 
 /// move y0,x:(r2)
-#define eonce_move_y0_at_r2(target)             eonce_execute_instruction(target,1,0xd516,0,0)
+#define core_move_y0_at_r2(target)             dsp5680xx_exe_generic(target,1,0xd516,0,0)
 
 /// move.w #<value>,x:(r2)
-#define eonce_move_value_at_r2(target,value)	eonce_execute_instruction(target,2,0x8642,value,0)
+#define core_move_value_at_r2(target,value)	dsp5680xx_exe_generic(target,2,0x8642,value,0)
 
 /// move.w #<value>,x:(r0)
-#define eonce_move_value_at_r0(target,value)	eonce_execute_instruction(target,2,0x8640,value,0)
+#define core_move_value_at_r0(target,value)	dsp5680xx_exe_generic(target,2,0x8640,value,0)
 
 /// move.w #<value>,x:(R2+<disp>)
-#define eonce_move_value_at_r2_disp(target,value,disp)	eonce_execute_instruction(target,3,0x8646,value,disp)
+#define core_move_value_at_r2_disp(target,value,disp)	dsp5680xx_exe_generic(target,3,0x8646,value,disp)
 
 /// move.w x:(r2),Y0
-#define eonce_move_at_r2_to_y0(target)		eonce_execute_instruction(target,1,0xF516,0,0)
+#define core_move_at_r2_to_y0(target)		dsp5680xx_exe_generic(target,1,0xF516,0,0)
 
 /// move.w p:(r2)+,y0
-#define eonce_move_at_pr2_inc_to_y0(target)	eonce_execute_instruction(target,1,0x856A,0,0)
+#define core_move_at_pr2_inc_to_y0(target)	dsp5680xx_exe_generic(target,1,0x856A,0,0)
 
 /// move.l #value,r3
-#define eonce_move_long_to_r1(target,value)	eonce_execute_instruction(target,3,0xE419,value&0xffff,value>>16)
+#define core_move_long_to_r1(target,value)	dsp5680xx_exe_generic(target,3,0xE419,value&0xffff,value>>16)
 
 /// move.l #value,r3
-#define eonce_move_long_to_r3(target,value)	eonce_execute_instruction(target,3,0xE41B,value&0xffff,value>>16)
+#define core_move_long_to_r3(target,value)	dsp5680xx_exe_generic(target,3,0xE41B,value&0xffff,value>>16)
 
 /// move.w y0,p:(r3)+
-#define eonce_move_y0_at_pr3_inc(target)		eonce_execute_instruction(target,1,0x8563,0,0)
+#define core_move_y0_at_pr3_inc(target)		dsp5680xx_exe_generic(target,1,0x8563,0,0)
 
 /// move.w y0,x:(r3)
-#define eonce_move_y0_at_r3(target)			eonce_execute_instruction(target,1,0xD503,0,0)
+#define core_move_y0_at_r3(target)			dsp5680xx_exe_generic(target,1,0xD503,0,0)
 
 /// move.l #value,r4
-#define eonce_move_long_to_r4(target,value)	eonce_execute_instruction(target,3,0xE41C,value&0xffff,value>>16)
+#define core_move_long_to_r4(target,value)	dsp5680xx_exe_generic(target,3,0xE41C,value&0xffff,value>>16)
 
 /// move pc,r4
-#define eonce_move_pc_to_r4(target)			eonce_execute_instruction(target,1,0xE716,0,0)
+#define core_move_pc_to_r4(target)			dsp5680xx_exe_generic(target,1,0xE716,0,0)
 
 /// move.l r4,y
-#define eonce_move_r4_to_y(target)			eonce_execute_instruction(target,1,0xe764,0,0)
+#define core_move_r4_to_y(target)			dsp5680xx_exe_generic(target,1,0xe764,0,0)
 
 /// move.w p:(r0)+,y0
-#define eonce_move_at_pr0_inc_to_y0(target)	eonce_execute_instruction(target,1,0x8568,0,0)
+#define core_move_at_pr0_inc_to_y0(target)	dsp5680xx_exe_generic(target,1,0x8568,0,0)
 
 /// move.w x:(r0)+,y0
-#define eonce_move_at_r0_inc_to_y0(target)	eonce_execute_instruction(target,1,0xf500,0,0)
+#define core_move_at_r0_inc_to_y0(target)	dsp5680xx_exe_generic(target,1,0xf500,0,0)
 
 /// move x:(r0),y0
-#define eonce_move_at_r0_y0(target)			eonce_execute_instruction(target,1,0xF514,0,0)
+#define core_move_at_r0_y0(target)			dsp5680xx_exe_generic(target,1,0xF514,0,0)
 
 /// nop
-#define eonce_nop(target)		eonce_execute_instruction(target,1,0xe700,0,0)
+#define eonce_nop(target)		dsp5680xx_exe_generic(target,1,0xe700,0,0)
 
 /// move.w x:(R2+<disp>),Y0
-#define eonce_move_at_r2_disp_to_y0(target,disp) eonce_execute_instruction(target,2,0xF542,disp,0)
+#define core_move_at_r2_disp_to_y0(target,disp) dsp5680xx_exe_generic(target,2,0xF542,disp,0)
 
 /// move.w y1,x:(r2)
-#define eonce_move_y1_at_r2(target) eonce_execute_instruction(target,1,0xd716,0,0)
+#define core_move_y1_at_r2(target) dsp5680xx_exe_generic(target,1,0xd716,0,0)
 
 /// move.w y1,x:(r0)
-#define eonce_move_y1_at_r0(target) eonce_execute_instruction(target,1,0xd714,0,0)
+#define core_move_y1_at_r0(target) dsp5680xx_exe_generic(target,1,0xd714,0,0)
 
 /// move.bp y0,x:(r0)+
-#define eonce_move_byte_y0_at_r0(target) eonce_execute_instruction(target,1,0xd5a0,0,0)
+#define core_move_byte_y0_at_r0(target) dsp5680xx_exe_generic(target,1,0xd5a0,0,0)
 
 /// move.w y1,p:(r0)+
-#define eonce_move_y1_at_pr0_inc(target) eonce_execute_instruction(target,1,0x8760,0,0)
+#define core_move_y1_at_pr0_inc(target) dsp5680xx_exe_generic(target,1,0x8760,0,0)
 
 /// move.w y1,x:(r0)+
-#define eonce_move_y1_at_r0_inc(target) eonce_execute_instruction(target,1,0xD700,0,0)
+#define core_move_y1_at_r0_inc(target) dsp5680xx_exe_generic(target,1,0xD700,0,0)
 
 /// move.l #value,y
-#define eonce_move_long_to_y(target,value) eonce_execute_instruction(target,3,0xe417,value&0xffff,value>>16)
+#define core_move_long_to_y(target,value) dsp5680xx_exe_generic(target,3,0xe417,value&0xffff,value>>16)
 
-static int eonce_move_value_to_pc(struct target * target, uint32_t value){
+static int core_move_value_to_pc(struct target * target, uint32_t value){
   if (!(target->state == TARGET_HALTED)){
     LOG_ERROR("Target must be halted to move PC. Target state = %d.",target->state);
     return ERROR_TARGET_NOT_HALTED;
   };
   int retval;
-  retval = eonce_execute_instruction(target,3,0xE71E,value&0xffff,value>>16);
+  retval = dsp5680xx_exe_generic(target,3,0xE71E,value&0xffff,value>>16);
   err_check_propagate(retval);
   return retval;
 }
@@ -401,14 +399,14 @@ static int eonce_move_value_to_pc(struct target * target, uint32_t value){
 static int eonce_load_TX_RX_to_r0(struct target * target)
 {
   int retval;
-  retval = eonce_move_long_to_r0(target,((MC568013_EONCE_TX_RX_ADDR)+(MC568013_EONCE_OBASE_ADDR<<16)));
+  retval = core_move_long_to_r0(target,((MC568013_EONCE_TX_RX_ADDR)+(MC568013_EONCE_OBASE_ADDR<<16)));
   return retval;
 }
 
-static int eonce_load_TX_RX_high_to_r0(struct target * target)
+static int core_load_TX_RX_high_addr_to_r0(struct target * target)
 {
   int retval = 0;
-  retval = eonce_move_long_to_r0(target,((MC568013_EONCE_TX1_RX1_HIGH_ADDR)+(MC568013_EONCE_OBASE_ADDR<<16)));
+  retval = core_move_long_to_r0(target,((MC568013_EONCE_TX1_RX1_HIGH_ADDR)+(MC568013_EONCE_OBASE_ADDR<<16)));
   return retval;
 }
 
@@ -417,7 +415,7 @@ static int dsp5680xx_read_core_reg(struct target * target, uint8_t reg_addr, uin
   //TODO implement a general version of this which matches what openocd uses.
   int retval;
   uint32_t dummy_data_to_shift_into_dr;
-  retval = eonce_instruction_exec(target,reg_addr,1,0,0,NULL);
+  retval = eonce_instruction_exec_single(target,reg_addr,1,0,0,NULL);
   err_check_propagate(retval);
   retval = dsp5680xx_drscan(target,(uint8_t *)& dummy_data_to_shift_into_dr,(uint8_t *) data_read, 8);
   err_check_propagate(retval);
@@ -442,7 +440,7 @@ static int eonce_read_status_reg(struct target * target, uint16_t * data){
  */
 static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
   int retval;
-  retval = eonce_instruction_exec(target,0x1F,0,0,1,eonce_status);
+  retval = eonce_instruction_exec_single(target,0x1F,0,0,1,eonce_status);
   err_check_propagate(retval);
   return retval;
 }
@@ -497,15 +495,15 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
 static int eonce_pc_store(struct target * target){
   uint8_t tmp[2];
   int retval;
-  retval = eonce_move_pc_to_r4(target);
+  retval = core_move_pc_to_r4(target);
   err_check_propagate(retval);
-  retval = eonce_move_r4_to_y(target);
+  retval = core_move_r4_to_y(target);
   err_check_propagate(retval);
   retval = eonce_load_TX_RX_to_r0(target);
   err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0(target);
+  retval = core_move_y0_at_r0(target);
   err_check_propagate(retval);
-  retval = eonce_rx_lower_data(target,tmp);
+  retval = core_rx_lower_data(target,tmp);
   err_check_propagate(retval);
   LOG_USER("PC value: 0x%X%X\n",tmp[1],tmp[0]);
   dsp5680xx_context.stored_pc = (tmp[0]|(tmp[1]<<8));
@@ -626,7 +624,7 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
   int retval;
   uint8_t eonce_status;
   if(!current){
-    retval = eonce_move_value_to_pc(target,address);
+    retval = core_move_value_to_pc(target,address);
     err_check_propagate(retval);
   }
 
@@ -674,19 +672,19 @@ static int dsp5680xx_convert_address(uint32_t * address, int * pmem){
 
 static int dsp5680xx_read_16_single(struct target * target, uint32_t address, uint8_t * data_read, int r_pmem){
   int retval;
-  retval = eonce_move_long_to_r0(target,address);
+  retval = core_move_long_to_r0(target,address);
   err_check_propagate(retval);
   if(r_pmem)
-    retval = eonce_move_at_pr0_inc_to_y0(target);
+    retval = core_move_at_pr0_inc_to_y0(target);
   else
-    retval = eonce_move_at_r0_to_y0(target);
+    retval = core_move_at_r0_to_y0(target);
   err_check_propagate(retval);
   retval = eonce_load_TX_RX_to_r0(target);
   err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0(target);
+  retval = core_move_y0_at_r0(target);
   err_check_propagate(retval);
   // at this point the data i want is at the reg eonce can read
-  retval = eonce_rx_lower_data(target,data_read);
+  retval = core_rx_lower_data(target,data_read);
   err_check_propagate(retval);
   LOG_DEBUG("%s: Data read from 0x%06X: 0x%02X%02X",__FUNCTION__, address,data_read[1],data_read[0]);
   return retval;
@@ -696,31 +694,31 @@ static int dsp5680xx_read_32_single(struct target * target, uint32_t address, ui
   int retval;
   address = (address & 0xFFFFFE);
   // Get data to an intermediate register
-  retval = eonce_move_long_to_r0(target,address);
+  retval = core_move_long_to_r0(target,address);
   err_check_propagate(retval);
   if(r_pmem){
-    retval = eonce_move_at_pr0_inc_to_y0(target);
+    retval = core_move_at_pr0_inc_to_y0(target);
 	err_check_propagate(retval);
-    retval = eonce_move_at_pr0_inc_to_y1(target);
+    retval = core_move_at_pr0_inc_to_y1(target);
 	err_check_propagate(retval);
   }else{
-    retval = eonce_move_at_r0_inc_to_y0(target);
+    retval = core_move_at_r0_inc_to_y0(target);
 	err_check_propagate(retval);
-    retval = eonce_move_at_r0_to_y1(target);
+    retval = core_move_at_r0_to_y1(target);
 	err_check_propagate(retval);
   }
   // Get lower part of data to TX/RX
   retval = eonce_load_TX_RX_to_r0(target);
   err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0_inc(target); // This also load TX/RX high to r0
+  retval = core_move_y0_at_r0_inc(target); // This also load TX/RX high to r0
   err_check_propagate(retval);
   // Get upper part of data to TX/RX
-  retval = eonce_move_y1_at_r0(target);
+  retval = core_move_y1_at_r0(target);
   err_check_propagate(retval);
   // at this point the data i want is at the reg eonce can read
-  retval = eonce_rx_lower_data(target,data_read);
+  retval = core_rx_lower_data(target,data_read);
   err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,data_read+2);
+  retval = core_rx_upper_data(target,data_read+2);
   err_check_propagate(retval);
   return retval;
 }
@@ -728,7 +726,7 @@ static int dsp5680xx_read_32_single(struct target * target, uint32_t address, ui
 static int dsp5680xx_read(struct target * target, uint32_t address, unsigned size, unsigned count, uint8_t * buffer){
   if(target->state != TARGET_HALTED){
     LOG_USER("Target must be halted.");
-    return ERROR_OK;
+    return ERROR_FAIL;
   }
   int retval = ERROR_OK;
   int pmem = 1;
@@ -773,15 +771,15 @@ static int dsp5680xx_read(struct target * target, uint32_t address, unsigned siz
 
 static int dsp5680xx_write_16_single(struct target *target, uint32_t address, uint16_t data, uint8_t w_pmem){
   int retval = 0;
-  retval = eonce_move_long_to_r0(target,address);
+  retval = core_move_long_to_r0(target,address);
   err_check_propagate(retval);
   if(w_pmem){
-    retval = eonce_move_value_to_y0(target,data);
+    retval = core_move_value_to_y0(target,data);
 	err_check_propagate(retval);
-    retval = eonce_move_y0_at_pr0_inc(target);
+    retval = core_move_y0_at_pr0_inc(target);
 	err_check_propagate(retval);
   }else{
-    retval = eonce_move_value_at_r0(target,data);
+    retval = core_move_value_at_r0(target,data);
 	err_check_propagate(retval);
   }
   return retval;
@@ -789,19 +787,19 @@ static int dsp5680xx_write_16_single(struct target *target, uint32_t address, ui
 
 static int dsp5680xx_write_32_single(struct target *target, uint32_t address, uint32_t data, int w_pmem){
   int retval = 0;
-  retval = eonce_move_long_to_r0(target,address);
+  retval = core_move_long_to_r0(target,address);
   err_check_propagate(retval);
-  retval = eonce_move_long_to_y(target,data);
-  err_check_propagate(retval);
-  if(w_pmem)
-    retval = eonce_move_y0_at_pr0_inc(target);
-  else
-    retval = eonce_move_y0_at_r0_inc(target);
+  retval = core_move_long_to_y(target,data);
   err_check_propagate(retval);
   if(w_pmem)
-    retval = eonce_move_y1_at_pr0_inc(target);
+    retval = core_move_y0_at_pr0_inc(target);
   else
-    retval = eonce_move_y1_at_r0_inc(target);
+    retval = core_move_y0_at_r0_inc(target);
+  err_check_propagate(retval);
+  if(w_pmem)
+    retval = core_move_y1_at_pr0_inc(target);
+  else
+    retval = core_move_y1_at_r0_inc(target);
   err_check_propagate(retval);
   return retval;
 }
@@ -1079,18 +1077,18 @@ int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected) {
  */
 static int dsp5680xx_f_execute_command(struct target * target, uint16_t command, uint32_t address, uint32_t data, uint16_t * hfm_ustat, int pmem){
   int retval;
-  retval = eonce_load_TX_RX_high_to_r0(target);
+  retval = core_load_TX_RX_high_addr_to_r0(target);
   err_check_propagate(retval);
-  retval = eonce_move_long_to_r2(target,HFM_BASE_ADDR);
+  retval = core_move_long_to_r2(target,HFM_BASE_ADDR);
   err_check_propagate(retval);
   uint8_t i[2];
   int watchdog = 100;
   do{
-    retval = eonce_move_at_r2_disp_to_y0(target,HFM_USTAT);	// read HMF_USTAT
+    retval = core_move_at_r2_disp_to_y0(target,HFM_USTAT);	// read HMF_USTAT
 	err_check_propagate(retval);
-    retval = eonce_move_y0_at_r0(target);
+    retval = core_move_y0_at_r0(target);
 	err_check_propagate(retval);
-    retval = eonce_rx_upper_data(target,i);
+    retval = core_rx_upper_data(target,i);
 	err_check_propagate(retval);
     if((watchdog--)==1){
       retval = ERROR_TARGET_FAILURE;
@@ -1100,32 +1098,32 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
 
   dsp5680xx_context.flush = 0;
 
-  retval = eonce_move_value_at_r2_disp(target,0x00,HFM_CNFG);	// write to HFM_CNFG (lock=0, select bank) -- flash_desc.bank&0x03,0x01 == 0x00,0x01 ???
+  retval = core_move_value_at_r2_disp(target,0x00,HFM_CNFG);	// write to HFM_CNFG (lock=0, select bank) -- flash_desc.bank&0x03,0x01 == 0x00,0x01 ???
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x04,HFM_USTAT);		// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
+  retval = core_move_value_at_r2_disp(target,0x04,HFM_USTAT);		// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x10,HFM_USTAT);		// clear only one bit at a time
+  retval = core_move_value_at_r2_disp(target,0x10,HFM_USTAT);		// clear only one bit at a time
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x20,HFM_USTAT);
+  retval = core_move_value_at_r2_disp(target,0x20,HFM_USTAT);
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x00,HFM_PROT);		// write to HMF_PROT, clear protection
+  retval = core_move_value_at_r2_disp(target,0x00,HFM_PROT);		// write to HMF_PROT, clear protection
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x00,HFM_PROTB);		// write to HMF_PROTB, clear protection
+  retval = core_move_value_at_r2_disp(target,0x00,HFM_PROTB);		// write to HMF_PROTB, clear protection
   err_check_propagate(retval);
-  retval = eonce_move_value_to_y0(target,data);
+  retval = core_move_value_to_y0(target,data);
   err_check_propagate(retval);
-  retval = eonce_move_long_to_r3(target,address);			// write to the flash block
+  retval = core_move_long_to_r3(target,address);			// write to the flash block
   err_check_propagate(retval);
   if (pmem){
-    retval = eonce_move_y0_at_pr3_inc(target);
+    retval = core_move_y0_at_pr3_inc(target);
 	err_check_propagate(retval);
   }else{
-    retval = eonce_move_y0_at_r3(target);
+    retval = core_move_y0_at_r3(target);
 	err_check_propagate(retval);
   }
-  retval = eonce_move_value_at_r2_disp(target,command,HFM_CMD);	// write command to the HFM_CMD reg
+  retval = core_move_value_at_r2_disp(target,command,HFM_CMD);	// write command to the HFM_CMD reg
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x80,HFM_USTAT);		// start the command
+  retval = core_move_value_at_r2_disp(target,0x80,HFM_USTAT);		// start the command
   err_check_propagate(retval);
 
   dsp5680xx_context.flush = 1;
@@ -1134,11 +1132,11 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
 
   watchdog = 100;
   do{
-    retval = eonce_move_at_r2_disp_to_y0(target,HFM_USTAT);	// read HMF_USTAT
+    retval = core_move_at_r2_disp_to_y0(target,HFM_USTAT);	// read HMF_USTAT
 	err_check_propagate(retval);
-    retval = eonce_move_y0_at_r0(target);
+    retval = core_move_y0_at_r0(target);
 	err_check_propagate(retval);
-	retval = eonce_rx_upper_data(target,i);
+	retval = core_rx_upper_data(target,i);
 	err_check_propagate(retval);
     if((watchdog--)==1){
 	  retval = ERROR_TARGET_FAILURE;
@@ -1160,18 +1158,18 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
  * 
  * @return 
  */
-static int eonce_set_hfmdiv(struct target * target){
+static int set_fm_ck_div(struct target * target){
   uint8_t i[2];
   int retval;
-  retval = eonce_move_long_to_r2(target,HFM_BASE_ADDR);
+  retval = core_move_long_to_r2(target,HFM_BASE_ADDR);
   err_check_propagate(retval);
-  retval = eonce_load_TX_RX_high_to_r0(target);
+  retval = core_load_TX_RX_high_addr_to_r0(target);
   err_check_propagate(retval);
-  retval = eonce_move_at_r2_to_y0(target);// read HFM_CLKD
+  retval = core_move_at_r2_to_y0(target);// read HFM_CLKD
   err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0(target);
+  retval = core_move_y0_at_r0(target);
   err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,i);
+  retval = core_rx_upper_data(target,i);
   err_check_propagate(retval);
   unsigned int hfm_at_wrong_value = 0;
   if ((i[0]&0x7f)!=HFM_CLK_DEFAULT) {
@@ -1181,13 +1179,13 @@ static int eonce_set_hfmdiv(struct target * target){
     LOG_DEBUG("HFM CLK divisor was already set to correct value (0x%02X).",i[0]&0x7f);
     return ERROR_OK;
   }
-  retval = eonce_move_value_at_r2(target,HFM_CLK_DEFAULT);	// write HFM_CLKD
+  retval = core_move_value_at_r2(target,HFM_CLK_DEFAULT);	// write HFM_CLKD
   err_check_propagate(retval);
-  retval = eonce_move_at_r2_to_y0(target); // verify HFM_CLKD
+  retval = core_move_at_r2_to_y0(target); // verify HFM_CLKD
   err_check_propagate(retval);
-  retval = eonce_move_y0_at_r0(target);
+  retval = core_move_y0_at_r0(target);
   err_check_propagate(retval);
-  retval = eonce_rx_upper_data(target,i);
+  retval = core_rx_upper_data(target,i);
   err_check_propagate(retval);
   if (i[0]!=(0x80|(HFM_CLK_DEFAULT&0x7f))) {
 	retval = ERROR_TARGET_FAILURE;
@@ -1228,7 +1226,7 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t se
     retval = dsp5680xx_halt(target);
     err_check_propagate(retval);
   }
-  retval = eonce_set_hfmdiv(target);
+  retval = set_fm_ck_div(target);
   err_check_propagate(retval);
   // Check if chip is already erased.
   retval = dsp5680xx_f_execute_command(target,HFM_ERASE_VERIFY,HFM_FLASH_BASE_ADDR+sector*HFM_SECTOR_SIZE/2,0,&hfm_ustat,1); // blank check
@@ -1282,7 +1280,7 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  retval = eonce_set_hfmdiv(target);
+  retval = set_fm_ck_div(target);
   err_check_propagate(retval);
 
   uint16_t hfm_ustat;
@@ -1360,7 +1358,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  retval = eonce_set_hfmdiv(target);
+  retval = set_fm_ck_div(target);
   err_check_propagate(retval);
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Setup registers needed by pgm_write_pflash
@@ -1368,26 +1366,26 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 
   dsp5680xx_context.flush = 0;
 
-  retval = eonce_move_long_to_r3(target,address);  // Destination address to r3
+  retval = core_move_long_to_r3(target,address);  // Destination address to r3
   err_check_propagate(retval);
-  eonce_load_TX_RX_high_to_r0(target);  // TX/RX reg address to r0
+  core_load_TX_RX_high_addr_to_r0(target);  // TX/RX reg address to r0
   err_check_propagate(retval);
-  retval = eonce_move_long_to_r2(target,HFM_BASE_ADDR);// FM base address to r2
+  retval = core_move_long_to_r2(target,HFM_BASE_ADDR);// FM base address to r2
   err_check_propagate(retval);
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Run flashing program.
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  retval = eonce_move_value_at_r2_disp(target,0x00,HFM_CNFG); // write to HFM_CNFG (lock=0, select bank)
+  retval = core_move_value_at_r2_disp(target,0x00,HFM_CNFG); // write to HFM_CNFG (lock=0, select bank)
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x04,HFM_USTAT);// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
+  retval = core_move_value_at_r2_disp(target,0x04,HFM_USTAT);// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x10,HFM_USTAT);// clear only one bit at a time
+  retval = core_move_value_at_r2_disp(target,0x10,HFM_USTAT);// clear only one bit at a time
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x20,HFM_USTAT);
+  retval = core_move_value_at_r2_disp(target,0x20,HFM_USTAT);
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x00,HFM_PROT);// write to HMF_PROT, clear protection
+  retval = core_move_value_at_r2_disp(target,0x00,HFM_PROT);// write to HMF_PROT, clear protection
   err_check_propagate(retval);
-  retval = eonce_move_value_at_r2_disp(target,0x00,HFM_PROTB);// write to HMF_PROTB, clear protection
+  retval = core_move_value_at_r2_disp(target,0x00,HFM_PROTB);// write to HMF_PROTB, clear protection
   err_check_propagate(retval);
   if(count%2){
     //TODO implement handling of odd number of words.
@@ -1401,7 +1399,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 
   uint32_t drscan_data;
   uint16_t tmp = (buffer[0]|(buffer[1]<<8));
-  retval = eonce_tx_upper_data(target,tmp,&drscan_data);
+  retval = core_tx_upper_data(target,tmp,&drscan_data);
   err_check_propagate(retval);
 
   retval = dsp5680xx_resume(target,0,my_favourite_ram_address,0,0);
@@ -1416,7 +1414,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
       counter = FLUSH_COUNT_FLASH;
     }
     tmp = (buffer[2*i]|(buffer[2*i+1]<<8));
-    retval = eonce_tx_upper_data(target,tmp,&drscan_data);
+    retval = core_tx_upper_data(target,tmp,&drscan_data);
 	if(retval!=ERROR_OK){
 	  dsp5680xx_context.flush = 1;
 	  err_check_propagate(retval);
