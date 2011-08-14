@@ -184,29 +184,6 @@ COMMAND_HANDLER(handle_add_script_search_dir_command)
 	return ERROR_OK;
 }
 
-
-static int jim_stacktrace_command(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
-{
-	if (argc != 1)
-	{
-		return JIM_ERR;
-	}
-	Jim_Obj * stacktrace = Jim_DuplicateObj(interp, interp->stackTrace);
-	
-	/* insert actual error site at beginning of list*/
-	Jim_Obj *procname = Jim_NewStringObj(interp, "", -1); /* Uhhh... don't know this one. */
-	Jim_ListInsertElements(interp, stacktrace, 0, 1, &procname);
-	Jim_Obj *filename = Jim_NewStringObj(interp, interp->errorFileName, -1);
-	Jim_ListInsertElements(interp, stacktrace, 1, 1, &filename);
-	Jim_Obj *line = Jim_NewIntObj(interp, interp->errorLine);
-	Jim_ListInsertElements(interp, stacktrace, 2, 1, &line);
-
-	Jim_SetResult(interp, stacktrace);
-
-	return JIM_OK;
-}
-
 static const struct command_registration openocd_command_handlers[] = {
 	{
 		.name = "version",
@@ -236,14 +213,6 @@ static const struct command_registration openocd_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "dir to search for config files and scripts",
 
-	},
-	{
-		.name = "stacktrace",
-		.jim_handler = jim_stacktrace_command,
-		.mode = COMMAND_ANY,
-		.help = "returns the stacktrace as a list of triples: proc, file, line."
-		"The stack trace is reset when a new stack trace is being built after "
-		"a new failure has occurred.",
 	},
 	COMMAND_REGISTRATION_DONE
 };
