@@ -143,20 +143,14 @@ is_mingw=no
 is_win32=no
 is_darwin=no
 
-if test $cross_compiling = no; then
-  # guess-rev.sh only exists in the repository, not in the released archives
-  AC_CHECK_FILE("$srcdir/guess-rev.sh", has_guess_rev=yes, has_guess_rev=no)
-
-  AC_MSG_CHECKING([whether to build a release])
-  if test $has_guess_rev = no; then
-    build_release=yes
-  else
-    build_release=no
-  fi
-  AC_MSG_RESULT($build_release)
+# guess-rev.sh only exists in the repository, not in the released archives
+AC_MSG_CHECKING([whether to build a release])
+if test -f $srcdir/guess-rev.sh ; then
+  build_release=no
 else
   build_release=yes
 fi
+AC_MSG_RESULT($build_release)
 
 # We are not *ALWAYS* being installed in the standard place.
 # We may be installed in a "tool-build" specific location.
