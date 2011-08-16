@@ -567,6 +567,10 @@ case $host in
     fi
     parport_use_giveio=yes
 
+    if test x$build_buspirate = xyes; then
+      AC_MSG_ERROR([buspirate currently not supported by MinGW32 hosts])
+    fi
+
     CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO"
 
     AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
