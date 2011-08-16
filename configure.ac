@@ -145,7 +145,7 @@ is_darwin=no
 
 # guess-rev.sh only exists in the repository, not in the released archives
 AC_MSG_CHECKING([whether to build a release])
-if test -f $srcdir/guess-rev.sh ; then
+if test -x $srcdir/guess-rev.sh ; then
   build_release=no
 else
   build_release=yes
