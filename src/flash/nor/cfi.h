@@ -161,6 +161,7 @@ struct cfi_fixup
 #define CFI_MFR_AMIC	0x0037
 #define CFI_MFR_SST		0x00BF
 #define CFI_MFR_MX		0x00C2
+#define CFI_MFR_EON		0x007F
 
 #define CFI_MFR_ANY		0xffff
 #define CFI_ID_ANY		0xffff
