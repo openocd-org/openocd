@@ -1974,6 +1974,7 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 		bank->bank_number = 1;
 		pChip->details.bank[1].pChip = pChip;
 		pChip->details.bank[1].pBank = bank;
+		break;
 
 	// at91sam3s series
 	case FLASH_BANK_BASE_S:
@@ -2091,8 +2092,8 @@ _sam3_probe(struct flash_bank *bank, int noise)
 
 	// update the flash bank size
 	for (x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++) {
-		if (bank->base == pPrivate->pChip->details.bank[0].base_address) {
-			bank->size =  pPrivate->pChip->details.bank[0].size_bytes;
+		if (bank->base == pPrivate->pChip->details.bank[x].base_address) {
+			bank->size =  pPrivate->pChip->details.bank[x].size_bytes;
 			break;
 		}
 	}
