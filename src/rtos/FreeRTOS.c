@@ -102,6 +102,7 @@ enum FreeRTOS_symbol_values
 	FreeRTOS_VAL_xTasksWaitingTermination  = 7,
 	FreeRTOS_VAL_xSuspendedTaskList        = 8,
 	FreeRTOS_VAL_uxCurrentNumberOfTasks    = 9,
+	FreeRTOS_VAL_uxTopUsedPriority         = 10,
 };
 
 static char* FreeRTOS_symbol_list[] =
@@ -116,6 +117,7 @@ static char* FreeRTOS_symbol_list[] =
 		"xTasksWaitingTermination",
 		"xSuspendedTaskList",
 		"uxCurrentNumberOfTasks",
+		"uxTopUsedPriority",
 		NULL
 };
 
@@ -226,15 +228,15 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 	}
 
 
-	// Unfortunately, we can't know how many lists there are for pxReadyTasksLists,
-	// So figure it out via other variables
-	int num_ready_task_lists = (rtos->symbols[FreeRTOS_VAL_xDelayedTaskList1].address - rtos->symbols[FreeRTOS_VAL_pxReadyTasksLists].address) / param->list_width;
+	// Find out how many lists are needed to be read from pxReadyTasksLists,
+	int64_t max_used_priority = 0;
+	retval = target_read_buffer( rtos->target, rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address, param->pointer_width, (uint8_t *)&max_used_priority );
 
 
-	symbol_address_t* list_of_lists = (symbol_address_t *)malloc( sizeof( symbol_address_t ) * ( num_ready_task_lists + 5 ) );
+	symbol_address_t* list_of_lists = (symbol_address_t *)malloc( sizeof( symbol_address_t ) * ( max_used_priority + 5 ) );
 
 	int num_lists;
-	for( num_lists = 0; num_lists < num_ready_task_lists; num_lists++ )
+	for( num_lists = 0; num_lists < max_used_priority; num_lists++ )
 	{
 		list_of_lists[num_lists] =  rtos->symbols[FreeRTOS_VAL_pxReadyTasksLists].address + num_lists * param->list_width;
 	}
@@ -479,3 +481,4 @@ static int FreeRTOS_create( struct target* target )
 	target->rtos->rtos_specific_params = (void*) &FreeRTOS_params_list[i];
 	return 0;
 }
+
