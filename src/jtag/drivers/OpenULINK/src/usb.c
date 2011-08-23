@@ -57,7 +57,7 @@ volatile __xdata __at 0x7FE8 setup_data_t setup_data;
  */
 
 __code usb_device_descriptor_t device_descriptor = {
-  /* .bLength = */            sizeof(usb_device_descriptor_t),
+  /* .bLength = */             sizeof(usb_device_descriptor_t),
   /* .bDescriptorType = */     DESCRIPTOR_TYPE_DEVICE,
   /* .bcdUSB = */              0x0110, /* BCD: 01.00 (Version 1.0 USB spec) */
   /* .bDeviceClass = */        0xFF,   /* 0xFF = vendor-specific */
