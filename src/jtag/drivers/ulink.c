@@ -1533,7 +1533,57 @@ int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd)
  */
 int ulink_queue_pathmove(struct ulink *device, struct jtag_command *cmd)
 {
-  // TODO: Implement this!
+    int ret, i, num_states, batch_size, state_count;
+  tap_state_t *path;
+  uint8_t tms_sequence;
+
+  num_states = cmd->cmd.pathmove->num_states;
+  path = cmd->cmd.pathmove->path;
+  state_count = 0;
+
+  while (num_states > 0) {
+    tms_sequence = 0;
+
+    /* Determine batch size */
+    if (num_states >= 8) {
+      batch_size = 8;
+    }
+    else {
+      batch_size = num_states;
+    }
+
+    for (i = 0; i < batch_size; i++) {
+      if (tap_state_transition(tap_get_state(), false) == path[state_count]) {
+        /* Append '0' transition: clear bit 'i' in tms_sequence */
+        buf_set_u32(&tms_sequence, i, 1, 0x0);
+      }
+      else if (tap_state_transition(tap_get_state(), true)
+          == path[state_count]) {
+        /* Append '1' transition: set bit 'i' in tms_sequence */
+        buf_set_u32(&tms_sequence, i, 1, 0x1);
+      }
+      else {
+        /* Invalid state transition */
+        LOG_ERROR("BUG: %s -> %s isn't a valid TAP state transition",
+            tap_state_name(tap_get_state()),
+            tap_state_name(path[state_count]));
+        return ERROR_FAIL;
+      }
+
+      tap_set_state(path[state_count]);
+      state_count++;
+      num_states--;
+    }
+
+    /* Append CLOCK_TMS command to OpenULINK command queue */
+    LOG_INFO(
+        "pathmove batch: count = %i, sequence = 0x%x", batch_size, tms_sequence);
+    ret = ulink_append_clock_tms_cmd(ulink_handle, batch_size, tms_sequence);
+    if (ret != ERROR_OK) {
+      return ret;
+    }
+  }
+
   return ERROR_OK;
 }
 
