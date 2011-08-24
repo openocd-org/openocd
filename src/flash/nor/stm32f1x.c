@@ -938,6 +938,22 @@ static int stm32x_probe(struct flash_bank *bank)
 			num_pages = 128;
 		}
 	}
+	else if ((device_id & 0x7ff) == 0x428)
+	{
+		/* value line density - we have 1k pages
+		 * 4 pages for a protection area */
+		page_size = 2048;
+		stm32x_info->ppage_size = 4;
+
+		/* check for early silicon */
+		if (num_pages == 0xffff)
+		{
+			/* number of sectors may be incorrrect on early silicon */
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
+			num_pages = 128;
+		}
+	}
+
 	else if ((device_id & 0x7ff) == 0x430)
 	{
 		/* xl line density - we have 2k pages
@@ -1120,6 +1136,27 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	else if ((device_id & 0x7ff) == 0x420)
 	{
 		printed = snprintf(buf, buf_size, "stm32x (Value) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+
+		switch (device_id >> 16)
+		{
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
+				break;
+
+			case 0x1001:
+				snprintf(buf, buf_size, "Z");
+				break;
+
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	}
+	else if ((device_id & 0x7ff) == 0x428)
+	{
+		printed = snprintf(buf, buf_size, "stm32x (Value HD) - Rev: ");
 		buf += printed;
 		buf_size -= printed;
 
