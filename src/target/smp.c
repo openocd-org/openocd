@@ -59,8 +59,9 @@ static const char DIGITS[16] = "0123456789abcdef";
 
 /* packet j :smp status request */
 int gdb_read_smp_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	uint32_t len = sizeof(int32_t);
 	uint8_t *buffer;
 	char *hex_buffer;
@@ -91,8 +92,9 @@ int gdb_read_smp_packet(struct connection *connection,
 
 /* J :  smp set request */
 int gdb_write_smp_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char *separator;
 	int coreid = 0;
 	int retval = ERROR_OK;

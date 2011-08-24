@@ -19,7 +19,7 @@
  ***************************************************************************/
 #include "server/server.h"
 int gdb_read_smp_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size);
+		char *packet, int packet_size);
 int gdb_write_smp_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size);
+		char *packet, int packet_size);
 

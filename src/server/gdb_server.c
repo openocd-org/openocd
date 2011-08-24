@@ -944,8 +944,9 @@ static void gdb_send_error(struct connection *connection, uint8_t the_error)
 }
 
 static int gdb_last_signal_packet(struct connection *connection,
-		struct target *target, char* packet, int packet_size)
+		char* packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char sig_reply[4];
 	int signal_var;
 
@@ -1029,8 +1030,9 @@ static void gdb_target_to_reg(struct target *target,
 }
 
 static int gdb_get_registers_packet(struct connection *connection,
-		struct target *target, char* packet, int packet_size)
+		char* packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	struct reg **reg_list;
 	int reg_list_size;
 	int retval;
@@ -1044,7 +1046,7 @@ static int gdb_get_registers_packet(struct connection *connection,
 #endif
 
 	if ( ( target->rtos != NULL ) &&
-		 ( ERROR_FAIL != rtos_get_gdb_reg_list( connection, target, &reg_list, &reg_list_size) ) )
+		 ( ERROR_FAIL != rtos_get_gdb_reg_list( connection, &reg_list, &reg_list_size) ) )
 	{
 		return ERROR_OK;
 	}
@@ -1088,8 +1090,9 @@ static int gdb_get_registers_packet(struct connection *connection,
 }
 
 static int gdb_set_registers_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	int i;
 	struct reg **reg_list;
 	int reg_list_size;
@@ -1147,8 +1150,9 @@ static int gdb_set_registers_packet(struct connection *connection,
 }
 
 static int gdb_get_register_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char *reg_packet;
 	int reg_num = strtoul(packet + 1, NULL, 16);
 	struct reg **reg_list;
@@ -1186,8 +1190,9 @@ static int gdb_get_register_packet(struct connection *connection,
 }
 
 static int gdb_set_register_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char *separator;
 	uint8_t *bin_buf;
 	int reg_num = strtoul(packet + 1, &separator, 16);
@@ -1249,8 +1254,9 @@ static int gdb_error(struct connection *connection, int retval)
  * 8191 bytes by the looks of it. Why 8191 bytes instead of 8192?????
  */
 static int gdb_read_memory_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char *separator;
 	uint32_t addr = 0;
 	uint32_t len = 0;
@@ -1324,8 +1330,9 @@ static int gdb_read_memory_packet(struct connection *connection,
 }
 
 static int gdb_write_memory_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char *separator;
 	uint32_t addr = 0;
 	uint32_t len = 0;
@@ -1382,8 +1389,9 @@ static int gdb_write_memory_packet(struct connection *connection,
 }
 
 static int gdb_write_memory_binary_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	char *separator;
 	uint32_t addr = 0;
 	uint32_t len = 0;
@@ -1446,8 +1454,9 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 }
 
 static int gdb_step_continue_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	int current = 0;
 	uint32_t address = 0x0;
 	int retval = ERROR_OK;
@@ -1480,8 +1489,9 @@ static int gdb_step_continue_packet(struct connection *connection,
 }
 
 static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
 	int type;
 	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
 	enum watchpoint_rw wp_type = WPT_READ /* dummy init to avoid warning */;
@@ -1674,7 +1684,7 @@ static int compare_bank (const void * a, const void * b)
 }
 
 static int gdb_memory_map(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
 	/* We get away with only specifying flash here. Regions that are not
 	 * specified are treated as if we provided no memory map(if not we
@@ -1683,6 +1693,7 @@ static int gdb_memory_map(struct connection *connection,
 	 * have to regenerate it a couple of times.
 	 */
 
+	struct target *target = get_target_from_connection(connection);
 	struct flash_bank *p;
 	char *xml = NULL;
 	int size = 0;
@@ -1818,10 +1829,11 @@ static int gdb_memory_map(struct connection *connection,
 }
 
 static int gdb_query_packet(struct connection *connection,
-	struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
 	struct command_context *cmd_ctx = connection->cmd_ctx;
 	struct gdb_connection *gdb_connection = connection->priv;
+	struct target *target = get_target_from_connection(connection);
 
 	if (strstr(packet, "qRcmd,"))
 	{
@@ -1919,7 +1931,7 @@ static int gdb_query_packet(struct connection *connection,
 	}
 	else if (strstr(packet, "qXfer:memory-map:read::")
 			&& (flash_get_bank_count() > 0))
-		return gdb_memory_map(connection, target, packet, packet_size);
+		return gdb_memory_map(connection, packet, packet_size);
 	else if (strstr(packet, "qXfer:features:read:"))
 	{
 		char *xml = NULL;
@@ -1972,7 +1984,7 @@ static int gdb_query_packet(struct connection *connection,
 }
 
 static int gdb_v_packet(struct connection *connection,
-		struct target *target, char *packet, int packet_size)
+		char *packet, int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct gdb_service *gdb_service = connection->service->priv;
@@ -2119,7 +2131,7 @@ static int gdb_v_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
-static int gdb_detach(struct connection *connection, struct target *target)
+static int gdb_detach(struct connection *connection)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
 
@@ -2207,61 +2219,43 @@ static int gdb_input_inner(struct connection *connection)
 			switch (packet[0])
 			{
 			    case 'T': // Is thread alive?
-			    	gdb_thread_packet(connection, target, packet, packet_size);
+			    	gdb_thread_packet(connection, packet, packet_size);
 			    	break;
 			    case 'H': // Set current thread ( 'c' for step and continue, 'g' for all other operations )
-			    	gdb_thread_packet(connection, target, packet, packet_size);
+			    	gdb_thread_packet(connection, packet, packet_size);
 			    	break;
 				case 'q':
 				case 'Q':
-					retval = gdb_thread_packet(connection,
-												target, packet,
-												packet_size);
+					retval = gdb_thread_packet(connection, packet, packet_size);
 					if ( retval == GDB_THREAD_PACKET_NOT_CONSUMED )
 					{
-						retval = gdb_query_packet(connection,
-								target, packet,
-								packet_size);
+						retval = gdb_query_packet(connection, packet, packet_size);
 					}
 					break;
 				case 'g':
-					retval = gdb_get_registers_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_get_registers_packet(connection, packet, packet_size);
 					break;
 				case 'G':
-					retval = gdb_set_registers_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_set_registers_packet(connection, packet, packet_size);
 					break;
 				case 'p':
-					retval = gdb_get_register_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_get_register_packet(connection, packet, packet_size);
 					break;
 				case 'P':
-					retval = gdb_set_register_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_set_register_packet(connection, packet, packet_size);
 					break;
 				case 'm':
-					retval = gdb_read_memory_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_read_memory_packet(connection, packet, packet_size);
 					break;
 				case 'M':
-					retval = gdb_write_memory_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_write_memory_packet(connection, packet, packet_size);
 					break;
 				case 'z':
 				case 'Z':
-					retval = gdb_breakpoint_watchpoint_packet(connection, target, packet, packet_size);
+					retval = gdb_breakpoint_watchpoint_packet(connection, packet, packet_size);
 					break;
 				case '?':
-					gdb_last_signal_packet(
-							connection, target,
-							packet, packet_size);
+					gdb_last_signal_packet(connection, packet, packet_size);
 					break;
 				case 'c':
 				case 's':
@@ -2324,7 +2318,7 @@ static int gdb_input_inner(struct connection *connection)
 							{
 								/* Here we don't want packet processing to stop even if this fails,
 								 * so we use a local variable instead of retval. */
-								retval = gdb_step_continue_packet(connection, target, packet, packet_size);
+								retval = gdb_step_continue_packet(connection, packet, packet_size);
 								if (retval != ERROR_OK)
 								{
 									/* we'll never receive a halted condition... issue a false one.. */
@@ -2335,18 +2329,14 @@ static int gdb_input_inner(struct connection *connection)
 					}
 					break;
 				case 'v':
-					retval = gdb_v_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_v_packet(connection, packet, packet_size);
 					break;
 				case 'D':
-					retval = gdb_detach(connection, target);
+					retval = gdb_detach(connection);
 					extended_protocol = 0;
 					break;
 				case 'X':
-					retval = gdb_write_memory_binary_packet(
-							connection, target,
-							packet, packet_size);
+					retval = gdb_write_memory_binary_packet(connection, packet, packet_size);
 					if (retval != ERROR_OK)
 						return retval;
 					break;
@@ -2373,18 +2363,14 @@ static int gdb_input_inner(struct connection *connection)
 				case 'j':
 				    /*  packet supported only by smp target i.e cortex_a.c*/
 					/* handle smp packet replying coreid played to gbd */
-					gdb_read_smp_packet(
-							connection, target,
-							packet, packet_size);
+					gdb_read_smp_packet(connection, packet, packet_size);
 					break;
 
 				case 'J':
 					/*  packet supported only by smp target i.e cortex_a.c */
 					/*  handle smp packet setting coreid to be played at next
 					 *  resume to gdb */
-					gdb_write_smp_packet(
-							connection, target,
-							packet, packet_size);
+					gdb_write_smp_packet(connection, packet, packet_size);
 					break;
 
 				default:

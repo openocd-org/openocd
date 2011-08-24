@@ -128,8 +128,10 @@ int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 
 
 
-int gdb_thread_packet(struct connection *connection, struct target *target, char *packet, int packet_size)
+int gdb_thread_packet(struct connection *connection, char *packet, int packet_size)
 {
+	struct target *target = get_target_from_connection(connection);
+
 	if (strstr(packet, "qP"))
 	{
 		#define TAG_THREADID 1		/* Echo the thread identifier */
@@ -501,8 +503,10 @@ int gdb_thread_packet(struct connection *connection, struct target *target, char
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
 }
 
-int rtos_get_gdb_reg_list(struct connection *connection, struct target *target, struct reg **reg_list[], int *reg_list_size)
+int rtos_get_gdb_reg_list(struct connection *connection, struct reg **reg_list[], int *reg_list_size)
 {
+	struct target *target = get_target_from_connection(connection);
+
 	if ( ( target->rtos != NULL ) &&
 		 ( current_threadid != -1 ) &&
 		 ( current_threadid != 0 ) &&

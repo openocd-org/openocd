@@ -40,6 +40,12 @@ int gdb_register_commands(struct command_context *command_context);
 
 int gdb_put_packet(struct connection *connection, char *buffer, int len);
 
+static inline struct target *get_target_from_connection(struct connection *connection)
+{
+	struct gdb_service *gdb_service = connection->service->priv;
+	return gdb_service->target;
+}
+
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
 #define ERROR_GDB_TIMEOUT (-801)
 
