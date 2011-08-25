@@ -81,6 +81,9 @@ endif
 if BUSPIRATE
 DRIVERFILES += buspirate.c
 endif
+if REMOTE_BITBANG
+DRIVERFILES += remote_bitbang.c
+endif
 
 noinst_HEADERS = \
 	bitbang.h \

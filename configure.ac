@@ -498,6 +498,10 @@ if test $build_zy1000 = yes; then
 fi
 AC_MSG_RESULT($build_zy1000)
 
+AC_ARG_ENABLE(remote-bitbang,
+  AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang jtag driver]),
+  [build_remote_bitbang=$enableval], [build_remote_bitbang=no])
+
 
 AC_MSG_CHECKING([whether to enable dummy minidriver])
 if test $build_minidriver_dummy = yes; then
@@ -776,6 +780,13 @@ if test "$use_internal_jimtcl" = yes; then
   else
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
   fi
+fi
+
+if test $build_remote_bitbang = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_REMOTE_BITBANG, 1, [1 if you want the Remote Bitbang JTAG driver.])
+else
+  AC_DEFINE(BUILD_REMOTE_BITBNAG, 0, [0 if you don't want the Remote Bitbang JTAG driver.])
 fi
 
 #-- Deal with MingW/Cygwin FTD2XX issues
@@ -1075,6 +1086,7 @@ AM_CONDITIONAL(VSLLINK, test $build_vsllink = yes)
 AM_CONDITIONAL(RLINK, test $build_rlink = yes)
 AM_CONDITIONAL(ULINK, test $build_ulink = yes)
 AM_CONDITIONAL(ARMJTAGEW, test $build_armjtagew = yes)
+AM_CONDITIONAL(REMOTE_BITBANG, test $build_remote_bitbang = yes)
 AM_CONDITIONAL(BUSPIRATE, test $build_buspirate = yes)
 AM_CONDITIONAL(USB, test $build_usb = yes)
 AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)

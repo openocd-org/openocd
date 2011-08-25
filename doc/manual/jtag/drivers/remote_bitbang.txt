@@ -1,0 +1,53 @@
+/** @remote_bitbangpage OpenOCD Developer's Guide
+
+The remote_bitbang JTAG driver is used to drive JTAG from a remote process. The
+remote_bitbang driver communicates via TCP or UNIX sockets with some remote
+process using an ASCII encoding of the bitbang interface. The remote process
+presumably then drives the JTAG however it pleases. The remote process should
+act as a server, listening for connections from the openocd remote_bitbang
+driver.
+
+The remote bitbang driver is useful for debugging software running on
+processors which are being simulated.
+
+The bitbang interface consists of the following functions.
+
+blink on
+	Blink a light somewhere. The argument on is either 1 or 0.
+
+read
+	Sample the value of tdo.
+
+write tck tms tdi
+	Set the value of tck, tms, and tdi.
+
+reset trst srst
+	Set the value of trst, srst.
+
+An additional function, quit, is added to the remote_bitbang interface to
+indicate there will be no more requests and the connection with the remote
+driver should be closed.
+
+These five functions are encoded in ascii by assigning a single character to
+each possible request. The assignments are:
+
+	B - Blink on
+	b - Blink off
+	R - Read request
+	Q - Quit request
+	0 - Write 0 0 0
+	1 - Write 0 0 1
+	2 - Write 0 1 0
+	3 - Write 0 1 1
+	4 - Write 1 0 0
+	5 - Write 1 0 1
+	6 - Write 1 1 0
+	7 - Write 1 1 1
+	r - Reset 0 0
+	s - Reset 0 1
+	t - Reset 1 0
+	u - Reset 1 1
+
+The read response is encoded in ascii as either digit 0 or 1.
+
+ */
