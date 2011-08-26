@@ -233,10 +233,10 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 	retval = target_read_buffer( rtos->target, rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address, param->pointer_width, (uint8_t *)&max_used_priority );
 
 
-	symbol_address_t* list_of_lists = (symbol_address_t *)malloc( sizeof( symbol_address_t ) * ( max_used_priority + 5 ) );
+	symbol_address_t* list_of_lists = (symbol_address_t *)malloc( sizeof( symbol_address_t ) * ( max_used_priority+1 + 5 ) );
 
 	int num_lists;
-	for( num_lists = 0; num_lists < max_used_priority; num_lists++ )
+	for( num_lists = 0; num_lists <= max_used_priority; num_lists++ )
 	{
 		list_of_lists[num_lists] =  rtos->symbols[FreeRTOS_VAL_pxReadyTasksLists].address + num_lists * param->list_width;
 	}
