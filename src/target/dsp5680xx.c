@@ -475,14 +475,14 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   if((data_read_from_dr&0x30) == 0x30){
     LOG_DEBUG("EOnCE successfully entered debug mode.");
     target->state = TARGET_HALTED;
-    return ERROR_OK;
+    retval = ERROR_OK;
   }else{
+    LOG_DEBUG("Failed to set EOnCE module to debug mode.");
     retval = ERROR_TARGET_FAILURE;
-    err_check(retval,"Failed to set EOnCE module to debug mode.");
   }
   if(eonce_status!=NULL)
     *eonce_status = data_read_from_dr;
-  return ERROR_OK;
+  return retval;
 }
 
 /** 
@@ -551,7 +551,7 @@ static int dsp5680xx_halt(struct target *target){
     return ERROR_OK;
   }
   retval = eonce_enter_debug_mode(target,&eonce_status);
-  err_check_propagate(retval);
+  err_check(retval,"Failed to halt target.");
   retval = eonce_pc_store(target);
   err_check_propagate(retval);
   //TODO is it useful to store the pc?
