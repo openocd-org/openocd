@@ -69,10 +69,10 @@
 //----------------------------------------------------------------
 // Master TAP instructions from MC56F8000RM.pdf
 //----------------------------------------------------------------
-#define MASTER_TAP_CMD_BYPASS      0xFF
-#define MASTER_TAP_CMD_IDCODE      0x02
-#define MASTER_TAP_CMD_TLM_SEL     0x05
-#define MASTER_TAP_CMD_FLASH_ERASE 0x08
+#define MASTER_TAP_CMD_BYPASS      0xF
+#define MASTER_TAP_CMD_IDCODE      0x2
+#define MASTER_TAP_CMD_TLM_SEL     0x5
+#define MASTER_TAP_CMD_FLASH_ERASE 0x8
 //----------------------------------------------------------------
 
 //----------------------------------------------------------------
