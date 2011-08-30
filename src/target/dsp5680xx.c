@@ -90,12 +90,17 @@ static int dsp5680xx_irscan(struct target * target, uint32_t * data_to_shift_int
 	err_check(retval,"Invalid tap");
   }
   if (ir_len != target->tap->ir_length){
-    LOG_WARNING("%s: Invalid ir_len of core tap. If you are removing protection on flash then do not worry about this warninig.",__FUNCTION__);
-    //return ERROR_FAIL;//TODO this was commented out to enable unlocking using the master tap. did not find a way to enable the master tap without using tcl.
+    if(target->tap->enabled){
+      retval = ERROR_FAIL;
+      err_check(retval,"Invalid irlen");
+    }else{
+      struct jtag_tap * master_tap = jtag_tap_by_string("dsp568013.chp");
+      if((master_tap == NULL) || ((master_tap->enabled) && (ir_len != DSP5680XX_JTAG_MASTER_TAP_IRLEN))){
+        retval = ERROR_FAIL;
+        err_check(retval,"Invalid irlen");
+      }
+    }
   }
-  //TODO what values of len are valid for jtag_add_plain_ir_scan?
-  //can i send as many bits as i want?
-  //is the casting necessary?
   jtag_add_plain_ir_scan(ir_len,(uint8_t *)data_to_shift_into_ir,(uint8_t *)data_shifted_out_of_ir, TAP_IDLE);
   if(dsp5680xx_context.flush){
     retval = dsp5680xx_execute_queue();
