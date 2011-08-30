@@ -445,6 +445,52 @@ static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
   return retval;
 }
 
+int switch_tap(struct target * target, struct jtag_tap * master_tap,struct jtag_tap * core_tap){
+  int retval = ERROR_OK;
+  uint32_t instr;
+  uint32_t ir_out;//not used, just to make jtag happy.
+  if(master_tap == NULL){
+    master_tap = jtag_tap_by_string("dsp568013.chp");
+    if(master_tap == NULL){
+      retval = ERROR_FAIL;
+      err_check(retval,"Failed to get master tap.");
+    }
+  }
+  if(core_tap == NULL){
+    core_tap = jtag_tap_by_string("dsp568013.cpu");
+    if(core_tap == NULL){
+      retval = ERROR_FAIL;
+      err_check(retval,"Failed to get core tap.");
+    }
+  }
+
+  if(!(((int)master_tap->enabled) ^ ((int)core_tap->enabled))){
+      LOG_WARNING("Wrong tap enabled/disabled status:\nMaster tap:%d\nCore Tap:%d\nOnly one tap should be enabled at a given time.\n",(int)master_tap->enabled,(int)core_tap->enabled);
+  }
+
+  if(master_tap->enabled){
+    instr = 0x5;
+    retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+    err_check_propagate(retval);
+    instr = 0x2;
+    retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,4);
+    err_check_propagate(retval);
+    core_tap->enabled = true;
+    master_tap->enabled = false;
+  }else{
+    instr = 0x08;
+    retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+    err_check_propagate(retval);
+    instr = 0x1;
+    retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,4);
+    err_check_propagate(retval);
+    core_tap->enabled = false;
+    master_tap->enabled = true;
+  }
+  return retval;
+}
+
+#define TIME_DIV_FREESCALE 0.3
 /** 
  * Puts the core into debug mode, enabling the EOnCE module.
  * 
@@ -454,20 +500,75 @@ static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
  * @return 
  */
 static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_status){
-  int retval;
+  int retval = ERROR_OK;
   uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
   uint32_t ir_out;//not used, just to make jtag happy.
-  // Debug request #1
-  retval = dsp5680xx_irscan(target,& instr,& ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  uint16_t instr_16;
+  uint16_t read_16;
+
+  struct jtag_tap * tap_chp;
+  struct jtag_tap * tap_cpu;
+  tap_chp = jtag_tap_by_string("dsp568013.chp");
+  if(tap_chp == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
+  }
+  tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+  if(tap_cpu == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
+  }
+
+  tap_chp->enabled = false;
+  retval = switch_tap(target,tap_chp,tap_cpu);
   err_check_propagate(retval);
 
+  instr = MASTER_TAP_CMD_IDCODE;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+  err_check_propagate(retval);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+
   // Enable EOnCE module
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+  instr = 0x0606ffff;// This was selected experimentally.
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,32);
+  err_check_propagate(retval);
+  // ir_out now hold tap idcode
+
+  // Enable core tap
+  retval = switch_tap(target,tap_chp,tap_cpu);
+  err_check_propagate(retval);
+
   instr = JTAG_INSTR_ENABLE_ONCE;
   //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
   retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
   err_check_propagate(retval);
+  instr = JTAG_INSTR_DEBUG_REQUEST;
   retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
   err_check_propagate(retval);
+  instr_16 = 0x1;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  instr_16 = 0x20;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
+
+  instr = JTAG_INSTR_ENABLE_ONCE;
+  //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
+  for(int i = 0; i<3; i++){
+    retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+    err_check_propagate(retval);
+  }
+
+  for(int i = 0; i<3; i++){
+    instr_16 = 0x86;
+    dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,16);
+    instr_16 = 0xff;
+    dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,16);
+  }
+
   // Verify that debug mode is enabled
   uint16_t data_read_from_dr;
   retval = eonce_read_status_reg(target,&data_read_from_dr);
@@ -1212,6 +1313,11 @@ static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint3
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = eonce_enter_debug_mode(target,NULL);
     err_check_propagate(retval);
+    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    // Set hfmdiv
+    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    retval = set_fm_ck_div(target);
+    err_check_propagate(retval);
   }
   retval = dsp5680xx_f_execute_command(target,HFM_CALCULATE_DATA_SIGNATURE,address,words,&hfm_ustat,1);
   err_check_propagate(retval);
@@ -1457,19 +1563,100 @@ int reset_jtag(void){
 }
 
 int dsp5680xx_f_unlock(struct target * target){
-  int retval;
-  if(target->tap->enabled){
-    //TODO find a way to switch to the master tap here.
-    LOG_ERROR("Master tap must be enabled to unlock flash.");
-    return ERROR_TARGET_FAILURE;
+  int retval = ERROR_OK;
+  uint16_t eonce_status;
+  uint32_t instr;
+  uint32_t ir_out;
+  uint16_t instr_16;
+  uint16_t read_16;
+  struct jtag_tap * tap_chp;
+  struct jtag_tap * tap_cpu;
+  tap_chp = jtag_tap_by_string("dsp568013.chp");
+  if(tap_chp == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
   }
-  uint32_t data_to_shift_in = MASTER_TAP_CMD_FLASH_ERASE;
-  uint32_t data_shifted_out;
-  retval = dsp5680xx_irscan(target,&data_to_shift_in,&data_shifted_out,8);
+  tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+  if(tap_cpu == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
+  }
+
+  retval = eonce_enter_debug_mode(target,&eonce_status);
+  if(retval == ERROR_OK){
+    LOG_WARNING("Memory was not locked.");
+    return retval;
+  }
+  
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+  
+  retval = reset_jtag();
+  err_check(retval,"Failed to reset JTAG state machine");
+  usleep(150);
+
+  // Enable core tap
+  tap_chp->enabled = true;
+  retval = switch_tap(target,tap_chp,tap_cpu);
   err_check_propagate(retval);
-  data_to_shift_in = HFM_CLK_DEFAULT;
-  retval = dsp5680xx_drscan(target,((uint8_t *) & data_to_shift_in),((uint8_t *)&data_shifted_out),8);
+
+  instr = JTAG_INSTR_DEBUG_REQUEST;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
   err_check_propagate(retval);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
+
+  // Enable master tap
+  retval = switch_tap(target,tap_chp,tap_cpu);
+  err_check_propagate(retval);
+
+  // Execute mass erase to unlock
+  instr = MASTER_TAP_CMD_FLASH_ERASE;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+  err_check_propagate(retval);
+
+  instr = HFM_CLK_DEFAULT;
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,16);
+  err_check_propagate(retval);
+
+  usleep(TIME_DIV_FREESCALE*150*1000);
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+
+  retval = reset_jtag();
+  err_check(retval,"Failed to reset JTAG state machine");
+  usleep(150);
+
+  instr = 0x0606ffff;
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,32);
+  err_check_propagate(retval);
+
+  // enable core tap
+  instr = 0x5;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr = 0x2;
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,4);
+  err_check_propagate(retval);
+
+  tap_cpu->enabled = true;
+  tap_chp->enabled = false;
+
+  instr = JTAG_INSTR_ENABLE_ONCE;
+  //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr = JTAG_INSTR_DEBUG_REQUEST;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr_16 = 0x1;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  instr_16 = 0x20;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
   return retval;
 }
 
@@ -1478,6 +1665,16 @@ int dsp5680xx_f_lock(struct target * target){
   uint16_t lock_word[] = {HFM_LOCK_FLASH,HFM_LOCK_FLASH};
   retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,4,1);
   err_check_propagate(retval);
+  return retval;
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+
+  retval = reset_jtag();
+  err_check(retval,"Failed to reset JTAG state machine");
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
+
   return retval;
 }
 
