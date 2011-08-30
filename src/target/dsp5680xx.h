@@ -234,10 +234,11 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target
  * @param buffer 
  * @param address Word addressing.
  * @param count In bytes. 
+ * @param verify_flash Execute a CRC check after flashing. 
  * 
  * @return 
  */
-int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count);
+int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count, int is_flash_lock);
 
 /** 
  * The FM has the funcionality of checking if the flash array is erased. This function executes it. It does not support individual sector analysis.

@@ -157,7 +157,7 @@ static int dsp5680xx_flash_write(struct flash_bank *bank, uint8_t *buffer, uint3
     LOG_ERROR("%s: Writing to odd addresses not supported. This chip uses word addressing, Openocd only supports byte addressing. The workaround results in disabling writing to odd byte addresses.",__FUNCTION__);
     return ERROR_FAIL;
   }
-  retval = dsp5680xx_f_wr(bank->target,  buffer, bank->base + offset/2,  count);
+  retval = dsp5680xx_f_wr(bank->target,  buffer, bank->base + offset/2,  count, 0);
   uint32_t addr_word;
   for(addr_word = bank->base + offset/2;addr_word<count/2;addr_word+=(HFM_SECTOR_SIZE/2)){
     if(retval == ERROR_OK)

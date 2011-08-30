@@ -1341,7 +1341,7 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
 const uint16_t pgm_write_pflash[] = {0x8A46,0x0013,0x407D,0xE700,0xE700,0x8A44,0xFFFE,0x017B,0xE700,0xF514,0x8563,0x8646,0x0020,0x0014,0x8646,0x0080,0x0013,0x8A46,0x0013,0x2004,0x8246,0x0013,0x0020,0xA968,0x8A46,0x0013,0x1065,0x8246,0x0013,0x0010,0xA961};
 const uint32_t pgm_write_pflash_length = 31;
 
-int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count){
+int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count, int is_flash_lock){
   int retval = ERROR_OK;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = eonce_enter_debug_mode(target,NULL);
@@ -1351,10 +1351,12 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   // Download the pgm that flashes.
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint32_t my_favourite_ram_address = 0x8700; // This seems to be a safe address. This one is the one used by codewarrior in 56801x_flash.cfg
-  retval = dsp5680xx_write(target, my_favourite_ram_address, 1, pgm_write_pflash_length*2,(uint8_t *) pgm_write_pflash);
-  err_check_propagate(retval);
-  retval = dsp5680xx_execute_queue();
-  err_check_propagate(retval);
+  if(!is_flash_lock){
+    retval = dsp5680xx_write(target, my_favourite_ram_address, 1, pgm_write_pflash_length*2,(uint8_t *) pgm_write_pflash);
+    err_check_propagate(retval);
+    retval = dsp5680xx_execute_queue();
+    err_check_propagate(retval);
+  }
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -1422,18 +1424,35 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	dsp5680xx_context.flush = 0;
   }
   dsp5680xx_context.flush = 1;
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // Verify flash
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  uint16_t signature;
-  uint16_t pc_crc;
-  retval =  dsp5680xx_f_signature(target,address,i,&signature);
-  err_check_propagate(retval);
-  pc_crc = perl_crc(buffer,i);
-  if(pc_crc != signature){
-    retval = ERROR_FAIL;
-    err_check(retval,"Flashed data failed CRC check, flash again!");
+  if(!is_flash_lock){
+    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    // Verify flash (skip when exec lock sequence)
+    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    uint16_t signature;
+    uint16_t pc_crc;
+    retval =  dsp5680xx_f_signature(target,address,i,&signature);
+    err_check_propagate(retval);
+    pc_crc = perl_crc(buffer,i);
+    if(pc_crc != signature){
+      retval = ERROR_FAIL;
+      err_check(retval,"Flashed data failed CRC check, flash again!");
+    }
   }
+  return retval;
+}
+
+// Reset state machine
+int reset_jtag(void){
+  int retval;
+  tap_state_t states[2];
+  const char *cp = "RESET";
+  states[0] = tap_state_by_name(cp);
+  retval = jtag_add_statemove(states[0]);
+  err_check_propagate(retval);
+  retval = jtag_execute_queue();
+  err_check_propagate(retval);
+  jtag_add_pathmove(0, states + 1);
+  retval = jtag_execute_queue();
   return retval;
 }
 
@@ -1457,7 +1476,7 @@ int dsp5680xx_f_unlock(struct target * target){
 int dsp5680xx_f_lock(struct target * target){
   int retval;
   uint16_t lock_word[] = {HFM_LOCK_FLASH,HFM_LOCK_FLASH};
-  retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,4);
+  retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,4,1);
   err_check_propagate(retval);
   return retval;
 }
