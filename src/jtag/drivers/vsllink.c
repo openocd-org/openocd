@@ -78,7 +78,7 @@ struct vsllink {
 static struct vsllink *vsllink_usb_open(void);
 static void vsllink_usb_close(struct vsllink *vsllink);
 
-#if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
+#if defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(uint8_t *buffer, int length);
 #endif
 
@@ -832,7 +832,7 @@ static void vsllink_usb_close(struct vsllink *vsllink)
 
 #define BYTES_PER_LINE  16
 
-#if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
+#if defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(uint8_t *buffer, int length)
 {
 	char line[81];
@@ -849,7 +849,7 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 		LOG_DEBUG("%s", line);
 	}
 }
-#endif /* _DEBUG_USB_COMMS_ || _DEBUG_JTAG_IO_ */
+#endif /* _DEBUG_JTAG_IO_ */
 
 static const struct command_registration vsllink_command_handlers[] = {
 	{
