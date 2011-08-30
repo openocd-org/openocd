@@ -48,7 +48,7 @@
 #define STR_DESCR(len,...) { len*2+2, DESCRIPTOR_TYPE_STRING, { __VA_ARGS__ } }
 
 /** USB Device Descriptor. See USB 1.1 spec, pp. 196 - 198 */
-typedef struct {
+struct usb_device_descriptor {
   u8  bLength;             ///< Size of this descriptor in bytes.
   u8  bDescriptorType;     ///< DEVICE Descriptor Type.
   u16 bcdUSB;              ///< USB specification release number (BCD).
@@ -63,10 +63,10 @@ typedef struct {
   u8  iProduct;            ///< Index of product string descriptor.
   u8  iSerialNumber;       ///< Index of string descriptor containing serial #.
   u8  bNumConfigurations;  ///< Number of possible configurations.
-} usb_device_descriptor_t;
+};
 
 /** USB Configuration Descriptor. See USB 1.1 spec, pp. 199 - 200 */
-typedef struct {
+struct usb_config_descriptor {
   u8  bLength;             ///< Size of this descriptor in bytes.
   u8  bDescriptorType;     ///< CONFIGURATION descriptor type.
   u16 wTotalLength;        ///< Combined total length of all descriptors.
@@ -75,10 +75,10 @@ typedef struct {
   u8  iConfiguration;      ///< Index of configuration string descriptor.
   u8  bmAttributes;        ///< Configuration characteristics.
   u8  MaxPower;            ///< Maximum power consumption in 2 mA units.
-} usb_config_descriptor_t;
+};
 
 /** USB Interface Descriptor. See USB 1.1 spec, pp. 201 - 203 */
-typedef struct {
+struct usb_interface_descriptor {
   u8  bLength;             ///< Size of this descriptor in bytes.
   u8  bDescriptorType;     ///< INTERFACE descriptor type.
   u8  bInterfaceNumber;    ///< Interface number.
@@ -88,48 +88,48 @@ typedef struct {
   u8  bInterfaceSubclass;  ///< Subclass code.
   u8  bInterfaceProtocol;  ///< Protocol code.
   u8  iInterface;          ///< Index of interface string descriptor.
-} usb_interface_descriptor_t;
+};
 
 /** USB Endpoint Descriptor. See USB 1.1 spec, pp. 203 - 204 */
-typedef struct {
+struct usb_endpoint_descriptor {
   u8  bLength;             ///< Size of this descriptor in bytes.
   u8  bDescriptorType;     ///< ENDPOINT descriptor type.
   u8  bEndpointAddress;    ///< Endpoint Address: USB 1.1 spec, table 9-10.
   u8  bmAttributes;        ///< Endpoint Attributes: USB 1.1 spec, table 9-10.
   u16 wMaxPacketSize;      ///< Maximum packet size for this endpoint.
   u8  bInterval;           ///< Polling interval (in ms) for this endpoint.
-} usb_endpoint_descriptor_t;
+};
 
 /** USB Language Descriptor. See USB 1.1 spec, pp. 204 - 205 */
-typedef struct {
+struct usb_language_descriptor {
   u8  bLength;             ///< Size of this descriptor in bytes.
   u8  bDescriptorType;     ///< STRING descriptor type.
   u16 wLANGID[];           ///< LANGID codes.
-} usb_language_descriptor_t;
+};
 
 /** USB String Descriptor. See USB 1.1 spec, pp. 204 - 205 */
-typedef struct {
+struct usb_string_descriptor {
   u8  bLength;             ///< Size of this descriptor in bytes.
   u8  bDescriptorType;     ///< STRING descriptor type.
   u16 bString[];           ///< UNICODE encoded string.
-} usb_string_descriptor_t;
+};
 
 /********************** USB Control Endpoint 0 related *********************/
 
 /** USB Control Setup Data. See USB 1.1 spec, pp. 183 - 185 */
-typedef struct {
+struct setup_data {
   u8  bmRequestType;       ///< Characteristics of a request.
   u8  bRequest;            ///< Specific request.
   u16 wValue;              ///< Field that varies according to request.
   u16 wIndex;              ///< Field that varies according to request.
   u16 wLength;             ///< Number of bytes to transfer in data stage.
-} setup_data_t;
+};
 
 /* External declarations for variables that need to be accessed outside of
  * the USB module */
 extern volatile bool EP2_out;
 extern volatile bool EP2_in;
-extern volatile __xdata __at 0x7FE8 setup_data_t setup_data;
+extern volatile __xdata __at 0x7FE8 struct setup_data setup_data;
 
 /*
  * USB Request Types (bmRequestType): See USB 1.1 spec, page 183, table 9-2
@@ -225,7 +225,7 @@ extern volatile __xdata __at 0x7FE8 setup_data_t setup_data;
 /************************** EZ-USB specific stuff **************************/
 
 /** USB Interrupts. See AN2131-TRM, page 9-4 for details */
-typedef enum {
+enum usb_isr {
   SUDAV_ISR = 13,
   SOF_ISR,
   SUTOK_ISR,
@@ -248,7 +248,7 @@ typedef enum {
   EP6OUT_ISR,
   EP7IN_ISR,
   EP7OUT_ISR
-} USB_ISR;
+};
 
 /*************************** Function Prototypes ***************************/
 

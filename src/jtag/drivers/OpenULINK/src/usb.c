@@ -36,7 +36,7 @@
 volatile bool EP2_out = 0;
 volatile bool EP2_in  = 0;
 
-volatile __xdata __at 0x7FE8 setup_data_t setup_data;
+volatile __xdata __at 0x7FE8 struct setup_data setup_data;
 
 /* Define number of endpoints (except Control Endpoint 0) in a central place.
  * Be sure to include the neccessary endpoint descriptors! */
@@ -56,8 +56,8 @@ volatile __xdata __at 0x7FE8 setup_data_t setup_data;
  * old-fashioned way...
  */
 
-__code usb_device_descriptor_t device_descriptor = {
-  /* .bLength = */             sizeof(usb_device_descriptor_t),
+__code struct usb_device_descriptor device_descriptor = {
+  /* .bLength = */             sizeof(struct usb_device_descriptor),
   /* .bDescriptorType = */     DESCRIPTOR_TYPE_DEVICE,
   /* .bcdUSB = */              0x0110, /* BCD: 01.00 (Version 1.0 USB spec) */
   /* .bDeviceClass = */        0xFF,   /* 0xFF = vendor-specific */
@@ -75,12 +75,13 @@ __code usb_device_descriptor_t device_descriptor = {
 
 /* WARNING: ALL config, interface and endpoint descriptors MUST be adjacent! */
 
-__code usb_config_descriptor_t config_descriptor = {
-  /* .bLength = */             sizeof(usb_config_descriptor_t),
+__code struct usb_config_descriptor config_descriptor = {
+  /* .bLength = */             sizeof(struct usb_config_descriptor),
   /* .bDescriptorType = */     DESCRIPTOR_TYPE_CONFIGURATION,
-  /* .wTotalLength = */        sizeof(usb_config_descriptor_t) +
-                               sizeof(usb_interface_descriptor_t) + 
-                               NUM_ENDPOINTS * sizeof(usb_endpoint_descriptor_t),
+  /* .wTotalLength = */        sizeof(struct usb_config_descriptor) +
+                               sizeof(struct usb_interface_descriptor) +
+                               (NUM_ENDPOINTS *
+                               sizeof(struct usb_endpoint_descriptor)),
   /* .bNumInterfaces = */      1,
   /* .bConfigurationValue = */ 1,
   /* .iConfiguration = */      4,     /* String describing this configuration */
@@ -88,8 +89,8 @@ __code usb_config_descriptor_t config_descriptor = {
   /* .MaxPower = */            50     /* 100 mA */
 };
 
-__code usb_interface_descriptor_t interface_descriptor00 = {
-  /* .bLength = */             sizeof(usb_interface_descriptor_t),
+__code struct usb_interface_descriptor interface_descriptor00 = {
+  /* .bLength = */             sizeof(struct usb_interface_descriptor),
   /* .bDescriptorType = */     DESCRIPTOR_TYPE_INTERFACE,
   /* .bInterfaceNumber = */    0,
   /* .bAlternateSetting = */   0,
@@ -100,8 +101,8 @@ __code usb_interface_descriptor_t interface_descriptor00 = {
   /* .iInterface = */          0
 };
 
-__code usb_endpoint_descriptor_t Bulk_EP2_IN_Endpoint_Descriptor = {
-  /* .bLength = */             sizeof(usb_endpoint_descriptor_t),
+__code struct usb_endpoint_descriptor Bulk_EP2_IN_Endpoint_Descriptor = {
+  /* .bLength = */             sizeof(struct usb_endpoint_descriptor),
   /* .bDescriptorType = */     0x05,
   /* .bEndpointAddress = */    2 | USB_DIR_IN,
   /* .bmAttributes = */        0x02,
@@ -109,8 +110,8 @@ __code usb_endpoint_descriptor_t Bulk_EP2_IN_Endpoint_Descriptor = {
   /* .bInterval = */           0
 };
 
-__code usb_endpoint_descriptor_t Bulk_EP2_OUT_Endpoint_Descriptor = {
-  /* .bLength = */             sizeof(usb_endpoint_descriptor_t),
+__code struct usb_endpoint_descriptor Bulk_EP2_OUT_Endpoint_Descriptor = {
+  /* .bLength = */             sizeof(struct usb_endpoint_descriptor),
   /* .bDescriptorType = */     0x05,
   /* .bEndpointAddress = */    2 | USB_DIR_OUT,
   /* .bmAttributes = */        0x02,
@@ -118,19 +119,26 @@ __code usb_endpoint_descriptor_t Bulk_EP2_OUT_Endpoint_Descriptor = {
   /* .bInterval = */           0
 };
 
-__code usb_language_descriptor_t language_descriptor = {
+__code struct usb_language_descriptor language_descriptor = {
   /* .bLength =  */            4,
   /* .bDescriptorType = */     DESCRIPTOR_TYPE_STRING,
   /* .wLANGID = */             {0x0409 /* US English */}
 };
 
-__code usb_string_descriptor_t strManufacturer = STR_DESCR(9,'O','p','e','n','U','L','I','N','K');
-__code usb_string_descriptor_t strProduct      = STR_DESCR(9,'O','p','e','n','U','L','I','N','K');
-__code usb_string_descriptor_t strSerialNumber = STR_DESCR(6, '0','0','0','0','0','1');
-__code usb_string_descriptor_t strConfigDescr  = STR_DESCR(12, 'J','T','A','G',' ','A','d','a','p','t','e','r');
+__code struct usb_string_descriptor strManufacturer =
+    STR_DESCR(9,'O','p','e','n','U','L','I','N','K');
+
+__code struct usb_string_descriptor strProduct      =
+    STR_DESCR(9,'O','p','e','n','U','L','I','N','K');
+
+__code struct usb_string_descriptor strSerialNumber =
+    STR_DESCR(6, '0','0','0','0','0','1');
+
+__code struct usb_string_descriptor strConfigDescr  =
+    STR_DESCR(12, 'J','T','A','G',' ','A','d','a','p','t','e','r');
 
 /* Table containing pointers to string descriptors */
-__code usb_string_descriptor_t* __code en_string_descriptors[4] = {
+__code struct usb_string_descriptor* __code en_string_descriptors[4] = {
   &strManufacturer,
   &strProduct,
   &strSerialNumber,
