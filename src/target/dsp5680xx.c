@@ -524,9 +524,9 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
     err_check(retval,"Failed to get master tap.");
   }
 
-  tap_chp->enabled = false;
-  retval = switch_tap(target,tap_chp,tap_cpu);
-  err_check_propagate(retval);
+  // Enable master tap
+  tap_chp->enabled = true;
+  tap_cpu->enabled = false;
 
   instr = MASTER_TAP_CMD_IDCODE;
   retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
@@ -542,6 +542,7 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   // ir_out now hold tap idcode
 
   // Enable core tap
+  tap_chp->enabled = true;
   retval = switch_tap(target,tap_chp,tap_cpu);
   err_check_propagate(retval);
 
@@ -589,6 +590,52 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   if(eonce_status!=NULL)
     *eonce_status = data_read_from_dr;
   return retval;
+}
+
+/** 
+ * Puts the core into debug mode, enabling the EOnCE module.
+ * This will not always work, eonce_enter_debug_mode executes much
+ * more complicated routine, which is guaranteed to work, but requires
+ * a reset. This will complicate comm with the flash module, since
+ * after a reset clock divisors must be set again.
+ * This implementation works most of the time, and is not accesible to the
+ * user.
+ * 
+ * @param target 
+ * @param eonce_status Data read from the EOnCE status register.
+ * 
+ * @return 
+ */
+static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t * eonce_status){
+  int retval;
+  uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
+  uint32_t ir_out;//not used, just to make jtag happy.
+  // Debug request #1
+  retval = dsp5680xx_irscan(target,& instr,& ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+
+  // Enable EOnCE module
+  instr = JTAG_INSTR_ENABLE_ONCE;
+  //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  // Verify that debug mode is enabled
+  uint16_t data_read_from_dr;
+  retval = eonce_read_status_reg(target,&data_read_from_dr);
+  err_check_propagate(retval);
+  if((data_read_from_dr&0x30) == 0x30){
+    LOG_DEBUG("EOnCE successfully entered debug mode.");
+    target->state = TARGET_HALTED;
+    retval = ERROR_OK;
+  }else{
+    retval = ERROR_TARGET_FAILURE;
+    err_check(retval,"Failed to set EOnCE module to debug mode. Try with halt");
+  }
+  if(eonce_status!=NULL)
+    *eonce_status = data_read_from_dr;
+  return ERROR_OK;
 }
 
 /** 
@@ -1316,12 +1363,7 @@ static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint3
   int retval;
   uint16_t hfm_ustat;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
-    retval = eonce_enter_debug_mode(target,NULL);
-    err_check_propagate(retval);
-    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-    // Set hfmdiv
-    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-    retval = set_fm_ck_div(target);
+    retval = eonce_enter_debug_mode_without_reset(target,NULL);
     err_check_propagate(retval);
   }
   retval = dsp5680xx_f_execute_command(target,HFM_CALCULATE_DATA_SIGNATURE,address,words,&hfm_ustat,1);
@@ -1590,7 +1632,6 @@ int dsp5680xx_f_unlock(struct target * target){
   retval = eonce_enter_debug_mode(target,&eonce_status);
   if(retval == ERROR_OK){
     LOG_WARNING("Memory was not locked.");
-    return retval;
   }
   
   jtag_add_reset(0,1);
@@ -1613,6 +1654,7 @@ int dsp5680xx_f_unlock(struct target * target){
   usleep(TIME_DIV_FREESCALE*300*1000);
 
   // Enable master tap
+  tap_chp->enabled = false;
   retval = switch_tap(target,tap_chp,tap_cpu);
   err_check_propagate(retval);
 
@@ -1667,10 +1709,10 @@ int dsp5680xx_f_unlock(struct target * target){
 
 int dsp5680xx_f_lock(struct target * target){
   int retval;
-  uint16_t lock_word[] = {HFM_LOCK_FLASH,HFM_LOCK_FLASH};
-  retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,4,1);
+  uint16_t lock_word[] = {HFM_LOCK_FLASH};
+  retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,2,1);
   err_check_propagate(retval);
-  return retval;
+
   jtag_add_reset(0,1);
   usleep(TIME_DIV_FREESCALE*200*1000);
 
