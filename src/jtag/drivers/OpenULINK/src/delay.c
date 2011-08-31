@@ -26,24 +26,24 @@ void delay_5us(void)
 }
 
 void delay_1ms(void) {
-  u16 i;
+  uint16_t i;
 
   for (i = 0; i < 598; i++);
 }
 
-void delay_us(u16 delay)
+void delay_us(uint16_t delay)
 {
-  u16 i;
-  u16 maxcount = (delay / 5);
+  uint16_t i;
+  uint16_t maxcount = (delay / 5);
 
   for (i = 0; i < maxcount; i++) {
     delay_5us();
   }
 }
 
-void delay_ms(u16 delay)
+void delay_ms(uint16_t delay)
 {
-  u16 i;
+  uint16_t i;
 
   for (i = 0; i < delay; i++) {
     delay_1ms();

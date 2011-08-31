@@ -205,10 +205,10 @@ void ep7out_isr(void)   __interrupt EP7OUT_ISR   { }
  *  specified in \a ep
  * @return on failure: NULL
  */
-__xdata u8* usb_get_endpoint_cs_reg(u8 ep)
+__xdata uint8_t* usb_get_endpoint_cs_reg(uint8_t ep)
 {
   /* Mask direction bit */
-  u8 ep_num = ep & 0x7F;
+  uint8_t ep_num = ep & 0x7F;
 
   switch (ep_num) {
   case 0:
@@ -240,7 +240,7 @@ __xdata u8* usb_get_endpoint_cs_reg(u8 ep)
   return NULL;
 }
 
-void usb_reset_data_toggle(u8 ep)
+void usb_reset_data_toggle(uint8_t ep)
 {
   /* TOGCTL register:
      +----+-----+-----+------+-----+-------+-------+-------+
@@ -251,7 +251,7 @@ void usb_reset_data_toggle(u8 ep)
      to the IO bit and the endpoint number to the EP2..EP0 bits. Then, in a
      separate write cycle, the R bit needs to be set.
   */
-  u8 togctl_value = (ep & 0x80 >> 3) | (ep & 0x7);
+  uint8_t togctl_value = (ep & 0x80 >> 3) | (ep & 0x7);
 
   /* First step: Write EP number and direction bit */
   TOGCTL = togctl_value;
@@ -269,7 +269,7 @@ void usb_reset_data_toggle(u8 ep)
  */
 bool usb_handle_get_status(void)
 {
-  u8 *ep_cs;
+  uint8_t *ep_cs;
 
   switch (setup_data.bmRequestType) {
   case GS_DEVICE:
@@ -322,7 +322,7 @@ bool usb_handle_get_status(void)
  */
 bool usb_handle_clear_feature(void)
 {
-  __xdata u8 *ep_cs;
+  __xdata uint8_t *ep_cs;
 
   switch (setup_data.bmRequestType) {
   case CF_DEVICE:
@@ -358,7 +358,7 @@ bool usb_handle_clear_feature(void)
  */
 bool usb_handle_set_feature(void)
 {
-  __xdata u8 *ep_cs;
+  __xdata uint8_t *ep_cs;
 
   switch (setup_data.bmRequestType) {
   case SF_DEVICE:
@@ -396,8 +396,8 @@ bool usb_handle_set_feature(void)
  */
 bool usb_handle_get_descriptor(void)
 {
-  __xdata u8 descriptor_type;
-  __xdata u8 descriptor_index;
+  __xdata uint8_t descriptor_type;
+  __xdata uint8_t descriptor_index;
 
   descriptor_type = (setup_data.wValue & 0xff00) >> 8;
   descriptor_index = setup_data.wValue & 0x00ff;

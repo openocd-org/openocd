@@ -47,17 +47,17 @@
  */
 
 /** Index in EP2 Bulk-OUT data buffer that contains the current command ID */
-volatile u8 cmd_id_index;
+volatile uint8_t cmd_id_index;
 
 /** Number of data bytes already in EP2 Bulk-IN buffer */
-volatile u8 payload_index_in;
+volatile uint8_t payload_index_in;
 
 /**
  * Execute a SET_LEDS command.
  */
 void execute_set_led_command(void)
 {
-  u8 led_state = OUT2BUF[cmd_id_index + 1];
+  uint8_t led_state = OUT2BUF[cmd_id_index + 1];
 
   if (led_state & RUN_LED_ON) {
     SET_RUN_LED();
@@ -87,9 +87,9 @@ void execute_set_led_command(void)
  */
 bool execute_command(void)
 {
-  u8 usb_out_bytecount, usb_in_bytecount;
-  u16 signal_state;
-  u16 count;
+  uint8_t usb_out_bytecount, usb_in_bytecount;
+  uint16_t signal_state;
+  uint16_t count;
 
   /* Most commands do not transfer IN data. To save code space, we write 0 to
    * usb_in_bytecount here, then modify it in the switch statement below where
@@ -117,8 +117,8 @@ bool execute_command(void)
     break;
   case CMD_CLOCK_TCK:
     usb_out_bytecount = 2;
-    count = (u16)OUT2BUF[cmd_id_index + 1];
-    count |= ((u16)OUT2BUF[cmd_id_index + 2]) << 8;
+    count = (uint16_t)OUT2BUF[cmd_id_index + 1];
+    count |= ((uint16_t)OUT2BUF[cmd_id_index + 2]) << 8;
     jtag_clock_tck(count);
     break;
   case CMD_SLOW_SCAN_IN:
@@ -141,20 +141,20 @@ bool execute_command(void)
     break;
   case CMD_SLOW_CLOCK_TCK:
     usb_out_bytecount = 2;
-    count = (u16)OUT2BUF[cmd_id_index + 1];
-    count |= ((u16)OUT2BUF[cmd_id_index + 2]) << 8;
+    count = (uint16_t)OUT2BUF[cmd_id_index + 1];
+    count |= ((uint16_t)OUT2BUF[cmd_id_index + 2]) << 8;
     jtag_slow_clock_tck(count);
     break;
   case CMD_SLEEP_US:
     usb_out_bytecount = 2;
-    count = (u16)OUT2BUF[cmd_id_index + 1];
-    count |= ((u16)OUT2BUF[cmd_id_index + 2]) << 8;
+    count = (uint16_t)OUT2BUF[cmd_id_index + 1];
+    count |= ((uint16_t)OUT2BUF[cmd_id_index + 2]) << 8;
     delay_us(count);
     break;
   case CMD_SLEEP_MS:
     usb_out_bytecount = 2;
-    count = (u16)OUT2BUF[cmd_id_index + 1];
-    count |= ((u16)OUT2BUF[cmd_id_index + 2]) << 8;
+    count = (uint16_t)OUT2BUF[cmd_id_index + 1];
+    count |= ((uint16_t)OUT2BUF[cmd_id_index + 2]) << 8;
     delay_ms(count);
     break;
   case CMD_GET_SIGNALS:

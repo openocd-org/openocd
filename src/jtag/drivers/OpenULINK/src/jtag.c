@@ -27,19 +27,19 @@
 #include <stdbool.h>
 
 /** Delay value for SCAN_IN operations with less than maximum TCK frequency */
-u8 delay_scan_in = 0;
+uint8_t delay_scan_in = 0;
 
 /** Delay value for SCAN_OUT operations with less than maximum TCK frequency */
-u8 delay_scan_out = 0;
+uint8_t delay_scan_out = 0;
 
 /** Delay value for SCAN_IO operations with less than maximum TCK frequency */
-u8 delay_scan_io = 0;
+uint8_t delay_scan_io = 0;
 
 /** Delay value for CLOCK_TCK operations with less than maximum frequency */
-u8 delay_tck = 0;
+uint8_t delay_tck = 0;
 
 /** Delay value for CLOCK_TMS operations with less than maximum frequency */
-u8 delay_tms = 0;
+uint8_t delay_tms = 0;
 
 /**
  * Perform JTAG SCAN-IN operation at maximum TCK frequency.
@@ -51,14 +51,14 @@ u8 delay_tms = 0;
  *
  * @param out_offset offset in OUT2BUF where payload data starts
  */
-void jtag_scan_in(u8 out_offset, u8 in_offset)
+void jtag_scan_in(uint8_t out_offset, uint8_t in_offset)
 {
-  u8 scan_size_bytes, bits_last_byte;
-  u8 tms_count_start, tms_count_end;
-  u8 tms_sequence_start, tms_sequence_end;
-  u8 tdo_data, i, j;
+  uint8_t scan_size_bytes, bits_last_byte;
+  uint8_t tms_count_start, tms_count_end;
+  uint8_t tms_sequence_start, tms_sequence_end;
+  uint8_t tdo_data, i, j;
 
-  u8 outb_buffer;
+  uint8_t outb_buffer;
 
   /* Get parameters from OUT2BUF */
   scan_size_bytes = OUT2BUF[out_offset];
@@ -132,14 +132,14 @@ void jtag_scan_in(u8 out_offset, u8 in_offset)
  *
  * @param out_offset offset in OUT2BUF where payload data starts
  */
-void jtag_slow_scan_in(u8 out_offset, u8 in_offset)
+void jtag_slow_scan_in(uint8_t out_offset, uint8_t in_offset)
 {
-  u8 scan_size_bytes, bits_last_byte;
-  u8 tms_count_start, tms_count_end;
-  u8 tms_sequence_start, tms_sequence_end;
-  u8 tdo_data, i, j, k;
+  uint8_t scan_size_bytes, bits_last_byte;
+  uint8_t tms_count_start, tms_count_end;
+  uint8_t tms_sequence_start, tms_sequence_end;
+  uint8_t tdo_data, i, j, k;
 
-  u8 outb_buffer;
+  uint8_t outb_buffer;
 
   /* Get parameters from OUT2BUF */
   scan_size_bytes = OUT2BUF[out_offset];
@@ -220,14 +220,14 @@ void jtag_slow_scan_in(u8 out_offset, u8 in_offset)
  *
  * @param out_offset offset in OUT2BUF where payload data starts
  */
-void jtag_scan_out(u8 out_offset)
+void jtag_scan_out(uint8_t out_offset)
 {
-  u8 scan_size_bytes, bits_last_byte;
-  u8 tms_count_start, tms_count_end;
-  u8 tms_sequence_start, tms_sequence_end;
-  u8 tdi_data, i, j;
+  uint8_t scan_size_bytes, bits_last_byte;
+  uint8_t tms_count_start, tms_count_end;
+  uint8_t tms_sequence_start, tms_sequence_end;
+  uint8_t tdi_data, i, j;
 
-  u8 outb_buffer;
+  uint8_t outb_buffer;
 
   /* Get parameters from OUT2BUF */
   scan_size_bytes = OUT2BUF[out_offset];
@@ -301,14 +301,14 @@ void jtag_scan_out(u8 out_offset)
  *
  * @param out_offset offset in OUT2BUF where payload data starts
  */
-void jtag_slow_scan_out(u8 out_offset)
+void jtag_slow_scan_out(uint8_t out_offset)
 {
-  u8 scan_size_bytes, bits_last_byte;
-  u8 tms_count_start, tms_count_end;
-  u8 tms_sequence_start, tms_sequence_end;
-  u8 tdi_data, i, j, k;
+  uint8_t scan_size_bytes, bits_last_byte;
+  uint8_t tms_count_start, tms_count_end;
+  uint8_t tms_sequence_start, tms_sequence_end;
+  uint8_t tdi_data, i, j, k;
 
-  u8 outb_buffer;
+  uint8_t outb_buffer;
 
   /* Get parameters from OUT2BUF */
   scan_size_bytes = OUT2BUF[out_offset];
@@ -388,14 +388,14 @@ void jtag_slow_scan_out(u8 out_offset)
  *
  * @param out_offset offset in OUT2BUF where payload data starts
  */
-void jtag_scan_io(u8 out_offset, u8 in_offset)
+void jtag_scan_io(uint8_t out_offset, uint8_t in_offset)
 {
-  u8 scan_size_bytes, bits_last_byte;
-  u8 tms_count_start, tms_count_end;
-  u8 tms_sequence_start, tms_sequence_end;
-  u8 tdi_data, tdo_data, i, j;
+  uint8_t scan_size_bytes, bits_last_byte;
+  uint8_t tms_count_start, tms_count_end;
+  uint8_t tms_sequence_start, tms_sequence_end;
+  uint8_t tdi_data, tdo_data, i, j;
 
-  u8 outb_buffer;
+  uint8_t outb_buffer;
 
   /* Get parameters from OUT2BUF */
   scan_size_bytes = OUT2BUF[out_offset];
@@ -488,14 +488,14 @@ void jtag_scan_io(u8 out_offset, u8 in_offset)
  *
  * @param out_offset offset in OUT2BUF where payload data starts
  */
-void jtag_slow_scan_io(u8 out_offset, u8 in_offset)
+void jtag_slow_scan_io(uint8_t out_offset, uint8_t in_offset)
 {
-  u8 scan_size_bytes, bits_last_byte;
-  u8 tms_count_start, tms_count_end;
-  u8 tms_sequence_start, tms_sequence_end;
-  u8 tdi_data, tdo_data, i, j, k;
+  uint8_t scan_size_bytes, bits_last_byte;
+  uint8_t tms_count_start, tms_count_end;
+  uint8_t tms_sequence_start, tms_sequence_end;
+  uint8_t tdi_data, tdo_data, i, j, k;
 
-  u8 outb_buffer;
+  uint8_t outb_buffer;
 
   /* Get parameters from OUT2BUF */
   scan_size_bytes = OUT2BUF[out_offset];
@@ -590,10 +590,10 @@ void jtag_slow_scan_io(u8 out_offset, u8 in_offset)
  *
  * @param count number of TCK clock cyclces to generate.
  */
-void jtag_clock_tck(u16 count)
+void jtag_clock_tck(uint16_t count)
 {
-  u16 i;
-  u8 outb_buffer = OUTB & ~(PIN_TCK);
+  uint16_t i;
+  uint8_t outb_buffer = OUTB & ~(PIN_TCK);
 
   for ( i = 0; i < count; i++ ) {
     OUTB = outb_buffer;
@@ -608,11 +608,11 @@ void jtag_clock_tck(u16 count)
  *
  * @param count number of TCK clock cyclces to generate.
  */
-void jtag_slow_clock_tck(u16 count)
+void jtag_slow_clock_tck(uint16_t count)
 {
-  u16 i;
-  u8 j;
-  u8 outb_buffer = OUTB & ~(PIN_TCK);
+  uint16_t i;
+  uint8_t j;
+  uint8_t outb_buffer = OUTB & ~(PIN_TCK);
 
   for ( i = 0; i < count; i++ ) {
     OUTB = outb_buffer;
@@ -631,10 +631,10 @@ void jtag_slow_clock_tck(u16 count)
  * @param sequence the TMS pin levels for each state transition, starting with
  *  the least-significant bit.
  */
-void jtag_clock_tms(u8 count, u8 sequence)
+void jtag_clock_tms(uint8_t count, uint8_t sequence)
 {
-  u8 outb_buffer = OUTB & ~(PIN_TCK);
-  u8 i;
+  uint8_t outb_buffer = OUTB & ~(PIN_TCK);
+  uint8_t i;
 
   for ( i = 0; i < count; i++ ) {
     /* Set TMS pin according to sequence parameter */
@@ -660,10 +660,10 @@ void jtag_clock_tms(u8 count, u8 sequence)
  * @param sequence the TMS pin levels for each state transition, starting with
  *  the least-significant bit.
  */
-void jtag_slow_clock_tms(u8 count, u8 sequence)
+void jtag_slow_clock_tms(uint8_t count, uint8_t sequence)
 {
-  u8 outb_buffer = OUTB & ~(PIN_TCK);
-  u8 i, j;
+  uint8_t outb_buffer = OUTB & ~(PIN_TCK);
+  uint8_t i, j;
 
   for (i = 0; i < count; i++) {
     /* Set TMS pin according to sequence parameter */
@@ -689,9 +689,9 @@ void jtag_slow_clock_tms(u8 count, u8 sequence)
  *  of the JTAG input signals and the least-significant byte cotains the state
  *  of the JTAG output signals.
  */
-u16 jtag_get_signals(void)
+uint16_t jtag_get_signals(void)
 {
-  u8 input_signal_state, output_signal_state;
+  uint8_t input_signal_state, output_signal_state;
 
   input_signal_state = 0;
   output_signal_state = 0;
@@ -715,7 +715,7 @@ u16 jtag_get_signals(void)
   /* Get states of output pins */
   output_signal_state = PINSB & MASK_PORTB_DIRECTION_OUT;
 
-  return ((u16)input_signal_state << 8) | ((u16)output_signal_state);
+  return ((uint16_t)input_signal_state << 8) | ((uint16_t)output_signal_state);
 }
 
 /**
@@ -724,7 +724,7 @@ u16 jtag_get_signals(void)
  * @param low signals which should be de-asserted.
  * @param high signals which should be asserted.
  */
-void jtag_set_signals(u8 low, u8 high)
+void jtag_set_signals(uint8_t low, uint8_t high)
 {
   OUTB &= ~(low & MASK_PORTB_DIRECTION_OUT);
   OUTB |= (high & MASK_PORTB_DIRECTION_OUT);
@@ -739,8 +739,8 @@ void jtag_set_signals(u8 low, u8 high)
  * @param tck number of delay cycles in clock_tck operations.
  * @param tms number of delay cycles in clock_tms operations.
  */
-void jtag_configure_tck_delay(u8 scan_in, u8 scan_out, u8 scan_io, u8 tck,
-    u8 tms)
+void jtag_configure_tck_delay(uint8_t scan_in, uint8_t scan_out,
+    uint8_t scan_io, uint8_t tck, uint8_t tms)
 {
   delay_scan_in = scan_in;
   delay_scan_out = scan_out;

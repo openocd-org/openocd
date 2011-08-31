@@ -21,7 +21,6 @@
 #ifndef __PROTOCOL_H
 #define __PROTOCOL_H
 
-#include "shorttypes.h"
 #include "common.h"
 #include <stdbool.h>
 

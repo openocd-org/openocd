@@ -61,8 +61,7 @@ HEADERS = $(INCLUDE_DIR)/main.h         \
           $(INCLUDE_DIR)/delay.h        \
           $(INCLUDE_DIR)/reg_ezusb.h    \
           $(INCLUDE_DIR)/io.h           \
-          $(INCLUDE_DIR)/msgtypes.h     \
-          $(INCLUDE_DIR)/shorttypes.h
+          $(INCLUDE_DIR)/msgtypes.h
 
 # Disable all built-in rules.
 .SUFFIXES:

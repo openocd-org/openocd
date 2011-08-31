@@ -20,7 +20,6 @@
 
 #include "main.h"
 
-#include "shorttypes.h"
 #include "io.h"
 #include "usb.h"
 #include "protocol.h"

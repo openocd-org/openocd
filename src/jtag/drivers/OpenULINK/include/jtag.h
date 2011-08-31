@@ -21,28 +21,28 @@
 #ifndef __JTAG_H
 #define __JTAG_H
 
-#include "shorttypes.h"
+#include <stdint.h>
 
 #define NOP {__asm nop __endasm;}
 
-void jtag_scan_in(u8 out_offset, u8 in_offset);
-void jtag_slow_scan_in(u8 out_offset, u8 in_offset);
+void jtag_scan_in(uint8_t out_offset, uint8_t in_offset);
+void jtag_slow_scan_in(uint8_t out_offset, uint8_t in_offset);
 
-void jtag_scan_out(u8 out_offset);
-void jtag_slow_scan_out(u8 out_offset);
+void jtag_scan_out(uint8_t out_offset);
+void jtag_slow_scan_out(uint8_t out_offset);
 
-void jtag_scan_io(u8 out_offset, u8 in_offset);
-void jtag_slow_scan_io(u8 out_offset, u8 in_offset);
+void jtag_scan_io(uint8_t out_offset, uint8_t in_offset);
+void jtag_slow_scan_io(uint8_t out_offset, uint8_t in_offset);
 
-void jtag_clock_tck(u16 count);
-void jtag_slow_clock_tck(u16 count);
-void jtag_clock_tms(u8 count, u8 sequence);
-void jtag_slow_clock_tms(u8 count, u8 sequence);
+void jtag_clock_tck(uint16_t count);
+void jtag_slow_clock_tck(uint16_t count);
+void jtag_clock_tms(uint8_t count, uint8_t sequence);
+void jtag_slow_clock_tms(uint8_t count, uint8_t sequence);
 
-u16  jtag_get_signals(void);
-void jtag_set_signals(u8 low, u8 high);
+uint16_t  jtag_get_signals(void);
+void jtag_set_signals(uint8_t low, uint8_t high);
 
-void jtag_configure_tck_delay(u8 scan_in, u8 scan_out, u8 scan_io, u8 tck,
-    u8 tms);
+void jtag_configure_tck_delay(uint8_t scan_in, uint8_t scan_out,
+    uint8_t scan_io, uint8_t tck, uint8_t tms);
 
 #endif

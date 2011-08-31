@@ -21,14 +21,14 @@
 #ifndef __DELAY_H
 #define __DELAY_H
 
-#include "shorttypes.h"
+#include <stdint.h>
 
 #define NOP  {__asm nop __endasm;}
 
 void delay_5us(void);
 void delay_1ms(void);
 
-void delay_us(u16 delay);
-void delay_ms(u16 delay);
+void delay_us(uint16_t delay);
+void delay_ms(uint16_t delay);
 
 #endif
