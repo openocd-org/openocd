@@ -147,17 +147,17 @@ static int jtag_data_write(struct target * target, uint32_t instr,int num_bits, 
 #define jtag_data_write24(target,instr,data_read) jtag_data_write(target,instr,24,data_read)
 #define jtag_data_write32(target,instr,data_read) jtag_data_write(target,instr,32,data_read)
 
-/** 
+/**
  * Executes EOnCE instruction.
- * 
- * @param target 
+ *
+ * @param target
  * @param instr Instruction to execute.
- * @param rw 
- * @param go 
- * @param ex 
+ * @param rw
+ * @param go
+ * @param ex
  * @param eonce_status Value read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_instruction_exec_single(struct target * target, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex,uint8_t * eonce_status){
   int retval;
@@ -435,13 +435,13 @@ static int eonce_read_status_reg(struct target * target, uint16_t * data){
   return retval;
 }
 
-/** 
+/**
  * Takes the core out of debug mode.
- * 
- * @param target 
+ *
+ * @param target
  * @param eonce_status Data read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
   int retval;
@@ -496,13 +496,13 @@ int switch_tap(struct target * target, struct jtag_tap * master_tap,struct jtag_
 }
 
 #define TIME_DIV_FREESCALE 0.3
-/** 
+/**
  * Puts the core into debug mode, enabling the EOnCE module.
- * 
- * @param target 
+ *
+ * @param target
  * @param eonce_status Data read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_status){
   int retval = ERROR_OK;
@@ -592,7 +592,7 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   return retval;
 }
 
-/** 
+/**
  * Puts the core into debug mode, enabling the EOnCE module.
  * This will not always work, eonce_enter_debug_mode executes much
  * more complicated routine, which is guaranteed to work, but requires
@@ -600,11 +600,11 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
  * after a reset clock divisors must be set again.
  * This implementation works most of the time, and is not accesible to the
  * user.
- * 
- * @param target 
+ *
+ * @param target
  * @param eonce_status Data read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t * eonce_status){
   int retval;
@@ -638,12 +638,12 @@ static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t
   return ERROR_OK;
 }
 
-/** 
+/**
  * Reads the current value of the program counter and stores it.
- * 
- * @param target 
- * 
- * @return 
+ *
+ * @param target
+ *
+ * @return
  */
 static int eonce_pc_store(struct target * target){
   uint8_t tmp[2];
@@ -803,14 +803,14 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
 
 
 
-/** 
+/**
  * The value of @address determines if it corresponds to P: (program) or X: (data) memory. If the address is over 0x200000 then it is considered X: memory, and @pmem = 0.
  * The special case of 0xFFXXXX is not modified, since it allows to read out the memory mapped EOnCE registers.
- * 
- * @param address 
- * @param pmem 
- * 
- * @return 
+ *
+ * @param address
+ * @param pmem
+ *
+ * @return
  */
 static int dsp5680xx_convert_address(uint32_t * address, int * pmem){
   // Distinguish data memory (x:) from program memory (p:) by the address.
@@ -1051,17 +1051,17 @@ static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t
   return retval;
 }
 
-/** 
+/**
  * Writes @buffer to memory.
  * The parameter @address determines whether @buffer should be written to P: (program) memory or X: (data) memory.
- * 
- * @param target 
+ *
+ * @param target
  * @param address
  * @param size Bytes (1), Half words (2), Words (4).
  * @param count In bytes.
- * @param buffer 
- * 
- * @return 
+ * @param buffer
+ *
+ * @return
  */
 static int dsp5680xx_write(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer){
   //TODO Cannot write 32bit to odd address, will write 0x12345678  as 0x5678 0x0012
@@ -1105,15 +1105,15 @@ static int dsp5680xx_write_buffer(struct target * target, uint32_t address, uint
   return dsp5680xx_write(target, address, 1, size, buffer);
 }
 
-/** 
+/**
  * This function is called by verify_image, it is used to read data from memory.
- * 
- * @param target 
+ *
+ * @param target
  * @param address Word addressing.
  * @param size In bytes.
- * @param buffer 
- * 
- * @return 
+ * @param buffer
+ *
+ * @return
  */
 static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint32_t size, uint8_t * buffer){
   if(target->state != TARGET_HALTED){
@@ -1124,29 +1124,29 @@ static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint3
   return dsp5680xx_read(target,address,2,size/2,buffer);
 }
 
-/** 
+/**
  * This function is not implemented.
  * It returns an error in order to get OpenOCD to do read out the data and calculate the CRC, or try a binary comparison.
- * 
- * @param target 
+ *
+ * @param target
  * @param address Start address of the image.
  * @param size In bytes.
- * @param checksum 
- * 
- * @return 
+ * @param checksum
+ *
+ * @return
  */
 static int dsp5680xx_checksum_memory(struct target * target, uint32_t address, uint32_t size, uint32_t * checksum){
   return ERROR_FAIL;
 }
 
-/** 
+/**
  * Calculates a signature over @word_count words in the data from @buff16. The algorithm used is the same the FM uses, so the @return may be used to compare with the one generated by the FM module, and check if flashing was successful.
  * This algorithm is based on the perl script available from the Freescale website at FAQ 25630.
- * 
- * @param buff16 
- * @param word_count 
- * 
- * @return 
+ *
+ * @param buff16
+ * @param word_count
+ *
+ * @return
  */
 static int perl_crc(uint8_t * buff8,uint32_t  word_count){
   uint16_t checksum = 0xffff;
@@ -1166,12 +1166,12 @@ static int perl_crc(uint8_t * buff8,uint32_t  word_count){
   return checksum;
 }
 
-/** 
+/**
  * Resets the SIM. (System Integration Module).
- * 
- * @param target 
- * 
- * @return 
+ *
+ * @param target
+ *
+ * @return
  */
 int dsp5680xx_f_SIM_reset(struct target * target){
   int retval = ERROR_OK;
@@ -1185,12 +1185,12 @@ int dsp5680xx_f_SIM_reset(struct target * target){
   return retval;
 }
 
-/** 
+/**
  * Halts the core and resets the SIM. (System Integration Module).
- * 
- * @param target 
- * 
- * @return 
+ *
+ * @param target
+ *
+ * @return
  */
 static int dsp5680xx_soft_reset_halt(struct target *target){
   //TODO is this what this function is expected to do...?
@@ -1216,17 +1216,17 @@ int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected) {
   return retval;
 }
 
-/** 
+/**
  * Executes a command on the FM module. Some commands use the parameters @address and @data, others ignore them.
- * 
- * @param target 
+ *
+ * @param target
  * @param command Command to execute.
  * @param address Command parameter.
  * @param data Command parameter.
  * @param hfm_ustat FM status register.
  * @param pmem Address is P: (program) memory (@pmem==1) or X: (data) memory (@pmem==0)
- * 
- * @return 
+ *
+ * @return
  */
 static int dsp5680xx_f_execute_command(struct target * target, uint16_t command, uint32_t address, uint32_t data, uint16_t * hfm_ustat, int pmem){
   int retval;
@@ -1304,12 +1304,12 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
   return ERROR_OK;
 }
 
-/** 
- * Prior to the execution of any Flash module command, the Flash module Clock Divider (CLKDIV) register must be initialized. The values of this register determine the speed of the internal Flash Clock (FCLK). FCLK must be in the range of 150kHz ≤ FCLK ≤ 200kHz for proper operation of the Flash module. (Running FCLK too slowly wears out the module, while running it too fast under programs Flash leading to bit errors.) 
- * 
- * @param target 
- * 
- * @return 
+/**
+ * Prior to the execution of any Flash module command, the Flash module Clock Divider (CLKDIV) register must be initialized. The values of this register determine the speed of the internal Flash Clock (FCLK). FCLK must be in the range of 150kHz ≤ FCLK ≤ 200kHz for proper operation of the Flash module. (Running FCLK too slowly wears out the module, while running it too fast under programs Flash leading to bit errors.)
+ *
+ * @param target
+ *
+ * @return
  */
 static int set_fm_ck_div(struct target * target){
   uint8_t i[2];
@@ -1349,15 +1349,15 @@ static int set_fm_ck_div(struct target * target){
   return ERROR_OK;
 }
 
-/** 
+/**
  * Executes the FM calculate signature command. The FM will calculate over the data from @address to @address + @words -1. The result is written to a register, then read out by this function and returned in @signature. The value @signature may be compared to the the one returned by perl_crc to verify the flash was written correctly.
- * 
- * @param target 
+ *
+ * @param target
  * @param address Start of flash array where the signature should be calculated.
  * @param words Number of words over which the signature should be calculated.
  * @param signature Value calculated by the FM.
- * 
- * @return 
+ *
+ * @return
  */
 static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint32_t words, uint16_t * signature){
   int retval;
@@ -1389,14 +1389,14 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t se
   return retval;
 }
 
-/** 
+/**
  * Executes the FM page erase command.
- * 
- * @param target 
+ *
+ * @param target
  * @param sector Page to erase.
  * @param hfm_ustat FM module status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int erase_sector(struct target * target, int sector, uint16_t * hfm_ustat){
   int retval;
@@ -1405,13 +1405,13 @@ static int erase_sector(struct target * target, int sector, uint16_t * hfm_ustat
   return retval;
 }
 
-/** 
+/**
  * Executes the FM mass erase command. Erases the flash array completely.
- * 
- * @param target 
+ *
+ * @param target
  * @param hfm_ustat FM module status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int mass_erase(struct target * target, uint16_t * hfm_ustat){
   int retval;
@@ -1633,10 +1633,10 @@ int dsp5680xx_f_unlock(struct target * target){
   if(retval == ERROR_OK){
     LOG_WARNING("Memory was not locked.");
   }
-  
+
   jtag_add_reset(0,1);
   usleep(TIME_DIV_FREESCALE*200*1000);
-  
+
   retval = reset_jtag();
   err_check(retval,"Failed to reset JTAG state machine");
   usleep(150);
