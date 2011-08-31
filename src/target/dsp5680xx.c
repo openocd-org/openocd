@@ -450,7 +450,7 @@ static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
   return retval;
 }
 
-int switch_tap(struct target * target, struct jtag_tap * master_tap,struct jtag_tap * core_tap){
+static int switch_tap(struct target * target, struct jtag_tap * master_tap,struct jtag_tap * core_tap){
   int retval = ERROR_OK;
   uint32_t instr;
   uint32_t ir_out;//not used, just to make jtag happy.
@@ -1600,7 +1600,7 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 }
 
 // Reset state machine
-int reset_jtag(void){
+static int reset_jtag(void){
   int retval;
   tap_state_t states[2];
   const char *cp = "RESET";
