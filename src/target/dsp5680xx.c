@@ -90,12 +90,17 @@ static int dsp5680xx_irscan(struct target * target, uint32_t * data_to_shift_int
 	err_check(retval,"Invalid tap");
   }
   if (ir_len != target->tap->ir_length){
-    LOG_WARNING("%s: Invalid ir_len of core tap. If you are removing protection on flash then do not worry about this warninig.",__FUNCTION__);
-    //return ERROR_FAIL;//TODO this was commented out to enable unlocking using the master tap. did not find a way to enable the master tap without using tcl.
+    if(target->tap->enabled){
+      retval = ERROR_FAIL;
+      err_check(retval,"Invalid irlen");
+    }else{
+      struct jtag_tap * master_tap = jtag_tap_by_string("dsp568013.chp");
+      if((master_tap == NULL) || ((master_tap->enabled) && (ir_len != DSP5680XX_JTAG_MASTER_TAP_IRLEN))){
+        retval = ERROR_FAIL;
+        err_check(retval,"Invalid irlen");
+      }
+    }
   }
-  //TODO what values of len are valid for jtag_add_plain_ir_scan?
-  //can i send as many bits as i want?
-  //is the casting necessary?
   jtag_add_plain_ir_scan(ir_len,(uint8_t *)data_to_shift_into_ir,(uint8_t *)data_shifted_out_of_ir, TAP_IDLE);
   if(dsp5680xx_context.flush){
     retval = dsp5680xx_execute_queue();
@@ -142,17 +147,17 @@ static int jtag_data_write(struct target * target, uint32_t instr,int num_bits, 
 #define jtag_data_write24(target,instr,data_read) jtag_data_write(target,instr,24,data_read)
 #define jtag_data_write32(target,instr,data_read) jtag_data_write(target,instr,32,data_read)
 
-/** 
+/**
  * Executes EOnCE instruction.
- * 
- * @param target 
+ *
+ * @param target
  * @param instr Instruction to execute.
- * @param rw 
- * @param go 
- * @param ex 
+ * @param rw
+ * @param go
+ * @param ex
  * @param eonce_status Value read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_instruction_exec_single(struct target * target, uint8_t instr, uint8_t rw, uint8_t go, uint8_t ex,uint8_t * eonce_status){
   int retval;
@@ -430,13 +435,13 @@ static int eonce_read_status_reg(struct target * target, uint16_t * data){
   return retval;
 }
 
-/** 
+/**
  * Takes the core out of debug mode.
- * 
- * @param target 
+ *
+ * @param target
  * @param eonce_status Data read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
   int retval;
@@ -445,15 +450,163 @@ static int eonce_exit_debug_mode(struct target * target,uint8_t * eonce_status){
   return retval;
 }
 
-/** 
+int switch_tap(struct target * target, struct jtag_tap * master_tap,struct jtag_tap * core_tap){
+  int retval = ERROR_OK;
+  uint32_t instr;
+  uint32_t ir_out;//not used, just to make jtag happy.
+  if(master_tap == NULL){
+    master_tap = jtag_tap_by_string("dsp568013.chp");
+    if(master_tap == NULL){
+      retval = ERROR_FAIL;
+      err_check(retval,"Failed to get master tap.");
+    }
+  }
+  if(core_tap == NULL){
+    core_tap = jtag_tap_by_string("dsp568013.cpu");
+    if(core_tap == NULL){
+      retval = ERROR_FAIL;
+      err_check(retval,"Failed to get core tap.");
+    }
+  }
+
+  if(!(((int)master_tap->enabled) ^ ((int)core_tap->enabled))){
+      LOG_WARNING("Wrong tap enabled/disabled status:\nMaster tap:%d\nCore Tap:%d\nOnly one tap should be enabled at a given time.\n",(int)master_tap->enabled,(int)core_tap->enabled);
+  }
+
+  if(master_tap->enabled){
+    instr = 0x5;
+    retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+    err_check_propagate(retval);
+    instr = 0x2;
+    retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,4);
+    err_check_propagate(retval);
+    core_tap->enabled = true;
+    master_tap->enabled = false;
+  }else{
+    instr = 0x08;
+    retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+    err_check_propagate(retval);
+    instr = 0x1;
+    retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,4);
+    err_check_propagate(retval);
+    core_tap->enabled = false;
+    master_tap->enabled = true;
+  }
+  return retval;
+}
+
+#define TIME_DIV_FREESCALE 0.3
+/**
  * Puts the core into debug mode, enabling the EOnCE module.
- * 
- * @param target 
+ *
+ * @param target
  * @param eonce_status Data read from the EOnCE status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_status){
+  int retval = ERROR_OK;
+  uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
+  uint32_t ir_out;//not used, just to make jtag happy.
+  uint16_t instr_16;
+  uint16_t read_16;
+
+  struct jtag_tap * tap_chp;
+  struct jtag_tap * tap_cpu;
+  tap_chp = jtag_tap_by_string("dsp568013.chp");
+  if(tap_chp == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
+  }
+  tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+  if(tap_cpu == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
+  }
+
+  // Enable master tap
+  tap_chp->enabled = true;
+  tap_cpu->enabled = false;
+
+  instr = MASTER_TAP_CMD_IDCODE;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+  err_check_propagate(retval);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+
+  // Enable EOnCE module
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+  instr = 0x0606ffff;// This was selected experimentally.
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,32);
+  err_check_propagate(retval);
+  // ir_out now hold tap idcode
+
+  // Enable core tap
+  tap_chp->enabled = true;
+  retval = switch_tap(target,tap_chp,tap_cpu);
+  err_check_propagate(retval);
+
+  instr = JTAG_INSTR_ENABLE_ONCE;
+  //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr = JTAG_INSTR_DEBUG_REQUEST;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr_16 = 0x1;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  instr_16 = 0x20;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
+
+  instr = JTAG_INSTR_ENABLE_ONCE;
+  //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
+  for(int i = 0; i<3; i++){
+    retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+    err_check_propagate(retval);
+  }
+
+  for(int i = 0; i<3; i++){
+    instr_16 = 0x86;
+    dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,16);
+    instr_16 = 0xff;
+    dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,16);
+  }
+
+  // Verify that debug mode is enabled
+  uint16_t data_read_from_dr;
+  retval = eonce_read_status_reg(target,&data_read_from_dr);
+  err_check_propagate(retval);
+  if((data_read_from_dr&0x30) == 0x30){
+    LOG_DEBUG("EOnCE successfully entered debug mode.");
+    target->state = TARGET_HALTED;
+    retval = ERROR_OK;
+  }else{
+    LOG_DEBUG("Failed to set EOnCE module to debug mode.");
+    retval = ERROR_TARGET_FAILURE;
+  }
+  if(eonce_status!=NULL)
+    *eonce_status = data_read_from_dr;
+  return retval;
+}
+
+/**
+ * Puts the core into debug mode, enabling the EOnCE module.
+ * This will not always work, eonce_enter_debug_mode executes much
+ * more complicated routine, which is guaranteed to work, but requires
+ * a reset. This will complicate comm with the flash module, since
+ * after a reset clock divisors must be set again.
+ * This implementation works most of the time, and is not accesible to the
+ * user.
+ *
+ * @param target
+ * @param eonce_status Data read from the EOnCE status register.
+ *
+ * @return
+ */
+static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t * eonce_status){
   int retval;
   uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
   uint32_t ir_out;//not used, just to make jtag happy.
@@ -475,22 +628,22 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   if((data_read_from_dr&0x30) == 0x30){
     LOG_DEBUG("EOnCE successfully entered debug mode.");
     target->state = TARGET_HALTED;
-    return ERROR_OK;
+    retval = ERROR_OK;
   }else{
     retval = ERROR_TARGET_FAILURE;
-    err_check(retval,"Failed to set EOnCE module to debug mode.");
+    err_check(retval,"Failed to set EOnCE module to debug mode. Try with halt");
   }
   if(eonce_status!=NULL)
     *eonce_status = data_read_from_dr;
   return ERROR_OK;
 }
 
-/** 
+/**
  * Reads the current value of the program counter and stores it.
- * 
- * @param target 
- * 
- * @return 
+ *
+ * @param target
+ *
+ * @return
  */
 static int eonce_pc_store(struct target * target){
   uint8_t tmp[2];
@@ -551,7 +704,7 @@ static int dsp5680xx_halt(struct target *target){
     return ERROR_OK;
   }
   retval = eonce_enter_debug_mode(target,&eonce_status);
-  err_check_propagate(retval);
+  err_check(retval,"Failed to halt target.");
   retval = eonce_pc_store(target);
   err_check_propagate(retval);
   //TODO is it useful to store the pc?
@@ -650,14 +803,14 @@ static int dsp5680xx_resume(struct target *target, int current, uint32_t address
 
 
 
-/** 
+/**
  * The value of @address determines if it corresponds to P: (program) or X: (data) memory. If the address is over 0x200000 then it is considered X: memory, and @pmem = 0.
  * The special case of 0xFFXXXX is not modified, since it allows to read out the memory mapped EOnCE registers.
- * 
- * @param address 
- * @param pmem 
- * 
- * @return 
+ *
+ * @param address
+ * @param pmem
+ *
+ * @return
  */
 static int dsp5680xx_convert_address(uint32_t * address, int * pmem){
   // Distinguish data memory (x:) from program memory (p:) by the address.
@@ -898,17 +1051,17 @@ static int dsp5680xx_write_32(struct target * target, uint32_t address, uint32_t
   return retval;
 }
 
-/** 
+/**
  * Writes @buffer to memory.
  * The parameter @address determines whether @buffer should be written to P: (program) memory or X: (data) memory.
- * 
- * @param target 
+ *
+ * @param target
  * @param address
  * @param size Bytes (1), Half words (2), Words (4).
  * @param count In bytes.
- * @param buffer 
- * 
- * @return 
+ * @param buffer
+ *
+ * @return
  */
 static int dsp5680xx_write(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer){
   //TODO Cannot write 32bit to odd address, will write 0x12345678  as 0x5678 0x0012
@@ -952,15 +1105,15 @@ static int dsp5680xx_write_buffer(struct target * target, uint32_t address, uint
   return dsp5680xx_write(target, address, 1, size, buffer);
 }
 
-/** 
+/**
  * This function is called by verify_image, it is used to read data from memory.
- * 
- * @param target 
+ *
+ * @param target
  * @param address Word addressing.
  * @param size In bytes.
- * @param buffer 
- * 
- * @return 
+ * @param buffer
+ *
+ * @return
  */
 static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint32_t size, uint8_t * buffer){
   if(target->state != TARGET_HALTED){
@@ -971,29 +1124,29 @@ static int dsp5680xx_read_buffer(struct target * target, uint32_t address, uint3
   return dsp5680xx_read(target,address,2,size/2,buffer);
 }
 
-/** 
+/**
  * This function is not implemented.
  * It returns an error in order to get OpenOCD to do read out the data and calculate the CRC, or try a binary comparison.
- * 
- * @param target 
+ *
+ * @param target
  * @param address Start address of the image.
  * @param size In bytes.
- * @param checksum 
- * 
- * @return 
+ * @param checksum
+ *
+ * @return
  */
 static int dsp5680xx_checksum_memory(struct target * target, uint32_t address, uint32_t size, uint32_t * checksum){
   return ERROR_FAIL;
 }
 
-/** 
+/**
  * Calculates a signature over @word_count words in the data from @buff16. The algorithm used is the same the FM uses, so the @return may be used to compare with the one generated by the FM module, and check if flashing was successful.
  * This algorithm is based on the perl script available from the Freescale website at FAQ 25630.
- * 
- * @param buff16 
- * @param word_count 
- * 
- * @return 
+ *
+ * @param buff16
+ * @param word_count
+ *
+ * @return
  */
 static int perl_crc(uint8_t * buff8,uint32_t  word_count){
   uint16_t checksum = 0xffff;
@@ -1013,12 +1166,12 @@ static int perl_crc(uint8_t * buff8,uint32_t  word_count){
   return checksum;
 }
 
-/** 
+/**
  * Resets the SIM. (System Integration Module).
- * 
- * @param target 
- * 
- * @return 
+ *
+ * @param target
+ *
+ * @return
  */
 int dsp5680xx_f_SIM_reset(struct target * target){
   int retval = ERROR_OK;
@@ -1032,12 +1185,12 @@ int dsp5680xx_f_SIM_reset(struct target * target){
   return retval;
 }
 
-/** 
+/**
  * Halts the core and resets the SIM. (System Integration Module).
- * 
- * @param target 
- * 
- * @return 
+ *
+ * @param target
+ *
+ * @return
  */
 static int dsp5680xx_soft_reset_halt(struct target *target){
   //TODO is this what this function is expected to do...?
@@ -1063,17 +1216,17 @@ int dsp5680xx_f_protect_check(struct target * target, uint16_t * protected) {
   return retval;
 }
 
-/** 
+/**
  * Executes a command on the FM module. Some commands use the parameters @address and @data, others ignore them.
- * 
- * @param target 
+ *
+ * @param target
  * @param command Command to execute.
  * @param address Command parameter.
  * @param data Command parameter.
  * @param hfm_ustat FM status register.
  * @param pmem Address is P: (program) memory (@pmem==1) or X: (data) memory (@pmem==0)
- * 
- * @return 
+ *
+ * @return
  */
 static int dsp5680xx_f_execute_command(struct target * target, uint16_t command, uint32_t address, uint32_t data, uint16_t * hfm_ustat, int pmem){
   int retval;
@@ -1151,12 +1304,12 @@ static int dsp5680xx_f_execute_command(struct target * target, uint16_t command,
   return ERROR_OK;
 }
 
-/** 
- * Prior to the execution of any Flash module command, the Flash module Clock Divider (CLKDIV) register must be initialized. The values of this register determine the speed of the internal Flash Clock (FCLK). FCLK must be in the range of 150kHz ≤ FCLK ≤ 200kHz for proper operation of the Flash module. (Running FCLK too slowly wears out the module, while running it too fast under programs Flash leading to bit errors.) 
- * 
- * @param target 
- * 
- * @return 
+/**
+ * Prior to the execution of any Flash module command, the Flash module Clock Divider (CLKDIV) register must be initialized. The values of this register determine the speed of the internal Flash Clock (FCLK). FCLK must be in the range of 150kHz ≤ FCLK ≤ 200kHz for proper operation of the Flash module. (Running FCLK too slowly wears out the module, while running it too fast under programs Flash leading to bit errors.)
+ *
+ * @param target
+ *
+ * @return
  */
 static int set_fm_ck_div(struct target * target){
   uint8_t i[2];
@@ -1196,21 +1349,21 @@ static int set_fm_ck_div(struct target * target){
   return ERROR_OK;
 }
 
-/** 
+/**
  * Executes the FM calculate signature command. The FM will calculate over the data from @address to @address + @words -1. The result is written to a register, then read out by this function and returned in @signature. The value @signature may be compared to the the one returned by perl_crc to verify the flash was written correctly.
- * 
- * @param target 
+ *
+ * @param target
  * @param address Start of flash array where the signature should be calculated.
  * @param words Number of words over which the signature should be calculated.
  * @param signature Value calculated by the FM.
- * 
- * @return 
+ *
+ * @return
  */
 static int dsp5680xx_f_signature(struct target * target, uint32_t address, uint32_t words, uint16_t * signature){
   int retval;
   uint16_t hfm_ustat;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
-    retval = eonce_enter_debug_mode(target,NULL);
+    retval = eonce_enter_debug_mode_without_reset(target,NULL);
     err_check_propagate(retval);
   }
   retval = dsp5680xx_f_execute_command(target,HFM_CALCULATE_DATA_SIGNATURE,address,words,&hfm_ustat,1);
@@ -1236,14 +1389,14 @@ int dsp5680xx_f_erase_check(struct target * target, uint8_t * erased,uint32_t se
   return retval;
 }
 
-/** 
+/**
  * Executes the FM page erase command.
- * 
- * @param target 
+ *
+ * @param target
  * @param sector Page to erase.
  * @param hfm_ustat FM module status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int erase_sector(struct target * target, int sector, uint16_t * hfm_ustat){
   int retval;
@@ -1252,13 +1405,13 @@ static int erase_sector(struct target * target, int sector, uint16_t * hfm_ustat
   return retval;
 }
 
-/** 
+/**
  * Executes the FM mass erase command. Erases the flash array completely.
- * 
- * @param target 
+ *
+ * @param target
  * @param hfm_ustat FM module status register.
- * 
- * @return 
+ *
+ * @return
  */
 static int mass_erase(struct target * target, uint16_t * hfm_ustat){
   int retval;
@@ -1341,7 +1494,7 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
 const uint16_t pgm_write_pflash[] = {0x8A46,0x0013,0x407D,0xE700,0xE700,0x8A44,0xFFFE,0x017B,0xE700,0xF514,0x8563,0x8646,0x0020,0x0014,0x8646,0x0080,0x0013,0x8A46,0x0013,0x2004,0x8246,0x0013,0x0020,0xA968,0x8A46,0x0013,0x1065,0x8246,0x0013,0x0010,0xA961};
 const uint32_t pgm_write_pflash_length = 31;
 
-int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count){
+int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count, int is_flash_lock){
   int retval = ERROR_OK;
   if (dsp5680xx_target_status(target,NULL,NULL) != TARGET_HALTED){
     retval = eonce_enter_debug_mode(target,NULL);
@@ -1351,10 +1504,12 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
   // Download the pgm that flashes.
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   uint32_t my_favourite_ram_address = 0x8700; // This seems to be a safe address. This one is the one used by codewarrior in 56801x_flash.cfg
-  retval = dsp5680xx_write(target, my_favourite_ram_address, 1, pgm_write_pflash_length*2,(uint8_t *) pgm_write_pflash);
-  err_check_propagate(retval);
-  retval = dsp5680xx_execute_queue();
-  err_check_propagate(retval);
+  if(!is_flash_lock){
+    retval = dsp5680xx_write(target, my_favourite_ram_address, 1, pgm_write_pflash_length*2,(uint8_t *) pgm_write_pflash);
+    err_check_propagate(retval);
+    retval = dsp5680xx_execute_queue();
+    err_check_propagate(retval);
+  }
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
   // Set hfmdiv
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -1422,43 +1577,151 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	dsp5680xx_context.flush = 0;
   }
   dsp5680xx_context.flush = 1;
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  // Verify flash
-  // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  uint16_t signature;
-  uint16_t pc_crc;
-  retval =  dsp5680xx_f_signature(target,address,i,&signature);
-  err_check_propagate(retval);
-  pc_crc = perl_crc(buffer,i);
-  if(pc_crc != signature){
-    retval = ERROR_FAIL;
-    err_check(retval,"Flashed data failed CRC check, flash again!");
+  if(!is_flash_lock){
+    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    // Verify flash (skip when exec lock sequence)
+    // -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    uint16_t signature;
+    uint16_t pc_crc;
+    retval =  dsp5680xx_f_signature(target,address,i,&signature);
+    err_check_propagate(retval);
+    pc_crc = perl_crc(buffer,i);
+    if(pc_crc != signature){
+      retval = ERROR_FAIL;
+      err_check(retval,"Flashed data failed CRC check, flash again!");
+    }
   }
   return retval;
 }
 
-int dsp5680xx_f_unlock(struct target * target){
+// Reset state machine
+int reset_jtag(void){
   int retval;
-  if(target->tap->enabled){
-    //TODO find a way to switch to the master tap here.
-    LOG_ERROR("Master tap must be enabled to unlock flash.");
-    return ERROR_TARGET_FAILURE;
+  tap_state_t states[2];
+  const char *cp = "RESET";
+  states[0] = tap_state_by_name(cp);
+  retval = jtag_add_statemove(states[0]);
+  err_check_propagate(retval);
+  retval = jtag_execute_queue();
+  err_check_propagate(retval);
+  jtag_add_pathmove(0, states + 1);
+  retval = jtag_execute_queue();
+  return retval;
+}
+
+int dsp5680xx_f_unlock(struct target * target){
+  int retval = ERROR_OK;
+  uint16_t eonce_status;
+  uint32_t instr;
+  uint32_t ir_out;
+  uint16_t instr_16;
+  uint16_t read_16;
+  struct jtag_tap * tap_chp;
+  struct jtag_tap * tap_cpu;
+  tap_chp = jtag_tap_by_string("dsp568013.chp");
+  if(tap_chp == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
   }
-  uint32_t data_to_shift_in = MASTER_TAP_CMD_FLASH_ERASE;
-  uint32_t data_shifted_out;
-  retval = dsp5680xx_irscan(target,&data_to_shift_in,&data_shifted_out,8);
+  tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+  if(tap_cpu == NULL){
+    retval = ERROR_FAIL;
+    err_check(retval,"Failed to get master tap.");
+  }
+
+  retval = eonce_enter_debug_mode(target,&eonce_status);
+  if(retval == ERROR_OK){
+    LOG_WARNING("Memory was not locked.");
+  }
+
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+
+  retval = reset_jtag();
+  err_check(retval,"Failed to reset JTAG state machine");
+  usleep(150);
+
+  // Enable core tap
+  tap_chp->enabled = true;
+  retval = switch_tap(target,tap_chp,tap_cpu);
   err_check_propagate(retval);
-  data_to_shift_in = HFM_CLK_DEFAULT;
-  retval = dsp5680xx_drscan(target,((uint8_t *) & data_to_shift_in),((uint8_t *)&data_shifted_out),8);
+
+  instr = JTAG_INSTR_DEBUG_REQUEST;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
   err_check_propagate(retval);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
+
+  // Enable master tap
+  tap_chp->enabled = false;
+  retval = switch_tap(target,tap_chp,tap_cpu);
+  err_check_propagate(retval);
+
+  // Execute mass erase to unlock
+  instr = MASTER_TAP_CMD_FLASH_ERASE;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+  err_check_propagate(retval);
+
+  instr = HFM_CLK_DEFAULT;
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,16);
+  err_check_propagate(retval);
+
+  usleep(TIME_DIV_FREESCALE*150*1000);
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+
+  retval = reset_jtag();
+  err_check(retval,"Failed to reset JTAG state machine");
+  usleep(150);
+
+  instr = 0x0606ffff;
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,32);
+  err_check_propagate(retval);
+
+  // enable core tap
+  instr = 0x5;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_MASTER_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr = 0x2;
+  retval =  dsp5680xx_drscan(target,(uint8_t *) & instr,(uint8_t *) & ir_out,4);
+  err_check_propagate(retval);
+
+  tap_cpu->enabled = true;
+  tap_chp->enabled = false;
+
+  instr = JTAG_INSTR_ENABLE_ONCE;
+  //Two rounds of jtag 0x6  (enable eonce) to enable EOnCE.
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr = JTAG_INSTR_DEBUG_REQUEST;
+  retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
+  err_check_propagate(retval);
+  instr_16 = 0x1;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  instr_16 = 0x20;
+  retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
   return retval;
 }
 
 int dsp5680xx_f_lock(struct target * target){
   int retval;
-  uint16_t lock_word[] = {HFM_LOCK_FLASH,HFM_LOCK_FLASH};
-  retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,4);
+  uint16_t lock_word[] = {HFM_LOCK_FLASH};
+  retval = dsp5680xx_f_wr(target,(uint8_t *)(lock_word),HFM_LOCK_ADDR_L,2,1);
   err_check_propagate(retval);
+
+  jtag_add_reset(0,1);
+  usleep(TIME_DIV_FREESCALE*200*1000);
+
+  retval = reset_jtag();
+  err_check(retval,"Failed to reset JTAG state machine");
+  usleep(TIME_DIV_FREESCALE*100*1000);
+  jtag_add_reset(0,0);
+  usleep(TIME_DIV_FREESCALE*300*1000);
+
   return retval;
 }
 

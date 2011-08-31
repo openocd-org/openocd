@@ -69,10 +69,10 @@
 //----------------------------------------------------------------
 // Master TAP instructions from MC56F8000RM.pdf
 //----------------------------------------------------------------
-#define MASTER_TAP_CMD_BYPASS      0xFF
-#define MASTER_TAP_CMD_IDCODE      0x02
-#define MASTER_TAP_CMD_TLM_SEL     0x05
-#define MASTER_TAP_CMD_FLASH_ERASE 0x08
+#define MASTER_TAP_CMD_BYPASS      0xF
+#define MASTER_TAP_CMD_IDCODE      0x2
+#define MASTER_TAP_CMD_TLM_SEL     0x5
+#define MASTER_TAP_CMD_FLASH_ERASE 0x8
 //----------------------------------------------------------------
 
 //----------------------------------------------------------------
@@ -234,10 +234,11 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target *target
  * @param buffer 
  * @param address Word addressing.
  * @param count In bytes. 
+ * @param verify_flash Execute a CRC check after flashing. 
  * 
  * @return 
  */
-int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count);
+int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count, int is_flash_lock);
 
 /** 
  * The FM has the funcionality of checking if the flash array is erased. This function executes it. It does not support individual sector analysis.
