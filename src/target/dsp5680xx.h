@@ -256,6 +256,7 @@ struct dsp5680xx_common{
   //TODO
   uint32_t stored_pc;
   int flush;
+bool debug_mode_enabled;
 };
 
 extern struct dsp5680xx_common dsp5680xx_context;
