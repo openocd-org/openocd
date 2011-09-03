@@ -47,7 +47,7 @@
 #define DSP5680XX_JTAG_CORE_TAP_IRLEN	4
 #define DSP5680XX_JTAG_MASTER_TAP_IRLEN	8
 
-#define JTAG_STATUS_MASK                0x03
+#define JTAG_STATUS_MASK                0x0F
 
 #define JTAG_STATUS_NORMAL		0x01
 #define JTAG_STATUS_STOPWAIT		0x05
