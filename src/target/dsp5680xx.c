@@ -40,6 +40,23 @@ int dsp5680xx_execute_queue(void){
   return retval;
 }
 
+/**
+ * Reset state machine
+ */
+static int reset_jtag(void){
+	int retval;
+	tap_state_t states[2];
+	const char *cp = "RESET";
+	states[0] = tap_state_by_name(cp);
+	retval = jtag_add_statemove(states[0]);
+	err_check_propagate(retval);
+	retval = jtag_execute_queue();
+	err_check_propagate(retval);
+	jtag_add_pathmove(0, states + 1);
+	retval = jtag_execute_queue();
+	return retval;
+}
+
 static int dsp5680xx_drscan(struct target * target, uint8_t * data_to_shift_into_dr, uint8_t * data_shifted_out_of_dr, int len){
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 //
@@ -547,7 +564,6 @@ static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t
 	return retval;
 }
 
-#define TIME_DIV_FREESCALE 0.3
 /**
  * Puts the core into debug mode, enabling the EOnCE module.
  *
@@ -1608,21 +1624,6 @@ int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, ui
 	err_check(retval, DSP5680XX_ERROR_FLASHING_CRC, msg);
     }
   }
-  return retval;
-}
-
-// Reset state machine
-static int reset_jtag(void){
-  int retval;
-  tap_state_t states[2];
-  const char *cp = "RESET";
-  states[0] = tap_state_by_name(cp);
-  retval = jtag_add_statemove(states[0]);
-  err_check_propagate(retval);
-  retval = jtag_execute_queue();
-  err_check_propagate(retval);
-  jtag_add_pathmove(0, states + 1);
-  retval = jtag_execute_queue();
   return retval;
 }
 

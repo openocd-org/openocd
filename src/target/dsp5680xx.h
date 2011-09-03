@@ -39,6 +39,7 @@
 
 
 #define S_FILE_DATA_OFFSET 0x200000
+#define TIME_DIV_FREESCALE 0.3
 
 //----------------------------------------------------------------
 // JTAG
