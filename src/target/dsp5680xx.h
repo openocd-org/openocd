@@ -213,6 +213,40 @@
 #define SIM_CMD_RESET 0x10
 //----------------------------------------------------------------
 
+/**
+ * ----------------------------------------------------------------
+ * ERROR codes - enable automatic parsing of output
+ * ----------------------------------------------------------------
+ */
+#define DSP5680XX_ERROR_UNKNOWN_OR_ERROR_OPENOCD -100
+#define DSP5680XX_ERROR_JTAG_COMM -1
+#define DSP5680XX_ERROR_JTAG_RESET -2
+#define DSP5680XX_ERROR_JTAG_INVALID_TAP -3
+#define DSP5680XX_ERROR_JTAG_DR_LEN_OVERFLOW -4
+#define DSP5680XX_ERROR_INVALID_IR_LEN -5
+#define DSP5680XX_ERROR_JTAG_TAP_ENABLE_MASTER -6
+#define DSP5680XX_ERROR_JTAG_TAP_ENABLE_CORE -7
+#define DSP5680XX_ERROR_JTAG_TAP_FIND_MASTER -8
+#define DSP5680XX_ERROR_JTAG_TAP_FIND_CORE -9
+#define DSP5680XX_ERROR_JTAG_DRSCAN -10
+#define DSP5680XX_ERROR_JTAG_IRSCAN -11
+#define DSP5680XX_ERROR_ENTER_DEBUG_MODE -12
+#define DSP5680XX_ERROR_RESUME -13
+#define DSP5680XX_ERROR_WRITE_WITH_TARGET_RUNNING -14
+#define DSP5680XX_ERROR_INVALID_DATA_SIZE_UNIT -15
+#define DSP5680XX_ERROR_PROTECT_CHECK_INVALID_ARGS -16
+#define DSP5680XX_ERROR_FM_BUSY -17
+#define DSP5680XX_ERROR_FM_CMD_TIMED_OUT -18
+#define DSP5680XX_ERROR_FM_EXEC -19
+#define DSP5680XX_ERROR_FM_SET_CLK -20
+#define DSP5680XX_ERROR_FLASHING_INVALID_WORD_COUNT -21
+#define DSP5680XX_ERROR_FLASHING_CRC -22
+#define DSP5680XX_ERROR_FLASHING -23
+#define DSP5680XX_ERROR_NOT_IMPLEMENTED_STEP -24
+/**
+ * ----------------------------------------------------------------
+ */
+
 struct dsp5680xx_common{
   //TODO
   uint32_t stored_pc;
