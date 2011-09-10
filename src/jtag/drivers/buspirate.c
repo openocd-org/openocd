@@ -217,13 +217,13 @@ static int buspirate_execute_queue(void)
 static int buspirate_init(void)
 {
 	if (buspirate_port == NULL) {
-		LOG_ERROR("You need to specify port !");
+		LOG_ERROR("You need to specify the serial port!");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	buspirate_fd = buspirate_serial_open(buspirate_port);
 	if (buspirate_fd == -1) {
-		LOG_ERROR("Could not open serial port.");
+		LOG_ERROR("Could not open serial port");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -249,7 +249,7 @@ static int buspirate_init(void)
 
 static int buspirate_quit(void)
 {
-	LOG_INFO("Shuting down buspirate ");
+	LOG_INFO("Shutting down buspirate.");
 	buspirate_jtag_set_mode(buspirate_fd, MODE_HIZ);
 
 	buspirate_jtag_set_speed(buspirate_fd, SERIAL_NORMAL);
@@ -665,7 +665,7 @@ static void buspirate_tap_append(int tms, int tdi)
 
 		tap_chain_index++;
 	} else
-		LOG_ERROR("tap_chain overflow, Bad things will happen");
+		LOG_ERROR("tap_chain overflow, bad things will happen");
 
 }
 
@@ -724,19 +724,19 @@ static void buspirate_jtag_enable(int fd)
 	while (!done) {
 		ret = buspirate_serial_read(fd, tmp, 4);
 		if (ret != 4) {
-			LOG_ERROR("Buspirate error. Is is binary/"
+			LOG_ERROR("Buspirate error. Is binary"
 				"/OpenOCD support enabled?");
 			exit(-1);
 		}
 		if (strncmp(tmp, "BBIO", 4) == 0) {
 			ret = buspirate_serial_read(fd, tmp, 1);
 			if (ret != 1) {
-				LOG_ERROR("Buspirate did not correctly! "
+				LOG_ERROR("Buspirate did not answer correctly! "
 					"Do you have correct firmware?");
 				exit(-1);
 			}
 			if (tmp[0] != '1') {
-				LOG_ERROR("Unsupported binary protocol ");
+				LOG_ERROR("Unsupported binary protocol");
 				exit(-1);
 			}
 			if (cmd_sent == 0) {
@@ -747,7 +747,7 @@ static void buspirate_jtag_enable(int fd)
 		} else if (strncmp(tmp, "OCD1", 4) == 0)
 			done = 1;
 		else {
-			LOG_ERROR("Buspirate did not correctly! "
+			LOG_ERROR("Buspirate did not answer correctly! "
 				"Do you have correct firmware?");
 			exit(-1);
 		}
@@ -794,7 +794,7 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 		exit(-1);
 	}
 	if ((tmp[0] != CMD_UART_SPEED) || (tmp[1] != speed)) {
-		LOG_ERROR("Buspirate didn't reply as expected");
+		LOG_ERROR("Buspirate did not reply as expected");
 		exit(-1);
 	}
 	LOG_INFO("Buspirate switched to %s mode",
