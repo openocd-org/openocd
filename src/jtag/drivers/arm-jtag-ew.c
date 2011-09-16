@@ -847,6 +847,9 @@ static void armjtagew_debug_buffer(uint8_t *buffer, int length)
 			strcat(line, s);
 		}
 		LOG_DEBUG("%s", line);
+
+		// Prevent GDB timeout (writing to log might take some time)
+		keep_alive();
 	}
 }
 #endif
