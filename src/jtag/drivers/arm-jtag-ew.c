@@ -523,6 +523,7 @@ static const struct command_registration armjtagew_command_handlers[] = {
 struct jtag_interface armjtagew_interface = {
 	.name = "arm-jtag-ew",
 	.commands = armjtagew_command_handlers,
+	.transports = jtag_only,
 
 	.execute_queue = armjtagew_execute_queue,
 	.speed = armjtagew_speed,
