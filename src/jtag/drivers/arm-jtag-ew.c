@@ -204,7 +204,7 @@ static int armjtagew_speed(int speed)
 	}
 	else
 	{
-	LOG_INFO("Requested speed %dkHz, emulator reported %dkHz.", speed, speed_real);
+		LOG_INFO("Requested speed %dkHz, emulator reported %dkHz.", speed, speed_real);
 	}
 
     return ERROR_OK;
