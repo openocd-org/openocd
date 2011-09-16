@@ -496,6 +496,11 @@ static int armjtagew_get_version_info(void)
 			usb_in_buffer[1], usb_in_buffer[0], \
 			isgraph(usb_in_buffer[2]) ? usb_in_buffer[2] : 'X', \
 			sn, auxinfo);
+
+	if (1 != usb_in_buffer[1] || 6 != usb_in_buffer[0])
+	{
+		LOG_WARNING("ARM-JTAG-EW firmware version %d.%d is untested with this version of OpenOCD. You might experience unexpected behavior.", usb_in_buffer[1], usb_in_buffer[0]);
+	}
 	return ERROR_OK;
 }
 
