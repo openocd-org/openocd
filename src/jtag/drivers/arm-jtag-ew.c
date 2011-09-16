@@ -186,7 +186,7 @@ static int armjtagew_speed(int speed)
     usb_out_buffer[0] = CMD_SET_TCK_FREQUENCY;
 	buf_set_u32(usb_out_buffer + 1, 0, 32, speed);
 
-    result = armjtagew_usb_message(armjtagew_handle, 4, 4);
+    result = armjtagew_usb_message(armjtagew_handle, 5, 4);
 
     if (result < 0)
     {
