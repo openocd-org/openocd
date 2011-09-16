@@ -184,7 +184,7 @@ static int armjtagew_speed(int speed)
 
 
     usb_out_buffer[0] = CMD_SET_TCK_FREQUENCY;
-	buf_set_u32(usb_out_buffer + 1, 0, 32, speed);
+	buf_set_u32(usb_out_buffer + 1, 0, 32, speed*1000);
 
     result = armjtagew_usb_message(armjtagew_handle, 5, 4);
 
@@ -196,7 +196,7 @@ static int armjtagew_speed(int speed)
 
 	usb_out_buffer[0] = CMD_GET_TCK_FREQUENCY;
     result = armjtagew_usb_message(armjtagew_handle, 1, 4);
-	speed_real = (int)buf_get_u32(usb_in_buffer,0,32);
+	speed_real = (int)buf_get_u32(usb_in_buffer,0,32) / 1000;
 	if (result < 0)
 	{
         LOG_ERROR("ARM-JTAG-EW getting speed failed (%d)", result);
