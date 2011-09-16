@@ -256,6 +256,9 @@ static int armjtagew_init(void)
 		LOG_INFO("ARM-JTAG-EW initial read failed, don't worry");
 	}
 
+	// Initial JTAG speed (for reset and initialization): 32 kHz
+	armjtagew_speed(32);
+
 	LOG_INFO("ARM-JTAG-EW JTAG Interface ready");
 
 	armjtagew_reset(0, 0);
