@@ -218,6 +218,14 @@ static int armjtagew_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
+static int armjtagew_speed_div(int speed, int* khz)
+{
+	*khz = speed;
+
+	return ERROR_OK;
+}
+
+
 static int armjtagew_init(void)
 {
 	int check_cnt;
@@ -518,6 +526,7 @@ struct jtag_interface armjtagew_interface = {
 
 	.execute_queue = armjtagew_execute_queue,
 	.speed = armjtagew_speed,
+	.speed_div = armjtagew_speed_div,
 	.khz = armjtagew_khz,
 	.init = armjtagew_init,
 	.quit = armjtagew_quit,
