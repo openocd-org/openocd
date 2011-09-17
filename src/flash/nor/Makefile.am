@@ -32,7 +32,8 @@ NOR_DRIVERS = \
 	tms470.c \
 	virtual.c \
 	fm3.c \
-	dsp5680xx_flash.c
+	dsp5680xx_flash.c \
+	kinetis.c
 
 noinst_HEADERS = \
 	core.h \
