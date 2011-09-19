@@ -317,7 +317,7 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 		/* examine results */
 		for (i = words_done; i < num_words; i++)
 		{
-			if (!(field0[0] & 1))
+			if (!(field0[i] & 1))
 			{
 				/* move backwards if necessary */
 				int j;
