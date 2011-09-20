@@ -1122,9 +1122,7 @@ int dap_syssec(struct adiv5_dap *dap)
 
 		while (tap != NULL)
 		{
-			if (!tap->hasidcode)
-				continue;
-			if ( dap_syssec_filter_data[i].idcode == tap->idcode )
+			if ( tap->hasidcode && (dap_syssec_filter_data[i].idcode == tap->idcode) )
 			{
 				LOG_DEBUG("DAP: mdmap_init for idcode: %08x",tap->idcode);
 				dap_syssec_filter_data[i].dap_init(dap);
