@@ -25,6 +25,7 @@
 
 #include "target.h"
 #include "target_type.h"
+#include "algorithm.h"
 #include "register.h"
 #include "dsp563xx.h"
 #include "dsp563xx_once.h"
@@ -548,9 +549,14 @@ static int dsp563xx_reg_pc_read(struct target *target)
 	{
 		if ( (once_regs[ONCE_REG_IDX_OPABF11].reg & 1) == 0 )
 		{
-			LOG_DEBUG("%s conditional branch not supported yet", __FUNCTION__);
+			LOG_DEBUG("%s conditional branch not supported yet (0x%x 0x%x 0x%x)", __FUNCTION__,
+				(once_regs[ONCE_REG_IDX_OPABF11].reg >> 1),
+				once_regs[ONCE_REG_IDX_OPABDR].reg,
+				once_regs[ONCE_REG_IDX_OPABEX].reg);
 
-			/* TODO: use disassembly to set correct pc offset */
+			/* TODO: use disassembly to set correct pc offset
+			 * read 2 words from OPABF11 and disasm the instruction
+			 */
 			dsp563xx->core_regs[DSP563XX_REG_IDX_PC] = (once_regs[ONCE_REG_IDX_OPABF11].reg >> 1) & 0x00FFFFFF;
 		}
 		else
@@ -995,7 +1001,8 @@ static int dsp563xx_jtag_debug_request(struct target *target)
 static int dsp563xx_poll(struct target *target)
 {
 	int err;
-	uint32_t once_status;
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
+	uint32_t once_status=0;
 	int state;
 
 	state = dsp563xx_once_target_status(target->tap);
@@ -1019,9 +1026,18 @@ static int dsp563xx_poll(struct target *target)
 			if ((err = dsp563xx_debug_init(target)) != ERROR_OK)
 				return err;
 
-			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			if ( once_status & (DSP563XX_ONCE_OSCR_MBO|DSP563XX_ONCE_OSCR_SWO) )
+			{
+				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
+			}
+			else
+			{
+				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			}
 
 			LOG_DEBUG("target->state: %s (%x)", target_state_name(target),once_status);
+
+			LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC] );
 		}
 	}
 
@@ -1097,6 +1113,8 @@ static int dsp563xx_resume(struct target *target, int current, uint32_t address,
 	}
 
 	target->state = TARGET_RUNNING;
+
+	target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
 
 	return ERROR_OK;
 }
@@ -1205,6 +1223,13 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 static int dsp563xx_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
 {
 	int err;
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if ( (err=dsp563xx_step_ex(target, current, address, handle_breakpoints, 0)) != ERROR_OK )
 	{
@@ -1213,6 +1238,8 @@ static int dsp563xx_step(struct target *target, int current, uint32_t address, i
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+
+	LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC] );
 
 	return err;
 }
@@ -1274,8 +1301,10 @@ static int dsp563xx_deassert_reset(struct target *target)
 				return err;
 		}
 	}
-
-//      target->state = TARGET_RUNNING;
+	else
+	{
+		target->state = TARGET_RUNNING;
+	}
 
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
@@ -1284,6 +1313,97 @@ static int dsp563xx_deassert_reset(struct target *target)
 static int dsp563xx_soft_reset_halt(struct target *target)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
+	return ERROR_OK;
+}
+
+static int dsp563xx_run_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t entry_point, uint32_t exit_point,
+		int timeout_ms, void *arch_info)
+{
+	int i;
+	int retvaltemp,retval = 0;
+	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	for (i = 0; i < num_mem_params; i++)
+	{
+		if ((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+		{
+			return retval;
+		}
+	}
+
+	for (i = 0; i < num_reg_params; i++)
+	{
+		struct reg *reg = register_get_by_name(dsp563xx->core_cache, reg_params[i].reg_name, 0);
+
+		if (!reg)
+		{
+			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			continue;
+		}
+
+		if (reg->size != reg_params[i].size)
+		{
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+			continue;
+		}
+
+		if ((retval = dsp563xx_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
+		{
+			return retval;
+		}
+	}
+
+	/* exec */
+	if ((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	if ((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	for (i = 0; i < num_mem_params; i++)
+	{
+		if (mem_params[i].direction != PARAM_OUT)
+			if ((retvaltemp = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+			{
+					retval = retvaltemp;
+			}
+	}
+
+	for (i = 0; i < num_reg_params; i++)
+	{
+		if (reg_params[i].direction != PARAM_OUT)
+		{
+
+			struct reg *reg = register_get_by_name(dsp563xx->core_cache, reg_params[i].reg_name, 0);
+			if (!reg)
+			{
+				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				continue;
+			}
+
+			if (reg->size != reg_params[i].size)
+			{
+				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+				continue;
+			}
+
+			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
+		}
+	}
+
 	return ERROR_OK;
 }
 
@@ -1416,6 +1536,21 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 	uint32_t i,i1;
 	uint8_t *buffer_y,*buffer_x;
 
+	/* if size equals zero we are called from target read memory
+	 * and have to handle the parameter here */
+	if ( (size == 0) && (count != 0) )
+	{
+		size = count % 4;
+
+		if ( size )
+		{
+			LOG_DEBUG("size is not aligned to 4 byte");
+		}
+
+		count = (count - size) / 4;
+		size  = 4;
+	}
+
 	/* we only support 4 byte aligned data */
 	if ( (size != 4) || (!count) )
 	{
@@ -1472,6 +1607,12 @@ static int dsp563xx_read_memory_default(struct target *target, uint32_t address,
 {
 
 	return dsp563xx_read_memory(target, dsp563xx_get_default_memory(), address, size, count, buffer);
+}
+
+static int dsp563xx_read_buffer_default(struct target *target, uint32_t address, uint32_t size, uint8_t * buffer)
+{
+
+	return dsp563xx_read_memory(target, dsp563xx_get_default_memory(), address, size, 0, buffer);
 }
 
 static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
@@ -1555,6 +1696,21 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	uint32_t i,i1;
 	uint8_t *buffer_y,*buffer_x;
 
+	/* if size equals zero we are called from target write memory
+	 * and have to handle the parameter here */
+	if ( (size == 0) && (count != 0) )
+	{
+		size = count % 4;
+
+		if ( size )
+		{
+			LOG_DEBUG("size is not aligned to 4 byte");
+		}
+
+		count = (count - size) / 4;
+		size  = 4;
+	}
+
 	/* we only support 4 byte aligned data */
 	if ( (size != 4) || (!count) )
 	{
@@ -1612,6 +1768,11 @@ static int dsp563xx_write_memory_default(struct target *target, uint32_t address
 	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, size, count, buffer);
 }
 
+static int dsp563xx_write_buffer_default(struct target *target, uint32_t address, uint32_t size, const uint8_t * buffer)
+{
+	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, size, 0, buffer);
+}
+
 static int dsp563xx_bulk_write_memory_default(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer)
 {
 	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, 4, count, buffer);
@@ -1667,7 +1828,7 @@ static void handle_md_output(struct command_context *cmd_ctx, struct target *tar
 	{
 		if (i % line_modulo == 0)
 		{
-			output_len += snprintf(output + output_len, sizeof(output) - output_len, "0x%8.8x: ", (unsigned) (address + (i * size)));
+			output_len += snprintf(output + output_len, sizeof(output) - output_len, "0x%8.8x: ", (unsigned) (address + i));
 		}
 
 		uint32_t value = 0;
@@ -1857,6 +2018,11 @@ struct target_type dsp563xx_target = {
 	.read_memory = dsp563xx_read_memory_default,
 	.write_memory = dsp563xx_write_memory_default,
 	.bulk_write_memory = dsp563xx_bulk_write_memory_default,
+
+	.read_buffer = dsp563xx_read_buffer_default,
+	.write_buffer = dsp563xx_write_buffer_default,
+
+	.run_algorithm = dsp563xx_run_algorithm,
 
 	.add_breakpoint = dsp563xx_add_breakpoint,
 	.remove_breakpoint = dsp563xx_remove_breakpoint,
