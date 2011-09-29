@@ -776,7 +776,7 @@ fi
 
 if test "$use_internal_jimtcl" = yes; then
   if test -f "$srcdir/jimtcl/configure.ac"; then
-    AX_CONFIG_SUBDIR_OPTION([jimtcl], [--with-jim-ext=nvp --disable-lineedit --disable-install-jim])
+    AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim])
   else
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
   fi

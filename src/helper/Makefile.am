@@ -20,7 +20,8 @@ libhelper_la_SOURCES = \
 	time_support.c \
 	replacements.c \
 	fileio.c \
-	util.c
+	util.c \
+	jim-nvp.c
 
 if IOUTIL
 libhelper_la_SOURCES += ioutil.c
@@ -46,7 +47,8 @@ noinst_HEADERS = \
 	replacements.h \
 	fileio.h \
 	system.h \
-	bin2char.c
+	bin2char.c \
+	jim-nvp.h
 
 EXTRA_DIST = startup.tcl
 

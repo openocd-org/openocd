@@ -2,6 +2,7 @@
 # common flags used in openocd build
 AM_CPPFLAGS = -I$(top_srcdir)/src \
 			  -I$(top_builddir)/src \
+			  -I$(top_srcdir)/src/helper \
 			  -DPKGDATADIR=\"$(pkgdatadir)\" \
 			  -DPKGLIBDIR=\"$(pkglibdir)\"
 
