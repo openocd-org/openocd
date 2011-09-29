@@ -43,6 +43,56 @@ enum
 #define V2POWPW  5
 #define V2POWUR  6
 #define V2POWUW  7
+/*   L210/L220 cache controller support */
+struct armv7a_l2x_cache {
+	uint32_t base;
+	uint32_t way;
+};
+
+struct armv7a_cachesize
+{
+	uint32_t level_num;
+	/*  cache dimensionning */
+	uint32_t linelen;
+	uint32_t associativity;
+	uint32_t nsets;
+	uint32_t cachesize;
+	/* info for set way operation on cache */
+	uint32_t index;
+	uint32_t index_shift;
+	uint32_t way;
+	uint32_t way_shift;
+};
+
+
+struct armv7a_cache_common
+{
+	int ctype;
+	struct armv7a_cachesize d_u_size;	/* data cache */
+	struct armv7a_cachesize i_size;     /* instruction cache */
+	int i_cache_enabled;
+	int d_u_cache_enabled;
+	/* l2 external unified cache if some */
+	void *l2_cache;
+	int  (*flush_all_data_cache)(struct target *target);
+	int  (*display_cache_info)(struct command_context *cmd_ctx,
+			struct armv7a_cache_common *armv7a_cache);
+};
+
+
+struct armv7a_mmu_common
+{
+	/*  following field mmu working way */
+	int32_t ttbr1_used; /*  -1 not initialized, 0 no ttbr1 1 ttbr1 used and  */
+	uint32_t ttbr0_mask;/*  masked to be used  */
+	uint32_t os_border;
+
+	int (*read_physical_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	struct armv7a_cache_common armv7a_cache;
+	uint32_t mmu_enabled;
+};
+
+
 
 struct armv7a_common
 {
@@ -57,9 +107,13 @@ struct armv7a_common
 	uint32_t debug_base;
 	uint8_t debug_ap;
 	uint8_t memory_ap;
+	/* mdir */
+	uint8_t multi_processor_system;
+	uint8_t cluster_id;
+	uint8_t cpu_id;
 
-	/* Cache and Memory Management Unit */
-	struct armv4_5_mmu_common armv4_5_mmu;
+	/* cache specific to V7 Memory Management Unit compatible with v4_5*/
+	struct armv7a_mmu_common armv7a_mmu;
 
 	int (*examine_debug_reason)(struct target *target);
 	int (*post_debug_entry)(struct target *target);
@@ -112,9 +166,16 @@ target_to_armv7a(struct target *target)
 #define CPUDBG_AUTHSTATUS	0xFB8
 
 int armv7a_arch_state(struct target *target);
+int armv7a_identify_cache(struct target *target);
 struct reg_cache *armv7a_build_reg_cache(struct target *target,
 		struct armv7a_common *armv7a_common);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
+int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
+		uint32_t *val,int meminfo);
+int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
+
+int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
+		struct armv7a_cache_common *armv7a_cache);
 
 extern const struct command_registration armv7a_command_handlers[];
 

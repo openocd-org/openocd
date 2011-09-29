@@ -109,7 +109,7 @@ static int dpm_mcr(struct target *target, int cpnum,
 /* Toggles between recorded core mode (USR, SVC, etc) and a temporary one.
  * Routines *must* restore the original mode before returning!!
  */
-static int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
+int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 {
 	int retval;
 	uint32_t cpsr;

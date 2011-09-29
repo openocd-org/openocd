@@ -133,6 +133,9 @@ int arm_dpm_setup(struct arm_dpm *dpm);
 int arm_dpm_initialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
+int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
+
+
 int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
 
 void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);

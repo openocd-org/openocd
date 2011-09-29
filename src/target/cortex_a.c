@@ -66,12 +66,6 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 static int cortex_a8_mmu(struct target *target, int *enabled);
 static int cortex_a8_virt2phys(struct target *target,
                 uint32_t virt, uint32_t *phys);
-static int cortex_a8_disable_mmu_caches(struct target *target, int mmu,
-                int d_u_cache, int i_cache);
-static int cortex_a8_enable_mmu_caches(struct target *target, int mmu,
-                int d_u_cache, int i_cache);
-static int cortex_a8_get_ttb(struct target *target, uint32_t *result);
-
 
 /*
  * FIXME do topology discovery using the ROM; don't
@@ -81,6 +75,99 @@ static int cortex_a8_get_ttb(struct target *target, uint32_t *result);
  */
 #define swjdp_memoryap 0
 #define swjdp_debugap 1
+
+/*  restore cp15_control_reg at resume */
+static int cortex_a8_restore_cp15_control_reg(struct target* target)
+{
+	int retval = ERROR_OK;
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+    struct armv7a_common *armv7a = target_to_armv7a(target);
+
+	if (cortex_a8->cp15_control_reg !=cortex_a8->cp15_control_reg_curr)
+	{
+		cortex_a8->cp15_control_reg_curr = cortex_a8->cp15_control_reg;
+		//LOG_INFO("cp15_control_reg: %8.8" PRIx32, cortex_a8->cp15_control_reg);
+		retval = armv7a->armv4_5_common.mcr(target, 15,
+				0, 0,   /* op1, op2 */
+				1, 0,   /* CRn, CRm */
+				cortex_a8->cp15_control_reg);
+	}
+	return ERROR_OK;
+}
+
+/*  check address before cortex_a8_apb read write access with mmu on
+ *  remove apb predictible data abort */
+static int cortex_a8_check_address(struct target *target, uint32_t address)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+	uint32_t os_border = armv7a->armv7a_mmu.os_border;
+	if ((address < os_border) &&
+			(armv7a->armv4_5_common.core_mode == ARM_MODE_SVC)){
+		LOG_ERROR("%x access in userspace and target in supervisor",address);
+		return ERROR_FAIL;
+	}
+	if ((address >= os_border) &&
+			( cortex_a8->curr_mode != ARM_MODE_SVC)){
+        dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
+        cortex_a8->curr_mode = ARM_MODE_SVC;
+		LOG_INFO("%x access in kernel space and target not in supervisor",
+				address);
+		return ERROR_OK;
+	}
+	if ((address < os_border) &&
+			(cortex_a8->curr_mode == ARM_MODE_SVC)){
+	 dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
+     cortex_a8->curr_mode = ARM_MODE_ANY;
+	}
+	return ERROR_OK;
+}
+/*  modify cp15_control_reg in order to enable or disable mmu for :
+ *  - virt2phys address conversion
+ *  - read or write memory in phys or virt address */
+static int cortex_a8_mmu_modify(struct target *target, int enable)
+{
+	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	int retval = ERROR_OK;
+	if (enable)
+	{
+		/*  if mmu enabled at target stop and mmu not enable */
+		if (!(cortex_a8->cp15_control_reg & 0x1U))
+		{
+			LOG_ERROR("trying to enable mmu on target stopped with mmu disable");
+			return ERROR_FAIL;
+		}
+		if (!(cortex_a8->cp15_control_reg_curr & 0x1U))
+		{
+			cortex_a8->cp15_control_reg_curr |= 0x1U;
+			retval = armv7a->armv4_5_common.mcr(target, 15,
+					0, 0,   /* op1, op2 */
+					1, 0,   /* CRn, CRm */
+					cortex_a8->cp15_control_reg_curr);
+		}
+	}
+	else
+	{
+		if (cortex_a8->cp15_control_reg_curr & 0x4U)
+		{
+		    /*  data cache is active */
+			cortex_a8->cp15_control_reg_curr &= ~0x4U;
+			/* flush data cache armv7 function to be called */
+			if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache)
+			armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache(target);
+		}
+		if ( (cortex_a8->cp15_control_reg_curr & 0x1U))
+		{
+			cortex_a8->cp15_control_reg_curr &= ~0x1U;
+			retval = armv7a->armv4_5_common.mcr(target, 15,
+					0, 0,   /* op1, op2 */
+					1, 0,   /* CRn, CRm */
+					cortex_a8->cp15_control_reg_curr);
+		}
+	}
+	return retval;
+}
 
 /*
  * Cortex-A8 Basic debug access, very low level assumes state is saved
@@ -929,7 +1016,11 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 	buf_set_u32(armv4_5->pc->value, 0, 32, resume_pc);
 	armv4_5->pc->dirty = 1;
 	armv4_5->pc->valid = 1;
-
+	/* restore dpm_mode at system halt */
+    dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
+    /* called it now before restoring context because it uses cpu
+	 * register r0 for restoring cp15 control register */
+	retval = cortex_a8_restore_cp15_control_reg(target);
 	retval = cortex_a8_restore_context(target, handle_breakpoints);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1147,6 +1238,7 @@ static int cortex_a8_debug_entry(struct target *target)
 
 		/* read Current PSR */
 		retval = cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
+		/*  store current cpsr */
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1220,32 +1312,21 @@ static int cortex_a8_post_debug_entry(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a8->cp15_control_reg);
+    cortex_a8->cp15_control_reg_curr = cortex_a8->cp15_control_reg;
 
-	if (armv7a->armv4_5_mmu.armv4_5_cache.ctype == -1)
+	if (armv7a->armv7a_mmu.armv7a_cache.ctype == -1)
 	{
-		uint32_t cache_type_reg;
-
-		/* MRC p15,0,<Rt>,c0,c0,1 ; Read CP15 Cache Type Register */
-		retval = armv7a->armv4_5_common.mrc(target, 15,
-				0, 1,	/* op1, op2 */
-				0, 0,	/* CRn, CRm */
-				&cache_type_reg);
-		if (retval != ERROR_OK)
-			return retval;
-		LOG_DEBUG("cp15 cache type: %8.8x", (unsigned) cache_type_reg);
-
-		/* FIXME the armv4_4 cache info DOES NOT APPLY to Cortex-A8 */
-		armv4_5_identify_cache(cache_type_reg,
-				&armv7a->armv4_5_mmu.armv4_5_cache);
+		armv7a_identify_cache(target);
 	}
 
-	armv7a->armv4_5_mmu.mmu_enabled =
+	armv7a->armv7a_mmu.mmu_enabled =
 			(cortex_a8->cp15_control_reg & 0x1U) ? 1 : 0;
-	armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
+	armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled =
 			(cortex_a8->cp15_control_reg & 0x4U) ? 1 : 0;
-	armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
+	armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled =
 			(cortex_a8->cp15_control_reg & 0x1000U) ? 1 : 0;
-
+    cortex_a8->curr_mode = armv7a->armv4_5_common.core_mode;
+    
 	return ERROR_OK;
 }
 
@@ -1990,18 +2071,9 @@ static int cortex_a8_read_phys_memory(struct target *target,
 		} else {
 
 			/* read memory through APB-AP */
-			int enabled = 0;
-
-			retval = cortex_a8_mmu(target, &enabled);
-			if (retval != ERROR_OK)
-				return retval;
-
-			if (enabled)
-			{
-				LOG_WARNING("Reading physical memory through \
-						APB with MMU enabled is not yet implemented");
-				return ERROR_TARGET_FAILURE;
-			}
+			/*  disable mmu */
+			retval = cortex_a8_mmu_modify(target, 0);
+            if (retval != ERROR_OK) return retval;
 			retval =  cortex_a8_read_apb_ab_memory(target, address, size, count, buffer);
 		}
 	}
@@ -2040,6 +2112,11 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 		}
 		retval = cortex_a8_read_phys_memory(target, address, size, count, buffer);
 	} else {
+		retval = cortex_a8_check_address(target, address);
+        if (retval != ERROR_OK) return retval;
+		/*  enable mmu */
+		retval = cortex_a8_mmu_modify(target, 1);
+	    if (retval != ERROR_OK) return retval;
 		retval = cortex_a8_read_apb_ab_memory(target, address, size, count, buffer);
 	}
 	return retval;
@@ -2081,19 +2158,10 @@ static int cortex_a8_write_phys_memory(struct target *target,
 		} else {
 
 			/* write memory through APB-AP */
-			int enabled = 0;
-
-			retval = cortex_a8_mmu(target, &enabled);
+			retval = cortex_a8_mmu_modify(target, 0);
 			if (retval != ERROR_OK)
 				return retval;
-
-			if (enabled)
-			{
-				LOG_WARNING("Writing physical memory through APB with MMU" \
-						"enabled is not yet implemented");
-				return ERROR_TARGET_FAILURE;
-			}
-			return cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
+			return  cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
 		}
 	}
 
@@ -2117,7 +2185,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 		 */
 
 		/* invalidate I-Cache */
-		if (armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
+		if (armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled)
 		{
 			/* ICIMVAU - Invalidate Cache single entry
 			 * with MVA to PoU
@@ -2135,7 +2203,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 		}
 
 		/* invalidate D-Cache */
-		if (armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
+		if (armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled)
 		{
 			/* DCIMVAC - Invalidate data Cache line
 			 * with MVA to PoC
@@ -2191,6 +2259,11 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 				count, buffer);
 	}
 	else {
+		retval = cortex_a8_check_address(target, address);
+		if (retval != ERROR_OK) return retval;
+		/*  enable mmu  */
+		retval = cortex_a8_mmu_modify(target, 1);
+		if (retval != ERROR_OK) return retval;
 		retval = cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
 	}
     return retval;
@@ -2375,7 +2448,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 		struct cortex_a8_common *cortex_a8, struct jtag_tap *tap)
 {
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	struct adiv5_dap *dap = &armv7a->dap;
 
 	armv7a->armv4_5_common.dap = dap;
@@ -2387,7 +2459,6 @@ static int cortex_a8_init_arch_info(struct target *target,
 	{
 	armv7a->armv4_5_common.dap = dap;
 	/* Setup struct cortex_a8_common */
-	armv4_5->arch_info = armv7a;
 
 	/* prepare JTAG information for the new target */
 	cortex_a8->jtag_info.tap = tap;
@@ -2406,31 +2477,20 @@ static int cortex_a8_init_arch_info(struct target *target,
 
 	cortex_a8->fast_reg_read = 0;
 
-	/* Set default value */
-	cortex_a8->current_address_mode = ARM_MODE_ANY;
-
 	/* register arch-specific functions */
 	armv7a->examine_debug_reason = NULL;
 
 	armv7a->post_debug_entry = cortex_a8_post_debug_entry;
 
 	armv7a->pre_restore_context = NULL;
-	armv7a->armv4_5_mmu.armv4_5_cache.ctype = -1;
-	armv7a->armv4_5_mmu.get_ttb = cortex_a8_get_ttb;
-	armv7a->armv4_5_mmu.read_memory = cortex_a8_read_phys_memory;
-	armv7a->armv4_5_mmu.write_memory = cortex_a8_write_phys_memory;
-	armv7a->armv4_5_mmu.disable_mmu_caches = cortex_a8_disable_mmu_caches;
-	armv7a->armv4_5_mmu.enable_mmu_caches = cortex_a8_enable_mmu_caches;
-	armv7a->armv4_5_mmu.has_tiny_pages = 1;
-	armv7a->armv4_5_mmu.mmu_enabled = 0;
 
+	armv7a->armv7a_mmu.read_physical_memory = cortex_a8_read_phys_memory;
 
+	
 //	arm7_9->handle_target_request = cortex_a8_handle_target_request;
 
 	/* REVISIT v7a setup should be in a v7a-specific routine */
-	arm_init_arch_info(target, armv4_5);
-	armv7a->common_magic = ARMV7_COMMON_MAGIC;
-
+	armv7a_init_arch_info(target, armv7a);
 	target_register_timer_callback(cortex_a8_handle_target_request, 1, 1, target);
 
 	return ERROR_OK;
@@ -2443,133 +2503,6 @@ static int cortex_a8_target_create(struct target *target, Jim_Interp *interp)
 	return cortex_a8_init_arch_info(target, cortex_a8, target->tap);
 }
 
-static int cortex_a8_get_ttb(struct target *target, uint32_t *result)
-{
-	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
-    struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-    uint32_t ttb = 0, retval = ERROR_OK;
-
-    /* current_address_mode is set inside cortex_a8_virt2phys()
-       where we can determine if address belongs to user or kernel */
-    if(cortex_a8->current_address_mode == ARM_MODE_SVC)
-    {
-        /* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
-        retval = armv7a->armv4_5_common.mrc(target, 15,
-                    0, 1,   /* op1, op2 */
-                    2, 0,   /* CRn, CRm */
-                    &ttb);
-		if (retval != ERROR_OK)
-			return retval;
-    }
-    else if(cortex_a8->current_address_mode == ARM_MODE_USR)
-    {
-        /* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
-        retval = armv7a->armv4_5_common.mrc(target, 15,
-                    0, 0,   /* op1, op2 */
-                    2, 0,   /* CRn, CRm */
-                    &ttb);
-		if (retval != ERROR_OK)
-			return retval;
-    }
-    /* we don't know whose address is: user or kernel
-       we assume that if we are in kernel mode then
-       address belongs to kernel else if in user mode
-       - to user */
-    else if(armv7a->armv4_5_common.core_mode == ARM_MODE_SVC)
-    {
-        /* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
-        retval = armv7a->armv4_5_common.mrc(target, 15,
-                    0, 1,   /* op1, op2 */
-                    2, 0,   /* CRn, CRm */
-                    &ttb);
-		if (retval != ERROR_OK)
-			return retval;
-    }
-    else if(armv7a->armv4_5_common.core_mode == ARM_MODE_USR)
-    {
-        /* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
-        retval = armv7a->armv4_5_common.mrc(target, 15,
-                    0, 0,   /* op1, op2 */
-                    2, 0,   /* CRn, CRm */
-                    &ttb);
-		if (retval != ERROR_OK)
-			return retval;
-    }
-    /* finally we don't know whose ttb to use: user or kernel */
-    else
-        LOG_ERROR("Don't know how to get ttb for current mode!!!");
-
-    ttb &= 0xffffc000;
-
-    *result = ttb;
-
-    return ERROR_OK;
-}
-
-static int cortex_a8_disable_mmu_caches(struct target *target, int mmu,
-                int d_u_cache, int i_cache)
-{
-    struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
-    struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-    uint32_t cp15_control;
-    int retval;
-
-    /* read cp15 control register */
-    retval = armv7a->armv4_5_common.mrc(target, 15,
-                    0, 0,   /* op1, op2 */
-                    1, 0,   /* CRn, CRm */
-                    &cp15_control);
-    if (retval != ERROR_OK)
-    	return retval;
-
-
-    if (mmu)
-            cp15_control &= ~0x1U;
-
-    if (d_u_cache)
-            cp15_control &= ~0x4U;
-
-    if (i_cache)
-            cp15_control &= ~0x1000U;
-
-    retval = armv7a->armv4_5_common.mcr(target, 15,
-                    0, 0,   /* op1, op2 */
-                    1, 0,   /* CRn, CRm */
-                    cp15_control);
-	return retval;
-}
-
-static int cortex_a8_enable_mmu_caches(struct target *target, int mmu,
-                int d_u_cache, int i_cache)
-{
-    struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
-    struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-    uint32_t cp15_control;
-    int retval;
-
-    /* read cp15 control register */
-    retval = armv7a->armv4_5_common.mrc(target, 15,
-                    0, 0,   /* op1, op2 */
-                    1, 0,   /* CRn, CRm */
-                    &cp15_control);
-    if (retval != ERROR_OK)
-    	return retval;
-
-    if (mmu)
-            cp15_control |= 0x1U;
-
-    if (d_u_cache)
-            cp15_control |= 0x4U;
-
-    if (i_cache)
-            cp15_control |= 0x1000U;
-
-    retval = armv7a->armv4_5_common.mcr(target, 15,
-                    0, 0,   /* op1, op2 */
-                    1, 0,   /* CRn, CRm */
-                    cp15_control);
-   	return retval;
-}
 
 
 static int cortex_a8_mmu(struct target *target, int *enabled)
@@ -2579,36 +2512,35 @@ static int cortex_a8_mmu(struct target *target, int *enabled)
 		return ERROR_TARGET_INVALID;
 	}
 
-	*enabled = target_to_cortex_a8(target)->armv7a_common.armv4_5_mmu.mmu_enabled;
+	*enabled = target_to_cortex_a8(target)->armv7a_common.armv7a_mmu.mmu_enabled;
 	return ERROR_OK;
 }
 
 static int cortex_a8_virt2phys(struct target *target,
 		uint32_t virt, uint32_t *phys)
 {
-	uint32_t cb;
-	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
-	// struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
+	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-
-    /* We assume that virtual address is separated
-       between user and kernel in Linux style:
-       0x00000000-0xbfffffff - User space
-       0xc0000000-0xffffffff - Kernel space */
-    if( virt < 0xc0000000 ) /* Linux user space */
-        cortex_a8->current_address_mode = ARM_MODE_USR;
-    else /* Linux kernel */
-        cortex_a8->current_address_mode = ARM_MODE_SVC;
-	uint32_t ret;
-	int retval = armv4_5_mmu_translate_va(target,
-			&armv7a->armv4_5_mmu, virt, &cb, &ret);
-	if (retval != ERROR_OK)
-		return retval;
-    /* Reset the flag. We don't want someone else to use it by error */
-    cortex_a8->current_address_mode = ARM_MODE_ANY;
-
-	*phys = ret;
-	return ERROR_OK;
+	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	uint8_t apsel = swjdp->apsel;
+	if (apsel == swjdp_memoryap)
+	{
+		uint32_t ret;
+		retval = armv7a_mmu_translate_va(target,
+				 virt, &ret);
+		if (retval != ERROR_OK)
+			goto done;
+		*phys = ret;
+	} 
+	else
+	{ /*  use this method if swjdp_memoryap not selected */
+		/*  mmu must be enable in order to get a correct translation */
+		retval = cortex_a8_mmu_modify(target, 1);
+		if (retval != ERROR_OK) goto done;
+		retval = armv7a_mmu_translate_va_pa(target, virt,  phys, 1);
+	}
+done:
+	return retval;
 }
 
 COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
@@ -2616,8 +2548,8 @@ COMMAND_HANDLER(cortex_a8_handle_cache_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
-	return armv4_5_handle_cache_info_command(CMD_CTX,
-			&armv7a->armv4_5_mmu.armv4_5_cache);
+	return armv7a_handle_cache_info_command(CMD_CTX,
+			&armv7a->armv7a_mmu.armv7a_cache);
 }
 
 
@@ -2789,5 +2721,4 @@ struct target_type cortexa8_target = {
 	.write_phys_memory = cortex_a8_write_phys_memory,
 	.mmu = cortex_a8_mmu,
 	.virt2phys = cortex_a8_virt2phys,
-
 };
