@@ -228,6 +228,9 @@ int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enu
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
+		if (type == BKPT_SOFT)
+			return(breakpoint_add_internal(head->target, address,length, type));
+
 		while(head != (struct target_list*)NULL)
 		{
 			curr = head->target;
@@ -312,7 +315,7 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 	free(breakpoint);
 }
 
-void breakpoint_remove_internal(struct target *target, uint32_t address)
+int breakpoint_remove_internal(struct target *target, uint32_t address)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
@@ -330,14 +333,18 @@ void breakpoint_remove_internal(struct target *target, uint32_t address)
 	if (breakpoint)
 	{
 		breakpoint_free(target, breakpoint);
+		return 1;
 	}
 	else
 	{
-		LOG_ERROR("no breakpoint at address 0x%8.8" PRIx32 " found", address);
+		if (!target->smp)
+			LOG_ERROR("no breakpoint at address 0x%8.8" PRIx32 " found", address);
+		return 0;
 	}
 }
 void breakpoint_remove(struct target *target, uint32_t address)
 {
+	int found = 0;
 	if (target->smp)
 	{
 		struct target_list *head;
@@ -346,9 +353,11 @@ void breakpoint_remove(struct target *target, uint32_t address)
 		while(head != (struct target_list*)NULL)
 		{
 			curr = head->target;
-			breakpoint_remove_internal(curr, address);
+			found += breakpoint_remove_internal(curr, address);
 			head = head->next;
 		}
+		if (found == 0)
+			LOG_ERROR("no breakpoint at address 0x%8.8" PRIx32 " found", address);
 	}
 	else  breakpoint_remove_internal(target, address);
 }

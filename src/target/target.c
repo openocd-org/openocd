@@ -3098,6 +3098,13 @@ COMMAND_HANDLER(handle_bp_command)
 	{
 		case 0:
 			return handle_bp_command_list(CMD_CTX);
+
+		case 2:
+			asid = 0;
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
+			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+
 		case 3:
 
 			if(strcmp(CMD_ARGV[2], "hw") == 0)
