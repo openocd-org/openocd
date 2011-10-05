@@ -548,10 +548,12 @@ static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t
   err_check_propagate(retval);
   retval =  dsp5680xx_irscan(target, & instr, & ir_out,DSP5680XX_JTAG_CORE_TAP_IRLEN);
   err_check_propagate(retval);
-	if ((ir_out&JTAG_STATUS_MASK) == JTAG_STATUS_DEBUG)
-		target->state = TARGET_HALTED;
-	else
-	    retval = ERROR_FAIL;
+if ((ir_out&JTAG_STATUS_MASK) == JTAG_STATUS_DEBUG)
+	target->state = TARGET_HALTED;
+else{
+	retval = ERROR_FAIL;
+	err_check_propagate(retval);
+}
   // Verify that debug mode is enabled
   uint16_t data_read_from_dr;
 	retval = eonce_read_status_reg(target, &data_read_from_dr);
