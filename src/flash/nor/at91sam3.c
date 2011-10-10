@@ -73,6 +73,9 @@
 // at91sam3s series (has always one flash bank)
 #define FLASH_BANK_BASE_S   0x00400000
 
+// at91sam3n series (has always one flash bank)
+#define FLASH_BANK_BASE_N   0x00400000
+
 #define 	AT91C_EFC_FCMD_GETD                 (0x0) // (EFC) Get Flash Descriptor
 #define 	AT91C_EFC_FCMD_WP                   (0x1) // (EFC) Write Page
 #define 	AT91C_EFC_FCMD_WPL                  (0x2) // (EFC) Write Page and Lock
@@ -832,6 +835,440 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		  },
 		},
 	},
+
+	// Start at91sam3n* series
+	{
+		.chipid_cidr    = 0x29540960,
+		.name           = "at91sam3n4c",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 24 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 256 * 1024,
+			.nsectors   = 16,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29440960,
+		.name           = "at91sam3n4b",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 24 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 256 * 1024,
+			.nsectors   = 16,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29340960,
+		.name           = "at91sam3n4a",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 24 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 256 * 1024,
+			.nsectors   = 16,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29590760,
+		.name           = "at91sam3n2c",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 16 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 128 * 1024,
+			.nsectors   = 8,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29490760,
+		.name           = "at91sam3n2b",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 16 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 128 * 1024,
+			.nsectors   = 8,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29390760,
+		.name           = "at91sam3n2a",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 16 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 128 * 1024,
+			.nsectors   = 8,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29580560,
+		.name           = "at91sam3n1c",
+		.total_flash_size     = 64 * 1024,
+		.total_sram_size      = 8 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 64 * 1024,
+			.nsectors   = 4,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29480560,
+		.name           = "at91sam3n1b",
+		.total_flash_size     = 64 * 1024,
+		.total_sram_size      = 8 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 64 * 1024,
+			.nsectors   = 4,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
+	{
+		.chipid_cidr    = 0x29380560,
+		.name           = "at91sam3n1a",
+		.total_flash_size     = 64 * 1024,
+		.total_sram_size      = 8 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 1,
+
+		// System boots at address 0x0
+		// gpnvm[1] = selects boot code
+		//     if gpnvm[1] == 0
+		//         boot is via "SAMBA" (rom)
+		//     else
+		//         boot is via FLASH
+		//         Selection is via gpnvm[2]
+		//     endif
+		//
+		// NOTE: banks 0 & 1 switch places
+		//     if gpnvm[2] == 0
+		//         Bank0 is the boot rom
+		//      else
+		//         Bank1 is the boot rom
+		//      endif
+//		.bank[0] = {
+		{
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_N,
+			.controller_address = 0x400e0A00,
+			.present = 1,
+			.size_bytes = 64 * 1024,
+			.nsectors   = 4,
+			.sector_size = 16384,
+			.page_size   = 256,
+		  },
+
+//		.bank[1] = {
+		  {
+		  	.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+		  },
+		},
+	},
+
 	// terminate
 	{
 		.chipid_cidr	= 0,
