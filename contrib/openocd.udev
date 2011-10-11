@@ -71,4 +71,3 @@ ATTRS{idVendor}=="0640", ATTRS{idProduct}=="0028", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="1457", ATTRS{idProduct}=="5118", MODE="644", GROUP="plugdev"
 
 LABEL="openocd_rules_end"
-
