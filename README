@@ -23,10 +23,10 @@ In addition to in-tree documentation, the latest documentation may be
 viewed on-line at the following URLs:
 
  OpenOCD User's Guide:
-    http://openocd.berlios.de/doc/html/index.html
+    http://openocd.sourceforge.net/doc/html/index.html
 
  OpenOCD Developer's Manual:
-    http://openocd.berlios.de/doc/doxygen/index.html
+    http://openocd.sourceforge.net/doc/doxygen/index.html
 
 These reflect the latest development versions, so the following section
 introduces how to build the complete documentation from the package.
@@ -35,7 +35,7 @@ introduces how to build the complete documentation from the package.
 For more information, refer to these documents or contact the developers
 by subscribing to the OpenOCD developer mailing list:
 
-	openocd-development@lists.berlios.de
+	openocd-devel@lists.sourceforge.net
 
 Building the OpenOCD Documentation
 ----------------------------------

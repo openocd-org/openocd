@@ -1,6 +1,6 @@
 AC_PREREQ(2.60)
 AC_INIT([openocd], [0.6.0-dev],
-  [OpenOCD Mailing List <openocd-development@lists.berlios.de>])
+  [OpenOCD Mailing List <openocd-devel@lists.sourceforge.net>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 
 m4_include(config_subdir.m4)dnl

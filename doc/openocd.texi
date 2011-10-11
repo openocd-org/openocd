@@ -168,7 +168,7 @@ STM32x). Preliminary support for various NAND flash controllers
 
 The OpenOCD web site provides the latest public news from the community:
 
-@uref{http://openocd.berlios.de/web/}
+@uref{http://openocd.sourceforge.net/web/}
 
 @section Latest User's Guide:
 
@@ -176,11 +176,11 @@ The user's guide you are now reading may not be the latest one
 available.  A version for more recent code may be available.
 Its HTML form is published irregularly at:
 
-@uref{http://openocd.berlios.de/doc/html/index.html}
+@uref{http://openocd.sourceforge.net/doc/html/index.html}
 
 PDF form is likewise published at:
 
-@uref{http://openocd.berlios.de/doc/pdf/openocd.pdf}
+@uref{http://openocd.sourceforge.net/doc/pdf/openocd.pdf}
 
 @section OpenOCD User's Forum
 
@@ -241,7 +241,7 @@ providing a Doxygen reference manual.  This document contains more
 technical information about the software internals, development
 processes, and similar documentation:
 
-@uref{http://openocd.berlios.de/doc/doxygen/index.html}
+@uref{http://openocd.sourceforge.net/doc/doxygen/index.html}
 
 This document is a work-in-progress, but contributions would be welcome
 to fill in the gaps.  All of the source files are provided in-tree,
@@ -252,7 +252,7 @@ listed in the Doxyfile configuration in the top of the source tree.
 The OpenOCD Developer Mailing List provides the primary means of
 communication between developers:
 
-@uref{https://lists.berlios.de/mailman/listinfo/openocd-development}
+@uref{https://lists.sourceforge.net/mailman/listinfo/openocd-devel}
 
 Discuss and submit patches to this list.
 The @file{PATCHES.txt} file contains basic information about how
@@ -632,7 +632,7 @@ If all goes well you'll see output something like
 @example
 Open On-Chip Debugger 0.4.0 (2010-01-14-15:06)
 For bug reports, read
-        http://openocd.berlios.de/doc/doxygen/bugs.html
+        http://openocd.sourceforge.net/doc/doxygen/bugs.html
 Info : JTAG tap: lm3s.cpu tap/device found: 0x3ba00477
        (mfg: 0x23b, part: 0xba00, ver: 0x3)
 @end example
