@@ -2,7 +2,7 @@
 /** @page patchguide Patch Guidelines
 
 Please mail patches to: @par
-	openocd-development@lists.berlios.de
+	openocd-devel@lists.sourceforge.net
 
 Note that you can't send patches to that list unless
 you're a member, despite what the list info page says.

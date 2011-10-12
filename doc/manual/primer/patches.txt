@@ -139,7 +139,7 @@ these maintainers.
 
 Patches must be sent to the OpenOCD developer mailing list:
 @par
-	openocd-development@lists.berlios.de
+	openocd-devel@lists.sourceforge.net
 
 They will be reviewed and committed if the changes are found to be
 acceptable.  If there are problems, you will receive feedback via the

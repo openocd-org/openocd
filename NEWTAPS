@@ -4,7 +4,7 @@ Reporting Unknown JTAG TAP IDS
 If OpenOCD reports an UNKNOWN or Unexpected Tap ID please report it to
 the development mailing list - However - keep reading.
 
-openocd-development@lists.berlios.de.
+openocd-devel@lists.sourceforge.net.
 
 ========================================
 

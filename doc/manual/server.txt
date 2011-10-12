@@ -309,3 +309,8 @@ This section needs to be expanded.
 
  */
 
+/** @page serverhttp OpenOCD http Server API
+
+This section needs to be expanded.
+
+ */

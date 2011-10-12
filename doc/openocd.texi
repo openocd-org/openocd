@@ -168,7 +168,7 @@ STM32x). Preliminary support for various NAND flash controllers
 
 The OpenOCD web site provides the latest public news from the community:
 
-@uref{http://openocd.sourceforge.net/web/}
+@uref{http://openocd.sourceforge.net/}
 
 @section Latest User's Guide:
 

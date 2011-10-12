@@ -26,7 +26,7 @@ viewed on-line at the following URLs:
     http://openocd.sourceforge.net/doc/html/index.html
 
  OpenOCD Developer's Manual:
-    http://openocd.sourceforge.net/doc/doxygen/index.html
+    http://openocd.sourceforge.net/doc/doxygen/html/index.html
 
 These reflect the latest development versions, so the following section
 introduces how to build the complete documentation from the package.
