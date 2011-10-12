@@ -241,7 +241,7 @@ providing a Doxygen reference manual.  This document contains more
 technical information about the software internals, development
 processes, and similar documentation:
 
-@uref{http://openocd.sourceforge.net/doc/doxygen/index.html}
+@uref{http://openocd.sourceforge.net/doc/doxygen/html/index.html}
 
 This document is a work-in-progress, but contributions would be welcome
 to fill in the gaps.  All of the source files are provided in-tree,
