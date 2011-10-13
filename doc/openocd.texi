@@ -372,6 +372,8 @@ Stellaris eval boards, they can be used to debug other target boards.
 @* Axiom AXM-0432 Link @url{http://www.axman.com}
 @item @b{cortino}
 @* Link @url{http://www.hitex.com/index.php?id=cortino}
+@item @b{dlp-usb1232h}
+@* Link @url{http://www.dlpdesign.com/usb/usb1232h.shtml}
 @end itemize
 
 @section USB-JTAG / Altera USB-Blaster compatibles
