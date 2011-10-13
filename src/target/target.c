@@ -3050,42 +3050,41 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 		uint32_t addr, uint32_t asid, uint32_t length, int hw)
 {
 	struct target *target = get_current_target(cmd_ctx);
-	
-		if (asid == 0)
-		{	int retval = breakpoint_add(target, addr, length, hw);
-			if (ERROR_OK == retval)
-				command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
-			else
-			{
-				LOG_ERROR("Failure setting breakpoint, the same address(IVA) is already used");
-				return retval;
-			}
-		}
-		else if (addr == 0)
-		{
-			int retval = context_breakpoint_add(target, asid, length, hw);
-			if (ERROR_OK == retval)
-				command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
-			else
-			{
-				LOG_ERROR("Failure setting breakpoint, the same address(CONTEXTID) is already used");
-				return retval;
-			}
-		}
-		else
-		{	
-			int retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
-			if(ERROR_OK == retval)
-			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
-			else
-			{
-				LOG_ERROR("Failure setting breakpoint, the same address is already used");
-				return retval;
-			}
-		}
-	return ERROR_OK;
 
-	
+	if (asid == 0)
+	{
+		int retval = breakpoint_add(target, addr, length, hw);
+		if (ERROR_OK == retval)
+			command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
+		else
+		{
+			LOG_ERROR("Failure setting breakpoint, the same address(IVA) is already used");
+			return retval;
+		}
+	}
+	else if (addr == 0)
+	{
+		int retval = context_breakpoint_add(target, asid, length, hw);
+		if (ERROR_OK == retval)
+			command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
+		else
+		{
+			LOG_ERROR("Failure setting breakpoint, the same address(CONTEXTID) is already used");
+			return retval;
+		}
+	}
+	else
+	{
+		int retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
+		if(ERROR_OK == retval)
+			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
+		else
+		{
+			LOG_ERROR("Failure setting breakpoint, the same address is already used");
+			return retval;
+		}
+	}
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_bp_command)
@@ -3106,7 +3105,6 @@ COMMAND_HANDLER(handle_bp_command)
 			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
 
 		case 3:
-
 			if(strcmp(CMD_ARGV[2], "hw") == 0)
 			{
 				hw = BKPT_HARD;
@@ -3132,12 +3130,11 @@ COMMAND_HANDLER(handle_bp_command)
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], asid);
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], length);
 			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+
 		default:
 			command_print(CMD_CTX, "usage: bp <address> [<asid>]<length> ['hw'|'hw_ctx']");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-
-	
 }
 
 COMMAND_HANDLER(handle_rbp_command)
@@ -5108,7 +5105,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	retval = 0;
 	LOG_DEBUG("%d",argc);
 	/* argv[1] = target to associate in smp
-	 * argv[2] = target to assoicate in smp 
+	 * argv[2] = target to assoicate in smp
 	 * argv[3] ...
 	 */
 
@@ -5145,7 +5142,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	target->head = head;
 	curr=curr->next;
 	}
-	return retval; 
+	return retval;
 }
 
 
