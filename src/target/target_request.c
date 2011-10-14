@@ -36,6 +36,15 @@
 #include "trace.h"
 
 
+static bool got_message = false;
+
+bool target_got_message(void)
+{
+	bool t = got_message;
+	got_message = false;
+	return t;
+}
+
 static int charmsg_mode = 0;
 
 static int target_asciimsg(struct target *target, uint32_t length)
@@ -117,6 +126,9 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
 int target_request(struct target *target, uint32_t request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
+
+	/* Record that we got a target message for back-off algorithm */
+	got_message = true;
 
 	if (charmsg_mode) {
 		target_charmsg(target, target_req_cmd);

@@ -47,5 +47,12 @@ int target_request(struct target *target, uint32_t request);
 int delete_debug_msg_receiver(struct command_context *cmd_ctx,
 		struct target *target);
 int target_request_register_commands(struct command_context *cmd_ctx);
+/**
+ * Read and clear the flag as to whether we got a message.
+ *
+ * This is used to implement the back-off algorithm on
+ * sleeping in idle mode.
+ */
+bool target_got_message(void);
 
 #endif /* TARGET_REQUEST_H */
