@@ -16,6 +16,32 @@ The procedure to create a patch is essentially:
 
 http://openocd.zylin.com
 
+- On subsequent sign ins, use the full URL prefaced with 'http://'
+  For example:
+
+	http://user_identifier.open_id_provider.com
+
+0.1. Add a username to your profile.
+
+After creating the Gerrit account and signing in, you will need to
+add a username to your profile. To do this, go to 'Settings', and
+add a username of your choice.
+
+Your username will be required in step 2 and substituted wherever
+the string 'USERNAME' is found.
+
+0.2. Add an SSH public key
+
+Following the directions for your specific platform:
+
+	for Windows: help.github.com/win-set-up-git/#_set_up_ssh_keys
+	for OSX:     help.github.com/mac-set-up-git/#_set_up_ssh_keys
+	for Linux:   help.github.com/linux-set-up-git/#_set_up_ssh_keys
+
+While these pages describe the setting up of git as well,
+you should scroll down the page till you get to the section:
+'Next: Set Up SSH Keys', and follow the steps described.
+
 1. Clone the git repository, rather than just
 download the source. 
 
