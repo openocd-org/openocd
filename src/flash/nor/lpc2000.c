@@ -31,7 +31,6 @@
 #include <target/arm_opcodes.h>
 #include <target/armv7m.h>
 
-
 /**
  * @file
  * flash programming support for NXP LPC17xx and LPC2xxx devices.
@@ -104,7 +103,6 @@ enum lpc2000_status_codes
 	LPC2000_INVALID_BAUD_RATE = 17,
 	LPC2000_INVALID_STOP_BIT = 18,
 	LPC2000_CRP_ENABLED = 19
-
 };
 
 static int lpc2000_build_sector_list(struct flash_bank *bank)
@@ -330,7 +328,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 				target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
 				break;
 			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
+				LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
 				exit(-1);
 		}
 
@@ -411,7 +409,6 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 			LOG_ERROR("BUG: unknown lpc2000->variant encountered");
 			exit(-1);
 	}
-
 
 	status_code     = target_buffer_get_u32(target, mem_params[1].value);
 	result_table[0] = target_buffer_get_u32(target, mem_params[1].value + 0x04);
