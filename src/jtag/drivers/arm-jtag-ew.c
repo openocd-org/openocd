@@ -27,7 +27,6 @@
 #include <usb.h>
 #include "usb_common.h"
 
-
 #define USB_VID						0x15ba
 #define USB_PID						0x001e
 
@@ -38,7 +37,6 @@
 
 #define ARMJTAGEW_IN_BUFFER_SIZE	(4*1024)
 #define ARMJTAGEW_OUT_BUFFER_SIZE	(4*1024)
-
 
 /* USB command request codes. */
 #define CMD_GET_VERSION				0x00
@@ -92,8 +90,6 @@ static void armjtagew_debug_buffer(uint8_t *buffer, int length);
 #endif
 
 static struct armjtagew* armjtagew_handle;
-
-
 
 /***************************************************************************/
 /* External interface implementation */
@@ -175,41 +171,39 @@ static int armjtagew_execute_queue(void)
 	return armjtagew_tap_execute();
 }
 
-
 /* Sets speed in kHz. */
 static int armjtagew_speed(int speed)
 {
-    int result;
-    int speed_real;
+	int result;
+	int speed_real;
 
 
-    usb_out_buffer[0] = CMD_SET_TCK_FREQUENCY;
+	usb_out_buffer[0] = CMD_SET_TCK_FREQUENCY;
 	buf_set_u32(usb_out_buffer + 1, 0, 32, speed*1000);
 
-    result = armjtagew_usb_message(armjtagew_handle, 5, 4);
+	result = armjtagew_usb_message(armjtagew_handle, 5, 4);
 
-    if (result < 0)
-    {
-        LOG_ERROR("ARM-JTAG-EW setting speed failed (%d)", result);
-        return ERROR_JTAG_DEVICE_ERROR;
-    }
-
-	usb_out_buffer[0] = CMD_GET_TCK_FREQUENCY;
-    result = armjtagew_usb_message(armjtagew_handle, 1, 4);
-	speed_real = (int)buf_get_u32(usb_in_buffer,0,32) / 1000;
 	if (result < 0)
 	{
-        LOG_ERROR("ARM-JTAG-EW getting speed failed (%d)", result);
-        return ERROR_JTAG_DEVICE_ERROR;
+		LOG_ERROR("ARM-JTAG-EW setting speed failed (%d)", result);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	usb_out_buffer[0] = CMD_GET_TCK_FREQUENCY;
+	result = armjtagew_usb_message(armjtagew_handle, 1, 4);
+	speed_real = (int)buf_get_u32(usb_in_buffer, 0, 32) / 1000;
+	if (result < 0)
+	{
+		LOG_ERROR("ARM-JTAG-EW getting speed failed (%d)", result);
+		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	else
 	{
 		LOG_INFO("Requested speed %dkHz, emulator reported %dkHz.", speed, speed_real);
 	}
 
-    return ERROR_OK;
+	return ERROR_OK;
 }
-
 
 static int armjtagew_khz(int khz, int *jtag_speed)
 {
@@ -224,7 +218,6 @@ static int armjtagew_speed_div(int speed, int* khz)
 
 	return ERROR_OK;
 }
-
 
 static int armjtagew_init(void)
 {
@@ -256,7 +249,7 @@ static int armjtagew_init(void)
 		LOG_INFO("ARM-JTAG-EW initial read failed, don't worry");
 	}
 
-	// Initial JTAG speed (for reset and initialization): 32 kHz
+	/* Initial JTAG speed (for reset and initialization): 32 kHz */
 	armjtagew_speed(32);
 
 	LOG_INFO("ARM-JTAG-EW JTAG Interface ready");
@@ -440,7 +433,6 @@ static void armjtagew_reset(int trst, int srst)
 	}
 }
 
-
 static int armjtagew_get_status(void)
 {
 	int result;
@@ -532,7 +524,6 @@ struct jtag_interface armjtagew_interface = {
 	.name = "arm-jtag-ew",
 	.commands = armjtagew_command_handlers,
 	.transports = jtag_only,
-
 	.execute_queue = armjtagew_execute_queue,
 	.speed = armjtagew_speed,
 	.speed_div = armjtagew_speed_div,
@@ -827,7 +818,6 @@ static int armjtagew_usb_read(struct armjtagew *armjtagew, int exp_in_length)
 	return result;
 }
 
-
 #ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
@@ -853,4 +843,3 @@ static void armjtagew_debug_buffer(uint8_t *buffer, int length)
 	}
 }
 #endif
-
