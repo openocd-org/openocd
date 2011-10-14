@@ -29,6 +29,7 @@
 
 #include "server.h"
 #include <target/target.h>
+#include <target/target_request.h>
 #include "openocd.h"
 #include "tcl_server.h"
 #include "telnet_server.h"
@@ -442,6 +443,13 @@ int server_loop(struct command_context *command_context)
 			/* There was something to do, next time we'll just poll */
 			poll_ok = true;
 		}
+
+		/* This is a simple back-off algorithm where we immediately
+		 * re-poll if we did something this time around.
+		 *
+		 * This greatly improves performance of DCC.
+		 */
+		poll_ok = poll_ok || target_got_message();
 
 		for (service = services; service; service = service->next)
 		{
