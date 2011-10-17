@@ -622,16 +622,19 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	{
 		if (bnk > 0)
 		{
-			/* create a new flash bank element */
-			struct flash_bank *fb = malloc(sizeof(struct flash_bank));
-			fb->target = target;
-			fb->driver = bank->driver;
-			fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
-			fb->next = NULL;
+			if (!t_bank->next) {
+				/* create a new flash bank element */
+				struct flash_bank *fb = malloc(sizeof(struct flash_bank));
+				fb->target = target;
+				fb->driver = bank->driver;
+				fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
+				fb->name = "sam7_probed";
+				fb->next = NULL;
 
-			/* link created bank in 'flash_banks' list and redirect t_bank */
-			t_bank->next = fb;
-			t_bank = fb;
+				/* link created bank in 'flash_banks' list */
+				t_bank->next = fb;
+			}
+			t_bank = t_bank->next;
 		}
 
 		t_bank->bank_number = bnk;
@@ -875,16 +878,19 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	{
 		if (bnk > 0)
 		{
-			/* create a new bank element */
-			struct flash_bank *fb = malloc(sizeof(struct flash_bank));
-			fb->target = target;
-			fb->driver = bank->driver;
-			fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
-			fb->next = NULL;
+			if (!t_bank->next) {
+				/* create a new bank element */
+				struct flash_bank *fb = malloc(sizeof(struct flash_bank));
+				fb->target = target;
+				fb->driver = bank->driver;
+				fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
+				fb->name = "sam7_probed";
+				fb->next = NULL;
 
-			/* link created bank in 'flash_banks' list and redirect t_bank */
-			t_bank->next = fb;
-			t_bank = fb;
+				/* link created bank in 'flash_banks' list */
+				t_bank->next = fb;
+			}
+			t_bank = t_bank->next;
 		}
 
 		t_bank->bank_number = bnk;
