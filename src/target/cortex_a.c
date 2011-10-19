@@ -92,7 +92,7 @@ static int cortex_a8_restore_cp15_control_reg(struct target* target)
 				1, 0,   /* CRn, CRm */
 				cortex_a8->cp15_control_reg);
 	}
-	return ERROR_OK;
+	return retval;
 }
 
 /*  check address before cortex_a8_apb read write access with mmu on

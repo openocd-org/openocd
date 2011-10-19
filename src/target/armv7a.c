@@ -129,7 +129,6 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	uint32_t first_lvl_descriptor = 0x0;
 	uint32_t second_lvl_descriptor = 0x0;
 	int retval;
-	uint32_t cb;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
 	uint32_t ttb = 0; /*  default ttb0 */
@@ -168,7 +167,6 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	if ((first_lvl_descriptor & 0x3) == 2)
 	{
 		/* section descriptor */
-		cb = (first_lvl_descriptor & 0xc) >> 2;
 		*val = (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
 		return ERROR_OK;
 	}
@@ -202,9 +200,6 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
-
-	/* cacheable/bufferable is always specified in bits 3-2 */
-	cb = (second_lvl_descriptor & 0xc) >> 2;
 
 	if ((second_lvl_descriptor & 0x3) == 1)
 	{
@@ -243,7 +238,7 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
 	uint32_t virt = va & ~0xfff;
-	uint32_t NOS,NS,SH,INNER,OUTER;
+	uint32_t NOS,NS,INNER,OUTER;
 	*val = 0xdeadbeef;
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
@@ -260,7 +255,6 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 	/* decode memory attribute */
 	NOS = (*val >> 10) & 1; /*  Not Outer shareable */
 	NS = (*val >> 9) & 1; /* Non secure */
-	SH = (*val >> 7 )& 1; /*  shareable */
 	INNER = (*val >> 4) &  0x7;
 	OUTER = (*val >> 2) & 0x3;
 
@@ -726,7 +720,6 @@ done:
 
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 {
-	struct armv7a_common *again;
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
     armv4_5->arch_info = armv7a;
 	target->arch_info = &armv7a->armv4_5_common;
@@ -738,7 +731,6 @@ int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 	armv7a->armv7a_mmu.armv7a_cache.ctype = -1;
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache = NULL;
     armv7a->armv7a_mmu.armv7a_cache.display_cache_info = NULL;
-    again =target_to_armv7a(target);
 	return ERROR_OK;
 }
 
