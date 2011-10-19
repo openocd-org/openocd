@@ -490,6 +490,7 @@ int gdb_thread_packet(struct connection *connection, char *packet, int packet_si
 		} else {
 			gdb_put_packet(connection, "E01", 3); // thread not found
 		}
+		return ERROR_OK;
 	}
 	else if ( packet[0] == 'H') // Set current thread ( 'c' for step and continue, 'g' for all other operations )
 	{
@@ -498,6 +499,7 @@ int gdb_thread_packet(struct connection *connection, char *packet, int packet_si
 			sscanf(packet, "Hg%16" SCNx64, &current_threadid);
 		}
 		gdb_put_packet(connection, "OK", 2);
+		return ERROR_OK;
 	}
 
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
