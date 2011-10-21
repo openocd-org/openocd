@@ -501,15 +501,20 @@ static int imx27_read_page(struct nand_device *nand, uint32_t page,
 		return retval;
 	}
 	/* Reset address_cycles before imx27_command ?? */
-	retval = ERROR_OK;
-	retval |= imx27_command(nand, NAND_CMD_READ0);
-
-	retval |= imx27_address(nand, 0); //col
-	retval |= imx27_address(nand, 0); //col
-	retval |= imx27_address(nand, page & 0xff); //page address
-	retval |= imx27_address(nand, (page >> 8) & 0xff); //page address
-	retval |= imx27_address(nand, (page >> 16) & 0xff); //page address
-	retval |= imx27_command(nand, NAND_CMD_READSTART);
+	retval = imx27_command(nand, NAND_CMD_READ0);
+	if (retval != ERROR_OK) return retval;
+	retval = imx27_address(nand, 0); //col
+	if (retval != ERROR_OK) return retval;
+	retval = imx27_address(nand, 0); //col
+	if (retval != ERROR_OK) return retval;
+	retval = imx27_address(nand, page & 0xff); //page address
+	if (retval != ERROR_OK) return retval;
+	retval = imx27_address(nand, (page >> 8) & 0xff); //page address
+	if (retval != ERROR_OK) return retval;
+	retval = imx27_address(nand, (page >> 16) & 0xff); //page address
+	if (retval != ERROR_OK) return retval;
+	retval = imx27_command(nand, NAND_CMD_READSTART);
+	if (retval != ERROR_OK) return retval;
 
 	target_write_u16(target, MX2_NF_BUFADDR, 0);
 	mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
