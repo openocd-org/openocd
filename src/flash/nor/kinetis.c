@@ -467,6 +467,7 @@ static int kinetis_probe(struct flash_bank *bank)
 	}
 
 	bank->num_sectors = bank->size / (2 * 1024);
+	assert(bank->num_sectors > 0);
 	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
 	for (i = 0; i < bank->num_sectors; i++) {
