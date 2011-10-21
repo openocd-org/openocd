@@ -3317,7 +3317,8 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 		}
 	}
 
-	int addressSpace = (max-min + 1);
+	int addressSpace = (max - min + 1);
+	assert(addressSpace >= 2);
 
 	static const uint32_t maxBuckets = 16 * 1024; /* maximum buckets. */
 	uint32_t length = addressSpace;
