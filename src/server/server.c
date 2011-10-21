@@ -71,8 +71,11 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		c->fd_out = c->fd;
 
 		/* This increases performance dramatically for e.g. GDB load which
-		 * does not have a sliding window protocol. */
-		retval = setsockopt(c->fd,	/* socket affected */
+		 * does not have a sliding window protocol. 
+		 *
+		 * Ignore errors from this fn as it probably just means less performance
+		 */
+		setsockopt(c->fd,	/* socket affected */
 				IPPROTO_TCP,		/* set option at TCP level */
 				TCP_NODELAY,		/* name of option */
 				(char *)&flag,		/* the cast is historical cruft */
