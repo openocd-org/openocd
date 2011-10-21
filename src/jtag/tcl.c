@@ -172,6 +172,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 	}
 
 	num_fields = (argc-2)/2;
+	assert(num_fields > 0);
 	fields = malloc(sizeof(struct scan_field) * num_fields);
 	for (i = 2; i < argc; i += 2)
 	{

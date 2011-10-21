@@ -473,6 +473,8 @@ static int image_elf_read_headers(struct image *image)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 
+	assert(image->num_sections > 0);
+
 	/**
 	 * some ELF linkers produce binaries with *all* the program header
 	 * p_paddr fields zero (there can be however one loadable segment
