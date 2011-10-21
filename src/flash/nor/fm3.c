@@ -643,7 +643,6 @@ static int fm3_probe(struct flash_bank *bank)
 
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
 	bank->base = 0x00000000;
-	num_pages = 2;				/* start with smallest Flash pages number */
 	bank->size = 32 * 1024;		/* bytes */
 
 	bank->sectors[0].offset = 0;
