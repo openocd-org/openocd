@@ -3175,40 +3175,65 @@ static int flossjtag_init(void)
 	return ftx232_dbus_write();
 }
 
+/*
+ * The reference schematic from TI for the XDS100v2 has a CPLD on which opens
+ * the door for a number of different configurations
+ *
+ * Known Implementations:
+ * http://processors.wiki.ti.com/images/9/93/TMS570LS20216_USB_STICK_Schematic.pdf
+ *
+ * http://processors.wiki.ti.com/index.php/XDS100 (rev2)
+ *	* CLPD logic: Rising edge to enable outputs (XDS100_PWR_RST)
+ *		* ACBUS3 to transition 0->1 (OE rising edge)
+ *	* CPLD logic: Put the EMU0/1 pins in Hi-Z:
+ *		* ADBUS5/GPIOL1 = EMU_EN = 1
+ *		* ADBUS6/GPIOL2 = EMU0 = 0
+ *		* ACBUS4/SPARE0 = EMU1 = 0
+ *	* CPLD logic: Disable loopback
+ *		* ACBUS6/SPARE2 = LOOPBACK = 0
+ */
+#define XDS100_nEMU_EN	(1<<5)
+#define XDS100_nEMU0	(1<<6)
+
+#define XDS100_PWR_RST	(1<<3)
+#define XDS100_nEMU1	(1<<4)
+#define XDS100_LOOPBACK	(1<<6)
 static int xds100v2_init(void)
 {
-	low_output    = 0x3A;
-	low_direction = 0x7B;
+	/* These are in the lower byte */
+	nTRST    = 0x10;
+	nTRSTnOE = 0x10;
 
-	/* initialize low byte for jtag */
+	/* These aren't actually used on 14 pin connectors */
+	/* These are in the upper byte */
+	nSRST    = 0x01;
+	nSRSTnOE = 0x01;
+
+	low_output    = 0x08 | nTRST | XDS100_nEMU_EN;
+	low_direction = 0x0b | nTRSTnOE | XDS100_nEMU_EN | XDS100_nEMU0;
+
 	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	nTRST    = 0x10;
-	nTRSTnOE = 0x0;     /* not output enable for nTRST */
-	nSRST    = 0x00;    /* TODO: SRST is not supported yet */
-	nSRSTnOE = 0x00;    /* no output enable for nSRST */
-
-	high_output    = 0x00;
-	high_direction = 0x59;
+	high_output = 0;
+	high_direction = nSRSTnOE | XDS100_LOOPBACK | XDS100_PWR_RST | XDS100_nEMU1;
 
 	/* initialize high byte for jtag */
 	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
-		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
+		LOG_ERROR("couldn't put CPLD in to reset with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	high_output    = 0x86;
-	high_direction = 0x59;
+	high_output |= XDS100_PWR_RST;
 
 	/* initialize high byte for jtag */
 	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
 	{
-		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
+		LOG_ERROR("couldn't bring CPLD out of reset with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
