@@ -714,20 +714,17 @@ static int stmsmi_protect_check(struct flash_bank *bank)
 static int get_stmsmi_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
-	int printed;
 
 	if (!(stmsmi_info->probed))
 	{
-		printed = snprintf(buf, buf_size,
+		snprintf(buf, buf_size,
 			"\nSMI flash bank not probed yet\n");
 		return ERROR_OK;
 	}
 
-	printed = snprintf(buf, buf_size, "\nSMI flash information:\n"
+	snprintf(buf, buf_size, "\nSMI flash information:\n"
 		"  Device \'%s\' (ID 0x%08x)\n",
 		stmsmi_info->dev->name, stmsmi_info->dev->device_id);
-	buf += printed;
-	buf_size -= printed;
 
 	return ERROR_OK;
 }
