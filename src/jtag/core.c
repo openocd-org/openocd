@@ -1398,7 +1398,7 @@ int adapter_init(struct command_context *cmd_ctx)
 
 	int requested_khz = jtag_get_speed_khz();
 	int actual_khz = requested_khz;
-	int jtag_speed_var;
+	int jtag_speed_var = 0;
 	retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
