@@ -598,7 +598,8 @@ int nand_erase(struct nand_device *nand, int first_block, int last_block)
 			return ERROR_NAND_OPERATION_TIMEOUT;
 		}
 
-		if ((retval = nand_read_status(nand, &status)) != ERROR_OK)
+		retval = nand_read_status(nand, &status);
+		if (retval != ERROR_OK)
 		{
 			LOG_ERROR("couldn't read status");
 			return ERROR_NAND_OPERATION_FAILED;
