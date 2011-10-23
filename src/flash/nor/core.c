@@ -344,7 +344,8 @@ int default_flash_blank_check(struct flash_bank *bank)
 		uint32_t address = bank->base + bank->sectors[i].offset;
 		uint32_t size = bank->sectors[i].size;
 
-		if ((retval = target_blank_check_memory(target, address, size, &blank)) != ERROR_OK)
+		retval = target_blank_check_memory(target, address, size, &blank);
+		if (retval != ERROR_OK)
 		{
 			fast_check = 0;
 			break;
