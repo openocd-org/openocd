@@ -768,7 +768,7 @@ static int cfi_spansion_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "VppMin: %u.%x, VppMax: %u.%x\n",
+	snprintf(buf, buf_size, "VppMin: %u.%x, VppMax: %u.%x\n",
 			(pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
 			(pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
 
@@ -802,7 +802,7 @@ static int cfi_intel_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "protection_fields: %i, prot_reg_addr: 0x%x, "
+	snprintf(buf, buf_size, "protection_fields: %i, prot_reg_addr: 0x%x, "
 			"factory pre-programmed: %i, user programmable: %i\n",
 			pri_ext->num_protection_fields, pri_ext->prot_reg_addr,
 			1 << pri_ext->fact_prot_reg_size, 1 << pri_ext->user_prot_reg_size);
@@ -1222,7 +1222,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct target *target = bank->target;
 	struct reg_param reg_params[7];
 	struct arm_algorithm armv4_5_info;
-	struct working_area *source;
+	struct working_area *source = NULL;
 	uint32_t buffer_size = 32768;
 	uint32_t write_command_val, busy_pattern_val, error_pattern_val;
 
@@ -2704,6 +2704,7 @@ static int cfi_probe(struct flash_bank *bank)
 	}
 
 	cfi_info->probed = 0;
+	cfi_info->num_erase_regions = 0;
 	if (bank->sectors)
 	{
 		free(bank->sectors);
@@ -3151,7 +3152,7 @@ static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	if (cfi_info->qry[0] == 0xff)
 	{
-		printed = snprintf(buf, buf_size, "\ncfi flash bank not probed yet\n");
+		snprintf(buf, buf_size, "\ncfi flash bank not probed yet\n");
 		return ERROR_OK;
 	}
 
