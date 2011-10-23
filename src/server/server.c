@@ -487,7 +487,8 @@ int server_loop(struct command_context *command_context)
 				{
 					if ((FD_ISSET(c->fd, &read_fds)) || c->input_pending)
 					{
-						if ((retval = service->input(c)) != ERROR_OK)
+						retval = service->input(c);
+						if (retval != ERROR_OK)
 						{
 							struct connection *next = c->next;
 							if (service->type == CONNECTION_PIPE)
