@@ -626,17 +626,16 @@ int armv7m_checksum_memory(struct target *target,
 
 	uint32_t i;
 
-	if (target_alloc_working_area(target, sizeof(cortex_m3_crc_code), &crc_algorithm) != ERROR_OK)
-	{
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
+	retval = target_alloc_working_area(target, sizeof(cortex_m3_crc_code), &crc_algorithm);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < ARRAY_SIZE(cortex_m3_crc_code); i++)
-		if ((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(uint16_t), cortex_m3_crc_code[i])) != ERROR_OK)
-		{
-			return retval;
-		}
+	for (i = 0; i < ARRAY_SIZE(cortex_m3_crc_code); i++) {
+		retval = target_write_u16(target, crc_algorithm->address + i*sizeof(uint16_t), cortex_m3_crc_code[i]);
+		if (retval != ERROR_OK)
+			goto cleanup;
+	}
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
@@ -649,24 +648,22 @@ int armv7m_checksum_memory(struct target *target,
 
 	int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
-	if ((retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
-		crc_algorithm->address, crc_algorithm->address + (sizeof(cortex_m3_crc_code)-6), timeout, &armv7m_info)) != ERROR_OK)
-	{
-		LOG_ERROR("error executing cortex_m3 crc algorithm");
-		destroy_reg_param(&reg_params[0]);
-		destroy_reg_param(&reg_params[1]);
-		target_free_working_area(target, crc_algorithm);
-		return retval;
-	}
+	retval = target_run_algorithm(target, 0, NULL, 2, reg_params, crc_algorithm->address,
+	                              crc_algorithm->address + (sizeof(cortex_m3_crc_code) - 6),
+	                              timeout, &armv7m_info);
 
-	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	if (retval == ERROR_OK)
+		*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	else
+		LOG_ERROR("error executing cortex_m3 crc algorithm");
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 
+cleanup:
 	target_free_working_area(target, crc_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 /** Checks whether a memory region is zeroed. */
@@ -711,17 +708,12 @@ int armv7m_blank_check_memory(struct target *target,
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
 
-	if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			erase_check_algorithm->address, erase_check_algorithm->address + (sizeof(erase_check_code)-2), 10000, &armv7m_info)) != ERROR_OK)
-	{
-		destroy_reg_param(&reg_params[0]);
-		destroy_reg_param(&reg_params[1]);
-		destroy_reg_param(&reg_params[2]);
-		target_free_working_area(target, erase_check_algorithm);
-		return 0;
-	}
+	retval = target_run_algorithm(target, 0, NULL, 3, reg_params, erase_check_algorithm->address,
+	                              erase_check_algorithm->address + (sizeof(erase_check_code) - 2),
+	                              10000, &armv7m_info);
 
-	*blank = buf_get_u32(reg_params[2].value, 0, 32);
+	if (retval == ERROR_OK)
+		*blank = buf_get_u32(reg_params[2].value, 0, 32);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -729,7 +721,7 @@ int armv7m_blank_check_memory(struct target *target,
 
 	target_free_working_area(target, erase_check_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
