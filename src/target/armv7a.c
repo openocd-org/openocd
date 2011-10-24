@@ -147,6 +147,8 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 0, 0, 2, 0, ttb),
 			&ttb);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = armv7a->armv7a_mmu.read_physical_memory(target,
 			(ttb & 0xffffc000) | ((va & 0xfff00000) >> 18),
 			4, 1, (uint8_t*)&first_lvl_descriptor);
@@ -461,8 +463,6 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	struct target *curr;
 
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	if (armv7a == NULL)
-		LOG_ERROR("not an armv7a target");
 	l2x_cache = calloc(1, sizeof(struct armv7a_l2x_cache));
 	l2x_cache->base = base;
 	l2x_cache->way = way;
@@ -616,6 +616,7 @@ int armv7a_identify_cache(struct target *target)
 			2, 0,	/* op1, op2 */
 			0, 0,	/* CRn, CRm */
 			&cache_selected);
+	if (retval!=ERROR_OK) goto done;
 	/* select instruction cache*/
 	/*  MCR p15, 2,<Rd>, c0, c0, 0; Write CSSELR */
 	/*  [0]  : 1 instruction cache selection , 0 data cache selection */
