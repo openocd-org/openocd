@@ -1352,7 +1352,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 		struct adiv5_dap *dap, int ap)
 {
 	int retval;
-	uint32_t dbgbase, apid;
+	uint32_t dbgbase = 0, apid = 0; /* Silence gcc by initializing */
 	int romtable_present = 0;
 	uint8_t mem_ap;
 	uint32_t ap_old;
