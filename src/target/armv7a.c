@@ -87,7 +87,7 @@ done:
 	/* (void) */ dpm->finish(dpm);
 }
 
-int armv7a_read_ttbcr(struct target *target)
+static int armv7a_read_ttbcr(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
@@ -454,7 +454,7 @@ static int armv7a_handle_l2x_cache_info_command(struct command_context *cmd_ctx,
 }
 
 
-int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
+static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
 {
 	struct armv7a_l2x_cache *l2x_cache;
 	struct target_list *head = target->head;
@@ -542,7 +542,7 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 
 
 /*  retrieve core id cluster id  */
-int arnv7a_read_mpidr(struct target *target)
+static int armv7a_read_mpidr(struct target *target)
 {
     int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -711,7 +711,7 @@ int armv7a_identify_cache(struct target *target)
 
 done:
 	dpm->finish(dpm);
-	 arnv7a_read_mpidr(target);
+	armv7a_read_mpidr(target);
 	return retval;
 
 }

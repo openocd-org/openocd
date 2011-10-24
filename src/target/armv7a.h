@@ -167,8 +167,6 @@ target_to_armv7a(struct target *target)
 
 int armv7a_arch_state(struct target *target);
 int armv7a_identify_cache(struct target *target);
-struct reg_cache *armv7a_build_reg_cache(struct target *target,
-		struct armv7a_common *armv7a_common);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
 int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 		uint32_t *val,int meminfo);
