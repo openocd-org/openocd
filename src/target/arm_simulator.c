@@ -519,7 +519,7 @@ static int arm_simulate_step_core(struct target *target,
 	/* load register instructions */
 	else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH))
 	{
-		uint32_t load_address = 0, modified_address = 0, load_value;
+		uint32_t load_address = 0, modified_address = 0, load_value = 0;
 		uint32_t Rn = sim->get_reg_mode(sim, instruction.info.load_store.Rn);
 
 		/* adjust Rn in case the PC is being read */
