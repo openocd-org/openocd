@@ -1863,11 +1863,9 @@ int target_write_u8(struct target *target, uint32_t address, uint8_t value)
 
 COMMAND_HANDLER(handle_targets_command)
 {
-	struct target *target = all_targets;
-
 	if (CMD_ARGC == 1)
 	{
-		target = get_target(CMD_ARGV[0]);
+		struct target *target = get_target(CMD_ARGV[0]);
 		if (target == NULL) {
 			command_print(CMD_CTX,"Target: %s is unknown, try one of:\n", CMD_ARGV[0]);
 			goto DumpTargets;
@@ -1882,9 +1880,9 @@ COMMAND_HANDLER(handle_targets_command)
 		CMD_CTX->current_target = target->target_number;
 		return ERROR_OK;
 	}
-DumpTargets:
+DumpTargets:;
 
-	target = all_targets;
+	struct target *target = all_targets;
 	command_print(CMD_CTX, "    TargetName         Type       Endian TapName            State       ");
 	command_print(CMD_CTX, "--  ------------------ ---------- ------ ------------------ ------------");
 	while (target)
@@ -2190,6 +2188,8 @@ COMMAND_HANDLER(handle_reg_command)
 		}
 	}
 
+	assert(reg != NULL); /* give clang a hint that we *know* reg is != NULL here */
+
 	/* display a register */
 	if ((CMD_ARGC == 1) || ((CMD_ARGC == 2) && !((CMD_ARGV[1][0] >= '0') && (CMD_ARGV[1][0] <= '9'))))
 	{
@@ -2210,6 +2210,8 @@ COMMAND_HANDLER(handle_reg_command)
 	if (CMD_ARGC == 2)
 	{
 		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
+		if (buf == NULL)
+			return ERROR_FAIL;
 		str_to_buf(CMD_ARGV[1], strlen(CMD_ARGV[1]), buf, reg->size, 0);
 
 		reg->type->set(reg, buf);
@@ -3414,9 +3416,9 @@ COMMAND_HANDLER(handle_profile_command)
 	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
 	struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
 
+	int retval = ERROR_OK;
 	for (;;)
 	{
-		int retval;
 		target_poll(target);
 		if (target->state == TARGET_HALTED)
 		{
@@ -3469,7 +3471,7 @@ COMMAND_HANDLER(handle_profile_command)
 	}
 	free(samples);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int new_int_array_element(Jim_Interp * interp, const char *varname, int idx, uint32_t val)
@@ -3634,7 +3636,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: cannot read memory", NULL);
 			e = JIM_ERR;
-			len = 0;
+			break;
 		} else {
 			v = 0; /* shut up gcc */
 			for (i = 0 ;i < count ;i++, n++) {
@@ -3659,7 +3661,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 
-	return JIM_OK;
+	return e;
 }
 
 static int get_int_array_element(Jim_Interp * interp, const char *varname, int idx, uint32_t *val)
@@ -3844,7 +3846,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "array2mem: cannot read memory", NULL);
 			e = JIM_ERR;
-			len = 0;
+			break;
 		}
 	}
 
@@ -3852,7 +3854,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 
-	return JIM_OK;
+	return e;
 }
 
 /* FIX? should we propagate errors here rather than printing them
@@ -4164,6 +4166,8 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 					free((void *)(target->variant));
 				}
 				e = Jim_GetOpt_String(goi, &cp, NULL);
+				if (e != JIM_OK)
+					return e;
 				target->variant = strdup(cp);
 			} else {
 				if (goi->argc != 0) {
@@ -4889,6 +4893,8 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	/* TYPE */
 	e = Jim_GetOpt_String(goi, &cp2, NULL);
+	if (e != JIM_OK)
+		return e;
 	cp = cp2;
 	/* now does target type exist */
 	for (x = 0 ; target_types[x] ; x++) {
@@ -5098,11 +5104,10 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	const char *targetname;
 	int retval,len;
 	struct target *target;
-	struct target_list *head, *curr, *new;
+	struct target_list *head, *curr;
     curr = (struct target_list*) NULL;
 	head = (struct target_list*) NULL;
-	new = (struct target_list*) NULL;
-
+	
 	retval = 0;
 	LOG_DEBUG("%d",argc);
 	/* argv[1] = target to associate in smp
@@ -5118,6 +5123,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		LOG_DEBUG("%s ",targetname);
 		if (target)
 		{
+			struct target_list *new;
 			new=malloc(sizeof(struct target_list));
 			new->target = target;
 			new->next = (struct target_list*)NULL;
