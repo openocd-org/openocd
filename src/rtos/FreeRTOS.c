@@ -231,7 +231,8 @@ static int FreeRTOS_update_threads( struct rtos *rtos )
 	// Find out how many lists are needed to be read from pxReadyTasksLists,
 	int64_t max_used_priority = 0;
 	retval = target_read_buffer( rtos->target, rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address, param->pointer_width, (uint8_t *)&max_used_priority );
-
+	if (retval != ERROR_OK)
+	  return retval;
 
 	symbol_address_t* list_of_lists = (symbol_address_t *)malloc( sizeof( symbol_address_t ) * ( max_used_priority+1 + 5 ) );
 
