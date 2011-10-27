@@ -167,6 +167,15 @@ struct sam3_cfg {
 	uint32_t PMC_FSPR;
 };
 
+/*
+ * The AT91SAM3N data sheet 04-Oct-2010, AT91SAM3U data sheet 22-Aug-2011
+ * and AT91SAM3S data sheet 09-Feb-2011 state that for flash writes
+ * the flash wait state (FWS) should be set to 6. It seems like that the
+ * cause of the problem is not the flash itself, but the flash write
+ * buffer. Ie the wait states have to be set before writing into the
+ * buffer.
+ * Tested and confirmed with SAM3N and SAM3U
+ */
 
 struct sam3_bank_private {
 	int probed;
@@ -183,6 +192,7 @@ struct sam3_bank_private {
 	unsigned bank_number;
 	uint32_t controller_address;
 	uint32_t base_address;
+	uint32_t flash_wait_states;
 	bool present;
 	unsigned size_bytes;
 	unsigned nsectors;
@@ -298,6 +308,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 16,
@@ -313,6 +324,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 1,
 			.base_address = FLASH_BANK1_BASE_U,
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 16,
@@ -347,6 +359,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 16,
@@ -388,6 +401,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  64 * 1024,
 			.nsectors   =  8,
@@ -436,6 +450,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 16,
@@ -450,6 +465,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 1,
 			.base_address = FLASH_BANK1_BASE_U,
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 16,
@@ -484,6 +500,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 16,
@@ -525,6 +542,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK0_BASE_U,
 			.controller_address = 0x400e0800,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  64 * 1024,
 			.nsectors   =  8,
@@ -561,8 +579,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  256 * 1024,
 			.nsectors   =  32,
@@ -594,8 +612,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  256 * 1024,
 			.nsectors   =  32,
@@ -626,8 +644,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  256 * 1024,
 			.nsectors   =  32,
@@ -658,8 +676,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  128 * 1024,
 			.nsectors   =  16,
@@ -690,8 +708,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  128 * 1024,
 			.nsectors   =  16,
@@ -722,8 +740,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  128 * 1024,
 			.nsectors   =  16,
@@ -754,8 +772,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  64 * 1024,
 			.nsectors   =  8,
@@ -786,8 +804,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  64 * 1024,
 			.nsectors   =  8,
@@ -818,8 +836,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.pBank  = NULL,
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
-
 			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes =  64 * 1024,
 			.nsectors   =  8,
@@ -869,6 +887,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 256 * 1024,
 			.nsectors   = 16,
@@ -917,6 +936,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 256 * 1024,
 			.nsectors   = 16,
@@ -965,6 +985,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 256 * 1024,
 			.nsectors   = 16,
@@ -1013,6 +1034,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 8,
@@ -1061,6 +1083,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 8,
@@ -1109,6 +1132,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 128 * 1024,
 			.nsectors   = 8,
@@ -1157,6 +1181,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 64 * 1024,
 			.nsectors   = 4,
@@ -1205,6 +1230,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 64 * 1024,
 			.nsectors   = 4,
@@ -1253,6 +1279,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_N,
 			.controller_address = 0x400e0A00,
+			.flash_wait_states = 6, /* workaround silicon bug */
 			.present = 1,
 			.size_bytes = 64 * 1024,
 			.nsectors   = 4,
@@ -2391,11 +2418,13 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 	switch (bank->base) {
 	default:
 		LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x or 0x%08x \
-			[at91sam3u series] or 0x%08x [at91sam3s series])",
+			[at91sam3u series] or 0x%08x [at91sam3s series] or \
+			0x%08x [at91sam3n series])",
 				  ((unsigned int)(bank->base)),
 				  ((unsigned int)(FLASH_BANK0_BASE_U)),
 				  ((unsigned int)(FLASH_BANK1_BASE_U)),
-				  ((unsigned int)(FLASH_BANK_BASE_S)));
+				  ((unsigned int)(FLASH_BANK_BASE_S)),
+				  ((unsigned int)(FLASH_BANK_BASE_N)));
 		return ERROR_FAIL;
 		break;
 
@@ -2413,7 +2442,7 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 		pChip->details.bank[1].pBank = bank;
 		break;
 
-	// at91sam3s series
+	/* at91sam3s and at91sam3n series */
 	case FLASH_BANK_BASE_S:
 		bank->driver_priv = &(pChip->details.bank[0]);
 		bank->bank_number = 0;
@@ -2771,10 +2800,27 @@ sam3_page_write(struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *b
 {
 	uint32_t adr;
 	uint32_t status;
+	uint32_t fmr; /* EEFC Flash Mode Register */
 	int r;
 
 	adr = pagenum * pPrivate->page_size;
 	adr += (adr + pPrivate->base_address);
+
+	/* Get flash mode register value */
+	r = target_read_u32(pPrivate->pChip->target, pPrivate->controller_address, &fmr);
+	if (r != ERROR_OK)
+		LOG_DEBUG("Error Read failed: read flash mode register");
+
+	/* Clear flash wait state field */
+	fmr &= 0xfffff0ff;
+
+	/* set FWS (flash wait states) field in the FMR (flash mode register) */
+	fmr |= (pPrivate->flash_wait_states << 8);
+
+	LOG_DEBUG("Flash Mode: 0x%08x", ((unsigned int)(fmr)));
+	r = target_write_u32(pPrivate->pBank->target, pPrivate->controller_address, fmr);
+	if (r != ERROR_OK)
+		LOG_DEBUG("Error Write failed: set flash mode register");
 
 	LOG_DEBUG("Wr Page %u @ phys address: 0x%08x", pagenum, (unsigned int)(adr));
 	r = target_write_memory(pPrivate->pChip->target,
