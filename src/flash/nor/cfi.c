@@ -1897,13 +1897,15 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		armv4_5_info.common_magic = ARMV7M_COMMON_MAGIC;
 		armv4_5_info.core_mode = ARMV7M_MODE_HANDLER;
 		armv4_5_info.core_state = ARM_STATE_ARM;
-	}
-	else
+	} else if (armv4_5_info.common_magic == ARM_COMMON_MAGIC)
 	{
 		/* All other ARM CPUs have 32 bit instructions */
 		armv4_5_info.common_magic = ARM_COMMON_MAGIC;
 		armv4_5_info.core_mode = ARM_MODE_SVC;
 		armv4_5_info.core_state = ARM_STATE_ARM;
+	} else {
+		LOG_ERROR("Unknown ARM architecture");
+		return ERROR_FAIL;
 	}
 
 	int target_code_size = 0;
@@ -1912,11 +1914,12 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	switch (bank->bus_width)
 	{
 	case 1 :
-		if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) /* armv4_5 target */
-		{
-			target_code_src = armv4_5_word_8_code;
-			target_code_size = sizeof(armv4_5_word_8_code);
+		if (armv4_5_info.common_magic != ARM_COMMON_MAGIC) {
+			LOG_ERROR("Unknown ARM architecture");
+			return ERROR_FAIL;
 		}
+		target_code_src = armv4_5_word_8_code;
+		target_code_size = sizeof(armv4_5_word_8_code);
 		break;
 	case 2 :
 		/* Check for DQ5 support */
@@ -1936,19 +1939,21 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		else
 		{
 			/* No DQ5 support. Use DQ7 DATA# polling only. */
-			if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) // armv4_5 target
-			{
-				target_code_src = armv4_5_word_16_code_dq7only;
-				target_code_size = sizeof(armv4_5_word_16_code_dq7only);
+			if (armv4_5_info.common_magic != ARM_COMMON_MAGIC) {
+				LOG_ERROR("Unknown ARM architecture");
+				return ERROR_FAIL;
 			}
+			target_code_src = armv4_5_word_16_code_dq7only;
+			target_code_size = sizeof(armv4_5_word_16_code_dq7only);
 		}
 		break;
 	case 4 :
-		if(armv4_5_info.common_magic == ARM_COMMON_MAGIC) // armv4_5 target
-		{
-			target_code_src = armv4_5_word_32_code;
-			target_code_size = sizeof(armv4_5_word_32_code);
+		if (armv4_5_info.common_magic != ARM_COMMON_MAGIC) {
+			LOG_ERROR("Unknown ARM architecture");
+			return ERROR_FAIL;
 		}
+		target_code_src = armv4_5_word_32_code;
+		target_code_size = sizeof(armv4_5_word_32_code);
 		break;
 	default:
 		LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
