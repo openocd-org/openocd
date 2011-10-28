@@ -1055,7 +1055,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	}
 	else if ((device_id & 0x7ff) == 0x428)
 	{
-		/* value line density - we have 1k pages
+		/* value line High density - we have 2k pages
 		 * 4 pages for a protection area */
 		page_size = 2048;
 		stm32x_info->ppage_size = 4;
