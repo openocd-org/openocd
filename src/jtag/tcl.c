@@ -166,6 +166,8 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		}
 	} /* validate args */
 
+	assert(e == JIM_OK);
+
 	tap = jtag_tap_by_jim_obj(interp, args[1]);
 	if (tap == NULL) {
 		return JIM_ERR;
