@@ -1323,7 +1323,7 @@ static int dsp563xx_run_algorithm(struct target *target,
 		int timeout_ms, void *arch_info)
 {
 	int i;
-	int retvaltemp,retval = 0;
+	int retval = ERROR_OK;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if (target->state != TARGET_HALTED)
@@ -1376,10 +1376,12 @@ static int dsp563xx_run_algorithm(struct target *target,
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
-			if ((retvaltemp = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
-			{
-					retval = retvaltemp;
-			}
+			retval = target_read_buffer(target,
+					mem_params[i].address,
+					mem_params[i].size,
+					mem_params[i].value);
+			if (retval != ERROR_OK)
+				return retval;
 	}
 
 	for (i = 0; i < num_reg_params; i++)
