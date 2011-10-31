@@ -183,7 +183,6 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 		/* TODO: send JMP 0xFF200000 instruction. Hopefully processor jump back
 		 * to start of debug vector */
 
-		data = 0;
 		LOG_ERROR("Error reading unexpected address 0x%8.8" PRIx32 "", address);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
