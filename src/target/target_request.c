@@ -194,11 +194,9 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context *cmd_ctx, struct target *target)
 {
 	int do_all_targets = 0;
-	struct debug_msg_receiver **p = &target->dbgmsg;
 
 	/* if no target has been specified search all of them */
-	if (target == NULL)
-	{
+	if (target == NULL) {
 		/* if no targets haven been specified */
 		if (all_targets == NULL)
 			return NULL;
@@ -207,8 +205,9 @@ static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context
 		do_all_targets = 1;
 	}
 
-	do
-	{
+	/* so we target != null */
+	struct debug_msg_receiver **p = &target->dbgmsg;
+	do {
 		while (*p)
 		{
 			if ((*p)->cmd_ctx == cmd_ctx)
