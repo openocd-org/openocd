@@ -32,7 +32,7 @@
 #endif
 
 #include "breakpoints.h"
-#include "cortex_m3.h"
+#include "cortex_m.h"
 #include "target_request.h"
 #include "target_type.h"
 #include "arm_disassembler.h"

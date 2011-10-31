@@ -41,7 +41,7 @@
 #include "armv4_5.h"
 #include "arm7_9_common.h"
 #include "armv7m.h"
-#include "cortex_m3.h"
+#include "cortex_m.h"
 #include "register.h"
 #include "arm_semihosting.h"
 #include <helper/binarybuffer.h>

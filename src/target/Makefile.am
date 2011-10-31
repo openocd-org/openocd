@@ -73,7 +73,7 @@ ARMV6_SRC = \
 
 ARMV7_SRC = \
 	armv7m.c \
-	cortex_m3.c \
+	cortex_m.c \
 	armv7a.c \
 	cortex_a.c
 
@@ -137,7 +137,7 @@ noinst_HEADERS = \
 	dsp563xx_once.h \
 	dsp5680xx.h \
 	breakpoints.h \
-	cortex_m3.h \
+	cortex_m.h \
 	cortex_a.h \
 	embeddedice.h \
 	etb.h \
