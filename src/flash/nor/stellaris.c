@@ -377,7 +377,7 @@ static char * StellarisClassname[7] =
 	"Unknown",
 	"DustDevil",
 	"Tempest",
-	"Unknown",
+	"Blizzard",
 	"Firestorm"
 };
 
