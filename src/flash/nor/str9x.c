@@ -280,6 +280,9 @@ static int str9x_erase(struct flash_bank *bank, int first, int last)
 		total_timeout = 1000;
 	}
 
+	/* this is so the compiler can *know* */
+	assert(total_timeout > 0);
+
 	for (i = first; i <= last; i++)
 	{
 		int retval;
