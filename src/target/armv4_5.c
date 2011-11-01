@@ -741,7 +741,13 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 {
 	int retval = ERROR_OK;
 	struct target *target = get_current_target(CMD_CTX);
-	struct arm *arm = target ? target_to_arm(target) : NULL;
+
+	if (target == NULL) {
+		LOG_ERROR("No target selected");
+		return ERROR_FAIL;
+	}
+
+	struct arm *arm = target_to_arm(target);
 	uint32_t address;
 	int count = 1;
 	int thumb = 0;
@@ -946,7 +952,13 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 COMMAND_HANDLER(handle_arm_semihosting_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct arm *arm = target ? target_to_arm(target) : NULL;
+
+	if (target == NULL) {
+		LOG_ERROR("No target selected");
+		return ERROR_FAIL;
+	}
+
+	struct arm *arm = target_to_arm(target);
 
 	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "current target isn't an ARM");
