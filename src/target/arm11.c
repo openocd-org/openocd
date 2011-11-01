@@ -605,14 +605,14 @@ static int arm11_step(struct target *target, int current,
 	if ((next_instruction & 0xFFF00070) == 0xe1200070)
 	{
 		address = arm11_nextpc(arm11, 0, address + 4);
-		LOG_DEBUG("Skipping BKPT");
+		LOG_DEBUG("Skipping BKPT %08" PRIx32, address);
 	}
 	/* skip over Wait for interrupt / Standby */
 	/* mcr	15, 0, r?, cr7, cr0, {4} */
 	else if ((next_instruction & 0xFFFF0FFF) == 0xee070f90)
 	{
 		address = arm11_nextpc(arm11, 0, address + 4);
-		LOG_DEBUG("Skipping WFI");
+		LOG_DEBUG("Skipping WFI %08" PRIx32, address);
 	}
 	/* ignore B to self */
 	else if ((next_instruction & 0xFEFFFFFF) == 0xeafffffe)
