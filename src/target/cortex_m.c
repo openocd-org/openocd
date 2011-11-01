@@ -124,16 +124,20 @@ static int cortexm3_dap_write_coreregister_u32(struct adiv5_dap *swjdp,
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
-	// XXX check retval
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR); */
 	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR);
-	// XXX check retval
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = dap_run(swjdp);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* restore DCB_DCRDR - this needs to be in a seperate
 	 * transaction otherwise the emulated DCC channel breaks */
