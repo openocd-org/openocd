@@ -1021,6 +1021,8 @@ static int cortex_a8_internal_restore(struct target *target, int current,
     /* called it now before restoring context because it uses cpu
 	 * register r0 for restoring cp15 control register */
 	retval = cortex_a8_restore_cp15_control_reg(target);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = cortex_a8_restore_context(target, handle_breakpoints);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1147,7 +1149,9 @@ static int cortex_a8_resume(struct target *target, int current,
 	cortex_a8_internal_restore(target, current, &address, handle_breakpoints, debug_execution);
 	if (target->smp)
 	{   target->gdb_service->core[0] = -1;
-		retval += cortex_a8_restore_smp(target, handle_breakpoints);
+		retval = cortex_a8_restore_smp(target, handle_breakpoints);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	cortex_a8_internal_restart(target);
 
