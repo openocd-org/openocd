@@ -724,7 +724,7 @@ static int pic32mx_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	buf += printed;
 	buf_size -= printed;
-	printed = snprintf(buf, buf_size, " Ver: 0x%02x",
+	snprintf(buf, buf_size, " Ver: 0x%02x",
 			(unsigned)((device_id >> 28) & 0xf));
 
 	return ERROR_OK;
