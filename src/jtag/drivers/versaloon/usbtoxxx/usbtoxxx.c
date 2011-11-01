@@ -199,9 +199,9 @@ RESULT usbtoxxx_execute_command(void)
 			}
 			if (!processed)
 			{
-				struct versaloon_want_pos_t *tmp, *free_tmp;
+				struct versaloon_want_pos_t *tmp;
 				
-				free_tmp = tmp = versaloon_pending[i].pos;
+				tmp = versaloon_pending[i].pos;
 				while (tmp != NULL)
 				{
 					if ((tmp->buff != NULL) && (tmp->size > 0))
@@ -209,6 +209,7 @@ RESULT usbtoxxx_execute_command(void)
 						memcpy(tmp->buff, versaloon_buf + usbtoxxx_buffer_index
 							+ tmp->offset, tmp->size);
 					}
+					struct versaloon_want_pos_t *free_tmp;
 					free_tmp = tmp;
 					tmp = tmp->next;
 					free(free_tmp);
