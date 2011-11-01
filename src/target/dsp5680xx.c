@@ -538,7 +538,7 @@ static int eonce_enter_debug_mode_without_reset(struct target * target, uint16_t
   }
   if(eonce_status!=NULL)
     *eonce_status = data_read_from_dr;
-  return ERROR_OK;
+	return retval;
 }
 
 #define TIME_DIV_FREESCALE 0.3
@@ -606,6 +606,7 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
   err_check_propagate(retval);
   instr_16 = 0x1;
   retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+	err_check_propagate(retval);
   instr_16 = 0x20;
   retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
   jtag_add_sleep(TIME_DIV_FREESCALE*100*1000);
@@ -1446,7 +1447,7 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
   if(do_mass_erase){
     //Mass erase
     retval = mass_erase(target,&hfm_ustat);
-    err_check_propagate(retval);
+	err_check_propagate(retval);
     last = HFM_SECTOR_COUNT-1;
   }else{
     for(int i = first;i<=last;i++){
@@ -1704,8 +1705,10 @@ int dsp5680xx_f_unlock(struct target * target){
   err_check_propagate(retval);
   instr_16 = 0x1;
   retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+	err_check_propagate(retval);
   instr_16 = 0x20;
   retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+	err_check_propagate(retval);
   jtag_add_sleep(TIME_DIV_FREESCALE*100*1000);
   jtag_add_reset(0,0);
   jtag_add_sleep(TIME_DIV_FREESCALE*300*1000);
