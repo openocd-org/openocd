@@ -1,3 +1,6 @@
+NB! If you're behind a corporate wall with http only access to the
+world, you can still use these instructions!
+
 Submitting patches to the OpenOCD Gerrit server:
 
 OpenOCD is to some extent a "self service" open source project, so to
@@ -10,7 +13,7 @@ The procedure to create a patch is essentially:
 - create a commit
 - send the changes to the Gerrit server for review
 - correct the patch and re-send it according to review feedback
- 
+
 
 0. Create a Gerrit account at:
 
@@ -43,7 +46,7 @@ you should scroll down the page till you get to the section:
 'Next: Set Up SSH Keys', and follow the steps described.
 
 1. Clone the git repository, rather than just
-download the source. 
+download the source.
 
 git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
 
@@ -60,24 +63,35 @@ Add a new remote to git using Gerrit username:
 git remote add review ssh://USERNAME@openocd.zylin.com:29418/openocd.git
 git config remote.review.push HEAD:refs/for/master
 
+Or with http only:
+
+git remote add review http://openocd.zylin.com/p/openocd.git
+git config remote.review.push HEAD:refs/for/master
+
 You will need to install this hook, we will look into a better
 solution:
 
 scp -p -P 29418 USERNAME@openocd.zylin.com:hooks/commit-msg .git/hooks/
+
+Or with http only:
+
+wget http://openocd.zylin.com/tools/hooks/commit-msg
+mv commit-msg .git/hooks
+chmod +x .git/hooks/commit-msg
 
 3. Set up git with your name and email:
 
 git config --global user.name "John Smith"
 git config --global user.email "john@smith.org"
 
-4. Work on your patches. Split the work into 
+4. Work on your patches. Split the work into
 multiple small patches that can be reviewed and
 applied seperately and safely to the OpenOCD
 repository.
 
 while(!done) {
   work - edit files using your favorite editor.
-  run "git commit -s -a" to commit all changes. 
+  run "git commit -s -a" to commit all changes.
 }
 
 TIP! use "git add ." before commit to add new files.
