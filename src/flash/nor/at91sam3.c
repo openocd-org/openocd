@@ -2926,6 +2926,10 @@ sam3_write(struct flash_bank *bank,
 		page_cur++;
 	}
 
+	/* By checking that offset is correct here, we also
+	fix a clang warning */
+	assert(offset == pPrivate->page_size);
+
 	// intermediate large pages
 	// also - the final *terminal*
 	// if that terminal page is a full page
@@ -2972,14 +2976,13 @@ sam3_write(struct flash_bank *bank,
 COMMAND_HANDLER(sam3_handle_info_command)
 {
 	struct sam3_chip *pChip;
-	unsigned x;
-	int r;
-
 	pChip = get_current_sam3(CMD_CTX);
 	if (!pChip) {
 		return ERROR_OK;
 	}
 
+	unsigned x;
+	int r;
 	r = 0;
 
 	// bank0 must exist before we can do anything
