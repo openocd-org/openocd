@@ -348,6 +348,7 @@ static uint8_t * at91sam9_oob_init(struct nand_device *nand, uint8_t *oob, uint3
 		oob = malloc(*size);
 		if (!oob) {
 			LOG_ERROR("Unable to allocate space for OOB");
+			return NULL;
 		}
 
 		memset(oob, 0xFF, *size);
