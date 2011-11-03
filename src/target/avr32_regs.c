@@ -97,6 +97,9 @@ int avr32_jtag_write_regs(struct avr32_jtag *jtag_info, uint32_t *regs)
 	int i, retval;
 
 	retval = avr32_jtag_write_reg(jtag_info, 0, regs[AVR32_REG_SR]);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Restore Status reg */
 	retval = avr32_jtag_exec(jtag_info, MTSR(0, 0));
 	if (retval != ERROR_OK)
