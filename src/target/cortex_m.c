@@ -341,7 +341,7 @@ static int cortex_m3_examine_debug_reason(struct target *target)
 
 static int cortex_m3_examine_exception_reason(struct target *target)
 {
-	uint32_t shcsr, except_sr, cfsr = -1, except_ar = -1;
+	uint32_t shcsr = 0, except_sr = 0, cfsr = -1, except_ar = -1;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = &armv7m->dap;
 	int retval;
