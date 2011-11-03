@@ -314,7 +314,6 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 
 	/* figure ETM version then add base registers */
 	if (config & (1 << 31)) {
-		bcd_vers = 0x20;
 		LOG_WARNING("ETMv2+ support is incomplete");
 
 		/* REVISIT more registers may exist; they may now be
