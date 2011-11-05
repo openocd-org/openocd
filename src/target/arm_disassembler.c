@@ -280,13 +280,13 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 		{
 			instruction->type = ARM_MCRR;
 			mnemonic = "MCRR";
-		}
-
-		/* MRRC */
-		if ((opcode & 0x0ff00000) == 0x0c500000)
-		{
+		} else if ((opcode & 0x0ff00000) == 0x0c500000) {
+			/* MRRC */
 			instruction->type = ARM_MRRC;
 			mnemonic = "MRRC";
+		} else {
+			LOG_ERROR("Unknown instruction");
+			return ERROR_FAIL;
 		}
 
 		snprintf(instruction->text, 128,
