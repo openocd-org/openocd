@@ -609,6 +609,7 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
 	err_check_propagate(retval);
   instr_16 = 0x20;
   retval = dsp5680xx_drscan(target,(uint8_t *) & instr_16,(uint8_t *) & read_16,8);
+	err_check_propagate(retval);
   jtag_add_sleep(TIME_DIV_FREESCALE*100*1000);
   jtag_add_reset(0,0);
   jtag_add_sleep(TIME_DIV_FREESCALE*300*1000);
@@ -1448,7 +1449,6 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
     //Mass erase
     retval = mass_erase(target,&hfm_ustat);
 	err_check_propagate(retval);
-    last = HFM_SECTOR_COUNT-1;
   }else{
     for(int i = first;i<=last;i++){
       retval = erase_sector(target,i,&hfm_ustat);
