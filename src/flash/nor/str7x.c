@@ -284,45 +284,45 @@ static int str7x_waitbusy(struct flash_bank *bank)
 static int str7x_result(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	uint32_t retval;
+	uint32_t flash_flags;
 
-	int err;
-	err = target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
-	if (err != ERROR_OK)
-		return err;
+	int retval;
+	retval = target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &flash_flags);
+	if (retval != ERROR_OK)
+		return retval;
 
-	if (retval & FLASH_WPF)
+	if (flash_flags & FLASH_WPF)
 	{
 		LOG_ERROR("str7x hw write protection set");
-		err = ERROR_FAIL;
+		retval = ERROR_FAIL;
 	}
-	if (retval & FLASH_RESER)
+	if (flash_flags & FLASH_RESER)
 	{
 		LOG_ERROR("str7x suspended program erase not resumed");
-		err = ERROR_FAIL;
+		retval = ERROR_FAIL;
 	}
-	if (retval & FLASH_10ER)
+	if (flash_flags & FLASH_10ER)
 	{
 		LOG_ERROR("str7x trying to set bit to 1 when it is already 0");
-		err = ERROR_FAIL;
+		retval = ERROR_FAIL;
 	}
-	if (retval & FLASH_PGER)
+	if (flash_flags & FLASH_PGER)
 	{
 		LOG_ERROR("str7x program error");
-		err = ERROR_FAIL;
+		retval = ERROR_FAIL;
 	}
-	if (retval & FLASH_ERER)
+	if (flash_flags & FLASH_ERER)
 	{
 		LOG_ERROR("str7x erase error");
-		err = ERROR_FAIL;
+		retval = ERROR_FAIL;
 	}
-	if (err == ERROR_OK)
+	if (retval == ERROR_OK)
 	{
-		if (retval & FLASH_ERR)
+		if (flash_flags & FLASH_ERR)
 		{
 			/* this should always be set if one of the others are set... */
 			LOG_ERROR("str7x write operation failed / bad setup");
-			err = ERROR_FAIL;
+			retval = ERROR_FAIL;
 		}
 	}
 
@@ -335,7 +335,7 @@ static int str7x_protect_check(struct flash_bank *bank)
 	struct target *target = bank->target;
 
 	int i;
-	uint32_t retval;
+	uint32_t flash_flags;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -343,11 +343,14 @@ static int str7x_protect_check(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVWPAR), &retval);
+	int retval;
+	retval = target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVWPAR), &flash_flags);
+	if (retval != ERROR_OK)
+		return retval;
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		if (retval & str7x_info->sector_bits[i])
+		if (flash_flags & str7x_info->sector_bits[i])
 			bank->sectors[i].is_protected = 0;
 		else
 			bank->sectors[i].is_protected = 1;
