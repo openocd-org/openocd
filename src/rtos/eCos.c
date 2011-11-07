@@ -179,11 +179,15 @@ static int eCos_update_threads( struct rtos* rtos)
 	{
 		thread_list_size++;
 		retval = target_read_buffer( rtos->target, thread_index + param->thread_next_offset, param->pointer_width, (uint8_t *) &thread_index );
+		if (retval != ERROR_OK)
+			return retval;
 	} while( thread_index!=first_thread );
 
 	// read the current thread id
 	uint32_t current_thread_addr;
 	retval = target_read_buffer( rtos->target, rtos->symbols[eCos_VAL_current_thread_ptr].address, 4, (uint8_t *)&current_thread_addr);
+	if (retval != ERROR_OK)
+		return retval;
 	rtos->current_thread = 0;
 	retval = target_read_buffer( rtos->target, current_thread_addr + param->thread_uniqueid_offset, 2, (uint8_t *)&rtos->current_thread);
 	if ( retval != ERROR_OK )
