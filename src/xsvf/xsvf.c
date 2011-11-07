@@ -510,14 +510,20 @@ COMMAND_HANDLER(handle_xsvf_command)
 				if (xruntest)
 				{
 					result = svf_add_statemove(TAP_IDLE);
+					if (result != ERROR_OK)
+						return result;
 
 					if (runtest_requires_tck)
 						jtag_add_clocks(xruntest);
 					else
 						jtag_add_sleep(xruntest);
 				}
-				else if (xendir != TAP_DRPAUSE)	/* we are already in TAP_DRPAUSE */
+				else if (xendir != TAP_DRPAUSE) {
+					/* we are already in TAP_DRPAUSE */
 					result = svf_add_statemove(xenddr);
+					if (result != ERROR_OK)
+						return result;
+				}
 			}
 			break;
 
@@ -790,8 +796,12 @@ COMMAND_HANDLER(handle_xsvf_command)
 				{
 					/* FIXME handle statemove errors ... */
 					result = svf_add_statemove(wait_state);
+					if (result != ERROR_OK)
+						return result;
 					jtag_add_sleep(delay);
 					result = svf_add_statemove(end_state);
+					if (result != ERROR_OK)
+						return result;
 				}
 			}
 			break;
@@ -846,12 +856,16 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 				/* FIXME handle statemove errors ... */
 				result = svf_add_statemove(wait_state);
+				if (result != ERROR_OK)
+					return result;
 
 				jtag_add_clocks(clock_count);
 
 				jtag_add_sleep(usecs);
 
 				result = svf_add_statemove(end_state);
+				if (result != ERROR_OK)
+					return result;
 			}
 			break;
 
@@ -925,6 +939,8 @@ COMMAND_HANDLER(handle_xsvf_command)
 					struct scan_field field;
 
 					result = svf_add_statemove(loop_state);
+					if (result != ERROR_OK)
+						return result;
 					jtag_add_clocks(loop_clocks);
 					jtag_add_sleep(loop_usecs);
 
@@ -1003,7 +1019,11 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 			/* upon error, return the TAPs to a reasonable state */
 			result = svf_add_statemove(TAP_IDLE);
+			if (result != ERROR_OK)
+				return result;
 			result = jtag_execute_queue();
+			if (result != ERROR_OK)
+				return result;
 			break;
 		}
 	}
