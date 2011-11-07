@@ -1180,7 +1180,6 @@ static int xscale_resume(struct target *target, int current,
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct arm *armv4_5 = &xscale->armv4_5_common;
-	struct breakpoint *breakpoint = target->breakpoints;
 	uint32_t current_pc;
 	int retval;
 	int i;
@@ -1218,6 +1217,7 @@ static int xscale_resume(struct target *target, int current,
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
+		struct breakpoint *breakpoint;
 		breakpoint = breakpoint_find(target,
 				buf_get_u32(armv4_5->pc->value, 0, 32));
 		if (breakpoint != NULL)
@@ -1242,6 +1242,8 @@ static int xscale_resume(struct target *target, int current,
 
 			/* restore banked registers */
 			retval = xscale_restore_banked(target);
+			if (retval != ERROR_OK)
+				return retval;
 
 			/* send resume request */
 			xscale_send_u32(target, 0x30);
@@ -1289,6 +1291,8 @@ static int xscale_resume(struct target *target, int current,
 
 	/* restore banked registers */
 	retval = xscale_restore_banked(target);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
@@ -1462,6 +1466,7 @@ static int xscale_step(struct target *target, int current,
 		if ((retval = arm_simulate_step(target, NULL)) != ERROR_OK)
 			return retval;
 		current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
+		LOG_DEBUG("current pc %" PRIx32, current_pc);
 
 		target->debug_reason = DBG_REASON_SINGLESTEP;
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -1480,6 +1485,8 @@ static int xscale_step(struct target *target, int current,
 	}
 
 	retval = xscale_step_inner(target, current, address, handle_breakpoints);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (breakpoint)
 	{
