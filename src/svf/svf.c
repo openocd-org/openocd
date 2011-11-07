@@ -996,7 +996,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 
 	// for RUNTEST
 	int run_count;
-	float min_time, max_time;
+	float min_time;
 	// for XXR
 	struct svf_xxr_para *xxr_para_tmp;
 	uint8_t **pbuffer_tmp;
@@ -1281,7 +1281,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 				buf_set_buf(svf_para.sdr_para.mask, 0, &svf_mask_buffer[svf_buffer_index], i, svf_para.sdr_para.len);
 				i += svf_para.sdr_para.len;
 				buf_set_buf(svf_para.tdr_para.mask, 0, &svf_mask_buffer[svf_buffer_index], i, svf_para.tdr_para.len);
-				i += svf_para.tdr_para.len;
+
 				// assemble dr check data
 				i = 0;
 				buf_set_buf(svf_para.hdr_para.tdo, 0, &svf_tdo_buffer[svf_buffer_index], i, svf_para.hdr_para.len);
@@ -1379,7 +1379,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 				buf_set_buf(svf_para.sir_para.mask, 0, &svf_mask_buffer[svf_buffer_index], i, svf_para.sir_para.len);
 				i += svf_para.sir_para.len;
 				buf_set_buf(svf_para.tir_para.mask, 0, &svf_mask_buffer[svf_buffer_index], i, svf_para.tir_para.len);
-				i += svf_para.tir_para.len;
+
 				// assemble dr check data
 				i = 0;
 				buf_set_buf(svf_para.hir_para.tdo, 0, &svf_tdo_buffer[svf_buffer_index], i, svf_para.hir_para.len);
@@ -1424,7 +1424,6 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 		// init
 		run_count = 0;
 		min_time = 0;
-		max_time = 0;
 		i = 1;
 
 		// run_state
@@ -1477,6 +1476,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 		// MAXIMUM max_time SEC
 		if (((i + 3) <= num_of_argu) && !strcmp(argus[i], "MAXIMUM") && !strcmp(argus[i + 2], "SEC"))
 		{
+			float max_time = 0;
 			max_time = atof(argus[i + 1]);
 			LOG_DEBUG("\tmax_time = %fs", max_time);
 			i += 3;
