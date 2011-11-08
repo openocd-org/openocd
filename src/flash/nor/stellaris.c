@@ -514,7 +514,7 @@ static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	if (stellaris_info->num_lockbits > 0)
 	{
-		printed = snprintf(buf,
+		snprintf(buf,
 				buf_size,
 				"pagesize: %" PRIi32 ", pages: %d, "
 				"lockbits: %i, pages per lockbit: %i\n",
@@ -522,8 +522,6 @@ static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 				(unsigned) stellaris_info->num_pages,
 				stellaris_info->num_lockbits,
 				(unsigned) stellaris_info->pages_in_lockregion);
-		buf += printed;
-		buf_size -= printed;
 	}
 	return ERROR_OK;
 }
