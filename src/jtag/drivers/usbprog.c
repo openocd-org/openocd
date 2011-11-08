@@ -454,7 +454,6 @@ static void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char 
 		tmp[0] = WRITE_AND_READ;
 		tmp[1] = (char)(send_bits >> 8);	/* high */
 		tmp[2] = (char)(send_bits);			/* low */
-		i = 0;
 
 		for (i = 0; i < loops; i++)
 		{
@@ -555,7 +554,6 @@ static void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buf
 		tmp[0] = WRITE_TDI;
 		tmp[1] = (char)(send_bits >> 8);	/* high */
 		tmp[2] = (char)(send_bits);			/* low */
-		i = 0;
 
 		for (i = 0; i < loops; i++)
 		{
