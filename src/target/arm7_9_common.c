@@ -1607,7 +1607,6 @@ static int arm7_9_restore_context(struct target *target)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;
 	struct reg *reg;
-	struct arm_reg *reg_arch_info;
 	enum arm_mode current_mode = armv4_5->core_mode;
 	int i, j;
 	int dirty;
@@ -1644,13 +1643,14 @@ static int arm7_9_restore_context(struct target *target)
 		for (j = 0; j <= 16; j++)
 		{
 			reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j);
-			reg_arch_info = reg->arch_info;
 			if (reg->dirty == 1)
 			{
 				if (reg->valid == 1)
 				{
 					dirty = 1;
 					LOG_DEBUG("examining dirty reg: %s", reg->name);
+					struct arm_reg *reg_arch_info;
+					reg_arch_info = reg->arch_info;
 					if ((reg_arch_info->mode != ARM_MODE_ANY)
 						&& (reg_arch_info->mode != current_mode)
 						&& !((reg_arch_info->mode == ARM_MODE_USR) && (armv4_5->core_mode == ARM_MODE_SYS))
@@ -1689,8 +1689,6 @@ static int arm7_9_restore_context(struct target *target)
 			for (j = 0; j <= 14; j++)
 			{
 				reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j);
-				reg_arch_info = reg->arch_info;
-
 
 				if (reg->dirty == 1)
 				{
@@ -1712,6 +1710,7 @@ static int arm7_9_restore_context(struct target *target)
 			}
 
 			reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16);
+			struct arm_reg *reg_arch_info;
 			reg_arch_info = reg->arch_info;
 			if ((reg->dirty) && (reg_arch_info->mode != ARM_MODE_ANY))
 			{
@@ -1823,7 +1822,6 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *armv4_5 = &arm7_9->armv4_5_common;
-	struct breakpoint *breakpoint = target->breakpoints;
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int err, retval = ERROR_OK;
 
@@ -1850,6 +1848,7 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
+		struct breakpoint *breakpoint;
 		breakpoint = breakpoint_find(target,
 				buf_get_u32(armv4_5->pc->value, 0, 32));
 		if (breakpoint != NULL)
@@ -2135,7 +2134,6 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 		int num, enum arm_mode mode)
 {
 	uint32_t* reg_p[16];
-	uint32_t value;
 	int retval;
 	struct arm_reg *areg = r->arch_info;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -2159,6 +2157,7 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
 
+	uint32_t value = 0;
 	if ((num >= 0) && (num <= 15))
 	{
 		/* read a normal core register */
