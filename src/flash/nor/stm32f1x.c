@@ -1107,8 +1107,14 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	LOG_INFO("flash size = %dkbytes", num_pages);
 
+	/* did we assign # of pages? */
+	assert(num_pages != 0xffff);
+
 	/* calculate numbers of pages */
 	num_pages /= (page_size / 1024);
+
+	/* check that calculation result makes sense */
+	assert(num_pages > 0);
 
 	if (bank->sectors)
 	{
