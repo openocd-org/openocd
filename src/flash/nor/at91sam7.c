@@ -1168,13 +1168,10 @@ static int get_at91sam7_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size,
+	snprintf(buf, buf_size,
 		" Securitybit: %i | Nvmbits(%i): %i 0x%1.1x\n",
 		at91sam7_info->securitybit, at91sam7_info->num_nvmbits,
 		at91sam7_info->num_nvmbits_on, at91sam7_info->nvmbits);
-
-	buf += printed;
-	buf_size -= printed;
 
 	return ERROR_OK;
 }
