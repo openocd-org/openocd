@@ -608,6 +608,10 @@ static int buspirate_tap_execute(void)
 	}
 
 	ret = buspirate_serial_read(buspirate_fd, tmp, bytes_to_send + 3);
+	if (ret != bytes_to_send + 3) {
+		LOG_ERROR("error reading");
+		return ERROR_FAIL;
+	}
 	in_buf = (uint8_t *)(&tmp[3]);
 
 	/* parse the scans */
@@ -743,6 +747,10 @@ static void buspirate_jtag_enable(int fd)
 				cmd_sent = 1;
 				tmp[0] = CMD_ENTER_OOCD;
 				ret = buspirate_serial_write(fd, tmp, 1);
+				if (ret != 1) {
+					LOG_ERROR("error reading");
+					exit(-1);
+				}
 			}
 		} else if (strncmp(tmp, "OCD1", 4) == 0)
 			done = 1;
