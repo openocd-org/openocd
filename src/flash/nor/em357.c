@@ -757,10 +757,7 @@ static int em357_auto_probe(struct flash_bank *bank)
 
 static int get_em357_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	int printed;
-	printed = snprintf(buf, buf_size, "em357\n");
-	buf += printed;
-	buf_size -= printed;
+	snprintf(buf, buf_size, "em357\n");
 	return ERROR_OK;
 }
 
