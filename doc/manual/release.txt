@@ -329,7 +329,7 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
 	configures the process.
   -# Run <code>tools/release.sh stage</code> to create an @c archives
 	directory with the release data, including MD5 and SHA1
-	checksum files (which are used with Berlios).
+	checksum files.
   -# Sanity check at least one of those archives, by extracting and
      configuring its contents, using them to build a copy of OpenOCD,
      and verifying that the result prints the correct release version
@@ -357,13 +357,6 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
        - .zip: Windows
        - For openocd.pdf just associate it with the right release notes.
      -# Create an SF.net project news update.
-    - Berlios:
-     -# Provide @c NEWS file, as requested.
-     -# Upload the release files via FTP to ftp://ftp.berlios.de/incoming/
-     -# Edit descriptions for each file (one at a time)  Note that Berlios
-	does not automatically checksum files, and it uses a very old
-	version of the SourceForge code with user interface issues.
-     -# Click button to send E-mail Release Notice.
   -# Depending on how paranoid you're feeling today, verify the images by
      downloading them from the websites and making sure there are no
      differences between the downloaded copies and your originals.
@@ -372,10 +365,9 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
           User's Guide, and HTML for the developer's guide ... you can
 	  instantiate a shell.sourceforge.net instance and set up symlinks
 	  from your home directory, to simplify this process.
-     -# (How to update the Berlios web site with the same data?)
   -# Post announcement e-mail to the openocd-development list.
   -# optionally:
-     -# Post an update on the Berlios blog (if it lets you)
+     -# Post an update on the OpenOCD blog.
      -# Announce updates on freshmeat.net and other trackers.
      -# Submit updates to news feeds (e.g. Digg, Reddit, etc.).
 -# Resume normal development on mainline, by opening the merge window for
