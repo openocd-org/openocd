@@ -347,7 +347,6 @@ static int image_ihex_buffer_complete_inner(struct image *image, char *lpszLine,
 		}
 
 		sscanf(&lpszLine[bytes_read], "%2" SCNx32 , &checksum);
-		bytes_read += 2;
 
 		if ((uint8_t)checksum != (uint8_t)(~cal_checksum + 1))
 		{
@@ -546,9 +545,7 @@ static int image_elf_read_section(struct image *image, int section, uint32_t off
 			LOG_ERROR("cannot read ELF segment content, read failed");
 			return retval;
 		}
-		buffer += read_size;
 		size -= read_size;
-		offset += read_size;
 		*size_read += read_size;
 		/* need more data ? */
 		if (!size)
@@ -718,7 +715,6 @@ static int image_mot_buffer_complete_inner(struct image *image, char *lpszLine, 
 		/* account for checksum, will always be 0xFF */
 		sscanf(&lpszLine[bytes_read], "%2" SCNx32 , &checksum);
 		cal_checksum += (uint8_t)checksum;
-		bytes_read += 2;
 
 		if (cal_checksum != 0xFF)
 		{
