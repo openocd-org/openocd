@@ -1345,7 +1345,6 @@ static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint
 		LOG_DEBUG("thisrun_read: %i, bytes_read: %i",
 			  thisrun_read,
 			  (int)bytes_read);
-		receive_pointer += bytes_read;
 	}
 
 	return ERROR_OK;
