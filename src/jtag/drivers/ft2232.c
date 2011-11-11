@@ -177,7 +177,8 @@ static int jtagkey_init(void);
 static int lm3s811_jtag_init(void);
 static int icdi_jtag_init(void);
 static int olimex_jtag_init(void);
-static int flyswatter_init(void);
+static int flyswatter1_init(void);
+static int flyswatter2_init(void);
 static int minimodule_init(void);
 static int turtle_init(void);
 static int comstick_init(void);
@@ -198,7 +199,8 @@ static int xds100v2_init(void);
 static void ftx23_reset(int trst, int srst);
 static void jtagkey_reset(int trst, int srst);
 static void olimex_jtag_reset(int trst, int srst);
-static void flyswatter_reset(int trst, int srst);
+static void flyswatter1_reset(int trst, int srst);
+static void flyswatter2_reset(int trst, int srst);
 static void minimodule_reset(int trst, int srst);
 static void turtle_reset(int trst, int srst);
 static void comstick_reset(int trst, int srst);
@@ -213,7 +215,8 @@ static void xds100v2_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 static void olimex_jtag_blink(void);
-static void flyswatter_jtag_blink(void);
+static void flyswatter1_jtag_blink(void);
+static void flyswatter2_jtag_blink(void);
 static void turtle_jtag_blink(void);
 static void signalyzer_h_blink(void);
 static void ktlink_blink(void);
@@ -260,9 +263,14 @@ static const struct ft2232_layout  ft2232_layouts[] =
 		.blink = olimex_jtag_blink
 	},
 	{ .name = "flyswatter",
-		.init = flyswatter_init,
-		.reset = flyswatter_reset,
-		.blink = flyswatter_jtag_blink
+		.init = flyswatter1_init,
+		.reset = flyswatter1_reset,
+		.blink = flyswatter1_jtag_blink
+	},
+	{ .name = "flyswatter2",
+		.init = flyswatter2_init,
+		.reset = flyswatter2_reset,
+		.blink = flyswatter2_jtag_blink
 	},
 	{ .name = "minimodule",
 		.init = minimodule_init,
@@ -1569,6 +1577,16 @@ static void flyswatter_reset(int trst, int srst)
 	buffer_write(low_output);
 	buffer_write(low_direction);
 	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+}
+
+static void flyswatter1_reset(int trst, int srst)
+{
+	flyswatter_reset(trst, srst);
+}
+
+static void flyswatter2_reset(int trst, int srst)
+{
+	flyswatter_reset(trst, !srst);
 }
 
 static void minimodule_reset(int trst, int srst)
@@ -2911,10 +2929,18 @@ static int olimex_jtag_init(void)
 	return ERROR_OK;
 }
 
-static int flyswatter_init(void)
+static int flyswatter_init(int rev)
 {
 	low_output    = 0x18;
-	low_direction = 0xfb;
+	low_direction = 0x7b;
+
+	if ((rev < 0) || (rev > 3)) {
+		LOG_ERROR("bogus 'flyswatter' revision supplied (%i)", rev);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (rev == 1)
+		low_direction |= 1 << 7;
 
 	/* initialize low byte for jtag */
 	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
@@ -2929,7 +2955,11 @@ static int flyswatter_init(void)
 	nSRSTnOE = 0x00;    /* no output enable for nSRST */
 
 	high_output    = 0x00;
-	high_direction = 0x0c;
+
+	if (rev == 1)
+		high_direction = 0x0c;
+	else
+		high_direction = 0x01;
 
 	/* turn red LED3 on, LED2 off */
 	high_output |= 0x08;
@@ -2942,6 +2972,16 @@ static int flyswatter_init(void)
 	}
 
 	return ERROR_OK;
+}
+
+static int flyswatter1_init(void)
+{
+	return flyswatter_init(1);
+}
+
+static int flyswatter2_init(void)
+{
+	return flyswatter_init(2);
 }
 
 static int minimodule_init(void)
@@ -3251,16 +3291,27 @@ static void olimex_jtag_blink(void)
 	buffer_write(high_direction);
 }
 
-static void flyswatter_jtag_blink(void)
+static void flyswatter_jtag_blink(unsigned char led)
+{
+	buffer_write(0x82);
+	buffer_write(high_output ^ led);
+	buffer_write(high_direction);
+}
+
+static void flyswatter1_jtag_blink(void)
 {
 	/*
 	 * Flyswatter has two LEDs connected to ACBUS2 and ACBUS3
 	 */
-	high_output ^= 0x0c;
+	flyswatter_jtag_blink(0xc);
+}
 
-	buffer_write(0x82);
-	buffer_write(high_output);
-	buffer_write(high_direction);
+static void flyswatter2_jtag_blink(void)
+{
+	/*
+	 * Flyswatter2 only has one LED connected to ACBUS2
+	 */
+	flyswatter_jtag_blink(0x4);
 }
 
 static void turtle_jtag_blink(void)
