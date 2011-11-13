@@ -1,6 +1,9 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Mathias Kuester                                  *
+ *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   kesmtp@freenet.de                                                     *
+ *                                                                         *
+ *   Copyright (C) 2011 sleep(5) ltd                                       *
+ *   tomas@sleepfive.com                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,6 +26,10 @@
 
 #include "imp.h"
 #include "helper/binarybuffer.h"
+
+struct kinetis_flash_bank {
+	uint32_t nvm_start;
+};
 
 static int kinetis_get_master_bank(struct flash_bank *bank,
 				   struct flash_bank **master_bank)
@@ -60,6 +67,8 @@ static int kinetis_update_bank_info(struct flash_bank *bank)
 
 FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 {
+	struct kinetis_flash_bank *bank_info;
+
 	if (CMD_ARGC < 6) {
 		LOG_ERROR("incomplete flash_bank kinetis configuration %d",
 			  CMD_ARGC);
@@ -67,6 +76,12 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 	}
 
 	LOG_INFO("add flash_bank kinetis %s", bank->name);
+
+	bank_info = malloc(sizeof(struct kinetis_flash_bank));
+
+	memset(bank_info, 0, sizeof(struct kinetis_flash_bank));
+
+	bank->driver_priv = bank_info;
 
 	return ERROR_OK;
 }
@@ -264,9 +279,11 @@ static int kinetis_write(struct flash_bank *bank, uint8_t * buffer,
 			 uint32_t offset, uint32_t count)
 {
 	struct flash_bank *master_bank;
-	unsigned int i, result, fallback = 0;
+	unsigned int i, result, fallback = 0, nvm = 0;
 	uint8_t buf[8];
 	uint32_t wc, w0 = 0, w1 = 0, w2 = 0;
+	struct kinetis_flash_bank * kbank = (struct kinetis_flash_bank *)
+		bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -279,30 +296,47 @@ static int kinetis_write(struct flash_bank *bank, uint8_t * buffer,
 		return result;
 	}
 
-	/* make flex ram available */
-	w0 = (0x81 << 24) | 0x00ff0000;
+	if (offset >= kbank->nvm_start)
+		nvm = 1;
 
-	result = kinetis_ftfl_command(bank, w0, w1, w2);
-
-	if (result != ERROR_OK) {
-		return ERROR_FLASH_OPERATION_FAILED;
+	if (!nvm && (offset + count) > kbank->nvm_start) {
+		/* we could flash this in two goes, but if the segment
+		   spans across the pflash/nvm boundary, something is probably
+		   not right.
+		*/
+		LOG_ERROR("Segment spans NVM boundary");
+		return ERROR_FLASH_DST_OUT_OF_BANK;
 	}
 
-	/* check if ram ready */
-	result = target_read_memory(bank->target, 0x40020001, 1, 1, buf);
+	if (nvm) {
+		LOG_DEBUG("flash write into NVM @%08X", offset);
 
-	if (result != ERROR_OK) {
-		return result;
-	}
+		/* make flex ram available */
+		w0 = (0x81 << 24) | 0x00ff0000;
 
-	if (!(buf[0] & (1 << 1))) {
-		/* fallback to longword write */
+		result = kinetis_ftfl_command(bank, w0, w1, w2);
+
+		if (result != ERROR_OK)
+			return ERROR_FLASH_OPERATION_FAILED;
+
+		/* check if ram ready */
+		result = target_read_memory(bank->target, 0x40020001, 1, 1, buf);
+
+		if (result != ERROR_OK)
+			return result;
+
+		if (!(buf[0] & (1 << 1))) {
+			/* fallback to longword write */
+			fallback = 1;
+
+		       LOG_WARNING("ram not ready, fallback to slow longword write (FCNFG: %02X)",
+				   buf[0]);
+		}
+	} else {
+		LOG_DEBUG("flash write into PFLASH @08%X", offset);
 		fallback = 1;
-
-		LOG_WARNING
-		    ("ram not ready, fallback to slow longword write (FCNFG: %02X)",
-		     buf[0]);
 	}
+
 
 	/* program section command */
 	if (fallback == 0) {
@@ -364,7 +398,7 @@ static int kinetis_probe(struct flash_bank *bank)
 	int result, i;
 	uint8_t buf[4];
 	uint32_t sim_sdid, sim_fcfg1, sim_fcfg2, offset = 0;
-	uint32_t nvm_size, pf_size, flash_size, ee_size;
+	uint32_t nvm_size, pf_size, ee_size;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -425,9 +459,6 @@ static int kinetis_probe(struct flash_bank *bank)
 		break;
 	}
 
-	/* pf_size is the total size */
-	flash_size = pf_size - nvm_size;
-
 	switch ((sim_fcfg1 >> 16) & 0x0f) {
 	case 0x02:
 		ee_size = 4 * 1024;
@@ -458,11 +489,14 @@ static int kinetis_probe(struct flash_bank *bank)
 		break;
 	}
 
+	((struct kinetis_flash_bank *) bank->driver_priv)->nvm_start =
+		pf_size - nvm_size;
+
 	LOG_DEBUG("NVM: %d PF: %d EE: %d BL1: %d", nvm_size, pf_size, ee_size,
 		  (sim_fcfg2 >> 23) & 1);
 
-	if (flash_size != bank->size) {
-		LOG_WARNING("flash size is different %d != %d", flash_size,
+	if (pf_size != bank->size) {
+		LOG_WARNING("flash size is different %d != %d", pf_size,
 			    bank->size);
 	}
 
