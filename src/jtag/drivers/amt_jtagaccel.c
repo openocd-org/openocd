@@ -68,34 +68,26 @@ static const int addr_mode = IEEE1284_MODE_EPP | IEEE1284_ADDR;
 
 #define AMT_AW(val) \
 	do { \
-		int __retval; \
-		\
-		__retval = ioctl(device_handle, PPSETMODE, &addr_mode); \
-		__retval = write(device_handle, &val, 1); \
+		ioctl(device_handle, PPSETMODE, &addr_mode); \
+		write(device_handle, &val, 1); \
 	} while (0)
 #define AMT_AR(val) \
 	do { \
-		int __retval; \
-		\
-		__retval = ioctl(device_handle, PPSETMODE, &addr_mode); \
-		__retval = read(device_handle, &val, 1); \
+		ioctl(device_handle, PPSETMODE, &addr_mode); \
+		read(device_handle, &val, 1); \
 	} while (0)
 
 static const int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA;
 
 #define AMT_DW(val) \
 	do { \
-		int __retval; \
-		\
-		__retval = ioctl(device_handle, PPSETMODE, &data_mode); \
-		__retval = write(device_handle, &val, 1); \
+		ioctl(device_handle, PPSETMODE, &data_mode); \
+		write(device_handle, &val, 1); \
 	} while (0)
 #define AMT_DR(val) \
 	do { \
-		int __retval; \
-		\
-		__retval = ioctl(device_handle, PPSETMODE, &data_mode); \
-		__retval = read(device_handle, &val, 1); \
+		ioctl(device_handle, PPSETMODE, &data_mode); \
+		read(device_handle, &val, 1); \
 	} while (0)
 
 #else
