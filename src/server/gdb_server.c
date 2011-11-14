@@ -1741,7 +1741,7 @@ static int gdb_memory_map(struct connection *connection,
 	qsort(banks, target_flash_banks, sizeof(struct flash_bank *),
 			compare_bank);
 
-	for (i = 0; i < flash_get_bank_count(); i++) {
+	for (i = 0; i < target_flash_banks; i++) {
 		int j;
 		unsigned sector_size = 0;
 		uint32_t start;
@@ -2451,7 +2451,7 @@ static int gdb_target_start(struct target *target, const char *port)
 		{
 			curr = head->target;
 			if (curr != target) curr->gdb_service = gdb_service;
-			head = head->next;	
+			head = head->next;
 		}
 	}
 	return ret;
@@ -2462,7 +2462,7 @@ static int gdb_target_add_one(struct target *target)
 	/*  one gdb instance per smp list */
 	if ((target->smp) && (target->gdb_service)) return ERROR_OK;
 	int retval = gdb_target_start(target, gdb_port_next);
-	if (retval == ERROR_OK) 
+	if (retval == ERROR_OK)
 	{
 		long portnumber;
 		/* If we can parse the port number
