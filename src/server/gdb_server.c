@@ -1058,12 +1058,12 @@ static int gdb_get_registers_packet(struct connection *connection,
 
 	for (i = 0; i < reg_list_size; i++)
 	{
-		reg_packet_size += reg_list[i]->size;
+		reg_packet_size += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
 	}
 
 	assert(reg_packet_size > 0);
 
-	reg_packet = malloc(DIV_ROUND_UP(reg_packet_size, 8) * 2);
+	reg_packet = malloc(reg_packet_size);
 	reg_packet_p = reg_packet;
 
 	for (i = 0; i < reg_list_size; i++)
@@ -1077,13 +1077,13 @@ static int gdb_get_registers_packet(struct connection *connection,
 #ifdef _DEBUG_GDB_IO_
 	{
 		char *reg_packet_p;
-		reg_packet_p = strndup(reg_packet, DIV_ROUND_UP(reg_packet_size, 8) * 2);
+		reg_packet_p = strndup(reg_packet, reg_packet_size);
 		LOG_DEBUG("reg_packet: %s", reg_packet_p);
 		free(reg_packet_p);
 	}
 #endif
 
-	gdb_put_packet(connection, reg_packet, DIV_ROUND_UP(reg_packet_size, 8) * 2);
+	gdb_put_packet(connection, reg_packet, reg_packet_size);
 	free(reg_packet);
 
 	free(reg_list);
