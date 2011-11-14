@@ -314,7 +314,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	/* see contib/loaders/flash/stm32x.s for src */
+	/* see contrib/loaders/flash/stm32f2x.S for src */
 
 	static const uint16_t stm32x_flash_write_code_16[] = {
 //	00000000 <write>:
