@@ -317,29 +317,28 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	/* see contrib/loaders/flash/stm32f2x.S for src */
 
 	static const uint16_t stm32x_flash_write_code_16[] = {
-//	00000000 <write>:
-	   0x4b07, //     	ldr	r3, [pc, #28]	(20 <STM32_PROG16>)
-	   0x6123,  //    	str	r3, [r4, #16]
-       0xf830, 0x3b02, 	//ldrh.w	r3, [r0], #2
-       0xf821, 0x3b02, 	//strh.w	r3, [r1], #2
+		/* 00000000 <write>: */
+		0x4b07,				/* ldr		r3, [pc, #28] (20 <STM32_PROG16>) */
+		0x6123,				/* str		r3, [r4, #16] */
+		0xf830, 0x3b02,		/* ldrh.w	r3, [r0], #2 */
+		0xf821, 0x3b02,		/* strh.w	r3, [r1], #2 */
 
-	//0000000c <busy>:
-	0x68e3,      	//ldr	r3, [r4, #12]
-0xf413, 0x3f80, // 	tst.w	r3, #65536	; 0x10000
-0xd0fb,      	//beq.n	c <busy>
-0xf013, 0x0ff0, 	//tst.w	r3, #240	; 0xf0
-0xd101,      	//bne.n	1e <exit>
-0x3a01,      	//subs	r2, #1
-0xd1f0,      	//bne.n	0 <write>
-	            	   	//0000001e <exit>:
-	0xbe00, //      	bkpt	0x0000
+		/* 0000000c <busy>: */
+		0x68e3,				/* ldr		r3, [r4, #12] */
+		0xf413, 0x3f80,		/* tst.w	r3, #65536	; 0x10000 */
+		0xd0fb,				/* beq.n	c <busy> */
+		0xf013, 0x0ff0,		/* tst.w	r3, #240	; 0xf0 */
+		0xd101,				/* bne.n	1e <exit> */
+		0x3a01,				/* subs		r2, #1 */
+		0xd1f0,				/* bne.n	0 <write> */
+							/* 0000001e <exit>: */
+		0xbe00,				/* bkpt		0x0000 */
 
-	//00000020 <STM32_PROG16>:
-	0x0101, 0x0000, // 	.word	0x00000101
-
+		/* 00000020 <STM32_PROG16>: */
+		0x0101, 0x0000,		/* .word	0x00000101 */
 	};
 
-	// Flip endian
+	/* Flip endian */
 	uint8_t stm32x_flash_write_code[sizeof(stm32x_flash_write_code_16)*2];
 	for (unsigned i = 0; i < sizeof(stm32x_flash_write_code_16) / 2; i++)
 	{
