@@ -122,7 +122,7 @@ static void bitq_state_move(tap_state_t new_state)
 	}
 
 	tms_scan = tap_get_tms_path(tap_get_state(), new_state);
-	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
+	int tms_count = tap_get_tms_path_len(tap_get_state(), new_state);
 
 	for (i = 0; i < tms_count; i++)
 	{
