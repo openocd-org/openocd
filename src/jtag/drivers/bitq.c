@@ -44,7 +44,6 @@ static struct bitq_state bitq_in_state;
 void bitq_in_proc(void)
 {
 	/* static information preserved between calls to increase performance */
-	static uint8_t*    in_buff;  /* pointer to buffer for scanned data */
 	static int    in_idx;   /* index of byte being scanned */
 	static uint8_t     in_mask;  /* mask of next bit to be scanned */
 
@@ -68,7 +67,6 @@ void bitq_in_proc(void)
 						/* initialize field scanning */
 						in_mask = 0x01;
 						in_idx  = 0;
-						in_buff = field->in_value;
 					}
 
 					/* field scanning */
@@ -82,9 +80,9 @@ void bitq_in_proc(void)
 							return;
 						}
 						if (in_mask == 0x01)
-							in_buff[in_idx] = 0;
+							field->in_value[in_idx] = 0;
 						if (tdo)
-							in_buff[in_idx] |= in_mask;
+							field->in_value[in_idx] |= in_mask;
 						if (in_mask == 0x80)
 						{
 							in_mask = 0x01;
