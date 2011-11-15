@@ -37,12 +37,8 @@ struct bitq_state {
 };
 static struct bitq_state bitq_in_state;
 
-static uint8_t* bitq_in_buffer;                     /* buffer dynamically reallocated as needed */
-static int     bitq_in_bufsize = 32; /* min. buffer size */
-
 /*
  * input queue processing does not use jtag_read_buffer() to avoid unnecessary overhead
- * also the buffer for incomming data is reallocated only if necessary
  * no parameters, makes use of stored state information
  */
 void bitq_in_proc(void)
@@ -72,32 +68,7 @@ void bitq_in_proc(void)
 						/* initialize field scanning */
 						in_mask = 0x01;
 						in_idx  = 0;
-						if (field->in_value)
-							in_buff = field->in_value;
-						else
-						{
-							/* buffer reallocation needed? */
-							if (field->num_bits > bitq_in_bufsize * 8)
-							{
-								/* buffer previously allocated? */
-								if (bitq_in_buffer != NULL)
-								{
-									/* free it */
-									free(bitq_in_buffer);
-									bitq_in_buffer = NULL;
-								}
-								/* double the buffer size until it fits */
-								while (field->num_bits > bitq_in_bufsize * 8)
-									bitq_in_bufsize *= 2;
-							}
-							/* if necessary, allocate buffer and check for malloc error */
-							if (bitq_in_buffer == NULL && (bitq_in_buffer = malloc(bitq_in_bufsize)) == NULL)
-							{
-								LOG_ERROR("malloc error");
-								exit(-1);
-							}
-							in_buff = (void*) bitq_in_buffer;
-						}
+						in_buff = field->in_value;
 					}
 
 					/* field scanning */
@@ -390,9 +361,4 @@ int bitq_execute_queue(void)
 
 void bitq_cleanup(void)
 {
-	if (bitq_in_buffer != NULL)
-	{
-		free(bitq_in_buffer);
-		bitq_in_buffer = NULL;
-	}
 }
