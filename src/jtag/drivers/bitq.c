@@ -32,7 +32,7 @@ struct bitq_interface* bitq_interface;       /* low level bit queue interface */
 struct bitq_state {
 	struct jtag_command *cmd; /* command currently processed */
 	int field_idx; /* index of field currently being processed */
-	int bit_pos; /* position of bit curently being processed */
+	int bit_pos; /* position of bit currently being processed */
 	int status; /* processing status */
 };
 static struct bitq_state bitq_in_state;
@@ -43,10 +43,6 @@ static struct bitq_state bitq_in_state;
  */
 void bitq_in_proc(void)
 {
-	/* static information preserved between calls to increase performance */
-	static int    in_idx;   /* index of byte being scanned */
-	static uint8_t     in_mask;  /* mask of next bit to be scanned */
-
 	struct scan_field* field;
 	int           tdo;
 
@@ -62,16 +58,14 @@ void bitq_in_proc(void)
 				field = &bitq_in_state.cmd->cmd.scan->fields[bitq_in_state.field_idx];
 				if (field->in_value)
 				{
-					if (bitq_in_state.bit_pos == 0)
-					{
-						/* initialize field scanning */
-						in_mask = 0x01;
-						in_idx  = 0;
-					}
-
 					/* field scanning */
 					while (bitq_in_state.bit_pos < field->num_bits)
 					{
+						/* index of byte being scanned */
+						int in_idx = bitq_in_state.bit_pos / 8;
+						/* mask of next bit to be scanned */
+						uint8_t in_mask = 1 << (bitq_in_state.bit_pos % 8);
+
 						if ((tdo = bitq_interface->in()) < 0)
 						{
 #ifdef _DEBUG_JTAG_IO_
@@ -83,13 +77,6 @@ void bitq_in_proc(void)
 							field->in_value[in_idx] = 0;
 						if (tdo)
 							field->in_value[in_idx] |= in_mask;
-						if (in_mask == 0x80)
-						{
-							in_mask = 0x01;
-							in_idx++;
-						}
-						else
-							in_mask <<= 1;
 						bitq_in_state.bit_pos++;
 					}
 				}
