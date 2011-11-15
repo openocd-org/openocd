@@ -43,9 +43,6 @@ static struct bitq_state bitq_in_state;
  */
 void bitq_in_proc(void)
 {
-	struct scan_field* field;
-	int           tdo;
-
 	/* loop through the queue */
 	while (bitq_in_state.cmd)
 	{
@@ -55,6 +52,7 @@ void bitq_in_proc(void)
 			/* loop through the fields */
 			while (bitq_in_state.field_idx < bitq_in_state.cmd->cmd.scan->num_fields)
 			{
+				struct scan_field *field;
 				field = &bitq_in_state.cmd->cmd.scan->fields[bitq_in_state.field_idx];
 				if (field->in_value)
 				{
@@ -66,7 +64,8 @@ void bitq_in_proc(void)
 						/* mask of next bit to be scanned */
 						uint8_t in_mask = 1 << (bitq_in_state.bit_pos % 8);
 
-						if ((tdo = bitq_interface->in()) < 0)
+						int tdo = bitq_interface->in();
+						if (tdo < 0)
 						{
 #ifdef _DEBUG_JTAG_IO_
 							LOG_DEBUG("bitq in EOF");
