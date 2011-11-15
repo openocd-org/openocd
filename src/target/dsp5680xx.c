@@ -1491,38 +1491,48 @@ int dsp5680xx_f_erase(struct target * target, int first, int last){
 *  r2: FM module base address.
 *  r3: Destination address in flash.
 *
-*		hfm_wait:                                           // wait for command to finish
-*			brclr	#0x40,x:(r2+0x13),hfm_wait
+*		hfm_wait:                                           // wait for buffer empty
+*			brclr	#0x80,x:(r2+0x13),hfm_wait
 *		rx_check:					    // wait for input buffer full
 *			brclr	#0x01,x:(r0-2),rx_check
 *			move.w	x:(r0),y0		   	    // read from Rx buffer
 *			move.w	y0,p:(r3)+
 *			move.w	#0x20,x:(r2+0x14)		    // write PGM command
 *			move.w	#0x80,x:(r2+0x13)		    // start the command
-*                      brclr       #0x20,X:(R2+0x13),accerr_check  // protection violation check
-*                      bfset       #0x20,X:(R2+0x13)               // clear pviol
+*			move.w  X:(R2+0x13),A		            // Read USTAT register
+*                      brclr       #0x20,A,accerr_check             // protection violation check
+*                      bfset       #0x20,X:(R2+0x13)                // clear pviol
 *                      bra         hfm_wait
 *              accerr_check:
-*                      brclr       #0x10,X:(R2+0x13),hfm_wait      // access error check
-*                      bfset       #0x10,X:(R2+0x13)               // clear accerr
+*                      brclr       #0x10,A,hfm_wait                 // access error check
+*                      bfset       #0x10,X:(R2+0x13)                // clear accerr
 *			bra	    hfm_wait		            // loop
-*0x00000073  0x8A460013407D         brclr       #0x40,X:(R2+0x13),*+0
-*0x00000076  0xE700                 nop
-*0x00000077  0xE700                 nop
-*0x00000078  0x8A44FFFE017B         brclr       #1,X:(R0-2),*-2
-*0x0000007B  0xE700                 nop
-*0x0000007C  0xF514                 move.w      X:(R0),Y0
-*0x0000007D  0x8563                 move.w      Y0,P:(R3)+
-*0x0000007E  0x864600200014         move.w      #0x20,X:(R2+0x14)
-*0x00000081  0x864600800013         move.w      #0x80,X:(R2+0x13)
-*0x00000084  0x8A4600132004         brclr       #0x20,X:(R2+0x13),*+7
-*0x00000087  0x824600130020         bfset       #0x20,X:(R2+0x13)
-*0x0000008A  0xA968                 bra         *-23
-*0x0000008B  0x8A4600131065         brclr       #0x10,X:(R2+0x13),*-24
-*0x0000008E  0x824600130010         bfset       #0x10,X:(R2+0x13)
-*0x00000091  0xA961                 bra         *-30
+*0x00000000  0x8A460013807D         brclr       #0x80,X:(R2+0x13),*+0
+*0x00000003  0xE700                 nop
+*0x00000004  0xE700                 nop
+*0x00000005  0x8A44FFFE017B         brclr       #1,X:(R0-2),*-2
+*0x00000008  0xE700                 nop
+*0x00000009  0xF514                 move.w      X:(R0),Y0
+*0x0000000A  0x8563                 move.w      Y0,P:(R3)+
+*0x0000000B  0x864600200014         move.w      #32,X:(R2+0x14)
+*0x0000000E  0x864600800013         move.w      #128,X:(R2+0x13)
+*0x00000011  0xF0420013             move.w      X:(R2+0x13),A
+*0x00000013  0x8B402004             brclr       #0x20,A,*+6
+*0x00000015  0x824600130020         bfset       #0x20,X:(R2+0x13)
+*0x00000018  0xA967                 bra         *-24
+*0x00000019  0x8B401065             brclr       #0x10,A,*-25
+*0x0000001B  0x824600130010         bfset       #0x10,X:(R2+0x13)
+*0x0000001E  0xA961                 bra         *-30
 */
-const uint16_t pgm_write_pflash[] = {0x8A46,0x0013,0x407D,0xE700,0xE700,0x8A44,0xFFFE,0x017B,0xE700,0xF514,0x8563,0x8646,0x0020,0x0014,0x8646,0x0080,0x0013,0x8A46,0x0013,0x2004,0x8246,0x0013,0x0020,0xA968,0x8A46,0x0013,0x1065,0x8246,0x0013,0x0010,0xA961};
+
+const uint16_t pgm_write_pflash[] = {0x8A46, 0x0013, 0x807D, 0xE700,\
+				     0xE700, 0x8A44, 0xFFFE, 0x017B,\
+				     0xE700, 0xF514, 0x8563, 0x8646,\
+				     0x0020, 0x0014, 0x8646, 0x0080,\
+				     0x0013, 0xF042, 0x0013, 0x8B40,\
+				     0x2004, 0x8246, 0x0013, 0x0020,\
+				     0xA967, 0x8B40, 0x1065, 0x8246,\
+				     0x0013, 0x0010, 0xA961};
 const uint32_t pgm_write_pflash_length = 31;
 
 int dsp5680xx_f_wr(struct target * target, uint8_t *buffer, uint32_t address, uint32_t count, int is_flash_lock){
