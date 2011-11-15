@@ -91,8 +91,19 @@ add_help_text measure_clk "Runs a test to measure the JTAG clk. Useful with RCLK
 #
 # FIXME phase these aids out after about April 2011
 #
-proc jtag_khz args { eval adapter_khz $args }
-proc jtag_nsrst_delay args { eval adapter_nsrst_delay $args }
-proc jtag_nsrst_assert_width args { eval adapter_nsrst_assert_width $args }
+proc jtag_khz args {
+	echo "DEPRECATED! use 'adapter_khz' not 'jtag_khz'"
+	eval adapter_khz $args
+}
+
+proc jtag_nsrst_delay args {
+	echo "DEPRECATED! use 'adapter_nsrst_delay' not 'jtag_nsrst_delay'"
+	eval adapter_nsrst_delay $args
+}
+
+proc jtag_nsrst_assert_width args {
+	echo "DEPRECATED! use 'adapter_nsrst_assert_width' not 'jtag_nsrst_assert_width'"
+	eval adapter_nsrst_assert_width $args
+}
 
 # END MIGRATION AIDS
