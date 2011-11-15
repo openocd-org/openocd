@@ -41,7 +41,7 @@ static struct bitq_state bitq_in_state;
  * input queue processing does not use jtag_read_buffer() to avoid unnecessary overhead
  * no parameters, makes use of stored state information
  */
-void bitq_in_proc(void)
+static void bitq_in_proc(void)
 {
 	/* loop through the queue */
 	while (bitq_in_state.cmd)
@@ -90,7 +90,7 @@ void bitq_in_proc(void)
 }
 
 
-void bitq_io(int tms, int tdi, int tdo_req)
+static void bitq_io(int tms, int tdi, int tdo_req)
 {
 	bitq_interface->out(tms, tdi, tdo_req);
 	/* check and process the input queue */
@@ -99,7 +99,7 @@ void bitq_io(int tms, int tdi, int tdo_req)
 }
 
 
-void bitq_end_state(tap_state_t state)
+static void bitq_end_state(tap_state_t state)
 {
 	if (!tap_is_state_stable(state))
 	{
@@ -110,7 +110,7 @@ void bitq_end_state(tap_state_t state)
 }
 
 
-void bitq_state_move(tap_state_t new_state)
+static void bitq_state_move(tap_state_t new_state)
 {
 	int i = 0;
 	uint8_t  tms_scan;
@@ -134,7 +134,7 @@ void bitq_state_move(tap_state_t new_state)
 }
 
 
-void bitq_path_move(struct pathmove_command* cmd)
+static void bitq_path_move(struct pathmove_command *cmd)
 {
 	int i;
 
@@ -158,7 +158,7 @@ void bitq_path_move(struct pathmove_command* cmd)
 }
 
 
-void bitq_runtest(int num_cycles)
+static void bitq_runtest(int num_cycles)
 {
 	int i;
 
@@ -176,7 +176,7 @@ void bitq_runtest(int num_cycles)
 }
 
 
-void bitq_scan_field(struct scan_field* field, int do_pause)
+static void bitq_scan_field(struct scan_field *field, int do_pause)
 {
 	int bit_cnt;
 	int tdo_req;
@@ -228,7 +228,7 @@ void bitq_scan_field(struct scan_field* field, int do_pause)
 }
 
 
-void bitq_scan(struct scan_command* cmd)
+static void bitq_scan(struct scan_command *cmd)
 {
 	int i;
 
