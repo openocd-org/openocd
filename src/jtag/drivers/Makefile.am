@@ -20,6 +20,16 @@ if USB
 DRIVERFILES += usb_common.c
 endif
 
+if USE_LIBUSB1
+DRIVERFILES += libusb1_common.c
+else
+
+if USE_LIBUSB0
+DRIVERFILES += libusb0_common.c
+endif
+
+endif
+
 if BITBANG
 DRIVERFILES += bitbang.c
 endif

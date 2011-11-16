@@ -81,26 +81,13 @@ endif
 endif
 endif
 
-if USBPROG
-LIBUSB = -lusb
-else
-if JLINK
-LIBUSB = -lusb
-else
-if RLINK
-LIBUSB = -lusb
-else
-if ULINK
-LIBUSB = -lusb
-else
-if VSLLINK
-LIBUSB = -lusb
-else
 LIBUSB =
+if USE_LIBUSB1
+LIBUSB += -lusb-1.0
 endif
-endif
-endif
-endif
+
+if USE_LIBUSB0
+LIBUSB += -lusb
 endif
 
 libopenocd_la_LIBADD = \
