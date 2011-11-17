@@ -955,7 +955,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	struct target *target = bank->target;
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
-	uint16_t num_pages;
+	uint16_t flash_size_in_kb;
 	uint32_t device_id;
 	int page_size;
 	uint32_t base_address = 0x08000000;
@@ -970,12 +970,12 @@ static int stm32x_probe(struct flash_bank *bank)
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
 	/* get flash size from target. */
-	retval = target_read_u16(target, 0x1FFFF7E0, &num_pages);
+	retval = target_read_u16(target, 0x1FFFF7E0, &flash_size_in_kb);
 	if (retval != ERROR_OK)
 	{
 		LOG_WARNING("failed reading flash size, default to max target family");
 		/* failed reading flash size, default to max target family */
-		num_pages = 0xffff;
+		flash_size_in_kb = 0xffff;
 	}
 
 	if ((device_id & 0x7ff) == 0x410)
@@ -986,11 +986,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors incorrect on revA */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
-			num_pages = 128;
+			flash_size_in_kb = 128;
 		}
 	}
 	else if ((device_id & 0x7ff) == 0x412)
@@ -1001,11 +1001,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors incorrect on revA */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 32k flash");
-			num_pages = 32;
+			flash_size_in_kb = 32;
 		}
 	}
 	else if ((device_id & 0x7ff) == 0x414)
@@ -1016,11 +1016,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 2;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors incorrect on revZ */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash");
-			num_pages = 512;
+			flash_size_in_kb = 512;
 		}
 	}
 	else if ((device_id & 0x7ff) == 0x418)
@@ -1031,11 +1031,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 2;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors incorrect on revZ */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash");
-			num_pages = 256;
+			flash_size_in_kb = 256;
 		}
 	}
 	else if ((device_id & 0x7ff) == 0x420)
@@ -1046,11 +1046,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors may be incorrrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
-			num_pages = 128;
+			flash_size_in_kb = 128;
 		}
 	}
 	else if ((device_id & 0x7ff) == 0x428)
@@ -1061,11 +1061,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors may be incorrrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
-			num_pages = 128;
+			flash_size_in_kb = 128;
 		}
 	}
 
@@ -1078,22 +1078,22 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->has_dual_banks = true;
 
 		/* check for early silicon */
-		if (num_pages == 0xffff)
+		if (flash_size_in_kb == 0xffff)
 		{
 			/* number of sectors may be incorrrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
-			num_pages = 1024;
+			flash_size_in_kb = 1024;
 		}
 
 		/* split reported size into matching bank */
 		if (bank->base != 0x08080000)
 		{
 			/* bank 0 will be fixed 512k */
-			num_pages = 512;
+			flash_size_in_kb = 512;
 		}
 		else
 		{
-			num_pages -= 512;
+			flash_size_in_kb -= 512;
 			/* bank1 also uses a register offset */
 			stm32x_info->register_base = FLASH_REG_BASE_B1;
 			base_address = 0x08080000;
@@ -1105,13 +1105,13 @@ static int stm32x_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO("flash size = %dkbytes", num_pages);
+	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
-	/* did we assign # of pages? */
-	assert(num_pages != 0xffff);
+	/* did we assign flash size? */
+	assert(flash_size_in_kb != 0xffff);
 
 	/* calculate numbers of pages */
-	num_pages /= (page_size / 1024);
+	int num_pages = flash_size_in_kb * 1024 / page_size;
 
 	/* check that calculation result makes sense */
 	assert(num_pages > 0);
