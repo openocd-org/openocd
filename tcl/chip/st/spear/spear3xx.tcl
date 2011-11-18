@@ -120,3 +120,10 @@ proc sp310_emi_init {} {
 	mww 0x4f000014 0x0000000e	;# control_0_reg
 	mww 0x4f000094 0x0000003f	;# ack_reg
 }
+
+
+# Specific init scripts for ST SPEAr320
+proc sp320_init {} {
+	mww 0xb300000c 0xffffac04	;# RAS function enable
+	mww 0xb3000010 0x00000001	;# RAS mode select
+}
