@@ -80,7 +80,13 @@ proc sp3xx_common_init {} {
 }
 
 
-# Specific init scripts for ST SPEAr310 system on chip
+# Specific init scripts for ST SPEAr300
+proc sp300_init {} {
+	mww 0x99000000 0x00003fff	;# RAS function enable
+}
+
+
+# Specific init scripts for ST SPEAr310
 proc sp310_init {} {
 	mww 0xb4000008 0x00002ff4	;# RAS function enable
 
