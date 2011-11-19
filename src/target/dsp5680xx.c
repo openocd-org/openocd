@@ -64,22 +64,24 @@ static int reset_jtag(void){
 	return retval;
 }
 
-static int dsp5680xx_drscan(struct target * target, uint8_t * data_to_shift_into_dr, uint8_t * data_shifted_out_of_dr, int len){
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-//
-// Inputs:
-//     - data_to_shift_into_dr: This is the data that will be shifted into the JTAG DR reg.
-//     - data_shifted_out_of_dr: The data that will be shifted out of the JTAG DR reg will stored here
-//     - len: Length of the data to be shifted to JTAG DR.
-//
-// Note:  If  data_shifted_out_of_dr  == NULL, discard incoming bits.
-//
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+static int dsp5680xx_drscan(struct target *target, uint8_t *d_in, uint8_t *d_out, int len)
+{
+/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+*
+* Inputs:
+*     - d_in: This is the data that will be shifted into the JTAG DR reg.
+*     - d_out: The data that will be shifted out of the JTAG DR reg will stored here
+*     - len: Length of the data to be shifted to JTAG DR.
+*
+* Note:  If  d_out   ==  NULL, discard incoming bits.
+*
+* -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+*/
   int retval = ERROR_OK;
-  if (NULL == target->tap){
+if (NULL  ==  target->tap) {
 	retval = ERROR_FAIL;
 	err_check(retval, DSP5680XX_ERROR_JTAG_INVALID_TAP, "Invalid tap");
-  }
+}
   if (len > 32){
 	retval = ERROR_FAIL;
 	err_check(retval, DSP5680XX_ERROR_JTAG_DR_LEN_OVERFLOW, "dr_len overflow, maxium is 32");
@@ -87,16 +89,16 @@ static int dsp5680xx_drscan(struct target * target, uint8_t * data_to_shift_into
   //TODO what values of len are valid for jtag_add_plain_dr_scan?
   //can i send as many bits as i want?
   //is the casting necessary?
-  jtag_add_plain_dr_scan(len,data_to_shift_into_dr,data_shifted_out_of_dr, TAP_IDLE);
+jtag_add_plain_dr_scan(len, d_in, d_out, TAP_IDLE);
   if(dsp5680xx_context.flush){
 	retval = dsp5680xx_execute_queue();
 	err_check(retval, DSP5680XX_ERROR_JTAG_DRSCAN, "drscan failed!");
   }
-  if(data_shifted_out_of_dr!=NULL){
-    LOG_DEBUG("Data read (%d bits): 0x%04X",len,*data_shifted_out_of_dr);
-  }else
-    LOG_DEBUG("Data read was discarded.");
-  return retval;
+if (d_out != NULL)
+	LOG_DEBUG("Data read (%d bits): 0x%04X", len, *d_out);
+else
+	LOG_DEBUG("Data read was discarded.");
+	return retval;
 }
 
 /** -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -478,20 +480,21 @@ static int switch_tap(struct target * target, struct jtag_tap * master_tap,struc
   int retval = ERROR_OK;
   uint32_t instr;
   uint32_t ir_out;//not used, just to make jtag happy.
-  if(master_tap == NULL){
-    master_tap = jtag_tap_by_string("dsp568013.chp");
-    if(master_tap == NULL){
-	retval = ERROR_FAIL;
-	err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_MASTER, "Failed to get master tap.");
-    }
-  }
-  if(core_tap == NULL){
-    core_tap = jtag_tap_by_string("dsp568013.cpu");
-    if(core_tap == NULL){
-	retval = ERROR_FAIL;
-	err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_CORE, "Failed to get core tap.");
-    }
-  }
+if (master_tap  ==  NULL) {
+	master_tap = jtag_tap_by_string("dsp568013.chp");
+	if (master_tap == NULL) {
+		retval = ERROR_FAIL;
+		const char *msg = "Failed to get master tap.";
+		err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_MASTER, msg);
+	}
+}
+if (core_tap  ==  NULL) {
+	core_tap = jtag_tap_by_string("dsp568013.cpu");
+	if (core_tap == NULL) {
+		retval = ERROR_FAIL;
+		err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_CORE, "Failed to get core tap.");
+	}
+}
 
   if(!(((int)master_tap->enabled) ^ ((int)core_tap->enabled))){
       LOG_WARNING("Wrong tap enabled/disabled status:\nMaster tap:%d\nCore Tap:%d\nOnly one tap should be enabled at a given time.\n",(int)master_tap->enabled,(int)core_tap->enabled);
@@ -592,19 +595,19 @@ static int eonce_enter_debug_mode(struct target * target, uint16_t * eonce_statu
 
   // First try the easy way
   retval = eonce_enter_debug_mode_without_reset(target,eonce_status);
-  if(retval == ERROR_OK)
-    return retval;
+if (retval  ==  ERROR_OK)
+	return retval;
 
   struct jtag_tap * tap_chp;
   struct jtag_tap * tap_cpu;
   tap_chp = jtag_tap_by_string("dsp568013.chp");
-  if(tap_chp == NULL){
-    retval = ERROR_FAIL;
+if (tap_chp  ==  NULL) {
+	retval = ERROR_FAIL;
 	err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_MASTER, "Failed to get master tap.");
-  }
+}
   tap_cpu = jtag_tap_by_string("dsp568013.cpu");
-  if(tap_cpu == NULL){
-    retval = ERROR_FAIL;
+if (tap_cpu  ==  NULL) {
+	retval = ERROR_FAIL;
 	err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_CORE, "Failed to get master tap.");
   }
 
@@ -671,15 +674,15 @@ else {
   uint16_t data_read_from_dr;
 retval = eonce_read_status_reg(target, &data_read_from_dr);
   err_check_propagate(retval);
-  if((data_read_from_dr&0x30) == 0x30){
-    LOG_DEBUG("EOnCE successfully entered debug mode.");
+if ((data_read_from_dr&0x30)  ==  0x30) {
+	LOG_DEBUG("EOnCE successfully entered debug mode.");
 	dsp5680xx_context.debug_mode_enabled = true;
-    retval = ERROR_OK;
-  }else{
+	retval = ERROR_OK;
+} else {
 	const char *msg =  "Failed to set EOnCE module to debug mode";
-    retval = ERROR_TARGET_FAILURE;
+	retval = ERROR_TARGET_FAILURE;
 	err_check(retval, DSP5680XX_ERROR_ENTER_DEBUG_MODE, msg);
-  }
+}
   if(eonce_status!=NULL)
     *eonce_status = data_read_from_dr;
   return retval;
@@ -1333,7 +1336,7 @@ if (protected == NULL) {
  * @param address Command parameter.
  * @param data Command parameter.
  * @param hfm_ustat FM status register.
- * @param pmem Address is P: (program) memory (@pmem==1) or X: (dat) memory (@pmem==0)
+ * @param pmem Address is P: (program) memory (@pmem == 1) or X: (dat) memory (@pmem == 0)
  *
  * @return
  */
@@ -1368,7 +1371,8 @@ if ((watchdog--) == 1) {
 
   dsp5680xx_context.flush = 0;
 
-  retval = core_move_value_at_r2_disp(target,0x00,HFM_CNFG);	// write to HFM_CNFG (lock=0, select bank) -- flash_desc.bank&0x03,0x01 == 0x00,0x01 ???
+  /* write to HFM_CNFG (lock=0, select bank) -- flash_desc.bank&0x03,0x01  ==  0x00,0x01 ??? */
+retval = core_move_value_at_r2_disp(target, 0x00, HFM_CNFG);
   err_check_propagate(retval);
   retval = core_move_value_at_r2_disp(target,0x04,HFM_USTAT);		// write to HMF_USTAT, clear PVIOL, ACCERR & BLANK bits
   err_check_propagate(retval);
