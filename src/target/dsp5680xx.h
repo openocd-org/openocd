@@ -179,7 +179,8 @@
  * This value was calculated using a spreadsheet tool available on the Freescale website under FAQ 25464.
  * 
  */
-#define HFM_CLK_DEFAULT	0x40
+#define HFM_CLK_DEFAULT	0x27
+/* 0x27 according to freescale cfg, but 0x40 according to freescale spreadsheet... */
 #define HFM_FLASH_BASE_ADDR 0x0
 #define HFM_SIZE_BYTES 0x4000 // bytes
 #define HFM_SIZE_WORDS 0x2000 // words
