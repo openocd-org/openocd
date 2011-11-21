@@ -18,6 +18,9 @@ proc sp3xx_ddr_init {ddr_type} {
 		error "sp3xx_ddr_init: unrecognized DDR type "$ddr_type
 	}
 
+	# MPMC START
+	mww 0xfc60001c 0x01000100
+
 	# Check for single/double memory chip
 	# DDR starts at address 0x00000000
 	mww $ddr_size 0x87654321
@@ -115,6 +118,4 @@ proc ddr_spr3xx_mt47h64m16_3_333_cl5_async {} {
 	mww 0xfc6001a8 0x00000000	;# MEMCTL_LWPWR_REG
 	mww 0xfc6001ac 0x00860000	;# MEMCTL_GP_15
 	mww 0xfc6001b0 0x00000002	;# MEMCTL_TPDEX
-	# MPMC START
-	mww 0xfc60001c 0x01000100
 }
