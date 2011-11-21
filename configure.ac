@@ -1056,7 +1056,7 @@ fi
 
 # check for usb.h when a driver will require it
 build_usb=no
-if test $build_jlink = yes -o $build_vsllink = yes -o $build_usbprog = yes -o \
+if test $build_vsllink = yes -o $build_usbprog = yes -o \
   $build_rlink = yes -o $build_ulink = yes -o $build_armjtagew = yes
 then
   build_usb=yes
@@ -1064,6 +1064,9 @@ fi
 
 # Check for libusb1 ported drivers.
 build_usb_ng=no
+if test $build_jlink = yes; then
+  build_usb_ng=yes
+fi
 
 # check for libusb library if necessary
 use_libusb0=no
