@@ -198,6 +198,8 @@ static int dsp5680xx_flash_info(struct flash_bank *bank, char *buf, int buf_size
 static int dsp5680xx_flash_erase(struct flash_bank * bank, int first, int last){
   int retval;
   retval = dsp5680xx_f_erase(bank->target, (uint32_t) first, (uint32_t) last);
+if ((!(first|last)) || ((first == 0) && (last == (HFM_SECTOR_COUNT-1))))
+	last = HFM_SECTOR_COUNT-1;
   if(retval == ERROR_OK)
     for(int i = first;i<=last;i++)
       bank->sectors[i].is_erased = 1;
