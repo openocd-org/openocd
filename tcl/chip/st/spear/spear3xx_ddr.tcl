@@ -6,13 +6,17 @@
 # Author:    Antonio Borneo <borneo.antonio@gmail.com>
 
 
-proc sp3xx_ddr_init {ddr_type} {
+proc sp3xx_ddr_init {ddr_type {ddr_chips 1}} {
+	if { $ddr_chips != 1 && $ddr_chips != 2 } {
+		error "Only 1 or 2 DDR chips permitted. Wrong value "$ddr_chips
+	}
+
 	if { $ddr_type == "mt47h64m16_3_333_cl5_async" } {
-		ddr_spr3xx_mt47h64m16_3_333_cl5_async
+		ddr_spr3xx_mt47h64m16_3_333_cl5_async $ddr_chips
 		set ddr_size 0x08000000
 	## add here new DDR chip definition. Prototype:
 	#} elseif { $ddr_type == "?????" } {
-	#	?????
+	#	????? $ddr_chips
 	#	set ddr_size 0x?????
 	} else {
 		error "sp3xx_ddr_init: unrecognized DDR type "$ddr_type
@@ -21,11 +25,7 @@ proc sp3xx_ddr_init {ddr_type} {
 	# MPMC START
 	mww 0xfc60001c 0x01000100
 
-	# Check for single/double memory chip
-	# DDR starts at address 0x00000000
-	mww $ddr_size 0x87654321
-	mww 0x00000000 0x12345678
-	if {[expr [mrw 0x00000000] == 0x12345678 && [mrw $ddr_size] == 0x87654321]} {
+	if { $ddr_chips == 2 } {
 		echo [format \
 			"Double chip DDR memory. Total memory size 0x%08x byte" \
 			[expr 2 * $ddr_size]]
@@ -38,7 +38,7 @@ proc sp3xx_ddr_init {ddr_type} {
 
 
 # from Xloader file ddr/spr300_mt47h64m16_3_333_cl5_async.S
-proc ddr_spr3xx_mt47h64m16_3_333_cl5_async {} {
+proc ddr_spr3xx_mt47h64m16_3_333_cl5_async {ddr_chips} {
 	# DDR_PAD_REG
 	mww 0xfca800f0 0x00003aa5
 
@@ -56,9 +56,15 @@ proc ddr_spr3xx_mt47h64m16_3_333_cl5_async {} {
 	mww 0xfc600018 0x00010001	;# MEMCTL_GP_02
 	mww 0xfc60001c 0x00000100	;# MEMCTL_GP_03
 	mww 0xfc600020 0x00010001	;# MEMCTL_GP_04
-	mww 0xfc600024 0x01020203	;# MEMCTL_GP_05
-	mww 0xfc600028 0x01000102	;# MEMCTL_GP_06
-	mww 0xfc60002c 0x02000202	;# MEMCTL_AHB_SET_02
+	if { $ddr_chips == 2 } {
+		mww 0xfc600024 0x01020203	;# MEMCTL_GP_05
+		mww 0xfc600028 0x01000102	;# MEMCTL_GP_06
+		mww 0xfc60002c 0x02000202	;# MEMCTL_AHB_SET_02
+	} else {
+		mww 0xfc600024 0x00000201	;# MEMCTL_GP_05
+		mww 0xfc600028 0x02000001	;# MEMCTL_GP_06
+		mww 0xfc60002c 0x02000201	;# MEMCTL_AHB_SET_02
+	}
 	mww 0xfc600030 0x04040105	;# MEMCTL_AHB_SET_03
 	mww 0xfc600034 0x03030302	;# MEMCTL_AHB_SET_04
 	mww 0xfc600038 0x02040101	;# MEMCTL_AHB_SET_05
