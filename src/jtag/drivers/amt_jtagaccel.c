@@ -71,14 +71,18 @@ static const int addr_mode = IEEE1284_MODE_EPP | IEEE1284_ADDR;
 		int __retval; \
 		\
 		__retval = ioctl(device_handle, PPSETMODE, &addr_mode); \
+		assert(__retval >= 0); \
 		__retval = write(device_handle, &val, 1); \
+		assert(__retval >= 0); \
 	} while (0)
 #define AMT_AR(val) \
 	do { \
 		int __retval; \
 		\
 		__retval = ioctl(device_handle, PPSETMODE, &addr_mode); \
+		assert(__retval >= 0); \
 		__retval = read(device_handle, &val, 1); \
+		assert(__retval >= 0); \
 	} while (0)
 
 static const int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA;
@@ -88,14 +92,18 @@ static const int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA;
 		int __retval; \
 		\
 		__retval = ioctl(device_handle, PPSETMODE, &data_mode); \
+		assert(__retval >= 0); \
 		__retval = write(device_handle, &val, 1); \
+		assert(__retval >= 0); \
 	} while (0)
 #define AMT_DR(val) \
 	do { \
 		int __retval; \
 		\
 		__retval = ioctl(device_handle, PPSETMODE, &data_mode); \
+		assert(__retval >= 0); \
 		__retval = read(device_handle, &val, 1); \
+		assert(__retval >= 0); \
 	} while (0)
 
 #else
