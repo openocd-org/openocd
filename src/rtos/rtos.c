@@ -490,6 +490,12 @@ int rtos_generic_stack_read( struct target * target, const struct rtos_register_
 	*hex_reg_list = (char*)malloc( list_size*2 +1 );
 	tmp_str_ptr = *hex_reg_list;
 	new_stack_ptr = stack_ptr - stacking->stack_growth_direction * stacking->stack_registers_size;
+	if (stacking->stack_alignment != 0) {
+		/* Align new stack pointer to x byte boundary */
+		new_stack_ptr =
+			(new_stack_ptr & (~((int64_t) stacking->stack_alignment - 1))) +
+			((stacking->stack_growth_direction == -1) ? stacking->stack_alignment : 0);
+	}
 	for( i = 0; i < stacking->num_output_registers; i++ )
 	{
 		int j;

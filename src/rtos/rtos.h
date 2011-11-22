@@ -91,6 +91,7 @@ struct rtos_register_stacking
 	unsigned char                       stack_registers_size;
 	signed   char                       stack_growth_direction;
 	unsigned char                       num_output_registers;
+	unsigned char                       stack_alignment;
 	const struct stack_register_offset* register_offsets;
 };
 
