@@ -292,10 +292,6 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 	if (ERROR_OK != ret)
 		return EXIT_FAILURE;
 
-	ret = command_run_line(cmd_ctx, "init_targets");
-	if (ERROR_OK != ret)
-		ret = EXIT_FAILURE;
-
 	if (init_at_startup)
 	{
 		ret = command_run_line(cmd_ctx, "init");

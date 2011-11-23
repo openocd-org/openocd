@@ -1043,6 +1043,8 @@ static int target_init(struct command_context *cmd_ctx)
 
 COMMAND_HANDLER(handle_target_init_command)
 {
+	int retval;
+
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -1053,6 +1055,10 @@ COMMAND_HANDLER(handle_target_init_command)
 		return ERROR_OK;
 	}
 	target_initialized = true;
+
+	retval = command_run_line(CMD_CTX, "init_targets");
+	if (ERROR_OK != retval)
+		return retval;
 
 	LOG_DEBUG("Initializing targets...");
 	return target_init(CMD_CTX);
