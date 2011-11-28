@@ -36,7 +36,7 @@
 #define jtag_libusb_reset_device(dev)		libusb_reset_device(dev)
 #define jtag_libusb_get_device(devh)		libusb_get_device(devh)
 
-inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
+static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
 				       int iface)
 {
 	return libusb_claim_interface(devh, iface);
