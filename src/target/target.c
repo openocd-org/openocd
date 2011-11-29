@@ -940,6 +940,8 @@ static int target_init_one(struct command_context *cmd_ctx,
 	if (type->check_reset== NULL)
 		type->check_reset = default_check_reset;
 
+	assert(type->init_target != NULL);
+
 	int retval = type->init_target(cmd_ctx, target);
 	if (ERROR_OK != retval)
 	{
