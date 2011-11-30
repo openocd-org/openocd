@@ -47,7 +47,6 @@
 #include <strings.h>
 #endif
 
-
 #define OPENOCD_VERSION \
 		"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
 
@@ -62,15 +61,15 @@ static int jim_version_command(Jim_Interp *interp, int argc,
 	const char *str = "";
 	char * version_str;
 	version_str = OPENOCD_VERSION;
-	
+
 	if (argc == 2)
 		str = Jim_GetString(argv[1], NULL);
 
 	if (strcmp("git", str) == 0)
 	{
 		version_str = GITVERSION;
-	} 
-	
+	}
+
 	Jim_SetResult(interp, Jim_NewStringObj(interp, version_str, -1));
 
 	return JIM_OK;
