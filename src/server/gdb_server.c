@@ -1076,10 +1076,10 @@ static int gdb_get_registers_packet(struct connection *connection,
 
 #ifdef _DEBUG_GDB_IO_
 	{
-		char *reg_packet_p;
-		reg_packet_p = strndup(reg_packet, reg_packet_size);
-		LOG_DEBUG("reg_packet: %s", reg_packet_p);
-		free(reg_packet_p);
+		char *reg_packet_p_debug;
+		reg_packet_p_debug = strndup(reg_packet, reg_packet_size);
+		LOG_DEBUG("reg_packet: %s", reg_packet_p_debug);
+		free(reg_packet_p_debug);
 	}
 #endif
 
