@@ -255,7 +255,7 @@ static void str_radix_guess(const char **_str, unsigned *_str_len,
 	if (0 != radix)
 		return;
 	const char *str = *_str;
-	unsigned str_len = *_str_len;	
+	unsigned str_len = *_str_len;
 	if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
 	{
 		radix = 16;
@@ -293,9 +293,7 @@ int str_to_buf(const char *str, unsigned str_len,
 		return 0;
 
 	/* copy to zero-terminated buffer */
-	char *charbuf = malloc(str_len + 1);
-	memcpy(charbuf, str, str_len);
-	charbuf[str_len] = '\0';
+	char *charbuf = strndup(str, str_len);
 
 	/* number of digits in base-256 notation */
 	unsigned b256_len = ceil_f_to_u32(str_len * factor);
