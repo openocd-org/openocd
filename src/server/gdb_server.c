@@ -44,7 +44,6 @@
 #include "rtos/rtos.h"
 #include "target/smp.h"
 
-
 /**
  * @file
  * GDB server implementation.
@@ -76,7 +75,6 @@ struct gdb_connection
 	 */
 	bool mem_write_error;
 };
-
 
 #if 0
 #define _DEBUG_GDB_IO_
@@ -245,9 +243,7 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
 	}
 
 #ifdef _DEBUG_GDB_IO_
-	debug_buffer = malloc(gdb_con->buf_cnt + 1);
-	memcpy(debug_buffer, gdb_con->buffer, gdb_con->buf_cnt);
-	debug_buffer[gdb_con->buf_cnt] = 0;
+	debug_buffer = strndup(gdb_con->buffer, gdb_con->buf_cnt);
 	LOG_DEBUG("received '%s'", debug_buffer);
 	free(debug_buffer);
 #endif
@@ -389,9 +385,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 	while (1)
 	{
 #ifdef _DEBUG_GDB_IO_
-		debug_buffer = malloc(len + 1);
-		memcpy(debug_buffer, buffer, len);
-		debug_buffer[len] = 0;
+		debug_buffer = strndup(buffer, len);
 		LOG_DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
 #endif
