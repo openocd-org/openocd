@@ -92,6 +92,7 @@ repository.
 while(!done) {
   work - edit files using your favorite editor.
   run "git commit -s -a" to commit all changes.
+  run tools/checkpatch.sh to verify your patch style is ok.
 }
 
 TIP! use "git add ." before commit to add new files.
