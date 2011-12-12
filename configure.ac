@@ -3,12 +3,12 @@ AC_INIT([openocd], [0.6.0-dev],
   [OpenOCD Mailing List <openocd-devel@lists.sourceforge.net>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 
-m4_include(config_subdir.m4)dnl
+m4_include([config_subdir.m4])dnl
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
 AM_MAINTAINER_MODE
 
-AM_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER([config.h])
 AH_BOTTOM([
 #include <helper/system.h>
 #include <helper/replacements.h>
@@ -26,19 +26,17 @@ m4_defun([_LT_AC_LANG_F77_CONFIG], [:])
 m4_defun([_LT_AC_LANG_GCJ_CONFIG], [:])
 AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
-AC_SUBST(LIBTOOL_DEPS)
-
+AC_SUBST([LIBTOOL_DEPS])
 
 dnl configure checks required for Jim files (these are obsolete w/ C99)
 AC_C_CONST
 AC_TYPE_LONG_LONG_INT
 
-
 AC_SEARCH_LIBS([ioperm], [ioperm])
 AC_SEARCH_LIBS([dlopen], [dl])
 
-AC_CHECK_HEADERS(sys/socket.h)
-AC_CHECK_HEADERS(arpa/inet.h, [], [], [dnl
+AC_CHECK_HEADERS([sys/socket.h])
+AC_CHECK_HEADERS([arpa/inet.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -52,10 +50,10 @@ AC_CHECK_HEADERS(arpa/inet.h, [], [], [dnl
 # include <sys/socket.h>
 #endif
 ])
-AC_CHECK_HEADERS(elf.h)
-AC_CHECK_HEADERS(dirent.h)
-AC_CHECK_HEADERS(fcntl.h)
-AC_CHECK_HEADERS(ifaddrs.h, [], [], [dnl
+AC_CHECK_HEADERS([elf.h])
+AC_CHECK_HEADERS([dirent.h])
+AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([ifaddrs.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -69,8 +67,8 @@ AC_CHECK_HEADERS(ifaddrs.h, [], [], [dnl
 # include <sys/socket.h>
 #endif
 ])
-AC_CHECK_HEADERS(malloc.h)
-AC_CHECK_HEADERS(netdb.h)
+AC_CHECK_HEADERS([malloc.h])
+AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([netinet/in.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
@@ -85,7 +83,7 @@ AC_CHECK_HEADERS([netinet/in.h], [], [], [dnl
 # include <sys/socket.h>
 #endif
 ])
-AC_CHECK_HEADERS(netinet/tcp.h, [], [], [dnl
+AC_CHECK_HEADERS([netinet/tcp.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -99,16 +97,16 @@ AC_CHECK_HEADERS(netinet/tcp.h, [], [], [dnl
 # include <sys/socket.h>
 #endif
 ])
-AC_CHECK_HEADERS(pthread.h)
-AC_CHECK_HEADERS(strings.h)
-AC_CHECK_HEADERS(sys/ioctl.h)
-AC_CHECK_HEADERS(sys/param.h)
-AC_CHECK_HEADERS(sys/poll.h)
-AC_CHECK_HEADERS(sys/select.h)
-AC_CHECK_HEADERS(sys/stat.h)
-AC_CHECK_HEADERS(sys/time.h)
-AC_CHECK_HEADERS(sys/types.h)
-AC_CHECK_HEADERS(unistd.h)
+AC_CHECK_HEADERS([pthread.h])
+AC_CHECK_HEADERS([strings.h])
+AC_CHECK_HEADERS([sys/ioctl.h])
+AC_CHECK_HEADERS([sys/param.h])
+AC_CHECK_HEADERS([sys/poll.h])
+AC_CHECK_HEADERS([sys/select.h])
+AC_CHECK_HEADERS([sys/stat.h])
+AC_CHECK_HEADERS([sys/time.h])
+AC_CHECK_HEADERS([sys/types.h])
+AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([net/if.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
@@ -130,11 +128,11 @@ AC_HEADER_TIME
 
 AC_C_BIGENDIAN
 
-AC_CHECK_FUNCS(strndup)
-AC_CHECK_FUNCS(strnlen)
-AC_CHECK_FUNCS(gettimeofday)
-AC_CHECK_FUNCS(usleep)
-AC_CHECK_FUNCS(vasprintf)
+AC_CHECK_FUNCS([strndup])
+AC_CHECK_FUNCS([strnlen])
+AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([usleep])
+AC_CHECK_FUNCS([vasprintf])
 
 build_bitbang=no
 build_bitq=no
@@ -150,7 +148,7 @@ if test -x $srcdir/guess-rev.sh ; then
 else
   build_release=yes
 fi
-AC_MSG_RESULT($build_release)
+AC_MSG_RESULT([$build_release])
 
 # We are not *ALWAYS* being installed in the standard place.
 # We may be installed in a "tool-build" specific location.
@@ -273,33 +271,31 @@ AC_ARG_WITH(ftd2xx-lib,
   with_ftd2xx_lib=static
   ])
 
-
-AC_ARG_ENABLE(doxygen-html,
+AC_ARG_ENABLE([doxygen-html],
   AS_HELP_STRING([--disable-doxygen-html],
     [Disable building Doxygen manual as HTML.]),
   [doxygen_as_html=$enableval], [doxygen_as_html=yes])
-AC_SUBST(doxygen_as_html)
+AC_SUBST([doxygen_as_html])
 AC_MSG_CHECKING([whether to build Doxygen as HTML])
-AC_MSG_RESULT($doxygen_as_html)
+AC_MSG_RESULT([$doxygen_as_html])
 
-AC_ARG_ENABLE(doxygen-pdf,
+AC_ARG_ENABLE([doxygen-pdf],
   AS_HELP_STRING([--enable-doxygen-pdf],
     [Enable building Doxygen manual as PDF.]),
   [doxygen_as_pdf=$enableval], [doxygen_as_pdf=no])
-AC_SUBST(doxygen_as_pdf)
+AC_SUBST([doxygen_as_pdf])
 AC_MSG_CHECKING([whether to build Doxygen as PDF])
-AC_MSG_RESULT($doxygen_as_pdf)
+AC_MSG_RESULT([$doxygen_as_pdf])
 
-
-AC_ARG_ENABLE(gccwarnings,
+AC_ARG_ENABLE([gccwarnings],
   AS_HELP_STRING([--disable-gccwarnings], [Disable compiler warnings]),
   [gcc_warnings=$enableval], [gcc_warnings=yes])
 
-AC_ARG_ENABLE(wextra,
+AC_ARG_ENABLE([wextra],
   AS_HELP_STRING([--disable-wextra], [Disable extra compiler warnings]),
   [gcc_wextra=$enableval], [gcc_wextra=$gcc_warnings])
 
-AC_ARG_ENABLE(werror,
+AC_ARG_ENABLE([werror],
   AS_HELP_STRING([--disable-werror], [Do not treat warnings as errors]),
   [gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
 
@@ -308,7 +304,7 @@ debug_jtag_io=no
 debug_usb_io=no
 debug_usb_comms=no
 
-AC_ARG_ENABLE(verbose,
+AC_ARG_ENABLE([verbose],
   AS_HELP_STRING([--enable-verbose],
       [Enable verbose JTAG I/O messages (for debugging).]),
   [
@@ -317,112 +313,112 @@ AC_ARG_ENABLE(verbose,
   debug_usb_comms=$enableval
   ], [])
 
-AC_ARG_ENABLE(verbose_jtag_io,
+AC_ARG_ENABLE([verbose_jtag_io],
   AS_HELP_STRING([--enable-verbose-jtag-io],
       [Enable verbose JTAG I/O messages (for debugging).]),
   [debug_jtag_io=$enableval], [])
-AC_ARG_ENABLE(verbose_usb_io,
+
+AC_ARG_ENABLE([verbose_usb_io],
   AS_HELP_STRING([--enable-verbose-usb-io],
       [Enable verbose USB I/O messages (for debugging)]),
   [debug_usb_io=$enableval], [])
-AC_ARG_ENABLE(verbose_usb_comms,
+
+AC_ARG_ENABLE([verbose_usb_comms],
   AS_HELP_STRING([--enable-verbose-usb-comms],
       [Enable verbose USB communication messages (for debugging)]),
   [debug_usb_comms=$enableval], [])
 
 AC_MSG_CHECKING([whether to enable verbose JTAG I/O messages]);
-AC_MSG_RESULT($debug_jtag_io)
+AC_MSG_RESULT([$debug_jtag_io])
 if test $debug_jtag_io = yes; then
   AC_DEFINE([_DEBUG_JTAG_IO_],[1], [Print verbose JTAG I/O messages])
 fi
 
 AC_MSG_CHECKING([whether to enable verbose USB I/O messages]);
-AC_MSG_RESULT($debug_usb_io)
+AC_MSG_RESULT([$debug_usb_io])
 if test $debug_usb_io = yes; then
   AC_DEFINE([_DEBUG_USB_IO_],[1], [Print verbose USB I/O messages])
 fi
 
 AC_MSG_CHECKING([whether to enable verbose USB communication messages]);
-AC_MSG_RESULT($debug_usb_comms)
+AC_MSG_RESULT([$debug_usb_comms])
 if test $debug_usb_comms = yes; then
   AC_DEFINE([_DEBUG_USB_COMMS_],[1], [Print verbose USB communication messages])
 fi
 
-
 debug_malloc=no
-AC_ARG_ENABLE(malloc_logging,
+AC_ARG_ENABLE([malloc_logging],
   AS_HELP_STRING([--enable-malloc-logging],
       [Include free space in logging messages (requires malloc.h).]),
   [debug_malloc=$enableval], [])
 
 AC_MSG_CHECKING([whether to enable malloc free space logging]);
-AC_MSG_RESULT($debug_malloc)
+AC_MSG_RESULT([$debug_malloc])
 if test $debug_malloc = yes; then
   AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
 fi
 
-
-AC_ARG_ENABLE(dummy,
+AC_ARG_ENABLE([dummy],
   AS_HELP_STRING([--enable-dummy], [Enable building the dummy port driver]),
   [build_dummy=$enableval], [build_dummy=no])
 
-AC_ARG_ENABLE(parport,
+AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
   [build_parport=$enableval], [build_parport=no])
 
-AC_ARG_ENABLE(parport_ppdev,
+AC_ARG_ENABLE([parport_ppdev],
   AS_HELP_STRING([--disable-parport-ppdev],
       [Disable use of ppdev (/dev/parportN) for parport (for x86 only)]),
     [parport_use_ppdev=$enableval], [parport_use_ppdev=yes])
 
-AC_ARG_ENABLE(parport_giveio,
+AC_ARG_ENABLE([parport_giveio],
     AS_HELP_STRING([--enable-parport-giveio],
       [Enable use of giveio for parport (for CygWin only)]),
     [parport_use_giveio=$enableval], [parport_use_giveio=])
 
-AC_ARG_ENABLE(ft2232_libftdi,
+AC_ARG_ENABLE([ft2232_libftdi],
   AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]),
   [build_ft2232_libftdi=$enableval], [build_ft2232_libftdi=no])
 
-AC_ARG_ENABLE(ft2232_ftd2xx,
+AC_ARG_ENABLE([ft2232_ftd2xx],
   AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]),
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
 
-AC_ARG_ENABLE(usb_blaster_libftdi,
+AC_ARG_ENABLE([usb_blaster_libftdi],
   AS_HELP_STRING([--enable-usb_blaster_libftdi], [Enable building support for the Altera USB-Blaster using the libftdi driver, opensource alternate of FTD2XX]),
   [build_usb_blaster_libftdi=$enableval], [build_usb_blaster_libftdi=no])
 
-AC_ARG_ENABLE(usb_blaster_ftd2xx,
+AC_ARG_ENABLE([usb_blaster_ftd2xx],
   AS_HELP_STRING([--enable-usb_blaster_ftd2xx], [Enable building support for the Altera USB-Blaster using the FTD2XX driver from ftdichip.com]),
   [build_usb_blaster_ftd2xx=$enableval], [build_usb_blaster_ftd2xx=no])
 
-AC_ARG_ENABLE(amtjtagaccel,
+AC_ARG_ENABLE([amtjtagaccel],
   AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]),
   [build_amtjtagaccel=$enableval], [build_amtjtagaccel=no])
 
-AC_ARG_ENABLE(ecosboard,
+AC_ARG_ENABLE([ecosboard],
   AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCos based JTAG debugger]),
   [build_ecosboard=$enableval], [build_ecosboard=no])
 
-AC_ARG_ENABLE(zy1000_master,
+AC_ARG_ENABLE([zy1000_master],
   AS_HELP_STRING([--enable-zy1000-master], [Use ZY1000 JTAG master registers]),
   [build_zy1000_master=$enableval], [build_zy1000_master=no])
 
-AC_ARG_ENABLE(zy1000,
+AC_ARG_ENABLE([zy1000],
   AS_HELP_STRING([--enable-zy1000], [Enable ZY1000 interface]),
   [build_zy1000=$enableval], [build_zy1000=no])
 
-AC_ARG_ENABLE(ioutil,
+AC_ARG_ENABLE([ioutil],
   AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]),
   [build_ioutil=$enableval], [build_ioutil=no])
 
 case "${host_cpu}" in
   arm*)
-    AC_ARG_ENABLE(ep93xx,
+    AC_ARG_ENABLE([ep93xx],
       AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]),
       [build_ep93xx=$enableval], [build_ep93xx=no])
 
-    AC_ARG_ENABLE(at91rm9200,
+    AC_ARG_ENABLE([at91rm9200],
       AS_HELP_STRING([--enable-at91rm9200], [Enable building support for AT91RM9200 based SBCs]),
       [build_at91rm9200=$enableval], [build_at91rm9200=no])
     ;;
@@ -433,60 +429,60 @@ case "${host_cpu}" in
     ;;
 esac
 
-AC_ARG_ENABLE(gw16012,
+AC_ARG_ENABLE([gw16012],
   AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
   [build_gw16012=$enableval], [build_gw16012=no])
 
-AC_ARG_ENABLE(presto_libftdi,
+AC_ARG_ENABLE([presto_libftdi],
   AS_HELP_STRING([--enable-presto_libftdi], [Enable building support for ASIX Presto Programmer using the libftdi driver]),
   [build_presto_libftdi=$enableval], [build_presto_libftdi=no])
 
-AC_ARG_ENABLE(presto_ftd2xx,
+AC_ARG_ENABLE([presto_ftd2xx],
   AS_HELP_STRING([--enable-presto_ftd2xx], [Enable building support for ASIX Presto Programmer using the FTD2XX driver]),
   [build_presto_ftd2xx=$enableval], [build_presto_ftd2xx=no])
 
-AC_ARG_ENABLE(usbprog,
+AC_ARG_ENABLE([usbprog],
   AS_HELP_STRING([--enable-usbprog], [Enable building support for the usbprog JTAG Programmer]),
   [build_usbprog=$enableval], [build_usbprog=no])
 
-AC_ARG_ENABLE(oocd_trace,
+AC_ARG_ENABLE([oocd_trace],
   AS_HELP_STRING([--enable-oocd_trace],
   [Enable building support for some prototype OpenOCD+trace ETM capture hardware]),
   [build_oocd_trace=$enableval], [build_oocd_trace=no])
 
-AC_ARG_ENABLE(jlink,
+AC_ARG_ENABLE([jlink],
   AS_HELP_STRING([--enable-jlink], [Enable building support for the Segger J-Link JTAG Programmer]),
   [build_jlink=$enableval], [build_jlink=no])
 
-AC_ARG_ENABLE(vsllink,
+AC_ARG_ENABLE([vsllink],
   AS_HELP_STRING([--enable-vsllink], [Enable building support for the Versaloon-Link JTAG Programmer]),
   [build_vsllink=$enableval], [build_vsllink=no])
 
-AC_ARG_ENABLE(rlink,
+AC_ARG_ENABLE([rlink],
   AS_HELP_STRING([--enable-rlink], [Enable building support for the Raisonance RLink JTAG Programmer]),
   [build_rlink=$enableval], [build_rlink=no])
 
-AC_ARG_ENABLE(ulink,
+AC_ARG_ENABLE([ulink],
   AS_HELP_STRING([--enable-ulink], [Enable building support for the Keil ULINK JTAG Programmer]),
   [build_ulink=$enableval], [build_ulink=no])
 
-AC_ARG_ENABLE(arm-jtag-ew,
+AC_ARG_ENABLE([arm-jtag-ew],
   AS_HELP_STRING([--enable-arm-jtag-ew], [Enable building support for the Olimex ARM-JTAG-EW Programmer]),
   [build_armjtagew=$enableval], [build_armjtagew=no])
 
-AC_ARG_ENABLE(buspirate,
+AC_ARG_ENABLE([buspirate],
   AS_HELP_STRING([--enable-buspirate], [Enable building support for the Buspirate]),
   [build_buspirate=$enableval], [build_buspirate=no])
 
-AC_ARG_ENABLE(minidriver_dummy,
+AC_ARG_ENABLE([minidriver_dummy],
   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
 
-AC_ARG_ENABLE(internal-jimtcl,
+AC_ARG_ENABLE([internal-jimtcl],
   AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
   [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
 
-AC_ARG_ENABLE(libusb0,
+AC_ARG_ENABLE([libusb0],
   AS_HELP_STRING([--enable-libusb0], [Use libusb-0.1 library for USB JTAG devices]),
   [check_libusb0=$enableval], [check_libusb0=no])
 
@@ -496,16 +492,15 @@ if test $build_zy1000 = yes; then
   if test $build_minidriver = yes; then
     AC_MSG_ERROR([Multiple minidriver options have been enabled.])
   fi
-  AC_DEFINE(HAVE_JTAG_MINIDRIVER_H, 1,
+  AC_DEFINE([HAVE_JTAG_MINIDRIVER_H], [1],
       [Define to 1 if you have the <jtag_minidriver.h> header file.])
   build_minidriver=yes
 fi
-AC_MSG_RESULT($build_zy1000)
+AC_MSG_RESULT([$build_zy1000])
 
-AC_ARG_ENABLE(remote-bitbang,
+AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang jtag driver]),
   [build_remote_bitbang=$enableval], [build_remote_bitbang=no])
-
 
 AC_MSG_CHECKING([whether to enable dummy minidriver])
 if test $build_minidriver_dummy = yes; then
@@ -513,11 +508,11 @@ if test $build_minidriver_dummy = yes; then
     AC_MSG_ERROR([Multiple minidriver options have been enabled.])
   fi
   build_minidriver=yes
-  AC_DEFINE(BUILD_MINIDRIVER_DUMMY, 1, [Use the dummy minidriver.])
-  AC_DEFINE(HAVE_JTAG_MINIDRIVER_H, 1,
+  AC_DEFINE([BUILD_MINIDRIVER_DUMMY], [1], [Use the dummy minidriver.])
+  AC_DEFINE([HAVE_JTAG_MINIDRIVER_H], [1],
       [Define to 1 if you have the <jtag_minidriver.h> header file.])
 fi
-AC_MSG_RESULT($build_minidriver_dummy)
+AC_MSG_RESULT([$build_minidriver_dummy])
 
 AC_MSG_CHECKING([whether standard drivers can be built])
 if test "$build_minidriver" = yes; then
@@ -547,7 +542,7 @@ case $host in
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[return __MINGW32__;]])],
       [is_mingw=yes],[is_mingw=no])
     if test $is_mingw = yes; then
-      AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
+      AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
       if test x$parport_use_giveio = xno; then
         AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
       fi
@@ -555,15 +550,15 @@ case $host in
       is_cygwin=no
     else
       is_cygwin=yes
-      AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
+      AC_DEFINE([IS_CYGWIN], [1], [1 if building for Cygwin.])
       # sys/io.h needed under cygwin for parport access
       if test $build_parport = yes; then
-        AC_CHECK_HEADERS(sys/io.h,[],AC_MSG_ERROR([Please install the cygwin ioperm package]))
+        AC_CHECK_HEADERS([sys/io.h],[],AC_MSG_ERROR([Please install the cygwin ioperm package]))
       fi
     fi
 
-    AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
-    AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
+    AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
+    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
     ;;
   *-mingw*)
     is_mingw=yes
@@ -581,9 +576,9 @@ case $host in
 
     CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO"
 
-    AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
-    AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
-    AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
+    AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
+    AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
+    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
     ;;
   *darwin*)
     is_darwin=yes
@@ -593,189 +588,189 @@ case $host in
     fi
     parport_use_giveio=no
 
-    AC_DEFINE(IS_CYGWIN, 0, [0 if not building for Cygwin.])
-    AC_DEFINE(IS_WIN32, 0, [0 if not building for Win32.])
-    AC_DEFINE(IS_DARWIN, 1, [1 if building for Darwin.])
+    AC_DEFINE([IS_CYGWIN], [0], [0 if not building for Cygwin.])
+    AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
+    AC_DEFINE([IS_DARWIN], [1], [1 if building for Darwin.])
     ;;
   *)
     if test x$parport_use_giveio = xyes; then
       AC_MSG_WARN([--enable-parport-giveio cannot be used by ]$host[ hosts])
     fi
     parport_use_giveio=no
-    AC_DEFINE(IS_CYGWIN, 0, [0 if not building for Cygwin.])
-    AC_DEFINE(IS_WIN32, 0, [0 if not building for Win32.])
-    AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
+    AC_DEFINE([IS_CYGWIN], [0], [0 if not building for Cygwin.])
+    AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
+    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
     ;;
 esac
 
 if test $build_parport = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_PARPORT, 1, [1 if you want parport.])
+  AC_DEFINE([BUILD_PARPORT], [1], [1 if you want parport.])
 else
-  AC_DEFINE(BUILD_PARPORT, 0, [0 if you don't want parport.])
+  AC_DEFINE([BUILD_PARPORT], [0], [0 if you don't want parport.])
 fi
 
 if test $build_dummy = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_DUMMY, 1, [1 if you want dummy driver.])
+  AC_DEFINE([BUILD_DUMMY], [1], [1 if you want dummy driver.])
 else
-  AC_DEFINE(BUILD_DUMMY, 0, [0 if you don't want dummy driver.])
+  AC_DEFINE([BUILD_DUMMY], [0], [0 if you don't want dummy driver.])
 fi
 
 if test $build_ep93xx = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_EP93XX, 1, [1 if you want ep93xx.])
+  AC_DEFINE([BUILD_EP93XX], [1], [1 if you want ep93xx.])
 else
-  AC_DEFINE(BUILD_EP93XX, 0, [0 if you don't want ep93xx.])
+  AC_DEFINE([BUILD_EP93XX], [0], [0 if you don't want ep93xx.])
 fi
 
 if test $build_ecosboard = yes; then
-  AC_DEFINE(BUILD_ECOSBOARD, 1, [1 if you want eCosBoard.])
+  AC_DEFINE([BUILD_ECOSBOARD], [1], [1 if you want eCosBoard.])
 else
-  AC_DEFINE(BUILD_ECOSBOARD, 0, [0 if you don't want eCosBoard.])
+  AC_DEFINE([BUILD_ECOSBOARD], [0], [0 if you don't want eCosBoard.])
 fi
 
 if test $build_zy1000 = yes; then
-  AC_DEFINE(BUILD_ZY1000, 1, [1 if you want ZY1000.])
+  AC_DEFINE([BUILD_ZY1000], [1], [1 if you want ZY1000.])
 else
-  AC_DEFINE(BUILD_ZY1000, 0, [0 if you don't want ZY1000.])
+  AC_DEFINE([BUILD_ZY1000], [0], [0 if you don't want ZY1000.])
 fi
 
 if test $build_zy1000_master = yes; then
-  AC_DEFINE(BUILD_ZY1000_MASTER, 1, [1 if you want ZY1000 JTAG master registers.])
+  AC_DEFINE([BUILD_ZY1000_MASTER], [1], [1 if you want ZY1000 JTAG master registers.])
 else
-  AC_DEFINE(BUILD_ZY1000_MASTER, 0, [0 if you don't want ZY1000 JTAG master registers.])
+  AC_DEFINE([BUILD_ZY1000_MASTER], [0], [0 if you don't want ZY1000 JTAG master registers.])
 fi
 
 if test $build_at91rm9200 = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_AT91RM9200, 1, [1 if you want at91rm9200.])
+  AC_DEFINE([BUILD_AT91RM9200], [1], [1 if you want at91rm9200.])
 else
-  AC_DEFINE(BUILD_AT91RM9200, 0, [0 if you don't want at91rm9200.])
+  AC_DEFINE([BUILD_AT91RM9200], [0], [0 if you don't want at91rm9200.])
 fi
 
 if test x$parport_use_ppdev = xyes; then
-  AC_DEFINE(PARPORT_USE_PPDEV, 1, [1 if you want parport to use ppdev.])
+  AC_DEFINE([PARPORT_USE_PPDEV], [1], [1 if you want parport to use ppdev.])
 else
-  AC_DEFINE(PARPORT_USE_PPDEV, 0, [0 if you don't want parport to use ppdev.])
+  AC_DEFINE([PARPORT_USE_PPDEV], [0], [0 if you don't want parport to use ppdev.])
 fi
 
 if test x$parport_use_giveio = xyes; then
-  AC_DEFINE(PARPORT_USE_GIVEIO, 1, [1 if you want parport to use giveio.])
+  AC_DEFINE([PARPORT_USE_GIVEIO], [1], [1 if you want parport to use giveio.])
 else
-  AC_DEFINE(PARPORT_USE_GIVEIO, 0, [0 if you don't want parport to use giveio.])
+  AC_DEFINE([PARPORT_USE_GIVEIO], [0], [0 if you don't want parport to use giveio.])
 fi
 
 if test $build_bitbang = yes; then
-  AC_DEFINE(BUILD_BITBANG, 1, [1 if you want a bitbang interface.])
+  AC_DEFINE([BUILD_BITBANG], [1], [1 if you want a bitbang interface.])
 else
-  AC_DEFINE(BUILD_BITBANG, 0, [0 if you don't want a bitbang interface.])
+  AC_DEFINE([BUILD_BITBANG], [0], [0 if you don't want a bitbang interface.])
 fi
 
 if test $build_ft2232_libftdi = yes; then
-  AC_DEFINE(BUILD_FT2232_LIBFTDI, 1, [1 if you want libftdi ft2232.])
+  AC_DEFINE([BUILD_FT2232_LIBFTDI], [1], [1 if you want libftdi ft2232.])
 else
-  AC_DEFINE(BUILD_FT2232_LIBFTDI, 0, [0 if you don't want libftdi ft2232.])
+  AC_DEFINE([BUILD_FT2232_LIBFTDI], [0], [0 if you don't want libftdi ft2232.])
 fi
 
 if test $build_ft2232_ftd2xx = yes; then
-  AC_DEFINE(BUILD_FT2232_FTD2XX, 1, [1 if you want ftd2xx ft2232.])
+  AC_DEFINE([BUILD_FT2232_FTD2XX], [1], [1 if you want ftd2xx ft2232.])
 else
-  AC_DEFINE(BUILD_FT2232_FTD2XX, 0, [0 if you don't want ftd2xx ft2232.])
+  AC_DEFINE([BUILD_FT2232_FTD2XX], [0], [0 if you don't want ftd2xx ft2232.])
 fi
 
 if test $build_usb_blaster_libftdi = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_USB_BLASTER_LIBFTDI, 1, [1 if you want libftdi usb_blaster.])
+  AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [1], [1 if you want libftdi usb_blaster.])
 else
-  AC_DEFINE(BUILD_USB_BLASTER_LIBFTDI, 0, [0 if you don't want libftdi usb_blaster.])
+  AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [0], [0 if you don't want libftdi usb_blaster.])
 fi
 
 if test $build_usb_blaster_ftd2xx = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_USB_BLASTER_FTD2XX, 1, [1 if you want ftd2xx usb_blaster.])
+  AC_DEFINE([BUILD_USB_BLASTER_FTD2XX], [1], [1 if you want ftd2xx usb_blaster.])
 else
-  AC_DEFINE(BUILD_USB_BLASTER_FTD2XX, 0, [0 if you don't want ftd2xx usb_blaster.])
+  AC_DEFINE([BUILD_USB_BLASTER_FTD2XX], [0], [0 if you don't want ftd2xx usb_blaster.])
 fi
 
 if test $build_amtjtagaccel = yes; then
-  AC_DEFINE(BUILD_AMTJTAGACCEL, 1, [1 if you want the Amontec JTAG-Accelerator driver.])
+  AC_DEFINE([BUILD_AMTJTAGACCEL], [1], [1 if you want the Amontec JTAG-Accelerator driver.])
 else
-  AC_DEFINE(BUILD_AMTJTAGACCEL, 0, [0 if you don't want the Amontec JTAG-Accelerator driver.])
+  AC_DEFINE([BUILD_AMTJTAGACCEL], [0], [0 if you don't want the Amontec JTAG-Accelerator driver.])
 fi
 
 if test $build_gw16012 = yes; then
-  AC_DEFINE(BUILD_GW16012, 1, [1 if you want the Gateworks GW16012 driver.])
+  AC_DEFINE([BUILD_GW16012], [1], [1 if you want the Gateworks GW16012 driver.])
 else
-  AC_DEFINE(BUILD_GW16012, 0, [0 if you don't want the Gateworks GW16012 driver.])
+  AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
 fi
 
 if test $build_presto_libftdi = yes; then
   build_bitq=yes
-  AC_DEFINE(BUILD_PRESTO_LIBFTDI, 1, [1 if you want the ASIX PRESTO driver using libftdi.])
+  AC_DEFINE([BUILD_PRESTO_LIBFTDI], [1], [1 if you want the ASIX PRESTO driver using libftdi.])
 else
-  AC_DEFINE(BUILD_PRESTO_LIBFTDI, 0, [0 if you don't want the ASIX PRESTO driver using libftdi.])
+  AC_DEFINE([BUILD_PRESTO_LIBFTDI], [0], [0 if you don't want the ASIX PRESTO driver using libftdi.])
 fi
 
 if test $build_presto_ftd2xx = yes; then
   build_bitq=yes
-  AC_DEFINE(BUILD_PRESTO_FTD2XX, 1, [1 if you want the ASIX PRESTO driver using FTD2XX.])
+  AC_DEFINE([BUILD_PRESTO_FTD2XX], [1], [1 if you want the ASIX PRESTO driver using FTD2XX.])
 else
-  AC_DEFINE(BUILD_PRESTO_FTD2XX, 0, [0 if you don't want the ASIX PRESTO driver using FTD2XX.])
+  AC_DEFINE([BUILD_PRESTO_FTD2XX], [0], [0 if you don't want the ASIX PRESTO driver using FTD2XX.])
 fi
 
 if test $build_bitq = yes; then
-  AC_DEFINE(BUILD_BITQ, 1, [1 if you want a bitq interface.])
+  AC_DEFINE([BUILD_BITQ], [1], [1 if you want a bitq interface.])
 else
-  AC_DEFINE(BUILD_BITQ, 0, [0 if you don't want a bitq interface.])
+  AC_DEFINE([BUILD_BITQ], [0], [0 if you don't want a bitq interface.])
 fi
 
 if test $build_usbprog = yes; then
-  AC_DEFINE(BUILD_USBPROG, 1, [1 if you want the usbprog JTAG driver.])
+  AC_DEFINE([BUILD_USBPROG], [1], [1 if you want the usbprog JTAG driver.])
 else
-  AC_DEFINE(BUILD_USBPROG, 0, [0 if you don't want the usbprog JTAG driver.])
+  AC_DEFINE([BUILD_USBPROG], [0], [0 if you don't want the usbprog JTAG driver.])
 fi
 
 if test $build_oocd_trace = yes; then
-  AC_DEFINE(BUILD_OOCD_TRACE, 1, [1 if you want the OpenOCD+trace ETM capture driver.])
+  AC_DEFINE([BUILD_OOCD_TRACE], [1], [1 if you want the OpenOCD+trace ETM capture driver.])
 else
-  AC_DEFINE(BUILD_OOCD_TRACE, 0, [0 if you don't want the OpenOCD+trace ETM capture driver.])
+  AC_DEFINE([BUILD_OOCD_TRACE], [0], [0 if you don't want the OpenOCD+trace ETM capture driver.])
 fi
 
 if test $build_jlink = yes; then
-  AC_DEFINE(BUILD_JLINK, 1, [1 if you want the J-Link JTAG driver.])
+  AC_DEFINE([BUILD_JLINK], [1], [1 if you want the J-Link JTAG driver.])
 else
-  AC_DEFINE(BUILD_JLINK, 0, [0 if you don't want the J-Link JTAG driver.])
+  AC_DEFINE([BUILD_JLINK], [0], [0 if you don't want the J-Link JTAG driver.])
 fi
 
 if test $build_vsllink = yes; then
-  AC_DEFINE(BUILD_VSLLINK, 1, [1 if you want the Versaloon-Link JTAG driver.])
+  AC_DEFINE([BUILD_VSLLINK], [1], [1 if you want the Versaloon-Link JTAG driver.])
 else
-  AC_DEFINE(BUILD_VSLLINK, 0, [0 if you don't want the Versaloon-Link JTAG driver.])
+  AC_DEFINE([BUILD_VSLLINK], [0], [0 if you don't want the Versaloon-Link JTAG driver.])
 fi
 
 if test $build_rlink = yes; then
-  AC_DEFINE(BUILD_RLINK, 1, [1 if you want the RLink JTAG driver.])
+  AC_DEFINE([BUILD_RLINK], [1], [1 if you want the RLink JTAG driver.])
 else
-  AC_DEFINE(BUILD_RLINK, 0, [0 if you don't want the RLink JTAG driver.])
+  AC_DEFINE([BUILD_RLINK], [0], [0 if you don't want the RLink JTAG driver.])
 fi
 
 if test $build_ulink = yes; then
-  AC_DEFINE(BUILD_ULINK, 1, [1 if you want the ULINK JTAG driver.])
+  AC_DEFINE([BUILD_ULINK], [1], [1 if you want the ULINK JTAG driver.])
 else
-  AC_DEFINE(BUILD_ULINK, 0, [0 if you don't want the ULINK JTAG driver.])
+  AC_DEFINE([BUILD_ULINK], [0], [0 if you don't want the ULINK JTAG driver.])
 fi
 
 if test $build_armjtagew = yes; then
-  AC_DEFINE(BUILD_ARMJTAGEW, 1, [1 if you want the ARM-JTAG-EW JTAG driver.])
+  AC_DEFINE([BUILD_ARMJTAGEW], [1], [1 if you want the ARM-JTAG-EW JTAG driver.])
 else
-  AC_DEFINE(BUILD_ARMJTAGEW, 0, [0 if you don't want the ARM-JTAG-EW JTAG driver.])
+  AC_DEFINE([BUILD_ARMJTAGEW], [0], [0 if you don't want the ARM-JTAG-EW JTAG driver.])
 fi
 
 if test $build_buspirate = yes; then
-  AC_DEFINE(BUILD_BUSPIRATE, 1, [1 if you want the Buspirate JTAG driver.])
+  AC_DEFINE([BUILD_BUSPIRATE], [1], [1 if you want the Buspirate JTAG driver.])
 else
-  AC_DEFINE(BUILD_BUSPIRATE, 0, [0 if you don't want the Buspirate JTAG driver.])
+  AC_DEFINE([BUILD_BUSPIRATE], [0], [0 if you don't want the Buspirate JTAG driver.])
 fi
 
 if test "$use_internal_jimtcl" = yes; then
@@ -788,9 +783,9 @@ fi
 
 if test $build_remote_bitbang = yes; then
   build_bitbang=yes
-  AC_DEFINE(BUILD_REMOTE_BITBANG, 1, [1 if you want the Remote Bitbang JTAG driver.])
+  AC_DEFINE([BUILD_REMOTE_BITBANG], [1], [1 if you want the Remote Bitbang JTAG driver.])
 else
-  AC_DEFINE(BUILD_REMOTE_BITBNAG, 0, [0 if you don't want the Remote Bitbang JTAG driver.])
+  AC_DEFINE([BUILD_REMOTE_BITBNAG], [0], [0 if you don't want the Remote Bitbang JTAG driver.])
 fi
 
 #-- Deal with MingW/Cygwin FTD2XX issues
@@ -979,7 +974,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 
 DWORD x = FT_DEVICE_4232H;
     ]], [])], [
-      AC_DEFINE(BUILD_FT2232_HIGHSPEED, [1],
+      AC_DEFINE([BUILD_FT2232_HIGHSPEED], [1],
         [Support FT2232H/FT4232HS with FTD2XX or libftdi.])
       build_ft2232_highspeed=yes
     ], [
@@ -1037,7 +1032,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
   ]], [[
 enum ftdi_chip_type x = TYPE_2232H;
     ]])], [
-      AC_DEFINE(BUILD_FT2232_HIGHSPEED, [1],
+      AC_DEFINE([BUILD_FT2232_HIGHSPEED], [1],
         [Support FT2232H/FT4232HS with FTD2XX or libftdi.])
       build_ft2232_highspeed=yes
     ], [
@@ -1073,59 +1068,59 @@ use_libusb0=no
 use_libusb1=no
 if test $build_usb = yes -o $build_usb_ng = yes; then
   if test $check_libusb0 = no -a $build_usb_ng = yes; then
-	AC_CHECK_HEADERS(libusb-1.0/libusb.h,
+	AC_CHECK_HEADERS([libusb-1.0/libusb.h],
 			[AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.0]) check_libusb0=no use_libusb1=yes ],
 			[ check_libusb0=yes use_libusb1=no ])
   fi
 
   if test $check_libusb0 = yes -o $build_usb = yes; then
-	AC_CHECK_HEADERS(usb.h, [use_libusb0=yes],
+	AC_CHECK_HEADERS([usb.h], [use_libusb0=yes],
 			[AC_MSG_ERROR([libusb or libusb-1.0 are required to build some OpenOCD driver(s)])])
   fi
 fi
 
-AM_CONDITIONAL(RELEASE, test $build_release = yes)
-AM_CONDITIONAL(PARPORT, test $build_parport = yes)
-AM_CONDITIONAL(DUMMY, test $build_dummy = yes)
-AM_CONDITIONAL(GIVEIO, test x$parport_use_giveio = xyes)
-AM_CONDITIONAL(EP93XX, test $build_ep93xx = yes)
-AM_CONDITIONAL(ECOSBOARD, test $build_ecosboard = yes)
-AM_CONDITIONAL(ZY1000, test $build_zy1000 = yes)
-AM_CONDITIONAL(ZY1000_MASTER, test $build_zy1000_master = yes)
-AM_CONDITIONAL(IOUTIL, test $build_ioutil = yes)
-AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
-AM_CONDITIONAL(BITBANG, test $build_bitbang = yes)
-AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)
-AM_CONDITIONAL(FT2232_DRIVER, test $build_ft2232_ftd2xx = yes -o $build_ft2232_libftdi = yes)
-AM_CONDITIONAL(USB_BLASTER_LIBFTDI, test $build_usb_blaster_libftdi = yes)
-AM_CONDITIONAL(USB_BLASTER_DRIVER, test $build_usb_blaster_ftd2xx = yes -o $build_usb_blaster_libftdi = yes)
-AM_CONDITIONAL(AMTJTAGACCEL, test $build_amtjtagaccel = yes)
-AM_CONDITIONAL(GW16012, test $build_gw16012 = yes)
-AM_CONDITIONAL(PRESTO_LIBFTDI, test $build_presto_libftdi = yes)
-AM_CONDITIONAL(PRESTO_DRIVER, test $build_presto_ftd2xx = yes -o $build_presto_libftdi = yes)
-AM_CONDITIONAL(USBPROG, test $build_usbprog = yes)
-AM_CONDITIONAL(OOCD_TRACE, test $build_oocd_trace = yes)
-AM_CONDITIONAL(JLINK, test $build_jlink = yes)
-AM_CONDITIONAL(VSLLINK, test $build_vsllink = yes)
-AM_CONDITIONAL(RLINK, test $build_rlink = yes)
-AM_CONDITIONAL(ULINK, test $build_ulink = yes)
-AM_CONDITIONAL(ARMJTAGEW, test $build_armjtagew = yes)
-AM_CONDITIONAL(REMOTE_BITBANG, test $build_remote_bitbang = yes)
-AM_CONDITIONAL(BUSPIRATE, test $build_buspirate = yes)
-AM_CONDITIONAL(USB, test $build_usb = yes)
-AM_CONDITIONAL(USB_NG, test $build_usb_ng = yes)
-AM_CONDITIONAL(USE_LIBUSB0, test $use_libusb0 = yes)
-AM_CONDITIONAL(USE_LIBUSB1, test $use_libusb1 = yes)
-AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)
-AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
-AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
-AM_CONDITIONAL(IS_DARWIN, test $is_darwin = yes)
-AM_CONDITIONAL(BITQ, test $build_bitq = yes)
+AM_CONDITIONAL([RELEASE], [test $build_release = yes])
+AM_CONDITIONAL([PARPORT], [test $build_parport = yes])
+AM_CONDITIONAL([DUMMY], [test $build_dummy = yes])
+AM_CONDITIONAL([GIVEIO], [test x$parport_use_giveio = xyes])
+AM_CONDITIONAL([EP93XX], [test $build_ep93xx = yes])
+AM_CONDITIONAL([ECOSBOARD], [test $build_ecosboard = yes])
+AM_CONDITIONAL([ZY1000], [test $build_zy1000 = yes])
+AM_CONDITIONAL([ZY1000_MASTER], [test $build_zy1000_master = yes])
+AM_CONDITIONAL([IOUTIL], [test $build_ioutil = yes])
+AM_CONDITIONAL([AT91RM9200], [test $build_at91rm9200 = yes])
+AM_CONDITIONAL([BITBANG], [test $build_bitbang = yes])
+AM_CONDITIONAL([FT2232_LIBFTDI], [test $build_ft2232_libftdi = yes])
+AM_CONDITIONAL([FT2232_DRIVER], [test $build_ft2232_ftd2xx = yes -o $build_ft2232_libftdi = yes])
+AM_CONDITIONAL([USB_BLASTER_LIBFTDI], [test $build_usb_blaster_libftdi = yes])
+AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $build_usb_blaster_ftd2xx = yes -o $build_usb_blaster_libftdi = yes])
+AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
+AM_CONDITIONAL([GW16012], [test $build_gw16012 = yes])
+AM_CONDITIONAL([PRESTO_LIBFTDI], [test $build_presto_libftdi = yes])
+AM_CONDITIONAL([PRESTO_DRIVER], [test $build_presto_ftd2xx = yes -o $build_presto_libftdi = yes])
+AM_CONDITIONAL([USBPROG], [test $build_usbprog = yes])
+AM_CONDITIONAL([OOCD_TRACE], [test $build_oocd_trace = yes])
+AM_CONDITIONAL([JLINK], [test $build_jlink = yes])
+AM_CONDITIONAL([VSLLINK], [test $build_vsllink = yes])
+AM_CONDITIONAL([RLINK], [test $build_rlink = yes])
+AM_CONDITIONAL([ULINK], [test $build_ulink = yes])
+AM_CONDITIONAL([ARMJTAGEW], [test $build_armjtagew = yes])
+AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
+AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
+AM_CONDITIONAL([USB], [test $build_usb = yes])
+AM_CONDITIONAL([USB_NG], [test $build_usb_ng = yes])
+AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])
+AM_CONDITIONAL([USE_LIBUSB1], [test $use_libusb1 = yes])
+AM_CONDITIONAL([IS_CYGWIN], [test $is_cygwin = yes])
+AM_CONDITIONAL([IS_MINGW], [test $is_mingw = ye]s)
+AM_CONDITIONAL([IS_WIN32], [test $is_win32 = ye]s)
+AM_CONDITIONAL([IS_DARWIN], [test $is_darwin = ye]s)
+AM_CONDITIONAL([BITQ], [test $build_bitq = yes])
 
-AM_CONDITIONAL(MINIDRIVER, test $build_minidriver = yes)
-AM_CONDITIONAL(MINIDRIVER_DUMMY, test $build_minidriver_dummy = yes)
+AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = ye]s)
+AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])
 
-AM_CONDITIONAL(INTERNAL_JIMTCL, test $use_internal_jimtcl = yes)
+AM_CONDITIONAL([INTERNAL_JIMTCL], [test $use_internal_jimtcl = yes])
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
@@ -1188,8 +1183,8 @@ else
 fi
 
 AC_MSG_RESULT([$CC_FOR_BUILD])
-AC_SUBST(CC_FOR_BUILD)
-AC_SUBST(CFLAGS_FOR_BUILD)
+AC_SUBST([CC_FOR_BUILD])
+AC_SUBST([CFLAGS_FOR_BUILD])
 
 AC_MSG_CHECKING([for suffix of executable build tools])
 if test $cross_compiling = yes; then
