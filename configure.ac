@@ -1211,23 +1211,24 @@ else
   EXEEXT_FOR_BUILD=$EXEEXT
 fi
 AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
-AC_SUBST(EXEEXT_FOR_BUILD)
+AC_SUBST([EXEEXT_FOR_BUILD])
 
-AC_OUTPUT(dnl
-    Makefile dnl
-    src/Makefile dnl
-    src/helper/Makefile dnl
-    src/jtag/Makefile dnl
-    src/jtag/drivers/Makefile dnl
-    src/transport/Makefile dnl
-    src/xsvf/Makefile dnl
-    src/svf/Makefile dnl
-    src/target/Makefile dnl
-    src/rtos/Makefile dnl
-    src/server/Makefile dnl
-    src/flash/Makefile dnl
-    src/flash/nor/Makefile dnl
-    src/flash/nand/Makefile dnl
-    src/pld/Makefile dnl
-    doc/Makefile dnl
-  )
+AC_CONFIG_FILES([
+  Makefile
+  src/Makefile
+  src/helper/Makefile
+  src/jtag/Makefile
+  src/jtag/drivers/Makefile
+  src/transport/Makefile
+  src/xsvf/Makefile
+  src/svf/Makefile
+  src/target/Makefile
+  src/rtos/Makefile
+  src/server/Makefile
+  src/flash/Makefile
+  src/flash/nor/Makefile
+  src/flash/nand/Makefile
+  src/pld/Makefile
+  doc/Makefile
+])
+AC_OUTPUT
