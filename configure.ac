@@ -1068,7 +1068,7 @@ use_libusb0=no
 use_libusb1=no
 if test $build_usb = yes -o $build_usb_ng = yes; then
   if test $check_libusb0 = no -a $build_usb_ng = yes; then
-	AC_CHECK_HEADERS([libusb-1.0/libusb.h],
+	AC_CHECK_HEADER([libusb-1.0/libusb.h],
 			[AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.0]) check_libusb0=no use_libusb1=yes ],
 			[ check_libusb0=yes use_libusb1=no ])
   fi
