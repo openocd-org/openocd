@@ -23,24 +23,6 @@
 
 #include <jtag/jtag_minidriver.h>
 
-static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
-{
-	field->in_value = field->intmp;
-}
-
-static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
-{
-	/* We're executing this synchronously, so try to use local storage. */
-	if (field->num_bits > 32)
-	{
-		unsigned num_bytes = DIV_ROUND_UP(field->num_bits, 8);
-		field->in_value = (uint8_t *)malloc(num_bytes);
-		field->allocated = 1;
-	}
-	else
-		field->in_value = field->intmp;
-}
-
 static inline void jtag_add_dr_out(struct jtag_tap* tap,
 		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state)

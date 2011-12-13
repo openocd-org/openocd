@@ -105,8 +105,6 @@ extern tap_state_t cmd_queue_cur_state;
  *
  * In addition, this structure includes a value and mask that is used by
  * jtag_add_dr_scan_check() to validate the value that was scanned out.
- *
- * The allocated, modified, and intmp fields are internal work space.
  */
 struct scan_field {
 	/// The number of bits this field specifies (up to 32)
@@ -120,13 +118,6 @@ struct scan_field {
 	uint8_t* check_value;
 	/// The mask to go with check_value
 	uint8_t* check_mask;
-
-	/// in_value has been allocated for the queue
-	int allocated;
-	/// Indicates we modified the in_value.
-	int modified;
-	/// temporary storage for performing value checks synchronously
-	uint8_t intmp[4];
 };
 
 struct jtag_tap {

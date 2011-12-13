@@ -417,12 +417,8 @@ static void jtag_add_scan_check(struct jtag_tap *active, void (*jtag_add_scan)(s
 	for (int i = 0; i < in_num_fields; i++)
 	{
 		struct scan_field *field = &in_fields[i];
-		field->allocated = 0;
-		field->modified = 0;
-		if (field->check_value || field->in_value)
-			continue;
-		interface_jtag_add_scan_check_alloc(field);
-		field->modified = 1;
+		/* caller must provide in_buffer if needed for callback */
+		assert((field->check_value == NULL) || (field->in_value != NULL));
 	}
 
 	jtag_add_scan(active, in_num_fields, in_fields, state);
@@ -436,14 +432,6 @@ static void jtag_add_scan_check(struct jtag_tap *active, void (*jtag_add_scan)(s
 				(jtag_callback_data_t)in_fields[i].check_value,
 				(jtag_callback_data_t)in_fields[i].check_mask,
 				(jtag_callback_data_t)in_fields[i].num_bits);
-		}
-		if (in_fields[i].allocated)
-		{
-			free(in_fields[i].in_value);
-		}
-		if (in_fields[i].modified)
-		{
-			in_fields[i].in_value = NULL;
 		}
 	}
 }
