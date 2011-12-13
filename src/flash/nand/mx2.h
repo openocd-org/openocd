@@ -27,33 +27,32 @@
  * Many thanks to Ben Dooks for writing s3c24xx driver.
  */
 
-#define		MXC_NF_BASE_ADDR			0xd8000000
-#define		MXC_NF_BUFSIZ				(MXC_NF_BASE_ADDR + 0xe00)
-#define		MXC_NF_BUFADDR				(MXC_NF_BASE_ADDR + 0xe04)
-#define		MXC_NF_FADDR				(MXC_NF_BASE_ADDR + 0xe06)
-#define		MXC_NF_FCMD					(MXC_NF_BASE_ADDR + 0xe08)
-#define		MXC_NF_BUFCFG				(MXC_NF_BASE_ADDR + 0xe0a)
-#define		MXC_NF_ECCSTATUS			(MXC_NF_BASE_ADDR + 0xe0c)
-#define		MXC_NF_ECCMAINPOS			(MXC_NF_BASE_ADDR + 0xe0e)
-#define		MXC_NF_ECCSPAREPOS			(MXC_NF_BASE_ADDR + 0xe10)
-#define		MXC_NF_FWP					(MXC_NF_BASE_ADDR + 0xe12)
-#define		MXC_NF_LOCKSTART			(MXC_NF_BASE_ADDR + 0xe14)
-#define		MXC_NF_LOCKEND				(MXC_NF_BASE_ADDR + 0xe16)
-#define		MXC_NF_FWPSTATUS			(MXC_NF_BASE_ADDR + 0xe18)
+#define		MXC_NF_BUFSIZ				(mxc_nf_info->mxc_base_addr + 0xe00)
+#define		MXC_NF_BUFADDR				(mxc_nf_info->mxc_base_addr + 0xe04)
+#define		MXC_NF_FADDR				(mxc_nf_info->mxc_base_addr + 0xe06)
+#define		MXC_NF_FCMD					(mxc_nf_info->mxc_base_addr + 0xe08)
+#define		MXC_NF_BUFCFG				(mxc_nf_info->mxc_base_addr + 0xe0a)
+#define		MXC_NF_ECCSTATUS			(mxc_nf_info->mxc_base_addr + 0xe0c)
+#define		MXC_NF_ECCMAINPOS			(mxc_nf_info->mxc_base_addr + 0xe0e)
+#define		MXC_NF_ECCSPAREPOS			(mxc_nf_info->mxc_base_addr + 0xe10)
+#define		MXC_NF_FWP					(mxc_nf_info->mxc_base_addr + 0xe12)
+#define		MXC_NF_LOCKSTART			(mxc_nf_info->mxc_base_addr + 0xe14)
+#define		MXC_NF_LOCKEND				(mxc_nf_info->mxc_base_addr + 0xe16)
+#define		MXC_NF_FWPSTATUS			(mxc_nf_info->mxc_base_addr + 0xe18)
  /*
   * all bits not marked as self-clearing bit
   */
-#define		MXC_NF_CFG1					(MXC_NF_BASE_ADDR + 0xe1a)
-#define		MXC_NF_CFG2					(MXC_NF_BASE_ADDR + 0xe1c)
+#define		MXC_NF_CFG1					(mxc_nf_info->mxc_base_addr + 0xe1a)
+#define		MXC_NF_CFG2					(mxc_nf_info->mxc_base_addr + 0xe1c)
 
-#define		MXC_NF_MAIN_BUFFER0			(MXC_NF_BASE_ADDR + 0x0000)
-#define		MXC_NF_MAIN_BUFFER1			(MXC_NF_BASE_ADDR + 0x0200)
-#define		MXC_NF_MAIN_BUFFER2			(MXC_NF_BASE_ADDR + 0x0400)
-#define		MXC_NF_MAIN_BUFFER3			(MXC_NF_BASE_ADDR + 0x0600)
-#define		MXC_NF_SPARE_BUFFER0		(MXC_NF_BASE_ADDR + 0x0800)
-#define		MXC_NF_SPARE_BUFFER1		(MXC_NF_BASE_ADDR + 0x0810)
-#define		MXC_NF_SPARE_BUFFER2		(MXC_NF_BASE_ADDR + 0x0820)
-#define		MXC_NF_SPARE_BUFFER3		(MXC_NF_BASE_ADDR + 0x0830)
+#define		MXC_NF_MAIN_BUFFER0			(mxc_nf_info->mxc_base_addr + 0x0000)
+#define		MXC_NF_MAIN_BUFFER1			(mxc_nf_info->mxc_base_addr + 0x0200)
+#define		MXC_NF_MAIN_BUFFER2			(mxc_nf_info->mxc_base_addr + 0x0400)
+#define		MXC_NF_MAIN_BUFFER3			(mxc_nf_info->mxc_base_addr + 0x0600)
+#define		MXC_NF_SPARE_BUFFER0		(mxc_nf_info->mxc_base_addr + 0x0800)
+#define		MXC_NF_SPARE_BUFFER1		(mxc_nf_info->mxc_base_addr + 0x0810)
+#define		MXC_NF_SPARE_BUFFER2		(mxc_nf_info->mxc_base_addr + 0x0820)
+#define		MXC_NF_SPARE_BUFFER3		(mxc_nf_info->mxc_base_addr + 0x0830)
 #define		MXC_NF_MAIN_BUFFER_LEN		512
 #define		MXC_NF_SPARE_BUFFER_LEN		16
 #define		MXC_NF_LAST_BUFFER_ADDR		((MXC_NF_SPARE_BUFFER3) + \
@@ -111,6 +110,7 @@ struct mxc_nf_flags {
 };
 
 struct mxc_nf_controller {
+	uint32_t mxc_base_addr;
 	enum mxc_dataout_type optype;
 	enum mxc_nf_finalize_action fin;
 	struct mxc_nf_flags flags;

@@ -64,9 +64,9 @@ static uint32_t in_sram_address;
 static unsigned char sign_of_sequental_byte_read;
 
 static int initialize_nf_controller(struct nand_device *nand);
-static int get_next_byte_from_sram_buffer(struct target *target, uint8_t *value);
-static int get_next_halfword_from_sram_buffer(struct target *target, uint16_t *value);
-static int poll_for_complete_op(struct target *target, const char *text);
+static int get_next_byte_from_sram_buffer(struct nand_device *nand, uint8_t *value);
+static int get_next_halfword_from_sram_buffer(struct nand_device *nand, uint16_t *value);
+static int poll_for_complete_op(struct nand_device *nand, const char *text);
 static int validate_target_state(struct nand_device *nand);
 static int do_data_output(struct nand_device *nand);
 
@@ -86,15 +86,25 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 	}
 	nand->controller_priv = mxc_nf_info;
 
-	if (CMD_ARGC < 3) {
-		LOG_ERROR("use \"nand device mxc target noecc|hwecc\"");
+	if (CMD_ARGC < 4) {
+		LOG_ERROR("use \"nand device mxc target mx27|mx31|mx35 noecc|hwecc\"");
 		return ERROR_FAIL;
 	}
 
 	/*
+	 * check board type
+	 */
+	if (strcmp(CMD_ARGV[2], "mx27") == 0)
+		mxc_nf_info->mxc_base_addr = 0xD8000000;
+	else if (strcmp(CMD_ARGV[2], "mx31") == 0)
+		mxc_nf_info->mxc_base_addr = 0xB8000000;
+	else if (strcmp(CMD_ARGV[2], "mx35") == 0)
+		mxc_nf_info->mxc_base_addr = 0xBB000000;
+
+	/*
 	 * check hwecc requirements
 	 */
-	hwecc_needed = strcmp(CMD_ARGV[2], "hwecc");
+	hwecc_needed = strcmp(CMD_ARGV[3], "hwecc");
 	if (hwecc_needed == 0)
 		mxc_nf_info->flags.hw_ecc_enabled = 1;
 	else
@@ -188,7 +198,6 @@ static int mxc_init(struct nand_device *nand)
 
 static int mxc_read_data(struct nand_device *nand, void *data)
 {
-	struct target *target = nand->target;
 	int validate_target_result;
 	int try_data_output_from_nand_chip;
 	/*
@@ -209,9 +218,9 @@ static int mxc_read_data(struct nand_device *nand, void *data)
 	}
 
 	if (nand->bus_width == 16)
-		get_next_halfword_from_sram_buffer(target, data);
+		get_next_halfword_from_sram_buffer(nand, data);
 	else
-		get_next_byte_from_sram_buffer(target, data);
+		get_next_byte_from_sram_buffer(nand, data);
 
 	return ERROR_OK;
 }
@@ -273,7 +282,7 @@ static int mxc_command(struct nand_device *nand, uint8_t command)
 	 * start command input operation (set MXC_NF_BIT_OP_DONE==0)
 	 */
 	target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FCI);
-	poll_result = poll_for_complete_op(target, "command");
+	poll_result = poll_for_complete_op(nand, "command");
 	if (poll_result != ERROR_OK)
 		return poll_result;
 	/*
@@ -306,6 +315,7 @@ static int mxc_command(struct nand_device *nand, uint8_t command)
 
 static int mxc_address(struct nand_device *nand, uint8_t address)
 {
+	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
 	int validate_target_result;
 	int poll_result;
@@ -321,7 +331,7 @@ static int mxc_address(struct nand_device *nand, uint8_t address)
 	 * start address input operation (set MXC_NF_BIT_OP_DONE==0)
 	 */
 	target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FAI);
-	poll_result = poll_for_complete_op(target, "address");
+	poll_result = poll_for_complete_op(nand, "address");
 	if (poll_result != ERROR_OK)
 		return poll_result;
 
@@ -330,8 +340,9 @@ static int mxc_address(struct nand_device *nand, uint8_t address)
 
 static int mxc_nand_ready(struct nand_device *nand, int tout)
 {
-	uint16_t poll_complete_status;
+	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
+	uint16_t poll_complete_status;
 	int validate_target_result;
 
 	/*
@@ -420,25 +431,25 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 	 */
 	target_write_u16(target, MXC_NF_BUFADDR, 0);
 	target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FDI);
-	poll_result = poll_for_complete_op(target, "data input");
+	poll_result = poll_for_complete_op(nand, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
 
 	target_write_u16(target, MXC_NF_BUFADDR, 1);
 	target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FDI);
-	poll_result = poll_for_complete_op(target, "data input");
+	poll_result = poll_for_complete_op(nand, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
 
 	target_write_u16(target, MXC_NF_BUFADDR, 2);
 	target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FDI);
-	poll_result = poll_for_complete_op(target, "data input");
+	poll_result = poll_for_complete_op(nand, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
 
 	target_write_u16(target, MXC_NF_BUFADDR, 3);
 	target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FDI);
-	poll_result = poll_for_complete_op(target, "data input");
+	poll_result = poll_for_complete_op(nand, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
 
@@ -618,8 +629,10 @@ static int initialize_nf_controller(struct nand_device *nand)
 	return ERROR_OK;
 }
 
-static int get_next_byte_from_sram_buffer(struct target *target, uint8_t *value)
+static int get_next_byte_from_sram_buffer(struct nand_device *nand, uint8_t *value)
 {
+	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
+	struct target *target = nand->target;
 	static uint8_t even_byte = 0;
 	uint16_t temp;
 	/*
@@ -649,8 +662,11 @@ static int get_next_byte_from_sram_buffer(struct target *target, uint8_t *value)
 	return ERROR_OK;
 }
 
-static int get_next_halfword_from_sram_buffer(struct target *target, uint16_t *value)
+static int get_next_halfword_from_sram_buffer(struct nand_device *nand, uint16_t *value)
 {
+	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
+	struct target *target = nand->target;
+
 	if (in_sram_address > MXC_NF_LAST_BUFFER_ADDR) {
 		LOG_ERROR(sram_buffer_bounds_err_msg, in_sram_address);
 		*value = 0;
@@ -662,9 +678,12 @@ static int get_next_halfword_from_sram_buffer(struct target *target, uint16_t *v
 	return ERROR_OK;
 }
 
-static int poll_for_complete_op(struct target *target, const char *text)
+static int poll_for_complete_op(struct nand_device *nand, const char *text)
 {
+	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
+	struct target *target = nand->target;
 	uint16_t poll_complete_status;
+
 	for (int poll_cycle_count = 0; poll_cycle_count < 100; poll_cycle_count++) {
 		target_read_u16(target, MXC_NF_CFG2, &poll_complete_status);
 		if (poll_complete_status & MXC_NF_BIT_OP_DONE)
@@ -711,7 +730,7 @@ static int do_data_output(struct nand_device *nand)
 		 * start data output operation (set MXC_NF_BIT_OP_DONE==0)
 		 */
 		target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_DATAOUT_TYPE(mxc_nf_info->optype));
-		poll_result = poll_for_complete_op(target, "data output");
+		poll_result = poll_for_complete_op(nand, "data output");
 		if (poll_result != ERROR_OK)
 			return poll_result;
 
