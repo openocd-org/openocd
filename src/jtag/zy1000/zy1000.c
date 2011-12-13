@@ -1296,6 +1296,15 @@ void zy1000_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t da
 	callbackqueue[callbackqueue_pos].data2 = data2;
 	callbackqueue[callbackqueue_pos].data3 = data3;
 	callbackqueue_pos++;
+
+	/* KLUDGE!
+	 * make callbacks synchronous for now as minidriver requires callback
+	 * to be synchronous.
+	 *
+	 * We can get away with making read and writes asynchronous so we
+	 * don't completely kill performance.
+	 */
+	zy1000_flush_callbackqueue();
 }
 
 static int zy1000_jtag_convert_to_callback4(jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
@@ -1342,6 +1351,9 @@ static void writeShiftValue(uint8_t *data, int bits)
 	readqueue[readqueue_pos].dest = data;
 	readqueue[readqueue_pos].bits = bits;
 	readqueue_pos++;
+
+	/* KLUDGE!!! minidriver requires readqueue to be synchronous */
+	zy1000_flush_readqueue();
 }
 
 #else
