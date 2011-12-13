@@ -135,6 +135,56 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_mxc_biswap_command)
+{
+	struct nand_device *nand = NULL;
+	struct mxc_nf_controller *mxc_nf_info = NULL;
+
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &nand);
+	if (retval != ERROR_OK) {
+		command_print(CMD_CTX, "invalid nand device number or name: %s", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	mxc_nf_info = nand->controller_priv;
+	if (CMD_ARGC == 2) {
+		if (strcmp(CMD_ARGV[1], "enable") == 0)
+			mxc_nf_info->flags.biswap_enabled = true;
+		else
+			mxc_nf_info->flags.biswap_enabled = false;
+	}
+	if (mxc_nf_info->flags.biswap_enabled)
+		command_print(CMD_CTX, "BI-swapping enabled on %s", nand->name);
+	else
+		command_print(CMD_CTX, "BI-swapping disabled on %s", nand->name);
+
+	return ERROR_OK;
+}
+
+static const struct command_registration mxc_sub_command_handlers[] = {
+	{
+		.name = "biswap",
+		.handler = handle_mxc_biswap_command ,
+		.help = "Turns on/off bad block information swaping from main area, "
+				"without parameter query status.",
+		.usage = "bank_id ['enable'|'disable']",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration mxc_nand_command_handler[] = {
+	{
+		.name = "mxc",
+		.mode = COMMAND_ANY,
+		.help = "MXC NAND flash controller commands",
+		.chain = mxc_sub_command_handlers
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int mxc_init(struct nand_device *nand)
 {
 	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
@@ -785,6 +835,7 @@ static int do_data_output(struct nand_device *nand)
 struct nand_flash_controller mxc_nand_flash_controller = {
 	.name					= "mxc",
 	.nand_device_command	= &mxc_nand_device_command,
+	.commands				= mxc_nand_command_handler,
 	.init					= &mxc_init,
 	.reset					= &mxc_reset,
 	.command				= &mxc_command,
