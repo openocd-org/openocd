@@ -293,7 +293,7 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	jtag_alloc_in_value32(&fields[0]);
+	fields[0].in_value = in;
 
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
@@ -305,7 +305,11 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 
 	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
 
-	jtag_add_callback4(arm9endianness, (jtag_callback_data_t)in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[0].in_value);
+	jtag_add_callback4(arm9endianness,
+		(jtag_callback_data_t)in,
+		(jtag_callback_data_t)size,
+		(jtag_callback_data_t)be,
+		(jtag_callback_data_t)in);
 
 	jtag_add_runtest(0, TAP_DRPAUSE);
 
