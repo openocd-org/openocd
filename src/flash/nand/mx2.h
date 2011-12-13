@@ -107,6 +107,7 @@ struct mxc_nf_flags {
 	unsigned nand_readonly:1;
 	unsigned one_kb_sram:1;
 	unsigned hw_ecc_enabled:1;
+	unsigned biswap_enabled:1;
 };
 
 struct mxc_nf_controller {

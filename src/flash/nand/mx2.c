@@ -87,7 +87,7 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 	nand->controller_priv = mxc_nf_info;
 
 	if (CMD_ARGC < 4) {
-		LOG_ERROR("use \"nand device mxc target mx27|mx31|mx35 noecc|hwecc\"");
+		LOG_ERROR("use \"nand device mxc target mx27|mx31|mx35 noecc|hwecc [biswap]\"");
 		return ERROR_FAIL;
 	}
 
@@ -114,6 +114,15 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 	mxc_nf_info->fin = MXC_NF_FIN_NONE;
 	mxc_nf_info->flags.target_little_endian =
 	(nand->target->endianness == TARGET_LITTLE_ENDIAN);
+
+	/*
+	 * should factory bad block indicator be swaped
+	 * as a workaround for how the nfc handles pages.
+	 */
+	if (CMD_ARGC > 4 && strcmp(CMD_ARGV[4], "biswap") == 0) {
+		LOG_DEBUG("BI-swap enabled");
+		mxc_nf_info->flags.biswap_enabled = 1;
+	}
 
 	/*
 	 * testing host endianness
@@ -414,18 +423,21 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 		}
 		target_write_buffer(target, MXC_NF_SPARE_BUFFER0, oob_size,	oob);
 	}
-	/* BI-swap -  work-around of mxc NFC for NAND device with page == 2kb */
-	target_read_u16(target, MXC_NF_MAIN_BUFFER3 + 464, &swap1);
-	if (oob) {
-		LOG_ERROR("Due to NFC Bug, oob is not correctly implemented in mxc driver");
-		return ERROR_NAND_OPERATION_FAILED;
-	}
-	swap2 = 0xffff;  /* Spare buffer unused forced to 0xffff */
-	new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
-	swap2 = (swap1 << 8) | (swap2 & 0xFF);
 
-	target_write_u16(target, MXC_NF_MAIN_BUFFER3 + 464, new_swap1);
-	target_write_u16(target, MXC_NF_SPARE_BUFFER3 + 4, swap2);
+	if (nand->page_size > 512 && mxc_nf_info->flags.biswap_enabled) {
+		/* BI-swap - work-around of i.MX NFC for NAND device with page == 2kb*/
+		target_read_u16(target, MXC_NF_MAIN_BUFFER3 + 464, &swap1);
+		if (oob) {
+			LOG_ERROR("Due to NFC Bug, oob is not correctly implemented in mxc driver");
+			return ERROR_NAND_OPERATION_FAILED;
+		}
+		swap2 = 0xffff;  /* Spare buffer unused forced to 0xffff */
+		new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
+		swap2 = (swap1 << 8) | (swap2 & 0xFF);
+		target_write_u16(target, MXC_NF_MAIN_BUFFER3 + 464, new_swap1);
+		target_write_u16(target, MXC_NF_SPARE_BUFFER3 + 4, swap2);
+	}
+
 	/*
 	 * start data input operation (set MXC_NF_BIT_OP_DONE==0)
 	 */
@@ -553,13 +565,16 @@ static int mxc_read_page(struct nand_device *nand, uint32_t page,
 		LOG_ERROR("MXC_NF : Error reading page 3");
 		return retval;
 	}
-	/* BI-swap -  work-around of mxc NFC for NAND device with page == 2k */
-	target_read_u16(target, MXC_NF_MAIN_BUFFER3 + 464, &swap1);
-	target_read_u16(target, MXC_NF_SPARE_BUFFER3 + 4, &swap2);
-	new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
-	swap2 = (swap1 << 8) | (swap2 & 0xFF);
-	target_write_u16(target, MXC_NF_MAIN_BUFFER3 + 464, new_swap1);
-	target_write_u16(target, MXC_NF_SPARE_BUFFER3 + 4, swap2);
+
+	if (nand->page_size > 512 && mxc_nf_info->flags.biswap_enabled) {
+		/* BI-swap -  work-around of mxc NFC for NAND device with page == 2k */
+		target_read_u16(target, MXC_NF_MAIN_BUFFER3 + 464, &swap1);
+		target_read_u16(target, MXC_NF_SPARE_BUFFER3 + 4, &swap2);
+		new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
+		swap2 = (swap1 << 8) | (swap2 & 0xFF);
+		target_write_u16(target, MXC_NF_MAIN_BUFFER3 + 464, new_swap1);
+		target_write_u16(target, MXC_NF_SPARE_BUFFER3 + 4, swap2);
+	}
 
 	if (data)
 		target_read_buffer(target, MXC_NF_MAIN_BUFFER0, data_size, data);
