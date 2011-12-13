@@ -38,7 +38,7 @@ extern struct nand_flash_controller s3c2412_nand_controller;
 extern struct nand_flash_controller s3c2440_nand_controller;
 extern struct nand_flash_controller s3c2443_nand_controller;
 extern struct nand_flash_controller s3c6400_nand_controller;
-extern struct nand_flash_controller imx27_nand_flash_controller;
+extern struct nand_flash_controller mxc_nand_flash_controller;
 extern struct nand_flash_controller imx31_nand_flash_controller;
 extern struct nand_flash_controller at91sam9_nand_controller;
 extern struct nand_flash_controller nuc910_nand_controller;
@@ -57,7 +57,7 @@ static struct nand_flash_controller *nand_flash_controllers[] =
 	&s3c2440_nand_controller,
 	&s3c2443_nand_controller,
 	&s3c6400_nand_controller,
-	&imx27_nand_flash_controller,
+	&mxc_nand_flash_controller,
 	&imx31_nand_flash_controller,
 	&at91sam9_nand_controller,
 	&nuc910_nand_controller,
