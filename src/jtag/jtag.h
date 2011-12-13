@@ -372,17 +372,6 @@ void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_b
 
 
 /**
- * Set in_value to point to 32 bits of memory to scan into. This
- * function is a way to handle the case of synchronous and asynchronous
- * JTAG queues.
- *
- * In the event of an asynchronous queue execution the queue buffer
- * allocation method is used, for the synchronous case the temporary 32
- * bits come from the input field itself.
- */
-void jtag_alloc_in_value32(struct scan_field *field);
-
-/**
  * Generate a DR SCAN using the fields passed to the function.
  * For connected TAPs, the function checks in_fields and uses fields
  * specified there.  For bypassed TAPs, the function generates a dummy

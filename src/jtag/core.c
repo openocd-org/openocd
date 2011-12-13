@@ -355,11 +355,6 @@ static void jtag_prelude(tap_state_t state)
 	cmd_queue_cur_state = state;
 }
 
-void jtag_alloc_in_value32(struct scan_field *field)
-{
-	interface_jtag_alloc_in_value32(field);
-}
-
 void jtag_add_ir_scan_noverify(struct jtag_tap *active, const struct scan_field *in_fields,
 		tap_state_t state)
 {

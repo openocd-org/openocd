@@ -23,11 +23,6 @@
 
 #include <jtag/commands.h>
 
-static inline void interface_jtag_alloc_in_value32(struct scan_field *field)
-{
-	field->in_value = (uint8_t *)cmd_queue_alloc(4);
-}
-
 static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
 {
 	unsigned num_bytes = DIV_ROUND_UP(field->num_bits, 8);
