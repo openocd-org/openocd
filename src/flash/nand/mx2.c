@@ -29,7 +29,7 @@
 
 /*
  * driver tested with Samsung K9F2G08UXA and Numonyx/ST NAND02G-B2D @imx27
- * tested "nand probe #", "nand erase # 0 #", "nand dump # file 0 #", 
+ * tested "nand probe #", "nand erase # 0 #", "nand dump # file 0 #",
  * "nand write # file 0", "nand verify"
  *
  * get_next_halfword_from_sram_buffer() not tested
@@ -51,7 +51,7 @@
  * front-end to estimate progression of the global read/write
  */
 #undef _MX2_PRINT_STAT
-//#define _MX2_PRINT_STAT
+/* #define _MX2_PRINT_STAT */
 
 static const char target_not_halted_err_msg[] =
 	"target must be halted to use mx2 NAND flash controller";
@@ -64,10 +64,9 @@ static uint32_t in_sram_address;
 static unsigned char sign_of_sequental_byte_read;
 
 static int initialize_nf_controller(struct nand_device *nand);
-static int get_next_byte_from_sram_buffer(struct target * target, uint8_t * value);
-static int get_next_halfword_from_sram_buffer(struct target * target,
-					       uint16_t * value);
-static int poll_for_complete_op(struct target * target, const char *text);
+static int get_next_byte_from_sram_buffer(struct target *target, uint8_t *value);
+static int get_next_halfword_from_sram_buffer(struct target *target, uint16_t *value);
+static int poll_for_complete_op(struct target *target, const char *text);
 static int validate_target_state(struct nand_device *nand);
 static int do_data_output(struct nand_device *nand);
 
@@ -79,23 +78,24 @@ NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 	struct mx2_nf_controller *mx2_nf_info;
 	int hwecc_needed;
 	int x;
+
 	mx2_nf_info = malloc(sizeof(struct mx2_nf_controller));
 	if (mx2_nf_info == NULL) {
 		LOG_ERROR("no memory for nand controller");
 		return ERROR_FAIL;
 	}
-
 	nand->controller_priv = mx2_nf_info;
+
 	if (CMD_ARGC < 3) {
 		LOG_ERROR("use \"nand device imx27 target noecc|hwecc\"");
 		return ERROR_FAIL;
 	}
+
 	/*
 	 * check hwecc requirements
 	 */
-
 	hwecc_needed = strcmp(CMD_ARGV[2], "hwecc");
-	if (hwecc_needed == 0) 
+	if (hwecc_needed == 0)
 		mx2_nf_info->flags.hw_ecc_enabled = 1;
 	else
 		mx2_nf_info->flags.hw_ecc_enabled = 0;
@@ -104,6 +104,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx27_nand_device_command)
 	mx2_nf_info->fin = MX2_NF_FIN_NONE;
 	mx2_nf_info->flags.target_little_endian =
 	(nand->target->endianness == TARGET_LITTLE_ENDIAN);
+
 	/*
 	 * testing host endianness
 	 */
@@ -139,11 +140,11 @@ static int imx27_init(struct nand_device *nand)
 	if (!nand->bus_width) {
 		/* bus_width not yet defined. Read it from MX2_FMCR */
 		nand->bus_width =
-		    (pcsr_register_content & MX2_FMCR_NF_16BIT_SEL) ? 16 : 8;
+			(pcsr_register_content & MX2_FMCR_NF_16BIT_SEL) ? 16 : 8;
 	} else {
 		/* bus_width forced in soft. Sync it to MX2_FMCR */
 		pcsr_register_content |=
-		    ((nand->bus_width == 16) ? MX2_FMCR_NF_16BIT_SEL : 0x00000000);
+			((nand->bus_width == 16) ? MX2_FMCR_NF_16BIT_SEL : 0x00000000);
 		target_write_u32(target, MX2_FMCR, pcsr_register_content);
 	}
 	if (nand->bus_width == 16)
@@ -152,11 +153,10 @@ static int imx27_init(struct nand_device *nand)
 		LOG_DEBUG("MX2_NF : bus is 8-bit width");
 
 	if (!nand->page_size) {
-		nand->page_size =
-		    (pcsr_register_content & MX2_FMCR_NF_FMS) ? 2048 : 512;
+		nand->page_size = (pcsr_register_content & MX2_FMCR_NF_FMS) ? 2048 : 512;
 	} else {
 		pcsr_register_content |=
-		    ((nand->page_size == 2048) ? MX2_FMCR_NF_FMS : 0x00000000);
+			((nand->page_size == 2048) ? MX2_FMCR_NF_FMS : 0x00000000);
 		target_write_u32(target, MX2_FMCR, pcsr_register_content);
 	}
 	if (mx2_nf_info->flags.one_kb_sram && (nand->page_size == 2048)) {
@@ -204,14 +204,14 @@ static int imx27_read_data(struct nand_device *nand, void *data)
 	try_data_output_from_nand_chip = do_data_output(nand);
 	if (try_data_output_from_nand_chip != ERROR_OK) {
 		LOG_ERROR("imx27_read_data : read data failed : '%x'",
-		          try_data_output_from_nand_chip);
+				  try_data_output_from_nand_chip);
 		return try_data_output_from_nand_chip;
 	}
 
 	if (nand->bus_width == 16)
-	    get_next_halfword_from_sram_buffer(target, data);
+		get_next_halfword_from_sram_buffer(target, data);
 	else
-	    get_next_byte_from_sram_buffer(target, data);
+		get_next_byte_from_sram_buffer(target, data);
 
 	return ERROR_OK;
 }
@@ -230,7 +230,7 @@ static int imx27_reset(struct nand_device *nand)
 	int validate_target_result;
 	validate_target_result = validate_target_state(nand);
 	if (validate_target_result != ERROR_OK)
-	    return validate_target_result;
+		return validate_target_result;
 	initialize_nf_controller(nand);
 	return ERROR_OK;
 }
@@ -248,21 +248,20 @@ static int imx27_command(struct nand_device *nand, uint8_t command)
 	if (validate_target_result != ERROR_OK)
 		return validate_target_result;
 
-	switch(command) {
+	switch (command) {
 	case NAND_CMD_READOOB:
 		command = NAND_CMD_READ0;
 		/* set read point for data_read() and read_block_data() to
 		 * spare area in SRAM buffer
 		 */
-		in_sram_address = MX2_NF_SPARE_BUFFER0;	
+		in_sram_address = MX2_NF_SPARE_BUFFER0;
 		break;
 	case NAND_CMD_READ1:
 		command = NAND_CMD_READ0;
 		/*
 		 * offset == one half of page size
 		 */
-		in_sram_address =
-		    MX2_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
+		in_sram_address = MX2_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
 		break;
 	default:
 		in_sram_address = MX2_NF_MAIN_BUFFER0;
@@ -282,7 +281,7 @@ static int imx27_command(struct nand_device *nand, uint8_t command)
 	 */
 	sign_of_sequental_byte_read = 0;
 	/* Handle special read command and adjust NF_CFG2(FDO) */
-	switch(command) {
+	switch (command) {
 	case NAND_CMD_READID:
 		mx2_nf_info->optype = MX2_NF_DATAOUT_NANDID;
 		mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
@@ -290,8 +289,8 @@ static int imx27_command(struct nand_device *nand, uint8_t command)
 	case NAND_CMD_STATUS:
 		mx2_nf_info->optype = MX2_NF_DATAOUT_NANDSTATUS;
 		mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
-                target_write_u16 (target, MX2_NF_BUFADDR, 0);
-                in_sram_address = 0;
+		target_write_u16 (target, MX2_NF_BUFADDR, 0);
+		in_sram_address = 0;
 		break;
 	case NAND_CMD_READ0:
 		mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
@@ -354,8 +353,8 @@ static int imx27_nand_ready(struct nand_device *nand, int tout)
 }
 
 static int imx27_write_page(struct nand_device *nand, uint32_t page,
-			     uint8_t * data, uint32_t data_size, uint8_t * oob,
-			     uint32_t oob_size)
+							uint8_t *data, uint32_t data_size,
+							uint8_t *oob, uint32_t oob_size)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
@@ -386,12 +385,12 @@ static int imx27_write_page(struct nand_device *nand, uint32_t page,
 	sign_of_sequental_byte_read = 0;
 	retval = ERROR_OK;
 	retval |= imx27_command(nand, NAND_CMD_SEQIN);
-	retval |= imx27_address(nand, 0); //col
-	retval |= imx27_address(nand, 0); //col
-	retval |= imx27_address(nand, page & 0xff); //page address
-	retval |= imx27_address(nand, (page >> 8) & 0xff); //page address
-	retval |= imx27_address(nand, (page >> 16) & 0xff); //page address
-	
+	retval |= imx27_address(nand, 0); /* col */
+	retval |= imx27_address(nand, 0); /* col */
+	retval |= imx27_address(nand, page & 0xff); /* page address */
+	retval |= imx27_address(nand, (page >> 8) & 0xff); /* page address */
+	retval |= imx27_address(nand, (page >> 16) & 0xff); /* page address */
+
 	target_write_buffer(target, MX2_NF_MAIN_BUFFER0, data_size, data);
 	if (oob) {
 		if (mx2_nf_info->flags.hw_ecc_enabled) {
@@ -402,20 +401,17 @@ static int imx27_write_page(struct nand_device *nand, uint32_t page,
 			LOG_DEBUG("part of spare block will be overrided "
 			          "by hardware ECC generator");
 		}
-		target_write_buffer(target, MX2_NF_SPARE_BUFFER0, oob_size,
-		                    oob);
+		target_write_buffer(target, MX2_NF_SPARE_BUFFER0, oob_size,	oob);
 	}
-	//BI-swap -  work-around of imx27 NFC for NAND device with page == 2kb
+	/* BI-swap -  work-around of imx27 NFC for NAND device with page == 2kb */
 	target_read_u16(target, MX2_NF_MAIN_BUFFER3 + 464, &swap1);
 	if (oob) {
-		LOG_ERROR("Due to NFC Bug, oob is not correctly implemented "
-		          "in mx2 driver");
+		LOG_ERROR("Due to NFC Bug, oob is not correctly implemented in mx2 driver");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	//target_read_u16 (target, MX2_NF_SPARE_BUFFER3 + 4, &swap2);
-	swap2 = 0xffff;  //Spare buffer unused forced to 0xffff
-        new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
-        swap2 = (swap1 << 8) | (swap2 & 0xFF);
+	swap2 = 0xffff;  /* Spare buffer unused forced to 0xffff */
+	new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
+	swap2 = (swap1 << 8) | (swap2 & 0xFF);
 
 	target_write_u16(target, MX2_NF_MAIN_BUFFER3 + 464, new_swap1);
 	target_write_u16(target, MX2_NF_SPARE_BUFFER3 + 4, swap2);
@@ -427,19 +423,19 @@ static int imx27_write_page(struct nand_device *nand, uint32_t page,
 	poll_result = poll_for_complete_op(target, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
-	
+
 	target_write_u16(target, MX2_NF_BUFADDR, 1);
 	target_write_u16(target, MX2_NF_CFG2, MX2_NF_BIT_OP_FDI);
 	poll_result = poll_for_complete_op(target, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
-	
+
 	target_write_u16(target, MX2_NF_BUFADDR, 2);
 	target_write_u16(target, MX2_NF_CFG2, MX2_NF_BIT_OP_FDI);
 	poll_result = poll_for_complete_op(target, "data input");
 	if (poll_result != ERROR_OK)
 		return poll_result;
-	
+
 	target_write_u16(target, MX2_NF_BUFADDR, 3);
 	target_write_u16(target, MX2_NF_CFG2, MX2_NF_BIT_OP_FDI);
 	poll_result = poll_for_complete_op(target, "data input");
@@ -453,23 +449,23 @@ static int imx27_write_page(struct nand_device *nand, uint32_t page,
 	/*
 	 * check status register
 	 */
-        retval = ERROR_OK;
-        retval |= imx27_command(nand, NAND_CMD_STATUS);
-        target_write_u16 (target, MX2_NF_BUFADDR, 0);
-        mx2_nf_info->optype = MX2_NF_DATAOUT_NANDSTATUS;
-        mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
-        retval |= do_data_output(nand);
-        if (retval != ERROR_OK) {
-                LOG_ERROR (get_status_register_err_msg);
-                return retval;
-        }
-        target_read_u16 (target, MX2_NF_MAIN_BUFFER0, &nand_status_content);
-        if (nand_status_content & 0x0001) {
-                /*
-                 * page not correctly written
-                 */
-                return ERROR_NAND_OPERATION_FAILED;
-        }
+	retval = ERROR_OK;
+	retval |= imx27_command(nand, NAND_CMD_STATUS);
+	target_write_u16 (target, MX2_NF_BUFADDR, 0);
+	mx2_nf_info->optype = MX2_NF_DATAOUT_NANDSTATUS;
+	mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
+	retval |= do_data_output(nand);
+	if (retval != ERROR_OK) {
+		LOG_ERROR(get_status_register_err_msg);
+		return retval;
+	}
+	target_read_u16(target, MX2_NF_MAIN_BUFFER0, &nand_status_content);
+	if (nand_status_content & 0x0001) {
+		/*
+		 * page not correctly written
+		 */
+		return ERROR_NAND_OPERATION_FAILED;
+	}
 #ifdef _MX2_PRINT_STAT
 	LOG_INFO("%d bytes newly written", data_size);
 #endif
@@ -477,20 +473,21 @@ static int imx27_write_page(struct nand_device *nand, uint32_t page,
 }
 
 static int imx27_read_page(struct nand_device *nand, uint32_t page,
-			    uint8_t * data, uint32_t data_size, uint8_t * oob,
-			    uint32_t oob_size)
+						   uint8_t *data, uint32_t data_size,
+						   uint8_t *oob, uint32_t oob_size)
 {
 	struct mx2_nf_controller *mx2_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
 	int retval;
 	uint16_t swap1, swap2, new_swap1;
+
 	if (data_size % 2) {
-	    LOG_ERROR(data_block_size_err_msg, data_size);
-	    return ERROR_NAND_OPERATION_FAILED;
+		LOG_ERROR(data_block_size_err_msg, data_size);
+		return ERROR_NAND_OPERATION_FAILED;
 	}
 	if (oob_size % 2) {
-	    LOG_ERROR(data_block_size_err_msg, oob_size);
-	    return ERROR_NAND_OPERATION_FAILED;
+		LOG_ERROR(data_block_size_err_msg, oob_size);
+		return ERROR_NAND_OPERATION_FAILED;
 	}
 
 	/*
@@ -503,15 +500,15 @@ static int imx27_read_page(struct nand_device *nand, uint32_t page,
 	/* Reset address_cycles before imx27_command ?? */
 	retval = imx27_command(nand, NAND_CMD_READ0);
 	if (retval != ERROR_OK) return retval;
-	retval = imx27_address(nand, 0); //col
+	retval = imx27_address(nand, 0); /* col */
 	if (retval != ERROR_OK) return retval;
-	retval = imx27_address(nand, 0); //col
+	retval = imx27_address(nand, 0); /* col */
 	if (retval != ERROR_OK) return retval;
-	retval = imx27_address(nand, page & 0xff); //page address
+	retval = imx27_address(nand, page & 0xff); /* page address */
 	if (retval != ERROR_OK) return retval;
-	retval = imx27_address(nand, (page >> 8) & 0xff); //page address
+	retval = imx27_address(nand, (page >> 8) & 0xff); /* page address */
 	if (retval != ERROR_OK) return retval;
-	retval = imx27_address(nand, (page >> 16) & 0xff); //page address
+	retval = imx27_address(nand, (page >> 16) & 0xff); /* page address */
 	if (retval != ERROR_OK) return retval;
 	retval = imx27_command(nand, NAND_CMD_READSTART);
 	if (retval != ERROR_OK) return retval;
@@ -523,7 +520,7 @@ static int imx27_read_page(struct nand_device *nand, uint32_t page,
 		LOG_ERROR("MX2_NF : Error reading page 0");
 		return retval;
 	}
-	//Test nand page size to know how much MAIN_BUFFER must be written
+	/* Test nand page size to know how much MAIN_BUFFER must be written */
 	target_write_u16(target, MX2_NF_BUFADDR, 1);
 	mx2_nf_info->fin = MX2_NF_FIN_DATAOUT;
 	retval = do_data_output(nand);
@@ -545,19 +542,19 @@ static int imx27_read_page(struct nand_device *nand, uint32_t page,
 		LOG_ERROR("MX2_NF : Error reading page 3");
 		return retval;
 	}
-	//BI-swap -  work-around of imx27 NFC for NAND device with page == 2k
+	/* BI-swap -  work-around of imx27 NFC for NAND device with page == 2k */
 	target_read_u16(target, MX2_NF_MAIN_BUFFER3 + 464, &swap1);
 	target_read_u16(target, MX2_NF_SPARE_BUFFER3 + 4, &swap2);
-        new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
-        swap2 = (swap1 << 8) | (swap2 & 0xFF);
+	new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
+	swap2 = (swap1 << 8) | (swap2 & 0xFF);
 	target_write_u16(target, MX2_NF_MAIN_BUFFER3 + 464, new_swap1);
 	target_write_u16(target, MX2_NF_SPARE_BUFFER3 + 4, swap2);
 
 	if (data)
 		target_read_buffer(target, MX2_NF_MAIN_BUFFER0, data_size, data);
 	if (oob)
-		target_read_buffer(target, MX2_NF_SPARE_BUFFER0, oob_size,
-		                    oob);
+		target_read_buffer(target, MX2_NF_SPARE_BUFFER0, oob_size, oob);
+
 #ifdef _MX2_PRINT_STAT
 	if (data_size > 0) {
 		/* When Operation Status is read (when page is erased),
@@ -621,7 +618,7 @@ static int initialize_nf_controller(struct nand_device *nand)
 	return ERROR_OK;
 }
 
-static int get_next_byte_from_sram_buffer(struct target * target, uint8_t * value)
+static int get_next_byte_from_sram_buffer(struct target *target, uint8_t *value)
 {
 	static uint8_t even_byte = 0;
 	uint16_t temp;
@@ -630,7 +627,7 @@ static int get_next_byte_from_sram_buffer(struct target * target, uint8_t * valu
 	 */
 	if (sign_of_sequental_byte_read == 0)
 		even_byte = 0;
-	
+
 	if (in_sram_address > MX2_NF_LAST_BUFFER_ADDR) {
 		LOG_ERROR(sram_buffer_bounds_err_msg, in_sram_address);
 		*value = 0;
@@ -652,8 +649,7 @@ static int get_next_byte_from_sram_buffer(struct target * target, uint8_t * valu
 	return ERROR_OK;
 }
 
-static int get_next_halfword_from_sram_buffer(struct target * target,
-					       uint16_t * value)
+static int get_next_halfword_from_sram_buffer(struct target *target, uint16_t *value)
 {
 	if (in_sram_address > MX2_NF_LAST_BUFFER_ADDR) {
 		LOG_ERROR(sram_buffer_bounds_err_msg, in_sram_address);
@@ -666,7 +662,7 @@ static int get_next_halfword_from_sram_buffer(struct target * target,
 	return ERROR_OK;
 }
 
-static int poll_for_complete_op(struct target * target, const char *text)
+static int poll_for_complete_op(struct target *target, const char *text)
 {
 	uint16_t poll_complete_status;
 	for (int poll_cycle_count = 0; poll_cycle_count < 100; poll_cycle_count++) {
@@ -693,8 +689,8 @@ static int validate_target_state(struct nand_device *nand)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	if (mx2_nf_info->flags.target_little_endian != 
-	     (target->endianness == TARGET_LITTLE_ENDIAN)) {
+	if (mx2_nf_info->flags.target_little_endian !=
+	    (target->endianness == TARGET_LITTLE_ENDIAN)) {
 		/*
 		 * endianness changed after NAND controller probed
 		 */
@@ -709,7 +705,7 @@ static int do_data_output(struct nand_device *nand)
 	struct target *target = nand->target;
 	int poll_result;
 	uint16_t ecc_status;
-	switch(mx2_nf_info->fin) {
+	switch (mx2_nf_info->fin) {
 	case MX2_NF_FIN_DATAOUT:
 		/*
 		 * start data output operation (set MX2_NF_BIT_OP_DONE==0)
@@ -725,16 +721,16 @@ static int do_data_output(struct nand_device *nand)
 		 */
 		if ((mx2_nf_info->optype == MX2_NF_DATAOUT_PAGE) && mx2_nf_info->flags.hw_ecc_enabled) {
 			target_read_u16(target, MX2_NF_ECCSTATUS, &ecc_status);
-			switch(ecc_status & 0x000c) {
+			switch (ecc_status & 0x000c) {
 			case 1 << 2:
 				LOG_INFO("main area readed with 1 (correctable) error");
 				break;
 			case 2 << 2:
 				LOG_INFO("main area readed with more than 1 (incorrectable) error");
 				return ERROR_NAND_OPERATION_FAILED;
-		    		break;
+					break;
 			}
-			switch(ecc_status & 0x0003) {
+			switch (ecc_status & 0x0003) {
 			case 1:
 				LOG_INFO("spare area readed with 1 (correctable) error");
 				break;
@@ -752,15 +748,15 @@ static int do_data_output(struct nand_device *nand)
 }
 
 struct nand_flash_controller imx27_nand_flash_controller = {
-	.name			= "imx27",
-	.nand_device_command 	= &imx27_nand_device_command,
-	.init			= &imx27_init,
-	.reset			= &imx27_reset,
-	.command		= &imx27_command,
-	.address		= &imx27_address,
-	.write_data		= &imx27_write_data,
-	.read_data		= &imx27_read_data,
-	.write_page		= &imx27_write_page,
-	.read_page		= &imx27_read_page,
-	.nand_ready		= &imx27_nand_ready,
+	.name					= "imx27",
+	.nand_device_command	= &imx27_nand_device_command,
+	.init					= &imx27_init,
+	.reset					= &imx27_reset,
+	.command				= &imx27_command,
+	.address				= &imx27_address,
+	.write_data				= &imx27_write_data,
+	.read_data				= &imx27_read_data,
+	.write_page				= &imx27_write_page,
+	.read_page				= &imx27_read_page,
+	.nand_ready				= &imx27_nand_ready,
 };
