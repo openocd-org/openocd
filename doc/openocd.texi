@@ -5474,6 +5474,27 @@ in the MLC controller mode, but won't change SLC behavior.
 @end deffn
 @comment current lpc3180 code won't issue 5-byte address cycles
 
+@deffn {NAND Driver} mx3
+This driver handles the NAND controller in i.MX31. The mxc driver
+should work for this chip aswell.
+@end deffn
+
+@deffn {NAND Driver} mxc
+This driver handles the NAND controller found in Freescale i.MX
+chips. It has support for v1 (i.MX27 and i.MX31) and v2 (i.MX35).
+The driver takes 3 extra arguments, chip (@option{mx27},
+@option{mx31}, @option{mx35}), ecc (@option{noecc}, @option{hwecc})
+and optionally if bad block information should be swapped between
+main area and spare area (@option{biswap}), defaults to off.
+@example
+nand device mx35.nand mxc imx35.cpu mx35 hwecc biswap
+@end example
+@deffn Command {mxc biswap} bank_num [enable|disable]
+Turns on/off bad block information swaping from main area,
+without parameter query status.
+@end deffn
+@end deffn
+
 @deffn {NAND Driver} orion
 These controllers require an extra @command{nand device}
 parameter:  the address of the controller.
