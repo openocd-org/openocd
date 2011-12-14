@@ -6,6 +6,9 @@
  *   Copyright (C) 2010 by Gaetan CARLIER                                  *
  *   Trump s.a., Belgium                                                   *
  *                                                                         *
+ *   Copyright (C) 2011 by Erik Ahlen                                      *
+ *   Avalon Innovation, Sweden                                             *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -42,7 +45,7 @@
 #endif
 
 #include "imp.h"
-#include "mx2.h"
+#include "mxc.h"
 #include <target/target.h>
 
 #define nfc_is_v1() (mxc_nf_info->mxc_version == MXC_VERSION_MX27 || \
