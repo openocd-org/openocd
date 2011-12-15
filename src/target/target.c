@@ -63,28 +63,6 @@ static int target_mem2array(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv);
 static int target_register_user_commands(struct command_context *cmd_ctx);
 
-/* targets */
-extern struct target_type arm7tdmi_target;
-extern struct target_type arm720t_target;
-extern struct target_type arm9tdmi_target;
-extern struct target_type arm920t_target;
-extern struct target_type arm966e_target;
-extern struct target_type arm946e_target;
-extern struct target_type arm926ejs_target;
-extern struct target_type fa526_target;
-extern struct target_type feroceon_target;
-extern struct target_type dragonite_target;
-extern struct target_type xscale_target;
-extern struct target_type cortexm3_target;
-extern struct target_type cortexa8_target;
-extern struct target_type arm11_target;
-extern struct target_type mips_m4k_target;
-extern struct target_type avr_target;
-extern struct target_type dsp563xx_target;
-extern struct target_type dsp5680xx_target;
-extern struct target_type testee_target;
-extern struct target_type avr32_ap7k_target;
-
 static struct target_type *target_types[] =
 {
 	&arm7tdmi_target,
