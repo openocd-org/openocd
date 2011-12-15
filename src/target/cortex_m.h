@@ -185,4 +185,15 @@ target_to_cm3(struct target *target)
 			struct cortex_m3_common, armv7m);
 }
 
+int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m3_remove_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m3_set_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int cortex_m3_remove_watchpoint(struct target *target, struct watchpoint *watchpoint);
+void cortex_m3_enable_watchpoints(struct target *target);
+void cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target *target);
+
 #endif /* CORTEX_M3_H */

@@ -59,9 +59,6 @@
 
 
 /* forward declarations */
-static int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
-static int cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);
-static void cortex_m3_enable_watchpoints(struct target *target);
 static int cortex_m3_store_core_reg_u32(struct target *target,
 		enum armv7m_regtype type, uint32_t num, uint32_t value);
 
@@ -1142,7 +1139,7 @@ static int cortex_m3_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval;
@@ -1217,7 +1214,7 @@ cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	int retval;
@@ -1272,7 +1269,7 @@ cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -1322,7 +1319,7 @@ cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	return cortex_m3_set_breakpoint(target, breakpoint);
 }
 
-static int
+int
 cortex_m3_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -1350,7 +1347,7 @@ cortex_m3_remove_breakpoint(struct target *target, struct breakpoint *breakpoint
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
@@ -1415,7 +1412,7 @@ cortex_m3_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -1452,7 +1449,7 @@ cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -1503,7 +1500,7 @@ cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 	return ERROR_OK;
 }
 
-static int
+int
 cortex_m3_remove_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
@@ -1526,7 +1523,7 @@ cortex_m3_remove_watchpoint(struct target *target, struct watchpoint *watchpoint
 	return ERROR_OK;
 }
 
-static void cortex_m3_enable_watchpoints(struct target *target)
+void cortex_m3_enable_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -1820,7 +1817,7 @@ cortex_m3_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
 	r->type = &dwt_reg_type;
 }
 
-static void
+void
 cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target *target)
 {
 	uint32_t dwtcr;
