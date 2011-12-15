@@ -43,6 +43,28 @@ struct mem_param;
 struct reg_param;
 struct target_list;
 
+/* targets */
+extern struct target_type arm7tdmi_target;
+extern struct target_type arm720t_target;
+extern struct target_type arm9tdmi_target;
+extern struct target_type arm920t_target;
+extern struct target_type arm966e_target;
+extern struct target_type arm946e_target;
+extern struct target_type arm926ejs_target;
+extern struct target_type fa526_target;
+extern struct target_type feroceon_target;
+extern struct target_type dragonite_target;
+extern struct target_type xscale_target;
+extern struct target_type cortexm3_target;
+extern struct target_type cortexa8_target;
+extern struct target_type arm11_target;
+extern struct target_type mips_m4k_target;
+extern struct target_type avr_target;
+extern struct target_type dsp563xx_target;
+extern struct target_type dsp5680xx_target;
+extern struct target_type testee_target;
+extern struct target_type avr32_ap7k_target;
+
 /*
  * TARGET_UNKNOWN = 0: we don't know anything about the target yet
  * TARGET_RUNNING = 1: the target is executing user code
