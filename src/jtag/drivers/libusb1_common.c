@@ -105,7 +105,7 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	int retCode = -99;
 
-	struct libusb_config_descriptor *config;
+	struct libusb_config_descriptor *config = NULL;
 
 	libusb_get_config_descriptor(udev, configuration, &config);
 	retCode = libusb_set_configuration(devh, config->bConfigurationValue);
