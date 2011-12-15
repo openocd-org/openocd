@@ -504,7 +504,7 @@ sub expand_tabs {
 		if ($c eq "\t") {
 			$res .= ' ';
 			$n++;
-			for (; ($n % 8) != 0; $n++) {
+			for (; ($n % 4) != 0; $n++) {
 				$res .= ' ';
 			}
 			next;
