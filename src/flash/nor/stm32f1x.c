@@ -1330,7 +1330,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	if (CMD_ARGC < 1)
 	{
 		command_print(CMD_CTX, "stm32x lock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1379,7 +1379,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	if (CMD_ARGC < 1)
 	{
 		command_print(CMD_CTX, "stm32x unlock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1427,7 +1427,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	if (CMD_ARGC < 1)
 	{
 		command_print(CMD_CTX, "stm32x options_read <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1498,7 +1498,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 	{
 		command_print(CMD_CTX, "stm32x options_write <bank> <SWWDG | HWWDG> "
 				"<RSTSTNDBY | NORSTSTNDBY> <RSTSTOP | NORSTSTOP> <BOOT0 | BOOT1>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1632,7 +1632,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	if (CMD_ARGC < 1)
 	{
 		command_print(CMD_CTX, "stm32x mass_erase <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
