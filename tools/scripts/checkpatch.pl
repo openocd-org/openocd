@@ -1823,26 +1823,26 @@ sub process {
 
 # Check for switch () and associated case and default
 # statements should be at the same indent.
-		if ($line=~/\bswitch\s*\(.*\)/) {
-			my $err = '';
-			my $sep = '';
-			my @ctx = ctx_block_outer($linenr, $realcnt);
-			shift(@ctx);
-			for my $ctx (@ctx) {
-				my ($clen, $cindent) = line_stats($ctx);
-				if ($ctx =~ /^\+\s*(case\s+|default:)/ &&
-							$indent != $cindent) {
-					$err .= "$sep$ctx\n";
-					$sep = '';
-				} else {
-					$sep = "[...]\n";
-				}
-			}
-			if ($err ne '') {
-				ERROR("SWITCH_CASE_INDENT_LEVEL",
-				      "switch and case should be at the same indent\n$hereline$err");
-			}
-		}
+#		if ($line=~/\bswitch\s*\(.*\)/) {
+#			my $err = '';
+#			my $sep = '';
+#			my @ctx = ctx_block_outer($linenr, $realcnt);
+#			shift(@ctx);
+#			for my $ctx (@ctx) {
+#				my ($clen, $cindent) = line_stats($ctx);
+#				if ($ctx =~ /^\+\s*(case\s+|default:)/ &&
+#							$indent != $cindent) {
+#					$err .= "$sep$ctx\n";
+#					$sep = '';
+#				} else {
+#					$sep = "[...]\n";
+#				}
+#			}
+#			if ($err ne '') {
+#				ERROR("SWITCH_CASE_INDENT_LEVEL",
+#				      "switch and case should be at the same indent\n$hereline$err");
+#			}
+#		}
 
 # if/while/etc brace do not go on next line, unless defining a do while loop,
 # or if that brace on the next line is for something else
@@ -3088,34 +3088,34 @@ sub process {
 		}
 
 # check for new externs in .c files.
-		if ($realfile =~ /\.c$/ && defined $stat &&
-		    $stat =~ /^.\s*(?:extern\s+)?$Type\s+($Ident)(\s*)\(/s)
-		{
-			my $function_name = $1;
-			my $paren_space = $2;
-
-			my $s = $stat;
-			if (defined $cond) {
-				substr($s, 0, length($cond), '');
-			}
-			if ($s =~ /^\s*;/ &&
-			    $function_name ne 'uninitialized_var')
-			{
-				WARN("AVOID_EXTERNS",
-				     "externs should be avoided in .c files\n" .  $herecurr);
-			}
-
-			if ($paren_space =~ /\n/) {
-				WARN("FUNCTION_ARGUMENTS",
-				     "arguments for function declarations should follow identifier\n" . $herecurr);
-			}
-
-		} elsif ($realfile =~ /\.c$/ && defined $stat &&
-		    $stat =~ /^.\s*extern\s+/)
-		{
-			WARN("AVOID_EXTERNS",
-			     "externs should be avoided in .c files\n" .  $herecurr);
-		}
+#		if ($realfile =~ /\.c$/ && defined $stat &&
+#		    $stat =~ /^.\s*(?:extern\s+)?$Type\s+($Ident)(\s*)\(/s)
+#		{
+#			my $function_name = $1;
+#			my $paren_space = $2;
+#
+#			my $s = $stat;
+#			if (defined $cond) {
+#				substr($s, 0, length($cond), '');
+#			}
+#			if ($s =~ /^\s*;/ &&
+#			    $function_name ne 'uninitialized_var')
+#			{
+#				WARN("AVOID_EXTERNS",
+#				     "externs should be avoided in .c files\n" .  $herecurr);
+#			}
+#
+#			if ($paren_space =~ /\n/) {
+#				WARN("FUNCTION_ARGUMENTS",
+#				     "arguments for function declarations should follow identifier\n" . $herecurr);
+#			}
+#
+#		} elsif ($realfile =~ /\.c$/ && defined $stat &&
+#		    $stat =~ /^.\s*extern\s+/)
+#		{
+#			WARN("AVOID_EXTERNS",
+#			     "externs should be avoided in .c files\n" .  $herecurr);
+#		}
 
 # checks for new __setup's
 		if ($rawline =~ /\b__setup\("([^"]*)"/) {
