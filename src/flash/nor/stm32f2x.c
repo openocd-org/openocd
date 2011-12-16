@@ -233,6 +233,8 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 
 static int stm32x_unlock_reg(struct target *target)
 {
+	uint32_t ctrl;
+
 	/* unlock flash registers */
 	int retval = target_write_u32(target, STM32_FLASH_KEYR, KEY1);
 	if (retval != ERROR_OK)
@@ -241,6 +243,16 @@ static int stm32x_unlock_reg(struct target *target)
 	retval = target_write_u32(target, STM32_FLASH_KEYR, KEY2);
 	if (retval != ERROR_OK)
 		return retval;
+
+	retval = target_read_u32(target, STM32_FLASH_CR, &ctrl);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (ctrl & FLASH_LOCK) {
+		LOG_ERROR("flash not unlocked STM32_FLASH_CR: %x", ctrl);
+		return ERROR_TARGET_FAILURE;
+	}
+
 	return ERROR_OK;
 }
 
@@ -675,7 +687,76 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
+static int stm32x_mass_erase(struct flash_bank *bank)
+{
+	int retval;
+	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = stm32x_unlock_reg(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* mass erase flash memory */
+	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR),
+		FLASH_MER | FLASH_STRT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32x_wait_status_busy(bank, 30000);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_LOCK);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(stm32x_handle_mass_erase_command)
+{
+	int i;
+
+	if (CMD_ARGC < 1) {
+		command_print(CMD_CTX, "stm32x mass_erase <bank>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = stm32x_mass_erase(bank);
+	if (retval == ERROR_OK) {
+		/* set all sectors as erased */
+		for (i = 0; i < bank->num_sectors; i++)
+			bank->sectors[i].is_erased = 1;
+
+		command_print(CMD_CTX, "stm32x mass erase complete");
+	} else {
+		command_print(CMD_CTX, "stm32x mass erase failed");
+	}
+
+	return retval;
+}
+
 static const struct command_registration stm32x_exec_command_handlers[] = {
+	{
+		.name = "mass_erase",
+		.handler = stm32x_handle_mass_erase_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Erase entire flash device.",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
