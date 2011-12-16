@@ -3212,8 +3212,7 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 
 	if (CMD_ARGC < 2)
 	{
-		LOG_ERROR("'xscale debug_handler <target#> <address>' command takes two required operands");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ((target = get_target(CMD_ARGV[0])) == NULL)
@@ -3416,7 +3415,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "usage: xscale vector_catch [mask]");
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	else
 	{
@@ -3483,7 +3482,7 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 	}
 
 	if (err)
-		command_print(CMD_CTX, "usage: xscale vector_table <high|low> <index> <code>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	return ERROR_OK;
 }
@@ -3569,8 +3568,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "usage: xscale trace_image <file> [base address] [type]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	retval = xscale_verify_pointer(CMD_CTX, xscale);
@@ -3629,8 +3627,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "usage: xscale dump_trace <file>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	trace_data = xscale->trace.data;
@@ -3763,7 +3760,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	}
 	else
 	{
-		command_print(CMD_CTX, "usage: cp15 [register]<, [value]>");
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -3859,7 +3856,7 @@ static const struct command_registration xscale_any_command_handlers[] = {
 		.handler = xscale_handle_debug_handler_command,
 		.mode = COMMAND_ANY,
 		.help = "Change address used for debug handler.",
-		.usage = "target address",
+		.usage = "<target> <address>",
 	},
 	{
 		.name = "cache_clean_address",

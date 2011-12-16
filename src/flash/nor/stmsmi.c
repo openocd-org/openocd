@@ -206,8 +206,7 @@ FLASH_BANK_COMMAND_HANDLER(stmsmi_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank stmsmi configuration");
-		return ERROR_FLASH_BANK_INVALID;
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	stmsmi_info = malloc(sizeof(struct stmsmi_flash_bank));

@@ -284,8 +284,7 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 
 	if (CMD_ARGC != 2)
 	{
-		LOG_ERROR("incomplete 'oocd_trace config <target> <tty>' command");
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	target = get_current_target(CMD_CTX);
@@ -400,7 +399,7 @@ static const struct command_registration oocd_trace_all_command_handlers[] = {
 		.name = "config",
 		.handler = handle_oocd_trace_config_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "target",
+		.usage = "<target> <tty>",
 	},
 	{
 		.name = "status",

@@ -740,7 +740,7 @@ COMMAND_HANDLER(presto_handle_serial_command)
 	}
 	else
 	{
-		LOG_ERROR("expected exactly one argument to presto_serial <serial-number>");
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;

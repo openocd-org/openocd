@@ -104,8 +104,7 @@ FLASH_BANK_COMMAND_HANDLER(em357_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank em357 configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	em357_info = malloc(sizeof(struct em357_flash_bank));
@@ -768,8 +767,7 @@ COMMAND_HANDLER(em357_handle_lock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "em357 lock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -813,8 +811,7 @@ COMMAND_HANDLER(em357_handle_unlock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "em357 unlock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -892,8 +889,7 @@ COMMAND_HANDLER(em357_handle_mass_erase_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "em357 mass_erase <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -923,23 +919,23 @@ COMMAND_HANDLER(em357_handle_mass_erase_command)
 static const struct command_registration em357_exec_command_handlers[] = {
 	{
 		.name = "lock",
+		.usage = "<bank>",
 		.handler = em357_handle_lock_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
 		.help = "Lock entire flash device.",
 	},
 	{
 		.name = "unlock",
+		.usage = "<bank>",
 		.handler = em357_handle_unlock_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
 		.help = "Unlock entire protected flash device.",
 	},
 	{
 		.name = "mass_erase",
+		.usage = "<bank>",
 		.handler = em357_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
 		.help = "Erase entire flash device.",
 	},
 	COMMAND_REGISTRATION_DONE

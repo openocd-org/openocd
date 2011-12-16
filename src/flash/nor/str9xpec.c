@@ -292,8 +292,7 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank str9x configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	str9xpec_info = malloc(sizeof(struct str9xpec_flash_controller));
@@ -825,8 +824,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str9xpec options_read <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -939,8 +937,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str9xpec options_write <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -966,8 +963,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "str9xpec options_cmap <bank> <bank0 | bank1>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -995,8 +991,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "str9xpec options_lvdthd <bank> <2.4v | 2.7v>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1024,8 +1019,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "str9xpec options_lvdsel <bank> <vdd | vdd_vddq>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1053,8 +1047,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "str9xpec options_lvdwarn <bank> <vdd | vdd_vddq>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1082,8 +1075,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_lock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str9xpec lock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1105,8 +1097,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str9xpec unlock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1135,8 +1126,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str9xpec enable_turbo <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1182,8 +1172,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str9xpec disable_turbo <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1213,60 +1202,70 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 static const struct command_registration str9xpec_config_command_handlers[] = {
 	{
 		.name = "enable_turbo",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_flash_enable_turbo_command,
 		.mode = COMMAND_EXEC,
 		.help = "enable str9xpec turbo mode",
 	},
 	{
 		.name = "disable_turbo",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_flash_disable_turbo_command,
 		.mode = COMMAND_EXEC,
 		.help = "disable str9xpec turbo mode",
 	},
 	{
 		.name = "options_cmap",
+		.usage = "<bank> <bank0 | bank1>",
 		.handler = str9xpec_handle_flash_options_cmap_command,
 		.mode = COMMAND_EXEC,
 		.help = "configure str9xpec boot sector",
 	},
 	{
 		.name = "options_lvdthd",
+		.usage = "<bank> <2.4v | 2.7v>",
 		.handler = str9xpec_handle_flash_options_lvdthd_command,
 		.mode = COMMAND_EXEC,
 		.help = "configure str9xpec lvd threshold",
 	},
 	{
 		.name = "options_lvdsel",
+		.usage = "<bank> <vdd | vdd_vddq>",
 		.handler = str9xpec_handle_flash_options_lvdsel_command,
 		.mode = COMMAND_EXEC,
 		.help = "configure str9xpec lvd selection",
 	},
 	{
 		.name = "options_lvdwarn",
+		.usage = "<bank> <vdd | vdd_vddq>",
 		.handler = str9xpec_handle_flash_options_lvdwarn_command,
 		.mode = COMMAND_EXEC,
 		.help = "configure str9xpec lvd warning",
 	},
 	{
 		.name = "options_read",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_flash_options_read_command,
 		.mode = COMMAND_EXEC,
 		.help = "read str9xpec options",
 	},
 	{
 		.name = "options_write",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_flash_options_write_command,
 		.mode = COMMAND_EXEC,
 		.help = "write str9xpec options",
 	},
 	{
 		.name = "lock",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_flash_lock_command,
 		.mode = COMMAND_EXEC,
 		.help = "lock str9xpec device",
 	},
 	{
 		.name = "unlock",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_flash_unlock_command,
 		.mode = COMMAND_EXEC,
 		.help = "unlock str9xpec device",

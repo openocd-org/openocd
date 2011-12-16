@@ -542,8 +542,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
 
 	if( CMD_ARGC < 1 )
 	{
-		LOG_WARNING( "Too few arguments. Call: lpc2900 signature <bank#>" );
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -954,9 +953,9 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 static const struct command_registration lpc2900_exec_command_handlers[] = {
 	{
 		.name = "signature",
+		.usage = "<bank>",
 		.handler = lpc2900_handle_signature_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
 		.help = "Calculate and display signature of flash bank.",
 	},
 	{
@@ -1017,8 +1016,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank LPC2900 configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	lpc2900_info = malloc(sizeof(struct lpc2900_flash_bank));

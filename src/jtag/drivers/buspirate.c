@@ -280,8 +280,7 @@ COMMAND_HANDLER(buspirate_handle_adc_command)
 COMMAND_HANDLER(buspirate_handle_vreg_command)
 {
 	if (CMD_ARGC < 1) {
-		LOG_ERROR("usage: buspirate_vreg <1|0>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (atoi(CMD_ARGV[0]) == 1)
@@ -298,8 +297,7 @@ COMMAND_HANDLER(buspirate_handle_vreg_command)
 COMMAND_HANDLER(buspirate_handle_pullup_command)
 {
 	if (CMD_ARGC < 1) {
-		LOG_ERROR("usage: buspirate_pullup <1|0>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (atoi(CMD_ARGV[0]) == 1)
@@ -316,8 +314,7 @@ COMMAND_HANDLER(buspirate_handle_pullup_command)
 COMMAND_HANDLER(buspirate_handle_led_command)
 {
 	if (CMD_ARGC < 1) {
-		LOG_ERROR("usage: buspirate_led <1|0>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (atoi(CMD_ARGV[0]) == 1) {
@@ -339,8 +336,7 @@ COMMAND_HANDLER(buspirate_handle_led_command)
 COMMAND_HANDLER(buspirate_handle_mode_command)
 {
 	if (CMD_ARGC < 1) {
-		LOG_ERROR("usage: buspirate_mode <normal|open-drain>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (CMD_ARGV[0][0] == 'n')
@@ -357,8 +353,7 @@ COMMAND_HANDLER(buspirate_handle_mode_command)
 COMMAND_HANDLER(buspirate_handle_speed_command)
 {
 	if (CMD_ARGC < 1) {
-		LOG_ERROR("usage: buspirate_speed <normal|fast>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (CMD_ARGV[0][0] == 'n')
@@ -375,8 +370,7 @@ COMMAND_HANDLER(buspirate_handle_speed_command)
 COMMAND_HANDLER(buspirate_handle_port_command)
 {
 	if (CMD_ARGC < 1) {
-		LOG_ERROR("usage: buspirate_port /dev/ttyUSB0");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (buspirate_port == NULL)
@@ -395,36 +389,42 @@ static const struct command_registration buspirate_command_handlers[] = {
 	},
 	{
 		.name = "buspirate_vreg",
+		.usage = "<1|0>",
 		.handler = &buspirate_handle_vreg_command,
 		.mode = COMMAND_CONFIG,
 		.help = "changes the state of voltage regulators",
 	},
 	{
 		.name = "buspirate_pullup",
+		.usage = "<1|0>",
 		.handler = &buspirate_handle_pullup_command,
 		.mode = COMMAND_CONFIG,
 		.help = "changes the state of pullup",
 	},
 	{
 		.name = "buspirate_led",
+		.usage = "<1|0>",
 		.handler = &buspirate_handle_led_command,
 		.mode = COMMAND_EXEC,
 		.help = "changes the state of led",
 	},
 	{
 		.name = "buspirate_speed",
+		.usage = "<normal|fast>",
 		.handler = &buspirate_handle_speed_command,
 		.mode = COMMAND_CONFIG,
 		.help = "speed of the interface",
 	},
 	{
 		.name = "buspirate_mode",
+		.usage = "<normal|open-drain>",
 		.handler = &buspirate_handle_mode_command,
 		.mode = COMMAND_CONFIG,
 		.help = "pin mode of the interface",
 	},
 	{
 		.name = "buspirate_port",
+		.usage = "/dev/ttyUSB0",
 		.handler = &buspirate_handle_port_command,
 		.mode =	COMMAND_CONFIG,
 		.help = "name of the serial port to open",

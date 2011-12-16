@@ -191,8 +191,7 @@ FLASH_BANK_COMMAND_HANDLER(avrf_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank avr configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	avrf_info = malloc(sizeof(struct avrf_flash_bank));
@@ -451,8 +450,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "avr mass_erase <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -482,6 +480,7 @@ COMMAND_HANDLER(avrf_handle_mass_erase_command)
 static const struct command_registration avrf_exec_command_handlers[] = {
 	{
 		.name = "mass_erase",
+		.usage = "<bank>",
 		.handler = avrf_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
 		.help = "erase entire device",

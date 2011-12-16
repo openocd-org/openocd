@@ -111,8 +111,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 
 	if (CMD_ARGC < 7)
 	{
-		LOG_WARNING("incomplete flash_bank ecosflash configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	info = malloc(sizeof(struct ecosflash_flash_bank));

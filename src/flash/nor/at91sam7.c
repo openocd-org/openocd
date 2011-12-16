@@ -1203,8 +1203,7 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 
 	if (CMD_ARGC != 2)
 	{
-		command_print(CMD_CTX, "at91sam7 gpnvm <bit> <set | clear>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	bank = get_flash_bank_by_num_noprobe(0);
@@ -1295,6 +1294,7 @@ static const struct command_registration at91sam7_command_handlers[] = {
 
 struct flash_driver at91sam7_flash = {
 	.name = "at91sam7",
+	.usage = "gpnvm <bit> <set | clear>",
 	.commands = at91sam7_command_handlers,
 	.flash_bank_command = at91sam7_flash_bank_command,
 	.erase = at91sam7_erase,

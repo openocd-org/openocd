@@ -3117,7 +3117,6 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 
 	switch (CMD_ARGC) {
 	default:
-		command_print(CMD_CTX,"Too many parameters\n");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	case 0:

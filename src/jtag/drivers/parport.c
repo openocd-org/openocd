@@ -449,8 +449,7 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(CMD_CTX, "usage: parport_write_on_exit <on | off>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], parport_exit);

@@ -904,8 +904,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 	if (CMD_ARGC != 1)
 	{
-		command_print(CMD_CTX, "usage: arm920t read_cache <filename>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ((output = fopen(CMD_ARGV[0], "w")) == NULL)
@@ -1199,8 +1198,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 	if (CMD_ARGC != 1)
 	{
-		command_print(CMD_CTX, "usage: arm920t read_mmu <filename>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ((output = fopen(CMD_ARGV[0], "w")) == NULL)
@@ -1650,8 +1648,7 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 	}
 	else
 	{
-		command_print(CMD_CTX,
-			"usage: arm920t cp15i <opcode> [value] [address]");
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;

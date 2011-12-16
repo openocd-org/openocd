@@ -70,9 +70,7 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 	struct kinetis_flash_bank *bank_info;
 
 	if (CMD_ARGC < 6) {
-		LOG_ERROR("incomplete flash_bank kinetis configuration %d",
-			  CMD_ARGC);
-		return ERROR_FLASH_OPERATION_FAILED;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	LOG_INFO("add flash_bank kinetis %s", bank->name);

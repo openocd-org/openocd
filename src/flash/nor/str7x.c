@@ -208,8 +208,7 @@ FLASH_BANK_COMMAND_HANDLER(str7x_flash_bank_command)
 
 	if (CMD_ARGC < 7)
 	{
-		LOG_WARNING("incomplete flash_bank str7x configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	str7x_info = malloc(sizeof(struct str7x_flash_bank));
@@ -786,8 +785,7 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "str7x disable_jtag <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -849,6 +847,7 @@ COMMAND_HANDLER(str7x_handle_disable_jtag_command)
 static const struct command_registration str7x_exec_command_handlers[] = {
 	{
 		.name = "disable_jtag",
+		.usage = "<bank>",
 		.handler = str7x_handle_disable_jtag_command,
 		.mode = COMMAND_EXEC,
 		.help = "disable jtag access",

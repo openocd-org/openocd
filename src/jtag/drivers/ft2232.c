@@ -3431,7 +3431,7 @@ COMMAND_HANDLER(ft2232_handle_serial_command)
 	}
 	else
 	{
-		LOG_ERROR("expected exactly one argument to ft2232_serial <serial-number>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -3440,8 +3440,7 @@ COMMAND_HANDLER(ft2232_handle_serial_command)
 COMMAND_HANDLER(ft2232_handle_layout_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("Need exactly one argument to ft2232_layout");
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (layout) {
@@ -3504,7 +3503,7 @@ COMMAND_HANDLER(ft2232_handle_latency_command)
 	}
 	else
 	{
-		LOG_ERROR("expected exactly one argument to ft2232_latency <ms>");
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;

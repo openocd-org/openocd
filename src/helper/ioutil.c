@@ -117,7 +117,6 @@ COMMAND_HANDLER(handle_cat_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(CMD_CTX, "cat <filename>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -143,7 +142,6 @@ COMMAND_HANDLER(handle_trunc_command)
 {
 	if (CMD_ARGC != 1)
 	{
-		command_print(CMD_CTX, "trunc <filename>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -162,7 +160,6 @@ COMMAND_HANDLER(handle_meminfo_command)
 
 	if (CMD_ARGC != 0)
 	{
-		command_print(CMD_CTX, "meminfo");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -184,8 +181,6 @@ COMMAND_HANDLER(handle_append_command)
 {
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX,
-				"append <filename> [<string1>, [<string2>, ...]]");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -644,7 +639,7 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.handler = handle_append_command,
 		.mode = COMMAND_ANY,
 		.help = "append a variable number of strings to a file",
-		.usage= "file_name [string ...]",
+		.usage = "file_name [<string1>, [<string2>, ...]]",
 	},
 	{
 		.name = "meminfo",

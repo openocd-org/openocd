@@ -172,8 +172,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank pic32mx configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	pic32mx_info = malloc(sizeof(struct pic32mx_flash_bank));
@@ -737,8 +736,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 	if (CMD_ARGC != 3)
 	{
-		command_print(CMD_CTX, "pic32mx pgm_word <addr> <value> <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
@@ -781,7 +779,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 	if (CMD_ARGC < 1)
 	{
 		command_print(CMD_CTX, "pic32mx unlock <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -837,6 +835,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 static const struct command_registration pic32mx_exec_command_handlers[] = {
 	{
 		.name = "pgm_word",
+		.usage = "<addr> <value> <bank>",
 		.handler = pic32mx_handle_pgm_word_command,
 		.mode = COMMAND_EXEC,
 		.help = "program a word",

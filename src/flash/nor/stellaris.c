@@ -438,8 +438,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank stellaris configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	stellaris_info = calloc(sizeof(struct stellaris_flash_bank), 1);
@@ -1351,8 +1350,7 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "stellaris mass_erase <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -1439,9 +1437,9 @@ done:
 static const struct command_registration stellaris_exec_command_handlers[] = {
 	{
 		.name = "mass_erase",
+		.usage = "<bank>",
 		.handler = stellaris_handle_mass_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
 		.help = "erase entire device",
 	},
 	{

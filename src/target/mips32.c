@@ -797,7 +797,7 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 	/* two or more argument, access a single register/select (write if third argument is given) */
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "command requires more arguments.");
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	else
 	{

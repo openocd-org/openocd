@@ -75,8 +75,7 @@ static dmac_ll_t dmalist[(2048/256) * 2 + 1];
 NAND_DEVICE_COMMAND_HANDLER(lpc32xx_nand_device_command)
 {
 	if (CMD_ARGC < 3) {
-		LOG_WARNING("incomplete 'lpc32xx' nand flash configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	uint32_t osc_freq;

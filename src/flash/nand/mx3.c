@@ -76,8 +76,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 
 	if (CMD_ARGC < 3)
 	{
-	    LOG_ERROR ("use \"nand device imx31 target noecc|hwecc\"");
-	    return ERROR_FAIL;
+	    return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	/*
 	* check hwecc requirements
@@ -851,6 +850,7 @@ static int do_data_output (struct nand_device *nand)
 
 struct nand_flash_controller imx31_nand_flash_controller = {
 		.name = "imx31",
+		.usage = "nand device imx31 target noecc|hwecc",
 		.nand_device_command = &imx31_nand_device_command,
 		.init = &imx31_init,
 		.reset = &imx31_reset,

@@ -26,7 +26,6 @@ COMMAND_HANDLER(handle_foo_command)
 {
 	if (CMD_ARGC < 1 || CMD_ARGC > 2)
 	{
-		LOG_ERROR("%s: incorrect number of arguments", CMD_NAME);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -82,7 +81,6 @@ static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 {
 	if (CMD_ARGC > 1)
 	{
-		LOG_ERROR("%s: too many arguments", CMD_NAME);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	if (1 == CMD_ARGC)

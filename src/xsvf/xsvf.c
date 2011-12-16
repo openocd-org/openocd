@@ -221,8 +221,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "usage: xsvf <device#|plain> <file> [<variant>] [quiet]");
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* we mess with CMD_ARGV starting point below, snapshot filename here */

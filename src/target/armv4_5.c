@@ -784,10 +784,8 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 		break;
 	default:
 usage:
-		command_print(CMD_CTX,
-			"usage: arm disassemble <address> [<count> ['thumb']]");
 		count = 0;
-		retval = ERROR_FAIL;
+		retval = ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	while (count-- > 0) {

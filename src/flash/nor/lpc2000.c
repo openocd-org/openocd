@@ -481,8 +481,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 
 	if (CMD_ARGC < 8)
 	{
-		LOG_WARNING("incomplete flash_bank lpc2000 configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	lpc2000_info = malloc(sizeof(struct lpc2000_flash_bank));

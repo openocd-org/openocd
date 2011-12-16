@@ -472,9 +472,7 @@ static void vsllink_reset(int trst, int srst)
 COMMAND_HANDLER(vsllink_handle_usb_vid_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("parameter error, "
-					"should be one parameter for VID");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0],
@@ -485,9 +483,7 @@ COMMAND_HANDLER(vsllink_handle_usb_vid_command)
 COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("parameter error, "
-					"should be one parameter for PID");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0],
 		versaloon_interface.usb_setting.pid);
@@ -497,9 +493,7 @@ COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("parameter error, "
-			"should be one parameter for BULKIN endpoint");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0],
@@ -513,9 +507,7 @@ COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 COMMAND_HANDLER(vsllink_handle_usb_bulkout_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("parameter error, "
-			"should be one parameter for BULKOUT endpoint");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0],
@@ -529,9 +521,7 @@ COMMAND_HANDLER(vsllink_handle_usb_bulkout_command)
 COMMAND_HANDLER(vsllink_handle_usb_interface_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("parameter error, "
-			"should be one parameter for interface number");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0],

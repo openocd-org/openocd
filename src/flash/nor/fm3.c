@@ -69,8 +69,7 @@ FLASH_BANK_COMMAND_HANDLER(fm3_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank fm3 configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	fm3_info = malloc(sizeof(struct fm3_flash_bank));
@@ -847,8 +846,7 @@ COMMAND_HANDLER(fm3_handle_chip_erase_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "fm3 chip_erase <bank>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct flash_bank *bank;
@@ -875,9 +873,9 @@ COMMAND_HANDLER(fm3_handle_chip_erase_command)
 static const struct command_registration fm3_exec_command_handlers[] = {
 	{
 		.name = "chip_erase",
+		.usage = "<bank>",
 		.handler = fm3_handle_chip_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
 		.help = "Erase entire Flash device.",
 	},
 	COMMAND_REGISTRATION_DONE

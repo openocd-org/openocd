@@ -2320,10 +2320,9 @@ COMMAND_HANDLER(ulink_download_firmware_handler)
 {
   int ret;
 
-  if (CMD_ARGC != 1) {
-    LOG_ERROR("Need exactly one argument to ulink_download_firmware");
-    return ERROR_FAIL;
-  }
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 
   LOG_INFO("Downloading ULINK firmware image %s", CMD_ARGV[0]);
 

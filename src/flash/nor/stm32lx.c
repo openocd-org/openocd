@@ -130,8 +130,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 	struct stm32lx_flash_bank *stm32lx_info;
 	if (CMD_ARGC < 6)
 	{
-		LOG_ERROR("incomplete flash_bank stm32lx configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// Create the bank structure

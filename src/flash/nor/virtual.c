@@ -55,8 +55,7 @@ FLASH_BANK_COMMAND_HANDLER(virtual_flash_bank_command)
 {
 	if (CMD_ARGC < 7)
 	{
-		LOG_WARNING("incomplete flash_bank virtual configuration");
-		return ERROR_FLASH_OPERATION_FAILED;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* get the master flash bank */

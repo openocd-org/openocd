@@ -63,8 +63,7 @@ COMMAND_HANDLER(handle_pld_device_command)
 
 	if (CMD_ARGC < 1)
 	{
-		LOG_WARNING("incomplete 'pld device' command");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	for (i = 0; pld_drivers[i]; i++)
@@ -155,8 +154,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 
 	if (CMD_ARGC < 2)
 	{
-		command_print(CMD_CTX, "usage: pld load <device#> <file>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	unsigned dev_id;

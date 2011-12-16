@@ -179,8 +179,7 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 
 	if (CMD_ARGC < 1)
 	{
-		command_print(CMD_CTX, "usage: virtex2 read_stat <num>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	unsigned dev_id;
@@ -207,8 +206,7 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 
 	if (CMD_ARGC < 2)
 	{
-		LOG_WARNING("incomplete pld device 'virtex2' configuration");
-		return ERROR_PLD_DEVICE_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	tap = jtag_tap_by_string(CMD_ARGV[1]);

@@ -302,7 +302,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 		}
 		else
 		{
-			command_print(CMD_CTX, "usage: target_request debugmsgs ['enable'|'disable'|'charmsg']");
+		    return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 

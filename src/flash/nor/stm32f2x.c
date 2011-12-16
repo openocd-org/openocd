@@ -165,8 +165,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 
 	if (CMD_ARGC < 6)
 	{
-		LOG_WARNING("incomplete flash_bank stm32x configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	stm32x_info = malloc(sizeof(struct stm32x_flash_bank));

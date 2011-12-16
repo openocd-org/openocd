@@ -175,7 +175,7 @@ static int at91rm9200_speed(int speed)
 COMMAND_HANDLER(at91rm9200_handle_device_command)
 {
 	if (CMD_ARGC == 0)
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* only if the device name wasn't overwritten by cmdline */
 	if (at91rm9200_device == 0)

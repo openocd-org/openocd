@@ -689,10 +689,7 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 	 * Plus someday, optionally, ALE and CLE masks.
 	 */
 	if (CMD_ARGC < 5) {
-		LOG_ERROR("parameters: %s target "
-				"chip_addr hwecc_mode aemif_addr",
-				CMD_ARGV[0]);
-		goto fail;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], chip);
@@ -783,6 +780,7 @@ fail:
 
 struct nand_flash_controller davinci_nand_controller = {
 	.name			= "davinci",
+	.usage			= "chip_addr hwecc_mode aemif_addr",
 	.nand_device_command	= davinci_nand_device_command,
 	.init			= davinci_init,
 	.reset			= davinci_reset,
