@@ -84,6 +84,7 @@ extern struct target_type dsp563xx_target;
 extern struct target_type dsp5680xx_target;
 extern struct target_type testee_target;
 extern struct target_type avr32_ap7k_target;
+extern struct target_type stm32_stlink_target;
 
 static struct target_type *target_types[] =
 {
@@ -107,6 +108,7 @@ static struct target_type *target_types[] =
 	&dsp5680xx_target,
 	&testee_target,
 	&avr32_ap7k_target,
+	&stm32_stlink_target,
 	NULL,
 };
 
