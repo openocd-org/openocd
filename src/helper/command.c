@@ -97,7 +97,7 @@ static struct log_capture_state *command_log_capture_start(Jim_Interp *interp)
  * Therefore we set the tcl return value only if we actually
  * captured output.
  */
-static void command_log_capture_finish(struct log_capture_state *state) 
+static void command_log_capture_finish(struct log_capture_state *state)
 {
 	if (NULL == state)
 		return;
@@ -927,8 +927,10 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 			return -ENOMEM;
 	}
 
-	if (++n >= 2)
-		return ERROR_OK;
+	if (++n > 5) {
+		LOG_ERROR("command recursion exceeded");
+		return ERROR_FAIL;
+	}
 
 	return CALL_COMMAND_HANDLER(command_help_show_list,
 			c->children, n, show_help, match);
