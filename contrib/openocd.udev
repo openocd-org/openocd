@@ -4,6 +4,9 @@ SUBSYSTEM!="usb|tty", GOTO="openocd_rules_end"
 # Olimex ARM-USB-OCD
 ATTRS{idVendor}=="15ba", ATTRS{idProduct}=="0003", MODE="664", GROUP="plugdev"
 
+# Olimex ARM-USB-OCD-H
+ATTRS{idVendor}=="15ba", ATTRS{idProduct}=="002b", MODE="664", GROUP="plugdev"
+
 # Olimex ARM-USB-OCD-TINY
 ATTRS{idVendor}=="15ba", ATTRS{idProduct}=="0004", MODE="664", GROUP="plugdev"
 
