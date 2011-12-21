@@ -474,6 +474,10 @@ AC_ARG_ENABLE([buspirate],
   AS_HELP_STRING([--enable-buspirate], [Enable building support for the Buspirate]),
   [build_buspirate=$enableval], [build_buspirate=no])
 
+AC_ARG_ENABLE([stlink],
+  AS_HELP_STRING([--enable-stlink], [Enable building support for the ST-Link JTAG Programmer]),
+  [build_stlink=$enableval], [build_stlink=no])
+
 AC_ARG_ENABLE([minidriver_dummy],
   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
@@ -773,6 +777,12 @@ else
   AC_DEFINE([BUILD_BUSPIRATE], [0], [0 if you don't want the Buspirate JTAG driver.])
 fi
 
+if test $build_stlink = yes; then
+  AC_DEFINE(BUILD_STLINK, 1, [1 if you want the ST-Link JTAG driver.])
+else
+  AC_DEFINE(BUILD_STLINK, 0, [0 if you don't want the ST-Link JTAG driver.])
+fi
+
 if test "$use_internal_jimtcl" = yes; then
   if test -f "$srcdir/jimtcl/configure.ac"; then
     AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim])
@@ -1059,7 +1069,7 @@ fi
 
 # Check for libusb1 ported drivers.
 build_usb_ng=no
-if test $build_jlink = yes; then
+if test $build_jlink = yes -o $build_stlink = yes; then
   build_usb_ng=yes
 fi
 
@@ -1107,6 +1117,7 @@ AM_CONDITIONAL([ULINK], [test $build_ulink = yes])
 AM_CONDITIONAL([ARMJTAGEW], [test $build_armjtagew = yes])
 AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
 AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
+AM_CONDITIONAL([STLINK], [test $build_stlink = yes])
 AM_CONDITIONAL([USB], [test $build_usb = yes])
 AM_CONDITIONAL([USB_NG], [test $build_usb_ng = yes])
 AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])
@@ -1219,6 +1230,7 @@ AC_CONFIG_FILES([
   src/helper/Makefile
   src/jtag/Makefile
   src/jtag/drivers/Makefile
+  src/jtag/stlink/Makefile
   src/transport/Makefile
   src/xsvf/Makefile
   src/svf/Makefile

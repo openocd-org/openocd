@@ -94,6 +94,9 @@ endif
 if REMOTE_BITBANG
 DRIVERFILES += remote_bitbang.c
 endif
+if STLINK
+DRIVERFILES += stlink_usb.c
+endif
 
 noinst_HEADERS = \
 	bitbang.h \
@@ -103,6 +106,7 @@ noinst_HEADERS = \
 	rlink_dtc_cmd.h \
 	rlink_ep1_cmd.h \
 	rlink_st7.h \
-	usb_common.h
+	usb_common.h \
+	stlink_usb.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
