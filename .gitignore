@@ -79,6 +79,7 @@ NOTES
 
 # coexist with quilt
 patches
+*.patch
 
 # Eclipse stuff
 .project
