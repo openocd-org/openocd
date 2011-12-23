@@ -161,6 +161,9 @@ static __inline void outb(unsigned char value, unsigned short int port)
 	__asm__ __volatile__ ("outb %b0,%w1": :"a" (value), "Nd" (port));
 }
 
+/* mingw does not have ffs, so use gcc builtin types */
+#define ffs __builtin_ffs
+
 #endif /* IS_MINGW */
 
 int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tv);
