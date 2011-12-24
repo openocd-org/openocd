@@ -195,6 +195,7 @@ static const struct command_registration openocd_command_handlers[] = {
 		.handler = &handle_noinit_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Prevent 'init' from being called at startup.",
+		.usage = ""
 	},
 	{
 		.name = "init",
@@ -204,14 +205,14 @@ static const struct command_registration openocd_command_handlers[] = {
 			"Changes command mode from CONFIG to EXEC.  "
 			"Unless 'noinit' is called, this command is "
 			"called automatically at the end of startup.",
-
+		.usage = ""
 	},
 	{
 		.name = "add_script_search_dir",
 		.handler = &handle_add_script_search_dir_command,
 		.mode = COMMAND_ANY,
 		.help = "dir to search for config files and scripts",
-
+		.usage = "<directory>"
 	},
 	COMMAND_REGISTRATION_DONE
 };

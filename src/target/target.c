@@ -5534,11 +5534,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "loads active fast load image to current target "
 			"- mainly for profiling purposes",
+		.usage = "",
 	},
 	{
 		.name = "profile",
 		.handler = handle_profile_command,
 		.mode = COMMAND_EXEC,
+		.usage = "seconds filename",
 		.help = "profiling samples the CPU PC",
 	},
 	/** @todo don't register virt2phys() unless target supports it */
@@ -5599,6 +5601,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "soft_reset_halt",
 		.handler = handle_soft_reset_halt_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "halt the target and do a soft reset",
 	},
 	{
@@ -5655,7 +5658,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_bp_command,
 		.mode = COMMAND_EXEC,
 		.help = "list or set hardware or software breakpoint",
-		.usage = "usage: bp <address> [<asid>]<length> ['hw'|'hw_ctx']",
+		.usage = "<address> [<asid>]<length> ['hw'|'hw_ctx']",
 	},
 	{
 		.name = "rbp",

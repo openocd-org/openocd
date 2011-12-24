@@ -323,6 +323,22 @@ static struct command *command_new(struct command_context *cmd_ctx,
 {
 	assert(cr->name);
 
+	/*
+	   If it is a non-jim command with no .usage specified,
+	   log an error.
+
+	   strlen(.usage) == 0 means that the command takes no
+	   arguments.
+	*/
+	if ((cr->jim_handler == NULL) &&
+	    (cr->usage == NULL)) {
+		LOG_DEBUG("BUG: command '%s%s%s' does not have the "
+			"'.usage' field filled out",
+			parent && parent->name ? parent->name : "",
+			parent && parent->name ? " " : "",
+			cr->name);
+	}
+
 	struct command *c = calloc(1, sizeof(struct command));
 	if (NULL == c)
 		return NULL;

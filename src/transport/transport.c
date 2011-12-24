@@ -336,12 +336,14 @@ static const struct command_registration transport_commands[] = {
 		 */
 		.mode = COMMAND_ANY,
 		.help = "Initialize this session's transport",
+		.usage = ""
 	},
 	{
 		.name = "list",
 		.handler = handle_transport_list,
 		.mode = COMMAND_ANY,
 		.help = "list all built-in transports",
+		.usage = ""
 	},
 	{
 		.name = "select",
@@ -359,6 +361,7 @@ static const struct command_registration transport_group[] = {
 		.mode = COMMAND_ANY,
 		.help = "Transport command group",
 		.chain = transport_commands,
+		.usage = ""
 	},
 	COMMAND_REGISTRATION_DONE
 };
