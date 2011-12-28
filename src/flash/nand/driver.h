@@ -37,6 +37,9 @@ struct nand_flash_controller
 	/** Driver name that is used to select it from configuration files. */
 	const char *name;
 
+	/** Usage of flash command registration. */
+	const char *usage;
+
     const struct command_registration *commands;
 
 	/** NAND device command called when driver is instantiated during configuration. */

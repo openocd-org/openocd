@@ -57,6 +57,11 @@ struct flash_driver
 	const char *name;
 
 	/**
+	 * Gives a human-readable description of arguments.
+	 */
+	const char *usage;
+
+	/**
 	 * An array of driver-specific commands to register.  When called
 	 * during the "flash bank" command, the driver can register addition
 	 * commands to support new flash chip functions.

@@ -544,8 +544,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 
 	if (CMD_ARGC < 2)
 	{
-		LOG_ERROR("missing target");
-		return ERROR_COMMAND_ARGUMENT_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	target = get_target(CMD_ARGV[1]);
 	if (!target) {
@@ -582,9 +581,12 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
 	if (ERROR_OK != retval)
 	{
-		LOG_ERROR("'%s' driver rejected nand flash", controller->name);
+		assert(controller->usage != NULL);
+		LOG_ERROR("'%s' driver rejected nand flash. Usage: %s",
+			controller->name,
+			controller->usage);
 		free(c);
-		return ERROR_OK;
+		return retval;
 	}
 
 	nand_device_add(c);
@@ -596,8 +598,7 @@ COMMAND_HANDLER(handle_nand_device_command)
 {
 	if (CMD_ARGC < 2)
 	{
-		LOG_ERROR("incomplete nand device configuration");
-		return ERROR_FLASH_BANK_INVALID;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// save name and increment (for compatibility) with drivers
