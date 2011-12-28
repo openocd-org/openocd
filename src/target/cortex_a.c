@@ -1906,7 +1906,7 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 
 	/* write memory through APB-AP */
 
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	int total_bytes = count * size;
@@ -1979,7 +1979,7 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 
 	/* read memory through APB-AP */
 
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *armv4_5 = &armv7a->armv4_5_common;
 	int total_bytes = count * size;
@@ -2047,7 +2047,7 @@ static int cortex_a8_read_phys_memory(struct target *target,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
 	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d",
 			address, size, count);
@@ -2132,7 +2132,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
 
 	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address,

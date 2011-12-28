@@ -132,7 +132,6 @@ extern int debug_level;
  * error codes < 100
  */
 #define ERROR_OK					(0)
-#define ERROR_INVALID_ARGUMENTS		ERROR_COMMAND_SYNTAX_ERROR
 #define ERROR_NO_CONFIG_FILE		(-2)
 #define ERROR_BUF_TOO_SMALL			(-3)
 /* see "Error:" log entry for meaningful message to the user. The caller should

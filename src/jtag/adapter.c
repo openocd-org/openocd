@@ -218,7 +218,7 @@ COMMAND_HANDLER(handle_reset_config_command)
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
 					"gating", *CMD_ARGV);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		if (m)
 			goto next;
@@ -238,7 +238,7 @@ COMMAND_HANDLER(handle_reset_config_command)
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
 					"signal", *CMD_ARGV);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		if (m)
 			goto next;
@@ -258,7 +258,7 @@ COMMAND_HANDLER(handle_reset_config_command)
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
 					"combination", *CMD_ARGV);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		if (m)
 			goto next;
@@ -274,7 +274,7 @@ COMMAND_HANDLER(handle_reset_config_command)
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
 					"trst_type", *CMD_ARGV);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		if (m)
 			goto next;
@@ -290,14 +290,14 @@ COMMAND_HANDLER(handle_reset_config_command)
 		if (mask & m) {
 			LOG_ERROR("extra reset_config %s spec (%s)",
 					"srst_type", *CMD_ARGV);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		if (m)
 			goto next;
 
 		/* caller provided nonsense; fail */
 		LOG_ERROR("unknown reset_config flag (%s)", *CMD_ARGV);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 next:
 		/* Remember the bits which were specified (mask)

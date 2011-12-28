@@ -221,7 +221,7 @@ COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 	*nand = get_nand_device_by_num(num);
 	if (!*nand) {
 		command_print(CMD_CTX, "NAND flash device '%s' not found", str);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }
@@ -542,7 +542,7 @@ int nand_erase(struct nand_device *nand, int first_block, int last_block)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 
 	if ((first_block < 0) || (last_block >= nand->num_blocks))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* make sure we know if a block is bad before erasing it */
 	for (i = first_block; i <= last_block; i++)

@@ -1185,13 +1185,13 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		if ((retval = armv4_5_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
@@ -1208,7 +1208,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	else
 	{
 		LOG_ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (arm_algorithm_info->core_mode != ARM_MODE_ANY)
@@ -1260,14 +1260,14 @@ int armv4_5_run_algorithm_inner(struct target *target,
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				retval = ERROR_INVALID_ARGUMENTS;
+				retval = ERROR_COMMAND_SYNTAX_ERROR;
 				continue;
 			}
 
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-				retval = ERROR_INVALID_ARGUMENTS;
+				retval = ERROR_COMMAND_SYNTAX_ERROR;
 				continue;
 			}
 

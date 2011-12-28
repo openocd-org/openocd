@@ -151,7 +151,7 @@ static int mips32_read_core_reg(struct target *target, int num)
 	struct mips32_common *mips32 = target_to_mips32(target);
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = mips32->core_regs[num];
 	buf_set_u32(mips32->core_cache->reg_list[num].value, 0, 32, reg_value);
@@ -169,7 +169,7 @@ static int mips32_write_core_reg(struct target *target, int num)
 	struct mips32_common *mips32 = target_to_mips32(target);
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
 	mips32->core_regs[num] = reg_value;
@@ -411,14 +411,14 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size",
 					reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		mips32_set_core_reg(reg, reg_params[i].value);
@@ -451,14 +451,14 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size",
 						reg_params[i].reg_name);
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));

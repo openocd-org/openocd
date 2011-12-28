@@ -589,7 +589,7 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	else
 	{
 		LOG_ERROR("Invalid arguments");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	retval = arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);

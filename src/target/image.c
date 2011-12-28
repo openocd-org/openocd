@@ -902,7 +902,7 @@ int image_read_section(struct image *image, int section, uint32_t offset, uint32
 	{
 		LOG_DEBUG("read past end of section: 0x%8.8" PRIx32 " + 0x%8.8" PRIx32 " > 0x%8.8" PRIx32 "",
 				offset, size, image->sections[section].size);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (image->type == IMAGE_BINARY)
@@ -911,7 +911,7 @@ int image_read_section(struct image *image, int section, uint32_t offset, uint32
 
 		/* only one section in a plain binary */
 		if (section != 0)
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 
 		/* seek to offset */
 		if ((retval = fileio_seek(&image_binary->fileio, offset)) != ERROR_OK)
@@ -999,7 +999,7 @@ int image_add_section(struct image *image, uint32_t base, uint32_t size, int fla
 
 	/* only image builder supports adding sections */
 	if (image->type != IMAGE_BUILDER)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* see if there's a previous section */
 	if (image->num_sections)

@@ -848,7 +848,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 COMMAND_HANDLER(handle_flash_banks_command)
 {
 	if (CMD_ARGC != 0)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	unsigned n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++)

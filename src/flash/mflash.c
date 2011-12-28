@@ -141,7 +141,7 @@ static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio)
 		gpio_con = S3C2440_GPJCON;
 	} else {
 		LOG_ERROR("mflash: invalid port %d%s", gpio.num, gpio.port);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	ret = target_read_u32(target, gpio_con, &data);
@@ -173,7 +173,7 @@ static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val
 		gpio_dat = S3C2440_GPJDAT;
 	} else {
 		LOG_ERROR("mflash: invalid port %d%s", gpio.num, gpio.port);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	ret = target_read_u32(target, gpio_dat, &data);

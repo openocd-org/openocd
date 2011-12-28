@@ -686,7 +686,7 @@ static int presto_adapter_khz(int khz, int *jtag_speed)
 	if (khz < 0)
 	{
 		*jtag_speed = 0;
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (khz >= 3000) *jtag_speed = 0;
@@ -700,7 +700,7 @@ static int presto_jtag_speed_div(int speed, int *khz)
 	if ((speed < 0) || (speed > 1000))
 	{
 		*khz = 0;
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (speed == 0) *khz = 3000;
@@ -715,7 +715,7 @@ static int presto_jtag_speed(int speed)
 
 	if (presto_jtag_speed_div(speed, &khz))
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	presto->jtag_speed = speed;

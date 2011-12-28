@@ -494,7 +494,7 @@ int unregister_command(struct command_context *context,
 		struct command *parent, const char *name)
 {
 	if ((!context) || (!name))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct command *p = NULL;
 	struct command **head = command_list_for_parent(context, parent);
@@ -832,12 +832,12 @@ static COMMAND_HELPER(command_help_find, struct command *head,
 		struct command **out)
 {
 	if (0 == CMD_ARGC)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	*out = command_find(head, CMD_ARGV[0]);
 	if (NULL == *out && strncmp(CMD_ARGV[0], "ocd_", 4) == 0)
 		*out = command_find(head, CMD_ARGV[0] + 4);
 	if (NULL == *out)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (--CMD_ARGC == 0)
 		return ERROR_OK;
 	CMD_ARGV++;
@@ -1180,7 +1180,7 @@ COMMAND_HANDLER(handle_help_add_command)
 	if (CMD_ARGC < 2)
 	{
 		LOG_ERROR("%s: insufficient arguments", CMD_NAME);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// save help text and remove it from argument list
@@ -1190,7 +1190,7 @@ COMMAND_HANDLER(handle_help_add_command)
 	if (!help && !usage)
 	{
 		LOG_ERROR("command name '%s' is unknown", CMD_NAME);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	// likewise for the leaf command name
 	const char *cmd_name = CMD_ARGV[--CMD_ARGC];
@@ -1399,7 +1399,7 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
 int command_context_mode(struct command_context *cmd_ctx, enum command_mode mode)
 {
 	if (!cmd_ctx)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	cmd_ctx->mode = mode;
 	return ERROR_OK;
@@ -1503,7 +1503,7 @@ int command_parse_bool_arg(const char *in, bool *out)
 		return ERROR_OK;
 	if (command_parse_bool(in, out, "1", "0") == ERROR_OK)
 		return ERROR_OK;
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
@@ -1514,7 +1514,7 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
 		if (command_parse_bool_arg(in, out) != ERROR_OK)
 		{
 			LOG_ERROR("%s: argument '%s' is not valid", CMD_NAME, in);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		// fall through
 	}
@@ -1522,7 +1522,7 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
 		LOG_INFO("%s is %s", label, *out ? "enabled" : "disabled");
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }

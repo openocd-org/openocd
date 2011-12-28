@@ -326,7 +326,7 @@ int log_add_callback(log_callback_fn fn, void *priv)
 	for (cb = log_callbacks; cb; cb = cb->next)
 	{
 		if (cb->fn == fn && cb->priv == priv)
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* alloc memory, it is safe just to return in case of an error, no need for the caller to check this */
@@ -357,7 +357,7 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 	}
 
 	/* no such item */
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 /* return allocated string w/printf() result */

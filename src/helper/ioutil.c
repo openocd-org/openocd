@@ -118,7 +118,7 @@ COMMAND_HANDLER(handle_cat_command)
 	if (CMD_ARGC != 1)
 	{
 		command_print(CMD_CTX, "cat <filename>");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
@@ -144,7 +144,7 @@ COMMAND_HANDLER(handle_trunc_command)
 	if (CMD_ARGC != 1)
 	{
 		command_print(CMD_CTX, "trunc <filename>");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	FILE *config_file = NULL;
@@ -163,7 +163,7 @@ COMMAND_HANDLER(handle_meminfo_command)
 	if (CMD_ARGC != 0)
 	{
 		command_print(CMD_CTX, "meminfo");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	info = mallinfo();
@@ -186,7 +186,7 @@ COMMAND_HANDLER(handle_append_command)
 	{
 		command_print(CMD_CTX,
 				"append <filename> [<string1>, [<string2>, ...]]");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	int retval = ERROR_FAIL;
@@ -224,7 +224,7 @@ COMMAND_HANDLER(handle_cp_command)
 {
 	if (CMD_ARGC != 2)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
@@ -237,7 +237,7 @@ COMMAND_HANDLER(handle_cp_command)
 
 	FILE *f = fopen(CMD_ARGV[1], "wb");
 	if (f == NULL)
-		retval = ERROR_INVALID_ARGUMENTS;
+		retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	size_t pos = 0;
 	for (;;)
@@ -250,7 +250,7 @@ COMMAND_HANDLER(handle_cp_command)
 		}
 
 		if ((retval == ERROR_OK) && (fwrite(((char *)data) + pos, 1, chunk, f) != chunk))
-			retval = ERROR_INVALID_ARGUMENTS;
+			retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 		if (retval != ERROR_OK)
 		{
@@ -405,7 +405,7 @@ void copydir(char *name, char *destdir)
 COMMAND_HANDLER(handle_rm_command)
 {
 	if (CMD_ARGC != 1)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	bool del = false;
 	if (rmdir(CMD_ARGV[0]) == 0)

@@ -1074,7 +1074,7 @@ int target_register_event_callback(int (*callback)(struct target *target, enum t
 
 	if (callback == NULL)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (*callbacks_p)
@@ -1099,7 +1099,7 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 
 	if (callback == NULL)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (*callbacks_p)
@@ -1137,7 +1137,7 @@ int target_unregister_event_callback(int (*callback)(struct target *target, enum
 
 	if (callback == NULL)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	while (c)
@@ -1164,7 +1164,7 @@ static int target_unregister_timer_callback(int (*callback)(void *priv), void *p
 
 	if (callback == NULL)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	while (c)
@@ -1681,7 +1681,7 @@ int target_checksum_memory(struct target *target, uint32_t address, uint32_t siz
 		if (buffer == NULL)
 		{
 			LOG_ERROR("error allocating buffer for section (%d bytes)", (int)size);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		retval = target_read_buffer(target, address, size, buffer);
 		if (retval != ERROR_OK)

@@ -206,7 +206,7 @@ static int armv7m_read_core_reg(struct target *target, unsigned num)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if (num >= ARMV7M_NUM_REGS)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
 	retval = armv7m->load_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, &reg_value);
@@ -225,7 +225,7 @@ static int armv7m_write_core_reg(struct target *target, unsigned num)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	if (num >= ARMV7M_NUM_REGS)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = buf_get_u32(armv7m->core_cache->reg_list[num].value, 0, 32);
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
@@ -363,13 +363,13 @@ int armv7m_start_algorithm(struct target *target,
 		if (!reg)
 		{
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 //		regvalue = buf_get_u32(reg_params[i].value, 0, 32);
@@ -452,13 +452,13 @@ int armv7m_wait_algorithm(struct target *target,
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));

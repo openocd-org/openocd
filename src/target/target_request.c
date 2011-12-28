@@ -168,7 +168,7 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 	struct debug_msg_receiver **p = &target->dbgmsg;
 
 	if (target == NULL)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* see if there's already a list */
 	if (*p)

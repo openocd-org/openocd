@@ -279,7 +279,7 @@ int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 
 	if (callback == NULL)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (*callbacks_p)
@@ -303,7 +303,7 @@ int jtag_unregister_event_callback(jtag_event_handler_t callback, void *priv)
 
 	if (callback == NULL)
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	while (*p)

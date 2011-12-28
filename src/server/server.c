@@ -657,7 +657,7 @@ SERVER_PORT_COMMAND()
 		break;
 	}
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }
@@ -676,7 +676,7 @@ SERVER_PIPE_COMMAND()
 		break;
 	}
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }

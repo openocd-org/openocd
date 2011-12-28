@@ -1272,7 +1272,7 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 
 	/* AP address is in bits 31:24 of DP_SELECT */
 	if (ap >= 256)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	ap_old = dap->ap_current;
 	dap_ap_select(dap, ap);
@@ -1315,7 +1315,7 @@ int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
 	int retval = ERROR_FAIL;
 
 	if (ap >= 256)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	ap_old = dap->ap_current;
 	dap_ap_select(dap, ap);
@@ -1799,7 +1799,7 @@ COMMAND_HANDLER(dap_baseaddr_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
 		if (apsel >= 256)
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1867,7 +1867,7 @@ COMMAND_HANDLER(dap_apsel_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
 		if (apsel >= 256)
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1906,7 +1906,7 @@ COMMAND_HANDLER(dap_apid_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
 		if (apsel >= 256)
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;

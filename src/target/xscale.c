@@ -250,7 +250,7 @@ static void xscale_getbuf(jtag_callback_data_t arg)
 static int xscale_receive(struct target *target, uint32_t *buffer, int num_words)
 {
 	if (num_words == 0)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval = ERROR_OK;
@@ -577,7 +577,7 @@ static int xscale_send(struct target *target, const uint8_t *buffer, int count, 
 			break;
 		default:
 			LOG_ERROR("BUG: size neither 4, 2 nor 1");
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		jtag_add_dr_out(target->tap,
 				3,
@@ -840,7 +840,7 @@ static int xscale_arch_state(struct target *target)
 	if (armv4_5->common_magic != ARM_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	arm_arch_state(target);
@@ -1871,7 +1871,7 @@ static int xscale_read_memory(struct target *target, uint32_t address,
 
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
@@ -1911,7 +1911,7 @@ static int xscale_read_memory(struct target *target, uint32_t address,
 				break;
 			default:
 				LOG_ERROR("invalid read size");
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 
@@ -1963,7 +1963,7 @@ static int xscale_write_memory(struct target *target, uint32_t address,
 
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
@@ -3513,7 +3513,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 	   else if (strcmp("disable", CMD_ARGV[0]) == 0)
 		  xscale->trace.mode = XSCALE_TRACE_DISABLED;
 	   else
-		  return ERROR_INVALID_ARGUMENTS;
+		  return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (CMD_ARGC >= 2 && xscale->trace.mode != XSCALE_TRACE_DISABLED)
@@ -3527,7 +3527,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 		  {
 			 command_print(CMD_CTX, "fill buffer count must be > 0");
 			 xscale->trace.mode = XSCALE_TRACE_DISABLED;
-			 return ERROR_INVALID_ARGUMENTS;
+			 return ERROR_COMMAND_SYNTAX_ERROR;
 		  }
 		  xscale->trace.buffer_fill = buffcount;
 		  xscale->trace.mode = XSCALE_TRACE_FILL;
@@ -3537,7 +3537,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 	   else
 	   {
 		  xscale->trace.mode = XSCALE_TRACE_DISABLED;
-		  return ERROR_INVALID_ARGUMENTS;
+		  return ERROR_COMMAND_SYNTAX_ERROR;
 	   }
 	}
 	
@@ -3730,7 +3730,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 			break;
 		default:
 			command_print(CMD_CTX, "invalid register number");
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		reg = &xscale->reg_cache->reg_list[reg_no];
 

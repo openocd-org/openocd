@@ -283,7 +283,7 @@ int zy1000_speed(int speed)
 		{
 			LOG_USER("valid ZY1000 jtag_speed=[8190,2]. With divisor is %dkHz / even values between 8190-2, i.e. min %dHz, max %dMHz",
 					ZYLIN_KHZ, (ZYLIN_KHZ * 1000) / 8190, ZYLIN_KHZ / (2 * 1000));
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		int khz;
@@ -325,7 +325,7 @@ COMMAND_HANDLER(handle_power_command)
 		LOG_INFO("Target power %s", savePower ? "on" : "off");
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;

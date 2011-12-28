@@ -1593,7 +1593,7 @@ static int cortex_m3_load_core_reg_u32(struct target *target,
 		break;
 
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -1673,7 +1673,7 @@ static int cortex_m3_store_core_reg_u32(struct target *target,
 		break;
 
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -1684,7 +1684,7 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = &armv7m->dap;
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* cortex_m3 handles unaligned memory access */
 	if (count && buffer) {
@@ -1709,7 +1709,7 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = &armv7m->dap;
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (count && buffer) {
 		switch (size) {
@@ -2144,7 +2144,7 @@ COMMAND_HANDLER(handle_cortex_m3_vector_catch_command)
 			}
 			if (i == ARRAY_SIZE(vec_ids)) {
 				LOG_ERROR("No CM3 vector '%s'", CMD_ARGV[CMD_ARGC]);
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		}
 write:

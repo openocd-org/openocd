@@ -897,7 +897,7 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	{
 		LOG_ERROR("Hardware doesn't support page-level unprotect. "
 			"Try the 'recover' command.");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (stellaris_info->did1 == 0)

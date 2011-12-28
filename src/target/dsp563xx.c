@@ -336,7 +336,7 @@ static int dsp563xx_get_gdb_reg_list(struct target *target, struct reg **reg_lis
 	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
 	if (!*reg_list)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
 	{
@@ -353,7 +353,7 @@ static int dsp563xx_read_core_reg(struct target *target, int num)
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if ((num < 0) || (num >= DSP563XX_NUMCOREREGS))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = dsp563xx->core_regs[num];
 	buf_set_u32(dsp563xx->core_cache->reg_list[num].value, 0, 32, reg_value);
@@ -369,7 +369,7 @@ static int dsp563xx_write_core_reg(struct target *target, int num)
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if ((num < 0) || (num >= DSP563XX_NUMCOREREGS))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = buf_get_u32(dsp563xx->core_cache->reg_list[num].value, 0, 32);
 	dsp563xx->core_regs[num] = reg_value;
@@ -859,7 +859,7 @@ static int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
 	struct dsp563xx_common *dsp563xx = calloc(1, sizeof(struct dsp563xx_common));
 
 	if (!dsp563xx)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	dsp563xx->jtag_info.tap = target->tap;
 	target->arch_info = dsp563xx;
@@ -886,7 +886,7 @@ static int dsp563xx_examine(struct target *target)
 	{
 		LOG_ERROR("no IDCODE present on device");
 
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (!target_was_examined(target))
@@ -1480,7 +1480,7 @@ static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32
 			move_cmd = 0x07d891;
 			break;
 		default:
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* we use r0 to store temporary data */
@@ -1556,7 +1556,7 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 	/* we only support 4 byte aligned data */
 	if ( (size != 4) || (!count) )
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ( mem_type != MEM_L )
@@ -1566,13 +1566,13 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 
 	if ( !(buffer_y = malloc(size*count)) )
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ( !(buffer_x = malloc(size*count)) )
 	{
 		free(buffer_y);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	err = dsp563xx_read_memory_core(target,MEM_Y,address,size,count/2,buffer_y);
@@ -1647,7 +1647,7 @@ static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint3
 			move_cmd = 0x075891;
 			break;
 		default:
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* we use r0 to store temporary data */
@@ -1716,7 +1716,7 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	/* we only support 4 byte aligned data */
 	if ( (size != 4) || (!count) )
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ( mem_type != MEM_L )
@@ -1726,13 +1726,13 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 
 	if ( !(buffer_y = malloc(size*count)) )
 	{
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ( !(buffer_x = malloc(size*count)) )
 	{
 		free(buffer_y);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	for(i=0,i1=0;i<count;i+=2,i1++)

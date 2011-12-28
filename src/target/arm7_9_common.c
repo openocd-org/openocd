@@ -2142,7 +2142,7 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 	if ((num < 0) || (num > 16))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if ((mode != ARM_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
@@ -2205,7 +2205,7 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 	if (!is_arm_mode(armv4_5->core_mode))
 		return ERROR_FAIL;
 	if ((num < 0) || (num > 16))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if ((mode != ARM_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
@@ -2277,7 +2277,7 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
@@ -2457,7 +2457,7 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;

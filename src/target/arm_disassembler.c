@@ -3013,7 +3013,7 @@ static int t2ev_misc(uint32_t opcode, uint32_t address,
 		mnemonic = "ISB";
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	strcpy(cp, mnemonic);
 	return ERROR_OK;
@@ -3064,7 +3064,7 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 	}
 
 undef:
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
@@ -3199,7 +3199,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 		suffix2 = ".W";
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (one)
@@ -3288,7 +3288,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 					(int) (opcode & 0x1f) + 1 - immed);
 		return ERROR_OK;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	sprintf(cp, "%s\tr%d, r%d, #%d\t; %#3.3x", mnemonic,
@@ -3321,7 +3321,7 @@ static int t2ev_store_single(uint32_t opcode, uint32_t address,
 	unsigned rt = (opcode >> 12) & 0x0f;
 
 	if (rn == 0xf)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (opcode & 0x0800)
 		op |= 1;
@@ -3358,7 +3358,7 @@ static int t2ev_store_single(uint32_t opcode, uint32_t address,
 		break;
 	/* error */
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	sprintf(cp, "STR%s.W\tr%d, [r%d, r%d, LSL #%d]",
@@ -3381,7 +3381,7 @@ imm8:
 		break;
 	case 0x000:
 	case 0x200:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* two indexed modes will write back rn */
@@ -3426,7 +3426,7 @@ static int t2ev_mul32(uint32_t opcode, uint32_t address,
 			(int) (opcode >> 0) & 0xf, ra);
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }
@@ -3462,7 +3462,7 @@ static int t2ev_mul64_div(uint32_t opcode, uint32_t address,
 				(int) (opcode >> 0) & 0xf);
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -3516,7 +3516,7 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 		sprintf(cp, "LDMDB.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	cp = strchr(cp, 0);
@@ -3584,7 +3584,7 @@ static int t2ev_ldrex_strex(uint32_t opcode, uint32_t address,
 			mnemonic = "STREXH";
 			break;
 		default:
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		rd = opcode & 0xf;
 		imm = 0;
@@ -3604,12 +3604,12 @@ static int t2ev_ldrex_strex(uint32_t opcode, uint32_t address,
 			mnemonic = "LDREXH";
 			break;
 		default:
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		imm = 0;
 		goto ldrex;
 	}
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 
 strex:
 	imm <<= 2;
@@ -3680,7 +3680,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 	case 0:
 		if (rd == 0xf) {
 			if (!(opcode & (1 << 20)))
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			instruction->type = ARM_TST;
 			mnemonic = "TST";
 			suffix = "";
@@ -3742,7 +3742,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 	case 4:
 		if (rd == 0xf) {
 			if (!(opcode & (1 << 20)))
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			instruction->type = ARM_TEQ;
 			mnemonic = "TEQ";
 			suffix = "";
@@ -3754,7 +3754,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 	case 8:
 		if (rd == 0xf) {
 			if (!(opcode & (1 << 20)))
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			instruction->type = ARM_CMN;
 			mnemonic = "CMN";
 			suffix = "";
@@ -3774,7 +3774,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 	case 0xd:
 		if (rd == 0xf) {
 			if (!(opcode & (1 << 21)))
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			instruction->type = ARM_CMP;
 			mnemonic = "CMP";
 			suffix = "";
@@ -3788,7 +3788,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 		mnemonic = "RSB";
 		break;
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	sprintf(cp, "%s%s.W\tr%d, r%d, r%d",
@@ -3857,7 +3857,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 			mnemonic = "ROR";
 			break;
 		default:
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		instruction->type = ARM_MOV;
@@ -3898,11 +3898,11 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 		case 0xa:
 		case 0xb:
 			if (opcode & (1 << 6))
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			if (((opcode >> 12) & 0xf) != 0xf)
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			if (!(opcode & (1 << 20)))
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 
 			switch (((opcode >> 19) & 0x04)
 				| ((opcode >> 4) & 0x3)) {
@@ -3922,7 +3922,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 				mnemonic = "CLZ";
 				break;
 			default:
-				return ERROR_INVALID_ARGUMENTS;
+				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 			sprintf(cp, "%s\tr%d, r%d",
 					mnemonic,
@@ -3930,7 +3930,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 					(int) (opcode >> 0) & 0xf);
 			break;
 		default:
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 
@@ -3986,7 +3986,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 		char *p1 = "]", *p2 = "";
 
 		if (!(opcode & 0x0500))
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 
 		immed = opcode & 0x00ff;
 
@@ -4008,7 +4008,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 		return ERROR_OK;
 	}
 
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 static int t2ev_load_byte_hints(uint32_t opcode, uint32_t address,
@@ -4187,7 +4187,7 @@ ldrsb_literal:
 		goto ldrxb_immediate_t2;
 	}
 
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 static int t2ev_load_halfword(uint32_t opcode, uint32_t address,
@@ -4265,7 +4265,7 @@ ldrh_literal:
 		return ERROR_OK;
 	}
 
-	return ERROR_INVALID_ARGUMENTS;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 /*
@@ -4377,7 +4377,7 @@ int thumb2_opcode(struct target *target, uint32_t address, struct arm_instructio
 	 * instructions; not yet handled here.
 	 */
 
-	if (retval == ERROR_INVALID_ARGUMENTS) {
+	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
 		instruction->type = ARM_UNDEFINED_INSTRUCTION;
 		strcpy(cp, "UNDEFINED OPCODE");
 		return ERROR_OK;

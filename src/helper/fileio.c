@@ -63,7 +63,7 @@ static inline int fileio_open_local(struct fileio_internal *fileio)
 			break;
 		default:
 			LOG_ERROR("BUG: access neither read, write nor readwrite");
-			return ERROR_INVALID_ARGUMENTS;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* win32 always opens in binary mode */

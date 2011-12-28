@@ -536,7 +536,7 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 	int retval;
 
 	if (regnum < 0 || regnum > 16)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (regnum == 16) {
 		if (mode != ARM_MODE_ANY)
@@ -579,7 +579,7 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 
 
 	if (regnum < 0 || regnum > 16)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (regnum == 16) {
 		if (mode != ARM_MODE_ANY)
@@ -729,7 +729,7 @@ static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
 		/* FALL THROUGH */
 	default:
 		LOG_ERROR("unsupported {break,watch}point length/alignment");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* other shared control bits:
@@ -756,7 +756,7 @@ static int dpm_add_breakpoint(struct target *target, struct breakpoint *bp)
 	int retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	if (bp->length < 2)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (!dpm->bpwp_enable)
 		return retval;
 
@@ -781,7 +781,7 @@ static int dpm_remove_breakpoint(struct target *target, struct breakpoint *bp)
 {
 	struct arm *arm = target_to_arm(target);
 	struct arm_dpm *dpm = arm->dpm;
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (unsigned i = 0; i < dpm->nbp; i++) {
 		if (dpm->dbp[i].bp == bp) {
@@ -855,7 +855,7 @@ static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
 {
 	struct arm *arm = target_to_arm(target);
 	struct arm_dpm *dpm = arm->dpm;
-	int retval = ERROR_INVALID_ARGUMENTS;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (unsigned i = 0; i < dpm->nwp; i++) {
 		if (dpm->dwp[i].wp == wp) {

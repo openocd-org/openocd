@@ -748,7 +748,7 @@ int armv7a_arch_state(struct target *target)
 	if (armv7a->common_magic != ARMV7_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv7A target");
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	arm_arch_state(target);

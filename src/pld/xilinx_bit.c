@@ -82,7 +82,7 @@ int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename)
 	int read_count;
 
 	if (!filename || !bit_file)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (stat(filename, &input_stat) == -1)
 	{
