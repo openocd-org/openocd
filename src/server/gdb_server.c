@@ -1040,7 +1040,7 @@ static int gdb_get_registers_packet(struct connection *connection,
 #endif
 
 	if ((target->rtos != NULL) &&
-		(ERROR_OK == rtos_get_gdb_reg_list(connection, &reg_list, &reg_list_size)))
+		 (ERROR_OK == rtos_get_gdb_reg_list(connection)))
 	{
 		return ERROR_OK;
 	}

@@ -101,7 +101,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target * target);
 int rtos_generic_stack_read( struct target * target, const struct rtos_register_stacking* stacking, int64_t stack_ptr, char ** hex_reg_list );
 int rtos_try_next( struct target * target );
 int gdb_thread_packet(struct connection *connection, char *packet, int packet_size);
-int rtos_get_gdb_reg_list(struct connection *connection, struct reg **reg_list[], int *reg_list_size);
+int rtos_get_gdb_reg_list(struct connection *connection);
 int rtos_update_threads( struct target *target );
 
 #endif // RTOS_H
