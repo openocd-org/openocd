@@ -2359,6 +2359,8 @@ static int gdb_input_inner(struct connection *connection)
 					command_run_linef(connection->cmd_ctx,
 							"ocd_gdb_restart %s",
 							target_name(target));
+					/*  info rtos parts */
+					gdb_thread_packet(connection, packet, packet_size);
 					gdb_put_packet(connection, "OK", 2);
 					break;
 
