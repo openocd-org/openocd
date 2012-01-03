@@ -17,6 +17,9 @@ STLINKFILES += stlink_layout.c
 endif
 
 noinst_HEADERS = \
-	stlink_tcl.h
+	stlink_interface.h \
+	stlink_layout.h \
+	stlink_tcl.h \
+	stlink_transport.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
