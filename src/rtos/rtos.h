@@ -109,5 +109,8 @@ int gdb_thread_packet(struct connection *connection, char *packet, int packet_si
 int rtos_get_gdb_reg_list(struct connection *connection);
 int rtos_update_threads( struct target *target );
 int rtos_smp_init(struct target *target);
+/*  function for handling symbol access */
+int rtos_qsymbol(struct connection *connection, char *packet, int packet_size);
+int str_to_hex(char *hex_dst, char *src);
 
 #endif // RTOS_H
