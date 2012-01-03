@@ -61,8 +61,9 @@ struct rtos
 	threadid_t current_thread;
 	struct thread_detail* thread_details;
 	int thread_count;
-
+	int (*gdb_thread_packet)(struct connection *connection, char *packet, int packet_size);
 	void * rtos_specific_params;
+
 
 };
 

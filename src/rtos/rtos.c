@@ -48,6 +48,8 @@ static struct rtos_type *rtos_types[] =
 	NULL
 };
 
+int rtos_thread_packet(struct connection *connection, char *packet, int packet_size);
+
 
 int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 {
@@ -116,6 +118,8 @@ int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 	target->rtos->current_thread = 0;
 	target->rtos->symbols = NULL;
 	target->rtos->target = target;
+	/* put default thread handler in linux usecase it is overloaded*/
+	target->rtos->gdb_thread_packet = rtos_thread_packet;
 
 	if ( 0 != strcmp( cp, "auto") )
 	{
@@ -125,10 +129,18 @@ int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 	return JIM_OK;
 }
 
-
-
-
 int gdb_thread_packet(struct connection *connection, char *packet, int packet_size)
+{
+	struct target *target = get_target_from_connection(connection);
+	if (target->rtos == NULL)
+		return rtos_thread_packet(connection, packet, packet_size); /* thread not found*/
+	return target->rtos->gdb_thread_packet(connection, packet, packet_size);
+}
+
+
+
+
+int rtos_thread_packet(struct connection *connection, char *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 
@@ -413,10 +425,8 @@ int gdb_thread_packet(struct connection *connection, char *packet, int packet_si
 	}
 	else if ( packet[0] == 'H') // Set current thread ( 'c' for step and continue, 'g' for all other operations )
 	{
-		if (packet[1] == 'g')
-		{
+		if ((packet[1] == 'g') && (target->rtos != NULL))
 			sscanf(packet, "Hg%16" SCNx64, &current_threadid);
-		}
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
 	}
