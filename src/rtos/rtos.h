@@ -80,6 +80,7 @@ struct rtos_type
 	int (*get_thread_reg_list)         ( struct rtos *rtos, int64_t thread_id, char ** hex_reg_list );
 	int (*get_symbol_list_to_lookup)   (symbol_table_elem_t * symbol_list[] );
 	int (*clean)(struct target *target);
+	char * (*ps_command)(struct target *target);
 };
 
 

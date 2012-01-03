@@ -5515,6 +5515,27 @@ COMMAND_HANDLER(handle_target_reset_nag)
 			"performance");
 }
 
+COMMAND_HANDLER(handle_ps_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	char *display;
+	if (target->state != TARGET_HALTED) {
+		LOG_INFO("target not halted !!");
+		return ERROR_OK;
+	}
+
+	if ((target->rtos) && (target->rtos->type)
+			&& (target->rtos->type->ps_command)) {
+		display = target->rtos->type->ps_command(target);
+		command_print(CMD_CTX, "%s", display);
+		free(display);
+		return ERROR_OK;
+	} else {
+		LOG_INFO("failed");
+		return ERROR_TARGET_FAILURE;
+	}
+}
+
 static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "fast_load_image",
@@ -5727,6 +5748,14 @@ static const struct command_registration target_exec_command_handlers[] = {
 				"enabled to improve performance. ",
 		.usage = "['enable'|'disable']",
 	},
+	{
+		.name = "ps",
+		.handler = handle_ps_command,
+		.mode = COMMAND_EXEC,
+		.help = "list all tasks ",
+		.usage = " ",
+	},
+
 	COMMAND_REGISTRATION_DONE
 };
 static int target_register_user_commands(struct command_context *cmd_ctx)
