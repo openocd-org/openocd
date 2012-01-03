@@ -57,7 +57,8 @@ struct rtos
 
 	symbol_table_elem_t * symbols;
 	struct target *target;
-
+	/*  add a context variable instead of global variable */
+	int64_t current_threadid;
 	threadid_t current_thread;
 	struct thread_detail* thread_details;
 	int thread_count;

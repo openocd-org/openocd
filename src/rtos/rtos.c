@@ -29,7 +29,6 @@
 #include "server/gdb_server.h"
 
 
-static int64_t current_threadid = -1;
 
 static void hex_to_str( char* dst, char * hex_src );
 static int str_to_hex( char* hex_dst, char* src );
@@ -55,7 +54,6 @@ int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 {
 	int x;
 	char *cp;
-
 	if (! goi->isconfigure) {
 		if (goi->argc != 0) {
 			if (goi->argc != 0) {
@@ -115,6 +113,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 	/* Create it */
 	target->rtos = calloc(1,sizeof(struct rtos));
 	target->rtos->type = rtos_types[x];
+	target->rtos->current_threadid = -1;
 	target->rtos->current_thread = 0;
 	target->rtos->symbols = NULL;
 	target->rtos->target = target;
@@ -426,7 +425,7 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 	else if ( packet[0] == 'H') // Set current thread ( 'c' for step and continue, 'g' for all other operations )
 	{
 		if ((packet[1] == 'g') && (target->rtos != NULL))
-			sscanf(packet, "Hg%16" SCNx64, &current_threadid);
+			sscanf(packet, "Hg%16" SCNx64, &target->rtos->current_threadid);
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
 	}
@@ -437,7 +436,7 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 int rtos_get_gdb_reg_list(struct connection *connection)
 {
 	struct target *target = get_target_from_connection(connection);
-
+	int64_t current_threadid = target->rtos->current_threadid;
 	if ( ( target->rtos != NULL ) &&
 		 ( current_threadid != -1 ) &&
 		 ( current_threadid != 0 ) &&
