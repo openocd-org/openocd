@@ -5119,11 +5119,12 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int i;
 	const char *targetname;
 	int retval,len;
-	struct target *target;
-	struct target_list *head, *curr;
-    curr = (struct target_list*) NULL;
-	head = (struct target_list*) NULL;
-	
+	struct target *target = (struct target *) NULL;
+	struct target_list *head, *curr, *new;
+	curr = (struct target_list *) NULL;
+	head = (struct target_list *) NULL;
+	new = (struct target_list *) NULL;
+
 	retval = 0;
 	LOG_DEBUG("%d",argc);
 	/* argv[1] = target to associate in smp
@@ -5139,7 +5140,6 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		LOG_DEBUG("%s ",targetname);
 		if (target)
 		{
-			struct target_list *new;
 			new=malloc(sizeof(struct target_list));
 			new->target = target;
 			new->next = (struct target_list*)NULL;
@@ -5160,11 +5160,13 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
     while(curr!=(struct target_list *)NULL)
 	{
-    target=curr->target;
-	target->smp = 1;
-	target->head = head;
-	curr=curr->next;
+		target = curr->target;
+		target->smp = 1;
+		target->head = head;
+		curr = curr->next;
 	}
+	if (target->rtos)
+		retval = rtos_smp_init(head->target);
 	return retval;
 }
 

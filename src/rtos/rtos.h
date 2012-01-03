@@ -75,9 +75,11 @@ struct rtos_type
 	char * name;
 	int (*detect_rtos)                 ( struct target* target );
 	int (*create)                      ( struct target* target );
+	int (*smp_init)(struct target *target);
 	int (*update_threads)              ( struct rtos*   rtos );
 	int (*get_thread_reg_list)         ( struct rtos *rtos, int64_t thread_id, char ** hex_reg_list );
 	int (*get_symbol_list_to_lookup)   (symbol_table_elem_t * symbol_list[] );
+	int (*clean)(struct target *target);
 };
 
 
@@ -105,5 +107,6 @@ int rtos_try_next( struct target * target );
 int gdb_thread_packet(struct connection *connection, char *packet, int packet_size);
 int rtos_get_gdb_reg_list(struct connection *connection);
 int rtos_update_threads( struct target *target );
+int rtos_smp_init(struct target *target);
 
 #endif // RTOS_H

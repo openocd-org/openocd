@@ -49,6 +49,13 @@ static struct rtos_type *rtos_types[] =
 
 int rtos_thread_packet(struct connection *connection, char *packet, int packet_size);
 
+int rtos_smp_init(struct target *target)
+{
+	if (target->rtos->type->smp_init)
+		return target->rtos->type->smp_init(target);
+	return ERROR_TARGET_INIT_FAILED;
+}
+
 
 int rtos_create(Jim_GetOptInfo *goi, struct target * target)
 {
@@ -437,10 +444,11 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 {
 	struct target *target = get_target_from_connection(connection);
 	int64_t current_threadid = target->rtos->current_threadid;
-	if ( ( target->rtos != NULL ) &&
-		 ( current_threadid != -1 ) &&
-		 ( current_threadid != 0 ) &&
-		 ( current_threadid != target->rtos->current_thread ) )
+	if ((target->rtos != NULL) &&
+		 (current_threadid != -1) &&
+		 (current_threadid != 0) &&
+		 ((current_threadid != target->rtos->current_thread) ||
+		 (target->smp))) /* in smp several current thread are possible */
 	{
 		char * hex_reg_list;
 		target->rtos->type->get_thread_reg_list( target->rtos, current_threadid, &hex_reg_list );

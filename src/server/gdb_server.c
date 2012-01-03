@@ -836,6 +836,11 @@ static int gdb_new_connection(struct connection *connection)
 	breakpoint_clear_target(gdb_service->target);
 	watchpoint_clear_target(gdb_service->target);
 
+	/* clean previous rtos session if supported*/
+	if ((gdb_service->target->rtos) &&
+			(gdb_service->target->rtos->type->clean))
+		gdb_service->target->rtos->type->clean(gdb_service->target);
+
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
 		return retval;
@@ -869,9 +874,9 @@ static int gdb_new_connection(struct connection *connection)
 
 	gdb_actual_connections++;
 	LOG_DEBUG("New GDB Connection: %d, Target %s, state: %s",
-		  gdb_actual_connections,
-		  target_name(gdb_service->target),
-		  target_state_name(gdb_service->target));
+			gdb_actual_connections,
+			target_name(gdb_service->target),
+			target_state_name(gdb_service->target));
 
 	/* DANGER! If we fail subsequently, we must remove this handler,
 	 * otherwise we occasionally see crashes as the timer can invoke the
@@ -2256,6 +2261,7 @@ static int gdb_input_inner(struct connection *connection)
 				case 'c':
 				case 's':
 					{
+						gdb_thread_packet(connection, packet, packet_size);
 						log_add_callback(gdb_log_callback, connection);
 
 						if (gdb_con->mem_write_error)
