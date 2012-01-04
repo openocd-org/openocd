@@ -575,7 +575,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	struct target *target = bank->target;
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
-	uint16_t num_pages;
+	uint16_t flash_size_in_kb;
 	uint32_t device_id;
 	uint32_t base_address = 0x08000000;
 
@@ -587,22 +587,38 @@ static int stm32x_probe(struct flash_bank *bank)
 		return retval;
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
-	if ((device_id & 0x7ff) != 0x411)
-	{
-		LOG_WARNING("Cannot identify target as a STM32 family, try the other STM32 drivers.");
+	/* get flash size from target. */
+	retval = target_read_u16(target, 0x1FFF7A10, &flash_size_in_kb);
+	if (retval != ERROR_OK) {
+		LOG_WARNING("failed reading flash size, default to max target family");
+		/* failed reading flash size, default to max target family */
+		flash_size_in_kb = 0xffff;
+	}
+
+	if ((device_id & 0x7ff) == 0x411) {
+		/* check for early silicon */
+		if (flash_size_in_kb == 0xffff) {
+			/* number of sectors may be incorrrect on early silicon */
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash");
+			flash_size_in_kb = 512;
+		}
+	} else {
+		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
 	}
 
-	/* sectors sizes vary, handle this in a different code path
-	 * than the rest.
-	 */
-	// Uhhh.... what to use here?
+	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
-	/* calculate numbers of pages*/
-	num_pages = 4 + 1 + 7;
+	/* did we assign flash size? */
+	assert(flash_size_in_kb != 0xffff);
 
-	if (bank->sectors)
-	{
+	/* calculate numbers of pages */
+	int num_pages = (flash_size_in_kb / 128) + 4;
+
+	/* check that calculation result makes sense */
+	assert(num_pages > 0);
+
+	if (bank->sectors) {
 		free(bank->sectors);
 		bank->sectors = NULL;
 	}
@@ -610,19 +626,19 @@ static int stm32x_probe(struct flash_bank *bank)
 	bank->base = base_address;
 	bank->num_sectors = num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
-
 	bank->size = 0;
+
+	/* fixed memory */
 	setup_sector(bank, 0, 4, 16 * 1024);
 	setup_sector(bank, 4, 1, 64 * 1024);
-	setup_sector(bank, 4+1, 7, 128 * 1024);
 
-	for (i = 0; i < num_pages; i++)
-	{
+	/* dynamic memory */
+	setup_sector(bank, 4 + 1, num_pages - 5, 128 * 1024);
+
+	for (i = 0; i < num_pages; i++) {
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 0;
 	}
-
-	LOG_INFO("flash size = %dkBytes", bank->size / 1024);
 
 	stm32x_info->probed = 1;
 
