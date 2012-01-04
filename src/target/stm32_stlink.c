@@ -98,7 +98,7 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 		break;
 
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -184,7 +184,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 		break;
 
 	default:
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -225,7 +225,7 @@ static int stm32_stlink_target_create(struct target *target,
 	struct cortex_m3_common *cortex_m3 = calloc(1, sizeof(struct cortex_m3_common));
 
 	if (!cortex_m3)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	stm32_stlink_init_arch_info(target, cortex_m3, target->tap);
 
@@ -245,7 +245,7 @@ static int stm32_stlink_examine(struct target *target)
 	if (target->tap->hasidcode == false) {
 		LOG_ERROR("no IDCODE present on device");
 
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (!target_was_examined(target)) {
@@ -566,10 +566,10 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 
 	if (!count || !buffer)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (size != 4) {
 		LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	while (count) {
@@ -602,10 +602,10 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 
 	if (!count || !buffer)
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (size != 4) {
 		LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
-		return ERROR_INVALID_ARGUMENTS;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	while (count) {
