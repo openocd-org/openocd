@@ -421,6 +421,19 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 @* Link: @url{http://www.stm32circle.com/resources/stm32primer2.php}
 @end itemize
 
+@section USB ST-LINK based
+ST Micro has an adapter called @b{ST-LINK}.
+They only works with ST Micro chips, notably STM32 and STM8.
+
+@itemize @bullet
+@item @b{ST-LINK}
+@* This is available standalone and as part of some kits, eg. STM32VLDISCOVERY.
+@* Link: @url{http://www.st.com/internet/evalboard/product/219866.jsp}
+@item @b{ST-LINK/V2}
+@* This is available standalone and as part of some kits, eg. STM32F4DISCOVERY.
+@* Link: @url{http://www.st.com/internet/evalboard/product/251168.jsp}
+@end itemize
+
 @section USB Other
 @itemize @bullet
 @item @b{USBprog}
@@ -2562,6 +2575,10 @@ vsllink is part of Versaloon which is a versatile USB programmer.
 This defines quite a few driver-specific commands,
 which are not currently documented here.
 @end quotation
+@end deffn
+
+@deffn {Interface Driver} {stlink}
+ST Micro ST-LINK adapter.
 @end deffn
 
 @deffn {Interface Driver} {ZY1000}
