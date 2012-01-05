@@ -530,12 +530,12 @@ OpenOCD mailing list.
 which can be found here: @url{http://www.tcl.tk}. Jim-Tcl has far
 fewer features. Jim-Tcl is several dozens of .C files and .H files and
 implements the basic Tcl command set. In contrast: Tcl 8.6 is a
-4.2 MB .zip file containing 1540 files. 
+4.2 MB .zip file containing 1540 files.
 
 @item @b{Missing Features}
 @* Our practice has been: Add/clone the real Tcl feature if/when
 needed. We welcome Jim-Tcl improvements, not bloat. Also there
-are a large number of optional Jim-Tcl features that are not 
+are a large number of optional Jim-Tcl features that are not
 enabled in OpenOCD.
 
 @item @b{Scripts}
@@ -608,7 +608,7 @@ The first found file with a matching file name will be used.
 
 @quotation Note
 Don't try to use configuration script names or paths which
-include the "#" character.  That character begins Tcl comments.  
+include the "#" character.  That character begins Tcl comments.
 @end quotation
 
 @section Simple setup, no customization
@@ -1685,14 +1685,14 @@ $_TARGETNAME configure -work-area-phys 0x00200000 \
 @cindex SMP
 After setting targets, you can define a list of targets working in SMP.
 
-@example 
+@example
 set _TARGETNAME_1 $_CHIPNAME.cpu1
 set _TARGETNAME_2 $_CHIPNAME.cpu2
 target create $_TARGETNAME_1 cortex_a8 -chain-position $_CHIPNAME.dap \
--coreid 0 -dbgbase $_DAP_DBG1 
+-coreid 0 -dbgbase $_DAP_DBG1
 target create $_TARGETNAME_2 cortex_a8 -chain-position $_CHIPNAME.dap \
--coreid 1 -dbgbase $_DAP_DBG2 
-#define 2 targets working in smp. 
+-coreid 1 -dbgbase $_DAP_DBG2
+#define 2 targets working in smp.
 target smp $_CHIPNAME.cpu2 $_CHIPNAME.cpu1
 @end example
 In the above example on cortex_a8, 2 cpus are working in SMP.
@@ -1702,7 +1702,7 @@ In SMP only one GDB instance is created and :
 @item halt command triggers the halt of all targets in the list.
 @item resume command triggers the write context and the restart of all targets in the list.
 @item following a breakpoint: the target stopped by the breakpoint is displayed to the GDB session.
-@item dedicated GDB serial protocol packets are implemented for switching/retrieving the target 
+@item dedicated GDB serial protocol packets are implemented for switching/retrieving the target
 displayed by the GDB session @pxref{Using openocd SMP with GDB}.
 @end itemize
 
@@ -1719,15 +1719,15 @@ following example.
 
 @example
 >cortex_a8 smp_gdb
-gdb coreid  0 -> -1  
+gdb coreid  0 -> -1
 #0 : coreid 0 is displayed to GDB ,
 #-> -1 : next resume triggers a real resume
 > cortex_a8 smp_gdb 1
-gdb coreid  0 -> 1   
+gdb coreid  0 -> 1
 #0 :coreid 0 is displayed to GDB ,
-#->1  : next resume displays coreid 1 to GDB 
+#->1  : next resume displays coreid 1 to GDB
 > resume
-> cortex_a8 smp_gdb  
+> cortex_a8 smp_gdb
 gdb coreid  1 -> 1
 #1 :coreid 1 is displayed to GDB ,
 #->1 : next resume displays coreid 1 to GDB
@@ -1981,7 +1981,7 @@ communicate via pipes(stdin/out or named pipes). The name
 "gdb_port" stuck because it covers probably more than 90% of
 the normal use cases.
 
-No arguments reports GDB port. "pipe" means listen to stdin 
+No arguments reports GDB port. "pipe" means listen to stdin
 output to stdout, an integer is base port number, "disable"
 disables the gdb server.
 
@@ -1991,11 +1991,11 @@ output to a file so as not to flood the stdin/out pipes.
 The -p/--pipe option is deprecated and a warning is printed
 as it is equivalent to passing in -c "gdb_port pipe; log_output openocd.log".
 
-Any other string is interpreted as named pipe to listen to. 
+Any other string is interpreted as named pipe to listen to.
 Output pipe is the same name as input pipe, but with 'o' appended,
 e.g. /var/gdb, /var/gdbo.
-				
-The GDB port for the first target will be the base port, the 
+
+The GDB port for the first target will be the base port, the
 second target will listen on gdb_port + 1, and so on.
 When not specified during the configuration stage,
 the port @var{number} defaults to 3333.
@@ -3999,7 +3999,7 @@ The following target events are defined:
 @* Currently not used (goal: when JTAG examine starts)
 @end ignore
 @item @b{gdb-attach}
-@* When GDB connects. This is before any communication with the target, so this 
+@* When GDB connects. This is before any communication with the target, so this
 can be used to set up the target so it is possible to probe flash. Probing flash
 is necessary during gdb connect if gdb load is to write the image to flash. Another
 use of the flash memory map is for GDB to automatically hardware/software breakpoints
@@ -4248,7 +4248,7 @@ the specified length must stay within that bank.
 As a special case, when @var{length} is zero and @var{address} is
 the start of the bank, the whole flash is erased.
 If @option{unlock} is specified, then the flash is unprotected
-before erase starts. 
+before erase starts.
 @end deffn
 
 @deffn Command {flash fillw} address word length
@@ -4928,7 +4928,7 @@ The @var{fm3} driver uses the @var{target} parameter to select the
 correct bank config, it can currently be one of the following:
 @code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
 @code{mb9bfxx4.cpu}, @code{mb9bfxx5.cpu} or @code{mb9bfxx6.cpu}.
-	
+
 @example
 flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
 @end example
@@ -5930,7 +5930,7 @@ separately.
 
 @anchor{load_image}
 @deffn Command {load_image} filename address [[@option{bin}|@option{ihex}|@option{elf}|@option{s19}] @option{min_addr} @option{max_length}]
-Load image from file @var{filename} to target memory offset by @var{address} from its load address. 
+Load image from file @var{filename} to target memory offset by @var{address} from its load address.
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, @option{elf}, or @option{s19}).
 In addition the following arguments may be specifed:
@@ -5940,7 +5940,7 @@ In addition the following arguments may be specifed:
 proc load_image_bin @{fname foffset address length @} @{
     # Load data from fname filename at foffset offset to
     # target at address. Load at most length bytes.
-    load_image $fname [expr $address - $foffset] bin $address $length      
+    load_image $fname [expr $address - $foffset] bin $address $length
 @}
 @end example
 @end deffn
@@ -7422,7 +7422,7 @@ can be used.
 @cindex SMP
 For SMP support following GDB serial protocol packet have been defined :
 @itemize @bullet
-@item j - smp status request 
+@item j - smp status request
 @item J - smp set request
 @end itemize
 
@@ -7431,38 +7431,38 @@ OpenOCD implements :
 @item @option{jc} packet for reading core id displayed by
 GDB connection. Reply is  @option{XXXXXXXX} (8 hex digits giving core id) or
  @option{E01} for target not smp.
-@item  @option{JcXXXXXXXX} (8 hex digits) packet for setting core id displayed at next GDB continue 
-(core id -1 is reserved for returning to normal resume mode). Reply  @option{E01} 
+@item  @option{JcXXXXXXXX} (8 hex digits) packet for setting core id displayed at next GDB continue
+(core id -1 is reserved for returning to normal resume mode). Reply  @option{E01}
 for target not smp or @option{OK} on success.
 @end itemize
 
 Handling of this packet within GDB can be done :
 @itemize @bullet
-@item by the creation of an internal variable (i.e @option{_core}) by mean 
+@item by the creation of an internal variable (i.e @option{_core}) by mean
 of function allocate_computed_value allowing following GDB command.
 @example
-set $_core 1 
+set $_core 1
 #Jc01 packet is sent
-print $_core 
-#jc packet is sent and result is affected in $ 
+print $_core
+#jc packet is sent and result is affected in $
 @end example
 
 @item by the usage of GDB maintenance command as described in following example (2
 cpus in SMP with core id 0 and 1  @pxref{Define CPU targets working in SMP}).
 
 @example
-# toggle0 : force display of coreid 0 
-define toggle0 
-maint packet Jc0 
-continue 
-main packet Jc-1 
-end 
-# toggle1 : force display of coreid 1 
-define toggle1 
-maint packet Jc1 
-continue 
-main packet Jc-1 
-end 
+# toggle0 : force display of coreid 0
+define toggle0
+maint packet Jc0
+continue
+main packet Jc-1
+end
+# toggle1 : force display of coreid 1
+define toggle1
+maint packet Jc1
+continue
+main packet Jc-1
+end
 @end example
 @end itemize
 
