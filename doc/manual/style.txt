@@ -77,7 +77,7 @@ Finally, try to avoid lines of code that are longer than than 72-80 columns:
 - inline functions
 - @c // comments -- in new code, prefer these for single-line comments
 - trailing comma allowed in enum declarations
-- designated initializers (@{ .field = value @})
+- designated initializers ( .field = value )
 - variables declarations should occur at the point of first use
 - new block scopes for selection and iteration statements
 - use malloc() to create dynamic arrays. Do @b not use @c alloca
@@ -370,7 +370,7 @@ Maintainers must also be sure to follow additional guidelines:
 
 This page contains style guidelines for the OpenOCD autotools scripts.
 
-The following guidelines apply to the @c configure.in file:
+The following guidelines apply to the @c configure.ac file:
 - Better guidelines need to be developed, but until then...
 - Use good judgement.
 
