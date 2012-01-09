@@ -640,15 +640,15 @@ static int stm32x_probe(struct flash_bank *bank)
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
 			/* number of sectors may be incorrrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash");
-			flash_size_in_kb = 512;
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
+			flash_size_in_kb = 1024;
 		}
 	} else if ((device_id & 0xfff) == 0x413) {
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
 			/* number of sectors may be incorrrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash");
-			flash_size_in_kb = 512;
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
+			flash_size_in_kb = 1024;
 		}
 	} else {
 		LOG_WARNING("Cannot identify target as a STM32 family.");
@@ -745,6 +745,10 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		switch (device_id >> 16) {
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
+				break;
+
+			case 0x1001:
+				snprintf(buf, buf_size, "Z");
 				break;
 
 			default:
