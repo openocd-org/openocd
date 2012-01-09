@@ -966,6 +966,7 @@ COMMAND_HANDLER(handle_arm_semihosting_command)
 	if (!arm->setup_semihosting)
 	{
 		command_print(CMD_CTX, "semihosting not supported for current target");
+		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC > 0)
