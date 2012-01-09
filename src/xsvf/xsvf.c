@@ -189,7 +189,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 	tap_state_t xenddr = TAP_IDLE;
 
 	uint8_t		opcode;
-	uint8_t		uc;
+	uint8_t		uc = 0;
 	long		file_offset = 0;
 
 	int		loop_count = 0;
