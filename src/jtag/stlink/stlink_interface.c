@@ -101,6 +101,18 @@ static int stlink_interface_speed(int speed)
 	return ERROR_OK;
 }
 
+static int stlink_speed_div(int speed, int *khz)
+{
+	*khz = speed;
+	return ERROR_OK;
+}
+
+static int stlink_khz(int khz, int *jtag_speed)
+{
+	*jtag_speed = khz;
+	return ERROR_OK;
+}
+
 static int stlink_interface_execute_queue(void)
 {
 	LOG_DEBUG("stlink_interface_execute_queue: ignored");
@@ -217,9 +229,10 @@ struct jtag_interface stlink_interface = {
 	.supported = 0,
 	.commands = stlink_interface_command_handlers,
 	.transports = stlink_transports,
-
 	.init = stlink_interface_init,
 	.quit = stlink_interface_quit,
 	.speed = stlink_interface_speed,
+	.speed_div = stlink_speed_div,
+	.khz = stlink_khz,
 	.execute_queue = stlink_interface_execute_queue,
 };
