@@ -605,14 +605,14 @@ static int stm32x_probe(struct flash_bank *bank)
 		flash_size_in_kb = 0xffff;
 	}
 
-	if ((device_id & 0x7ff) == 0x411) {
+	if ((device_id & 0xfff) == 0x411) {
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
 			/* number of sectors may be incorrrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash");
 			flash_size_in_kb = 512;
 		}
-	} else if ((device_id & 0x7ff) == 0x413) {
+	} else if ((device_id & 0xfff) == 0x413) {
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
 			/* number of sectors may be incorrrect on early silicon */
@@ -681,7 +681,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((device_id & 0x7ff) == 0x411) {
+	if ((device_id & 0xfff) == 0x411) {
 		printed = snprintf(buf, buf_size, "stm32f2x - Rev: ");
 		buf += printed;
 		buf_size -= printed;
@@ -707,7 +707,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "unknown");
 				break;
 		}
-	} else if ((device_id & 0x7ff) == 0x413) {
+	} else if ((device_id & 0xfff) == 0x413) {
 		printed = snprintf(buf, buf_size, "stm32f4x - Rev: ");
 		buf += printed;
 		buf_size -= printed;

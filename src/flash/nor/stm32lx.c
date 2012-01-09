@@ -503,8 +503,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 
 	LOG_DEBUG("device id = 0x%08" PRIx32 "", device_id);
 
-	if ((device_id & 0x7ff) != 0x416)
-	{
+	if ((device_id & 0xfff) != 0x416) {
 		LOG_WARNING("Cannot identify target as a STM32L family.");
 		return ERROR_FAIL;
 	}
@@ -702,8 +701,7 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((device_id & 0x7ff) == 0x416)
-	{
+	if ((device_id & 0xfff) == 0x416) {
 		printed = snprintf(buf, buf_size, "stm32lx - Rev: ");
 		buf += printed;
 		buf_size -= printed;
