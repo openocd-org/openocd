@@ -580,6 +580,37 @@ static void setup_sector(struct flash_bank *bank, int start, int num, int size)
 	}
 }
 
+static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
+{
+	/* this checks for a stm32f4x errata issue where a
+	 * stm32f2x DBGMCU_IDCODE is incorrectly returned.
+	 * If the issue is detected target is forced to stm32f4x Rev A.
+	 * Only effects Rev A silicon */
+
+	struct target *target = bank->target;
+	uint32_t cpuid;
+
+	/* read stm32 device id register */
+	int retval = target_read_u32(target, 0xE0042000, device_id);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((*device_id & DEV_ID_MASK) == 0x411) {
+		/* read CPUID reg to check core type */
+		retval = target_read_u32(target, 0xE000ED00, &cpuid);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* check for cortex_m4 */
+		if (((cpuid >> 4) & 0xFFF) == 0xC24) {
+			*device_id &= ~((0xFFFF << 16) | DEV_ID_MASK);
+			*device_id |= (0x1000 << 16) | 0x413;
+			LOG_INFO("stm32f4x errata detected - fixing incorrect MCU_IDCODE");
+		}
+	}
+	return retval;
+}
+
 static int stm32x_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -592,7 +623,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	stm32x_info->probed = 0;
 
 	/* read stm32 device id register */
-	int retval = target_read_u32(target, 0xE0042000, &device_id);
+	int retval = stm32x_get_device_id(bank, &device_id);
 	if (retval != ERROR_OK)
 		return retval;
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
@@ -672,12 +703,11 @@ static int stm32x_auto_probe(struct flash_bank *bank)
 
 static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	struct target *target = bank->target;
 	uint32_t device_id;
 	int printed;
 
 	/* read stm32 device id register */
-	int retval = target_read_u32(target, 0xE0042000, &device_id);
+	int retval = stm32x_get_device_id(bank, &device_id);
 	if (retval != ERROR_OK)
 		return retval;
 
