@@ -511,7 +511,6 @@ static int stm32_stlink_step(struct target *target, int current,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	pc = armv7m->arm.pc;
 	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);
 		pc->dirty = true;

@@ -3008,7 +3008,6 @@ sam3_write(struct flash_bank *bank,
 			goto done;
 		}
 		buffer += count;
-		count  -= count;
 	}
 	LOG_DEBUG("Done!");
 	r = ERROR_OK;
@@ -3029,7 +3028,6 @@ COMMAND_HANDLER(sam3_handle_info_command)
 
 	unsigned x;
 	int r;
-	r = 0;
 
 	// bank0 must exist before we can do anything
 	if (pChip->details.bank[0].pBank == NULL) {
@@ -3114,13 +3112,11 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 		}
 	}
 
-
 	switch (CMD_ARGC) {
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	case 0:
-		who = -1;
 		goto showall;
 		break;
 	case 1:

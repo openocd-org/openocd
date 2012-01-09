@@ -726,12 +726,10 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 		/* data word 1 */
 		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0),
 				4, 1, last_dword);
-		bytes_written += 4;
 
 		/* data word 2 */
 		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1),
 				4, 1, last_dword + 4);
-		bytes_written += 4;
 
 		/* start programming cycle */
 		cmd = FLASH_DWPG | FLASH_WMS;
