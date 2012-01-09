@@ -855,6 +855,7 @@ static const struct command_registration pic32mx_command_handlers[] = {
 		.name = "pic32mx",
 		.mode = COMMAND_ANY,
 		.help = "pic32mx flash command group",
+		.usage = "",
 		.chain = pic32mx_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -5050,6 +5050,7 @@ static int target_create(Jim_GetOptInfo *goi)
 			.name = cp,
 			.mode = COMMAND_ANY,
 			.help = "target command group",
+			.usage = "",
 			.chain = target_subcommands,
 		},
 		COMMAND_REGISTRATION_DONE

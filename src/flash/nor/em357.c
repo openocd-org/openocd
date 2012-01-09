@@ -946,6 +946,7 @@ static const struct command_registration em357_command_handlers[] = {
 		.name = "em357",
 		.mode = COMMAND_ANY,
 		.help = "em357 flash command group",
+		.usage = "",
 		.chain = em357_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -863,6 +863,7 @@ static const struct command_registration tms470_command_handlers[] = {
 		.name = "tms470",
 		.mode = COMMAND_ANY,
 		.help = "TI tms470 flash command group",
+		.usage = "",
 		.chain = tms470_any_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

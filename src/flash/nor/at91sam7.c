@@ -1287,6 +1287,7 @@ static const struct command_registration at91sam7_command_handlers[] = {
 		.name = "at91sam7",
 		.mode = COMMAND_ANY,
 		.help = "at91sam7 flash command group",
+		.usage = "",
 		.chain = at91sam7_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

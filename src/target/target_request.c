@@ -326,6 +326,7 @@ static const struct command_registration target_req_command_handlers[] = {
 		.name = "target_request",
 		.mode = COMMAND_ANY,
 		.help = "target request command group",
+		.usage = "",
 		.chain = target_req_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

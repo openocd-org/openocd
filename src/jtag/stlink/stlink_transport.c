@@ -59,16 +59,19 @@ stlink_transport_jtag_subcommand_handlers[] = {
 	 .name = "init",
 	 .mode = COMMAND_ANY,
 	 .handler = stlink_transport_jtag_command,
+	 .usage = ""
 	 },
 	{
 	 .name = "arp_init",
 	 .mode = COMMAND_ANY,
 	 .handler = stlink_transport_jtag_command,
+	 .usage = ""
 	 },
 	{
 	 .name = "arp_init-reset",
 	 .mode = COMMAND_ANY,
 	 .handler = stlink_transport_jtag_command,
+	 .usage = ""
 	 },
 	{
 	 .name = "tapisenabled",
@@ -84,11 +87,13 @@ stlink_transport_jtag_subcommand_handlers[] = {
 	 .name = "tapdisable",
 	 .mode = COMMAND_EXEC,
 	 .handler = stlink_transport_jtag_command,
+	 .usage = "",
 	 },
 	{
 	 .name = "configure",
 	 .mode = COMMAND_EXEC,
 	 .handler = stlink_transport_jtag_command,
+	 .usage = "",
 	 },
 	{
 	 .name = "cget",
@@ -99,6 +104,7 @@ stlink_transport_jtag_subcommand_handlers[] = {
 	 .name = "names",
 	 .mode = COMMAND_ANY,
 	 .handler = stlink_transport_jtag_command,
+	 .usage = "",
 	 },
 
 	COMMAND_REGISTRATION_DONE
@@ -110,11 +116,13 @@ static const struct command_registration stlink_transport_command_handlers[] = {
 	 .name = "stlink",
 	 .mode = COMMAND_ANY,
 	 .help = "perform stlink actions",
+	 .usage = "",
 	 .chain = stlink_transport_stlink_subcommand_handlers,
 	 },
 	{
 	 .name = "jtag",
 	 .mode = COMMAND_ANY,
+	 .usage = "",
 	 .chain = stlink_transport_jtag_subcommand_handlers,
 	 },
 	COMMAND_REGISTRATION_DONE

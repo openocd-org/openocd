@@ -492,6 +492,7 @@ static const struct command_registration avrf_command_handlers[] = {
 		.name = "avrf",
 		.mode = COMMAND_ANY,
 		.help = "AVR flash command group",
+		.usage = "",
 		.chain = avrf_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -807,6 +807,7 @@ static const struct command_registration stm32x_command_handlers[] = {
 		.name = "stm32f2x",
 		.mode = COMMAND_ANY,
 		.help = "stm32f2x flash command group",
+		.usage = "",
 		.chain = stm32x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

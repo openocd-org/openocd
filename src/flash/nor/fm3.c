@@ -886,6 +886,7 @@ static const struct command_registration fm3_command_handlers[] = {
 		.name = "fm3",
 		.mode = COMMAND_ANY,
 		.help = "fm3 Flash command group",
+		.usage = "",
 		.chain = fm3_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

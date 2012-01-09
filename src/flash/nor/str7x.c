@@ -853,6 +853,7 @@ static const struct command_registration str7x_command_handlers[] = {
 		.name = "str7x",
 		.mode = COMMAND_ANY,
 		.help = "str7x flash command group",
+		.usage = "",
 		.chain = str7x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -735,6 +735,7 @@ static const struct command_registration str9x_command_handlers[] = {
 		.name = "str9x",
 		.mode = COMMAND_ANY,
 		.help = "str9x flash command group",
+		.usage = "",
 		.chain = str9x_config_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

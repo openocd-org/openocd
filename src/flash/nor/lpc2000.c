@@ -836,6 +836,7 @@ static const struct command_registration lpc2000_exec_command_handlers[] = {
 		.handler = lpc2000_handle_part_id_command,
 		.mode = COMMAND_EXEC,
 		.help = "print part id of lpc2000 flash bank <num>",
+		.usage = "<bank>",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -844,6 +845,7 @@ static const struct command_registration lpc2000_command_handlers[] = {
 		.name = "lpc2000",
 		.mode = COMMAND_ANY,
 		.help = "lpc2000 flash command group",
+		.usage = "",
 		.chain = lpc2000_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -1004,6 +1004,7 @@ static const struct command_registration lpc2900_command_handlers[] = {
 		.name = "lpc2900",
 		.mode = COMMAND_ANY,
 		.help = "LPC2900 flash command group",
+		.usage = "",
 		.chain = lpc2900_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
