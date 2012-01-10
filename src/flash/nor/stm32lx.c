@@ -464,17 +464,12 @@ static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 
 	if (bytes_remaining)
 	{
-		uint32_t value = 0;
-		for (int i = 0; i < 4; i++)
-		{
-			if (bytes_remaining)
-			{
-				value += (buffer[i] << (8 * i));
-				bytes_remaining--;
-			}
-		}
+		uint8_t last_word[4] = {0xff, 0xff, 0xff, 0xff};
 
-		retval = target_write_u32(target, address, value);
+		/* copy the last remaining bytes into the write buffer */
+		memcpy(last_word, buffer+bytes_written, bytes_remaining);
+
+		retval = target_write_buffer(target, address, 4, last_word);
 		if (retval != ERROR_OK)
 			return retval;
 

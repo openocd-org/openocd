@@ -618,14 +618,9 @@ static int str9x_write(struct flash_bank *bank,
 	if (bytes_remaining)
 	{
 		uint8_t last_halfword[2] = {0xff, 0xff};
-		i = 0;
 
-		while (bytes_remaining > 0)
-		{
-			last_halfword[i++] = *(buffer + bytes_written);
-			bytes_remaining--;
-			bytes_written++;
-		}
+		/* copy the last remaining bytes into the write buffer */
+		memcpy(last_halfword, buffer+bytes_written, bytes_remaining);
 
 		bank_adr = address & ~0x03;
 

@@ -1214,14 +1214,9 @@ static int stellaris_write(struct flash_bank *bank, uint8_t *buffer, uint32_t of
 	if (bytes_remaining)
 	{
 		uint8_t last_word[4] = {0xff, 0xff, 0xff, 0xff};
-		int i = 0;
 
-		while (bytes_remaining > 0)
-		{
-			last_word[i++] = *(buffer + bytes_written);
-			bytes_remaining--;
-			bytes_written++;
-		}
+		/* copy the last remaining bytes into the write buffer */
+		memcpy(last_word, buffer+bytes_written, bytes_remaining);
 
 		if (!(address & 0xff))
 			LOG_DEBUG("0x%" PRIx32 "", address);

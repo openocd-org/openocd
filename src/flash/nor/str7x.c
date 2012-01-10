@@ -707,14 +707,9 @@ static int str7x_write(struct flash_bank *bank, uint8_t *buffer,
 	if (bytes_remaining)
 	{
 		uint8_t last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-		i = 0;
 
-		while (bytes_remaining > 0)
-		{
-			last_dword[i++] = *(buffer + bytes_written);
-			bytes_remaining--;
-			bytes_written++;
-		}
+		/* copy the last remaining bytes into the write buffer */
+		memcpy(last_dword, buffer+bytes_written, bytes_remaining);
 
 		/* command */
 		cmd = FLASH_DWPG;
