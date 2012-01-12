@@ -79,7 +79,9 @@ int stlink_layout_init(struct stlink_interface_s *stlink_if)
 {
 	LOG_DEBUG("stlink_layout_init");
 
-	stlink_if->layout = &stlink_layouts[0];
-
+	if (stlink_if->layout == NULL) {
+		LOG_ERROR("no layout specified");
+		return ERROR_FAIL;
+	}
 	return ERROR_OK;
 }
