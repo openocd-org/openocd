@@ -609,7 +609,7 @@ int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 		  param->pid);
 
 	if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
-		LOG_DEBUG("stlink_open_usb: open failed");
+		LOG_ERROR("stlink_open_usb: open failed");
 		return ERROR_FAIL;
 	}
 

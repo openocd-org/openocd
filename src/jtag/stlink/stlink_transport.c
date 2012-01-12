@@ -142,10 +142,11 @@ static int stlink_transport_init(struct command_context *cmd_ctx)
 	if (!t) {
 		LOG_ERROR("stlink_transport_init: no current target");
 		return ERROR_FAIL;
-
 	}
 
-	stlink_interface_open();
+	int retval = stlink_interface_open();
+	if (retval != ERROR_OK)
+		return retval;
 
 	return stlink_interface_init_target(t);
 }
