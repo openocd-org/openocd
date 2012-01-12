@@ -595,7 +595,7 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((*device_id & DEV_ID_MASK) == 0x411) {
+	if ((*device_id & 0xfff) == 0x411) {
 		/* read CPUID reg to check core type */
 		retval = target_read_u32(target, 0xE000ED00, &cpuid);
 		if (retval != ERROR_OK)
@@ -603,7 +603,7 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 
 		/* check for cortex_m4 */
 		if (((cpuid >> 4) & 0xFFF) == 0xC24) {
-			*device_id &= ~((0xFFFF << 16) | DEV_ID_MASK);
+			*device_id &= ~((0xFFFF << 16) | 0xfff);
 			*device_id |= (0x1000 << 16) | 0x413;
 			LOG_INFO("stm32f4x errata detected - fixing incorrect MCU_IDCODE");
 		}
