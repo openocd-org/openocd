@@ -87,6 +87,7 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_RUNCORE		0x09
 #define STLINK_DEBUG_STEPCORE		0x0a
 #define STLINK_DEBUG_SETFP		0x0b
+#define STLINK_DEBUG_READMEM_8BIT	0x0c
 #define STLINK_DEBUG_WRITEMEM_8BIT	0x0d
 #define STLINK_DEBUG_CLEARFP		0x0e
 #define STLINK_DEBUG_WRITEDEBUGREG	0x0f
@@ -97,7 +98,7 @@ struct stlink_usb_handle_s {
 #define STLINK_SWD_READCOREID		0x32
 
 /** */
-int stlink_usb_recv(void *handle, uint8_t *txbuf, int txsize, uint8_t *rxbuf,
+int stlink_usb_recv(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
 		    int rxsize)
 {
 	struct stlink_usb_handle_s *h;
@@ -524,6 +525,70 @@ int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 }
 
 /** */
+int stlink_usb_read_mem8(void *handle, uint32_t addr, uint16_t len,
+			  uint8_t *buffer)
+{
+	int res;
+	uint16_t read_len = len;
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	stlink_usb_init_buffer(handle);
+
+	h->txbuf[0] = STLINK_DEBUG_COMMAND;
+	h->txbuf[1] = STLINK_DEBUG_READMEM_8BIT;
+	h_u32_to_le(h->txbuf + 2, addr);
+	h_u16_to_le(h->txbuf + 2 + 4, len);
+
+	/* we need to fix read length for single bytes */
+	if (read_len == 1)
+		read_len++;
+
+	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, h->rxbuf, read_len);
+
+	if (res != ERROR_OK)
+		return res;
+
+	memcpy(buffer, h->rxbuf, len);
+
+	return ERROR_OK;
+}
+
+/** */
+int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
+			   const uint8_t *buffer)
+{
+	int res;
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	stlink_usb_init_buffer(handle);
+
+	h->txbuf[0] = STLINK_DEBUG_COMMAND;
+	h->txbuf[1] = STLINK_DEBUG_WRITEMEM_8BIT;
+	h_u32_to_le(h->txbuf + 2, addr);
+	h_u16_to_le(h->txbuf + 2 + 4, len);
+
+	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, 0, 0);
+
+	if (res != ERROR_OK)
+		return res;
+
+	res = stlink_usb_recv(handle, (uint8_t *) buffer, len, 0, 0);
+
+	if (res != ERROR_OK)
+		return res;
+
+	return ERROR_OK;
+}
+
+/** */
 int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 			  uint32_t *buffer)
 {
@@ -555,7 +620,7 @@ int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 
 /** */
 int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
-			   uint32_t *buffer)
+			   const uint32_t *buffer)
 {
 	int res;
 	struct stlink_usb_handle_s *h;
@@ -582,8 +647,6 @@ int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 
 	if (res != ERROR_OK)
 		return res;
-
-	memcpy(buffer, h->rxbuf, len);
 
 	return ERROR_OK;
 }
@@ -651,6 +714,10 @@ struct stlink_layout_api_s stlink_layout_api = {
 	.read_reg = stlink_usb_read_reg,
 	/** */
 	.write_reg = stlink_usb_write_reg,
+	/** */
+	.read_mem8 = stlink_usb_read_mem8,
+	/** */
+	.write_mem8 = stlink_usb_write_mem8,
 	/** */
 	.read_mem32 = stlink_usb_read_mem32,
 	/** */
