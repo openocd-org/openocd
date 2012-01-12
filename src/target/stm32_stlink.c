@@ -560,31 +560,46 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 				    uint8_t *buffer)
 {
 	int res;
-	uint32_t *dst = (uint32_t *) buffer;
+	uint32_t buffer_threshold = 128;
+	uint32_t addr_increment = 4;
+	uint8_t *dst = buffer;
 	uint32_t c;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
+
+	/* prepare byte count, buffer threshold
+	 * and address increment for none 32bit access
+	 */
 	if (size != 4) {
-		LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		count *= size;
+		buffer_threshold = 64;
+		addr_increment = 1;
 	}
 
 	while (count) {
-		if (count > 128)
-			c = 128;
+		if (count > buffer_threshold)
+			c = buffer_threshold;
 		else
 			c = count;
 
-		res =
-		    stlink_if->layout->api->read_mem32(stlink_if->fd, address,
+		if (size != 4)
+			res =
+				stlink_if->layout->api->read_mem8(stlink_if->fd, address,
 						       c, dst);
+		else
+			res =
+				stlink_if->layout->api->read_mem32(stlink_if->fd, address,
+						       c, (uint32_t *)dst);
 
 		if (res != ERROR_OK)
 			return res;
-		dst += c;
-		address += (c * 4);
+
+		address += (c * addr_increment);
+		dst += (c * addr_increment);
 		count -= c;
 	}
 
@@ -596,31 +611,46 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 				     const uint8_t *buffer)
 {
 	int res;
-	uint32_t *dst = (uint32_t *) buffer;
+	uint32_t buffer_threshold = 128;
+	uint32_t addr_increment = 4;
+	const uint8_t *dst = buffer;
 	uint32_t c;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
+
+	/* prepare byte count, buffer threshold
+	 * and address increment for none 32bit access
+	 */
 	if (size != 4) {
-		LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		count *= size;
+		buffer_threshold = 64;
+		addr_increment = 1;
 	}
 
 	while (count) {
-		if (count > 128)
-			c = 128;
+		if (count > buffer_threshold)
+			c = buffer_threshold;
 		else
 			c = count;
 
-		res =
-		    stlink_if->layout->api->write_mem32(stlink_if->fd, address,
-							c, dst);
+		if (size != 4)
+			res =
+				stlink_if->layout->api->write_mem8(stlink_if->fd, address,
+						       c, dst);
+		else
+			res =
+				stlink_if->layout->api->write_mem32(stlink_if->fd, address,
+						       c, (uint32_t *)dst);
 
 		if (res != ERROR_OK)
 			return res;
-		dst += c;
-		address += (c * 4);
+
+		address += (c * addr_increment);
+		dst += (c * addr_increment);
 		count -= c;
 	}
 
