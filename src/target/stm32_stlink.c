@@ -2,6 +2,9 @@
  *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
+ *   Copyright (C) 2011 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -187,6 +190,16 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 	return ERROR_OK;
 }
 
+static int stm32_stlink_examine_debug_reason(struct target *target)
+{
+	if ((target->debug_reason != DBG_REASON_DBGRQ)
+			&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+	}
+
+	return ERROR_OK;
+}
+
 static int stm32_stlink_init_arch_info(struct target *target,
 				       struct cortex_m3_common *cortex_m3,
 				       struct jtag_tap *tap)
@@ -200,6 +213,8 @@ static int stm32_stlink_init_arch_info(struct target *target,
 
 	armv7m->load_core_reg_u32 = stm32_stlink_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = stm32_stlink_store_core_reg_u32;
+
+	armv7m->examine_debug_reason = stm32_stlink_examine_debug_reason;
 
 	return ERROR_OK;
 }
@@ -229,8 +244,6 @@ static int stm32_stlink_target_create(struct target *target,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_poll(struct target *target);
-
 static int stm32_stlink_examine(struct target *target)
 {
 	int retval, i;
@@ -247,8 +260,6 @@ static int stm32_stlink_examine(struct target *target)
 
 	if (!target_was_examined(target)) {
 		target_set_examined(target);
-
-		stm32_stlink_poll(target);
 
 		LOG_INFO("IDCODE %x", target->tap->idcode);
 
@@ -296,13 +307,65 @@ static int stm32_stlink_examine(struct target *target)
 static int stm32_stlink_load_context(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
+	int num_regs = armv7m->core_cache->num_regs;
 
-	for (unsigned i = 0; i < 23; i++) {
+	for (int i = 0; i < num_regs; i++) {
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
 	}
 
 	return ERROR_OK;
+}
+
+static int stlink_debug_entry(struct target *target)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct arm *arm = &armv7m->arm;
+	struct reg *r;
+	uint32_t xPSR;
+	int retval;
+
+	retval = armv7m->examine_debug_reason(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	stm32_stlink_load_context(target);
+
+	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
+	xPSR = buf_get_u32(r->value, 0, 32);
+
+	/* Are we in an exception handler */
+	if (xPSR & 0x1FF) {
+		armv7m->core_mode = ARMV7M_MODE_HANDLER;
+		armv7m->exception_number = (xPSR & 0x1FF);
+
+		arm->core_mode = ARM_MODE_HANDLER;
+		arm->map = armv7m_msp_reg_map;
+	} else {
+		unsigned control = buf_get_u32(armv7m->core_cache
+				->reg_list[ARMV7M_CONTROL].value, 0, 2);
+
+		/* is this thread privileged? */
+		armv7m->core_mode = control & 1;
+		arm->core_mode = armv7m->core_mode
+				? ARM_MODE_USER_THREAD
+				: ARM_MODE_THREAD;
+
+		/* which stack is it using? */
+		if (control & 2)
+			arm->map = armv7m_psp_reg_map;
+		else
+			arm->map = armv7m_msp_reg_map;
+
+		armv7m->exception_number = 0;
+	}
+
+	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
+		armv7m_mode_strings[armv7m->core_mode],
+		*(uint32_t *)(arm->pc->value),
+		target_state_name(target));
+
+	return retval;
 }
 
 static int stm32_stlink_poll(struct target *target)
@@ -314,8 +377,7 @@ static int stm32_stlink_poll(struct target *target)
 	state = stlink_if->layout->api->state(stlink_if->fd);
 
 	if (state == TARGET_UNKNOWN) {
-		LOG_ERROR
-		    ("jtag status contains invalid mode value - communication failure");
+		LOG_ERROR("jtag status contains invalid mode value - communication failure");
 		return ERROR_TARGET_FAILURE;
 	}
 
@@ -323,20 +385,14 @@ static int stm32_stlink_poll(struct target *target)
 		return ERROR_OK;
 
 	if (state == TARGET_HALTED) {
-		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		target->state = state;
 
-		stm32_stlink_load_context(target);
+		stlink_debug_entry(target);
 
-		LOG_INFO("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
+		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		LOG_DEBUG("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
 	}
 
-	return ERROR_OK;
-}
-
-static int stm32_stlink_arch_state(struct target *target)
-{
-	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
@@ -361,9 +417,12 @@ static int stm32_stlink_assert_reset(struct target *target)
 	/* registers are now invalid */
 	register_cache_invalidate(armv7m->core_cache);
 
-	stm32_stlink_load_context(target);
-
-	target->state = TARGET_HALTED;
+	if (target->reset_halt) {
+		target->state = TARGET_RESET;
+		target->debug_reason = DBG_REASON_DBGRQ;
+	} else {
+		target->state = TARGET_HALTED;
+	}
 
 	return ERROR_OK;
 }
@@ -486,7 +545,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 
 	target->state = TARGET_RUNNING;
 
-	target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
+	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
 	return ERROR_OK;
 }
@@ -545,7 +604,7 @@ static int stm32_stlink_step(struct target *target, int current,
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	stm32_stlink_load_context(target);
+	stlink_debug_entry(target);
 
 	LOG_INFO("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
 
@@ -669,7 +728,7 @@ struct target_type stm32_stlink_target = {
 	.examine = stm32_stlink_examine,
 
 	.poll = stm32_stlink_poll,
-	.arch_state = stm32_stlink_arch_state,
+	.arch_state = armv7m_arch_state,
 
 	.assert_reset = stm32_stlink_assert_reset,
 	.deassert_reset = stm32_stlink_deassert_reset,
