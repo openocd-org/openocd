@@ -49,6 +49,8 @@ enum armv7m_mode
 };
 
 extern char *armv7m_mode_strings[];
+extern const int armv7m_psp_reg_map[];
+extern const int armv7m_msp_reg_map[];
 
 enum armv7m_regtype
 {

@@ -406,24 +406,6 @@ static int cortex_m3_examine_exception_reason(struct target *target)
 	return retval;
 }
 
-/* PSP is used in some thread modes */
-static const int armv7m_psp_reg_map[17] = {
-	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
-	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
-	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
-	ARMV7M_R12, ARMV7M_PSP, ARMV7M_R14, ARMV7M_PC,
-	ARMV7M_xPSR,
-};
-
-/* MSP is used in handler and some thread modes */
-static const int armv7m_msp_reg_map[17] = {
-	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
-	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
-	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
-	ARMV7M_R12, ARMV7M_MSP, ARMV7M_R14, ARMV7M_PC,
-	ARMV7M_xPSR,
-};
-
 static int cortex_m3_debug_entry(struct target *target)
 {
 	int i;

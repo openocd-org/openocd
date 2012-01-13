@@ -58,6 +58,24 @@ static char *armv7m_exception_strings[] =
 	"DebugMonitor", "RESERVED", "PendSV", "SysTick"
 };
 
+/* PSP is used in some thread modes */
+const int armv7m_psp_reg_map[17] = {
+	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
+	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
+	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
+	ARMV7M_R12, ARMV7M_PSP, ARMV7M_R14, ARMV7M_PC,
+	ARMV7M_xPSR,
+};
+
+/* MSP is used in handler and some thread modes */
+const int armv7m_msp_reg_map[17] = {
+	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
+	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
+	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
+	ARMV7M_R12, ARMV7M_MSP, ARMV7M_R14, ARMV7M_PC,
+	ARMV7M_xPSR,
+};
+
 #ifdef ARMV7_GDB_HACKS
 uint8_t armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
 
