@@ -133,9 +133,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 	 */
 	switch (num) {
 	case 0 ... 18:
-		retval =
-		    stlink_if->layout->api->write_reg(stlink_if->fd, num,
-						      value);
+		retval = stlink_if->layout->api->write_reg(stlink_if->fd, num, value);
 
 		if (retval != ERROR_OK) {
 			struct reg *r;
@@ -145,8 +143,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 			r->dirty = r->valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num,
-			  value);
+		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
 		break;
 
 	case ARMV7M_PRIMASK:
@@ -157,7 +154,8 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 		 * in one Debug Core register.  So say r0 and r2 docs;
 		 * it was removed from r1 docs, but still works.
 		 */
-		/* cortexm3_dap_read_coreregister_u32(swjdp, &reg, 20); */
+
+		stlink_if->layout->api->read_reg(stlink_if->fd, 20, &reg);
 
 		switch (num) {
 		case ARMV7M_PRIMASK:
@@ -177,10 +175,9 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 			break;
 		}
 
-		/* cortexm3_dap_write_coreregister_u32(swjdp, reg, 20); */
+		stlink_if->layout->api->write_reg(stlink_if->fd, 20, reg);
 
-		LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num,
-			  value);
+		LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
 		break;
 
 	default:
