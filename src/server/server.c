@@ -625,6 +625,7 @@ static const struct command_registration server_command_handlers[] = {
 		.name = "shutdown",
 		.handler = &handle_shutdown_command,
 		.mode = COMMAND_ANY,
+		.usage = "",
 		.help = "shut the server down",
 	},
 	COMMAND_REGISTRATION_DONE

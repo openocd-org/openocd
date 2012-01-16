@@ -1386,6 +1386,7 @@ static const struct command_registration mflash_config_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.handler = handle_mflash_init_command,
 		.help = "initialize mflash devices",
+		.usage = ""
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1394,6 +1395,7 @@ static const struct command_registration mflash_command_handler[] = {
 		.name = "mflash",
 		.mode = COMMAND_ANY,
 		.help = "mflash command group",
+		.usage = "",
 		.chain = mflash_config_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

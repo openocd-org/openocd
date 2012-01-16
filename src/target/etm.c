@@ -2139,6 +2139,7 @@ const struct command_registration etm_command_handlers[] = {
 		.name = "etm",
 		.mode = COMMAND_ANY,
 		.help = "Emebdded Trace Macrocell command group",
+		.usage = "",
 		.chain = etm_config_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
@@ -2159,24 +2160,28 @@ static const struct command_registration etm_exec_command_handlers[] = {
 		.name = "info",
 		.handler = handle_etm_info_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "display info about the current target's ETM",
 	},
 	{
 		.name = "status",
 		.handler = handle_etm_status_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "display current target's ETM status",
 	},
 	{
 		.name = "start",
 		.handler = handle_etm_start_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "start ETM trace collection",
 	},
 	{
 		.name = "stop",
 		.handler = handle_etm_stop_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "stop ETM trace collection",
 	},
 	{
@@ -2190,6 +2195,7 @@ static const struct command_registration etm_exec_command_handlers[] = {
 		.name = "analyze",
 		.handler = handle_etm_analyze_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "analyze collected ETM trace",
 	},
 	{
@@ -2210,6 +2216,7 @@ static const struct command_registration etm_exec_command_handlers[] = {
 		.name = "load",
 		.handler = handle_etm_load_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "load trace data for analysis <file>",
 	},
 	COMMAND_REGISTRATION_DONE

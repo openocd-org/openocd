@@ -570,6 +570,7 @@ static const struct command_registration arm720t_command_handlers[] = {
 		.name = "arm720t",
 		.mode = COMMAND_ANY,
 		.help = "arm720t command group",
+		.usage = "",
 		.chain = arm720t_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

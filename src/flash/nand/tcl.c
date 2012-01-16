@@ -629,12 +629,14 @@ static const struct command_registration nand_config_command_handlers[] = {
 		.handler = &handle_nand_list_drivers,
 		.mode = COMMAND_ANY,
 		.help = "lists available NAND drivers",
+		.usage = ""
 	},
 	{
 		.name = "init",
 		.mode = COMMAND_CONFIG,
 		.handler = &handle_nand_init_command,
 		.help = "initialize NAND devices",
+		.usage = ""
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -643,6 +645,7 @@ static const struct command_registration nand_command_handlers[] = {
 		.name = "nand",
 		.mode = COMMAND_ANY,
 		.help = "NAND flash command group",
+		.usage = "",
 		.chain = nand_config_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

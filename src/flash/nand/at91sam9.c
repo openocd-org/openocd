@@ -716,6 +716,7 @@ static const struct command_registration at91sam9_command_handler[] = {
 		.name = "at91sam9",
 		.mode = COMMAND_ANY,
 		.help = "AT91SAM9 NAND flash controller commands",
+		.usage = "",
 		.chain = at91sam9_sub_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

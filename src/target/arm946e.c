@@ -657,6 +657,7 @@ const struct command_registration arm946e_command_handlers[] = {
 		.name = "arm946e",
 		.mode = COMMAND_ANY,
 		.help = "arm946e command group",
+		.usage = "",
 		.chain = arm946e_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

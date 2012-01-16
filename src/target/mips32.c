@@ -859,6 +859,7 @@ const struct command_registration mips32_command_handlers[] = {
 		.name = "mips32",
 		.mode = COMMAND_ANY,
 		.help = "mips32 command group",
+		.usage = "",
 		.chain = mips32_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

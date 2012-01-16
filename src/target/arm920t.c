@@ -1724,6 +1724,7 @@ static const struct command_registration arm920t_exec_command_handlers[] = {
 		.name = "cache_info",
 		.handler = arm920t_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "display information about target caches",
 	},
 	{
@@ -1750,6 +1751,7 @@ const struct command_registration arm920t_command_handlers[] = {
 		.name = "arm920t",
 		.mode = COMMAND_ANY,
 		.help = "arm920t command group",
+		.usage = "",
 		.chain = arm920t_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

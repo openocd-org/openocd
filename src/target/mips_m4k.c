@@ -1205,6 +1205,7 @@ const struct command_registration mips_m4k_command_handlers[] = {
 		.name = "mips_m4k",
 		.mode = COMMAND_ANY,
 		.help = "mips_m4k command group",
+		.usage = "",
 		.chain = mips_m4k_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

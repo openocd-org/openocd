@@ -1338,6 +1338,7 @@ static const struct command_registration lpc3180_command_handler[] = {
 		.name = "lpc3180",
 		.mode = COMMAND_ANY,
 		.help = "LPC3180 NAND flash controller commands",
+		.usage = "",
 		.chain = lpc3180_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

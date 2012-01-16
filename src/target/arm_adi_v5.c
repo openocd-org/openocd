@@ -1975,6 +1975,7 @@ const struct command_registration dap_command_handlers[] = {
 		.name = "dap",
 		.mode = COMMAND_EXEC,
 		.help = "DAP command group",
+		.usage = "",
 		.chain = dap_commands,
 	},
 	COMMAND_REGISTRATION_DONE

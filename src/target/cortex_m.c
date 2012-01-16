@@ -2299,6 +2299,7 @@ static const struct command_registration cortex_m3_command_handlers[] = {
 		.name = "cortex_m3",
 		.mode = COMMAND_EXEC,
 		.help = "Cortex-M3 command group",
+		.usage = "",
 		.chain = cortex_m3_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

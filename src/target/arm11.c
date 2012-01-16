@@ -1355,6 +1355,7 @@ static const struct command_registration arm11_any_command_handlers[] = {
 		.name = "memwrite",
 		.mode = COMMAND_ANY,
 		.help = "memwrite command group",
+		.usage = "",
 		.chain = arm11_mw_command_handlers,
 	},
 	{
@@ -1386,6 +1387,7 @@ static const struct command_registration arm11_command_handlers[] = {
 		.name = "arm11",
 		.mode = COMMAND_ANY,
 		.help = "ARM11 command group",
+		.usage = "",
 		.chain = arm11_any_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

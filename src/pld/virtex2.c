@@ -238,6 +238,7 @@ static const struct command_registration virtex2_command_handler[] = {
 		.name = "virtex2",
 		.mode = COMMAND_ANY,
 		.help = "Virtex-II specific commands",
+		.usage = "",
 		.chain = virtex2_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

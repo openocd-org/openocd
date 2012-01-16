@@ -2637,29 +2637,34 @@ static const struct command_registration cortex_a8_exec_command_handlers[] = {
 		.handler = cortex_a8_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display information about target caches",
+		.usage = "",
 	},
 	{
 		.name = "dbginit",
 		.handler = cortex_a8_handle_dbginit_command,
 		.mode = COMMAND_EXEC,
 		.help = "Initialize core debug",
+		.usage = "",
 	},
 	{   .name ="smp_off",
 	    .handler = cortex_a8_handle_smp_off_command,
 		.mode = COMMAND_EXEC,
 		.help = "Stop smp handling",
+		.usage = "",
 	},
 	{
         .name ="smp_on",
         .handler = cortex_a8_handle_smp_on_command,
 		.mode = COMMAND_EXEC,
 		.help = "Restart smp handling",
+		.usage = "",
 	},
 	{
         .name ="smp_gdb",
         .handler = cortex_a8_handle_smp_gdb_command,
 		.mode = COMMAND_EXEC,
 		.help = "display/fix current core played to gdb",
+		.usage = "",
 	},
 
 
@@ -2676,6 +2681,7 @@ static const struct command_registration cortex_a8_command_handlers[] = {
 		.name = "cortex_a8",
 		.mode = COMMAND_ANY,
 		.help = "Cortex-A8 command group",
+		.usage = "",
 		.chain = cortex_a8_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -2999,6 +2999,7 @@ const struct command_registration arm7_9_command_handlers[] = {
 		.name = "arm7_9",
 		.mode = COMMAND_ANY,
 		.help = "arm7/9 specific commands",
+		.usage = "",
 		.chain = arm7_9_any_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -2603,6 +2603,7 @@ static const struct command_registration gdb_command_handlers[] = {
 		.help = "next stepi will return immediately allowing "
 			"GDB to fetch register state without affecting "
 			"target state",
+		.usage = ""
 	},
 	{
 		.name = "gdb_port",

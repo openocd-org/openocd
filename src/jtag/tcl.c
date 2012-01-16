@@ -863,6 +863,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 		.mode = COMMAND_ANY,
 		.handler = handle_jtag_init_command,
 		.help = "initialize jtag scan chain",
+		.usage = ""
 	},
 	{
 		.name = "arp_init",
@@ -1356,6 +1357,7 @@ static const struct command_registration jtag_command_handlers[] = {
 		.handler = handle_scan_chain_command,
 		.mode = COMMAND_ANY,
 		.help = "print current scan chain configuration",
+		.usage = ""
 	},
 	{
 		.name = "jtag_reset",
@@ -1420,6 +1422,7 @@ static const struct command_registration jtag_command_handlers[] = {
 		.name = "jtag",
 		.mode = COMMAND_ANY,
 		.help = "perform jtag tap actions",
+		.usage = "",
 
 		.chain = jtag_subcommand_handlers,
 	},

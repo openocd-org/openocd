@@ -1003,6 +1003,7 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.handler = handle_armv4_5_reg_command,
 		.mode = COMMAND_EXEC,
 		.help = "display ARM core registers",
+		.usage = "",
 	},
 	{
 		.name = "core_state",
@@ -1046,6 +1047,7 @@ const struct command_registration arm_command_handlers[] = {
 		.name = "arm",
 		.mode = COMMAND_ANY,
 		.help = "ARM command group",
+		.usage = "",
 		.chain = arm_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

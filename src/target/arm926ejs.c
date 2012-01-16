@@ -801,6 +801,7 @@ static const struct command_registration arm926ejs_exec_command_handlers[] = {
 		.name = "cache_info",
 		.handler = arm926ejs_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "display information about target caches",
 
 	},
@@ -814,6 +815,7 @@ const struct command_registration arm926ejs_command_handlers[] = {
 		.name = "arm926ejs",
 		.mode = COMMAND_ANY,
 		.help = "arm926ejs command group",
+		.usage = "",
 		.chain = arm926ejs_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

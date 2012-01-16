@@ -405,12 +405,14 @@ static const struct command_registration oocd_trace_all_command_handlers[] = {
 		.name = "status",
 		.handler = handle_oocd_trace_status_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "display OpenOCD + trace status",
 	},
 	{
 		.name = "resync",
 		.handler = handle_oocd_trace_resync_command,
 		.mode = COMMAND_EXEC,
+		.usage = "",
 		.help = "resync OpenOCD + trace capture clock",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -420,6 +422,7 @@ static const struct command_registration oocd_trace_command_handlers[] = {
 		.name = "oocd_trace",
 		.mode = COMMAND_ANY,
 		.help = "OpenOCD trace capture driver command group",
+		.usage = "",
 		.chain = oocd_trace_all_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

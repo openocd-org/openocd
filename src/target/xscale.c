@@ -3878,6 +3878,7 @@ static const struct command_registration xscale_command_handlers[] = {
 		.name = "xscale",
 		.mode = COMMAND_ANY,
 		.help = "xscale command group",
+		.usage = "",
 		.chain = xscale_any_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
