@@ -700,6 +700,8 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	 * always approximate.
 	 *
 	 * For Tempest:  IOSC is calibrated, 16 MHz
+	 * For Blizzard:  IOSC is calibrated, 16 MHz
+	 * For Firestorm:  IOSC is calibrated, 16 MHz
 	 */
 	stellaris_info->iosc_freq = 12000000;
 	stellaris_info->iosc_desc = " (±30%)";
@@ -722,6 +724,8 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 		case 1:			/* Fury */
 			break;
 		case 4:			/* Tempest */
+		case 5:			/* Blizzard */
+		case 6:			/* Firestorm */
 			stellaris_info->iosc_freq = 16000000;	/* +/- 1% */
 			stellaris_info->iosc_desc = " (±1%)";
 			/* FALL THROUGH */
