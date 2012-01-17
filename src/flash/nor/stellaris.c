@@ -24,6 +24,7 @@
 /***************************************************************************
 * STELLARIS flash is tested on LM3S811, LM3S6965, LM3s3748, more.
 ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -31,7 +32,6 @@
 #include "imp.h"
 #include <target/algorithm.h>
 #include <target/armv7m.h>
-
 
 #define DID0_VER(did0) ((did0 >> 28)&0x07)
 
@@ -88,7 +88,6 @@
 #define FLASH_FMA_PRE(x)	(2 * (x))	/* for FMPPREx */
 #define FLASH_FMA_PPE(x)	(2 * (x) + 1)	/* for FMPPPEx */
 
-
 static void stellaris_read_clock_info(struct flash_bank *bank);
 static int stellaris_mass_erase(struct flash_bank *bank);
 
@@ -101,6 +100,7 @@ struct stellaris_flash_bank
 	uint32_t dc1;
 
 	const char * target_name;
+	uint8_t target_class;
 
 	uint32_t sramsiz;
 	uint32_t flshsz;
@@ -459,7 +459,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 
 static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	int printed, device_class;
+	int printed;
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;
 
 	if (stellaris_info->did1 == 0)
@@ -468,20 +468,12 @@ static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 	/* Read main and master clock freqency register */
 	stellaris_read_clock_info(bank);
 
-	if (DID0_VER(stellaris_info->did0) > 0)
-	{
-		device_class = (stellaris_info->did0 >> 16) & 0xFF;
-	}
-	else
-	{
-		device_class = 0;
-	}
 	printed = snprintf(buf,
 			   buf_size,
 			   "\nTI/LMI Stellaris information: Chip is "
 			   "class %i (%s) %s rev %c%i\n",
-			   device_class,
-			   StellarisClassname[device_class],
+			   stellaris_info->target_class,
+			   StellarisClassname[stellaris_info->target_class],
 			   stellaris_info->target_name,
 			   (int)('A' + ((stellaris_info->did0 >> 8) & 0xFF)),
 			   (int)((stellaris_info->did0) & 0xFF));
@@ -707,44 +699,48 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	stellaris_info->iosc_desc = " (±30%)";
 	stellaris_info->xtal_mask = 0x0f;
 
-	switch ((did0 >> 28) & 0x7) {
-	case 0:				/* Sandstorm */
-		/*
-		 * Current (2009-August) parts seem to be rev C2 and use 12 MHz.
-		 * Parts before rev C0 used 15 MHz; some C0 parts use 15 MHz
-		 * (LM3S618), but some other C0 parts are 12 MHz (LM3S811).
-		 */
-		if (((did0 >> 8) & 0xff) < 2) {
-			stellaris_info->iosc_freq = 15000000;
-			stellaris_info->iosc_desc = " (±50%)";
-		}
-		break;
-	case 1:
-		switch ((did0 >> 16) & 0xff) {
+	/* get device class */
+	if (DID0_VER(did0) > 0) {
+		stellaris_info->target_class = (did0 >> 16) & 0xFF;
+	} else {
+		/* Sandstorm class */
+		stellaris_info->target_class = 0;
+	}
+
+	switch (stellaris_info->target_class) {
+		case 0:				/* Sandstorm */
+			/*
+			 * Current (2009-August) parts seem to be rev C2 and use 12 MHz.
+			 * Parts before rev C0 used 15 MHz; some C0 parts use 15 MHz
+			 * (LM3S618), but some other C0 parts are 12 MHz (LM3S811).
+			 */
+			if (((did0 >> 8) & 0xff) < 2) {
+				stellaris_info->iosc_freq = 15000000;
+				stellaris_info->iosc_desc = " (±50%)";
+			}
+			break;
+
 		case 1:			/* Fury */
 			break;
+
 		case 4:			/* Tempest */
 		case 5:			/* Blizzard */
 		case 6:			/* Firestorm */
 			stellaris_info->iosc_freq = 16000000;	/* +/- 1% */
 			stellaris_info->iosc_desc = " (±1%)";
 			/* FALL THROUGH */
+
 		case 3:			/* DustDevil */
 			stellaris_info->xtal_mask = 0x1f;
 			break;
+
 		default:
 			LOG_WARNING("Unknown did0 class");
-		}
-		break;
-	default:
-		LOG_WARNING("Unknown did0 version");
-		break;
 	}
 
-	for (i = 0; StellarisParts[i].partno; i++)
-	{
+	for (i = 0; StellarisParts[i].partno; i++) {
 		if ((StellarisParts[i].partno == ((did1 >> 16) & 0xFF)) &&
-				(StellarisParts[i].class == ((did0 >> 16) & 0xFF)))
+				(StellarisParts[i].class == stellaris_info->target_class))
 			break;
 	}
 
