@@ -196,7 +196,7 @@ COMMAND_HANDLER(handle_nand_erase_command)
 	{
 		command_print(CMD_CTX, "erased blocks %lu to %lu "
 				"on NAND flash device #%s '%s'",
-				offset, offset + length,
+				offset, offset + length - 1,
 				CMD_ARGV[0], p->device->name);
 	}
 
