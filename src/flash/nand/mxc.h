@@ -37,7 +37,8 @@
 #define		MXC_NF_BUFCFG				(mxc_nf_info->mxc_regs_addr + 0x0a)
 #define		MXC_NF_ECCSTATUS			(mxc_nf_info->mxc_regs_addr + 0x0c)
 #define		MXC_NF_ECCMAINPOS			(mxc_nf_info->mxc_regs_addr + 0x0e)
-#define		MXC_NF_ECCSPAREPOS			(mxc_nf_info->mxc_regs_addr + 0x10)
+#define		MXC_NF_V1_ECCSPAREPOS		(mxc_nf_info->mxc_regs_addr + 0x10)
+#define		MXC_NF_V2_SPAS				(mxc_nf_info->mxc_regs_addr + 0x10)
 #define		MXC_NF_FWP					(mxc_nf_info->mxc_regs_addr + 0x12)
 #define		MXC_NF_V1_UNLOCKSTART		(mxc_nf_info->mxc_regs_addr + 0x14)
 #define		MXC_NF_V1_UNLOCKEND			(mxc_nf_info->mxc_regs_addr + 0x16)
@@ -116,6 +117,10 @@
 #define		MX2_FMCR					0x10027814
 #define		MX2_FMCR_NF_16BIT_SEL		(1<<4)
 #define		MX2_FMCR_NF_FMS				(1<<5)
+#define		MX25_RCSR					0x53f80018
+#define		MX25_RCSR_NF_16BIT_SEL		(1<<14)
+#define		MX25_RCSR_NF_FMS			(1<<8)
+#define		MX25_RCSR_NF_4K				(1<<9)
 #define		MX3_PCSR					0x53f8000c
 #define		MX3_PCSR_NF_16BIT_SEL		(1<<31)
 #define		MX3_PCSR_NF_FMS				(1<<30)
@@ -126,8 +131,9 @@
 
 enum mxc_version {
 	MXC_VERSION_UKWN = 0,
-	MXC_VERSION_MX27 = 1,
-	MXC_VERSION_MX31 = 2,
+	MXC_VERSION_MX25 = 1,
+	MXC_VERSION_MX27 = 2,
+	MXC_VERSION_MX31 = 3,
 	MXC_VERSION_MX35 = 4
 };
 

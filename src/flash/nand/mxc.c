@@ -50,7 +50,8 @@
 
 #define nfc_is_v1() (mxc_nf_info->mxc_version == MXC_VERSION_MX27 || \
 					mxc_nf_info->mxc_version == MXC_VERSION_MX31)
-#define nfc_is_v2() (mxc_nf_info->mxc_version == MXC_VERSION_MX35)
+#define nfc_is_v2() (mxc_nf_info->mxc_version == MXC_VERSION_MX25 || \
+					mxc_nf_info->mxc_version == MXC_VERSION_MX35)
 
 /* This permits to print (in LOG_INFO) how much bytes
  * has been written after a page read or write.
@@ -95,14 +96,18 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 	nand->controller_priv = mxc_nf_info;
 
 	if (CMD_ARGC < 4) {
-		LOG_ERROR("use \"nand device mxc target mx27|mx31|mx35 noecc|hwecc [biswap]\"");
+		LOG_ERROR("use \"nand device mxc target mx25|mx27|mx31|mx35 noecc|hwecc [biswap]\"");
 		return ERROR_FAIL;
 	}
 
 	/*
 	 * check board type
 	 */
-	if (strcmp(CMD_ARGV[2], "mx27") == 0) {
+	if (strcmp(CMD_ARGV[2], "mx25") == 0) {
+		mxc_nf_info->mxc_version = MXC_VERSION_MX25;
+		mxc_nf_info->mxc_base_addr = 0xBB000000;
+		mxc_nf_info->mxc_regs_addr = mxc_nf_info->mxc_base_addr + 0x1E00;
+	} else if (strcmp(CMD_ARGV[2], "mx27") == 0) {
 		mxc_nf_info->mxc_version = MXC_VERSION_MX27;
 		mxc_nf_info->mxc_base_addr = 0xD8000000;
 		mxc_nf_info->mxc_regs_addr = mxc_nf_info->mxc_base_addr + 0x0E00;
@@ -230,6 +235,10 @@ static int mxc_init(struct nand_device *nand)
 		SREG = MX3_PCSR;
 		SEL_16BIT = MX3_PCSR_NF_16BIT_SEL;
 		SEL_FMS = MX3_PCSR_NF_FMS;
+	} else if (mxc_nf_info->mxc_version == MXC_VERSION_MX25) {
+		SREG = MX25_RCSR;
+		SEL_16BIT = MX25_RCSR_NF_16BIT_SEL;
+		SEL_FMS = MX25_RCSR_NF_FMS;
 	} else if (mxc_nf_info->mxc_version == MXC_VERSION_MX35) {
 		SREG = MX35_RCSR;
 		SEL_16BIT = MX35_RCSR_NF_16BIT_SEL;
