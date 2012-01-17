@@ -39,6 +39,7 @@
  * !! all function only tested with 2k page nand device; mxc_write_page
  *    writes the 4 MAIN_BUFFER's and is not compatible with < 2k page
  * !! oob must be be used due to NFS bug
+ * !! oob must be 64 bytes per 2KiB page
 */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -47,6 +48,8 @@
 #include "imp.h"
 #include "mxc.h"
 #include <target/target.h>
+
+#define	OOB_SIZE	64
 
 #define nfc_is_v1() (mxc_nf_info->mxc_version == MXC_VERSION_MX27 || \
 					mxc_nf_info->mxc_version == MXC_VERSION_MX31)
@@ -732,6 +735,7 @@ static int initialize_nf_controller(struct nand_device *nand)
 		LOG_DEBUG("MXC_NF : work without ECC mode");
 	}
 	if (nfc_is_v2()) {
+		target_write_u16(target, MXC_NF_V2_SPAS, OOB_SIZE / 2);
 		if (nand->page_size) {
 			uint16_t pages_per_block = nand->erase_size / nand->page_size;
 			work_mode |= MXC_NF_V2_CFG1_PPB(ffs(pages_per_block) - 6);
