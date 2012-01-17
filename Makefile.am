@@ -24,7 +24,6 @@ EXTRA_DIST = \
 	BUGS \
 	HACKING \
 	NEWTAPS \
-	PATCHES.txt \
 	README.Win32 \
 	Doxyfile.in \
 	tools/logger.pl \

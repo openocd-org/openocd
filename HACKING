@@ -1,7 +1,14 @@
-NB! If you're behind a corporate wall with http only access to the
+// This file is part of the Doxygen Developer Manual
+/** @page patchguide Patch Guidelines
+
+@b NB! If you're behind a corporate wall with http only access to the
 world, you can still use these instructions!
 
-Submitting patches to the OpenOCD Gerrit server:
+@b NB2! You can't send patches to the mailing list anymore at all. Nowadays
+you are expected to send patches to the OpenOCD Gerrit GIT server for a
+review.
+
+@section gerrit Submitting patches to the OpenOCD Gerrit server
 
 OpenOCD is to some extent a "self service" open source project, so to
 contribute, you must follow the standard procedures to have the best
@@ -14,118 +21,117 @@ The procedure to create a patch is essentially:
 - send the changes to the Gerrit server for review
 - correct the patch and re-send it according to review feedback
 
+Your patch (or commit) should be a "good patch": focus it on a single
+issue, and make it be easily reviewable. Don't make
+it so large that it's hard to review; split large
+patches into smaller ones. (That can also help
+track down bugs later on.) All patches should
+be "clean", which includes preserving the existing
+coding style and updating documentation as needed.
 
-0. Create a Gerrit account at:
+Say in the commit message if it's a bugfix (describe the bug) or a new
+feature. Don't expect patches to merge immediately
+for the next release. Be ready to rework patches
+in response to feedback.
 
-http://openocd.zylin.com
+Add yourself to the GPL copyright for non-trivial changes.
 
-- On subsequent sign ins, use the full URL prefaced with 'http://'
-  For example:
+@section stepbystep Step by step procedure
 
-	http://user_identifier.open_id_provider.com
-
-0.1. Add a username to your profile.
-
-After creating the Gerrit account and signing in, you will need to
-add a username to your profile. To do this, go to 'Settings', and
-add a username of your choice.
-
-Your username will be required in step 2 and substituted wherever
-the string 'USERNAME' is found.
-
-0.2. Add an SSH public key
-
-Following the directions for your specific platform:
-
-	for Windows: help.github.com/win-set-up-git/#_set_up_ssh_keys
-	for OSX:     help.github.com/mac-set-up-git/#_set_up_ssh_keys
-	for Linux:   help.github.com/linux-set-up-git/#_set_up_ssh_keys
-
-While these pages describe the setting up of git as well,
-you should scroll down the page till you get to the section:
-'Next: Set Up SSH Keys', and follow the steps described.
-
-1. Clone the git repository, rather than just
-download the source.
-
-git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
-
-or if you have problems with the "git:" protocol, use
-the slower http protocol:
-
-git clone http://repo.or.cz/r/openocd.git
-
-2. Set up Gerrit with your local repository. All this does it
+-# Create a Gerrit account at: http://openocd.zylin.com
+  - On subsequent sign ins, use the full URL prefaced with 'http://'
+    For example: http://user_identifier.open_id_provider.com
+  -# Add a username to your profile.
+     After creating the Gerrit account and signing in, you will need to
+     add a username to your profile. To do this, go to 'Settings', and
+     add a username of your choice.
+     Your username will be required in step 3 and substituted wherever
+     the string 'USERNAME' is found.
+  -# Add an SSH public key following the directions for your specific platform:
+     - for Windows: http://help.github.com/win-set-up-git/#_set_up_ssh_keys
+     - for OSX: http://help.github.com/mac-set-up-git/#_set_up_ssh_keys
+     - for Linux: http://help.github.com/linux-set-up-git/#_set_up_ssh_keys<br>
+     .
+     While these pages describe the setting up of git as well,
+     you should scroll down the page till you get to the section:
+     <i>Next: Set Up SSH Keys</i>, and follow the steps described.
+-# Clone the git repository, rather than just download the source:
+ @code
+ git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
+ @endcode
+   or if you have problems with the "git:" protocol, use
+   the slower http protocol:
+ @code
+ git clone http://repo.or.cz/r/openocd.git
+ @endcode
+-# Set up Gerrit with your local repository. All this does it
 to instruct git locally how to send off the changes.
-
-Add a new remote to git using Gerrit username:
-
+  -# Add a new remote to git using Gerrit username:
+@code
 git remote add review ssh://USERNAME@openocd.zylin.com:29418/openocd.git
 git config remote.review.push HEAD:refs/for/master
-
-Or with http only:
-
+@endcode
+  Or with http only:
+@code
 git remote add review http://openocd.zylin.com/p/openocd.git
 git config remote.review.push HEAD:refs/for/master
-
-You will need to install this hook, we will look into a better
-solution:
-
+@endcode
+  -# You will need to install this hook, we will look into a better solution:
+@code
 scp -p -P 29418 USERNAME@openocd.zylin.com:hooks/commit-msg .git/hooks/
-
-Or with http only:
-
+@endcode
+  Or with http only:
+@code
 wget http://openocd.zylin.com/tools/hooks/commit-msg
 mv commit-msg .git/hooks
 chmod +x .git/hooks/commit-msg
-
-3. Set up git with your name and email:
-
+@endcode
+-# Set up git with your name and email:
+@code
 git config --global user.name "John Smith"
 git config --global user.email "john@smith.org"
-
-4. Work on your patches. Split the work into
-multiple small patches that can be reviewed and
-applied seperately and safely to the OpenOCD
-repository.
-
+@endcode
+-# Work on your patches. Split the work into
+   multiple small patches that can be reviewed and
+   applied seperately and safely to the OpenOCD
+   repository.
+@code
 while(!done) {
   work - edit files using your favorite editor.
   run "git commit -s -a" to commit all changes.
   run tools/checkpatch.sh to verify your patch style is ok.
 }
-
-TIP! use "git add ." before commit to add new files.
-
+@endcode
+   @b TIP! use "git add ." before commit to add new files.
+@code
 --- example comment, notice the short first line w/topic ---
 topic: short comment
 <blank line>
 longer comments over several
 lines...
+<blank line>
+Signed-off-by: ...
 -----
-
-5. Next you need to make sure that your patches
-are on top of the latest stuff on the server and
-that there are no conflicts.
-
+@endcode
+-# Next you need to make sure that your patches
+   are on top of the latest stuff on the server and
+   that there are no conflicts:
+@code
 git pull --rebase origin/master
-
-6. Send the patches to the Gerrit server for review.
-
+@endcode
+-# Send the patches to the Gerrit server for review:
+@code
 git push review
-
-7. Forgot something, want to add more? Just make the changes and do:
-
+@endcode
+-# Forgot something, want to add more? Just make the changes and do:
+@code
 git commit --amend
 git push review
+@endcode
 
-Further reading:
+Further reading: http://www.coreboot.org/Git
 
-http://www.coreboot.org/Git
-
-
-When can I expect my contribution to be committed?
-==================================================
+@section timeline When can I expect my contribution to be committed?
 
 The code review is intended to take as long as a week or two to allow
 maintainers and contributors who work on OpenOCD only in their spare
@@ -143,3 +149,7 @@ master branch will be much reduced.
 
 If a contributor pushes a patch, it is considered good form if another
 contributor actually approves and submits that patch.
+*/
+/** @file
+This file contains the @ref patchguide page.
+*/

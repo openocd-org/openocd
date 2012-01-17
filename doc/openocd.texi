@@ -255,7 +255,7 @@ communication between developers:
 @uref{https://lists.sourceforge.net/mailman/listinfo/openocd-devel}
 
 Discuss and submit patches to this list.
-The @file{PATCHES.txt} file contains basic information about how
+The @file{HACKING} file contains basic information about how
 to prepare patches.
 
 @section OpenOCD Bug Database
