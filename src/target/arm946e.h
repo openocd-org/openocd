@@ -41,7 +41,7 @@ static inline struct arm946e_common *
 target_to_arm946(struct target *target)
 {
 	return container_of(target->arch_info, struct arm946e_common,
-			arm7_9_common.armv4_5_common);
+			arm7_9_common.arm);
 }
 
 int arm946e_init_arch_info(struct target *target,

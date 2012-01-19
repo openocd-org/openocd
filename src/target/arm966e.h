@@ -38,7 +38,7 @@ static inline struct arm966e_common *
 target_to_arm966(struct target *target)
 {
 	return container_of(target->arch_info, struct arm966e_common,
-			arm7_9_common.armv4_5_common);
+			arm7_9_common.arm);
 }
 
 int arm966e_init_arch_info(struct target *target,

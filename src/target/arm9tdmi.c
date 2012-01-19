@@ -658,7 +658,7 @@ static void arm9tdmi_branch_resume_thumb(struct target *target)
 	LOG_DEBUG("-");
 
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct arm_jtag *jtag_info = &arm7_9->jtag_info;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
@@ -673,7 +673,7 @@ static void arm9tdmi_branch_resume_thumb(struct target *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	/* nothing fetched, LDM in EXECUTE stage (2nd cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP,
-			buf_get_u32(armv4_5->pc->value, 0, 32) | 1, NULL, 0);
+			buf_get_u32(arm->pc->value, 0, 32) | 1, NULL, 0);
 	/* nothing fetched, LDM in EXECUTE stage (3rd cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
@@ -700,7 +700,8 @@ static void arm9tdmi_branch_resume_thumb(struct target *target)
 	/* fetch NOP, LDR in Execute */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	/* nothing fetched, LDR in EXECUTE stage (2nd cycle) */
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32), NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP,
+			buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32), NULL, 0);
 	/* nothing fetched, LDR in EXECUTE stage (3rd cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 
@@ -746,9 +747,9 @@ void arm9tdmi_disable_single_step(struct target *target)
 static void arm9tdmi_build_reg_cache(struct target *target)
 {
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
-	struct arm *armv4_5 = target_to_arm(target);
+	struct arm *arm = target_to_arm(target);
 
-	(*cache_p) = arm_build_reg_cache(target, armv4_5);
+	(*cache_p) = arm_build_reg_cache(target, arm);
 }
 
 int arm9tdmi_init_target(struct command_context *cmd_ctx,
@@ -817,7 +818,7 @@ static int arm9tdmi_target_create(struct target *target, Jim_Interp *interp)
 	struct arm7_9_common *arm7_9 = calloc(1,sizeof(struct arm7_9_common));
 
 	arm9tdmi_init_arch_info(target, arm7_9, target->tap);
-	arm7_9->armv4_5_common.is_armv4 = true;
+	arm7_9->arm.is_armv4 = true;
 
 	return ERROR_OK;
 }

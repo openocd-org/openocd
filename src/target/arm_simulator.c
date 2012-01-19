@@ -781,71 +781,71 @@ static int arm_simulate_step_core(struct target *target,
 
 static uint32_t armv4_5_get_reg(struct arm_sim_interface *sim, int reg)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	return buf_get_u32(armv4_5->core_cache->reg_list[reg].value, 0, 32);
+	return buf_get_u32(arm->core_cache->reg_list[reg].value, 0, 32);
 }
 
 static void armv4_5_set_reg(struct arm_sim_interface *sim, int reg, uint32_t value)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	buf_set_u32(armv4_5->core_cache->reg_list[reg].value, 0, 32, value);
+	buf_set_u32(arm->core_cache->reg_list[reg].value, 0, 32, value);
 }
 
 static uint32_t armv4_5_get_reg_mode(struct arm_sim_interface *sim, int reg)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	return buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			armv4_5->core_mode, reg).value, 0, 32);
+	return buf_get_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache,
+			arm->core_mode, reg).value, 0, 32);
 }
 
 static void armv4_5_set_reg_mode(struct arm_sim_interface *sim, int reg, uint32_t value)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache,
-			armv4_5->core_mode, reg).value, 0, 32, value);
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache,
+			arm->core_mode, reg).value, 0, 32, value);
 }
 
 static uint32_t armv4_5_get_cpsr(struct arm_sim_interface *sim, int pos, int bits)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	return buf_get_u32(armv4_5->cpsr->value, pos, bits);
+	return buf_get_u32(arm->cpsr->value, pos, bits);
 }
 
 static enum arm_state armv4_5_get_state(struct arm_sim_interface *sim)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	return armv4_5->core_state;
+	return arm->core_state;
 }
 
 static void armv4_5_set_state(struct arm_sim_interface *sim, enum arm_state mode)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	armv4_5->core_state = mode;
+	arm->core_state = mode;
 }
 
 
 static enum arm_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 {
-	struct arm *armv4_5 = (struct arm *)sim->user_data;
+	struct arm *arm = (struct arm *)sim->user_data;
 
-	return armv4_5->core_mode;
+	return arm->core_mode;
 }
 
 
 
 int arm_simulate_step(struct target *target, uint32_t *dry_run_pc)
 {
-	struct arm *armv4_5 = target_to_arm(target);
+	struct arm *arm = target_to_arm(target);
 	struct arm_sim_interface sim;
 
-	sim.user_data = armv4_5;
+	sim.user_data = arm;
 	sim.get_reg = &armv4_5_get_reg;
 	sim.set_reg = &armv4_5_set_reg;
 	sim.get_reg_mode = &armv4_5_get_reg_mode;

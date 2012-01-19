@@ -42,7 +42,7 @@ static inline struct arm926ejs_common *
 target_to_arm926(struct target *target)
 {
 	return container_of(target->arch_info, struct arm926ejs_common,
-			arm7_9_common.armv4_5_common);
+			arm7_9_common.arm);
 }
 
 

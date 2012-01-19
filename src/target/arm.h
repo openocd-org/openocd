@@ -197,7 +197,7 @@ struct arm_reg {
 	int num;
 	enum arm_mode mode;
 	struct target *target;
-	struct arm *armv4_5_common;
+	struct arm *arm;
 	uint32_t value;
 };
 

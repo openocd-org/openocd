@@ -97,7 +97,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 {
 	struct target		*target = nand->target;
 	struct arm_algorithm	algo;
-	struct arm		*armv4_5 = target->arch_info;
+	struct arm		*arm = target->arch_info;
 	struct reg_param	reg_params[3];
 	uint32_t		target_buf;
 	uint32_t		exit_var = 0;
@@ -152,7 +152,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	buf_set_u32(reg_params[2].value, 0, 32, size);
 
 	/* armv4 must exit using a hardware breakpoint */
-	if (armv4_5->is_armv4)
+	if (arm->is_armv4)
 		exit_var = nand->copy_area->address + sizeof(code) - 4;
 
 	/* use alg to write data from work area to NAND chip */
@@ -181,7 +181,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 {
 	struct target *target = nand->target;
 	struct arm_algorithm algo;
-	struct arm *armv4_5 = target->arch_info;
+	struct arm *arm = target->arch_info;
 	struct reg_param reg_params[3];
 	uint32_t target_buf;
 	uint32_t exit_var = 0;
@@ -228,7 +228,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	buf_set_u32(reg_params[2].value, 0, 32, size);
 
 	/* armv4 must exit using a hardware breakpoint */
-	if (armv4_5->is_armv4)
+	if (arm->is_armv4)
 		exit_var = nand->copy_area->address + sizeof(code) - 4;
 
 	/* use alg to write data from NAND chip to work area */

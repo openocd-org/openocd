@@ -87,7 +87,7 @@ static int cortex_a8_restore_cp15_control_reg(struct target* target)
 	{
 		cortex_a8->cp15_control_reg_curr = cortex_a8->cp15_control_reg;
 		//LOG_INFO("cp15_control_reg: %8.8" PRIx32, cortex_a8->cp15_control_reg);
-		retval = armv7a->armv4_5_common.mcr(target, 15,
+		retval = armv7a->arm.mcr(target, 15,
 				0, 0,   /* op1, op2 */
 				1, 0,   /* CRn, CRm */
 				cortex_a8->cp15_control_reg);
@@ -103,22 +103,22 @@ static int cortex_a8_check_address(struct target *target, uint32_t address)
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	uint32_t os_border = armv7a->armv7a_mmu.os_border;
 	if ((address < os_border) &&
-			(armv7a->armv4_5_common.core_mode == ARM_MODE_SVC)){
+			(armv7a->arm.core_mode == ARM_MODE_SVC)) {
 		LOG_ERROR("%x access in userspace and target in supervisor",address);
 		return ERROR_FAIL;
 	}
 	if ((address >= os_border) &&
-			( cortex_a8->curr_mode != ARM_MODE_SVC)){
-        dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
-        cortex_a8->curr_mode = ARM_MODE_SVC;
+			(cortex_a8->curr_mode != ARM_MODE_SVC)) {
+		dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
+		cortex_a8->curr_mode = ARM_MODE_SVC;
 		LOG_INFO("%x access in kernel space and target not in supervisor",
 				address);
 		return ERROR_OK;
 	}
 	if ((address < os_border) &&
-			(cortex_a8->curr_mode == ARM_MODE_SVC)){
-	 dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
-     cortex_a8->curr_mode = ARM_MODE_ANY;
+			(cortex_a8->curr_mode == ARM_MODE_SVC)) {
+		dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
+		cortex_a8->curr_mode = ARM_MODE_ANY;
 	}
 	return ERROR_OK;
 }
@@ -141,7 +141,7 @@ static int cortex_a8_mmu_modify(struct target *target, int enable)
 		if (!(cortex_a8->cp15_control_reg_curr & 0x1U))
 		{
 			cortex_a8->cp15_control_reg_curr |= 0x1U;
-			retval = armv7a->armv4_5_common.mcr(target, 15,
+			retval = armv7a->arm.mcr(target, 15,
 					0, 0,   /* op1, op2 */
 					1, 0,   /* CRn, CRm */
 					cortex_a8->cp15_control_reg_curr);
@@ -160,7 +160,7 @@ static int cortex_a8_mmu_modify(struct target *target, int enable)
 		if ( (cortex_a8->cp15_control_reg_curr & 0x1U))
 		{
 			cortex_a8->cp15_control_reg_curr &= ~0x1U;
-			retval = armv7a->armv4_5_common.mcr(target, 15,
+			retval = armv7a->arm.mcr(target, 15,
 					0, 0,   /* op1, op2 */
 					1, 0,   /* CRn, CRm */
 					cortex_a8->cp15_control_reg_curr);
@@ -175,7 +175,7 @@ static int cortex_a8_mmu_modify(struct target *target, int enable)
 static int cortex_a8_init_debug_access(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval;
 	uint32_t dummy;
 
@@ -223,7 +223,7 @@ static int cortex_a8_exec_opcode(struct target *target,
 	uint32_t dscr;
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 
 	dscr = dscr_p ? *dscr_p : 0;
 
@@ -285,7 +285,7 @@ static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t addre
 {
 	int retval = ERROR_OK;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 
 	retval = cortex_a8_dap_read_coreregister_u32(target, regfile, 0);
 	if (retval != ERROR_OK)
@@ -310,7 +310,7 @@ static int cortex_a8_dap_read_coreregister_u32(struct target *target,
 	uint8_t reg = regnum&0xFF;
 	uint32_t dscr = 0;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 
 	if (reg > 17)
 		return retval;
@@ -380,7 +380,7 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 	uint8_t Rd = regnum&0xFF;
 	uint32_t dscr;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 
 	LOG_DEBUG("register %i, value 0x%08" PRIx32, regnum, value);
 
@@ -464,7 +464,7 @@ static int cortex_a8_dap_write_memap_register_u32(struct target *target, uint32_
 {
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 
 	retval = mem_ap_sel_write_atomic_u32(swjdp, swjdp_debugap, address, value);
 
@@ -490,14 +490,14 @@ static inline struct cortex_a8_common *dpm_to_a8(struct arm_dpm *dpm)
 static int cortex_a8_write_dcc(struct cortex_a8_common *a8, uint32_t data)
 {
 	LOG_DEBUG("write DCC 0x%08" PRIx32, data);
-	return mem_ap_sel_write_u32(a8->armv7a_common.armv4_5_common.dap,
+	return mem_ap_sel_write_u32(a8->armv7a_common.arm.dap,
 			swjdp_debugap,a8->armv7a_common.debug_base + CPUDBG_DTRRX, data);
 }
 
 static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data,
 		uint32_t *dscr_p)
 {
-	struct adiv5_dap *swjdp = a8->armv7a_common.armv4_5_common.dap;
+	struct adiv5_dap *swjdp = a8->armv7a_common.arm.dap;
 	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
@@ -534,7 +534,7 @@ static int cortex_a8_read_dcc(struct cortex_a8_common *a8, uint32_t *data,
 static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
 {
 	struct cortex_a8_common *a8 = dpm_to_a8(dpm);
-	struct adiv5_dap *swjdp = a8->armv7a_common.armv4_5_common.dap;
+	struct adiv5_dap *swjdp = a8->armv7a_common.arm.dap;
 	uint32_t dscr;
 	int retval;
 
@@ -561,7 +561,7 @@ static int cortex_a8_dpm_prepare(struct arm_dpm *dpm)
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
 		/* Clear DCCRX */
 		retval = cortex_a8_exec_opcode(
-				a8->armv7a_common.armv4_5_common.target,
+				a8->armv7a_common.arm.target,
 				ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 				&dscr);
 		if (retval != ERROR_OK)
@@ -589,7 +589,7 @@ static int cortex_a8_instr_write_data_dcc(struct arm_dpm *dpm,
 		return retval;
 
 	return cortex_a8_exec_opcode(
-			a8->armv7a_common.armv4_5_common.target,
+			a8->armv7a_common.arm.target,
 			opcode,
 			&dscr);
 }
@@ -607,7 +607,7 @@ static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
 
 	/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
 	retval = cortex_a8_exec_opcode(
-			a8->armv7a_common.armv4_5_common.target,
+			a8->armv7a_common.arm.target,
 			ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
 			&dscr);
 	if (retval != ERROR_OK)
@@ -615,7 +615,7 @@ static int cortex_a8_instr_write_data_r0(struct arm_dpm *dpm,
 
 	/* then the opcode, taking data from R0 */
 	retval = cortex_a8_exec_opcode(
-			a8->armv7a_common.armv4_5_common.target,
+			a8->armv7a_common.arm.target,
 			opcode,
 			&dscr);
 
@@ -642,7 +642,7 @@ static int cortex_a8_instr_read_data_dcc(struct arm_dpm *dpm,
 
 	/* the opcode, writing data to DCC */
 	retval = cortex_a8_exec_opcode(
-			a8->armv7a_common.armv4_5_common.target,
+			a8->armv7a_common.arm.target,
 			opcode,
 			&dscr);
 	if (retval != ERROR_OK)
@@ -661,7 +661,7 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 
 	/* the opcode, writing data to R0 */
 	retval = cortex_a8_exec_opcode(
-			a8->armv7a_common.armv4_5_common.target,
+			a8->armv7a_common.arm.target,
 			opcode,
 			&dscr);
 	if (retval != ERROR_OK)
@@ -669,7 +669,7 @@ static int cortex_a8_instr_read_data_r0(struct arm_dpm *dpm,
 
 	/* write R0 to DCC */
 	retval = cortex_a8_exec_opcode(
-			a8->armv7a_common.armv4_5_common.target,
+			a8->armv7a_common.arm.target,
 			ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
 			&dscr);
 	if (retval != ERROR_OK)
@@ -743,7 +743,7 @@ static int cortex_a8_dpm_setup(struct cortex_a8_common *a8, uint32_t didr)
 	struct arm_dpm *dpm = &a8->armv7a_common.dpm;
 	int retval;
 
-	dpm->arm = &a8->armv7a_common.armv4_5_common;
+	dpm->arm = &a8->armv7a_common.arm;
 	dpm->didr = didr;
 
 	dpm->prepare = cortex_a8_dpm_prepare;
@@ -824,7 +824,7 @@ static int cortex_a8_poll(struct target *target)
 	uint32_t dscr;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	enum target_state prev_target_state = target->state;
 	//  toggle to another core is done by gdb as follow
 	//  maint packet J core_id
@@ -907,7 +907,7 @@ static int cortex_a8_halt(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t dscr;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 
 	/*
 	 * Tell the core to be halted by writing DRCR with 0x1
@@ -958,7 +958,7 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 		uint32_t *address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *arm = &armv7a->arm;
 	int retval;
 	uint32_t resume_pc;
 
@@ -987,7 +987,7 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 #endif
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	resume_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
+	resume_pc = buf_get_u32(arm->pc->value, 0, 32);
 	if (!current)
 		resume_pc = *address;
 	else
@@ -996,7 +996,7 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 	/* Make sure that the Armv7 gdb thumb fixups does not
 	 * kill the return address
 	 */
-	switch (armv4_5->core_state)
+	switch (arm->core_state)
 	{
 	case ARM_STATE_ARM:
 		resume_pc &= 0xFFFFFFFC;
@@ -1013,9 +1013,9 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
-	buf_set_u32(armv4_5->pc->value, 0, 32, resume_pc);
-	armv4_5->pc->dirty = 1;
-	armv4_5->pc->valid = 1;
+	buf_set_u32(arm->pc->value, 0, 32, resume_pc);
+	arm->pc->dirty = 1;
+	arm->pc->valid = 1;
 	/* restore dpm_mode at system halt */
     dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
     /* called it now before restoring context because it uses cpu
@@ -1030,7 +1030,7 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 	target->state = TARGET_RUNNING;
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv4_5->core_cache);
+	register_cache_invalidate(arm->core_cache);
 
 #if 0
 	/* the front-end may request us not to handle breakpoints */
@@ -1053,8 +1053,8 @@ static int cortex_a8_internal_restore(struct target *target, int current,
 static int cortex_a8_internal_restart(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
-	struct adiv5_dap *swjdp = armv4_5->dap;
+	struct arm *arm = &armv7a->arm;
+	struct adiv5_dap *swjdp = arm->dap;
 	int retval;
 	uint32_t dscr;
 /*
@@ -1104,7 +1104,7 @@ static int cortex_a8_internal_restart(struct target *target)
 	target->state = TARGET_RUNNING;
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv4_5->core_cache);
+	register_cache_invalidate(arm->core_cache);
 
 	return ERROR_OK;
 }
@@ -1179,8 +1179,8 @@ static int cortex_a8_debug_entry(struct target *target)
 	struct working_area *regfile_working_area = NULL;
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct arm *arm = &armv7a->arm;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	struct reg *reg;
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
@@ -1248,12 +1248,12 @@ static int cortex_a8_debug_entry(struct target *target)
 
 		LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
-		arm_set_cpsr(armv4_5, cpsr);
+		arm_set_cpsr(arm, cpsr);
 
 		/* update cache */
 		for (i = 0; i <= ARM_PC; i++)
 		{
-			reg = arm_reg_current(armv4_5, i);
+			reg = arm_reg_current(arm, i);
 
 			buf_set_u32(reg->value, 0, 32, regfile[i]);
 			reg->valid = 1;
@@ -1272,7 +1272,7 @@ static int cortex_a8_debug_entry(struct target *target)
 			regfile[ARM_PC] -= 8;
 		}
 
-		reg = armv4_5->pc;
+		reg = arm->pc;
 		buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
 		reg->dirty = reg->valid;
 	}
@@ -1309,7 +1309,7 @@ static int cortex_a8_post_debug_entry(struct target *target)
 	int retval;
 
 	/* MRC p15,0,<Rt>,c1,c0,0 ; Read CP15 System Control Register */
-	retval = armv7a->armv4_5_common.mrc(target, 15,
+	retval = armv7a->arm.mrc(target, 15,
 			0, 0,	/* op1, op2 */
 			1, 0,	/* CRn, CRm */
 			&cortex_a8->cp15_control_reg);
@@ -1329,8 +1329,8 @@ static int cortex_a8_post_debug_entry(struct target *target)
 			(cortex_a8->cp15_control_reg & 0x4U) ? 1 : 0;
 	armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled =
 			(cortex_a8->cp15_control_reg & 0x1000U) ? 1 : 0;
-    cortex_a8->curr_mode = armv7a->armv4_5_common.core_mode;
-    
+	cortex_a8->curr_mode = armv7a->arm.core_mode;
+
 	return ERROR_OK;
 }
 
@@ -1338,7 +1338,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *arm = &armv7a->arm;
 	struct breakpoint *breakpoint = NULL;
 	struct breakpoint stepbreakpoint;
 	struct reg *r;
@@ -1351,7 +1351,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	r = armv4_5->pc;
+	r = arm->pc;
 	if (!current)
 	{
 		buf_set_u32(r->value, 0, 32, address);
@@ -1374,7 +1374,7 @@ static int cortex_a8_step(struct target *target, int current, uint32_t address,
 
 	/* Setup single step breakpoint */
 	stepbreakpoint.address = address;
-	stepbreakpoint.length = (armv4_5->core_state == ARM_STATE_THUMB)
+	stepbreakpoint.length = (arm->core_state == ARM_STATE_THUMB)
 			? 2 : 4;
 	stepbreakpoint.type = BKPT_HARD;
 	stepbreakpoint.set = 0;
@@ -1866,7 +1866,7 @@ static int cortex_a8_assert_reset(struct target *target)
 	}
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv7a->armv4_5_common.core_cache);
+	register_cache_invalidate(armv7a->arm.core_cache);
 
 	target->state = TARGET_RESET;
 
@@ -1908,7 +1908,7 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *arm = &armv7a->arm;
 	int total_bytes = count * size;
 	int start_byte, nbytes_to_write, i;
 	struct reg *reg;
@@ -1923,9 +1923,9 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	reg = arm_reg_current(armv4_5, 0);
+	reg = arm_reg_current(arm, 0);
 	reg->dirty = 1;
-	reg = arm_reg_current(armv4_5, 1);
+	reg = arm_reg_current(arm, 1);
 	reg->dirty = 1;
 
 	retval = cortex_a8_dap_write_coreregister_u32(target, address & 0xFFFFFFFC, 0);
@@ -1981,7 +1981,7 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *arm = &armv7a->arm;
 	int total_bytes = count * size;
 	int start_byte, nbytes_to_read, i;
 	struct reg *reg;
@@ -1996,9 +1996,9 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	reg = arm_reg_current(armv4_5, 0);
+	reg = arm_reg_current(arm, 0);
 	reg->dirty = 1;
-	reg = arm_reg_current(armv4_5, 1);
+	reg = arm_reg_current(arm, 1);
 	reg->dirty = 1;
 
 	retval = cortex_a8_dap_write_coreregister_u32(target, address & 0xFFFFFFFC, 0);
@@ -2046,7 +2046,7 @@ static int cortex_a8_read_phys_memory(struct target *target,
                 uint32_t count, uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
 	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d",
@@ -2091,7 +2091,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 	uint32_t virt, phys;
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 
 	/* cortex_a8 handles unaligned memory access */
@@ -2131,7 +2131,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
                 uint32_t count, const uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
 
@@ -2173,7 +2173,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 	/* REVISIT this op is generic ARMv7-A/R stuff */
 	if (retval == ERROR_OK && target->state == TARGET_HALTED)
 	{
-		struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+		struct arm_dpm *dpm = armv7a->arm.dpm;
 
 		retval = dpm->prepare(dpm);
 		if (retval != ERROR_OK)
@@ -2237,7 +2237,7 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 	uint32_t virt, phys;
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 	/* cortex_a8 handles unaligned memory access */
 	LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address,
@@ -2284,7 +2284,7 @@ static int cortex_a8_handle_target_request(void *priv)
 {
 	struct target *target = priv;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval;
 
 	if (!target_was_examined(target))
@@ -2324,7 +2324,7 @@ static int cortex_a8_examine_first(struct target *target)
 {
 	struct cortex_a8_common *cortex_a8 = target_to_cortex_a8(target);
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int i;
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid;
@@ -2393,7 +2393,7 @@ static int cortex_a8_examine_first(struct target *target)
 	LOG_DEBUG("ttypr = 0x%08" PRIx32, ttypr);
 	LOG_DEBUG("didr = 0x%08" PRIx32, didr);
 
-	armv7a->armv4_5_common.core_type = ARM_MODE_MON;
+	armv7a->arm.core_type = ARM_MODE_MON;
 	retval = cortex_a8_dpm_setup(cortex_a8, didr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -2454,14 +2454,14 @@ static int cortex_a8_init_arch_info(struct target *target,
 	struct armv7a_common *armv7a = &cortex_a8->armv7a_common;
 	struct adiv5_dap *dap = &armv7a->dap;
 
-	armv7a->armv4_5_common.dap = dap;
+	armv7a->arm.dap = dap;
 
 	/* Setup struct cortex_a8_common */
 	cortex_a8->common_magic = CORTEX_A8_COMMON_MAGIC;
 	/*  tap has no dap initialized */
 	if (!tap->dap)
 	{
-	armv7a->armv4_5_common.dap = dap;
+	armv7a->arm.dap = dap;
 	/* Setup struct cortex_a8_common */
 
 	/* prepare JTAG information for the new target */
@@ -2477,7 +2477,7 @@ static int cortex_a8_init_arch_info(struct target *target,
 	tap->dap = dap;
     }
 	else
-	armv7a->armv4_5_common.dap = tap->dap;
+	armv7a->arm.dap = tap->dap;
 
 	cortex_a8->fast_reg_read = 0;
 
@@ -2525,7 +2525,7 @@ static int cortex_a8_virt2phys(struct target *target,
 {
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->armv4_5_common.dap;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 	if (apsel == swjdp_memoryap)
 	{

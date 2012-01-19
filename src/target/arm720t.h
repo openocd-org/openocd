@@ -39,7 +39,7 @@ static inline struct arm720t_common *
 target_to_arm720(struct target *target)
 {
 	return container_of(target->arch_info, struct arm720t_common,
-			arm7_9_common.armv4_5_common);
+			arm7_9_common.arm);
 }
 
 #endif /* ARM720T_H */

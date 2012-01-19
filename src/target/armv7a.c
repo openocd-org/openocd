@@ -43,7 +43,7 @@ static void armv7a_show_fault_registers(struct target *target)
 {
 	uint32_t dfsr, ifsr, dfar, ifar;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
 	int retval;
 
 	retval = dpm->prepare(dpm);
@@ -90,7 +90,7 @@ done:
 static int armv7a_read_ttbcr(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t ttbcr;
 	int retval = dpm->prepare(dpm);
 	if (retval!=ERROR_OK) goto done;
@@ -130,7 +130,7 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	uint32_t second_lvl_descriptor = 0x0;
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t ttb = 0; /*  default ttb0 */
 	if (armv7a->armv7a_mmu.ttbr1_used == -1) armv7a_read_ttbcr(target);
 	if ((armv7a->armv7a_mmu.ttbr1_used) &&
@@ -238,7 +238,7 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 {
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t virt = va & ~0xfff;
 	uint32_t NOS,NS,INNER,OUTER;
 	*val = 0xdeadbeef;
@@ -332,7 +332,7 @@ static int armv7a_handle_inner_cache_info_command(struct command_context *cmd_ct
 static int _armv7a_flush_all_data(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
 	struct armv7a_cachesize *d_u_size =
 		&(armv7a->armv7a_mmu.armv7a_cache.d_u_size);
 	int32_t c_way, c_index = d_u_size->index;
@@ -546,7 +546,7 @@ static int armv7a_read_mpidr(struct target *target)
 {
     int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
     uint32_t mpidr;
 	retval = dpm->prepare(dpm);
 	if (retval!=ERROR_OK) goto done;
@@ -583,7 +583,7 @@ int armv7a_identify_cache(struct target *target)
 	/*  read cache descriptor */
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->armv4_5_common.dpm;
+	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t cache_selected,clidr;
 	uint32_t cache_i_reg, cache_d_reg;
 	struct armv7a_cache_common *cache = &(armv7a->armv7a_mmu.armv7a_cache);
@@ -612,7 +612,7 @@ int armv7a_identify_cache(struct target *target)
 			&cache_selected);
 	if (retval!=ERROR_OK) goto done;
 
-	retval = armv7a->armv4_5_common.mrc(target, 15,
+	retval = armv7a->arm.mrc(target, 15,
 			2, 0,	/* op1, op2 */
 			0, 0,	/* CRn, CRm */
 			&cache_selected);
@@ -721,12 +721,12 @@ done:
 
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 {
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
-    armv4_5->arch_info = armv7a;
-	target->arch_info = &armv7a->armv4_5_common;
+	struct arm *arm = &armv7a->arm;
+	arm->arch_info = armv7a;
+	target->arch_info = &armv7a->arm;
 	/*  target is useful in all function arm v4 5 compatible */
-	armv7a->armv4_5_common.target = target;
-	armv7a->armv4_5_common.common_magic =  ARM_COMMON_MAGIC;
+	armv7a->arm.target = target;
+	armv7a->arm.common_magic =  ARM_COMMON_MAGIC;
 	armv7a->common_magic = ARMV7_COMMON_MAGIC;
 	armv7a->armv7a_mmu.armv7a_cache.l2_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.ctype = -1;
@@ -743,7 +743,7 @@ int armv7a_arch_state(struct target *target)
 	};
 
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm *armv4_5 = &armv7a->armv4_5_common;
+	struct arm *arm = &armv7a->arm;
 
 	if (armv7a->common_magic != ARMV7_COMMON_MAGIC)
 	{
@@ -758,7 +758,7 @@ int armv7a_arch_state(struct target *target)
 		 state[armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled],
 		 state[armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled]);
 
-	if (armv4_5->core_mode == ARM_MODE_ABT)
+	if (arm->core_mode == ARM_MODE_ABT)
 		armv7a_show_fault_registers(target);
 	if (target->debug_reason == DBG_REASON_WATCHPOINT)
 		LOG_USER("Watchpoint triggered at PC %#08x",

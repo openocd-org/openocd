@@ -91,7 +91,7 @@ struct xscale_trace
 struct xscale_common
 {
 	/* armv4/5 common stuff */
-	struct arm armv4_5_common;
+	struct arm arm;
 
 	int common_magic;
 
@@ -148,7 +148,7 @@ static inline struct xscale_common *
 target_to_xscale(struct target *target)
 {
 	return container_of(target->arch_info, struct xscale_common,
-			armv4_5_common);
+			arm);
 }
 
 struct xscale_reg

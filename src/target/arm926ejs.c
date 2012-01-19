@@ -557,7 +557,7 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	int retval = ERROR_OK;
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
@@ -600,16 +600,16 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	uint32_t cpsr;
 
-	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
+	cpsr = buf_get_u32(arm->cpsr->value, 0, 32);
 	cpsr &= ~0xff;
 	cpsr |= 0xd3;
-	arm_set_cpsr(armv4_5, cpsr);
-	armv4_5->cpsr->dirty = 1;
+	arm_set_cpsr(arm, cpsr);
+	arm->cpsr->dirty = 1;
 
 	/* start fetching from 0x0 */
-	buf_set_u32(armv4_5->pc->value, 0, 32, 0x0);
-	armv4_5->pc->dirty = 1;
-	armv4_5->pc->valid = 1;
+	buf_set_u32(arm->pc->value, 0, 32, 0x0);
+	arm->pc->dirty = 1;
+	arm->pc->valid = 1;
 
 	retval = arm926ejs_disable_mmu_caches(target, 1, 1, 1);
 	if (retval != ERROR_OK)
@@ -713,8 +713,8 @@ int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm
 {
 	struct arm7_9_common *arm7_9 = &arm926ejs->arm7_9_common;
 
-	arm7_9->armv4_5_common.mrc = arm926ejs_mrc;
-	arm7_9->armv4_5_common.mcr = arm926ejs_mcr;
+	arm7_9->arm.mrc = arm926ejs_mrc;
+	arm7_9->arm.mcr = arm926ejs_mcr;
 
 	/* initialize arm7/arm9 specific info (including armv4_5) */
 	arm9tdmi_init_arch_info(target, arm7_9, tap);

@@ -246,11 +246,11 @@ static int arm920t_execute_cp15(struct target *target, uint32_t cp15_opcode,
 static int arm920t_read_cp15_interpreted(struct target *target,
 		uint32_t cp15_opcode, uint32_t address, uint32_t *value)
 {
-	struct arm *armv4_5 = target_to_arm(target);
+	struct arm *arm = target_to_arm(target);
 	uint32_t* regs_p[1];
 	uint32_t regs[2];
 	uint32_t cp15c15 = 0x0;
-	struct reg *r = armv4_5->core_cache->reg_list;
+	struct reg *r = arm->core_cache->reg_list;
 
 	/* load address into R1 */
 	regs[1] = address;
@@ -280,7 +280,7 @@ static int arm920t_read_cp15_interpreted(struct target *target,
 			cp15_opcode, address, *value);
 #endif
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
@@ -297,9 +297,9 @@ int arm920t_write_cp15_interpreted(struct target *target,
 		uint32_t cp15_opcode, uint32_t value, uint32_t address)
 {
 	uint32_t cp15c15 = 0x0;
-	struct arm *armv4_5 = target_to_arm(target);
+	struct arm *arm = target_to_arm(target);
 	uint32_t regs[2];
-	struct reg *r = armv4_5->core_cache->reg_list;
+	struct reg *r = arm->core_cache->reg_list;
 
 	/* load value, address into R0, R1 */
 	regs[0] = value;
@@ -325,7 +325,7 @@ int arm920t_write_cp15_interpreted(struct target *target,
 			cp15_opcode, value, address);
 #endif
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
@@ -763,7 +763,7 @@ int arm920t_soft_reset_halt(struct target *target)
 	int retval = ERROR_OK;
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	if ((retval = target_halt(target)) != ERROR_OK)
@@ -807,16 +807,16 @@ int arm920t_soft_reset_halt(struct target *target)
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	uint32_t cpsr;
 
-	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
+	cpsr = buf_get_u32(arm->cpsr->value, 0, 32);
 	cpsr &= ~0xff;
 	cpsr |= 0xd3;
-	arm_set_cpsr(armv4_5, cpsr);
-	armv4_5->cpsr->dirty = 1;
+	arm_set_cpsr(arm, cpsr);
+	arm->cpsr->dirty = 1;
 
 	/* start fetching from 0x0 */
-	buf_set_u32(armv4_5->pc->value, 0, 32, 0x0);
-	armv4_5->pc->dirty = 1;
-	armv4_5->pc->valid = 1;
+	buf_set_u32(arm->pc->value, 0, 32, 0x0);
+	arm->pc->dirty = 1;
+	arm->pc->valid = 1;
 
 	arm920t_disable_mmu_caches(target, 1, 1, 1);
 	arm920t->armv4_5_mmu.mmu_enabled = 0;
@@ -841,8 +841,8 @@ static int arm920t_init_arch_info(struct target *target,
 {
 	struct arm7_9_common *arm7_9 = &arm920t->arm7_9_common;
 
-	arm7_9->armv4_5_common.mrc = arm920t_mrc;
-	arm7_9->armv4_5_common.mcr = arm920t_mcr;
+	arm7_9->arm.mrc = arm920t_mrc;
+	arm7_9->arm.mcr = arm920t_mcr;
 
 	/* initialize arm7/arm9 specific info (including armv4_5) */
 	arm9tdmi_init_arch_info(target, arm7_9, tap);
@@ -887,7 +887,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
 	uint32_t regs[16];
@@ -1148,14 +1148,14 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 
 	fclose(output);
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
 	}
 
 	/* force writeback of the valid data */
-	r = armv4_5->core_cache->reg_list;
+	r = arm->core_cache->reg_list;
 	r[0].dirty = r[0].valid;
 	r[1].dirty = r[1].valid;
 	r[2].dirty = r[2].valid;
@@ -1165,10 +1165,10 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	r[6].dirty = r[6].valid;
 	r[7].dirty = r[7].valid;
 
-	r = arm_reg_current(armv4_5, 8);
+	r = arm_reg_current(arm, 8);
 	r->dirty = r->valid;
 
-	r = arm_reg_current(armv4_5, 9);
+	r = arm_reg_current(arm, 9);
 	r->dirty = r->valid;
 
 	return ERROR_OK;
@@ -1180,7 +1180,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	uint32_t cp15c15;
 	uint32_t cp15_ctrl, cp15_ctrl_saved;
 	uint32_t regs[16];
@@ -1477,14 +1477,14 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 
 	fclose(output);
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
 	}
 
 	/* force writeback of the valid data */
-	r = armv4_5->core_cache->reg_list;
+	r = arm->core_cache->reg_list;
 	r[0].dirty = r[0].valid;
 	r[1].dirty = r[1].valid;
 	r[2].dirty = r[2].valid;
@@ -1494,10 +1494,10 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	r[6].dirty = r[6].valid;
 	r[7].dirty = r[7].valid;
 
-	r = arm_reg_current(armv4_5, 8);
+	r = arm_reg_current(arm, 8);
 	r->dirty = r->valid;
 
-	r = arm_reg_current(armv4_5, 9);
+	r = arm_reg_current(arm, 9);
 	r->dirty = r->valid;
 
 	return ERROR_OK;

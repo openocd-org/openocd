@@ -1043,7 +1043,7 @@ int arm7_9_assert_reset(struct target *target)
 	}
 
 	target->state = TARGET_RESET;
-	register_cache_invalidate(arm7_9->armv4_5_common.core_cache);
+	register_cache_invalidate(arm7_9->arm.core_cache);
 
 	/* REVISIT why isn't standard debug entry logic sufficient?? */
 	if (target->reset_halt
@@ -1171,7 +1171,7 @@ static int arm7_9_clear_halt(struct target *target)
 int arm7_9_soft_reset_halt(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int i;
@@ -1230,33 +1230,33 @@ int arm7_9_soft_reset_halt(struct target *target)
 		uint32_t r0_thumb, pc_thumb;
 		LOG_DEBUG("target entered debug from Thumb state, changing to ARM");
 		/* Entered debug from Thumb mode */
-		armv4_5->core_state = ARM_STATE_THUMB;
+		arm->core_state = ARM_STATE_THUMB;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
 	}
 
 	/* REVISIT likewise for bit 5 -- switch Jazelle-to-ARM */
 
 	/* all register content is now invalid */
-	register_cache_invalidate(armv4_5->core_cache);
+	register_cache_invalidate(arm->core_cache);
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	uint32_t cpsr;
 
-	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
+	cpsr = buf_get_u32(arm->cpsr->value, 0, 32);
 	cpsr &= ~0xff;
 	cpsr |= 0xd3;
-	arm_set_cpsr(armv4_5, cpsr);
-	armv4_5->cpsr->dirty = 1;
+	arm_set_cpsr(arm, cpsr);
+	arm->cpsr->dirty = 1;
 
 	/* start fetching from 0x0 */
-	buf_set_u32(armv4_5->pc->value, 0, 32, 0x0);
-	armv4_5->pc->dirty = 1;
-	armv4_5->pc->valid = 1;
+	buf_set_u32(arm->pc->value, 0, 32, 0x0);
+	arm->pc->dirty = 1;
+	arm->pc->valid = 1;
 
 	/* reset registers */
 	for (i = 0; i <= 14; i++)
 	{
-		struct reg *r = arm_reg_current(armv4_5, i);
+		struct reg *r = arm_reg_current(arm, i);
 
 		buf_set_u32(r->value, 0, 32, 0xffffffff);
 		r->dirty = 1;
@@ -1351,7 +1351,7 @@ static int arm7_9_debug_entry(struct target *target)
 	uint32_t cpsr, cpsr_mask = 0;
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
@@ -1392,7 +1392,7 @@ static int arm7_9_debug_entry(struct target *target)
 	{
 		LOG_DEBUG("target entered debug from Thumb state");
 		/* Entered debug from Thumb mode */
-		armv4_5->core_state = ARM_STATE_THUMB;
+		arm->core_state = ARM_STATE_THUMB;
 		cpsr_mask = 1 << 5;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
 		LOG_DEBUG("r0_thumb: 0x%8.8" PRIx32
@@ -1404,13 +1404,13 @@ static int arm7_9_debug_entry(struct target *target)
 		 * B.7.3 for the reverse.  That'd be the bare minimum...
 		 */
 		LOG_DEBUG("target entered debug from Jazelle state");
-		armv4_5->core_state = ARM_STATE_JAZELLE;
+		arm->core_state = ARM_STATE_JAZELLE;
 		cpsr_mask = 1 << 24;
 		LOG_ERROR("Jazelle debug entry -- BROKEN!");
 	} else {
 		LOG_DEBUG("target entered debug from ARM state");
 		/* Entered debug from ARM mode */
-		armv4_5->core_state = ARM_STATE_ARM;
+		arm->core_state = ARM_STATE_ARM;
 	}
 
 	for (i = 0; i < 16; i++)
@@ -1426,9 +1426,9 @@ static int arm7_9_debug_entry(struct target *target)
 	/* Sync our CPSR copy with J or T bits EICE reported, but
 	 * which we then erased by putting the core into ARM mode.
 	 */
-	arm_set_cpsr(armv4_5, cpsr | cpsr_mask);
+	arm_set_cpsr(arm, cpsr | cpsr_mask);
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		target->state = TARGET_UNKNOWN;
 		LOG_ERROR("cpsr contains invalid mode value - communication failure");
@@ -1436,27 +1436,27 @@ static int arm7_9_debug_entry(struct target *target)
 	}
 
 	LOG_DEBUG("target entered debug state in %s mode",
-			 arm_mode_name(armv4_5->core_mode));
+			 arm_mode_name(arm->core_mode));
 
-	if (armv4_5->core_state == ARM_STATE_THUMB)
+	if (arm->core_state == ARM_STATE_THUMB)
 	{
 		LOG_DEBUG("thumb state, applying fixups");
 		context[0] = r0_thumb;
 		context[15] = pc_thumb;
-	} else if (armv4_5->core_state == ARM_STATE_ARM)
+	} else if (arm->core_state == ARM_STATE_ARM)
 	{
 		/* adjust value stored by STM */
 		context[15] -= 3 * 4;
 	}
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ) || (!arm7_9->use_dbgrq))
-		context[15] -= 3 * ((armv4_5->core_state == ARM_STATE_ARM) ? 4 : 2);
+		context[15] -= 3 * ((arm->core_state == ARM_STATE_ARM) ? 4 : 2);
 	else
-		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARM_STATE_ARM) ? 4 : 2);
+		context[15] -= arm7_9->dbgreq_adjust_pc * ((arm->core_state == ARM_STATE_ARM) ? 4 : 2);
 
 	for (i = 0; i <= 15; i++)
 	{
-		struct reg *r = arm_reg_current(armv4_5, i);
+		struct reg *r = arm_reg_current(arm, i);
 
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
 
@@ -1469,16 +1469,16 @@ static int arm7_9_debug_entry(struct target *target)
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 "", context[15]);
 
 	/* exceptions other than USR & SYS have a saved program status register */
-	if (armv4_5->spsr) {
+	if (arm->spsr) {
 		uint32_t spsr;
 		arm7_9->read_xpsr(target, &spsr, 1);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
-		buf_set_u32(armv4_5->spsr->value, 0, 32, spsr);
-		armv4_5->spsr->dirty = 0;
-		armv4_5->spsr->valid = 1;
+		buf_set_u32(arm->spsr->value, 0, 32, spsr);
+		arm->spsr->dirty = 0;
+		arm->spsr->valid = 1;
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -1508,7 +1508,7 @@ static int arm7_9_full_context(struct target *target)
 	int i;
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 
 	LOG_DEBUG("-");
 
@@ -1518,7 +1518,7 @@ static int arm7_9_full_context(struct target *target)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
@@ -1538,7 +1538,7 @@ static int arm7_9_full_context(struct target *target)
 		 */
 		for (j = 0; j <= 16; j++)
 		{
-			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
+			if (ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
 				valid = 0;
 		}
 
@@ -1547,7 +1547,7 @@ static int arm7_9_full_context(struct target *target)
 			uint32_t tmp_cpsr;
 
 			/* change processor mode (and mask T bit) */
-			tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8)
+			tmp_cpsr = buf_get_u32(arm->cpsr->value, 0, 8)
 					& 0xe0;
 			tmp_cpsr |= armv4_5_number_to_mode(i);
 			tmp_cpsr &= ~0x20;
@@ -1555,12 +1555,13 @@ static int arm7_9_full_context(struct target *target)
 
 			for (j = 0; j < 15; j++)
 			{
-				if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
+				if (ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
 				{
-					reg_p[j] = (uint32_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).value;
+					reg_p[j] = (uint32_t *)ARMV4_5_CORE_REG_MODE(arm->core_cache,
+							armv4_5_number_to_mode(i), j).value;
 					mask |= 1 << j;
-					ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid = 1;
-					ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty = 0;
+					ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j).valid = 1;
+					ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j).dirty = 0;
 				}
 			}
 
@@ -1569,18 +1570,19 @@ static int arm7_9_full_context(struct target *target)
 				arm7_9->read_core_regs(target, mask, reg_p);
 
 			/* check if the PSR has to be read */
-			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).valid == 0)
+			if (ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), 16).valid == 0)
 			{
-				arm7_9->read_xpsr(target, (uint32_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).value, 1);
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).valid = 1;
-				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).dirty = 0;
+				arm7_9->read_xpsr(target, (uint32_t *)ARMV4_5_CORE_REG_MODE(arm->core_cache,
+						armv4_5_number_to_mode(i), 16).value, 1);
+				ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), 16).valid = 1;
+				ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), 16).dirty = 0;
 			}
 		}
 	}
 
 	/* restore processor mode (mask T bit) */
 	arm7_9->write_xpsr_im8(target,
-			buf_get_u32(armv4_5->cpsr->value, 0, 8) & ~0x20,
+			buf_get_u32(arm->cpsr->value, 0, 8) & ~0x20,
 			0, 0);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -1605,9 +1607,9 @@ static int arm7_9_full_context(struct target *target)
 static int arm7_9_restore_context(struct target *target)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *reg;
-	enum arm_mode current_mode = armv4_5->core_mode;
+	enum arm_mode current_mode = arm->core_mode;
 	int i, j;
 	int dirty;
 	int mode_change;
@@ -1623,7 +1625,7 @@ static int arm7_9_restore_context(struct target *target)
 	if (arm7_9->pre_restore_context)
 		arm7_9->pre_restore_context(target);
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 	{
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
@@ -1635,14 +1637,14 @@ static int arm7_9_restore_context(struct target *target)
 	for (i = 0; i < 6; i++)
 	{
 		LOG_DEBUG("examining %s mode",
-				arm_mode_name(armv4_5->core_mode));
+				arm_mode_name(arm->core_mode));
 		dirty = 0;
 		mode_change = 0;
 		/* check if there are dirty registers in the current mode
 		*/
 		for (j = 0; j <= 16; j++)
 		{
-			reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j);
+			reg = &ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j);
 			if (reg->dirty == 1)
 			{
 				if (reg->valid == 1)
@@ -1653,8 +1655,10 @@ static int arm7_9_restore_context(struct target *target)
 					reg_arch_info = reg->arch_info;
 					if ((reg_arch_info->mode != ARM_MODE_ANY)
 						&& (reg_arch_info->mode != current_mode)
-						&& !((reg_arch_info->mode == ARM_MODE_USR) && (armv4_5->core_mode == ARM_MODE_SYS))
-						&& !((reg_arch_info->mode == ARM_MODE_SYS) && (armv4_5->core_mode == ARM_MODE_USR)))
+						&& !((reg_arch_info->mode == ARM_MODE_USR)
+						&& (arm->core_mode == ARM_MODE_SYS))
+						&& !((reg_arch_info->mode == ARM_MODE_SYS)
+						&& (arm->core_mode == ARM_MODE_USR)))
 					{
 						mode_change = 1;
 						LOG_DEBUG("require mode change");
@@ -1678,7 +1682,7 @@ static int arm7_9_restore_context(struct target *target)
 				uint32_t tmp_cpsr;
 
 				/* change processor mode (mask T bit) */
-				tmp_cpsr = buf_get_u32(armv4_5->cpsr->value,
+				tmp_cpsr = buf_get_u32(arm->cpsr->value,
 						0, 8) & 0xe0;
 				tmp_cpsr |= armv4_5_number_to_mode(i);
 				tmp_cpsr &= ~0x20;
@@ -1688,7 +1692,7 @@ static int arm7_9_restore_context(struct target *target)
 
 			for (j = 0; j <= 14; j++)
 			{
-				reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j);
+				reg = &ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j);
 
 				if (reg->dirty == 1)
 				{
@@ -1699,7 +1703,7 @@ static int arm7_9_restore_context(struct target *target)
 					reg->valid = 1;
 					LOG_DEBUG("writing register %i mode %s "
 						"with value 0x%8.8" PRIx32, j,
-						arm_mode_name(armv4_5->core_mode),
+						arm_mode_name(arm->core_mode),
 						regs[j]);
 				}
 			}
@@ -1709,7 +1713,7 @@ static int arm7_9_restore_context(struct target *target)
 				arm7_9->write_core_regs(target, mask, regs);
 			}
 
-			reg = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16);
+			reg = &ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), 16);
 			struct arm_reg *reg_arch_info;
 			reg_arch_info = reg->arch_info;
 			if ((reg->dirty) && (reg_arch_info->mode != ARM_MODE_ANY))
@@ -1720,34 +1724,32 @@ static int arm7_9_restore_context(struct target *target)
 		}
 	}
 
-	if (!armv4_5->cpsr->dirty && (armv4_5->core_mode != current_mode))
-	{
+	if (!arm->cpsr->dirty && (arm->core_mode != current_mode)) {
 		/* restore processor mode (mask T bit) */
 		uint32_t tmp_cpsr;
 
-		tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8) & 0xE0;
+		tmp_cpsr = buf_get_u32(arm->cpsr->value, 0, 8) & 0xE0;
 		tmp_cpsr |= armv4_5_number_to_mode(i);
 		tmp_cpsr &= ~0x20;
 		LOG_DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", (unsigned)(tmp_cpsr));
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
-	}
-	else if (armv4_5->cpsr->dirty)
-	{
+
+	} else if (arm->cpsr->dirty) {
 		/* CPSR has been changed, full restore necessary (mask T bit) */
 		LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32,
-				buf_get_u32(armv4_5->cpsr->value, 0, 32));
+				buf_get_u32(arm->cpsr->value, 0, 32));
 		arm7_9->write_xpsr(target,
-				buf_get_u32(armv4_5->cpsr->value, 0, 32)
-					& ~0x20, 0);
-		armv4_5->cpsr->dirty = 0;
-		armv4_5->cpsr->valid = 1;
+				buf_get_u32(arm->cpsr->value, 0, 32)
+				& ~0x20, 0);
+		arm->cpsr->dirty = 0;
+		arm->cpsr->valid = 1;
 	}
 
 	/* restore PC */
 	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32,
-			buf_get_u32(armv4_5->pc->value, 0, 32));
-	arm7_9->write_pc(target, buf_get_u32(armv4_5->pc->value, 0, 32));
-	armv4_5->pc->dirty = 0;
+			buf_get_u32(arm->pc->value, 0, 32));
+	arm7_9->write_pc(target, buf_get_u32(arm->pc->value, 0, 32));
+	arm->pc->dirty = 0;
 
 	return ERROR_OK;
 }
@@ -1821,7 +1823,7 @@ static void arm7_9_enable_breakpoints(struct target *target)
 int arm7_9_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int err, retval = ERROR_OK;
 
@@ -1840,17 +1842,17 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv4_5->pc->value, 0, 32, address);
+		buf_set_u32(arm->pc->value, 0, 32, address);
 
 	uint32_t current_pc;
-	current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
+	current_pc = buf_get_u32(arm->pc->value, 0, 32);
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
 		struct breakpoint *breakpoint;
 		breakpoint = breakpoint_find(target,
-				buf_get_u32(armv4_5->pc->value, 0, 32));
+				buf_get_u32(arm->pc->value, 0, 32));
 		if (breakpoint != NULL)
 		{
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (id: %d)", breakpoint->address, breakpoint->unique_id );
@@ -1875,18 +1877,13 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 
 			if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
-			{
 				return retval;
-			}
 
-			if (armv4_5->core_state == ARM_STATE_ARM)
+			if (arm->core_state == ARM_STATE_ARM)
 				arm7_9->branch_resume(target);
-			else if (armv4_5->core_state == ARM_STATE_THUMB)
-			{
+			else if (arm->core_state == ARM_STATE_THUMB)
 				arm7_9->branch_resume_thumb(target);
-			}
-			else
-			{
+			else {
 				LOG_ERROR("unhandled core state");
 				return ERROR_FAIL;
 			}
@@ -1912,7 +1909,7 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 			if (retval != ERROR_OK)
 				return retval;
 			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32,
-					buf_get_u32(armv4_5->pc->value, 0, 32));
+					buf_get_u32(arm->pc->value, 0, 32));
 
 			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			if ((retval = arm7_9_set_breakpoint(target, breakpoint)) != ERROR_OK)
@@ -1927,20 +1924,13 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 	arm7_9_enable_watchpoints(target);
 
 	if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
-	{
 		return retval;
-	}
 
-	if (armv4_5->core_state == ARM_STATE_ARM)
-	{
+	if (arm->core_state == ARM_STATE_ARM)
 		arm7_9->branch_resume(target);
-	}
-	else if (armv4_5->core_state == ARM_STATE_THUMB)
-	{
+	else if (arm->core_state == ARM_STATE_THUMB)
 		arm7_9->branch_resume_thumb(target);
-	}
-	else
-	{
+	else {
 		LOG_ERROR("unhandled core state");
 		return ERROR_FAIL;
 	}
@@ -1962,7 +1952,7 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 	if (!debug_execution)
 	{
 		/* registers are now invalid */
-		register_cache_invalidate(armv4_5->core_cache);
+		register_cache_invalidate(arm->core_cache);
 		target->state = TARGET_RUNNING;
 		if ((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
 		{
@@ -1986,9 +1976,9 @@ int arm7_9_resume(struct target *target, int current, uint32_t address, int hand
 void arm7_9_enable_eice_step(struct target *target, uint32_t next_pc)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	uint32_t current_pc;
-	current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
+	current_pc = buf_get_u32(arm->pc->value, 0, 32);
 
 	if (next_pc != current_pc)
 	{
@@ -2038,7 +2028,7 @@ void arm7_9_disable_eice_step(struct target *target)
 int arm7_9_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct breakpoint *breakpoint = NULL;
 	int err, retval;
 
@@ -2050,9 +2040,9 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
-		buf_set_u32(armv4_5->pc->value, 0, 32, address);
+		buf_set_u32(arm->pc->value, 0, 32, address);
 
-	uint32_t current_pc = buf_get_u32(armv4_5->pc->value, 0, 32);
+	uint32_t current_pc = buf_get_u32(arm->pc->value, 0, 32);
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
@@ -2076,22 +2066,15 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 	}
 
 	if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
-	{
 		return retval;
-	}
 
 	arm7_9->enable_single_step(target, next_pc);
 
-	if (armv4_5->core_state == ARM_STATE_ARM)
-	{
+	if (arm->core_state == ARM_STATE_ARM)
 		arm7_9->branch_resume(target);
-	}
-	else if (armv4_5->core_state == ARM_STATE_THUMB)
-	{
+	else if (arm->core_state == ARM_STATE_THUMB)
 		arm7_9->branch_resume_thumb(target);
-	}
-	else
-	{
+	else {
 		LOG_ERROR("unhandled core state");
 		return ERROR_FAIL;
 	}
@@ -2105,7 +2088,7 @@ int arm7_9_step(struct target *target, int current, uint32_t address, int handle
 	arm7_9->disable_single_step(target);
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv4_5->core_cache);
+	register_cache_invalidate(arm->core_cache);
 
 	if (err != ERROR_OK)
 	{
@@ -2137,21 +2120,21 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 	int retval;
 	struct arm_reg *areg = r->arch_info;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 		return ERROR_FAIL;
 	if ((num < 0) || (num > 16))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if ((mode != ARM_MODE_ANY)
-			&& (mode != armv4_5->core_mode)
+			&& (mode != arm->core_mode)
 			&& (areg->mode != ARM_MODE_ANY))
 	{
 		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
-		tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8) & 0xE0;
+		tmp_cpsr = buf_get_u32(arm->cpsr->value, 0, 8) & 0xE0;
 		tmp_cpsr |= mode;
 		tmp_cpsr &= ~0x20;
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
@@ -2183,11 +2166,11 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 	buf_set_u32(r->value, 0, 32, value);
 
 	if ((mode != ARM_MODE_ANY)
-			&& (mode != armv4_5->core_mode)
+			&& (mode != arm->core_mode)
 			&& (areg->mode != ARM_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
 		arm7_9->write_xpsr_im8(target,
-				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+				buf_get_u32(arm->cpsr->value, 0, 8)
 					& ~0x20, 0, 0);
 	}
 
@@ -2200,20 +2183,20 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 	uint32_t reg[16];
 	struct arm_reg *areg = r->arch_info;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 		return ERROR_FAIL;
 	if ((num < 0) || (num > 16))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if ((mode != ARM_MODE_ANY)
-			&& (mode != armv4_5->core_mode)
+			&& (mode != arm->core_mode)
 			&& (areg->mode != ARM_MODE_ANY))	{
 		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
-		tmp_cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 8) & 0xE0;
+		tmp_cpsr = buf_get_u32(arm->cpsr->value, 0, 8) & 0xE0;
 		tmp_cpsr |= mode;
 		tmp_cpsr &= ~0x20;
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
@@ -2244,11 +2227,11 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 	r->dirty = 0;
 
 	if ((mode != ARM_MODE_ANY)
-			&& (mode != armv4_5->core_mode)
+			&& (mode != arm->core_mode)
 			&& (areg->mode != ARM_MODE_ANY))	{
 		/* restore processor mode (mask T bit) */
 		arm7_9->write_xpsr_im8(target,
-				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+				buf_get_u32(arm->cpsr->value, 0, 8)
 					& ~0x20, 0, 0);
 	}
 
@@ -2258,7 +2241,7 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	uint32_t reg[16];
 	uint32_t num_accesses = 0;
 	int thisrun_accesses;
@@ -2401,11 +2384,11 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 			break;
 	}
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 		return ERROR_FAIL;
 
 	for (i = 0; i <= last_reg; i++) {
-		struct reg *r = arm_reg_current(armv4_5, i);
+		struct reg *r = arm_reg_current(arm, i);
 
 		r->dirty = r->valid;
 	}
@@ -2417,12 +2400,12 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
-	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (armv4_5->core_mode != ARM_MODE_ABT))
+	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (arm->core_mode != ARM_MODE_ABT))
 	{
 		LOG_WARNING("memory read caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
 		arm7_9->write_xpsr_im8(target,
-				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+				buf_get_u32(arm->cpsr->value, 0, 8)
 					& ~0x20, 0, 0);
 
 		return ERROR_TARGET_DATA_ABORT;
@@ -2434,7 +2417,7 @@ int arm7_9_read_memory(struct target *target, uint32_t address, uint32_t size, u
 int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	uint32_t reg[16];
@@ -2624,11 +2607,11 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 1);
 	embeddedice_store_reg(dbg_ctrl);
 
-	if (!is_arm_mode(armv4_5->core_mode))
+	if (!is_arm_mode(arm->core_mode))
 		return ERROR_FAIL;
 
 	for (i = 0; i <= last_reg; i++) {
-		struct reg *r = arm_reg_current(armv4_5, i);
+		struct reg *r = arm_reg_current(arm, i);
 
 		r->dirty = r->valid;
 	}
@@ -2640,12 +2623,12 @@ int arm7_9_write_memory(struct target *target, uint32_t address, uint32_t size, 
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
-	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (armv4_5->core_mode != ARM_MODE_ABT))
+	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (arm->core_mode != ARM_MODE_ABT))
 	{
 		LOG_WARNING("memory write caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
 		arm7_9->write_xpsr_im8(target,
-				buf_get_u32(armv4_5->cpsr->value, 0, 8)
+				buf_get_u32(arm->cpsr->value, 0, 8)
 					& ~0x20, 0, 0);
 
 		return ERROR_TARGET_DATA_ABORT;
@@ -2806,10 +2789,10 @@ int arm7_9_examine(struct target *target)
 		(*cache_p) = t;
 		arm7_9->eice_cache = (*cache_p);
 
-		if (arm7_9->armv4_5_common.etm)
+		if (arm7_9->arm.etm)
 			(*cache_p)->next = etm_build_reg_cache(target,
 					&arm7_9->jtag_info,
-					arm7_9->armv4_5_common.etm);
+					arm7_9->arm.etm);
 
 		target_set_examined(target);
 	}
@@ -2817,7 +2800,7 @@ int arm7_9_examine(struct target *target)
 	retval = embeddedice_setup(target);
 	if (retval == ERROR_OK)
 		retval = arm7_9_setup(target);
-	if (retval == ERROR_OK && arm7_9->armv4_5_common.etm)
+	if (retval == ERROR_OK && arm7_9->arm.etm)
 		retval = etm_setup(target);
 	return retval;
 }
@@ -2934,7 +2917,7 @@ static int arm7_9_setup_semihosting(struct target *target, int enable)
 int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 {
 	int retval = ERROR_OK;
-	struct arm *armv4_5 = &arm7_9->armv4_5_common;
+	struct arm *arm = &arm7_9->arm;
 
 	arm7_9->common_magic = ARM7_9_COMMON_MAGIC;
 
@@ -2948,13 +2931,13 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 	arm7_9->fast_memory_access = false;
 	arm7_9->dcc_downloads = false;
 
-	armv4_5->arch_info = arm7_9;
-	armv4_5->read_core_reg = arm7_9_read_core_reg;
-	armv4_5->write_core_reg = arm7_9_write_core_reg;
-	armv4_5->full_context = arm7_9_full_context;
-	armv4_5->setup_semihosting = arm7_9_setup_semihosting;
+	arm->arch_info = arm7_9;
+	arm->read_core_reg = arm7_9_read_core_reg;
+	arm->write_core_reg = arm7_9_write_core_reg;
+	arm->full_context = arm7_9_full_context;
+	arm->setup_semihosting = arm7_9_setup_semihosting;
 
-	retval = arm_init_arch_info(target, armv4_5);
+	retval = arm_init_arch_info(target, arm);
 	if (retval != ERROR_OK)
 		return retval;
 

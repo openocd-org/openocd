@@ -340,8 +340,7 @@ static int arm720t_soft_reset_halt(struct target *target)
 	struct arm720t_common *arm720t = target_to_arm720(target);
 	struct reg *dbg_stat = &arm720t->arm7_9_common
 			.eice_cache->reg_list[EICE_DBG_STAT];
-	struct arm *armv4_5 = &arm720t->arm7_9_common
-			.armv4_5_common;
+	struct arm *arm = &arm720t->arm7_9_common.arm;
 
 	if ((retval = target_halt(target)) != ERROR_OK)
 	{
@@ -382,16 +381,16 @@ static int arm720t_soft_reset_halt(struct target *target)
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	uint32_t cpsr;
 
-	cpsr = buf_get_u32(armv4_5->cpsr->value, 0, 32);
+	cpsr = buf_get_u32(arm->cpsr->value, 0, 32);
 	cpsr &= ~0xff;
 	cpsr |= 0xd3;
-	arm_set_cpsr(armv4_5, cpsr);
-	armv4_5->cpsr->dirty = 1;
+	arm_set_cpsr(arm, cpsr);
+	arm->cpsr->dirty = 1;
 
 	/* start fetching from 0x0 */
-	buf_set_u32(armv4_5->pc->value, 0, 32, 0x0);
-	armv4_5->pc->dirty = 1;
-	armv4_5->pc->valid = 1;
+	buf_set_u32(arm->pc->value, 0, 32, 0x0);
+	arm->pc->dirty = 1;
+	arm->pc->valid = 1;
 
 	retval = arm720t_disable_mmu_caches(target, 1, 1, 1);
 	if (retval != ERROR_OK)
@@ -428,8 +427,8 @@ static int arm720t_init_arch_info(struct target *target,
 {
 	struct arm7_9_common *arm7_9 = &arm720t->arm7_9_common;
 
-	arm7_9->armv4_5_common.mrc = arm720t_mrc;
-	arm7_9->armv4_5_common.mcr = arm720t_mcr;
+	arm7_9->arm.mrc = arm720t_mrc;
+	arm7_9->arm.mcr = arm720t_mcr;
 
 	arm7tdmi_init_arch_info(target, arm7_9, tap);
 
@@ -454,7 +453,7 @@ static int arm720t_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm720t_common *arm720t = calloc(1, sizeof(*arm720t));
 
-	arm720t->arm7_9_common.armv4_5_common.is_armv4 = true;
+	arm720t->arm7_9_common.arm.is_armv4 = true;
 	return arm720t_init_arch_info(target, arm720t, target->tap);
 }
 

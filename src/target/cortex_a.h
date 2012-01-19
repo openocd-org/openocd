@@ -85,7 +85,7 @@ static inline struct cortex_a8_common *
 target_to_cortex_a8(struct target *target)
 {
 	return container_of(target->arch_info, struct cortex_a8_common,
-			armv7a_common.armv4_5_common);
+			armv7a_common.arm);
 }
 
 #endif /* CORTEX_A8_H */

@@ -42,7 +42,7 @@ static inline struct arm920t_common *
 target_to_arm920(struct target *target)
 {
 	return container_of(target->arch_info, struct arm920t_common,
-			arm7_9_common.armv4_5_common);
+			arm7_9_common.arm);
 }
 
 struct arm920t_cache_line

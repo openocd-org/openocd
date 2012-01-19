@@ -96,7 +96,7 @@ struct armv7a_mmu_common
 
 struct armv7a_common
 {
-	struct arm armv4_5_common;
+	struct arm arm;
 	int common_magic;
 	struct reg_cache *core_cache;
 
@@ -125,7 +125,7 @@ static inline struct armv7a_common *
 target_to_armv7a(struct target *target)
 {
 	return container_of(target->arch_info, struct armv7a_common,
-			armv4_5_common);
+			arm);
 }
 
 /* register offsets from armv7a.debug_base */

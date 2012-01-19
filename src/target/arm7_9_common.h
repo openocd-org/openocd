@@ -39,7 +39,7 @@
  */
 struct arm7_9_common
 {
-	struct arm armv4_5_common;
+	struct arm arm;
 	uint32_t common_magic;
 
 	struct arm_jtag jtag_info; /**< JTAG information for target */
@@ -109,7 +109,7 @@ static inline struct arm7_9_common *
 target_to_arm7_9(struct target *target)
 {
 	return container_of(target->arch_info, struct arm7_9_common,
-			armv4_5_common);
+			arm);
 }
 
 static inline bool is_arm7_9(struct arm7_9_common *arm7_9)

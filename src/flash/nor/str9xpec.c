@@ -286,7 +286,7 @@ static int str9xpec_build_block_list(struct flash_bank *bank)
 FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 {
 	struct str9xpec_flash_controller *str9xpec_info;
-	struct arm *armv4_5 = NULL;
+	struct arm *arm = NULL;
 	struct arm7_9_common *arm7_9 = NULL;
 	struct arm_jtag *jtag_info = NULL;
 
@@ -301,8 +301,8 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 	/* REVISIT verify that the jtag position of flash controller is
 	 * right after *THIS* core, which must be a STR9xx core ...
 	 */
-	armv4_5 = bank->target->arch_info;
-	arm7_9 = armv4_5->arch_info;
+	arm = bank->target->arch_info;
+	arm7_9 = arm->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 
 	/* The core is the next tap after the flash controller in the chain */
