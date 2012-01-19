@@ -581,13 +581,15 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
 	if (ERROR_OK != retval)
 	{
-		assert(controller->usage != NULL);
 		LOG_ERROR("'%s' driver rejected nand flash. Usage: %s",
 			controller->name,
 			controller->usage);
 		free(c);
 		return retval;
 	}
+
+	if (controller->usage == NULL)
+		LOG_DEBUG("'%s' driver usage field missing", controller->name);
 
 	nand_device_add(c);
 
