@@ -743,6 +743,8 @@ struct target_type stm32_stlink_target = {
 	.read_memory = stm32_stlink_read_memory,
 	.write_memory = stm32_stlink_write_memory,
 	.bulk_write_memory = stm32_stlink_bulk_write_memory,
+	.checksum_memory = armv7m_checksum_memory,
+	.blank_check_memory = armv7m_blank_check_memory,
 
 	.run_algorithm = armv7m_run_algorithm,
 	.start_algorithm = armv7m_start_algorithm,
