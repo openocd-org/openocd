@@ -71,6 +71,8 @@ struct stlink_usb_handle_s {
 	uint16_t vid;
 	/** */
 	uint16_t pid;
+	/** */
+	uint32_t sg_tag;
 };
 
 #define STLINK_OK			0x80
@@ -131,7 +133,158 @@ enum stlink_mode {
 };
 
 /** */
-static int stlink_usb_recv(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
+static void stlink_usb_recv_v1_create_cmd(char *b, int s, uint32_t tag, uint32_t rxsize,
+			uint8_t flag, uint8_t lun, uint8_t length)
+{
+	int i = 0;
+
+	memset(b, 0x00, s);
+
+	/* fill the send buffer */
+	strcpy(b, "USBC");
+	i += 4;
+
+	buf_set_u32(b+i, 0, 32, tag);
+	i += 4;
+	buf_set_u32(b+i, 0, 32, rxsize);
+	i += 4;
+	b[i++] = flag;
+	b[i++] = lun;
+	b[i++] = length;
+}
+
+/** */
+static int stlink_usb_recv_v1_mass_storage_cmd(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
+		    int rxsize)
+{
+	char sg_buffer[31];
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+	h->sg_tag = (h->sg_tag + 1) & 1;
+
+	stlink_usb_recv_v1_create_cmd(sg_buffer, 31, h->sg_tag, rxsize, STLINK_TX_EP, 0x00, txsize);
+
+	memcpy(sg_buffer+15, txbuf, 10);
+
+	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)sg_buffer, 31,
+				   1000) != 31) {
+		printf("send failed\n");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+#define REQUEST_SENSE		0x03
+#define REQUEST_SENSE_LENGTH	18
+
+/** */
+static int stlink_usb_recv_v1_get_status(void *handle, char *sg_buffer, int len)
+{
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	/* read status */
+	memset(sg_buffer, 0x00, len);
+
+	if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)sg_buffer,
+				len, 1000) != len)
+		return ERROR_FAIL;
+
+	uint32_t t1, t2;
+
+	t1 = buf_get_u32(sg_buffer+0, 0, 32);
+	t2 = buf_get_u32(sg_buffer+4, 0, 32);
+
+	/* check for USBS */
+	if (t1 != 0x53425355)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+/** */
+static int stlink_usb_recv_v1_get_sense(void *handle)
+{
+	struct stlink_usb_handle_s *h;
+	char cdb[16];
+	char sg_buffer[31];
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+	h->sg_tag = (h->sg_tag + 1) & 1;
+
+	cdb[0] = REQUEST_SENSE;
+	cdb[4] = REQUEST_SENSE_LENGTH;
+
+	stlink_usb_recv_v1_create_cmd(sg_buffer, 31, h->sg_tag, REQUEST_SENSE_LENGTH, STLINK_TX_EP,
+			0x00, 16);
+
+	memcpy(sg_buffer+15, cdb, 16);
+
+	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)sg_buffer, 16,
+				   1000) != 16)
+		return ERROR_FAIL;
+
+	if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)cdb,
+				  16, 1000) != 16)
+		return ERROR_FAIL;
+
+	if (stlink_usb_recv_v1_get_status(handle, sg_buffer, 13) != ERROR_OK)
+		return ERROR_FAIL;
+	/* check for sense */
+	if (sg_buffer[12] != 0)
+		return ERROR_FAIL;
+
+	/* if (sense[0] != 0x70 && sense[0] != 0x71) */
+
+	return ERROR_OK;
+}
+
+/** */
+static int stlink_usb_recv_v1(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
+		    int rxsize)
+{
+	int err;
+	char sg_buffer[31];
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	err = stlink_usb_recv_v1_mass_storage_cmd(handle, txbuf, txsize, rxbuf, rxsize);
+
+	if (err != ERROR_OK)
+		return err;
+
+	if (rxsize && rxbuf) {
+		if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)rxbuf,
+					  rxsize, 1000) != rxsize) {
+			LOG_DEBUG("jtag_libusb_bulk_read");
+			return ERROR_FAIL;
+		}
+	}
+
+	if (stlink_usb_recv_v1_get_status(handle, sg_buffer, 13) != ERROR_OK)
+		return ERROR_FAIL;
+	/* check for sense */
+	if (sg_buffer[12] == 1) {
+		LOG_DEBUG("get sense");
+		err = stlink_usb_recv_v1_get_sense(handle);
+	}
+	return err;
+}
+
+/** */
+static int stlink_usb_recv_v2(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
 		    int rxsize)
 {
 	struct stlink_usb_handle_s *h;
@@ -151,6 +304,25 @@ static int stlink_usb_recv(void *handle, const uint8_t *txbuf, int txsize, uint8
 		}
 	}
 	return ERROR_OK;
+}
+
+/** */
+static int stlink_usb_recv(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
+		    int rxsize)
+{
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	if (h->version.stlink == 1) {
+		return stlink_usb_recv_v1(handle, txbuf, txsize, rxbuf, rxsize);
+	} else {
+		if (txsize < STLINK_CMD_SIZE)
+			txsize = STLINK_CMD_SIZE;
+		return stlink_usb_recv_v2(handle, txbuf, txsize, rxbuf, rxsize);
+	}
 }
 
 /** */
@@ -363,6 +535,8 @@ static int stlink_usb_init_mode(void *handle)
 			emode = STLINK_MODE_DEBUG_JTAG;
 			break;
 		case STLINK_TRANSPORT_SWIM:
+			emode = STLINK_MODE_DEBUG_SWIM;
+			break;
 		default:
 			emode = STLINK_MODE_UNKNOWN;
 			break;
@@ -758,8 +932,8 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 	const uint16_t vids[] = { param->vid, 0 };
 	const uint16_t pids[] = { param->pid, 0 };
 
-	LOG_DEBUG("vid: %04x pid: %04x", param->vid,
-		  param->pid);
+	LOG_DEBUG("transport: %d vid: %04x pid: %04x", param->transport,
+		param->vid, param->pid);
 
 	if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
 		LOG_ERROR("open failed");
@@ -771,6 +945,16 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 	if (jtag_libusb_claim_interface(h->fd, 0) != ERROR_OK) {
 		LOG_DEBUG("claim interface failed");
 		return ERROR_FAIL;
+	}
+
+	/* wrap version for first read */
+	switch (param->pid) {
+		case 0x3744:
+			h->version.stlink = 1;
+			break;
+		default:
+			h->version.stlink = 2;
+			break;
 	}
 
 	/* get the device version */

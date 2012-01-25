@@ -67,6 +67,13 @@ static const struct stlink_layout stlink_layouts[] = {
 	 .close = stlink_layout_close,
 	 .api = &stlink_usb_layout_api,
 	 },
+	{
+	 .name = "sg",
+	 .type = STLINK_LAYOUT_SG,
+	 .open = stlink_layout_open,
+	 .close = stlink_layout_close,
+	 .api = &stlink_usb_layout_api,
+	 },
 	{.name = NULL, /* END OF TABLE */ },
 };
 
