@@ -28,15 +28,19 @@
 
 #include <jtag/stlink/stlink_tcl.h>
 #include <jtag/stlink/stlink_layout.h>
+#include <jtag/stlink/stlink_transport.h>
 #include <jtag/stlink/stlink_interface.h>
 
 #include <target/target.h>
 
-static struct stlink_interface_s stlink_if = { {0, 0, 0, 0}, 0, 0 };
+static struct stlink_interface_s stlink_if = { {0, 0, 0, 0, 0}, 0, 0 };
 
-int stlink_interface_open(void)
+int stlink_interface_open(enum stlink_transports tr)
 {
 	LOG_DEBUG("stlink_interface_open");
+
+	/* set transport mode */
+	stlink_if.param.transport = tr;
 
 	return stlink_if.layout->open(&stlink_if);
 }
@@ -44,6 +48,8 @@ int stlink_interface_open(void)
 int stlink_interface_init_target(struct target *t)
 {
 	int res;
+
+	LOG_DEBUG("stlink_interface_init_target");
 
 	/* this is the interface for the current target and we
 	 * can setup the private pointer in the tap structure

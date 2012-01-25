@@ -29,6 +29,7 @@
 
 #include <jtag/stlink/stlink_layout.h>
 #include <jtag/stlink/stlink_tcl.h>
+#include <jtag/stlink/stlink_transport.h>
 #include <jtag/stlink/stlink_interface.h>
 
 #define STLINK_LAYOUT_UNKNOWN	0
@@ -46,7 +47,7 @@ static int stlink_layout_open(struct stlink_interface_s *stlink_if)
 	res = stlink_if->layout->api->open(&stlink_if->param, &stlink_if->fd);
 
 	if (res != ERROR_OK) {
-		LOG_DEBUG("stlink_layout_open: failed");
+		LOG_DEBUG("failed");
 		return res;
 	}
 
@@ -64,7 +65,7 @@ static const struct stlink_layout stlink_layouts[] = {
 	 .type = STLINK_LAYOUT_USB,
 	 .open = stlink_layout_open,
 	 .close = stlink_layout_close,
-	 .api = &stlink_layout_api,
+	 .api = &stlink_usb_layout_api,
 	 },
 	{.name = NULL, /* END OF TABLE */ },
 };

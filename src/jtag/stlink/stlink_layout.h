@@ -25,7 +25,7 @@ struct stlink_interface_s;
 struct stlink_interface_param_s;
 
 /** */
-extern struct stlink_layout_api_s stlink_layout_api;
+extern struct stlink_layout_api_s stlink_usb_layout_api;
 
 /** */
 struct stlink_layout_api_s {

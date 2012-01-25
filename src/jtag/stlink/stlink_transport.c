@@ -29,6 +29,7 @@
 #include <helper/time_support.h>
 #include <target/target.h>
 #include <jtag/stlink/stlink_tcl.h>
+#include <jtag/stlink/stlink_transport.h>
 #include <jtag/stlink/stlink_interface.h>
 
 COMMAND_HANDLER(stlink_transport_jtag_command)
@@ -138,13 +139,35 @@ static int stlink_transport_init(struct command_context *cmd_ctx)
 {
 	LOG_DEBUG("stlink_transport_init");
 	struct target *t = get_current_target(cmd_ctx);
+	struct transport *transport;
+	enum stlink_transports tr;
 
 	if (!t) {
-		LOG_ERROR("stlink_transport_init: no current target");
+		LOG_ERROR("no current target");
 		return ERROR_FAIL;
 	}
 
-	int retval = stlink_interface_open();
+	transport = get_current_transport();
+
+	if (!transport) {
+		LOG_ERROR("no transport selected");
+		return ERROR_FAIL;
+	}
+
+	LOG_DEBUG("current transport %s", transport->name);
+
+	/* get selected transport as enum */
+	tr = STLINK_TRANSPORT_UNKNOWN;
+
+	if (strcmp(transport->name, "stlink_swd") == 0)
+		tr = STLINK_TRANSPORT_SWD;
+	else if (strcmp(transport->name, "stlink_jtag") == 0)
+		tr = STLINK_TRANSPORT_JTAG;
+	else if (strcmp(transport->name, "stlink_swim") == 0)
+		tr = STLINK_TRANSPORT_SWIM;
+
+	int retval = stlink_interface_open(tr);
+
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -169,21 +192,35 @@ static int stlink_transport_select(struct command_context *ctx)
 	return ERROR_OK;
 }
 
-static struct transport stlink_transport = {
-	.name = "stlink",
+static struct transport stlink_swd_transport = {
+	.name = "stlink_swd",
 	.select = stlink_transport_select,
 	.init = stlink_transport_init,
 };
 
-const char *stlink_transports[] = { "stlink", NULL };
+static struct transport stlink_jtag_transport = {
+	.name = "stlink_jtag",
+	.select = stlink_transport_select,
+	.init = stlink_transport_init,
+};
+
+static struct transport stlink_swim_transport = {
+	.name = "stlink_swim",
+	.select = stlink_transport_select,
+	.init = stlink_transport_init,
+};
+
+const char *stlink_transports[] = { "stlink_swd", "stlink_jtag", "stlink_swim", NULL };
 
 static void stlink_constructor(void) __attribute__ ((constructor));
 static void stlink_constructor(void)
 {
-	transport_register(&stlink_transport);
+	transport_register(&stlink_swd_transport);
+	transport_register(&stlink_jtag_transport);
+	transport_register(&stlink_swim_transport);
 }
 
 bool transport_is_stlink(void)
 {
-	return get_current_transport() == &stlink_transport;
+	return get_current_transport() == &stlink_swd_transport;
 }

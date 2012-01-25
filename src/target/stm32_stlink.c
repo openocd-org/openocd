@@ -25,6 +25,7 @@
 #endif
 
 #include "jtag/jtag.h"
+#include "jtag/stlink/stlink_transport.h"
 #include "jtag/stlink/stlink_interface.h"
 #include "jtag/stlink/stlink_layout.h"
 #include "register.h"
