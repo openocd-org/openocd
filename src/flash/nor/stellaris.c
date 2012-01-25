@@ -529,7 +529,7 @@ static void stellaris_set_flash_timing(struct flash_bank *bank)
 	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
 
 	/* only valid for Sandstorm and Fury class devices */
-	if (stellaris_info->target_class < 2)
+	if (stellaris_info->target_class > 1)
 		return;
 
 	LOG_DEBUG("usecrl = %i",(int)(usecrl));
