@@ -20,7 +20,7 @@
 
 	.text
 	.syntax unified
-	.cpu cortex-m3
+	.cpu cortex-m0
 	.thumb
 	.thumb_func
 	.global write
@@ -34,6 +34,7 @@
 	 * Clobbered:
 	 * r5 - rp
 	 * r6 - wp, tmp
+	 * r7 - tmp
 	 */
 
 #define STM32_FLASH_CR_OFFSET 0x10 /* offset of CR register from flash reg base */
@@ -48,24 +49,31 @@ wait_fifo:
 	beq 	wait_fifo
 	movs	r6, #1			/* set PG flag to enable flash programming */
 	str 	r6, [r0, #STM32_FLASH_CR_OFFSET]
-	ldrh	r6, [r5], #2	/* "*target_address++ = *rp++" */
-	strh	r6, [r4], #2
+	ldrh	r6, [r5]	/* "*target_address++ = *rp++" */
+	strh	r6, [r4]
+	adds	r5, #2
+	adds	r4, #2
 busy:
 	ldr 	r6, [r0, #STM32_FLASH_SR_OFFSET]	/* wait until BSY flag is reset */
-	tst 	r6, #1
+	movs	r7, #1
+	tst 	r6, r7
 	bne 	busy
-	tst 	r6, #0x14		/* check the error bits */
+	movs	r7, #0x14		/* check the error bits */
+	tst 	r6, r7
 	bne 	error
 	cmp 	r5, r3			/* wrap rp at end of buffer */
-	it  	cs
-	addcs	r5, r2, #8
+	bcc	no_wrap
+	mov	r5, r2
+	adds	r5, #8
+no_wrap:
 	str 	r5, [r2, #4]	/* store rp */
 	subs	r1, r1, #1		/* decrement halfword count */
-	cbz 	r1, exit		/* loop if not done */
-	b		wait_fifo
+	cmp     r1, #0
+	beq     exit		/* loop if not done */
+	b	wait_fifo
 error:
 	movs	r0, #0
-	str 	r0, [r2, #2]	/* set rp = 0 on error */
+	str 	r0, [r2, #4]	/* set rp = 0 on error */
 exit:
 	mov		r0, r6			/* return status in r0 */
 	bkpt	#0

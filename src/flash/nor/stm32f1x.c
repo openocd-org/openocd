@@ -635,35 +635,42 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		/* #define STM32_FLASH_CR_OFFSET 0x10 */
 		/* #define STM32_FLASH_SR_OFFSET 0x0C */
 		/* wait_fifo: */
-			0x16, 0x68,             /* ldr  	r6, [r2, #0] */
-			0x00, 0x2e,             /* cmp  	r6, #0 */
-			0x1a, 0xd0,             /* beq  	exit */
-			0x55, 0x68,             /* ldr  	r5, [r2, #4] */
-			0xb5, 0x42,             /* cmp  	r5, r6 */
-			0xf9, 0xd0,             /* beq  	wait_fifo */
-			0x01, 0x26,             /* movs 	r6, #1 */
-			0x06, 0x61,             /* str  	r6, [r0, #STM32_FLASH_CR_OFFSET] */
-			0x35, 0xf8, 0x02, 0x6b, /* ldrh 	r6, [r5], #2 */
-			0x24, 0xf8, 0x02, 0x6b, /* strh 	r6, [r4], #2 */
+			0x16, 0x68,   /* ldr   r6, [r2, #0] */
+			0x00, 0x2e,   /* cmp   r6, #0 */
+			0x1a, 0xd0,   /* beq   exit */
+			0x55, 0x68,   /* ldr   r5, [r2, #4] */
+			0xb5, 0x42,   /* cmp   r5, r6 */
+			0xf9, 0xd0,   /* beq   wait_fifo */
+			0x01, 0x26,   /* movs  r6, #1 */
+			0x06, 0x61,   /* str   r6, [r0, #STM32_FLASH_CR_OFFSET] */
+			0x2e, 0x88,   /* ldrh  r6, [r5, #0] */
+			0x26, 0x80,   /* strh  r6, [r4, #0] */
+			0x02, 0x35,   /* adds  r5, #2 */
+			0x02, 0x34,   /* adds  r4, #2 */
 		/* busy: */
-			0xc6, 0x68,             /* ldr  	r6, [r0, #STM32_FLASH_SR_OFFSET] */
-			0x16, 0xf0, 0x01, 0x0f, /* tst  	r6, #1 */
-			0xfb, 0xd1,             /* bne  	busy */
-			0x16, 0xf0, 0x14, 0x0f, /* tst  	r6, #0x14 */
-			0x07, 0xd1,             /* bne  	error */
-			0x9d, 0x42,             /* cmp  	r5, r3 */
-			0x28, 0xbf,             /* it   	cs */
-			0x02, 0xf1, 0x08, 0x05, /* addcs	r5, r2, #8 */
-			0x55, 0x60,             /* str  	r5, [r2, #4] */
-			0x01, 0x39,             /* subs 	r1, r1, #1 */
-			0x19, 0xb1,             /* cbz  	r1, exit */
-			0xe4, 0xe7,             /* b    	wait_fifo */
+			0xc6, 0x68,   /* ldr   r6, [r0, #STM32_FLASH_SR_OFFSET] */
+			0x01, 0x27,   /* movs  r7, #1 */
+			0x3e, 0x42,   /* tst   r6, r7 */
+			0xfb, 0xd1,   /* bne   busy */
+			0x14, 0x27,   /* movs  r7, #0x14 */
+			0x3e, 0x42,   /* tst   r6, r7 */
+			0x08, 0xd1,   /* bne   error */
+			0x9d, 0x42,   /* cmp   r5, r3 */
+			0x01, 0xd3,   /* bcc   no_wrap */
+			0x15, 0x46,   /* mov   r5, r2 */
+			0x08, 0x35,   /* adds  r5, #8 */
+		/* no_wrap: */
+			0x55, 0x60,   /* str   r5, [r2, #4] */
+			0x01, 0x39,   /* subs  r1, r1, #1 */
+			0x00, 0x29,   /* cmp   r1, #0 */
+			0x02, 0xd0,   /* beq   exit */
+			0xe3, 0xe7,   /* b     wait_fifo */
 		/* error: */
-			0x00, 0x20,             /* movs 	r0, #0 */
-			0xc2, 0xf8,	0x02, 0x00, /* str  	r0, [r2, #2] */
+			0x00, 0x20,   /* movs  r0, #0 */
+			0x50, 0x60,   /* str   r0, [r2, #4] */
 		/* exit: */
-			0x30, 0x46,             /* mov  	r0, r6 */
-			0x00, 0xbe,             /* bkpt 	#0 */
+			0x30, 0x46,   /* mov   r0, r6 */
+			0x00, 0xbe,   /* bkpt  #0 */
 	};
 
 	/* flash write code */
