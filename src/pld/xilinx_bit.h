@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef XILINX_BIT_H
 #define XILINX_BIT_H
 
 #include <helper/types.h>
 
-struct xilinx_bit_file
-{
+struct xilinx_bit_file {
 	uint8_t unknown_header[13];
 	uint8_t *source_file;
 	uint8_t *part_name;
@@ -35,4 +35,4 @@ struct xilinx_bit_file
 
 int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename);
 
-#endif /* XILINX_BIT_H */
+#endif	/* XILINX_BIT_H */

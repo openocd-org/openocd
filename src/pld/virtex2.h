@@ -17,14 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef VIRTEX2_H
 #define VIRTEX2_H
 
 #include <jtag/jtag.h>
 
-struct virtex2_pld_device
-{
-  struct jtag_tap *tap;
+struct virtex2_pld_device {
+	struct jtag_tap *tap;
 };
 
-#endif /* VIRTEX2_H */
+#endif	/* VIRTEX2_H */

@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -29,37 +30,32 @@
 
 
 static int read_section(FILE *input_file, int length_size, char section,
-		uint32_t *buffer_length, uint8_t **buffer)
+	uint32_t *buffer_length, uint8_t **buffer)
 {
 	uint8_t length_buffer[4];
 	int length;
 	char section_char;
 	int read_count;
 
-	if ((length_size != 2) && (length_size != 4))
-	{
+	if ((length_size != 2) && (length_size != 4)) {
 		LOG_ERROR("BUG: length_size neither 2 nor 4");
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
-	if ((read_count = fread(&section_char, 1, 1, input_file)) != 1)
-	{
+	read_count = fread(&section_char, 1, 1, input_file);
+	if (read_count != 1)
 		return ERROR_PLD_FILE_LOAD_FAILED;
-	}
 
 	if (section_char != section)
-	{
 		return ERROR_PLD_FILE_LOAD_FAILED;
-	}
 
-	if ((read_count = fread(length_buffer, 1, length_size, input_file)) != length_size)
-	{
+	read_count = fread(length_buffer, 1, length_size, input_file);
+	if (read_count != length_size)
 		return ERROR_PLD_FILE_LOAD_FAILED;
-	}
 
 	if (length_size == 4)
 		length = be_to_h_u32(length_buffer);
-	else /* (length_size == 2) */
+	else	/* (length_size == 2) */
 		length = be_to_h_u16(length_buffer);
 
 	if (buffer_length)
@@ -67,10 +63,9 @@ static int read_section(FILE *input_file, int length_size, char section,
 
 	*buffer = malloc(length);
 
-	if ((read_count = fread(*buffer, 1, length, input_file)) != length)
-	{
+	read_count = fread(*buffer, 1, length, input_file);
+	if (read_count != length)
 		return ERROR_PLD_FILE_LOAD_FAILED;
-	}
 
 	return ERROR_OK;
 }
@@ -84,14 +79,12 @@ int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename)
 	if (!filename || !bit_file)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (stat(filename, &input_stat) == -1)
-	{
+	if (stat(filename, &input_stat) == -1) {
 		LOG_ERROR("couldn't stat() %s: %s", filename, strerror(errno));
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
-	if (S_ISDIR(input_stat.st_mode))
-	{
+	if (S_ISDIR(input_stat.st_mode)) {
 		LOG_ERROR("%s is a directory", filename);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
@@ -101,14 +94,14 @@ int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename)
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
-	if (!(input_file = fopen(filename, "rb")))
-	{
+	input_file = fopen(filename, "rb");
+	if (input_file == NULL) {
 		LOG_ERROR("couldn't open %s: %s", filename, strerror(errno));
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
-	if ((read_count = fread(bit_file->unknown_header, 1, 13, input_file)) != 13)
-	{
+	read_count = fread(bit_file->unknown_header, 1, 13, input_file);
+	if (read_count != 13) {
 		LOG_ERROR("couldn't read unknown_header from file '%s'", filename);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
