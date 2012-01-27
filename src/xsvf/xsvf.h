@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef XSVF_H
 #define XSVF_H
 
@@ -24,7 +25,7 @@
 
 int xsvf_register_commands(struct command_context *cmd_ctx);
 
-#define ERROR_XSVF_EOF	(-200)
-#define ERROR_XSVF_FAILED	(-201)
+#define ERROR_XSVF_EOF  (-200)
+#define ERROR_XSVF_FAILED       (-201)
 
-#endif /* XSVF_H */
+#endif	/* XSVF_H */
