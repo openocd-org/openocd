@@ -21,7 +21,7 @@
 #ifndef OPENOCD_H
 #define OPENOCD_H
 
-/** 
+/**
  * Different applications can define this entry point to override
  * the default openocd main function.  On most systems, this will be
  * defined in src/openocd.c.
@@ -31,7 +31,7 @@
  */
 int openocd_main(int argc, char *argv[]);
 
-/// provides a hard-coded command environment setup
+/** provides a hard-coded command environment setup */
 extern const char openocd_startup_tcl[];
 
 #endif

@@ -25,16 +25,13 @@
 COMMAND_HANDLER(handle_foo_command)
 {
 	if (CMD_ARGC < 1 || CMD_ARGC > 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	uint32_t address;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 
 	const char *msg = "<unchanged>";
-	if (CMD_ARGC == 2)
-	{
+	if (CMD_ARGC == 2) {
 		bool enable;
 		COMMAND_PARSE_ENABLE(CMD_ARGV[1], enable);
 		msg = enable ? "enable" : "disable";
@@ -49,7 +46,7 @@ static bool foo_flag;
 COMMAND_HANDLER(handle_flag_command)
 {
 	return CALL_COMMAND_HANDLER(handle_command_parse_bool,
-			&foo_flag, "foo flag");
+		&foo_flag, "foo flag");
 }
 
 static const struct command_registration foo_command_handlers[] = {
@@ -80,15 +77,11 @@ static const struct command_registration foo_command_handlers[] = {
 static COMMAND_HELPER(handle_hello_args, const char **sep, const char **name)
 {
 	if (CMD_ARGC > 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	if (1 == CMD_ARGC)
-	{
+	if (1 == CMD_ARGC) {
 		*sep = " ";
 		*name = CMD_ARGV[0];
-	}
-	else
+	} else
 		*sep = *name = "";
 
 	return ERROR_OK;

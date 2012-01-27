@@ -47,38 +47,35 @@
 #include <strings.h>
 #endif
 
-#define OPENOCD_VERSION \
-		"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
+#define OPENOCD_VERSION	\
+	"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
 
 /* Give scripts and TELNET a way to find out what version this is */
 static int jim_version_command(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+	Jim_Obj * const *argv)
 {
 	if (argc > 2)
-	{
 		return JIM_ERR;
-	}
 	const char *str = "";
-	char * version_str;
+	char *version_str;
 	version_str = OPENOCD_VERSION;
 
 	if (argc == 2)
 		str = Jim_GetString(argv[1], NULL);
 
 	if (strcmp("git", str) == 0)
-	{
 		version_str = GITVERSION;
-	}
 
 	Jim_SetResult(interp, Jim_NewStringObj(interp, version_str, -1));
 
 	return JIM_OK;
 }
 
-static int log_target_callback_event_handler(struct target *target, enum target_event event, void *priv)
+static int log_target_callback_event_handler(struct target *target,
+	enum target_event event,
+	void *priv)
 {
-	switch (event)
-	{
+	switch (event) {
 		case TARGET_EVENT_GDB_START:
 			target->display = 0;
 			break;
@@ -86,8 +83,7 @@ static int log_target_callback_event_handler(struct target *target, enum target_
 			target->display = 1;
 			break;
 		case TARGET_EVENT_HALTED:
-			if (target->display)
-			{
+			if (target->display) {
 				/* do not display information when debugger caused the halt */
 				target_arch_state(target);
 			}
@@ -117,7 +113,7 @@ COMMAND_HANDLER(handle_init_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval;
-	static int initialized = 0;
+	static int initialized;
 	if (initialized)
 		return ERROR_OK;
 
@@ -127,8 +123,8 @@ COMMAND_HANDLER(handle_init_command)
 	if (ERROR_OK != retval)
 		return ERROR_FAIL;
 
-	if ((retval = adapter_init(CMD_CTX)) != ERROR_OK)
-	{
+	retval = adapter_init(CMD_CTX);
+	if (retval != ERROR_OK) {
 		/* we must be able to set up the debug adapter */
 		return retval;
 	}
@@ -251,11 +247,9 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&mflash_register_commands,
 		NULL
 	};
-	for (unsigned i = 0; NULL != command_registrants[i]; i++)
-	{
+	for (unsigned i = 0; NULL != command_registrants[i]; i++) {
 		int retval = (*command_registrants[i])(cmd_ctx);
-		if (ERROR_OK != retval)
-		{
+		if (ERROR_OK != retval) {
 			command_done(cmd_ctx);
 			return NULL;
 		}
@@ -263,7 +257,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	LOG_DEBUG("command registration: complete");
 
 	LOG_OUTPUT(OPENOCD_VERSION "\n"
-			"Licensed under GNU GPL v2\n");
+		"Licensed under GNU GPL v2\n");
 
 	global_cmd_ctx = cmd_ctx;
 
@@ -292,8 +286,7 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 	if (ERROR_OK != ret)
 		return EXIT_FAILURE;
 
-	if (init_at_startup)
-	{
+	if (init_at_startup) {
 		ret = command_run_line(cmd_ctx, "init");
 		if (ERROR_OK != ret)
 			return EXIT_FAILURE;
