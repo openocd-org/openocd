@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef SVF_H
 #define SVF_H
 
@@ -45,4 +46,4 @@ int svf_add_statemove(tap_state_t goal_state);
  */
 bool svf_tap_state_is_stable(tap_state_t state);
 
-#endif /* SVF_H */
+#endif	/* SVF_H */
