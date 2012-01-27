@@ -43,11 +43,9 @@
  */
 
 #include <helper/log.h>
-
 #include <transport/transport.h>
 
 extern struct command_context *global_cmd_ctx;
-
 
 /*-----------------------------------------------------------------------*/
 
@@ -68,13 +66,13 @@ static const char **allowed_transports;
 /** * The transport being used for the current OpenOCD session.  */
 static struct transport *session;
 
-static  int transport_select(struct command_context *ctx, const char *name)
+static int transport_select(struct command_context *ctx, const char *name)
 {
 	/* name may only identify a known transport;
 	 * caller guarantees session's transport isn't yet set.*/
 	for (struct transport *t = transport_list; t; t = t->next) {
-			if (strcmp(t->name, name) == 0) {
-				int retval = t->select(ctx);
+		if (strcmp(t->name, name) == 0) {
+			int retval = t->select(ctx);
 			/* select() registers commands specific to this
 			 * transport, and may also reset the link, e.g.
 			 * forcing it to JTAG or SWD mode.
@@ -82,8 +80,7 @@ static  int transport_select(struct command_context *ctx, const char *name)
 			if (retval == ERROR_OK)
 				session = t;
 			else
-				LOG_ERROR("Error selecting '%s' as "
-					"transport", t->name);
+				LOG_ERROR("Error selecting '%s' as transport", t->name);
 			return retval;
 		}
 	}
@@ -114,14 +111,12 @@ int allow_transports(struct command_context *ctx, const char **vector)
 		return ERROR_FAIL;
 	}
 
-
 	allowed_transports = vector;
 
 	/* autoselect if there's no choice ... */
 	if (!vector[1]) {
-		LOG_INFO("only one transport option; autoselect '%s'",
-				vector[0]);
-		return transport_select(ctx, vector [0]);
+		LOG_INFO("only one transport option; autoselect '%s'", vector[0]);
+		return transport_select(ctx, vector[0]);
 	} else {
 		/* guard against user config errors */
 		LOG_WARNING("must select a transport.");
@@ -132,7 +127,6 @@ int allow_transports(struct command_context *ctx, const char **vector)
 		return ERROR_OK;
 	}
 }
-
 
 /**
  * Used to verify corrrect adapter driver initialization.
@@ -170,9 +164,8 @@ int transport_register(struct transport *new_transport)
 		}
 	}
 
-	if (!new_transport->select || !new_transport->init) {
+	if (!new_transport->select || !new_transport->init)
 		LOG_ERROR("invalid transport %s", new_transport->name);
-	}
 
 	/* splice this into the list */
 	new_transport->next = transport_list;
@@ -190,11 +183,9 @@ int transport_register(struct transport *new_transport)
  */
 struct transport *get_current_transport(void)
 {
-
 	/* REVISIT -- constify */
 	return session;
 }
-
 
 /*-----------------------------------------------------------------------*/
 
@@ -280,49 +271,48 @@ COMMAND_HANDLER(handle_transport_list)
  * set supported by the debug adapter being used.  Return value
  * is scriptable (allowing "if swd then..." etc).
  */
-static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	switch (argc) {
-	case 1:			/* return/display */
-		if (!session) {
-			LOG_ERROR("session's transport is not selected.");
+		case 1:		/* return/display */
+			if (!session) {
+				LOG_ERROR("session's transport is not selected.");
+				return JIM_ERR;
+			} else {
+				Jim_SetResultString(interp, session->name, -1);
+				return JIM_OK;
+			}
+			break;
+		case 2:		/* assign */
+			if (session) {
+				/* can't change session's transport after-the-fact */
+				LOG_ERROR("session's transport is already selected.");
+				return JIM_ERR;
+			}
+
+			/* Is this transport supported by our debug adapter?
+			 * Example, "JTAG-only" means SWD is not supported.
+			 *
+			 * NOTE:  requires adapter to have been set up, with
+			 * transports declared via C.
+			 */
+			if (!allowed_transports) {
+				LOG_ERROR("Debug adapter doesn't support any transports?");
+				return JIM_ERR;
+			}
+
+			for (unsigned i = 0; allowed_transports[i]; i++) {
+
+				if (strcmp(allowed_transports[i], argv[1]->bytes) == 0)
+					return transport_select(global_cmd_ctx, argv[1]->bytes);
+			}
+
+			LOG_ERROR("Debug adapter doesn't support '%s' transport", argv[1]->bytes);
 			return JIM_ERR;
-		} else {
-			Jim_SetResultString(interp, session->name, -1);
-			return JIM_OK;
-		}
-		break;
-	case 2:			/* assign */
-	if (session) {
-		/* can't change session's transport after-the-fact */
-		LOG_ERROR("session's transport is already selected.");
-		return JIM_ERR;
-	}
-
-	/* Is this transport supported by our debug adapter?
-	 * Example, "JTAG-only" means SWD is not supported.
-	 *
-	 * NOTE:  requires adapter to have been set up, with
-	 * transports declared via C.
-	 */
-	if (!allowed_transports) {
-		LOG_ERROR("Debug adapter doesn't support any transports?");
-		return JIM_ERR;
-	}
-
-	for (unsigned i = 0; allowed_transports[i]; i++) {
-
-		if (strcmp(allowed_transports[i], argv[1]->bytes) == 0)
-		return transport_select(global_cmd_ctx, argv[1]->bytes);
-	}
-
-		LOG_ERROR("Debug adapter doesn't support '%s' "
-			"transport", argv[1]->bytes);
-		return JIM_ERR;
-		break;
-	default:
-		Jim_WrongNumArgs(interp, 1, argv, "[too many parameters]");
-		return JIM_ERR;
+			break;
+		default:
+			Jim_WrongNumArgs(interp, 1, argv, "[too many parameters]");
+			return JIM_ERR;
 	}
 }
 
@@ -365,7 +355,6 @@ static const struct command_registration transport_group[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
-
 
 int transport_register_commands(struct command_context *ctx)
 {
