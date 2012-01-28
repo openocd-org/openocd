@@ -2797,7 +2797,7 @@ COMMAND_HANDLER(handle_load_image_command)
 COMMAND_HANDLER(handle_dump_image_command)
 {
 	struct fileio fileio;
-	uint8_t buffer[560];
+	uint8_t *buffer;
 	int retval, retvaltemp;
 	uint32_t address, size;
 	struct duration bench;
@@ -2809,17 +2809,23 @@ COMMAND_HANDLER(handle_dump_image_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], size);
 
+	uint32_t buf_size = (size > 4096) ? 4096 : size;
+	buffer = malloc(buf_size);
+	if (!buffer)
+		return ERROR_FAIL;
+
 	retval = fileio_open(&fileio, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		free(buffer);
 		return retval;
+	}
 
 	duration_start(&bench);
 
-	retval = ERROR_OK;
 	while (size > 0)
 	{
 		size_t size_written;
-		uint32_t this_run_size = (size > 560) ? 560 : size;
+		uint32_t this_run_size = (size > buf_size) ? buf_size : size;
 		retval = target_read_buffer(target, address, this_run_size, buffer);
 		if (retval != ERROR_OK)
 		{
@@ -2835,6 +2841,8 @@ COMMAND_HANDLER(handle_dump_image_command)
 		size -= this_run_size;
 		address += this_run_size;
 	}
+
+	free(buffer);
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK))
 	{
