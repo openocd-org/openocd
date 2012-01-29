@@ -43,6 +43,9 @@ endif
 if FT2232_DRIVER
 DRIVERFILES += ft2232.c
 endif
+if FTDI_DRIVER
+DRIVERFILES += ftdi.c mpsse.c
+endif
 if USB_BLASTER_DRIVER
 DRIVERFILES += usb_blaster.c
 endif

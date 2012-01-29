@@ -385,6 +385,10 @@ AC_ARG_ENABLE([ft2232_ftd2xx],
   AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]),
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
 
+AC_ARG_ENABLE([ftdi],
+  AS_HELP_STRING([--enable-ftdi], [Enable building support for the MPSSE mode of FTDI based devices, using libusb-1.0 in asynchronous mode]),
+  [build_ftdi=$enableval], [build_ftdi=no])
+
 AC_ARG_ENABLE([usb_blaster_libftdi],
   AS_HELP_STRING([--enable-usb_blaster_libftdi], [Enable building support for the Altera USB-Blaster using the libftdi driver, opensource alternate of FTD2XX]),
   [build_usb_blaster_libftdi=$enableval], [build_usb_blaster_libftdi=no])
@@ -680,6 +684,12 @@ if test $build_ft2232_ftd2xx = yes; then
   AC_DEFINE([BUILD_FT2232_FTD2XX], [1], [1 if you want ftd2xx ft2232.])
 else
   AC_DEFINE([BUILD_FT2232_FTD2XX], [0], [0 if you don't want ftd2xx ft2232.])
+fi
+
+if test $build_ftdi = yes; then
+  AC_DEFINE([BUILD_FTDI], [1], [1 if you want ftdi.])
+else
+  AC_DEFINE([BUILD_FTDI], [0], [0 if you don't want ftdi.])
 fi
 
 if test $build_usb_blaster_libftdi = yes; then
@@ -1081,7 +1091,7 @@ fi
 # Check for libusb1 ported drivers.
 build_usb_ng=no
 if test $build_jlink = yes -o $build_stlink = yes -o $build_osbdm = yes -o \
-  $build_opendous = yes
+  $build_opendous = yes -o $build_ftdi = yes
 then
   build_usb_ng=yes
 fi
@@ -1114,6 +1124,7 @@ AM_CONDITIONAL([AT91RM9200], [test $build_at91rm9200 = yes])
 AM_CONDITIONAL([BITBANG], [test $build_bitbang = yes])
 AM_CONDITIONAL([FT2232_LIBFTDI], [test $build_ft2232_libftdi = yes])
 AM_CONDITIONAL([FT2232_DRIVER], [test $build_ft2232_ftd2xx = yes -o $build_ft2232_libftdi = yes])
+AM_CONDITIONAL([FTDI_DRIVER], [test $build_ftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_LIBFTDI], [test $build_usb_blaster_libftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $build_usb_blaster_ftd2xx = yes -o $build_usb_blaster_libftdi = yes])
 AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
