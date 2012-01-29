@@ -43,6 +43,11 @@
 #define STLINK_TX_SIZE	(4*128)
 #define STLINK_RX_SIZE	(4*128)
 
+enum stlink_jtag_api_version {
+	STLINK_JTAG_API_V1 = 0,
+	STLINK_JTAG_API_V2,
+};
+
 /** */
 struct stlink_usb_version {
 	/** */
@@ -51,6 +56,8 @@ struct stlink_usb_version {
 	int jtag;
 	/** */
 	int swim;
+	/** highest supported jtag api version */
+	enum stlink_jtag_api_version jtag_api_max;
 };
 
 /** */
@@ -73,55 +80,65 @@ struct stlink_usb_handle_s {
 	uint16_t pid;
 	/** */
 	uint32_t sg_tag;
+	/** this is the currently used jtag api */
+	enum stlink_jtag_api_version jtag_api;
 };
 
-#define STLINK_OK			0x80
-#define STLINK_FALSE			0x81
-#define STLINK_CORE_RUNNING		0x80
-#define STLINK_CORE_HALTED		0x81
-#define STLINK_CORE_STAT_UNKNOWN	-1
+#define STLINK_OK				0x80
+#define STLINK_FALSE				0x81
+#define STLINK_CORE_RUNNING			0x80
+#define STLINK_CORE_HALTED			0x81
+#define STLINK_CORE_STAT_UNKNOWN		-1
 
-#define STLINK_GET_VERSION		0xF1
-#define STLINK_DEBUG_COMMAND		0xF2
-#define STLINK_DFU_COMMAND		0xF3
-#define STLINK_SWIM_COMMAND		0xF4
-#define STLINK_GET_CURRENT_MODE		0xF5
+#define STLINK_GET_VERSION			0xF1
+#define STLINK_DEBUG_COMMAND			0xF2
+#define STLINK_DFU_COMMAND			0xF3
+#define STLINK_SWIM_COMMAND			0xF4
+#define STLINK_GET_CURRENT_MODE			0xF5
 
-#define STLINK_DEV_DFU_MODE		0x00
-#define STLINK_DEV_MASS_MODE		0x01
-#define STLINK_DEV_DEBUG_MODE		0x02
-#define STLINK_DEV_SWIM_MODE		0x03
-#define STLINK_DEV_UNKNOWN_MODE		-1
+#define STLINK_DEV_DFU_MODE			0x00
+#define STLINK_DEV_MASS_MODE			0x01
+#define STLINK_DEV_DEBUG_MODE			0x02
+#define STLINK_DEV_SWIM_MODE			0x03
+#define STLINK_DEV_UNKNOWN_MODE			-1
 
-#define STLINK_DFU_EXIT			0x07
+#define STLINK_DFU_EXIT				0x07
 
-#define STLINK_SWIM_ENTER		0x00
-#define STLINK_SWIM_EXIT		0x01
+#define STLINK_SWIM_ENTER			0x00
+#define STLINK_SWIM_EXIT			0x01
 
-#define STLINK_DEBUG_ENTER_JTAG		0x00
-#define STLINK_DEBUG_GETSTATUS		0x01
-#define STLINK_DEBUG_FORCEDEBUG		0x02
-#define STLINK_DEBUG_RESETSYS		0x03
-#define STLINK_DEBUG_READALLREGS	0x04
-#define STLINK_DEBUG_READREG		0x05
-#define STLINK_DEBUG_WRITEREG		0x06
-#define STLINK_DEBUG_READMEM_32BIT	0x07
-#define STLINK_DEBUG_WRITEMEM_32BIT	0x08
-#define STLINK_DEBUG_RUNCORE		0x09
-#define STLINK_DEBUG_STEPCORE		0x0a
-#define STLINK_DEBUG_SETFP		0x0b
-#define STLINK_DEBUG_READMEM_8BIT	0x0c
-#define STLINK_DEBUG_WRITEMEM_8BIT	0x0d
-#define STLINK_DEBUG_CLEARFP		0x0e
-#define STLINK_DEBUG_WRITEDEBUGREG	0x0f
+#define STLINK_DEBUG_ENTER_JTAG			0x00
+#define STLINK_DEBUG_GETSTATUS			0x01
+#define STLINK_DEBUG_FORCEDEBUG			0x02
+#define STLINK_DEBUG_APIV1_RESETSYS		0x03
+#define STLINK_DEBUG_APIV1_READALLREGS		0x04
+#define STLINK_DEBUG_APIV1_READREG		0x05
+#define STLINK_DEBUG_APIV1_WRITEREG		0x06
+#define STLINK_DEBUG_READMEM_32BIT		0x07
+#define STLINK_DEBUG_WRITEMEM_32BIT		0x08
+#define STLINK_DEBUG_RUNCORE			0x09
+#define STLINK_DEBUG_STEPCORE			0x0a
+#define STLINK_DEBUG_APIV1_SETFP		0x0b
+#define STLINK_DEBUG_READMEM_8BIT		0x0c
+#define STLINK_DEBUG_WRITEMEM_8BIT		0x0d
+#define STLINK_DEBUG_APIV1_CLEARFP		0x0e
+#define STLINK_DEBUG_APIV1_WRITEDEBUGREG	0x0f
+#define STLINK_DEBUG_APIV1_SETWATCHPOINT	0x10
 
-#define STLINK_DEBUG_ENTER_JTAG		0x00
-#define STLINK_DEBUG_ENTER_SWD		0xa3
+#define STLINK_DEBUG_ENTER_JTAG			0x00
+#define STLINK_DEBUG_ENTER_SWD			0xa3
 
-#define STLINK_DEBUG_ENTER		0x20
-#define STLINK_DEBUG_EXIT		0x21
-#define STLINK_DEBUG_READCOREID		0x22
+#define STLINK_DEBUG_APIV1_ENTER		0x20
+#define STLINK_DEBUG_EXIT			0x21
+#define STLINK_DEBUG_READCOREID			0x22
 
+#define STLINK_DEBUG_APIV2_ENTER		0x30
+
+#define STLINK_DEBUG_APIV2_RESETSYS		0x32
+#define STLINK_DEBUG_APIV2_READREG		0x33
+#define STLINK_DEBUG_APIV2_WRITEREG		0x34
+
+#define STLINK_DEBUG_APIV2_READALLREGS		0x3A
 /** */
 enum stlink_mode {
 	STLINK_MODE_UNKNOWN = 0,
@@ -365,9 +382,19 @@ static int stlink_usb_version(void *handle)
 	h->vid = buf_get_u32(h->rxbuf, 16, 16);
 	h->pid = buf_get_u32(h->rxbuf, 32, 16);
 
-	LOG_DEBUG("STLINK v%d JTAG v%d SWIM v%d VID %04X PID %04X",
+	/* set the supported jtag api version
+	 * V1 doesn't support API V2 at all
+	 * V2 support API V2 since JTAG V13
+	 */
+	if ((h->version.stlink == 2) && (h->version.jtag > 12))
+		h->version.jtag_api_max = STLINK_JTAG_API_V2;
+	else
+		h->version.jtag_api_max = STLINK_JTAG_API_V1;
+
+	LOG_DEBUG("STLINK v%d JTAG v%d API v%d SWIM v%d VID %04X PID %04X",
 		h->version.stlink,
 		h->version.jtag,
+		(h->version.jtag_api_max == STLINK_JTAG_API_V1) ? 1 : 2,
 		h->version.swim,
 		h->vid,
 		h->pid);
@@ -414,12 +441,18 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 	switch (type) {
 		case STLINK_MODE_DEBUG_JTAG:
 			h->txbuf[0] = STLINK_DEBUG_COMMAND;
-			h->txbuf[1] = STLINK_DEBUG_ENTER;
+			if (h->jtag_api == STLINK_JTAG_API_V1)
+				h->txbuf[1] = STLINK_DEBUG_APIV1_ENTER;
+			else
+				h->txbuf[1] = STLINK_DEBUG_APIV2_ENTER;
 			h->txbuf[2] = STLINK_DEBUG_ENTER_JTAG;
 			break;
 		case STLINK_MODE_DEBUG_SWD:
 			h->txbuf[0] = STLINK_DEBUG_COMMAND;
-			h->txbuf[1] = STLINK_DEBUG_ENTER;
+			if (h->jtag_api == STLINK_JTAG_API_V1)
+				h->txbuf[1] = STLINK_DEBUG_APIV1_ENTER;
+			else
+				h->txbuf[1] = STLINK_DEBUG_APIV2_ENTER;
 			h->txbuf[2] = STLINK_DEBUG_ENTER_SWD;
 			break;
 		case STLINK_MODE_DEBUG_SWIM:
@@ -599,6 +632,9 @@ static enum target_state stlink_usb_state(void *handle)
 
 	h = (struct stlink_usb_handle_s *)handle;
 
+	if (h->jtag_api == STLINK_JTAG_API_V2)
+		return TARGET_UNKNOWN;
+
 	stlink_usb_init_buffer(handle);
 
 	h->txbuf[0] = STLINK_DEBUG_COMMAND;
@@ -630,7 +666,11 @@ static int stlink_usb_reset(void *handle)
 	stlink_usb_init_buffer(handle);
 
 	h->txbuf[0] = STLINK_DEBUG_COMMAND;
-	h->txbuf[1] = STLINK_DEBUG_RESETSYS;
+
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->txbuf[1] = STLINK_DEBUG_APIV1_RESETSYS;
+	else
+		h->txbuf[1] = STLINK_DEBUG_APIV2_RESETSYS;
 
 	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, h->rxbuf, 2);
 
@@ -651,6 +691,9 @@ static int stlink_usb_run(void *handle)
 	assert(handle != NULL);
 
 	h = (struct stlink_usb_handle_s *)handle;
+
+	if (h->jtag_api == STLINK_JTAG_API_V2)
+		return ERROR_FAIL;
 
 	stlink_usb_init_buffer(handle);
 
@@ -675,6 +718,9 @@ static int stlink_usb_halt(void *handle)
 
 	h = (struct stlink_usb_handle_s *)handle;
 
+	if (h->jtag_api == STLINK_JTAG_API_V2)
+		return ERROR_FAIL;
+
 	stlink_usb_init_buffer(handle);
 
 	h->txbuf[0] = STLINK_DEBUG_COMMAND;
@@ -697,6 +743,9 @@ static int stlink_usb_step(void *handle)
 	assert(handle != NULL);
 
 	h = (struct stlink_usb_handle_s *)handle;
+
+	if (h->jtag_api == STLINK_JTAG_API_V2)
+		return ERROR_FAIL;
 
 	stlink_usb_init_buffer(handle);
 
@@ -724,7 +773,11 @@ static int stlink_usb_read_regs(void *handle)
 	stlink_usb_init_buffer(handle);
 
 	h->txbuf[0] = STLINK_DEBUG_COMMAND;
-	h->txbuf[1] = STLINK_DEBUG_READALLREGS;
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->txbuf[1] = STLINK_DEBUG_APIV1_READALLREGS;
+	else
+		h->txbuf[1] = STLINK_DEBUG_APIV2_READALLREGS;
+
 
 	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, h->rxbuf, 84);
 
@@ -747,7 +800,10 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 	stlink_usb_init_buffer(handle);
 
 	h->txbuf[0] = STLINK_DEBUG_COMMAND;
-	h->txbuf[1] = STLINK_DEBUG_READREG;
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->txbuf[1] = STLINK_DEBUG_APIV1_READREG;
+	else
+		h->txbuf[1] = STLINK_DEBUG_APIV2_READREG;
 	h->txbuf[2] = num;
 
 	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, h->rxbuf, 4);
@@ -773,7 +829,10 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 	stlink_usb_init_buffer(handle);
 
 	h->txbuf[0] = STLINK_DEBUG_COMMAND;
-	h->txbuf[1] = STLINK_DEBUG_WRITEREG;
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->txbuf[1] = STLINK_DEBUG_APIV1_WRITEREG;
+	else
+		h->txbuf[1] = STLINK_DEBUG_APIV2_WRITEREG;
 	h->txbuf[2] = num;
 	h_u32_to_le(h->txbuf + 3, val);
 
@@ -998,6 +1057,10 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 		return err;
 	}
 
+	/* set the used jtag api */
+	h->jtag_api = STLINK_JTAG_API_V1;
+
+	/* initialize the debug hardware */
 	err = stlink_usb_init_mode(h);
 
 	if (err != ERROR_OK) {
