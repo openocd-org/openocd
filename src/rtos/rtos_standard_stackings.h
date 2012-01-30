@@ -29,4 +29,4 @@
 
 extern const struct rtos_register_stacking rtos_standard_Cortex_M3_stacking;
 
-#endif //ifndef INCLUDED_RTOS_STANDARD_STACKINGS_H_
+#endif	/* ifndef INCLUDED_RTOS_STANDARD_STACKINGS_H_ */

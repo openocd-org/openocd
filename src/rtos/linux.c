@@ -102,15 +102,15 @@ static int linux_os_create(struct target *target);
 
 static int linux_os_dummy_update(struct rtos *rtos)
 {
-	/*  update is done only when thread request come */
-	/*  too many thread to do it on each stop */
+	/*  update is done only when thread request come
+	 *  too many thread to do it on each stop */
 	return 0;
 }
 
 static int linux_compute_virt2phys(struct target *target, uint32_t address)
 {
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	uint32_t pa = 0;
 	int retval = target->type->virt2phys(target, address, &pa);
 	if (retval != ERROR_OK) {
@@ -127,12 +127,12 @@ static int linux_compute_virt2phys(struct target *target, uint32_t address)
 }
 
 static int linux_read_memory(struct target *target,
-			     uint32_t address, uint32_t size, uint32_t count,
-			     uint8_t *buffer)
+	uint32_t address, uint32_t size, uint32_t count,
+	uint8_t *buffer)
 {
 #ifdef PHYS
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	uint32_t pa = (address & linux_os->phys_mask) + linux_os->phys_base;
 #endif
 	if (address < 0xc000000) {
@@ -156,7 +156,7 @@ static char *reg_converter(char *buffer, void *reg, int size)
 	return buffer;
 }
 
-int fill_buffer(struct target *target, uint32_t addr, uint8_t * buffer)
+int fill_buffer(struct target *target, uint32_t addr, uint8_t *buffer)
 {
 
 	if ((addr & 0xfffffffc) != addr)
@@ -176,11 +176,11 @@ uint32_t get_buffer(struct target *target, const uint8_t *buffer)
 }
 
 static int linux_os_thread_reg_list(struct rtos *rtos,
-				    int64_t thread_id, char **hex_reg_list)
+	int64_t thread_id, char **hex_reg_list)
 {
 	struct target *target = rtos->target;
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	int i = 0;
 	struct current_thread *tmp = linux_os->current_threads;
 	struct current_thread *next;
@@ -216,15 +216,17 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 
 		if (found == 0) {
 			LOG_ERROR
-			    ("current thread %" PRIx64": no target to perform access of core id %x",
-			     thread_id, next->core_id);
+			(
+				"current thread %" PRIx64 ": no target to perform access of core id %x",
+				thread_id,
+				next->core_id);
 			return ERROR_FAIL;
 		}
 
 		/*LOG_INFO("thread %lx current on core %x",thread_id,
 		 * target->coreid);*/
 		retval =
-		    target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+			target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
 
 		if (retval != ERROR_OK)
 			return retval;
@@ -241,8 +243,8 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 				reg_list[i]->type->get(reg_list[i]);
 
 			hex_string = reg_converter(hex_string,
-						   reg_list[i]->value,
-						   (reg_list[i]->size) / 8);
+					reg_list[i]->value,
+					(reg_list[i]->size) / 8);
 		}
 
 		free(reg_list);
@@ -256,49 +258,48 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 			hex_string += sprintf(hex_string, "%02x", 0);
 
 		while ((temp != NULL) &&
-		       (temp->threadid != target->rtos->current_threadid))
+				(temp->threadid != target->rtos->current_threadid))
 			temp = temp->next;
 
 		if (temp != NULL) {
 			if (temp->context == NULL)
 				temp->context = cpu_context_read(target,
-								 temp->
-								 base_addr,
-								 &temp->
-								 thread_info_addr);
+						temp->
+						base_addr,
+						&temp->
+						thread_info_addr);
 
 			hex_string =
-			    reg_converter(hex_string, &temp->context->R4, 4);
+				reg_converter(hex_string, &temp->context->R4, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->R5, 4);
+				reg_converter(hex_string, &temp->context->R5, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->R6, 4);
+				reg_converter(hex_string, &temp->context->R6, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->R7, 4);
+				reg_converter(hex_string, &temp->context->R7, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->R8, 4);
+				reg_converter(hex_string, &temp->context->R8, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->R9, 4);
+				reg_converter(hex_string, &temp->context->R9, 4);
 
 			for (i = 0; i < 4; i++)	/*R10 = 0x0 */
 				hex_string += sprintf(hex_string, "%02x", 0);
 
 			hex_string =
-			    reg_converter(hex_string, &temp->context->FP, 4);
+				reg_converter(hex_string, &temp->context->FP, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->IP, 4);
+				reg_converter(hex_string, &temp->context->IP, 4);
 			hex_string =
-			    reg_converter(hex_string, &temp->context->SP, 4);
+				reg_converter(hex_string, &temp->context->SP, 4);
 
 			for (i = 0; i < 4; i++)
 				hex_string += sprintf(hex_string, "%02x", 0);
 
 			hex_string =
-			    reg_converter(hex_string, &temp->context->PC, 4);
+				reg_converter(hex_string, &temp->context->PC, 4);
 
-			for (i = 0; i < 100; i++) {	/*100 */
+			for (i = 0; i < 100; i++)	/*100 */
 				hex_string += sprintf(hex_string, "%02x", 0);
-			}
 
 			uint32_t cpsr = 0x00000000;
 			hex_string = reg_converter(hex_string, &cpsr, 4);
@@ -325,7 +326,7 @@ static int linux_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *)
-	    malloc(sizeof(symbol_table_elem_t) / sizeof(char *));
+		malloc(sizeof(symbol_table_elem_t) / sizeof(char *));
 
 	for (i = 0; i < sizeof(linux_symbol_list) / sizeof(char *); i++)
 		(*symbol_list)[i].symbol_name = linux_symbol_list[i];
@@ -348,7 +349,7 @@ const struct rtos_type Linux_os = {
 };
 
 static int linux_thread_packet(struct connection *connection, char *packet,
-			       int packet_size);
+		int packet_size);
 static void linux_identify_current_threads(struct target *target);
 
 #ifdef PID_CHECK
@@ -370,7 +371,6 @@ int fill_task_pid(struct target *target, struct threads *t)
 
 int fill_task(struct target *target, struct threads *t)
 {
-
 	int retval;
 	uint32_t pid_addr = t->base_addr + PID;
 	uint32_t mem_addr = t->base_addr + MEM;
@@ -414,10 +414,9 @@ int fill_task(struct target *target, struct threads *t)
 				t->asid = val;
 			} else
 				LOG_ERROR
-				    ("fill task: unable to read memory -- ASID");
-		} else {
+					("fill task: unable to read memory -- ASID");
+		} else
 			t->asid = 0;
-		}
 	} else
 		LOG_ERROR("fill task: unable to read memory");
 
@@ -442,26 +441,26 @@ int get_name(struct target *target, struct threads *t)
 	}
 
 	uint32_t raw_name = target_buffer_get_u32(target,
-						  (const uint8_t *)
-						  &full_name[0]);
+			(const uint8_t *)
+			&full_name[0]);
 	t->name[3] = raw_name >> 24;
 	t->name[2] = raw_name >> 16;
 	t->name[1] = raw_name >> 8;
 	t->name[0] = raw_name;
 	raw_name =
-	    target_buffer_get_u32(target, (const uint8_t *)&full_name[1]);
+		target_buffer_get_u32(target, (const uint8_t *)&full_name[1]);
 	t->name[7] = raw_name >> 24;
 	t->name[6] = raw_name >> 16;
 	t->name[5] = raw_name >> 8;
 	t->name[4] = raw_name;
 	raw_name =
-	    target_buffer_get_u32(target, (const uint8_t *)&full_name[2]);
+		target_buffer_get_u32(target, (const uint8_t *)&full_name[2]);
 	t->name[11] = raw_name >> 24;
 	t->name[10] = raw_name >> 16;
 	t->name[9] = raw_name >> 8;
 	t->name[8] = raw_name;
 	raw_name =
-	    target_buffer_get_u32(target, (const uint8_t *)&full_name[3]);
+		target_buffer_get_u32(target, (const uint8_t *)&full_name[3]);
 	t->name[15] = raw_name >> 24;
 	t->name[14] = raw_name >> 16;
 	t->name[13] = raw_name >> 8;
@@ -479,7 +478,7 @@ int get_current(struct target *target, int create)
 	uint32_t ti_addr;
 	uint8_t *buffer = calloc(1, 4);
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	struct current_thread *ctt = linux_os->current_threads;
 
 	/*  invalid current threads content */
@@ -495,8 +494,7 @@ int get_current(struct target *target, int create)
 		int retval;
 
 		if (target_get_gdb_reg_list(head->target, &reg_list,
-						      &reg_list_size) !=
-		    ERROR_OK)
+				&reg_list_size) != ERROR_OK)
 			return ERROR_TARGET_FAILURE;
 
 		if (!reg_list[13]->valid)
@@ -516,19 +514,17 @@ int get_current(struct target *target, int create)
 			if (retval == ERROR_OK) {
 				/*uint32_t cpu = get_buffer(target, buffer);*/
 				struct current_thread *ct =
-				    linux_os->current_threads;
+					linux_os->current_threads;
 				cpu = head->target->coreid;
 
-				while ((ct != NULL)
-				       && (ct->core_id != (int32_t) cpu)) {
+				while ((ct != NULL) && (ct->core_id != (int32_t) cpu))
 					ct = ct->next;
-				}
 
 				if ((ct != NULL) && (ct->TS == 0xdeadbeef))
 					ct->TS = TS;
 				else
 					LOG_ERROR
-					    ("error in linux current thread update");
+						("error in linux current thread update");
 
 				if (create) {
 					struct threads *t;
@@ -558,7 +554,7 @@ int get_current(struct target *target, int create)
 }
 
 struct cpu_context *cpu_context_read(struct target *target, uint32_t base_addr,
-				     uint32_t *thread_info_addr_old)
+	uint32_t *thread_info_addr_old)
 {
 	struct cpu_context *context = calloc(1, sizeof(struct cpu_context));
 	uint32_t preempt_count_addr = 0;
@@ -600,11 +596,11 @@ retry:
 	else {
 		if (*thread_info_addr_old != 0xdeadbeef) {
 			LOG_ERROR
-			    ("cpu_context: cannot read at thread_info_addr");
+				("cpu_context: cannot read at thread_info_addr");
 
 			if (*thread_info_addr_old < LINUX_USER_KERNEL_BORDER)
 				LOG_INFO
-				    ("cpu_context : thread_info_addr in userspace!!!");
+					("cpu_context : thread_info_addr in userspace!!!");
 
 			*thread_info_addr_old = 0xdeadbeef;
 			goto retry;
@@ -616,7 +612,7 @@ retry:
 	thread_info_addr += CPU_CONT;
 
 	retval = linux_read_memory(target, thread_info_addr, 4, 10,
-				   (uint8_t *) registers);
+			(uint8_t *) registers);
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("cpu_context: unable to read memory\n");
@@ -624,25 +620,25 @@ retry:
 	}
 
 	context->R4 =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[0]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[0]);
 	context->R5 =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[1]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[1]);
 	context->R6 =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[2]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[2]);
 	context->R7 =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[3]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[3]);
 	context->R8 =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[4]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[4]);
 	context->R9 =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[5]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[5]);
 	context->IP =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[6]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[6]);
 	context->FP =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[7]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[7]);
 	context->SP =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[8]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[8]);
 	context->PC =
-	    target_buffer_get_u32(target, (const uint8_t *)&registers[9]);
+		target_buffer_get_u32(target, (const uint8_t *)&registers[9]);
 
 	if (*thread_info_addr_old == 0xdeadbeef)
 		*thread_info_addr_old = thread_info_addr_update;
@@ -668,7 +664,7 @@ uint32_t next_task(struct target *target, struct threads *t)
 }
 
 struct current_thread *add_current_thread(struct current_thread *currents,
-					  struct current_thread *ct)
+	struct current_thread *ct)
 {
 	ct->next = NULL;
 
@@ -687,7 +683,7 @@ struct current_thread *add_current_thread(struct current_thread *currents,
 }
 
 struct threads *liste_del_task(struct threads *task_list, struct threads **t,
-			       struct threads *prev)
+	struct threads *prev)
 {
 	LOG_INFO("del task %" PRId64, (*t)->threadid);
 	prev->next = (*t)->next;
@@ -705,7 +701,7 @@ struct threads *liste_del_task(struct threads *task_list, struct threads **t,
 }
 
 struct threads *liste_add_task(struct threads *task_list, struct threads *t,
-			       struct threads **last)
+	struct threads **last)
 {
 	t->next = NULL;
 
@@ -723,10 +719,10 @@ struct threads *liste_add_task(struct threads *task_list, struct threads *t,
 			*last = t;
 			return task_list;
 		} else {
-			(*last)->next = t;
-			*last = t;
-			return task_list;
-		}
+		(*last)->next = t;
+		*last = t;
+		return task_list;
+	}
 }
 
 #ifdef PID_CHECK
@@ -758,7 +754,7 @@ int linux_get_tasks(struct target *target, int context)
 	int loop = 0;
 	int retval = 0;
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	linux_os->thread_list = NULL;
 	linux_os->thread_count = 0;
 
@@ -776,9 +772,7 @@ int linux_get_tasks(struct target *target, int context)
 	retval = get_current(target, 1);
 
 	while (((t->base_addr != linux_os->init_task_addr) &&
-		(t->base_addr != 0))
-	       || (loop == 0)
-	    ) {
+		(t->base_addr != 0)) || (loop == 0)) {
 		loop++;
 		retval = fill_task(target, t);
 		retval = get_name(target, t);
@@ -806,15 +800,15 @@ int linux_get_tasks(struct target *target, int context)
 			linux_os->threadid_count++;
 
 			linux_os->thread_list =
-			    liste_add_task(linux_os->thread_list, t, &last);
+				liste_add_task(linux_os->thread_list, t, &last);
 			/* no interest to fill the context if it is a current thread. */
 			linux_os->thread_count++;
 			t->thread_info_addr = 0xdeadbeef;
 
 			if (context)
 				t->context =
-				    cpu_context_read(target, t->base_addr,
-						     &t->thread_info_addr);
+					cpu_context_read(target, t->base_addr,
+						&t->thread_info_addr);
 		} else {
 			/*LOG_INFO("thread %s is a current thread already created",t->name); */
 			free(t);
@@ -830,9 +824,9 @@ int linux_get_tasks(struct target *target, int context)
 	linux_os->preupdtate_threadid_count = linux_os->threadid_count - 1;
 	/*  check that all current threads have been identified  */
 
-	LOG_INFO("complete time %" PRId64", thread mean %" PRId64"\n",
-		 (timeval_ms() - start),
-		 (timeval_ms() - start) / linux_os->threadid_count);
+	LOG_INFO("complete time %" PRId64 ", thread mean %" PRId64 "\n",
+		(timeval_ms() - start),
+		(timeval_ms() - start) / linux_os->threadid_count);
 
 	LOG_INFO("threadid count %d", linux_os->threadid_count);
 
@@ -842,7 +836,7 @@ int linux_get_tasks(struct target *target, int context)
 static int clean_threadlist(struct target *target)
 {
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	struct threads *old, *temp = linux_os->thread_list;
 
 	while (temp != NULL) {
@@ -860,9 +854,8 @@ static int clean_threadlist(struct target *target)
 
 static int linux_os_clean(struct target *target)
 {
-
 	struct linux_os *os_linux = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	clean_threadlist(target);
 	os_linux->init_task_addr = 0xdeadbeef;
 	os_linux->name = "linux";
@@ -901,7 +894,7 @@ static int insert_into_threadlist(struct target *target, struct threads *t)
 static void linux_identify_current_threads(struct target *target)
 {
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	struct threads *thread_list = linux_os->thread_list;
 	struct current_thread *ct = linux_os->current_threads;
 	struct threads *t = NULL;
@@ -930,66 +923,66 @@ error_handling:
 #ifdef PID_CHECK
 				if (thread_list->pid == t->pid) {
 #else
-					if (thread_list->base_addr == t->base_addr) {
+				if (thread_list->base_addr == t->base_addr) {
 #endif
-						free(t);
-						t = thread_list;
-						found = 1;
-					}
-					thread_list = thread_list->next;
+					free(t);
+					t = thread_list;
+					found = 1;
 				}
+				thread_list = thread_list->next;
+			}
 
-				if (!found) {
-					/*  it is a new thread */
-					if (fill_task(target, t) != ERROR_OK)
-						goto error_handling;
+			if (!found) {
+				/*  it is a new thread */
+				if (fill_task(target, t) != ERROR_OK)
+					goto error_handling;
 
-					get_name(target, t);
-					insert_into_threadlist(target, t);
-					t->thread_info_addr = 0xdeadbeef;
-				}
+				get_name(target, t);
+				insert_into_threadlist(target, t);
+				t->thread_info_addr = 0xdeadbeef;
+			}
 
-				t->status = 3;
-				ct->threadid = t->threadid;
+			t->status = 3;
+			ct->threadid = t->threadid;
 #ifdef PID_CHECK
-				ct->pid = t->pid;
+			ct->pid = t->pid;
 #endif
-				linux_os->thread_count++;
+			linux_os->thread_count++;
 #if 0
-				if (found == 0)
-					LOG_INFO("current thread core %x identified %s",
-							ct->core_id, t->name);
-				else
-					LOG_INFO("current thread core %x, reused %s",
-							ct->core_id, t->name);
+			if (found == 0)
+				LOG_INFO("current thread core %x identified %s",
+					ct->core_id, t->name);
+			else
+				LOG_INFO("current thread core %x, reused %s",
+					ct->core_id, t->name);
 #endif
-			}
-#if 0
-			else {
-				struct threads tmp;
-				tmp.base_addr = ct->TS;
-				get_name(target, &tmp);
-				LOG_INFO("current thread core %x , already identified %s !!!",
-						ct->core_id, tmp.name);
-			}
-#endif
-			ct = ct->next;
 		}
+#if 0
+		else {
+			struct threads tmp;
+			tmp.base_addr = ct->TS;
+			get_name(target, &tmp);
+			LOG_INFO("current thread core %x , already identified %s !!!",
+				ct->core_id, tmp.name);
+		}
+#endif
+		ct = ct->next;
+	}
 
-		return;
+	return;
 #ifndef PID_CHECK
 error_handling:
-		free(t);
-		LOG_ERROR("unable toread pid");
-		return;
+	free(t);
+	LOG_ERROR("unable toread pid");
+	return;
 
 #endif
-	}
+}
 
 static int linux_task_update(struct target *target, int context)
 {
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	struct threads *thread_list = linux_os->thread_list;
 	int retval;
 	int loop = 0;
@@ -1005,7 +998,6 @@ static int linux_task_update(struct target *target, int context)
 		}
 
 		thread_list = thread_list->next;
-
 	}
 
 	int found = 0;
@@ -1019,7 +1011,7 @@ static int linux_task_update(struct target *target, int context)
 	uint32_t previous = 0xdeadbeef;
 	t->base_addr = linux_os->init_task_addr;
 	retval = get_current(target, 0);
-    /*check that all current threads have been identified  */
+	/*check that all current threads have been identified  */
 	linux_identify_current_threads(target);
 
 	while (((t->base_addr != linux_os->init_task_addr) &&
@@ -1042,20 +1034,14 @@ static int linux_task_update(struct target *target, int context)
 
 		while (thread_list != NULL) {
 #ifdef PID_CHECK
-
 			if (t->pid == thread_list->pid) {
 #else
 			if (t->base_addr == thread_list->base_addr) {
 #endif
-
 				if (!thread_list->status) {
 #ifdef PID_CHECK
-
-					if (t->base_addr !=
-					    thread_list->base_addr) {
-						LOG_INFO
-						    ("thread base_addr has changed !!");
-					}
+					if (t->base_addr != thread_list->base_addr)
+						LOG_INFO("thread base_addr has changed !!");
 #endif
 					/*  this is not a current thread  */
 					thread_list->base_addr = t->base_addr;
@@ -1069,11 +1055,11 @@ static int linux_task_update(struct target *target, int context)
 					*/
 					if (context)
 						thread_list->context =
-						    cpu_context_read(target,
-								     thread_list->
-								     base_addr,
-								     &thread_list->
-								     thread_info_addr);
+							cpu_context_read(target,
+								thread_list->
+								base_addr,
+								&thread_list->
+								thread_info_addr);
 				} else {
 					/*  it is a current thread no need to read context */
 				}
@@ -1096,8 +1082,8 @@ static int linux_task_update(struct target *target, int context)
 
 			if (context)
 				t->context =
-				    cpu_context_read(target, t->base_addr,
-						     &t->thread_info_addr);
+					cpu_context_read(target, t->base_addr,
+						&t->thread_info_addr);
 
 			base_addr = next_task(target, t);
 			t = calloc(1, sizeof(struct threads));
@@ -1105,24 +1091,22 @@ static int linux_task_update(struct target *target, int context)
 			linux_os->thread_count++;
 		} else
 			t->base_addr = next_task(target, t);
-
 	}
 
-	LOG_INFO("update thread done %" PRId64", mean%" PRId64"\n",
-		 (timeval_ms() - start), (timeval_ms() - start) / loop);
+	LOG_INFO("update thread done %" PRId64 ", mean%" PRId64 "\n",
+		(timeval_ms() - start), (timeval_ms() - start) / loop);
 	free(t);
 	linux_os->threads_needs_update = 0;
 	return ERROR_OK;
 }
 
 int linux_gdb_thread_packet(struct target *target,
-			    struct connection *connection, char *packet,
-			    int packet_size)
+	struct connection *connection, char *packet,
+	int packet_size)
 {
-
 	int retval;
 	struct linux_os *linux_os =
-	    (struct linux_os *)target->rtos->rtos_specific_params;
+		(struct linux_os *)target->rtos->rtos_specific_params;
 
 	if (linux_os->init_task_addr == 0xdeadbeef) {
 		/* it has not been initialized */
@@ -1154,12 +1138,12 @@ int linux_gdb_thread_packet(struct target *target,
 }
 
 int linux_gdb_thread_update(struct target *target,
-			    struct connection *connection, char *packet,
-			    int packet_size)
+	struct connection *connection, char *packet,
+	int packet_size)
 {
 	int found = 0;
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	struct threads *temp = linux_os->thread_list;
 
 	while (temp != NULL) {
@@ -1185,14 +1169,14 @@ int linux_gdb_thread_update(struct target *target,
 			/*LOG_INFO("INTO GDB THREAD UPDATE WHILE");*/
 			tmp_strr += sprintf(tmp_strr, ",");
 			tmp_strr +=
-			    sprintf(tmp_strr, "%016" PRIx64, temp->threadid);
+				sprintf(tmp_strr, "%016" PRIx64, temp->threadid);
 			temp = temp->next;
 		}
 
 		/*tmp_str[0] = 0;*/
 		gdb_put_packet(connection, out_strr, strlen(out_strr));
 		linux_os->preupdtate_threadid_count =
-		    linux_os->threadid_count - 1;
+			linux_os->threadid_count - 1;
 		free(out_strr);
 	} else
 		gdb_put_packet(connection, "l", 1);
@@ -1201,12 +1185,12 @@ int linux_gdb_thread_update(struct target *target,
 }
 
 int linux_thread_extra_info(struct target *target,
-			    struct connection *connection, char *packet,
-			    int packet_size)
+	struct connection *connection, char *packet,
+	int packet_size)
 {
 	int64_t threadid = 0;
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	sscanf(packet, "qThreadExtraInfo,%" SCNx64, &threadid);
 	/*LOG_INFO("lookup extra info for thread %" SCNx64, threadid);*/
 	struct threads *temp = linux_os->thread_list;
@@ -1223,17 +1207,17 @@ int linux_thread_extra_info(struct target *target,
 			/*  discriminate cuurent task */
 			if (temp->status == 3)
 				tmp_str_ptr += sprintf(tmp_str_ptr, "%s",
-						       pid_current);
+						pid_current);
 			else
 				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", pid);
 
 			tmp_str_ptr +=
-			    sprintf(tmp_str_ptr, "%d", (int)temp->pid);
+				sprintf(tmp_str_ptr, "%d", (int)temp->pid);
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", " | ");
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", name);
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", temp->name);
 			char *hex_str =
-			    (char *)calloc(1, strlen(tmp_str) * 2 + 1);
+				(char *)calloc(1, strlen(tmp_str) * 2 + 1);
 			str_to_hex(hex_str, tmp_str);
 			gdb_put_packet(connection, hex_str, strlen(hex_str));
 			free(hex_str);
@@ -1249,11 +1233,11 @@ int linux_thread_extra_info(struct target *target,
 }
 
 int linux_gdb_T_packet(struct connection *connection,
-		       struct target *target, char *packet, int packet_size)
+	struct target *target, char *packet, int packet_size)
 {
 	int64_t threadid;
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	int retval = ERROR_OK;
 	sscanf(packet, "T%" SCNx64, &threadid);
 
@@ -1269,9 +1253,9 @@ int linux_gdb_T_packet(struct connection *connection,
 				} else {
 					/* delete item in the list   */
 					linux_os->thread_list =
-					    liste_del_task(linux_os->
-							   thread_list, &temp,
-							   prev);
+						liste_del_task(linux_os->
+							thread_list, &temp,
+							prev);
 					linux_os->thread_count--;
 					gdb_put_packet(connection, "E01", 3);
 					return ERROR_OK;
@@ -1310,10 +1294,10 @@ int linux_gdb_T_packet(struct connection *connection,
 }
 
 int linux_gdb_h_packet(struct connection *connection,
-		       struct target *target, char *packet, int packet_size)
+	struct target *target, char *packet, int packet_size)
 {
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	struct current_thread *ct = linux_os->current_threads;
 
 	/* select to display the current thread of the selected target */
@@ -1331,8 +1315,8 @@ int linux_gdb_h_packet(struct connection *connection,
 		}
 
 		if (ct == NULL) {
-			/*  no current thread can be identified */
-			/*  any way with smp  */
+			/*  no current thread can be identified
+			 *  any way with smp  */
 			LOG_INFO("no current thread identified");
 			/* attempt to display the name of the 2 threads identified with
 			 * get_current */
@@ -1343,7 +1327,7 @@ int linux_gdb_h_packet(struct connection *connection,
 				t.base_addr = ct->TS;
 				get_name(target, &t);
 				LOG_INFO("name of unidentified thread %s",
-					 t.name);
+					t.name);
 				ct = ct->next;
 			}
 
@@ -1359,14 +1343,14 @@ int linux_gdb_h_packet(struct connection *connection,
 				gdb_put_packet(connection, "OK", 2);
 			} else {
 				target->rtos->current_threadid =
-				    current_gdb_thread_rq;
+					current_gdb_thread_rq;
 				gdb_put_packet(connection, "OK", 2);
 			}
 		} else if (packet[1] == 'c') {
 			sscanf(packet, "Hc%16" SCNx64, &current_gdb_thread_rq);
 
 			if ((current_gdb_thread_rq == 0) ||
-			    (current_gdb_thread_rq == ct->threadid)) {
+					(current_gdb_thread_rq == ct->threadid)) {
 				target->rtos->current_threadid = ct->threadid;
 				gdb_put_packet(connection, "OK", 2);
 			} else
@@ -1379,7 +1363,7 @@ int linux_gdb_h_packet(struct connection *connection,
 }
 
 static int linux_thread_packet(struct connection *connection, char *packet,
-			       int packet_size)
+	int packet_size)
 {
 	int retval = ERROR_OK;
 	struct current_thread *ct;
@@ -1388,92 +1372,89 @@ static int linux_thread_packet(struct connection *connection, char *packet,
 		target->rtos->rtos_specific_params;
 
 	switch (packet[0]) {
-	case 'T':		/* Is thread alive?*/
+		case 'T':		/* Is thread alive?*/
 
-		linux_gdb_T_packet(connection, target, packet, packet_size);
-		break;
-	case 'H':		/* Set current thread */
-		/*  ( 'c' for step and continue, 'g' for all other operations )*/
-		/*LOG_INFO(" H packet received '%s'", packet);*/
-		linux_gdb_h_packet(connection, target, packet, packet_size);
-		break;
-	case 'q':
-
-		if ((strstr(packet, "qSymbol"))) {
-			if (rtos_qsymbol(connection, packet, packet_size) == 1) {
-				gdb_put_packet(connection, "OK", 2);
-
-				linux_compute_virt2phys(target,
-						target->rtos->
-						symbols[INIT_TASK].
-						address);
-			}
-
+			linux_gdb_T_packet(connection, target, packet, packet_size);
 			break;
-		} else if (strstr(packet, "qfThreadInfo")) {
-			if (linux_os->thread_list == NULL) {
-				retval = linux_gdb_thread_packet(target,
-						connection,
-						packet,
+		case 'H':		/* Set current thread */
+			/*  ( 'c' for step and continue, 'g' for all other operations )*/
+			/*LOG_INFO(" H packet received '%s'", packet);*/
+			linux_gdb_h_packet(connection, target, packet, packet_size);
+			break;
+		case 'q':
+
+			if ((strstr(packet, "qSymbol"))) {
+				if (rtos_qsymbol(connection, packet, packet_size) == 1) {
+					gdb_put_packet(connection, "OK", 2);
+
+					linux_compute_virt2phys(target,
+							target->rtos->
+							symbols[INIT_TASK].
+							address);
+				}
+
+				break;
+			} else if (strstr(packet, "qfThreadInfo")) {
+				if (linux_os->thread_list == NULL) {
+					retval = linux_gdb_thread_packet(target,
+							connection,
+							packet,
+							packet_size);
+					break;
+				} else {
+					retval = linux_gdb_thread_update(target,
+							connection,
+							packet,
+							packet_size);
+					break;
+				}
+			} else if (strstr(packet, "qsThreadInfo")) {
+				gdb_put_packet(connection, "l", 1);
+				break;
+			} else if (strstr(packet, "qThreadExtraInfo,")) {
+				linux_thread_extra_info(target, connection, packet,
 						packet_size);
 				break;
 			} else {
-				retval = linux_gdb_thread_update(target,
-						connection,
-						packet,
-						packet_size);
+				retval = GDB_THREAD_PACKET_NOT_CONSUMED;
 				break;
 			}
-		} else if (strstr(packet, "qsThreadInfo")) {
-			gdb_put_packet(connection, "l", 1);
-			break;
-		} else if (strstr(packet, "qThreadExtraInfo,")) {
-			linux_thread_extra_info(target, connection, packet,
-					packet_size);
-			break;
-		} else {
+
+		case 'Q':
+			/* previously response was : thread not found
+			 * gdb_put_packet(connection, "E01", 3); */
 			retval = GDB_THREAD_PACKET_NOT_CONSUMED;
 			break;
-		}
-
-	case 'Q':
-		/* previously response was : thread not found
-		 * gdb_put_packet(connection, "E01", 3); */
-		retval = GDB_THREAD_PACKET_NOT_CONSUMED;
-		break;
-	case 'c':
-	case 's':{
-		if (linux_os->threads_lookup == 1) {
-			ct = linux_os->current_threads;
-
-			while ((ct != NULL)
-					&& (ct->core_id) != target->coreid) {
-				ct = ct->next;
-			}
-
-			if ((ct != NULL) && (ct->threadid == -1)) {
+		case 'c':
+		case 's': {
+			if (linux_os->threads_lookup == 1) {
 				ct = linux_os->current_threads;
 
-				while ((ct != NULL)
-						&& (ct->threadid == -1)) {
+				while ((ct != NULL) && (ct->core_id) != target->coreid)
 					ct = ct->next;
+
+				if ((ct != NULL) && (ct->threadid == -1)) {
+					ct = linux_os->current_threads;
+
+					while ((ct != NULL) && (ct->threadid == -1))
+						ct = ct->next;
 				}
+
+				if ((ct != NULL) && (ct->threadid !=
+						 target->rtos->
+						 current_threadid)
+				&& (target->rtos->current_threadid != -1))
+					LOG_WARNING("WARNING! current GDB thread do not match" \
+							"current thread running." \
+							"Switch thread in GDB to threadid %d",
+							(int)ct->threadid);
+
+				LOG_INFO("threads_needs_update = 1");
+				linux_os->threads_needs_update = 1;
 			}
-
-			if ((ct != NULL) && (ct->threadid !=
-						target->rtos->
-						current_threadid)
-					&& (target->rtos->current_threadid != -1))
-				LOG_WARNING("WARNING! current GDB thread do not match"\
-						"current thread running."\
-						"Switch thread in GDB to threadid %d", (int)ct->threadid);
-
-			LOG_INFO("threads_needs_update = 1");
-			linux_os->threads_needs_update = 1;
 		}
-	}
 
-		/* if a packet handler returned an error, exit input loop */
+			/* if a packet handler returned an error, exit input loop */
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1487,15 +1468,15 @@ static int linux_os_smp_init(struct target *target)
 	/* keep only target->rtos */
 	struct rtos *rtos = target->rtos;
 	struct linux_os *os_linux =
-	    (struct linux_os *)rtos->rtos_specific_params;
+		(struct linux_os *)rtos->rtos_specific_params;
 	struct current_thread *ct;
 	head = target->head;
 
 	while (head != (struct target_list *)NULL) {
 		if (head->target->rtos != rtos) {
 			struct linux_os *smp_os_linux =
-			    (struct linux_os *)head->target->rtos->
-			    rtos_specific_params;
+				(struct linux_os *)head->target->rtos->
+				rtos_specific_params;
 			/*  remap smp target on rtos  */
 			free(head->target->rtos);
 			head->target->rtos = rtos;
@@ -1505,7 +1486,7 @@ static int linux_os_smp_init(struct target *target)
 			ct->TS = 0xdeadbeef;
 			ct->core_id = head->target->coreid;
 			os_linux->current_threads =
-			    add_current_thread(os_linux->current_threads, ct);
+				add_current_thread(os_linux->current_threads, ct);
 			os_linux->nr_cpus++;
 			free(smp_os_linux);
 		}
@@ -1536,7 +1517,7 @@ static int linux_os_create(struct target *target)
 	ct->threadid = -1;
 	ct->TS = 0xdeadbeef;
 	os_linux->current_threads =
-	    add_current_thread(os_linux->current_threads, ct);
+		add_current_thread(os_linux->current_threads, ct);
 	/*  overload rtos thread default handler */
 	target->rtos->gdb_thread_packet = linux_thread_packet;
 	/*  initialize a default virt 2 phys translation */
@@ -1548,13 +1529,13 @@ static int linux_os_create(struct target *target)
 static char *linux_ps_command(struct target *target)
 {
 	struct linux_os *linux_os = (struct linux_os *)
-	    target->rtos->rtos_specific_params;
+		target->rtos->rtos_specific_params;
 	int retval = ERROR_OK;
 	char *display;
 
-	if (linux_os->threads_lookup == 0) {
+	if (linux_os->threads_lookup == 0)
 		retval = linux_get_tasks(target, 1);
-	} else {
+	else {
 		if (linux_os->threads_needs_update != 0)
 			retval = linux_task_update(target, 0);
 	}
@@ -1563,7 +1544,7 @@ static char *linux_ps_command(struct target *target)
 		struct threads *temp = linux_os->thread_list;
 		char *tmp;
 		LOG_INFO("allocation for %d threads line",
-			 linux_os->thread_count);
+			linux_os->thread_count);
 		display = calloc((linux_os->thread_count + 2) * 80, 1);
 
 		if (!display)
@@ -1577,16 +1558,16 @@ static char *linux_ps_command(struct target *target)
 			if (temp->status) {
 				if (temp->context)
 					tmp +=
-					    sprintf(tmp,
-						    "%d\t\t%d\t\t%x\t\t%s\n",
-						    (int)temp->pid, temp->oncpu,
-						    temp->asid, temp->name);
+						sprintf(tmp,
+							"%d\t\t%d\t\t%x\t\t%s\n",
+							(int)temp->pid, temp->oncpu,
+							temp->asid, temp->name);
 				else
 					tmp +=
-					    sprintf(tmp,
-						    "%d\t\t%d\t\t%x\t\t%s\n",
-						    (int)temp->pid, temp->oncpu,
-						    temp->asid, temp->name);
+						sprintf(tmp,
+							"%d\t\t%d\t\t%x\t\t%s\n",
+							(int)temp->pid, temp->oncpu,
+							temp->asid, temp->name);
 			}
 
 			temp = temp->next;
