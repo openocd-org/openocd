@@ -24,4 +24,4 @@ struct command_context;
 
 int ioutil_init(struct command_context *cmd_ctx);
 
-#endif // HELPER_IOUTILS_H
+#endif	/* HELPER_IOUTILS_H */

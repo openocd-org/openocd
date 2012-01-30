@@ -26,13 +26,11 @@
 #include "log.h"
 #include "time_support.h"
 
-static int
-util_Jim_Command_ms(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
+static int util_Jim_Command_ms(Jim_Interp *interp,
+	int argc,
+	Jim_Obj * const *argv)
 {
-	if (argc != 1)
-	{
+	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "ls ?dir?");
 		return JIM_ERR;
 	}
@@ -45,12 +43,13 @@ util_Jim_Command_ms(Jim_Interp *interp,
 }
 
 static const struct command_registration util_command_handlers[] = {
-	// jim handlers
+	/* jim handlers */
 	{
 		.name = "ms",
 		.mode = COMMAND_ANY,
 		.jim_handler = util_Jim_Command_ms,
-		.help = "Returns ever increasing milliseconds. Used to calculuate differences in time.",
+		.help =
+			"Returns ever increasing milliseconds. Used to calculuate differences in time.",
 		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE

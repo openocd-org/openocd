@@ -53,52 +53,45 @@
 #endif
 #endif
 
-
 /* loads a file and returns a pointer to it in memory. The file contains
  * a 0 byte(sentinel) after len bytes - the length of the file. */
 int loadFile(const char *fileName, void **data, size_t *len)
 {
-	// ensure returned length is always sane
+	/* ensure returned length is always sane */
 	*len = 0;
 
-	FILE * pFile;
-	pFile = fopen(fileName,"rb");
-	if (pFile == NULL)
-	{
+	FILE *pFile;
+	pFile = fopen(fileName, "rb");
+	if (pFile == NULL) {
 		LOG_ERROR("Can't open %s", fileName);
 		return ERROR_FAIL;
 	}
-	if (fseek(pFile, 0, SEEK_END) != 0)
-	{
+	if (fseek(pFile, 0, SEEK_END) != 0) {
 		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
 	long fsize = ftell(pFile);
-	if (fsize == -1)
-	{
+	if (fsize == -1) {
 		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
 	*len = fsize;
 
-	if (fseek(pFile, 0, SEEK_SET) != 0)
-	{
+	if (fseek(pFile, 0, SEEK_SET) != 0) {
 		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
 	*data = malloc(*len + 1);
-	if (*data == NULL)
-	{
+	if (*data == NULL) {
 		LOG_ERROR("Can't open %s", fileName);
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
 
-	if (fread(*data, 1, *len, pFile)!=*len)
-	{
+	if (fread(*data, 1, *len, pFile) != *len) {
 		fclose(pFile);
 		free(*data);
 		LOG_ERROR("Can't open %s", fileName);
@@ -106,7 +99,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 	}
 	fclose(pFile);
 
-	// 0-byte after buffer (not included in *len) serves as a sentinel
+	/* 0-byte after buffer (not included in *len) serves as a sentinel */
 	char *buf = (char *)*data;
 	buf[*len] = 0;
 
@@ -116,24 +109,19 @@ int loadFile(const char *fileName, void **data, size_t *len)
 COMMAND_HANDLER(handle_cat_command)
 {
 	if (CMD_ARGC != 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
+	/* NOTE!!! we only have line printing capability so we print the entire file as a single
+	 * line. */
 	void *data;
 	size_t len;
 
 	int retval = loadFile(CMD_ARGV[0], &data, &len);
-	if (retval == ERROR_OK)
-	{
+	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "%s", (char *)data);
 		free(data);
-	}
-	else
-	{
+	} else
 		command_print(CMD_CTX, "%s not found", CMD_ARGV[0]);
-	}
 
 	return ERROR_OK;
 }
@@ -141,9 +129,7 @@ COMMAND_HANDLER(handle_cat_command)
 COMMAND_HANDLER(handle_trunc_command)
 {
 	if (CMD_ARGC != 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	FILE *config_file = NULL;
 	config_file = fopen(CMD_ARGV[0], "w");
@@ -155,20 +141,16 @@ COMMAND_HANDLER(handle_trunc_command)
 
 COMMAND_HANDLER(handle_meminfo_command)
 {
-	static int prev = 0;
+	static int prev;
 	struct mallinfo info;
 
 	if (CMD_ARGC != 0)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	info = mallinfo();
 
 	if (prev > 0)
-	{
 		command_print(CMD_CTX, "Diff:            %d", prev - info.fordblks);
-	}
 	prev = info.fordblks;
 
 	command_print(CMD_CTX, "Available ram:   %d", info.fordblks);
@@ -180,26 +162,21 @@ COMMAND_HANDLER(handle_meminfo_command)
 COMMAND_HANDLER(handle_append_command)
 {
 	if (CMD_ARGC < 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	int retval = ERROR_FAIL;
 	FILE *config_file = NULL;
 
 	config_file = fopen(CMD_ARGV[0], "a");
-	if (config_file != NULL)
-	{
+	if (config_file != NULL) {
 		fseek(config_file, 0, SEEK_END);
 
 		unsigned i;
-		for (i = 1; i < CMD_ARGC; i++)
-		{
+		for (i = 1; i < CMD_ARGC; i++) {
 			if (fwrite(CMD_ARGV[i], 1, strlen(CMD_ARGV[i]),
 					config_file) != strlen(CMD_ARGV[i]))
 				break;
-			if (i != CMD_ARGC - 1)
-			{
+			if (i != CMD_ARGC - 1) {
 				if (fwrite(" ", 1, 1, config_file) != 1)
 					break;
 			}
@@ -213,16 +190,13 @@ COMMAND_HANDLER(handle_append_command)
 	return retval;
 }
 
-
-
 COMMAND_HANDLER(handle_cp_command)
 {
 	if (CMD_ARGC != 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
+	/* NOTE!!! we only have line printing capability so we print the entire file as a single
+	 * line. */
 	void *data;
 	size_t len;
 
@@ -235,22 +209,17 @@ COMMAND_HANDLER(handle_cp_command)
 		retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	size_t pos = 0;
-	for (;;)
-	{
+	for (;; ) {
 		size_t chunk = len - pos;
-		static const size_t maxChunk = 512 * 1024; // ~1/sec
+		static const size_t maxChunk = 512 * 1024;	/* ~1/sec */
 		if (chunk > maxChunk)
-		{
 			chunk = maxChunk;
-		}
 
 		if ((retval == ERROR_OK) && (fwrite(((char *)data) + pos, 1, chunk, f) != chunk))
 			retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 		if (retval != ERROR_OK)
-		{
 			break;
-		}
 
 		command_print(CMD_CTX, "%zu", len - pos);
 
@@ -261,12 +230,9 @@ COMMAND_HANDLER(handle_cp_command)
 	}
 
 	if (retval == ERROR_OK)
-	{
 		command_print(CMD_CTX, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
-	} else
-	{
+	else
 		command_print(CMD_CTX, "copy failed");
-	}
 
 	if (data != NULL)
 		free(data);
@@ -279,10 +245,7 @@ COMMAND_HANDLER(handle_cp_command)
 	return retval;
 }
 
-
-
-
-#define SHOW_RESULT(a, b) LOG_ERROR(#a " failed %d\n", (int)b)
+#define SHOW_RESULT(a, b) LOG_ERROR(# a " failed %d\n", (int)b)
 
 #define IOSIZE 512
 void copyfile(char *name2, char *name1)
@@ -301,29 +264,31 @@ void copyfile(char *name2, char *name1)
 	if (fd2 < 0)
 		SHOW_RESULT(open, fd2);
 
-	for (;;)
-	{
+	for (;; ) {
 		done = read(fd2, buf, IOSIZE);
-		if (done < 0)
-		{
+		if (done < 0) {
 			SHOW_RESULT(read, done);
 			break;
 		}
 
-        if (done == 0) break;
+		if (done == 0)
+			break;
 
 		wrote = write(fd1, buf, done);
-        if (wrote != done) SHOW_RESULT(write, wrote);
+		if (wrote != done)
+			SHOW_RESULT(write, wrote);
 
-        if (wrote != done) break;
+		if (wrote != done)
+			break;
 	}
 
 	err = close(fd1);
-    if (err < 0) SHOW_RESULT(close, err);
+	if (err < 0)
+		SHOW_RESULT(close, err);
 
 	err = close(fd2);
-    if (err < 0) SHOW_RESULT(close, err);
-
+	if (err < 0)
+		SHOW_RESULT(close, err);
 }
 
 /* utility fn to copy a directory */
@@ -334,18 +299,15 @@ void copydir(char *name, char *destdir)
 
 	dirp = opendir(destdir);
 	if (dirp == NULL)
-	{
 		mkdir(destdir, 0777);
-	} else
-	{
+	else
 		err = closedir(dirp);
-	}
 
 	dirp = opendir(name);
-    if (dirp == NULL) SHOW_RESULT(opendir, -1);
+	if (dirp == NULL)
+		SHOW_RESULT(opendir, -1);
 
-	for (;;)
-	{
+	for (;; ) {
 		struct dirent *entry = readdir(dirp);
 
 		if (entry == NULL)
@@ -363,8 +325,7 @@ void copydir(char *name, char *destdir)
 		strcat(fullPath, "/");
 		strncat(fullPath, entry->d_name, PATH_MAX - strlen(fullPath));
 
-		if (stat(fullPath, &buf) == -1)
-		{
+		if (stat(fullPath, &buf) == -1) {
 			LOG_ERROR("unable to read status from %s", fullPath);
 			break;
 		}
@@ -373,7 +334,7 @@ void copydir(char *name, char *destdir)
 		if (isDir)
 			continue;
 
-		//        diag_printf("<INFO>: entry %14s",entry->d_name);
+		/*        diag_printf("<INFO>: entry %14s",entry->d_name); */
 		char fullname[PATH_MAX];
 		char fullname2[PATH_MAX];
 
@@ -384,18 +345,16 @@ void copydir(char *name, char *destdir)
 		strcpy(fullname2, destdir);
 		strcat(fullname2, "/");
 		strcat(fullname2, entry->d_name);
-		//        diag_printf("from %s to %s\n", fullname, fullname2);
+		/*        diag_printf("from %s to %s\n", fullname, fullname2); */
 		copyfile(fullname, fullname2);
 
-		//       diag_printf("\n");
+		/*       diag_printf("\n"); */
 	}
 
 	err = closedir(dirp);
-    if (err < 0) SHOW_RESULT(stat, err);
+	if (err < 0)
+		SHOW_RESULT(stat, err);
 }
-
-
-
 
 COMMAND_HANDLER(handle_rm_command)
 {
@@ -411,39 +370,34 @@ COMMAND_HANDLER(handle_rm_command)
 	return del ? ERROR_OK : ERROR_FAIL;
 }
 
-
-static int
-ioutil_Jim_Command_ls(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
+static int ioutil_Jim_Command_ls(Jim_Interp *interp,
+	int argc,
+	Jim_Obj * const *argv)
 {
-	if (argc != 2)
-	{
+	if (argc != 2) {
 		Jim_WrongNumArgs(interp, 1, argv, "ls ?dir?");
 		return JIM_ERR;
 	}
 
-	char *name = (char*) Jim_GetString(argv[1], NULL);
+	char *name = (char *) Jim_GetString(argv[1], NULL);
 
 	DIR *dirp = NULL;
 	dirp = opendir(name);
 	if (dirp == NULL)
-	{
 		return JIM_ERR;
-	}
 	Jim_Obj *objPtr = Jim_NewListObj(interp, NULL, 0);
 
-	for (;;)
-	{
+	for (;; ) {
 		struct dirent *entry = NULL;
 		entry = readdir(dirp);
 		if (entry == NULL)
 			break;
 
-		if ((strcmp(".", entry->d_name) == 0)||(strcmp("..", entry->d_name) == 0))
+		if ((strcmp(".", entry->d_name) == 0) || (strcmp("..", entry->d_name) == 0))
 			continue;
 
-        Jim_ListAppendElement(interp, objPtr, Jim_NewStringObj(interp, entry->d_name, strlen(entry->d_name)));
+		Jim_ListAppendElement(interp, objPtr,
+			Jim_NewStringObj(interp, entry->d_name, strlen(entry->d_name)));
 	}
 	closedir(dirp);
 
@@ -452,13 +406,11 @@ ioutil_Jim_Command_ls(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-static int
-ioutil_Jim_Command_peek(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
+static int ioutil_Jim_Command_peek(Jim_Interp *interp,
+	int argc,
+	Jim_Obj *const *argv)
 {
-	if (argc != 2)
-	{
+	if (argc != 2) {
 		Jim_WrongNumArgs(interp, 1, argv, "peek ?address?");
 		return JIM_ERR;
 	}
@@ -474,13 +426,11 @@ ioutil_Jim_Command_peek(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-static int
-ioutil_Jim_Command_poke(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
+static int ioutil_Jim_Command_poke(Jim_Interp *interp,
+	int argc,
+	Jim_Obj *const *argv)
 {
-	if (argc != 3)
-	{
+	if (argc != 3) {
 		Jim_WrongNumArgs(interp, 1, argv, "poke ?address? ?value?");
 		return JIM_ERR;
 	}
@@ -497,10 +447,9 @@ ioutil_Jim_Command_poke(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-
 /* not so pretty code to fish out ip number*/
 static int ioutil_Jim_Command_ip(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+	Jim_Obj *const *argv)
 {
 #if !defined(__CYGWIN__)
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
@@ -508,12 +457,9 @@ static int ioutil_Jim_Command_ip(Jim_Interp *interp, int argc,
 	struct ifaddrs *ifa = NULL, *ifp = NULL;
 
 	if (getifaddrs(&ifp) < 0)
-	{
 		return JIM_ERR;
-	}
 
-	for (ifa = ifp; ifa; ifa = ifa->ifa_next)
-	{
+	for (ifa = ifp; ifa; ifa = ifa->ifa_next) {
 		char ip[200];
 		socklen_t salen;
 
@@ -526,9 +472,7 @@ static int ioutil_Jim_Command_ip(Jim_Interp *interp, int argc,
 
 		if (getnameinfo(ifa->ifa_addr, salen, ip, sizeof(ip), NULL, 0,
 				NI_NUMERICHOST) < 0)
-		{
 			continue;
-		}
 
 		Jim_AppendString(interp, tclOutput, ip, strlen(ip));
 		break;
@@ -547,10 +491,8 @@ static int ioutil_Jim_Command_ip(Jim_Interp *interp, int argc,
 
 /* not so pretty code to fish out eth0 mac address */
 static int ioutil_Jim_Command_mac(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+	Jim_Obj *const *argv)
 {
-
-
 	struct ifreq *ifr, *ifend;
 	struct ifreq ifreq;
 	struct ifconf ifc;
@@ -559,45 +501,39 @@ static int ioutil_Jim_Command_mac(Jim_Interp *interp, int argc,
 
 	SockFD = socket(AF_INET, SOCK_DGRAM, 0);
 	if (SockFD < 0)
-	{
 		return JIM_ERR;
-	}
 
 	ifc.ifc_len = sizeof(ifs);
 	ifc.ifc_req = ifs;
-	if (ioctl(SockFD, SIOCGIFCONF, &ifc) < 0)
-	{
+	if (ioctl(SockFD, SIOCGIFCONF, &ifc) < 0) {
 		close(SockFD);
 		return JIM_ERR;
 	}
 
 	ifend = ifs + (ifc.ifc_len / sizeof(struct ifreq));
-	for (ifr = ifc.ifc_req; ifr < ifend; ifr++)
-	{
-		//if (ifr->ifr_addr.sa_family == AF_INET)
+	for (ifr = ifc.ifc_req; ifr < ifend; ifr++) {
+		/* if (ifr->ifr_addr.sa_family == AF_INET) */
 		{
 			if (strcmp("eth0", ifr->ifr_name) != 0)
 				continue;
 			strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
-			if (ioctl(SockFD, SIOCGIFHWADDR, &ifreq) < 0)
-			{
+			if (ioctl(SockFD, SIOCGIFHWADDR, &ifreq) < 0) {
 				close(SockFD);
 				return JIM_ERR;
 			}
 
 			close(SockFD);
 
-
 			Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
 
 			char buffer[256];
 			sprintf(buffer, "%02x-%02x-%02x-%02x-%02x-%02x",
-					ifreq.ifr_hwaddr.sa_data[0]&0xff,
-					ifreq.ifr_hwaddr.sa_data[1]&0xff,
-					ifreq.ifr_hwaddr.sa_data[2]&0xff,
-					ifreq.ifr_hwaddr.sa_data[3]&0xff,
-					ifreq.ifr_hwaddr.sa_data[4]&0xff,
-					ifreq.ifr_hwaddr.sa_data[5]&0xff);
+				ifreq.ifr_hwaddr.sa_data[0]&0xff,
+				ifreq.ifr_hwaddr.sa_data[1]&0xff,
+				ifreq.ifr_hwaddr.sa_data[2]&0xff,
+				ifreq.ifr_hwaddr.sa_data[3]&0xff,
+				ifreq.ifr_hwaddr.sa_data[4]&0xff,
+				ifreq.ifr_hwaddr.sa_data[5]&0xff);
 
 			Jim_AppendString(interp, tclOutput, buffer, strlen(buffer));
 
@@ -618,14 +554,14 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.handler = handle_cat_command,
 		.mode = COMMAND_ANY,
 		.help = "display text file content",
-		.usage= "file_name",
+		.usage = "file_name",
 	},
 	{
 		.name = "trunc",
 		.handler = handle_trunc_command,
 		.mode = COMMAND_ANY,
 		.help = "truncate a file to zero length",
-		.usage= "file_name",
+		.usage = "file_name",
 	},
 	{
 		.name = "cp",
@@ -660,7 +596,7 @@ static const struct command_registration ioutil_command_handlers[] = {
 	 * server-internal addresses.
 	 */
 
-	// jim handlers
+	/* jim handlers */
 	{
 		.name = "peek",
 		.mode = COMMAND_ANY,

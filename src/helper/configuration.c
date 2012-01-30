@@ -27,17 +27,17 @@
 #include "configuration.h"
 #include "log.h"
 
-
 static size_t num_config_files;
-static char** config_file_names;
+static char **config_file_names;
 
 static size_t num_script_dirs;
-static char** script_search_dirs;
+static char **script_search_dirs;
 
-void add_script_search_dir (const char *dir)
+void add_script_search_dir(const char *dir)
 {
 	num_script_dirs++;
-	script_search_dirs = (char **)realloc(script_search_dirs, (num_script_dirs + 1) * sizeof (char *));
+	script_search_dirs =
+		(char **)realloc(script_search_dirs, (num_script_dirs + 1) * sizeof(char *));
 
 	script_search_dirs[num_script_dirs-1] = strdup(dir);
 	script_search_dirs[num_script_dirs] = NULL;
@@ -45,10 +45,11 @@ void add_script_search_dir (const char *dir)
 	LOG_DEBUG("adding %s", dir);
 }
 
-void add_config_command (const char *cfg)
+void add_config_command(const char *cfg)
 {
 	num_config_files++;
-	config_file_names = (char **)realloc(config_file_names, (num_config_files + 1) * sizeof (char *));
+	config_file_names =
+		(char **)realloc(config_file_names, (num_config_files + 1) * sizeof(char *));
 
 	config_file_names[num_config_files-1] = strdup(cfg);
 	config_file_names[num_config_files] = NULL;
@@ -60,7 +61,7 @@ char *find_file(const char *file)
 	FILE *fp = NULL;
 	char **search_dirs = script_search_dirs;
 	char *dir;
-	char const *mode="r";
+	char const *mode = "r";
 	char *full_path;
 
 	/* Check absolute and relative to current working dir first.
@@ -68,8 +69,7 @@ char *find_file(const char *file)
 	full_path = alloc_printf("%s", file);
 	fp = fopen(full_path, mode);
 
-	while (!fp)
-	{
+	while (!fp) {
 		free(full_path);
 		full_path = NULL;
 		dir = *search_dirs++;
@@ -81,8 +81,7 @@ char *find_file(const char *file)
 		fp = fopen(full_path, mode);
 	}
 
-	if (fp)
-	{
+	if (fp) {
 		fclose(fp);
 		LOG_DEBUG("found %s", full_path);
 		return full_path;
@@ -95,11 +94,9 @@ char *find_file(const char *file)
 
 FILE *open_file_from_path(const char *file, const char *mode)
 {
-	if (mode[0]!='r')
-	{
+	if (mode[0] != 'r')
 		return fopen(file, mode);
-	} else
-	{
+	else {
 		char *full_path = find_file(file);
 		if (full_path == NULL)
 			return NULL;
@@ -122,8 +119,7 @@ int parse_config_file(struct command_context *cmd_ctx)
 
 	cfg = config_file_names;
 
-	while (*cfg)
-	{
+	while (*cfg) {
 		retval = command_run_line(cmd_ctx, *cfg);
 		if (retval != ERROR_OK)
 			return retval;

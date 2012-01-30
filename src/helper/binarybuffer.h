@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef BINARYBUFFER_H
 #define BINARYBUFFER_H
 
@@ -39,7 +40,7 @@
  * @param value Up to 32 bits that will be copied to _buffer.
  */
 static inline void buf_set_u32(void *_buffer,
-		unsigned first, unsigned num, uint32_t value)
+	unsigned first, unsigned num, uint32_t value)
 {
 	uint8_t *buffer = (uint8_t *)_buffer;
 
@@ -49,8 +50,7 @@ static inline void buf_set_u32(void *_buffer,
 		buffer[1] = (value >> 8) & 0xff;
 		buffer[0] = (value >> 0) & 0xff;
 	} else {
-		for (unsigned i = first; i < first + num; i++)
-		{
+		for (unsigned i = first; i < first + num; i++) {
 			if (((value >> (i - first)) & 1) == 1)
 				buffer[i / 8] |= 1 << (i % 8);
 			else
@@ -68,19 +68,18 @@ static inline void buf_set_u32(void *_buffer,
  * @returns Up to 32-bits that were read from @c _buffer.
  */
 static inline uint32_t buf_get_u32(const void *_buffer,
-		unsigned first, unsigned num)
+	unsigned first, unsigned num)
 {
 	uint8_t *buffer = (uint8_t *)_buffer;
 
 	if ((num == 32) && (first == 0)) {
 		return (((uint32_t)buffer[3]) << 24) |
-			(((uint32_t)buffer[2]) << 16) |
-			(((uint32_t)buffer[1]) << 8) |
-			(((uint32_t)buffer[0]) << 0);
+				(((uint32_t)buffer[2]) << 16) |
+				(((uint32_t)buffer[1]) << 8) |
+				(((uint32_t)buffer[0]) << 0);
 	} else {
 		uint32_t result = 0;
-		for (unsigned i = first; i < first + num; i++)
-		{
+		for (unsigned i = first; i < first + num; i++) {
 			if (((buffer[i / 8] >> (i % 8)) & 1) == 1)
 				result |= 1 << (i - first);
 		}
@@ -109,7 +108,7 @@ bool buf_cmp_mask(const void *buf1, const void *buf2,
  * @param to The buffer that will receive the copy of @c from.
  * @param size The number of bits to copy.
  */
-void* buf_cpy(const void *from, void *to, unsigned size);
+void *buf_cpy(const void *from, void *to, unsigned size);
 
 /**
  * Set the contents of @c buf with @c count bits, all set to 1.
@@ -117,14 +116,14 @@ void* buf_cpy(const void *from, void *to, unsigned size);
  * @param size The number of bits.
  * @returns The original buffer (@c buf).
  */
-void* buf_set_ones(void *buf, unsigned size);
+void *buf_set_ones(void *buf, unsigned size);
 
-void* buf_set_buf(const void *src, unsigned src_start,
-		void *dst, unsigned dst_start, unsigned len);
+void *buf_set_buf(const void *src, unsigned src_start,
+		  void *dst, unsigned dst_start, unsigned len);
 
 int str_to_buf(const char *str, unsigned len,
 		void *bin_buf, unsigned buf_size, unsigned radix);
-char* buf_to_str(const void *buf, unsigned size, unsigned radix);
+char *buf_to_str(const void *buf, unsigned size, unsigned radix);
 
 /* read a uint32_t from a buffer in target memory endianness */
 static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
@@ -132,4 +131,4 @@ static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
 	return le ? le_to_h_u32(p) : be_to_h_u32(p);
 }
 
-#endif /* BINARYBUFFER_H */
+#endif	/* BINARYBUFFER_H */

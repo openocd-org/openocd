@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FILEIO_H
 #define FILEIO_H
 
@@ -30,14 +31,12 @@
 
 #define FILEIO_MAX_ERROR_STRING		(128)
 
-enum fileio_type
-{
+enum fileio_type {
 	FILEIO_TEXT,
 	FILEIO_BINARY,
 };
 
-enum fileio_access
-{
+enum fileio_access {
 	FILEIO_NONE,		/* open without any access (invalid mode) */
 	FILEIO_READ,		/* open for reading, position at beginning */
 	FILEIO_WRITE,		/* open for writing, position at beginning */
@@ -46,14 +45,13 @@ enum fileio_access
 	FILEIO_APPENDREAD,	/* open for writing, position at end, allow reading */
 };
 
-struct fileio
-{
+struct fileio {
 	/* The structure is opaque */
 	struct fileio_internal *fp;
 };
 
 int fileio_open(struct fileio *fileio,
-	const char *url, enum fileio_access access_type, enum fileio_type type);
+		const char *url, enum fileio_access access_type, enum fileio_type type);
 int fileio_close(struct fileio *fileio);
 
 int fileio_seek(struct fileio *fileio, size_t position);
@@ -68,11 +66,11 @@ int fileio_read_u32(struct fileio *fileio, uint32_t *data);
 int fileio_write_u32(struct fileio *fileio, uint32_t data);
 int fileio_size(struct fileio *fileio, int *size);
 
-#define ERROR_FILEIO_LOCATION_UNKNOWN	(-1200)
-#define ERROR_FILEIO_NOT_FOUND			(-1201)
-#define ERROR_FILEIO_OPERATION_FAILED		(-1202)
-#define ERROR_FILEIO_ACCESS_NOT_SUPPORTED	(-1203)
-#define ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN	(-1204)
+#define ERROR_FILEIO_LOCATION_UNKNOWN			(-1200)
+#define ERROR_FILEIO_NOT_FOUND					(-1201)
+#define ERROR_FILEIO_OPERATION_FAILED			(-1202)
+#define ERROR_FILEIO_ACCESS_NOT_SUPPORTED		(-1203)
+#define ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN		(-1204)
 #define ERROR_FILEIO_OPERATION_NOT_SUPPORTED	(-1205)
 
-#endif /* FILEIO_H */
+#endif	/* FILEIO_H */

@@ -19,10 +19,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-// standard C library header files
+/* standard C library header files */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-// +++ AC_HEADER_TIME +++
+/* +++ AC_HEADER_TIME +++ */
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
@@ -41,9 +42,9 @@
 #  include <time.h>
 # endif
 #endif
-// --- AC_HEADER_TIME ---
+/* --- AC_HEADER_TIME --- */
 
-// +++ platform specific headers +++
+/* +++ platform specific headers +++ */
 #if BUILD_ECOSBOARD == 1
 #include <pkgconf/system.h>
 #endif
@@ -53,7 +54,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif
-// --- platform specific headers ---
+/* --- platform specific headers --- */
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -65,7 +66,7 @@
 #ifdef __ECOS
 /* missing from eCos */
 #ifndef EFAULT
-#define	EFAULT 14	/* Bad address */
+#define EFAULT 14	/* Bad address */
 #endif
 #endif
 
@@ -73,10 +74,10 @@
 #include <netinet/in.h>
 #endif
 #ifdef HAVE_SYS_SELECT_H
-#include <sys/select.h> /* select, FD_SET and friends (POSIX.1-2001) */
+#include <sys/select.h>	/* select, FD_SET and friends (POSIX.1-2001) */
 #endif
 #ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h> /* for MIN/MAX macros */
+#include <sys/param.h>	/* for MIN/MAX macros */
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -86,8 +87,8 @@
 #endif
 
 #ifndef true
-#define true	1
-#define false	0
+#define true    1
+#define false   0
 #endif
 
-#endif // SYSTEM_H
+#endif	/* SYSTEM_H */

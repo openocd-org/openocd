@@ -24,4 +24,4 @@ struct command_context;
 
 int util_init(struct command_context *cmd_ctx);
 
-#endif // HELPER_UTILS_H
+#endif	/* HELPER_UTILS_H */

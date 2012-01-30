@@ -217,11 +217,11 @@ typedef uint64_t uintmax_t;
 #define UINT64_MAX (__CONCAT(INT64_MAX, U) * 2ULL + 1ULL)
 #endif
 
-    #ifndef LLONG_MAX
+	#ifndef LLONG_MAX
 	#define ULLONG_MAX	UINT64_C(0xFFFFFFFFFFFFFFFF)
 	#define LLONG_MAX	INT64_C(0x7FFFFFFFFFFFFFFF)
 	#define LLONG_MIN	ULLONG_MAX
-    #endif
+	#endif
 
 
 #define ULLONG_MAX 18446744073709551615

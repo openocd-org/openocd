@@ -36,22 +36,19 @@ void *clear_malloc(size_t size)
 {
 	void *t = malloc(size);
 	if (t != NULL)
-	{
 		memset(t, 0x00, size);
-	}
 	return t;
 }
 
 void *fill_malloc(size_t size)
 {
 	void *t = malloc(size);
-	if (t != NULL)
-	{
-		/* We want to initialize memory to some known bad state.  */
-		/* 0 and 0xff yields 0 and -1 as integers, which often		*/
-		/* have meaningful values. 0x5555... is not often a valid	*/
-		/* integer and is quite easily spotted in the debugger		*/
-		/* also it is almost certainly an invalid address					*/
+	if (t != NULL) {
+		/* We want to initialize memory to some known bad state.
+		 * 0 and 0xff yields 0 and -1 as integers, which often
+		 * have meaningful values. 0x5555... is not often a valid
+		 * integer and is quite easily spotted in the debugger
+		 * also it is almost certainly an invalid address */
 		memset(t, 0x55, size);
 	}
 	return t;
@@ -88,22 +85,22 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	__int64 t;
 	static int tzflag;
 
-	if (tv)
-	{
+	if (tv) {
 		GetSystemTimeAsFileTime(&ft);
 		li.LowPart  = ft.dwLowDateTime;
 		li.HighPart = ft.dwHighDateTime;
-		t  = li.QuadPart;					/* In 100-nanosecond intervals */
-		t -= EPOCHFILETIME;					/* Offset to the Epoch time */
-		t /= 10;							/* In microseconds */
+		t  = li.QuadPart;					/* In 100-nanosecond
+									 *intervals */
+		t -= EPOCHFILETIME;					/* Offset to the Epoch time
+									 **/
+		t /= 10;							/* In microseconds
+										 **/
 		tv->tv_sec  = (long)(t / 1000000);
 		tv->tv_usec = (long)(t % 1000000);
 	}
 
-	if (tz)
-	{
-		if (!tzflag)
-		{
+	if (tz) {
+		if (!tzflag) {
 			_tzset();
 			tzflag++;
 		}
@@ -113,29 +110,29 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 	return 0;
 }
-#endif /* _WIN32 */
+#endif	/* _WIN32 */
 
-#endif /* HAVE_GETTIMEOFDAY */
+#endif	/* HAVE_GETTIMEOFDAY */
 
 #ifndef HAVE_STRNLEN
 size_t strnlen(const char *s, size_t maxlen)
 {
-	const char *end= (const char *)memchr(s, '\0', maxlen);
+	const char *end = (const char *)memchr(s, '\0', maxlen);
 	return end ? (size_t) (end - s) : maxlen;
 }
 #endif
 
 #ifndef HAVE_STRNDUP
-char* strndup(const char *s, size_t n)
+char *strndup(const char *s, size_t n)
 {
-	size_t len = strnlen (s, n);
-	char *new = (char *) malloc (len + 1);
+	size_t len = strnlen(s, n);
+	char *new = (char *) malloc(len + 1);
 
 	if (new == NULL)
 		return NULL;
 
 	new[len] = '\0';
-	return (char *) memcpy (new, s, len);
+	return (char *) memcpy(new, s, len);
 }
 #endif
 
@@ -152,12 +149,12 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 	struct timeval tvslice;
 	int retcode;
 
-#define SAFE_FD_ISSET(fd, set)	(set != NULL && FD_ISSET(fd, set))
+#define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
 
 	/* calculate how long we need to wait in milliseconds */
-	if (tv == NULL) {
+	if (tv == NULL)
 		ms_total = INFINITE;
-	} else {
+	else {
 		ms_total = tv->tv_sec * 1000;
 		ms_total += tv->tv_usec / 1000;
 	}
@@ -173,18 +170,14 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 			handles[n_handles] = (HANDLE)handle;
 			if (handles[n_handles] == INVALID_HANDLE_VALUE) {
 				/* socket */
-				if (SAFE_FD_ISSET(i, rfds)) {
+				if (SAFE_FD_ISSET(i, rfds))
 					FD_SET(i, &sock_read);
-				}
-				if (SAFE_FD_ISSET(i, wfds)) {
+				if (SAFE_FD_ISSET(i, wfds))
 					FD_SET(i, &sock_write);
-				}
-				if (SAFE_FD_ISSET(i, efds)) {
+				if (SAFE_FD_ISSET(i, efds))
 					FD_SET(i, &sock_except);
-				}
-				if (i > sock_max_fd) {
+				if (i > sock_max_fd)
 					sock_max_fd = i;
-				}
 			} else {
 				handle_slot_to_fd[n_handles] = i;
 				n_handles++;
@@ -224,7 +217,11 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 			/* check handles */
 			DWORD wret;
 
-			wret = MsgWaitForMultipleObjects(n_handles, handles, FALSE, retcode > 0 ? 0 : 100, QS_ALLEVENTS);
+			wret = MsgWaitForMultipleObjects(n_handles,
+					handles,
+					FALSE,
+					retcode > 0 ? 0 : 100,
+					QS_ALLEVENTS);
 
 			if (wret == WAIT_TIMEOUT) {
 				/* set retcode to 0; this is the default.
@@ -233,31 +230,30 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 				 * does nothing */
 				;
 			} else if (wret == WAIT_FAILED) {
-				if (retcode == 0) {
+				if (retcode == 0)
 					retcode = -1;
-				}
 			} else {
-				if (retcode < 0) {
+				if (retcode < 0)
 					retcode = 0;
-				}
 				for (i = 0; i < n_handles; i++) {
 					if (WAIT_OBJECT_0 == WaitForSingleObject(handles[i], 0)) {
 						if (SAFE_FD_ISSET(handle_slot_to_fd[i], rfds)) {
 							DWORD dwBytes;
-							intptr_t handle = (intptr_t) _get_osfhandle(handle_slot_to_fd[i]);
+							intptr_t handle = (intptr_t) _get_osfhandle(
+									handle_slot_to_fd[i]);
 
-							if (PeekNamedPipe((HANDLE)handle, NULL, 0, NULL, &dwBytes, NULL))
-							{
-								/* check to see if gdb pipe has data available */
-								if (dwBytes)
-								{
-									FD_SET(handle_slot_to_fd[i], &aread);
+							if (PeekNamedPipe((HANDLE)handle, NULL, 0,
+								    NULL, &dwBytes, NULL)) {
+								/* check to see if gdb pipe has data
+								 *available */
+								if (dwBytes) {
+									FD_SET(handle_slot_to_fd[i],
+										&aread);
 									retcode++;
 								}
-							}
-							else
-							{
-								FD_SET(handle_slot_to_fd[i], &aread);
+							} else {
+								FD_SET(handle_slot_to_fd[i],
+									&aread);
 								retcode++;
 							}
 						}
@@ -275,15 +271,12 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 		}
 	} while (retcode == 0 && (ms_total == INFINITE || GetTickCount() < limit));
 
-	if (rfds) {
+	if (rfds)
 		*rfds = aread;
-	}
-	if (wfds) {
+	if (wfds)
 		*wfds = awrite;
-	}
-	if (efds) {
+	if (efds)
 		*efds = aexcept;
-	}
 
 	return retcode;
 }

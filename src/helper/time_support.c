@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -32,8 +33,7 @@
 /* calculate difference between two struct timeval values */
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
 {
-	if (x->tv_usec < y->tv_usec)
-	{
+	if (x->tv_usec < y->tv_usec) {
 		int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
 		y->tv_usec -= 1000000 * nsec;
 		y->tv_sec += nsec;
@@ -56,8 +56,7 @@ int timeval_add_time(struct timeval *result, long sec, long usec)
 	result->tv_sec += sec;
 	result->tv_usec += usec;
 
-	while (result->tv_usec > 1000000)
-	{
+	while (result->tv_usec > 1000000) {
 		result->tv_usec -= 1000000;
 		result->tv_sec++;
 	}

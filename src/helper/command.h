@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef COMMAND_H
 #define COMMAND_H
 
@@ -43,8 +44,7 @@
 #define PRINTF_ATTRIBUTE_FORMAT printf
 #endif
 
-enum command_mode
-{
+enum command_mode {
 	COMMAND_EXEC,
 	COMMAND_CONFIG,
 	COMMAND_ANY,
@@ -52,12 +52,11 @@ enum command_mode
 
 struct command_context;
 
-/// The type signature for command context's output handler.
+/* / The type signature for command context's output handler. */
 typedef int (*command_output_handler_t)(struct command_context *context,
-				const char* line);
+		const char *line);
 
-struct command_context
-{
+struct command_context {
 	Jim_Interp *interp;
 	enum command_mode mode;
 	struct command *commands;
@@ -86,8 +85,8 @@ struct command_invocation {
  * set provided by command.c.  This macro uses C99 magic to allow
  * defining all such derivative types using this macro.
  */
-#define __COMMAND_HANDLER(name, extra...) \
-		int name(struct command_invocation *cmd, ##extra)
+#define __COMMAND_HANDLER(name, extra ...) \
+		int name(struct command_invocation *cmd, ## extra)
 
 /**
  * Use this to macro to call a command helper (or a nested handler).
@@ -102,8 +101,8 @@ struct command_invocation {
  * helper function, or care must be taken to avoid redefining the same
  * variables in intervening scope(s) by accident.
  */
-#define CALL_COMMAND_HANDLER(name, extra...) \
-		name(cmd, ##extra)
+#define CALL_COMMAND_HANDLER(name, extra ...) \
+		name(cmd, ## extra)
 
 /**
  * Always use this macro to define new command handler functions.
@@ -111,46 +110,46 @@ struct command_invocation {
  * they be can be used by other macros (e.g. COMMAND_PARSE_NUMBER).
  * All command handler functions must be defined as static in scope.
  */
-#define COMMAND_HANDLER(name) static __COMMAND_HANDLER(name)
+#define COMMAND_HANDLER(name) \
+		static __COMMAND_HANDLER(name)
 
 /**
  * Similar to COMMAND_HANDLER, except some parameters are expected.
  * A helper is globally-scoped because it may be shared between several
  * source files (e.g. the s3c24xx device command helper).
  */
-#define COMMAND_HELPER(name, extra...) __COMMAND_HANDLER(name, extra)
+#define COMMAND_HELPER(name, extra ...) __COMMAND_HANDLER(name, extra)
 
 /**
  * Use this macro to access the context of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_CTX cmd->ctx
+#define CMD_CTX (cmd->ctx)
 /**
  * Use this macro to access the number of arguments for the command being
  * handled, rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_ARGC cmd->argc
+#define CMD_ARGC (cmd->argc)
 /**
  * Use this macro to access the arguments for the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_ARGV cmd->argv
+#define CMD_ARGV (cmd->argv)
 /**
  * Use this macro to access the name of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_NAME cmd->name
+#define CMD_NAME (cmd->name)
 /**
  * Use this macro to access the current command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_CURRENT cmd->current
+#define CMD_CURRENT (cmd->current)
 /**
  * Use this macro to access the invoked command handler's data pointer,
  * rather than accessing the variable directly.  It may be moved.
  */
-#define CMD_DATA CMD_CURRENT->jim_handler_data
-
+#define CMD_DATA (CMD_CURRENT->jim_handler_data)
 
 /**
  * The type signature for command handling functions.  They are
@@ -171,8 +170,7 @@ struct command_invocation {
  */
 typedef __COMMAND_HANDLER((*command_handler_t));
 
-struct command
-{
+struct command {
 	const char *name;
 	const char *help;
 	const char *usage;
@@ -219,7 +217,7 @@ struct command_registration {
 	void *jim_handler_data;
 	enum command_mode mode;
 	const char *help;
-	/// a string listing the options and arguments, required or optional
+	/* / a string listing the options and arguments, required or optional */
 	const char *usage;
 
 	/**
@@ -231,7 +229,7 @@ struct command_registration {
 	const struct command_registration *chain;
 };
 
-/// Use this as the last entry in an array of command_registration records.
+/* / Use this as the last entry in an array of command_registration records. */
 #define COMMAND_REGISTRATION_DONE { .name = NULL, .chain = NULL }
 
 /**
@@ -249,8 +247,8 @@ struct command_registration {
  * command parameters.
  * @returns The new command, if successful; otherwise, NULL.
  */
-struct command* register_command(struct command_context *cmd_ctx,
-		struct command *parent, const struct command_registration *rec);
+struct command *register_command(struct command_context *cmd_ctx,
+				 struct command *parent, const struct command_registration *rec);
 
 /**
  * Register one or more commands in the specified context, as children
@@ -304,7 +302,7 @@ struct command *command_find_in_parent(struct command *parent,
  */
 void command_set_handler_data(struct command *c, void *p);
 
-void command_set_output_handler(struct command_context* context,
+void command_set_output_handler(struct command_context *context,
 		command_output_handler_t output_handler, void *priv);
 
 
@@ -319,7 +317,7 @@ struct command_context *current_command_context(Jim_Interp *interp);
  * the existing Jim interpreter, if any. If interp == NULL, then command_init
  * creates a command interpreter.
  */
-struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp);
+struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp);
 /**
  * Creates a copy of an existing command context.  This does not create
  * a deep copy of the command list, so modifications in one context will
@@ -328,7 +326,7 @@ struct command_context* command_init(const char *startup_tcl, Jim_Interp *interp
  * @param cmd_ctx The command_context that will be copied.
  * @returns A new command_context with the same state as the original.
  */
-struct command_context* copy_command_context(struct command_context* cmd_ctx);
+struct command_context *copy_command_context(struct command_context *cmd_ctx);
 /**
  * Frees the resources associated with a command context.  The commands
  * are not removed, so unregister_all_commands() must be called first.
@@ -337,22 +335,22 @@ struct command_context* copy_command_context(struct command_context* cmd_ctx);
 void command_done(struct command_context *context);
 
 void command_print(struct command_context *context, const char *format, ...)
-		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 void command_print_sameline(struct command_context *context, const char *format, ...)
-		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 int command_run_line(struct command_context *context, char *line);
 int command_run_linef(struct command_context *context, const char *format, ...)
-		__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 void command_output_text(struct command_context *context, const char *data);
 
 void process_jim_events(struct command_context *cmd_ctx);
 
-#define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
-#define		ERROR_COMMAND_SYNTAX_ERROR			(-601)
-#define		ERROR_COMMAND_NOTFOUND				(-602)
-#define		ERROR_COMMAND_ARGUMENT_INVALID		(-603)
-#define		ERROR_COMMAND_ARGUMENT_OVERFLOW		(-604)
-#define		ERROR_COMMAND_ARGUMENT_UNDERFLOW	(-605)
+#define ERROR_COMMAND_CLOSE_CONNECTION		(-600)
+#define ERROR_COMMAND_SYNTAX_ERROR			(-601)
+#define ERROR_COMMAND_NOTFOUND				(-602)
+#define ERROR_COMMAND_ARGUMENT_INVALID		(-603)
+#define ERROR_COMMAND_ARGUMENT_OVERFLOW		(-604)
+#define ERROR_COMMAND_ARGUMENT_UNDERFLOW	(-605)
 
 int parse_ulong(const char *str, unsigned long *ul);
 int parse_ullong(const char *str, unsigned long long *ul);
@@ -361,7 +359,7 @@ int parse_long(const char *str, long *ul);
 int parse_llong(const char *str, long long *ul);
 
 #define DECLARE_PARSE_WRAPPER(name, type) \
-	int parse##name(const char *str, type *ul)
+		int parse ## name(const char *str, type * ul)
 
 DECLARE_PARSE_WRAPPER(_uint, unsigned);
 DECLARE_PARSE_WRAPPER(_u32, uint32_t);
@@ -386,7 +384,7 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
  */
 #define COMMAND_PARSE_NUMBER(type, in, out) \
 	do { \
-		int retval_macro_tmp = parse_##type(in, &(out)); \
+		int retval_macro_tmp = parse_ ## type(in, &(out)); \
 		if (ERROR_OK != retval_macro_tmp) { \
 			command_print(CMD_CTX, stringify(out) \
 				" option value ('%s') is not valid", in); \
@@ -417,14 +415,14 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 int command_parse_bool_arg(const char *in, bool *out);
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 
-/// parses an on/off command argument
+/* / parses an on/off command argument */
 #define COMMAND_PARSE_ON_OFF(in, out) \
-		COMMAND_PARSE_BOOL(in, out, "on", "off")
-/// parses an enable/disable command argument
+	COMMAND_PARSE_BOOL(in, out, "on", "off")
+/* / parses an enable/disable command argument */
 #define COMMAND_PARSE_ENABLE(in, out) \
-		COMMAND_PARSE_BOOL(in, out, "enable", "disable")
+	COMMAND_PARSE_BOOL(in, out, "enable", "disable")
 
 void script_debug(Jim_Interp *interp, const char *cmd,
-		unsigned argc, Jim_Obj *const *argv);
+		  unsigned argc, Jim_Obj * const *argv);
 
-#endif /* COMMAND_H */
+#endif	/* COMMAND_H */

@@ -23,15 +23,16 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef REPLACEMENTS_H
 #define REPLACEMENTS_H
 
 /* MIN,MAX macros */
 #ifndef MIN
-#define MIN(a,b) (((a) < (b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 #ifndef MAX
-#define MAX(a,b) (((a) > (b))?(a):(b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
 /* for systems that do not support ENOTSUP
@@ -56,7 +57,7 @@ struct timeval {
 	long tv_usec;
 };
 
-#endif /* _TIMEVAL_DEFINED */
+#endif	/* _TIMEVAL_DEFINED */
 
 #endif
 
@@ -107,21 +108,21 @@ void *fill_malloc(size_t size);
  * the following macros. Which is the default way.
  */
 
-/* #define malloc(_a) clear_malloc(_a) */
-/* #define malloc(_a) fill_malloc(_a) */
+/* #define malloc(_a) clear_malloc(_a)
+ * #define malloc(_a) fill_malloc(_a) */
 
 /* GNU extensions to the C library that may be missing on some systems */
 #ifndef HAVE_STRNDUP
-char* strndup(const char *s, size_t n);
-#endif /* HAVE_STRNDUP */
+char *strndup(const char *s, size_t n);
+#endif	/* HAVE_STRNDUP */
 
 #ifndef HAVE_STRNLEN
 size_t strnlen(const char *s, size_t maxlen);
-#endif /* HAVE_STRNLEN */
+#endif	/* HAVE_STRNLEN */
 
 #ifndef HAVE_USLEEP
 #ifdef _WIN32
-static __inline unsigned usleep(unsigned int usecs)
+static inline unsigned usleep(unsigned int usecs)
 {
 	Sleep((usecs/1000));
 	return 0;
@@ -133,7 +134,7 @@ void usleep(int us);
 #error no usleep defined for your platform
 #endif
 #endif
-#endif /* HAVE_USLEEP */
+#endif	/* HAVE_USLEEP */
 
 /* Windows specific */
 #ifdef _WIN32
@@ -149,29 +150,29 @@ void usleep(int us);
 #endif
 
 #if IS_MINGW == 1
-static __inline unsigned char inb(unsigned short int port)
+static inline unsigned char inb(unsigned short int port)
 {
 	unsigned char _v;
-	__asm__ __volatile__ ("inb %w1,%0":"=a" (_v):"Nd" (port));
+	__asm__ __volatile__ ("inb %w1,%0" : "=a" (_v) : "Nd" (port));
 	return _v;
 }
 
-static __inline void outb(unsigned char value, unsigned short int port)
+static inline void outb(unsigned char value, unsigned short int port)
 {
-	__asm__ __volatile__ ("outb %b0,%w1": :"a" (value), "Nd" (port));
+	__asm__ __volatile__ ("outb %b0,%w1" : : "a" (value), "Nd" (port));
 }
 
 /* mingw does not have ffs, so use gcc builtin types */
 #define ffs __builtin_ffs
 
-#endif /* IS_MINGW */
+#endif	/* IS_MINGW */
 
 int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tv);
 
-#endif  /* _WIN32 */
+#endif	/* _WIN32 */
 
 /* generic socket functions for Windows and Posix */
-static __inline int write_socket(int handle, const void *buffer, unsigned int count)
+static inline int write_socket(int handle, const void *buffer, unsigned int count)
 {
 #ifdef _WIN32
 	return send(handle, buffer, count, 0);
@@ -180,7 +181,7 @@ static __inline int write_socket(int handle, const void *buffer, unsigned int co
 #endif
 }
 
-static __inline int read_socket(int handle, void *buffer, unsigned int count)
+static inline int read_socket(int handle, void *buffer, unsigned int count)
 {
 #ifdef _WIN32
 	return recv(handle, buffer, count, 0);
@@ -189,7 +190,7 @@ static __inline int read_socket(int handle, void *buffer, unsigned int count)
 #endif
 }
 
-static __inline int close_socket(int sock)
+static inline int close_socket(int sock)
 {
 #ifdef _WIN32
 	return closesocket(sock);
@@ -198,7 +199,7 @@ static __inline int close_socket(int sock)
 #endif
 }
 
-static __inline void socket_nonblock(int fd)
+static inline void socket_nonblock(int fd)
 {
 #ifdef _WIN32
 	unsigned long nonblock = 1;
@@ -209,7 +210,11 @@ static __inline void socket_nonblock(int fd)
 #endif
 }
 
-static __inline int socket_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tv)
+static inline int socket_select(int max_fd,
+	fd_set *rfds,
+	fd_set *wfds,
+	fd_set *efds,
+	struct timeval *tv)
 {
 #ifdef _WIN32
 	return win_select(max_fd, rfds, wfds, efds, tv);
@@ -222,45 +227,43 @@ static __inline int socket_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set
 
 #include <helper/types.h>
 
-typedef uint32_t	Elf32_Addr;
-typedef uint16_t	Elf32_Half;
-typedef uint32_t	Elf32_Off;
-typedef int32_t		Elf32_Sword;
-typedef uint32_t	Elf32_Word;
-typedef uint32_t	Elf32_Size;
-typedef Elf32_Off	Elf32_Hashelt;
+typedef uint32_t Elf32_Addr;
+typedef uint16_t Elf32_Half;
+typedef uint32_t Elf32_Off;
+typedef int32_t Elf32_Sword;
+typedef uint32_t Elf32_Word;
+typedef uint32_t Elf32_Size;
+typedef Elf32_Off Elf32_Hashelt;
 
-typedef struct
-{
-	unsigned char	e_ident[16];	/* Magic number and other info */
-	Elf32_Half	e_type;			/* Object file type */
-	Elf32_Half	e_machine;		/* Architecture */
-	Elf32_Word	e_version;		/* Object file version */
-	Elf32_Addr	e_entry;		/* Entry point virtual address */
-	Elf32_Off	e_phoff;		/* Program header table file offset */
-	Elf32_Off	e_shoff;		/* Section header table file offset */
-	Elf32_Word	e_flags;		/* Processor-specific flags */
-	Elf32_Half	e_ehsize;		/* ELF header size in bytes */
-	Elf32_Half	e_phentsize;	/* Program header table entry size */
-	Elf32_Half	e_phnum;		/* Program header table entry count */
-	Elf32_Half	e_shentsize;	/* Section header table entry size */
-	Elf32_Half	e_shnum;		/* Section header table entry count */
-	Elf32_Half	e_shstrndx;		/* Section header string table index */
+typedef struct {
+	unsigned char e_ident[16];	/* Magic number and other info */
+	Elf32_Half e_type;			/* Object file type */
+	Elf32_Half e_machine;			/* Architecture */
+	Elf32_Word e_version;			/* Object file version */
+	Elf32_Addr e_entry;			/* Entry point virtual address */
+	Elf32_Off e_phoff;			/* Program header table file offset */
+	Elf32_Off e_shoff;			/* Section header table file offset */
+	Elf32_Word e_flags;			/* Processor-specific flags */
+	Elf32_Half e_ehsize;			/* ELF header size in bytes */
+	Elf32_Half e_phentsize;		/* Program header table entry size */
+	Elf32_Half e_phnum;			/* Program header table entry count */
+	Elf32_Half e_shentsize;		/* Section header table entry size */
+	Elf32_Half e_shnum;			/* Section header table entry count */
+	Elf32_Half e_shstrndx;			/* Section header string table index */
 } Elf32_Ehdr;
 
-#define	ELFMAG		"\177ELF"
-#define	SELFMAG		4
+#define ELFMAG			"\177ELF"
+#define SELFMAG			4
 
-#define EI_CLASS	4		/* File class byte index */
-#define ELFCLASS32	1		/* 32-bit objects */
-#define ELFCLASS64	2		/* 64-bit objects */
+#define EI_CLASS		4		/* File class byte index */
+#define ELFCLASS32		1		/* 32-bit objects */
+#define ELFCLASS64		2		/* 64-bit objects */
 
-#define EI_DATA		5		/* Data encoding byte index */
-#define ELFDATA2LSB	1		/* 2's complement, little endian */
-#define ELFDATA2MSB	2		/* 2's complement, big endian */
+#define EI_DATA			5		/* Data encoding byte index */
+#define ELFDATA2LSB		1		/* 2's complement, little endian */
+#define ELFDATA2MSB		2		/* 2's complement, big endian */
 
-typedef struct
-{
+typedef struct {
 	Elf32_Word p_type;		/* Segment type */
 	Elf32_Off p_offset;		/* Segment file offset */
 	Elf32_Addr p_vaddr;		/* Segment virtual address */
@@ -271,8 +274,8 @@ typedef struct
 	Elf32_Size p_align;		/* Segment alignment */
 } Elf32_Phdr;
 
-#define PT_LOAD		1		/* Loadable program segment */
+#define PT_LOAD			1		/* Loadable program segment */
 
-#endif /* HAVE_ELF_H */
+#endif	/* HAVE_ELF_H */
 
-#endif /* REPLACEMENTS_H */
+#endif	/* REPLACEMENTS_H */

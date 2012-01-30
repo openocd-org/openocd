@@ -83,34 +83,47 @@
  */
 typedef struct {
 	const char *name;
-	int         value;
+	int value;
 } Jim_Nvp;
 
-
-int Jim_GetNvp (Jim_Interp *interp,
-									Jim_Obj *objPtr,
-									const Jim_Nvp *nvp_table,
-									const Jim_Nvp **result);
+int Jim_GetNvp(Jim_Interp *interp,
+		Jim_Obj *objPtr,
+		const Jim_Nvp *nvp_table,
+		const Jim_Nvp **result);
 
 /* Name Value Pairs Operations */
 Jim_Nvp *Jim_Nvp_name2value_simple(const Jim_Nvp *nvp_table, const char *name);
 Jim_Nvp *Jim_Nvp_name2value_nocase_simple(const Jim_Nvp *nvp_table, const char *name);
 Jim_Nvp *Jim_Nvp_value2name_simple(const Jim_Nvp *nvp_table, int v);
 
-int Jim_Nvp_name2value(Jim_Interp *interp, const Jim_Nvp *nvp_table, const char *name, Jim_Nvp **result);
-int Jim_Nvp_name2value_nocase(Jim_Interp *interp, const Jim_Nvp *nvp_table, const char *name, Jim_Nvp **result);
+int Jim_Nvp_name2value(Jim_Interp *interp,
+		const Jim_Nvp *nvp_table,
+		const char *name,
+		Jim_Nvp **result);
+int Jim_Nvp_name2value_nocase(Jim_Interp *interp,
+		const Jim_Nvp *nvp_table,
+		const char *name,
+		Jim_Nvp **result);
 int Jim_Nvp_value2name(Jim_Interp *interp, const Jim_Nvp *nvp_table, int value, Jim_Nvp **result);
 
-int Jim_Nvp_name2value_obj(Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *name_obj, Jim_Nvp **result);
-int Jim_Nvp_name2value_obj_nocase(Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *name_obj, Jim_Nvp **result);
-int Jim_Nvp_value2name_obj(Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *value_obj, Jim_Nvp **result);
+int Jim_Nvp_name2value_obj(Jim_Interp *interp,
+		const Jim_Nvp *nvp_table,
+		Jim_Obj *name_obj,
+		Jim_Nvp **result);
+int Jim_Nvp_name2value_obj_nocase(Jim_Interp *interp,
+		const Jim_Nvp *nvp_table,
+		Jim_Obj *name_obj,
+		Jim_Nvp **result);
+int Jim_Nvp_value2name_obj(Jim_Interp *interp,
+		const Jim_Nvp *nvp_table,
+		Jim_Obj *value_obj,
+		Jim_Nvp **result);
 
 /** prints a nice 'unknown' parameter error message to the 'result' */
 void Jim_SetResult_NvpUnknown(Jim_Interp *interp,
-												   Jim_Obj *param_name,
-												   Jim_Obj *param_value,
-												   const Jim_Nvp *nvp_table);
-
+		Jim_Obj *param_name,
+		Jim_Obj *param_value,
+		const Jim_Nvp *nvp_table);
 
 /** Debug: convert argc/argv into a printable string for printf() debug
  *
@@ -145,10 +158,10 @@ const char *Jim_Debug_ArgvString(Jim_Interp *interp, int argc, Jim_Obj *const *a
  */
 
 typedef struct jim_getopt {
-	Jim_Interp     *interp;
-	int            argc;
-	Jim_Obj        * const * argv;
-	int            isconfigure; /* non-zero if configure */
+	Jim_Interp *interp;
+	int argc;
+	Jim_Obj *const *argv;
+	int isconfigure;		/* non-zero if configure */
 } Jim_GetOptInfo;
 
 /** GetOpt - how to.
@@ -208,17 +221,15 @@ typedef struct jim_getopt {
  */
 
 int Jim_GetOpt_Setup(Jim_GetOptInfo *goi,
-											Jim_Interp *interp,
-											int argc,
-											Jim_Obj * const *  argv);
+		Jim_Interp *interp,
+		int argc,
+		Jim_Obj *const *argv);
 
 
 /** Debug - Dump parameters to stderr
  * \param goi - current parameters
  */
 void Jim_GetOpt_Debug(Jim_GetOptInfo *goi);
-
-
 
 /** Remove argv[0] from the list.
  *
@@ -313,6 +324,6 @@ void Jim_GetOpt_NvpUnknown(Jim_GetOptInfo *goi, const Jim_Nvp *lookup, int hadpr
  * \param puthere - where param is put.
  *
  */
-int Jim_GetOpt_Enum(Jim_GetOptInfo *goi, const char * const *  lookup, int *puthere);
+int Jim_GetOpt_Enum(Jim_GetOptInfo *goi, const char *const *lookup, int *puthere);
 
 #endif

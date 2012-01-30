@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -37,7 +38,7 @@ int64_t timeval_ms()
 	 * profiling
 	 */
 	static const int ms_per_tick =
-			(CYGNUM_HAL_RTC_NUMERATOR / CYGNUM_HAL_RTC_DENOMINATOR) / 1000000;
+		(CYGNUM_HAL_RTC_NUMERATOR / CYGNUM_HAL_RTC_DENOMINATOR) / 1000000;
 	cyg_tick_count_t cur_time = cyg_current_time();
 	return ((int)cur_time) * ms_per_tick;
 }

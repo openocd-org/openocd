@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
@@ -40,4 +41,4 @@ FILE *open_file_from_path(const char *file, const char *mode);
 
 char *find_file(const char *name);
 
-#endif /* CONFIGURATION_H */
+#endif	/* CONFIGURATION_H */

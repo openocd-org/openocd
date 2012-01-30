@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ERROR_H
 #define ERROR_H
 
@@ -48,8 +49,7 @@
  * LOG_LVL_INFO - state information, etc.
  * LOG_LVL_DEBUG - debug statements, execution trace
  */
-enum log_levels
-{
+enum log_levels {
 	LOG_LVL_SILENT = -3,
 	LOG_LVL_OUTPUT = -2,
 	LOG_LVL_USER = -1,
@@ -60,10 +60,10 @@ enum log_levels
 };
 
 void log_printf(enum log_levels level, const char *file, unsigned line,
-	const char *function, const char *format, ...)
+		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 void log_printf_lf(enum log_levels level, const char *file, unsigned line,
-	const char *function, const char *format, ...)
+		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 
 /**
@@ -103,40 +103,40 @@ extern int debug_level;
 #define LOG_LEVEL_IS(FOO)  ((debug_level) >= (FOO))
 
 #define LOG_DEBUG(expr ...) \
-		do { \
-			if (debug_level >= LOG_LVL_DEBUG) \
-				log_printf_lf(LOG_LVL_DEBUG, \
-					__FILE__, __LINE__, __func__, \
-					expr); \
-		} while (0)
+	do { \
+		if (debug_level >= LOG_LVL_DEBUG) \
+			log_printf_lf(LOG_LVL_DEBUG, \
+				__FILE__, __LINE__, __func__, \
+				expr); \
+	} while (0)
 
 #define LOG_INFO(expr ...) \
-		log_printf_lf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
+	log_printf_lf(LOG_LVL_INFO, __FILE__, __LINE__, __func__, expr)
 
 #define LOG_WARNING(expr ...) \
-		log_printf_lf (LOG_LVL_WARNING, __FILE__, __LINE__, __FUNCTION__, expr)
+	log_printf_lf(LOG_LVL_WARNING, __FILE__, __LINE__, __func__, expr)
 
 #define LOG_ERROR(expr ...) \
-		log_printf_lf (LOG_LVL_ERROR, __FILE__, __LINE__, __FUNCTION__, expr)
+	log_printf_lf(LOG_LVL_ERROR, __FILE__, __LINE__, __func__, expr)
 
 #define LOG_USER(expr ...) \
-		log_printf_lf (LOG_LVL_USER, __FILE__, __LINE__, __FUNCTION__, expr)
+	log_printf_lf(LOG_LVL_USER, __FILE__, __LINE__, __func__, expr)
 
 #define LOG_USER_N(expr ...) \
-		log_printf (LOG_LVL_USER, __FILE__, __LINE__, __FUNCTION__, expr)
+	log_printf(LOG_LVL_USER, __FILE__, __LINE__, __func__, expr)
 
 #define LOG_OUTPUT(expr ...) \
-		log_printf (LOG_LVL_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr)
+	log_printf(LOG_LVL_OUTPUT, __FILE__, __LINE__, __func__, expr)
 
 /* general failures
  * error codes < 100
  */
-#define ERROR_OK					(0)
-#define ERROR_NO_CONFIG_FILE		(-2)
-#define ERROR_BUF_TOO_SMALL			(-3)
+#define ERROR_OK						(0)
+#define ERROR_NO_CONFIG_FILE			(-2)
+#define ERROR_BUF_TOO_SMALL				(-3)
 /* see "Error:" log entry for meaningful message to the user. The caller should
  * make no assumptions about what went wrong and try to handle the problem.
  */
-#define ERROR_FAIL					(-4)
+#define ERROR_FAIL						(-4)
 
-#endif /* LOG_H */
+#endif	/* LOG_H */

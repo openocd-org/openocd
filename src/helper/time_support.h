@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef TIME_SUPPORT_H
 #define TIME_SUPPORT_H
 
@@ -40,23 +41,22 @@
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 int timeval_add_time(struct timeval *result, long sec, long usec);
 
-/// @returns gettimeofday() timeval as 64-bit in ms
+/* / @returns gettimeofday() timeval as 64-bit in ms */
 int64_t timeval_ms(void);
 
-struct duration
-{
+struct duration {
 	struct timeval start;
 	struct timeval elapsed;
 };
 
-/// Update the duration->start field to start the @a duration measurement.
+/* / Update the duration->start field to start the @a duration measurement. */
 int duration_start(struct duration *duration);
-/// Update the duration->elapsed field to finish the @a duration measurment.
+/* / Update the duration->elapsed field to finish the @a duration measurment. */
 int duration_measure(struct duration *duration);
 
-/// @returns Elapsed time in seconds.
+/* / @returns Elapsed time in seconds. */
 float duration_elapsed(struct duration *duration);
-/// @returns KB/sec for the elapsed @a duration and @a count bytes.
+/* / @returns KB/sec for the elapsed @a duration and @a count bytes. */
 float duration_kbps(struct duration *duration, size_t count);
 
-#endif /* TIME_SUPPORT_H */
+#endif	/* TIME_SUPPORT_H */
