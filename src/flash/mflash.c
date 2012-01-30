@@ -27,11 +27,10 @@
 #include <helper/fileio.h>
 #include <helper/log.h>
 
-
-static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio);
-static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val);
-static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio);
-static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val);
+static int s3c2440_set_gpio_to_output(struct mflash_gpio_num gpio);
+static int s3c2440_set_gpio_output_val(struct mflash_gpio_num gpio, uint8_t val);
+static int pxa270_set_gpio_to_output(struct mflash_gpio_num gpio);
+static int pxa270_set_gpio_output_val(struct mflash_gpio_num gpio, uint8_t val);
 
 static struct mflash_bank *mflash_bank;
 
@@ -47,11 +46,10 @@ static struct mflash_gpio_drv s3c2440_gpio = {
 	.set_gpio_output_val = s3c2440_set_gpio_output_val
 };
 
-static struct mflash_gpio_drv *mflash_gpio[] =
-{
-		&pxa270_gpio,
-		&s3c2440_gpio,
-		NULL
+static struct mflash_gpio_drv *mflash_gpio[] = {
+	&pxa270_gpio,
+	&s3c2440_gpio,
+	NULL
 };
 
 #define PXA270_GAFR0_L 0x40E00054
@@ -63,7 +61,7 @@ static struct mflash_gpio_drv *mflash_gpio[] =
 #define PXA270_GPSR0 0x40E00018
 #define PXA270_GPCR0 0x40E00024
 
-static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
+static int pxa270_set_gpio_to_output(struct mflash_gpio_num gpio)
 {
 	uint32_t addr, value, mask;
 	struct target *target = mflash_bank->target;
@@ -74,14 +72,16 @@ static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
 
 	addr = PXA270_GAFR0_L + (gpio.num >> 4) * 4;
 
-	if ((ret = target_read_u32(target, addr, &value)) != ERROR_OK)
+	ret = target_read_u32(target, addr, &value);
+	if (ret != ERROR_OK)
 		return ret;
 
 	value &= ~mask;
 	if (addr == PXA270_GAFR3_U)
 		value &= ~PXA270_GAFR3_U_RESERVED_BITS;
 
-	if ((ret = target_write_u32(target, addr, value)) != ERROR_OK)
+	ret = target_write_u32(target, addr, value);
+	if (ret != ERROR_OK)
 		return ret;
 
 	/* set direction to output */
@@ -89,7 +89,8 @@ static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
 
 	addr = PXA270_GPDR0 + (gpio.num >> 5) * 4;
 
-	if ((ret = target_read_u32(target, addr, &value)) != ERROR_OK)
+	ret = target_read_u32(target, addr, &value);
+	if (ret != ERROR_OK)
 		return ret;
 
 	value |= mask;
@@ -100,7 +101,7 @@ static int pxa270_set_gpio_to_output (struct mflash_gpio_num gpio)
 	return ret;
 }
 
-static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
+static int pxa270_set_gpio_output_val(struct mflash_gpio_num gpio, uint8_t val)
 {
 	uint32_t addr, value, mask;
 	struct target *target = mflash_bank->target;
@@ -108,13 +109,13 @@ static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 
 	mask = 0x1u << (gpio.num & 0x1F);
 
-	if (val) {
+	if (val)
 		addr = PXA270_GPSR0 + (gpio.num >> 5) * 4;
-	} else {
+	else
 		addr = PXA270_GPCR0 + (gpio.num >> 5) * 4;
-	}
 
-	if ((ret = target_read_u32(target, addr, &value)) != ERROR_OK)
+	ret = target_read_u32(target, addr, &value);
+	if (ret != ERROR_OK)
 		return ret;
 
 	value |= mask;
@@ -129,17 +130,17 @@ static int pxa270_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
 #define S3C2440_GPJCON 0x560000d0
 #define S3C2440_GPJDAT 0x560000d4
 
-static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio)
+static int s3c2440_set_gpio_to_output(struct mflash_gpio_num gpio)
 {
 	uint32_t data, mask, gpio_con;
 	struct target *target = mflash_bank->target;
 	int ret;
 
-	if (gpio.port[0] >= 'a' && gpio.port[0] <= 'h') {
+	if (gpio.port[0] >= 'a' && gpio.port[0] <= 'h')
 		gpio_con = S3C2440_GPACON + (gpio.port[0] - 'a') * 0x10;
-	} else if (gpio.port[0] == 'j') {
+	else if (gpio.port[0] == 'j')
 		gpio_con = S3C2440_GPJCON;
-	} else {
+	else {
 		LOG_ERROR("mflash: invalid port %d%s", gpio.num, gpio.port);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -161,17 +162,17 @@ static int s3c2440_set_gpio_to_output (struct mflash_gpio_num gpio)
 	return ret;
 }
 
-static int s3c2440_set_gpio_output_val (struct mflash_gpio_num gpio, uint8_t val)
+static int s3c2440_set_gpio_output_val(struct mflash_gpio_num gpio, uint8_t val)
 {
 	uint32_t data, mask, gpio_dat;
 	struct target *target = mflash_bank->target;
 	int ret;
 
-	if (gpio.port[0] >= 'a' && gpio.port[0] <= 'h') {
+	if (gpio.port[0] >= 'a' && gpio.port[0] <= 'h')
 		gpio_dat = S3C2440_GPADAT + (gpio.port[0] - 'a') * 0x10;
-	} else if (gpio.port[0] == 'j') {
+	else if (gpio.port[0] == 'j')
 		gpio_dat = S3C2440_GPJDAT;
-	} else {
+	else {
 		LOG_ERROR("mflash: invalid port %d%s", gpio.num, gpio.port);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -195,7 +196,7 @@ static int mg_hdrst(uint8_t level)
 	return mflash_bank->gpio_drv->set_gpio_output_val(mflash_bank->rst_pin, level);
 }
 
-static int mg_init_gpio (void)
+static int mg_init_gpio(void)
 {
 	int ret;
 	struct mflash_gpio_drv *gpio_drv = mflash_bank->gpio_drv;
@@ -226,13 +227,11 @@ static int mg_dsk_wait(mg_io_type_wait wait_local, uint32_t time_var)
 		if (ret != ERROR_OK)
 			return ret;
 
-		if (status & mg_io_rbit_status_busy)
-		{
+		if (status & mg_io_rbit_status_busy) {
 			if (wait_local == mg_io_wait_bsy)
 				return ERROR_OK;
 		} else {
-			switch (wait_local)
-			{
+			switch (wait_local) {
 				case mg_io_wait_not_bsy:
 					return ERROR_OK;
 				case mg_io_wait_rdy_noerr:
@@ -248,8 +247,7 @@ static int mg_dsk_wait(mg_io_type_wait wait_local, uint32_t time_var)
 			}
 
 			/* Now we check the error condition! */
-			if (status & mg_io_rbit_status_error)
-			{
+			if (status & mg_io_rbit_status_error) {
 				ret = target_read_u8(target, mg_task_reg + MG_REG_ERROR, &error);
 				if (ret != ERROR_OK)
 					return ret;
@@ -259,8 +257,7 @@ static int mg_dsk_wait(mg_io_type_wait wait_local, uint32_t time_var)
 				return ERROR_MG_IO;
 			}
 
-			switch (wait_local)
-			{
+			switch (wait_local) {
 				case mg_io_wait_rdy:
 					if (status & mg_io_rbit_status_ready)
 						return ERROR_OK;
@@ -295,14 +292,14 @@ static int mg_dsk_srst(uint8_t on)
 	uint8_t value;
 	int ret;
 
-	if ((ret = target_read_u8(target, mg_task_reg + MG_REG_DRV_CTRL, &value)) != ERROR_OK)
+	ret = target_read_u8(target, mg_task_reg + MG_REG_DRV_CTRL, &value);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if (on) {
+	if (on)
 		value |= (mg_io_rbit_devc_srst);
-	} else {
+	else
 		value &= ~mg_io_rbit_devc_srst;
-	}
 
 	ret = target_write_u8(target, mg_task_reg + MG_REG_DRV_CTRL, value);
 	return ret;
@@ -319,7 +316,7 @@ static int mg_dsk_io_cmd(uint32_t sect_num, uint32_t cnt, uint8_t cmd)
 	if (ret != ERROR_OK)
 		return ret;
 
-	value = mg_io_rval_dev_drv_master | mg_io_rval_dev_lba_mode |((sect_num >> 24) & 0xf);
+	value = mg_io_rval_dev_drv_master | mg_io_rval_dev_lba_mode | ((sect_num >> 24) & 0xf);
 
 	ret = target_write_u8(target, mg_task_reg + MG_REG_DRV_HEAD, value);
 	ret |= target_write_u8(target, mg_task_reg + MG_REG_SECT_CNT, (uint8_t)cnt);
@@ -339,7 +336,8 @@ static int mg_dsk_drv_info(void)
 	uint32_t mg_buff = mflash_bank->base + MG_BUFFER_OFFSET;
 	int ret;
 
-	if ((ret =  mg_dsk_io_cmd(0, 1, mg_io_cmd_identify)) != ERROR_OK)
+	ret = mg_dsk_io_cmd(0, 1, mg_io_cmd_identify);
+	if (ret != ERROR_OK)
 		return ret;
 
 	ret = mg_dsk_wait(mg_io_wait_drq, MG_OEM_DISK_WAIT_TIME_NORMAL);
@@ -348,7 +346,7 @@ static int mg_dsk_drv_info(void)
 
 	LOG_INFO("mflash: read drive info");
 
-	if (! mflash_bank->drv_info)
+	if (!mflash_bank->drv_info)
 		mflash_bank->drv_info = malloc(sizeof(struct mg_drv_info));
 
 	ret = target_read_memory(target, mg_buff, 2,
@@ -357,41 +355,53 @@ static int mg_dsk_drv_info(void)
 	if (ret != ERROR_OK)
 		return ret;
 
-	mflash_bank->drv_info->tot_sects = (uint32_t)(mflash_bank->drv_info->drv_id.total_user_addressable_sectors_hi << 16)
-									+ mflash_bank->drv_info->drv_id.total_user_addressable_sectors_lo;
+	mflash_bank->drv_info->tot_sects =
+		(uint32_t)(mflash_bank->drv_info->drv_id.total_user_addressable_sectors_hi << 16)
+		+ mflash_bank->drv_info->drv_id.total_user_addressable_sectors_lo;
 
-	return target_write_u8(target, mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND, mg_io_cmd_confirm_read);
+	return target_write_u8(target,
+		mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND,
+		mg_io_cmd_confirm_read);
 }
 
 static int mg_mflash_rst(void)
 {
 	int ret;
 
-	if ((ret = mg_init_gpio()) != ERROR_OK)
+	ret = mg_init_gpio();
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_hdrst(0)) != ERROR_OK)
+	ret = mg_hdrst(0);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_wait(mg_io_wait_bsy, MG_OEM_DISK_WAIT_TIME_LONG)) != ERROR_OK)
+	ret = mg_dsk_wait(mg_io_wait_bsy, MG_OEM_DISK_WAIT_TIME_LONG);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_hdrst(1)) != ERROR_OK)
+	ret = mg_hdrst(1);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_wait(mg_io_wait_not_bsy, MG_OEM_DISK_WAIT_TIME_LONG)) != ERROR_OK)
+	ret = mg_dsk_wait(mg_io_wait_not_bsy, MG_OEM_DISK_WAIT_TIME_LONG);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_srst(1)) != ERROR_OK)
+	ret = mg_dsk_srst(1);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_wait(mg_io_wait_bsy, MG_OEM_DISK_WAIT_TIME_LONG)) != ERROR_OK)
+	ret = mg_dsk_wait(mg_io_wait_bsy, MG_OEM_DISK_WAIT_TIME_LONG);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_srst(0)) != ERROR_OK)
+	ret = mg_dsk_srst(0);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_dsk_wait(mg_io_wait_not_bsy, MG_OEM_DISK_WAIT_TIME_LONG)) != ERROR_OK)
+	ret = mg_dsk_wait(mg_io_wait_not_bsy, MG_OEM_DISK_WAIT_TIME_LONG);
+	if (ret != ERROR_OK)
 		return ret;
 
 	LOG_INFO("mflash: reset ok");
@@ -401,9 +411,8 @@ static int mg_mflash_rst(void)
 
 static int mg_mflash_probe(void)
 {
-	int ret;
-
-	if ((ret = mg_mflash_rst()) != ERROR_OK)
+	int ret = mg_mflash_rst();
+	if (ret != ERROR_OK)
 		return ret;
 
 	return mg_dsk_drv_info();
@@ -416,8 +425,10 @@ COMMAND_HANDLER(mg_probe_cmd)
 	ret = mg_mflash_probe();
 
 	if (ret == ERROR_OK) {
-		command_print(CMD_CTX, "mflash (total %" PRIu32 " sectors) found at 0x%8.8" PRIx32 "",
-				mflash_bank->drv_info->tot_sects, mflash_bank->base);
+		command_print(CMD_CTX,
+			"mflash (total %" PRIu32 " sectors) found at 0x%8.8" PRIx32 "",
+			mflash_bank->drv_info->tot_sects,
+			mflash_bank->base);
 	}
 
 	return ret;
@@ -430,7 +441,8 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 	struct target *target = mflash_bank->target;
 	uint8_t *buff_ptr = buff;
 
-	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read)) != ERROR_OK)
+	ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read);
+	if (ret != ERROR_OK)
 		return ret;
 
 	address = mflash_bank->base + MG_BUFFER_OFFSET;
@@ -449,11 +461,14 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 
 		buff_ptr += MG_MFLASH_SECTOR_SIZE;
 
-		ret = target_write_u8(target, mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND, mg_io_cmd_confirm_read);
+		ret = target_write_u8(target,
+				mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND,
+				mg_io_cmd_confirm_read);
 		if (ret != ERROR_OK)
 			return ret;
 
-		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector read", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
+		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector read", sect_num + i,
+			(sect_num + i) * MG_MFLASH_SECTOR_SIZE);
 
 		ret = duration_measure(&bench);
 		if ((ERROR_OK == ret) && (duration_elapsed(&bench) > 3)) {
@@ -476,7 +491,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 
 	for (i = 0; i < quotient; i++) {
 		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : %p",
-				sect_num, buff_ptr);
+			sect_num, buff_ptr);
 		ret = mg_mflash_do_read_sects(buff_ptr, sect_num, 256);
 		if (ret != ERROR_OK)
 			return ret;
@@ -487,7 +502,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 
 	if (residue) {
 		LOG_DEBUG("mflash: sect num : %" PRIx32 " buff : %p",
-				sect_num, buff_ptr);
+			sect_num, buff_ptr);
 		return mg_mflash_do_read_sects(buff_ptr, sect_num, residue);
 	}
 
@@ -495,14 +510,15 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 }
 
 static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt,
-		mg_io_type_cmd cmd)
+	mg_io_type_cmd cmd)
 {
 	uint32_t i, address;
 	int ret;
 	struct target *target = mflash_bank->target;
 	uint8_t *buff_ptr = buff;
 
-	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd)) != ERROR_OK)
+	ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd);
+	if (ret != ERROR_OK)
 		return ret;
 
 	address = mflash_bank->base + MG_BUFFER_OFFSET;
@@ -521,11 +537,14 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 
 		buff_ptr += MG_MFLASH_SECTOR_SIZE;
 
-		ret = target_write_u8(target, mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND, mg_io_cmd_confirm_write);
+		ret = target_write_u8(target,
+				mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND,
+				mg_io_cmd_confirm_write);
 		if (ret != ERROR_OK)
 			return ret;
 
-		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector write", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
+		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector write", sect_num + i,
+			(sect_num + i) * MG_MFLASH_SECTOR_SIZE);
 
 		ret = duration_measure(&bench);
 		if ((ERROR_OK == ret) && (duration_elapsed(&bench) > 3)) {
@@ -571,7 +590,7 @@ static int mg_mflash_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cn
 	return ret;
 }
 
-static int mg_mflash_read (uint32_t addr, uint8_t *buff, uint32_t len)
+static int mg_mflash_read(uint32_t addr, uint8_t *buff, uint32_t len)
 {
 	uint8_t *buff_ptr = buff;
 	uint8_t sect_buff[MG_MFLASH_SECTOR_SIZE];
@@ -591,12 +610,22 @@ static int mg_mflash_read (uint32_t addr, uint8_t *buff, uint32_t len)
 			return ret;
 
 		if (end_addr < next_sec_addr) {
-			memcpy(buff_ptr, sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), end_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %" PRIu32 " byte from sector offset 0x%8.8" PRIx32 "", end_addr - cur_addr, cur_addr);
+			memcpy(buff_ptr,
+				sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK),
+				end_addr - cur_addr);
+			LOG_DEBUG(
+				"mflash: copies %" PRIu32 " byte from sector offset 0x%8.8" PRIx32 "",
+				end_addr - cur_addr,
+				cur_addr);
 			cur_addr = end_addr;
 		} else {
-			memcpy(buff_ptr, sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), next_sec_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %" PRIu32 " byte from sector offset 0x%8.8" PRIx32 "", next_sec_addr - cur_addr, cur_addr);
+			memcpy(buff_ptr,
+				sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK),
+				next_sec_addr - cur_addr);
+			LOG_DEBUG(
+				"mflash: copies %" PRIu32 " byte from sector offset 0x%8.8" PRIx32 "",
+				next_sec_addr - cur_addr,
+				cur_addr);
 			buff_ptr += (next_sec_addr - cur_addr);
 			cur_addr = next_sec_addr;
 		}
@@ -612,9 +641,11 @@ static int mg_mflash_read (uint32_t addr, uint8_t *buff, uint32_t len)
 			next_sec_addr += MG_MFLASH_SECTOR_SIZE;
 		}
 
-		if (cnt)
-			if ((ret = mg_mflash_read_sects(buff_ptr, sect_num, cnt)) != ERROR_OK)
+		if (cnt) {
+			ret = mg_mflash_read_sects(buff_ptr, sect_num, cnt);
+			if (ret != ERROR_OK)
 				return ret;
+		}
 
 		buff_ptr += cnt * MG_MFLASH_SECTOR_SIZE;
 		cur_addr += cnt * MG_MFLASH_SECTOR_SIZE;
@@ -628,7 +659,6 @@ static int mg_mflash_read (uint32_t addr, uint8_t *buff, uint32_t len)
 
 			memcpy(buff_ptr, sect_buff, end_addr - cur_addr);
 			LOG_DEBUG("mflash: copies %u byte", (unsigned)(end_addr - cur_addr));
-
 		}
 	}
 
@@ -655,12 +685,22 @@ static int mg_mflash_write(uint32_t addr, uint8_t *buff, uint32_t len)
 			return ret;
 
 		if (end_addr < next_sec_addr) {
-			memcpy(sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), buff_ptr, end_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %" PRIu32 " byte to sector offset 0x%8.8" PRIx32 "", end_addr - cur_addr, cur_addr);
+			memcpy(sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK),
+				buff_ptr,
+				end_addr - cur_addr);
+			LOG_DEBUG(
+				"mflash: copies %" PRIu32 " byte to sector offset 0x%8.8" PRIx32 "",
+				end_addr - cur_addr,
+				cur_addr);
 			cur_addr = end_addr;
 		} else {
-			memcpy(sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), buff_ptr, next_sec_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %" PRIu32 " byte to sector offset 0x%8.8" PRIx32 "", next_sec_addr - cur_addr, cur_addr);
+			memcpy(sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK),
+				buff_ptr,
+				next_sec_addr - cur_addr);
+			LOG_DEBUG(
+				"mflash: copies %" PRIu32 " byte to sector offset 0x%8.8" PRIx32 "",
+				next_sec_addr - cur_addr,
+				cur_addr);
 			buff_ptr += (next_sec_addr - cur_addr);
 			cur_addr = next_sec_addr;
 		}
@@ -680,9 +720,11 @@ static int mg_mflash_write(uint32_t addr, uint8_t *buff, uint32_t len)
 			next_sec_addr += MG_MFLASH_SECTOR_SIZE;
 		}
 
-		if (cnt)
-			if ((ret = mg_mflash_write_sects(buff_ptr, sect_num, cnt)) != ERROR_OK)
+		if (cnt) {
+			ret = mg_mflash_write_sects(buff_ptr, sect_num, cnt);
+			if (ret != ERROR_OK)
 				return ret;
+		}
 
 		buff_ptr += cnt * MG_MFLASH_SECTOR_SIZE;
 		cur_addr += cnt * MG_MFLASH_SECTOR_SIZE;
@@ -710,9 +752,8 @@ COMMAND_HANDLER(mg_write_cmd)
 	struct fileio fileio;
 	int ret;
 
-	if (CMD_ARGC != 3) {
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], address);
 
@@ -740,26 +781,28 @@ COMMAND_HANDLER(mg_write_cmd)
 
 	size_t buf_cnt;
 	for (i = 0; i < cnt; i++) {
-		if ((ret = fileio_read(&fileio, MG_FILEIO_CHUNK, buffer, &buf_cnt)) !=
-				ERROR_OK)
+		ret = fileio_read(&fileio, MG_FILEIO_CHUNK, buffer, &buf_cnt);
+		if (ret != ERROR_OK)
 			goto mg_write_cmd_err;
-		if ((ret = mg_mflash_write(address, buffer, MG_FILEIO_CHUNK)) != ERROR_OK)
+		ret = mg_mflash_write(address, buffer, MG_FILEIO_CHUNK);
+		if (ret != ERROR_OK)
 			goto mg_write_cmd_err;
 		address += MG_FILEIO_CHUNK;
 	}
 
 	if (res) {
-		if ((ret = fileio_read(&fileio, res, buffer, &buf_cnt)) != ERROR_OK)
+		ret = fileio_read(&fileio, res, buffer, &buf_cnt);
+		if (ret != ERROR_OK)
 			goto mg_write_cmd_err;
-		if ((ret = mg_mflash_write(address, buffer, res)) != ERROR_OK)
+		ret = mg_mflash_write(address, buffer, res);
+		if (ret != ERROR_OK)
 			goto mg_write_cmd_err;
 	}
 
-	if (duration_measure(&bench) == ERROR_OK)
-	{
+	if (duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD_CTX, "wrote %ld bytes from file %s "
-				"in %fs (%0.3f kB/s)", (long)filesize, CMD_ARGV[1],
-				duration_elapsed(&bench), duration_kbps(&bench, filesize));
+			"in %fs (%0.3f kB/s)", (long)filesize, CMD_ARGV[1],
+			duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 
 	free(buffer);
@@ -781,9 +824,8 @@ COMMAND_HANDLER(mg_dump_cmd)
 	struct fileio fileio;
 	int ret;
 
-	if (CMD_ARGC != 4) {
+	if (CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], size);
@@ -806,27 +848,29 @@ COMMAND_HANDLER(mg_dump_cmd)
 
 	size_t size_written;
 	for (i = 0; i < cnt; i++) {
-		if ((ret = mg_mflash_read(address, buffer, MG_FILEIO_CHUNK)) != ERROR_OK)
+		ret = mg_mflash_read(address, buffer, MG_FILEIO_CHUNK);
+		if (ret != ERROR_OK)
 			goto mg_dump_cmd_err;
-		if ((ret = fileio_write(&fileio, MG_FILEIO_CHUNK, buffer, &size_written))
-				!= ERROR_OK)
+		ret = fileio_write(&fileio, MG_FILEIO_CHUNK, buffer, &size_written);
+		if (ret != ERROR_OK)
 			goto mg_dump_cmd_err;
 		address += MG_FILEIO_CHUNK;
 	}
 
 	if (res) {
-		if ((ret = mg_mflash_read(address, buffer, res)) != ERROR_OK)
+		ret = mg_mflash_read(address, buffer, res);
+		if (ret != ERROR_OK)
 			goto mg_dump_cmd_err;
-		if ((ret = fileio_write(&fileio, res, buffer, &size_written)) != ERROR_OK)
+		ret = fileio_write(&fileio, res, buffer, &size_written);
+		if (ret != ERROR_OK)
 			goto mg_dump_cmd_err;
 	}
 
-	if (duration_measure(&bench) == ERROR_OK)
-	{
+	if (duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD_CTX, "dump image (address 0x%8.8" PRIx32 " "
-				"size %" PRIu32 ") to file %s in %fs (%0.3f kB/s)",
-				address, size, CMD_ARGV[1],
-				duration_elapsed(&bench), duration_kbps(&bench, size));
+			"size %" PRIu32 ") to file %s in %fs (%0.3f kB/s)",
+			address, size, CMD_ARGV[1],
+			duration_elapsed(&bench), duration_kbps(&bench, size));
 	}
 
 	free(buffer);
@@ -847,8 +891,8 @@ static int mg_set_feature(mg_feature_id feature, mg_feature_val config)
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	int ret;
 
-	if ((ret = mg_dsk_wait(mg_io_wait_rdy_noerr, MG_OEM_DISK_WAIT_TIME_NORMAL))
-			!= ERROR_OK)
+	ret = mg_dsk_wait(mg_io_wait_rdy_noerr, MG_OEM_DISK_WAIT_TIME_NORMAL);
+	if (ret != ERROR_OK)
 		return ret;
 
 	ret = target_write_u8(target, mg_task_reg + MG_REG_FEATURE, feature);
@@ -864,7 +908,7 @@ static int mg_is_valid_pll(double XIN, int N, double CLK_OUT, int NO)
 	double v1 = XIN / N;
 	double v2 = CLK_OUT * NO;
 
-	if (v1 <1000000 || v1 > 15000000 || v2 < 100000000 || v2 > 500000000)
+	if (v1 < 1000000 || v1 > 15000000 || v2 < 100000000 || v2 > 500000000)
 		return ERROR_MG_INVALID_PLL;
 
 	return ERROR_OK;
@@ -890,7 +934,7 @@ static int mg_pll_get_N(unsigned char input_div)
 	return N + 2;
 }
 
-static int mg_pll_get_NO(unsigned char  output_div)
+static int mg_pll_get_NO(unsigned char output_div)
 {
 	int i, NO;
 
@@ -901,11 +945,11 @@ static int mg_pll_get_NO(unsigned char  output_div)
 	return NO;
 }
 
-static double mg_do_calc_pll(double XIN, mg_pll_t * p_pll_val, int is_approximate)
+static double mg_do_calc_pll(double XIN, mg_pll_t *p_pll_val, int is_approximate)
 {
 	unsigned short i;
-	unsigned char  j, k;
-	int            M, N, NO;
+	unsigned char j, k;
+	int M, N, NO;
 	double CLK_OUT;
 	double DIV = 1;
 	double ROUND = 0;
@@ -915,22 +959,23 @@ static double mg_do_calc_pll(double XIN, mg_pll_t * p_pll_val, int is_approximat
 		ROUND = 500000;
 	}
 
-	for (i = 0; i < MG_PLL_MAX_FEEDBACKDIV_VAL ; ++i) {
+	for (i = 0; i < MG_PLL_MAX_FEEDBACKDIV_VAL; ++i) {
 		M  = mg_pll_get_M(i);
 
-		for (j = 0; j < MG_PLL_MAX_INPUTDIV_VAL ; ++j) {
+		for (j = 0; j < MG_PLL_MAX_INPUTDIV_VAL; ++j) {
 			N  = mg_pll_get_N(j);
 
-			for (k = 0; k < MG_PLL_MAX_OUTPUTDIV_VAL ; ++k) {
+			for (k = 0; k < MG_PLL_MAX_OUTPUTDIV_VAL; ++k) {
 				NO = mg_pll_get_NO(k);
 
 				CLK_OUT = XIN * ((double)M / N) / NO;
 
 				if ((int)((CLK_OUT + ROUND) / DIV)
-						== (int)(MG_PLL_CLK_OUT / DIV))	{
-					if (mg_is_valid_pll(XIN, N, CLK_OUT, NO) == ERROR_OK)
-					{
-						p_pll_val->lock_cyc = (int)(XIN * MG_PLL_STD_LOCKCYCLE / MG_PLL_STD_INPUTCLK);
+				    == (int)(MG_PLL_CLK_OUT / DIV)) {
+					if (mg_is_valid_pll(XIN, N, CLK_OUT, NO) == ERROR_OK) {
+						p_pll_val->lock_cyc =
+							(int)(XIN * MG_PLL_STD_LOCKCYCLE /
+							      MG_PLL_STD_INPUTCLK);
 						p_pll_val->feedback_div = i;
 						p_pll_val->input_div = j;
 						p_pll_val->output_div = k;
@@ -994,127 +1039,127 @@ static int mg_verify_interface(void)
 }
 
 static const char g_strSEG_SerialNum[20] = {
-	'G','m','n','i','-','e','e','S','g','a','e','l',
-	0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20
+	'G', 'm', 'n', 'i', '-', 'e', 'e', 'S', 'g', 'a', 'e', 'l',
+	0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
 };
 
 static const char g_strSEG_FWRev[8] = {
-	'F','X','L','T','2','v','0','.'
+	'F', 'X', 'L', 'T', '2', 'v', '0', '.'
 };
 
 static const char g_strSEG_ModelNum[40] = {
-	'F','X','A','L','H','S','2',0x20,'0','0','s','7',
-	0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,
-	0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,
-	0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20
+	'F', 'X', 'A', 'L', 'H', 'S', '2', 0x20, '0', '0', 's', '7',
+	0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+	0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+	0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
 };
 
 static void mg_gen_ataid(mg_io_type_drv_info *pSegIdDrvInfo)
 {
 	/* b15 is ATA device(0)	, b7 is Removable Media Device */
-	pSegIdDrvInfo->general_configuration		= 0x045A;
+	pSegIdDrvInfo->general_configuration            = 0x045A;
 	/* 128MB :   Cylinder=> 977 , Heads=> 8 ,  Sectors=> 32
 	 * 256MB :   Cylinder=> 980 , Heads=> 16 , Sectors=> 32
 	 * 384MB :   Cylinder=> 745 , Heads=> 16 , Sectors=> 63
 	 */
-	pSegIdDrvInfo->number_of_cylinders		= 0x02E9;
-	pSegIdDrvInfo->reserved1			= 0x0;
-	pSegIdDrvInfo->number_of_heads			= 0x10;
-	pSegIdDrvInfo->unformatted_bytes_per_track	= 0x0;
-	pSegIdDrvInfo->unformatted_bytes_per_sector	= 0x0;
-	pSegIdDrvInfo->sectors_per_track		= 0x3F;
-	pSegIdDrvInfo->vendor_unique1[0]		= 0x000B;
-	pSegIdDrvInfo->vendor_unique1[1]		= 0x7570;
-	pSegIdDrvInfo->vendor_unique1[2]		= 0x8888;
+	pSegIdDrvInfo->number_of_cylinders              = 0x02E9;
+	pSegIdDrvInfo->reserved1                        = 0x0;
+	pSegIdDrvInfo->number_of_heads                  = 0x10;
+	pSegIdDrvInfo->unformatted_bytes_per_track      = 0x0;
+	pSegIdDrvInfo->unformatted_bytes_per_sector     = 0x0;
+	pSegIdDrvInfo->sectors_per_track                = 0x3F;
+	pSegIdDrvInfo->vendor_unique1[0]                = 0x000B;
+	pSegIdDrvInfo->vendor_unique1[1]                = 0x7570;
+	pSegIdDrvInfo->vendor_unique1[2]                = 0x8888;
 
-	memcpy(pSegIdDrvInfo->serial_number, (void *)g_strSEG_SerialNum,20);
+	memcpy(pSegIdDrvInfo->serial_number, (void *)g_strSEG_SerialNum, 20);
 	/* 0x2 : dual buffer */
-	pSegIdDrvInfo->buffer_type			= 0x2;
+	pSegIdDrvInfo->buffer_type                      = 0x2;
 	/* buffer size : 2KB */
-	pSegIdDrvInfo->buffer_sector_size		= 0x800;
-	pSegIdDrvInfo->number_of_ecc_bytes		= 0;
+	pSegIdDrvInfo->buffer_sector_size               = 0x800;
+	pSegIdDrvInfo->number_of_ecc_bytes              = 0;
 
-	memcpy(pSegIdDrvInfo->firmware_revision, (void *)g_strSEG_FWRev,8);
+	memcpy(pSegIdDrvInfo->firmware_revision, (void *)g_strSEG_FWRev, 8);
 
-	memcpy(pSegIdDrvInfo->model_number, (void *)g_strSEG_ModelNum,40);
+	memcpy(pSegIdDrvInfo->model_number, (void *)g_strSEG_ModelNum, 40);
 
-	pSegIdDrvInfo->maximum_block_transfer		= 0x4;
-	pSegIdDrvInfo->vendor_unique2   		= 0x0;
-	pSegIdDrvInfo->dword_io				= 0x00;
+	pSegIdDrvInfo->maximum_block_transfer           = 0x4;
+	pSegIdDrvInfo->vendor_unique2                   = 0x0;
+	pSegIdDrvInfo->dword_io                         = 0x00;
 	/* b11 : IORDY support(PIO Mode 4), b10 : Disable/Enbale IORDY
 	 * b9  : LBA support, b8 : DMA mode support
 	 */
-	pSegIdDrvInfo->capabilities			= 0x1 << 9;
+	pSegIdDrvInfo->capabilities                     = 0x1 << 9;
 
-	pSegIdDrvInfo->reserved2			= 0x4000;
-	pSegIdDrvInfo->vendor_unique3			= 0x00;
+	pSegIdDrvInfo->reserved2                        = 0x4000;
+	pSegIdDrvInfo->vendor_unique3                   = 0x00;
 	/* PIOMode-2 support */
-	pSegIdDrvInfo->pio_cycle_timing_mode		= 0x02;
-	pSegIdDrvInfo->vendor_unique4			= 0x00;
+	pSegIdDrvInfo->pio_cycle_timing_mode            = 0x02;
+	pSegIdDrvInfo->vendor_unique4                   = 0x00;
 	/* MultiWord-2 support */
-	pSegIdDrvInfo->dma_cycle_timing_mode		= 0x00;
+	pSegIdDrvInfo->dma_cycle_timing_mode            = 0x00;
 	/* b1 : word64~70 is valid
 	 * b0 : word54~58 are valid and reflect the current numofcyls,heads,sectors
 	 * b2 : If device supports Ultra DMA , set to one to vaildate word88
 	 */
-	pSegIdDrvInfo->translation_fields_valid		= (0x1 << 1) | (0x1 << 0);
-	pSegIdDrvInfo->number_of_current_cylinders	= 0x02E9;
-	pSegIdDrvInfo->number_of_current_heads		= 0x10;
-	pSegIdDrvInfo->current_sectors_per_track	= 0x3F;
-	pSegIdDrvInfo->current_sector_capacity_lo	= 0x7570;
-	pSegIdDrvInfo->current_sector_capacity_hi	= 0x000B;
+	pSegIdDrvInfo->translation_fields_valid         = (0x1 << 1) | (0x1 << 0);
+	pSegIdDrvInfo->number_of_current_cylinders      = 0x02E9;
+	pSegIdDrvInfo->number_of_current_heads          = 0x10;
+	pSegIdDrvInfo->current_sectors_per_track        = 0x3F;
+	pSegIdDrvInfo->current_sector_capacity_lo       = 0x7570;
+	pSegIdDrvInfo->current_sector_capacity_hi       = 0x000B;
 
-	pSegIdDrvInfo->multi_sector_count			= 0x04;
+	pSegIdDrvInfo->multi_sector_count                       = 0x04;
 	/* b8 : Multiple secotr setting valid , b[7:0] num of secotrs per block */
-	pSegIdDrvInfo->multi_sector_setting_valid		= 0x01;
-	pSegIdDrvInfo->total_user_addressable_sectors_lo	= 0x7570;
-	pSegIdDrvInfo->total_user_addressable_sectors_hi	= 0x000B;
-	pSegIdDrvInfo->single_dma_modes_supported		= 0x00;
-	pSegIdDrvInfo->single_dma_transfer_active		= 0x00;
+	pSegIdDrvInfo->multi_sector_setting_valid               = 0x01;
+	pSegIdDrvInfo->total_user_addressable_sectors_lo        = 0x7570;
+	pSegIdDrvInfo->total_user_addressable_sectors_hi        = 0x000B;
+	pSegIdDrvInfo->single_dma_modes_supported               = 0x00;
+	pSegIdDrvInfo->single_dma_transfer_active               = 0x00;
 	/* b2 :Multi-word DMA mode 2, b1 : Multi-word DMA mode 1 */
-	pSegIdDrvInfo->multi_dma_modes_supported		= (0x1 << 0);
+	pSegIdDrvInfo->multi_dma_modes_supported                = (0x1 << 0);
 	/* b2 :Multi-word DMA mode 2, b1 : Multi-word DMA mode 1 */
-	pSegIdDrvInfo->multi_dma_transfer_active		= (0x1 << 0);
+	pSegIdDrvInfo->multi_dma_transfer_active                = (0x1 << 0);
 	/* b0 : PIO Mode-3 support, b1 : PIO Mode-4 support */
-	pSegIdDrvInfo->adv_pio_mode				= 0x00;
+	pSegIdDrvInfo->adv_pio_mode                             = 0x00;
 	/* 480(0x1E0)nsec for Multi-word DMA mode0
 	 * 150(0x96) nsec for Multi-word DMA mode1
 	 * 120(0x78) nsec for Multi-word DMA mode2
 	 */
-	pSegIdDrvInfo->min_dma_cyc			= 0x1E0;
-	pSegIdDrvInfo->recommend_dma_cyc		= 0x1E0;
-	pSegIdDrvInfo->min_pio_cyc_no_iordy		= 0x1E0;
-	pSegIdDrvInfo->min_pio_cyc_with_iordy		= 0x1E0;
+	pSegIdDrvInfo->min_dma_cyc                      = 0x1E0;
+	pSegIdDrvInfo->recommend_dma_cyc                = 0x1E0;
+	pSegIdDrvInfo->min_pio_cyc_no_iordy             = 0x1E0;
+	pSegIdDrvInfo->min_pio_cyc_with_iordy           = 0x1E0;
 	memset((void *)pSegIdDrvInfo->reserved3, 0x00, 22);
 	/* b7 : ATA/ATAPI-7 ,b6 : ATA/ATAPI-6 ,b5 : ATA/ATAPI-5,b4 : ATA/ATAPI-4 */
-	pSegIdDrvInfo->major_ver_num			= 0x7E;
+	pSegIdDrvInfo->major_ver_num                    = 0x7E;
 	/* 0x1C : ATA/ATAPI-6 T13 1532D revision1 */
-	pSegIdDrvInfo->minor_ver_num			= 0x19;
+	pSegIdDrvInfo->minor_ver_num                    = 0x19;
 	/* NOP/READ BUFFER/WRITE BUFFER/Power management feature set support */
-	pSegIdDrvInfo->feature_cmd_set_suprt0		= 0x7068;
+	pSegIdDrvInfo->feature_cmd_set_suprt0           = 0x7068;
 	/* Features/command set is valid/Advanced Pwr management/CFA feature set
 	 * not support
 	 */
-	pSegIdDrvInfo->feature_cmd_set_suprt1		= 0x400C;
-	pSegIdDrvInfo->feature_cmd_set_suprt2		= 0x4000;
+	pSegIdDrvInfo->feature_cmd_set_suprt1           = 0x400C;
+	pSegIdDrvInfo->feature_cmd_set_suprt2           = 0x4000;
 	/* READ/WRITE BUFFER/PWR Management enable */
-	pSegIdDrvInfo->feature_cmd_set_en0		= 0x7000;
+	pSegIdDrvInfo->feature_cmd_set_en0              = 0x7000;
 	/* CFA feature is disabled / Advancde power management disable */
-	pSegIdDrvInfo->feature_cmd_set_en1		= 0x0;
-	pSegIdDrvInfo->feature_cmd_set_en2		= 0x4000;
-	pSegIdDrvInfo->reserved4			= 0x0;
+	pSegIdDrvInfo->feature_cmd_set_en1              = 0x0;
+	pSegIdDrvInfo->feature_cmd_set_en2              = 0x4000;
+	pSegIdDrvInfo->reserved4                        = 0x0;
 	/* 0x1 * 2minutes */
-	pSegIdDrvInfo->req_time_for_security_er_done	= 0x19;
-	pSegIdDrvInfo->req_time_for_enhan_security_er_done	= 0x19;
+	pSegIdDrvInfo->req_time_for_security_er_done    = 0x19;
+	pSegIdDrvInfo->req_time_for_enhan_security_er_done      = 0x19;
 	/* Advanced power management level 1 */
-	pSegIdDrvInfo->adv_pwr_mgm_lvl_val			= 0x0;
-	pSegIdDrvInfo->reserved5			= 0x0;
+	pSegIdDrvInfo->adv_pwr_mgm_lvl_val                      = 0x0;
+	pSegIdDrvInfo->reserved5                        = 0x0;
 	memset((void *)pSegIdDrvInfo->reserved6, 0x00, 68);
 	/* Security mode feature is disabled */
-	pSegIdDrvInfo->security_stas			= 0x0;
+	pSegIdDrvInfo->security_stas                    = 0x0;
 	memset((void *)pSegIdDrvInfo->vendor_uniq_bytes, 0x00, 62);
 	/* CFA power mode 1 support in maximum 200mA */
-	pSegIdDrvInfo->cfa_pwr_mode			= 0x0100;
+	pSegIdDrvInfo->cfa_pwr_mode                     = 0x0100;
 	memset((void *)pSegIdDrvInfo->reserved7, 0x00, 190);
 }
 
@@ -1123,18 +1168,18 @@ static int mg_storage_config(void)
 	uint8_t buff[512];
 	int ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd);
+	if (ret != ERROR_OK)
 		return ret;
 
 	mg_gen_ataid((mg_io_type_drv_info *)(void *)buff);
 
-	if ((ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_update_stgdrvinfo))
-			!= ERROR_OK)
+	ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_update_stgdrvinfo);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default);
+	if (ret != ERROR_OK)
 		return ret;
 
 	LOG_INFO("mflash: storage config ok");
@@ -1146,8 +1191,8 @@ static int mg_boot_config(void)
 	uint8_t buff[512];
 	int ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd);
+	if (ret != ERROR_OK)
 		return ret;
 
 	memset(buff, 0xff, 512);
@@ -1157,12 +1202,12 @@ static int mg_boot_config(void)
 	buff[2] = 4;				/* boot size */
 	*((uint32_t *)(void *)(buff + 4)) = 0;		/* XIP size */
 
-	if ((ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_update_xipinfo))
-			!= ERROR_OK)
+	ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_update_xipinfo);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default);
+	if (ret != ERROR_OK)
 		return ret;
 
 	LOG_INFO("mflash: boot config ok");
@@ -1181,16 +1226,16 @@ static int mg_set_pll(mg_pll_t *pll)
 	buff[6] = pll->input_div;		/* PLL Input 5bit Divider */
 	buff[7] = pll->output_div;		/* PLL Output Divider */
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_wr_pll))
-			!= ERROR_OK)
+	ret = mg_mflash_do_write_sects(buff, 0, 1, mg_vcmd_wr_pll);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default);
+	if (ret != ERROR_OK)
 		return ret;
 
 	LOG_INFO("mflash: set pll ok");
@@ -1201,16 +1246,16 @@ static int mg_erase_nand(void)
 {
 	int ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_mflash_do_write_sects(NULL, 0, 0, mg_vcmd_purge_nand))
-			!= ERROR_OK)
+	ret = mg_mflash_do_write_sects(NULL, 0, 0, mg_vcmd_purge_nand);
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default))
-			!= ERROR_OK)
+	ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_default);
+	if (ret != ERROR_OK)
 		return ret;
 
 	LOG_INFO("mflash: erase nand ok");
@@ -1223,10 +1268,12 @@ COMMAND_HANDLER(mg_config_cmd)
 	mg_pll_t pll;
 	int ret;
 
-	if ((ret = mg_verify_interface()) != ERROR_OK)
+	ret = mg_verify_interface();
+	if (ret != ERROR_OK)
 		return ret;
 
-	if ((ret = mg_mflash_rst()) != ERROR_OK)
+	ret = mg_mflash_rst();
+	if (ret != ERROR_OK)
 		return ret;
 
 	switch (CMD_ARGC) {
@@ -1262,7 +1309,8 @@ COMMAND_HANDLER(mg_config_cmd)
 						pll.input_div, pll.output_div,
 						pll.lock_cyc);
 
-				if ((ret = mg_erase_nand()) != ERROR_OK)
+				ret = mg_erase_nand();
+				if (ret != ERROR_OK)
 					return ret;
 
 				return mg_set_pll(&pll);
@@ -1320,9 +1368,8 @@ COMMAND_HANDLER(handle_mflash_init_command)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	static bool mflash_initialized = false;
-	if (mflash_initialized)
-	{
+	static bool mflash_initialized;
+	if (mflash_initialized) {
 		LOG_INFO("'mflash init' has already been called");
 		return ERROR_OK;
 	}
@@ -1338,34 +1385,31 @@ COMMAND_HANDLER(mg_bank_cmd)
 	int i;
 
 	if (CMD_ARGC < 4)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	if ((target = get_target(CMD_ARGV[3])) == NULL)
-	{
+	target = get_target(CMD_ARGV[3]);
+	if (target == NULL) {
 		LOG_ERROR("target '%s' not defined", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
 	mflash_bank = calloc(sizeof(struct mflash_bank), 1);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], mflash_bank->base);
-	/// @todo Verify how this parsing should work, then document it.
+	/* / @todo Verify how this parsing should work, then document it. */
 	char *str;
 	mflash_bank->rst_pin.num = strtoul(CMD_ARGV[2], &str, 0);
 	if (*str)
 		mflash_bank->rst_pin.port[0] = (uint16_t)
-				tolower((unsigned)str[0]);
+			tolower((unsigned)str[0]);
 
 	mflash_bank->target = target;
 
-	for (i = 0; mflash_gpio[i] ; i++) {
-		if (! strcmp(mflash_gpio[i]->name, CMD_ARGV[0])) {
+	for (i = 0; mflash_gpio[i]; i++) {
+		if (!strcmp(mflash_gpio[i]->name, CMD_ARGV[0]))
 			mflash_bank->gpio_drv = mflash_gpio[i];
-		}
 	}
 
-	if (! mflash_bank->gpio_drv) {
+	if (!mflash_bank->gpio_drv) {
 		LOG_ERROR("%s is unsupported soc", CMD_ARGV[0]);
 		return ERROR_MG_UNSUPPORTED_SOC;
 	}
