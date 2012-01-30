@@ -26,6 +26,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef GDB_SERVER_H
 #define GDB_SERVER_H
 
@@ -33,7 +34,7 @@ struct image;
 struct reg;
 #include <target/target.h>
 
-#define GDB_BUFFER_SIZE	16384
+#define GDB_BUFFER_SIZE 16384
 
 int gdb_target_add_all(struct target *target);
 int gdb_register_commands(struct command_context *command_context);
@@ -49,4 +50,4 @@ static inline struct target *get_target_from_connection(struct connection *conne
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
 #define ERROR_GDB_TIMEOUT (-801)
 
-#endif /* GDB_SERVER_H */
+#endif	/* GDB_SERVER_H */

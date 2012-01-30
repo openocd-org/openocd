@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -40,11 +41,10 @@
 #include <netinet/tcp.h>
 #endif
 
-
-static struct service *services = NULL;
+static struct service *services;
 
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
-static int shutdown_openocd = 0;
+static int shutdown_openocd;
 
 static int add_connection(struct service *service, struct command_context *cmd_ctx)
 {
@@ -63,34 +63,32 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 	c->priv = NULL;
 	c->next = NULL;
 
-	if (service->type == CONNECTION_TCP)
-	{
+	if (service->type == CONNECTION_TCP) {
 		address_size = sizeof(c->sin);
 
 		c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
 		c->fd_out = c->fd;
 
 		/* This increases performance dramatically for e.g. GDB load which
-		 * does not have a sliding window protocol. 
+		 * does not have a sliding window protocol.
 		 *
 		 * Ignore errors from this fn as it probably just means less performance
 		 */
 		setsockopt(c->fd,	/* socket affected */
-				IPPROTO_TCP,		/* set option at TCP level */
-				TCP_NODELAY,		/* name of option */
-				(char *)&flag,		/* the cast is historical cruft */
-				sizeof(int));		/* length of option value */
+			IPPROTO_TCP,			/* set option at TCP level */
+			TCP_NODELAY,			/* name of option */
+			(char *)&flag,			/* the cast is historical cruft */
+			sizeof(int));			/* length of option value */
 
 		LOG_INFO("accepting '%s' connection from %s", service->name, service->port);
-		if ((retval = service->new_connection(c)) != ERROR_OK)
-		{
+		retval = service->new_connection(c);
+		if (retval != ERROR_OK) {
 			close_socket(c->fd);
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
 			free(c);
 			return retval;
 		}
-	} else if (service->type == CONNECTION_STDINOUT)
-	{
+	} else if (service->type == CONNECTION_STDINOUT) {
 		c->fd = service->fd;
 		c->fd_out = fileno(stdout);
 
@@ -103,30 +101,28 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		service->fd = -1;
 
 		LOG_INFO("accepting '%s' connection from pipe", service->name);
-		if ((retval = service->new_connection(c)) != ERROR_OK)
-		{
+		retval = service->new_connection(c);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
 			free(c);
 			return retval;
 		}
-	} else if (service->type == CONNECTION_PIPE)
-	{
+	} else if (service->type == CONNECTION_PIPE) {
 		c->fd = service->fd;
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
 
-		char * out_file = alloc_printf("%so", service->port);
+		char *out_file = alloc_printf("%so", service->port);
 		c->fd_out = open(out_file, O_WRONLY);
 		free(out_file);
-		if (c->fd_out == -1)
-		{
+		if (c->fd_out == -1) {
 			LOG_ERROR("could not open %s", service->port);
 			exit(1);
 		}
 
 		LOG_INFO("accepting '%s' connection from pipe %s", service->name, service->port);
-		if ((retval = service->new_connection(c)) != ERROR_OK)
-		{
+		retval = service->new_connection(c);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
 			free(c);
 			return retval;
@@ -134,7 +130,8 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 	}
 
 	/* add to the end of linked list */
-	for (p = &service->connections; *p; p = &(*p)->next);
+	for (p = &service->connections; *p; p = &(*p)->next)
+		;
 	*p = c;
 
 	service->max_connections--;
@@ -148,16 +145,12 @@ static int remove_connection(struct service *service, struct connection *connect
 	struct connection *c;
 
 	/* find connection */
-	while ((c = *p))
-	{
-		if (c->fd == connection->fd)
-		{
+	while ((c = *p)) {
+		if (c->fd == connection->fd) {
 			service->connection_closed(c);
 			if (service->type == CONNECTION_TCP)
-			{
 				close_socket(c->fd);
-			} else if (service->type == CONNECTION_PIPE)
-			{
+			else if (service->type == CONNECTION_PIPE) {
 				/* The service will listen to the pipe again */
 				c->service->fd = c->fd;
 			}
@@ -180,7 +173,13 @@ static int remove_connection(struct service *service, struct connection *connect
 }
 
 /* FIX! make service return error instead of invoking exit() */
-int add_service(char *name, const char *port, int max_connections, new_connection_handler_t new_connection_handler, input_handler_t input_handler, connection_closed_handler_t connection_closed_handler, void *priv)
+int add_service(char *name,
+	const char *port,
+	int max_connections,
+	new_connection_handler_t new_connection_handler,
+	input_handler_t input_handler,
+	connection_closed_handler_t connection_closed_handler,
+	void *priv)
 {
 	struct service *c, **p;
 	int so_reuseaddr_option = 1;
@@ -189,7 +188,7 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 
 	c->name = strdup(name);
 	c->port = strdup(port);
-	c->max_connections = 1; /* Only TCP/IP ports can support more than one connection */
+	c->max_connections = 1;	/* Only TCP/IP ports can support more than one connection */
 	c->fd = -1;
 	c->connections = NULL;
 	c->new_connection = new_connection_handler;
@@ -199,33 +198,31 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 	c->next = NULL;
 	long portnumber;
 	if (strcmp(c->port, "pipe") == 0)
-	{
 		c->type = CONNECTION_STDINOUT;
-	} else
-	{
+	else {
 		char *end;
 		portnumber = strtol(c->port, &end, 0);
-		if (!*end && (parse_long(c->port, &portnumber) == ERROR_OK))
-		{
+		if (!*end && (parse_long(c->port, &portnumber) == ERROR_OK)) {
 			c->portnumber = portnumber;
 			c->type = CONNECTION_TCP;
 		} else
-		{
 			c->type = CONNECTION_PIPE;
-		}
 	}
 
-	if (c->type == CONNECTION_TCP)
-	{
+	if (c->type == CONNECTION_TCP) {
 		c->max_connections = max_connections;
 
-		if ((c->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-		{
+		c->fd = socket(AF_INET, SOCK_STREAM, 0);
+		if (c->fd == -1) {
 			LOG_ERROR("error creating socket: %s", strerror(errno));
 			exit(-1);
 		}
 
-		setsockopt(c->fd, SOL_SOCKET, SO_REUSEADDR, (void*)&so_reuseaddr_option, sizeof(int));
+		setsockopt(c->fd,
+			SOL_SOCKET,
+			SO_REUSEADDR,
+			(void *)&so_reuseaddr_option,
+			sizeof(int));
 
 		socket_nonblock(c->fd);
 
@@ -234,8 +231,7 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 		c->sin.sin_addr.s_addr = INADDR_ANY;
 		c->sin.sin_port = htons(c->portnumber);
 
-		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1)
-		{
+		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1) {
 			LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
 			exit(-1);
 		}
@@ -253,14 +249,11 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 		setsockopt(c->fd, SOL_SOCKET, SO_RCVBUF,
 			(char *)&window_size, sizeof(window_size));
 
-		if (listen(c->fd, 1) == -1)
-		{
+		if (listen(c->fd, 1) == -1) {
 			LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
 			exit(-1);
 		}
-	}
-	else if (c->type == CONNECTION_STDINOUT)
-	{
+	} else if (c->type == CONNECTION_STDINOUT) {
 		c->fd = fileno(stdin);
 
 #ifdef _WIN32
@@ -274,9 +267,7 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 #else
 		socket_nonblock(c->fd);
 #endif
-	}
-	else if (c->type == CONNECTION_PIPE)
-	{
+	} else if (c->type == CONNECTION_PIPE) {
 #ifdef _WIN32
 		/* we currenty do not support named pipes under win32
 		 * so exit openocd for now */
@@ -285,8 +276,7 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 #else
 		/* Pipe we're reading from */
 		c->fd = open(c->port, O_RDONLY | O_NONBLOCK);
-		if (c->fd == -1)
-		{
+		if (c->fd == -1) {
 			LOG_ERROR("could not open %s", c->port);
 			exit(1);
 		}
@@ -294,7 +284,8 @@ int add_service(char *name, const char *port, int max_connections, new_connectio
 	}
 
 	/* add to the end of linked list */
-	for (p = &services; *p; p = &(*p)->next);
+	for (p = &services; *p; p = &(*p)->next)
+		;
 	*p = c;
 
 	return ERROR_OK;
@@ -305,15 +296,13 @@ static int remove_services(void)
 	struct service *c = services;
 
 	/* loop service */
-	while (c)
-	{
+	while (c) {
 		struct service *next = c->next;
 
 		if (c->name)
 			free((void *)c->name);
 
-		if (c->type == CONNECTION_PIPE)
-		{
+		if (c->type == CONNECTION_PIPE) {
 			if (c->fd != -1)
 				close(c->fd);
 		}
@@ -353,17 +342,14 @@ int server_loop(struct command_context *command_context)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
 
-	while (!shutdown_openocd)
-	{
+	while (!shutdown_openocd) {
 		/* monitor sockets for activity */
 		fd_max = 0;
 		FD_ZERO(&read_fds);
 
 		/* add service and connection fds to read_fds */
-		for (service = services; service; service = service->next)
-		{
-			if (service->fd != -1)
-			{
+		for (service = services; service; service = service->next) {
+			if (service->fd != -1) {
 				/* listen for new connections */
 				FD_SET(service->fd, &read_fds);
 
@@ -371,12 +357,10 @@ int server_loop(struct command_context *command_context)
 					fd_max = service->fd;
 			}
 
-			if (service->connections)
-			{
+			if (service->connections) {
 				struct connection *c;
 
-				for (c = service->connections; c; c = c->next)
-				{
+				for (c = service->connections; c; c = c->next) {
 					/* check for activity on the connection */
 					FD_SET(c->fd, &read_fds);
 					if (c->fd > fd_max)
@@ -387,14 +371,12 @@ int server_loop(struct command_context *command_context)
 
 		struct timeval tv;
 		tv.tv_sec = 0;
-		if (poll_ok)
-		{
+		if (poll_ok) {
 			/* we're just polling this iteration, this is faster on embedded
 			 * hosts */
 			tv.tv_usec = 0;
 			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
-		} else
-		{
+		} else {
 			/* Every 100ms */
 			tv.tv_usec = 100000;
 			/* Only while we're sleeping we'll let others run */
@@ -404,45 +386,40 @@ int server_loop(struct command_context *command_context)
 			openocd_sleep_postlude();
 		}
 
-		if (retval == -1)
-		{
+		if (retval == -1) {
 #ifdef _WIN32
 
 			errno = WSAGetLastError();
 
 			if (errno == WSAEINTR)
 				FD_ZERO(&read_fds);
-			else
-			{
+			else {
 				LOG_ERROR("error during select: %s", strerror(errno));
 				exit(-1);
 			}
 #else
 
 			if (errno == EINTR)
-			{
 				FD_ZERO(&read_fds);
-			}
-			else
-			{
+			else {
 				LOG_ERROR("error during select: %s", strerror(errno));
 				exit(-1);
 			}
 #endif
 		}
 
-		if (retval == 0)
-		{
-			/* We only execute these callbacks when there was nothing to do or we timed out */
+		if (retval == 0) {
+			/* We only execute these callbacks when there was nothing to do or we timed
+			 *out */
 			target_call_timer_callbacks();
 			process_jim_events(command_context);
 
-			FD_ZERO(&read_fds); /* eCos leaves read_fds unchanged in this case!  */
+			FD_ZERO(&read_fds);	/* eCos leaves read_fds unchanged in this case!  */
 
-			/* We timed out/there was nothing to do, timeout rather than poll next time */
+			/* We timed out/there was nothing to do, timeout rather than poll next time
+			 **/
 			poll_ok = false;
-		} else
-		{
+		} else {
 			/* There was something to do, next time we'll just poll */
 			poll_ok = true;
 		}
@@ -454,50 +431,45 @@ int server_loop(struct command_context *command_context)
 		 */
 		poll_ok = poll_ok || target_got_message();
 
-		for (service = services; service; service = service->next)
-		{
+		for (service = services; service; service = service->next) {
 			/* handle new connections on listeners */
 			if ((service->fd != -1)
-				&& (FD_ISSET(service->fd, &read_fds)))
-			{
+			    && (FD_ISSET(service->fd, &read_fds))) {
 				if (service->max_connections > 0)
-				{
 					add_connection(service, command_context);
-				}
-				else
-				{
-					if (service->type == CONNECTION_TCP)
-					{
+				else {
+					if (service->type == CONNECTION_TCP) {
 						struct sockaddr_in sin;
 						socklen_t address_size = sizeof(sin);
 						int tmp_fd;
-						tmp_fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
+						tmp_fd = accept(service->fd,
+								(struct sockaddr *)&service->sin,
+								&address_size);
 						close_socket(tmp_fd);
 					}
-					LOG_INFO("rejected '%s' connection, no more connections allowed", service->name);
+					LOG_INFO(
+						"rejected '%s' connection, no more connections allowed",
+						service->name);
 				}
 			}
 
 			/* handle activity on connections */
-			if (service->connections)
-			{
+			if (service->connections) {
 				struct connection *c;
 
-				for (c = service->connections; c;)
-				{
-					if ((FD_ISSET(c->fd, &read_fds)) || c->input_pending)
-					{
+				for (c = service->connections; c; ) {
+					if ((FD_ISSET(c->fd, &read_fds)) || c->input_pending) {
 						retval = service->input(c);
-						if (retval != ERROR_OK)
-						{
+						if (retval != ERROR_OK) {
 							struct connection *next = c->next;
-							if (service->type == CONNECTION_PIPE)
-							{
-								/* if connection uses a pipe then shutdown openocd on error */
+							if (service->type == CONNECTION_PIPE) {
+								/* if connection uses a pipe then
+								 *shutdown openocd on error */
 								shutdown_openocd = 1;
 							}
 							remove_connection(service, c);
-							LOG_INFO("dropped '%s' connection", service->name);
+							LOG_INFO("dropped '%s' connection",
+								service->name);
 							c = next;
 							continue;
 						}
@@ -509,8 +481,7 @@ int server_loop(struct command_context *command_context)
 
 #ifdef _WIN32
 		MSG msg;
-		while (PeekMessage(&msg,NULL,0,0,PM_REMOVE))
-		{
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			if (msg.message == WM_QUIT)
 				shutdown_openocd = 1;
 		}
@@ -527,7 +498,8 @@ BOOL WINAPI ControlHandler(DWORD dwCtrlType)
 	return TRUE;
 }
 
-void sig_handler(int sig) {
+void sig_handler(int sig)
+{
 	shutdown_openocd = 1;
 }
 #endif
@@ -544,8 +516,7 @@ int server_preinit(void)
 
 	wVersionRequested = MAKEWORD(2, 2);
 
-	if (WSAStartup(wVersionRequested, &wsaData) != 0)
-	{
+	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
 		LOG_ERROR("Failed to Open Winsock");
 		exit(-1);
 	}
@@ -585,29 +556,22 @@ int server_quit(void)
 
 int connection_write(struct connection *connection, const void *data, int len)
 {
-	if (len == 0)
-	{
+	if (len == 0) {
 		/* successful no-op. Sockets and pipes behave differently here... */
 		return 0;
 	}
 	if (connection->service->type == CONNECTION_TCP)
-	{
 		return write_socket(connection->fd_out, data, len);
-	} else
-	{
+	else
 		return write(connection->fd_out, data, len);
-	}
 }
 
 int connection_read(struct connection *connection, void *data, int len)
 {
 	if (connection->service->type == CONNECTION_TCP)
-	{
 		return read_socket(connection->fd, data, len);
-	} else
-	{
+	else
 		return read(connection->fd, data, len);
-	}
 }
 
 /* tell the server we want to shut down */
@@ -647,18 +611,18 @@ int server_register_commands(struct command_context *cmd_ctx)
 SERVER_PORT_COMMAND()
 {
 	switch (CMD_ARGC) {
-	case 0:
-		command_print(CMD_CTX, "%d", *out);
-		break;
-	case 1:
-	{
-		uint16_t port;
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], port);
-		*out = port;
-		break;
-	}
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		case 0:
+			command_print(CMD_CTX, "%d", *out);
+			break;
+		case 1:
+		{
+			uint16_t port;
+			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], port);
+			*out = port;
+			break;
+		}
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }
@@ -666,19 +630,18 @@ SERVER_PORT_COMMAND()
 SERVER_PIPE_COMMAND()
 {
 	switch (CMD_ARGC) {
-	case 0:
-		command_print(CMD_CTX, "%s", *out);
-		break;
-	case 1:
-	{
-		const char * t = strdup(CMD_ARGV[0]);
-		free((void *)*out);
-		*out = t;
-		break;
-	}
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		case 0:
+			command_print(CMD_CTX, "%s", *out);
+			break;
+		case 1:
+		{
+			const char *t = strdup(CMD_ARGV[0]);
+			free((void *)*out);
+			*out = t;
+			break;
+		}
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }
-

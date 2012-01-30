@@ -24,15 +24,14 @@
 
 #include "tcl_server.h"
 
-
-#define TCL_SERVER_VERSION	"TCL Server 0.1"
-#define TCL_MAX_LINE		(4096)
+#define TCL_SERVER_VERSION		"TCL Server 0.1"
+#define TCL_MAX_LINE			(4096)
 
 struct tcl_connection {
 	int tc_linedrop;
 	int tc_lineoffset;
 	char tc_line[TCL_MAX_LINE];
-	int tc_outerror; /* flag an output error */
+	int tc_outerror;/* flag an output error */
 };
 
 static const char *tcl_port;
@@ -104,8 +103,7 @@ static int tcl_input(struct connection *connection)
 		return ERROR_CONNECTION_REJECTED;
 
 	/* push as much data into the line as possible */
-	for (i = 0; i < rlen; i++)
-	{
+	for (i = 0; i < rlen; i++) {
 		/* buffer the data */
 		tclc->tc_line[tclc->tc_lineoffset] = in[i];
 		if (tclc->tc_lineoffset < TCL_MAX_LINE)
@@ -127,12 +125,12 @@ static int tcl_input(struct connection *connection)
 			if (retval != ERROR_OK)
 				return retval;
 #undef ESTR
-		}
-		else {
+		} else {
 			tclc->tc_line[tclc->tc_lineoffset-1] = '\0';
 			LOG_DEBUG("Executing script:\n %s", tclc->tc_line);
-			retval = Jim_Eval_Named(interp, tclc->tc_line, "remote:connection",1);
-			LOG_DEBUG("Result: %d\n %s", retval, Jim_GetString(Jim_GetResult(interp), &reslen));
+			retval = Jim_Eval_Named(interp, tclc->tc_line, "remote:connection", 1);
+			LOG_DEBUG("Result: %d\n %s", retval,
+				Jim_GetString(Jim_GetResult(interp), &reslen));
 			result = Jim_GetString(Jim_GetResult(interp), &reslen);
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)
@@ -160,15 +158,14 @@ static int tcl_closed(struct connection *connection)
 
 int tcl_init(void)
 {
-	if (strcmp(tcl_port, "disabled") == 0)
-	{
+	if (strcmp(tcl_port, "disabled") == 0) {
 		LOG_INFO("tcl server disabled");
 		return ERROR_OK;
 	}
 
 	return add_service("tcl", tcl_port, 1,
-			&tcl_new_connection, &tcl_input,
-			&tcl_closed, NULL);
+		&tcl_new_connection, &tcl_input,
+		&tcl_closed, NULL);
 }
 
 COMMAND_HANDLER(handle_tcl_port_command)

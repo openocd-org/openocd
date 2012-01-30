@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef SERVER_H
 #define SERVER_H
 
@@ -32,17 +33,15 @@
 #include <netinet/in.h>
 #endif
 
-enum connection_type
-{
+enum connection_type {
 	CONNECTION_TCP,
 	CONNECTION_PIPE,
 	CONNECTION_STDINOUT
 };
 
-struct connection
-{
+struct connection {
 	int fd;
-	int fd_out; /* When using pipes we're writing to a different fd */
+	int fd_out;	/* When using pipes we're writing to a different fd */
 	struct sockaddr_in sin;
 	struct command_context *cmd_ctx;
 	struct service *service;
@@ -55,8 +54,7 @@ typedef int (*new_connection_handler_t)(struct connection *connection);
 typedef int (*input_handler_t)(struct connection *connection);
 typedef int (*connection_closed_handler_t)(struct connection *connection);
 
-struct service
-{
+struct service {
 	const char *name;
 	enum connection_type type;
 	const char *port;
@@ -104,15 +102,15 @@ void openocd_sleep_postlude(void);
  * to receive the specified port number.
  */
 #define SERVER_PIPE_COMMAND() \
-		COMMAND_HELPER(server_pipe_command, const char **out)
+	COMMAND_HELPER(server_pipe_command, const char **out)
 SERVER_PIPE_COMMAND();
 
 #define SERVER_PORT_COMMAND() \
-		COMMAND_HELPER(server_port_command, unsigned short *out)
+	COMMAND_HELPER(server_port_command, unsigned short *out)
 
 SERVER_PORT_COMMAND();
 
-#define ERROR_SERVER_REMOTE_CLOSED	(-400)
-#define ERROR_CONNECTION_REJECTED	(-401)
+#define ERROR_SERVER_REMOTE_CLOSED		(-400)
+#define ERROR_CONNECTION_REJECTED		(-401)
 
-#endif /* SERVER_H */
+#endif	/* SERVER_H */

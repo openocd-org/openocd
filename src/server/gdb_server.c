@@ -29,6 +29,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -54,8 +55,7 @@
  */
 
 /* private connection data for GDB */
-struct gdb_connection
-{
+struct gdb_connection {
 	char buffer[GDB_BUFFER_SIZE];
 	char *buf_p;
 	int buf_cnt;
@@ -66,8 +66,8 @@ struct gdb_connection
 	int busy;
 	int noack_mode;
 	bool sync;	/* set flag to true if you want the next stepi to return immediately.
-	               allowing GDB to pick up a fresh set of register values from the target
-	               without modifying the target state. */
+			allowing GDB to pick up a fresh set of register values from the target
+			without modifying the target state. */
 	/* We delay reporting memory write errors until next step/continue or memory
 	 * write. This improves performance of gdb load significantly as the GDB packet
 	 * can be replied immediately and a new GDB packet will be ready without delay
@@ -112,20 +112,20 @@ static int gdb_report_data_abort;
 
 static int gdb_last_signal(struct target *target)
 {
-	switch (target->debug_reason)
-	{
+	switch (target->debug_reason) {
 		case DBG_REASON_DBGRQ:
-			return 0x2; /* SIGINT */
+			return 0x2;		/* SIGINT */
 		case DBG_REASON_BREAKPOINT:
 		case DBG_REASON_WATCHPOINT:
 		case DBG_REASON_WPTANDBKPT:
-			return 0x05; /* SIGTRAP */
+			return 0x05;	/* SIGTRAP */
 		case DBG_REASON_SINGLESTEP:
-			return 0x05; /* SIGTRAP */
+			return 0x05;	/* SIGTRAP */
 		case DBG_REASON_NOTHALTED:
-			return 0x0; /* no signal... shouldn't happen */
+			return 0x0;		/* no signal... shouldn't happen */
 		default:
-			LOG_USER("undefined debug reason %d - target needs reset", target->debug_reason);
+			LOG_USER("undefined debug reason %d - target needs reset",
+			target->debug_reason);
 			return 0x0;
 	}
 }
@@ -141,11 +141,10 @@ static int check_pending(struct connection *connection,
 	struct gdb_connection *gdb_con = connection->priv;
 	int t;
 	if (got_data == NULL)
-		got_data=&t;
+		got_data = &t;
 	*got_data = 0;
 
-	if (gdb_con->buf_cnt > 0)
-	{
+	if (gdb_con->buf_cnt > 0) {
 		*got_data = 1;
 		return ERROR_OK;
 	}
@@ -155,24 +154,20 @@ static int check_pending(struct connection *connection,
 
 	tv.tv_sec = timeout_s;
 	tv.tv_usec = 0;
-	if (socket_select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
-	{
+	if (socket_select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0) {
 		/* This can typically be because a "monitor" command took too long
 		 * before printing any progress messages
 		 */
 		if (timeout_s > 0)
-		{
 			return ERROR_GDB_TIMEOUT;
-		} else
-		{
+		else
 			return ERROR_OK;
-		}
 	}
 	*got_data = FD_ISSET(connection->fd, &read_fds) != 0;
 	return ERROR_OK;
 }
 
-static int gdb_get_char_inner(struct connection *connection, int* next_char)
+static int gdb_get_char_inner(struct connection *connection, int *next_char)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	int retval = ERROR_OK;
@@ -180,26 +175,21 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
 #ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
 #endif
-	for (;;)
-	{
+	for (;; ) {
 		if (connection->service->type != CONNECTION_TCP)
-		{
 			gdb_con->buf_cnt = read(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
-		}
-		else
-		{
+		else {
 			retval = check_pending(connection, 1, NULL);
 			if (retval != ERROR_OK)
 				return retval;
-			gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
+			gdb_con->buf_cnt = read_socket(connection->fd,
+					gdb_con->buffer,
+					GDB_BUFFER_SIZE);
 		}
 
 		if (gdb_con->buf_cnt > 0)
-		{
 			break;
-		}
-		if (gdb_con->buf_cnt == 0)
-		{
+		if (gdb_con->buf_cnt == 0) {
 			gdb_con->closed = 1;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
@@ -207,8 +197,7 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
 #ifdef _WIN32
 		errno = WSAGetLastError();
 
-		switch (errno)
-		{
+		switch (errno) {
 			case WSAEWOULDBLOCK:
 				usleep(1000);
 				break;
@@ -223,8 +212,7 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
 				exit(-1);
 		}
 #else
-		switch (errno)
-		{
+		switch (errno) {
 			case EAGAIN:
 				usleep(1000);
 				break;
@@ -268,12 +256,12 @@ static int gdb_get_char_inner(struct connection *connection, int* next_char)
  *
  * For small caches and embedded systems this is important!
  */
-static inline int gdb_get_char_fast(struct connection *connection, int* next_char, char **buf_p, int *buf_cnt)
+static inline int gdb_get_char_fast(struct connection *connection,
+		int *next_char, char **buf_p, int *buf_cnt)
 {
 	int retval = ERROR_OK;
 
-	if ((*buf_cnt)-- > 0)
-	{
+	if ((*buf_cnt)-- > 0) {
 		*next_char = **buf_p;
 		(*buf_p)++;
 		if (*buf_cnt > 0)
@@ -298,27 +286,21 @@ static inline int gdb_get_char_fast(struct connection *connection, int* next_cha
 	return retval;
 }
 
-
-static int gdb_get_char(struct connection *connection, int* next_char)
+static int gdb_get_char(struct connection *connection, int *next_char)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	return gdb_get_char_fast(connection, next_char, &gdb_con->buf_p, &gdb_con->buf_cnt);
 }
 
-
 static int gdb_putback_char(struct connection *connection, int last_char)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 
-	if (gdb_con->buf_p > gdb_con->buffer)
-	{
+	if (gdb_con->buf_p > gdb_con->buffer) {
 		*(--gdb_con->buf_p) = last_char;
 		gdb_con->buf_cnt++;
-	}
-	else
-	{
+	} else
 		LOG_ERROR("BUG: couldn't put character back");
-	}
 
 	return ERROR_OK;
 }
@@ -333,9 +315,7 @@ static int gdb_write(struct connection *connection, void *data, int len)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
 	if (connection_write(connection, data, len) == len)
-	{
 		return ERROR_OK;
-	}
 	gdb_con->closed = 1;
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
@@ -362,14 +342,14 @@ static int gdb_put_packet_inner(struct connection *connection,
 	 * an ACK (+) for everything we've sent off.
 	 */
 	int gotdata;
-	for (;;)
-	{
+	for (;; ) {
 		retval = check_pending(connection, 0, &gotdata);
 		if (retval != ERROR_OK)
 			return retval;
 		if (!gotdata)
 			break;
-		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
+		retval = gdb_get_char(connection, &reply);
+		if (retval != ERROR_OK)
 			return retval;
 		if (reply == '$') {
 			/* fix a problem with some IAR tools */
@@ -382,8 +362,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 	}
 #endif
 
-	while (1)
-	{
+	while (1) {
 #ifdef _DEBUG_GDB_IO_
 		debug_buffer = strndup(buffer, len);
 		LOG_DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
@@ -392,85 +371,74 @@ static int gdb_put_packet_inner(struct connection *connection,
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
-		if ((size_t)len + 4 <= sizeof(local_buffer))
-		{
-			/* performance gain on smaller packets by only a single call to gdb_write() */
+		if ((size_t)len + 4 <= sizeof(local_buffer)) {
+			/* performance gain on smaller packets by only a single call to gdb_write()
+			 **/
 			memcpy(local_buffer + 1, buffer, len++);
 			local_buffer[len++] = '#';
 			local_buffer[len++] = DIGITS[(my_checksum >> 4) & 0xf];
 			local_buffer[len++] = DIGITS[my_checksum & 0xf];
-			if ((retval = gdb_write(connection, local_buffer, len)) != ERROR_OK)
-			{
+			retval = gdb_write(connection, local_buffer, len);
+			if (retval != ERROR_OK)
 				return retval;
-			}
-		}
-		else
-		{
+		} else {
 			/* larger packets are transmitted directly from caller supplied buffer
 			   by several calls to gdb_write() to avoid dynamic allocation */
 			local_buffer[1] = '#';
 			local_buffer[2] = DIGITS[(my_checksum >> 4) & 0xf];
 			local_buffer[3] = DIGITS[my_checksum & 0xf];
-			if ((retval = gdb_write(connection, local_buffer, 1)) != ERROR_OK)
-			{
+			retval = gdb_write(connection, local_buffer, 1);
+			if (retval != ERROR_OK)
 				return retval;
-			}
-			if ((retval = gdb_write(connection, buffer, len)) != ERROR_OK)
-			{
+			retval = gdb_write(connection, buffer, len);
+			if (retval != ERROR_OK)
 				return retval;
-			}
-			if ((retval = gdb_write(connection, local_buffer + 1, 3)) != ERROR_OK)
-			{
+			retval = gdb_write(connection, local_buffer + 1, 3);
+			if (retval != ERROR_OK)
 				return retval;
-			}
 		}
 
 		if (gdb_con->noack_mode)
 			break;
 
-		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
+		retval = gdb_get_char(connection, &reply);
+		if (retval != ERROR_OK)
 			return retval;
 
 		if (reply == '+')
 			break;
-		else if (reply == '-')
-		{
+		else if (reply == '-') {
 			/* Stop sending output packets for now */
 			log_remove_callback(gdb_log_callback, connection);
 			LOG_WARNING("negative reply, retrying");
-		}
-		else if (reply == 0x3)
-		{
+		} else if (reply == 0x3) {
 			gdb_con->ctrl_c = 1;
-			if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
+			retval = gdb_get_char(connection, &reply);
+			if (retval != ERROR_OK)
 				return retval;
 			if (reply == '+')
 				break;
-			else if (reply == '-')
-			{
+			else if (reply == '-') {
 				/* Stop sending output packets for now */
 				log_remove_callback(gdb_log_callback, connection);
 				LOG_WARNING("negative reply, retrying");
-			}
-			else if (reply == '$') {
+			} else if (reply == '$') {
 				LOG_ERROR("GDB missing ack(1) - assumed good");
 				gdb_putback_char(connection, reply);
 				return ERROR_OK;
 			} else {
-
-				LOG_ERROR("unknown character(1) 0x%2.2x in reply, dropping connection", reply);
+				LOG_ERROR(
+						"unknown character(1) 0x%2.2x in reply, dropping connection", reply);
 				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
-		}
-		else if (reply == '$') {
+		} else if (reply == '$') {
 			LOG_ERROR("GDB missing ack(2) - assumed good");
 			gdb_putback_char(connection, reply);
 			return ERROR_OK;
-		}
-		else
-		{
-			LOG_ERROR("unknown character(2) 0x%2.2x in reply, dropping connection", reply);
+		} else {
+			LOG_ERROR("unknown character(2) 0x%2.2x in reply, dropping connection",
+				reply);
 			gdb_con->closed = 1;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
@@ -494,7 +462,8 @@ int gdb_put_packet(struct connection *connection, char *buffer, int len)
 	return retval;
 }
 
-static __inline__ int fetch_packet(struct connection *connection, int *checksum_ok, int noack, int *len, char *buffer)
+static inline int fetch_packet(struct connection *connection,
+		int *checksum_ok, int noack, int *len, char *buffer)
 {
 	unsigned char my_checksum = 0;
 	char checksum[3];
@@ -511,14 +480,12 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 	char *buf_p = gdb_con->buf_p;
 	int buf_cnt = gdb_con->buf_cnt;
 
-	for (;;)
-	{
+	for (;; ) {
 		/* The common case is that we have an entire packet with no escape chars.
 		 * We need to leave at least 2 bytes in the buffer to have
 		 * gdb_get_char() update various bits and bobs correctly.
 		 */
-		if ((buf_cnt > 2) && ((buf_cnt + count) < *len))
-		{
+		if ((buf_cnt > 2) && ((buf_cnt + count) < *len)) {
 			/* The compiler will struggle a bit with constant propagation and
 			 * aliasing, so we help it by showing that these values do not
 			 * change inside the loop
@@ -528,12 +495,10 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 			int run = buf_cnt - 2;
 			i = 0;
 			int done = 0;
-			while (i < run)
-			{
+			while (i < run) {
 				character = *buf++;
 				i++;
-				if (character == '#')
-				{
+				if (character == '#') {
 					/* Danger! character can be '#' when esc is
 					 * used so we need an explicit boolean for done here.
 					 */
@@ -541,8 +506,7 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 					break;
 				}
 
-				if (character == '}')
-				{
+				if (character == '}') {
 					/* data transmitted in binary mode (X packet)
 					 * uses 0x7d as escape character */
 					my_checksum += character & 0xff;
@@ -550,9 +514,7 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 					i++;
 					my_checksum += character & 0xff;
 					buffer[count++] = (character ^ 0x20) & 0xff;
-				}
-				else
-				{
+				} else {
 					my_checksum += character & 0xff;
 					buffer[count++] = character & 0xff;
 				}
@@ -562,8 +524,7 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 			if (done)
 				break;
 		}
-		if (count > *len)
-		{
+		if (count > *len) {
 			LOG_ERROR("packet buffer too small");
 			retval = ERROR_GDB_BUFFER_TOO_SMALL;
 			break;
@@ -576,8 +537,7 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 		if (character == '#')
 			break;
 
-		if (character == '}')
-		{
+		if (character == '}') {
 			/* data transmitted in binary mode (X packet)
 			 * uses 0x7d as escape character */
 			my_checksum += character & 0xff;
@@ -588,9 +548,7 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 
 			my_checksum += character & 0xff;
 			buffer[count++] = (character ^ 0x20) & 0xff;
-		}
-		else
-		{
+		} else {
 			my_checksum += character & 0xff;
 			buffer[count++] = character & 0xff;
 		}
@@ -604,18 +562,18 @@ static __inline__ int fetch_packet(struct connection *connection, int *checksum_
 
 	*len = count;
 
-	if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+	retval = gdb_get_char(connection, &character);
+	if (retval != ERROR_OK)
 		return retval;
 	checksum[0] = character;
-	if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+	retval = gdb_get_char(connection, &character);
+	if (retval != ERROR_OK)
 		return retval;
 	checksum[1] = character;
 	checksum[2] = 0;
 
 	if (!noack)
-	{
 		*checksum_ok = (my_checksum == strtoul(checksum, NULL, 16));
-	}
 
 	return ERROR_OK;
 }
@@ -627,24 +585,24 @@ static int gdb_get_packet_inner(struct connection *connection,
 	int retval;
 	struct gdb_connection *gdb_con = connection->priv;
 
-	while (1)
-	{
-		do
-		{
-			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+	while (1) {
+		do {
+			retval = gdb_get_char(connection, &character);
+			if (retval != ERROR_OK)
 				return retval;
 
 #ifdef _DEBUG_GDB_IO_
 			LOG_DEBUG("character: '%c'", character);
 #endif
 
-			switch (character)
-			{
+			switch (character) {
 				case '$':
 					break;
 				case '+':
-					/* gdb sends a dummy ack '+' at every remote connect - see remote_start_remote (remote.c)
-					 * in case anyone tries to debug why they receive this warning every time */
+					/* gdb sends a dummy ack '+' at every remote connect - see
+					 * remote_start_remote (remote.c)
+					 * in case anyone tries to debug why they receive this
+					 * warning every time */
 					LOG_WARNING("acknowledgment received, but no packet pending");
 					break;
 				case '-':
@@ -660,33 +618,28 @@ static int gdb_get_packet_inner(struct connection *connection,
 			}
 		} while (character != '$');
 
-
-
 		int checksum_ok = 0;
 		/* explicit code expansion here to get faster inlined code in -O3 by not
 		 * calculating checksum
 		 */
-		if (gdb_con->noack_mode)
-		{
-			if ((retval = fetch_packet(connection, &checksum_ok, 1, len, buffer)) != ERROR_OK)
+		if (gdb_con->noack_mode) {
+			retval = fetch_packet(connection, &checksum_ok, 1, len, buffer);
+			if (retval != ERROR_OK)
 				return retval;
-		} else
-		{
-			if ((retval = fetch_packet(connection, &checksum_ok, 0, len, buffer)) != ERROR_OK)
+		} else {
+			retval = fetch_packet(connection, &checksum_ok, 0, len, buffer);
+			if (retval != ERROR_OK)
 				return retval;
 		}
 
-		if (gdb_con->noack_mode)
-		{
+		if (gdb_con->noack_mode) {
 			/* checksum is not checked in noack mode */
 			break;
 		}
-		if (checksum_ok)
-		{
-			if ((retval = gdb_write(connection, "+", 1)) != ERROR_OK)
-			{
+		if (checksum_ok) {
+			retval = gdb_write(connection, "+", 1);
+			if (retval != ERROR_OK)
 				return retval;
-			}
 			break;
 		}
 	}
@@ -705,7 +658,7 @@ static int gdb_get_packet(struct connection *connection, char *buffer, int *len)
 	return retval;
 }
 
-static int gdb_output_con(struct connection *connection, const char* line)
+static int gdb_output_con(struct connection *connection, const char *line)
 {
 	char *hex_buffer;
 	int i, bin_size;
@@ -727,13 +680,12 @@ static int gdb_output_con(struct connection *connection, const char* line)
 	return retval;
 }
 
-static int gdb_output(struct command_context *context, const char* line)
+static int gdb_output(struct command_context *context, const char *line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
 	LOG_USER_N("%s", line);
 	return ERROR_OK;
 }
-
 
 static void gdb_frontend_halted(struct target *target, struct connection *connection)
 {
@@ -748,28 +700,23 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 	 * out of the running state so we'll see lots of TARGET_EVENT_XXX
 	 * that are to be ignored.
 	 */
-	if (gdb_connection->frontend_state == TARGET_RUNNING)
-	{
+	if (gdb_connection->frontend_state == TARGET_RUNNING) {
 		char sig_reply[4];
 		int signal_var;
 
 		/* stop forwarding log packets! */
 		log_remove_callback(gdb_log_callback, connection);
 
-		if (gdb_connection->ctrl_c)
-		{
+		if (gdb_connection->ctrl_c) {
 			signal_var = 0x2;
 			gdb_connection->ctrl_c = 0;
-		}
-		else
-		{
+		} else
 			signal_var = gdb_last_signal(target);
-		}
 
 		snprintf(sig_reply, 4, "T%2.2x", signal_var);
 		gdb_put_packet(connection, sig_reply, 3);
 		gdb_connection->frontend_state = TARGET_HALTED;
-		rtos_update_threads( target );
+		rtos_update_threads(target);
 	}
 }
 
@@ -780,8 +727,7 @@ static int gdb_target_callback_event_handler(struct target *target,
 	struct connection *connection = priv;
 
 	target_handle_event(target, event);
-	switch (event)
-	{
+	switch (event) {
 		case TARGET_EVENT_GDB_HALT:
 			gdb_frontend_halted(target, connection);
 			break;
@@ -790,10 +736,9 @@ static int gdb_target_callback_event_handler(struct target *target,
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
 			target_handle_event(target, TARGET_EVENT_OLD_gdb_program_config);
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
+			retval = jtag_execute_queue();
+			if (retval != ERROR_OK)
 				return retval;
-			}
 			break;
 		default:
 			break;
@@ -837,12 +782,12 @@ static int gdb_new_connection(struct connection *connection)
 	watchpoint_clear_target(gdb_service->target);
 
 	/* clean previous rtos session if supported*/
-	if ((gdb_service->target->rtos) &&
-			(gdb_service->target->rtos->type->clean))
+	if ((gdb_service->target->rtos) && (gdb_service->target->rtos->type->clean))
 		gdb_service->target->rtos->type->clean(gdb_service->target);
 
 	/* remove the initial ACK from the incoming buffer */
-	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
+	retval = gdb_get_char(connection, &initial_ack);
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* FIX!!!??? would we actually ever receive a + here???
@@ -852,21 +797,19 @@ static int gdb_new_connection(struct connection *connection)
 		gdb_putback_char(connection, initial_ack);
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH);
 
-	if (gdb_use_memory_map)
-	{
+	if (gdb_use_memory_map) {
 		/* Connect must fail if the memory map can't be set up correctly.
 		 *
 		 * This will cause an auto_probe to be invoked, which is either
 		 * a no-op or it will fail when the target isn't ready(e.g. not halted).
 		 */
 		int i;
-		for (i = 0; i < flash_get_bank_count(); i++)
-		{
+		for (i = 0; i < flash_get_bank_count(); i++) {
 			struct flash_bank *p;
 			retval = get_flash_bank_by_num(i, &p);
-			if (retval != ERROR_OK)
-			{
-				LOG_ERROR("Connect failed. Consider setting up a gdb-attach event for the target to prepare target for GDB connect, or use 'gdb_memory_map disable'.");
+			if (retval != ERROR_OK) {
+				LOG_ERROR(
+					"Connect failed. Consider setting up a gdb-attach event for the target to prepare target for GDB connect, or use 'gdb_memory_map disable'.");
 				return retval;
 			}
 		}
@@ -900,13 +843,12 @@ static int gdb_connection_closed(struct connection *connection)
 
 	gdb_actual_connections--;
 	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d",
-		  target_name(gdb_service->target),
-		  target_state_name(gdb_service->target),
-		  gdb_actual_connections);
+		target_name(gdb_service->target),
+		target_state_name(gdb_service->target),
+		gdb_actual_connections);
 
 	/* see if an image built with vFlash commands is left */
-	if (gdb_connection->vflash_image)
-	{
+	if (gdb_connection->vflash_image) {
 		image_close(gdb_connection->vflash_image);
 		free(gdb_connection->vflash_image);
 		gdb_connection->vflash_image = NULL;
@@ -915,16 +857,11 @@ static int gdb_connection_closed(struct connection *connection)
 	/* if this connection registered a debug-message receiver delete it */
 	delete_debug_msg_receiver(connection->cmd_ctx, gdb_service->target);
 
-	if (connection->priv)
-	{
+	if (connection->priv) {
 		free(connection->priv);
 		connection->priv = NULL;
-	}
-	else
-	{
+	} else
 		LOG_ERROR("BUG: connection->priv == NULL");
-	}
-
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
 
@@ -943,7 +880,7 @@ static void gdb_send_error(struct connection *connection, uint8_t the_error)
 }
 
 static int gdb_last_signal_packet(struct connection *connection,
-		char* packet, int packet_size)
+		char *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	char sig_reply[4];
@@ -984,8 +921,7 @@ static void gdb_str_to_target(struct target *target,
 	buf = reg->value;
 	buf_len = DIV_ROUND_UP(reg->size, 8);
 
-	for (i = 0; i < buf_len; i++)
-	{
+	for (i = 0; i < buf_len; i++) {
 		int j = gdb_reg_pos(target, i, buf_len);
 		tstr[i*2]   = DIGITS[(buf[j]>>4) & 0xf];
 		tstr[i*2 + 1] = DIGITS[buf[j]&0xf];
@@ -994,15 +930,11 @@ static void gdb_str_to_target(struct target *target,
 
 static int hextoint(int c)
 {
-	if (c>='0'&&c<='9')
-	{
-		return c-'0';
-	}
+	if (c >= '0' && c <= '9')
+		return c - '0';
 	c = toupper(c);
-	if (c>='A'&&c<='F')
-	{
-		return c-'A'+10;
-	}
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
 	LOG_ERROR("BUG: invalid register value %08x", c);
 	return 0;
 }
@@ -1011,15 +943,13 @@ static int hextoint(int c)
 static void gdb_target_to_reg(struct target *target,
 		char *tstr, int str_len, uint8_t *bin)
 {
-	if (str_len % 2)
-	{
+	if (str_len % 2) {
 		LOG_ERROR("BUG: gdb value with uneven number of characters encountered");
 		exit(-1);
 	}
 
 	int i;
-	for (i = 0; i < str_len; i += 2)
-	{
+	for (i = 0; i < str_len; i += 2) {
 		uint8_t t = hextoint(tstr[i]) << 4;
 		t |= hextoint(tstr[i + 1]);
 
@@ -1029,7 +959,7 @@ static void gdb_target_to_reg(struct target *target,
 }
 
 static int gdb_get_registers_packet(struct connection *connection,
-		char* packet, int packet_size)
+		char *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	struct reg **reg_list;
@@ -1044,29 +974,22 @@ static int gdb_get_registers_packet(struct connection *connection,
 	LOG_DEBUG("-");
 #endif
 
-	if ((target->rtos != NULL) &&
-		 (ERROR_OK == rtos_get_gdb_reg_list(connection)))
-	{
+	if ((target->rtos != NULL) && (ERROR_OK == rtos_get_gdb_reg_list(connection)))
 		return ERROR_OK;
-	}
 
-	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
-	{
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
-	}
 
 	for (i = 0; i < reg_list_size; i++)
-	{
 		reg_packet_size += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
-	}
 
 	assert(reg_packet_size > 0);
 
 	reg_packet = malloc(reg_packet_size);
 	reg_packet_p = reg_packet;
 
-	for (i = 0; i < reg_list_size; i++)
-	{
+	for (i = 0; i < reg_list_size; i++) {
 		if (!reg_list[i]->valid)
 			reg_list[i]->type->get(reg_list[i]);
 		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
@@ -1108,27 +1031,23 @@ static int gdb_set_registers_packet(struct connection *connection,
 	packet++;
 	packet_size--;
 
-	if (packet_size % 2)
-	{
-		LOG_WARNING("GDB set_registers packet with uneven characters received, dropping connection");
+	if (packet_size % 2) {
+		LOG_WARNING(
+			"GDB set_registers packet with uneven characters received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
-	{
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
-	}
 
 	packet_p = packet;
-	for (i = 0; i < reg_list_size; i++)
-	{
+	for (i = 0; i < reg_list_size; i++) {
 		uint8_t *bin_buf;
 		int chars = (DIV_ROUND_UP(reg_list[i]->size, 8) * 2);
 
 		if (packet_p + chars > packet + packet_size)
-		{
 			LOG_ERROR("BUG: register packet is too small for registers");
-		}
 
 		bin_buf = malloc(DIV_ROUND_UP(reg_list[i]->size, 8));
 		gdb_target_to_reg(target, packet_p, chars, bin_buf);
@@ -1137,7 +1056,6 @@ static int gdb_set_registers_packet(struct connection *connection,
 
 		/* advance packet pointer */
 		packet_p += chars;
-
 
 		free(bin_buf);
 	}
@@ -1151,7 +1069,7 @@ static int gdb_set_registers_packet(struct connection *connection,
 }
 
 static int gdb_get_register_packet(struct connection *connection,
-		char *packet, int packet_size)
+	char *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	char *reg_packet;
@@ -1164,13 +1082,11 @@ static int gdb_get_register_packet(struct connection *connection,
 	LOG_DEBUG("-");
 #endif
 
-	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
-	{
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
-	}
 
-	if (reg_list_size <= reg_num)
-	{
+	if (reg_list_size <= reg_num) {
 		LOG_ERROR("gdb requested a non-existing register");
 		exit(-1);
 	}
@@ -1191,7 +1107,7 @@ static int gdb_get_register_packet(struct connection *connection,
 }
 
 static int gdb_set_register_packet(struct connection *connection,
-		char *packet, int packet_size)
+	char *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	char *separator;
@@ -1203,19 +1119,16 @@ static int gdb_set_register_packet(struct connection *connection,
 
 	LOG_DEBUG("-");
 
-	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
-	{
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
-	}
 
-	if (reg_list_size < reg_num)
-	{
+	if (reg_list_size < reg_num) {
 		LOG_ERROR("gdb requested a non-existing register");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	if (*separator != '=')
-	{
+	if (*separator != '=') {
 		LOG_ERROR("GDB 'set register packet', but no '=' following the register number");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
@@ -1272,8 +1185,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 
 	addr = strtoul(packet, &separator, 16);
 
-	if (*separator != ',')
-	{
+	if (*separator != ',') {
 		LOG_ERROR("incomplete read memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
@@ -1286,8 +1198,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
-	if ((retval != ERROR_OK)&&!gdb_report_data_abort)
-	{
+	if ((retval != ERROR_OK) && !gdb_report_data_abort) {
 		/* TODO : Here we have to lie and send back all zero's lest stack traces won't work.
 		 * At some point this might be fixed in GDB, in which case this code can be removed.
 		 *
@@ -1295,7 +1206,8 @@ static int gdb_read_memory_packet(struct connection *connection,
 		 * gained by involving the user in this problem that hopefully will get resolved
 		 * eventually
 		 *
-		 * http://sourceware.org/cgi-bin/gnatsweb.pl?cmd = view%20audit-trail&database = gdb&pr = 2395
+		 * http://sourceware.org/cgi-bin/gnatsweb.pl? \
+		 * cmd = view%20audit-trail&database = gdb&pr = 2395
 		 *
 		 * For now, the default is to fix up things to make current GDB versions work.
 		 * This can be overwritten using the gdb_report_data_abort <'enable'|'disable'> command.
@@ -1304,13 +1216,11 @@ static int gdb_read_memory_packet(struct connection *connection,
 		retval = ERROR_OK;
 	}
 
-	if (retval == ERROR_OK)
-	{
+	if (retval == ERROR_OK) {
 		hex_buffer = malloc(len * 2 + 1);
 
 		uint32_t i;
-		for (i = 0; i < len; i++)
-		{
+		for (i = 0; i < len; i++) {
 			uint8_t t = buffer[i];
 			hex_buffer[2 * i] = DIGITS[(t >> 4) & 0xf];
 			hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
@@ -1319,11 +1229,8 @@ static int gdb_read_memory_packet(struct connection *connection,
 		gdb_put_packet(connection, hex_buffer, len * 2);
 
 		free(hex_buffer);
-	}
-	else
-	{
+	} else
 		retval = gdb_error(connection, retval);
-	}
 
 	free(buffer);
 
@@ -1348,16 +1255,14 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	addr = strtoul(packet, &separator, 16);
 
-	if (*separator != ',')
-	{
+	if (*separator != ',') {
 		LOG_ERROR("incomplete write memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	len = strtoul(separator + 1, &separator, 16);
 
-	if (*(separator++) != ':')
-	{
+	if (*(separator++) != ':') {
 		LOG_ERROR("incomplete write memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
@@ -1366,23 +1271,18 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-	for (i = 0; i < len; i++)
-	{
+	for (i = 0; i < len; i++) {
 		uint32_t tmp;
-		sscanf(separator + 2*i, "%2" SCNx32 , &tmp);
+		sscanf(separator + 2*i, "%2" SCNx32, &tmp);
 		buffer[i] = tmp;
 	}
 
 	retval = target_write_buffer(target, addr, len, buffer);
 
 	if (retval == ERROR_OK)
-	{
 		gdb_put_packet(connection, "OK", 2);
-	}
 	else
-	{
 		retval = gdb_error(connection, retval);
-	}
 
 	free(buffer);
 
@@ -1404,24 +1304,21 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 
 	addr = strtoul(packet, &separator, 16);
 
-	if (*separator != ',')
-	{
+	if (*separator != ',') {
 		LOG_ERROR("incomplete write memory binary packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	len = strtoul(separator + 1, &separator, 16);
 
-	if (*(separator++) != ':')
-	{
+	if (*(separator++) != ':') {
 		LOG_ERROR("incomplete write memory binary packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	struct gdb_connection *gdb_connection = connection->priv;
 
-	if (gdb_connection->mem_write_error)
-	{
+	if (gdb_connection->mem_write_error) {
 		retval = ERROR_FAIL;
 		/* now that we have reported the memory write error, we can clear the condition */
 		gdb_connection->mem_write_error = false;
@@ -1431,24 +1328,19 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	 * while we write the last one to the target.
 	 */
 	if (retval == ERROR_OK)
-	{
 		gdb_put_packet(connection, "OK", 2);
-	}
-	else
-	{
-		if ((retval = gdb_error(connection, retval)) != ERROR_OK)
+	else {
+		retval = gdb_error(connection, retval);
+		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	if (len)
-	{
+	if (len) {
 		LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-		retval = target_write_buffer(target, addr, len, (uint8_t*)separator);
+		retval = target_write_buffer(target, addr, len, (uint8_t *)separator);
 		if (retval != ERROR_OK)
-		{
 			gdb_connection->mem_write_error = true;
-		}
 	}
 
 	return ERROR_OK;
@@ -1464,24 +1356,20 @@ static int gdb_step_continue_packet(struct connection *connection,
 
 	LOG_DEBUG("-");
 
-	if (packet_size > 1)
-	{
+	if (packet_size > 1) {
 		packet[packet_size] = 0;
 		address = strtoul(packet + 1, NULL, 16);
-	}
-	else
-	{
+	} else
 		current = 1;
-	}
 
-	if (packet[0] == 'c')
-	{
+	if (packet[0] == 'c') {
 		LOG_DEBUG("continue");
 		target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
-		retval = target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
-	}
-	else if (packet[0] == 's')
-	{
+		retval = target_resume(target, current, address, 0, 0);	/* resume at current
+									 *address, don't handle
+									 *breakpoints, not debugging
+									 **/
+	} else if (packet[0] == 's') {
 		LOG_DEBUG("step");
 		/* step at current or address, don't handle breakpoints */
 		retval = target_step(target, current, address, 0);
@@ -1507,60 +1395,48 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 
 	if (type == 0)	/* memory breakpoint */
 		bp_type = BKPT_SOFT;
-	else if (type == 1) /* hardware breakpoint */
+	else if (type == 1)	/* hardware breakpoint */
 		bp_type = BKPT_HARD;
-	else if (type == 2) /* write watchpoint */
+	else if (type == 2)	/* write watchpoint */
 		wp_type = WPT_WRITE;
-	else if (type == 3) /* read watchpoint */
+	else if (type == 3)	/* read watchpoint */
 		wp_type = WPT_READ;
-	else if (type == 4) /* access watchpoint */
+	else if (type == 4)	/* access watchpoint */
 		wp_type = WPT_ACCESS;
-	else
-	{
+	else {
 		LOG_ERROR("invalid gdb watch/breakpoint type(%d), dropping connection", type);
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-
-	if (gdb_breakpoint_override && ((bp_type == BKPT_SOFT)||(bp_type == BKPT_HARD)))
-	{
+	if (gdb_breakpoint_override && ((bp_type == BKPT_SOFT) || (bp_type == BKPT_HARD)))
 		bp_type = gdb_breakpoint_override_type;
-	}
 
-	if (*separator != ',')
-	{
+	if (*separator != ',') {
 		LOG_ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	address = strtoul(separator + 1, &separator, 16);
 
-	if (*separator != ',')
-	{
+	if (*separator != ',') {
 		LOG_ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	size = strtoul(separator + 1, &separator, 16);
 
-	switch (type)
-	{
+	switch (type) {
 		case 0:
 		case 1:
-			if (packet[0] == 'Z')
-			{
-				if ((retval = breakpoint_add(target, address, size, bp_type)) != ERROR_OK)
-				{
-					if ((retval = gdb_error(connection, retval)) != ERROR_OK)
+			if (packet[0] == 'Z') {
+				retval = breakpoint_add(target, address, size, bp_type);
+				if (retval != ERROR_OK) {
+					retval = gdb_error(connection, retval);
+					if (retval != ERROR_OK)
 						return retval;
-				}
-				else
-				{
+				} else
 					gdb_put_packet(connection, "OK", 2);
-				}
-			}
-			else
-			{
+			} else {
 				breakpoint_remove(target, address);
 				gdb_put_packet(connection, "OK", 2);
 			}
@@ -1569,20 +1445,15 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		case 3:
 		case 4:
 		{
-			if (packet[0] == 'Z')
-			{
-				if ((retval = watchpoint_add(target, address, size, wp_type, 0, 0xffffffffu)) != ERROR_OK)
-				{
-					if ((retval = gdb_error(connection, retval)) != ERROR_OK)
+			if (packet[0] == 'Z') {
+				retval = watchpoint_add(target, address, size, wp_type, 0, 0xffffffffu);
+				if (retval != ERROR_OK) {
+					retval = gdb_error(connection, retval);
+					if (retval != ERROR_OK)
 						return retval;
-				}
-				else
-				{
+				} else
 					gdb_put_packet(connection, "OK", 2);
-				}
-			}
-			else
-			{
+			} else {
 				watchpoint_remove(target, address);
 				gdb_put_packet(connection, "OK", 2);
 			}
@@ -1602,23 +1473,18 @@ static void xml_printf(int *retval, char **xml, int *pos, int *size,
 		const char *fmt, ...)
 {
 	if (*retval != ERROR_OK)
-	{
 		return;
-	}
 	int first = 1;
 
-	for (;;)
-	{
-		if ((*xml == NULL) || (!first))
-		{
+	for (;; ) {
+		if ((*xml == NULL) || (!first)) {
 			/* start by 0 to exercise all the code paths.
 			 * Need minimum 2 bytes to fit 1 char and 0 terminator. */
 
 			*size = *size * 2 + 2;
 			char *t = *xml;
 			*xml = realloc(*xml, *size);
-			if (*xml == NULL)
-			{
+			if (*xml == NULL) {
 				if (t)
 					free(t);
 				*retval = ERROR_SERVER_REMOTE_CLOSED;
@@ -1631,8 +1497,7 @@ static void xml_printf(int *retval, char **xml, int *pos, int *size,
 		va_start(ap, fmt);
 		ret = vsnprintf(*xml + *pos, *size - *pos, fmt, ap);
 		va_end(ap);
-		if ((ret > 0) && ((ret + 1) < *size - *pos))
-		{
+		if ((ret > 0) && ((ret + 1) < *size - *pos)) {
 			*pos += ret;
 			return;
 		}
@@ -1666,22 +1531,18 @@ static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len
 	return 0;
 }
 
-static int compare_bank (const void * a, const void * b)
+static int compare_bank(const void *a, const void *b)
 {
 	struct flash_bank *b1, *b2;
-	b1=*((struct flash_bank **)a);
-	b2=*((struct flash_bank **)b);
+	b1 = *((struct flash_bank **)a);
+	b2 = *((struct flash_bank **)b);
 
 	if (b1->base == b2->base)
-	{
 		return 0;
-	} else if (b1->base > b2->base)
-	{
+	else if (b1->base > b2->base)
 		return 1;
-	} else
-	{
+	else
 		return -1;
-	}
 }
 
 static int gdb_memory_map(struct connection *connection,
@@ -1727,18 +1588,17 @@ static int gdb_memory_map(struct connection *connection,
 
 	for (i = 0; i < flash_get_bank_count(); i++) {
 		retval = get_flash_bank_by_num(i, &p);
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			free(banks);
 			gdb_error(connection, retval);
 			return retval;
 		}
-		if(p->target == target)
+		if (p->target == target)
 			banks[target_flash_banks++] = p;
 	}
 
 	qsort(banks, target_flash_banks, sizeof(struct flash_bank *),
-			compare_bank);
+		compare_bank);
 
 	for (i = 0; i < target_flash_banks; i++) {
 		int j;
@@ -1751,7 +1611,7 @@ static int gdb_memory_map(struct connection *connection,
 		if (ram_start < p->base)
 			xml_printf(&retval, &xml, &pos, &size,
 				"<memory type=\"ram\" start=\"0x%x\" "
-					"length=\"0x%x\"/>\n",
+				"length=\"0x%x\"/>\n",
 				ram_start, p->base - ram_start);
 
 		/* Report adjacent groups of same-size sectors.  So for
@@ -1768,7 +1628,7 @@ static int gdb_memory_map(struct connection *connection,
 				start = p->base + p->sectors[j].offset;
 				xml_printf(&retval, &xml, &pos, &size,
 					"<memory type=\"flash\" "
-						"start=\"0x%x\" ",
+					"start=\"0x%x\" ",
 					start);
 				sector_size = p->sectors[j].size;
 			}
@@ -1776,18 +1636,18 @@ static int gdb_memory_map(struct connection *connection,
 			/* Does this finish a group of sectors?
 			 * If not, continue an already-started group.
 			 */
-			if (j == p->num_sectors -1)
+			if (j == p->num_sectors - 1)
 				group_len = (p->base + p->size) - start;
 			else if (p->sectors[j + 1].size != sector_size)
 				group_len = p->base + p->sectors[j + 1].offset
-						- start;
+					- start;
 			else
 				continue;
 
 			xml_printf(&retval, &xml, &pos, &size,
 				"length=\"0x%x\">\n"
 				"<property name=\"blocksize\">"
-					"0x%x</property>\n"
+				"0x%x</property>\n"
 				"</memory>\n",
 				group_len,
 				sector_size);
@@ -1800,7 +1660,7 @@ static int gdb_memory_map(struct connection *connection,
 	if (ram_start != 0)
 		xml_printf(&retval, &xml, &pos, &size,
 			"<memory type=\"ram\" start=\"0x%x\" "
-				"length=\"0x%x\"/>\n",
+			"length=\"0x%x\"/>\n",
 			ram_start, 0-ram_start);
 	/* ELSE a flash chip could be at the very end of the 32 bit address
 	 * space, in which case ram_start will be precisely 0
@@ -1836,17 +1696,14 @@ static int gdb_query_packet(struct connection *connection,
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct target *target = get_target_from_connection(connection);
 
-	if (strstr(packet, "qRcmd,"))
-	{
-		if (packet_size > 6)
-		{
+	if (strstr(packet, "qRcmd,")) {
+		if (packet_size > 6) {
 			char *cmd;
 			int i;
 			cmd = malloc((packet_size - 6)/2 + 1);
-			for (i = 0; i < (packet_size - 6)/2; i++)
-			{
+			for (i = 0; i < (packet_size - 6)/2; i++) {
 				uint32_t tmp;
-				sscanf(packet + 6 + 2*i, "%2" SCNx32 , &tmp);
+				sscanf(packet + 6 + 2*i, "%2" SCNx32, &tmp);
 				cmd[i] = tmp;
 			}
 			cmd[(packet_size - 6)/2] = 0x0;
@@ -1865,11 +1722,8 @@ static int gdb_query_packet(struct connection *connection,
 		}
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
-	}
-	else if (strstr(packet, "qCRC:"))
-	{
-		if (packet_size > 5)
-		{
+	} else if (strstr(packet, "qCRC:")) {
+		if (packet_size > 5) {
 			int retval;
 			char gdb_reply[10];
 			char *separator;
@@ -1882,9 +1736,9 @@ static int gdb_query_packet(struct connection *connection,
 
 			addr = strtoul(packet, &separator, 16);
 
-			if (*separator != ',')
-			{
-				LOG_ERROR("incomplete read memory packet received, dropping connection");
+			if (*separator != ',') {
+				LOG_ERROR(
+					"incomplete read memory packet received, dropping connection");
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 
@@ -1892,22 +1746,18 @@ static int gdb_query_packet(struct connection *connection,
 
 			retval = target_checksum_memory(target, addr, len, &checksum);
 
-			if (retval == ERROR_OK)
-			{
+			if (retval == ERROR_OK) {
 				snprintf(gdb_reply, 10, "C%8.8" PRIx32 "", checksum);
 				gdb_put_packet(connection, gdb_reply, 9);
-			}
-			else
-			{
-				if ((retval = gdb_error(connection, retval)) != ERROR_OK)
+			} else {
+				retval = gdb_error(connection, retval);
+				if (retval != ERROR_OK)
 					return retval;
 			}
 
 			return ERROR_OK;
 		}
-	}
-	else if (strstr(packet, "qSupported"))
-	{
+	} else if (strstr(packet, "qSupported")) {
 		/* we currently support packet size and qXfer:memory-map:read (if enabled)
 		 * disable qXfer:features:read for the moment */
 		int retval = ERROR_OK;
@@ -1915,12 +1765,15 @@ static int gdb_query_packet(struct connection *connection,
 		int pos = 0;
 		int size = 0;
 
-		xml_printf(&retval, &buffer, &pos, &size,
-				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-;QStartNoAckMode+",
-				(GDB_BUFFER_SIZE - 1), ((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-');
+		xml_printf(&retval,
+			&buffer,
+			&pos,
+			&size,
+			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-;QStartNoAckMode+",
+			(GDB_BUFFER_SIZE - 1),
+			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-');
 
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			gdb_send_error(connection, 01);
 			return ERROR_OK;
 		}
@@ -1929,12 +1782,10 @@ static int gdb_query_packet(struct connection *connection,
 		free(buffer);
 
 		return ERROR_OK;
-	}
-	else if (strstr(packet, "qXfer:memory-map:read::")
-			&& (flash_get_bank_count() > 0))
+	} else if (strstr(packet, "qXfer:memory-map:read::")
+		   && (flash_get_bank_count() > 0))
 		return gdb_memory_map(connection, packet, packet_size);
-	else if (strstr(packet, "qXfer:features:read:"))
-	{
+	else if (strstr(packet, "qXfer:features:read:")) {
 		char *xml = NULL;
 		int size = 0;
 		int pos = 0;
@@ -1947,23 +1798,23 @@ static int gdb_query_packet(struct connection *connection,
 		/* skip command character */
 		packet += 20;
 
-		if (decode_xfer_read(packet, &annex, &offset, &length) < 0)
-		{
+		if (decode_xfer_read(packet, &annex, &offset, &length) < 0) {
 			gdb_send_error(connection, 01);
 			return ERROR_OK;
 		}
 
-		if (strcmp(annex, "target.xml") != 0)
-		{
+		if (strcmp(annex, "target.xml") != 0) {
 			gdb_send_error(connection, 01);
 			return ERROR_OK;
 		}
 
-		xml_printf(&retval, &xml, &pos, &size, \
+		xml_printf(&retval,
+			&xml,
+			&pos,
+			&size, \
 			"l < target version=\"1.0\">\n < architecture > arm</architecture>\n</target>\n");
 
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			gdb_error(connection, retval);
 			return retval;
 		}
@@ -1972,9 +1823,7 @@ static int gdb_query_packet(struct connection *connection,
 
 		free(xml);
 		return ERROR_OK;
-	}
-	else if (strstr(packet, "QStartNoAckMode"))
-	{
+	} else if (strstr(packet, "QStartNoAckMode")) {
 		gdb_connection->noack_mode = 1;
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
@@ -1993,36 +1842,31 @@ static int gdb_v_packet(struct connection *connection,
 
 	/* if flash programming disabled - send a empty reply */
 
-	if (gdb_flash_program == 0)
-	{
+	if (gdb_flash_program == 0) {
 		gdb_put_packet(connection, "", 0);
 		return ERROR_OK;
 	}
 
-	if (strstr(packet, "vFlashErase:"))
-	{
+	if (strstr(packet, "vFlashErase:")) {
 		unsigned long addr;
 		unsigned long length;
 
 		char *parse = packet + 12;
-		if (*parse == '\0')
-		{
+		if (*parse == '\0') {
 			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 
 		addr = strtoul(parse, &parse, 16);
 
-		if (*(parse++) != ',' || *parse == '\0')
-		{
+		if (*(parse++) != ',' || *parse == '\0') {
 			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 
 		length = strtoul(parse, &parse, 16);
 
-		if (*parse != '\0')
-		{
+		if (*parse != '\0') {
 			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
@@ -2033,7 +1877,7 @@ static int gdb_v_packet(struct connection *connection,
 
 		/* perform any target specific operations before the erase */
 		target_call_event_callbacks(gdb_service->target,
-				TARGET_EVENT_GDB_FLASH_ERASE_START);
+			TARGET_EVENT_GDB_FLASH_ERASE_START);
 
 		/* vFlashErase:addr,length messages require region start and
 		 * end to be "block" aligned ... if padding is ever needed,
@@ -2044,79 +1888,71 @@ static int gdb_v_packet(struct connection *connection,
 
 		/* perform any target specific operations after the erase */
 		target_call_event_callbacks(gdb_service->target,
-				TARGET_EVENT_GDB_FLASH_ERASE_END);
+			TARGET_EVENT_GDB_FLASH_ERASE_END);
 
 		/* perform erase */
-		if (result != ERROR_OK)
-		{
+		if (result != ERROR_OK) {
 			/* GDB doesn't evaluate the actual error number returned,
 			 * treat a failed erase as an I/O error
 			 */
 			gdb_send_error(connection, EIO);
 			LOG_ERROR("flash_erase returned %i", result);
-		}
-		else
+		} else
 			gdb_put_packet(connection, "OK", 2);
 
 		return ERROR_OK;
 	}
 
-	if (strstr(packet, "vFlashWrite:"))
-	{
+	if (strstr(packet, "vFlashWrite:")) {
 		int retval;
 		unsigned long addr;
 		unsigned long length;
 		char *parse = packet + 12;
 
-		if (*parse == '\0')
-		{
+		if (*parse == '\0') {
 			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 		addr = strtoul(parse, &parse, 16);
-		if (*(parse++) != ':')
-		{
+		if (*(parse++) != ':') {
 			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 		length = packet_size - (parse - packet);
 
 		/* create a new image if there isn't already one */
-		if (gdb_connection->vflash_image == NULL)
-		{
+		if (gdb_connection->vflash_image == NULL) {
 			gdb_connection->vflash_image = malloc(sizeof(struct image));
 			image_open(gdb_connection->vflash_image, "", "build");
 		}
 
 		/* create new section with content from packet buffer */
-		if ((retval = image_add_section(gdb_connection->vflash_image, addr, length, 0x0, (uint8_t*)parse)) != ERROR_OK)
-		{
+		retval = image_add_section(gdb_connection->vflash_image,
+				addr, length, 0x0, (uint8_t *)parse);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		gdb_put_packet(connection, "OK", 2);
 
 		return ERROR_OK;
 	}
 
-	if (!strcmp(packet, "vFlashDone"))
-	{
+	if (!strcmp(packet, "vFlashDone")) {
 		uint32_t written;
 
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */
-		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_WRITE_START);
-		result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0);
+		target_call_event_callbacks(gdb_service->target,
+			TARGET_EVENT_GDB_FLASH_WRITE_START);
+		result =
+			flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0);
 		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_WRITE_END);
-		if (result != ERROR_OK)
-		{
+		if (result != ERROR_OK) {
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
 				gdb_put_packet(connection, "E.memtype", 9);
 			else
 				gdb_send_error(connection, EIO);
-			}
-		else
-		{
+		} else {
 			LOG_DEBUG("wrote %u bytes from vFlash image to flash", (unsigned)written);
 			gdb_put_packet(connection, "OK", 2);
 		}
@@ -2137,7 +1973,7 @@ static int gdb_detach(struct connection *connection)
 	struct gdb_service *gdb_service = connection->service->priv;
 
 	target_call_event_callbacks(gdb_service->target,
-			TARGET_EVENT_GDB_DETACH);
+		TARGET_EVENT_GDB_DETACH);
 
 	return gdb_put_packet(connection, "OK", 2);
 }
@@ -2148,8 +1984,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 	struct connection *connection = priv;
 	struct gdb_connection *gdb_con = connection->priv;
 
-	if (gdb_con->busy)
-	{
+	if (gdb_con->busy) {
 		/* do not reply this using the O packet */
 		return;
 	}
@@ -2176,7 +2011,7 @@ static int gdb_input_inner(struct connection *connection)
 	int packet_size;
 	int retval;
 	struct gdb_connection *gdb_con = connection->priv;
-	static int extended_protocol = 0;
+	static int extended_protocol;
 
 	/* drain input buffer. If one of the packets fail, then an error
 	 * packet is replied, if applicable.
@@ -2189,8 +2024,7 @@ static int gdb_input_inner(struct connection *connection)
 	 * If the error is recoverable, this fn is called again to
 	 * drain the rest of the buffer.
 	 */
-	do
-	{
+	do {
 		packet_size = GDB_BUFFER_SIZE-1;
 		retval = gdb_get_packet(connection, packet, &packet_size);
 		if (retval != ERROR_OK)
@@ -2201,37 +2035,32 @@ static int gdb_input_inner(struct connection *connection)
 
 		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
 			if (packet[0] == 'X') {
-				// binary packets spew junk into the debug log stream
-				char buf[ 50 ];
+				/* binary packets spew junk into the debug log stream */
+				char buf[50];
 				int x;
-				for (x = 0 ; (x < 49) && (packet[x] != ':') ; x++) {
+				for (x = 0; (x < 49) && (packet[x] != ':'); x++)
 					buf[x] = packet[x];
-				}
 				buf[x] = 0;
 				LOG_DEBUG("received packet: '%s:<binary-data>'", buf);
-			} else {
+			} else
 				LOG_DEBUG("received packet: '%s'", packet);
-			}
 		}
 
-		if (packet_size > 0)
-		{
+		if (packet_size > 0) {
 			retval = ERROR_OK;
-			switch (packet[0])
-			{
-			    case 'T': // Is thread alive?
-			    	gdb_thread_packet(connection, packet, packet_size);
-			    	break;
-			    case 'H': // Set current thread ( 'c' for step and continue, 'g' for all other operations )
-			    	gdb_thread_packet(connection, packet, packet_size);
-			    	break;
+			switch (packet[0]) {
+				case 'T':	/* Is thread alive? */
+					gdb_thread_packet(connection, packet, packet_size);
+					break;
+				case 'H':	/* Set current thread ( 'c' for step and continue, 'g' for
+					 * all other operations ) */
+					gdb_thread_packet(connection, packet, packet_size);
+					break;
 				case 'q':
 				case 'Q':
 					retval = gdb_thread_packet(connection, packet, packet_size);
-					if ( retval == GDB_THREAD_PACKET_NOT_CONSUMED )
-					{
+					if (retval == GDB_THREAD_PACKET_NOT_CONSUMED)
 						retval = gdb_query_packet(connection, packet, packet_size);
-					}
 					break;
 				case 'g':
 					retval = gdb_get_registers_packet(connection, packet, packet_size);
@@ -2260,76 +2089,73 @@ static int gdb_input_inner(struct connection *connection)
 					break;
 				case 'c':
 				case 's':
-					{
-						gdb_thread_packet(connection, packet, packet_size);
-						log_add_callback(gdb_log_callback, connection);
+				{
+					gdb_thread_packet(connection, packet, packet_size);
+					log_add_callback(gdb_log_callback, connection);
 
-						if (gdb_con->mem_write_error)
-						{
-							LOG_ERROR("Memory write failure!");
+					if (gdb_con->mem_write_error) {
+						LOG_ERROR("Memory write failure!");
 
-							/* now that we have reported the memory write error, we can clear the condition */
-							gdb_con->mem_write_error = false;
-						}
+						/* now that we have reported the memory write error,
+						 *we can clear the condition */
+						gdb_con->mem_write_error = false;
+					}
 
-						bool nostep = false;
-						bool already_running = false;
-						if (target->state == TARGET_RUNNING)
-						{
-							LOG_WARNING("WARNING! The target is already running. "
-									"All changes GDB did to registers will be discarded! "
-									"Waiting for target to halt.");
-							already_running = true;
-						} else if (target->state != TARGET_HALTED)
-						{
-							LOG_WARNING("The target is not in the halted nor running stated, stepi/continue ignored.");
-							nostep = true;
-						} else if ((packet[0] == 's') && gdb_con->sync)
-						{
-							/* Hmm..... when you issue a continue in GDB, then a "stepi" is
-							 * sent by GDB first to OpenOCD, thus defeating the check to
-							 * make only the single stepping have the sync feature...
-							 */
-							nostep = true;
-							LOG_WARNING("stepi ignored. GDB will now fetch the register state from the target.");
-						}
-						gdb_con->sync = false;
+					bool nostep = false;
+					bool already_running = false;
+					if (target->state == TARGET_RUNNING) {
+						LOG_WARNING("WARNING! The target is already running. "
+								"All changes GDB did to registers will be discarded! "
+								"Waiting for target to halt.");
+						already_running = true;
+					} else if (target->state != TARGET_HALTED) {
+						LOG_WARNING("The target is not in the halted nor running stated, " \
+								"stepi/continue ignored.");
+						nostep = true;
+					} else if ((packet[0] == 's') && gdb_con->sync) {
+						/* Hmm..... when you issue a continue in GDB, then a "stepi" is
+						 * sent by GDB first to OpenOCD, thus defeating the check to
+						 * make only the single stepping have the sync feature...
+						 */
+						nostep = true;
+						LOG_WARNING("stepi ignored. GDB will now fetch the register state " \
+								"from the target.");
+					}
+					gdb_con->sync = false;
 
-						if (!already_running && nostep)
-						{
-							/* Either the target isn't in the halted state, then we can't
-							 * step/continue. This might be early setup, etc.
-							 *
-							 * Or we want to allow GDB to pick up a fresh set of
-							 * register values without modifying the target state.
-							 *
-							 */
-							gdb_sig_halted(connection);
+					if (!already_running && nostep) {
+						/* Either the target isn't in the halted state, then we can't
+						 * step/continue. This might be early setup, etc.
+						 *
+						 * Or we want to allow GDB to pick up a fresh set of
+						 * register values without modifying the target state.
+						 *
+						 */
+						gdb_sig_halted(connection);
 
-							/* stop forwarding log packets! */
-							log_remove_callback(gdb_log_callback, connection);
-						} else
-						{
-							/* We're running/stepping, in which case we can
-							 * forward log output until the target is halted
-							 */
-							gdb_con->frontend_state = TARGET_RUNNING;
-							target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
+						/* stop forwarding log packets! */
+						log_remove_callback(gdb_log_callback, connection);
+					} else {
+						/* We're running/stepping, in which case we can
+						 * forward log output until the target is halted
+						 */
+						gdb_con->frontend_state = TARGET_RUNNING;
+						target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 
-							if (!already_running)
-							{
-								/* Here we don't want packet processing to stop even if this fails,
-								 * so we use a local variable instead of retval. */
-								retval = gdb_step_continue_packet(connection, packet, packet_size);
-								if (retval != ERROR_OK)
-								{
-									/* we'll never receive a halted condition... issue a false one.. */
-									gdb_frontend_halted(target, connection);
-								}
+						if (!already_running) {
+							/* Here we don't want packet processing to stop even if this fails,
+							 * so we use a local variable instead of retval. */
+							retval = gdb_step_continue_packet(connection, packet, packet_size);
+							if (retval != ERROR_OK) {
+								/* we'll never receive a halted
+								 *condition... issue a false one..
+								 **/
+								gdb_frontend_halted(target, connection);
 							}
 						}
 					}
-					break;
+				}
+				break;
 				case 'v':
 					retval = gdb_v_packet(connection, packet, packet_size);
 					break;
@@ -2357,15 +2183,15 @@ static int gdb_input_inner(struct connection *connection)
 					breakpoint_clear_target(gdb_service->target);
 					watchpoint_clear_target(gdb_service->target);
 					command_run_linef(connection->cmd_ctx,
-							"ocd_gdb_restart %s",
-							target_name(target));
+					"ocd_gdb_restart %s",
+					target_name(target));
 					/*  info rtos parts */
 					gdb_thread_packet(connection, packet, packet_size);
 					gdb_put_packet(connection, "OK", 2);
 					break;
 
 				case 'j':
-				    /*  packet supported only by smp target i.e cortex_a.c*/
+					/*  packet supported only by smp target i.e cortex_a.c*/
 					/* handle smp packet replying coreid played to gbd */
 					gdb_read_smp_packet(connection, packet, packet_size);
 					break;
@@ -2389,19 +2215,15 @@ static int gdb_input_inner(struct connection *connection)
 				return retval;
 		}
 
-		if (gdb_con->ctrl_c)
-		{
-			if (target->state == TARGET_RUNNING)
-			{
+		if (gdb_con->ctrl_c) {
+			if (target->state == TARGET_RUNNING) {
 				retval = target_halt(target);
 				if (retval != ERROR_OK)
-				{
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
-				}
 				gdb_con->ctrl_c = 0;
-			} else
-			{
-				LOG_INFO("The target is not running when halt was requested, stopping GDB.");
+			} else {
+				LOG_INFO(
+					"The target is not running when halt was requested, stopping GDB.");
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 			}
 		}
@@ -2428,7 +2250,6 @@ static int gdb_input(struct connection *connection)
 
 static int gdb_target_start(struct target *target, const char *port)
 {
-
 	struct gdb_service *gdb_service;
 	int ret;
 	gdb_service = malloc(sizeof(struct gdb_service));
@@ -2449,10 +2270,10 @@ static int gdb_target_start(struct target *target, const char *port)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while(head != (struct target_list*)NULL)
-		{
+		while (head != (struct target_list *)NULL) {
 			curr = head->target;
-			if (curr != target) curr->gdb_service = gdb_service;
+			if (curr != target)
+				curr->gdb_service = gdb_service;
 			head = head->next;
 		}
 	}
@@ -2462,20 +2283,18 @@ static int gdb_target_start(struct target *target, const char *port)
 static int gdb_target_add_one(struct target *target)
 {
 	/*  one gdb instance per smp list */
-	if ((target->smp) && (target->gdb_service)) return ERROR_OK;
+	if ((target->smp) && (target->gdb_service))
+		return ERROR_OK;
 	int retval = gdb_target_start(target, gdb_port_next);
-	if (retval == ERROR_OK)
-	{
+	if (retval == ERROR_OK) {
 		long portnumber;
 		/* If we can parse the port number
 		 * then we increment the port number for the next target.
 		 */
 		char *end;
 		portnumber = strtol(gdb_port_next, &end, 0);
-		if (!*end)
-		{
-			if (parse_long(gdb_port_next, &portnumber) == ERROR_OK)
-			{
+		if (!*end) {
+			if (parse_long(gdb_port_next, &portnumber) == ERROR_OK) {
 				free((void *)gdb_port_next);
 				gdb_port_next = alloc_printf("%d", portnumber+1);
 			}
@@ -2486,14 +2305,12 @@ static int gdb_target_add_one(struct target *target)
 
 int gdb_target_add_all(struct target *target)
 {
-	if (NULL == target)
-	{
+	if (NULL == target) {
 		LOG_WARNING("gdb services need one or more targets defined");
 		return ERROR_OK;
 	}
 
-	while (NULL != target)
-	{
+	while (NULL != target) {
 		int retval = gdb_target_add_one(target);
 		if (ERROR_OK != retval)
 			return retval;
@@ -2507,14 +2324,11 @@ int gdb_target_add_all(struct target *target)
 COMMAND_HANDLER(handle_gdb_sync_command)
 {
 	if (CMD_ARGC != 0)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	if (current_gdb_connection == NULL)
-	{
+	if (current_gdb_connection == NULL) {
 		command_print(CMD_CTX,
-				"gdb_sync command can only be run from within gdb using \"monitor gdb_sync\"");
+			"gdb_sync command can only be run from within gdb using \"monitor gdb_sync\"");
 		return ERROR_FAIL;
 	}
 
@@ -2528,7 +2342,7 @@ COMMAND_HANDLER(handle_gdb_port_command)
 {
 	int retval = CALL_COMMAND_HANDLER(server_pipe_command, &gdb_port);
 	if (ERROR_OK == retval) {
-		free((void*)gdb_port_next);
+		free((void *)gdb_port_next);
 		gdb_port_next = strdup(gdb_port);
 	}
 	return retval;
@@ -2564,33 +2378,23 @@ COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 /* gdb_breakpoint_override */
 COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 {
-	if (CMD_ARGC == 0)
-	{
-
-	} else if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 0) {
+		/* nothing */
+	} else if (CMD_ARGC == 1) {
 		gdb_breakpoint_override = 1;
 		if (strcmp(CMD_ARGV[0], "hard") == 0)
-		{
 			gdb_breakpoint_override_type = BKPT_HARD;
-		} else if (strcmp(CMD_ARGV[0], "soft") == 0)
-		{
+		else if (strcmp(CMD_ARGV[0], "soft") == 0)
 			gdb_breakpoint_override_type = BKPT_SOFT;
-		} else if (strcmp(CMD_ARGV[0], "disable") == 0)
-		{
+		else if (strcmp(CMD_ARGV[0], "disable") == 0)
 			gdb_breakpoint_override = 0;
-		}
 	} else
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 	if (gdb_breakpoint_override)
-	{
-		LOG_USER("force %s breakpoints", (gdb_breakpoint_override_type == BKPT_HARD)?"hard":"soft");
-	} else
-	{
+		LOG_USER("force %s breakpoints",
+			(gdb_breakpoint_override_type == BKPT_HARD) ? "hard" : "soft");
+	else
 		LOG_USER("breakpoint type is not overridden");
-	}
 
 	return ERROR_OK;
 }
@@ -2610,12 +2414,12 @@ static const struct command_registration gdb_command_handlers[] = {
 		.handler = handle_gdb_port_command,
 		.mode = COMMAND_ANY,
 		.help = "Normally gdb listens to a TCP/IP port. Each subsequent GDB "
-				"server listens for the next port number after the "
-				"base port number specified. "
-				"No arguments reports GDB port. \"pipe\" means listen to stdin "
-				"output to stdout, an integer is base port number, \"disable\" disables "
-				"port. Any other string is are interpreted as named pipe to listen to. "
-				"Output pipe is the same name as input pipe, but with 'o' appended.",
+			"server listens for the next port number after the "
+			"base port number specified. "
+			"No arguments reports GDB port. \"pipe\" means listen to stdin "
+			"output to stdout, an integer is base port number, \"disable\" disables "
+			"port. Any other string is are interpreted as named pipe to listen to. "
+			"Output pipe is the same name as input pipe, but with 'o' appended.",
 		.usage = "[port_num]",
 	},
 	{

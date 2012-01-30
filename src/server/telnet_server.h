@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef TELNET_SERVER_H
 #define TELNET_SERVER_H
 
@@ -34,8 +35,7 @@
 #define TELNET_LINE_HISTORY_SIZE (128)
 #define TELNET_LINE_MAX_SIZE (256)
 
-enum telnet_states
-{
+enum telnet_states {
 	TELNET_STATE_DATA,
 	TELNET_STATE_IAC,
 	TELNET_STATE_SB,
@@ -47,8 +47,7 @@ enum telnet_states
 	TELNET_STATE_ESCAPE,
 };
 
-struct telnet_connection
-{
+struct telnet_connection {
 	char *prompt;
 	enum telnet_states state;
 	char line[TELNET_LINE_MAX_SIZE];
@@ -63,12 +62,11 @@ struct telnet_connection
 	int closed;
 };
 
-struct telnet_service
-{
+struct telnet_service {
 	char *banner;
 };
 
 int telnet_init(char *banner);
 int telnet_register_commands(struct command_context *command_context);
 
-#endif /* TELNET_SERVER_H */
+#endif	/* TELNET_SERVER_H */

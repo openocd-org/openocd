@@ -24,9 +24,9 @@
 
 void openocd_sleep_prelude(void)
 {
-	// no-op
+	/* no-op */
 }
 void openocd_sleep_postlude(void)
 {
-	// no-op
+	/* no-op */
 }

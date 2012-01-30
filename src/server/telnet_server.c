@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -33,10 +34,10 @@
 static const char *telnet_port;
 
 static char *negotiate =
-		"\xFF\xFB\x03"		/* IAC WILL Suppress Go Ahead */
-		"\xFF\xFB\x01"		/* IAC WILL Echo */
-		"\xFF\xFD\x03"		/* IAC DO Suppress Go Ahead */
-		"\xFF\xFE\x01";		/* IAC DON'T Echo */
+	"\xFF\xFB\x03"			/* IAC WILL Suppress Go Ahead */
+	"\xFF\xFB\x01"			/* IAC WILL Echo */
+	"\xFF\xFD\x03"			/* IAC DO Suppress Go Ahead */
+	"\xFF\xFE\x01";			/* IAC DON'T Echo */
 
 #define CTRL(c) (c - '@')
 
@@ -45,16 +46,14 @@ static char *negotiate =
  * succeed. Shudder!
  */
 static int telnet_write(struct connection *connection, const void *data,
-		int len)
+	int len)
 {
 	struct telnet_connection *t_con = connection->priv;
 	if (t_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
 	if (connection_write(connection, data, len) == len)
-	{
 		return ERROR_OK;
-	}
 	t_con->closed = 1;
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
@@ -80,21 +79,17 @@ static int telnet_outputline(struct connection *connection, const char *line)
 			len = strlen(line);
 
 		telnet_write(connection, line, len);
-		if (line_end)
-		{
+		if (line_end) {
 			telnet_write(connection, "\r\n", 2);
 			line += len + 1;
-		}
-		else
-		{
+		} else
 			line += len;
-		}
 	}
 
 	return ERROR_OK;
 }
 
-static int telnet_output(struct command_context *cmd_ctx, const char* line)
+static int telnet_output(struct command_context *cmd_ctx, const char *line)
 {
 	struct connection *connection = cmd_ctx->output_handler_priv;
 
@@ -102,15 +97,14 @@ static int telnet_output(struct command_context *cmd_ctx, const char* line)
 }
 
 static void telnet_log_callback(void *priv, const char *file, unsigned line,
-		const char *function, const char *string)
+	const char *function, const char *string)
 {
 	struct connection *connection = priv;
 	struct telnet_connection *t_con = connection->priv;
 	int i;
 
 	/* if there is no prompt, simply output the message */
-	if (t_con->line_cursor < 0)
-	{
+	if (t_con->line_cursor < 0) {
 		telnet_outputline(connection, string);
 		return;
 	}
@@ -156,20 +150,18 @@ static int telnet_new_connection(struct connection *connection)
 	telnet_write(connection, negotiate, strlen(negotiate));
 
 	/* print connection banner */
-	if (telnet_service->banner)
-	{
+	if (telnet_service->banner) {
 		telnet_write(connection, telnet_service->banner, strlen(telnet_service->banner));
 		telnet_write(connection, "\r\n", 2);
 	}
 
-	telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
+	telnet_write(connection, "\r", 1);	/* the prompt is always placed at the line beginning
+						 **/
 	telnet_prompt(connection);
 
 	/* initialize history */
 	for (i = 0; i < TELNET_LINE_HISTORY_SIZE; i++)
-	{
 		telnet_connection->history[i] = NULL;
-	}
 	telnet_connection->next_history = 0;
 	telnet_connection->current_history = 0;
 
@@ -179,17 +171,16 @@ static int telnet_new_connection(struct connection *connection)
 }
 
 static void telnet_clear_line(struct connection *connection,
-		struct telnet_connection *t_con)
+	struct telnet_connection *t_con)
 {
 	/* move to end of line */
 	if (t_con->line_cursor < t_con->line_size)
-	{
-		telnet_write(connection, t_con->line + t_con->line_cursor, t_con->line_size - t_con->line_cursor);
-	}
+		telnet_write(connection,
+			t_con->line + t_con->line_cursor,
+			t_con->line_size - t_con->line_cursor);
 
 	/* backspace, overwrite with space, backspace */
-	while (t_con->line_size > 0)
-	{
+	while (t_con->line_size > 0) {
 		telnet_write(connection, "\b \b", 3);
 		t_con->line_size--;
 	}
@@ -208,71 +199,68 @@ static int telnet_input(struct connection *connection)
 
 	if (bytes_read == 0)
 		return ERROR_SERVER_REMOTE_CLOSED;
-	else if (bytes_read == -1)
-	{
+	else if (bytes_read == -1) {
 		LOG_ERROR("error during read: %s", strerror(errno));
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	buf_p = buffer;
-	while (bytes_read)
-	{
-		switch (t_con->state)
-		{
+	while (bytes_read) {
+		switch (t_con->state) {
 			case TELNET_STATE_DATA:
 				if (*buf_p == 0xff)
-				{
 					t_con->state = TELNET_STATE_IAC;
-				}
-				else
-				{
-					if (isprint(*buf_p)) /* printable character */
-					{
-						/* watch buffer size leaving one spare character for string null termination */
-						if (t_con->line_size == TELNET_LINE_MAX_SIZE-1)
-						{
+				else {
+					if (isprint(*buf_p)) {	/* printable character */
+						/* watch buffer size leaving one spare character for
+						 *string null termination */
+						if (t_con->line_size == TELNET_LINE_MAX_SIZE-1) {
 							/* output audible bell if buffer is full */
-							telnet_write(connection, "\x07", 1); /* "\a" does not work, at least on windows */
-						}
-						else if (t_con->line_cursor == t_con->line_size)
-						{
+							telnet_write(connection, "\x07", 1);	/*
+												 *"\a"
+												 *does
+												 *not
+												 *work,
+												 *at
+												 *least
+												 *on
+												 *windows
+												 **/
+						} else if (t_con->line_cursor == t_con->line_size) {
 							telnet_write(connection, buf_p, 1);
 							t_con->line[t_con->line_size++] = *buf_p;
 							t_con->line_cursor++;
-						}
-						else
-						{
+						} else {
 							int i;
-							memmove(t_con->line + t_con->line_cursor + 1, t_con->line + t_con->line_cursor, t_con->line_size - t_con->line_cursor);
+							memmove(t_con->line + t_con->line_cursor + 1,
+									t_con->line + t_con->line_cursor,
+									t_con->line_size - t_con->line_cursor);
 							t_con->line[t_con->line_cursor] = *buf_p;
 							t_con->line_size++;
-							telnet_write(connection, t_con->line + t_con->line_cursor, t_con->line_size - t_con->line_cursor);
+							telnet_write(connection,
+									t_con->line + t_con->line_cursor,
+									t_con->line_size - t_con->line_cursor);
 							t_con->line_cursor++;
 							for (i = t_con->line_cursor; i < t_con->line_size; i++)
-							{
 								telnet_write(connection, "\b", 1);
-							}
 						}
-					}
-					else /* non-printable */
-					{
-						if (*buf_p == 0x1b) /* escape */
-						{
+					} else {	/* non-printable */
+						if (*buf_p == 0x1b) {	/* escape */
 							t_con->state = TELNET_STATE_ESCAPE;
 							t_con->last_escape = '\x00';
-						}
-						else if ((*buf_p == 0xd) || (*buf_p == 0xa)) /* CR/LF */
-						{
+						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) {	/*
+												 *CR/LF
+												 **/
 							int retval;
 
-							/* skip over combinations with CR/LF and NUL characters */
-							if ((bytes_read > 1) && ((*(buf_p + 1) == 0xa) || (*(buf_p + 1) == 0xd)))
-							{
+							/* skip over combinations with CR/LF and NUL
+							 *characters */
+							if ((bytes_read > 1) && ((*(buf_p + 1) == 0xa) ||
+									(*(buf_p + 1) == 0xd))) {
 								buf_p++;
 								bytes_read--;
 							}
-							if ((bytes_read > 1) && (*(buf_p + 1) == 0))
-							{
+							if ((bytes_read > 1) && (*(buf_p + 1) == 0)) {
 								buf_p++;
 								bytes_read--;
 							}
@@ -280,16 +268,19 @@ static int telnet_input(struct connection *connection)
 
 							telnet_write(connection, "\r\n\x00", 3);
 
-							if (strcmp(t_con->line, "history") == 0)
-							{
+							if (strcmp(t_con->line, "history") == 0) {
 								int i;
-								for (i = 1; i < TELNET_LINE_HISTORY_SIZE; i++)
-								{
-									/* the t_con->next_history line contains empty string (unless NULL), thus it is not printed */
-									char *history_line = t_con->history[(t_con->next_history + i) % TELNET_LINE_HISTORY_SIZE];
-									if (history_line)
-									{
-										telnet_write(connection, history_line, strlen(history_line));
+								for (i = 1; i < TELNET_LINE_HISTORY_SIZE; i++) {
+									/* the t_con->next_history
+									 *line contains empty string
+									 *(unless NULL), thus it is
+									 *not printed */
+									char *history_line = t_con->history[(t_con->
+											next_history + i) %
+											TELNET_LINE_HISTORY_SIZE];
+									if (history_line) {
+										telnet_write(connection, history_line,
+												strlen(history_line));
 										telnet_write(connection, "\r\n\x00", 3);
 									}
 								}
@@ -298,35 +289,41 @@ static int telnet_input(struct connection *connection)
 								continue;
 							}
 
-							/* save only non-blank not repeating lines in the history */
-							char *prev_line = t_con->history[(t_con->current_history > 0) ? t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1];
-							if (*t_con->line && (prev_line == NULL || strcmp(t_con->line, prev_line)))
-							{
-								/* if the history slot is already taken, free it */
+							/* save only non-blank not repeating lines
+							 *in the history */
+							char *prev_line = t_con->history[(t_con->current_history > 0) ?
+									t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1];
+							if (*t_con->line && (prev_line == NULL ||
+									strcmp(t_con->line, prev_line))) {
+								/* if the history slot is already
+								 *taken, free it */
 								if (t_con->history[t_con->next_history])
-								{
 									free(t_con->history[t_con->next_history]);
-								}
 
 								/* add line to history */
 								t_con->history[t_con->next_history] = strdup(t_con->line);
 
-								/* wrap history at TELNET_LINE_HISTORY_SIZE */
-								t_con->next_history = (t_con->next_history + 1) % TELNET_LINE_HISTORY_SIZE;
+								/* wrap history at
+								 *TELNET_LINE_HISTORY_SIZE */
+								t_con->next_history = (t_con->next_history + 1) %
+										TELNET_LINE_HISTORY_SIZE;
 
-								/* current history line starts at the new entry */
-								t_con->current_history = t_con->next_history;
+								/* current history line starts at
+								 *the new entry */
+								t_con->current_history =
+										t_con->next_history;
 
 								if (t_con->history[t_con->current_history])
-								{
 									free(t_con->history[t_con->current_history]);
-								}
 								t_con->history[t_con->current_history] = strdup("");
 							}
 
 							t_con->line_size = 0;
 
-							t_con->line_cursor = -1; /* to supress prompt in log callback during command execution */
+							t_con->line_cursor = -1;	/* to supress prompt
+										 *in log callback
+										 *during command
+										 *execution */
 
 							retval = command_run_line(command_context, t_con->line);
 
@@ -335,83 +332,84 @@ static int telnet_input(struct connection *connection)
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 								return ERROR_SERVER_REMOTE_CLOSED;
 
-							telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
+							telnet_write(connection, "\r", 1);		/*
+												 *the
+												 *prompt
+												 *is
+												 *always
+												 *placed
+												 *at
+												 *the
+												 *line
+												 *beginning
+												 **/
 							retval = telnet_prompt(connection);
 							if (retval == ERROR_SERVER_REMOTE_CLOSED)
 								return ERROR_SERVER_REMOTE_CLOSED;
 
-						}
-						else if ((*buf_p == 0x7f) || (*buf_p == 0x8)) /* delete character */
-						{
-							if (t_con->line_cursor > 0)
-							{
-								if (t_con->line_cursor != t_con->line_size)
-								{
+						} else if ((*buf_p == 0x7f) || (*buf_p == 0x8)) {	/*
+												 *delete
+												 *character
+												 **/
+							if (t_con->line_cursor > 0) {
+								if (t_con->line_cursor != t_con->line_size) {
 									int i;
 									telnet_write(connection, "\b", 1);
 									t_con->line_cursor--;
 									t_con->line_size--;
-									memmove(t_con->line + t_con->line_cursor, t_con->line + t_con->line_cursor + 1, t_con->line_size - t_con->line_cursor);
+									memmove(t_con->line + t_con->line_cursor,
+											t_con->line + t_con->line_cursor + 1,
+											t_con->line_size -
+											t_con->line_cursor);
 
-									telnet_write(connection, t_con->line + t_con->line_cursor, t_con->line_size - t_con->line_cursor);
+									telnet_write(connection,
+											t_con->line + t_con->line_cursor,
+											t_con->line_size -
+											t_con->line_cursor);
 									telnet_write(connection, " \b", 2);
 									for (i = t_con->line_cursor; i < t_con->line_size; i++)
-									{
 										telnet_write(connection, "\b", 1);
-									}
-								}
-								else
-								{
+								} else {
 									t_con->line_size--;
 									t_con->line_cursor--;
-									/* back space: move the 'printer' head one char back, overwrite with space, move back again */
+									/* back space: move the
+									 *'printer' head one char
+									 *back, overwrite with
+									 *space, move back again */
 									telnet_write(connection, "\b \b", 3);
 								}
 							}
-						}
-						else if (*buf_p == 0x15) /* clear line */
-						{
+						} else if (*buf_p == 0x15) /* clear line */
 							telnet_clear_line(connection, t_con);
-						}
-						else if (*buf_p == CTRL('B')) /* cursor left */
-						{
-							if (t_con->line_cursor > 0)
-							{
+						else if (*buf_p == CTRL('B')) {	/* cursor left */
+							if (t_con->line_cursor > 0) {
 								telnet_write(connection, "\b", 1);
 								t_con->line_cursor--;
 							}
 							t_con->state = TELNET_STATE_DATA;
-						}
-						else if (*buf_p == CTRL('F')) /* cursor right */
-						{
+						} else if (*buf_p == CTRL('F')) {	/* cursor right */
 							if (t_con->line_cursor < t_con->line_size)
-							{
 								telnet_write(connection, t_con->line + t_con->line_cursor++, 1);
-							}
 							t_con->state = TELNET_STATE_DATA;
-						}
-						else
-						{
+						} else
 							LOG_DEBUG("unhandled nonprintable: %2.2x", *buf_p);
-						}
 					}
 				}
 				break;
 			case TELNET_STATE_IAC:
-				switch (*buf_p)
-				{
-					case 0xfe:
-						t_con->state = TELNET_STATE_DONT;
-						break;
-					case 0xfd:
-						t_con->state = TELNET_STATE_DO;
-						break;
-					case 0xfc:
-						t_con->state = TELNET_STATE_WONT;
-						break;
-					case 0xfb:
-						t_con->state = TELNET_STATE_WILL;
-						break;
+				switch (*buf_p) {
+				case 0xfe:
+					t_con->state = TELNET_STATE_DONT;
+					break;
+				case 0xfd:
+					t_con->state = TELNET_STATE_DO;
+					break;
+				case 0xfc:
+					t_con->state = TELNET_STATE_WONT;
+					break;
+				case 0xfb:
+					t_con->state = TELNET_STATE_WILL;
+					break;
 				}
 				break;
 			case TELNET_STATE_SB:
@@ -425,30 +423,22 @@ static int telnet_input(struct connection *connection)
 				t_con->state = TELNET_STATE_DATA;
 				break;
 			case TELNET_STATE_ESCAPE:
-				if (t_con->last_escape == '[')
-				{
-					if (*buf_p == 'D') /* cursor left */
-					{
-						if (t_con->line_cursor > 0)
-						{
+				if (t_con->last_escape == '[') {
+					if (*buf_p == 'D') {	/* cursor left */
+						if (t_con->line_cursor > 0) {
 							telnet_write(connection, "\b", 1);
 							t_con->line_cursor--;
 						}
 						t_con->state = TELNET_STATE_DATA;
-					}
-					else if (*buf_p == 'C') /* cursor right */
-					{
+					} else if (*buf_p == 'C') {	/* cursor right */
 						if (t_con->line_cursor < t_con->line_size)
-						{
-							telnet_write(connection, t_con->line + t_con->line_cursor++, 1);
-						}
+							telnet_write(connection,
+									t_con->line + t_con->line_cursor++, 1);
 						t_con->state = TELNET_STATE_DATA;
-					}
-					else if (*buf_p == 'A') /* cursor up */
-					{
-						int last_history = (t_con->current_history > 0) ? t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1;
-						if (t_con->history[last_history])
-						{
+					} else if (*buf_p == 'A') {	/* cursor up */
+						int last_history = (t_con->current_history > 0) ?
+								t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1;
+						if (t_con->history[last_history]) {
 							telnet_clear_line(connection, t_con);
 							t_con->line_size = strlen(t_con->history[last_history]);
 							t_con->line_cursor = t_con->line_size;
@@ -457,12 +447,9 @@ static int telnet_input(struct connection *connection)
 							t_con->current_history = last_history;
 						}
 						t_con->state = TELNET_STATE_DATA;
-					}
-					else if (*buf_p == 'B') /* cursor down */
-					{
+					} else if (*buf_p == 'B') {	/* cursor down */
 						int next_history = (t_con->current_history + 1) % TELNET_LINE_HISTORY_SIZE;
-						if (t_con->history[next_history])
-						{
+						if (t_con->history[next_history]) {
 							telnet_clear_line(connection, t_con);
 							t_con->line_size = strlen(t_con->history[next_history]);
 							t_con->line_cursor = t_con->line_size;
@@ -471,60 +458,41 @@ static int telnet_input(struct connection *connection)
 							t_con->current_history = next_history;
 						}
 						t_con->state = TELNET_STATE_DATA;
-					}
-					else if (*buf_p == '3')
-					{
+					} else if (*buf_p == '3')
 						t_con->last_escape = *buf_p;
-					}
 					else
-					{
 						t_con->state = TELNET_STATE_DATA;
-					}
-				}
-				else if (t_con->last_escape == '3')
-				{
+				} else if (t_con->last_escape == '3') {
 					/* Remove character */
-					if (*buf_p == '~')
-					{
-						if (t_con->line_cursor < t_con->line_size)
-						{
+					if (*buf_p == '~') {
+						if (t_con->line_cursor < t_con->line_size) {
 							int i;
 							t_con->line_size--;
 							/* remove char from line buffer */
-							memmove(t_con->line + t_con->line_cursor, t_con->line + t_con->line_cursor + 1, t_con->line_size - t_con->line_cursor);
+							memmove(t_con->line + t_con->line_cursor,
+									t_con->line + t_con->line_cursor + 1,
+									t_con->line_size - t_con->line_cursor);
 
 							/* print remainder of buffer */
-							telnet_write(connection, t_con->line + t_con->line_cursor, t_con->line_size - t_con->line_cursor);
+							telnet_write(connection, t_con->line + t_con->line_cursor,
+									t_con->line_size - t_con->line_cursor);
 							/* overwrite last char with whitespace */
 							telnet_write(connection, " \b", 2);
 
 							/* move back to cursor position*/
 							for (i = t_con->line_cursor; i < t_con->line_size; i++)
-							{
 								telnet_write(connection, "\b", 1);
-							}
 						}
 
 						t_con->state = TELNET_STATE_DATA;
-					}
-					else
-					{
+					} else
 						t_con->state = TELNET_STATE_DATA;
-					}
-				}
-				else if (t_con->last_escape == '\x00')
-				{
+				} else if (t_con->last_escape == '\x00') {
 					if (*buf_p == '[')
-					{
 						t_con->last_escape = *buf_p;
-					}
 					else
-					{
 						t_con->state = TELNET_STATE_DATA;
-					}
-				}
-				else
-				{
+				} else {
 					LOG_ERROR("BUG: unexpected value in t_con->last_escape");
 					t_con->state = TELNET_STATE_DATA;
 				}
@@ -549,16 +517,13 @@ static int telnet_connection_closed(struct connection *connection)
 
 	log_remove_callback(telnet_log_callback, connection);
 
-	if (t_con->prompt)
-	{
+	if (t_con->prompt) {
 		free(t_con->prompt);
 		t_con->prompt = NULL;
 	}
 
-	for (i = 0; i < TELNET_LINE_HISTORY_SIZE; i++)
-	{
-		if (t_con->history[i])
-		{
+	for (i = 0; i < TELNET_LINE_HISTORY_SIZE; i++) {
+		if (t_con->history[i]) {
 			free(t_con->history[i]);
 			t_con->history[i] = NULL;
 		}
@@ -567,23 +532,18 @@ static int telnet_connection_closed(struct connection *connection)
 	/* if this connection registered a debug-message receiver delete it */
 	delete_debug_msg_receiver(connection->cmd_ctx, NULL);
 
-	if (connection->priv)
-	{
+	if (connection->priv) {
 		free(connection->priv);
 		connection->priv = NULL;
-	}
-	else
-	{
+	} else
 		LOG_ERROR("BUG: connection->priv == NULL");
-	}
 
 	return ERROR_OK;
 }
 
 int telnet_init(char *banner)
 {
-	if (strcmp(telnet_port, "disabled") == 0)
-	{
+	if (strcmp(telnet_port, "disabled") == 0) {
 		LOG_INFO("telnet server disabled");
 		return ERROR_OK;
 	}
@@ -592,7 +552,13 @@ int telnet_init(char *banner)
 
 	telnet_service->banner = banner;
 
-	return add_service("telnet", telnet_port, 1, telnet_new_connection, telnet_input, telnet_connection_closed, telnet_service);
+	return add_service("telnet",
+		telnet_port,
+		1,
+		telnet_new_connection,
+		telnet_input,
+		telnet_connection_closed,
+		telnet_service);
 }
 
 /* daemon configuration command telnet_port */
