@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -30,7 +31,6 @@
 #include "imp.h"
 #include <target/arm966e.h>
 #include <target/algorithm.h>
-
 
 /* Flash registers */
 
@@ -42,17 +42,14 @@
 #define FLASH_SR		0x5400001C		/* Status Register                        */
 #define FLASH_BCE5ADDR	0x54000020		/* BC Fifth Entry Target Address Register */
 
-
-struct str9x_flash_bank
-{
+struct str9x_flash_bank {
 	uint32_t *sector_bits;
 	int variant;
 	int bank1;
 	struct working_area *write_algorithm;
 };
 
-enum str9x_status_codes
-{
+enum str9x_status_codes {
 	STR9X_CMD_SUCCESS = 0,
 	STR9X_INVALID_COMMAND = 1,
 	STR9X_SRC_ADDR_ERROR = 2,
@@ -82,8 +79,7 @@ static int str9x_build_block_list(struct flash_bank *bank)
 	str9x_info->variant = 0;
 	str9x_info->bank1 = 0;
 
-	switch (bank->size)
-	{
+	switch (bank->size) {
 		case (256 * 1024):
 			b0_sectors = 4;
 			break;
@@ -124,8 +120,7 @@ static int str9x_build_block_list(struct flash_bank *bank)
 
 	num_sectors = 0;
 
-	for (i = 0; i < b0_sectors; i++)
-	{
+	for (i = 0; i < b0_sectors; i++) {
 		bank->sectors[num_sectors].offset = offset;
 		bank->sectors[num_sectors].size = 0x10000;
 		offset += bank->sectors[i].size;
@@ -134,8 +129,7 @@ static int str9x_build_block_list(struct flash_bank *bank)
 		str9x_info->sector_bits[num_sectors++] = (1 << i);
 	}
 
-	for (i = 0; i < b1_sectors; i++)
-	{
+	for (i = 0; i < b1_sectors; i++) {
 		bank->sectors[num_sectors].offset = offset;
 		bank->sectors[num_sectors].size = str9x_info->variant == 0 ? 0x2000 : 0x4000;
 		offset += bank->sectors[i].size;
@@ -157,9 +151,7 @@ FLASH_BANK_COMMAND_HANDLER(str9x_flash_bank_command)
 	struct str9x_flash_bank *str9x_info;
 
 	if (CMD_ARGC < 6)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	str9x_info = malloc(sizeof(struct str9x_flash_bank));
 	bank->driver_priv = str9x_info;
@@ -182,64 +174,49 @@ static int str9x_protect_check(struct flash_bank *bank)
 	uint32_t status = 0;
 	uint16_t hstatus = 0;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	/* read level one protection */
 
-	if (str9x_info->variant)
-	{
-		if (str9x_info->bank1)
-		{
+	if (str9x_info->variant) {
+		if (str9x_info->bank1) {
 			adr = bank1start + 0x18;
-			if ((retval = target_write_u16(target, adr, 0x90)) != ERROR_OK)
-			{
+			retval = target_write_u16(target, adr, 0x90);
+			if (retval != ERROR_OK)
 				return retval;
-			}
-			if ((retval = target_read_u16(target, adr, &hstatus)) != ERROR_OK)
-			{
+			retval = target_read_u16(target, adr, &hstatus);
+			if (retval != ERROR_OK)
 				return retval;
-			}
 			status = hstatus;
-		}
-		else
-		{
+		} else {
 			adr = bank1start + 0x14;
-			if ((retval = target_write_u16(target, adr, 0x90)) != ERROR_OK)
-			{
+			retval = target_write_u16(target, adr, 0x90);
+			if (retval != ERROR_OK)
 				return retval;
-			}
-			if ((retval = target_read_u32(target, adr, &status)) != ERROR_OK)
-			{
+			retval = target_read_u32(target, adr, &status);
+			if (retval != ERROR_OK)
 				return retval;
-			}
 		}
-	}
-	else
-	{
+	} else {
 		adr = bank1start + 0x10;
-		if ((retval = target_write_u16(target, adr, 0x90)) != ERROR_OK)
-		{
+		retval = target_write_u16(target, adr, 0x90);
+		if (retval != ERROR_OK)
 			return retval;
-		}
-		if ((retval = target_read_u16(target, adr, &hstatus)) != ERROR_OK)
-		{
+		retval = target_read_u16(target, adr, &hstatus);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 		status = hstatus;
 	}
 
 	/* read array command */
-	if ((retval = target_write_u16(target, adr, 0xFF)) != ERROR_OK)
-	{
+	retval = target_write_u16(target, adr, 0xFF);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		if (status & str9x_info->sector_bits[i])
 			bank->sectors[i].is_protected = 1;
 		else
@@ -258,22 +235,18 @@ static int str9x_erase(struct flash_bank *bank, int first, int last)
 	uint8_t erase_cmd;
 	int total_timeout;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	/* Check if we can erase whole bank */
-	if ((first == 0) && (last == (bank->num_sectors - 1)))
-	{
+	if ((first == 0) && (last == (bank->num_sectors - 1))) {
 		/* Optimize to run erase bank command instead of sector */
 		erase_cmd = 0x80;
-                /* Add timeout duration since erase bank takes more time */
+		/* Add timeout duration since erase bank takes more time */
 		total_timeout = 1000 * bank->num_sectors;
-	}
-	else
-	{
+	} else {
 		/* Erase sector command */
 		erase_cmd = 0x20;
 		total_timeout = 1000;
@@ -282,58 +255,48 @@ static int str9x_erase(struct flash_bank *bank, int first, int last)
 	/* this is so the compiler can *know* */
 	assert(total_timeout > 0);
 
-	for (i = first; i <= last; i++)
-	{
+	for (i = first; i <= last; i++) {
 		int retval;
 		adr = bank->base + bank->sectors[i].offset;
 
 		/* erase sectors or block */
-		if ((retval = target_write_u16(target, adr, erase_cmd)) != ERROR_OK)
-		{
+		retval = target_write_u16(target, adr, erase_cmd);
+		if (retval != ERROR_OK)
 			return retval;
-		}
-		if ((retval = target_write_u16(target, adr, 0xD0)) != ERROR_OK)
-		{
+		retval = target_write_u16(target, adr, 0xD0);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		/* get status */
-		if ((retval = target_write_u16(target, adr, 0x70)) != ERROR_OK)
-		{
+		retval = target_write_u16(target, adr, 0x70);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		int timeout;
-		for (timeout = 0; timeout < total_timeout; timeout++) 
-		{
-			if ((retval = target_read_u8(target, adr, &status)) != ERROR_OK)
-			{
+		for (timeout = 0; timeout < total_timeout; timeout++) {
+			retval = target_read_u8(target, adr, &status);
+			if (retval != ERROR_OK)
 				return retval;
-			}
 			if (status & 0x80)
 				break;
 			alive_sleep(1);
 		}
-		if (timeout == total_timeout)
-		{
+		if (timeout == total_timeout) {
 			LOG_ERROR("erase timed out");
 			return ERROR_FAIL;
 		}
 
 		/* clear status, also clear read array */
-		if ((retval = target_write_u16(target, adr, 0x50)) != ERROR_OK)
-		{
+		retval = target_write_u16(target, adr, 0x50);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		/* read array command */
-		if ((retval = target_write_u16(target, adr, 0xFF)) != ERROR_OK)
-		{
+		retval = target_write_u16(target, adr, 0xFF);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
-		if (status & 0x22)
-		{
+		if (status & 0x22) {
 			LOG_ERROR("error erasing flash bank, status: 0x%x", status);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -357,14 +320,12 @@ static int str9x_protect(struct flash_bank *bank,
 	uint32_t adr;
 	uint8_t status;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	for (i = first; i <= last; i++)
-	{
+	for (i = first; i <= last; i++) {
 		/* Level One Protection */
 
 		adr = bank->base + bank->sectors[i].offset;
@@ -429,22 +390,19 @@ static int str9x_write_block(struct flash_bank *bank,
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(str9x_flash_write_code),
-			&str9x_info->write_algorithm) != ERROR_OK)
-	{
+			&str9x_info->write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
 	target_write_buffer(target, str9x_info->write_algorithm->address,
 			sizeof(str9x_flash_write_code),
-			(uint8_t*)str9x_flash_write_code);
+			(uint8_t *)str9x_flash_write_code);
 
 	/* memory buffer */
-	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
-	{
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
-		if (buffer_size <= 256)
-		{
+		if (buffer_size <= 256) {
 			/* if we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
 			if (str9x_info->write_algorithm)
@@ -464,8 +422,7 @@ static int str9x_write_block(struct flash_bank *bank,
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN);
 
-	while (count > 0)
-	{
+	while (count > 0) {
 		uint32_t thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
 
 		target_write_buffer(target, source->address, thisrun_count * 2, buffer);
@@ -474,17 +431,16 @@ static int str9x_write_block(struct flash_bank *bank,
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
+		retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
 				str9x_info->write_algorithm->address,
-				0, 10000, &armv4_5_info)) != ERROR_OK)
-		{
+				0, 10000, &armv4_5_info);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing str9x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 
-		if (buf_get_u32(reg_params[3].value, 0, 32) != 0x80)
-		{
+		if (buf_get_u32(reg_params[3].value, 0, 32) != 0x80) {
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -519,26 +475,22 @@ static int str9x_write(struct flash_bank *bank,
 	uint32_t bank_adr;
 	int i;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x1)
-	{
+	if (offset & 0x1) {
 		LOG_WARNING("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		uint32_t sec_start = bank->sectors[i].offset;
 		uint32_t sec_end = sec_start + bank->sectors[i].size;
 
 		/* check if destination falls within the current sector */
-		if ((check_address >= sec_start) && (check_address < sec_end))
-		{
+		if ((check_address >= sec_start) && (check_address < sec_end)) {
 			/* check if destination ends in the current sector */
 			if (offset + count < sec_end)
 				check_address = offset + count;
@@ -551,33 +503,26 @@ static int str9x_write(struct flash_bank *bank,
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 
 	/* multiple half words (2-byte) to be programmed? */
-	if (words_remaining > 0)
-	{
+	if (words_remaining > 0) {
 		/* try using a block write */
-		if ((retval = str9x_write_block(bank, buffer, offset, words_remaining)) != ERROR_OK)
-		{
-			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			{
+		retval = str9x_write_block(bank, buffer, offset, words_remaining);
+		if (retval != ERROR_OK) {
+			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
-			}
-			else if (retval == ERROR_FLASH_OPERATION_FAILED)
-			{
+			} else if (retval == ERROR_FLASH_OPERATION_FAILED) {
 				LOG_ERROR("flash writing failed");
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
-		}
-		else
-		{
+		} else {
 			buffer += words_remaining * 2;
 			address += words_remaining * 2;
 			words_remaining = 0;
 		}
 	}
 
-	while (words_remaining > 0)
-	{
+	while (words_remaining > 0) {
 		bank_adr = address & ~0x03;
 
 		/* write data command */
@@ -588,15 +533,13 @@ static int str9x_write(struct flash_bank *bank,
 		target_write_u16(target, bank_adr, 0x70);
 
 		int timeout;
-		for (timeout = 0; timeout < 1000; timeout++)
-		{
+		for (timeout = 0; timeout < 1000; timeout++) {
 			target_read_u8(target, bank_adr, &status);
 			if (status & 0x80)
 				break;
 			alive_sleep(1);
 		}
-		if (timeout == 1000)
-		{
+		if (timeout == 1000) {
 			LOG_ERROR("write timed out");
 			return ERROR_FAIL;
 		}
@@ -615,8 +558,7 @@ static int str9x_write(struct flash_bank *bank,
 		address += 2;
 	}
 
-	if (bytes_remaining)
-	{
+	if (bytes_remaining) {
 		uint8_t last_halfword[2] = {0xff, 0xff};
 
 		/* copy the last remaining bytes into the write buffer */
@@ -632,15 +574,13 @@ static int str9x_write(struct flash_bank *bank,
 		target_write_u16(target, bank_adr, 0x70);
 
 		int timeout;
-		for (timeout = 0; timeout < 1000; timeout++)
-		{
+		for (timeout = 0; timeout < 1000; timeout++) {
 			target_read_u8(target, bank_adr, &status);
 			if (status & 0x80)
 				break;
 			alive_sleep(1);
 		}
-		if (timeout == 1000)
-		{
+		if (timeout == 1000) {
 			LOG_ERROR("write timed out");
 			return ERROR_FAIL;
 		}
@@ -681,9 +621,7 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 	struct target *target = NULL;
 
 	if (CMD_ARGC < 5)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -698,8 +636,7 @@ COMMAND_HANDLER(str9x_handle_flash_config_command)
 
 	target = bank->target;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}

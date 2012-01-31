@@ -17,11 +17,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef NON_CFI_H
 #define NON_CFI_H
 
-struct non_cfi
-{
+struct non_cfi {
 	uint16_t mfr;
 	uint16_t id;
 	uint16_t pri_id;

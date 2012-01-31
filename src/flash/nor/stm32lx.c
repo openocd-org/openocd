@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -117,8 +118,7 @@ static int stm32lx_enable_write_half_page(struct flash_bank *bank);
 static int stm32lx_erase_sector(struct flash_bank *bank, int sector);
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
 
-struct stm32lx_flash_bank
-{
+struct stm32lx_flash_bank {
 	struct working_area *write_algorithm;
 	int probed;
 };
@@ -129,16 +129,13 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 {
 	struct stm32lx_flash_bank *stm32lx_info;
 	if (CMD_ARGC < 6)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	// Create the bank structure
+	/* Create the bank structure */
 	stm32lx_info = malloc(sizeof(struct stm32lx_flash_bank));
 
-	// Check allocation
-	if (stm32lx_info == NULL)
-	{
+	/* Check allocation */
+	if (stm32lx_info == NULL) {
 		LOG_ERROR("failed to allocate bank structure");
 		return ERROR_FAIL;
 	}
@@ -158,8 +155,7 @@ static int stm32lx_protect_check(struct flash_bank *bank)
 
 	uint32_t wrpr;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -172,16 +168,11 @@ static int stm32lx_protect_check(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (int i = 0; i < 32; i++)
-	{
+	for (int i = 0; i < 32; i++) {
 		if (wrpr & (1 << i))
-		{
 			bank->sectors[i].is_protected = 1;
-		}
 		else
-		{
 			bank->sectors[i].is_protected = 0;
-		}
 	}
 	return ERROR_OK;
 }
@@ -195,8 +186,7 @@ static int stm32lx_erase(struct flash_bank *bank, int first, int last)
 	 * erased, but it is not implemented yet.
 	 */
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -204,8 +194,7 @@ static int stm32lx_erase(struct flash_bank *bank, int first, int last)
 	/*
 	 * Loop over the selected sectors and erase them
 	 */
-	for (int i = first; i <= last; i++)
-	{
+	for (int i = first; i <= last; i++) {
 		retval = stm32lx_erase_sector(bank, i);
 		if (retval != ERROR_OK)
 			return retval;
@@ -238,72 +227,66 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 
 	/* see contib/loaders/flash/stm32lx.s for src */
 
-	static const uint16_t stm32lx_flash_write_code_16[] =
-	{
-	//	00000000 <write_word-0x4>:
-			0x2300, // 0:	2300	  	movs	r3, #0
-			0xe004, // 2:	e004	  	b.n	e <test_done>
+	static const uint16_t stm32lx_flash_write_code_16[] = {
+	/*	00000000 <write_word-0x4>: */
+			0x2300, /* 0:	2300		movs	r3, #0 */
+			0xe004, /* 2:	e004		b.n	e <test_done> */
 
-			//	00000004 <write_word>:
-			0xf851, 0xcb04, // 4:	f851 cb04 	ldr.w	ip, [r1], #4
-			0xf840, 0xcb04, // 8:	f840 cb04 	str.w	ip, [r0], #4
-			0x3301, // c:	3301	  	adds	r3, #1
+			/*	00000004 <write_word>: */
+			0xf851, 0xcb04, /* 4:	f851 cb04	ldr.w	ip, [r1], #4 */
+			0xf840, 0xcb04, /* 8:	f840 cb04	str.w	ip, [r0], #4 */
+			0x3301, /* c:	3301		adds	r3, #1 */
 
-			//	0000000e <test_done>:
-			0x4293, // e:	4293	  	cmp	r3, r2
-			0xd3f8, // 10:	d3f8	  	bcc.n	4 <write_word>
-			0xbe00, // 12:	be00	  	bkpt	0x0000
+			/*	0000000e <test_done>: */
+			0x4293, /* e:	4293		cmp	r3, r2 */
+			0xd3f8, /* 10:	d3f8		bcc.n	4 <write_word> */
+			0xbe00, /* 12:	be00		bkpt	0x0000 */
 
 			};
 
-	// Flip endian
+	/* Flip endian */
 	uint8_t stm32lx_flash_write_code[sizeof(stm32lx_flash_write_code_16)];
-	for (unsigned int i = 0; i < sizeof(stm32lx_flash_write_code_16) / 2; i++)
-	{
+	for (unsigned int i = 0; i < sizeof(stm32lx_flash_write_code_16) / 2; i++) {
 		stm32lx_flash_write_code[i * 2 + 0] = stm32lx_flash_write_code_16[i]
 				& 0xff;
 		stm32lx_flash_write_code[i * 2 + 1] = (stm32lx_flash_write_code_16[i]
 				>> 8) & 0xff;
 	}
-	// Check if there is an even number of half pages (128bytes)
-	if (count % 128)
-	{
+	/* Check if there is an even number of half pages (128bytes) */
+	if (count % 128) {
 		LOG_ERROR("there should be an even number "
 				"of half pages = 128 bytes (count = %" PRIi32 " bytes)", count);
 		return ERROR_FAIL;
 	}
 
-	// Allocate working area
+	/* Allocate working area */
 	reg32 = sizeof(stm32lx_flash_write_code);
-	// Add bytes to make 4byte aligned
+	/* Add bytes to make 4byte aligned */
 	reg32 += (4 - (reg32 % 4)) % 4;
 	retval = target_alloc_working_area(target, reg32,
 			&stm32lx_info->write_algorithm);
 	if (retval != ERROR_OK)
 		return retval;
 
-	// Write the flashing code
+	/* Write the flashing code */
 	retval = target_write_buffer(target,
 			stm32lx_info->write_algorithm->address,
 			sizeof(stm32lx_flash_write_code),
-			(uint8_t*) stm32lx_flash_write_code);
-	if (retval != ERROR_OK)
-	{
+			(uint8_t *)stm32lx_flash_write_code);
+	if (retval != ERROR_OK) {
 		target_free_working_area(target, stm32lx_info->write_algorithm);
 		return retval;
 	}
 
-	// Allocate half pages memory
+	/* Allocate half pages memory */
 	while (target_alloc_working_area_try(target, buffer_size, &source)
-			!= ERROR_OK)
-	{
+			!= ERROR_OK) {
 		if (buffer_size > 1024)
 			buffer_size -= 1024;
 		else
 			buffer_size /= 2;
 
-		if (buffer_size <= 256)
-		{
+		if (buffer_size <= 256) {
 			/* if we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
 			if (stm32lx_info->write_algorithm)
@@ -323,11 +306,9 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN_OUT);
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
 
-	// Enable half-page write
+	/* Enable half-page write */
 	retval = stm32lx_enable_write_half_page(bank);
-	if (retval != ERROR_OK)
-	{
-
+	if (retval != ERROR_OK) {
 		target_free_working_area(target, source);
 		target_free_working_area(target, stm32lx_info->write_algorithm);
 
@@ -335,38 +316,36 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		destroy_reg_param(&reg_params[1]);
 		destroy_reg_param(&reg_params[2]);
 		destroy_reg_param(&reg_params[3]);
-
 		return retval;
 	}
 
-	// Loop while there are bytes to write
-	while (count > 0)
-	{
+	/* Loop while there are bytes to write */
+	while (count > 0) {
 		uint32_t this_count;
 		this_count = (count > buffer_size) ? buffer_size : count;
 
-		// Write the next half pages
+		/* Write the next half pages */
 		retval = target_write_buffer(target, source->address, this_count,
 				buffer);
 		if (retval != ERROR_OK)
 			break;
 
-		// 4: Store useful information in the registers
-		// the destination address of the copy (R0)
+		/* 4: Store useful information in the registers */
+		/* the destination address of the copy (R0) */
 		buf_set_u32(reg_params[0].value, 0, 32, address);
-		// The source address of the copy (R1)
+		/* The source address of the copy (R1) */
 		buf_set_u32(reg_params[1].value, 0, 32, source->address);
-		// The length of the copy (R2)
+		/* The length of the copy (R2) */
 		buf_set_u32(reg_params[2].value, 0, 32, this_count / 4);
 
-		// 5: Execute the bunch of code
+		/* 5: Execute the bunch of code */
 		retval = target_run_algorithm(target, 0, NULL, sizeof(reg_params)
 				/ sizeof(*reg_params), reg_params,
 				stm32lx_info->write_algorithm->address, 0, 20000, &armv7m_info);
 		if (retval != ERROR_OK)
 			break;
 
-		// 6: Wait while busy
+		/* 6: Wait while busy */
 		retval = stm32lx_wait_until_bsy_clear(bank);
 		if (retval != ERROR_OK)
 			break;
@@ -401,34 +380,28 @@ static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t bytes_written = 0;
 	int retval;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x1)
-	{
+	if (offset & 0x1) {
 		LOG_ERROR("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	// Check if there are some full half pages
-	if (((offset % 128) == 0) && (count >= 128))
-	{
+	/* Check if there are some full half pages */
+	if (((offset % 128) == 0) && (count >= 128)) {
 		halfpages_number = count / 128;
 		words_remaining = (count - 128 * halfpages_number) / 4;
 		bytes_remaining = (count & 0x3);
-	}
-	else
-	{
+	} else {
 		halfpages_number = 0;
 		words_remaining = (count / 4);
 		bytes_remaining = (count & 0x3);
 	}
 
-	if (halfpages_number)
-	{
+	if (halfpages_number) {
 		retval = stm32lx_write_half_pages(bank, buffer, offset, 128
 				* halfpages_number);
 		if (retval != ERROR_OK)
@@ -441,12 +414,11 @@ static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
-	while (words_remaining > 0)
-	{
+	while (words_remaining > 0) {
 		uint32_t value;
-		uint8_t* p = buffer + bytes_written;
+		uint8_t *p = buffer + bytes_written;
 
-		// Prepare the word, Little endian conversion
+		/* Prepare the word, Little endian conversion */
 		value = p[0] + (p[1] << 8) + (p[2] << 16) + (p[3] << 24);
 
 		retval = target_write_u32(target, address, value);
@@ -462,8 +434,7 @@ static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 			return retval;
 	}
 
-	if (bytes_remaining)
-	{
+	if (bytes_remaining) {
 		uint8_t last_word[4] = {0xff, 0xff, 0xff, 0xff};
 
 		/* copy the last remaining bytes into the write buffer */
@@ -508,14 +479,13 @@ static int stm32lx_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	// Read the RDP byte and check if it is 0xAA
+	/* Read the RDP byte and check if it is 0xAA */
 	uint8_t rdp;
 	retval = target_read_u32(target, FLASH_OBR, &reg32);
 	if (retval != ERROR_OK)
 		return retval;
 	rdp = reg32 & 0xFF;
-	if (rdp != 0xAA)
-	{
+	if (rdp != 0xAA) {
 		/*
 		 * Unlocking the option byte is done by unlocking the PECR, then
 		 * by writing the 2 option byte keys to OPTKEYR
@@ -549,19 +519,18 @@ static int stm32lx_probe(struct flash_bank *bank)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (reg32 & FLASH_PECR__OPTLOCK)
-		{
+		if (reg32 & FLASH_PECR__OPTLOCK) {
 			LOG_ERROR("OPTLOCK is not cleared");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
-		// Then, write RDP to 0x00 to set level 1
+		/* Then, write RDP to 0x00 to set level 1 */
 		reg32 = ((~0xAA) << 16) | (0xAA);
 		retval = target_write_u32(target, OB_RDP, reg32);
 		if (retval != ERROR_OK)
 			return retval;
 
-		// Set Automatic update of the option byte, by setting OBL_LAUNCH in FLASH_PECR
+		/* Set Automatic update of the option byte, by setting OBL_LAUNCH in FLASH_PECR */
 		reg32 = FLASH_PECR__OBL_LAUNCH;
 		retval = target_write_u32(target, FLASH_PECR, reg32);
 		if (retval != ERROR_OK)
@@ -574,8 +543,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 		return retval;
 
 	/* check for valid flash size */
-	if (flash_size == 0xffff)
-	{
+	if (flash_size == 0xffff) {
 		/* number of sectors incorrect on revA */
 		LOG_ERROR("STM32 flash size failed, probe inaccurate");
 		return ERROR_FAIL;
@@ -588,8 +556,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	int num_sectors = (flash_size * 1024) / FLASH_SECTOR_SIZE;
 	LOG_INFO("flash size = %dkbytes", flash_size);
 
-	if (bank->sectors)
-	{
+	if (bank->sectors) {
 		free(bank->sectors);
 		bank->sectors = NULL;
 	}
@@ -598,14 +565,12 @@ static int stm32lx_probe(struct flash_bank *bank)
 	bank->size = flash_size * 1024;
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_sectors);
-	if (bank->sectors == NULL)
-	{
+	if (bank->sectors == NULL) {
 		LOG_ERROR("failed to allocate bank sectors");
 		return ERROR_FAIL;
 	}
 
-	for (i = 0; i < num_sectors; i++)
-	{
+	for (i = 0; i < num_sectors; i++) {
 		bank->sectors[i].offset = i * FLASH_SECTOR_SIZE;
 		bank->sectors[i].size = FLASH_SECTOR_SIZE;
 		bank->sectors[i].is_erased = -1;
@@ -622,9 +587,7 @@ static int stm32lx_auto_probe(struct flash_bank *bank)
 	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
 
 	if (stm32lx_info->probed)
-	{
 		return ERROR_OK;
-	}
 
 	return stm32lx_probe(bank);
 }
@@ -637,60 +600,51 @@ static int stm32lx_erase_check(struct flash_bank *bank)
 	uint32_t nBytes;
 	int retval = ERROR_OK;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	uint8_t *buffer = malloc(buffer_size);
-	if (buffer == NULL)
-	{
+	if (buffer == NULL) {
 		LOG_ERROR("failed to allocate read buffer");
 		return ERROR_FAIL;
 	}
 
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		uint32_t j;
 		bank->sectors[i].is_erased = 1;
 
-		// Loop chunk by chunk over the sector
-		for (j = 0; j < bank->sectors[i].size; j += buffer_size)
-		{
+		/* Loop chunk by chunk over the sector */
+		for (j = 0; j < bank->sectors[i].size; j += buffer_size) {
 			uint32_t chunk;
 			chunk = buffer_size;
 			if (chunk > (j - bank->sectors[i].size))
-			{
 				chunk = (j - bank->sectors[i].size);
-			}
 
 			retval = target_read_memory(target, bank->base
 					+ bank->sectors[i].offset + j, 4, chunk / 4, buffer);
 			if (retval != ERROR_OK)
 				break;
 
-			for (nBytes = 0; nBytes < chunk; nBytes++)
-			{
-				if (buffer[nBytes] != 0x00)
-				{
+			for (nBytes = 0; nBytes < chunk; nBytes++) {
+				if (buffer[nBytes] != 0x00) {
 					bank->sectors[i].is_erased = 0;
 					break;
 				}
 			}
 		}
 		if (retval != ERROR_OK)
-		{
 			break;
-		}
 	}
 	free(buffer);
 
 	return retval;
 }
+
 static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	// This method must return a string displaying information about the bank
+	/* This method must return a string displaying information about the bank */
 
 	struct target *target = bank->target;
 	uint32_t device_id;
@@ -706,8 +660,7 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		switch (device_id >> 16)
-		{
+		switch (device_id >> 16) {
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
 				break;
@@ -719,9 +672,7 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "unknown");
 				break;
 		}
-	}
-	else
-	{
+	} else {
 		snprintf(buf, buf_size, "Cannot identify target as a stm32lx");
 		return ERROR_FAIL;
 	}
@@ -729,13 +680,11 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static const struct command_registration stm32lx_exec_command_handlers[] =
-{
+static const struct command_registration stm32lx_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration stm32lx_command_handlers[] =
-{
+static const struct command_registration stm32lx_command_handlers[] = {
 	{
 		.name = "stm32lx",
 		.mode = COMMAND_ANY,
@@ -746,8 +695,7 @@ static const struct command_registration stm32lx_command_handlers[] =
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver stm32lx_flash =
-{
+struct flash_driver stm32lx_flash = {
 		.name = "stm32lx",
 		.commands = stm32lx_command_handlers,
 		.flash_bank_command = stm32lx_flash_bank_command,
@@ -762,8 +710,7 @@ struct flash_driver stm32lx_flash =
 		.info = stm32lx_get_info,
 };
 
-// Static methods implementation
-
+/* Static methods implementation */
 static int stm32lx_unlock_program_memory(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -789,8 +736,7 @@ static int stm32lx_unlock_program_memory(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (reg32 & FLASH_PECR__PELOCK)
-	{
+	if (reg32 & FLASH_PECR__PELOCK) {
 		LOG_ERROR("PELOCK is not cleared :(");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -807,8 +753,7 @@ static int stm32lx_unlock_program_memory(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (reg32 & FLASH_PECR__PRGLOCK)
-	{
+	if (reg32 & FLASH_PECR__PRGLOCK) {
 		LOG_ERROR("PRGLOCK is not cleared :(");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -892,8 +837,7 @@ static int stm32lx_erase_sector(struct flash_bank *bank, int sector)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (int page = 0; page < FLASH_PAGES_PER_SECTOR; page++)
-	{
+	for (int page = 0; page < FLASH_PAGES_PER_SECTOR; page++) {
 		reg32 = FLASH_PECR__PROG | FLASH_PECR__ERASE;
 		retval = target_write_u32(target, FLASH_PECR, reg32);
 		if (retval != ERROR_OK)
@@ -929,32 +873,26 @@ static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank)
 	int timeout = 100;
 
 	/* wait for busy to clear */
-	for (;;)
-	{
+	for (;;) {
 		retval = target_read_u32(target, FLASH_SR, &status);
 		if (retval != ERROR_OK)
 			return retval;
 
 		if ((status & FLASH_SR__BSY) == 0)
-		{
 			break;
-		}
-		if (timeout-- <= 0)
-		{
+		if (timeout-- <= 0) {
 			LOG_ERROR("timed out waiting for flash");
 			return ERROR_FAIL;
 		}
 		alive_sleep(1);
 	}
 
-	if (status & FLASH_SR__WRPERR)
-	{
+	if (status & FLASH_SR__WRPERR) {
 		LOG_ERROR("access denied / write protected");
 		retval = ERROR_FAIL;
 	}
 
-	if (status & FLASH_SR__PGAERR)
-	{
+	if (status & FLASH_SR__PGAERR) {
 		LOG_ERROR("invalid program address");
 		retval = ERROR_FAIL;
 	}

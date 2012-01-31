@@ -17,20 +17,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "imp.h"
 
-static struct flash_bank* virtual_get_master_bank(struct flash_bank *bank)
+static struct flash_bank *virtual_get_master_bank(struct flash_bank *bank)
 {
-	struct flash_bank* master_bank;
+	struct flash_bank *master_bank;
 
 	master_bank = get_flash_bank_by_name_noprobe(bank->driver_priv);
-	if (master_bank == NULL) {
-		LOG_ERROR("master flash bank '%s' does not exist", (char*)bank->driver_priv);
-	}
+	if (master_bank == NULL)
+		LOG_ERROR("master flash bank '%s' does not exist", (char *)bank->driver_priv);
 
 	return master_bank;
 }
@@ -39,9 +39,8 @@ static void virtual_update_bank_info(struct flash_bank *bank)
 {
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return;
-	}
 
 	/* update the info we do not have */
 	bank->size = master_bank->size;
@@ -54,16 +53,13 @@ static void virtual_update_bank_info(struct flash_bank *bank)
 FLASH_BANK_COMMAND_HANDLER(virtual_flash_bank_command)
 {
 	if (CMD_ARGC < 7)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	/* get the master flash bank */
 	const char *bank_name = CMD_ARGV[6];
 	struct flash_bank *master_bank = get_flash_bank_by_name_noprobe(bank_name);
 
-	if (master_bank == NULL)
-	{
+	if (master_bank == NULL) {
 		LOG_ERROR("master flash bank '%s' does not exist", bank_name);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -79,13 +75,12 @@ static int virtual_protect(struct flash_bank *bank, int set, int first, int last
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->protect(master_bank, set,
-			first, last)) != ERROR_OK)
+	retval = master_bank->driver->protect(master_bank, set, first, last);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;
@@ -96,12 +91,12 @@ static int virtual_protect_check(struct flash_bank *bank)
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->protect_check(master_bank)) != ERROR_OK)
+	retval = master_bank->driver->protect_check(master_bank);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;
@@ -112,13 +107,12 @@ static int virtual_erase(struct flash_bank *bank, int first, int last)
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->erase(master_bank,
-			first, last)) != ERROR_OK)
+	retval = master_bank->driver->erase(master_bank, first, last);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;
@@ -130,13 +124,12 @@ static int virtual_write(struct flash_bank *bank, uint8_t *buffer,
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->write(master_bank, buffer,
-			offset, count)) != ERROR_OK)
+	retval = master_bank->driver->write(master_bank, buffer, offset, count);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;
@@ -147,12 +140,12 @@ static int virtual_probe(struct flash_bank *bank)
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->probe(master_bank)) != ERROR_OK)
+	retval = master_bank->driver->probe(master_bank);
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* update the info we do not have */
@@ -166,12 +159,12 @@ static int virtual_auto_probe(struct flash_bank *bank)
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->auto_probe(master_bank)) != ERROR_OK)
+	retval = master_bank->driver->auto_probe(master_bank);
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* update the info we do not have */
@@ -184,9 +177,8 @@ static int virtual_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	snprintf(buf, buf_size, "%s driver for flash bank %s at 0x%8.8" PRIx32 "",
 			bank->driver->name, master_bank->name, master_bank->base);
@@ -199,12 +191,12 @@ static int virtual_blank_check(struct flash_bank *bank)
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->erase_check(master_bank)) != ERROR_OK)
+	retval = master_bank->driver->erase_check(master_bank);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;
@@ -216,13 +208,12 @@ static int virtual_flash_read(struct flash_bank *bank,
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);
 	int retval;
 
-	if (master_bank == NULL) {
+	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* call master handler */
-	if ((retval = master_bank->driver->read(master_bank, buffer,
-			offset, count)) != ERROR_OK)
+	retval = master_bank->driver->read(master_bank, buffer, offset, count);
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;

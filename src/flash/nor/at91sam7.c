@@ -52,55 +52,54 @@
 #include "imp.h"
 #include <helper/binarybuffer.h>
 
-
 /* AT91SAM7 control registers */
-#define DBGU_CIDR			0xFFFFF240
-#define CKGR_MCFR			0xFFFFFC24
-#define CKGR_MOR			0xFFFFFC20
-#define CKGR_MCFR_MAINRDY	0x10000
-#define CKGR_PLLR			0xFFFFFC2c
-#define CKGR_PLLR_DIV		0xff
-#define CKGR_PLLR_MUL		0x07ff0000
-#define PMC_MCKR			0xFFFFFC30
-#define PMC_MCKR_CSS		0x03
-#define PMC_MCKR_PRES		0x1c
+#define DBGU_CIDR                       0xFFFFF240
+#define CKGR_MCFR                       0xFFFFFC24
+#define CKGR_MOR                        0xFFFFFC20
+#define CKGR_MCFR_MAINRDY       0x10000
+#define CKGR_PLLR                       0xFFFFFC2c
+#define CKGR_PLLR_DIV           0xff
+#define CKGR_PLLR_MUL           0x07ff0000
+#define PMC_MCKR                        0xFFFFFC30
+#define PMC_MCKR_CSS            0x03
+#define PMC_MCKR_PRES           0x1c
 
 /* Flash Controller Commands */
-#define WP		0x01
-#define SLB		0x02
-#define WPL		0x03
-#define CLB		0x04
-#define EA		0x08
-#define SGPB	0x0B
-#define CGPB	0x0D
-#define SSB		0x0F
+#define WP              0x01
+#define SLB             0x02
+#define WPL             0x03
+#define CLB             0x04
+#define EA              0x08
+#define SGPB    0x0B
+#define CGPB    0x0D
+#define SSB             0x0F
 
 /* MC_FSR bit definitions */
-#define MC_FSR_FRDY			1
-#define MC_FSR_EOL			2
+#define MC_FSR_FRDY                     1
+#define MC_FSR_EOL                      2
 
 /* AT91SAM7 constants */
-#define RC_FREQ				32000
+#define RC_FREQ                         32000
 
 /* Flash timing modes */
-#define FMR_TIMING_NONE		0
-#define FMR_TIMING_NVBITS	1
-#define FMR_TIMING_FLASH	2
+#define FMR_TIMING_NONE         0
+#define FMR_TIMING_NVBITS       1
+#define FMR_TIMING_FLASH        2
 
 /* Flash size constants */
-#define FLASH_SIZE_8KB		1
-#define FLASH_SIZE_16KB		2
-#define FLASH_SIZE_32KB		3
-#define FLASH_SIZE_64KB		5
-#define FLASH_SIZE_128KB	7
-#define FLASH_SIZE_256KB	9
-#define FLASH_SIZE_512KB	10
-#define FLASH_SIZE_1024KB	12
-#define FLASH_SIZE_2048KB	14
-
+#define FLASH_SIZE_8KB          1
+#define FLASH_SIZE_16KB         2
+#define FLASH_SIZE_32KB         3
+#define FLASH_SIZE_64KB         5
+#define FLASH_SIZE_128KB        7
+#define FLASH_SIZE_256KB        9
+#define FLASH_SIZE_512KB        10
+#define FLASH_SIZE_1024KB       12
+#define FLASH_SIZE_2048KB       14
 
 static int at91sam7_protect_check(struct flash_bank *bank);
-static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
+static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset,
+		uint32_t count);
 
 static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number);
 static void at91sam7_set_flash_mode(struct flash_bank *bank, int mode);
@@ -111,10 +110,11 @@ static uint32_t MC_FMR[4] = { 0xFFFFFF60, 0xFFFFFF70, 0xFFFFFF80, 0xFFFFFF90 };
 static uint32_t MC_FCR[4] = { 0xFFFFFF64, 0xFFFFFF74, 0xFFFFFF84, 0xFFFFFF94 };
 static uint32_t MC_FSR[4] = { 0xFFFFFF68, 0xFFFFFF78, 0xFFFFFF88, 0xFFFFFF98 };
 
-static char * EPROC[8]= {"Unknown","ARM946-E","ARM7TDMI","Unknown","ARM920T","ARM926EJ-S","Unknown","Unknown"};
+static char *EPROC[8] = {
+	"Unknown", "ARM946-E", "ARM7TDMI", "Unknown", "ARM920T", "ARM926EJ-S", "Unknown", "Unknown"
+};
 
-struct at91sam7_flash_bank
-{
+struct at91sam7_flash_bank {
 	/* chip id register */
 	uint32_t cidr;
 	uint16_t cidr_ext;
@@ -128,7 +128,7 @@ struct at91sam7_flash_bank
 	const char *target_name;
 
 	/* flash auto-detection */
-	uint8_t  flash_autodetection;
+	uint8_t flash_autodetection;
 
 	/* flash geometry */
 	uint16_t pages_per_sector;
@@ -141,15 +141,15 @@ struct at91sam7_flash_bank
 	uint16_t num_nvmbits;
 	uint16_t num_nvmbits_on;
 	uint16_t nvmbits;
-	uint8_t  securitybit;
+	uint8_t securitybit;
 
 	/* 0: not init
 	 * 1: fmcn for nvbits (1uS)
 	 * 2: fmcn for flash (1.5uS) */
-	uint8_t  flashmode;
+	uint8_t flashmode;
 
 	/* main clock status */
-	uint8_t  mck_valid;
+	uint8_t mck_valid;
 	uint32_t mck_freq;
 
 	/* external clock frequency */
@@ -178,7 +178,6 @@ static long SRAMSIZ[16] = {
 };
 #endif
 
-
 static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number)
 {
 	uint32_t fsr;
@@ -206,8 +205,7 @@ static void at91sam7_read_clock_info(struct flash_bank *bank)
 
 	at91sam7_info->mck_valid = 0;
 	at91sam7_info->mck_freq = 0;
-	switch (mckr & PMC_MCKR_CSS)
-	{
+	switch (mckr & PMC_MCKR_CSS) {
 		case 0:			/* Slow Clock */
 			at91sam7_info->mck_valid = 1;
 			tmp = RC_FREQ;
@@ -215,13 +213,10 @@ static void at91sam7_read_clock_info(struct flash_bank *bank)
 
 		case 1:			/* Main Clock */
 			if ((mcfr & CKGR_MCFR_MAINRDY) &&
-				(at91sam7_info->ext_freq == 0))
-			{
+			(at91sam7_info->ext_freq == 0)) {
 				at91sam7_info->mck_valid = 1;
 				tmp = RC_FREQ / 16ul * (mcfr & 0xffff);
-			}
-			else if (at91sam7_info->ext_freq != 0)
-			{
+			} else if (at91sam7_info->ext_freq != 0) {
 				at91sam7_info->mck_valid = 1;
 				tmp = at91sam7_info->ext_freq;
 			}
@@ -232,35 +227,30 @@ static void at91sam7_read_clock_info(struct flash_bank *bank)
 
 		case 3:			/* PLL Clock */
 			if ((mcfr & CKGR_MCFR_MAINRDY) &&
-				(at91sam7_info->ext_freq == 0))
-			{
+			(at91sam7_info->ext_freq == 0)) {
 				target_read_u32(target, CKGR_PLLR, &pllr);
 				if (!(pllr & CKGR_PLLR_DIV))
-					break; /* 0 Hz */
+					break;	/* 0 Hz */
 				at91sam7_info->mck_valid = 1;
 				mainfreq = RC_FREQ / 16ul * (mcfr & 0xffff);
 				/* Integer arithmetic should have sufficient precision
 				 * as long as PLL is properly configured. */
 				tmp = mainfreq / (pllr & CKGR_PLLR_DIV)*
-					(((pllr & CKGR_PLLR_MUL) >> 16) + 1);
-			}
-			else if ((at91sam7_info->ext_freq != 0) &&
-				((pllr&CKGR_PLLR_DIV) != 0))
-			{
+						(((pllr & CKGR_PLLR_MUL) >> 16) + 1);
+			} else if ((at91sam7_info->ext_freq != 0) &&
+					((pllr&CKGR_PLLR_DIV) != 0)) {
 				at91sam7_info->mck_valid = 1;
 				tmp = at91sam7_info->ext_freq / (pllr&CKGR_PLLR_DIV)*
-					(((pllr & CKGR_PLLR_MUL) >> 16) + 1);
+						(((pllr & CKGR_PLLR_MUL) >> 16) + 1);
 			}
 			break;
 	}
 
 	/* Prescaler adjust */
-	if ((((mckr & PMC_MCKR_PRES) >> 2) == 7) || (tmp == 0))
-	{
+	if ((((mckr & PMC_MCKR_PRES) >> 2) == 7) || (tmp == 0)) {
 		at91sam7_info->mck_valid = 0;
 		at91sam7_info->mck_freq = 0;
-	}
-	else if (((mckr & PMC_MCKR_PRES) >> 2) != 0)
+	} else if (((mckr & PMC_MCKR_PRES) >> 2) != 0)
 		at91sam7_info->mck_freq = tmp >> ((mckr & PMC_MCKR_PRES) >> 2);
 	else
 		at91sam7_info->mck_freq = tmp;
@@ -273,24 +263,17 @@ static void at91sam7_set_flash_mode(struct flash_bank *bank, int mode)
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
 	struct target *target = bank->target;
 
-	if (mode && (mode != at91sam7_info->flashmode))
-	{
+	if (mode && (mode != at91sam7_info->flashmode)) {
 		/* Always round up (ceil) */
-		if (mode == FMR_TIMING_NVBITS)
-		{
-			if (at91sam7_info->cidr_arch == 0x60)
-			{
+		if (mode == FMR_TIMING_NVBITS) {
+			if (at91sam7_info->cidr_arch == 0x60) {
 				/* AT91SAM7A3 uses master clocks in 100 ns */
 				fmcn = (at91sam7_info->mck_freq/10000000ul) + 1;
-			}
-			else
-			{
+			} else {
 				/* master clocks in 1uS for ARCH 0x7 types */
 				fmcn = (at91sam7_info->mck_freq/1000000ul) + 1;
 			}
-		}
-		else if (mode == FMR_TIMING_FLASH)
-		{
+		} else if (mode == FMR_TIMING_FLASH) {
 			/* main clocks in 1.5uS */
 			fmcn = (at91sam7_info->mck_freq/1000000ul)+
 				(at91sam7_info->mck_freq/2000000ul) + 1;
@@ -319,16 +302,15 @@ static uint32_t at91sam7_wait_status_busy(struct flash_bank *bank, uint32_t wait
 {
 	uint32_t status;
 
-	while ((!((status = at91sam7_get_flash_status(bank->target, bank->bank_number)) & waitbits)) && (timeout-- > 0))
-	{
+	while ((!((status = at91sam7_get_flash_status(bank->target,
+			bank->bank_number)) & waitbits)) && (timeout-- > 0)) {
 		LOG_DEBUG("status[%i]: 0x%" PRIx32 "", (int)bank->bank_number, status);
 		alive_sleep(1);
 	}
 
 	LOG_DEBUG("status[%i]: 0x%" PRIx32 "", bank->bank_number, status);
 
-	if (status & 0x0C)
-	{
+	if (status & 0x0C) {
 		LOG_ERROR("status register: 0x%" PRIx32 "", status);
 		if (status & 0x4)
 			LOG_ERROR("Lock Error Bit Detected, Operation Abort");
@@ -350,22 +332,20 @@ static int at91sam7_flash_command(struct flash_bank *bank, uint8_t cmd, uint16_t
 
 	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd;
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
-	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number + 1, pagen);
+	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u",
+		fcr,
+		bank->bank_number + 1,
+		pagen);
 
-	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd == SLB) | (cmd == CLB)))
-	{
+	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd == SLB) | (cmd == CLB))) {
 		/* Lock bit manipulation on AT91SAM7A3 waits for FC_FSR bit 1, EOL */
 		if (at91sam7_wait_status_busy(bank, MC_FSR_EOL, 10)&0x0C)
-		{
 			return ERROR_FLASH_OPERATION_FAILED;
-		}
 		return ERROR_OK;
 	}
 
 	if (at91sam7_wait_status_busy(bank, MC_FSR_FRDY, 10)&0x0C)
-	{
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	return ERROR_OK;
 }
@@ -392,14 +372,12 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 	at91sam7_info = t_bank->driver_priv;
 
-	if (at91sam7_info->cidr != 0)
-	{
+	if (at91sam7_info->cidr != 0) {
 		/* flash already configured, update clock and check for protected sectors */
 		struct flash_bank *fb = bank;
 		t_bank = fb;
 
-		while (t_bank)
-		{
+		while (t_bank) {
 			/* re-calculate master clock frequency */
 			at91sam7_read_clock_info(t_bank);
 
@@ -418,19 +396,16 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 	/* Read and parse chip identification register */
 	target_read_u32(target, DBGU_CIDR, &cidr);
-	if (cidr == 0)
-	{
+	if (cidr == 0) {
 		LOG_WARNING("Cannot identify target as an AT91SAM");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	if (at91sam7_info->flash_autodetection == 0)
-	{
+	if (at91sam7_info->flash_autodetection == 0) {
 		/* banks and sectors are already created, based on data from input file */
 		struct flash_bank *fb = bank;
 		t_bank = fb;
-		while (t_bank)
-		{
+		while (t_bank) {
 			at91sam7_info = t_bank->driver_priv;
 
 			at91sam7_info->cidr = cidr;
@@ -462,8 +437,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	arch = (cidr >> 20)&0x00FF;
 
 	/* check flash size */
-	switch ((cidr >> 8)&0x000F)
-	{
+	switch ((cidr >> 8)&0x000F) {
 		case FLASH_SIZE_8KB:
 			break;
 
@@ -473,8 +447,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			pages_per_sector = 32;
 			page_size  = 64;
 			base_address = 0x00100000;
-			if (arch == 0x70)
-			{
+			if (arch == 0x70) {
 				num_nvmbits = 2;
 				target_name_t = "AT91SAM7S161/16";
 			}
@@ -486,13 +459,11 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			pages_per_sector = 32;
 			page_size  = 128;
 			base_address = 0x00100000;
-			if (arch == 0x70)
-			{
+			if (arch == 0x70) {
 				num_nvmbits = 2;
 				target_name_t = "AT91SAM7S321/32";
 			}
-			if (arch == 0x72)
-			{
+			if (arch == 0x72) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7SE32";
 			}
@@ -504,8 +475,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			pages_per_sector = 32;
 			page_size  = 128;
 			base_address = 0x00100000;
-			if (arch == 0x70)
-			{
+			if (arch == 0x70) {
 				num_nvmbits = 2;
 				target_name_t = "AT91SAM7S64";
 			}
@@ -517,23 +487,19 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			pages_per_sector = 64;
 			page_size  = 256;
 			base_address = 0x00100000;
-			if (arch == 0x70)
-			{
+			if (arch == 0x70) {
 				num_nvmbits = 2;
 				target_name_t = "AT91SAM7S128";
 			}
-			if (arch == 0x71)
-			{
+			if (arch == 0x71) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7XC128";
 			}
-			if (arch == 0x72)
-			{
+			if (arch == 0x72) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7SE128";
 			}
-			if (arch == 0x75)
-			{
+			if (arch == 0x75) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7X128";
 			}
@@ -545,28 +511,23 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			pages_per_sector = 64;
 			page_size  = 256;
 			base_address = 0x00100000;
-			if (arch == 0x60)
-			{
+			if (arch == 0x60) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7A3";
 			}
-			if (arch == 0x70)
-			{
+			if (arch == 0x70) {
 				num_nvmbits = 2;
 				target_name_t = "AT91SAM7S256";
 			}
-			if (arch == 0x71)
-			{
+			if (arch == 0x71) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7XC256";
 			}
-			if (arch == 0x72)
-			{
+			if (arch == 0x72) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7SE256";
 			}
-			if (arch == 0x75)
-			{
+			if (arch == 0x75) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7X256";
 			}
@@ -578,23 +539,19 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			pages_per_sector = 64;
 			page_size  = 256;
 			base_address = 0x00100000;
-			if (arch == 0x70)
-			{
+			if (arch == 0x70) {
 				num_nvmbits = 2;
 				target_name_t = "AT91SAM7S512";
 			}
-			if (arch == 0x71)
-			{
+			if (arch == 0x71) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7XC512";
 			}
-			if (arch == 0x72)
-			{
+			if (arch == 0x72) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7SE512";
 			}
-			if (arch == 0x75)
-			{
+			if (arch == 0x75) {
 				num_nvmbits = 3;
 				target_name_t = "AT91SAM7X512";
 			}
@@ -607,9 +564,9 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 			break;
 	}
 
-	if (strcmp(target_name_t, "Unknown") == 0)
-	{
-		LOG_ERROR("Target autodetection failed! Please specify target parameters in configuration file");
+	if (strcmp(target_name_t, "Unknown") == 0) {
+		LOG_ERROR(
+			"Target autodetection failed! Please specify target parameters in configuration file");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -618,10 +575,8 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	/* calculate bank size  */
 	bank_size = sectors_num * pages_per_sector * page_size;
 
-	for (bnk = 0; bnk < banks_num; bnk++)
-	{
-		if (bnk > 0)
-		{
+	for (bnk = 0; bnk < banks_num; bnk++) {
+		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new flash bank element */
 				struct flash_bank *fb = malloc(sizeof(struct flash_bank));
@@ -646,8 +601,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 		/* allocate sectors */
 		t_bank->sectors = malloc(sectors_num * sizeof(struct flash_sector));
-		for (sec = 0; sec < sectors_num; sec++)
-		{
+		for (sec = 0; sec < sectors_num; sec++) {
 			t_bank->sectors[sec].offset = sec * pages_per_sector * page_size;
 			t_bank->sectors[sec].size = pages_per_sector * page_size;
 			t_bank->sectors[sec].is_erased = -1;
@@ -684,7 +638,9 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 		at91sam7_protect_check(t_bank);
 	}
 
-	LOG_DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch);
+	LOG_DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x",
+		at91sam7_info->cidr_nvptyp,
+		at91sam7_info->cidr_arch);
 
 	return ERROR_OK;
 }
@@ -699,8 +655,7 @@ static int at91sam7_erase_check(struct flash_bank *bank)
 	uint16_t nSector;
 	uint16_t nByte;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -710,12 +665,12 @@ static int at91sam7_erase_check(struct flash_bank *bank)
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
 	fast_check = 1;
-	for (nSector = 0; nSector < bank->num_sectors; nSector++)
-	{
-		retval = target_blank_check_memory(target, bank->base + bank->sectors[nSector].offset,
-			bank->sectors[nSector].size, &blank);
-		if (retval != ERROR_OK)
-		{
+	for (nSector = 0; nSector < bank->num_sectors; nSector++) {
+		retval = target_blank_check_memory(target,
+				bank->base + bank->sectors[nSector].offset,
+				bank->sectors[nSector].size,
+				&blank);
+		if (retval != ERROR_OK) {
 			fast_check = 0;
 			break;
 		}
@@ -726,25 +681,20 @@ static int at91sam7_erase_check(struct flash_bank *bank)
 	}
 
 	if (fast_check)
-	{
 		return ERROR_OK;
-	}
 
 	LOG_USER("Running slow fallback erase check - add working memory");
 
 	buffer = malloc(bank->sectors[0].size);
-	for (nSector = 0; nSector < bank->num_sectors; nSector++)
-	{
+	for (nSector = 0; nSector < bank->num_sectors; nSector++) {
 		bank->sectors[nSector].is_erased = 1;
 		retval = target_read_memory(target, bank->base + bank->sectors[nSector].offset, 4,
-			bank->sectors[nSector].size/4, buffer);
+				bank->sectors[nSector].size/4, buffer);
 		if (retval != ERROR_OK)
 			return retval;
 
-		for (nByte = 0; nByte < bank->sectors[nSector].size; nByte++)
-		{
-			if (buffer[nByte] != 0xFF)
-			{
+		for (nByte = 0; nByte < bank->sectors[nSector].size; nByte++) {
+			if (buffer[nByte] != 0xFF) {
 				bank->sectors[nSector].is_erased = 0;
 				break;
 			}
@@ -763,11 +713,8 @@ static int at91sam7_protect_check(struct flash_bank *bank)
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
 
 	if (at91sam7_info->cidr == 0)
-	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
-	}
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -776,14 +723,11 @@ static int at91sam7_protect_check(struct flash_bank *bank)
 	at91sam7_info->lockbits = (status >> 16);
 
 	at91sam7_info->num_lockbits_on = 0;
-	for (lock_pos = 0; lock_pos < bank->num_sectors; lock_pos++)
-	{
-		if (((status >> (16 + lock_pos))&(0x0001)) == 1)
-		{
+	for (lock_pos = 0; lock_pos < bank->num_sectors; lock_pos++) {
+		if (((status >> (16 + lock_pos))&(0x0001)) == 1) {
 			at91sam7_info->num_lockbits_on++;
 			bank->sectors[lock_pos].is_protected = 1;
-		}
-		else
+		} else
 			bank->sectors[lock_pos].is_protected = 0;
 	}
 
@@ -794,12 +738,9 @@ static int at91sam7_protect_check(struct flash_bank *bank)
 	at91sam7_info->nvmbits = (status >> 8)&0xFF;
 
 	at91sam7_info->num_nvmbits_on = 0;
-	for (gpnvm_pos = 0; gpnvm_pos < at91sam7_info->num_nvmbits; gpnvm_pos++)
-	{
+	for (gpnvm_pos = 0; gpnvm_pos < at91sam7_info->num_nvmbits; gpnvm_pos++) {
 		if (((status >> (8 + gpnvm_pos))&(0x01)) == 1)
-		{
 			at91sam7_info->num_nvmbits_on++;
-		}
 	}
 
 	return ERROR_OK;
@@ -837,8 +778,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	at91sam7_info->ext_freq = 0;
 	at91sam7_info->flash_autodetection = 0;
 
-	if (CMD_ARGC < 13)
-	{
+	if (CMD_ARGC < 13) {
 		at91sam7_info->flash_autodetection = 1;
 		return ERROR_OK;
 	}
@@ -862,8 +802,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	}
 
 	if ((bus_width == 0) || (banks_num == 0) || (num_sectors == 0) ||
-		(pages_per_sector == 0) || (page_size == 0) || (num_nvmbits == 0))
-	{
+			(pages_per_sector == 0) || (page_size == 0) || (num_nvmbits == 0)) {
 		at91sam7_info->flash_autodetection = 1;
 		return ERROR_OK;
 	}
@@ -874,10 +813,8 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	/* calculate bank size  */
 	bank_size = num_sectors * pages_per_sector * page_size;
 
-	for (bnk = 0; bnk < banks_num; bnk++)
-	{
-		if (bnk > 0)
-		{
+	for (bnk = 0; bnk < banks_num; bnk++) {
+		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new bank element */
 				struct flash_bank *fb = malloc(sizeof(struct flash_bank));
@@ -902,8 +839,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 
 		/* allocate sectors */
 		t_bank->sectors = malloc(num_sectors * sizeof(struct flash_sector));
-		for (sec = 0; sec < num_sectors; sec++)
-		{
+		for (sec = 0; sec < num_sectors; sec++) {
 			t_bank->sectors[sec].offset = sec * pages_per_sector * page_size;
 			t_bank->sectors[sec].size = pages_per_sector * page_size;
 			t_bank->sectors[sec].is_erased = -1;
@@ -933,61 +869,43 @@ static int at91sam7_erase(struct flash_bank *bank, int first, int last)
 	uint8_t erase_all;
 
 	if (at91sam7_info->cidr == 0)
-	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
-	}
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
-	{
 		return ERROR_FLASH_SECTOR_INVALID;
-	}
 
 	erase_all = 0;
 	if ((first == 0) && (last == (bank->num_sectors-1)))
-	{
 		erase_all = 1;
-	}
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
-	if (erase_all)
-	{
+	if (erase_all) {
 		if (at91sam7_flash_command(bank, EA, 0) != ERROR_OK)
-		{
 			return ERROR_FLASH_OPERATION_FAILED;
-		}
-	}
-	else
-	{
+	} else {
 		/* allocate and clean buffer  */
 		nbytes = (last - first + 1) * bank->sectors[first].size;
 		buffer = malloc(nbytes * sizeof(uint8_t));
 		for (pos = 0; pos < nbytes; pos++)
-		{
 			buffer[pos] = 0xFF;
-		}
 
 		if (at91sam7_write(bank, buffer, bank->sectors[first].offset, nbytes) != ERROR_OK)
-		{
 			return ERROR_FLASH_OPERATION_FAILED;
-		}
 
 		free(buffer);
 	}
 
 	/* mark erased sectors */
 	for (sec = first; sec <= last; sec++)
-	{
 		bank->sectors[sec].is_erased = 1;
-	}
 
 	return ERROR_OK;
 }
@@ -1001,27 +919,21 @@ static int at91sam7_protect(struct flash_bank *bank, int set, int first, int las
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
 
 	if (at91sam7_info->cidr == 0)
-	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
-	}
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
-	{
 		return ERROR_FLASH_SECTOR_INVALID;
-	}
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_NVBITS);
 
-	for (sector = first; sector <= last; sector++)
-	{
+	for (sector = first; sector <= last; sector++) {
 		if (set)
 			cmd = SLB;
 		else
@@ -1032,9 +944,7 @@ static int at91sam7_protect(struct flash_bank *bank, int set, int first, int las
 		pagen = sector * at91sam7_info->pages_per_sector;
 
 		if (at91sam7_flash_command(bank, cmd, pagen) != ERROR_OK)
-		{
 			return ERROR_FLASH_OPERATION_FAILED;
-		}
 	}
 
 	at91sam7_protect_check(bank);
@@ -1051,12 +961,9 @@ static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 	uint32_t first_page, last_page, pagen, buffer_pos;
 
 	if (at91sam7_info->cidr == 0)
-	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
-	}
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1066,9 +973,10 @@ static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 
 	dst_min_alignment = at91sam7_info->pagesize;
 
-	if (offset % dst_min_alignment)
-	{
-		LOG_WARNING("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32 "", offset, dst_min_alignment);
+	if (offset % dst_min_alignment) {
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32 "",
+			offset,
+			dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -1078,14 +986,16 @@ static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 	first_page = offset/dst_min_alignment;
 	last_page = DIV_ROUND_UP(offset + count, dst_min_alignment);
 
-	LOG_DEBUG("first_page: %i, last_page: %i, count %i", (int)first_page, (int)last_page, (int)count);
+	LOG_DEBUG("first_page: %i, last_page: %i, count %i",
+		(int)first_page,
+		(int)last_page,
+		(int)count);
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
-	for (pagen = first_page; pagen < last_page; pagen++)
-	{
+	for (pagen = first_page; pagen < last_page; pagen++) {
 		if (bytes_remaining < dst_min_alignment)
 			count = bytes_remaining;
 		else
@@ -1094,17 +1004,15 @@ static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 
 		/* Write one block to the PageWriteBuffer */
 		buffer_pos = (pagen-first_page)*dst_min_alignment;
-		wcount = DIV_ROUND_UP(count,4);
-		if ((retval = target_write_memory(target, bank->base + pagen*dst_min_alignment, 4, wcount, buffer + buffer_pos)) != ERROR_OK)
-		{
+		wcount = DIV_ROUND_UP(count, 4);
+		retval = target_write_memory(target, bank->base + pagen*dst_min_alignment, 4,
+				wcount, buffer + buffer_pos);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		/* Send Write Page command to Flash Controller */
 		if (at91sam7_flash_command(bank, WP, pagen) != ERROR_OK)
-		{
 			return ERROR_FLASH_OPERATION_FAILED;
-		}
 		LOG_DEBUG("Write flash bank:%i page number:%" PRIi32 "", bank->bank_number, pagen);
 	}
 
@@ -1117,8 +1025,7 @@ static int at91sam7_probe(struct flash_bank *bank)
 	 * if this is an at91sam7, it has the configured flash */
 	int retval;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1136,40 +1043,44 @@ static int get_at91sam7_info(struct flash_bank *bank, char *buf, int buf_size)
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;
 
 	if (at91sam7_info->cidr == 0)
-	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
-	}
 
 	printed = snprintf(buf, buf_size,
-		"\n at91sam7 driver information: Chip is %s\n",
-		at91sam7_info->target_name);
+			"\n at91sam7 driver information: Chip is %s\n",
+			at91sam7_info->target_name);
 
 	buf += printed;
 	buf_size -= printed;
 
 	printed = snprintf(buf,
-			   buf_size,
-			   " Cidr: 0x%8.8" PRIx32 " | Arch: 0x%4.4x | Eproc: %s | Version: 0x%3.3x | Flashsize: 0x%8.8" PRIx32 "\n",
-			   at91sam7_info->cidr,
-			   at91sam7_info->cidr_arch,
-			   EPROC[at91sam7_info->cidr_eproc],
-			   at91sam7_info->cidr_version,
-			   bank->size);
+			buf_size,
+			" Cidr: 0x%8.8" PRIx32 " | Arch: 0x%4.4x | Eproc: %s | Version: 0x%3.3x | "
+			"Flashsize: 0x%8.8" PRIx32 "\n",
+			at91sam7_info->cidr,
+			at91sam7_info->cidr_arch,
+			EPROC[at91sam7_info->cidr_eproc],
+			at91sam7_info->cidr_version,
+			bank->size);
 
 	buf += printed;
 	buf_size -= printed;
 
 	printed = snprintf(buf, buf_size,
-		" Master clock (estimated): %u KHz | External clock: %u KHz\n",
-		(unsigned)(at91sam7_info->mck_freq / 1000), (unsigned)(at91sam7_info->ext_freq / 1000));
+			" Master clock (estimated): %u KHz | External clock: %u KHz\n",
+			(unsigned)(at91sam7_info->mck_freq / 1000),
+			(unsigned)(at91sam7_info->ext_freq / 1000));
 
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size,
-		" Pagesize: %i bytes | Lockbits(%i): %i 0x%4.4x | Pages in lock region: %i \n",
-		at91sam7_info->pagesize, bank->num_sectors, at91sam7_info->num_lockbits_on,
-		at91sam7_info->lockbits, at91sam7_info->pages_per_sector*at91sam7_info->num_lockbits_on);
+	printed = snprintf(buf,
+			buf_size,
+			" Pagesize: %i bytes | Lockbits(%i): %i 0x%4.4x | Pages in lock region: %i\n",
+			at91sam7_info->pagesize,
+			bank->num_sectors,
+			at91sam7_info->num_lockbits_on,
+			at91sam7_info->lockbits,
+			at91sam7_info->pages_per_sector*at91sam7_info->num_lockbits_on);
 
 	buf += printed;
 	buf_size -= printed;
@@ -1196,59 +1107,46 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 {
 	struct flash_bank *bank;
 	int bit;
-	uint8_t  flashcmd;
+	uint8_t flashcmd;
 	uint32_t status;
 	struct at91sam7_flash_bank *at91sam7_info;
 	int retval;
 
 	if (CMD_ARGC != 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	bank = get_flash_bank_by_num_noprobe(0);
 	if (bank ==  NULL)
-	{
 		return ERROR_FLASH_BANK_INVALID;
-	}
-	if (strcmp(bank->driver->name, "at91sam7"))
-	{
+	if (strcmp(bank->driver->name, "at91sam7")) {
 		command_print(CMD_CTX, "not an at91sam7 flash bank '%s'", CMD_ARGV[0]);
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("target has to be halted to perform flash operation");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if (strcmp(CMD_ARGV[1], "set") == 0)
-	{
 		flashcmd = SGPB;
-	}
 	else if (strcmp(CMD_ARGV[1], "clear") == 0)
-	{
 		flashcmd = CGPB;
-	}
 	else
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	at91sam7_info = bank->driver_priv;
-	if (at91sam7_info->cidr == 0)
-	{
+	if (at91sam7_info->cidr == 0) {
 		retval = at91sam7_read_part_info(bank);
 		if (retval != ERROR_OK)
-		{
 			return retval;
-		}
 	}
 
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], bit);
-	if ((bit < 0) || (bit >= at91sam7_info->num_nvmbits))
-	{
-		command_print(CMD_CTX, "gpnvm bit '#%s' is out of bounds for target %s", CMD_ARGV[0], at91sam7_info->target_name);
+	if ((bit < 0) || (bit >= at91sam7_info->num_nvmbits)) {
+		command_print(CMD_CTX,
+			"gpnvm bit '#%s' is out of bounds for target %s",
+			CMD_ARGV[0],
+			at91sam7_info->target_name);
 		return ERROR_OK;
 	}
 
@@ -1257,13 +1155,14 @@ COMMAND_HANDLER(at91sam7_handle_gpnvm_command)
 	at91sam7_set_flash_mode(bank, FMR_TIMING_NVBITS);
 
 	if (at91sam7_flash_command(bank, flashcmd, bit) != ERROR_OK)
-	{
 		return ERROR_FLASH_OPERATION_FAILED;
-	}
 
 	/* GPNVM and SECURITY bits apply only for MC_FSR of EFC0 */
 	status = at91sam7_get_flash_status(bank->target, 0);
-	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value %d, status 0x%" PRIx32, flashcmd, bit, status);
+	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value %d, status 0x%" PRIx32,
+		flashcmd,
+		bit,
+		status);
 
 	/* check protect state */
 	at91sam7_protect_check(bank);

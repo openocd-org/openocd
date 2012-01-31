@@ -16,13 +16,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FLASH_NOR_IMP_H
 #define FLASH_NOR_IMP_H
 
-// this is an internal header
+/* this is an internal header */
 #include "core.h"
 #include "driver.h"
-// almost all drivers will need this file
+/* almost all drivers will need this file */
 #include <target/target.h>
 
 /**
@@ -47,4 +48,4 @@ int flash_driver_read(struct flash_bank *bank,
 int flash_write_unlock(struct target *target, struct image *image,
 		uint32_t *written, int erase, bool unlock);
 
-#endif // FLASH_NOR_IMP_H
+#endif /* FLASH_NOR_IMP_H */

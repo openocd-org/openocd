@@ -7,7 +7,7 @@
  *
  *   Copyright (C) 2011 by Erik Botö
  *   erik.boto@pelagicore.com
- * 
+ *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -34,60 +35,58 @@
 
 /* em357 register locations */
 
-#define EM357_FLASH_ACR		0x40008000
-#define EM357_FLASH_KEYR	0x40008004
-#define EM357_FLASH_OPTKEYR	0x40008008
-#define EM357_FLASH_SR		0x4000800C
-#define EM357_FLASH_CR		0x40008010
-#define EM357_FLASH_AR		0x40008014
-#define EM357_FLASH_OBR		0x4000801C
-#define EM357_FLASH_WRPR	0x40008020
+#define EM357_FLASH_ACR         0x40008000
+#define EM357_FLASH_KEYR        0x40008004
+#define EM357_FLASH_OPTKEYR     0x40008008
+#define EM357_FLASH_SR          0x4000800C
+#define EM357_FLASH_CR          0x40008010
+#define EM357_FLASH_AR          0x40008014
+#define EM357_FLASH_OBR         0x4000801C
+#define EM357_FLASH_WRPR        0x40008020
 
-#define EM357_FPEC_CLK		0x4000402c
+#define EM357_FPEC_CLK          0x4000402c
 /* option byte location */
 
-#define EM357_OB_RDP		0x08040800
-#define EM357_OB_WRP0		0x08040808
-#define EM357_OB_WRP1		0x0804080A
-#define EM357_OB_WRP2		0x0804080C
+#define EM357_OB_RDP            0x08040800
+#define EM357_OB_WRP0           0x08040808
+#define EM357_OB_WRP1           0x0804080A
+#define EM357_OB_WRP2           0x0804080C
 
 /* FLASH_CR register bits */
 
-#define FLASH_PG		(1 << 0)
-#define FLASH_PER		(1 << 1)
-#define FLASH_MER		(1 << 2)
-#define FLASH_OPTPG		(1 << 4)
-#define FLASH_OPTER		(1 << 5)
-#define FLASH_STRT		(1 << 6)
-#define FLASH_LOCK		(1 << 7)
-#define FLASH_OPTWRE	(1 << 9)
+#define FLASH_PG                (1 << 0)
+#define FLASH_PER               (1 << 1)
+#define FLASH_MER               (1 << 2)
+#define FLASH_OPTPG             (1 << 4)
+#define FLASH_OPTER             (1 << 5)
+#define FLASH_STRT              (1 << 6)
+#define FLASH_LOCK              (1 << 7)
+#define FLASH_OPTWRE    (1 << 9)
 
 /* FLASH_SR register bits */
 
-#define FLASH_BSY		(1 << 0)
-#define FLASH_PGERR		(1 << 2)
-#define FLASH_WRPRTERR	(1 << 4)
-#define FLASH_EOP		(1 << 5)
+#define FLASH_BSY               (1 << 0)
+#define FLASH_PGERR             (1 << 2)
+#define FLASH_WRPRTERR  (1 << 4)
+#define FLASH_EOP               (1 << 5)
 
 /* EM357_FLASH_OBR bit definitions (reading) */
 
-#define OPT_ERROR		0
-#define OPT_READOUT		1
+#define OPT_ERROR               0
+#define OPT_READOUT             1
 
 /* register unlock keys */
 
-#define KEY1			0x45670123
-#define KEY2			0xCDEF89AB
+#define KEY1                    0x45670123
+#define KEY2                    0xCDEF89AB
 
-struct em357_options
-{
+struct em357_options {
 	uint16_t RDP;
 	uint16_t user_options;
 	uint16_t protection[3];
 };
 
-struct em357_flash_bank
-{
+struct em357_flash_bank {
 	struct em357_options option_bytes;
 	struct working_area *write_algorithm;
 	int ppage_size;
@@ -103,9 +102,7 @@ FLASH_BANK_COMMAND_HANDLER(em357_flash_bank_command)
 	struct em357_flash_bank *em357_info;
 
 	if (CMD_ARGC < 6)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	em357_info = malloc(sizeof(struct em357_flash_bank));
 	bank->driver_priv = em357_info;
@@ -129,37 +126,32 @@ static int em357_wait_status_busy(struct flash_bank *bank, int timeout)
 	int retval = ERROR_OK;
 
 	/* wait for busy to clear */
-	for (;;)
-	{
+	for (;; ) {
 		retval = em357_get_flash_status(bank, &status);
 		if (retval != ERROR_OK)
 			return retval;
 		LOG_DEBUG("status: 0x%" PRIx32 "", status);
 		if ((status & FLASH_BSY) == 0)
 			break;
-		if (timeout-- <= 0)
-		{
+		if (timeout-- <= 0) {
 			LOG_ERROR("timed out waiting for flash");
 			return ERROR_FAIL;
 		}
 		alive_sleep(1);
 	}
 
-	if (status & FLASH_WRPRTERR)
-	{
+	if (status & FLASH_WRPRTERR) {
 		LOG_ERROR("em357 device protected");
 		retval = ERROR_FAIL;
 	}
 
-	if (status & FLASH_PGERR)
-	{
+	if (status & FLASH_PGERR) {
 		LOG_ERROR("em357 device programming failed");
 		retval = ERROR_FAIL;
 	}
 
 	/* Clear but report errors */
-	if (status & (FLASH_WRPRTERR | FLASH_PGERR))
-	{
+	if (status & (FLASH_WRPRTERR | FLASH_PGERR)) {
 		/* If this operation fails, we ignore it and report the original
 		 * retval
 		 */
@@ -330,8 +322,7 @@ static int em357_protect_check(struct flash_bank *bank)
 	int num_bits;
 	int set;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -344,8 +335,7 @@ static int em357_protect_check(struct flash_bank *bank)
 	/* each protection bit is for 4 * 2K pages */
 	num_bits = (bank->num_sectors / em357_info->ppage_size);
 
-	for (i = 0; i < num_bits; i++)
-	{
+	for (i = 0; i < num_bits; i++) {
 		set = 1;
 		if (protection & (1 << i))
 			set = 0;
@@ -362,16 +352,13 @@ static int em357_erase(struct flash_bank *bank, int first, int last)
 	struct target *target = bank->target;
 	int i;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if ((first == 0) && (last == (bank->num_sectors - 1)))
-	{
 		return em357_mass_erase(bank);
-	}
 
 	/* unlock flash registers */
 	int retval = target_write_u32(target, EM357_FLASH_KEYR, KEY1);
@@ -381,8 +368,7 @@ static int em357_erase(struct flash_bank *bank, int first, int last)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (i = first; i <= last; i++)
-	{
+	for (i = first; i <= last; i++) {
 		retval = target_write_u32(target, EM357_FLASH_CR, FLASH_PER);
 		if (retval != ERROR_OK)
 			return retval;
@@ -419,22 +405,19 @@ static int em357_protect(struct flash_bank *bank, int set, int first, int last)
 
 	em357_info = bank->driver_priv;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first % em357_info->ppage_size) != 0)
-	{
+	if ((first % em357_info->ppage_size) != 0) {
 		LOG_WARNING("aligned start protect sector to a %d sector boundary",
-				em357_info->ppage_size);
+			em357_info->ppage_size);
 		first = first - (first % em357_info->ppage_size);
 	}
-	if (((last + 1) % em357_info->ppage_size) != 0)
-	{
+	if (((last + 1) % em357_info->ppage_size) != 0) {
 		LOG_WARNING("aligned end protect sector to a %d sector boundary",
-				em357_info->ppage_size);
+			em357_info->ppage_size);
 		last++;
 		last = last - (last % em357_info->ppage_size);
 		last--;
@@ -449,8 +432,7 @@ static int em357_protect(struct flash_bank *bank, int set, int first, int last)
 	prot_reg[1] = (uint16_t)(protection >> 8);
 	prot_reg[2] = (uint16_t)(protection >> 16);
 
-	for (i = first; i <= last; i++)
-	{
+	for (i = first; i <= last; i++) {
 		reg = (i / em357_info->ppage_size) / 8;
 		bit = (i / em357_info->ppage_size) - (reg * 8);
 
@@ -461,7 +443,8 @@ static int em357_protect(struct flash_bank *bank, int set, int first, int last)
 			prot_reg[reg] |= (1 << bit);
 	}
 
-	if ((status = em357_erase_options(bank)) != ERROR_OK)
+	status = em357_erase_options(bank);
+	if (retval != ERROR_OK)
 		return status;
 
 	em357_info->option_bytes.protection[0] = prot_reg[0];
@@ -472,7 +455,7 @@ static int em357_protect(struct flash_bank *bank, int set, int first, int last)
 }
 
 static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
-		uint32_t offset, uint32_t count)
+	uint32_t offset, uint32_t count)
 {
 	struct em357_flash_bank *em357_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -483,61 +466,63 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	/* see contib/loaders/flash/stm32x.s for src, the same is used here except for 
+	/* see contib/loaders/flash/stm32x.s for src, the same is used here except for
 	 * a modified *_FLASH_BASE */
 
 	static const uint8_t em357_flash_write_code[] = {
-									/* #define EM357_FLASH_CR_OFFSET	0x10 */
-									/* #define EM357_FLASH_SR_OFFSET	0x0C */
-									/* write: */
+		/* #define EM357_FLASH_CR_OFFSET	0x10
+		 * #define EM357_FLASH_SR_OFFSET	0x0C
+		 * write: */
 		0x08, 0x4c,					/* ldr	r4, EM357_FLASH_BASE */
 		0x1c, 0x44,					/* add	r4, r3 */
-									/* write_half_word: */
+		/* write_half_word: */
 		0x01, 0x23,					/* movs	r3, #0x01 */
-		0x23, 0x61,					/* str	r3, [r4, #EM357_FLASH_CR_OFFSET] */
+		0x23, 0x61,					/* str	r3, [r4,
+								 *#EM357_FLASH_CR_OFFSET] */
 		0x30, 0xf8, 0x02, 0x3b,		/* ldrh	r3, [r0], #0x02 */
 		0x21, 0xf8, 0x02, 0x3b,		/* strh	r3, [r1], #0x02 */
-									/* busy: */
-		0xe3, 0x68,					/* ldr	r3, [r4, #EM357_FLASH_SR_OFFSET] */
+		/* busy: */
+		0xe3, 0x68,					/* ldr	r3, [r4,
+								 *#EM357_FLASH_SR_OFFSET] */
 		0x13, 0xf0, 0x01, 0x0f,		/* tst	r3, #0x01 */
 		0xfb, 0xd0,					/* beq	busy */
 		0x13, 0xf0, 0x14, 0x0f,		/* tst	r3, #0x14 */
 		0x01, 0xd1,					/* bne	exit */
 		0x01, 0x3a,					/* subs	r2, r2, #0x01 */
 		0xf0, 0xd1,					/* bne	write_half_word */
-									/* exit: */
+		/* exit: */
 		0x00, 0xbe,					/* bkpt	#0x00 */
 		0x00, 0x80, 0x00, 0x40,		/* EM357_FLASH_BASE: .word 0x40008000 */
 	};
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(em357_flash_write_code),
-			&em357_info->write_algorithm) != ERROR_OK)
-	{
+			&em357_info->write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
+	;
 
-	if ((retval = target_write_buffer(target, em357_info->write_algorithm->address,
-			sizeof(em357_flash_write_code),
-			(uint8_t*)em357_flash_write_code)) != ERROR_OK)
+	retval = target_write_buffer(target, em357_info->write_algorithm->address,
+			sizeof(em357_flash_write_code), (uint8_t *)em357_flash_write_code);
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* memory buffer */
-	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
-	{
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
-		if (buffer_size <= 256)
-		{
+		if (buffer_size <= 256) {
 			/* if we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
 			if (em357_info->write_algorithm)
 				target_free_working_area(target, em357_info->write_algorithm);
 
-			LOG_WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING(
+				"no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-	};
+	}
+	;
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
@@ -547,13 +532,12 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN_OUT);
 
-	while (count > 0)
-	{
+	while (count > 0) {
 		uint32_t thisrun_count = (count > (buffer_size / 2)) ?
-				(buffer_size / 2) : count;
+			(buffer_size / 2) : count;
 
-		if ((retval = target_write_buffer(target, source->address,
-				thisrun_count * 2, buffer)) != ERROR_OK)
+		retval = target_write_buffer(target, source->address, thisrun_count * 2, buffer);
+		if (retval != ERROR_OK)
 			break;
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
@@ -561,17 +545,14 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
 		buf_set_u32(reg_params[3].value, 0, 32, 0);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
-				em357_info->write_algorithm->address,
-				0,
-				10000, &armv7m_info)) != ERROR_OK)
-		{
+		retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
+				em357_info->write_algorithm->address, 0, 10000, &armv7m_info);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing em357 flash write algorithm");
 			break;
 		}
 
-		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_PGERR)
-		{
+		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_PGERR) {
 			LOG_ERROR("flash memory not erased before writing");
 			/* Clear but report errors */
 			target_write_u32(target, EM357_FLASH_SR, FLASH_PGERR);
@@ -579,8 +560,7 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 			break;
 		}
 
-		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_WRPRTERR)
-		{
+		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_WRPRTERR) {
 			LOG_ERROR("flash memory write protected");
 			/* Clear but report errors */
 			target_write_u32(target, EM357_FLASH_SR, FLASH_WRPRTERR);
@@ -605,7 +585,7 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 }
 
 static int em357_write(struct flash_bank *bank, uint8_t *buffer,
-		uint32_t offset, uint32_t count)
+	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	uint32_t words_remaining = (count / 2);
@@ -614,14 +594,12 @@ static int em357_write(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t bytes_written = 0;
 	int retval;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x1)
-	{
+	if (offset & 0x1) {
 		LOG_WARNING("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
@@ -635,20 +613,17 @@ static int em357_write(struct flash_bank *bank, uint8_t *buffer,
 		return retval;
 
 	/* multiple half words (2-byte) to be programmed? */
-	if (words_remaining > 0)
-	{
+	if (words_remaining > 0) {
 		/* try using a block write */
-		if ((retval = em357_write_block(bank, buffer, offset, words_remaining)) != ERROR_OK)
-		{
-			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			{
+		retval = em357_write_block(bank, buffer, offset, words_remaining);
+		if (retval != ERROR_OK) {
+			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */
-				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
+				LOG_WARNING(
+					"couldn't use block writes, falling back to single memory accesses");
 			}
-		}
-		else
-		{
+		} else {
 			buffer += words_remaining * 2;
 			address += words_remaining * 2;
 			words_remaining = 0;
@@ -658,8 +633,7 @@ static int em357_write(struct flash_bank *bank, uint8_t *buffer,
 	if ((retval != ERROR_OK) && (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE))
 		return retval;
 
-	while (words_remaining > 0)
-	{
+	while (words_remaining > 0) {
 		uint16_t value;
 		memcpy(&value, buffer + bytes_written, sizeof(uint16_t));
 
@@ -679,8 +653,7 @@ static int em357_write(struct flash_bank *bank, uint8_t *buffer,
 		address += 2;
 	}
 
-	if (bytes_remaining)
-	{
+	if (bytes_remaining) {
 		uint16_t value = 0xffff;
 		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
@@ -721,8 +694,7 @@ static int em357_probe(struct flash_bank *bank)
 
 	LOG_INFO("flash size = %dkbytes", num_pages*page_size/1024);
 
-	if (bank->sectors)
-	{
+	if (bank->sectors) {
 		free(bank->sectors);
 		bank->sectors = NULL;
 	}
@@ -732,8 +704,7 @@ static int em357_probe(struct flash_bank *bank)
 	bank->num_sectors = num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
 
-	for (i = 0; i < num_pages; i++)
-	{
+	for (i = 0; i < num_pages; i++) {
 		bank->sectors[i].offset = i * page_size;
 		bank->sectors[i].size = page_size;
 		bank->sectors[i].is_erased = -1;
@@ -766,9 +737,7 @@ COMMAND_HANDLER(em357_handle_lock_command)
 	struct em357_flash_bank *em357_info = NULL;
 
 	if (CMD_ARGC < 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -779,14 +748,12 @@ COMMAND_HANDLER(em357_handle_lock_command)
 
 	target = bank->target;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (em357_erase_options(bank) != ERROR_OK)
-	{
+	if (em357_erase_options(bank) != ERROR_OK) {
 		command_print(CMD_CTX, "em357 failed to erase options");
 		return ERROR_OK;
 	}
@@ -794,8 +761,7 @@ COMMAND_HANDLER(em357_handle_lock_command)
 	/* set readout protection */
 	em357_info->option_bytes.RDP = 0;
 
-	if (em357_write_options(bank) != ERROR_OK)
-	{
+	if (em357_write_options(bank) != ERROR_OK) {
 		command_print(CMD_CTX, "em357 failed to lock device");
 		return ERROR_OK;
 	}
@@ -810,9 +776,7 @@ COMMAND_HANDLER(em357_handle_unlock_command)
 	struct target *target = NULL;
 
 	if (CMD_ARGC < 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -821,27 +785,24 @@ COMMAND_HANDLER(em357_handle_unlock_command)
 
 	target = bank->target;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (em357_erase_options(bank) != ERROR_OK)
-	{
+	if (em357_erase_options(bank) != ERROR_OK) {
 		command_print(CMD_CTX, "em357 failed to unlock device");
 		return ERROR_OK;
 	}
 
-	if (em357_write_options(bank) != ERROR_OK)
-	{
+	if (em357_write_options(bank) != ERROR_OK) {
 		command_print(CMD_CTX, "em357 failed to lock device");
 		return ERROR_OK;
 	}
 
 	command_print(CMD_CTX, "em357 unlocked.\n"
-			"INFO: a reset or power cycle is required "
-			"for the new settings to take effect.");
+		"INFO: a reset or power cycle is required "
+		"for the new settings to take effect.");
 
 	return ERROR_OK;
 }
@@ -850,8 +811,7 @@ static int em357_mass_erase(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -888,9 +848,7 @@ COMMAND_HANDLER(em357_handle_mass_erase_command)
 	int i;
 
 	if (CMD_ARGC < 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -898,20 +856,14 @@ COMMAND_HANDLER(em357_handle_mass_erase_command)
 		return retval;
 
 	retval = em357_mass_erase(bank);
-	if (retval == ERROR_OK)
-	{
+	if (retval == ERROR_OK) {
 		/* set all sectors as erased */
 		for (i = 0; i < bank->num_sectors; i++)
-		{
 			bank->sectors[i].is_erased = 1;
-		}
 
 		command_print(CMD_CTX, "em357 mass erase complete");
-	}
-	else
-	{
+	} else
 		command_print(CMD_CTX, "em357 mass erase failed");
-	}
 
 	return retval;
 }

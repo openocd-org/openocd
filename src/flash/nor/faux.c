@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -25,9 +26,7 @@
 #include <target/image.h>
 #include "hello.h"
 
-
-struct faux_flash_bank
-{
+struct faux_flash_bank {
 	struct target *target;
 	uint8_t *memory;
 	uint32_t start_address;
@@ -43,19 +42,15 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 	struct faux_flash_bank *info;
 
 	if (CMD_ARGC < 6)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	info = malloc(sizeof(struct faux_flash_bank));
-	if (info == NULL)
-	{
+	if (info == NULL) {
 		LOG_ERROR("no memory for flash bank info");
 		return ERROR_FAIL;
 	}
 	info->memory = malloc(bank->size);
-	if (info == NULL)
-	{
+	if (info == NULL) {
 		free(info);
 		LOG_ERROR("no memory for flash bank info");
 		return ERROR_FAIL;
@@ -67,8 +62,7 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 	uint32_t offset = 0;
 	bank->num_sectors = bank->size/sectorSize;
 	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		bank->sectors[i].offset = offset;
 		bank->sectors[i].size = sectorSize;
 		offset += bank->sectors[i].size;
@@ -77,8 +71,7 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 	}
 
 	info->target = get_target(CMD_ARGV[5]);
-	if (info->target == NULL)
-	{
+	if (info->target == NULL) {
 		LOG_ERROR("target '%s' not defined", CMD_ARGV[5]);
 		free(info->memory);
 		free(info);
@@ -96,7 +89,7 @@ static int faux_erase(struct flash_bank *bank, int first, int last)
 
 static int faux_protect(struct flash_bank *bank, int set, int first, int last)
 {
-	LOG_USER("set protection sector %d to %d to %s", first, last, set?"on":"off");
+	LOG_USER("set protection sector %d to %d to %s", first, last, set ? "on" : "off");
 	return ERROR_OK;
 }
 

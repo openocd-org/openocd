@@ -29,7 +29,6 @@
 #include <flash/nor/imp.h>
 #include <target/image.h>
 
-
 /**
  * @file
  * Upper level of NOR flash framework.
@@ -45,9 +44,7 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last)
 
 	retval = bank->driver->erase(bank, first, last);
 	if (retval != ERROR_OK)
-	{
 		LOG_ERROR("failed erasing sectors %d to %d", first, last);
-	}
 
 	return retval;
 }
@@ -57,8 +54,7 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	int retval;
 
 	/* callers may not supply illegal parameters ... */
-	if (first < 0 || first > last || last >= bank->num_sectors)
-	{
+	if (first < 0 || first > last || last >= bank->num_sectors) {
 		LOG_ERROR("illegal sector range");
 		return ERROR_FAIL;
 	}
@@ -79,47 +75,47 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	 */
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
-	{
 		LOG_ERROR("failed setting protection for areas %d to %d", first, last);
-	}
 
 	return retval;
 }
 
 int flash_driver_write(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t count)
+	uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 
 	retval = bank->driver->write(bank, buffer, offset, count);
-	if (retval != ERROR_OK)
-	{
-		LOG_ERROR("error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
-			  bank->base, offset);
+	if (retval != ERROR_OK) {
+		LOG_ERROR(
+			"error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
+			bank->base,
+			offset);
 	}
 
 	return retval;
 }
 
 int flash_driver_read(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t count)
+	uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 
 	LOG_DEBUG("call flash_driver_read()");
 
 	retval = bank->driver->read(bank, buffer, offset, count);
-	if (retval != ERROR_OK)
-	{
-		LOG_ERROR("error reading to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
-			  bank->base, offset);
+	if (retval != ERROR_OK) {
+		LOG_ERROR(
+			"error reading to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
+			bank->base,
+			offset);
 	}
 
 	return retval;
 }
 
 int default_flash_read(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t count)
+	uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	return target_read_buffer(bank->target, offset + bank->base, count, buffer);
 }
@@ -128,19 +124,16 @@ void flash_bank_add(struct flash_bank *bank)
 {
 	/* put flash bank in linked list */
 	unsigned bank_num = 0;
-	if (flash_banks)
-	{
+	if (flash_banks) {
 		/* find last flash bank */
 		struct flash_bank *p = flash_banks;
-		while (NULL != p->next)
-		{
+		while (NULL != p->next) {
 			bank_num += 1;
 			p = p->next;
 		}
 		p->next = bank;
 		bank_num += 1;
-	}
-	else
+	} else
 		flash_banks = bank;
 
 	bank->bank_number = bank_num;
@@ -156,12 +149,9 @@ struct flash_bank *get_flash_bank_by_num_noprobe(int num)
 	struct flash_bank *p;
 	int i = 0;
 
-	for (p = flash_banks; p; p = p->next)
-	{
+	for (p = flash_banks; p; p = p->next) {
 		if (i++ == num)
-		{
 			return p;
-		}
 	}
 	LOG_ERROR("flash bank %d does not exist", num);
 	return NULL;
@@ -172,9 +162,7 @@ int flash_get_bank_count(void)
 	struct flash_bank *p;
 	int i = 0;
 	for (p = flash_banks; p; p = p->next)
-	{
 		i++;
-	}
 	return i;
 }
 
@@ -184,8 +172,7 @@ struct flash_bank *get_flash_bank_by_name_noprobe(const char *name)
 	unsigned found = 0;
 
 	struct flash_bank *bank;
-	for (bank = flash_banks; NULL != bank; bank = bank->next)
-	{
+	for (bank = flash_banks; NULL != bank; bank = bank->next) {
 		if (strcmp(bank->name, name) == 0)
 			return bank;
 		if (!flash_driver_name_matches(bank->driver->name, name))
@@ -203,12 +190,10 @@ int get_flash_bank_by_name(const char *name, struct flash_bank **bank_result)
 	int retval;
 
 	bank = get_flash_bank_by_name_noprobe(name);
-	if (bank != NULL)
-	{
+	if (bank != NULL) {
 		retval = bank->driver->auto_probe(bank);
 
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			LOG_ERROR("auto_probe failed");
 			return retval;
 		}
@@ -224,14 +209,11 @@ int get_flash_bank_by_num(int num, struct flash_bank **bank)
 	int retval;
 
 	if (p == NULL)
-	{
 		return ERROR_FAIL;
-	}
 
 	retval = p->driver->auto_probe(p);
 
-	if (retval != ERROR_OK)
-	{
+	if (retval != ERROR_OK) {
 		LOG_ERROR("auto_probe failed");
 		return retval;
 	}
@@ -241,31 +223,30 @@ int get_flash_bank_by_num(int num, struct flash_bank **bank)
 
 /* lookup flash bank by address, bank not found is success, but
  * result_bank is set to NULL. */
-int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, struct flash_bank **result_bank)
+int get_flash_bank_by_addr(struct target *target,
+	uint32_t addr,
+	bool check,
+	struct flash_bank **result_bank)
 {
 	struct flash_bank *c;
 
 	/* cycle through bank list */
-	for (c = flash_banks; c; c = c->next)
-	{
+	for (c = flash_banks; c; c = c->next) {
 		int retval;
 		retval = c->driver->auto_probe(c);
 
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			LOG_ERROR("auto_probe failed");
 			return retval;
 		}
 		/* check whether address belongs to this flash bank */
-		if ((addr >= c->base) && (addr <= c->base + (c->size - 1)) && target == c->target)
-		{
+		if ((addr >= c->base) && (addr <= c->base + (c->size - 1)) && target == c->target) {
 			*result_bank = c;
 			return ERROR_OK;
 		}
 	}
 	*result_bank = NULL;
-	if (check)
-	{
+	if (check) {
 		LOG_ERROR("No flash at address 0x%08" PRIx32, addr);
 		return ERROR_FAIL;
 	}
@@ -280,38 +261,33 @@ int default_flash_mem_blank_check(struct flash_bank *bank)
 	uint32_t nBytes;
 	int retval = ERROR_OK;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	uint8_t *buffer = malloc(buffer_size);
 
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		uint32_t j;
 		bank->sectors[i].is_erased = 1;
 
-		for (j = 0; j < bank->sectors[i].size; j += buffer_size)
-		{
+		for (j = 0; j < bank->sectors[i].size; j += buffer_size) {
 			uint32_t chunk;
 			chunk = buffer_size;
 			if (chunk > (j - bank->sectors[i].size))
-			{
 				chunk = (j - bank->sectors[i].size);
-			}
 
-			retval = target_read_memory(target, bank->base + bank->sectors[i].offset + j, 4, chunk/4, buffer);
+			retval = target_read_memory(target,
+					bank->base + bank->sectors[i].offset + j,
+					4,
+					chunk/4,
+					buffer);
 			if (retval != ERROR_OK)
-			{
 				goto done;
-			}
 
-			for (nBytes = 0; nBytes < chunk; nBytes++)
-			{
-				if (buffer[nBytes] != 0xFF)
-				{
+			for (nBytes = 0; nBytes < chunk; nBytes++) {
+				if (buffer[nBytes] != 0xFF) {
 					bank->sectors[i].is_erased = 0;
 					break;
 				}
@@ -319,7 +295,7 @@ int default_flash_mem_blank_check(struct flash_bank *bank)
 		}
 	}
 
-	done:
+done:
 	free(buffer);
 
 	return retval;
@@ -333,20 +309,17 @@ int default_flash_blank_check(struct flash_bank *bank)
 	int fast_check = 0;
 	uint32_t blank;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		uint32_t address = bank->base + bank->sectors[i].offset;
 		uint32_t size = bank->sectors[i].size;
 
 		retval = target_blank_check_memory(target, address, size, &blank);
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			fast_check = 0;
 			break;
 		}
@@ -357,8 +330,7 @@ int default_flash_blank_check(struct flash_bank *bank)
 		fast_check = 1;
 	}
 
-	if (!fast_check)
-	{
+	if (!fast_check) {
 		LOG_USER("Running slow fallback erase check - add working memory");
 		return default_flash_mem_blank_check(bank);
 	}
@@ -381,8 +353,8 @@ int default_flash_blank_check(struct flash_bank *bank)
  * warning about those additions.
  */
 static int flash_iterate_address_range_inner(struct target *target,
-		char *pad_reason, uint32_t addr, uint32_t length,
-		int (*callback)(struct flash_bank *bank, int first, int last))
+	char *pad_reason, uint32_t addr, uint32_t length,
+	int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
 	uint32_t last_addr = addr + length;	/* first address AFTER end */
@@ -394,17 +366,14 @@ static int flash_iterate_address_range_inner(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (c->size == 0 || c->num_sectors == 0)
-	{
+	if (c->size == 0 || c->num_sectors == 0) {
 		LOG_ERROR("Bank is invalid");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	if (length == 0)
-	{
+	if (length == 0) {
 		/* special case, erase whole bank when length is zero */
-		if (addr != c->base)
-		{
+		if (addr != c->base) {
 			LOG_ERROR("Whole bank access must start at beginning of bank.");
 			return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 		}
@@ -413,8 +382,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 	}
 
 	/* check whether it all fits in this bank */
-	if (addr + length - 1 > c->base + c->size - 1)
-	{
+	if (addr + length - 1 > c->base + c->size - 1) {
 		LOG_ERROR("Flash access does not fit into bank.");
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
@@ -424,8 +392,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 	addr -= c->base;
 	last_addr -= c->base;
 
-	for (i = 0; i < c->num_sectors; i++)
-	{
+	for (i = 0; i < c->num_sectors; i++) {
 		struct flash_sector *f = c->sectors + i;
 		uint32_t end = f->offset + f->size;
 
@@ -449,7 +416,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 			else if (addr < end && pad_reason) {
 				/* FIXME say how many bytes (e.g. 80 KB) */
 				LOG_WARNING("Adding extra %s range, "
-						"%#8.8x to %#8.8x",
+					"%#8.8x to %#8.8x",
 					pad_reason,
 					(unsigned) f->offset,
 					(unsigned) addr - 1);
@@ -470,7 +437,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 		if (last_addr < end && pad_reason) {
 			/* FIXME say how many bytes (e.g. 80 KB) */
 			LOG_WARNING("Adding extra %s range, "
-					"%#8.8x to %#8.8x",
+				"%#8.8x to %#8.8x",
 				pad_reason,
 				(unsigned) last_addr,
 				(unsigned) end - 1);
@@ -486,9 +453,9 @@ static int flash_iterate_address_range_inner(struct target *target,
 	/* invalid start or end address? */
 	if (first == -1 || last == -1) {
 		LOG_ERROR("address range 0x%8.8x .. 0x%8.8x "
-				"is not sector-aligned",
-				(unsigned) (c->base + addr),
-				(unsigned) (c->base + last_addr - 1));
+			"is not sector-aligned",
+			(unsigned) (c->base + addr),
+			(unsigned) (c->base + last_addr - 1));
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -503,23 +470,21 @@ static int flash_iterate_address_range_inner(struct target *target,
  * multiple chips.
  */
 static int flash_iterate_address_range(struct target *target,
-		char *pad_reason, uint32_t addr, uint32_t length,
-		int (*callback)(struct flash_bank *bank, int first, int last))
+	char *pad_reason, uint32_t addr, uint32_t length,
+	int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
 	int retval = ERROR_OK;
 
 	/* Danger! zero-length iterations means entire bank! */
-	do
-	{
+	do {
 		retval = get_flash_bank_by_addr(target, addr, true, &c);
 		if (retval != ERROR_OK)
 			return retval;
 
 		uint32_t cur_length = length;
 		/* check whether it all fits in this bank */
-		if (addr + length - 1 > c->base + c->size - 1)
-		{
+		if (addr + length - 1 > c->base + c->size - 1) {
 			LOG_DEBUG("iterating over more than one flash bank.");
 			cur_length = c->base + c->size - addr;
 		}
@@ -537,10 +502,10 @@ static int flash_iterate_address_range(struct target *target,
 }
 
 int flash_erase_address_range(struct target *target,
-		bool pad, uint32_t addr, uint32_t length)
+	bool pad, uint32_t addr, uint32_t length)
 {
 	return flash_iterate_address_range(target, pad ? "erase" : NULL,
-			addr, length, &flash_driver_erase);
+		addr, length, &flash_driver_erase);
 }
 
 static int flash_driver_unprotect(struct flash_bank *bank, int first, int last)
@@ -555,30 +520,25 @@ int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t le
 	 * and doesn't restore it.
 	 */
 	return flash_iterate_address_range(target, "unprotect",
-			addr, length, &flash_driver_unprotect);
+		addr, length, &flash_driver_unprotect);
 }
 
-static int compare_section (const void * a, const void * b)
+static int compare_section(const void *a, const void *b)
 {
 	struct imagesection *b1, *b2;
-	b1=*((struct imagesection **)a);
-	b2=*((struct imagesection **)b);
+	b1 = *((struct imagesection **)a);
+	b2 = *((struct imagesection **)b);
 
 	if (b1->base_address == b2->base_address)
-	{
 		return 0;
-	} else if (b1->base_address > b2->base_address)
-	{
+	else if (b1->base_address > b2->base_address)
 		return 1;
-	} else
-	{
+	else
 		return -1;
-	}
 }
 
-
 int flash_write_unlock(struct target *target, struct image *image,
-		uint32_t *written, int erase, bool unlock)
+	uint32_t *written, int erase, bool unlock)
 {
 	int retval = ERROR_OK;
 
@@ -593,8 +553,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 	if (written)
 		*written = 0;
 
-	if (erase)
-	{
+	if (erase) {
 		/* assume all sectors need erasing - stops any problems
 		 * when flash_write is called multiple times */
 
@@ -610,16 +569,13 @@ int flash_write_unlock(struct target *target, struct image *image,
 			image->num_sections);
 	int i;
 	for (i = 0; i < image->num_sections; i++)
-	{
 		sections[i] = &image->sections[i];
-	}
 
 	qsort(sections, image->num_sections, sizeof(struct imagesection *),
-			compare_section);
+		compare_section);
 
 	/* loop until we reach end of the image */
-	while (section < image->num_sections)
-	{
+	while (section < image->num_sections) {
 		uint32_t buffer_size;
 		uint8_t *buffer;
 		int section_last;
@@ -627,8 +583,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 		uint32_t run_size = sections[section]->size - section_offset;
 		int pad_bytes = 0;
 
-		if (sections[section]->size ==  0)
-		{
+		if (sections[section]->size ==  0) {
 			LOG_WARNING("empty section %d", section);
 			section++;
 			section_offset = 0;
@@ -638,12 +593,9 @@ int flash_write_unlock(struct target *target, struct image *image,
 		/* find the corresponding flash bank */
 		retval = get_flash_bank_by_addr(target, run_address, false, &c);
 		if (retval != ERROR_OK)
-		{
 			goto done;
-		}
-		if (c == NULL)
-		{
-			section++; /* and skip it */
+		if (c == NULL) {
+			section++;	/* and skip it */
 			section_offset = 0;
 			continue;
 		}
@@ -651,15 +603,13 @@ int flash_write_unlock(struct target *target, struct image *image,
 		/* collect consecutive sections which fall into the same bank */
 		section_last = section;
 		padding[section] = 0;
-		while ((run_address + run_size - 1 < c->base + c->size - 1)
-				&& (section_last + 1 < image->num_sections))
-		{
+		while ((run_address + run_size - 1 < c->base + c->size - 1) &&
+				(section_last + 1 < image->num_sections)) {
 			/* sections are sorted */
 			assert(sections[section_last + 1]->base_address >= c->base);
-			if (sections[section_last + 1]->base_address >= (c->base + c->size))
-			{
-			  /* Done with this bank */
-			  break;
+			if (sections[section_last + 1]->base_address >= (c->base + c->size)) {
+				/* Done with this bank */
+				break;
 			}
 
 			/* FIXME This needlessly touches sectors BETWEEN the
@@ -685,11 +635,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 			run_size += pad_bytes;
 
 			if (pad_bytes > 0)
-				LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
+				LOG_INFO("Padding image section %d with %d bytes",
+					section_last-1,
+					pad_bytes);
 		}
 
-		if (run_address + run_size - 1 > c->base + c->size - 1)
-		{
+		if (run_address + run_size - 1 > c->base + c->size - 1) {
 			/* If we have more than one flash chip back to back, then we limit
 			 * the current write operation to the current chip.
 			 */
@@ -710,7 +661,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 			for (sector = 0; sector < c->num_sectors; sector++) {
 				end = c->sectors[sector].offset
-						+ c->sectors[sector].size;
+					+ c->sectors[sector].size;
 				if (offset_end <= end)
 					break;
 			}
@@ -722,8 +673,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 		/* allocate buffer */
 		buffer = malloc(run_size);
-		if (buffer == NULL)
-		{
+		if (buffer == NULL) {
 			LOG_ERROR("Out of memory for flash bank buffer");
 			retval = ERROR_FAIL;
 			goto done;
@@ -731,13 +681,12 @@ int flash_write_unlock(struct target *target, struct image *image,
 		buffer_size = 0;
 
 		/* read sections to the buffer */
-		while (buffer_size < run_size)
-		{
+		while (buffer_size < run_size) {
 			size_t size_read;
 
 			size_read = run_size - buffer_size;
 			if (size_read > sections[section]->size - section_offset)
-			    size_read = sections[section]->size - section_offset;
+				size_read = sections[section]->size - section_offset;
 
 			/* KLUDGE!
 			 *
@@ -747,25 +696,25 @@ int flash_write_unlock(struct target *target, struct image *image,
 			intptr_t diff = (intptr_t)sections[section] - (intptr_t)image->sections;
 			int t_section_num = diff / sizeof(struct imagesection);
 
-			LOG_DEBUG("image_read_section: section = %d, t_section_num = %d, section_offset = %d, buffer_size = %d, size_read = %d",
-				 (int)section,
-(int)t_section_num, (int)section_offset, (int)buffer_size, (int)size_read);
-			if ((retval = image_read_section(image, t_section_num, section_offset,
-					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
-			{
+			LOG_DEBUG("image_read_section: section = %d, t_section_num = %d, "
+					"section_offset = %d, buffer_size = %d, size_read = %d",
+				(int)section, (int)t_section_num, (int)section_offset,
+				(int)buffer_size, (int)size_read);
+			retval = image_read_section(image, t_section_num, section_offset,
+					size_read, buffer + buffer_size, &size_read);
+			if (retval != ERROR_OK || size_read == 0) {
 				free(buffer);
 				goto done;
 			}
 
 			/* see if we need to pad the section */
 			while (padding[section]--)
-				 (buffer + buffer_size)[size_read++] = 0xff;
+				(buffer + buffer_size)[size_read++] = 0xff;
 
 			buffer_size += size_read;
 			section_offset += size_read;
 
-			if (section_offset >= sections[section]->size)
-			{
+			if (section_offset >= sections[section]->size) {
 				section++;
 				section_offset = 0;
 			}
@@ -774,37 +723,30 @@ int flash_write_unlock(struct target *target, struct image *image,
 		retval = ERROR_OK;
 
 		if (unlock)
-		{
 			retval = flash_unlock_address_range(target, run_address, run_size);
-		}
-		if (retval == ERROR_OK)
-		{
-			if (erase)
-			{
+		if (retval == ERROR_OK) {
+			if (erase) {
 				/* calculate and erase sectors */
 				retval = flash_erase_address_range(target,
 						true, run_address, run_size);
 			}
 		}
 
-		if (retval == ERROR_OK)
-		{
+		if (retval == ERROR_OK) {
 			/* write flash sectors */
 			retval = flash_driver_write(c, buffer, run_address - c->base, run_size);
 		}
 
 		free(buffer);
 
-		if (retval != ERROR_OK)
-		{
+		if (retval != ERROR_OK) {
 			/* abort operation */
 			goto done;
 		}
 
 		if (written != NULL)
-			*written += run_size; /* add run size to total written counter */
+			*written += run_size;	/* add run size to total written counter */
 	}
-
 
 done:
 	free(sections);
@@ -814,7 +756,7 @@ done:
 }
 
 int flash_write(struct target *target, struct image *image,
-		uint32_t *written, int erase)
+	uint32_t *written, int erase)
 {
 	return flash_write_unlock(target, image, written, erase, false);
 }

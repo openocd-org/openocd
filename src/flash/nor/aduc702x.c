@@ -29,20 +29,19 @@
 #include <target/algorithm.h>
 #include <target/arm.h>
 
-
 static int aduc702x_build_sector_list(struct flash_bank *bank);
-static int aduc702x_check_flash_completion(struct target* target, unsigned int timeout_ms);
+static int aduc702x_check_flash_completion(struct target *target, unsigned int timeout_ms);
 static int aduc702x_set_write_enable(struct target *target, int enable);
 
-#define ADUC702x_FLASH				0xfffff800
-#define ADUC702x_FLASH_FEESTA		(0*4)
-#define ADUC702x_FLASH_FEEMOD		(1*4)
-#define ADUC702x_FLASH_FEECON		(2*4)
-#define ADUC702x_FLASH_FEEDAT		(3*4)
-#define ADUC702x_FLASH_FEEADR		(4*4)
-#define ADUC702x_FLASH_FEESIGN		(5*4)
-#define ADUC702x_FLASH_FEEPRO		(6*4)
-#define ADUC702x_FLASH_FEEHIDE		(7*4)
+#define ADUC702x_FLASH                          0xfffff800
+#define ADUC702x_FLASH_FEESTA           (0*4)
+#define ADUC702x_FLASH_FEEMOD           (1*4)
+#define ADUC702x_FLASH_FEECON           (2*4)
+#define ADUC702x_FLASH_FEEDAT           (3*4)
+#define ADUC702x_FLASH_FEEADR           (4*4)
+#define ADUC702x_FLASH_FEESIGN          (5*4)
+#define ADUC702x_FLASH_FEEPRO           (6*4)
+#define ADUC702x_FLASH_FEEHIDE          (7*4)
 
 struct aduc702x_flash_bank {
 	struct working_area *write_algorithm;
@@ -56,33 +55,32 @@ FLASH_BANK_COMMAND_HANDLER(aduc702x_flash_bank_command)
 
 	nbank = malloc(sizeof(struct aduc702x_flash_bank));
 
-        bank->base = 0x80000;
-        bank->size = 0xF800; // top 4k not accessible
+	bank->base = 0x80000;
+	bank->size = 0xF800;	/* top 4k not accessible */
 	bank->driver_priv = nbank;
 
-        aduc702x_build_sector_list(bank);
+	aduc702x_build_sector_list(bank);
 
-        return ERROR_OK;
+	return ERROR_OK;
 }
 
 static int aduc702x_build_sector_list(struct flash_bank *bank)
 {
-	//aduc7026_struct flash_bank *aduc7026_info = bank->driver_priv;
+	/* aduc7026_struct flash_bank *aduc7026_info = bank->driver_priv; */
 
-        int i = 0;
-        uint32_t offset = 0;
+	int i = 0;
+	uint32_t offset = 0;
 
-        // sector size is 512
-        bank->num_sectors = bank->size / 512;
-        bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-        for (i = 0; i < bank->num_sectors; ++i)
-        {
-                bank->sectors[i].offset = offset;
-                bank->sectors[i].size = 512;
-                offset += bank->sectors[i].size;
-                bank->sectors[i].is_erased = -1;
-                bank->sectors[i].is_protected = 0;
-        }
+	/* sector size is 512 */
+	bank->num_sectors = bank->size / 512;
+	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
+	for (i = 0; i < bank->num_sectors; ++i) {
+		bank->sectors[i].offset = offset;
+		bank->sectors[i].size = 512;
+		offset += bank->sectors[i].size;
+		bank->sectors[i].is_erased = -1;
+		bank->sectors[i].is_protected = 0;
+	}
 
 	return ERROR_OK;
 }
@@ -95,13 +93,13 @@ static int aduc702x_protect_check(struct flash_bank *bank)
 
 static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 {
-        //int res;
+	/* int res; */
 	int x;
 	int count;
-	//uint32_t v;
+	/* uint32_t v; */
 	struct target *target = bank->target;
 
-        aduc702x_set_write_enable(target, 1);
+	aduc702x_set_write_enable(target, 1);
 
 	/* mass erase */
 	if (((first | last) == 0) || ((first == 0) && (last >= bank->num_sectors))) {
@@ -110,38 +108,35 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 		target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEADR, 0xffc3);
 		target_write_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEECON, 0x06);
 
-                if (aduc702x_check_flash_completion(target, 3500) != ERROR_OK)
-		{
+		if (aduc702x_check_flash_completion(target, 3500) != ERROR_OK) {
 			LOG_ERROR("mass erase failed");
-                        aduc702x_set_write_enable(target, 0);
+			aduc702x_set_write_enable(target, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
 		LOG_DEBUG("mass erase successful.");
 		return ERROR_OK;
 	} else {
-                unsigned long adr;
+		unsigned long adr;
 
-                count = last - first + 1;
-                for (x = 0; x < count; ++x)
-                {
-                        adr = bank->base + ((first + x) * 512);
+		count = last - first + 1;
+		for (x = 0; x < count; ++x) {
+			adr = bank->base + ((first + x) * 512);
 
-                        target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEADR, adr);
-                        target_write_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEECON, 0x05);
+			target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEADR, adr);
+			target_write_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEECON, 0x05);
 
-                        if (aduc702x_check_flash_completion(target, 50) != ERROR_OK)
-                        {
-                                LOG_ERROR("failed to erase sector at address 0x%08lX", adr);
-                                aduc702x_set_write_enable(target, 0);
-                                return ERROR_FLASH_SECTOR_NOT_ERASED;
-                        }
+			if (aduc702x_check_flash_completion(target, 50) != ERROR_OK) {
+				LOG_ERROR("failed to erase sector at address 0x%08lX", adr);
+				aduc702x_set_write_enable(target, 0);
+				return ERROR_FLASH_SECTOR_NOT_ERASED;
+			}
 
-                        LOG_DEBUG("erased sector at address 0x%08lX", adr);
-                }
-        }
+			LOG_DEBUG("erased sector at address 0x%08lX", adr);
+		}
+	}
 
-        aduc702x_set_write_enable(target, 0);
+	aduc702x_set_write_enable(target, 0);
 
 	return ERROR_OK;
 }
@@ -157,7 +152,10 @@ static int aduc702x_protect(struct flash_bank *bank, int set, int first, int las
  *
  * Caller should not check for other return values specifically
  */
-static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int aduc702x_write_block(struct flash_bank *bank,
+	uint8_t *buffer,
+	uint32_t offset,
+	uint32_t count)
 {
 	struct aduc702x_flash_bank *aduc702x_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -168,71 +166,66 @@ static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32
 	struct arm_algorithm armv4_5_info;
 	int retval = ERROR_OK;
 
-	if (((count%2)!=0)||((offset%2)!=0))
-	{
+	if (((count%2) != 0) || ((offset%2) != 0)) {
 		LOG_ERROR("write block must be multiple of two bytes in offset & length");
 		return ERROR_FAIL;
 	}
 
-        /* parameters:
+	/* parameters:
 
-        r0 - address of source data (absolute)
-        r1 - number of halfwords to be copied
-        r2 - start address in flash (offset from beginning of flash memory)
-        r3 - exit code
-        r4 - base address of flash controller (0xFFFFF800)
+	r0 - address of source data (absolute)
+	r1 - number of halfwords to be copied
+	r2 - start address in flash (offset from beginning of flash memory)
+	r3 - exit code
+	r4 - base address of flash controller (0xFFFFF800)
 
-        registers:
+	registers:
 
-        r5 - scratch
-        r6 - set to 2, used to write flash command
+	r5 - scratch
+	r6 - set to 2, used to write flash command
 
-        */
-        static const uint32_t aduc702x_flash_write_code[] = {
-        //<_start>:
-                0xe3a05008,	// mov	r5, #8	; 0x8
-                0xe5845004,	// str	r5, [r4, #4]
-                0xe3a06002,	// mov	r6, #2	; 0x2
-        //<next>:
-                0xe1c421b0,	// strh	r2, [r4, #16]
-                0xe0d050b2,	// ldrh	r5, [r0], #2
-                0xe1c450bc,	// strh	r5, [r4, #12]
-                0xe5c46008,	// strb	r6, [r4, #8]
-        //<wait_complete>:
-                0xe1d430b0,	// ldrh	r3, [r4]
-                0xe3130004,	// tst	r3, #4	; 0x4
-                0x1afffffc,	// bne	1001c <wait_complete>
-                0xe2822002,	// add	r2, r2, #2	; 0x2
-                0xe2511001,	// subs	r1, r1, #1	; 0x1
-                0x0a000001,	// beq	1003c <done>
-                0xe3130001,	// tst	r3, #1	; 0x1
-                0x1afffff3,	// bne	1000c <next>
-        //<done>:
-                0xeafffffe 	// b	1003c <done>
+	*/
+	static const uint32_t aduc702x_flash_write_code[] = {
+		/* <_start>: */
+		0xe3a05008,	/* mov	r5, #8	; 0x8 */
+		0xe5845004,	/* str	r5, [r4, #4] */
+		0xe3a06002,	/* mov	r6, #2	; 0x2 */
+		/* <next>: */
+		0xe1c421b0,	/* strh	r2, [r4, #16] */
+		0xe0d050b2,	/* ldrh	r5, [r0], #2 */
+		0xe1c450bc,	/* strh	r5, [r4, #12] */
+		0xe5c46008,	/* strb	r6, [r4, #8] */
+		/* <wait_complete>: */
+		0xe1d430b0,	/* ldrh	r3, [r4] */
+		0xe3130004,	/* tst	r3, #4	; 0x4 */
+		0x1afffffc,	/* bne	1001c <wait_complete> */
+		0xe2822002,	/* add	r2, r2, #2	; 0x2 */
+		0xe2511001,	/* subs	r1, r1, #1	; 0x1 */
+		0x0a000001,	/* beq	1003c <done> */
+		0xe3130001,	/* tst	r3, #1	; 0x1 */
+		0x1afffff3,	/* bne	1000c <next> */
+		/* <done>: */
+		0xeafffffe	/* b	1003c <done> */
 	};
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(aduc702x_flash_write_code),
-                &aduc702x_info->write_algorithm) != ERROR_OK)
-	{
+			&aduc702x_info->write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
-
-	retval=target_write_buffer(target, aduc702x_info->write_algorithm->address,
-                sizeof(aduc702x_flash_write_code), (uint8_t*)aduc702x_flash_write_code);
-	if (retval!=ERROR_OK)
-	{
-		return retval;
 	}
 
+	retval = target_write_buffer(target, aduc702x_info->write_algorithm->address,
+			sizeof(aduc702x_flash_write_code), (uint8_t *)aduc702x_flash_write_code);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* memory buffer */
-	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
-	{
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
-		if (buffer_size <= 256)
-		{
-			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
+		if (buffer_size <= 256) {
+			/* if we already allocated the writing code, but failed to get a buffer,
+			 *free the algorithm */
 			if (aduc702x_info->write_algorithm)
 				target_free_working_area(target, aduc702x_info->write_algorithm);
 
@@ -251,32 +244,29 @@ static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN);
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
 
-	while (count > 0)
-	{
+	while (count > 0) {
 		uint32_t thisrun_count = (count > buffer_size) ? buffer_size : count;
 
-		retval=target_write_buffer(target, source->address, thisrun_count, buffer);
-		if (retval!=ERROR_OK)
-		{
+		retval = target_write_buffer(target, source->address, thisrun_count, buffer);
+		if (retval != ERROR_OK)
 			break;
-		}
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, thisrun_count/2);
 		buf_set_u32(reg_params[2].value, 0, 32, address);
 		buf_set_u32(reg_params[4].value, 0, 32, 0xFFFFF800);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 5,
-                        reg_params, aduc702x_info->write_algorithm->address,
-                        aduc702x_info->write_algorithm->address + sizeof(aduc702x_flash_write_code) - 4,
-                        10000, &armv4_5_info)) != ERROR_OK)
-		{
+		retval = target_run_algorithm(target, 0, NULL, 5,
+				reg_params, aduc702x_info->write_algorithm->address,
+				aduc702x_info->write_algorithm->address +
+				sizeof(aduc702x_flash_write_code) - 4,
+				10000, &armv4_5_info);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing aduc702x flash write algorithm");
 			break;
 		}
 
-		if ((buf_get_u32(reg_params[3].value, 0, 32) & 1) != 1)
-		{
+		if ((buf_get_u32(reg_params[3].value, 0, 32) & 1) != 1) {
 			/* FIX!!!! what does this mean??? replace w/sensible error message */
 			LOG_ERROR("aduc702x detected error writing flash");
 			retval = ERROR_FAIL;
@@ -302,43 +292,44 @@ static int aduc702x_write_block(struct flash_bank *bank, uint8_t *buffer, uint32
 
 /* All-JTAG, single-access method.  Very slow.  Used only if there is no
  * working area available. */
-static int aduc702x_write_single(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int aduc702x_write_single(struct flash_bank *bank,
+	uint8_t *buffer,
+	uint32_t offset,
+	uint32_t count)
 {
 	uint32_t x;
-        uint8_t b;
+	uint8_t b;
 	struct target *target = bank->target;
 
-        aduc702x_set_write_enable(target, 1);
+	aduc702x_set_write_enable(target, 1);
 
 	for (x = 0; x < count; x += 2) {
-                // FEEADR = address
+		/* FEEADR = address */
 		target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEADR, offset + x);
 
-                // set up data
-		if ((x + 1) == count)
-                {
-                        // last byte
-                        target_read_u8(target, offset + x + 1, &b);
-                }
-                else
-                        b = buffer[x + 1];
+		/* set up data */
+		if ((x + 1) == count) {
+			/* last byte */
+			target_read_u8(target, offset + x + 1, &b);
+		} else
+			b = buffer[x + 1];
 
-                target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEDAT, buffer[x] | (b << 8));
+		target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEDAT, buffer[x] | (b << 8));
 
-                // do single-write command
+		/* do single-write command */
 		target_write_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEECON, 0x02);
 
-                if (aduc702x_check_flash_completion(target, 1) != ERROR_OK)
-                {
-			LOG_ERROR("single write failed for address 0x%08lX", (unsigned long)(offset + x));
-                        aduc702x_set_write_enable(target, 0);
+		if (aduc702x_check_flash_completion(target, 1) != ERROR_OK) {
+			LOG_ERROR("single write failed for address 0x%08lX",
+				(unsigned long)(offset + x));
+			aduc702x_set_write_enable(target, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
 	}
-        LOG_DEBUG("wrote %d bytes at address 0x%08lX", (int)count, (unsigned long)(offset + x));
+	LOG_DEBUG("wrote %d bytes at address 0x%08lX", (int)count, (unsigned long)(offset + x));
 
-        aduc702x_set_write_enable(target, 0);
+	aduc702x_set_write_enable(target, 0);
 
 	return ERROR_OK;
 }
@@ -347,24 +338,23 @@ static int aduc702x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t off
 {
 	int retval;
 
-        /* try using a block write */
-        if ((retval = aduc702x_write_block(bank, buffer, offset, count)) != ERROR_OK)
-        {
-                if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-                {
-                        /* if block write failed (no sufficient working area),
-                         * use normal (slow) JTAG method */
-                        LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
+	/* try using a block write */
+	retval = aduc702x_write_block(bank, buffer, offset, count);
+	if (retval != ERROR_OK) {
+		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
+			/* if block write failed (no sufficient working area),
+			 * use normal (slow) JTAG method */
+			LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 
-                        if ((retval = aduc702x_write_single(bank, buffer, offset, count)) != ERROR_OK)
-                        {
-                                LOG_ERROR("slow write failed");
-                                return ERROR_FLASH_OPERATION_FAILED;
-                        }
-                }
-        }
+			retval = aduc702x_write_single(bank, buffer, offset, count);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("slow write failed");
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+		}
+	}
 
-        return retval;
+	return retval;
 }
 
 static int aduc702x_probe(struct flash_bank *bank)
@@ -382,10 +372,10 @@ static int aduc702x_info(struct flash_bank *bank, char *buf, int buf_size)
  * enable = 1 enables writes & erases, 0 disables them */
 static int aduc702x_set_write_enable(struct target *target, int enable)
 {
-        // don't bother to preserve int enable bit here
-        target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEMOD, enable ? 8 : 0);
+	/* don't bother to preserve int enable bit here */
+	target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEMOD, enable ? 8 : 0);
 
-        return ERROR_OK;
+	return ERROR_OK;
 }
 
 /* wait up to timeout_ms for controller to not be busy,
@@ -393,22 +383,27 @@ static int aduc702x_set_write_enable(struct target *target, int enable)
  *
  * this function sleeps 1ms between checks (after the first one),
  * so in some cases may slow things down without a usleep after the first read */
-static int aduc702x_check_flash_completion(struct target* target, unsigned int timeout_ms)
+static int aduc702x_check_flash_completion(struct target *target, unsigned int timeout_ms)
 {
-        uint8_t v = 4;
+	uint8_t v = 4;
 
-        long long endtime = timeval_ms() + timeout_ms;
-        while (1) {
-                target_read_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEESTA, &v);
-                if ((v & 4) == 0) break;
-                alive_sleep(1);
-                if (timeval_ms() >= endtime) break;
-        }
+	long long endtime = timeval_ms() + timeout_ms;
+	while (1) {
+		target_read_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEESTA, &v);
+		if ((v & 4) == 0)
+			break;
+		alive_sleep(1);
+		if (timeval_ms() >= endtime)
+			break;
+	}
 
-        if (v & 2) return ERROR_FAIL;
-        // if a command is ignored, both the success and fail bits may be 0
-        else if ((v & 3) == 0) return ERROR_FAIL;
-        else return ERROR_OK;
+	if (v & 2)
+		return ERROR_FAIL;
+	/* if a command is ignored, both the success and fail bits may be 0 */
+	else if ((v & 3) == 0)
+		return ERROR_FAIL;
+	else
+		return ERROR_OK;
 }
 
 struct flash_driver aduc702x_flash = {

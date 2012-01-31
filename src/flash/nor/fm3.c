@@ -31,8 +31,7 @@
 #define FLASH_DQ6 0x00000040	/* Data toggle flag bit (TOGG) position */
 #define FLASH_DQ5 0x00000020	/* Time limit exceeding flag bit (TLOV) position */
 
-enum fm3_variant
-{
+enum fm3_variant {
 	mb9bfxx1,	/* Flash Type '1' */
 	mb9bfxx2,
 	mb9bfxx3,
@@ -47,15 +46,13 @@ enum fm3_variant
 	mb9afxx6
 };
 
-enum fm3_flash_type
-{
+enum fm3_flash_type {
 	fm3_no_flash_type = 0,
 	fm3_flash_type1   = 1,
 	fm3_flash_type2   = 2
 };
 
-struct fm3_flash_bank
-{
+struct fm3_flash_bank {
 	struct working_area *write_algorithm;
 	enum fm3_variant variant;
 	enum fm3_flash_type flashtype;

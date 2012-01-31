@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FLASH_NOR_CORE_H
 #define FLASH_NOR_CORE_H
 
@@ -39,11 +40,10 @@ struct image;
  * within a flash bank.  A single bank typically consists of multiple
  * sectors, each of which can be erased and protected independently.
  */
-struct flash_sector
-{
-	/// Bus offset from start of the flash chip (in bytes).
+struct flash_sector {
+	/** Bus offset from start of the flash chip (in bytes). */
 	uint32_t offset;
-	/// Number of bytes in this flash sector.
+	/** Number of bytes in this flash sector. */
 	uint32_t size;
 	/**
 	 * Indication of erasure status: 0 = not erased, 1 = erased,
@@ -72,8 +72,7 @@ struct flash_sector
  * may use the @c driver_priv member to store additional data on a
  * per-bank basis, if required.
  */
-struct flash_bank
-{
+struct flash_bank {
 	const char *name;
 
 	struct target *target; /**< Target to which this bank belongs. */
@@ -94,13 +93,13 @@ struct flash_bank
 	 * some non-zero value during "probe()" or "auto_probe()".
 	 */
 	int num_sectors;
-	/// Array of sectors, allocated and initilized by the flash driver
+	/** Array of sectors, allocated and initilized by the flash driver */
 	struct flash_sector *sectors;
 
 	struct flash_bank *next; /**< The next flash bank on this chip */
 };
 
-/// Registers the 'flash' subsystem commands
+/** Registers the 'flash' subsystem commands */
 int flash_register_commands(struct command_context *cmd_ctx);
 
 /**
@@ -134,7 +133,7 @@ int flash_write(struct target *target,
  * This routine must be called when the system may modify the status.
  */
 void flash_set_dirty(void);
-/// @returns The number of flash banks currently defined.
+/** @returns The number of flash banks currently defined. */
 int flash_get_bank_count(void);
 /**
  * Provides default read implementation for flash memory.
@@ -209,6 +208,7 @@ struct flash_bank *get_flash_bank_by_num_noprobe(int num);
  * @param check return ERROR_OK and result_bank NULL if the bank does not exist
  * @returns The struct flash_bank located at @a addr, or NULL.
  */
-int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check, struct flash_bank **result_bank);
+int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check,
+		struct flash_bank **result_bank);
 
-#endif // FLASH_NOR_CORE_H
+#endif /* FLASH_NOR_CORE_H */

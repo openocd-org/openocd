@@ -19,6 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -26,7 +27,6 @@
 #include "imp.h"
 #include "cfi.h"
 #include "non_cfi.h"
-
 
 #define KB 1024
 #define MB (1024*1024)
@@ -43,8 +43,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(16, 4*KB)
 		}
 	},
@@ -57,8 +56,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(32, 4*KB)
 		}
 	},
@@ -71,8 +69,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(64, 4*KB)
 		}
 	},
@@ -85,8 +82,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(128, 4*KB)
 		}
 	},
@@ -99,8 +95,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(8, 64*KB)
 		}
 	},
@@ -113,8 +108,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(128, 4*KB)
 		}
 	},
@@ -127,8 +121,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2,  8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -144,8 +137,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(7, 64*KB),
 			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(2,  8*KB),
@@ -156,9 +148,9 @@ static struct non_cfi non_cfi_flashes[] = {
 	/* SST 39VF* do not support DQ5 status polling - this currently is
 	   only supported by the host algorithm, not by the target code using
 	   the work area.
-           Only true for 8-bit and 32-bit wide memories. 16-bit wide memories
-           without DQ5 status polling are supported by the target code.
-        */
+	   Only true for 8-bit and 32-bit wide memories. 16-bit wide memories
+	   without DQ5 status polling are supported by the target code.
+	*/
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0x2782,				/* SST39xF160 */
@@ -168,8 +160,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(512, 4*KB)
 		}
 	},
@@ -182,8 +173,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1024, 4*KB)
 		}
 	},
@@ -196,8 +186,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(512, 4*KB)
 		}
 	},
@@ -210,8 +199,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(512, 4*KB)
 		}
 	},
@@ -224,8 +212,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(512, 4*KB)
 		}
 	},
@@ -238,8 +225,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1024, 4*KB)
 		}
 	},
@@ -252,26 +238,24 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
 		.num_erase_regions = 1,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1024, 4*KB)
 		}
 	},
 	{
-	.mfr = CFI_MFR_SST,
- 	    .id = 0x236d,               /* SST39VF6401B */
- 	    .pri_id = 0x02,
- 	    .dev_size = 8*MB,
- 	    .interface_desc = 0x2,      /* x8 or x16 device with nBYTE */
- 	    .max_buf_write_size = 0x0,
- 	    .status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
- 	    .num_erase_regions = 1,
- 	    .erase_region_info =
- 	    {
- 	        ERASE_REGION(2048, 4*KB)
- 	    }
- 	},
- 	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x236d,		/* SST39VF6401B */
+		.pri_id = 0x02,
+		.dev_size = 8*MB,
+		.interface_desc = 0x2,	/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info = {
+			ERASE_REGION(2048, 4*KB)
+		}
+	},
+	{
 		.mfr = CFI_MFR_AMD,
 		.id = 0x22ab,				/* AM29F400BB */
 		.pri_id = 0x02,
@@ -280,8 +264,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2,  8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -297,8 +280,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(7, 64*KB),
 			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(2,  8*KB),
@@ -314,15 +296,14 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2,  8*KB),
 			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(15, 64*KB)
 		}
 	},
-   {
+	{
 		.mfr = CFI_MFR_FUJITSU,
 		.id = 0x22ea,				/* MBM29SL800TE */
 		.pri_id = 0x02,
@@ -331,8 +312,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(15, 64*KB),
 			ERASE_REGION(1,  32*KB),
 			ERASE_REGION(2,  8*KB),
@@ -348,8 +328,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x00,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2,  8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -365,8 +344,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2,  8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -382,8 +360,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2, 8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -400,8 +377,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2, 8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -417,8 +393,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(31, 64*KB),
 			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(2, 8*KB),
@@ -434,8 +409,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2,  8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -451,8 +425,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 3,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(8,  8*KB),
 			ERASE_REGION(2, 32*KB),
 			ERASE_REGION(30, 64*KB)
@@ -467,8 +440,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 3,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(30, 64*KB),
 			ERASE_REGION(2, 32*KB),
 			ERASE_REGION(8,  8*KB)
@@ -483,8 +455,7 @@ static struct non_cfi non_cfi_flashes[] = {
 		.max_buf_write_size = 0x0,
 		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
-		.erase_region_info =
-		{
+		.erase_region_info = {
 			ERASE_REGION(1, 16*KB),
 			ERASE_REGION(2, 8*KB),
 			ERASE_REGION(1, 32*KB),
@@ -503,18 +474,15 @@ void cfi_fixup_non_cfi(struct flash_bank *bank)
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct non_cfi *non_cfi = non_cfi_flashes;
 
-	if(cfi_info->x16_as_x8)
+	if (cfi_info->x16_as_x8)
 		mask = 0xFF;
 	else
 		mask = 0xFFFF;
 
-	for (non_cfi = non_cfi_flashes; non_cfi->mfr; non_cfi++)
-	{
+	for (non_cfi = non_cfi_flashes; non_cfi->mfr; non_cfi++) {
 		if ((cfi_info->manufacturer == non_cfi->mfr)
-			&& (cfi_info->device_id == (non_cfi->id & mask)))
-		{
+		    && (cfi_info->device_id == (non_cfi->id & mask)))
 			break;
-		}
 	}
 
 	/* only fixup jedec flashs found in table */
@@ -554,14 +522,13 @@ void cfi_fixup_non_cfi(struct flash_bank *bank)
 	cfi_info->status_poll_mask = non_cfi->status_poll_mask;
 	cfi_info->num_erase_regions = non_cfi->num_erase_regions;
 	size_t erase_region_info_size = sizeof(*cfi_info->erase_region_info) *
-			cfi_info->num_erase_regions;
+		cfi_info->num_erase_regions;
 	cfi_info->erase_region_info = malloc(erase_region_info_size);
 	memcpy(cfi_info->erase_region_info,
-			non_cfi->erase_region_info, erase_region_info_size);
+		non_cfi->erase_region_info, erase_region_info_size);
 	cfi_info->dev_size = non_cfi->dev_size;
 
-	if (cfi_info->pri_id == 0x2)
-	{
+	if (cfi_info->pri_id == 0x2) {
 		struct cfi_spansion_pri_ext *pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
 
 		pri_ext->pri[0] = 'P';
@@ -589,8 +556,7 @@ void cfi_fixup_non_cfi(struct flash_bank *bank)
 		pri_ext->_reversed_geometry = 0;
 
 		cfi_info->pri_ext = pri_ext;
-	} else if ((cfi_info->pri_id == 0x1) || (cfi_info->pri_id == 0x3))
-	{
+	} else if ((cfi_info->pri_id == 0x1) || (cfi_info->pri_id == 0x3)) {
 		LOG_ERROR("BUG: non-CFI flashes using the Intel commandset are not yet supported");
 		exit(-1);
 	}

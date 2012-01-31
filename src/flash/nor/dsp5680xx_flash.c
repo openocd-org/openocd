@@ -27,12 +27,12 @@
  * @file   dsp5680xx_flash.c
  * @author Rodrigo L. Rosa <rodrigorosa.LG@gmail.com>
  * @date   Thu Jun  9 18:21:58 2011
- * 
+ *
  * @brief  This file implements the basic functions to run flashing commands
  * from the TCL interface.
  * It allows the user to flash the Freescale 5680xx DSP.
- * 
- * 
+ *
+ *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,14 +84,14 @@ FLASH_BANK_COMMAND_HANDLER(dsp5680xx_flash_bank_command)
 	return ERROR_OK;
 }
 
-/** 
+/**
  * A memory mapped register (PROT) holds information regarding sector protection.
  * Protection refers to undesired core access.
  * The value in this register is loaded from flash upon reset.
- * 
- * @param bank 
- * 
- * @return 
+ *
+ * @param bank
+ *
+ * @return
  */
 static int dsp5680xx_flash_protect_check(struct flash_bank *bank)
 {
@@ -118,17 +118,18 @@ static int dsp5680xx_flash_protect_check(struct flash_bank *bank)
 	return retval;
 }
 
-/** 
+/**
  * Protection funcionality is not implemented.
  * The current implementation applies/removes security on the chip.
- * The chip is effectively secured/unsecured after the first reset following the execution of this function.
- * 
- * @param bank 
+ * The chip is effectively secured/unsecured after the first reset
+ * following the execution of this function.
+ *
+ * @param bank
  * @param set Apply or remove security on the chip.
  * @param first This parameter is ignored.
  * @param last This parameter is ignored.
- * 
- * @return 
+ *
+ * @return
  */
 static int dsp5680xx_flash_protect(struct flash_bank *bank, int set, int first,
 				   int last)
@@ -153,15 +154,16 @@ static int dsp5680xx_flash_protect(struct flash_bank *bank, int set, int first,
 	return retval;
 }
 
-/** 
- * The dsp5680xx use word addressing. The "/2" that appear in the following code are a workaround for the fact that OpenOCD uses byte addressing.
- * 
- * @param bank 
+/**
+ * The dsp5680xx use word addressing. The "/2" that appear in the following code
+ * are a workaround for the fact that OpenOCD uses byte addressing.
+ *
+ * @param bank
  * @param buffer Data to write to flash.
- * @param offset 
+ * @param offset
  * @param count In bytes (2 bytes per address).
- * 
- * @return 
+ *
+ * @return
  */
 static int dsp5680xx_flash_write(struct flash_bank *bank, uint8_t * buffer,
 				 uint32_t offset, uint32_t count)
@@ -178,24 +180,18 @@ static int dsp5680xx_flash_write(struct flash_bank *bank, uint8_t * buffer,
 		 * This chip uses word addressing, Openocd only supports byte addressing.
 		 * The workaround results in disabling writing to odd byte addresses
 		 */
-		LOG_ERROR
-		    ("%s: Writing to odd addresses not supported for this target",
-		     __func__);
+		LOG_ERROR("%s: Writing to odd addresses not supported for this target", __func__);
 		return ERROR_FAIL;
 	}
-	retval =
-	    dsp5680xx_f_wr(bank->target, buffer, bank->base + offset / 2, count,
-			   0);
+	retval = dsp5680xx_f_wr(bank->target, buffer, bank->base + offset / 2, count, 0);
 	uint32_t addr_word;
 
 	for (addr_word = bank->base + offset / 2; addr_word < count / 2;
-	     addr_word += (HFM_SECTOR_SIZE / 2)) {
+			addr_word += (HFM_SECTOR_SIZE / 2)) {
 		if (retval == ERROR_OK)
-			bank->sectors[addr_word /
-				      (HFM_SECTOR_SIZE / 2)].is_erased = 0;
+			bank->sectors[addr_word / (HFM_SECTOR_SIZE / 2)].is_erased = 0;
 		else
-			bank->sectors[addr_word /
-				      (HFM_SECTOR_SIZE / 2)].is_erased = -1;
+			bank->sectors[addr_word / (HFM_SECTOR_SIZE / 2)].is_erased = -1;
 	}
 	return retval;
 }
@@ -207,31 +203,32 @@ static int dsp5680xx_probe(struct flash_bank *bank)
 }
 
 static int dsp5680xx_flash_info(struct flash_bank *bank, char *buf,
-				int buf_size)
+		int buf_size)
 {
 	snprintf(buf, buf_size,
 		"\ndsp5680xx flash driver info:\n - See comments in code.");
 	return ERROR_OK;
 }
 
-/** 
- * The flash module (FM) on the dsp5680xx supports both individual sector and mass erase of the flash memory.
- * If this function is called with @first == @last == 0 or if @first is the first sector (#0) and @last is the last sector then the mass erase command is executed (much faster than erasing each sector individually).
- * 
- * @param bank 
- * @param first 
- * @param last 
- * 
- * @return 
+/**
+ * The flash module (FM) on the dsp5680xx supports both individual sector
+ * and mass erase of the flash memory.
+ * If this function is called with @first == @last == 0 or if @first is the
+ * first sector (#0) and @last is the last sector then the mass erase command
+ * is executed (much faster than erasing each sector individually).
+ *
+ * @param bank
+ * @param first
+ * @param last
+ *
+ * @return
  */
 static int dsp5680xx_flash_erase(struct flash_bank *bank, int first, int last)
 {
 	int retval;
 
-	retval =
-	    dsp5680xx_f_erase(bank->target, (uint32_t) first, (uint32_t) last);
-	if ((!(first | last))
-	    || ((first == 0) && (last == (HFM_SECTOR_COUNT - 1))))
+	retval = dsp5680xx_f_erase(bank->target, (uint32_t) first, (uint32_t) last);
+	if ((!(first | last)) || ((first == 0) && (last == (HFM_SECTOR_COUNT - 1))))
 		last = HFM_SECTOR_COUNT - 1;
 	if (retval == ERROR_OK)
 		for (int i = first; i <= last; i++)
@@ -246,13 +243,13 @@ static int dsp5680xx_flash_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-/** 
+/**
  * The flash module (FM) on the dsp5680xx support a blank check function.
  * This function executes the FM's blank check functionality on each and every sector.
- * 
- * @param bank 
- * 
- * @return 
+ *
+ * @param bank
+ *
+ * @return
  */
 static int dsp5680xx_flash_erase_check(struct flash_bank *bank)
 {
@@ -264,8 +261,7 @@ static int dsp5680xx_flash_erase_check(struct flash_bank *bank)
 
 	for (i = 0; i < HFM_SECTOR_COUNT; i++) {
 		if (bank->sectors[i].is_erased == -1) {
-			retval =
-			    dsp5680xx_f_erase_check(bank->target, &erased, i);
+			retval = dsp5680xx_f_erase_check(bank->target, &erased, i);
 			if (retval != ERROR_OK) {
 				bank->sectors[i].is_erased = -1;
 			} else {

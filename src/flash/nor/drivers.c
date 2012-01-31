@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -84,8 +85,7 @@ static struct flash_driver *flash_drivers[] = {
 
 struct flash_driver *flash_driver_find_by_name(const char *name)
 {
-	for (unsigned i = 0; flash_drivers[i]; i++)
-	{
+	for (unsigned i = 0; flash_drivers[i]; i++) {
 		if (strcmp(name, flash_drivers[i]->name) == 0)
 			return flash_drivers[i];
 	}

@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -70,7 +71,8 @@
  * http://www.st.com/internet/mcu/product/250192.jsp
  *
  * PM0059
- * www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/PROGRAMMING_MANUAL/CD00233952.pdf
+ * www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/
+ * PROGRAMMING_MANUAL/CD00233952.pdf
  *
  * STM32F1x series - notice that this code was copy, pasted and knocked
  * into a stm32f2x driver, so in case something has been converted or
@@ -85,10 +87,9 @@
  *
  */
 
- // Erase time can be as high as 1000ms, 10x this and it's toast...
+/* Erase time can be as high as 1000ms, 10x this and it's toast... */
 #define FLASH_ERASE_TIMEOUT 10000
 #define FLASH_WRITE_TIMEOUT 5
-
 
 #define STM32_FLASH_BASE	0x40023c00
 #define STM32_FLASH_ACR		0x40023c00
@@ -98,8 +99,6 @@
 #define STM32_FLASH_CR		0x40023c10
 #define STM32_FLASH_OPTCR	0x40023c14
 #define STM32_FLASH_OBR		0x40023c1C
-
-
 
 /* option byte location */
 
@@ -122,19 +121,19 @@
 #define FLASH_PSIZE_16	(1 << 8)
 #define FLASH_PSIZE_32	(2 << 8)
 #define FLASH_PSIZE_64	(3 << 8)
-#define FLASH_SNB(a) 	((a) << 3)
+#define FLASH_SNB(a)	((a) << 3)
 #define FLASH_LOCK		(1 << 31)
 
 /* FLASH_SR register bits */
 
 #define FLASH_BSY		(1 << 16)
-#define FLASH_PGSERR	(1 << 7) // Programming sequence error
-#define FLASH_PGPERR	(1 << 6) // Programming parallelism error
-#define FLASH_PGAERR	(1 << 5) // Programming alignment error
-#define FLASH_WRPERR	(1 << 4) // Write protection error
-#define FLASH_OPERR		(1 << 1) // Operation error
+#define FLASH_PGSERR	(1 << 7) /* Programming sequence error */
+#define FLASH_PGPERR	(1 << 6) /* Programming parallelism error */
+#define FLASH_PGAERR	(1 << 5) /* Programming alignment error */
+#define FLASH_WRPERR	(1 << 4) /* Write protection error */
+#define FLASH_OPERR		(1 << 1) /* Operation error */
 
-#define FLASH_ERROR (FLASH_PGSERR | FLASH_PGPERR | FLASH_PGAERR| FLASH_WRPERR| FLASH_OPERR)
+#define FLASH_ERROR (FLASH_PGSERR | FLASH_PGPERR | FLASH_PGAERR | FLASH_WRPERR | FLASH_OPERR)
 
 /* STM32_FLASH_OBR bit definitions (reading) */
 
@@ -150,8 +149,7 @@
 #define KEY1			0x45670123
 #define KEY2			0xCDEF89AB
 
-struct stm32x_flash_bank
-{
+struct stm32x_flash_bank {
 	struct working_area *write_algorithm;
 	int probed;
 };
@@ -164,9 +162,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	struct stm32x_flash_bank *stm32x_info;
 
 	if (CMD_ARGC < 6)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	stm32x_info = malloc(sizeof(struct stm32x_flash_bank));
 	bank->driver_priv = stm32x_info;
@@ -195,16 +191,14 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 	int retval = ERROR_OK;
 
 	/* wait for busy to clear */
-	for (;;)
-	{
+	for (;;) {
 		retval = stm32x_get_flash_status(bank, &status);
 		if (retval != ERROR_OK)
 			return retval;
 		LOG_DEBUG("status: 0x%" PRIx32 "", status);
 		if ((status & FLASH_BSY) == 0)
 			break;
-		if (timeout-- <= 0)
-		{
+		if (timeout-- <= 0) {
 			LOG_ERROR("timed out waiting for flash");
 			return ERROR_FAIL;
 		}
@@ -212,15 +206,13 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 	}
 
 
-	if (status & FLASH_WRPERR)
-	{
+	if (status & FLASH_WRPERR) {
 		LOG_ERROR("stm32x device protected");
 		retval = ERROR_FAIL;
 	}
 
 	/* Clear but report errors */
-	if (status & FLASH_ERROR)
-	{
+	if (status & FLASH_ERROR) {
 		/* If this operation fails, we ignore it and report the original
 		 * retval
 		 */
@@ -275,8 +267,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	struct target *target = bank->target;
 	int i;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -297,8 +288,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	4. Wait for the BSY bit to be cleared
 	 */
 
-	for (i = first; i <= last; i++)
-	{
+	for (i = first; i <= last; i++) {
 		retval = target_write_u32(target,
 				stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_SER | FLASH_SNB(i) | FLASH_STRT);
 		if (retval != ERROR_OK)
@@ -361,30 +351,27 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	/* Flip endian */
 	uint8_t stm32x_flash_write_code[sizeof(stm32x_flash_write_code_16)*2];
-	for (unsigned i = 0; i < sizeof(stm32x_flash_write_code_16) / 2; i++)
-	{
+	for (unsigned i = 0; i < sizeof(stm32x_flash_write_code_16) / 2; i++) {
 		stm32x_flash_write_code[i*2 + 0] = stm32x_flash_write_code_16[i] & 0xff;
 		stm32x_flash_write_code[i*2 + 1] = (stm32x_flash_write_code_16[i] >> 8) & 0xff;
 	}
 
 	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code),
-			&stm32x_info->write_algorithm) != ERROR_OK)
-	{
+			&stm32x_info->write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	if ((retval = target_write_buffer(target, stm32x_info->write_algorithm->address,
+	retval = target_write_buffer(target, stm32x_info->write_algorithm->address,
 			sizeof(stm32x_flash_write_code),
-			(uint8_t*)stm32x_flash_write_code)) != ERROR_OK)
+			(uint8_t *)stm32x_flash_write_code);
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* memory buffer */
-	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK)
-	{
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
-		if (buffer_size <= 256)
-		{
+		if (buffer_size <= 256) {
 			/* if we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
 			if (stm32x_info->write_algorithm)
@@ -404,28 +391,27 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN_OUT);
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
 
-	while (count > 0)
-	{
+	while (count > 0) {
 		uint32_t thisrun_count = (count > (buffer_size / 2)) ?
 				(buffer_size / 2) : count;
 
-		if ((retval = target_write_buffer(target, source->address,
-				thisrun_count * 2, buffer)) != ERROR_OK)
+		retval = target_write_buffer(target, source->address, thisrun_count * 2, buffer);
+		if (retval != ERROR_OK)
 			break;
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
-		// R3 is a return value only
+		/* R3 is a return value only */
 		buf_set_u32(reg_params[4].value, 0, 32, STM32_FLASH_BASE);
 
-		if ((retval = target_run_algorithm(target, 0, NULL,
+		retval = target_run_algorithm(target, 0, NULL,
 				sizeof(reg_params) / sizeof(*reg_params),
 				reg_params,
 				stm32x_info->write_algorithm->address,
 				0,
-				10000, &armv7m_info)) != ERROR_OK)
-		{
+				10000, &armv7m_info);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing stm32x flash write algorithm");
 			break;
 		}
@@ -433,12 +419,9 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t error = buf_get_u32(reg_params[3].value, 0, 32) & FLASH_ERROR;
 
 		if (error & FLASH_WRPERR)
-		{
 			LOG_ERROR("flash memory write protected");
-		}
 
-		if (error != 0)
-		{
+		if (error != 0) {
 			LOG_ERROR("flash write failed = %08x", error);
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR, error);
@@ -473,14 +456,12 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t bytes_written = 0;
 	int retval;
 
-	if (bank->target->state != TARGET_HALTED)
-	{
+	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x1)
-	{
+	if (offset & 0x1) {
 		LOG_WARNING("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
@@ -490,20 +471,16 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		return retval;
 
 	/* multiple half words (2-byte) to be programmed? */
-	if (words_remaining > 0)
-	{
+	if (words_remaining > 0) {
 		/* try using a block write */
-		if ((retval = stm32x_write_block(bank, buffer, offset, words_remaining)) != ERROR_OK)
-		{
-			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			{
+		retval = stm32x_write_block(bank, buffer, offset, words_remaining);
+		if (retval != ERROR_OK) {
+			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
-		}
-		else
-		{
+		} else {
 			buffer += words_remaining * 2;
 			address += words_remaining * 2;
 			words_remaining = 0;
@@ -529,8 +506,7 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	Double word access in case of x64 parallelism
 	Wait for the BSY bit to be cleared
 	*/
-	while (words_remaining > 0)
-	{
+	while (words_remaining > 0) {
 		uint16_t value;
 		memcpy(&value, buffer + bytes_written, sizeof(uint16_t));
 
@@ -552,8 +528,7 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		address += 2;
 	}
 
-	if (bytes_remaining)
-	{
+	if (bytes_remaining) {
 		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR),
 				FLASH_PG | FLASH_PSIZE_8);
 		if (retval != ERROR_OK)
@@ -572,8 +547,7 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 
 static void setup_sector(struct flash_bank *bank, int start, int num, int size)
 {
-	for (int i = start; i < (start + num) ; i++)
-	{
+	for (int i = start; i < (start + num) ; i++) {
 		bank->sectors[i].offset = bank->size;
 		bank->sectors[i].size = size;
 		bank->size += bank->sectors[i].size;

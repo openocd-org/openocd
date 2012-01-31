@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -26,16 +27,15 @@
 #include <target/algorithm.h>
 #include <target/image.h>
 
-
 #if 0
 static uint32_t ecosflash_get_flash_status(struct flash_bank *bank);
-static void ecosflash_set_flash_mode(struct flash_bank *bank,int mode);
+static void ecosflash_set_flash_mode(struct flash_bank *bank, int mode);
 static uint32_t ecosflash_wait_status_busy(struct flash_bank *bank, uint32_t waitbits, int timeout);
-static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc);
+static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx,
+		char *cmd, char **args, int argc);
 #endif
 
-struct ecosflash_flash_bank
-{
+struct ecosflash_flash_bank {
 	struct target *target;
 	struct working_area *write_algorithm;
 	struct working_area *erase_check_algorithm;
@@ -45,60 +45,58 @@ struct ecosflash_flash_bank
 
 static const int sectorSize = 0x10000;
 
-char *
-flash_errmsg(int err);
+char *flash_errmsg(int err);
 
 #ifndef __ECOS
-#define FLASH_ERR_OK              0x00  /* No error - operation complete */
-#define FLASH_ERR_INVALID         0x01  /* Invalid FLASH address */
-#define FLASH_ERR_ERASE           0x02  /* Error trying to erase */
-#define FLASH_ERR_LOCK            0x03  /* Error trying to lock/unlock */
-#define FLASH_ERR_PROGRAM         0x04  /* Error trying to program */
-#define FLASH_ERR_PROTOCOL        0x05  /* Generic error */
-#define FLASH_ERR_PROTECT         0x06  /* Device/region is write-protected */
-#define FLASH_ERR_NOT_INIT        0x07  /* FLASH info not yet initialized */
-#define FLASH_ERR_HWR             0x08  /* Hardware (configuration?) problem */
-#define FLASH_ERR_ERASE_SUSPEND   0x09  /* Device is in erase suspend mode */
-#define FLASH_ERR_PROGRAM_SUSPEND 0x0a  /* Device is in in program suspend mode */
-#define FLASH_ERR_DRV_VERIFY      0x0b  /* Driver failed to verify data */
-#define FLASH_ERR_DRV_TIMEOUT     0x0c  /* Driver timed out waiting for device */
-#define FLASH_ERR_DRV_WRONG_PART  0x0d  /* Driver does not support device */
-#define FLASH_ERR_LOW_VOLTAGE     0x0e  /* Not enough juice to complete job */
+#define FLASH_ERR_OK              0x00	/* No error - operation complete */
+#define FLASH_ERR_INVALID         0x01	/* Invalid FLASH address */
+#define FLASH_ERR_ERASE           0x02	/* Error trying to erase */
+#define FLASH_ERR_LOCK            0x03	/* Error trying to lock/unlock */
+#define FLASH_ERR_PROGRAM         0x04	/* Error trying to program */
+#define FLASH_ERR_PROTOCOL        0x05	/* Generic error */
+#define FLASH_ERR_PROTECT         0x06	/* Device/region is write-protected */
+#define FLASH_ERR_NOT_INIT        0x07	/* FLASH info not yet initialized */
+#define FLASH_ERR_HWR             0x08	/* Hardware (configuration?) problem */
+#define FLASH_ERR_ERASE_SUSPEND   0x09	/* Device is in erase suspend mode */
+#define FLASH_ERR_PROGRAM_SUSPEND 0x0a	/* Device is in in program suspend mode */
+#define FLASH_ERR_DRV_VERIFY      0x0b	/* Driver failed to verify data */
+#define FLASH_ERR_DRV_TIMEOUT     0x0c	/* Driver timed out waiting for device */
+#define FLASH_ERR_DRV_WRONG_PART  0x0d	/* Driver does not support device */
+#define FLASH_ERR_LOW_VOLTAGE     0x0e	/* Not enough juice to complete job */
 
-char *
-flash_errmsg(int err)
+char *flash_errmsg(int err)
 {
 	switch (err) {
-	case FLASH_ERR_OK:
-		return "No error - operation complete";
-	case FLASH_ERR_ERASE_SUSPEND:
-		return "Device is in erase suspend state";
-	case FLASH_ERR_PROGRAM_SUSPEND:
-		return "Device is in program suspend state";
-	case FLASH_ERR_INVALID:
-		return "Invalid FLASH address";
-	case FLASH_ERR_ERASE:
-		return "Error trying to erase";
-	case FLASH_ERR_LOCK:
-		return "Error trying to lock/unlock";
-	case FLASH_ERR_PROGRAM:
-		return "Error trying to program";
-	case FLASH_ERR_PROTOCOL:
-		return "Generic error";
-	case FLASH_ERR_PROTECT:
-		return "Device/region is write-protected";
-	case FLASH_ERR_NOT_INIT:
-		return "FLASH sub-system not initialized";
-	case FLASH_ERR_DRV_VERIFY:
-		return "Data verify failed after operation";
-	case FLASH_ERR_DRV_TIMEOUT:
-		return "Driver timed out waiting for device";
-	case FLASH_ERR_DRV_WRONG_PART:
-		return "Driver does not support device";
-	case FLASH_ERR_LOW_VOLTAGE:
-		return "Device reports low voltage";
-	default:
-		return "Unknown error";
+		case FLASH_ERR_OK:
+			return "No error - operation complete";
+		case FLASH_ERR_ERASE_SUSPEND:
+			return "Device is in erase suspend state";
+		case FLASH_ERR_PROGRAM_SUSPEND:
+			return "Device is in program suspend state";
+		case FLASH_ERR_INVALID:
+			return "Invalid FLASH address";
+		case FLASH_ERR_ERASE:
+			return "Error trying to erase";
+		case FLASH_ERR_LOCK:
+			return "Error trying to lock/unlock";
+		case FLASH_ERR_PROGRAM:
+			return "Error trying to program";
+		case FLASH_ERR_PROTOCOL:
+			return "Generic error";
+		case FLASH_ERR_PROTECT:
+			return "Device/region is write-protected";
+		case FLASH_ERR_NOT_INIT:
+			return "FLASH sub-system not initialized";
+		case FLASH_ERR_DRV_VERIFY:
+			return "Data verify failed after operation";
+		case FLASH_ERR_DRV_TIMEOUT:
+			return "Driver timed out waiting for device";
+		case FLASH_ERR_DRV_WRONG_PART:
+			return "Driver does not support device";
+		case FLASH_ERR_LOW_VOLTAGE:
+			return "Device reports low voltage";
+		default:
+			return "Unknown error";
 	}
 }
 #endif
@@ -110,13 +108,10 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 	struct ecosflash_flash_bank *info;
 
 	if (CMD_ARGC < 7)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	info = malloc(sizeof(struct ecosflash_flash_bank));
-	if (info == NULL)
-	{
+	if (info == NULL) {
 		LOG_ERROR("no memory for flash bank info");
 		exit(-1);
 	}
@@ -131,8 +126,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 	uint32_t offset = 0;
 	bank->num_sectors = bank->size/sectorSize;
 	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-	for (i = 0; i < bank->num_sectors; i++)
-	{
+	for (i = 0; i < bank->num_sectors; i++) {
 		bank->sectors[i].offset = offset;
 		bank->sectors[i].size = sectorSize;
 		offset += bank->sectors[i].size;
@@ -141,8 +135,7 @@ FLASH_BANK_COMMAND_HANDLER(ecosflash_flash_bank_command)
 	}
 
 	info->target = get_target(CMD_ARGV[5]);
-	if (info->target == NULL)
-	{
+	if (info->target == NULL) {
 		LOG_ERROR("target '%s' not defined", CMD_ARGV[5]);
 		return ERROR_FAIL;
 	}
@@ -160,20 +153,18 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 	struct target *target = info->target;
 	int retval;
 
-	if ((retval = image_open(&image, info->driverPath, NULL)) != ERROR_OK)
-	{
+	retval = image_open(&image, info->driverPath, NULL);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	info->start_address = image.start_address;
 
 	image_size = 0x0;
 	int i;
-	for (i = 0; i < image.num_sections; i++)
-	{
+	for (i = 0; i < image.num_sections; i++) {
 		void *buffer = malloc(image.sections[i].size);
-		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
-		{
+		retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt);
+		if (retval != ERROR_OK) {
 			free(buffer);
 			image_close(&image);
 			return retval;
@@ -181,7 +172,7 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
 		image_size += buf_cnt;
 		LOG_DEBUG("%zu bytes written at address 0x%8.8" PRIx32 "",
-				buf_cnt, image.sections[i].base_address);
+			buf_cnt, image.sections[i].base_address);
 
 		free(buffer);
 	}
@@ -191,7 +182,7 @@ static int loadDriver(struct ecosflash_flash_bank *info)
 	return ERROR_OK;
 }
 
-static int const OFFSET_ERASE = 0x0;
+static int const OFFSET_ERASE;
 static int const OFFSET_ERASE_SIZE = 0x8;
 static int const OFFSET_FLASH = 0xc;
 static int const OFFSET_FLASH_SIZE = 0x8;
@@ -199,10 +190,10 @@ static int const OFFSET_GET_WORKAREA = 0x18;
 static int const OFFSET_GET_WORKAREA_SIZE = 0x4;
 
 static int runCode(struct ecosflash_flash_bank *info,
-		uint32_t codeStart, uint32_t codeStop, uint32_t r0, uint32_t r1, uint32_t r2,
-		uint32_t *result,
-		/* timeout in ms */
-		int timeout)
+	uint32_t codeStart, uint32_t codeStop, uint32_t r0, uint32_t r1, uint32_t r2,
+	uint32_t *result,
+	/* timeout in ms */
+	int timeout)
 {
 	struct target *target = info->target;
 
@@ -220,12 +211,9 @@ static int runCode(struct ecosflash_flash_bank *info,
 	buf_set_u32(reg_params[1].value, 0, 32, r1);
 	buf_set_u32(reg_params[2].value, 0, 32, r2);
 
-	int retval;
-	if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			codeStart,
-			codeStop, timeout,
-			&armv4_5_info)) != ERROR_OK)
-	{
+	int retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
+			codeStart, codeStop, timeout, &armv4_5_info);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("error executing eCos flash algorithm");
 		return retval;
 	}
@@ -242,7 +230,7 @@ static int runCode(struct ecosflash_flash_bank *info,
 static int eCosBoard_erase(struct ecosflash_flash_bank *info, uint32_t address, uint32_t len)
 {
 	int retval;
-	int timeout = (len / 20480 + 1) * 1000; /*asume 20 KB/s*/
+	int timeout = (len / 20480 + 1) * 1000;	/*asume 20 KB/s*/
 
 	retval = loadDriver(info);
 	if (retval != ERROR_OK)
@@ -257,12 +245,11 @@ static int eCosBoard_erase(struct ecosflash_flash_bank *info, uint32_t address, 
 			0,
 			&flashErr,
 			timeout
-);
+			);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (flashErr != 0x0)
-	{
+	if (flashErr != 0x0) {
 		LOG_ERROR("Flash erase failed with %d (%s)", (int)flashErr, flash_errmsg(flashErr));
 		return ERROR_FAIL;
 	}
@@ -270,12 +257,15 @@ static int eCosBoard_erase(struct ecosflash_flash_bank *info, uint32_t address, 
 	return ERROR_OK;
 }
 
-static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32_t address, uint32_t len)
+static int eCosBoard_flash(struct ecosflash_flash_bank *info,
+	void *data,
+	uint32_t address,
+	uint32_t len)
 {
 	struct target *target = info->target;
 	const int chunk = 8192;
 	int retval = ERROR_OK;
-	int timeout = (chunk / 20480 + 1) * 1000; /*asume 20 KB/s + 1 second*/
+	int timeout = (chunk / 20480 + 1) * 1000;	/*asume 20 KB/s + 1 second*/
 
 	retval = loadDriver(info);
 	if (retval != ERROR_OK)
@@ -295,13 +285,10 @@ static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32
 
 
 	uint32_t i;
-	for (i = 0; i < len; i += chunk)
-	{
+	for (i = 0; i < len; i += chunk) {
 		int t = len-i;
 		if (t > chunk)
-		{
 			t = chunk;
-		}
 
 		retval = target_write_buffer(target, buffer, t, ((uint8_t *)data) + i);
 		if (retval != ERROR_OK)
@@ -319,9 +306,9 @@ static int eCosBoard_flash(struct ecosflash_flash_bank *info, void *data, uint32
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (flashErr != 0x0)
-		{
-			LOG_ERROR("Flash prog failed with %d (%s)", (int)flashErr, flash_errmsg(flashErr));
+		if (flashErr != 0x0) {
+			LOG_ERROR("Flash prog failed with %d (%s)", (int)flashErr,
+				flash_errmsg(flashErr));
 			return ERROR_FAIL;
 		}
 	}
@@ -339,19 +326,12 @@ static void command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
 	struct ecosflash_flash_bank *info = bank->driver_priv;
 	int i;
 
-	if (info->target->endianness == TARGET_LITTLE_ENDIAN)
-	{
+	if (info->target->endianness == TARGET_LITTLE_ENDIAN) {
 		for (i = bank->bus_width; i > 0; i--)
-		{
 			*cmd_buf++ = (i & (bank->chip_width - 1)) ? 0x0 : cmd;
-		}
-	}
-	else
-	{
+	} else {
 		for (i = 1; i <= bank->bus_width; i++)
-		{
 			*cmd_buf++ = (i & (bank->chip_width - 1)) ? 0x0 : cmd;
-		}
 	}
 }
 #endif
@@ -360,8 +340,7 @@ static void command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
 static uint32_t ecosflash_address(struct flash_bank *bank, uint32_t address)
 {
 	uint32_t retval = 0;
-	switch (bank->bus_width)
-	{
+	switch (bank->bus_width) {
 		case 4:
 			retval = address & 0xfffffffc;
 		case 2:
@@ -386,7 +365,8 @@ static int ecosflash_protect(struct flash_bank *bank, int set, int first, int la
 	return ERROR_OK;
 }
 
-static int ecosflash_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int ecosflash_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset,
+	uint32_t count)
 {
 	struct ecosflash_flash_bank *info = bank->driver_priv;
 	struct flash_bank *c = bank;
@@ -411,7 +391,7 @@ static uint32_t ecosflash_get_flash_status(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static void ecosflash_set_flash_mode(struct flash_bank *bank,int mode)
+static void ecosflash_set_flash_mode(struct flash_bank *bank, int mode)
 {
 
 }
@@ -421,7 +401,10 @@ static uint32_t ecosflash_wait_status_busy(struct flash_bank *bank, uint32_t wai
 	return ERROR_OK;
 }
 
-static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx, char *cmd, char **args, int argc)
+static int ecosflash_handle_gpnvm_command(struct command_context *cmd_ctx,
+	char *cmd,
+	char **args,
+	int argc)
 {
 	return ERROR_OK;
 }
