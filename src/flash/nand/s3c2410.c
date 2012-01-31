@@ -104,15 +104,15 @@ static int s3c2410_nand_ready(struct nand_device *nand, int timeout)
 }
 
 struct nand_flash_controller s3c2410_nand_controller = {
-		.name = "s3c2410",
-		.nand_device_command = &s3c2410_nand_device_command,
-		.init = &s3c2410_init,
-		.reset = &s3c24xx_reset,
-		.command = &s3c24xx_command,
-		.address = &s3c24xx_address,
-		.write_data = &s3c2410_write_data,
-		.read_data = &s3c2410_read_data,
-		.write_page = s3c24xx_write_page,
-		.read_page = s3c24xx_read_page,
-		.nand_ready = &s3c2410_nand_ready,
-	};
+	.name = "s3c2410",
+	.nand_device_command = &s3c2410_nand_device_command,
+	.init = &s3c2410_init,
+	.reset = &s3c24xx_reset,
+	.command = &s3c24xx_command,
+	.address = &s3c24xx_address,
+	.write_data = &s3c2410_write_data,
+	.read_data = &s3c2410_read_data,
+	.write_page = s3c24xx_write_page,
+	.read_page = s3c24xx_read_page,
+	.nand_ready = &s3c2410_nand_ready,
+};

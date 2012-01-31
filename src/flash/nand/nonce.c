@@ -24,7 +24,6 @@
 #include "imp.h"
 #include "hello.h"
 
-
 static int nonce_nand_command(struct nand_device *nand, uint8_t command)
 {
 	return ERROR_OK;
@@ -62,16 +61,15 @@ static int nonce_nand_init(struct nand_device *nand)
 	return ERROR_OK;
 }
 
-struct nand_flash_controller nonce_nand_controller =
-{
-	.name			= "nonce",
-	.commands               = hello_command_handlers,
-	.nand_device_command	= &nonce_nand_device_command,
-	.init			= &nonce_nand_init,
-	.reset			= &nonce_nand_reset,
-	.command		= &nonce_nand_command,
-	.address		= &nonce_nand_address,
-	.read_data		= &nonce_nand_read,
-	.write_data		= &nonce_nand_write,
-	.write_block_data	= &nonce_nand_fast_block_write,
+struct nand_flash_controller nonce_nand_controller = {
+	.name = "nonce",
+	.commands = hello_command_handlers,
+	.nand_device_command = &nonce_nand_device_command,
+	.init = &nonce_nand_init,
+	.reset = &nonce_nand_reset,
+	.command = &nonce_nand_command,
+	.address = &nonce_nand_address,
+	.read_data = &nonce_nand_read,
+	.write_data = &nonce_nand_write,
+	.write_block_data = &nonce_nand_fast_block_write,
 };

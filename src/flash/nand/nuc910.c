@@ -31,8 +31,7 @@
 #include "arm_io.h"
 #include <target/arm.h>
 
-struct nuc910_nand_controller
-{
+struct nuc910_nand_controller {
 	struct arm_nand_data io;
 };
 
@@ -53,7 +52,8 @@ static int nuc910_nand_command(struct nand_device *nand, uint8_t command)
 	struct target *target = nand->target;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	target_write_u8(target, NUC910_SMCMD, command);
@@ -65,7 +65,8 @@ static int nuc910_nand_address(struct nand_device *nand, uint8_t address)
 	struct target *target = nand->target;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	target_write_u32(target, NUC910_SMADDR, ((address & 0xff) | NUC910_SMADDR_EOA));
@@ -77,7 +78,8 @@ static int nuc910_nand_read(struct nand_device *nand, void *data)
 	struct target *target = nand->target;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	target_read_u8(target, NUC910_SMDATA, data);
@@ -89,7 +91,8 @@ static int nuc910_nand_write(struct nand_device *nand, uint16_t data)
 	struct target *target = nand->target;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	target_write_u8(target, NUC910_SMDATA, data);
@@ -102,7 +105,8 @@ static int nuc910_nand_read_block_data(struct nand_device *nand,
 	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	nuc910_nand->io.chunk_size = nand->page_size;
@@ -125,7 +129,8 @@ static int nuc910_nand_write_block_data(struct nand_device *nand,
 	struct nuc910_nand_controller *nuc910_nand = nand->controller_priv;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	nuc910_nand->io.chunk_size = nand->page_size;
@@ -154,9 +159,8 @@ static int nuc910_nand_ready(struct nand_device *nand, int timeout)
 
 	do {
 		target_read_u32(target, NUC910_SMISR, &status);
-		if (status & NUC910_SMISR_RB_) {
+		if (status & NUC910_SMISR_RB_)
 			return 1;
-		}
 		alive_sleep(1);
 	} while (timeout-- > 0);
 
@@ -184,12 +188,12 @@ static int nuc910_nand_init(struct nand_device *nand)
 	int bus_width = nand->bus_width ? : 8;
 	int result;
 
-	if ((result = validate_target_state(nand)) != ERROR_OK)
+	result = validate_target_state(nand);
+	if (result != ERROR_OK)
 		return result;
 
 	/* nuc910 only supports 8bit */
-	if (bus_width != 8)
-	{
+	if (bus_width != 8) {
 		LOG_ERROR("nuc910 only supports 8 bit bus width, not %i", bus_width);
 		return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 	}
@@ -210,8 +214,7 @@ static int nuc910_nand_init(struct nand_device *nand)
 	return ERROR_OK;
 }
 
-struct nand_flash_controller nuc910_nand_controller =
-{
+struct nand_flash_controller nuc910_nand_controller = {
 	.name = "nuc910",
 	.command = nuc910_nand_command,
 	.address = nuc910_nand_address,

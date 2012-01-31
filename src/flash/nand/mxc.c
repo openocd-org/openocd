@@ -49,12 +49,12 @@
 #include "mxc.h"
 #include <target/target.h>
 
-#define	OOB_SIZE	64
+#define OOB_SIZE        64
 
 #define nfc_is_v1() (mxc_nf_info->mxc_version == MXC_VERSION_MX27 || \
-					mxc_nf_info->mxc_version == MXC_VERSION_MX31)
+		mxc_nf_info->mxc_version == MXC_VERSION_MX31)
 #define nfc_is_v2() (mxc_nf_info->mxc_version == MXC_VERSION_MX25 || \
-					mxc_nf_info->mxc_version == MXC_VERSION_MX35)
+		mxc_nf_info->mxc_version == MXC_VERSION_MX35)
 
 /* This permits to print (in LOG_INFO) how much bytes
  * has been written after a page read or write.
@@ -136,7 +136,7 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 	mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
 	mxc_nf_info->fin = MXC_NF_FIN_NONE;
 	mxc_nf_info->flags.target_little_endian =
-	(nand->target->endianness == TARGET_LITTLE_ENDIAN);
+		(nand->target->endianness == TARGET_LITTLE_ENDIAN);
 
 	/*
 	 * should factory bad block indicator be swaped
@@ -190,9 +190,9 @@ COMMAND_HANDLER(handle_mxc_biswap_command)
 static const struct command_registration mxc_sub_command_handlers[] = {
 	{
 		.name = "biswap",
-		.handler = handle_mxc_biswap_command ,
+		.handler = handle_mxc_biswap_command,
 		.help = "Turns on/off bad block information swaping from main area, "
-				"without parameter query status.",
+			"without parameter query status.",
 		.usage = "bank_id ['enable'|'disable']",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -262,18 +262,17 @@ static int mxc_init(struct nand_device *nand)
 	else
 		LOG_DEBUG("MXC_NF : bus is 8-bit width");
 
-	if (!nand->page_size) {
+	if (!nand->page_size)
 		nand->page_size = (sreg_content & SEL_FMS) ? 2048 : 512;
-	} else {
+	else {
 		sreg_content |= ((nand->page_size == 2048) ? SEL_FMS : 0x00000000);
 		target_write_u32(target, SREG, sreg_content);
 	}
 	if (mxc_nf_info->flags.one_kb_sram && (nand->page_size == 2048)) {
 		LOG_ERROR("NAND controller have only 1 kb SRAM, so "
-		          "pagesize 2048 is incompatible with it");
-	} else {
+			"pagesize 2048 is incompatible with it");
+	} else
 		LOG_DEBUG("MXC_NF : NAND controller can handle pagesize of 2048");
-	}
 
 	if (nfc_is_v2() && sreg_content & MX35_RCSR_NF_4K)
 		LOG_ERROR("MXC driver does not have support for 4k pagesize.");
@@ -292,9 +291,8 @@ static int mxc_init(struct nand_device *nand)
 	if (!(nand_status_content & 0x0080)) {
 		LOG_INFO("NAND read-only");
 		mxc_nf_info->flags.nand_readonly = 1;
-	} else {
+	} else
 		mxc_nf_info->flags.nand_readonly = 0;
-	}
 	return ERROR_OK;
 }
 
@@ -315,7 +313,7 @@ static int mxc_read_data(struct nand_device *nand, void *data)
 	try_data_output_from_nand_chip = do_data_output(nand);
 	if (try_data_output_from_nand_chip != ERROR_OK) {
 		LOG_ERROR("mxc_read_data : read data failed : '%x'",
-				  try_data_output_from_nand_chip);
+			try_data_output_from_nand_chip);
 		return try_data_output_from_nand_chip;
 	}
 
@@ -360,26 +358,26 @@ static int mxc_command(struct nand_device *nand, uint8_t command)
 		return validate_target_result;
 
 	switch (command) {
-	case NAND_CMD_READOOB:
-		command = NAND_CMD_READ0;
-		/* set read point for data_read() and read_block_data() to
-		 * spare area in SRAM buffer
-		 */
-		if (nfc_is_v1())
-			in_sram_address = MXC_NF_V1_SPARE_BUFFER0;
-		else
-			in_sram_address = MXC_NF_V2_SPARE_BUFFER0;
-		break;
-	case NAND_CMD_READ1:
-		command = NAND_CMD_READ0;
-		/*
-		 * offset == one half of page size
-		 */
-		in_sram_address = MXC_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
-		break;
-	default:
-		in_sram_address = MXC_NF_MAIN_BUFFER0;
-		break;
+		case NAND_CMD_READOOB:
+			command = NAND_CMD_READ0;
+			/* set read point for data_read() and read_block_data() to
+			 * spare area in SRAM buffer
+			 */
+			if (nfc_is_v1())
+				in_sram_address = MXC_NF_V1_SPARE_BUFFER0;
+			else
+				in_sram_address = MXC_NF_V2_SPARE_BUFFER0;
+			break;
+		case NAND_CMD_READ1:
+			command = NAND_CMD_READ0;
+			/*
+			 * offset == one half of page size
+			 */
+			in_sram_address = MXC_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
+			break;
+		default:
+			in_sram_address = MXC_NF_MAIN_BUFFER0;
+			break;
 	}
 
 	target_write_u16(target, MXC_NF_FCMD, command);
@@ -396,24 +394,24 @@ static int mxc_command(struct nand_device *nand, uint8_t command)
 	sign_of_sequental_byte_read = 0;
 	/* Handle special read command and adjust NF_CFG2(FDO) */
 	switch (command) {
-	case NAND_CMD_READID:
-		mxc_nf_info->optype = MXC_NF_DATAOUT_NANDID;
-		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
-		break;
-	case NAND_CMD_STATUS:
-		mxc_nf_info->optype = MXC_NF_DATAOUT_NANDSTATUS;
-		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
-		target_write_u16 (target, MXC_NF_BUFADDR, 0);
-		in_sram_address = 0;
-		break;
-	case NAND_CMD_READ0:
-		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
-		mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
-		break;
-	default:
-		/* Ohter command use the default 'One page data out' FDO */
-		mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
-		break;
+		case NAND_CMD_READID:
+			mxc_nf_info->optype = MXC_NF_DATAOUT_NANDID;
+			mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
+			break;
+		case NAND_CMD_STATUS:
+			mxc_nf_info->optype = MXC_NF_DATAOUT_NANDSTATUS;
+			mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
+			target_write_u16 (target, MXC_NF_BUFADDR, 0);
+			in_sram_address = 0;
+			break;
+		case NAND_CMD_READ0:
+			mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
+			mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
+			break;
+		default:
+			/* Ohter command use the default 'One page data out' FDO */
+			mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
+			break;
 	}
 	return ERROR_OK;
 }
@@ -463,14 +461,13 @@ static int mxc_nand_ready(struct nand_device *nand, int tout)
 			return tout;
 
 		alive_sleep(1);
-	}
-	while (tout-- > 0);
+	} while (tout-- > 0);
 	return tout;
 }
 
 static int mxc_write_page(struct nand_device *nand, uint32_t page,
-							uint8_t *data, uint32_t data_size,
-							uint8_t *oob, uint32_t oob_size)
+	uint8_t *data, uint32_t data_size,
+	uint8_t *oob, uint32_t oob_size)
 {
 	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
@@ -504,11 +501,11 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 	sign_of_sequental_byte_read = 0;
 	retval = ERROR_OK;
 	retval |= mxc_command(nand, NAND_CMD_SEQIN);
-	retval |= mxc_address(nand, 0); /* col */
-	retval |= mxc_address(nand, 0); /* col */
-	retval |= mxc_address(nand, page & 0xff); /* page address */
-	retval |= mxc_address(nand, (page >> 8) & 0xff); /* page address */
-	retval |= mxc_address(nand, (page >> 16) & 0xff); /* page address */
+	retval |= mxc_address(nand, 0);	/* col */
+	retval |= mxc_address(nand, 0);	/* col */
+	retval |= mxc_address(nand, page & 0xff);	/* page address */
+	retval |= mxc_address(nand, (page >> 8) & 0xff);/* page address */
+	retval |= mxc_address(nand, (page >> 16) & 0xff);	/* page address */
 
 	target_write_buffer(target, MXC_NF_MAIN_BUFFER0, data_size, data);
 	if (oob) {
@@ -518,7 +515,7 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 			 * ECC generator
 			 */
 			LOG_DEBUG("part of spare block will be overrided "
-			          "by hardware ECC generator");
+				"by hardware ECC generator");
 		}
 		if (nfc_is_v1())
 			target_write_buffer(target, MXC_NF_V1_SPARE_BUFFER0, oob_size, oob);
@@ -541,7 +538,7 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 			LOG_ERROR("Due to NFC Bug, oob is not correctly implemented in mxc driver");
 			return ERROR_NAND_OPERATION_FAILED;
 		}
-		swap2 = 0xffff;  /* Spare buffer unused forced to 0xffff */
+		swap2 = 0xffff;	/* Spare buffer unused forced to 0xffff */
 		new_swap1 = (swap1 & 0xFF00) | (swap2 >> 8);
 		swap2 = (swap1 << 8) | (swap2 & 0xFF);
 		target_write_u16(target, MXC_NF_MAIN_BUFFER3 + 464, new_swap1);
@@ -559,7 +556,7 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 	else
 		bufs = 1;
 
-	for (uint8_t i = 0 ; i < bufs ; ++i) {
+	for (uint8_t i = 0; i < bufs; ++i) {
 		target_write_u16(target, MXC_NF_BUFADDR, i);
 		target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_OP_FDI);
 		poll_result = poll_for_complete_op(nand, "data input");
@@ -598,8 +595,8 @@ static int mxc_write_page(struct nand_device *nand, uint32_t page,
 }
 
 static int mxc_read_page(struct nand_device *nand, uint32_t page,
-						   uint8_t *data, uint32_t data_size,
-						   uint8_t *oob, uint32_t oob_size)
+	uint8_t *data, uint32_t data_size,
+	uint8_t *oob, uint32_t oob_size)
 {
 	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
@@ -620,31 +617,37 @@ static int mxc_read_page(struct nand_device *nand, uint32_t page,
 	 * validate target state
 	 */
 	retval = validate_target_state(nand);
-	if (retval != ERROR_OK) {
+	if (retval != ERROR_OK)
 		return retval;
-	}
-	/* Reset address_cycles before mxc_command ?? */
+				/* Reset address_cycles before mxc_command ?? */
 	retval = mxc_command(nand, NAND_CMD_READ0);
-	if (retval != ERROR_OK) return retval;
-	retval = mxc_address(nand, 0); /* col */
-	if (retval != ERROR_OK) return retval;
-	retval = mxc_address(nand, 0); /* col */
-	if (retval != ERROR_OK) return retval;
-	retval = mxc_address(nand, page & 0xff); /* page address */
-	if (retval != ERROR_OK) return retval;
-	retval = mxc_address(nand, (page >> 8) & 0xff); /* page address */
-	if (retval != ERROR_OK) return retval;
-	retval = mxc_address(nand, (page >> 16) & 0xff); /* page address */
-	if (retval != ERROR_OK) return retval;
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mxc_address(nand, 0);	/* col */
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mxc_address(nand, 0);	/* col */
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mxc_address(nand, page & 0xff);/* page address */
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mxc_address(nand, (page >> 8) & 0xff);	/* page address */
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mxc_address(nand, (page >> 16) & 0xff);/* page address */
+	if (retval != ERROR_OK)
+		return retval;
 	retval = mxc_command(nand, NAND_CMD_READSTART);
-	if (retval != ERROR_OK) return retval;
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (nfc_is_v1() && nand->page_size > 512)
 		bufs = 4;
 	else
 		bufs = 1;
 
-	for (uint8_t i = 0 ; i < bufs ; ++i) {
+	for (uint8_t i = 0; i < bufs; ++i) {
 		target_write_u16(target, MXC_NF_BUFADDR, i);
 		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
 		retval = do_data_output(nand);
@@ -702,9 +705,9 @@ static uint32_t align_address_v2(struct nand_device *nand, uint32_t addr)
 	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	uint32_t ret = addr;
 	if (addr > MXC_NF_V2_SPARE_BUFFER0 &&
-	   (addr & 0x1F) == MXC_NF_SPARE_BUFFER_LEN) {
+			(addr & 0x1F) == MXC_NF_SPARE_BUFFER_LEN)
 		ret += MXC_NF_SPARE_BUFFER_MAX - MXC_NF_SPARE_BUFFER_LEN;
-	} else if (addr >= (mxc_nf_info->mxc_base_addr + (uint32_t)nand->page_size))
+	else if (addr >= (mxc_nf_info->mxc_base_addr + (uint32_t)nand->page_size))
 		ret = MXC_NF_V2_SPARE_BUFFER0;
 	return ret;
 }
@@ -725,15 +728,13 @@ static int initialize_nf_controller(struct nand_device *nand)
 	if (target->endianness == TARGET_BIG_ENDIAN) {
 		LOG_DEBUG("MXC_NF : work in Big Endian mode");
 		work_mode |= MXC_NF_BIT_BE_EN;
-	} else {
+	} else
 		LOG_DEBUG("MXC_NF : work in Little Endian mode");
-	}
 	if (mxc_nf_info->flags.hw_ecc_enabled) {
 		LOG_DEBUG("MXC_NF : work with ECC mode");
 		work_mode |= MXC_NF_BIT_ECC_EN;
-	} else {
+	} else
 		LOG_DEBUG("MXC_NF : work without ECC mode");
-	}
 	if (nfc_is_v2()) {
 		target_write_u16(target, MXC_NF_V2_SPAS, OOB_SIZE / 2);
 		if (nand->page_size) {
@@ -788,7 +789,7 @@ static int get_next_byte_from_sram_buffer(struct nand_device *nand, uint8_t *val
 {
 	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
-	static uint8_t even_byte = 0;
+	static uint8_t even_byte;
 	uint16_t temp;
 	/*
 	 * host-big_endian ??
@@ -796,8 +797,7 @@ static int get_next_byte_from_sram_buffer(struct nand_device *nand, uint8_t *val
 	if (sign_of_sequental_byte_read == 0)
 		even_byte = 0;
 
-	if (in_sram_address >
-		(nfc_is_v1() ? MXC_NF_V1_LAST_BUFFADDR : MXC_NF_V2_LAST_BUFFADDR)) {
+	if (in_sram_address > (nfc_is_v1() ? MXC_NF_V1_LAST_BUFFADDR : MXC_NF_V2_LAST_BUFFADDR)) {
 		LOG_ERROR(sram_buffer_bounds_err_msg, in_sram_address);
 		*value = 0;
 		sign_of_sequental_byte_read = 0;
@@ -826,8 +826,7 @@ static int get_next_halfword_from_sram_buffer(struct nand_device *nand, uint16_t
 	struct mxc_nf_controller *mxc_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
 
-	if (in_sram_address >
-		(nfc_is_v1() ? MXC_NF_V1_LAST_BUFFADDR : MXC_NF_V2_LAST_BUFFADDR)) {
+	if (in_sram_address > (nfc_is_v1() ? MXC_NF_V1_LAST_BUFFADDR : MXC_NF_V2_LAST_BUFFADDR)) {
 		LOG_ERROR(sram_buffer_bounds_err_msg, in_sram_address);
 		*value = 0;
 		return ERROR_NAND_OPERATION_FAILED;
@@ -861,7 +860,7 @@ static int validate_target_state(struct nand_device *nand)
 	}
 
 	if (mxc_nf_info->flags.target_little_endian !=
-	    (target->endianness == TARGET_LITTLE_ENDIAN)) {
+			(target->endianness == TARGET_LITTLE_ENDIAN)) {
 		/*
 		 * endianness changed after NAND controller probed
 		 */
@@ -878,22 +877,22 @@ int ecc_status_v1(struct nand_device *nand)
 
 	target_read_u16(target, MXC_NF_ECCSTATUS, &ecc_status);
 	switch (ecc_status & 0x000c) {
-	case 1 << 2:
-		LOG_INFO("main area read with 1 (correctable) error");
-		break;
-	case 2 << 2:
-		LOG_INFO("main area read with more than 1 (incorrectable) error");
-		return ERROR_NAND_OPERATION_FAILED;
-		break;
+		case 1 << 2:
+			LOG_INFO("main area read with 1 (correctable) error");
+			break;
+		case 2 << 2:
+			LOG_INFO("main area read with more than 1 (incorrectable) error");
+			return ERROR_NAND_OPERATION_FAILED;
+			break;
 	}
 	switch (ecc_status & 0x0003) {
-	case 1:
-		LOG_INFO("spare area read with 1 (correctable) error");
-		break;
-	case 2:
-		LOG_INFO("main area read with more than 1 (incorrectable) error");
-		return ERROR_NAND_OPERATION_FAILED;
-		break;
+		case 1:
+			LOG_INFO("spare area read with 1 (correctable) error");
+			break;
+		case 2:
+			LOG_INFO("main area read with more than 1 (incorrectable) error");
+			return ERROR_NAND_OPERATION_FAILED;
+			break;
 	}
 	return ERROR_OK;
 }
@@ -927,47 +926,46 @@ static int do_data_output(struct nand_device *nand)
 	struct target *target = nand->target;
 	int poll_result;
 	switch (mxc_nf_info->fin) {
-	case MXC_NF_FIN_DATAOUT:
-		/*
-		 * start data output operation (set MXC_NF_BIT_OP_DONE==0)
-		 */
-		target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_DATAOUT_TYPE(mxc_nf_info->optype));
-		poll_result = poll_for_complete_op(nand, "data output");
-		if (poll_result != ERROR_OK)
-			return poll_result;
+		case MXC_NF_FIN_DATAOUT:
+			/*
+			 * start data output operation (set MXC_NF_BIT_OP_DONE==0)
+			 */
+			target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_DATAOUT_TYPE(mxc_nf_info->optype));
+			poll_result = poll_for_complete_op(nand, "data output");
+			if (poll_result != ERROR_OK)
+				return poll_result;
 
-		mxc_nf_info->fin = MXC_NF_FIN_NONE;
-		/*
-		 * ECC stuff
-		 */
-		if (mxc_nf_info->optype == MXC_NF_DATAOUT_PAGE &&
-			mxc_nf_info->flags.hw_ecc_enabled) {
-			int ecc_status;
-			if (nfc_is_v1())
-				ecc_status = ecc_status_v1(nand);
-			else
-				ecc_status = ecc_status_v2(nand);
-			if (ecc_status != ERROR_OK)
-				return ecc_status;
-		}
-		break;
-	case MXC_NF_FIN_NONE:
-		break;
+			mxc_nf_info->fin = MXC_NF_FIN_NONE;
+			/*
+			 * ECC stuff
+			 */
+			if (mxc_nf_info->optype == MXC_NF_DATAOUT_PAGE && mxc_nf_info->flags.hw_ecc_enabled) {
+				int ecc_status;
+				if (nfc_is_v1())
+					ecc_status = ecc_status_v1(nand);
+				else
+					ecc_status = ecc_status_v2(nand);
+				if (ecc_status != ERROR_OK)
+					return ecc_status;
+			}
+			break;
+		case MXC_NF_FIN_NONE:
+			break;
 	}
 	return ERROR_OK;
 }
 
 struct nand_flash_controller mxc_nand_flash_controller = {
-	.name					= "mxc",
-	.nand_device_command	= &mxc_nand_device_command,
-	.commands				= mxc_nand_command_handler,
-	.init					= &mxc_init,
-	.reset					= &mxc_reset,
-	.command				= &mxc_command,
-	.address				= &mxc_address,
-	.write_data				= &mxc_write_data,
-	.read_data				= &mxc_read_data,
-	.write_page				= &mxc_write_page,
-	.read_page				= &mxc_read_page,
-	.nand_ready				= &mxc_nand_ready,
+	.name = "mxc",
+	.nand_device_command = &mxc_nand_device_command,
+	.commands = mxc_nand_command_handler,
+	.init = &mxc_init,
+	.reset = &mxc_reset,
+	.command = &mxc_command,
+	.address = &mxc_address,
+	.write_data = &mxc_write_data,
+	.read_data = &mxc_read_data,
+	.write_page = &mxc_write_page,
+	.read_page = &mxc_read_page,
+	.nand_ready = &mxc_nand_ready,
 };

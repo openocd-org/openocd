@@ -61,17 +61,17 @@ static int s3c2412_init(struct nand_device *nand)
 }
 
 struct nand_flash_controller s3c2412_nand_controller = {
-		.name = "s3c2412",
-		.nand_device_command = &s3c2412_nand_device_command,
-		.init = &s3c2412_init,
-		.reset = &s3c24xx_reset,
-		.command = &s3c24xx_command,
-		.address = &s3c24xx_address,
-		.write_data = &s3c24xx_write_data,
-		.read_data = &s3c24xx_read_data,
-		.write_page = s3c24xx_write_page,
-		.read_page = s3c24xx_read_page,
-		.write_block_data = &s3c2440_write_block_data,
-		.read_block_data = &s3c2440_read_block_data,
-		.nand_ready = &s3c2440_nand_ready,
-	};
+	.name = "s3c2412",
+	.nand_device_command = &s3c2412_nand_device_command,
+	.init = &s3c2412_init,
+	.reset = &s3c24xx_reset,
+	.command = &s3c24xx_command,
+	.address = &s3c24xx_address,
+	.write_data = &s3c24xx_write_data,
+	.read_data = &s3c24xx_read_data,
+	.write_page = s3c24xx_write_page,
+	.read_page = s3c24xx_read_page,
+	.write_block_data = &s3c2440_write_block_data,
+	.read_block_data = &s3c2440_read_block_data,
+	.nand_ready = &s3c2440_nand_ready,
+};

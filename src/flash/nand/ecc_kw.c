@@ -28,7 +28,7 @@
  * For multiplication, a discrete log/exponent table is used, with
  * primitive element x (F is a primitive field, so x is primitive).
  */
-#define MODPOLY		0x409		/* x^10 + x^3 + 1 in binary */
+#define MODPOLY 0x409		/* x^10 + x^3 + 1 in binary */
 
 /*
  * Maps an integer a [0..1022] to a polynomial b = gf_exp[a] in
@@ -102,7 +102,7 @@ int nand_calculate_ecc_kw(struct nand_device *nand, const uint8_t *data, uint8_t
 {
 	unsigned int r7, r6, r5, r4, r3, r2, r1, r0;
 	int i;
-	static int tables_initialized = 0;
+	static int tables_initialized;
 
 	if (!tables_initialized) {
 		gf_build_log_exp_table();
@@ -120,7 +120,6 @@ int nand_calculate_ecc_kw(struct nand_device *nand, const uint8_t *data, uint8_t
 	r5 = data[509];
 	r6 = data[510];
 	r7 = data[511];
-
 
 	/*
 	 * Shift bytes 503..0 (in that order) into r0, followed

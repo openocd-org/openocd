@@ -22,6 +22,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FLASH_NAND_CORE_H
 #define FLASH_NAND_CORE_H
 
@@ -30,8 +31,7 @@
 /**
  * Representation of a single NAND block in a NAND device.
  */
-struct nand_block
-{
+struct nand_block {
 	/** Offset to the block. */
 	uint32_t offset;
 
@@ -57,8 +57,7 @@ struct nand_ecclayout {
 	struct nand_oobfree oobfree[2];
 };
 
-struct nand_device
-{
+struct nand_device {
 	const char *name;
 	struct target *target;
 	struct nand_flash_controller *controller;
@@ -77,8 +76,7 @@ struct nand_device
 
 /* NAND Flash Manufacturer ID Codes
  */
-enum
-{
+enum {
 	NAND_MFR_TOSHIBA = 0x98,
 	NAND_MFR_SAMSUNG = 0xec,
 	NAND_MFR_FUJITSU = 0x04,
@@ -89,14 +87,12 @@ enum
 	NAND_MFR_MICRON = 0x2c,
 };
 
-struct nand_manufacturer
-{
+struct nand_manufacturer {
 	int id;
 	const char *name;
 };
 
-struct nand_info
-{
+struct nand_info {
 	int mfr_id;
 	int id;
 	int page_size;
@@ -152,8 +148,7 @@ enum {
 	LP_OPTIONS16 = (LP_OPTIONS | NAND_BUSWIDTH_16),
 };
 
-enum
-{
+enum {
 	/* Standard NAND flash commands */
 	NAND_CMD_READ0 = 0x0,
 	NAND_CMD_READ1 = 0x1,
@@ -161,7 +156,7 @@ enum
 	NAND_CMD_PAGEPROG = 0x10,
 	NAND_CMD_READOOB = 0x50,
 	NAND_CMD_ERASE1 = 0x60,
-	NAND_CMD_STATUS	= 0x70,
+	NAND_CMD_STATUS = 0x70,
 	NAND_CMD_STATUS_MULTI = 0x71,
 	NAND_CMD_SEQIN = 0x80,
 	NAND_CMD_RNDIN = 0x85,
@@ -176,8 +171,7 @@ enum
 };
 
 /* Status bits */
-enum
-{
+enum {
 	NAND_STATUS_FAIL = 0x01,
 	NAND_STATUS_FAIL_N1 = 0x02,
 	NAND_STATUS_TRUE_READY = 0x20,
@@ -186,14 +180,14 @@ enum
 };
 
 /* OOB (spare) data formats */
-enum oob_formats
-{
+enum oob_formats {
 	NAND_OOB_NONE = 0x0,	/* no OOB data at all */
-	NAND_OOB_RAW = 0x1,		/* raw OOB data (16 bytes for 512b page sizes, 64 bytes for 2048b page sizes) */
+	NAND_OOB_RAW = 0x1,		/* raw OOB data (16 bytes for 512b page sizes, 64 bytes for
+					 *2048b page sizes) */
 	NAND_OOB_ONLY = 0x2,	/* only OOB data */
 	NAND_OOB_SW_ECC = 0x10,	/* when writing, use SW ECC (as opposed to no ECC) */
-	NAND_OOB_HW_ECC = 0x20, /* when writing, use HW ECC (as opposed to no ECC) */
-	NAND_OOB_SW_ECC_KW = 0x40, /* when writing, use Marvell's Kirkwood bootrom format */
+	NAND_OOB_HW_ECC = 0x20,	/* when writing, use HW ECC (as opposed to no ECC) */
+	NAND_OOB_SW_ECC_KW = 0x40,	/* when writing, use Marvell's Kirkwood bootrom format */
 	NAND_OOB_JFFS2 = 0x100,	/* when writing, use JFFS2 OOB layout */
 	NAND_OOB_YAFFS2 = 0x100,/* when writing, use YAFFS2 OOB layout */
 };
@@ -202,40 +196,39 @@ enum oob_formats
 struct nand_device *get_nand_device_by_num(int num);
 
 int nand_page_command(struct nand_device *nand, uint32_t page,
-		uint8_t cmd, bool oob_only);
+		      uint8_t cmd, bool oob_only);
 
 int nand_read_data_page(struct nand_device *nand, uint8_t *data, uint32_t size);
 int nand_write_data_page(struct nand_device *nand,
-		uint8_t *data, uint32_t size);
+			 uint8_t *data, uint32_t size);
 
 int nand_write_finish(struct nand_device *nand);
 
 int nand_read_page_raw(struct nand_device *nand, uint32_t page,
-		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+		       uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 int nand_write_page_raw(struct nand_device *nand, uint32_t page,
-		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+			uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 
 int nand_read_status(struct nand_device *nand, uint8_t *status);
 
 int nand_calculate_ecc(struct nand_device *nand,
-		const uint8_t *dat, uint8_t *ecc_code);
+		       const uint8_t *dat, uint8_t *ecc_code);
 int nand_calculate_ecc_kw(struct nand_device *nand,
-		const uint8_t *dat, uint8_t *ecc_code);
+			  const uint8_t *dat, uint8_t *ecc_code);
 
 int nand_register_commands(struct command_context *cmd_ctx);
 
-/// helper for parsing a nand device command argument string
+/* / helper for parsing a nand device command argument string */
 COMMAND_HELPER(nand_command_get_device, unsigned name_index,
-		struct nand_device **nand);
+	struct nand_device **nand);
 
 
-#define		ERROR_NAND_DEVICE_INVALID		(-1100)
-#define		ERROR_NAND_OPERATION_FAILED		(-1101)
-#define		ERROR_NAND_OPERATION_TIMEOUT	(-1102)
-#define		ERROR_NAND_OPERATION_NOT_SUPPORTED	(-1103)
-#define		ERROR_NAND_DEVICE_NOT_PROBED	(-1104)
-#define		ERROR_NAND_ERROR_CORRECTION_FAILED	(-1105)
-#define		ERROR_NAND_NO_BUFFER			(-1106)
+#define         ERROR_NAND_DEVICE_INVALID               (-1100)
+#define         ERROR_NAND_OPERATION_FAILED             (-1101)
+#define         ERROR_NAND_OPERATION_TIMEOUT    (-1102)
+#define         ERROR_NAND_OPERATION_NOT_SUPPORTED      (-1103)
+#define         ERROR_NAND_DEVICE_NOT_PROBED    (-1104)
+#define         ERROR_NAND_ERROR_CORRECTION_FAILED      (-1105)
+#define         ERROR_NAND_NO_BUFFER                    (-1106)
 
-#endif // FLASH_NAND_CORE_H
-
+#endif	/* FLASH_NAND_CORE_H */

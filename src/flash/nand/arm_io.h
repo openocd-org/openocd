@@ -23,9 +23,9 @@
  * Available operational states the arm_nand_data struct can be in.
  */
 enum arm_nand_op {
-	ARM_NAND_NONE, /**< No operation performed. */
-	ARM_NAND_READ, /**< Read operation performed. */
-	ARM_NAND_WRITE, /**< Write operation performed. */
+	ARM_NAND_NONE,	/**< No operation performed. */
+	ARM_NAND_READ,	/**< Read operation performed. */
+	ARM_NAND_WRITE,	/**< Write operation performed. */
 };
 
 /**
@@ -37,7 +37,7 @@ struct arm_nand_data {
 	struct target *target;
 
 	/** The copy area holds code loop and data for I/O operations. */
-	struct working_area	*copy_area;
+	struct working_area *copy_area;
 
 	/** The chunk size is the page size or ECC chunk. */
 	unsigned chunk_size;
@@ -54,4 +54,4 @@ struct arm_nand_data {
 int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size);
 int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size);
 
-#endif /* __ARM_NANDIO_H */
+#endif	/* __ARM_NANDIO_H */

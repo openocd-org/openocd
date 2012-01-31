@@ -17,6 +17,7 @@
  * Free Software Foundation, Inc.,
  * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -26,13 +27,13 @@
 #include "imp.h"
 #include "arm_io.h"
 
-#define AT91C_PIOx_SODR (0x30) /**< Offset to PIO SODR. */
-#define AT91C_PIOx_CODR (0x34) /**< Offset to PIO CODR. */
-#define AT91C_PIOx_PDSR (0x3C) /**< Offset to PIO PDSR. */
-#define AT91C_ECCx_CR (0x00) /**< Offset to ECC CR. */
-#define AT91C_ECCx_SR (0x08) /**< Offset to ECC SR. */
-#define AT91C_ECCx_PR (0x0C) /**< Offset to ECC PR. */
-#define AT91C_ECCx_NPR (0x10) /**< Offset to ECC NPR. */
+#define AT91C_PIOx_SODR (0x30)	/**< Offset to PIO SODR. */
+#define AT91C_PIOx_CODR (0x34)	/**< Offset to PIO CODR. */
+#define AT91C_PIOx_PDSR (0x3C)	/**< Offset to PIO PDSR. */
+#define AT91C_ECCx_CR (0x00)	/**< Offset to ECC CR. */
+#define AT91C_ECCx_SR (0x08)	/**< Offset to ECC SR. */
+#define AT91C_ECCx_PR (0x0C)	/**< Offset to ECC PR. */
+#define AT91C_ECCx_NPR (0x10)	/**< Offset to ECC NPR. */
 
 /**
  * Representation of a pin on an AT91SAM9 chip.
@@ -97,9 +98,8 @@ static int at91sam9_init(struct nand_device *nand)
 {
 	struct target *target = nand->target;
 
-	if (!at91sam9_halted(target, "init")) {
+	if (!at91sam9_halted(target, "init"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	return ERROR_OK;
 }
@@ -144,9 +144,8 @@ static int at91sam9_command(struct nand_device *nand, uint8_t command)
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct target *target = nand->target;
 
-	if (!at91sam9_halted(target, "command")) {
+	if (!at91sam9_halted(target, "command"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	at91sam9_enable(nand);
 
@@ -161,9 +160,8 @@ static int at91sam9_command(struct nand_device *nand, uint8_t command)
  */
 static int at91sam9_reset(struct nand_device *nand)
 {
-	if (!at91sam9_halted(nand->target, "reset")) {
+	if (!at91sam9_halted(nand->target, "reset"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	return at91sam9_disable(nand);
 }
@@ -180,9 +178,8 @@ static int at91sam9_address(struct nand_device *nand, uint8_t address)
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct target *target = nand->target;
 
-	if (!at91sam9_halted(nand->target, "address")) {
+	if (!at91sam9_halted(nand->target, "address"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	return target_write_u8(target, info->addr, address);
 }
@@ -200,9 +197,8 @@ static int at91sam9_read_data(struct nand_device *nand, void *data)
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct target *target = nand->target;
 
-	if (!at91sam9_halted(nand->target, "read data")) {
+	if (!at91sam9_halted(nand->target, "read data"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	return target_read_u8(target, info->data, data);
 }
@@ -220,9 +216,8 @@ static int at91sam9_write_data(struct nand_device *nand, uint16_t data)
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct target *target = nand->target;
 
-	if (!at91sam9_halted(target, "write data")) {
+	if (!at91sam9_halted(target, "write data"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	return target_write_u8(target, info->data, data);
 }
@@ -240,16 +235,14 @@ static int at91sam9_nand_ready(struct nand_device *nand, int timeout)
 	struct target *target = nand->target;
 	uint32_t status;
 
-	if (!at91sam9_halted(target, "nand ready")) {
+	if (!at91sam9_halted(target, "nand ready"))
 		return 0;
-	}
 
 	do {
 		target_read_u32(target, info->busy.pioc + AT91C_PIOx_PDSR, &status);
 
-		if (status & (1 << info->busy.num)) {
+		if (status & (1 << info->busy.num))
 			return 1;
-		}
 
 		alive_sleep(1);
 	} while (timeout-- > 0);
@@ -272,9 +265,8 @@ static int at91sam9_read_block_data(struct nand_device *nand, uint8_t *data, int
 	struct arm_nand_data *io = &info->io;
 	int status;
 
-	if (!at91sam9_halted(nand->target, "read block")) {
+	if (!at91sam9_halted(nand->target, "read block"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	io->chunk_size = nand->page_size;
 	status = arm_nandread(io, data, size);
@@ -297,9 +289,8 @@ static int at91sam9_write_block_data(struct nand_device *nand, uint8_t *data, in
 	struct arm_nand_data *io = &info->io;
 	int status;
 
-	if (!at91sam9_halted(nand->target, "write block")) {
+	if (!at91sam9_halted(nand->target, "write block"))
 		return ERROR_NAND_OPERATION_FAILED;
-	}
 
 	io->chunk_size = nand->page_size;
 	status = arm_nandwrite(io, data, size);
@@ -321,7 +312,7 @@ static int at91sam9_ecc_init(struct target *target, struct at91sam9_nand *info)
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	// reset ECC parity registers
+	/* reset ECC parity registers */
 	return target_write_u32(target, info->ecc + AT91C_ECCx_CR, 1);
 }
 
@@ -335,15 +326,14 @@ static int at91sam9_ecc_init(struct target *target, struct at91sam9_nand *info)
  * @param size Size of the OOB.
  * @return Pointer to an area to store OOB data.
  */
-static uint8_t * at91sam9_oob_init(struct nand_device *nand, uint8_t *oob, uint32_t *size)
+static uint8_t *at91sam9_oob_init(struct nand_device *nand, uint8_t *oob, uint32_t *size)
 {
 	if (!oob) {
-		// user doesn't want OOB, allocate it
-		if (nand->page_size == 512) {
+		/* user doesn't want OOB, allocate it */
+		if (nand->page_size == 512)
 			*size = 16;
-		} else if (nand->page_size == 2048) {
+		else if (nand->page_size == 2048)
 			*size = 64;
-		}
 
 		oob = malloc(*size);
 		if (!oob) {
@@ -371,7 +361,7 @@ static uint8_t * at91sam9_oob_init(struct nand_device *nand, uint8_t *oob, uint3
  * @return Success or failure of reading the NAND page.
  */
 static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
-		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+	uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	int retval;
 	struct at91sam9_nand *info = nand->controller_priv;
@@ -380,20 +370,17 @@ static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
 	uint32_t status;
 
 	retval = at91sam9_ecc_init(target, info);
-	if (ERROR_OK != retval) {
+	if (ERROR_OK != retval)
 		return retval;
-	}
 
 	retval = nand_page_command(nand, page, NAND_CMD_READ0, !data);
-	if (ERROR_OK != retval) {
+	if (ERROR_OK != retval)
 		return retval;
-	}
 
 	if (data) {
 		retval = nand_read_data_page(nand, data, data_size);
-		if (ERROR_OK != retval) {
+		if (ERROR_OK != retval)
 			return retval;
-		}
 	}
 
 	oob_data = at91sam9_oob_init(nand, oob, &oob_size);
@@ -402,33 +389,33 @@ static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
 		target_read_u32(target, info->ecc + AT91C_ECCx_SR, &status);
 		if (status & 1) {
 			LOG_ERROR("Error detected!");
-			if (status & 4) {
+			if (status & 4)
 				LOG_ERROR("Multiple errors encountered; unrecoverable!");
-			} else {
-				// attempt recovery
+			else {
+				/* attempt recovery */
 				uint32_t parity;
 
 				target_read_u32(target,
-						info->ecc + AT91C_ECCx_PR,
-						&parity);
+					info->ecc + AT91C_ECCx_PR,
+					&parity);
 				uint32_t word = (parity & 0x0000FFF0) >> 4;
 				uint32_t bit = parity & 0x0F;
 
 				data[word] ^= (0x1) << bit;
 				LOG_INFO("Data word %d, bit %d corrected.",
-						(unsigned) word,
-						(unsigned) bit);
+					(unsigned) word,
+					(unsigned) bit);
 			}
 		}
 
 		if (status & 2) {
-			// we could write back correct ECC data
+			/* we could write back correct ECC data */
 			LOG_ERROR("Error in ECC bytes detected");
 		}
 	}
 
 	if (!oob) {
-		// if it wasn't asked for, free it
+		/* if it wasn't asked for, free it */
 		free(oob_data);
 	}
 
@@ -449,7 +436,7 @@ static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
  * @return Success or failure of the page write.
  */
 static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
-		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
+	uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct target *target = nand->target;
@@ -458,14 +445,12 @@ static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
 	uint32_t parity, nparity;
 
 	retval = at91sam9_ecc_init(target, info);
-	if (ERROR_OK != retval) {
+	if (ERROR_OK != retval)
 		return retval;
-	}
 
 	retval = nand_page_command(nand, page, NAND_CMD_SEQIN, !data);
-	if (ERROR_OK != retval) {
+	if (ERROR_OK != retval)
 		return retval;
-	}
 
 	if (data) {
 		retval = nand_write_data_page(nand, data, data_size);
@@ -478,7 +463,7 @@ static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
 	oob_data = at91sam9_oob_init(nand, oob, &oob_size);
 
 	if (!oob) {
-		// no OOB given, so read in the ECC parity from the ECC controller
+		/* no OOB given, so read in the ECC parity from the ECC controller */
 		target_read_u32(target, info->ecc + AT91C_ECCx_PR, &parity);
 		target_read_u32(target, info->ecc + AT91C_ECCx_NPR, &nparity);
 
@@ -490,9 +475,8 @@ static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
 
 	retval = nand_write_data_page(nand, oob_data, oob_size);
 
-	if (!oob) {
+	if (!oob)
 		free(oob_data);
-	}
 
 	if (ERROR_OK != retval) {
 		LOG_ERROR("Unable to write OOB data to NAND");
@@ -594,9 +578,8 @@ COMMAND_HANDLER(handle_at91sam9_ale_command)
 	struct at91sam9_nand *info = NULL;
 	unsigned num, address_line;
 
-	if (CMD_ARGC != 2) {
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	nand = get_nand_device_by_num(num);
@@ -623,9 +606,8 @@ COMMAND_HANDLER(handle_at91sam9_rdy_busy_command)
 	struct at91sam9_nand *info = NULL;
 	unsigned num, base_pioc, pin_num;
 
-	if (CMD_ARGC != 3) {
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	nand = get_nand_device_by_num(num);
@@ -655,9 +637,8 @@ COMMAND_HANDLER(handle_at91sam9_ce_command)
 	struct at91sam9_nand *info = NULL;
 	unsigned num, base_pioc, pin_num;
 
-	if (CMD_ARGC != 3) {
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	nand = get_nand_device_by_num(num);

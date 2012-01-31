@@ -30,7 +30,6 @@
 
 #include "s3c24xx.h"
 
-
 NAND_DEVICE_COMMAND_HANDLER(s3c2440_nand_device_command)
 {
 	struct s3c24xx_nand_controller *info;
@@ -153,17 +152,17 @@ int s3c2440_write_block_data(struct nand_device *nand, uint8_t *data, int data_s
 }
 
 struct nand_flash_controller s3c2440_nand_controller = {
-		.name = "s3c2440",
-		.nand_device_command = &s3c2440_nand_device_command,
-		.init = &s3c2440_init,
-		.reset = &s3c24xx_reset,
-		.command = &s3c24xx_command,
-		.address = &s3c24xx_address,
-		.write_data = &s3c24xx_write_data,
-		.read_data = &s3c24xx_read_data,
-		.write_page = s3c24xx_write_page,
-		.read_page = s3c24xx_read_page,
-		.write_block_data = &s3c2440_write_block_data,
-		.read_block_data = &s3c2440_read_block_data,
-		.nand_ready = &s3c2440_nand_ready,
-	};
+	.name = "s3c2440",
+	.nand_device_command = &s3c2440_nand_device_command,
+	.init = &s3c2440_init,
+	.reset = &s3c24xx_reset,
+	.command = &s3c24xx_command,
+	.address = &s3c24xx_address,
+	.write_data = &s3c24xx_write_data,
+	.read_data = &s3c24xx_read_data,
+	.write_page = s3c24xx_write_page,
+	.read_page = s3c24xx_read_page,
+	.write_block_data = &s3c2440_write_block_data,
+	.read_block_data = &s3c2440_read_block_data,
+	.nand_ready = &s3c2440_nand_ready,
+};

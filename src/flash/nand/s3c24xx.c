@@ -30,7 +30,6 @@
 
 #include "s3c24xx.h"
 
-
 S3C24XX_DEVICE_COMMAND()
 {
 	*info = NULL;
@@ -76,7 +75,6 @@ int s3c24xx_command(struct nand_device *nand, uint8_t command)
 	target_write_u16(target, s3c24xx_info->cmd, command);
 	return ERROR_OK;
 }
-
 
 int s3c24xx_address(struct nand_device *nand, uint8_t address)
 {

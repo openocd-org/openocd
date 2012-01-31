@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FLASH_NAND_IMP_H
 #define FLASH_NAND_IMP_H
 
@@ -36,4 +37,4 @@ int nand_probe(struct nand_device *nand);
 int nand_erase(struct nand_device *nand, int first_block, int last_block);
 int nand_build_bbt(struct nand_device *nand, int first, int last);
 
-#endif // FLASH_NAND_IMP_H
+#endif	/* FLASH_NAND_IMP_H */

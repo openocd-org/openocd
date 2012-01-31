@@ -30,9 +30,7 @@
 #include "arm_io.h"
 #include <target/arm.h>
 
-
-struct orion_nand_controller
-{
+struct orion_nand_controller {
 	struct arm_nand_data	io;
 
 	uint32_t		cmd;
@@ -120,9 +118,8 @@ NAND_DEVICE_COMMAND_HANDLER(orion_nand_device_command)
 	uint32_t base;
 	uint8_t ale, cle;
 
-	if (CMD_ARGC != 3) {
+	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	hw = calloc(1, sizeof(*hw));
 	if (!hw) {
@@ -152,17 +149,15 @@ static int orion_nand_init(struct nand_device *nand)
 	return ERROR_OK;
 }
 
-struct nand_flash_controller orion_nand_controller =
-{
-	.name			= "orion",
-	.usage			= "<target_id> <NAND_address>",
-	.command		= orion_nand_command,
-	.address		= orion_nand_address,
-	.read_data		= orion_nand_read,
-	.write_data		= orion_nand_write,
-	.write_block_data	= orion_nand_fast_block_write,
-	.reset			= orion_nand_reset,
-	.nand_device_command	= orion_nand_device_command,
-	.init			= orion_nand_init,
+struct nand_flash_controller orion_nand_controller = {
+	.name = "orion",
+	.usage = "<target_id> <NAND_address>",
+	.command = orion_nand_command,
+	.address = orion_nand_address,
+	.read_data = orion_nand_read,
+	.write_data = orion_nand_write,
+	.write_block_data = orion_nand_fast_block_write,
+	.reset = orion_nand_reset,
+	.nand_device_command = orion_nand_device_command,
+	.init = orion_nand_init,
 };
-

@@ -19,28 +19,28 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FLASH_NAND_DRIVER_H
 #define FLASH_NAND_DRIVER_H
 
 struct nand_device;
 
 #define __NAND_DEVICE_COMMAND(name) \
-		COMMAND_HELPER(name, struct nand_device *nand)
+	COMMAND_HELPER(name, struct nand_device *nand)
 
 /**
  * Interface for NAND flash controllers.  Not all of these functions are
  * required for full functionality of the NAND driver, but better performance
  * can be achieved by implementing each function.
  */
-struct nand_flash_controller
-{
+struct nand_flash_controller {
 	/** Driver name that is used to select it from configuration files. */
 	const char *name;
 
 	/** Usage of flash command registration. */
 	const char *usage;
 
-    const struct command_registration *commands;
+	const struct command_registration *commands;
 
 	/** NAND device command called when driver is instantiated during configuration. */
 	__NAND_DEVICE_COMMAND((*nand_device_command));
@@ -70,10 +70,12 @@ struct nand_flash_controller
 	int (*read_block_data)(struct nand_device *nand, uint8_t *data, int size);
 
 	/** Write a page to the NAND device. */
-	int (*write_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+	int (*write_page)(struct nand_device *nand, uint32_t page, uint8_t *data,
+			  uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 
 	/** Read a page from the NAND device. */
-	int (*read_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+	int (*read_page)(struct nand_device *nand, uint32_t page, uint8_t *data, uint32_t data_size,
+			 uint8_t *oob, uint32_t oob_size);
 
 	/** Check if the NAND device is ready for more instructions with timeout. */
 	int (*nand_ready)(struct nand_device *nand, int timeout);
@@ -88,8 +90,8 @@ struct nand_flash_controller
  */
 struct nand_flash_controller *nand_driver_find_by_name(const char *name);
 
-/// Signature for callback functions passed to nand_driver_walk
-typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void*);
+/* / Signature for callback functions passed to nand_driver_walk */
+typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void *);
 /**
  * Walk the list of drivers, encapsulating the data structure type.
  * Application state/context can be passed through the @c x pointer.
@@ -100,4 +102,4 @@ typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void*);
  */
 int nand_driver_walk(nand_driver_walker_t f, void *x);
 
-#endif // FLASH_NAND_DRIVER_H
+#endif	/* FLASH_NAND_DRIVER_H */

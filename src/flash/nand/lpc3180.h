@@ -17,18 +17,17 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef LPC3180_NAND_CONTROLLER_H
 #define LPC3180_NAND_CONTROLLER_H
 
-enum lpc3180_selected_controller
-{
+enum lpc3180_selected_controller {
 	LPC3180_NO_CONTROLLER,
 	LPC3180_MLC_CONTROLLER,
 	LPC3180_SLC_CONTROLLER,
 };
 
-struct lpc3180_nand_controller
-{
+struct lpc3180_nand_controller {
 	int osc_freq;
 	enum lpc3180_selected_controller selected_controller;
 	int is_bulk;
@@ -37,4 +36,4 @@ struct lpc3180_nand_controller
 	uint32_t sw_wp_upper_bound;
 };
 
-#endif /*LPC3180_NAND_CONTROLLER_H */
+#endif	/*LPC3180_NAND_CONTROLLER_H */

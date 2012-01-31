@@ -125,7 +125,7 @@ static inline int countbits(uint32_t b)
 {
 	int res = 0;
 
-	for (;b; b >>= 1)
+	for (; b; b >>= 1)
 		res += b & 0x01;
 	return res;
 }
@@ -134,7 +134,7 @@ static inline int countbits(uint32_t b)
  * nand_correct_data - Detect and correct a 1 bit error for 256 byte block
  */
 int nand_correct_data(struct nand_device *nand, u_char *dat,
-		      u_char *read_ecc, u_char *calc_ecc)
+		u_char *read_ecc, u_char *calc_ecc)
 {
 	uint8_t s0, s1, s2;
 
@@ -151,9 +151,9 @@ int nand_correct_data(struct nand_device *nand, u_char *dat,
 		return 0;
 
 	/* Check for a single bit error */
-	if( ((s0 ^ (s0 >> 1)) & 0x55) == 0x55 &&
-	    ((s1 ^ (s1 >> 1)) & 0x55) == 0x55 &&
-	    ((s2 ^ (s2 >> 1)) & 0x54) == 0x54) {
+	if (((s0 ^ (s0 >> 1)) & 0x55) == 0x55 &&
+			((s1 ^ (s1 >> 1)) & 0x55) == 0x55 &&
+			((s2 ^ (s2 >> 1)) & 0x54) == 0x54) {
 
 		uint32_t byteoffs, bitnum;
 
@@ -176,7 +176,7 @@ int nand_correct_data(struct nand_device *nand, u_char *dat,
 		return 1;
 	}
 
-	if(countbits(s0 | ((uint32_t)s1 << 8) | ((uint32_t)s2 <<16)) == 1)
+	if (countbits(s0 | ((uint32_t)s1 << 8) | ((uint32_t)s2 << 16)) == 1)
 		return 1;
 
 	return -1;

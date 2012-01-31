@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef FLASH_NAND_FILEIO_H
 #define FLASH_NAND_FILEIO_H
 
@@ -49,9 +50,9 @@ int nand_fileio_cleanup(struct nand_fileio_state *state);
 int nand_fileio_finish(struct nand_fileio_state *state);
 
 COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
-		struct nand_device **dev, enum fileio_access filemode,
-		bool need_size, bool sw_ecc);
+	struct nand_device **dev, enum fileio_access filemode,
+	bool need_size, bool sw_ecc);
 
 int nand_fileio_read(struct nand_device *nand, struct nand_fileio_state *s);
 
-#endif // FLASH_NAND_FILEIO_H
+#endif	/* FLASH_NAND_FILEIO_H */

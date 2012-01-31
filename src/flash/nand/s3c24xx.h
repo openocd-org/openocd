@@ -31,8 +31,7 @@
 #include "s3c24xx_regs.h"
 #include <target/target.h>
 
-struct s3c24xx_nand_controller
-{
+struct s3c24xx_nand_controller {
 	/* register addresses */
 	uint32_t		 cmd;
 	uint32_t		 addr;
@@ -78,4 +77,4 @@ int s3c2440_read_block_data(struct nand_device *nand,
 int s3c2440_write_block_data(struct nand_device *nand,
 		uint8_t *data, int data_size);
 
-#endif // S3C24xx_NAND_H
+#endif /* S3C24xx_NAND_H */

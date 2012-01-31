@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -29,7 +30,7 @@
 #include "fileio.h"
 #include <target/target.h>
 
-// to be removed
+/* to be removed */
 extern struct nand_device *nand_devices;
 
 COMMAND_HANDLER(handle_nand_list_command)
@@ -37,14 +38,12 @@ COMMAND_HANDLER(handle_nand_list_command)
 	struct nand_device *p;
 	int i;
 
-	if (!nand_devices)
-	{
+	if (!nand_devices) {
 		command_print(CMD_CTX, "no NAND flash devices configured");
 		return ERROR_OK;
 	}
 
-	for (p = nand_devices, i = 0; p; p = p->next, i++)
-	{
+	for (p = nand_devices, i = 0; p; p = p->next, i++) {
 		if (p->device)
 			command_print(CMD_CTX, "#%i: %s (%s) "
 				"pagesize: %i, buswidth: %i,\n\t"
@@ -67,21 +66,21 @@ COMMAND_HANDLER(handle_nand_info_command)
 	int last = -1;
 
 	switch (CMD_ARGC) {
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	case 1:
-		first = 0;
-		last = INT32_MAX;
-		break;
-	case 2:
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], i);
-		first = last = i;
-		i = 0;
-		break;
-	case 3:
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], first);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
-		break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		case 1:
+			first = 0;
+			last = INT32_MAX;
+			break;
+		case 2:
+			COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], i);
+			first = last = i;
+			i = 0;
+			break;
+		case 3:
+			COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], first);
+			COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
+			break;
 	}
 
 	struct nand_device *p;
@@ -89,8 +88,7 @@ COMMAND_HANDLER(handle_nand_info_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (NULL == p->device)
-	{
+	if (NULL == p->device) {
 		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
@@ -101,11 +99,16 @@ COMMAND_HANDLER(handle_nand_info_command)
 	if (last >= p->num_blocks)
 		last = p->num_blocks - 1;
 
-	command_print(CMD_CTX, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
-		i++, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
+	command_print(CMD_CTX,
+		"#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
+		i++,
+		p->device->name,
+		p->manufacturer->name,
+		p->page_size,
+		p->bus_width,
+		p->erase_size);
 
-	for (j = first; j <= last; j++)
-	{
+	for (j = first; j <= last; j++) {
 		char *erase_state, *bad_state;
 
 		if (p->blocks[j].is_erased == 0)
@@ -123,12 +126,12 @@ COMMAND_HANDLER(handle_nand_info_command)
 			bad_state = " (block condition unknown)";
 
 		command_print(CMD_CTX,
-			      "\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
-			      j,
-			      p->blocks[j].offset,
-			      p->blocks[j].size / 1024,
-			      erase_state,
-			      bad_state);
+			"\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
+			j,
+			p->blocks[j].offset,
+			p->blocks[j].size / 1024,
+			erase_state,
+			bad_state);
 	}
 
 	return ERROR_OK;
@@ -137,19 +140,17 @@ COMMAND_HANDLER(handle_nand_info_command)
 COMMAND_HANDLER(handle_nand_probe_command)
 {
 	if (CMD_ARGC != 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct nand_device *p;
 	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
-	if ((retval = nand_probe(p)) == ERROR_OK)
-	{
+	retval = nand_probe(p);
+	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "NAND flash device '%s (%s)' found",
-				p->device->name, p->manufacturer->name);
+			p->device->name, p->manufacturer->name);
 	}
 
 	return retval;
@@ -158,10 +159,7 @@ COMMAND_HANDLER(handle_nand_probe_command)
 COMMAND_HANDLER(handle_nand_erase_command)
 {
 	if (CMD_ARGC != 1 && CMD_ARGC != 3)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	}
 
 	struct nand_device *p;
 	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
@@ -181,7 +179,7 @@ COMMAND_HANDLER(handle_nand_erase_command)
 
 		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], length);
 		if ((length == 0) || (length % p->erase_size) != 0
-				|| (length + offset) > size)
+		    || (length + offset) > size)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
 		offset /= p->erase_size;
@@ -192,12 +190,11 @@ COMMAND_HANDLER(handle_nand_erase_command)
 	}
 
 	retval = nand_erase(p, offset, offset + length - 1);
-	if (retval == ERROR_OK)
-	{
+	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "erased blocks %lu to %lu "
-				"on NAND flash device #%s '%s'",
-				offset, offset + length - 1,
-				CMD_ARGV[0], p->device->name);
+			"on NAND flash device #%s '%s'",
+			offset, offset + length - 1,
+			CMD_ARGV[0], p->device->name);
 	}
 
 	return retval;
@@ -209,18 +206,14 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	int last = -1;
 
 	if ((CMD_ARGC < 1) || (CMD_ARGC > 3) || (CMD_ARGC == 2))
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	}
 
 	struct nand_device *p;
 	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (CMD_ARGC == 3)
-	{
+	if (CMD_ARGC == 3) {
 		unsigned long offset;
 		unsigned long length;
 
@@ -241,10 +234,9 @@ COMMAND_HANDLER(handle_nand_check_bad_blocks_command)
 	}
 
 	retval = nand_build_bbt(p, first, last);
-	if (retval == ERROR_OK)
-	{
+	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "checked NAND flash device for bad blocks, "
-				"use \"nand info\" command to list blocks");
+			"use \"nand info\" command to list blocks");
 	}
 
 	return retval;
@@ -260,11 +252,9 @@ COMMAND_HANDLER(handle_nand_write_command)
 		return retval;
 
 	uint32_t total_bytes = s.size;
-	while (s.size > 0)
-	{
+	while (s.size > 0) {
 		int bytes_read = nand_fileio_read(nand, &s);
-		if (bytes_read <= 0)
-		{
+		if (bytes_read <= 0) {
 			command_print(CMD_CTX, "error while reading file");
 			return nand_fileio_cleanup(&s);
 		}
@@ -272,8 +262,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 
 		retval = nand_write_page(nand, s.address / nand->page_size,
 				s.page, s.page_size, s.oob, s.oob_size);
-		if (ERROR_OK != retval)
-		{
+		if (ERROR_OK != retval) {
 			command_print(CMD_CTX, "failed writing file %s "
 				"to NAND flash %s at offset 0x%8.8" PRIx32,
 				CMD_ARGV[1], CMD_ARGV[0], s.address);
@@ -282,12 +271,11 @@ COMMAND_HANDLER(handle_nand_write_command)
 		s.address += s.page_size;
 	}
 
-	if (nand_fileio_finish(&s))
-	{
+	if (nand_fileio_finish(&s)) {
 		command_print(CMD_CTX, "wrote file %s to NAND flash %s up to "
-				"offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-				CMD_ARGV[1], CMD_ARGV[0], s.address, duration_elapsed(&s.bench),
-				duration_kbps(&s.bench, total_bytes));
+			"offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
+			CMD_ARGV[1], CMD_ARGV[0], s.address, duration_elapsed(&s.bench),
+			duration_kbps(&s.bench, total_bytes));
 	}
 	return ERROR_OK;
 }
@@ -310,12 +298,10 @@ COMMAND_HANDLER(handle_nand_verify_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	while (file.size > 0)
-	{
+	while (file.size > 0) {
 		retval = nand_read_page(nand, dev.address / dev.page_size,
 				dev.page, dev.page_size, dev.oob, dev.oob_size);
-		if (ERROR_OK != retval)
-		{
+		if (ERROR_OK != retval) {
 			command_print(CMD_CTX, "reading NAND flash page failed");
 			nand_fileio_cleanup(&dev);
 			nand_fileio_cleanup(&file);
@@ -323,8 +309,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		}
 
 		int bytes_read = nand_fileio_read(nand, &file);
-		if (bytes_read <= 0)
-		{
+		if (bytes_read <= 0) {
 			command_print(CMD_CTX, "error while reading file");
 			nand_fileio_cleanup(&dev);
 			nand_fileio_cleanup(&file);
@@ -332,10 +317,9 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		}
 
 		if ((dev.page && memcmp(dev.page, file.page, dev.page_size)) ||
-		    (dev.oob && memcmp(dev.oob, file.oob, dev.oob_size)) )
-		{
+				(dev.oob && memcmp(dev.oob, file.oob, dev.oob_size))) {
 			command_print(CMD_CTX, "NAND flash contents differ "
-						"at 0x%8.8" PRIx32, dev.address);
+				"at 0x%8.8" PRIx32, dev.address);
 			nand_fileio_cleanup(&dev);
 			nand_fileio_cleanup(&file);
 			return ERROR_FAIL;
@@ -345,12 +329,11 @@ COMMAND_HANDLER(handle_nand_verify_command)
 		dev.address += nand->page_size;
 	}
 
-	if (nand_fileio_finish(&file) == ERROR_OK)
-	{
+	if (nand_fileio_finish(&file) == ERROR_OK) {
 		command_print(CMD_CTX, "verified file %s in NAND flash %s "
-				"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-				CMD_ARGV[1], CMD_ARGV[0], dev.address, duration_elapsed(&file.bench),
-				duration_kbps(&file.bench, dev.size));
+			"up to offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
+			CMD_ARGV[1], CMD_ARGV[0], dev.address, duration_elapsed(&file.bench),
+			duration_kbps(&file.bench, dev.size));
 	}
 
 	return nand_fileio_cleanup(&dev);
@@ -366,13 +349,11 @@ COMMAND_HANDLER(handle_nand_dump_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	while (s.size > 0)
-	{
+	while (s.size > 0) {
 		size_t size_written;
 		retval = nand_read_page(nand, s.address / nand->page_size,
 				s.page, s.page_size, s.oob, s.oob_size);
-		if (ERROR_OK != retval)
-		{
+		if (ERROR_OK != retval) {
 			command_print(CMD_CTX, "reading NAND flash page failed");
 			nand_fileio_cleanup(&s);
 			return retval;
@@ -392,11 +373,10 @@ COMMAND_HANDLER(handle_nand_dump_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (nand_fileio_finish(&s) == ERROR_OK)
-	{
+	if (nand_fileio_finish(&s) == ERROR_OK) {
 		command_print(CMD_CTX, "dumped %ld bytes in %fs (%0.3f KiB/s)",
-				(long)filesize, duration_elapsed(&s.bench),
-				duration_kbps(&s.bench, filesize));
+			(long)filesize, duration_elapsed(&s.bench),
+			duration_kbps(&s.bench, filesize));
 	}
 	return ERROR_OK;
 }
@@ -404,17 +384,14 @@ COMMAND_HANDLER(handle_nand_dump_command)
 COMMAND_HANDLER(handle_nand_raw_access_command)
 {
 	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct nand_device *p;
 	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &p);
 	if (ERROR_OK != retval)
 		return retval;
 
-	if (NULL == p->device)
-	{
+	if (NULL == p->device) {
 		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
@@ -510,9 +487,8 @@ COMMAND_HANDLER(handle_nand_init_command)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	static bool nand_initialized = false;
-	if (nand_initialized)
-	{
+	static bool nand_initialized;
+	if (nand_initialized) {
 		LOG_INFO("'nand init' has already been called");
 		return ERROR_OK;
 	}
@@ -536,32 +512,28 @@ COMMAND_HANDLER(handle_nand_list_drivers)
 }
 
 static COMMAND_HELPER(create_nand_device, const char *bank_name,
-		struct nand_flash_controller *controller)
+	struct nand_flash_controller *controller)
 {
 	struct nand_device *c;
 	struct target *target;
 	int retval;
 
 	if (CMD_ARGC < 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 	target = get_target(CMD_ARGV[1]);
 	if (!target) {
 		LOG_ERROR("invalid target %s", CMD_ARGV[1]);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	if (NULL != controller->commands)
-	{
+	if (NULL != controller->commands) {
 		retval = register_commands(CMD_CTX, NULL,
 				controller->commands);
 		if (ERROR_OK != retval)
 			return retval;
 	}
 	c = malloc(sizeof(struct nand_device));
-	if (c == NULL)
-	{
+	if (c == NULL) {
 		LOG_ERROR("End of memory");
 		return ERROR_FAIL;
 	}
@@ -579,8 +551,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	c->next = NULL;
 
 	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
-	if (ERROR_OK != retval)
-	{
+	if (ERROR_OK != retval) {
 		LOG_ERROR("'%s' driver rejected nand flash. Usage: %s",
 			controller->name,
 			controller->usage);
@@ -599,19 +570,16 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 COMMAND_HANDLER(handle_nand_device_command)
 {
 	if (CMD_ARGC < 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	// save name and increment (for compatibility) with drivers
+	/* save name and increment (for compatibility) with drivers */
 	const char *bank_name = *CMD_ARGV++;
 	CMD_ARGC--;
 
 	const char *driver_name = CMD_ARGV[0];
 	struct nand_flash_controller *controller;
 	controller = nand_driver_find_by_name(CMD_ARGV[0]);
-	if (NULL == controller)
-	{
+	if (NULL == controller) {
 		LOG_ERROR("No valid NAND flash driver found (%s)", driver_name);
 		return CALL_COMMAND_HANDLER(handle_nand_list_drivers);
 	}
@@ -642,6 +610,7 @@ static const struct command_registration nand_config_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration nand_command_handlers[] = {
 	{
 		.name = "nand",
@@ -657,5 +626,3 @@ int nand_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, nand_command_handlers);
 }
-
-
