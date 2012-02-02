@@ -3064,16 +3064,16 @@ sub process {
 		}
 
 # Check for __attribute__ packed, prefer __packed
-		if ($line =~ /\b__attribute__\s*\(\s*\(.*\bpacked\b/) {
-			WARN("PREFER_PACKED",
-			     "__packed is preferred over __attribute__((packed))\n" . $herecurr);
-		}
+#		if ($line =~ /\b__attribute__\s*\(\s*\(.*\bpacked\b/) {
+#			WARN("PREFER_PACKED",
+#			     "__packed is preferred over __attribute__((packed))\n" . $herecurr);
+#		}
 
 # Check for __attribute__ aligned, prefer __aligned
-		if ($line =~ /\b__attribute__\s*\(\s*\(.*aligned/) {
-			WARN("PREFER_ALIGNED",
-			     "__aligned(size) is preferred over __attribute__((aligned(size)))\n" . $herecurr);
-		}
+#		if ($line =~ /\b__attribute__\s*\(\s*\(.*aligned/) {
+#			WARN("PREFER_ALIGNED",
+#			     "__aligned(size) is preferred over __attribute__((aligned(size)))\n" . $herecurr);
+#		}
 
 # check for sizeof(&)
 		if ($line =~ /\bsizeof\s*\(\s*\&/) {
