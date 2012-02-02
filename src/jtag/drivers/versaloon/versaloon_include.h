@@ -16,8 +16,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// This file is used to include different header and macros
-// according to different platform
+
+/* This file is used to include different header and macros */
+/* according to different platform */
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include "usb_common.h"
@@ -31,7 +32,7 @@
 #define RESULT								int
 #define LOG_BUG								LOG_ERROR
 
-// Common error messages
+/* Common error messages */
 #define ERRMSG_NOT_ENOUGH_MEMORY			"Lack of memory."
 #define ERRCODE_NOT_ENOUGH_MEMORY			ERROR_FAIL
 
@@ -52,38 +53,38 @@
 #define ERRMSG_FAILURE_OPERATION_MESSAGE	"Fail to %s, %s"
 #define ERRCODE_FAILURE_OPERATION			ERROR_FAIL
 
-#define GET_U16_MSBFIRST(p)			(	((*((uint8_t *)(p) + 0)) << 8) | \
-										((*((uint8_t *)(p) + 1)) << 0))
-#define GET_U32_MSBFIRST(p)			(	((*((uint8_t *)(p) + 0)) << 24) | \
-										((*((uint8_t *)(p) + 1)) << 16) | \
-										((*((uint8_t *)(p) + 2)) << 8) | \
-										((*((uint8_t *)(p) + 3)) << 0))
-#define GET_U16_LSBFIRST(p)			(	((*((uint8_t *)(p) + 0)) << 0) | \
-										((*((uint8_t *)(p) + 1)) << 8))
-#define GET_U32_LSBFIRST(p)			(	((*((uint8_t *)(p) + 0)) << 0) | \
-										((*((uint8_t *)(p) + 1)) << 8) | \
-										((*((uint8_t *)(p) + 2)) << 16) | \
-										((*((uint8_t *)(p) + 3)) << 24))
+#define GET_U16_MSBFIRST(p)			(((*((uint8_t *)(p) + 0)) << 8) | \
+									((*((uint8_t *)(p) + 1)) << 0))
+#define GET_U32_MSBFIRST(p)			(((*((uint8_t *)(p) + 0)) << 24) | \
+									((*((uint8_t *)(p) + 1)) << 16) | \
+									((*((uint8_t *)(p) + 2)) << 8) | \
+									((*((uint8_t *)(p) + 3)) << 0))
+#define GET_U16_LSBFIRST(p)			(((*((uint8_t *)(p) + 0)) << 0) | \
+									((*((uint8_t *)(p) + 1)) << 8))
+#define GET_U32_LSBFIRST(p)			(((*((uint8_t *)(p) + 0)) << 0) | \
+									((*((uint8_t *)(p) + 1)) << 8) | \
+									((*((uint8_t *)(p) + 2)) << 16) | \
+									((*((uint8_t *)(p) + 3)) << 24))
 
 #define SET_U16_MSBFIRST(p, v)		\
-	do{\
+	do {\
 		*((uint8_t *)(p) + 0) = (((uint16_t)(v)) >> 8) & 0xFF;\
 		*((uint8_t *)(p) + 1) = (((uint16_t)(v)) >> 0) & 0xFF;\
 	} while (0)
 #define SET_U32_MSBFIRST(p, v)		\
-	do{\
+	do {\
 		*((uint8_t *)(p) + 0) = (((uint32_t)(v)) >> 24) & 0xFF;\
 		*((uint8_t *)(p) + 1) = (((uint32_t)(v)) >> 16) & 0xFF;\
 		*((uint8_t *)(p) + 2) = (((uint32_t)(v)) >> 8) & 0xFF;\
 		*((uint8_t *)(p) + 3) = (((uint32_t)(v)) >> 0) & 0xFF;\
 	} while (0)
 #define SET_U16_LSBFIRST(p, v)		\
-	do{\
+	do {\
 		*((uint8_t *)(p) + 0) = (((uint16_t)(v)) >> 0) & 0xFF;\
 		*((uint8_t *)(p) + 1) = (((uint16_t)(v)) >> 8) & 0xFF;\
 	} while (0)
 #define SET_U32_LSBFIRST(p, v)		\
-	do{\
+	do {\
 		*((uint8_t *)(p) + 0) = (((uint32_t)(v)) >> 0) & 0xFF;\
 		*((uint8_t *)(p) + 1) = (((uint32_t)(v)) >> 8) & 0xFF;\
 		*((uint8_t *)(p) + 2) = (((uint32_t)(v)) >> 16) & 0xFF;\

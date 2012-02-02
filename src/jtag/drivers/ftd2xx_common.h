@@ -27,8 +27,7 @@
 
 static const char *ftd2xx_status_string(FT_STATUS status)
 {
-	switch (status)
-	{
+	switch (status) {
 		case FT_OK:							return "OK";
 		case FT_INVALID_HANDLE:				return "invalid handle";
 		case FT_DEVICE_NOT_FOUND:			return "device not found";

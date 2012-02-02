@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -41,27 +42,24 @@ RESULT usbtopwr_fini(uint8_t interface_index)
 RESULT usbtopwr_config(uint8_t interface_index)
 {
 #if PARAM_CHECK
-	if (interface_index > 7)
-	{
+	if (interface_index > 7) {
 		LOG_BUG(ERRMSG_INVALID_INTERFACE_NUM, interface_index);
 		return ERROR_FAIL;
 	}
 #endif
-	
+
 	return usbtoxxx_conf_command(USB_TO_POWER, interface_index, NULL, 0);
 }
 
 RESULT usbtopwr_output(uint8_t interface_index, uint16_t mV)
 {
 #if PARAM_CHECK
-	if (interface_index > 7)
-	{
+	if (interface_index > 7) {
 		LOG_BUG(ERRMSG_INVALID_INTERFACE_NUM, interface_index);
 		return ERROR_FAIL;
 	}
 #endif
-	
-	return usbtoxxx_out_command(USB_TO_POWER, interface_index, (uint8_t *)&mV,
-								2, 0);
-}
 
+	return usbtoxxx_out_command(USB_TO_POWER, interface_index, (uint8_t *)&mV,
+		2, 0);
+}

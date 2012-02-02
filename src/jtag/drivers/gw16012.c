@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include <jtag/interface.h>
 #include <jtag/commands.h>
-
 
 #if 1
 #define _DEBUG_GW16012_IO_
@@ -35,13 +35,12 @@
 
 #include <machine/sysarch.h>
 #include <machine/cpufunc.h>
-#define ioperm(startport,length,enable)\
-  i386_set_ioperm((startport), (length), (enable))
+#define ioperm(startport, length, enable) \
+	386_set_ioperm((startport), (length), (enable))
 
 #else
 
 #endif /* __FreeBSD__, __FreeBSD_kernel__ */
-
 
 #if PARPORT_USE_PPDEV == 1
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
@@ -65,14 +64,13 @@
 #include <windows.h>
 #endif
 
-
 /* configuration */
 uint16_t gw16012_port;
 
 /* interface variables
  */
-static uint8_t gw16012_msb = 0x0;
-static uint8_t gw16012_control_value = 0x0;
+static uint8_t gw16012_msb;
+static uint8_t gw16012_control_value;
 
 #if PARPORT_USE_PPDEV == 1
 static int device_handle;
@@ -100,8 +98,7 @@ static void gw16012_data(uint8_t value)
 
 static void gw16012_control(uint8_t value)
 {
-	if (value != gw16012_control_value)
-	{
+	if (value != gw16012_control_value) {
 		gw16012_control_value = value;
 
 #ifdef _DEBUG_GW16012_IO_
@@ -159,8 +156,7 @@ static void gw16012_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
-	else
-	{
+	else {
 		LOG_ERROR("BUG: %i is not a valid end state", state);
 		exit(-1);
 	}
@@ -174,8 +170,7 @@ static void gw16012_state_move(void)
 
 	gw16012_control(0x0); /* single-bit mode */
 
-	for (i = 0; i < tms_count; i++)
-	{
+	for (i = 0; i < tms_count; i++) {
 		tms = (tms_scan >> i) & 1;
 		gw16012_data(tms << 1); /* output next TMS bit */
 	}
@@ -189,20 +184,15 @@ static void gw16012_path_move(struct pathmove_command *cmd)
 	int state_count;
 
 	state_count = 0;
-	while (num_states)
-	{
+	while (num_states) {
 		gw16012_control(0x0); /* single-bit mode */
 		if (tap_state_transition(tap_get_state(), false) == cmd->path[state_count])
-		{
 			gw16012_data(0x0); /* TCK cycle with TMS low */
-		}
 		else if (tap_state_transition(tap_get_state(), true) == cmd->path[state_count])
-		{
 			gw16012_data(0x2); /* TCK cycle with TMS high */
-		}
-		else
-		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(cmd->path[state_count]));
+		else {
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
+					tap_state_name(tap_get_state()), tap_state_name(cmd->path[state_count]));
 			exit(-1);
 		}
 
@@ -220,14 +210,12 @@ static void gw16012_runtest(int num_cycles)
 	int i;
 
 	/* only do a state_move when we're not already in IDLE */
-	if (tap_get_state() != TAP_IDLE)
-	{
+	if (tap_get_state() != TAP_IDLE) {
 		gw16012_end_state(TAP_IDLE);
 		gw16012_state_move();
 	}
 
-	for (i = 0; i < num_cycles; i++)
-	{
+	for (i = 0; i < num_cycles; i++) {
 		gw16012_control(0x0); /* single-bit mode */
 		gw16012_data(0x0); /* TMS cycle with TMS low */
 	}
@@ -245,8 +233,8 @@ static void gw16012_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 	uint8_t scan_out, scan_in;
 
 	/* only if we're not already in the correct Shift state */
-	if (!((!ir_scan && (tap_get_state() == TAP_DRSHIFT)) || (ir_scan && (tap_get_state() == TAP_IRSHIFT))))
-	{
+	if (!((!ir_scan && (tap_get_state() == TAP_DRSHIFT)) ||
+			(ir_scan && (tap_get_state() == TAP_IRSHIFT)))) {
 		if (ir_scan)
 			gw16012_end_state(TAP_IRSHIFT);
 		else
@@ -256,8 +244,7 @@ static void gw16012_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 		gw16012_end_state(saved_end_state);
 	}
 
-	while (type == SCAN_OUT && ((bits_left - 1) > 7))
-	{
+	while (type == SCAN_OUT && ((bits_left - 1) > 7)) {
 		gw16012_control(0x2); /* seven-bit mode */
 		scan_out = buf_get_u32(buffer, bit_count, 7);
 		gw16012_data(scan_out);
@@ -266,29 +253,22 @@ static void gw16012_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 	}
 
 	gw16012_control(0x0); /* single-bit mode */
-	while (bits_left-- > 0)
-	{
+	while (bits_left-- > 0) {
 		uint8_t tms = 0;
 
 		scan_out = buf_get_u32(buffer, bit_count, 1);
 
-		if (bits_left == 0) /* last bit */
-		{
+		if (bits_left == 0) /* last bit */ {
 			if ((ir_scan && (tap_get_end_state() == TAP_IRSHIFT))
 				|| (!ir_scan && (tap_get_end_state() == TAP_DRSHIFT)))
-			{
 				tms = 0;
-			}
 			else
-			{
 				tms = 2;
-			}
 		}
 
 		gw16012_data(scan_out | tms);
 
-		if (type != SCAN_OUT)
-		{
+		if (type != SCAN_OUT) {
 			gw16012_input(&scan_in);
 			buf_set_u32(buffer, bit_count, 1, ((scan_in & 0x08) >> 3));
 		}
@@ -297,8 +277,7 @@ static void gw16012_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 	}
 
 	if (!((ir_scan && (tap_get_end_state() == TAP_IRSHIFT)) ||
-		(!ir_scan && (tap_get_end_state() == TAP_DRSHIFT))))
-	{
+		(!ir_scan && (tap_get_end_state() == TAP_DRSHIFT)))) {
 		gw16012_data(0x0);
 		if (ir_scan)
 			tap_set_state(TAP_IRPAUSE);
@@ -323,23 +302,20 @@ static int gw16012_execute_queue(void)
 	 */
 	retval = ERROR_OK;
 
-	while (cmd)
-	{
-		switch (cmd->type)
-		{
+	while (cmd) {
+		switch (cmd->type) {
 			case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
 				if (cmd->cmd.reset->trst == 1)
-				{
 					tap_set_state(TAP_RESET);
-				}
 				gw16012_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
+						cmd->cmd.runtest->end_state);
 #endif
 				gw16012_end_state(cmd->cmd.runtest->end_state);
 				gw16012_runtest(cmd->cmd.runtest->num_cycles);
@@ -353,7 +329,8 @@ static int gw16012_execute_queue(void)
 				break;
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states,
+						cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 #endif
 				gw16012_path_move(cmd->cmd.pathmove);
 				break;
@@ -401,7 +378,8 @@ static int gw16012_get_giveio_access(void)
 	if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
 		return 0;
 
-	h = CreateFile("\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	h = CreateFile("\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL, NULL);
 	if (h == INVALID_HANDLE_VALUE) {
 		errno = ENODEV;
 		return -1;
@@ -423,24 +401,21 @@ static int gw16012_init_ioctls(void)
 {
 	int temp = 0;
 	temp = ioctl(device_handle, PPCLAIM);
-	if (temp < 0)
-	{
+	if (temp < 0) {
 		LOG_ERROR("cannot claim device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	temp = PARPORT_MODE_COMPAT;
 	temp = ioctl(device_handle, PPSETMODE, &temp);
-	if (temp < 0)
-	{
+	if (temp < 0) {
 		LOG_ERROR(" cannot set compatible mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	temp = IEEE1284_MODE_COMPAT;
 	temp = ioctl(device_handle, PPNEGOT, &temp);
-	if (temp < 0)
-	{
+	if (temp < 0) {
 		LOG_ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -455,15 +430,14 @@ static int gw16012_init_ioctls(void)
 	return ERROR_OK;
 }
 
-#endif // defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#endif /* defined(__FreeBSD__) || defined(__FreeBSD_kernel__) */
 
 static int gw16012_init_device(void)
 {
 	const char *device_name = GW16012_PPDEV_NAME;
 	char buffer[256];
 
-	if (device_handle > 0)
-	{
+	if (device_handle > 0) {
 		LOG_ERROR("device is already opened");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -472,8 +446,7 @@ static int gw16012_init_device(void)
 	LOG_DEBUG("opening %s...", buffer);
 
 	device_handle = open(buffer, O_WRONLY);
-	if (device_handle < 0)
-	{
+	if (device_handle < 0) {
 		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -486,23 +459,21 @@ static int gw16012_init_device(void)
 	return ERROR_OK;
 }
 
-#else // PARPORT_USE_PPDEV
+#else /* PARPORT_USE_PPDEV */
 
 static int gw16012_init_device(void)
 {
-	if (gw16012_port == 0)
-	{
+	if (gw16012_port == 0) {
 		gw16012_port = 0x378;
 		LOG_WARNING("No gw16012 port specified, using default '0x378' (LPT1)");
 	}
 
 	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", (long unsigned)(gw16012_port));
 #if PARPORT_USE_GIVEIO == 1
-	if (gw16012_get_giveio_access() != 0)
+	if (gw16012_get_giveio_access() != 0) {
 #else /* PARPORT_USE_GIVEIO */
-	if (ioperm(gw16012_port, 3, 1) != 0)
+	if (ioperm(gw16012_port, 3, 1) != 0) {
 #endif /* PARPORT_USE_GIVEIO */
-	{
 		LOG_ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -517,7 +488,7 @@ static int gw16012_init_device(void)
 	return ERROR_OK;
 }
 
-#endif // PARPORT_USE_PPDEV
+#endif /* PARPORT_USE_PPDEV */
 
 static int gw16012_init(void)
 {
@@ -542,15 +513,11 @@ static int gw16012_quit(void)
 
 COMMAND_HANDLER(gw16012_handle_parport_port_command)
 {
-	if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 1) {
 		/* only if the port wasn't overwritten by cmdline */
 		if (gw16012_port == 0)
-		{
 			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], gw16012_port);
-		}
-		else
-		{
+		else {
 			LOG_ERROR("The parport port was already configured!");
 			return ERROR_FAIL;
 		}

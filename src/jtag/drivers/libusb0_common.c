@@ -48,7 +48,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 	struct usb_bus *busses = usb_get_busses();
 	for (struct usb_bus *bus = busses; bus; bus = bus->next) {
 		for (struct usb_device *dev = bus->devices;
-		     dev; dev = dev->next) {
+				dev; dev = dev->next) {
 			if (!jtag_libusb_match(dev, vids, pids))
 				continue;
 
@@ -68,19 +68,19 @@ void jtag_libusb_close(jtag_libusb_device_handle *dev)
 }
 
 int jtag_libusb_bulk_write(jtag_libusb_device_handle *dev, int ep, char *bytes,
-						int size, int timeout)
+		int size, int timeout)
 {
 	return usb_bulk_write(dev, ep, bytes, size, timeout);
 }
 
 int jtag_libusb_bulk_read(jtag_libusb_device_handle *dev, int ep, char *bytes,
-					   int size, int timeout)
+		int size, int timeout)
 {
 	return usb_bulk_read(dev, ep, bytes, size, timeout);
 }
 
 int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
-				  int configuration)
+		int configuration)
 {
 	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 
@@ -89,8 +89,8 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 }
 
 int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
-						   unsigned int *usb_read_ep,
-						   unsigned int *usb_write_ep)
+		unsigned int *usb_read_ep,
+		unsigned int *usb_write_ep)
 {
 	struct usb_interface *iface = udev->config->interface;
 	struct usb_interface_descriptor *desc = iface->altsetting;

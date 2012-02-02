@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -34,7 +35,7 @@
 
 #include <sys/mman.h>
 
-static uint8_t output_value = 0x0;
+static uint8_t output_value;
 static int dev_mem_fd;
 static void *gpio_controller;
 static volatile uint8_t *gpio_data_register;
@@ -52,8 +53,7 @@ static int ep93xx_quit(void);
 
 struct timespec ep93xx_zzzz;
 
-struct jtag_interface ep93xx_interface =
-{
+struct jtag_interface ep93xx_interface = {
 	.name = "ep93xx",
 
 	.supported = DEBUG_CAP_TMS_SEQ,
@@ -64,8 +64,7 @@ struct jtag_interface ep93xx_interface =
 	.quit = ep93xx_quit,
 };
 
-static struct bitbang_interface ep93xx_bitbang =
-{
+static struct bitbang_interface ep93xx_bitbang = {
 	.read = ep93xx_read,
 	.write = ep93xx_write,
 	.reset = ep93xx_reset,

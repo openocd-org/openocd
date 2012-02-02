@@ -26,13 +26,10 @@
 static bool jtag_usb_match(struct usb_device *dev,
 		const uint16_t vids[], const uint16_t pids[])
 {
-	for (unsigned i = 0; vids[i] && pids[i]; i++)
-	{
+	for (unsigned i = 0; vids[i] && pids[i]; i++) {
 		if (dev->descriptor.idVendor == vids[i] &&
 			dev->descriptor.idProduct == pids[i])
-		{
 			return true;
-		}
 	}
 	return false;
 }
@@ -44,10 +41,8 @@ int jtag_usb_open(const uint16_t vids[], const uint16_t pids[],
 	usb_find_devices();
 
 	struct usb_bus *busses = usb_get_busses();
-	for (struct usb_bus *bus = busses; bus; bus = bus->next)
-	{
-		for (struct usb_device *dev = bus->devices; dev; dev = dev->next)
-		{
+	for (struct usb_bus *bus = busses; bus; bus = bus->next) {
+		for (struct usb_device *dev = bus->devices; dev; dev = dev->next) {
 			if (!jtag_usb_match(dev, vids, pids))
 				continue;
 

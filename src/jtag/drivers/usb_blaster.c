@@ -89,7 +89,7 @@
 
 #if (BUILD_USB_BLASTER_FTD2XX == 1 && BUILD_USB_BLASTER_LIBFTDI == 1)
 #error "BUILD_USB_BLASTER_FTD2XX && BUILD_USB_BLASTER_LIBFTDI "
-	   "are mutually exclusive"
+"are mutually exclusive"
 #elif (BUILD_USB_BLASTER_FTD2XX != 1 && BUILD_USB_BLASTER_LIBFTDI != 1)
 #error "BUILD_USB_BLASTER_FTD2XX || BUILD_USB_BLASTER_LIBFTDI must be chosen"
 #endif
@@ -106,15 +106,15 @@
 #include <time.h>
 
 static char *usb_blaster_device_desc;
-static uint16_t usb_blaster_vid = 0x09fb; /* Altera */
-static uint16_t usb_blaster_pid = 0x6001; /* USB-Blaster */
+static uint16_t usb_blaster_vid = 0x09fb;	/* Altera */
+static uint16_t usb_blaster_pid = 0x6001;	/* USB-Blaster */
 
 /* last output byte in simple bit banging (legacy) mode */
 static uint8_t out_value;
 /* global output buffer for bit banging */
-#define BUF_LEN 64 //Size of EP1
+#define BUF_LEN 64	/* Size of EP1 */
 static uint8_t out_buffer[BUF_LEN];
-static uint16_t out_count = 0;
+static uint16_t out_count;
 
 #if BUILD_USB_BLASTER_FTD2XX == 1
 static FT_HANDLE ftdih;
@@ -133,8 +133,7 @@ static int usb_blaster_buf_write(
 	LOG_DEBUG("usb_blaster_buf_write %02X (%d)", buf[0], size);
 #endif
 	status = FT_Write(ftdih, buf, size, &dw_bytes_written);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		*bytes_written = dw_bytes_written;
 		LOG_ERROR("FT_Write returned: %s", ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
@@ -147,8 +146,7 @@ static int usb_blaster_buf_write(
 	LOG_DEBUG("usb_blaster_buf_write %02X (%d)", buf[0], size);
 #endif
 	retval = ftdi_write_data(&ftdic, buf, size);
-	if (retval < 0)
-	{
+	if (retval < 0) {
 		*bytes_written = 0;
 		LOG_ERROR("ftdi_write_data: %s", ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
@@ -158,16 +156,14 @@ static int usb_blaster_buf_write(
 #endif
 }
 
-static int
-usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
+static int usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 {
 #if BUILD_USB_BLASTER_FTD2XX == 1
 	DWORD dw_bytes_read;
 	FT_STATUS status;
 
 	status = FT_Read(ftdih, buf, size, &dw_bytes_read);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		*bytes_read = dw_bytes_read;
 		LOG_ERROR("FT_Read returned: %s", ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
@@ -183,15 +179,13 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 	int timeout = 100;
 
 	*bytes_read = 0;
-	while ((*bytes_read < size) && timeout--)
-	{
+	while ((*bytes_read < size) && timeout--) {
 		retval = ftdi_read_data(&ftdic, buf + *bytes_read,
 				size - *bytes_read);
-		if (retval < 0)
-		{
+		if (retval < 0) {
 			*bytes_read = 0;
 			LOG_ERROR("ftdi_read_data: %s",
-					ftdi_get_error_string(&ftdic));
+				ftdi_get_error_string(&ftdic));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		*bytes_read += retval;
@@ -249,13 +243,13 @@ usb_blaster_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
 
 #define READ_TDO	(1 << 0)
 
-static void usb_blaster_write_databuffer(uint8_t* buf, uint16_t len)
+static void usb_blaster_write_databuffer(uint8_t *buf, uint16_t len)
 {
 	uint32_t bytes_written;
 	usb_blaster_buf_write(buf, len, &bytes_written);
 	out_count = 0;
 #ifdef _DEBUG_JTAG_IO_
-	LOG_DEBUG("---- WROTE %d",bytes_written);
+	LOG_DEBUG("---- WROTE %d", bytes_written);
 #endif
 }
 
@@ -263,7 +257,7 @@ static void usb_blaster_addtowritebuffer(uint8_t value, bool forcewrite)
 {
 	out_buffer[out_count] = value;
 	out_count += 1;
-	if(out_count == BUF_LEN || forcewrite)
+	if (out_count == BUF_LEN || forcewrite)
 		usb_blaster_write_databuffer(out_buffer, out_count);
 }
 
@@ -273,7 +267,7 @@ static int usb_blaster_read_data(void)
 	uint8_t buf[1];
 	uint32_t bytes_read;
 
-	if(out_count > 0)
+	if (out_count > 0)
 		usb_blaster_write_databuffer(out_buffer, out_count);
 
 	out_value |= READ;
@@ -313,12 +307,12 @@ static int usb_blaster_speed(int speed)
 	/* TODO: libftdi's ftdi_set_baudrate chokes on high rates, use lowlevel
 	 * usb function instead! And additionally allow user to throttle.
 	 */
-	if (ftdi_set_baudrate(&ftdic, 3000000 / 4) < 0)
-	{
+	if (ftdi_set_baudrate(&ftdic, 3000000 / 4) < 0) {
 		LOG_ERROR("Can't set baud rate to max: %s",
 			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
-	};
+	}
+	;
 #endif
 
 	return ERROR_OK;
@@ -327,13 +321,13 @@ static int usb_blaster_speed(int speed)
 static void usb_blaster_reset(int trst, int srst)
 {
 	LOG_DEBUG("TODO: usb_blaster_reset(%d,%d) isn't implemented!",
-			trst, srst);
+		trst, srst);
 }
 
 static void usb_blaster_blink(int state)
 {
 	out_value = 0x00;
-	if(state)
+	if (state)
 		out_value |= LED;
 
 	usb_blaster_addtowritebuffer(out_value, true);
@@ -362,18 +356,16 @@ static int usb_blaster_init(void)
 
 #if BUILD_USB_BLASTER_FTD2XX == 1
 	/* Open by device description */
-	if (usb_blaster_device_desc == NULL)
-	{
+	if (usb_blaster_device_desc == NULL) {
 		LOG_WARNING("no usb_blaster device description specified, "
-					"using default 'USB-Blaster'");
+			"using default 'USB-Blaster'");
 		usb_blaster_device_desc = "USB-Blaster";
 	}
 
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
 	status = FT_SetVIDPID(usb_blaster_vid, usb_blaster_pid);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		LOG_WARNING("couldn't add %4.4x:%4.4x",
 			usb_blaster_vid, usb_blaster_pid);
 	}
@@ -381,18 +373,16 @@ static int usb_blaster_init(void)
 
 	status = FT_OpenEx(usb_blaster_device_desc, FT_OPEN_BY_DESCRIPTION,
 			&ftdih);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		DWORD num_devices;
 
 		LOG_ERROR("unable to open ftdi device: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		status = FT_ListDevices(&num_devices, NULL,
 				FT_LIST_NUMBER_ONLY);
-		if (status == FT_OK)
-		{
+		if (status == FT_OK) {
 			char **desc_array = malloc(sizeof(char *)
-						* (num_devices + 1));
+					* (num_devices + 1));
 			unsigned int i;
 
 			for (i = 0; i < num_devices; i++)
@@ -400,10 +390,9 @@ static int usb_blaster_init(void)
 			desc_array[num_devices] = NULL;
 
 			status = FT_ListDevices(desc_array, &num_devices,
-				FT_LIST_ALL | FT_OPEN_BY_DESCRIPTION);
+					FT_LIST_ALL | FT_OPEN_BY_DESCRIPTION);
 
-			if (status == FT_OK)
-			{
+			if (status == FT_OK) {
 				LOG_ERROR("ListDevices: %" PRIu32, (uint32_t)num_devices);
 				for (i = 0; i < num_devices; i++)
 					LOG_ERROR("%i: %s", i, desc_array[i]);
@@ -412,36 +401,30 @@ static int usb_blaster_init(void)
 			for (i = 0; i < num_devices; i++)
 				free(desc_array[i]);
 			free(desc_array);
-		}
-		else
-		{
+		} else
 			printf("ListDevices: NONE\n");
-		}
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	status = FT_SetLatencyTimer(ftdih, 2);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		LOG_ERROR("unable to set latency timer: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	status = FT_GetLatencyTimer(ftdih, &latency_timer);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		LOG_ERROR("unable to get latency timer: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	LOG_DEBUG("current latency timer: %i", latency_timer);
 
 	status = FT_SetBitMode(ftdih, 0x00, 0);
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		LOG_ERROR("unable to disable bit i/o mode: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #elif BUILD_USB_BLASTER_LIBFTDI == 1
@@ -449,26 +432,22 @@ static int usb_blaster_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* context, vendor id, product id */
-	if (ftdi_usb_open(&ftdic, usb_blaster_vid, usb_blaster_pid) < 0)
-	{
+	if (ftdi_usb_open(&ftdic, usb_blaster_vid, usb_blaster_pid) < 0) {
 		LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_usb_reset(&ftdic) < 0)
-	{
+	if (ftdi_usb_reset(&ftdic) < 0) {
 		LOG_ERROR("unable to reset ftdi device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_set_latency_timer(&ftdic, 2) < 0)
-	{
+	if (ftdi_set_latency_timer(&ftdic, 2) < 0) {
 		LOG_ERROR("unable to set latency timer");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_get_latency_timer(&ftdic, &latency_timer) < 0)
-	{
+	if (ftdi_get_latency_timer(&ftdic, &latency_timer) < 0) {
 		LOG_ERROR("unable to get latency timer");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -481,14 +460,13 @@ static int usb_blaster_init(void)
 
 #if 0
 #if BUILD_USB_BLASTER_FTD2XX == 1
-	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
-	{
+	status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX);
+	if (status != FT_OK) {
 		LOG_ERROR("error purging ftd2xx device: %i", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #elif BUILD_USB_BLASTER_LIBFTDI == 1
-	if (ftdi_usb_purge_buffers(&ftdic) < 0)
-	{
+	if (ftdi_usb_purge_buffers(&ftdic) < 0) {
 		LOG_ERROR("ftdi_purge_buffers: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -500,7 +478,7 @@ static int usb_blaster_init(void)
 
 static int usb_blaster_quit(void)
 {
-	if(out_count > 0)
+	if (out_count > 0)
 		usb_blaster_write_databuffer(out_buffer, out_count);
 
 #if BUILD_USB_BLASTER_FTD2XX == 1
@@ -521,25 +499,22 @@ COMMAND_HANDLER(usb_blaster_handle_device_desc_command)
 		usb_blaster_device_desc = strdup(CMD_ARGV[0]);
 	else
 		LOG_ERROR("require exactly one argument to "
-				  "usb_blaster_device_desc <description>");
+			"usb_blaster_device_desc <description>");
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(usb_blaster_handle_vid_pid_command)
 {
-	if (CMD_ARGC > 2)
-	{
+	if (CMD_ARGC > 2) {
 		LOG_WARNING("ignoring extra IDs in usb_blaster_vid_pid "
-					"(maximum is 1 pair)");
+			"(maximum is 1 pair)");
 		CMD_ARGC = 2;
 	}
-	if (CMD_ARGC == 2)
-	{
+	if (CMD_ARGC == 2) {
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], usb_blaster_vid);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], usb_blaster_pid);
-	}
-	else
+	} else
 		LOG_WARNING("incomplete usb_blaster_vid_pid configuration");
 
 	return ERROR_OK;
@@ -547,9 +522,8 @@ COMMAND_HANDLER(usb_blaster_handle_vid_pid_command)
 
 COMMAND_HANDLER(usb_blaster_handle_pin_command)
 {
-	if (CMD_ARGC == 2)
-	{
-		const char * const pin_name = CMD_ARGV[0];
+	if (CMD_ARGC == 2) {
+		const char *const pin_name = CMD_ARGV[0];
 		uint8_t mask;
 		unsigned int state;
 
@@ -557,34 +531,26 @@ COMMAND_HANDLER(usb_blaster_handle_pin_command)
 			mask = NCE;
 		else if (!strcmp(pin_name, "pin8"))
 			mask = NCS;
-		else
-		{
+		else {
 			LOG_ERROR("%s: pin name must be \"pin6\" or \"pin8\"",
-					CMD_NAME);
+				CMD_NAME);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], state);
-		if (state == 0)
-		{
+		if (state == 0) {
 			out_value &= ~mask;
 			usb_blaster_addtowritebuffer(out_value, true);
-		}
-		else if (state == 1)
-		{
+		} else if (state == 1)   {
 			out_value |= mask;
 			usb_blaster_addtowritebuffer(out_value, true);
-		}
-		else
-		{
+		} else {
 			LOG_ERROR("%s: pin state must be 0 or 1", CMD_NAME);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		return ERROR_OK;
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("%s takes exactly two arguments", CMD_NAME);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

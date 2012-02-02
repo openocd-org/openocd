@@ -49,43 +49,43 @@ extern void ep7out_isr(void)   __interrupt;
 
 void io_init(void)
 {
-  /* PORTxCFG register bits select alternate functions (1 == alternate function,
-   *                                                    0 == standard I/O)
-   * OEx register bits turn on/off output buffer (1 == output, 0 == input)
-   * OUTx register bits determine pin state of output
-   * PINx register bits reflect pin state (high == 1, low == 0) */
+	/* PORTxCFG register bits select alternate functions (1 == alternate function,
+	 *                                                    0 == standard I/O)
+	 * OEx register bits turn on/off output buffer (1 == output, 0 == input)
+	 * OUTx register bits determine pin state of output
+	 * PINx register bits reflect pin state (high == 1, low == 0) */
 
-  /* PORT A */
-  PORTACFG = PIN_OE;
-  OEA = PIN_U_OE | PIN_OE | PIN_RUN_LED | PIN_COM_LED;
-  OUTA = PIN_RUN_LED | PIN_COM_LED;
+	/* PORT A */
+	PORTACFG = PIN_OE;
+	OEA = PIN_U_OE | PIN_OE | PIN_RUN_LED | PIN_COM_LED;
+	OUTA = PIN_RUN_LED | PIN_COM_LED;
 
-  /* PORT B */
-  PORTBCFG = 0x00;
-  OEB = PIN_TDI | PIN_TMS | PIN_TCK | PIN_TRST | PIN_BRKIN | PIN_RESET
-      | PIN_OCDSE;
+	/* PORT B */
+	PORTBCFG = 0x00;
+	OEB = PIN_TDI | PIN_TMS | PIN_TCK | PIN_TRST | PIN_BRKIN | PIN_RESET
+		| PIN_OCDSE;
 
-  /* TRST and RESET signals are low-active but inverted by hardware, so we clear
-   * these signals here! */
-  OUTB = 0x00;
+	/* TRST and RESET signals are low-active but inverted by hardware, so we clear
+	 * these signals here! */
+	OUTB = 0x00;
 
-  /* PORT C */
-  PORTCCFG = PIN_WR;
-  OEC = PIN_TXD0 | PIN_WR;
-  OUTC = 0x00;
+	/* PORT C */
+	PORTCCFG = PIN_WR;
+	OEC = PIN_TXD0 | PIN_WR;
+	OUTC = 0x00;
 }
 
 int main(void)
 {
-  io_init();
-  usb_init();
+	io_init();
+	usb_init();
 
-  /* Enable Interrupts */
-  EA = 1;
+	/* Enable Interrupts */
+	EA = 1;
 
-  /* Begin executing command(s). This function never returns. */
-  command_loop();
+	/* Begin executing command(s). This function never returns. */
+	command_loop();
 
-  /* Never reached, but SDCC complains about missing return statement */
-  return 0;
+	/* Never reached, but SDCC complains about missing return statement */
+	return 0;
 }

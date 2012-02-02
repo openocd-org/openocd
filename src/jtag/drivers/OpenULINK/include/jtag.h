@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 
-#define NOP {__asm nop __endasm;}
+#define NOP { __asm nop __endasm; }
 
 void jtag_scan_in(uint8_t out_offset, uint8_t in_offset);
 void jtag_slow_scan_in(uint8_t out_offset, uint8_t in_offset);
@@ -43,6 +43,6 @@ uint16_t  jtag_get_signals(void);
 void jtag_set_signals(uint8_t low, uint8_t high);
 
 void jtag_configure_tck_delay(uint8_t scan_in, uint8_t scan_out,
-    uint8_t scan_io, uint8_t tck, uint8_t tms);
+		uint8_t scan_io, uint8_t tck, uint8_t tms);
 
 #endif

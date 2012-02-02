@@ -17,13 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef BITQ_H
 #define BITQ_H
 
 #include <jtag/commands.h>
 
 struct bitq_interface {
-	// function to enqueueing low level IO requests
+	/* function to enqueueing low level IO requests */
 	int (*out)(int tms, int tdi, int tdo_req);
 	int (*flush)(void);
 

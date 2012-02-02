@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -25,7 +26,6 @@
 #include "bitbang.h"
 
 #include <sys/mman.h>
-
 
 /* AT91RM9200 */
 #define AT91C_BASE_SYS	(0xfffff000)
@@ -78,9 +78,8 @@
 #define P30	(1 << 30)
 #define P31	(1 << 31)
 
-struct device_t
-{
-	char* name;
+struct device_t {
+	char *name;
 	int TDO_PIO;	/* PIO holding TDO */
 	uint32_t TDO_MASK;	/* TDO bitmask */
 	int TRST_PIO;	/* PIO holding TRST */
@@ -95,21 +94,20 @@ struct device_t
 	uint32_t SRST_MASK;	/* SRST bitmask */
 };
 
-static struct device_t devices[] =
-{
+static struct device_t devices[] = {
 	{ "rea_ecr", PIOD, P27, PIOA, NC, PIOD, P23, PIOD, P24, PIOD, P26, PIOC, P5 },
 	{ .name = NULL },
 };
 
 /* configuration */
-static char* at91rm9200_device;
+static char *at91rm9200_device;
 
 /* interface variables
  */
-static struct device_t* device;
+static struct device_t *device;
 static int dev_mem_fd;
 static void *sys_controller;
-static uint32_t* pio_base;
+static uint32_t *pio_base;
 
 /* low level command set
  */
@@ -121,8 +119,7 @@ static int at91rm9200_speed(int speed);
 static int at91rm9200_init(void);
 static int at91rm9200_quit(void);
 
-static struct bitbang_interface at91rm9200_bitbang =
-{
+static struct bitbang_interface at91rm9200_bitbang = {
 	.read = at91rm9200_read,
 	.write = at91rm9200_write,
 	.reset = at91rm9200_reset,
@@ -178,8 +175,7 @@ COMMAND_HANDLER(at91rm9200_handle_device_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* only if the device name wasn't overwritten by cmdline */
-	if (at91rm9200_device == 0)
-	{
+	if (at91rm9200_device == 0) {
 		at91rm9200_device = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
 		strcpy(at91rm9200_device, CMD_ARGV[0]);
 	}
@@ -197,12 +193,9 @@ static const struct command_registration at91rm9200_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct jtag_interface at91rm9200_interface =
-{
+struct jtag_interface at91rm9200_interface = {
 	.name = "at91rm9200",
-
 	.execute_queue = bitbang_execute_queue,
-
 	.speed = at91rm9200_speed,
 	.commands = at91rm9200_command_handlers,
 	.init = at91rm9200_init,
@@ -215,24 +208,20 @@ static int at91rm9200_init(void)
 
 	cur_device = devices;
 
-	if (at91rm9200_device == NULL || at91rm9200_device[0] == 0)
-	{
+	if (at91rm9200_device == NULL || at91rm9200_device[0] == 0) {
 		at91rm9200_device = "rea_ecr";
 		LOG_WARNING("No at91rm9200 device specified, using default 'rea_ecr'");
 	}
 
-	while (cur_device->name)
-	{
-		if (strcmp(cur_device->name, at91rm9200_device) == 0)
-		{
+	while (cur_device->name) {
+		if (strcmp(cur_device->name, at91rm9200_device) == 0) {
 			device = cur_device;
 			break;
 		}
 		cur_device++;
 	}
 
-	if (!device)
-	{
+	if (!device) {
 		LOG_ERROR("No matching device found for %s", at91rm9200_device);
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -252,7 +241,7 @@ static int at91rm9200_init(void)
 		close(dev_mem_fd);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	pio_base = (uint32_t*)sys_controller + 0x100;
+	pio_base = (uint32_t *)sys_controller + 0x100;
 
 	/*
 	 * Configure TDO as an input, and TDI, TCK, TMS, TRST, SRST

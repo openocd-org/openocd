@@ -44,7 +44,6 @@ static void buspirate_runtest(int num_cycles);
 static void buspirate_scan(bool ir_scan, enum scan_type type,
 	uint8_t *buffer, int scan_size, struct scan_command *command);
 
-
 #define CMD_UNKNOWN       0x00
 #define CMD_PORT_MODE     0x01
 #define CMD_FEATURE       0x02
@@ -84,14 +83,12 @@ enum {
 	SERIAL_FAST = 1
 };
 
-
 static int buspirate_fd = -1;
 static int buspirate_pinmode = MODE_JTAG_OD;
 static int buspirate_baudrate = SERIAL_NORMAL;
 static int buspirate_vreg;
 static int buspirate_pullup;
 static char *buspirate_port;
-
 
 /* TAP interface */
 static void buspirate_tap_init(void);
@@ -279,9 +276,8 @@ COMMAND_HANDLER(buspirate_handle_adc_command)
 
 COMMAND_HANDLER(buspirate_handle_vreg_command)
 {
-	if (CMD_ARGC < 1) {
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (atoi(CMD_ARGV[0]) == 1)
 		buspirate_vreg = 1;
@@ -296,9 +292,8 @@ COMMAND_HANDLER(buspirate_handle_vreg_command)
 
 COMMAND_HANDLER(buspirate_handle_pullup_command)
 {
-	if (CMD_ARGC < 1) {
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (atoi(CMD_ARGV[0]) == 1)
 		buspirate_pullup = 1;
@@ -313,9 +308,8 @@ COMMAND_HANDLER(buspirate_handle_pullup_command)
 
 COMMAND_HANDLER(buspirate_handle_led_command)
 {
-	if (CMD_ARGC < 1) {
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (atoi(CMD_ARGV[0]) == 1) {
 		/* enable led */
@@ -335,9 +329,8 @@ COMMAND_HANDLER(buspirate_handle_led_command)
 
 COMMAND_HANDLER(buspirate_handle_mode_command)
 {
-	if (CMD_ARGC < 1) {
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (CMD_ARGV[0][0] == 'n')
 		buspirate_pinmode = MODE_JTAG;
@@ -352,9 +345,8 @@ COMMAND_HANDLER(buspirate_handle_mode_command)
 
 COMMAND_HANDLER(buspirate_handle_speed_command)
 {
-	if (CMD_ARGC < 1) {
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (CMD_ARGV[0][0] == 'n')
 		buspirate_baudrate = SERIAL_NORMAL;
@@ -369,9 +361,8 @@ COMMAND_HANDLER(buspirate_handle_speed_command)
 
 COMMAND_HANDLER(buspirate_handle_port_command)
 {
-	if (CMD_ARGC < 1) {
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (buspirate_port == NULL)
 		buspirate_port = strdup(CMD_ARGV[0]);
@@ -987,8 +978,6 @@ static void buspirate_print_buffer(char *buf, int size)
 		}
 	}
 
-	if (line[0] != 0) {
+	if (line[0] != 0)
 		LOG_DEBUG("%s", line);
-	}
 }
-

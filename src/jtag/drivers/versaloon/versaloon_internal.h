@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef __VERSALOON_INTERNAL_H_INCLUDED__
 #define __VERSALOON_INTERNAL_H_INCLUDED__
 
@@ -37,8 +38,8 @@
 #define VERSALOON_TIMEOUT				5000
 #define VERSALOON_TIMEOUT_LONG			60000
 
-// USB Commands
-// Common Commands
+/* USB Commands */
+/* Common Commands */
 #define VERSALOON_COMMON_CMD_START		0x00
 #define VERSALOON_COMMON_CMD_END		0x0F
 
@@ -52,40 +53,34 @@
 #define VERSALOON_FW_UPDATE				0x0F
 #define VERSALOON_FW_UPDATE_KEY			0xAA
 
-// MCU Command
+/* MCU Command */
 #define VERSALOON_MCU_CMD_START			0x10
 #define VERSALOON_MCU_CMD_END			0x1F
 
-// USB_TO_XXX Command
+/* USB_TO_XXX Command */
 #define VERSALOON_USB_TO_XXX_CMD_START	0x20
 #define VERSALOON_USB_TO_XXX_CMD_END	0x7F
 
-// VSLLink Command
+/* VSLLink Command */
 #define VERSALOON_VSLLINK_CMD_START		0x80
 #define VERSALOON_VSLLINK_CMD_END		0xFF
 
-
-
-// Mass-product
+/* Mass-product */
 #define MP_OK							0x00
 #define MP_FAIL							0x01
 
 #define MP_ISSP							0x11
 
-
-
-// pending struct
+/* pending struct */
 #define VERSALOON_MAX_PENDING_NUMBER	4096
-typedef RESULT (*versaloon_callback_t)(void *, uint8_t *, uint8_t *);
-struct versaloon_want_pos_t
-{
+typedef RESULT(*versaloon_callback_t)(void *, uint8_t *, uint8_t *);
+struct versaloon_want_pos_t {
 	uint16_t offset;
 	uint16_t size;
 	uint8_t *buff;
 	struct versaloon_want_pos_t *next;
 };
-struct versaloon_pending_t
-{
+struct versaloon_pending_t {
 	uint8_t type;
 	uint8_t cmd;
 	uint16_t want_data_pos;
@@ -99,14 +94,14 @@ struct versaloon_pending_t
 	versaloon_callback_t callback;
 };
 extern struct versaloon_pending_t \
-							versaloon_pending[VERSALOON_MAX_PENDING_NUMBER];
+	versaloon_pending[VERSALOON_MAX_PENDING_NUMBER];
 extern uint16_t versaloon_pending_idx;
 void versaloon_set_pending_id(uint32_t id);
 void versaloon_set_callback(versaloon_callback_t callback);
-void versaloon_set_extra_data(void * p);
+void versaloon_set_extra_data(void *p);
 RESULT versaloon_add_want_pos(uint16_t offset, uint16_t size, uint8_t *buff);
 RESULT versaloon_add_pending(uint8_t type, uint8_t cmd, uint16_t actual_szie,
-	uint16_t want_pos, uint16_t want_size, uint8_t *buffer, uint8_t collect);
+		uint16_t want_pos, uint16_t want_size, uint8_t *buffer, uint8_t collect);
 void versaloon_free_want_pos(void);
 
 RESULT versaloon_send_command(uint16_t out_len, uint16_t *inlen);
@@ -115,4 +110,3 @@ extern uint8_t *versaloon_cmd_buf;
 extern uint16_t versaloon_buf_size;
 
 #endif /* __VERSALOON_INTERNAL_H_INCLUDED__ */
-

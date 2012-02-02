@@ -58,7 +58,7 @@
 #if BUILD_ECOSBOARD
 #include "zy1000_version.h"
 
-#include <cyg/hal/hal_io.h>             // low level i/o
+#include <cyg/hal/hal_io.h>		/* low level i/o */
 #include <cyg/hal/hal_diag.h>
 
 #ifdef CYGPKG_HAL_NIOS2
@@ -80,18 +80,14 @@
 #define ZYLIN_KHZ 60000
 #endif
 
-
 /* The software needs to check if it's in RCLK mode or not */
-static bool zy1000_rclk = false;
+static bool zy1000_rclk;
 
 static int zy1000_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0)
-	{
 		*jtag_speed = 0;
-	}
-	else
-	{
+	else {
 		int speed;
 		/* Round speed up to nearest divisor.
 		 *
@@ -110,11 +106,10 @@ static int zy1000_khz(int khz, int *jtag_speed)
 		 * 64000 / 6 = 10666
 		 *
 		 */
-		speed = (ZYLIN_KHZ + (khz -1)) / khz;
-		speed = (speed + 1 ) / 2;
+		speed = (ZYLIN_KHZ + (khz - 1)) / khz;
+		speed = (speed + 1) / 2;
 		speed *= 2;
-		if (speed > 8190)
-		{
+		if (speed > 8190) {
 			/* maximum dividend */
 			speed = 8190;
 		}
@@ -126,13 +121,9 @@ static int zy1000_khz(int khz, int *jtag_speed)
 static int zy1000_speed_div(int speed, int *khz)
 {
 	if (speed == 0)
-	{
 		*khz = 0;
-	}
 	else
-	{
 		*khz = ZYLIN_KHZ / speed;
-	}
 
 	return ERROR_OK;
 }
@@ -140,7 +131,7 @@ static int zy1000_speed_div(int speed, int *khz)
 static bool readPowerDropout(void)
 {
 	uint32_t state;
-	// sample and clear power dropout
+	/* sample and clear power dropout */
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x80);
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, state);
 	bool powerDropout;
@@ -152,7 +143,7 @@ static bool readPowerDropout(void)
 static bool readSRST(void)
 {
 	uint32_t state;
-	// sample and clear SRST sensing
+	/* sample and clear SRST sensing */
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000040);
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, state);
 	bool srstAsserted;
@@ -180,20 +171,15 @@ static void waitSRST(bool asserted)
 	long total = 0;
 	const char *mode = asserted ? "assert" : "deassert";
 
-	for (;;)
-	{
+	for (;; ) {
 		bool srstAsserted = readSRST();
-		if ( (asserted && srstAsserted) || (!asserted && !srstAsserted) )
-		{
+		if ((asserted && srstAsserted) || (!asserted && !srstAsserted)) {
 			if (total > 1)
-			{
 				LOG_USER("SRST took %dms to %s", (int)total, mode);
-			}
 			break;
 		}
 
-		if (first)
-		{
+		if (first) {
 			first = false;
 			start = timeval_ms();
 		}
@@ -202,14 +188,12 @@ static void waitSRST(bool asserted)
 
 		keep_alive();
 
-		if (total > 5000)
-		{
+		if (total > 5000) {
 			LOG_ERROR("SRST took too long to %s: %dms", mode, (int)total);
 			break;
 		}
 	}
 }
-
 
 void zy1000_reset(int trst, int srst)
 {
@@ -222,11 +206,8 @@ void zy1000_reset(int trst, int srst)
 	waitIdle();
 
 	if (!srst)
-	{
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x00000001);
-	}
-	else
-	{
+	else {
 		/* Danger!!! if clk != 0 when in
 		 * idle in TAP_IDLE, reset halt on str912 will fail.
 		 */
@@ -236,31 +217,24 @@ void zy1000_reset(int trst, int srst)
 	}
 
 	if (!trst)
-	{
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x00000002);
-	}
-	else
-	{
+	else {
 		/* assert reset */
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000002);
 	}
 
-	if (trst||(srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
-	{
+	if (trst || (srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST))) {
 		/* we're now in the RESET state until trst is deasserted */
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_RESET);
-	} else
-	{
+	} else {
 		/* We'll get RCLK failure when we assert TRST, so clear any false positives here */
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x400);
 	}
 
 	/* wait for srst to float back up */
-	if ((!srst && ((jtag_get_reset_config() & RESET_TRST_PULLS_SRST) == 0))||
-		(!srst && !trst && (jtag_get_reset_config() & RESET_TRST_PULLS_SRST)))
-	{
+	if ((!srst && ((jtag_get_reset_config() & RESET_TRST_PULLS_SRST) == 0)) ||
+			(!srst && !trst && (jtag_get_reset_config() & RESET_TRST_PULLS_SRST)))
 		waitSRST(false);
-	}
 }
 
 int zy1000_speed(int speed)
@@ -270,19 +244,18 @@ int zy1000_speed(int speed)
 
 	zy1000_rclk = false;
 
-	if (speed == 0)
-	{
+	if (speed == 0) {
 		/*0 means RCLK*/
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x100);
 		zy1000_rclk = true;
 		LOG_DEBUG("jtag_speed using RCLK");
-	}
-	else
-	{
-		if (speed > 8190 || speed < 2)
-		{
-			LOG_USER("valid ZY1000 jtag_speed=[8190,2]. With divisor is %dkHz / even values between 8190-2, i.e. min %dHz, max %dMHz",
-					ZYLIN_KHZ, (ZYLIN_KHZ * 1000) / 8190, ZYLIN_KHZ / (2 * 1000));
+	} else {
+		if (speed > 8190 || speed < 2) {
+			LOG_USER(
+				"valid ZY1000 jtag_speed=[8190,2]. With divisor is %dkHz / even values between 8190-2, i.e. min %dHz, max %dMHz",
+				ZYLIN_KHZ,
+				(ZYLIN_KHZ * 1000) / 8190,
+				ZYLIN_KHZ / (2 * 1000));
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
@@ -298,34 +271,29 @@ int zy1000_speed(int speed)
 
 static bool savePower;
 
-
 static void setPower(bool power)
 {
 	savePower = power;
 	if (power)
-	{
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x8);
-	} else
-	{
+	else
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x8);
-	}
 }
 
 COMMAND_HANDLER(handle_power_command)
 {
-	switch (CMD_ARGC)
-	{
-	case 1: {
-		bool enable;
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
-		setPower(enable);
-		// fall through
-	}
-	case 0:
-		LOG_INFO("Target power %s", savePower ? "on" : "off");
-		break;
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	switch (CMD_ARGC) {
+		case 1: {
+			bool enable;
+			COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
+			setPower(enable);
+			/* fall through */
+		}
+		case 0:
+			LOG_INFO("Target power %s", savePower ? "on" : "off");
+			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -333,7 +301,7 @@ COMMAND_HANDLER(handle_power_command)
 
 #if !BUILD_ZY1000_MASTER
 static char *tcp_server = "notspecified";
-static int jim_zy1000_server(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_zy1000_server(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	if (argc != 2)
 		return JIM_ERR;
@@ -346,48 +314,36 @@ static int jim_zy1000_server(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 #if BUILD_ECOSBOARD
 /* Give TELNET a way to find out what version this is */
-static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	if ((argc < 1) || (argc > 3))
 		return JIM_ERR;
 	const char *version_str = NULL;
 
 	if (argc == 1)
-	{
 		version_str = ZYLIN_OPENOCD_VERSION;
-	} else
-	{
+	else {
 		const char *str = Jim_GetString(argv[1], NULL);
 		const char *str2 = NULL;
 		if (argc > 2)
 			str2 = Jim_GetString(argv[2], NULL);
 		if (strcmp("openocd", str) == 0)
-		{
 			version_str = ZYLIN_OPENOCD;
-		}
 		else if (strcmp("zy1000", str) == 0)
-		{
 			version_str = ZYLIN_VERSION;
-		}
 		else if (strcmp("date", str) == 0)
-		{
 			version_str = ZYLIN_DATE;
-		}
 		else if (strcmp("time", str) == 0)
-		{
 			version_str = ZYLIN_TIME;
-		}
-		else if (strcmp("pcb", str) == 0)
-		{
+		else if (strcmp("pcb", str) == 0) {
 #ifdef CYGPKG_HAL_NIOS2
-			version_str="c";
+			version_str = "c";
 #else
-			version_str="b";
+			version_str = "b";
 #endif
 		}
 #ifdef CYGPKG_HAL_NIOS2
-		else if (strcmp("fpga", str) == 0)
-		{
+		else if (strcmp("fpga", str) == 0) {
 
 			/* return a list of 32 bit integers to describe the expected
 			 * and actual FPGA
@@ -396,22 +352,24 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 			uint32_t id, timestamp;
 			HAL_READ_UINT32(SYSID_BASE, id);
 			HAL_READ_UINT32(SYSID_BASE+4, timestamp);
-			sprintf(fpga_id, "0x%08x 0x%08x 0x%08x 0x%08x", id, timestamp, SYSID_ID, SYSID_TIMESTAMP);
+			sprintf(fpga_id,
+				"0x%08x 0x%08x 0x%08x 0x%08x",
+				id,
+				timestamp,
+				SYSID_ID,
+				SYSID_TIMESTAMP);
 			version_str = fpga_id;
-			if ((argc>2) && (strcmp("time", str2) == 0))
-			{
-			    time_t last_mod = timestamp;
-			    char * t = ctime (&last_mod) ;
-			    t[strlen(t)-1] = 0;
-			    version_str = t;
+			if ((argc > 2) && (strcmp("time", str2) == 0)) {
+				time_t last_mod = timestamp;
+				char *t = ctime(&last_mod);
+				t[strlen(t)-1] = 0;
+				version_str = t;
 			}
 		}
 #endif
 
 		else
-		{
 			return JIM_ERR;
-		}
 	}
 
 	Jim_SetResult(interp, Jim_NewStringObj(interp, version_str, -1));
@@ -423,33 +381,31 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 #ifdef CYGPKG_HAL_NIOS2
 
 
-struct info_forward
-{
+struct info_forward {
 	void *data;
 	struct cyg_upgrade_info *upgraded_file;
 };
 
-static void report_info(void *data, const char * format, va_list args)
+static void report_info(void *data, const char *format, va_list args)
 {
 	char *s = alloc_vprintf(format, args);
 	LOG_USER_N("%s", s);
 	free(s);
 }
 
-struct cyg_upgrade_info firmware_info =
-{
-		(uint8_t *)0x84000000,
-		"/ram/firmware.phi",
-		"Firmware",
-		0x0300000,
-		0x1f00000 -
-		0x0300000,
-		"ZylinNiosFirmware\n",
-		report_info,
+struct cyg_upgrade_info firmware_info = {
+	(uint8_t *)0x84000000,
+	"/ram/firmware.phi",
+	"Firmware",
+	0x0300000,
+	0x1f00000 -
+	0x0300000,
+	"ZylinNiosFirmware\n",
+	report_info,
 };
 
-// File written to /ram/firmware.phi before arriving at this fn
-static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+/* File written to /ram/firmware.phi before arriving at this fn */
+static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	if (argc != 1)
 		return JIM_ERR;
@@ -461,13 +417,11 @@ static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj *const
 }
 #endif
 
-static int
-zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
-								   int argc,
-		Jim_Obj * const *argv)
+static int zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
+	int argc,
+	Jim_Obj * const *argv)
 {
-	if (argc != 1)
-	{
+	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "powerstatus");
 		return JIM_ERR;
 	}
@@ -479,15 +433,11 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-
-
 int zy1000_quit(void)
 {
 
 	return ERROR_OK;
 }
-
-
 
 int interface_jtag_execute_queue(void)
 {
@@ -503,8 +453,7 @@ int interface_jtag_execute_queue(void)
 	/* and handle any callbacks... */
 	zy1000_flush_callbackqueue();
 
-	if (zy1000_rclk)
-	{
+	if (zy1000_rclk) {
 		/* Only check for errors when using RCLK to speed up
 		 * jtag over TCP/IP
 		 */
@@ -512,57 +461,50 @@ int interface_jtag_execute_queue(void)
 		/* clear JTAG error register */
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x400);
 
-		if ((empty&0x400) != 0)
-		{
+		if ((empty&0x400) != 0) {
 			LOG_WARNING("RCLK timeout");
 			/* the error is informative only as we don't want to break the firmware if there
 			 * is a false positive.
 			 */
-	//		return ERROR_FAIL;
+			/*		return ERROR_FAIL; */
 		}
 	}
 	return ERROR_OK;
 }
 
-
-
-
 static void writeShiftValue(uint8_t *data, int bits);
 
-// here we shuffle N bits out/in
-static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int num_bits, bool pause_now, tap_state_t shiftState, tap_state_t end_state)
+/* here we shuffle N bits out/in */
+static inline void scanBits(const uint8_t *out_value,
+	uint8_t *in_value,
+	int num_bits,
+	bool pause_now,
+	tap_state_t shiftState,
+	tap_state_t end_state)
 {
 	tap_state_t pause_state = shiftState;
-	for (int j = 0; j < num_bits; j += 32)
-	{
+	for (int j = 0; j < num_bits; j += 32) {
 		int k = num_bits - j;
-		if (k > 32)
-		{
+		if (k > 32) {
 			k = 32;
 			/* we have more to shift out */
-		} else if (pause_now)
-		{
+		} else if (pause_now) {
 			/* this was the last to shift out this time */
 			pause_state = end_state;
 		}
 
-		// we have (num_bits + 7)/8 bytes of bits to toggle out.
-		// bits are pushed out LSB to MSB
+		/* we have (num_bits + 7)/8 bytes of bits to toggle out. */
+		/* bits are pushed out LSB to MSB */
 		uint32_t value;
 		value = 0;
-		if (out_value != NULL)
-		{
+		if (out_value != NULL) {
 			for (int l = 0; l < k; l += 8)
-			{
-				value|=out_value[(j + l)/8]<<l;
-			}
+				value |= out_value[(j + l)/8]<<l;
 		}
 		/* mask away unused bits for easier debugging */
 		if (k < 32)
-		{
-			value&=~(((uint32_t)0xffffffff) << k);
-		} else
-		{
+			value &= ~(((uint32_t)0xffffffff) << k);
+		else {
 			/* Shifting by >= 32 is not defined by the C standard
 			 * and will in fact shift by &0x1f bits on nios */
 		}
@@ -570,50 +512,47 @@ static __inline void scanBits(const uint8_t *out_value, uint8_t *in_value, int n
 		shiftValueInner(shiftState, pause_state, k, value);
 
 		if (in_value != NULL)
-		{
 			writeShiftValue(in_value + (j/8), k);
-		}
 	}
 }
 
-static __inline void scanFields(int num_fields, const struct scan_field *fields, tap_state_t shiftState, tap_state_t end_state)
+static inline void scanFields(int num_fields,
+	const struct scan_field *fields,
+	tap_state_t shiftState,
+	tap_state_t end_state)
 {
-	for (int i = 0; i < num_fields; i++)
-	{
+	for (int i = 0; i < num_fields; i++) {
 		scanBits(fields[i].out_value,
-				fields[i].in_value,
-				fields[i].num_bits,
-				(i == num_fields-1),
-				shiftState,
-				end_state);
+			fields[i].in_value,
+			fields[i].num_bits,
+			(i == num_fields-1),
+			shiftState,
+			end_state);
 	}
 }
 
-int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_ir_scan(struct jtag_tap *active,
+	const struct scan_field *fields,
+	tap_state_t state)
 {
 	int scan_size = 0;
 	struct jtag_tap *tap, *nextTap;
 	tap_state_t pause_state = TAP_IRSHIFT;
 
-	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
-	{
+	for (tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = nextTap) {
 		nextTap = jtag_tap_next_enabled(tap);
-		if (nextTap==NULL)
-		{
+		if (nextTap == NULL)
 			pause_state = state;
-		}
 		scan_size = tap->ir_length;
 
 		/* search the list */
-		if (tap == active)
-		{
+		if (tap == active) {
 			scanFields(1, fields, TAP_IRSHIFT, pause_state);
 			/* update device information */
 			buf_cpy(fields[0].out_value, tap->cur_instr, scan_size);
 
 			tap->bypass = 0;
-		} else
-		{
+		} else {
 			/* if a device isn't listed, set it to BYPASS */
 			assert(scan_size <= 32);
 			shiftValueInner(TAP_IRSHIFT, pause_state, scan_size, 0xffffffff);
@@ -630,36 +569,33 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active, const struct scan_field 
 	return ERROR_OK;
 }
 
-
-
-
-
-int interface_jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int num_bits,
+	const uint8_t *out_bits,
+	uint8_t *in_bits,
+	tap_state_t state)
 {
 	scanBits(out_bits, in_bits, num_bits, true, TAP_IRSHIFT, state);
 	return ERROR_OK;
 }
 
-int interface_jtag_add_dr_scan(struct jtag_tap *active, int num_fields, const struct scan_field *fields, tap_state_t state)
+int interface_jtag_add_dr_scan(struct jtag_tap *active,
+	int num_fields,
+	const struct scan_field *fields,
+	tap_state_t state)
 {
 	struct jtag_tap *tap, *nextTap;
 	tap_state_t pause_state = TAP_DRSHIFT;
-	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
-	{
+	for (tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = nextTap) {
 		nextTap = jtag_tap_next_enabled(tap);
-		if (nextTap==NULL)
-		{
+		if (nextTap == NULL)
 			pause_state = state;
-		}
 
 		/* Find a range of fields to write to this tap */
-		if (tap == active)
-		{
+		if (tap == active) {
 			assert(!tap->bypass);
 
 			scanFields(num_fields, fields, TAP_DRSHIFT, pause_state);
-		} else
-		{
+		} else {
 			/* Shift out a 0 for disabled tap's */
 			assert(tap->bypass);
 			shiftValueInner(TAP_DRSHIFT, pause_state, 1, 0);
@@ -668,7 +604,10 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int num_fields, const st
 	return ERROR_OK;
 }
 
-int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int num_bits,
+	const uint8_t *out_bits,
+	uint8_t *in_bits,
+	tap_state_t state)
 {
 	scanBits(out_bits, in_bits, num_bits, true, TAP_DRSHIFT, state);
 	return ERROR_OK;
@@ -679,7 +618,6 @@ int interface_jtag_add_tlr()
 	setCurrentState(TAP_RESET);
 	return ERROR_OK;
 }
-
 
 int interface_jtag_add_reset(int req_trst, int req_srst)
 {
@@ -694,14 +632,11 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 
 	/* execute num_cycles, 32 at the time. */
 	int i;
-	for (i = 0; i < num_cycles; i += 32)
-	{
+	for (i = 0; i < num_cycles; i += 32) {
 		int num;
 		num = 32;
 		if (num_cycles-i < num)
-		{
 			num = num_cycles-i;
-		}
 		shiftValueInner(clockstate, clockstate, num, 0);
 	}
 
@@ -715,8 +650,7 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 	uint8_t tms_scan = tap_get_tms_path(t, state);
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i < tms_count; i++)
-	{
+	for (i = 0; i < tms_count; i++) {
 		tms = (tms_scan >> i) & 1;
 		waitIdle();
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28,  tms);
@@ -743,18 +677,13 @@ int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state 
 	/*wait for the fifo to be empty*/
 	waitIdle();
 
-	for (unsigned i = 0; i < num_bits; i++)
-	{
+	for (unsigned i = 0; i < num_bits; i++) {
 		int tms;
 
 		if (((seq[i/8] >> (i % 8)) & 1) == 0)
-		{
 			tms = 0;
-		}
 		else
-		{
 			tms = 1;
-		}
 
 		waitIdle();
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, tms);
@@ -762,11 +691,10 @@ int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state 
 
 	waitIdle();
 	if (state != TAP_INVALID)
-	{
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, state);
-	} else
-	{
-		/* this would be normal if we are switching to SWD mode */
+	else {
+		/* this would be normal if
+		 * we are switching to SWD mode */
 	}
 	return ERROR_OK;
 }
@@ -784,19 +712,14 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	memset(seq, 0, sizeof(seq));
 	assert(num_states < (int)((sizeof(seq) * 8)));
 
-	while (num_states)
-	{
+	while (num_states) {
 		if (tap_state_transition(cur_state, false) == path[state_count])
-		{
 			tms = 0;
-		}
 		else if (tap_state_transition(cur_state, true) == path[state_count])
-		{
 			tms = 1;
-		}
-		else
-		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(cur_state), tap_state_name(path[state_count]));
+		else {
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
+				tap_state_name(cur_state), tap_state_name(path[state_count]));
 			exit(-1);
 		}
 
@@ -818,48 +741,42 @@ static void jtag_pre_post_bits(struct jtag_tap *tap, int *pre, int *post)
 
 	bool found = false;
 	struct jtag_tap *cur_tap, *nextTap;
-	for (cur_tap = jtag_tap_next_enabled(NULL); cur_tap!= NULL; cur_tap = nextTap)
-	{
+	for (cur_tap = jtag_tap_next_enabled(NULL); cur_tap != NULL; cur_tap = nextTap) {
 		nextTap = jtag_tap_next_enabled(cur_tap);
 		if (cur_tap == tap)
-		{
 			found = true;
-		} else
-		{
+		else {
 			if (found)
-			{
 				post_bits++;
-			} else
-			{
+			else
 				pre_bits++;
-			}
 		}
 	}
 	*pre = pre_bits;
 	*post = post_bits;
 }
 
-/*
-	static const int embeddedice_num_bits[] = {32, 6};
+#if 0
+static const int embeddedice_num_bits[] = {32, 6};
 	uint32_t values[2];
 
 	values[0] = value;
 	values[1] = (1 << 5) | reg_addr;
 
-	jtag_add_dr_out(tap,
-			2,
-			embeddedice_num_bits,
-			values,
-			TAP_IDLE);
-*/
+	jtag_add_dr_out(tap, 2, embeddedice_num_bits, values, TAP_IDLE);
+#endif
 
-void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *buffer, int little, int count)
+void embeddedice_write_dcc(struct jtag_tap *tap,
+	int reg_addr,
+	const uint8_t *buffer,
+	int little,
+	int count)
 {
 #if 0
 	int i;
-	for (i = 0; i < count; i++)
-	{
-		embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
+	for (i = 0; i < count; i++) {
+		embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer,
+				little));
 		buffer += 4;
 	}
 #else
@@ -867,48 +784,47 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *bu
 	int post_bits;
 	jtag_pre_post_bits(tap, &pre_bits, &post_bits);
 
-	if ((pre_bits > 32) || (post_bits + 6 > 32))
-	{
+	if ((pre_bits > 32) || (post_bits + 6 > 32)) {
 		int i;
-		for (i = 0; i < count; i++)
-		{
-			embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
+		for (i = 0; i < count; i++) {
+			embeddedice_write_reg_inner(tap, reg_addr,
+				fast_target_buffer_get_u32(buffer, little));
 			buffer += 4;
 		}
-	} else
-	{
+	} else {
 		int i;
-		for (i = 0; i < count; i++)
-		{
+		for (i = 0; i < count; i++) {
 			/* Fewer pokes means we get to use the FIFO more efficiently */
 			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
-			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, little));
+			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32,
+				fast_target_buffer_get_u32(buffer, little));
 			/* Danger! here we need to exit into the TAP_IDLE state to make
 			 * DCC pick up this value.
 			 */
-			shiftValueInner(TAP_DRSHIFT, TAP_IDLE, 6 + post_bits, (reg_addr | (1 << 5)));
+			shiftValueInner(TAP_DRSHIFT, TAP_IDLE, 6 + post_bits,
+				(reg_addr | (1 << 5)));
 			buffer += 4;
 		}
 	}
 #endif
 }
 
-
-
-int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opcode, const uint32_t * data, size_t count)
+int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
+	uint32_t opcode,
+	const uint32_t *data,
+	size_t count)
 {
 	/* bypass bits before and after */
 	int pre_bits;
 	int post_bits;
 	jtag_pre_post_bits(tap, &pre_bits, &post_bits);
-	post_bits+=2;
+	post_bits += 2;
 
-	if ((pre_bits > 32) || (post_bits > 32))
-	{
-		int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *, uint32_t, const uint32_t *, size_t);
+	if ((pre_bits > 32) || (post_bits > 32)) {
+		int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *,
+				uint32_t, const uint32_t *, size_t);
 		return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
-	} else
-	{
+	} else {
 		static const int bits[] = {32, 2};
 		uint32_t values[] = {0, 0};
 
@@ -916,8 +832,7 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 		 * with unaligned uint32_t * pointers... */
 		const uint8_t *t = (const uint8_t *)data;
 
-		while (--count > 0)
-		{
+		while (--count > 0) {
 #if 1
 			/* Danger! This code doesn't update cmd_queue_cur_state, so
 			 * invoking jtag_add_pathmove() before jtag_add_dr_out() after
@@ -936,7 +851,8 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 			shiftValueInner(TAP_DRSHIFT, TAP_DRPAUSE, post_bits, 0);
 
 			/* copy & paste from arm11_dbgtap.c */
-			//TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
+			/* TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT,
+			 * TAP_DRCAPTURE, TAP_DRSHIFT */
 			/* KLUDGE! we have to flush the fifo or the Nios CPU locks up.
 			 * This is probably a bug in the Avalon bus(cross clocking bridge?)
 			 * or in the jtag registers module.
@@ -954,9 +870,9 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 			ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT);
 			waitIdle();
 #else
-			static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
-			{
-				TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
+			static const tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] = {
+				TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE,
+				TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 			};
 
 			values[0] = *t++;
@@ -992,7 +908,6 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap * tap, uint32_t opc
 		return jtag_execute_queue();
 	}
 }
-
 
 static const struct command_registration zy1000_commands[] = {
 	{
@@ -1040,7 +955,6 @@ static const struct command_registration zy1000_commands[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-
 #if !BUILD_ZY1000_MASTER
 
 static int tcp_ip = -1;
@@ -1062,16 +976,12 @@ static bool flush_writes(void)
 static bool writeLong(uint32_t l)
 {
 	int i;
-	for (i = 0; i < 4; i++)
-	{
+	for (i = 0; i < 4; i++) {
 		uint8_t c = (l >> (i*8))&0xff;
 		out_buffer[out_pos++] = c;
-		if (out_pos >= sizeof(out_buffer))
-		{
+		if (out_pos >= sizeof(out_buffer)) {
 			if (!flush_writes())
-			{
 				return false;
-			}
 		}
 	}
 	return true;
@@ -1081,29 +991,22 @@ static bool readLong(uint32_t *out_data)
 {
 	uint32_t data = 0;
 	int i;
-	for (i = 0; i < 4; i++)
-	{
+	for (i = 0; i < 4; i++) {
 		uint8_t c;
-		if (in_pos == in_write)
-		{
+		if (in_pos == in_write) {
 			/* If we have some data that we can send, send them before
 			 * we wait for more data
 			 */
-			if (out_pos > 0)
-			{
+			if (out_pos > 0) {
 				if (!flush_writes())
-				{
 					return false;
-				}
 			}
 
 			/* read more */
 			int t;
 			t = read(tcp_ip, in_buffer, sizeof(in_buffer));
 			if (t < 1)
-			{
 				return false;
-			}
 			in_write = (size_t) t;
 			in_pos = 0;
 		}
@@ -1115,16 +1018,15 @@ static bool readLong(uint32_t *out_data)
 	return true;
 }
 
-enum ZY1000_CMD
-{
+enum ZY1000_CMD {
 	ZY1000_CMD_POKE = 0x0,
 	ZY1000_CMD_PEEK = 0x8,
 	ZY1000_CMD_SLEEP = 0x1,
 	ZY1000_CMD_WAITIDLE = 2
 };
 
-#include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
-#include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
+#include <sys/socket.h>	/* for socket(), connect(), send(), and recv() */
+#include <arpa/inet.h>	/* for sockaddr_in and inet_addr() */
 
 /* We initialize this late since we need to know the server address
  * first.
@@ -1134,45 +1036,41 @@ static void tcpip_open(void)
 	if (tcp_ip >= 0)
 		return;
 
-	struct sockaddr_in echoServAddr; /* Echo server address */
+	struct sockaddr_in echoServAddr;/* Echo server address */
 
 	/* Create a reliable, stream socket using TCP */
-	if ((tcp_ip = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-	{
+	tcp_ip = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (tcp_ip < 0) {
 		fprintf(stderr, "Failed to connect to zy1000 server\n");
 		exit(-1);
 	}
 
 	/* Construct the server address structure */
-	memset(&echoServAddr, 0, sizeof(echoServAddr)); /* Zero out structure */
-	echoServAddr.sin_family = AF_INET; /* Internet address family */
-	echoServAddr.sin_addr.s_addr = inet_addr(tcp_server); /* Server IP address */
-	echoServAddr.sin_port = htons(7777); /* Server port */
+	memset(&echoServAddr, 0, sizeof(echoServAddr));	/* Zero out structure */
+	echoServAddr.sin_family = AF_INET;	/* Internet address family */
+	echoServAddr.sin_addr.s_addr = inet_addr(tcp_server);	/* Server IP address */
+	echoServAddr.sin_port = htons(7777);	/* Server port */
 
 	/* Establish the connection to the echo server */
-	if (connect(tcp_ip, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
-	{
+	if (connect(tcp_ip, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0) {
 		fprintf(stderr, "Failed to connect to zy1000 server\n");
 		exit(-1);
 	}
 
 	int flag = 1;
 	setsockopt(tcp_ip,	/* socket affected */
-			IPPROTO_TCP,		/* set option at TCP level */
-			TCP_NODELAY,		/* name of option */
-			(char *)&flag,		/* the cast is historical cruft */
-			sizeof(int));		/* length of option value */
+		IPPROTO_TCP,			/* set option at TCP level */
+		TCP_NODELAY,			/* name of option */
+		(char *)&flag,			/* the cast is historical cruft */
+		sizeof(int));			/* length of option value */
 
 }
-
 
 /* send a poke */
 void zy1000_tcpout(uint32_t address, uint32_t data)
 {
 	tcpip_open();
-	if (!writeLong((ZY1000_CMD_POKE << 24) | address)||
-			!writeLong(data))
-	{
+	if (!writeLong((ZY1000_CMD_POKE << 24) | address) || !writeLong(data)) {
 		fprintf(stderr, "Could not write to zy1000 server\n");
 		exit(-1);
 	}
@@ -1185,8 +1083,7 @@ void zy1000_tcpout(uint32_t address, uint32_t data)
 void waitIdle(void)
 {
 	tcpip_open();
-	if (!writeLong((ZY1000_CMD_WAITIDLE << 24)))
-	{
+	if (!writeLong((ZY1000_CMD_WAITIDLE << 24))) {
 		fprintf(stderr, "Could not write to zy1000 server\n");
 		exit(-1);
 	}
@@ -1199,9 +1096,7 @@ uint32_t zy1000_tcpin(uint32_t address)
 	zy1000_flush_readqueue();
 
 	uint32_t data;
-	if (!writeLong((ZY1000_CMD_PEEK << 24) | address)||
-			!readLong(&data))
-	{
+	if (!writeLong((ZY1000_CMD_PEEK << 24) | address) || !readLong(&data)) {
 		fprintf(stderr, "Could not read from zy1000 server\n");
 		exit(-1);
 	}
@@ -1211,9 +1106,7 @@ uint32_t zy1000_tcpin(uint32_t address)
 int interface_jtag_add_sleep(uint32_t us)
 {
 	tcpip_open();
-	if (!writeLong((ZY1000_CMD_SLEEP << 24))||
-			!writeLong(us))
-	{
+	if (!writeLong((ZY1000_CMD_SLEEP << 24)) || !writeLong(us)) {
 		fprintf(stderr, "Could not read from zy1000 server\n");
 		exit(-1);
 	}
@@ -1222,32 +1115,28 @@ int interface_jtag_add_sleep(uint32_t us)
 
 /* queue a readback */
 #define readqueue_size 16384
-static struct
-{
+static struct {
 	uint8_t *dest;
 	int bits;
 } readqueue[readqueue_size];
 
-static int readqueue_pos = 0;
+static int readqueue_pos;
 
 /* flush the readqueue, this means reading any data that
  * we're expecting and store them into the final position
  */
 void zy1000_flush_readqueue(void)
 {
-	if (readqueue_pos == 0)
-	{
+	if (readqueue_pos == 0) {
 		/* simply debugging by allowing easy breakpoints when there
 		 * is something to do. */
 		return;
 	}
 	int i;
 	tcpip_open();
-	for (i = 0; i < readqueue_pos; i++)
-	{
+	for (i = 0; i < readqueue_pos; i++) {
 		uint32_t value;
-		if (!readLong(&value))
-		{
+		if (!readLong(&value)) {
 			fprintf(stderr, "Could not read from zy1000 server\n");
 			exit(-1);
 		}
@@ -1255,25 +1144,22 @@ void zy1000_flush_readqueue(void)
 		uint8_t *in_value = readqueue[i].dest;
 		int k = readqueue[i].bits;
 
-		// we're shifting in data to MSB, shift data to be aligned for returning the value
+		/* we're shifting in data to MSB, shift data to be aligned for returning the value */
 		value >>= 32-k;
 
 		for (int l = 0; l < k; l += 8)
-		{
-			in_value[l/8]=(value >> l)&0xff;
-		}
+			in_value[l/8] = (value >> l)&0xff;
 	}
 	readqueue_pos = 0;
 }
 
 /* By queuing the callback's we avoid flushing the
-read queue until jtag_execute_queue(). This can
-reduce latency dramatically for cases where
-callbacks are used extensively.
+ * read queue until jtag_execute_queue(). This can
+ * reduce latency dramatically for cases where
+ * callbacks are used extensively.
 */
 #define callbackqueue_size 128
-static struct callbackentry
-{
+static struct callbackentry {
 	jtag_callback_t callback;
 	jtag_callback_data_t data0;
 	jtag_callback_data_t data1;
@@ -1281,14 +1167,16 @@ static struct callbackentry
 	jtag_callback_data_t data3;
 } callbackqueue[callbackqueue_size];
 
-static int callbackqueue_pos = 0;
+static int callbackqueue_pos;
 
-void zy1000_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+void zy1000_jtag_add_callback4(jtag_callback_t callback,
+	jtag_callback_data_t data0,
+	jtag_callback_data_t data1,
+	jtag_callback_data_t data2,
+	jtag_callback_data_t data3)
 {
 	if (callbackqueue_pos >= callbackqueue_size)
-	{
 		zy1000_flush_callbackqueue();
-	}
 
 	callbackqueue[callbackqueue_pos].callback = callback;
 	callbackqueue[callbackqueue_pos].data0 = data0;
@@ -1307,7 +1195,10 @@ void zy1000_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t da
 	zy1000_flush_callbackqueue();
 }
 
-static int zy1000_jtag_convert_to_callback4(jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+static int zy1000_jtag_convert_to_callback4(jtag_callback_data_t data0,
+	jtag_callback_data_t data1,
+	jtag_callback_data_t data2,
+	jtag_callback_data_t data3)
 {
 	((jtag_callback1_t)data1)(data0);
 	return ERROR_OK;
@@ -1315,20 +1206,24 @@ static int zy1000_jtag_convert_to_callback4(jtag_callback_data_t data0, jtag_cal
 
 void zy1000_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0)
 {
-	zy1000_jtag_add_callback4(zy1000_jtag_convert_to_callback4, data0, (jtag_callback_data_t)callback, 0, 0);
+	zy1000_jtag_add_callback4(zy1000_jtag_convert_to_callback4,
+		data0,
+		(jtag_callback_data_t)callback,
+		0,
+		0);
 }
 
 void zy1000_flush_callbackqueue(void)
 {
 	/* we have to flush the read queue so we have access to
-	 the data the callbacks will use 
+	 the data the callbacks will use
 	*/
 	zy1000_flush_readqueue();
 	int i;
-	for (i = 0; i < callbackqueue_pos; i++)
-	{
+	for (i = 0; i < callbackqueue_pos; i++) {
 		struct callbackentry *entry = &callbackqueue[i];
-		jtag_set_error(entry->callback(entry->data0, entry->data1, entry->data2, entry->data3));
+		jtag_set_error(entry->callback(entry->data0, entry->data1, entry->data2,
+				entry->data3));
 	}
 	callbackqueue_pos = 0;
 }
@@ -1337,16 +1232,13 @@ static void writeShiftValue(uint8_t *data, int bits)
 {
 	waitIdle();
 
-	if (!writeLong((ZY1000_CMD_PEEK << 24) | (ZY1000_JTAG_BASE + 0xc)))
-	{
+	if (!writeLong((ZY1000_CMD_PEEK << 24) | (ZY1000_JTAG_BASE + 0xc))) {
 		fprintf(stderr, "Could not read from zy1000 server\n");
 		exit(-1);
 	}
 
 	if (readqueue_pos >= readqueue_size)
-	{
 		zy1000_flush_readqueue();
-	}
 
 	readqueue[readqueue_pos].dest = data;
 	readqueue[readqueue_pos].bits = bits;
@@ -1365,14 +1257,12 @@ static void writeShiftValue(uint8_t *data, int bits)
 	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x", value));
 
-	// data in, LSB to MSB
-	// we're shifting in data to MSB, shift data to be aligned for returning the value
+	/* data in, LSB to MSB */
+	/* we're shifting in data to MSB, shift data to be aligned for returning the value */
 	value >>= 32 - bits;
 
 	for (int l = 0; l < bits; l += 8)
-	{
-		data[l/8]=(value >> l)&0xff;
-	}
+		data[l/8] = (value >> l)&0xff;
 }
 
 #endif
@@ -1391,15 +1281,14 @@ static void watchdog_server(cyg_addrword_t data)
 {
 	int so_reuseaddr_option = 1;
 
-	int fd;
-	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	{
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (fd == -1) {
 		LOG_ERROR("error creating socket: %s", strerror(errno));
 		exit(-1);
 	}
 
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*) &so_reuseaddr_option,
-			sizeof(int));
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &so_reuseaddr_option,
+		sizeof(int));
 
 	struct sockaddr_in sin;
 	unsigned int address_size;
@@ -1409,51 +1298,44 @@ static void watchdog_server(cyg_addrword_t data)
 	sin.sin_addr.s_addr = INADDR_ANY;
 	sin.sin_port = htons(8888);
 
-	if (bind(fd, (struct sockaddr *) &sin, sizeof(sin)) == -1)
-	{
+	if (bind(fd, (struct sockaddr *) &sin, sizeof(sin)) == -1) {
 		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
 		exit(-1);
 	}
 
-	if (listen(fd, 1) == -1)
-	{
+	if (listen(fd, 1) == -1) {
 		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
 		exit(-1);
 	}
 
 
-	for (;;)
-	{
+	for (;; ) {
 		int watchdog_ip = accept(fd, (struct sockaddr *) &sin, &address_size);
 
 		/* Start watchdog, must be reset every 10 seconds. */
 		HAL_WRITE_UINT32(WATCHDOG_BASE + 4, 4);
 
-		if (watchdog_ip < 0)
-		{
+		if (watchdog_ip < 0) {
 			LOG_ERROR("couldn't open watchdog socket: %s", strerror(errno));
 			exit(-1);
 		}
 
 		int flag = 1;
 		setsockopt(watchdog_ip,	/* socket affected */
-				IPPROTO_TCP,		/* set option at TCP level */
-				TCP_NODELAY,		/* name of option */
-				(char *)&flag,		/* the cast is historical cruft */
-				sizeof(int));		/* length of option value */
+			IPPROTO_TCP,			/* set option at TCP level */
+			TCP_NODELAY,			/* name of option */
+			(char *)&flag,			/* the cast is historical cruft */
+			sizeof(int));			/* length of option value */
 
 
 		char buf;
-		for (;;)
-		{
-			if (read(watchdog_ip, &buf, 1) == 1)
-			{
+		for (;; ) {
+			if (read(watchdog_ip, &buf, 1) == 1) {
 				/* Reset timer */
 				HAL_WRITE_UINT32(WATCHDOG_BASE + 8, 0x1234);
 				/* Echo so we can telnet in and see that resetting works */
 				write(watchdog_ip, &buf, 1);
-			} else
-			{
+			} else {
 				/* Stop tickling the watchdog, the CPU will reset in < 10 seconds
 				 * now.
 				 */
@@ -1487,43 +1369,43 @@ int zy1000_init(void)
 #if BUILD_ECOSBOARD
 	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
 #elif BUILD_ZY1000_MASTER
-	int fd;
- 	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1)
- 	{
- 		LOG_ERROR("No access to /dev/mem");
- 		return ERROR_FAIL;
- 	}
+	int fd = open("/dev/mem", O_RDWR | O_SYNC);
+	if (fd == -1) {
+		LOG_ERROR("No access to /dev/mem");
+		return ERROR_FAIL;
+	}
 #ifndef REGISTERS_BASE
 #define REGISTERS_BASE 0x9002000
 #define REGISTERS_SPAN 128
 #endif
-    
-    zy1000_jtag_master = mmap(0, REGISTERS_SPAN, PROT_READ | PROT_WRITE, MAP_SHARED, fd, REGISTERS_BASE);
-    
-    if(zy1000_jtag_master == (void *) -1) 
-    {
-	    close(fd);
- 		LOG_ERROR("No access to /dev/mem");
- 		return ERROR_FAIL;
-    } 
+
+	zy1000_jtag_master = mmap(0,
+			REGISTERS_SPAN,
+			PROT_READ | PROT_WRITE,
+			MAP_SHARED,
+			fd,
+			REGISTERS_BASE);
+
+	if (zy1000_jtag_master == (void *) -1) {
+		close(fd);
+		LOG_ERROR("No access to /dev/mem");
+		return ERROR_FAIL;
+	}
 #endif
 
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30);	/* Turn on LED1 & LED2 */
 
+	setPower(true);	/* on by default */
 
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30); // Turn on LED1 & LED2
-
-	setPower(true); // on by default
-
-
-	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
+	/* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
 
 #if BUILD_ZY1000_MASTER
 #if BUILD_ECOSBOARD
 #ifdef WATCHDOG_BASE
 	cyg_thread_create(1, watchdog_server, (cyg_addrword_t) 0, "watchdog tcip/ip server",
-			(void *) watchdog_stack, sizeof(watchdog_stack),
-			&watchdog_thread_handle, &watchdog_thread_object);
+		(void *) watchdog_stack, sizeof(watchdog_stack),
+		&watchdog_thread_handle, &watchdog_thread_object);
 	cyg_thread_resume(watchdog_thread_handle);
 #endif
 #endif
@@ -1532,10 +1414,7 @@ int zy1000_init(void)
 	return ERROR_OK;
 }
 
-
-
-struct jtag_interface zy1000_interface =
-{
+struct jtag_interface zy1000_interface = {
 	.name = "ZY1000",
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = NULL,

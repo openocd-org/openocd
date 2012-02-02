@@ -27,4 +27,4 @@
 int jtag_usb_open(const uint16_t vids[], const uint16_t pids[],
 		struct usb_dev_handle **out);
 
-#endif // JTAG_USB_COMMON_H
+#endif /* JTAG_USB_COMMON_H */

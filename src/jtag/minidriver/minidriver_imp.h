@@ -18,13 +18,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef MINIDRIVER_IMP_H
 #define MINIDRIVER_IMP_H
 
 #include <jtag/jtag_minidriver.h>
 
-static inline void jtag_add_dr_out(struct jtag_tap* tap,
-		int num_fields, const int* num_bits, const uint32_t* value,
+static inline void jtag_add_dr_out(struct jtag_tap *tap,
+		int num_fields, const int *num_bits, const uint32_t *value,
 		tap_state_t end_state)
 {
 	cmd_queue_cur_state = end_state;
@@ -36,8 +37,7 @@ static inline void jtag_add_dr_out(struct jtag_tap* tap,
 
 #define jtag_add_callback(callback, in) interface_jtag_add_callback(callback, in)
 
-#define jtag_add_callback4(callback, in, data1, data2, data3) interface_jtag_add_callback4(callback, in, data1, data2, data3)
+#define jtag_add_callback4(callback, in, data1, data2, data3) \
+	interface_jtag_add_callback4(callback, in, data1, data2, data3)
 
-
-
-#endif // MINIDRIVER_IMP_H
+#endif /* MINIDRIVER_IMP_H */

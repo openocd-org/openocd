@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -31,8 +32,8 @@
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <machine/sysarch.h>
 #include <machine/cpufunc.h>
-#define ioperm(startport,length,enable)\
-  i386_set_ioperm((startport), (length), (enable))
+#define ioperm(startport, length, enable)\
+	i386_set_ioperm((startport), (length), (enable))
 #endif /* __FreeBSD__ */
 
 #if PARPORT_USE_PPDEV == 1
@@ -56,11 +57,10 @@
 #include <windows.h>
 #endif
 
-
 /* parallel port cable description
  */
 struct cable {
-	char* name;
+	char *name;
 	uint8_t TDO_MASK;	/* status port bit containing current TDO value */
 	uint8_t TRST_MASK;	/* data port bit for TRST */
 	uint8_t TMS_MASK;	/* data port bit for TMS */
@@ -74,8 +74,7 @@ struct cable {
 	uint8_t LED_MASK;	/* data port bit for LED */
 };
 
-static struct cable cables[] =
-{
+static struct cable cables[] = {
 	/* name				tdo   trst  tms   tck   tdi   srst  o_inv i_inv init  exit  led */
 	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x80, 0x00 },
 	{ "wiggler2",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x00, 0x20 },
@@ -83,8 +82,8 @@ static struct cable cables[] =
 	{ "old_amt_wiggler",		0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x11, 0x80, 0x80, 0x80, 0x00 },
 	{ "arm-jtag",			0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x01, 0x80, 0x80, 0x80, 0x00 },
 	{ "chameleon",			0x80, 0x00, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00 },
-	{ "dlc5",			0x10, 0x00, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00 },
-	{ "triton",			0x80, 0x08, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00 },
+	{ "dlc5",				0x10, 0x00, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00 },
+	{ "triton",				0x80, 0x08, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00 },
 	{ "lattice",			0x40, 0x10, 0x04, 0x02, 0x01, 0x08, 0x00, 0x00, 0x18, 0x18, 0x00 },
 	{ "flashlink",			0x20, 0x10, 0x02, 0x01, 0x04, 0x20, 0x30, 0x20, 0x00, 0x00, 0x00 },
 /* Altium Universal JTAG cable. Set the cable to Xilinx Mode and wire to target as follows:
@@ -100,16 +99,16 @@ static struct cable cables[] =
 };
 
 /* configuration */
-static char* parport_cable = NULL;
+static char *parport_cable;
 static uint16_t parport_port;
-static bool parport_exit = 0;
+static bool parport_exit;
 static uint32_t parport_toggling_time_ns = 1000;
 static int wait_states;
 
 /* interface variables
  */
-static struct cable* cable;
-static uint8_t dataport_value = 0x0;
+static struct cable *cable;
+static uint8_t dataport_value;
 
 #if PARPORT_USE_PPDEV == 1
 static int device_handle;
@@ -123,7 +122,7 @@ static int parport_read(void)
 	int data = 0;
 
 #if PARPORT_USE_PPDEV == 1
-	ioctl(device_handle, PPRSTATUS, & data);
+	ioctl(device_handle, PPRSTATUS, &data);
 #else
 	data = inb(statusport);
 #endif
@@ -134,7 +133,7 @@ static int parport_read(void)
 		return 0;
 }
 
-static __inline__ void parport_write_data(void)
+static inline void parport_write_data(void)
 {
 	uint8_t output;
 	output = dataport_value ^ cable->OUTPUT_INVERT;
@@ -208,7 +207,7 @@ static int parport_speed(int speed)
 	return ERROR_OK;
 }
 
-static int parport_khz(int khz, int* jtag_speed)
+static int parport_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0) {
 		LOG_DEBUG("RCLK not supported");
@@ -219,7 +218,7 @@ static int parport_khz(int khz, int* jtag_speed)
 	return ERROR_OK;
 }
 
-static int parport_speed_div(int speed, int* khz)
+static int parport_speed_div(int speed, int *khz)
 {
 	uint32_t denominator = (speed + 1) * parport_toggling_time_ns;
 
@@ -269,24 +268,20 @@ static int parport_init(void)
 
 	cur_cable = cables;
 
-	if ((parport_cable == NULL) || (parport_cable[0] == 0))
-	{
+	if ((parport_cable == NULL) || (parport_cable[0] == 0)) {
 		parport_cable = "wiggler";
 		LOG_WARNING("No parport cable specified, using default 'wiggler'");
 	}
 
-	while (cur_cable->name)
-	{
-		if (strcmp(cur_cable->name, parport_cable) == 0)
-		{
+	while (cur_cable->name) {
+		if (strcmp(cur_cable->name, parport_cable) == 0) {
 			cable = cur_cable;
 			break;
 		}
 		cur_cable++;
 	}
 
-	if (!cable)
-	{
+	if (!cable) {
 		LOG_ERROR("No matching cable found for %s", parport_cable);
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -294,8 +289,7 @@ static int parport_init(void)
 	dataport_value = cable->PORT_INIT;
 
 #if PARPORT_USE_PPDEV == 1
-	if (device_handle > 0)
-	{
+	if (device_handle > 0) {
 		LOG_ERROR("device is already opened");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -312,8 +306,7 @@ static int parport_init(void)
 	device_handle = open(buffer, O_WRONLY);
 #endif /* __FreeBSD__, __FreeBSD_kernel__ */
 
-	if (device_handle < 0)
-	{
+	if (device_handle < 0) {
 		int err = errno;
 		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set. errno=%d", err);
 		return ERROR_JTAG_INIT_FAILED;
@@ -324,32 +317,28 @@ static int parport_init(void)
 #if !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__)
 	int i = ioctl(device_handle, PPCLAIM);
 
-	if (i < 0)
-	{
+	if (i < 0) {
 		LOG_ERROR("cannot claim device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	i = PARPORT_MODE_COMPAT;
-	i= ioctl(device_handle, PPSETMODE, & i);
-	if (i < 0)
-	{
+	i = ioctl(device_handle, PPSETMODE, &i);
+	if (i < 0) {
 		LOG_ERROR(" cannot set compatible mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	i = IEEE1284_MODE_COMPAT;
-	i = ioctl(device_handle, PPNEGOT, & i);
-	if (i < 0)
-	{
+	i = ioctl(device_handle, PPNEGOT, &i);
+	if (i < 0) {
 		LOG_ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #endif /* not __FreeBSD__, __FreeBSD_kernel__ */
 
 #else /* not PARPORT_USE_PPDEV */
-	if (parport_port == 0)
-	{
+	if (parport_port == 0) {
 		parport_port = 0x378;
 		LOG_WARNING("No parport port specified, using default '0x378' (LPT1)");
 	}
@@ -359,11 +348,10 @@ static int parport_init(void)
 
 	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", dataport);
 #if PARPORT_USE_GIVEIO == 1
-	if (parport_get_giveio_access() != 0)
+	if (parport_get_giveio_access() != 0) {
 #else /* PARPORT_USE_GIVEIO */
-	if (ioperm(dataport, 3, 1) != 0)
+	if (ioperm(dataport, 3, 1) != 0) {
 #endif /* PARPORT_USE_GIVEIO */
-	{
 		LOG_ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -391,14 +379,12 @@ static int parport_quit(void)
 {
 	parport_led(0);
 
-	if (parport_exit)
-	{
+	if (parport_exit) {
 		dataport_value = cable->PORT_EXIT;
 		parport_write_data();
 	}
 
-	if (parport_cable)
-	{
+	if (parport_cable) {
 		free(parport_cable);
 		parport_cable = NULL;
 	}
@@ -408,15 +394,11 @@ static int parport_quit(void)
 
 COMMAND_HANDLER(parport_handle_parport_port_command)
 {
-	if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 1) {
 		/* only if the port wasn't overwritten by cmdline */
 		if (parport_port == 0)
-		{
 			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], parport_port);
-		}
-		else
-		{
+		else {
 			LOG_ERROR("The parport port was already configured!");
 			return ERROR_FAIL;
 		}
@@ -433,8 +415,7 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 		return ERROR_OK;
 
 	/* only if the cable name wasn't overwritten by cmdline */
-	if (parport_cable == 0)
-	{
+	if (parport_cable == 0) {
 		/* REVISIT first verify that it's listed in cables[] ... */
 		parport_cable = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
 		strcpy(parport_cable, CMD_ARGV[0]);
@@ -448,9 +429,7 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 COMMAND_HANDLER(parport_handle_write_on_exit_command)
 {
 	if (CMD_ARGC != 1)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], parport_exit);
 

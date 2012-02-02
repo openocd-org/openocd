@@ -37,22 +37,22 @@
 #define jtag_libusb_get_device(devh)		libusb_get_device(devh)
 
 static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
-				       int iface)
+		int iface)
 {
 	return libusb_claim_interface(devh, iface);
 };
 
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
-		     struct jtag_libusb_device_handle **out);
+		struct jtag_libusb_device_handle **out);
 void jtag_libusb_close(jtag_libusb_device_handle *dev);
 int jtag_libusb_bulk_write(struct jtag_libusb_device_handle *dev, int ep,
-			   char *bytes,	int size, int timeout);
+		char *bytes,	int size, int timeout);
 int jtag_libusb_bulk_read(struct jtag_libusb_device_handle *dev, int ep,
-			  char *bytes, int size, int timeout);
+		char *bytes, int size, int timeout);
 int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
-				  int configuration);
+		int configuration);
 int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
-			      unsigned int *usb_read_ep,
-			      unsigned int *usb_write_ep);
+		unsigned int *usb_read_ep,
+		unsigned int *usb_write_ep);
 
 #endif /* JTAG_USB_COMMON_H */

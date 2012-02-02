@@ -24,13 +24,13 @@
 #if BUILD_ZY1000_MASTER
 
 #if BUILD_ECOSBOARD
-#include <cyg/hal/hal_io.h>             // low level i/o
-#include <cyg/hal/hal_intr.h>             // low level i/o
+#include <cyg/hal/hal_io.h>		/* low level i/o */
+#include <cyg/hal/hal_intr.h>			/* low level i/o */
 #define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b)
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b)
 #else
-#define ZY1000_PEEK(a, b) do {b = *( ( volatile uint32_t *)(a) );} while (0)
-#define ZY1000_POKE(a, b) do {*( ( volatile uint32_t *)(a) ) = b;} while (0)
+#define ZY1000_PEEK(a, b) do {b = *((volatile uint32_t *)(a)); } while (0)
+#define ZY1000_POKE(a, b) do {*((volatile uint32_t *)(a)) = b; } while (0)
 extern volatile void *zy1000_jtag_master;
 #define ZY1000_JTAG_BASE ((unsigned long)zy1000_jtag_master)
 #endif
@@ -41,29 +41,26 @@ extern volatile void *zy1000_jtag_master;
 #define ZY1000_JTAG_BASE 0
 extern void zy1000_tcpout(uint32_t address, uint32_t data);
 extern uint32_t zy1000_tcpin(uint32_t address);
-#define ZY1000_PEEK(a, b) b=zy1000_tcpin(a)
+#define ZY1000_PEEK(a, b) b = zy1000_tcpin(a)
 #define ZY1000_POKE(a, b) zy1000_tcpout(a, b)
 
 #endif
 
-
-
 #if BUILD_ZY1000_MASTER
-// FIFO empty?
-static __inline__ void waitIdle(void)
+/* FIFO empty? */
+static inline void waitIdle(void)
 {
 	uint32_t empty;
-	do
-	{
+	do {
 		ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
 	} while ((empty & 0x100) == 0);
 }
 
-static __inline__ void zy1000_flush_readqueue(void)
+static inline void zy1000_flush_readqueue(void)
 {
 	/* Not used w/hardware fifo */
 }
-static __inline__ void zy1000_flush_callbackqueue(void)
+static inline void zy1000_flush_callbackqueue(void)
 {
 	/* Not used w/hardware fifo */
 }
@@ -71,16 +68,20 @@ static __inline__ void zy1000_flush_callbackqueue(void)
 extern void waitIdle(void);
 void zy1000_flush_readqueue(void);
 void zy1000_flush_callbackqueue(void);
-void zy1000_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
+void zy1000_jtag_add_callback4(jtag_callback_t callback,
+		jtag_callback_data_t data0,
+		jtag_callback_data_t data1,
+		jtag_callback_data_t data2,
+		jtag_callback_data_t data3);
 void zy1000_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0);
 #endif
 
-static __inline__ void waitQueue(void)
+static inline void waitQueue(void)
 {
-//	waitIdle();
+/*	waitIdle(); */
 }
 
-static __inline__ void sampleShiftRegister(void)
+static inline void sampleShiftRegister(void)
 {
 #if 0
 	uint32_t dummy;
@@ -89,17 +90,16 @@ static __inline__ void sampleShiftRegister(void)
 #endif
 }
 
-static __inline__ void setCurrentState(enum tap_state state)
+static inline void setCurrentState(enum tap_state state)
 {
 	uint32_t a;
 	a = state;
 	int repeat = 0;
-	if (state == TAP_RESET)
-	{
-		// The FPGA nor we know the current state of the CPU TAP
-		// controller. This will move it to TAP for sure.
-		//
-		// 5 should be enough here, 7 is what OpenOCD uses
+	if (state == TAP_RESET) {
+		/* The FPGA nor we know the current state of the CPU TAP */
+		/* controller. This will move it to TAP for sure. */
+		/*  */
+		/* 5 should be enough here, 7 is what OpenOCD uses */
 		repeat = 7;
 	}
 	waitQueue();
@@ -112,9 +112,12 @@ static __inline__ void setCurrentState(enum tap_state state)
  * Enter state and cause repeat transitions *out* of that state. So if the endState != state, then
  * the transition from state to endState counts as a transition out of state.
  */
-static __inline__ void shiftValueInner(const enum tap_state state, const enum tap_state endState, int repeat, uint32_t value)
+static inline void shiftValueInner(const enum tap_state state,
+	const enum tap_state endState,
+	int repeat,
+	uint32_t value)
 {
-	uint32_t a,b;
+	uint32_t a, b;
 	a = state;
 	b = endState;
 	waitQueue();
@@ -122,44 +125,42 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value);
 #if 1
 #if TEST_MANUAL()
-	if ((state == TAP_DRSHIFT) && (endState != TAP_DRSHIFT))
-	{
+	if ((state == TAP_DRSHIFT) && (endState != TAP_DRSHIFT)) {
 		int i;
 		setCurrentState(state);
-		for (i = 0; i < repeat; i++)
-		{
+		for (i = 0; i < repeat; i++) {
 			int tms;
 			tms = 0;
 			if ((i == repeat-1) && (state != endState))
-			{
 				tms = 1;
-			}
-			/* shift out value */
+					/* shift out value */
 			waitIdle();
 			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, (((value >> i)&1) << 1) | tms);
 		}
 		waitIdle();
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
 		waitIdle();
-		//ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT); // set this state and things break => expected
-		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRPAUSE); // set this and things will work => expected. Not setting this is not sufficient to make things break.
+		/* ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT); // set this state and things
+		 * break => expected */
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRPAUSE);	/* set this and things will
+									 * work => expected. Not
+									 * setting this is not
+									 * sufficient to make things
+									 * break. */
 		setCurrentState(endState);
 	} else
-	{
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8) | (a << 4) | b);
-	}
+
 #else
 	/* fast version */
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8) | (a << 4) | b);
 #endif
 #else
 	/* maximum debug version */
-	if ((repeat > 0) && ((state == TAP_DRSHIFT)||(state == TAP_SI)))
-	{
+	if ((repeat > 0) && ((state == TAP_DRSHIFT) || (state == TAP_SI))) {
 		int i;
 		/* sample shift register for every bit. */
-		for (i = 0; i < repeat-1; i++)
-		{
+		for (i = 0; i < repeat-1; i++) {
 			sampleShiftRegister();
 			ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value >> i);
 			ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 8) | (a << 4) | a);
@@ -167,8 +168,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 		sampleShiftRegister();
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value >> (repeat-1));
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 8) | (a << 4) | b);
-	} else
-	{
+	} else {
 		sampleShiftRegister();
 		ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8) | (a << 4) | b);
 	}
@@ -176,69 +176,62 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 #endif
 }
 
-
-
-static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *target_tap,
-		int num_fields,
-		const int *num_bits,
-		const uint32_t *value,
-		enum tap_state end_state)
+static inline void interface_jtag_add_dr_out_core(struct jtag_tap *target_tap,
+	int num_fields,
+	const int *num_bits,
+	const uint32_t *value,
+	enum tap_state end_state)
 {
 	enum tap_state pause_state = TAP_DRSHIFT;
 
 	struct jtag_tap *tap, *nextTap;
-	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
-	{
+	for (tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = nextTap) {
 		nextTap = jtag_tap_next_enabled(tap);
 		if (nextTap == NULL)
-		{
 			pause_state = end_state;
-		}
-		if (tap == target_tap)
-		{
+		if (tap == target_tap) {
 			int j;
 			for (j = 0; j < (num_fields-1); j++)
-			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[j], value[j]);
-			}
 			shiftValueInner(TAP_DRSHIFT, pause_state, num_bits[j], value[j]);
-		} else
-		{
+		} else {
 			/* program the scan field to 1 bit length, and ignore it's value */
 			shiftValueInner(TAP_DRSHIFT, pause_state, 1, 0);
 		}
 	}
 }
 
-static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
-		int num_fields,
-		const int *num_bits,
-		const uint32_t *value,
-		enum tap_state end_state)
+static inline void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
+	int num_fields,
+	const int *num_bits,
+	const uint32_t *value,
+	enum tap_state end_state)
 {
 
 	int singletap = (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL);
-	if ((singletap) && (num_fields == 3))
-	{
+	if ((singletap) && (num_fields == 3)) {
 		/* used by embeddedice_write_reg_inner() */
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[0], value[0]);
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[1], value[1]);
 		shiftValueInner(TAP_DRSHIFT, end_state, num_bits[2], value[2]);
-	} else if ((singletap) && (num_fields == 2))
-	{
+	} else if ((singletap) && (num_fields == 2)) {
 		/* used by arm7 code */
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[0], value[0]);
 		shiftValueInner(TAP_DRSHIFT, end_state, num_bits[1], value[1]);
 	} else
-	{
 		interface_jtag_add_dr_out_core(target_tap, num_fields, num_bits, value, end_state);
-	}
 }
 
 #if BUILD_ZY1000_MASTER
 #define interface_jtag_add_callback(callback, in) callback(in)
-#define interface_jtag_add_callback4(callback, in, data1, data2, data3) jtag_set_error(callback(in, data1, data2, data3))
+#define interface_jtag_add_callback4(callback, in, data1, data2, \
+		data3) jtag_set_error(callback(in, data1, data2, data3))
 #else
 #define interface_jtag_add_callback(callback, in) zy1000_jtag_add_callback(callback, in)
-#define interface_jtag_add_callback4(callback, in, data1, data2, data3) zy1000_jtag_add_callback4(callback, in, data1, data2, data3)
+#define interface_jtag_add_callback4(callback, in, data1, data2, data3) zy1000_jtag_add_callback4( \
+	callback, \
+	in, \
+	data1, \
+	data2, \
+	data3)
 #endif

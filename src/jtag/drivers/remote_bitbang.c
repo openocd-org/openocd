@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -27,26 +28,29 @@
 #include <jtag/interface.h>
 #include "bitbang.h"
 
-// from unix man page and sys/un.h:
+/* from unix man page and sys/un.h: */
 #define UNIX_PATH_MAX 108
 
-// arbitrary limit on host name length:
+/* arbitrary limit on host name length: */
 #define REMOTE_BITBANG_HOST_MAX 255
 
 #define REMOTE_BITBANG_RAISE_ERROR(expr ...) \
-		LOG_ERROR(expr); LOG_ERROR("Terminating openocd."); exit(-1);
+	do { \
+		LOG_ERROR(expr); \
+		LOG_ERROR("Terminating openocd."); \
+		exit(-1); \
+	while (0)
 
 static char remote_bitbang_host[REMOTE_BITBANG_HOST_MAX] = "openocd";
-static uint16_t remote_bitbang_port = 0;
+static uint16_t remote_bitbang_port;
 
-FILE* remote_bitbang_in;
-FILE* remote_bitbang_out;
+FILE *remote_bitbang_in;
+FILE *remote_bitbang_out;
 
 static void remote_bitbang_putc(int c)
 {
-	if (EOF == fputc(c, remote_bitbang_out)) {
+	if (EOF == fputc(c, remote_bitbang_out))
 		REMOTE_BITBANG_RAISE_ERROR("remote_bitbang_putc: %s", strerror(errno));
-	}
 }
 
 static int remote_bitbang_quit(void)
@@ -60,9 +64,9 @@ static int remote_bitbang_quit(void)
 		LOG_ERROR("fflush: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
-		
-	// We only need to close one of the FILE*s, because they both use the same
-	// underlying file descriptor.
+
+	/* We only need to close one of the FILE*s, because they both use the same */
+	/* underlying file descriptor. */
 	if (EOF == fclose(remote_bitbang_out)) {
 		LOG_ERROR("fclose: %s", strerror(errno));
 		return ERROR_FAIL;
@@ -72,7 +76,7 @@ static int remote_bitbang_quit(void)
 	return ERROR_OK;
 }
 
-// Get the next read response.
+/* Get the next read response. */
 static int remote_bitbang_rread(void)
 {
 	if (EOF == fflush(remote_bitbang_out)) {
@@ -82,12 +86,14 @@ static int remote_bitbang_rread(void)
 
 	int c = fgetc(remote_bitbang_in);
 	switch (c) {
-		case '0': return 0;
-		case '1': return 1;
+		case '0':
+			return 0;
+		case '1':
+			return 1;
 		default:
 			remote_bitbang_quit();
 			REMOTE_BITBANG_RAISE_ERROR(
-				"remote_bitbang: invalid read response: %c(%i)", c, c);
+					"remote_bitbang: invalid read response: %c(%i)", c, c);
 	}
 }
 
@@ -136,14 +142,22 @@ static int remote_bitbang_init_tcp(void)
 		return ERROR_FAIL;
 	}
 
-	struct hostent* hent = gethostbyname(remote_bitbang_host);
+	struct hostent *hent = gethostbyname(remote_bitbang_host);
 	if (hent == NULL) {
-		char* errorstr = "???";
+		char *errorstr = "???";
 		switch (h_errno) {
-			case HOST_NOT_FOUND: errorstr = "host not found"; break;
-			case NO_ADDRESS: errorstr = "no address"; break;
-			case NO_RECOVERY: errorstr = "no recovery"; break;
-			case TRY_AGAIN: errorstr = "try again"; break;
+			case HOST_NOT_FOUND:
+				errorstr = "host not found";
+				break;
+			case NO_ADDRESS:
+				errorstr = "no address";
+				break;
+			case NO_RECOVERY:
+				errorstr = "no recovery";
+				break;
+			case TRY_AGAIN:
+				errorstr = "try again";
+				break;
 		}
 		LOG_ERROR("gethostbyname: %s", errorstr);
 		return ERROR_FAIL;
@@ -152,8 +166,8 @@ static int remote_bitbang_init_tcp(void)
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(remote_bitbang_port);
-	addr.sin_addr = *(struct in_addr*)hent->h_addr;
-	if (connect(fd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in)) < 0) {
+	addr.sin_addr = *(struct in_addr *)hent->h_addr;
+	if (connect(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) < 0) {
 		LOG_ERROR("connect: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
@@ -188,7 +202,7 @@ static int remote_bitbang_init_unix(void)
 	strncpy(addr.sun_path, remote_bitbang_host, UNIX_PATH_MAX);
 	addr.sun_path[UNIX_PATH_MAX-1] = '\0';
 
-	if (connect(fd, (struct sockaddr*)&addr, sizeof(struct sockaddr_un)) < 0) {
+	if (connect(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0) {
 		LOG_ERROR("connect: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
@@ -214,21 +228,20 @@ static int remote_bitbang_init(void)
 	bitbang_interface = &remote_bitbang_bitbang;
 
 	LOG_INFO("Initializing remote_bitbang driver");
-	if (remote_bitbang_port == 0) {
+	if (remote_bitbang_port == 0)
 		return remote_bitbang_init_unix();
-	}
 	return remote_bitbang_init_tcp();
 }
 
-static int remote_bitbang_khz(int khz, int* jtag_speed)
+static int remote_bitbang_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = 0;
 	return ERROR_OK;
 }
 
-static int remote_bitbang_speed_div(int speed, int* khz)
+static int remote_bitbang_speed_div(int speed, int *khz)
 {
-	// I don't think this really matters any.
+	/* I don't think this really matters any. */
 	*khz = 1;
 	return ERROR_OK;
 }

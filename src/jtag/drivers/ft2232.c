@@ -101,13 +101,12 @@
 #include <ftd2xx.h>
 #include "ftd2xx_common.h"
 
-enum ftdi_interface
-{
-    INTERFACE_ANY = 0,
-    INTERFACE_A   = 1,
-    INTERFACE_B   = 2,
-    INTERFACE_C   = 3,
-    INTERFACE_D   = 4
+enum ftdi_interface {
+	INTERFACE_ANY = 0,
+	INTERFACE_A   = 1,
+	INTERFACE_B   = 2,
+	INTERFACE_C   = 3,
+	INTERFACE_D   = 4
 };
 
 #elif BUILD_FT2232_LIBFTDI == 1
@@ -117,7 +116,7 @@ enum ftdi_interface
 /* max TCK for the high speed devices 30000 kHz */
 #define	FTDI_2232H_4232H_MAX_TCK	30000
 /* max TCK for the full speed devices 6000 kHz */
-#define	FTDI_2232C_MAX_TCK 6000
+#define FTDI_2232C_MAX_TCK 6000
 /* this speed value tells that RTCK is requested */
 #define RTCK_SPEED -1
 
@@ -150,13 +149,13 @@ enum ftdi_interface
  *
  * @returns ERROR_OK on success, or ERROR_JTAG_QUEUE_FAILED on failure.
  */
-static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd);
+static int ft2232_stableclocks(int num_cycles, struct jtag_command *cmd);
 
-static char *       ft2232_device_desc_A = NULL;
-static char*        ft2232_device_desc = NULL;
-static char*        ft2232_serial  = NULL;
-static uint8_t		ft2232_latency = 2;
-static unsigned		ft2232_max_tck = FTDI_2232C_MAX_TCK;
+static char *ft2232_device_desc_A;
+static char *ft2232_device_desc;
+static char *ft2232_serial;
+static uint8_t ft2232_latency = 2;
+static unsigned ft2232_max_tck = FTDI_2232C_MAX_TCK;
 
 #define MAX_USB_IDS 8
 /* vid = pid = 0 marks the end of the list */
@@ -164,7 +163,7 @@ static uint16_t ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
 static uint16_t ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
 
 struct ft2232_layout {
-	char* name;
+	char *name;
 	int (*init)(void);
 	void (*reset)(int trst, int srst);
 	void (*blink)(void);
@@ -225,10 +224,9 @@ static void flossjtag_blink(void);
 
 /* common transport support options */
 
-//static const char *jtag_and_swd[] = { "jtag", "swd", NULL };
+/* static const char *jtag_and_swd[] = { "jtag", "swd", NULL }; */
 
-static const struct ft2232_layout  ft2232_layouts[] =
-{
+static const struct ft2232_layout  ft2232_layouts[] = {
 	{ .name = "usbjtag",
 		.init = usbjtag_init,
 		.reset = ftx23_reset,
@@ -321,8 +319,8 @@ static const struct ft2232_layout  ft2232_layouts[] =
 	},
 	{ .name = "redbee-usb",
 		.init = redbee_init,
-	        .reset = redbee_reset,
-    	        .channel = INTERFACE_B,
+		.reset = redbee_reset,
+		.channel = INTERFACE_B,
 	},
 	{ .name = "lisa-l",
 		.init = lisa_l_init,
@@ -343,37 +341,37 @@ static const struct ft2232_layout  ft2232_layouts[] =
 };
 
 /* bitmask used to drive nTRST; usually a GPIOLx signal */
-static uint8_t                  nTRST;
-static uint8_t                  nTRSTnOE;
+static uint8_t nTRST;
+static uint8_t nTRSTnOE;
 /* bitmask used to drive nSRST; usually a GPIOLx signal */
-static uint8_t                  nSRST;
-static uint8_t                  nSRSTnOE;
+static uint8_t nSRST;
+static uint8_t nSRSTnOE;
 
 /** the layout being used with this debug session */
 static const struct ft2232_layout *layout;
 
 /** default bitmask values driven on DBUS: TCK/TDI/TDO/TMS and GPIOL(0..4) */
-static uint8_t                  low_output     = 0x0;
+static uint8_t low_output;
 
 /* note that direction bit == 1 means that signal is an output */
 
 /** default direction bitmask for DBUS: TCK/TDI/TDO/TMS and GPIOL(0..4) */
-static uint8_t                  low_direction  = 0x0;
+static uint8_t low_direction;
 /** default value bitmask for CBUS GPIOH(0..4) */
-static uint8_t                  high_output    = 0x0;
+static uint8_t high_output;
 /** default direction bitmask for CBUS GPIOH(0..4) */
-static uint8_t                  high_direction = 0x0;
+static uint8_t high_direction;
 
 #if BUILD_FT2232_FTD2XX == 1
-static FT_HANDLE	ftdih = NULL;
-static FT_DEVICE	ftdi_device = 0;
+static FT_HANDLE ftdih;
+static FT_DEVICE ftdi_device;
 #elif BUILD_FT2232_LIBFTDI == 1
 static struct ftdi_context ftdic;
 static enum ftdi_chip_type ftdi_device;
 #endif
 
-static struct jtag_command* first_unsent;        /* next command that has to be sent */
-static int             require_send;
+static struct jtag_command *first_unsent;	/* next command that has to be sent */
+static int require_send;
 
 /*	http://urjtag.wiki.sourceforge.net/Cable + FT2232 says:
 
@@ -389,17 +387,17 @@ static int             require_send;
 */
 
 #if BUILD_FT2232_FTD2XX == 1
-#define FT2232_BUFFER_READ_QUEUE_SIZE	(64*64)
+#define FT2232_BUFFER_READ_QUEUE_SIZE (64*64)
 #else
-#define FT2232_BUFFER_READ_QUEUE_SIZE	(64*4)
+#define FT2232_BUFFER_READ_QUEUE_SIZE (64*4)
 #endif
 
 #define FT2232_BUFFER_SIZE 131072
 
-static uint8_t*             ft2232_buffer = NULL;
-static int             ft2232_buffer_size  = 0;
-static int             ft2232_read_pointer = 0;
-static int             ft2232_expect_read  = 0;
+static uint8_t *ft2232_buffer;
+static int ft2232_buffer_size;
+static int ft2232_read_pointer;
+static int ft2232_expect_read;
 
 /**
  * Function buffer_write
@@ -443,17 +441,16 @@ static inline uint8_t buffer_read(void)
  */
 static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_bit)
 {
-	uint8_t	tms_byte;
-	int	i;
-	int	tms_ndx;				/* bit index into tms_byte */
+	uint8_t tms_byte;
+	int i;
+	int tms_ndx;	/* bit index into tms_byte */
 
 	assert(tms_count > 0);
 
 	DEBUG_JTAG_IO("mpsse cmd=%02x, tms_bits = 0x%08x, bit_count=%d",
-			mpsse_cmd, tms_bits, tms_count);
+		mpsse_cmd, tms_bits, tms_count);
 
-	for (tms_byte = tms_ndx = i = 0;   i < tms_count;   ++i, tms_bits>>=1)
-	{
+	for (tms_byte = tms_ndx = i = 0; i < tms_count; ++i, tms_bits >>= 1) {
 		bool bit = tms_bits & 1;
 
 		if (bit)
@@ -463,17 +460,16 @@ static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_b
 		tap_set_state(tap_state_transition(tap_get_state(), bit));
 
 		/*	we wrote a bit to tms_byte just above, increment bit index.  if bit was zero
-			also increment.
+		 * also increment.
 		*/
 		++tms_ndx;
 
-		if (tms_ndx == 7  || i == tms_count-1)
-		{
+		if (tms_ndx == 7 || i == tms_count-1) {
 			buffer_write(mpsse_cmd);
 			buffer_write(tms_ndx - 1);
 
 			/*	Bit 7 of the byte is passed on to TDI/DO before the first TCK/SK of
-				TMS/CS and is held static for the duration of TMS/CS clocking.
+			 * TMS/CS and is held static for the duration of TMS/CS clocking.
 			*/
 			buffer_write(tms_byte | (tdi_bit << 7));
 		}
@@ -500,11 +496,10 @@ static inline int get_tms_buffer_requirements(int bit_count)
  */
 static void move_to_state(tap_state_t goal_state)
 {
-	tap_state_t	start_state = tap_get_state();
+	tap_state_t start_state = tap_get_state();
 
 	/*	goal_state is 1/2 of a tuple/pair of states which allow convenient
-		lookup of the required TMS pattern to move to this state from the
-		start state.
+	 * lookup of the required TMS pattern to move to this state from the start state.
 	*/
 
 	/* do the 2 lookups */
@@ -516,44 +511,37 @@ static void move_to_state(tap_state_t goal_state)
 	clock_tms(0x4b,  tms_bits, tms_count, 0);
 }
 
-static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
+static int ft2232_write(uint8_t *buf, int size, uint32_t *bytes_written)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
 	DWORD dw_bytes_written = 0;
-	if ((status = FT_Write(ftdih, buf, size, &dw_bytes_written)) != FT_OK)
-	{
+	status = FT_Write(ftdih, buf, size, &dw_bytes_written);
+	if (status != FT_OK) {
 		*bytes_written = dw_bytes_written;
 		LOG_ERROR("FT_Write returned: %s", ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	else
-	{
+	} else
 		*bytes_written = dw_bytes_written;
-	}
+
 #elif BUILD_FT2232_LIBFTDI == 1
-	int retval;
-	if ((retval = ftdi_write_data(&ftdic, buf, size)) < 0)
-	{
+	int retval = ftdi_write_data(&ftdic, buf, size);
+	if (retval < 0) {
 		*bytes_written = 0;
 		LOG_ERROR("ftdi_write_data: %s", ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	else
-	{
+	} else
 		*bytes_written = retval;
-	}
+
 #endif
 
 	if (*bytes_written != (uint32_t)size)
-	{
 		return ERROR_JTAG_DEVICE_ERROR;
-	}
 
 	return ERROR_OK;
 }
 
-static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
+static int ft2232_read(uint8_t *buf, uint32_t size, uint32_t *bytes_read)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	DWORD dw_bytes_read;
@@ -561,11 +549,10 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 	int timeout = 5;
 	*bytes_read = 0;
 
-	while ((*bytes_read < size) && timeout--)
-	{
-		if ((status = FT_Read(ftdih, buf + *bytes_read, size -
-					  *bytes_read, &dw_bytes_read)) != FT_OK)
-		{
+	while ((*bytes_read < size) && timeout--) {
+		status = FT_Read(ftdih, buf + *bytes_read, size -
+				*bytes_read, &dw_bytes_read);
+		if (status != FT_OK) {
 			*bytes_read = 0;
 			LOG_ERROR("FT_Read returned: %s", ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
@@ -578,10 +565,9 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 	int timeout = LIBFTDI_READ_RETRY_COUNT;
 	*bytes_read = 0;
 
-	while ((*bytes_read < size) && timeout--)
-	{
-		if ((retval = ftdi_read_data(&ftdic, buf + *bytes_read, size - *bytes_read)) < 0)
-		{
+	while ((*bytes_read < size) && timeout--) {
+		retval = ftdi_read_data(&ftdic, buf + *bytes_read, size - *bytes_read);
+		if (retval < 0) {
 			*bytes_read = 0;
 			LOG_ERROR("ftdi_read_data: %s", ftdi_get_error_string(&ftdic));
 			return ERROR_JTAG_DEVICE_ERROR;
@@ -591,12 +577,11 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 
 #endif
 
-	if (*bytes_read < size)
-	{
+	if (*bytes_read < size) {
 		LOG_ERROR("couldn't read enough bytes from "
-				"FT2232 device (%i < %i)",
-				(unsigned)*bytes_read,
-				(unsigned)size);
+			"FT2232 device (%i < %i)",
+			(unsigned)*bytes_read,
+			(unsigned)size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -626,8 +611,8 @@ static int ft2232h_ft4232h_adaptive_clocking(bool enable)
 	uint32_t bytes_written;
 	int retval;
 
-	if ((retval = ft2232_write(&buf, sizeof(buf), &bytes_written)) != ERROR_OK)
-	{
+	retval = ft2232_write(&buf, sizeof(buf), &bytes_written);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("couldn't write command to %s adaptive clocking"
 			, enable ? "enable" : "disable");
 		return retval;
@@ -646,8 +631,7 @@ static int ft2232h_ft4232h_clk_divide_by_5(bool enable)
 	uint32_t bytes_written;
 	uint8_t buf = enable ?  0x8b : 0x8a;
 
-	if (ft2232_write(&buf, sizeof(buf), &bytes_written) != ERROR_OK)
-	{
+	if (ft2232_write(&buf, sizeof(buf), &bytes_written) != ERROR_OK) {
 		LOG_ERROR("couldn't write command to %s clk divide by 5"
 			, enable ? "enable" : "disable");
 		return ERROR_JTAG_INIT_FAILED;
@@ -668,8 +652,7 @@ static int ft2232_speed(int speed)
 	bool enable_adaptive_clocking = (RTCK_SPEED == speed);
 	if (ft2232_device_is_highspeed())
 		retval = ft2232h_ft4232h_adaptive_clocking(enable_adaptive_clocking);
-	else if (enable_adaptive_clocking)
-	{
+	else if (enable_adaptive_clocking) {
 		LOG_ERROR("ft2232 device %lu does not support RTCK"
 			, (long unsigned int)ftdi_device);
 		return ERROR_FAIL;
@@ -683,8 +666,8 @@ static int ft2232_speed(int speed)
 	buf[2] = (speed >> 8) & 0xff;	/* valueH */
 
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
-	if ((retval = ft2232_write(buf, sizeof(buf), &bytes_written)) != ERROR_OK)
-	{
+	retval = ft2232_write(buf, sizeof(buf), &bytes_written);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("couldn't set FT2232 TCK speed");
 		return retval;
 	}
@@ -692,7 +675,7 @@ static int ft2232_speed(int speed)
 	return ERROR_OK;
 }
 
-static int ft2232_speed_div(int speed, int* khz)
+static int ft2232_speed_div(int speed, int *khz)
 {
 	/* Take a look in the FT2232 manual,
 	 * AN2232C-01 Command Processor for
@@ -703,17 +686,13 @@ static int ft2232_speed_div(int speed, int* khz)
 	return ERROR_OK;
 }
 
-static int ft2232_khz(int khz, int* jtag_speed)
+static int ft2232_khz(int khz, int *jtag_speed)
 {
-	if (khz == 0)
-	{
-		if (ft2232_device_is_highspeed())
-		{
+	if (khz == 0) {
+		if (ft2232_device_is_highspeed()) {
 			*jtag_speed = RTCK_SPEED;
 			return ERROR_OK;
-		}
-		else
-		{
+		} else {
 			LOG_DEBUG("RCLK not supported");
 			return ERROR_FAIL;
 		}
@@ -726,8 +705,8 @@ static int ft2232_khz(int khz, int* jtag_speed)
 	 * We will calc here with a multiplier
 	 * of 10 for better rounding later. */
 
-	/* Calc speed, (ft2232_max_tck / khz) - 1 */
-	/* Use 65000 for better rounding */
+	/* Calc speed, (ft2232_max_tck / khz) - 1
+	 * Use 65000 for better rounding */
 	*jtag_speed = ((ft2232_max_tck*10) / khz) - 10;
 
 	/* Add 0.9 for rounding */
@@ -738,15 +717,11 @@ static int ft2232_khz(int khz, int* jtag_speed)
 
 	/* Check if speed is greater than 0 */
 	if (*jtag_speed < 0)
-	{
 		*jtag_speed = 0;
-	}
 
 	/* Check max value */
 	if (*jtag_speed > 0xFFFF)
-	{
 		*jtag_speed = 0xFFFF;
-	}
 
 	return ERROR_OK;
 }
@@ -755,21 +730,19 @@ static void ft2232_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
-	else
-	{
+	else {
 		LOG_ERROR("BUG: %s is not a stable end state", tap_state_name(state));
 		exit(-1);
 	}
 }
 
-static void ft2232_read_scan(enum scan_type type, uint8_t* buffer, int scan_size)
+static void ft2232_read_scan(enum scan_type type, uint8_t *buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
 	int cur_byte  = 0;
 
-	while (num_bytes-- > 1)
-	{
+	while (num_bytes-- > 1) {
 		buffer[cur_byte++] = buffer_read();
 		bits_left -= 8;
 	}
@@ -778,10 +751,11 @@ static void ft2232_read_scan(enum scan_type type, uint8_t* buffer, int scan_size
 
 	/* There is one more partial byte left from the clock data in/out instructions */
 	if (bits_left > 1)
-	{
 		buffer[cur_byte] = buffer_read() >> 1;
-	}
-	/* This shift depends on the length of the clock data to tms instruction, insterted at end of the scan, now fixed to a two step transition in ft2232_add_scan */
+	/* This shift depends on the length of the
+	 *clock data to tms instruction, insterted
+	 *at end of the scan, now fixed to a two
+	 *step transition in ft2232_add_scan */
 	buffer[cur_byte] = (buffer[cur_byte] | (((buffer_read()) << 1) & 0x80)) >> (8 - bits_left);
 }
 
@@ -789,13 +763,14 @@ static void ft2232_debug_dump_buffer(void)
 {
 	int i;
 	char line[256];
-	char* line_p = line;
+	char *line_p = line;
 
-	for (i = 0; i < ft2232_buffer_size; i++)
-	{
-		line_p += snprintf(line_p, sizeof(line) - (line_p - line), "%2.2x ", ft2232_buffer[i]);
-		if (i % 16 == 15)
-		{
+	for (i = 0; i < ft2232_buffer_size; i++) {
+		line_p += snprintf(line_p,
+				sizeof(line) - (line_p - line),
+				"%2.2x ",
+				ft2232_buffer[i]);
+		if (i % 16 == 15) {
 			LOG_DEBUG("%s", line);
 			line_p = line;
 		}
@@ -805,19 +780,19 @@ static void ft2232_debug_dump_buffer(void)
 		LOG_DEBUG("%s", line);
 }
 
-static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command* last)
+static int ft2232_send_and_recv(struct jtag_command *first, struct jtag_command *last)
 {
-	struct jtag_command* cmd;
-	uint8_t* buffer;
+	struct jtag_command *cmd;
+	uint8_t *buffer;
 	int scan_size;
-	enum scan_type  type;
+	enum scan_type type;
 	int retval;
 	uint32_t bytes_written = 0;
 	uint32_t bytes_read = 0;
 
 #ifdef _DEBUG_USB_IO_
-	struct timeval  start, inter, inter2, end;
-	struct timeval  d_inter, d_inter2, d_end;
+	struct timeval start, inter, inter2, end;
+	struct timeval d_inter, d_inter2, d_end;
 #endif
 
 #ifdef _DEBUG_USB_COMMS_
@@ -829,8 +804,8 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 	gettimeofday(&start, NULL);
 #endif
 
-	if ((retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written)) != ERROR_OK)
-	{
+	retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("couldn't write MPSSE commands to FT2232");
 		return retval;
 	}
@@ -839,8 +814,7 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 	gettimeofday(&inter, NULL);
 #endif
 
-	if (ft2232_expect_read)
-	{
+	if (ft2232_expect_read) {
 		/* FIXME this "timeout" is never changed ... */
 		int timeout = LIBFTDI_READ_RETRY_COUNT;
 		ft2232_buffer_size = 0;
@@ -849,8 +823,8 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 		gettimeofday(&inter2, NULL);
 #endif
 
-		if ((retval = ft2232_read(ft2232_buffer, ft2232_expect_read, &bytes_read)) != ERROR_OK)
-		{
+		retval = ft2232_read(ft2232_buffer, ft2232_expect_read, &bytes_read);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("couldn't read from FT2232");
 			return retval;
 		}
@@ -870,14 +844,13 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 
 		ft2232_buffer_size = bytes_read;
 
-		if (ft2232_expect_read != ft2232_buffer_size)
-		{
+		if (ft2232_expect_read != ft2232_buffer_size) {
 			LOG_ERROR("ft2232_expect_read (%i) != "
-					"ft2232_buffer_size (%i) "
-					"(%i retries)",
-					ft2232_expect_read,
-					ft2232_buffer_size,
-					LIBFTDI_READ_RETRY_COUNT - timeout);
+				"ft2232_buffer_size (%i) "
+				"(%i retries)",
+				ft2232_expect_read,
+				ft2232_buffer_size,
+				LIBFTDI_READ_RETRY_COUNT - timeout);
 			ft2232_debug_dump_buffer();
 
 			exit(-1);
@@ -885,8 +858,8 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 
 #ifdef _DEBUG_USB_COMMS_
 		LOG_DEBUG("read buffer (%i retries): %i bytes",
-				LIBFTDI_READ_RETRY_COUNT - timeout,
-				ft2232_buffer_size);
+			LIBFTDI_READ_RETRY_COUNT - timeout,
+			ft2232_buffer_size);
 		ft2232_debug_dump_buffer();
 #endif
 	}
@@ -900,25 +873,22 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
 	retval = ERROR_OK;
 
 	cmd = first;
-	while (cmd != last)
-	{
-		switch (cmd->type)
-		{
-		case JTAG_SCAN:
-			type = jtag_scan_type(cmd->cmd.scan);
-			if (type != SCAN_OUT)
-			{
-				scan_size = jtag_scan_size(cmd->cmd.scan);
-				buffer    = calloc(DIV_ROUND_UP(scan_size, 8), 1);
-				ft2232_read_scan(type, buffer, scan_size);
-				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
-					retval = ERROR_JTAG_QUEUE_FAILED;
-				free(buffer);
-			}
-			break;
+	while (cmd != last) {
+		switch (cmd->type) {
+			case JTAG_SCAN:
+				type = jtag_scan_type(cmd->cmd.scan);
+				if (type != SCAN_OUT) {
+					scan_size = jtag_scan_size(cmd->cmd.scan);
+					buffer = calloc(DIV_ROUND_UP(scan_size, 8), 1);
+					ft2232_read_scan(type, buffer, scan_size);
+					if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
+					free(buffer);
+				}
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 
 		cmd = cmd->next;
@@ -938,7 +908,7 @@ static int ft2232_send_and_recv(struct jtag_command* first, struct jtag_command*
  *   ending with the last state at path[num_states-1]
  * @param num_states is the count of state steps to move through
  */
-static void ft2232_add_pathmove(tap_state_t* path, int num_states)
+static void ft2232_add_pathmove(tap_state_t *path, int num_states)
 {
 	int state_count = 0;
 
@@ -947,11 +917,10 @@ static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 	DEBUG_JTAG_IO("-");
 
 	/* this loop verifies that the path is legal and logs each state in the path */
-	while (num_states)
-	{
-		unsigned char	tms_byte = 0;       /* zero this on each MPSSE batch */
-		int		bit_count = 0;
-		int		num_states_batch = num_states > 7 ? 7 : num_states;
+	while (num_states) {
+		unsigned char tms_byte = 0;		/* zero this on each MPSSE batch */
+		int bit_count = 0;
+		int num_states_batch = num_states > 7 ? 7 : num_states;
 
 		/* command "Clock Data to TMS/CS Pin (no Read)" */
 		buffer_write(0x4b);
@@ -961,17 +930,15 @@ static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 
 		while (num_states_batch--) {
 			/* either TMS=0 or TMS=1 must work ... */
-			if (tap_state_transition(tap_get_state(), false)
-						== path[state_count])
+			if (tap_state_transition(tap_get_state(), false) == path[state_count])
 				buf_set_u32(&tms_byte, bit_count++, 1, 0x0);
-			else if (tap_state_transition(tap_get_state(), true)
-						== path[state_count])
+			else if (tap_state_transition(tap_get_state(), true) == path[state_count])
 				buf_set_u32(&tms_byte, bit_count++, 1, 0x1);
 
 			/* ... or else the caller goofed BADLY */
 			else {
 				LOG_ERROR("BUG: %s -> %s isn't a valid "
-						"TAP state transition",
+					"TAP state transition",
 					tap_state_name(tap_get_state()),
 					tap_state_name(path[state_count]));
 				exit(-1);
@@ -987,70 +954,52 @@ static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 	tap_set_end_state(tap_get_state());
 }
 
-static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, int scan_size)
+static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
 	int cur_byte  = 0;
 	int last_bit;
 
-	if (!ir_scan)
-	{
+	if (!ir_scan) {
 		if (tap_get_state() != TAP_DRSHIFT)
-		{
 			move_to_state(TAP_DRSHIFT);
-		}
-	}
-	else
-	{
+	} else {
 		if (tap_get_state() != TAP_IRSHIFT)
-		{
 			move_to_state(TAP_IRSHIFT);
-		}
 	}
 
 	/* add command for complete bytes */
-	while (num_bytes > 1)
-	{
+	while (num_bytes > 1) {
 		int thisrun_bytes;
-		if (type == SCAN_IO)
-		{
+		if (type == SCAN_IO) {
 			/* Clock Data Bytes In and Out LSB First */
 			buffer_write(0x39);
 			/* LOG_DEBUG("added TDI bytes (io %i)", num_bytes); */
-		}
-		else if (type == SCAN_OUT)
-		{
+		} else if (type == SCAN_OUT) {
 			/* Clock Data Bytes Out on -ve Clock Edge LSB First (no Read) */
 			buffer_write(0x19);
 			/* LOG_DEBUG("added TDI bytes (o)"); */
-		}
-		else if (type == SCAN_IN)
-		{
+		} else if (type == SCAN_IN) {
 			/* Clock Data Bytes In on +ve Clock Edge LSB First (no Write) */
 			buffer_write(0x28);
 			/* LOG_DEBUG("added TDI bytes (i %i)", num_bytes); */
 		}
 
 		thisrun_bytes = (num_bytes > 65537) ? 65536 : (num_bytes - 1);
-		num_bytes    -= thisrun_bytes;
+		num_bytes -= thisrun_bytes;
 
 		buffer_write((uint8_t) (thisrun_bytes - 1));
 		buffer_write((uint8_t) ((thisrun_bytes - 1) >> 8));
 
-		if (type != SCAN_IN)
-		{
+		if (type != SCAN_IN) {
 			/* add complete bytes */
-			while (thisrun_bytes-- > 0)
-			{
+			while (thisrun_bytes-- > 0) {
 				buffer_write(buffer[cur_byte++]);
 				bits_left -= 8;
 			}
-		}
-		else /* (type == SCAN_IN) */
-		{
+		} else /* (type == SCAN_IN) */
 			bits_left -= 8 * (thisrun_bytes);
-		}
 	}
 
 	/* the most signifcant bit is scanned during TAP movement */
@@ -1060,22 +1009,16 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 		last_bit = 0;
 
 	/* process remaining bits but the last one */
-	if (bits_left > 1)
-	{
-		if (type == SCAN_IO)
-		{
+	if (bits_left > 1) {
+		if (type == SCAN_IO) {
 			/* Clock Data Bits In and Out LSB First */
 			buffer_write(0x3b);
 			/* LOG_DEBUG("added TDI bits (io) %i", bits_left - 1); */
-		}
-		else if (type == SCAN_OUT)
-		{
+		} else if (type == SCAN_OUT) {
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			buffer_write(0x1b);
 			/* LOG_DEBUG("added TDI bits (o)"); */
-		}
-		else if (type == SCAN_IN)
-		{
+		} else if (type == SCAN_IN) {
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			buffer_write(0x2a);
 			/* LOG_DEBUG("added TDI bits (i %i)", bits_left - 1); */
@@ -1087,47 +1030,37 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 	}
 
 	if ((ir_scan && (tap_get_end_state() == TAP_IRSHIFT))
-	  || (!ir_scan && (tap_get_end_state() == TAP_DRSHIFT)))
-	{
-		if (type == SCAN_IO)
-		{
+			|| (!ir_scan && (tap_get_end_state() == TAP_DRSHIFT))) {
+		if (type == SCAN_IO) {
 			/* Clock Data Bits In and Out LSB First */
 			buffer_write(0x3b);
 			/* LOG_DEBUG("added TDI bits (io) %i", bits_left - 1); */
-		}
-		else if (type == SCAN_OUT)
-		{
+		} else if (type == SCAN_OUT) {
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			buffer_write(0x1b);
 			/* LOG_DEBUG("added TDI bits (o)"); */
-		}
-		else if (type == SCAN_IN)
-		{
+		} else if (type == SCAN_IN) {
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			buffer_write(0x2a);
 			/* LOG_DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		buffer_write(0x0);
 		buffer_write(last_bit);
-	}
-	else
-	{
+	} else {
 		int tms_bits;
 		int tms_count;
-		uint8_t	mpsse_cmd;
+		uint8_t mpsse_cmd;
 
 		/* move from Shift-IR/DR to end state */
-		if (type != SCAN_OUT)
-		{
-			/* We always go to the PAUSE state in two step at the end of an IN or IO scan */
-			/* This must be coordinated with the bit shifts in ft2232_read_scan    */
+		if (type != SCAN_OUT) {
+			/* We always go to the PAUSE state in two step at the end of an IN or IO
+			 *scan
+			 * This must be coordinated with the bit shifts in ft2232_read_scan    */
 			tms_bits  = 0x01;
 			tms_count = 2;
 			/* Clock Data to TMS/CS Pin with Read */
 			mpsse_cmd = 0x6b;
-		}
-		else
-		{
+		} else {
 			tms_bits  = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 			tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 			/* Clock Data to TMS/CS Pin (no Read) */
@@ -1139,63 +1072,55 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 	}
 
 	if (tap_get_state() != tap_get_end_state())
-	{
 		move_to_state(tap_get_end_state());
-	}
 }
 
-static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint8_t* buffer, int scan_size)
+static int ft2232_large_scan(struct scan_command *cmd,
+	enum scan_type type,
+	uint8_t *buffer,
+	int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
 	int cur_byte  = 0;
 	int last_bit;
-	uint8_t* receive_buffer  = malloc(DIV_ROUND_UP(scan_size, 8));
-	uint8_t* receive_pointer = receive_buffer;
+	uint8_t *receive_buffer  = malloc(DIV_ROUND_UP(scan_size, 8));
+	uint8_t *receive_pointer = receive_buffer;
 	uint32_t bytes_written;
 	uint32_t bytes_read;
 	int retval;
 	int thisrun_read = 0;
 
-	if (cmd->ir_scan)
-	{
+	if (cmd->ir_scan) {
 		LOG_ERROR("BUG: large IR scans are not supported");
 		exit(-1);
 	}
 
 	if (tap_get_state() != TAP_DRSHIFT)
-	{
 		move_to_state(TAP_DRSHIFT);
-	}
 
-	if ((retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written)) != ERROR_OK)
-	{
+	retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("couldn't write MPSSE commands to FT2232");
 		exit(-1);
 	}
 	LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i",
-		  ft2232_buffer_size, (int)bytes_written);
+		ft2232_buffer_size, (int)bytes_written);
 	ft2232_buffer_size = 0;
 
 	/* add command for complete bytes */
-	while (num_bytes > 1)
-	{
+	while (num_bytes > 1) {
 		int thisrun_bytes;
 
-		if (type == SCAN_IO)
-		{
+		if (type == SCAN_IO) {
 			/* Clock Data Bytes In and Out LSB First */
 			buffer_write(0x39);
 			/* LOG_DEBUG("added TDI bytes (io %i)", num_bytes); */
-		}
-		else if (type == SCAN_OUT)
-		{
+		} else if (type == SCAN_OUT) {
 			/* Clock Data Bytes Out on -ve Clock Edge LSB First (no Read) */
 			buffer_write(0x19);
 			/* LOG_DEBUG("added TDI bytes (o)"); */
-		}
-		else if (type == SCAN_IN)
-		{
+		} else if (type == SCAN_IN) {
 			/* Clock Data Bytes In on +ve Clock Edge LSB First (no Write) */
 			buffer_write(0x28);
 			/* LOG_DEBUG("added TDI bytes (i %i)", num_bytes); */
@@ -1207,41 +1132,35 @@ static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint
 		buffer_write((uint8_t) (thisrun_bytes - 1));
 		buffer_write((uint8_t) ((thisrun_bytes - 1) >> 8));
 
-		if (type != SCAN_IN)
-		{
+		if (type != SCAN_IN) {
 			/* add complete bytes */
-			while (thisrun_bytes-- > 0)
-			{
+			while (thisrun_bytes-- > 0) {
 				buffer_write(buffer[cur_byte]);
 				cur_byte++;
 				bits_left -= 8;
 			}
-		}
-		else /* (type == SCAN_IN) */
-		{
+		} else /* (type == SCAN_IN) */
 			bits_left -= 8 * (thisrun_bytes);
-		}
 
-		if ((retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written)) != ERROR_OK)
-		{
+		retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("couldn't write MPSSE commands to FT2232");
 			exit(-1);
 		}
 		LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i",
-			  ft2232_buffer_size,
-			  (int)bytes_written);
+			ft2232_buffer_size,
+			(int)bytes_written);
 		ft2232_buffer_size = 0;
 
-		if (type != SCAN_OUT)
-		{
-			if ((retval = ft2232_read(receive_pointer, thisrun_read, &bytes_read)) != ERROR_OK)
-			{
+		if (type != SCAN_OUT) {
+			retval = ft2232_read(receive_pointer, thisrun_read, &bytes_read);
+			if (retval != ERROR_OK) {
 				LOG_ERROR("couldn't read from FT2232");
 				exit(-1);
 			}
 			LOG_DEBUG("thisrun_read: %i, bytes_read: %i",
-				  thisrun_read,
-				  (int)bytes_read);
+				thisrun_read,
+				(int)bytes_read);
 			receive_pointer += bytes_read;
 		}
 	}
@@ -1255,22 +1174,16 @@ static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint
 		last_bit = 0;
 
 	/* process remaining bits but the last one */
-	if (bits_left > 1)
-	{
-		if (type == SCAN_IO)
-		{
+	if (bits_left > 1) {
+		if (type == SCAN_IO) {
 			/* Clock Data Bits In and Out LSB First */
 			buffer_write(0x3b);
 			/* LOG_DEBUG("added TDI bits (io) %i", bits_left - 1); */
-		}
-		else if (type == SCAN_OUT)
-		{
+		} else if (type == SCAN_OUT) {
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			buffer_write(0x1b);
 			/* LOG_DEBUG("added TDI bits (o)"); */
-		}
-		else if (type == SCAN_IN)
-		{
+		} else if (type == SCAN_IN) {
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			buffer_write(0x2a);
 			/* LOG_DEBUG("added TDI bits (i %i)", bits_left - 1); */
@@ -1283,44 +1196,33 @@ static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint
 			thisrun_read += 2;
 	}
 
-	if (tap_get_end_state() == TAP_DRSHIFT)
-	{
-		if (type == SCAN_IO)
-		{
+	if (tap_get_end_state() == TAP_DRSHIFT) {
+		if (type == SCAN_IO) {
 			/* Clock Data Bits In and Out LSB First */
 			buffer_write(0x3b);
 			/* LOG_DEBUG("added TDI bits (io) %i", bits_left - 1); */
-		}
-		else if (type == SCAN_OUT)
-		{
+		} else if (type == SCAN_OUT) {
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			buffer_write(0x1b);
 			/* LOG_DEBUG("added TDI bits (o)"); */
-		}
-		else if (type == SCAN_IN)
-		{
+		} else if (type == SCAN_IN) {
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			buffer_write(0x2a);
 			/* LOG_DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		buffer_write(0x0);
 		buffer_write(last_bit);
-	}
-	else
-	{
+	} else {
 		int tms_bits  = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 		int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
-		uint8_t	mpsse_cmd;
+		uint8_t mpsse_cmd;
 
 		/* move from Shift-IR/DR to end state */
-		if (type != SCAN_OUT)
-		{
+		if (type != SCAN_OUT) {
 			/* Clock Data to TMS/CS Pin with Read */
 			mpsse_cmd = 0x6b;
 			/* LOG_DEBUG("added TMS scan (read)"); */
-		}
-		else
-		{
+		} else {
 			/* Clock Data to TMS/CS Pin (no Read) */
 			mpsse_cmd = 0x4b;
 			/* LOG_DEBUG("added TMS scan (no read)"); */
@@ -1333,26 +1235,25 @@ static int ft2232_large_scan(struct scan_command* cmd, enum scan_type type, uint
 	if (type != SCAN_OUT)
 		thisrun_read += 1;
 
-	if ((retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written)) != ERROR_OK)
-	{
+	retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("couldn't write MPSSE commands to FT2232");
 		exit(-1);
 	}
 	LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i",
-		  ft2232_buffer_size,
-		  (int)bytes_written);
+		ft2232_buffer_size,
+		(int)bytes_written);
 	ft2232_buffer_size = 0;
 
-	if (type != SCAN_OUT)
-	{
-		if ((retval = ft2232_read(receive_pointer, thisrun_read, &bytes_read)) != ERROR_OK)
-		{
+	if (type != SCAN_OUT) {
+		retval = ft2232_read(receive_pointer, thisrun_read, &bytes_read);
+		if (retval != ERROR_OK) {
 			LOG_ERROR("couldn't read from FT2232");
 			exit(-1);
 		}
 		LOG_DEBUG("thisrun_read: %i, bytes_read: %i",
-			  thisrun_read,
-			  (int)bytes_read);
+			thisrun_read,
+			(int)bytes_read);
 	}
 
 	return ERROR_OK;
@@ -1364,19 +1265,17 @@ static int ft2232_predict_scan_out(int scan_size, enum scan_type type)
 	int num_bytes = (scan_size - 1) / 8;
 
 	if (tap_get_state() != TAP_DRSHIFT)
-		predicted_size += get_tms_buffer_requirements(tap_get_tms_path_len(tap_get_state(), TAP_DRSHIFT));
+		predicted_size += get_tms_buffer_requirements(
+				tap_get_tms_path_len(tap_get_state(), TAP_DRSHIFT));
 
-	if (type == SCAN_IN)	/* only from device to host */
-	{
+	if (type == SCAN_IN) {	/* only from device to host */
 		/* complete bytes */
 		predicted_size += DIV_ROUND_UP(num_bytes, 65536) * 3;
 
 		/* remaining bits - 1 (up to 7) */
 		predicted_size += ((scan_size - 1) % 8) ? 2 : 0;
-	}
-	else	/* host to device, or bidirectional */
-	{
-		/* complete bytes */
+	} else {/* host to device, or bidirectional
+		 * complete bytes */
 		predicted_size += num_bytes + DIV_ROUND_UP(num_bytes, 65536) * 3;
 
 		/* remaining bits -1 (up to 7) */
@@ -1390,10 +1289,10 @@ static int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 {
 	int predicted_size = 0;
 
-	if (type != SCAN_OUT)
-	{
+	if (type != SCAN_OUT) {
 		/* complete bytes */
-		predicted_size += (DIV_ROUND_UP(scan_size, 8) > 1) ? (DIV_ROUND_UP(scan_size, 8) - 1) : 0;
+		predicted_size +=
+			(DIV_ROUND_UP(scan_size, 8) > 1) ? (DIV_ROUND_UP(scan_size, 8) - 1) : 0;
 
 		/* remaining bits - 1 */
 		predicted_size += ((scan_size - 1) % 8) ? 1 : 0;
@@ -1411,30 +1310,25 @@ static int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 static void ftx23_reset(int trst, int srst)
 {
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (trst == 1)
-	{
+	if (trst == 1) {
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			low_direction |= nTRSTnOE;	/* switch to output pin (output is low) */
 		else
 			low_output &= ~nTRST;		/* switch output low */
-	}
-	else if (trst == 0)
-	{
+	} else if (trst == 0) {
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-			low_direction &= ~nTRSTnOE;	/* switch to input pin (high-Z + internal and external pullup) */
+			low_direction &= ~nTRSTnOE;	/* switch to input pin (high-Z + internal
+							 *and external pullup) */
 		else
 			low_output |= nTRST;		/* switch output high */
 	}
 
-	if (srst == 1)
-	{
+	if (srst == 1) {
 		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 			low_output &= ~nSRST;		/* switch output low */
 		else
 			low_direction |= nSRSTnOE;	/* switch to output pin (output is low) */
-	}
-	else if (srst == 0)
-	{
+	} else if (srst == 0) {
 		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 			low_output |= nSRST;		/* switch output high */
 		else
@@ -1450,30 +1344,24 @@ static void ftx23_reset(int trst, int srst)
 static void jtagkey_reset(int trst, int srst)
 {
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (trst == 1)
-	{
+	if (trst == 1) {
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			high_output &= ~nTRSTnOE;
 		else
 			high_output &= ~nTRST;
-	}
-	else if (trst == 0)
-	{
+	} else if (trst == 0) {
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			high_output |= nTRSTnOE;
 		else
 			high_output |= nTRST;
 	}
 
-	if (srst == 1)
-	{
+	if (srst == 1) {
 		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 			high_output &= ~nSRST;
 		else
 			high_output &= ~nSRSTnOE;
-	}
-	else if (srst == 0)
-	{
+	} else if (srst == 0) {
 		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 			high_output |= nSRST;
 		else
@@ -1484,22 +1372,22 @@ static void jtagkey_reset(int trst, int srst)
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void olimex_jtag_reset(int trst, int srst)
 {
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (trst == 1)
-	{
+	if (trst == 1) {
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			high_output &= ~nTRSTnOE;
 		else
 			high_output &= ~nTRST;
-	}
-	else if (trst == 0)
-	{
+	} else if (trst == 0) {
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			high_output |= nTRSTnOE;
 		else
@@ -1507,76 +1395,66 @@ static void olimex_jtag_reset(int trst, int srst)
 	}
 
 	if (srst == 1)
-	{
 		high_output |= nSRST;
-	}
 	else if (srst == 0)
-	{
 		high_output &= ~nSRST;
-	}
 
 	/* command "set data bits high byte" */
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void axm0432_jtag_reset(int trst, int srst)
 {
-	if (trst == 1)
-	{
+	if (trst == 1) {
 		tap_set_state(TAP_RESET);
 		high_output &= ~nTRST;
-	}
-	else if (trst == 0)
-	{
+	} else if (trst == 0)
 		high_output |= nTRST;
-	}
 
 	if (srst == 1)
-	{
 		high_output &= ~nSRST;
-	}
 	else if (srst == 0)
-	{
 		high_output |= nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void flyswatter_reset(int trst, int srst)
 {
 	if (trst == 1)
-	{
 		low_output &= ~nTRST;
-	}
 	else if (trst == 0)
-	{
 		low_output |= nTRST;
-	}
 
 	if (srst == 1)
-	{
 		low_output |= nSRST;
-	}
 	else if (srst == 0)
-	{
 		low_output &= ~nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x80);
 	buffer_write(low_output);
 	buffer_write(low_direction);
-	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x",
+		trst,
+		srst,
+		low_output,
+		low_direction);
 }
 
 static void flyswatter1_reset(int trst, int srst)
@@ -1592,19 +1470,19 @@ static void flyswatter2_reset(int trst, int srst)
 static void minimodule_reset(int trst, int srst)
 {
 	if (srst == 1)
-	{
 		low_output &= ~nSRST;
-	}
 	else if (srst == 0)
-	{
 		low_output |= nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x80);
 	buffer_write(low_output);
 	buffer_write(low_direction);
-	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x",
+		trst,
+		srst,
+		low_output,
+		low_direction);
 }
 
 static void turtle_reset(int trst, int srst)
@@ -1612,68 +1490,54 @@ static void turtle_reset(int trst, int srst)
 	trst = trst;
 
 	if (srst == 1)
-	{
 		low_output |= nSRST;
-	}
 	else if (srst == 0)
-	{
 		low_output &= ~nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x80);
 	buffer_write(low_output);
 	buffer_write(low_direction);
-	LOG_DEBUG("srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", srst, low_output, low_direction);
+	LOG_DEBUG("srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x",
+		srst,
+		low_output,
+		low_direction);
 }
 
 static void comstick_reset(int trst, int srst)
 {
 	if (trst == 1)
-	{
 		high_output &= ~nTRST;
-	}
 	else if (trst == 0)
-	{
 		high_output |= nTRST;
-	}
 
 	if (srst == 1)
-	{
 		high_output &= ~nSRST;
-	}
 	else if (srst == 0)
-	{
 		high_output |= nSRST;
-	}
 
 	/* command "set data bits high byte" */
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void stm32stick_reset(int trst, int srst)
 {
 	if (trst == 1)
-	{
 		high_output &= ~nTRST;
-	}
 	else if (trst == 0)
-	{
 		high_output |= nTRST;
-	}
 
 	if (srst == 1)
-	{
 		low_output &= ~nSRST;
-	}
 	else if (srst == 0)
-	{
 		low_output |= nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x80);
@@ -1684,8 +1548,11 @@ static void stm32stick_reset(int trst, int srst)
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void sheevaplug_reset(int trst, int srst)
@@ -1704,67 +1571,55 @@ static void sheevaplug_reset(int trst, int srst)
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void redbee_reset(int trst, int srst)
 {
-	if (trst == 1)
-	{
+	if (trst == 1) {
 		tap_set_state(TAP_RESET);
 		high_output &= ~nTRST;
-	}
-	else if (trst == 0)
-	{
+	} else if (trst == 0)
 		high_output |= nTRST;
-	}
 
 	if (srst == 1)
-	{
 		high_output &= ~nSRST;
-	}
 	else if (srst == 0)
-	{
 		high_output |= nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, "
-			"high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+		"high_direction: 0x%2.2x", trst, srst, high_output,
+		high_direction);
 }
 
 static void xds100v2_reset(int trst, int srst)
 {
-	if (trst == 1)
-	{
+	if (trst == 1) {
 		tap_set_state(TAP_RESET);
 		high_output &= ~nTRST;
-	}
-	else if (trst == 0)
-	{
+	} else if (trst == 0)
 		high_output |= nTRST;
-	}
 
 	if (srst == 1)
-	{
 		high_output |= nSRST;
-	}
 	else if (srst == 0)
-	{
 		high_output &= ~nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x82);
 	buffer_write(high_output);
 	buffer_write(high_direction);
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, "
-			"high_direction: 0x%2.2x", trst, srst, high_output,
-			high_direction);
+		"high_direction: 0x%2.2x", trst, srst, high_output,
+		high_direction);
 }
 
 static int ft2232_execute_runtest(struct jtag_command *cmd)
@@ -1775,8 +1630,8 @@ static int ft2232_execute_runtest(struct jtag_command *cmd)
 	retval = ERROR_OK;
 
 	DEBUG_JTAG_IO("runtest %i cycles, end in %s",
-			cmd->cmd.runtest->num_cycles,
-			tap_state_name(cmd->cmd.runtest->end_state));
+		cmd->cmd.runtest->num_cycles,
+		tap_state_name(cmd->cmd.runtest->end_state));
 
 	/* only send the maximum buffer size that FT2232C can handle */
 	predicted_size = 0;
@@ -1787,21 +1642,18 @@ static int ft2232_execute_runtest(struct jtag_command *cmd)
 		predicted_size += 3;
 	if (tap_get_end_state() != TAP_IDLE)
 		predicted_size += 3;
-	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
-	{
+	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE) {
 		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		require_send = 0;
 		first_unsent = cmd;
 	}
-	if (tap_get_state() != TAP_IDLE)
-	{
+	if (tap_get_state() != TAP_IDLE) {
 		move_to_state(TAP_IDLE);
 		require_send = 1;
 	}
 	i = cmd->cmd.runtest->num_cycles;
-	while (i > 0)
-	{
+	while (i > 0) {
 		/* there are no state transitions in this code, so omit state tracking */
 
 		/* command "Clock Data to TMS/CS Pin (no Read)" */
@@ -1820,29 +1672,26 @@ static int ft2232_execute_runtest(struct jtag_command *cmd)
 	ft2232_end_state(cmd->cmd.runtest->end_state);
 
 	if (tap_get_state() != tap_get_end_state())
-	{
 		move_to_state(tap_get_end_state());
-	}
 
 	require_send = 1;
 	DEBUG_JTAG_IO("runtest: %i, end in %s",
-			cmd->cmd.runtest->num_cycles,
-			tap_state_name(tap_get_end_state()));
+		cmd->cmd.runtest->num_cycles,
+		tap_state_name(tap_get_end_state()));
 	return retval;
 }
 
 static int ft2232_execute_statemove(struct jtag_command *cmd)
 {
-	int	predicted_size = 0;
-	int	retval = ERROR_OK;
+	int predicted_size = 0;
+	int retval = ERROR_OK;
 
 	DEBUG_JTAG_IO("statemove end in %s",
-			tap_state_name(cmd->cmd.statemove->end_state));
+		tap_state_name(cmd->cmd.statemove->end_state));
 
 	/* only send the maximum buffer size that FT2232C can handle */
 	predicted_size = 3;
-	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
-	{
+	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE) {
 		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		require_send = 0;
@@ -1858,9 +1707,8 @@ static int ft2232_execute_statemove(struct jtag_command *cmd)
 		clock_tms(0x4b,  0xff, 5, 0);
 		require_send = 1;
 
-	/* shortest-path move to desired end state */
-	} else if (tap_get_state() != tap_get_end_state())
-	{
+		/* shortest-path move to desired end state */
+	} else if (tap_get_state() != tap_get_end_state()) {
 		move_to_state(tap_get_end_state());
 		require_send = 1;
 	}
@@ -1874,10 +1722,10 @@ static int ft2232_execute_statemove(struct jtag_command *cmd)
  */
 static int ft2232_execute_tms(struct jtag_command *cmd)
 {
-	int		retval = ERROR_OK;
-	unsigned	num_bits = cmd->cmd.tms->num_bits;
-	const uint8_t	*bits = cmd->cmd.tms->bits;
-	unsigned	count;
+	int retval = ERROR_OK;
+	unsigned num_bits = cmd->cmd.tms->num_bits;
+	const uint8_t *bits = cmd->cmd.tms->bits;
+	unsigned count;
 
 	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
 
@@ -1936,20 +1784,19 @@ static int ft2232_execute_tms(struct jtag_command *cmd)
 
 static int ft2232_execute_pathmove(struct jtag_command *cmd)
 {
-	int	predicted_size = 0;
-	int	retval = ERROR_OK;
+	int predicted_size = 0;
+	int retval = ERROR_OK;
 
-	tap_state_t*	 path = cmd->cmd.pathmove->path;
-	int	num_states    = cmd->cmd.pathmove->num_states;
+	tap_state_t *path = cmd->cmd.pathmove->path;
+	int num_states    = cmd->cmd.pathmove->num_states;
 
 	DEBUG_JTAG_IO("pathmove: %i states, current: %s  end: %s", num_states,
-			tap_state_name(tap_get_state()),
-			tap_state_name(path[num_states-1]));
+		tap_state_name(tap_get_state()),
+		tap_state_name(path[num_states-1]));
 
 	/* only send the maximum buffer size that FT2232C can handle */
 	predicted_size = 3 * DIV_ROUND_UP(num_states, 7);
-	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
-	{
+	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE) {
 		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 
@@ -1965,20 +1812,19 @@ static int ft2232_execute_pathmove(struct jtag_command *cmd)
 
 static int ft2232_execute_scan(struct jtag_command *cmd)
 {
-	uint8_t* buffer;
+	uint8_t *buffer;
 	int scan_size;				/* size of IR or DR scan */
 	int predicted_size = 0;
 	int retval = ERROR_OK;
 
-	enum scan_type  type = jtag_scan_type(cmd->cmd.scan);
+	enum scan_type type = jtag_scan_type(cmd->cmd.scan);
 
 	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN", type);
 
 	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 
 	predicted_size = ft2232_predict_scan_out(scan_size, type);
-	if ((predicted_size + 1) > FT2232_BUFFER_SIZE)
-	{
+	if ((predicted_size + 1) > FT2232_BUFFER_SIZE) {
 		LOG_DEBUG("oversized ft2232 scan (predicted_size > FT2232_BUFFER_SIZE)");
 		/* unsent commands before this */
 		if (first_unsent != cmd)
@@ -1993,12 +1839,11 @@ static int ft2232_execute_scan(struct jtag_command *cmd)
 		if (buffer)
 			free(buffer);
 		return retval;
-	}
-	else if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
-	{
-		LOG_DEBUG("ft2232 buffer size reached, sending queued commands (first_unsent: %p, cmd: %p)",
-				first_unsent,
-				cmd);
+	} else if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE) {
+		LOG_DEBUG(
+			"ft2232 buffer size reached, sending queued commands (first_unsent: %p, cmd: %p)",
+			first_unsent,
+			cmd);
 		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		require_send = 0;
@@ -2012,8 +1857,8 @@ static int ft2232_execute_scan(struct jtag_command *cmd)
 	if (buffer)
 		free(buffer);
 	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
-			(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
-			tap_state_name(tap_get_end_state()));
+		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
+		tap_state_name(tap_get_end_state()));
 	return retval;
 
 }
@@ -2025,28 +1870,26 @@ static int ft2232_execute_reset(struct jtag_command *cmd)
 	retval = ERROR_OK;
 
 	DEBUG_JTAG_IO("reset trst: %i srst %i",
-			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+		cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
 	/* only send the maximum buffer size that FT2232C can handle */
 	predicted_size = 3;
-	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
-	{
+	if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE) {
 		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		require_send = 0;
 		first_unsent = cmd;
 	}
 
-	if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
-	{
+	if ((cmd->cmd.reset->trst == 1) ||
+	    (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 		tap_set_state(TAP_RESET);
-	}
 
 	layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 	require_send = 1;
 
 	DEBUG_JTAG_IO("trst: %i, srst: %i",
-			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+		cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 	return retval;
 }
 
@@ -2058,12 +1901,12 @@ static int ft2232_execute_sleep(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
 
 	if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
-				retval = ERROR_JTAG_QUEUE_FAILED;
+		retval = ERROR_JTAG_QUEUE_FAILED;
 	first_unsent = cmd->next;
 	jtag_sleep(cmd->cmd.sleep->us);
 	DEBUG_JTAG_IO("sleep %" PRIi32 " usec while in %s",
-			cmd->cmd.sleep->us,
-			tap_state_name(tap_get_state()));
+		cmd->cmd.sleep->us,
+		tap_state_name(tap_get_state()));
 	return retval;
 }
 
@@ -2078,8 +1921,8 @@ static int ft2232_execute_stableclocks(struct jtag_command *cmd)
 	if (ft2232_stableclocks(cmd->cmd.stableclocks->num_cycles, cmd) != ERROR_OK)
 		retval = ERROR_JTAG_QUEUE_FAILED;
 	DEBUG_JTAG_IO("clocks %i while in %s",
-			cmd->cmd.stableclocks->num_cycles,
-			tap_state_name(tap_get_state()));
+		cmd->cmd.stableclocks->num_cycles,
+		tap_state_name(tap_get_state()));
 	return retval;
 }
 
@@ -2087,29 +1930,42 @@ static int ft2232_execute_command(struct jtag_command *cmd)
 {
 	int retval;
 
-	switch (cmd->type)
-	{
-	case JTAG_RESET:	retval = ft2232_execute_reset(cmd); break;
-	case JTAG_RUNTEST:	retval = ft2232_execute_runtest(cmd); break;
-	case JTAG_TLR_RESET: retval = ft2232_execute_statemove(cmd); break;
-	case JTAG_PATHMOVE:	retval = ft2232_execute_pathmove(cmd); break;
-	case JTAG_SCAN:		retval = ft2232_execute_scan(cmd); break;
-	case JTAG_SLEEP:	retval = ft2232_execute_sleep(cmd); break;
-	case JTAG_STABLECLOCKS:	retval = ft2232_execute_stableclocks(cmd); break;
-	case JTAG_TMS:
-		retval = ft2232_execute_tms(cmd);
-		break;
-	default:
-		LOG_ERROR("BUG: unknown JTAG command type encountered");
-		retval = ERROR_JTAG_QUEUE_FAILED;
-		break;
+	switch (cmd->type) {
+		case JTAG_RESET:
+			retval = ft2232_execute_reset(cmd);
+			break;
+		case JTAG_RUNTEST:
+			retval = ft2232_execute_runtest(cmd);
+			break;
+		case JTAG_TLR_RESET:
+			retval = ft2232_execute_statemove(cmd);
+			break;
+		case JTAG_PATHMOVE:
+			retval = ft2232_execute_pathmove(cmd);
+			break;
+		case JTAG_SCAN:
+			retval = ft2232_execute_scan(cmd);
+			break;
+		case JTAG_SLEEP:
+			retval = ft2232_execute_sleep(cmd);
+			break;
+		case JTAG_STABLECLOCKS:
+			retval = ft2232_execute_stableclocks(cmd);
+			break;
+		case JTAG_TMS:
+			retval = ft2232_execute_tms(cmd);
+			break;
+		default:
+			LOG_ERROR("BUG: unknown JTAG command type encountered");
+			retval = ERROR_JTAG_QUEUE_FAILED;
+			break;
 	}
 	return retval;
 }
 
 static int ft2232_execute_queue(void)
 {
-	struct jtag_command* cmd = jtag_command_queue;	/* currently processed command */
+	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
 	int retval;
 
 	first_unsent = cmd;		/* next command that has to be sent */
@@ -2127,8 +1983,7 @@ static int ft2232_execute_queue(void)
 	if (layout->blink)
 		layout->blink();
 
-	while (cmd)
-	{
+	while (cmd) {
 		/* fill the write buffer with the desired command */
 		if (ft2232_execute_command(cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
@@ -2139,10 +1994,11 @@ static int ft2232_execute_queue(void)
 		 */
 		cmd = cmd->next;
 
-		if (ft2232_expect_read >= FT2232_BUFFER_READ_QUEUE_SIZE )
-		{
-			if (ft2232_expect_read > (FT2232_BUFFER_READ_QUEUE_SIZE+1) )
-				LOG_DEBUG("read buffer size looks too high %d/%d",ft2232_expect_read,(FT2232_BUFFER_READ_QUEUE_SIZE+1));
+		if (ft2232_expect_read >= FT2232_BUFFER_READ_QUEUE_SIZE) {
+			if (ft2232_expect_read > (FT2232_BUFFER_READ_QUEUE_SIZE+1))
+				LOG_DEBUG("read buffer size looks too high %d/%d",
+					ft2232_expect_read,
+					(FT2232_BUFFER_READ_QUEUE_SIZE+1));
 			if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 			first_unsent = cmd;
@@ -2157,51 +2013,48 @@ static int ft2232_execute_queue(void)
 }
 
 #if BUILD_FT2232_FTD2XX == 1
-static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_more)
+static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int *try_more)
 {
-	FT_STATUS	status;
-	DWORD		deviceID;
-	char		SerialNumber[16];
-	char		Description[64];
-	DWORD	openex_flags  = 0;
-	char*	openex_string = NULL;
-	uint8_t	latency_timer;
+	FT_STATUS status;
+	DWORD deviceID;
+	char SerialNumber[16];
+	char Description[64];
+	DWORD openex_flags  = 0;
+	char *openex_string = NULL;
+	uint8_t latency_timer;
 
 	if (layout == NULL) {
 		LOG_WARNING("No ft2232 layout specified'");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)", layout->name, vid, pid);
+	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)",
+			layout->name, vid, pid);
 
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
-	if ((status = FT_SetVIDPID(vid, pid)) != FT_OK)
-	{
+	status = FT_SetVIDPID(vid, pid);
+	if (status != FT_OK)
 		LOG_WARNING("couldn't add %4.4x:%4.4x", vid, pid);
-	}
+
 #endif
 
-	if (ft2232_device_desc && ft2232_serial)
-	{
-		LOG_WARNING("can't open by device description and serial number, giving precedence to serial");
+	if (ft2232_device_desc && ft2232_serial) {
+		LOG_WARNING(
+			"can't open by device description and serial number, giving precedence to serial");
 		ft2232_device_desc = NULL;
 	}
 
-	if (ft2232_device_desc)
-	{
+	if (ft2232_device_desc) {
 		openex_string = ft2232_device_desc;
 		openex_flags  = FT_OPEN_BY_DESCRIPTION;
-	}
-	else if (ft2232_serial)
-	{
+	} else if (ft2232_serial) {
 		openex_string = ft2232_serial;
 		openex_flags  = FT_OPEN_BY_SERIAL_NUMBER;
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("neither device description nor serial number specified");
-		LOG_ERROR("please add \"ft2232_device_desc <string>\" or \"ft2232_serial <string>\" to your .cfg file");
+		LOG_ERROR(
+			"please add \"ft2232_device_desc <string>\" or \"ft2232_serial <string>\" to your .cfg file");
 
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2221,29 +2074,26 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 				/* drat, give the user a meaningfull message.
 				 * telling the use we tried *BOTH* methods. */
 				LOG_WARNING("Unable to open FTDI Device tried: '%s' and '%s'",
-							ft2232_device_desc,
-							ft2232_device_desc_A);
+					ft2232_device_desc,
+					ft2232_device_desc_A);
 			}
 		}
 	}
 
-	if (status != FT_OK)
-	{
+	if (status != FT_OK) {
 		DWORD num_devices;
 
-		if (more)
-		{
+		if (more) {
 			LOG_WARNING("unable to open ftdi device (trying more): %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			*try_more = 1;
 			return ERROR_JTAG_INIT_FAILED;
 		}
 		LOG_ERROR("unable to open ftdi device: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		status = FT_ListDevices(&num_devices, NULL, FT_LIST_NUMBER_ONLY);
-		if (status == FT_OK)
-		{
-			char** desc_array = malloc(sizeof(char*) * (num_devices + 1));
+		if (status == FT_OK) {
+			char **desc_array = malloc(sizeof(char *) * (num_devices + 1));
 			uint32_t i;
 
 			for (i = 0; i < num_devices; i++)
@@ -2253,8 +2103,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 
 			status = FT_ListDevices(desc_array, &num_devices, FT_LIST_ALL | openex_flags);
 
-			if (status == FT_OK)
-			{
+			if (status == FT_OK) {
 				LOG_ERROR("ListDevices: %" PRIu32, (uint32_t)num_devices);
 				for (i = 0; i < num_devices; i++)
 					LOG_ERROR("%" PRIu32 ": \"%s\"", i, desc_array[i]);
@@ -2264,68 +2113,60 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 				free(desc_array[i]);
 
 			free(desc_array);
-		}
-		else
-		{
+		} else
 			LOG_ERROR("ListDevices: NONE");
-		}
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if ((status = FT_SetLatencyTimer(ftdih, ft2232_latency)) != FT_OK)
-	{
+	status = FT_SetLatencyTimer(ftdih, ft2232_latency);
+	if (status != FT_OK) {
 		LOG_ERROR("unable to set latency timer: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if ((status = FT_GetLatencyTimer(ftdih, &latency_timer)) != FT_OK)
-	{
+	status = FT_GetLatencyTimer(ftdih, &latency_timer);
+	if (status != FT_OK) {
 		/* ftd2xx 1.04 (linux) has a bug when calling FT_GetLatencyTimer
 		 * so ignore errors if using this driver version */
 		DWORD dw_version;
 
 		status = FT_GetDriverVersion(ftdih, &dw_version);
 		LOG_ERROR("unable to get latency timer: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 
 		if ((status == FT_OK) && (dw_version == 0x10004)) {
 			LOG_ERROR("ftd2xx 1.04 detected - this has known issues " \
-					"with FT_GetLatencyTimer, upgrade to a newer version");
-		}
-		else {
+				"with FT_GetLatencyTimer, upgrade to a newer version");
+		} else
 			return ERROR_JTAG_INIT_FAILED;
-		}
-	}
-	else
-	{
+	} else
 		LOG_DEBUG("current latency timer: %i", latency_timer);
-	}
 
-	if ((status = FT_SetTimeouts(ftdih, 5000, 5000)) != FT_OK)
-	{
+	status = FT_SetTimeouts(ftdih, 5000, 5000);
+	if (status != FT_OK) {
 		LOG_ERROR("unable to set timeouts: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if ((status = FT_SetBitMode(ftdih, 0x0b, 2)) != FT_OK)
-	{
+	status = FT_SetBitMode(ftdih, 0x0b, 2);
+	if (status != FT_OK) {
 		LOG_ERROR("unable to enable bit i/o mode: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if ((status = FT_GetDeviceInfo(ftdih, &ftdi_device, &deviceID, SerialNumber, Description, NULL)) != FT_OK)
-	{
+	status = FT_GetDeviceInfo(ftdih, &ftdi_device, &deviceID,
+			SerialNumber, Description, NULL);
+	if (status != FT_OK) {
 		LOG_ERROR("unable to get FT_GetDeviceInfo: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
-	}
-	else
-	{
-		static const char* type_str[] =
-			{"BM", "AM", "100AX", "UNKNOWN", "2232C", "232R", "2232H", "4232H"};
+	} else {
+		static const char *type_str[] = {
+			"BM", "AM", "100AX", "UNKNOWN", "2232C", "232R", "2232H", "4232H"
+		};
 		unsigned no_of_known_types = ARRAY_SIZE(type_str) - 1;
 		unsigned type_index = ((unsigned)ftdi_device <= no_of_known_types)
 			? ftdi_device : FT_DEVICE_UNKNOWN;
@@ -2342,20 +2183,20 @@ static int ft2232_purge_ftd2xx(void)
 {
 	FT_STATUS status;
 
-	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
-	{
+	status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX);
+	if (status != FT_OK) {
 		LOG_ERROR("error purging ftd2xx device: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	return ERROR_OK;
 }
 
-#endif /* BUILD_FT2232_FTD2XX == 1 */
+#endif	/* BUILD_FT2232_FTD2XX == 1 */
 
 #if BUILD_FT2232_LIBFTDI == 1
-static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_more, int channel)
+static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int *try_more, int channel)
 {
 	uint8_t latency_timer;
 
@@ -2365,27 +2206,24 @@ static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_mo
 	}
 
 	LOG_DEBUG("'ft2232' interface using libftdi with '%s' layout (%4.4x:%4.4x)",
-			layout->name, vid, pid);
+		layout->name, vid, pid);
 
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* default to INTERFACE_A */
-	if(channel == INTERFACE_ANY) { channel = INTERFACE_A; }
-
-	if (ftdi_set_interface(&ftdic, channel) < 0)
-	{
+	if (channel == INTERFACE_ANY)
+		channel = INTERFACE_A;
+	if (ftdi_set_interface(&ftdic, channel) < 0) {
 		LOG_ERROR("unable to select FT2232 channel A: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	/* context, vendor id, product id */
-	if (ftdi_usb_open_desc(&ftdic, vid, pid, ft2232_device_desc,
-				ft2232_serial) < 0)
-	{
+	if (ftdi_usb_open_desc(&ftdic, vid, pid, ft2232_device_desc, ft2232_serial) < 0) {
 		if (more)
 			LOG_WARNING("unable to open ftdi device (trying more): %s",
-					ftdic.error_str);
+				ftdic.error_str);
 		else
 			LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
 		*try_more = 1;
@@ -2393,33 +2231,28 @@ static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_mo
 	}
 
 	/* There is already a reset in ftdi_usb_open_desc, this should be redundant */
-	if (ftdi_usb_reset(&ftdic) < 0)
-	{
+	if (ftdi_usb_reset(&ftdic) < 0) {
 		LOG_ERROR("unable to reset ftdi device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_set_latency_timer(&ftdic, ft2232_latency) < 0)
-	{
+	if (ftdi_set_latency_timer(&ftdic, ft2232_latency) < 0) {
 		LOG_ERROR("unable to set latency timer");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_get_latency_timer(&ftdic, &latency_timer) < 0)
-	{
+	if (ftdi_get_latency_timer(&ftdic, &latency_timer) < 0) {
 		LOG_ERROR("unable to get latency timer");
 		return ERROR_JTAG_INIT_FAILED;
-	}
-	else
-	{
+	} else
 		LOG_DEBUG("current latency timer: %i", latency_timer);
-	}
 
-	ftdi_set_bitmode(&ftdic, 0x0b, 2); /* ctx, JTAG I/O mask */
+	ftdi_set_bitmode(&ftdic, 0x0b, 2);	/* ctx, JTAG I/O mask */
 
 	ftdi_device = ftdic.type;
-	static const char* type_str[] =
-		{"AM", "BM", "2232C", "R", "2232H", "4232H", "Unknown"};
+	static const char *type_str[] = {
+		"AM", "BM", "2232C", "R", "2232H", "4232H", "Unknown"
+	};
 	unsigned no_of_known_types = ARRAY_SIZE(type_str) - 1;
 	unsigned type_index = ((unsigned)ftdi_device < no_of_known_types)
 		? ftdi_device : no_of_known_types;
@@ -2429,8 +2262,7 @@ static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_mo
 
 static int ft2232_purge_libftdi(void)
 {
-	if (ftdi_usb_purge_buffers(&ftdic) < 0)
-	{
+	if (ftdi_usb_purge_buffers(&ftdic) < 0) {
 		LOG_ERROR("ftdi_purge_buffers: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2438,11 +2270,11 @@ static int ft2232_purge_libftdi(void)
 	return ERROR_OK;
 }
 
-#endif /* BUILD_FT2232_LIBFTDI == 1 */
+#endif	/* BUILD_FT2232_LIBFTDI == 1 */
 
-static int ft2232_set_data_bits_low_byte( uint8_t value, uint8_t direction )
+static int ft2232_set_data_bits_low_byte(uint8_t value, uint8_t direction)
 {
-	uint8_t  buf[3];
+	uint8_t buf[3];
 	uint32_t bytes_written;
 
 	buf[0] = 0x80;		/* command "set data bits low byte" */
@@ -2451,8 +2283,7 @@ static int ft2232_set_data_bits_low_byte( uint8_t value, uint8_t direction )
 
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
-	{
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize data bits low byte");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2460,9 +2291,9 @@ static int ft2232_set_data_bits_low_byte( uint8_t value, uint8_t direction )
 	return ERROR_OK;
 }
 
-static int ft2232_set_data_bits_high_byte( uint8_t value, uint8_t direction )
+static int ft2232_set_data_bits_high_byte(uint8_t value, uint8_t direction)
 {
-	uint8_t  buf[3];
+	uint8_t buf[3];
 	uint32_t bytes_written;
 
 	buf[0] = 0x82;		/* command "set data bits high byte" */
@@ -2471,8 +2302,7 @@ static int ft2232_set_data_bits_high_byte( uint8_t value, uint8_t direction )
 
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK)
-	{
+	if (ft2232_write(buf, sizeof(buf), &bytes_written) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize data bits high byte");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2482,26 +2312,20 @@ static int ft2232_set_data_bits_high_byte( uint8_t value, uint8_t direction )
 
 static int ft2232_init(void)
 {
-	uint8_t  buf[1];
+	uint8_t buf[1];
 	int retval;
 	uint32_t bytes_written;
 
-	if (tap_get_tms_path_len(TAP_IRPAUSE,TAP_IRPAUSE) == 7)
-	{
+	if (tap_get_tms_path_len(TAP_IRPAUSE, TAP_IRPAUSE) == 7)
 		LOG_DEBUG("ft2232 interface using 7 step jtag state transitions");
-	}
 	else
-	{
 		LOG_DEBUG("ft2232 interface using shortest path jtag state transitions");
-
-	}
 	if (layout == NULL) {
 		LOG_WARNING("No ft2232 layout specified'");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (int i = 0; 1; i++)
-	{
+	for (int i = 0; 1; i++) {
 		/*
 		 * "more indicates that there are more IDs to try, so we should
 		 * not print an error for an ID mismatch (but for anything
@@ -2511,7 +2335,7 @@ static int ft2232_init(void)
 		 * ID mismatch (and nothing else) and that we should proceeed
 		 * with the next ID pair.
 		 */
-		int more     = ft2232_vid[i + 1] || ft2232_pid[i + 1];
+		int more = ft2232_vid[i + 1] || ft2232_pid[i + 1];
 		int try_more = 0;
 
 #if BUILD_FT2232_FTD2XX == 1
@@ -2519,7 +2343,7 @@ static int ft2232_init(void)
 				more, &try_more);
 #elif BUILD_FT2232_LIBFTDI == 1
 		retval = ft2232_init_libftdi(ft2232_vid[i], ft2232_pid[i],
-					     more, &try_more, layout->channel);
+				more, &try_more, layout->channel);
 #endif
 		if (retval >= 0)
 			break;
@@ -2533,13 +2357,14 @@ static int ft2232_init(void)
 	if (layout->init() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
-	if (ft2232_device_is_highspeed())
-	{
+	if (ft2232_device_is_highspeed()) {
 #ifndef BUILD_FT2232_HIGHSPEED
  #if BUILD_FT2232_FTD2XX == 1
-		LOG_WARNING("High Speed device found - You need a newer FTD2XX driver (version 2.04.16 or later)");
+		LOG_WARNING(
+			"High Speed device found - You need a newer FTD2XX driver (version 2.04.16 or later)");
  #elif BUILD_FT2232_LIBFTDI == 1
-		LOG_WARNING("High Speed device found - You need a newer libftdi version (0.16 or later)");
+		LOG_WARNING(
+			"High Speed device found - You need a newer libftdi version (0.16 or later)");
  #endif
 #endif
 		/* make sure the legacy mode is disabled */
@@ -2547,9 +2372,9 @@ static int ft2232_init(void)
 			return ERROR_JTAG_INIT_FAILED;
 	}
 
-	buf[0] = 0x85; /* Disconnect TDI/DO to TDO/DI for Loopback */
-	if ((retval = ft2232_write(buf, 1, &bytes_written)) != ERROR_OK)
-	{
+	buf[0] = 0x85;	/* Disconnect TDI/DO to TDO/DI for Loopback */
+	retval = ft2232_write(buf, 1, &bytes_written);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("couldn't write to FT2232 to disable loopback");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2579,31 +2404,24 @@ static inline void ftx232_dbus_init(void)
 static int ftx232_dbus_write(void)
 {
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-	{
-		low_direction &= ~nTRSTnOE; /* nTRST input */
-		low_output    &= ~nTRST;    /* nTRST = 0 */
-	}
-	else
-	{
-		low_direction |= nTRSTnOE;  /* nTRST output */
-		low_output    |= nTRST;     /* nTRST = 1 */
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
+		low_direction &= ~nTRSTnOE;	/* nTRST input */
+		low_output &= ~nTRST;	/* nTRST = 0 */
+	} else {
+		low_direction |= nTRSTnOE;	/* nTRST output */
+		low_output |= nTRST;		/* nTRST = 1 */
 	}
 
-	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-	{
-		low_direction |= nSRSTnOE;  /* nSRST output */
-		low_output    |= nSRST;     /* nSRST = 1 */
-	}
-	else
-	{
-		low_direction &= ~nSRSTnOE; /* nSRST input */
-		low_output    &= ~nSRST;    /* nSRST = 0 */
+	if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
+		low_direction |= nSRSTnOE;	/* nSRST output */
+		low_output |= nSRST;		/* nSRST = 1 */
+	} else {
+		low_direction &= ~nSRSTnOE;	/* nSRST input */
+		low_output &= ~nSRST;	/* nSRST = 0 */
 	}
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 DBUS");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2674,8 +2492,8 @@ static int icdi_jtag_init(void)
 
 	/* GPIOs on second channel/interface (UART) ... */
 #define ICDI_SWO_EN (1 << 4)		/* BDBUS 4 */
-#define ICDI_TX_SWO (1 << 1)	 	/* BDBUS 1 */
-#define ICDI_VCP_RX (1 << 0)	 	/* BDBUS 0 (to stellaris UART) */
+#define ICDI_TX_SWO (1 << 1)		/* BDBUS 1 */
+#define ICDI_VCP_RX (1 << 0)		/* BDBUS 0 (to stellaris UART) */
 
 	nTRST = 0x0;
 	nTRSTnOE = 0x00;
@@ -2706,21 +2524,17 @@ static int axm0432_jtag_init(void)
 	low_direction = 0x2b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (strcmp(layout->name, "axm0432_jtag") == 0)
-	{
+	if (strcmp(layout->name, "axm0432_jtag") == 0) {
 		nTRST    = 0x08;
-		nTRSTnOE = 0x0;     /* No output enable for TRST*/
+		nTRSTnOE = 0x0;		/* No output enable for TRST*/
 		nSRST    = 0x04;
-		nSRSTnOE = 0x0;     /* No output enable for SRST*/
-	}
-	else
-	{
+		nSRSTnOE = 0x0;		/* No output enable for SRST*/
+	} else {
 		LOG_ERROR("BUG: axm0432_jtag_init called for non axm0432 layout");
 		exit(-1);
 	}
@@ -2730,26 +2544,17 @@ static int axm0432_jtag_init(void)
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-	{
 		LOG_ERROR("can't set nTRSTOE to push-pull on the Dicarlo jtag");
-	}
 	else
-	{
 		high_output |= nTRST;
-	}
 
 	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-	{
 		LOG_ERROR("can't set nSRST to push-pull on the Dicarlo jtag");
-	}
 	else
-	{
 		high_output |= nSRST;
-	}
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'Dicarlo' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2763,42 +2568,32 @@ static int redbee_init(void)
 	low_direction = 0x2b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	nTRST    = 0x08;
-	nTRSTnOE = 0x0;     /* No output enable for TRST*/
+	nTRSTnOE = 0x0;		/* No output enable for TRST*/
 	nSRST    = 0x04;
-	nSRSTnOE = 0x0;     /* No output enable for SRST*/
+	nSRSTnOE = 0x0;		/* No output enable for SRST*/
 
 	high_output    = 0x0;
 	high_direction = 0x0c;
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-	{
 		LOG_ERROR("can't set nTRSTOE to push-pull on redbee");
-	}
 	else
-	{
 		high_output |= nTRST;
-	}
 
 	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-	{
 		LOG_ERROR("can't set nSRST to push-pull on redbee");
-	}
 	else
-	{
 		high_output |= nSRST;
-	}
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'redbee' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2812,29 +2607,23 @@ static int jtagkey_init(void)
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (strcmp(layout->name, "jtagkey") == 0)
-	{
+	if (strcmp(layout->name, "jtagkey") == 0) {
 		nTRST    = 0x01;
 		nTRSTnOE = 0x4;
 		nSRST    = 0x02;
 		nSRSTnOE = 0x08;
-	}
-	else if ((strcmp(layout->name, "jtagkey_prototype_v1") == 0)
-			 || (strcmp(layout->name, "oocdlink") == 0))
-	{
+	} else if ((strcmp(layout->name, "jtagkey_prototype_v1") == 0)
+		   || (strcmp(layout->name, "oocdlink") == 0)) {
 		nTRST    = 0x02;
 		nTRSTnOE = 0x1;
 		nSRST    = 0x08;
 		nSRSTnOE = 0x04;
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("BUG: jtagkey_init called for non jtagkey layout");
 		exit(-1);
 	}
@@ -2843,31 +2632,24 @@ static int jtagkey_init(void)
 	high_direction = 0x0f;
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-	{
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
 		high_output |= nTRSTnOE;
 		high_output &= ~nTRST;
-	}
-	else
-	{
+	} else {
 		high_output &= ~nTRSTnOE;
 		high_output |= nTRST;
 	}
 
-	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-	{
+	if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
 		high_output &= ~nSRSTnOE;
 		high_output |= nSRST;
-	}
-	else
-	{
+	} else {
 		high_output |= nSRSTnOE;
 		high_output &= ~nSRST;
 	}
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2881,8 +2663,7 @@ static int olimex_jtag_init(void)
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2890,38 +2671,30 @@ static int olimex_jtag_init(void)
 	nTRST    = 0x01;
 	nTRSTnOE = 0x4;
 	nSRST    = 0x02;
-	nSRSTnOE = 0x00; /* no output enable for nSRST */
+	nSRSTnOE = 0x00;/* no output enable for nSRST */
 
 	high_output    = 0x0;
 	high_direction = 0x0f;
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-	{
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
 		high_output |= nTRSTnOE;
 		high_output &= ~nTRST;
-	}
-	else
-	{
+	} else {
 		high_output &= ~nTRSTnOE;
 		high_output |= nTRST;
 	}
 
 	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-	{
 		LOG_ERROR("can't set nSRST to push-pull on the Olimex ARM-USB-OCD");
-	}
 	else
-	{
 		high_output &= ~nSRST;
-	}
 
 	/* turn red LED on */
 	high_output |= 0x08;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2943,16 +2716,15 @@ static int flyswatter_init(int rev)
 		low_direction |= 1 << 7;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	nTRST    = 0x10;
-	nTRSTnOE = 0x0;     /* not output enable for nTRST */
+	nTRSTnOE = 0x0;		/* not output enable for nTRST */
 	nSRST    = 0x20;
-	nSRSTnOE = 0x00;    /* no output enable for nSRST */
+	nSRSTnOE = 0x00;	/* no output enable for nSRST */
 
 	high_output    = 0x00;
 
@@ -2965,8 +2737,7 @@ static int flyswatter_init(int rev)
 	high_output |= 0x08;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'flyswatter' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -2986,12 +2757,12 @@ static int flyswatter2_init(void)
 
 static int minimodule_init(void)
 {
-	low_output    = 0x18;//check if srst should be 1 or 0 initially. (0x08) (flyswatter was 0x18)
-	low_direction = 0xfb;//0xfb;
+	low_output    = 0x18;	/* check if srst should be 1 or 0 initially. (0x08) (flyswatter was
+				 * 0x18) */
+	low_direction = 0xfb;	/* 0xfb; */
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'minimodule' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3003,11 +2774,10 @@ static int minimodule_init(void)
 	high_direction = 0x05;
 
 	/* turn red LED3 on, LED2 off */
-	//high_output |= 0x08;
+	/* high_output |= 0x08; */
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'minimodule' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3021,8 +2791,7 @@ static int turtle_init(void)
 	low_direction = 0x5b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'turtelizer2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3033,8 +2802,7 @@ static int turtle_init(void)
 	high_direction = 0x0C;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'turtelizer2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3048,23 +2816,21 @@ static int comstick_init(void)
 	low_direction = 0x0b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'comstick' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	nTRST    = 0x01;
-	nTRSTnOE = 0x00;    /* no output enable for nTRST */
+	nTRSTnOE = 0x00;	/* no output enable for nTRST */
 	nSRST    = 0x02;
-	nSRSTnOE = 0x00;    /* no output enable for nSRST */
+	nSRSTnOE = 0x00;	/* no output enable for nSRST */
 
 	high_output    = 0x03;
 	high_direction = 0x03;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'comstick' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3078,23 +2844,21 @@ static int stm32stick_init(void)
 	low_direction = 0x8b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	nTRST    = 0x01;
-	nTRSTnOE = 0x00;    /* no output enable for nTRST */
+	nTRSTnOE = 0x00;	/* no output enable for nTRST */
 	nSRST    = 0x80;
-	nSRSTnOE = 0x00;    /* no output enable for nSRST */
+	nSRSTnOE = 0x00;	/* no output enable for nSRST */
 
 	high_output    = 0x01;
 	high_direction = 0x03;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3108,8 +2872,7 @@ static int sheevaplug_init(void)
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3131,8 +2894,7 @@ static int sheevaplug_init(void)
 	high_output &= ~nSRST;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3146,23 +2908,21 @@ static int cortino_jtag_init(void)
 	low_direction = 0x1b;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'cortino' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	nTRST    = 0x01;
-	nTRSTnOE = 0x00;    /* no output enable for nTRST */
+	nTRSTnOE = 0x00;	/* no output enable for nTRST */
 	nSRST    = 0x02;
-	nSRSTnOE = 0x00;    /* no output enable for nSRST */
+	nSRSTnOE = 0x00;	/* no output enable for nSRST */
 
 	high_output    = 0x03;
 	high_direction = 0x03;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'cortino' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3183,8 +2943,7 @@ static int lisa_l_init(void)
 	high_direction = 0x18;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'lisa_l' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3205,8 +2964,7 @@ static int flossjtag_init(void)
 	high_direction = 0x18;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'Floss-JTAG' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3231,28 +2989,27 @@ static int flossjtag_init(void)
  *	* CPLD logic: Disable loopback
  *		* ACBUS6/SPARE2 = LOOPBACK = 0
  */
-#define XDS100_nEMU_EN	(1<<5)
-#define XDS100_nEMU0	(1<<6)
+#define XDS100_nEMU_EN  (1<<5)
+#define XDS100_nEMU0    (1<<6)
 
-#define XDS100_PWR_RST	(1<<3)
-#define XDS100_nEMU1	(1<<4)
-#define XDS100_LOOPBACK	(1<<6)
+#define XDS100_PWR_RST  (1<<3)
+#define XDS100_nEMU1    (1<<4)
+#define XDS100_LOOPBACK (1<<6)
 static int xds100v2_init(void)
 {
 	/* These are in the lower byte */
 	nTRST    = 0x10;
 	nTRSTnOE = 0x10;
 
-	/* These aren't actually used on 14 pin connectors */
-	/* These are in the upper byte */
+	/* These aren't actually used on 14 pin connectors
+	 * These are in the upper byte */
 	nSRST    = 0x01;
 	nSRSTnOE = 0x01;
 
 	low_output    = 0x08 | nTRST | XDS100_nEMU_EN;
 	low_direction = 0x0b | nTRSTnOE | XDS100_nEMU_EN | XDS100_nEMU0;
 
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3261,8 +3018,7 @@ static int xds100v2_init(void)
 	high_direction = nSRSTnOE | XDS100_LOOPBACK | XDS100_PWR_RST | XDS100_nEMU1;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't put CPLD in to reset with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3270,8 +3026,7 @@ static int xds100v2_init(void)
 	high_output |= XDS100_PWR_RST;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't bring CPLD out of reset with 'xds100v2' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3320,13 +3075,9 @@ static void turtle_jtag_blink(void)
 	 * Turtelizer2 has two LEDs connected to ACBUS2 and ACBUS3
 	 */
 	if (high_output & 0x08)
-	{
 		high_output = 0x04;
-	}
 	else
-	{
 		high_output = 0x08;
-	}
 
 	buffer_write(0x82);
 	buffer_write(high_output);
@@ -3339,13 +3090,9 @@ static void lisa_l_blink(void)
 	 * Lisa/L has two LEDs connected to BCBUS3 and BCBUS4
 	 */
 	if (high_output & 0x10)
-	{
 		high_output = 0x08;
-	}
 	else
-	{
 		high_output = 0x10;
-	}
 
 	buffer_write(0x82);
 	buffer_write(high_output);
@@ -3358,13 +3105,9 @@ static void flossjtag_blink(void)
 	 * Floss-JTAG has two LEDs connected to ACBUS3 and ACBUS4
 	 */
 	if (high_output & 0x10)
-	{
 		high_output = 0x08;
-	}
 	else
-	{
 		high_output = 0x10;
-	}
 
 	buffer_write(0x82);
 	buffer_write(high_output);
@@ -3393,32 +3136,28 @@ COMMAND_HANDLER(ft2232_handle_device_desc_command)
 {
 	char *cp;
 	char buf[200];
-	if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 1) {
 		ft2232_device_desc = strdup(CMD_ARGV[0]);
 		cp = strchr(ft2232_device_desc, 0);
 		/* under Win32, the FTD2XX driver appends an "A" to the end
 		 * of the description, this examines the given desc
 		 * and creates the 'missing' _A or non_A variable. */
-		if ((cp[-1] == 'A') && (cp[-2]==' ')) {
+		if ((cp[-1] == 'A') && (cp[-2] == ' ')) {
 			/* it was, so make this the "A" version. */
 			ft2232_device_desc_A = ft2232_device_desc;
 			/* and *CREATE* the non-A version. */
 			strcpy(buf, ft2232_device_desc);
 			cp = strchr(buf, 0);
 			cp[-2] = 0;
-			ft2232_device_desc =  strdup(buf);
+			ft2232_device_desc = strdup(buf);
 		} else {
 			/* <space > A not defined
 			 * so create it */
 			sprintf(buf, "%s A", ft2232_device_desc);
 			ft2232_device_desc_A = strdup(buf);
 		}
-	}
-	else
-	{
+	} else
 		LOG_ERROR("expected exactly one argument to ft2232_device_desc <description>");
-	}
 
 	return ERROR_OK;
 }
@@ -3426,29 +3165,24 @@ COMMAND_HANDLER(ft2232_handle_device_desc_command)
 COMMAND_HANDLER(ft2232_handle_serial_command)
 {
 	if (CMD_ARGC == 1)
-	{
 		ft2232_serial = strdup(CMD_ARGV[0]);
-	}
 	else
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ft2232_handle_layout_command)
 {
-	if (CMD_ARGC != 1) {
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (layout) {
 		LOG_ERROR("already specified ft2232_layout %s",
-				layout->name);
+			layout->name);
 		return (strcmp(layout->name, CMD_ARGV[0]) != 0)
-				? ERROR_FAIL
-				: ERROR_OK;
+		       ? ERROR_FAIL
+		       : ERROR_OK;
 	}
 
 	for (const struct ft2232_layout *l = ft2232_layouts; l->name; l++) {
@@ -3464,14 +3198,12 @@ COMMAND_HANDLER(ft2232_handle_layout_command)
 
 COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 {
-	if (CMD_ARGC > MAX_USB_IDS * 2)
-	{
+	if (CMD_ARGC > MAX_USB_IDS * 2) {
 		LOG_WARNING("ignoring extra IDs in ft2232_vid_pid "
-					"(maximum is %d pairs)", MAX_USB_IDS);
+			"(maximum is %d pairs)", MAX_USB_IDS);
 		CMD_ARGC = MAX_USB_IDS * 2;
 	}
-	if (CMD_ARGC < 2 || (CMD_ARGC & 1))
-	{
+	if (CMD_ARGC < 2 || (CMD_ARGC & 1)) {
 		LOG_WARNING("incomplete ft2232_vid_pid configuration directive");
 		if (CMD_ARGC < 2)
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -3480,8 +3212,7 @@ COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 	}
 
 	unsigned i;
-	for (i = 0; i < CMD_ARGC; i += 2)
-	{
+	for (i = 0; i < CMD_ARGC; i += 2) {
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], ft2232_vid[i >> 1]);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], ft2232_pid[i >> 1]);
 	}
@@ -3498,34 +3229,28 @@ COMMAND_HANDLER(ft2232_handle_vid_pid_command)
 COMMAND_HANDLER(ft2232_handle_latency_command)
 {
 	if (CMD_ARGC == 1)
-	{
 		ft2232_latency = atoi(CMD_ARGV[0]);
-	}
 	else
-	{
-	    return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	return ERROR_OK;
 }
 
-static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd)
+static int ft2232_stableclocks(int num_cycles, struct jtag_command *cmd)
 {
 	int retval = 0;
 
 	/* 7 bits of either ones or zeros. */
-	uint8_t  tms = (tap_get_state() == TAP_RESET ? 0x7F : 0x00);
+	uint8_t tms = (tap_get_state() == TAP_RESET ? 0x7F : 0x00);
 
-	while (num_cycles > 0)
-	{
+	while (num_cycles > 0) {
 		/* the command 0x4b, "Clock Data to TMS/CS Pin (no Read)" handles
 		 * at most 7 bits per invocation.  Here we invoke it potentially
 		 * several times.
 		 */
 		int bitcount_per_command = (num_cycles > 7) ? 7 : num_cycles;
 
-		if (ft2232_buffer_size + 3 >= FT2232_BUFFER_SIZE)
-		{
+		if (ft2232_buffer_size + 3 >= FT2232_BUFFER_SIZE) {
 			if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 
@@ -3577,26 +3302,26 @@ static int ft2232_stableclocks(int num_cycles, struct jtag_command* cmd)
  * ADBUS6 -   VCC
  * ADBUS7 -   GND
  */
-static int icebear_jtag_init(void) {
-	low_direction	= 0x0b;	/* output: TCK TDI TMS; input: TDO */
-	low_output	= 0x08;	/* high: TMS; low: TCK TDI */
-	nTRST		= 0x10;
-	nSRST		= 0x20;
+static int icebear_jtag_init(void)
+{
+	low_direction   = 0x0b;	/* output: TCK TDI TMS; input: TDO */
+	low_output      = 0x08;	/* high: TMS; low: TCK TDI */
+	nTRST           = 0x10;
+	nSRST           = 0x20;
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0) {
-		low_direction	&= ~nTRST;	/* nTRST high impedance */
-	}
+	if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0)
+		low_direction   &= ~nTRST;	/* nTRST high impedance */
 	else {
-		low_direction	|= nTRST;
-		low_output	|= nTRST;
+		low_direction   |= nTRST;
+		low_output      |= nTRST;
 	}
 
-	low_direction	|= nSRST;
-	low_output	|= nSRST;
+	low_direction   |= nSRST;
+	low_output      |= nSRST;
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK) {
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (low)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3605,7 +3330,7 @@ static int icebear_jtag_init(void) {
 	high_direction = 0x00;
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK) {
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (high)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -3613,33 +3338,34 @@ static int icebear_jtag_init(void) {
 	return ERROR_OK;
 }
 
-static void icebear_jtag_reset(int trst, int srst) {
-
+static void icebear_jtag_reset(int trst, int srst)
+{
 	if (trst == 1) {
-		low_direction	|= nTRST;
-		low_output	&= ~nTRST;
-	}
-	else if (trst == 0) {
+		low_direction   |= nTRST;
+		low_output      &= ~nTRST;
+	} else if (trst == 0) {
 		enum reset_types jtag_reset_config = jtag_get_reset_config();
 		if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0)
-			low_direction	&= ~nTRST;
+			low_direction   &= ~nTRST;
 		else
-			low_output	|= nTRST;
+			low_output      |= nTRST;
 	}
 
-	if (srst == 1) {
+	if (srst == 1)
 		low_output &= ~nSRST;
-	}
-	else if (srst == 0) {
+	else if (srst == 0)
 		low_output |= nSRST;
-	}
 
 	/* command "set data bits low byte" */
 	buffer_write(0x80);
 	buffer_write(low_output);
 	buffer_write(low_direction);
 
-	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x",
+		trst,
+		srst,
+		low_output,
+		low_direction);
 }
 
 /* ---------------------------------------------------------------------
@@ -3720,37 +3446,35 @@ static int signalyzer_h_led_set(unsigned char channel, unsigned char led,
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
 
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
-			((uint32_t)(channel << 8) | led))) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			((uint32_t)(channel << 8) | led));
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write  returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(
-			(SIGNALYZER_DATA_BUFFER_ADDR + 1),
-			((uint32_t)(on_time << 8) | off_time))) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write((SIGNALYZER_DATA_BUFFER_ADDR + 1),
+			((uint32_t)(on_time << 8) | off_time));
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write  returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(
-			(SIGNALYZER_DATA_BUFFER_ADDR + 2),
-			((uint32_t)cycles))) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write((SIGNALYZER_DATA_BUFFER_ADDR + 2),
+			((uint32_t)cycles));
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write  returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-			SIGNALYZER_COMMAND_LED_SET)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_LED_SET);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write  returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3758,37 +3482,35 @@ static int signalyzer_h_led_set(unsigned char channel, unsigned char led,
 #elif BUILD_FT2232_LIBFTDI == 1
 	int retval;
 
-	if ((retval = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
-			((uint32_t)(channel << 8) | led))) < 0)
-	{
+	retval = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				((uint32_t)(channel << 8) | led));
+	if (retval < 0) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftdi_get_error_string(&ftdic));
+			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((retval = signalyzer_h_ctrl_write(
-			(SIGNALYZER_DATA_BUFFER_ADDR + 1),
-			((uint32_t)(on_time << 8) | off_time))) < 0)
-	{
+	retval = signalyzer_h_ctrl_write((SIGNALYZER_DATA_BUFFER_ADDR + 1),
+			((uint32_t)(on_time << 8) | off_time));
+	if (retval < 0) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftdi_get_error_string(&ftdic));
+			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((retval = signalyzer_h_ctrl_write(
-			(SIGNALYZER_DATA_BUFFER_ADDR + 2),
-			(uint32_t)cycles)) < 0)
-	{
+	retval = signalyzer_h_ctrl_write((SIGNALYZER_DATA_BUFFER_ADDR + 2),
+			(uint32_t)cycles);
+	if (retval < 0) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftdi_get_error_string(&ftdic));
+			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((retval = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-			SIGNALYZER_COMMAND_LED_SET)) < 0)
-	{
+	retval = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_LED_SET);
+	if (retval < 0) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftdi_get_error_string(&ftdic));
+			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -3809,7 +3531,7 @@ static int signalyzer_h_init(void)
 
 	/* turn on center green led */
 	signalyzer_h_led_set(SIGNALYZER_CHAN_C, SIGNALYZER_LED_GREEN,
-			0xFFFF, 0x00, 0x00);
+		0xFFFF, 0x00, 0x00);
 
 	/* determine what channel config wants to open
 	 * TODO: change me... current implementation is made to work
@@ -3817,129 +3539,118 @@ static int signalyzer_h_init(void)
 	 */
 	end_of_desc = strrchr(ft2232_device_desc, 0x00);
 
-	if (end_of_desc)
-	{
+	if (end_of_desc) {
 		signalyzer_h_side = *(end_of_desc - 1);
 		if (signalyzer_h_side == 'B')
 			signalyzer_h_side = SIGNALYZER_CHAN_B;
 		else
 			signalyzer_h_side = SIGNALYZER_CHAN_A;
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("No Channel was specified");
 		return ERROR_FAIL;
 	}
 
 	signalyzer_h_led_set(signalyzer_h_side, SIGNALYZER_LED_GREEN,
-			1000, 1000, 0xFF);
+		1000, 1000, 0xFF);
 
 #if BUILD_FT2232_FTD2XX == 1
 	/* read signalyzer versionining information */
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-			SIGNALYZER_COMMAND_VERSION)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_VERSION);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	for (i = 0; i < 10; i++)
-	{
-		if ((status = signalyzer_h_ctrl_read(
-			(SIGNALYZER_DATA_BUFFER_ADDR + i),
-			&read_buf[i])) != FT_OK)
-		{
+	for (i = 0; i < 10; i++) {
+		status = signalyzer_h_ctrl_read((SIGNALYZER_DATA_BUFFER_ADDR + i),
+				&read_buf[i]);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_read returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
 
 	LOG_INFO("Signalyzer: ID info: { %.4x %.4x %.4x %.4x %.4x %.4x %.4x }",
-			read_buf[0], read_buf[1], read_buf[2], read_buf[3],
-			read_buf[4], read_buf[5], read_buf[6]);
+		read_buf[0], read_buf[1], read_buf[2], read_buf[3],
+		read_buf[4], read_buf[5], read_buf[6]);
 
 	/* set gpio register */
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
-			(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			(uint32_t)(signalyzer_h_side << 8));
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1,
-			0x0404)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0404);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-			SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_GPIO_STATE);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	/* read adapter type information */
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
-			((uint32_t)(signalyzer_h_side << 8) | 0x01))) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+			((uint32_t)(signalyzer_h_side << 8) | 0x01));
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(
-			(SIGNALYZER_DATA_BUFFER_ADDR + 1), 0xA000)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 1), 0xA000);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(
-			(SIGNALYZER_DATA_BUFFER_ADDR + 2), 0x0008)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(
+			(SIGNALYZER_DATA_BUFFER_ADDR + 2), 0x0008);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-			SIGNALYZER_COMMAND_I2C)) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+			SIGNALYZER_COMMAND_I2C);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	usleep(100000);
 
-	if ((status = signalyzer_h_ctrl_read(SIGNALYZER_COMMAND_ADDR,
-			&read_buf[0])) != FT_OK)
-	{
+	status = signalyzer_h_ctrl_read(SIGNALYZER_COMMAND_ADDR, &read_buf[0]);
+	if (status != FT_OK) {
 		LOG_ERROR("signalyzer_h_ctrl_read returned: %s",
-				ftd2xx_status_string(status));
+			ftd2xx_status_string(status));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	if (read_buf[0] != 0x0498)
 		signalyzer_h_adapter_type = 0x0000;
-	else
-	{
-		for (i = 0; i < 4; i++)
-		{
-			if ((status = signalyzer_h_ctrl_read(
-					(SIGNALYZER_DATA_BUFFER_ADDR + i),
-					&read_buf[i])) != FT_OK)
-			{
+	else {
+		for (i = 0; i < 4; i++) {
+			status = signalyzer_h_ctrl_read((SIGNALYZER_DATA_BUFFER_ADDR + i), &read_buf[i]);
+			if (status != FT_OK) {
 				LOG_ERROR("signalyzer_h_ctrl_read returned: %s",
-						ftd2xx_status_string(status));
+					ftd2xx_status_string(status));
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 		}
@@ -3958,8 +3669,7 @@ static int signalyzer_h_init(void)
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	/* ADAPTOR: EM_LT16_A */
-	if (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_LT16_A)
-	{
+	if (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_LT16_A) {
 		LOG_INFO("Signalyzer: EM-LT (16-channel level translator) "
 			"detected. (HW: %2x).", (read_buf[1] >> 8));
 
@@ -3974,126 +3684,108 @@ static int signalyzer_h_init(void)
 		high_output    = 0x0;
 		high_direction = 0x0;
 
-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-		{
-			low_direction &= ~nTRSTnOE; /* nTRST input */
-			low_output    &= ~nTRST;    /* nTRST = 0 */
-		}
-		else
-		{
-			low_direction |= nTRSTnOE;  /* nTRST output */
-			low_output    |= nTRST;     /* nTRST = 1 */
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
+			low_direction &= ~nTRSTnOE;	/* nTRST input */
+			low_output    &= ~nTRST;	/* nTRST = 0 */
+		} else {
+			low_direction |= nTRSTnOE;	/* nTRST output */
+			low_output    |= nTRST;		/* nTRST = 1 */
 		}
 
-		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-		{
-			low_direction |= nSRSTnOE;  /* nSRST output */
-			low_output    |= nSRST;     /* nSRST = 1 */
-		}
-		else
-		{
-			low_direction &= ~nSRSTnOE; /* nSRST input */
-			low_output    &= ~nSRST;    /* nSRST = 0 */
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
+			low_direction |= nSRSTnOE;	/* nSRST output */
+			low_output    |= nSRST;		/* nSRST = 1 */
+		} else {
+			low_direction &= ~nSRSTnOE;	/* nSRST input */
+			low_output    &= ~nSRST;	/* nSRST = 0 */
 		}
 
 #if BUILD_FT2232_FTD2XX == 1
 		/* enable power to the module */
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR,
-				((uint32_t)(signalyzer_h_side << 8) | 0x01)))
-			!= FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				((uint32_t)(signalyzer_h_side << 8) | 0x01));
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-				SIGNALYZER_COMMAND_POWERCONTROL_SET)) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_POWERCONTROL_SET);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
 		/* set gpio mode register */
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR,
-				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8));
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000))
-			!= FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
-				SIGNALYZER_COMMAND_GPIO_MODE)) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR, SIGNALYZER_COMMAND_GPIO_MODE);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
 		/* set gpio register */
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR,
-				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8));
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x4040))
-			!= FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x4040);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_COMMAND_ADDR,
-				SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_GPIO_STATE);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 #endif
 	}
-
 	/* ADAPTOR: EM_ARM_JTAG, EM_ARM_JTAG_P, EM_JTAG, EM_JTAG_P */
 	else if ((signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG) ||
-				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P) ||
-				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG)  ||
-				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG_P))
-	{
+		 (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P) ||
+		 (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG)  ||
+		 (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG_P)) {
 		if (signalyzer_h_adapter_type
-				== SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG)
+		    == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG)
 			LOG_INFO("Signalyzer: EM-ARM-JTAG (ARM JTAG) "
 				"detected. (HW: %2x).", (read_buf[1] >> 8));
 		else if (signalyzer_h_adapter_type
-				== SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P)
+			 == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P)
 			LOG_INFO("Signalyzer: EM-ARM-JTAG_P "
 				"(ARM JTAG with PSU) detected. (HW: %2x).",
 				(read_buf[1] >> 8));
 		else if (signalyzer_h_adapter_type
-				== SIGNALYZER_MODULE_TYPE_EM_JTAG)
+			 == SIGNALYZER_MODULE_TYPE_EM_JTAG)
 			LOG_INFO("Signalyzer: EM-JTAG (Generic JTAG) "
 				"detected. (HW: %2x).", (read_buf[1] >> 8));
 		else if (signalyzer_h_adapter_type
-				== SIGNALYZER_MODULE_TYPE_EM_JTAG_P)
+			 == SIGNALYZER_MODULE_TYPE_EM_JTAG_P)
 			LOG_INFO("Signalyzer: EM-JTAG-P "
 				"(Generic JTAG with PSU) detected. (HW: %2x).",
 				(read_buf[1] >> 8));
@@ -4109,113 +3801,91 @@ static int signalyzer_h_init(void)
 		high_output    = 0x0;
 		high_direction = 0x1f;
 
-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-		{
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
 			high_output |= nTRSTnOE;
 			high_output &= ~nTRST;
-		}
-		else
-		{
+		} else {
 			high_output &= ~nTRSTnOE;
 			high_output |= nTRST;
 		}
 
-		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-		{
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
 			high_output &= ~nSRSTnOE;
 			high_output |= nSRST;
-		}
-		else
-		{
+		} else {
 			high_output |= nSRSTnOE;
 			high_output &= ~nSRST;
 		}
 
 #if BUILD_FT2232_FTD2XX == 1
 		/* enable power to the module */
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR,
-				((uint32_t)(signalyzer_h_side << 8) | 0x01)))
-			!= FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				((uint32_t)(signalyzer_h_side << 8) | 0x01));
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_COMMAND_ADDR,
-				SIGNALYZER_COMMAND_POWERCONTROL_SET)) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR,
+				SIGNALYZER_COMMAND_POWERCONTROL_SET);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
 		/* set gpio mode register (IO_16 and IO_17 set as analog
 		 * inputs, other is gpio)
 		 */
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR,
-				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8));
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0060))
-			!= FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0060);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_COMMAND_ADDR,
-				SIGNALYZER_COMMAND_GPIO_MODE)) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR, SIGNALYZER_COMMAND_GPIO_MODE);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
 		/* set gpio register (all inputs, for -P modules,
 		 * PSU will be turned off)
 		 */
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR,
-				(uint32_t)(signalyzer_h_side << 8))) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR,
+				(uint32_t)(signalyzer_h_side << 8));
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000))
-			!= FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_DATA_BUFFER_ADDR + 1, 0x0000);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		if ((status = signalyzer_h_ctrl_write(
-				SIGNALYZER_COMMAND_ADDR,
-				SIGNALYZER_COMMAND_GPIO_STATE)) != FT_OK)
-		{
+		status = signalyzer_h_ctrl_write(SIGNALYZER_COMMAND_ADDR, SIGNALYZER_COMMAND_GPIO_STATE);
+		if (status != FT_OK) {
 			LOG_ERROR("signalyzer_h_ctrl_write returned: %s",
-					ftd2xx_status_string(status));
+				ftd2xx_status_string(status));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 #endif
-	}
-
-	else if (signalyzer_h_adapter_type == 0x0000)
-	{
+	} else if (signalyzer_h_adapter_type == 0x0000) {
 		LOG_INFO("Signalyzer: No external modules were detected.");
 
 		nTRST    = 0x10;
@@ -4229,58 +3899,45 @@ static int signalyzer_h_init(void)
 		high_output    = 0x0;
 		high_direction = 0x0;
 
-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
-		{
-			low_direction &= ~nTRSTnOE; /* nTRST input */
-			low_output    &= ~nTRST;    /* nTRST = 0 */
-		}
-		else
-		{
-			low_direction |= nTRSTnOE;  /* nTRST output */
-			low_output    |= nTRST;     /* nTRST = 1 */
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
+			low_direction &= ~nTRSTnOE;	/* nTRST input */
+			low_output    &= ~nTRST;	/* nTRST = 0 */
+		} else {
+			low_direction |= nTRSTnOE;	/* nTRST output */
+			low_output    |= nTRST;		/* nTRST = 1 */
 		}
 
-		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
-		{
-			low_direction |= nSRSTnOE;  /* nSRST output */
-			low_output    |= nSRST;     /* nSRST = 1 */
+		if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
+			low_direction |= nSRSTnOE;	/* nSRST output */
+			low_output    |= nSRST;		/* nSRST = 1 */
+		} else {
+			low_direction &= ~nSRSTnOE;	/* nSRST input */
+			low_output    &= ~nSRST;	/* nSRST = 0 */
 		}
-		else
-		{
-			low_direction &= ~nSRSTnOE; /* nSRST input */
-			low_output    &= ~nSRST;    /* nSRST = 0 */
-		}
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("Unknown module type is detected: %.4x",
-				signalyzer_h_adapter_type);
+			signalyzer_h_adapter_type);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	/* initialize low byte of controller for jtag operation */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize Signalyzer-H layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 #if BUILD_FT2232_FTD2XX == 1
-	if (ftdi_device == FT_DEVICE_2232H)
-	{
+	if (ftdi_device == FT_DEVICE_2232H) {
 		/* initialize high byte of controller for jtag operation */
-		if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-		{
+		if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
 		}
 	}
 #elif BUILD_FT2232_LIBFTDI == 1
-	if (ftdi_device == TYPE_2232H)
-	{
+	if (ftdi_device == TYPE_2232H) {
 		/* initialize high byte of controller for jtag operation */
-		if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-		{
+		if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 			LOG_ERROR("couldn't initialize Signalyzer-H layout");
 			return ERROR_JTAG_INIT_FAILED;
 		}
@@ -4294,19 +3951,15 @@ static void signalyzer_h_reset(int trst, int srst)
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	/* ADAPTOR: EM_LT16_A */
-	if (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_LT16_A)
-	{
-		if (trst == 1)
-		{
+	if (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_LT16_A) {
+		if (trst == 1) {
 			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 				/* switch to output pin (output is low) */
 				low_direction |= nTRSTnOE;
 			else
 				/* switch output low */
 				low_output &= ~nTRST;
-		}
-		else if (trst == 0)
-		{
+		} else if (trst == 0) {
 			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 				/* switch to input pin (high-Z + internal
 				 * and external pullup) */
@@ -4316,17 +3969,14 @@ static void signalyzer_h_reset(int trst, int srst)
 				low_output |= nTRST;
 		}
 
-		if (srst == 1)
-		{
+		if (srst == 1) {
 			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 				/* switch output low */
 				low_output &= ~nSRST;
 			else
 				/* switch to output pin (output is low) */
 				low_direction |= nSRSTnOE;
-		}
-		else if (srst == 0)
-		{
+		} else if (srst == 0) {
 			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 				/* switch output high */
 				low_output |= nSRST;
@@ -4340,39 +3990,32 @@ static void signalyzer_h_reset(int trst, int srst)
 		buffer_write(low_output);
 		buffer_write(low_direction);
 		LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, "
-				"low_direction: 0x%2.2x",
-				trst, srst, low_output, low_direction);
+			"low_direction: 0x%2.2x",
+			trst, srst, low_output, low_direction);
 	}
 	/* ADAPTOR: EM_ARM_JTAG,  EM_ARM_JTAG_P, EM_JTAG, EM_JTAG_P */
 	else if ((signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG) ||
-				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P) ||
-				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG)  ||
-				(signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG_P))
-	{
-		if (trst == 1)
-		{
+		 (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_ARM_JTAG_P) ||
+		 (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG)  ||
+		 (signalyzer_h_adapter_type == SIGNALYZER_MODULE_TYPE_EM_JTAG_P)) {
+		if (trst == 1) {
 			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 				high_output &= ~nTRSTnOE;
 			else
 				high_output &= ~nTRST;
-		}
-		else if (trst == 0)
-		{
+		} else if (trst == 0) {
 			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 				high_output |= nTRSTnOE;
 			else
 				high_output |= nTRST;
 		}
 
-		if (srst == 1)
-		{
+		if (srst == 1) {
 			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 				high_output &= ~nSRST;
 			else
 				high_output &= ~nSRSTnOE;
-		}
-		else if (srst == 0)
-		{
+		} else if (srst == 0) {
 			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 				high_output |= nSRST;
 			else
@@ -4384,22 +4027,17 @@ static void signalyzer_h_reset(int trst, int srst)
 		buffer_write(high_output);
 		buffer_write(high_direction);
 		LOG_INFO("trst: %i, srst: %i, high_output: 0x%2.2x, "
-				"high_direction: 0x%2.2x",
-				trst, srst, high_output, high_direction);
-	}
-	else if (signalyzer_h_adapter_type == 0x0000)
-	{
-		if (trst == 1)
-		{
+			"high_direction: 0x%2.2x",
+			trst, srst, high_output, high_direction);
+	} else if (signalyzer_h_adapter_type == 0x0000) {
+		if (trst == 1) {
 			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 				/* switch to output pin (output is low) */
 				low_direction |= nTRSTnOE;
 			else
 				/* switch output low */
 				low_output &= ~nTRST;
-		}
-		else if (trst == 0)
-		{
+		} else if (trst == 0) {
 			if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 				/* switch to input pin (high-Z + internal
 				 * and external pullup) */
@@ -4409,17 +4047,14 @@ static void signalyzer_h_reset(int trst, int srst)
 				low_output |= nTRST;
 		}
 
-		if (srst == 1)
-		{
+		if (srst == 1) {
 			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 				/* switch output low */
 				low_output &= ~nSRST;
 			else
 				/* switch to output pin (output is low) */
 				low_direction |= nSRSTnOE;
-		}
-		else if (srst == 0)
-		{
+		} else if (srst == 0) {
 			if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 				/* switch output high */
 				low_output |= nSRST;
@@ -4433,8 +4068,8 @@ static void signalyzer_h_reset(int trst, int srst)
 		buffer_write(low_output);
 		buffer_write(low_direction);
 		LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, "
-				"low_direction: 0x%2.2x",
-				trst, srst, low_output, low_direction);
+			"low_direction: 0x%2.2x",
+			trst, srst, low_output, low_direction);
 	}
 }
 
@@ -4450,14 +4085,13 @@ static void signalyzer_h_blink(void)
  *******************************************************************/
 static int ktlink_init(void)
 {
-	uint8_t  swd_en = 0x20; //0x20 SWD disable, 0x00 SWD enable (ADBUS5)
+	uint8_t swd_en = 0x20;	/* 0x20 SWD disable, 0x00 SWD enable (ADBUS5) */
 
-	low_output    = 0x08 | swd_en; // value; TMS=1,TCK=0,TDI=0,SWD=swd_en
-	low_direction = 0x3B;          // out=1; TCK/TDI/TMS=out,TDO=in,SWD=out,RTCK=in,SRSTIN=in
+	low_output    = 0x08 | swd_en;	/* value; TMS=1,TCK=0,TDI=0,SWD=swd_en */
+	low_direction = 0x3B;		/* out=1; TCK/TDI/TMS=out,TDO=in,SWD=out,RTCK=in,SRSTIN=in */
 
 	/* initialize low byte for jtag */
-	if (ft2232_set_data_bits_low_byte(low_output,low_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -4467,8 +4101,8 @@ static int ktlink_init(void)
 	nTRSTnOE = 0x04;
 	nSRSTnOE = 0x08;
 
-	high_output    = 0x80; // turn LED on
-	high_direction = 0xFF; // all outputs
+	high_output    = 0x80;	/* turn LED on */
+	high_direction = 0xFF;	/* all outputs */
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
@@ -4489,8 +4123,7 @@ static int ktlink_init(void)
 	}
 
 	/* initialize high byte for jtag */
-	if (ft2232_set_data_bits_high_byte(high_output,high_direction) != ERROR_OK)
-	{
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
 		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -4526,10 +4159,14 @@ static void ktlink_reset(int trst, int srst)
 			high_output |= nSRSTnOE;
 	}
 
-	buffer_write(0x82); // command "set data bits high byte"
+	buffer_write(0x82);	/* command "set data bits high byte" */
 	buffer_write(high_output);
 	buffer_write(high_direction);
-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output,high_direction);
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+		trst,
+		srst,
+		high_output,
+		high_direction);
 }
 
 static void ktlink_blink(void)
@@ -4537,7 +4174,7 @@ static void ktlink_blink(void)
 	/* LED connected to ACBUS7 */
 	high_output ^= 0x80;
 
-	buffer_write(0x82);  // command "set data bits high byte"
+	buffer_write(0x82);	/* command "set data bits high byte" */
 	buffer_write(high_output);
 	buffer_write(high_direction);
 }

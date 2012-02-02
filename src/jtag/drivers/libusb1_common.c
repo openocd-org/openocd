@@ -80,7 +80,7 @@ void jtag_libusb_close(jtag_libusb_device_handle *dev)
 }
 
 int jtag_libusb_bulk_write(jtag_libusb_device_handle *dev, int ep, char *bytes,
-			   int size, int timeout)
+		int size, int timeout)
 {
 	int transferred = 0;
 
@@ -90,7 +90,7 @@ int jtag_libusb_bulk_write(jtag_libusb_device_handle *dev, int ep, char *bytes,
 }
 
 int jtag_libusb_bulk_read(jtag_libusb_device_handle *dev, int ep, char *bytes,
-			  int size, int timeout)
+		int size, int timeout)
 {
 	int transferred = 0;
 
@@ -100,7 +100,7 @@ int jtag_libusb_bulk_read(jtag_libusb_device_handle *dev, int ep, char *bytes,
 }
 
 int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
-				  int configuration)
+		int configuration)
 {
 	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	int retCode = -99;
@@ -116,8 +116,8 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 }
 
 int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
-			      unsigned int *usb_read_ep,
-			      unsigned int *usb_write_ep)
+		unsigned int *usb_read_ep,
+		unsigned int *usb_write_ep)
 {
 	const struct libusb_interface *inter;
 	const struct libusb_interface_descriptor *interdesc;

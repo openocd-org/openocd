@@ -51,9 +51,9 @@
 #define bmBit6      0x40
 #define bmBit7      0x80
 
-/***************************************************************************/
-/************************ Special Function Registers ***********************/
-/***************************************************************************/
+/**************************************************************************
+ ************************ Special Function Registers **********************
+ ***************************************************************************/
 
 /* See EZ-USB TRM, pp. A-9 - A-10 */
 
@@ -65,33 +65,33 @@ SFR(DPL2,           0x85);
 
 SFR(DPS,            0x86);
   #define SEL       bmBit0
-  // Bit 1 read-only, always reads '0'
-  // Bit 2 read-only, always reads '0'
-  // Bit 3 read-only, always reads '0'
-  // Bit 4 read-only, always reads '0'
-  // Bit 5 read-only, always reads '0'
-  // Bit 6 read-only, always reads '0'
-  // Bit 7 read-only, always reads '0'
+/* Bit 1 read-only, always reads '0' */
+/* Bit 2 read-only, always reads '0' */
+/* Bit 3 read-only, always reads '0' */
+/* Bit 4 read-only, always reads '0' */
+/* Bit 5 read-only, always reads '0' */
+/* Bit 6 read-only, always reads '0' */
+/* Bit 7 read-only, always reads '0' */
 
 SFR(PCON,           0x87);
   #define IDLE      bmBit0
   #define STOP      bmBit1
   #define GF0       bmBit2
   #define GF1       bmBit3
-  // Bit 4 read-only, always reads '1'
-  // Bit 5 read-only, always reads '1'
-  // Bit 6 unused
+/* Bit 4 read-only, always reads '1' */
+/* Bit 5 read-only, always reads '1' */
+/* Bit 6 unused */
   #define SMOD0     bmBit7
 
 SFR(TCON,           0x88);
-  SBIT(IT0,         0x88, 0);
-  SBIT(IE0,         0x88, 1);
-  SBIT(IT1,         0x88, 2);
-  SBIT(IE1,         0x88, 3);
-  SBIT(TR0,         0x88, 4);
-  SBIT(TF0,         0x88, 5);
-  SBIT(TR1,         0x88, 6);
-  SBIT(TF1,         0x88, 7);
+SBIT(IT0,         0x88, 0);
+SBIT(IE0,         0x88, 1);
+SBIT(IT1,         0x88, 2);
+SBIT(IE1,         0x88, 3);
+SBIT(TR0,         0x88, 4);
+SBIT(TF0,         0x88, 5);
+SBIT(TR1,         0x88, 6);
+SBIT(TF1,         0x88, 7);
 
 SFR(TMOD,           0x89);
 /* Some bits in this register share the same name in the EZ-USB TRM. Therefore,
@@ -117,24 +117,24 @@ SFR(CKCON,          0x8E);
   #define T0M       bmBit3
   #define T1M       bmBit4
   #define T2M       bmBit5
-  // Bit 6 unused
-  // Bit 7 unused
+/* Bit 6 unused */
+/* Bit 7 unused */
 
 SFR(SPC_FNC,        0x8D);
   #define bmWRS     bmBit0
-  // Bit 1 read-only, always reads '0'
-  // Bit 2 read-only, always reads '0'
-  // Bit 3 read-only, always reads '0'
-  // Bit 4 read-only, always reads '0'
-  // Bit 5 read-only, always reads '0'
-  // Bit 6 read-only, always reads '0'
-  // Bit 7 read-only, always reads '0'
+/* Bit 1 read-only, always reads '0' */
+/* Bit 2 read-only, always reads '0' */
+/* Bit 3 read-only, always reads '0' */
+/* Bit 4 read-only, always reads '0' */
+/* Bit 5 read-only, always reads '0' */
+/* Bit 6 read-only, always reads '0' */
+/* Bit 7 read-only, always reads '0' */
 
 SFR(EXIF,           0x91);
-  // Bit 0 read-only, always reads '0'
-  // Bit 1 read-only, always reads '0'
-  // Bit 2 read-only, always reads '0'
-  // Bit 3 read-only, always reads '1'
+/* Bit 0 read-only, always reads '0' */
+/* Bit 1 read-only, always reads '0' */
+/* Bit 2 read-only, always reads '0' */
+/* Bit 3 read-only, always reads '1' */
   #define USBINT    bmBit4
   #define I2CINT    bmBit5
   #define IE4       bmBit6
@@ -146,58 +146,58 @@ SFR(MPAGE,          0x92);
 SFR(_XPAGE,         0x92);
 
 SFR(SCON0,          0x98);
-  SBIT(RI_0,        0x98, 0);
-  SBIT(TI_0,        0x98, 1);
-  SBIT(RB8_0,       0x98, 2);
-  SBIT(TB8_0,       0x98, 3);
-  SBIT(REN_0,       0x98, 4);
-  SBIT(SM2_0,       0x98, 5);
-  SBIT(SM1_0,       0x98, 6);
-  SBIT(SM0_0,       0x98, 7);
+SBIT(RI_0,        0x98, 0);
+SBIT(TI_0,        0x98, 1);
+SBIT(RB8_0,       0x98, 2);
+SBIT(TB8_0,       0x98, 3);
+SBIT(REN_0,       0x98, 4);
+SBIT(SM2_0,       0x98, 5);
+SBIT(SM1_0,       0x98, 6);
+SBIT(SM0_0,       0x98, 7);
 
 SFR(SBUF0,          0x99);
 
 SFR(IE,             0xA8);
-  SBIT(EX0,         0xA8, 0);
-  SBIT(ET0,         0xA8, 1);
-  SBIT(EX1,         0xA8, 2);
-  SBIT(ET1,         0xA8, 3);
-  SBIT(ES0,         0xA8, 4);
-  SBIT(ET2,         0xA8, 5);
-  SBIT(ES1,         0xA8, 6);
-  SBIT(EA,          0xA8, 7);
+SBIT(EX0,         0xA8, 0);
+SBIT(ET0,         0xA8, 1);
+SBIT(EX1,         0xA8, 2);
+SBIT(ET1,         0xA8, 3);
+SBIT(ES0,         0xA8, 4);
+SBIT(ET2,         0xA8, 5);
+SBIT(ES1,         0xA8, 6);
+SBIT(EA,          0xA8, 7);
 
 SFR(IP,             0xB8);
-  SBIT(PX0,         0xB8, 0);
-  SBIT(PT0,         0xB8, 1);
-  SBIT(PX1,         0xB8, 2);
-  SBIT(PT1,         0xB8, 3);
-  SBIT(PS0,         0xB8, 4);
-  SBIT(PT2,         0xB8, 5);
-  SBIT(PS1,         0xB8, 6);
-  // Bit 7 read-only, always reads '1'
+SBIT(PX0,         0xB8, 0);
+SBIT(PT0,         0xB8, 1);
+SBIT(PX1,         0xB8, 2);
+SBIT(PT1,         0xB8, 3);
+SBIT(PS0,         0xB8, 4);
+SBIT(PT2,         0xB8, 5);
+SBIT(PS1,         0xB8, 6);
+/* Bit 7 read-only, always reads '1' */
 
 SFR(SCON1,          0xC0);
-  SBIT(RI_1,        0xC0, 0);
-  SBIT(TI_1,        0xC0, 1);
-  SBIT(RB8_1,       0xC0, 2);
-  SBIT(TB8_1,       0xC0, 3);
-  SBIT(REN_1,       0xC0, 4);
-  SBIT(SM2_1,       0xC0, 5);
-  SBIT(SM1_1,       0xC0, 6);
-  SBIT(SM0_1,       0xC0, 7);
+SBIT(RI_1,        0xC0, 0);
+SBIT(TI_1,        0xC0, 1);
+SBIT(RB8_1,       0xC0, 2);
+SBIT(TB8_1,       0xC0, 3);
+SBIT(REN_1,       0xC0, 4);
+SBIT(SM2_1,       0xC0, 5);
+SBIT(SM1_1,       0xC0, 6);
+SBIT(SM0_1,       0xC0, 7);
 
 SFR(SBUF1,          0xC1);
 
 SFR(T2CON,          0xC8);
-  SBIT(CPRL2,       0xC8, 0);
-  SBIT(CT2,         0xC8, 1);
-  SBIT(TR2,         0xC8, 2);
-  SBIT(EXEN2,       0xC8, 3);
-  SBIT(TCLK,        0xC8, 4);
-  SBIT(RCLK,        0xC8, 5);
-  SBIT(EXF2,        0xC8, 6);
-  SBIT(TF2,         0xC8, 7);
+SBIT(CPRL2,       0xC8, 0);
+SBIT(CT2,         0xC8, 1);
+SBIT(TR2,         0xC8, 2);
+SBIT(EXEN2,       0xC8, 3);
+SBIT(TCLK,        0xC8, 4);
+SBIT(RCLK,        0xC8, 5);
+SBIT(EXF2,        0xC8, 6);
+SBIT(TF2,         0xC8, 7);
 
 SFR(RCAP2L,         0xCA);
 SFR(RCAP2H,         0xCB);
@@ -205,52 +205,52 @@ SFR(TL2,            0xCC);
 SFR(TH2,            0xCD);
 
 SFR(PSW,            0xD0);
-  SBIT(P,           0xD0, 0);
-  SBIT(F1,          0xD0, 1);
-  SBIT(OV,          0xD0, 2);
-  SBIT(RS0,         0xD0, 3);
-  SBIT(RS1,         0xD0, 4);
-  SBIT(F0,          0xD0, 5);
-  SBIT(AC,          0xD0, 6);
-  SBIT(CY,          0xD0, 7);
+SBIT(P,           0xD0, 0);
+SBIT(F1,          0xD0, 1);
+SBIT(OV,          0xD0, 2);
+SBIT(RS0,         0xD0, 3);
+SBIT(RS1,         0xD0, 4);
+SBIT(F0,          0xD0, 5);
+SBIT(AC,          0xD0, 6);
+SBIT(CY,          0xD0, 7);
 
 SFR(EICON,          0xD8);
-  // Bit 0 read-only, always reads '0'
-  // Bit 1 read-only, always reads '0'
-  // Bit 2 read-only, always reads '0'
-  SBIT(INT6,        0xD8, 3);
-  SBIT(RESI,        0xD8, 4);
-  SBIT(ERESI,       0xD8, 5);
-  // Bit 6 read-only, always reads '1'
-  SBIT(SMOD1,       0xD8, 7);
+/* Bit 0 read-only, always reads '0' */
+/* Bit 1 read-only, always reads '0' */
+/* Bit 2 read-only, always reads '0' */
+SBIT(INT6,        0xD8, 3);
+SBIT(RESI,        0xD8, 4);
+SBIT(ERESI,       0xD8, 5);
+/* Bit 6 read-only, always reads '1' */
+SBIT(SMOD1,       0xD8, 7);
 
 SFR(ACC,            0xE0);
 
 SFR(EIE,            0xE8);
-  SBIT(EUSB,        0xE8, 0);
-  SBIT(EI2C,        0xE8, 1);
-  SBIT(EX4,         0xE8, 2);
-  SBIT(EX5,         0xE8, 3);
-  SBIT(EWDI,        0xE8, 4);
-  // Bit 5 read-only, always reads '1'
-  // Bit 6 read-only, always reads '1'
-  // Bit 7 read-only, always reads '1'
+SBIT(EUSB,        0xE8, 0);
+SBIT(EI2C,        0xE8, 1);
+SBIT(EX4,         0xE8, 2);
+SBIT(EX5,         0xE8, 3);
+SBIT(EWDI,        0xE8, 4);
+/* Bit 5 read-only, always reads '1' */
+/* Bit 6 read-only, always reads '1' */
+/* Bit 7 read-only, always reads '1' */
 
 SFR(B,              0xF0);
 
 SFR(EIP,            0xF8);
-  SBIT(PUSB,        0xF8, 0);
-  SBIT(PI2C,        0xF8, 1);
-  SBIT(PX4,         0xF8, 2);
-  SBIT(PX5,         0xF8, 3);
-  SBIT(PX6,         0xF8, 4);
-  // Bit 5 read-only, always reads '1'
-  // Bit 6 read-only, always reads '1'
-  // Bit 7 read-only, always reads '1'
+SBIT(PUSB,        0xF8, 0);
+SBIT(PI2C,        0xF8, 1);
+SBIT(PX4,         0xF8, 2);
+SBIT(PX5,         0xF8, 3);
+SBIT(PX6,         0xF8, 4);
+/* Bit 5 read-only, always reads '1' */
+/* Bit 6 read-only, always reads '1' */
+/* Bit 7 read-only, always reads '1' */
 
-/***************************************************************************/
-/***************************** XDATA Registers *****************************/
-/***************************************************************************/
+/**************************************************************************
+ ***************************** XDATA Registers ****************************
+ ***************************************************************************/
 
 /************************ Endpoint 0-7 Data Buffers ************************/
 SFRX(OUT7BUF[64],   0x7B40);
@@ -269,7 +269,7 @@ SFRX(OUT1BUF[64],   0x7E40);
 SFRX(IN1BUF[64],    0x7E80);
 SFRX(OUT0BUF[64],   0x7EC0);
 SFRX(IN0BUF[64],    0x7F00);
-// 0x7F40 - 0x7F5F reserved
+/* 0x7F40 - 0x7F5F reserved */
 
 /**************************** Isochronous Data *****************************/
 SFRX(OUT8DATA,      0x7F60);
@@ -312,9 +312,9 @@ SFRX(OUT16BCL,      0x7F7F);
 SFRX(CPUCS,         0x7F92);
   #define RES8051   bmBit0
   #define CLK24OE   bmBit1
-  // Bit 2 read-only, always reads '0'
-  // Bit 3 read-only, always reads '0'
-  // Bits 4...7: Chip Revision
+/* Bit 2 read-only, always reads '0' */
+/* Bit 3 read-only, always reads '0' */
+/* Bits 4...7: Chip Revision */
 
 SFRX(PORTACFG,      0x7F93);
   #define T0OUT     bmBit0
@@ -437,7 +437,7 @@ SFRX(OEC,           0x7F9E);
   #define OEC6      bmBit6
   #define OEC7      bmBit7
 
-// 0x7F9F reserved
+/* 0x7F9F reserved */
 
 /****************** Isochronous Control/Status Registers *******************/
 SFRX(ISOERR,        0x7FA0);
@@ -455,10 +455,10 @@ SFRX(ISOCTL,        0x7FA1);
   #define MBZ0      bmBit1
   #define MBZ1      bmBit2
   #define PPSTAT    bmBit3
-  // Bit 4 unused
-  // Bit 5 unused
-  // Bit 6 unused
-  // Bit 7 unused
+/* Bit 4 unused */
+/* Bit 5 unused */
+/* Bit 6 unused */
+/* Bit 7 unused */
 
 SFRX(ZBCOUT,        0x7FA2);
   #define EP8       bmBit0
@@ -470,8 +470,8 @@ SFRX(ZBCOUT,        0x7FA2);
   #define EP14      bmBit6
   #define EP15      bmBit7
 
-// 0x7FA3 reserved
-// 0x7FA4 reserved
+/* 0x7FA3 reserved */
+/* 0x7FA4 reserved */
 
 /****************************** I2C Registers ******************************/
 SFRX(I2CS,          0x7FA5);
@@ -485,18 +485,18 @@ SFRX(I2CS,          0x7FA5);
   #define I2C_START bmBit7
 
 SFRX(I2DAT,         0x7FA6);
-// 0x7FA7 reserved
+/* 0x7FA7 reserved */
 
 /******************************* Interrupts ********************************/
 SFRX(IVEC,          0x7FA8);
-  // Bit 0 read-only, always reads '0'
-  // Bit 1 read-only, always reads '0'
+/* Bit 0 read-only, always reads '0' */
+/* Bit 1 read-only, always reads '0' */
   #define IV0       bmBit2
   #define IV1       bmBit3
   #define IV2       bmBit4
   #define IV3       bmBit5
   #define IV4       bmBit6
-  // Bit 7 read-only, always reads '0'
+/* Bit 7 read-only, always reads '0' */
 
 SFRX(IN07IRQ,       0x7FA9);
   #define IN0IR     bmBit0
@@ -524,9 +524,9 @@ SFRX(USBIRQ,        0x7FAB);
   #define SUTOKIR   bmBit2
   #define SUSPIR    bmBit3
   #define URESIR    bmBit4
-  // Bit 5 unused
-  // Bit 6 unused
-  // Bit 7 unused
+/* Bit 5 unused */
+/* Bit 6 unused */
+/* Bit 7 unused */
 
 SFRX(IN07IEN,       0x7FAC);
   #define IN0IEN    bmBit0
@@ -554,22 +554,22 @@ SFRX(USBIEN,        0x7FAE);
   #define SUTOKIE   bmBit2
   #define SUSPIE    bmBit3
   #define URESIE    bmBit4
-  // Bit 5 unused
-  // Bit 6 unused
-  // Bit 7 unused
+/* Bit 5 unused */
+/* Bit 6 unused */
+/* Bit 7 unused */
 
 SFRX(USBBAV,        0x7FAF);
   #define AVEN      bmBit0
   #define BPEN      bmBit1
   #define BPPULSE   bmBit2
   #define BREAK     bmBit3
-  // Bit 4 unused
-  // Bit 5 unused
-  // Bit 6 unused
-  // Bit 7 unused
+/* Bit 4 unused */
+/* Bit 5 unused */
+/* Bit 6 unused */
+/* Bit 7 unused */
 
-// 0x7FB0 reserved
-// 0x7FB1 reserved
+/* 0x7FB0 reserved */
+/* 0x7FB1 reserved */
 SFRX(BPADDRH,       0x7FB2);
 SFRX(BPADDRL,       0x7FB3);
 
@@ -579,10 +579,10 @@ SFRX(EP0CS,         0x7FB4);
   #define HSNAK     bmBit1
   #define IN0BSY    bmBit2
   #define OUT0BSY   bmBit3
-  // Bit 4 unused
-  // Bit 5 unused
-  // Bit 6 unused
-  // Bit 7 unused
+/* Bit 4 unused */
+/* Bit 5 unused */
+/* Bit 6 unused */
+/* Bit 7 unused */
 
 SFRX(IN0BC,         0x7FB5);
 SFRX(IN1CS,         0x7FB6);
@@ -599,7 +599,7 @@ SFRX(IN6CS,         0x7FC0);
 SFRX(IN6BC,         0x7FC1);
 SFRX(IN7CS,         0x7FC2);
 SFRX(IN7BC,         0x7FC3);
-// 0x7FC4 reserved
+/* 0x7FC4 reserved */
 SFRX(OUT0BC,        0x7FC5);
 SFRX(OUT1CS,        0x7FC6);
 SFRX(OUT1BC,        0x7FC7);
@@ -630,16 +630,16 @@ SFRX(USBCS,         0x7FD6);
   #define RENUM     bmBit1
   #define DISCOE    bmBit2
   #define DISCON    bmBit3
-  // Bit 4 unused
-  // Bit 5 unused
-  // Bit 6 unused
+/* Bit 4 unused */
+/* Bit 5 unused */
+/* Bit 6 unused */
   #define WAKESRC   bmBit7
 
 SFRX(TOGCTL,        0x7FD7);
   #define TOG_EP0   bmBit0
   #define TOG_EP1   bmBit1
   #define TOG_EP2   bmBit2
-  // Bit 3 is read-only, always reads '0'
+/* Bit 3 is read-only, always reads '0' */
   #define TOG_IO    bmBit4
   #define TOG_R     bmBit5
   #define TOG_S     bmBit6
@@ -647,9 +647,9 @@ SFRX(TOGCTL,        0x7FD7);
 
 SFRX(USBFRAMEL,     0x7FD8);
 SFRX(USBFRAMEH,     0x7FD9);
-// 0x7FDA reserved
+/* 0x7FDA reserved */
 SFRX(FNADDR,        0x7FDB);
-// 0x7FDC reserved
+/* 0x7FDC reserved */
 
 SFRX(USBPAIR,       0x7FDD);
   #define PR2IN     bmBit0
@@ -658,11 +658,11 @@ SFRX(USBPAIR,       0x7FDD);
   #define PR2OUT    bmBit3
   #define PR4OUT    bmBit4
   #define PR6OUT    bmBit5
-  // Bit 6 unused
+/* Bit 6 unused */
   #define ISOSEND0  bmBit7
 
 SFRX(IN07VAL,       0x7FDE);
-  // Bit 0 is read-only, always reads '1'
+/* Bit 0 is read-only, always reads '1' */
   #define IN1VAL    bmBit1
   #define IN2VAL    bmBit2
   #define IN3VAL    bmBit3
@@ -672,7 +672,7 @@ SFRX(IN07VAL,       0x7FDE);
   #define IN7VAL    bmBit7
 
 SFRX(OUT07VAL,      0x7FDF);
-  // Bit 0 is read-only, always reads '1'
+/* Bit 0 is read-only, always reads '1' */
   #define OUT1VAL   bmBit1
   #define OUT2VAL   bmBit2
   #define OUT3VAL   bmBit3
@@ -714,8 +714,8 @@ SFRX(FASTXFR,       0x7FE2);
 SFRX(AUTOPTRH,      0x7FE3);
 SFRX(AUTOPTRL,      0x7FE4);
 SFRX(AUTODATA,      0x7FE5);
-// 0x7FE6 reserved
-// 0x7FE7 reserved
+/* 0x7FE6 reserved */
+/* 0x7FE7 reserved */
 
 /******************************* Setup Data ********************************/
 SFRX(SETUPDAT[8],   0x7FE8);

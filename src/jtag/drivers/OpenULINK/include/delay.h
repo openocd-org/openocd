@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 
-#define NOP  {__asm nop __endasm;}
+#define NOP { __asm nop __endasm; }
 
 void delay_5us(void);
 void delay_1ms(void);

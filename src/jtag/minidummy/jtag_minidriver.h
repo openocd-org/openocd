@@ -17,10 +17,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-
-
-
-static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *targettap,
+static inline void interface_jtag_add_dr_out_core(struct jtag_tap *targettap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,
@@ -29,7 +26,7 @@ static __inline__ void interface_jtag_add_dr_out_core(struct jtag_tap *targettap
 	/* synchronously do the operation here */
 }
 
-static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *targettap,
+static inline void interface_jtag_add_dr_out(struct jtag_tap *targettap,
 		int num_fields,
 		const int *num_bits,
 		const uint32_t *value,
@@ -40,4 +37,5 @@ static __inline__ void interface_jtag_add_dr_out(struct jtag_tap *targettap,
 
 #define interface_jtag_add_callback(callback, in) callback(in)
 
-#define interface_jtag_add_callback4(callback, in, data1, data2, data3) jtag_set_error(callback(in, data1, data2, data3))
+#define interface_jtag_add_callback4(callback, in, data1, data2, data3) \
+	jtag_set_error(callback(in, data1, data2, data3))

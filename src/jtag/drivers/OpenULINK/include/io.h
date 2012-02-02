@@ -51,14 +51,13 @@
 
 /* PORT A */
 #define PIN_U_OE      OUTA0
-// PA1 Not Connected
+/* PA1 Not Connected */
 #define PIN_OE        OUTA2
-// PA3 Not Connected
+/* PA3 Not Connected */
 #define PIN_RUN_LED   OUTA4
 #define PIN_TDO       PINA5
 #define PIN_BRKOUT    PINA6
 #define PIN_COM_LED   OUTA7
-
 
 /* PORT B */
 #define PIN_TDI       OUTB0
@@ -77,18 +76,18 @@
 #define PIN_RXD0      PINC0
 #define PIN_TXD0      OUTC1
 #define PIN_RESET_2   PINC2
-// PC3 Not Connected
-// PC4 Not Connected
+/* PC3 Not Connecte */
+/* PC4 Not Connected */
 #define PIN_RTCK      PINC5
 #define PIN_WR        OUTC6
-// PC7 Not Connected
+/* PC7 Not Connected */
 
 /* LED Macros */
-#define SET_RUN_LED()     OUTA &= ~PIN_RUN_LED
-#define CLEAR_RUN_LED()   OUTA |=  PIN_RUN_LED
+#define SET_RUN_LED()     (OUTA &= ~PIN_RUN_LED)
+#define CLEAR_RUN_LED()   (OUTA |=  PIN_RUN_LED)
 
-#define SET_COM_LED()     OUTA &= ~PIN_COM_LED
-#define CLEAR_COM_LED()   OUTA |=  PIN_COM_LED
+#define SET_COM_LED()     (OUTA &= ~PIN_COM_LED)
+#define CLEAR_COM_LED()   (OUTA |=  PIN_COM_LED)
 
 /* JTAG Pin Macros */
 #define GET_TMS()         (PINSB & PIN_TMS)
@@ -99,27 +98,27 @@
 #define GET_TRAP()        (PINSB & PIN_TRAP)
 #define GET_RTCK()        (PINSC & PIN_RTCK)
 
-#define SET_TMS_HIGH()    OUTB |=  PIN_TMS
-#define SET_TMS_LOW()     OUTB &= ~PIN_TMS
+#define SET_TMS_HIGH()    (OUTB |=  PIN_TMS)
+#define SET_TMS_LOW()     (OUTB &= ~PIN_TMS)
 
-#define SET_TCK_HIGH()    OUTB |=  PIN_TCK
-#define SET_TCK_LOW()     OUTB &= ~PIN_TCK
+#define SET_TCK_HIGH()    (OUTB |=  PIN_TCK)
+#define SET_TCK_LOW()     (OUTB &= ~PIN_TCK)
 
-#define SET_TDI_HIGH()    OUTB |=  PIN_TDI
-#define SET_TDI_LOW()     OUTB &= ~PIN_TDI
+#define SET_TDI_HIGH()    (OUTB |=  PIN_TDI)
+#define SET_TDI_LOW()     (OUTB &= ~PIN_TDI)
 
 /* TRST and RESET are low-active and inverted by hardware. SET_HIGH de-asserts
  * the signal (enabling reset), SET_LOW asserts the signal (disabling reset) */
-#define SET_TRST_HIGH()   OUTB |=  PIN_TRST
-#define SET_TRST_LOW()    OUTB &= ~PIN_TRST
+#define SET_TRST_HIGH()   (OUTB |=  PIN_TRST)
+#define SET_TRST_LOW()    (OUTB &= ~PIN_TRST)
 
-#define SET_RESET_HIGH()  OUTB |=  PIN_RESET
-#define SET_RESET_LOW()   OUTB &= ~PIN_RESET
+#define SET_RESET_HIGH()  (OUTB |=  PIN_RESET)
+#define SET_RESET_LOW()   (OUTB &= ~PIN_RESET)
 
-#define SET_OCDSE_HIGH()  OUTB |=  PIN_OCDSE
-#define SET_OCDSE_LOW()   OUTB &= ~PIN_OCDSE
+#define SET_OCDSE_HIGH()  (OUTB |=  PIN_OCDSE)
+#define SET_OCDSE_LOW()   (OUTB &= ~PIN_OCDSE)
 
-#define SET_BRKIN_HIGH()  OUTB |=  PIN_BRKIN
-#define SET_BRKIN_LOW()   OUTB &= ~PIN_BRKIN
+#define SET_BRKIN_HIGH()  (OUTB |=  PIN_BRKIN)
+#define SET_BRKIN_LOW()   (OUTB &= ~PIN_BRKIN)
 
 #endif
