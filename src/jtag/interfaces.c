@@ -27,6 +27,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -45,7 +46,7 @@
 extern struct jtag_interface zy1000_interface;
 #elif defined(BUILD_MINIDRIVER_DUMMY)
 extern struct jtag_interface minidummy_interface;
-#else // standard drivers
+#else /* standard drivers */
 #if BUILD_PARPORT == 1
 extern struct jtag_interface parport_interface;
 #endif
@@ -103,7 +104,7 @@ extern struct jtag_interface remote_bitbang_interface;
 #if BUILD_STLINK == 1
 extern struct jtag_interface stlink_interface;
 #endif
-#endif // standard drivers
+#endif /* standard drivers */
 
 /**
  * The list of built-in JTAG interfaces, containing entries for those
@@ -117,7 +118,7 @@ struct jtag_interface *jtag_interfaces[] = {
 		&zy1000_interface,
 #elif defined(BUILD_MINIDRIVER_DUMMY)
 		&minidummy_interface,
-#else // standard drivers
+#else /* standard drivers */
 #if BUILD_PARPORT == 1
 		&parport_interface,
 #endif
@@ -175,11 +176,11 @@ struct jtag_interface *jtag_interfaces[] = {
 #if BUILD_STLINK == 1
 		&stlink_interface,
 #endif
-#endif // standard drivers
+#endif /* standard drivers */
 		NULL,
 	};
 
 void jtag_interface_modules_load(const char *path)
 {
-	// @todo: implement dynamic module loading for JTAG interface drivers
+	/* @todo: implement dynamic module loading for JTAG interface drivers */
 }

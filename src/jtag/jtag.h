@@ -20,6 +20,7 @@
 *   Free Software Foundation, Inc.,                                       *
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
+
 #ifndef JTAG_H
 #define JTAG_H
 
@@ -52,8 +53,7 @@
  * Fix those drivers to map as appropriate ... then pick some
  * sane set of numbers here (where 0/uninitialized == INVALID).
  */
-typedef enum tap_state
-{
+typedef enum tap_state {
 	TAP_INVALID = -1,
 
 #if BUILD_ZY1000
@@ -92,10 +92,10 @@ typedef enum tap_state
  */
 const char *tap_state_name(tap_state_t state);
 
-/// Provides user-friendly name lookup of TAP states.
+/** Provides user-friendly name lookup of TAP states. */
 tap_state_t tap_state_by_name(const char *name);
 
-/// The current TAP state of the pending JTAG command queue.
+/** The current TAP state of the pending JTAG command queue. */
 extern tap_state_t cmd_queue_cur_state;
 
 /**
@@ -107,54 +107,54 @@ extern tap_state_t cmd_queue_cur_state;
  * jtag_add_dr_scan_check() to validate the value that was scanned out.
  */
 struct scan_field {
-	/// The number of bits this field specifies (up to 32)
+	/** The number of bits this field specifies (up to 32) */
 	int num_bits;
-	/// A pointer to value to be scanned into the device
-	const uint8_t* out_value;
-	/// A pointer to a 32-bit memory location for data scanned out
-	uint8_t* in_value;
+	/** A pointer to value to be scanned into the device */
+	const uint8_t *out_value;
+	/** A pointer to a 32-bit memory location for data scanned out */
+	uint8_t *in_value;
 
-	/// The value used to check the data scanned out.
-	uint8_t* check_value;
-	/// The mask to go with check_value
-	uint8_t* check_mask;
+	/** The value used to check the data scanned out. */
+	uint8_t *check_value;
+	/** The mask to go with check_value */
+	uint8_t *check_mask;
 };
 
 struct jtag_tap {
-	const char* chip;
-	const char* tapname;
-	const char* dotted_name;
+	const char *chip;
+	const char *tapname;
+	const char *dotted_name;
 	int abs_chain_position;
-	/// Is this TAP disabled after JTAG reset?
+	/** Is this TAP disabled after JTAG reset? */
 	bool disabled_after_reset;
-	/// Is this TAP currently enabled?
+	/** Is this TAP currently enabled? */
 	bool enabled;
 	int ir_length; /**< size of instruction register */
 	uint32_t ir_capture_value;
-	uint8_t* expected; /**< Capture-IR expected value */
+	uint8_t *expected; /**< Capture-IR expected value */
 	uint32_t ir_capture_mask;
-	uint8_t* expected_mask; /**< Capture-IR expected mask */
+	uint8_t *expected_mask; /**< Capture-IR expected mask */
 	uint32_t idcode; /**< device identification code */
 	/** not all devices have idcode,
 	 * we'll discover this during chain examination */
 	bool hasidcode;
 
-	/// Array of expected identification codes */
-	uint32_t* expected_ids;
-	/// Number of expected identification codes
+	/** Array of expected identification codes */
+	uint32_t *expected_ids;
+	/** Number of expected identification codes */
 	uint8_t expected_ids_cnt;
 
-	/// Flag saying whether to ignore version field in expected_ids[]
+	/** Flag saying whether to ignore version field in expected_ids[] */
 	bool ignore_version;
 
-	/// current instruction
-	uint8_t* cur_instr;
-	/// Bypass register selected
+	/** current instruction */
+	uint8_t *cur_instr;
+	/** Bypass register selected */
 	int bypass;
 
 	struct jtag_tap_event_action *event_action;
 
-	struct jtag_tap* next_tap;
+	struct jtag_tap *next_tap;
 	/* dap instance if some null if no instance , initialized to 0 by calloc*/
 	struct adiv5_dap *dap;
 	/* private pointer to support none-jtag specific functions */
@@ -164,15 +164,14 @@ struct jtag_tap {
 void jtag_tap_init(struct jtag_tap *tap);
 void jtag_tap_free(struct jtag_tap *tap);
 
-struct jtag_tap* jtag_all_taps(void);
+struct jtag_tap *jtag_all_taps(void);
 const char *jtag_tap_name(const struct jtag_tap *tap);
-struct jtag_tap* jtag_tap_by_string(const char* dotted_name);
-struct jtag_tap* jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj* obj);
-struct jtag_tap* jtag_tap_by_position(unsigned abs_position);
-struct jtag_tap* jtag_tap_next_enabled(struct jtag_tap* p);
+struct jtag_tap *jtag_tap_by_string(const char* dotted_name);
+struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj *obj);
+struct jtag_tap *jtag_tap_by_position(unsigned abs_position);
+struct jtag_tap *jtag_tap_next_enabled(struct jtag_tap *p);
 unsigned jtag_tap_count_enabled(void);
 unsigned jtag_tap_count(void);
-
 
 /*
  * - TRST_ASSERTED triggers two sets of callbacks, after operations to
@@ -203,15 +202,14 @@ enum jtag_event {
 	JTAG_TAP_EVENT_DISABLE,
 };
 
-struct jtag_tap_event_action
-{
-	/// The event for which this action will be triggered.
+struct jtag_tap_event_action {
+	/** The event for which this action will be triggered. */
 	enum jtag_event event;
-	/// The interpreter to use for evaluating the @c body.
+	/** The interpreter to use for evaluating the @c body. */
 	Jim_Interp *interp;
-	/// Contains a script to 'eval' when the @c event is triggered.
+	/** Contains a script to 'eval' when the @c event is triggered. */
 	Jim_Obj *body;
-	// next action in linked list
+	/* next action in linked list */
 	struct jtag_tap_event_action *next;
 };
 
@@ -226,7 +224,7 @@ struct jtag_tap_event_action
  *
  * @todo Change to return void or define a use for its return code.
  */
-typedef int (*jtag_event_handler_t)(enum jtag_event event, void* priv);
+typedef int (*jtag_event_handler_t)(enum jtag_event event, void *priv);
 
 int jtag_register_event_callback(jtag_event_handler_t f, void *x);
 int jtag_unregister_event_callback(jtag_event_handler_t f, void *x);
@@ -234,7 +232,7 @@ int jtag_unregister_event_callback(jtag_event_handler_t f, void *x);
 int jtag_call_event_callbacks(enum jtag_event event);
 
 
-/// @returns The current JTAG speed setting.
+/** @returns The current JTAG speed setting. */
 int jtag_get_speed(int *speed);
 
 /**
@@ -246,7 +244,7 @@ int jtag_get_speed(int *speed);
  */
 int jtag_get_speed_readable(int *speed);
 
-/// Attempt to configure the interface for the specified KHz.
+/** Attempt to configure the interface for the specified KHz. */
 int jtag_config_khz(unsigned khz);
 
 /**
@@ -255,9 +253,8 @@ int jtag_config_khz(unsigned khz);
  */
 int jtag_config_rclk(unsigned fallback_speed_khz);
 
-/// Retreives the clock speed of the JTAG interface in KHz.
+/** Retreives the clock speed of the JTAG interface in KHz. */
 unsigned jtag_get_speed_khz(void);
-
 
 enum reset_types {
 	RESET_NONE            = 0x0,
@@ -286,40 +283,39 @@ unsigned jtag_get_nsrst_assert_width(void);
 void jtag_set_ntrst_assert_width(unsigned delay);
 unsigned jtag_get_ntrst_assert_width(void);
 
-/// @returns The current state of TRST.
+/** @returns The current state of TRST. */
 int jtag_get_trst(void);
-/// @returns The current state of SRST.
+/** @returns The current state of SRST. */
 int jtag_get_srst(void);
 
-/// Enable or disable data scan verification checking.
+/** Enable or disable data scan verification checking. */
 void jtag_set_verify(bool enable);
-/// @returns True if data scan verification will be performed.
+/** @returns True if data scan verification will be performed. */
 bool jtag_will_verify(void);
 
-/// Enable or disable verification of IR scan checking.
+/** Enable or disable verification of IR scan checking. */
 void jtag_set_verify_capture_ir(bool enable);
-/// @returns True if IR scan verification will be performed.
+/** @returns True if IR scan verification will be performed. */
 bool jtag_will_verify_capture_ir(void);
 
 /** Initialize debug adapter upon startup.  */
-int  adapter_init(struct command_context* cmd_ctx);
+int adapter_init(struct command_context *cmd_ctx);
 
-/// Shutdown the debug adapter upon program exit.
-int  adapter_quit(void);
+/** Shutdown the debug adapter upon program exit. */
+int adapter_quit(void);
 
-/// Set ms to sleep after jtag_execute_queue() flushes queue. Debug
-/// purposes.
+/** Set ms to sleep after jtag_execute_queue() flushes queue. Debug purposes. */
 void jtag_set_flush_queue_sleep(int ms);
 
 /**
  * Initialize JTAG chain using only a RESET reset. If init fails,
  * try reset + init.
  */
-int  jtag_init(struct command_context* cmd_ctx);
+int jtag_init(struct command_context *cmd_ctx);
 
-/// reset, then initialize JTAG chain
-int jtag_init_reset(struct command_context* cmd_ctx);
-int jtag_register_commands(struct command_context* cmd_ctx);
+/** reset, then initialize JTAG chain */
+int jtag_init_reset(struct command_context *cmd_ctx);
+int jtag_register_commands(struct command_context *cmd_ctx);
 int jtag_init_inner(struct command_context *cmd_ctx);
 
 /**
@@ -347,13 +343,13 @@ int jtag_init_inner(struct command_context *cmd_ctx);
  * subsequent DR SCANs.
  *
  */
-void jtag_add_ir_scan(struct jtag_tap* tap,
-		struct scan_field* fields, tap_state_t endstate);
+void jtag_add_ir_scan(struct jtag_tap *tap,
+		struct scan_field *fields, tap_state_t endstate);
 /**
  * The same as jtag_add_ir_scan except no verification is performed out
  * the output values.
  */
-void jtag_add_ir_scan_noverify(struct jtag_tap* tap,
+void jtag_add_ir_scan_noverify(struct jtag_tap *tap,
 		const struct scan_field *fields, tap_state_t state);
 /**
  * Scan out the bits in ir scan mode.
@@ -363,18 +359,17 @@ void jtag_add_ir_scan_noverify(struct jtag_tap* tap,
 void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
 		tap_state_t endstate);
 
-
 /**
  * Generate a DR SCAN using the fields passed to the function.
  * For connected TAPs, the function checks in_fields and uses fields
  * specified there.  For bypassed TAPs, the function generates a dummy
  * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
  */
-void jtag_add_dr_scan(struct jtag_tap* tap, int num_fields,
-		const struct scan_field* fields, tap_state_t endstate);
-/// A version of jtag_add_dr_scan() that uses the check_value/mask fields
-void jtag_add_dr_scan_check(struct jtag_tap* tap, int num_fields,
-		struct scan_field* fields, tap_state_t endstate);
+void jtag_add_dr_scan(struct jtag_tap *tap, int num_fields,
+		const struct scan_field *fields, tap_state_t endstate);
+/** A version of jtag_add_dr_scan() that uses the check_value/mask fields */
+void jtag_add_dr_scan_check(struct jtag_tap *tap, int num_fields,
+		struct scan_field *fields, tap_state_t endstate);
 /**
  * Scan out the bits in ir scan mode.
  *
@@ -399,7 +394,7 @@ typedef intptr_t jtag_callback_data_t;
  */
 typedef void (*jtag_callback1_t)(jtag_callback_data_t data0);
 
-/// A simpler version of jtag_add_callback4().
+/** A simpler version of jtag_add_callback4(). */
 void jtag_add_callback(jtag_callback1_t, jtag_callback_data_t data0);
 
 
@@ -489,7 +484,7 @@ void jtag_add_tlr(void);
  *   - ERROR_JTAG_TRANSITION_INVALID -- The path includes invalid
  *     state transitions.
  */
-void jtag_add_pathmove(int num_states, const tap_state_t* path);
+void jtag_add_pathmove(int num_states, const tap_state_t *path);
 
 /**
  * jtag_add_statemove() moves from the current state to @a goal_state.
@@ -550,7 +545,6 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state t);
  */
 void jtag_add_clocks(int num_cycles);
 
-
 /**
  * For software FIFO implementations, the queued commands can be executed
  * during this call or earlier. A sw queue might decide to push out
@@ -573,19 +567,18 @@ void jtag_add_clocks(int num_cycles);
  */
 int jtag_execute_queue(void);
 
-/// same as jtag_execute_queue() but does not clear the error flag
+/** same as jtag_execute_queue() but does not clear the error flag */
 void jtag_execute_queue_noclear(void);
 
-/// @returns the number of times the scan queue has been flushed
+/** @returns the number of times the scan queue has been flushed */
 int jtag_get_flush_queue_count(void);
 
-/// Report Tcl event to all TAPs
+/** Report Tcl event to all TAPs */
 void jtag_notify_event(enum jtag_event);
 
-
 /* can be implemented by hw + sw */
-int jtag_power_dropout(int* dropout);
-int jtag_srst_asserted(int* srst_asserted);
+int jtag_power_dropout(int *dropout);
+int jtag_srst_asserted(int *srst_asserted);
 
 /* JTAG support functions */
 
@@ -641,7 +634,6 @@ void jtag_sleep(uint32_t us);
  * There is no jtag_add_dr_outin() version of this fn that also allows
  * clocking data back in. Patches gladly accepted!
  */
-
 
 /**
  * Set the current JTAG core execution error, unless one was set

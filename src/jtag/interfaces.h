@@ -27,6 +27,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef OPENOCD_JTAG_INTERFACES_H
 #define OPENOCD_JTAG_INTERFACES_H
 
@@ -37,9 +38,9 @@
 
 #include <jtag/interface.h>
 
-/// Dynamically load all JTAG interface modules from specified directory.
+/** Dynamically load all JTAG interface modules from specified directory. */
 void jtag_interface_modules_load(const char *path);
 
 extern struct jtag_interface *jtag_interfaces[];
 
-#endif // OPENOCD_JTAG_INTERFACES_H
+#endif /* OPENOCD_JTAG_INTERFACES_H */

@@ -27,6 +27,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -49,8 +50,7 @@
 extern struct jtag_interface *jtag_interface;
 const char *jtag_only[] = { "jtag", NULL };
 
-static int
-jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
@@ -66,7 +66,6 @@ jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	Jim_SetResultString(goi.interp, name ? : "undefined", -1);
 	return JIM_OK;
 }
-
 
 static int default_khz(int khz, int *jtag_speed)
 {
@@ -98,9 +97,8 @@ COMMAND_HANDLER(interface_transport_command)
 	int retval;
 
 	retval = CALL_COMMAND_HANDLER(transport_list_parse, &transports);
-	if (retval != ERROR_OK) {
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	retval = allow_transports(CMD_CTX, (const char **)transports);
 
@@ -118,8 +116,7 @@ COMMAND_HANDLER(handle_interface_list_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(CMD_CTX, "The following debug interfaces are available:");
-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
-	{
+	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
 		const char *name = jtag_interfaces[i]->name;
 		command_print(CMD_CTX, "%u: %s", i + 1, name);
 	}
@@ -132,8 +129,7 @@ COMMAND_HANDLER(handle_interface_command)
 	int retval;
 
 	/* check whether the interface is already configured */
-	if (jtag_interface)
-	{
+	if (jtag_interface) {
 		LOG_WARNING("Interface already configured, ignoring");
 		return ERROR_OK;
 	}
@@ -142,13 +138,11 @@ COMMAND_HANDLER(handle_interface_command)
 	if (CMD_ARGC != 1 || CMD_ARGV[0][0] == '\0')
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
-	{
+	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
 		if (strcmp(CMD_ARGV[0], jtag_interfaces[i]->name) != 0)
 			continue;
 
-		if (NULL != jtag_interfaces[i]->commands)
-		{
+		if (NULL != jtag_interfaces[i]->commands) {
 			retval = register_commands(CMD_CTX, NULL,
 					jtag_interfaces[i]->commands);
 			if (ERROR_OK != retval)
@@ -325,34 +319,34 @@ next:
 
 	/* minimal JTAG has neither SRST nor TRST (so that's the default) */
 	switch (new_cfg & (RESET_HAS_TRST | RESET_HAS_SRST)) {
-	case RESET_HAS_SRST:
-		modes[0] = "srst_only";
-		break;
-	case RESET_HAS_TRST:
-		modes[0] = "trst_only";
-		break;
-	case RESET_TRST_AND_SRST:
-		modes[0] = "trst_and_srst";
-		break;
-	default:
-		modes[0] = "none";
-		break;
+		case RESET_HAS_SRST:
+			modes[0] = "srst_only";
+			break;
+		case RESET_HAS_TRST:
+			modes[0] = "trst_only";
+			break;
+		case RESET_TRST_AND_SRST:
+			modes[0] = "trst_and_srst";
+			break;
+		default:
+			modes[0] = "none";
+			break;
 	}
 
 	/* normally SRST and TRST are decoupled; but bugs happen ... */
 	switch (new_cfg & (RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST)) {
-	case RESET_SRST_PULLS_TRST:
-		modes[1] = "srst_pulls_trst";
-		break;
-	case RESET_TRST_PULLS_SRST:
-		modes[1] = "trst_pulls_srst";
-		break;
-	case RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST:
-		modes[1] = "combined";
-		break;
-	default:
-		modes[1] = "separate";
-		break;
+		case RESET_SRST_PULLS_TRST:
+			modes[1] = "srst_pulls_trst";
+			break;
+		case RESET_TRST_PULLS_SRST:
+			modes[1] = "trst_pulls_srst";
+			break;
+		case RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST:
+			modes[1] = "combined";
+			break;
+		default:
+			modes[1] = "separate";
+			break;
 	}
 
 	/* TRST-less connectors include Altera, Xilinx, and minimal JTAG */
@@ -391,8 +385,7 @@ COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 1) {
 		unsigned delay;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
@@ -406,8 +399,7 @@ COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 1) {
 		unsigned width;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], width);
 
@@ -425,8 +417,7 @@ COMMAND_HANDLER(handle_adapter_khz_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval = ERROR_OK;
-	if (CMD_ARGC == 1)
-	{
+	if (CMD_ARGC == 1) {
 		unsigned khz = 0;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 

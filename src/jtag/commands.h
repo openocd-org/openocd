@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef JTAG_COMMANDS_H
 #define JTAG_COMMANDS_H
 
@@ -32,11 +33,11 @@
  * to the device, or both.
  */
 enum scan_type {
-	/// From device to host,
+	/** From device to host, */
 	SCAN_IN = 1,
-	/// From host to device,
+	/** From host to device, */
 	SCAN_OUT = 2,
-	/// Full-duplex scan.
+	/** Full-duplex scan. */
 	SCAN_IO = 3
 };
 
@@ -45,56 +46,56 @@ enum scan_type {
  * structures that should be scanned in/out to the device.
  */
 struct scan_command {
-	/// instruction/not data scan
+	/** instruction/not data scan */
 	bool ir_scan;
-	/// number of fields in *fields array
+	/** number of fields in *fields array */
 	int num_fields;
-	/// pointer to an array of data scan fields
-	struct scan_field* fields;
-	/// state in which JTAG commands should finish
+	/** pointer to an array of data scan fields */
+	struct scan_field *fields;
+	/** state in which JTAG commands should finish */
 	tap_state_t end_state;
 };
 
 struct statemove_command {
-	/// state in which JTAG commands should finish
+	/** state in which JTAG commands should finish */
 	tap_state_t end_state;
 };
 
 struct pathmove_command {
-	/// number of states in *path
+	/** number of states in *path */
 	int num_states;
-	/// states that have to be passed
-	tap_state_t* path;
+	/** states that have to be passed */
+	tap_state_t *path;
 };
 
 struct runtest_command {
-	/// number of cycles to spend in Run-Test/Idle state
+	/** number of cycles to spend in Run-Test/Idle state */
 	int num_cycles;
-	/// state in which JTAG commands should finish
+	/** state in which JTAG commands should finish */
 	tap_state_t end_state;
 };
 
 
 struct stableclocks_command {
-	/// number of clock cycles that should be sent
+	/** number of clock cycles that should be sent */
 	int num_cycles;
 };
 
 
 struct reset_command {
-	/// Set TRST output: 0 = deassert, 1 = assert, -1 = no change
+	/** Set TRST output: 0 = deassert, 1 = assert, -1 = no change */
 	int trst;
-	/// Set SRST output: 0 = deassert, 1 = assert, -1 = no change
+	/** Set SRST output: 0 = deassert, 1 = assert, -1 = no change */
 	int srst;
 };
 
 struct end_state_command {
-	/// state in which JTAG commands should finish
+	/** state in which JTAG commands should finish */
 	tap_state_t end_state;
 };
 
 struct sleep_command {
-	/// number of microseconds to sleep
+	/** number of microseconds to sleep */
 	uint32_t us;
 };
 
@@ -112,9 +113,9 @@ struct sleep_command {
  */
 struct tms_command {
 	/** How many bits should be clocked out. */
-	unsigned	num_bits;
-	/** The bits to clock out; the LSB is bit 0 of bits[0].  */
-	const uint8_t		*bits;
+	unsigned num_bits;
+	/** The bits to clock out; the LSB is bit 0 of bits[0]. */
+	const uint8_t *bits;
 };
 
 /**
@@ -122,15 +123,15 @@ struct tms_command {
  * structure of any defined type.
  */
 union jtag_command_container {
-	struct scan_command		*scan;
-	struct statemove_command	*statemove;
-	struct pathmove_command		*pathmove;
-	struct runtest_command		*runtest;
-	struct stableclocks_command	*stableclocks;
-	struct reset_command		*reset;
-	struct end_state_command	*end_state;
-	struct sleep_command		*sleep;
-	struct tms_command		*tms;
+	struct scan_command *scan;
+	struct statemove_command *statemove;
+	struct pathmove_command *pathmove;
+	struct runtest_command *runtest;
+	struct stableclocks_command *stableclocks;
+	struct reset_command *reset;
+	struct end_state_command *end_state;
+	struct sleep_command *sleep;
+	struct tms_command *tms;
 };
 
 /**
@@ -157,21 +158,21 @@ enum jtag_command_type {
 
 struct jtag_command {
 	union jtag_command_container cmd;
-	enum jtag_command_type   type;
+	enum jtag_command_type type;
 	struct jtag_command *next;
 };
 
-/// The current queue of jtag_command_s structures.
-extern struct jtag_command* jtag_command_queue;
+/** The current queue of jtag_command_s structures. */
+extern struct jtag_command *jtag_command_queue;
 
-void* cmd_queue_alloc(size_t size);
+void *cmd_queue_alloc(size_t size);
 
 void jtag_queue_command(struct jtag_command *cmd);
 void jtag_command_queue_reset(void);
 
-enum scan_type jtag_scan_type(const struct scan_command* cmd);
-int jtag_scan_size(const struct scan_command* cmd);
-int jtag_read_buffer(uint8_t* buffer, const struct scan_command* cmd);
-int jtag_build_buffer(const struct scan_command* cmd, uint8_t** buffer);
+enum scan_type jtag_scan_type(const struct scan_command *cmd);
+int jtag_scan_size(const struct scan_command *cmd);
+int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd);
+int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer);
 
-#endif // JTAG_COMMANDS_H
+#endif /* JTAG_COMMANDS_H */

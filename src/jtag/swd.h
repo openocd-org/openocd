@@ -1,12 +1,29 @@
-//
+/***************************************************************************
+ *   Copyright (C) 2009-2010 by David Brownell                             *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
 
 /* Bits in SWD command packets, written from host to target
  * first bit on the wire is START
  */
 #define SWD_CMD_START	(1 << 0)	/* always set */
 #define SWD_CMD_APnDP	(1 << 1)	/* set only for AP access */
-#define SWD_CMD_RnW	(1 << 2)	/* set only for read access */
-#define SWD_CMD_A32	(3 << 3)	/* bits A[3:2] of register addr */
+#define SWD_CMD_RnW	(1 << 2)		/* set only for read access */
+#define SWD_CMD_A32	(3 << 3)		/* bits A[3:2] of register addr */
 #define SWD_CMD_PARITY	(1 << 5)	/* parity of APnDP|RnW|A32 */
 #define SWD_CMD_STOP	(0 << 6)	/* always clear for synch SWD */
 #define SWD_CMD_PARK	(0 << 7)	/* not driven by host (pull high) */
@@ -33,7 +50,7 @@ static inline uint8_t swd_cmd(bool is_read, bool is_ap, uint8_t regnum)
 		| (is_read ? SWD_CMD_RnW : 0)
 		| ((regnum & 0xc) << 1);
 
-	//8 cmd bits 4:1 may be set
+	/* 8 cmd bits 4:1 may be set */
 	if (nibble_parity(cmd >> 1))
 		cmd |= SWD_CMD_PARITY;
 
@@ -75,7 +92,7 @@ struct swd_driver {
 	  * @param where to store value to read from register
 	  *
 	  * @return SWD_ACK_* code for the transaction
-	  * 	or (negative) fault code
+	  *		or (negative) fault code
 	  */
 	 int (*read_reg)(uint8_t cmd, uint32_t *value);
 
@@ -86,7 +103,7 @@ struct swd_driver {
 	  * @param value to be written to the register
 	  *
 	  * @return SWD_ACK_* code for the transaction
-	  * 	or (negative) fault code
+	  *		or (negative) fault code
 	  */
 	 int (*write_reg)(uint8_t cmd, uint32_t value);
 

@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef OPENOCD_JTAG_INTERFACE_H
 #define OPENOCD_JTAG_INTERFACE_H
 
@@ -54,7 +55,7 @@ void tap_set_state_impl(tap_state_t new_state);
  * expected to traverse, not just end points of a multi-step state path.
  *
  * @param new_state The state we think the TAPs are currently in (or
- * 	are about to enter).
+ * are about to enter).
  */
 #if defined(_DEBUG_JTAG_IO_)
 #define tap_set_state(new_state) \
@@ -85,7 +86,7 @@ tap_state_t tap_get_state(void);
  * state follower via tap_set_state().
  *
  * @param new_end_state The state the TAPs should enter at completion of
- * 	a pending TAP operation.
+ * a pending TAP operation.
  */
 void tap_set_end_state(tap_state_t new_end_state);
 
@@ -106,10 +107,9 @@ tap_state_t tap_get_end_state(void);
  * @param from The starting state.
  * @param to The desired final state.
  * @return int The required TMS bit sequence, with the first bit in the
- * 	sequence at bit 0.
+ * sequence at bit 0.
  */
 int tap_get_tms_path(tap_state_t from, tap_state_t to);
-
 
 /**
  * Function int tap_get_tms_path_len
@@ -160,9 +160,9 @@ bool tap_is_state_stable(tap_state_t astate);
  */
 tap_state_t tap_state_transition(tap_state_t current_state, bool tms);
 
-/// Allow switching between old and new TMS tables. @see tap_get_tms_path
+/** Allow switching between old and new TMS tables. @see tap_get_tms_path */
 void tap_use_new_tms_table(bool use_new);
-/// @returns True if new TMS table is active; false otherwise.
+/** @returns True if new TMS table is active; false otherwise. */
 bool tap_uses_new_tms_table(void);
 
 #ifdef _DEBUG_JTAG_IO_
@@ -182,7 +182,7 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 {
 	return start_tap_state;
 }
-#endif // _DEBUG_JTAG_IO_
+#endif /* _DEBUG_JTAG_IO_ */
 
 /**
  * Represents a driver for a debugging interface.
@@ -197,8 +197,8 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
  * debugging interface.
  */
 struct jtag_interface {
-	/// The name of the JTAG interface driver.
-	char* name;
+	/** The name of the JTAG interface driver. */
+	char *name;
 
 	/**
 	 * Bit vector listing capabilities exposed by this driver.
@@ -261,7 +261,7 @@ struct jtag_interface {
 	 *  and use a fallback kHz TCK.
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
-	int (*khz)(int khz, int* jtag_speed);
+	int (*khz)(int khz, int *jtag_speed);
 
 	/**
 	 * Calculate the clock frequency (in KHz) for the given @a speed.
@@ -270,7 +270,7 @@ struct jtag_interface {
 	 * @returns ERROR_OK on success, or an error code if the
 	 * interface cannot support the specified speed (KHz or RTCK).
 	 */
-	int (*speed_div)(int speed, int* khz);
+	int (*speed_div)(int speed, int *khz);
 
 	/**
 	 * Read and clear the power dropout flag. Note that a power dropout
@@ -283,7 +283,7 @@ struct jtag_interface {
 	 *
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
-	int (*power_dropout)(int* power_dropout);
+	int (*power_dropout)(int *power_dropout);
 
 	/**
 	 * Read and clear the srst asserted detection flag.
@@ -297,12 +297,11 @@ struct jtag_interface {
 	 * been asserted.
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
-	int (*srst_asserted)(int* srst_asserted);
+	int (*srst_asserted)(int *srst_asserted);
 };
-
 
 extern const char *jtag_only[];
 
 extern const struct swd_driver *swd;
 
-#endif // OPENOCD_JTAG_INTERFACE_H
+#endif /* OPENOCD_JTAG_INTERFACE_H */
