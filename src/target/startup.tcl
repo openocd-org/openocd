@@ -159,3 +159,7 @@ proc armv4_5 params {
 # By default(classic) the config scripts will set up the target configuration
 proc init_targets {} {
 }
+
+# Additionally board config scripts can define a procedure init_board that will be executed after init and init_targets
+proc init_board {} {
+}
