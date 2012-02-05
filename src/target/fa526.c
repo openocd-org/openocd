@@ -41,7 +41,7 @@ static void fa526_change_to_arm(struct target *target, uint32_t *r0, uint32_t *p
 }
 
 static void fa526_read_core_regs(struct target *target,
-		uint32_t mask, uint32_t* core_regs[16])
+		uint32_t mask, uint32_t *core_regs[16])
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -59,8 +59,7 @@ static void fa526_read_core_regs(struct target *target,
 	/* fetch NOP, STM in EXECUTE stage (1st cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i))
 			/* nothing fetched, STM in MEMORY (i'th cycle) */
 			arm9tdmi_clock_data_in(jtag_info, core_regs[i]);
@@ -68,7 +67,7 @@ static void fa526_read_core_regs(struct target *target,
 }
 
 static void fa526_read_core_regs_target_buffer(struct target *target,
-		uint32_t mask, void* buffer, int size)
+		uint32_t mask, void *buffer, int size)
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -90,12 +89,10 @@ static void fa526_read_core_regs_target_buffer(struct target *target,
 	/* fetch NOP, STM in EXECUTE stage (1st cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i))
 			/* nothing fetched, STM in MEMORY (i'th cycle) */
-			switch (size)
-			{
+			switch (size) {
 				case 4:
 					arm9tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
 					break;
@@ -188,8 +185,7 @@ static void fa526_write_xpsr_im8(struct target *target,
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
 	/* rot == 4 writes flags, which takes only one cycle */
-	if (rot != 4)
-	{
+	if (rot != 4) {
 		/* nothing fetched, MSR in EXECUTE (2) */
 		arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 		/* nothing fetched, MSR in EXECUTE (3) */
@@ -216,8 +212,7 @@ static void fa526_write_core_regs(struct target *target,
 	/* fetch NOP, LDM in EXECUTE stage (1st cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i))
 			/* nothing fetched, LDM still in EXECUTE (1 + i cycle) */
 			arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, core_regs[i], NULL, 0);
@@ -346,14 +341,13 @@ static int fa526_init_arch_info(struct target *target,
 
 static int fa526_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct arm920t_common *arm920t = calloc(1,sizeof(struct arm920t_common));
+	struct arm920t_common *arm920t = calloc(1, sizeof(struct arm920t_common));
 
 	return fa526_init_arch_info(target, arm920t, target->tap);
 }
 
 /** Holds methods for FA526 targets. */
-struct target_type fa526_target =
-{
+struct target_type fa526_target = {
 	.name = "fa526",
 
 	.poll = arm7_9_poll,

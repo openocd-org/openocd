@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "arm.h"
 #include "etm_dummy.h"
-
 
 COMMAND_HANDLER(handle_etm_dummy_config_command)
 {
@@ -32,25 +32,20 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 
 	target = get_target(CMD_ARGV[0]);
 
-	if (!target)
-	{
+	if (!target) {
 		LOG_ERROR("target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
+	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "target '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	if (arm->etm)
-	{
 		arm->etm->capture_driver_priv = NULL;
-	}
-	else
-	{
+	else {
 		LOG_ERROR("target has no ETM defined, ETM dummy left unconfigured");
 		return ERROR_FAIL;
 	}
@@ -102,8 +97,7 @@ static int etm_dummy_stop_capture(struct etm_context *etm_ctx)
 	return ERROR_OK;
 }
 
-struct etm_capture_driver etm_dummy_capture_driver =
-{
+struct etm_capture_driver etm_dummy_capture_driver = {
 	.name = "dummy",
 	.commands = etm_dummy_command_handlers,
 	.init = etm_dummy_init,

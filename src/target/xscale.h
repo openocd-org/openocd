@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef XSCALE_H
 #define XSCALE_H
 
@@ -41,27 +42,23 @@
 #define	XSCALE_IXP4XX_PXA2XX	0x0
 #define	XSCALE_PXA3XX		0x4
 
-enum xscale_debug_reason
-{
+enum xscale_debug_reason {
 	XSCALE_DBG_REASON_GENERIC,
 	XSCALE_DBG_REASON_RESET,
 	XSCALE_DBG_REASON_TB_FULL,
 };
 
-enum xscale_trace_entry_type
-{
+enum xscale_trace_entry_type {
 	XSCALE_TRACE_MESSAGE = 0x0,
 	XSCALE_TRACE_ADDRESS = 0x1,
 };
 
-struct xscale_trace_entry
-{
+struct xscale_trace_entry {
 	uint8_t data;
 	enum xscale_trace_entry_type type;
 };
 
-struct xscale_trace_data
-{
+struct xscale_trace_data {
 	struct xscale_trace_entry *entries;
 	int depth;
 	uint32_t chkpt0;
@@ -71,25 +68,22 @@ struct xscale_trace_data
 	struct xscale_trace_data *next;
 };
 
-enum trace_mode
-{
-   XSCALE_TRACE_DISABLED,
-   XSCALE_TRACE_FILL,
-   XSCALE_TRACE_WRAP
+enum trace_mode {
+	XSCALE_TRACE_DISABLED,
+	XSCALE_TRACE_FILL,
+	XSCALE_TRACE_WRAP
 };
 
-struct xscale_trace
-{
+struct xscale_trace {
 	struct image *image;					/* source for target opcodes */
 	struct xscale_trace_data *data;		/* linked list of collected trace data */
 	int buffer_fill;				/* maximum number of trace runs to read */
-    int fill_counter;				/* running count during trace collection */
-    enum trace_mode mode;
+	int fill_counter;				/* running count during trace collection */
+	enum trace_mode mode;
 	enum arm_state core_state;	/* current core state (ARM, Thumb) */
 };
 
-struct xscale_common
-{
+struct xscale_common {
 	/* armv4/5 common stuff */
 	struct arm arm;
 
@@ -147,18 +141,15 @@ struct xscale_common
 static inline struct xscale_common *
 target_to_xscale(struct target *target)
 {
-	return container_of(target->arch_info, struct xscale_common,
-			arm);
+	return container_of(target->arch_info, struct xscale_common, arm);
 }
 
-struct xscale_reg
-{
+struct xscale_reg {
 	int dbg_handler_number;
 	struct target *target;
 };
 
-enum
-{
+enum {
 	XSCALE_MAINID,		/* 0 */
 	XSCALE_CACHETYPE,
 	XSCALE_CTRL,

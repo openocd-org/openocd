@@ -32,8 +32,7 @@ struct target;
 
 #define MIPSM4K_COMMON_MAGIC	0xB321B321
 
-struct mips_m4k_common
-{
+struct mips_m4k_common {
 	uint32_t common_magic;
 	bool is_pic32mx;
 	struct mips32_common mips32;

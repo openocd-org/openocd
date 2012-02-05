@@ -64,27 +64,23 @@
 #define MIPS32_ARCH_REL2 0x1
 
 /* offsets into mips32 core register cache */
-enum
-{
+enum {
 	MIPS32_PC = 37,
 	MIPS32NUMCOREREGS
 };
 
-enum mips32_isa_mode
-{
+enum mips32_isa_mode {
 	MIPS32_ISA_MIPS32 = 0,
 	MIPS32_ISA_MIPS16E = 1,
 };
 
-struct mips32_comparator
-{
+struct mips32_comparator {
 	int used;
 	uint32_t bp_value;
 	uint32_t reg_address;
 };
 
-struct mips32_common
-{
+struct mips32_common {
 	uint32_t common_magic;
 	void *arch_info;
 	struct reg_cache *core_cache;
@@ -114,15 +110,13 @@ target_to_mips32(struct target *target)
 	return target->arch_info;
 }
 
-struct mips32_core_reg
-{
+struct mips32_core_reg {
 	uint32_t num;
 	struct target *target;
 	struct mips32_common *mips32_common;
 };
 
-struct mips32_algorithm
-{
+struct mips32_algorithm {
 	int common_magic;
 	enum mips32_isa_mode isa_mode;
 };
@@ -164,9 +158,11 @@ struct mips32_algorithm
 #define MIPS32_COP0_MF	0x00
 #define MIPS32_COP0_MT	0x04
 
-#define MIPS32_R_INST(opcode, rs, rt, rd, shamt, funct)	(((opcode) << 26) |((rs) << 21) | ((rt) << 16) | ((rd) << 11)| ((shamt) << 6) | (funct))
-#define MIPS32_I_INST(opcode, rs, rt, immd)	(((opcode) << 26) |((rs) << 21) | ((rt) << 16) | (immd))
-#define MIPS32_J_INST(opcode, addr)	(((opcode) << 26) |(addr))
+#define MIPS32_R_INST(opcode, rs, rt, rd, shamt, funct) \
+	(((opcode) << 26) | ((rs) << 21) | ((rt) << 16) | ((rd) << 11) | ((shamt) << 6) | (funct))
+#define MIPS32_I_INST(opcode, rs, rt, immd) \
+	(((opcode) << 26) | ((rs) << 21) | ((rt) << 16) | (immd))
+#define MIPS32_J_INST(opcode, addr)	(((opcode) << 26) | (addr))
 
 #define MIPS32_NOP						0
 #define MIPS32_ADDI(tar, src, val)		MIPS32_I_INST(MIPS32_OP_ADDI, src, tar, val)
@@ -176,7 +172,7 @@ struct mips32_algorithm
 #define MIPS32_B(off)					MIPS32_BEQ(0, 0, off)
 #define MIPS32_BEQ(src, tar, off)		MIPS32_I_INST(MIPS32_OP_BEQ, src, tar, off)
 #define MIPS32_BGTZ(reg, off)			MIPS32_I_INST(MIPS32_OP_BGTZ, reg, 0, off)
-#define MIPS32_BNE(src,tar,off)			MIPS32_I_INST(MIPS32_OP_BNE, src, tar, off)
+#define MIPS32_BNE(src, tar, off)		MIPS32_I_INST(MIPS32_OP_BNE, src, tar, off)
 #define MIPS32_CACHE(op, off, base)		MIPS32_I_INST(MIPS32_OP_CACHE, base, op, off)
 #define MIPS32_JR(reg)					MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_JR)
 #define MIPS32_MFC0(gpr, cpr, sel)		MIPS32_R_INST(MIPS32_OP_COP0, MIPS32_COP0_MF, gpr, cpr, 0, sel)
@@ -245,8 +241,8 @@ int mips32_register_commands(struct command_context *cmd_ctx);
 int mips32_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size);
 int mips32_checksum_memory(struct target *target, uint32_t address,
-		uint32_t count, uint32_t* checksum);
+		uint32_t count, uint32_t *checksum);
 int mips32_blank_check_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t* blank);
+		uint32_t address, uint32_t count, uint32_t *blank);
 
 #endif	/*MIPS32_H*/

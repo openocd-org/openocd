@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARMV4_5_MMU_H
 #define ARMV4_5_MMU_H
 
@@ -24,8 +25,7 @@
 
 struct target;
 
-struct armv4_5_mmu_common
-{
+struct armv4_5_mmu_common {
 	int (*get_ttb)(struct target *target, uint32_t *result);
 	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
@@ -48,8 +48,7 @@ int armv4_5_mmu_write_physical(struct target *target,
 		struct armv4_5_mmu_common *armv4_5_mmu,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
-enum
-{
+enum {
 	ARMV4_5_MMU_ENABLED = 0x1,
 	ARMV4_5_ALIGNMENT_CHECK = 0x2,
 	ARMV4_5_MMU_S_BIT = 0x100,

@@ -17,7 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #include "server/server.h"
+
 int gdb_read_smp_packet(struct connection *connection,
 		char *packet, int packet_size);
 int gdb_write_smp_packet(struct connection *connection,

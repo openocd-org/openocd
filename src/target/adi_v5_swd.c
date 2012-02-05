@@ -55,12 +55,10 @@
 
 #include <jtag/swd.h>
 
-
-
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
-	// REVISIT status return vs ack ...
+	/* REVISIT status return vs ack ... */
 	return swd->read_reg(swd_cmd(true,  false, reg), data);
 }
 
@@ -71,14 +69,14 @@ static int swd_queue_idcode_read(struct adiv5_dap *dap,
 	if (status < 0)
 		return status;
 	*ack = status;
-	// ??
+	/* ?? */
 	return ERROR_OK;
 }
 
 static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
-	// REVISIT status return vs ack ...
+	/* REVISIT status return vs ack ... */
 	return swd->write_reg(swd_cmd(false,  false, reg), data);
 }
 
@@ -86,16 +84,16 @@ static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 static int (swd_queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
-	// REVISIT  APSEL ...
-	// REVISIT status return ...
+	/* REVISIT  APSEL ... */
+	/* REVISIT status return ... */
 	return swd->read_reg(swd_cmd(true,  true, reg), data);
 }
 
 static int (swd_queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
-	// REVISIT  APSEL ...
-	// REVISIT status return ...
+	/* REVISIT  APSEL ... */
+	/* REVISIT status return ... */
 	return swd->write_reg(swd_cmd(false,  true, reg), data);
 }
 
@@ -194,15 +192,14 @@ COMMAND_HANDLER(handle_swd_wcr)
 	int retval;
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target_to_arm(target);
-struct adiv5_dap *dap = arm->dap;
+	struct adiv5_dap *dap = arm->dap;
 	uint32_t wcr;
 	unsigned trn, scale = 0;
-
 
 	switch (CMD_ARGC) {
 	/* no-args: just dump state */
 	case 0:
-		//retval = swd_queue_dp_read(dap, DP_WCR, &wcr);
+		/*retval = swd_queue_dp_read(dap, DP_WCR, &wcr); */
 		retval = dap_queue_dp_read(dap, DP_WCR, &wcr);
 		if (retval == ERROR_OK)
 			dap->ops->run(dap);
@@ -315,10 +312,9 @@ static int swd_init(struct command_context *ctx)
 {
 	struct target *target = get_current_target(ctx);
 	struct arm *arm = target_to_arm(target);
-struct adiv5_dap *dap = arm->dap;
+	struct adiv5_dap *dap = arm->dap;
 	uint32_t idcode;
 	int status;
-
 
 	/* FIXME validate transport config ... is the
 	 * configured DAP present (check IDCODE)?

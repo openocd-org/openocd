@@ -17,12 +17,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ETB_H
 #define ETB_H
 
 /* ETB registers */
-enum
-{
+enum {
 	ETB_ID = 0x00,
 	ETB_RAM_DEPTH = 0x01,
 	ETB_RAM_WIDTH = 0x02,
@@ -34,8 +34,7 @@ enum
 	ETB_CTRL = 0x08,
 };
 
-struct etb
-{
+struct etb {
 	struct etm_context *etm_ctx;
 	struct jtag_tap *tap;
 	uint32_t cur_scan_chain;
@@ -49,14 +48,13 @@ struct etb
 	unsigned trigger_percent;
 };
 
-struct etb_reg
-{
+struct etb_reg {
 	uint32_t addr;
 	struct etb *etb;
 };
 
 extern struct etm_capture_driver etb_capture_driver;
 
-struct reg_cache* etb_build_reg_cache(struct etb *etb);
+struct reg_cache *etb_build_reg_cache(struct etb *etb);
 
 #endif /* ETB_H */

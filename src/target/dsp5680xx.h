@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef DSP5680XX_H
 #define DSP5680XX_H
 
@@ -29,12 +30,12 @@
  * @file   dsp5680xx.h
  * @author Rodrigo Rosa <rodrigorosa.LG@gmail.com>
  * @date   Thu Jun  9 18:54:38 2011
- * 
+ *
  * @brief  Basic support for the 5680xx DSP from Freescale.
  * The chip has two taps in the JTAG chain, the Master tap and the Core tap.
  * In this code the Master tap is only used to unlock the flash memory by executing a JTAG instruction.
- * 
- * 
+ *
+ *
  */
 
 #define S_FILE_DATA_OFFSET 0x200000
@@ -153,7 +154,7 @@
  * ----------------------------------------------------------------
  */
 
-#define FLUSH_COUNT_READ_WRITE 8192 // This value works, higher values (and lower...) may work as well.
+#define FLUSH_COUNT_READ_WRITE 8192 /* This value works, higher values (and lower...) may work as well. */
 #define FLUSH_COUNT_FLASH 8192
 /** ----------------------------------------------------------------
  * HFM (flash module) Commands (ref:MC56F801xRM.pdf@159)
@@ -201,7 +202,7 @@
 /**
  * The value used on for the FM clock is important to prevent flashing errors and to prevent deterioration of the FM.
  * This value was calculated using a spreadsheet tool available on the Freescale website under FAQ 25464.
- * 
+ *
  */
 #define HFM_CLK_DEFAULT	0x27
 /* 0x27 according to freescale cfg, but 0x40 according to freescale spreadsheet... */
@@ -299,73 +300,86 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target
 	return target->arch_info;
 }
 
-/** 
+/**
  * Writes to flash memory.
- * Does not check if flash is erased, it's up to the user to erase the flash before running this function.
- * The flashing algorithm runs from RAM, reading from a register to which this function writes to. The algorithm is open loop, there is no control to verify that the FM read the register before writing the next data. A closed loop approach was much slower, and the current implementation does not fail, and if it did the crc check would detect it, allowing to flash again.
- * 
- * @param target 
- * @param buffer 
+ * Does not check if flash is erased, it's up to the user to erase the flash before running
+ * this function.
+ * The flashing algorithm runs from RAM, reading from a register to which this function
+ * writes to. The algorithm is open loop, there is no control to verify that the FM read
+ * the register before writing the next data. A closed loop approach was much slower,
+ * and the current implementation does not fail, and if it did the crc check would detect it,
+ * allowing to flash again.
+ *
+ * @param target
+ * @param buffer
  * @param address Word addressing.
- * @param count In bytes. 
- * @param verify_flash Execute a CRC check after flashing. 
- * 
- * @return 
+ * @param count In bytes.
+ * @param verify_flash Execute a CRC check after flashing.
+ *
+ * @return
  */
 int dsp5680xx_f_wr(struct target *target, uint8_t * buffer, uint32_t address,
-		   uint32_t count, int is_flash_lock);
+		uint32_t count, int is_flash_lock);
 
-/** 
- * The FM has the funcionality of checking if the flash array is erased. This function executes it. It does not support individual sector analysis.
- * 
- * @param target 
- * @param erased 
- * @param sector This parameter is ignored because the FM does not support checking if individual sectors are erased.
- * 
- * @return 
+/**
+ * The FM has the funcionality of checking if the flash array is erased. This function
+ * executes it. It does not support individual sector analysis.
+ *
+ * @param target
+ * @param erased
+ * @param sector This parameter is ignored because the FM does not support checking if
+ * individual sectors are erased.
+ *
+ * @return
  */
 int dsp5680xx_f_erase_check(struct target *target, uint8_t * erased,
-			    uint32_t sector);
+		uint32_t sector);
 
-/** 
- * Erases either a sector or the complete flash array. If either the range first-last covers the complete array or if @first == 0 and @last == 0 then a mass erase command is executed on the FM. If not, then individual sectors are erased.
- * 
- * @param target 
- * @param first 
- * @param last 
- * 
- * @return 
+/**
+ * Erases either a sector or the complete flash array. If either the range first-last covers
+ * the complete array or if @first == 0 and @last == 0 then a mass erase command is executed
+ * on the FM. If not, then individual sectors are erased.
+ *
+ * @param target
+ * @param first
+ * @param last
+ *
+ * @return
  */
 int dsp5680xx_f_erase(struct target *target, int first, int last);
 
-/** 
- * Reads the memory mapped protection register. A 1 implies the sector is protected, a 0 implies the sector is not protected.
- * 
- * @param target 
+/**
+ * Reads the memory mapped protection register. A 1 implies the sector is protected,
+ * a 0 implies the sector is not protected.
+ *
+ * @param target
  * @param protected Data read from the protection register.
- * 
- * @return 
+ *
+ * @return
  */
 int dsp5680xx_f_protect_check(struct target *target, uint16_t * protected);
 
-/** 
- * Writes the flash security words with a specific value. The chip's security will be enabled after the first reset following the execution of this function.
- * 
- * @param target 
- * 
- * @return 
+/**
+ * Writes the flash security words with a specific value. The chip's security will be
+ * enabled after the first reset following the execution of this function.
+ *
+ * @param target
+ *
+ * @return
  */
 int dsp5680xx_f_lock(struct target *target);
 
-/** 
+/**
  * Executes a mass erase command. The must be done from the Master tap.
- * It is up to the user to select the master tap (jtag tapenable dsp5680xx.chp) before running this function.
- * The flash array will be unsecured (and erased) after the first reset following the execution of this function.
- * 
- * @param target 
- * 
- * @return 
+ * It is up to the user to select the master tap (jtag tapenable dsp5680xx.chp)
+ * before running this function.
+ * The flash array will be unsecured (and erased) after the first reset following
+ * the execution of this function.
+ *
+ * @param target
+ *
+ * @return
  */
 int dsp5680xx_f_unlock(struct target *target);
 
-#endif			/* dsp5680xx.h */
+#endif /* dsp5680xx.h */

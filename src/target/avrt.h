@@ -17,18 +17,17 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef AVRT_H
 #define AVRT_H
 
 #include <jtag/jtag.h>
 
-struct mcu_jtag
-{
+struct mcu_jtag {
 	struct jtag_tap *tap;
 };
 
-struct avr_common
-{
+struct avr_common {
 	struct mcu_jtag jtag_info;
 };
 

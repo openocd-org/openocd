@@ -17,26 +17,24 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ALGORITHM_H
 #define ALGORITHM_H
 
-enum param_direction
-{
+enum param_direction {
 	PARAM_IN,
 	PARAM_OUT,
 	PARAM_IN_OUT
 };
 
-struct mem_param
-{
+struct mem_param {
 	uint32_t address;
 	uint32_t size;
 	uint8_t *value;
 	enum param_direction direction;
 };
 
-struct reg_param
-{
+struct reg_param {
 	const char *reg_name;
 	uint32_t size;
 	uint8_t *value;

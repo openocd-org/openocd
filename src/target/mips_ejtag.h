@@ -122,8 +122,7 @@
 #define	EJTAG_DBCn_BLM_SHIFT	4
 #define	EJTAG_DBCn_BE			(1 << 0)
 
-struct mips_ejtag
-{
+struct mips_ejtag {
 	struct jtag_tap *tap;
 	uint32_t impcode;
 	uint32_t idcode;
@@ -146,7 +145,7 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info);
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step);
 int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg);
 
-static __inline__ void mips_le_to_h_u32(jtag_callback_data_t arg)
+static inline void mips_le_to_h_u32(jtag_callback_data_t arg)
 {
 	uint8_t *in = (uint8_t *)arg;
 	*((uint32_t *)arg) = le_to_h_u32(in);

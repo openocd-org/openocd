@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -24,7 +25,6 @@
 #include "avrt.h"
 #include "target.h"
 #include "target_type.h"
-
 
 #define AVR_JTAG_INS_LEN	4
 
@@ -35,8 +35,10 @@ static int avr_init_target(struct command_context *cmd_ctx, struct target *targe
 static int avr_arch_state(struct target *target);
 static int avr_poll(struct target *target);
 static int avr_halt(struct target *target);
-static int avr_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-static int avr_step(struct target *target, int current, uint32_t address, int handle_breakpoints);
+static int avr_resume(struct target *target, int current, uint32_t address,
+		int handle_breakpoints, int debug_execution);
+static int avr_step(struct target *target, int current, uint32_t address,
+		int handle_breakpoints);
 
 static int avr_assert_reset(struct target *target);
 static int avr_deassert_reset(struct target *target);
@@ -48,8 +50,7 @@ static int mcu_write_dr(struct jtag_tap *tap, uint8_t *dr_in, uint8_t *dr_out, i
 static int mcu_write_ir_u8(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
 static int mcu_write_dr_u32(struct jtag_tap *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
 
-struct target_type avr_target =
-{
+struct target_type avr_target = {
 	.name = "avr",
 
 	.poll = avr_poll,
@@ -96,43 +97,41 @@ static int avr_target_create(struct target *target, Jim_Interp *interp)
 
 static int avr_init_target(struct command_context *cmd_ctx, struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int avr_arch_state(struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int avr_poll(struct target *target)
 {
 	if ((target->state == TARGET_RUNNING) || (target->state == TARGET_DEBUG_RUNNING))
-	{
 		target->state = TARGET_HALTED;
-	}
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int avr_halt(struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int avr_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int avr_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
@@ -140,7 +139,7 @@ static int avr_assert_reset(struct target *target)
 {
 	target->state = TARGET_RESET;
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
@@ -148,13 +147,13 @@ static int avr_deassert_reset(struct target *target)
 {
 	target->state = TARGET_RUNNING;
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int avr_soft_reset_halt(struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
@@ -173,13 +172,11 @@ int avr_jtag_sendinstr(struct jtag_tap *tap, uint8_t *ir_in, uint8_t ir_out)
 static int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out,
 		int ir_len, int rti)
 {
-	if (NULL == tap)
-	{
+	if (NULL == tap) {
 		LOG_ERROR("invalid tap");
 		return ERROR_FAIL;
 	}
-	if (ir_len != tap->ir_length)
-	{
+	if (ir_len != tap->ir_length) {
 		LOG_ERROR("invalid ir_len");
 		return ERROR_FAIL;
 	}
@@ -194,8 +191,7 @@ static int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out,
 static int mcu_write_dr(struct jtag_tap *tap, uint8_t *dr_in, uint8_t *dr_out,
 		int dr_len, int rti)
 {
-	if (NULL == tap)
-	{
+	if (NULL == tap) {
 		LOG_ERROR("invalid tap");
 		return ERROR_FAIL;
 	}
@@ -210,8 +206,7 @@ static int mcu_write_dr(struct jtag_tap *tap, uint8_t *dr_in, uint8_t *dr_out,
 static int mcu_write_ir_u8(struct jtag_tap *tap, uint8_t *ir_in,
 		uint8_t ir_out, int ir_len, int rti)
 {
-	if (ir_len > 8)
-	{
+	if (ir_len > 8) {
 		LOG_ERROR("ir_len overflow, maxium is 8");
 		return ERROR_FAIL;
 	}
@@ -224,13 +219,12 @@ static int mcu_write_ir_u8(struct jtag_tap *tap, uint8_t *ir_in,
 static int mcu_write_dr_u32(struct jtag_tap *tap, uint32_t *dr_in,
 		uint32_t dr_out, int dr_len, int rti)
 {
-	if (dr_len > 32)
-	{
+	if (dr_len > 32) {
 		LOG_ERROR("dr_len overflow, maxium is 32");
 		return ERROR_FAIL;
 	}
 
-	mcu_write_dr(tap, (uint8_t*)dr_in, (uint8_t*)&dr_out, dr_len, rti);
+	mcu_write_dr(tap, (uint8_t *)dr_in, (uint8_t *)&dr_out, dr_len, rti);
 
 	return ERROR_OK;
 }

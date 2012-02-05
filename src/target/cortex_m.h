@@ -23,11 +23,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef CORTEX_M3_H
 #define CORTEX_M3_H
 
 #include "armv7m.h"
-
 
 #define CORTEX_M3_COMMON_MAGIC 0x1A451A45
 
@@ -117,16 +117,14 @@
 #define FPCR_REPLACE_BKPT_HIGH  (2 << 30)
 #define FPCR_REPLACE_BKPT_BOTH  (3 << 30)
 
-struct cortex_m3_fp_comparator
-{
+struct cortex_m3_fp_comparator {
 	int used;
 	int type;
 	uint32_t fpcr_value;
 	uint32_t fpcr_address;
 };
 
-struct cortex_m3_dwt_comparator
-{
+struct cortex_m3_dwt_comparator {
 	int used;
 	uint32_t comp;
 	uint32_t mask;
@@ -134,21 +132,18 @@ struct cortex_m3_dwt_comparator
 	uint32_t dwt_comparator_address;
 };
 
-enum cortex_m3_soft_reset_config
-{
+enum cortex_m3_soft_reset_config {
 	CORTEX_M3_RESET_SYSRESETREQ,
 	CORTEX_M3_RESET_VECTRESET,
 };
 
-enum cortex_m3_isrmasking_mode
-{
+enum cortex_m3_isrmasking_mode {
 	CORTEX_M3_ISRMASK_AUTO,
 	CORTEX_M3_ISRMASK_OFF,
 	CORTEX_M3_ISRMASK_ON,
 };
 
-struct cortex_m3_common
-{
+struct cortex_m3_common {
 	int common_magic;
 	struct arm_jtag jtag_info;
 

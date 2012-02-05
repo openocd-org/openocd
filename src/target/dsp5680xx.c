@@ -20,6 +20,7 @@
  *  Free Software Foundation, Inc.,                                       *
  *  59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -1542,7 +1543,7 @@ static int perl_crc(uint8_t *buff8, uint32_t word_count)
 		data = (buff8[2 * i] | (buff8[2 * i + 1] << 8));
 		fbmisr =
 			(checksum & 2) >> 1 ^ (checksum & 4) >> 2 ^ (checksum & 16)
-				       >> 4 ^ (checksum & 0x8000) >> 15;
+				>> 4 ^ (checksum & 0x8000) >> 15;
 		checksum = (data ^ ((checksum << 1) | fbmisr));
 	}
 	i--;
@@ -1978,13 +1979,13 @@ int dsp5680xx_f_erase(struct target *target, int first, int last)
  */
 
 const uint16_t pgm_write_pflash[] = { 0x8A46, 0x0013, 0x807D, 0xE700,
-				      0xE700, 0x8A44, 0xFFFE, 0x017B,
-				      0xE700, 0xF514, 0x8563, 0x8646,
-				      0x0020, 0x0014, 0x8646, 0x0080,
-				      0x0013, 0xF042, 0x0013, 0x8B40,
-				      0x2004, 0x8246, 0x0013, 0x0020,
-				      0xA967, 0x8B40, 0x1065, 0x8246,
-				      0x0013, 0x0010, 0xA961
+		0xE700, 0x8A44, 0xFFFE, 0x017B,
+		0xE700, 0xF514, 0x8563, 0x8646,
+		0x0020, 0x0014, 0x8646, 0x0080,
+		0x0013, 0xF042, 0x0013, 0x8B40,
+		0x2004, 0x8246, 0x0013, 0x0020,
+		0xA967, 0x8B40, 0x1065, 0x8246,
+		0x0013, 0x0010, 0xA961
 };
 
 const uint32_t pgm_write_pflash_length = 31;

@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARMV4_5_H
 #define ARMV4_5_H
 
@@ -42,7 +43,7 @@ enum arm_mode armv4_5_number_to_mode(int number);
 extern const int armv4_5_core_reg_map[8][17];
 
 #define ARMV4_5_CORE_REG_MODE(cache, mode, num) \
-		cache->reg_list[armv4_5_core_reg_map[arm_mode_to_number(mode)][num]]
+		(cache->reg_list[armv4_5_core_reg_map[arm_mode_to_number(mode)][num]])
 
 /* offset into armv4_5 core register cache -- OBSOLETE, DO NOT USE! */
 enum { ARMV4_5_CPSR = 31, };

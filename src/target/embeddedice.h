@@ -23,13 +23,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef EMBEDDED_ICE_H
 #define EMBEDDED_ICE_H
 
 #include "arm7_9_common.h"
 
-enum
-{
+enum {
 	EICE_DBG_CTRL = 0,
 	EICE_DBG_STAT = 1,
 	EICE_COMMS_CTRL = 2,
@@ -49,8 +49,7 @@ enum
 	EICE_VEC_CATCH = 16
 };
 
-enum
-{
+enum {
 	EICE_DBG_CONTROL_ICEDIS = 5,
 	EICE_DBG_CONTROL_MONEN = 4,
 	EICE_DBG_CONTROL_INTDIS = 2,
@@ -58,8 +57,7 @@ enum
 	EICE_DBG_CONTROL_DBGACK = 0,
 };
 
-enum
-{
+enum {
 	EICE_DBG_STATUS_IJBIT = 5,
 	EICE_DBG_STATUS_ITBIT = 4,
 	EICE_DBG_STATUS_SYSCOMP = 3,
@@ -68,8 +66,7 @@ enum
 	EICE_DBG_STATUS_DBGACK = 0
 };
 
-enum
-{
+enum {
 	EICE_W_CTRL_ENABLE = 0x100,
 	EICE_W_CTRL_RANGE = 0x80,
 	EICE_W_CTRL_CHAIN = 0x40,
@@ -81,26 +78,24 @@ enum
 	EICE_W_CTRL_nRW = 0x1
 };
 
-enum
-{
+enum {
 	EICE_COMM_CTRL_WBIT = 1,
 	EICE_COMM_CTRL_RBIT = 0
 };
 
-struct embeddedice_reg
-{
+struct embeddedice_reg {
 	int addr;
 	struct arm_jtag *jtag_info;
 };
 
-struct reg_cache* embeddedice_build_reg_cache(struct target *target,
+struct reg_cache *embeddedice_build_reg_cache(struct target *target,
 		struct arm7_9_common *arm7_9);
 
 int embeddedice_setup(struct target *target);
 
 int embeddedice_read_reg(struct reg *reg);
 int embeddedice_read_reg_w_check(struct reg *reg,
-		uint8_t* check_value, uint8_t* check_mask);
+		uint8_t *check_value, uint8_t *check_mask);
 
 void embeddedice_write_reg(struct reg *reg, uint32_t value);
 void embeddedice_store_reg(struct reg *reg);
@@ -112,10 +107,10 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size);
 
 int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeout);
 
-/* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of
- * embeddedice_write_reg
+/* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be
+ * this faster version of embeddedice_write_reg
  */
-static __inline__ void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg_addr, uint32_t value)
+static inline void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg_addr, uint32_t value)
 {
 	static const int embeddedice_num_bits[] = {32, 6};
 	uint32_t values[2];
@@ -123,13 +118,10 @@ static __inline__ void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg
 	values[0] = value;
 	values[1] = (1 << 5) | reg_addr;
 
-	jtag_add_dr_out(tap,
-			2,
-			embeddedice_num_bits,
-			values,
-			TAP_IDLE);
+	jtag_add_dr_out(tap, 2, embeddedice_num_bits, values, TAP_IDLE);
 }
 
-void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *buffer, int little, int count);
+void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *buffer,
+		int little, int count);
 
 #endif /* EMBEDDED_ICE_H */

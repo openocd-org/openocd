@@ -17,14 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef OOCD_TRACE_H
 #define OOCD_TRACE_H
 
 #include <termios.h>
 
 /* registers */
-enum
-{
+enum {
 	OOCD_TRACE_ID = 0x7,
 	OOCD_TRACE_ADDRESS = 0x0,
 	OOCD_TRACE_TRIGGER_COUNTER = 0x01,
@@ -34,8 +34,7 @@ enum
 };
 
 /* commands */
-enum
-{
+enum {
 	OOCD_TRACE_NOP = 0x0,
 	OOCD_TRACE_READ_REG = 0x10,
 	OOCD_TRACE_WRITE_REG = 0x18,
@@ -44,8 +43,7 @@ enum
 	OOCD_TRACE_RESYNC = 0xf0,
 };
 
-struct oocd_trace
-{
+struct oocd_trace {
 	struct etm_context *etm_ctx;
 	char *tty;
 	int tty_fd;

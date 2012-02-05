@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARMV7M_COMMON_H
 #define ARMV7M_COMMON_H
 
@@ -39,9 +40,7 @@ extern uint8_t armv7m_gdb_dummy_cpsr_value[];
 extern struct reg armv7m_gdb_dummy_cpsr_reg;
 #endif
 
-
-enum armv7m_mode
-{
+enum armv7m_mode {
 	ARMV7M_MODE_THREAD = 0,
 	ARMV7M_MODE_USER_THREAD = 1,
 	ARMV7M_MODE_HANDLER = 2,
@@ -52,8 +51,7 @@ extern char *armv7m_mode_strings[];
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];
 
-enum armv7m_regtype
-{
+enum armv7m_regtype {
 	ARMV7M_REGISTER_CORE_GP,
 	ARMV7M_REGISTER_CORE_SP,
 	ARMV7M_REGISTER_MEMMAP
@@ -62,8 +60,7 @@ enum armv7m_regtype
 char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
-enum
-{
+enum {
 	/* for convenience, the first set of indices match
 	 * the Cortex-M3 DCRSR selectors
 	 */
@@ -100,8 +97,7 @@ enum
 
 #define ARMV7M_COMMON_MAGIC 0x2A452A45
 
-struct armv7m_common
-{
+struct armv7m_common {
 	struct arm	arm;
 
 	int common_magic;
@@ -139,17 +135,15 @@ static inline bool is_armv7m(struct armv7m_common *armv7m)
 	return armv7m->common_magic == ARMV7M_COMMON_MAGIC;
 }
 
-struct armv7m_algorithm
-{
+struct armv7m_algorithm {
 	int common_magic;
 
 	enum armv7m_mode core_mode;
 
-	uint32_t context[ARMV7M_CONTROL + 1]; //ARMV7M_NUM_REGS
+	uint32_t context[ARMV7M_CONTROL + 1]; /* ARMV7M_NUM_REGS */
 };
 
-struct armv7m_core_reg
-{
+struct armv7m_core_reg {
 	uint32_t num;
 	enum armv7m_regtype type;
 	struct target *target;
@@ -189,9 +183,9 @@ int armv7m_invalidate_core_regs(struct target *target);
 int armv7m_restore_context(struct target *target);
 
 int armv7m_checksum_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t* checksum);
+		uint32_t address, uint32_t count, uint32_t *checksum);
 int armv7m_blank_check_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t* blank);
+		uint32_t address, uint32_t count, uint32_t *blank);
 
 int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found);
 

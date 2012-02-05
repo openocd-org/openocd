@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -31,7 +32,6 @@
 #include "target_type.h"
 #include "register.h"
 #include "arm_opcodes.h"
-
 
 /*
  * For information about ARM7TDMI, see ARM DDI 0210C (r4p1)
@@ -50,8 +50,7 @@ static int arm7tdmi_examine_debug_reason(struct target *target)
 
 	/* only check the debug reason if we don't know it already */
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
-			&& (target->debug_reason != DBG_REASON_SINGLESTEP))
-	{
+			&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {
 		struct scan_field fields[2];
 		uint8_t databus[4];
 		uint8_t breakpoint;
@@ -64,19 +63,17 @@ static int arm7tdmi_examine_debug_reason(struct target *target)
 		fields[1].out_value = NULL;
 		fields[1].in_value = databus;
 
-		if ((retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
-		{
+		retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1, TAP_DRPAUSE);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 		retval = arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL, TAP_DRPAUSE);
 		if (retval != ERROR_OK)
 			return retval;
 
 		jtag_add_dr_scan(arm7_9->jtag_info.tap, 2, fields, TAP_DRPAUSE);
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
-		{
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		fields[0].in_value = NULL;
 		fields[0].out_value = &breakpoint;
@@ -96,9 +93,9 @@ static int arm7tdmi_examine_debug_reason(struct target *target)
 
 static const int arm7tdmi_num_bits[] = {1, 32};
 
-static __inline int arm7tdmi_clock_out_inner(struct arm_jtag *jtag_info, uint32_t out, int breakpoint)
+static inline int arm7tdmi_clock_out_inner(struct arm_jtag *jtag_info, uint32_t out, int breakpoint)
 {
-	uint32_t values[2]={breakpoint, flip_u32(out, 32)};
+	uint32_t values[2] = {breakpoint, flip_u32(out, 32)};
 
 	jtag_add_dr_out(jtag_info->tap,
 			2,
@@ -116,7 +113,7 @@ static __inline int arm7tdmi_clock_out_inner(struct arm_jtag *jtag_info, uint32_
  *
  * FIXME remove the unused "deprecated" parameter
  */
-static __inline int arm7tdmi_clock_out(struct arm_jtag *jtag_info,
+static inline int arm7tdmi_clock_out(struct arm_jtag *jtag_info,
 		uint32_t out, uint32_t *deprecated, int breakpoint)
 {
 	int retval;
@@ -136,10 +133,9 @@ static int arm7tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	int retval = ERROR_OK;
 	struct scan_field fields[2];
 
-	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -159,7 +155,8 @@ static int arm7tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		return retval;
 
 	if (in)
@@ -176,28 +173,21 @@ void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 	uint32_t readback = le_to_h_u32(tmp);
 	if (flip)
 		readback = flip_u32(readback, 32);
-	switch (size)
-	{
+	switch (size) {
 		case 4:
 			if (be)
-			{
-				h_u32_to_be(((uint8_t*)in), readback);
-			} else
-			{
-				 h_u32_to_le(((uint8_t*)in), readback);
-			}
+				h_u32_to_be(((uint8_t *)in), readback);
+			else
+				 h_u32_to_le(((uint8_t *)in), readback);
 			break;
 		case 2:
 			if (be)
-			{
-				h_u16_to_be(((uint8_t*)in), readback & 0xffff);
-			} else
-			{
-				h_u16_to_le(((uint8_t*)in), readback & 0xffff);
-			}
+				h_u16_to_be(((uint8_t *)in), readback & 0xffff);
+			else
+				h_u16_to_le(((uint8_t *)in), readback & 0xffff);
 			break;
 		case 1:
-			*((uint8_t *)in)= readback & 0xff;
+			*((uint8_t *)in) = readback & 0xff;
 			break;
 	}
 }
@@ -222,10 +212,9 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	int retval = ERROR_OK;
 	struct scan_field fields[2];
 
-	if ((retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -250,19 +239,14 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
-		{
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		if (in)
-		{
-			LOG_DEBUG("in: 0x%8.8x", *(uint32_t*)in);
-		}
+			LOG_DEBUG("in: 0x%8.8x", *(uint32_t *)in);
 		else
-		{
 			LOG_ERROR("BUG: called with in == NULL");
-		}
 }
 #endif
 
@@ -318,7 +302,6 @@ static void arm7tdmi_change_to_arm(struct target *target,
 	*pc -= 0xa;
 }
 
-
 /* FIX!!! is this a potential performance bottleneck w.r.t. requiring too many
  * roundtrips when jtag_execute_queue() has a large overhead(e.g. for USB)s?
  *
@@ -326,7 +309,7 @@ static void arm7tdmi_change_to_arm(struct target *target,
  * and convert data afterwards.
  */
 static void arm7tdmi_read_core_regs(struct target *target,
-		uint32_t mask, uint32_t* core_regs[16])
+		uint32_t mask, uint32_t *core_regs[16])
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -342,8 +325,7 @@ static void arm7tdmi_read_core_regs(struct target *target,
 	/* fetch NOP, STM in EXECUTE stage (1st cycle) */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i))
 			/* nothing fetched, STM still in EXECUTE (1 + i cycle) */
 			arm7tdmi_clock_data_in(jtag_info, core_regs[i]);
@@ -351,7 +333,7 @@ static void arm7tdmi_read_core_regs(struct target *target,
 }
 
 static void arm7tdmi_read_core_regs_target_buffer(struct target *target,
-		uint32_t mask, void* buffer, int size)
+		uint32_t mask, void *buffer, int size)
 {
 	int i;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -371,13 +353,10 @@ static void arm7tdmi_read_core_regs_target_buffer(struct target *target,
 	/* fetch NOP, STM in EXECUTE stage (1st cycle) */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		/* nothing fetched, STM still in EXECUTE (1 + i cycle), read databus */
-		if (mask & (1 << i))
-		{
-			switch (size)
-			{
+		if (mask & (1 << i)) {
+			switch (size) {
 				case 4:
 					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
 					break;
@@ -474,8 +453,7 @@ static void arm7tdmi_write_core_regs(struct target *target,
 	/* fetch NOP, LDM in EXECUTE stage (1st cycle) */
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i))
 			/* nothing fetched, LDM still in EXECUTE (1 + i cycle) */
 			arm7tdmi_clock_out_inner(jtag_info, core_regs[i], 0);
@@ -711,7 +689,7 @@ static int arm7tdmi_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct arm7_9_common *arm7_9;
 
-	arm7_9 = calloc(1,sizeof(struct arm7_9_common));
+	arm7_9 = calloc(1, sizeof(struct arm7_9_common));
 	arm7tdmi_init_arch_info(target, arm7_9, target->tap);
 	arm7_9->arm.is_armv4 = true;
 
@@ -719,8 +697,7 @@ static int arm7tdmi_target_create(struct target *target, Jim_Interp *interp)
 }
 
 /** Holds methods for ARM7TDMI targets. */
-struct target_type arm7tdmi_target =
-{
+struct target_type arm7tdmi_target = {
 	.name = "arm7tdmi",
 
 	.poll = arm7_9_poll,

@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -35,8 +36,7 @@
 #include "target_type.h"
 #include "trace.h"
 
-
-static bool got_message = false;
+static bool got_message;
 
 bool target_got_message(void)
 {
@@ -45,20 +45,19 @@ bool target_got_message(void)
 	return t;
 }
 
-static int charmsg_mode = 0;
+static int charmsg_mode;
 
 static int target_asciimsg(struct target *target, uint32_t length)
 {
 	char *msg = malloc(DIV_ROUND_UP(length + 1, 4) * 4);
 	struct debug_msg_receiver *c = target->dbgmsg;
 
-	target->type->target_request_data(target, DIV_ROUND_UP(length, 4), (uint8_t*)msg);
+	target->type->target_request_data(target, DIV_ROUND_UP(length, 4), (uint8_t *)msg);
 	msg[length] = 0;
 
 	LOG_DEBUG("%s", msg);
 
-	while (c)
-	{
+	while (c) {
 		command_print(c->cmd_ctx, "%s", msg);
 		c = c->next;
 	}
@@ -83,13 +82,11 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
 
 	LOG_DEBUG("size: %i, length: %i", (int)size, (int)length);
 
-	target->type->target_request_data(target, DIV_ROUND_UP(length * size, 4), (uint8_t*)data);
+	target->type->target_request_data(target, DIV_ROUND_UP(length * size, 4), (uint8_t *)data);
 
 	line_len = 0;
-	for (i = 0; i < length; i++)
-	{
-		switch (size)
-		{
+	for (i = 0; i < length; i++) {
+		switch (size) {
 			case 4:
 				line_len += snprintf(line + line_len, 128 - line_len, "%8.8" PRIx32 " ", le_to_h_u32(data + (4*i)));
 				break;
@@ -101,12 +98,10 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
 				break;
 		}
 
-		if ((i%8 == 7) || (i == length - 1))
-		{
+		if ((i%8 == 7) || (i == length - 1)) {
 			LOG_DEBUG("%s", line);
 
-			while (c)
-			{
+			while (c) {
 				command_print(c->cmd_ctx, "%s", line);
 				c = c->next;
 			}
@@ -134,20 +129,16 @@ int target_request(struct target *target, uint32_t request)
 		target_charmsg(target, target_req_cmd);
 		return ERROR_OK;
 	}
-	switch (target_req_cmd)
-	{
+
+	switch (target_req_cmd) {
 		case TARGET_REQ_TRACEMSG:
 			trace_point(target, (request & 0xffffff00) >> 8);
 			break;
 		case TARGET_REQ_DEBUGMSG:
 			if (((request & 0xff00) >> 8) == 0)
-			{
 				target_asciimsg(target, (request & 0xffff0000) >> 16);
-			}
 			else
-			{
 				target_hexmsg(target, (request & 0xff00) >> 8, (request & 0xffff0000) >> 16);
-			}
 			break;
 		case TARGET_REQ_DEBUGCHAR:
 			target_charmsg(target, (request & 0x00ff0000) >> 16);
@@ -155,9 +146,9 @@ int target_request(struct target *target, uint32_t request)
 /*		case TARGET_REQ_SEMIHOSTING:
  *			break;
  */
- 		default:
- 			LOG_ERROR("unknown target request: %2.2x", target_req_cmd);
- 			break;
+		default:
+			LOG_ERROR("unknown target request: %2.2x", target_req_cmd);
+			break;
 	}
 
 	return ERROR_OK;
@@ -171,8 +162,7 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* see if there's already a list */
-	if (*p)
-	{
+	if (*p) {
 		/* find end of linked list */
 		p = &target->dbgmsg;
 		while ((*p)->next)
@@ -191,7 +181,8 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 	return ERROR_OK;
 }
 
-static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context *cmd_ctx, struct target *target)
+static struct debug_msg_receiver *find_debug_msg_receiver(struct command_context *cmd_ctx,
+		struct target *target)
 {
 	int do_all_targets = 0;
 
@@ -208,12 +199,9 @@ static struct debug_msg_receiver* find_debug_msg_receiver(struct command_context
 	/* so we target != null */
 	struct debug_msg_receiver **p = &target->dbgmsg;
 	do {
-		while (*p)
-		{
+		while (*p) {
 			if ((*p)->cmd_ctx == cmd_ctx)
-			{
 				return *p;
-			}
 			p = &((*p)->next);
 		}
 
@@ -230,8 +218,7 @@ int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *ta
 	int do_all_targets = 0;
 
 	/* if no target has been specified search all of them */
-	if (target == NULL)
-	{
+	if (target == NULL) {
 		/* if no targets haven been specified */
 		if (all_targets == NULL)
 			return ERROR_OK;
@@ -240,25 +227,20 @@ int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *ta
 		do_all_targets = 1;
 	}
 
-	do
-	{
+	do {
 		p = &target->dbgmsg;
 		c = *p;
-		while (c)
-		{
+		while (c) {
 			struct debug_msg_receiver *next = c->next;
-			if (c->cmd_ctx == cmd_ctx)
-			{
+			if (c->cmd_ctx == cmd_ctx) {
 				*p = next;
 				free(c);
-				if (*p == NULL)
-				{
+				if (*p == NULL) {
 					/* disable callback */
 					target->dbg_msg_enabled = 0;
 				}
 				return ERROR_OK;
-			}
-			else
+			} else
 				p = &(c->next);
 			c = next;
 		}
@@ -279,35 +261,26 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 	if (find_debug_msg_receiver(CMD_CTX, target) != NULL)
 		receiving = 1;
 
-	if (CMD_ARGC > 0)
-	{
-		if (!strcmp(CMD_ARGV[0], "enable") || !strcmp(CMD_ARGV[0], "charmsg"))
-		{
+	if (CMD_ARGC > 0) {
+		if (!strcmp(CMD_ARGV[0], "enable") || !strcmp(CMD_ARGV[0], "charmsg")) {
 			/* don't register if this command context is already receiving */
-			if (!receiving)
-			{
+			if (!receiving) {
 				receiving = 1;
 				add_debug_msg_receiver(CMD_CTX, target);
 			}
 			charmsg_mode = !strcmp(CMD_ARGV[0], "charmsg");
-		}
-		else if (!strcmp(CMD_ARGV[0], "disable"))
-		{
+		} else if (!strcmp(CMD_ARGV[0], "disable")) {
 			/* no need to delete a receiver if none is registered */
-			if (receiving)
-			{
+			if (receiving) {
 				receiving = 0;
 				delete_debug_msg_receiver(CMD_CTX, target);
 			}
-		}
-		else
-		{
-		    return ERROR_COMMAND_SYNTAX_ERROR;
-		}
+		} else
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	command_print(CMD_CTX, "receiving debug messages from current target %s",
-		      (receiving) ? (charmsg_mode?"charmsg":"enabled") : "disabled");
+			(receiving) ? (charmsg_mode ? "charmsg" : "enabled") : "disabled");
 	return ERROR_OK;
 }
 

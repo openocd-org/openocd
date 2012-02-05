@@ -22,6 +22,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef MIPS32_PRACC_H
 #define MIPS32_PRACC_H
 
@@ -71,7 +72,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
  * @return ERROR_OK on Sucess, ERROR_FAIL otherwise
  */
 int mips32_cp0_read(struct mips_ejtag *ejtag_info,
-								uint32_t *val, uint32_t cp0_reg, uint32_t cp0_sel);
+		uint32_t *val, uint32_t cp0_reg, uint32_t cp0_sel);
 
 /**
  * \b mips32_cp0_write
@@ -87,6 +88,6 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info,
  * @return ERROR_OK on Sucess, ERROR_FAIL otherwise
  */
 int mips32_cp0_write(struct mips_ejtag *ejtag_info,
-											uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel);
+		uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel);
 
 #endif

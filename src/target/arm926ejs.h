@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM926EJS_H
 #define ARM926EJS_H
 
@@ -25,26 +26,24 @@
 
 #define	ARM926EJS_COMMON_MAGIC 0xa926a926
 
-struct arm926ejs_common
-{
+struct arm926ejs_common {
 	struct arm7_9_common arm7_9_common;
 	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
-	int (*read_cp15)(struct target *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
-	int (*write_cp15)(struct target *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+	int (*read_cp15)(struct target *target, uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm, uint32_t *value);
+	int (*write_cp15)(struct target *target, uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm, uint32_t value);
 	uint32_t cp15_control_reg;
 	uint32_t d_fsr;
 	uint32_t i_fsr;
 	uint32_t d_far;
 };
 
-static inline struct arm926ejs_common *
-target_to_arm926(struct target *target)
+static inline struct arm926ejs_common *target_to_arm926(struct target *target)
 {
-	return container_of(target->arch_info, struct arm926ejs_common,
-			arm7_9_common.arm);
+	return container_of(target->arch_info, struct arm926ejs_common, arm7_9_common.arm);
 }
-
 
 int arm926ejs_init_arch_info(struct target *target,
 		struct arm926ejs_common *arm926ejs, struct jtag_tap *tap);

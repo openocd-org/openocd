@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -54,14 +55,12 @@ static int arm720t_scan_cp15(struct target *target,
 
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 
-	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_DRPAUSE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0xf, TAP_DRPAUSE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
-	if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE)) != ERROR_OK)
-	{
+	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	fields[0].num_bits = 1;
 	fields[0].out_value = &instruction_buf;
@@ -71,24 +70,20 @@ static int arm720t_scan_cp15(struct target *target,
 	fields[1].out_value = out_buf;
 	fields[1].in_value = NULL;
 
-	if (in)
-	{
+	if (in) {
 		fields[1].in_value = (uint8_t *)in;
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
 		jtag_add_callback(arm7flip32, (jtag_callback_data_t)in);
 	} else
-	{
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
-	}
 
 	if (clock_arg)
 		jtag_add_runtest(0, TAP_DRPAUSE);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	if (in)
 		LOG_DEBUG("out: %8.8x, in: %8.8x, instruction: %i, clock: %i", out, *in, instruction, clock);
@@ -254,8 +249,7 @@ static int arm720t_arch_state(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
-	static const char *state[] =
-	{
+	static const char *state[] = {
 		"disabled", "enabled"
 	};
 
@@ -300,16 +294,14 @@ static int arm720t_read_memory(struct target *target,
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
 	/* disable cache, but leave MMU enabled */
-	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-	{
+	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) {
 		retval = arm720t_disable_mmu_caches(target, 0, 1, 0);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 	retval = arm7_9_read_memory(target, address, size, count, buffer);
 
-	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-	{
+	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) {
 		retval = arm720t_enable_mmu_caches(target, 0, 1, 0);
 		if (retval != ERROR_OK)
 			return retval;
@@ -342,36 +334,26 @@ static int arm720t_soft_reset_halt(struct target *target)
 			.eice_cache->reg_list[EICE_DBG_STAT];
 	struct arm *arm = &arm720t->arm7_9_common.arm;
 
-	if ((retval = target_halt(target)) != ERROR_OK)
-	{
+	retval = target_halt(target);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout = ((timeval_ms()-then) > 1000)))
-	{
-		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
-		{
+	while (!(timeout = ((timeval_ms()-then) > 1000))) {
+		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0) {
 			embeddedice_read_reg(dbg_stat);
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
+			retval = jtag_execute_queue();
+			if (retval != ERROR_OK)
 				return retval;
-			}
 		} else
-		{
 			break;
-		}
 		if (debug_level >= 3)
-		{
 			alive_sleep(100);
-		} else
-		{
+		else
 			keep_alive();
-		}
 	}
-	if (timeout)
-	{
+	if (timeout) {
 		LOG_ERROR("Failed to halt CPU after 1 sec");
 		return ERROR_TARGET_TIMEOUT;
 	}
@@ -399,10 +381,9 @@ static int arm720t_soft_reset_halt(struct target *target)
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
-	if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
-	{
+	retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	return ERROR_OK;
 }
@@ -467,42 +448,35 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
 	/* one or more argument, access a single register (write if second argument is given */
-	if (CMD_ARGC >= 1)
-	{
+	if (CMD_ARGC >= 1) {
 		uint32_t opcode;
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], opcode);
 
-		if (CMD_ARGC == 1)
-		{
+		if (CMD_ARGC == 1) {
 			uint32_t value;
-			if ((retval = arm720t_read_cp15(target, opcode, &value)) != ERROR_OK)
-			{
+			retval = arm720t_read_cp15(target, opcode, &value);
+			if (retval != ERROR_OK) {
 				command_print(CMD_CTX, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
 
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
+			retval = jtag_execute_queue();
+			if (retval != ERROR_OK)
 				return retval;
-			}
 
 			command_print(CMD_CTX, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
-		}
-		else if (CMD_ARGC == 2)
-		{
+		} else if (CMD_ARGC == 2) {
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
-			if ((retval = arm720t_write_cp15(target, opcode, value)) != ERROR_OK)
-			{
+			retval = arm720t_write_cp15(target, opcode, value);
+			if (retval != ERROR_OK) {
 				command_print(CMD_CTX, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
@@ -518,8 +492,7 @@ static int arm720t_mrc(struct target *target, int cpnum,
 		uint32_t CRn, uint32_t CRm,
 		uint32_t *value)
 {
-	if (cpnum!=15)
-	{
+	if (cpnum != 15) {
 		LOG_ERROR("Only cp15 is supported");
 		return ERROR_FAIL;
 	}
@@ -536,8 +509,7 @@ static int arm720t_mcr(struct target *target, int cpnum,
 		uint32_t CRn, uint32_t CRm,
 		uint32_t value)
 {
-	if (cpnum!=15)
-	{
+	if (cpnum != 15) {
 		LOG_ERROR("Only cp15 is supported");
 		return ERROR_FAIL;
 	}
@@ -576,8 +548,7 @@ static const struct command_registration arm720t_command_handlers[] = {
 };
 
 /** Holds methods for ARM720 targets. */
-struct target_type arm720t_target =
-{
+struct target_type arm720t_target = {
 	.name = "arm720t",
 
 	.poll = arm7_9_poll,

@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM_SIMULATOR_H
 #define ARM_SIMULATOR_H
 
@@ -24,8 +25,7 @@
 
 struct target;
 
-struct arm_sim_interface
-{
+struct arm_sim_interface {
 	void *user_data;
 	uint32_t (*get_reg)(struct arm_sim_interface *sim, int reg);
 	void (*set_reg)(struct arm_sim_interface *sim, int reg, uint32_t value);

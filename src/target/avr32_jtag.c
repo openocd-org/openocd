@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -34,8 +35,7 @@ static int avr32_jtag_set_instr(struct avr32_jtag *jtag_info, int new_instr)
 	if (tap == NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr)
-	{
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr) {
 		do {
 			struct scan_field field;
 			uint8_t t[4];
@@ -47,8 +47,7 @@ static int avr32_jtag_set_instr(struct avr32_jtag *jtag_info, int new_instr)
 			field.in_value = ret;
 
 			jtag_add_ir_scan(tap, &field, TAP_IDLE);
-			if (jtag_execute_queue() != ERROR_OK)
-			{
+			if (jtag_execute_queue() != ERROR_OK) {
 				LOG_ERROR("%s: setting address failed", __func__);
 				return ERROR_FAIL;
 			}
@@ -59,7 +58,7 @@ static int avr32_jtag_set_instr(struct avr32_jtag *jtag_info, int new_instr)
 	return ERROR_OK;
 }
 
-int avr32_jtag_nexus_set_address(struct avr32_jtag *jtag_info, 
+int avr32_jtag_nexus_set_address(struct avr32_jtag *jtag_info,
 		uint32_t addr, int mode)
 {
 	struct scan_field fields[2];
@@ -85,19 +84,18 @@ int avr32_jtag_nexus_set_address(struct avr32_jtag *jtag_info,
 		fields[1].out_value = addr_buf;
 
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
-		if (jtag_execute_queue() != ERROR_OK)
-		{
+		if (jtag_execute_queue() != ERROR_OK) {
 			LOG_ERROR("%s: setting address failed", __func__);
 			return ERROR_FAIL;
 		}
 		busy = buf_get_u32(busy_buf, 6, 1);
-	} while(busy);
+	} while (busy);
 
 	return ERROR_OK;
 }
 
 
-int avr32_jtag_nexus_read_data(struct avr32_jtag *jtag_info, 
+int avr32_jtag_nexus_read_data(struct avr32_jtag *jtag_info,
 	uint32_t *pdata)
 {
 
@@ -121,8 +119,7 @@ int avr32_jtag_nexus_read_data(struct avr32_jtag *jtag_info,
 
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
 
-		if (jtag_execute_queue() != ERROR_OK)
-		{
+		if (jtag_execute_queue() != ERROR_OK) {
 			LOG_ERROR("%s: reading data  failed", __func__);
 			return ERROR_FAIL;
 		}
@@ -135,8 +132,7 @@ int avr32_jtag_nexus_read_data(struct avr32_jtag *jtag_info,
 	return ERROR_OK;
 }
 
-
-int avr32_jtag_nexus_write_data(struct avr32_jtag *jtag_info, 
+int avr32_jtag_nexus_write_data(struct avr32_jtag *jtag_info,
 		uint32_t data)
 {
 
@@ -163,8 +159,7 @@ int avr32_jtag_nexus_write_data(struct avr32_jtag *jtag_info,
 
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
 
-		if (jtag_execute_queue() != ERROR_OK)
-		{
+		if (jtag_execute_queue() != ERROR_OK) {
 			LOG_ERROR("%s: reading data  failed", __func__);
 			return ERROR_FAIL;
 		}
@@ -175,9 +170,6 @@ int avr32_jtag_nexus_write_data(struct avr32_jtag *jtag_info,
 
 	return ERROR_OK;
 }
-
-
-
 
 int avr32_jtag_nexus_read(struct avr32_jtag *jtag_info,
 		uint32_t addr, uint32_t *value)
@@ -228,18 +220,17 @@ int avr32_jtag_mwa_set_address(struct avr32_jtag *jtag_info, int slave,
 		fields[1].out_value = slave_buf;
 
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
-		if (jtag_execute_queue() != ERROR_OK)
-		{
+		if (jtag_execute_queue() != ERROR_OK) {
 			LOG_ERROR("%s: setting address failed", __func__);
 			return ERROR_FAIL;
 		}
 		busy = buf_get_u32(busy_buf, 1, 1);
-	} while(busy);
+	} while (busy);
 
 	return ERROR_OK;
 }
 
-int avr32_jtag_mwa_read_data(struct avr32_jtag *jtag_info, 
+int avr32_jtag_mwa_read_data(struct avr32_jtag *jtag_info,
 	uint32_t *pdata)
 {
 
@@ -263,8 +254,7 @@ int avr32_jtag_mwa_read_data(struct avr32_jtag *jtag_info,
 
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
 
-		if (jtag_execute_queue() != ERROR_OK)
-		{
+		if (jtag_execute_queue() != ERROR_OK) {
 			LOG_ERROR("%s: reading data  failed", __func__);
 			return ERROR_FAIL;
 		}
@@ -277,7 +267,7 @@ int avr32_jtag_mwa_read_data(struct avr32_jtag *jtag_info,
 	return ERROR_OK;
 }
 
-int avr32_jtag_mwa_write_data(struct avr32_jtag *jtag_info, 
+int avr32_jtag_mwa_write_data(struct avr32_jtag *jtag_info,
 	uint32_t data)
 {
 
@@ -304,8 +294,7 @@ int avr32_jtag_mwa_write_data(struct avr32_jtag *jtag_info,
 
 		jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
 
-		if (jtag_execute_queue() != ERROR_OK)
-		{
+		if (jtag_execute_queue() != ERROR_OK) {
 			LOG_ERROR("%s: reading data  failed", __func__);
 			return ERROR_FAIL;
 		}
@@ -315,8 +304,6 @@ int avr32_jtag_mwa_write_data(struct avr32_jtag *jtag_info,
 
 	return ERROR_OK;
 }
-
-
 
 int avr32_jtag_mwa_read(struct avr32_jtag *jtag_info, int slave,
 		uint32_t addr, uint32_t *value)

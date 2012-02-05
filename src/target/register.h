@@ -20,13 +20,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef REGISTER_H
 #define REGISTER_H
 
 struct target;
 
-struct reg
-{
+struct reg {
 	const char *name;
 	void *value;
 	bool dirty;
@@ -36,23 +36,21 @@ struct reg
 	const struct reg_arch_type *type;
 };
 
-struct reg_cache
-{
+struct reg_cache {
 	const char *name;
 	struct reg_cache *next;
 	struct reg *reg_list;
 	unsigned num_regs;
 };
 
-struct reg_arch_type
-{
+struct reg_arch_type {
 	int (*get)(struct reg *reg);
 	int (*set)(struct reg *reg, uint8_t *buf);
 };
 
-struct reg* register_get_by_name(struct reg_cache *first,
+struct reg *register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all);
-struct reg_cache** register_get_last_cache_p(struct reg_cache **first);
+struct reg_cache **register_get_last_cache_p(struct reg_cache **first);
 void register_cache_invalidate(struct reg_cache *cache);
 
 void register_init_dummy(struct reg *reg);

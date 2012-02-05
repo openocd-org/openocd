@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -27,7 +28,6 @@
 #include "arm966e.h"
 #include "target_type.h"
 #include "arm_opcodes.h"
-
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
@@ -53,7 +53,7 @@ int arm966e_init_arch_info(struct target *target, struct arm966e_common *arm966e
 
 static int arm966e_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct arm966e_common *arm966e = calloc(1,sizeof(struct arm966e_common));
+	struct arm966e_common *arm966e = calloc(1, sizeof(struct arm966e_common));
 
 	return arm966e_init_arch_info(target, arm966e, target->tap);
 }
@@ -84,10 +84,9 @@ static int arm966e_read_cp15(struct target *target, int reg_addr, uint32_t *valu
 	uint8_t reg_addr_buf = reg_addr & 0x3f;
 	uint8_t nr_w_buf = 0;
 
-	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -117,17 +116,16 @@ static int arm966e_read_cp15(struct target *target, int reg_addr, uint32_t *valu
 
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
 #endif
 
 	return ERROR_OK;
 }
 
-// EXPORTED to str9x (flash)
+/* EXPORTED to str9x (flash) */
 int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
@@ -140,10 +138,9 @@ int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value)
 
 	buf_set_u32(value_buf, 0, 32, value);
 
-	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -179,42 +176,36 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
 	/* one or more argument, access a single register (write if second argument is given */
-	if (CMD_ARGC >= 1)
-	{
+	if (CMD_ARGC >= 1) {
 		uint32_t address;
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 
-		if (CMD_ARGC == 1)
-		{
+		if (CMD_ARGC == 1) {
 			uint32_t value;
-			if ((retval = arm966e_read_cp15(target, address, &value)) != ERROR_OK)
-			{
+			retval = arm966e_read_cp15(target, address, &value);
+			if (retval != ERROR_OK) {
 				command_print(CMD_CTX,
 						"couldn't access reg %" PRIi32,
 						address);
 				return ERROR_OK;
 			}
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
+			retval = jtag_execute_queue();
+			if (retval != ERROR_OK)
 				return retval;
-			}
 
 			command_print(CMD_CTX, "%" PRIi32 ": %8.8" PRIx32,
 					address, value);
-		}
-		else if (CMD_ARGC == 2)
-		{
+		} else if (CMD_ARGC == 2) {
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
-			if ((retval = arm966e_write_cp15(target, address, value)) != ERROR_OK)
-			{
+			retval = arm966e_write_cp15(target, address, value);
+			if (retval != ERROR_OK) {
 				command_print(CMD_CTX,
 						"couldn't access reg %" PRIi32,
 						address);
@@ -254,8 +245,7 @@ const struct command_registration arm966e_command_handlers[] = {
 };
 
 /** Holds methods for ARM966 targets. */
-struct target_type arm966e_target =
-{
+struct target_type arm966e_target = {
 	.name = "arm966e",
 
 	.poll = arm7_9_poll,

@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -34,11 +35,9 @@ int trace_point(struct target *target, uint32_t number)
 	if (number < trace->num_trace_points)
 		trace->trace_points[number].hit_counter++;
 
-	if (trace->trace_history_size)
-	{
+	if (trace->trace_history_size) {
 		trace->trace_history[trace->trace_history_pos++] = number;
-		if (trace->trace_history_pos == trace->trace_history_size)
-		{
+		if (trace->trace_history_pos == trace->trace_history_size) {
 			trace->trace_history_pos = 0;
 			trace->trace_history_overflowed = 1;
 		}
@@ -52,12 +51,10 @@ COMMAND_HANDLER(handle_trace_point_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct trace *trace = target->trace_info;
 
-	if (CMD_ARGC == 0)
-	{
+	if (CMD_ARGC == 0) {
 		uint32_t i;
 
-		for (i = 0; i < trace->num_trace_points; i++)
-		{
+		for (i = 0; i < trace->num_trace_points; i++) {
 			command_print(CMD_CTX, "trace point 0x%8.8" PRIx32 " (%lld times hit)",
 					trace->trace_points[i].address,
 					(long long)trace->trace_points[i].hit_counter);
@@ -66,10 +63,8 @@ COMMAND_HANDLER(handle_trace_point_command)
 		return ERROR_OK;
 	}
 
-	if (!strcmp(CMD_ARGV[0], "clear"))
-	{
-		if (trace->trace_points)
-		{
+	if (!strcmp(CMD_ARGV[0], "clear")) {
+		if (trace->trace_points) {
 			free(trace->trace_points);
 			trace->trace_points = NULL;
 		}
@@ -80,9 +75,9 @@ COMMAND_HANDLER(handle_trace_point_command)
 	}
 
 	/* resize array if necessary */
-	if (!trace->trace_points || (trace->trace_points_size == trace->num_trace_points))
-	{
-		trace->trace_points = realloc(trace->trace_points, sizeof(struct trace_point) * (trace->trace_points_size + 32));
+	if (!trace->trace_points || (trace->trace_points_size == trace->num_trace_points)) {
+		trace->trace_points = realloc(trace->trace_points,
+				sizeof(struct trace_point) * (trace->trace_points_size + 32));
 		trace->trace_points_size += 32;
 	}
 
@@ -100,13 +95,11 @@ COMMAND_HANDLER(handle_trace_history_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct trace *trace = target->trace_info;
 
-	if (CMD_ARGC > 0)
-	{
+	if (CMD_ARGC > 0) {
 		trace->trace_history_pos = 0;
 		trace->trace_history_overflowed = 0;
 
-		if (!strcmp(CMD_ARGV[0], "clear"))
-		{
+		if (!strcmp(CMD_ARGV[0], "clear")) {
 			/* clearing is implicit, we've just reset position anyway */
 			return ERROR_OK;
 		}
@@ -118,9 +111,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 		trace->trace_history = malloc(sizeof(uint32_t) * trace->trace_history_size);
 
 		command_print(CMD_CTX, "new trace history size: %i", (int)(trace->trace_history_size));
-	}
-	else
-	{
+	} else {
 		uint32_t i;
 		uint32_t first = 0;
 		uint32_t last = trace->trace_history_pos;
@@ -129,27 +120,22 @@ COMMAND_HANDLER(handle_trace_history_command)
 			command_print(CMD_CTX, "trace history buffer is not allocated");
 			return ERROR_OK;
 		}
-		if (trace->trace_history_overflowed)
-		{
+
+		if (trace->trace_history_overflowed) {
 			first = trace->trace_history_pos;
 			last = trace->trace_history_pos - 1;
 		}
 
-		for (i = first; (i % trace->trace_history_size) != last; i++)
-		{
-			if (trace->trace_history[i % trace->trace_history_size] < trace->num_trace_points)
-			{
+		for (i = first; (i % trace->trace_history_size) != last; i++) {
+			if (trace->trace_history[i % trace->trace_history_size] < trace->num_trace_points) {
 				uint32_t address;
 				address = trace->trace_points[trace->trace_history[i % trace->trace_history_size]].address;
 				command_print(CMD_CTX, "trace point %i: 0x%8.8" PRIx32 "",
-					      (int)(trace->trace_history[i % trace->trace_history_size]),
-					      address);
-			}
-
-			else
-			{
-				command_print(CMD_CTX, "trace point %i: -not defined-", (int)(trace->trace_history[i % trace->trace_history_size]));
-			}
+						(int)(trace->trace_history[i % trace->trace_history_size]),
+						address);
+			} else
+				command_print(CMD_CTX, "trace point %i: -not defined-",
+						(int)(trace->trace_history[i % trace->trace_history_size]));
 		}
 	}
 

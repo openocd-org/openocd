@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef BREAKPOINTS_H
 #define BREAKPOINTS_H
 
@@ -24,19 +25,16 @@
 
 struct target;
 
-enum breakpoint_type
-{
+enum breakpoint_type {
 	BKPT_HARD,
 	BKPT_SOFT,
 };
 
-enum watchpoint_rw
-{
+enum watchpoint_rw {
 	WPT_READ = 0, WPT_WRITE = 1, WPT_ACCESS = 2
 };
 
-struct breakpoint
-{
+struct breakpoint {
 	uint32_t address;
 	uint32_t asid;
 	int length;
@@ -45,11 +43,10 @@ struct breakpoint
 	uint8_t *orig_instr;
 	struct breakpoint *next;
 	uint32_t unique_id;
-	int linked_BRP; 
+	int linked_BRP;
 };
 
-struct watchpoint
-{
+struct watchpoint {
 	uint32_t address;
 	uint32_t length;
 	uint32_t mask;
@@ -69,7 +66,7 @@ int hybrid_breakpoint_add(struct target *target,
 		uint32_t address, uint32_t asid, uint32_t length, enum breakpoint_type type);
 void breakpoint_remove(struct target *target, uint32_t address);
 
-struct breakpoint* breakpoint_find(struct target *target, uint32_t address);
+struct breakpoint *breakpoint_find(struct target *target, uint32_t address);
 
 void watchpoint_clear_target(struct target *target);
 int watchpoint_add(struct target *target,

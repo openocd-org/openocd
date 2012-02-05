@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -32,51 +33,32 @@
 #include "register.h"
 #include <helper/log.h>
 
-
 static uint32_t arm_shift(uint8_t shift, uint32_t Rm,
-		uint32_t shift_amount, uint8_t *carry)
+	uint32_t shift_amount, uint8_t *carry)
 {
 	uint32_t return_value = 0;
 	shift_amount &= 0xff;
 
-	if (shift == 0x0) /* LSL */
-	{
-		if ((shift_amount > 0) && (shift_amount <= 32))
-		{
+	if (shift == 0x0) {	/* LSL */
+		if ((shift_amount > 0) && (shift_amount <= 32)) {
 			return_value = Rm << shift_amount;
 			*carry = Rm >> (32 - shift_amount);
-		}
-		else if (shift_amount > 32)
-		{
+		} else if (shift_amount > 32) {
 			return_value = 0x0;
 			*carry = 0x0;
-		}
-		else /* (shift_amount == 0) */
-		{
+		} else /* (shift_amount == 0) */
 			return_value = Rm;
-		}
-	}
-	else if (shift == 0x1) /* LSR */
-	{
-		if ((shift_amount > 0) && (shift_amount <= 32))
-		{
+	} else if (shift == 0x1) {	/* LSR */
+		if ((shift_amount > 0) && (shift_amount <= 32)) {
 			return_value = Rm >> shift_amount;
 			*carry = (Rm >> (shift_amount - 1)) & 1;
-		}
-		else if (shift_amount > 32)
-		{
+		} else if (shift_amount > 32) {
 			return_value = 0x0;
 			*carry = 0x0;
-		}
-		else /* (shift_amount == 0) */
-		{
+		} else /* (shift_amount == 0) */
 			return_value = Rm;
-		}
-	}
-	else if (shift == 0x2) /* ASR */
-	{
-		if ((shift_amount > 0) && (shift_amount <= 32))
-		{
+	} else if (shift == 0x2) {	/* ASR */
+		if ((shift_amount > 0) && (shift_amount <= 32)) {
 			/* C right shifts of unsigned values are guaranteed to
 			 * be logical (shift in zeroes); simulate an arithmetic
 			 * shift (shift in signed-bit) by adding the sign bit
@@ -85,40 +67,25 @@ static uint32_t arm_shift(uint8_t shift, uint32_t Rm,
 			return_value = Rm >> shift_amount;
 			if (Rm & 0x80000000)
 				return_value |= 0xffffffff << (32 - shift_amount);
-		}
-		else if (shift_amount > 32)
-		{
-			if (Rm & 0x80000000)
-			{
+		} else if (shift_amount > 32) {
+			if (Rm & 0x80000000) {
 				return_value = 0xffffffff;
 				*carry = 0x1;
-			}
-			else
-			{
+			} else {
 				return_value = 0x0;
 				*carry = 0x0;
 			}
-		}
-		else /* (shift_amount == 0) */
-		{
+		} else /* (shift_amount == 0) */
 			return_value = Rm;
-		}
-	}
-	else if (shift == 0x3) /* ROR */
-	{
+	} else if (shift == 0x3) {	/* ROR */
 		if (shift_amount == 0)
-		{
 			return_value = Rm;
-		}
-		else
-		{
+		else {
 			shift_amount = shift_amount % 32;
 			return_value = (Rm >> shift_amount) | (Rm << (32 - shift_amount));
 			*carry = (return_value >> 31) & 0x1;
 		}
-	}
-	else if (shift == 0x4) /* RRX */
-	{
+	} else if (shift == 0x4) {	/* RRX */
 		return_value = Rm >> 1;
 		if (*carry)
 			Rm |= 0x80000000;
@@ -130,8 +97,8 @@ static uint32_t arm_shift(uint8_t shift, uint32_t Rm,
 
 
 static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
-		int variant, union arm_shifter_operand shifter_operand,
-		uint8_t *shifter_carry_out)
+	int variant, union arm_shifter_operand shifter_operand,
+	uint8_t *shifter_carry_out)
 {
 	uint32_t return_value;
 	int instruction_size;
@@ -144,11 +111,8 @@ static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
 	*shifter_carry_out = sim->get_cpsr(sim, 29, 1);
 
 	if (variant == 0) /* 32-bit immediate */
-	{
 		return_value = shifter_operand.immediate.immediate;
-	}
-	else if (variant == 1) /* immediate shift */
-	{
+	else if (variant == 1) {/* immediate shift */
 		uint32_t Rm = sim->get_reg_mode(sim, shifter_operand.immediate_shift.Rm);
 
 		/* adjust RM in case the PC is being read */
@@ -158,9 +122,7 @@ static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
 		return_value = arm_shift(shifter_operand.immediate_shift.shift,
 				Rm, shifter_operand.immediate_shift.shift_imm,
 				shifter_carry_out);
-	}
-	else if (variant == 2) /* register shift */
-	{
+	} else if (variant == 2) {	/* register shift */
 		uint32_t Rm = sim->get_reg_mode(sim, shifter_operand.register_shift.Rm);
 		uint32_t Rs = sim->get_reg_mode(sim, shifter_operand.register_shift.Rs);
 
@@ -170,9 +132,7 @@ static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
 
 		return_value = arm_shift(shifter_operand.immediate_shift.shift,
 				Rm, Rs, shifter_carry_out);
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("BUG: shifter_operand.variant not 0, 1 or 2");
 		return_value = 0xffffffff;
 	}
@@ -182,8 +142,7 @@ static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
 
 static int pass_condition(uint32_t cpsr, uint32_t opcode)
 {
-	switch ((opcode & 0xf0000000) >> 28)
-	{
+	switch ((opcode & 0xf0000000) >> 28) {
 		case 0x0:	/* EQ */
 			if (cpsr & 0x40000000)
 				return 1;
@@ -280,45 +239,35 @@ static int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
  * but the new pc is stored in the variable pointed at by the argument
  */
 static int arm_simulate_step_core(struct target *target,
-		uint32_t *dry_run_pc, struct arm_sim_interface *sim)
+	uint32_t *dry_run_pc, struct arm_sim_interface *sim)
 {
 	uint32_t current_pc = sim->get_reg(sim, 15);
 	struct arm_instruction instruction;
 	int instruction_size;
 	int retval = ERROR_OK;
 
-	if (sim->get_state(sim) == ARM_STATE_ARM)
-	{
+	if (sim->get_state(sim) == ARM_STATE_ARM) {
 		uint32_t opcode;
 
 		/* get current instruction, and identify it */
-		if ((retval = target_read_u32(target, current_pc, &opcode)) != ERROR_OK)
-		{
+		retval = target_read_u32(target, current_pc, &opcode);
+		if (retval != ERROR_OK)
 			return retval;
-		}
-		if ((retval = arm_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
-		{
+		retval = arm_evaluate_opcode(opcode, current_pc, &instruction);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 		instruction_size = 4;
 
 		/* check condition code (for all instructions) */
-		if (!pass_condition(sim->get_cpsr(sim, 0, 32), opcode))
-		{
+		if (!pass_condition(sim->get_cpsr(sim, 0, 32), opcode)) {
 			if (dry_run_pc)
-			{
 				*dry_run_pc = current_pc + instruction_size;
-			}
 			else
-			{
 				sim->set_reg(sim, 15, current_pc + instruction_size);
-			}
 
 			return ERROR_OK;
 		}
-	}
-	else
-	{
+	} else {
 		uint16_t opcode;
 
 		retval = target_read_u16(target, current_pc, &opcode);
@@ -331,17 +280,12 @@ static int arm_simulate_step_core(struct target *target,
 
 		/* check condition code (only for branch (1) instructions) */
 		if ((opcode & 0xf000) == 0xd000
-				&& !thumb_pass_branch_condition(
-					sim->get_cpsr(sim, 0, 32), opcode))
-		{
+			&& !thumb_pass_branch_condition(
+			sim->get_cpsr(sim, 0, 32), opcode)) {
 			if (dry_run_pc)
-			{
 				*dry_run_pc = current_pc + instruction_size;
-			}
 			else
-			{
 				sim->set_reg(sim, 15, current_pc + instruction_size);
-			}
 
 			return ERROR_OK;
 		}
@@ -362,67 +306,44 @@ static int arm_simulate_step_core(struct target *target,
 	/* examine instruction type */
 
 	/* branch instructions */
-	if ((instruction.type >= ARM_B) && (instruction.type <= ARM_BLX))
-	{
+	if ((instruction.type >= ARM_B) && (instruction.type <= ARM_BLX)) {
 		uint32_t target_address;
 
 		if (instruction.info.b_bl_bx_blx.reg_operand == -1)
-		{
 			target_address = instruction.info.b_bl_bx_blx.target_address;
-		}
-		else
-		{
-			target_address = sim->get_reg_mode(sim, instruction.info.b_bl_bx_blx.reg_operand);
+		else {
+			target_address = sim->get_reg_mode(sim,
+					instruction.info.b_bl_bx_blx.reg_operand);
 			if (instruction.info.b_bl_bx_blx.reg_operand == 15)
-			{
 				target_address += 2 * instruction_size;
-			}
 		}
 
-		if (dry_run_pc)
-		{
+		if (dry_run_pc) {
 			*dry_run_pc = target_address & ~1;
 			return ERROR_OK;
-		}
-		else
-		{
+		} else {
 			if (instruction.type == ARM_B)
-			{
 				sim->set_reg(sim, 15, target_address);
-			}
-			else if (instruction.type == ARM_BL)
-			{
+			else if (instruction.type == ARM_BL) {
 				uint32_t old_pc = sim->get_reg(sim, 15);
 				int T = (sim->get_state(sim) == ARM_STATE_THUMB);
 				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 				sim->set_reg(sim, 15, target_address);
-			}
-			else if (instruction.type == ARM_BX)
-			{
+			} else if (instruction.type == ARM_BX) {
 				if (target_address & 0x1)
-				{
 					sim->set_state(sim, ARM_STATE_THUMB);
-				}
 				else
-				{
 					sim->set_state(sim, ARM_STATE_ARM);
-				}
 				sim->set_reg(sim, 15, target_address & 0xfffffffe);
-			}
-			else if (instruction.type == ARM_BLX)
-			{
+			} else if (instruction.type == ARM_BLX) {
 				uint32_t old_pc = sim->get_reg(sim, 15);
 				int T = (sim->get_state(sim) == ARM_STATE_THUMB);
 				sim->set_reg_mode(sim, 14, old_pc + 4 + T);
 
 				if (target_address & 0x1)
-				{
 					sim->set_state(sim, ARM_STATE_THUMB);
-				}
 				else
-				{
 					sim->set_state(sim, ARM_STATE_ARM);
-				}
 				sim->set_reg(sim, 15, target_address & 0xfffffffe);
 			}
 
@@ -431,8 +352,7 @@ static int arm_simulate_step_core(struct target *target,
 	}
 	/* data processing instructions, except compare instructions (CMP, CMN, TST, TEQ) */
 	else if (((instruction.type >= ARM_AND) && (instruction.type <= ARM_RSC))
-			|| ((instruction.type >= ARM_ORR) && (instruction.type <= ARM_MVN)))
-	{
+		|| ((instruction.type >= ARM_ORR) && (instruction.type <= ARM_MVN))) {
 		uint32_t Rd, Rn, shifter_operand;
 		uint8_t C = sim->get_cpsr(sim, 29, 1);
 		uint8_t carry_out;
@@ -480,17 +400,14 @@ static int arm_simulate_step_core(struct target *target,
 		else
 			LOG_WARNING("unhandled instruction type");
 
-		if (dry_run_pc)
-		{
+		if (dry_run_pc) {
 			if (instruction.info.data_proc.Rd == 15)
 				*dry_run_pc = Rd & ~1;
 			else
 				*dry_run_pc = current_pc + instruction_size;
 
 			return ERROR_OK;
-		}
-		else
-		{
+		} else {
 			if (instruction.info.data_proc.Rd == 15) {
 				sim->set_reg_mode(sim, 15, Rd & ~1);
 				if (Rd & 1)
@@ -504,21 +421,15 @@ static int arm_simulate_step_core(struct target *target,
 		}
 	}
 	/* compare instructions (CMP, CMN, TST, TEQ) */
-	else if ((instruction.type >= ARM_TST) && (instruction.type <= ARM_CMN))
-	{
-		if (dry_run_pc)
-		{
+	else if ((instruction.type >= ARM_TST) && (instruction.type <= ARM_CMN)) {
+		if (dry_run_pc) {
 			*dry_run_pc = current_pc + instruction_size;
 			return ERROR_OK;
-		}
-		else
-		{
+		} else
 			LOG_WARNING("no updating of flags yet");
-		}
 	}
 	/* load register instructions */
-	else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH))
-	{
+	else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH)) {
 		uint32_t load_address = 0, modified_address = 0, load_value = 0;
 		uint32_t Rn = sim->get_reg_mode(sim, instruction.info.load_store.Rn);
 
@@ -526,15 +437,12 @@ static int arm_simulate_step_core(struct target *target,
 		if (instruction.info.load_store.Rn == 15)
 			Rn += 2 * instruction_size;
 
-		if (instruction.info.load_store.offset_mode == 0)
-		{
+		if (instruction.info.load_store.offset_mode == 0) {
 			if (instruction.info.load_store.U)
 				modified_address = Rn + instruction.info.load_store.offset.offset;
 			else
 				modified_address = Rn - instruction.info.load_store.offset.offset;
-		}
-		else if (instruction.info.load_store.offset_mode == 1)
-		{
+		} else if (instruction.info.load_store.offset_mode == 1) {
 			uint32_t offset;
 			uint32_t Rm = sim->get_reg_mode(sim,
 					instruction.info.load_store.offset.reg.Rm);
@@ -548,31 +456,23 @@ static int arm_simulate_step_core(struct target *target,
 				modified_address = Rn + offset;
 			else
 				modified_address = Rn - offset;
-		}
-		else
-		{
+		} else
 			LOG_ERROR("BUG: offset_mode neither 0 (offset) nor 1 (scaled register)");
-		}
 
-		if (instruction.info.load_store.index_mode == 0)
-		{
+		if (instruction.info.load_store.index_mode == 0) {
 			/* offset mode
 			 * we load from the modified address, but don't change
 			 * the base address register
 			 */
 			load_address = modified_address;
 			modified_address = Rn;
-		}
-		else if (instruction.info.load_store.index_mode == 1)
-		{
+		} else if (instruction.info.load_store.index_mode == 1) {
 			/* pre-indexed mode
 			 * we load from the modified address, and write it
 			 * back to the base address register
 			 */
 			load_address = modified_address;
-		}
-		else if (instruction.info.load_store.index_mode == 2)
-		{
+		} else if (instruction.info.load_store.index_mode == 2) {
 			/* post-indexed mode
 			 * we load from the unmodified address, and write the
 			 * modified address back
@@ -580,28 +480,24 @@ static int arm_simulate_step_core(struct target *target,
 			load_address = Rn;
 		}
 
-		if ((!dry_run_pc) || (instruction.info.load_store.Rd == 15))
-		{
+		if ((!dry_run_pc) || (instruction.info.load_store.Rd == 15)) {
 			retval = target_read_u32(target, load_address, &load_value);
 			if (retval != ERROR_OK)
 				return retval;
 		}
 
-		if (dry_run_pc)
-		{
+		if (dry_run_pc) {
 			if (instruction.info.load_store.Rd == 15)
 				*dry_run_pc = load_value & ~1;
 			else
 				*dry_run_pc = current_pc + instruction_size;
 			return ERROR_OK;
-		}
-		else
-		{
+		} else {
 			if ((instruction.info.load_store.index_mode == 1) ||
 				(instruction.info.load_store.index_mode == 2))
-			{
-				sim->set_reg_mode(sim, instruction.info.load_store.Rn, modified_address);
-			}
+				sim->set_reg_mode(sim,
+					instruction.info.load_store.Rn,
+					modified_address);
 
 			if (instruction.info.load_store.Rd == 15) {
 				sim->set_reg_mode(sim, 15, load_value & ~1);
@@ -615,84 +511,68 @@ static int arm_simulate_step_core(struct target *target,
 		}
 	}
 	/* load multiple instruction */
-	else if (instruction.type == ARM_LDM)
-	{
+	else if (instruction.type == ARM_LDM) {
 		int i;
 		uint32_t Rn = sim->get_reg_mode(sim, instruction.info.load_store_multiple.Rn);
 		uint32_t load_values[16];
 		int bits_set = 0;
 
-		for (i = 0; i < 16; i++)
-		{
+		for (i = 0; i < 16; i++) {
 			if (instruction.info.load_store_multiple.register_list & (1 << i))
 				bits_set++;
 		}
 
-		switch (instruction.info.load_store_multiple.addressing_mode)
-		{
-			case 0: /* Increment after */
+		switch (instruction.info.load_store_multiple.addressing_mode) {
+			case 0:	/* Increment after */
 				Rn = Rn;
 				break;
-			case 1: /* Increment before */
+			case 1:	/* Increment before */
 				Rn = Rn + 4;
 				break;
-			case 2: /* Decrement after */
+			case 2:	/* Decrement after */
 				Rn = Rn - (bits_set * 4) + 4;
 				break;
-			case 3: /* Decrement before */
+			case 3:	/* Decrement before */
 				Rn = Rn - (bits_set * 4);
 				break;
 		}
 
-		for (i = 0; i < 16; i++)
-		{
-			if (instruction.info.load_store_multiple.register_list & (1 << i))
-			{
+		for (i = 0; i < 16; i++) {
+			if (instruction.info.load_store_multiple.register_list & (1 << i)) {
 				if ((!dry_run_pc) || (i == 15))
-				{
 					target_read_u32(target, Rn, &load_values[i]);
-				}
 				Rn += 4;
 			}
 		}
 
-		if (dry_run_pc)
-		{
-			if (instruction.info.load_store_multiple.register_list & 0x8000)
-			{
+		if (dry_run_pc) {
+			if (instruction.info.load_store_multiple.register_list & 0x8000) {
 				*dry_run_pc = load_values[15] & ~1;
 				return ERROR_OK;
 			}
-		}
-		else
-		{
+		} else {
 			int update_cpsr = 0;
 
-			if (instruction.info.load_store_multiple.S)
-			{
+			if (instruction.info.load_store_multiple.S) {
 				if (instruction.info.load_store_multiple.register_list & 0x8000)
 					update_cpsr = 1;
 			}
 
-			for (i = 0; i < 16; i++)
-			{
-				if (instruction.info.load_store_multiple.register_list & (1 << i))
-				{
+			for (i = 0; i < 16; i++) {
+				if (instruction.info.load_store_multiple.register_list & (1 << i)) {
 					if (i == 15) {
 						uint32_t val = load_values[i];
-					sim->set_reg_mode(sim, i, val & ~1);
-					if (val & 1)
-						sim->set_state(sim, ARM_STATE_THUMB);
-					else
-						sim->set_state(sim, ARM_STATE_ARM);
-					} else {
+						sim->set_reg_mode(sim, i, val & ~1);
+						if (val & 1)
+							sim->set_state(sim, ARM_STATE_THUMB);
+						else
+							sim->set_state(sim, ARM_STATE_ARM);
+					} else
 						sim->set_reg_mode(sim, i, load_values[i]);
-					}
 				}
 			}
 
-			if (update_cpsr)
-			{
+			if (update_cpsr) {
 				uint32_t spsr = sim->get_reg_mode(sim, 16);
 				sim->set_reg(sim, ARMV4_5_CPSR, spsr);
 			}
@@ -701,51 +581,44 @@ static int arm_simulate_step_core(struct target *target,
 			if (instruction.info.load_store_multiple.W)
 				sim->set_reg_mode(sim, instruction.info.load_store_multiple.Rn, Rn);
 
+
 			if (instruction.info.load_store_multiple.register_list & 0x8000)
 				return ERROR_OK;
 		}
 	}
 	/* store multiple instruction */
-	else if (instruction.type == ARM_STM)
-	{
+	else if (instruction.type == ARM_STM) {
 		int i;
 
-		if (dry_run_pc)
-		{
+		if (dry_run_pc) {
 			/* STM wont affect PC (advance by instruction size */
-		}
-		else
-		{
+		} else {
 			uint32_t Rn = sim->get_reg_mode(sim,
 					instruction.info.load_store_multiple.Rn);
 			int bits_set = 0;
 
-			for (i = 0; i < 16; i++)
-			{
+			for (i = 0; i < 16; i++) {
 				if (instruction.info.load_store_multiple.register_list & (1 << i))
 					bits_set++;
 			}
 
-			switch (instruction.info.load_store_multiple.addressing_mode)
-			{
-				case 0: /* Increment after */
+			switch (instruction.info.load_store_multiple.addressing_mode) {
+				case 0:	/* Increment after */
 					Rn = Rn;
 					break;
-				case 1: /* Increment before */
+				case 1:	/* Increment before */
 					Rn = Rn + 4;
 					break;
-				case 2: /* Decrement after */
+				case 2:	/* Decrement after */
 					Rn = Rn - (bits_set * 4) + 4;
 					break;
-				case 3: /* Decrement before */
+				case 3:	/* Decrement before */
 					Rn = Rn - (bits_set * 4);
 					break;
 			}
 
-			for (i = 0; i < 16; i++)
-			{
-				if (instruction.info.load_store_multiple.register_list & (1 << i))
-				{
+			for (i = 0; i < 16; i++) {
+				if (instruction.info.load_store_multiple.register_list & (1 << i)) {
 					target_write_u32(target, Rn, sim->get_reg_mode(sim, i));
 					Rn += 4;
 				}
@@ -757,22 +630,17 @@ static int arm_simulate_step_core(struct target *target,
 					instruction.info.load_store_multiple.Rn, Rn);
 
 		}
-	}
-	else if (!dry_run_pc)
-	{
+	} else if (!dry_run_pc) {
 		/* the instruction wasn't handled, but we're supposed to simulate it
 		 */
 		LOG_ERROR("Unimplemented instruction, could not simulate it.");
 		return ERROR_FAIL;
 	}
 
-	if (dry_run_pc)
-	{
+	if (dry_run_pc) {
 		*dry_run_pc = current_pc + instruction_size;
 		return ERROR_OK;
-	}
-	else
-	{
+	} else {
 		sim->set_reg(sim, 15, current_pc + instruction_size);
 		return ERROR_OK;
 	}
@@ -806,7 +674,7 @@ static void armv4_5_set_reg_mode(struct arm_sim_interface *sim, int reg, uint32_
 	struct arm *arm = (struct arm *)sim->user_data;
 
 	buf_set_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache,
-			arm->core_mode, reg).value, 0, 32, value);
+		arm->core_mode, reg).value, 0, 32, value);
 }
 
 static uint32_t armv4_5_get_cpsr(struct arm_sim_interface *sim, int pos, int bits)
@@ -830,15 +698,12 @@ static void armv4_5_set_state(struct arm_sim_interface *sim, enum arm_state mode
 	arm->core_state = mode;
 }
 
-
 static enum arm_mode armv4_5_get_mode(struct arm_sim_interface *sim)
 {
 	struct arm *arm = (struct arm *)sim->user_data;
 
 	return arm->core_mode;
 }
-
-
 
 int arm_simulate_step(struct target *target, uint32_t *dry_run_pc)
 {
@@ -857,4 +722,3 @@ int arm_simulate_step(struct target *target, uint32_t *dry_run_pc)
 
 	return arm_simulate_step_core(target, dry_run_pc, &sim);
 }
-

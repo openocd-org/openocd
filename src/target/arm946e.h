@@ -23,31 +23,30 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM946E_H
 #define ARM946E_H
 
 #include "arm9tdmi.h"
 
-#define	ARM946E_COMMON_MAGIC 0x20f920f9
+#define ARM946E_COMMON_MAGIC 0x20f920f9
 
-struct arm946e_common
-{
+struct arm946e_common {
 	struct arm7_9_common arm7_9_common;
 	int common_magic;
 	uint32_t cp15_control_reg;
 };
 
-static inline struct arm946e_common *
-target_to_arm946(struct target *target)
+static inline struct arm946e_common *target_to_arm946(struct target *target)
 {
 	return container_of(target->arch_info, struct arm946e_common,
 			arm7_9_common.arm);
 }
 
 int arm946e_init_arch_info(struct target *target,
-		struct arm946e_common *arm946e, struct jtag_tap *tap);
+			   struct arm946e_common *arm946e, struct jtag_tap *tap);
 int arm946e_write_cp15(struct target *target, int reg_addr, uint32_t value);
 
 extern const struct command_registration arm946e_command_handlers[];
 
-#endif /* ARM946E_H */
+#endif	/* ARM946E_H */

@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -42,8 +43,8 @@ static inline struct stlink_interface_s *target_to_stlink(struct target *target)
 }
 
 static int stm32_stlink_load_core_reg_u32(struct target *target,
-					  enum armv7m_regtype type,
-					  uint32_t num, uint32_t *value)
+		enum armv7m_regtype type,
+		uint32_t num, uint32_t *value)
 {
 	int retval;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
@@ -57,8 +58,7 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 	switch (num) {
 	case 0 ... 18:
 		/* read a normal core register */
-		retval =
-		    stlink_if->layout->api->read_reg(stlink_if->fd, num, value);
+		retval = stlink_if->layout->api->read_reg(stlink_if->fd, num, value);
 
 		if (retval != ERROR_OK) {
 			LOG_ERROR("JTAG failure %i", retval);
@@ -76,8 +76,7 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 		 * in one Debug Core register.  So say r0 and r2 docs;
 		 * it was removed from r1 docs, but still works.
 		 */
-		retval =
-		    stlink_if->layout->api->read_reg(stlink_if->fd, 20, value);
+		retval = stlink_if->layout->api->read_reg(stlink_if->fd, 20, value);
 
 		switch (num) {
 		case ARMV7M_PRIMASK:
@@ -109,8 +108,8 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 }
 
 static int stm32_stlink_store_core_reg_u32(struct target *target,
-					   enum armv7m_regtype type,
-					   uint32_t num, uint32_t value)
+		enum armv7m_regtype type,
+		uint32_t num, uint32_t value)
 {
 	int retval;
 	uint32_t reg;
@@ -231,7 +230,7 @@ static int stm32_stlink_init_target(struct command_context *cmd_ctx,
 }
 
 static int stm32_stlink_target_create(struct target *target,
-				      Jim_Interp *interp)
+		Jim_Interp *interp)
 {
 	LOG_DEBUG("%s", __func__);
 
@@ -467,10 +466,8 @@ static int stm32_stlink_halt(struct target *target)
 		return ERROR_OK;
 	}
 
-	if (target->state == TARGET_UNKNOWN) {
-		LOG_WARNING
-		    ("target was in unknown state when halt was requested");
-	}
+	if (target->state == TARGET_UNKNOWN)
+		LOG_WARNING("target was in unknown state when halt was requested");
 
 	res = stlink_if->layout->api->halt(stlink_if->fd);
 
@@ -483,8 +480,8 @@ static int stm32_stlink_halt(struct target *target)
 }
 
 static int stm32_stlink_resume(struct target *target, int current,
-			       uint32_t address, int handle_breakpoints,
-			       int debug_execution)
+		uint32_t address, int handle_breakpoints,
+		int debug_execution)
 {
 	int res;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
@@ -494,7 +491,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 	struct reg *pc;
 
 	LOG_DEBUG("%s %d %x %d %d", __func__, current, address,
-		  handle_breakpoints, debug_execution);
+			handle_breakpoints, debug_execution);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
@@ -526,8 +523,8 @@ static int stm32_stlink_resume(struct target *target, int current,
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)",
-					  breakpoint->address,
-					  breakpoint->unique_id);
+					breakpoint->address,
+					breakpoint->unique_id);
 			cortex_m3_unset_breakpoint(target, breakpoint);
 
 			res = stlink_if->layout->api->step(stlink_if->fd);
@@ -552,7 +549,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 }
 
 static int stm32_stlink_step(struct target *target, int current,
-			     uint32_t address, int handle_breakpoints)
+		uint32_t address, int handle_breakpoints)
 {
 	int res;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
@@ -613,8 +610,8 @@ static int stm32_stlink_step(struct target *target, int current,
 }
 
 static int stm32_stlink_read_memory(struct target *target, uint32_t address,
-				    uint32_t size, uint32_t count,
-				    uint8_t *buffer)
+		uint32_t size, uint32_t count,
+		uint8_t *buffer)
 {
 	int res;
 	uint32_t buffer_threshold = 128;
@@ -644,13 +641,11 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 			c = count;
 
 		if (size != 4)
-			res =
-				stlink_if->layout->api->read_mem8(stlink_if->fd, address,
-						       c, dst);
+			res = stlink_if->layout->api->read_mem8(stlink_if->fd,
+					address, c, dst);
 		else
-			res =
-				stlink_if->layout->api->read_mem32(stlink_if->fd, address,
-						       c, (uint32_t *)dst);
+			res = stlink_if->layout->api->read_mem32(stlink_if->fd,
+					address, c, (uint32_t *)dst);
 
 		if (res != ERROR_OK)
 			return res;
@@ -664,8 +659,8 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 }
 
 static int stm32_stlink_write_memory(struct target *target, uint32_t address,
-				     uint32_t size, uint32_t count,
-				     const uint8_t *buffer)
+		uint32_t size, uint32_t count,
+		const uint8_t *buffer)
 {
 	int res;
 	uint32_t buffer_threshold = 128;
@@ -695,13 +690,11 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 			c = count;
 
 		if (size != 4)
-			res =
-				stlink_if->layout->api->write_mem8(stlink_if->fd, address,
-						       c, dst);
+			res = stlink_if->layout->api->write_mem8(stlink_if->fd,
+					address, c, dst);
 		else
-			res =
-				stlink_if->layout->api->write_mem32(stlink_if->fd, address,
-						       c, (uint32_t *)dst);
+			res = stlink_if->layout->api->write_mem32(stlink_if->fd,
+					address, c, (uint32_t *)dst);
 
 		if (res != ERROR_OK)
 			return res;
@@ -715,8 +708,8 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 }
 
 static int stm32_stlink_bulk_write_memory(struct target *target,
-					  uint32_t address, uint32_t count,
-					  const uint8_t *buffer)
+		uint32_t address, uint32_t count,
+		const uint8_t *buffer)
 {
 	return stm32_stlink_write_memory(target, address, 4, count, buffer);
 }

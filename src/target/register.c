@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -38,16 +39,14 @@
  * may be separate registers associated with debug or trace modules.
  */
 
-struct reg* register_get_by_name(struct reg_cache *first,
+struct reg *register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
 {
 	unsigned i;
 	struct reg_cache *cache = first;
 
-	while (cache)
-	{
-		for (i = 0; i < cache->num_regs; i++)
-		{
+	while (cache) {
+		for (i = 0; i < cache->num_regs; i++) {
 			if (strcmp(cache->reg_list[i].name, name) == 0)
 				return &(cache->reg_list[i]);
 		}
@@ -61,7 +60,7 @@ struct reg* register_get_by_name(struct reg_cache *first,
 	return NULL;
 }
 
-struct reg_cache** register_get_last_cache_p(struct reg_cache **first)
+struct reg_cache **register_get_last_cache_p(struct reg_cache **first)
 {
 	struct reg_cache **cache_p = first;
 

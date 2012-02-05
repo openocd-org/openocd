@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef DSP563XX_ONCE_H
 #define DSP563XX_ONCE_H
 
@@ -57,8 +58,7 @@
 #define DSP563XX_ONCE_OPABF11	0x012	/* trace buffer/inc ptr */
 #define DSP563XX_ONCE_NOREG	0x01F	/* no register selected */
 
-struct once_reg
-{
+struct once_reg {
 	uint8_t num;
 	uint8_t addr;
 	uint8_t len;

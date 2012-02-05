@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -30,7 +31,6 @@
  * https://lists.berlios.de/pipermail/openocd-development/2007-September/000336.html
  */
 
-
 static int oocd_trace_read_reg(struct oocd_trace *oocd_trace, int reg, uint32_t *value)
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
@@ -40,9 +40,8 @@ static int oocd_trace_read_reg(struct oocd_trace *oocd_trace, int reg, uint32_t 
 	bytes_written = write(oocd_trace->tty_fd, &cmd, 1);
 
 	bytes_to_read = 4;
-	while (bytes_to_read > 0)
-	{
-		bytes_read = read(oocd_trace->tty_fd, ((uint8_t*)value) + 4 - bytes_to_read, bytes_to_read);
+	while (bytes_to_read > 0) {
+		bytes_read = read(oocd_trace->tty_fd, ((uint8_t *)value) + 4 - bytes_to_read, bytes_to_read);
 		bytes_to_read -= bytes_read;
 	}
 
@@ -81,13 +80,11 @@ static int oocd_trace_read_memory(struct oocd_trace *oocd_trace, uint8_t *data, 
 	bytes_written = write(oocd_trace->tty_fd, &cmd, 1);
 
 	bytes_to_read = size * 16;
-	while (bytes_to_read > 0)
-	{
-		if ((bytes_read = read(oocd_trace->tty_fd,
-				((uint8_t*)data) + (size * 16) - bytes_to_read, bytes_to_read)) < 0)
-		{
+	while (bytes_to_read > 0) {
+		bytes_read = read(oocd_trace->tty_fd,
+				((uint8_t *)data) + (size * 16) - bytes_to_read, bytes_to_read);
+		if (bytes_read < 0)
 			LOG_DEBUG("read() returned %zi (%s)", bytes_read, strerror(errno));
-		}
 		else
 			bytes_to_read -= bytes_read;
 	}
@@ -103,8 +100,7 @@ static int oocd_trace_init(struct etm_context *etm_ctx)
 
 	oocd_trace->tty_fd = open(oocd_trace->tty, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	if (oocd_trace->tty_fd < 0)
-	{
+	if (oocd_trace->tty_fd < 0) {
 		LOG_ERROR("can't open tty");
 		return ERROR_ETM_CAPTURE_INIT_FAILED;
 	}
@@ -134,10 +130,11 @@ static int oocd_trace_init(struct etm_context *etm_ctx)
 
 	/* occasionally one bogus character is left in the input buffer
 	 * read up any leftover characters to ensure communication is in sync */
-	while ((bytes_read = read(oocd_trace->tty_fd, trash, sizeof(trash))) > 0)
-	{
-		LOG_DEBUG("%zi bytes read", bytes_read);
-	};
+	do {
+		bytes_read = read(oocd_trace->tty_fd, trash, sizeof(trash));
+		if (bytes_read)
+			LOG_DEBUG("%zi bytes read", bytes_read);
+	} while (bytes_read > 0);
 
 	return ERROR_OK;
 }
@@ -151,11 +148,8 @@ static trace_status_t oocd_trace_status(struct etm_context *etm_ctx)
 
 	/* if tracing is currently idle, return this information */
 	if (etm_ctx->capture_status == TRACE_IDLE)
-	{
 		return etm_ctx->capture_status;
-	}
-	else if (etm_ctx->capture_status & TRACE_RUNNING)
-	{
+	else if (etm_ctx->capture_status & TRACE_RUNNING) {
 		/* check Full bit to identify an overflow */
 		if (status & 0x4)
 			etm_ctx->capture_status |= TRACE_OVERFLOWED;
@@ -164,8 +158,7 @@ static trace_status_t oocd_trace_status(struct etm_context *etm_ctx)
 		if (status & 0x2)
 			etm_ctx->capture_status |= TRACE_TRIGGERED;
 
-		if (status & 0x1)
-		{
+		if (status & 0x1) {
 			etm_ctx->capture_status &= ~TRACE_RUNNING;
 			etm_ctx->capture_status |= TRACE_COMPLETED;
 		}
@@ -202,26 +195,20 @@ static int oocd_trace_read_trace(struct etm_context *etm_ctx)
 	oocd_trace_read_memory(oocd_trace, trace_data, first_frame, num_frames);
 
 	if (etm_ctx->trace_depth > 0)
-	{
 		free(etm_ctx->trace_data);
-	}
 
 	etm_ctx->trace_depth = num_frames * 16;
 	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
 
-	for (i = 0; i < num_frames * 16; i++)
-	{
+	for (i = 0; i < num_frames * 16; i++) {
 		etm_ctx->trace_data[i].pipestat = (trace_data[i] & 0x7);
 		etm_ctx->trace_data[i].packet = (trace_data[i] & 0x78) >> 3;
 		etm_ctx->trace_data[i].flags = 0;
 
 		if ((trace_data[i] & 0x80) >> 7)
-		{
 			etm_ctx->trace_data[i].flags |= ETMV1_TRACESYNC_CYCLE;
-		}
 
-		if (etm_ctx->trace_data[i].pipestat == STAT_TR)
-		{
+		if (etm_ctx->trace_data[i].pipestat == STAT_TR) {
 			etm_ctx->trace_data[i].pipestat = etm_ctx->trace_data[i].packet & 0x7;
 			etm_ctx->trace_data[i].flags |= ETMV1_TRIGGER_CYCLE;
 		}
@@ -239,16 +226,13 @@ static int oocd_trace_start_capture(struct etm_context *etm_ctx)
 	uint32_t trigger_count;
 
 	if (((etm_ctx->control & ETM_PORT_MODE_MASK) != ETM_PORT_NORMAL)
-		|| ((etm_ctx->control & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT))
-	{
+		|| ((etm_ctx->control & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT)) {
 		LOG_DEBUG("OpenOCD + trace only supports normal 4-bit ETM mode");
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	}
 
 	if ((etm_ctx->control & ETM_PORT_CLOCK_MASK) == ETM_PORT_HALF_CLOCK)
-	{
 		control |= 0x2;	/* half rate clock, capture at twice the clock rate */
-	}
 
 	/* OpenOCD + trace holds up to 16 million samples,
 	 * but trigger counts is set in multiples of 16 */
@@ -283,20 +267,16 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 	struct arm *arm;
 
 	if (CMD_ARGC != 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
+	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (arm->etm)
-	{
+	if (arm->etm) {
 		struct oocd_trace *oocd_trace = malloc(sizeof(struct oocd_trace));
 
 		arm->etm->capture_driver_priv = oocd_trace;
@@ -304,11 +284,8 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 
 		/* copy name of TTY device used to communicate with OpenOCD + trace */
 		oocd_trace->tty = strndup(CMD_ARGV[1], 256);
-	}
-	else
-	{
+	} else
 		LOG_ERROR("target has no ETM defined, OpenOCD + trace left unconfigured");
-	}
 
 	return ERROR_OK;
 }
@@ -323,25 +300,22 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 	target = get_current_target(CMD_CTX);
 
 	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
+	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!arm->etm)
-	{
+	if (!arm->etm) {
 		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
-	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0)
-	{
+	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0) {
 		command_print(CMD_CTX, "current target's ETM capture driver isn't 'oocd_trace'");
 		return ERROR_FAIL;
 	}
 
-	oocd_trace = (struct oocd_trace*)arm->etm->capture_driver_priv;
+	oocd_trace = (struct oocd_trace *)arm->etm->capture_driver_priv;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 
@@ -364,25 +338,22 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 	target = get_current_target(CMD_CTX);
 
 	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
+	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (!arm->etm)
-	{
+	if (!arm->etm) {
 		command_print(CMD_CTX, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
-	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0)
-	{
+	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0) {
 		command_print(CMD_CTX, "current target's ETM capture driver isn't 'oocd_trace'");
 		return ERROR_FAIL;
 	}
 
-	oocd_trace = (struct oocd_trace*)arm->etm->capture_driver_priv;
+	oocd_trace = (struct oocd_trace *)arm->etm->capture_driver_priv;
 
 	cmd_array[0] = 0xf0;
 
@@ -428,8 +399,7 @@ static const struct command_registration oocd_trace_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct etm_capture_driver oocd_trace_capture_driver =
-{
+struct etm_capture_driver oocd_trace_capture_driver = {
 	.name = "oocd_trace",
 	.commands = oocd_trace_command_handlers,
 	.init = oocd_trace_init,
@@ -438,5 +408,3 @@ struct etm_capture_driver oocd_trace_capture_driver =
 	.stop_capture = oocd_trace_stop_capture,
 	.read_trace = oocd_trace_read_trace,
 };
-
-

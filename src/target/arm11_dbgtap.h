@@ -1,3 +1,25 @@
+/***************************************************************************
+ *   Copyright (C) 2008 digenius technology GmbH.                          *
+ *   Michael Bruck                                                         *
+ *                                                                         *
+ *   Copyright (C) 2008,2009 Oyvind Harboe oyvind.harboe@zylin.com         *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
 #ifndef ARM11_DBGTAP_H
 #define ARM11_DBGTAP_H
 
@@ -37,10 +59,9 @@ void arm11_add_dr_scan_vc(struct jtag_tap *tap, int num_fields, struct scan_fiel
  * Used with arm11_sc7_run to make a list of read/write commands for
  * scan chain 7
  */
-struct arm11_sc7_action
-{
-	bool write; /**< Access mode: true for write, false for read. */
-	uint8_t	address; /**< Register address mode. Use enum #arm11_sc7 */
+struct arm11_sc7_action {
+	bool write;	/**< Access mode: true for write, false for read. */
+	uint8_t address;/**< Register address mode. Use enum #arm11_sc7 */
 	/**
 	 * If write then set this to value to be written.  In read mode
 	 * this receives the read value when the function returns.
@@ -61,4 +82,4 @@ int arm11_read_memory_word(struct arm11_common *arm11,
 int arm11_dpm_init(struct arm11_common *arm11, uint32_t didr);
 int arm11_bpwp_flush(struct arm11_common *arm11);
 
-#endif // ARM11_DBGTAP_H
+#endif	/* ARM11_DBGTAP_H */

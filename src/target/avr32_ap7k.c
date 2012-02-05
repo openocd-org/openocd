@@ -19,6 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -34,15 +35,13 @@
 #include "avr32_regs.h"
 #include "avr32_ap7k.h"
 
-static char* avr32_core_reg_list[] =
-{
-	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", 
+static char *avr32_core_reg_list[] = {
+	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8",
 	"r9", "r10", "r11", "r12", "sp", "lr", "pc", "sr"
 };
 
-static struct avr32_core_reg 
-	avr32_core_reg_list_arch_info[AVR32NUMCOREREGS] =
-{
+static struct avr32_core_reg
+	avr32_core_reg_list_arch_info[AVR32NUMCOREREGS] = {
 	{0, NULL, NULL},
 	{1, NULL, NULL},
 	{2, NULL, NULL},
@@ -75,12 +74,9 @@ int avr32_ap7k_save_context(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (i = 0; i < AVR32NUMCOREREGS; i++)
-	{
+	for (i = 0; i < AVR32NUMCOREREGS; i++) {
 		if (!ap7k->core_cache->reg_list[i].valid)
-		{
 			avr32_read_core_reg(target, i);
-		}
 	}
 
 	return ERROR_OK;
@@ -93,12 +89,9 @@ int avr32_ap7k_restore_context(struct target *target)
 	/* get pointers to arch-specific information */
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
-	for (i = 0; i < AVR32NUMCOREREGS; i++)
-	{
+	for (i = 0; i < AVR32NUMCOREREGS; i++) {
 		if (ap7k->core_cache->reg_list[i].dirty)
-		{
 			avr32_write_core_reg(target, i);
-		}
 	}
 
 	/* write core regs */
@@ -137,7 +130,7 @@ static int avr32_write_core_reg(struct target *target, int num)
 
 	reg_value = buf_get_u32(ap7k->core_cache->reg_list[num].value, 0, 32);
 	ap7k->core_regs[num] = reg_value;
-	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, reg_value);
 	ap7k->core_cache->reg_list[num].valid = 1;
 	ap7k->core_cache->reg_list[num].dirty = 0;
 
@@ -151,9 +144,7 @@ static int avr32_get_core_reg(struct reg *reg)
 	struct target *target = avr32_reg->target;
 
 	if (target->state != TARGET_HALTED)
-	{
 		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	retval = avr32_read_core_reg(target, avr32_reg->num);
 
@@ -167,9 +158,7 @@ static int avr32_set_core_reg(struct reg *reg, uint8_t *buf)
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
-	{
 		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	buf_set_u32(reg->value, 0, 32, value);
 	reg->dirty = 1;
@@ -190,7 +179,7 @@ static struct reg_cache *avr32_build_reg_cache(struct target *target)
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
-	struct avr32_core_reg *arch_info = 
+	struct avr32_core_reg *arch_info =
 		malloc(sizeof(struct avr32_core_reg) * num_regs);
 	int i;
 
@@ -202,8 +191,7 @@ static struct reg_cache *avr32_build_reg_cache(struct target *target)
 	(*cache_p) = cache;
 	ap7k->core_cache = cache;
 
-	for (i = 0; i < num_regs; i++)
-	{
+	for (i = 0; i < num_regs; i++) {
 		arch_info[i] = avr32_core_reg_list_arch_info[i];
 		arch_info[i].target = target;
 		arch_info[i].avr32_common = ap7k;
@@ -253,31 +241,26 @@ static int avr32_ap7k_poll(struct target *target)
 		return retval;
 
 	/* check for processor halted */
-	if (ds & OCDREG_DS_DBA)
-	{
-		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
-		{
+	if (ds & OCDREG_DS_DBA) {
+		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET)) {
 			target->state = TARGET_HALTED;
 
-			if ((retval = avr32_ap7k_debug_entry(target)) != ERROR_OK)
+			retval = avr32_ap7k_debug_entry(target);
+			if (retval != ERROR_OK)
 				return retval;
 
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-		}
-		else if (target->state == TARGET_DEBUG_RUNNING)
-		{
+		} else if (target->state == TARGET_DEBUG_RUNNING) {
 			target->state = TARGET_HALTED;
 
-			if ((retval = avr32_ap7k_debug_entry(target)) != ERROR_OK)
+			retval = avr32_ap7k_debug_entry(target);
+			if (retval != ERROR_OK)
 				return retval;
 
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
-	}
-	else
-	{
+	} else
 		target->state = TARGET_RUNNING;
-	}
 
 
 	return ERROR_OK;
@@ -288,28 +271,21 @@ static int avr32_ap7k_halt(struct target *target)
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
 	LOG_DEBUG("target->state: %s",
-		  target_state_name(target));
+		target_state_name(target));
 
-	if (target->state == TARGET_HALTED)
-	{
+	if (target->state == TARGET_HALTED) {
 		LOG_DEBUG("target was already halted");
 		return ERROR_OK;
 	}
 
 	if (target->state == TARGET_UNKNOWN)
-	{
 		LOG_WARNING("target was in unknown state when halt was requested");
-	}
 
-	if (target->state == TARGET_RESET)
-	{
-		if ((jtag_get_reset_config() & RESET_SRST_PULLS_TRST) && jtag_get_srst())
-		{
+	if (target->state == TARGET_RESET) {
+		if ((jtag_get_reset_config() & RESET_SRST_PULLS_TRST) && jtag_get_srst()) {
 			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;
-		}
-		else
-		{
+		} else {
 			target->debug_reason = DBG_REASON_DBGRQ;
 
 			return ERROR_OK;
@@ -345,21 +321,19 @@ static int avr32_ap7k_soft_reset_halt(struct target *target)
 }
 
 static int avr32_ap7k_resume(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+	uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 	struct breakpoint *breakpoint = NULL;
 	uint32_t resume_pc;
 	int retval;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (!debug_execution)
-	{
+	if (!debug_execution) {
 		target_free_all_working_areas(target);
 		/*
 		avr32_ap7k_enable_breakpoints(target);
@@ -368,24 +342,21 @@ static int avr32_ap7k_resume(struct target *target, int current,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	if (!current)
-	{
+	if (!current) {
 #if 0
 		if (retval != ERROR_OK)
 			return retval;
 #endif
 	}
 
-	resume_pc = 
-		buf_get_u32(ap7k->core_cache->reg_list[AVR32_REG_PC].value, 0, 32);
+	resume_pc = buf_get_u32(ap7k->core_cache->reg_list[AVR32_REG_PC].value, 0, 32);
 	avr32_ap7k_restore_context(target);
 
 	/* the front-end may request us not to handle breakpoints */
-	if (handle_breakpoints)
-	{
+	if (handle_breakpoints) {
 		/* Single step past breakpoint at current address */
-		if ((breakpoint = breakpoint_find(target, resume_pc)))
-		{
+		breakpoint = breakpoint_find(target, resume_pc);
+		if (breakpoint) {
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 #if 0
 			avr32_ap7k_unset_breakpoint(target, breakpoint);
@@ -418,14 +389,11 @@ static int avr32_ap7k_resume(struct target *target, int current,
 	/* registers are now invalid */
 	register_cache_invalidate(ap7k->core_cache);
 
-	if (!debug_execution)
-	{
+	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 		LOG_DEBUG("target resumed at 0x%" PRIx32 "", resume_pc);
-	}
-	else
-	{
+	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
 		LOG_DEBUG("target debug resumed at 0x%" PRIx32 "", resume_pc);
@@ -435,7 +403,7 @@ static int avr32_ap7k_resume(struct target *target, int current,
 }
 
 static int avr32_ap7k_step(struct target *target, int current,
-		uint32_t address, int handle_breakpoints)
+	uint32_t address, int handle_breakpoints)
 {
 	LOG_ERROR("%s: implement me", __func__);
 
@@ -450,7 +418,7 @@ static int avr32_ap7k_add_breakpoint(struct target *target, struct breakpoint *b
 }
 
 static int avr32_ap7k_remove_breakpoint(struct target *target,
-		struct breakpoint *breakpoint)
+	struct breakpoint *breakpoint)
 {
 	LOG_ERROR("%s: implement me", __func__);
 
@@ -465,7 +433,7 @@ static int avr32_ap7k_add_watchpoint(struct target *target, struct watchpoint *w
 }
 
 static int avr32_ap7k_remove_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
+	struct watchpoint *watchpoint)
 {
 	LOG_ERROR("%s: implement me", __func__);
 
@@ -473,14 +441,16 @@ static int avr32_ap7k_remove_watchpoint(struct target *target,
 }
 
 static int avr32_ap7k_read_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+	uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+		address,
+		size,
+		count);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -492,33 +462,36 @@ static int avr32_ap7k_read_memory(struct target *target, uint32_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	switch (size)
-	{
-	case 4:
-		return avr32_jtag_read_memory32(&ap7k->jtag, address, count, (uint32_t*)(void *)buffer);
-		break;
-	case 2:
-		return avr32_jtag_read_memory16(&ap7k->jtag, address, count, (uint16_t*)(void *)buffer);
-		break;
-	case 1:
-		return avr32_jtag_read_memory8(&ap7k->jtag, address, count, buffer);
-		break;
-	default:
-		break;
+	switch (size) {
+		case 4:
+			return avr32_jtag_read_memory32(&ap7k->jtag, address, count,
+				(uint32_t *)(void *)buffer);
+			break;
+		case 2:
+			return avr32_jtag_read_memory16(&ap7k->jtag, address, count,
+				(uint16_t *)(void *)buffer);
+			break;
+		case 1:
+			return avr32_jtag_read_memory8(&ap7k->jtag, address, count, buffer);
+			break;
+		default:
+			break;
 	}
 
 	return ERROR_OK;
 }
 
 static int avr32_ap7k_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, const uint8_t *buffer)
+	uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+		address,
+		size,
+		count);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -530,26 +503,27 @@ static int avr32_ap7k_write_memory(struct target *target, uint32_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	switch (size)
-	{
-	case 4:
-		return avr32_jtag_write_memory32(&ap7k->jtag, address, count, (uint32_t*)(void *)buffer);
-		break;
-	case 2:
-		return avr32_jtag_write_memory16(&ap7k->jtag, address, count, (uint16_t*)(void *)buffer);
-		break;
-	case 1:
-		return avr32_jtag_write_memory8(&ap7k->jtag, address, count, buffer);
-		break;
-	default:
-		break;
+	switch (size) {
+		case 4:
+			return avr32_jtag_write_memory32(&ap7k->jtag, address, count,
+				(uint32_t *)(void *)buffer);
+			break;
+		case 2:
+			return avr32_jtag_write_memory16(&ap7k->jtag, address, count,
+				(uint16_t *)(void *)buffer);
+			break;
+		case 1:
+			return avr32_jtag_write_memory8(&ap7k->jtag, address, count, buffer);
+			break;
+		default:
+			break;
 	}
 
 	return ERROR_OK;
 }
 
 static int avr32_ap7k_init_target(struct command_context *cmd_ctx,
-		struct target *target)
+	struct target *target)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
@@ -561,7 +535,7 @@ static int avr32_ap7k_init_target(struct command_context *cmd_ctx,
 static int avr32_ap7k_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct avr32_ap7k_common *ap7k = calloc(1, sizeof(struct
-				avr32_ap7k_common));
+			avr32_ap7k_common));
 
 	ap7k->common_magic = AP7k_COMMON_MAGIC;
 	target->arch_info = ap7k;
@@ -574,21 +548,18 @@ static int avr32_ap7k_examine(struct target *target)
 	uint32_t devid, ds;
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
-	if (!target_was_examined(target))
-	{
+	if (!target_was_examined(target)) {
 		target_set_examined(target);
 		avr32_jtag_nexus_read(&ap7k->jtag, AVR32_OCDREG_DID, &devid);
 		LOG_INFO("device id: %08x", devid);
-		avr32_ocd_setbits(&ap7k->jtag, AVR32_OCDREG_DC,OCDREG_DC_DBE);
+		avr32_ocd_setbits(&ap7k->jtag, AVR32_OCDREG_DC, OCDREG_DC_DBE);
 		avr32_jtag_nexus_read(&ap7k->jtag, AVR32_OCDREG_DS, &ds);
 
 		/* check for processor halted */
-		if (ds & OCDREG_DS_DBA) 
-		{
+		if (ds & OCDREG_DS_DBA) {
 			LOG_INFO("target is halted");
 			target->state = TARGET_HALTED;
-		}
-		else
+		} else
 			target->state = TARGET_RUNNING;
 	}
 
@@ -596,7 +567,7 @@ static int avr32_ap7k_examine(struct target *target)
 }
 
 static int avr32_ap7k_bulk_write_memory(struct target *target, uint32_t address,
-		uint32_t count, const uint8_t *buffer)
+	uint32_t count, const uint8_t *buffer)
 {
 	LOG_ERROR("%s: implement me", __func__);
 
@@ -609,31 +580,28 @@ int avr32_ap7k_arch_state(struct target *target)
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 
 	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",
-                debug_reason_name(target), ap7k->jtag.dpc);
+		debug_reason_name(target), ap7k->jtag.dpc);
 
-   	return ERROR_OK;
+	return ERROR_OK;
 }
 
 int avr32_ap7k_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
 {
 #if 0
-        /* get pointers to arch-specific information */
-        int i;
+	/* get pointers to arch-specific information */
+	int i;
 
-        /* include floating point registers */
-        *reg_list_size = AVR32NUMCOREREGS + AVR32NUMFPREGS;
-        *reg_list = malloc(sizeof(struct reg*) * (*reg_list_size));
+	/* include floating point registers */
+	*reg_list_size = AVR32NUMCOREREGS + AVR32NUMFPREGS;
+	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
-        for (i = 0; i < AVR32NUMCOREREGS; i++)
-        {
-                (*reg_list)[i] = &mips32->core_cache->reg_list[i];
-        }
+	for (i = 0; i < AVR32NUMCOREREGS; i++)
+		(*reg_list)[i] = &mips32->core_cache->reg_list[i];
 
-        /* add dummy floating points regs */
-        for (i = AVR32NUMCOREREGS; i < (AVR32NUMCOREREGS + AVR32NUMFPREGS); i++)
-        {
-                (*reg_list)[i] = &avr32_ap7k_gdb_dummy_fp_reg;
-        }
+	/* add dummy floating points regs */
+	for (i = AVR32NUMCOREREGS; i < (AVR32NUMCOREREGS + AVR32NUMFPREGS); i++)
+		(*reg_list)[i] = &avr32_ap7k_gdb_dummy_fp_reg;
+
 #endif
 
 	LOG_ERROR("%s: implement me", __func__);
@@ -642,8 +610,7 @@ int avr32_ap7k_get_gdb_reg_list(struct target *target, struct reg **reg_list[], 
 
 
 
-struct target_type avr32_ap7k_target =
-{
+struct target_type avr32_ap7k_target = {
 	.name = "avr32_ap7k",
 
 	.poll = avr32_ap7k_poll,
@@ -664,10 +631,10 @@ struct target_type avr32_ap7k_target =
 	.read_memory = avr32_ap7k_read_memory,
 	.write_memory = avr32_ap7k_write_memory,
 	.bulk_write_memory = avr32_ap7k_bulk_write_memory,
-	// .checksum_memory = avr32_ap7k_checksum_memory,
-	// .blank_check_memory = avr32_ap7k_blank_check_memory,
+	/* .checksum_memory = avr32_ap7k_checksum_memory, */
+	/* .blank_check_memory = avr32_ap7k_blank_check_memory, */
 
-	// .run_algorithm = avr32_ap7k_run_algorithm,
+	/* .run_algorithm = avr32_ap7k_run_algorithm, */
 
 	.add_breakpoint = avr32_ap7k_add_breakpoint,
 	.remove_breakpoint = avr32_ap7k_remove_breakpoint,

@@ -58,7 +58,6 @@
 #include "register.h"
 #include "arm_opcodes.h"
 
-
 static int feroceon_assert_reset(struct target *target)
 {
 	struct arm *arm = target->arch_info;
@@ -160,7 +159,7 @@ static void feroceon_change_to_arm(struct target *target, uint32_t *r0,
 }
 
 static void feroceon_read_core_regs(struct target *target,
-		uint32_t mask, uint32_t* core_regs[16])
+		uint32_t mask, uint32_t *core_regs[16])
 {
 	int i;
 	struct arm *arm = target->arch_info;
@@ -180,7 +179,7 @@ static void feroceon_read_core_regs(struct target *target,
 }
 
 static void feroceon_read_core_regs_target_buffer(struct target *target,
-		uint32_t mask, void* buffer, int size)
+		uint32_t mask, void *buffer, int size)
 {
 	int i;
 	struct arm *arm = target->arch_info;
@@ -195,11 +194,9 @@ static void feroceon_read_core_regs_target_buffer(struct target *target,
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
-	for (i = 0; i <= 15; i++)
-	{
+	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i)) {
-			switch (size)
-			{
+			switch (size) {
 				case 4:
 					arm9tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
 					break;
@@ -350,7 +347,7 @@ static void feroceon_branch_resume_thumb(struct target *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
-	arm9tdmi_clock_out(jtag_info, 0xE28F0001, 0, NULL, 0); // add r0,pc,#1
+	arm9tdmi_clock_out(jtag_info, 0xE28F0001, 0, NULL, 0); /* add r0,pc,#1 */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_BX(0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -452,9 +449,7 @@ static int feroceon_examine_debug_reason(struct target *target)
 {
 	/* the MOE is not implemented */
 	if (target->debug_reason != DBG_REASON_SINGLESTEP)
-	{
 		target->debug_reason = DBG_REASON_DBGRQ;
-	}
 
 	return ERROR_OK;
 }
@@ -473,8 +468,7 @@ static int feroceon_bulk_write_memory(struct target *target,
 	 * We can't use the dcc flow control bits, so let's transfer data
 	 * with 31 bits and flip the MSB each time a new data word is sent.
 	 */
-	static uint32_t dcc_code[] =
-	{
+	static uint32_t dcc_code[] = {
 		0xee115e10,	/* 3:	mrc	p14, 0, r5, c1, c0, 0	*/
 		0xe3a0301e,	/* 1:	mov	r3, #30			*/
 		0xe3a04002,	/*	mov	r4, #2			*/
@@ -503,13 +497,11 @@ static int feroceon_bulk_write_memory(struct target *target,
 		return target_write_memory(target, address, 4, count, buffer);
 
 	/* regrab previously allocated working_area, or allocate a new one */
-	if (!arm7_9->dcc_working_area)
-	{
+	if (!arm7_9->dcc_working_area) {
 		uint8_t dcc_code_buf[dcc_size];
 
 		/* make sure we have a working area */
-		if (target_alloc_working_area(target, dcc_size, &arm7_9->dcc_working_area) != ERROR_OK)
-		{
+		if (target_alloc_working_area(target, dcc_size, &arm7_9->dcc_working_area) != ERROR_OK) {
 			LOG_INFO("no working area available, falling back to memory writes");
 			return target_write_memory(target, address, 4, count, buffer);
 		}
@@ -519,10 +511,10 @@ static int feroceon_bulk_write_memory(struct target *target,
 			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
 
 		/* write DCC code to working area */
-		if ((retval = target_write_memory(target, arm7_9->dcc_working_area->address, 4, dcc_size/4, dcc_code_buf)) != ERROR_OK)
-		{
+		retval = target_write_memory(target,
+				arm7_9->dcc_working_area->address, 4, dcc_size/4, dcc_code_buf);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 	}
 
 	/* backup clobbered processor state */
@@ -543,14 +535,12 @@ static int feroceon_bulk_write_memory(struct target *target,
 	x = 0;
 	flip = 0;
 	shift = 1;
-	for (i = 0; i < count; i++)
-	{
+	for (i = 0; i < count; i++) {
 		uint32_t y = target_buffer_get_u32(target, buffer);
 		uint32_t z = (x >> 1) | (y >> shift) | (flip ^= 0x80000000);
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], z);
 		x = y << (32 - shift);
-		if (++shift >= 32 || i + 1 >= count)
-		{
+		if (++shift >= 32 || i + 1 >= count) {
 			z = (x >> 1) | (flip ^= 0x80000000);
 			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], z);
 			x = 0;
@@ -563,20 +553,19 @@ static int feroceon_bulk_write_memory(struct target *target,
 	if (retval == ERROR_OK)
 		retval = target_wait_state(target, TARGET_HALTED, 500);
 	if (retval == ERROR_OK) {
-                uint32_t endaddress =
+		uint32_t endaddress =
 			buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32);
 		if (endaddress != address + count*4) {
 			LOG_ERROR("DCC write failed,"
 				" expected end address 0x%08" PRIx32
 				" got 0x%0" PRIx32 "",
-			       	address + count*4, endaddress);
+				address + count*4, endaddress);
 			retval = ERROR_FAIL;
 		}
 	}
 
 	/* restore target state */
-	for (i = 0; i <= 5; i++)
-	{
+	for (i = 0; i <= 5; i++) {
 		buf_set_u32(arm->core_cache->reg_list[i].value, 0, 32, save[i]);
 		arm->core_cache->reg_list[i].valid = 1;
 		arm->core_cache->reg_list[i].dirty = 1;
@@ -631,7 +620,7 @@ static void feroceon_common_setup(struct target *target)
 
 static int feroceon_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct arm926ejs_common *arm926ejs = calloc(1,sizeof(struct arm926ejs_common));
+	struct arm926ejs_common *arm926ejs = calloc(1, sizeof(struct arm926ejs_common));
 
 	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 	feroceon_common_setup(target);
@@ -645,7 +634,7 @@ static int feroceon_target_create(struct target *target, Jim_Interp *interp)
 
 static int dragonite_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct arm966e_common *arm966e = calloc(1,sizeof(struct arm966e_common));
+	struct arm966e_common *arm966e = calloc(1, sizeof(struct arm966e_common));
 
 	arm966e_init_arch_info(target, arm966e, target->tap);
 	feroceon_common_setup(target);
@@ -687,8 +676,7 @@ static int feroceon_examine(struct target *target)
 	return ERROR_OK;
 }
 
-struct target_type feroceon_target =
-{
+struct target_type feroceon_target = {
 	.name = "feroceon",
 
 	.poll = arm7_9_poll,
@@ -726,8 +714,7 @@ struct target_type feroceon_target =
 	.examine = feroceon_examine,
 };
 
-struct target_type dragonite_target =
-{
+struct target_type dragonite_target = {
 	.name = "dragonite",
 
 	.poll = arm7_9_poll,
@@ -764,4 +751,3 @@ struct target_type dragonite_target =
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,
 };
-

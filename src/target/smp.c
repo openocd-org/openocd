@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -28,7 +29,6 @@
 
 #include "server/gdb_server.h"
 #include "smp.h"
-
 
 /*  implementation of new packet in gdb interface for smp feature          */
 /*                                                                         */
@@ -53,9 +53,8 @@
 /*  Another way to test this packet is the usage of maintenance packet     */
 /*  maint packet Jc01                                                      */
 /*  maint packet jc                                                        */
-                                                
-static const char DIGITS[16] = "0123456789abcdef";
 
+static const char DIGITS[16] = "0123456789abcdef";
 
 /* packet j :smp status request */
 int gdb_read_smp_packet(struct connection *connection,
@@ -66,15 +65,12 @@ int gdb_read_smp_packet(struct connection *connection,
 	uint8_t *buffer;
 	char *hex_buffer;
 	int retval = ERROR_OK;
-	if (target->smp)
-	{
-		if (strstr(packet, "jc"))
-		{
+	if (target->smp) {
+		if (strstr(packet, "jc")) {
 			hex_buffer = malloc(len * 2 + 1);
 			buffer = (uint8_t *)&target->gdb_service->core[0];
 			uint32_t i;
-			for (i = 0; i < 4; i++)
-			{
+			for (i = 0; i < 4; i++) {
 				uint8_t t = buffer[i];
 				hex_buffer[2 * i] = DIGITS[(t >> 4) & 0xf];
 				hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
@@ -84,9 +80,8 @@ int gdb_read_smp_packet(struct connection *connection,
 
 			free(hex_buffer);
 		}
-	}
-	else
-		retval = gdb_put_packet(connection,"E01",3);
+	} else
+		retval = gdb_put_packet(connection, "E01", 3);
 	return retval;
 }
 
@@ -100,20 +95,15 @@ int gdb_write_smp_packet(struct connection *connection,
 	int retval = ERROR_OK;
 
 	/* skip command character */
-	if (target->smp)
-	{
-		if (strstr(packet, "Jc"))
-		{
-			packet+=2;
+	if (target->smp) {
+		if (strstr(packet, "Jc")) {
+			packet += 2;
 			coreid = strtoul(packet, &separator, 16);
 			target->gdb_service->core[1] = coreid;
 			retval = gdb_put_packet(connection, "OK", 2);
 		}
-	}
-	else
-	{
-		retval = gdb_put_packet(connection,"E01",3);
-	}
+	} else
+		retval = gdb_put_packet(connection, "E01", 3);
 
 	return retval;
 }

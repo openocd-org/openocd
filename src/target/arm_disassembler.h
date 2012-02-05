@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM_DISASSEMBLER_H
 #define ARM_DISASSEMBLER_H
 
 #include <helper/types.h>
 
-enum arm_instruction_type
-{
+enum arm_instruction_type {
 	ARM_UNKNOWN_INSTUCTION,
 
 	/* Branch instructions */
@@ -120,14 +120,12 @@ enum arm_instruction_type
 	ARM_UNDEFINED_INSTRUCTION = 0xffffffff,
 };
 
-struct arm_b_bl_bx_blx_instr
-{
+struct arm_b_bl_bx_blx_instr {
 	int reg_operand;
 	uint32_t target_address;
 };
 
-union arm_shifter_operand
-{
+union arm_shifter_operand {
 	struct {
 		uint32_t immediate;
 	} immediate;
@@ -143,8 +141,7 @@ union arm_shifter_operand
 	} register_shift;
 };
 
-struct arm_data_proc_instr
-{
+struct arm_data_proc_instr {
 	int variant; /* 0: immediate, 1: immediate_shift, 2: register_shift */
 	uint8_t S;
 	uint8_t Rn;
@@ -152,15 +149,13 @@ struct arm_data_proc_instr
 	union arm_shifter_operand shifter_operand;
 };
 
-struct arm_load_store_instr
-{
+struct arm_load_store_instr {
 	uint8_t Rd;
 	uint8_t Rn;
 	uint8_t U;
 	int index_mode; /* 0: offset, 1: pre-indexed, 2: post-indexed */
 	int offset_mode; /* 0: immediate, 1: (scaled) register */
-	union
-	{
+	union {
 		uint32_t offset;
 		struct {
 			uint8_t Rm;
@@ -170,8 +165,7 @@ struct arm_load_store_instr
 	} offset;
 };
 
-struct arm_load_store_multiple_instr
-{
+struct arm_load_store_multiple_instr {
 	uint8_t Rn;
 	uint32_t register_list;
 	uint8_t addressing_mode; /* 0: IA, 1: IB, 2: DA, 3: DB */
@@ -179,8 +173,7 @@ struct arm_load_store_multiple_instr
 	uint8_t W;
 };
 
-struct arm_instruction
-{
+struct arm_instruction {
 	enum arm_instruction_type type;
 	char text[128];
 	uint32_t opcode;

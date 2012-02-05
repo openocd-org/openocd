@@ -25,8 +25,7 @@
 struct target;
 
 #define AP7k_COMMON_MAGIC	0x4150374b
-struct avr32_ap7k_common
-{
+struct avr32_ap7k_common {
 	int common_magic;
 	struct avr32_jtag jtag;
 	struct reg_cache *core_cache;
@@ -36,11 +35,10 @@ struct avr32_ap7k_common
 static inline struct avr32_ap7k_common *
 target_to_ap7k(struct target *target)
 {
-	return (struct avr32_ap7k_common*)target->arch_info;
+	return (struct avr32_ap7k_common *)target->arch_info;
 }
 
-struct avr32_core_reg
-{
+struct avr32_core_reg {
 	uint32_t num;
 	struct target *target;
 	struct avr32_ap7k_common *avr32_common;

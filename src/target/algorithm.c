@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "algorithm.h"
 #include <helper/binarybuffer.h>
-
 
 void init_mem_param(struct mem_param *param, uint32_t address, uint32_t size, enum param_direction direction)
 {

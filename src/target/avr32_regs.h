@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef AVR32_REGS
 #define AVR32_REGS
 
@@ -43,4 +44,3 @@ int avr32_jtag_read_regs(struct avr32_jtag *jtag_info, uint32_t *regs);
 int avr32_jtag_write_regs(struct avr32_jtag *jtag_info, uint32_t *regs);
 
 #endif /* AVR32_REGS */
-

@@ -90,8 +90,8 @@
  * Rd: register to load
  * Rn: base register
  */
-#define ARMV4_5_LDRW_IP(Rd, Rn)	(0xe4900004 | ((Rd) << 12) | ((Rn) << 16)) 
-	
+#define ARMV4_5_LDRW_IP(Rd, Rn)	(0xe4900004 | ((Rd) << 12) | ((Rn) << 16))
+
 /* Load Register Halfword Immediate Post-Index
  * Rd: register to load
  * Rn: base register
@@ -108,7 +108,7 @@
  * Rd: register to store
  * Rn: base register
  */
-#define ARMV4_5_STRW_IP(Rd, Rn)	(0xe4800004 | ((Rd) << 12) | ((Rn) << 16)) 
+#define ARMV4_5_STRW_IP(Rd, Rn)	(0xe4800004 | ((Rd) << 12) | ((Rn) << 16))
 
 /* Store register Halfword Immediate Post-Index
  * Rd: register to store

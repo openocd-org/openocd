@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM920T_H
 #define ARM920T_H
 
@@ -25,8 +26,7 @@
 
 #define	ARM920T_COMMON_MAGIC 0xa920a920
 
-struct arm920t_common
-{
+struct arm920t_common {
 	struct arm7_9_common arm7_9_common;
 	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
@@ -38,21 +38,17 @@ struct arm920t_common
 	int preserve_cache;
 };
 
-static inline struct arm920t_common *
-target_to_arm920(struct target *target)
+static inline struct arm920t_common *target_to_arm920(struct target *target)
 {
-	return container_of(target->arch_info, struct arm920t_common,
-			arm7_9_common.arm);
+	return container_of(target->arch_info, struct arm920t_common, arm7_9_common.arm);
 }
 
-struct arm920t_cache_line
-{
+struct arm920t_cache_line {
 	uint32_t cam;
 	uint32_t data[8];
 };
 
-struct arm920t_tlb_entry
-{
+struct arm920t_tlb_entry {
 	uint32_t cam;
 	uint32_t ram1;
 	uint32_t ram2;

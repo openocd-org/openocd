@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef DSP563XX_H
 #define DSP563XX_H
 
@@ -26,25 +27,22 @@
 #define DSP563XX_NUMCOREREGS	54
 #define DSP563XX_NUMONCEREGS	25
 
-struct mcu_jtag
-{
+struct mcu_jtag {
 	struct jtag_tap *tap;
 };
 
-struct dsp563xx_common
-{
+struct dsp563xx_common {
 	struct mcu_jtag jtag_info;
 	struct reg_cache *core_cache;
 	uint32_t core_regs[DSP563XX_NUMCOREREGS];
 	struct once_reg once_regs[DSP563XX_NUMONCEREGS];
 
 	/* register cache to processor synchronization */
-	int (*read_core_reg) (struct target * target, int num);
-	int (*write_core_reg) (struct target * target, int num);
+	int (*read_core_reg) (struct target *target, int num);
+	int (*write_core_reg) (struct target *target, int num);
 };
 
-struct dsp563xx_core_reg
-{
+struct dsp563xx_core_reg {
 	uint32_t num;
 	const char *name;
 	uint32_t size;

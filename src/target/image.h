@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef IMAGE_H
 #define IMAGE_H
 
@@ -37,8 +38,7 @@
 
 #define IMAGE_MEMORY_CACHE_SIZE		(2048)
 
-enum image_type
-{
+enum image_type {
 	IMAGE_BINARY,	/* plain binary */
 	IMAGE_IHEX,		/* intel hex-record format */
 	IMAGE_MEMORY,	/* target-memory pseudo-image */
@@ -47,16 +47,14 @@ enum image_type
 	IMAGE_BUILDER,	/* when building a new image */
 };
 
-struct imagesection
-{
+struct imagesection {
 	uint32_t base_address;
 	uint32_t size;
 	int flags;
 	void *private;		/* private data */
 };
 
-struct image
-{
+struct image {
 	enum image_type type;		/* image type (plain, ihex, ...) */
 	void *type_private;		/* type private data */
 	int num_sections;		/* number of sections contained in the image */
@@ -67,26 +65,22 @@ struct image
 	uint32_t start_address;		/* start address, if one is set */
 };
 
-struct image_binary
-{
+struct image_binary {
 	struct fileio fileio;
 };
 
-struct image_ihex
-{
+struct image_ihex {
 	struct fileio fileio;
 	uint8_t *buffer;
 };
 
-struct image_memory
-{
+struct image_memory {
 	struct target *target;
 	uint8_t *cache;
 	uint32_t cache_address;
 };
 
-struct image_elf
-{
+struct image_elf {
 	struct fileio fileio;
 	Elf32_Ehdr *header;
 	Elf32_Phdr *segments;
@@ -94,8 +88,7 @@ struct image_elf
 	uint8_t endianness;
 };
 
-struct image_mot
-{
+struct image_mot {
 	struct fileio fileio;
 	uint8_t *buffer;
 };
@@ -108,8 +101,8 @@ void image_close(struct image *image);
 int image_add_section(struct image *image, uint32_t base, uint32_t size,
 		int flags, uint8_t *data);
 
-int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes,
-		uint32_t* checksum);
+int image_calculate_checksum(uint8_t *buffer, uint32_t nbytes,
+		uint32_t *checksum);
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)

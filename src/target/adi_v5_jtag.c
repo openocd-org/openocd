@@ -40,7 +40,6 @@
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
 
-
 /* JTAG instructions/registers for JTAG-DP and SWJ-DP */
 #define JTAG_DP_ABORT		0x8
 #define JTAG_DP_DPACC		0xA
@@ -223,22 +222,19 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 			DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if (retval != ERROR_OK)
 		return retval;
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		return retval;
 
 	dap->ack = dap->ack & 0x7;
 
 	/* common code path avoids calling timeval_ms() */
-	if (dap->ack != JTAG_ACK_OK_FAULT)
-	{
+	if (dap->ack != JTAG_ACK_OK_FAULT) {
 		long long then = timeval_ms();
 
-		while (dap->ack != JTAG_ACK_OK_FAULT)
-		{
-			if (dap->ack == JTAG_ACK_WAIT)
-			{
-				if ((timeval_ms()-then) > 1000)
-				{
+		while (dap->ack != JTAG_ACK_OK_FAULT) {
+			if (dap->ack == JTAG_ACK_WAIT) {
+				if ((timeval_ms()-then) > 1000) {
 					/* NOTE:  this would be a good spot
 					 * to use JTAG_DP_ABORT.
 					 */
@@ -247,9 +243,7 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 						"in JTAG-DP transaction");
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
-			}
-			else
-			{
+			} else {
 				LOG_WARNING("Invalid ACK %#x "
 						"in JTAG-DP transaction",
 						dap->ack);
@@ -260,7 +254,8 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if (retval != ERROR_OK)
 				return retval;
-			if ((retval = dap_run(dap)) != ERROR_OK)
+			retval = dap_run(dap);
+			if (retval != ERROR_OK)
 				return retval;
 			dap->ack = dap->ack & 0x7;
 		}
@@ -269,18 +264,14 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 	/* REVISIT also STICKYCMP, for pushed comparisons (nyet used) */
 
 	/* Check for STICKYERR and STICKYORUN */
-	if (ctrlstat & (SSTICKYORUN | SSTICKYERR))
-	{
+	if (ctrlstat & (SSTICKYORUN | SSTICKYERR)) {
 		LOG_DEBUG("jtag-dp: CTRL/STAT error, 0x%" PRIx32, ctrlstat);
 		/* Check power to debug regions */
-		if ((ctrlstat & 0xf0000000) != 0xf0000000)
-		{
+		if ((ctrlstat & 0xf0000000) != 0xf0000000) {
 			retval = ahbap_debugport_init(dap);
 			if (retval != ERROR_OK)
 				return retval;
-		}
-		else
-		{
+		} else {
 			uint32_t mem_ap_csw, mem_ap_tar;
 
 			/* Maybe print information about last intended
@@ -314,7 +305,8 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if (retval != ERROR_OK)
 				return retval;
-			if ((retval = dap_run(dap)) != ERROR_OK)
+			retval = dap_run(dap);
+			if (retval != ERROR_OK)
 				return retval;
 
 			LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
@@ -329,13 +321,15 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 			if (retval != ERROR_OK)
 				return retval;
 
-			if ((retval = dap_run(dap)) != ERROR_OK)
+			retval = dap_run(dap);
+			if (retval != ERROR_OK)
 				return retval;
 			LOG_ERROR("MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%"
 					PRIx32, mem_ap_csw, mem_ap_tar);
 
 		}
-		if ((retval = dap_run(dap)) != ERROR_OK)
+		retval = dap_run(dap);
+		if (retval != ERROR_OK)
 			return retval;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}

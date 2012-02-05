@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef AVR32_JTAG
 #define AVR32_JTAG
 
@@ -81,8 +82,7 @@
 #define	MTSR(sysreg, reg)		(0xe3b00002 | ((reg) << 16) | sysreg)
 #define	MFSR(reg, sysreg)		(0xe1b00002 | ((reg) << 16) | sysreg)
 
-struct avr32_jtag
-{
+struct avr32_jtag {
 	struct jtag_tap *tap;
 	uint32_t dpc; /* Debug PC value */
 };
@@ -97,11 +97,9 @@ int avr32_jtag_mwa_read(struct avr32_jtag *jtag_info, int slave,
 int avr32_jtag_mwa_write(struct avr32_jtag *jtag_info, int slave,
 		uint32_t addr, uint32_t value);
 
-
 int avr32_ocd_setbits(struct avr32_jtag *jtag, int reg, uint32_t bits);
 int avr32_ocd_clearbits(struct avr32_jtag *jtag, int reg, uint32_t bits);
 
 int avr32_jtag_exec(struct avr32_jtag *jtag_info, uint32_t inst);
 
 #endif /* AVR32_JTAG */
-

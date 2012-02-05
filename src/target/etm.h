@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ETM_H
 #define ETM_H
 
@@ -29,8 +30,7 @@
 struct image;
 
 /* ETM registers (JTAG protocol) */
-enum
-{
+enum {
 	ETM_CTRL = 0x00,
 	ETM_CONFIG = 0x01,
 	ETM_TRIG_EVENT = 0x02,
@@ -71,8 +71,7 @@ enum
 	ETM_ID = 0x79,
 };
 
-struct etm_reg
-{
+struct etm_reg {
 	uint32_t value;
 	const struct etm_reg_info *reg_info;
 	struct arm_jtag *jtag_info;
@@ -84,8 +83,7 @@ struct etm_reg
  *
  * NOTE that these have evolved since the ~v1.3 defns ...
  */
-enum
-{
+enum {
 	ETM_CTRL_POWERDOWN	= (1 << 0),
 	ETM_CTRL_MONITOR_CPRT	= (1 << 1),
 
@@ -118,7 +116,7 @@ enum
 	ETM_PORT_HALF_CLOCK	= (1 << 13),
 	ETM_PORT_CLOCK_MASK	= (1 << 13),
 
-	// bits 15:14 == context ID size used in tracing
+	/* bits 15:14 == context ID size used in tracing */
 	ETM_CTRL_CONTEXTID_NONE	= (0 << 14),
 	ETM_CTRL_CONTEXTID_8	= (1 << 14),
 	ETM_CTRL_CONTEXTID_16	= (2 << 14),
@@ -131,14 +129,13 @@ enum
 	ETM_PORT_DEMUXED	= (2 << 16),
 	ETM_PORT_MODE_MASK	= (3 << 16),
 
-	// bits 31:18 defined in v3.0 and later (e.g. ARM11+)
+	/* bits 31:18 defined in v3.0 and later (e.g. ARM11+) */
 };
 
 /* forward-declare ETM context */
 struct etm_context;
 
-struct etm_capture_driver
-{
+struct etm_capture_driver {
 	const char *name;
 	const struct command_registration *commands;
 	int (*init)(struct etm_context *etm_ctx);
@@ -148,14 +145,12 @@ struct etm_capture_driver
 	int (*stop_capture)(struct etm_context *etm_ctx);
 };
 
-enum
-{
+enum {
 	ETMV1_TRACESYNC_CYCLE = 0x1,
 	ETMV1_TRIGGER_CYCLE = 0x2,
 };
 
-struct etmv1_trace_data
-{
+struct etmv1_trace_data {
 	uint8_t pipestat;	/* bits 0-2 pipeline status */
 	uint16_t packet;		/* packet data (4, 8 or 16 bit) */
 	int flags;		/* ETMV1_TRACESYNC_CYCLE, ETMV1_TRIGGER_CYCLE */
@@ -166,8 +161,7 @@ struct etmv1_trace_data
  * this will have to be split into version independent elements
  * and a version specific part
  */
-struct etm_context
-{
+struct etm_context {
 	struct target *target;		/* target this ETM is connected to */
 	struct reg_cache *reg_cache;		/* ETM register cache */
 	struct etm_capture_driver *capture_driver;	/* driver used to access ETM data */
@@ -194,8 +188,7 @@ struct etm_context
 };
 
 /* PIPESTAT values */
-typedef enum
-{
+typedef enum {
 	STAT_IE = 0x0,
 	STAT_ID = 0x1,
 	STAT_IN = 0x2,
@@ -207,8 +200,7 @@ typedef enum
 } etmv1_pipestat_t;
 
 /* branch reason values */
-typedef enum
-{
+typedef enum {
 	BR_NORMAL  = 0x0, /* Normal PC change : periodic synchro (ETMv1.1) */
 	BR_ENABLE  = 0x1, /* Trace has been enabled */
 	BR_RESTART = 0x2, /* Trace restarted after a FIFO overflow */
@@ -219,7 +211,7 @@ typedef enum
 	BR_RSVD7   = 0x7, /* reserved */
 } etmv1_branch_reason_t;
 
-struct reg_cache* etm_build_reg_cache(struct target *target,
+struct reg_cache *etm_build_reg_cache(struct target *target,
 		struct arm_jtag *jtag_info, struct etm_context *etm_ctx);
 
 int etm_setup(struct target *target);

@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM_ADI_V5_H
 #define ARM_ADI_V5_H
 
@@ -133,14 +134,12 @@
  * as part of setting up a debug session (if all the dual-role JTAG/SWD
  * signals are available).
  */
-struct adiv5_dap
-{
+struct adiv5_dap {
 	const struct dap_ops *ops;
 
 	struct arm_jtag *jtag_info;
 	/* Control config */
 	uint32_t dp_ctrl_stat;
-
 
 	uint32_t apsel;
 
@@ -182,6 +181,7 @@ struct adiv5_dap
 	 * MEM-AP access before we try to read its status (and/or result).
 	 */
 	uint32_t	memaccess_tck;
+
 	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
 	uint32_t tar_autoincr_block;
 };
@@ -216,6 +216,7 @@ struct dap_ops {
 	/** AP register write. */
 	int (*queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t data);
+
 	/** AP operation abort. */
 	int (*queue_ap_abort)(struct adiv5_dap *dap, uint8_t *ack);
 
@@ -249,7 +250,7 @@ static inline int dap_queue_idcode_read(struct adiv5_dap *dap,
  * @param dap The DAP used for reading.
  * @param reg The two-bit number of the DP register being read.
  * @param data Pointer saying where to store the register's value
- * 	(in host endianness).
+ * (in host endianness).
  *
  * @return ERROR_OK for success, else a fault code.
  */
@@ -284,7 +285,7 @@ static inline int dap_queue_dp_write(struct adiv5_dap *dap,
  * @param dap The DAP used for reading.
  * @param reg The number of the AP register being read.
  * @param data Pointer saying where to store the register's value
- * 	(in host endianness).
+ * (in host endianness).
  *
  * @return ERROR_OK for success, else a fault code.
  */
@@ -347,11 +348,11 @@ static inline int dap_run(struct adiv5_dap *dap)
 /** Accessor for currently selected DAP-AP number (0..255) */
 static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
 {
-	return (uint8_t)(swjdp ->ap_current >> 24);
+	return (uint8_t)(swjdp->ap_current >> 24);
 }
 
 /* AP selection applies to future AP transactions */
-void dap_ap_select(struct adiv5_dap *dap,uint8_t ap);
+void dap_ap_select(struct adiv5_dap *dap, uint8_t ap);
 
 /* Queued AP transactions */
 int dap_setup_accessport(struct adiv5_dap *swjdp,
@@ -382,8 +383,6 @@ int mem_ap_write_buf_u16(struct adiv5_dap *swjdp,
 int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
 		const uint8_t *buffer, int count, uint32_t address);
 
-
-
 /* Queued MEM-AP memory mapped single word transfers with selection of ap */
 int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t *value);
@@ -410,8 +409,6 @@ int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
 		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		const uint8_t *buffer, int count, uint32_t address);
-
-
 
 /* Initialisation of the debug system, power domains and registers */
 int ahbap_debugport_init(struct adiv5_dap *swjdp);

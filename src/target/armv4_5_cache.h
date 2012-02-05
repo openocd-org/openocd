@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARMV4_5_CACHE_H
 #define ARMV4_5_CACHE_H
 
@@ -24,16 +25,14 @@
 
 struct command_context;
 
-struct armv4_5_cachesize
-{
+struct armv4_5_cachesize {
 	int linelen;
 	int associativity;
 	int nsets;
 	int cachesize;
 };
 
-struct armv4_5_cache_common
-{
+struct armv4_5_cache_common {
 	int ctype;	/* specify supported cache operations */
 	int separate;	/* separate caches or unified cache */
 	struct armv4_5_cachesize d_u_size;	/* data cache */
@@ -50,8 +49,7 @@ int armv4_5_cache_state(uint32_t cp15_control_reg,
 int armv4_5_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv4_5_cache_common *armv4_5_cache);
 
-enum
-{
+enum {
 	ARMV4_5_D_U_CACHE_ENABLED = 0x4,
 	ARMV4_5_I_CACHE_ENABLED = 0x1000,
 	ARMV4_5_WRITE_BUFFER_ENABLED = 0x8,

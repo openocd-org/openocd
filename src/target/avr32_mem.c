@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -25,14 +26,13 @@
 #include "avr32_jtag.h"
 #include "avr32_mem.h"
 
-int avr32_jtag_read_memory32(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, uint32_t *buffer)
+int avr32_jtag_read_memory32(struct avr32_jtag *jtag_info,
+	uint32_t addr, int count, uint32_t *buffer)
 {
 	int i, retval;
 	uint32_t data;
 
-	for (i = 0; i < count; i++) 
-	{
+	for (i = 0; i < count; i++) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*4, &data);
 
@@ -40,14 +40,14 @@ int avr32_jtag_read_memory32(struct avr32_jtag *jtag_info,
 			return retval;
 
 		/* XXX: Assume AVR32 is BE */
-		buffer[i] = be_to_h_u32((uint8_t*)&data);
+		buffer[i] = be_to_h_u32((uint8_t *)&data);
 	}
 
 	return ERROR_OK;
 }
 
-int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, uint16_t *buffer)
+int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info,
+	uint32_t addr, int count, uint16_t *buffer)
 {
 	int i, retval;
 	uint32_t data;
@@ -55,8 +55,7 @@ int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info,
 	i = 0;
 
 	/* any unaligned half-words? */
-	if (addr & 3)
-	{
+	if (addr & 3) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*2, &data);
 
@@ -64,14 +63,13 @@ int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info,
 			return retval;
 
 		/* XXX: Assume AVR32 is BE */
-		data = be_to_h_u32((uint8_t*)&data);
+		data = be_to_h_u32((uint8_t *)&data);
 		buffer[i] = (data >> 16) & 0xffff;
 		i++;
 	}
 
 	/* read all complete words */
-	for (; i < (count & ~1); i+=2)
-	{
+	for (; i < (count & ~1); i += 2) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*2, &data);
 
@@ -79,14 +77,13 @@ int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info,
 			return retval;
 
 		/* XXX: Assume AVR32 is BE */
-		data = be_to_h_u32((uint8_t*)&data);
+		data = be_to_h_u32((uint8_t *)&data);
 		buffer[i] = data & 0xffff;
 		buffer[i+1] = (data >> 16) & 0xffff;
 	}
 
 	/* last halfword */
-	if (i < count)
-	{
+	if (i < count) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*2, &data);
 
@@ -94,73 +91,68 @@ int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info,
 			return retval;
 
 		/* XXX: Assume AVR32 is BE */
-		data = be_to_h_u32((uint8_t*)&data);
+		data = be_to_h_u32((uint8_t *)&data);
 		buffer[i] = data & 0xffff;
 	}
 
 	return ERROR_OK;
 }
 
-int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, uint8_t *buffer)
+int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info,
+	uint32_t addr, int count, uint8_t *buffer)
 {
 	int i, j, retval;
 	uint8_t data[4];
 	i = 0;
 
 	/* Do we have non-aligned bytes? */
-	if (addr & 3)
-	{
+	if (addr & 3) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
-				addr + i, (uint32_t*)(void *)data);
+				addr + i, (uint32_t *)(void *)data);
 
 		if (retval != ERROR_OK)
 			return retval;
 
-		for (j = addr & 3; (j < 4) && (i < count); j++, i++) 
-				buffer[i] = data[3-j];
+		for (j = addr & 3; (j < 4) && (i < count); j++, i++)
+			buffer[i] = data[3-j];
 	}
 
-
 	/* read all complete words */
-	for (; i < (count & ~3); i+=4)
-	{
+	for (; i < (count & ~3); i += 4) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
-				addr + i, (uint32_t*)(void *)data);
+				addr + i, (uint32_t *)(void *)data);
 
 		if (retval != ERROR_OK)
 			return retval;
 
 		for (j = 0; j < 4; j++)
-				buffer[i+j] = data[3-j];
+			buffer[i+j] = data[3-j];
 	}
 
 	/* remaining bytes */
-	if (i < count)
-	{
+	if (i < count) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
-				addr + i, (uint32_t*)(void *)data);
+				addr + i, (uint32_t *)(void *)data);
 
 		if (retval != ERROR_OK)
 			return retval;
 
-		for (j = 0; i + j < count; j++) 
-				buffer[i+j] = data[3-j];
+		for (j = 0; i + j < count; j++)
+			buffer[i+j] = data[3-j];
 	}
 
 	return ERROR_OK;
 }
 
-int avr32_jtag_write_memory32(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, const uint32_t *buffer)
+int avr32_jtag_write_memory32(struct avr32_jtag *jtag_info,
+	uint32_t addr, int count, const uint32_t *buffer)
 {
 	int i, retval;
 	uint32_t data;
 
-	for (i = 0; i < count; i++) 
-	{
+	for (i = 0; i < count; i++) {
 		/* XXX: Assume AVR32 is BE */
-		h_u32_to_be((uint8_t*)&data, buffer[i]);
+		h_u32_to_be((uint8_t *)&data, buffer[i]);
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*4, data);
 
@@ -172,8 +164,8 @@ int avr32_jtag_write_memory32(struct avr32_jtag *jtag_info,
 	return ERROR_OK;
 }
 
-int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, const uint16_t *buffer)
+int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
+	uint32_t addr, int count, const uint16_t *buffer)
 {
 	int i, retval;
 	uint32_t data;
@@ -185,7 +177,7 @@ int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 	 * Do we have any non-aligned half-words?
 	 */
 	if (addr & 3) {
-		/* 
+		/*
 		 * mwa_read will read whole world, no nead to fiddle
 		 * with address. It will be truncated in set_addr
 		 */
@@ -195,9 +187,9 @@ int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 		if (retval != ERROR_OK)
 			return retval;
 
-		data = be_to_h_u32((uint8_t*)&data);
+		data = be_to_h_u32((uint8_t *)&data);
 		data = (buffer[i] << 16) | (data & 0xffff);
-		h_u32_to_be((uint8_t*)&data_out, data);
+		h_u32_to_be((uint8_t *)&data_out, data);
 
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr, data_out);
@@ -208,13 +200,11 @@ int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 		i++;
 	}
 
-
 	/* write all complete words */
-	for (; i < (count & ~1); i+=2)
-	{
+	for (; i < (count & ~1); i += 2) {
 		/* XXX: Assume AVR32 is BE */
 		data = (buffer[i+1] << 16) | buffer[i];
-		h_u32_to_be((uint8_t*)&data_out, data);
+		h_u32_to_be((uint8_t *)&data_out, data);
 
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*2, data_out);
@@ -224,18 +214,17 @@ int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 	}
 
 	/* last halfword */
-	if (i < count)
-	{
+	if (i < count) {
 		retval = avr32_jtag_mwa_read(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*2, &data);
 
 		if (retval != ERROR_OK)
 			return retval;
 
-		data = be_to_h_u32((uint8_t*)&data);
+		data = be_to_h_u32((uint8_t *)&data);
 		data &= ~0xffff;
 		data |= buffer[i];
-		h_u32_to_be((uint8_t*)&data_out, data);
+		h_u32_to_be((uint8_t *)&data_out, data);
 
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i*2, data_out);
@@ -247,8 +236,8 @@ int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 	return ERROR_OK;
 }
 
-int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info, 
-		uint32_t addr, int count, const uint8_t *buffer)
+int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
+	uint32_t addr, int count, const uint8_t *buffer)
 {
 	int i, j, retval;
 	uint32_t data;
@@ -260,7 +249,7 @@ int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
 	 * Do we have any non-aligned bytes?
 	 */
 	if (addr & 3) {
-		/* 
+		/*
 		 * mwa_read will read whole world, no nead to fiddle
 		 * with address. It will be truncated in set_addr
 		 */
@@ -270,14 +259,13 @@ int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
 		if (retval != ERROR_OK)
 			return retval;
 
-		data = be_to_h_u32((uint8_t*)&data);
-		for (j = addr & 3; (j < 4) && (i < count); j++, i++) 
-		{
+		data = be_to_h_u32((uint8_t *)&data);
+		for (j = addr & 3; (j < 4) && (i < count); j++, i++) {
 			data &= ~(0xff << j*8);
 			data |= (buffer[i] << j*8);
 		}
 
-		h_u32_to_be((uint8_t*)&data_out, data);
+		h_u32_to_be((uint8_t *)&data_out, data);
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr, data_out);
 
@@ -287,14 +275,13 @@ int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
 
 
 	/* write all complete words */
-	for (; i < (count & ~3); i+=4)
-	{
+	for (; i < (count & ~3); i += 4) {
 		data = 0;
 
 		for (j = 0; j < 4; j++)
 			data |= (buffer[j+i] << j*8);
 
-		h_u32_to_be((uint8_t*)&data_out, data);
+		h_u32_to_be((uint8_t *)&data_out, data);
 
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr + i, data_out);
@@ -313,14 +300,13 @@ int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
 		if (retval != ERROR_OK)
 			return retval;
 
-		data = be_to_h_u32((uint8_t*)&data);
-		for (j = 0; i < count; j++, i++)
-		{
+		data = be_to_h_u32((uint8_t *)&data);
+		for (j = 0; i < count; j++, i++) {
 			data &= ~(0xff << j*8);
 			data |= (buffer[j+i] << j*8);
 		}
 
-		h_u32_to_be((uint8_t*)&data_out, data);
+		h_u32_to_be((uint8_t *)&data_out, data);
 
 		retval = avr32_jtag_mwa_write(jtag_info, SLAVE_HSB_UNCACHED,
 				addr+i, data_out);

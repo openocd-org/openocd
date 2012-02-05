@@ -16,22 +16,22 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef AVR32_MEM
 #define AVR32_MEM
 
-int avr32_jtag_read_memory32(struct avr32_jtag *jtag_info, 
+int avr32_jtag_read_memory32(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, uint32_t *buffer);
-int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info, 
+int avr32_jtag_read_memory16(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, uint16_t *buffer);
-int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info, 
+int avr32_jtag_read_memory8(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, uint8_t *buffer);
 
-int avr32_jtag_write_memory32(struct avr32_jtag *jtag_info, 
+int avr32_jtag_write_memory32(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, const uint32_t *buffer);
-int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info, 
+int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, const uint16_t *buffer);
-int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info, 
+int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, const uint8_t *buffer);
 
 #endif /* AVR32_MEM */
-

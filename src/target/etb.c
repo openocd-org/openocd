@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -26,9 +27,7 @@
 #include "etb.h"
 #include "register.h"
 
-
-static char* etb_reg_list[] =
-{
+static char *etb_reg_list[] = {
 	"ETB_identification",
 	"ETB_ram_depth",
 	"ETB_ram_width",
@@ -50,12 +49,11 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 	if (tap == NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
-	{
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr) {
 		struct scan_field field;
 
 		field.num_bits = tap->ir_length;
-		void * t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
+		void *t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		field.out_value = t;
 		buf_set_u32(t, 0, field.num_bits, new_instr);
 
@@ -71,12 +69,11 @@ static int etb_set_instr(struct etb *etb, uint32_t new_instr)
 
 static int etb_scann(struct etb *etb, uint32_t new_scan_chain)
 {
-	if (etb->cur_scan_chain != new_scan_chain)
-	{
+	if (etb->cur_scan_chain != new_scan_chain) {
 		struct scan_field field;
 
 		field.num_bits = 5;
-		void * t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
+		void *t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
 		field.out_value = t;
 		buf_set_u32(t, 0, field.num_bits, new_scan_chain);
 
@@ -106,14 +103,14 @@ static int etb_get_reg(struct reg *reg)
 {
 	int retval;
 
-	if ((retval = etb_read_reg(reg)) != ERROR_OK)
-	{
+	retval = etb_read_reg(reg);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("BUG: error scheduling ETB register read");
 		return retval;
 	}
 
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("ETB register read failed");
 		return retval;
 	}
@@ -126,7 +123,7 @@ static const struct reg_arch_type etb_reg_type = {
 	.set = etb_set_reg_w_exec,
 };
 
-struct reg_cache* etb_build_reg_cache(struct etb *etb)
+struct reg_cache *etb_build_reg_cache(struct etb *etb)
 {
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = NULL;
@@ -145,8 +142,7 @@ struct reg_cache* etb_build_reg_cache(struct etb *etb)
 	reg_cache->num_regs = num_regs;
 
 	/* set up registers */
-	for (i = 0; i < num_regs; i++)
-	{
+	for (i = 0; i < num_regs; i++) {
 		reg_list[i].name = etb_reg_list[i];
 		reg_list[i].size = 32;
 		reg_list[i].dirty = 0;
@@ -196,8 +192,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 
 	jtag_add_dr_scan(etb->tap, 3, fields, TAP_IDLE);
 
-	for (i = 0; i < num_frames; i++)
-	{
+	for (i = 0; i < num_frames; i++) {
 		/* ensure nR/W reamins set to read */
 		buf_set_u32(&temp2, 0, 1, 0);
 
@@ -219,7 +214,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 }
 
 static int etb_read_reg_w_check(struct reg *reg,
-		uint8_t* check_value, uint8_t* check_mask)
+	uint8_t *check_value, uint8_t *check_mask)
 {
 	struct etb_reg *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
@@ -273,8 +268,8 @@ static int etb_set_reg(struct reg *reg, uint32_t value)
 {
 	int retval;
 
-	if ((retval = etb_write_reg(reg, value)) != ERROR_OK)
-	{
+	retval = etb_write_reg(reg, value);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("BUG: error scheduling ETB register write");
 		return retval;
 	}
@@ -292,8 +287,8 @@ static int etb_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 
 	etb_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("ETB: register write failed");
 		return retval;
 	}
@@ -341,34 +336,28 @@ COMMAND_HANDLER(handle_etb_config_command)
 	struct arm *arm;
 
 	if (CMD_ARGC != 2)
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	target = get_target(CMD_ARGV[0]);
 
-	if (!target)
-	{
+	if (!target) {
 		LOG_ERROR("ETB: target '%s' not defined", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
+	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "ETB: '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	tap = jtag_tap_by_string(CMD_ARGV[1]);
-	if (tap == NULL)
-	{
+	if (tap == NULL) {
 		command_print(CMD_CTX, "ETB: TAP %s does not exist", CMD_ARGV[1]);
 		return ERROR_FAIL;
 	}
 
-	if (arm->etm)
-	{
+	if (arm->etm) {
 		struct etb *etb = malloc(sizeof(struct etb));
 
 		arm->etm->capture_driver_priv = etb;
@@ -378,9 +367,7 @@ COMMAND_HANDLER(handle_etb_config_command)
 		etb->reg_cache = NULL;
 		etb->ram_width = 0;
 		etb->ram_depth = 0;
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("ETM: target has no ETM defined, ETB left unconfigured");
 		return ERROR_FAIL;
 	}
@@ -397,8 +384,7 @@ COMMAND_HANDLER(handle_etb_trigger_percent_command)
 
 	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
-	if (!is_arm(arm))
-	{
+	if (!is_arm(arm)) {
 		command_print(CMD_CTX, "ETB: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
@@ -426,7 +412,7 @@ COMMAND_HANDLER(handle_etb_trigger_percent_command)
 	}
 
 	command_print(CMD_CTX, "%d percent of tracebuffer fills after trigger",
-			etb->trigger_percent);
+		etb->trigger_percent);
 
 	return ERROR_OK;
 }
@@ -550,13 +536,13 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 	 * i.e. don't read invalid entries
 	 */
 	if (buf_get_u32(etb->reg_cache->reg_list[ETB_STATUS].value, 0, 1))
-	{
-		first_frame = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32);
-	}
+		first_frame = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value,
+				0,
+				32);
 	else
-	{
-		num_frames = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32);
-	}
+		num_frames = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value,
+				0,
+				32);
 
 	etb_write_reg(&etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], first_frame);
 
@@ -565,9 +551,7 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 	etb_read_ram(etb, trace_data, num_frames);
 
 	if (etm_ctx->trace_depth > 0)
-	{
 		free(etm_ctx->trace_data);
-	}
 
 	if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
 		etm_ctx->trace_depth = num_frames * 3;
@@ -578,21 +562,17 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 
 	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
 
-	for (i = 0, j = 0; i < num_frames; i++)
-	{
-		if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
-		{
+	for (i = 0, j = 0; i < num_frames; i++) {
+		if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT) {
 			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
 			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x78) >> 3;
 			etm_ctx->trace_data[j].flags = 0;
 			if ((trace_data[i] & 0x80) >> 7)
-			{
 				etm_ctx->trace_data[j].flags |= ETMV1_TRACESYNC_CYCLE;
-			}
-			if (etm_ctx->trace_data[j].pipestat == STAT_TR)
-			{
-				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet & 0x7;
+			if (etm_ctx->trace_data[j].pipestat == STAT_TR) {
+				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet &
+					0x7;
 				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
@@ -601,12 +581,10 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 			etm_ctx->trace_data[j + 1].packet = (trace_data[i] & 0x7800) >> 11;
 			etm_ctx->trace_data[j + 1].flags = 0;
 			if ((trace_data[i] & 0x8000) >> 15)
-			{
 				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRACESYNC_CYCLE;
-			}
-			if (etm_ctx->trace_data[j + 1].pipestat == STAT_TR)
-			{
-				etm_ctx->trace_data[j + 1].pipestat = etm_ctx->trace_data[j + 1].packet & 0x7;
+			if (etm_ctx->trace_data[j + 1].pipestat == STAT_TR) {
+				etm_ctx->trace_data[j +
+				1].pipestat = etm_ctx->trace_data[j + 1].packet & 0x7;
 				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
@@ -615,30 +593,24 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 			etm_ctx->trace_data[j + 2].packet = (trace_data[i] & 0x780000) >> 19;
 			etm_ctx->trace_data[j + 2].flags = 0;
 			if ((trace_data[i] & 0x800000) >> 23)
-			{
 				etm_ctx->trace_data[j + 2].flags |= ETMV1_TRACESYNC_CYCLE;
-			}
-			if (etm_ctx->trace_data[j + 2].pipestat == STAT_TR)
-			{
-				etm_ctx->trace_data[j + 2].pipestat = etm_ctx->trace_data[j + 2].packet & 0x7;
+			if (etm_ctx->trace_data[j + 2].pipestat == STAT_TR) {
+				etm_ctx->trace_data[j +
+				2].pipestat = etm_ctx->trace_data[j + 2].packet & 0x7;
 				etm_ctx->trace_data[j + 2].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
 			j += 3;
-		}
-		else if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
-		{
+		} else if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT) {
 			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
 			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x7f8) >> 3;
 			etm_ctx->trace_data[j].flags = 0;
 			if ((trace_data[i] & 0x800) >> 11)
-			{
 				etm_ctx->trace_data[j].flags |= ETMV1_TRACESYNC_CYCLE;
-			}
-			if (etm_ctx->trace_data[j].pipestat == STAT_TR)
-			{
-				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet & 0x7;
+			if (etm_ctx->trace_data[j].pipestat == STAT_TR) {
+				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet &
+					0x7;
 				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
@@ -647,30 +619,24 @@ static int etb_read_trace(struct etm_context *etm_ctx)
 			etm_ctx->trace_data[j + 1].packet = (trace_data[i] & 0x7f8000) >> 15;
 			etm_ctx->trace_data[j + 1].flags = 0;
 			if ((trace_data[i] & 0x800000) >> 23)
-			{
 				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRACESYNC_CYCLE;
-			}
-			if (etm_ctx->trace_data[j + 1].pipestat == STAT_TR)
-			{
-				etm_ctx->trace_data[j + 1].pipestat = etm_ctx->trace_data[j + 1].packet & 0x7;
+			if (etm_ctx->trace_data[j + 1].pipestat == STAT_TR) {
+				etm_ctx->trace_data[j +
+				1].pipestat = etm_ctx->trace_data[j + 1].packet & 0x7;
 				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
 			j += 2;
-		}
-		else
-		{
+		} else {
 			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
 			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x7fff8) >> 3;
 			etm_ctx->trace_data[j].flags = 0;
 			if ((trace_data[i] & 0x80000) >> 19)
-			{
 				etm_ctx->trace_data[j].flags |= ETMV1_TRACESYNC_CYCLE;
-			}
-			if (etm_ctx->trace_data[j].pipestat == STAT_TR)
-			{
-				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet & 0x7;
+			if (etm_ctx->trace_data[j].pipestat == STAT_TR) {
+				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet &
+					0x7;
 				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
@@ -689,10 +655,8 @@ static int etb_start_capture(struct etm_context *etm_ctx)
 	uint32_t etb_ctrl_value = 0x1;
 	uint32_t trigger_count;
 
-	if ((etm_ctx->control & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
-	{
-		if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) != ETM_PORT_8BIT)
-		{
+	if ((etm_ctx->control & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED) {
+		if ((etm_ctx->control & ETM_PORT_WIDTH_MASK) != ETM_PORT_8BIT) {
 			LOG_ERROR("ETB can't run in demultiplexed mode with a 4 or 16 bit port");
 			return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 		}
@@ -731,8 +695,7 @@ static int etb_stop_capture(struct etm_context *etm_ctx)
 	return ERROR_OK;
 }
 
-struct etm_capture_driver etb_capture_driver =
-{
+struct etm_capture_driver etb_capture_driver = {
 	.name = "etb",
 	.commands = etb_command_handlers,
 	.init = etb_init,

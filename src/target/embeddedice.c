@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -87,7 +88,7 @@ static const struct {
 		.addr =		9,
 		.width =	32,
 	},
-	[EICE_W0_DATA_VALUE ] = {
+	[EICE_W0_DATA_VALUE] = {
 		.name =		"watch_0_data_value",
 		.addr =		10,
 		.width =	32,
@@ -145,14 +146,16 @@ static const struct {
 	},
 };
 
-
 static int embeddedice_get_reg(struct reg *reg)
 {
-	int retval;
-
-	if ((retval = embeddedice_read_reg(reg)) != ERROR_OK)
+	int retval = embeddedice_read_reg(reg);
+	if (retval != ERROR_OK) {
 		LOG_ERROR("error queueing EmbeddedICE register read");
-	else if ((retval = jtag_execute_queue()) != ERROR_OK)
+		return retval;
+	}
+
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		LOG_ERROR("EmbeddedICE register read failed");
 
 	return retval;
@@ -168,8 +171,8 @@ static const struct reg_arch_type eice_reg_type = {
  * Different versions of the modules have different capabilities, such as
  * hardware support for vector_catch, single stepping, and monitor mode.
  */
-struct reg_cache *
-embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
+struct reg_cache *embeddedice_build_reg_cache(struct target *target,
+		struct arm7_9_common *arm7_9)
 {
 	int retval;
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
@@ -200,8 +203,7 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 	 */
 
 	/* set up registers */
-	for (i = 0; i < num_regs; i++)
-	{
+	for (i = 0; i < num_regs; i++) {
 		reg_list[i].name = eice_regs[i].name;
 		reg_list[i].size = eice_regs[i].width;
 		reg_list[i].dirty = 0;
@@ -215,12 +217,10 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 
 	/* identify EmbeddedICE version by reading DCC control register */
 	embeddedice_read_reg(&reg_list[EICE_COMMS_CTRL]);
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		for (i = 0; i < num_regs; i++)
-		{
 			free(reg_list[i].value);
-		}
 		free(reg_list);
 		free(reg_cache);
 		free(arch_info);
@@ -230,8 +230,7 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 	eice_version = buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 28, 4);
 	LOG_INFO("Embedded ICE version %d", eice_version);
 
-	switch (eice_version)
-	{
+	switch (eice_version) {
 		case 1:
 			/* ARM7TDMI r3, ARM7TDMI-S r3
 			 *
@@ -290,7 +289,7 @@ embeddedice_build_reg_cache(struct target *target, struct arm7_9_common *arm7_9)
 			 * and do the appropriate setup itself.
 			 */
 			if (strcmp(target_type_name(target), "feroceon") == 0 ||
-			    strcmp(target_type_name(target), "dragonite") == 0)
+					strcmp(target_type_name(target), "dragonite") == 0)
 				break;
 			LOG_ERROR("unknown EmbeddedICE version "
 				"(comms ctrl: 0x%8.8" PRIx32 ")",
@@ -318,12 +317,12 @@ int embeddedice_setup(struct target *target)
 	 * that manages break requests.  ARM's "Angel Debug Monitor" is one
 	 * common example of such code.
 	 */
-	if (arm7_9->has_monitor_mode)
-	{
+	if (arm7_9->has_monitor_mode) {
 		struct reg *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 		embeddedice_read_reg(dbg_ctrl);
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
 			return retval;
 		buf_set_u32(dbg_ctrl->value, 4, 1, 0);
 		embeddedice_set_reg_w_exec(dbg_ctrl, dbg_ctrl->value);
@@ -350,7 +349,8 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(ice_reg->jtag_info,
+			ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -435,8 +435,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 
 	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 
-	while (size > 0)
-	{
+	while (size > 0) {
 		/* when reading the last item, set the register address to the DCC control reg,
 		 * to avoid reading additional data from the DCC data reg
 		 */
@@ -486,7 +485,8 @@ static int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf)
 	int retval;
 
 	embeddedice_set_reg(reg, buf_get_u32(buf, 0, reg->size));
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		LOG_ERROR("register write failed");
 	return retval;
 }
@@ -555,8 +555,7 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 
 	fields[2].in_value = NULL;
 
-	while (size > 0)
-	{
+	while (size > 0) {
 		buf_set_u32(field0_out, 0, 32, *data);
 		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
 
@@ -586,8 +585,7 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 		hsact = 1;
 	else if (hsbit == EICE_COMM_CTRL_RBIT)
 		hsact = 0;
-	else
-	{
+	else {
 		LOG_ERROR("Invalid arguments");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -617,7 +615,8 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	gettimeofday(&lap, NULL);
 	do {
 		jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_IDLE);
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
 			return retval;
 
 		if (buf_get_u32(field0_in, hsbit, 1) == hsact)
@@ -640,8 +639,7 @@ void embeddedice_write_dcc(struct jtag_tap *tap,
 {
 	int i;
 
-	for (i = 0; i < count; i++)
-	{
+	for (i = 0; i < count; i++) {
 		embeddedice_write_reg_inner(tap, reg_addr,
 				fast_target_buffer_get_u32(buffer, little));
 		buffer += 4;

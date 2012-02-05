@@ -126,7 +126,7 @@ struct arm_dpm {
 	/** Recent value of DSCR. */
 	uint32_t dscr;
 
-	// FIXME -- read/write DCSR methods and symbols
+	/* FIXME -- read/write DCSR methods and symbols */
 };
 
 int arm_dpm_setup(struct arm_dpm *dpm);

@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM720T_H
 #define ARM720T_H
 
@@ -25,8 +26,7 @@
 
 #define	ARM720T_COMMON_MAGIC 0xa720a720
 
-struct arm720t_common
-{
+struct arm720t_common {
 	struct arm7_9_common arm7_9_common;
 	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
@@ -35,11 +35,9 @@ struct arm720t_common
 	uint32_t far_reg;
 };
 
-static inline struct arm720t_common *
-target_to_arm720(struct target *target)
+static inline struct arm720t_common *target_to_arm720(struct target *target)
 {
-	return container_of(target->arch_info, struct arm720t_common,
-			arm7_9_common.arm);
+	return container_of(target->arch_info, struct arm720t_common, arm7_9_common.arm);
 }
 
 #endif /* ARM720T_H */

@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -30,95 +31,95 @@
 #include "dsp563xx.h"
 #include "dsp563xx_once.h"
 
-#define ASM_REG_W_R0	0x60F400
-#define ASM_REG_W_R1	0x61F400
-#define ASM_REG_W_R2	0x62F400
-#define ASM_REG_W_R3	0x63F400
-#define ASM_REG_W_R4	0x64F400
-#define ASM_REG_W_R5	0x65F400
-#define ASM_REG_W_R6	0x66F400
-#define ASM_REG_W_R7	0x67F400
+#define ASM_REG_W_R0    0x60F400
+#define ASM_REG_W_R1    0x61F400
+#define ASM_REG_W_R2    0x62F400
+#define ASM_REG_W_R3    0x63F400
+#define ASM_REG_W_R4    0x64F400
+#define ASM_REG_W_R5    0x65F400
+#define ASM_REG_W_R6    0x66F400
+#define ASM_REG_W_R7    0x67F400
 
-#define ASM_REG_W_N0	0x70F400
-#define ASM_REG_W_N1	0x71F400
-#define ASM_REG_W_N2	0x72F400
-#define ASM_REG_W_N3	0x73F400
-#define ASM_REG_W_N4	0x74F400
-#define ASM_REG_W_N5	0x75F400
-#define ASM_REG_W_N6	0x76F400
-#define ASM_REG_W_N7	0x77F400
+#define ASM_REG_W_N0    0x70F400
+#define ASM_REG_W_N1    0x71F400
+#define ASM_REG_W_N2    0x72F400
+#define ASM_REG_W_N3    0x73F400
+#define ASM_REG_W_N4    0x74F400
+#define ASM_REG_W_N5    0x75F400
+#define ASM_REG_W_N6    0x76F400
+#define ASM_REG_W_N7    0x77F400
 
-#define ASM_REG_W_M0	0x05F420
-#define ASM_REG_W_M1	0x05F421
-#define ASM_REG_W_M2	0x05F422
-#define ASM_REG_W_M3	0x05F423
-#define ASM_REG_W_M4	0x05F424
-#define ASM_REG_W_M5	0x05F425
-#define ASM_REG_W_M6	0x05F426
-#define ASM_REG_W_M7	0x05F427
+#define ASM_REG_W_M0    0x05F420
+#define ASM_REG_W_M1    0x05F421
+#define ASM_REG_W_M2    0x05F422
+#define ASM_REG_W_M3    0x05F423
+#define ASM_REG_W_M4    0x05F424
+#define ASM_REG_W_M5    0x05F425
+#define ASM_REG_W_M6    0x05F426
+#define ASM_REG_W_M7    0x05F427
 
-#define ASM_REG_W_X0	0x44F400
-#define ASM_REG_W_X1	0x45F400
+#define ASM_REG_W_X0    0x44F400
+#define ASM_REG_W_X1    0x45F400
 
-#define ASM_REG_W_Y0	0x46F400
-#define ASM_REG_W_Y1	0x47F400
+#define ASM_REG_W_Y0    0x46F400
+#define ASM_REG_W_Y1    0x47F400
 
-#define ASM_REG_W_A0	0x50F400
-#define ASM_REG_W_A1	0x54F400
-#define ASM_REG_W_A2	0x52F400
+#define ASM_REG_W_A0    0x50F400
+#define ASM_REG_W_A1    0x54F400
+#define ASM_REG_W_A2    0x52F400
 
-#define ASM_REG_W_B0	0x51F400
-#define ASM_REG_W_B1	0x55F400
-#define ASM_REG_W_B2	0x53F400
+#define ASM_REG_W_B0    0x51F400
+#define ASM_REG_W_B1    0x55F400
+#define ASM_REG_W_B2    0x53F400
 
-#define ASM_REG_W_VBA	0x05F430
-#define ASM_REG_W_OMR	0x05F43A
-#define ASM_REG_W_EP	0x05F42A
-#define ASM_REG_W_SC	0x05F431
-#define ASM_REG_W_SZ	0x05F438
-#define ASM_REG_W_SR	0x05F439
-#define ASM_REG_W_SP	0x05F43B
-#define ASM_REG_W_SSH	0x05F43C
-#define ASM_REG_W_SSL	0x05F43D
-#define ASM_REG_W_LA	0x05F43E
-#define ASM_REG_W_LC	0x05F43F
-#define ASM_REG_W_PC	0x000000
-#define ASM_REG_W_IPRC	0xFFFFFF
-#define ASM_REG_W_IPRP	0xFFFFFE
+#define ASM_REG_W_VBA   0x05F430
+#define ASM_REG_W_OMR   0x05F43A
+#define ASM_REG_W_EP    0x05F42A
+#define ASM_REG_W_SC    0x05F431
+#define ASM_REG_W_SZ    0x05F438
+#define ASM_REG_W_SR    0x05F439
+#define ASM_REG_W_SP    0x05F43B
+#define ASM_REG_W_SSH   0x05F43C
+#define ASM_REG_W_SSL   0x05F43D
+#define ASM_REG_W_LA    0x05F43E
+#define ASM_REG_W_LC    0x05F43F
+#define ASM_REG_W_PC    0x000000
+#define ASM_REG_W_IPRC  0xFFFFFF
+#define ASM_REG_W_IPRP  0xFFFFFE
 
-#define ASM_REG_W_BCR	0xFFFFFB
-#define ASM_REG_W_DCR	0xFFFFFA
-#define ASM_REG_W_AAR0	0xFFFFF9
-#define ASM_REG_W_AAR1	0xFFFFF8
-#define ASM_REG_W_AAR2	0xFFFFF7
-#define ASM_REG_W_AAR3	0xFFFFF6
+#define ASM_REG_W_BCR   0xFFFFFB
+#define ASM_REG_W_DCR   0xFFFFFA
+#define ASM_REG_W_AAR0  0xFFFFF9
+#define ASM_REG_W_AAR1  0xFFFFF8
+#define ASM_REG_W_AAR2  0xFFFFF7
+#define ASM_REG_W_AAR3  0xFFFFF6
 
 enum once_reg_idx {
-	ONCE_REG_IDX_OSCR=0,
-	ONCE_REG_IDX_OMBC=1,
-	ONCE_REG_IDX_OBCR=2,
-	ONCE_REG_IDX_OMLR0=3,
-	ONCE_REG_IDX_OMLR1=4,
-	ONCE_REG_IDX_OGDBR=5,
-	ONCE_REG_IDX_OPDBR=6,
-	ONCE_REG_IDX_OPILR=7,
-	ONCE_REG_IDX_PDB=8,
-	ONCE_REG_IDX_OTC=9,
-	ONCE_REG_IDX_OPABFR=10,
-	ONCE_REG_IDX_OPABDR=11,
-	ONCE_REG_IDX_OPABEX=12,
-	ONCE_REG_IDX_OPABF0=13,
-	ONCE_REG_IDX_OPABF1=14,
-	ONCE_REG_IDX_OPABF2=15,
-	ONCE_REG_IDX_OPABF3=16,
-	ONCE_REG_IDX_OPABF4=17,
-	ONCE_REG_IDX_OPABF5=18,
-	ONCE_REG_IDX_OPABF6=19,
-	ONCE_REG_IDX_OPABF7=20,
-	ONCE_REG_IDX_OPABF8=21,
-	ONCE_REG_IDX_OPABF9=22,
-	ONCE_REG_IDX_OPABF10=23,
-	ONCE_REG_IDX_OPABF11=24,
+	ONCE_REG_IDX_OSCR = 0,
+	ONCE_REG_IDX_OMBC = 1,
+	ONCE_REG_IDX_OBCR = 2,
+	ONCE_REG_IDX_OMLR0 = 3,
+	ONCE_REG_IDX_OMLR1 = 4,
+	ONCE_REG_IDX_OGDBR = 5,
+	ONCE_REG_IDX_OPDBR = 6,
+	ONCE_REG_IDX_OPILR = 7,
+	ONCE_REG_IDX_PDB = 8,
+	ONCE_REG_IDX_OTC = 9,
+	ONCE_REG_IDX_OPABFR = 10,
+	ONCE_REG_IDX_OPABDR = 11,
+	ONCE_REG_IDX_OPABEX = 12,
+	ONCE_REG_IDX_OPABF0 = 13,
+	ONCE_REG_IDX_OPABF1 = 14,
+	ONCE_REG_IDX_OPABF2 = 15,
+	ONCE_REG_IDX_OPABF3 = 16,
+	ONCE_REG_IDX_OPABF4 = 17,
+	ONCE_REG_IDX_OPABF5 = 18,
+	ONCE_REG_IDX_OPABF6 = 19,
+	ONCE_REG_IDX_OPABF7 = 20,
+	ONCE_REG_IDX_OPABF8 = 21,
+	ONCE_REG_IDX_OPABF9 = 22,
+	ONCE_REG_IDX_OPABF10 = 23,
+	ONCE_REG_IDX_OPABF11 = 24,
 };
 
 static struct once_reg once_regs[] = {
@@ -147,76 +148,74 @@ static struct once_reg once_regs[] = {
 	{ONCE_REG_IDX_OPABF9,  DSP563XX_ONCE_OPABF11, 25, "OPABF9",  0},
 	{ONCE_REG_IDX_OPABF10, DSP563XX_ONCE_OPABF11, 25, "OPABF10", 0},
 	{ONCE_REG_IDX_OPABF11, DSP563XX_ONCE_OPABF11, 25, "OPABF11", 0},
-//      {25,0x1f,24,"NRSEL",0},
+/*      {25,0x1f,24,"NRSEL",0}, */
 };
 
 enum dsp563xx_reg_idx {
-	DSP563XX_REG_IDX_R0=0,
-	DSP563XX_REG_IDX_R1=1,
-	DSP563XX_REG_IDX_R2=2,
-	DSP563XX_REG_IDX_R3=3,
-	DSP563XX_REG_IDX_R4=4,
-	DSP563XX_REG_IDX_R5=5,
-	DSP563XX_REG_IDX_R6=6,
-	DSP563XX_REG_IDX_R7=7,
-	DSP563XX_REG_IDX_N0=8,
-	DSP563XX_REG_IDX_N1=9,
-	DSP563XX_REG_IDX_N2=10,
-	DSP563XX_REG_IDX_N3=11,
-	DSP563XX_REG_IDX_N4=12,
-	DSP563XX_REG_IDX_N5=13,
-	DSP563XX_REG_IDX_N6=14,
-	DSP563XX_REG_IDX_N7=15,
-	DSP563XX_REG_IDX_M0=16,
-	DSP563XX_REG_IDX_M1=17,
-	DSP563XX_REG_IDX_M2=18,
-	DSP563XX_REG_IDX_M3=19,
-	DSP563XX_REG_IDX_M4=20,
-	DSP563XX_REG_IDX_M5=21,
-	DSP563XX_REG_IDX_M6=22,
-	DSP563XX_REG_IDX_M7=23,
-	DSP563XX_REG_IDX_X0=24,
-	DSP563XX_REG_IDX_X1=25,
-	DSP563XX_REG_IDX_Y0=26,
-	DSP563XX_REG_IDX_Y1=27,
-	DSP563XX_REG_IDX_A0=28,
-	DSP563XX_REG_IDX_A1=29,
-	DSP563XX_REG_IDX_A2=30,
-	DSP563XX_REG_IDX_B0=31,
-	DSP563XX_REG_IDX_B1=32,
-	DSP563XX_REG_IDX_B2=33,
-	DSP563XX_REG_IDX_SSH=34,
-	DSP563XX_REG_IDX_SSL=35,
-	DSP563XX_REG_IDX_SP=36,
-	DSP563XX_REG_IDX_EP=37,
-	DSP563XX_REG_IDX_SZ=38,
-	DSP563XX_REG_IDX_SC=39,
-	DSP563XX_REG_IDX_PC=40,
-	DSP563XX_REG_IDX_SR=41,
-	DSP563XX_REG_IDX_OMR=42,
-	DSP563XX_REG_IDX_LA=43,
-	DSP563XX_REG_IDX_LC=44,
-	DSP563XX_REG_IDX_VBA=45,
-	DSP563XX_REG_IDX_IPRC=46,
-	DSP563XX_REG_IDX_IPRP=47,
-	DSP563XX_REG_IDX_BCR=48,
-	DSP563XX_REG_IDX_DCR=49,
-	DSP563XX_REG_IDX_AAR0=50,
-	DSP563XX_REG_IDX_AAR1=51,
-	DSP563XX_REG_IDX_AAR2=52,
-	DSP563XX_REG_IDX_AAR3=53,
+	DSP563XX_REG_IDX_R0 = 0,
+	DSP563XX_REG_IDX_R1 = 1,
+	DSP563XX_REG_IDX_R2 = 2,
+	DSP563XX_REG_IDX_R3 = 3,
+	DSP563XX_REG_IDX_R4 = 4,
+	DSP563XX_REG_IDX_R5 = 5,
+	DSP563XX_REG_IDX_R6 = 6,
+	DSP563XX_REG_IDX_R7 = 7,
+	DSP563XX_REG_IDX_N0 = 8,
+	DSP563XX_REG_IDX_N1 = 9,
+	DSP563XX_REG_IDX_N2 = 10,
+	DSP563XX_REG_IDX_N3 = 11,
+	DSP563XX_REG_IDX_N4 = 12,
+	DSP563XX_REG_IDX_N5 = 13,
+	DSP563XX_REG_IDX_N6 = 14,
+	DSP563XX_REG_IDX_N7 = 15,
+	DSP563XX_REG_IDX_M0 = 16,
+	DSP563XX_REG_IDX_M1 = 17,
+	DSP563XX_REG_IDX_M2 = 18,
+	DSP563XX_REG_IDX_M3 = 19,
+	DSP563XX_REG_IDX_M4 = 20,
+	DSP563XX_REG_IDX_M5 = 21,
+	DSP563XX_REG_IDX_M6 = 22,
+	DSP563XX_REG_IDX_M7 = 23,
+	DSP563XX_REG_IDX_X0 = 24,
+	DSP563XX_REG_IDX_X1 = 25,
+	DSP563XX_REG_IDX_Y0 = 26,
+	DSP563XX_REG_IDX_Y1 = 27,
+	DSP563XX_REG_IDX_A0 = 28,
+	DSP563XX_REG_IDX_A1 = 29,
+	DSP563XX_REG_IDX_A2 = 30,
+	DSP563XX_REG_IDX_B0 = 31,
+	DSP563XX_REG_IDX_B1 = 32,
+	DSP563XX_REG_IDX_B2 = 33,
+	DSP563XX_REG_IDX_SSH = 34,
+	DSP563XX_REG_IDX_SSL = 35,
+	DSP563XX_REG_IDX_SP = 36,
+	DSP563XX_REG_IDX_EP = 37,
+	DSP563XX_REG_IDX_SZ = 38,
+	DSP563XX_REG_IDX_SC = 39,
+	DSP563XX_REG_IDX_PC = 40,
+	DSP563XX_REG_IDX_SR = 41,
+	DSP563XX_REG_IDX_OMR = 42,
+	DSP563XX_REG_IDX_LA = 43,
+	DSP563XX_REG_IDX_LC = 44,
+	DSP563XX_REG_IDX_VBA = 45,
+	DSP563XX_REG_IDX_IPRC = 46,
+	DSP563XX_REG_IDX_IPRP = 47,
+	DSP563XX_REG_IDX_BCR = 48,
+	DSP563XX_REG_IDX_DCR = 49,
+	DSP563XX_REG_IDX_AAR0 = 50,
+	DSP563XX_REG_IDX_AAR1 = 51,
+	DSP563XX_REG_IDX_AAR2 = 52,
+	DSP563XX_REG_IDX_AAR3 = 53,
 };
 
-static const struct
-{
+static const struct {
 	unsigned id;
 	const char *name;
 	unsigned bits;
 	/* effective addressing mode encoding */
 	uint8_t eame;
 	uint32_t instr_mask;
-} dsp563xx_regs[] =
-{
+} dsp563xx_regs[] = {
 	/* *INDENT-OFF* */
 	/* address registers */
 	{DSP563XX_REG_IDX_R0, "r0", 24, 0x10, ASM_REG_W_R0},
@@ -253,13 +252,13 @@ static const struct
 	/* data alu accumulator register */
 	{DSP563XX_REG_IDX_A0, "a0", 24, 0x08, ASM_REG_W_A0},
 	{DSP563XX_REG_IDX_A1, "a1", 24, 0x0c, ASM_REG_W_A1},
-	{DSP563XX_REG_IDX_A2, "a2",  8, 0x0a, ASM_REG_W_A2},
+	{DSP563XX_REG_IDX_A2, "a2", 8, 0x0a, ASM_REG_W_A2},
 	{DSP563XX_REG_IDX_B0, "b0", 24, 0x09, ASM_REG_W_B0},
 	{DSP563XX_REG_IDX_B1, "b1", 24, 0x0d, ASM_REG_W_B1},
-	{DSP563XX_REG_IDX_B2, "b2",  8, 0x0b, ASM_REG_W_B2},
+	{DSP563XX_REG_IDX_B2, "b2", 8, 0x0b, ASM_REG_W_B2},
 	/* stack */
-	{DSP563XX_REG_IDX_SSH, "ssh",24, 0x3c, ASM_REG_W_SSH},
-	{DSP563XX_REG_IDX_SSL, "ssl",24, 0x3d, ASM_REG_W_SSL},
+	{DSP563XX_REG_IDX_SSH, "ssh", 24, 0x3c, ASM_REG_W_SSH},
+	{DSP563XX_REG_IDX_SSL, "ssl", 24, 0x3d, ASM_REG_W_SSL},
 	{DSP563XX_REG_IDX_SP, "sp", 24, 0x3b, ASM_REG_W_SP},
 	{DSP563XX_REG_IDX_EP, "ep", 24, 0x2a, ASM_REG_W_EP},
 	{DSP563XX_REG_IDX_SZ, "sz", 24, 0x38, ASM_REG_W_SZ},
@@ -267,34 +266,33 @@ static const struct
 	/* system */
 	{DSP563XX_REG_IDX_PC, "pc", 24, 0x00, ASM_REG_W_PC},
 	{DSP563XX_REG_IDX_SR, "sr", 24, 0x39, ASM_REG_W_SR},
-	{DSP563XX_REG_IDX_OMR, "omr",24, 0x3a, ASM_REG_W_OMR},
+	{DSP563XX_REG_IDX_OMR, "omr", 24, 0x3a, ASM_REG_W_OMR},
 	{DSP563XX_REG_IDX_LA, "la", 24, 0x3e, ASM_REG_W_LA},
 	{DSP563XX_REG_IDX_LC, "lc", 24, 0x3f, ASM_REG_W_LC},
 	/* interrupt */
 	{DSP563XX_REG_IDX_VBA, "vba", 24, 0x30, ASM_REG_W_VBA},
-	{DSP563XX_REG_IDX_IPRC, "iprc",24, 0x00, ASM_REG_W_IPRC},
-	{DSP563XX_REG_IDX_IPRP, "iprp",24, 0x00, ASM_REG_W_IPRP},
+	{DSP563XX_REG_IDX_IPRC, "iprc", 24, 0x00, ASM_REG_W_IPRC},
+	{DSP563XX_REG_IDX_IPRP, "iprp", 24, 0x00, ASM_REG_W_IPRP},
 	/* port a */
 	{DSP563XX_REG_IDX_BCR, "bcr", 24, 0x00, ASM_REG_W_BCR},
 	{DSP563XX_REG_IDX_DCR, "dcr", 24, 0x00, ASM_REG_W_DCR},
-	{DSP563XX_REG_IDX_AAR0, "aar0",24, 0x00, ASM_REG_W_AAR0},
-	{DSP563XX_REG_IDX_AAR1, "aar1",24, 0x00, ASM_REG_W_AAR1},
-	{DSP563XX_REG_IDX_AAR2, "aar2",24, 0x00, ASM_REG_W_AAR2},
-	{DSP563XX_REG_IDX_AAR3, "aar3",24, 0x00, ASM_REG_W_AAR3},
+	{DSP563XX_REG_IDX_AAR0, "aar0", 24, 0x00, ASM_REG_W_AAR0},
+	{DSP563XX_REG_IDX_AAR1, "aar1", 24, 0x00, ASM_REG_W_AAR1},
+	{DSP563XX_REG_IDX_AAR2, "aar2", 24, 0x00, ASM_REG_W_AAR2},
+	{DSP563XX_REG_IDX_AAR3, "aar3", 24, 0x00, ASM_REG_W_AAR3},
 	/* *INDENT-ON* */
 };
 
-enum memory_type
-{
+enum memory_type {
 	MEM_X = 0,
 	MEM_Y = 1,
 	MEM_P = 2,
 	MEM_L = 3,
 };
 
-#define INSTR_JUMP	0x0AF080
+#define INSTR_JUMP      0x0AF080
 /* Effective Addressing Mode Encoding */
-#define EAME_R0		0x10
+#define EAME_R0         0x10
 /* instrcution encoder */
 /* movep
  * s - peripheral space X/Y (X=0,Y=1)
@@ -302,18 +300,19 @@ enum memory_type
  * d - source/destination register
  * p - IO short address
  */
-#define INSTR_MOVEP_REG_HIO(s,w,d,p)   (0x084000 | ((s & 1)<<16) | ((w&1)<<15) | ((d & 0x3f)<<8) | (p & 0x3f))
+#define INSTR_MOVEP_REG_HIO(s, w, d, p) (0x084000 | \
+	((s & 1) << 16) | ((w & 1) << 15) | ((d & 0x3f) << 8) | (p & 0x3f))
 
 /* the gdb register list is send in this order */
 uint8_t gdb_reg_list_idx[] = {
 	DSP563XX_REG_IDX_X1, DSP563XX_REG_IDX_X0, DSP563XX_REG_IDX_Y1, DSP563XX_REG_IDX_Y0,
 	DSP563XX_REG_IDX_A2, DSP563XX_REG_IDX_A1, DSP563XX_REG_IDX_A0, DSP563XX_REG_IDX_B2,
 	DSP563XX_REG_IDX_B1, DSP563XX_REG_IDX_B0, DSP563XX_REG_IDX_PC, DSP563XX_REG_IDX_SR,
-	DSP563XX_REG_IDX_OMR,DSP563XX_REG_IDX_LA, DSP563XX_REG_IDX_LC, DSP563XX_REG_IDX_SSH,
-	DSP563XX_REG_IDX_SSL,DSP563XX_REG_IDX_SP, DSP563XX_REG_IDX_EP, DSP563XX_REG_IDX_SZ,
-	DSP563XX_REG_IDX_SC, DSP563XX_REG_IDX_VBA,DSP563XX_REG_IDX_IPRC, DSP563XX_REG_IDX_IPRP,
-	DSP563XX_REG_IDX_BCR,DSP563XX_REG_IDX_DCR,DSP563XX_REG_IDX_AAR0,DSP563XX_REG_IDX_AAR1,
-	DSP563XX_REG_IDX_AAR2,DSP563XX_REG_IDX_AAR3,DSP563XX_REG_IDX_R0,DSP563XX_REG_IDX_R1,
+	DSP563XX_REG_IDX_OMR, DSP563XX_REG_IDX_LA, DSP563XX_REG_IDX_LC, DSP563XX_REG_IDX_SSH,
+	DSP563XX_REG_IDX_SSL, DSP563XX_REG_IDX_SP, DSP563XX_REG_IDX_EP, DSP563XX_REG_IDX_SZ,
+	DSP563XX_REG_IDX_SC, DSP563XX_REG_IDX_VBA, DSP563XX_REG_IDX_IPRC, DSP563XX_REG_IDX_IPRP,
+	DSP563XX_REG_IDX_BCR, DSP563XX_REG_IDX_DCR, DSP563XX_REG_IDX_AAR0, DSP563XX_REG_IDX_AAR1,
+	DSP563XX_REG_IDX_AAR2, DSP563XX_REG_IDX_AAR3, DSP563XX_REG_IDX_R0, DSP563XX_REG_IDX_R1,
 	DSP563XX_REG_IDX_R2, DSP563XX_REG_IDX_R3, DSP563XX_REG_IDX_R4, DSP563XX_REG_IDX_R5,
 	DSP563XX_REG_IDX_R6, DSP563XX_REG_IDX_R7, DSP563XX_REG_IDX_N0, DSP563XX_REG_IDX_N1,
 	DSP563XX_REG_IDX_N2, DSP563XX_REG_IDX_N3, DSP563XX_REG_IDX_N4, DSP563XX_REG_IDX_N5,
@@ -322,15 +321,15 @@ uint8_t gdb_reg_list_idx[] = {
 	DSP563XX_REG_IDX_M6, DSP563XX_REG_IDX_M7,
 };
 
-static int dsp563xx_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
+static int dsp563xx_get_gdb_reg_list(struct target *target,
+	struct reg **reg_list[],
+	int *reg_list_size)
 {
 	int i;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
 	if (target->state != TARGET_HALTED)
-	{
 		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	*reg_list_size = DSP563XX_NUMCOREREGS;
 	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
@@ -339,9 +338,7 @@ static int dsp563xx_get_gdb_reg_list(struct target *target, struct reg **reg_lis
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
-	{
 		(*reg_list)[i] = &dsp563xx->core_cache->reg_list[gdb_reg_list_idx[i]];
-	}
 
 	return ERROR_OK;
 
@@ -385,28 +382,24 @@ static int dsp563xx_get_core_reg(struct reg *reg)
 	struct target *target = dsp563xx_reg->target;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 
 	if (target->state != TARGET_HALTED)
-	{
 		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	return dsp563xx->read_core_reg(target, dsp563xx_reg->num);
 }
 
-static int dsp563xx_set_core_reg(struct reg *reg, uint8_t * buf)
+static int dsp563xx_set_core_reg(struct reg *reg, uint8_t *buf)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 
 	struct dsp563xx_core_reg *dsp563xx_reg = reg->arch_info;
 	struct target *target = dsp563xx_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
-	{
 		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	buf_set_u32(reg->value, 0, reg->size, value);
 	reg->dirty = 1;
@@ -427,7 +420,8 @@ static void dsp563xx_build_reg_cache(struct target *target)
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = malloc(sizeof(struct reg) * DSP563XX_NUMCOREREGS);
-	struct dsp563xx_core_reg *arch_info = malloc(sizeof(struct dsp563xx_core_reg) * DSP563XX_NUMCOREREGS);
+	struct dsp563xx_core_reg *arch_info = malloc(
+			sizeof(struct dsp563xx_core_reg) * DSP563XX_NUMCOREREGS);
 	int i;
 
 	/* Build the process context cache */
@@ -438,8 +432,7 @@ static void dsp563xx_build_reg_cache(struct target *target)
 	(*cache_p) = cache;
 	dsp563xx->core_cache = cache;
 
-	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
-	{
+	for (i = 0; i < DSP563XX_NUMCOREREGS; i++) {
 		arch_info[i].num = dsp563xx_regs[i].id;
 		arch_info[i].name = dsp563xx_regs[i].name;
 		arch_info[i].size = dsp563xx_regs[i].bits;
@@ -448,7 +441,7 @@ static void dsp563xx_build_reg_cache(struct target *target)
 		arch_info[i].target = target;
 		arch_info[i].dsp563xx_common = dsp563xx;
 		reg_list[i].name = dsp563xx_regs[i].name;
-		reg_list[i].size = 32; //dsp563xx_regs[i].bits;
+		reg_list[i].size = 32;	/* dsp563xx_regs[i].bits; */
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
@@ -460,7 +453,7 @@ static void dsp563xx_build_reg_cache(struct target *target)
 static int dsp563xx_read_register(struct target *target, int num, int force);
 static int dsp563xx_write_register(struct target *target, int num, int force);
 
-static int dsp563xx_reg_read_high_io(struct target *target, uint32_t instr_mask, uint32_t * data)
+static int dsp563xx_reg_read_high_io(struct target *target, uint32_t instr_mask, uint32_t *data)
 {
 	int err;
 	uint32_t instr;
@@ -472,14 +465,17 @@ static int dsp563xx_reg_read_high_io(struct target *target, uint32_t instr_mask,
 
 	/* move source memory to r0 */
 	instr = INSTR_MOVEP_REG_HIO(MEM_X, 0, EAME_R0, instr_mask);
-	if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0, instr)) != ERROR_OK)
+	err = dsp563xx_once_execute_sw_ir(target->tap, 0, instr);
+	if (err != ERROR_OK)
 		return err;
 	/* move r0 to debug register */
 	instr = INSTR_MOVEP_REG_HIO(MEM_X, 1, EAME_R0, 0xfffffc);
-	if ((err = dsp563xx_once_execute_sw_ir(target->tap, 1, instr)) != ERROR_OK)
+	err = dsp563xx_once_execute_sw_ir(target->tap, 1, instr);
+	if (err != ERROR_OK)
 		return err;
 	/* read debug register */
-	if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OGDBR, data)) != ERROR_OK)
+	err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OGDBR, data);
+	if (err != ERROR_OK)
 		return err;
 	/* r0 is no longer valid on target */
 	dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_R0].dirty = 1;
@@ -498,11 +494,13 @@ static int dsp563xx_reg_write_high_io(struct target *target, uint32_t instr_mask
 		dsp563xx->read_core_reg(target, DSP563XX_REG_IDX_R0);
 
 	/* move data to r0 */
-	if ((err = dsp563xx_once_execute_dw_ir(target->tap, 0, 0x60F400, data)) != ERROR_OK)
+	err = dsp563xx_once_execute_dw_ir(target->tap, 0, 0x60F400, data);
+	if (err != ERROR_OK)
 		return err;
 	/* move r0 to destination memory */
 	instr = INSTR_MOVEP_REG_HIO(MEM_X, 1, EAME_R0, instr_mask);
-	if ((err = dsp563xx_once_execute_sw_ir(target->tap, 1, instr)) != ERROR_OK)
+	err = dsp563xx_once_execute_sw_ir(target->tap, 1, instr);
+	if (err != ERROR_OK)
 		return err;
 
 	/* r0 is no longer valid on target */
@@ -511,16 +509,18 @@ static int dsp563xx_reg_write_high_io(struct target *target, uint32_t instr_mask
 	return ERROR_OK;
 }
 
-static int dsp563xx_reg_read(struct target *target, uint32_t eame, uint32_t * data)
+static int dsp563xx_reg_read(struct target *target, uint32_t eame, uint32_t *data)
 {
 	int err;
 	uint32_t instr;
 
 	instr = INSTR_MOVEP_REG_HIO(MEM_X, 1, eame, 0xfffffc);
-	if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0, instr)) != ERROR_OK)
+	err = dsp563xx_once_execute_sw_ir(target->tap, 0, instr);
+	if (err != ERROR_OK)
 		return err;
 	/* nop */
-	if ((err = dsp563xx_once_execute_sw_ir(target->tap, 1, 0x000000)) != ERROR_OK)
+	err = dsp563xx_once_execute_sw_ir(target->tap, 1, 0x000000);
+	if (err != ERROR_OK)
 		return err;
 	/* read debug register */
 	return dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OGDBR, data);
@@ -530,7 +530,8 @@ static int dsp563xx_reg_write(struct target *target, uint32_t instr_mask, uint32
 {
 	int err;
 
-	if ((err = dsp563xx_once_execute_dw_ir(target->tap, 0, instr_mask, data)) != ERROR_OK)
+	err = dsp563xx_once_execute_dw_ir(target->tap, 0, instr_mask, data);
+	if (err != ERROR_OK)
 		return err;
 	/* nop */
 	return dsp563xx_once_execute_sw_ir(target->tap, 1, 0x000000);
@@ -545,11 +546,10 @@ static int dsp563xx_reg_pc_read(struct target *target)
 		return ERROR_OK;
 
 	/* conditional branch check */
-	if ( once_regs[ONCE_REG_IDX_OPABDR].reg == once_regs[ONCE_REG_IDX_OPABEX].reg )
-	{
-		if ( (once_regs[ONCE_REG_IDX_OPABF11].reg & 1) == 0 )
-		{
-			LOG_DEBUG("%s conditional branch not supported yet (0x%x 0x%x 0x%x)", __FUNCTION__,
+	if (once_regs[ONCE_REG_IDX_OPABDR].reg == once_regs[ONCE_REG_IDX_OPABEX].reg) {
+		if ((once_regs[ONCE_REG_IDX_OPABF11].reg & 1) == 0) {
+			LOG_DEBUG("%s conditional branch not supported yet (0x%x 0x%x 0x%x)",
+				__func__,
 				(once_regs[ONCE_REG_IDX_OPABF11].reg >> 1),
 				once_regs[ONCE_REG_IDX_OPABDR].reg,
 				once_regs[ONCE_REG_IDX_OPABEX].reg);
@@ -557,24 +557,19 @@ static int dsp563xx_reg_pc_read(struct target *target)
 			/* TODO: use disassembly to set correct pc offset
 			 * read 2 words from OPABF11 and disasm the instruction
 			 */
-			dsp563xx->core_regs[DSP563XX_REG_IDX_PC] = (once_regs[ONCE_REG_IDX_OPABF11].reg >> 1) & 0x00FFFFFF;
-		}
-		else
-		{
-			if ( once_regs[ONCE_REG_IDX_OPABEX].reg == once_regs[ONCE_REG_IDX_OPABFR].reg )
-			{
-				dsp563xx->core_regs[DSP563XX_REG_IDX_PC] = once_regs[ONCE_REG_IDX_OPABEX].reg;
-			}
+			dsp563xx->core_regs[DSP563XX_REG_IDX_PC] =
+				(once_regs[ONCE_REG_IDX_OPABF11].reg >> 1) & 0x00FFFFFF;
+		} else {
+			if (once_regs[ONCE_REG_IDX_OPABEX].reg ==
+				once_regs[ONCE_REG_IDX_OPABFR].reg)
+				dsp563xx->core_regs[DSP563XX_REG_IDX_PC] =
+					once_regs[ONCE_REG_IDX_OPABEX].reg;
 			else
-			{
-				dsp563xx->core_regs[DSP563XX_REG_IDX_PC] = once_regs[ONCE_REG_IDX_OPABEX].reg - 1;
-			}
+				dsp563xx->core_regs[DSP563XX_REG_IDX_PC] =
+					once_regs[ONCE_REG_IDX_OPABEX].reg - 1;
 		}
-	}
-	else
-	{
+	} else
 		dsp563xx->core_regs[DSP563XX_REG_IDX_PC] = once_regs[ONCE_REG_IDX_OPABEX].reg;
-	}
 
 	dsp563xx->read_core_reg(target, DSP563XX_REG_IDX_PC);
 
@@ -591,40 +586,47 @@ static int dsp563xx_reg_ssh_read(struct target *target)
 	arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].arch_info;
 
 	/* get a valid stack pointer */
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 0);
+	if (err != ERROR_OK)
 		return err;
 	sp = dsp563xx->core_regs[DSP563XX_REG_IDX_SP];
-	if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SP, 0)) != ERROR_OK)
+	err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SP, 0);
+	if (err != ERROR_OK)
 		return err;
 
 	/* get a valid stack count */
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SC, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SC, 0);
+	if (err != ERROR_OK)
 		return err;
 
-	if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SC, 0)) != ERROR_OK)
+	err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SC, 0);
+	if (err != ERROR_OK)
 		return err;
 
 	/* get a valid extended pointer */
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_EP, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_EP, 0);
+	if (err != ERROR_OK)
 		return err;
 
-	if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_EP, 0)) != ERROR_OK)
+	err = dsp563xx_write_register(target, DSP563XX_REG_IDX_EP, 0);
+	if (err != ERROR_OK)
 		return err;
 
 	if (!sp)
-	{
 		sp = 0x00FFFFFF;
-	}
-	else
-	{
-		if ((err = dsp563xx_reg_read(target, arch_info->eame, &sp)) != ERROR_OK)
+	else {
+		err = dsp563xx_reg_read(target, arch_info->eame, &sp);
+		if (err != ERROR_OK)
 			return err;
 
-		if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SC, 1)) != ERROR_OK)
+		err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SC, 1);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SP, 1)) != ERROR_OK)
+		err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SP, 1);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_EP, 1)) != ERROR_OK)
+		err = dsp563xx_write_register(target, DSP563XX_REG_IDX_EP, 1);
+		if (err != ERROR_OK)
 			return err;
 	}
 
@@ -644,26 +646,32 @@ static int dsp563xx_reg_ssh_write(struct target *target)
 	arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].arch_info;
 
 	/* get a valid stack pointer */
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 0);
+	if (err != ERROR_OK)
 		return err;
 	sp = dsp563xx->core_regs[DSP563XX_REG_IDX_SP];
 
-	if (sp)
-	{
+	if (sp) {
 		sp--;
 		/* write new stackpointer */
 		dsp563xx->core_regs[DSP563XX_REG_IDX_SP] = sp;
-		if ((err = dsp563xx->read_core_reg(target, DSP563XX_REG_IDX_SP)) != ERROR_OK)
+		err = dsp563xx->read_core_reg(target, DSP563XX_REG_IDX_SP);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SP, 1)) != ERROR_OK)
+		err = dsp563xx_write_register(target, DSP563XX_REG_IDX_SP, 1);
+		if (err != ERROR_OK)
 			return err;
 
-		if ((err = dsp563xx_reg_write(target, arch_info->instr_mask, dsp563xx->core_regs[DSP563XX_REG_IDX_SSH])) != ERROR_OK)
+		err = dsp563xx_reg_write(target, arch_info->instr_mask,
+				dsp563xx->core_regs[DSP563XX_REG_IDX_SSH]);
+		if (err != ERROR_OK)
 			return err;
 
-		if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 1)) != ERROR_OK)
+		err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 1);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SSH, 1)) != ERROR_OK)
+		err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SSH, 1);
+		if (err != ERROR_OK)
 			return err;
 	}
 
@@ -680,17 +688,16 @@ static int dsp563xx_reg_ssl_read(struct target *target)
 	arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].arch_info;
 
 	/* get a valid stack pointer */
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SP, 0);
+	if (err != ERROR_OK)
 		return err;
 	sp = dsp563xx->core_regs[DSP563XX_REG_IDX_SP];
 
 	if (!sp)
-	{
 		sp = 0x00FFFFFF;
-	}
-	else
-	{
-		if ((err = dsp563xx_reg_read(target, arch_info->eame, &sp)) != ERROR_OK)
+	else {
+		err = dsp563xx_reg_read(target, arch_info->eame, &sp);
+		if (err != ERROR_OK)
 			return err;
 	}
 
@@ -710,12 +717,10 @@ static int dsp563xx_read_register(struct target *target, int num, int force)
 	if (force)
 		dsp563xx->core_cache->reg_list[num].valid = 0;
 
-	if (!dsp563xx->core_cache->reg_list[num].valid)
-	{
+	if (!dsp563xx->core_cache->reg_list[num].valid) {
 		arch_info = dsp563xx->core_cache->reg_list[num].arch_info;
 
-		switch (arch_info->num)
-		{
+		switch (arch_info->num) {
 			case DSP563XX_REG_IDX_SSH:
 				err = dsp563xx_reg_ssh_read(target);
 				break;
@@ -733,23 +738,21 @@ static int dsp563xx_read_register(struct target *target, int num, int force)
 			case DSP563XX_REG_IDX_AAR1:
 			case DSP563XX_REG_IDX_AAR2:
 			case DSP563XX_REG_IDX_AAR3:
-				err = dsp563xx_reg_read_high_io(target, arch_info->instr_mask, &data);
-				if (err == ERROR_OK)
-				{
+				err = dsp563xx_reg_read_high_io(target,
+						arch_info->instr_mask, &data);
+				if (err == ERROR_OK) {
 					dsp563xx->core_regs[num] = data;
 					dsp563xx->read_core_reg(target, num);
 				}
 				break;
 			default:
 				err = dsp563xx_reg_read(target, arch_info->eame, &data);
-				if (err == ERROR_OK)
-				{
+				if (err == ERROR_OK) {
 					dsp563xx->core_regs[num] = data;
 					dsp563xx->read_core_reg(target, num);
 				}
 				break;
 		}
-
 	}
 
 	return err;
@@ -764,14 +767,12 @@ static int dsp563xx_write_register(struct target *target, int num, int force)
 	if (force)
 		dsp563xx->core_cache->reg_list[num].dirty = 1;
 
-	if (dsp563xx->core_cache->reg_list[num].dirty)
-	{
+	if (dsp563xx->core_cache->reg_list[num].dirty) {
 		arch_info = dsp563xx->core_cache->reg_list[num].arch_info;
 
 		dsp563xx->write_core_reg(target, num);
 
-		switch (arch_info->num)
-		{
+		switch (arch_info->num) {
 			case DSP563XX_REG_IDX_SSH:
 				err = dsp563xx_reg_ssh_write(target);
 				break;
@@ -786,15 +787,20 @@ static int dsp563xx_write_register(struct target *target, int num, int force)
 			case DSP563XX_REG_IDX_AAR1:
 			case DSP563XX_REG_IDX_AAR2:
 			case DSP563XX_REG_IDX_AAR3:
-				err = dsp563xx_reg_write_high_io(target, arch_info->instr_mask, dsp563xx->core_regs[num]);
+				err = dsp563xx_reg_write_high_io(target,
+					arch_info->instr_mask,
+					dsp563xx->core_regs[num]);
 				break;
 			default:
-				err = dsp563xx_reg_write(target, arch_info->instr_mask, dsp563xx->core_regs[num]);
+				err = dsp563xx_reg_write(target,
+					arch_info->instr_mask,
+					dsp563xx->core_regs[num]);
 
-				if ((err == ERROR_OK) && (arch_info->num == DSP563XX_REG_IDX_SP))
-				{
-					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].valid = 0;
-					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].valid = 0;
+				if ((err == ERROR_OK) && (arch_info->num == DSP563XX_REG_IDX_SP)) {
+					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].valid =
+						0;
+					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].valid =
+						0;
 				}
 
 				break;
@@ -808,9 +814,9 @@ static int dsp563xx_save_context(struct target *target)
 {
 	int i, err = ERROR_OK;
 
-	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
-	{
-		if ((err = dsp563xx_read_register(target, i, 0)) != ERROR_OK)
+	for (i = 0; i < DSP563XX_NUMCOREREGS; i++) {
+		err = dsp563xx_read_register(target, i, 0);
+		if (err != ERROR_OK)
 			break;
 	}
 
@@ -821,40 +827,40 @@ static int dsp563xx_restore_context(struct target *target)
 {
 	int i, err = ERROR_OK;
 
-	for (i = 0; i < DSP563XX_NUMCOREREGS; i++)
-	{
-		if ((err = dsp563xx_write_register(target, i, 0)) != ERROR_OK)
+	for (i = 0; i < DSP563XX_NUMCOREREGS; i++) {
+		err = dsp563xx_write_register(target, i, 0);
+		if (err != ERROR_OK)
 			break;
 	}
 
 	return err;
 }
 
-static void dsp563xx_invalidate_x_context(struct target *target, uint32_t addr_start, uint32_t addr_end )
+static void dsp563xx_invalidate_x_context(struct target *target,
+	uint32_t addr_start,
+	uint32_t addr_end)
 {
 	int i;
 	struct dsp563xx_core_reg *arch_info;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
-	if ( addr_start > ASM_REG_W_IPRC )
+	if (addr_start > ASM_REG_W_IPRC)
 		return;
-	if ( addr_start < ASM_REG_W_AAR3 )
+	if (addr_start < ASM_REG_W_AAR3)
 		return;
 
-	for (i = DSP563XX_REG_IDX_IPRC; i < DSP563XX_NUMCOREREGS; i++)
-	{
+	for (i = DSP563XX_REG_IDX_IPRC; i < DSP563XX_NUMCOREREGS; i++) {
 		arch_info = dsp563xx->core_cache->reg_list[i].arch_info;
 
-		if ( (arch_info->instr_mask >= addr_start) &&
-		     (arch_info->instr_mask <= addr_end))
-		{
+		if ((arch_info->instr_mask >= addr_start) &&
+			(arch_info->instr_mask <= addr_end)) {
 			dsp563xx->core_cache->reg_list[i].valid = 0;
 			dsp563xx->core_cache->reg_list[i].dirty = 0;
 		}
 	}
 }
 
-static int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
+static int dsp563xx_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct dsp563xx_common *dsp563xx = calloc(1, sizeof(struct dsp563xx_common));
 
@@ -871,7 +877,7 @@ static int dsp563xx_target_create(struct target *target, Jim_Interp * interp)
 
 static int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 
 	dsp563xx_build_reg_cache(target);
 
@@ -882,24 +888,21 @@ static int dsp563xx_examine(struct target *target)
 {
 	uint32_t chip;
 
-	if (target->tap->hasidcode == false)
-	{
+	if (target->tap->hasidcode == false) {
 		LOG_ERROR("no IDCODE present on device");
-
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (!target_was_examined(target))
-	{
+	if (!target_was_examined(target)) {
 		target_set_examined(target);
 
 		/* examine core and chip derivate number */
-		chip = (target->tap->idcode>>12)&0x3ff;
+		chip = (target->tap->idcode>>12) & 0x3ff;
 		/* core number 0 means DSP563XX */
-		if ( ((chip>>5)&0x1f) == 0 )
+		if (((chip>>5)&0x1f) == 0)
 			chip += 300;
 
-		LOG_INFO("DSP56%03d device found",chip);
+		LOG_INFO("DSP56%03d device found", chip);
 	}
 
 	return ERROR_OK;
@@ -907,12 +910,12 @@ static int dsp563xx_examine(struct target *target)
 
 static int dsp563xx_arch_state(struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
-#define DSP563XX_SR_SA	(1<<17)
-#define DSP563XX_SR_SC	(1<<13)
+#define DSP563XX_SR_SA (1<<17)
+#define DSP563XX_SR_SC (1<<13)
 
 static int dsp563xx_debug_once_init(struct target *target)
 {
@@ -926,68 +929,75 @@ static int dsp563xx_debug_init(struct target *target)
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 	struct dsp563xx_core_reg *arch_info;
 
-	if ((err = dsp563xx_debug_once_init(target)) != ERROR_OK)
+	err = dsp563xx_debug_once_init(target);
+	if (err != ERROR_OK)
 		return err;
 
 	arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SR].arch_info;
 
 	/* check 24bit mode */
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SR, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_SR, 0);
+	if (err != ERROR_OK)
 		return err;
 
 	sr = dsp563xx->core_regs[DSP563XX_REG_IDX_SR];
 
-	if (sr & (DSP563XX_SR_SA | DSP563XX_SR_SC))
-	{
+	if (sr & (DSP563XX_SR_SA | DSP563XX_SR_SC)) {
 		sr &= ~(DSP563XX_SR_SA | DSP563XX_SR_SC);
 
-		if ((err = dsp563xx_once_execute_dw_ir(target->tap, 1, arch_info->instr_mask, sr)) != ERROR_OK)
+		err = dsp563xx_once_execute_dw_ir(target->tap, 1, arch_info->instr_mask, sr);
+		if (err != ERROR_OK)
 			return err;
 		dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SR].dirty = 1;
 	}
 
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_N0, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_N0, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_N1, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_N1, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_M0, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_M0, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_read_register(target, DSP563XX_REG_IDX_M1, 0)) != ERROR_OK)
+	err = dsp563xx_read_register(target, DSP563XX_REG_IDX_M1, 0);
+	if (err != ERROR_OK)
 		return err;
 
-	if (dsp563xx->core_regs[DSP563XX_REG_IDX_N0] != 0x000000)
-	{
+	if (dsp563xx->core_regs[DSP563XX_REG_IDX_N0] != 0x000000) {
 		arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_N0].arch_info;
-		if ((err = dsp563xx_reg_write(target, arch_info->instr_mask, 0x000000)) != ERROR_OK)
+		err = dsp563xx_reg_write(target, arch_info->instr_mask, 0x000000);
+		if (err != ERROR_OK)
 			return err;
 	}
 	dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_N0].dirty = 1;
 
-	if (dsp563xx->core_regs[DSP563XX_REG_IDX_N1] != 0x000000)
-	{
+	if (dsp563xx->core_regs[DSP563XX_REG_IDX_N1] != 0x000000) {
 		arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_N1].arch_info;
-		if ((err = dsp563xx_reg_write(target, arch_info->instr_mask, 0x000000)) != ERROR_OK)
+		err = dsp563xx_reg_write(target, arch_info->instr_mask, 0x000000);
+		if (err != ERROR_OK)
 			return err;
 	}
 	dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_N1].dirty = 1;
 
-	if (dsp563xx->core_regs[DSP563XX_REG_IDX_M0] != 0xffffff)
-	{
+	if (dsp563xx->core_regs[DSP563XX_REG_IDX_M0] != 0xffffff) {
 		arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_M0].arch_info;
-		if ((err = dsp563xx_reg_write(target, arch_info->instr_mask, 0xffffff)) != ERROR_OK)
+		err = dsp563xx_reg_write(target, arch_info->instr_mask, 0xffffff);
+		if (err != ERROR_OK)
 			return err;
 	}
 	dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_M0].dirty = 1;
 
-	if (dsp563xx->core_regs[DSP563XX_REG_IDX_M1] != 0xffffff)
-	{
+	if (dsp563xx->core_regs[DSP563XX_REG_IDX_M1] != 0xffffff) {
 		arch_info = dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_M1].arch_info;
-		if ((err = dsp563xx_reg_write(target, arch_info->instr_mask, 0xffffff)) != ERROR_OK)
+		err = dsp563xx_reg_write(target, arch_info->instr_mask, 0xffffff);
+		if (err != ERROR_OK)
 			return err;
 	}
 	dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_M1].dirty = 1;
 
-	if ((err = dsp563xx_save_context(target)) != ERROR_OK)
+	err = dsp563xx_save_context(target);
+	if (err != ERROR_OK)
 		return err;
 
 	return ERROR_OK;
@@ -1002,42 +1012,36 @@ static int dsp563xx_poll(struct target *target)
 {
 	int err;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
-	uint32_t once_status=0;
+	uint32_t once_status = 0;
 	int state;
 
 	state = dsp563xx_once_target_status(target->tap);
 
-	if (state == TARGET_UNKNOWN)
-	{
+	if (state == TARGET_UNKNOWN) {
 		target->state = state;
 		LOG_ERROR("jtag status contains invalid mode value - communication failure");
 		return ERROR_TARGET_FAILURE;
 	}
 
-	if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OSCR, &once_status)) != ERROR_OK)
+	err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OSCR, &once_status);
+	if (err != ERROR_OK)
 		return err;
 
-	if ((once_status & DSP563XX_ONCE_OSCR_DEBUG_M) == DSP563XX_ONCE_OSCR_DEBUG_M)
-	{
-		if (target->state != TARGET_HALTED)
-		{
+	if ((once_status & DSP563XX_ONCE_OSCR_DEBUG_M) == DSP563XX_ONCE_OSCR_DEBUG_M) {
+		if (target->state != TARGET_HALTED) {
 			target->state = TARGET_HALTED;
 
-			if ((err = dsp563xx_debug_init(target)) != ERROR_OK)
+			err = dsp563xx_debug_init(target);
+			if (err != ERROR_OK)
 				return err;
 
-			if ( once_status & (DSP563XX_ONCE_OSCR_MBO|DSP563XX_ONCE_OSCR_SWO) )
-			{
+			if (once_status & (DSP563XX_ONCE_OSCR_MBO|DSP563XX_ONCE_OSCR_SWO))
 				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
-			}
 			else
-			{
 				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-			}
 
-			LOG_DEBUG("target->state: %s (%x)", target_state_name(target),once_status);
-
-			LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC] );
+			LOG_DEBUG("target->state: %s (%x)", target_state_name(target), once_status);
+			LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC]);
 		}
 	}
 
@@ -1048,20 +1052,18 @@ static int dsp563xx_halt(struct target *target)
 {
 	int err;
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 
-	if (target->state == TARGET_HALTED)
-	{
+	if (target->state == TARGET_HALTED) {
 		LOG_DEBUG("target was already halted");
 		return ERROR_OK;
 	}
 
 	if (target->state == TARGET_UNKNOWN)
-	{
 		LOG_WARNING("target was in unknown state when halt was requested");
-	}
 
-	if ((err = dsp563xx_jtag_debug_request(target)) != ERROR_OK)
+	err = dsp563xx_jtag_debug_request(target);
+	if (err != ERROR_OK)
 		return err;
 
 	target->debug_reason = DBG_REASON_DBGRQ;
@@ -1069,7 +1071,11 @@ static int dsp563xx_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int dsp563xx_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
+static int dsp563xx_resume(struct target *target,
+	int current,
+	uint32_t address,
+	int handle_breakpoints,
+	int debug_execution)
 {
 	int err;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
@@ -1080,35 +1086,38 @@ static int dsp563xx_resume(struct target *target, int current, uint32_t address,
 	 * this will not affect the resume command with an address argument
 	 * because current is set to zero then
 	 */
-	if ( current && dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].dirty )
-	{
-		dsp563xx_write_core_reg(target,DSP563XX_REG_IDX_PC);
+	if (current && dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].dirty) {
+		dsp563xx_write_core_reg(target, DSP563XX_REG_IDX_PC);
 		address = dsp563xx->core_regs[DSP563XX_REG_IDX_PC];
 		current = 0;
 	}
 
-	LOG_DEBUG("%s %08X %08X", __FUNCTION__, current, (unsigned) address);
+	LOG_DEBUG("%s %08X %08X", __func__, current, (unsigned) address);
 
-	if ((err = dsp563xx_restore_context(target)) != ERROR_OK)
+	err = dsp563xx_restore_context(target);
+	if (err != ERROR_OK)
 		return err;
 	register_cache_invalidate(dsp563xx->core_cache);
 
-	if (current)
-	{
+	if (current) {
 		/* restore pipeline registers and go */
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, once_regs[ONCE_REG_IDX_OPILR].reg)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR,
+				once_regs[ONCE_REG_IDX_OPILR].reg);
+		if (err != ERROR_OK)
 			return err;
-		if ((err =
-		     dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR | DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
-					     once_regs[ONCE_REG_IDX_OPDBR].reg)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR |
+				DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
+				once_regs[ONCE_REG_IDX_OPDBR].reg);
+		if (err != ERROR_OK)
 			return err;
-	}
-	else
-	{
+	} else {
 		/* set to go register and jump */
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, INSTR_JUMP)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR,	INSTR_JUMP);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_PDBGOTO | DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO, address)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_PDBGOTO |
+				DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO, address);
+		if (err != ERROR_OK)
 			return err;
 	}
 
@@ -1119,15 +1128,18 @@ static int dsp563xx_resume(struct target *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
-static int dsp563xx_step_ex(struct target *target, int current, uint32_t address, int handle_breakpoints, int steps)
+static int dsp563xx_step_ex(struct target *target,
+	int current,
+	uint32_t address,
+	int handle_breakpoints,
+	int steps)
 {
 	int err;
 	uint32_t once_status;
 	uint32_t dr_in, cnt;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_DEBUG("target was not halted");
 		return ERROR_OK;
 	}
@@ -1138,25 +1150,28 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 	 * this will not affect the step command with an address argument
 	 * because current is set to zero then
 	 */
-	if ( current && dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].dirty )
-	{
-		dsp563xx_write_core_reg(target,DSP563XX_REG_IDX_PC);
+	if (current && dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_PC].dirty) {
+		dsp563xx_write_core_reg(target, DSP563XX_REG_IDX_PC);
 		address = dsp563xx->core_regs[DSP563XX_REG_IDX_PC];
 		current = 0;
 	}
 
-	LOG_DEBUG("%s %08X %08X", __FUNCTION__, current, (unsigned) address);
+	LOG_DEBUG("%s %08X %08X", __func__, current, (unsigned) address);
 
-	if ((err = dsp563xx_jtag_debug_request(target)) != ERROR_OK)
+	err = dsp563xx_jtag_debug_request(target);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_restore_context(target)) != ERROR_OK)
+	err = dsp563xx_restore_context(target);
+	if (err != ERROR_OK)
 		return err;
 
 	/* reset trace mode */
-	if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, 0x000000)) != ERROR_OK)
+	err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, 0x000000);
+	if (err != ERROR_OK)
 		return err;
 	/* enable trace mode */
-	if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, DSP563XX_ONCE_OSCR_TME)) != ERROR_OK)
+	err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, DSP563XX_ONCE_OSCR_TME);
+	if (err != ERROR_OK)
 		return err;
 
 	cnt = steps;
@@ -1166,51 +1181,60 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 		cnt++;
 
 	/* load step counter with N-1 */
-	if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OTC, cnt)) != ERROR_OK)
+	err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OTC, cnt);
+	if (err != ERROR_OK)
 		return err;
 
-	if (current)
-	{
+	if (current) {
 		/* restore pipeline registers and go */
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, once_regs[ONCE_REG_IDX_OPILR].reg)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR,
+				once_regs[ONCE_REG_IDX_OPILR].reg);
+		if (err != ERROR_OK)
 			return err;
-		if ((err =
-		     dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR | DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
-					     once_regs[ONCE_REG_IDX_OPDBR].reg)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR |
+				DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
+				once_regs[ONCE_REG_IDX_OPDBR].reg);
+		if (err != ERROR_OK)
 			return err;
-	}
-	else
-	{
+	} else {
 		/* set to go register and jump */
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, INSTR_JUMP)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OPDBR, INSTR_JUMP);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_PDBGOTO | DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO, address)) != ERROR_OK)
+		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_PDBGOTO |
+				DSP563XX_ONCE_OCR_EX | DSP563XX_ONCE_OCR_GO,
+				address);
+		if (err != ERROR_OK)
 			return err;
 	}
 
-	while (1)
-	{
-		if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OSCR, &once_status)) != ERROR_OK)
+	while (1) {
+		err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OSCR, &once_status);
+		if (err != ERROR_OK)
 			return err;
 
-		if (once_status & DSP563XX_ONCE_OSCR_TO)
-		{
-			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABFR, &dr_in)) != ERROR_OK)
+		if (once_status & DSP563XX_ONCE_OSCR_TO) {
+			err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABFR, &dr_in);
+			if (err != ERROR_OK)
 				return err;
 			LOG_DEBUG("fetch: %08X", (unsigned) dr_in&0x00ffffff);
-			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABDR, &dr_in)) != ERROR_OK)
+			err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABDR, &dr_in);
+			if (err != ERROR_OK)
 				return err;
 			LOG_DEBUG("decode: %08X", (unsigned) dr_in&0x00ffffff);
-			if ((err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABEX, &dr_in)) != ERROR_OK)
+			err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABEX, &dr_in);
+			if (err != ERROR_OK)
 				return err;
 			LOG_DEBUG("execute: %08X", (unsigned) dr_in&0x00ffffff);
 
 			/* reset trace mode */
-			if ((err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, 0x000000)) != ERROR_OK)
+			err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, 0x000000);
+			if (err != ERROR_OK)
 				return err;
 
 			register_cache_invalidate(dsp563xx->core_cache);
-			if ((err = dsp563xx_debug_init(target)) != ERROR_OK)
+			err = dsp563xx_debug_init(target);
+			if (err != ERROR_OK)
 				return err;
 
 			break;
@@ -1220,26 +1244,27 @@ static int dsp563xx_step_ex(struct target *target, int current, uint32_t address
 	return ERROR_OK;
 }
 
-static int dsp563xx_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
+static int dsp563xx_step(struct target *target,
+	int current,
+	uint32_t address,
+	int handle_breakpoints)
 {
 	int err;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ( (err=dsp563xx_step_ex(target, current, address, handle_breakpoints, 0)) != ERROR_OK )
-	{
+	err = dsp563xx_step_ex(target, current, address, handle_breakpoints, 0);
+	if (err != ERROR_OK)
 		return err;
-	}
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC] );
+	LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC]);
 
 	return err;
 }
@@ -1250,17 +1275,12 @@ static int dsp563xx_assert_reset(struct target *target)
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
-	if (jtag_reset_config & RESET_HAS_SRST)
-	{
+	if (jtag_reset_config & RESET_HAS_SRST) {
 		/* default to asserting srst */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
-		{
 			jtag_add_reset(1, 1);
-		}
 		else
-		{
 			jtag_add_reset(0, 1);
-		}
 	}
 
 	target->state = TARGET_RESET;
@@ -1269,13 +1289,13 @@ static int dsp563xx_assert_reset(struct target *target)
 	/* registers are now invalid */
 	register_cache_invalidate(dsp563xx->core_cache);
 
-	if (target->reset_halt)
-	{
-		if ((retval = target_halt(target)) != ERROR_OK)
+	if (target->reset_halt) {
+		retval = target_halt(target);
+		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
@@ -1286,119 +1306,110 @@ static int dsp563xx_deassert_reset(struct target *target)
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
 
-	if ((err = dsp563xx_poll(target)) != ERROR_OK)
+	err = dsp563xx_poll(target);
+	if (err != ERROR_OK)
 		return err;
 
-	if (target->reset_halt)
-	{
-		if (target->state == TARGET_HALTED)
-		{
+	if (target->reset_halt) {
+		if (target->state == TARGET_HALTED) {
 			/* after a reset the cpu jmp to the
 			 * reset vector and need 2 cycles to fill
 			 * the cache (fetch,decode,excecute)
 			 */
-			if ((err = dsp563xx_step_ex(target, 1, 0, 1, 1)) != ERROR_OK)
+			err = dsp563xx_step_ex(target, 1, 0, 1, 1);
+			if (err != ERROR_OK)
 				return err;
 		}
-	}
-	else
-	{
+	} else
 		target->state = TARGET_RUNNING;
-	}
 
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int dsp563xx_soft_reset_halt(struct target *target)
 {
-	LOG_DEBUG("%s", __FUNCTION__);
+	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
 static int dsp563xx_run_algorithm(struct target *target,
-		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, struct reg_param *reg_params,
-		uint32_t entry_point, uint32_t exit_point,
-		int timeout_ms, void *arch_info)
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	uint32_t entry_point, uint32_t exit_point,
+	int timeout_ms, void *arch_info)
 {
 	int i;
 	int retval = ERROR_OK;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	for (i = 0; i < num_mem_params; i++)
-	{
-		if ((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
-		{
+	for (i = 0; i < num_mem_params; i++) {
+		retval = target_write_buffer(target, mem_params[i].address,
+				mem_params[i].size, mem_params[i].value);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 	}
 
-	for (i = 0; i < num_reg_params; i++)
-	{
-		struct reg *reg = register_get_by_name(dsp563xx->core_cache, reg_params[i].reg_name, 0);
+	for (i = 0; i < num_reg_params; i++) {
+		struct reg *reg = register_get_by_name(dsp563xx->core_cache,
+				reg_params[i].reg_name,
+				0);
 
-		if (!reg)
-		{
+		if (!reg) {
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 			continue;
 		}
 
-		if (reg->size != reg_params[i].size)
-		{
-			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+		if (reg->size != reg_params[i].size) {
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size",
+				reg_params[i].reg_name);
 			continue;
 		}
 
-		if ((retval = dsp563xx_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
-		{
+		retval = dsp563xx_set_core_reg(reg, reg_params[i].value);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 	}
 
 	/* exec */
-	if ((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
-	{
+	retval = target_resume(target, 0, entry_point, 1, 1);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
-	if ((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
-	{
+	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
-	for (i = 0; i < num_mem_params; i++)
-	{
+	for (i = 0; i < num_mem_params; i++) {
 		if (mem_params[i].direction != PARAM_OUT)
 			retval = target_read_buffer(target,
 					mem_params[i].address,
 					mem_params[i].size,
 					mem_params[i].value);
-			if (retval != ERROR_OK)
-				return retval;
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
-	for (i = 0; i < num_reg_params; i++)
-	{
-		if (reg_params[i].direction != PARAM_OUT)
-		{
+	for (i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction != PARAM_OUT) {
 
-			struct reg *reg = register_get_by_name(dsp563xx->core_cache, reg_params[i].reg_name, 0);
-			if (!reg)
-			{
+			struct reg *reg = register_get_by_name(dsp563xx->core_cache,
+					reg_params[i].reg_name,
+					0);
+			if (!reg) {
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 				continue;
 			}
 
-			if (reg->size != reg_params[i].size)
-			{
-				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+			if (reg->size != reg_params[i].size) {
+				LOG_ERROR(
+					"BUG: register '%s' size doesn't match reg_params[i].size",
+					reg_params[i].reg_name);
 				continue;
 			}
 
@@ -1415,29 +1426,28 @@ extern struct command_context *global_cmd_ctx;
 static int dsp563xx_get_default_memory(void)
 {
 	Jim_Interp *interp;
-	Jim_Obj * memspace;
-	char * c;
+	Jim_Obj *memspace;
+	char *c;
 
-	if ( !global_cmd_ctx )
+	if (!global_cmd_ctx)
 		return MEM_P;
 
 	interp = global_cmd_ctx->interp;
 
-	if ( !interp )
+	if (!interp)
 		return MEM_P;
 
-	memspace = Jim_GetGlobalVariableStr(interp,"memspace", JIM_NONE);
+	memspace = Jim_GetGlobalVariableStr(interp, "memspace", JIM_NONE);
 
-	if ( !memspace )
+	if (!memspace)
 		return MEM_P;
 
-	c = (char*)Jim_GetString(memspace,NULL);
+	c = (char *)Jim_GetString(memspace, NULL);
 
-	if ( !c )
+	if (!c)
 		return MEM_P;
 
-	switch(c[0])
-	{
+	switch (c[0]) {
 		case '1':
 			return MEM_X;
 		case '2':
@@ -1451,7 +1461,12 @@ static int dsp563xx_get_default_memory(void)
 	return MEM_P;
 }
 
-static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_read_memory_core(struct target *target,
+	int mem_type,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	uint8_t *buffer)
 {
 	int err;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
@@ -1459,16 +1474,19 @@ static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32
 	uint32_t data, move_cmd = 0;
 	uint8_t *b;
 
-	LOG_DEBUG("memtype: %d address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", mem_type,address, size, count);
+	LOG_DEBUG(
+		"memtype: %d address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+		mem_type,
+		address,
+		size,
+		count);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	switch (mem_type)
-	{
+	switch (mem_type) {
 		case MEM_X:
 			/* TODO: mark effected queued registers */
 			move_cmd = 0x61d800;
@@ -1498,33 +1516,35 @@ static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32
 	x = count;
 	b = buffer;
 
-	if ((err = dsp563xx_once_execute_dw_ir(target->tap, 1, 0x60F400, address)) != ERROR_OK)
+	err = dsp563xx_once_execute_dw_ir(target->tap, 1, 0x60F400, address);
+	if (err != ERROR_OK)
 		return err;
 
-	for (i = 0; i < x; i++)
-	{
-		if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0, move_cmd)) != ERROR_OK)
+	for (i = 0; i < x; i++) {
+		err = dsp563xx_once_execute_sw_ir(target->tap, 0, move_cmd);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0, 0x08D13C)) != ERROR_OK)
+		err = dsp563xx_once_execute_sw_ir(target->tap, 0, 0x08D13C);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_reg_read(target->tap, 0, DSP563XX_ONCE_OGDBR, (uint32_t*)(void *)b)) != ERROR_OK)
+		err = dsp563xx_once_reg_read(target->tap, 0,
+				DSP563XX_ONCE_OGDBR, (uint32_t *)(void *)b);
+		if (err != ERROR_OK)
 			return err;
 		b += 4;
 	}
 
 	/* flush the jtag queue */
-	if ((err = jtag_execute_queue()) != ERROR_OK)
-	{
+	err = jtag_execute_queue();
+	if (err != ERROR_OK)
 		return err;
-	}
 
 	/* walk over the buffer and fix target endianness */
 	b = buffer;
 
-	for (i = 0; i < x; i++)
-	{
+	for (i = 0; i < x; i++) {
 		data = buf_get_u32(b, 0, 32) & 0x00FFFFFF;
-//		LOG_DEBUG("R: %08X", *((uint32_t*)b));
+/*		LOG_DEBUG("R: %08X", *((uint32_t*)b)); */
 		target_buffer_set_u32(target, b, data);
 		b += 4;
 	}
@@ -1532,71 +1552,67 @@ static int dsp563xx_read_memory_core(struct target *target, int mem_type, uint32
 	return ERROR_OK;
 }
 
-static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_read_memory(struct target *target,
+	int mem_type,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	uint8_t *buffer)
 {
 	int err;
-	uint32_t i,i1;
-	uint8_t *buffer_y,*buffer_x;
+	uint32_t i, i1;
+	uint8_t *buffer_y, *buffer_x;
 
 	/* if size equals zero we are called from target read memory
 	 * and have to handle the parameter here */
-	if ( (size == 0) && (count != 0) )
-	{
+	if ((size == 0) && (count != 0)) {
 		size = count % 4;
 
-		if ( size )
-		{
+		if (size)
 			LOG_DEBUG("size is not aligned to 4 byte");
-		}
 
 		count = (count - size) / 4;
-		size  = 4;
+		size = 4;
 	}
 
 	/* we only support 4 byte aligned data */
-	if ( (size != 4) || (!count) )
-	{
+	if ((size != 4) || (!count))
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	if ( mem_type != MEM_L )
-	{
-		return dsp563xx_read_memory_core(target,mem_type,address,size,count,buffer);
-	}
+	if (mem_type != MEM_L)
+		return dsp563xx_read_memory_core(target, mem_type, address, size, count, buffer);
 
-	if ( !(buffer_y = malloc(size*count)) )
-	{
+	buffer_y = malloc(size * count);
+	if (!buffer_y)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	if ( !(buffer_x = malloc(size*count)) )
-	{
+	buffer_x = malloc(size * count);
+	if (!buffer_x) {
 		free(buffer_y);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	err = dsp563xx_read_memory_core(target,MEM_Y,address,size,count/2,buffer_y);
+	err = dsp563xx_read_memory_core(target, MEM_Y, address, size, count / 2, buffer_y);
 
-	if ( err != ERROR_OK )
-	{
+	if (err != ERROR_OK) {
 		free(buffer_y);
 		free(buffer_x);
 		return err;
 	}
 
-	err = dsp563xx_read_memory_core(target,MEM_X,address,size,count/2,buffer_x);
+	err = dsp563xx_read_memory_core(target, MEM_X, address, size, count / 2, buffer_x);
 
-	if ( err != ERROR_OK )
-	{
+	if (err != ERROR_OK) {
 		free(buffer_y);
 		free(buffer_x);
 		return err;
 	}
 
-	for(i=0,i1=0;i<count;i+=2,i1++)
-	{
-		buf_set_u32(buffer + i*sizeof(uint32_t), 0, 32, buf_get_u32(buffer_y+i1*sizeof(uint32_t), 0, 32));
-		buf_set_u32(buffer + (i + 1) *sizeof(uint32_t), 0, 32, buf_get_u32(buffer_x+i1*sizeof(uint32_t), 0, 32));
+	for (i = 0, i1 = 0; i < count; i += 2, i1++) {
+		buf_set_u32(buffer + i*sizeof(uint32_t), 0, 32,
+			buf_get_u32(buffer_y + i1 * sizeof(uint32_t), 0, 32));
+			buf_set_u32(buffer + (i + 1) * sizeof(uint32_t), 0, 32,
+			buf_get_u32(buffer_x + i1 * sizeof(uint32_t), 0, 32));
 	}
 
 	free(buffer_y);
@@ -1605,19 +1621,33 @@ static int dsp563xx_read_memory(struct target *target, int mem_type, uint32_t ad
 	return ERROR_OK;
 }
 
-static int dsp563xx_read_memory_default(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t * buffer)
+static int dsp563xx_read_memory_default(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	uint8_t *buffer)
 {
 
-	return dsp563xx_read_memory(target, dsp563xx_get_default_memory(), address, size, count, buffer);
+	return dsp563xx_read_memory(target,
+			dsp563xx_get_default_memory(), address, size, count, buffer);
 }
 
-static int dsp563xx_read_buffer_default(struct target *target, uint32_t address, uint32_t size, uint8_t * buffer)
+static int dsp563xx_read_buffer_default(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	uint8_t *buffer)
 {
 
-	return dsp563xx_read_memory(target, dsp563xx_get_default_memory(), address, size, 0, buffer);
+	return dsp563xx_read_memory(target, dsp563xx_get_default_memory(), address, size, 0,
+			buffer);
 }
 
-static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
+static int dsp563xx_write_memory_core(struct target *target,
+	int mem_type,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	const uint8_t *buffer)
 {
 	int err;
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
@@ -1625,19 +1655,22 @@ static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint3
 	uint32_t data, move_cmd = 0;
 	const uint8_t *b;
 
-	LOG_DEBUG("memtype: %d address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", mem_type,address, size, count);
+	LOG_DEBUG(
+		"memtype: %d address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+		mem_type,
+		address,
+		size,
+		count);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	switch (mem_type)
-	{
+	switch (mem_type) {
 		case MEM_X:
 			/* invalidate affected x registers */
-			dsp563xx_invalidate_x_context(target,address,address+count-1);
+			dsp563xx_invalidate_x_context(target, address, address + count - 1);
 			move_cmd = 0x615800;
 			break;
 		case MEM_Y:
@@ -1665,95 +1698,92 @@ static int dsp563xx_write_memory_core(struct target *target, int mem_type, uint3
 	x = count;
 	b = buffer;
 
-	if ((err = dsp563xx_once_execute_dw_ir(target->tap, 1, 0x60F400, address)) != ERROR_OK)
+	err = dsp563xx_once_execute_dw_ir(target->tap, 1, 0x60F400, address);
+	if (err != ERROR_OK)
 		return err;
 
-	for (i = 0; i < x; i++)
-	{
+	for (i = 0; i < x; i++) {
 		data = target_buffer_get_u32(target, b);
 
-//		LOG_DEBUG("W: %08X", data);
+/*		LOG_DEBUG("W: %08X", data); */
 
 		data &= 0x00ffffff;
 
-		if ((err = dsp563xx_once_execute_dw_ir(target->tap, 0, 0x61F400, data)) != ERROR_OK)
+		err = dsp563xx_once_execute_dw_ir(target->tap, 0, 0x61F400, data);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = dsp563xx_once_execute_sw_ir(target->tap, 0, move_cmd)) != ERROR_OK)
+		err = dsp563xx_once_execute_sw_ir(target->tap, 0, move_cmd);
+		if (err != ERROR_OK)
 			return err;
 		b += 4;
 	}
 
 	/* flush the jtag queue */
-	if ((err = jtag_execute_queue()) != ERROR_OK)
-	{
+	err = jtag_execute_queue();
+	if (err != ERROR_OK)
 		return err;
-	}
 
 	return ERROR_OK;
 }
 
-static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
+static int dsp563xx_write_memory(struct target *target,
+	int mem_type,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	const uint8_t *buffer)
 {
 	int err;
-	uint32_t i,i1;
-	uint8_t *buffer_y,*buffer_x;
+	uint32_t i, i1;
+	uint8_t *buffer_y, *buffer_x;
 
 	/* if size equals zero we are called from target write memory
 	 * and have to handle the parameter here */
-	if ( (size == 0) && (count != 0) )
-	{
+	if ((size == 0) && (count != 0)) {
 		size = count % 4;
 
-		if ( size )
-		{
+		if (size)
 			LOG_DEBUG("size is not aligned to 4 byte");
-		}
 
 		count = (count - size) / 4;
-		size  = 4;
+		size = 4;
 	}
 
 	/* we only support 4 byte aligned data */
-	if ( (size != 4) || (!count) )
-	{
+	if ((size != 4) || (!count))
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	if ( mem_type != MEM_L )
-	{
-		return dsp563xx_write_memory_core(target,mem_type,address,size,count,buffer);
-	}
+	if (mem_type != MEM_L)
+		return dsp563xx_write_memory_core(target, mem_type, address, size, count, buffer);
 
-	if ( !(buffer_y = malloc(size*count)) )
-	{
+	buffer_y = malloc(size * count);
+	if (!buffer_y)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	if ( !(buffer_x = malloc(size*count)) )
-	{
+	buffer_x = malloc(size * count);
+	if (!buffer_x) {
 		free(buffer_y);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	for(i=0,i1=0;i<count;i+=2,i1++)
-	{
-		buf_set_u32(buffer_y + i1*sizeof(uint32_t), 0, 32, buf_get_u32(buffer+i*sizeof(uint32_t), 0, 32));
-		buf_set_u32(buffer_x + i1*sizeof(uint32_t), 0, 32, buf_get_u32(buffer+(i+1)*sizeof(uint32_t), 0, 32));
+	for (i = 0, i1 = 0; i < count; i += 2, i1++) {
+		buf_set_u32(buffer_y + i1 * sizeof(uint32_t), 0, 32,
+		buf_get_u32(buffer + i * sizeof(uint32_t), 0, 32));
+		buf_set_u32(buffer_x + i1 * sizeof(uint32_t), 0, 32,
+		buf_get_u32(buffer + (i + 1) * sizeof(uint32_t), 0, 32));
 	}
 
-	err = dsp563xx_write_memory_core(target,MEM_Y,address,size,count/2,buffer_y);
+	err = dsp563xx_write_memory_core(target, MEM_Y, address, size, count / 2, buffer_y);
 
-	if ( err != ERROR_OK )
-	{
+	if (err != ERROR_OK) {
 		free(buffer_y);
 		free(buffer_x);
 		return err;
 	}
 
-	err = dsp563xx_write_memory_core(target,MEM_X,address,size,count/2,buffer_x);
+	err = dsp563xx_write_memory_core(target, MEM_X, address, size, count / 2, buffer_x);
 
-	if ( err != ERROR_OK )
-	{
+	if (err != ERROR_OK) {
 		free(buffer_y);
 		free(buffer_x);
 		return err;
@@ -1765,19 +1795,32 @@ static int dsp563xx_write_memory(struct target *target, int mem_type, uint32_t a
 	return ERROR_OK;
 }
 
-static int dsp563xx_write_memory_default(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t * buffer)
+static int dsp563xx_write_memory_default(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	const uint8_t *buffer)
 {
-	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, size, count, buffer);
+	return dsp563xx_write_memory(target,
+			dsp563xx_get_default_memory(), address, size, count, buffer);
 }
 
-static int dsp563xx_write_buffer_default(struct target *target, uint32_t address, uint32_t size, const uint8_t * buffer)
+static int dsp563xx_write_buffer_default(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	const uint8_t *buffer)
 {
-	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, size, 0, buffer);
+	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, size, 0,
+			buffer);
 }
 
-static int dsp563xx_bulk_write_memory_default(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer)
+static int dsp563xx_bulk_write_memory_default(struct target *target,
+	uint32_t address,
+	uint32_t count,
+	const uint8_t *buffer)
 {
-	return dsp563xx_write_memory(target, dsp563xx_get_default_memory(), address, 4, count, buffer);
+	return dsp563xx_write_memory(target,
+			dsp563xx_get_default_memory(), address, 4, count, buffer);
 }
 
 static int dsp563xx_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
@@ -1800,7 +1843,12 @@ static int dsp563xx_remove_watchpoint(struct target *target, struct watchpoint *
 	return ERROR_OK;
 }
 
-static void handle_md_output(struct command_context *cmd_ctx, struct target *target, uint32_t address, unsigned size, unsigned count, const uint8_t * buffer)
+static void handle_md_output(struct command_context *cmd_ctx,
+	struct target *target,
+	uint32_t address,
+	unsigned size,
+	unsigned count,
+	const uint8_t *buffer)
 {
 	const unsigned line_bytecnt = 32;
 	unsigned line_modulo = line_bytecnt / size;
@@ -1809,8 +1857,7 @@ static void handle_md_output(struct command_context *cmd_ctx, struct target *tar
 	unsigned output_len = 0;
 
 	const char *value_fmt;
-	switch (size)
-	{
+	switch (size) {
 		case 4:
 			value_fmt = "%8.8x ";
 			break;
@@ -1826,17 +1873,16 @@ static void handle_md_output(struct command_context *cmd_ctx, struct target *tar
 			return;
 	}
 
-	for (unsigned i = 0; i < count; i++)
-	{
+	for (unsigned i = 0; i < count; i++) {
 		if (i % line_modulo == 0)
-		{
-			output_len += snprintf(output + output_len, sizeof(output) - output_len, "0x%8.8x: ", (unsigned) (address + i));
-		}
+			output_len += snprintf(output + output_len,
+					sizeof(output) - output_len,
+					"0x%8.8x: ",
+					(unsigned) (address + i));
 
 		uint32_t value = 0;
 		const uint8_t *value_ptr = buffer + i * size;
-		switch (size)
-		{
+		switch (size) {
 			case 4:
 				value = target_buffer_get_u32(target, value_ptr);
 				break;
@@ -1846,10 +1892,12 @@ static void handle_md_output(struct command_context *cmd_ctx, struct target *tar
 			case 1:
 				value = *value_ptr;
 		}
-		output_len += snprintf(output + output_len, sizeof(output) - output_len, value_fmt, value);
+		output_len += snprintf(output + output_len,
+				sizeof(output) - output_len,
+				value_fmt,
+				value);
 
-		if ((i % line_modulo == line_modulo - 1) || (i == count - 1))
-		{
+		if ((i % line_modulo == line_modulo - 1) || (i == count - 1)) {
 			command_print(cmd_ctx, "%s", output);
 			output_len = 0;
 		}
@@ -1867,8 +1915,7 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 	uint32_t mem_type;
 	uint8_t *buffer, *b;
 
-	switch (CMD_NAME[1])
-	{
+	switch (CMD_NAME[1]) {
 		case 'w':
 			read_mem = 0;
 			break;
@@ -1879,8 +1926,7 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	switch (CMD_NAME[3])
-	{
+	switch (CMD_NAME[3]) {
 		case 'x':
 			mem_type = MEM_X;
 			break;
@@ -1895,56 +1941,46 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 	}
 
 	if (CMD_ARGC > 0)
-	{
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
-	}
 
-	if (read_mem == 0)
-	{
+	if (read_mem == 0) {
 		if (CMD_ARGC < 2)
-		{
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
 		if (CMD_ARGC > 1)
-		{
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], pattern);
-		}
 		if (CMD_ARGC > 2)
-		{
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], count);
-		}
 	}
 
-	if (read_mem == 1)
-	{
+	if (read_mem == 1) {
 		if (CMD_ARGC < 1)
-		{
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
 		if (CMD_ARGC > 1)
-		{
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], count);
-		}
 	}
 
 	buffer = calloc(count, sizeof(uint32_t));
 
-	if (read_mem == 1)
-	{
-		if ((err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t), count, buffer)) == ERROR_OK)
+	if (read_mem == 1) {
+		err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t),
+				count, buffer);
+		if (err == ERROR_OK)
 			handle_md_output(CMD_CTX, target, address, sizeof(uint32_t), count, buffer);
-	}
-	else
-	{
+
+	} else {
 		b = buffer;
 
-		for (i = 0; i < count; i++)
-		{
+		for (i = 0; i < count; i++) {
 			target_buffer_set_u32(target, b, pattern);
 			b += 4;
 		}
 
-		err = dsp563xx_write_memory(target, mem_type, address, sizeof(uint32_t), count, buffer);
+		err = dsp563xx_write_memory(target,
+				mem_type,
+				address,
+				sizeof(uint32_t),
+				count,
+				buffer);
 	}
 
 	free(buffer);
@@ -1954,47 +1990,47 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 
 static const struct command_registration dsp563xx_command_handlers[] = {
 	{
-	 .name = "mwwx",
-	 .handler = dsp563xx_mem_command,
-	 .mode = COMMAND_EXEC,
-	 .help = "write x memory words",
-	 .usage = "mwwx address value [count]",
-	 },
+		.name = "mwwx",
+		.handler = dsp563xx_mem_command,
+		.mode = COMMAND_EXEC,
+		.help = "write x memory words",
+		.usage = "mwwx address value [count]",
+	},
 	{
-	 .name = "mwwy",
-	 .handler = dsp563xx_mem_command,
-	 .mode = COMMAND_EXEC,
-	 .help = "write y memory words",
-	 .usage = "mwwy address value [count]",
-	 },
+		.name = "mwwy",
+		.handler = dsp563xx_mem_command,
+		.mode = COMMAND_EXEC,
+		.help = "write y memory words",
+		.usage = "mwwy address value [count]",
+	},
 	{
-	 .name = "mwwp",
-	 .handler = dsp563xx_mem_command,
-	 .mode = COMMAND_EXEC,
-	 .help = "write p memory words",
-	 .usage = "mwwp address value [count]",
-	 },
+		.name = "mwwp",
+		.handler = dsp563xx_mem_command,
+		.mode = COMMAND_EXEC,
+		.help = "write p memory words",
+		.usage = "mwwp address value [count]",
+	},
 	{
-	 .name = "mdwx",
-	 .handler = dsp563xx_mem_command,
-	 .mode = COMMAND_EXEC,
-	 .help = "display x memory words",
-	 .usage = "mdwx address [count]",
-	 },
+		.name = "mdwx",
+		.handler = dsp563xx_mem_command,
+		.mode = COMMAND_EXEC,
+		.help = "display x memory words",
+		.usage = "mdwx address [count]",
+	},
 	{
-	 .name = "mdwy",
-	 .handler = dsp563xx_mem_command,
-	 .mode = COMMAND_EXEC,
-	 .help = "display y memory words",
-	 .usage = "mdwy address [count]",
-	 },
+		.name = "mdwy",
+		.handler = dsp563xx_mem_command,
+		.mode = COMMAND_EXEC,
+		.help = "display y memory words",
+		.usage = "mdwy address [count]",
+	},
 	{
-	 .name = "mdwp",
-	 .handler = dsp563xx_mem_command,
-	 .mode = COMMAND_EXEC,
-	 .help = "display p memory words",
-	 .usage = "mdwp address [count]",
-	 },
+		.name = "mdwp",
+		.handler = dsp563xx_mem_command,
+		.mode = COMMAND_EXEC,
+		.help = "display p memory words",
+		.usage = "mdwp address [count]",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 

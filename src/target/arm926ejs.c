@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -63,10 +64,9 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 
 	buf_set_u32(address_buf, 0, 14, address);
 
-	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -91,8 +91,7 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 
 	long long then = timeval_ms();
 
-	for (;;)
-	{
+	for (;;) {
 		/* rescan with NOP, to wait for the access to complete */
 		access_t = 0;
 		nr_w_buf = 0;
@@ -100,19 +99,15 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)value);
 
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
-		{
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		if (buf_get_u32(&access_t, 0, 1) == 1)
-		{
 			break;
-		}
 
 		/* 10ms timeout */
-		if ((timeval_ms()-then)>10)
-		{
+		if ((timeval_ms()-then) > 10) {
 			LOG_ERROR("cp15 read operation timed out");
 			return ERROR_FAIL;
 		}
@@ -155,10 +150,9 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 	buf_set_u32(address_buf, 0, 14, address);
 	buf_set_u32(value_buf, 0, 32, value);
 
-	if ((retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE)) != ERROR_OK)
-	{
+	retval = arm_jtag_scann(jtag_info, 0xf, TAP_IDLE);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -183,25 +177,20 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 
 	long long then = timeval_ms();
 
-	for (;;)
-	{
+	for (;;) {
 		/* rescan with NOP, to wait for the access to complete */
 		access_t = 0;
 		nr_w_buf = 0;
 		jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
-		if ((retval = jtag_execute_queue()) != ERROR_OK)
-		{
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
 			return retval;
-		}
 
 		if (buf_get_u32(&access_t, 0, 1) == 1)
-		{
 			break;
-		}
 
 		/* 10ms timeout */
-		if ((timeval_ms()-then)>10)
-		{
+		if ((timeval_ms()-then) > 10) {
 			LOG_ERROR("cp15 write operation timed out");
 			return ERROR_FAIL;
 		}
@@ -236,14 +225,14 @@ static int arm926ejs_examine_debug_reason(struct target *target)
 	int retval;
 
 	embeddedice_read_reg(dbg_stat);
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* Method-Of-Entry (MOE) field */
 	debug_reason = buf_get_u32(dbg_stat->value, 6, 4);
 
-	switch (debug_reason)
-	{
+	switch (debug_reason) {
 		case 0:
 			LOG_DEBUG("no *NEW* debug entry (?missed one?)");
 			/* ... since last restart or debug reset ... */
@@ -337,7 +326,8 @@ static int arm926ejs_get_ttb(struct target *target, uint32_t *result)
 	int retval;
 	uint32_t ttb = 0x0;
 
-	if ((retval = arm926ejs->read_cp15(target, 0, 0, 2, 0, &ttb)) != ERROR_OK)
+	retval = arm926ejs->read_cp15(target, 0, 0, 2, 0, &ttb);
+	if (retval != ERROR_OK)
 		return retval;
 
 	*result = ttb;
@@ -360,8 +350,7 @@ static int arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (mmu)
-	{
+	if (mmu) {
 		/* invalidate TLB */
 		retval = arm926ejs->write_cp15(target, 0, 0, 8, 7, 0x0);
 		if (retval != ERROR_OK)
@@ -370,8 +359,7 @@ static int arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 		cp15_control &= ~0x1U;
 	}
 
-	if (d_u_cache)
-	{
+	if (d_u_cache) {
 		uint32_t debug_override;
 		/* read-modify-write CP15 debug override register
 		 * to enable "test and clean all" */
@@ -398,8 +386,7 @@ static int arm926ejs_disable_mmu_caches(struct target *target, int mmu,
 		cp15_control &= ~0x4U;
 	}
 
-	if (i_cache)
-	{
+	if (i_cache) {
 		/* invalidate ICache */
 		retval = arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
 		if (retval != ERROR_OK)
@@ -454,8 +441,7 @@ static int arm926ejs_post_debug_entry(struct target *target)
 		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm926ejs->cp15_control_reg);
 
-	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1)
-	{
+	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1) {
 		uint32_t cache_type_reg;
 		/* identify caches */
 		retval = arm926ejs->read_cp15(target, 0, 1, 0, 0, &cache_type_reg);
@@ -530,15 +516,13 @@ static int arm926ejs_verify_pointer(struct command_context *cmd_ctx,
 /** Logs summary of ARM926 state for a halted target. */
 int arm926ejs_arch_state(struct target *target)
 {
-	static const char *state[] =
-	{
+	static const char *state[] = {
 		"disabled", "enabled"
 	};
 
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
-	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC)
-	{
+	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC) {
 		LOG_ERROR("BUG: %s", arm926_not);
 		return ERROR_TARGET_INVALID;
 	}
@@ -560,37 +544,27 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	struct arm *arm = &arm7_9->arm;
 	struct reg *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
-	if ((retval = target_halt(target)) != ERROR_OK)
-	{
+	retval = target_halt(target);
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout = ((timeval_ms()-then) > 1000)))
-	{
-		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
-		{
+	while (!(timeout = ((timeval_ms()-then) > 1000))) {
+		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0) {
 			embeddedice_read_reg(dbg_stat);
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
+			retval = jtag_execute_queue();
+			if (retval != ERROR_OK)
 				return retval;
-			}
-		}  else
-		{
+		} else
 			break;
-		}
-		if (debug_level >= 1)
-		{
+		if (debug_level >= 1) {
 			/* do not eat all CPU, time out after 1 se*/
 			alive_sleep(100);
 		} else
-		{
 			keep_alive();
-		}
 	}
-	if (timeout)
-	{
+	if (timeout) {
 		LOG_ERROR("Failed to halt CPU after 1 sec");
 		return ERROR_TARGET_TIMEOUT;
 	}
@@ -636,13 +610,11 @@ int arm926ejs_write_memory(struct target *target, uint32_t address,
 	 * Also it should be moved to the callbacks that handle breakpoints
 	 * specifically and not the generic memory write fn's. See XScale code.
 	 **/
-	if (arm926ejs->armv4_5_mmu.mmu_enabled && (count == 1) && ((size==2) || (size==4)))
-	{
+	if (arm926ejs->armv4_5_mmu.mmu_enabled && (count == 1) && ((size == 2) || (size == 4))) {
 		/* special case the handling of single word writes to bypass MMU
 		 * to allow implementation of breakpoints in memory marked read only
 		 * by MMU */
-		if (arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
-		{
+		if (arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) {
 			/* flush and invalidate data cache
 			 *
 			 * MCR p15,0,p,c7,c10,1 - clean cache line using virtual address
@@ -662,24 +634,20 @@ int arm926ejs_write_memory(struct target *target, uint32_t address,
 		retval = armv4_5_mmu_write_physical(target, &arm926ejs->armv4_5_mmu, pa, size, count, buffer);
 		if (retval != ERROR_OK)
 			return retval;
-	} else
-	{
-		if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
+	} else {
+		retval = arm7_9_write_memory(target, address, size, count, buffer);
+		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	/* If ICache is enabled, we have to invalidate affected ICache lines
 	 * the DCache is forced to write-through, so we don't have to clean it here
 	 */
-	if (arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
-	{
-		if (count <= 1)
-		{
+	if (arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled) {
+		if (count <= 1) {
 			/* invalidate ICache single entry with MVA */
 			arm926ejs->write_cp15(target, 0, 1, 7, 5, address);
-		}
-		else
-		{
+		} else {
 			/* invalidate ICache */
 			arm926ejs->write_cp15(target, 0, 0, 7, 5, address);
 		}
@@ -748,7 +716,7 @@ int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm
 
 static int arm926ejs_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct arm926ejs_common *arm926ejs = calloc(1,sizeof(struct arm926ejs_common));
+	struct arm926ejs_common *arm926ejs = calloc(1, sizeof(struct arm926ejs_common));
 
 	/* ARM9EJ-S core always reports 0x1 in Capture-IR */
 	target->tap->ir_capture_mask = 0x0f;
@@ -787,8 +755,7 @@ static int arm926ejs_mmu(struct target *target, int *enabled)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_INVALID;
 	}
@@ -822,8 +789,7 @@ const struct command_registration arm926ejs_command_handlers[] = {
 };
 
 /** Holds methods for ARM926 targets. */
-struct target_type arm926ejs_target =
-{
+struct target_type arm926ejs_target = {
 	.name = "arm926ejs",
 
 	.poll = arm7_9_poll,

@@ -21,6 +21,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -35,8 +36,7 @@ void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 	tap = ejtag_info->tap;
 	assert(tap != NULL);
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr)
-	{
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr) {
 		struct scan_field field;
 		uint8_t t[4];
 
@@ -63,8 +63,8 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
 	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
 
 	int retval;
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("register read failed");
 		return retval;
 	}
@@ -88,8 +88,8 @@ static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impco
 	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
 
 	int retval;
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("register read failed");
 		return retval;
 	}
@@ -116,8 +116,8 @@ int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("register read failed");
 		return retval;
 	}
@@ -164,8 +164,8 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
 
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("register read failed");
 		return retval;
 	}
@@ -193,12 +193,12 @@ void mips_ejtag_drscan_8_out(struct mips_ejtag *ejtag_info, uint8_t data)
 static int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 {
 	static const uint32_t code[] = {
-			MIPS32_MTC0(1,31,0),			/* move $1 to COP0 DeSave */
-			MIPS32_MFC0(1,23,0),			/* move COP0 Debug to $1 */
-			MIPS32_ORI(1,1,0x0100),			/* set SSt bit in debug reg */
-			MIPS32_MTC0(1,23,0),			/* move $1 to COP0 Debug */
+			MIPS32_MTC0(1, 31, 0),			/* move $1 to COP0 DeSave */
+			MIPS32_MFC0(1, 23, 0),			/* move COP0 Debug to $1 */
+			MIPS32_ORI(1, 1, 0x0100),		/* set SSt bit in debug reg */
+			MIPS32_MTC0(1, 23, 0),			/* move $1 to COP0 Debug */
 			MIPS32_B(NEG16(5)),
-			MIPS32_MFC0(1,31,0),			/* move COP0 DeSave to $1 */
+			MIPS32_MFC0(1, 31, 0),			/* move COP0 DeSave to $1 */
 	};
 
 	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
@@ -208,20 +208,20 @@ static int mips_ejtag_step_enable(struct mips_ejtag *ejtag_info)
 static int mips_ejtag_step_disable(struct mips_ejtag *ejtag_info)
 {
 	static const uint32_t code[] = {
-			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
-			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
-			MIPS32_SW(1,0,15),								/* sw $1,($15) */
-			MIPS32_SW(2,0,15),								/* sw $2,($15) */
-			MIPS32_MFC0(1,23,0),							/* move COP0 Debug to $1 */
-			MIPS32_LUI(2,0xFFFF),							/* $2 = 0xfffffeff */
-			MIPS32_ORI(2,2,0xFEFF),
-			MIPS32_AND(1,1,2),
-			MIPS32_MTC0(1,23,0),							/* move $1 to COP0 Debug */
-			MIPS32_LW(2,0,15),
-			MIPS32_LW(1,0,15),
+			MIPS32_MTC0(15, 31, 0),							/* move $15 to COP0 DeSave */
+			MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),	/* $15 = MIPS32_PRACC_STACK */
+			MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
+			MIPS32_SW(1, 0, 15),							/* sw $1,($15) */
+			MIPS32_SW(2, 0, 15),							/* sw $2,($15) */
+			MIPS32_MFC0(1, 23, 0),							/* move COP0 Debug to $1 */
+			MIPS32_LUI(2, 0xFFFF),							/* $2 = 0xfffffeff */
+			MIPS32_ORI(2, 2, 0xFEFF),
+			MIPS32_AND(1, 1, 2),
+			MIPS32_MTC0(1, 23, 0),							/* move $1 to COP0 Debug */
+			MIPS32_LW(2, 0, 15),
+			MIPS32_LW(1, 0, 15),
 			MIPS32_B(NEG16(13)),
-			MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
+			MIPS32_MFC0(15, 31, 0),							/* move COP0 DeSave to $15 */
 	};
 
 	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
@@ -248,8 +248,7 @@ int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32 "", ejtag_ctrl);
-	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
-	{
+	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0) {
 		LOG_ERROR("Failed to enter Debug Mode!");
 		return ERROR_FAIL;
 	}
@@ -270,19 +269,19 @@ int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg)
 {
 	/* read ejtag ECR */
 	static const uint32_t code[] = {
-			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
-			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
-			MIPS32_SW(1,0,15),								/* sw $1,($15) */
-			MIPS32_SW(2,0,15),								/* sw $2,($15) */
-			MIPS32_LUI(1,UPPER16(MIPS32_PRACC_PARAM_OUT)),	/* $1 = MIPS32_PRACC_PARAM_OUT */
-			MIPS32_ORI(1,1,LOWER16(MIPS32_PRACC_PARAM_OUT)),
-			MIPS32_MFC0(2,23,0),							/* move COP0 Debug to $2 */
-			MIPS32_SW(2,0,1),
-			MIPS32_LW(2,0,15),
-			MIPS32_LW(1,0,15),
+			MIPS32_MTC0(15, 31, 0),							/* move $15 to COP0 DeSave */
+			MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),	/* $15 = MIPS32_PRACC_STACK */
+			MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
+			MIPS32_SW(1, 0, 15),							/* sw $1,($15) */
+			MIPS32_SW(2, 0, 15),							/* sw $2,($15) */
+			MIPS32_LUI(1, UPPER16(MIPS32_PRACC_PARAM_OUT)),	/* $1 = MIPS32_PRACC_PARAM_OUT */
+			MIPS32_ORI(1, 1, LOWER16(MIPS32_PRACC_PARAM_OUT)),
+			MIPS32_MFC0(2, 23, 0),							/* move COP0 Debug to $2 */
+			MIPS32_SW(2, 0, 1),
+			MIPS32_LW(2, 0, 15),
+			MIPS32_LW(1, 0, 15),
 			MIPS32_B(NEG16(12)),
-			MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
+			MIPS32_MFC0(15, 31, 0),							/* move COP0 DeSave to $15 */
 	};
 
 	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
@@ -302,8 +301,7 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 	/* get ejtag version */
 	ejtag_version = ((ejtag_info->impcode >> 29) & 0x07);
 
-	switch (ejtag_version)
-	{
+	switch (ejtag_version) {
 		case 0:
 			LOG_DEBUG("EJTAG: Version 1 or 2.0 Detected");
 			break;
@@ -359,19 +357,15 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_
 	fields[1].num_bits = 32;
 	fields[1].out_value = t;
 
-	if (write_t)
-	{
+	if (write_t) {
 		fields[1].in_value = NULL;
 		buf_set_u32(t, 0, 32, *data);
-	}
-	else
-	{
+	} else
 		fields[1].in_value = (void *) data;
-	}
 
 	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
 
-	if ( (!write_t) && (data) )
+	if (!write_t && data)
 		jtag_add_callback(mips_le_to_h_u32,
 			(jtag_callback_data_t) data);
 

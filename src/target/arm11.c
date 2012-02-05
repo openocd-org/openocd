@@ -38,7 +38,6 @@
 #include "register.h"
 #include "arm_opcodes.h"
 
-
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
@@ -56,8 +55,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 {
 	CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-	if (!(arm11->dscr & DSCR_HALT_DBG_MODE))
-	{
+	if (!(arm11->dscr & DSCR_HALT_DBG_MODE)) {
 		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
 		LOG_DEBUG("Bringing target into debug mode");
 
@@ -68,8 +66,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 
 		arm11->simulate_reset_on_next_halt = true;
 
-		if (arm11->dscr & DSCR_CORE_HALTED)
-		{
+		if (arm11->dscr & DSCR_CORE_HALTED) {
 			/** \todo TODO: this needs further scrutiny because
 			  * arm11_debug_entry() never gets called.  (WHY NOT?)
 			  * As a result we don't read the actual register states from
@@ -78,9 +75,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 
 			arm11->arm.target->state = TARGET_HALTED;
 			arm_dpm_report_dscr(arm11->arm.dpm, arm11->dscr);
-		}
-		else
-		{
+		} else {
 			arm11->arm.target->state = TARGET_RUNNING;
 			arm11->arm.target->debug_reason = DBG_REASON_NOTHALTED;
 		}
@@ -110,20 +105,20 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 
 	/* maybe save wDTR (pending DCC write to debug SW, e.g. libdcc) */
 	arm11->is_wdtr_saved = !!(arm11->dscr & DSCR_DTR_TX_FULL);
-	if (arm11->is_wdtr_saved)
-	{
+	if (arm11->is_wdtr_saved) {
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 
 		arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-		struct scan_field	chain5_fields[3];
+		struct scan_field chain5_fields[3];
 
 		arm11_setup_field(arm11, 32, NULL,
-				&arm11->saved_wdtr, chain5_fields + 0);
-		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 1);
-		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 2);
+			&arm11->saved_wdtr, chain5_fields + 0);
+		arm11_setup_field(arm11,  1, NULL, NULL, chain5_fields + 1);
+		arm11_setup_field(arm11,  1, NULL, NULL, chain5_fields + 2);
 
-		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(
+				chain5_fields), chain5_fields, TAP_DRPAUSE);
 
 	}
 
@@ -143,10 +138,9 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	/** \todo TODO: Test drain write buffer. */
 
 #if 0
-	while (1)
-	{
+	while (1) {
 		/* MRC p14,0,R0,c5,c10,0 */
-		//	arm11_run_instr_no_data1(arm11, /*0xee150e1a*/0xe320f000);
+		/*	arm11_run_instr_no_data1(arm11, / *0xee150e1a* /0xe320f000); */
 
 		/* mcr	   15, 0, r0, cr7, cr10, {4} */
 		arm11_run_instr_no_data1(arm11, 0xee070f9a);
@@ -155,8 +149,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 
 		LOG_DEBUG("DRAIN, DSCR %08x", dscr);
 
-		if (dscr & ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT)
-		{
+		if (dscr & ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT) {
 			arm11_run_instr_no_data1(arm11, 0xe320f000);
 
 			dscr = arm11_read_DSCR(arm11);
@@ -183,8 +176,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 
 	/* maybe save rDTR (pending DCC read from debug SW, e.g. libdcc) */
 	arm11->is_rdtr_saved = !!(arm11->dscr & DSCR_DTR_RX_FULL);
-	if (arm11->is_rdtr_saved)
-	{
+	if (arm11->is_rdtr_saved) {
 		/* MRC p14,0,R0,c0,c5,0 (move rDTR -> r0 (-> wDTR -> local var)) */
 		retval = arm11_run_instr_data_from_core_via_r0(arm11,
 				0xEE100E15, &arm11->saved_rdtr);
@@ -196,8 +188,7 @@ static int arm11_debug_entry(struct arm11_common *arm11)
 	 * be MMU and cache state to care about ...
 	 */
 
-	if (arm11->simulate_reset_on_next_halt)
-	{
+	if (arm11->simulate_reset_on_next_halt) {
 		arm11->simulate_reset_on_next_halt = false;
 
 		LOG_DEBUG("Reset c1 Control Register");
@@ -255,8 +246,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	{
 		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
-		if (arm11->dscr & (DSCR_DTR_RX_FULL | DSCR_DTR_TX_FULL))
-		{
+		if (arm11->dscr & (DSCR_DTR_RX_FULL | DSCR_DTR_TX_FULL)) {
 			/*
 			The wDTR/rDTR two registers that are used to send/receive data to/from
 			the core in tandem with corresponding instruction codes that are
@@ -265,14 +255,13 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 			read out by the other side.
 			*/
 			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08x)",
-					(unsigned) arm11->dscr);
+				(unsigned) arm11->dscr);
 			return ERROR_FAIL;
 		}
 	}
 
 	/* maybe restore original wDTR */
-	if (arm11->is_wdtr_saved)
-	{
+	if (arm11->is_wdtr_saved) {
 		retval = arm11_run_instr_data_prepare(arm11);
 		if (retval != ERROR_OK)
 			return retval;
@@ -301,23 +290,23 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 	CHECK_RETVAL(arm11_write_DSCR(arm11, arm11->dscr));
 
 	/* maybe restore rDTR */
-	if (arm11->is_rdtr_saved)
-	{
+	if (arm11->is_rdtr_saved) {
 		arm11_add_debug_SCAN_N(arm11, 0x05, ARM11_TAP_DEFAULT);
 
 		arm11_add_IR(arm11, ARM11_EXTEST, ARM11_TAP_DEFAULT);
 
-		struct scan_field	chain5_fields[3];
+		struct scan_field chain5_fields[3];
 
-		uint8_t			Ready		= 0;	/* ignored */
-		uint8_t			Valid		= 0;	/* ignored */
+		uint8_t Ready           = 0;			/* ignored */
+		uint8_t Valid           = 0;			/* ignored */
 
 		arm11_setup_field(arm11, 32, &arm11->saved_rdtr,
-				NULL, chain5_fields + 0);
-		arm11_setup_field(arm11,  1, &Ready,	NULL, chain5_fields + 1);
-		arm11_setup_field(arm11,  1, &Valid,	NULL, chain5_fields + 2);
+			NULL, chain5_fields + 0);
+		arm11_setup_field(arm11,  1, &Ready,    NULL, chain5_fields + 1);
+		arm11_setup_field(arm11,  1, &Valid,    NULL, chain5_fields + 2);
 
-		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain5_fields), chain5_fields, TAP_DRPAUSE);
+		arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(
+				chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 
 	/* now processor is ready to RESTART */
@@ -333,10 +322,8 @@ static int arm11_poll(struct target *target)
 
 	CHECK_RETVAL(arm11_check_init(arm11));
 
-	if (arm11->dscr & DSCR_CORE_HALTED)
-	{
-		if (target->state != TARGET_HALTED)
-		{
+	if (arm11->dscr & DSCR_CORE_HALTED) {
+		if (target->state != TARGET_HALTED) {
 			enum target_state old_state = target->state;
 
 			LOG_DEBUG("enter TARGET_HALTED");
@@ -346,17 +333,14 @@ static int arm11_poll(struct target *target)
 
 			target_call_event_callbacks(target,
 				(old_state == TARGET_DEBUG_RUNNING)
-					? TARGET_EVENT_DEBUG_HALTED
-					: TARGET_EVENT_HALTED);
+				? TARGET_EVENT_DEBUG_HALTED
+				: TARGET_EVENT_HALTED);
 		}
-	}
-	else
-	{
-		if (target->state != TARGET_RUNNING && target->state != TARGET_DEBUG_RUNNING)
-		{
+	} else {
+		if (target->state != TARGET_RUNNING && target->state != TARGET_DEBUG_RUNNING) {
 			LOG_DEBUG("enter TARGET_RUNNING");
-			target->state			= TARGET_RUNNING;
-			target->debug_reason	= DBG_REASON_NOTHALTED;
+			target->state                   = TARGET_RUNNING;
+			target->debug_reason    = DBG_REASON_NOTHALTED;
 		}
 	}
 
@@ -374,14 +358,14 @@ static int arm11_arch_state(struct target *target)
 
 	if (target->debug_reason == DBG_REASON_WATCHPOINT)
 		LOG_USER("Watchpoint triggered at PC %#08x",
-				(unsigned) arm11->dpm.wp_pc);
+			(unsigned) arm11->dpm.wp_pc);
 
 	return retval;
 }
 
 /* target request support */
 static int arm11_target_request_data(struct target *target,
-		uint32_t size, uint8_t *buffer)
+	uint32_t size, uint8_t *buffer)
 {
 	LOG_WARNING("Not implemented: %s", __func__);
 
@@ -397,12 +381,9 @@ static int arm11_halt(struct target *target)
 		target_state_name(target));
 
 	if (target->state == TARGET_UNKNOWN)
-	{
 		arm11->simulate_reset_on_next_halt = true;
-	}
 
-	if (target->state == TARGET_HALTED)
-	{
+	if (target->state == TARGET_HALTED) {
 		LOG_DEBUG("target was already halted");
 		return ERROR_OK;
 	}
@@ -413,8 +394,7 @@ static int arm11_halt(struct target *target)
 
 	int i = 0;
 
-	while (1)
-	{
+	while (1) {
 		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
 		if (arm11->dscr & DSCR_CORE_HALTED)
@@ -423,13 +403,9 @@ static int arm11_halt(struct target *target)
 
 		long long then = 0;
 		if (i == 1000)
-		{
 			then = timeval_ms();
-		}
-		if (i >= 1000)
-		{
-			if ((timeval_ms()-then) > 1000)
-			{
+		if (i >= 1000) {
+			if ((timeval_ms()-then) > 1000) {
 				LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
 				return ERROR_FAIL;
 			}
@@ -437,19 +413,19 @@ static int arm11_halt(struct target *target)
 		i++;
 	}
 
-	enum target_state old_state	= target->state;
+	enum target_state old_state     = target->state;
 
 	CHECK_RETVAL(arm11_debug_entry(arm11));
 
 	CHECK_RETVAL(
 		target_call_event_callbacks(target,
-			old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED));
+			old_state ==
+			TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED));
 
 	return ERROR_OK;
 }
 
-static uint32_t
-arm11_nextpc(struct arm11_common *arm11, int current, uint32_t address)
+static uint32_t arm11_nextpc(struct arm11_common *arm11, int current, uint32_t address)
 {
 	void *value = arm11->arm.pc->value;
 
@@ -462,10 +438,10 @@ arm11_nextpc(struct arm11_common *arm11, int current, uint32_t address)
 }
 
 static int arm11_resume(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+	uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	//	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
-	//	current, address, handle_breakpoints, debug_execution);
+	/*	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d", */
+	/*	current, address, handle_breakpoints, debug_execution); */
 
 	struct arm11_common *arm11 = target_to_arm11(target);
 
@@ -473,8 +449,7 @@ static int arm11_resume(struct target *target, int current,
 		target_state_name(target));
 
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -493,10 +468,8 @@ static int arm11_resume(struct target *target, int current,
 	if (handle_breakpoints) {
 		struct breakpoint *bp;
 
-		for (bp = target->breakpoints; bp; bp = bp->next)
-		{
-			if (bp->address == address)
-			{
+		for (bp = target->breakpoints; bp; bp = bp->next) {
+			if (bp->address == address) {
 				LOG_DEBUG("must step over %08" PRIx32 "", bp->address);
 				arm11_step(target, 1, 0, 0);
 				break;
@@ -509,21 +482,22 @@ static int arm11_resume(struct target *target, int current,
 		struct breakpoint *bp;
 		unsigned brp_num = 0;
 
-		for (bp = target->breakpoints; bp; bp = bp->next)
-		{
-			struct arm11_sc7_action	brp[2];
+		for (bp = target->breakpoints; bp; bp = bp->next) {
+			struct arm11_sc7_action brp[2];
 
-			brp[0].write	= 1;
-			brp[0].address	= ARM11_SC7_BVR0 + brp_num;
-			brp[0].value	= bp->address;
-			brp[1].write	= 1;
-			brp[1].address	= ARM11_SC7_BCR0 + brp_num;
-			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
+			brp[0].write    = 1;
+			brp[0].address  = ARM11_SC7_BVR0 + brp_num;
+			brp[0].value    = bp->address;
+			brp[1].write    = 1;
+			brp[1].address  = ARM11_SC7_BCR0 + brp_num;
+			brp[1].value    = 0x1 |
+				(3 <<
+				 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
 
 			CHECK_RETVAL(arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp)));
 
 			LOG_DEBUG("Add BP %d at %08" PRIx32, brp_num,
-					bp->address);
+				bp->address);
 
 			brp_num++;
 		}
@@ -540,8 +514,7 @@ static int arm11_resume(struct target *target, int current,
 	CHECK_RETVAL(jtag_execute_queue());
 
 	int i = 0;
-	while (1)
-	{
+	while (1) {
 		CHECK_RETVAL(arm11_read_DSCR(arm11));
 
 		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
@@ -552,13 +525,9 @@ static int arm11_resume(struct target *target, int current,
 
 		long long then = 0;
 		if (i == 1000)
-		{
 			then = timeval_ms();
-		}
-		if (i >= 1000)
-		{
-			if ((timeval_ms()-then) > 1000)
-			{
+		if (i >= 1000) {
+			if ((timeval_ms()-then) > 1000) {
 				LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
 				return ERROR_FAIL;
 			}
@@ -577,13 +546,12 @@ static int arm11_resume(struct target *target, int current,
 }
 
 static int arm11_step(struct target *target, int current,
-		uint32_t address, int handle_breakpoints)
+	uint32_t address, int handle_breakpoints)
 {
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -597,30 +565,25 @@ static int arm11_step(struct target *target, int current,
 
 	/** \todo TODO: Thumb not supported here */
 
-	uint32_t	next_instruction;
+	uint32_t next_instruction;
 
 	CHECK_RETVAL(arm11_read_memory_word(arm11, address, &next_instruction));
 
 	/* skip over BKPT */
-	if ((next_instruction & 0xFFF00070) == 0xe1200070)
-	{
+	if ((next_instruction & 0xFFF00070) == 0xe1200070) {
 		address = arm11_nextpc(arm11, 0, address + 4);
 		LOG_DEBUG("Skipping BKPT %08" PRIx32, address);
 	}
-	/* skip over Wait for interrupt / Standby */
-	/* mcr	15, 0, r?, cr7, cr0, {4} */
-	else if ((next_instruction & 0xFFFF0FFF) == 0xee070f90)
-	{
+	/* skip over Wait for interrupt / Standby
+	 * mcr	15, 0, r?, cr7, cr0, {4} */
+	else if ((next_instruction & 0xFFFF0FFF) == 0xee070f90) {
 		address = arm11_nextpc(arm11, 0, address + 4);
 		LOG_DEBUG("Skipping WFI %08" PRIx32, address);
 	}
 	/* ignore B to self */
 	else if ((next_instruction & 0xFEFFFFFF) == 0xeafffffe)
-	{
 		LOG_DEBUG("Not stepping jump to self");
-	}
-	else
-	{
+	else {
 		/** \todo TODO: check if break-/watchpoints make any sense at all in combination
 		* with this. */
 
@@ -630,15 +593,14 @@ static int arm11_step(struct target *target, int current,
 
 		/* Set up breakpoint for stepping */
 
-		struct arm11_sc7_action	brp[2];
+		struct arm11_sc7_action brp[2];
 
-		brp[0].write	= 1;
-		brp[0].address	= ARM11_SC7_BVR0;
-		brp[1].write	= 1;
-		brp[1].address	= ARM11_SC7_BCR0;
+		brp[0].write    = 1;
+		brp[0].address  = ARM11_SC7_BVR0;
+		brp[1].write    = 1;
+		brp[1].address  = ARM11_SC7_BCR0;
 
-		if (arm11->hardware_step)
-		{
+		if (arm11->hardware_step) {
 			/* Hardware single stepping ("instruction address
 			 * mismatch") is used if enabled.  It's not quite
 			 * exactly "run one instruction"; "branch to here"
@@ -651,12 +613,11 @@ static int arm11_step(struct target *target, int current,
 			 * FIXME Thumb stepping likely needs to use 0x03
 			 * or 0xc0 byte masks, not 0x0f.
 			 */
-			 brp[0].value	= address;
-			 brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5)
-					| (0 << 14) | (0 << 16) | (0 << 20)
-					| (2 << 21);
-		} else
-		{
+			brp[0].value   = address;
+			brp[1].value   = 0x1 | (3 << 1) | (0x0F << 5)
+				| (0 << 14) | (0 << 16) | (0 << 20)
+				| (2 << 21);
+		} else {
 			/* Sets a breakpoint on the next PC, as calculated
 			 * by instruction set simulation.
 			 *
@@ -670,10 +631,10 @@ static int arm11_step(struct target *target, int current,
 			if (retval != ERROR_OK)
 				return retval;
 
-			brp[0].value	= next_pc;
-			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5)
-					| (0 << 14) | (0 << 16) | (0 << 20)
-					| (0 << 21);
+			brp[0].value    = next_pc;
+			brp[1].value    = 0x1 | (3 << 1) | (0x0F << 5)
+				| (0 << 14) | (0 << 16) | (0 << 20)
+				| (0 << 21);
 		}
 
 		CHECK_RETVAL(arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp)));
@@ -697,10 +658,9 @@ static int arm11_step(struct target *target, int current,
 		/* wait for halt */
 		int i = 0;
 
-		while (1)
-		{
+		while (1) {
 			const uint32_t mask = DSCR_CORE_RESTARTED
-					| DSCR_CORE_HALTED;
+				| DSCR_CORE_HALTED;
 
 			CHECK_RETVAL(arm11_read_DSCR(arm11));
 			LOG_DEBUG("DSCR %08x e", (unsigned) arm11->dscr);
@@ -710,14 +670,11 @@ static int arm11_step(struct target *target, int current,
 
 			long long then = 0;
 			if (i == 1000)
-			{
 				then = timeval_ms();
-			}
-			if (i >= 1000)
-			{
-				if ((timeval_ms()-then) > 1000)
-				{
-					LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+			if (i >= 1000) {
+				if ((timeval_ms()-then) > 1000) {
+					LOG_WARNING(
+						"Timeout (1000ms) waiting for instructions to complete");
 					return ERROR_FAIL;
 				}
 			}
@@ -751,9 +708,9 @@ static int arm11_assert_reset(struct target *target)
 		CHECK_RETVAL(arm11_sc7_set_vcr(arm11, arm11->vcr | 1));
 
 	/* Issue some kind of warm reset. */
-	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
+	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT))
 		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
-	} else if (jtag_get_reset_config() & RESET_HAS_SRST) {
+	else if (jtag_get_reset_config() & RESET_HAS_SRST) {
 		/* REVISIT handle "pulls" cases, if there's
 		 * hardware that needs them to work.
 		 */
@@ -800,8 +757,9 @@ static int arm11_deassert_reset(struct target *target)
 	if (target->reset_halt) {
 		if (target->state != TARGET_HALTED) {
 			LOG_WARNING("%s: ran after reset and before halt ...",
-					target_name(target));
-			if ((retval = target_halt(target)) != ERROR_OK)
+				target_name(target));
+			retval = target_halt(target);
+			if (retval != ERROR_OK)
 				return retval;
 		}
 	}
@@ -829,19 +787,22 @@ static int arm11_soft_reset_halt(struct target *target)
  * read memory address for some peripheral.
  */
 static int arm11_read_memory_inner(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
-		bool arm11_config_memrw_no_increment)
+	uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer,
+	bool arm11_config_memrw_no_increment)
 {
-	/** \todo TODO: check if buffer cast to uint32_t* and uint16_t* might cause alignment problems */
+	/** \todo TODO: check if buffer cast to uint32_t* and uint16_t* might cause alignment
+	 *problems */
 	int retval;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "", address, size, count);
+	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "",
+		address,
+		size,
+		count);
 
 	struct arm11_common *arm11 = target_to_arm11(target);
 
@@ -854,36 +815,33 @@ static int arm11_read_memory_inner(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	switch (size)
-	{
-	case 1:
-		arm11->arm.core_cache->reg_list[1].dirty = true;
+	switch (size) {
+		case 1:
+			arm11->arm.core_cache->reg_list[1].dirty = true;
 
-		for (size_t i = 0; i < count; i++)
-		{
-			/* ldrb    r1, [r0], #1 */
-			/* ldrb    r1, [r0] */
-			CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
-					!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000));
+			for (size_t i = 0; i < count; i++) {
+				/* ldrb    r1, [r0], #1 */
+				/* ldrb    r1, [r0] */
+				CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
+						!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000));
 
-			uint32_t res;
-			/* MCR p14,0,R1,c0,c5,0 */
-			CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
+				uint32_t res;
+				/* MCR p14,0,R1,c0,c5,0 */
+				CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
 
-			*buffer++ = res;
-		}
+				*buffer++ = res;
+			}
 
-		break;
+			break;
 
-	case 2:
+		case 2:
 		{
 			arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++)
-			{
+			for (size_t i = 0; i < count; i++) {
 				/* ldrh    r1, [r0], #2 */
 				CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
-					!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0));
+						!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0));
 
 				uint32_t res;
 
@@ -897,23 +855,27 @@ static int arm11_read_memory_inner(struct target *target,
 			break;
 		}
 
-	case 4:
+		case 4:
 		{
-		uint32_t instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
-		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
-		uint32_t *words = (uint32_t *)(void *)buffer;
+			uint32_t instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
+			/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
+			uint32_t *words = (uint32_t *)(void *)buffer;
 
-		/* LDC p14,c5,[R0],#4 */
-		/* LDC p14,c5,[R0] */
-		CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, instr, words, count));
-		break;
+			/* LDC p14,c5,[R0],#4 */
+			/* LDC p14,c5,[R0] */
+			CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, instr, words, count));
+			break;
 		}
 	}
 
 	return arm11_run_instr_data_finish(arm11);
 }
 
-static int arm11_read_memory(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+static int arm11_read_memory(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	uint8_t *buffer)
 {
 	return arm11_read_memory_inner(target, address, size, count, buffer, false);
 }
@@ -924,19 +886,21 @@ static int arm11_read_memory(struct target *target, uint32_t address, uint32_t s
 * read memory address for some peripheral.
 */
 static int arm11_write_memory_inner(struct target *target,
-		uint32_t address, uint32_t size,
-		uint32_t count, const uint8_t *buffer,
-		bool no_increment)
+	uint32_t address, uint32_t size,
+	uint32_t count, const uint8_t *buffer,
+	bool no_increment)
 {
 	int retval;
 
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "", address, size, count);
+	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "",
+		address,
+		size,
+		count);
 
 	struct arm11_common *arm11 = target_to_arm11(target);
 
@@ -944,8 +908,8 @@ static int arm11_write_memory_inner(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* load r0 with buffer address */
-	/* MRC p14,0,r0,c0,c5,0 */
+	/* load r0 with buffer address
+	 * MRC p14,0,r0,c0,c5,0 */
 	retval = arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
 	if (retval != ERROR_OK)
 		return retval;
@@ -959,14 +923,12 @@ static int arm11_write_memory_inner(struct target *target,
 	 */
 	bool burst = arm11->memwrite_burst && (count > 1);
 
-	switch (size)
-	{
-	case 1:
+	switch (size) {
+		case 1:
 		{
 			arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++)
-			{
+			for (size_t i = 0; i < count; i++) {
 				/* load r1 from DCC with byte data */
 				/* MRC p14,0,r1,c0,c5,0 */
 				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
@@ -977,9 +939,7 @@ static int arm11_write_memory_inner(struct target *target,
 				/* strb    r1, [r0], #1 */
 				/* strb    r1, [r0] */
 				retval = arm11_run_instr_no_data1(arm11,
-					!no_increment
-						? 0xe4c01001
-						: 0xe5c01000);
+						!no_increment ? 0xe4c01001 : 0xe5c01000);
 				if (retval != ERROR_OK)
 					return retval;
 			}
@@ -987,12 +947,11 @@ static int arm11_write_memory_inner(struct target *target,
 			break;
 		}
 
-	case 2:
+		case 2:
 		{
 			arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++)
-			{
+			for (size_t i = 0; i < count; i++) {
 				uint16_t value;
 				memcpy(&value, buffer + i * sizeof(uint16_t), sizeof(uint16_t));
 
@@ -1006,9 +965,7 @@ static int arm11_write_memory_inner(struct target *target,
 				/* strh    r1, [r0], #2 */
 				/* strh    r1, [r0] */
 				retval = arm11_run_instr_no_data1(arm11,
-					!no_increment
-						? 0xe0c010b2
-						: 0xe1c010b0);
+						!no_increment ? 0xe0c010b2 : 0xe1c010b0);
 				if (retval != ERROR_OK)
 					return retval;
 			}
@@ -1016,35 +973,34 @@ static int arm11_write_memory_inner(struct target *target,
 			break;
 		}
 
-	case 4: {
-		/* stream word data through DCC directly to memory */
-		/* increment:		STC p14,c5,[R0],#4 */
-		/* no increment:	STC p14,c5,[R0]*/
-		uint32_t instr = !no_increment ? 0xeca05e01 : 0xed805e00;
+		case 4: {
+			/* stream word data through DCC directly to memory */
+			/* increment:		STC p14,c5,[R0],#4 */
+			/* no increment:	STC p14,c5,[R0]*/
+			uint32_t instr = !no_increment ? 0xeca05e01 : 0xed805e00;
 
-		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
-		uint32_t *words = (uint32_t*)(void *)buffer;
+			/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
+			uint32_t *words = (uint32_t *)(void *)buffer;
 
-		/* "burst" here just means trusting each instruction executes
-		 * fully before we run the next one:  per-word roundtrips, to
-		 * check the Ready flag, are not used.
-		 */
-		if (!burst)
-			retval = arm11_run_instr_data_to_core(arm11,
-					instr, words, count);
-		else
-			retval = arm11_run_instr_data_to_core_noack(arm11,
-					instr, words, count);
-		if (retval != ERROR_OK)
-			return retval;
+			/* "burst" here just means trusting each instruction executes
+			 * fully before we run the next one:  per-word roundtrips, to
+			 * check the Ready flag, are not used.
+			 */
+			if (!burst)
+				retval = arm11_run_instr_data_to_core(arm11,
+						instr, words, count);
+			else
+				retval = arm11_run_instr_data_to_core_noack(arm11,
+						instr, words, count);
+			if (retval != ERROR_OK)
+				return retval;
 
-		break;
-	}
+			break;
+		}
 	}
 
 	/* r0 verification */
-	if (!no_increment)
-	{
+	if (!no_increment) {
 		uint32_t r0;
 
 		/* MCR p14,0,R0,c0,c5,0 */
@@ -1052,15 +1008,16 @@ static int arm11_write_memory_inner(struct target *target,
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (address + size * count != r0)
-		{
+		if (address + size * count != r0) {
 			LOG_ERROR("Data transfer failed. Expected end "
-					"address 0x%08x, got 0x%08x",
-					(unsigned) (address + size * count),
-					(unsigned) r0);
+				"address 0x%08x, got 0x%08x",
+				(unsigned) (address + size * count),
+				(unsigned) r0);
 
 			if (burst)
-				LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
+				LOG_ERROR(
+					"use 'arm11 memwrite burst disable' to disable fast burst mode");
+
 
 			if (arm11->memwrite_error_fatal)
 				return ERROR_FAIL;
@@ -1071,22 +1028,21 @@ static int arm11_write_memory_inner(struct target *target,
 }
 
 static int arm11_write_memory(struct target *target,
-		uint32_t address, uint32_t size,
-		uint32_t count, const uint8_t *buffer)
+	uint32_t address, uint32_t size,
+	uint32_t count, const uint8_t *buffer)
 {
 	/* pointer increment matters only for multi-unit writes ...
 	 * not e.g. to a "reset the chip" controller.
 	 */
 	return arm11_write_memory_inner(target, address, size,
-			count, buffer, count == 1);
+		count, buffer, count == 1);
 }
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
 static int arm11_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, const uint8_t *buffer)
+	uint32_t address, uint32_t count, const uint8_t *buffer)
 {
-	if (target->state != TARGET_HALTED)
-	{
+	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1098,26 +1054,23 @@ static int arm11_bulk_write_memory(struct target *target,
 * rw: 0 = write, 1 = read, 2 = access
 */
 static int arm11_add_breakpoint(struct target *target,
-		struct breakpoint *breakpoint)
+	struct breakpoint *breakpoint)
 {
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 #if 0
-	if (breakpoint->type == BKPT_SOFT)
-	{
+	if (breakpoint->type == BKPT_SOFT) {
 		LOG_INFO("sw breakpoint requested, but software breakpoints not enabled");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 #endif
 
-	if (!arm11->free_brps)
-	{
+	if (!arm11->free_brps) {
 		LOG_DEBUG("no breakpoint unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	if (breakpoint->length != 4)
-	{
+	if (breakpoint->length != 4) {
 		LOG_DEBUG("only breakpoints of four bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -1128,7 +1081,7 @@ static int arm11_add_breakpoint(struct target *target,
 }
 
 static int arm11_remove_breakpoint(struct target *target,
-		struct breakpoint *breakpoint)
+	struct breakpoint *breakpoint)
 {
 	struct arm11_common *arm11 = target_to_arm11(target);
 
@@ -1144,8 +1097,7 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 	if (target->tap == NULL)
 		return ERROR_FAIL;
 
-	if (target->tap->ir_length != 5)
-	{
+	if (target->tap->ir_length != 5) {
 		LOG_ERROR("'target arm11' expects IR LENGTH = 5");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1169,7 +1121,7 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 }
 
 static int arm11_init_target(struct command_context *cmd_ctx,
-		struct target *target)
+	struct target *target)
 {
 	/* Initialize anything we can set up without talking to the target */
 	return ERROR_OK;
@@ -1190,7 +1142,7 @@ static int arm11_examine(struct target *target)
 
 	arm11_add_IR(arm11, ARM11_IDCODE, ARM11_TAP_DEFAULT);
 
-	struct scan_field		idcode_field;
+	struct scan_field idcode_field;
 
 	arm11_setup_field(arm11, 32, NULL, &device_id, &idcode_field);
 
@@ -1202,46 +1154,46 @@ static int arm11_examine(struct target *target)
 
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
-	struct scan_field		chain0_fields[2];
+	struct scan_field chain0_fields[2];
 
 	arm11_setup_field(arm11, 32, NULL, &didr, chain0_fields + 0);
 	arm11_setup_field(arm11,  8, NULL, &implementor, chain0_fields + 1);
 
-	arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain0_fields), chain0_fields, TAP_IDLE);
+	arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(
+			chain0_fields), chain0_fields, TAP_IDLE);
 
 	CHECK_RETVAL(jtag_execute_queue());
 
 	/* assume the manufacturer id is ok; check the part # */
-	switch ((device_id >> 12) & 0xFFFF)
-	{
-	case 0x7B36:
-		type = "ARM1136";
-		break;
-	case 0x7B37:
-		type = "ARM11 MPCore";
-		break;
-	case 0x7B56:
-		type = "ARM1156";
-		break;
-	case 0x7B76:
-		arm11->arm.core_type = ARM_MODE_MON;
-		/* NOTE: could default arm11->hardware_step to true */
-		type = "ARM1176";
-		break;
-	default:
-		LOG_ERROR("unexpected ARM11 ID code");
-		return ERROR_FAIL;
+	switch ((device_id >> 12) & 0xFFFF) {
+		case 0x7B36:
+			type = "ARM1136";
+			break;
+		case 0x7B37:
+			type = "ARM11 MPCore";
+			break;
+		case 0x7B56:
+			type = "ARM1156";
+			break;
+		case 0x7B76:
+			arm11->arm.core_type = ARM_MODE_MON;
+			/* NOTE: could default arm11->hardware_step to true */
+			type = "ARM1176";
+			break;
+		default:
+			LOG_ERROR("unexpected ARM11 ID code");
+			return ERROR_FAIL;
 	}
 	LOG_INFO("found %s", type);
 
 	/* unlikely this could ever fail, but ... */
 	switch ((didr >> 16) & 0x0F) {
-	case ARM11_DEBUG_V6:
-	case ARM11_DEBUG_V61:		/* supports security extensions */
-		break;
-	default:
-		LOG_ERROR("Only ARM v6 and v6.1 debug supported.");
-		return ERROR_FAIL;
+		case ARM11_DEBUG_V6:
+		case ARM11_DEBUG_V61:	/* supports security extensions */
+			break;
+		default:
+			LOG_ERROR("Only ARM v6 and v6.1 debug supported.");
+			return ERROR_FAIL;
 	}
 
 	arm11->brp = ((didr >> 24) & 0x0F) + 1;
@@ -1250,7 +1202,7 @@ static int arm11_examine(struct target *target)
 	arm11->free_brps = arm11->brp;
 
 	LOG_DEBUG("IDCODE %08" PRIx32 " IMPLEMENTOR %02x DIDR %08" PRIx32,
-			device_id, implementor, didr);
+		device_id, implementor, didr);
 
 	/* as a side-effect this reads DSCR and thus
 	 * clears the ARM11_DSCR_STICKY_PRECISE_DATA_ABORT / Sticky Precise Data Abort Flag
@@ -1271,7 +1223,7 @@ static int arm11_examine(struct target *target)
 	if (arm11->arm.etm && !target_was_examined(target)) {
 		*register_get_last_cache_p(&target->reg_cache) =
 			etm_build_reg_cache(target, &arm11->jtag_info,
-					arm11->arm.etm);
+				arm11->arm.etm);
 		CHECK_RETVAL(etm_setup(target));
 	}
 
@@ -1280,15 +1232,14 @@ static int arm11_examine(struct target *target)
 	return ERROR_OK;
 }
 
-
 #define ARM11_BOOL_WRAPPER(name, print_name)	\
-	COMMAND_HANDLER(arm11_handle_bool_##name) \
+	COMMAND_HANDLER(arm11_handle_bool_ ## name) \
 	{ \
 		struct target *target = get_current_target(CMD_CTX); \
 		struct arm11_common *arm11 = target_to_arm11(target); \
 		\
 		return CALL_COMMAND_HANDLER(handle_command_parse_bool, \
-				&arm11->name, print_name); \
+			&arm11->name, print_name); \
 	}
 
 ARM11_BOOL_WRAPPER(memwrite_burst, "memory write burst mode")
@@ -1306,13 +1257,13 @@ COMMAND_HANDLER(arm11_handle_vcr)
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	switch (CMD_ARGC) {
-	case 0:
-		break;
-	case 1:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11->vcr);
-		break;
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		case 0:
+			break;
+		case 1:
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11->vcr);
+			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	LOG_INFO("VCR 0x%08" PRIx32 "", arm11->vcr);
@@ -1395,38 +1346,38 @@ static const struct command_registration arm11_command_handlers[] = {
 
 /** Holds methods for ARM11xx targets. */
 struct target_type arm11_target = {
-	.name =			"arm11",
+	.name = "arm11",
 
-	.poll =			arm11_poll,
-	.arch_state =		arm11_arch_state,
+	.poll = arm11_poll,
+	.arch_state = arm11_arch_state,
 
-	.target_request_data =	arm11_target_request_data,
+	.target_request_data = arm11_target_request_data,
 
-	.halt =			arm11_halt,
-	.resume =		arm11_resume,
-	.step =			arm11_step,
+	.halt = arm11_halt,
+	.resume = arm11_resume,
+	.step = arm11_step,
 
-	.assert_reset =		arm11_assert_reset,
-	.deassert_reset =	arm11_deassert_reset,
-	.soft_reset_halt =	arm11_soft_reset_halt,
+	.assert_reset = arm11_assert_reset,
+	.deassert_reset = arm11_deassert_reset,
+	.soft_reset_halt = arm11_soft_reset_halt,
 
-	.get_gdb_reg_list =	arm_get_gdb_reg_list,
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
-	.read_memory =		arm11_read_memory,
-	.write_memory =		arm11_write_memory,
+	.read_memory = arm11_read_memory,
+	.write_memory = arm11_write_memory,
 
-	.bulk_write_memory =	arm11_bulk_write_memory,
+	.bulk_write_memory = arm11_bulk_write_memory,
 
-	.checksum_memory =	arm_checksum_memory,
-	.blank_check_memory =	arm_blank_check_memory,
+	.checksum_memory = arm_checksum_memory,
+	.blank_check_memory = arm_blank_check_memory,
 
-	.add_breakpoint =	arm11_add_breakpoint,
-	.remove_breakpoint =	arm11_remove_breakpoint,
+	.add_breakpoint = arm11_add_breakpoint,
+	.remove_breakpoint = arm11_remove_breakpoint,
 
-	.run_algorithm =	armv4_5_run_algorithm,
+	.run_algorithm = armv4_5_run_algorithm,
 
-	.commands =		arm11_command_handlers,
-	.target_create =	arm11_target_create,
-	.init_target =		arm11_init_target,
-	.examine =		arm11_examine,
+	.commands = arm11_command_handlers,
+	.target_create = arm11_target_create,
+	.init_target = arm11_init_target,
+	.examine = arm11_examine,
 };

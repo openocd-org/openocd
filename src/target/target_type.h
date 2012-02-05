@@ -23,6 +23,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef TARGET_TYPE_H
 #define TARGET_TYPE_H
 
@@ -36,8 +37,7 @@ struct target;
  * type.  For example, all Cortex-M3 targets on a scan chain share
  * the same method table.
  */
-struct target_type
-{
+struct target_type {
 	/**
 	 * Name of this type of target.  Do @b not access this
 	 * field directly, use target_type_name() instead.
@@ -55,8 +55,10 @@ struct target_type
 
 	/* halt will log a warning, but return ERROR_OK if the target is already halted. */
 	int (*halt)(struct target *target);
-	int (*resume)(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
-	int (*step)(struct target *target, int current, uint32_t address, int handle_breakpoints);
+	int (*resume)(struct target *target, int current, uint32_t address,
+			int handle_breakpoints, int debug_execution);
+	int (*step)(struct target *target, int current, uint32_t address,
+			int handle_breakpoints);
 
 	/* target reset control. assert reset can be invoked when OpenOCD and
 	 * the target is out of sync.
@@ -106,34 +108,43 @@ struct target_type
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>
 	*/
-	int (*read_memory_imp)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*read_memory_imp)(struct target *target, uint32_t address,
+			uint32_t size, uint32_t count, uint8_t *buffer);
 	/**
 	 * Target memory read callback.  Do @b not call this function
 	 * directly, use target_read_memory() instead.
 	 */
-	int (*read_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	int (*write_memory_imp)(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+	int (*read_memory)(struct target *target, uint32_t address,
+			uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory_imp)(struct target *target, uint32_t address,
+			uint32_t size, uint32_t count, const uint8_t *buffer);
 	/**
 	 * Target memory write callback.  Do @b not call this function
 	 * directly, use target_write_memory() instead.
 	 */
-	int (*write_memory)(struct target *target, uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+	int (*write_memory)(struct target *target, uint32_t address,
+			uint32_t size, uint32_t count, const uint8_t *buffer);
 
 	/* Default implementation will do some fancy alignment to improve performance, target can override */
-	int (*read_buffer)(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer);
+	int (*read_buffer)(struct target *target, uint32_t address,
+			uint32_t size, uint8_t *buffer);
 
 	/* Default implementation will do some fancy alignment to improve performance, target can override */
-	int (*write_buffer)(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer);
+	int (*write_buffer)(struct target *target, uint32_t address,
+			uint32_t size, const uint8_t *buffer);
 
 	/**
 	 * Write target memory in multiples of 4 bytes, optimized for
 	 * writing large quantities of data.  Do @b not call this
 	 * function directly, use target_bulk_write_memory() instead.
 	 */
-	int (*bulk_write_memory)(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer);
+	int (*bulk_write_memory)(struct target *target, uint32_t address,
+			uint32_t count, const uint8_t *buffer);
 
-	int (*checksum_memory)(struct target *target, uint32_t address, uint32_t count, uint32_t* checksum);
-	int (*blank_check_memory)(struct target *target, uint32_t address, uint32_t count, uint32_t* blank);
+	int (*checksum_memory)(struct target *target, uint32_t address,
+			uint32_t count, uint32_t *checksum);
+	int (*blank_check_memory)(struct target *target, uint32_t address,
+			uint32_t count, uint32_t *blank);
 
 	/*
 	 * target break-/watchpoint control
@@ -170,9 +181,18 @@ struct target_type
 	 * Target algorithm support.  Do @b not call this method directly,
 	 * use target_run_algorithm() instead.
 	 */
-	int (*run_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
-	int (*start_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t entry_point, uint32_t exit_point, void *arch_info);
-	int (*wait_algorithm)(struct target *target, int num_mem_params, struct mem_param *mem_params, int num_reg_params, struct reg_param *reg_param, uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*run_algorithm)(struct target *target, int num_mem_params,
+			struct mem_param *mem_params, int num_reg_params,
+			struct reg_param *reg_param, uint32_t entry_point,
+			uint32_t exit_point, int timeout_ms, void *arch_info);
+	int (*start_algorithm)(struct target *target, int num_mem_params,
+			struct mem_param *mem_params, int num_reg_params,
+			struct reg_param *reg_param, uint32_t entry_point,
+			uint32_t exit_point, void *arch_info);
+	int (*wait_algorithm)(struct target *target, int num_mem_params,
+			struct mem_param *mem_params, int num_reg_params,
+			struct reg_param *reg_param, uint32_t exit_point,
+			int timeout_ms, void *arch_info);
 
 	const struct command_registration *commands;
 
@@ -224,12 +244,14 @@ struct target_type
 	 *
 	 * Default implementation is to call read_memory.
 	 */
-	int (*read_phys_memory)(struct target *target, uint32_t phys_address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*read_phys_memory)(struct target *target, uint32_t phys_address,
+			uint32_t size, uint32_t count, uint8_t *buffer);
 
 	/*
 	 * same as read_phys_memory, except that it writes...
 	 */
-	int (*write_phys_memory)(struct target *target, uint32_t phys_address, uint32_t size, uint32_t count, const uint8_t *buffer);
+	int (*write_phys_memory)(struct target *target, uint32_t phys_address,
+			uint32_t size, uint32_t count, const uint8_t *buffer);
 
 	int (*mmu)(struct target *target, int *enabled);
 
@@ -242,4 +264,4 @@ struct target_type
 	int (*check_reset)(struct target *target);
 };
 
-#endif // TARGET_TYPE_H
+#endif /* TARGET_TYPE_H */

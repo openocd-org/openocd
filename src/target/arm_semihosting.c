@@ -323,7 +323,7 @@ static int do_semihosting(struct target *target)
 			if (l < s)
 				result = -1;
 			else {
-				retval = target_write_buffer(target, a, s, (void*)arg);
+				retval = target_write_buffer(target, a, s, (void *)arg);
 				if (retval != ERROR_OK)
 					return retval;
 				result = 0;
@@ -392,8 +392,7 @@ static int do_semihosting(struct target *target)
 	/* REVISIT this looks wrong ... ARM11 and Cortex-A8
 	 * should work this way at least sometimes.
 	 */
-	if (is_arm7_9(target_to_arm7_9(target)))
-	{
+	if (is_arm7_9(target_to_arm7_9(target))) {
 		uint32_t spsr;
 
 		/* return value in R0 */
@@ -402,7 +401,7 @@ static int do_semihosting(struct target *target)
 
 		/* LR --> PC */
 		buf_set_u32(arm->core_cache->reg_list[15].value, 0, 32,
-			buf_get_u32(arm_reg_current(arm,14)->value, 0, 32));
+			buf_get_u32(arm_reg_current(arm, 14)->value, 0, 32));
 		arm->core_cache->reg_list[15].dirty = 1;
 
 		/* saved PSR --> current PSR */
@@ -418,9 +417,7 @@ static int do_semihosting(struct target *target)
 		if (spsr & 0x20)
 			arm->core_state = ARM_STATE_THUMB;
 
-	}
-	else
-	{
+	} else {
 		/* resume execution, this will be pc+2 to skip over the
 		 * bkpt instruction */
 
@@ -454,8 +451,7 @@ int arm_semihosting(struct target *target, int *retval)
 	if (!arm->is_semihosting)
 		return 0;
 
-	if (is_arm7_9(target_to_arm7_9(target)))
-	{
+	if (is_arm7_9(target_to_arm7_9(target))) {
 		if (arm->core_mode != ARM_MODE_SVC)
 			return 0;
 
@@ -510,9 +506,7 @@ int arm_semihosting(struct target *target, int *retval)
 			if (insn != 0xEF123456)
 				return 0;
 		}
-	}
-	else if (is_armv7m(target_to_armv7m(target)))
-	{
+	} else if (is_armv7m(target_to_armv7m(target))) {
 		uint16_t insn;
 
 		if (target->debug_reason != DBG_REASON_BREAKPOINT)
@@ -529,9 +523,7 @@ int arm_semihosting(struct target *target, int *retval)
 		/* bkpt 0xAB */
 		if (insn != 0xBEAB)
 			return 0;
-	}
-	else
-	{
+	} else {
 		LOG_ERROR("Unsupported semi-hosting Target");
 		return 0;
 	}

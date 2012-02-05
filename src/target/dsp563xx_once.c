@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -63,7 +64,7 @@ static inline int dsp563xx_write_dr_u8(struct jtag_tap *tap, uint8_t * dr_in, ui
 /** */
 static inline int dsp563xx_write_dr_u32(struct jtag_tap *tap, uint32_t * dr_in, uint32_t dr_out, int dr_len, int rti)
 {
-	return dsp563xx_write_dr(tap, (uint8_t *) dr_in, (uint8_t *) & dr_out, dr_len, rti);
+	return dsp563xx_write_dr(tap, (uint8_t *) dr_in, (uint8_t *) &dr_out, dr_len, rti);
 }
 
 /** single word instruction */
@@ -71,9 +72,10 @@ static inline int dsp563xx_once_ir_exec(struct jtag_tap *tap, int flush, uint8_t
 {
 	int err;
 
-	if ((err = dsp563xx_write_dr_u8(tap, 0, instr | (ex << 5) | (go << 6) | (rw << 7), 8, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u8(tap, 0, instr | (ex << 5) | (go << 6) | (rw << 7), 8, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
+	if (flush)
 		err = jtag_execute_queue();
 	return err;
 }
@@ -102,13 +104,15 @@ int dsp563xx_once_target_status(struct jtag_tap *tap)
 	int err;
 	uint8_t jtag_status;
 
-	if ((err = dsp563xx_jtag_sendinstr(tap, &jtag_status, JTAG_INSTR_ENABLE_ONCE)) != ERROR_OK)
+	err = dsp563xx_jtag_sendinstr(tap, &jtag_status, JTAG_INSTR_ENABLE_ONCE);
+	if (err != ERROR_OK)
 		return TARGET_UNKNOWN;
-	if ((err = jtag_execute_queue()) != ERROR_OK)
+	err = jtag_execute_queue();
+	if (err != ERROR_OK)
 		return TARGET_UNKNOWN;
 
 	/* verify correct static status pattern */
-	if ( (jtag_status & JTAG_STATUS_STATIC_MASK) != JTAG_STATUS_STATIC_VALUE )
+	if ((jtag_status & JTAG_STATUS_STATIC_MASK) != JTAG_STATUS_STATIC_VALUE)
 		return TARGET_UNKNOWN;
 
 	if (jtag_status != JTAG_STATUS_DEBUG)
@@ -127,59 +131,50 @@ int dsp563xx_once_request_debug(struct jtag_tap *tap, int reset_state)
 	/* in reset state we only get a ACK
 	 * from the interface */
 	if (reset_state)
-	{
 		pattern = 1;
-	}
 	else
-	{
 		pattern = JTAG_STATUS_DEBUG;
-	}
 
 	/* wait until we get the ack */
-	while (ir_in != pattern)
-	{
-		if ((err = dsp563xx_jtag_sendinstr(tap, &ir_in, JTAG_INSTR_DEBUG_REQUEST)) != ERROR_OK)
+	while (ir_in != pattern) {
+		err = dsp563xx_jtag_sendinstr(tap, &ir_in, JTAG_INSTR_DEBUG_REQUEST);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = jtag_execute_queue()) != ERROR_OK)
+		err = jtag_execute_queue();
+		if (err != ERROR_OK)
 			return err;
 
 		LOG_DEBUG("debug request: %02X", ir_in);
 
 		if (retry++ == 100)
-		{
 			return ERROR_TARGET_FAILURE;
-		}
 	}
 
 	/* we cant enable the once in reset state */
 	if (pattern == 1)
-	{
 		return ERROR_OK;
-	}
 
 	/* try to enable once */
 	retry = 0;
 	ir_in = 0;
-	while (ir_in != pattern)
-	{
-		if ((err = dsp563xx_jtag_sendinstr(tap, &ir_in, JTAG_INSTR_ENABLE_ONCE)) != ERROR_OK)
+	while (ir_in != pattern) {
+		err = dsp563xx_jtag_sendinstr(tap, &ir_in, JTAG_INSTR_ENABLE_ONCE);
+		if (err != ERROR_OK)
 			return err;
-		if ((err = jtag_execute_queue()) != ERROR_OK)
+		err = jtag_execute_queue();
+		if (err != ERROR_OK)
 			return err;
 
 		LOG_DEBUG("enable once: %02X", ir_in);
 
-		if (retry++ == 100)
-		{
+		if (retry++ == 100) {
 			LOG_DEBUG("error");
 			return ERROR_TARGET_FAILURE;
 		}
 	}
 
 	if (ir_in != JTAG_STATUS_DEBUG)
-	{
 		return ERROR_TARGET_FAILURE;
-	}
 
 	return ERROR_OK;
 }
@@ -190,13 +185,13 @@ int dsp563xx_once_read_register(struct jtag_tap *tap, int flush, struct once_reg
 	int i;
 	int err = ERROR_OK;
 
-	for (i = 0; i < len; i++)
-	{
-		if ((err = dsp563xx_once_reg_read_ex(tap, flush, regs[i].addr, regs[i].len, &regs[i].reg)) != ERROR_OK)
+	for (i = 0; i < len; i++) {
+		err = dsp563xx_once_reg_read_ex(tap, flush, regs[i].addr, regs[i].len, &regs[i].reg);
+		if (err != ERROR_OK)
 			return err;
 	}
 
-	if ( flush )
+	if (flush)
 		err = jtag_execute_queue();
 	return err;
 }
@@ -206,11 +201,13 @@ int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, 1, reg, 1, 0, 0)) != ERROR_OK)
+	err = dsp563xx_once_ir_exec(tap, 1, reg, 1, 0, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, data, 0x00, len, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u32(tap, data, 0x00, len, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
+	if (flush)
 		err = jtag_execute_queue();
 	return err;
 }
@@ -220,11 +217,13 @@ int dsp563xx_once_reg_read(struct jtag_tap *tap, int flush, uint8_t reg, uint32_
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, flush, reg, 1, 0, 0)) != ERROR_OK)
+	err = dsp563xx_once_ir_exec(tap, flush, reg, 1, 0, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, data, 0x00, 24, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u32(tap, data, 0x00, 24, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
+	if (flush)
 		err = jtag_execute_queue();
 	return err;
 }
@@ -234,11 +233,13 @@ int dsp563xx_once_reg_write(struct jtag_tap *tap, int flush, uint8_t reg, uint32
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, flush, reg, 0, 0, 0)) != ERROR_OK)
+	err = dsp563xx_once_ir_exec(tap, flush, reg, 0, 0, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0x00, data, 24, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u32(tap, 0x00, data, 24, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
+	if (flush)
 		err = jtag_execute_queue();
 	return err;
 }
@@ -248,11 +249,13 @@ int dsp563xx_once_execute_sw_ir(struct jtag_tap *tap, int flush, uint32_t opcode
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
+	err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 1, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
+	if (flush)
 		err = jtag_execute_queue();
 	return err;
 }
@@ -262,21 +265,29 @@ int dsp563xx_once_execute_dw_ir(struct jtag_tap *tap, int flush, uint32_t opcode
 {
 	int err;
 
-	if ((err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 0, 0)) != ERROR_OK)
+	err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 0, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u32(tap, 0, opcode, 24, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
-		if ((err = jtag_execute_queue()) != ERROR_OK)
+	if (flush) {
+		err = jtag_execute_queue();
+		if (err != ERROR_OK)
 			return err;
+	}
 
-	if ((err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 1, 0)) != ERROR_OK)
+	err = dsp563xx_once_ir_exec(tap, flush, DSP563XX_ONCE_OPDBR, 0, 1, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ((err = dsp563xx_write_dr_u32(tap, 0, operand, 24, 0)) != ERROR_OK)
+	err = dsp563xx_write_dr_u32(tap, 0, operand, 24, 0);
+	if (err != ERROR_OK)
 		return err;
-	if ( flush )
-		if ((err = jtag_execute_queue()) != ERROR_OK)
+	if (flush) {
+		err = jtag_execute_queue();
+		if (err != ERROR_OK)
 			return err;
+	}
 
 	return ERROR_OK;
 }

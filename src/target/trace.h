@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef TRACE_H
 #define TRACE_H
 
@@ -25,14 +26,12 @@
 struct target;
 struct command_context;
 
-struct trace_point
-{
+struct trace_point {
 	uint32_t address;
 	uint64_t hit_counter;
 };
 
-struct trace
-{
+struct trace {
 	uint32_t num_trace_points;
 	uint32_t trace_points_size;
 	struct trace_point *trace_points;
@@ -47,8 +46,7 @@ struct trace
  * to *hardware* tracing ... split such "real" tracing out from
  * the contrib/libdcc support.
  */
-typedef enum trace_status
-{
+typedef enum trace_status {
 	TRACE_IDLE = 0x0,
 	TRACE_RUNNING = 0x1,
 	TRACE_TRIGGERED = 0x2,

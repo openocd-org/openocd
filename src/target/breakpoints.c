@@ -20,6 +20,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -28,24 +29,24 @@
 #include <helper/log.h>
 #include "breakpoints.h"
 
-
-static char *breakpoint_type_strings[] =
-{
+static char *breakpoint_type_strings[] = {
 	"hardware",
 	"software"
 };
 
-static char *watchpoint_rw_strings[] =
-{
+static char *watchpoint_rw_strings[] = {
 	"read",
 	"write",
 	"access"
 };
 
-// monotonic counter/id-number for breakpoints and watch points
+/* monotonic counter/id-number for breakpoints and watch points */
 static int bpwp_unique_id;
 
-int breakpoint_add_internal(struct target *target, uint32_t address, uint32_t length, enum breakpoint_type type)
+int breakpoint_add_internal(struct target *target,
+	uint32_t address,
+	uint32_t length,
+	enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
@@ -54,8 +55,7 @@ int breakpoint_add_internal(struct target *target, uint32_t address, uint32_t le
 	int n;
 
 	n = 0;
-	while (breakpoint)
-	{
+	while (breakpoint) {
 		n++;
 		if (breakpoint->address == address) {
 			/* FIXME don't assume "same address" means "same
@@ -63,7 +63,7 @@ int breakpoint_add_internal(struct target *target, uint32_t address, uint32_t le
 			 * succeeding.
 			 */
 			LOG_DEBUG("Duplicate Breakpoint address: 0x%08" PRIx32 " (BP %d)",
-					address, breakpoint->unique_id);
+				address, breakpoint->unique_id);
 			return ERROR_OK;
 		}
 		breakpoint_p = &breakpoint->next;
@@ -82,33 +82,36 @@ int breakpoint_add_internal(struct target *target, uint32_t address, uint32_t le
 
 	retval = target_add_breakpoint(target, *breakpoint_p);
 	switch (retval) {
-	case ERROR_OK:
-		break;
-	case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-		reason = "resource not available";
-		goto fail;
-	case ERROR_TARGET_NOT_HALTED:
-		reason = "target running";
-		goto fail;
-	default:
-		reason = "unknown reason";
+		case ERROR_OK:
+			break;
+		case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
+			reason = "resource not available";
+			goto fail;
+		case ERROR_TARGET_NOT_HALTED:
+			reason = "target running";
+			goto fail;
+		default:
+			reason = "unknown reason";
 fail:
-		LOG_ERROR("can't add breakpoint: %s", reason);
-		free((*breakpoint_p)->orig_instr);
-		free(*breakpoint_p);
-		*breakpoint_p = NULL;
-		return retval;
+			LOG_ERROR("can't add breakpoint: %s", reason);
+			free((*breakpoint_p)->orig_instr);
+			free(*breakpoint_p);
+			*breakpoint_p = NULL;
+			return retval;
 	}
 
 	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
-			breakpoint_type_strings[(*breakpoint_p)->type],
-			(*breakpoint_p)->address, (*breakpoint_p)->length,
-			(*breakpoint_p)->unique_id);
+		breakpoint_type_strings[(*breakpoint_p)->type],
+		(*breakpoint_p)->address, (*breakpoint_p)->length,
+		(*breakpoint_p)->unique_id);
 
 	return ERROR_OK;
 }
 
-int context_breakpoint_add_internal(struct target *target, uint32_t asid, uint32_t length, enum breakpoint_type type)
+int context_breakpoint_add_internal(struct target *target,
+	uint32_t asid,
+	uint32_t length,
+	enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
@@ -116,17 +119,15 @@ int context_breakpoint_add_internal(struct target *target, uint32_t asid, uint32
 	int n;
 
 	n = 0;
-	while (breakpoint)
-	{
+	while (breakpoint) {
 		n++;
-		if (breakpoint->asid == asid)
-		{
+		if (breakpoint->asid == asid) {
 			/* FIXME don't assume "same address" means "same
 			 * breakpoint" ... check all the parameters before
 			 * succeeding.
 			 */
 			LOG_DEBUG("Duplicate Breakpoint asid: 0x%08" PRIx32 " (BP %d)",
-					asid, breakpoint->unique_id);
+				asid, breakpoint->unique_id);
 			return -1;
 		}
 		breakpoint_p = &breakpoint->next;
@@ -143,8 +144,7 @@ int context_breakpoint_add_internal(struct target *target, uint32_t asid, uint32
 	(*breakpoint_p)->next = NULL;
 	(*breakpoint_p)->unique_id = bpwp_unique_id++;
 	retval = target_add_context_breakpoint(target, *breakpoint_p);
-	if (retval != ERROR_OK)
-	{
+	if (retval != ERROR_OK) {
 		LOG_ERROR("could not add breakpoint");
 		free((*breakpoint_p)->orig_instr);
 		free(*breakpoint_p);
@@ -153,22 +153,25 @@ int context_breakpoint_add_internal(struct target *target, uint32_t asid, uint32
 	}
 
 	LOG_DEBUG("added %s Context breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
-			breakpoint_type_strings[(*breakpoint_p)->type],
-			(*breakpoint_p)->asid, (*breakpoint_p)->length,
-			(*breakpoint_p)->unique_id);
+		breakpoint_type_strings[(*breakpoint_p)->type],
+		(*breakpoint_p)->asid, (*breakpoint_p)->length,
+		(*breakpoint_p)->unique_id);
 
 	return ERROR_OK;
 }
 
-int hybrid_breakpoint_add_internal(struct target *target, uint32_t address, uint32_t asid, uint32_t length, enum breakpoint_type type)
+int hybrid_breakpoint_add_internal(struct target *target,
+	uint32_t address,
+	uint32_t asid,
+	uint32_t length,
+	enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
 	int retval;
 	int n;
 	n = 0;
-	while (breakpoint)
-	{
+	while (breakpoint) {
 		n++;
 		if ((breakpoint->asid == asid) && (breakpoint->address == address)) {
 			/* FIXME don't assume "same address" means "same
@@ -176,13 +179,11 @@ int hybrid_breakpoint_add_internal(struct target *target, uint32_t address, uint
 			 * succeeding.
 			 */
 			LOG_DEBUG("Duplicate Hybrid Breakpoint asid: 0x%08" PRIx32 " (BP %d)",
-					asid, breakpoint->unique_id);
+				asid, breakpoint->unique_id);
 			return -1;
-		}
-		else if ((breakpoint->address == address) && (breakpoint->asid == 0))
-		{
+		} else if ((breakpoint->address == address) && (breakpoint->asid == 0)) {
 			LOG_DEBUG("Duplicate Breakpoint IVA: 0x%08" PRIx32 " (BP %d)",
-					address, breakpoint->unique_id);
+				address, breakpoint->unique_id);
 			return -1;
 
 		}
@@ -201,92 +202,89 @@ int hybrid_breakpoint_add_internal(struct target *target, uint32_t address, uint
 
 
 	retval = target_add_hybrid_breakpoint(target, *breakpoint_p);
-	if (retval != ERROR_OK)
-	{
+	if (retval != ERROR_OK) {
 		LOG_ERROR("could not add breakpoint");
 		free((*breakpoint_p)->orig_instr);
 		free(*breakpoint_p);
 		*breakpoint_p = NULL;
 		return retval;
 	}
-	LOG_DEBUG("added %s Hybrid breakpoint at address 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
-			breakpoint_type_strings[(*breakpoint_p)->type],
-			(*breakpoint_p)->address, (*breakpoint_p)->length,
-			(*breakpoint_p)->unique_id);
+	LOG_DEBUG(
+		"added %s Hybrid breakpoint at address 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
+		breakpoint_type_strings[(*breakpoint_p)->type],
+		(*breakpoint_p)->address,
+		(*breakpoint_p)->length,
+		(*breakpoint_p)->unique_id);
 
 	return ERROR_OK;
 }
 
-
-
-int breakpoint_add(struct target *target, uint32_t address, uint32_t length, enum breakpoint_type type)
+int breakpoint_add(struct target *target,
+	uint32_t address,
+	uint32_t length,
+	enum breakpoint_type type)
 {
-
 	int retval = ERROR_OK;
-	if (target->smp)
-	{
+	if (target->smp) {
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
 		if (type == BKPT_SOFT)
-			return(breakpoint_add_internal(head->target, address,length, type));
+			return breakpoint_add_internal(head->target, address, length, type);
 
-		while(head != (struct target_list*)NULL)
-		{
+		while (head != (struct target_list *)NULL) {
 			curr = head->target;
-			retval = breakpoint_add_internal(curr, address,length, type);
-			if (retval != ERROR_OK) return retval;
+			retval = breakpoint_add_internal(curr, address, length, type);
+			if (retval != ERROR_OK)
+				return retval;
 			head = head->next;
 		}
 		return retval;
-	}
-	else
-		return(breakpoint_add_internal(target, address, length, type));
-
+	} else
+		return breakpoint_add_internal(target, address, length, type);
 }
-int context_breakpoint_add(struct target *target, uint32_t asid, uint32_t length, enum breakpoint_type type)
+int context_breakpoint_add(struct target *target,
+	uint32_t asid,
+	uint32_t length,
+	enum breakpoint_type type)
 {
-
 	int retval = ERROR_OK;
-	if (target->smp)
-	{
+	if (target->smp) {
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while(head != (struct target_list*)NULL)
-		{
+		while (head != (struct target_list *)NULL) {
 			curr = head->target;
-			retval = context_breakpoint_add_internal(curr, asid,length, type);
-			if (retval != ERROR_OK) return retval;
+			retval = context_breakpoint_add_internal(curr, asid, length, type);
+			if (retval != ERROR_OK)
+				return retval;
 			head = head->next;
 		}
 		return retval;
-	}
-	else
-		return(context_breakpoint_add_internal(target, asid, length, type));
-
+	} else
+		return context_breakpoint_add_internal(target, asid, length, type);
 }
-int hybrid_breakpoint_add(struct target *target, uint32_t address, uint32_t asid, uint32_t length, enum breakpoint_type type)
+int hybrid_breakpoint_add(struct target *target,
+	uint32_t address,
+	uint32_t asid,
+	uint32_t length,
+	enum breakpoint_type type)
 {
-
 	int retval = ERROR_OK;
-	if (target->smp)
-	{
+	if (target->smp) {
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while(head != (struct target_list*)NULL)
-		{
+		while (head != (struct target_list *)NULL) {
 			curr = head->target;
 			retval = hybrid_breakpoint_add_internal(curr, address, asid, length, type);
-			if (retval != ERROR_OK) return retval;
+			if (retval != ERROR_OK)
+				return retval;
 			head = head->next;
 		}
 		return retval;
-	}
-	else
-		return(hybrid_breakpoint_add_internal(target, address, asid, length, type));
-
+	} else
+		return hybrid_breakpoint_add_internal(target, address, asid, length, type);
 }
 
 /* free up a breakpoint */
@@ -296,8 +294,7 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 	struct breakpoint **breakpoint_p = &target->breakpoints;
 	int retval;
 
-	while (breakpoint)
-	{
+	while (breakpoint) {
 		if (breakpoint == breakpoint_to_remove)
 			break;
 		breakpoint_p = &breakpoint->next;
@@ -319,8 +316,7 @@ int breakpoint_remove_internal(struct target *target, uint32_t address)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
-	while (breakpoint)
-	{
+	while (breakpoint) {
 		if ((breakpoint->address == address) && (breakpoint->asid == 0))
 			break;
 		else if ((breakpoint->address == 0) && (breakpoint->asid == address))
@@ -330,13 +326,10 @@ int breakpoint_remove_internal(struct target *target, uint32_t address)
 		breakpoint = breakpoint->next;
 	}
 
-	if (breakpoint)
-	{
+	if (breakpoint) {
 		breakpoint_free(target, breakpoint);
 		return 1;
-	}
-	else
-	{
+	} else {
 		if (!target->smp)
 			LOG_ERROR("no breakpoint at address 0x%8.8" PRIx32 " found", address);
 		return 0;
@@ -345,60 +338,50 @@ int breakpoint_remove_internal(struct target *target, uint32_t address)
 void breakpoint_remove(struct target *target, uint32_t address)
 {
 	int found = 0;
-	if (target->smp)
-	{
+	if (target->smp) {
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while(head != (struct target_list*)NULL)
-		{
+		while (head != (struct target_list *)NULL) {
 			curr = head->target;
 			found += breakpoint_remove_internal(curr, address);
 			head = head->next;
 		}
 		if (found == 0)
 			LOG_ERROR("no breakpoint at address 0x%8.8" PRIx32 " found", address);
-	}
-	else  breakpoint_remove_internal(target, address);
+	} else
+		breakpoint_remove_internal(target, address);
 }
 
 void breakpoint_clear_target_internal(struct target *target)
 {
-	struct breakpoint *breakpoint;
-
 	LOG_DEBUG("Delete all breakpoints for target: %s",
-			target_name(target));
-	while ((breakpoint = target->breakpoints) != NULL)
-	{
-		breakpoint_free(target, breakpoint);
-	}
+		target_name(target));
+	while (target->breakpoints != NULL)
+		breakpoint_free(target, target->breakpoints);
 }
 
 void breakpoint_clear_target(struct target *target)
 {
-	if (target->smp)
-	{
+	if (target->smp) {
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while(head != (struct target_list*)NULL)
-		{
+		while (head != (struct target_list *)NULL) {
 			curr = head->target;
 			breakpoint_clear_target_internal(curr);
 			head = head->next;
 		}
-	}
-	else breakpoint_clear_target_internal(target);
+	} else
+		breakpoint_clear_target_internal(target);
 
 }
 
-
-struct breakpoint* breakpoint_find(struct target *target, uint32_t address)
+struct breakpoint *breakpoint_find(struct target *target, uint32_t address)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
-	while (breakpoint)
-	{
+	while (breakpoint) {
 		if (breakpoint->address == address)
 			return breakpoint;
 		breakpoint = breakpoint->next;
@@ -408,23 +391,22 @@ struct breakpoint* breakpoint_find(struct target *target, uint32_t address)
 }
 
 int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
-		enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+	enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
 	int retval;
 	char *reason;
 
-	while (watchpoint)
-	{
+	while (watchpoint) {
 		if (watchpoint->address == address) {
 			if (watchpoint->length != length
-					|| watchpoint->value != value
-					|| watchpoint->mask != mask
-					|| watchpoint->rw != rw) {
+				|| watchpoint->value != value
+				|| watchpoint->mask != mask
+				|| watchpoint->rw != rw) {
 				LOG_ERROR("address 0x%8.8" PRIx32
-						"already has watchpoint %d",
-						address, watchpoint->unique_id);
+					"already has watchpoint %d",
+					address, watchpoint->unique_id);
 				return ERROR_FAIL;
 			}
 
@@ -445,31 +427,31 @@ int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
 
 	retval = target_add_watchpoint(target, *watchpoint_p);
 	switch (retval) {
-	case ERROR_OK:
-		break;
-	case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-		reason = "resource not available";
-		goto bye;
-	case ERROR_TARGET_NOT_HALTED:
-		reason = "target running";
-		goto bye;
-	default:
-		reason = "unrecognized error";
+		case ERROR_OK:
+			break;
+		case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
+			reason = "resource not available";
+			goto bye;
+		case ERROR_TARGET_NOT_HALTED:
+			reason = "target running";
+			goto bye;
+		default:
+			reason = "unrecognized error";
 bye:
-		LOG_ERROR("can't add %s watchpoint at 0x%8.8" PRIx32 ", %s",
+			LOG_ERROR("can't add %s watchpoint at 0x%8.8" PRIx32 ", %s",
 				watchpoint_rw_strings[(*watchpoint_p)->rw],
 				address, reason);
-		free (*watchpoint_p);
-		*watchpoint_p = NULL;
-		return retval;
+			free(*watchpoint_p);
+			*watchpoint_p = NULL;
+			return retval;
 	}
 
 	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32
-			" of length 0x%8.8" PRIx32 " (WPID: %d)",
-			watchpoint_rw_strings[(*watchpoint_p)->rw],
-			(*watchpoint_p)->address,
-			(*watchpoint_p)->length,
-			(*watchpoint_p)->unique_id);
+		" of length 0x%8.8" PRIx32 " (WPID: %d)",
+		watchpoint_rw_strings[(*watchpoint_p)->rw],
+		(*watchpoint_p)->address,
+		(*watchpoint_p)->length,
+		(*watchpoint_p)->unique_id);
 
 	return ERROR_OK;
 }
@@ -480,8 +462,7 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 	struct watchpoint **watchpoint_p = &target->watchpoints;
 	int retval;
 
-	while (watchpoint)
-	{
+	while (watchpoint) {
 		if (watchpoint == watchpoint_to_remove)
 			break;
 		watchpoint_p = &watchpoint->next;
@@ -500,31 +481,22 @@ void watchpoint_remove(struct target *target, uint32_t address)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
-	while (watchpoint)
-	{
+	while (watchpoint) {
 		if (watchpoint->address == address)
 			break;
 		watchpoint = watchpoint->next;
 	}
 
 	if (watchpoint)
-	{
 		watchpoint_free(target, watchpoint);
-	}
 	else
-	{
 		LOG_ERROR("no watchpoint at address 0x%8.8" PRIx32 " found", address);
-	}
 }
 
 void watchpoint_clear_target(struct target *target)
 {
-	struct watchpoint *watchpoint;
-
 	LOG_DEBUG("Delete all watchpoints for target: %s",
-			target_name(target));
-	while ((watchpoint = target->watchpoints) != NULL)
-	{
-		watchpoint_free(target, watchpoint);
-	}
+		target_name(target));
+	while (target->watchpoints != NULL)
+		watchpoint_free(target, target->watchpoints);
 }
