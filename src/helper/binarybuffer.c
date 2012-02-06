@@ -238,7 +238,7 @@ char *buf_to_str(const void *_buf, unsigned buf_len, unsigned radix)
 	return str;
 }
 
-/* / identify radix, and skip radix-prefix (0, 0x or 0X) */
+/** identify radix, and skip radix-prefix (0, 0x or 0X) */
 static void str_radix_guess(const char **_str, unsigned *_str_len,
 	unsigned *_radix)
 {

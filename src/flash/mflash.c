@@ -1395,7 +1395,7 @@ COMMAND_HANDLER(mg_bank_cmd)
 
 	mflash_bank = calloc(sizeof(struct mflash_bank), 1);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], mflash_bank->base);
-	/* / @todo Verify how this parsing should work, then document it. */
+	/** @todo Verify how this parsing should work, then document it. */
 	char *str;
 	mflash_bank->rst_pin.num = strtoul(CMD_ARGV[2], &str, 0);
 	if (*str)

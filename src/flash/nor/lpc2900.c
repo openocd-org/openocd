@@ -896,7 +896,7 @@ static const struct command_registration lpc2900_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-/* / Evaluate flash bank command. */
+/** Evaluate flash bank command. */
 FLASH_BANK_COMMAND_HANDLER(lpc2900_flash_bank_command)
 {
 	struct lpc2900_flash_bank *lpc2900_info;

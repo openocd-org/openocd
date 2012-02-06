@@ -113,11 +113,11 @@ static int jtag_ntrst_assert_width;	/* width of assertion */
  * when an event occurs.
  */
 struct jtag_event_callback {
-	/* / a event callback */
+	/** a event callback */
 	jtag_event_handler_t callback;
-	/* / the private data to pass to the callback */
+	/** the private data to pass to the callback */
 	void *priv;
-	/* / the next callback */
+	/** the next callback */
 	struct jtag_event_callback *next;
 };
 
@@ -206,7 +206,7 @@ unsigned jtag_tap_count_enabled(void)
 	return n;
 }
 
-/* / Append a new TAP to the chain of all taps. */
+/** Append a new TAP to the chain of all taps. */
 void jtag_tap_add(struct jtag_tap *t)
 {
 	t->abs_chain_position = jtag_num_taps++;
@@ -716,7 +716,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 
 void jtag_add_sleep(uint32_t us)
 {
-	/* / @todo Here, keep_alive() appears to be a layering violation!!! */
+	/** @todo Here, keep_alive() appears to be a layering violation!!! */
 	keep_alive();
 	jtag_set_error(interface_jtag_add_sleep(us));
 }
@@ -1260,7 +1260,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 	tap->expected_mask = calloc(1, ir_len_bytes);
 	tap->cur_instr = malloc(ir_len_bytes);
 
-	/* / @todo cope better with ir_length bigger than 32 bits */
+	/** @todo cope better with ir_length bigger than 32 bits */
 	if (ir_len_bits > 32)
 		ir_len_bits = 32;
 
@@ -1286,7 +1286,7 @@ void jtag_tap_free(struct jtag_tap *tap)
 {
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
-	/* / @todo is anything missing? no memory leaks please */
+	/** @todo is anything missing? no memory leaks please */
 	free((void *)tap->expected);
 	free((void *)tap->expected_ids);
 	free((void *)tap->chip);

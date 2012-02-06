@@ -90,7 +90,7 @@ struct nand_flash_controller {
  */
 struct nand_flash_controller *nand_driver_find_by_name(const char *name);
 
-/* / Signature for callback functions passed to nand_driver_walk */
+/** Signature for callback functions passed to nand_driver_walk */
 typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void *);
 /**
  * Walk the list of drivers, encapsulating the data structure type.

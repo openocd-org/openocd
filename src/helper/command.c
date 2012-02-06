@@ -291,7 +291,7 @@ static struct command **command_list_for_parent(
 
 static void command_free(struct command *c)
 {
-	/* / @todo if command has a handler, unregister its jim command! */
+	/** @todo if command has a handler, unregister its jim command! */
 
 	while (NULL != c->children) {
 		struct command *tmp = c->children;

@@ -218,7 +218,7 @@ int nand_calculate_ecc_kw(struct nand_device *nand,
 
 int nand_register_commands(struct command_context *cmd_ctx);
 
-/* / helper for parsing a nand device command argument string */
+/** helper for parsing a nand device command argument string */
 COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 	struct nand_device **nand);
 

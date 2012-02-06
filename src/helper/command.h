@@ -52,7 +52,7 @@ enum command_mode {
 
 struct command_context;
 
-/* / The type signature for command context's output handler. */
+/** The type signature for command context's output handler. */
 typedef int (*command_output_handler_t)(struct command_context *context,
 		const char *line);
 
@@ -217,7 +217,7 @@ struct command_registration {
 	void *jim_handler_data;
 	enum command_mode mode;
 	const char *help;
-	/* / a string listing the options and arguments, required or optional */
+	/** a string listing the options and arguments, required or optional */
 	const char *usage;
 
 	/**
@@ -229,7 +229,7 @@ struct command_registration {
 	const struct command_registration *chain;
 };
 
-/* / Use this as the last entry in an array of command_registration records. */
+/** Use this as the last entry in an array of command_registration records. */
 #define COMMAND_REGISTRATION_DONE { .name = NULL, .chain = NULL }
 
 /**
@@ -415,10 +415,10 @@ DECLARE_PARSE_WRAPPER(_s8, int8_t);
 int command_parse_bool_arg(const char *in, bool *out);
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 
-/* / parses an on/off command argument */
+/** parses an on/off command argument */
 #define COMMAND_PARSE_ON_OFF(in, out) \
 	COMMAND_PARSE_BOOL(in, out, "on", "off")
-/* / parses an enable/disable command argument */
+/** parses an enable/disable command argument */
 #define COMMAND_PARSE_ENABLE(in, out) \
 	COMMAND_PARSE_BOOL(in, out, "enable", "disable")
 
