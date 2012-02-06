@@ -434,6 +434,14 @@ They only works with ST Micro chips, notably STM32 and STM8.
 @* Link: @url{http://www.st.com/internet/evalboard/product/251168.jsp}
 @end itemize
 
+For info the original ST-LINK enumerates using the mass storage usb class, however
+it's implementation is completely broken. The result is this causes issues under linux.
+The simplest solution is to get linux to ignore the ST-LINK using one of the following method's:
+@itemize @bullet
+@item modprobe -r usb-storage && modprobe usb-storage quirks=483:3744:i
+@item add "options usb-storage quirks=483:3744:i" to /etc/modprobe.conf
+@end itemize
+
 @section USB Other
 @itemize @bullet
 @item @b{USBprog}
