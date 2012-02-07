@@ -120,6 +120,7 @@ struct stm32x_flash_bank {
 };
 
 static int stm32x_mass_erase(struct flash_bank *bank);
+static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id);
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
@@ -131,8 +132,8 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	stm32x_info = malloc(sizeof(struct stm32x_flash_bank));
-	bank->driver_priv = stm32x_info;
 
+	bank->driver_priv = stm32x_info;
 	stm32x_info->write_algorithm = NULL;
 	stm32x_info->probed = 0;
 	stm32x_info->has_dual_banks = false;
@@ -904,6 +905,39 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	return target_write_u32(target, STM32_FLASH_CR_B0, FLASH_LOCK);
 }
 
+static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
+{
+	/* This check the device CPUID core register to detect
+	 * the M0 from the M3 devices. */
+
+	struct target *target = bank->target;
+	uint32_t cpuid, device_id_register = 0;
+
+	/* Get the CPUID from the ARM Core
+	 * http://infocenter.arm.com/help/topic/com.arm.doc.ddi0432c/DDI0432C_cortex_m0_r0p0_trm.pdf 4.2.1 */
+	int retval = target_read_u32(target, 0xE000ED00, &cpuid);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (((cpuid >> 4) & 0xFFF) == 0xC20) {
+		/* 0xC20 is M0 devices */
+		device_id_register = 0x40015800;
+	} else if (((cpuid >> 4) & 0xFFF) == 0xC23) {
+		/* 0xC23 is M3 devices */
+		device_id_register = 0xE0042000;
+	} else {
+		LOG_ERROR("Cannot identify target as a stm32x");
+		return ERROR_FAIL;
+	}
+
+	/* read stm32 device id register */
+	retval = target_read_u32(target, device_id_register, device_id);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return retval;
+}
+
 static int stm32x_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -914,13 +948,15 @@ static int stm32x_probe(struct flash_bank *bank)
 	int page_size;
 	uint32_t base_address = 0x08000000;
 
+
 	stm32x_info->probed = 0;
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
 
 	/* read stm32 device id register */
-	int retval = target_read_u32(target, 0xE0042000, &device_id);
+	int retval = stm32x_get_device_id(bank, &device_id);
 	if (retval != ERROR_OK)
 		return retval;
+
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
 	/* get flash size from target. */
@@ -1027,6 +1063,18 @@ static int stm32x_probe(struct flash_bank *bank)
 			stm32x_info->register_base = FLASH_REG_BASE_B1;
 			base_address = 0x08080000;
 		}
+	} else if ((device_id & 0xfff) == 0x440) {
+		/* stm32f0x - we have 1k pages
+		 * 4 pages for a protection area */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+
+		/* check for early silicon */
+		if (flash_size_in_kb == 0xffff) {
+			/* number of sectors incorrect on revZ */
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 64k flash");
+			flash_size_in_kb = 64;
+		}
 	} else {
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
@@ -1082,12 +1130,11 @@ COMMAND_HANDLER(stm32x_handle_part_id_command)
 
 static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	struct target *target = bank->target;
 	uint32_t device_id;
 	int printed;
 
-	/* read stm32 device id register */
-	int retval = target_read_u32(target, 0xE0042000, &device_id);
+		/* read stm32 device id register */
+	int retval = stm32x_get_device_id(bank, &device_id);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1205,6 +1252,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		}
 	} else if ((device_id & 0xfff) == 0x430) {
 		printed = snprintf(buf, buf_size, "stm32x (XL) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+
+		switch (device_id >> 16) {
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
+				break;
+
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	} else if ((device_id & 0xfff) == 0x440) {
+		printed = snprintf(buf, buf_size, "stm32f0x - Rev: ");
 		buf += printed;
 		buf_size -= printed;
 
