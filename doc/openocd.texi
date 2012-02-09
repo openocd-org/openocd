@@ -1810,6 +1810,45 @@ OpenOCD verifies the scan chain after reset,
 look at how you are setting up JTAG clocking.
 @end quotation
 
+@anchor{The init_targets procedure}
+@subsection The init_targets procedure
+@cindex init_targets procedure
+
+Target config files can either be ``linear'' (script executed line-by-line when parsed in configuration stage,
+@xref{Configuration Stage}) or they can contain a special procedure called @code{init_targets}, which will be executed
+when entering run stage (after parsing all config files or after @code{init} command, @xref{Entering the Run Stage}).
+Such procedure can be overriden by ``next level'' script (which sources the original). This concept faciliates code
+reuse when basic target config files provide generic configuration procedures and @code{init_targets} procedure, which
+can then be sourced and enchanced or changed in a ``more specific'' target config file. This is not possible with
+``linear'' config scripts, because sourcing them executes every initialization commands they provide.
+
+@example
+### generic_file.cfg ###
+
+proc setup_my_chip @{chip_name flash_size ram_size@} @{
+    # basic initialization procedure ...
+@}
+
+proc init_targets @{@} @{
+    # initializes generic chip with 4kB of flash and 1kB of RAM
+    setup_my_chip MY_GENERIC_CHIP 4096 1024
+@}
+
+### specific_file.cfg ###
+
+source [find target/generic_file.cfg]
+
+proc init_targets @{@} @{
+    # initializes specific chip with 128kB of flash and 64kB of RAM
+    setup_my_chip MY_CHIP_WITH_128K_FLASH_64KB_RAM 131072 65536
+@}
+@end example
+
+The easiest way to convert ``linear'' config files to @code{init_targets} version is to enclose every line of ``code''
+(i.e. not @code{source} commands, procedures, etc.) in this procedure.
+
+For an example of this scheme see LPC2000 target config files.
+
 @subsection ARM Core Specific Hacks
 
 If the chip has a DCC, enable it. If the chip is an ARM9 with some
@@ -1922,6 +1961,7 @@ may access or activate TAPs.
 After it leaves this stage, configuration commands may no
 longer be issued.
 
+@anchor{Entering the Run Stage}
 @section Entering the Run Stage
 
 The first thing OpenOCD does after leaving the configuration
