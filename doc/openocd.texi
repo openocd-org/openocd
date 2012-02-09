@@ -1549,6 +1549,47 @@ also supports it.  Otherwise use @command{adapter_khz}.
 Set the slow rate at the beginning of the reset sequence,
 and the faster rate as soon as the clocks are at full speed.
 
+@anchor{The init_board procedure}
+@subsection The init_board procedure
+@cindex init_board procedure
+
+The concept of @code{init_board} procedure is very similar to @code{init_targets} (@xref{The init_targets procedure}) -
+it's a replacement of ``linear'' configuration scripts. This procedure is meant to be executed when OpenOCD enters run
+stage (@xref{Entering the Run Stage}), after @code{init_targets}. The idea to have spearate @code{init_targets} and
+@code{init_board} procedures is to allow the first one to configure everything target specific (internal flash,
+internal RAM, etc.) and the second one to configure everything board specific (reset signals, chip frequency,
+reset-init event handler, external memory, etc.). Additionally ``linear'' board config file will most likely fail when
+target config file uses @code{init_targets} scheme (``linear'' script is executed before @code{init} and
+@code{init_targets} - after), so separating these two configuration stages is very convenient, as the easiest way to
+overcome this problem is to convert board config file to use @code{init_board} procedure. Board config scripts don't
+need to override @code{init_targets} defined in target config files when they only need to to add some specifics.
+
+Just as @code{init_targets}, the @code{init_board} procedure can be overriden by ``next level'' script (which sources
+the original), allowing greater code reuse.
+
+@example
+### board_file.cfg ###
+
+# source target file that does most of the config in init_targets
+source [find target/target.cfg]
+
+proc enable_fast_clock @{@} @{
+    # enables fast on-board clock source
+    # configures the chip to use it
+@}
+
+# initialize only board specifics - reset, clock, adapter frequency
+proc init_board @{@} @{
+    reset_config trst_and_srst trst_pulls_srst
+
+    $_TARGETNAME configure -event reset-init @{
+        adapter_khz 1
+        enable_fast_clock
+        adapter_khz 10000
+    @}
+@}
+@end example
+
 @section Target Config Files
 @cindex config file, target
 @cindex target config file
@@ -1848,6 +1889,8 @@ The easiest way to convert ``linear'' config files to @code{init_targets} versio
 (i.e. not @code{source} commands, procedures, etc.) in this procedure.
 
 For an example of this scheme see LPC2000 target config files.
+
+The @code{init_boards} procedure is a similar concept concerning board config files (@xref{The init_board procedure}).
 
 @subsection ARM Core Specific Hacks
 
