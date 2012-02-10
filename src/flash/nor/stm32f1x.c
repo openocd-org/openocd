@@ -672,23 +672,6 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		}
 	};
 
-	/* Set up working area. First word is write pointer, second word is read pointer,
-	 * rest is fifo data area. */
-	uint32_t wp_addr = source->address;
-	uint32_t rp_addr = source->address + 4;
-	uint32_t fifo_start_addr = source->address + 8;
-	uint32_t fifo_end_addr = source->address + source->size;
-
-	uint32_t wp = fifo_start_addr;
-	uint32_t rp = fifo_start_addr;
-
-	retval = target_write_u32(target, wp_addr, wp);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = target_write_u32(target, rp_addr, rp);
-	if (retval != ERROR_OK)
-		return retval;
-
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* flash base (in), status (out) */
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);	/* count (halfword-16bit) */
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);	/* buffer start */
@@ -704,89 +687,12 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
 
-	/* Start up algorithm on target and let it idle while writing the first chunk */
-	retval = target_start_algorithm(target, 0, NULL, 5, reg_params,
-			stm32x_info->write_algorithm->address,
-			0,
+	retval = target_run_flash_async_algorithm(target, buffer, count, 2,
+			0, NULL,
+			5, reg_params,
+			source->address, source->size,
+			stm32x_info->write_algorithm->address, 0,
 			&armv7m_info);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("error starting stm32x flash write algorithm");
-		goto cleanup;
-	}
-
-	while (count > 0) {
-		retval = target_read_u32(target, rp_addr, &rp);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("failed to get read pointer");
-			break;
-		}
-
-		LOG_DEBUG("count 0x%"PRIx32" wp 0x%"PRIx32" rp 0x%"PRIx32, count, wp, rp);
-
-		if (rp == 0) {
-			LOG_ERROR("flash write algorithm aborted by target");
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
-		}
-
-		if ((rp & 1) || rp < fifo_start_addr || rp >= fifo_end_addr) {
-			LOG_ERROR("corrupted fifo read pointer 0x%"PRIx32, rp);
-			break;
-		}
-
-		/* Count the number of bytes available in the fifo without
-		 * crossing the wrap around. Make sure to not fill it completely,
-		 * because that would make wp == rp and that's the empty condition. */
-		uint32_t thisrun_bytes;
-		if (rp > wp)
-			thisrun_bytes = rp - wp - 2;
-		else if (rp > fifo_start_addr)
-			thisrun_bytes = fifo_end_addr - wp;
-		else
-			thisrun_bytes = fifo_end_addr - wp - 2;
-
-		if (thisrun_bytes == 0) {
-			/* Throttle polling a bit if transfer is (much) faster than flash
-			 * programming. The exact delay shouldn't matter as long as it's
-			 * less than buffer size / flash speed. This is very unlikely to
-			 * run when using high latency connections such as USB. */
-			alive_sleep(10);
-			continue;
-		}
-
-		/* Limit to the amount of data we actually want to write */
-		if (thisrun_bytes > count * 2)
-			thisrun_bytes = count * 2;
-
-		/* Write data to fifo */
-		retval = target_write_buffer(target, wp, thisrun_bytes, buffer);
-		if (retval != ERROR_OK)
-			break;
-
-		/* Update counters and wrap write pointer */
-		buffer += thisrun_bytes;
-		count -= thisrun_bytes / 2;
-		wp += thisrun_bytes;
-		if (wp >= fifo_end_addr)
-			wp = fifo_start_addr;
-
-		/* Store updated write pointer to target */
-		retval = target_write_u32(target, wp_addr, wp);
-		if (retval != ERROR_OK)
-			break;
-	}
-
-	if (retval != ERROR_OK) {
-		/* abort flash write algorithm on target */
-		target_write_u32(target, wp_addr, 0);
-	}
-
-	int retval2 = target_wait_algorithm(target, 0, NULL, 5, reg_params,
-			0, 10000, &armv7m_info);
-	if (retval2 != ERROR_OK) {
-		LOG_ERROR("error waiting for stm32x flash write algorithm");
-		retval = retval2;
-	}
 
 	if (retval == ERROR_FLASH_OPERATION_FAILED) {
 		LOG_ERROR("flash write failed at address 0x%"PRIx32,
@@ -805,7 +711,6 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		}
 	}
 
-cleanup:
 	target_free_working_area(target, source);
 	target_free_working_area(target, stm32x_info->write_algorithm);
 

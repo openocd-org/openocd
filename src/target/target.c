@@ -796,6 +796,137 @@ done:
 	return retval;
 }
 
+/**
+ * Executes a target-specific native code algorithm in the target.
+ * It differs from target_run_algorithm in that the algorithm is asynchronous.
+ * Because of this it requires an compliant algorithm:
+ * see contrib/loaders/flash/stm32f1x.S for example.
+ *
+ * @param target used to run the algorithm
+ */
+
+int target_run_flash_async_algorithm(struct target *target,
+		uint8_t *buffer, uint32_t count, int block_size,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t buffer_start, uint32_t buffer_size,
+		uint32_t entry_point, uint32_t exit_point, void *arch_info)
+{
+	int retval;
+
+	/* Set up working area. First word is write pointer, second word is read pointer,
+	 * rest is fifo data area. */
+	uint32_t wp_addr = buffer_start;
+	uint32_t rp_addr = buffer_start + 4;
+	uint32_t fifo_start_addr = buffer_start + 8;
+	uint32_t fifo_end_addr = buffer_start + buffer_size;
+
+	uint32_t wp = fifo_start_addr;
+	uint32_t rp = fifo_start_addr;
+
+	/* validate block_size is 2^n */
+	assert(!block_size || !(block_size & (block_size - 1)));
+
+	retval = target_write_u32(target, wp_addr, wp);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, rp_addr, rp);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Start up algorithm on target and let it idle while writing the first chunk */
+	retval = target_start_algorithm(target, num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			entry_point,
+			exit_point,
+			arch_info);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("error starting target flash write algorithm");
+		return retval;
+	}
+
+	while (count > 0) {
+
+		retval = target_read_u32(target, rp_addr, &rp);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("failed to get read pointer");
+			break;
+		}
+
+		LOG_DEBUG("count 0x%" PRIx32 " wp 0x%" PRIx32 " rp 0x%" PRIx32, count, wp, rp);
+
+		if (rp == 0) {
+			LOG_ERROR("flash write algorithm aborted by target");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		}
+
+		if ((rp & (block_size - 1)) || rp < fifo_start_addr || rp >= fifo_end_addr) {
+			LOG_ERROR("corrupted fifo read pointer 0x%" PRIx32, rp);
+			break;
+		}
+
+		/* Count the number of bytes available in the fifo without
+		 * crossing the wrap around. Make sure to not fill it completely,
+		 * because that would make wp == rp and that's the empty condition. */
+		uint32_t thisrun_bytes;
+		if (rp > wp)
+			thisrun_bytes = rp - wp - block_size;
+		else if (rp > fifo_start_addr)
+			thisrun_bytes = fifo_end_addr - wp;
+		else
+			thisrun_bytes = fifo_end_addr - wp - block_size;
+
+		if (thisrun_bytes == 0) {
+			/* Throttle polling a bit if transfer is (much) faster than flash
+			 * programming. The exact delay shouldn't matter as long as it's
+			 * less than buffer size / flash speed. This is very unlikely to
+			 * run when using high latency connections such as USB. */
+			alive_sleep(10);
+			continue;
+		}
+
+		/* Limit to the amount of data we actually want to write */
+		if (thisrun_bytes > count * block_size)
+			thisrun_bytes = count * block_size;
+
+		/* Write data to fifo */
+		retval = target_write_buffer(target, wp, thisrun_bytes, buffer);
+		if (retval != ERROR_OK)
+			break;
+
+		/* Update counters and wrap write pointer */
+		buffer += thisrun_bytes;
+		count -= thisrun_bytes / block_size;
+		wp += thisrun_bytes;
+		if (wp >= fifo_end_addr)
+			wp = fifo_start_addr;
+
+		/* Store updated write pointer to target */
+		retval = target_write_u32(target, wp_addr, wp);
+		if (retval != ERROR_OK)
+			break;
+	}
+
+	if (retval != ERROR_OK) {
+		/* abort flash write algorithm on target */
+		target_write_u32(target, wp_addr, 0);
+	}
+
+	int retval2 = target_wait_algorithm(target, num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			exit_point,
+			10000,
+			arch_info);
+
+	if (retval2 != ERROR_OK) {
+		LOG_ERROR("error waiting for target flash write algorithm");
+		retval = retval2;
+	}
+
+	return retval;
+}
 
 int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
