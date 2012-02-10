@@ -958,43 +958,41 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 /* see contib/loaders/flash/stellaris.s for src */
 
 static const uint8_t stellaris_write_code[] = {
-/*
-	Call with :
-	r0 = buffer address
-	r1 = destination address
-	r2 = bytecount (in) - endaddr (work)
+								/* write: */
+	0xDF, 0xF8, 0x40, 0x40,		/* ldr		r4, pFLASH_CTRL_BASE */
+	0xDF, 0xF8, 0x40, 0x50,		/* ldr		r5, FLASHWRITECMD */
+								/* wait_fifo: */
+	0xD0, 0xF8, 0x00, 0x80,		/* ldr		r8, [r0, #0] */
+	0xB8, 0xF1, 0x00, 0x0F,		/* cmp		r8, #0 */
+	0x17, 0xD0,					/* beq		exit */
+	0x47, 0x68,					/* ldr		r7, [r0, #4] */
+	0x47, 0x45,					/* cmp		r7, r8 */
+	0xF7, 0xD0,					/* beq		wait_fifo */
+								/* mainloop: */
+	0x22, 0x60,					/* str		r2, [r4, #0] */
+	0x02, 0xF1, 0x04, 0x02,		/* add		r2, r2, #4 */
+	0x57, 0xF8, 0x04, 0x8B,		/* ldr		r8, [r7], #4 */
+	0xC4, 0xF8, 0x04, 0x80,		/* str		r8, [r4, #4] */
+	0xA5, 0x60,					/* str		r5, [r4, #8] */
+								/* busy: */
+	0xD4, 0xF8, 0x08, 0x80,		/* ldr		r8, [r4, #8] */
+	0x18, 0xF0, 0x01, 0x0F,		/* tst		r8, #1 */
+	0xFA, 0xD1,					/* bne		busy */
+	0x8F, 0x42,					/* cmp		r7, r1 */
+	0x28, 0xBF,					/* it		cs */
+	0x00, 0xF1, 0x08, 0x07,		/* addcs	r7, r0, #8 */
+	0x47, 0x60,					/* str		r7, [r0, #4] */
+	0x01, 0x3B,					/* subs		r3, r3, #1 */
+	0x03, 0xB1,					/* cbz		r3, exit */
+	0xE2, 0xE7,					/* b		wait_fifo */
+								/* exit: */
+	0x00, 0xBE,					/* bkpt		#0 */
 
-	Used registers:
-	r3 = pFLASH_CTRL_BASE
-	r4 = FLASHWRITECMD
-	r5 = #1
-	r6 = bytes written
-	r7 = temp reg
-*/
-	0x07, 0x4B,			/* ldr r3,pFLASH_CTRL_BASE */
-	0x08, 0x4C,			/* ldr r4,FLASHWRITECMD */
-	0x01, 0x25,			/* movs r5, 1 */
-	0x00, 0x26,			/* movs r6, #0 */
-/* mainloop: */
-	0x19, 0x60,			/* str	r1, [r3, #0] */
-	0x87, 0x59,			/* ldr	r7, [r0, r6] */
-	0x5F, 0x60,			/* str	r7, [r3, #4] */
-	0x9C, 0x60,			/* str	r4, [r3, #8] */
-/* waitloop: */
-	0x9F, 0x68,			/* ldr	r7, [r3, #8] */
-	0x2F, 0x42,			/* tst	r7, r5 */
-	0xFC, 0xD1,			/* bne	waitloop */
-	0x04, 0x31,			/* adds	r1, r1, #4 */
-	0x04, 0x36,			/* adds	r6, r6, #4 */
-	0x96, 0x42,			/* cmp	r6, r2 */
-	0xF4, 0xD1,			/* bne	mainloop */
-	0x00, 0xBE,			/* bkpt #0 */
-/* pFLASH_CTRL_BASE: */
+	/* pFLASH_CTRL_BASE: */
 	0x00, 0xD0, 0x0F, 0x40,	/* .word	0x400FD000 */
-/* FLASHWRITECMD: */
+	/* FLASHWRITECMD: */
 	0x01, 0x00, 0x42, 0xA4	/* .word	0xA4420001 */
 };
-
 static int stellaris_write_block(struct flash_bank *bank,
 		uint8_t *buffer, uint32_t offset, uint32_t wcount)
 {
@@ -1003,7 +1001,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 	struct working_area *source;
 	struct working_area *write_algorithm;
 	uint32_t address = bank->base + offset;
-	struct reg_param reg_params[3];
+	struct reg_param reg_params[4];
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
@@ -1032,7 +1030,8 @@ static int stellaris_write_block(struct flash_bank *bank,
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= buf_min) {
-			target_free_working_area(target, write_algorithm);
+			if (write_algorithm)
+				target_free_working_area(target, write_algorithm);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		LOG_DEBUG("retry target_alloc_working_area(%s, size=%u)",
@@ -1049,39 +1048,22 @@ static int stellaris_write_block(struct flash_bank *bank,
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
 
-	while (wcount > 0) {
-		uint32_t thisrun_count = (wcount > (buffer_size / 4)) ? (buffer_size / 4) : wcount;
+	buf_set_u32(reg_params[0].value, 0, 32, source->address);
+	buf_set_u32(reg_params[1].value, 0, 32, source->address + source->size);
+	buf_set_u32(reg_params[2].value, 0, 32, address);
+	buf_set_u32(reg_params[3].value, 0, 32, wcount);
 
-		target_write_buffer(target, source->address, thisrun_count * 4, buffer);
+	retval = target_run_flash_async_algorithm(target, buffer, wcount, 4,
+			0, NULL,
+			4, reg_params,
+			source->address, source->size,
+			write_algorithm->address, 0,
+			&armv7m_info);
 
-		buf_set_u32(reg_params[0].value, 0, 32, source->address);
-		buf_set_u32(reg_params[1].value, 0, 32, address);
-		buf_set_u32(reg_params[2].value, 0, 32, 4*thisrun_count);
-		LOG_DEBUG("Algorithm flash write %u words to 0x%" PRIx32
-				", %u remaining",
-				(unsigned) thisrun_count, address,
-				(unsigned) (wcount - thisrun_count));
-		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-				write_algorithm->address,
-				0,
-				10000, &armv7m_info);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("error %d executing stellaris "
-					"flash write algorithm",
-					retval);
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
-		}
-
-		buffer += thisrun_count * 4;
-		address += thisrun_count * 4;
-		wcount -= thisrun_count;
-	}
-
-	/* REVISIT we could speed up writing multi-section images by
-	 * not freeing the initialized write_algorithm this way.
-	 */
+	if (retval == ERROR_FLASH_OPERATION_FAILED)
+		LOG_ERROR("error %d executing stellaris flash write algorithm", retval);
 
 	target_free_working_area(target, write_algorithm);
 	target_free_working_area(target, source);
@@ -1089,6 +1071,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
+	destroy_reg_param(&reg_params[3]);
 
 	return retval;
 }

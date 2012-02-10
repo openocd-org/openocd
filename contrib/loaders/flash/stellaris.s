@@ -26,41 +26,53 @@
 	.cpu cortex-m3
 	.thumb
 	.thumb_func
-	.align	2
 
 /*
-	Call with :	
-	r0 = buffer address
-	r1 = destination address
-	r2 = bytecount (in) - endaddr (work) 
-	
-	Used registers:	
-	r3 = pFLASH_CTRL_BASE
-	r4 = FLASHWRITECMD
-	r5 = #1
-	r6 = bytes written
-	r7 = temp reg
-*/
+ * Params :
+ * r0 = workarea start
+ * r1 = workarea end
+ * r2 = target address
+ * r3 = count (32bit words)
+ *
+ * Clobbered:
+ * r4 = pFLASH_CTRL_BASE
+ * r5 = FLASHWRITECMD
+ * r7 - rp
+ * r8 - wp, tmp
+ */
 
 write:
-	ldr 	r3,pFLASH_CTRL_BASE
-	ldr 	r4,FLASHWRITECMD
-	movs 	r5, 1
-	movs 	r6, #0
+	ldr 	r4, pFLASH_CTRL_BASE
+	ldr 	r5, FLASHWRITECMD
+
+wait_fifo:
+	ldr 	r8, [r0, #0]	/* read wp */
+	cmp 	r8, #0			/* abort if wp == 0 */
+	beq 	exit
+	ldr 	r7, [r0, #4]	/* read rp */
+	cmp 	r7, r8			/* wait until rp != wp */
+	beq 	wait_fifo
+
 mainloop:
-	str		r1, [r3, #0]
-	ldr		r7, [r0, r6]
-	str		r7, [r3, #4]
-	str		r4, [r3, #8]
-waitloop:
-	ldr		r7, [r3, #8]
-	tst		r7, r5
-	bne		waitloop
-	adds	r1, r1, #4
-	adds	r6, r6, #4
-	cmp		r6, r2
-	bne		mainloop
-	bkpt 	#0
+	str		r2, [r4, #0]	/* FMA - write address */
+	add		r2, r2, #4		/* increment target address */
+	ldr		r8, [r7], #4
+	str		r8, [r4, #4]	/* FMD - write data */
+	str		r5, [r4, #8]	/* FMC - enable write */
+busy:
+	ldr		r8, [r4, #8]
+	tst		r8, #1
+	bne		busy
+
+	cmp 	r7, r1			/* wrap rp at end of buffer */
+	it  	cs
+	addcs	r7, r0, #8		/* skip loader args */
+	str 	r7, [r0, #4]	/* store rp */
+	subs	r3, r3, #1		/* decrement word count */
+	cbz 	r3, exit		/* loop if not done */
+	b		wait_fifo
+exit:
+	bkpt	#0
 
 pFLASH_CTRL_BASE: .word 0x400FD000
 FLASHWRITECMD: .word 0xA4420001
