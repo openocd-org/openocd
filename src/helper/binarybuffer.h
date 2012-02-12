@@ -24,6 +24,8 @@
 #ifndef BINARYBUFFER_H
 #define BINARYBUFFER_H
 
+#include "list.h"
+
 /** @file
  * Support functions to access arbitrary bits in a byte array
  */
@@ -129,4 +131,29 @@ static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
 	return le ? le_to_h_u32(p) : be_to_h_u32(p);
 }
 
-#endif	/* BINARYBUFFER_H */
+static inline void bit_copy(uint8_t *dst, unsigned dst_offset, const uint8_t *src,
+	unsigned src_offset, unsigned bit_count)
+{
+	buf_set_buf(src, src_offset, dst, dst_offset, bit_count);
+}
+
+struct bit_copy_queue {
+	struct list_head list;
+};
+
+struct bit_copy_queue_entry {
+	uint8_t *dst;
+	unsigned dst_offset;
+	const uint8_t *src;
+	unsigned src_offset;
+	unsigned bit_count;
+	struct list_head list;
+};
+
+void bit_copy_queue_init(struct bit_copy_queue *q);
+int bit_copy_queued(struct bit_copy_queue *q, uint8_t *dst, unsigned dst_offset, const uint8_t *src,
+		    unsigned src_offset, unsigned bit_count);
+void bit_copy_execute(struct bit_copy_queue *q);
+void bit_copy_discard(struct bit_copy_queue *q);
+
+#endif /* BINARYBUFFER_H */

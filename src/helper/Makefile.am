@@ -33,6 +33,7 @@ noinst_HEADERS = \
 	binarybuffer.h \
 	configuration.h \
 	ioutil.h \
+	list.h \
 	util.h \
 	types.h \
 	log.h \

@@ -327,3 +327,46 @@ int str_to_buf(const char *str, unsigned str_len,
 
 	return i;
 }
+
+void bit_copy_queue_init(struct bit_copy_queue *q)
+{
+	INIT_LIST_HEAD(&q->list);
+}
+
+int bit_copy_queued(struct bit_copy_queue *q, uint8_t *dst, unsigned dst_offset, const uint8_t *src,
+	unsigned src_offset, unsigned bit_count)
+{
+	struct bit_copy_queue_entry *qe = malloc(sizeof(*qe));
+	if (!qe)
+		return ERROR_FAIL;
+
+	qe->dst = dst;
+	qe->dst_offset = dst_offset;
+	qe->src = src;
+	qe->src_offset = src_offset;
+	qe->bit_count = bit_count;
+	list_add_tail(&qe->list, &q->list);
+
+	return ERROR_OK;
+}
+
+void bit_copy_execute(struct bit_copy_queue *q)
+{
+	struct bit_copy_queue_entry *qe;
+	struct bit_copy_queue_entry *tmp;
+	list_for_each_entry_safe(qe, tmp, &q->list, list) {
+		bit_copy(qe->dst, qe->dst_offset, qe->src, qe->src_offset, qe->bit_count);
+		list_del(&qe->list);
+		free(qe);
+	}
+}
+
+void bit_copy_discard(struct bit_copy_queue *q)
+{
+	struct bit_copy_queue_entry *qe;
+	struct bit_copy_queue_entry *tmp;
+	list_for_each_entry_safe(qe, tmp, &q->list, list) {
+		list_del(&qe->list);
+		free(qe);
+	}
+}
