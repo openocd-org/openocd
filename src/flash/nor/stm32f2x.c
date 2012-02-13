@@ -603,7 +603,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
 	/* get flash size from target. */
-	retval = target_read_u16(target, 0x1FFF7A10, &flash_size_in_kb);
+	retval = target_read_u16(target, 0x1FFF7A22, &flash_size_in_kb);
 	if (retval != ERROR_OK) {
 		LOG_WARNING("failed reading flash size, default to max target family");
 		/* failed reading flash size, default to max target family */
