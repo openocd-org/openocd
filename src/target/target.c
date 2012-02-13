@@ -20,6 +20,9 @@
  *   Copyright (C) ST-Ericsson SA 2011                                     *
  *   michel.jaouen@stericsson.com : smp minimum support                    *
  *                                                                         *
+ *   Copyright (C) 2011 Andreas Fritiofson                                 *
+ *   andreas.fritiofson@gmail.com                                          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -1232,11 +1235,85 @@ int target_call_timer_callbacks_now(void)
 	return target_call_timer_callbacks_check_time(0);
 }
 
-int target_alloc_working_area_try(struct target *target, uint32_t size, struct working_area **area)
+/* Prints the working area layout for debug purposes */
+static void print_wa_layout(struct target *target)
 {
 	struct working_area *c = target->working_areas;
-	struct working_area *new_wa = NULL;
 
+	while (c) {
+		LOG_DEBUG("%c%c 0x%08"PRIx32"-0x%08"PRIx32" (%"PRIu32" bytes)",
+			c->backup ? 'b' : ' ', c->free ? ' ' : '*',
+			c->address, c->address + c->size - 1, c->size);
+		c = c->next;
+	}
+}
+
+/* Reduce area to size bytes, create a new free area from the remaining bytes, if any. */
+static void target_split_working_area(struct working_area *area, uint32_t size)
+{
+	assert(area->free); /* Shouldn't split an allocated area */
+	assert(size <= area->size); /* Caller should guarantee this */
+
+	/* Split only if not already the right size */
+	if (size < area->size) {
+		struct working_area *new_wa = malloc(sizeof(*new_wa));
+
+		if (new_wa == NULL)
+			return;
+
+		new_wa->next = area->next;
+		new_wa->size = area->size - size;
+		new_wa->address = area->address + size;
+		new_wa->backup = NULL;
+		new_wa->user = NULL;
+		new_wa->free = true;
+
+		area->next = new_wa;
+		area->size = size;
+
+		/* If backup memory was allocated to this area, it has the wrong size
+		 * now so free it and it will be reallocated if/when needed */
+		if (area->backup) {
+			free(area->backup);
+			area->backup = NULL;
+		}
+	}
+}
+
+/* Merge all adjacent free areas into one */
+static void target_merge_working_areas(struct target *target)
+{
+	struct working_area *c = target->working_areas;
+
+	while (c && c->next) {
+		assert(c->next->address == c->address + c->size); /* This is an invariant */
+
+		/* Find two adjacent free areas */
+		if (c->free && c->next->free) {
+			/* Merge the last into the first */
+			c->size += c->next->size;
+
+			/* Remove the last */
+			struct working_area *to_be_freed = c->next;
+			c->next = c->next->next;
+			if (to_be_freed->backup)
+				free(to_be_freed->backup);
+			free(to_be_freed);
+
+			/* If backup memory was allocated to the remaining area, it's has
+			 * the wrong size now */
+			if (c->backup) {
+				free(c->backup);
+				c->backup = NULL;
+			}
+		} else {
+			c = c->next;
+		}
+	}
+}
+
+int target_alloc_working_area_try(struct target *target, uint32_t size, struct working_area **area)
+{
 	/* Reevaluate working area address based on MMU state*/
 	if (target->working_areas == NULL) {
 		int retval;
@@ -1249,8 +1326,8 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 		if (!enabled) {
 			if (target->working_area_phys_spec) {
 				LOG_DEBUG("MMU disabled, using physical "
-					"address for working memory 0x%08x",
-					(unsigned)target->working_area_phys);
+					"address for working memory 0x%08"PRIx32,
+					target->working_area_phys);
 				target->working_area = target->working_area_phys;
 			} else {
 				LOG_ERROR("No working memory available. "
@@ -1260,8 +1337,8 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 		} else {
 			if (target->working_area_virt_spec) {
 				LOG_DEBUG("MMU enabled, using virtual "
-					"address for working memory 0x%08x",
-					(unsigned)target->working_area_virt);
+					"address for working memory 0x%08"PRIx32,
+					target->working_area_virt);
 				target->working_area = target->working_area_virt;
 			} else {
 				LOG_ERROR("No working memory available. "
@@ -1269,70 +1346,62 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 			}
 		}
+
+		/* Set up initial working area on first call */
+		struct working_area *new_wa = malloc(sizeof(*new_wa));
+		if (new_wa) {
+			new_wa->next = NULL;
+			new_wa->size = target->working_area_size & ~3UL; /* 4-byte align */
+			new_wa->address = target->working_area;
+			new_wa->backup = NULL;
+			new_wa->user = NULL;
+			new_wa->free = true;
+		}
+
+		target->working_areas = new_wa;
 	}
 
 	/* only allocate multiples of 4 byte */
-	if (size % 4) {
-		LOG_ERROR("BUG: code tried to allocate unaligned number of bytes (0x%08x), padding", ((unsigned)(size)));
-		size = (size + 3) & (~3);
-	}
+	if (size % 4)
+		size = (size + 3) & (~3UL);
 
-	/* see if there's already a matching working area */
+	struct working_area *c = target->working_areas;
+
+	/* Find the first large enough working area */
 	while (c) {
-		if ((c->free) && (c->size == size)) {
-			new_wa = c;
+		if (c->free && c->size >= size)
 			break;
-		}
 		c = c->next;
 	}
 
-	/* if not, allocate a new one */
-	if (!new_wa) {
-		struct working_area **p = &target->working_areas;
-		uint32_t first_free = target->working_area;
-		uint32_t free_size = target->working_area_size;
+	if (c == NULL)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-		c = target->working_areas;
-		while (c) {
-			first_free += c->size;
-			free_size -= c->size;
-			p = &c->next;
-			c = c->next;
+	/* Split the working area into the requested size */
+	target_split_working_area(c, size);
+
+	LOG_DEBUG("allocated new working area of %"PRIu32" bytes at address 0x%08"PRIx32, size, c->address);
+
+	if (target->backup_working_area) {
+		if (c->backup == NULL) {
+			c->backup = malloc(c->size);
+			if (c->backup == NULL)
+				return ERROR_FAIL;
 		}
 
-		if (free_size < size)
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-
-		LOG_DEBUG("allocated new working area at address 0x%08x", (unsigned)first_free);
-
-		new_wa = malloc(sizeof(struct working_area));
-		new_wa->next = NULL;
-		new_wa->size = size;
-		new_wa->address = first_free;
-
-		if (target->backup_working_area) {
-			int retval;
-			new_wa->backup = malloc(new_wa->size);
-			retval = target_read_memory(target, new_wa->address, 4,
-					new_wa->size / 4, new_wa->backup);
-			if (retval != ERROR_OK) {
-				free(new_wa->backup);
-				free(new_wa);
-				return retval;
-			}
-		} else
-			new_wa->backup = NULL;
-
-		/* put new entry in list */
-		*p = new_wa;
+		int retval = target_read_memory(target, c->address, 4, c->size / 4, c->backup);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	/* mark as used, and return the new (reused) area */
-	new_wa->free = false;
-	*area = new_wa;
+	c->free = false;
+	*area = c;
 
 	/* user pointer */
-	new_wa->user = area;
+	c->user = area;
+
+	print_wa_layout(target);
 
 	return ERROR_OK;
 }
@@ -1343,30 +1412,57 @@ int target_alloc_working_area(struct target *target, uint32_t size, struct worki
 
 	retval = target_alloc_working_area_try(target, size, area);
 	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-		LOG_WARNING("not enough working area available(requested %u)", (unsigned)(size));
+		LOG_WARNING("not enough working area available(requested %"PRIu32")", size);
 	return retval;
 
 }
 
+static int target_restore_working_area(struct target *target, struct working_area *area)
+{
+	int retval = ERROR_OK;
+
+	if (target->backup_working_area && area->backup != NULL) {
+		retval = target_write_memory(target, area->address, 4, area->size / 4, area->backup);
+		if (retval != ERROR_OK)
+			LOG_ERROR("failed to restore %"PRIu32" bytes of working area at address 0x%08"PRIx32,
+					area->size, area->address);
+	}
+
+	return retval;
+}
+
+/* Restore the area's backup memory, if any, and return the area to the allocation pool */
 static int target_free_working_area_restore(struct target *target, struct working_area *area, int restore)
 {
-	if (area->free)
-		return ERROR_OK;
+	int retval = ERROR_OK;
 
-	if (restore && target->backup_working_area) {
-		int retval = target_write_memory(target,
-				area->address, 4, area->size / 4, area->backup);
+	if (area->free)
+		return retval;
+
+	if (restore) {
+		retval = target_restore_working_area(target, area);
+		/* REVISIT: Perhaps the area should be freed even if restoring fails. */
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	area->free = true;
 
+	LOG_DEBUG("freed %"PRIu32" bytes of working area at address 0x%08"PRIx32,
+			area->size, area->address);
+
 	/* mark user pointer invalid */
+	/* TODO: Is this really safe? It points to some previous caller's memory.
+	 * How could we know that the area pointer is still in that place and not
+	 * some other vital data? What's the purpose of this, anyway? */
 	*area->user = NULL;
 	area->user = NULL;
 
-	return ERROR_OK;
+	target_merge_working_areas(target);
+
+	print_wa_layout(target);
+
+	return retval;
 }
 
 int target_free_working_area(struct target *target, struct working_area *area)
@@ -1381,19 +1477,24 @@ static void target_free_all_working_areas_restore(struct target *target, int res
 {
 	struct working_area *c = target->working_areas;
 
+	LOG_DEBUG("freeing all working areas");
+
+	/* Loop through all areas, restoring the allocated ones and marking them as free */
 	while (c) {
-		struct working_area *next = c->next;
-		target_free_working_area_restore(target, c, restore);
-
-		if (c->backup)
-			free(c->backup);
-
-		free(c);
-
-		c = next;
+		if (!c->free) {
+			if (restore)
+				target_restore_working_area(target, c);
+			c->free = true;
+			*c->user = NULL; /* Same as above */
+			c->user = NULL;
+		}
+		c = c->next;
 	}
 
-	target->working_areas = NULL;
+	/* Run a merge pass to combine all areas into one */
+	target_merge_working_areas(target);
+
+	print_wa_layout(target);
 }
 
 void target_free_all_working_areas(struct target *target)
