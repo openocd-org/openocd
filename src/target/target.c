@@ -1502,6 +1502,25 @@ void target_free_all_working_areas(struct target *target)
 	target_free_all_working_areas_restore(target, 1);
 }
 
+/* Find the largest number of bytes that can be allocated */
+uint32_t target_get_working_area_avail(struct target *target)
+{
+	struct working_area *c = target->working_areas;
+	uint32_t max_size = 0;
+
+	if (c == NULL)
+		return target->working_area_size;
+
+	while (c) {
+		if (c->free && max_size < c->size)
+			max_size = c->size;
+
+		c = c->next;
+	}
+
+	return max_size;
+}
+
 int target_arch_state(struct target *target)
 {
 	int retval;

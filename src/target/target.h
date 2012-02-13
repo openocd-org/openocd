@@ -540,6 +540,7 @@ int target_alloc_working_area_try(struct target *target,
 		uint32_t size, struct working_area **area);
 int target_free_working_area(struct target *target, struct working_area *area);
 void target_free_all_working_areas(struct target *target);
+uint32_t target_get_working_area_avail(struct target *target);
 
 extern struct target *all_targets;
 
