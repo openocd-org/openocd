@@ -1339,7 +1339,7 @@ have only been used by the developer who created it.
 
 A separate chapter gives information about how to set these up.
 @xref{Debug Adapter Configuration}.
-Read the OpenOCD source code (and Developer's GUide)
+Read the OpenOCD source code (and Developer's Guide)
 if you have a new kind of hardware interface
 and need to provide a driver for it.
 
