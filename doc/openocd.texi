@@ -1553,9 +1553,9 @@ and the faster rate as soon as the clocks are at full speed.
 @subsection The init_board procedure
 @cindex init_board procedure
 
-The concept of @code{init_board} procedure is very similar to @code{init_targets} (@xref{The init_targets procedure}) -
-it's a replacement of ``linear'' configuration scripts. This procedure is meant to be executed when OpenOCD enters run
-stage (@xref{Entering the Run Stage}), after @code{init_targets}. The idea to have spearate @code{init_targets} and
+The concept of @code{init_board} procedure is very similar to @code{init_targets} (@xref{The init_targets procedure}.)
+- it's a replacement of ``linear'' configuration scripts. This procedure is meant to be executed when OpenOCD enters run
+stage (@xref{Entering the Run Stage},) after @code{init_targets}. The idea to have spearate @code{init_targets} and
 @code{init_board} procedures is to allow the first one to configure everything target specific (internal flash,
 internal RAM, etc.) and the second one to configure everything board specific (reset signals, chip frequency,
 reset-init event handler, external memory, etc.). Additionally ``linear'' board config file will most likely fail when
@@ -1856,8 +1856,8 @@ look at how you are setting up JTAG clocking.
 @cindex init_targets procedure
 
 Target config files can either be ``linear'' (script executed line-by-line when parsed in configuration stage,
-@xref{Configuration Stage}) or they can contain a special procedure called @code{init_targets}, which will be executed
-when entering run stage (after parsing all config files or after @code{init} command, @xref{Entering the Run Stage}).
+@xref{Configuration Stage},) or they can contain a special procedure called @code{init_targets}, which will be executed
+when entering run stage (after parsing all config files or after @code{init} command, @xref{Entering the Run Stage}.)
 Such procedure can be overriden by ``next level'' script (which sources the original). This concept faciliates code
 reuse when basic target config files provide generic configuration procedures and @code{init_targets} procedure, which
 can then be sourced and enchanced or changed in a ``more specific'' target config file. This is not possible with
