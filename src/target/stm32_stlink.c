@@ -36,6 +36,7 @@
 #include "target_type.h"
 #include "armv7m.h"
 #include "cortex_m.h"
+#include "arm_semihosting.h"
 
 static inline struct stlink_interface_s *target_to_stlink(struct target *target)
 {
@@ -387,7 +388,12 @@ static int stm32_stlink_poll(struct target *target)
 	if (state == TARGET_HALTED) {
 		target->state = state;
 
-		stlink_debug_entry(target);
+		int retval = stlink_debug_entry(target);
+		if (retval != ERROR_OK)
+			return retval;
+
+		if (arm_semihosting(target, &retval) != 0)
+			return retval;
 
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		LOG_DEBUG("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
