@@ -5,7 +5,8 @@ noinst_LTLIBRARIES = libocdjtagdrivers.la
 libocdjtagdrivers_la_SOURCES = \
 	$(DRIVERFILES)
 
-nobase_dist_pkglib_DATA =
+ocddatadir = $(pkglibdir)
+nobase_dist_ocddata_DATA =
 
 ULINK_FIRMWARE = $(srcdir)/OpenULINK
 
@@ -74,7 +75,7 @@ DRIVERFILES += rlink.c rlink_speed_table.c
 endif
 if ULINK
 DRIVERFILES += ulink.c
-nobase_dist_pkglib_DATA += $(ULINK_FIRMWARE)/ulink_firmware.hex
+nobase_dist_ocddata_DATA += $(ULINK_FIRMWARE)/ulink_firmware.hex
 endif
 if VSLLINK
 DRIVERFILES += versaloon/usbtoxxx/usbtogpio.c

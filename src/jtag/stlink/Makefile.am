@@ -5,8 +5,6 @@ noinst_LTLIBRARIES = libocdstlink.la
 libocdstlink_la_SOURCES = \
 	$(STLINKFILES)
 
-nobase_dist_pkglib_DATA =
-
 STLINKFILES =
 
 if STLINK
