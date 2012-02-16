@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Mathias Kuester                                 *
+ *   Copyright (C) 2011-2012 by Mathias Kuester                            *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
  *   This code is based on https://github.com/texane/stlink                *
@@ -100,6 +100,7 @@ struct stlink_usb_handle_s {
 #define STLINK_DEV_MASS_MODE			0x01
 #define STLINK_DEV_DEBUG_MODE			0x02
 #define STLINK_DEV_SWIM_MODE			0x03
+#define STLINK_DEV_BOOTLOADER_MODE		0x04
 #define STLINK_DEV_UNKNOWN_MODE			-1
 
 #define STLINK_DFU_EXIT				0x07
@@ -540,6 +541,7 @@ static int stlink_usb_init_mode(void *handle)
 		case STLINK_DEV_SWIM_MODE:
 			emode = STLINK_MODE_DEBUG_SWIM;
 			break;
+		case STLINK_DEV_BOOTLOADER_MODE:
 		default:
 			emode = STLINK_MODE_UNKNOWN;
 			break;
@@ -777,7 +779,6 @@ static int stlink_usb_read_regs(void *handle)
 		h->txbuf[1] = STLINK_DEBUG_APIV1_READALLREGS;
 	else
 		h->txbuf[1] = STLINK_DEBUG_APIV2_READALLREGS;
-
 
 	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, h->rxbuf, 84);
 
