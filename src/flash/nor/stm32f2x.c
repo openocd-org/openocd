@@ -327,34 +327,43 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	/* see contrib/loaders/flash/stm32f2x.S for src */
 
-	static const uint16_t stm32x_flash_write_code_16[] = {
-		/* 00000000 <write>: */
-		0x4b07,				/* ldr		r3, [pc, #28] (20 <STM32_PROG16>) */
-		0x6123,				/* str		r3, [r4, #16] */
-		0xf830, 0x3b02,		/* ldrh.w	r3, [r0], #2 */
-		0xf821, 0x3b02,		/* strh.w	r3, [r1], #2 */
+	static const uint8_t stm32x_flash_write_code[] = {
+									/* wait_fifo: */
+		0xD0, 0xF8, 0x00, 0x80,		/* ldr		r8, [r0, #0] */
+		0xB8, 0xF1, 0x00, 0x0F,		/* cmp		r8, #0 */
+		0x1A, 0xD0,					/* beq		exit */
+		0x47, 0x68,					/* ldr		r7, [r0, #4] */
+		0x47, 0x45,					/* cmp		r7, r8 */
+		0xF7, 0xD0,					/* beq		wait_fifo */
 
-		/* 0000000c <busy>: */
-		0x68e3,				/* ldr		r3, [r4, #12] */
-		0xf413, 0x3f80,		/* tst.w	r3, #65536	; 0x10000 */
-		0xd0fb,				/* beq.n	c <busy> */
-		0xf013, 0x0ff0,		/* tst.w	r3, #240	; 0xf0 */
-		0xd101,				/* bne.n	1e <exit> */
-		0x3a01,				/* subs		r2, #1 */
-		0xd1f0,				/* bne.n	0 <write> */
-							/* 0000001e <exit>: */
-		0xbe00,				/* bkpt		0x0000 */
+		0xDF, 0xF8, 0x30, 0x60,		/* ldr		r6, STM32_PROG16 */
+		0x26, 0x61,					/* str		r6, [r4, #STM32_FLASH_CR_OFFSET] */
+		0x37, 0xF8, 0x02, 0x6B,		/* ldrh		r6, [r7], #0x02 */
+		0x22, 0xF8, 0x02, 0x6B,		/* strh		r6, [r2], #0x02 */
+									/* busy: */
+		0xE6, 0x68,					/* ldr		r6, [r4, #STM32_FLASH_SR_OFFSET] */
+		0x16, 0xF4, 0x80, 0x3F,		/* tst		r6, #0x10000 */
+		0xFB, 0xD1,					/* bne		busy */
+		0x16, 0xF0, 0xF0, 0x0F,		/* tst		r6, #0xf0 */
+		0x07, 0xD1,					/* bne		error */
 
-		/* 00000020 <STM32_PROG16>: */
-		0x0101, 0x0000,		/* .word	0x00000101 */
+		0x8F, 0x42,					/* cmp		r7, r1 */
+		0x28, 0xBF,					/* it		cs */
+		0x00, 0xF1, 0x08, 0x07,		/* addcs	r7, r0, #8 */
+		0x47, 0x60,					/* str		r7, [r0, #4] */
+		0x01, 0x3B,					/* subs		r3, r3, #1 */
+		0x13, 0xB1,					/* cbz		r3, exit */
+		0xE1, 0xE7,					/* b		wait_fifo */
+									/* error: */
+		0x00, 0x21,					/* movs		r1, #0 */
+		0x41, 0x60,					/* str		r1, [r0, #4] */
+									/* exit: */
+		0x30, 0x46,					/* mov		r0, r6 */
+		0x00, 0xBE,					/* bkpt		#0x00 */
+
+		/* <STM32_PROG16>: */
+		0x01, 0x01, 0x00, 0x00,		/* .word	0x00000101 */
 	};
-
-	/* Flip endian */
-	uint8_t stm32x_flash_write_code[sizeof(stm32x_flash_write_code_16)*2];
-	for (unsigned i = 0; i < sizeof(stm32x_flash_write_code_16) / 2; i++) {
-		stm32x_flash_write_code[i*2 + 0] = stm32x_flash_write_code_16[i] & 0xff;
-		stm32x_flash_write_code[i*2 + 1] = (stm32x_flash_write_code_16[i] >> 8) & 0xff;
-	}
 
 	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code),
 			&stm32x_info->write_algorithm) != ERROR_OK) {
@@ -385,38 +394,29 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
 
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
-	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
-	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN_OUT);
-	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);		/* buffer start, status (out) */
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);		/* buffer end */
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);		/* target address */
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);		/* count (halfword-16bit) */
+	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);		/* flash base */
 
-	while (count > 0) {
-		uint32_t thisrun_count = (count > (buffer_size / 2)) ?
-				(buffer_size / 2) : count;
+	buf_set_u32(reg_params[0].value, 0, 32, source->address);
+	buf_set_u32(reg_params[1].value, 0, 32, source->address + source->size);
+	buf_set_u32(reg_params[2].value, 0, 32, address);
+	buf_set_u32(reg_params[3].value, 0, 32, count);
+	buf_set_u32(reg_params[4].value, 0, 32, STM32_FLASH_BASE);
 
-		retval = target_write_buffer(target, source->address, thisrun_count * 2, buffer);
-		if (retval != ERROR_OK)
-			break;
+	retval = target_run_flash_async_algorithm(target, buffer, count, 2,
+			0, NULL,
+			5, reg_params,
+			source->address, source->size,
+			stm32x_info->write_algorithm->address, 0,
+			&armv7m_info);
 
-		buf_set_u32(reg_params[0].value, 0, 32, source->address);
-		buf_set_u32(reg_params[1].value, 0, 32, address);
-		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
-		/* R3 is a return value only */
-		buf_set_u32(reg_params[4].value, 0, 32, STM32_FLASH_BASE);
+	if (retval == ERROR_FLASH_OPERATION_FAILED) {
+		LOG_ERROR("error executing stm32x flash write algorithm");
 
-		retval = target_run_algorithm(target, 0, NULL,
-				sizeof(reg_params) / sizeof(*reg_params),
-				reg_params,
-				stm32x_info->write_algorithm->address,
-				0,
-				10000, &armv7m_info);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("error executing stm32x flash write algorithm");
-			break;
-		}
-
-		uint32_t error = buf_get_u32(reg_params[3].value, 0, 32) & FLASH_ERROR;
+		uint32_t error = buf_get_u32(reg_params[0].value, 0, 32) & FLASH_ERROR;
 
 		if (error & FLASH_WRPERR)
 			LOG_ERROR("flash memory write protected");
@@ -426,12 +426,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR, error);
 			retval = ERROR_FAIL;
-			break;
 		}
-
-		buffer += thisrun_count * 2;
-		address += thisrun_count * 2;
-		count -= thisrun_count;
 	}
 
 	target_free_working_area(target, source);

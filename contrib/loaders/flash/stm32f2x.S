@@ -21,43 +21,60 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-
-// Build : arm-eabi-gcc -c stm32f2xxx.S
 	.text
 	.syntax unified
 	.cpu cortex-m3
 	.thumb
 	.thumb_func
-	.global write
 
 /*
-	r0 - source address
-	r1 - target address
-	r2 - count (halfword-16bit)
-	r3 - result out
-	r4 - flash base
-*/
+ * Params :
+ * r0 = workarea start, status (out)
+ * r1 = workarea end
+ * r2 = target address
+ * r3 = count (16bit words)
+ * r4 = flash base
+ *
+ * Clobbered:
+ * r6 - temp
+ * r7 - rp
+ * r8 - wp, tmp
+ */
 
 #define STM32_FLASH_CR_OFFSET	0x10			/* offset of CR register in FLASH struct */
-#define STM32_FLASH_SR_OFFSET	0x0c			/* offset of CR register in FLASH struct */
+#define STM32_FLASH_SR_OFFSET	0x0c			/* offset of SR register in FLASH struct */
 
-write:
+wait_fifo:
+	ldr 	r8, [r0, #0]	/* read wp */
+	cmp 	r8, #0			/* abort if wp == 0 */
+	beq 	exit
+	ldr 	r7, [r0, #4]	/* read rp */
+	cmp 	r7, r8			/* wait until rp != wp */
+	beq 	wait_fifo
 
-write_half_word:
-	ldr		r3, STM32_PROG16
-	str		r3, [r4, #STM32_FLASH_CR_OFFSET]
-	ldrh 	r3, [r0], #0x02						/* read one half-word from src, increment ptr */
-	strh 	r3, [r1], #0x02						/* write one half-word from src, increment ptr */
+	ldr		r6, STM32_PROG16
+	str		r6, [r4, #STM32_FLASH_CR_OFFSET]
+	ldrh 	r6, [r7], #0x02						/* read one half-word from src, increment ptr */
+	strh 	r6, [r2], #0x02						/* write one half-word from src, increment ptr */
 busy:
-	ldr 	r3, [r4, #STM32_FLASH_SR_OFFSET]
-	tst 	r3, #0x10000						/* BSY (bit0) == 1 => operation in progress */
-	beq 	busy								/* wait more... */
-	tst		r3, #0xf0							/* PGSERR | PGPERR | PGAERR | WRPERR */
-	bne		exit								/* fail... */
-	subs	r2, r2, #0x01						/* decrement counter */
-	bne		write_half_word						/* write next half-word if anything left */
+	ldr 	r6, [r4, #STM32_FLASH_SR_OFFSET]
+	tst 	r6, #0x10000						/* BSY (bit16) == 1 => operation in progress */
+	bne 	busy								/* wait more... */
+	tst		r6, #0xf0							/* PGSERR | PGPERR | PGAERR | WRPERR */
+	bne		error								/* fail... */
+
+	cmp 	r7, r1			/* wrap rp at end of buffer */
+	it  	cs
+	addcs	r7, r0, #8		/* skip loader args */
+	str 	r7, [r0, #4]	/* store rp */
+	subs	r3, r3, #1		/* decrement halfword count */
+	cbz 	r3, exit		/* loop if not done */
+	b		wait_fifo
+error:
+	movs	r1, #0
+	str		r1, [r0, #4]	/* set rp = 0 on error */
 exit:
+	mov		r0, r6			/* return status in r0 */
 	bkpt	#0x00
 
-
-STM32_PROG16: .word 0x101 						/* PG | PSIZE_16*/
+STM32_PROG16: .word 0x101 	/* PG | PSIZE_16*/
