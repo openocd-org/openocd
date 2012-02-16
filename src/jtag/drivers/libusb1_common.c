@@ -74,7 +74,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 void jtag_libusb_close(jtag_libusb_device_handle *dev)
 {
 	/* Close device */
-	jtag_libusb_close(dev);
+	libusb_close(dev);
 
 	libusb_exit(jtag_libusb_context);
 }

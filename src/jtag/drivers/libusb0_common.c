@@ -64,7 +64,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 void jtag_libusb_close(jtag_libusb_device_handle *dev)
 {
 	/* Close device */
-	jtag_libusb_close(dev);
+	usb_close(dev);
 }
 
 int jtag_libusb_bulk_write(jtag_libusb_device_handle *dev, int ep, char *bytes,
