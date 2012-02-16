@@ -97,7 +97,7 @@ struct pic32mx_flash_bank {
 };
 
 /*
- * DEVID values as per PIC32MX Flash Programming Specification Rev H
+ * DEVID values as per PIC32MX Flash Programming Specification Rev J
  */
 
 static const struct pic32mx_devs_s {
@@ -110,12 +110,24 @@ static const struct pic32mx_devs_s {
 	{0x04A06053, "120F032B"},
 	{0x04A08053, "120F032C"},
 	{0x04A0A053, "120F032D"},
+	{0x04D07053, "130F064B"},
+	{0x04D09053, "130F064C"},
+	{0x04D0B053, "130F064D"},
+	{0x04D06053, "150F128B"},
+	{0x04D08053, "150F128C"},
+	{0x04D0A053, "150F128D"},
 	{0x04A01053, "210F016B"},
 	{0x04A03053, "210F016C"},
 	{0x04A05053, "210F016D"},
 	{0x04A00053, "220F032B"},
 	{0x04A02053, "220F032C"},
 	{0x04A04053, "220F032D"},
+	{0x04D01053, "230F064B"},
+	{0x04D03053, "230F064C"},
+	{0x04D05053, "230F064D"},
+	{0x04D00053, "250F128B"},
+	{0x04D02053, "250F128C"},
+	{0x04D04053, "250F128D"},
 	{0x00938053, "360F512L"},
 	{0x00934053, "360F256L"},
 	{0x0092D053, "340F128L"},
