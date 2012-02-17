@@ -461,7 +461,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	struct target *target = bank->target;
 	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
 	int i;
-	uint16_t flash_size;
+	uint16_t flash_size_in_kb;
 	uint32_t device_id;
 
 	stm32lx_info->probed = 0;
@@ -473,20 +473,27 @@ static int stm32lx_probe(struct flash_bank *bank)
 
 	LOG_DEBUG("device id = 0x%08" PRIx32 "", device_id);
 
-	if ((device_id & 0xfff) != 0x416) {
-		LOG_WARNING("Cannot identify target as a STM32L family.");
-		return ERROR_FAIL;
-	}
-
 	/* get flash size from target. */
-	retval = target_read_u16(target, F_SIZE, &flash_size);
+	retval = target_read_u16(target, F_SIZE, &flash_size_in_kb);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* check for valid flash size */
-	if (flash_size == 0xffff) {
-		/* number of sectors incorrect on revA */
-		LOG_ERROR("STM32 flash size failed, probe inaccurate");
+	if ((device_id & 0xfff) == 0x416) {
+		/* check for early silicon */
+		if (flash_size_in_kb == 0xffff) {
+			/* number of sectors may be incorrrect on early silicon */
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
+			flash_size_in_kb = 128;
+		}
+	} else if ((device_id & 0xfff) == 0x436) {
+		/* check for early silicon */
+		if (flash_size_in_kb == 0xffff) {
+			/* number of sectors may be incorrrect on early silicon */
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 384k flash");
+			flash_size_in_kb = 384;
+		}
+	} else {
+		LOG_WARNING("Cannot identify target as a STM32L family.");
 		return ERROR_FAIL;
 	}
 
@@ -494,8 +501,8 @@ static int stm32lx_probe(struct flash_bank *bank)
 	 * 16 pages for a protection area */
 
 	/* calculate numbers of sectors (4kB per sector) */
-	int num_sectors = (flash_size * 1024) / FLASH_SECTOR_SIZE;
-	LOG_INFO("flash size = %dkbytes", flash_size);
+	int num_sectors = (flash_size_in_kb * 1024) / FLASH_SECTOR_SIZE;
+	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
 	if (bank->sectors) {
 		free(bank->sectors);
@@ -503,7 +510,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	}
 
 	bank->base = FLASH_BANK0_ADDRESS;
-	bank->size = flash_size * 1024;
+	bank->size = flash_size_in_kb * 1024;
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_sectors);
 	if (bank->sectors == NULL) {
@@ -609,6 +616,33 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 			case 0x1008:
 				snprintf(buf, buf_size, "Y");
 				break;
+
+			case 0x1038:
+				snprintf(buf, buf_size, "W");
+				break;
+
+			case 0x1078:
+				snprintf(buf, buf_size, "V");
+				break;
+
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	} else if ((device_id & 0xfff) == 0x436) {
+		printed = snprintf(buf, buf_size, "stm32lx (HD) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+
+		switch (device_id >> 16) {
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
+				break;
+
+			case 0x1008:
+				snprintf(buf, buf_size, "Z");
+				break;
+
 			default:
 				snprintf(buf, buf_size, "unknown");
 				break;
