@@ -84,8 +84,8 @@ struct stlink_usb_handle_s {
 	enum stlink_jtag_api_version jtag_api;
 };
 
-#define STLINK_OK				0x80
-#define STLINK_FALSE				0x81
+#define STLINK_DEBUG_ERR_OK			0x80
+#define STLINK_DEBUG_ERR_FAULT			0x81
 #define STLINK_CORE_RUNNING			0x80
 #define STLINK_CORE_HALTED			0x81
 #define STLINK_CORE_STAT_UNKNOWN		-1
@@ -134,12 +134,19 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_READCOREID			0x22
 
 #define STLINK_DEBUG_APIV2_ENTER		0x30
-
+#define STLINK_DEBUG_APIV2_READ_IDCODES		0x31
 #define STLINK_DEBUG_APIV2_RESETSYS		0x32
 #define STLINK_DEBUG_APIV2_READREG		0x33
 #define STLINK_DEBUG_APIV2_WRITEREG		0x34
 
 #define STLINK_DEBUG_APIV2_READALLREGS		0x3A
+
+#define STLINK_DEBUG_APIV2_DRIVE_NRST		0x3C
+
+#define STLINK_DEBUG_APIV2_DRIVE_NRST_LOW	0x00
+#define STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH	0x01
+#define STLINK_DEBUG_APIV2_DRIVE_NRST_PULSE	0x02
+
 /** */
 enum stlink_mode {
 	STLINK_MODE_UNKNOWN = 0,
@@ -352,7 +359,44 @@ static void stlink_usb_init_buffer(void *handle)
 
 	h = (struct stlink_usb_handle_s *)handle;
 
-	memset(h->txbuf, 0, STLINK_CMD_SIZE);
+	memset(h->txbuf, 0, STLINK_TX_SIZE);
+	memset(h->rxbuf, 0, STLINK_RX_SIZE);
+}
+
+static const char * const stlink_usb_error_msg[] = {
+	"unknown"
+};
+
+/** */
+static int stlink_usb_error_check(void *handle)
+{
+	int res;
+	const char *err_msg = 0;
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	/* TODO: no error checking yet on api V1 */
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->rxbuf[0] = STLINK_DEBUG_ERR_OK;
+
+	switch (h->rxbuf[0]) {
+		case STLINK_DEBUG_ERR_OK:
+			res = ERROR_OK;
+			break;
+		case STLINK_DEBUG_ERR_FAULT:
+		default:
+			err_msg = stlink_usb_error_msg[0];
+			res = ERROR_FAIL;
+			break;
+	}
+
+	if (res != ERROR_OK)
+		LOG_DEBUG("status error: %d ('%s')", h->rxbuf[0], err_msg);
+
+	return res;
 }
 
 /** */
@@ -431,6 +475,7 @@ static int stlink_usb_current_mode(void *handle, uint8_t *mode)
 static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 {
 	int res;
+	int rx_size = 0;
 	struct stlink_usb_handle_s *h;
 
 	assert(handle != NULL);
@@ -466,11 +511,21 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 			return ERROR_FAIL;
 	}
 
-	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, 0, 0);
+	/* on api V2 we are able the read the latest command
+	 * status
+	 * TODO: we need the test on api V1 too
+	 */
+	if (h->jtag_api == STLINK_JTAG_API_V2)
+		rx_size = 2;
+
+	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, h->rxbuf, rx_size);
+
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	res = stlink_usb_error_check(h);
+
+	return res;
 }
 
 /** */
@@ -505,6 +560,7 @@ static int stlink_usb_mode_leave(void *handle, enum stlink_mode type)
 	}
 
 	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, 0, 0);
+
 	if (res != ERROR_OK)
 		return res;
 
@@ -542,6 +598,7 @@ static int stlink_usb_init_mode(void *handle)
 			emode = STLINK_MODE_DEBUG_SWIM;
 			break;
 		case STLINK_DEV_BOOTLOADER_MODE:
+		case STLINK_DEV_MASS_MODE:
 		default:
 			emode = STLINK_MODE_UNKNOWN;
 			break;
